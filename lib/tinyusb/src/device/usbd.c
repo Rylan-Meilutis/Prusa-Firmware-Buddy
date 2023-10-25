@@ -515,6 +515,8 @@ bool tud_remote_wakeup(void) {
 
 bool tud_disconnect(void) {
   dcd_disconnect(_usbd_rhport);
+  if (_usbd_dev.connected)
+      dcd_event_bus_signal(0, DCD_EVENT_UNPLUGGED, false);
   return true;
 }
 
