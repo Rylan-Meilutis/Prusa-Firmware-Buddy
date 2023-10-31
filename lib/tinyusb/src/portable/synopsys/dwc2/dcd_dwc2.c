@@ -515,6 +515,10 @@ void dcd_int_enable(uint8_t rhport) {
   dwc2_dcd_int_enable(rhport);
 }
 
+bool dcd_int_enabled (uint8_t rhport) {
+  return dwc2_dcd_int_enabled(rhport);
+}
+
 void dcd_int_disable(uint8_t rhport) {
   dwc2_dcd_int_disable(rhport);
 }
@@ -546,6 +550,9 @@ void dcd_remote_wakeup(uint8_t rhport) {
 }
 
 void dcd_connect(uint8_t rhport) {
+  bool int_enabled = dcd_int_enabled(rhport);
+  dcd_int_disable(rhport);
+
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
 
 #if defined(TUP_USBIP_DWC2_ESP32) && !TU_CHECK_MCU(OPT_MCU_ESP32S31)
@@ -563,9 +570,15 @@ void dcd_connect(uint8_t rhport) {
 #endif
 
   dwc2->dctl &= ~DCTL_SDIS;
+
+  if (int_enabled)
+    dcd_int_enable(rhport);
 }
 
 void dcd_disconnect(uint8_t rhport) {
+  bool int_enabled = dcd_int_enabled(rhport);
+  dcd_int_disable(rhport);
+
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
 
 #if defined(TUP_USBIP_DWC2_ESP32) && !TU_CHECK_MCU(OPT_MCU_ESP32S31)
@@ -583,6 +596,9 @@ void dcd_disconnect(uint8_t rhport) {
 #endif
 
   dwc2->dctl |= DCTL_SDIS;
+
+  if (int_enabled)
+    dcd_int_enable(rhport);
 }
 
 bool dcd_connected(uint8_t rhport)

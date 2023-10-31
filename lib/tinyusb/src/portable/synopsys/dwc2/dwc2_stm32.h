@@ -178,6 +178,10 @@ TU_ATTR_ALWAYS_INLINE static inline void dwc2_int_set(uint8_t rhport, tusb_role_
   }
 }
 
+TU_ATTR_ALWAYS_INLINE static inline bool dwc2_dcd_int_enabled(uint8_t rhport) {
+  return NVIC_GetEnableIRQ((IRQn_Type) _dwc2_controller[rhport].irqnum);
+}
+
 #define dwc2_dcd_int_enable(_rhport)  dwc2_int_set(_rhport, TUSB_ROLE_DEVICE, true)
 #define dwc2_dcd_int_disable(_rhport) dwc2_int_set(_rhport, TUSB_ROLE_DEVICE, false)
 
