@@ -654,6 +654,9 @@ static void configuration_reset(uint8_t rhport) {
     driver->reset(rhport);
   }
 
+  // close all non-control endpoints, cancel all pending transfers if any
+  dcd_edpt_close_all(rhport);
+
   tu_varclr(&_usbd_dev);
   (void)memset(_usbd_dev.itf2drv, TUSB_INDEX_INVALID_8, sizeof(_usbd_dev.itf2drv)); // invalid mapping
   (void)memset(_usbd_dev.ep2drv, TUSB_INDEX_INVALID_8, sizeof(_usbd_dev.ep2drv));   // invalid mapping
@@ -990,7 +993,6 @@ static bool process_std_device_request(uint8_t rhport, tusb_control_request_t co
           TU_LOG_USBD("  Clear current Configuration (%u) before switching\r\n", _usbd_dev.cfg_num);
 
           dcd_sof_enable(rhport, false);
-          dcd_edpt_close_all(rhport);
 
           // close all drivers and current configured state except bus speed
           const uint8_t speed = _usbd_dev.speed;
