@@ -220,6 +220,8 @@ uint32_t tud_cdc_n_write(uint8_t itf, const void* buffer, uint32_t bufsize) {
 
 uint32_t tud_cdc_n_write_flush(uint8_t itf) {
   TU_VERIFY(itf < CFG_TUD_CDC, 0);
+  // Skip if cdc is not ready yet
+  TU_VERIFY(tud_cdc_n_connected(itf), 0);
   cdcd_interface_t *p_cdc = &_cdcd_itf[itf];
   return tu_edpt_stream_write_xfer(&p_cdc->tx_stream);
 }
