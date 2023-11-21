@@ -433,16 +433,11 @@ bool cdcd_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_requ
         bool const dtr = tu_bit_test(request->wValue, 0);
         bool const rts = tu_bit_test(request->wValue, 1);
 
+        // Any line-state change implies the host is active: switch TX FIFO back to blocking mode.
+        // (Don't gate on DTR — suspend events aren't always delivered.)
+        tu_fifo_set_overwritable(&p_cdc->tx_stream.ff, false);
         p_cdc->line_state = (uint8_t) request->wValue;
 
-        // If enabled: fifo overwriting is disabled if DTR bit is set and vice versa
-  #if CFG_TUD_CDC_TX_OVERWRITABLE_IF_NOT_CONNECTED
-        const bool is_overwritable = !dtr;
-  #else
-        const bool is_overwritable = false;
-  #endif
-
-        tu_fifo_set_overwritable(&p_cdc->tx_stream.ff, is_overwritable);
         TU_LOG_DRV("  Set Control Line State: DTR = %d, RTS = %d\r\n", dtr, rts);
         tud_cdc_line_state_cb(itf, dtr, rts); // invoke callback
       } else {
@@ -477,6 +472,9 @@ bool cdcd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result, uint32_
   cdcd_interface_t *p_cdc     = &_cdcd_itf[itf];
   tu_edpt_stream_t *stream_rx = &p_cdc->rx_stream;
   tu_edpt_stream_t *stream_tx = &p_cdc->tx_stream;
+
+  // Reset TX non-blocking state on any endpoint XFER activity (meaning host is active)
+  tu_fifo_set_overwritable(&p_cdc->tx_stream.ff, false);
 
   // Received new data, move to fifo
   if (ep_addr == stream_rx->ep_addr) {
