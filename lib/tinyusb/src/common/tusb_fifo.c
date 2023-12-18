@@ -104,6 +104,11 @@ void tu_fifo_set_overwritable(tu_fifo_t *f, bool overwritable) {
   ff_unlock(f->mutex_rd);
 }
 
+// Check whether the fifo is in overwrite mode
+bool tu_fifo_is_overwritable(const tu_fifo_t *f) {
+  return f->overwritable;
+}
+
 //--------------------------------------------------------------------+
 // Hardware FIFO API
 // Support different data access width and address increment scheme

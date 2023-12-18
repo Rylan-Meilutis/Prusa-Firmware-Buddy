@@ -165,6 +165,7 @@ typedef struct {
 //--------------------------------------------------------------------+
 bool tu_fifo_config(tu_fifo_t *f, void *buffer, uint16_t depth, bool overwritable);
 void tu_fifo_set_overwritable(tu_fifo_t *f, bool overwritable);
+bool tu_fifo_is_overwritable(const tu_fifo_t *f);
 void tu_fifo_clear(tu_fifo_t *f);
 
 #if OSAL_MUTEX_REQUIRED
