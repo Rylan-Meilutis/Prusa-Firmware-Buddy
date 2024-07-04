@@ -106,7 +106,6 @@ static bool reduce_display_baudrate = false;
 osThreadId ili9488_task_handle = 0;
 
 #define ILI9488_SIG_SPI_TX 0x0008
-#define ILI9488_SIG_SPI_RX 0x0008
 
 uint8_t ili9488_buff[ILI9488_COLS * 3 * ILI9488_BUFF_ROWS]; // 3 bytes for pixel color
 bool ili9488_buff_borrowed = false; ///< True if buffer is borrowed by someone else
@@ -784,10 +783,6 @@ void ili9488_enable_safe_mode(void) {
 
 void ili9488_spi_tx_complete(void) {
     osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_TX);
-}
-
-void ili9488_spi_rx_complete(void) {
-    osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_RX);
 }
 
 void ili9488_cmd_nop() {

@@ -578,13 +578,6 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
-
-#if HAS_GUI()
-    if (hspi == spi_handle_lcd) {
-        display::spi_rx_complete();
-    }
-#endif
-
     if (hspi == spi_handle_flash) {
         SpiFlashBus::instance().on_rx_complete();
     }

@@ -218,22 +218,7 @@ void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
 }
 
 void st7789v_spi_rd_bytes(uint8_t *pb, uint16_t size) {
-#if 0
-    // #error dead code found by automatic analyses (see BFW-5461)
-//#ifdef ST7789V_DMA
-    if (size <= 4)
-        HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
-    else
-    {
-        osSignalSet(0, ST7789V_SIG_SPI_TX);
-        osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
-        assert(can_be_used_by_dma(pb));
-        HAL_SPI_Receive_DMA(spi_handle_lcd, pb, size);
-        osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
-    }
-#else // ST7789V_DMA
     HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
-#endif // ST7789V_DMA
 }
 
 void st7789v_cmd(uint8_t cmd, uint8_t *pdata, uint16_t size) {
