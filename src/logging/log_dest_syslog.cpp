@@ -55,12 +55,15 @@ void syslog_reconfigure() {
 }
 
 void syslog_format_event(FormattedEvent *event, void (*out_fn)(char character, void *arg), void *arg) {
+    static uint32_t message_id = 0;
     const int facility = 1; // user level message
     int severity = log_severity_to_syslog_severity(event->severity);
     int priority = facility * 8 + severity;
     auto hostname = otp_get_mac_address_str();
     const char *appname = "buddy";
-    fctprintf(out_fn, arg, "<%i>1 - %s %s %s - - %s", priority, hostname.data(), appname, event->component->name, event->message);
+    uint64_t tm = event->timestamp.sec * 1000000 + event->timestamp.us;
+    // 64164 is an IANA-assigned Private Enterprise Number as per RFC 5424
+    fctprintf(out_fn, arg, "<%i>1 - %s %s %s - [metrics@64164 v=\"5\" msg=\"%" PRIu32 "\" tm=\"%" PRIu64 "\"] %s", priority, hostname.data(), appname, event->component->name, message_id++, tm, event->message);
 }
 
 void syslog_log_event(FormattedEvent *event) {
@@ -71,7 +74,7 @@ void syslog_log_event(FormattedEvent *event) {
     }
 
     // prepare the message
-    static char buffer[128];
+    static char buffer[200];
     buffer_output_state_t buffer_state = {
         .data = buffer,
         .len = sizeof(buffer),
