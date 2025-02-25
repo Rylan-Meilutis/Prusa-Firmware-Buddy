@@ -27,8 +27,6 @@
 
 LOG_COMPONENT_REF(Bootloader);
 
-#define fatal_error(msg) bsod(msg)
-
 using Version = buddy::bootloader::Version;
 using buddy::BootstrapStage;
 
@@ -177,7 +175,7 @@ static void copy_bootloader_to_flash(FILE *bootloader_bin, ProgressCallback prog
             }
             uint32_t expected_preboot_crc = 0;
             if (!calculate_file_crc(bootloader_bin, bootloader_sector_get_size(0), expected_preboot_crc)) {
-                fatal_error("expected preboot crc calculation failed");
+                bsod("expected preboot crc calculation failed");
             }
 
             uint32_t current_preboot_crc = crc32_calc(reinterpret_cast<const uint8_t *>(bootloader_sector_get_address(0)), bootloader_sector_get_size(0));
@@ -199,13 +197,13 @@ static void copy_bootloader_to_flash(FILE *bootloader_bin, ProgressCallback prog
 
         // seek at the sector in the file
         if (fseek(bootloader_bin, bootloader_sector_get_address(sector) - bootloader_sector_get_address(0), SEEK_SET) != 0) {
-            fatal_error("bootloader update: failed to seek sector");
+            bsod("bootloader update: failed to seek sector");
         }
 
         // erase the sector
         HAL_FLASH_Unlock();
         if (!flash_erase_sector(sector)) {
-            fatal_error("bootloader update: failed to erase sector");
+            bsod("bootloader update: failed to erase sector");
         }
 
         // program the sector
@@ -222,7 +220,7 @@ static void copy_bootloader_to_flash(FILE *bootloader_bin, ProgressCallback prog
         HAL_FLASH_Lock();
 
         if (!flash_successful) {
-            fatal_error("bootloader update: failed to flash sector");
+            bsod("bootloader update: failed to flash sector");
         }
 
         log_info(Bootloader, "Sector %i flashed successfully", sector);
@@ -263,7 +261,7 @@ void buddy::bootloader::update() {
     unique_file_ptr bootloader_bin(fopen("/internal/res/bootloader.bin", "rb"));
     if (bootloader_bin.get() == nullptr) {
         log_critical(Bootloader, "bootloader.bin failed to fopen() after its bootstrap");
-        fatal_error("bootloader.bin failed to open");
+        bsod("bootloader.bin failed to open");
     }
 
     bootstrap_state_set(calc_percent_done(100, 0), BootstrapStage::preparing_update);
