@@ -26,9 +26,18 @@ set(BOARD_VALID_OPTS
     "MODULARBED"
     "XL_DEV_KIT_XLB"
     "XBUDDY_EXTENSION"
+    "ANFC"
+    "ANFC_H5" # temporary dev only
     )
-set(MCU_VALID_OPTS "<default>" "STM32F407VG" "STM32F429VI" "STM32F427ZI" "STM32G070RBT6"
-                   "STM32H503CBU7"
+set(MCU_VALID_OPTS
+    "<default>"
+    "STM32F407VG"
+    "STM32F429VI"
+    "STM32F427ZI"
+    "STM32G070RBT6"
+    "STM32H503CBU7"
+    "STM32H503KBU7" # dev only
+    "STM32C092RTCX" # temporray until we have real HW
     )
 set(BOOTLOADER_VALID_OPTS "NO" "EMPTY" "YES")
 set(TRANSLATIONS_ENABLED_VALID_OPTS "<default>" "NO" "YES")
@@ -165,6 +174,10 @@ if(${MCU} STREQUAL "<default>")
     set(MCU "STM32G070RBT6")
   elseif(${BOARD} STREQUAL "XBUDDY_EXTENSION")
     set(MCU "STM32H503CBU7")
+  elseif(${BOARD} STREQUAL "ANFC")
+    set(MCU "STM32C092RTCX")
+  elseif(${BOARD} STREQUAL "ANFC_H5")
+    set(MCU "STM32H503KBU7")
   else()
     message(FATAL_ERROR "Don't know what MCU to set as default for this board/version")
   endif()

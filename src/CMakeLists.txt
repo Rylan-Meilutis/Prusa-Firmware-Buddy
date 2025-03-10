@@ -91,6 +91,8 @@ elseif(BOARD STREQUAL "XBUDDY_EXTENSION")
   add_subdirectory(freertos)
   add_subdirectory(puppy/xbuddy_extension_shared)
   add_subdirectory(puppy/xbuddy_extension)
+elseif(BOARD STREQUAL "ANFC" OR BOARD STREQUAL "ANFC_H5")
+  add_subdirectory(puppy/anfc)
 elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_include_directories(firmware PRIVATE .)
 

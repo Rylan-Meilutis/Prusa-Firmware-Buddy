@@ -25,6 +25,8 @@ elseif(MCU MATCHES "STM32H5")
     Source/portable/GCC/ARM_CM33_NTZ/non_secure/mpu_wrappers_v2_asm.c
     Source/portable/Common/mpu_wrappers_v2.c
     )
+elseif(MCU MATCHES "STM32C0")
+  message(WARNING "Missing FreeRTOS configuration for STM32C0 MCUs")
 else()
   message(FATAL_ERROR "Unknown HW platform of mcu \"${MCU}\"")
 endif()

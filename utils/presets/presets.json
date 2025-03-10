@@ -193,6 +193,22 @@
                 "PRINTER": "COREONE",
                 "BOARD": "XBUDDY_EXTENSION"
             }
+        },
+        {
+            "name": "anfc-h5",
+            "description": "Firmware for NFC addon",
+            "cacheVariables": {
+                "PRINTER": "NONE",
+                "BOARD": "ANFC_H5"
+            }
+        },
+        {
+            "name": "anfc",
+            "description": "Firmware for NFC addon",
+            "cacheVariables": {
+                "PRINTER": "NONE",
+                "BOARD": "ANFC"
+            }
         }
     ]
 }

@@ -125,6 +125,11 @@ elseif(MCU MATCHES "STM32H5")
     BuddyHeaders BEFORE INTERFACE include/stm32h5_hal include/device/stm32h5
     )
   target_link_libraries(BuddyHeaders INTERFACE STM32H5::HAL STM32H5xx::CMSIS)
+elseif(MCU MATCHES "STM32C0")
+  target_include_directories(
+    BuddyHeaders BEFORE INTERFACE include/stm32c0_hal include/device/stm32c0
+    )
+  target_link_libraries(BuddyHeaders INTERFACE STM32C0::HAL STM32C0xx::CMSIS)
 else()
   message(FATAL_ERROR "Undefined HAL for ${MCU}")
 endif()
@@ -190,6 +195,8 @@ elseif(MCU MATCHES "STM32G0")
   target_compile_definitions(BuddyHeaders INTERFACE STM32GENERIC STM32G0 STM32G0xx)
 elseif(MCU MATCHES "STM32H5")
   target_compile_definitions(BuddyHeaders INTERFACE STM32GENERIC STM32H5 STM32H5xx)
+elseif(MCU MATCHES "STM32C0")
+  target_compile_definitions(BuddyHeaders INTERFACE STM32GENERIC STM32C0 STM32C0xx)
 else()
   message(FATAL_ERROR "Undefined macros for ${MCU}")
 endif()
@@ -256,6 +263,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(MCU MATCHES "STM32F40"
      OR MCU MATCHES "STM32G0"
      OR MCU MATCHES "STM32H5"
+     OR MCU MATCHES "STM32C0"
      OR PRINTER STREQUAL "MK4"
      OR PRINTER STREQUAL "MK3.5"
      OR PRINTER STREQUAL "XL"
@@ -277,7 +285,7 @@ if(CMAKE_CROSSCOMPILING)
   set(MCU_FLAGS -mthumb)
   if(MCU MATCHES "STM32F4")
     list(APPEND MCU_FLAGS -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16)
-  elseif(MCU MATCHES "STM32G0")
+  elseif(MCU MATCHES "STM32G0" OR MCU MATCHES "STM32C0")
     list(APPEND MCU_FLAGS -mcpu=cortex-m0plus -mfloat-abi=soft)
   elseif(MCU MATCHES "STM32H5")
     list(APPEND MCU_FLAGS -mcpu=cortex-m33 -mfloat-abi=hard -mfpu=fpv5-sp-d16)
@@ -617,6 +625,8 @@ elseif(BOARD STREQUAL "MODULARBED")
     firmware PRIVATE BuddyHeaders CrashCatcher error_codes freertos printf::printf
     )
 elseif(BOARD STREQUAL "XBUDDY_EXTENSION")
+  # let us manage the libraries where needed, not globally
+elseif(BOARD STREQUAL "ANFC_H5" OR BOARD STREQUAL "ANFC")
   # let us manage the libraries where needed, not globally
 elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_link_libraries(
