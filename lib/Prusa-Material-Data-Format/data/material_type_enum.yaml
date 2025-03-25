@@ -1,0 +1,43 @@
+- key: 0
+  name: PLA
+
+- key: 1
+  name: PETG
+
+- key: 2
+  name: ASA
+
+- key: 3
+  name: ABS
+
+- key: 4
+  name: FLEX
+  description: Any flexible material (TPU/...)
+
+- key: 5
+  name: PC
+  description: Polycarbonate
+
+- key: 6
+  name: PP
+  description: Polypropylene
+
+- key: 7
+  name: PA
+  description: Polyamide (nylon)
+
+- key: 8
+  name: HIPS
+  description: High impact polystyrene
+
+- key: 9
+  name: CPE
+  description: Copolyester
+
+- key: 10
+  name: PVA
+  description: Polyvinyl alcohol (water-soluble)
+
+- key: 11
+  name: other
+  description: Filaments not matching other 

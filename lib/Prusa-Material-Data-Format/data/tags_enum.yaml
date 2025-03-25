@@ -1,0 +1,79 @@
+- key: 0
+  name: matte
+  description: Matte color (not glossy)
+
+- key: 1
+  name: silk
+  description: Glossy, smooth
+
+- key: 2
+  name: pearl
+  description: Very glossy, metallic-like, smooth, shiny
+
+- key: 3
+  name: pastel
+  description: Soft, muted color
+
+- key: 4
+  name: translucent
+  description: Not fully opaque
+
+- key: 5
+  name: mystic
+  description:
+    - Changes color based on viewing angle
+    - Do not confuse with `multicolor`
+
+- key: 6
+  name: glitter
+  description: Contains glittery particles
+
+- key: 7
+  name: carbon_fiber
+  description: Contains carbon fibers
+
+- key: 8
+  name: glow
+  description: Glows in the dark
+
+- key: 9
+  name: multicolor
+  description:
+    - Co-extruded from multiple colors
+    - Do not confuse with `rainbow` and `mystic`
+
+- key: 10
+  name: dual_color
+  description: Co-extruded from two colors
+
+- key: 11
+  name: triple_color
+  description: Co-extruded from three colors
+
+- key: 12
+  name: rainbow
+  description: Transitions between colors as the filament is extruded
+
+- key: 13
+  name: wood
+  description: Imitates wood
+
+- key: 14
+  name: metal
+  description: Imitates metal
+
+- key: 15
+  name: marble
+  description: Imitates marble
+
+- key: 16
+  name: requires_filtration
+  description: Relases unsafe particles/fumes during printing and requires a HEPA filter
+
+- key: 17
+  name: abrasive
+  description: Filament requires abrasive resistant nozzle
+
+- key: 18
+  name: flexible
+  description: The filament is flexible, might require special care for extrusion/retractions, different ramming, ...

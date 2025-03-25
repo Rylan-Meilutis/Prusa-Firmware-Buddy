@@ -1,0 +1,5 @@
+- key: 0
+  name: consumed_material
+  type: number
+  unit: g
+  description: Amount of material that was used up from the container

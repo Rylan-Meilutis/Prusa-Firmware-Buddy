@@ -1,0 +1,219 @@
+- key: 0
+  name: uid
+  type: number
+  description: UID of the package instance. If not provided, UID of the NFC tag is used.
+
+- key: 1
+  name: material_class
+  type: enum
+  required: true
+  description: Type of the material
+  example: FFF
+  items_file: material_class_enum.yaml
+
+- key: 2
+  name: material_type
+  type: enum
+  required: true
+  items_file: material_type_enum.yaml
+  example: PLA
+
+- key: 3
+  name: brand
+  type: string
+  max_length: 31
+  required: true
+  description: Brand of the material
+  example: Prusament
+
+- key: 28
+  name: brand_specific_material_id
+  type: int
+  requried: true
+  description:
+    - Together with brand uniquely identifies each material
+
+- key: 4
+  name: material_name
+  type: string
+  max_length: 31
+  example: PLA Galaxy Black
+  description:
+    - Brand-specific material display string/identifier.
+    - In the UI, brand + name should be displayed together, for example "Prusament PLA Galaxy Black"
+
+- key: 5
+  name: brand_config_version
+  type: int
+  description:
+    - Brands can possible have multiple signature keys and other utility things. This field is an index to a brand-specific array of such configurations.
+    - If not present, `0` is assumed
+
+- key: 6
+  name: is_signed
+  type: bool
+  description:
+    - If true, denotes that the main section is signed.
+    - The signature key is to be dediced from the combination of `brand` and `brand_config_version`
+
+- key: 7
+  name: manufactured_date
+  type: timestamp
+  required: recommended
+
+- key: 8
+  name: expiration_date
+  type: timestamp
+
+- key: 9
+  name: netto_full_weight
+  required: true
+  type: number
+  unit: g
+  example: 1000
+  description: Weight of the full package of the material, excluding the container
+
+- key: 10
+  name: empty_container_weight
+  required: recommended
+  type: number
+  unit: g
+  description: Weight of the empty container
+
+- key: 11
+  name: color_rgb
+  type: int
+  required: true
+  unit: 0xRRGGBB
+  example: "0xFF0000"
+  description:
+    - Color of the material in the RGB format.
+    - For UI purposes
+
+- key: 12
+  name: color_ral
+  type: string
+  max_length: 15
+  example: "200 20 10"
+  description:
+    - Color of the material in the RAL format.
+    - The stored value is without the "RAL " prefix.
+
+- key: 13
+  name: color_pantone
+  type: string
+  max_length: 15
+  example: "3574 U"
+  description:
+    - Color of the material in the Pantone format.
+    - The stored value is without the "Pantone " prefix.
+
+- key: 14
+  name: transmission_distance
+  type: number
+  example: 6.6
+  unit: HueForge TD
+  description:
+    - Transmission Distance is a number representing material opacity. Value ranges from 0.1 (least transparent/most opaque) to 100 (most transparent/least opaque)
+    - See [Prusa TD values](https://help.prusa3d.com/article/hueforge-filament-transparency-values-and-hexcodes_762314) or [HueForge website](https://shop.thehueforge.com/blogs/news/what-is-hueforge).
+
+- key: 15
+  name: tags
+  type: enum_array
+  items_file: tags_enum.yaml
+  example: "glitter + dual_color"
+  description: Properties of the material. Can have multiple tags at once.
+
+- key: 16
+  name: density
+  type: number
+  unit: mg/cm³
+  example: 1240
+  description: Density of the material
+
+- key: 17
+  name: filament_diameter
+  type: number
+  unit: mm
+  example: 2.75
+  category: fff
+  description:
+    - Diameter of the filament, in mm.
+    - If not present, 1.75 mm is assumed.
+
+# Removed 18
+
+# Removed 19
+
+- key: 20
+  name: min_nozzle_diameter
+  type: number
+  example: 0.4
+  category: fff
+  description:
+    - Filaments can contain particles that would clog smaller nozzles.
+    - This field specifies minimum nozzle diameter recommended for printing this material.
+
+- key: 21
+  name: print_temperature
+  type: int
+  unit: °C
+  example: 210
+  category: fff
+  description:
+    - Recommended nozzle tempeature for printing.
+
+- key: 22
+  name: preheat_temperature
+  type: int
+  unit: °C
+  example: 170
+  category: fff
+  description:
+    - Recommended nozzle tempeature for preheating/loadcell bed leveling.
+    - Should be large enough for the material to get soft, but not low enough for it no to drip out of the nozzle.
+
+- key: 23
+  name: bed_temperature
+  type: int
+  unit: °C
+  example: 60
+  category: fff
+  description:
+    - Recommended heatbed tempeature.
+
+- key: 24
+  name: min_chamber_temperature
+  type: int
+  unit: °C
+  example: 10
+  category: fff
+  description:
+    - Minimum recommended temperature of the chamber.
+
+- key: 25
+  name: max_chamber_temperature
+  type: int
+  unit: °C
+  example: 50
+  category: fff
+  description:
+    - Maximum recommended temperature of the chamber.
+
+- key: 26
+  name: chamber_temperature
+  type: int
+  unit: °C
+  example: 20
+  category: fff
+  description:
+    - Ideal chamber temperature for printing.
+
+- key: 27
+  name: container_width
+  type: int
+  unit: mm
+  example: 75
+  category: fff
+  description:
+    - Width of the filament spool. Can be useful to know for spool holders, dryboxes and such.
