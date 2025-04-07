@@ -1,4 +1,5 @@
 #include <sys/reent.h>
+#include <sys/stat.h>
 
 #include "hal.h"
 
@@ -26,6 +27,15 @@ int __attribute__((used)) _kill_r(struct _reent *, int, int) {
 int __attribute__((used)) _getpid_r(struct _reent *) {
     hal_panic();
 }
+
+int _fstat(int, struct stat *) {
+    hal_panic();
+}
+
+int _isatty(int) {
+    hal_panic();
+}
+
 #elifdef STM32C0
 int _close(struct _reent *, int) {
     hal_panic();
