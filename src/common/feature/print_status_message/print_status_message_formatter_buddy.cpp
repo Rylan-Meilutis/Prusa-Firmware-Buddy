@@ -1,7 +1,9 @@
 #include "print_status_message_formatter_buddy.hpp"
 
-#include <buddy/unreachable.hpp>
 #include <option/has_translations.h>
+
+#include <buddy/unreachable.hpp>
+#include <utils/string_builder.hpp>
 
 using Message = PrintStatusMessage;
 
@@ -20,12 +22,18 @@ static constexpr EnumArray<Message::Type, const char *, Message::Type::_cnt> mes
         { Message::Type::waiting_for_hotend_temp, N_("Waiting for hotend") },
         { Message::Type::waiting_for_bed_temp, N_("Waiting for bed") },
 
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+        { Message::Type::nozzle_cleaning, N_("Nozzle cleaning") },
+#endif
 #if ENABLED(PRUSA_SPOOL_JOIN)
         { Message::Type::spool_joined, N_("Spool joined") },
         { Message::Type::joining_spool, N_("Joining spool") },
 #endif
 #if HAS_CHAMBER_API()
         { Message::Type::waiting_for_chamber_temp, N_("Waiting for chamber") },
+#endif
+#if HAS_AUTO_RETRACT()
+        { Message::Type::auto_retracting, N_("Auto-retracting filament") },
 #endif
 };
 
@@ -39,6 +47,21 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
     }
 
     switch (msg.type) {
+
+    case Message::Type::homing:
+    case Message::Type::recalibrating_home:
+#if ENABLED(PRUSA_SPOOL_JOIN)
+    case Message::Type::spool_joined:
+    case Message::Type::joining_spool:
+#endif
+#if HAS_AUTO_RETRACT()
+    case Message::Type::auto_retracting:
+#endif
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+    case Message::Type::nozzle_cleaning:
+#endif
+        // No extra data to show
+        break;
 
     case Message::Type::custom: {
         const auto d = std::get<PrintStatusMessageDataCustom>(msg.data);
@@ -80,7 +103,8 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
         break;
     }
 
-    default:
+    case Message::Type::none:
+    case Message::Type::_cnt:
         break;
     }
 }

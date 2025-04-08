@@ -10,11 +10,11 @@
 #include "window_dlg_wait.hpp"
 #include "window_dlg_warning.hpp"
 #include <screen_network_setup.hpp>
-#include <screen_fan_selftest.hpp>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_phase_stepping.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_coldpull.h>
+#include <option/has_door_sensor_calibration.h>
 #include <gui/screen/screen_preheat.hpp>
 
 #if HAS_COLDPULL()
@@ -22,24 +22,17 @@
 #endif
 
 #if HAS_SELFTEST()
+    #include <screen_fan_selftest.hpp>
     #include "ScreenSelftest.hpp"
 #endif
 
 #if ENABLED(CRASH_RECOVERY)
     #include "screen_crash_recovery.hpp"
-using CrashRecovery = ScreenCrashRecovery;
-#else
-    #include "screen_dialog_does_not_exist.hpp"
-using CrashRecovery = ScreenDialogDoesNotExist;
 #endif
 
 #include <option/has_serial_print.h>
 #if HAS_SERIAL_PRINT()
     #include "screen_printing_serial.hpp"
-using SerialPrint = screen_printing_serial_data_t;
-#else
-    #include "screen_dialog_does_not_exist.hpp"
-using SerialPrint = ScreenDialogDoesNotExist;
 #endif
 
 #if HAS_PHASE_STEPPING()
@@ -55,7 +48,11 @@ using SerialPrint = ScreenDialogDoesNotExist;
 #endif
 
 #if HAS_GEARBOX_ALIGNMENT()
-    #include "screen_gearbox_alignment.hpp"
+    #include "feature/gearbox_alignment/screen_gearbox_alignment.hpp"
+#endif
+
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    #include <feature/door_sensor_calibration/screen_door_sensor_calibration.hpp>
 #endif
 
 alignas(std::max_align_t) static std::array<uint8_t, 2560> mem_space;
@@ -125,7 +122,7 @@ struct FSMPrintDef {
 
         if constexpr (fsm == ClientFSM::Serial_printing) {
             Screens::Access()->ClosePrinting();
-            Screens::Access()->Open(ScreenFactory::Screen<SerialPrint>);
+            Screens::Access()->Open(ScreenFactory::Screen<screen_printing_serial_data_t>);
 
         } else if constexpr (fsm == ClientFSM::Printing) {
             Screens::Access()->CloseAll();
@@ -165,8 +162,8 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
     FSMScreenDef<ClientFSM::Preheat, ScreenPreheat>,
 #if HAS_SELFTEST()
     FSMScreenDef<ClientFSM::Selftest, ScreenSelftest>,
-#endif
     FSMScreenDef<ClientFSM::FansSelftest, ScreenFanSelftest>,
+#endif
     FSMScreenDef<ClientFSM::NetworkSetup, ScreenNetworkSetup>,
     FSMPrintDef<ClientFSM::Printing>,
 #if ENABLED(CRASH_RECOVERY)
@@ -189,6 +186,9 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
     FSMScreenDef<ClientFSM::GearboxAlignment, ScreenGearboxAlignment>,
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    FSMScreenDef<ClientFSM::DoorSensorCalibration, ScreenDoorSensorCalibration>,
 #endif
 
     // This is here so that we can worry-free write commas at the end of each argument

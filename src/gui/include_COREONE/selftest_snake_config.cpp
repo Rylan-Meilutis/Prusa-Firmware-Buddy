@@ -4,6 +4,8 @@
 #include <config_store/store_instance.hpp>
 #include <option/has_switched_fan_test.h>
 
+#include <option/has_chamber_filtration_api.h>
+
 #include <option/has_chamber_api.h>
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
@@ -32,10 +34,12 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     #if HAS_XBUDDY_EXTENSION()
         case Chamber::Backend::xbuddy_extension: {
             const auto chamber_results = config_store().xbe_fan_test_results.get();
-            res = evaluate_results(res, chamber_results.fans[0]);
-            res = evaluate_results(res, chamber_results.fans[1]);
-            if (xbuddy_extension().is_fan3_used()) {
+            static_assert(HAS_CHAMBER_FILTRATION_API());
+            if (buddy::xbuddy_extension().using_filtration_fan_instead_of_cooling_fans()) {
                 res = evaluate_results(res, chamber_results.fans[2]);
+            } else {
+                res = evaluate_results(res, chamber_results.fans[0]);
+                res = evaluate_results(res, chamber_results.fans[1]);
             }
             break;
         }
@@ -53,14 +57,9 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     case Action::XCheck:
         return evaluate_results(sr.xaxis);
     case Action::Loadcell:
-        if (tool == Tool::_all_tools) {
-            return merge_hotends_evaluations(
-                [&](int8_t e) {
-                    return evaluate_results(sr.tools[e].loadcell);
-                });
-        } else {
-            return evaluate_results(sr.tools[std::to_underlying(tool)].loadcell);
-        }
+        return merge_hotends(tool, [&](const int8_t e) {
+            return evaluate_results(sr.tools[e].loadcell);
+        });
     case Action::ZCheck:
         return evaluate_results(sr.zaxis);
     case Action::Heaters:
@@ -68,16 +67,15 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
             return evaluate_results(sr.tools[e].nozzle);
         }));
     case Action::Gears:
-        return evaluate_results(sr.gears);
+        return merge_hotends(tool, [&](const int8_t e) {
+            return evaluate_results(sr.tools[e].gears);
+        });
+    case Action::DoorSensor:
+        return evaluate_results(config_store().selftest_result_door_sensor.get());
     case Action::FilamentSensorCalibration:
-        if (tool == Tool::_all_tools) {
-            return merge_hotends_evaluations(
-                [&](int8_t e) {
-                    return evaluate_results(sr.tools[e].fsensor);
-                });
-        } else {
-            return evaluate_results(sr.tools[std::to_underlying(tool)].fsensor);
-        }
+        return merge_hotends(tool, [&](const int8_t e) {
+            return evaluate_results(sr.tools[e].fsensor);
+        });
     case Action::_count:
         break;
     }
@@ -92,6 +90,7 @@ uint64_t get_test_mask(Action action) {
     switch (action) {
     case Action::Fans:
     case Action::Gears:
+    case Action::DoorSensor:
         bsod("This should be gcode");
     case Action::YCheck:
         return stmYAxis;

@@ -11,11 +11,11 @@
 #include <buddy/fatfs.h>
 #include <buddy/usb_device.hpp>
 #include <buddy/unreachable.hpp>
+#include <common/st25dv64k.h>
 #include "usb_host.h"
 #include "buffered_serial.hpp"
 #include "bsod_gui.hpp"
 #include <config_store/store_instance.hpp>
-#include "sys.h"
 #include <wdt.hpp>
 #include <crash_dump/dump.hpp>
 #include "error_codes.hpp"
@@ -32,6 +32,7 @@
 #include "printers.h"
 #include "MarlinPin.h"
 #include "crc32.h"
+#include <common/sys.hpp>
 #include <common/w25x.hpp>
 #include "timing.h"
 #include <buddy/filesystem.h>
@@ -62,7 +63,6 @@
 #include "sound.hpp"
 #include <buddy/ccm_thread.hpp>
 #include <version/version.hpp>
-#include "str_utils.hpp"
 #include "data_exchange.hpp"
 #include "bootloader/bootloader.hpp"
 #include "gui_bootstrap_screen.hpp"
@@ -274,6 +274,18 @@ extern "C" void main_cpp(void) {
     nfc::turn_off();
 #endif
 
+#if HAS_GUI()
+    SPI_INIT(lcd);
+#endif
+
+#if BOARD_IS_XLBUDDY()
+    hw_init_spi_side_leds();
+#endif
+
+#if PRINTER_IS_PRUSA_iX()
+    SPI_INIT(led);
+#endif
+
 #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_COREONE()
     /*
      * MK3.5 HW detected on MK4 firmware or vice versa
@@ -338,20 +350,12 @@ extern "C" void main_cpp(void) {
     hw_tim3_init();
 #endif
 
-#if HAS_GUI()
-    SPI_INIT(lcd);
-#endif
-
 #if BOARD_IS_XBUDDY() || BOARD_IS_XLBUDDY()
     I2C_INIT(usbc);
 #endif
 
 #if HAS_TOUCH()
     I2C_INIT(touch);
-#endif
-
-#if PRINTER_IS_PRUSA_iX()
-    SPI_INIT(led);
 #endif
 
 #if (BOARD_IS_XBUDDY())
@@ -376,10 +380,6 @@ extern "C" void main_cpp(void) {
 
 #if HAS_GUI() && !(BOARD_IS_XLBUDDY())
     hw_tim2_init(); // TIM2 is used to generate buzzer PWM, except on older versions of XL. Not needed without display.
-#endif
-
-#if BOARD_IS_XLBUDDY()
-    hw_init_spi_side_leds();
 #endif
 
 #if HAS_PUPPIES()
@@ -437,8 +437,7 @@ extern "C" void main_cpp(void) {
     if (bootloader_update()) {
         // Wait a while, before restart (this prevents some older board without appendix to enter internal bootloader on reset)
         osDelay(300);
-        __disable_irq();
-        HAL_NVIC_SystemReset();
+        sys_reset();
     }
 #endif
 
@@ -654,9 +653,6 @@ void init_error_screen() {
 #endif
 
     if constexpr (option::has_gui) {
-        // init lcd spi and timer for buzzer
-        SPI_INIT(lcd);
-
 #if !(_DEBUG)
     #if HAS_GUI() && !(BOARD_IS_XLBUDDY())
         hw_tim2_init(); // TIM2 is used to generate buzzer PWM, except on XL. Not needed without display.
@@ -686,18 +682,6 @@ static void enable_segger_sysview() {
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
     SEGGER_SYSVIEW_Conf();
-}
-
-static void enable_dfu_entry() {
-#ifdef BUDDY_ENABLE_DFU_ENTRY
-    // check whether user requested to enter the DFU mode
-    // this has to be checked after having
-    //  1) initialized access to the backup domain
-    //  2) having initialized related clocks (SystemClock_Config)
-    if (sys_dfu_requested()) {
-        sys_dfu_boot_enter();
-    }
-#endif
 }
 
 static void eeprom_init_i2c() {
@@ -772,7 +756,6 @@ int main() {
     enable_trap_on_division_by_zero();
     enable_backup_domain();
     enable_segger_sysview();
-    enable_dfu_entry();
 
     // init the RAM area that serves for exchanging data with bootloader in
     // case this is a noboot build

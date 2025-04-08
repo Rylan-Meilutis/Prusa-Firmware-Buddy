@@ -20,6 +20,8 @@
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <buddy/unreachable.hpp>
+#include <utils/string_builder.hpp>
+
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
     #include <window_msgbox.hpp>
@@ -780,6 +782,7 @@ void screen_printing_data_t::change_print_state() {
         case State::Resuming_Reheating:
             stop_pressed = false;
             return printing_state_t::REHEATING;
+        case State::Resuming_BufferData:
         case State::Resuming_Begin:
         case State::Resuming_UnparkHead_XY:
         case State::Resuming_UnparkHead_ZE:
@@ -820,7 +823,13 @@ void screen_printing_data_t::change_print_state() {
             return printing_state_t::PRINTED;
         case State::PowerPanic_acFault:
         case State::SerialPrintInit:
-            break;
+            // It is questionable in this case if it is really printing at this
+            // point. But at least in case of power panic, it _can_ happen. It
+            // won't show on the screen, but we don't want to BSOD.
+            //
+            // In that case, the display is turned off, but the GUI thread
+            // still runs (even though it doesn't show anywhere).
+            return printing_state_t::PRINTING;
         }
         BUDDY_UNREACHABLE();
     }();

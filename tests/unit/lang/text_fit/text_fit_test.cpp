@@ -1,9 +1,6 @@
 #include "text_fit_test.hpp"
 
-#include "errors.hpp"
-
 #include <catch2/catch.hpp>
-#include <str_utils.hpp>
 #include <lang/string_view_utf8.hpp>
 #include "translator.hpp"
 #include <translation_provider_CPUFLASH.hpp>
@@ -12,12 +9,20 @@
 #include <fonts.hpp>
 #include <enum_array.hpp>
 #include <text_fit_enums.hpp>
+#include <utils/string_builder.hpp>
+#include <str_utils.hpp>
+
 struct TextLayout {
     Rect16 title_rect;
     Rect16 desc_rect;
     Font title_font;
     Font desc_font;
 };
+
+void _bsod(const char *fmt, const char *fine_name, int line_number, ...) {
+    FAIL();
+    std::unreachable();
+}
 
 constexpr std::array<const char *, 8> lang_codes = { "en", "cs", "de", "es", "fr", "it", "ja", "pl" };
 

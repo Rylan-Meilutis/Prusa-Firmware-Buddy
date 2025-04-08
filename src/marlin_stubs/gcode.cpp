@@ -5,7 +5,6 @@
 
 #include "M330.h"
 #include "M340.h"
-#include "M919-M920.h"
 #include <stdint.h>
 #include <device/board.h>
 #include "printers.h"
@@ -19,9 +18,14 @@
 #include <option/has_phase_stepping.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_belt_tuning.h>
+#include <option/has_door_sensor_calibration.h>
 
 #if HAS_LOADCELL()
     #include "loadcell.hpp"
+#endif
+
+#if HAS_TRINAMIC
+    #include "M919-M920.h"
 #endif
 
 #if HAS_PHASE_STEPPING()
@@ -33,7 +37,7 @@
 #endif
 
 #if HAS_GEARBOX_ALIGNMENT()
-    #include "gcode_gearbox_alignment.hpp"
+    #include <feature/gearbox_alignment/gcode_gearbox_alignment.hpp>
 #endif
 
 #include <logging/log.hpp>
@@ -43,7 +47,10 @@ LOG_COMPONENT_DEF(PRUSA_GCODE, logging::Severity::info);
 static void record_pre_gcode_metrics();
 
 int8_t PrusaGcodeSuite::get_target_extruder_from_command(const GCodeParser2 &p) {
-    return GcodeSuite::get_target_extruder_from_option_value(p.option<uint8_t>('T'));
+    return GcodeSuite::get_target_extruder_from_option_value(p.option<uint8_t>('T'), false);
+}
+int8_t PrusaGcodeSuite::get_target_extruder_from_command_p(const GCodeParser2 &p) {
+    return GcodeSuite::get_target_extruder_from_option_value(p.option<uint8_t>('T'), p.option<bool>('P').value_or(false));
 }
 
 bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
@@ -214,12 +221,14 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M865();
             break;
 
+#if HAS_TRINAMIC
         case 919:
             PrusaGcodeSuite::M919();
             break;
         case 920:
             PrusaGcodeSuite::M920();
             break;
+#endif
 #if HAS_BELT_TUNING()
         case 960:
             PrusaGcodeSuite::M960();
@@ -272,12 +281,19 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M1977();
             break;
 #endif
+#if HAS_SELFTEST()
         case 1978:
             PrusaGcodeSuite::M1978();
             break;
+#endif
 #if HAS_GEARBOX_ALIGNMENT()
         case 1979:
             PrusaGcodeSuite::M1979();
+            break;
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+        case 1980:
+            PrusaGcodeSuite::M1980();
             break;
 #endif
         case 9140:
@@ -319,12 +335,14 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 64:
             PrusaGcodeSuite::G64();
             break;
+#if HAS_SELFTEST()
         case 162:
             PrusaGcodeSuite::G162();
             break;
         case 163:
             PrusaGcodeSuite::G163();
             break;
+#endif
         default:
             processed = false;
             break;

@@ -4,7 +4,6 @@
 #include "config.h"
 #include "ScreenHandler.hpp"
 #include "sound.hpp"
-#include "sys.h"
 #include "support_utils.h"
 
 #include <stdlib.h>
@@ -14,6 +13,9 @@
 #include <config_store/store_instance.hpp>
 #include <guiconfig/guiconfig.h>
 #include <option/has_leds.h>
+#if HAS_LEDS()
+    #include <leds/status_leds_handler.hpp>
+#endif
 
 using namespace crash_dump;
 
@@ -38,9 +40,6 @@ ScreenErrorQR::ScreenErrorQR()
     , help_txt(this, help_txt_rect, is_multiline::no)
     , help_link(this, link_rect, ErrCode::ERR_UNDEF)
     , qr_code_txt(this, qr_code_rect, is_multiline::no)
-#if HAS_LEDS()
-    , anim(Animator_LCD_leds().start_animations(Fading(leds::ColorRGBW(255, 0, 0), 500), 10))
-#endif
     , title_line(this, title_line_rect) {
 
     display::enable_resource_file();
@@ -81,7 +80,7 @@ ScreenErrorQR::ScreenErrorQR()
         if (config_store().devhash_in_qr.get()) {
             static char p_code[PRINTER_CODE_SIZE + 1];
             printerCode(p_code);
-            qr_code_txt.SetText(string_view_utf8::MakeRAM((const uint8_t *)p_code));
+            qr_code_txt.SetText(string_view_utf8::MakeRAM(p_code));
         } else {
             qr_code_txt.Hide();
         }
@@ -112,4 +111,8 @@ ScreenErrorQR::ScreenErrorQR()
         title_line.Hide();
         hide_qr();
     }
+
+#if HAS_LEDS()
+    leds::StatusLedsHandler::instance().set_error();
+#endif
 }

@@ -33,7 +33,7 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
         return PhasesWarning::BedUnevenAlignmentPrompt;
 #endif
 
-#if XL_ENCLOSURE_SUPPORT()
+#if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
     case WarningType::EnclosureFilterExpiration:
         return PhasesWarning::EnclosureFilterExpiration;
 #endif
@@ -64,6 +64,22 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
 
 PhasesWarning warning_type_phase(WarningType warning) {
     return warning_type_phase_constexpr(warning);
+}
+
+constexpr uint32_t warning_lifespan_sec_constexpr(WarningType type) {
+    switch (type) {
+#if HAS_MANUAL_CHAMBER_VENTS()
+    case WarningType::OpenChamberVents:
+    case WarningType::CloseChamberVents:
+        return 60;
+#endif
+    default:
+        return uint32_t(-1); // Unlimited
+    }
+}
+
+uint32_t warning_lifespan_sec(WarningType type) {
+    return warning_lifespan_sec_constexpr(type);
 }
 
 static_assert([] {

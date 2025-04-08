@@ -10,7 +10,6 @@
     #include "Jogwheel.hpp"
 #endif
 #include "hwio.h"
-#include "sys.h"
 #include "gpio.h"
 #include "metric.h"
 #include "cpu_utils.hpp"
@@ -31,7 +30,6 @@
 #include <crash_dump/dump.hpp>
 #include "hwio_pindef.h"
 #include <Arduino.h>
-#include "trinamic.h"
 #include "../Marlin/src/module/configuration_store.h"
 #include <buddy/main.h>
 #include <stdint.h>
@@ -82,7 +80,6 @@ LOG_COMPONENT_REF(Marlin);
 
 #include "probe_position_lookback.hpp"
 #include <config_store/store_instance.hpp>
-#include <option/init_trinamic_from_marlin_only.h>
 
 LOG_COMPONENT_DEF(Buddy, logging::Severity::debug);
 LOG_COMPONENT_DEF(Core, logging::Severity::info);
@@ -163,12 +160,6 @@ static void app_startup() {
 
 static void app_setup(void) {
     metric_record_event(&metric_app_start);
-
-    if constexpr (!INIT_TRINAMIC_FROM_MARLIN_ONLY()) {
-        init_tmc();
-    } else {
-        init_tmc_bare_minimum();
-    }
 
 #if HAS_LOADCELL()
     if (config_store().stuck_filament_detection.get()) {

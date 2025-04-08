@@ -51,7 +51,7 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
 
 #include <option/has_leds.h>
 #if HAS_LEDS()
-    #include "led_animations/printer_animation_state.hpp"
+    #include "leds/status_leds_handler.hpp"
 #endif
 #if ENABLED(PRUSA_SPOOL_JOIN)
     #include "module/prusa/spool_join.hpp"
@@ -97,6 +97,7 @@ static void M600_manual(const GCodeParser2 &);
  * - `C"color"` - Set color for filament change (color name as string)
  * - `S"filament"` - Set filament type for filament change. RepRap compatible.
  * - `N` - No return, don't return to previous position after fillament change
+ * - `P` - If set, the parameter 'T' is interpreted as a physical tool (tool mapping is not applied)
  *
  *  Default values are used for omitted arguments.
  */
@@ -147,14 +148,10 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder,
     std::optional<FilamentType> filament_type, bool);
 
 void M600_manual(const GCodeParser2 &p) {
-    const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command(p);
+    const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command_p(p);
     if (target_extruder < 0) {
         return;
     }
-
-#if HAS_LEDS()
-    auto guard = PrinterStateAnimation::force_printer_state(PrinterState::Warning);
-#endif
 
     xyz_pos_t park_point = XYZ_NOZZLE_PARK_POINT_M600;
 

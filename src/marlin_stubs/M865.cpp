@@ -1,8 +1,10 @@
 #include "PrusaGcodeSuite.hpp"
-#include <filament.hpp>
-#include <temperature.hpp>
 
 #include <option/has_filament_heatbreak_param.h>
+
+#include <filament.hpp>
+#include <temperature.hpp>
+#include <utils/string_builder.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -26,6 +28,7 @@
  * - `B` - Bed temperature
  * - `H` - Heatbreak temperature
  * - `A` - Is abrasive
+ * - `G` - Is flexible
  *
  * - `C` - Target chamber temperature
  * - `D` - Minimum chamber temperature
@@ -76,6 +79,7 @@ void PrusaGcodeSuite::M865() {
     p.store_option('B', params.heatbed_temperature);
 
     p.store_option('A', params.is_abrasive);
+    p.store_option('G', params.is_flexible);
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     p.store_option('H', params.heatbreak_temperature);

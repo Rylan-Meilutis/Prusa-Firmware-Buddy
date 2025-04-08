@@ -20,10 +20,6 @@
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
-#if ENABLED(FWRETRACT)
-    #include "fwretract.h"
-#endif
-
 #include "Marlin/src/lcd/extensible_ui/ui_api.h"
 #include "Marlin/src/core/language.h"
 #include "Marlin/src/lcd/ultralcd.h"
@@ -56,6 +52,11 @@
 #include <option/has_human_interactions.h>
 #include <option/has_mmu2.h>
 #include <option/has_wastebin.h>
+
+#include <option/has_auto_retract.h>
+#if HAS_AUTO_RETRACT()
+    #include <feature/auto_retract/auto_retract.hpp>
+#endif
 
 LOG_COMPONENT_REF(MarlinServer);
 
@@ -228,14 +229,16 @@ bool Pause::is_unstoppable() const {
     switch (load_type) {
     case LoadType::load:
         return FSensors_instance().HasMMU();
-    case LoadType::load_to_gears:
+
     case LoadType::filament_change:
     case LoadType::filament_stuck:
         return true;
+
     case LoadType::autoload:
     case LoadType::load_purge:
     case LoadType::unload:
     case LoadType::unload_confirm:
+    case LoadType::load_to_gears:
     case LoadType::unload_from_gears:
         return false;
     }
@@ -266,12 +269,14 @@ LoadUnloadMode Pause::get_load_unload_mode() {
 
 bool Pause::should_park() {
     switch (load_type) {
-    case Pause::LoadType::autoload:
-        return false;
     case Pause::LoadType::load_purge:
         return true;
     case Pause::LoadType::load_to_gears:
         return !FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder);
+    case Pause::LoadType::autoload:
+        // TODO: Change autoload trigger sensor on printers with side_fs
+        // and adjust phases to handle properly loading to gears, mmu_rework and parking
+        // autoload on printers with side_fs, should behave similary to iX autoload
     case Pause::LoadType::load:
         return option::has_human_interactions || !FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder);
     default:
@@ -535,28 +540,29 @@ void Pause::assist_insertion_process([[maybe_unused]] Response response) {
         return;
     }
 
-    // Moves are planned wait until they aren't before planning more
-    if (planner.processing()) {
-        return;
-    }
-
-    // Load for at least 40 seconds before giving up. Alternatively, if filament is removed altogether, stop too.
-    if ((!unstoppable && ticks_diff(ticks_ms(), start_time_ms) > 40000) /*Move for at least 40 seconds before giving up*/
-        || FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
+    // Load for at least 40 seconds before giving up.
+    if (ticks_diff(ticks_ms(), start_time_ms) > 40000) { /*Move for at least 40 seconds before giving up*/
         /*
          * Unstoppable processes should not be stopped. Neither by user, nor printer on itself without any serious failure.
          * The branch used here ensures the printer remains in an infinite loop, waiting in an alert state until the filament is properly loaded—an expected behavior for the printer.
          * In all other cases, exiting the process does not harm the print. Instead, the user is notified that the filament change was not fully completed, and the printer resumes idling.
          */
-
         set(unstoppable ? LoadState::load_start : LoadState::stop);
         return;
     }
 
-    if (do_e_move_notify_progress_coldextrude(FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, 10, 10, StopConditions::All) == StopConditions::SideFilamentSensorRunout) {
-        runout_during_load();
+    // if filament is removed from side FS, stop too.
+    if (FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
+        set(LoadState::unload_finish_or_change);
         return;
     }
+
+    AutoRestore<bool> CE(thermalManager.allow_cold_extrude);
+    thermalManager.allow_cold_extrude = true;
+    // Enqueue an E move, but only if there are no more than 4 moves scheduled.
+    // This ensures that there is always 0.4mm of movement enqueued in advance,
+    // Guaranteeing a maximum movement difference of 0.1mm
+    mapi::extruder_schedule_turning(FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, 0.1f);
 }
 
 void Pause::load_to_gears_process([[maybe_unused]] Response response) { // slow load
@@ -633,13 +639,16 @@ static constexpr feedRate_t retract_feedrate = 35; // mm/s
 void Pause::purge_process([[maybe_unused]] Response response) {
     // Extrude filament to get into hotend
     setPhase(is_unstoppable() ? PhasesLoadUnload::Purging_unstoppable : PhasesLoadUnload::Purging_stoppable, 70);
-    if (do_e_move_notify_progress_hotextrude(settings.purge_length(), ADVANCED_PAUSE_PURGE_FEEDRATE, 70, 98, StopConditions::All) == StopConditions::SideFilamentSensorRunout) {
+
+    const auto purge_result = do_e_move_notify_progress_hotextrude(settings.purge_length(), ADVANCED_PAUSE_PURGE_FEEDRATE, 70, 98, StopConditions::All);
+    if (purge_result == StopConditions::SideFilamentSensorRunout) {
         runout_during_load();
         return;
     }
-
-    // retraction is short -> safe to ignore the result
-    std::ignore = do_e_move_notify_progress_hotextrude(retract_distance, retract_feedrate, 98, 99, StopConditions::UserStopped);
+    // Skip retraction on UserStopped or Failed
+    if (purge_result != StopConditions::UserStopped && purge_result != StopConditions::Failed) {
+        std::ignore = do_e_move_notify_progress_hotextrude(retract_distance, retract_feedrate, 98, 99, StopConditions::UserStopped);
+    }
 
     config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
 
@@ -731,6 +740,16 @@ void Pause::eject_process([[maybe_unused]] Response response) {
 }
 
 void Pause::load_prime_process([[maybe_unused]] Response response) {
+#if HAS_AUTO_RETRACT()
+    if (!marlin_server::is_printing()) {
+        // Only retract from nozzle outside printing
+        setPhase(PhasesLoadUnload::AutoRetracting, 99);
+        auto_retract().maybe_retract_from_nozzle();
+        set(LoadState::_finished);
+        return;
+    }
+#endif
+
     if (load_type == LoadType::filament_change || load_type == LoadType::filament_stuck) {
         // Feed a little bit of filament to stabilize pressure in nozzle
 
@@ -874,6 +893,15 @@ void Pause::filament_stuck_ask_process(Response response) {
 #endif
 
 void Pause::ram_sequence_process([[maybe_unused]] Response response) {
+#if HAS_AUTO_RETRACT()
+    if (auto_retract().is_retracted()) {
+        // The filament is already retracted from the nozzle -> no ramming needed, we don't even need to heat up the nozzle
+        ram_retracted_distance = auto_retract().retracted_distance();
+        set(LoadState::unload);
+        return;
+    }
+#endif
+
     ram_filament(50);
     set(LoadState::unload);
 }
@@ -1284,7 +1312,6 @@ void Pause::unpark_nozzle_and_notify() {
  *   - the nozzle is already heated.
  * - Display "wait for print to resume"
  * - Re-prime the nozzle...
- *   -  FWRETRACT: Recover/prime from the prior G10.
  * - Move the nozzle back to resume_position
  * - Sync the planner E to resume_position.e
  * - Send host action for resume, if configured
@@ -1320,14 +1347,6 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
 #endif
 
     invoke_loop();
-
-// Intelligent resuming
-#if ENABLED(FWRETRACT)
-    // If retracted before goto pause
-    if (fwretract.retracted[active_extruder]) {
-        do_pause_e_move(-fwretract.settings.retract_length, fwretract.settings.retract_feedrate_mm_s);
-    }
-#endif
 
 #if ADVANCED_PAUSE_RESUME_PRIME != 0
     do_pause_e_move(ADVANCED_PAUSE_RESUME_PRIME, feedRate_t(ADVANCED_PAUSE_PURGE_FEEDRATE));

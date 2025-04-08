@@ -12,6 +12,7 @@
 #include <option/has_uneven_bed_prompt.h>
 #include <config_store/store_instance.hpp>
 #include <option/has_chamber_filtration_api.h>
+#include <option/has_door_sensor_calibration.h>
 
 using namespace marlin_server;
 using namespace printer_state;
@@ -190,8 +191,10 @@ DeviceState get_state(bool ready) {
 #endif
     case ClientFSM::QuickPause:
         return DeviceState::Paused;
+#if HAS_SELFTEST()
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
+#endif
     case ClientFSM::NetworkSetup:
 #if HAS_COLDPULL()
     case ClientFSM::ColdPull:
@@ -207,6 +210,9 @@ DeviceState get_state(bool ready) {
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
     case ClientFSM::GearboxAlignment:
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    case ClientFSM::DoorSensorCalibration:
 #endif
     case ClientFSM::Serial_printing:
         // FIXME: BFW-3893 Sadly there is no way (without saving state in this function)
@@ -307,6 +313,7 @@ DeviceState get_print_state(State state, bool ready) {
     case State::Pausing_ParkHead:
     case State::Paused:
 
+    case State::Resuming_BufferData:
     case State::Resuming_Begin:
     case State::Resuming_Reheating:
     case State::Pausing_Failed_Code:
@@ -381,8 +388,10 @@ StateWithDialog get_state_with_dialog(bool ready) {
     case ClientFSM::Serial_printing:
         break;
 
+#if HAS_SELFTEST()
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
+#endif
     case ClientFSM::NetworkSetup:
 #if HAS_COLDPULL()
     case ClientFSM::ColdPull:
@@ -398,6 +407,9 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
     case ClientFSM::GearboxAlignment:
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    case ClientFSM::DoorSensorCalibration:
 #endif
     case ClientFSM::Preheat:
         // TODO: On some future sunny day, we want to cover all the selftests
@@ -538,11 +550,13 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #if XL_ENCLOSURE_SUPPORT()
     case WarningType::EnclosureFanError:
         return ErrCode::CONNECT_ENCLOSURE_FAN_ERROR;
+#endif
+#if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
     case WarningType::EnclosureFilterExpirWarning:
         return ErrCode::CONNECT_ENCLOSURE_FILTER_EXPIRATION_WARNING;
     case WarningType::EnclosureFilterExpiration:
         return ErrCode::CONNECT_ENCLOSURE_FILTER_EXPIRATION;
-#endif // XL_ENCLOSURE_SUPPORT
+#endif
 
 #if ENABLED(DETECT_PRINT_SHEET)
     case WarningType::SteelSheetNotDetected:

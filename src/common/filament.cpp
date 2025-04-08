@@ -8,12 +8,14 @@
 
 #include "i18n.h"
 #include "../../include/printers.h"
+
 #include <enum_array.hpp>
 #include <option/has_loadcell.h>
-#include <str_utils.hpp>
+#include <utils/string_builder.hpp>
 #include <guiconfig/guiconfig.h>
 #include <config_store/store_instance.hpp>
 #include <Configuration.h>
+#include <common/aggregate_arity.hpp>
 
 // !!! If these value change, you need to inspect usages and possibly write up some config store migrations
 static_assert(filament_name_buffer_size == 8);
@@ -24,6 +26,10 @@ static_assert(sizeof(FilamentTypeParameters_EEPROM1) == 14);
 
 #if HAS_CHAMBER_API()
 static_assert(sizeof(FilamentTypeParameters_EEPROM2) == 3);
+#endif
+
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+static_assert(sizeof(FilamentTypeParameters_EEPROM3) == 1);
 #endif
 
 static_assert(preset_filament_type_count <= max_preset_filament_type_count);
@@ -48,6 +54,9 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .name = FilamentTypeParameters::name_from_str("PLA"),
             .nozzle_temperature = 215,
             .heatbed_temperature = 60,
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .heatbreak_temperature = 45,
+#endif
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 15,
             .chamber_max_temperature = 38,
@@ -61,6 +70,9 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .name = FilamentTypeParameters::name_from_str("PETG"),
             .nozzle_temperature = 230,
             .heatbed_temperature = 85,
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .heatbreak_temperature = 60,
+#endif
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 15,
             .chamber_max_temperature = 45,
@@ -74,6 +86,9 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .name = FilamentTypeParameters::name_from_str("ASA"),
             .nozzle_temperature = 260,
             .heatbed_temperature = 100,
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .heatbreak_temperature = 65,
+#endif
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 75,
@@ -89,6 +104,9 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .nozzle_temperature = 275,
             .nozzle_preheat_temperature = HAS_LOADCELL() ? 170 : 275 - 25,
             .heatbed_temperature = 100,
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .heatbreak_temperature = 65,
+#endif
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 80,
@@ -116,6 +134,9 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .name = FilamentTypeParameters::name_from_str("ABS"),
             .nozzle_temperature = 255,
             .heatbed_temperature = 100,
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .heatbreak_temperature = 65,
+#endif
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 75,
@@ -165,6 +186,7 @@ constexpr EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentTy
             .chamber_target_temperature = 25,
             .requires_filtration = true,
 #endif
+            .is_flexible = true,
         },
     },
     {
@@ -251,13 +273,16 @@ void FilamentType::build_name_with_info(StringBuilder &builder) const {
                 return nullptr;
 
             } else if constexpr (std::is_same_v<T, PresetFilamentType>) {
-                return N_(" (Preset)");
+                // Used in filament type context, for example: "PLA (Preset)". Please try to fit the text in 6 characters.
+                return N_("Preset");
 
             } else if constexpr (std::is_same_v<T, UserFilamentType>) {
-                return N_(" (User)");
+                // Used in filament type context (user-defined preset), for example: "PCCF (User)". Please try to fit the text in 6 characters.
+                return N_("User");
 
             } else if constexpr (std::is_same_v<T, AdHocFilamentType> || std::is_same_v<T, PendingAdHocFilamentType>) {
-                return N_(" (Custom)");
+                // Used in filament type context (user-defined ad-hoc), for example: "XX (User)". Please try to fit the text in 6 characters.
+                return N_("Custom");
 
             } else {
                 static_assert(false);
@@ -267,7 +292,9 @@ void FilamentType::build_name_with_info(StringBuilder &builder) const {
 #endif
 
     if (suffix) {
+        builder.append_string(" (");
         builder.append_string_view(_(suffix));
+        builder.append_char(')');
     }
 }
 
@@ -295,7 +322,9 @@ FilamentTypeParameters FilamentType::parameters() const {
             .requires_filtration = e1.requires_filtration,
 #endif
             .is_abrasive = e1.is_abrasive,
+            .is_flexible = e1.is_flexible,
         };
+        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4, "Revise the initializer");
     };
 
     return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
@@ -346,18 +375,26 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
         .requires_filtration = set.requires_filtration,
 #endif
         .is_abrasive = set.is_abrasive,
+        .is_flexible = set.is_flexible,
     };
+    // Note - even though we're not setting requires_filtration without HAS_CHAMBER_API, it is still in the EEPROM struct to provide binary compatibility
+    static_assert(aggregate_arity<FilamentTypeParameters_EEPROM1>() == 7 + 1 /* _unused */, "Revise the initializer");
+    static_assert(requires { FilamentTypeParameters_EEPROM1::_unused; });
+
 #if HAS_CHAMBER_API()
     const FilamentTypeParameters_EEPROM2 e2 {
         .chamber_min_temperature = e2.encode_chamber_temp(set.chamber_min_temperature),
         .chamber_max_temperature = e2.encode_chamber_temp(set.chamber_max_temperature),
         .chamber_target_temperature = e2.encode_chamber_temp(set.chamber_target_temperature),
     };
+    static_assert(aggregate_arity<FilamentTypeParameters_EEPROM2>() == 3, "Revise the initializer");
 #endif
+
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     const FilamentTypeParameters_EEPROM3 e3 {
         .heatbreak_temperature = set.heatbreak_temperature,
     };
+    static_assert(aggregate_arity<FilamentTypeParameters_EEPROM3>() == 1, "Revise the initializer");
 #endif
 
     std::visit([&]<typename T>(const T &v) {

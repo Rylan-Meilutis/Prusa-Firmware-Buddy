@@ -14,11 +14,11 @@
 #include "knob_event.hpp"
 #include "marlin_client.hpp"
 #include "sw_timer.hpp"
-#include <gui/screen_menu_selftest_snake.hpp>
 #include <logging/log.hpp>
 #include "display_hw_checks.hpp"
-#if XL_ENCLOSURE_SUPPORT()
-    #include "leds/side_strip.hpp"
+#include <option/has_leds.h>
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
 #endif
 
 #include <option/has_touch.h>
@@ -32,6 +32,10 @@
 
 #if HAS_MINI_DISPLAY()
     #include "st7789v.hpp"
+#endif
+
+#if HAS_SELFTEST()
+    #include <gui/screen_menu_selftest_snake.hpp>
 #endif
 
 LOG_COMPONENT_REF(GUI);
@@ -171,11 +175,11 @@ void gui_bare_loop() {
 void gui_loop(void) {
     ++guiloop_nesting;
     lcd::communication_check();
-#if XL_ENCLOSURE_SUPPORT()
-    // Update XL enclosure fan pwm, it is connected to the same PWM generator as the side LEDs
-    leds::side_strip.Update();
-#endif
     gui_handle_jogwheel();
+
+#if HAS_LEDS()
+    leds::LEDManager::instance().update();
+#endif
 
 #if HAS_TOUCH()
     gui_handle_touch();
@@ -197,8 +201,10 @@ void gui_loop(void) {
     gui_redraw();
     marlin_client::loop();
     GuiMediaEventsHandler::Tick();
+#if HAS_SELFTEST()
     if (marlin_client::event_clr(marlin_server::Event::RequestCalibrationsScreen)) {
         Screens::Access()->Open<ScreenMenuSTSCalibrations>();
     }
+#endif
     --guiloop_nesting;
 }

@@ -31,6 +31,7 @@ move_segment_queue_t PreciseStepping::move_segment_queue;
 step_event_queue_t PreciseStepping::step_event_queue;
 
 uint16_t PreciseStepping::left_ticks_to_next_step_event = 0;
+uint32_t PreciseStepping::last_step_isr_delay = 0;
 
 step_generator_state_t PreciseStepping::step_generator_state;
 step_generators_pool_t PreciseStepping::step_generators_pool;
@@ -38,6 +39,7 @@ step_generators_pool_t PreciseStepping::step_generators_pool;
 uint8_t PreciseStepping::physical_axis_step_generator_types = CLASSIC_STEP_GENERATOR_X | CLASSIC_STEP_GENERATOR_Y | CLASSIC_STEP_GENERATOR_Z | CLASSIC_STEP_GENERATOR_E;
 double PreciseStepping::max_lookback_time = 0.;
 
+std::atomic<MoveFlag_t> PreciseStepping::current_move_flags = 0;
 uint16_t PreciseStepping::inverted_dirs = 0;
 double PreciseStepping::total_print_time = 0.;
 xyze_double_t PreciseStepping::total_start_pos = { 0., 0., 0., 0. };
@@ -45,7 +47,6 @@ xyze_long_t PreciseStepping::total_start_pos_msteps = { 0, 0, 0, 0 };
 PreciseSteppingFlag_t PreciseStepping::flags = 0;
 
 uint32_t PreciseStepping::waiting_before_delivering_start_time = 0;
-uint32_t PreciseStepping::last_step_isr_delay = 0;
 
 bool PreciseStepping::initialized_ = false;
 std::atomic<bool> PreciseStepping::stop_pending = false;
@@ -645,6 +646,11 @@ uint16_t PreciseStepping::process_one_step_event_from_queue() {
                 Stepper::count_position_last_block = Stepper::count_position;
             }
             discard_current_move_segment();
+
+            // refresh current move flags
+            if (const move_t *current_move = get_current_move_segment(); current_move) {
+                current_move_flags = current_move->flags;
+            }
         }
 
         discard_current_step_event();
@@ -734,7 +740,6 @@ void PreciseStepping::step_isr() {
     constexpr uint32_t min_delay = 11; // fuse isr for steps below this threshold (us)
 #endif
     constexpr uint16_t min_reserve = 5; // minimum interval for isr re-entry (us)
-    constexpr uint16_t max_ticks = (UINT16_MAX / 4); // maximum isr interval for skip detection (us)
 
 #ifdef ISR_DEADLINE_TRACKING
     // in addition to checking for forward misses, check for past ones
@@ -763,7 +768,9 @@ void PreciseStepping::step_isr() {
 
         // limit the interval to avoid a counter overflow or runout
         uint16_t ticks_to_next_step_event = left_ticks_to_next_step_event;
-        NOMORE(ticks_to_next_step_event, max_ticks);
+        if (ticks_to_next_step_event > STEPPER_ISR_MAX_TICKS) {
+            ticks_to_next_step_event = STEPPER_ISR_MAX_TICKS;
+        }
 
         // Compute the time remaining until the next step event.
         left_ticks_to_next_step_event -= ticks_to_next_step_event;
@@ -796,18 +803,20 @@ void PreciseStepping::step_isr() {
     // will be incorrect.
     const auto timer_handle_ptr = &TimerHandle[STEP_TIMER_NUM].handle;
     uint32_t adjusted_next = next - last_step_isr_delay;
-    __disable_irq();
-    int32_t tim_counter = __HAL_TIM_GET_COUNTER(timer_handle_ptr);
-    int32_t diff = counter_signed_diff(adjusted_next, tim_counter);
-    // We should miss the next deadline just by a couple of ticks. When the value of 'diff'
-    // is a big negative number, the difference between 'adjusted_next' and 'tim_counter'
-    // is bigger than (UINT16_MAX / 2), or something interrupts the stepper routine for a very long time.
-    assert(diff >= 0 || diff >= -max_ticks);
-    if (diff < min_reserve) {
-        adjusted_next = tim_counter + min_reserve;
+    int32_t diff;
+    {
+        buddy::InterruptDisabler _;
+        int32_t tim_counter = __HAL_TIM_GET_COUNTER(timer_handle_ptr);
+        diff = counter_signed_diff(adjusted_next, tim_counter);
+        // We should miss the next deadline just by a couple of ticks. When the value of 'diff'
+        // is a big negative number, the difference between 'adjusted_next' and 'tim_counter'
+        // is bigger than (UINT16_MAX / 2), or something interrupts the stepper routine for a very long time.
+        assert(diff >= -STEPPER_ISR_MAX_TICKS && diff < STEPPER_ISR_MAX_TICKS);
+        if (diff < min_reserve) {
+            adjusted_next = tim_counter + min_reserve;
+        }
+        __HAL_TIM_SET_COMPARE(timer_handle_ptr, TIM_CHANNEL_1, adjusted_next);
     }
-    __HAL_TIM_SET_COMPARE(timer_handle_ptr, TIM_CHANNEL_1, adjusted_next);
-    __enable_irq();
 
     if (diff < min_delay) {
         last_step_isr_delay = -diff + min_reserve;
@@ -1124,12 +1133,21 @@ FORCE_INLINE split_step_event_t split_buffered_step(const step_generator_state_t
 FORCE_INLINE void trigger_first_step_event_after_specified_ticks(const uint32_t ticks) {
     assert(ticks <= STEP_TIMER_MAX_TICKS_LIMIT);
 
-    StepIsrDisabler step_guard;
-    PreciseStepping::left_ticks_to_next_step_event = 0;
-    PreciseStepping::last_step_isr_delay = 0;
-    const uint16_t counter = __HAL_TIM_GET_COUNTER(&TimerHandle[STEP_TIMER_NUM].handle);
-    const uint16_t deadline = counter + ticks;
-    __HAL_TIM_SET_COMPARE(&TimerHandle[STEP_TIMER_NUM].handle, TIM_CHANNEL_1, deadline);
+    uint16_t isr_ticks = std::min<uint16_t>(ticks, STEPPER_ISR_MAX_TICKS);
+    uint16_t left_ticks = ticks - isr_ticks;
+
+    {
+        StepIsrDisabler step_guard;
+        const uint16_t deadline = PreciseStepping::step_generator_state.initial_counter + isr_ticks;
+        __HAL_TIM_SET_COMPARE(&TimerHandle[STEP_TIMER_NUM].handle, TIM_CHANNEL_1, deadline);
+        PreciseStepping::left_ticks_to_next_step_event = left_ticks;
+        PreciseStepping::last_step_isr_delay = 0;
+    }
+
+    // Ensure we didn't overshoot the first step event, which should be always far away enough into
+    // the future to account for scheduling overhead. This is normally ensured by the length of the
+    // initial empty move.
+    assert(ticks_diff(ticks_us(), PreciseStepping::step_generator_state.initial_time) < static_cast<int32_t>(ticks));
 }
 
 FORCE_INLINE void append_split_step_event(const split_step_event_t &split_step_event, step_event_u16_t *&next_step_event, uint16_t &next_step_event_queue_head) {
@@ -1351,19 +1369,36 @@ void PreciseStepping::update_maximum_lookback_time() {
 #endif
 }
 
+double PreciseStepping::get_first_move_delay() {
+    // For now, the epsilon o 1ms is applied to ensure that even with big rounding errors,
+    // move_time will be much bigger than max_lookback_time.
+    double move_time = max_lookback_time + 0.001;
+
+    return move_time;
+}
+
 void PreciseStepping::step_generator_state_init(const move_t &move) {
     assert(is_beginning_empty_move(move));
     if (max_lookback_time > move.move_time) {
         bsod("Max lookback time exceeds the length of the beginning empty move segment.");
     }
 
+    current_move_flags = 0;
     step_generator_state.previous_step_time = 0.;
     step_generator_state.previous_step_time_ticks = 0;
     step_generator_state.buffered_step.flags = 0;
     step_generator_state.current_distance = stepper.count_position_from_startup;
     step_generator_state.current_distance.e = 0;
     step_generator_state.left_insert_start_of_move_segment = 0;
-    step_generator_state.initial_time = ticks_us();
+
+    // Setup the absolute initial time
+    int64_t initial_time;
+    {
+        buddy::InterruptDisabler _irq_guard;
+        initial_time = get_timestamp_us();
+        step_generator_state.initial_counter = __HAL_TIM_GET_COUNTER(&TimerHandle[STEP_TIMER_NUM].handle);
+    }
+    step_generator_state.initial_time = initial_time;
 
     // Reset step events and index
     for (step_index_t i = 0; i != step_generator_state.step_event_index.size(); ++i) {
@@ -1452,6 +1487,7 @@ void PreciseStepping::reset_queues() {
     step_ev_miss = 0;
     left_ticks_to_next_step_event = 0;
     last_step_isr_delay = 0;
+    current_move_flags = 0;
     Stepper::axis_did_move = 0;
     stop_pending = false;
     busy = false;

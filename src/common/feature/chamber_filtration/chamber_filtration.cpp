@@ -5,8 +5,12 @@
 #include <gcode_info.hpp>
 #include <tools_mapping.hpp>
 #include <config_store/store_definition.hpp>
+#include <buddy/unreachable.hpp>
 
-#include <feature/xbuddy_extension/xbuddy_extension.hpp>
+#include <option/has_xbuddy_extension.h>
+#if HAS_XBUDDY_EXTENSION()
+    #include <feature/xbuddy_extension/xbuddy_extension.hpp>
+#endif
 
 namespace buddy {
 
@@ -66,6 +70,13 @@ void ChamberFiltration::step() {
 
     std::lock_guard _lg(mutex_);
 
+    if (!is_enabled()) {
+        output_pwm_ = {};
+        is_printing_prev_ = false;
+        needs_filtration_ = false;
+        return;
+    }
+
     // Only start filtering after we've extruded first filament
     // We don't want the filtering fans to slow down the chamber heatup
     const bool is_printing = marlin_server::is_printing_state(marlin_vars().print_state.get()) && (planner.max_printed_z > 0);
@@ -77,19 +88,130 @@ void ChamberFiltration::step() {
         update_needs_filtration();
     }
 
+    const auto now_s = ticks_s();
+
+    // Determine output PWM of the fans
     if (!needs_filtration_.value_or(false)) {
         output_pwm_ = {};
 
     } else if (is_printing) {
         output_pwm_ = config_store().chamber_mid_print_filtration_pwm.get();
-        last_print_s_ = ticks_s();
+        last_print_s_ = now_s;
 
-    } else if (config_store().chamber_post_print_filtration_enable.get() && ticks_diff(ticks_s(), last_print_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
+    } else if (config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, last_print_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
         output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
 
     } else {
         output_pwm_ = {};
         needs_filtration_ = std::nullopt; // Reset the flag after the print is done so that it doesn't affect the next print
+    }
+
+    const auto commit_unaccounted_filter_usage = [&](int min_s = 1) {
+        const auto unnacounted_usage_s = ticks_diff(now_s, unaccounted_filter_time_used_start_s_);
+        if (unnacounted_usage_s < min_s) {
+            return;
+        }
+
+        config_store().chamber_filter_time_used_s.apply([&](auto &val) { val += unnacounted_usage_s; });
+        unaccounted_filter_time_used_start_s_ = now_s;
+    };
+
+    // If output_pwm > 0, track filter usage
+    if (output_pwm_.value == 0) {
+        if (unaccounted_filter_time_used_start_s_) {
+            // Commit any remaining unaccounted time
+            commit_unaccounted_filter_usage();
+            unaccounted_filter_time_used_start_s_ = 0;
+        }
+
+    } else if (unaccounted_filter_time_used_start_s_ == 0) {
+        unaccounted_filter_time_used_start_s_ = now_s;
+
+    } else {
+        // Reduce eeprom writes - update filter usage in certain intervals
+        commit_unaccounted_filter_usage(60);
+    }
+}
+
+uint32_t ChamberFiltration::filter_lifetime_s() const {
+    switch (backend()) {
+
+    case Backend::none:
+        return 0;
+
+#if HAS_XBUDDY_EXTENSION()
+    case Backend::xbe_official_filter:
+        return 600 * 3600;
+
+    case Backend::xbe_filter_on_cooling_fans:
+        // DIY solution, unknown rated life. Let's say that it's the same as the official filter
+        return 600 * 3600;
+#endif
+    }
+
+    BUDDY_UNREACHABLE();
+}
+
+void ChamberFiltration::check_filter_expiration() {
+    /// How much in advance (in filter time usage seconds) we should warn that the filter is about to expire
+    static constexpr auto expiration_early_warning_s = 100 * 3600;
+
+    const auto filter_lifetime_s = this->filter_lifetime_s();
+    if (!filter_lifetime_s) {
+        return;
+    }
+
+    const auto filter_time_used_s = config_store().chamber_filter_time_used_s.get();
+
+    if (filter_time_used_s < filter_lifetime_s - expiration_early_warning_s) {
+        // All is well, reset any warnings and postpones
+        config_store().chamber_filter_expiration_postpone_timestamp_1024.set_to_default();
+        config_store().chamber_filter_early_expiration_warning_shown.set_to_default();
+
+    } else if (filter_time_used_s < filter_lifetime_s) {
+        if (!config_store().chamber_filter_early_expiration_warning_shown.get()) {
+            marlin_server::set_warning(WarningType::EnclosureFilterExpirWarning);
+            config_store().chamber_filter_early_expiration_warning_shown.set(true);
+        }
+
+    } else {
+        const auto current_time = time(nullptr);
+        const auto postpone_time = config_store().chamber_filter_expiration_postpone_timestamp_1024.get();
+        if (current_time / 1024 >= postpone_time) {
+            marlin_server::set_warning(WarningType::EnclosureFilterExpiration);
+        }
+    }
+}
+
+void ChamberFiltration::change_filter() {
+    config_store().chamber_filter_time_used_s.set(0);
+    // Postpones and such get cleared in the next check_filter_expiration call
+}
+
+void ChamberFiltration::handle_filter_expiration_warning(Response response) {
+    switch (response) {
+
+    case Response::_none:
+        break;
+
+    case Response::Ignore:
+        // Do nothing, show warning on next occasion
+        break;
+
+    case Response::Postpone5Days: {
+        if (const auto current_time = time(nullptr); current_time > 0) {
+            // Do nothing if the RTC clock is not set up
+            config_store().chamber_filter_expiration_postpone_timestamp_1024.set((current_time + 5 * 24 * 3600) / 1024);
+        }
+        break;
+    }
+
+    case Response::Done:
+        change_filter();
+        break;
+
+    default:
+        BUDDY_UNREACHABLE();
     }
 }
 

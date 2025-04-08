@@ -313,6 +313,7 @@ public:
     MarlinVariable<float> logical_pos[4]; ///< immediate position XYZE (logical coordinates) [mm]
     MarlinVariable<float> native_curr_pos[4]; ///< current position XYZE (native coordinates) [mm]
     MarlinVariable<float> logical_curr_pos[4]; ///< current position XYZE (logical coordinates) [mm]
+    MarlinVariable<float> max_printed_z;
 
     MarlinVariable<float> temp_bed; // bed temperature [C]
     MarlinVariable<float> target_bed; // bed target temperature [C]
@@ -357,6 +358,7 @@ public:
     // 1B base types
     MarlinVariable<uint8_t> gqueue; // number of commands in gcode queue
     MarlinVariable<uint8_t> pqueue; // number of commands in planner queue
+    MarlinVariable<bool> inject_queue_empty; // is inject queue empty
     MarlinVariable<uint8_t> sd_percent_done; // card.percentDone() [%]
     MarlinVariable<uint8_t> media_inserted; // media_is_inserted()
     MarlinVariable<uint8_t> fan_check_enabled; // fan_check [on/off]

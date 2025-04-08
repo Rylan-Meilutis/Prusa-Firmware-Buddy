@@ -33,9 +33,12 @@
 #include <option/has_toolchanger.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_chamber_api.h>
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_xbuddy_extension.h>
 #include <option/has_uneven_bed_prompt.h>
 #include <option/has_ceiling_clearance.h>
+#include <option/has_door_sensor_calibration.h>
+#include <option/has_auto_retract.h>
 
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
@@ -152,6 +155,10 @@ enum class PhasesLoadUnload : PhaseUnderlyingType {
 
 #if HAS_LOADCELL()
     FilamentStuck,
+#endif
+
+#if HAS_AUTO_RETRACT()
+    AutoRetracting,
 #endif
 
 #if HAS_MMU2()
@@ -331,6 +338,18 @@ enum class PhasesSelftest : PhaseUnderlyingType {
     _last = _last_RevisePrinterStatus,
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhasesSelftest) { return ClientFSM::Selftest; }
+
+enum class PhasesFansSelftest : PhaseUnderlyingType {
+    test_100_percent,
+    #if PRINTER_IS_PRUSA_MK3_5()
+    manual_check,
+    #endif
+    test_40_percent,
+    results,
+    _last = results,
+};
+
+constexpr inline ClientFSM client_fsm_from_phase(PhasesFansSelftest) { return ClientFSM::FansSelftest; }
 #endif
 
 enum class PhaseNetworkSetup : PhaseUnderlyingType {
@@ -395,7 +414,7 @@ enum class PhasesWarning : PhaseUnderlyingType {
     Warning,
 
 // These have some actual buttons that need to be handled.
-#if XL_ENCLOSURE_SUPPORT()
+#if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
     EnclosureFilterExpiration,
 #endif
 
@@ -487,18 +506,6 @@ enum class PhasesPhaseStepping : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhasesPhaseStepping) { return ClientFSM::PhaseStepping; }
 #endif
 
-enum class PhasesFansSelftest : PhaseUnderlyingType {
-    test_100_percent,
-#if PRINTER_IS_PRUSA_MK3_5()
-    manual_check,
-#endif
-    test_40_percent,
-    results,
-    _last = results,
-};
-
-constexpr inline ClientFSM client_fsm_from_phase(PhasesFansSelftest) { return ClientFSM::FansSelftest; }
-
 #if HAS_INPUT_SHAPER_CALIBRATION()
 enum class PhasesInputShaperCalibration : PhaseUnderlyingType {
     info,
@@ -584,6 +591,24 @@ enum class PhaseGearboxAlignment : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhaseGearboxAlignment) { return ClientFSM::GearboxAlignment; }
 #endif
 
+#if HAS_DOOR_SENSOR_CALIBRATION()
+enum class PhaseDoorSensorCalibration : PhaseUnderlyingType {
+    confirm_abort,
+    repeat,
+    skip_ask,
+    confirm_closed,
+    tighten_screw_half,
+    confirm_open,
+    loosen_screw_half,
+    finger_test,
+    tighten_screw_quarter,
+    done,
+    finish,
+    _last = finish,
+};
+constexpr inline ClientFSM client_fsm_from_phase(PhaseDoorSensorCalibration) { return ClientFSM::DoorSensorCalibration; }
+#endif
+
 // static class for work with fsm responses (like button click)
 // encode responses - get them from marlin client, to marlin server and decode them again
 class ClientResponses {
@@ -627,6 +652,9 @@ class ClientResponses {
             { PhasesLoadUnload::Unparking, {} },
 #if HAS_LOADCELL()
             { PhasesLoadUnload::FilamentStuck, { Response::Unload } },
+#endif
+#if HAS_AUTO_RETRACT()
+            { PhasesLoadUnload::AutoRetracting, {} },
 #endif
 #if HAS_MMU2()
             { PhasesLoadUnload::LoadFilamentIntoMMU, { Response::Continue } },
@@ -736,6 +764,7 @@ class ClientResponses {
                                               } },
     };
 
+#if HAS_SELFTEST()
     static constexpr EnumArray<PhasesSelftest, PhaseResponses, CountPhases<PhasesSelftest>()> SelftestResponses {
         { PhasesSelftest::_none, {} },
         { PhasesSelftest::Loadcell_prepare, {} },
@@ -811,6 +840,17 @@ class ClientResponses {
         { PhasesSelftest::RevisePrinterStatus_ask_retry, { Response::Yes, Response::No } },
     };
 
+    static constexpr PhaseResponses FanSelftestResponses[] = {
+        {}, // PhasesFanSelftest::test_100_percent
+    #if PRINTER_IS_PRUSA_MK3_5()
+        { Response::Yes, Response::No }, // PhasesFanSelftest::manual_check
+    #endif
+        {}, // PhasesFanSelftest::test_40_percent
+        {}, // PhasesFanSelftest::results
+    };
+    static_assert(std::size(ClientResponses::FanSelftestResponses) == CountPhases<PhasesFansSelftest>());
+#endif
+
     static constexpr EnumArray<PhaseNetworkSetup, PhaseResponses, CountPhases<PhaseNetworkSetup>()> network_setup_responses {
         { PhaseNetworkSetup::init, {} },
             { PhaseNetworkSetup::ask_switch_to_wifi, { Response::Yes, Response::No } },
@@ -864,7 +904,7 @@ class ClientResponses {
         { PhasesWarning::DoorOpen, {} },
 #endif
             { PhasesWarning::Warning, { Response::Continue } },
-#if XL_ENCLOSURE_SUPPORT()
+#if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
             { PhasesWarning::EnclosureFilterExpiration, { Response::Ignore, Response::Postpone5Days, Response::Done } },
 #endif
             { PhasesWarning::ProbingFailed, { Response::Yes, Response::No } },
@@ -938,16 +978,6 @@ class ClientResponses {
     };
 #endif
 
-    static constexpr PhaseResponses FanSelftestResponses[] = {
-        {}, // PhasesFanSelftest::test_100_percent
-#if PRINTER_IS_PRUSA_MK3_5()
-        { Response::Yes, Response::No }, // PhasesFanSelftest::manual_check
-#endif
-        {}, // PhasesFanSelftest::test_40_percent
-        {}, // PhasesFanSelftest::results
-    };
-    static_assert(std::size(ClientResponses::FanSelftestResponses) == CountPhases<PhasesFansSelftest>());
-
 #if HAS_INPUT_SHAPER_CALIBRATION()
     static constexpr EnumArray<PhasesInputShaperCalibration, PhaseResponses, CountPhases<PhasesInputShaperCalibration>()> input_shaper_calibration_responses {
         { PhasesInputShaperCalibration::info, { Response::Continue, Response::Abort } },
@@ -997,14 +1027,30 @@ class ClientResponses {
     };
 #endif
 
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    static constexpr EnumArray<PhaseDoorSensorCalibration, PhaseResponses, CountPhases<PhaseDoorSensorCalibration>()> door_sensor_calibration_responses {
+        { PhaseDoorSensorCalibration::confirm_abort, { Response::Back, Response::Skip } },
+        { PhaseDoorSensorCalibration::repeat, { Response::Ok } },
+        { PhaseDoorSensorCalibration::skip_ask, { Response::Calibrate, Response::Skip } },
+        { PhaseDoorSensorCalibration::confirm_closed, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::tighten_screw_half, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::confirm_open, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::loosen_screw_half, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::finger_test, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::tighten_screw_quarter, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::done, { Response::Continue } },
+        { PhaseDoorSensorCalibration::finish, {} },
+    };
+#endif
+
     static constexpr EnumArray<ClientFSM, std::span<const PhaseResponses>, ClientFSM::_count> fsm_phase_responses {
         { ClientFSM::Serial_printing, {} },
             { ClientFSM::Load_unload, LoadUnloadResponses },
             { ClientFSM::Preheat, PreheatResponses },
 #if HAS_SELFTEST()
             { ClientFSM::Selftest, SelftestResponses },
-#endif
             { ClientFSM::FansSelftest, FanSelftestResponses },
+#endif
             { ClientFSM::NetworkSetup, network_setup_responses },
             { ClientFSM::Printing, {} },
 #if ENABLED(CRASH_RECOVERY)
@@ -1027,6 +1073,9 @@ class ClientResponses {
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
             { ClientFSM::GearboxAlignment, gearbox_alignment_responses },
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+            { ClientFSM::DoorSensorCalibration, door_sensor_calibration_responses },
 #endif
             { ClientFSM::Wait, {} },
     };
@@ -1081,22 +1130,23 @@ public:
     }
 };
 
+#if HAS_SELFTEST()
 enum class SelftestParts {
     Axis,
-#if HAS_LOADCELL()
+    #if HAS_LOADCELL()
     Loadcell,
-#endif
+    #endif
     CalibZ,
     Heaters,
-#if FILAMENT_SENSOR_IS_ADC()
+    #if FILAMENT_SENSOR_IS_ADC()
     FSensor,
-#endif
+    #endif
     FirstLayer,
     FirstLayerQuestions,
-#if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER()
     Dock,
     ToolOffsets,
-#endif
+    #endif
     RevisePrinterSetup,
     _none, // cannot be created, must have same index as _count
     _count = _none
@@ -1106,14 +1156,14 @@ static constexpr PhasesSelftest SelftestGetFirstPhaseFromPart(SelftestParts part
     switch (part) {
     case SelftestParts::Axis:
         return PhasesSelftest::_first_Axis;
-#if HAS_LOADCELL()
+    #if HAS_LOADCELL()
     case SelftestParts::Loadcell:
         return PhasesSelftest::_first_Loadcell;
-#endif
-#if FILAMENT_SENSOR_IS_ADC()
+    #endif
+    #if FILAMENT_SENSOR_IS_ADC()
     case SelftestParts::FSensor:
         return PhasesSelftest::_first_FSensor;
-#endif
+    #endif
     case SelftestParts::CalibZ:
         return PhasesSelftest::_first_CalibZ;
     case SelftestParts::Heaters:
@@ -1122,12 +1172,12 @@ static constexpr PhasesSelftest SelftestGetFirstPhaseFromPart(SelftestParts part
         return PhasesSelftest::_first_FirstLayer;
     case SelftestParts::FirstLayerQuestions:
         return PhasesSelftest::_first_FirstLayerQuestions;
-#if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER()
     case SelftestParts::Dock:
         return PhasesSelftest::_first_Dock;
     case SelftestParts::ToolOffsets:
         return PhasesSelftest::_first_Tool_Offsets;
-#endif
+    #endif
     case SelftestParts::RevisePrinterSetup:
         return PhasesSelftest::_first_RevisePrinterStatus;
 
@@ -1141,14 +1191,14 @@ static constexpr PhasesSelftest SelftestGetLastPhaseFromPart(SelftestParts part)
     switch (part) {
     case SelftestParts::Axis:
         return PhasesSelftest::_last_Axis;
-#if HAS_LOADCELL()
+    #if HAS_LOADCELL()
     case SelftestParts::Loadcell:
         return PhasesSelftest::_last_Loadcell;
-#endif
-#if FILAMENT_SENSOR_IS_ADC()
+    #endif
+    #if FILAMENT_SENSOR_IS_ADC()
     case SelftestParts::FSensor:
         return PhasesSelftest::_last_FSensor;
-#endif
+    #endif
     case SelftestParts::CalibZ:
         return PhasesSelftest::_last_CalibZ;
     case SelftestParts::Heaters:
@@ -1157,12 +1207,12 @@ static constexpr PhasesSelftest SelftestGetLastPhaseFromPart(SelftestParts part)
         return PhasesSelftest::_last_FirstLayer;
     case SelftestParts::FirstLayerQuestions:
         return PhasesSelftest::_last_FirstLayerQuestions;
-#if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER()
     case SelftestParts::Dock:
         return PhasesSelftest::_last_Dock;
     case SelftestParts::ToolOffsets:
         return PhasesSelftest::_last_Tool_Offsets;
-#endif
+    #endif
     case SelftestParts::RevisePrinterSetup:
         return PhasesSelftest::_last_RevisePrinterStatus;
 
@@ -1185,17 +1235,17 @@ static constexpr SelftestParts SelftestGetPartFromPhase(PhasesSelftest ph) {
         }
     }
 
-#if HAS_LOADCELL()
+    #if HAS_LOADCELL()
     if (SelftestPartContainsPhase(SelftestParts::Loadcell, ph)) {
         return SelftestParts::Loadcell;
     }
-#endif
+    #endif
 
-#if FILAMENT_SENSOR_IS_ADC()
+    #if FILAMENT_SENSOR_IS_ADC()
     if (SelftestPartContainsPhase(SelftestParts::FSensor, ph)) {
         return SelftestParts::FSensor;
     }
-#endif
+    #endif
     if (SelftestPartContainsPhase(SelftestParts::Axis, ph)) {
         return SelftestParts::Axis;
     }
@@ -1208,11 +1258,11 @@ static constexpr SelftestParts SelftestGetPartFromPhase(PhasesSelftest ph) {
         return SelftestParts::CalibZ;
     }
 
-#if BOARD_IS_XLBUDDY()
+    #if BOARD_IS_XLBUDDY()
     if (SelftestPartContainsPhase(SelftestParts::Dock, ph)) {
         return SelftestParts::Dock;
     }
-#endif
+    #endif
 
     if (SelftestPartContainsPhase(SelftestParts::RevisePrinterSetup, ph)) {
         return SelftestParts::RevisePrinterSetup;
@@ -1220,3 +1270,4 @@ static constexpr SelftestParts SelftestGetPartFromPhase(PhasesSelftest ph) {
 
     return SelftestParts::_none;
 };
+#endif // HAS_SELFTEST()

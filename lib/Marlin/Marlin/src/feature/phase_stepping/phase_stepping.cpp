@@ -15,9 +15,7 @@
 #include <device/peripherals.h>
 #include <module/motion.h>
 #include <module/stepper.h>
-#include <module/stepper/trinamic.h>
-#include <trinamic.h>
-#include <TMCStepper.h>
+#include <feature/motordriver_util.h>
 
 #include <Pin.hpp>
 #include <logging/log.hpp>
@@ -523,7 +521,7 @@ static void disable_phase_stepping(AxisEnum axis_num) {
     auto &axis_state = axis_states[axis_num];
 
     axis_state.active = false;
-    tmc_serial_lock_clear_isr_starved();
+    motor_serial_lock_clear_isr_starved();
     auto enable_mask = PHASE_STEPPING_GENERATOR_X << axis_num;
     PreciseStepping::physical_axis_step_generator_types &= ~enable_mask;
 
@@ -654,6 +652,20 @@ static bool is_refresh_period_sane(uint32_t now, uint32_t last_timer_tick) {
     return refresh_period < 2 * REFRESH_PERIOD_US - UPDATE_DURATION_US;
 }
 
+static std::tuple<int, int, int> compute_calibration_tweak(
+    const CalibrationSweep &params, float relative_position) {
+    relative_position = std::fabs(relative_position);
+
+    float progress = (relative_position - params.setup_distance) / params.sweep_distance;
+    progress = std::clamp(progress, 0.f, 1.f);
+
+    return {
+        params.harmonic,
+        params.pha_start + progress * params.pha_diff,
+        params.mag_start + progress * params.mag_diff
+    };
+}
+
 static FORCE_INLINE FORCE_OFAST void refresh_axis(
     AxisState &axis_state, uint32_t now, uint32_t previous_tick) {
     if (!axis_state.active) {
@@ -667,7 +679,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
         // If the ISR handler was delayed, we don't have enough time to process
         // the update. Abort the update so we can catch up.
         mark_missed_transaction(axis_state);
-        tmc_serial_lock_mark_isr_starved();
+        motor_serial_lock_mark_isr_starved();
         return;
     }
 
@@ -686,6 +698,12 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             axis_state.initial_time += axis_state.current_target->duration;
             move_position = axis_state.current_target->target_pos;
             axis_state.current_target.reset();
+
+            // Cleanup after performin a calibration sweep
+            if (axis_state.calibration_sweep_active) {
+                axis_state.calibration_sweep_active = false;
+                axis_state.calibration_sweep.reset();
+            }
         }
 
         if (!axis_state.pending_targets.isEmpty()) {
@@ -700,6 +718,13 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
 
             move_position = current_target.initial_pos;
             move_epoch = ticks_diff(now, axis_state.initial_time);
+
+            // Make calibration sweep active if the move is long enough:
+            if (axis_state.calibration_sweep.has_value() && axis_state.is_cruising) {
+                float calibration_distance = axis_state.calibration_sweep->setup_distance + axis_state.calibration_sweep->sweep_distance;
+                float move_distance = current_target.target_pos - current_target.initial_pos;
+                axis_state.calibration_sweep_active = std::fabs(move_distance) >= std::fabs(calibration_distance);
+            }
         } else {
             // No new movement
             axis_state.is_cruising = false;
@@ -725,13 +750,28 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
     assert(phase_difference(axis_state.last_phase, new_phase) < 256);
 
 #if HAS_BURST_STEPPING()
-    int phase_correction = current_lut.get_phase_shift(new_phase);
+    int phase_correction;
+    if (axis_state.calibration_sweep_active) {
+        float start_position = axis_state.current_target->initial_pos;
+        auto [harmonic, pha, mag] = compute_calibration_tweak(*axis_state.calibration_sweep, position - start_position);
+        phase_correction = current_lut.get_phase_shift_for_calibration(new_phase, harmonic, pha, mag);
+    } else {
+        phase_correction = current_lut.get_phase_shift(new_phase);
+    }
+
     int shifted_phase = normalize_motor_phase(new_phase + phase_correction);
     int steps_diff = phase_difference(shifted_phase, axis_state.driver_phase);
     burst_stepping::set_phase_diff(axis_enum, steps_diff);
     axis_state.driver_phase = shifted_phase;
 #else
-    auto new_currents = current_lut.get_current(new_phase);
+    CoilCurrents new_currents;
+    if (axis_state.calibration_sweep_active) {
+        float start_position = axis_state.current_target->initial_pos;
+        auto [harmonic, pha, mag] = compute_calibration_tweak(*axis_state.calibration_sweep, position - start_position);
+        new_currents = current_lut.get_current_for_calibration(new_phase, harmonic, pha, mag);
+    } else {
+        new_currents = current_lut.get_current(new_phase);
+    }
     int c_adj = current_adjustment(axis_index, mm_to_rev(axis_enum, physical_speed));
     new_currents.a = new_currents.a * c_adj / 255;
     new_currents.b = new_currents.b * c_adj / 255;
@@ -805,7 +845,7 @@ FORCE_OFAST void phase_stepping::handle_periodic_refresh() {
             return !(state.enabled && state.active) || state.missed_tx_cnt == 0;
         })) {
         // Only if all axes have refreshed, we can let tasks to run
-        tmc_serial_lock_clear_isr_starved();
+        motor_serial_lock_clear_isr_starved();
     }
 #endif
 }

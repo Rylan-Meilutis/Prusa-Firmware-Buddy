@@ -55,6 +55,7 @@
 #include "../libs/vector_3.h"   // for matrix_3x3
 #include "../gcode/gcode.h"
 #include "../Marlin.h"
+#include <feature/motordriver_util.h>
 
 #if ENABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
     #include "config_store/store_c_api.h"
@@ -80,8 +81,6 @@
   #define EEPROM_NUM_SERVOS NUM_SERVO_PLUGS
 #endif
 
-#include "../feature/fwretract.h"
-
 #include "../feature/pause.h"
 
 #if ENABLED(BACKLASH_COMPENSATION)
@@ -103,7 +102,6 @@
 
 #if HAS_TRINAMIC
   #include "stepper/indirection.h"
-  #include "../feature/tmc_util.h"
 #endif
 
 #include <option/has_phase_stepping.h>
@@ -114,13 +112,6 @@
 
 #define DEBUG_OUT ENABLED(EEPROM_CHITCHAT)
 #include "../core/debug_out.h"
-
-#pragma pack(push, 1) // No padding between variables
-
-typedef struct { uint16_t X, Y, Z, X2, Y2, Z2, Z3, E0, E1, E2, E3, E4, E5; } tmc_stepper_current_t;
-typedef struct { uint32_t X, Y, Z, X2, Y2, Z2, Z3, E0, E1, E2, E3, E4, E5; } tmc_hybrid_threshold_t;
-typedef struct {  int16_t X, Y, Z, X2;                                     } tmc_sgt_t;
-typedef struct {     bool X, Y, Z, X2, Y2, Z2, Z3, E0, E1, E2, E3, E4, E5; } tmc_stealth_enabled_t;
 
 // Limit an index to an array size
 #define ALIM(I,ARR) _MIN(I, COUNT(ARR) - 1)
@@ -190,10 +181,6 @@ void MarlinSettings::postprocess() {
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
       set_z_fade_height(new_z_fade_height, false); // false = no report
-    #endif
-
-    #if ENABLED(FWRETRACT)
-      fwretract.refresh_autoretract();
     #endif
 
     #if HAS_LINEAR_E_JERK
@@ -481,14 +468,6 @@ void MarlinSettings::reset() {
   #endif
 
   //
-  // Firmware Retraction
-  //
-
-  #if ENABLED(FWRETRACT)
-    fwretract.reset();
-  #endif
-
-  //
   // Volumetric & Filament Size
   //
 
@@ -753,10 +732,8 @@ void MarlinSettings::reset() {
       CONFIG_ECHO_HEADING("Home offset:");
       CONFIG_ECHO_START();
       SERIAL_ECHOLNPAIR("  M206"
-        #if IS_CARTESIAN
-          " X", LINEAR_UNIT(home_offset.x),
-          " Y", LINEAR_UNIT(home_offset.y),
-        #endif
+        " X", LINEAR_UNIT(home_offset.x),
+        " Y", LINEAR_UNIT(home_offset.y),
         " Z", LINEAR_UNIT(home_offset.z)
       );
     #endif
@@ -932,35 +909,6 @@ void MarlinSettings::reset() {
       CONFIG_ECHO_START();
       SERIAL_ECHOLNPAIR("  M250 C", ui.contrast);
     #endif
-
-    #if ENABLED(FWRETRACT)
-
-      CONFIG_ECHO_HEADING("Retract: S<length> F<units/m> Z<lift>");
-      CONFIG_ECHO_START();
-      SERIAL_ECHOLNPAIR(
-          "  M207 S", LINEAR_UNIT(fwretract.settings.retract_length)
-        , " W", LINEAR_UNIT(fwretract.settings.swap_retract_length)
-        , " F", LINEAR_UNIT(MMS_TO_MMM(fwretract.settings.retract_feedrate_mm_s))
-        , " Z", LINEAR_UNIT(fwretract.settings.retract_zraise)
-      );
-
-      CONFIG_ECHO_HEADING("Recover: S<length> F<units/m>");
-      CONFIG_ECHO_START();
-      SERIAL_ECHOLNPAIR(
-          "  M208 S", LINEAR_UNIT(fwretract.settings.retract_recover_extra)
-        , " W", LINEAR_UNIT(fwretract.settings.swap_retract_recover_extra)
-        , " F", LINEAR_UNIT(MMS_TO_MMM(fwretract.settings.retract_recover_feedrate_mm_s))
-      );
-
-      #if ENABLED(FWRETRACT_AUTORETRACT)
-
-        CONFIG_ECHO_HEADING("Auto-Retract: S=0 to disable, 1 to interpret E-only moves as retract/recover");
-        CONFIG_ECHO_START();
-        SERIAL_ECHOLNPAIR("  M209 S", fwretract.autoretract_enabled ? 1 : 0);
-
-      #endif // FWRETRACT_AUTORETRACT
-
-    #endif // FWRETRACT
 
     /**
      * Probe Offset
@@ -1326,5 +1274,3 @@ void MarlinSettings::reset() {
   }
 
 #endif // !DISABLE_M503
-
-#pragma pack(pop)

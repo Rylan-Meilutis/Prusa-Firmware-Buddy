@@ -25,6 +25,9 @@
 
 #include <buddy/filename_defs.h>
 #include <option/has_precise_homing.h>
+#include <option/has_crash_detection.h>
+#include <option/has_pause.h>
+#include <option/has_power_panic.h>
 
 /**
  * Configuration_adv.h
@@ -1006,38 +1009,6 @@
 //#define EXTRA_FAN_SPEED
 
 /**
- * Firmware-based and LCD-controlled retract
- *
- * Add G10 / G11 commands for automatic firmware-based retract / recover.
- * Use M207 and M208 to define parameters for retract / recover.
- *
- * Use M209 to enable or disable auto-retract.
- * With auto-retract enabled, all G1 E moves within the set range
- * will be converted to firmware-based retract/recover moves.
- *
- * Be sure to turn off auto-retract during filament change.
- *
- * Note that M207 / M208 / M209 settings are saved to EEPROM.
- *
- */
-//#define FWRETRACT
-#if ENABLED(FWRETRACT)
-    #define FWRETRACT_AUTORETRACT // costs ~500 bytes of PROGMEM
-    #if ENABLED(FWRETRACT_AUTORETRACT)
-        #define MIN_AUTORETRACT 0.1 // When auto-retract is on, convert E moves of this length and over
-        #define MAX_AUTORETRACT 10.0 // Upper limit for auto-retract conversion
-    #endif
-    #define RETRACT_LENGTH 3 // Default retract length (positive mm)
-    #define RETRACT_LENGTH_SWAP 13 // Default swap retract length (positive mm), for extruder change
-    #define RETRACT_FEEDRATE 45 // Default feedrate for retracting (mm/s)
-    #define RETRACT_ZRAISE 0 // Default retract Z-raise (mm)
-    #define RETRACT_RECOVER_LENGTH 0 // Default additional recover length (mm, added to retract length when recovering)
-    #define RETRACT_RECOVER_LENGTH_SWAP 0 // Default additional swap recover length (mm, added to retract length when recovering from extruder change)
-    #define RETRACT_RECOVER_FEEDRATE 8 // Default feedrate for recovering from retraction (mm/s)
-    #define RETRACT_RECOVER_FEEDRATE_SWAP 8 // Default feedrate for recovering from swap retraction (mm/s)
-#endif
-
-/**
  * Universal tool change settings.
  * Applies to all types of extruders except where explicitly noted.
  */
@@ -1074,7 +1045,7 @@
  * Requires an LCD display.
  * This feature is required for the default FILAMENT_RUNOUT_SCRIPT.
  */
-#define ADVANCED_PAUSE_FEATURE
+#define ADVANCED_PAUSE_FEATURE HAS_PAUSE()
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
     #define FILAMENT_UNLOAD_RAMMING_SEQUENCE \
             { \
@@ -1448,8 +1419,8 @@
  * Provides crash detection during printing and proper crash recovery.
  * Sensorless homing must be turned on and sensitivities set accordingly.
  */
-#define CRASH_RECOVERY
-#ifdef CRASH_RECOVERY
+#define CRASH_RECOVERY HAS_CRASH_DETECTION()
+#if ENABLED(CRASH_RECOVERY)
     #define CRASH_STALL_GUARD { 2, 2 }    // internal value representing sensitivity
     #define CRASH_MAX_PERIOD { 210, 210 } // (steps per tick) - reciprocal value of minimal speed
     #define CRASH_FILTER (false)          // Stallguard filtering for crash detection
@@ -1470,9 +1441,8 @@
  * Recovery from power failure. This is a distinct implementation from
  * POWER_LOSS_RECOVERY specific to Prusa printers.
  */
-#define POWER_PANIC
-
-#ifdef POWER_PANIC
+#define POWER_PANIC HAS_POWER_PANIC()
+#if ENABLED(POWER_PANIC)
     #define POWER_PANIC_Z_LIFT_CYCLES 4 // 4xFullStep cycles = ~0.64mm
     #define POWER_PANIC_MAX_BED_DIFF 10 // Maximum bed temperature (C) difference for auto-recovery
 
@@ -1488,8 +1458,6 @@
 
     #define POWER_PANIC_E_CURRENT 300 // (mA) RMS current
 #endif
-
-//#define REBOOT_RESTORE_Z
 
 /**
    * TMC2130, TMC2160, TMC2209, TMC2660, TMC5130, and TMC5160 only

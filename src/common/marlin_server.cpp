@@ -15,6 +15,7 @@
 #include "adc.hpp"
 #include "marlin_events.h"
 #include "marlin_print_preview.hpp"
+#include "utils/exponential_backoff.hpp"
 #include "bsod.h"
 #include "module/prusa/tool_mapper.hpp"
 #include "module/prusa/spool_join.hpp"
@@ -25,7 +26,6 @@
 #include <logging/log.hpp>
 #include <bsod_gui.hpp>
 #include <usb_host.h>
-#include <st25dv64k.h>
 #include <usb_host.h>
 #include <lfn.h>
 #include <media_prefetch/media_prefetch.hpp>
@@ -36,6 +36,7 @@
 #include <RAII.hpp>
 #include <inject_queue.hpp>
 #include <buddy/unreachable.hpp>
+#include <utils/string_builder.hpp>
 
 #include "../Marlin/src/lcd/extensible_ui/ui_api.h"
 #include "../Marlin/src/gcode/queue.h"
@@ -80,9 +81,6 @@
 #include "media_prefetch_instance.hpp"
 
 #include <option/has_leds.h>
-#if HAS_LEDS()
-    #include "led_animations/printer_animation_state.hpp"
-#endif
 
 #include "fanctl.hpp"
 #include "lcd/extensible_ui/ui_api.h"
@@ -113,6 +111,7 @@
 #if HAS_SELFTEST()
     #include "printer_selftest.hpp"
     #include "i_selftest.hpp"
+    #include "selftest_axis.h"
 #endif
 
 #if HAS_SHEET_PROFILES()
@@ -122,7 +121,6 @@
 #if ENABLED(CRASH_RECOVERY)
     #include "../Marlin/src/feature/prusa/crash_recovery.hpp"
     #include "crash_recovery_type.hpp"
-    #include "selftest_axis.h"
 #endif
 
 #if ENABLED(POWER_PANIC)
@@ -168,6 +166,11 @@
 #include <option/has_ceiling_clearance.h>
 #if HAS_CEILING_CLEARANCE()
     #include <feature/ceiling_clearance/ceiling_clearance.hpp>
+#endif
+
+#include <option/has_auto_retract.h>
+#if HAS_AUTO_RETRACT()
+    #include <feature/auto_retract/auto_retract.hpp>
 #endif
 
 #include <wui.h>
@@ -235,7 +238,15 @@ namespace {
         /// This flag stores that we have a resume pending and we should start executing it when we can.
         bool resume_pending = false;
 
-        bool paused_due_to_media_error = false;
+        // In case we were paused due to media error, we schedule an attempt to recover
+        // (using the recover_media_error_backoff mechanism).
+        //
+        // We still allow an earlier attempt if called externally by try_recover_from_media_error.
+        std::optional<uint32_t> recover_media_error_at;
+        // Tracking exponential backoff for media error recovery retries.
+        //
+        // In seconds.
+        buddy::ExponentialBackoff<uint32_t, 30, 300> recover_media_error_backoff;
 
         /// Position the media should be resumed to
         GCodeReaderStreamRestoreInfo media_restore_info;
@@ -436,45 +447,110 @@ namespace {
         }
 #endif
     }
+} // end anonymous namespace
 
-    void handle_warnings() {
-        const auto phase_opt = fsm_states[ClientFSM::Warning];
-        if (!phase_opt.has_value()) {
-            return;
+/******************************************************************************/
+// Warning handling
+
+static std::bitset<static_cast<size_t>(WarningType::_last) + 1> warning_flags;
+static uint32_t active_warning_pop_timestamp_sec = 0;
+
+static void handle_warnings() {
+    const auto phase_opt = fsm_states[ClientFSM::Warning];
+    if (!phase_opt.has_value()) {
+        return;
+    }
+
+    const auto phase = static_cast<PhasesWarning>(phase_opt->GetPhase());
+    const auto warning_type = fsm::deserialize_data<WarningType>(phase_opt->GetData());
+
+    const auto consume_response = [&]() {
+        const auto response = get_response_from_phase(phase);
+        if (response != Response::_none) {
+            clear_warning(warning_type);
         }
 
-        const auto phase = static_cast<PhasesWarning>(phase_opt->GetPhase());
+        return response;
+    };
 
-        const auto consume_response = [&]() {
-            const auto response = get_response_from_phase(phase);
-            if (response != Response::_none) {
-                const WarningType warning_type = static_cast<WarningType>(*phase_opt->GetData().data());
-                clear_warning(warning_type);
-            }
+    switch (phase) {
 
-            return response;
-        };
-
-        switch (phase) {
-
-        case PhasesWarning::Warning:
+    case PhasesWarning::Warning:
+        if (fsm_states.get_top()->fsm_type != ClientFSM::Warning) {
+            // Some other FSM is on top of Warning FSM - reset warning lifespan timestamp
+            active_warning_pop_timestamp_sec = ticks_s();
+        }
+        if (ticks_s() - active_warning_pop_timestamp_sec > warning_lifespan_sec(warning_type)) {
+            clear_warning(warning_type);
+        } else {
             consume_response();
-            break;
+        }
+        break;
 
 #if XL_ENCLOSURE_SUPPORT()
-        case PhasesWarning::EnclosureFilterExpiration:
-            if (auto r = consume_response(); r != Response::_none) {
-                xl_enclosure.setUpReminder(r);
-            }
-            break;
+    case PhasesWarning::EnclosureFilterExpiration:
+        if (auto r = consume_response(); r != Response::_none) {
+            xl_enclosure.setUpReminder(r);
+        }
+        break;
 #endif
 
-        default:
-            // Most warnings are handled somewhere else and we shouldn't consume and process the responses
-            break;
-        }
+#if HAS_CHAMBER_FILTRATION_API()
+    case PhasesWarning::EnclosureFilterExpiration:
+        buddy::chamber_filtration().handle_filter_expiration_warning(consume_response());
+        break;
+#endif
+
+    default:
+        // Most warnings are handled somewhere else and we shouldn't consume and process the responses
+        break;
     }
-} // end anonymous namespace
+}
+
+static void update_warning_fsm() {
+    if (warning_flags.any()) {
+        size_t i = 0;
+        for (; !warning_flags.test(i); i++)
+            ;
+        const WarningType type = static_cast<WarningType>(i);
+        const fsm::PhaseData data = fsm::serialize_data<WarningType>(type);
+
+        // Avoid reinit of warning timestamp timer if warning is already shown
+        if (!fsm_states[ClientFSM::Warning].has_value() || fsm_states[ClientFSM::Warning]->GetData() != data) {
+            active_warning_pop_timestamp_sec = ticks_s();
+            fsm_create(warning_type_phase(type), data);
+        }
+    } else {
+        fsm_destroy(ClientFSM::Warning);
+    }
+}
+
+void set_warning(WarningType type) {
+    log_warning(MarlinServer, "Warning type %d set", (int)type);
+    log_info(MarlinServer, "WARNING: %" PRIu32, std::to_underlying(type));
+
+    warning_flags.set(std::to_underlying(type));
+    update_warning_fsm();
+}
+
+void clear_warning(WarningType type) {
+    warning_flags.reset(std::to_underlying(type));
+    update_warning_fsm();
+}
+
+bool is_warning_active(WarningType type) {
+    return warning_flags.test(std::to_underlying(type));
+}
+
+Response prompt_warning(WarningType type) {
+    set_warning(type);
+    const Response r = wait_for_response(warning_type_phase(type));
+    clear_warning(type);
+    return r;
+}
+
+/******************************************************************************/
+// FSM Manipulation
 
 static void commit_fsm_states() {
     fsm_states.increment_state_id();
@@ -754,8 +830,15 @@ static void pre_finalize_print([[maybe_unused]] bool finished) {
     if (MMU2::mmu2.Enabled() && (!finished || GCodeInfo::getInstance().is_singletool_gcode())) {
         // When we are running single-filament gcode with MMU, we should unload current filament.
         safely_unload_filament_from_nozzle_to_mmu();
-    }
+    } else
 #endif // ENABLED(PRUSA_MMU2)
+#if HAS_AUTO_RETRACT()
+        if (true) {
+        buddy::auto_retract().maybe_retract_from_nozzle();
+    } else
+#endif
+    {
+    }
 }
 
 void static finalize_print(bool finished) {
@@ -822,6 +905,9 @@ void static finalize_print(bool finished) {
 
 #if XL_ENCLOSURE_SUPPORT()
     xl_enclosure.checkFilterExpiration();
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().check_filter_expiration();
 #endif
 
     if (config_store().show_fsensors_disabled_warning_after_print.get()) {
@@ -988,13 +1074,13 @@ static void settings_load() {
 #endif
 }
 
-void test_start([[maybe_unused]] const uint64_t test_mask, [[maybe_unused]] const selftest::TestData test_data) {
 #if HAS_SELFTEST()
+void test_start([[maybe_unused]] const uint64_t test_mask, [[maybe_unused]] const selftest::TestData test_data) {
     if (((server.print_state == State::Idle) || (server.print_state == State::Finished) || (server.print_state == State::Aborted)) && (!SelftestInstance().IsInProgress())) {
         SelftestInstance().Start(test_mask, test_data);
     }
-#endif
 }
+#endif
 
 void quick_stop() {
 #if HAS_TOOLCHANGER()
@@ -1080,6 +1166,7 @@ bool printer_paused_extended() {
     case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
+    case State::Resuming_BufferData:
     case State::Resuming_Begin:
     case State::Resuming_Reheating:
     case State::Resuming_UnparkHead_XY:
@@ -1226,6 +1313,7 @@ void print_abort(void) {
 #endif
     case State::Printing:
     case State::Paused:
+    case State::Resuming_BufferData:
     case State::Resuming_Reheating:
     case State::Finishing_WaitIdle:
 #if HAS_TOOLCHANGER()
@@ -1389,6 +1477,25 @@ void media_prefetch_start() {
     media_prefetch.issue_fetch();
 }
 
+void schedule_media_retry() {
+    const auto backoff_time = print_state.recover_media_error_backoff.fail();
+    print_state.recover_media_error_at = ticks_s() + backoff_time;
+    log_info(MarlinServer, "Scheduled media retry at %" PRIu32 ", backoff %" PRIu32, *print_state.recover_media_error_at, backoff_time);
+}
+
+void clear_media_error() {
+    if (!print_state.recover_media_error_backoff.get().has_value()) {
+        return;
+    }
+
+    print_state.recover_media_error_at.reset();
+    print_state.recover_media_error_backoff.reset();
+
+    clear_warning(WarningType::USBFlashDiskError);
+    clear_warning(WarningType::GcodeCorruption);
+    clear_warning(WarningType::NotDownloaded);
+}
+
 void media_print_loop() {
     /// Size of the gcode queue
     METRIC_DEF(metric_gcode_queue_size, "gcd_que_sz", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
@@ -1397,12 +1504,12 @@ void media_print_loop() {
     while (queue.length < MEDIA_FETCH_GCODE_QUEUE_FILL_TARGET) {
         MediaPrefetchManager::ReadResult data;
         using Status = MediaPrefetchManager::Status;
-        const Status status = media_prefetch.read_command(data);
+        const auto status = media_prefetch.read_command(data);
         const auto metrics = media_prefetch.get_metrics();
 
         /// Status of the last media_prefetch.read_command. 0 = ok, 1 = end of file, other = error (means that we're stalling)
         METRIC_DEF(metric_fetch_status, "ftch_status", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
-        metric_record_integer(&metric_fetch_status, static_cast<int>(status));
+        metric_record_integer(&metric_fetch_status, static_cast<int>(status.status));
 
         /// Status at the end of the buffer - for early error indication
         METRIC_DEF(metric_fetch_tail_status, "ftch_tstatus", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
@@ -1416,23 +1523,16 @@ void media_print_loop() {
         METRIC_DEF(metric_prefetch_buffer_commands, "ftch_cmds", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
         metric_record_integer(&metric_prefetch_buffer_commands, metrics.commands_in_buffer);
 
-        // To-do: automatic unpause when paused if the condition fixes itself?
-        const auto media_error = [](WarningType warning_type) {
-            set_warning(warning_type);
-            print_state.paused_due_to_media_error = true;
-            print_pause();
-        };
-
-        const auto clear_media_error = [] {
-            if (!print_state.paused_due_to_media_error) {
+        const auto media_error = [status](WarningType warning_type) {
+            // There's still a fetch running, this isn't completely final ‒ the
+            // fetch itself can recover from the error (and sometimes it does,
+            // but the actual recovery takes time). Wait for the final verdict.
+            if (status.fetch_active) {
                 return;
             }
-
-            print_state.paused_due_to_media_error = false;
-
-            clear_warning(WarningType::USBFlashDiskError);
-            clear_warning(WarningType::GcodeCorruption);
-            clear_warning(WarningType::NotDownloaded);
+            set_warning(warning_type);
+            schedule_media_retry();
+            print_pause();
         };
 
         if (!print_state.file_open_reported && metrics.stream_size_estimate) {
@@ -1442,7 +1542,7 @@ void media_print_loop() {
             SERIAL_ECHOLNPAIR(MSG_SD_FILE_OPENED, marlin_vars().media_SFN_path.get_ptr(), " Size:", metrics.stream_size_estimate);
         }
 
-        switch (status) {
+        switch (status.status) {
 
         case Status::ok:
             if (print_state.skip_gcode) {
@@ -1541,7 +1641,12 @@ void print_resume(void) {
     if (server.print_state == State::Paused) {
         update_sfn();
 
-        server.print_state = State::Resuming_Begin;
+        if (server.print_is_serial) {
+            server.print_state = State::Resuming_Begin;
+        } else {
+            server.print_state = State::Resuming_BufferData;
+            media_prefetch_start();
+        }
 
         // pause queuing commands from serial, until resume sequence is finished.
         GCodeQueue::pause_serial_commands = true;
@@ -1567,9 +1672,9 @@ void try_recover_from_media_error() {
         // If we're printing, simply try issuing a fetch to make sure everything's fine
         media_prefetch.issue_fetch();
 
-    } else if (print_state.paused_due_to_media_error) {
+    } else if (print_state.recover_media_error_backoff.get().has_value()) {
         // Do NOT reset - will be reset if the resume is successful
-        // print_state.paused_due_to_media_error = false;
+        // print_state.recover_media_error_backoff.get().reset();
         print_resume();
     }
 }
@@ -2005,6 +2110,9 @@ static void _server_print_loop(void) {
 #if HAS_MANUAL_CHAMBER_VENTS()
         buddy::chamber().check_vent_state();
 #endif
+#if HAS_CHAMBER_FILTRATION_API()
+        buddy::chamber_filtration().check_filter_expiration();
+#endif
         break;
 
     case State::Printing:
@@ -2044,8 +2152,34 @@ static void _server_print_loop(void) {
         if (print_state.resume_pending) {
             print_state.resume_pending = false;
             print_resume();
+        } else if (print_state.recover_media_error_at.has_value() && ticks_diff(*print_state.recover_media_error_at, ticks_s()) <= 0) {
+            log_info(MarlinServer, "Try recover from media error");
+            print_state.recover_media_error_at.reset();
+            try_recover_from_media_error();
+            // Ensure we do try to unpause here.
+            assert(server.print_state != State::Paused);
         }
+
         break;
+    case State::Resuming_BufferData: {
+        const auto metrics = media_prefetch.get_metrics();
+
+        if (!metrics.is_fetching) {
+            // Fetching done.
+            if (MediaPrefetchManager::is_error(metrics.tail_status)) {
+                // Still failing.
+                schedule_media_retry();
+                media_prefetch.stop();
+                // Go back to Paused (the only state where we could come from).
+                server.print_state = State::Paused;
+            } else {
+                // Let's continue with resuming!
+                server.print_state = State::Resuming_Begin;
+                clear_media_error();
+            }
+        } // Else -> keep waiting for more data.
+        break;
+    }
     case State::Resuming_Begin:
 #if ENABLED(CRASH_RECOVERY)
     #if ENABLED(AXIS_MEASURE)
@@ -2937,6 +3071,7 @@ static void _server_update_vars() {
     const auto prefetch_metrics = media_prefetch.get_metrics();
 
     marlin_vars().gqueue = queue.length;
+    marlin_vars().inject_queue_empty = inject_queue.is_empty();
     marlin_vars().pqueue = planner.movesplanned();
 
     // Get native position
@@ -3040,6 +3175,7 @@ static void _server_update_vars() {
 
     marlin_vars().job_id = job_id;
     marlin_vars().travel_acceleration = planner.settings.travel_acceleration;
+    marlin_vars().max_printed_z = planner.max_printed_z;
 
     uint8_t mmu2State =
 #if HAS_MMU2()
@@ -3116,10 +3252,14 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         }
         return true;
     case Request::Type::TestStart:
+#if HAS_SELFTEST()
         marlin_server::test_start(
             request.test_start.test_mask,
             selftest::deserialize_test_data_from_int(request.test_start.test_data_index, request.test_start.test_data_data));
         return true;
+#else
+        return false;
+#endif
     }
     bsod("Unknown request %d", std::to_underlying(request.type));
 }
@@ -3275,49 +3415,6 @@ static void _server_set_var(const Request &request) {
     bsod("unimplemented _server_set_var for var_id %i", (int)variable_identifier);
 }
 
-static std::bitset<static_cast<size_t>(WarningType::_last) + 1> warning_flags;
-
-static void update_warning_fsm() {
-    if (warning_flags.any()) {
-        size_t i = 0;
-        for (; !warning_flags.test(i); i++)
-            ;
-        const WarningType type = static_cast<WarningType>(i);
-
-        fsm::PhaseData data;
-        memcpy(data.data(), &type, sizeof(data));
-
-        fsm_create(warning_type_phase(type), data);
-
-    } else {
-        fsm_destroy(ClientFSM::Warning);
-    }
-}
-
-void set_warning(WarningType type) {
-    log_warning(MarlinServer, "Warning type %d set", (int)type);
-    log_info(MarlinServer, "WARNING: %" PRIu32, std::to_underlying(type));
-
-    warning_flags.set(std::to_underlying(type));
-    update_warning_fsm();
-}
-
-void clear_warning(WarningType type) {
-    warning_flags.reset(std::to_underlying(type));
-    update_warning_fsm();
-}
-
-bool is_warning_active(WarningType type) {
-    return warning_flags.test(std::to_underlying(type));
-}
-
-Response prompt_warning(WarningType type) {
-    set_warning(type);
-    const Response r = wait_for_response(warning_type_phase(type));
-    clear_warning(type);
-    return r;
-}
-
 /*****************************************************************************/
 // FSM_notifier
 FSM_notifier::data FSM_notifier::s_data;
@@ -3408,7 +3505,18 @@ Response wait_for_response(FSMAndPhase fsm_and_phase) {
             return r;
         }
 
-        ::idle(true);
+        // The second true - don't disable steppers. If we are sitting in some
+        // kind of dialog (eg. nozzle cleaning failed), we do _not_ want to
+        // disable it during the dialog, because we would lose homing and that
+        // can lead to very interesting behavior (especially for example on XL
+        // with tool changer).
+        //
+        // It might also prevent disabling it in some rare cases where we would
+        // prefer to save the power (mostly out of the print), but that's
+        // significantly smaller problem.
+        //
+        // BFW-6914.
+        ::idle(true, true);
     }
 }
 

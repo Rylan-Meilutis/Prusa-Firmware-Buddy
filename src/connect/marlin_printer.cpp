@@ -15,11 +15,17 @@
 #include <filament_sensors_handler.hpp>
 #include <filament_sensor_states.hpp>
 #include <state/printer_state.hpp>
+#include <common/sys.hpp>
 #include <common/unique_file_ptr.hpp>
 
 #include <option/has_cancel_object.h>
 #if HAS_CANCEL_OBJECT()
     #include <feature/cancel_object/cancel_object.hpp>
+#endif
+
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
 #endif
 
 #if XL_ENCLOSURE_SUPPORT()
@@ -47,11 +53,6 @@
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
     #include <mmu2/mmu2_fsm.hpp>
-#endif
-
-#include <option/has_side_leds.h>
-#if HAS_SIDE_LEDS()
-    #include <leds/side_strip_control.hpp>
 #endif
 
 using marlin_client::GcodeTryResult;
@@ -306,7 +307,7 @@ Printer::Params MarlinPrinter::params() const {
             .fan_1_rpm = xbe.fan1rpm,
             .fan_2_rpm = xbe.fan2rpm,
             .fan_pwm_target = xbe.fan1_fan2_target_pwm.transform(buddy::XBuddyExtension::FanPWM::to_percent_static).value_or(connect_client::Printer::ChamberInfo::fan_pwm_target_unset),
-            .led_intensity = static_cast<int8_t>(static_cast<uint16_t>(leds::side_strip_control.max_brightness()) * 100 / 255),
+            .led_intensity = static_cast<int8_t>(static_cast<uint16_t>(leds::SideStripHandler::instance().get_max_brightness()) * 100 / 255),
         };
         params.addon_power = buddy::xbuddy_extension().usb_power();
     }
@@ -598,7 +599,7 @@ bool MarlinPrinter::set_printer_ready(bool ready) {
 }
 
 void MarlinPrinter::reset_printer() {
-    NVIC_SystemReset();
+    sys_reset();
 }
 
 const char *MarlinPrinter::dialog_action(printer_state::DialogId dialog_id, Response response) {

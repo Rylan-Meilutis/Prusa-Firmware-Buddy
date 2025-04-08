@@ -6,13 +6,14 @@
 #include "../../Marlin/src/module/endstops.h"
 #include "../../Marlin/src/module/motion.h"
 #include "../../Marlin/src/module/prusa/homing_utils.hpp"
-#include "trinamic.h"
+#include "../../Marlin/src/feature/motordriver_util.h"
 #include "selftest_log.hpp"
 #include "i_selftest.hpp"
 #include "algorithm_scale.hpp"
 #include "printers.h"
 #include "homing_reporter.hpp"
 #include "config_store/store_instance.hpp"
+#include <utils/string_builder.hpp>
 
 #include <limits>
 #include <option/has_loadcell.h>
@@ -284,11 +285,11 @@ void CSelftestPart_Axis::check_coils() {
 #endif
 
     if (check_ab) {
-        if (tmc_check_coils(A_AXIS) && tmc_check_coils(B_AXIS)) {
+        if (motor_check_coils(A_AXIS) && motor_check_coils(B_AXIS)) {
             coils_ok = true;
         }
     } else {
-        if (tmc_check_coils(config.axis)) {
+        if (motor_check_coils(config.axis)) {
             coils_ok = true;
         }
     }

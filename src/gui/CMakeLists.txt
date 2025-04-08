@@ -12,7 +12,6 @@ endif()
 target_sources(
   firmware
   PRIVATE auto_layout.cpp
-          box_unfinished_selftest.cpp
           file_sort.cpp
           fonts.cpp
           frame_calibration_common.cpp
@@ -26,6 +25,7 @@ target_sources(
           lazyfilelist.cpp
           logger.cpp
           menu_vars.cpp
+          MItem_basic_selftest.cpp
           MItem_crash.cpp
           MItem_experimental_tools.cpp
           MItem_filament.cpp
@@ -43,7 +43,6 @@ target_sources(
           screen_blue_error.cpp
           screen_bsod.cpp
           screen_change_filter.cpp
-          screen_dialog_does_not_exist.cpp
           screen_filebrowser.cpp
           screen_hardfault.cpp
           screen_help_fw_update.cpp
@@ -55,7 +54,6 @@ target_sources(
           screen_menu_fail_stat.cpp
           screen_menu_filament.cpp
           screen_menu_footer_settings.cpp
-          screen_menu_fw_update.cpp
           screen_menu_hardware.cpp
           screen_menu_hardware_tune.cpp
           screen_menu_info.cpp
@@ -99,6 +97,7 @@ target_sources(
           window_msgbox_wrong_printer.cpp
           window_print_progress.cpp
           window_thumbnail.cpp
+          window_wizard_icon.cpp
   )
 
 if(HAS_CRASH_DETECTION)
@@ -137,7 +136,7 @@ endif()
 if(HAS_SELFTEST)
   add_subdirectory(wizard)
   target_sources(
-    firmware PRIVATE MItem_basic_selftest.cpp screen_menu_selftest_snake.cpp ScreenSelftest.cpp
+    firmware PRIVATE box_unfinished_selftest.cpp screen_menu_selftest_snake.cpp ScreenSelftest.cpp
                      selftest_frame.cpp
     )
 endif()
@@ -220,10 +219,6 @@ add_subdirectory(footer)
 add_subdirectory(screen)
 add_subdirectory(menu_item)
 add_subdirectory(standard_frame)
-
-if(HAS_LEDS)
-  add_subdirectory(led_animations)
-endif()
 
 if(HAS_BED_LEVEL_CORRECTION)
   target_sources(firmware PRIVATE screen_menu_bed_level_correction.cpp)

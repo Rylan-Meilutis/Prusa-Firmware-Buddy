@@ -153,7 +153,7 @@ public:
         }
 #endif
         change_phase(PhasesFansSelftest::test_40_percent);
-        set_benevolent_fan_range(); // Test only if fan is spinning
+        set_low_speed_fan_range();
         set_up_measurement(0);
         wait(wait_rpm_0_percent_delay);
         set_up_measurement(pwm_40_percent);
@@ -304,9 +304,9 @@ private:
 #endif /* HAS_CHAMBER_API() */
     }
 
-    void set_benevolent_fan_range() {
+    void set_low_speed_fan_range() {
         for (auto *fan : fans) {
-            fan->set_range(benevolent_fan_range);
+            fan->set_low_range();
         }
     }
 
@@ -384,7 +384,7 @@ void M1978() {
 
     auto print_fans = [&]<size_t... ix>(std::index_sequence<ix...>) {
         return std::array {
-            CommonFanHandler(FanType::print, ix, print_fan_range, &Fans::print(ix))...
+            CommonFanHandler(FanType::print, ix, print_fan_range, &Fans::print(ix), print_low_fan_range)...
         };
     }(std::make_index_sequence<HOTENDS>());
 
@@ -433,23 +433,13 @@ void M1978() {
     #endif /* XL_ENCLOSURE_SUPPORT() */
 
     #if HAS_XBUDDY_EXTENSION()
+        static_assert(HAS_CHAMBER_FILTRATION_API());
     case Chamber::Backend::xbuddy_extension:
-        fan_container[container_index++] = &xbe_fans[0];
-        fan_container[container_index++] = &xbe_fans[1];
-        switch (chamber_filtration().backend()) {
-
-        case ChamberFiltrationBackend::xbe_official_filter:
-            xbe_fans[0].set_range(chamber_fan_range_with_filtration);
-            xbe_fans[1].set_range(chamber_fan_range_with_filtration);
+        if (xbuddy_extension().using_filtration_fan_instead_of_cooling_fans()) {
             fan_container[container_index++] = &xbe_fans[2];
-            break;
-
-        case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:
-            // The user has to remove the filter from the cooling fans to pass the selftest
-            break;
-
-        case ChamberFiltrationBackend::none:
-            break;
+        } else {
+            fan_container[container_index++] = &xbe_fans[0];
+            fan_container[container_index++] = &xbe_fans[1];
         }
         break;
     #endif

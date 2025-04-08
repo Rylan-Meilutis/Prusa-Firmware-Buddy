@@ -95,15 +95,17 @@ PrinterGCodeCompatibilityReport GcodeSuite::compatibility;
   xyz_pos_t GcodeSuite::coordinate_system[MAX_COORDINATE_SYSTEMS];
 #endif
 
-int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> extruder) {
+int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> extruder, const bool is_physical) {
   if (extruder.has_value()) {
     uint8_t e = *extruder;
 
+    if(!is_physical) {
     #if ENABLED(PRUSA_TOOL_MAPPING)
       // map logical tool to physical tool if mapping is enabled
       const uint8_t mapped = tool_mapper.to_physical(e);
       e = mapped == ToolMapper::NO_TOOL_MAPPED ? -1 : mapped;
     #endif
+    }
 
     static_assert(EXTRUDERS <= INT8_MAX, "We need to return int8_t");
     bool valid_extruder = (e < EXTRUDERS);
@@ -126,9 +128,16 @@ int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> 
  * Return -1 if the T parameter is out of range
  */
 int8_t GcodeSuite::get_target_extruder_from_command() {
-  return get_target_extruder_from_option_value(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt);
+  return get_target_extruder_from_option_value(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt, false);
 }
 
+/**
+ * + specify if target extruder is logical or physical
+ */
+int8_t GcodeSuite::get_target_extruder_from_command_p() {
+  return get_target_extruder_from_option_value(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt, 
+  parser.seen('P') ? parser.value_bool() : false);
+}
 /**
  * Get the target e stepper from the T parameter
  * Return -1 if the T parameter is out of range or unspecified
@@ -272,11 +281,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(BEZIER_CURVE_SUPPORT)
         case 5: G5(); break;                                      // G5: Cubic B_spline
-      #endif
-
-      #if ENABLED(FWRETRACT)
-        case 10: G10(); break;                                    // G10: Retract / Swap Retract
-        case 11: G11(); break;                                    // G11: Recover / Swap Recover
       #endif
 
       #if ENABLED(CNC_WORKSPACE_PLANES)
@@ -582,16 +586,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 666: M666(); break;                                  // M666: Set delta or dual endstop adjustment
       #endif
 
-      #if ENABLED(FWRETRACT)
-        case 207: M207(); break;                                  // M207: Set Retract Length, Feedrate, and Z lift
-        case 208: M208(); break;                                  // M208: Set Recover (unretract) Additional Length and Feedrate
-        #if ENABLED(FWRETRACT_AUTORETRACT)
-          case 209:
-            if (MIN_AUTORETRACT <= MAX_AUTORETRACT) M209();       // M209: Turn Automatic Retract Detection on/off
-            break;
-        #endif
-      #endif
-
       #if HAS_SOFTWARE_ENDSTOPS
         case 211: M211(); break;                                  // M211: Enable, Disable, and/or Report software endstops
       #endif
@@ -752,7 +746,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 603: M603(); break;                                  // M603: Configure Filament Change
       #endif
       
-      case 604: M604(); break;                                    // M604: Abort (serial) print 
+      case 604: M604(); break;                                    // M604: Abort (serial) print
 
       #if HAS_DUPLICATION_MODE
         case 605: M605(); break;                                  // M605: Set Dual X Carriage movement mode
@@ -833,12 +827,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if HAS_PHASE_STEPPING()
         case 970: M970(); break;
+        case 971: M971(); break;
         case 972: M972(); break;
         case 973: M973(); break;
         case 974: M974(); break;
-        case 975: M975(); break;
-        case 976: M976(); break;
-        case 977: M977(); break;
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)

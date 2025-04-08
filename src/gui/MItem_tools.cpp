@@ -4,7 +4,6 @@
 #include "marlin_server.hpp"
 #include "gui.hpp"
 #include "time_helper.hpp"
-#include "sys.h"
 #include "window_dlg_wait.hpp"
 #include "window_file_list.hpp"
 #include "sound.hpp"
@@ -24,7 +23,7 @@
 #include "time_tools.hpp"
 #include "footer_eeprom.hpp"
 #include <version/version.hpp>
-#include "sys.h"
+#include <common/sys.hpp>
 #include <common/w25x.hpp>
 #include <bootloader/bootloader.hpp>
 #include "config_features.h"
@@ -38,12 +37,11 @@
 #include <option/has_side_leds.h>
 #include <option/has_coldpull.h>
 #include <RAII.hpp>
-#include <st25dv64k.h>
 #include <time.h>
 #include <footer_items_heaters.hpp>
 #include <footer_line.hpp>
 #include <freertos/critical_section.hpp>
-#include <str_utils.hpp>
+#include <utils/string_builder.hpp>
 #include <netdev.h>
 #include <wui.h>
 #include <power_panic.hpp>
@@ -59,11 +57,11 @@
 #endif
 
 #if HAS_LEDS()
-    #include <led_animations/animator.hpp>
+    #include <leds/status_leds_handler.hpp>
 #endif
 
 #if HAS_SIDE_LEDS()
-    #include <leds/side_strip_control.hpp>
+    #include <leds/side_strip_handler.hpp>
 #endif
 
 #if BUDDY_ENABLE_CONNECT()
@@ -73,6 +71,10 @@
 #include <option/has_xbuddy_extension.h>
 #if HAS_XBUDDY_EXTENSION()
     #include <puppies/xbuddy_extension.hpp>
+#endif
+
+#ifdef HAS_TMC_WAVETABLE
+    #include <feature/tmc_util.h>
 #endif
 
 namespace {
@@ -234,18 +236,6 @@ void MI_DISABLE_STEP::click(IWindowMenu & /*window_menu*/) {
 }
 
 /*****************************************************************************/
-// MI_ENTER_DFU
-#ifdef BUDDY_ENABLE_DFU_ENTRY
-MI_ENTER_DFU::MI_ENTER_DFU()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
-}
-
-void MI_ENTER_DFU::click(IWindowMenu &) {
-    sys_dfu_request_and_reset();
-}
-#endif
-
-/*****************************************************************************/
 // MI_SAVE_DUMP
 MI_SAVE_DUMP::MI_SAVE_DUMP()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
@@ -270,39 +260,6 @@ MI_XFLASH_RESET::MI_XFLASH_RESET()
 
 void MI_XFLASH_RESET::click(IWindowMenu & /*window_menu*/) {
     crash_dump::dump_reset();
-}
-
-/*****************************************************************************/
-// MI_M600
-MI_M600::MI_M600()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
-
-void MI_M600::click(IWindowMenu &) {
-    if (MsgBoxQuestion(_("Perform filament change now?"), Responses_YesNo) != Response::Yes) {
-        return;
-    }
-
-    marlin_client::inject("M600");
-    enqueued = true;
-}
-
-void MI_M600::Loop() {
-    const auto current_command = marlin_vars().gcode_command.get();
-
-    if (current_command == marlin_server::Cmd::M600) {
-        enqueued = false;
-    }
-
-    set_enabled( //
-        !enqueued
-        && marlin_server::all_axes_homed()
-        && marlin_server::all_axes_known()
-        && (current_command != marlin_server::Cmd::G28)
-        && (current_command != marlin_server::Cmd::G29)
-        && (current_command != marlin_server::Cmd::M109)
-        && (current_command != marlin_server::Cmd::M190) //
-    );
 }
 
 /*****************************************************************************/
@@ -474,13 +431,6 @@ void MI_FAN_CHECK::OnChange(size_t old_index) {
 
 MI_INFO_FW::MI_INFO_FW()
     : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
-
-void MI_INFO_FW::click([[maybe_unused]] IWindowMenu &window_menu) {
-    // If we have development tools shown, click will print whole fw version string in info messagebox
-    if constexpr (GuiDefaults::ShowDevelopmentTools) {
-        MsgBoxInfo(string_view_utf8::MakeRAM((const uint8_t *)version::project_version_full), Responses_Ok);
-    }
 }
 
 MI_INFO_BOOTLOADER::MI_INFO_BOOTLOADER()
@@ -870,20 +820,20 @@ void MI_LOAD_SETTINGS::click(IWindowMenu & /*window_menu*/) {
     build_message(msg_builder, _("Connect"), connect_client::MarlinPrinter::load_cfg_from_ini());
 #endif
 
-    MsgBoxInfo(string_view_utf8::MakeRAM((const uint8_t *)msg.data()), Responses_Ok);
+    MsgBoxInfo(string_view_utf8::MakeRAM(msg.data()), Responses_Ok);
 }
 
 #if HAS_LEDS()
 /**********************************************************************************************/
 // MI_LEDS_ENABLE
 MI_LEDS_ENABLE::MI_LEDS_ENABLE()
-    : WI_ICON_SWITCH_OFF_ON_t(Animator_LCD_leds().animator_state(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+    : WI_ICON_SWITCH_OFF_ON_t(leds::StatusLedsHandler::instance().get_active(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
 void MI_LEDS_ENABLE::OnChange(size_t old_index) {
     if (old_index) {
-        Animator_LCD_leds().pause_animator();
+        leds::StatusLedsHandler::instance().set_active(false);
     } else {
-        Animator_LCD_leds().start_animator();
+        leds::StatusLedsHandler::instance().set_active(true);
     }
 }
 #endif
@@ -893,13 +843,13 @@ void MI_LEDS_ENABLE::OnChange(size_t old_index) {
 // MI_SIDE_LEDS_ENABLE
 MI_SIDE_LEDS_ENABLE::MI_SIDE_LEDS_ENABLE()
     : WiSpin(
-        static_cast<float>(config_store().side_leds_max_brightness.get()) * 100 / 255,
+        static_cast<float>(leds::SideStripHandler::instance().get_max_brightness()) * 100 / 255,
         numeric_input_config::percent_with_off,
         _(label)) {
 }
 
 void MI_SIDE_LEDS_ENABLE::OnClick() {
-    leds::side_strip_control.set_max_brightness(static_cast<uint8_t>(value() * 255 / 100));
+    leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(value()) * 255 / 100);
 }
 #endif
 
@@ -907,11 +857,10 @@ void MI_SIDE_LEDS_ENABLE::OnClick() {
 /**********************************************************************************************/
 // MI_SIDE_LEDS_DIMMING
 MI_SIDE_LEDS_DIMMING::MI_SIDE_LEDS_DIMMING()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().side_leds_dimming_enabled.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+    : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_dimming_enabled(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
 void MI_SIDE_LEDS_DIMMING::OnChange(size_t) {
-    config_store().side_leds_dimming_enabled.set(value());
-    leds::side_strip_control.set_dimming_enabled(value());
+    leds::SideStripHandler::instance().set_dimming_enabled(value());
 }
 #endif
 

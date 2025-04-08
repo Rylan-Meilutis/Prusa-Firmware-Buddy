@@ -41,17 +41,10 @@
 #include "../gcode/queue.h"
 #include "../feature/precise_stepping/precise_stepping.hpp"
 #include "../feature/phase_stepping/phase_stepping.hpp"
+#include "../feature/motordriver_util.h"
 
 // Value by which steps are multiplied to increase the precision of the Planner.
 constexpr const int PLANNER_STEPS_MULTIPLIER = 4;
-
-#if ENABLED(FWRETRACT)
-  #include "../feature/fwretract.h"
-#endif
-
-// from stepper/trinamic.h , avoiding include loop
-extern uint16_t stepper_microsteps(const AxisEnum axis, uint16_t new_microsteps);
-extern uint16_t stepper_mscnt(const AxisEnum axis);
 
 // Feedrate for manual moves
 #ifdef MANUAL_FEEDRATE
@@ -94,6 +87,7 @@ typedef struct {
       bool nominal_length:1;
       bool continued:1;
       bool sync_position:1;
+      bool raw_block:1;
     };
   };
 
@@ -437,7 +431,7 @@ class Planner {
     // qstep ... 4 full steps, i.e. = 1024 nstep
     // note: stepper_mscnt() returns nstep position inside current qstep (0..1023)
     FORCE_INLINE static uint32_t nsteps_per_qstep(const AxisEnum axis) { (void)axis; return 1024; }
-    FORCE_INLINE static uint32_t nsteps_per_ustep(const AxisEnum axis) { return (nsteps_per_qstep(axis) / (uint32_t)(stepper_microsteps(axis, 0) * 4)); }
+    FORCE_INLINE static uint32_t nsteps_per_ustep(const AxisEnum axis) { return (nsteps_per_qstep(axis) / (uint32_t)(stepper_microsteps(axis) * 4)); }
     FORCE_INLINE static uint32_t usteps_per_qstep(const AxisEnum axis) { return (nsteps_per_qstep(axis) / nsteps_per_ustep(axis)); }
     FORCE_INLINE static float mm_per_qsteps(const AxisEnum axis, uint32_t qsteps) { return ((float)(usteps_per_qstep(axis) * qsteps)) * mm_per_step[axis]; }
     FORCE_INLINE static float qsteps_per_mm(const AxisEnum axis) { return (settings.axis_steps_per_mm[axis] / (float)usteps_per_qstep(axis)); }
@@ -561,13 +555,6 @@ class Planner {
       }
     #endif
 
-    #if ENABLED(FWRETRACT)
-      static void apply_retract(float &rz, float &e);
-      FORCE_INLINE static void apply_retract(xyze_pos_t &raw) { apply_retract(raw.z, raw.e); }
-      static void unapply_retract(float &rz, float &e);
-      FORCE_INLINE static void unapply_retract(xyze_pos_t &raw) { unapply_retract(raw.z, raw.e); }
-    #endif
-
     #if HAS_POSITION_MODIFIERS
       FORCE_INLINE static void apply_modifiers(xyze_pos_t &pos
         #if HAS_LEVELING
@@ -585,9 +572,6 @@ class Planner {
         #if HAS_LEVELING
           if (leveling) apply_leveling(pos);
         #endif
-        #if ENABLED(FWRETRACT)
-          apply_retract(pos);
-        #endif
       }
 
       FORCE_INLINE static void unapply_modifiers(xyze_pos_t &pos
@@ -600,9 +584,6 @@ class Planner {
           #endif
         #endif
       ) {
-        #if ENABLED(FWRETRACT)
-          unapply_retract(pos);
-        #endif
         #if HAS_LEVELING
           if (leveling) unapply_leveling(pos);
         #endif
@@ -688,6 +669,9 @@ class Planner {
       , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
     );
 
+    static bool buffer_raw_block(const xyze_long_t &target, const xyze_pos_t &target_float,
+        float acceleration, float nominal_speed, float entry_speed, float exit_speed, uint8_t extruder);
+
     /**
      * @brief Populate a block in preparation for insertion
      * @details Populate the fields of a new linear movement block
@@ -707,6 +691,10 @@ class Planner {
         const xyze_long_t &target, const xyze_pos_t &target_float
       , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
     );
+
+    static bool populate_raw_block(block_t *const block, const abce_long_t &target,
+        const xyze_pos_t &target_float, float acceleration, float nominal_speed,
+        float entry_speed, float exit_speed, uint8_t extruder);
 
     /**
      * Planner::buffer_sync_block
@@ -732,6 +720,9 @@ class Planner {
       , const PlannerHints &hints=PlannerHints()
     );
 
+    static bool buffer_raw_segment(const abce_pos_t &abce, float acceleration, float nominal_speed,
+        float entry_speed, float exit_speed, uint8_t extruder);
+
   public:
 
     /**
@@ -747,6 +738,9 @@ class Planner {
       , const uint8_t extruder=active_extruder
       , const PlannerHints &hints=PlannerHints()
     );
+
+    static bool buffer_raw_line(const xyze_pos_t &cart, float acceleration, float nominal_speed,
+        float entry_speed, float exit_speed, uint8_t extruder);
 
     /**
      * Set the planner.position and individual stepper positions.

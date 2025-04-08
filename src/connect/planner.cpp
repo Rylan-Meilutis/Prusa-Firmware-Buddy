@@ -31,7 +31,7 @@
 
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS() || defined(UNITTESTS)
-    #include <leds/side_strip_control.hpp>
+    #include <leds/side_strip_handler.hpp>
 #endif
 
 using http::HeaderOut;
@@ -76,10 +76,6 @@ namespace {
     //
     // All timestamps and durations are in milliseconds.
 
-    // First retry after 100 ms.
-    const constexpr Duration COOLDOWN_BASE = 100;
-    // Don't do retries less often than once a minute.
-    const constexpr Duration COOLDOWN_MAX = 1000 * 60;
     // Don't send telemetry more often than this even if things change.
     const constexpr Duration TELEMETRY_INTERVAL_MIN = 750;
 #if WEBSOCKET()
@@ -203,7 +199,7 @@ namespace {
 
         auto request = Download::Request(download.hash, download.team_id, download.orig_size);
 
-        return Transfer::begin(dpath, request);
+        return Transfer::begin(dpath, std::move(request));
     }
 
     Transfer::BeginResult init_transfer(const Printer::Config &config, const StartEncryptedDownload &download) {
@@ -227,7 +223,7 @@ namespace {
 
         auto request = Download::Request(host, port, path, std::move(encryption));
 
-        return Transfer::begin(dpath, request);
+        return Transfer::begin(dpath, std::move(request));
     }
 
     bool command_is_error_whitelisted(const Command &command) {
@@ -323,7 +319,7 @@ void Planner::reset() {
     cancellable_objects.mark_clean();
     last_telemetry = nullopt;
     telemetry_changes.mark_dirty();
-    cooldown = nullopt;
+    cooldown.reset();
     perform_cooldown = false;
     failed_attempts = 0;
 }
@@ -406,8 +402,8 @@ Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_read
 
     if (perform_cooldown) {
         perform_cooldown = false;
-        assert(cooldown.has_value());
-        return sleep(*cooldown, nullptr, true);
+        assert(cooldown.get().has_value());
+        return sleep(*cooldown.get(), nullptr, true);
     }
 
     if (planned_event.has_value()) {
@@ -585,13 +581,13 @@ void Planner::action_done(ActionResult result) {
         }
 
         // Failed to talk to the server. Retry after a while (with a back-off), but otherwise keep stuff the same.
-        cooldown = min(COOLDOWN_MAX, cooldown.value_or(COOLDOWN_BASE / 2) * 2);
+        cooldown.fail();
         perform_cooldown = true;
     };
 
     auto reset_backoff = [&]() {
         perform_cooldown = false;
-        cooldown = nullopt;
+        cooldown.reset();
     };
 
     auto cleanups = [&]() {
@@ -1032,8 +1028,8 @@ void Planner::command(const Command &command, const SetValue &params) {
 #endif
 #if HAS_SIDE_LEDS() || defined(UNITTESTS)
     case connect_client::PropertyName::ChamberLedIntensity:
-        leds::side_strip_control.set_max_brightness(static_cast<uint16_t>(get<int8_t>(params.value)) * 255 / 100);
-        leds::side_strip_control.ActivityPing();
+        leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(get<int8_t>(params.value)) * 255 / 100);
+        leds::SideStripHandler::instance().activity_ping();
         break;
 #endif
     }

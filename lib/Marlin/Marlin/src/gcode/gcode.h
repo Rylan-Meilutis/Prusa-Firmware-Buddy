@@ -48,8 +48,6 @@
  * G3   - CCW ARC
  * G4   - Dwell S<seconds> or P<milliseconds>
  * G5   - Cubic B-spline with XYZE destination and IJPQ offsets
- * G10  - Retract filament according to settings of M207 (Requires FWRETRACT)
- * G11  - Retract recover filament according to settings of M208 (Requires FWRETRACT)
  * G17  - Select Plane XY (Requires CNC_WORKSPACE_PLANES)
  * G18  - Select Plane ZX (Requires CNC_WORKSPACE_PLANES)
  * G19  - Select Plane YZ (Requires CNC_WORKSPACE_PLANES)
@@ -162,10 +160,6 @@
             B<minimum segment time>
             X<max X jerk>, Y<max Y jerk>, Z<max Z jerk>, E<max E jerk>
  * M206 - Set additional homing offset. (Disabled by NO_WORKSPACE_OFFSETS or DELTA)
- * M207 - Set Retract Length: S<length>, Feedrate: F<units/min>, and Z lift: Z<distance>. (Requires FWRETRACT)
- * M208 - Set Recover (unretract) Additional (!) Length: S<length> and Feedrate: F<units/min>. (Requires FWRETRACT)
- * M209 - Turn Automatic Retract Detection on/off: S<0|1> (For slicers that don't support G10/11). (Requires FWRETRACT_AUTORETRACT)
-          Every normal extrude-only move will be classified as retract depending on the direction.
  * M211 - Enable, Disable, and/or Report software endstops: S<0|1> (Requires MIN_SOFTWARE_ENDSTOPS or MAX_SOFTWARE_ENDSTOPS)
  * M217 - Set filament swap parameters: "M217 S<length> P<feedrate> R<feedrate>". (Requires SINGLENOZZLE)
  * M218 - Set/get a tool offset: "M218 T<index> X<offset> Y<offset>". (Requires 2 or more extruders)
@@ -258,12 +252,10 @@
  * M958 - Excite harmonic vibration and measure amplitude
  * M959 - Tune input shaper
  * M970 - Set/enable phase stepping
- * M972 - Read phase stepping lookup table
- * M973 - Write phase stepping lookup table
- * M974 - Measure print head resonances and return raw data
- * M975 - Measure accelerometer sampling rate
- * M976 - Measure print head resonances and return analyzed data
- * M977 - Calibrate motor for phase stepping
+ * M971 - Read/reset/write phase-stepping motor current correction
+ * M972 - Calibrate motor for phase stepping
+ * M973 - Perform phase and magnitude correction sweep
+ * M974 - Perform motor resonance measurement during a speed sweep
  * M997 - Perform in-application firmware update
  * M999 - Restart after being stopped by error
  *
@@ -368,10 +360,11 @@ public:
   static millis_t previous_move_ms;
   FORCE_INLINE static void reset_stepper_timeout() { previous_move_ms = millis(); }
 
-  /// Validates that the option value is valid and passes it through tool mapping
-  static int8_t get_target_extruder_from_option_value(std::optional<uint8_t> option_value);
+  /// Validates that the option value is valid and may pass it through tool mapping (depending on is_physical flag)
+  static int8_t get_target_extruder_from_option_value(std::optional<uint8_t> option_value, const bool is_physical);
 
   static int8_t get_target_extruder_from_command();
+  static int8_t get_target_extruder_from_command_p();
   static int8_t get_target_e_stepper_from_command();
   static void get_destination_from_command();
 
@@ -445,11 +438,6 @@ private:
 
   #if ENABLED(DIRECT_STEPPING)
     static void G6();
-  #endif
-
-  #if ENABLED(FWRETRACT)
-    static void G10();
-    static void G11();
   #endif
 
   #if ENABLED(CNC_WORKSPACE_PLANES)
@@ -715,14 +703,6 @@ private:
     static void M206();
   #endif
 
-  #if ENABLED(FWRETRACT)
-    static void M207();
-    static void M208();
-    #if ENABLED(FWRETRACT_AUTORETRACT)
-      static void M209();
-    #endif
-  #endif
-
   static void M211();
 
   #if EXTRUDERS > 1
@@ -888,10 +868,6 @@ private:
     static void M605();
   #endif
 
-  #if IS_KINEMATIC
-    static void M665();
-  #endif
-
   #if ENABLED(DELTA) || HAS_EXTRA_ENDSTOPS
     static void M666();
   #endif
@@ -958,12 +934,10 @@ private:
 
 #if HAS_PHASE_STEPPING()
   static void M970();
+  static void M971();
   static void M972();
   static void M973();
   static void M974();
-  static void M975();
-  static void M976();
-  static void M977();
 #endif
 
   #if ENABLED(PLATFORM_M997_SUPPORT)

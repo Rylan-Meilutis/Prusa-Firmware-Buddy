@@ -73,7 +73,6 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             sys_time.cpp
             tasks.cpp
             tools_mapping.cpp
-            trinamic.cpp
             w25x.cpp
             w25x_communication.cpp
             wdt.cpp
@@ -140,7 +139,6 @@ elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
             st25dv64k.cpp # todo: remove
             tasks.cpp
             tools_mapping.cpp
-            trinamic.cpp
             wdt.cpp
     )
 endif()
@@ -148,6 +146,14 @@ endif()
 if(NOT BOARD STREQUAL "DWARF" AND NOT BOARD STREQUAL "MODULARBED")
   if(HAS_POWER_PANIC)
     target_sources(firmware PRIVATE power_panic.cpp)
+  endif()
+
+  if(${POWER_PANIC_STORAGE_IS_FLASH})
+    target_sources(firmware PRIVATE power_panic_storage_flash.cpp)
+  elseif(${POWER_PANIC_STORAGE_IS_BKPSRAM})
+    target_sources(firmware PRIVATE power_panic_storage_bkpsram.cpp)
+  else()
+    message(FATAL_ERROR "POWER_PANIC_STORAGE storage is unknown")
   endif()
 endif()
 
@@ -180,7 +186,9 @@ endif()
 
 if(BOARD_IS_MASTER_BOARD)
   if(PRINTER STREQUAL "iX")
-    target_sources(firmware PRIVATE filament_sensor_ix_side.cpp filament_sensors_handler_iX.cpp)
+    target_sources(
+      firmware PRIVATE filament_sensor_ix_side.cpp filament_sensors_handler_default.cpp
+      )
   elseif(PRINTER STREQUAL "XL")
     target_sources(
       firmware PRIVATE filament_sensors_handler_XL.cpp filament_sensors_handler_XL_remap.cpp

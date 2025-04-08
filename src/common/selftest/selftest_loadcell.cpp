@@ -11,9 +11,8 @@
 #include "loadcell.hpp"
 #include <sound.hpp>
 #include <module/temperature.h>
-#include <module/planner.h>
-#include <module/stepper.h>
 #include <module/endstops.h>
+#include <feature/motordriver_util.h>
 #include <gcode/gcode.h>
 #include "i_selftest.hpp"
 #include "algorithm_scale.hpp"
@@ -27,7 +26,12 @@
 LOG_COMPONENT_REF(Selftest);
 using namespace selftest;
 
+// Pre-C1 pritners have higher noise level allowed, the loadcell is worse isolated
+#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_iX()
+static constexpr int32_t acceptable_noise_range_g = 40;
+#else
 static constexpr int32_t acceptable_noise_range_g = 20;
+#endif
 
 CSelftestPart_Loadcell::CSelftestPart_Loadcell(IPartHandler &state_machine, const LoadcellConfig_t &config,
     SelftestLoadcell_t &result)

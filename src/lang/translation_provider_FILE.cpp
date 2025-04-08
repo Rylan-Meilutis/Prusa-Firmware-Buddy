@@ -9,20 +9,14 @@
 #include <option/enable_translation_pl.h>
 #include <option/enable_translation_ja.h>
 
-extern "C" size_t strlcpy(char *dst, const char *src, size_t dsize);
-
-// path cannot be longer than 16 characters
-FILETranslationProvider fileProviderInternal("/internal/ts.mo");
-FILETranslationProvider fileProviderUSB("/usb/lang/ts.mo");
-
-FILETranslationProvider::FILETranslationProvider(const char *path) {
-    strlcpy(m_Path, path, sizeof(m_Path));
+FILETranslationProvider::FILETranslationProvider(const char *path)
+    : m_Path { path } {
 }
 
 string_view_utf8 FILETranslationProvider::GetText(const char *key) const {
     // check if file is valid, if not try to open it again
     if (!EnsureFile()) {
-        return string_view_utf8::MakeCPUFLASH((const uint8_t *)key);
+        return string_view_utf8::MakeCPUFLASH(key);
     }
 
     // find translation for key, if not found return the original string
@@ -33,7 +27,7 @@ string_view_utf8 FILETranslationProvider::GetText(const char *key) const {
         m_File = nullptr;
         [[fallthrough]];
     case gettext_hash_table::TranslationNotFound:
-        return string_view_utf8::MakeCPUFLASH((const uint8_t *)key);
+        return string_view_utf8::MakeCPUFLASH(key);
     default:
         return string_view_utf8::MakeFILE(m_File, offset);
     }

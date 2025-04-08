@@ -2,13 +2,17 @@
 #include <Marlin/src/inc/MarlinConfigPre.h>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
-#include <option/development_items.h>
 #include <option/has_adc_side_fsensor.h>
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_config_store_wo_backend.h>
 #include <option/has_touch.h>
-#include <sys.h>
+#include <common/sys.hpp>
+
+#include <option/has_auto_retract.h>
+#if HAS_AUTO_RETRACT()
+    #include <feature/auto_retract/auto_retract.hpp>
+#endif
 
 namespace config_store_ns {
 #if not HAS_CONFIG_STORE_WO_BACKEND()
@@ -36,11 +40,13 @@ void CurrentStore::perform_config_check() {
     /// Whether this is the first run of the printer after assembly/factory reset
     [[maybe_unused]] const bool is_first_run = (config_store_init_result() == InitResult::cold_start);
 
+#if HAS_SELFTEST()
     // Do not show pritner setup screen if the user has run any selftests
     // This is for backwards compatibility - we don't want to show the screen after the firmware update introducing it for already configured printers
     if (selftest_result.get() != selftest_result.default_val) {
         printer_setup_done.set(true);
     }
+#endif
 
     // We cannot change a default value of config store items for backwards compatibility reasons.
     // So this is a place to instead set them to something for new installations
@@ -71,11 +77,14 @@ void CurrentStore::perform_config_check() {
     }
 
     // BFW-5486
-    // Auto-update is now enablablable only in develeoper mode
-    // There were some issues with people leaving this option on, then upgrading and having problems turning it off
-    if constexpr (!option::development_items) {
-        sys_fw_update_disable();
-    }
+    // Older versions of the firmware had the ability to manually change this
+    // byte. Newer versions of the firmware removed that ability. This leads
+    // to a situation when, after manually changing the value and upgrading,
+    // the only way to revert the change is to downgrade the firmware.
+    // Therefore, we always set it to FwAutoUpdate::off on newer versions.
+    // We should update the bootloader to stop reading this byte altogether,
+    // then we can finally stop writing this and rely entirely on dataexchange.
+    EEPROMInstance().write_byte(0x040B, 0x00);
 
     // First run -> the config store is empty -> we don't need to do any migrations from older versions
     if (!is_first_run && config_version.get() != newest_config_version) {
@@ -110,6 +119,17 @@ void CurrentStore::perform_config_migrations() {
     }
 #endif
 
+#if HAS_SELFTEST() && (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE())
+    if (should_migrate<2>()) {
+        // We've introduced a gearbox alignment for XL, this means that gear alignment test must exist for every toolhead available
+        // This created a need for gear test refactoring
+        // [[ BFW-5785 ]]
+
+        SelftestTool st = get_selftest_result_tool(0);
+        st.gears = selftest_result.get().deprecated_gears;
+        set_selftest_result_tool(0, st);
+    }
+#endif
     // To add a migration:
     // - increment newest_config_version
     // - add if(should_migrate<X>) { your migration code } at the END of this function
@@ -590,6 +610,13 @@ void CurrentStore::set_filament_type(uint8_t index, FilamentType value) {
         value = AdHocFilamentType { .tool = index };
         value.set_parameters(pending_adhoc_filament_parameters);
     }
+
+#if HAS_AUTO_RETRACT()
+    if (value == FilamentType::none) {
+        // On filadment removal, also mark the hotend as non-retracted (meaning does not need deretracting)
+        buddy::auto_retract().mark_as_retracted(HAS_TOOLCHANGER() ? index : 0, false);
+    }
+#endif
 
     loaded_filament_type.set(index, value);
 }

@@ -7,6 +7,7 @@ add_library(
   Marlin
   Marlin/Marlin/src/core/serial.cpp
   Marlin/Marlin/src/core/utility.cpp
+  Marlin/Marlin/src/feature/motordriver_util.cpp
   Marlin/Marlin/src/feature/tmc_util.cpp
   Marlin/Marlin/src/gcode/parser.cpp
   Marlin/Marlin/src/HAL/HAL_STM32_F4_F7/HAL.cpp
@@ -47,7 +48,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/feature/bedlevel/bedlevel.cpp
             Marlin/Marlin/src/feature/bedlevel/ubl/ubl.cpp
             Marlin/Marlin/src/feature/bedlevel/ubl/ubl_G29.cpp
-            Marlin/Marlin/src/feature/bedlevel/ubl/ubl_motion.cpp
             Marlin/Marlin/src/feature/host_actions.cpp
             Marlin/Marlin/src/feature/input_shaper/input_shaper.cpp
             Marlin/Marlin/src/feature/input_shaper/input_shaper_config.cpp
@@ -57,7 +57,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/feature/print_area.cpp
             Marlin/Marlin/src/feature/prusa/e-stall_detector.cpp
             Marlin/Marlin/src/feature/prusa/measure_axis.cpp
-            Marlin/Marlin/src/feature/prusa/restore_z.cpp
             Marlin/Marlin/src/feature/runout.cpp
             Marlin/Marlin/src/feature/spindle_laser.cpp
             Marlin/Marlin/src/feature/twibus.cpp
@@ -230,8 +229,9 @@ if(BOARD_IS_MASTER_BOARD)
       Marlin
       PRIVATE Marlin/Marlin/src/feature/phase_stepping/calibration.cpp
               Marlin/Marlin/src/feature/phase_stepping/phase_stepping.cpp
-              Marlin/Marlin/src/gcode/feature/phase_stepping/M970-M977.cpp
+              Marlin/Marlin/src/gcode/feature/phase_stepping/M97x.cpp
       )
+    target_link_libraries(Marlin PRIVATE sfl-library)
   endif()
 endif()
 

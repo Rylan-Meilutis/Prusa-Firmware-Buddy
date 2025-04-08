@@ -6,6 +6,7 @@
 #include <algorithm_extensions.hpp>
 #include <dialog_text_input.hpp>
 #include <ScreenHandler.hpp>
+#include <utils/string_builder.hpp>
 
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
@@ -118,6 +119,10 @@ MI_FILAMENT_REQUIRES_FILTRATION::MI_FILAMENT_REQUIRES_FILTRATION()
 // * MI_FILAMENT_IS_ABRASIVE
 MI_FILAMENT_IS_ABRASIVE::MI_FILAMENT_IS_ABRASIVE()
     : MI_TOGGLE(&FilamentTypeParameters::is_abrasive, N_("Is Abrasive")) {}
+
+// * MI_FILAMENT_IS_FLEXIBLE
+MI_FILAMENT_IS_FLEXIBLE::MI_FILAMENT_IS_FLEXIBLE()
+    : MI_TOGGLE(&FilamentTypeParameters::is_flexible, N_("Is Flexible")) {}
 
 // * MI_FILAMENT_VISIBLE
 MI_FILAMENT_VISIBLE::MI_FILAMENT_VISIBLE()

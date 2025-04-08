@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "interrupt_disabler.hpp"
 #include "utility_extensions.hpp"
+#include <common/sys.hpp>
 #include <common/w25x.hpp>
 #include "FreeRTOS.h"
 #include "task.h"
@@ -310,7 +311,7 @@ uint16_t load_message_error_code() {
 
 static void dump_failed() {
     // nothing left to do here, when dump fails just restart
-    HAL_NVIC_SystemReset();
+    sys_reset();
 }
 
 static constexpr CrashCatcherMemoryRegion regions[] = {
@@ -327,7 +328,7 @@ void before_dump() {
         dump_breakpoint_paused = true;
         buddy_disable_heaters(); // put HW to safe state
 #ifdef _DEBUG
-        if (CoreDebug->DHCSR & CoreDebug_DHCSR_C_DEBUGEN_Msk) {
+        if (sys_debugger_attached()) {
             // if case debugger is attached, issue breakpoint instead of crash dump.
             // If you still want to do crash dump, resume the processor
             CRASH_CATCHER_BREAKPOINT();
@@ -414,7 +415,7 @@ CrashCatcherReturnCodes CrashCatcher_DumpEnd(void) {
     }
 
     // All done, now restart and display BSOD
-    HAL_NVIC_SystemReset();
+    sys_reset();
 
     // need to return something, but it should never get here.
     return CRASH_CATCHER_TRY_AGAIN;

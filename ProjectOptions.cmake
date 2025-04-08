@@ -227,7 +227,11 @@ message(STATUS "Resources: ${RESOURCES}")
 function(set_feature_for_printers FEATURE_NAME)
   set(FEATURE_PRINTER_LIST ${ARGV})
   list(REMOVE_AT FEATURE_PRINTER_LIST 0) # First argument is the feature name
-  if(${PRINTER} IN_LIST FEATURE_PRINTER_LIST)
+  if(DEFINED ${FEATURE_NAME})
+    # override from manual configuration
+    set(FEATURE_VALUE ${${FEATURE_NAME}})
+  elseif(${PRINTER} IN_LIST FEATURE_PRINTER_LIST)
+    # set from feature list
     set(FEATURE_VALUE YES)
   else()
     set(FEATURE_VALUE NO)
@@ -242,8 +246,16 @@ endfunction()
 function(set_feature_for_printers_master_board FEATURE_NAME)
   set(FEATURE_PRINTER_LIST ${ARGV})
   list(REMOVE_AT FEATURE_PRINTER_LIST 0) # First argument is the feature name
-  if(BOARD_IS_MASTER_BOARD AND ${PRINTER} IN_LIST FEATURE_PRINTER_LIST)
-    set(FEATURE_VALUE YES)
+  if(BOARD_IS_MASTER_BOARD)
+    if(DEFINED ${FEATURE_NAME})
+      # override from manual configuration
+      set(FEATURE_VALUE ${${FEATURE_NAME}})
+    elseif(${PRINTER} IN_LIST FEATURE_PRINTER_LIST)
+      # set from feature list
+      set(FEATURE_VALUE YES)
+    else()
+      set(FEATURE_VALUE NO)
+    endif()
   else()
     set(FEATURE_VALUE NO)
   endif()
@@ -258,15 +270,6 @@ set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5")
 set(PRINTERS_WITH_FILAMENT_SENSOR_ADC "MK4" "XL" "iX" "XL_DEV_KIT" "COREONE")
 
 set_feature_for_printers(
-  INIT_TRINAMIC_FROM_MARLIN_ONLY
-  "MINI"
-  "MK4"
-  "MK3.5"
-  "XL"
-  "iX"
-  "COREONE"
-  )
-set_feature_for_printers(
   HAS_PAUSE
   "MINI"
   "MK4"
@@ -277,6 +280,27 @@ set_feature_for_printers(
   "COREONE"
   )
 set_feature_for_printers(
+  HAS_TRINAMIC
+  "MINI"
+  "MK4"
+  "MK3.5"
+  "iX"
+  "XL"
+  "XL_DEV_KIT"
+  "COREONE"
+  )
+set_feature_for_printers_master_board(
+  HAS_PAUSE
+  "MINI"
+  "MK4"
+  "MK3.5"
+  "iX"
+  "XL"
+  "XL_DEV_KIT"
+  "COREONE"
+  )
+# CRASH_DETECTION requires SELFTEST to work
+set_feature_for_printers_master_board(
   HAS_CRASH_DETECTION
   "MINI"
   "MK4"
@@ -284,10 +308,11 @@ set_feature_for_printers(
   "iX"
   "XL"
   "COREONE"
-  ) # this does require
-# selftest to work
-set_feature_for_printers(HAS_POWER_PANIC "MK4" "MK3.5" "iX" "XL" "COREONE") # this does require
-# selftest and crash detection to work
+  )
+# POWER_PANIC requires SELFTEST and CRASH_DETECTION to work
+set_feature_for_printers_master_board(HAS_POWER_PANIC "MK4" "MK3.5" "iX" "XL" "COREONE")
+define_enum_option(NAME POWER_PANIC_STORAGE VALUE FLASH ALL_VALUES "FLASH;BKPSRAM")
+
 set_feature_for_printers(HAS_PRECISE_HOMING "MK4" "MK3.5")
 set_feature_for_printers(HAS_PRECISE_HOMING_COREXY "iX" "XL" "XL_DEV_KIT" "COREONE")
 set_feature_for_printers_master_board(HAS_PHASE_STEPPING "XL" "iX" "COREONE" "MK4")
@@ -350,12 +375,16 @@ set_feature_for_printers(
   "XL"
   "MINI"
   )
+set_feature_for_printers(HAS_AUTO_RETRACT "COREONE")
 
 # Printers that support any form of backwards gcode compatibility modes
 set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE")
 
-# Checks for bed evenness during G29 and if it's too uneven, offers Z alignment calibration
+# Checks for bed evenness during G29 and if it's too uneven, offers Z alignment calibration.
+# Requires SELFTEST to work
 set_feature_for_printers(HAS_UNEVEN_BED_PROMPT "COREONE")
+
+set_feature_for_printers(HAS_DOOR_SENSOR_CALIBRATION "COREONE")
 
 # Set GUI settings
 set(PRINTERS_WITH_GUI "COREONE" "MINI" "MK4" "MK3.5" "XL" "iX")
@@ -389,11 +418,13 @@ set_feature_for_printers(HAS_SHEET_SUPPORT "MINI" "MK3.5")
 set_feature_for_printers(HAS_NFC "MK3.5" "MK4" "COREONE")
 
 set_feature_for_printers(HAS_NOZZLE_CLEANER "iX")
+# BELT_TUNING requires SELFTEST
 set_feature_for_printers(HAS_BELT_TUNING "XL" "iX")
 set_feature_for_printers_master_board(HAS_I2C_EXPANDER "MK3.5" "MK4" "COREONE")
 set_feature_for_printers(HAS_WASTEBIN "iX")
-set_feature_for_printers(HAS_PRINT_FAN_TYPE "XL")
-set_feature_for_printers_master_board(HAS_GEARBOX_ALIGNMENT "MK4" "COREONE")
+set_feature_for_printers_master_board(HAS_PRINT_FAN_TYPE "XL")
+# GEARBOX_ALIGNMENT requires SELFTEST
+set_feature_for_printers_master_board(HAS_GEARBOX_ALIGNMENT "MK4" "COREONE" "XL")
 set_feature_for_printers_master_board(HAS_MANUAL_CHAMBER_VENTS "COREONE")
 
 # Set printer board
@@ -561,6 +592,13 @@ else()
 endif()
 message(STATUS "XLCD_TOUCH_DRIVER: ${HAS_XLCD_TOUCH_DRIVER}")
 
+if(${PRINTER} IN_LIST PRINTERS_WITH_DWARF AND BOARD_IS_MASTER_BOARD)
+  set(HAS_DWARF YES)
+else()
+  set(HAS_DWARF NO)
+endif()
+define_boolean_option(HAS_DWARF ${HAS_DWARF})
+
 if(HAS_DWARF
    OR HAS_MODULARBED
    OR HAS_XBUDDY_EXTENSION
@@ -570,13 +608,6 @@ else()
   set(HAS_PUPPIES NO)
 endif()
 define_boolean_option(HAS_PUPPIES ${HAS_PUPPIES})
-
-if(${PRINTER} IN_LIST PRINTERS_WITH_DWARF AND BOARD_IS_MASTER_BOARD)
-  set(HAS_DWARF YES)
-else()
-  set(HAS_DWARF NO)
-endif()
-define_boolean_option(HAS_DWARF ${HAS_DWARF})
 
 if(${BOARD} STREQUAL "XBUDDY" AND HAS_MMU2)
   # for XBUDDY based printers, UART6 is being used either for puppies/MODBUS or directly for the MMU
@@ -693,9 +724,11 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(DEBUG YES)
   define_boolean_option(NETWORKING_BENCHMARK_ENABLED YES)
+  define_boolean_option(HEAP_INSTRUMENTATION_ENABLED YES)
 else()
   set(DEBUG NO)
   define_boolean_option(NETWORKING_BENCHMARK_ENABLED NO)
+  define_boolean_option(HEAP_INSTRUMENTATION_ENABLED NO)
 endif()
 
 # define enabled features

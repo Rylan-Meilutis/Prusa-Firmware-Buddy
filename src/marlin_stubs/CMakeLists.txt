@@ -8,7 +8,6 @@ target_sources(
           M123.cpp
           M1702.cpp
           M1703.cpp
-          M1978.cpp
           M300.cpp
           M330.cpp
           M340.cpp
@@ -20,13 +19,16 @@ target_sources(
           M865.cpp
           M876.cpp
           M9140_M9150.cpp
-          M919-M920.cpp
           M9200.cpp
           M9201.cpp
           M997.cpp
           M999.cpp
           skippable_gcode.cpp
   )
+
+if(HAS_TRINAMIC)
+  target_sources(firmware PRIVATE M919-M920.cpp)
+endif()
 
 if(HAS_CANCEL_OBJECT)
   target_sources(firmware PRIVATE M486.cpp)
@@ -51,7 +53,7 @@ if(HAS_NOZZLE_CLEANER)
 endif()
 
 if(HAS_SELFTEST)
-  target_sources(firmware PRIVATE G162.cpp G163.cpp)
+  target_sources(firmware PRIVATE G162.cpp G163.cpp M1978.cpp)
 endif()
 
 if(HAS_LEDS)
@@ -84,4 +86,8 @@ endif()
 
 if(HAS_CHAMBER_FILTRATION_API)
   target_sources(firmware PRIVATE M147_148.cpp)
+endif()
+
+if(HAS_DOOR_SENSOR_CALIBRATION)
+  target_sources(firmware PRIVATE M1980.cpp)
 endif()

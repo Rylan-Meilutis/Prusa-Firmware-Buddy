@@ -1,5 +1,6 @@
 #include "DialogLoadUnload.hpp"
 
+#include <buddy/unreachable.hpp>
 #include "gui.hpp" //resource_font
 #include "sound.hpp"
 #include "i18n.h"
@@ -144,6 +145,9 @@ static constexpr EnumArray<PhasesLoadUnload, State, CountPhases<PhasesLoadUnload
     { PhasesLoadUnload::Unparking, { txt_unparking } },
 #if HAS_LOADCELL()
     { PhasesLoadUnload::FilamentStuck, { txt_filament_stuck, DialogLoadUnload::phaseAlertSound } },
+#endif
+#if HAS_AUTO_RETRACT()
+    { PhasesLoadUnload::AutoRetracting, { N_("Auto-retracting filament") } },
 #endif
 #if HAS_MMU2()
     { PhasesLoadUnload::LoadFilamentIntoMMU, { txt_mmu_insert_filament } }, // TODO how the button is Continue
@@ -492,9 +496,7 @@ string_view_utf8 DialogLoadUnload::get_name(LoadUnloadMode mode) {
     case LoadUnloadMode::Eject:
         return _("Ejecting filament");
     }
-
-    // In case we get some invalid data
-    return string_view_utf8::MakeCPUFLASH((const uint8_t *)"Index error");
+    BUDDY_UNREACHABLE();
 }
 
 float DialogLoadUnload::deserialize_progress(fsm::PhaseData data) const {

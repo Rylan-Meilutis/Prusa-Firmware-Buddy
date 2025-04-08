@@ -1,6 +1,5 @@
 #include "MItem_menus.hpp"
 #include "ScreenHandler.hpp"
-#include "str_utils.hpp"
 #include <option/buddy_enable_connect.h>
 #include "screen_qr_error.hpp"
 #include "screen_messages.hpp"
@@ -11,7 +10,6 @@
 #include "screen_menu_odometer.hpp"
 #include "screen_menu_version_info.hpp"
 #include "screen_menu_metrics.hpp"
-#include "screen_menu_fw_update.hpp"
 #include "screen_menu_network_status.hpp"
 #include "screen_menu_network_settings.hpp"
 #include "screen_menu_footer_settings.hpp"
@@ -91,7 +89,6 @@ template struct MI_SCREEN_CTOR<ScreenMenuOdometer>;
 template struct MI_SCREEN_CTOR<ScreenMenuFailStat>;
 template struct MI_SCREEN_CTOR<ScreenMenuTemperature>;
 template struct MI_SCREEN_CTOR<ScreenMenuMove>;
-template struct MI_SCREEN_CTOR<ScreenMenuFwUpdate>;
 template struct MI_SCREEN_CTOR<ScreenMenuMetricsSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuEthernetSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuWifiSettings>;

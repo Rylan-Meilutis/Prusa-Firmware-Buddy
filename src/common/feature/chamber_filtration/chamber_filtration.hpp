@@ -4,6 +4,7 @@
 
 #include <pwm_utils.hpp>
 #include <freertos/mutex.hpp>
+#include <general_response.hpp>
 
 #include "chamber_filtration_enums.hpp"
 
@@ -34,11 +35,28 @@ public:
     /// \returns the current backend that should be using the filtration API
     ChamberFiltrationBackend backend() const;
 
+    bool is_enabled() const {
+        return backend() != ChamberFiltrationBackend::none;
+    }
+
     void step();
 
     /// \brief Enables/disables the filtration for the current print
     /// \param needs_filtration true if the filtration should be forced on (ignore filament needs), false if it should be forced off
     void set_needs_filtration(bool needs_filtration);
+
+public:
+    /// \returns rated lifetime of the HEPA filter in seconds. 0 if not unknown/not specified
+    uint32_t filter_lifetime_s() const;
+
+    /// Check HEPA filter expiration and possibly show warning
+    void check_filter_expiration();
+
+    /// Process filter change, reset timers and such
+    void change_filter();
+
+    /// Processes response from WarningType::EnclosureFilterExpiration
+    void handle_filter_expiration_warning(Response response);
 
 private:
     void update_needs_filtration();
@@ -50,6 +68,9 @@ private:
     bool is_printing_prev_ = false;
     std::optional<bool> needs_filtration_;
     uint32_t last_print_s_ = 0;
+
+    /// ticks_s() of the start of filter usage (output_pwm > 0) that has not yet been emitted in the config_store
+    uint32_t unaccounted_filter_time_used_start_s_ = 0;
 };
 
 ChamberFiltration &chamber_filtration();

@@ -23,7 +23,6 @@
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
 #include <filament_sensors_remap_data.hpp>
-#include <feature/prusa/restore_z_storage.h>
 #include <option/has_loadcell.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_adc_side_fsensor.h>
@@ -40,8 +39,9 @@
 #include <option/xl_enclosure_support.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
-#include <option/developer_mode.h>
 #include <option/has_chamber_filtration_api.h>
+#include <option/has_auto_retract.h>
+#include <option/has_door_sensor_calibration.h>
 #include <common/extended_printer_type.hpp>
 #include <common/hw_check.hpp>
 #include <pwm_utils.hpp>
@@ -131,7 +131,7 @@ struct CurrentStore
     void perform_config_check();
 
     /// Config store "version", gets incremented each time we need to add a new config migration
-    static constexpr uint8_t newest_config_version = 1;
+    static constexpr uint8_t newest_config_version = 2;
 
     /// Stores newest_migration_version of the previous firmware
     StoreItem<uint8_t, 0, ItemFlag::special, journal::hash("Config Version")> config_version;
@@ -551,8 +551,6 @@ struct CurrentStore
     StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 8, HOTENDS> hotend_type;
 #endif
 
-    StoreItem<restore_z::Position, restore_z::default_position, ItemFlag::features, journal::hash("Restore Z Coordinate After Boot")> restore_z_after_boot;
-
     StoreItem<int16_t, defaults::homing_sens_x, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens X")> homing_sens_x; // X axis homing sensitivity
     StoreItem<int16_t, defaults::homing_sens_y, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens Y")> homing_sens_y; // Y axis homing sensitivity
 
@@ -628,11 +626,15 @@ struct CurrentStore
     StoreItem<XBEFanTestResults, XBEFanTestResults {}, ItemFlag::calibrations, journal::hash("XBE Chamber fan selftest results")> xbe_fan_test_results;
     StoreItem<bool, true, ItemFlag::features, journal::hash("XBE USB Host power")> xbe_usb_power;
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
-    StoreItem<uint8_t, 255, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
+    StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
+#endif
+
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Door Sensor")> selftest_result_door_sensor;
 #endif
 
 #if HAS_EMERGENCY_STOP()
-    StoreItem<bool, (DEVELOPER_MODE() ? false : true), ItemFlag::features, journal::hash("Emergency stop enable")> emergency_stop_enable;
+    StoreItem<bool, true, ItemFlag::features, journal::hash("Emergency stop enable")> emergency_stop_enable;
 #endif
 
 #if HAS_ILI9488_DISPLAY()
@@ -658,13 +660,29 @@ struct CurrentStore
     StoreItem<buddy::ChamberFiltrationBackend, buddy::ChamberFiltrationBackend::none, ItemFlag::hw_config, journal::hash("Chamber filtration backend")> chamber_filtration_backend;
     StoreItem<bool, true, ItemFlag::features, journal::hash("Chamber filtration post print enable")> chamber_post_print_filtration_enable;
     StoreItem<uint8_t, 10, ItemFlag::features, journal::hash("Chamber filtration post print duration")> chamber_post_print_filtration_duration_min;
-    StoreItem<PWM255, 10, ItemFlag::features, journal::hash("Chamber mid print filtration pwm")> chamber_mid_print_filtration_pwm;
-    StoreItem<PWM255, 128, ItemFlag::features, journal::hash("Chamber post print filtration pwm")> chamber_post_print_filtration_pwm;
+    StoreItem<PWM255, PWM255::from_percent(40).value, ItemFlag::features, journal::hash("Chamber mid print filtration pwm")> chamber_mid_print_filtration_pwm;
+    StoreItem<PWM255, PWM255::from_percent(40).value, ItemFlag::features, journal::hash("Chamber post print filtration pwm")> chamber_post_print_filtration_pwm;
     StoreItem<bool, false, ItemFlag::features, journal::hash("Chamber filtration always on")> chamber_filtration_always_on;
+
+    /// How long the filter has been used for (= fan is blowing through the filter), in seconds. Resets on filter change.
+    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Chamber filter time used ")> chamber_filter_time_used_s;
+
+    StoreItem<bool, false, ItemFlag::stats, journal::hash("Chamber filter early expiration warning shown")> chamber_filter_early_expiration_warning_shown;
+
+    /// If set, shown next chamber warning only after the specified timestamp.
+    /// The unix timestamp has been divided by 1024 to fit into int32 even after year 2038
+    StoreItem<int32_t, 0, ItemFlag::stats, journal::hash("Chamber filter expiration postpone timestamp")> chamber_filter_expiration_postpone_timestamp_1024;
 #endif
 
 #if HAS_PRINT_FAN_TYPE()
     StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 8, HOTENDS> print_fan_type;
+#endif
+
+#if HAS_AUTO_RETRACT()
+    /// Bitset, one bit for each hotend
+    /// !!! Do not set directly, always use auto_retract().mark_as_retracted
+    StoreItem<uint8_t, 0, ItemFlag::printer_state, journal::hash("Filament auto-retracted")> filament_auto_retracted_bitset;
+    static_assert(HOTENDS <= 8);
 #endif
 
 private:
@@ -761,6 +779,14 @@ struct DeprecatedStore
 #endif
 
     StoreItem<bool, false, journal::hash("USB MSC Enabled")> usb_msc_enabled;
+
+    struct RestoreZPosition {
+        float current_position_z;
+        uint8_t axis_known_position;
+        constexpr auto operator<=>(const RestoreZPosition &) const = default;
+    };
+    static inline constexpr RestoreZPosition restore_z_default_position { NAN, 0 };
+    StoreItem<RestoreZPosition, restore_z_default_position, journal::hash("Restore Z Coordinate After Boot")> restore_z_after_boot;
 };
 
 } // namespace config_store_ns

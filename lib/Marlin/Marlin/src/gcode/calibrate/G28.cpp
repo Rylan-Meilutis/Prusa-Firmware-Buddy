@@ -45,7 +45,7 @@
 #endif
 
 #if ENABLED(SENSORLESS_HOMING)
-  #include "../../feature/tmc_util.h"
+  #include "../../feature/motordriver_util.h"
 #endif
 
 #if ENABLED(CRASH_RECOVERY)
@@ -87,7 +87,8 @@
 #define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
 #include "../../core/debug_out.h"
 
-#include "../../../../../../src/common/trinamic.h" // for disabling Wave Table during homing
+#include <feature/tmc_util.h> // for disabling Wave Table during homing
+
 #include <feature/phase_stepping/phase_stepping.hpp> // for disabling phase stepping during homing
 #include <feature/pressure_advance/pressure_advance_config.hpp> // for disabling PA during homing
 
@@ -134,12 +135,12 @@
 
       sensorless_t stealth_states {
         NUM_AXIS_LIST(
-          TERN0(X_SENSORLESS, tmc_enable_stallguard(stepperX)),
-          TERN0(Y_SENSORLESS, tmc_enable_stallguard(stepperY)),
+          TERN0(X_SENSORLESS, enable_crash_detection(X_AXIS)),
+          TERN0(Y_SENSORLESS, enable_crash_detection(Y_AXIS)),
           false, false, false, false
         )
-        , TERN0(X2_SENSORLESS, tmc_enable_stallguard(stepperX2))
-        , TERN0(Y2_SENSORLESS, tmc_enable_stallguard(stepperY2))
+        , TERN0(X2_SENSORLESS, enable_crash_detection(X2_AXIS))
+        , TERN0(Y2_SENSORLESS, enable_crash_detection(Y2_AXIS))
       };
 
       #if ENABLED(CRASH_RECOVERY)
@@ -161,10 +162,10 @@
       #if ANY(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
         UNUSED(stealth_states);
       #else
-        TERN_(X_SENSORLESS, tmc_disable_stallguard(stepperX, stealth_states.x));
-        TERN_(X2_SENSORLESS, tmc_disable_stallguard(stepperX2, stealth_states.x2));
-        TERN_(Y_SENSORLESS, tmc_disable_stallguard(stepperY, stealth_states.y));
-        TERN_(Y2_SENSORLESS, tmc_disable_stallguard(stepperY2, stealth_states.y2));
+        TERN_(X_SENSORLESS, disable_crash_detection(X_AXIS, stealth_states.x));
+        TERN_(X2_SENSORLESS, disable_crash_detection(X2_AXIS, stealth_states.x2));
+        TERN_(Y_SENSORLESS, disable_crash_detection(Y_AXIS, stealth_states.y));
+        TERN_(Y2_SENSORLESS, disable_crash_detection(Y2_AXIS, stealth_states.y2));
       #endif
     #endif
   }
@@ -193,23 +194,24 @@
       constexpr xy_float_t okay_homing_xy = safe_homing_xy;
     #endif
 
-    destination.set(okay_homing_xy, current_position.z);
+    xyze_pos_t dest_pos;
+    dest_pos.set(okay_homing_xy, current_position.z);
 
-    TERN_(HOMING_Z_WITH_PROBE, destination -= probe_offset);
-    TERN_(HAS_HOTEND_OFFSET, destination -= hotend_currently_applied_offset);
+    TERN_(HOMING_Z_WITH_PROBE, dest_pos -= probe_offset);
+    TERN_(HAS_HOTEND_OFFSET, dest_pos -= hotend_currently_applied_offset);
 
-    if (position_is_reachable(destination)) {
+    if (position_is_reachable(dest_pos)) {
 
-      if (DEBUGGING(LEVELING)) DEBUG_POS("home_z_safely", destination);
+      if (DEBUGGING(LEVELING)) DEBUG_POS("home_z_safely", dest_pos);
 
 #if ENABLED(PRUSA_TOOLCHANGER)
-      do_blocking_move_to_xy(destination, PrusaToolChanger::limit_stealth_feedrate(XY_PROBE_FEEDRATE_MM_S));
+      do_blocking_move_to_xy(dest_pos, PrusaToolChanger::limit_stealth_feedrate(XY_PROBE_FEEDRATE_MM_S));
 #elif HAS_NOZZLE_CLEANER()
     // with nozzle cleaner (iX), move in Y first to avoid going over the cleaner
-    do_blocking_move_to_xy(current_position.x, destination.y);
-    do_blocking_move_to_xy(destination.x, destination.y);
+    do_blocking_move_to_xy(current_position.x, dest_pos.y);
+    do_blocking_move_to_xy(dest_pos.x, dest_pos.y);
 #else
-      do_blocking_move_to_xy(destination);
+      do_blocking_move_to_xy(dest_pos);
 #endif
 
       if (!homeaxis(Z_AXIS)) {
@@ -282,10 +284,13 @@
 
 #endif // Z_SAFE_HOMING
 
+#if HAS_TRINAMIC && defined(HAS_TMC_WAVETABLE)
 static void reenable_wavetable(AxisEnum axis)
 {
     tmc_enable_wavetable(axis == X_AXIS, axis == Y_AXIS, false);
 }
+#endif
+
 
 /** \addtogroup G-Codes
  * @{
@@ -659,17 +664,16 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   // Diagonal move first if both are homing
   TERN_(QUICK_HOME, if (!failed && doX && doY) quick_home_xy());
 
+#if HAS_TRINAMIC && defined(HAS_TMC_WAVETABLE)
   // Only allow wavetable change if homing performs a backoff. This backoff is made in the way that it ends on stepper zero-position, so that re-enabling wavetable is safe.
   bool wavetable_off_X = false, wavetable_off_Y = false;
-  #ifdef HAS_TMC_WAVETABLE
-    #if HAS_PRECISE_HOMING_COREXY()
-      #error "wavetable switching currently not compatible with HAS_PRECISE_HOMING_COREXY()"
-    #endif
-    #ifdef HOMING_BACKOFF_POST_MM
-      constexpr xyz_float_t homing_backoff = HOMING_BACKOFF_POST_MM;
-      wavetable_off_X = (homing_backoff[X] > 0.0f) && doX;
-      wavetable_off_Y = (homing_backoff[Y] > 0.0f) && doY;
-    #endif
+  #if HAS_PRECISE_HOMING_COREXY()
+    #error "wavetable switching currently not compatible with HAS_PRECISE_HOMING_COREXY()"
+  #endif
+  #ifdef HOMING_BACKOFF_POST_MM
+    constexpr xyz_float_t homing_backoff = HOMING_BACKOFF_POST_MM;
+    wavetable_off_X = (homing_backoff[X] > 0.0f) && doX;
+    wavetable_off_Y = (homing_backoff[Y] > 0.0f) && doY;
   #endif
   void (*reenable_wt_X)(AxisEnum) = wavetable_off_X ? reenable_wavetable : NULL;
   void (*reenable_wt_Y)(AxisEnum) = wavetable_off_Y ? reenable_wavetable : NULL;
@@ -681,6 +685,10 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   if (!failed) {
     tmc_disable_wavetable(wavetable_off_X, wavetable_off_Y, false);
   }
+#else
+  void (*reenable_wt_X)(AxisEnum) = NULL;
+  void (*reenable_wt_Y)(AxisEnum) = NULL;
+#endif
 
   #if ENABLED(PRUSA_TOOLCHANGER)
   if (!failed && doX && doY) {

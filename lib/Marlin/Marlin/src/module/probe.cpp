@@ -77,8 +77,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #endif
 
 #if ENABLED(SENSORLESS_PROBING)
-  #include "stepper.h"
-  #include "../feature/tmc_util.h"
+  #include "../feature/motordriver_util.h"
 #endif
 
 #if QUIET_PROBING
@@ -93,6 +92,8 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #include "../core/debug_out.h"
 
 #include "metric.h"
+
+#include <feature/print_status_message/print_status_message_guard.hpp>
 
 #if ENABLED(Z_PROBE_SLED)
 
@@ -422,10 +423,10 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
   #if ENABLED(SENSORLESS_PROBING)
     sensorless_t stealth_states { false };
     #if ENABLED(DELTA)
-      stealth_states.x = tmc_enable_stallguard(stepperX);
-      stealth_states.y = tmc_enable_stallguard(stepperY);
+      stealth_states.x = enable_crash_detection(X_AXIS);
+      stealth_states.y = enable_crash_detection(Y_AXIS);
     #endif
-    stealth_states.z = tmc_enable_stallguard(stepperZ);
+    stealth_states.z = enable_crash_detection(Z_AXIS);
     endstops.enable(true);
   #endif
 
@@ -468,10 +469,10 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
     endstops.not_homing();
     #if NEITHER(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
       #if ENABLED(DELTA)
-        tmc_disable_stallguard(stepperX, stealth_states.x);
-        tmc_disable_stallguard(stepperY, stealth_states.y);
+        disable_crash_detection(X_AXIS, stealth_states.x);
+        disable_crash_detection(Y_AXIS, stealth_states.y);
       #endif
-      tmc_disable_stallguard(stepperZ, stealth_states.z);
+      disable_crash_detection(Z_AXIS, stealth_states.z);
     #endif
   #endif
 
@@ -813,13 +814,15 @@ bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max) {
     planner.apply_settings(s);
   }
 
+  PrintStatusMessageGuard pmg;
+  pmg.update<PrintStatusMessage::nozzle_cleaning>({});
+
   bool should_continue = true;
   for (float y = rect_min.y + radius; (y + radius) <= rect_max.y && should_continue; y += 2 * radius) {
     for (float x = rect_max.x - radius; (x - radius) >= rect_min.x && should_continue; x -= 2 * radius) {
       // move above the probe point
       xyz_pos_t pos = { x, y, static_cast<float>(PROBE_CLEANUP_CLEARANCE - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z))};
       do_blocking_move_to(pos);
-        LCD_MESSAGEPGM_P("Nozzle cleaning");
 
       if(probe_deployed == false) {
         // first attempt: deploy probe

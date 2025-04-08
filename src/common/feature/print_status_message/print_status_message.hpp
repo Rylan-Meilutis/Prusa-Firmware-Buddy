@@ -1,6 +1,7 @@
 #pragma once
 
 #include <option/has_chamber_api.h>
+#include <option/has_auto_retract.h>
 
 #include "print_status_message_data.hpp"
 
@@ -26,12 +27,18 @@ struct PrintStatusMessage {
         waiting_for_hotend_temp,
         waiting_for_bed_temp,
 
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+        nozzle_cleaning,
+#endif
 #if ENABLED(PRUSA_SPOOL_JOIN)
         spool_joined,
         joining_spool,
 #endif
 #if HAS_CHAMBER_API()
         waiting_for_chamber_temp,
+#endif
+#if HAS_AUTO_RETRACT()
+        auto_retracting,
 #endif
 
         _cnt
@@ -82,12 +89,18 @@ struct PrintStatusMessage {
         TypeRecord<Type::absorbing_heat, PrintStatusMessageDataProgress>,
         TypeRecord<Type::waiting_for_hotend_temp, PrintStatusMessageDataProgress>,
         TypeRecord<Type::waiting_for_bed_temp, PrintStatusMessageDataProgress>,
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+        TypeRecord<Type::nozzle_cleaning, std::monostate>,
+#endif
 #if ENABLED(PRUSA_SPOOL_JOIN)
         TypeRecord<Type::spool_joined, std::monostate>,
         TypeRecord<Type::joining_spool, std::monostate>,
 #endif
 #if HAS_CHAMBER_API()
         TypeRecord<Type::waiting_for_chamber_temp, PrintStatusMessageDataProgress>,
+#endif
+#if HAS_AUTO_RETRACT()
+        TypeRecord<Type::auto_retracting, std::monostate>,
 #endif
 
         TypeRecord<Type::none, std::monostate>>;

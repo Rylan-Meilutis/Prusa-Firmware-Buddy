@@ -20,9 +20,7 @@
 #include <option/has_side_leds.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_belt_tuning.h>
-#include <trinamic.h>
 #include <meta_utils.hpp>
-#include <str_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
 
 /// Checks if there is space in the gcode queue for inserting further commands.
@@ -108,18 +106,6 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
-#ifdef BUDDY_ENABLE_DFU_ENTRY
-class MI_ENTER_DFU : public IWindowMenuItem {
-    static constexpr const char *const label = "Enter DFU";
-
-public:
-    MI_ENTER_DFU();
-
-protected:
-    virtual void click(IWindowMenu &window_menu) override;
-};
-#endif
-
 class MI_SAVE_DUMP : public IWindowMenuItem {
     static constexpr const char *const label = N_("Save Crash Dump");
 
@@ -138,18 +124,6 @@ public:
 
 protected:
     virtual void click(IWindowMenu &window_menu) override;
-};
-
-class MI_M600 : public IWindowMenuItem {
-    static constexpr const char *const label = N_("Change Filament");
-    bool enqueued = false; // Used to avoid multiple M600 enqueue
-
-public:
-    MI_M600();
-
-protected:
-    virtual void click(IWindowMenu &window_menu) override;
-    void Loop() override;
 };
 
 class MI_DRYRUN : public WI_ICON_SWITCH_OFF_ON_t {
@@ -254,7 +228,6 @@ class MI_INFO_FW : public WI_INFO_t {
 
 public:
     MI_INFO_FW();
-    virtual void click(IWindowMenu &window_menu) override; // FW version is clickable when development tools are shown
 };
 
 class MI_INFO_BOOTLOADER : public WI_INFO_t {

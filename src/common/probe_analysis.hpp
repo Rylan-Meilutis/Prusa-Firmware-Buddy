@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <algorithm>
 #include <tuple>
-#include <functional>
 #include <optional>
 #include <numeric>
 #include <limits>
@@ -55,8 +54,6 @@ public:
 
     /// Entry of the moving window used for analysis.
     struct Record {
-        uint32_t timestamp;
-
         /// Extruder's Z coordinate [mm]
         float z;
 

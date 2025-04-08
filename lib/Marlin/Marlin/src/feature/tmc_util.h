@@ -22,13 +22,16 @@
 
 #pragma once
 
-#include "../inc/MarlinConfig.h"
-#include "../lcd/ultralcd.h"
+#include "../inc/MarlinConfigPre.h"
 
-#include <option/has_puppies.h>
+#if !HAS_TRINAMIC
+  #error "Do not include this file on printers without TMC drivers"
+#endif
 
-#if HAS_TRINAMIC
+#include <option/has_dwarf.h>
+#include <option/has_toolchanger.h>
 
+#include <core/serial.h>
 #include <TMCStepper.h>
 
 #include <option/has_planner.h>
@@ -121,7 +124,7 @@ class TMCMarlinBase : public TMC, public TMCStorage {
     const char driver_id;
     const AxisEnum axis_id;
 
-    #if HAS_PUPPIES() && HAS_TOOLCHANGER()
+    #if HAS_DWARF() && HAS_TOOLCHANGER()
     TMCMarlinBase(char axis_letter, char driver_id, AxisEnum axis_id, const TMC2130Stepper::Connection connection, const float RS)
       : TMC(connection, RS)
       , axis_letter(axis_letter), driver_id(driver_id), axis_id(axis_id)
@@ -171,7 +174,7 @@ class TMCMarlinBase : public TMC, public TMCStorage {
       inline void refresh_stepping_mode() { this->en_pwm_mode(this->stored.stealthChop_enabled); }
       inline bool get_stealthChop_status() { return this->en_pwm_mode(); }
     #endif
-    #if ENABLED(HYBRID_THRESHOLD)
+    #if HAS_PLANNER() && ENABLED(HYBRID_THRESHOLD)
       uint32_t get_pwm_thrs() {
         return tmc_feedrate_to_period(axis_id, this->microsteps(), this->TPWMTHRS(), planner.settings.axis_steps_per_mm[axis_id]);
       }
@@ -190,7 +193,7 @@ class TMCMarlinBase : public TMC, public TMCStorage {
       }
       void stall_max_period(uint32_t max_period){
         max_period = (uint32_t)constrain(max_period, 0, 1048575);
-        TMC2130Stepper::TCOOLTHRS(max_period);
+        TMC::TCOOLTHRS(max_period);
       }
     #endif
 };
@@ -308,9 +311,6 @@ void initial_test_tmc_connection();
  */
 #if USE_SENSORLESS
 
-  // Track enabled status of stealthChop and only re-enable where applicable
-  struct sensorless_t { bool x, y, z, x2, y2, z2, z3; };
-
   #if ENABLED(IMPROVE_HOMING_RELIABILITY) && HOMING_SG_GUARD_DURATION > 0
     extern millis_t sg_guard_period;
     constexpr uint16_t default_sg_guard_duration = HOMING_SG_GUARD_DURATION;
@@ -327,8 +327,34 @@ void initial_test_tmc_connection();
 
 #endif // USE_SENSORLESS
 
-#if TMC_HAS_SPI
-  void tmc_init_cs_pins();
+typedef struct {
+    const char *cmd_name;
+    uint8_t reg_adr;
+    bool write;
+    bool read;
+} tmc_reg_t;
+
+extern tmc_reg_t tmc_reg_map[]; //< Null terminated array of known registers
+
+void init_tmc();
+void tmc_get_sgt();
+void tmc_get_TPWMTHRS();
+void tmc_get_tstep();
+#if HAS_PLANNER()
+  uint16_t tmc_sg_result(uint8_t axis);
 #endif
 
-#endif // HAS_TRINAMIC
+#ifdef HAS_TMC_WAVETABLE
+  void tmc_enable_wavetable(bool X, bool Y, bool Z);
+  void tmc_disable_wavetable(bool X, bool Y, bool Z);
+#endif // HAS_TMC_WAVETABLE
+
+/**
+ * \brief Check stepper coils for open/short circuit
+ *
+ * This reports false errors when not moving or moving too fast.
+ *
+ * \param axis axis to check
+ * \return true if all coils are ok, false otherwise
+ */
+bool tmc_check_coils(uint8_t axis);
