@@ -15,7 +15,7 @@ target_link_libraries(freertos PRIVATE FreeRTOS::FreeRTOS)
 target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # FIXME: Find a better place for this dispatch.
-if(BOARD STREQUAL "XBUDDY_EXTENSION")
+if(BOARD STREQUAL "XBUDDY_EXTENSION" OR BOARD STREQUAL "ANFC_H5")
   target_compile_definitions(freertos PUBLIC FREERTOS_INTERNAL_STORAGE_SIZE=72)
   target_sources(freertos PRIVATE stream_buffer.cpp)
 else()

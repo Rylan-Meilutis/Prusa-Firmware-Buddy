@@ -9,6 +9,10 @@
     #error
 #endif
 
+// SVC_Handler + PendSV_Handler + SysTick_Handler are defined by FreeRTOS
+
+const std::span<std::byte> hal::memory::peripheral_address_region(reinterpret_cast<std::byte *>(PERIPH_BASE_NS), 0x10000000);
+
 void hal::panic() {
     hal::status_led_on();
     asm volatile("bkpt 0");
@@ -21,10 +25,6 @@ void hal::status_led_on() {
 
 void hal::status_led_off() {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-}
-
-void hal::delay(uint32_t ms) {
-    HAL_Delay(ms);
 }
 
 namespace hal {
@@ -274,10 +274,6 @@ extern "C" void BusFault_Handler() {
 
 extern "C" void UsageFault_Handler() {
     hal::panic();
-}
-
-extern "C" void SysTick_Handler() {
-    HAL_IncTick();
 }
 
 extern "C" void EXTI5_IRQHandler() {

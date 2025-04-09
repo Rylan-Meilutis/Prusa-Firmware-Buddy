@@ -47,5 +47,19 @@ add_subdirectory(nfc_ll)
 add_subdirectory(nfc_prusa)
 
 target_link_libraries(
-  firmware PRIVATE ${HAL_LIB} HAL_Config printf::printf SG14 nanocbor buddy_utils
+  firmware
+  PRIVATE ${HAL_LIB}
+          HAL_Config
+          printf::printf
+          SG14
+          nanocbor
+          buddy_utils
+          freertos
   )
+
+# TODO For now, we need to also explicitly depend on `FreeRTOS::FreeRTOS` because we are using
+# functions that are not wrapped by `freertos`.
+target_link_libraries(firmware PRIVATE FreeRTOS::FreeRTOS)
+
+add_library(FreeRTOS_Config INTERFACE)
+target_include_directories(FreeRTOS_Config INTERFACE config)
