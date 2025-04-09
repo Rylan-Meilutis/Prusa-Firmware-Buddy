@@ -11,7 +11,7 @@
 #include <nfc_prusa/prusa_nfc_reader.hpp>
 #include <nfc_ll/i_nfc_reader.hpp>
 
-using ByteString = std::basic_string<uint8_t>;
+using ByteString = std::basic_string<std::byte>;
 
 #include <autogen/sample_data.cpp.in>
 #include <autogen/field_enums.hpp>
@@ -113,7 +113,7 @@ std::ostream &operator<<(std::ostream &os, const PrusaNFCReader::Error &value) {
     return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const ByteString &bytes) {
+std::ostream &operator<<(std::ostream &os, const std::basic_string_view<std::byte> &bytes) {
     const auto flags = os.flags();
     os << std::hex;
     for (auto byte : bytes) {
@@ -606,7 +606,7 @@ TEST_CASE("anfc::PrusaNFCReader::edge_cases") {
         std::array<char, 128> string_buffer;
 
         auto tag_data = tag_data::standard_sample_tag;
-        std::fill(tag_data.begin() + 64, tag_data.end(), '\xbf'); // bf - indefinite container open
+        std::fill(tag_data.begin() + 64, tag_data.end(), std::byte('\xbf')); // bf - indefinite container open
         mock.tag_data[0] = tag_data;
 
         {
@@ -641,7 +641,7 @@ TEST_CASE("anfc::PrusaNFCReader::edge_cases") {
         const auto main_region_span = (**reader.read_metadata(0)).main_region().span;
 
         // Zero out the whole main region - that means that there is no cbor container tag at the beginning
-        std::fill(tag_data.begin() + main_region_span.offset, tag_data.begin() + main_region_span.end(), 0);
+        std::fill(tag_data.begin() + main_region_span.offset, tag_data.begin() + main_region_span.end(), std::byte(0));
 
         mock.tag_data[0] = tag_data;
         reader.invalidate_cache(0);

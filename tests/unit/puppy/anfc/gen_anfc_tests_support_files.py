@@ -62,7 +62,7 @@ def write_sample_data(variable, data):
     f.write("\n*/\n")
 
     f.write(f"const ByteString {variable} {{\n")
-    f.write(", ".join([str(int(b)) for b in data]))
+    f.write(", ".join([f"std::byte({str(int(b))})" for b in data]))
     f.write("\n};\n\n")
 
 
