@@ -1,0 +1,4 @@
+# ID of the lost tag. Will be deallocated and reused once the event is accepted.
+prusa3d.nfc.util.TagID.1.0 id
+
+@sealed

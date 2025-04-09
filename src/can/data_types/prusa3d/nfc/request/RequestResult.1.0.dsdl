@@ -1,0 +1,12 @@
+@union
+
+# Empty result for requests that don't expect a result
+uavcan.primitive.Empty.1.0 empty
+
+# Resulting read value
+prusa3d.nfc.util.ValueOrError.1.0 read_field
+
+# Write field error or NO_ERROR
+prusa3d.nfc.util.ReaderError.1.0 write_field
+
+@sealed
