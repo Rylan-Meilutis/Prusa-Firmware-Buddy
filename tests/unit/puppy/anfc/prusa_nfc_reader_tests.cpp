@@ -174,6 +174,7 @@ void test_standard_tag_main(PrusaNFCReader &reader, MockNFCReader &mock) {
     mock.log = {};
 
     std::array<char, 128> string_buffer;
+    std::array<std::byte, 128> bytes_buffer;
     std::array<uint16_t, 2> tags_buffer;
     std::array<NFCField, 32> fields_buffer;
 
@@ -186,6 +187,8 @@ void test_standard_tag_main(PrusaNFCReader &reader, MockNFCReader &mock) {
         (NFCField)MainField::netto_full_weight,
         (NFCField)MainField::transmission_distance,
         (NFCField)MainField::tags,
+        (NFCField)MainField::brand_specific_instance_id,
+        (NFCField)MainField::material_uuid,
     };
     CHECK(reader.enumerate_fields(0, NFCRegion::main, fields_buffer) == expected_fields);
 
@@ -201,6 +204,9 @@ void test_standard_tag_main(PrusaNFCReader &reader, MockNFCReader &mock) {
 
     CHECK(reader.read_field_string(field(MainField::brand), string_buffer) == std::string_view("Prusament"));
     CHECK(reader.read_field_string(field(MainField::material_name), string_buffer) == std::string_view("PLA Prusa Galaxy Black"));
+
+    CHECK(reader.read_field_bytes(field(MainField::brand_specific_instance_id), bytes_buffer) == ByteString { std::byte { 0x01 } });
+    CHECK(reader.read_field_bytes(field(MainField::material_uuid), bytes_buffer) == tag_data::material_uuid);
 
     CHECK(reader.read_field_uint16_array(field(MainField::tags), tags_buffer) == std::array { (uint16_t)MaterialTag::glitter, (uint16_t)MaterialTag::abrasive });
 
@@ -490,6 +496,13 @@ TEST_CASE("anfc::PrusaNFCReader::writing") {
         CHECK(reader.enumerate_fields(0, NFCRegion::auxiliary, fields_buffer) == std::span<NFCField> {});
 
         CHECK(mock.log.reads.size() == 0);
+    }
+
+    // Try writing bytes
+    {
+        CHECK(reader.write_field_bytes(field(MainField::brand_specific_instance_id), ByteString { std::byte(1), std::byte(2) }) == PrusaNFCReader::WriteReport { .field_existed = true, .changed = true });
+        CHECK(mock.tag_data[0] == tag_data::write_sample_8);
+        mock.log = {};
     }
 
     // Try writing tags

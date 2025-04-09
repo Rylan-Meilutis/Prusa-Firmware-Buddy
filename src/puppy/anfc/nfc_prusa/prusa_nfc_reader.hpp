@@ -142,6 +142,7 @@ public:
     [[nodiscard]] IOResult<int64_t> read_field_int64(const NFCTagField &field);
     [[nodiscard]] IOResult<float> read_field_float(const NFCTagField &field);
     [[nodiscard]] IOResult<std::string_view> read_field_string(const NFCTagField &field, const std::span<char> &buffer);
+    [[nodiscard]] IOResult<std::basic_string_view<std::byte>> read_field_bytes(const NFCTagField &field, const std::span<std::byte> &buffer);
     [[nodiscard]] IOResult<std::span<const uint16_t>> read_field_uint16_array(const NFCTagField &field, const std::span<uint16_t> &buffer);
 
     [[nodiscard]] IOResult<WriteReport> write_field_bool(const NFCTagField &field, bool value);
@@ -149,6 +150,7 @@ public:
     [[nodiscard]] IOResult<WriteReport> write_field_int64(const NFCTagField &field, int64_t value);
     [[nodiscard]] IOResult<WriteReport> write_field_float(const NFCTagField &field, float value);
     [[nodiscard]] IOResult<WriteReport> write_field_string(const NFCTagField &field, const std::string_view &value);
+    [[nodiscard]] IOResult<WriteReport> write_field_bytes(const NFCTagField &field, const std::basic_string_view<std::byte> &value);
     [[nodiscard]] IOResult<WriteReport> write_field_uint16_array(const NFCTagField &field, const std::span<const uint16_t> &value);
 
 private: // Reading internal functions

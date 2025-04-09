@@ -368,6 +368,28 @@ PrusaNFCReader::IOResult<std::string_view> PrusaNFCReader::read_field_string(con
     return result;
 }
 
+PrusaNFCReader::IOResult<std::basic_string_view<std::byte>> PrusaNFCReader::read_field_bytes(const NFCTagField &field, const std::span<std::byte> &buffer) {
+    std::basic_string_view<std::byte> result;
+    const auto r = read_field_impl(field, [&result, &buffer](CBORValue v) -> ReadFieldCallbackResult {
+        const uint8_t *data;
+        size_t len;
+        const auto r2 = nanocbor_get_bstr(v, &data, &len);
+        if (r2 < 0) {
+            return r2;
+        }
+        if (len > buffer.size()) {
+            return Error::data_too_big;
+        }
+        memcpy(buffer.data(), data, len);
+        result = std::basic_string_view<std::byte>(buffer.data(), len);
+        return r2;
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return result;
+}
+
 PrusaNFCReader::IOResult<std::span<const uint16_t>> PrusaNFCReader::read_field_uint16_array(const NFCTagField &field, const std::span<uint16_t> &buffer) {
     size_t count = 0;
     const auto r = read_field_impl(field, [&count, &buffer](CBORValue v) -> ReadFieldCallbackResult {
@@ -429,6 +451,12 @@ PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> PrusaNFCReader::write_fiel
 PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> PrusaNFCReader::write_field_string(const NFCTagField &field, const std::string_view &value) {
     return write_field_impl(field, [&value](CBOREncoder e) {
         return nanocbor_put_tstrn(e.encoder, value.data(), value.size());
+    });
+}
+
+PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> PrusaNFCReader::write_field_bytes(const NFCTagField &field, const std::basic_string_view<std::byte> &value) {
+    return write_field_impl(field, [&value](CBOREncoder e) {
+        return nanocbor_put_bstr(e.encoder, reinterpret_cast<const uint8_t *>(value.data()), value.size());
     });
 }
 
