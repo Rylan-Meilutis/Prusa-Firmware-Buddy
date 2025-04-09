@@ -1,0 +1,14 @@
+#include <prusa3d/nfc/util/ReaderError_1_0.h>
+#include <nfc_prusa/prusa_nfc_reader.hpp>
+
+// We have an enum specified in src/can/data_types/prusa3d/nfc/util/ReaderError.1.0.dsdl that needs to match 1:1 PrusaNFCReader::Error enum
+// Here we are checking that this is really the case
+
+static_assert(prusa3d_nfc_util_ReaderError_1_0_FIELD_NOT_PRESENT == std::to_underlying(PrusaNFCReader::Error::field_not_present));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_WRONG_FIELD_TYPE == std::to_underlying(PrusaNFCReader::Error::wrong_field_type));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_WRITE_PROTECTED == std::to_underlying(PrusaNFCReader::Error::write_protected));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_REGION_CORRUPT == std::to_underlying(PrusaNFCReader::Error::region_corrupt));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_TAG_INVALID == std::to_underlying(PrusaNFCReader::Error::tag_invalid));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_DATA_TOO_BIG == std::to_underlying(PrusaNFCReader::Error::data_too_big));
+static_assert(prusa3d_nfc_util_ReaderError_1_0_OTHER == std::to_underlying(PrusaNFCReader::Error::other));
+static_assert(std::to_underlying(PrusaNFCReader::Error::_cnt) == 7);

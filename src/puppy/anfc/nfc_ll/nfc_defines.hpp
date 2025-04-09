@@ -4,7 +4,7 @@
 #include <algorithm>
 
 /// Identifier for a tag the NFC reader is managing
-using NFCTagID = uint16_t;
+using NFCTagID = uint8_t;
 
 /// One reader can have multiple independent antennas
 using NFCAntenna = uint8_t;

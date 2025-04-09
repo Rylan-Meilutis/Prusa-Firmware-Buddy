@@ -114,6 +114,10 @@ PrusaNFCReader::IOResult<const PrusaNFCReader::TagMetadata *> PrusaNFCReader::re
             // We failed reading something. Invalidate the metadata, so that it is re-read later if requested.
             metadata_cache_.invalidate(tag);
             return std::unexpected(err);
+
+        case Error::_cnt:
+            // Fallback to unreachable
+            break;
         }
 
         // Unreachable

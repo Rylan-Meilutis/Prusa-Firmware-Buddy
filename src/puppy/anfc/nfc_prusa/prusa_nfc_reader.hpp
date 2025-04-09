@@ -39,30 +39,33 @@ public:
         NFCField field;
     };
 
+    // Do not change indexes - reflected in the DSDL
     enum class Error : uint8_t {
         /// The field or region is not present on the tag (but the tag is otherwise OK)
-        field_not_present,
+        field_not_present = 0,
 
         /// The field type in the CBOR is not readable with the used function (for example trying to read float using read_field_bool)
-        wrong_field_type,
+        wrong_field_type = 1,
 
         /// Cannot write to the region, because it is write protected (can be protected on various levels)
-        write_protected,
+        write_protected = 2,
 
         /// The section we are trying to read from is corrupted.
         /// Re-reading the section won't help, but clear_section() could.
-        region_corrupt,
+        region_corrupt = 3,
 
         /// The tag has been determined to be not a valid Prusa NFC tag (wrong mime, corrupted contents, ...)
         /// Retrying won't help, the chip needs to be re-formatted.
-        tag_invalid,
+        tag_invalid = 4,
 
         /// Data is too big and doesn't fit somewhere (tag itself, internal buffers, ...)
-        data_too_big,
+        data_too_big = 5,
 
         /// Other, unspecified error (comm error, ...)
         /// Retrying the operation might help.
-        other,
+        other = 6,
+
+        _cnt,
     };
 
     static Error to_prusa_error(INFCReader::IOError error);
