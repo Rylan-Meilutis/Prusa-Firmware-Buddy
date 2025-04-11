@@ -60,7 +60,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 
 TOTAL_FLASH_SIZE = 128K;
 FW_ORIGIN = 0x8000000;
-APP_SIZE = TOTAL_FLASH_SIZE - BL_SIZE;
+DESCRIPTOR_SIZE = 128;
+APP_SIZE = TOTAL_FLASH_SIZE - BL_SIZE - DESCRIPTOR_SIZE;
 
 /* Specify the memory areas */
 MEMORY
@@ -68,6 +69,7 @@ MEMORY
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 24K
 FLASH_BOOTLOADER (rx) : ORIGIN = FW_ORIGIN, LENGTH = BL_SIZE
 FLASH (rx) : ORIGIN = FW_ORIGIN + BL_SIZE, LENGTH = APP_SIZE
+FW_DESCRIPTOR (r) : ORIGIN = FW_ORIGIN + TOTAL_FLASH_SIZE - DESCRIPTOR_SIZE, LENGTH = DESCRIPTOR_SIZE
 }
 
 /* Define output sections */
@@ -187,5 +189,20 @@ SECTIONS
     libm.a ( * )
     libgcc.a ( * )
   }
+
+  .fw_descriptor :
+  {
+    . = ALIGN(4);
+    KEEP(*(*.fw_descriptor*));
+  } >FW_DESCRIPTOR
+
+  /* Section that will fill the fw descriptor flash with defined pattern,
+        needed for fingerprint calculation in bootloader */
+  .fw_descriptor_fill :
+  {
+    FILL(0xAA);
+    . = ORIGIN(FLASH) + LENGTH(FLASH) + LENGTH(FW_DESCRIPTOR) - 1;
+    BYTE(0xAA)
+  } > FW_DESCRIPTOR
 
 }

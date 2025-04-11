@@ -46,7 +46,7 @@ FLASH_ONE_PAGE = 8K;
 FW_ORIGIN = 0x8000000;
 
 DESCRIPTOR_SIZE = 128;
-APP_SIZE = TOTAL_FLASH_SIZE - BL_SIZE;
+APP_SIZE = TOTAL_FLASH_SIZE - BL_SIZE - DESCRIPTOR_SIZE;
 
 /* Memories definition */
 MEMORY
@@ -54,6 +54,7 @@ MEMORY
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 32K
   FLASH_BOOTLOADER (rx) : ORIGIN = FW_ORIGIN, LENGTH = BL_SIZE
   FLASH    (rx)    : ORIGIN = FW_ORIGIN + BL_SIZE,   LENGTH = APP_SIZE
+  FW_DESCRIPTOR (r) : ORIGIN = FW_ORIGIN + TOTAL_FLASH_SIZE - DESCRIPTOR_SIZE, LENGTH = DESCRIPTOR_SIZE
 }
 
 /* Sections */
@@ -211,14 +212,14 @@ SECTIONS
     *(.ARM.extab* .gnu.linkonce.armextab.*)
   }
 
-/*  .fw_descriptor : {
+  .fw_descriptor : {
     . = ALIGN(4);
     KEEP(*(*.fw_descriptor*));
-  } >FW_DESCRIPTOR */
+  } >FW_DESCRIPTOR
 
      /* Section that will fill the fw descriptor flash with defined pattern,
         needed for fingerprint calculation in bootloader */
-/*   .fw_descriptor_fill :
+   .fw_descriptor_fill :
    {
      FILL(0xAA);
      . = ORIGIN(FLASH) + LENGTH(FLASH) + LENGTH(FW_DESCRIPTOR) - 1;
@@ -227,7 +228,7 @@ SECTIONS
 
   __fw_descriptor_start = ORIGIN(FW_DESCRIPTOR);
   __fw_descriptor_length = LENGTH(FW_DESCRIPTOR);
-  __flash_start = ORIGIN(FLASH);*/
+  __flash_start = ORIGIN(FLASH);
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
