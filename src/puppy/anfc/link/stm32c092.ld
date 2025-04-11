@@ -58,11 +58,16 @@ _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
+TOTAL_FLASH_SIZE = 128K;
+FW_ORIGIN = 0x8000000;
+APP_SIZE = TOTAL_FLASH_SIZE - BL_SIZE;
+
 /* Specify the memory areas */
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 24K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K
+FLASH_BOOTLOADER (rx) : ORIGIN = FW_ORIGIN, LENGTH = BL_SIZE
+FLASH (rx) : ORIGIN = FW_ORIGIN + BL_SIZE, LENGTH = APP_SIZE
 }
 
 /* Define output sections */

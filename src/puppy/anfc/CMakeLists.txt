@@ -8,8 +8,13 @@ if(BOARD STREQUAL "ANFC")
 
   target_compile_definitions(firmware PRIVATE STM32GENERIC STM32C0 STM32C0xx)
 
-  # TODO: Add boot/noboot versions of linker script
-  target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32c092.ld")
+  if(BOOTLOADER STREQUAL "EMPTY" OR BOOTLOADER)
+    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32c092_boot.ld")
+    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=32768)
+  else()
+    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32c092_noboot.ld")
+    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=0)
+  endif()
 
   target_sources(firmware PRIVATE startup/stm32c092.s system_stm32c0xx.c)
 
