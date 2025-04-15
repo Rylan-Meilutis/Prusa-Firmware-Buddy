@@ -12,3 +12,4 @@ setuptools~=70.1.0
 requests==2.32.3
 ndeflib~=0.3.3
 cbor2~=5.6.4
+nunavut~=2.3

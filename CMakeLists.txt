@@ -6,6 +6,9 @@ include(cmake/ProjectVersion.cmake)
 include(cmake/Littlefs.cmake)
 include(cmake/Options.cmake)
 
+# Needded for nunavut
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 project(
   Buddy
   LANGUAGES C CXX ASM
