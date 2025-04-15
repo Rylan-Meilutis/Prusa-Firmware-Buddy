@@ -28,11 +28,13 @@ class Task {
     Driver &driver; ///< CAN hardware driver instance
     bool automatic_retransmission_enable = false; ///< Marks current state of automatic retransmission
 
-    SemaphoreHandle_t senders_mutex = xSemaphoreCreateMutex(); ///< Mutex to handle non thread-safe access to senders
+    StaticSemaphore_t senders_mutex_buffer;
+    SemaphoreHandle_t senders_mutex = xSemaphoreCreateMutexStatic(&senders_mutex_buffer); ///< Mutex to handle non thread-safe access to senders
     ProtoSenderPeriodic *senders = nullptr; ///< List of messages to be sent
     ProtoSenderPeriodic *list_position = nullptr; ///< Ended here in the list on last loop()
 
-    SemaphoreHandle_t subers_mutex = xSemaphoreCreateRecursiveMutex(); ///< Mutex to handle non thread-safe access to services
+    StaticSemaphore_t subers_mutex_buffer;
+    SemaphoreHandle_t subers_mutex = xSemaphoreCreateRecursiveMutexStatic(&subers_mutex_buffer); ///< Mutex to handle non thread-safe access to services
     ///@note Mutex subers_mutex needs to be recursive because subscription can remove itself from its own callback, also lock access to received data.
     ProtoSender *pnp_sender = nullptr; ///< PnP sender object, the only one allowed while anonymous
     ProtoSuber *pnp_suber = nullptr; ///< PnP suber object, the only one allowed while anonymous
@@ -41,7 +43,8 @@ class Task {
     TaskHandle_t loop_task = nullptr; ///< Loop task to wake up on CAN event
     static constexpr UBaseType_t notify_index = 1; ///< Wake up with an index (should not be 0)
 
-    SemaphoreHandle_t tx_buffer_semaphore = xSemaphoreCreateBinary(); ///< Semaphore for tx_buffer, taken before written and given after processed
+    StaticSemaphore_t tx_buffer_semaphore_buffer;
+    SemaphoreHandle_t tx_buffer_semaphore = xSemaphoreCreateBinaryStatic(&tx_buffer_semaphore_buffer); ///< Semaphore for tx_buffer, taken before written and given after processed
     std::atomic<bool> tx_buffer_used = false; ///< True if tx_buffer has valid data, false if not
     std::atomic<bool> tx_buffer_reserved = false; ///< If buffer is reserved for loop_task callback
     uint8_t tx_buffer[ProtoSender::MAX_SERIALIZED_SIZE_BYTES] = {}; ///< Buffer used for Tx serialization
