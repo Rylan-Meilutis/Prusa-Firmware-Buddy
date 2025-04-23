@@ -54,7 +54,7 @@ void hal::init_clock() {
 
     /** Configure the main internal regulator output voltage
      */
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
     while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
     }
@@ -62,22 +62,19 @@ void hal::init_clock() {
     /** Initializes the RCC Oscillators according to the specified parameters
      * in the RCC_OscInitTypeDef structure.
      */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI
-        | RCC_OSCILLATORTYPE_CSI;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV2;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
-    RCC_OscInitStruct.CSIState = RCC_CSI_ON;
-    RCC_OscInitStruct.CSICalibrationValue = RCC_CSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLL1_SOURCE_CSI;
-    RCC_OscInitStruct.PLL.PLLM = 1;
-    RCC_OscInitStruct.PLL.PLLN = 32;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLL1_SOURCE_HSI;
+    RCC_OscInitStruct.PLL.PLLM = 3;
+    RCC_OscInitStruct.PLL.PLLN = 30;
     RCC_OscInitStruct.PLL.PLLP = 2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
     RCC_OscInitStruct.PLL.PLLR = 2;
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1_VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1_VCIRANGE_3;
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1_VCORANGE_WIDE;
     RCC_OscInitStruct.PLL.PLLFRACN = 0;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
@@ -89,13 +86,13 @@ void hal::init_clock() {
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
         | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2
         | RCC_CLOCKTYPE_PCLK3;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
         hal::panic();
     }
 
@@ -121,55 +118,54 @@ void hal::init_can() {
     /* Peripheral clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
 
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**FDCAN1 GPIO Configuration
-    PB15     ------> FDCAN1_TX
-    PA8     ------> FDCAN1_RX
-    */
-    {
-        static constexpr GPIO_InitTypeDef GPIO_InitStruct {
-            .Pin = GPIO_PIN_15,
-            .Mode = GPIO_MODE_AF_PP,
-            .Pull = GPIO_NOPULL,
-            .Speed = GPIO_SPEED_FREQ_LOW,
-            .Alternate = GPIO_AF9_FDCAN1,
-        };
-        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    }
-
-    {
-        static constexpr GPIO_InitTypeDef GPIO_InitStruct {
-            .Pin = GPIO_PIN_8,
-            .Mode = GPIO_MODE_AF_PP,
-            .Pull = GPIO_NOPULL,
-            .Speed = GPIO_SPEED_FREQ_LOW,
-            .Alternate = GPIO_AF9_FDCAN1,
-        };
-        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    }
-
+    /* Target bit rate 125kbit/s sampling point 87.5% */
     hfdcan1.Instance = FDCAN1;
-    hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-    hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-    hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-    hfdcan1.Init.AutoRetransmission = DISABLE;
-    hfdcan1.Init.TransmitPause = DISABLE;
-    hfdcan1.Init.ProtocolException = DISABLE;
-    hfdcan1.Init.NominalPrescaler = 16;
-    hfdcan1.Init.NominalSyncJumpWidth = 1;
-    hfdcan1.Init.NominalTimeSeg1 = 1;
-    hfdcan1.Init.NominalTimeSeg2 = 1;
-    hfdcan1.Init.DataPrescaler = 1;
-    hfdcan1.Init.DataSyncJumpWidth = 1;
-    hfdcan1.Init.DataTimeSeg1 = 1;
-    hfdcan1.Init.DataTimeSeg2 = 1;
-    hfdcan1.Init.StdFiltersNbr = 0;
-    hfdcan1.Init.ExtFiltersNbr = 0;
-    hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+    hfdcan1.Init = FDCAN_InitTypeDef {
+        .ClockDivider = FDCAN_CLOCK_DIV1,
+        .FrameFormat = FDCAN_FRAME_FD_BRS,
+        .Mode = FDCAN_MODE_NORMAL,
+        .AutoRetransmission = DISABLE,
+        .TransmitPause = ENABLE,
+        .ProtocolException = ENABLE,
+        .NominalPrescaler = 120,
+        .NominalSyncJumpWidth = 64,
+        .NominalTimeSeg1 = 13,
+        .NominalTimeSeg2 = 2,
+        .DataPrescaler = 15,
+        .DataSyncJumpWidth = 6,
+        .DataTimeSeg1 = 13,
+        .DataTimeSeg2 = 2,
+        .StdFiltersNbr = 0,
+        .ExtFiltersNbr = 0,
+        .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,
+    };
+
     if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK) {
         hal::panic();
     }
+
+    /**FDCAN1 GPIO Configuration
+      PB8      ------> FDCAN1_RX
+      PB7      ------> FDCAN1_TX
+      */
+
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+        .Pin = GPIO_PIN_7 | GPIO_PIN_8,
+        .Mode = GPIO_MODE_AF_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_HIGH,
+        .Alternate = GPIO_AF9_FDCAN1,
+    };
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /* FDCAN1 interrupt Init */
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
+
+    HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);
 
 #else
     #error "No hal::init_can() implementation"
@@ -284,4 +280,20 @@ extern "C" void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == GPIO_PIN_5) {
         nfc::irq();
     }
+}
+
+/**
+ * @brief This function handles FDCAN1 interrupt 0.
+ */
+
+extern "C" void FDCAN1_IT0_IRQHandler(void) {
+    HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
+}
+
+/**
+ * @brief This function handles FDCAN1 interrupt 1.
+ */
+
+extern "C" void FDCAN1_IT1_IRQHandler(void) {
+    HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
 }
