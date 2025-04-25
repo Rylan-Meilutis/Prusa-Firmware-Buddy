@@ -173,7 +173,11 @@
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
 
-#include <wui.h>
+#include <option/buddy_enable_wui.h>
+#if BUDDY_ENABLE_WUI()
+    #include <wui.h>
+#endif
+
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 
 using namespace ExtUI;
@@ -1079,6 +1083,12 @@ void test_start([[maybe_unused]] const uint64_t test_mask, [[maybe_unused]] cons
         SelftestInstance().Start(test_mask, test_data);
     }
 }
+
+void test_abort() {
+    if (SelftestInstance().IsInProgress()) {
+        SelftestInstance().Abort();
+    }
+}
 #endif
 
 void quick_stop() {
@@ -1835,8 +1845,8 @@ bool active_extruder_fan_checks() {
             if (!fan.is_fan_ok()) {
                 log_error(MarlinServer, "%s FAN RPM is not OK - Actual: %d rpm, PWM: %d",
                     fan_name,
-                    (int)fan.getActualRPM(),
-                    fan.getPWM());
+                    (int)fan.get_actual_rpm(),
+                    fan.get_pwm());
                 return true;
             }
             return false;
@@ -2066,10 +2076,12 @@ static void _server_print_loop(void) {
         buddy::reenable_ceiling_clearance_warning();
 #endif
 
+#if HAS_CANCEL_OBJECT()
         buddy::cancel_object().reset();
         for (auto &cancel_object_name : marlin_vars().cancel_object_names) {
             cancel_object_name.set(""); // Erase object names
         }
+#endif
 
 #if HAS_LOADCELL()
         if (!server.print_is_serial) {
@@ -2700,11 +2712,11 @@ static void _server_print_loop(void) {
     if (marlin_vars().fan_check_enabled) {
         HOTEND_LOOP() {
 #if !PRINTER_IS_PRUSA_iX()
-            const auto fan_state = Fans::heat_break(e).getState();
+            const auto fan_state = Fans::heat_break(e).get_state();
             hotendFanErrorChecker[e].checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::HotendFanError, true, true);
 #endif
         }
-        const auto fan_state = Fans::print(active_extruder).getState();
+        const auto fan_state = Fans::print(active_extruder).get_state();
         printFanErrorChecker.checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::PrintFanError, false, true);
 
 #if HAS_XBUDDY_EXTENSION()
@@ -2730,11 +2742,11 @@ static void _server_print_loop(void) {
     }
 
     HOTEND_LOOP() {
-        if (Fans::heat_break(e).getRPMIsOk()) {
+        if (Fans::heat_break(e).get_rpm_is_ok()) {
             hotendFanErrorChecker[e].reset();
         }
     }
-    if (Fans::print(active_extruder).getRPMIsOk()) {
+    if (Fans::print(active_extruder).get_rpm_is_ok()) {
         printFanErrorChecker.reset();
     }
 
@@ -3103,8 +3115,8 @@ static void _server_update_vars() {
         extruder.target_heatbreak = thermalManager.temp_heatbreak[e].target;
 #endif
         extruder.flow_factor = static_cast<uint16_t>(planner.flow_percentage[e]);
-        extruder.print_fan_rpm = Fans::print(e).getActualRPM();
-        extruder.heatbreak_fan_rpm = Fans::heat_break(e).getActualRPM();
+        extruder.print_fan_rpm = Fans::print(e).get_actual_rpm();
+        extruder.heatbreak_fan_rpm = Fans::heat_break(e).get_actual_rpm();
     }
 
     marlin_vars().temp_bed = thermalManager.degBed();
@@ -3195,8 +3207,10 @@ static void _server_update_vars() {
 
     marlin_vars().active_extruder = active_extruder;
 
+#if ENABLED(PREVENT_COLD_EXTRUSION)
     marlin_vars().extrude_min_temp = thermalManager.extrude_min_temp;
     marlin_vars().allow_cold_extrude = thermalManager.allow_cold_extrude;
+#endif /* ENABLED(PREVENT_COLD_EXTRUSION) */
 
     // print state is updated last, to make sure other related variables (like job_id, filenames) are already set when we start print
     marlin_vars().print_state = static_cast<State>(server.print_state);
@@ -3228,7 +3242,6 @@ bool _process_server_valid_request(const Request &request, int client_id) {
 #else
     case Request::Type::CancelObjectID:
     case Request::Type::UncancelObjectID:
-    case Request::Type::CancelCurrentObject:
         return false;
 #endif
     case Request::Type::PrintStart:
@@ -3250,8 +3263,8 @@ bool _process_server_valid_request(const Request &request, int client_id) {
             server.client_events[client_id] |= make_mask(Event::MediaInserted);
         }
         return true;
-    case Request::Type::TestStart:
 #if HAS_SELFTEST()
+    case Request::Type::TestStart:
         marlin_server::test_start(
             request.test_start.test_mask,
             selftest::deserialize_test_data_from_int(request.test_start.test_data_index, request.test_start.test_data_data));
@@ -3321,9 +3334,16 @@ static void process_request_flags() {
         case RequestFlag::GuiCantPrint:
             gui_cant_print();
             break;
+#if HAS_SELFTEST()
+        case RequestFlag::TestAbort:
+            test_abort();
+            break;
+#endif
+#if HAS_CANCEL_OBJECT()
         case RequestFlag::CancelCurrentObject:
             buddy::cancel_object().set_object_cancelled(buddy::cancel_object().current_object(), true);
             break;
+#endif
         case RequestFlag::_cnt:
             break;
         }

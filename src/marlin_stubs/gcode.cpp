@@ -15,8 +15,6 @@
 #include <option/has_toolchanger.h>
 #include <option/has_side_leds.h>
 #include <option/has_leds.h>
-#include <option/has_phase_stepping.h>
-#include <option/has_input_shaper_calibration.h>
 #include <option/has_belt_tuning.h>
 #include <option/has_door_sensor_calibration.h>
 
@@ -28,10 +26,12 @@
     #include "M919-M920.h"
 #endif
 
-#if HAS_PHASE_STEPPING()
+#include <option/has_phase_stepping_calibration.h>
+#if HAS_PHASE_STEPPING_CALIBRATION()
     #include "M1977.hpp"
 #endif
 
+#include <option/has_input_shaper_calibration.h>
 #if HAS_INPUT_SHAPER_CALIBRATION()
     #include "M1959.hpp"
 #endif
@@ -269,14 +269,12 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 1703:
             PrusaGcodeSuite::M1703();
             break;
-
 #if HAS_INPUT_SHAPER_CALIBRATION()
         case 1959:
             PrusaGcodeSuite::M1959();
             break;
 #endif
-
-#if HAS_PHASE_STEPPING()
+#if HAS_PHASE_STEPPING_CALIBRATION()
         case 1977:
             PrusaGcodeSuite::M1977();
             break;

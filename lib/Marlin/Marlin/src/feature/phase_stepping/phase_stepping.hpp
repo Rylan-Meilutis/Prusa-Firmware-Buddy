@@ -13,7 +13,7 @@
     #include "lut.hpp"
     #include "axes.hpp"
 
-    #include <libs/circularqueue.h>
+    #include <utils/atomic_circular_queue.hpp>
     #include <core/types.h>
     #include <bsod.h>
 
@@ -41,31 +41,6 @@ struct MoveTarget {
 private:
     float target_position() const;
     float move_end_time(double end_time) const;
-};
-
-struct CalibrationSweep {
-    int harmonic; // Harmonic correction on which the sweep is performed
-
-    float setup_distance; // Distance in mm before the sweep
-    float sweep_distance; // Distance in mm to perform the sweep
-
-    int pha_start, pha_diff; // Phase start and end diff in fixed point
-    int mag_start, mag_diff; // Magnitude start and end diff in fixed point
-
-    static CalibrationSweep build_for_motor(AxisEnum axis, int harmonic,
-        float setup_revs, float sweep_revs,
-        float pha_start, float pha_end,
-        float mag_start, float mag_end) {
-        return {
-            harmonic,
-            rev_to_mm(axis, setup_revs),
-            rev_to_mm(axis, sweep_revs),
-            pha_to_fixed(pha_start),
-            pha_to_fixed(pha_end - pha_start),
-            mag_to_fixed(mag_start),
-            mag_to_fixed(mag_end - mag_start)
-        };
-    }
 };
 
 struct AxisState {
@@ -103,9 +78,6 @@ struct AxisState {
     AtomicCircularQueue<MoveTarget, unsigned, 16> pending_targets; // 16 element queue of pre-processed elements
     MoveTarget next_target; // Next planned target to move
 
-    std::optional<CalibrationSweep> calibration_sweep; // Calibration sweep to perform
-    std::atomic<bool> calibration_sweep_active = false; // Calibration sweep active flag
-
     // current_target_end_time is used to ensure pending_targets is replenished from the move ISR
     // whenever the current_target completes, and we want to ensure the type is lock free
     std::atomic<float> current_target_end_time; // Absolute end time (s) for the current target
@@ -130,11 +102,6 @@ struct AxisState {
  * stepping function.
  **/
 void init();
-
-/**
- * Load and enable previous settings, if any.
- **/
-void load();
 
 /**
  * Set the axis phase origin for a single axis
@@ -239,6 +206,11 @@ int logical_ustep(AxisEnum axis);
  * A simple wrapper around planner.synchronize() to avoid recursive planner inclusion
  */
 void synchronize();
+
+/**
+ * Return if some processing is still pending.
+ */
+bool processing();
 
 /**
  * Check phase stepping internal state
@@ -394,14 +366,14 @@ public:
     WithCorrectionDisabled(AxisEnum axis, int harmonic)
         : axis(axis)
         , harmonic(harmonic) {
-        original = axis_states[axis].forward_current.get_correction()[harmonic];
-        axis_states[axis].forward_current.modify_correction([&](auto &table) {
+        original = axis_states[axis].forward_current.get_correction_table()[harmonic];
+        axis_states[axis].forward_current.modify_correction_table([&](auto &table) {
             table[harmonic] = { 0, 0 };
         });
     }
 
     ~WithCorrectionDisabled() {
-        axis_states[axis].forward_current.modify_correction([&](auto &table) {
+        axis_states[axis].forward_current.modify_correction_table([&](auto &table) {
             table[harmonic] = original;
         });
     }
@@ -411,6 +383,16 @@ enum class CorrectionType {
     forward,
     backward,
 };
+
+/**
+ * Reset runtime current lookup tables for axis.
+ */
+void reset_compensation(AxisEnum axis);
+
+/**
+ * Load and enable previous settings, if any.
+ **/
+void load();
 
 constexpr const char *get_correction_file_path(AxisEnum axis, CorrectionType lut_type) {
     switch (axis) {
@@ -480,11 +462,6 @@ void remove_from_persistent_storage(AxisEnum axis);
 
 /// Removes all LUTS from the persistent media
 void remove_from_persistent_storage();
-
-/**
- * Return if some processing is still pending.
- */
-bool processing();
 
 } // namespace phase_stepping
 

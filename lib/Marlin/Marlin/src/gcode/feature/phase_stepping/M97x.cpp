@@ -5,7 +5,11 @@
 
 #include <feature/precise_stepping/precise_stepping.hpp>
 #include <feature/phase_stepping/phase_stepping.hpp>
-#include <feature/phase_stepping/calibration.hpp>
+
+#include <option/has_phase_stepping_calibration.h>
+#if HAS_PHASE_STEPPING_CALIBRATION()
+    #include <feature/phase_stepping/calibration.hpp>
+#endif
 
 #include <vector>
 #include <string_view>
@@ -132,7 +136,7 @@ static void M971_reset(const OptionsM971 &options) {
 }
 
 static void M971_read_axis_direction(const phase_stepping::CorrectedCurrentLut &lut, char axis_letter, char direction_letter) {
-    const auto &table = lut.get_correction();
+    const auto &table = lut.get_correction_table();
     for (size_t index = 0; index != table.size(); index++) {
         const float magnitude = table[index].mag;
         const float phase = table[index].pha;
@@ -177,7 +181,7 @@ static void M971_write_axis_direction(const OptionsM971 &options, phase_stepping
     const auto magnitude = *options.magnitude;
     const auto phase = *options.phase;
 
-    lut.modify_correction([&](phase_stepping::MotorPhaseCorrection &table) {
+    lut.modify_correction_table([&](phase_stepping::MotorPhaseCorrection &table) {
         if (0 <= index && index < (int)table.size()) {
             table[index] = phase_stepping::SpectralItem { .mag = magnitude, .pha = phase };
         } else {
@@ -271,6 +275,7 @@ void GcodeSuite::M971() {
     }
 }
 
+#if HAS_PHASE_STEPPING_CALIBRATION()
 class CalibrateAxisHooks final : public phase_stepping::CalibrateAxisHooks {
     std::vector<std::tuple<float, float>> _calibration_results;
     std::size_t _current_calibration_phase = 0;
@@ -586,5 +591,6 @@ void GcodeSuite::M974() {
         });
     dump_samples_annotation(result);
 }
+#endif
 
 /** @}*/

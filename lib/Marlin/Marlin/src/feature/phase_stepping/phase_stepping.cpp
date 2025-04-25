@@ -1,4 +1,5 @@
 #include "phase_stepping.hpp"
+#include "calibration_hooks.hpp"
 #include "debug_util.hpp"
 
 #if HAS_BURST_STEPPING()
@@ -91,12 +92,6 @@ float MoveTarget::target_position() const {
 void phase_stepping::init() {
     phase_stepping::initialize_axis_motor_params();
     initialized = true;
-}
-
-void phase_stepping::load() {
-    assert_initialized();
-    load_from_persistent_storage(AxisEnum::X_AXIS);
-    load_from_persistent_storage(AxisEnum::Y_AXIS);
 }
 
 FORCE_INLINE uint64_t convert_absolute_time_to_ticks(const double time) {
@@ -226,7 +221,8 @@ step_event_info_t phase_stepping::next_step_event_classic(
 
         // push the buffered target
         axis_state.next_target.target_pos = move_start_pos;
-        axis_state.pending_targets.enqueue(axis_state.next_target);
+        [[maybe_unused]] bool enqueued = axis_state.pending_targets.enqueue(axis_state.next_target);
+        assert(enqueued);
 
         // buffer the next
         if (!is_ending_empty_move(*next_move)) {
@@ -276,7 +272,8 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
 
             // push the buffered target
             axis_state.next_target.target_pos = move_start_pos;
-            axis_state.pending_targets.enqueue(axis_state.next_target);
+            [[maybe_unused]] bool enqueued = axis_state.pending_targets.enqueue(axis_state.next_target);
+            assert(enqueued);
 
             // buffer the next
             if (step_generator.is_state->nearest_next_change < MAX_PRINT_TIME) {
@@ -384,7 +381,6 @@ void phase_stepping::set_phase_origin(AxisEnum axis, float pos) {
 }
 
 namespace phase_stepping {
-
 /**
  * Enables phase stepping for axis. Reconfigures the motor driver. It is not
  * safe to invoke this procedure within interrupt context. No movement shall be
@@ -652,20 +648,6 @@ static bool is_refresh_period_sane(uint32_t now, uint32_t last_timer_tick) {
     return refresh_period < 2 * REFRESH_PERIOD_US - UPDATE_DURATION_US;
 }
 
-static std::tuple<int, int, int> compute_calibration_tweak(
-    const CalibrationSweep &params, float relative_position) {
-    relative_position = std::fabs(relative_position);
-
-    float progress = (relative_position - params.setup_distance) / params.sweep_distance;
-    progress = std::clamp(progress, 0.f, 1.f);
-
-    return {
-        params.harmonic,
-        params.pha_start + progress * params.pha_diff,
-        params.mag_start + progress * params.mag_diff
-    };
-}
-
 static FORCE_INLINE FORCE_OFAST void refresh_axis(
     AxisState &axis_state, uint32_t now, uint32_t previous_tick) {
     if (!axis_state.active) {
@@ -698,12 +680,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             axis_state.initial_time += axis_state.current_target->duration;
             move_position = axis_state.current_target->target_pos;
             axis_state.current_target.reset();
-
-            // Cleanup after performin a calibration sweep
-            if (axis_state.calibration_sweep_active) {
-                axis_state.calibration_sweep_active = false;
-                axis_state.calibration_sweep.reset();
-            }
+            calibration_move_cleanup(axis_state);
         }
 
         if (!axis_state.pending_targets.isEmpty()) {
@@ -719,12 +696,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             move_position = current_target.initial_pos;
             move_epoch = ticks_diff(now, axis_state.initial_time);
 
-            // Make calibration sweep active if the move is long enough:
-            if (axis_state.calibration_sweep.has_value() && axis_state.is_cruising) {
-                float calibration_distance = axis_state.calibration_sweep->setup_distance + axis_state.calibration_sweep->sweep_distance;
-                float move_distance = current_target.target_pos - current_target.initial_pos;
-                axis_state.calibration_sweep_active = std::fabs(move_distance) >= std::fabs(calibration_distance);
-            }
+            calibration_new_move(axis_state);
         } else {
             // No new movement
             axis_state.is_cruising = false;
@@ -750,28 +722,15 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
     assert(phase_difference(axis_state.last_phase, new_phase) < 256);
 
 #if HAS_BURST_STEPPING()
-    int phase_correction;
-    if (axis_state.calibration_sweep_active) {
-        float start_position = axis_state.current_target->initial_pos;
-        auto [harmonic, pha, mag] = compute_calibration_tweak(*axis_state.calibration_sweep, position - start_position);
-        phase_correction = current_lut.get_phase_shift_for_calibration(new_phase, harmonic, pha, mag);
-    } else {
-        phase_correction = current_lut.get_phase_shift(new_phase);
-    }
+    int phase_correction = calibration_phase_correction(axis_state, current_lut, position, new_phase);
 
     int shifted_phase = normalize_motor_phase(new_phase + phase_correction);
     int steps_diff = phase_difference(shifted_phase, axis_state.driver_phase);
     burst_stepping::set_phase_diff(axis_enum, steps_diff);
     axis_state.driver_phase = shifted_phase;
 #else
-    CoilCurrents new_currents;
-    if (axis_state.calibration_sweep_active) {
-        float start_position = axis_state.current_target->initial_pos;
-        auto [harmonic, pha, mag] = compute_calibration_tweak(*axis_state.calibration_sweep, position - start_position);
-        new_currents = current_lut.get_current_for_calibration(new_phase, harmonic, pha, mag);
-    } else {
-        new_currents = current_lut.get_current(new_phase);
-    }
+    CoilCurrents new_currents = calibration_phase_correction(axis_state, current_lut, position, new_phase);
+
     int c_adj = current_adjustment(axis_index, mm_to_rev(axis_enum, physical_speed));
     new_currents.a = new_currents.a * c_adj / 255;
     new_currents.b = new_currents.b * c_adj / 255;
@@ -886,16 +845,25 @@ FORCE_OFAST std::tuple<float, float> phase_stepping::axis_position(const AxisSta
 }
 
 namespace phase_stepping {
-namespace {
-    /**
-     * @brief Used for saving correction to/from a file
-     *
-     */
-    struct CorrectionSaveFormat {
-        uint8_t reserve[32] {}; // 32 zeroed out bytes to have some room in the future for potential versioning etc (head)
-        MotorPhaseCorrection correction;
-    };
-} // namespace
+void reset_compensation(AxisEnum axis) {
+    axis_states[axis].forward_current.clear();
+    axis_states[axis].backward_current.clear();
+}
+
+void load() {
+    assert_initialized();
+    load_from_persistent_storage(AxisEnum::X_AXIS);
+    load_from_persistent_storage(AxisEnum::Y_AXIS);
+}
+
+/**
+ * @brief Used for saving correction to/from a file
+ *
+ */
+struct CorrectionSaveFormat {
+    uint8_t reserve[32] {}; // 32 zeroed out bytes to have some room in the future for potential versioning etc (head)
+    MotorPhaseCorrection correction;
+};
 
 void save_correction_to_file(const CorrectedCurrentLut &lut, const char *file_path) {
     FILE *save_file = fopen(file_path, "wb");
@@ -904,7 +872,7 @@ void save_correction_to_file(const CorrectedCurrentLut &lut, const char *file_pa
         return;
     }
 
-    CorrectionSaveFormat save_format { .correction = lut.get_correction() };
+    CorrectionSaveFormat save_format { .correction = lut.get_correction_table() };
     [[maybe_unused]] auto written = fwrite(&save_format, 1, sizeof(CorrectionSaveFormat), save_file);
     assert(written == sizeof(CorrectionSaveFormat));
 
@@ -920,7 +888,7 @@ void load_correction_from_file(CorrectedCurrentLut &lut, const char *file_path) 
     CorrectionSaveFormat save_format {};
     auto read = fread(&save_format, 1, sizeof(CorrectionSaveFormat), read_file);
     if (read == sizeof(CorrectionSaveFormat)) {
-        lut.modify_correction([&](MotorPhaseCorrection &table) {
+        lut.modify_correction_table([&](MotorPhaseCorrection &table) {
             table = save_format.correction;
         });
     }

@@ -1,5 +1,10 @@
 #pragma once
 
+#include <option/has_phase_stepping_calibration.h>
+#if !HAS_PHASE_STEPPING_CALIBRATION()
+    #error "calibration disabled by configuration"
+#endif
+
 #include "common.hpp"
 
 #include <cassert>
@@ -119,10 +124,5 @@ public:
  */
 std::expected<std::array<MotorPhaseCorrection, 2>, const char *>
 calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks);
-
-/**
- * Reset runtime current lookup tables for axis.
- */
-void reset_compensation(AxisEnum axis);
 
 } // namespace phase_stepping

@@ -432,21 +432,11 @@
     #define DEFAULT_Kd 100.00
 
     #define STEADY_STATE_HOTEND // Enable support for STEADY_STATE_HOTEND (feed-forward thermal management)
-    #define STEADY_STATE_HOTEND_LINEAR_COOLING_TERM 0.422
+
+    // Values measured and determined for the Dwarf in BFW-7058 (script attached)
+    #define STEADY_STATE_HOTEND_LINEAR_COOLING_TERM 0.1555
     #define STEADY_STATE_HOTEND_QUADRATIC_COOLING_TERM 0.00027
-    #define STEADY_STATE_HOTEND_FAN_COOLING_TERM 4.0
-    /**
-     * this adds an experimental additional term to the heating power, regulation constants are hard coded for PRUSA MINI printer
-     * there is no sense to enable it for any else printer
-     */
-    #define MODEL_BASED_HOTEND_REGULATOR
-    #if ENABLED(MODEL_BASED_HOTEND_REGULATOR)
-        /**
-         * This check detect the state, when temperature reading stuck
-         * below target temperature but still inside THERMAL_PROTECTION_HYSTERESIS
-         */
-        #define MODEL_DETECT_STUCK_THERMISTOR
-    #endif
+    #define STEADY_STATE_HOTEND_FAN_COOLING_TERM 3.0529
 #endif // PIDTEMP
 
 //===========================================================================
