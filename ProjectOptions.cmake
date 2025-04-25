@@ -270,16 +270,6 @@ set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5")
 set(PRINTERS_WITH_FILAMENT_SENSOR_ADC "MK4" "XL" "iX" "XL_DEV_KIT" "COREONE")
 
 set_feature_for_printers(
-  HAS_PAUSE
-  "MINI"
-  "MK4"
-  "MK3.5"
-  "iX"
-  "XL"
-  "XL_DEV_KIT"
-  "COREONE"
-  )
-set_feature_for_printers(
   HAS_TRINAMIC
   "MINI"
   "MK4"
@@ -318,6 +308,7 @@ set_feature_for_printers(HAS_PRECISE_HOMING_COREXY "iX" "XL" "XL_DEV_KIT" "COREO
 set_feature_for_printers_master_board(HAS_PHASE_STEPPING "XL" "iX" "COREONE" "MK4")
 set_feature_for_printers_master_board(HAS_PHASE_STEPPING_TOGGLE "XL")
 set_feature_for_printers_master_board(HAS_PHASE_STEPPING_SELFTEST "iX" "XL")
+set_feature_for_printers_master_board(HAS_PHASE_STEPPING_CALIBRATION "XL" "iX" "COREONE" "MK4")
 set(PRINTERS_WITH_BURST_STEPPING "XL" "MK4" "iX" "COREONE")
 set_feature_for_printers_master_board(
   HAS_INPUT_SHAPER_CALIBRATION "MK4" "MK3.5" "XL" "XL_DEV_KIT" "COREONE"
@@ -537,7 +528,7 @@ if(${PRINTER} IN_LIST PRINTERS_WITH_GUI AND BOARD_IS_MASTER_BOARD)
     set(RESOLUTION W480H320)
   elseif(${PRINTER} IN_LIST PRINTERS_WITH_GUI_W240H320)
     set(RESOLUTION W240H320)
-  elseif()
+  else()
     message(FATAL_ERROR "Printer with GUI must have resolution set")
   endif()
   message(STATUS "RESOLUTION: ${RESOLUTION}")
@@ -751,7 +742,7 @@ set(NETWORKING_BENCHMARK_ENABLED
 define_boolean_option(NETWORKING_BENCHMARK_ENABLED ${NETWORKING_BENCHMARK_ENABLED})
 
 set(HEAP_INSTRUMENTATION_ENABLED
-    ${DEBUG}
+    "OFF"
     CACHE BOOL "Enable heap profiling instrumentation"
     )
 define_boolean_option(HEAP_INSTRUMENTATION_ENABLED ${HEAP_INSTRUMENTATION_ENABLED})

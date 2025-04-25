@@ -3103,11 +3103,19 @@
                     "type": "BOOL",
                     "value": "NO"
                 },
+                "HAS_CANCEL_OBJECT": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
                 "HAS_GEARBOX_ALIGNMENT": {
                     "type": "BOOL",
                     "value": "NO"
                 },
                 "HAS_INPUT_SHAPER_CALIBRATION": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
+                "HAS_PHASE_STEPPING_CALIBRATION": {
                     "type": "BOOL",
                     "value": "NO"
                 },
@@ -3182,11 +3190,19 @@
                     "type": "BOOL",
                     "value": "NO"
                 },
+                "HAS_CANCEL_OBJECT": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
                 "HAS_GEARBOX_ALIGNMENT": {
                     "type": "BOOL",
                     "value": "NO"
                 },
                 "HAS_INPUT_SHAPER_CALIBRATION": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
+                "HAS_PHASE_STEPPING_CALIBRATION": {
                     "type": "BOOL",
                     "value": "NO"
                 },
@@ -3261,11 +3277,19 @@
                     "type": "BOOL",
                     "value": "NO"
                 },
+                "HAS_CANCEL_OBJECT": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
                 "HAS_GEARBOX_ALIGNMENT": {
                     "type": "BOOL",
                     "value": "NO"
                 },
                 "HAS_INPUT_SHAPER_CALIBRATION": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
+                "HAS_PHASE_STEPPING_CALIBRATION": {
                     "type": "BOOL",
                     "value": "NO"
                 },
@@ -3340,11 +3364,19 @@
                     "type": "BOOL",
                     "value": "NO"
                 },
+                "HAS_CANCEL_OBJECT": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
                 "HAS_GEARBOX_ALIGNMENT": {
                     "type": "BOOL",
                     "value": "NO"
                 },
                 "HAS_INPUT_SHAPER_CALIBRATION": {
+                    "type": "BOOL",
+                    "value": "NO"
+                },
+                "HAS_PHASE_STEPPING_CALIBRATION": {
                     "type": "BOOL",
                     "value": "NO"
                 },

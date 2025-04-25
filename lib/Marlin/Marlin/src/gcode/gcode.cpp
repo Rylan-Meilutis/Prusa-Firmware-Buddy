@@ -66,6 +66,8 @@ GcodeSuite gcode;
 #include <option/has_local_accelerometer.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_gcode_compatibility.h>
+#include <option/has_phase_stepping.h>
+#include <option/has_phase_stepping_calibration.h>
 #include <marlin_vars.hpp>
 
 millis_t GcodeSuite::previous_move_ms;
@@ -169,7 +171,7 @@ int8_t GcodeSuite::get_target_e_stepper_from_command() {
  *  - Set the feedrate, if included
  */
 void GcodeSuite::get_destination_from_command() {
-  const bool skip_move = buddy::cancel_object().is_current_object_cancelled();
+  const bool skip_move = TERN0(HAS_CANCEL_OBJECT(), buddy::cancel_object().is_current_object_cancelled());
 
   xyze_bool_t seen = { false, false, false, false };
   LOOP_XYZE(i) {
@@ -828,6 +830,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #if HAS_PHASE_STEPPING()
         case 970: M970(); break;
         case 971: M971(); break;
+      #endif
+      #if HAS_PHASE_STEPPING_CALIBRATION()
         case 972: M972(); break;
         case 973: M973(); break;
         case 974: M974(); break;

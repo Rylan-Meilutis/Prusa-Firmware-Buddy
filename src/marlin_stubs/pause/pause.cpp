@@ -279,6 +279,8 @@ bool Pause::should_park() {
         // autoload on printers with side_fs, should behave similary to iX autoload
     case Pause::LoadType::load:
         return option::has_human_interactions || !FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder);
+    case Pause::LoadType::unload_from_gears:
+        return false;
     default:
         return true;
     }
@@ -501,10 +503,12 @@ void Pause::await_filament_process([[maybe_unused]] Response response) {
 
     // Either side sensor not working or it has filament, go to loading
     if (!FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
-        RestoreTemp();
-
         mapi::park_move_with_conditional_home(mapi::park_positions[mapi::ParkPosition::load], mapi::ZAction::no_move);
-        set_timed(LoadState::assist_insertion);
+        if (settings.extruder_mmu_rework) {
+            set_timed(LoadState::assist_insertion);
+        } else {
+            set(LoadState::filament_push_ask);
+        }
         return;
     }
 }
@@ -568,29 +572,36 @@ void Pause::assist_insertion_process([[maybe_unused]] Response response) {
 void Pause::load_to_gears_process([[maybe_unused]] Response response) { // slow load
     setPhase(is_unstoppable() ? PhasesLoadUnload::LoadingToGears_unstoppable : PhasesLoadUnload::LoadingToGears_stoppable, 10);
 
-    if (do_e_move_notify_progress_coldextrude(settings.slow_load_length, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, 10, 30, StopConditions::All) == StopConditions::SideFilamentSensorRunout) { // TODO method without param using actual phase
+    const auto result = do_e_move_notify_progress_coldextrude(settings.slow_load_length, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, 10, 30, StopConditions::All);
+
+    if (result == StopConditions::SideFilamentSensorRunout) { // TODO method without param using actual phase
         runout_during_load();
         return;
     }
 
+    if (result == StopConditions::UserStopped) {
+        set(LoadState::stop);
+        return;
+    }
+
     // if filament is not present we want to break and not set loaded filament
-    set(LoadState::move_to_purge);
+    if (load_type == LoadType::load_to_gears) {
+        set(LoadState::_finished);
+    } else {
+        set(LoadState::move_to_purge);
+    }
     handle_filament_removal(LoadState::filament_push_ask);
 }
 
 void Pause::move_to_purge_process([[maybe_unused]] Response response) {
-    RestoreTemp();
     if constexpr (option::has_side_fsensor) {
         mapi::park_move_with_conditional_home(mapi::park_positions[mapi::ParkPosition::purge], mapi::ZAction::no_move);
     }
-    if (load_type == LoadType::load_to_gears) {
-        set(LoadState::_finished);
-    } else {
-        set(LoadState::wait_temp);
-    }
+    set(LoadState::wait_temp);
 }
 
 void Pause::wait_temp_process([[maybe_unused]] Response response) {
+    RestoreTemp();
     if (ensureSafeTemperatureNotifyProgress(30, 50)) { // blocking -> checks for user stop
         if (load_type == LoadType::load_purge) {
             set(LoadState::purge);
@@ -1424,7 +1435,6 @@ bool Pause::check_user_stop(Response response) {
     if (response != Response::Stop) {
         return false;
     }
-
     set(LoadState::stop);
     return true;
 }

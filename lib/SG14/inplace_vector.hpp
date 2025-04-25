@@ -42,7 +42,7 @@
     #ifndef UNITTESTS
         // Our custom exception handling. Since we don't use them, lets bsod().
         #include <bsod.h>
-        #define SG14_INPLACE_VECTOR_THROW(x) bsod((x).what())
+        #define SG14_INPLACE_VECTOR_THROW(x) bsod("%s", (x).what())
     #else
         #define SG14_INPLACE_VECTOR_THROW(x) throw((x))
     #endif
@@ -194,21 +194,29 @@ struct ipvbase_zero {
     constexpr void set_size_(size_t) {}
 };
 
-template <class T, size_t N>
+
+// Originally, the code contained a union that prevented default
+// constructors to run on all the elements.
+//
+// This doesn't work in constexpr with newer compilers, since accessing unions elements
+// without asigning to them is UB and constexpr doesn't allow UBs. Therefore, we removed
+// the union, but that allows the constructors to run on all the elements.
+//
+// This checks if the type is ether trivial or compile time default contructible
+// (so we check that we don't need them to initialize at runtime).
+//
+// Lambda needed here, to verify, that the construction is really compile time.
+// (Can't put "constexpr T::T()" into the requires clause sadly)
+template<class T>
+concept valid_ipv_item = std::is_trivial_v<T> ||
+    requires { []() consteval {
+            T t{};
+            (void)t;
+        };
+    };
+
+template <valid_ipv_item T, size_t N>
 struct ipvbase_trivial {
-    // Originally, the code contained a union that prevented default
-    // constructors to run on all the elements.
-    //
-    // This doesn't work in constexpr (at least on some machines, we didn't
-    // find the difference why). Therefore, we removed the union, but that
-    // allows the constructors to run on all the elements.
-    //
-    // This checks the constructors are actually just constants and not
-    // "running".
-    //
-    // Lambda needed here, because requires doesn't like local variables and we
-    // need a variable to put the constexpr onto.
-    static_assert(requires { []() {constexpr T t;}; });
     size_t size_ = 0;
     T data_[N];
     constexpr explicit ipvbase_trivial() {}

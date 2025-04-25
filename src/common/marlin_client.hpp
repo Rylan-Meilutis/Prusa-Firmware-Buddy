@@ -8,6 +8,10 @@
 #include "client_response.hpp"
 #include <option/has_selftest.h>
 #include "Marlin/src/core/types.h"
+#include <option/has_selftest.h>
+#if HAS_SELFTEST()
+    #include "common/selftest/selftest_data.hpp"
+#endif
 #include "common/selftest/selftest_data.hpp"
 #include <gcode/inject_queue_actions.hpp>
 
@@ -98,6 +102,7 @@ void cancel_current_object();
 #if HAS_SELFTEST()
 void test_start_with_data(const uint64_t test_mask, const selftest::TestData test_data);
 void test_start(const uint64_t test_mask);
+void test_abort();
 #endif
 
 void print_start(const char *filename, marlin_server::PreviewSkipIfAble skip_preview);

@@ -26,16 +26,16 @@ target_sources(
           skippable_gcode.cpp
   )
 
+if(NOT BOARD STREQUAL "XL_DEV_KIT_XLB")
+  target_sources(firmware PRIVATE G26.cpp M862_2_3.cpp M862_5.cpp M862_6.cpp)
+endif()
+
 if(HAS_TRINAMIC)
   target_sources(firmware PRIVATE M919-M920.cpp)
 endif()
 
 if(HAS_CANCEL_OBJECT)
   target_sources(firmware PRIVATE M486.cpp)
-endif()
-
-if(NOT BOARD STREQUAL "XL_DEV_KIT_XLB")
-  target_sources(firmware PRIVATE G26.cpp M862_2_3.cpp M862_5.cpp M862_6.cpp)
 endif()
 
 if(HAS_I2C_EXPANDER)
@@ -68,7 +68,7 @@ if(HAS_GUI)
   target_sources(firmware PRIVATE M0.cpp)
 endif()
 
-if(HAS_PHASE_STEPPING)
+if(HAS_PHASE_STEPPING_CALIBRATION)
   target_sources(firmware PRIVATE M1977.cpp)
 endif()
 

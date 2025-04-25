@@ -13,6 +13,7 @@
 #include <cmath>
 #include <numbers>
 #include <expected>
+#include <inplace_vector.hpp>
 
 using namespace phase_stepping;
 using namespace phase_stepping::opts;
@@ -25,6 +26,7 @@ LOG_COMPONENT_REF(PhaseStepping);
     if (should_abort && should_abort()) \
         return std::unexpected("Aborted");
 
+static constexpr std::size_t RETRY_COUNT = 2;
 static constexpr float MAX_ACC_SAMPLING_RATE = 1500;
 static constexpr float SAMPLE_BUFFER_MARGIN = 1.05f;
 static constexpr float VIBRATION_SETTLE_TIME = 0.2f;
@@ -185,6 +187,14 @@ struct SignalPeak {
 struct HarmonicPeak {
     int harmonic;
     float position;
+
+    bool operator==(const HarmonicPeak &other) const {
+        const auto position_equal = [](float a, float b) {
+            return std::fabs(a - b) < 1e3;
+        };
+
+        return harmonic == other.harmonic && position_equal(position, other.position);
+    }
 };
 
 template <typename T>
@@ -203,6 +213,31 @@ struct CalibrationResult {
     float score;
 };
 
+struct CalibrationSweep {
+    int harmonic; // Harmonic correction on which the sweep is performed
+
+    float setup_distance; // Distance in mm before the sweep
+    float sweep_distance; // Distance in mm to perform the sweep
+
+    int pha_start, pha_diff; // Phase start and end diff in fixed point
+    int mag_start, mag_diff; // Magnitude start and end diff in fixed point
+
+    static CalibrationSweep build_for_motor(AxisEnum axis, int harmonic,
+        float setup_revs, float sweep_revs,
+        float pha_start, float pha_end,
+        float mag_start, float mag_end) {
+        return {
+            harmonic,
+            rev_to_mm(axis, setup_revs),
+            rev_to_mm(axis, sweep_revs),
+            pha_to_fixed(pha_start),
+            pha_to_fixed(pha_end - pha_start),
+            mag_to_fixed(mag_start),
+            mag_to_fixed(mag_end - mag_start)
+        };
+    }
+};
+
 enum class SweepDirection {
     Up,
     Down
@@ -214,6 +249,26 @@ struct MagCalibResult {
 };
 
 using AbortFun = stdext::inplace_function<bool(void)>;
+
+template <typename Func>
+auto with_retries(std::size_t n, Func &&func) {
+    assert(n >= 1);
+
+    using ExpectedType = std::invoke_result_t<Func>;
+    static_assert(
+        requires(ExpectedType e) { e.has_value(); },
+        "Function must return std::expected");
+
+    // We choose this construction to have a single return point to ease the
+    // compiler to perform named return value optimization.
+    for (std::size_t attempt = 0; attempt < n; ++attempt) {
+        if (auto result = func(); result.has_value() || attempt == n - 1) {
+            return result;
+        }
+        log_error(PhaseStepping, "Operation failed, retrying...");
+    }
+    __builtin_unreachable();
+}
 
 // Given change in physical space, return change in logical axis.
 // - for cartesian this is identity,
@@ -399,6 +454,40 @@ public:
     }
 };
 
+static std::tuple<int, int, int> compute_calibration_tweak(
+    const CalibrationSweep &params, float relative_position) {
+    relative_position = std::fabs(relative_position);
+
+    float progress = (relative_position - params.setup_distance) / params.sweep_distance;
+    progress = std::clamp(progress, 0.f, 1.f);
+
+    return {
+        params.harmonic,
+        params.pha_start + progress * params.pha_diff,
+        params.mag_start + progress * params.mag_diff
+    };
+}
+
+namespace phase_stepping::internal {
+static CalibrationSweep calibration_sweep;
+std::atomic<int> calibration_axis_request = -1;
+std::atomic<int> calibration_axis_active = -1;
+
+void calibration_new_move(const AxisState &axis_state) {
+    float calibration_distance = calibration_sweep.setup_distance + calibration_sweep.sweep_distance;
+    auto current_target = axis_state.current_target.value();
+    float move_distance = current_target.target_pos - current_target.initial_pos;
+    calibration_axis_active = std::fabs(move_distance) >= std::fabs(calibration_distance) ? axis_state.axis_index : -1;
+}
+
+std::tuple<int, int, int> compute_calibration_tweak(float relative_position) {
+    assert(calibration_axis_request >= 0);
+    assert(calibration_axis_active >= 0);
+    return compute_calibration_tweak(calibration_sweep, relative_position);
+}
+
+} // namespace phase_stepping::internal
+
 // Compute a windowed sweep for a single bin of DFT of a constant velocity
 // movement. The bin is determined by the harmonic of motor and its speed. The
 // window size and step_sizes are given in motor_periods. Returns a
@@ -538,6 +627,10 @@ std::vector<SignalPeak> find_peaks(It begin, It end, float min_prominence) {
     auto signal_size = std::distance(begin, end);
     auto signal_val = [begin](int i) { return *(begin + i); };
 
+    if (signal_size < 3) {
+        return {};
+    }
+
     std::vector<int> peak_idx;
     // Locate local maxima
     for (int i = 1; i < signal_size - 1; i++) {
@@ -560,12 +653,12 @@ std::vector<SignalPeak> find_peaks(It begin, It end, float min_prominence) {
 
     auto [min_it, max_it] = std::minmax_element(begin, end);
     float signal_range = *max_it - *min_it;
-    float min_prominence_abs = signal_range * min_prominence;
 
     std::vector<SignalPeak> peaks;
     for (int idx : peak_idx) {
-        float prominence = signal_val(idx) - std::max(left_min[idx], right_min[idx]);
-        if (prominence >= min_prominence_abs) {
+        float abs_prominence = signal_val(idx) - std::max(left_min[idx], right_min[idx]);
+        float prominence = abs_prominence / signal_range;
+        if (prominence >= min_prominence) {
             peaks.push_back(SignalPeak { idx, signal_val(idx), prominence });
         }
     }
@@ -612,21 +705,38 @@ std::tuple<float, float> harmonic_peaks_fit(std::span<const HarmonicPeak> peaks)
     return { fundamental_pos, error };
 }
 
-// Detect harmonic peaks in a set of sweeps. Returns detected peaks and
-// the best estimated peak positions for each harmonic.
+struct HarmonicPeaksFit {
+    std::vector<HarmonicPeak> found; // Actual detected peaks
+    std::vector<HarmonicPeak> estimated; // Estimated ideal positions
+    float badness; // Error metric from fitting
+    float prominence_sum; // Sum of prominences of all peaks
+
+    bool operator==(const HarmonicPeaksFit &other) const {
+        const auto badness_equal = [](float a, float b) {
+            return std::fabs(a - b) < 1e5;
+        };
+
+        const auto prominence_equal = [](float a, float b) {
+            return std::fabs(a - b) < 1e5;
+        };
+
+        return found == other.found && estimated == other.estimated && badness_equal(badness, other.badness) && prominence_equal(prominence_sum, other.prominence_sum);
+    }
+};
+
+// Detect harmonic peaks in a set of sweeps. Returns the top n fits sorted by prominence sum.
 template <typename PosConverter>
-std::tuple<std::vector<HarmonicPeak>, std::vector<HarmonicPeak>> find_harmonic_peaks(
+std::vector<HarmonicPeaksFit> find_harmonic_peaks(
     std::span<const HarmonicT<MagnitudeContainer>> sweeps, PosConverter idx_to_pos,
-    float min_prominence = 0.1, int n_closest = 2) {
+    float min_prominence = 0.15, int n_closest = 2, std::size_t n_best_fits = 3) {
+    // Find peaks for each harmonic sweep
     std::vector<HarmonicT<std::vector<SignalPeak>>> peaks;
     peaks.reserve(sweeps.size());
     for (const auto &sweep : sweeps) {
         peaks.push_back({ sweep.harmonic, find_peaks(sweep.value.begin(), sweep.value.end(), min_prominence) });
     }
 
-    float best_badness = std::numeric_limits<float>::infinity();
-    std::vector<HarmonicPeak> best_peaks(sweeps.size());
-    std::vector<HarmonicPeak> best_estimated_peaks(sweeps.size());
+    std::vector<HarmonicPeaksFit> best_fits;
 
     // Try all points as anchors:
     for (const auto &[h_anchor, h_anchor_peaks] : peaks) {
@@ -634,7 +744,7 @@ std::tuple<std::vector<HarmonicPeak>, std::vector<HarmonicPeak>> find_harmonic_p
             float fundamental_pos = idx_to_pos(peak.idx) / h_anchor;
 
             // For each harmonic, collect n closest peaks to the estimated position
-            std::vector<std::vector<HarmonicPeak>> candidates_per_harmonic;
+            std::vector<std::vector<std::pair<SignalPeak, HarmonicPeak>>> candidates_per_harmonic;
             candidates_per_harmonic.reserve(peaks.size());
 
             for (const auto &[h, h_peaks] : peaks) {
@@ -651,45 +761,86 @@ std::tuple<std::vector<HarmonicPeak>, std::vector<HarmonicPeak>> find_harmonic_p
                     [](const auto &a, const auto &b) { return a.first < b.first; });
 
                 // Take up to n_closest peaks
-                std::vector<HarmonicPeak> harmonic_candidates;
+                std::vector<std::pair<SignalPeak, HarmonicPeak>> harmonic_candidates;
                 harmonic_candidates.reserve(std::min<int>(n_closest, sorted_peaks.size()));
 
                 for (int i = 0; i < std::min<int>(n_closest, sorted_peaks.size()); i++) {
-                    harmonic_candidates.push_back({ h, idx_to_pos(sorted_peaks[i].second.idx) });
+                    const auto &signal_peak = sorted_peaks[i].second;
+                    harmonic_candidates.push_back({ signal_peak,
+                        HarmonicPeak { h, idx_to_pos(signal_peak.idx) } });
                 }
 
                 candidates_per_harmonic.push_back(std::move(harmonic_candidates));
             }
 
-            // Now test all combinations of candidates, the easiest way is to do
-            // it recursively
-            std::vector<HarmonicPeak> current_combination(peaks.size());
+            // Now test all combinations of candidates recursively
+            std::vector<std::pair<SignalPeak, HarmonicPeak>> current_combination(peaks.size());
+
             auto test_combinations = [&](auto &&self, std::size_t harmonic_idx) -> void {
                 // Recursive stop: there are no more harmonics to test
                 if (harmonic_idx == candidates_per_harmonic.size()) {
-                    auto [estimated_fundamental_pos, badness] = harmonic_peaks_fit(current_combination);
-                    if (badness < best_badness) {
-                        best_badness = badness;
-                        best_peaks = current_combination;
-                        best_estimated_peaks.clear();
-                        for (const auto &peak : current_combination) {
-                            best_estimated_peaks.push_back({ peak.harmonic, estimated_fundamental_pos / peak.harmonic });
-                        }
+                    // Extract just the HarmonicPeak from each pair for fitting
+                    std::vector<HarmonicPeak> harmonic_peaks;
+                    harmonic_peaks.reserve(current_combination.size());
+                    for (const auto &pair : current_combination) {
+                        harmonic_peaks.push_back(pair.second);
                     }
+
+                    auto [estimated_fundamental_pos, badness] = harmonic_peaks_fit(harmonic_peaks);
+
+                    float prominence_sum = 0.0f;
+                    for (const auto &[signal_peak, _] : current_combination) {
+                        prominence_sum += signal_peak.prominence;
+                    }
+
+                    std::vector<HarmonicPeak> estimated_peaks;
+                    estimated_peaks.reserve(harmonic_peaks.size());
+                    for (const auto &peak : harmonic_peaks) {
+                        estimated_peaks.push_back({ peak.harmonic, estimated_fundamental_pos / peak.harmonic });
+                    }
+
+                    // Create a new candidate fit
+                    HarmonicPeaksFit candidate {
+                        .found = harmonic_peaks,
+                        .estimated = estimated_peaks,
+                        .badness = badness,
+                        .prominence_sum = prominence_sum
+                    };
+
+                    if (std::find(best_fits.begin(), best_fits.end(), candidate) != best_fits.end()) {
+                        return; // Already found this combination
+                    }
+
+                    // Add to best_fits if there's still room or if it's better than the worst fit
+                    if (best_fits.size() < n_best_fits) {
+                        best_fits.push_back(candidate);
+                        if (best_fits.size() > 1) {
+                            std::sort(best_fits.begin(), best_fits.end(),
+                                [](const auto &a, const auto &b) { return a.badness < b.badness; });
+                        }
+                    } else if (badness < best_fits.back().badness) {
+                        // Replace the last element (lowest prominence)
+                        best_fits.back() = candidate;
+                        std::sort(best_fits.begin(), best_fits.end(),
+                            [](const auto &a, const auto &b) { return a.badness < b.badness; });
+                    }
+
                     return;
                 }
-
                 // Try each candidate for the current harmonic
                 for (const auto &candidate : candidates_per_harmonic[harmonic_idx]) {
                     current_combination[harmonic_idx] = candidate;
                     self(self, harmonic_idx + 1);
                 }
             };
+
             test_combinations(test_combinations, 0); // Start the recursion
         }
     }
 
-    return { best_peaks, best_estimated_peaks };
+    std::sort(best_fits.begin(), best_fits.end(),
+        [](const auto &a, const auto &b) { return a.prominence_sum > b.prominence_sum; });
+    return best_fits;
 }
 
 // Find best fitting num_peaks peaks in the signal that are evenly spaced with
@@ -699,7 +850,7 @@ template <typename It, typename PosConverter>
 std::vector<float> find_evenly_spaced_peaks(It begin, It end,
     PosConverter idx_to_pos, float target_spacing, std::size_t num_peaks,
     int n_closest = 2, // Number of closest peaks to consider for each position
-    float min_prominence = 0.05) {
+    float min_prominence = 0.1) {
     static_assert(std::is_same_v<typename std::iterator_traits<It>::value_type, float>);
     static_assert(std::is_same_v<typename std::iterator_traits<It>::iterator_category, std::random_access_iterator_tag>);
     assert(num_peaks >= 2);
@@ -1109,8 +1260,8 @@ static std::tuple<float, bool, PrusaAccelerometer::Error> capture_movement_sampl
         }
     }
 
-    const PrusaAccelerometer::Error error = accelerometer.get_error();
     float sampling_freq = accelerometer.get_sampling_rate();
+    const PrusaAccelerometer::Error error = accelerometer.get_error();
 
     if (ticks_diff(ticks_ms(), start_ts) >= timeout_ms) {
         log_error(PhaseStepping, "Timeout while capturing samples");
@@ -1134,9 +1285,13 @@ SamplesAnnotation phase_stepping::capture_param_sweep_samples(AxisEnum axis, flo
     }
     revs = std::fabs(revs);
 
-    axis_state.calibration_sweep = CalibrationSweep::build_for_motor(
+    internal::calibration_sweep = CalibrationSweep::build_for_motor(
         axis, harmonic, VIBRATION_SETTLE_TIME * speed, revs,
         sweep_params.pha_start, sweep_params.pha_end, sweep_params.mag_start, sweep_params.mag_end);
+
+    // ensure the previous request has been consumed before resetting
+    assert(internal::calibration_axis_request < 0);
+    internal::calibration_axis_request = axis_state.axis_index;
 
     float start_marker = 0;
     start_marker = plan_no_movement_block(axis, direction, VIBRATION_SETTLE_TIME);
@@ -1286,8 +1441,11 @@ static void debug_dump_dft_sweep_result(const char *name, int harmonic, int dir,
 }
 
 static void debug_dump_harmonic_peaks(const char *name,
-    const std::vector<HarmonicPeak> &peaks, const std::vector<HarmonicPeak> &estimated_peaks) {
+    const std::vector<HarmonicPeaksFit> &peaks_set) {
 #ifdef SERIAL_DEBUG
+    assert(peaks_set.size() >= 1);
+    const auto &peaks = peaks_set[0].found;
+    const auto &estimated_peaks = peaks_set[0].estimated;
     assert(peaks.size() == estimated_peaks.size());
 
     serial_printf("# harmonic_peaks {");
@@ -1346,12 +1504,7 @@ static void debug_dump_param_search(int harmonic, const SweepParams &params, int
 // Analyze the motor and measure the best calibration speeds for each harmonic
 // Returns a vector of harmonic frequencies and their corresponding speeds or an
 // error message if the calibration failed.
-//
-// Note that we should return a vector<HarmonicT<float>> instead of std::array.
-// However, no heap allocation should survive function invocation in order to
-// prevent memory fragmentation. stdex::inplace_vector is not available in the
-// current firmware yet.
-static std::expected<std::array<HarmonicT<float>, opts::CORRECTION_HARMONICS>, const char *>
+static std::expected<stdext::inplace_vector<HarmonicT<float>, opts::CORRECTION_HARMONICS>, const char *>
 measure_calibration_speeds(AxisEnum axis, const AxisCalibrationConfig &calibration_config, AbortFun should_abort) {
     auto move_characteristics = characterize_speed_sweep(calibration_config);
     auto [start_speed, end_speed] = calibration_config.speed_range;
@@ -1438,20 +1591,29 @@ measure_calibration_speeds(AxisEnum axis, const AxisCalibrationConfig &calibrati
     auto idx_to_pos = [&](int idx) {
         return start_speed + idx * (end_speed - start_speed) / (harmonic_signals[0].value.size() - 1);
     };
-    auto [detected_peaks, estimated_peaks] = find_harmonic_peaks(harmonic_signals, idx_to_pos);
-    debug_dump_harmonic_peaks("peaks", detected_peaks, estimated_peaks);
+    auto detected_peaks_sets = find_harmonic_peaks(harmonic_signals, idx_to_pos);
+    if (detected_peaks_sets.empty()) {
+        return std::unexpected("No peaks found");
+    }
+    debug_dump_harmonic_peaks("peaks", detected_peaks_sets);
 
     ABORT_CHECK();
 
-    for (std::size_t i = 0; i < detected_peaks.size(); i++) {
-        log_debug(PhaseStepping, "Detected peak %d at %f, estimated at %f",
-            detected_peaks[i].harmonic, detected_peaks[i].position, estimated_peaks[i].position);
+    for (std::size_t set_i = 0; set_i != detected_peaks_sets.size(); set_i++) {
+        log_debug(PhaseStepping, "Detected peaks set %d", set_i);
+        [[maybe_unused]] auto &detected_peaks = detected_peaks_sets[set_i].found;
+        [[maybe_unused]] auto &estimated_peaks = detected_peaks_sets[set_i].estimated;
+        for (std::size_t i = 0; i < detected_peaks.size(); i++) {
+            log_debug(PhaseStepping, "    peak %d at %f, estimated at %f",
+                detected_peaks[i].harmonic, detected_peaks[i].position,
+                estimated_peaks[i].position);
+        }
     }
 
     // Use detected peaks as the source of truth
-    std::array<HarmonicT<float>, opts::CORRECTION_HARMONICS> result;
-    for (std::size_t i = 0; i != detected_peaks.size(); i++) {
-        result[i] = { estimated_peaks[i].harmonic, estimated_peaks[i].position };
+    stdext::inplace_vector<HarmonicT<float>, opts::CORRECTION_HARMONICS> result;
+    for (const auto &peak : detected_peaks_sets[0].found) {
+        result.emplace_back(peak.harmonic, peak.position);
     }
     return result;
 }
@@ -1554,7 +1716,8 @@ static std::expected<float, const char *> find_approx_mag(AxisEnum axis,
 // function returns the magnitude of the harmonic or an error message if the
 // estimation failed.
 [[maybe_unused]] static std::expected<float, const char *> find_approx_mag_fast(AxisEnum axis,
-    const AxisCalibrationConfig &calib_config, int harmonic, float nominal_calib_speed) {
+    const AxisCalibrationConfig &calib_config, int harmonic, float nominal_calib_speed,
+    AbortFun should_abort) {
     // Magnitude is estimated by performing simultaneous phase sweeps with
     // magnitude sweep. We don't hit the precise minimum, but we can get a good
     // approximation with just a single movement.
@@ -1590,6 +1753,7 @@ static std::expected<float, const char *> find_approx_mag(AxisEnum axis,
             static_cast<unsigned>(annotation.accel_error), annotation.movement_ok);
         return std::unexpected("Param sweep movement failed");
     }
+    ABORT_CHECK();
     auto signal = locate_signal(annotation, samples);
     auto analysis = motor_harmonic_dft_sweep(signal, annotation.sampling_freq,
         speed, get_motor_steps(axis), harmonic, calib_config.analysis_window_periods, 1);
@@ -1702,17 +1866,10 @@ std::expected<std::array<float, 2>, const char *> find_best_pha(AxisEnum axis,
     std::array<float, 2> sweep_phases;
     for (std::size_t i = 0; i != sweep_response->size(); i++) {
         auto &response = (*sweep_response)[i];
-        auto smoothed_response = moving_average(response, response.size() / 60);
-        float mean = std::accumulate(smoothed_response.begin(), smoothed_response.end(), 0.f) / smoothed_response.size();
-        // Trim values below the mean to avoid not trigger high peaks
-        for (auto &val : smoothed_response) {
-            val = val < mean ? 0 : val;
-        }
-
         auto idx_to_phase = [&](int idx) {
-            return PHA_START + idx * (PHA_END - PHA_START) / (smoothed_response.size() - 1);
+            return PHA_START + idx * (PHA_END - PHA_START) / (response.size() - 1);
         };
-        auto peak_positions = find_evenly_spaced_peaks(smoothed_response.begin(), smoothed_response.end(),
+        auto peak_positions = find_evenly_spaced_peaks(response.begin(), response.end(),
             idx_to_phase, 2 * std::numbers::pi_v<float>, PHA_CYCLES);
         if (peak_positions.size() != PHA_CYCLES) {
             log_error(PhaseStepping, "Cannot find %d peaks in phase sweep", PHA_CYCLES);
@@ -1830,7 +1987,9 @@ phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks) {
     const auto &calib_config = get_calibration_config(axis);
 
     hooks.on_motor_characterization_start();
-    auto speed_analysis = measure_calibration_speeds(axis, calib_config, should_abort);
+    auto speed_analysis = with_retries(RETRY_COUNT, [&] {
+        return measure_calibration_speeds(axis, calib_config, should_abort);
+    });
     if (!speed_analysis) {
         log_error(PhaseStepping, "Speed analysis failed: %s", speed_analysis.error());
         return std::unexpected(speed_analysis.error());
@@ -1845,14 +2004,15 @@ phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks) {
     // We first calibrate even harmonics, then odd harmonics
     for (int parity = 0; parity < 2; parity++) {
         for (const auto &harmonic_speed : *speed_analysis) {
-            // Ignore unpopulated harmonics
-            if (harmonic_speed.harmonic == 0 || harmonic_speed.harmonic % 2 != parity) {
+            if (harmonic_speed.harmonic % 2 != parity) {
                 continue;
             }
 
             hooks.on_enter_calibration_phase(current_phase++);
-            auto calib_res = calibrate_single_harmonic(axis, calib_config,
-                harmonic_speed.harmonic, harmonic_speed.value, should_abort);
+            auto calib_res = with_retries(RETRY_COUNT, [&] {
+                return calibrate_single_harmonic(axis, calib_config,
+                    harmonic_speed.harmonic, harmonic_speed.value, should_abort);
+            });
             if (!calib_res) {
                 log_error(PhaseStepping, "Calibration failed: %s", calib_res.error());
                 return std::unexpected(calib_res.error());
@@ -1865,10 +2025,10 @@ phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks) {
             hooks.on_calibration_phase_result(f_result.score, b_result.score);
 
             // Apply the correction to the motor
-            phase_stepping::axis_states[axis].forward_current.modify_correction([&](auto &table) {
+            phase_stepping::axis_states[axis].forward_current.modify_correction_table([&](auto &table) {
                 table[harmonic_speed.harmonic] = f_result.params;
             });
-            phase_stepping::axis_states[axis].backward_current.modify_correction([&](auto &table) {
+            phase_stepping::axis_states[axis].backward_current.modify_correction_table([&](auto &table) {
                 table[harmonic_speed.harmonic] = b_result.params;
             });
         }
@@ -1877,9 +2037,4 @@ phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks) {
     hooks.on_termination();
 
     return result;
-}
-
-void phase_stepping::reset_compensation(AxisEnum axis) {
-    phase_stepping::axis_states[axis].forward_current.clear();
-    phase_stepping::axis_states[axis].backward_current.clear();
 }
