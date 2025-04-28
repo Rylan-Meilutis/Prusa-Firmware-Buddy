@@ -20,17 +20,13 @@ static_assert(configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY == 2);
 const std::span<std::byte> hal::memory::peripheral_address_region(reinterpret_cast<std::byte *>(PERIPH_BASE_NS), 0x10000000);
 
 void hal::panic() {
-    hal::status_led_on();
     asm volatile("bkpt 0");
     NVIC_SystemReset();
 }
 
-void hal::status_led_on() {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
-}
-
-void hal::status_led_off() {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+void hal::set_status_led(bool set) {
+    // Note: the LED logic is inverted on the board
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, set ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 namespace hal {

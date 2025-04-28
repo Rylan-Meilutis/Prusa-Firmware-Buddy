@@ -22,9 +22,9 @@ static void main_task_func(void *) {
     nfc::init();
 
     while (true) {
-        hal::status_led_on();
+        hal::set_status_led(true);
         freertos::delay(1000);
-        hal::status_led_off();
+        hal::set_status_led(false);
         freertos::delay(1000);
     }
 }
