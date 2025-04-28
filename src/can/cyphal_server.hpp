@@ -216,4 +216,36 @@ public:
     }
 };
 
+template <typename Traits>
+using ServerTraitedBase = Server<typename Traits::Request::Type, Traits::Request::extent_bytes, typename Traits::Response::Type, Traits::Response::serialization_buffer_size_bytes>;
+
+template <typename Traits, CanardPortID port_id = Traits::fixed_port_id>
+class ServerTraited : public ServerTraitedBase<Traits> {
+
+public:
+    /**
+     * @brief Server object that receives a request and sends a response.
+     * @note After creation, you must call add_to_task() to add itself to Cyphal Task.
+     *
+     * @param callback_ callback to be called when request is received
+     *    @note Callback is called from the CAN thread. Do not use this callback for heavy processing.
+     *    @note User has to call send_response() to send the response. It doesn't have to be called from the callback, but should be soon.
+     *    @note You can use only one SenderDirect::send_data() during the callback. Calling send_response() counts as the one use of SenderDirect::send_data().
+     *
+     * @param send_timeout timeout to transmit response, discard if it gets stuck in queue for this long
+     *    Default is ProtoSender::send_timeout_default. It should be enough for most cases.
+     * @param multipart_timeout timeout for request, this applies to multipart messages that arrive far apart
+     *    Deafult is ProtoSuber::multipart_timeout_default to access Python server or ProtoSuber::multipart_timeout_short to access normal server.
+     * @note Roundtrip delay limit and suggested call() timeout is sum of send_timeout and multipart_timeout in both client and server.
+     *    If same, then it is "2 * (send_timeout + multipart_timeout)" or "2 * get_client_timeout()".
+     */
+    ServerTraited(const SuberCall<typename Traits::Request::Type, Traits::Request::extent_bytes>::Callback callback_,
+        CanardMicrosecond send_timeout, CanardMicrosecond multipart_timeout)
+        : ServerTraitedBase<Traits>(*Traits::Request::deserialize, *Traits::Response::serialize, port_id, callback_, send_timeout, multipart_timeout) {
+        if constexpr (Traits::has_fixed_port_id) {
+            static_assert(port_id == Traits::fixed_port_id);
+        }
+    }
+};
+
 } // namespace can::cyphal
