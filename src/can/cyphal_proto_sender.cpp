@@ -1,4 +1,5 @@
 #include "cyphal_proto_sender.hpp"
+#include "cyphal_task.hpp"
 
 namespace can::cyphal {
 
@@ -19,6 +20,14 @@ CanardTransferID ProtoSenderPeriodic::mark_sent(CanardMicrosecond &timestamp) {
     timestamp += ((period > 0 && period < timeout) ? period : timeout);
     last_transfer_id = increment_transfer_id(last_transfer_id);
     return last_transfer_id;
+}
+
+void ProtoSenderPeriodic::add_to_task() {
+    cyphal_task.add_sender(*this);
+}
+
+void ProtoSenderPeriodic::remove_from_task() {
+    cyphal_task.remove_sender(*this);
 }
 
 } // namespace can::cyphal
