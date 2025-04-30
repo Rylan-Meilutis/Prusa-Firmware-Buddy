@@ -247,8 +247,7 @@ public:
     }
 
     /// @brief Add client to the list.
-    template <typename T_REQUEST, size_t SIZE_REQUEST, typename T_RESPONSE, size_t EXTENT_RESPONSE>
-    void add(Client<T_REQUEST, SIZE_REQUEST, T_RESPONSE, EXTENT_RESPONSE> &client) {
+    void add(ClientVoid &client) {
         ProtoPortList &portitem = client.get_protoportlist();
         list_sender.transform_data(
             [&portitem](List &list) -> TransformResult {
@@ -258,8 +257,7 @@ public:
     }
 
     /// @brief Remove client from the list.
-    template <typename T_REQUEST, size_t SIZE_REQUEST, typename T_RESPONSE, size_t EXTENT_RESPONSE>
-    void remove(Client<T_REQUEST, SIZE_REQUEST, T_RESPONSE, EXTENT_RESPONSE> &client) {
+    void remove(ClientVoid &client) {
         ProtoPortList &portitem = client.get_protoportlist();
         list_sender.transform_data(
             [&portitem](List &list) -> TransformResult {
@@ -269,8 +267,7 @@ public:
     }
 
     /// @brief Add server to the list.
-    template <typename T_REQUEST, size_t EXTENT_REQUEST, typename T_RESPONSE, size_t SIZE_RESPONSE>
-    void add(Server<T_REQUEST, EXTENT_REQUEST, T_RESPONSE, SIZE_RESPONSE> &server) {
+    void add(ServerVoid &server) {
         ProtoPortList &portitem = server.get_protoportlist();
         list_sender.transform_data(
             [&portitem](List &list) -> TransformResult {
@@ -280,8 +277,7 @@ public:
     }
 
     /// @brief Remove server from the list.
-    template <typename T_REQUEST, size_t EXTENT_REQUEST, typename T_RESPONSE, size_t SIZE_RESPONSE>
-    void remove(Server<T_REQUEST, EXTENT_REQUEST, T_RESPONSE, SIZE_RESPONSE> &server) {
+    void remove(ServerVoid &server) {
         ProtoPortList &portitem = server.get_protoportlist();
         list_sender.transform_data(
             [&portitem](List &list) -> TransformResult {
