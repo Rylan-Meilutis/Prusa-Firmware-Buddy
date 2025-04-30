@@ -25,11 +25,7 @@ public:
      * @param inout_buffer_size_bytes size of the buffer, to be set to 0
      * @return 0
      */
-    static int8_t dummy_serialize([[maybe_unused]] const uint8_t *const obj, [[maybe_unused]] uint8_t *const buffer, size_t *const inout_buffer_size_bytes) {
-        assert(inout_buffer_size_bytes != nullptr);
-        *inout_buffer_size_bytes = 0;
-        return 0;
-    }
+    static int8_t dummy_serialize([[maybe_unused]] const uint8_t *const obj, [[maybe_unused]] uint8_t *const buffer, size_t *const inout_buffer_size_bytes);
 
     static constexpr CanardMicrosecond send_timeout_default = 7'000; ///< Default timeout to transmit
 
@@ -43,10 +39,7 @@ protected:
      * @param timeout_ timeout to transmit, discard if it gets stuck in queue for this long
      * @param priority_ Cyphal priority of the message
      */
-    ProtoSender(CanardPortID port_id, CanardMicrosecond timeout_, CanardPriority priority_)
-        : ProtoPortList(port_id)
-        , priority(priority_)
-        , timeout(timeout_) {}
+    ProtoSender(CanardPortID port_id, CanardMicrosecond timeout_, CanardPriority priority_);
 
     /// Protected destructor because virtual destructor would cost too much codesize.
     ~ProtoSender() = default;
@@ -111,13 +104,7 @@ protected:
      * @param[inout] timestamp current timestamp in, Tx timeout out, add lifespan to get timeout
      * @return transfer ID for message being sent
      */
-    [[nodiscard]] CanardTransferID mark_sent(CanardMicrosecond &timestamp) {
-        dirty = false;
-        last_sent = timestamp;
-        timestamp += ((period > 0 && period < timeout) ? period : timeout);
-        last_transfer_id = increment_transfer_id(last_transfer_id);
-        return last_transfer_id;
-    }
+    [[nodiscard]] CanardTransferID mark_sent(CanardMicrosecond &timestamp);
 
     /**
      * @brief Prototype that handles periodic publication of messages.
