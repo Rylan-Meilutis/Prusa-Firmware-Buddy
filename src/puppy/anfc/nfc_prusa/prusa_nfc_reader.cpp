@@ -61,15 +61,15 @@ void PrusaNFCReader::invalidate_cache(NFCTagID tag) {
     metadata_cache_.invalidate(tag);
 
     // Invalidate read buffer if it was storing the tracked tag
-    if (read_bufer_span_.tag == tag) {
-        read_bufer_span_ = {};
+    if (read_buffer_span_.tag == tag) {
+        read_buffer_span_ = {};
     }
 }
 
 void PrusaNFCReader::set_params(const Params &set) {
     params_ = set;
     metadata_cache_.clear();
-    read_bufer_span_ = {};
+    read_buffer_span_ = {};
 }
 
 PrusaNFCReader::IOResult<const PrusaNFCReader::TagMetadata *> PrusaNFCReader::read_metadata(NFCTagID tag) {
@@ -478,8 +478,8 @@ PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> PrusaNFCReader::write_fiel
 
 PrusaNFCReader::IOResult<std::span<std::byte>> PrusaNFCReader::read_span(const NFCTagSpan &span) {
     // The region is already in the read buffer -> we don't need to issue another read
-    if (read_bufer_span_.contains(span)) {
-        return std::span(read_buffer_.begin() + span.span.offset - read_bufer_span_.span.offset, span.span.size);
+    if (read_buffer_span_.contains(span)) {
+        return std::span(read_buffer_.begin() + span.span.offset - read_buffer_span_.span.offset, span.span.size);
     }
 
     if (span.span.size > read_buffer_.size()) {
@@ -491,7 +491,7 @@ PrusaNFCReader::IOResult<std::span<std::byte>> PrusaNFCReader::read_span(const N
         return std::unexpected(to_prusa_error(r.error()));
     }
 
-    read_bufer_span_ = span;
+    read_buffer_span_ = span;
     return result;
 }
 
@@ -797,7 +797,7 @@ PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> PrusaNFCReader::write_fiel
     // We would need to invalidate the buffer anyway, so this will actually make it ready for subsequent reads
     // (and writes, which are basically always read to read buffer + prepare data to write buffer)
     memcpy(read_buffer_.data(), write_buffer_.data(), region_meta.span.size);
-    read_bufer_span_ = { .tag = field.tag, .span = region_meta.span };
+    read_buffer_span_ = { .tag = field.tag, .span = region_meta.span };
 
     return result;
 }
