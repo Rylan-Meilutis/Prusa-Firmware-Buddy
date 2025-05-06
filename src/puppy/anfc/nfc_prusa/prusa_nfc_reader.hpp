@@ -211,8 +211,13 @@ private:
     /// Buffer for NFC writing operations
     std::array<std::byte, max_tag_size> write_buffer_;
 
-    /// What is currently stored in the read buffer
-    NFCTagSpan read_buffer_span_;
+    struct {
+        NFCTagID tag = invalid_nfc_tag;
+
+        /// What is currently stored in the read buffer
+        NFCSpan span;
+
+    } read_buffer_cache_;
 
     /// Cache of basic NFC tag information, so that we don't have to parse it for every access
     Cache<NFCTagID, TagMetadata, metadata_cache_capacity> metadata_cache_;
