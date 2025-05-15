@@ -9,22 +9,23 @@
 #
 # :param str ARG_TARGET_NAME:               The name to give the target. :param str
 # ARG_OUTPUT_LANGUAGE            The language to generate for this target. :param Path
-# ARG_OUTPUT_FOLDER:            The directory to generate all source under. :param Path
-# ARG_DSDL_ROOT_DIR:            A directory containing the root namespace dsdl. :param bool
-# ARG_ENABLE_OVR_VAR_ARRAY:     Generates code with variable array capacity override enabled :param
-# str ARG_SER_ENDIANNESS:            One of 'any', 'big', or 'little' to pass as the value of the
-# nnvg `--target-endianness` argument. Set to an empty string to omit this argument. :param str
-# ARG_GENERATE_SUPPORT:          Value for the nnvg --generate-support argument. Valid values are:
-# as-needed (default) - generate support code if serialization is enabled. always - always generate
-# support code. never - never generate support code. only - only generate support code. :param ...:
-# A list of paths to use when looking up dependent DSDL types. :returns: Sets a variable
-# "ARG_TARGET_NAME"-OUTPUT in the parent scope to the list of files the target will generate. For
-# example, if ARG_TARGET_NAME == 'foo-bar' then after calling this function ${foo-bar-OUTPUT} will
-# be set to the list of output files.
+# ARG_LANGUAGE_TEMPLATES        Templates used for generating the headers ARG_OUTPUT_FOLDER: The
+# directory to generate all source under. :param Path ARG_DSDL_ROOT_DIR:            A directory
+# containing the root namespace dsdl. :param bool ARG_ENABLE_OVR_VAR_ARRAY:     Generates code with
+# variable array capacity override enabled :param str ARG_SER_ENDIANNESS:            One of 'any',
+# 'big', or 'little' to pass as the value of the nnvg `--target-endianness` argument. Set to an
+# empty string to omit this argument. :param str ARG_GENERATE_SUPPORT:          Value for the nnvg
+# --generate-support argument. Valid values are: as-needed (default) - generate support code if
+# serialization is enabled. always - always generate support code. never - never generate support
+# code. only - only generate support code. :param ...: A list of paths to use when looking up
+# dependent DSDL types. :returns: Sets a variable "ARG_TARGET_NAME"-OUTPUT in the parent scope to
+# the list of files the target will generate. For example, if ARG_TARGET_NAME == 'foo-bar' then
+# after calling this function ${foo-bar-OUTPUT} will be set to the list of output files.
 function(
   create_dsdl_target
   ARG_TARGET_NAME
   ARG_OUTPUT_LANGUAGE
+  ARG_LANGUAGE_TEMPLATES
   ARG_OUTPUT_FOLDER
   ARG_DSDL_ROOT_DIR
   ARG_ENABLE_OVR_VAR_ARRAY
@@ -34,9 +35,9 @@ function(
 
   separate_arguments(NNVG_CMD_ARGS UNIX_COMMAND "${NNVG_FLAGS}")
 
-  if(${ARGC} GREATER 7)
+  if(${ARGC} GREATER 8)
     math(EXPR ARG_N_LAST "${ARGC}-1")
-    foreach(ARG_N RANGE 7 ${ARG_N_LAST})
+    foreach(ARG_N RANGE 8 ${ARG_N_LAST})
       list(APPEND NNVG_CMD_ARGS "-I")
       list(APPEND NNVG_CMD_ARGS "${ARGV${ARG_N}}")
     endforeach(ARG_N)
@@ -44,6 +45,10 @@ function(
 
   list(APPEND NNVG_CMD_ARGS --target-language)
   list(APPEND NNVG_CMD_ARGS ${ARG_OUTPUT_LANGUAGE})
+
+  list(APPEND NNVG_CMD_ARGS --templates)
+  list(APPEND NNVG_CMD_ARGS "${ARG_LANGUAGE_TEMPLATES}")
+
   list(APPEND NNVG_CMD_ARGS -O)
   list(APPEND NNVG_CMD_ARGS ${ARG_OUTPUT_FOLDER})
   list(APPEND NNVG_CMD_ARGS ${ARG_DSDL_ROOT_DIR})

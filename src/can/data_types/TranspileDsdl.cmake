@@ -14,6 +14,7 @@ function(transpile_dsdl)
     # Generate the support library for generated C headers, which is "nunavut.h".
     "nunavut_support"
     c
+    "${CMAKE_SOURCE_DIR}/src/can/nunavut_c_templates" # Use our own templates, we have adjusted them
     ${TRANSPILED_INCLUDE_DIR}
     ""
     OFF
@@ -31,6 +32,7 @@ function(transpile_dsdl)
     create_dsdl_target(
       "dsdl_${ns}" # CMake target name
       c # Target language to transpile into
+      "${CMAKE_SOURCE_DIR}/src/can/nunavut_c_templates" # Use our own templates, we have adjusted
       ${TRANSPILED_INCLUDE_DIR} # Destination directory (add it to the includes)
       ${ns_dir} # Source directory
       OFF # Disable variable array capacity override
