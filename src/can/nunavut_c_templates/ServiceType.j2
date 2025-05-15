@@ -9,12 +9,18 @@
 {% extends "base.j2" %}
 {% block contents %}
 
-{% from 'definitions.j2' import generate_metadata, generate_composite %}
+{% from 'definitions.j2' import generate_metadata, generate_composite, generate_common_traits %}
 
 {{ generate_metadata(T) }}
 
 {{ generate_composite(T.request_type) }}
 
 {{ generate_composite(T.response_type) }}
+
+struct {{ T | full_reference_name }}_Traits {
+    using Request = {{ T.request_type | full_reference_name }}_Traits;
+    using Response = {{ T.response_type | full_reference_name }}_Traits;
+    {{ generate_common_traits(T) }}
+};
 
 {% endblock %}

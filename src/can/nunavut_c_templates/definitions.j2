@@ -39,6 +39,18 @@ static_assert({{ ref }}_EXTENT_BYTES_ >= {{ ref }}_SERIALIZATION_BUFFER_SIZE_BYT
 {%- endif %}
 {% endmacro %}
 
+
+{# ----------------------------------------------------------------------------------------------------------------- #}
+{% macro generate_common_traits(t) %}
+    {% if t.has_fixed_port_id %}
+    static constexpr auto fixed_port_id = {{ t.fixed_port_id }};
+    static constexpr bool has_fixed_port_id = true;
+    {% else %}
+    static constexpr bool has_fixed_port_id = false;
+    {% endif %}
+{% endmacro %}
+
+
 {# ----------------------------------------------------------------------------------------------------------------- #}
 {% macro generate_composite(t) %}
 {{ generate_metadata(t) }}
@@ -238,6 +250,17 @@ inline void {{ t | full_reference_name }}_initialize_({{ t | full_reference_name
         (void) err;
     }
 }
+
+struct {{ t | full_reference_name }}_Traits {
+    using Type = {{ t | full_reference_name }};
+    static constexpr auto initialize = {{ t | full_reference_name }}_initialize_;
+    static constexpr auto serialize = {{ t | full_reference_name }}_serialize_;
+    static constexpr auto deserialize = {{ t | full_reference_name }}_deserialize_;
+    static constexpr size_t serialization_buffer_size_bytes = {{ t | full_reference_name }}_SERIALIZATION_BUFFER_SIZE_BYTES_;
+    static constexpr size_t extent_bytes = {{ t | full_reference_name }}_EXTENT_BYTES_;
+
+    {{ generate_common_traits(t) }}
+};
 
 {%- endif %}  {# if not nunavut.support.omit #}
 
