@@ -132,7 +132,7 @@
  * M112 - Full Shutdown.
  * M113 - Get or set the timeout interval for Host Keepalive "busy" messages. (Requires HOST_KEEPALIVE_FEATURE)
  * M114 - Report current position.
- * M115 - Report capabilities. (Extended capabilities requires EXTENDED_CAPABILITIES_REPORT)
+ * M115 - Report capabilities.
  * M117 - Display a message on the controller screen. (Requires an LCD)
  * M118 - Display a message in the host console.
  * M119 - Report endstops status.
@@ -146,7 +146,7 @@
  * M140 - Set bed target temp. S<temp>
  * M141 - Set heated chamber target temp. S<temp> (Requires a chamber heater)
  * M149 - Set temperature units. (Requires TEMPERATURE_UNITS_SUPPORT)
- * M150 - Set Status LED Color as R<red> U<green> B<blue> P<bright>. Values 0-255. (Requires BLINKM, RGB_LED, RGBW_LED, NEOPIXEL_LED, PCA9533, or PCA9632).
+ * M150 - Set Status LED Color as R<red> U<green> B<blue> P<bright>. Values 0-255.
  * M155 - Auto-report temperatures with interval of S<seconds>. (Requires AUTO_REPORT_TEMPERATURES)
  * M190 - S<temp> Wait for bed current temp to reach target temp. ** Wait only when heating! **
  *        R<temp> Wait for bed current temp to reach target temp. ** Wait for heating or cooling. **
@@ -178,7 +178,6 @@
  * M302 - Allow cold extrudes, or set the minimum extrude S<temperature>. (Requires PREVENT_COLD_EXTRUSION)
  * M303 - PID relay autotune S<temperature> sets the target temperature. Default 150C. (Requires PIDTEMP)
  * M304 - Set bed PID parameters P I and D. (Requires PIDTEMPBED)
- * M305 - Set user thermistor parameters R T and P. (Requires TEMP_SENSOR_x 1000)
  * M350 - Set microstepping mode. (Requires digital microstepping pins.)
  * M351 - Toggle MS1 MS2 pins directly. (Requires digital microstepping pins.)
  * M355 - Set Case Light on/off and set brightness. (Requires CASE_LIGHT_PIN)
@@ -188,10 +187,6 @@
  * M401 - Deploy and activate Z probe. (Requires a probe)
  * M402 - Deactivate and stow Z probe. (Requires a probe)
  * M403 - Set filament type for PRUSA MMU2
- * M404 - Display or set the Nominal Filament Width: "W<diameter>". (Requires FILAMENT_WIDTH_SENSOR)
- * M405 - Enable Filament Sensor flow control. "M405 D<delay_cm>". (Requires FILAMENT_WIDTH_SENSOR)
- * M406 - Disable Filament Sensor flow control. (Requires FILAMENT_WIDTH_SENSOR)
- * M407 - Display measured filament diameter in millimeters. (Requires FILAMENT_WIDTH_SENSOR)
  * M410 - Quickstop. Abort all planned moves.
  * M412 - Enable / Disable Filament Runout Detection. (Requires FILAMENT_RUNOUT_SENSOR)
  * M420 - Enable/Disable Leveling (with current values) S1=enable S0=disable (Requires ABL)
@@ -272,10 +267,12 @@
 
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
+#include <option/has_modular_bed.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
 #include <option/has_phase_stepping.h>
+#include <option/has_phase_stepping_calibration.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_cancel_object.h>
 
@@ -680,10 +677,6 @@ private:
     static void M149();
   #endif
 
-  #if HAS_COLOR_LEDS
-    static void M150();
-  #endif
-
   #if ENABLED(AUTO_REPORT_TEMPERATURES) && HAS_TEMP_SENSOR
     static void M155();
   #endif
@@ -765,10 +758,6 @@ private:
     static void M304();
   #endif
 
-  #if HAS_USER_THERMISTORS
-    static void M305();
-  #endif
-
   #if HAS_DRIVER(TMC2130)
     static void M350();
   #endif
@@ -799,13 +788,6 @@ private:
 
   #if ENABLED(PRUSA_MMU2)
     static void M403();
-  #endif
-
-  #if ENABLED(FILAMENT_WIDTH_SENSOR)
-    static void M404();
-    static void M405();
-    static void M406();
-    static void M407();
   #endif
 
   #if HAS_FILAMENT_SENSOR
@@ -842,7 +824,7 @@ private:
 
   static void M555();
 
-  #if ENABLED(MODULAR_HEATBED)
+  #if HAS_MODULAR_BED()
     static void M556();
     static void M557();
   #endif
@@ -935,6 +917,8 @@ private:
 #if HAS_PHASE_STEPPING()
   static void M970();
   static void M971();
+#endif
+#if HAS_PHASE_STEPPING_CALIBRATION()
   static void M972();
   static void M973();
   static void M974();

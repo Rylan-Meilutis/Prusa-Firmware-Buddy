@@ -46,24 +46,6 @@
 //=============================Thermal Settings  ============================
 //===========================================================================
 
-//
-// Hephestos 2 24V heated bed upgrade kit.
-// https://store.bq.com/en/heated-bed-kit-hephestos2
-//
-//#define HEPHESTOS2_HEATED_BED_KIT
-#if ENABLED(HEPHESTOS2_HEATED_BED_KIT)
-    #undef TEMP_SENSOR_BED
-    #define TEMP_SENSOR_BED 70
-    #define HEATER_BED_INVERTING true
-#endif
-
-#if DISABLED(PIDTEMPBED)
-    #define BED_CHECK_INTERVAL 5000 // ms between checks in bang-bang control
-    #if ENABLED(BED_LIMIT_SWITCHING)
-        #define BED_HYSTERESIS 2 // Only disable heating if T>target+BED_HYSTERESIS and enable heating if T>target-BED_HYSTERESIS
-    #endif
-#endif
-
 /**
  * Thermal Protection provides additional protection to your printer from damage
  * and fire. Marlin always includes safe min and max temperature ranges which
@@ -163,40 +145,6 @@
     #define AUTOTEMP_OLDWEIGHT 0.98
 #endif
 
-// Show extra position information in M114
-//#define M114_DETAIL
-
-// Show Temperature ADC value
-// Enable for M105 to include ADC values read from temperature sensors.
-//#define SHOW_TEMP_ADC_VALUES
-
-/**
- * High Temperature Thermistor Support
- *
- * Thermistors able to support high temperature tend to have a hard time getting
- * good readings at room and lower temperatures. This means HEATER_X_RAW_LO_TEMP
- * will probably be caught when the heating element first turns on during the
- * preheating process, which will trigger a min_temp_error as a safety measure
- * and force stop everything.
- * To circumvent this limitation, we allow for a preheat time (during which,
- * min_temp_error won't be triggered) and add a min_temp buffer to handle
- * aberrant readings.
- *
- * If you want to enable this feature for your hotend thermistor(s)
- * uncomment and set values > 0 in the constants below
- */
-
-// The number of consecutive low temperature errors that can occur
-// before a min_temp_error is triggered. (Shouldn't be more than 10.)
-//#define MAX_CONSECUTIVE_LOW_TEMPERATURE_ERROR_ALLOWED 0
-
-// The number of milliseconds a hotend will preheat before starting to check
-// the temperature. This value should NOT be set to the time it takes the
-// hot end to reach the target temperature, but the time it takes to reach
-// the minimum temperature your thermistor can read. The lower the better/safer.
-// This shouldn't need to be more than 30 seconds (30000)
-//#define MILLISECONDS_PREHEAT_TIME 0
-
 // @section extruder
 
 // Extruder runout prevention.
@@ -208,76 +156,6 @@
     #define EXTRUDER_RUNOUT_SECONDS 30
     #define EXTRUDER_RUNOUT_SPEED 1500 // (mm/m)
     #define EXTRUDER_RUNOUT_EXTRUDE 5 // (mm)
-#endif
-
-// @section temperature
-
-// Calibration for AD595 / AD8495 sensor to adjust temperature measurements.
-// The final temperature is calculated as (measuredTemp * GAIN) + OFFSET.
-#define TEMP_SENSOR_AD595_OFFSET 0.0
-#define TEMP_SENSOR_AD595_GAIN 1.0
-#define TEMP_SENSOR_AD8495_OFFSET 0.0
-#define TEMP_SENSOR_AD8495_GAIN 1.0
-
-/**
- * Controller Fan
- * To cool down the stepper drivers and MOSFETs.
- *
- * The fan will turn on automatically whenever any stepper is enabled
- * and turn off after a set period after all steppers are turned off.
- */
-//#define USE_CONTROLLER_FAN
-#if ENABLED(USE_CONTROLLER_FAN)
-    //#define CONTROLLER_FAN_PIN -1        // Set a custom pin for the controller fan
-    #define CONTROLLERFAN_SECS 60 // Duration in seconds for the fan to run after all motors are disabled
-    #define CONTROLLERFAN_SPEED 255 // 255 == full speed
-#endif
-
-// When first starting the main fan, run it at full speed for the
-// given number of milliseconds.  This gets the fan spinning reliably
-// before setting a PWM value. (Does not work with software PWM for fan on Sanguinololu)
-//#define FAN_KICKSTART_TIME 100
-
-/**
- * PWM Fan Scaling
- *
- * Define the min/max speeds for PWM fans (as set with M106).
- *
- * With these options the M106 0-255 value range is scaled to a subset
- * to ensure that the fan has enough power to spin, or to run lower
- * current fans with higher current. (e.g., 5V/12V fans with 12V/24V)
- * Value 0 always turns off the fan.
- *
- * Define one or both of these to override the default 0-255 range.
- */
-//#define FAN_MIN_PWM 50
-//#define FAN_MAX_PWM 128
-
-/**
- * FAST PWM FAN Settings
- *
- * Use to change the FAST FAN PWM frequency (if enabled in Configuration.h)
- * Combinations of PWM Modes, prescale values and TOP resolutions are used internally to produce a
- * frequency as close as possible to the desired frequency.
- *
- * FAST_PWM_FAN_FREQUENCY [undefined by default]
- *   Set this to your desired frequency.
- *   If left undefined this defaults to F = F_CPU/(2*255*1)
- *   ie F = 31.4 Khz on 16 MHz microcontrollers or F = 39.2 KHz on 20 MHz microcontrollers
- *   These defaults are the same as with the old FAST_PWM_FAN implementation - no migration is required
- *   NOTE: Setting very low frequencies (< 10 Hz) may result in unexpected timer behaviour.
- *
- * USE_OCR2A_AS_TOP [undefined by default]
- *   Boards that use TIMER2 for PWM have limitations resulting in only a few possible frequencies on TIMER2:
- *   16MHz MCUs: [62.5KHz, 31.4KHz (default), 7.8KHz, 3.92KHz, 1.95KHz, 977Hz, 488Hz, 244Hz, 60Hz, 122Hz, 30Hz]
- *   20MHz MCUs: [78.1KHz, 39.2KHz (default), 9.77KHz, 4.9KHz, 2.44KHz, 1.22KHz, 610Hz, 305Hz, 153Hz, 76Hz, 38Hz]
- *   A greater range can be achieved by enabling USE_OCR2A_AS_TOP. But note that this option blocks the use of
- *   PWM on pin OC2A. Only use this option if you don't need PWM on 0C2A. (Check your schematic.)
- *   USE_OCR2A_AS_TOP sacrifices duty cycle control resolution to achieve this broader range of frequencies.
- */
-#if ENABLED(FAST_PWM_FAN)
-//#define FAST_PWM_FAN_FREQUENCY 31400
-//#define USE_OCR2A_AS_TOP
 #endif
 
 // @section extruder
@@ -325,11 +203,6 @@
     #define CASE_LIGHT_DEFAULT_ON true // Set default power-up state on
     #define CASE_LIGHT_DEFAULT_BRIGHTNESS 105 // Set default power-up brightness (0-255, requires PWM pin)
     //#define MENU_ITEM_CASE_LIGHT              // Add a Case Light option to the LCD main menu
-    //#define CASE_LIGHT_USE_NEOPIXEL           // Use Neopixel LED as case light, requires NEOPIXEL_LED.
-    #if ENABLED(CASE_LIGHT_USE_NEOPIXEL)
-        #define CASE_LIGHT_NEOPIXEL_COLOR \
-            { 255, 255, 255, 255 } // { Red, Green, Blue, White }
-    #endif
 #endif
 
 //===========================================================================
@@ -758,23 +631,6 @@
 
 // Add an 'M73' G-code to set the current percentage
 //#define LCD_SET_PROGRESS_MANUALLY
-
-/**
- * LED Control Menu
- * Enable this feature to add LED Control to the LCD menu
- */
-//#define LED_CONTROL_MENU
-#if ENABLED(LED_CONTROL_MENU)
-    #define LED_COLOR_PRESETS // Enable the Preset Color menu option
-    #if ENABLED(LED_COLOR_PRESETS)
-        #define LED_USER_PRESET_RED 255 // User defined RED value
-        #define LED_USER_PRESET_GREEN 128 // User defined GREEN value
-        #define LED_USER_PRESET_BLUE 0 // User defined BLUE value
-        #define LED_USER_PRESET_WHITE 255 // User defined WHITE value
-        #define LED_USER_PRESET_BRIGHTNESS 255 // User defined intensity
-    //#define LED_USER_PRESET_STARTUP       // Have the printer display the user preset color on startup
-    #endif
-#endif // LED_CONTROL_MENU
 
 // @section safety
 
@@ -1639,39 +1495,6 @@
 #endif
 
 /**
- * Filament Width Sensor
- *
- * Measures the filament width in real-time and adjusts
- * flow rate to compensate for any irregularities.
- *
- * Also allows the measured filament diameter to set the
- * extrusion rate, so the slicer only has to specify the
- * volume.
- *
- * Only a single extruder is supported at this time.
- *
- *  34 RAMPS_14    : Analog input 5 on the AUX2 connector
- *  81 PRINTRBOARD : Analog input 2 on the Exp1 connector (version B,C,D,E)
- * 301 RAMBO       : Analog input 3
- *
- * Note: May require analog pins to be defined for other boards.
- */
-//#define FILAMENT_WIDTH_SENSOR
-
-#if ENABLED(FILAMENT_WIDTH_SENSOR)
-    #define FILAMENT_SENSOR_EXTRUDER_NUM 0 // Index of the extruder that has the filament sensor. :[0,1,2,3,4]
-    #define MEASUREMENT_DELAY_CM 14 // (cm) The distance from the filament sensor to the melting chamber
-
-    #define FILWIDTH_ERROR_MARGIN 1.0 // (mm) If a measurement differs too much from nominal width ignore it
-    #define MAX_MEASUREMENT_DELAY 20 // (bytes) Buffer size for stored measurements (1 byte per cm). Must be larger than MEASUREMENT_DELAY_CM.
-
-    #define DEFAULT_MEASURED_FILAMENT_DIA DEFAULT_NOMINAL_FILAMENT_DIA // Set measured to nominal initially
-
-// Display filament width on the LCD status line. Status messages will expire after 5 seconds.
-//#define FILAMENT_LCD_DISPLAY
-#endif
-
-/**
  * CNC Coordinate Systems
  *
  * Enables G53 and G54-G59.3 commands to select coordinate systems
@@ -1683,11 +1506,6 @@
  * Auto-report temperatures with M155 S<seconds>
  */
 #define AUTO_REPORT_TEMPERATURES
-
-/**
- * Include capabilities in M115 output
- */
-#define EXTENDED_CAPABILITIES_REPORT
 
 /**
  * Disable all Volumetric extrusion options

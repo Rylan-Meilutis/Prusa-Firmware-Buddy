@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <atomic>
+#include <cassert>
 
 /**
  * @brief   SPSC (Single Producer Single Consumer) Atomic Circular Queue class
@@ -123,7 +124,7 @@ public:
      *          or updating the pointers.
      * @return  first item in the queue
      */
-    T peek() { return queue[mask(head)]; }
+    const T &peek() { return queue[mask(head)]; }
 
     /**
      * @brief Gets the number of items on the queue

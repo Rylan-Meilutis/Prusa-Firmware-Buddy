@@ -90,13 +90,14 @@
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 #include <option/has_dwarf.h>
-#include <option/has_modularbed.h>
+#include <option/has_remote_bed.h>
+#include <option/has_modular_bed.h>
 #include <option/has_loadcell.h>
 #include <option/has_nfc.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_chamber_api.h>
-#include <option/has_xbuddy_extension.h>
+#include <option/xbuddy_extension_variant_standard.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_uneven_bed_prompt.h>
 
@@ -104,9 +105,9 @@
     #include <puppies/Dwarf.hpp>
 #endif /*HAS_DWARF()*/
 
-#if HAS_MODULARBED()
-    #include <puppies/modular_bed.hpp>
-#endif /*HAS_MODULARBED()*/
+#if HAS_REMOTE_BED()
+    #include <common/feature/remote_bed/remote_bed.hpp>
+#endif
 
 #if HAS_SELFTEST()
     #include "printer_selftest.hpp"
@@ -156,7 +157,7 @@
     #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
-#if HAS_XBUDDY_EXTENSION()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 #if HAS_EMERGENCY_STOP()
@@ -389,7 +390,7 @@ namespace {
     constinit std::array<ErrorChecker, HOTENDS> hotendFanErrorChecker;
     constinit ErrorChecker printFanErrorChecker;
 
-#if HAS_XBUDDY_EXTENSION()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     constinit ErrorChecker xbe_cool_fan_checker; // Handles both cooling fans (we cannot differentiate anyway)
     constinit ErrorChecker xbe_filter_fan_checker;
 #endif
@@ -412,9 +413,9 @@ namespace {
     /// Check Dwarf MCU temperature
     constinit std::array<MCUTempErrorChecker, HOTENDS> dwarfMaxTempErrorChecker;
 #endif /*HAS_DWARF()*/
-#if HAS_MODULARBED()
+#if HAS_REMOTE_BED()
     constinit MCUTempErrorChecker modbedMaxTempErrorChecker; ///< Check ModularBed MCU temperature
-#endif /*HAS_MODULARBED()*/
+#endif
 
     void pause_print(Pause_Type type) {
         if (!server.print_is_serial) {
@@ -490,14 +491,6 @@ static void handle_warnings() {
             consume_response();
         }
         break;
-
-#if XL_ENCLOSURE_SUPPORT()
-    case PhasesWarning::EnclosureFilterExpiration:
-        if (auto r = consume_response(); r != Response::_none) {
-            xl_enclosure.setUpReminder(r);
-        }
-        break;
-#endif
 
 #if HAS_CHAMBER_FILTRATION_API()
     case PhasesWarning::EnclosureFilterExpiration:
@@ -766,7 +759,7 @@ static void cycle() {
     buddy::emergency_stop().step();
 #endif
 
-#if HAS_XBUDDY_EXTENSION()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     buddy::xbuddy_extension().step();
 #endif
 
@@ -795,8 +788,7 @@ static void cycle() {
     dwarf_temp = prusa_toolchanger.getActiveToolOrFirst().get_board_temperature();
     #endif
 
-    xl_enclosure.loop(buddy::puppies::modular_bed.get_mcu_temperature(), dwarf_temp, server.print_state);
-
+    xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp);
 #endif
 
     if (call_print_loop) {
@@ -906,9 +898,6 @@ void static finalize_print(bool finished) {
     marlin_vars().print_end_time = time(nullptr);
     marlin_vars().add_job_result(job_id, finished ? marlin_vars_t::JobInfo::JobResult::finished : marlin_vars_t::JobInfo::JobResult::aborted);
 
-#if XL_ENCLOSURE_SUPPORT()
-    xl_enclosure.checkFilterExpiration();
-#endif
 #if HAS_CHAMBER_FILTRATION_API()
     buddy::chamber_filtration().check_filter_expiration();
 #endif
@@ -1000,7 +989,6 @@ static void idle(void) {
 
 void do_babystep_Z(float offs) {
     babystep.add_steps(Z_AXIS, std::round(offs * planner.settings.axis_steps_per_mm[Z_AXIS]));
-    babystep.task();
 }
 
 extern void move_axis(float pos, float feedrate, size_t axis) {
@@ -2115,9 +2103,6 @@ static void _server_print_loop(void) {
                 fsm_create(PhasesPrinting::active);
             }
         }
-#if XL_ENCLOSURE_SUPPORT()
-        xl_enclosure.checkFilterExpiration();
-#endif
 #if HAS_MANUAL_CHAMBER_VENTS()
         buddy::chamber().check_vent_state();
 #endif
@@ -2719,7 +2704,7 @@ static void _server_print_loop(void) {
         const auto fan_state = Fans::print(active_extruder).get_state();
         printFanErrorChecker.checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::PrintFanError, false, true);
 
-#if HAS_XBUDDY_EXTENSION()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
         const bool cool_fan_ok = buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_1) && buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_2);
         xbe_cool_fan_checker.checkTrue(cool_fan_ok, WarningType::ChamberCoolingFanError, false, false);
         if (cool_fan_ok) {
@@ -2731,10 +2716,13 @@ static void _server_print_loop(void) {
         if (filter_fan_ok) {
             xbe_filter_fan_checker.reset();
         }
-#endif /* HAS_XBUDDY_EXTENSION() */
+#endif /* XBUDDY_EXTENSION_VARIANT_STANDARD() */
 #if XL_ENCLOSURE_SUPPORT()
         const bool enclosure_fan_ok = Fans::enclosure().is_fan_ok();
-        enclosure_fan_checker.checkTrue(enclosure_fan_ok, WarningType::ChamberFiltrationFanError, false, false);
+        if (!enclosure_fan_ok && !enclosure_fan_checker.isFailed()) {
+            xl_enclosure.setEnabled(false);
+        }
+        enclosure_fan_checker.checkTrue(enclosure_fan_ok, WarningType::EnclosureFanError, false, false);
         if (enclosure_fan_ok) {
             enclosure_fan_checker.reset();
         }
@@ -2786,9 +2774,9 @@ static void _server_print_loop(void) {
         }
     }
 #endif /*HAS_DWARF()*/
-#if HAS_MODULARBED()
-    modbedMaxTempErrorChecker.check(buddy::puppies::modular_bed.get_mcu_temperature(), WarningType::ModBedMCUMaxTemp, "Modular Bed");
-#endif /*HAS_MODULARBED()*/
+#if HAS_REMOTE_BED()
+    modbedMaxTempErrorChecker.check(remote_bed::get_mcu_temperature(), WarningType::BedMCUMaxTemp, "Bed");
+#endif
 }
 
 void resuming_begin(void) {
@@ -2806,9 +2794,9 @@ void resuming_begin(void) {
         }
     }
 #endif /*HAS_DWARF()*/
-#if HAS_MODULARBED()
+#if HAS_REMOTE_BED()
     modbedMaxTempErrorChecker.reset();
-#endif /*HAS_MODULARBED()*/
+#endif /*HAS_REMOTE_BED()*/
 
     nozzle_timeout_on(); // could be turned off after pause by changing temperature.
     if (print_reheat_ready()) {
@@ -2865,7 +2853,7 @@ void retract() {
 void lift_head() {
     const float distance = std::min<float>(
                                std::max<float>({
-                                   Z_NOZZLE_PARK_POINT + current_position.z,
+                                   Z_NOZZLE_PARK_RISE + current_position.z,
 #ifdef Z_NOZZLE_PARK_POINT_MIN
                                    Z_NOZZLE_PARK_POINT_MIN,
 #endif
@@ -3121,7 +3109,7 @@ static void _server_update_vars() {
 
     marlin_vars().temp_bed = thermalManager.degBed();
     marlin_vars().target_bed = thermalManager.degTargetBed();
-#if ENABLED(MODULAR_HEATBED)
+#if HAS_MODULAR_BED()
     marlin_vars().enabled_bedlet_mask = thermalManager.getEnabledBedletMask();
 #endif
 

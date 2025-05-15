@@ -84,10 +84,6 @@
   #error "SDSLOW deprecated. Set SPI_SPEED to SPI_HALF_SPEED instead."
 #elif defined(SDEXTRASLOW)
   #error "SDEXTRASLOW deprecated. Set SPI_SPEED to SPI_QUARTER_SPEED instead."
-// Disable this check in the Buddy Project, as we use FILAMENT_SENSOR macro for something else and
-// it is ok for it to be defined.
-//#elif defined(FILAMENT_SENSOR)
-//  #error "FILAMENT_SENSOR is now FILAMENT_WIDTH_SENSOR. Please update your configuration."
 #elif defined(ENDSTOPPULLUP_FIL_RUNOUT)
   #error "ENDSTOPPULLUP_FIL_RUNOUT is now FIL_RUNOUT_PULLUP. Please update your configuration."
 #elif defined(DISABLE_MAX_ENDSTOPS) || defined(DISABLE_MIN_ENDSTOPS)
@@ -198,28 +194,20 @@
   #error "MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
 #elif defined(UBL_MESH_NUM_X_POINTS) || defined(UBL_MESH_NUM_Y_POINTS)
   #error "UBL_MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
-#elif defined(BLTOUCH_HEATERS_OFF)
-  #error "BLTOUCH_HEATERS_OFF is now PROBING_HEATERS_OFF. Please update your configuration."
 #elif defined(BLTOUCH_V3)
   #error "BLTOUCH_V3 is obsolete. Please update your configuration."
 #elif defined(BLTOUCH_FORCE_OPEN_DRAIN_MODE)
   #error "BLTOUCH_FORCE_OPEN_DRAIN_MODE is obsolete. Please update your configuration."
 #elif defined(BEEPER)
   #error "BEEPER is now BEEPER_PIN. Please update your pins definitions."
-#elif defined(STAT_LED_RED) || defined(STAT_LED_BLUE)
-  #error "STAT_LED_RED/STAT_LED_BLUE are now STAT_LED_RED_PIN/STAT_LED_BLUE_PIN. Please update your pins definitions."
 #elif defined(EXTRUDER_0_AUTO_FAN_PIN) || defined(EXTRUDER_1_AUTO_FAN_PIN) || defined(EXTRUDER_2_AUTO_FAN_PIN) || defined(EXTRUDER_3_AUTO_FAN_PIN)
   #error "EXTRUDER_[0123]_AUTO_FAN_PIN is now E[0123]_AUTO_FAN_PIN. Please update your Configuration_adv.h."
 #elif defined(min_software_endstops) || defined(max_software_endstops)
   #error "(min|max)_software_endstops are now (MIN|MAX)_SOFTWARE_ENDSTOPS. Please update your configuration."
 #elif ENABLED(Z_PROBE_SLED) && defined(SLED_PIN)
   #error "Replace SLED_PIN with SOL1_PIN (applies to both Z_PROBE_SLED and SOLENOID_PROBE)."
-#elif defined(CONTROLLERFAN_PIN)
-  #error "CONTROLLERFAN_PIN is now CONTROLLER_FAN_PIN, enabled with USE_CONTROLLER_FAN. Please update your Configuration_adv.h."
 #elif defined(MIN_RETRACT)
   #error "MIN_RETRACT is now MIN_AUTORETRACT and MAX_AUTORETRACT. Please update your Configuration_adv.h."
-#elif defined(NEOPIXEL_RGBW_LED)
-  #error "NEOPIXEL_RGBW_LED is now NEOPIXEL_LED. Please update your configuration."
 #elif ENABLED(DELTA) && defined(DELTA_PROBEABLE_RADIUS)
   #error "Remove DELTA_PROBEABLE_RADIUS and use MIN_PROBE_EDGE to inset the probe area instead."
 #elif defined(UBL_MESH_INSET)
@@ -244,12 +232,8 @@
   #error "K1 is now PID_K1. Please update your configuration."
 #elif defined(PROBE_DOUBLE_TOUCH)
   #error "PROBE_DOUBLE_TOUCH is now MULTIPLE_PROBING. Please update your configuration."
-#elif defined(ANET_KEYPAD_LCD)
-  #error "ANET_KEYPAD_LCD is now ZONESTAR_LCD. Please update your configuration."
 #elif defined(LCD_I2C_SAINSMART_YWROBOT)
   #error "LCD_I2C_SAINSMART_YWROBOT is now LCD_SAINSMART_I2C_(1602|2004). Please update your configuration."
-#elif defined(MEASURED_LOWER_LIMIT) || defined(MEASURED_UPPER_LIMIT)
-  #error "MEASURED_(UPPER|LOWER)_LIMIT is now FILWIDTH_ERROR_MARGIN. Please update your configuration."
 #elif defined(HAVE_TMCDRIVER)
   #error "HAVE_TMCDRIVER is now [AXIS]_DRIVER_TYPE TMC26X. Please update your Configuration.h."
 #elif defined(STEALTHCHOP)
@@ -316,10 +300,6 @@
   #error "MBL_Z_STEP is now MESH_EDIT_Z_STEP. Please update your configuration."
 #elif defined(CHDK)
   #error "CHDK is now CHDK_PIN. Please update your Configuration_adv.h."
-#elif defined(MAX6675_SS)
-  #error "MAX6675_SS is now MAX6675_SS_PIN. Please update your configuration and/or pins."
-#elif defined(MAX6675_SS2)
-  #error "MAX6675_SS2 is now MAX6675_SS2_PIN. Please update your configuration and/or pins."
 #elif defined(SPINDLE_LASER_ENABLE)
   #error "SPINDLE_LASER_ENABLE is now SPINDLE_FEATURE or LASER_FEATURE. Please update your Configuration_adv.h."
 #elif defined(SPINDLE_LASER_ENABLE_PIN)
@@ -517,8 +497,6 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
     #error "LCD_PROGRESS_BAR requires LCD_SET_PROGRESS_MANUALLY."
   #elif 1
     #error "LCD_PROGRESS_BAR requires a character LCD."
-  #elif ENABLED(FILAMENT_LCD_DISPLAY)
-    #error "LCD_PROGRESS_BAR and FILAMENT_LCD_DISPLAY are not fully compatible. Comment out this line to use both."
   #elif PROGRESS_MSG_EXPIRE < 0
     #error "PROGRESS_MSG_EXPIRE must be greater than or equal to 0."
   #endif
@@ -666,10 +644,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 
   #if EXTRUDERS > 6
     #error "Marlin supports a maximum of 6 EXTRUDERS."
-  #endif
-
-  #if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT)
-    #error "EXTRUDERS must be 1 with TEMP_SENSOR_1_AS_REDUNDANT."
   #endif
 
   #if ENABLED(HEATERS_PARALLEL)
@@ -895,13 +869,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
  */
 #if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) && !HAS_Z_SERVO_PROBE && !defined(SWITCHING_NOZZLE_SERVO_NR) && !defined(SWITCHING_EXTRUDER_SERVO_NR) && !defined(SWITCHING_TOOLHEAD_SERVO_NR)
   #error "Z_PROBE_SERVO_NR, switching nozzle, switching toolhead or switching extruder is required for DEACTIVATE_SERVOS_AFTER_MOVE."
-#endif
-
-/**
- * Bed Heating Options - PID vs Limit Switching
- */
-#if BOTH(PIDTEMPBED, BED_LIMIT_SWITCHING)
-  #error "To use BED_LIMIT_SWITCHING you must disable PIDTEMPBED."
 #endif
 
 /**
@@ -1166,17 +1133,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #endif
 #endif
 
-/**
- * Filament Width Sensor
- */
-#if ENABLED(FILAMENT_WIDTH_SENSOR)
-  #if !HAS_FILAMENT_WIDTH_SENSOR
-    #error "FILAMENT_WIDTH_SENSOR requires a FILWIDTH_PIN to be defined."
-  #elif ENABLED(NO_VOLUMETRICS)
-    #error "FILAMENT_WIDTH_SENSOR requires NO_VOLUMETRICS to be disabled."
-  #endif
-#endif
-
 #if ENCODER_PULSES_PER_STEP < 0
   #error "ENCODER_PULSES_PER_STEP should not be negative, use REVERSE_MENU_DIRECTION instead."
 #endif
@@ -1236,24 +1192,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #endif
 #endif
 
-#if HAS_FAN0 && CONTROLLER_FAN_PIN == FAN_PIN
-  #error "You cannot set CONTROLLER_FAN_PIN equal to FAN_PIN."
-#endif
-
-#if ENABLED(USE_CONTROLLER_FAN)
-  #if !HAS_CONTROLLER_FAN
-    #error "USE_CONTROLLER_FAN requires a CONTROLLER_FAN_PIN. Define in Configuration_adv.h."
-  #elif E0_AUTO_FAN_PIN == CONTROLLER_FAN_PIN
-    #error "You cannot set E0_AUTO_FAN_PIN equal to CONTROLLER_FAN_PIN."
-  #elif E1_AUTO_FAN_PIN == CONTROLLER_FAN_PIN
-    #error "You cannot set E1_AUTO_FAN_PIN equal to CONTROLLER_FAN_PIN."
-  #elif E2_AUTO_FAN_PIN == CONTROLLER_FAN_PIN
-    #error "You cannot set E2_AUTO_FAN_PIN equal to CONTROLLER_FAN_PIN."
-  #elif E3_AUTO_FAN_PIN == CONTROLLER_FAN_PIN
-    #error "You cannot set E3_AUTO_FAN_PIN equal to CONTROLLER_FAN_PIN."
-  #endif
-#endif
-
 /**
  * Case Light requirements
  */
@@ -1266,36 +1204,11 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 /**
- * Required custom thermistor settings
- */
-#if   ENABLED(HEATER_0_USER_THERMISTOR) && !(defined(HOTEND0_PULLUP_RESISTOR_OHMS) && defined(HOTEND0_RESISTANCE_25C_OHMS) && defined(HOTEND0_BETA))
-  #error "TEMP_SENSOR_0 1000 requires HOTEND0_PULLUP_RESISTOR_OHMS, HOTEND0_RESISTANCE_25C_OHMS and HOTEND0_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_1_USER_THERMISTOR) && !(defined(HOTEND1_PULLUP_RESISTOR_OHMS) && defined(HOTEND1_RESISTANCE_25C_OHMS) && defined(HOTEND1_BETA))
-  #error "TEMP_SENSOR_1 1000 requires HOTEND1_PULLUP_RESISTOR_OHMS, HOTEND1_RESISTANCE_25C_OHMS and HOTEND1_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_2_USER_THERMISTOR) && !(defined(HOTEND2_PULLUP_RESISTOR_OHMS) && defined(HOTEND2_RESISTANCE_25C_OHMS) && defined(HOTEND2_BETA))
-  #error "TEMP_SENSOR_2 1000 requires HOTEND2_PULLUP_RESISTOR_OHMS, HOTEND2_RESISTANCE_25C_OHMS and HOTEND2_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_3_USER_THERMISTOR) && !(defined(HOTEND3_PULLUP_RESISTOR_OHMS) && defined(HOTEND3_RESISTANCE_25C_OHMS) && defined(HOTEND3_BETA))
-  #error "TEMP_SENSOR_3 1000 requires HOTEND3_PULLUP_RESISTOR_OHMS, HOTEND3_RESISTANCE_25C_OHMS and HOTEND3_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_4_USER_THERMISTOR) && !(defined(HOTEND4_PULLUP_RESISTOR_OHMS) && defined(HOTEND4_RESISTANCE_25C_OHMS) && defined(HOTEND4_BETA))
-  #error "TEMP_SENSOR_4 1000 requires HOTEND4_PULLUP_RESISTOR_OHMS, HOTEND4_RESISTANCE_25C_OHMS and HOTEND4_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_5_USER_THERMISTOR) && !(defined(HOTEND5_PULLUP_RESISTOR_OHMS) && defined(HOTEND5_RESISTANCE_25C_OHMS) && defined(HOTEND5_BETA))
-  #error "TEMP_SENSOR_5 1000 requires HOTEND5_PULLUP_RESISTOR_OHMS, HOTEND5_RESISTANCE_25C_OHMS and HOTEND5_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_BED_USER_THERMISTOR) && !(defined(BED_PULLUP_RESISTOR_OHMS) && defined(BED_RESISTANCE_25C_OHMS) && defined(BED_BETA))
-  #error "TEMP_SENSOR_BED 1000 requires BED_PULLUP_RESISTOR_OHMS, BED_RESISTANCE_25C_OHMS and BED_BETA in Configuration_adv.h."
-#elif ENABLED(HEATER_CHAMBER_USER_THERMISTOR) && !(defined(CHAMBER_PULLUP_RESISTOR_OHMS) && defined(CHAMBER_RESISTANCE_25C_OHMS) && defined(CHAMBER_BETA))
-  #error "TEMP_SENSOR_CHAMBER 1000 requires CHAMBER_PULLUP_RESISTOR_OHMS, CHAMBER_RESISTANCE_25C_OHMS and CHAMBER_BETA in Configuration_adv.h."
-#elif ENABLED(HEATBREAK_USER_THERMISTOR) && !(defined(HEATBREAK_PULLUP_RESISTOR_OHMS) && defined(HEATBREAK_RESISTANCE_25C_OHMS) && defined(HEATBREAK_BETA))
-  #error "TEMP_SENSOR_HEATBREAK 1000 requires HEATBREAK_PULLUP_RESISTOR_OHMS, HEATBREAK_RESISTANCE_25C_OHMS and HEATBREAK_BETA in Configuration_adv.h."
-#elif ENABLED(BOARD_USER_THERMISTOR) && !(defined(BOARD_PULLUP_RESISTOR_OHMS) && defined(BOARD_RESISTANCE_25C_OHMS) && defined(BOARD_BETA))
-  #error "TEMP_SENSOR_BOARD 2000 requires BOARD_PULLUP_RESISTOR_OHMS, BOARD_RESISTANCE_25C_OHMS and BOARD_BETA in Configuration_adv.h."
-#endif
-
-/**
  * Test Heater, Temp Sensor, and Extruder Pins; Sensor Type must also be set.
  */
 #if !HAS_HEATER_0
   #error "HEATER_0_PIN not defined for this board."
-#elif !ANY_PIN(TEMP_0, MAX6675_SS)
+#elif !ANY_PIN(TEMP_0)
   #error "TEMP_0_PIN not defined for this board."
 #elif ((defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284P__)) && !PINS_EXIST(E0_STEP, E0_DIR))
   #error "E0_STEP_PIN or E0_DIR_PIN not defined for this board."
@@ -1306,18 +1219,14 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 // Pins are required for heaters
-#if ENABLED(HEATER_0_USES_MAX6675) && !PIN_EXISTS(MAX6675_SS)
-  #error "MAX6675_SS_PIN (required for TEMP_SENSOR_0) not defined for this board."
-#elif (HOTENDS > 1 || ENABLED(HEATERS_PARALLEL)) && !HAS_HEATER_1
+#if (HOTENDS > 1 || ENABLED(HEATERS_PARALLEL)) && !HAS_HEATER_1
   #error "HEATER_1_PIN not defined for this board."
 #endif
 
 #if HOTENDS > 1
-  #if ENABLED(HEATER_1_USES_MAX6675) && !PIN_EXISTS(MAX6675_SS2)
-    #error "MAX6675_SS2_PIN (required for TEMP_SENSOR_1) not defined for this board."
-  #elif TEMP_SENSOR_1 == 0
+  #if TEMP_SENSOR_1 == 0
     #error "TEMP_SENSOR_1 is required with 2 or more HOTENDS."
-  #elif !ANY_PIN(TEMP_1, MAX6675_SS2)
+  #elif !ANY_PIN(TEMP_1)
     #error "TEMP_1_PIN not defined for this board."
   #endif
   #if HOTENDS > 2
@@ -1376,7 +1285,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #elif TEMP_SENSOR_5 != 0
     #error "TEMP_SENSOR_5 shouldn't be set with only 2 HOTENDS."
   #endif
-#elif TEMP_SENSOR_1 != 0 && DISABLED(TEMP_SENSOR_1_AS_REDUNDANT)
+#elif TEMP_SENSOR_1 != 0
   #error "TEMP_SENSOR_1 shouldn't be set with only 1 HOTEND."
 #elif TEMP_SENSOR_2 != 0
   #error "TEMP_SENSOR_2 shouldn't be set with only 1 HOTEND."
@@ -1386,31 +1295,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #error "TEMP_SENSOR_4 shouldn't be set with only 1 HOTEND."
 #elif TEMP_SENSOR_5 != 0
   #error "TEMP_SENSOR_5 shouldn't be set with only 1 HOTEND."
-#endif
-
-#if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT) && TEMP_SENSOR_1 == 0
-  #error "TEMP_SENSOR_1 is required with TEMP_SENSOR_1_AS_REDUNDANT."
-#endif
-
-/**
- * Temperature status LEDs
- */
-#if ENABLED(TEMP_STAT_LEDS) && !ANY_PIN(STAT_LED_RED, STAT_LED_BLUE)
-  #error "TEMP_STAT_LEDS requires STAT_LED_RED_PIN or STAT_LED_BLUE_PIN, preferably both."
-#endif
-
-/**
- * LED Control Menu
- */
-#if ENABLED(LED_CONTROL_MENU) && !HAS_COLOR_LEDS
-  #error "LED_CONTROL_MENU requires BLINKM, RGB_LED, RGBW_LED, PCA9533, PCA9632, or NEOPIXEL_LED."
-#endif
-
-/**
- * LED Backlight Timeout
- */
-#if defined(LED_BACKLIGHT_TIMEOUT) && !(EITHER(FYSETC_MINI_12864_2_0, FYSETC_MINI_12864_2_1) && HAS_POWER_SWITCH)
-  #error "LED_BACKLIGHT_TIMEOUT requires a FYSETC Mini Panel and a Power Switch."
 #endif
 
 /**
@@ -1626,29 +1510,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 /**
- * RGB_LED Requirements
- */
-#define _RGB_TEST (PIN_EXISTS(RGB_LED_R, RGB_LED_G, RGB_LED_B))
-#if ENABLED(PRINTER_EVENT_LEDS) && !HAS_COLOR_LEDS
-  #error "PRINTER_EVENT_LEDS requires BLINKM, PCA9533, PCA9632, RGB_LED, RGBW_LED or NEOPIXEL_LED."
-#elif ENABLED(RGB_LED)
-  #if !_RGB_TEST
-    #error "RGB_LED requires RGB_LED_R_PIN, RGB_LED_G_PIN, and RGB_LED_B_PIN."
-  #elif ENABLED(RGBW_LED)
-    #error "Please enable only one of RGB_LED and RGBW_LED."
-  #endif
-#elif ENABLED(RGBW_LED)
-  #if !(_RGB_TEST && PIN_EXISTS(RGB_LED_W))
-    #error "RGBW_LED requires RGB_LED_R_PIN, RGB_LED_G_PIN, RGB_LED_B_PIN, and RGB_LED_W_PIN."
-  #endif
-#elif ENABLED(NEOPIXEL_LED)
-  #if !(PIN_EXISTS(NEOPIXEL) && NEOPIXEL_PIXELS > 0)
-    #error "NEOPIXEL_LED requires NEOPIXEL_PIN and NEOPIXEL_PIXELS."
-  #endif
-#endif
-#undef _RGB_TEST
-
-/**
  * Auto Fan check for PWM pins
  */
 #if HAS_AUTO_FAN && EXTRUDER_AUTO_FAN_SPEED != 255
@@ -1672,7 +1533,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   + (ENABLED(REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER) && DISABLED(IS_RRD_FG_SC)) \
   + (ENABLED(U8GLIB_SSD1306) && DISABLED(IS_U8GLIB_SSD1306)) \
   + (ENABLED(MINIPANEL) && DISABLED(MKS_MINI_12864)) \
-  + (ENABLED(REPRAPWORLD_KEYPAD) && DISABLED(IS_RRW_KEYPAD)) \
   + (ENABLED(EXTENSIBLE_UI) && DISABLED(IS_EXTUI)) \
   + ENABLED(RADDS_DISPLAY) \
   + ENABLED(ULTIMAKERCONTROLLER) \
@@ -1680,7 +1540,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   + ENABLED(G3D_PANEL) \
   + ENABLED(RIGIDBOT_PANEL) \
   + ENABLED(MAKEBOARD_MINI_2_LINE_DISPLAY_1602) \
-  + ENABLED(ZONESTAR_LCD) \
   + ENABLED(LCD_SAINSMART_I2C_1602) \
   + ENABLED(LCD_SAINSMART_I2C_2004) \
   + ENABLED(LCM1602) \
@@ -1698,10 +1557,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   + ENABLED(LCD_FOR_MELZI) \
   + ENABLED(ULTI_CONTROLLER) \
   + ENABLED(MKS_MINI_12864) \
-  + ENABLED(FYSETC_MINI_12864_X_X) \
-  + ENABLED(FYSETC_MINI_12864_1_2) \
-  + ENABLED(FYSETC_MINI_12864_2_0) \
-  + ENABLED(FYSETC_MINI_12864_2_1) \
   + ENABLED(CR10_STOCKDISPLAY) \
   + ENABLED(ANET_FULL_GRAPHICS_LCD) \
   + ENABLED(AZSMZ_12864) \
@@ -1719,17 +1574,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #undef IS_RRD_SC
 #undef IS_RRD_FG_SC
 #undef IS_U8GLIB_SSD1306
-#undef IS_RRW_KEYPAD
 #undef IS_EXTUI
-
-/**
- * FYSETC Mini 12864 RGB backlighting required
- */
-#if EITHER(FYSETC_MINI_12864_1_2, FYSETC_MINI_12864_2_0) && DISABLED(RGB_LED)
-  #error "RGB_LED is required for FYSETC_MINI_12864 1.2 and 2.0."
-#elif EITHER(FYSETC_MINI_12864_2_0, FYSETC_MINI_12864_2_1) && DISABLED(LED_USER_PRESET_STARTUP)
-  #error "LED_USER_PRESET_STARTUP is required for FYSETC_MINI_12864 2.x displays."
-#endif
 
 /**
  * Check existing CS pins against enabled TMC SPI drivers.
@@ -2105,14 +1950,6 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
   #endif
 #endif
 
-#if ENABLED(LED_CONTROL_MENU)
-  #error "LED_CONTROL_MENU requires an LCD controller."
-#endif
-
-#if ENABLED(CASE_LIGHT_USE_NEOPIXEL) && DISABLED(NEOPIXEL_LED)
-  #error "CASE_LIGHT_USE_NEOPIXEL requires NEOPIXEL_LED."
-#endif
-
 #if ENABLED(SKEW_CORRECTION)
   #if !defined(XY_SKEW_FACTOR) && !(defined(XY_DIAG_AC) && defined(XY_DIAG_BD) && defined(XY_SIDE_AD))
     #error "SKEW_CORRECTION requires XY_SKEW_FACTOR or XY_DIAG_AC, XY_DIAG_BD, XY_SIDE_AD."
@@ -2309,8 +2146,6 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
       #error "SPINDLE_LASER_PWM_PIN conflicts with FAN1_PIN."
     #elif _PIN_CONFLICT(FAN2)
       #error "SPINDLE_LASER_PWM_PIN conflicts with FAN2_PIN."
-    #elif _PIN_CONFLICT(CONTROLLERFAN)
-      #error "SPINDLE_LASER_PWM_PIN conflicts with CONTROLLERFAN_PIN."
     #endif
   #endif
   #undef _PIN_CONFLICT

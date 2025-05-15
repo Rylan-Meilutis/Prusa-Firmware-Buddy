@@ -166,6 +166,7 @@ bool PrusaToolChangerUtils::update() {
 
     // Update physically picked tool
     autodetect_active_tool();
+    force_marlin_picked_tool(picked_dwarf);
     return true;
 }
 
@@ -454,6 +455,24 @@ void PrusaToolChangerUtils::expand_first_dock_position() {
         };
         set_tool_info(dwarfs[i], computed);
     }
+}
+
+PrusaToolChangerUtils::StepperConfigGuard::StepperConfigGuard() {
+    x_current_ma = stepperX.rms_current();
+    x_stall_sensitivity = stepperX.stall_sensitivity();
+    y_current_ma = stepperY.rms_current();
+    y_stall_sensitivity = stepperY.stall_sensitivity();
+    stepperX.rms_current(PARKING_CURRENT_MA);
+    stepperX.stall_sensitivity(PARKING_STALL_SENSITIVITY);
+    stepperY.rms_current(PARKING_CURRENT_MA);
+    stepperY.stall_sensitivity(PARKING_STALL_SENSITIVITY);
+}
+
+PrusaToolChangerUtils::StepperConfigGuard::~StepperConfigGuard() {
+    stepperX.rms_current(x_current_ma);
+    stepperX.stall_sensitivity(x_stall_sensitivity);
+    stepperY.rms_current(y_current_ma);
+    stepperY.stall_sensitivity(y_stall_sensitivity);
 }
 
 PrusaToolInfo PrusaToolChangerUtils::compute_synthetic_tool_info(const Dwarf &dwarf) const {

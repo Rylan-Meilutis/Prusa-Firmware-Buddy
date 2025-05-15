@@ -331,16 +331,29 @@ set(PRINTERS_WITH_RESOURCES "MINI" "MK4" "MK3.5" "XL" "iX" "COREONE")
 set_feature_for_printers(HAS_BOWDEN "MINI")
 set(PRINTERS_WITH_PUPPIES_BOOTLOADER "XL" "iX" "XL_DEV_KIT" "COREONE")
 set(PRINTERS_WITH_DWARF "XL" "XL_DEV_KIT")
-set_feature_for_printers_master_board(HAS_MODULARBED "iX" "XL" "XL_DEV_KIT")
+
+# MODULAR_BED is a bed consisting of several bedlets
+set_feature_for_printers_master_board(HAS_MODULAR_BED "iX" "XL" "XL_DEV_KIT")
+# REMOTE_BED means there is a daughterboard controlling the bed
+set_feature_for_printers_master_board(HAS_REMOTE_BED "iX" "XL" "XL_DEV_KIT")
+# LOCAL_BED means the motherboard is directly controlling the bed
+set_feature_for_printers_master_board(HAS_LOCAL_BED "COREONE" "MINI" "MK4" "MK3.5")
+# PUPPY_MODULARBED is remote modular bed implemented as a puppy, i.e. communicating over modbus
+set_feature_for_printers_master_board(HAS_PUPPY_MODULARBED "iX" "XL" "XL_DEV_KIT")
+
 set_feature_for_printers_master_board(HAS_XBUDDY_EXTENSION "COREONE")
-set_feature_for_printers_master_board(HAS_DOOR_SENSOR "COREONE" "MK4") # MK4: check valid FW-HW
+set_feature_for_printers_master_board(XBUDDY_EXTENSION_VARIANT_STANDARD "COREONE")
+
+# MK4 technically doesn't have door sensor but needs to check valid FW-HW
+set_feature_for_printers_master_board(HAS_DOOR_SENSOR "COREONE" "MK4")
 set_feature_for_printers(HAS_TOOLCHANGER "XL" "XL_DEV_KIT")
 set_feature_for_printers(HAS_SIDE_FSENSOR "iX" "XL" "COREONE")
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
 set_feature_for_printers(HAS_FILAMENT_SENSORS_MENU "XL" "COREONE")
-set_feature_for_printers(HAS_ESP_FLASH_TASK "MK4" "MK3.5" "XL" "MINI" "COREONE") # iX does not need
-                                                                                 # ESP
-# flashing
+
+# iX does not need ESP flashing
+set_feature_for_printers(HAS_ESP_FLASH_TASK "MK4" "MK3.5" "XL" "MINI" "COREONE")
+
 set_feature_for_printers(HAS_EMBEDDED_ESP32 "XL")
 set(PRINTERS_WITH_SIDE_LEDS "XL" "iX" "COREONE")
 set(PRINTERS_WITH_TRANSLATIONS "COREONE" "MK4" "MK3.5" "XL" "MINI")
@@ -351,7 +364,7 @@ set_feature_for_printers(HAS_XLCD "MK4" "MK3.5" "iX" "XL" "COREONE")
 set_feature_for_printers(HAS_MMU2 "MK4" "MK3.5" "COREONE")
 set_feature_for_printers(HAS_CONFIG_STORE_WO_BACKEND "XL_DEV_KIT")
 set_feature_for_printers_master_board(HAS_CHAMBER_API "XL" "COREONE")
-set_feature_for_printers_master_board(HAS_CHAMBER_FILTRATION_API "COREONE")
+set_feature_for_printers_master_board(HAS_CHAMBER_FILTRATION_API "COREONE" "XL")
 set_feature_for_printers_master_board(XL_ENCLOSURE_SUPPORT "XL")
 set_feature_for_printers(HAS_SWITCHED_FAN_TEST "MK4" "MK3.5" "COREONE")
 set_feature_for_printers_master_board(HAS_HOTEND_TYPE_SUPPORT "MK4" "MK3.5" "iX" "COREONE" "XL")
@@ -423,7 +436,7 @@ set(BOARDS_WITH_ADVANCED_POWER "XBUDDY" "XLBUDDY" "DWARF")
 set(BOARDS_WITH_ILI9488 "XBUDDY" "XLBUDDY")
 set(BOARDS_WITH_ST7789V "BUDDY")
 set(BOARDS_WITH_ACCELEROMETER "XBUDDY" "DWARF")
-set(BOARDS_WITH_ARDUINO_USB_SERIAL "BUDDY" "XBUDDY" "XLBUDDY")
+set(BOARDS_WITH_USB_DEVICE "BUDDY" "XBUDDY" "XLBUDDY")
 
 if(${TRANSLATIONS_ENABLED} STREQUAL "<default>")
   if(${PRINTER} IN_LIST PRINTERS_WITH_TRANSLATIONS)
@@ -591,7 +604,7 @@ endif()
 define_boolean_option(HAS_DWARF ${HAS_DWARF})
 
 if(HAS_DWARF
-   OR HAS_MODULARBED
+   OR HAS_PUPPY_MODULARBED
    OR HAS_XBUDDY_EXTENSION
    )
   set(HAS_PUPPIES YES)
@@ -599,6 +612,13 @@ else()
   set(HAS_PUPPIES NO)
 endif()
 define_boolean_option(HAS_PUPPIES ${HAS_PUPPIES})
+
+if(${BOARD} IN_LIST BOARDS_WITH_USB_DEVICE)
+  set(HAS_USB_DEVICE YES)
+else()
+  set(HAS_USB_DEVICE NO)
+endif()
+define_boolean_option(HAS_USB_DEVICE ${HAS_USB_DEVICE})
 
 if(${BOARD} STREQUAL "XBUDDY" AND HAS_MMU2)
   # for XBUDDY based printers, UART6 is being used either for puppies/MODBUS or directly for the MMU

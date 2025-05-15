@@ -88,10 +88,6 @@
   #include "feature/digipot/digipot.h"
 #endif
 
-#if HAS_COLOR_LEDS
-  #include "feature/leds/leds.h"
-#endif
-
 #if ENABLED(BLTOUCH)
   #include "feature/bltouch.h"
 #endif
@@ -140,10 +136,6 @@
   #include "feature/runout.h"
 #endif
 
-#if ENABLED(TEMP_STAT_LEDS)
-  #include "feature/leds/tempstat.h"
-#endif
-
 #if HAS_CASE_LIGHT
   #include "feature/caselight.h"
 #endif
@@ -154,10 +146,6 @@
 
 #if DO_SWITCH_EXTRUDER || ANY(SWITCHING_NOZZLE, PARKING_EXTRUDER, MAGNETIC_PARKING_EXTRUDER, ELECTROMAGNETIC_SWITCHING_TOOLHEAD)
   #include "module/tool_change.h"
-#endif
-
-#if ENABLED(USE_CONTROLLER_FAN)
-  #include "feature/controllerfan.h"
 #endif
 
 #if ENABLED(PRUSA_MMU2)
@@ -474,10 +462,6 @@ void manage_inactivity(const bool ignore_stepper_queue/*=false*/) {
     }
   #endif
 
-  #if ENABLED(USE_CONTROLLER_FAN)
-    controllerfan_update(); // Check if fan should be turned on to cool stepper drivers down
-  #endif
-
   #if ENABLED(AUTO_POWER_CONTROL)
     powerManager.check();
   #endif
@@ -570,10 +554,6 @@ void manage_inactivity(const bool ignore_stepper_queue/*=false*/) {
       destination = current_position;
       prepare_move_to_destination();
     }
-  #endif
-
-  #if ENABLED(TEMP_STAT_LEDS)
-    handle_status_leds();
   #endif
 
   #if ENABLED(MONITOR_DRIVER_STATUS)
@@ -737,24 +717,6 @@ void setup() {
 
   HAL_init();
 
-  #if ENABLED(DISABLE_DEBUG)
-    // Disable any hardware debug to free up pins for IO
-    #ifdef JTAGSWD_DISABLE
-      JTAGSWD_DISABLE();
-    #elif defined(JTAG_DISABLE)
-      JTAG_DISABLE();
-    #else
-      #error "DISABLE_DEBUG is not supported for the selected MCU/Board"
-    #endif
-  #elif ENABLED(DISABLE_JTAG)
-    // Disable JTAG to free up pins for IO
-    #ifdef JTAG_DISABLE
-      JTAG_DISABLE();
-    #else
-      #error "DISABLE_JTAG is not supported for the selected MCU/Board"
-    #endif
-  #endif
-
   #if HAS_FILAMENT_SENSOR
     runout.setup();
   #endif
@@ -829,11 +791,6 @@ void setup() {
   // UI must be initialized before EEPROM
   // (because EEPROM code calls the UI).
 
-  // Set up LEDs early
-  #if HAS_COLOR_LEDS
-    leds.setup();
-  #endif
-
   #if ENABLED(EXTENSIBLE_UI)
     ui.init();
     ui.reset_status();
@@ -901,10 +858,6 @@ void setup() {
     endstops.enable_z_probe(false);
   #endif
 
-  #if ENABLED(USE_CONTROLLER_FAN)
-    SET_OUTPUT(CONTROLLER_FAN_PIN);
-  #endif
-
   #if HAS_STEPPER_RESET
     enableStepperDrivers();
   #endif
@@ -929,18 +882,8 @@ void setup() {
     enable_Z();
   #endif
 
-  #if PIN_EXISTS(STAT_LED_RED)
-    OUT_WRITE(STAT_LED_RED_PIN, LOW); // OFF
-  #endif
-
-  #if PIN_EXISTS(STAT_LED_BLUE)
-    OUT_WRITE(STAT_LED_BLUE_PIN, LOW); // OFF
-  #endif
-
   #if HAS_CASE_LIGHT
-    #if DISABLED(CASE_LIGHT_USE_NEOPIXEL)
       if (PWM_PIN(CASE_LIGHT_PIN)) SET_PWM(CASE_LIGHT_PIN); else SET_OUTPUT(CASE_LIGHT_PIN);
-    #endif
     update_case_light();
   #endif
 

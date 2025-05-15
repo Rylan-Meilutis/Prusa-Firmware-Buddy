@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <option/has_local_bed.h>
+
 //
 // Prepare a list of protected pins for M42/M43
 //
@@ -365,7 +367,11 @@
   #endif // HOTENDS > 1
 #endif // HOTENDS
 
-#define _BED_PINS HEATER_BED_PIN, analogInputToDigitalPin(TEMP_BED_PIN),
+#if HAS_LOCAL_BED()
+#define _BED_PINS MARLIN_PIN(BED_HEAT), MARLIN_PIN(TEMP_BED),
+#else
+#define _BED_PINS
+#endif
 
 //
 // Dual X, Dual Y, Multi-Z
@@ -493,8 +499,8 @@
   #define _Z_PROBE
 #endif
 
-#if TEMP_SENSOR_BED && PIN_EXISTS(HEATER_BED)
-  #define _HEATER_BED HEATER_BED_PIN,
+#if TEMP_SENSOR_BED && HAS_LOCAL_BED()
+  #define _HEATER_BED MARLIN_PIN(BED_HEAT),
 #else
   #define _HEATER_BED
 #endif
@@ -514,11 +520,6 @@
 #else
   #define _FAN2
 #endif
-#if PIN_EXISTS(CONTROLLER_FAN)
-  #define _FANC CONTROLLER_FAN_PIN,
-#else
-  #define _FANC
-#endif
 
 #ifndef HAL_SENSITIVE_PINS
   #define HAL_SENSITIVE_PINS
@@ -528,6 +529,6 @@
   _X_PINS _Y_PINS _Z_PINS _X2_PINS _Y2_PINS _Z2_PINS _Z3_PINS _Z_PROBE \
   _E0_PINS _E1_PINS _E2_PINS _E3_PINS _E4_PINS _E5_PINS _BED_PINS \
   _H0_PINS _H1_PINS _H2_PINS _H3_PINS _H4_PINS _H5_PINS \
-  _PS_ON _HEATER_BED _FAN0 _FAN1 _FAN2 _FANC \
+  _PS_ON _HEATER_BED _FAN0 _FAN1 _FAN2 \
   HAL_SENSITIVE_PINS \
 }

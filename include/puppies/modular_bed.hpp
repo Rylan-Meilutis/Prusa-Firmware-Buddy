@@ -5,9 +5,10 @@
 #include "module/modular_heatbed.h"
 #include <modular_bed_errors.hpp>
 #include <modular_bed_registers.hpp>
+#include <option/has_puppy_modularbed.h>
 #include <utility_extensions.hpp>
 
-#if HAS_MODULARBED()
+static_assert(HAS_PUPPY_MODULARBED());
 
 namespace buddy::puppies {
 
@@ -83,6 +84,8 @@ public:
     float get_heater_current();
 
     uint16_t get_mcu_temperature();
+
+    void safe_state();
 
 private:
     MODBUS_DISCRETE GeneralStatus {
@@ -172,5 +175,3 @@ private:
 extern ModularBed modular_bed;
 
 } // namespace buddy::puppies
-
-#endif

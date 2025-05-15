@@ -5,6 +5,10 @@
 #include <feature/chamber/chamber.hpp>
 #include <numeric_input_config_common.hpp>
 
+#include <screen_change_filter.hpp>
+#include <ScreenHandler.hpp>
+#include <option/xl_enclosure_support.h>
+
 using namespace buddy;
 
 // MI_CHAMBER_FILTRATION_BACKEND
@@ -26,16 +30,25 @@ void MI_CHAMBER_FILTRATION_BACKEND::build_item_text(int index, const std::span<c
 }
 
 bool MI_CHAMBER_FILTRATION_BACKEND::on_item_selected(int, int new_index) {
-    config_store().chamber_filtration_backend.set(items_[new_index]);
+    chamber_filtration().set_backend(items_[new_index]);
     return true;
+}
+
+// MI_CHAMBER_PRINT_FILTRATION
+// ============================================
+MI_CHAMBER_PRINT_FILTRATION::MI_CHAMBER_PRINT_FILTRATION()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().chamber_print_filtration_enable.get(), _("Print Filtration")) {}
+
+void MI_CHAMBER_PRINT_FILTRATION::OnChange(size_t) {
+    config_store().chamber_print_filtration_enable.set(value());
 }
 
 // MI_CHAMBER_PRINT_FILTRATION_POWER
 // ============================================
 static constexpr NumericInputConfig print_power_numeric_config {
+    .min_value = 5,
     .max_value = 100,
     .step = 5,
-    .special_value = 0,
     .unit = Unit::percent,
 };
 
@@ -44,6 +57,10 @@ MI_CHAMBER_PRINT_FILTRATION_POWER::MI_CHAMBER_PRINT_FILTRATION_POWER()
 
 void MI_CHAMBER_PRINT_FILTRATION_POWER::OnClick() {
     config_store().chamber_mid_print_filtration_pwm.set(PWM255::from_percent(value()));
+}
+
+void MI_CHAMBER_PRINT_FILTRATION_POWER::Loop() {
+    set_enabled(config_store().chamber_print_filtration_enable.get());
 }
 
 // MI_CHAMBER_POST_PRINT_FILTRATION
@@ -132,9 +149,12 @@ MI_CHAMBER_CHANGE_FILTER::MI_CHAMBER_CHANGE_FILTER()
     : IWindowMenuItem(_("Change Filter")) {}
 
 void MI_CHAMBER_CHANGE_FILTER::click(IWindowMenu &) {
+#if XL_ENCLOSURE_SUPPORT()
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeFilter>);
+#else
     if (MsgBoxQuestion(_("Reset filter usage?"), Responses_YesNo) != Response::Yes) {
         return;
     }
-
     chamber_filtration().change_filter();
+#endif
 }

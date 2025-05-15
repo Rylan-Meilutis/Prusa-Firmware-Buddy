@@ -23,10 +23,10 @@
 
 #define MOTHERBOARD BOARD_XLBUDDY_V1
 
-#include <option/has_toolchanger.h>
 #include <option/has_loadcell.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
+#include <option/has_toolchanger.h>
 // clang-format off
 
 /**
@@ -271,31 +271,6 @@
 #endif
 
 /**
- * Modular heatbed(MHB)
- *
- *  Heatbed composed of multiple smaller heatbedlets.
- *  Allows separate temperature controll of individual heatbedlets(HBL).
- *
- *
- */
-#define MODULAR_HEATBED
-#if ENABLED(MODULAR_HEATBED)
-    #define X_HBL_COUNT 4   // Number of heatbedlets in X direction
-    #define Y_HBL_COUNT 4   // Number of heatbedlets in Y direction
-    #define X_HBL_SIZE  90  // Size of single heatbedlet in X direction including gap between heatbedlets(mm)
-    #define Y_HBL_SIZE  90  // Size of single heatbedlet in Y direction including gap between heatbedlets(mm)
-    #define PRINT_AREA_BASED_HEATING_ENABLED get_print_area_based_heating_enabled()
-
-
-    // Bedlet temperature gradient calculation, uses this equation:
-    // BEDLET_TEMP = NEAREST_ACTIVE_BEDLET_TEMPERATURE - NEAREST_ACTIVE_BEDLET_TEMPERATURE * ( 1 / HBL_GRADIENT_CUTOFF * ACTIVE_BEDLET_DISTANCE)^HBL_GRADIENT_EXPONENT;
-    #define HBL_GRADIENT_EXPONENT 2.0f // Exponent used in equation to calculate heatbedlets temperature gradient
-    #define HBL_GRADIENT_CUTOFF 2.0f // Bedlet this far apart from active bedlet will have zero target temperature
-    #define HBL_EXPAND_TO_SIDES true // Enable expansion of heated area to sides in order to prevent warping from bed material thermal expansion
-
-#endif //MODULAR_HEATBED
-
-/**
  * Prusa Toolchanger
  *
  *  Multiple semi-independent extruders.
@@ -330,10 +305,6 @@
  *
  * Temperature sensors available:
  *
- *    -4 : thermocouple with AD8495
- *    -3 : thermocouple with MAX31855 (only for sensor 0)
- *    -2 : thermocouple with MAX6675 (only for sensor 0)
- *    -1 : thermocouple with AD595
  *     0 : not used
  *     1 : 100k thermistor - best choice for EPCOS 100k (4.7k pullup)
  *     2 : 200k thermistor - ATC Semitec 204GT-2 (4.7k pullup)
@@ -375,8 +346,6 @@
  *   999 : Dummy Table that ALWAYS reads 100°C or the temperature defined below.
  *
  *  2000 : 100k TDK NTC Chip Thermistor 100K NTCG104LH104JT1 thermistor (4k7 pullup) board thermistor
- *
- * :{ '0': "Not used", '1':"100k / 4.7k - EPCOS", '2':"200k / 4.7k - ATC Semitec 204GT-2", '3':"Mendel-parts / 4.7k", '4':"10k !! do not use for a hotend. Bad resolution at high temp. !!", '5':"100K / 4.7k - ATC Semitec 104GT-2 (Used in ParCan & J-Head)", '501':"100K Zonestar (Tronxy X3A)", '6':"100k / 4.7k EPCOS - Not as accurate as Table 1", '7':"100k / 4.7k Honeywell 135-104LAG-J01", '8':"100k / 4.7k 0603 SMD Vishay NTCS0603E3104FXT", '9':"100k / 4.7k GE Sensing AL03006-58.2K-97-G1", '10':"100k / 4.7k RS 198-961", '11':"100k / 4.7k beta 3950 1%", '12':"100k / 4.7k 0603 SMD Vishay NTCS0603E3104FXT (calibrated for Makibox hot bed)", '13':"100k Hisens 3950  1% up to 300°C for hotend 'Simple ONE ' & hotend 'All In ONE'", '20':"PT100 (Ultimainboard V2.x)", '51':"100k / 1k - EPCOS", '52':"200k / 1k - ATC Semitec 204GT-2", '55':"100k / 1k - ATC Semitec 104GT-2 (Used in ParCan & J-Head)", '60':"100k Maker's Tool Works Kapton Bed Thermistor beta=3950", '61':"100k Formbot / Vivedino 3950 350C thermistor 4.7k pullup", '66':"Dyze Design 4.7M High Temperature thermistor", '67':"Slice Engineering 450C High Temperature thermistor", '70':"the 100K thermistor found in the bq Hephestos 2", '71':"100k / 4.7k Honeywell 135-104LAF-J01", '147':"Pt100 / 4.7k", '1047':"Pt1000 / 4.7k", '110':"Pt100 / 1k (non-standard)", '1010':"Pt1000 / 1k (non standard)", '-4':"Thermocouple + AD8495", '-3':"Thermocouple + MAX31855 (only for sensor 0)", '-2':"Thermocouple + MAX6675 (only for sensor 0)", '-1':"Thermocouple + AD595",'998':"Dummy 1", '999':"Dummy 2", '2000':"100k / 4k7" }
  */
 #define TEMP_SENSOR_0 5 //1
 #define TEMP_SENSOR_1 5
@@ -397,11 +366,6 @@
 // Dummy thermistor constant temperature readings, for use with 998 and 999
 #define DUMMY_THERMISTOR_998_VALUE 25
 #define DUMMY_THERMISTOR_999_VALUE 100
-
-// Use temp sensor 1 as a redundant sensor with sensor 0. If the readings
-// from the two sensors differ too much the print will be aborted.
-//#define TEMP_SENSOR_1_AS_REDUNDANT
-#define MAX_REDUNDANT_TEMP_SENSOR_DIFF 10
 
 #define TEMP_RESIDENCY_TIME 5 // (seconds) Time to wait for hotend to "settle" in M109
 #define TEMP_WINDOW 1 // (°C) Temperature proximity for the "temperature reached" timer
@@ -458,7 +422,6 @@
     //#define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
     //#define PID_DEBUG             // Sends debug data to the serial port.
     //#define PID_OPENLOOP 1        // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
-    //#define SLOW_PWM_HEATERS      // PWM with very low frequency (roughly 0.125Hz=8s) and minimum state time of approximately 1s useful for heaters driven by a relay
     //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
     // Set/get with gcode: M301 E[extruder number, 0-2]
     /**
@@ -484,7 +447,7 @@
  * PID Bed Heating
  *
  * If this option is enabled set PID constants below.
- * If this option is disabled, bang-bang will be used and BED_LIMIT_SWITCHING will enable hysteresis.
+ * If this option is disabled, bang-bang will be used.
  *
  * The PID frequency will be the same as the extruder PWM.
  * If PID_dT is the default, and correct for the hardware/configuration, that means 7.689Hz,
@@ -494,17 +457,6 @@
  * the issues involved, don't use bed PID until someone else verifies that your hardware works.
  */
 // #define PIDTEMPBED
-
-//#define BED_LIMIT_SWITCHING
-
-/**
- * Max Bed Power
- * Applies to all forms of bed control (PID, bang-bang, and bang-bang with hysteresis).
- * When set to any value below 255, enables a form of PWM to the bed that acts like a divider
- * so don't use it unless you are OK with PWM on your bed. (See the comment on enabling PIDTEMPBED)
- */
-#define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
-
 #if ENABLED(PIDTEMPBED)
 
 //#define PID_BED_DEBUG // Sends debug data to the serial port.
@@ -1033,10 +985,6 @@
  * These options are most useful for the BLTouch probe, but may also improve
  * readings with inductive probes and piezo sensors.
  */
-//#define PROBING_HEATERS_OFF       // Turn heaters off when probing
-#if ENABLED(PROBING_HEATERS_OFF)
-//#define WAIT_FOR_BED_HEATER     // Wait for bed to heat back up between probes (to improve accuracy)
-#endif
 //#define PROBING_FANS_OFF          // Turn fans off when probing
 //#define PROBING_STEPPERS_OFF      // Turn steppers off (unless needed to hold position) when probing
 //#define DELAY_BEFORE_PROBING 200  // (ms) To prevent vibrations from triggering piezo sensors
@@ -1493,6 +1441,7 @@
     #define Y_NOZZLE_PARK_POINT (Y_MAX_POS - 110.0f)
     #define Z_NOZZLE_PARK_POINT (20.0f)
     // #define Z_NOZZLE_PARK_POINT_MIN 10.0f // Always raise the nozzle by this amount when parking on print end
+    #define Z_NOZZLE_PARK_RISE 20.0f // Relative Z rise
 
     #define XYZ_NOZZLE_PARK_POINT \
         {X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, Z_NOZZLE_PARK_POINT}
@@ -1675,14 +1624,6 @@
 // https://www.aliexpress.com/item/Micromake-Makeboard-3D-Printer-Parts-3D-Printer-Mini-Display-1602-Mini-Controller-Compatible-with-Ramps-1/32765887917.html
 //
 //#define MAKEBOARD_MINI_2_LINE_DISPLAY_1602
-
-//
-// ANET and Tronxy 20x4 Controller
-//
-//#define ZONESTAR_LCD            // Requires ADC_KEYPAD_PIN to be assigned to an analog pin.
-// This LCD is known to be susceptible to electrical interference
-// which scrambles the display.  Pressing any button clears it up.
-// This is a LCD2004 display with 5 analog buttons.
 
 //=============================================================================
 //======================== LCD / Controller Selection =========================
@@ -1901,43 +1842,13 @@
 //#define MKS_ROBIN_TFT
 
 //=============================================================================
-//============================  Other Controllers  ============================
-//=============================================================================
-
-//
-// CONTROLLER TYPE: Standalone / Serial
-//
-
-//
-// CONTROLLER TYPE: Keypad / Add-on
-//
-
-//
-// RepRapWorld REPRAPWORLD_KEYPAD v1.1
-// http://reprapworld.com/?products_details&products_id=202&cPath=1591_1626
-//
-// REPRAPWORLD_KEYPAD_MOVE_STEP sets how much should the robot move when a key
-// is pressed, a value of 10.0 means 10mm per click.
-//
-//#define REPRAPWORLD_KEYPAD
-//#define REPRAPWORLD_KEYPAD_MOVE_STEP 10.0
-
-//=============================================================================
 //=============================== Extra Features ==============================
 //=============================================================================
 
 // @section extras
 
-// Increase the FAN PWM frequency. Removes the PWM noise but increases heating in the FET/Arduino
-//#define FAST_PWM_FAN
-
-// Use software PWM to drive the fan, as for the heaters. This uses a very low frequency
-// which is not as annoying as with the hardware PWM. On the other hand, if this frequency
-// is too low, you should also increment SOFT_PWM_SCALE.
-//#define FAN_SOFT_PWM
-
 // Incrementing this by 1 will double the software PWM frequency,
-// affecting heaters, and the fan if FAN_SOFT_PWM is enabled.
+// affecting heaters.
 // However, control resolution will be halved for each increment;
 // at zero value, there are 128 effective control positions.
 #define SOFT_PWM_SCALE 0
@@ -1948,84 +1859,11 @@
 // duty cycle is attained.
 //#define SOFT_PWM_DITHER
 
-// Temperature status LEDs that display the hotend and bed temperature.
-// If all hotends, bed temperature, and target temperature are under 54C
-// then the BLUE led is on. Otherwise the RED led is on. (1C hysteresis)
-//#define TEMP_STAT_LEDS
-
 // SkeinForge sends the wrong arc g-codes when using Arc Point as fillet procedure
 //#define SF_ARC_FIX
 
 // Support for the BariCUDA Paste Extruder
 //#define BARICUDA
-
-// Support for BlinkM/CyzRgb
-//#define BLINKM
-
-// Support for PCA9632 PWM LED driver
-//#define PCA9632
-
-// Support for PCA9533 PWM LED driver
-// https://github.com/mikeshub/SailfishRGB_LED
-//#define PCA9533
-
-/**
- * RGB LED / LED Strip Control
- *
- * Enable support for an RGB LED connected to 5V digital pins, or
- * an RGB Strip connected to MOSFETs controlled by digital pins.
- *
- * Adds the M150 command to set the LED (or LED strip) color.
- * If pins are PWM capable (e.g., 4, 5, 6, 11) then a range of
- * luminance values can be set from 0 to 255.
- * For Neopixel LED an overall brightness parameter is also available.
- *
- * *** CAUTION ***
- *  LED Strips require a MOSFET Chip between PWM lines and LEDs,
- *  as the Arduino cannot handle the current the LEDs will require.
- *  Failure to follow this precaution can destroy your Arduino!
- *  NOTE: A separate 5V power supply is required! The Neopixel LED needs
- *  more current than the Arduino 5V linear regulator can produce.
- * *** CAUTION ***
- *
- * LED Type. Enable only one of the following two options.
- *
- */
-//#define RGB_LED
-//#define RGBW_LED
-
-#if EITHER(RGB_LED, RGBW_LED)
-    #define RGB_LED_R_PIN 34
-    #define RGB_LED_G_PIN 43
-    #define RGB_LED_B_PIN 35
-    #define RGB_LED_W_PIN -1
-#endif
-
-// Support for Adafruit Neopixel LED driver
-//#define NEOPIXEL_LED
-#if ENABLED(NEOPIXEL_LED)
-    #define NEOPIXEL_TYPE NEO_GRBW // NEO_GRBW / NEO_GRB - four/three channel driver type (defined in Adafruit_NeoPixel.h)
-    #define NEOPIXEL_PIN 4 // LED driving pin on motherboard 4 => D4 (EXP2-5 on Printrboard) / 30 => PC7 (EXP3-13 on Rumba)
-    #define NEOPIXEL_PIXELS 30 // Number of LEDs in the strip
-    #define NEOPIXEL_IS_SEQUENTIAL // Sequential display for temperature change - LED by LED. Disable to change all LEDs at once.
-    #define NEOPIXEL_BRIGHTNESS 127 // Initial brightness (0-255)
-//#define NEOPIXEL_STARTUP_TEST  // Cycle through colors at startup
-#endif
-
-/**
- * Printer Event LEDs
- *
- * During printing, the LEDs will reflect the printer status:
- *
- *  - Gradually change from blue to violet as the heated bed gets to target temp
- *  - Gradually change from violet to red as the hotend gets to temperature
- *  - Change to white to illuminate work surface
- *  - Change to green once print has finished
- *  - Turn off after the print has finished and the user has pushed a button
- */
-#if ANY(BLINKM, RGB_LED, RGBW_LED, PCA9632, PCA9533, NEOPIXEL_LED)
-    #define PRINTER_EVENT_LEDS
-#endif
 
 /**
  * R/C SERVO support

@@ -39,9 +39,6 @@ LOG_COMPONENT_REF(Buddy);
 #if ENABLED(PRUSA_TOOLCHANGER)
     #include "Marlin/src/module/prusa/toolchanger.h"
 #endif
-#if ENABLED(MODULAR_HEATBED)
-    #include "Marlin/src/module/modular_heatbed.h"
-#endif
 
 #if !BOARD_IS_XLBUDDY()
     #error This file is for XL buddy only

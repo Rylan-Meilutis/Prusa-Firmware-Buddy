@@ -2,8 +2,9 @@
 
 #include "client_response.hpp"
 #include <option/has_manual_chamber_vents.h>
-
+#include <option/has_remote_bed.h>
 #include <option/has_chamber_filtration_api.h>
+#include <option/xbuddy_extension_variant_standard.h>
 
 enum class WarningType : uint32_t {
 #if HAS_EMERGENCY_STOP()
@@ -38,8 +39,8 @@ enum class WarningType : uint32_t {
 #if HAS_DWARF()
     DwarfMCUMaxTemp,
 #endif
-#if HAS_MODULARBED()
-    ModBedMCUMaxTemp,
+#if HAS_REMOTE_BED()
+    BedMCUMaxTemp,
 #endif
     ProbingFailed,
 #if HAS_LOADCELL() && ENABLED(PROBE_CLEANUP_SUPPORT)
@@ -73,10 +74,10 @@ enum class WarningType : uint32_t {
     ChamberOverheatingTemperature,
     ChamberCriticalTemperature,
 #endif
-#if HAS_XBUDDY_EXTENSION()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     ChamberCoolingFanError,
 #endif
-#if HAS_XBUDDY_EXTENSION() || XL_ENCLOSURE_SUPPORT()
+#if XBUDDY_EXTENSION_VARIANT_STANDARD() || XL_ENCLOSURE_SUPPORT()
     ChamberFiltrationFanError,
 #endif
 #if HAS_CEILING_CLEARANCE()
