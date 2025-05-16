@@ -7,6 +7,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_config_store_wo_backend.h>
 #include <option/has_touch.h>
+#include <option/has_chamber_filtration_api.h>
 #include <common/sys.hpp>
 
 #include <option/has_auto_retract.h>
@@ -75,6 +76,15 @@ void CurrentStore::perform_config_check() {
 
 #endif
     }
+
+#if HAS_CHAMBER_FILTRATION_API()
+    // Old API had disabling print filtration through setting pwm to 0
+    // Now we have dedicated config store for it
+    if (chamber_mid_print_filtration_pwm.get() <= PWM255(0)) {
+        chamber_mid_print_filtration_pwm.set_to_default();
+        chamber_print_filtration_enable.set(false);
+    }
+#endif
 
     // BFW-5486
     // Older versions of the firmware had the ability to manually change this

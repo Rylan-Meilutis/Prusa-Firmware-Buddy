@@ -491,23 +491,6 @@ void do_blocking_move_to_xy_z(const xy_pos_t &raw, const float &z, const feedRat
   do_blocking_move_to(raw.x, raw.y, z, fr_mm_s, segmented);
 }
 
-void do_blocking_move_around_nozzle_cleaner_to_xy(const xy_pos_t& destination, const feedRate_t& feedrate) {
-#if HAS_NOZZLE_CLEANER()
-  const bool destination_in_wastebin_area = destination.x > (X_NOZZLE_PARK_POINT + 1) && destination.y > Y_WASTEBIN_SAFE_POINT;
-  const bool start_in_wastebin_area = current_position.x > (X_NOZZLE_PARK_POINT + 1) && current_position.y > Y_WASTEBIN_SAFE_POINT;
-
-  // First move to the right edge (the safe way to cross over the v-blade)
-  if (destination_in_wastebin_area || start_in_wastebin_area) {
-    do_blocking_move_to_x(X_WASTEBIN_POINT);
-  }
-  // If we are in the wastebin area, and need to move somewhere else OR we are somewhere else and need to move to the wastebin area, go through the safe point
-  if (destination_in_wastebin_area != start_in_wastebin_area) {
-    do_blocking_move_to_y(Y_WASTEBIN_SAFE_POINT);
-  }
-#endif
-  do_blocking_move_to_xy(destination, feedrate); 
-}
-
 #if HAS_Z_AXIS
   uint8_t do_z_clearance(const float zclear, const bool lower_allowed/*=false*/) {
     float zdest = zclear;
@@ -985,18 +968,6 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
   #if HAS_CEILING_CLEARANCE()
     // The homing move is doing all sorts of voodoo with the positions and was triggering false ceiling clearance events
     buddy::CeilingClearanceCheckDisabler ccd;
-  #endif
-
-  #if HOMING_Z_WITH_PROBE && HAS_HEATED_BED && ENABLED(WAIT_FOR_BED_HEATER)
-    if (homing_z_with_probe) {
-      // Wait for bed to heat back up between probing points
-      if (axis == Z_AXIS && distance < 0 && thermalManager.isHeatingBed()) {
-        serialprintPGM(msg_wait_for_bed_heating);
-        LCD_MESSAGEPGM(MSG_BED_HEATING);
-        thermalManager.wait_for_bed();
-        ui.reset_status();
-      }
-    }
   #endif
 
     #if ENABLED(SENSORLESS_HOMING)

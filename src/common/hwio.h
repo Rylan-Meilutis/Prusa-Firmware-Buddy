@@ -5,19 +5,7 @@
 #include <device/board.h>
 #include <printers.h>
 #include <inttypes.h>
-
-// pwm outputs
-enum {
-    HWIO_PWM_HEATER_BED, // BED PWM
-    HWIO_PWM_HEATER_0, // NOZZLE PWM
-    HWIO_PWM_FAN1, // PRINT FAN?
-    HWIO_PWM_FAN, // NOZZLE FAN?
-#if BOARD_IS_XBUDDY()
-    #if PRINTER_IS_PRUSA_iX()
-    HWIO_PWM_TURBINE = HWIO_PWM_HEATER_BED
-    #endif
-#endif
-};
+#include <option/has_local_bed.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +25,11 @@ extern void hwio_update_1ms(void);
 // data from loveboard eeprom
 #if (BOARD_IS_XBUDDY() && HAS_TEMP_HEATBREAK)
 extern uint8_t hwio_get_loveboard_bomid();
+#endif
+
+#if HAS_LOCAL_BED()
+void analogWrite_HEATER_BED(uint32_t);
+uint32_t analogRead_TEMP_BED();
 #endif
 
 #ifdef __cplusplus

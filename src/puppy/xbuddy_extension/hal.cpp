@@ -2,12 +2,15 @@
 #include "hal.hpp"
 
 #include "hal_clock.hpp"
+#include "extension_variant.h"
 #include <bitset>
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/stream_buffer.hpp>
 #include <freertos/timing.hpp>
 #include <stm32h5xx_hal.h>
 #include <stm32h5xx_ll_gpio.h>
+
+#include <utils/timing/timer_event_period_tracker.hpp>
 
 const std::span<std::byte> hal::memory::peripheral_address_region(reinterpret_cast<std::byte *>(PERIPH_BASE_NS), 0x10000000);
 
@@ -214,7 +217,12 @@ static void tim1_postinit() {
     PA10    ------> TIM1_CH3
     */
     constexpr GPIO_InitTypeDef GPIO_InitStruct {
+#if EXTENSION_IS_IX()
+        // iX has the filament sensor on PA9
+        .Pin = GPIO_PIN_8 | GPIO_PIN_10,
+#else
         .Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10,
+#endif
         .Mode = GPIO_MODE_AF_PP,
         .Pull = GPIO_NOPULL,
         .Speed = GPIO_SPEED_FREQ_LOW,
@@ -275,8 +283,8 @@ static void tim1_init() {
     // input mode, without remapping
     constexpr const uint32_t capture_compare_selection = 0b01;
 
-    // no filter, sampling is done at fDTS; this could be changed if we start getting false edges
-    constexpr const uint32_t input_capture_filter = 0b0000;
+    // 0110:fSAMPLING = fDTS/4, N = 6; was getting false edges on fans with longer wire - BFW-7090
+    constexpr const uint32_t input_capture_filter = 0b0111;
 
     // no prescaler, capture is done each time an edge is detected on the capture input
     constexpr const uint32_t input_capture_prescaler = 0b00;
@@ -415,68 +423,35 @@ static void MX_ADC1_Init(void) {
 
     HAL_ADCEx_Calibration_Start(&hadc1, single_diff);
 }
-
-static constexpr uint32_t diff32(uint32_t prev, uint32_t curr) {
-    return (curr >= prev)
-        ? (curr - prev)
-        : (0xffffffff - prev + curr);
-}
-static constexpr uint32_t diff16(uint32_t prev, uint32_t curr) {
-    return (curr >= prev)
-        ? (curr - prev)
-        : (0xffff - prev + curr);
-}
-static_assert(diff16(0x0000, 0x0000) == 0x0);
-static_assert(diff16(0x0000, 0x0008) == 0x8);
-static_assert(diff16(0x0008, 0x0008) == 0x0);
-static_assert(diff16(0x0008, 0x0010) == 0x8);
-static_assert(diff16(0x0008, 0x0010) == 0x8);
-static_assert(diff16(0xfff8, 0x0001) == 0x8);
-
-// This number is incremented whenever TIM1 overflows.
-static uint32_t tim1_generation = 0;
+// Tracking TIM1 increments between two edges on the input pins (fan tacho)
+TimerEventPeriodTracker tim1_cc1;
+TimerEventPeriodTracker tim1_cc2;
+TimerEventPeriodTracker tim1_cc3;
 
 extern "C" void TIM1_UP_IRQHandler() {
     const uint32_t SR = TIM1->SR;
     TIM1->SR = SR & ~(TIM_SR_UIF);
     if (SR & TIM_SR_UIF) {
-        ++tim1_generation;
+        tim1_cc1.handle_timer_overflow();
+        tim1_cc2.handle_timer_overflow();
+        tim1_cc3.handle_timer_overflow();
     }
 }
-
-class Tim1ChannelData {
-private:
-    // Since TIM1 is a 16-bit timer, we can afford to store both previous
-    // and current values into a single machine word.
-    // This greatly simplifies IRQ handler.
-    uint32_t prev_curr = 0;
-    uint32_t generation = 0;
-
-public:
-    void update(uint32_t ccr) {
-        prev_curr = (prev_curr << 16) | ccr;
-        generation = tim1_generation;
-    }
-
-    uint32_t period() const {
-        return diff32(generation, tim1_generation) > 3 ? 0 : diff16(prev_curr >> 16, prev_curr & 0xffff);
-    }
-};
-Tim1ChannelData tim1_cc1;
-Tim1ChannelData tim1_cc2;
-Tim1ChannelData tim1_cc3;
 
 extern "C" void TIM1_CC_IRQHandler() {
     const uint32_t SR = TIM1->SR;
     TIM1->SR = SR & ~(TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_CC3IF);
+
+    // Called when there is an edge detected on the input pins -> those are our events that we are tracking
+    // CCRx then holds timer value at the time of the event
     if (SR & TIM_SR_CC1IF) {
-        tim1_cc1.update(TIM1->CCR1);
+        tim1_cc1.handle_event(TIM1->CCR1);
     }
     if (SR & TIM_SR_CC2IF) {
-        tim1_cc2.update(TIM1->CCR2);
+        tim1_cc2.handle_event(TIM1->CCR2);
     }
     if (SR & TIM_SR_CC3IF) {
-        tim1_cc3.update(TIM1->CCR3);
+        tim1_cc3.handle_event(TIM1->CCR3);
     }
 }
 
@@ -597,11 +572,13 @@ static void pub_enable() {
     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
 }
 
+static constexpr auto FSENSOR_PIN = EXTENSION_IS_IX() ? GPIO_PIN_9 : GPIO_PIN_5;
+
 static void filament_sensor_pins_init() {
     constexpr GPIO_InitTypeDef GPIO_InitStruct {
-        .Pin = GPIO_PIN_5,
+        .Pin = FSENSOR_PIN,
         .Mode = GPIO_MODE_INPUT,
-        .Pull = GPIO_PULLDOWN,
+        .Pull = EXTENSION_IS_IX() ? GPIO_PULLUP : GPIO_PULLDOWN,
         .Speed = GPIO_SPEED_FREQ_LOW,
         .Alternate = 0,
     };
@@ -661,13 +638,13 @@ ISR_HANDLER(DebugMon_Handler)
 
 static uint32_t temperature_raw = 0;
 
-static uint8_t filament_sensor_measuring_phase = 0;
-
+#if !EXTENSION_IS_IX()
 /// FS readout at each phase
 static std::bitset<4> filament_sensor_raw;
+static uint8_t filament_sensor_measuring_phase = 0;
+#endif
 
 static hal::filament_sensor::State filament_sensor_state = hal::filament_sensor::State::uninitialized;
-
 static size_t filament_sensor_last_millis = 0;
 
 static void step_temperature_adc() {
@@ -687,7 +664,11 @@ static void step_filament_sensor() {
     }
 
     filament_sensor_last_millis = now;
-    filament_sensor_raw[filament_sensor_measuring_phase] = (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET);
+
+#if EXTENSION_IS_IX()
+    filament_sensor_state = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET) ? hal::filament_sensor::State::no_filament : hal::filament_sensor::State::has_filament;
+#else
+    filament_sensor_raw[filament_sensor_measuring_phase] = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET);
     filament_sensor_measuring_phase = (filament_sensor_measuring_phase + 1) % 4;
 
     // Set up the pull for the next phase, use the time between phases to stabilize the readout
@@ -711,6 +692,7 @@ static void step_filament_sensor() {
         // The filament could have been inserted/removed between the phases, wait for definitive values
         break;
     }
+#endif
 }
 
 void hal::step() {
@@ -718,8 +700,14 @@ void hal::step() {
     step_filament_sensor();
 }
 
-static uint32_t tim1_period_to_rpm(uint32_t period) {
-    if (period == 0) {
+static uint32_t tim1_period_to_rpm(const TimerEventPeriodTracker &tracker) {
+    // Disable TIM1 interrupts while reading the period to avoid race conditions
+    const auto prev_dier = TIM1->DIER;
+    TIM1->DIER = 0;
+    const auto period = tracker.period_unsafe();
+    TIM1->DIER = prev_dier;
+
+    if (period == TimerEventPeriodTracker::invalid_period || period == 0) {
         return 0;
     }
     // 60 seconds in minute, 1 MHZ timer, 2 rising edges per revolution
@@ -736,7 +724,7 @@ void hal::fan1::set_pwm(DutyCycle duty_cycle) {
 }
 
 uint32_t hal::fan1::get_rpm() {
-    return tim1_period_to_rpm(tim1_cc1.period());
+    return tim1_period_to_rpm(tim1_cc1);
 }
 
 void hal::fan2::set_pwm(DutyCycle duty_cycle) {
@@ -748,7 +736,7 @@ uint32_t hal::fan2::get_rpm() {
     // following line because pwm is shared and motherboard goes crazy
     // when only one of the fans is spinning...
     // return fan1::get_rpm();
-    return tim1_period_to_rpm(tim1_cc2.period());
+    return tim1_period_to_rpm(tim1_cc2);
 }
 
 void hal::fan3::set_pwm(DutyCycle duty_cycle) {
@@ -756,7 +744,7 @@ void hal::fan3::set_pwm(DutyCycle duty_cycle) {
 }
 
 uint32_t hal::fan3::get_rpm() {
-    return tim1_period_to_rpm(tim1_cc3.period());
+    return tim1_period_to_rpm(tim1_cc3);
 }
 
 void hal::w_led::set_pwm(DutyCycle duty_cycle) {
@@ -829,7 +817,7 @@ void hal::mmu::nreset_pin_set(bool b) {
 }
 
 bool hal::mmu::power_pin_get() {
-    return expander_pins | expander_pin_mmu_power;
+    return expander_pins & expander_pin_mmu_power;
 }
 
 bool hal::mmu::nreset_pin_get() {

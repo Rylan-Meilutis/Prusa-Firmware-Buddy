@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <cmath>
 #include <cinttypes>
+#include <algorithm>
 
 #include <bsod.h>
 
@@ -16,11 +17,13 @@ void StringBuilder::init(char *buffer, size_t buffer_size) {
 }
 
 const char *StringBuilder::str() const {
-    if (is_ok()) {
-        return str_nocheck();
-    } else {
+#ifdef _DEBUG
+    if (is_problem()) {
         bsod("StringBuilder overflow");
     }
+#endif
+
+    return str_nocheck();
 }
 
 StringBuilder &StringBuilder::append_char(char ch) {
@@ -62,10 +65,19 @@ StringBuilder &StringBuilder::append_string(const char *str) {
 }
 
 StringBuilder &StringBuilder::append_std_string_view(const std::string_view &view) {
-    if (const auto buf = alloc_chars(view.size())) {
-        view.copy(buf, view.size());
+    if (is_problem()) {
+        return *this;
     }
 
+    const int available_bytes = buffer_end_ - current_pos_;
+    const int copy_size = std::min<int>(view.size(), available_bytes - 1);
+    view.copy(current_pos_, copy_size);
+
+    // < because we need to account for the terminating \0
+    is_ok_ = (copy_size == static_cast<int>(view.size()));
+
+    current_pos_ += copy_size;
+    *current_pos_ = '\0';
     return *this;
 }
 
@@ -104,14 +116,11 @@ StringBuilder &StringBuilder::append_vprintf(const char *fmt, va_list args) {
     const int available_bytes = int(buffer_end_ - current_pos_);
     const int ret = vsnprintf(current_pos_, available_bytes, fmt, args);
 
-    // >= because we need to account fo rhte terminating \0
-    if (ret < 0 || ret >= available_bytes) {
-        *current_pos_ = '\0';
-        is_ok_ = false;
-        return *this;
-    }
+    // < because we need to account for the terminating \0
+    is_ok_ = (ret >= 0 && ret < available_bytes);
 
-    current_pos_ += ret;
+    current_pos_ += std::clamp(ret, 0, available_bytes - 1);
+    *current_pos_ = '\0';
     return *this;
 }
 
@@ -136,7 +145,7 @@ StringBuilder &StringBuilder::append_float(double val, const AppendFloatConfig &
 
     const bool is_negative = val < 0;
     uint32_t precision_mult = dumb_pow_10(config.max_decimal_places);
-    uint64_t accum = static_cast<uint64_t>(round(abs(val) * precision_mult));
+    uint64_t accum = static_cast<uint64_t>(round(std::abs(val) * precision_mult));
 
     if (accum == 0) {
         append_char('0');

@@ -42,7 +42,6 @@ target_sources(
           qr.cpp
           screen_blue_error.cpp
           screen_bsod.cpp
-          screen_change_filter.cpp
           screen_filebrowser.cpp
           screen_hardfault.cpp
           screen_help_fw_update.cpp
@@ -123,8 +122,12 @@ if(HAS_TOOLCHANGER)
     )
 endif()
 
-if(HAS_MODULARBED)
-  target_sources(firmware PRIVATE screen_menu_modularbed.cpp)
+if(HAS_MODULAR_BED)
+  target_sources(firmware PRIVATE screen_menu_modular_bed.cpp)
+endif()
+
+if(HAS_REMOTE_BED)
+  target_sources(firmware PRIVATE screen_menu_remote_bed.cpp)
 endif()
 
 if(DEBUG)
@@ -186,8 +189,8 @@ if(BOARD STREQUAL "XBUDDY" OR BOARD STREQUAL "XLBUDDY")
   target_sources(firmware PRIVATE menu_item_xlcd.cpp)
 endif()
 
-if(BOARD STREQUAL "XLBUDDY")
-  target_sources(firmware PRIVATE MItem_enclosure.cpp)
+if(XL_ENCLOSURE_SUPPORT)
+  target_sources(firmware PRIVATE MItem_enclosure.cpp screen_change_filter.cpp)
 endif()
 
 if(HAS_LOVE_BOARD)

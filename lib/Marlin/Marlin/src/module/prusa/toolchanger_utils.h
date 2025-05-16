@@ -41,6 +41,7 @@ public:
     static constexpr auto PICK_X_OFFSET_1 = -11.8f; ///< Offset from dock_x when tool is being locked [mm]
     static constexpr auto PICK_X_OFFSET_2 = -12.8f; ///< Offset from dock_x when tool is fully locked [mm]
     static constexpr auto PICK_X_OFFSET_3 = -9.9f; ///< Offset from dock_x when tool can be pulled from the dock area [mm]
+    static constexpr auto X_UNLOCK_DISTANCE_MM = PICK_X_OFFSET_3; ///< Unlock move length while dock calibrating [mm]
 
     /// Feedrate for moves around dock
     static float limit_stealth_feedrate(float feedrate);
@@ -141,6 +142,27 @@ public:
     bool save_tool_offsets_to_file(const char *filename = "/usb/tooloffsets.txt");
 
     void expand_first_dock_position(); // TODO: Is this still needed/wanted ?
+
+    class StepperConfigGuard final {
+        uint32_t x_stall_sensitivity; ///< Sensitivity to restore [driver specific]
+        uint32_t x_current_ma; ///< Current to restore [mA]
+        uint32_t y_stall_sensitivity; ///< Sensitivity to restore [driver specific]
+        uint32_t y_current_ma; ///< Current to restore [mA]
+    public:
+        /**
+         * @brief Configure stepper current and stall sensitivity for toolchange.
+         * Use constants defined above.
+         * Configure only X and Y (A and B) steppers.
+         * Use constants defined above, on top of PrusaToolChangerUtils.
+         * Remember previous values and restore them in destructor.
+         */
+        StepperConfigGuard();
+        StepperConfigGuard(const StepperConfigGuard &) = delete; ///< No copy constructor
+        StepperConfigGuard &operator=(const StepperConfigGuard &) = delete; ///< No copy assignment
+        StepperConfigGuard(StepperConfigGuard &&) = delete; ///< No move constructor
+        StepperConfigGuard &operator=(StepperConfigGuard &&) = delete; ///< No move assignment
+        ~StepperConfigGuard(); ///< Restore stepper current and stall sensitivity
+    };
 
 protected:
     std::atomic<bool> force_toolchange_gcode = false; ///< after reset force toolchange to init marlin tool variables

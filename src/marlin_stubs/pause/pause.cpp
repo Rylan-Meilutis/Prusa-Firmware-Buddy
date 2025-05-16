@@ -561,8 +561,10 @@ void Pause::assist_insertion_process([[maybe_unused]] Response response) {
         return;
     }
 
+#if ENABLED(PREVENT_COLD_EXTRUSION)
     AutoRestore<bool> CE(thermalManager.allow_cold_extrude);
     thermalManager.allow_cold_extrude = true;
+#endif
     // Enqueue an E move, but only if there are no more than 4 moves scheduled.
     // This ensures that there is always 0.4mm of movement enqueued in advance,
     // Guaranteeing a maximum movement difference of 0.1mm
@@ -651,6 +653,7 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     // Extrude filament to get into hotend
     setPhase(is_unstoppable() ? PhasesLoadUnload::Purging_unstoppable : PhasesLoadUnload::Purging_stoppable, 70);
 
+    planner.synchronize(); // Finish any pending moves before starting the purge
     const auto purge_result = do_e_move_notify_progress_hotextrude(settings.purge_length(), ADVANCED_PAUSE_PURGE_FEEDRATE, 70, 98, StopConditions::All);
     if (purge_result == StopConditions::SideFilamentSensorRunout) {
         runout_during_load();
@@ -659,6 +662,9 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     // Skip retraction on UserStopped or Failed
     if (purge_result != StopConditions::UserStopped && purge_result != StopConditions::Failed) {
         std::ignore = do_e_move_notify_progress_hotextrude(retract_distance, retract_feedrate, 98, 99, StopConditions::UserStopped);
+    } else {
+        // If the user stopped the purge, we need to stop the extruder move
+        planner.quick_stop_and_resume();
     }
 
     config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
@@ -730,7 +736,9 @@ void Pause::eject_process([[maybe_unused]] Response response) {
     }
 #endif
 
-    ram_filament(98);
+    if (!ram_filament(98)) {
+        return; // Ramming unsuccessful (stopped by the user (button Stop) or temp not safe to extrude)
+    }
 
     setPhase(is_unstoppable() ? PhasesLoadUnload::Ejecting_unstoppable : PhasesLoadUnload::Ejecting_stoppable, 99);
     unload_filament();
@@ -914,8 +922,9 @@ void Pause::ram_sequence_process([[maybe_unused]] Response response) {
     }
 #endif
 
-    ram_filament(50);
-    set(LoadState::unload);
+    if (ram_filament(50)) {
+        set(LoadState::unload);
+    }
 }
 
 void Pause::unload_process([[maybe_unused]] Response response) {
@@ -1384,9 +1393,10 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
     ui.reset_status();
 #endif
 }
-void Pause::ram_filament(uint8_t progress_percent) {
+
+bool Pause::ram_filament(uint8_t progress_percent) {
     if (!ensureSafeTemperatureNotifyProgress(0, 50)) {
-        return;
+        return false;
     }
 
     setPhase(is_unstoppable() ? PhasesLoadUnload::Ramming_unstoppable : PhasesLoadUnload::Ramming_stoppable, progress_percent);
@@ -1408,6 +1418,7 @@ void Pause::ram_filament(uint8_t progress_percent) {
     ramming_sequence->execute([this] {
         return !check_user_stop(getResponse());
     });
+    return true;
 }
 
 void Pause::unload_filament() {

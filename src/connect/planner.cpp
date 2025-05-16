@@ -14,11 +14,19 @@
 #if XL_ENCLOSURE_SUPPORT()
     #include <xl_enclosure.hpp>
 #endif
-#if PRINTER_IS_PRUSA_COREONE() || defined(UNITTESTS)
+
+#include <option/xbuddy_extension_variant_standard.h>
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     #include <feature/chamber/chamber.hpp>
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
     #include <feature/xbuddy_extension/cooling.hpp>
 #endif
+
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
+
 #include <alloca.h>
 #include <algorithm>
 #include <cassert>
@@ -972,15 +980,15 @@ void Planner::command(const Command &command, const SetValue &params) {
     case connect_client::PropertyName::HostName:
         err = set_hostname(reinterpret_cast<const char *>(get<SharedBorrow>(params.value)->data()));
         break;
-#if XL_ENCLOSURE_SUPPORT()
+#if XL_ENCLOSURE_SUPPORT() && HAS_CHAMBER_FILTRATION_API()
     case connect_client::PropertyName::EnclosureEnabled:
         xl_enclosure.setEnabled(get<bool>(params.value));
         break;
     case connect_client::PropertyName::EnclosurePrintingFiltration:
-        xl_enclosure.setPrintFiltration(get<bool>(params.value));
+        config_store().chamber_print_filtration_enable.set(get<bool>(params.value));
         break;
     case connect_client::PropertyName::EnclosurePostPrint:
-        xl_enclosure.setPostPrintFiltration(get<bool>(params.value));
+        config_store().chamber_post_print_filtration_enable.set(get<bool>(params.value));
         break;
     case connect_client::PropertyName::EnclosurePostPrintFiltrationTime: {
         // we recieve it in seconds, but this function expects minutes
@@ -988,8 +996,9 @@ void Planner::command(const Command &command, const SetValue &params) {
         uint32_t minutes = raw_value / 60;
         if (raw_value % 60 != 0) {
             err = "Value should be whole minutes";
-        } else if (minutes >= 1 && minutes <= 10) {
-            xl_enclosure.setPostPrintFiltrationDuration(minutes);
+        } else if (minutes >= 1 && minutes <= buddy::ChamberFiltration::max_post_print_filtration_time_min) {
+            // TODO: Propagate change to Connect: new post print filtration duration range is <1;30>
+            config_store().chamber_post_print_filtration_duration_min.set(minutes);
         } else {
             err = "Value out of range";
         }
@@ -1011,7 +1020,7 @@ void Planner::command(const Command &command, const SetValue &params) {
             slot.nozzle_diameter = get<float>(params.value);
         });
         break;
-#if PRINTER_IS_PRUSA_COREONE() || defined(UNITTESTS)
+#if XBUDDY_EXTENSION_VARIANT_STANDARD()
     case connect_client::PropertyName::ChamberTargetTemp: {
         auto target_temp = get<uint32_t>(params.value);
         buddy::chamber().set_target_temperature(target_temp == connect_client::Printer::ChamberInfo::target_temp_unset ? nullopt : std::make_optional(target_temp));

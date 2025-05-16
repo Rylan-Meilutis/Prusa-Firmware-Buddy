@@ -64,6 +64,7 @@ GcodeSuite gcode;
 
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
+#include <option/has_modular_bed.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_phase_stepping.h>
@@ -558,10 +559,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 149: M149(); break;                                  // M149: Set temperature units
       #endif
 
-      #if HAS_COLOR_LEDS
-        case 150: M150(); break;                                  // M150: Set Status LED Color
-      #endif
-
       #if DISABLED(NO_VOLUMETRICS)
         case 200: M200(); break;                                  // M200: Set filament diameter, E to cubic units
       #endif
@@ -652,10 +649,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 303: M303(); break;                                  // M303: PID autotune
       #endif
 
-      #if HAS_USER_THERMISTORS
-        case 305: M305(); break;                                  // M305: Set user thermistor parameters
-      #endif
-
       #if ENABLED(MORGAN_SCARA)
         case 360: if (M360()) return; break;                      // M360: SCARA Theta pos1
         case 361: if (M361()) return; break;                      // M361: SCARA Theta pos2
@@ -678,13 +671,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(PRUSA_MMU2)
         case 403: M403(); break;
-      #endif
-
-      #if ENABLED(FILAMENT_WIDTH_SENSOR)
-        case 404: M404(); break;                                  // M404: Enter the nominal filament width (3mm, 1.75mm ) N<3.0> or display nominal filament width
-        case 405: M405(); break;                                  // M405: Turn on filament sensor for control
-        case 406: M406(); break;                                  // M406: Turn off filament sensor for control
-        case 407: M407(); break;                                  // M407: Display measured filament diameter
       #endif
 
       #if HAS_FILAMENT_SENSOR
@@ -720,7 +706,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       case 555: M555(); break;                                    // M555: Set print area
 
-      #if ENABLED(MODULAR_HEATBED)
+      #if HAS_MODULAR_BED()
         case 556: M556(); break;                                  // M556: Override modular bedled active
         case 557: M557(); break;                                  // M557: Set modular bed gradient parameters
       #endif

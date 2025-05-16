@@ -21,6 +21,9 @@
  */
 #pragma once
 
+#include <option/has_local_bed.h>
+#include <option/has_remote_bed.h>
+
 /**
  * Conditionals_post.h
  * Defines that depend on configuration but are not editable.
@@ -247,8 +250,6 @@
 #elif ENABLED(MKS_MINI_12864)
   #define _LCD_CONTRAST_MIN  120
   #define _LCD_CONTRAST_INIT 195
-#elif ANY(FYSETC_MINI_12864_X_X, FYSETC_MINI_12864_1_2, FYSETC_MINI_12864_2_0, FYSETC_MINI_12864_2_1)
-  #define _LCD_CONTRAST_INIT 220
 #elif ENABLED(ULTI_CONTROLLER)
   #define _LCD_CONTRAST_INIT 127
   #define _LCD_CONTRAST_MAX  254
@@ -321,210 +322,83 @@
 
 #define ANY_TEMP_SENSOR_IS(n) (TEMP_SENSOR_0 == (n) || TEMP_SENSOR_1 == (n) || TEMP_SENSOR_2 == (n) || TEMP_SENSOR_3 == (n) || TEMP_SENSOR_4 == (n) || TEMP_SENSOR_5 == (n) || TEMP_SENSOR_BED == (n) || TEMP_SENSOR_CHAMBER == (n))
 
-#define HAS_USER_THERMISTORS ANY_TEMP_SENSOR_IS(1000)
-
-#if TEMP_SENSOR_0 == -4
-  #define HEATER_0_USES_AD8495
-#elif TEMP_SENSOR_0 == -3
-  #define HEATER_0_USES_MAX6675
-  #define MAX6675_IS_MAX31855
-  #define HEATER_0_MAX6675_TMIN -270
-  #define HEATER_0_MAX6675_TMAX 1800
-#elif TEMP_SENSOR_0 == -2
-  #define HEATER_0_USES_MAX6675
-  #define HEATER_0_MAX6675_TMIN 0
-  #define HEATER_0_MAX6675_TMAX 1024
-#elif TEMP_SENSOR_0 == -1
-  #define HEATER_0_USES_AD595
-#elif TEMP_SENSOR_0 > 0
+#if TEMP_SENSOR_0 > 0
   #define THERMISTOR_HEATER_0 TEMP_SENSOR_0
   #define HEATER_0_USES_THERMISTOR
-  #if TEMP_SENSOR_0 == 1000
-    #define HEATER_0_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_0_MINTEMP
   #undef HEATER_0_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_1 == -4
-  #define HEATER_1_USES_AD8495
-#elif TEMP_SENSOR_1 == -3
-  #if TEMP_SENSOR_0 == -2
-    #error "If MAX31855 Thermocouple (-3) is used for TEMP_SENSOR_1 then TEMP_SENSOR_0 must match."
-  #endif
-  #define HEATER_1_USES_MAX6675
-  #define HEATER_1_MAX6675_TMIN -270
-  #define HEATER_1_MAX6675_TMAX 1800
-#elif TEMP_SENSOR_1 == -2
-  #if TEMP_SENSOR_0 == -3
-    #error "If MAX31855 Thermocouple (-3) is used for TEMP_SENSOR_0 then TEMP_SENSOR_1 must match."
-  #endif
-  #define HEATER_1_USES_MAX6675
-  #define HEATER_1_MAX6675_TMIN 0
-  #define HEATER_1_MAX6675_TMAX 1024
-#elif TEMP_SENSOR_1 == -1
-  #define HEATER_1_USES_AD595
-#elif TEMP_SENSOR_1 > 0
+#if TEMP_SENSOR_1 > 0
   #define THERMISTOR_HEATER_1 TEMP_SENSOR_1
   #define HEATER_1_USES_THERMISTOR
-  #if TEMP_SENSOR_1 == 1000
-    #define HEATER_1_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_1_MINTEMP
   #undef HEATER_1_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_2 == -4
-  #define HEATER_2_USES_AD8495
-#elif TEMP_SENSOR_2 == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_2."
-#elif TEMP_SENSOR_2 == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_2."
-#elif TEMP_SENSOR_2 == -1
-  #define HEATER_2_USES_AD595
-#elif TEMP_SENSOR_2 > 0
+#if TEMP_SENSOR_2 > 0
   #define THERMISTOR_HEATER_2 TEMP_SENSOR_2
   #define HEATER_2_USES_THERMISTOR
-  #if TEMP_SENSOR_2 == 1000
-    #define HEATER_2_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_2_MINTEMP
   #undef HEATER_2_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_3 == -4
-  #define HEATER_3_USES_AD8495
-#elif TEMP_SENSOR_3 == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_3."
-#elif TEMP_SENSOR_3 == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_3."
-#elif TEMP_SENSOR_3 == -1
-  #define HEATER_3_USES_AD595
-#elif TEMP_SENSOR_3 > 0
+#if TEMP_SENSOR_3 > 0
   #define THERMISTOR_HEATER_3 TEMP_SENSOR_3
   #define HEATER_3_USES_THERMISTOR
-  #if TEMP_SENSOR_3 == 1000
-    #define HEATER_3_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_3_MINTEMP
   #undef HEATER_3_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_4 == -4
-  #define HEATER_4_USES_AD8495
-#elif TEMP_SENSOR_4 == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_4."
-#elif TEMP_SENSOR_4 == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_4."
-#elif TEMP_SENSOR_4 == -1
-  #define HEATER_4_USES_AD595
-#elif TEMP_SENSOR_4 > 0
+#if TEMP_SENSOR_4 > 0
   #define THERMISTOR_HEATER_4 TEMP_SENSOR_4
   #define HEATER_4_USES_THERMISTOR
-  #if TEMP_SENSOR_4 == 1000
-    #define HEATER_4_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_4_MINTEMP
   #undef HEATER_4_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_5 == -4
-  #define HEATER_5_USES_AD8495
-#elif TEMP_SENSOR_5 == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_5."
-#elif TEMP_SENSOR_5 == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_5."
-#elif TEMP_SENSOR_5 == -1
-  #define HEATER_5_USES_AD595
-#elif TEMP_SENSOR_5 > 0
+#if TEMP_SENSOR_5 > 0
   #define THERMISTOR_HEATER_5 TEMP_SENSOR_5
   #define HEATER_5_USES_THERMISTOR
-  #if TEMP_SENSOR_5 == 1000
-    #define HEATER_5_USER_THERMISTOR
-  #endif
 #else
   #undef HEATER_5_MINTEMP
   #undef HEATER_5_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_BED == -4
-  #define HEATER_BED_USES_AD8495
-#elif TEMP_SENSOR_BED == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_BED."
-#elif TEMP_SENSOR_BED == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_BED."
-#elif TEMP_SENSOR_BED == -1
-  #define HEATER_BED_USES_AD595
-#elif TEMP_SENSOR_BED > 0
+#if TEMP_SENSOR_BED > 0
   #define THERMISTORBED TEMP_SENSOR_BED
   #define HEATER_BED_USES_THERMISTOR
-  #if TEMP_SENSOR_BED == 1000
-    #define HEATER_BED_USER_THERMISTOR
-  #endif
 #else
   #undef BED_MINTEMP
   #undef BED_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_CHAMBER == -4
-  #define HEATER_CHAMBER_USES_AD8495
-#elif TEMP_SENSOR_CHAMBER == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_CHAMBER."
-#elif TEMP_SENSOR_CHAMBER == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_CHAMBER."
-#elif TEMP_SENSOR_CHAMBER == -1
-  #define HEATER_CHAMBER_USES_AD595
-#elif TEMP_SENSOR_CHAMBER > 0
+#if TEMP_SENSOR_CHAMBER > 0
   #define THERMISTORCHAMBER TEMP_SENSOR_CHAMBER
   #define HEATER_CHAMBER_USES_THERMISTOR
-  #if TEMP_SENSOR_CHAMBER == 1000
-    #define HEATER_CHAMBER_USER_THERMISTOR
-  #endif
 #else
   #undef CHAMBER_MINTEMP
   #undef CHAMBER_MAXTEMP
 #endif
 
 
-#if TEMP_SENSOR_HEATBREAK == -4
-  #error "AD8495 Thermocouples (-4) not supported for TEMP_SENSOR_HEATBREAK."
-#elif TEMP_SENSOR_HEATBREAK == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_HEATBREAK."
-#elif TEMP_SENSOR_HEATBREAK == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_HEATBREAK."
-#elif TEMP_SENSOR_HEATBREAK == -1
-  #error "AD595 Thermocouples (-1) not supported for TEMP_SENSOR_HEATBREAK."
-#elif TEMP_SENSOR_HEATBREAK > 0
+#if TEMP_SENSOR_HEATBREAK > 0
   #define THERMISTORHEATBREAK TEMP_SENSOR_HEATBREAK
   #define HEATBREAK_USES_THERMISTOR
-  #if TEMP_SENSOR_HEATBREAK == 1000
-    #define HEATBREAK_USER_THERMISTOR
-  #endif
 #else
   #undef HEATBREAK_MINTEMP
   #undef HEATBREAK_MAXTEMP
 #endif
 
 
-#if TEMP_SENSOR_BOARD == -4
-  #error "AD8495 Thermocouples (-4) not supported for TEMP_SENSOR_BOARD."
-#elif TEMP_SENSOR_BOARD == -3
-  #error "MAX31855 Thermocouples (-3) not supported for TEMP_SENSOR_BOARD."
-#elif TEMP_SENSOR_BOARD == -2
-  #error "MAX6675 Thermocouples (-2) not supported for TEMP_SENSOR_BOARD."
-#elif TEMP_SENSOR_BOARD == -1
-  #error "AD595 Thermocouples (-1) not supported for TEMP_SENSOR_BOARD."
-#elif TEMP_SENSOR_BOARD > 0
+#if TEMP_SENSOR_BOARD > 0
   #define THERMISTORBOARD TEMP_SENSOR_BOARD
   #define BOARD_USES_THERMISTOR
-  #if TEMP_SENSOR_BOARD == 1000
-    #define BOARD_USER_THERMISTOR
-  #endif
 #else
   #undef BOARD_MINTEMP
   #undef BOARD_MINTEMP
@@ -1009,20 +883,18 @@
 #define HAS_CALIBRATION_PIN (PIN_EXISTS(CALIBRATION))
 
 // ADC Temp Sensors (Thermistor or Thermocouple with amplifier ADC interface)
-#define HAS_ADC_TEST(P) (PIN_EXISTS(TEMP_##P) && TEMP_SENSOR_##P != 0 && DISABLED(HEATER_##P##_USES_MAX6675))
+#define HAS_ADC_TEST(P) (PIN_EXISTS(TEMP_##P) && TEMP_SENSOR_##P != 0)
 #define HAS_TEMP_ADC_0 HAS_ADC_TEST(0)
 #define HAS_TEMP_ADC_1 HAS_ADC_TEST(1)
 #define HAS_TEMP_ADC_2 HAS_ADC_TEST(2)
 #define HAS_TEMP_ADC_3 HAS_ADC_TEST(3)
 #define HAS_TEMP_ADC_4 HAS_ADC_TEST(4)
 #define HAS_TEMP_ADC_5 HAS_ADC_TEST(5)
-#define HAS_TEMP_ADC_BED HAS_ADC_TEST(BED)
 #define HAS_TEMP_ADC_CHAMBER HAS_ADC_TEST(CHAMBER)
 #define HAS_TEMP_ADC_HEATBREAK HAS_ADC_TEST(HEATBREAK)
 #define HAS_TEMP_ADC_BOARD HAS_ADC_TEST(BOARD)
 
-#define HAS_TEMP_HOTEND (HAS_TEMP_ADC_0 || ENABLED(HEATER_0_USES_MAX6675))
-#define HAS_TEMP_BED HAS_TEMP_ADC_BED
+#define HAS_TEMP_HOTEND HAS_TEMP_ADC_0
 #define HAS_TEMP_CHAMBER HAS_TEMP_ADC_CHAMBER
 #define HAS_TEMP_HEATBREAK HAS_TEMP_ADC_HEATBREAK
 #define HAS_TEMP_BOARD HAS_TEMP_ADC_BOARD
@@ -1036,11 +908,10 @@
 #define HAS_HEATER_3 (PIN_EXISTS(HEATER_3))
 #define HAS_HEATER_4 (PIN_EXISTS(HEATER_4))
 #define HAS_HEATER_5 (PIN_EXISTS(HEATER_5))
-#define HAS_HEATER_BED (PIN_EXISTS(HEATER_BED))
 #define HAS_HEATER_HEATBREAK (PIN_EXISTS(HEATER_HEATBREAK))
 
 // Shorthand for common combinations
-#define HAS_HEATED_BED (HAS_TEMP_BED && HAS_HEATER_BED)
+#define HAS_HEATED_BED (HAS_LOCAL_BED() || HAS_REMOTE_BED())
 #define BED_OR_CHAMBER (HAS_HEATED_BED || HAS_TEMP_CHAMBER)
 #define HAS_TEMP_SENSOR (HAS_TEMP_HOTEND || BED_OR_CHAMBER)
 
@@ -1086,9 +957,8 @@
 
 // Other fans
 #define HAS_FAN0 (PIN_EXISTS(FAN))
-#define HAS_FAN1 (PIN_EXISTS(FAN1) && CONTROLLER_FAN_PIN != FAN1_PIN && E0_AUTO_FAN_PIN != FAN1_PIN && E1_AUTO_FAN_PIN != FAN1_PIN && E2_AUTO_FAN_PIN != FAN1_PIN && E3_AUTO_FAN_PIN != FAN1_PIN && E4_AUTO_FAN_PIN != FAN1_PIN && E5_AUTO_FAN_PIN != FAN1_PIN)
-#define HAS_FAN2 (PIN_EXISTS(FAN2) && CONTROLLER_FAN_PIN != FAN2_PIN && E0_AUTO_FAN_PIN != FAN2_PIN && E1_AUTO_FAN_PIN != FAN2_PIN && E2_AUTO_FAN_PIN != FAN2_PIN && E3_AUTO_FAN_PIN != FAN2_PIN && E4_AUTO_FAN_PIN != FAN2_PIN && E5_AUTO_FAN_PIN != FAN2_PIN)
-#define HAS_CONTROLLER_FAN (PIN_EXISTS(CONTROLLER_FAN))
+#define HAS_FAN1 (PIN_EXISTS(FAN1) && E0_AUTO_FAN_PIN != FAN1_PIN && E1_AUTO_FAN_PIN != FAN1_PIN && E2_AUTO_FAN_PIN != FAN1_PIN && E3_AUTO_FAN_PIN != FAN1_PIN && E4_AUTO_FAN_PIN != FAN1_PIN && E5_AUTO_FAN_PIN != FAN1_PIN)
+#define HAS_FAN2 (PIN_EXISTS(FAN2) && E0_AUTO_FAN_PIN != FAN2_PIN && E1_AUTO_FAN_PIN != FAN2_PIN && E2_AUTO_FAN_PIN != FAN2_PIN && E3_AUTO_FAN_PIN != FAN2_PIN && E4_AUTO_FAN_PIN != FAN2_PIN && E5_AUTO_FAN_PIN != FAN2_PIN)
 
 // Servos
 #define HAS_SERVO_0 (PIN_EXISTS(SERVO0) && NUM_SERVOS > 0)
@@ -1107,16 +977,13 @@
   #undef EDITABLE_SERVO_ANGLES
 #endif
 
-// Sensors
-#define HAS_FILAMENT_WIDTH_SENSOR (PIN_EXISTS(FILWIDTH))
-
 // User Interface
 #define HAS_HOME        (PIN_EXISTS(HOME))
 #define HAS_KILL        (PIN_EXISTS(KILL))
 #define HAS_SUICIDE     (PIN_EXISTS(SUICIDE))
 #define HAS_PHOTOGRAPH  (PIN_EXISTS(PHOTOGRAPH))
-#define HAS_BUZZER      (PIN_EXISTS(BEEPER) || EITHER(LCD_USE_I2C_BUZZER, PCA9632_BUZZER))
-#define USE_BEEPER      (HAS_BUZZER && DISABLED(LCD_USE_I2C_BUZZER, PCA9632_BUZZER))
+#define HAS_BUZZER      (PIN_EXISTS(BEEPER) || ENABLED(LCD_USE_I2C_BUZZER))
+#define USE_BEEPER      (HAS_BUZZER && DISABLED(LCD_USE_I2C_BUZZER))
 #define HAS_CASE_LIGHT  (PIN_EXISTS(CASE_LIGHT) && ENABLED(CASE_LIGHT_ENABLE))
 
 // Digital control
@@ -1195,22 +1062,6 @@
 #endif
 
 /**
- * Heated bed requires settings
- */
-#if HAS_HEATED_BED
-  #ifndef MIN_BED_POWER
-    #define MIN_BED_POWER 0
-  #endif
-  #ifndef MAX_BED_POWER
-    #define MAX_BED_POWER 255
-  #endif
-  #ifndef HEATER_BED_INVERTING
-    #define HEATER_BED_INVERTING false
-  #endif
-  #define WRITE_HEATER_BED(v) WRITE(HEATER_BED_PIN, (v) ^ HEATER_BED_INVERTING)
-#endif
-
-/**
  * Heated chamber requires settings
  */
 #if HAS_HEATED_CHAMBER
@@ -1264,30 +1115,6 @@
  * Part Cooling fan multipliexer
  */
 #define HAS_FANMUX PIN_EXISTS(FANMUX0)
-
-/**
- * MIN/MAX fan PWM scaling
- */
-#ifndef FAN_MIN_PWM
-  #define FAN_MIN_PWM 0
-#endif
-#ifndef FAN_MAX_PWM
-  #define FAN_MAX_PWM 255
-#endif
-#if FAN_MIN_PWM < 0 || FAN_MIN_PWM > 255
-  #error "FAN_MIN_PWM must be a value from 0 to 255."
-#elif FAN_MAX_PWM < 0 || FAN_MAX_PWM > 255
-  #error "FAN_MAX_PWM must be a value from 0 to 255."
-#elif FAN_MIN_PWM > FAN_MAX_PWM
-  #error "FAN_MIN_PWM must be less than or equal to FAN_MAX_PWM."
-#endif
-
-/**
- * FAST PWM FAN Settings
- */
-#if ENABLED(FAST_PWM_FAN) && !defined(FAST_PWM_FAN_FREQUENCY)
-  #define FAST_PWM_FAN_FREQUENCY ((F_CPU) / (2 * 255 * 1)) // Fan frequency default
-#endif
 
 /**
  * MIN/MAX case light PWM scaling
@@ -1392,8 +1219,8 @@
   #undef NO_FAN_SLOWING_IN_PID_TUNING
 #endif
 
-#define QUIET_PROBING (HAS_BED_PROBE && (EITHER(PROBING_HEATERS_OFF, PROBING_FANS_OFF) || DELAY_BEFORE_PROBING > 0))
-#define HEATER_IDLE_HANDLER ANY(ADVANCED_PAUSE_FEATURE, PROBING_HEATERS_OFF, WATCH_HOTENDS)
+#define QUIET_PROBING (HAS_BED_PROBE && (ENABLED(PROBING_FANS_OFF) || DELAY_BEFORE_PROBING > 0))
+#define HEATER_IDLE_HANDLER ANY(ADVANCED_PAUSE_FEATURE, WATCH_HOTENDS)
 
 #if ENABLED(ADVANCED_PAUSE_FEATURE) && !defined(FILAMENT_CHANGE_SLOW_LOAD_LENGTH)
   #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 0
@@ -1593,29 +1420,6 @@
   #define MAX_VFAT_ENTRIES (5)
 #else
   #define MAX_VFAT_ENTRIES (2)
-#endif
-
-// Set defaults for unspecified LED user colors
-#if ENABLED(LED_CONTROL_MENU)
-  #ifndef LED_USER_PRESET_RED
-    #define LED_USER_PRESET_RED       255
-  #endif
-  #ifndef LED_USER_PRESET_GREEN
-    #define LED_USER_PRESET_GREEN     255
-  #endif
-  #ifndef LED_USER_PRESET_BLUE
-    #define LED_USER_PRESET_BLUE      255
-  #endif
-  #ifndef LED_USER_PRESET_WHITE
-    #define LED_USER_PRESET_WHITE     0
-  #endif
-  #ifndef LED_USER_PRESET_BRIGHTNESS
-    #ifdef NEOPIXEL_BRIGHTNESS
-      #define LED_USER_PRESET_BRIGHTNESS NEOPIXEL_BRIGHTNESS
-    #else
-      #define LED_USER_PRESET_BRIGHTNESS 255
-    #endif
-  #endif
 #endif
 
 // Nozzle park for Delta

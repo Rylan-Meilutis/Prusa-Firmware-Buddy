@@ -287,7 +287,7 @@ CommunicationStatus ModularBed::read_mcu_temperature() {
 
     log_debug(ModularBed, "MCU Temperature: %d", mcu_temperature.value);
     metric_record_float(&metric_mcu_temperature, mcu_temperature.value);
-    sensor_data().mbedMCUTemperature = mcu_temperature.value;
+    sensor_data().bedMCUTemperature = mcu_temperature.value;
     return status;
 }
 
@@ -483,6 +483,10 @@ float ModularBed::get_heater_current() {
 uint16_t ModularBed::get_mcu_temperature() {
     Lock guard(mutex);
     return mcu_temperature.value;
+}
+
+void ModularBed::safe_state() {
+    buddy::hw::modularBedReset.set();
 }
 
 ModularBed modular_bed(puppyModbus, PuppyBootstrap::get_modbus_address_for_dock(Dock::MODULAR_BED));
