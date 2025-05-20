@@ -161,10 +161,6 @@ SECTIONS
     *(privileged_data);
     . = ALIGN(32);
     __privileged_sram_end__ = . - 1;
-    __non_shared_data_start__ = .;
-    *(non_shared_data);
-    . = ALIGN(32);
-    __non_shared_data_end = . - 1;
     __shared_data_start__ = .;
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */

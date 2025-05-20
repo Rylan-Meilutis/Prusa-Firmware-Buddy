@@ -50,7 +50,7 @@ extern uint32_t SystemCoreClock;
 
 /* Configuration for ARM_CM33_NTZ port */
 #define configENABLE_TRUSTZONE 0
-#define configENABLE_MPU       1
+#define configENABLE_MPU       0
 #define configENABLE_FPU       1
 
 /* Clock configuration */
