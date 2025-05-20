@@ -1,9 +1,47 @@
 #include <sys/reent.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <freertos/critical_section.hpp>
 
 #include "hal.h"
 
+// Reserve some bytes for the base stack (used for ISR, tasks have their own stacks statically allocated)
+#define ISR_STACK_LENGTH_BYTES 256
+
 extern "C" {
+extern char heap_start asm("end");
+extern char heap_limit asm("_estack");
+char *heap_end = &heap_start;
+
+[[noreturn]] void _posioned();
+
+// Overriding a weak symbol here
+void *sbrk(int) {
+    // Shouldn't get called, _sbrk_r should be the only function
+    _posioned();
+}
+
+// Overriding a weak symbol here
+void *_sbrk(int) {
+    // Shouldn't get called, _sbrk_r should be the only function
+    _posioned();
+};
+
+void *_sbrk_r([[maybe_unused]] struct _reent *pReent, int incr) {
+    volatile const char *prev_heap_end = heap_end;
+
+    {
+        freertos::CriticalSection cs;
+        if (heap_end + incr > &heap_limit - ISR_STACK_LENGTH_BYTES) {
+            errno = ENOMEM;
+            return caddr_t(-1);
+        }
+
+        heap_end += incr;
+    }
+
+    return caddr_t(prev_heap_end);
+}
 
 #ifdef STM32H5
 int _close_r(struct _reent *, int) {
