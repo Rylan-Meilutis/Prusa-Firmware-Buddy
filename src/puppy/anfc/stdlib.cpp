@@ -2,6 +2,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <freertos/critical_section.hpp>
+#include <malloc.h>
+#include <FreeRTOS.h>
 
 #include "hal.h"
 
@@ -27,7 +29,7 @@ void *_sbrk(int) {
     _posioned();
 };
 
-void *_sbrk_r([[maybe_unused]] struct _reent *pReent, int incr) {
+void *_sbrk_r(struct _reent *, int incr) {
     volatile const char *prev_heap_end = heap_end;
 
     {
@@ -41,6 +43,15 @@ void *_sbrk_r([[maybe_unused]] struct _reent *pReent, int incr) {
     }
 
     return caddr_t(prev_heap_end);
+}
+
+// Malloc is not thread-safe by default, we gotta override these symbols and introduce a lock
+void __malloc_lock(struct _reent *) {
+    portENTER_CRITICAL();
+}
+
+void __malloc_unlock(struct _reent *) {
+    portEXIT_CRITICAL();
 }
 
 #ifdef STM32H5
