@@ -13,6 +13,9 @@
 // This magical incantation is required for fw_descriptor integration in cmake to work.
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
 
+// Lowering CANARD_NODE_ID_MAX reduces RAM requirements. It is a change in the canard.h library -> make sure we don't accidentally remove it when we update
+static_assert(CANARD_NODE_ID_MAX == 15);
+
 LOG_COMPONENT_DEF(nfc);
 
 namespace {
