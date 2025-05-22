@@ -45,7 +45,7 @@ private:
     LLNFCReader ll_reader_;
     PrusaNFCReader reader_ { ll_reader_ };
 
-    std::string mime_type_;
+    std::array<char, 256> mime_type_buffer_;
 };
 
 /// Defined in main.cpp

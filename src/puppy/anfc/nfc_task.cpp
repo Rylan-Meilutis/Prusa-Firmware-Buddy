@@ -51,9 +51,14 @@ bool NFCTask::enqueue_request(const prusa3d_nfc_command_Request_Request_1_0 &req
         } else if (prusa3d_nfc_request_RequestData_1_0_is_set_params_(&rreq)) {
             auto &req = rreq.set_params;
 
-            mime_type_ = std::string_view(reinterpret_cast<const char *>(req.mime_type.value.elements), req.mime_type.value.count);
+            const auto mime_len = req.mime_type.value.count;
+            if (mime_len > mime_type_buffer_.size()) {
+                return;
+            }
+            memcpy(mime_type_buffer_.data(), req.mime_type.value.elements, mime_len);
+
             reader_.set_params(PrusaNFCReader::Params {
-                .mime_type = mime_type_,
+                .mime_type = std::string_view(mime_type_buffer_.data(), mime_len),
                 .has_meta_region = req.has_meta_region,
             });
         }
