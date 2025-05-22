@@ -6,6 +6,9 @@
 /// Identifier for a tag the NFC reader is managing
 using NFCTagID = uint16_t;
 
+/// One reader can have multiple independent antennas
+using NFCAntenna = uint8_t;
+
 static constexpr NFCTagID invalid_nfc_tag = -1;
 
 /// NFC analog for size_t

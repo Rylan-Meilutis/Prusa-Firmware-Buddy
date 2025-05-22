@@ -13,6 +13,10 @@ public:
     /// A new tag has been detected by the reader
     struct TagDetectedEvent {
         NFCTagID tag;
+
+        /// Antenna the tag has been detected on.
+        /// If tag gets moved from antenna to antenna, the reader will emit TagLost and new TagDetected (and likely assign a new ID to the tag)
+        NFCAntenna antenna;
     };
 
     /// The reader has lost connection with a tag

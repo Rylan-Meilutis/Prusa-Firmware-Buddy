@@ -82,7 +82,7 @@ INFCReader::IOResult<void> LLNFCReader::write(NFCTagID tag, NFCOffset start, con
 bool LLNFCReader::get_event(Event &e) {
     if (!tag_detected_reported_) {
         tag_detected_reported_ = true;
-        e = TagDetectedEvent { .tag = 0 };
+        e = TagDetectedEvent { .tag = 0, .antenna = 1 };
         return true;
     }
 
