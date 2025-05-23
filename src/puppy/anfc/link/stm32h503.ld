@@ -60,6 +60,15 @@ MEMORY
 /* Sections */
 SECTIONS
 {
+  /* Make sure we're not doing any dynamic allocations */
+  /* You'll get a linker error if it tries to sneak in */
+  /DISCARD/ :
+  {
+    *(.text.malloc)
+    *(.text.free)
+    *(.text.sbrk)
+  }
+
   /* The startup code into "FLASH" Rom type memory */
   .isr_vector :
   {

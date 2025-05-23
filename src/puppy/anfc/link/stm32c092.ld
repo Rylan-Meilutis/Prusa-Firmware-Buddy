@@ -75,6 +75,15 @@ FW_DESCRIPTOR (r) : ORIGIN = FW_ORIGIN + TOTAL_FLASH_SIZE - DESCRIPTOR_SIZE, LEN
 /* Define output sections */
 SECTIONS
 {
+  /* Make sure we're not doing any dynamic allocations */
+  /* You'll get a linker error if it tries to sneak in */
+  /DISCARD/ :
+  {
+    *(.text.malloc)
+    *(.text.free)
+    *(.text.sbrk)
+  }
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
