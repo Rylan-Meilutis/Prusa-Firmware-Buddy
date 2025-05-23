@@ -10,6 +10,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <assert.h>
+#include <inplace_function.hpp>
 
 namespace can::cyphal {
 
@@ -129,7 +130,7 @@ public:
      * @param data reference to modifiable data
      * @return success of transformation and whether this was a significant change
      */
-    using TransformFunction = std::function<TransformResult(T &data)>;
+    using TransformFunction = stdext::inplace_function<TransformResult(T &data)>;
 
     /**
      * @brief Transform data using a function.
