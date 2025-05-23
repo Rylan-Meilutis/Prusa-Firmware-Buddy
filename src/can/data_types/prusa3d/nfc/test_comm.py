@@ -47,6 +47,10 @@ async def main():
         print(str(request.dtype.Request))
         print_msg(req)
         msg = await request(req)
+        if msg is None:
+            print("No response")
+            return
+
         print(str(request.dtype.Response))
         print_msg(msg)
 
