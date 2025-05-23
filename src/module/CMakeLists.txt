@@ -2,3 +2,4 @@
 # `firmware` targets and similar. Keep it civil, please
 
 add_subdirectory(utils)
+add_subdirectory(magic_optimizations)

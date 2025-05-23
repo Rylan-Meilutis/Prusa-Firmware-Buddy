@@ -584,6 +584,9 @@ if(GENERATE_DFU)
     )
 endif()
 
+# Library that does some magic to save resources. Link everywhere.
+target_link_libraries(firmware PRIVATE magic_optimizations)
+
 if(BOARD IN_LIST BUDDY_BOARDS)
   target_link_libraries(
     firmware

@@ -32,6 +32,7 @@
 
 #ifndef SG14_INPLACE_FUNCTION_THROW
     #ifndef UNITTESTS
+        #include <cstdlib>
         #define SG14_INPLACE_FUNCTION_THROW(x) std::abort()
     #else
         #define SG14_INPLACE_FUNCTION_THROW(x) throw((x))
