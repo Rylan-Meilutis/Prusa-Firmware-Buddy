@@ -268,11 +268,6 @@ void Endstops::init() {
 
 // Called at ~1KHz from Temperature ISR: Poll endstop state if required
 void Endstops::poll() {
-
-  #if ENABLED(PINS_DEBUGGING)
-    run_monitor();  // report changes in endstop status
-  #endif
-
   #if DISABLED(ENDSTOP_INTERRUPTS_FEATURE)
     update();
   #elif ENDSTOP_NOISE_THRESHOLD
@@ -344,16 +339,6 @@ void Endstops::resync() {
     while (endstop_poll_count) safe_delay(1);
   #endif
 }
-
-#if ENABLED(PINS_DEBUGGING)
-  void Endstops::run_monitor() {
-    if (!monitor_flag) return;
-    static uint8_t monitor_count = 16;  // offset this check from the others
-    monitor_count += _BV(1);            //  15 Hz
-    monitor_count &= 0x7F;
-    if (!monitor_count) monitor();      // report changes in endstop status
-  }
-#endif
 
 void Endstops::event_handler() {
   static uint8_t prev_hit_state; // = 0
@@ -814,128 +799,3 @@ void Endstops::trigger_endstop(EndstopEnum endstop) {
     bsod("unhandled endstop triggered");
   };
 }
-
-#if ENABLED(PINS_DEBUGGING)
-
-  bool Endstops::monitor_flag = false;
-
-  /**
-   * Monitor Endstops and Z Probe for changes
-   *
-   * If a change is detected then the LED is toggled and
-   * a message is sent out the serial port.
-   *
-   * Yes, we could miss a rapid back & forth change but
-   * that won't matter because this is all manual.
-   */
-  void Endstops::monitor() {
-
-    static uint16_t old_live_state_local = 0;
-    static uint8_t local_LED_status = 0;
-    uint16_t live_state_local = 0;
-
-    #define ES_GET_STATE(S) if (READ(S##_PIN)) SBI(live_state_local, S)
-
-    #if HAS_X_MIN
-      ES_GET_STATE(X_MIN);
-    #endif
-    #if HAS_X_MAX
-      ES_GET_STATE(X_MAX);
-    #endif
-    #if HAS_Y_MIN
-      ES_GET_STATE(Y_MIN);
-    #endif
-    #if HAS_Y_MAX
-      ES_GET_STATE(Y_MAX);
-    #endif
-    #if HAS_Z_MIN
-      ES_GET_STATE(Z_MIN);
-    #endif
-    #if HAS_Z_MAX
-      ES_GET_STATE(Z_MAX);
-    #endif
-    #if HAS_Z_MIN_PROBE_PIN
-      ES_GET_STATE(Z_MIN_PROBE);
-    #endif
-    #if HAS_X2_MIN
-      ES_GET_STATE(X2_MIN);
-    #endif
-    #if HAS_X2_MAX
-      ES_GET_STATE(X2_MAX);
-    #endif
-    #if HAS_Y2_MIN
-      ES_GET_STATE(Y2_MIN);
-    #endif
-    #if HAS_Y2_MAX
-      ES_GET_STATE(Y2_MAX);
-    #endif
-    #if HAS_Z2_MIN
-      ES_GET_STATE(Z2_MIN);
-    #endif
-    #if HAS_Z2_MAX
-      ES_GET_STATE(Z2_MAX);
-    #endif
-    #if HAS_Z3_MIN
-      ES_GET_STATE(Z3_MIN);
-    #endif
-    #if HAS_Z3_MAX
-      ES_GET_STATE(Z3_MAX);
-    #endif
-
-    uint16_t endstop_change = live_state_local ^ old_live_state_local;
-    #define ES_REPORT_CHANGE(S) if (TEST(endstop_change, S)) SERIAL_ECHOPAIR("  " STRINGIFY(S) ":", TEST(live_state_local, S))
-
-    if (endstop_change) {
-      #if HAS_X_MIN
-        ES_REPORT_CHANGE(X_MIN);
-      #endif
-      #if HAS_X_MAX
-        ES_REPORT_CHANGE(X_MAX);
-      #endif
-      #if HAS_Y_MIN
-        ES_REPORT_CHANGE(Y_MIN);
-      #endif
-      #if HAS_Y_MAX
-        ES_REPORT_CHANGE(Y_MAX);
-      #endif
-      #if HAS_Z_MIN
-        ES_REPORT_CHANGE(Z_MIN);
-      #endif
-      #if HAS_Z_MAX
-        ES_REPORT_CHANGE(Z_MAX);
-      #endif
-      #if HAS_Z_MIN_PROBE_PIN
-        ES_REPORT_CHANGE(Z_MIN_PROBE);
-      #endif
-      #if HAS_X2_MIN
-        ES_REPORT_CHANGE(X2_MIN);
-      #endif
-      #if HAS_X2_MAX
-        ES_REPORT_CHANGE(X2_MAX);
-      #endif
-      #if HAS_Y2_MIN
-        ES_REPORT_CHANGE(Y2_MIN);
-      #endif
-      #if HAS_Y2_MAX
-        ES_REPORT_CHANGE(Y2_MAX);
-      #endif
-      #if HAS_Z2_MIN
-        ES_REPORT_CHANGE(Z2_MIN);
-      #endif
-      #if HAS_Z2_MAX
-        ES_REPORT_CHANGE(Z2_MAX);
-      #endif
-      #if HAS_Z3_MIN
-        ES_REPORT_CHANGE(Z3_MIN);
-      #endif
-      #if HAS_Z3_MAX
-        ES_REPORT_CHANGE(Z3_MAX);
-      #endif
-      SERIAL_ECHOLNPGM("\n");
-      analogWrite(pin_t(LED_PIN), local_LED_status);
-      local_LED_status ^= 255;
-      old_live_state_local = live_state_local;
-    }
-  }
-
-#endif // PINS_DEBUGGING

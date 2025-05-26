@@ -270,9 +270,6 @@
   #define TEMP_5_PIN -1
 #endif
 
-#ifndef LED_PIN
-  #define LED_PIN -1
-#endif
 #if DISABLED(PSU_CONTROL) || !defined(PS_ON_PIN)
   #undef PS_ON_PIN
   #define PS_ON_PIN -1

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <utility>
 
 #include "o1heap.h"
 
@@ -12,12 +13,19 @@ class O1Heap
 public:
     static constexpr size_t size = size_;
 
-    O1Heap() { heap_ = o1heapInit(buffer_.data(), size); }
+    O1Heap()
+    {
+        if (o1heapInit(buffer_.data(), size) != instance())
+        {
+            std::abort();
+        }
+    }
 
-    void* alloc(size_t bytes) { return o1heapAllocate(heap_, bytes); }
-    void  free(void* ptr) { o1heapFree(heap_, ptr); }
+    inline O1HeapInstance* instance() { return reinterpret_cast<O1HeapInstance*>(buffer_.data()); }
+
+    inline void* alloc(size_t bytes) { return o1heapAllocate(instance(), bytes); }
+    inline void  free(void* ptr) { o1heapFree(instance(), ptr); }
 
 private:
     alignas(O1HEAP_ALIGNMENT) std::array<std::byte, size> buffer_;
-    O1HeapInstance* heap_;
 };

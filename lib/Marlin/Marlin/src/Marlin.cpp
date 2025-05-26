@@ -209,26 +209,6 @@ void setup_powerhold() {
   void enableStepperDrivers()  { SET_INPUT(STEPPER_RESET_PIN); }      // Set to input, allowing pullups to pull the pin high
 #endif
 
-/**
- * Sensitive pin test for M42, M226
- */
-
-#include "pins/sensitive_pins.h"
-
-bool pin_is_protected(const pin_t pin) {
-  static const pin_t sensitive_pins[] PROGMEM = SENSITIVE_PINS;
-  for (uint8_t i = 0; i < COUNT(sensitive_pins); i++) {
-    pin_t sensitive_pin;
-    memcpy_P(&sensitive_pin, &sensitive_pins[i], sizeof(pin_t));
-    if (pin == sensitive_pin) return true;
-  }
-  return false;
-}
-
-void protected_pin_err() {
-  SERIAL_ERROR_MSG(MSG_ERR_PROTECTED_PIN);
-}
-
 #if HAS_PLANNER()
   void quickstop_stepper() {
     planner.quick_stop();

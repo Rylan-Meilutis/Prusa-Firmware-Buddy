@@ -2649,7 +2649,6 @@ void Temperature::readings_ready() {
  *  - Prepare or Measure one of the raw ADC sensor values
  *  - Check new temperature values for MIN/MAX errors (kill on error)
  *  - Step the babysteps value for each axis towards 0
- *  - For PINS_DEBUGGING, monitor and report endstop pins
  *  - For ENDSTOP_INTERRUPTS_FEATURE check endstops if flagged
  *  - Call planner.tick to count down its "ignore" time
  */

@@ -101,8 +101,6 @@
  *        The '#' is necessary when calling from within sd files, as it stops buffer prereading
  * M33  - Get the longname version of a path. (Requires LONG_FILENAME_HOST_SUPPORT)
  * M34  - Set SD Card sorting options. (Requires SDCARD_SORT_ALPHA)
- * M42  - Change pin status via gcode: M42 P<pin> S<value>. LED pin assumed if P is omitted.
- * M43  - Display pin status, watch pins for changes, watch endstops & toggle LED, Z servo probe test, toggle pins
  * M48  - Measure Z Probe repeatability: M48 P<points> X<pos> Y<pos> V<level> E<engage> L<legs> S<chizoid>. (Requires Z_MIN_PROBE_REPEATABILITY_TEST)
  * M73  - Set the progress percentage. (Requires LCD_SET_PROGRESS_MANUALLY)
  * M75  - Start the print job timer.
@@ -164,7 +162,6 @@
  * M218 - Set/get a tool offset: "M218 T<index> X<offset> Y<offset>". (Requires 2 or more extruders)
  * M220 - Set Feedrate Percentage: "M220 S<percent>" (i.e., "FR" on the LCD)
  * M221 - Set Flow Percentage: "M221 S<percent>"
- * M226 - Wait until a pin is in a given state: "M226 P<pin> S<state>"
  * M240 - Trigger a camera to take a photograph. (Requires PHOTO_GCODE)
  * M250 - Set LCD contrast: "M250 C<contrast>" (0-63). (Requires LCD support)
  * M260 - i2c Send Data
@@ -566,12 +563,6 @@ private:
     #endif
   #endif
 
-  static void M42();
-
-  #if ENABLED(PINS_DEBUGGING)
-    static void M43();
-  #endif
-
   static void M46();
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
@@ -705,8 +696,6 @@ private:
   #if EXTRUDERS
     static void M221();
   #endif
-
-  static void M226();
 
   #if ENABLED(PHOTO_GCODE)
     static void M240();

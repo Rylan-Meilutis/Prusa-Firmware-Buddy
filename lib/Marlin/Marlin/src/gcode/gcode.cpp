@@ -428,12 +428,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif // SDCARD_GCODES
 
       case 31: M31(); break;                                      // M31: Report time since the start of SD print or last M109
-      case 42: M42(); break;                                      // M42: Change pin state
       case 46: M46(); break;                                      // M46: Report ip4 address
-
-      #if ENABLED(PINS_DEBUGGING)
-        case 43: M43(); break;                                    // M43: Read pin state
-      #endif
 
       #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
         case 48: M48(); break;                                    // M48: Z probe repeatability test
@@ -589,8 +584,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #if EXTRUDERS
         case 221: M221(); break;                                  // M221: Set Flow Percentage
       #endif
-
-      case 226: M226(); break;                                    // M226: Wait until a pin reaches a state
 
       #if HAS_SERVOS
         case 280: M280(); break;                                  // M280: Set servo position absolute

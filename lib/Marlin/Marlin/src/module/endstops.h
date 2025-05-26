@@ -177,13 +177,6 @@ class Endstops {
     #endif
 
     static void resync();
-
-    // Debugging of endstops
-    #if ENABLED(PINS_DEBUGGING)
-      static bool monitor_flag;
-      static void monitor();
-      static void run_monitor();
-    #endif
 };
 
 extern Endstops endstops;

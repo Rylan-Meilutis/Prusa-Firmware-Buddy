@@ -37,11 +37,6 @@
     if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
       //Error_Handler();
     }
-    else {
-      #if PIN_EXISTS(LED) && !ENABLED(PINS_DEBUGGING)
-        TOGGLE(LED_PIN);  // heartbeat indicator
-      #endif
-    }
   }
 
   void HAL_watchdog_refresh() {

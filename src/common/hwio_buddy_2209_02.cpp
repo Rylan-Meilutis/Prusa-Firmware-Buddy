@@ -321,17 +321,6 @@ static void analogWrite_HEATER_0(int new_value) {
     }
 }
 
-#if (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE())
-static void analogWrite_FAN_1(int new_value) {
-    static int old_value = 0;
-    if (old_value != new_value) {
-        static_assert(TIM1_default_Period == _pwm_analogWrite_max);
-        hwio_pwm_set_val(&htim1, TIM_CHANNEL_1, new_value);
-        old_value = new_value;
-    }
-}
-#endif
-
 #if PRINTER_IS_PRUSA_iX()
 static void analogWrite_TURBINE(int new_value) {
     static int old_value = 0;
@@ -371,15 +360,11 @@ void digitalWrite(uint32_t marlinPin, uint32_t ulVal) {
         analogWrite_HEATER_0(ulVal ? _pwm_analogWrite_max : 0);
         return;
     case MARLIN_PIN(FAN1):
-#if (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE())
-        analogWrite_FAN_1(ulVal ? 80 : 0);
-#elif PRINTER_IS_PRUSA_MK3_5()
+#if PRINTER_IS_PRUSA_MK3_5()
         // PWM value of 80 roughly translates to 4k RPM, further testing my find better value, thus far this seems precise enough plus it is the value used by MINI which uses the same fans
         Fans::heat_break(0).set_pwm(ulVal ? (config_store().has_alt_fans.get() ? 80 : _pwm_analogWrite_max) : 0);
-#elif (PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_MINI())
-        Fans::heat_break(0).set_pwm(ulVal ? 80 : 0);
 #else
-    #error
+        Fans::heat_break(0).set_pwm(ulVal ? 80 : 0);
 #endif
         return;
     case MARLIN_PIN(FAN):
