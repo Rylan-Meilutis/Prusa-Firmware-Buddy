@@ -1211,21 +1211,6 @@
 #define DEFAULT_KEEPALIVE_INTERVAL 2 // Number of seconds between "busy" messages. Set with M113.
 #define BUSY_WHILE_HEATING // Some hosts require "busy" messages even during heating
 
-//
-// M100 Free Memory Watcher
-//
-//#define M100_FREE_MEMORY_WATCHER    // Add M100 (Free Memory Watcher) to debug memory usage
-
-//
-// G20/G21 Inch mode support
-//
-//#define INCH_MODE_SUPPORT
-
-//
-// M149 Set temperature units support
-//
-//#define TEMPERATURE_UNITS_SUPPORT
-
 // @section temperature
 
 // Preheat Constants

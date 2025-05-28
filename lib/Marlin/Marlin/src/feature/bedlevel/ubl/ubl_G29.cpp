@@ -41,7 +41,7 @@
   #include "../../../feature/bed_preheat.hpp"
   #include <fanctl.hpp>
   #include <option/has_love_board.h>
-  #include <scope_guard.hpp>
+  #include <raii/scope_guard.hpp>
 
   #if BOARD_IS_XBUDDY()
     #include <hw_configuration.hpp>

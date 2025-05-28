@@ -4,7 +4,7 @@
 #include <marlin_client.hpp>
 #include <ScreenHandler.hpp>
 #include <selftest_types.hpp>
-#include <RAII.hpp>
+#include <raii/auto_restore.hpp>
 #include <option/has_phase_stepping_selftest.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_toolchanger.h>

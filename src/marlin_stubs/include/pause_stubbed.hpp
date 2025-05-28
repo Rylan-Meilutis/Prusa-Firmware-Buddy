@@ -59,13 +59,16 @@ protected:
         color_correct_ask,
         eject,
 #if HAS_MMU2()
+        mmu_load_start,
         mmu_load_ask,
         mmu_load,
+        mmu_unload_start,
 #endif
 #if HAS_NOZZLE_CLEANER()
         load_nozzle_clean,
 #endif
         load_prime,
+        runout_during_load,
         stop,
         _finished, // From here on are only "terminal" states that have no handler linked to them apart from reporting final status of FSM
         _stopped,
@@ -210,15 +213,17 @@ private:
     void color_correct_ask_process(Response response);
     void eject_process(Response response);
 #if HAS_MMU2()
+    void mmu_load_start_process(Response response);
     void mmu_load_ask_process(Response response);
     void mmu_load_process(Response response);
+    void mmu_unload_start_process(Response response);
 #endif
 #if HAS_NOZZLE_CLEANER()
     void load_nozzle_clean_process(Response response);
 #endif
     void load_prime_process(Response response);
+    void runout_during_load_process(Response response);
     void stop_process(Response response);
-    void runout_during_load();
 
     using StateHandler = void (Pause::*)(Response response);
     static constexpr EnumArray<LoadState, StateHandler, static_cast<int>(LoadState::_finished)> state_handlers {
@@ -249,13 +254,16 @@ private:
             { LoadState::color_correct_ask, &Pause::color_correct_ask_process },
             { LoadState::eject, &Pause::eject_process },
 #if HAS_MMU2()
+            { LoadState::mmu_load_start, &Pause::mmu_load_start_process },
             { LoadState::mmu_load_ask, &Pause::mmu_load_ask_process },
             { LoadState::mmu_load, &Pause::mmu_load_process },
+            { LoadState::mmu_unload_start, &Pause::mmu_unload_start_process },
 #endif
 #if HAS_NOZZLE_CLEANER()
             { LoadState::load_nozzle_clean, &Pause::load_nozzle_clean_process },
 #endif
             { LoadState::load_prime, &Pause::load_prime_process },
+            { LoadState::runout_during_load, &Pause::runout_during_load_process },
             { LoadState::stop, &Pause::stop_process },
     };
 

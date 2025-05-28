@@ -10,7 +10,7 @@
 #include "client_response.hpp"
 #include "printers.h"
 #include <marlin_server.hpp>
-#include <RAII.hpp>
+#include <raii/auto_restore.hpp>
 
 #include <option/has_loadcell.h>
 #if HAS_LOADCELL()

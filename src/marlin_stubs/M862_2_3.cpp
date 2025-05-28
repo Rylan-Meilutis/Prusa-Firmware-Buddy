@@ -6,7 +6,7 @@
 #include "gcode/gcode.h"
 #include "common/printer_model.hpp"
 #include <gcode_info.hpp>
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <module/planner.h>
 #include <option/has_gcode_compatibility.h>
 

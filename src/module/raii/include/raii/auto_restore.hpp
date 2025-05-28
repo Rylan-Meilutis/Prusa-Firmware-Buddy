@@ -1,5 +1,5 @@
 /**
- * @file RAII.hpp
+ * @file auto_restore.hpp
  * @author Radek Vana
  * @brief RAII pattern template
  * @date 2021-11-26

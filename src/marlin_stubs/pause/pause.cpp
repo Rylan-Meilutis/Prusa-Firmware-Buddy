@@ -38,12 +38,12 @@
 #include "filament.hpp"
 #include "client_response.hpp"
 #include "fsm_loadunload_type.hpp"
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "mapi/motion.hpp"
 #include <cmath>
 #include <logging/log.hpp>
 #include <config_store/store_instance.hpp>
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <filament_to_load.hpp>
 #include <common/marlin_client.hpp>
 #include <common/mapi/parking.hpp>
@@ -394,29 +394,7 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
 
 #if HAS_MMU2()
     if (FSensors_instance().HasMMU()) {
-        if (load_type == LoadType::load) {
-            if (!MMU2::mmu2.load_filament_to_nozzle(settings.mmu_filament_to_load)) {
-                // TODO tell user that he has already loaded filament if he really wants to continue
-                // TODO check fsensor .. how should I behave if filament is not detected ???
-                // some error?
-                set(LoadState::load_prime);
-                return;
-            }
-
-            config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
-
-            setPhase(PhasesLoadUnload::IsColor, 99);
-            set(LoadState::color_correct_ask);
-        } else if (load_type == LoadType::filament_change) {
-            if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-                set(LoadState::load_prime);
-                return;
-            }
-
-            setPhase(PhasesLoadUnload::LoadFilamentIntoMMU);
-            set(LoadState::mmu_load_ask);
-        }
-
+        set(LoadState::mmu_load_start);
         return;
     }
 #endif
@@ -517,7 +495,7 @@ void Pause::await_filament_process([[maybe_unused]] Response response) {
     }
 }
 
-void Pause::runout_during_load() {
+void Pause::runout_during_load_process([[maybe_unused]] Response response) {
     setPhase(PhasesLoadUnload::Ejecting_unstoppable);
     // unload immediately - we even cannot perform ramming as it would have consumed even more filament
     std::ignore = do_e_move_notify_progress_coldextrude(-std::abs(settings.unload_length), (FILAMENT_CHANGE_UNLOAD_FEEDRATE), 51, 99, StopConditions::Accomplished);
@@ -581,7 +559,7 @@ void Pause::load_to_gears_process([[maybe_unused]] Response response) { // slow 
     const auto result = do_e_move_notify_progress_coldextrude(settings.slow_load_length, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE, 10, 30, StopConditions::All);
 
     if (result == StopConditions::SideFilamentSensorRunout) { // TODO method without param using actual phase
-        runout_during_load();
+        set(LoadState::runout_during_load);
         return;
     }
 
@@ -637,7 +615,7 @@ void Pause::long_load_process([[maybe_unused]] Response response) {
     }
 
     if (move_e_progress == StopConditions::SideFilamentSensorRunout) {
-        runout_during_load();
+        set(LoadState::runout_during_load);
         return;
     }
 
@@ -660,7 +638,7 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     planner.synchronize(); // Finish any pending moves before starting the purge
     const auto purge_result = do_e_move_notify_progress_hotextrude(settings.purge_length(), ADVANCED_PAUSE_PURGE_FEEDRATE, 70, 98, StopConditions::All);
     if (purge_result == StopConditions::SideFilamentSensorRunout) {
-        runout_during_load();
+        set(LoadState::runout_during_load);
         return;
     }
     // Skip retraction on UserStopped or Failed
@@ -707,6 +685,34 @@ void Pause::color_correct_ask_process(Response response) {
 }
 
 #if HAS_MMU2()
+
+void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
+    if (load_type == LoadType::load) {
+        if (!MMU2::mmu2.load_filament_to_nozzle(settings.mmu_filament_to_load)) {
+            // TODO tell user that he has already loaded filament if he really wants to continue
+            // TODO check fsensor .. how should I behave if filament is not detected ???
+            // some error?
+            set(LoadState::load_prime);
+            return;
+        }
+
+        config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
+
+        setPhase(PhasesLoadUnload::IsColor, 99);
+        set(LoadState::color_correct_ask);
+    } else if (load_type == LoadType::filament_change) {
+        if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
+            set(LoadState::load_prime);
+            return;
+        }
+
+        setPhase(PhasesLoadUnload::LoadFilamentIntoMMU);
+        set(LoadState::mmu_load_ask);
+    }
+
+    return;
+}
+
 void Pause::mmu_load_ask_process(Response response) {
     if (response == Response::Continue) {
         set(LoadState::mmu_load);
@@ -724,6 +730,27 @@ void Pause::mmu_load_process([[maybe_unused]] Response response) {
 
     setPhase(PhasesLoadUnload::IsColor, 99);
     set(LoadState::color_correct_ask);
+}
+
+void Pause::mmu_unload_start_process([[maybe_unused]] Response response) {
+    if (load_type == LoadType::unload) {
+        MMU2::mmu2.unload();
+        set(LoadState::_finished);
+    } else if (load_type == LoadType::filament_change) {
+        settings.mmu_filament_to_load = MMU2::mmu2.get_current_tool();
+
+        // No filament loaded in MMU, we can't continue, as we don't know what slot to load
+        if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
+            set(LoadState::unload_finish_or_change);
+            return;
+        }
+
+        MMU2::mmu2.unload();
+        MMU2::mmu2.eject_filament(settings.mmu_filament_to_load);
+        set(LoadState::unload_finish_or_change);
+    }
+
+    return;
 }
 #endif
 
@@ -865,23 +892,7 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
 
 #if HAS_MMU2()
     if (FSensors_instance().HasMMU()) {
-        if (load_type == LoadType::unload) {
-            MMU2::mmu2.unload();
-            set(LoadState::_finished);
-        } else if (load_type == LoadType::filament_change) {
-            settings.mmu_filament_to_load = MMU2::mmu2.get_current_tool();
-
-            // No filament loaded in MMU, we can't continue, as we don't know what slot to load
-            if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-                set(LoadState::unload_finish_or_change);
-                return;
-            }
-
-            MMU2::mmu2.unload();
-            MMU2::mmu2.eject_filament(settings.mmu_filament_to_load);
-            set(LoadState::unload_finish_or_change);
-        }
-
+        set(LoadState::mmu_unload_start);
         return;
     }
 #endif

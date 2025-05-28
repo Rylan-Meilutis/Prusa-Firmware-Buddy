@@ -31,9 +31,9 @@
 #include <media_prefetch/media_prefetch.hpp>
 #include <gcode/gcode_reader_restore_info.hpp>
 #include <dirent.h>
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <tools_mapping.hpp>
-#include <RAII.hpp>
+#include <raii/auto_restore.hpp>
 #include <inject_queue.hpp>
 #include <buddy/unreachable.hpp>
 #include <utils/string_builder.hpp>

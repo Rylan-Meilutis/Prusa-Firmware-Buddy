@@ -12,7 +12,7 @@
 #include <client_fsm_types.h>
 #include <client_response.hpp>
 #include <common/marlin_server.hpp>
-#include <common/RAII.hpp>
+#include <raii/auto_restore.hpp>
 
 #if HAS_TOOLCHANGER() && HAS_GUI()
     #include <window_tool_action_box.hpp>

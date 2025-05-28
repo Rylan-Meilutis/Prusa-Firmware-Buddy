@@ -39,9 +39,11 @@ if(NOT DEFINED DISABLE_LTO
    )
   set(COMPILE_WITH_LTO ON)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  message(STATUS "LTO: Enabled")
 else()
   set(COMPILE_WITH_LTO OFF)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+  message(STATUS "LTO: Disabled")
 endif()
 
 # Check GCC Version

@@ -98,7 +98,7 @@
   #error These babies are no longer welcome here. The relevants ifdefs were removed.
 #endif
 
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <marlin_server.hpp>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 

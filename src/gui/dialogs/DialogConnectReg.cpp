@@ -1,5 +1,5 @@
 #include "DialogConnectReg.hpp"
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "../img_resources.hpp"
 #include "../ScreenHandler.hpp"
 #include "../lang/i18n.h"

@@ -4,7 +4,7 @@
 #include <config_store/store_definition.hpp>
 #include <feature/ramming/standard_ramming_sequence.hpp>
 #include <module/planner.h>
-#include <RAII.hpp>
+#include <raii/auto_restore.hpp>
 #include <filament_sensors_handler.hpp>
 #include <logging/log.hpp>
 #include <feature/print_status_message/print_status_message_guard.hpp>

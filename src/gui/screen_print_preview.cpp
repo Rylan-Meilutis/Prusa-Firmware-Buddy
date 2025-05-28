@@ -13,7 +13,7 @@
 #include "print_utils.hpp"
 #include "client_response.hpp"
 #include "printers.h"
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "box_unfinished_selftest.hpp"
 #include "window_msgbox_wrong_printer.hpp"
 #include <option/has_toolchanger.h>

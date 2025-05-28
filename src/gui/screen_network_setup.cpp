@@ -7,7 +7,7 @@
 #include <i_window_menu_item.hpp>
 #include <img_resources.hpp>
 #include <dialog_text_input.hpp>
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <window_menu.hpp>
 #include <WinMenuContainer.hpp>
 #include <fsm_menu_item.hpp>

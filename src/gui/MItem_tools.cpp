@@ -36,7 +36,7 @@
 #include <option/has_phase_stepping_toggle.h>
 #include <option/has_side_leds.h>
 #include <option/has_coldpull.h>
-#include <RAII.hpp>
+#include <raii/auto_restore.hpp>
 #include <time.h>
 #include <footer_items_heaters.hpp>
 #include <footer_line.hpp>

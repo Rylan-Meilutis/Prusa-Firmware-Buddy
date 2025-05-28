@@ -51,8 +51,6 @@
  * G17  - Select Plane XY (Requires CNC_WORKSPACE_PLANES)
  * G18  - Select Plane ZX (Requires CNC_WORKSPACE_PLANES)
  * G19  - Select Plane YZ (Requires CNC_WORKSPACE_PLANES)
- * G20  - Set input units to inches (Requires INCH_MODE_SUPPORT)
- * G21  - Set input units to millimeters (Requires INCH_MODE_SUPPORT)
  * G27  - Park Nozzle
  * G28  - Home one or more axes
  * G29  - Start or continue the bed leveling probe procedure (Requires bed leveling)
@@ -115,7 +113,6 @@
  * M85  - Set inactivity shutdown timer with parameter S<seconds>. To disable set zero (default)
  * M86  - Set Safety Timer expiration time (S<seconds>). Set to zero to disable the timer.
  * M92  - Set planner.settings.axis_steps_per_mm for one or more axes.
- * M100 - Watch Free Memory (for debugging) (Requires M100_FREE_MEMORY_WATCHER)
  * M104 - Set extruder target temp.
  * M105 - Report current temperatures.
  * M106 - Set print fan speed.
@@ -142,7 +139,6 @@
  * M129 - EtoP Closed. (Requires BARICUDA)
  * M140 - Set bed target temp. S<temp>
  * M141 - Set heated chamber target temp. S<temp> (Requires a chamber heater)
- * M149 - Set temperature units. (Requires TEMPERATURE_UNITS_SUPPORT)
  * M150 - Set Status LED Color as R<red> U<green> B<blue> P<bright>. Values 0-255.
  * M155 - Auto-report temperatures with interval of S<seconds>. (Requires AUTO_REPORT_TEMPERATURES)
  * M190 - S<temp> Wait for bed current temp to reach target temp. ** Wait only when heating! **
@@ -209,7 +205,6 @@
  * M666 - Set/get offsets for delta (Requires DELTA) or dual endstops (Requires [XYZ]_DUAL_ENDSTOPS).
  * M701 - Load filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
  * M702 - Unload filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
- * M810-M819 - Define/execute a G-code macro (Requires GCODE_MACROS)
  * M851 - Set Z probe's XYZ offsets in current units. (Negative values: X=left, Y=front, Z=below)
  * M852 - Set skew factors: "M852 [I<xy>] [J<xz>] [K<yz>]". (Requires SKEW_CORRECTION_GCODE, and SKEW_CORRECTION_FOR_Z for IJ)
  * M860 - Report the position of position encoder modules.
@@ -438,11 +433,6 @@ private:
     static void G19();
   #endif
 
-  #if ENABLED(INCH_MODE_SUPPORT)
-    static void G20();
-    static void G21();
-  #endif
-
   static void G27();
 
   static void G28();
@@ -594,10 +584,6 @@ private:
   static void M86();
   static void M92();
 
-  #if ENABLED(M100_FREE_MEMORY_WATCHER)
-    static void M100();
-  #endif
-
   #if EXTRUDERS
     static void M109();
   #endif
@@ -656,10 +642,6 @@ private:
 
   #if HAS_TEMP_HEATBREAK_CONTROL
     static void M142();
-  #endif
-
-  #if ENABLED(TEMPERATURE_UNITS_SUPPORT)
-    static void M149();
   #endif
 
   #if ENABLED(AUTO_REPORT_TEMPERATURES) && HAS_TEMP_SENSOR
@@ -840,10 +822,6 @@ private:
   #if ENABLED(FILAMENT_LOAD_UNLOAD_GCODES)
     static void M701();
     static void M702();
-  #endif
-
-  #if ENABLED(GCODE_MACROS)
-    static void M810_819();
   #endif
 
   #if HAS_BED_PROBE

@@ -1,6 +1,6 @@
 #include "config_features.h"
 #include "../PrusaGcodeSuite.hpp"
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "M70X.hpp"
 #include "fs_event_autolock.hpp"
 #include "../../../lib/Marlin/Marlin/src/gcode/gcode.h"

@@ -2,7 +2,7 @@
 
 #include <sound.hpp>
 #include <ScreenHandler.hpp>
-#include <scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <img_resources.hpp>
 #include <utils/string_builder.hpp>
 #include <logging/log.hpp>

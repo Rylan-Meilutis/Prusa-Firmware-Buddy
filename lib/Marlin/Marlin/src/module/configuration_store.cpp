@@ -545,9 +545,6 @@ void MarlinSettings::reset() {
 
   inline void say_units(const bool colon) {
     serialprintPGM(
-      #if ENABLED(INCH_MODE_SUPPORT)
-        parser.linear_unit_factor != 1.0 ? PSTR(" (in)") :
-      #endif
       PSTR(" (mm)")
     );
     if (colon) SERIAL_ECHOLNPGM(":");
@@ -565,15 +562,8 @@ void MarlinSettings::reset() {
      * Announce current units, in case inches are being displayed
      */
     CONFIG_ECHO_START();
-    #if ENABLED(INCH_MODE_SUPPORT)
-      SERIAL_ECHOPGM("  G2");
-      SERIAL_CHAR(parser.linear_unit_factor == 1.0 ? '1' : '0');
-      SERIAL_ECHOPGM(" ;");
-      say_units(false);
-    #else
       SERIAL_ECHOPGM("  G21    ; Units in mm");
       say_units(false);
-    #endif
     SERIAL_EOL();
 
     #if DISABLED(NO_VOLUMETRICS)

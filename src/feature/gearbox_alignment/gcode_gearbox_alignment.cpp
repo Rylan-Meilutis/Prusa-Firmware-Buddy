@@ -3,7 +3,7 @@
 
 #include <buddy/unreachable.hpp>
 #include <common/filament_sensors_handler.hpp>
-#include <common/RAII.hpp>
+#include <raii/auto_restore.hpp>
 #include <config_store/store_instance.hpp>
 #include <M70X.hpp>
 #include <mapi/motion.hpp>

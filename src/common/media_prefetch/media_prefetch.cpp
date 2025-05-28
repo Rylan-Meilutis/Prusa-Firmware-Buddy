@@ -10,7 +10,7 @@
 
 #ifndef UNITTESTS
     #include <metric.h>
-    #include <scope_guard.hpp>
+    #include <raii/scope_guard.hpp>
     #include <cmsis_os.h>
 #endif
 

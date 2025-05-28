@@ -14,7 +14,7 @@
 #include "M70X.hpp"
 #include <option/has_toolchanger.h>
 
-#include "common/RAII.hpp"
+#include <raii/auto_restore.hpp>
 
 #include "mapi/motion.hpp"
 #include "Marlin/src/module/temperature.h"

@@ -13,7 +13,7 @@
 #include <common/print_utils.hpp>
 #include <common/stat_retry.hpp>
 #include <common/lfn.h>
-#include <common/scope_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <state/printer_state.hpp>
 #include <option/has_human_interactions.h>
 

@@ -2,7 +2,7 @@
 
 #include <Marlin/src/module/planner.h>
 
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "src/module/motion.h"
 
 namespace mapi {

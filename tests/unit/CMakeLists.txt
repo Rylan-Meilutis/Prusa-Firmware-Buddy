@@ -18,6 +18,7 @@ target_link_libraries(catch_main Catch2::Catch2 CppStdExtensions)
 # registers given target as a catch test
 function(add_catch_test target)
   target_link_libraries(${target} catch_main Catch2::Catch2)
+  target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/tests/unit/include)
   catch_discover_tests(${target})
   add_dependencies(tests ${target})
 endfunction()

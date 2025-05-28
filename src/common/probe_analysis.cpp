@@ -1,5 +1,5 @@
 #include "probe_analysis.hpp"
-#include "scope_guard.hpp"
+#include <raii/scope_guard.hpp>
 #include "metric.h"
 #include "timing.h"
 #include <printers.h>

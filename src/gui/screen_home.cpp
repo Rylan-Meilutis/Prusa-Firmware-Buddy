@@ -30,7 +30,7 @@
 #include "screen_printing.hpp"
 #include "filament_sensors_handler.hpp"
 
-#include "RAII.hpp"
+#include <raii/auto_restore.hpp>
 #include "lazyfilelist.hpp"
 #include "i18n.h"
 #include "i2c.hpp"

@@ -249,6 +249,7 @@ target_link_libraries(
          marlin_server_types
          SG14
          buddy_utils
+         raii
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)
 

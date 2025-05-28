@@ -83,6 +83,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             wdt.cpp
     )
   add_subdirectory(async_job)
+  target_link_libraries(firmware PRIVATE raii)
 
   if(BOARD STREQUAL "XLBUDDY")
     target_sources(firmware PRIVATE hwio_XLBuddy.cpp)

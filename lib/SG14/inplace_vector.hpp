@@ -39,12 +39,15 @@
 #endif
 
 #ifndef SG14_INPLACE_VECTOR_THROW
-    #ifndef UNITTESTS
-        // Our custom exception handling. Since we don't use them, lets bsod().
+    #if __cpp_exception || defined(UNITTESTS)
+        #define SG14_INPLACE_VECTOR_THROW(x) throw((x))
+    #elif __has_include(<bsod.h>)
+        // Our custom exception handling. Since we don't use them, lets bsod() if we can, otherwise lets abort.
         #include <bsod.h>
         #define SG14_INPLACE_VECTOR_THROW(x) bsod("%s", (x).what())
     #else
-        #define SG14_INPLACE_VECTOR_THROW(x) throw((x))
+        #include <cstdlib>
+        #define SG14_INPLACE_VECTOR_THROW(x) std::abort()
     #endif
 #endif
 
