@@ -118,7 +118,7 @@ bool FdcanDriver::send(const CanardFrame &frame, bool store_timestamp) {
         .TxFrameType = FDCAN_DATA_FRAME,
         .DataLength = 0,
         .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
-        .BitRateSwitch = FDCAN_BRS_ON,
+        .BitRateSwitch = enable_bit_rate_switch ? FDCAN_BRS_ON : FDCAN_BRS_OFF,
         .FDFormat = FDCAN_FD_CAN,
         .TxEventFifoControl = FDCAN_NO_TX_EVENTS,
         .MessageMarker = 0

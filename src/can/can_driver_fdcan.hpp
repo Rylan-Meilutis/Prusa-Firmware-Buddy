@@ -26,6 +26,8 @@ class FdcanDriver : public Driver {
 
     uint8_t buffer[CANARD_MTU_CAN_FD]; ///< Buffer for received frames
 
+    bool enable_bit_rate_switch; ///< Enable bit rate switch?
+
     /**
      * @brief Sanitize message timestamp.
      * @param time_isr time sampled in the ISR as close to the event as possible, needs to be less than TIM3_OVERFLOW apart from frame_timestamp [us]
@@ -37,10 +39,12 @@ class FdcanDriver : public Driver {
 public:
     /**
      * @param hfdcan_ HAL CAN instance
+     * @param enable_bit_rate_switch_ Enable bit rate switch?
      */
-    FdcanDriver(FDCAN_HandleTypeDef &hfdcan_)
+    FdcanDriver(FDCAN_HandleTypeDef &hfdcan_, bool enable_bit_rate_switch_ = true)
         : hfdcan(hfdcan_)
-        , next(list) {
+        , next(list)
+        , enable_bit_rate_switch { enable_bit_rate_switch_ } {
         list = this;
     }
 
