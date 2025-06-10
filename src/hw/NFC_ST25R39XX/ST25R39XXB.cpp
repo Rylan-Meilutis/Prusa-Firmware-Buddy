@@ -145,78 +145,6 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::turn_on_oscilator() {
     return {};
 }
 
-nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_field_up() {
-    // Martin Poupa's Solution - much simpler in flipper fw - will use that for the moment
-    hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0x00 });
-    hw_int.write_register(RegisterA::operation_control, std::byte { 0x81 });
-    hw_int.write_register(RegisterA::auxilary_definition, std::byte { 0x01 });
-    set_interrupt_mask(~(IRQType::no_response_timer_expire | IRQType::minimum_guard_time_expires | IRQType::collision_detected | IRQType::pwp_field_active));
-    hw_int.direct_command(Command::nfc_init_field_on);
-
-    auto res = await_interrupt(IRQType::pwp_field_active, 100);
-    if (!res.has_value()) {
-        return std::unexpected(res.error());
-    }
-
-    set_interrupt_mask(~IRQType::no_response_timer_expire);
-    hw_int.write_register(RegisterA::operation_control, std::byte { 0x8B });
-    hw_int.write_register(RegisterA::operation_control, std::byte { 0xCB });
-
-    hw_int.write_register(RegisterA::receiver_configuration_1, std::byte { 0x13 });
-    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xed });
-    hw_int.write_register(RegisterA::receiver_configuration_3, std::byte { 0x00 });
-
-    hw_int.write_register(RegisterB::correlator_configuration_1, std::byte { 0x13 });
-    hw_int.write_register(RegisterB::correlator_configuration_2, std::byte { 0x01 });
-    hw_int.write_register(RegisterA::stream_mode_definition, std::byte { 0x38 });
-    hw_int.change_register(RegisterA::mode_definition, std::byte { 0x7c }, std::byte { 0x70 });
-
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x00 });
-    // Writes to undocumented registers
-    // TODO: Validate that we don't need those (I am 100% sure that we don't, but there is no time for this)
-    hw_int.write_register(static_cast<RegisterB>(0x34), std::byte { 0x01 }); // R 0x34 0x01
-    hw_int.write_register(static_cast<RegisterB>(0x36), std::byte { 0x79 }); // R 0x36
-    hw_int.write_register(static_cast<RegisterB>(0x37), std::byte { 0x07 }); // R 0x37 0x07
-
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x1C });
-    hw_int.write_register(static_cast<RegisterB>(0x1C), std::byte { 0 });
-
-    sys_int.delay(6);
-
-    hw_int.write_register(RegisterA::receiver_timer_mask, std::byte { 0x41 });
-
-    hw_int.write_register(RegisterA::no_response_timer_1, std::byte { 0x00 });
-    hw_int.write_register(RegisterA::no_response_timer_2, std::byte { 0x52 });
-
-    hw_int.direct_command(Command::stop_all_1);
-    hw_int.direct_command(Command::reset_rx_gain);
-
-    hw_int.write_register(RegisterA::general_purpose_timer_1, std::byte { 0x01 });
-    hw_int.write_register(RegisterA::general_purpose_timer_2, std::byte { 0x84 });
-    hw_int.write_register(RegisterA::timer_and_emv_control, std::byte { 0x20 });
-
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0xDC });
-    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xE5 });
-
-    set_interrupt_mask(IRQType::all);
-
-    /*static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
-    static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
-    static constexpr std::byte OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY { 0b0000'0011 };
-    if (!static_cast<bool>(TRY(read_register(RegisterA::OperContr)) & OPER_CONTROL_TX_ENABLE)) {
-        TRY(write_register(RegisterB::NFCFieldOnGuardTimer, std::byte { 0x00 }));
-        TRY(register_set_bits(RegisterA::OperContr, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE | OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY));
-    }*/
-
-    return {};
-}
-
-void st25r39xxb::ST25R39XXB::nfcv_field_down() {
-    static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
-    static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
-    hw_int.register_clear_bits(RegisterA::operation_control, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE);
-}
-
 void st25r39xxb::ST25R39XXB::select_antenna(Antenna target_antenna) {
     static constexpr std::byte ANTENNA_CONTROL_MASK { 0b0100'0000 };
     std::byte value { 0 };
@@ -322,24 +250,133 @@ uint16_t st25r39xxb::ST25R39XXB::get_fifo_len() {
     return (std::to_integer<uint16_t>(fifo_status.at(0)) | ((std::to_integer<uint16_t>(fifo_status.at(1)) & 0xB0) << 2));
 }
 
-void st25r39xxb::ST25R39XXB::switch_antennas() {
-    switch (current_antenna) {
-    case Antenna::antenna_1:
-        current_antenna = Antenna::antenna_2;
-        break;
-    case Antenna::antenna_2:
-        current_antenna = Antenna::antenna_1;
-        break;
-    }
-    select_antenna(current_antenna);
-}
-
 void st25r39xxb::ST25R39XXB::set_output_impedance(st25r39xxb::Impedance target_impedance) {
-    using namespace st25r39xxb;
     hw_int.change_register(RegisterA::tx_driver, std::byte { 0x0f }, std::byte { std::to_underlying(target_impedance) });
 }
 
 void st25r39xxb::ST25R39XXB::set_output_amplitude(st25r39xxb::Amplitude target_amplitude) {
-    using namespace st25r39xxb;
     hw_int.change_register(RegisterA::tx_driver, std::byte { 0xf0 }, std::byte { std::to_underlying(target_amplitude) });
+}
+
+nfcv::ReaderWriterInterface::AntennaData st25r39xxb::ST25R39XXB::switch_to_next_discovery_atenna() {
+    switch (current_discovery_antenna) {
+    case Antenna::antenna_1:
+        current_discovery_antenna = Antenna::antenna_2;
+        break;
+    case Antenna::antenna_2:
+        current_discovery_antenna = Antenna::antenna_1;
+        break;
+    }
+    select_antenna(current_discovery_antenna);
+    return static_cast<AntennaData>(current_discovery_antenna);
+}
+
+nfcv::Result<void> st25r39xxb::ST25R39XXB::field_up(AntennaData antenna) {
+    select_antenna(static_cast<Antenna>(antenna));
+
+    // Martin Poupa's Solution - much simpler in flipper fw - will use that for the moment
+    hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0x00 });
+    hw_int.write_register(RegisterA::operation_control, std::byte { 0x81 });
+    hw_int.write_register(RegisterA::auxilary_definition, std::byte { 0x01 });
+    set_interrupt_mask(~(IRQType::no_response_timer_expire | IRQType::minimum_guard_time_expires | IRQType::collision_detected | IRQType::pwp_field_active));
+    hw_int.direct_command(Command::nfc_init_field_on);
+
+    auto res = await_interrupt(IRQType::pwp_field_active, 100);
+    if (!res.has_value()) {
+        return res;
+    }
+
+    set_interrupt_mask(~IRQType::no_response_timer_expire);
+    hw_int.write_register(RegisterA::operation_control, std::byte { 0x8B });
+    hw_int.write_register(RegisterA::operation_control, std::byte { 0xCB });
+
+    hw_int.write_register(RegisterA::receiver_configuration_1, std::byte { 0x13 });
+    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xed });
+    hw_int.write_register(RegisterA::receiver_configuration_3, std::byte { 0x00 });
+
+    hw_int.write_register(RegisterB::correlator_configuration_1, std::byte { 0x13 });
+    hw_int.write_register(RegisterB::correlator_configuration_2, std::byte { 0x01 });
+    hw_int.write_register(RegisterA::stream_mode_definition, std::byte { 0x38 });
+    hw_int.change_register(RegisterA::mode_definition, std::byte { 0x7c }, std::byte { 0x70 });
+
+    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x00 });
+    // Writes to undocumented registers
+    // TODO: Validate that we don't need those (I am 100% sure that we don't, but there is no time for this)
+    hw_int.write_register(static_cast<RegisterB>(0x34), std::byte { 0x01 }); // R 0x34 0x01
+    hw_int.write_register(static_cast<RegisterB>(0x36), std::byte { 0x79 }); // R 0x36
+    hw_int.write_register(static_cast<RegisterB>(0x37), std::byte { 0x07 }); // R 0x37 0x07
+
+    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x1C });
+    hw_int.write_register(static_cast<RegisterB>(0x1C), std::byte { 0 });
+
+    sys_int.delay(6);
+
+    hw_int.write_register(RegisterA::receiver_timer_mask, std::byte { 0x41 });
+
+    hw_int.write_register(RegisterA::no_response_timer_1, std::byte { 0x00 });
+    hw_int.write_register(RegisterA::no_response_timer_2, std::byte { 0x52 });
+
+    hw_int.direct_command(Command::stop_all_1);
+    hw_int.direct_command(Command::reset_rx_gain);
+
+    hw_int.write_register(RegisterA::general_purpose_timer_1, std::byte { 0x01 });
+    hw_int.write_register(RegisterA::general_purpose_timer_2, std::byte { 0x84 });
+    hw_int.write_register(RegisterA::timer_and_emv_control, std::byte { 0x20 });
+
+    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0xDC });
+    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xE5 });
+
+    set_interrupt_mask(IRQType::all);
+
+    /*static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
+    static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
+    static constexpr std::byte OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY { 0b0000'0011 };
+    if (!static_cast<bool>(TRY(read_register(RegisterA::OperContr)) & OPER_CONTROL_TX_ENABLE)) {
+        TRY(write_register(RegisterB::NFCFieldOnGuardTimer, std::byte { 0x00 }));
+        TRY(register_set_bits(RegisterA::OperContr, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE | OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY));
+    }*/
+
+    sys_int.delay(50);
+
+    return {};
+}
+
+void st25r39xxb::ST25R39XXB::field_down() {
+    static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
+    static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
+    hw_int.register_clear_bits(RegisterA::operation_control, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE);
+}
+
+nfcv::Result<nfcv::UID> st25r39xxb::ST25R39XXB::inventory() {
+    nfcv::UID uid;
+    nfcv::Command cmd { nfcv::command::Inventory { .request = {}, .response { .uid = uid } } };
+    const auto res = nfcv_command(cmd);
+    if (!res.has_value()) {
+        return std::unexpected(res.error());
+    }
+    return { uid };
+}
+
+nfcv::Result<void> st25r39xxb::ST25R39XXB::stay_quiet(const nfcv::UID &uid) {
+    nfcv::Command cmd { nfcv::command::StayQuiet { .request = { .uid = uid } } };
+    return nfcv_command(cmd);
+}
+
+nfcv::Result<nfcv::TagInfo> st25r39xxb::ST25R39XXB::get_system_info(const nfcv::UID &uid) {
+    nfcv::TagInfo tag_info;
+    nfcv::Command cmd { nfcv::command::SystemInfo { .request = { .uid = uid }, .response = tag_info } };
+    const auto res = nfcv_command(cmd);
+    if (!res.has_value()) {
+        return std::unexpected(res.error());
+    }
+    return { tag_info };
+}
+nfcv::Result<void> st25r39xxb::ST25R39XXB::read_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<std::byte> &buffer) {
+    nfcv::Command cmd { nfcv::command::ReadSingleBlock { .request = { .uid = uid, .block_address = block_id }, .response = { .block_buffer = buffer } } };
+    return nfcv_command(cmd);
+}
+
+nfcv::Result<void> st25r39xxb::ST25R39XXB::write_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<const std::byte> &buffer) {
+    nfcv::Command cmd { nfcv::command::WriteSingleBlock { .request = { .uid = uid, .block_address = block_id, .block_buffer = buffer } } };
+    return nfcv_command(cmd);
 }

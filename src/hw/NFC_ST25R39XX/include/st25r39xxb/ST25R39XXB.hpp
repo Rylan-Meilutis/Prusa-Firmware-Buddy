@@ -4,6 +4,7 @@
 #include <optional>
 #include <inplace_vector.hpp>
 #include <nfcv/commands.hpp>
+#include <nfcv/rw_interface.hpp>
 
 #include "ST25R39XXB_defs.hpp"
 #include "hw_interface.hpp"
@@ -11,7 +12,7 @@
 
 namespace st25r39xxb {
 
-class ST25R39XXB {
+class ST25R39XXB : public nfcv::ReaderWriterInterface {
 public:
     enum class Antenna : uint8_t {
         antenna_1,
@@ -21,18 +22,27 @@ public:
     ST25R39XXB(HWInterface &hw_int, SystemInterface &sys_int)
         : hw_int(hw_int)
         , sys_int(sys_int)
-        , current_antenna(ST25R39XXB::Antenna::antenna_2)
+        , current_discovery_antenna(ST25R39XXB::Antenna::antenna_2)
         , buffer() {}
 
     /// Generic initialization function. Should be always called
     [[nodiscard]] nfcv::Result<void> init();
-    /// Sets one of the antennas as output (the other will still be able to receive data)
-    void select_antenna(Antenna target_antena);
+
+    AntennaData switch_to_next_discovery_atenna() final;
+
+    nfcv::Result<void> field_up(AntennaData antenna_data) final;
+    void field_down() final;
+
+    nfcv::Result<nfcv::UID> inventory() final;
+    nfcv::Result<void> stay_quiet(const nfcv::UID &uid) final;
+    nfcv::Result<nfcv::TagInfo> get_system_info(const nfcv::UID &uid) final;
+    nfcv::Result<void> read_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<std::byte> &buffer) final;
+    nfcv::Result<void> write_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<const std::byte> &buffer) final;
 
 private:
     HWInterface &hw_int;
     SystemInterface &sys_int;
-    Antenna current_antenna = ST25R39XXB::Antenna::antenna_2;
+    Antenna current_discovery_antenna = ST25R39XXB::Antenna::antenna_2;
     stdext::inplace_vector<std::byte, constant::FIFO_SIZE> buffer;
 
     [[nodiscard]] uint16_t get_fifo_len();
@@ -60,7 +70,8 @@ private:
     [[nodiscard]] nfcv::Result<void> turn_on_oscilator();
     void set_output_impedance(st25r39xxb::Impedance target_impedance);
     void set_output_amplitude(st25r39xxb::Amplitude target_amplitude);
-    void switch_antennas();
+    /// Sets one of the antennas as output (the other will still be able to receive data)
+    void select_antenna(Antenna target_antena);
 
     [[nodiscard]] nfcv::Result<void> nfcv_field_up();
     void nfcv_field_down();
