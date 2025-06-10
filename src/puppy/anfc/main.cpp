@@ -1,5 +1,4 @@
 #include "hal.hpp"
-#include "nfc.hpp"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -35,11 +34,6 @@ StaticTask_t can_task_control_block;
 constexpr const size_t nfc_task_stack_size = 1536 / sizeof(StackType_t);
 alignas(32) StackType_t nfc_task_stack[nfc_task_stack_size];
 StaticTask_t nfc_task_control_block;
-
-// Temporary helper task to debug PoC implementation of NFC library
-constexpr const size_t ll_nfc_task_stack_size = 1024 / sizeof(StackType_t);
-alignas(32) StackType_t ll_nfc_task_stack[ll_nfc_task_stack_size];
-StaticTask_t ll_nfc_task_control_block;
 
 auto get_uid() {
     anfc::cyphal::ANFCNode::UID uid;
@@ -102,15 +96,6 @@ extern "C" int main() {
         tskIDLE_PRIORITY + 1,
         nfc_task_stack,
         &nfc_task_control_block);
-
-    xTaskCreateStatic(
-        nfc::task,
-        "ll_nfc_task",
-        ll_nfc_task_stack_size,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        ll_nfc_task_stack,
-        &ll_nfc_task_control_block);
 
     // Start FreeRTOS scheduler and we are done.
     vTaskStartScheduler();

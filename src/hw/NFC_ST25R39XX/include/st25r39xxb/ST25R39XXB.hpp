@@ -26,11 +26,6 @@ public:
 
     /// Generic initialization function. Should be always called
     [[nodiscard]] nfcv::Result<void> init();
-    /// NFC-V Poller initialization
-    /// Demo function to test that everything works.
-    void nfcv_init_poller();
-    // TODO: this function is currently too exhasutive, make something more lightweight/async
-    [[nodiscard]] nfcv::Result<void> nfcv_tick_poller();
     /// Sets one of the antennas as output (the other will still be able to receive data)
     void select_antenna(Antenna target_antena);
 

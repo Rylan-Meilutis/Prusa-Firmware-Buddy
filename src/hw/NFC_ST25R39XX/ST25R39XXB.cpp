@@ -145,22 +145,6 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::turn_on_oscilator() {
     return {};
 }
 
-void st25r39xxb::ST25R39XXB::nfcv_init_poller() {
-    // Common NFC-V settings, for 26.48 kbps
-    hw_int.write_register(RegisterA::receiver_configuration_1, std::byte { 0x13 });
-    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xed });
-    hw_int.write_register(RegisterA::receiver_configuration_3, std::byte { 0x00 });
-    hw_int.write_register(RegisterA::receiver_configuration_4, std::byte { 0x00 });
-
-    hw_int.write_register(RegisterB::correlator_configuration_1, std::byte { 0x13 });
-    hw_int.write_register(RegisterB::correlator_configuration_2, std::byte { 0x01 });
-
-    // NFC-V poller settings
-    hw_int.change_register(RegisterA::mode_definition, std::byte { 0x7c }, std::byte { 0x70 });
-    hw_int.write_register(RegisterA::stream_mode_definition, std::byte { 0x38 });
-    hw_int.register_clear_bits(RegisterB::auxiliary_modulation_setting, std::byte { 0x88 });
-}
-
 nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_field_up() {
     // Martin Poupa's Solution - much simpler in flipper fw - will use that for the moment
     hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0x00 });
@@ -336,104 +320,6 @@ uint16_t st25r39xxb::ST25R39XXB::get_fifo_len() {
     std::array<std::byte, 2> fifo_status {};
     hw_int.read_registers_continuous(st25r39xxb::RegisterA::fifo_status_1, fifo_status);
     return (std::to_integer<uint16_t>(fifo_status.at(0)) | ((std::to_integer<uint16_t>(fifo_status.at(1)) & 0xB0) << 2));
-}
-
-nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_tick_poller() {
-    using namespace nfcv;
-    // WARNING: This function is just validation for the current implementation. It shouldn't be used in production
-    //
-    // Let's discuss what it does:
-    // * switches antenna (so we use both - but we just one between calls)
-    // * powers on a field
-    //   * waits 50 ms for it to be stable and for it to charge up any tags in vicinity
-    // * sends Inventory command to locate any tags
-    // * if none found it exists
-    // * sends Stay Quiet to any found tag to prevent it to accept broadcasts
-    // * validate received data
-    // * read first block
-    // * if first block is 0xDEADBEEF, then we do nothing and return early
-    // * otherwise we fill the tag with 0xDEADBEEF
-    switch_antennas();
-    auto res = nfcv_field_up();
-    if (!res.has_value()) {
-        return std::unexpected(res.error());
-    }
-    const auto auto_field_down = ScopeGuard { [&]() {
-        nfcv_field_down();
-    } };
-    sys_int.delay(50);
-
-    nfcv::UID uid;
-    nfcv::Command cmd = command::Inventory {
-        .request = {},
-        .response = {
-            .uid = uid,
-        }
-    };
-    auto cmd_res = nfcv_command(cmd);
-    if (!cmd_res.has_value()) {
-        if (cmd_res.error() != Error::no_response) {
-            return std::unexpected(cmd_res.error());
-        }
-        return {};
-    }
-    sys_int.delay(2);
-
-    cmd = command::StayQuiet {
-        .request = { .uid = uid },
-    };
-    cmd_res = nfcv_command(cmd);
-    if (!cmd_res.has_value()) {
-        return std::unexpected(cmd_res.error());
-    }
-    sys_int.delay(2);
-
-    cmd = command::SystemInfo {
-        .request = { .uid = uid },
-        .response = {},
-    };
-    cmd_res = nfcv_command(cmd);
-    if (!cmd_res.has_value()) {
-        return std::unexpected(cmd_res.error());
-    }
-    const auto tag_number_of_blocks = std::get<command::SystemInfo>(cmd).response.tag_size.value().number_of_blocks;
-
-    static constexpr std::array<std::byte, 4> DEAD_BEEF = { std::byte { 0xde }, std::byte { 0xad }, std::byte { 0xbe }, std::byte { 0xef } };
-    {
-        sys_int.delay(2);
-        std::array<std::byte, 4> block_buffer {};
-
-        cmd = command::ReadSingleBlock {
-            .request = { .uid = uid, .block_address = 0 },
-            .response = { .block_buffer = block_buffer },
-        };
-        cmd_res = nfcv_command(cmd);
-        if (!cmd_res.has_value()) {
-            return std::unexpected(cmd_res.error());
-        }
-
-        if (block_buffer == DEAD_BEEF) {
-            return {};
-        }
-    }
-
-    {
-        sys_int.delay(2);
-        std::array<std::byte, 4> block_buffer = DEAD_BEEF;
-
-        for (uint8_t i = 0; i < tag_number_of_blocks; ++i) {
-            cmd = command::WriteSingleBlock {
-                .request = { .uid = uid, .block_address = 0, .block_buffer = block_buffer },
-                .response = {},
-            };
-            cmd_res = nfcv_command(cmd);
-            if (!cmd_res.has_value()) {
-                return std::unexpected(cmd_res.error());
-            }
-            sys_int.delay(2);
-        }
-    }
-    return {};
 }
 
 void st25r39xxb::ST25R39XXB::switch_antennas() {

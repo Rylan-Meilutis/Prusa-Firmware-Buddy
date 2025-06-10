@@ -92,19 +92,3 @@ void nfc::init() {
 void nfc::irq() {
     nfcr1::sys_impl.trigger_interrupt();
 }
-
-void nfc::tick() {
-    auto tick_res = nfc_reader_1.nfcv_tick_poller();
-    if (!tick_res.has_value()) {
-        hal::panic();
-    }
-}
-
-void nfc::task([[maybe_unused]] void *args) {
-    nfc::init();
-    while (true) {
-        nfc::tick();
-        // Wait some time before we turn the field back on
-        freertos::delay(100);
-    }
-}
