@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <expected>
+#include <optional>
 #include <inplace_vector.hpp>
 #include <nfcv/commands.hpp>
 
@@ -52,7 +52,15 @@ private:
      */
     void set_interrupt_mask(st25r39xxb::IRQType mask);
     [[nodiscard]] st25r39xxb::IRQType read_interrupt();
-    [[nodiscard]] nfcv::Result<void> await_interrupt(st25r39xxb::IRQType wait_for, uint32_t timeout);
+    /**
+     * @brief Block the code execution until we receive all the interrupts from @p irqs_to_wait_for or the @p timeout_ms expires or some inner timer expires.
+     *
+     * @param irqs_to_wait_for - mask to interrupts to wait for - every interrupt needs to be triggered
+     * @param timeout_ms - timeout after we give up trying to read the interupts - unit is in ms
+     * @param inner_time_irq - if specified and such interrupt is received we will return Error::timeout - only one can be specified
+     * @returns nfcv::Result<void> - return std::unexpected errors on timeout and if we receive any of the error iterrupts
+     */
+    [[nodiscard]] nfcv::Result<void> await_interrupt(st25r39xxb::IRQType irqs_to_wait_for, uint32_t timeout_ms, st25r39xxb::IRQType inner_timer_irq = st25r39xxb::IRQType::none);
 
     [[nodiscard]] nfcv::Result<void> turn_on_oscilator();
     void set_output_impedance(st25r39xxb::Impedance target_impedance);

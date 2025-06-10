@@ -159,6 +159,7 @@ enum class Command : uint8_t {
 };
 
 enum class IRQType : uint32_t {
+    none = 0,
     unused_0 = 1 << 0,
     /// IRQ due to automatic reception restart
     /// Set when a frame is suppressed as EMD

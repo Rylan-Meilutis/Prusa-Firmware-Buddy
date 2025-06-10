@@ -22,8 +22,7 @@ static constexpr nfcv::Error convert_error(st25r39xxb::IRQType error_irqs) {
     std::abort();
 }
 
-nfcv::Result<void> st25r39xxb::ST25R39XXB::await_interrupt(st25r39xxb::IRQType irqs_to_wait_for, uint32_t timeout_ms) {
-    using namespace st25r39xxb;
+nfcv::Result<void> st25r39xxb::ST25R39XXB::await_interrupt(st25r39xxb::IRQType irqs_to_wait_for, uint32_t timeout_ms, st25r39xxb::IRQType inner_timer_irq) {
     while (true) {
         timeout_ms = sys_int.await_interrupt(timeout_ms);
         const auto irqs = read_interrupt();
@@ -34,7 +33,7 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::await_interrupt(st25r39xxb::IRQType i
         if (std::to_underlying(irqs_to_wait_for) == 0) {
             break;
         }
-        if (timeout_ms == 0) {
+        if (timeout_ms == 0 || static_cast<bool>(inner_timer_irq & irqs)) {
             return std::unexpected(nfcv::Error::timeout);
         }
     }
@@ -293,8 +292,7 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_command(nfcv::Command &command) 
         sys_int.delay(2); // FIXME: Add proper timeout using the generict timer in st25r39xxb chips
         return {};
     }
-    // TODO: Use no response timer here instead
-    const auto receive_res = await_interrupt(IRQType::rx_start, 21);
+    const auto receive_res = await_interrupt(IRQType::rx_start, 20, IRQType::no_response_timer_expire);
     if (!receive_res.has_value()) {
         // We timed out - we didn't receive any response
         if (receive_res.error() == nfcv::Error::timeout) {
