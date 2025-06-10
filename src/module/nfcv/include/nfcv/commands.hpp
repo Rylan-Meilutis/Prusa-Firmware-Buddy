@@ -1,11 +1,10 @@
 #pragma once
 
-#include "uid.hpp"
+#include "types.hpp"
 
 #include <cstdint>
 #include <span>
 #include <variant>
-#include <optional>
 
 namespace nfcv {
 
@@ -21,14 +20,8 @@ namespace command {
         struct Request {
             nfcv::UIDConstView uid;
         } request;
-        struct Response {
-            struct TagSize {
-                std::uint8_t bytes_in_block;
-                std::uint8_t number_of_blocks;
-            };
-            std::optional<std::byte> type;
-            std::optional<TagSize> tag_size;
-        } response;
+        using Response = TagInfo &;
+        Response response;
     };
 
     struct ReadSingleBlock {

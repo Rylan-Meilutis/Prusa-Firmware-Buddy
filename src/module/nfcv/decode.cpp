@@ -110,10 +110,16 @@ namespace {
         std::advance(it, 10);
 
         if ((info_flags & INFO_DSFID_SUPPORTED) == INFO_DSFID_SUPPORTED) {
+            command.response.dsfid = std::to_integer<uint8_t>(*it);
             ++it;
+        } else {
+            command.response.dsfid = std::nullopt;
         }
         if ((info_flags & INFO_AFI_SUPPORTED) == INFO_AFI_SUPPORTED) {
+            command.response.dsfid = std::to_integer<uint8_t>(*it);
             ++it;
+        } else {
+            command.response.dsfid = std::nullopt;
         }
         if ((info_flags & INFO_VICC_MEM_SIZE_SUPPORTED) == INFO_VICC_MEM_SIZE_SUPPORTED) {
             const auto first = *it;
@@ -121,14 +127,18 @@ namespace {
             const auto second = *it;
             ++it;
 
-            command.response.tag_size = nfcv::command::SystemInfo::Response::TagSize {
-                .bytes_in_block = static_cast<uint8_t>((std::to_integer<uint8_t>(second) & 0x1f) + 1),
-                .number_of_blocks = static_cast<uint8_t>(std::to_integer<uint8_t>(first) + 1),
+            command.response.mem_size = nfcv::TagInfo::MemorySize {
+                .block_size = static_cast<uint8_t>((std::to_integer<uint8_t>(second) & 0x1f) + 1),
+                .block_count = static_cast<uint8_t>(std::to_integer<uint8_t>(first) + 1),
             };
+        } else {
+            command.response.mem_size = std::nullopt;
         }
         if ((info_flags & INFO_IC_REF_SUPPORTED) == INFO_IC_REF_SUPPORTED) {
-            command.response.type = *it;
-            // ++it;
+            command.response.ic_ref = std::to_integer<uint8_t>(*it);
+            ++it;
+        } else {
+            command.response.ic_ref = std::nullopt;
         }
 
         return {};
