@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <random.h>
 #include <timing.h>
 
 #include "cyphal_task.hpp"
@@ -50,6 +49,16 @@ public:
         request_data.node_id.value = request_id;
         assert(uid != nullptr);
         memcpy(request_data.unique_id, uid, sizeof(request_data.unique_id));
+
+        // If this ever starts failing, make sure to either use PRNG with larger state
+        // or pad UID with some well-defined bytes. Zeroes are OK.
+        // Technically, we should guard against using all-zero-state in xorshift based PRNGs.
+        // In practice, we are using STM32H5 MCU UID which contains ASCII-encoded data about
+        // the wafer which is never zero. But even if it were, there would only be one such
+        // chip in the world and PRNG is only used to provide source of jitter for allocation
+        // requests anyway.
+        static_assert(sizeof(prng.state) == sizeof(request_data.unique_id));
+        memcpy(prng.state, request_data.unique_id, sizeof(request_data.unique_id));
     }
 
     /**
@@ -59,11 +68,8 @@ public:
     void loop_tx() {
         if (cyphal_task.is_anonymous()) { // Our ID is not set yet
             if (CanardMicrosecond timestamp = get_timestamp_us(); timestamp > next_send) { // Time to send request
-                uint32_t random;
-                if (rand_u_secure(&random)) { // Plan next send with truerandom offset
-                    id_request.send_data(request_data); // Send request
-                    next_send = timestamp + 200 * 1000 + (random % (800 * 1000)); // Send every 200-1000 ms
-                } // else try again next loop
+                id_request.send_data(request_data); // Send request
+                next_send = timestamp + 200 * 1000 + (prng.next() % (800 * 1000)); // Send every 200-1000 ms
             }
         }
     }
@@ -81,6 +87,35 @@ public:
      * @return node ID of the node that given us our node ID
      */
     CanardNodeID get_id_giver() const { return id_giver; }
+
+private:
+    /// xoshiro128** 1.1 by David Blackman and Sebastiano Vigna
+    struct PRNG {
+        /// The state must be seeded so that it is not everywhere zero.
+        uint32_t state[4];
+
+        /// Get next pseudo random number.
+        uint32_t next() {
+            const uint32_t result = rotl(state[1] * 5, 7) * 9;
+            const uint32_t t = state[1] << 9;
+
+            state[2] ^= state[0];
+            state[3] ^= state[1];
+            state[1] ^= state[2];
+            state[0] ^= state[3];
+
+            state[2] ^= t;
+
+            state[3] = rotl(state[3], 11);
+
+            return result;
+        }
+
+        static constexpr uint32_t rotl(const uint32_t x, int k) {
+            return (x << k) | (x >> (32 - k));
+        }
+    };
+    PRNG prng;
 };
 
 } // namespace can::cyphal
