@@ -3,7 +3,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/feature/xbuddy_extension/cooling.cpp cooling_tests.cpp
   chamber_filtration_stub.cpp ${CMAKE_SOURCE_DIR}/tests/unit/mock/bsod.cpp
   )
-target_link_libraries(xbuddy_extension_tests freertos_tests)
+target_link_libraries(xbuddy_extension_tests freertos_tests buddy_utils)
 target_compile_options(
   xbuddy_extension_tests
   PRIVATE -DHAS_XBUDDY_EXTENSION=1 -include

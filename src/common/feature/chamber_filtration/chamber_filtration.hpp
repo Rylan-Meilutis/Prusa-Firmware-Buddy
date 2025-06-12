@@ -6,6 +6,7 @@
 #include <freertos/mutex.hpp>
 #include <general_response.hpp>
 #include <utils/timing/rate_limiter.hpp>
+#include <utils/tristate.hpp>
 
 #include "chamber_filtration_enums.hpp"
 
@@ -45,9 +46,9 @@ public:
 
     void step();
 
-    /// \brief Enables/disables the filtration for the current print
-    /// \param needs_filtration true if the filtration should be forced on (ignore filament needs), false if it should be forced off
-    void set_needs_filtration(bool needs_filtration);
+    /// \brief Forces/disables the filtration for the current print
+    /// \param set true if the filtration should be forced on (ignore filament needs), false if it should be forced off. Nullopt will disable the override.
+    void set_needs_filtration_override(Tristate set);
 
 public:
     /// \returns rated lifetime of the HEPA filter in seconds. 0 if not unknown/not specified
@@ -63,21 +64,24 @@ public:
     void handle_filter_expiration_warning(Response response);
 
 private:
-    void update_needs_filtration();
+    bool needs_filtration() const;
 
 private:
     mutable freertos::Mutex mutex_;
 
     PWM255 output_pwm_;
-    bool is_printing_prev_ = false;
-    std::optional<bool> needs_filtration_;
-    uint32_t last_print_s_ = 0;
+
+    /// A print can explicitly request that it wants/doesn't want filtration
+    Tristate needs_filtration_override_ = Tristate::other;
+
+    /// ticks_s() of the time where we last needed the filtration (were printing)
+    std::optional<uint32_t> last_filtration_need_s_ = std::nullopt;
 
     /// ticks_s() of the start of filter usage (output_pwm > 0) that has not yet been emitted in the config_store
     uint32_t unaccounted_filter_time_used_start_s_ = 0;
 
     /// We don't need to run step very often
-    RateLimiter<> step_rate_limiter_s_ { 2 };
+    RateLimiter<uint32_t> step_rate_limiter_s_ { 2 };
 };
 
 ChamberFiltration &chamber_filtration();

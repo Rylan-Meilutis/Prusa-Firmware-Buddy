@@ -1023,6 +1023,9 @@ void static finalize_print(bool finished) {
 
 #if HAS_CHAMBER_FILTRATION_API()
     buddy::chamber_filtration().check_filter_expiration();
+
+    /// Reset filtration overrides possibly set by M147/148
+    buddy::chamber_filtration().set_needs_filtration_override(Tristate::other);
 #endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
