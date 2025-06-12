@@ -238,8 +238,19 @@ template <typename Traits, CanardPortID port_id = Traits::fixed_port_id>
 class SenderDirectTraited final : public SenderDirectTraitedBase<Traits> {
 
 public:
-    SenderDirectTraited()
-        : SenderDirectTraitedBase<Traits>(*Traits::serialize, port_id) {
+    /**
+     * @brief Object that directly sends message, request or response.
+     * @note No need to call add_to_task(), this is not registered with Cyphal Task.
+     *
+     * @param kind message, request or response
+     * @param remote_node_id remote node-ID, used for requests and responses
+     *
+     * @param timeout timeout to transmit, discard if it gets stuck in queue for this long
+     * @param priority Cyphal priority of the message
+     */
+    SenderDirectTraited(CanardTransferKind kind = CanardTransferKindMessage, CanardNodeID remote_node_id = CANARD_NODE_ID_UNSET,
+        CanardMicrosecond timeout = ProtoSender::send_timeout_default, CanardPriority priority = CanardPriorityNominal)
+        : SenderDirectTraitedBase<Traits>(*Traits::serialize, port_id, kind, remote_node_id, timeout, priority) {
         if constexpr (Traits::has_fixed_port_id) {
             static_assert(port_id == Traits::fixed_port_id);
         }

@@ -20,11 +20,11 @@ class PnP {
     CanardNodeID id_giver = CANARD_NODE_ID_UNSET; ///< Node ID of a node that given us our node ID
 
     /// @brief Request ID from allocator by anonymous message.
-    SenderDirect<uavcan_pnp_NodeIDAllocationData_2_0, uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_> id_request;
+    SenderDirectTraited<uavcan_pnp_NodeIDAllocationData_2_0_Traits> id_request;
     uavcan_pnp_NodeIDAllocationData_2_0 request_data; ///< Request data
 
     /// @brief Receive ID from allocator.
-    SuberCall<uavcan_pnp_NodeIDAllocationData_2_0, uavcan_pnp_NodeIDAllocationData_2_0_EXTENT_BYTES_> id_response;
+    SuberCallTraited<uavcan_pnp_NodeIDAllocationData_2_0_Traits> id_response;
 
 public:
     /**
@@ -33,11 +33,8 @@ public:
      * @param uid unique ID of this node
      */
     PnP(CanardNodeID request_id, const uint8_t uid[sizeof(uavcan_pnp_NodeIDAllocationData_2_0::unique_id)])
-        : id_request(
-            uavcan_pnp_NodeIDAllocationData_2_0_serialize_, uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_,
-            CanardTransferKindMessage, CANARD_NODE_ID_UNSET, ProtoSender::send_timeout_default, CanardPrioritySlow)
+        : id_request(CanardTransferKindMessage, CANARD_NODE_ID_UNSET, ProtoSender::send_timeout_default, CanardPrioritySlow)
         , id_response(
-              uavcan_pnp_NodeIDAllocationData_2_0_deserialize_, uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_,
               [this](const uavcan_pnp_NodeIDAllocationData_2_0 &data, [[maybe_unused]] const ProtoSuber::Meta &meta) {
                   if (memcmp(data.unique_id, request_data.unique_id, sizeof(data.unique_id))) { // This is not our ID
                       return;

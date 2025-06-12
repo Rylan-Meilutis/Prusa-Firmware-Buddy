@@ -71,7 +71,7 @@ public:
  * @note Constructor parameter "fn_": function to deserialize the data, looks like "module_submodule_MessageType_1_0_deserialize_"
  */
 template <typename T, size_t EXTENT>
-class SuberCall final : public SuberCallVoid {
+class SuberCall : public SuberCallVoid {
 public:
     static_assert(MAX_DATA_SIZE >= sizeof(T), "Increase size of buffer for the data structure!");
 
@@ -120,6 +120,22 @@ public:
         , deserialize_fn(deserialize_fn_)
         , callback(callback_) {
         assert(callback);
+    }
+};
+
+template <typename Traits>
+using SuberCallTraitedBase = SuberCall<typename Traits::Type, Traits::extent_bytes>;
+
+template <typename Traits, CanardPortID port_id = Traits::fixed_port_id>
+class SuberCallTraited : public SuberCallTraitedBase<Traits> {
+
+public:
+    SuberCallTraited(const SuberCall<typename Traits::Type, Traits::extent_bytes>::Callback callback_,
+        CanardTransferKind kind = CanardTransferKindMessage, CanardMicrosecond timeout = ProtoSuber::multipart_timeout_default)
+        : SuberCallTraitedBase<Traits>(*Traits::deserialize, port_id, callback_, kind, timeout) {
+        if constexpr (Traits::has_fixed_port_id) {
+            static_assert(port_id == Traits::fixed_port_id);
+        }
     }
 };
 

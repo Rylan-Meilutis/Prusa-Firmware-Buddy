@@ -18,7 +18,7 @@ namespace can::cyphal {
  */
 class Record {
     /// Cyphal sender object
-    SenderDirect<uavcan_diagnostic_Record_1_1, uavcan_diagnostic_Record_1_1_SERIALIZATION_BUFFER_SIZE_BYTES_> log_sender;
+    SenderDirectTraited<uavcan_diagnostic_Record_1_1_Traits> log_sender;
 
     struct BufferLine {
         std::atomic<bool> blocked = false; ///< True if being used

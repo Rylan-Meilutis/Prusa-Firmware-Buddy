@@ -342,4 +342,48 @@ public:
     }
 };
 
+template <typename Traits>
+using ClientTraitedBase = Client<typename Traits::Request::Type, Traits::Request::serialization_buffer_size_bytes, typename Traits::Response::Type, Traits::Response::extent_bytes>;
+
+template <typename Traits, CanardPortID port_id = Traits::fixed_port_id>
+class ClientTraited : public ClientTraitedBase<Traits> {
+
+public:
+    /**
+     * @brief Client object that sends a request and receives a response.
+     * @note After creation, you must call add_to_task() to add itself to Cyphal Task.
+     *
+     * @param remote_node_id remote node-ID, used for requests and responses
+     * @param callback_ callback to be called when response is received
+     *    @note Callback is called from the CAN thread. Do not use this callback for heavy processing.
+     *    @note You can use only one SenderDirect::send_data() during the callback.
+     *
+     * @param send_timeout timeout to transmit request, discard if it gets stuck in queue for this long
+     *    Default is ProtoSender::send_timeout_default. It should be enough for most cases.
+     * @param multipart_timeout timeout for response, this applies to multipart messages that arrive far apart
+     *    Deafult is ProtoSuber::multipart_timeout_default to access Python server or ProtoSuber::multipart_timeout_short to access normal server.
+     * @note Roundtrip delay limit and suggested call() timeout is sum of send_timeout and multipart_timeout in both client and server.
+     *    If same, then it is "2 * (send_timeout + multipart_timeout)" or "2 * get_client_timeout()".
+     * @warning The multipart_timeout_default can get you stuck for too long. Expecially when used with repeat_call().
+     *    Repeat call waits for up to "attempts * 2 * (send_timeout + multipart_timeout)".
+     *    Clients that ask Python server should use only single frame requests and responses.
+     *    That way, the multipart_timeout does not matter and only sets the roundtrip delay.
+     *    Clients that ask non-Python server should use multipart_timeout_short.
+     *    The sum of timeouts should be equal to the timeouts corresponding server.
+     *
+     * @param priority Cyphal priority of the request
+     */
+    ClientTraited(
+        CanardNodeID remote_node_id,
+        const SuberCall<typename Traits::Response::Type, Traits::Response::extent_bytes>::Callback callback_,
+        CanardMicrosecond send_timeout,
+        CanardMicrosecond multipart_timeout,
+        CanardPriority priority = CanardPriorityNominal)
+        : ClientTraitedBase<Traits>(*Traits::Request::serialize, *Traits::Response::deserialize,
+            port_id, remote_node_id, callback_, send_timeout, multipart_timeout, priority) {
+        if constexpr (Traits::has_fixed_port_id) {
+            static_assert(port_id == Traits::fixed_port_id);
+        }
+    }
+};
 } // namespace can::cyphal

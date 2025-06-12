@@ -24,7 +24,7 @@ namespace can::cyphal {
  * @note Constructor parameter "deserialize_fn_": function to deserialize the data, looks like "module_submodule_MessageType_1_0_deserialize_"
  */
 template <typename T, size_t EXTENT, size_t SOURCES>
-class SuberDataSource final : public ProtoSuber {
+class SuberDataSource : public ProtoSuber {
 public:
     static_assert(MAX_DATA_SIZE >= sizeof(T), "Increase size of buffer for the data structure!");
     static_assert(SOURCES > 0, "At least one source is needed!");
@@ -210,6 +210,22 @@ public:
     }
 };
 
+template <typename Traits, size_t SOURCES>
+using SuberDataSourceTraitedBase = SuberDataSource<typename Traits::Type, Traits::extent_bytes, SOURCES>;
+
+template <typename Traits, size_t SOURCES, CanardPortID port_id = Traits::fixed_port_id>
+class SuberDataSourceTraited : public SuberDataSourceTraitedBase<Traits, SOURCES> {
+
+public:
+    SuberDataSourceTraited(std::array<CanardNodeID, SOURCES> source_nodes = { CANARD_NODE_ID_UNSET }, // Default, catch any source to first bin
+        CanardMicrosecond timeout = ProtoSuber::multipart_timeout_default)
+        : SuberDataSourceTraitedBase<Traits, SOURCES>(*Traits::deserialize, port_id, source_nodes, timeout) {
+        if constexpr (Traits::has_fixed_port_id) {
+            static_assert(port_id == Traits::fixed_port_id);
+        }
+    }
+};
+
 /**
  * @brief Subscription for a message. This one stores the data to be read anytime. This one holds only one copy but receives from any node-ID.
  * @note This allocates the data structure, so use this only for small data that are accessed asynchronously.
@@ -220,5 +236,8 @@ public:
  */
 template <typename T, size_t EXTENT>
 using SuberData = SuberDataSource<T, EXTENT, 1>;
+
+template <typename Traits, CanardPortID port_id = Traits::fixed_port_id>
+using SuberDataTraited = SuberDataSourceTraited<Traits, 1, port_id>;
 
 } // namespace can::cyphal

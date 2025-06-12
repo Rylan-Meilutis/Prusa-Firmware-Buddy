@@ -5,7 +5,6 @@
 #include "cyphal_proto_suber.hpp"
 #include "cyphal_client.hpp"
 #include "cyphal_server.hpp"
-#include "cyphal_getset.hpp"
 
 #include <uavcan/node/port/List_1_0.h>
 #include <uavcan/time/Synchronization_1_0.h>
@@ -282,46 +281,6 @@ public:
         list_sender.transform_data(
             [&portitem](List &list) -> TransformResult {
                 remove_item(list.servers, portitem);
-                return { .success = true, .significant = false };
-            });
-    }
-
-    /// @brief Add getset servers to the list.
-    template <typename T_CONFIG, typename T_GET_REQUEST, size_t EXTENT_GET_REQUEST, typename T_GET_RESPONSE, size_t SIZE_GET_RESPONSE,
-        typename T_SET_REQUEST, size_t EXTENT_SET_REQUEST, typename T_SET_RESPONSE, size_t SIZE_SET_RESPONSE>
-    void add(GetSetServer<T_CONFIG, T_GET_REQUEST, EXTENT_GET_REQUEST, T_GET_RESPONSE, SIZE_GET_RESPONSE,
-        T_SET_REQUEST, EXTENT_SET_REQUEST, T_SET_RESPONSE, SIZE_SET_RESPONSE> &getset) {
-        ProtoPortList &get_portitem = getset.get_get_protoportlist();
-        list_sender.transform_data(
-            [&get_portitem](List &list) -> TransformResult {
-                add_item(list.servers, get_portitem);
-                return { .success = true, .significant = false };
-            });
-
-        ProtoPortList &set_portitem = getset.get_set_protoportlist();
-        list_sender.transform_data(
-            [&set_portitem](List &list) -> TransformResult {
-                add_item(list.servers, set_portitem);
-                return { .success = true, .significant = false };
-            });
-    }
-
-    /// @brief Remove getset servers from the list.
-    template <typename T_CONFIG, typename T_GET_REQUEST, size_t EXTENT_GET_REQUEST, typename T_GET_RESPONSE, size_t SIZE_GET_RESPONSE,
-        typename T_SET_REQUEST, size_t EXTENT_SET_REQUEST, typename T_SET_RESPONSE, size_t SIZE_SET_RESPONSE>
-    void remove(GetSetServer<T_CONFIG, T_GET_REQUEST, EXTENT_GET_REQUEST, T_GET_RESPONSE, SIZE_GET_RESPONSE,
-        T_SET_REQUEST, EXTENT_SET_REQUEST, T_SET_RESPONSE, SIZE_SET_RESPONSE> &getset) {
-        ProtoPortList &get_portitem = getset.get_get_protoportlist();
-        list_sender.transform_data(
-            [&get_portitem](List &list) -> TransformResult {
-                remove_item(list.servers, get_portitem);
-                return { .success = true, .significant = false };
-            });
-
-        ProtoPortList &set_portitem = getset.get_set_protoportlist();
-        list_sender.transform_data(
-            [&set_portitem](List &list) -> TransformResult {
-                remove_item(list.servers, set_portitem);
                 return { .success = true, .significant = false };
             });
     }
