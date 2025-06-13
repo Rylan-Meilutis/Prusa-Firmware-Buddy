@@ -186,8 +186,6 @@
   #error "MIN_STEPS_PER_SEGMENT must be at least 1. Please update your Configuration_adv.h."
 #elif defined(PREVENT_DANGEROUS_EXTRUDE)
   #error "PREVENT_DANGEROUS_EXTRUDE is now PREVENT_COLD_EXTRUSION. Please update your configuration."
-#elif defined(SCARA)
-  #error "SCARA is now MORGAN_SCARA. Please update your configuration."
 #elif defined(MESH_NUM_X_POINTS) || defined(MESH_NUM_Y_POINTS)
   #error "MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
 #elif defined(UBL_MESH_NUM_X_POINTS) || defined(UBL_MESH_NUM_Y_POINTS)
@@ -206,8 +204,6 @@
   #error "Replace SLED_PIN with SOL1_PIN (applies to both Z_PROBE_SLED and SOLENOID_PROBE)."
 #elif defined(MIN_RETRACT)
   #error "MIN_RETRACT is now MIN_AUTORETRACT and MAX_AUTORETRACT. Please update your Configuration_adv.h."
-#elif ENABLED(DELTA) && defined(DELTA_PROBEABLE_RADIUS)
-  #error "Remove DELTA_PROBEABLE_RADIUS and use MIN_PROBE_EDGE to inset the probe area instead."
 #elif defined(UBL_MESH_INSET)
   #error "UBL_MESH_INSET is now just MESH_INSET. Please update your configuration."
 #elif defined(UBL_MESH_MIN_X) || defined(UBL_MESH_MIN_Y) || defined(UBL_MESH_MAX_X) || defined(UBL_MESH_MAX_Y)
@@ -520,11 +516,7 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
  * Babystepping
  */
 #if ENABLED(BABYSTEPPING)
-  #if ENABLED(SCARA)
-    #error "BABYSTEPPING is not implemented for SCARA yet."
-  #elif BOTH(DELTA, BABYSTEP_XY)
-    #error "BABYSTEPPING only implemented for Z axis on deltabots."
-  #elif ENABLED(BABYSTEP_ZPROBE_OFFSET) && !HAS_BED_PROBE
+  #if ENABLED(BABYSTEP_ZPROBE_OFFSET) && !HAS_BED_PROBE
     #error "BABYSTEP_ZPROBE_OFFSET requires a probe."
   #elif ENABLED(BABYSTEP_ZPROBE_GFX_OVERLAY)
     #error "BABYSTEP_ZPROBE_GFX_OVERLAY requires a Graphical LCD."
@@ -585,13 +577,6 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
 
 constexpr float npp[] = XYZ_NOZZLE_PARK_POINT;
 static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.");
-
-/**
- * Individual axis homing is useless for DELTAS
- */
-#if BOTH(INDIVIDUAL_AXIS_HOMING_MENU, DELTA)
-  #error "INDIVIDUAL_AXIS_HOMING_MENU is incompatible with DELTA kinematics."
-#endif
 
 /**
  * Options only for EXTRUDERS > 1
@@ -660,28 +645,13 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
  * Allow only one kinematic type to be defined
  */
 #if 1 < 0 \
-  + ENABLED(DELTA) \
-  + ENABLED(MORGAN_SCARA) \
   + ENABLED(COREXY) \
   + ENABLED(COREXZ) \
   + ENABLED(COREYZ) \
   + ENABLED(COREYX) \
   + ENABLED(COREZX) \
   + ENABLED(COREZY)
-  #error "Please enable only one of DELTA, MORGAN_SCARA, COREXY, COREYX, COREXZ, COREZX, COREYZ, or COREZY."
-#endif
-
-/**
- * Delta requirements
- */
-#if ENABLED(DELTA)
-  #if NONE(USE_XMAX_PLUG, USE_YMAX_PLUG, USE_ZMAX_PLUG)
-    #error "You probably want to use Max Endstops for DELTA!"
-  #elif ENABLED(ENABLE_LEVELING_FADE_HEIGHT) && !UBL_SEGMENTED
-    #error "ENABLE_LEVELING_FADE_HEIGHT on DELTA requires AUTO_BED_LEVELING_UBL."
-  #elif ENABLED(DELTA_AUTO_CALIBRATION) && !(HAS_BED_PROBE)
-    #error "DELTA_AUTO_CALIBRATION requires a probe or LCD Controller."
-  #endif
+  #error "Please enable only one of COREXY, COREYX, COREXZ, COREZX, COREYZ, or COREZY."
 #endif
 
 /**
@@ -706,14 +676,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 #if HAS_BED_PROBE
-
-  /**
-   * Z_PROBE_SLED is incompatible with DELTA
-   */
-  #if BOTH(Z_PROBE_SLED, DELTA)
-    #error "You cannot use Z_PROBE_SLED with DELTA."
-  #endif
-
   /**
    * SOLENOID_PROBE requirements
    */
@@ -781,9 +743,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
    * Require pin options and pins to be defined
    */
   #if ENABLED(SENSORLESS_PROBING)
-    #if ENABLED(DELTA) && !(AXIS_HAS_STALLGUARD(X) && AXIS_HAS_STALLGUARD(Y) && AXIS_HAS_STALLGUARD(Z))
-      #error "SENSORLESS_PROBING requires TMC2130/2160/2209/5130/5160 drivers on X, Y, and Z."
-    #elif !AXIS_HAS_STALLGUARD(Z)
+    #if !AXIS_HAS_STALLGUARD(Z)
       #error "SENSORLESS_PROBING requires a TMC2130/2160/2209/5130/5160 driver on Z."
     #endif
   #elif ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
@@ -846,9 +806,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   // Hide PROBE_MANUALLY from the rest of the code
   #undef PROBE_MANUALLY
 
-  #if IS_SCARA
-    #error "AUTO_BED_LEVELING_UBL does not yet support SCARA printers."
-  #elif !WITHIN(GRID_MAX_POINTS_X, 3, 36) || !WITHIN(GRID_MAX_POINTS_Y, 3, 36)
+  #if !WITHIN(GRID_MAX_POINTS_X, 3, 36) || !WITHIN(GRID_MAX_POINTS_Y, 3, 36)
     #error "GRID_MAX_POINTS_[XY] must be a whole number between 3 and 36."
   #elif !defined(RESTORE_LEVELING_AFTER_G28)
     #error "AUTO_BED_LEVELING_UBL used to enable RESTORE_LEVELING_AFTER_G28. To keep this behavior enable RESTORE_LEVELING_AFTER_G28. Otherwise define it as 'false'."
@@ -896,13 +854,8 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
  * Make sure Z_SAFE_HOMING point is reachable
  */
 #if ENABLED(Z_SAFE_HOMING)
-  #if HAS_BED_PROBE && (ENABLED(DELTA) || IS_SCARA)
-    static_assert(WITHIN(Z_SAFE_HOMING_X_POINT, PROBE_X_MIN, PROBE_X_MAX), "Z_SAFE_HOMING_X_POINT is outside the probe region.");
-    static_assert(WITHIN(Z_SAFE_HOMING_Y_POINT, PROBE_Y_MIN, PROBE_Y_MAX), "Z_SAFE_HOMING_Y_POINT is outside the probe region.");
-  #else
-    static_assert(WITHIN(Z_SAFE_HOMING_X_POINT, X_MIN_POS, X_MAX_POS), "Z_SAFE_HOMING_X_POINT can't be reached by the nozzle.");
-    static_assert(WITHIN(Z_SAFE_HOMING_Y_POINT, Y_MIN_POS, Y_MAX_POS), "Z_SAFE_HOMING_Y_POINT can't be reached by the nozzle.");
-  #endif
+  static_assert(WITHIN(Z_SAFE_HOMING_X_POINT, X_MIN_POS, X_MAX_POS), "Z_SAFE_HOMING_X_POINT can't be reached by the nozzle.");
+  static_assert(WITHIN(Z_SAFE_HOMING_Y_POINT, Y_MIN_POS, Y_MAX_POS), "Z_SAFE_HOMING_Y_POINT can't be reached by the nozzle.");
 #endif // Z_SAFE_HOMING
 
 /**
@@ -1125,17 +1078,16 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 // Delta and Cartesian use 3 homing endstops
-#if !IS_SCARA
-  #if X_HOME_DIR < 0 && DISABLED(USE_XMIN_PLUG)
-    #error "Enable USE_XMIN_PLUG when homing X to MIN."
-  #elif X_HOME_DIR > 0 && DISABLED(USE_XMAX_PLUG)
-    #error "Enable USE_XMAX_PLUG when homing X to MAX."
-  #elif Y_HOME_DIR < 0 && DISABLED(USE_YMIN_PLUG)
-    #error "Enable USE_YMIN_PLUG when homing Y to MIN."
-  #elif Y_HOME_DIR > 0 && DISABLED(USE_YMAX_PLUG)
-    #error "Enable USE_YMAX_PLUG when homing Y to MAX."
-  #endif
+#if X_HOME_DIR < 0 && DISABLED(USE_XMIN_PLUG)
+  #error "Enable USE_XMIN_PLUG when homing X to MIN."
+#elif X_HOME_DIR > 0 && DISABLED(USE_XMAX_PLUG)
+  #error "Enable USE_XMAX_PLUG when homing X to MAX."
+#elif Y_HOME_DIR < 0 && DISABLED(USE_YMIN_PLUG)
+  #error "Enable USE_YMIN_PLUG when homing Y to MIN."
+#elif Y_HOME_DIR > 0 && DISABLED(USE_YMAX_PLUG)
+  #error "Enable USE_YMAX_PLUG when homing Y to MAX."
 #endif
+
 #if Z_HOME_DIR < 0 && DISABLED(USE_ZMIN_PLUG)
   #error "Enable USE_ZMIN_PLUG when homing Z to MIN."
 #elif Z_HOME_DIR > 0 && DISABLED(USE_ZMAX_PLUG)
@@ -1160,8 +1112,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
     #error "USE_ZMAX_PLUG is required when X2_USE_ENDSTOP is _ZMAX_."
   #elif !HAS_X2_MIN && !HAS_X2_MAX
     #error "X2_USE_ENDSTOP has been assigned to a nonexistent endstop!"
-  #elif ENABLED(DELTA)
-    #error "X_DUAL_ENDSTOPS is not compatible with DELTA."
   #endif
 #endif
 #if ENABLED(Y_DUAL_ENDSTOPS)
@@ -1181,8 +1131,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
     #error "USE_ZMAX_PLUG is required when Y2_USE_ENDSTOP is _ZMAX_."
   #elif !HAS_Y2_MIN && !HAS_Y2_MAX
     #error "Y2_USE_ENDSTOP has been assigned to a nonexistent endstop!"
-  #elif ENABLED(DELTA)
-    #error "Y_DUAL_ENDSTOPS is not compatible with DELTA."
   #endif
 #endif
 #if ENABLED(Z_DUAL_ENDSTOPS)
@@ -1202,8 +1150,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
     #error "USE_ZMAX_PLUG is required when Z2_USE_ENDSTOP is _ZMAX_."
   #elif !HAS_Z2_MIN && !HAS_Z2_MAX
     #error "Z2_USE_ENDSTOP has been assigned to a nonexistent endstop!"
-  #elif ENABLED(DELTA)
-    #error "Z_DUAL_ENDSTOPS is not compatible with DELTA."
   #endif
 #endif
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
@@ -1223,8 +1169,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
     #error "USE_ZMAX_PLUG is required when Z2_USE_ENDSTOP is _ZMAX_."
   #elif !HAS_Z2_MIN && !HAS_Z2_MAX
     #error "Z2_USE_ENDSTOP has been assigned to a nonexistent endstop!"
-  #elif ENABLED(DELTA)
-    #error "Z_TRIPLE_ENDSTOPS is not compatible with DELTA."
   #endif
   #if !Z3_USE_ENDSTOP
     #error "You must set Z3_USE_ENDSTOP with Z_TRIPLE_ENDSTOPS."
@@ -1242,8 +1186,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
     #error "USE_ZMAX_PLUG is required when Z3_USE_ENDSTOP is _ZMAX_."
   #elif !HAS_Z3_MIN && !HAS_Z3_MAX
     #error "Z3_USE_ENDSTOP has been assigned to a nonexistent endstop!"
-  #elif ENABLED(DELTA)
-    #error "Z_TRIPLE_ENDSTOPS is not compatible with DELTA."
   #endif
 #endif
 
@@ -1462,20 +1404,13 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 #if ENABLED(SENSORLESS_HOMING)
-  // Require STEALTHCHOP for SENSORLESS_HOMING on DELTA as the transition from spreadCycle to stealthChop
-  // is necessary in order to reset the stallGuard indication between the initial movement of all three
-  // towers to +Z and the individual homing of each tower. This restriction can be removed once a means of
-  // clearing the stallGuard activated status is found.
-
   // Stall detection DIAG = HIGH : TMC2209
   // Stall detection DIAG = LOW  : TMC2130/TMC2160/TMC2660/TMC5130/TMC5160
   #define X_ENDSTOP_INVERTING !AXIS_DRIVER_TYPE(X,TMC2209)
   #define Y_ENDSTOP_INVERTING !AXIS_DRIVER_TYPE(Y,TMC2209)
   #define Z_ENDSTOP_INVERTING !AXIS_DRIVER_TYPE(Z,TMC2209)
 
-  #if ENABLED(DELTA) && !BOTH(STEALTHCHOP_XY, STEALTHCHOP_Z)
-    #error "SENSORLESS_HOMING on DELTA currently requires STEALTHCHOP_XY and STEALTHCHOP_Z."
-  #elif X_SENSORLESS && X_HOME_DIR < 0 && DISABLED(ENDSTOPPULLUPS, ENDSTOPPULLUP_XMIN)
+  #if X_SENSORLESS && X_HOME_DIR < 0 && DISABLED(ENDSTOPPULLUPS, ENDSTOPPULLUP_XMIN)
     #error "SENSORLESS_HOMING requires ENDSTOPPULLUP_XMIN (or ENDSTOPPULLUPS) when homing to X_MIN."
   #elif X_SENSORLESS && X_HOME_DIR > 0 && DISABLED(ENDSTOPPULLUPS, ENDSTOPPULLUP_XMAX)
     #error "SENSORLESS_HOMING requires ENDSTOPPULLUP_XMAX (or ENDSTOPPULLUPS) when homing to X_MAX."
@@ -1536,9 +1471,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 
 // Sensorless probing requirements
 #if ENABLED(SENSORLESS_PROBING)
-  #if ENABLED(DELTA) && !(X_SENSORLESS && Y_SENSORLESS && Z_SENSORLESS)
-    #error "SENSORLESS_PROBING for DELTA requires TMC stepper drivers with StallGuard on X, Y, and Z axes."
-  #elif !Z_SENSORLESS
+  #if !Z_SENSORLESS
     #error "SENSORLESS_PROBING requires a TMC stepper driver with StallGuard on Z."
   #endif
 #endif
@@ -1621,10 +1554,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #undef CS_COMPARE
 #endif
 #undef IN_CHAIN
-
-#if ENABLED(DELTA) && (ENABLED(STEALTHCHOP_XY) != ENABLED(STEALTHCHOP_Z))
-  #error "STEALTHCHOP_XY and STEALTHCHOP_Z must be the same on DELTA."
-#endif
 
 /**
  * Check per-axis initializers for errors

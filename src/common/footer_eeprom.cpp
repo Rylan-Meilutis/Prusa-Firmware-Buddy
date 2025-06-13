@@ -12,23 +12,7 @@
 namespace footer::eeprom {
 
 Record stored_settings_as_record() {
-    return {
-#if FOOTER_ITEMS_PER_LINE__ > 0
-        config_store().footer_setting_0.get(),
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 1
-            config_store().footer_setting_1.get(),
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 2
-            config_store().footer_setting_2.get(),
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 3
-            config_store().footer_setting_3.get(),
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 4
-            config_store().footer_setting_4.get(),
-#endif
-    };
+    return config_store().footer_setting.get_all();
 }
 
 namespace {

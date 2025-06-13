@@ -4,6 +4,7 @@
 #include <utils/enum_array.hpp>
 #include <variant>
 
+#include <option/has_nozzle_cleaner.h>
 #include <option/has_wastebin.h>
 #include <buddy/unreachable.hpp>
 
@@ -15,7 +16,7 @@ enum class ZAction : uint16_t {
     relative_move,
     relative_move_skip_xy, // TODO not implemented
     no_move,
-    _cnt
+    _last = no_move
 };
 
 enum class ParkPosition : uint8_t {
@@ -40,10 +41,12 @@ struct ParkingPosition {
     struct Unchanged {
         constexpr auto operator<=>(const Unchanged &) const = default;
     };
-    using Variant = std::variant<float, Unchanged>;
+    using Variant = std::variant<Unchanged, float>;
 
     static constexpr Variant unchanged = Unchanged {};
     Variant x, y, z;
+
+    constexpr auto operator<=>(const ParkingPosition &) const = default;
 
     // Synchronizes this provided position and provides appropriate xyz_pos_t
     xyz_pos_t to_xyz_pos(const xyz_pos_t &pos) const;
@@ -68,6 +71,8 @@ struct ParkingPosition {
             BUDDY_UNREACHABLE();
         }
     }
+
+    bool operator==(const ParkingPosition &) const = default;
 };
 
 static constexpr EnumArray<ParkPosition, ParkingPosition, ParkPosition::_cnt> park_positions {
@@ -81,6 +86,12 @@ static constexpr EnumArray<ParkPosition, ParkingPosition, ParkPosition::_cnt> pa
         { ParkPosition::load, ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS } },
 };
 
-void park_move_with_conditional_home(const ParkingPosition &park_position, ZAction z_action);
+#if HAS_NOZZLE_CLEANER()
+void move_out_of_nozzle_cleaner_area();
+#endif
+
+void park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
+
+void home_if_needed_and_park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
 
 } // namespace mapi

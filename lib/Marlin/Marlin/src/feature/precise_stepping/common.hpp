@@ -72,7 +72,9 @@ static_assert(MoveFlag::MOVE_FLAG_RESET_POSITION_X == (1ul << MOVE_FLAG_RESET_PO
 typedef struct move_t {
     double start_v;
     double half_accel;
+    /// move duration - relative time in seconds
     double move_time;
+    /// start of move - absolute time in seconds
     double print_time;
 
     xyze_double_t axes_r;

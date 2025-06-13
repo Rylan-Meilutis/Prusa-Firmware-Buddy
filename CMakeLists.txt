@@ -442,10 +442,8 @@ endif()
 # std::rand/random
 if(BOARD IN_LIST BUDDY_BOARDS)
   set(ENABLE_HW_STD_RAND TRUE)
-  set(RANDOM_CPP random_hw.cpp)
 else()
   set(ENABLE_HW_STD_RAND FALSE)
-  set(RANDOM_CPP random_sw.cpp)
 endif()
 
 #

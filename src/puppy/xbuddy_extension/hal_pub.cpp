@@ -5,23 +5,71 @@
 
 // CAN FD configuration
 
-// For now we will be sending the data using the same bitrate as the header.
-// Once we are sure that the peripherals with internal oscillators can keep up
-// with the increased speed, we can change this.
+// Cyphal/CAN Physical Layer Specification v1.0 recommends several standard
+// bitrates. One of them is 125k/500k with sampling at 87.5% which we use.
+
+// Let's use the safe 125k bitrate for both arbitration and data.
+// In the future, we may try to dynamically enable bitrate switching
+// and count errors to see if the bus topology permits faster bitrate.
 static constexpr const bool enable_bit_rate_switch = false;
 
 // We are using 48MHz clock as an input.
 static constexpr const uint32_t clock_source = RCC_FDCANCLKSOURCE_PLL1Q;
+static constexpr const uint32_t clock_frequency = 48'000'000;
+
+static constexpr const uint32_t nominal_bitrate = 125'000;
 static constexpr const uint32_t nominal_prescaler = 3;
-static constexpr const uint32_t nominal_sync_jump_width = 1;
-static constexpr const uint32_t nominal_time_seg_1 = 10;
-static constexpr const uint32_t nominal_time_seg_2 = 5;
-static_assert(nominal_prescaler * (1 + nominal_time_seg_1 + nominal_time_seg_2) == 48 / 1); // 1MHz
+static constexpr const uint32_t nominal_sync_jump_width = 16;
+static constexpr const uint32_t nominal_time_seg_1 = 111;
+static constexpr const uint32_t nominal_time_seg_2 = 16;
+
+static constexpr const uint32_t data_bitrate = 500'000;
 static constexpr const uint32_t data_prescaler = 3;
-static constexpr const uint32_t data_sync_jump_width = 1;
-static constexpr const uint32_t data_time_seg_1 = 5;
-static constexpr const uint32_t data_time_seg_2 = 2;
-static_assert(data_prescaler * (1 + data_time_seg_1 + data_time_seg_2) == 48 / 2); // 2MHz
+static constexpr const uint32_t data_sync_jump_width = 4;
+static constexpr const uint32_t data_time_seg_1 = 27;
+static constexpr const uint32_t data_time_seg_2 = 4;
+
+// Time quanta must add up.
+static_assert(nominal_prescaler * (1 + nominal_time_seg_1 + nominal_time_seg_2) * nominal_bitrate == clock_frequency);
+static_assert(data_prescaler * (1 + data_time_seg_1 + data_time_seg_2) * data_bitrate == clock_frequency);
+
+// Ensure all parameters are in HAL range.
+static_assert(IS_FDCAN_NOMINAL_PRESCALER(nominal_prescaler));
+static_assert(IS_FDCAN_NOMINAL_SJW(nominal_sync_jump_width));
+static_assert(IS_FDCAN_NOMINAL_TSEG1(nominal_time_seg_1));
+static_assert(IS_FDCAN_NOMINAL_TSEG2(nominal_time_seg_2));
+static_assert(IS_FDCAN_DATA_PRESCALER(data_prescaler));
+static_assert(IS_FDCAN_DATA_SJW(data_sync_jump_width));
+static_assert(IS_FDCAN_DATA_TSEG1(data_time_seg_1));
+static_assert(IS_FDCAN_DATA_TSEG2(data_time_seg_2));
+
+// CiA 601-3 recommendation 1: choose prescaler as small as possible.
+// This can't be easily (statically) asserted. Computation goes as follows:
+// Prescaler is now 3; next smaller value is 2, which gives time quanta count
+// clock_frequency/data_bitrate/data_prescaler = 48
+// This would put data_time_seg_1 at 48*7/8 = 42 if we want to preserve sampling
+// point at 87.5% which is outside the HAL range.
+static_assert(data_prescaler == 3);
+
+// CiA 601-3 recommendation 2: choose nominal_sync_jump_width as large as possible.
+static_assert(nominal_sync_jump_width == nominal_time_seg_2);
+
+// Cia 601-3 recommendation 3: choose the highest available CAN clock frequency.
+// Maybe we could configure other PLL, but for now, 48MHz seems good enough.
+
+// CiA 601-3 recommendation 4: set nominal_prescaler == data_prescaler.
+static_assert(nominal_prescaler == data_prescaler);
+
+// CiA 601-3 recommendation 5: configure all CAN nodes to have the same sampling point.
+// We can't vouch for all the nodes, but let's assert standard sampling point at 87.5% = 7/8
+static_assert(7 * nominal_time_seg_2 == 1 + nominal_time_seg_1);
+static_assert(7 * data_time_seg_2 == 1 + data_time_seg_1);
+
+// CiA 601-3 recommendation 6: choose data_sync_jump_width as large as possible.
+static_assert(data_sync_jump_width == data_time_seg_2);
+
+// CiA 601-3 recommendation 7: enable TDC for data bit rates ≥ 1 Mbit/s.
+static_assert(data_bitrate < 1'000'000);
 
 FDCAN_HandleTypeDef hfdcan;
 
@@ -87,10 +135,10 @@ static void fdcan_init() {
     hfdcan.Init.NominalSyncJumpWidth = nominal_sync_jump_width;
     hfdcan.Init.NominalTimeSeg1 = nominal_time_seg_1;
     hfdcan.Init.NominalTimeSeg2 = nominal_time_seg_2;
-    hfdcan.Init.DataPrescaler = enable_bit_rate_switch ? data_prescaler : nominal_prescaler;
-    hfdcan.Init.DataSyncJumpWidth = enable_bit_rate_switch ? data_sync_jump_width : nominal_sync_jump_width;
-    hfdcan.Init.DataTimeSeg1 = enable_bit_rate_switch ? data_time_seg_1 : nominal_time_seg_1;
-    hfdcan.Init.DataTimeSeg2 = enable_bit_rate_switch ? data_time_seg_2 : nominal_time_seg_2;
+    hfdcan.Init.DataPrescaler = data_prescaler;
+    hfdcan.Init.DataSyncJumpWidth = data_sync_jump_width;
+    hfdcan.Init.DataTimeSeg1 = data_time_seg_1;
+    hfdcan.Init.DataTimeSeg2 = data_time_seg_2;
     hfdcan.Init.StdFiltersNbr = 0;
     hfdcan.Init.ExtFiltersNbr = 0;
     hfdcan.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;

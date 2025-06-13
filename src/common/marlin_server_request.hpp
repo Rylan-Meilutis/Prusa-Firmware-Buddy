@@ -4,6 +4,7 @@
 #include <freertos/queue.hpp>
 #include <common/marlin_events.h>
 #include <gcode/inject_queue_actions.hpp>
+#include <warning_type.hpp>
 
 namespace marlin_server {
 

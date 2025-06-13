@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <gcode/inject_queue_actions.hpp>
 #include <marlin_server_shared.h>
+#include <utils/callback_hook.hpp>
 
 #include <serial_printing.hpp>
 
@@ -235,46 +236,10 @@ inline Response get_response_from_phase(FSMAndPhase fsm_and_phase) {
 }
 
 /// idles() for FSM response for the given phase and then \returns it
-Response wait_for_response(FSMAndPhase fsm_and_phase);
+Response wait_for_response(FSMAndPhase fsm_and_phase, uint32_t timeout_ms = 0);
 
-// FSM_notifier
-class FSM_notifier {
-    struct data { // used floats - no need to retype
-        ClientFSM type;
-        uint8_t phase;
-        float scale = 1; // scale from value to progress
-        float offset = 0; // offset from lowest value
-        uint8_t progress_min = 0;
-        uint8_t progress_max = 100;
-        const MarlinVariable<float> *var_id;
-        std::optional<uint8_t> last_progress_sent;
-        data()
-            : type(ClientFSM::_none)
-            , phase(0)
-            , var_id(nullptr) {}
-    };
-    // static members
-    // there can be only one active instance of FSM_notifier, which use this data
-    static data s_data;
-    static FSM_notifier *activeInstance;
-
-    // temporary members
-    // constructor stores previous state of FSM_notifier (its static data), destructor restores it
-    data temp_data;
-
-protected:
-    FSM_notifier(const FSM_notifier &) = delete;
-
-public:
-    FSM_notifier(ClientFSM type, uint8_t phase, float min, float max, uint8_t progress_min, uint8_t progress_max, const MarlinVariable<float> &var_id);
-    ~FSM_notifier();
-
-    static void SendNotification();
-
-    virtual fsm::PhaseData serialize(uint8_t progress) {
-        return { { progress } };
-    }
-};
+/// Replacement for the FSM_Notifier. Hooked callbacks will get called in marlin idle()
+extern CallbackHookPoint<> idle_hook_point;
 
 void fsm_create(FSMAndPhase fsm_and_phase, fsm::PhaseData data = {});
 
@@ -311,7 +276,7 @@ void clear_warning(WarningType type);
 bool is_warning_active(WarningType type);
 
 /// Displays a warning and blockingly waits for the response
-Response prompt_warning(WarningType type);
+Response prompt_warning(WarningType type, uint32_t timeout_ms = 0);
 
 #if ENABLED(AXIS_MEASURE)
 // Sets length of X and Y axes for crash recovery

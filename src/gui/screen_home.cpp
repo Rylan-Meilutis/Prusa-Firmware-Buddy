@@ -1,7 +1,7 @@
 // screen_home.cpp
 #include "screen_home.hpp"
 #include "stdio.h"
-#include "file_raii.hpp"
+#include "file_sort.hpp"
 
 #include "config.h"
 
@@ -53,7 +53,8 @@
 #endif
 
 #include <crash_dump/crash_dump_handlers.hpp>
-#include "box_unfinished_selftest.hpp"
+#include <selftest_result_evaluation.hpp>
+#include <find_error.hpp>
 #include <transfers/transfer_file_check.hpp>
 #include <guiconfig/guiconfig.h>
 
@@ -146,16 +147,16 @@ bool screen_home_data_t::need_check_wifi_credentials = true;
     auto sb = StringBuilder::from_ptr(fpath, fpath_len);
     sb.append_string("/usb/");
 
-    F_DIR_RAII_Iterator dir(fpath);
-    if (dir.result == ResType::NOK) {
+    Directory dir { fpath };
+    if (!dir) {
         return false;
     }
 
     // prepare the item at the zeroth position according to sort policy
     FileSort::Entry entry;
 
-    while (dir.FindNext()) {
-        const FileSort::EntryRef curr(*dir.fno, fpath);
+    while (dirent *fno = FileSort::find_next(dir)) {
+        const FileSort::EntryRef curr(*fno, fpath);
 
         if (curr.type != FileSort::EntryType::FILE) {
             continue;
@@ -348,7 +349,10 @@ void screen_home_data_t::on_enter() {
     static bool first_time_check_st { true };
     if (first_time_check_st) {
         first_time_check_st = false;
-        warn_unfinished_selftest_msgbox();
+        if (!is_selftest_successfully_completed()) {
+            const auto &error = find_error(ErrCode::CONNECT_UNFINISHED_SELFTEST);
+            MsgBoxWarning(_(error.err_text), Responses_Ok);
+        }
     }
 #endif
 

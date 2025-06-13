@@ -18,7 +18,10 @@ bool PlainGcodeReader::stream_metadata_start() {
     gcodes_in_metadata = 0;
     return success;
 }
-IGcodeReader::Result_t PlainGcodeReader::stream_gcode_start(uint32_t offset) {
+IGcodeReader::Result_t PlainGcodeReader::stream_gcode_start(uint32_t offset, bool ignore_crc) {
+    // There is no CRC in plaintext G-Code.
+    (void)ignore_crc;
+
     bool success = fseek(file.get(), offset, SEEK_SET) == 0;
     stream_mode_ = success ? StreamMode::gcode : StreamMode::none;
     return success ? Result_t::RESULT_OK : Result_t::RESULT_ERROR;

@@ -118,7 +118,12 @@ void GCodeInfo::load(IGcodeReader &reader) {
     }
 
     // parse first few gcodes
-    if (reader.stream_gcode_start() == IGcodeReader::Result_t::RESULT_OK) {
+    const uint32_t offset = 0;
+    // Note: We are still checking integrity while printing, i.e. when media
+    //       prefetch calls stream_gcode_start(). Ignoring CRC check here in
+    //       print preview screen saves around 800ms which is quite noticable.
+    const bool ignore_crc = true;
+    if (reader.stream_gcode_start(offset, ignore_crc) == IGcodeReader::Result_t::RESULT_OK) {
         uint32_t gcode_counter = 0;
         while (true) {
             // valid_for_print should is supposed to make sure that file is downloaded-enough to not run out of bounds here.
@@ -532,6 +537,15 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
                 }
             }
         }
+    }
+
+    else if (cmd.skip_gcode(gcode_info::m486)) {
+        // Do not count M486 towards search_first_x_gcodes limit
+        // M486 is emiited multiple times for each object in the gcode
+        // Meaning that if the gcode has enough objects, we would drain the limit
+        // without ever getting to the checks
+        // BFW-7269
+        gcode_counter--;
     }
 
     else if (cmd.skip_gcode(gcode_info::m555)) {

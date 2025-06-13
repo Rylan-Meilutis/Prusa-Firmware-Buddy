@@ -59,7 +59,6 @@
 #include "module/printcounter.h"
 #include "feature/closedloop.h"
 #include "feature/safety_timer.h"
-#include "feature/bed_preheat.hpp"
 #if !BOARD_IS_DWARF()
 #include "pause_stubbed.hpp"
 #endif
@@ -69,8 +68,9 @@
 #include "module/stepper/indirection.h"
 #include "feature/motordriver_util.h"
 
+#include <feature/cork/tracker.hpp>
+
 #include <math.h>
-#include "libs/nozzle.h"
 
 #include "gcode/gcode.h"
 #include "gcode/parser.h"
@@ -116,12 +116,6 @@
 #if ENABLED(G38_PROBE_TARGET)
   uint8_t G38_move; // = 0
   bool G38_did_trigger; // = false
-#endif
-
-#if ENABLED(DELTA)
-  #include "module/delta.h"
-#elif IS_SCARA
-  #include "module/scara.h"
 #endif
 
 #if HAS_LEVELING
@@ -551,10 +545,6 @@ void idle(bool waiting, bool no_stepper_sleep/*=false*/) {
 
   thermalManager.manage_heater();
 
-  #if HAS_HEATED_BED
-    bed_preheat.update();
-  #endif
-
   #if USE_BEEPER
     buzzer.tick();
   #endif
@@ -625,6 +615,7 @@ void stop() {
 
   if (IsRunning()) {
     queue.stop();
+    buddy::cork::tracker.clear();
     SERIAL_ERROR_MSG(MSG_ERR_STOPPED);
     LCD_MESSAGEPGM(MSG_STOPPED);
     safe_delay(350);       // allow enough time for messages to get out before stopping

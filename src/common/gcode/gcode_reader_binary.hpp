@@ -22,7 +22,7 @@ public:
     PrusaPackGcodeReader &operator=(PrusaPackGcodeReader &&other) = default;
 
     virtual bool stream_metadata_start() override;
-    virtual Result_t stream_gcode_start(uint32_t offset = 0) override;
+    virtual Result_t stream_gcode_start(uint32_t offset = 0, bool ignore_crc = false) override;
     virtual AbstractByteReader *stream_thumbnail_start(uint16_t expected_width, uint16_t expected_height, ImgType expected_type, bool allow_larger = false) override;
     virtual Result_t stream_get_line(GcodeBuffer &buffer, Continuations) override;
     virtual uint32_t get_gcode_stream_size_estimate() override;

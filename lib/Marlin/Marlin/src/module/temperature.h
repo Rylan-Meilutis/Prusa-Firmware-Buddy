@@ -285,6 +285,11 @@ class Temperature {
 
     #if HAS_HEATED_BED
       static bed_info_t temp_bed;
+      // Estimated temperature of the bed frame as a rate-limited (linear)
+      // value that converges to the real bed temperature at a slow rate.
+      // Emulates heat propagation from the bed to the frame.
+      static float bed_frame_est_celsius;
+      static uint32_t bed_frame_millis;
     #endif
 
     #if HAS_TEMP_CHAMBER
@@ -515,11 +520,6 @@ class Temperature {
         return scaledFanSpeed(target, fan_speed[target]);
       }
 
-      #if ENABLED(EXTRA_FAN_SPEED)
-        static uint8_t old_fan_speed[FAN_COUNT], new_fan_speed[FAN_COUNT];
-        static void set_temp_fan_speed(const uint8_t fan, const uint16_t tmp_temp);
-      #endif
-
       #if EITHER(PROBING_FANS_OFF, ADVANCED_PAUSE_FANS_PAUSE)
         void set_fans_paused(const bool p);
       #endif
@@ -631,6 +631,14 @@ class Temperature {
           return temp_bed.enabled_mask;
         }
         FORCE_INLINE static void setEnabledBedletMask(const uint16_t enabled_mask) {
+          if (temp_bed.enabled_mask != enabled_mask) {
+            // When changing enabled bedlets, reset the estimated frame
+            // temperature, so that it gets re-initialized to a fraction of the
+            // current temp and gives some time for the frame temperature to
+            // adjust to a different layout of the heat source.
+            init_bed_frame_est_celsius();
+          }
+
           temp_bed.enabled_mask = enabled_mask;
           for(uint8_t x = 0; x < X_HBL_COUNT; ++x) {
             for(uint8_t y = 0; y < Y_HBL_COUNT; ++y) {
@@ -643,7 +651,6 @@ class Temperature {
           }
           advanced_modular_bed->update_bedlet_temps(temp_bed.enabled_mask, temp_bed.target);
           updateModularBedTemperature(); // update current temperature of modular bed - it will be now calculated from different bedlets
-
         }
         static void updateModularBedTemperature(); // will update temp_bed.celsius based on currently enabled bedlets
 
@@ -686,6 +693,9 @@ class Temperature {
       }
 
       static bool wait_for_bed(const bool no_wait_for_cooling=true);
+
+      static void init_bed_frame_est_celsius();
+      static void wait_for_frame_heatup();
 
     #endif // HAS_HEATED_BED
 

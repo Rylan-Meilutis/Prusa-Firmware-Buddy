@@ -304,7 +304,7 @@ extern "C" void main_cpp(void) {
      *
      * Ignore the check in production (tester_mode), the xBuddy's connected peripherals are safe in this mode.
      */
-    if (buddy::hw::Configuration::Instance().is_fw_incompatible_with_hw() && !running_in_tester_mode()) {
+    if (!buddy::hw::Configuration::Instance().is_fw_compatible_with_hw() && !running_in_tester_mode()) {
         const auto &error = find_error(ErrCode::WARNING_DIFFERENT_FW_REQUIRED);
         crash_dump::force_save_message_without_dump(crash_dump::MsgType::FATAL_WARNING, static_cast<uint16_t>(error.err_code), error.err_text, error.err_title);
         hwio_safe_state();
@@ -493,7 +493,7 @@ extern "C" void main_cpp(void) {
     buddy::hw::io_expander2.initialize();
 #endif
 
-    osThreadCCMDef(defaultTask, StartDefaultTask, TASK_PRIORITY_DEFAULT_TASK, 0, 1152);
+    osThreadCCMDef(defaultTask, StartDefaultTask, TASK_PRIORITY_DEFAULT_TASK, 0, 1160);
     defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
 #if ENABLED(POWER_PANIC)

@@ -99,46 +99,22 @@
 #endif
 
 /**
- * SCARA cannot use SLOWDOWN and requires QUICKHOME
- */
-#if IS_SCARA
-  #undef SLOWDOWN
-  #define QUICK_HOME
-#endif
-
-/**
  * Set the home position based on settings or manual overrides
  */
 #ifdef MANUAL_X_HOME_POS
   #define X_HOME_POS MANUAL_X_HOME_POS
 #elif ENABLED(BED_CENTER_AT_0_0)
-  #if ENABLED(DELTA)
-    #define X_HOME_POS 0
-  #else
-    #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
-  #endif
+  #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
 #else
-  #if ENABLED(DELTA)
-    #define X_HOME_POS (X_MIN_POS + (X_BED_SIZE) * 0.5)
-  #else
-    #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
-  #endif
+  #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
 #endif
 
 #ifdef MANUAL_Y_HOME_POS
   #define Y_HOME_POS MANUAL_Y_HOME_POS
 #elif ENABLED(BED_CENTER_AT_0_0)
-  #if ENABLED(DELTA)
-    #define Y_HOME_POS 0
-  #else
-    #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
-  #endif
+  #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
 #else
-  #if ENABLED(DELTA)
-    #define Y_HOME_POS (Y_MIN_POS + (Y_BED_SIZE) * 0.5)
-  #else
-    #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
-  #endif
+  #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
 #endif
 
 #ifdef MANUAL_Z_HOME_POS
@@ -148,25 +124,10 @@
 #endif
 
 /**
- * If DELTA_HEIGHT isn't defined use the old setting
- */
-#if ENABLED(DELTA) && !defined(DELTA_HEIGHT)
-  #define DELTA_HEIGHT Z_HOME_POS
-#endif
-
-/**
  * Z Sled Probe requires Z_SAFE_HOMING
  */
 #if ENABLED(Z_PROBE_SLED)
   #define Z_SAFE_HOMING
-#endif
-
-/**
- * DELTA should ignore Z_SAFE_HOMING and SLOWDOWN
- */
-#if ENABLED(DELTA)
-  #undef Z_SAFE_HOMING
-  #undef SLOWDOWN
 #endif
 
 #ifndef MESH_INSET
@@ -1165,7 +1126,7 @@
 /**
  * Set granular options based on the specific type of leveling
  */
-#define UBL_SEGMENTED   (ENABLED(AUTO_BED_LEVELING_UBL) && ANY(SEGMENT_LEVELED_MOVES, DELTA))
+#define UBL_SEGMENTED   (ENABLED(AUTO_BED_LEVELING_UBL) && ANY(SEGMENT_LEVELED_MOVES))
 #if ENABLED(AUTO_BED_LEVELING_UBL)
   #define HAS_LEVELING 1
 #endif
@@ -1203,7 +1164,7 @@
 
 /**
  * Bed Probing rectangular bounds
- * These can be further constrained in code for Delta and SCARA
+ * These can be further constrained in code for Delta
  */
 #ifndef MIN_PROBE_EDGE
   #define MIN_PROBE_EDGE 0
@@ -1223,50 +1184,6 @@
 
 #ifndef NOZZLE_TO_PROBE_OFFSET
   #define NOZZLE_TO_PROBE_OFFSET { 0, 0, 0 }
-#endif
-
-#if ENABLED(DELTA)
-  /**
-   * Delta radius/rod trimmers/angle trimmers
-   */
-  #define _PROBE_RADIUS (DELTA_PRINTABLE_RADIUS - (MIN_PROBE_EDGE))
-  #ifndef DELTA_CALIBRATION_RADIUS
-    #ifdef NOZZLE_TO_PROBE_OFFSET
-      #define DELTA_CALIBRATION_RADIUS (DELTA_PRINTABLE_RADIUS - _MAX(ABS(nozzle_to_probe_offset.x), ABS(nozzle_to_probe_offset.y), ABS(MIN_PROBE_EDGE)))
-    #else
-      #define DELTA_CALIBRATION_RADIUS _PROBE_RADIUS
-    #endif
-  #endif
-  #ifndef DELTA_ENDSTOP_ADJ
-    #define DELTA_ENDSTOP_ADJ { 0, 0, 0 }
-  #endif
-  #ifndef DELTA_TOWER_ANGLE_TRIM
-    #define DELTA_TOWER_ANGLE_TRIM { 0, 0, 0 }
-  #endif
-  #ifndef DELTA_RADIUS_TRIM_TOWER
-    #define DELTA_RADIUS_TRIM_TOWER { 0, 0, 0 }
-  #endif
-  #ifndef DELTA_DIAGONAL_ROD_TRIM_TOWER
-    #define DELTA_DIAGONAL_ROD_TRIM_TOWER { 0, 0, 0 }
-  #endif
-
-  // Probing points may be verified at compile time within the radius
-  // using static_assert(HYPOT2(X2-X1,Y2-Y1)<=sq(DELTA_PRINTABLE_RADIUS),"bad probe point!")
-  // so that may be added to SanityCheck.h in the future.
-  #define PROBE_X_MIN (X_CENTER - (_PROBE_RADIUS))
-  #define PROBE_Y_MIN (Y_CENTER - (_PROBE_RADIUS))
-  #define PROBE_X_MAX (X_CENTER + _PROBE_RADIUS)
-  #define PROBE_Y_MAX (Y_CENTER + _PROBE_RADIUS)
-
-#elif IS_SCARA
-
-  #define SCARA_PRINTABLE_RADIUS (SCARA_LINKAGE_1 + SCARA_LINKAGE_2)
-  #define _PROBE_RADIUS (SCARA_PRINTABLE_RADIUS - (MIN_PROBE_EDGE))
-  #define PROBE_X_MIN (X_CENTER - (SCARA_PRINTABLE_RADIUS) + MIN_PROBE_EDGE_LEFT)
-  #define PROBE_Y_MIN (Y_CENTER - (SCARA_PRINTABLE_RADIUS) + MIN_PROBE_EDGE_FRONT)
-  #define PROBE_X_MAX (X_CENTER +  SCARA_PRINTABLE_RADIUS - (MIN_PROBE_EDGE_RIGHT))
-  #define PROBE_Y_MAX (Y_CENTER +  SCARA_PRINTABLE_RADIUS - (MIN_PROBE_EDGE_BACK))
-
 #endif
 
 #if ENABLED(SEGMENT_LEVELED_MOVES) && !defined(LEVELED_SEGMENT_LENGTH)
@@ -1359,12 +1276,10 @@
 #define HAS_POSITION_SHIFT DISABLED(NO_WORKSPACE_OFFSETS)
 // The home offset also shifts the coordinate space
 #define HAS_HOME_OFFSET (DISABLED(NO_WORKSPACE_OFFSETS))
-// The SCARA home offset applies only on G28
-#define HAS_SCARA_OFFSET (DISABLED(NO_WORKSPACE_OFFSETS) && IS_SCARA)
 // Cumulative offset to workspace to save some calculation
 #define HAS_WORKSPACE_OFFSET (HAS_POSITION_SHIFT && HAS_HOME_OFFSET)
 // M206 sets the home offset for Cartesian machines
-#define HAS_M206_COMMAND (HAS_HOME_OFFSET && !IS_SCARA)
+#define HAS_M206_COMMAND (HAS_HOME_OFFSET)
 
 // LCD timeout to status screen default is 15s
 #ifndef LCD_TIMEOUT_TO_STATUS
@@ -1379,12 +1294,6 @@
   #define MAX_VFAT_ENTRIES (5)
 #else
   #define MAX_VFAT_ENTRIES (2)
-#endif
-
-// Nozzle park for Delta
-#if ENABLED(DELTA)
-  #undef NOZZLE_PARK_Z_FEEDRATE
-  #define NOZZLE_PARK_Z_FEEDRATE NOZZLE_PARK_XY_FEEDRATE
 #endif
 
 // Force SDCARD_SORT_ALPHA to be enabled for Graphical LCD on LPC1768

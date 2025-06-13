@@ -1003,7 +1003,7 @@ tuple<JsonResult, size_t> GcodeMetaRenderer::render(uint8_t *buffer, size_t buff
     return make_tuple(JsonResult::Complete, pos);
 }
 
-DirRenderer::DirRenderer(const char *base_path, unique_dir_ptr dir)
+DirRenderer::DirRenderer(const char *base_path, Directory dir)
     : JsonRenderer(DirState { move(dir), base_path }) {}
 
 JsonResult DirRenderer::renderState(size_t resume_point, json::JsonOutput &output, DirState &state) const {
@@ -1011,7 +1011,7 @@ JsonResult DirRenderer::renderState(size_t resume_point, json::JsonOutput &outpu
     // clang-format off
     JSON_START;
     JSON_FIELD_ARR("children");
-    while (state.dir.get() && (state.ent = readdir(state.dir.get()))) {
+    while ((state.ent = state.dir.read())) {
         if (const char *lfn = dirent_lfn(state.ent); lfn && lfn[0] == '.') {
             // Skip dot-files (should be hidden).
             continue;
@@ -1075,7 +1075,7 @@ FileExtra::FileExtra(std::unique_ptr<AnyGcodeFormatReader> gcode_reader_)
     : gcode_reader(std::move(gcode_reader_))
     , renderer(std::move(GcodeExtra(PreviewRenderer(gcode_reader->get()), GcodeMetaRenderer(gcode_reader->get())))) {}
 
-FileExtra::FileExtra(const char *base_path, unique_dir_ptr dir)
+FileExtra::FileExtra(const char *base_path, Directory dir)
     : renderer(move(DirRenderer(base_path, move(dir)))) {}
 
 RenderState::RenderState(const Printer &printer, const Action &action, optional<CommandId> background_command_id)
@@ -1118,8 +1118,8 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
                     //   trigger on our own), we try to avoid some of it.
                     file_extra = FileExtra();
                 }
-            } else if (unique_dir_ptr d(opendir(path)); d.get() != nullptr) {
-                file_extra = FileExtra(path, std::move(d));
+            } else if (Directory dir { path }; dir) {
+                file_extra = FileExtra(path, std::move(dir));
             } else if (unique_file_ptr f(fopen(path, "r")); f != nullptr) {
                 // Non-gcode but existing file
                 file_extra = FileExtra();

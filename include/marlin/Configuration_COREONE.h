@@ -69,20 +69,6 @@
  * http://www.thingiverse.com/thing:298812
  */
 
-//===========================================================================
-//============================= DELTA Printer ===============================
-//===========================================================================
-// For a Delta printer start with one of the configuration files in the
-// config/examples/delta directory and customize for your machine.
-//
-
-//===========================================================================
-//============================= SCARA Printer ===============================
-//===========================================================================
-// For a SCARA printer start with the configuration files in
-// config/examples/SCARA and customize for your machine.
-//
-
 // @section info
 
 // User-specified version info of this build to display in [Pronterface, etc] terminal window during
@@ -403,10 +389,10 @@
     //#define DEFAULT_bedKi 1.41
     //#define DEFAULT_bedKd 1675.16
 
-    //24V Prusa MK3 bed
-    #define DEFAULT_bedKp 126.13
-    #define DEFAULT_bedKi 4.30
-    #define DEFAULT_bedKd 924.76
+//24V Prusa CORE One
+#define DEFAULT_bedKp 50.0
+#define DEFAULT_bedKi 0.77
+#define DEFAULT_bedKd 30
 
 // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
 #endif // PIDTEMPBED
@@ -1185,7 +1171,6 @@
 //#define BED_CENTER_AT_0_0
 
 // Manually set the home position. Leave these undefined for automatic settings.
-// For DELTA this is the top-center of the Cartesian print volume.
 //#define MANUAL_X_HOME_POS 0
 //#define MANUAL_Y_HOME_POS 0
 //#define MANUAL_Z_HOME_POS 0

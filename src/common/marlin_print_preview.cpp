@@ -19,13 +19,17 @@
 #include <option/has_gui.h>
 #if HAS_GUI()
     #include "screen_menu_filament_changeall.hpp"
-    #include "box_unfinished_selftest.hpp"
 #endif
 
 #include <option/has_toolchanger.h>
 #if ENABLED(PRUSA_TOOLCHANGER)
     #include <module/prusa/toolchanger.h>
 #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+
+#include <option/has_selftest.h>
+#if HAS_SELFTEST()
+    #include <selftest_result_evaluation.hpp>
+#endif
 
 #include <config_store/store_instance.hpp>
 #include "tools_mapping.hpp"
@@ -723,10 +727,9 @@ PrintPreview::Result PrintPreview::Loop() {
             if ((skip_if_able >= marlin_server::PreviewSkipIfAble::tool_mapping) && PrintPreview::check_tools_mapping_validity(tool_mapper, spool_join, gcode_info).all_ok()) {
                 // we can skip tools mapping if there is not warning/error in global tools mapping
                 ChangeState(State::done);
-                break;
+            } else {
+                ChangeState(State::tools_mapping_wait_user);
             }
-
-            ChangeState(State::tools_mapping_wait_user);
 
             // start preheating bed to save time in absorbing heat
             if (GCodeInfo::getInstance().get_bed_preheat_temp().has_value()) {
@@ -794,7 +797,7 @@ void PrintPreview::Init() {
 
 IPrintPreview::State PrintPreview::stateFromSelftestCheck() {
 #if HAS_SELFTEST()
-    if (!selftest_warning_selftest_finished()) {
+    if (!is_selftest_successfully_completed()) {
         return State::unfinished_selftest_wait_user;
     }
 #endif

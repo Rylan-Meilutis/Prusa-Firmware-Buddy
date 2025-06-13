@@ -46,7 +46,30 @@
         #define _CNT_P FAN_COUNT
     #endif
 
-static bool set_special_fan_speed(uint8_t fan, uint8_t speed, bool set_auto) {
+/**
+ * @brief Set fans that are not controlled by Marlin
+ * @param fan Fan index (0-based)
+ * @param tool tool number (0-based)
+ * @param speed Fan speed (0-255)
+ * @param set_auto true to set auto control
+ * @return false to let Marlin process this fan as well, true to eat this G-code
+ */
+static bool set_special_fan_speed(uint8_t fan, int8_t tool, uint8_t speed, bool set_auto) {
+    #if HAS_TOOLCHANGER()
+    if (fan == 1) { // Heatbreak fan
+        if (tool >= 0 && tool <= buddy::puppies::DWARF_MAX_COUNT) {
+            if (buddy::puppies::dwarfs[tool].is_enabled()) {
+                if (set_auto) {
+                    buddy::puppies::dwarfs[tool].set_fan_auto(1);
+                } else {
+                    buddy::puppies::dwarfs[tool].set_fan(1, speed);
+                }
+            }
+        }
+        return true; // Eat this G-code, heatbreak fan is not controlled by Marlin
+    }
+    #endif /* HAS_TOOLCHANGER() */
+
     #if XL_ENCLOSURE_SUPPORT()
     static_assert(FAN_COUNT < 3, "Fan index 3 is reserved for Enclosure fan and should not be set by thermalManager");
     if (fan == 3) {
@@ -89,27 +112,19 @@ static bool set_special_fan_speed(uint8_t fan, uint8_t speed, bool set_auto) {
  * - `P` - Fan index, if more than one fan
  * - `R` - Set the to auto control (if supported by the fan)
  * - `A` - ???
- * - `T` - Restore/Use/Set Temporary Speed: (With EXTRA_FAN_SPEED enabled:)
- *   - `1` - Restore previous speed after T2
- *   - `2` - Use temporary speed set with T3-255
- *   - `3-255`- Set the speed for use with T2
+ * - `T` - Select which tool if the same fan is on multiple tools, active_extruder if not specified
  *Enclosure fan (index 3) don't support T parameter
  */
 void GcodeSuite::M106() {
     const uint8_t p = parser.byteval('P', _ALT_P);
+    const uint16_t speed = std::clamp<uint16_t>(parser.ushortval('S', 255), 0, 255);
+    const bool auto_control = parser.seen('R');
 
-    if (set_special_fan_speed(p, std::clamp<uint16_t>(parser.ushortval('S', 255), 0, 255), parser.seen('R'))) {
+    if (set_special_fan_speed(p, get_target_extruder_from_command(), speed, auto_control)) {
         return;
     }
 
     if (p < _CNT_P) {
-
-    #if ENABLED(EXTRA_FAN_SPEED)
-        const uint16_t t = parser.intval('T');
-        if (t > 0) {
-            return thermalManager.set_temp_fan_speed(p, t);
-        }
-    #endif
         uint16_t d = parser.seen('A') ? thermalManager.fan_speed[0] : 255;
         uint16_t s = parser.ushortval('S', d);
         NOMORE(s, 255U);
@@ -133,11 +148,12 @@ void GcodeSuite::M106() {
  *#### Parameters
  *
  * - `P` - Fan index
+ * - `T` - Select which tool if there are multiple fans, one on each tool
  */
 void GcodeSuite::M107() {
     const uint8_t p = parser.byteval('P', _ALT_P);
 
-    if (set_special_fan_speed(p, 0, false)) {
+    if (set_special_fan_speed(p, get_target_extruder_from_command(), 0, false)) {
         return;
     }
 

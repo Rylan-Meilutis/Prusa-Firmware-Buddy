@@ -274,17 +274,10 @@ static Rect16 get_progress_number_rect(const Rect16 parent_rect) {
     };
 }
 
-void DialogLoadUnload::set_progress_percent(uint8_t val) {
-    if (val != progress_number.GetValue()) {
-        progress_bar.SetProgressPercent(val);
-        progress_number.SetValue(val);
-    }
-}
-
 DialogLoadUnload::DialogLoadUnload(fsm::BaseData data)
     : IDialogMarlin(GuiDefaults::RectScreenNoHeader)
     , progress_frame(this, get_frame_rect(GetRect()))
-    , title(&progress_frame, get_title_rect(GetRect()), is_multiline::no, is_closed_on_click_t::no, get_name(ProgressSerializerLoadUnload(data.GetData()).mode))
+    , title(&progress_frame, get_title_rect(GetRect()), is_multiline::no, is_closed_on_click_t::no, string_view_utf8 {})
     , progress_bar(&progress_frame, get_progress_bar_rect(GetRect()), COLOR_ORANGE, GuiDefaults::EnableDialogBigLayout ? COLOR_DARK_GRAY : COLOR_GRAY, PROGRESS_BAR_CORNER_RADIUS)
     , progress_number(&progress_frame, get_progress_number_rect(GetRect()), 0, "%.0f%%", Font::big)
     , label(&progress_frame, get_label_rect(GetRect()), is_multiline::yes)
@@ -317,8 +310,7 @@ DialogLoadUnload::DialogLoadUnload(fsm::BaseData data)
     , notice_qr(&notice_frame, notice_qr_rect, ErrCode::ERR_UNDEF)
     , notice_radio_button(&notice_frame, GuiDefaults::GetButtonRect_AvoidFooter(GetRect()))
     , filament_type_text(&progress_frame, filament_type_text_rect, is_multiline::no)
-    , filament_color_icon(&progress_frame, filament_color_icon_rect)
-    , mode(ProgressSerializerLoadUnload(data.GetData()).mode) {
+    , filament_color_icon(&progress_frame, filament_color_icon_rect) {
     title.set_font(GuiDefaults::FontBig);
     title.SetAlignment(Align_t::Center());
     progress_number.SetAlignment(Align_t::Center());
@@ -396,11 +388,6 @@ static constexpr bool is_notice(PhasesLoadUnload phase) {
 void DialogLoadUnload::Change(fsm::BaseData base_data) {
     PhasesLoadUnload phase = GetEnumFromPhaseIndex<PhasesLoadUnload>(base_data.GetPhase());
     fsm::PhaseData data = base_data.GetData();
-    LoadUnloadMode new_mode = ProgressSerializerLoadUnload(data).mode;
-    if (new_mode != mode) {
-        mode = new_mode;
-        title.SetText(get_name(mode));
-    }
 
 #if HAS_MMU2() || HAS_LOADCELL()
     // was normal (or uninitialized), is notice
@@ -440,6 +427,8 @@ void DialogLoadUnload::Change(fsm::BaseData base_data) {
     #endif
         current_phase = phase;
 
+        // This early return is important. MMU notice uses a custom data structure, not FSMLoadUnloadData
+        // So if we don't return, the following FSMLoadUnloadData will return garbage
         return;
     }
 
@@ -451,13 +440,18 @@ void DialogLoadUnload::Change(fsm::BaseData base_data) {
     }
 #endif
 
+    // Must be after the notice code, some phases do not use FSMLoadUnloadData
+    auto deserialized_data = fsm::deserialize_data<FSMLoadUnloadData>(data);
+    title.SetText(_(get_name(deserialized_data.mode)));
+    progress_bar.SetProgressPercent(deserialized_data.progress);
+    progress_number.SetValue(deserialized_data.progress);
+    mode = deserialized_data.mode;
+
     // is normal
     if ((!current_phase) || (current_phase != phase)) {
         current_phase = phase;
         phaseEnter();
     }
-
-    set_progress_percent(deserialize_progress(data));
 }
 
 void DialogLoadUnload::notice_update(uint16_t errCode, const char *errTitle, const char *errDesc, ErrType type) {
@@ -484,30 +478,26 @@ void DialogLoadUnload::notice_update(uint16_t errCode, const char *errTitle, con
     notice_qr.set_error_code(ErrCode(errCode));
 }
 
-string_view_utf8 DialogLoadUnload::get_name(LoadUnloadMode mode) {
+const char *DialogLoadUnload::get_name(LoadUnloadMode mode) {
     switch (mode) {
     case LoadUnloadMode::Change:
-        return _("Changing filament");
+        return N_("Changing filament");
     case LoadUnloadMode::Load:
-        return _("Loading filament");
+        return N_("Loading filament");
     case LoadUnloadMode::Unload:
-        return _("Unloading filament");
+        return N_("Unloading filament");
     case LoadUnloadMode::FilamentStuck:
-        return _("Reloading filament");
+        return N_("Reloading filament");
     case LoadUnloadMode::Purge:
-        return _("Purging filament");
+        return N_("Purging filament");
     case LoadUnloadMode::Test:
-        return _("Testing filament");
+        return N_("Testing filament");
     case LoadUnloadMode::Cut:
-        return _("Cutting filament");
+        return N_("Cutting filament");
     case LoadUnloadMode::Eject:
-        return _("Ejecting filament");
+        return N_("Ejecting filament");
     }
     BUDDY_UNREACHABLE();
-}
-
-float DialogLoadUnload::deserialize_progress(fsm::PhaseData data) const {
-    return ProgressSerializerLoadUnload(data).progress;
 }
 
 void DialogLoadUnload::phaseEnter() {

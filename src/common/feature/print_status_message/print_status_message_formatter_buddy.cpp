@@ -33,7 +33,7 @@ static constexpr EnumArray<Message::Type, const char *, Message::Type::_cnt> mes
         { Message::Type::waiting_for_chamber_temp, N_("Waiting for chamber") },
 #endif
 #if HAS_AUTO_RETRACT()
-        { Message::Type::auto_retracting, N_("Auto-retracting filament") },
+        { Message::Type::auto_retracting, N_("Auto-retracting") },
 #endif
 };
 
@@ -53,9 +53,6 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
 #if ENABLED(PRUSA_SPOOL_JOIN)
     case Message::Type::spool_joined:
     case Message::Type::joining_spool:
-#endif
-#if HAS_AUTO_RETRACT()
-    case Message::Type::auto_retracting:
 #endif
 #if ENABLED(PROBE_CLEANUP_SUPPORT)
     case Message::Type::nozzle_cleaning:
@@ -84,8 +81,7 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
         break;
     }
 
-    case Message::Type::dwelling:
-    case Message::Type::absorbing_heat: {
+    case Message::Type::dwelling: {
         const auto d = std::get<PrintStatusMessageDataProgress>(msg.data);
         const int val = (int)d.current;
         target.append_printf("\n%i:%02i", val / 60, val % 60);
@@ -100,6 +96,15 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
     {
         const auto d = std::get<PrintStatusMessageDataProgress>(msg.data);
         target.append_printf("\n%i/%i °C", (int)std::round(d.current), (int)std::round(d.target));
+        break;
+    }
+
+#if HAS_AUTO_RETRACT()
+    case Message::Type::auto_retracting:
+#endif
+    case Message::Type::absorbing_heat: {
+        const auto d = std::get<PrintStatusMessageDataProgress>(msg.data);
+        target.append_printf("\n%i %%", (int)std::round(d.current));
         break;
     }
 

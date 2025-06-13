@@ -24,7 +24,7 @@ public:
     bool has_inverted_mmu_reset() const;
     bool has_mmu_power_up_hw() const;
     bool has_trinamic_oscillators() const;
-    bool is_fw_incompatible_with_hw() const;
+    bool is_fw_compatible_with_hw() const;
     bool needs_heatbreak_thermistor_table_5() const;
     bool needs_push_pull_mmu_reset_pin() const;
     bool needs_software_mmu_powerup() const;

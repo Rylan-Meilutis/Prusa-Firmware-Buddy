@@ -65,7 +65,7 @@ struct DummyReader : public GcodeReaderCommon {
         return true;
     }
 
-    virtual Result_t stream_gcode_start(uint32_t) override {
+    virtual Result_t stream_gcode_start(uint32_t, bool) override {
         return Result_t::RESULT_OK;
     }
 

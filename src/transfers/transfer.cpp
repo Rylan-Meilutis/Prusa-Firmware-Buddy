@@ -9,7 +9,6 @@
 #include <common/crc32.h>
 #include <common/filename_type.hpp>
 #include <common/bsod.h>
-#include <common/unique_dir_ptr.hpp>
 #include <common/print_utils.hpp>
 #include <common/stat_retry.hpp>
 #include <common/lfn.h>

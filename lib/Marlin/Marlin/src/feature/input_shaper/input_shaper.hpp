@@ -92,7 +92,9 @@ typedef struct input_shaper_state_t {
     float half_accel = 0.f;
     float start_pos = 0.f;
 
+    /// beginning of current micro move segment - absolute time in seconds
     double print_time = 0.;
+    /// end of current micro move segment - absolute time in seconds
     double nearest_next_change = 0.;
 
     void set_nearest_next_change(double new_nearest_next_change);

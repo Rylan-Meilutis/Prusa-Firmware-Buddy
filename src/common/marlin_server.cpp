@@ -1,5 +1,6 @@
 #include "marlin_server.hpp"
 
+#include <common/directory.hpp>
 #include <freertos/critical_section.hpp>
 #include <marlin_stubs/skippable_gcode.hpp>
 #include "marlin_client_queue.hpp"
@@ -53,8 +54,6 @@
 #include "../Marlin/src/feature/input_shaper/input_shaper.hpp"
 #include "../Marlin/src/feature/pause.h"
 #include "../Marlin/src/feature/prusa/measure_axis.h"
-#include "Marlin/src/feature/bed_preheat.hpp"
-#include "../Marlin/src/libs/nozzle.h"
 #include "../Marlin/src/core/language.h" //GET_TEXT(MSG)
 #include "../Marlin/src/gcode/gcode.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
@@ -196,6 +195,8 @@ extern ClientQueue marlin_client_queue[MARLIN_MAX_CLIENTS];
 } // namespace marlin_client
 
 namespace marlin_server {
+
+CallbackHookPoint<> idle_hook_point;
 
 void media_prefetch_start();
 
@@ -469,6 +470,16 @@ static void handle_warnings() {
     const auto phase = static_cast<PhasesWarning>(phase_opt->GetPhase());
     const auto warning_type = fsm::deserialize_data<WarningType>(phase_opt->GetData());
 
+    // Timeout
+    if (fsm_states.get_top()->fsm_type != ClientFSM::Warning) {
+        // Some other FSM is on top of Warning FSM - reset warning lifespan timestamp
+        active_warning_pop_timestamp_sec = ticks_s();
+    }
+    if (ticks_s() - active_warning_pop_timestamp_sec > warning_lifespan_sec(warning_type)) {
+        clear_warning(warning_type);
+        return;
+    }
+
     const auto consume_response = [&]() {
         const auto response = get_response_from_phase(phase);
         if (response != Response::_none) {
@@ -481,16 +492,16 @@ static void handle_warnings() {
     switch (phase) {
 
     case PhasesWarning::Warning:
-        if (fsm_states.get_top()->fsm_type != ClientFSM::Warning) {
-            // Some other FSM is on top of Warning FSM - reset warning lifespan timestamp
-            active_warning_pop_timestamp_sec = ticks_s();
-        }
-        if (ticks_s() - active_warning_pop_timestamp_sec > warning_lifespan_sec(warning_type)) {
-            clear_warning(warning_type);
-        } else {
-            consume_response();
+        consume_response();
+        break;
+
+#if HAS_MANUAL_CHAMBER_VENTS()
+    case PhasesWarning::ChamberVents:
+        if (consume_response() == Response::Disable) {
+            config_store().check_manual_vent_state.set(false);
         }
         break;
+#endif
 
 #if HAS_CHAMBER_FILTRATION_API()
     case PhasesWarning::EnclosureFilterExpiration:
@@ -539,9 +550,9 @@ bool is_warning_active(WarningType type) {
     return warning_flags.test(std::to_underlying(type));
 }
 
-Response prompt_warning(WarningType type) {
+Response prompt_warning(WarningType type, uint32_t timeout_ms) {
     set_warning(type);
-    const Response r = wait_for_response(warning_type_phase(type));
+    const Response r = wait_for_response(warning_type_phase(type), timeout_ms);
     clear_warning(type);
     return r;
 }
@@ -763,6 +774,8 @@ static void cycle() {
     buddy::xbuddy_extension().step();
 #endif
 
+    idle_hook_point.call_all();
+
     if (is_cycle_running) {
         return;
     }
@@ -795,7 +808,12 @@ static void cycle() {
         _server_print_loop(); // we need call print loop here because it must be processed while blocking commands (M109)
     }
 
-    FSM_notifier::SendNotification();
+    // Clear temporary print status messages that have timed out -
+    // but only if the printer isn't paused.
+    // [BFW-6485] People like to use M117 (show message) before M601
+    if (!is_extended_paused_state(server.print_state)) {
+        print_status_message().clear_timed_out_temporary();
+    }
 
     print_fan_spd();
 
@@ -1107,7 +1125,7 @@ bool print_preview() {
 #if HAS_TOOLCHANGER() || HAS_MMU2()
         || server.print_state == State::PrintPreviewToolsMapping
 #endif
-        || server.print_state == State::WaitGui;
+        ;
 }
 
 bool is_printing() {
@@ -1158,21 +1176,7 @@ bool printer_paused() {
 
 // Printer is paused, parking for pause, resuming from pause...
 bool printer_paused_extended() {
-    switch (server.print_state) {
-    case State::Paused:
-    case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
-    case State::Pausing_WaitIdle:
-    case State::Pausing_ParkHead:
-    case State::Resuming_BufferData:
-    case State::Resuming_Begin:
-    case State::Resuming_Reheating:
-    case State::Resuming_UnparkHead_XY:
-    case State::Resuming_UnparkHead_ZE:
-        return true;
-    default:
-        return false;
-    }
+    return is_extended_paused_state(server.print_state);
 }
 
 void serial_print_start() {
@@ -1230,7 +1234,15 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
         strlcpy(filepath_sfn.data(), filename, filepath_sfn.size());
 
         std::array<char, FILE_NAME_BUFFER_LEN> filename_lfn;
-        get_LFN(filename_lfn.data(), filename_lfn.size(), filepath_sfn.data());
+
+        // Do this in the async job thread to prevent blocking Marlin on I/O and possibly causing a watchdog reset
+        AsyncJob async_job;
+        async_job.issue([&](AsyncJobExecutionControl &) {
+            get_LFN(filename_lfn.data(), filename_lfn.size(), filepath_sfn.data());
+        });
+        while (async_job.is_active()) {
+            ::idle(true, true);
+        }
 
         // Update marlin vars
         {
@@ -1247,41 +1259,28 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
         GCodeInfo::getInstance().set_gcode_file(filepath_sfn.data(), filename_lfn.data());
     }
 
+    // Mostly we do not allow printing when some FSM is open (for example Load/Unload).
+    // We allow printing from:
+    //  - Printing - reprint
+    //  - Print preview - calling print from internet
+    const bool any_fsm_open = fsm_states.get_top().has_value();
+    const bool print_preview_open = fsm_states.is_active(ClientFSM::PrintPreview);
+    const bool printing_open = fsm_states.is_active(ClientFSM::Printing);
+    const bool allowed_fsm_open = print_preview_open || printing_open;
+    const bool can_print = !any_fsm_open || allowed_fsm_open;
+    if (printing_open) {
+        // FIXME: From the code in this function, it looks like this never happens.
+        //        Let's gather some data and see if it does.
+        log_error(MarlinServer, "ClientFSM::Printing is open and shouldn't be");
+    }
+
     set_media_position(resume_pos.offset);
     print_state.media_restore_info = resume_pos.restore_info;
     media_prefetch_start();
 
-    server.print_state = State::WaitGui;
+    server.print_state = can_print ? State::PrintPreviewInit : State::Idle;
 
     PrintPreview::Instance().set_skip_if_able(skip_preview);
-}
-
-void gui_ready_to_print() {
-    switch (server.print_state) {
-
-    case State::WaitGui:
-        server.print_state = State::PrintPreviewInit;
-        break;
-
-    default:
-        log_error(MarlinServer, "Wrong print state, expected: %u, is: %u",
-            static_cast<unsigned>(State::WaitGui), static_cast<unsigned>(server.print_state));
-        break;
-    }
-}
-
-void gui_cant_print() {
-    switch (server.print_state) {
-
-    case State::WaitGui:
-        server.print_state = State::Idle;
-        break;
-
-    default:
-        log_error(MarlinServer, "Wrong print state, expected: %u, is: %u",
-            static_cast<unsigned>(State::WaitGui), static_cast<unsigned>(server.print_state));
-        break;
-    }
 }
 
 void serial_print_finalize(void) {
@@ -1599,40 +1598,59 @@ void media_print_loop() {
 /// The SFN of the file could have been changed by the user during the pause (for example by re-uploading a damaged file).
 /// BFW-5775
 void update_sfn() {
+    // Put into one struct so that we can squeeze it through a std::inplace_function capture
+    struct {
+        MutablePath filepath_sfn;
+        const char *lfn;
+        bool found = false;
+    } d;
+
     // Copy the current SFN + LFN from marlin vars
-    MutablePath filepath_sfn;
-    marlin_vars().media_SFN_path.copy_to(filepath_sfn.get_buffer(), filepath_sfn.maximum_length());
-    log_info(MarlinServer, "Old SFN: %s", filepath_sfn.get());
+    marlin_vars().media_SFN_path.copy_to(d.filepath_sfn.get_buffer(), d.filepath_sfn.maximum_length());
+    log_info(MarlinServer, "Old SFN: %s", d.filepath_sfn.get());
 
     // Pop filename, leave path only
-    filepath_sfn.pop();
+    d.filepath_sfn.pop();
 
     // This is done on the marlin thread, so we can keep using the pointer
-    const char *lfn = marlin_vars().media_LFN.get_ptr();
+    d.lfn = marlin_vars().media_LFN.get_ptr();
 
-    DIR *dir = opendir(filepath_sfn.get());
-    if (!dir) {
-        return;
-    }
-    ScopeGuard dir_guard([&] { closedir(dir); });
-
-    struct dirent *ent;
-    while ((ent = readdir(dir))) {
-        if ((strcasecmp(ent->d_name, lfn) == 0) || (strcasecmp(ent->lfn, lfn) == 0)) {
-            break;
+    // Do this in the async job thread to prevent blocking Marlin on I/O and possibly causing a watchdog reset
+    AsyncJob async_job;
+    async_job.issue([&d](AsyncJobExecutionControl &) {
+        Directory dir { d.filepath_sfn.get() };
+        if (!dir) {
+            return;
         }
-    }
-    if (!ent) {
-        return;
+
+        struct dirent *ent;
+        while ((ent = dir.read())) {
+            if ((strcasecmp(ent->d_name, d.lfn) == 0) || (strcasecmp(ent->lfn, d.lfn) == 0)) {
+                break;
+            }
+        }
+
+        if (!ent) {
+            return;
+        }
+
+        d.found = true;
+        d.filepath_sfn.push(ent->d_name);
+    });
+
+    while (async_job.is_active()) {
+        ::idle(true, true);
     }
 
-    // Store the new SFN
-    filepath_sfn.push(ent->d_name);
-    log_info(MarlinServer, "New SFN: %s", filepath_sfn.get());
+    // We haven't found the file -> do nothing. Fail open is sorted out later in the code.
+    if (!d.found) {
+        return;
+    }
 
     // Update the relevant variables
-    marlin_vars().media_SFN_path.set(filepath_sfn.get());
-    GCodeInfo::getInstance().set_gcode_file(filepath_sfn.get(), lfn);
+    log_info(MarlinServer, "New SFN: %s", d.filepath_sfn.get());
+    marlin_vars().media_SFN_path.set(d.filepath_sfn.get());
+    GCodeInfo::getInstance().set_gcode_file(d.filepath_sfn.get(), d.lfn);
 }
 
 void print_resume(void) {
@@ -1895,11 +1913,6 @@ static void _server_print_loop(void) {
     switch (server.print_state) {
     case State::Idle:
         break;
-    case State::WaitGui:
-        // without gui just act as if state == State::PrintPreviewInit
-#if HAS_GUI()
-        break;
-#endif
     case State::PrintPreviewInit:
         did_not_start_print = true;
         // reset both percentage counters (normal and silent)
@@ -2100,12 +2113,13 @@ static void _server_print_loop(void) {
             if (!fsm_states.is_active(ClientFSM::Printing)) {
                 // FIXME make this atomic change. It would require improvements in PrintScreen so that it can re-initialize upon phase change.
                 // FYI the DESTROY invoke is in print_start()
-                // NOTE this works surely thanks to State::WaitGui being in between the DESTROY and CREATE
                 fsm_create(PhasesPrinting::active);
             }
         }
 #if HAS_MANUAL_CHAMBER_VENTS()
-        buddy::chamber().check_vent_state();
+        if (config_store().check_manual_vent_state.get()) {
+            buddy::chamber().check_vent_state();
+        }
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
         buddy::chamber_filtration().check_filter_expiration();
@@ -3072,7 +3086,7 @@ static void _server_update_vars() {
 
     marlin_vars().gqueue = queue.length;
     marlin_vars().inject_queue_empty = inject_queue.is_empty();
-    marlin_vars().pqueue = planner.movesplanned();
+    marlin_vars().is_processing = is_processing();
 
     // Get native position
     xyze_pos_t pos_mm, curr_pos_mm;
@@ -3296,9 +3310,6 @@ static void process_request_flags() {
         }
 
         switch (RequestFlag(i)) {
-        case RequestFlag::PrintReady:
-            gui_ready_to_print();
-            break;
         case RequestFlag::PrintAbort:
             print_abort();
             break;
@@ -3319,9 +3330,6 @@ static void process_request_flags() {
             break;
         case RequestFlag::KnobClick:
             server.knob_click_counter++;
-            break;
-        case RequestFlag::GuiCantPrint:
-            gui_cant_print();
             break;
 #if HAS_SELFTEST()
         case RequestFlag::TestAbort:
@@ -3423,65 +3431,6 @@ static void _server_set_var(const Request &request) {
     bsod("unimplemented _server_set_var for var_id %i", (int)variable_identifier);
 }
 
-/*****************************************************************************/
-// FSM_notifier
-FSM_notifier::data FSM_notifier::s_data;
-FSM_notifier *FSM_notifier::activeInstance = nullptr;
-
-FSM_notifier::FSM_notifier(ClientFSM type, uint8_t phase, float min, float max,
-    uint8_t progress_min, uint8_t progress_max, const MarlinVariable<float> &var_id)
-    : temp_data(s_data) {
-    s_data.type = type;
-    s_data.phase = phase;
-    s_data.scale = static_cast<float>(progress_max - progress_min) / (max - min);
-    s_data.offset = -min * s_data.scale + static_cast<float>(progress_min);
-    s_data.progress_min = progress_min;
-    s_data.progress_max = progress_max;
-    s_data.var_id = &var_id;
-    s_data.last_progress_sent = std::nullopt;
-    activeInstance = this;
-}
-
-// static method
-// notifies clients about progress rise
-// scales "bound" variable via following formula to calculate progress
-// x = (actual - s_data.min) * s_data.scale + s_data.progress_min;
-// x = actual * s_data.scale - s_data.min * s_data.scale + s_data.progress_min;
-// s_data.offset == -s_data.min * s_data.scale + s_data.progress_min
-// simplified formula
-// x = actual * s_data.scale + s_data.offset;
-void FSM_notifier::SendNotification() {
-    if (!activeInstance) {
-        return;
-    }
-    if (s_data.type == ClientFSM::_none) {
-        return;
-    }
-
-    float actual = *s_data.var_id;
-    actual = actual * s_data.scale + s_data.offset;
-
-    int progress = static_cast<int>(actual); // int - must be signed
-    if (progress < s_data.progress_min) {
-        progress = s_data.progress_min;
-    }
-    if (progress > s_data.progress_max) {
-        progress = s_data.progress_max;
-    }
-
-    // after first sent, progress can only rise
-    // no value: comparison returns true
-    if (progress > s_data.last_progress_sent) {
-        s_data.last_progress_sent = progress;
-        fsm_change(FSMAndPhase(s_data.type, s_data.phase), activeInstance->serialize(progress));
-    }
-}
-
-FSM_notifier::~FSM_notifier() {
-    s_data = temp_data;
-    activeInstance = nullptr;
-}
-
 FSMResponseVariant get_response_variant_from_phase(FSMAndPhase fsm_and_phase) {
     // The FSM should be active the whole time we're waiting for the response.
     // If it isn't, something's probably wrong
@@ -3496,7 +3445,7 @@ FSMResponseVariant get_response_variant_from_phase(FSMAndPhase fsm_and_phase) {
     }
 }
 
-Response wait_for_response(FSMAndPhase fsm_and_phase) {
+Response wait_for_response(FSMAndPhase fsm_and_phase, uint32_t timeout_ms) {
     // Warning phase response is consumed in marlin_server::handle_warnings
     assert(fsm_and_phase != PhasesWarning::Warning);
 
@@ -3508,9 +3457,15 @@ Response wait_for_response(FSMAndPhase fsm_and_phase) {
         bsod("wait_for_response inside cycle");
     }
 
+    const auto wait_start = ticks_ms();
+
     while (true) {
         if (auto r = get_response_from_phase(fsm_and_phase); r != Response::_none) {
             return r;
+        }
+
+        if (timeout_ms && ticks_diff(ticks_ms(), wait_start) > int32_t(timeout_ms)) {
+            return Response::_none;
         }
 
         // The second true - don't disable steppers. If we are sitting in some

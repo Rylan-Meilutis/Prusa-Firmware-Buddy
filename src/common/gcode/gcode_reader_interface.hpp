@@ -78,10 +78,13 @@ public:
      *   times, this one is called at the start of print).
      * - The damage from a corrupt metadata or thumbnail is significantly
      *   smaller than a corruption in print instructions.
+     * - As per popular demand, we now include option to ignore CRC, which
+     *   significantly speeds up print preview screen.
      *
      * @param offset if non-zero will skip to specified offset (after powerpanic, pause etc)
+     * @param ignore_crc if non-zero will ignore CRC, which should be used with caution
      */
-    virtual Result_t stream_gcode_start(uint32_t offset = 0) = 0;
+    virtual Result_t stream_gcode_start(uint32_t offset = 0, bool ignore_crc = false) = 0;
 
     /**
      * @brief Find thumbnail with specified parameters and start streaming it.

@@ -17,6 +17,7 @@
 #include <cstring>
 #include <cstdio>
 #include "printers.h"
+#include <common/directory.hpp>
 #include <option/has_mmu2.h>
 
 using namespace json;
@@ -113,7 +114,6 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
     case State::Finished:
     case State::Exit:
     case State::Idle:
-    case State::WaitGui:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
 #if HAS_TOOLCHANGER() || HAS_MMU2()
@@ -310,7 +310,6 @@ JsonResult get_job_octoprint(size_t resume_point, JsonOutput &output) {
     case State::Finished:
     case State::Exit:
     case State::Idle:
-    case State::WaitGui:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
 #if HAS_TOOLCHANGER() || HAS_MMU2()
@@ -447,15 +446,11 @@ json::JsonResult get_job_v1(size_t resume_point, json::JsonOutput &output) {
 namespace {
 
     bool usb_available() {
-        bool available = false;
         // ideally we would use something more lightweight, like stat()
         // but fatfs doesn't support calling it on root and from it's
         // perspective /usb is root
-        if (DIR *dir = opendir("/usb"); dir != nullptr) {
-            available = true;
-            closedir(dir);
-        }
-        return available;
+        Directory dir { "/usb" };
+        return static_cast<bool>(dir);
     }
 
 } // namespace

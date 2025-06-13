@@ -80,7 +80,6 @@ static StateAnimation marlin_to_anim_state() {
 
     switch (printer_state) {
     case State::Idle:
-    case State::WaitGui:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
     case State::PrintPreviewConfirmed:

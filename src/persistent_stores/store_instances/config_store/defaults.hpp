@@ -88,42 +88,6 @@ namespace defaults {
     inline constexpr uint8_t sound_volume { 5 };
     inline constexpr uint16_t language { 0xffff };
 
-    inline constexpr footer::Item footer_setting_0 {
-#if FOOTER_ITEMS_PER_LINE__ > 0
-        footer::default_items[0]
-#else
-        footer::Item::none
-#endif
-    };
-    inline constexpr footer::Item footer_setting_1 {
-#if FOOTER_ITEMS_PER_LINE__ > 1
-        footer::default_items[1]
-#else
-        footer::Item::none
-#endif
-    };
-    inline constexpr footer::Item footer_setting_2 {
-#if FOOTER_ITEMS_PER_LINE__ > 2
-        footer::default_items[2]
-#else
-        footer::Item::none
-#endif
-    };
-    inline constexpr footer::Item footer_setting_3 {
-#if FOOTER_ITEMS_PER_LINE__ > 3
-        footer::default_items[3]
-#else
-        footer::Item::none
-#endif
-    };
-    inline constexpr footer::Item footer_setting_4 {
-#if FOOTER_ITEMS_PER_LINE__ > 4
-        footer::default_items[4]
-#else
-        footer::Item::none
-#endif
-    };
-
     inline constexpr uint32_t footer_draw_type { footer::ItemDrawCnf::get_default() };
     inline constexpr std::array<char, pl_password_size> prusalink_password { "" };
 
@@ -334,6 +298,7 @@ namespace defaults {
     // algorithm can't keep up with the increased demands caused by larger speeds.
     inline constexpr bool phase_stepping_enabled_x = PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE();
     inline constexpr bool phase_stepping_enabled_y = PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE();
+    inline constexpr bool heat_entire_bed = PRINTER_IS_PRUSA_iX();
 } // namespace defaults
 
 } // namespace config_store_ns

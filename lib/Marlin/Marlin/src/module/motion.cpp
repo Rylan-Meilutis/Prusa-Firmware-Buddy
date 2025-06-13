@@ -40,11 +40,6 @@
 
 #include "homing_reporter.hpp"
 
-#if IS_SCARA
-  #include "../libs/buzzer.h"
-  #include "../lcd/ultralcd.h"
-#endif
-
 #if HAS_BED_PROBE
   #include "probe.h"
 #endif
@@ -117,7 +112,7 @@ XYZ_CONSTS(signed char, home_dir, HOME_DIR);
 /**
  * axis_homed
  *   Flags that each linear axis was homed.
- *   XYZ on cartesian, ABC on delta, ABZ on SCARA.
+ *   XYZ on cartesian, ABC on delta.
  *
  * axis_known_position
  *   Flags that the position is known in each linear axis. Set when homed.
@@ -179,11 +174,7 @@ int16_t feedrate_percentage = 100;
 
 // Homing feedrate is const progmem - compare to constexpr in the header
 const feedRate_t homing_feedrate_mm_s[XYZ] PROGMEM = {
-  #if ENABLED(DELTA)
-    MMM_TO_MMS(HOMING_FEEDRATE_Z), MMM_TO_MMS(HOMING_FEEDRATE_Z),
-  #else
-    MMM_TO_MMS(HOMING_FEEDRATE_XY), MMM_TO_MMS(HOMING_FEEDRATE_XY),
-  #endif
+  MMM_TO_MMS(HOMING_FEEDRATE_XY), MMM_TO_MMS(HOMING_FEEDRATE_XY),
   MMM_TO_MMS(HOMING_FEEDRATE_Z)
 };
 
@@ -222,10 +213,6 @@ void report_current_position() {
   SERIAL_ECHOPAIR("X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e);
 
   stepper.report_positions();
-
-  #if IS_SCARA
-    scara_report_positions();
-  #endif
 }
 
 /**
@@ -250,7 +237,6 @@ void sync_plan_position_e() {
 
 /**
  * Get the stepper positions in the cartes[] array.
- * Forward kinematics are applied for DELTA and SCARA.
  *
  * The result is in the current coordinate space with
  * leveling applied. The coordinates need to be run through
@@ -258,23 +244,7 @@ void sync_plan_position_e() {
  * suitable for current_position, etc.
  */
 void get_cartesian_from_steppers() {
-  #if ENABLED(DELTA)
-    forward_kinematics_DELTA(
-      planner.get_axis_position_mm(A_AXIS),
-      planner.get_axis_position_mm(B_AXIS),
-      planner.get_axis_position_mm(C_AXIS)
-    );
-  #else
-    #if IS_SCARA
-      forward_kinematics_SCARA(
-        planner.get_axis_position_degrees(A_AXIS),
-        planner.get_axis_position_degrees(B_AXIS)
-      );
-      cartes.z = planner.get_axis_position_mm(Z_AXIS);
-    #else
-      planner.get_axis_position_mm(static_cast<xyz_pos_t&>(cartes));
-    #endif
-  #endif
+  planner.get_axis_position_mm(static_cast<xyz_pos_t&>(cartes));
 }
 
 /**
@@ -368,93 +338,30 @@ static void line_to_destination_position(const feedRate_t &fr_mm_s) {
 
 /// Z-Manhattan fast move
 void plan_park_move_to(const float rx, const float ry, const float rz, const feedRate_t &fr_xy, const feedRate_t &fr_z, Segmented segmented){
-  #if ENABLED(DELTA)
+  void (*move)(const feedRate_t &fr_mm_s) = nullptr;
+  if (segmented == Segmented::yes) {
+      move = prepare_internal_move_to_destination;
+  } else {
+      move = line_to_destination_position;
+  }
 
-    if (!position_is_reachable(rx, ry)) return;
-
-    REMEMBER(fr, feedrate_mm_s, fr_xy);
-
-    destination = current_position;          // sync destination at the start
-
-    if (DEBUGGING(LEVELING)) DEBUG_POS("destination = current_position", destination);
-
-    // when in the danger zone
-    if (current_position.z > delta_clip_start_height) {
-      if (rz > delta_clip_start_height) {   // staying in the danger zone
-        destination.set(rx, ry, rz);        // move directly (uninterpolated)
-        prepare_internal_fast_move_to_destination();          // set current_position from destination
-        if (DEBUGGING(LEVELING)) DEBUG_POS("danger zone move", current_position);
-        return;
-      }
-      destination.z = delta_clip_start_height;
-      prepare_internal_fast_move_to_destination();            // set current_position from destination
-      if (DEBUGGING(LEVELING)) DEBUG_POS("zone border move", current_position);
-    }
-
-    if (rz > current_position.z) {                            // raising?
-      destination.z = rz;
-      prepare_internal_fast_move_to_destination(fr_z);  // set current_position from destination
-      if (DEBUGGING(LEVELING)) DEBUG_POS("z raise move", current_position);
-    }
-
-    destination.set(rx, ry);
-    prepare_internal_move_to_destination();                   // set current_position from destination
-    if (DEBUGGING(LEVELING)) DEBUG_POS("xy move", current_position);
-
-    if (rz < current_position.z) {                            // lowering?
-      destination.z = rz;
-      prepare_internal_fast_move_to_destination(fr_z);  // set current_position from destination
-      if (DEBUGGING(LEVELING)) DEBUG_POS("z lower move", current_position);
-    }
-
-  #elif IS_SCARA
-
-    if (!position_is_reachable(rx, ry)) return;
-
+  // If Z needs to raise, do it before moving XY
+  if (current_position.z < rz) {
     destination = current_position;
+    destination.z = rz;
+    move(fr_z);
+  }
 
-    // If Z needs to raise, do it before moving XY
-    if (destination.z < rz) {
-      destination.z = rz;
-      prepare_internal_fast_move_to_destination(fr_z);
-    }
+  destination = current_position;
+  destination.set(rx, ry);
+  move(fr_xy);
 
-    destination.set(rx, ry);
-    prepare_internal_fast_move_to_destination(fr_xy);
-
-    // If Z needs to lower, do it after moving XY
-    if (destination.z > rz) {
-      destination.z = rz;
-      prepare_internal_fast_move_to_destination(fr_z);
-    }
-
-  #else
-
-    void (*move)(const feedRate_t &fr_mm_s) = nullptr;
-    if (segmented == Segmented::yes) {
-        move = prepare_internal_move_to_destination;
-    } else {
-        move = line_to_destination_position;
-    }
-
-    // If Z needs to raise, do it before moving XY
-    if (current_position.z < rz) {
-      destination = current_position;
-      destination.z = rz;
-      move(fr_z);
-    }
-
+  // If Z needs to lower, do it after moving XY
+  if (current_position.z > rz) {
     destination = current_position;
-    destination.set(rx, ry);
-    move(fr_xy);
-
-    // If Z needs to lower, do it after moving XY
-    if (current_position.z > rz) {
-      destination = current_position;
-      destination.z = rz;
-      move(fr_z);
-    }
-  #endif
+    destination.z = rz;
+    move(fr_z);
+  }
 }
 
 void do_blocking_move_to(const xy_pos_t &raw, const feedRate_t &fr_mm_s/*=0.0f*/) {
@@ -572,28 +479,7 @@ void restore_feedrate_and_scaling() {
     #endif
   ) {
 
-    #if ENABLED(DELTA)
-
-      soft_endstop.min[axis] = base_min_pos(axis);
-      soft_endstop.max[axis] = (axis == Z_AXIS ? delta_height
-      #if HAS_BED_PROBE
-        - probe_offset.z
-      #endif
-      : base_max_pos(axis));
-
-      switch (axis) {
-        case X_AXIS:
-        case Y_AXIS:
-          // Get a minimum radius for clamping
-          delta_max_radius = _MIN(ABS(_MAX(soft_endstop.min.x, soft_endstop.min.y)), soft_endstop.max.x, soft_endstop.max.y);
-          delta_max_radius_2 = sq(delta_max_radius);
-          break;
-        case Z_AXIS:
-          delta_clip_start_height = soft_endstop.max[axis] - delta_safe_distance_from_top();
-        default: break;
-      }
-
-    #elif HAS_HOTEND_OFFSET && DISABLED(PRUSA_TOOLCHANGER)
+    #if HAS_HOTEND_OFFSET && DISABLED(PRUSA_TOOLCHANGER)
 
       // Software endstops are relative to the tool 0 workspace, so
       // the movement limits must be shifted by the tool offset to
@@ -622,9 +508,6 @@ void restore_feedrate_and_scaling() {
 
   /**
    * Constrain the given coordinates to the software endstops.
-   *
-   * For DELTA/SCARA the XY constraint is based on the smallest
-   * radius within the set software endstops.
    */
   void apply_motion_limits(xyz_pos_t &target) {
 
@@ -672,7 +555,7 @@ void plan_move_by(const feedRate_t fr, const float dx, const float dy, const flo
  * Prepare a single move and get ready for the next one
  *
  * This may result in several calls to planner.buffer_line to
- * do smaller moves for DELTA, SCARA, mesh moves, etc.
+ * do smaller moves for mesh moves, etc.
  *
  * Make sure current_position.e and destination.e are good
  * before calling or cold/lengthy extrusion may get missed.
@@ -1088,15 +971,6 @@ void prepare_move_to(const xyze_pos_t &target, feedRate_t fr_mm_s, PrepareMoveHi
  * For Core and Cartesian robots this applies one-to-one when an
  * individual axis has been homed.
  *
- * DELTA should wait until all homing is done before setting the XYZ
- * current_position to home, because homing is a single operation.
- * In the case where the axis positions are already known and previously
- * homed, DELTA could home to X or Y individually by moving either one
- * to the center. However, homing Z always homes XY and Z.
- *
- * SCARA should wait until all XY homing is done before setting the XY
- * current_position to home, because neither X nor Y is at home until
- * both are at home. Z can however be homed individually.
  *
  * Callers must sync the planner position after calling this!
  *
@@ -1111,66 +985,56 @@ void set_axis_is_at_home(const AxisEnum axis, [[maybe_unused]] bool homing_z_wit
   SBI(axis_known_position, axis);
   SBI(axis_homed, axis);
 
-  #if ENABLED(MORGAN_SCARA)
-    scara_set_axis_is_at_home(axis);
-  #elif ENABLED(DELTA)
-    current_position[axis] = (axis == Z_AXIS ? delta_height
-    #if HAS_BED_PROBE
-      - probe_offset.z
+  #ifdef WORKSPACE_HOME
+    /*Fill workspace_homes[] with data from config*/
+    xyz_pos_t workspace_homes[MAX_COORDINATE_SYSTEMS]={{{{0}}}};
+
+    #ifdef WORKSPACE_0_X_POS
+      workspace_homes[0].set(WORKSPACE_0_X_POS, WORKSPACE_0_Y_POS, WORKSPACE_0_Z_POS);
     #endif
-    : base_home_pos(axis));
+    #ifdef WORKSPACE_1_X_POS
+      workspace_homes[1].set(WORKSPACE_1_X_POS, WORKSPACE_1_Y_POS, WORKSPACE_1_Z_POS);
+    #endif
+    #ifdef WORKSPACE_2_X_POS
+      workspace_homes[2].set(WORKSPACE_2_X_POS, WORKSPACE_2_Y_POS, WORKSPACE_2_Z_POS);
+    #endif
+    #ifdef WORKSPACE_3_X_POS
+      workspace_homes[3].set(WORKSPACE_3_X_POS, WORKSPACE_3_Y_POS, WORKSPACE_3_Z_POS);
+    #endif
+    #ifdef WORKSPACE_4_X_POS
+      workspace_homes[4].set(WORKSPACE_4_X_POS, WORKSPACE_4_Y_POS, WORKSPACE_4_Z_POS);
+    #endif
+    #ifdef WORKSPACE_5_X_POS
+      workspace_homes[5].set(WORKSPACE_5_X_POS, WORKSPACE_5_Y_POS, WORKSPACE_5_Z_POS);
+    #endif
+    #ifdef WORKSPACE_6_X_POS
+      workspace_homes[6].set(WORKSPACE_6_X_POS, WORKSPACE_6_Y_POS, WORKSPACE_6_Z_POS);
+    #endif
+    #ifdef WORKSPACE_7_X_POS
+      workspace_homes[7].set(WORKSPACE_7_X_POS, WORKSPACE_7_Y_POS, WORKSPACE_7_Z_POS);
+    #endif
+    #ifdef WORKSPACE_8_X_POS
+      workspace_homes[8].set(WORKSPACE_8_X_POS, WORKSPACE_8_Y_POS, WORKSPACE_8_Z_POS);
+    #endif
+    #ifdef WORKSPACE_9_X_POS
+      workspace_homes[9].set(WORKSPACE_9_X_POS, WORKSPACE_9_Y_POS, WORKSPACE_9_Z_POS);
+    #endif
+
+
+    int8_t active_coordinate_system = GcodeSuite::get_coordinate_system();
+    if (active_coordinate_system == -1){ /*If base coordinate system, proceed as usual*/
+      current_position[axis] = base_home_pos(axis);
+    } else { /*If in alternate system, update position shift and system offset from base system*/
+      position_shift[axis] = - current_position[axis] + workspace_homes[active_coordinate_system][axis];
+      GcodeSuite::set_coordinate_system_offset(0, axis, position_shift[axis]);
+      update_workspace_offset(axis);
+    }
   #else
-    #ifdef WORKSPACE_HOME
-      /*Fill workspace_homes[] with data from config*/
-      xyz_pos_t workspace_homes[MAX_COORDINATE_SYSTEMS]={{{{0}}}};
-
-      #ifdef WORKSPACE_0_X_POS
-        workspace_homes[0].set(WORKSPACE_0_X_POS, WORKSPACE_0_Y_POS, WORKSPACE_0_Z_POS);
+    current_position[axis] = base_home_pos(axis)
+      #if HAS_PRECISE_HOMING()
+        - calibrated_home_offset(axis)
       #endif
-      #ifdef WORKSPACE_1_X_POS
-        workspace_homes[1].set(WORKSPACE_1_X_POS, WORKSPACE_1_Y_POS, WORKSPACE_1_Z_POS);
-      #endif
-      #ifdef WORKSPACE_2_X_POS
-        workspace_homes[2].set(WORKSPACE_2_X_POS, WORKSPACE_2_Y_POS, WORKSPACE_2_Z_POS);
-      #endif
-      #ifdef WORKSPACE_3_X_POS
-        workspace_homes[3].set(WORKSPACE_3_X_POS, WORKSPACE_3_Y_POS, WORKSPACE_3_Z_POS);
-      #endif
-      #ifdef WORKSPACE_4_X_POS
-        workspace_homes[4].set(WORKSPACE_4_X_POS, WORKSPACE_4_Y_POS, WORKSPACE_4_Z_POS);
-      #endif
-      #ifdef WORKSPACE_5_X_POS
-        workspace_homes[5].set(WORKSPACE_5_X_POS, WORKSPACE_5_Y_POS, WORKSPACE_5_Z_POS);
-      #endif
-      #ifdef WORKSPACE_6_X_POS
-        workspace_homes[6].set(WORKSPACE_6_X_POS, WORKSPACE_6_Y_POS, WORKSPACE_6_Z_POS);
-      #endif
-      #ifdef WORKSPACE_7_X_POS
-        workspace_homes[7].set(WORKSPACE_7_X_POS, WORKSPACE_7_Y_POS, WORKSPACE_7_Z_POS);
-      #endif
-      #ifdef WORKSPACE_8_X_POS
-        workspace_homes[8].set(WORKSPACE_8_X_POS, WORKSPACE_8_Y_POS, WORKSPACE_8_Z_POS);
-      #endif
-      #ifdef WORKSPACE_9_X_POS
-        workspace_homes[9].set(WORKSPACE_9_X_POS, WORKSPACE_9_Y_POS, WORKSPACE_9_Z_POS);
-      #endif
-
-
-      int8_t active_coordinate_system = GcodeSuite::get_coordinate_system();
-      if (active_coordinate_system == -1){ /*If base coordinate system, proceed as usual*/
-        current_position[axis] = base_home_pos(axis);
-      } else { /*If in alternate system, update position shift and system offset from base system*/
-        position_shift[axis] = - current_position[axis] + workspace_homes[active_coordinate_system][axis];
-        GcodeSuite::set_coordinate_system_offset(0, axis, position_shift[axis]);
-        update_workspace_offset(axis);
-      }
-    #else
-      current_position[axis] = base_home_pos(axis)
-        #if HAS_PRECISE_HOMING()
-          - calibrated_home_offset(axis)
-        #endif
-      ;
-    #endif
+    ;
   #endif
 
   /**
@@ -1272,8 +1136,7 @@ void homing_failed(stdext::inplace_function<void()> fallback_error, [[maybe_unus
 
 /**
  * Home an individual "raw axis" to its endstop.
- * This applies to XYZ on Cartesian and Core robots, and
- * to the individual ABC steppers on DELTA and SCARA.
+ * This applies to XYZ on Cartesian and Core robots.
  *
  * At the end of the procedure the axis is marked as
  * homed and the current position of that axis is updated.
@@ -1306,17 +1169,12 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
     constexpr bool orig_crash [[maybe_unused]] = false;
   #endif /*ENABLED(CRASH_RECOVERY)*/
 
-  #if IS_SCARA
-    // Only Z homing (with probe) is permitted
-    if (axis != Z_AXIS) { BUZZ(100, 880); return; }
-  #else
-    #define _CAN_HOME(A) \
-      (axis == _AXIS(A) && ((A##_MIN_PIN > -1 && A##_HOME_DIR < 0) || (A##_MAX_PIN > -1 && A##_HOME_DIR > 0)))
-    #define CAN_HOME_X _CAN_HOME(X)
-    #define CAN_HOME_Y _CAN_HOME(Y)
-    #define CAN_HOME_Z _CAN_HOME(Z)
-    if (!CAN_HOME_X && !CAN_HOME_Y && !CAN_HOME_Z) return true;
-  #endif
+  #define _CAN_HOME(A) \
+    (axis == _AXIS(A) && ((A##_MIN_PIN > -1 && A##_HOME_DIR < 0) || (A##_MAX_PIN > -1 && A##_HOME_DIR > 0)))
+  #define CAN_HOME_X _CAN_HOME(X)
+  #define CAN_HOME_Y _CAN_HOME(Y)
+  #define CAN_HOME_Z _CAN_HOME(Z)
+  if (!CAN_HOME_X && !CAN_HOME_Y && !CAN_HOME_Z) return true;
 
   if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPAIR(">>> homeaxis(", axis_codes[axis], ")");
 
@@ -1400,11 +1258,7 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
   #ifdef HOMING_BACKOFF_POST_MM
     constexpr xyz_float_t endstop_backoff = HOMING_BACKOFF_POST_MM;
     const float backoff_mm = endstop_backoff[
-      #if ENABLED(DELTA)
-        Z_AXIS
-      #else
         axis
-      #endif
     ];
     if (backoff_mm) {
       if (enable_wavetable != NULL)
@@ -1482,11 +1336,7 @@ float homeaxis_single_run(const AxisEnum axis, const int axis_home_dir, const fe
   #endif // ENABLED(MOVE_BACK_BEFORE_HOMING)
 
   do_homing_move(axis, 1.5f * max_length(
-    #if ENABLED(DELTA)
-      Z_AXIS
-    #else
       axis
-    #endif
       ) * axis_home_dir, real_fr_mm_s, false, homing_z_with_probe);
 
   #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
@@ -1665,35 +1515,14 @@ float homeaxis_single_run(const AxisEnum axis, const int axis_home_dir, const fe
     if (planner.draining() || planner.quick_stop_count != initial_quick_stop_count)
       return NAN;
 
-  #if IS_SCARA
+  if (!invert_home_dir) {
+    set_axis_is_at_home(axis, homing_z_with_probe);
+  }
+  sync_plan_position();
 
-    set_axis_is_at_home(axis);
-    sync_plan_position();
+  destination[axis] = current_position[axis];
 
-  #elif ENABLED(DELTA)
-
-    // Delta has already moved all three towers up in G28
-    // so here it re-homes each tower in turn.
-    // Delta homing treats the axes as normal linear axes.
-
-    // retrace by the amount specified in delta_endstop_adj + additional dist in order to have minimum steps
-    if (delta_endstop_adj[axis] * Z_HOME_DIR <= 0) {
-      if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("delta_endstop_adj:");
-      do_homing_move(axis, delta_endstop_adj[axis] - (MIN_STEPS_PER_SEGMENT + 1) * planner.mm_per_step[axis] * Z_HOME_DIR, 0, false, homing_z_with_probe);
-    }
-
-  #else // CARTESIAN / CORE
-
-    if (!invert_home_dir) {
-      set_axis_is_at_home(axis, homing_z_with_probe);
-    }
-    sync_plan_position();
-
-    destination[axis] = current_position[axis];
-
-    if (DEBUGGING(LEVELING)) DEBUG_POS("> AFTER set_axis_is_at_home", current_position);
-
-  #endif
+  if (DEBUGGING(LEVELING)) DEBUG_POS("> AFTER set_axis_is_at_home", current_position);
 
   // Put away the Z probe
   #if HOMING_Z_WITH_PROBE

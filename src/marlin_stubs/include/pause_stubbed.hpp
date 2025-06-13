@@ -21,11 +21,16 @@
 #include <option/has_nozzle_cleaner.h>
 #include <option/has_side_fsensor.h>
 
+#include <utils/progress_mapper.hpp>
+
 // @brief With Z unhomed, ensure that it is at least amount_mm above bed.
 void unhomed_z_lift(float amount_mm);
 
 class PausePrivatePhase : public IPause {
-protected:
+    friend class PauseFsmNotifier;
+    friend class PauseFsmDurationNotifier;
+
+public:
     /**
      * @brief Phase inside the load/unload process
      * @details This represents the current state inside one load/unload process.
@@ -36,6 +41,9 @@ protected:
         unload_start,
 #if HAS_LOADCELL()
         filament_stuck_ask,
+#endif
+#if HAS_AUTO_RETRACT()
+        auto_retract,
 #endif
         ram_sequence,
         unload,
@@ -53,7 +61,8 @@ protected:
         assist_insertion,
         load_to_gears,
         move_to_purge,
-        wait_temp,
+        load_wait_temp,
+        unload_wait_temp,
         long_load,
         purge,
         color_correct_ask,
@@ -83,10 +92,10 @@ private:
 
 protected:
     LoadState state { LoadState::unload_start };
+    ProgressMapper<LoadState> progress_mapper;
 
     PausePrivatePhase();
-    void setPhase(PhasesLoadUnload ph, uint8_t progress = 0);
-    PhasesLoadUnload getPhase() const;
+    void setPhase(PhasesLoadUnload ph);
 
     // auto restores temp turned off by safety timer,
     // it is also restored by SafetyTimer on any user click
@@ -108,6 +117,10 @@ protected:
     void clrRestoreTemp();
 
 public:
+    inline PhasesLoadUnload getPhase() const {
+        return phase;
+    }
+
     constexpr uint8_t getPhaseIndex() const {
         return GetPhaseIndex(phase);
     }
@@ -185,11 +198,15 @@ private:
     bool is_unstoppable() const;
     LoadUnloadMode get_load_unload_mode();
     bool should_park();
+    void setup_progress_mapper();
 
     void start_process(Response response);
     void unload_start_process(Response response);
 #if HAS_LOADCELL()
     void filament_stuck_ask_process(Response response);
+#endif
+#if HAS_AUTO_RETRACT()
+    void auto_retract_process(Response response);
 #endif
     void ram_sequence_process(Response response);
     void unload_process(Response response);
@@ -207,7 +224,8 @@ private:
     void assist_insertion_process(Response response);
     void load_to_gears_process(Response response);
     void move_to_purge_process(Response response);
-    void wait_temp_process(Response response);
+    void load_wait_temp_process(Response response);
+    void unload_wait_temp_process(Response response);
     void long_load_process(Response response);
     void purge_process(Response response);
     void color_correct_ask_process(Response response);
@@ -232,6 +250,9 @@ private:
 #if HAS_LOADCELL()
             { LoadState::filament_stuck_ask, &Pause::filament_stuck_ask_process },
 #endif
+#if HAS_AUTO_RETRACT()
+            { LoadState::auto_retract, &Pause::auto_retract_process },
+#endif
             { LoadState::ram_sequence, &Pause::ram_sequence_process },
             { LoadState::unload, &Pause::unload_process },
             { LoadState::unloaded_ask, &Pause::unloaded_ask_process },
@@ -248,7 +269,8 @@ private:
             { LoadState::assist_insertion, &Pause::assist_insertion_process },
             { LoadState::load_to_gears, &Pause::load_to_gears_process },
             { LoadState::move_to_purge, &Pause::move_to_purge_process },
-            { LoadState::wait_temp, &Pause::wait_temp_process },
+            { LoadState::load_wait_temp, &Pause::load_wait_temp_process },
+            { LoadState::unload_wait_temp, &Pause::unload_wait_temp_process },
             { LoadState::long_load, &Pause::long_load_process },
             { LoadState::purge, &Pause::purge_process },
             { LoadState::color_correct_ask, &Pause::color_correct_ask_process },
@@ -282,7 +304,7 @@ private:
     /// Extrudes \p length .
     void plan_e_move(const float &length, const feedRate_t &fr_mm_s);
 
-    bool ensureSafeTemperatureNotifyProgress(uint8_t progress_min, uint8_t progress_max);
+    bool ensureSafeTemperatureNotifyProgress();
 
     /// Generally a bit mask of conditions which are checked in wait_for_motion_finish_stoppable.
     /// If any of the conditions occurs during waiting for the planned motion to finish,
@@ -312,15 +334,15 @@ private:
 
     /// Moves the extruder by \p length . Notifies the FSM about progress.
     /// @returns any of the \ref StopConditions if the move has been interrupted or StopConditions::Accomplished if the move has been successfully finished
-    [[nodiscard]] StopConditions do_e_move_notify_progress(const float &length, const feedRate_t &fr_mm_s, uint8_t progress_min, uint8_t progress_max, StopConditions check_for);
+    [[nodiscard]] StopConditions do_e_move_notify_progress(const float &length, const feedRate_t &fr_mm_s, StopConditions check_for);
 
     /// Moves the extruder by \p length . Does not mind the hotend being cold. Notifies the FSM about progress.
     /// @returns any of the \ref StopConditions if the move has been interrupted or StopConditions::Accomplished if the move has been successfully finished
-    [[nodiscard]] StopConditions do_e_move_notify_progress_coldextrude(const float &length, const feedRate_t &fr_mm_s, uint8_t progress_min, uint8_t progress_max, StopConditions check_for);
+    [[nodiscard]] StopConditions do_e_move_notify_progress_coldextrude(const float &length, const feedRate_t &fr_mm_s, StopConditions check_for);
 
     /// Moves the extruder by \p length . Heats up for the move if necessary. Notifies the FSM about progress.
     /// @returns any of the \ref StopConditions if the move has been interrupted or StopConditions::Accomplished if the move has been successfully finished
-    [[nodiscard]] StopConditions do_e_move_notify_progress_hotextrude(const float &length, const feedRate_t &fr_mm_s, uint8_t progress_min, uint8_t progress_max, StopConditions check_for);
+    [[nodiscard]] StopConditions do_e_move_notify_progress_hotextrude(const float &length, const feedRate_t &fr_mm_s, StopConditions check_for);
 
     bool check_user_stop(Response response); //< stops motion and fsm and returns true it user triggered stop
 
@@ -336,7 +358,7 @@ private:
     void handle_help(Response response);
 
     /// @returns false if ramming was unsuccessful (temperature not safe or user stopped the action)
-    bool ram_filament(uint8_t progress_percent);
+    bool ram_filament();
 
     void unload_filament();
 

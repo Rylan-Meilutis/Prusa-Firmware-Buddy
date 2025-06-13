@@ -1619,6 +1619,7 @@ bool Planner::_populate_block(block_t * const block,
 #if ENABLED(S_CURVE_ACCELERATION)
   block->nominal_rate = CEIL(block->mstep_event_count * inverse_secs); // (mini-step/sec) Always > 0
 #endif
+  assert(block->nominal_speed > 0); // This assert just saved you 4 hours of digging through input shaper internals. You're welcome.
 
   // Calculate and limit speed in mm/sec for each axis
   xyze_float_t current_speed;
@@ -2485,7 +2486,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce
   #endif
 
   // DRYRUN prevents E moves from taking place
-  if (DEBUGGING(DRYRUN) || TERN0(HAS_CANCEL_OBJECT(), buddy::cancel_object().is_current_object_cancelled())) {
+  if (DEBUGGING(DRYRUN)) {
     position.e = target.e;
     position_float.e = abce.e;
   }
@@ -2568,7 +2569,7 @@ bool Planner::buffer_raw_segment(const abce_pos_t &abce, const float acceleratio
         int32_t(LROUND(abce.e * settings.axis_msteps_per_mm[E_AXIS_N(extruder)])) } } };
 
     // DRYRUN prevents E moves from taking place
-    if (DEBUGGING(DRYRUN) || TERN0(CANCEL_OBJECTS, cancelable.skipping)) {
+    if (DEBUGGING(DRYRUN)) {
         position.e = target.e;
         position_float.e = abce.e;
     }

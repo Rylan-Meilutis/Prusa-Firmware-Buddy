@@ -3,6 +3,7 @@
 
 #include <bitset>
 
+#include <common/array_extensions.hpp>
 #include "constants.hpp"
 #include "defaults.hpp"
 #include <option/has_config_store_wo_backend.h>
@@ -42,6 +43,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_auto_retract.h>
 #include <option/has_door_sensor_calibration.h>
+#include <option/has_manual_chamber_vents.h>
 #include <common/extended_printer_type.hpp>
 #include <common/hw_check.hpp>
 #include <pwm_utils.hpp>
@@ -199,22 +201,22 @@ struct CurrentStore
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Menu Timeout")> menu_timeout; // on / off menu timeout flag
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Devhash in QR")> devhash_in_qr; // on / off sending UID in QR
 
-    StoreItem<footer::Item, defaults::footer_setting_0, ItemFlag::user_interface, journal::hash("Footer Setting 0 v3")> footer_setting_0;
-#if FOOTER_ITEMS_PER_LINE__ > 1
-    StoreItem<footer::Item, defaults::footer_setting_1, ItemFlag::user_interface, journal::hash("Footer Setting 1 v3")> footer_setting_1;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 2
-    StoreItem<footer::Item, defaults::footer_setting_2, ItemFlag::user_interface, journal::hash("Footer Setting 2 v3")> footer_setting_2;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 3
-    StoreItem<footer::Item, defaults::footer_setting_3, ItemFlag::user_interface, journal::hash("Footer Setting 3 v3")> footer_setting_3;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 4
-    StoreItem<footer::Item, defaults::footer_setting_4, ItemFlag::user_interface, journal::hash("Footer Setting 4 v3")> footer_setting_4;
-#endif
+    static constexpr auto footer_setting_hashes = stdext::array_sub_copy<FOOTER_ITEMS_PER_LINE__>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Footer Setting 0 v3"), //
+        journal::hash("Footer Setting 1 v3"), //
+        journal::hash("Footer Setting 2 v3"), //
+        journal::hash("Footer Setting 3 v3"), //
+        journal::hash("Footer Setting 4 v3"), //
+    }));
+    StoreItemLegacyArray<footer::Item, footer::default_items, ItemFlag::user_interface, footer_setting_hashes> footer_setting;
 
-    footer::Item get_footer_setting(uint8_t index);
-    void set_footer_setting(uint8_t index, footer::Item value);
+    inline footer::Item get_footer_setting(uint8_t index) {
+        return footer_setting.get(index);
+    }
+    inline void set_footer_setting(uint8_t index, footer::Item value) {
+        footer_setting.set(index, value);
+    }
 
     StoreItem<uint32_t, defaults::footer_draw_type, ItemFlag::user_interface, journal::hash("Footer Draw Type")> footer_draw_type;
     StoreItem<bool, true, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Fan Check Enabled")> fan_check_enabled;
@@ -342,7 +344,7 @@ struct CurrentStore
     StoreItem<bool, true, ItemFlag::features, journal::hash("Verify Gcode")> verify_gcode;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Run LEDs")> run_leds;
-    StoreItem<bool, false, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Heat Entire Bed")> heat_entire_bed;
+    StoreItem<bool, defaults::heat_entire_bed, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Heat Entire Bed")> heat_entire_bed;
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Touch Enabled")> touch_enabled;
     StoreItem<bool, false, ItemFlag::user_interface | ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Touch Sig Workaround")> touch_sig_workaround;
 
@@ -684,6 +686,10 @@ struct CurrentStore
     static_assert(HOTENDS <= 8);
 #endif
 
+#if HAS_MANUAL_CHAMBER_VENTS()
+    StoreItem<bool, true, ItemFlag::printer_state, journal::hash("Check chamber ventilation state")> check_manual_vent_state;
+#endif
+
 private:
     void perform_config_migrations();
 };
@@ -715,19 +721,11 @@ struct DeprecatedStore
     // An item was added to the middle of the footer enum and it caused eeprom corruption. This store footer item  was deleted and a new one is created without migration so as to force default footer value onto everyone, which is better than 'random values' (especially on mini where it could cause duplicated items shown). Default value was removed since we no longer need to keep it
     StoreItem<uint32_t, 0, journal::hash("Footer Setting")> footer_setting_v1;
 
-    StoreItem<footer::Item, defaults::footer_setting_0, journal::hash("Footer Setting 0")> footer_setting_0_v2;
-#if FOOTER_ITEMS_PER_LINE__ > 1
-    StoreItem<footer::Item, defaults::footer_setting_1, journal::hash("Footer Setting 1")> footer_setting_1_v2;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 2
-    StoreItem<footer::Item, defaults::footer_setting_2, journal::hash("Footer Setting 2")> footer_setting_2_v2;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 3
-    StoreItem<footer::Item, defaults::footer_setting_3, journal::hash("Footer Setting 3")> footer_setting_3_v2;
-#endif
-#if FOOTER_ITEMS_PER_LINE__ > 4
-    StoreItem<footer::Item, defaults::footer_setting_4, journal::hash("Footer Setting 4")> footer_setting_4_v2;
-#endif
+    StoreItem<footer::Item, footer::Item {}, journal::hash("Footer Setting 0")> footer_setting_0_v2;
+    StoreItem<footer::Item, footer::Item {}, journal::hash("Footer Setting 1")> footer_setting_1_v2;
+    StoreItem<footer::Item, footer::Item {}, journal::hash("Footer Setting 2")> footer_setting_2_v2;
+    StoreItem<footer::Item, footer::Item {}, journal::hash("Footer Setting 3")> footer_setting_3_v2;
+    StoreItem<footer::Item, footer::Item {}, journal::hash("Footer Setting 4")> footer_setting_4_v2;
 
     // Filament types loaded in extruders
     StoreItem<EncodedFilamentType, EncodedFilamentType {}, journal::hash("Filament Type 0")> filament_type_0;

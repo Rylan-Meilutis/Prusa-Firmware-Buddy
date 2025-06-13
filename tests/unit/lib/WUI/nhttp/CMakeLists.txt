@@ -31,6 +31,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/lib/WUI/nhttp/req_parser.cpp
   ${CMAKE_SOURCE_DIR}/lib/WUI/nhttp/handler.cpp
   ${CMAKE_SOURCE_DIR}/src/common/crc32.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/directory.cpp
   ${CMAKE_SOURCE_DIR}/src/common/json_encode.cpp
   ${CMAKE_SOURCE_DIR}/src/common/segmented_json.cpp
   ${CMAKE_SOURCE_DIR}/src/common/automata/core.cpp

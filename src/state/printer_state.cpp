@@ -8,6 +8,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_dwarf.h>
 #include <option/has_input_shaper_calibration.h>
+#include <option/has_phase_stepping_calibration.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_uneven_bed_prompt.h>
 #include <config_store/store_instance.hpp>
@@ -91,6 +92,9 @@ bool is_warning_attention(const fsm::BaseData &data) {
     case ErrCode::CONNECT_HEATERS_TIMEOUT:
 #if _DEBUG
     case ErrCode::CONNECT_STEPPERS_TIMEOUT:
+#endif
+#if HAS_SELFTEST()
+    case ErrCode::ERR_SYSTEM_ACTION_SELFTEST_REQUIRED:
 #endif
         return false;
     default:
@@ -201,8 +205,8 @@ DeviceState get_state(bool ready) {
 #if HAS_COLDPULL()
     case ClientFSM::ColdPull:
 #endif
-#if HAS_PHASE_STEPPING()
-    case ClientFSM::PhaseStepping:
+#if HAS_PHASE_STEPPING_CALIBRATION()
+    case ClientFSM::PhaseSteppingCalibration:
 #endif
 #if HAS_INPUT_SHAPER_CALIBRATION()
     case ClientFSM::InputShaperCalibration:
@@ -277,7 +281,6 @@ DeviceState get_print_state(State state, bool ready) {
         return DeviceState::Attention;
 #endif
     case State::Idle:
-    case State::WaitGui:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
     case State::PrintInit:
@@ -398,8 +401,8 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #if HAS_COLDPULL()
     case ClientFSM::ColdPull:
 #endif
-#if HAS_PHASE_STEPPING()
-    case ClientFSM::PhaseStepping:
+#if HAS_PHASE_STEPPING_CALIBRATION()
+    case ClientFSM::PhaseSteppingCalibration:
 #endif
 #if HAS_INPUT_SHAPER_CALIBRATION()
     case ClientFSM::InputShaperCalibration:
@@ -507,6 +510,10 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::WARNING_USB_DRIVE_UNSUPPORTED_FILE_SYSTEM;
     case WarningType::HeatBreakThermistorFail:
         return ErrCode::CONNECT_HEATBREAK_THERMISTOR_FAIL;
+#if HAS_SELFTEST()
+    case WarningType::ActionSelftestRequired:
+        return ErrCode::ERR_SYSTEM_ACTION_SELFTEST_REQUIRED;
+#endif
 #if ENABLED(POWER_PANIC)
     case WarningType::HeatbedColdAfterPP:
         return ErrCode::CONNECT_POWER_PANIC_COLD_BED;

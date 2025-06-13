@@ -1,119 +1,45 @@
+#include "DialogHandler.hpp"
 #include "display.hpp"
+#include "gui_bootstrap_screen.hpp"
 #include "gui_time.hpp"
 #include "gui.hpp"
-#include "img_resources.hpp"
-#include "marlin_client.hpp"
-#include "display_hw_checks.hpp"
-#include "ScreenHandler.hpp"
-#include "ScreenFactory.hpp"
-#include "tasks.hpp"
-#include "screen_print_preview.hpp"
-#include "screen_hardfault.hpp"
-#include "screen_qr_error.hpp"
-#include "screen_watchdog.hpp"
-#include "screen_bsod.hpp"
-#include "screen_stack_overflow.hpp"
-#include "screen_filebrowser.hpp"
-#include "screen_printing.hpp"
-#include "gui_bootstrap_screen.hpp"
-#include "IScreenPrinting.hpp"
-#include "DialogHandler.hpp"
-#include "sound.hpp"
+#include "Jogwheel.hpp"
 #include "knob_event.hpp"
-#include "screen_move_z.hpp"
-#include "ScreenShot.hpp"
-#include "screen_home.hpp"
-#include "gcode_info.hpp"
 #include "language_eeprom.hpp"
-#include "screen_messages.hpp"
+#include "marlin_client.hpp"
+#include "screen_bsod.hpp"
+#include "screen_hardfault.hpp"
+#include "screen_home.hpp"
+#include "screen_move_z.hpp"
+#include "screen_qr_error.hpp"
+#include "screen_stack_overflow.hpp"
+#include "screen_watchdog.hpp"
+#include "ScreenFactory.hpp"
+#include "ScreenHandler.hpp"
+#include "ScreenShot.hpp"
+#include "sound.hpp"
+#include "tasks.hpp"
+#include <config_store/store_instance.hpp>
+#include <crash_dump/dump.hpp>
 #include <screen_splash.hpp>
+#include <wdt.hpp>
 
-#include <option/has_side_leds.h>
-
+#include <printers.h>
 #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5()
     #include "screen_fatal_warning.hpp"
 #endif
 
-#include <option/has_selftest.h>
-#if HAS_SELFTEST()
-    #include "screen_menu_selftest_snake.hpp"
-#endif
-
+#include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
 #endif
 
-#include "Jogwheel.hpp"
-#include <wdt.hpp>
-#include <crash_dump/dump.hpp>
-#include <option/has_dwarf.h>
 #include <option/has_leds.h>
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
 #endif
-#include <printers.h>
-
-#include <config_store/store_instance.hpp>
-
-marlin_vars_t *gui_marlin_vars = 0;
 
 Jogwheel jogwheel;
-
-inline constexpr size_t MSG_MAX_LENGTH = 63; // status message max length
-
-namespace {
-void make_gui_ready_to_print() {
-    /**
-     * This function is triggered because of marlin_server::State::WaitGui and it is checking if GUI thread is safe to start printing.
-     * State::WaitGui is set, when print_begin() is passed to marlin_server from any of marlin_clients (from GUI / Connect / pLink etc...)
-     *
-     * Here, we're checking from GUI thread, if print can be started in current GUI state,
-     * it is not allowed when some FSM is opened, the FSMs that can be printed from are:
-     *   Printing screen (reprint)
-     *   Both Print previews (from filebrowser and from one-click) - calling print from internet, while PrintPreview in GUI is opened
-     */
-
-    // We don't want any FSM opened - for example LoadUnload could invade this logic
-    bool can_print_on_current_screen = !DialogHandler::Access().IsAnyOpen();
-
-    // Handle unusual usecase when print preview is already open, but print is called from Connect / pLink
-    bool one_click_preview = Screens::Access()->Count() == 1 && Screens::Access()->IsScreenOpened<ScreenPrintPreview>();
-    bool filebrowser_preview = Screens::Access()->Count() == 2 && Screens::Access()->IsScreenOpened<ScreenPrintPreview>() && Screens::Access()->IsScreenOnStack<screen_filebrowser_data_t>();
-
-    if (can_print_on_current_screen || one_click_preview || filebrowser_preview) {
-        // Handle different states of GUI before print begins
-        if (can_print_on_current_screen) {
-            bool have_file_browser = Screens::Access()->IsScreenOnStack<screen_filebrowser_data_t>();
-            Screens::Access()->ClosePrinting(); // set flag to close all appropriate screens
-            if (have_file_browser) {
-                Screens::Access()->Open(ScreenFactory::Screen<screen_filebrowser_data_t>);
-                Screens::Access()->Get()->Validate(); // Do not draw filebrowser now
-            }
-            Screens::Access()->Loop(); // close those screens before marlin_gui_ready_to_print
-            marlin_client::marlin_gui_ready_to_print(); // notify server, that GUI is ready to print
-        } else if (one_click_preview || filebrowser_preview) {
-            // Print is called from Connect/pLink, while print preview is already open in GUI
-            // notify server, that GUI is ready to print
-            marlin_client::marlin_gui_ready_to_print();
-        }
-        // else not reachable
-
-        Screens::Access()->Get()->Validate(); // Do not redraw after CloseAll (keep wait dialog displayed)
-
-        while (!DialogHandler::Access().IsAnyOpen() // Wait for start of the print - to prevent any unwanted GUI action
-            && marlin_vars().print_state != marlin_server::State::Idle) { // Abort if print was not started (this function is called when State::WaitGui)
-            // main thread is processing a print
-            // wait for print screen to open, any fsm can break waiting (f.e.: Print Preview)
-            marlin_client::loop(); // refresh fsm - required for dialog handler
-            DialogHandler::Access().Loop();
-        }
-
-    } else {
-        // Do not print on current screen -> main thread will set printer_state to Idle
-        marlin_client::marlin_gui_cant_print();
-    }
-}
-} // anonymous namespace
 
 /**
  * @brief Get the right error page to display
@@ -236,18 +162,7 @@ void gui_run(void) {
     while (1) {
         gui::StartLoop();
 
-        // I must do it before screen and dialog loops
-        // do not use marlin_update_vars(MARLIN_VAR_MSK(MARLIN_VAR_PRNSTATE))->print_state, it can make gui freeze in case main thread is unresponsive
-        volatile bool print_processor_waiting = marlin_vars().print_state == marlin_server::State::WaitGui;
-
         DialogHandler::Access().Loop();
-
-        // this code handles start of print
-        // it must be in main gui loop just before screen handler to ensure no FSM is opened
-        // !DialogHandler::Access().IsAnyOpen() - wait until all FSMs are closed (including one click print)
-        if (print_processor_waiting) {
-            make_gui_ready_to_print();
-        }
 
         Screens::Access()->Loop();
 

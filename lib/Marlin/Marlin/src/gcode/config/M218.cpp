@@ -27,10 +27,6 @@
 #include "../gcode.h"
 #include "../../module/motion.h"
 
-#if ENABLED(DELTA)
-  #include "../../module/planner.h"
-#endif
-
 /** \addtogroup G-Codes
  * @{
  */
@@ -74,11 +70,6 @@ void GcodeSuite::M218() {
     }
     SERIAL_EOL();
   }
-
-  #if ENABLED(DELTA)
-    if (target_extruder == active_extruder)
-      do_blocking_move_to_xy(current_position, planner.settings.max_feedrate_mm_s[X_AXIS]);
-  #endif
 }
 
 /** @}*/

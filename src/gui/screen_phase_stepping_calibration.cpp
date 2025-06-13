@@ -1,4 +1,4 @@
-#include <screen_phase_stepping.hpp>
+#include <screen_phase_stepping_calibration.hpp>
 
 #include "frame_qr_layout.hpp"
 #include "i18n.h"
@@ -11,6 +11,7 @@
 #include <window_progress.hpp>
 #include <window_text.hpp>
 #include <common/utils/string_builder.hpp>
+#include <Marlin/src/feature/phase_stepping/calibration.hpp>
 
 namespace {
 
@@ -41,7 +42,6 @@ constexpr const char *txt_homing { N_("Homing") };
 constexpr const char *txt_calibrating { N_("Running the phase stepping calibration to reduce vibrations. Please wait...") };
 constexpr const char *txt_calibrating_x { N_("Calibrating X motor") };
 constexpr const char *txt_calibrating_y { N_("Calibrating Y motor") };
-constexpr const char *txt_calibration_error { N_("Calibration failed with error.") };
 
 namespace frame {
 
@@ -51,7 +51,7 @@ namespace frame {
 
     public:
         CenteredText(window_t *parent, const string_view_utf8 &txt)
-            : text(parent, ScreenPhaseStepping::get_inner_frame_rect(), is_multiline::yes, is_closed_on_click_t::no, txt) {
+            : text(parent, ScreenPhaseSteppingCalibration::get_inner_frame_rect(), is_multiline::yes, is_closed_on_click_t::no, txt) {
             text.SetAlignment(Align_t::Center());
         }
     };
@@ -73,9 +73,9 @@ namespace frame {
         static constexpr uint16_t padding = 20;
 
         static constexpr Rect16 text_rect {
-            ScreenPhaseStepping::get_inner_frame_rect().Left() + padding,
-            ScreenPhaseStepping::get_inner_frame_rect().Top() + padding,
-            ScreenPhaseStepping::get_inner_frame_rect().Width() - 2 * padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Left() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Top() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Width() - 2 * padding,
             2 * height(GuiDefaults::DefaultFont),
         };
 
@@ -90,9 +90,9 @@ namespace frame {
         static constexpr uint16_t progress_bar_height = 4;
         static constexpr uint16_t progress_bar_vertical_margin = 50;
         static constexpr Rect16 progress_bar_rect {
-            ScreenPhaseStepping::get_inner_frame_rect().Left() + progress_bar_vertical_margin,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Left() + progress_bar_vertical_margin,
             title_rect.Bottom() + padding,
-            ScreenPhaseStepping::get_inner_frame_rect().Width() - 2 * progress_bar_vertical_margin,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Width() - 2 * progress_bar_vertical_margin,
             progress_bar_height,
         };
 
@@ -181,9 +181,9 @@ namespace frame {
         static constexpr uint16_t padding = 20;
 
         static constexpr Rect16 title_rect {
-            ScreenPhaseStepping::get_inner_frame_rect().Left() + padding,
-            ScreenPhaseStepping::get_inner_frame_rect().Top() + padding,
-            ScreenPhaseStepping::get_inner_frame_rect().Width() - 2 * padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Left() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Top() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Width() - 2 * padding,
             height(GuiDefaults::DefaultFont),
         };
 
@@ -224,10 +224,47 @@ namespace frame {
         }
     };
 
-    class CalibrationError final : public CenteredStaticText {
+    class CalibrationError final {
+    private:
+        window_text_t text;
+        window_text_t detail;
+
+        static constexpr uint16_t padding = 20;
+
+        static constexpr Rect16 text_rect {
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Left() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Top() + padding,
+            ScreenPhaseSteppingCalibration::get_inner_frame_rect().Width() - 2 * padding,
+            height(GuiDefaults::DefaultFont),
+        };
+
+        static constexpr Rect16 detail_rect {
+            text_rect.Left(),
+            text_rect.Bottom() + padding,
+            text_rect.Width(),
+            2 * height(GuiDefaults::DefaultFont),
+        };
+
     public:
         explicit CalibrationError(window_t *parent)
-            : CenteredStaticText { parent, _(txt_calibration_error) } {
+            : text {
+                parent,
+                text_rect,
+                is_multiline::yes,
+                is_closed_on_click_t::no,
+                _("Calibration failed with error."),
+            }
+            , detail {
+                parent,
+                detail_rect,
+                is_multiline::yes,
+                is_closed_on_click_t::no,
+            } {
+        }
+
+        void update(const fsm::PhaseData &data) {
+            const auto error = static_cast<phase_stepping::CalibrateAxisError>(data[0]);
+            detail.SetText(_(to_string(error)));
         }
     };
 
@@ -253,7 +290,7 @@ namespace frame {
 
 } // namespace frame
 
-using Frames = FrameDefinitionList<ScreenPhaseStepping::FrameStorage,
+using Frames = FrameDefinitionList<ScreenPhaseSteppingCalibration::FrameStorage,
     FrameDefinition<PhasesPhaseStepping::restore_defaults, frame::RestoreDefaults>,
     FrameDefinition<PhasesPhaseStepping::intro, frame::Introduction>,
     FrameDefinition<PhasesPhaseStepping::home, frame::Homing>,
@@ -271,26 +308,26 @@ using Frames = FrameDefinitionList<ScreenPhaseStepping::FrameStorage,
 
 } // namespace
 
-ScreenPhaseStepping::ScreenPhaseStepping()
-    : ScreenFSM(txt_header, ScreenPhaseStepping::get_inner_frame_rect())
+ScreenPhaseSteppingCalibration::ScreenPhaseSteppingCalibration()
+    : ScreenFSM(txt_header, ScreenPhaseSteppingCalibration::get_inner_frame_rect())
     , radio { this, GuiDefaults::GetButtonRect(GuiDefaults::RectScreenBody), PhasesPhaseStepping::intro } {
     CaptureNormalWindow(radio);
     create_frame();
 }
 
-ScreenPhaseStepping::~ScreenPhaseStepping() {
+ScreenPhaseSteppingCalibration::~ScreenPhaseSteppingCalibration() {
     destroy_frame();
 }
 
-void ScreenPhaseStepping::create_frame() {
+void ScreenPhaseSteppingCalibration::create_frame() {
     Frames::create_frame(frame_storage, get_phase(), &inner_frame);
     radio.Change(get_phase());
 }
 
-void ScreenPhaseStepping::destroy_frame() {
+void ScreenPhaseSteppingCalibration::destroy_frame() {
     Frames::destroy_frame(frame_storage, get_phase());
 }
 
-void ScreenPhaseStepping::update_frame() {
+void ScreenPhaseSteppingCalibration::update_frame() {
     Frames::update_frame(frame_storage, get_phase(), fsm_base_data.GetData());
 }

@@ -57,7 +57,6 @@
  * G30  - Single Z probe, probes bed at X Y location (defaults to current XY location)
  * G31  - Dock sled (Z_PROBE_SLED only)
  * G32  - Undock sled (Z_PROBE_SLED only)
- * G33  - Delta Auto-Calibration (Requires DELTA_AUTO_CALIBRATION)
  * G34  - Z Stepper automatic alignment using probe: I<iterations> T<accuracy> A<amplification> (Requires Z_STEPPER_AUTO_ALIGN)
  * G38  - Probe in any direction using the Z_MIN_PROBE (Requires G38_PROBE_TARGET)
  * G42  - Coordinated move to a mesh point (Requires AUTO_BED_LEVELING_BLINEAR or AUTO_BED_LEVELING_UBL)
@@ -152,7 +151,7 @@
             S<print> T<travel> minimum speeds
             B<minimum segment time>
             X<max X jerk>, Y<max Y jerk>, Z<max Z jerk>, E<max E jerk>
- * M206 - Set additional homing offset. (Disabled by NO_WORKSPACE_OFFSETS or DELTA)
+ * M206 - Set additional homing offset. (Disabled by NO_WORKSPACE_OFFSETS)
  * M211 - Enable, Disable, and/or Report software endstops: S<0|1> (Requires MIN_SOFTWARE_ENDSTOPS or MAX_SOFTWARE_ENDSTOPS)
  * M217 - Set filament swap parameters: "M217 S<length> P<feedrate> R<feedrate>". (Requires SINGLENOZZLE)
  * M218 - Set/get a tool offset: "M218 T<index> X<offset> Y<offset>". (Requires 2 or more extruders)
@@ -185,7 +184,7 @@
  * M421 - Set a single Z coordinate in the Mesh Leveling grid. X<units> Y<units> Z<units> (Requires AUTO_BED_LEVELING_UBL)
  * M422 - Set Z Stepper automatic alignment position using probe. X<units> Y<units> A<axis> (Requires Z_STEPPER_AUTO_ALIGN)
  * M425 - Enable/Disable and tune backlash correction. (Requires BACKLASH_COMPENSATION and BACKLASH_GCODE)
- * M428 - Set the home_offset based on the current_position. Nearest edge applies. (Disabled by NO_WORKSPACE_OFFSETS or DELTA)
+ * M428 - Set the home_offset based on the current_position. Nearest edge applies. (Disabled by NO_WORKSPACE_OFFSETS)
  * M500 - Store parameters in EEPROM. (Requires EEPROM_SETTINGS)
  * M501 - Restore parameters from EEPROM. (Requires EEPROM_SETTINGS)
  * M502 - Revert to the default "factory settings". ** Does not write them to EEPROM! **
@@ -201,8 +200,7 @@
  * M603 - Configure filament change: "M603 T<tool> U<unload_length> L<load_length>". (Requires ADVANCED_PAUSE_FEATURE)
  * M604 - Abort (serial) print
  * M605 - Set Dual X-Carriage movement mode: "M605 S<mode> [X<x_offset>] [R<temp_offset>]". (Requires MULTI_NOZZLE_DUPLICATION)
- * M665 - Set delta configurations: "M665 H<delta height> L<diagonal rod> R<delta radius> S<segments/s> B<calibration radius> X<Alpha angle trim> Y<Beta angle trim> Z<Gamma angle trim> (Requires DELTA)
- * M666 - Set/get offsets for delta (Requires DELTA) or dual endstops (Requires [XYZ]_DUAL_ENDSTOPS).
+ * M666 - Set/get offsets for dual endstops (Requires [XYZ]_DUAL_ENDSTOPS).
  * M701 - Load filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
  * M702 - Unload filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
  * M851 - Set Z probe's XYZ offsets in current units. (Negative values: X=left, Y=front, Z=below)
@@ -225,12 +223,6 @@
  * M913 - Set HYBRID_THRESHOLD speed. (Requires HYBRID_THRESHOLD)
  * M914 - Set StallGuard sensitivity. (Requires SENSORLESS_HOMING or SENSORLESS_PROBING)
  * M7219 - Control Max7219 Matrix LEDs. (Requires MAX7219_GCODE)
- *
- * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
- * M361 - SCARA calibration: Move to cal-position ThetaB (90 deg calibration - steps per degree)
- * M362 - SCARA calibration: Move to cal-position PsiA (0 deg calibration)
- * M363 - SCARA calibration: Move to cal-position PsiB (90 deg calibration - steps per degree)
- * M364 - SCARA calibration: Move to cal-position PSIC (90 deg to Theta calibration position)
  *
  * ************ Custom codes - This can change to suit future G-code regulations
  * G425 - Calibrate using a conductive object. (Requires CALIBRATION_GCODE)
@@ -270,7 +262,7 @@
   #include "../feature/I2CPositionEncoder.h"
 #endif
 
-#if EITHER(IS_SCARA, POLAR) || defined(G0_FEEDRATE)
+#if ANY(POLAR) || defined(G0_FEEDRATE)
   #define HAS_FAST_MOVES 1
 #endif
 
@@ -457,10 +449,6 @@ private:
       static void G31();
       static void G32();
     #endif
-  #endif
-
-  #if ENABLED(DELTA_AUTO_CALIBRATION)
-    static void G33();
   #endif
 
   #if ENABLED(Z_STEPPER_AUTO_ALIGN)
@@ -731,14 +719,6 @@ private:
     static void M355();
   #endif
 
-  #if ENABLED(MORGAN_SCARA)
-    static bool M360();
-    static bool M361();
-    static bool M362();
-    static bool M363();
-    static bool M364();
-  #endif
-
   #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
     static void M380();
     static void M381();
@@ -815,7 +795,7 @@ private:
     static void M605();
   #endif
 
-  #if ENABLED(DELTA) || HAS_EXTRA_ENDSTOPS
+  #if HAS_EXTRA_ENDSTOPS
     static void M666();
   #endif
 

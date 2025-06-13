@@ -28,7 +28,7 @@
 #include <option/has_loadcell.h>
 #include <option/has_mmu2.h>
 #include <option/has_nfc.h>
-#include <option/has_phase_stepping.h>
+#include <option/has_phase_stepping_calibration.h>
 #include <option/has_selftest.h>
 #include <option/has_toolchanger.h>
 #include <option/xl_enclosure_support.h>
@@ -40,6 +40,7 @@
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_auto_retract.h>
 #include <option/has_nozzle_cleaner.h>
+#include <option/has_manual_chamber_vents.h>
 
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
@@ -423,6 +424,10 @@ enum class PhasesWarning : PhaseUnderlyingType {
     EnclosureFilterExpiration,
 #endif
 
+#if HAS_MANUAL_CHAMBER_VENTS()
+    ChamberVents,
+#endif
+
     ProbingFailed,
 
     FilamentSensorStuckHelp,
@@ -489,7 +494,7 @@ enum class PhasesColdPull : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhasesColdPull) { return ClientFSM::ColdPull; }
 #endif
 
-#if HAS_PHASE_STEPPING()
+#if HAS_PHASE_STEPPING_CALIBRATION()
 enum class PhasesPhaseStepping : PhaseUnderlyingType {
     restore_defaults,
     intro,
@@ -508,7 +513,7 @@ enum class PhasesPhaseStepping : PhaseUnderlyingType {
     finish,
     _last = finish,
 };
-constexpr inline ClientFSM client_fsm_from_phase(PhasesPhaseStepping) { return ClientFSM::PhaseStepping; }
+constexpr inline ClientFSM client_fsm_from_phase(PhasesPhaseStepping) { return ClientFSM::PhaseSteppingCalibration; }
 #endif
 
 #if HAS_INPUT_SHAPER_CALIBRATION()
@@ -606,7 +611,7 @@ enum class PhaseDoorSensorCalibration : PhaseUnderlyingType {
     confirm_open,
     loosen_screw_half,
     finger_test,
-    tighten_screw_quarter,
+    loosen_screw_quarter,
     done,
     finish,
     _last = finish,
@@ -917,6 +922,9 @@ class ClientResponses {
 #if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
             { PhasesWarning::EnclosureFilterExpiration, { Response::Ignore, Response::Postpone5Days, Response::Done } },
 #endif
+#if HAS_MANUAL_CHAMBER_VENTS()
+            { PhasesWarning::ChamberVents, { Response::Ok, Response::Disable } },
+#endif
             { PhasesWarning::ProbingFailed, { Response::Yes, Response::No } },
             { PhasesWarning::FilamentSensorStuckHelp, { Response::Ok, Response::FS_disable } },
 #if HAS_MMU2()
@@ -968,7 +976,7 @@ class ClientResponses {
     static_assert(std::size(ClientResponses::ColdPullResponses) == CountPhases<PhasesColdPull>());
 #endif
 
-#if HAS_PHASE_STEPPING()
+#if HAS_PHASE_STEPPING_CALIBRATION()
     static constexpr EnumArray<PhasesPhaseStepping, PhaseResponses, CountPhases<PhasesPhaseStepping>()> phase_stepping_calibration_responses {
         { PhasesPhaseStepping::restore_defaults, { Response::Ok } },
             { PhasesPhaseStepping::intro, { Response::Continue, Response::Abort } },
@@ -1047,7 +1055,7 @@ class ClientResponses {
         { PhaseDoorSensorCalibration::confirm_open, { Response::Continue, Response::Abort } },
         { PhaseDoorSensorCalibration::loosen_screw_half, { Response::Continue, Response::Abort } },
         { PhaseDoorSensorCalibration::finger_test, { Response::Continue, Response::Abort } },
-        { PhaseDoorSensorCalibration::tighten_screw_quarter, { Response::Continue, Response::Abort } },
+        { PhaseDoorSensorCalibration::loosen_screw_quarter, { Response::Continue, Response::Abort } },
         { PhaseDoorSensorCalibration::done, { Response::Continue } },
         { PhaseDoorSensorCalibration::finish, {} },
     };
@@ -1072,8 +1080,8 @@ class ClientResponses {
 #if HAS_COLDPULL()
             { ClientFSM::ColdPull, ColdPullResponses },
 #endif
-#if HAS_PHASE_STEPPING()
-            { ClientFSM::PhaseStepping, phase_stepping_calibration_responses },
+#if HAS_PHASE_STEPPING_CALIBRATION()
+            { ClientFSM::PhaseSteppingCalibration, phase_stepping_calibration_responses },
 #endif
 #if HAS_INPUT_SHAPER_CALIBRATION()
             { ClientFSM::InputShaperCalibration, input_shaper_calibration_responses },

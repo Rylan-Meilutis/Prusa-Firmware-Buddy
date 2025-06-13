@@ -6,7 +6,7 @@ class ClosedReader final : public IGcodeReader {
     bool stream_metadata_start() override {
         return false;
     }
-    Result_t stream_gcode_start(uint32_t = 0) override {
+    Result_t stream_gcode_start(uint32_t = 0, bool = false) override {
         return Result_t::RESULT_ERROR;
     }
     AbstractByteReader *stream_thumbnail_start(uint16_t, uint16_t, ImgType, bool = false) override {

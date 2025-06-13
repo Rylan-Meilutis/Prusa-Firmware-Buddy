@@ -139,8 +139,7 @@ endif()
 if(HAS_SELFTEST)
   add_subdirectory(wizard)
   target_sources(
-    firmware PRIVATE box_unfinished_selftest.cpp screen_menu_selftest_snake.cpp ScreenSelftest.cpp
-                     selftest_frame.cpp
+    firmware PRIVATE screen_menu_selftest_snake.cpp ScreenSelftest.cpp selftest_frame.cpp
     )
 endif()
 
@@ -205,8 +204,8 @@ if(HAS_COLDPULL)
   target_sources(firmware PRIVATE screen_cold_pull.cpp)
 endif()
 
-if(HAS_PHASE_STEPPING)
-  target_sources(firmware PRIVATE screen_phase_stepping.cpp)
+if(HAS_PHASE_STEPPING_CALIBRATION)
+  target_sources(firmware PRIVATE screen_phase_stepping_calibration.cpp)
 endif()
 
 if(CONNECT)

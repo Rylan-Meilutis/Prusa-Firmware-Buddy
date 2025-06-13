@@ -16,7 +16,6 @@ inline constexpr uint8_t CURRENT_TOOL = std::numeric_limits<uint8_t>::max();
 extern osThreadId server_task; // task of marlin server
 
 enum class RequestFlag : uint8_t {
-    PrintReady,
     PrintAbort,
     PrintPause,
     PrintResume,
@@ -24,7 +23,6 @@ enum class RequestFlag : uint8_t {
     PrintExit,
     KnobMove,
     KnobClick,
-    GuiCantPrint,
 #if HAS_SELFTEST()
     TestAbort,
 #endif

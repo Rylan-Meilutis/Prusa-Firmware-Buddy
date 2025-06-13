@@ -160,7 +160,7 @@ const PrusaPackGcodeReader::StreamRestoreInfo::PrusaPackRec *PrusaPackGcodeReade
     return nullptr;
 }
 
-IGcodeReader::Result_t PrusaPackGcodeReader::stream_gcode_start(uint32_t offset) {
+IGcodeReader::Result_t PrusaPackGcodeReader::stream_gcode_start(uint32_t offset, bool ignore_crc) {
     BlockHeader start_block;
     uint32_t block_decompressed_offset; //< what is offset of first byte inside block that we start streaming from
     uint32_t block_throwaway_bytes; //< How many bytes to throw away from current block (after decompression)
@@ -170,10 +170,11 @@ IGcodeReader::Result_t PrusaPackGcodeReader::stream_gcode_start(uint32_t offset)
 
     auto file = this->file.get();
     const bool verify = config_store().verify_gcode.get();
+    const bool check_crc = verify && !ignore_crc;
 
     if (offset == 0) {
         // get first gcode block
-        auto res = iterate_blocks(verify, [](BlockHeader &block_header) {
+        auto res = iterate_blocks(check_crc, [](BlockHeader &block_header) {
             // check if correct type, if so, return this block
             if ((bgcode::core::EBlockType)block_header.type == bgcode::core::EBlockType::GCode) {
                 return IterateResult_t::Return;
@@ -213,7 +214,7 @@ IGcodeReader::Result_t PrusaPackGcodeReader::stream_gcode_start(uint32_t offset)
             return Result_t::RESULT_ERROR;
         }
 
-        if (auto res = read_block_header(start_block, /*check_crc=*/verify); res != Result_t::RESULT_OK) {
+        if (auto res = read_block_header(start_block, check_crc); res != Result_t::RESULT_OK) {
             return res;
         }
 

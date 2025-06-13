@@ -37,10 +37,6 @@
 #endif
 #include <option/has_wastebin.h>
 
-#if IS_SCARA
-  #include "scara.h"
-#endif
-
 struct MoveHints {
   bool is_printing_move = false;      // The move is a printing move and should possibly count into max printed Z
 };

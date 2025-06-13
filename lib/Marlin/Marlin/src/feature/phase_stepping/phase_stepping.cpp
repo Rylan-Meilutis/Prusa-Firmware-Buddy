@@ -589,35 +589,41 @@ void phase_stepping::clear_targets() {
     }
 }
 
-// Given axis and speed, return current adjustment expressed as range <0, 255>
-[[maybe_unused]] static int current_adjustment(int /*axis*/, float speed) {
+constexpr int current_regulation_range_max = 255;
+
+// template is needed in order to be able to use optimization
+// inv_endpoint_minus_breakpoint must be constexpr and we can not have constexpr function parameters
+template <float breakpoint, float endpoint, int reduction_to>
+[[maybe_unused]] FORCE_INLINE static int regulate_current(float speed) {
+    constexpr float slope = (current_regulation_range_max - reduction_to) / (endpoint - breakpoint);
+    constexpr float precalculated_const = reduction_to - (int)(breakpoint * slope);
+
     speed = std::abs(speed);
+    if (speed < breakpoint) {
+        return current_regulation_range_max;
+    }
+    if (speed > endpoint) {
+        return reduction_to;
+    }
+
+    // speed optimized calculation of original formula:
+    // current = reduction_to + (speed  - breakpoint) * slope
+    return (speed * slope) + precalculated_const;
+}
+
+// Given axis and speed, return current adjustment expressed as range <0, 255>
+[[maybe_unused]] inline static int current_adjustment(int /*axis*/, float speed) {
 #if PRINTER_IS_PRUSA_XL()
-    float BREAKPOINT = 6.f;
-    float ENDPOINT = 10.f;
-    int REDUCTION_TO = 150;
+    return regulate_current<6.f, 10.f, 150>(speed);
 #elif PRINTER_IS_PRUSA_iX() // TODO simple copy-paste of XL values. To be removed as soon as iX values are measured
-    float BREAKPOINT = 6.f;
-    float ENDPOINT = 10.f;
-    int REDUCTION_TO = 150;
+    return regulate_current<6.f, 10.f, 150>(speed);
 #elif PRINTER_IS_PRUSA_COREONE()
-    float BREAKPOINT = 20.f;
-    float ENDPOINT = 20.f;
-    int REDUCTION_TO = 255;
+    return current_regulation_range_max;
 #elif PRINTER_IS_PRUSA_MK4()
-    float BREAKPOINT = 20.f;
-    float ENDPOINT = 20.f;
-    int REDUCTION_TO = 255;
+    return current_regulation_range_max;
 #else
     #error "Unsupported printer"
 #endif
-    if (speed < BREAKPOINT) {
-        return 255;
-    }
-    if (speed > ENDPOINT) {
-        return REDUCTION_TO;
-    }
-    return 255 - (speed - BREAKPOINT) * (255 - REDUCTION_TO) / (ENDPOINT - BREAKPOINT);
 }
 
 int phase_stepping::phase_difference(int a, int b) {

@@ -73,7 +73,7 @@
 void GcodeSuite::G92() {
 
   bool didE = false;
-  #if IS_SCARA || !HAS_POSITION_SHIFT
+  #if !HAS_POSITION_SHIFT
     bool didXYZ = false;
   #else
     constexpr bool didXYZ = false;
@@ -90,12 +90,10 @@ void GcodeSuite::G92() {
     #if ENABLED(CNC_COORDINATE_SYSTEMS)
       case 1: {
         // Zero the G92 values and restore current position
-        #if !IS_SCARA
-          LOOP_XYZ(i) if (position_shift[i]) {
-            position_shift[i] = 0;
-            update_workspace_offset((AxisEnum)i);
-          }
-        #endif // Not SCARA
+        LOOP_XYZ(i) if (position_shift[i]) {
+          position_shift[i] = 0;
+          update_workspace_offset((AxisEnum)i);
+        }
       } return;
     #endif
     case 0: {
@@ -105,7 +103,7 @@ void GcodeSuite::G92() {
                       v = i == E_AXIS ? l : LOGICAL_TO_NATIVE(l, i),
                       d = v - current_position[i];
           if (!NEAR_ZERO(d)) {
-            #if IS_SCARA || !HAS_POSITION_SHIFT
+            #if !HAS_POSITION_SHIFT
               if (i == E_AXIS) didE = true; else didXYZ = true;
               current_position[i] = v;        // Without workspaces revert to Marlin 1.0 behavior
             #elif HAS_POSITION_SHIFT

@@ -44,7 +44,6 @@ if(BOARD_IS_MASTER_BOARD)
     Marlin
     PRIVATE Marlin/Marlin/src/feature/babystep.cpp
             Marlin/Marlin/src/feature/backlash.cpp
-            Marlin/Marlin/src/feature/bed_preheat.cpp
             Marlin/Marlin/src/feature/bedlevel/bedlevel.cpp
             Marlin/Marlin/src/feature/bedlevel/ubl/ubl.cpp
             Marlin/Marlin/src/feature/bedlevel/ubl/ubl_G29.cpp
@@ -142,15 +141,12 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/libs/crc16.cpp
             Marlin/Marlin/src/libs/hex_print_routines.cpp
             Marlin/Marlin/src/libs/least_squares_fit.cpp
-            Marlin/Marlin/src/libs/nozzle.cpp
             Marlin/Marlin/src/libs/numtostr.cpp
             Marlin/Marlin/src/libs/vector_3.cpp
-            Marlin/Marlin/src/module/delta.cpp
             Marlin/Marlin/src/module/planner_bezier.cpp
             Marlin/Marlin/src/module/printcounter.cpp
             Marlin/Marlin/src/module/probe.cpp
             Marlin/Marlin/src/module/prusa/homing_utils.cpp
-            Marlin/Marlin/src/module/scara.cpp
             Marlin/Marlin/src/module/servo.cpp
             Marlin/Marlin/src/module/stepper/TMC26X.cpp
     )

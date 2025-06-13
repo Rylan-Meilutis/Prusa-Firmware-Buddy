@@ -50,10 +50,6 @@
   #include "../feature/bedlevel/bedlevel.h"
 #endif
 
-#if ENABLED(DELTA)
-  #include "delta.h"
-#endif
-
 #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
   #include "../feature/backlash.h"
 #endif
@@ -248,7 +244,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
     #endif
     #if ENABLED(PROBING_STEPPERS_OFF)
       disable_e_steppers();
-      #if NONE(DELTA, HOME_AFTER_DEACTIVATE)
+      #if NONE(HOME_AFTER_DEACTIVATE)
         disable_XY();
       #endif
     #endif
@@ -405,10 +401,6 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
   // Disable stealthChop if used. Enable diag1 pin on driver.
   #if ENABLED(SENSORLESS_PROBING)
     sensorless_t stealth_states { false };
-    #if ENABLED(DELTA)
-      stealth_states.x = enable_crash_detection(X_AXIS);
-      stealth_states.y = enable_crash_detection(Y_AXIS);
-    #endif
     stealth_states.z = enable_crash_detection(Z_AXIS);
     endstops.enable(true);
   #endif
@@ -430,9 +422,6 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
 
   // Check to see if the probe was triggered
   const bool probe_triggered =
-    #if BOTH(DELTA, SENSORLESS_PROBING)
-      endstops.trigger_state() & (_BV(X_MIN) | _BV(Y_MIN) | _BV(Z_MIN))
-    #else
       TEST(endstops.trigger_state(),
         #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
           Z_MIN
@@ -440,7 +429,6 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
           Z_MIN_PROBE
         #endif
       )
-    #endif
   ;
 
   #if QUIET_PROBING
@@ -451,10 +439,6 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
   #if ENABLED(SENSORLESS_PROBING)
     endstops.not_homing();
     #if NEITHER(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
-      #if ENABLED(DELTA)
-        disable_crash_detection(X_AXIS, stealth_states.x);
-        disable_crash_detection(Y_AXIS, stealth_states.y);
-      #endif
       disable_crash_detection(Z_AXIS, stealth_states.z);
     #endif
   #endif
@@ -892,7 +876,6 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
     DEBUG_POS("", current_position);
   }
 
-  // TODO: Adapt for SCARA, where the offset rotates
   xyz_pos_t npos = pos;
   if (probe_relative) {
     if (!position_is_reachable_by_probe(npos)) {
@@ -915,12 +898,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
   #endif
 
   npos.z =
-    #if ENABLED(DELTA)
-      // Move below clip height or xy move will be aborted by do_blocking_move_to
-      _MIN(current_position.z, delta_clip_start_height)
-    #else
       current_position.z
-    #endif
   ;
 
   const float old_feedrate_mm_s = feedrate_mm_s;

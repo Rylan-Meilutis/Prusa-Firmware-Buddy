@@ -156,12 +156,6 @@ void MarlinSettings::postprocess() {
     // steps per s2 needs to be updated to agree with units per s2
     planner.refresh_acceleration_rates();
 
-    // Make sure delta kinematics are updated before refreshing the
-    // planner position so the stepper counts will be set correctly.
-    #if ENABLED(DELTA)
-      recalc_delta_settings();
-    #endif
-
     #if ENABLED(PIDTEMP)
       thermalManager.updatePID();
     #endif
@@ -256,9 +250,7 @@ void MarlinSettings::reset() {
     reset_motion();
   #endif
 
-  #if HAS_SCARA_OFFSET
-    scara_home_offset.reset();
-  #elif HAS_HOME_OFFSET
+  #if HAS_HOME_OFFSET
     home_offset.reset();
   #endif
 
@@ -339,17 +331,7 @@ void MarlinSettings::reset() {
   // Endstop Adjustments
   //
 
-  #if ENABLED(DELTA)
-    const abc_float_t adj = DELTA_ENDSTOP_ADJ, dta = DELTA_TOWER_ANGLE_TRIM;
-    delta_height = DELTA_HEIGHT;
-    delta_endstop_adj = adj;
-    delta_radius = DELTA_RADIUS;
-    delta_diagonal_rod = DELTA_DIAGONAL_ROD;
-    delta_segments_per_second = DELTA_SEGMENTS_PER_SECOND;
-    delta_calibration_radius = DELTA_CALIBRATION_RADIUS;
-    delta_tower_angle_trim = dta;
-
-  #elif EITHER(X_DUAL_ENDSTOPS, Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
+  #if EITHER(X_DUAL_ENDSTOPS, Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
 
     #if ENABLED(X_DUAL_ENDSTOPS)
       endstops.x2_endstop_adj = (
@@ -766,41 +748,7 @@ void MarlinSettings::reset() {
 
     #endif // EDITABLE_SERVO_ANGLES
 
-    #if HAS_SCARA_OFFSET
-
-      CONFIG_ECHO_HEADING("SCARA settings: S<seg-per-sec> P<theta-psi-offset> T<theta-offset>");
-      CONFIG_ECHO_START();
-      SERIAL_ECHOLNPAIR(
-          "  M665 S", delta_segments_per_second
-        , " P", scara_home_offset.a
-        , " T", scara_home_offset.b
-        , " Z", LINEAR_UNIT(scara_home_offset.z)
-      );
-
-    #elif ENABLED(DELTA)
-
-      CONFIG_ECHO_HEADING("Endstop adjustment:");
-      CONFIG_ECHO_START();
-      SERIAL_ECHOLNPAIR(
-          "  M666 X", LINEAR_UNIT(delta_endstop_adj.a)
-        , " Y", LINEAR_UNIT(delta_endstop_adj.b)
-        , " Z", LINEAR_UNIT(delta_endstop_adj.c)
-      );
-
-      CONFIG_ECHO_HEADING("Delta settings: L<diagonal_rod> R<radius> H<height> S<segments_per_s> B<calibration radius> XYZ<tower angle corrections>");
-      CONFIG_ECHO_START();
-      SERIAL_ECHOLNPAIR(
-          "  M665 L", LINEAR_UNIT(delta_diagonal_rod)
-        , " R", LINEAR_UNIT(delta_radius)
-        , " H", LINEAR_UNIT(delta_height)
-        , " S", delta_segments_per_second
-        , " B", LINEAR_UNIT(delta_calibration_radius)
-        , " X", LINEAR_UNIT(delta_tower_angle_trim.a)
-        , " Y", LINEAR_UNIT(delta_tower_angle_trim.b)
-        , " Z", LINEAR_UNIT(delta_tower_angle_trim.c)
-      );
-
-    #elif EITHER(X_DUAL_ENDSTOPS, Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
+    #if EITHER(X_DUAL_ENDSTOPS, Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
 
       CONFIG_ECHO_HEADING("Endstop adjustment:");
       CONFIG_ECHO_START();

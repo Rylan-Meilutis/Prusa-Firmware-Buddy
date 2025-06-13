@@ -84,26 +84,22 @@ bool Configuration::has_trinamic_oscillators() const {
     return get_board_bom_id() >= 37;
 }
 
-bool Configuration::is_fw_incompatible_with_hw() const {
-#if PRINTER_IS_PRUSA_COREONE()
-    if (buddy::door_sensor().detailed_state().state == buddy::DoorSensor::State::sensor_detached) {
-        return true;
-    }
-    return false;
-#elif PRINTER_IS_PRUSA_MK4()
-    if (buddy::door_sensor().detailed_state().state != buddy::DoorSensor::State::sensor_detached) {
-        return true;
-    }
+bool Configuration::is_fw_compatible_with_hw() const {
+#if PRINTER_IS_PRUSA_iX()
+    return true;
+#else
 
-    if (loveboard_present) {
-        return false; // valid data, fw compatible
-    }
+    #if HAS_DOOR_SENSOR()
+    // MK4 also HAS_DOOR_SENSOR for HW compatibility check
+    [[maybe_unused]] const bool door_sensor_connected = buddy::door_sensor().detailed_state().state != buddy::DoorSensor::State::sensor_detached;
+    #endif /* HAS_DOOR_SENSOR() */
 
+    #if !PRINTER_IS_PRUSA_MK3_5()
     // This procedure is checking if MK3.5 extruder is installed,
-    // in which case we have an incompatible FW (MK4) and HW (MK3.5)
+    // in which case we have an incompatible FW (MK4 | C1 | ...) and HW (MK3.5)
     // It is not possible to continue and info screen saying to reflash has to pop up
     const size_t count_of_validation_edges = 4;
-    bool mk35_extruder_detected = true;
+    [[maybe_unused]] bool mk35_extruder_detected = true;
     for (size_t i = 0; i < count_of_validation_edges; ++i) {
         hx717Sck.write(Pin::State::low);
         delay_us_precise<1000>();
@@ -118,15 +114,20 @@ bool Configuration::is_fw_incompatible_with_hw() const {
             break;
         }
     }
-    return mk35_extruder_detected;
-#elif PRINTER_IS_PRUSA_MK3_5()
+    #endif /* !PRINTER_IS_PRUSA_MK3_5() */
+
+    #if PRINTER_IS_PRUSA_COREONE()
+    return door_sensor_connected;
+    #elif PRINTER_IS_PRUSA_MK4()
+    return !door_sensor_connected && (loveboard_present || !mk35_extruder_detected);
+    #elif PRINTER_IS_PRUSA_MK3_5()
     // valid data from loveboard means that we have MK4 HW, since MK3.5 does not have loveboard
     return loveboard_present;
-#elif PRINTER_IS_PRUSA_iX()
-    return false;
-#else
-    #error
-#endif
+    #else
+        #error
+    #endif
+
+#endif /* PRINTER_IS_PRUSA_iX() */
 }
 
 float Configuration::curr_measurement_voltage_to_current(float voltage) const {

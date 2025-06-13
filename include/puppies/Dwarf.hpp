@@ -211,6 +211,12 @@ void ToolsMappingBody::windowEvent([[maybe_unused]] window_t *sender, GUI_event_
     void set_fan(uint8_t fan, uint16_t target);
 
     /**
+     * @brief Set fan to auto mode.
+     * @param fan fan number
+     */
+    void set_fan_auto(uint8_t fan);
+
+    /**
      * @brief Set cheese LED.
      * @param pwr_selected PWM when selected [0 - 255]
      * @param pwr_not_selected PWM when not selected [0 - 255]
