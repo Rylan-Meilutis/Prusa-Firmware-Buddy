@@ -22,6 +22,7 @@ public:
     }
 
     Encoder1Of4(MsgBuilder &builder);
+    ~Encoder1Of4();
 
     void append_byte(std::byte byte);
     void append_bytes(const std::span<const std::byte> &bytes);
@@ -32,5 +33,6 @@ private:
     void append_bytes_impl(const std::span<const std::byte> &bytes, bool calculate_crc = true);
     MsgBuilder &builder;
     iso13239::CRC crc;
+    bool did_finalize;
 };
 } // namespace nfcv

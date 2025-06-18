@@ -2,8 +2,15 @@
 
 nfcv::Encoder1Of4::Encoder1Of4(MsgBuilder &msg_builder)
     : builder(msg_builder)
-    , crc() {
+    , crc()
+    , did_finalize(false) {
     builder.push_back(std::byte { 0x21 }); // 1 of 4 SOF
+}
+
+nfcv::Encoder1Of4::~Encoder1Of4() {
+    if (!did_finalize) {
+        std::abort();
+    }
 }
 
 void nfcv::Encoder1Of4::append_byte(std::byte byte) { append_byte_impl(byte); }
@@ -34,6 +41,10 @@ void nfcv::Encoder1Of4::append_bytes_impl(const std::span<const std::byte> &buff
 }
 
 void nfcv::Encoder1Of4::append_crc_and_finalize() {
+    if (did_finalize) {
+        std::abort();
+    }
+    did_finalize = true;
     auto crc_res = crc.get_result();
     static_assert(std::endian::native == std::endian::little);
     const std::span<std::byte> crc_res_span { reinterpret_cast<std::byte *>(&crc_res), sizeof(crc_res) };
