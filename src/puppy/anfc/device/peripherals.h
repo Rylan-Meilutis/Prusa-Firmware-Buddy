@@ -1,17 +1,14 @@
 #pragma once
 
-#ifdef STM32H5
-    #include <stm32h5xx.h>
-#elifdef STM32C0
-    #include <stm32c0xx.h>
-#else
-    #error
-#endif
+#include <device/hal.h>
 
 namespace hal::peripherals {
 extern FDCAN_HandleTypeDef hfdcan1;
-extern HASH_HandleTypeDef hhash;
 extern SPI_HandleTypeDef hspi1;
+
+#ifdef HASH_ALGOSELECTION_SHA256
+extern HASH_HandleTypeDef hhash;
+#endif
 } // namespace hal::peripherals
 
 // src/can does not expect the namespace...

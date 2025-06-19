@@ -1,14 +1,7 @@
 #include "hal.hpp"
 #include "nfc.hpp"
-#include "device/peripherals.h"
-
-#ifdef STM32H5
-    #include <stm32h5xx.h>
-#elifdef STM32C0
-    #include <stm32c0xx.h>
-#else
-    #error
-#endif
+#include <device/peripherals.h>
+#include <device/hal.h>
 
 extern "C" {
 #include <FreeRTOSConfig.h>
@@ -39,13 +32,19 @@ void init_clock();
 void init_can();
 void init_spi();
 void init_gpio();
+
+#ifdef HASH_ALGOSELECTION_SHA256
 void init_hash();
+#endif
 } // namespace hal
 
 namespace hal::peripherals {
 FDCAN_HandleTypeDef hfdcan1;
-HASH_HandleTypeDef hhash;
 SPI_HandleTypeDef hspi1;
+
+#ifdef HASH_ALGOSELECTION_SHA256
+HASH_HandleTypeDef hhash;
+#endif
 } // namespace hal::peripherals
 
 void hal::init() {
@@ -54,7 +53,10 @@ void hal::init() {
     hal::init_gpio();
     hal::init_spi();
     hal::init_can();
+
+#ifdef HASH_ALGOSELECTION_SHA256
     hal::init_hash();
+#endif
 }
 
 void hal::init_clock() {
@@ -307,6 +309,7 @@ void hal::init_gpio() {
 #endif
 }
 
+#ifdef HASH_ALGOSELECTION_SHA256
 void hal::init_hash() {
     using namespace hal::peripherals;
 
@@ -322,6 +325,7 @@ extern "C" void HAL_HASH_MspInit(HASH_HandleTypeDef *hhash) {
     (void)hhash;
     __HAL_RCC_HASH_CLK_ENABLE();
 }
+#endif
 
 extern "C" void hal_panic() {
     hal::panic();
