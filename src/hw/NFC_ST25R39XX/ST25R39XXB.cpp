@@ -213,7 +213,7 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_command(nfcv::Command &command) 
         }
         return res;
     }
-    res = await_interrupt(IRQType::rx_end, 20);
+    res = await_interrupt(IRQType::rx_end, 100);
     if (!res.has_value()) {
         return res;
     }
