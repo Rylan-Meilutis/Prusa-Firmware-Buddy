@@ -146,6 +146,7 @@ void ANFCNode::wait_for_pnp() {
     pnp.start();
     while (cyphal_task.is_anonymous()) {
         pnp.loop_tx();
+        hal::set_status_led((ticks_ms() / 128) % 2);
         freertos::delay(1);
     }
 }
