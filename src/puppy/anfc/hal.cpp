@@ -316,6 +316,10 @@ void hal::init_hash() {
     if (HAL_HASH_Init(&hhash) != HAL_OK) {
         panic();
     }
+}
+
+extern "C" void HAL_HASH_MspInit(HASH_HandleTypeDef *hhash) {
+    (void)hhash;
     __HAL_RCC_HASH_CLK_ENABLE();
 }
 
