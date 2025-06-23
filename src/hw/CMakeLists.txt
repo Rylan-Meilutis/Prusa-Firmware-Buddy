@@ -42,5 +42,3 @@ endif()
 if(HAS_I2C_EXPANDER)
   target_sources(firmware PRIVATE TCA6408A.cpp)
 endif()
-
-add_subdirectory(NFC_ST25R39XX)
