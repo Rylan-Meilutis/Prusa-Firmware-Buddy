@@ -63,4 +63,47 @@ public:
     virtual void forget_tag(NFCTagID tag) = 0;
 
     virtual void reset_state() = 0;
+
+public:
+    struct InitializeTagParams {
+        enum class ProtectionPolicy : uint8_t {
+            /// No protection
+            none = 0,
+
+            /// Irreversibly lock the registers & memory
+            lock = 1,
+
+            /// Password-protect writing
+            /// NOTE: Some registers cannot be password-protected, those will be locked
+            write_password = 2,
+
+            _cnt,
+        };
+
+        /// Password to be used for ProtectionPolicy::write_password
+        uint32_t password = 0;
+
+        /// If > 0, first N bytes of the tag will be protected according to the data protection policy
+        /// The number has to be aligned to the tag block size
+        NFCOffset protect_first_num_bytes = 0;
+
+        /// Determines how the tag should be protected
+        /// - Protects first \p data_protection_size bytes of data
+        /// - Protects utility registers such as AFI, DSFID, EAS and so on
+        ProtectionPolicy protection_policy = ProtectionPolicy::none;
+
+        /// Do not fail immediately on error, try locking/initializing whatever possible
+        bool best_effort = false;
+    };
+
+    /// Initializes the tag according to the recommended practices:
+    /// - Sets up utility registers such as AFI, DSFID, EAS, ...
+    /// - (optionally) Locks the registers
+    /// - (optionally) Locks the headers data
+    /// Might be implemented only for specific chip models and specific parameter configurations
+    /// All init-time data should be written to the tag beforehand using \p raw_write
+    [[nodiscard]] virtual IOResult<void> initialize_tag(NFCTagID tag, const InitializeTagParams &params) {
+        (void)tag, (void)params;
+        return std::unexpected(IOError::not_implemented);
+    }
 };
