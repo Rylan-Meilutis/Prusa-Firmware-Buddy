@@ -129,6 +129,10 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
         } else if (prusa3d_nfc_request_RequestData_1_0_is_raw_write_(&rreq)) {
             prusa3d_nfc_request_RequestResult_1_0_select_raw_write_(&result);
             handle_raw_write_request(rreq.raw_write, result.raw_write);
+
+        } else if (prusa3d_nfc_request_RequestData_1_0_is_initialize_tag_(&rreq)) {
+            prusa3d_nfc_request_RequestResult_1_0_select_initialize_tag_(&result);
+            handle_initialize_tag_request(rreq.initialize_tag, result.initialize_tag);
         }
 
         can_node.enqueue_event(response);
@@ -379,5 +383,19 @@ void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &r
     reader_.invalidate_cache(request.tag.value);
 
     const auto io_result = ll_reader_.write(request.tag.value, request.offset, std::span(reinterpret_cast<const std::byte *>(request.data.value.elements), request.data.value.count));
+    result._error = io_result_to_error(io_result);
+}
+
+void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_InitializeTag_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
+    // We're circumventing the high-level reader here, so invalidate its caches, things might have changed
+    reader_.invalidate_cache(request.tag.value);
+
+    const INFCReader::InitializeTagParams params {
+        .password = std::bit_cast<uint32_t>(request.password),
+        .protect_first_num_bytes = request.protect_first_num_bytes,
+        .protection_policy = static_cast<INFCReader::InitializeTagParams::ProtectionPolicy>(request.protection_policy),
+        .best_effort = request.best_effort,
+    };
+    const auto io_result = ll_reader_.initialize_tag(request.tag.value, params);
     result._error = io_result_to_error(io_result);
 }
