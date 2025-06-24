@@ -230,8 +230,8 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
     }
 
     case prusa3d_nfc_util_ValueType_1_0_STRING: {
+        prusa3d_nfc_util_Value_1_0_select_string_(&value);
         if (auto r = reader_.read_field_string(field, reinterpret_cast<char(&)[uavcan_primitive_String_1_0_value_ARRAY_CAPACITY_]>(value._string.value.elements))) {
-            prusa3d_nfc_util_Value_1_0_select_string_(&value);
             value._string.value.count = r->size();
 
         } else {
@@ -241,8 +241,8 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
     }
 
     case prusa3d_nfc_util_ValueType_1_0_BYTES: {
+        prusa3d_nfc_util_Value_1_0_select_bytes_(&value);
         if (auto r = reader_.read_field_bytes(field, reinterpret_cast<std::byte(&)[uavcan_primitive_array_Natural8_1_0_value_ARRAY_CAPACITY_]>(value.bytes.value.elements))) {
-            prusa3d_nfc_util_Value_1_0_select_bytes_(&value);
             value.bytes.value.count = r->size();
 
         } else {
@@ -252,8 +252,8 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
     }
 
     case prusa3d_nfc_util_ValueType_1_0_UINT16_ARRAY: {
+        prusa3d_nfc_util_Value_1_0_select_uint16_array_(&value);
         if (auto r = reader_.read_field_uint16_array(field, value.uint16_array.value.elements)) {
-            prusa3d_nfc_util_Value_1_0_select_uint16_array_(&value);
             value.bytes.value.count = r->size();
 
         } else {
