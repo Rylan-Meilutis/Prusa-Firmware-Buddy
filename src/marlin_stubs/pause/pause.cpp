@@ -73,12 +73,10 @@ GCodeLoader nozzle_cleaner_gcode_loader;
 // private:
 // check unsupported features
 // filament sensor is no longer part of marlin thus it must be disabled
-// HAS_BUZZER must be disabled, because we handle it differently than marlin
 // clang-format off
 #if (!ENABLED(EXTENSIBLE_UI)) || \
     (!ENABLED(ADVANCED_PAUSE_FEATURE)) || \
     HAS_FILAMENT_SENSOR || \
-    HAS_BUZZER || \
     NUM_RUNOUT_SENSORS > 1 || \
     ENABLED(ADVANCED_PAUSE_CONTINUOUS_PURGE)
 #error unsupported
@@ -682,7 +680,7 @@ void Pause::long_load_process([[maybe_unused]] Response response) {
 // MINI 2.5mm @ 70mm/s
 // MK3 0.8mm @ 35mm/s
 // MK4* 0.7mm @ 35mm/s
-static constexpr float retract_distance = -2.f; // mm
+static constexpr float retract_distance = -4.f; // mm
 static constexpr feedRate_t retract_feedrate = 35; // mm/s
 
 void Pause::purge_process([[maybe_unused]] Response response) {
@@ -857,7 +855,7 @@ void Pause::load_prime_process([[maybe_unused]] Response response) {
         // Feed a little bit of filament to stabilize pressure in nozzle
 
         // Last poop after user clicked color - yes
-        plan_e_move(5 - retract_distance, 10);
+        plan_e_move(std::abs(retract_distance), 10);
 
         // Retract again, it will be unretracted at the end of unpark
         if (settings.retract) {

@@ -103,6 +103,7 @@ exclude: |
     lib/SG14/|
     lib/nanocbor/|
     lib/libcanard/|
+    src/can/data_types/public_regulated_data_types/|
     tests/stubs/FreeRTOS|
     tests/unit/common/gcode/.*\.gcode$|
     tests/unit/lang/translator/(keys|cs|es|fr|de|pl|it)\.txt$|

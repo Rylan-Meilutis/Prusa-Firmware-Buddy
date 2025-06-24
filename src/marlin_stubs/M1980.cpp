@@ -8,13 +8,13 @@ namespace PrusaGcodeSuite {
  */
 
 /**
- *### M1979: Door Sensor Calibration
+ *### M1980: Door Sensor Calibration
  *
  * Internal GCode
  *
  *#### Usage
  *
- *    M1979
+ *    M1980
  *
  */
 void M1980() {

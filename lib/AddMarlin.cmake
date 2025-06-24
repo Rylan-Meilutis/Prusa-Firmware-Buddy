@@ -113,7 +113,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/gcode/host/M16.cpp
             Marlin/Marlin/src/gcode/lcd/M0_M1.cpp
             Marlin/Marlin/src/gcode/lcd/M117.cpp
-            Marlin/Marlin/src/gcode/lcd/M300.cpp
             Marlin/Marlin/src/gcode/lcd/M73_PE.cpp
             Marlin/Marlin/src/gcode/motion/G0_G1.cpp
             Marlin/Marlin/src/gcode/motion/G2_G3.cpp
@@ -137,7 +136,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/gcode/units/M82_M83.cpp
             Marlin/Marlin/src/HAL/HAL_STM32_F4_F7/Servo.cpp
             Marlin/Marlin/src/HAL/HAL_STM32_F4_F7/STM32F7/TMC2660.cpp
-            Marlin/Marlin/src/libs/buzzer.cpp
             Marlin/Marlin/src/libs/crc16.cpp
             Marlin/Marlin/src/libs/hex_print_routines.cpp
             Marlin/Marlin/src/libs/least_squares_fit.cpp

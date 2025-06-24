@@ -80,10 +80,6 @@
   #include "feature/host_actions.h"
 #endif
 
-#if USE_BEEPER
-  #include "libs/buzzer.h"
-#endif
-
 #if ENABLED(DIGIPOT_I2C)
   #include "feature/digipot/digipot.h"
 #endif
@@ -544,10 +540,6 @@ void idle(bool waiting, bool no_stepper_sleep/*=false*/) {
   manage_inactivity(no_stepper_sleep);
 
   thermalManager.manage_heater();
-
-  #if USE_BEEPER
-    buzzer.tick();
-  #endif
 
   #if ENABLED(I2C_POSITION_ENCODERS)
     static millis_t i2cpem_next_update_ms;

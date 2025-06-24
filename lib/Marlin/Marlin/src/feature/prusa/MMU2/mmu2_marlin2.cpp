@@ -7,7 +7,6 @@
 
 #include "../../inc/MarlinConfig.h"
 #include "../../gcode/gcode.h"
-#include "../../libs/buzzer.h"
 #include "../../module/temperature.h"
 #include "../../module/planner.h"
 #include "../../module/stepper/indirection.h"

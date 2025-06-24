@@ -24,10 +24,6 @@
 #include "../inc/MarlinConfig.h"
 #include <option/has_gui.h>
 
-#if HAS_BUZZER
-  #include "../libs/buzzer.h"
-#endif
-
 #define HAS_DIGITAL_BUTTONS (BUTTONS_EXIST(EN1, EN2) || ANY_BUTTON(ENC, BACK, UP, DWN, LFT, RT))
 #define HAS_ENCODER_WHEEL   (BUTTONS_EXIST(EN1, EN2))
 
@@ -135,10 +131,6 @@ public:
   MarlinUI() {
   }
 
-  #if HAS_BUZZER
-    static void buzz(const long duration, const uint16_t freq);
-  #endif
-
   #if ENABLED(LCD_HAS_STATUS_INDICATORS)
     static void update_indicators();
   #endif
@@ -159,37 +151,6 @@ public:
     static uint8_t alert_level; // Higher levels block lower levels
     static inline void reset_alert_level() { alert_level = 0; }
 
-    #if ENABLED(STATUS_MESSAGE_SCROLLING)
-      static uint8_t status_scroll_offset;
-      static void advance_status_scroll();
-      static char* status_and_len(uint8_t &len);
-    #endif
-
-    #if HAS_PRINT_PROGRESS
-      #if HAS_PRINT_PROGRESS_PERMYRIAD
-        typedef uint16_t progress_t;
-        #define PROGRESS_SCALE 100U
-        #define PROGRESS_MASK 0x7FFF
-      #else
-        typedef uint8_t progress_t;
-        #define PROGRESS_SCALE 1U
-        #define PROGRESS_MASK 0x7F
-      #endif
-      #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-        static progress_t progress_override;
-        static void set_progress(const progress_t p) { progress_override = _MIN(p, 100U * (PROGRESS_SCALE)); }
-        static void set_progress_done() { progress_override = (PROGRESS_MASK + 1U) + 100U * (PROGRESS_SCALE); }
-        static void progress_reset() { if (progress_override & (PROGRESS_MASK + 1U)) set_progress(0); }
-      #endif
-      static progress_t _get_progress();
-      #if HAS_PRINT_PROGRESS_PERMYRIAD
-        static uint16_t get_progress_permyriad() { return _get_progress(); }
-      #endif
-      static uint8_t get_progress_percent() { return uint8_t(_get_progress() / (PROGRESS_SCALE)); }
-    #else
-      static constexpr uint8_t get_progress_percent() { return 0; }
-    #endif
-
     static void refresh() {}
 
     static bool get_blink();
@@ -209,7 +170,6 @@ public:
     static inline void reset_status() {}
     static inline void reset_alert_level() {}
     static constexpr bool has_status() { return false; }
-    static constexpr uint8_t get_progress_percent() { return 0; }
 
   #endif
 
