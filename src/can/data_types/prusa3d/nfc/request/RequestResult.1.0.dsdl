@@ -11,4 +11,10 @@ prusa3d.nfc.util.ReaderError.1.0 write_field
 
 prusa3d.nfc.request.EnumerateFieldsResult.1.0 enumerate_fields
 
+# Read bytes or reader error
+prusa3d.nfc.request.RawReadResult.1.0 raw_read
+
+# Write error or NO_ERROR
+prusa3d.nfc.util.ReaderError.1.0 raw_write
+
 @sealed
