@@ -418,10 +418,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 48: M48(); break;                                    // M48: Z probe repeatability test
       #endif
 
-      #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-        case 73: M73(); break;                                    // M73: Set progress percentage (for display on LCD)
-      #endif
-
       #if ENABLED(M73_PRUSA)
         case 73: M73_PE(); break;                                 // M73 PrusaEdition
       #endif
@@ -566,10 +562,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(BABYSTEPPING)
         case 290: M290(); break;                                  // M290: Babystepping
-      #endif
-
-      #if HAS_BUZZER
-        case 300: M300(); break;                                  // M300: Play beep tone
       #endif
 
       #if ENABLED(PIDTEMP)

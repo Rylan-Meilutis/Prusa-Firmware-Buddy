@@ -65,11 +65,6 @@
  */
 
 /**
- * Marlin uses the Bresenham algorithm. For a detailed explanation of theory and
- * method see https://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
- */
-
-/**
  * Jerk controlled movements planner added Apr 2018 by Eduardo José Tagle.
  * Equations based on Synthethos TinyG2 sources, but the fixed-point
  * implementation is new, as we are running the ISR with a variable period.

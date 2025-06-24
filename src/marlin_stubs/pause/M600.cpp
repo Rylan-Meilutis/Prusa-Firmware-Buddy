@@ -31,8 +31,7 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
 
 // clang-format off
 #if (!ENABLED(ADVANCED_PAUSE_FEATURE)) || \
-    ENABLED(MMU2_MENUS) || \
-    HAS_BUZZER
+    ENABLED(MMU2_MENUS)
     #error unsupported
 #endif
 // clang-format on

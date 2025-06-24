@@ -34,7 +34,6 @@
   #include "dbg.h"
 #endif
 
-#include "../libs/buzzer.h"
 #include "motion.h"
 #include "temperature.h"
 #include "endstops.h"

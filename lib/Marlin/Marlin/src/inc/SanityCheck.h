@@ -194,8 +194,6 @@
   #error "BLTOUCH_V3 is obsolete. Please update your configuration."
 #elif defined(BLTOUCH_FORCE_OPEN_DRAIN_MODE)
   #error "BLTOUCH_FORCE_OPEN_DRAIN_MODE is obsolete. Please update your configuration."
-#elif defined(BEEPER)
-  #error "BEEPER is now BEEPER_PIN. Please update your pins definitions."
 #elif defined(EXTRUDER_0_AUTO_FAN_PIN) || defined(EXTRUDER_1_AUTO_FAN_PIN) || defined(EXTRUDER_2_AUTO_FAN_PIN) || defined(EXTRUDER_3_AUTO_FAN_PIN)
   #error "EXTRUDER_[0123]_AUTO_FAN_PIN is now E[0123]_AUTO_FAN_PIN. Please update your Configuration_adv.h."
 #elif defined(min_software_endstops) || defined(max_software_endstops)
@@ -439,21 +437,6 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
   #error "Enable only one of ENDSTOPPULLUP_Y_MIN or ENDSTOPPULLDOWN_Y_MIN."
 #elif BOTH(ENDSTOPPULLUP_ZMIN, ENDSTOPPULLDOWN_ZMIN)
   #error "Enable only one of ENDSTOPPULLUP_Z_MIN or ENDSTOPPULLDOWN_Z_MIN."
-#endif
-
-/**
- * Progress Bar
- */
-#if ENABLED(LCD_PROGRESS_BAR)
-  #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
-    #error "LCD_PROGRESS_BAR requires LCD_SET_PROGRESS_MANUALLY."
-  #elif 1
-    #error "LCD_PROGRESS_BAR requires a character LCD."
-  #elif PROGRESS_MSG_EXPIRE < 0
-    #error "PROGRESS_MSG_EXPIRE must be greater than or equal to 0."
-  #endif
-#elif ENABLED(LCD_SET_PROGRESS_MANUALLY) && DISABLED(EXTENSIBLE_UI)
-  #error "LCD_SET_PROGRESS_MANUALLY requires LCD_PROGRESS_BAR, Graphical LCD, or EXTENSIBLE_UI."
 #endif
 
 #if ENABLED(SD_REPRINT_LAST_SELECTED_FILE)
@@ -865,10 +848,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #if EITHER(HOME_AFTER_DEACTIVATE, Z_SAFE_HOMING)
     #error "DISABLE_[XYZ] is not compatible with HOME_AFTER_DEACTIVATE or Z_SAFE_HOMING."
   #endif
-#endif
-
-#if ENCODER_PULSES_PER_STEP < 0
-  #error "ENCODER_PULSES_PER_STEP should not be negative, use REVERSE_MENU_DIRECTION instead."
 #endif
 
 /**

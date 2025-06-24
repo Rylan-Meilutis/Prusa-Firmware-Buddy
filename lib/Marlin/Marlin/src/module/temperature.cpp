@@ -78,10 +78,6 @@
   #include "tool_change.h"
 #endif
 
-#if USE_BEEPER
-  #include "../libs/buzzer.h"
-#endif
-
 #include <option/has_dwarf.h>
 #include <option/has_local_bed.h>
 #include <option/has_remote_bed.h>
@@ -784,13 +780,6 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
 
 inline void loud_kill(PGM_P const lcd_msg, const heater_ind_t heater) {
   Running = false;
-  #if USE_BEEPER
-    for (uint8_t i = 20; i--;) {
-      WRITE(BEEPER_PIN, HIGH); delay(25);
-      WRITE(BEEPER_PIN, LOW); delay(80);
-    }
-    WRITE(BEEPER_PIN, HIGH);
-  #endif
   kill(lcd_msg, HEATER_PSTR(heater));
 }
 

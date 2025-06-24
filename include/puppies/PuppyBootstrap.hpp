@@ -138,12 +138,10 @@ private:
      * @brief Check fingerprint and if needed, flash new firmware.
      * @param dock check puppy in this dock
      * @param fw_fingerprints salts already given to puppies and each corresponding fingerprint
-     * @param chunk_offset do initial fingerprint check only with chunk starting at offset
-     * @param chunk_size do initial fingerprint check only with chunk of this size bytes
      * @param percent_offset start position of the progress trackbar
      * @param percent_span length on the progress trackbar filled with this check
      */
-    void flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, uint8_t chunk_offset, uint8_t chunk_size, int percent_offset, int percent_span);
+    void flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, int percent_offset, int percent_span);
 
     /**
      * @brief Tell puppy to check fingerprint and start application.
@@ -173,14 +171,9 @@ private:
     /**
      * @brief Check chunk of fingerprint from puppy.
      * @param fingerprint fingerprint to compare
-     * @param offset compare only a chunk starting at offset
-     * @param size compare only a chunk of size bytes
-     * Offset and size allow to check only a chunk of the entire fingerprint.
-     * It is used to check multiple puppies with one salt.
-     * Second puppy cannot reuse a chunk from the first puppy that appeared on the bus.
      * @return true if fingerprint matches
      */
-    bool fingerprint_match(const fingerprint_t &fingerprint, uint8_t offset = 0, uint8_t size = sizeof(fingerprint_t));
+    bool fingerprint_match(const fingerprint_t &fingerprint);
 
     BootstrapResult run_address_assignment();
     void assign_address(BootloaderProtocol::Address current_address, BootloaderProtocol::Address new_address);

@@ -586,21 +586,6 @@
     #define FEEDRATE_CHANGE_BEEP_FREQUENCY 440
 #endif
 
-// Include a page of printer information in the LCD Main Menu
-//#define LCD_INFO_MENU
-
-// Scroll a longer status message into view
-//#define STATUS_MESSAGE_SCROLLING
-
-// On the Info Screen, display XY with one decimal place when possible
-//#define LCD_DECIMAL_SMALL_XY
-
-// The timeout (in ms) to return to the status screen from sub-menus
-//#define LCD_TIMEOUT_TO_STATUS 15000
-
-// Add an 'M73' G-code to set the current percentage
-//#define LCD_SET_PROGRESS_MANUALLY
-
 // @section safety
 
 // The hardware watchdog should reset the microcontroller disabling all outputs,

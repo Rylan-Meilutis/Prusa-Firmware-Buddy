@@ -73,6 +73,9 @@ add_compile_options(-Wall -Wsign-compare)
 # make all paths stored inside firmware relative
 add_compile_options(-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.)
 
+# make the builds reproducible
+add_compile_options(-frandom-seed=BuddyFW)
+
 add_compile_options(
   $<$<COMPILE_LANGUAGE:CXX>:-Wno-register> $<$<COMPILE_LANGUAGE:CXX>:-Wno-volatile>
   $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
@@ -370,6 +373,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
       CMAKE_ARGS
         --preset xl-dwarf_${CMAKE_BUILD_TYPE_lower}_boot -B "${DWARF_BINARY_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
+      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
       BUILD_BYPRODUCTS "${DWARF_BINARY_PATH}" "${DWARF_BINARY_DIR}/firmware"
       STEP_TARGETS build
@@ -394,6 +398,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
         --preset ${PRINTER_lower}-modularbed_${CMAKE_BUILD_TYPE_lower}_boot -B
         "${MODULARBED_BINARY_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
+      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
       BUILD_BYPRODUCTS "${MODULARBED_BINARY_PATH}" "${MODULARBED_BINARY_DIR}/firmware"
       STEP_TARGETS build
@@ -420,6 +425,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
         --preset ${PRINTER_lower}-xbuddy-extension_${CMAKE_BUILD_TYPE_lower}_boot -B
         "${XBUDDY_EXTENSION_BINARY_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
+      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
       BUILD_BYPRODUCTS "${XBUDDY_EXTENSION_BINARY_PATH}" "${XBUDDY_EXTENSION_BINARY_DIR}/firmware"
       STEP_TARGETS build

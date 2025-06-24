@@ -40,21 +40,6 @@
   char MarlinUI::status_message[MAX_MESSAGE_LENGTH + 1];
 #endif
 
-#if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-  MarlinUI::progress_t MarlinUI::progress_override; // = 0
-#endif
-
-#if HAS_BUZZER
-  #include "../libs/buzzer.h"
-  void MarlinUI::buzz(const long duration, const uint16_t freq) {
-    #if ENABLED(LCD_USE_I2C_BUZZER)
-      lcd.buzz(duration, freq);
-    #elif USE_BEEPER
-      buzzer.tone(duration, freq);
-    #endif
-  }
-#endif
-
 #if HAS_GUI()
 
   #if ENABLED(EXTENSIBLE_UI)
@@ -65,33 +50,8 @@
   /////////////// Status Line ////////////////
   ////////////////////////////////////////////
 
-  #if ENABLED(STATUS_MESSAGE_SCROLLING)
-    void MarlinUI::advance_status_scroll() {
-      // Advance by one UTF8 code-word
-      if (status_scroll_offset < utf8_strlen(status_message))
-        while (!START_OF_UTF8_CHAR(status_message[++status_scroll_offset]));
-      else
-        status_scroll_offset = 0;
-    }
-    char* MarlinUI::status_and_len(uint8_t &len) {
-      char *out = status_message + status_scroll_offset;
-      len = utf8_strlen(out);
-      return out;
-    }
-  #endif
-
   void MarlinUI::finish_status(const bool persist) {
-
-    #if !(ENABLED(LCD_PROGRESS_BAR) && (PROGRESS_MSG_EXPIRE > 0))
-      UNUSED(persist);
-    #endif
-
-    #if ENABLED(LCD_PROGRESS_BAR)
-      progress_bar_ms = millis();
-      #if PROGRESS_MSG_EXPIRE > 0
-        expire_status_ms = persist ? 0 : progress_bar_ms + PROGRESS_MSG_EXPIRE;
-      #endif
-    #endif
+    (void)persist;
 
     #if ENABLED(EXTENSIBLE_UI)
       if (has_status()) {
@@ -221,18 +181,5 @@
     #endif
     print_job_timer.start(); // Also called by M24
   }
-
-  #if HAS_PRINT_PROGRESS
-
-    MarlinUI::progress_t MarlinUI::_get_progress() {
-      #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-        const progress_t p = progress_override & PROGRESS_MASK;
-      #else
-        constexpr progress_t p = 0;
-      #endif
-      return p;
-    }
-
-  #endif
 
 #endif // HAS_GUI()

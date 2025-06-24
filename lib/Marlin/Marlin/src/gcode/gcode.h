@@ -99,7 +99,7 @@
  * M33  - Get the longname version of a path. (Requires LONG_FILENAME_HOST_SUPPORT)
  * M34  - Set SD Card sorting options. (Requires SDCARD_SORT_ALPHA)
  * M48  - Measure Z Probe repeatability: M48 P<points> X<pos> Y<pos> V<level> E<engage> L<legs> S<chizoid>. (Requires Z_MIN_PROBE_REPEATABILITY_TEST)
- * M73  - Set the progress percentage. (Requires LCD_SET_PROGRESS_MANUALLY)
+ * M73  - Set the progress percentage.
  * M75  - Start the print job timer.
  * M76  - Pause the print job timer.
  * M77  - Stop the print job timer.
@@ -547,10 +547,6 @@ private:
     static void M48();
   #endif
 
-  #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-    static void M73();
-  #endif
-
 #if ENABLED(M73_PRUSA)
   static void M73_PE();
 #endif
@@ -689,10 +685,6 @@ private:
 
   #if ENABLED(BABYSTEPPING)
     static void M290();
-  #endif
-
-  #if HAS_BUZZER
-    static void M300();
   #endif
 
   #if ENABLED(PIDTEMP)

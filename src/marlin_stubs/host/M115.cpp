@@ -137,12 +137,7 @@ void GcodeSuite::M115() {
     );
 
     // BUILD_PERCENT (M73)
-    cap_line(PSTR("BUILD_PERCENT")
-#if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-                 ,
-        true
-#endif
-    );
+    cap_line(PSTR("BUILD_PERCENT"));
 
     // SOFTWARE_POWER (M80, M81)
     cap_line(PSTR("SOFTWARE_POWER")

@@ -11,7 +11,6 @@
 #endif
 
 #include <otp.hpp>
-#include <mbedtls/sha256.h>
 #include <tasks.hpp>
 
 #include "sntp_client.h"
