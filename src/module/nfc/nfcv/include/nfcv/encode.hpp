@@ -7,6 +7,7 @@
 #include <iso13239/crc.hpp>
 
 #include <expected>
+#include <type_traits>
 
 namespace nfcv {
 using MsgBuilder = stdext::inplace_vector<std::byte, 512>;
@@ -26,11 +27,25 @@ public:
 
     void append_byte(std::byte byte);
     void append_bytes(const std::span<const std::byte> &bytes);
+
+    template <typename T>
+    void append_raw(const T &val) {
+        append_raw_impl(val);
+    }
+
     void append_crc_and_finalize();
 
 private:
     void append_byte_impl(std::byte byte, bool calculate_crc = true);
     void append_bytes_impl(const std::span<const std::byte> &bytes, bool calculate_crc = true);
+
+    template <typename T>
+    void append_raw_impl(const T &val, bool calculate_crc = true) {
+        static_assert(std::is_trivial_v<T>);
+        static_assert(std::endian::native == std::endian::little);
+        append_bytes_impl(std::span { reinterpret_cast<const std::byte *>(&val), sizeof(val) }, calculate_crc);
+    }
+
     MsgBuilder &builder;
     iso13239::CRC crc;
     bool did_finalize;

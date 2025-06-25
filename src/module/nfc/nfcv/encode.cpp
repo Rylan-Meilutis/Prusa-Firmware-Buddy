@@ -45,10 +45,7 @@ void nfcv::Encoder1Of4::append_crc_and_finalize() {
         std::abort();
     }
     did_finalize = true;
-    auto crc_res = crc.get_result();
-    static_assert(std::endian::native == std::endian::little);
-    const std::span<std::byte> crc_res_span { reinterpret_cast<std::byte *>(&crc_res), sizeof(crc_res) };
-    append_bytes_impl(crc_res_span, false);
+    append_raw_impl(crc.get_result(), false);
     builder.push_back(std::byte { 0x04 }); // EOF
 }
 
@@ -78,9 +75,7 @@ constexpr std::size_t expected_message_size([[maybe_unused]] const command::Syst
 }
 
 Result<void> construct_rest(Encoder1Of4 &encoder, const command::SystemInfo &command) {
-    for (const auto &byte : command.request.uid) {
-        encoder.append_byte(byte);
-    }
+    encoder.append_bytes(command.request.uid);
     return {};
 }
 
@@ -89,10 +84,8 @@ constexpr std::size_t expected_message_size([[maybe_unused]] const command::Read
 }
 
 Result<void> construct_rest(Encoder1Of4 &encoder, const command::ReadSingleBlock &command) {
-    for (const auto &byte : command.request.uid) {
-        encoder.append_byte(byte);
-    }
-    encoder.append_byte(std::byte { command.request.block_address });
+    encoder.append_bytes(command.request.uid);
+    encoder.append_raw(command.request.block_address);
     return {};
 }
 
@@ -101,13 +94,9 @@ constexpr std::size_t expected_message_size(const command::WriteSingleBlock &com
 }
 
 Result<void> construct_rest(Encoder1Of4 &encoder, const command::WriteSingleBlock &command) {
-    for (const auto &byte : command.request.uid) {
-        encoder.append_byte(byte);
-    }
-    encoder.append_byte(std::byte { command.request.block_address });
-    for (const auto &byte : command.request.block_buffer) {
-        encoder.append_byte(byte);
-    }
+    encoder.append_bytes(command.request.uid);
+    encoder.append_raw(command.request.block_address);
+    encoder.append_bytes(command.request.block_buffer);
     return {};
 }
 
