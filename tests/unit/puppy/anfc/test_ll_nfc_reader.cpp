@@ -367,6 +367,10 @@ namespace data {
 constexpr nfcv::UID uid1 { std::byte { 0x01 }, std::byte { 0x02 }, std::byte { 0x02 }, std::byte { 0x03 }, std::byte { 0x39 }, std::byte { 0x01 }, std::byte { 0x04 }, nfcv::UID_MSB };
 constexpr nfcv::UID uid2 { std::byte { 0x04 }, std::byte { 0x05 }, std::byte { 0x06 }, std::byte { 0x07 }, std::byte { 0x39 }, std::byte { 0x01 }, std::byte { 0x04 }, nfcv::UID_MSB };
 constexpr nfcv::UID uid3 { std::byte { 0x08 }, std::byte { 0x09 }, std::byte { 0x0a }, std::byte { 0x0b }, std::byte { 0x39 }, std::byte { 0x01 }, std::byte { 0x04 }, nfcv::UID_MSB };
+
+// Actual UID of a sample SLIX2 tag
+constexpr nfcv::UID uid1_slix2 { std::byte { 0xBC }, std::byte { 0x6F }, std::byte { 0x2F }, std::byte { 0x66 }, std::byte { 0x08 }, std::byte { 0x01 }, std::byte { 0x04 }, nfcv::UID_MSB };
+
 constexpr nfcv::TagInfo tag_info1 { .dsfid = std::nullopt, .afi = std::nullopt, .mem_size = nfcv::TagInfo::MemorySize { .block_size = 4, .block_count = 64 }, .ic_ref = std::nullopt };
 } // namespace data
 
@@ -945,5 +949,67 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
                                                     WriteSingleBlock { .uid = data::uid1, .block_address = 1, .data = std::vector { std::byte { 0xfe }, std::byte { 0x05 }, std::byte { 0x06 }, std::byte { 0x07 } } },
                                                     FieldDown {},
                                                 }));
+    }
+}
+
+TEST_CASE("Test NFC-V register commands", "[nfcv]") {
+    EventLogger logger;
+    logger.events = {};
+    logger.fake_antennas = { { data::uid1_slix2, std::nullopt, std::nullopt }, {} };
+    logger.tags[data::uid1_slix2] = TagData {
+        .info = {
+            .mem_size = nfcv::TagInfo::MemorySize { .block_size = 4, .block_count = 64 },
+        },
+    };
+    logger.antenna_index = 1;
+
+    const auto &tag = logger.tags[data::uid1_slix2];
+
+    SECTION("Password setting/writing") {
+        CHECK(tag.set_password != tag.stored_password);
+
+        // Password not set - cannot write password
+        CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == std::unexpected(nfcv::Error::response_is_error));
+
+        // Set correct password
+        {
+            CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0) == nfcv::Result<void> {});
+            CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::write_password, 0) == nfcv::Result<void> {});
+            CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::eas_afi_password, 0) == nfcv::Result<void> {});
+            CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::privacy_password, 0x0F0F0F0F) == nfcv::Result<void> {});
+            CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::destroy_password, 0x0F0F0F0F) == nfcv::Result<void> {});
+
+            CAPTURE(tag.set_password);
+            CAPTURE(tag.stored_password);
+            CAPTURE(*tag.random_number);
+            CHECK(tag.set_password == tag.stored_password);
+        }
+
+        // Now write the new password
+        {
+
+            CAPTURE(tag.set_password);
+            CAPTURE(tag.stored_password);
+            CAPTURE(*tag.random_number);
+            CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == nfcv::Result<void> {});
+        }
+
+        // Writing password again should fail, because the password has changed and we need to set it
+        CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == std::unexpected(nfcv::Error::response_is_error));
+
+        // Set some wrong password
+        CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0x1234) == std::unexpected(nfcv::Error::response_is_error));
+
+        // Still failing
+        CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xdeadbeef) == std::unexpected(nfcv::Error::response_is_error));
+
+        // Set correct password
+        CHECK(logger.set_password(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == nfcv::Result<void> {});
+
+        // Write the same password again
+        CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == nfcv::Result<void> {});
+
+        // Write it again - should still be no error
+        CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == nfcv::Result<void> {});
     }
 }
