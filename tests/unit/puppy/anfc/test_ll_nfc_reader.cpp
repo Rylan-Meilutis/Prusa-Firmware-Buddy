@@ -12,58 +12,27 @@
 struct FieldUp {
     nfcv::ReaderWriterInterface::AntennaData antenna;
 
-    bool operator==(const FieldUp &other) const {
-        return antenna == other.antenna;
-    }
+    bool operator==(const FieldUp &other) const = default;
 };
 
 struct FieldDown {
-    bool operator==(const FieldDown &) const {
-        return true;
-    }
+    bool operator==(const FieldDown &other) const = default;
 };
 
 struct SwitchToNextDiscoveryAntenna {
-    bool operator==(const SwitchToNextDiscoveryAntenna &) const {
-        return true;
-    }
+    bool operator==(const SwitchToNextDiscoveryAntenna &other) const = default;
 };
 
-struct Inventory {
-    bool operator==(const Inventory &) const {
-        return true;
-    }
-};
-
-struct StayQuiet {
-    nfcv::UID uid;
-    bool operator==(const StayQuiet &other) const {
-        return uid == other.uid;
-    }
-};
-
-struct SystemInfo {
-    nfcv::UID uid;
-    bool operator==(const SystemInfo &other) const {
-        return uid == other.uid;
-    }
-};
-
-struct ReadSingleBlock {
-    nfcv::UID uid;
-    nfcv::BlockID block_address;
-    bool operator==(const ReadSingleBlock &other) const {
-        return uid == other.uid && block_address == other.block_address;
-    }
-};
+using Inventory = nfcv::command::Inventory::Request;
+using StayQuiet = nfcv::command::StayQuiet::Request;
+using SystemInfo = nfcv::command::SystemInfo::Request;
+using ReadSingleBlock = nfcv::command::ReadSingleBlock::Request;
 
 struct WriteSingleBlock {
     nfcv::UID uid;
     nfcv::BlockID block_address;
     std::vector<std::byte> data;
-    bool operator==(const WriteSingleBlock &other) const {
-        return uid == other.uid && block_address == other.block_address && data == other.data;
-    }
+    bool operator==(const WriteSingleBlock &other) const = default;
 };
 
 using Event = std::variant<FieldUp, FieldDown, SwitchToNextDiscoveryAntenna, Inventory, StayQuiet, SystemInfo, ReadSingleBlock, WriteSingleBlock>;
@@ -92,7 +61,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     }
 
     nfcv::Result<void> nfcv_command_impl(nfcv::command::Inventory &command) {
-        events.push_back(Inventory {});
+        events.push_back(command.request);
         auto &curr_queue = fake_antennas[antenna_index];
         if (curr_queue.size() > 0) {
             const auto element = curr_queue.front();
@@ -107,9 +76,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     }
 
     nfcv::Result<void> nfcv_command_impl(nfcv::command::StayQuiet &command) {
-        StayQuiet stay_quiet {};
-        std::copy_n(command.request.uid.begin(), command.request.uid.size(), stay_quiet.uid.begin());
-        events.push_back(stay_quiet);
+        events.push_back(command.request);
         return {};
     }
 
@@ -130,9 +97,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> nfcv_command_impl(nfcv::command::ReadSingleBlock &command) {
         const auto &buffer = command.response;
 
-        ReadSingleBlock read_block { .uid = {}, .block_address = command.request.block_address };
-        std::ranges::copy(command.request.uid, read_block.uid.begin());
-        events.push_back(read_block);
+        events.push_back(command.request);
 
         auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(command.request.uid, element.first); });
         if (tag != tags.end()) {
@@ -146,10 +111,11 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> nfcv_command_impl(nfcv::command::WriteSingleBlock &command) {
         const auto &buffer = command.request.block_buffer;
 
-        WriteSingleBlock write_block { .uid = {}, .block_address = command.request.block_address, .data = {} };
-        std::ranges::copy(command.request.uid, write_block.uid.begin());
-        std::ranges::copy(buffer, std::back_insert_iterator { write_block.data });
-        events.push_back(write_block);
+        events.push_back(WriteSingleBlock {
+            .uid = command.request.uid,
+            .block_address = command.request.block_address,
+            .data { command.request.block_buffer.begin(), command.request.block_buffer.end() },
+        });
 
         auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(command.request.uid, element.first); });
         if (tag != tags.end()) {

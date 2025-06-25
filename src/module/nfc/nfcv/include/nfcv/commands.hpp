@@ -12,6 +12,7 @@ namespace command {
     struct Inventory {
         static constexpr std::byte cmd_id { 0x01 };
         struct Request {
+            inline bool operator==(const Request &o) const = default;
         } request;
         using Response = UID;
         Response &response;
@@ -21,6 +22,8 @@ namespace command {
         static constexpr std::byte cmd_id { 0x2B };
         struct Request {
             UID uid;
+
+            inline bool operator==(const Request &o) const = default;
         } request;
         using Response = TagInfo;
         Response &response;
@@ -31,6 +34,8 @@ namespace command {
         struct Request {
             UID uid;
             uint8_t block_address;
+
+            inline bool operator==(const Request &o) const = default;
         } request;
         using Response = const std::span<std::byte>;
         Response response;
@@ -51,6 +56,8 @@ namespace command {
         static constexpr std::byte cmd_id { 0x02 };
         struct Request {
             UID uid;
+
+            inline bool operator==(const Request &o) const = default;
         } request = {};
         // No repsonse expected
     };
