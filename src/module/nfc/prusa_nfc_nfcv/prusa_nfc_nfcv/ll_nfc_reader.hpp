@@ -23,6 +23,8 @@ public:
 
     void reset_state() final;
 
+    [[nodiscard]] virtual IOResult<void> initialize_tag(NFCTagID tag, const InitializeTagParams &params) override;
+
 private:
     enum class TagType : uint8_t {
         slix2,

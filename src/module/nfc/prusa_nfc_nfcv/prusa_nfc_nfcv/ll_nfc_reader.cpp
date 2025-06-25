@@ -192,6 +192,163 @@ void LLNFCReader::reset_state() {
     events.clear();
 }
 
+INFCReader::IOResult<void> LLNFCReader::initialize_tag(NFCTagID tag, const InitializeTagParams &params) {
+    if (!is_valid(tag)) {
+        return std::unexpected(IOError::invalid_id);
+    }
+    const TagData &tag_data = tags.at(tag);
+
+    // The initialize_tag procedure is only implemented for our ICODE SLIX 2 tags
+    if (tag_data.tag_type != TagType::slix2) {
+        return std::unexpected(IOError::not_implemented);
+    }
+
+    const auto recoverable_op = [&](nfcv::Result<void> r, bool *clear_on_failure = nullptr) -> IOResult<void> {
+        if (r) {
+            return {};
+
+        } else if (params.best_effort && r.error() == nfcv::Error::response_is_error) {
+            // The chip will stop responding if we try to do a command with wrong password, we need to power cycle
+            reader.field_down();
+            if (auto r = reader.field_up(tag_data.antenna); !r) {
+                return std::unexpected(to_prusa_error(r.error()));
+            }
+
+            if (clear_on_failure) {
+                *clear_on_failure = false;
+            }
+
+            return {};
+
+        } else {
+            return handle_io_error(tag, r.error());
+        }
+    };
+
+    nfcv::FieldGuard field_guard(reader, tag_data.antenna);
+    if (!field_guard.result) {
+        return to_prusa_unexpected(field_guard.result.error());
+    }
+
+    // Set up various registers
+    {
+        // Set AFI to 0
+        if (auto r = recoverable_op(reader.write_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::afi, 0)); !r) {
+            return r;
+        }
+
+        // Set DSFID to 0
+        if (auto r = recoverable_op(reader.write_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::dsfid, 0)); !r) {
+            return r;
+        }
+
+        // Disable EAS
+        if (auto r = recoverable_op(reader.write_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::eas, 0)); !r) {
+            return r;
+        }
+    }
+
+    using Policy = InitializeTagParams::ProtectionPolicy;
+    using LockMode = nfcv::ReaderWriterInterface::LockMode;
+    using Register = nfcv::ReaderWriterInterface::Register;
+    switch (params.protection_policy) {
+
+    case Policy::none:
+        // All done!
+        return {};
+
+    case Policy::write_password: {
+        const auto tag_info = reader.get_system_info(tag_data.uid);
+        if (!tag_info) {
+            return handle_io_error(tag, tag_info.error());
+        }
+        const auto block_size = tag_info->mem_size.value_or(nfcv::TagInfo::MemorySize {}).block_size;
+        if (block_size == 0) {
+            return handle_io_error(tag, nfcv::Error::bad_request);
+        }
+
+        // Set up the passwords
+        for (auto reg : { Register::read_password, Register::write_password, Register::eas_afi_password, Register::destroy_password, Register::privacy_password }) {
+            // "Log in" with the default passwords
+            const auto default_pwd = (reg == Register::privacy_password || reg == Register::destroy_password) ? 0x0F0F0F0F : 0x00000000;
+            bool password_set = true;
+            if (auto r = recoverable_op(reader.set_password(tag_data.uid, reg, default_pwd), &password_set); !r) {
+                return r;
+            }
+
+            if (!password_set) {
+                continue;
+            }
+
+            // Write our new password
+            if (auto r = recoverable_op(reader.write_register(tag_data.uid, reg, params.password)); !r) {
+                return r;
+            }
+        }
+
+        // Password protect memory
+        {
+            bool both_passwords_set = true;
+
+            for (auto reg : { Register::read_password, Register::write_password }) {
+                if (auto r = recoverable_op(reader.set_password(tag_data.uid, reg, params.password), &both_passwords_set); !r) {
+                    return r;
+                }
+            }
+
+            if (both_passwords_set) {
+                const nfcv::command::ProtectPage cmd { {
+                    .uid = tag_data.uid,
+                    .boundary_block_address = static_cast<uint8_t>(params.protect_first_num_bytes / block_size),
+                    .l_page_protection = nfcv::SLIX2PageProtection::write,
+                    .h_page_protection = nfcv::SLIX2PageProtection::none,
+                } };
+                if (auto r = recoverable_op(reader.nfcv_command(cmd)); !r) {
+                    return r;
+                }
+            }
+        }
+
+        // !!! IRREVERSIBLE OPERATIONS
+        // NOTE: The if is there for easy disable during debugging
+        if (1) {
+            bool eas_afi_password_set = true;
+            if (auto r = recoverable_op(reader.set_password(tag_data.uid, Register::eas_afi_password, params.password), &eas_afi_password_set); !r) {
+                return r;
+            }
+
+            if (eas_afi_password_set) {
+                // Password protect EAS
+                if (auto r = recoverable_op(reader.lock_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::eas, LockMode::password_protect)); !r) {
+                    return r;
+                }
+
+                // Password protect AFI
+                if (auto r = recoverable_op(reader.lock_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::afi, LockMode::password_protect)); !r) {
+                    return r;
+                }
+            }
+
+            // Lock DSFID - cannot be password protected :(
+            if (auto r = recoverable_op(reader.lock_register(tag_data.uid, nfcv::ReaderWriterInterface::Register::dsfid, LockMode::hard_lock)); !r) {
+                return r;
+            }
+        }
+
+        return {};
+    }
+
+    case Policy::lock:
+        return std::unexpected(IOError::not_implemented);
+
+    case Policy::_cnt:
+        // Fallback to unreachable
+        break;
+    }
+
+    std::unreachable();
+}
+
 bool LLNFCReader::is_valid(NFCTagID tag_id) {
     static_assert(!std::is_signed_v<decltype(tag_id)>);
     if (tag_id >= MAX_KNOWN_TAGS) {

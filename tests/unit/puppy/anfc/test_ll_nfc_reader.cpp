@@ -3,6 +3,7 @@
 #include <nfcv/rw_interface.hpp>
 #include <nfcv/encode.hpp>
 #include <catch2/catch.hpp>
+#include <test_utils/formatters.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -1011,5 +1012,126 @@ TEST_CASE("Test NFC-V register commands", "[nfcv]") {
 
         // Write it again - should still be no error
         CHECK(logger.write_register(data::uid1_slix2, nfcv::ReaderWriterInterface::Register::read_password, 0xafaf) == nfcv::Result<void> {});
+    }
+}
+
+TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
+    constexpr auto tag_uid = data::uid1_slix2;
+
+    EventLogger logger;
+    logger.events = {};
+    logger.fake_antennas = { { tag_uid, std::nullopt, std::nullopt }, {} };
+    logger.tags[tag_uid] = TagData {
+        .info = {
+            .mem_size = nfcv::TagInfo::MemorySize { .block_size = 4, .block_count = 64 },
+        },
+    };
+    logger.antenna_index = 1;
+
+    LLNFCReader reader(logger);
+    INFCReader::Event event;
+
+    auto &tag = logger.tags[tag_uid];
+
+    std::vector<std::byte> tag_data {};
+    tag_data.resize(tag.info.mem_size->block_size * tag.info.mem_size->block_count);
+    tag.data = &tag_data;
+
+    // Process tag detection
+    {
+        INFCReader::Event event;
+        auto res = reader.get_event(event);
+        REQUIRE(res == true);
+        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
+        const auto &ev = std::get<INFCReader::TagDetectedEvent>(event);
+        CHECK(ev.tag == 0);
+        logger.events.clear();
+    }
+
+    constexpr auto io_success = INFCReader::IOResult<void>();
+
+    constexpr NFCOffset lock_boundary = 32;
+
+    constexpr std::array test1 { std::byte { 0x12 }, std::byte { 0x34 } };
+    constexpr std::array test2 { std::byte { 0x56 }, std::byte { 0x78 } };
+    std::array<std::byte, 2> read_buf;
+
+    const auto check_write_access = [&](bool locked, bool registers_locked) {
+        const INFCReader::IOResult<void> expected_write_result = locked ? std::unexpected(INFCReader::IOError::other) : INFCReader::IOResult<void> {};
+
+        // Reads should always succeed
+        CHECK(reader.read(0, lock_boundary, read_buf) == io_success);
+        CHECK(reader.read(0, lock_boundary - test1.size(), read_buf) == io_success);
+
+        CHECK(reader.write(0, lock_boundary - test1.size(), test1) == expected_write_result);
+
+        // Writes after lock boundary should always succeed
+        CHECK(reader.write(0, lock_boundary, test2) == io_success);
+
+        // Check registers writing
+        {
+            using Register = nfcv::ReaderWriterInterface::Register;
+            const nfcv::Result<void> expected_ll_write_result = registers_locked ? std::unexpected(nfcv::Error::response_is_error) : nfcv::Result<void> {};
+
+            nfcv::FieldGuard field_guard { logger, 0 };
+
+            CHECK(logger.write_register(tag_uid, Register::afi, 135) == expected_ll_write_result);
+            CHECK(logger.write_register(tag_uid, Register::dsfid, 231) == expected_ll_write_result);
+            CHECK(logger.write_register(tag_uid, Register::eas, 1) == expected_ll_write_result);
+
+            // At no point we should be able to just write a password (we would first need to set_password either to 0 or to the protection one)
+            CHECK(logger.write_register(tag_uid, Register::write_password, 1234) == std::unexpected(nfcv::Error::response_is_error));
+        }
+    };
+
+    {
+        INFO("Initial write access check");
+        check_write_access(false, false);
+    }
+
+    using Params = INFCReader::InitializeTagParams;
+    Params params {
+        .password = 0xdeadbeef,
+        .protect_first_num_bytes = lock_boundary,
+    };
+
+    const auto post_init_checks = [&] {
+        INFO("Post-init checks");
+
+        // Check that the tag has been initialized properly
+        CHECK(tag.info.afi == 0);
+        CHECK(tag.info.dsfid == 0);
+
+        const bool locked = params.protection_policy != Params::ProtectionPolicy::none;
+
+        if (locked) {
+            // Double locking should fail
+            CHECK(reader.initialize_tag(0, params) == std::unexpected(INFCReader::IOError::other));
+        }
+
+        check_write_access(locked, locked);
+    };
+
+    SECTION("No protection") {
+        const auto r = reader.initialize_tag(0, params);
+        REQUIRE(r == io_success);
+
+        post_init_checks();
+    }
+
+    SECTION("Locking") {
+        params.protection_policy = Params::ProtectionPolicy::lock;
+        const auto r = reader.initialize_tag(0, params);
+
+        // Update unittests if this gets supported
+        REQUIRE(r == std::unexpected(INFCReader::IOError::not_implemented));
+    }
+
+    SECTION("Write password protection") {
+        params.protection_policy = Params::ProtectionPolicy::write_password;
+        const auto r = reader.initialize_tag(0, params);
+        REQUIRE(r == io_success);
+
+        post_init_checks();
     }
 }
