@@ -88,7 +88,7 @@ private: //* Scaffolding
     can::cyphal::SaltedAppHashCommandServer salted_app_hash_server;
 
     /// GetInfo Server, mandatory device info
-    static constexpr const char *name = "cz.prusa3d.pub6.nfc";
+    static constexpr const char *name = "cz.prusa3d.honeybee.nfc";
     can::cyphal::ServerTraited<uavcan_node_GetInfo_1_0_Traits> get_info_server;
 
     void wait_for_pnp();
