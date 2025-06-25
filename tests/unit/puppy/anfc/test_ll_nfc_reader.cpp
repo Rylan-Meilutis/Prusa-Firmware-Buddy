@@ -51,18 +51,18 @@ struct SystemInfo {
 
 struct ReadSingleBlock {
     nfcv::UID uid;
-    nfcv::BlockID block_id;
+    nfcv::BlockID block_address;
     bool operator==(const ReadSingleBlock &other) const {
-        return uid == other.uid && block_id == other.block_id;
+        return uid == other.uid && block_address == other.block_address;
     }
 };
 
 struct WriteSingleBlock {
     nfcv::UID uid;
-    nfcv::BlockID block_id;
+    nfcv::BlockID block_address;
     std::vector<std::byte> data;
     bool operator==(const WriteSingleBlock &other) const {
-        return uid == other.uid && block_id == other.block_id && data == other.data;
+        return uid == other.uid && block_address == other.block_address && data == other.data;
     }
 };
 
@@ -130,7 +130,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> nfcv_command_impl(nfcv::command::ReadSingleBlock &command) {
         const auto &buffer = command.response;
 
-        ReadSingleBlock read_block { .uid = {}, .block_id = command.request.block_address };
+        ReadSingleBlock read_block { .uid = {}, .block_address = command.request.block_address };
         std::ranges::copy(command.request.uid, read_block.uid.begin());
         events.push_back(read_block);
 
@@ -146,7 +146,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> nfcv_command_impl(nfcv::command::WriteSingleBlock &command) {
         const auto &buffer = command.request.block_buffer;
 
-        WriteSingleBlock write_block { .uid = {}, .block_id = command.request.block_address, .data = {} };
+        WriteSingleBlock write_block { .uid = {}, .block_address = command.request.block_address, .data = {} };
         std::ranges::copy(command.request.uid, write_block.uid.begin());
         std::ranges::copy(buffer, std::back_insert_iterator { write_block.data });
         events.push_back(write_block);
@@ -459,7 +459,7 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         REQUIRE(std::ranges::all_of(std::views::zip(data, std::views::iota(1)), [](const auto &item) { return std::get<0>(item) == static_cast<std::byte>(std::get<1>(item)); }));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
                                                     FieldDown {},
                                                 }));
     }
@@ -473,8 +473,8 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         REQUIRE(std::ranges::all_of(std::views::zip(data, std::views::iota(3)), [](const auto &item) { return std::get<0>(item) == static_cast<std::byte>(std::get<1>(item)); }));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 1 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 1 },
                                                     FieldDown {},
                                                 }));
     }
@@ -488,14 +488,14 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         REQUIRE(std::ranges::all_of(std::views::zip(data, std::views::iota(16)), [](const auto &item) { return std::get<0>(item) == static_cast<std::byte>(std::get<1>(item)); }));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 4 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 5 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 6 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 7 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 8 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 9 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 10 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 11 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 4 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 5 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 6 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 7 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 8 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 9 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 10 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 11 },
                                                     FieldDown {},
                                                 }));
     }
@@ -509,16 +509,16 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         REQUIRE(std::ranges::all_of(std::views::zip(data, std::views::iota(15)), [](const auto &item) { return std::get<0>(item) == static_cast<std::byte>(std::get<1>(item)); }));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 3 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 4 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 5 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 6 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 7 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 8 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 9 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 10 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 11 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 12 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 3 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 4 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 5 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 6 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 7 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 8 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 9 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 10 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 11 },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 12 },
                                                     FieldDown {},
                                                 }));
     }
@@ -584,14 +584,14 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0xfd }, std::byte { 0xfc } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 1, .data = std::vector { std::byte { 0xfb }, std::byte { 0xfa }, std::byte { 0xf9 }, std::byte { 0xf8 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 2, .data = std::vector { std::byte { 0xf7 }, std::byte { 0xf6 }, std::byte { 0xf5 }, std::byte { 0xf4 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 3, .data = std::vector { std::byte { 0xf3 }, std::byte { 0xf2 }, std::byte { 0xf1 }, std::byte { 0xf0 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 4, .data = std::vector { std::byte { 0xef }, std::byte { 0xee }, std::byte { 0xed }, std::byte { 0xec } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 5, .data = std::vector { std::byte { 0xeb }, std::byte { 0xea }, std::byte { 0xe9 }, std::byte { 0xe8 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 6, .data = std::vector { std::byte { 0xe7 }, std::byte { 0xe6 }, std::byte { 0xe5 }, std::byte { 0xe4 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 7, .data = std::vector { std::byte { 0xe3 }, std::byte { 0xe2 }, std::byte { 0xe1 }, std::byte { 0xe0 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0xfd }, std::byte { 0xfc } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 1, .data = std::vector { std::byte { 0xfb }, std::byte { 0xfa }, std::byte { 0xf9 }, std::byte { 0xf8 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 2, .data = std::vector { std::byte { 0xf7 }, std::byte { 0xf6 }, std::byte { 0xf5 }, std::byte { 0xf4 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 3, .data = std::vector { std::byte { 0xf3 }, std::byte { 0xf2 }, std::byte { 0xf1 }, std::byte { 0xf0 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 4, .data = std::vector { std::byte { 0xef }, std::byte { 0xee }, std::byte { 0xed }, std::byte { 0xec } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 5, .data = std::vector { std::byte { 0xeb }, std::byte { 0xea }, std::byte { 0xe9 }, std::byte { 0xe8 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 6, .data = std::vector { std::byte { 0xe7 }, std::byte { 0xe6 }, std::byte { 0xe5 }, std::byte { 0xe4 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 7, .data = std::vector { std::byte { 0xe3 }, std::byte { 0xe2 }, std::byte { 0xe1 }, std::byte { 0xe0 } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -610,12 +610,12 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0xff }, std::byte { 0xfe } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 1, .data = std::vector { std::byte { 0xfd }, std::byte { 0xfc }, std::byte { 0xfb }, std::byte { 0xfa } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 2, .data = std::vector { std::byte { 0xf9 }, std::byte { 0xf8 }, std::byte { 0xf7 }, std::byte { 0xf6 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 3, .data = std::vector { std::byte { 0xf5 }, std::byte { 0xf4 }, std::byte { 0xf3 }, std::byte { 0xf2 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 4, .data = std::vector { std::byte { 0xf1 }, std::byte { 0xf0 }, std::byte { 0xef }, std::byte { 0xee } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0xff }, std::byte { 0xfe } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 1, .data = std::vector { std::byte { 0xfd }, std::byte { 0xfc }, std::byte { 0xfb }, std::byte { 0xfa } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 2, .data = std::vector { std::byte { 0xf9 }, std::byte { 0xf8 }, std::byte { 0xf7 }, std::byte { 0xf6 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 3, .data = std::vector { std::byte { 0xf5 }, std::byte { 0xf4 }, std::byte { 0xf3 }, std::byte { 0xf2 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 4, .data = std::vector { std::byte { 0xf1 }, std::byte { 0xf0 }, std::byte { 0xef }, std::byte { 0xee } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -636,12 +636,12 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 1, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0xfd }, std::byte { 0xfc } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 2, .data = std::vector { std::byte { 0xfb }, std::byte { 0xfa }, std::byte { 0xf9 }, std::byte { 0xf8 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 3, .data = std::vector { std::byte { 0xf7 }, std::byte { 0xf6 }, std::byte { 0xf5 }, std::byte { 0xf4 } } },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 4, .data = std::vector { std::byte { 0xf3 }, std::byte { 0xf2 }, std::byte { 0xf1 }, std::byte { 0xf0 } } },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 5 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 5, .data = std::vector { std::byte { 0xef }, std::byte { 0xee }, std::byte { 0x16 }, std::byte { 0x17 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 1, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0xfd }, std::byte { 0xfc } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 2, .data = std::vector { std::byte { 0xfb }, std::byte { 0xfa }, std::byte { 0xf9 }, std::byte { 0xf8 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 3, .data = std::vector { std::byte { 0xf7 }, std::byte { 0xf6 }, std::byte { 0xf5 }, std::byte { 0xf4 } } },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 4, .data = std::vector { std::byte { 0xf3 }, std::byte { 0xf2 }, std::byte { 0xf1 }, std::byte { 0xf0 } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 5 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 5, .data = std::vector { std::byte { 0xef }, std::byte { 0xee }, std::byte { 0x16 }, std::byte { 0x17 } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -661,8 +661,8 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0x02 }, std::byte { 0x03 } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0x02 }, std::byte { 0x03 } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -683,8 +683,8 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0x03 } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0xff }, std::byte { 0xfe }, std::byte { 0x03 } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -705,8 +705,8 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0xff }, std::byte { 0xfe } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0xff }, std::byte { 0xfe } } },
                                                     FieldDown {},
                                                 }));
     }
@@ -727,10 +727,10 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         CHECK(tag1[data.size() + offset] == static_cast<std::byte>(data.size() + offset));
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 0 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0x02 }, std::byte { 0xff } } },
-                                                    ReadSingleBlock { .uid = data::uid1, .block_id = 1 },
-                                                    WriteSingleBlock { .uid = data::uid1, .block_id = 1, .data = std::vector { std::byte { 0xfe }, std::byte { 0x05 }, std::byte { 0x06 }, std::byte { 0x07 } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 0 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 0, .data = std::vector { std::byte { 0x00 }, std::byte { 0x01 }, std::byte { 0x02 }, std::byte { 0xff } } },
+                                                    ReadSingleBlock { .uid = data::uid1, .block_address = 1 },
+                                                    WriteSingleBlock { .uid = data::uid1, .block_address = 1, .data = std::vector { std::byte { 0xfe }, std::byte { 0x05 }, std::byte { 0x06 }, std::byte { 0x07 } } },
                                                     FieldDown {},
                                                 }));
     }
