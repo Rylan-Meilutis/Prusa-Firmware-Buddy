@@ -87,64 +87,74 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return static_cast<AntennaData>(antenna_index);
     }
 
-    nfcv::Result<nfcv::UID> inventory() final {
+    [[nodiscard]] nfcv::Result<void> nfcv_command(nfcv::Command &command) final {
+        return std::visit([&](auto &command) { return nfcv_command_impl(command); }, command);
+    }
+
+    nfcv::Result<void> nfcv_command_impl(nfcv::command::Inventory &command) {
         events.push_back(Inventory {});
         auto &curr_queue = fake_antennas[antenna_index];
         if (curr_queue.size() > 0) {
             const auto element = curr_queue.front();
             curr_queue.pop_front();
             if (element.has_value()) {
-                return *element;
+                std::ranges::copy(*element, command.response.uid.begin());
+                return {};
             }
         }
 
         return std::unexpected(nfcv::Error::no_response);
     }
 
-    nfcv::Result<void> stay_quiet(const nfcv::UID &uid) final {
+    nfcv::Result<void> nfcv_command_impl(nfcv::command::StayQuiet &command) {
         StayQuiet stay_quiet {};
-        std::copy_n(uid.begin(), uid.size(), stay_quiet.uid.begin());
+        std::copy_n(command.request.uid.begin(), command.request.uid.size(), stay_quiet.uid.begin());
         events.push_back(stay_quiet);
         return {};
     }
 
-    nfcv::Result<nfcv::TagInfo> get_system_info(const nfcv::UID &uid) final {
+    nfcv::Result<void> nfcv_command_impl(nfcv::command::SystemInfo &command) {
         SystemInfo sys_info {};
-        std::copy_n(uid.begin(), uid.size(), sys_info.uid.begin());
+        std::copy_n(command.request.uid.begin(), command.request.uid.size(), sys_info.uid.begin());
         events.push_back(sys_info);
 
-        auto tag_data = std::ranges::find_if(tag_infos, [&](const auto &element) { return std::ranges::equal(uid, element.first); });
+        auto tag_data = std::ranges::find_if(tag_infos, [&](const auto &element) { return std::ranges::equal(command.request.uid, element.first); });
         if (tag_data != tag_infos.end()) {
-            return tag_data->second;
+            command.response = tag_data->second;
+            return {};
         }
 
         return std::unexpected(nfcv::Error::other);
     }
 
-    nfcv::Result<void> read_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<std::byte> &buffer) final {
-        ReadSingleBlock read_block { .uid = {}, .block_id = block_id };
-        std::copy_n(uid.begin(), uid.size(), read_block.uid.begin());
+    nfcv::Result<void> nfcv_command_impl(nfcv::command::ReadSingleBlock &command) {
+        const auto &buffer = command.response.block_buffer;
+
+        ReadSingleBlock read_block { .uid = {}, .block_id = command.request.block_address };
+        std::ranges::copy(command.request.uid, read_block.uid.begin());
         events.push_back(read_block);
 
-        auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(uid, element.first); });
+        auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(command.request.uid, element.first); });
         if (tag != tags.end()) {
             auto it = tag->second.get().begin();
-            std::advance(it, block_id * buffer.size());
+            std::advance(it, command.request.block_address * buffer.size());
             std::copy_n(it, buffer.size(), buffer.begin());
         }
         return {};
     }
 
-    nfcv::Result<void> write_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<const std::byte> &buffer) final {
-        WriteSingleBlock write_block { .uid = {}, .block_id = block_id, .data = {} };
-        std::copy_n(uid.begin(), uid.size(), write_block.uid.begin());
-        std::copy_n(buffer.begin(), buffer.size(), std::back_insert_iterator { write_block.data });
+    nfcv::Result<void> nfcv_command_impl(nfcv::command::WriteSingleBlock &command) {
+        const auto &buffer = command.request.block_buffer;
+
+        WriteSingleBlock write_block { .uid = {}, .block_id = command.request.block_address, .data = {} };
+        std::ranges::copy(command.request.uid, write_block.uid.begin());
+        std::ranges::copy(buffer, std::back_insert_iterator { write_block.data });
         events.push_back(write_block);
 
-        auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(uid, element.first); });
+        auto tag = std::ranges::find_if(tags, [&](const auto &element) { return std::ranges::equal(command.request.uid, element.first); });
         if (tag != tags.end()) {
             auto it = tag->second.get().begin();
-            std::advance(it, block_id * buffer.size());
+            std::advance(it, command.request.block_address * buffer.size());
             std::copy_n(buffer.begin(), buffer.size(), it);
         }
         return {};

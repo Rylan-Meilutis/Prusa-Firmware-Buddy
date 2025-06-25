@@ -33,11 +33,7 @@ public:
     nfcv::Result<void> field_up(AntennaData antenna_data) final;
     void field_down() final;
 
-    nfcv::Result<nfcv::UID> inventory() final;
-    nfcv::Result<void> stay_quiet(const nfcv::UID &uid) final;
-    nfcv::Result<nfcv::TagInfo> get_system_info(const nfcv::UID &uid) final;
-    nfcv::Result<void> read_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<std::byte> &buffer) final;
-    nfcv::Result<void> write_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<const std::byte> &buffer) final;
+    [[nodiscard]] nfcv::Result<void> nfcv_command(nfcv::Command &command) final;
 
 private:
     HWInterface &hw_int;
@@ -75,13 +71,6 @@ private:
 
     [[nodiscard]] nfcv::Result<void> nfcv_field_up();
     void nfcv_field_down();
-
-    /**
-     * Sends NFC-V command over ST25R39XXB.
-     *
-     * It returns true if command was successfull, otherwise returns false
-     */
-    [[nodiscard]] nfcv::Result<void> nfcv_command(nfcv::Command &command);
 };
 
 } // namespace st25r39xxb

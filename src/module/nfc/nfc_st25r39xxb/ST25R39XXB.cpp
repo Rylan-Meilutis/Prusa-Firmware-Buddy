@@ -346,37 +346,3 @@ void st25r39xxb::ST25R39XXB::field_down() {
     static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
     hw_int.register_clear_bits(RegisterA::operation_control, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE);
 }
-
-nfcv::Result<nfcv::UID> st25r39xxb::ST25R39XXB::inventory() {
-    nfcv::UID uid;
-    nfcv::Command cmd { nfcv::command::Inventory { .request = {}, .response { .uid = uid } } };
-    const auto res = nfcv_command(cmd);
-    if (!res.has_value()) {
-        return std::unexpected(res.error());
-    }
-    return { uid };
-}
-
-nfcv::Result<void> st25r39xxb::ST25R39XXB::stay_quiet(const nfcv::UID &uid) {
-    nfcv::Command cmd { nfcv::command::StayQuiet { .request = { .uid = uid } } };
-    return nfcv_command(cmd);
-}
-
-nfcv::Result<nfcv::TagInfo> st25r39xxb::ST25R39XXB::get_system_info(const nfcv::UID &uid) {
-    nfcv::TagInfo tag_info;
-    nfcv::Command cmd { nfcv::command::SystemInfo { .request = { .uid = uid }, .response = tag_info } };
-    const auto res = nfcv_command(cmd);
-    if (!res.has_value()) {
-        return std::unexpected(res.error());
-    }
-    return { tag_info };
-}
-nfcv::Result<void> st25r39xxb::ST25R39XXB::read_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<std::byte> &buffer) {
-    nfcv::Command cmd { nfcv::command::ReadSingleBlock { .request = { .uid = uid, .block_address = block_id }, .response = { .block_buffer = buffer } } };
-    return nfcv_command(cmd);
-}
-
-nfcv::Result<void> st25r39xxb::ST25R39XXB::write_single_block(const nfcv::UID &uid, nfcv::BlockID block_id, const std::span<const std::byte> &buffer) {
-    nfcv::Command cmd { nfcv::command::WriteSingleBlock { .request = { .uid = uid, .block_address = block_id, .block_buffer = buffer } } };
-    return nfcv_command(cmd);
-}
