@@ -57,12 +57,10 @@ INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, siz
         return std::unexpected(IOError::outside_of_bounds);
     }
 
-    if (auto r = reader.field_up(tag_data.antenna); !r) {
-        return to_prusa_unexpected(r.error());
+    nfcv::FieldGuard field_guard { reader, tag_data.antenna };
+    if (!field_guard.result) {
+        return to_prusa_unexpected(field_guard.result.error());
     }
-    ScopeGuard auto_field_down = [this]() {
-        reader.field_down();
-    };
 
     if (const auto r = impl(tag_data); !r.has_value()) {
         return handle_io_error(tag, r.error());
@@ -222,11 +220,11 @@ std::unexpected<INFCReader::IOError> LLNFCReader::handle_io_error(NFCTagID tag, 
 void LLNFCReader::run_next_discovery() {
     // Let's switch to next antenna before doing anything else
     // and power up the field
-    auto antenna = reader.switch_to_next_discovery_atenna();
-    if (!reader.field_up(antenna).has_value()) {
-        std::abort();
+    const auto antenna = reader.switch_to_next_discovery_atenna();
+    nfcv::FieldGuard field_guard { reader, antenna };
+    if (!field_guard.result) {
+        return;
     }
-    ScopeGuard field_down_guard = [&]() { reader.field_down(); };
 
     // list of found uids in this procedure, we compare them in the end with known uids to detect lost tags
     std::bitset<MAX_KNOWN_TAGS> found_tags {};
