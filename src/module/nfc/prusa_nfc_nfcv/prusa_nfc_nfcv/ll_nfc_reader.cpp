@@ -64,15 +64,8 @@ INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, siz
         reader.field_down();
     };
 
-    if (const auto impl_res = impl(tag_data); !impl_res.has_value()) {
-        if (impl_res.error() == nfcv::Error::no_response) {
-            // Lets see if this is going to work, if it is too eager, then we can maybe set some timer and check if it happens too often
-            // Can fail, that's ok
-            if (events.enqueue(INFCReader::TagLostEvent { .tag = tag })) {
-                tag_data.state = TagData::State::lost;
-            }
-        }
-        return to_prusa_unexpected(impl_res.error());
+    if (const auto r = impl(tag_data); !r.has_value()) {
+        return handle_io_error(tag, r.error());
     }
 
     return {};
@@ -208,6 +201,22 @@ bool LLNFCReader::is_valid(NFCTagID tag_id) {
     }
 
     return tags.at(tag_id).state == TagData::State::known;
+}
+
+std::unexpected<INFCReader::IOError> LLNFCReader::handle_io_error(NFCTagID tag, nfcv::Error error) {
+    if (!is_valid(tag)) {
+        return std::unexpected(to_prusa_error(error));
+    }
+
+    if (error == nfcv::Error::no_response) {
+        // Lets see if this is going to work, if it is too eager, then we can maybe set some timer and check if it happens too often
+        // Can fail, that's ok
+        if (events.enqueue(INFCReader::TagLostEvent { .tag = tag })) {
+            tags.at(tag).state = TagData::State::lost;
+        }
+    }
+
+    return std::unexpected(to_prusa_error(error));
 }
 
 void LLNFCReader::run_next_discovery() {

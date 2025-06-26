@@ -49,6 +49,8 @@ private:
     /// Validates if tag_id is referencing existing NFC tag (eather known or lost) - but the index references valid data
     [[nodiscard]] bool is_valid(NFCTagID tag_id);
 
+    [[nodiscard]] std::unexpected<IOError> handle_io_error(NFCTagID tag, nfcv::Error error);
+
     using IOOpFunc = nfcv::Result<void>(const TagData &tag_data);
 
     /// Helper to intialize the reader for next io operation
