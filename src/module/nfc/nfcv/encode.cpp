@@ -153,6 +153,40 @@ Result<void> construct_rest(Encoder1Of4 &encoder, const command::ResetEAS &comma
     return {};
 }
 
+constexpr std::size_t expected_message_size([[maybe_unused]] const command::GetRandomNumber &command) {
+    return 11;
+}
+
+Result<void> construct_rest(Encoder1Of4 &encoder, const command::GetRandomNumber &command) {
+    encoder.append_byte(SLIX_IC_MFG);
+    encoder.append_bytes(command.request.uid);
+    return {};
+}
+
+constexpr std::size_t expected_message_size([[maybe_unused]] const command::SetPassword &command) {
+    return 16;
+}
+
+Result<void> construct_rest(Encoder1Of4 &encoder, const command::SetPassword &command) {
+    encoder.append_byte(SLIX_IC_MFG);
+    encoder.append_bytes(command.request.uid);
+    encoder.append_raw<uint8_t>(std::to_underlying(command.request.password_id));
+    encoder.append_raw<uint32_t>(command.request.password);
+    return {};
+}
+
+constexpr std::size_t expected_message_size([[maybe_unused]] const command::WritePassword &command) {
+    return 16;
+}
+
+Result<void> construct_rest(Encoder1Of4 &encoder, const command::WritePassword &command) {
+    encoder.append_byte(SLIX_IC_MFG);
+    encoder.append_bytes(command.request.uid);
+    encoder.append_raw(command.request.password_id);
+    encoder.append_raw(command.request.password);
+    return {};
+}
+
 } // namespace nfcv::impl
 
 nfcv::Result<void> nfcv::construct_command(MsgBuilder &builder, const Command &command) {

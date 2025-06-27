@@ -14,6 +14,24 @@ struct TagData {
     nfcv::TagInfo info;
     std::optional<bool> eas;
     std::vector<std::byte> *data = nullptr;
+    std::optional<uint16_t> random_number;
+
+    using Passwords = std::array<nfcv::SLIX2Password, std::to_underlying(nfcv::SLIX2PasswordID::_password_count)>;
+    static size_t password_index(nfcv::SLIX2PasswordID id) {
+        return std::countr_zero(std::to_underlying(id));
+    }
+
+    static constexpr Passwords default_stored_password { 0, 0, 0x0F0F0F0F, 0x0F0F0F0F, 0 };
+    static constexpr Passwords invalid_set_password { 1, 1, 1, 1, 1 };
+
+    Passwords stored_password = default_stored_password;
+    Passwords set_password = invalid_set_password;
+
+    bool is_password_correct(nfcv::SLIX2PasswordID password) const {
+        UNSCOPED_INFO("Stored pwd: " << stored_password[password_index(password)]);
+        UNSCOPED_INFO("Set pwd: " << set_password[password_index(password)]);
+        return set_password[password_index(password)] == stored_password[password_index(password)];
+    }
 };
 
 struct FieldUp {
@@ -38,6 +56,8 @@ using WriteAFI = nfcv::command::WriteAFI::Request;
 using WriteDSFID = nfcv::command::WriteDSFID::Request;
 using SetEAS = nfcv::command::SetEAS::Request;
 using ResetEAS = nfcv::command::ResetEAS::Request;
+using GetRandomNumber = nfcv::command::GetRandomNumber::Request;
+using SetPassword = nfcv::command::SetPassword::Request;
 
 struct WriteSingleBlock {
     nfcv::UID uid;
@@ -51,6 +71,7 @@ using Event = std::variant<
     Inventory, StayQuiet, SystemInfo,
     ReadSingleBlock, WriteSingleBlock,
     SetEAS, ResetEAS,
+    GetRandomNumber, SetPassword,
     WriteAFI, WriteDSFID>;
 
 struct EventLogger : public nfcv::ReaderWriterInterface {
@@ -60,6 +81,11 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     }
     void field_down() final {
         events.push_back(FieldDown {});
+
+        for (auto &tag : tags) {
+            tag.second.random_number = std::nullopt;
+            tag.second.set_password = TagData::invalid_set_password;
+        }
     }
 
     AntennaData switch_to_next_discovery_atenna() final {
@@ -147,6 +173,43 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return tag_op(command, [](auto &, auto &tag) { tag.eas = false; });
     }
 
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::GetRandomNumber &command) {
+        return tag_op(command, [](auto &command, auto &tag) {
+            tag.random_number = rand();
+            command.response = *tag.random_number;
+            UNSCOPED_INFO("random_number: " << std::hex << *tag.random_number);
+        });
+    }
+
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::SetPassword &command) {
+        return tag_op(command, [](auto &command, auto &tag) -> nfcv::Result<void> {
+            REQUIRE(tag.random_number.has_value());
+            const auto decoded_pwd = command.request.password ^ (*tag.random_number | (*tag.random_number << 16));
+            const auto i = TagData::password_index(command.request.password_id);
+
+            if (tag.stored_password[i] != decoded_pwd) {
+                UNSCOPED_INFO("PWD id: " << std::hex << std::to_underlying(command.request.password_id));
+                UNSCOPED_INFO("Stored pwd: " << std::hex << tag.stored_password[i]);
+                UNSCOPED_INFO("Login pwd: " << std::hex << decoded_pwd);
+                return std::unexpected(nfcv::Error::response_is_error);
+            }
+
+            tag.set_password[i] = decoded_pwd;
+            return {};
+        });
+    }
+
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::WritePassword &command) {
+        return tag_op(command, [](auto &command, auto &tag) -> nfcv::Result<void> {
+            if (!tag.is_password_correct(command.request.password_id)) {
+                return std::unexpected(nfcv::Error::response_is_error);
+            }
+
+            tag.stored_password[TagData::password_index(command.request.password_id)] = command.request.password;
+            return {};
+        });
+    }
+
     template <typename C, typename F>
     nfcv::Result<void> tag_op(C &command, F &&f) {
         if constexpr (requires { events.push_back(command.request); }) {
@@ -158,8 +221,12 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
             return std::unexpected(nfcv::Error::other);
         }
 
-        f(command, *tag);
-        return {};
+        if constexpr (std::is_same_v<decltype(f(command, *tag)), void>) {
+            f(command, *tag);
+            return {};
+        } else {
+            return f(command, *tag);
+        }
     }
 
     TagData *get_tag(const nfcv::UID &uid) {

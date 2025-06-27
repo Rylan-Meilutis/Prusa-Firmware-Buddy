@@ -59,6 +59,19 @@ enum class MessageFlagInv : uint8_t {
     custom_flag = 1 << 6,
 };
 
+using SLIX2Password = uint32_t;
+
+enum class SLIX2PasswordID : uint8_t {
+    read = 0x01,
+    write = 0x02,
+    privacy = 0x04,
+    destroy = 0x08,
+    eas_afi = 0x10,
+
+    ///! Enum is not linear!
+    _password_count = 5,
+};
+
 constexpr MessageFlag operator|(MessageFlag a, MessageFlag b) { return static_cast<MessageFlag>(std::to_underlying(a) | std::to_underlying(b)); }
 constexpr MessageFlagNoInv operator|(MessageFlagNoInv a, MessageFlag b) { return static_cast<MessageFlagNoInv>(std::to_underlying(a) | std::to_underlying(b)); }
 constexpr MessageFlagNoInv operator|(MessageFlag a, MessageFlagNoInv b) { return static_cast<MessageFlagNoInv>(std::to_underlying(a) | std::to_underlying(b)); }
@@ -66,4 +79,5 @@ constexpr MessageFlagNoInv operator|(MessageFlagNoInv a, MessageFlagNoInv b) { r
 constexpr MessageFlagInv operator|(MessageFlagInv a, MessageFlag b) { return static_cast<MessageFlagInv>(std::to_underlying(a) | std::to_underlying(b)); }
 constexpr MessageFlagInv operator|(MessageFlag a, MessageFlagInv b) { return static_cast<MessageFlagInv>(std::to_underlying(a) | std::to_underlying(b)); }
 constexpr MessageFlagInv operator|(MessageFlagInv a, MessageFlagInv b) { return static_cast<MessageFlagInv>(std::to_underlying(a) | std::to_underlying(b)); }
+
 } // namespace nfcv

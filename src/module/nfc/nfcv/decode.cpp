@@ -79,6 +79,15 @@ namespace {
         return crc.get_result() == transmitted_crc;
     }
 
+    template <typename T>
+    T read_raw(auto &it) {
+        static_assert(std::is_trivial_v<T>);
+        static_assert(std::endian::native == std::endian::little);
+        T result;
+        std::copy_n(it, sizeof(T), reinterpret_cast<std::byte *>(&result));
+        return result;
+    }
+
     template <typename Command>
     Result<void> parse_response(const std::span<const std::byte> &data, [[maybe_unused]] const Command &command)
         requires(std::is_empty_v<typename Command::Response>)
@@ -180,6 +189,16 @@ namespace {
     Result<void> parse_response([[maybe_unused]] const std::span<const std::byte> &data, [[maybe_unused]] const nfcv::command::StayQuiet &command) {
         // according to spec the StayQuiet command has no reponse (or it is not mentioned), so we should never call this method
         std::abort();
+    }
+
+    Result<void> parse_response(const std::span<const std::byte> &data, const nfcv::command::GetRandomNumber &command) {
+        if (data.size() != 3 + sizeof(uint16_t)) {
+            return std::unexpected(Error::response_invalid_size);
+        }
+
+        auto it = std::next(data.begin());
+        command.response = read_raw<uint16_t>(it);
+        return {};
     }
 } // namespace
 } // namespace nfcv

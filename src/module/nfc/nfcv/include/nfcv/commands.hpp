@@ -115,13 +115,58 @@ namespace command {
         } response;
     };
 
+    ///* SLIX2 extension
+    struct GetRandomNumber {
+        static constexpr std::byte cmd_id { 0xB2 };
+        struct Request {
+            UID uid;
+
+            inline bool operator==(const Request &o) const = default;
+        } request;
+        using Response = uint16_t;
+        Response &response;
+    };
+
+    ///* SLIX2 extension
+    struct SetPassword {
+        static constexpr std::byte cmd_id { 0xB3 };
+        static constexpr bool is_write_alike = true;
+        struct Request {
+            UID uid;
+            SLIX2PasswordID password_id;
+            SLIX2Password password;
+
+            inline bool operator==(const Request &o) const = default;
+        } request;
+        struct Response {
+        } response;
+    };
+
+    ///* SLIX2 extension
+    struct WritePassword {
+        static constexpr std::byte cmd_id { 0xB4 };
+        static constexpr bool is_write_alike = true;
+        struct Request {
+            UID uid;
+            SLIX2PasswordID password_id;
+            SLIX2Password password;
+
+            inline bool operator==(const Request &o) const = default;
+        } request;
+        struct Response {
+        } response;
+    };
+
+    using Command = std::variant<
+        Inventory, SystemInfo, StayQuiet,
+        ReadSingleBlock, WriteSingleBlock,
+        WriteAFI, WriteDSFID,
+        GetRandomNumber, SetPassword, WritePassword,
+        SetEAS, ResetEAS>;
+
 } // namespace command
 
-using Command = std::variant<
-    command::Inventory, command::SystemInfo, command::StayQuiet,
-    command::ReadSingleBlock, command::WriteSingleBlock,
-    command::WriteAFI, command::WriteDSFID,
-    command::SetEAS, command::ResetEAS>;
+using Command = command::Command;
 
 /// Utility function that checks if current command expects response
 bool is_response_expected(const Command &command);
