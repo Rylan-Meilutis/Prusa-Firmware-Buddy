@@ -56,11 +56,11 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return static_cast<AntennaData>(antenna_index);
     }
 
-    [[nodiscard]] nfcv::Result<void> nfcv_command(nfcv::Command &command) final {
-        return std::visit([&](auto &command) { return nfcv_command_impl(command); }, command);
+    [[nodiscard]] nfcv::Result<void> nfcv_command(const nfcv::Command &command) final {
+        return std::visit([&](const auto &command) { return nfcv_command_impl(command); }, command);
     }
 
-    nfcv::Result<void> nfcv_command_impl(nfcv::command::Inventory &command) {
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::Inventory &command) {
         events.push_back(command.request);
         auto &curr_queue = fake_antennas[antenna_index];
         if (curr_queue.size() > 0) {
@@ -75,12 +75,12 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return std::unexpected(nfcv::Error::no_response);
     }
 
-    nfcv::Result<void> nfcv_command_impl(nfcv::command::StayQuiet &command) {
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::StayQuiet &command) {
         events.push_back(command.request);
         return {};
     }
 
-    nfcv::Result<void> nfcv_command_impl(nfcv::command::SystemInfo &command) {
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::SystemInfo &command) {
         SystemInfo sys_info {};
         std::copy_n(command.request.uid.begin(), command.request.uid.size(), sys_info.uid.begin());
         events.push_back(sys_info);
@@ -94,7 +94,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return std::unexpected(nfcv::Error::other);
     }
 
-    nfcv::Result<void> nfcv_command_impl(nfcv::command::ReadSingleBlock &command) {
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::ReadSingleBlock &command) {
         const auto &buffer = command.response;
 
         events.push_back(command.request);
@@ -108,7 +108,7 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
         return {};
     }
 
-    nfcv::Result<void> nfcv_command_impl(nfcv::command::WriteSingleBlock &command) {
+    nfcv::Result<void> nfcv_command_impl(const nfcv::command::WriteSingleBlock &command) {
         const auto &buffer = command.request.block_buffer;
 
         events.push_back(WriteSingleBlock {

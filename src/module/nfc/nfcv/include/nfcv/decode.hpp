@@ -20,5 +20,5 @@ namespace nfcv {
  */
 Result<std::span<std::byte>> decode(const std::span<const std::byte> &input, const std::span<std::byte> &output);
 
-Result<void> parse_response(const std::span<const std::byte> &data, Command &command);
+Result<void> parse_response(const std::span<const std::byte> &data, const Command &command);
 } // namespace nfcv

@@ -20,7 +20,7 @@ public:
 
     virtual AntennaData switch_to_next_discovery_atenna() = 0;
 
-    [[nodiscard]] virtual nfcv::Result<void> nfcv_command(Command &command) = 0;
+    [[nodiscard]] virtual nfcv::Result<void> nfcv_command(const Command &command) = 0;
 
 public: //* Utility wrappers for nfcv commands
     Result<UID> inventory();

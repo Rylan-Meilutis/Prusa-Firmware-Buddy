@@ -157,7 +157,7 @@ void st25r39xxb::ST25R39XXB::select_antenna(Antenna target_antenna) {
     set_output_impedance(Impedance::ohm2);
 }
 
-nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_command(nfcv::Command &command) {
+nfcv::Result<void> st25r39xxb::ST25R39XXB::nfcv_command(const nfcv::Command &command) {
     // Prepare message
     buffer.clear();
     {

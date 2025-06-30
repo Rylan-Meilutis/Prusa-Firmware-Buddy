@@ -33,7 +33,7 @@ public:
     nfcv::Result<void> field_up(AntennaData antenna_data) final;
     void field_down() final;
 
-    [[nodiscard]] nfcv::Result<void> nfcv_command(nfcv::Command &command) final;
+    [[nodiscard]] nfcv::Result<void> nfcv_command(const nfcv::Command &command) final;
 
 private:
     HWInterface &hw_int;

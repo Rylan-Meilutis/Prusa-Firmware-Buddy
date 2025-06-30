@@ -80,7 +80,7 @@ namespace {
     }
 
     template <typename Command>
-    Result<void> parse_response(const std::span<const std::byte> &data, [[maybe_unused]] Command &command)
+    Result<void> parse_response(const std::span<const std::byte> &data, [[maybe_unused]] const Command &command)
         requires(std::is_empty_v<typename Command::Response>)
     {
         if (data.size() != 3) {
@@ -91,7 +91,7 @@ namespace {
     }
 
     static constexpr std::byte NFCV_ERROR_FLAG { 0x01 };
-    Result<void> parse_response(const std::span<const std::byte> &data, nfcv::command::Inventory &command) {
+    Result<void> parse_response(const std::span<const std::byte> &data, const nfcv::command::Inventory &command) {
         if (data.size() != command.response.size() + 4 /*1B flags + 1B mask length (is 0) + 0B mask + 2B CRC*/) {
             return std::unexpected(Error::unknown);
         }
@@ -103,7 +103,7 @@ namespace {
         return {};
     }
 
-    Result<void> parse_response(const std::span<const std::byte> &data, nfcv::command::SystemInfo &command) {
+    Result<void> parse_response(const std::span<const std::byte> &data, const nfcv::command::SystemInfo &command) {
         // Size validation
         const auto info_flags = data[1];
         static constexpr std::byte INFO_DSFID_SUPPORTED { 0x01 };
@@ -167,7 +167,7 @@ namespace {
         return {};
     }
 
-    Result<void> parse_response(const std::span<const std::byte> &data, nfcv::command::ReadSingleBlock &command) {
+    Result<void> parse_response(const std::span<const std::byte> &data, const nfcv::command::ReadSingleBlock &command) {
         if (data.size() != (3 + command.response.size())) {
             return std::unexpected(Error::response_invalid_size);
         }
@@ -177,14 +177,14 @@ namespace {
         return {};
     }
 
-    Result<void> parse_response([[maybe_unused]] const std::span<const std::byte> &data, [[maybe_unused]] nfcv::command::StayQuiet &command) {
+    Result<void> parse_response([[maybe_unused]] const std::span<const std::byte> &data, [[maybe_unused]] const nfcv::command::StayQuiet &command) {
         // according to spec the StayQuiet command has no reponse (or it is not mentioned), so we should never call this method
         std::abort();
     }
 } // namespace
 } // namespace nfcv
 
-nfcv::Result<void> nfcv::parse_response(const std::span<const std::byte> &data, Command &command) {
+nfcv::Result<void> nfcv::parse_response(const std::span<const std::byte> &data, const Command &command) {
     if (data.size() <= 2) {
         return std::unexpected(Error::response_invalid_size);
     }
