@@ -1,6 +1,7 @@
 #include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
 
 #include <nfcv/rw_interface.hpp>
+#include <nfcv/encode.hpp>
 #include <catch2/catch.hpp>
 
 #include <algorithm>
@@ -57,6 +58,10 @@ struct EventLogger : public nfcv::ReaderWriterInterface {
     }
 
     [[nodiscard]] nfcv::Result<void> nfcv_command(const nfcv::Command &command) final {
+        // Check that construct_command doesn't throw any asserts
+        stdext::inplace_vector<std::byte, 512> msg_builder;
+        std::ignore = nfcv::construct_command(msg_builder, command);
+
         return std::visit([&](const auto &command) { return nfcv_command_impl(command); }, command);
     }
 
