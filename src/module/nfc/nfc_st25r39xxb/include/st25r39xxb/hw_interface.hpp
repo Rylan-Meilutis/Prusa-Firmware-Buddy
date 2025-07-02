@@ -16,30 +16,30 @@ public:
     virtual void write_registers_continuous(st25r39xxb::RegisterB reg, const std::span<const std::byte> &data) = 0;
 
     template <typename Register>
-    [[nodiscard, gnu::always_inline]] inline std::byte read_register(Register reg) {
+    [[nodiscard]] inline std::byte read_register(Register reg) {
         std::array<std::byte, 1> res {};
         read_registers_continuous(reg, res);
         return res[0];
     }
     template <typename Register>
-    [[gnu::always_inline]] inline void write_register(Register reg, std::byte value) {
+    inline void write_register(Register reg, std::byte value) {
         write_registers_continuous(reg, std::span { &value, 1 });
     }
 
     template <typename Register>
-    [[gnu::always_inline]] inline void change_register(Register reg, std::byte mask, std::byte value) {
+    inline void change_register(Register reg, std::byte mask, std::byte value) {
         auto curr_value = read_register(reg);
         const auto masked_value = value & mask;
         write_register(reg, (curr_value & (~mask)) | masked_value);
     }
 
     template <typename Register>
-    [[gnu::always_inline]] inline void register_clear_bits(Register reg, std::byte mask) {
+    inline void register_clear_bits(Register reg, std::byte mask) {
         change_register(reg, mask, std::byte { 0x00 });
     }
 
     template <typename Register>
-    [[gnu::always_inline]] inline void register_set_bits(Register reg, std::byte mask) {
+    inline void register_set_bits(Register reg, std::byte mask) {
         change_register(reg, mask, mask);
     }
 
