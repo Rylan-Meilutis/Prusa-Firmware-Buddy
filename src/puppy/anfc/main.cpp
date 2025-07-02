@@ -31,7 +31,7 @@ alignas(32) StackType_t can_task_stack[can_task_stack_size];
 StaticTask_t can_task_control_block;
 
 // NFC reader task, handles lenghty blocking interactions with the NFC tags. Implemented in nfc_task
-constexpr const size_t nfc_task_stack_size = 1792 / sizeof(StackType_t);
+constexpr const size_t nfc_task_stack_size = 2176 / sizeof(StackType_t);
 alignas(32) StackType_t nfc_task_stack[nfc_task_stack_size];
 StaticTask_t nfc_task_control_block;
 
