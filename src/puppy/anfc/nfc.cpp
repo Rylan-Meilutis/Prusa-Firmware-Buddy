@@ -18,17 +18,17 @@ namespace nfc {
 namespace {
     class HWImpl : public st25r39xxb::SpiInterface {
     public:
-        HWImpl(SPI_HandleTypeDef *spi, GPIO_TypeDef *gpio_port, uint16_t gpio_pin)
+        HWImpl(SPI_HandleTypeDef *spi, GPIO_TypeDef *chip_select_port, uint16_t chip_select_pin)
             : spi(spi)
-            , gpio_port(gpio_port)
-            , gpio_pin(gpio_pin) {}
+            , chip_select_port(chip_select_port)
+            , chip_select_pin(chip_select_pin) {}
 
         void chip_select() final {
-            HAL_GPIO_WritePin(gpio_port, gpio_pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(chip_select_port, chip_select_pin, GPIO_PIN_RESET);
         }
 
         void chip_deselect() final {
-            HAL_GPIO_WritePin(gpio_port, gpio_pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(chip_select_port, chip_select_pin, GPIO_PIN_SET);
         }
 
         void unsafe_transmit(const std::span<const std::byte> &tx) final {
@@ -47,8 +47,8 @@ namespace {
 
     protected:
         SPI_HandleTypeDef *spi;
-        GPIO_TypeDef *gpio_port;
-        uint16_t gpio_pin;
+        GPIO_TypeDef *chip_select_port;
+        uint16_t chip_select_pin;
     };
 
     struct SysImpl : public st25r39xxb::SystemInterface {
@@ -75,7 +75,17 @@ namespace {
     };
 
     namespace nfcr1 {
-        HWImpl hw_impl(&hal::peripherals::hspi1, GPIOA, GPIO_PIN_1);
+#ifdef STM32H5
+        static const auto chip_select_port = GPIOA;
+        static constexpr auto chip_select_pin = GPIO_PIN_1;
+#elifdef STM32C0
+        static const auto chip_select_port = GPIOA;
+        static constexpr auto chip_select_pin = GPIO_PIN_4;
+#else
+    #error
+#endif
+
+        HWImpl hw_impl(&hal::peripherals::hspi1, chip_select_port, chip_select_pin);
         SysImpl sys_impl {};
     } // namespace nfcr1
 } // namespace
