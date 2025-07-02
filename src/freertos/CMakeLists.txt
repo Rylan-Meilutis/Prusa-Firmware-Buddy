@@ -22,7 +22,10 @@ else()
 endif()
 
 # FIXME: Find a better place for this dispatch.
-if(BOARD STREQUAL "XBUDDY_EXTENSION" OR BOARD STREQUAL "ANFC_H5")
+if(BOARD STREQUAL "XBUDDY_EXTENSION"
+   OR BOARD STREQUAL "ANFC_H5"
+   OR BOARD STREQUAL "ANFC_C0"
+   )
   target_compile_definitions(freertos PUBLIC FREERTOS_INTERNAL_STORAGE_SIZE=72)
   target_sources(freertos PRIVATE stream_buffer.cpp)
 else()
