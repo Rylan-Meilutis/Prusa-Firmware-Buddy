@@ -16,7 +16,7 @@ if(BOARD STREQUAL "ANFC_C0")
     target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=0)
   endif()
 
-  target_sources(firmware PRIVATE startup/stm32c092.s system_stm32c0xx.c)
+  target_sources(firmware PRIVATE device/atomic_c0.cpp startup/stm32c092.s system_stm32c0xx.c)
 
   # Required by self_hash
   target_link_libraries(firmware PRIVATE mbedTLS)
