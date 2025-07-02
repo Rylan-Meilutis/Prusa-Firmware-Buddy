@@ -188,7 +188,7 @@ PrusaNFCReader::IOResult<const PrusaNFCReader::TagMetadata *> PrusaNFCReader::re
             return tag_invalid_error;
         }
 
-        const auto &enum_callback = [&data](NFCField field, CBORValue v) -> EnumerateCallbackResult {
+        const auto enum_callback = [&data](NFCField field, CBORValue v) -> EnumerateCallbackResult {
             switch (static_cast<NFCMetaField>(field)) {
 
             case NFCMetaField::main_region_offset:
