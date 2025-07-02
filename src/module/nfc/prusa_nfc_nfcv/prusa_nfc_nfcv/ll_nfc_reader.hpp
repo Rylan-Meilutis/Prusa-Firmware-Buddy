@@ -60,7 +60,7 @@ private:
 
     /// Helper to intialize the reader for next io operation
     /// TODO: With mutiple readers this should return what reader was used
-    [[nodiscard]] IOResult<void> io_op(NFCTagID tag, NFCOffset start, size_t buffer_size, stdext::inplace_function<IOOpFunc> impl);
+    [[nodiscard]] IOResult<void> io_op(NFCTagID tag, NFCOffset start, size_t buffer_size, const stdext::inplace_function<IOOpFunc> &impl);
 
     /// Helper function for write implementation
     [[nodiscard]] nfcv::Result<void> write_impl(const TagData &tag_data, NFCOffset start, const std::span<const std::byte> &buffer);

@@ -47,7 +47,7 @@ LLNFCReader::LLNFCReader(nfcv::ReaderWriterInterface &reader)
     reset_state();
 }
 
-INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, size_t buffer_size, stdext::inplace_function<IOOpFunc> impl) {
+INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, size_t buffer_size, const stdext::inplace_function<IOOpFunc> &impl) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
