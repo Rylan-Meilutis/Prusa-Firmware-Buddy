@@ -1,3 +1,0 @@
-BL_SIZE = 32K;
-
-INCLUDE stm32h503.ld;

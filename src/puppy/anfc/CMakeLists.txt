@@ -1,52 +1,25 @@
-target_link_options(firmware PUBLIC "-L" "${CMAKE_CURRENT_SOURCE_DIR}/link")
-
 if(BOARD STREQUAL "ANFC_C0")
-  add_library(HAL_Config INTERFACE)
-  target_compile_definitions(HAL_Config INTERFACE STM32C092xx USE_HAL_DRIVER)
-  target_include_directories(HAL_Config INTERFACE config)
-  add_library(STM32C0_HAL_Config ALIAS HAL_Config)
-
-  target_compile_definitions(firmware PRIVATE STM32GENERIC STM32C0 STM32C0xx)
-
-  if(BOOTLOADER STREQUAL "EMPTY" OR BOOTLOADER)
-    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32c092_boot.ld")
-    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=32768)
-  else()
-    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32c092_noboot.ld")
-    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=0)
-  endif()
-
-  target_sources(firmware PRIVATE device/atomic_c0.cpp startup/stm32c092.s system_stm32c0xx.c)
-
-  # Required by self_hash
-  target_link_libraries(firmware PRIVATE mbedTLS)
-
-  set(HAL_LIB "STM32C0::HAL")
-  set(CMSIS_LIB "STM32C0xx::CMSIS")
+  set(DEVICE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/device/stm32c0")
 
 elseif(BOARD STREQUAL "ANFC_H5")
-  add_library(HAL_Config INTERFACE)
-  target_compile_definitions(HAL_Config INTERFACE STM32H503xx USE_HAL_DRIVER)
-  target_include_directories(HAL_Config INTERFACE config)
-  add_library(STM32H5_HAL_Config ALIAS HAL_Config)
+  set(DEVICE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/device/stm32h5")
 
-  target_compile_definitions(firmware PRIVATE STM32GENERIC STM32H5 STM32H5xx)
-
-  if(BOOTLOADER STREQUAL "EMPTY" OR BOOTLOADER)
-    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32h503_boot.ld")
-    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=32768)
-  else()
-    target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/stm32h503_noboot.ld")
-    target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=0)
-  endif()
-
-  target_sources(firmware PRIVATE startup/stm32h503.s system_stm32h5xx.c)
-
-  set(HAL_LIB "STM32H5::HAL")
-  set(CMSIS_LIB "STM32H5xx::CMSIS")
 else()
   message(FATAL_ERROR "Unsupported nfc board: ${BOARD}")
 endif()
+
+add_subdirectory("${DEVICE_DIR}")
+target_sources(firmware PRIVATE "${DEVICE_DIR}/startup.s" "${DEVICE_DIR}/system.c")
+
+target_link_options(firmware PUBLIC "-L" "${DEVICE_DIR}")
+if(BOOTLOADER STREQUAL "EMPTY" OR BOOTLOADER)
+  target_set_linker_script(firmware "${DEVICE_DIR}/link_boot.ld")
+else()
+  target_set_linker_script(firmware "${DEVICE_DIR}/link_noboot.ld")
+  # Override bootloader size set in device CMakeLists
+  set(BOOTLOADER_SIZE 0)
+endif()
+target_compile_definitions(firmware PRIVATE BOOTLOADER_SIZE=${BOOTLOADER_SIZE})
 
 target_sources(
   firmware
@@ -62,7 +35,7 @@ target_sources(
   )
 
 target_include_directories(
-  firmware PRIVATE . ${CMAKE_SOURCE_DIR}/include stub ../shared/hal ../can_shared
+  firmware PRIVATE . ${CMAKE_SOURCE_DIR}/include stub ../shared/hal ../can_shared "${DEVICE_DIR}"
   )
 
 target_link_libraries(
