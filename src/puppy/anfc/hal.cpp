@@ -9,7 +9,10 @@ extern "C" {
 static_assert(configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY == 2);
 #define ISR_PRIORITY_DEFAULT 2 // default ISR priority, used by ISRs that don't need specific ISR priority
 
-// SVC_Handler + PendSV_Handler + SysTick_Handler are defined by FreeRTOS
+// SVC_Handler + PendSV_Handler + SysTick_Handler are defined by FreeRTOS on H5.
+// On C0 we need to rename them to cmsis alternatives for it to work.
+// It's because our version of FreeRTOS 10.6.2 is mid migration of port configuration.
+// Newer version define them like for H5 (Cortex M33).
 
 void hal::panic() {
     asm volatile("bkpt 0");

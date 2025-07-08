@@ -102,4 +102,8 @@ void hal_panic();
         hal_panic();              \
     }
 
+#define xPortPendSVHandler  PendSV_Handler
+#define xPortSysTickHandler SysTick_Handler
+#define vPortSVCHandler     SVC_Handler
+
 #endif /* FREERTOS_CONFIG_H */
