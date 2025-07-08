@@ -169,6 +169,7 @@ pipeline {
                             'main,xl-burst,release,yesboot',
                             'main,xl-minimal,release,yesboot', // Test optional features on the most complex target
                             'all,ix,release,yesboot',
+                            'main,anfc-slx,release,noboot',
                             'all,anfc-h5,release,noboot',
                             'all,anfc-c0,release,noboot'
                     }

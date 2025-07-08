@@ -243,6 +243,15 @@
                 "PRINTER": "NONE",
                 "BOARD": "ANFC_C0"
             }
+        },
+        {
+            "name": "anfc-slx",
+            "description": "Firmware for NFC addon",
+            "cacheVariables": {
+                "PRINTER": "NONE",
+                "BOARD": "ANFC_C0",
+                "CAN_BUS_TYPE": "SLX"
+            }
         }
     ]
 }
