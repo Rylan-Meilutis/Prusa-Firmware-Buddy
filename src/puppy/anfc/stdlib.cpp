@@ -1,25 +1,25 @@
 #include <sys/reent.h>
 #include <sys/stat.h>
 
-#include "hal.h"
+#include "hal.hpp"
 
 extern "C" {
 
 void __assert_func(const char *, int, const char *, const char *) {
-    hal_panic();
+    hal::panic();
 }
 
 #ifdef STM32H5
 int _close_r(struct _reent *, int) {
-    hal_panic();
+    hal::panic();
 }
 
 _off_t _lseek_r(struct _reent *, int, _off_t, int) {
-    hal_panic();
+    hal::panic();
 }
 
 _ssize_t _read_r(struct _reent *, int, void *, size_t) {
-    hal_panic();
+    hal::panic();
 }
 
 _ssize_t _write_r(struct _reent *, int, const void *, size_t) {
@@ -27,7 +27,7 @@ _ssize_t _write_r(struct _reent *, int, const void *, size_t) {
 }
 
 int __attribute__((used)) _kill_r(struct _reent *, int, int) {
-    hal_panic();
+    hal::panic();
 }
 
 int __attribute__((used)) _getpid_r(struct _reent *) {
@@ -35,28 +35,28 @@ int __attribute__((used)) _getpid_r(struct _reent *) {
 }
 
 int _fstat(int, struct stat *) {
-    hal_panic();
+    hal::panic();
 }
 
 int _isatty(int) {
-    hal_panic();
+    hal::panic();
 }
 
 #elifdef STM32C0
 int _close(struct _reent *, int) {
-    hal_panic();
+    hal::panic();
 }
 
 _off_t _lseek(struct _reent *, int, _off_t, int) {
-    hal_panic();
+    hal::panic();
 }
 
 _ssize_t _read(struct _reent *, int, void *, size_t) {
-    hal_panic();
+    hal::panic();
 }
 
 _ssize_t _write(struct _reent *, int, const void *, size_t) {
-    hal_panic();
+    hal::panic();
 }
 
 int __attribute__((used)) _getpid() {
@@ -64,7 +64,7 @@ int __attribute__((used)) _getpid() {
 }
 
 int __attribute__((used)) _kill(int, int) {
-    hal_panic();
+    hal::panic();
 }
 #endif
 }
