@@ -40,12 +40,6 @@ function(transpile_dsdl)
       "never" # Support files are generated once in the nunavut_support target (above)
       ${dsdl_root_namespace_dirs} # Look-up DSDL namespaces
       )
-    add_dependencies("dsdl_${ns}" nunavut_support)
+    target_link_libraries("dsdl_${ns}" INTERFACE nunavut_support)
   endforeach()
-
-  # Make the transpiled headers available for inclusion.
-  target_include_directories(firmware PRIVATE ${TRANSPILED_INCLUDE_DIR})
-  target_compile_definitions(firmware PRIVATE -DNUNAVUT_ASSERT=assert)
-
-  add_dependencies(firmware dsdl_uavcan dsdl_prusa3d)
 endfunction()

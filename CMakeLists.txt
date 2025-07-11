@@ -669,3 +669,10 @@ elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
             version
     )
 endif()
+
+option(DSDL_TRANSPILE "Enable DSDL transcompilation" ON)
+if(DSDL_TRANSPILE)
+  # Convert dsdl files to headers and include them
+  include(src/can/data_types/TranspileDsdl.cmake)
+  transpile_dsdl()
+endif()
