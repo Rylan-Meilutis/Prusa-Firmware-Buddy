@@ -27,6 +27,9 @@ uint8 OTHER = 6
 # The operation is not implemented (possibly because of the prameter combination)
 uint8 NOT_IMPLEMENTED = 7
 
+# The radio is disabled
+uint8 RADIO_DISABLED = 254
+
 # No error, actually
 uint8 NO_ERROR = 255
 

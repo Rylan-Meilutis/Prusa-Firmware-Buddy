@@ -137,6 +137,12 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
         } else if (prusa3d_nfc_request_RequestData_1_0_is_unlock_tag_(&rreq)) {
             prusa3d_nfc_request_RequestResult_1_0_select_unlock_tag_(&result);
             handle_unlock_tag_request(rreq.unlock_tag, result.unlock_tag);
+
+        } else if (prusa3d_nfc_request_RequestData_1_0_is_enable_radio_(&rreq)) {
+            radio_enabled_ = true;
+
+        } else if (prusa3d_nfc_request_RequestData_1_0_is_disable_radio_(&rreq)) {
+            radio_enabled_ = false;
         }
 
         can_node.enqueue_event(response);
@@ -155,7 +161,7 @@ void NFCTask::task() {
     nfc::readers_init();
     while (true) {
         // Process a reader event
-        if (PrusaNFCReader::Event e; reader_.get_event(e)) {
+        if (PrusaNFCReader::Event e; radio_enabled_ && reader_.get_event(e)) {
             handle_event(e);
         }
 
@@ -200,6 +206,12 @@ void NFCTask::handle_event(const PrusaNFCReader::Event &event) {
 }
 
 void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 &request, prusa3d_nfc_util_ValueOrError_1_0 &result) {
+    if (!radio_enabled_) {
+        prusa3d_nfc_util_ValueOrError_1_0_select_error_(&result);
+        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     using Error = PrusaNFCReader::Error;
 
     const auto set_error_result = [&](Error error) {
@@ -305,6 +317,10 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
 
 void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
     auto &error = result._error;
+    if (!radio_enabled_) {
+        error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
 
     const auto field_opt = parse_request_field(request.field);
     if (!field_opt) {
@@ -348,6 +364,12 @@ void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_
 }
 
 void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_EnumerateFields_1_0 &request, prusa3d_nfc_request_EnumerateFieldsResult_1_0 &result) {
+    if (!radio_enabled_) {
+        prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
+        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     if (!is_valid_section(request.section.value)) {
         prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
         result._error._error = prusa3d_nfc_util_ReaderError_1_0_OTHER;
@@ -366,6 +388,12 @@ void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_Enumerat
 }
 
 void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &request, prusa3d_nfc_request_RawReadResult_1_0 &result) {
+    if (!radio_enabled_) {
+        prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
+        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     if (request.num_bytes > std::size(result.data.value.elements)) {
         prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
         result._error._error = prusa3d_nfc_util_ReaderError_1_0_DATA_TOO_BIG;
@@ -383,6 +411,11 @@ void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &req
 }
 
 void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
+    if (!radio_enabled_) {
+        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     // Who knows what we are writing to the tag - invalidate higher-level reader cache
     reader_.invalidate_cache(request.tag.value);
 
@@ -391,6 +424,11 @@ void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &r
 }
 
 void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_InitializeTag_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
+    if (!radio_enabled_) {
+        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     // We're circumventing the high-level reader here, so invalidate its caches, things might have changed
     reader_.invalidate_cache(request.tag.value);
 
@@ -405,6 +443,11 @@ void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_Initialize
 }
 
 void NFCTask::handle_unlock_tag_request(const prusa3d_nfc_request_UnlockTag_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
+    if (!radio_enabled_) {
+        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
+        return;
+    }
+
     const auto io_result = ll_reader_.unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
     result._error = io_result_to_error(io_result);
 }

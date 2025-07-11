@@ -95,6 +95,11 @@ async def main():
     event_sub.receive_in_background(handle_event)
 
     await send_request(
+        "enable_radio",
+        {},
+    )
+
+    await send_request(
         "read_field",
         {
             "field": {

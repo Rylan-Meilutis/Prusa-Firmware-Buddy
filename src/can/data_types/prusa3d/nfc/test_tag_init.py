@@ -135,6 +135,11 @@ async def main():
     if True:
         print("Initializing the tag...")
 
+        await send_request(
+            "enable_radio",
+            {},
+        )
+
         msg = await send_request(
             "initialize_tag",
             {

@@ -62,6 +62,8 @@ private:
     PrusaNFCReader reader_ { ll_reader_ };
 
     std::array<char, 64> mime_type_buffer_;
+
+    bool radio_enabled_ = false;
 };
 
 /// Defined in main.cpp

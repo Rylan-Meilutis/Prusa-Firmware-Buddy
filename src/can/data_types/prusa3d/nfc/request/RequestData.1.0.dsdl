@@ -16,4 +16,13 @@ prusa3d.nfc.request.RawRead.1.0 raw_read
 prusa3d.nfc.request.InitializeTag.1.0 initialize_tag
 prusa3d.nfc.request.UnlockTag.1.0 unlock_tag
 
+# Enable radio communication and start detecting tags
+# The reader is disabled by default, it needs to be enabled
+uavcan.primitive.Empty.1.0 enable_radio
+
+# Stop all radio communication
+# No events will be detected until enable is called
+# All I/O operations will return an error until enabled
+uavcan.primitive.Empty.1.0 disable_radio
+
 @sealed
