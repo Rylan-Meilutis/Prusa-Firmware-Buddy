@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nfc_task.hpp>
+#include <prusa_nfc/nfc_task.hpp>
 #include <cyphal_anfc_node.hpp>
 
 extern NFCTask nfc_task;

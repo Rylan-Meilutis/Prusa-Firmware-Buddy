@@ -29,7 +29,6 @@ target_sources(
           enum_mapping_check.cpp
           main.cpp
           nfc.cpp
-          nfc_task.cpp
           stdlib.cpp
   )
 
@@ -51,6 +50,7 @@ target_link_libraries(
           BuddyHeaders
           o1heap
           prusa_nfc_reader
+          prusa_nfc_task
           st25r39xxb
           prusa_nfc_nfcv
           raii

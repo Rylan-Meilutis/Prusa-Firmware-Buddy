@@ -9,7 +9,6 @@
 #include <cyphal_anfc_node.hpp>
 #include <can_driver_fdcan.hpp>
 #include <device/hal.h>
-#include <nfc_task.hpp>
 #include <o1heap/o1heap.hpp>
 #include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
 
