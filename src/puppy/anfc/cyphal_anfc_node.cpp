@@ -8,7 +8,7 @@
 #include <nfc.hpp>
 #include <hal.hpp>
 #include <freertos/timing.hpp>
-#include <nfc_task.hpp>
+#include <main.hpp>
 
 #include <prusa3d/nfc/event/Event_1_0.h>
 #include <prusa3d/common/CustomExecuteCommand_1_0.h>

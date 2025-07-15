@@ -1,5 +1,7 @@
 #include "nfc_task.hpp"
 
+#include <main.hpp>
+
 #include <mutex>
 
 #include <freertos/timing.hpp>

@@ -1,3 +1,4 @@
+#include "main.hpp"
 #include "hal.hpp"
 
 #include <FreeRTOS.h>

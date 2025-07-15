@@ -65,6 +65,3 @@ private:
 
     bool radio_enabled_ = false;
 };
-
-/// Defined in main.cpp
-extern NFCTask nfc_task;

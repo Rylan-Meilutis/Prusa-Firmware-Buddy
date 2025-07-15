@@ -30,6 +30,8 @@
 
 #include "anfc_event_publisher.hpp"
 
+class NFCTask;
+
 namespace anfc::cyphal {
 
 /// Task that handles the CAN business logic. Mostly just enqueues requests to the nfc task
@@ -95,6 +97,3 @@ private: //* Scaffolding
 };
 
 } // namespace anfc::cyphal
-
-/// Defined in main.cpp
-extern anfc::cyphal::ANFCNode can_node;
