@@ -1,12 +1,8 @@
 #include "nfc_task.hpp"
 
-#include <main.hpp>
-
 #include <mutex>
 
 #include <freertos/timing.hpp>
-
-#include <cyphal_anfc_node.hpp>
 
 #include <prusa3d/nfc/event/Event_1_0.h>
 #include <prusa3d/nfc/util/ReaderError_1_0.h>
@@ -47,6 +43,12 @@ uint8_t io_result_to_error(const INFCReader::IOResult<T> &io_result) {
 }
 } // namespace
 
+NFCTask::NFCTask(INFCReader &ll_reader, const EventCallback &event_callback)
+    : event_callback_(event_callback)
+    , reader_ { ll_reader } //
+{
+}
+
 bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
     using ReqTraits = prusa3d_nfc_command_Request_Request_1_0_Traits;
     using Size = uint16_t;
@@ -54,7 +56,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
     void *data_copy;
     {
         std::lock_guard lg(job_queue_mutex_);
-        data_copy = nfc_task.job_queue_data_heap_.alloc(data.size() + sizeof(Size));
+        data_copy = job_queue_data_heap_.alloc(data.size() + sizeof(Size));
     }
 
     // Failed to serialize -> the queue is full
@@ -147,7 +149,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
             radio_enabled_ = false;
         }
 
-        can_node.enqueue_event(response);
+        event_callback_(response);
     };
 
     if (!enqueue_job(job)) {
@@ -160,7 +162,6 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 }
 
 void NFCTask::task() {
-    nfc::readers_init();
     while (true) {
         // Process a reader event
         if (PrusaNFCReader::Event e; radio_enabled_ && reader_.get_event(e)) {
@@ -211,7 +212,7 @@ void NFCTask::handle_event(const PrusaNFCReader::Event &event) {
     },
         event);
 
-    can_node.enqueue_event(msg);
+    event_callback_(msg);
 }
 
 void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 &request, prusa3d_nfc_util_ValueOrError_1_0 &result) {
@@ -412,7 +413,7 @@ void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &req
     prusa3d_nfc_request_RawReadResult_1_0_select_data_(&result);
     result.data.value.count = request.num_bytes;
 
-    const auto io_result = ll_reader_.read(request.tag.value, request.offset, std::span(reinterpret_cast<std::byte *>(result.data.value.elements), request.num_bytes));
+    const auto io_result = reader_.ll_reader().read(request.tag.value, request.offset, std::span(reinterpret_cast<std::byte *>(result.data.value.elements), request.num_bytes));
     if (!io_result) {
         prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
         result._error._error = std::to_underlying(io_result.error());
@@ -428,7 +429,7 @@ void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &r
     // Who knows what we are writing to the tag - invalidate higher-level reader cache
     reader_.invalidate_cache(request.tag.value);
 
-    const auto io_result = ll_reader_.write(request.tag.value, request.offset, std::span(reinterpret_cast<const std::byte *>(request.data.value.elements), request.data.value.count));
+    const auto io_result = reader_.ll_reader().write(request.tag.value, request.offset, std::span(reinterpret_cast<const std::byte *>(request.data.value.elements), request.data.value.count));
     result._error = io_result_to_error(io_result);
 }
 
@@ -447,7 +448,7 @@ void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_Initialize
         .protection_policy = static_cast<INFCReader::InitializeTagParams::ProtectionPolicy>(request.protection_policy),
         .best_effort = request.best_effort,
     };
-    const auto io_result = ll_reader_.initialize_tag(request.tag.value, params);
+    const auto io_result = reader_.ll_reader().initialize_tag(request.tag.value, params);
     result._error = io_result_to_error(io_result);
 }
 
@@ -457,6 +458,6 @@ void NFCTask::handle_unlock_tag_request(const prusa3d_nfc_request_UnlockTag_1_0 
         return;
     }
 
-    const auto io_result = ll_reader_.unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
+    const auto io_result = reader_.ll_reader().unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
     result._error = io_result_to_error(io_result);
 }

@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "hal.hpp"
+#include "nfc.hpp"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -10,6 +11,7 @@
 #include <device/hal.h>
 #include <nfc_task.hpp>
 #include <o1heap/o1heap.hpp>
+#include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
 
 // This magical incantation is required for fw_descriptor integration in cmake to work.
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
@@ -63,7 +65,8 @@ can::cyphal::Task can::cyphal::cyphal_task(can_driver, 32, &canard_heap_allocate
 
 anfc::cyphal::ANFCNode can_node(get_uid());
 
-NFCTask nfc_task;
+static LLNFCReader ll_reader { nfc::reader_1 };
+NFCTask nfc_task(ll_reader, [](prusa3d_nfc_event_Event_1_0 &event) { can_node.enqueue_event(event); });
 
 extern "C" int main() {
     hal::init();
@@ -90,7 +93,10 @@ extern "C" int main() {
         &node_task_control_block);
 
     [[maybe_unused]] TaskHandle_t nfc_task_handle = xTaskCreateStatic(
-        [](void *) { nfc_task.task(); },
+        [](void *) {
+            nfc::readers_init();
+            nfc_task.task();
+        },
         "nfc_task",
         nfc_task_stack_size,
         nullptr,

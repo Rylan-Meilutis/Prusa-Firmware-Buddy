@@ -6,15 +6,14 @@
 #include <utils/atomic_circular_queue.hpp>
 #include <move_only_inplace_function.hpp>
 #include <prusa_nfc/prusa_nfc_reader.hpp>
-#include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
-
-#include "nfc.hpp"
+#include <prusa_nfc/i_nfc_reader.hpp>
 
 #include <freertos/mutex.hpp>
 #include <o1heap/o1heap.hpp>
 
 #include <prusa3d/nfc/command/Request_1_0.h>
 #include <prusa3d/nfc/request/RequestResult_1_0.h>
+#include <prusa3d/nfc/event/Event_1_0.h>
 
 /// Task that is responsible for handling NFC-related requests
 /// Processing the requests can take quite some time, so we need a separate task
@@ -22,6 +21,10 @@ class NFCTask {
 
 public:
     using Job = stdext::move_only_inplace_function<void()>;
+    using EventCallback = stdext::inplace_function<void(prusa3d_nfc_event_Event_1_0 &)>;
+
+public:
+    NFCTask(INFCReader &ll_reader, const EventCallback &event_callback);
 
 public:
     /// Attempts to enqueue a request for processing
@@ -58,8 +61,10 @@ private:
     /// Mutex for enqueing the jobs and for the heap ops
     freertos::Mutex job_queue_mutex_;
 
-    LLNFCReader ll_reader_ { nfc::reader_1 };
-    PrusaNFCReader reader_ { ll_reader_ };
+    /// Callback for when NFCTask generates an event that should be broadcasted
+    EventCallback event_callback_;
+
+    PrusaNFCReader reader_;
 
     std::array<char, 64> mime_type_buffer_;
 

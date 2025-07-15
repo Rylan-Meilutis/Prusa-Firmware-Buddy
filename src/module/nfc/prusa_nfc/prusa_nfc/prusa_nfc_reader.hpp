@@ -122,6 +122,13 @@ public:
         return params_;
     }
 
+    /// Lower-level reader interface
+    // If used for writing operations, calling invalidate_cache is recommended.
+    /// !!! Use at your own risk.
+    INFCReader &ll_reader() {
+        return reader_;
+    }
+
     /// Configures the reader with the specified parameters
     void set_params(const Params &set);
 
