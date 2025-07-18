@@ -36,6 +36,9 @@ public:
     /// Thread function, for internal use only
     void task();
 
+public:
+    constexpr bool is_radio_enabled() const { return radio_enabled_; }
+
 private:
     /// Enqueues the job to be executed on the NFC task
     /// May block if the queue is full
@@ -74,5 +77,5 @@ private:
 
     std::array<char, 64> mime_type_buffer_;
 
-    bool radio_enabled_ = false;
+    std::atomic<bool> radio_enabled_ = false;
 };
