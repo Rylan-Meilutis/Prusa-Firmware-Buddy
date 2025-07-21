@@ -162,9 +162,12 @@ nfcv::Result<void> LLNFCReader::write_impl(const TagData &tag_data, NFCOffset st
     return {};
 }
 
-bool LLNFCReader::get_event(Event &e) {
+bool LLNFCReader::get_event(Event &e, uint32_t current_time_ms) {
     // check for events to report
     if (events.isEmpty()) {
+        if (!discoveries_limiter.check(current_time_ms)) {
+            return false;
+        }
         // if we don't have any => run discovery to detect new tags
         run_next_discovery();
         // if still don't have any events => return false;

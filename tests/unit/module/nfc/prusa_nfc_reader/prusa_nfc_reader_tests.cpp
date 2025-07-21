@@ -87,7 +87,7 @@ public:
         return {};
     }
 
-    [[nodiscard]] virtual bool get_event(Event &e) final {
+    [[nodiscard]] virtual bool get_event(Event &e, uint32_t current_timestamp_ms) final {
         return false;
     }
 

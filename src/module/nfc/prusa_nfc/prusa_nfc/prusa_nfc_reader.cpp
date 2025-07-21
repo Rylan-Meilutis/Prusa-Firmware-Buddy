@@ -41,8 +41,8 @@ PrusaNFCReader::Error PrusaNFCReader::to_prusa_error(INFCReader::IOError error) 
 PrusaNFCReader::PrusaNFCReader(INFCReader &reader)
     : reader_(reader) {}
 
-bool PrusaNFCReader::get_event(Event &event) {
-    if (!reader_.get_event(event)) {
+bool PrusaNFCReader::get_event(Event &event, uint32_t current_time_ms) {
+    if (!reader_.get_event(event, current_time_ms)) {
         return false;
     }
 

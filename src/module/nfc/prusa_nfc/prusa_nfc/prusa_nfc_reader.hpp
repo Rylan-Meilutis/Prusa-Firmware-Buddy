@@ -133,7 +133,7 @@ public:
     void set_params(const Params &set);
 
     /// See INFCReader::get_event
-    [[nodiscard]] bool get_event(Event &event);
+    [[nodiscard]] bool get_event(Event &event, uint32_t current_time_ms);
 
     /// Invalidates all the cache records the reader has for the specified tag
     /// To be called if the tag gets somehow changed outside of the PrusaNFCReader control

@@ -389,7 +389,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         };
         logger.antenna_index = 1;
 
-        auto res = reader.get_event(event);
+        auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -404,7 +404,13 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
         logger.events.clear();
 
-        res = reader.get_event(event);
+        res = reader.get_event(event, 100);
+        REQUIRE(res == false);
+        CHECK(logger.events.empty());
+
+        logger.events.clear();
+
+        res = reader.get_event(event, 251);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -414,7 +420,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
         logger.events.clear();
 
-        res = reader.get_event(event);
+        res = reader.get_event(event, 501);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagLostEvent>(event));
         REQUIRE(std::get<INFCReader::TagLostEvent>(event).tag == 0);
@@ -437,7 +443,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         };
         logger.antenna_index = 1;
 
-        auto res = reader.get_event(event);
+        auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -454,15 +460,16 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                     FieldDown {},
                                                 }));
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 10);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 20);
         REQUIRE(res == false);
+        CHECK(logger.events.empty());
     }
 
     SECTION("Test mutliple tags discovered scenario - on multiple antennas") {
@@ -479,7 +486,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         };
         logger.antenna_index = 1;
 
-        auto res = reader.get_event(event);
+        auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -496,14 +503,19 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                     FieldDown {},
                                                 }));
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 10);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 20);
+        REQUIRE(res == false);
+        CHECK(logger.events.empty());
+
+        logger.events.clear();
+        res = reader.get_event(event, 251);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 2);
@@ -529,7 +541,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         };
         logger.antenna_index = 1;
 
-        auto res = reader.get_event(event);
+        auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -546,14 +558,14 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                     FieldDown {},
                                                 }));
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 10);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 251);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -563,7 +575,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 501);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagLostEvent>(event));
         CHECK(std::get<INFCReader::TagLostEvent>(event).tag == 1);
@@ -577,7 +589,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 751);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -589,7 +601,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 1001);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -601,7 +613,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 1251);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -615,7 +627,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         reader.forget_tag(1);
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 1501);
         REQUIRE(res == false);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     SwitchToNextDiscoveryAntenna {},
@@ -627,7 +639,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
                                                 }));
 
         logger.events.clear();
-        res = reader.get_event(event);
+        res = reader.get_event(event, 1751);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
@@ -659,7 +671,7 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
     LLNFCReader reader { logger };
 
     INFCReader::Event event;
-    auto res = reader.get_event(event);
+    auto res = reader.get_event(event, 0);
     REQUIRE(res == true);
     REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
     CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -782,7 +794,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     LLNFCReader reader { logger };
 
     INFCReader::Event event;
-    auto res = reader.get_event(event);
+    auto res = reader.get_event(event, 0);
     REQUIRE(res == true);
     REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
     CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
@@ -1040,7 +1052,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
     // Process tag detection
     {
         INFCReader::Event event;
-        auto res = reader.get_event(event);
+        auto res = reader.get_event(event, 0);
         REQUIRE(res == true);
         REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
         const auto &ev = std::get<INFCReader::TagDetectedEvent>(event);

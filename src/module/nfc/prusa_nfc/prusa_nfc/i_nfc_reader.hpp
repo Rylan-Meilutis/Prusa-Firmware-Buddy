@@ -55,8 +55,9 @@ public:
     [[nodiscard]] virtual IOResult<void> write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &data) = 0;
 
     /// Reads a single event and stores it in \p e
+    /// \param timestamp of current time, from function like freertos::millis
     /// \returns false if there is no event
-    [[nodiscard]] virtual bool get_event(Event &e) = 0;
+    [[nodiscard]] virtual bool get_event(Event &e, uint32_t current_time_ms) = 0;
 
     /// Completely forgets the tag and allows the tag ID to be reused
     /// If the tag is still present, a new TagDetected event will be emitted

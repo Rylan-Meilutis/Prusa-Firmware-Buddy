@@ -164,7 +164,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 void NFCTask::task() {
     while (true) {
         // Process a reader event
-        if (PrusaNFCReader::Event e; radio_enabled_ && reader_.get_event(e)) {
+        if (PrusaNFCReader::Event e; radio_enabled_ && reader_.get_event(e, freertos::millis())) {
             handle_event(e);
 
             // We've done something -> skip the delay

@@ -3,6 +3,7 @@
 #define DO_NOT_CHECK_ATOMIC_LOCK_FREE
 
 #include <utils/atomic_circular_queue.hpp>
+#include <utils/timing/rate_limiter.hpp>
 #include <prusa_nfc/i_nfc_reader.hpp>
 #include <nfcv/types.hpp>
 #include <nfcv/rw_interface.hpp>
@@ -19,7 +20,7 @@ public:
 
     [[nodiscard]] IOResult<void> write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &buffer) final;
 
-    [[nodiscard]] bool get_event(Event &e) final;
+    [[nodiscard]] bool get_event(Event &e, uint32_t current_time_ms) final;
 
     void forget_tag(NFCTagID tag) final;
 
@@ -51,6 +52,9 @@ private:
 
     nfcv::ReaderWriterInterface &reader;
     std::array<TagData, MAX_KNOWN_TAGS> tags {};
+
+    static constexpr uint32_t PAUSE_BETWEEN_DISCOVERIES_MS = 250;
+    RateLimiter<uint32_t> discoveries_limiter { PAUSE_BETWEEN_DISCOVERIES_MS };
 
     AtomicCircularQueue<Event, uint8_t, 4> events;
 

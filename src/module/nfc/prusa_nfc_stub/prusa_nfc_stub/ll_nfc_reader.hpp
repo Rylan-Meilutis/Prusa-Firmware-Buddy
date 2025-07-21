@@ -12,7 +12,7 @@ public:
 
     [[nodiscard]] IOResult<void> write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &buffer) final;
 
-    [[nodiscard]] bool get_event(Event &e) final;
+    [[nodiscard]] bool get_event(Event &e, uint32_t current_time_ms) final;
 
     void forget_tag(NFCTagID tag) final;
 
