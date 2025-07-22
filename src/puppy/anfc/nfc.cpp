@@ -97,6 +97,11 @@ void nfc::readers_init() {
     if (!init_res.has_value()) {
         hal::panic();
     }
+
+    init_res = nfc::reader_1.init_nfcv_poller();
+    if (!init_res.has_value()) {
+        hal::panic();
+    }
 }
 
 void nfc::irq() {

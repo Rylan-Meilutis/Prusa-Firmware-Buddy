@@ -74,15 +74,12 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::init() {
     // change_register(static_cast<RegisterB>(0x04), std::byte { 0x10 }, std::byte { 0x10 });
 
     // Enable internal oscilator
-    auto res = turn_on_oscilator();
-    if (!res.has_value()) {
+    if (auto res = turn_on_oscilator(); !res.has_value()) {
         return res;
     }
 
     // Set single antena drving
     hw_int.write_register(RegisterA::io_configuration_1, std::byte { 0x80 });
-    // Disable MCU CLK - not needed we don't drive MCU clk
-    // TRY(change_register(RegisterA::IOConf1, std::byte { 0x07 }, std::byte { 0x07 }));
 
     // Enable MISO pulldowns
     hw_int.write_register(RegisterA::io_configuration_2, std::byte { 0x1C });
@@ -91,33 +88,44 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::init() {
     set_output_amplitude(Amplitude::percent_82);
     sys_int.delay(1);
 
-    hw_int.write_register(RegisterB::resistive_am_modulation, std::byte { 0x80 });
-    hw_int.write_register(RegisterA::external_field_detector_activation_threshold, std::byte { 0x00 });
-    hw_int.write_register(RegisterA::external_field_detector_deactivation_threshold, std::byte { 0x00 });
+    // Resistive am modulation is disabled
+    // hw_int.write_register(RegisterB::resistive_am_modulation, std::byte { 0x80 });
+    // Also external field detector is disabled
+    // hw_int.write_register(RegisterA::external_field_detector_activation_threshold, std::byte { 0x00 });
+    // hw_int.write_register(RegisterA::external_field_detector_deactivation_threshold, std::byte { 0x00 });
 
+    // Enables automatic anticollision in NFC-A - why? we are wotking with NFC-V
+    // Disables automatic responses in SENSF_RES. WTF is this
+    // and again why here?
     hw_int.write_register(RegisterA::passive_target, std::byte { 0x50 });
 
-    hw_int.write_register(RegisterA::passive_target_modulation, std::byte { 0x2F });
-
+    // Enables reception even if there are errors in the first 4 bits of the frame
+    // TODO: Documentation mentiones ISO-A (probablt NFC-A), make sure that this is needed
     hw_int.write_register(RegisterB::emd_suppression_configuration, std::byte { 0x40 });
 
+    // Do we want to set this? Or even set it here? This values is mode dependent, maybe move it some other mode
+    // intialization? Also probably not relevant for NFC-V
+    // Also ST25R3919B doesn't support pasive target anything
+    hw_int.write_register(RegisterA::passive_target_modulation, std::byte { 0x2F });
+
+    // Regulator AM disabled - why? we have a big capacitor so shouldn't we enable it?
+    //                         or we don't want that capacitor due to the fact we want AWS
+    // Driver load modulation enabled - why? are we even able to use passive target modulation
+    // Regulator shaped AM modulation for AWS enabled - why? we are enabling AWS without the correct HW setup
     hw_int.write_register(RegisterB::auxiliary_modulation_setting, std::byte { 0x94 });
 
-    hw_int.write_register(RegisterA::gain_reduction_state, std::byte { 0x09 });
+    // We are not in receiver mode - no need to setup this register
+    // hw_int.write_register(RegisterA::gain_reduction_state, std::byte { 0x09 });
 
-    hw_int.write_register(RegisterA::antenna_tuning_control_1, std::byte { 0x82 });
-    hw_int.write_register(RegisterA::antenna_tuning_control_2, std::byte { 0x82 });
-
-    hw_int.write_register(RegisterA::regulator_voltage_control, std::byte { 0x00 });
+    // It looks like this is also not needed :/
+    // hw_int.write_register(RegisterA::antenna_tuning_control_1, std::byte { 0x82 });
+    // hw_int.write_register(RegisterA::antenna_tuning_control_2, std::byte { 0x82 });
 
     set_interrupt_mask(~IRQType::direct_command_finished);
     hw_int.direct_command(Command::adjust_regulators);
 
-    {
-        auto res = await_interrupt(IRQType::direct_command_finished, 500);
-        if (!res.has_value()) {
-            return res;
-        }
+    if (auto res = await_interrupt(IRQType::direct_command_finished, 500); !res.has_value()) {
+        return res;
     }
 
     set_interrupt_mask(IRQType::all);
@@ -263,72 +271,74 @@ void st25r39xxb::ST25R39XXB::set_output_amplitude(st25r39xxb::Amplitude target_a
     hw_int.change_register(RegisterA::tx_driver, std::byte { 0xf0 }, std::byte { std::to_underlying(target_amplitude) });
 }
 
-nfcv::Result<void> st25r39xxb::ST25R39XXB::field_up(AntennaID antenna) {
-    select_antenna(antenna);
-
-    // Martin Poupa's Solution - much simpler in flipper fw - will use that for the moment
-    hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0x00 });
+nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller() {
+    // Enable oscilator and regulator
+    // It is recommended that bits en_fd_c<1:0> of the operation control register are set to 01b in Reader mode.
     hw_int.write_register(RegisterA::operation_control, std::byte { 0x81 });
+    // Set generic parameter n for NFC * field ON command
     hw_int.write_register(RegisterA::auxilary_definition, std::byte { 0x01 });
-    set_interrupt_mask(~(IRQType::no_response_timer_expire | IRQType::minimum_guard_time_expires | IRQType::collision_detected | IRQType::pwp_field_active));
-    hw_int.direct_command(Command::nfc_init_field_on);
 
-    auto res = await_interrupt(IRQType::pwp_field_active, 100);
-    if (!res.has_value()) {
-        return res;
-    }
+    hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0x00 });
 
-    set_interrupt_mask(~IRQType::no_response_timer_expire);
-    hw_int.write_register(RegisterA::operation_control, std::byte { 0x8B });
-    hw_int.write_register(RegisterA::operation_control, std::byte { 0xCB });
-
+    // TODO: Verify this settings, by disabling this command the signal is worse
+    // By preliminary testing the 0x03 also worked
     hw_int.write_register(RegisterA::receiver_configuration_1, std::byte { 0x13 });
-    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xed });
-    hw_int.write_register(RegisterA::receiver_configuration_3, std::byte { 0x00 });
+    // hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xe5 }); - no need to set so far
+    // hw_int.write_register(RegisterA::receiver_configuration_3, std::byte { 0x00 }); - no need to set so far
 
+    // AM and PM correlation signals summed before digitizing (summation mode)
+    // Set collision detection level to 53% (compared to data detection level)
     hw_int.write_register(RegisterB::correlator_configuration_1, std::byte { 0x13 });
+    // Must be set to 1 for 424 kHz subcarrier stream mode.
     hw_int.write_register(RegisterB::correlator_configuration_2, std::byte { 0x01 });
+
+    // Set:
+    // Period of stream mode Tx modulator to 106kHz
+    // Number of sub-carrier pulses in report period to 8
+    // Sub-carrier frequence to 424kHz
     hw_int.write_register(RegisterA::stream_mode_definition, std::byte { 0x38 });
+    // Set operation mode to Sub-carrier stream mode and modulation mode to OOK
     hw_int.change_register(RegisterA::mode_definition, std::byte { 0x7c }, std::byte { 0x70 });
 
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x00 });
-    // Writes to undocumented registers
-    // TODO: Validate that we don't need those (I am 100% sure that we don't, but there is no time for this)
-    hw_int.write_register(static_cast<RegisterB>(0x34), std::byte { 0x01 }); // R 0x34 0x01
-    hw_int.write_register(static_cast<RegisterB>(0x36), std::byte { 0x79 }); // R 0x36
-    hw_int.write_register(static_cast<RegisterB>(0x37), std::byte { 0x07 }); // R 0x37 0x07
-
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0x1C });
-    hw_int.write_register(static_cast<RegisterB>(0x1C), std::byte { 0 });
-
-    sys_int.delay(6);
-
-    hw_int.write_register(RegisterA::receiver_timer_mask, std::byte { 0x41 });
-
-    hw_int.direct_command(Command::stop_all_1);
-    hw_int.direct_command(Command::reset_rx_gain);
-
-    // FIXME: We don't need to setup the timer on every field up. Move to some generic nfc-v initialization
     // Force general purpose timer (gpt) to start automatically at the end of RX
     // It can always be started with Command::start_general_purpose_timer
+    // Also we set Mask receive timer step size to 0 => 64/fc 4.72us - please be very careful when changing
     hw_int.write_register(RegisterA::timer_and_emv_control, std::byte { 0x20 });
     // We will be using gpt for waiting between two commands (which is about 300us)
     // Every "tick" of gpt is ~590ns. So 300'000/590 = 508.484 => 509 (0x01fd)
     hw_int.write_register(RegisterA::general_purpose_timer_1, std::byte { 0x01 }); // MSB
     hw_int.write_register(RegisterA::general_purpose_timer_2, std::byte { 0xfd }); // LSB
 
-    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0xDC });
-    hw_int.write_register(RegisterA::receiver_configuration_2, std::byte { 0xE5 });
+    // Set modulation width to 112 periods of 13.56MHz clock
+    // Disable parity bit generation
+    hw_int.write_register(RegisterA::ISO14443A, std::byte { 0xdc });
+    // Sets time after end of TX during which receiver output is ignored.
+    // 4.72us * 0x41 = 306.8 us
+    hw_int.write_register(RegisterA::receiver_timer_mask, std::byte { 0x41 });
+
+    set_interrupt_mask(~(IRQType::collision_detected | IRQType::pwp_field_active));
+    hw_int.direct_command(Command::nfc_init_field_on);
+
+    auto res = await_interrupt(IRQType::pwp_field_active, 100, IRQType::collision_detected);
+    if (!res.has_value()) {
+        return res;
+    }
 
     set_interrupt_mask(IRQType::all);
 
-    /*static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
+    return {};
+}
+
+nfcv::Result<void> st25r39xxb::ST25R39XXB::field_up(AntennaID antenna) {
+    select_antenna(antenna);
+
+    hw_int.write_register(RegisterB::nfc_field_on_guard_timer, std::byte { 0 });
+    static constexpr std::byte OPER_CONTROL_TX_ENABLE { 0b0000'1000 };
     static constexpr std::byte OPER_CONTROL_RX_ENABLE { 0b0100'0000 };
-    static constexpr std::byte OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY { 0b0000'0011 };
-    if (!static_cast<bool>(TRY(read_register(RegisterA::OperContr)) & OPER_CONTROL_TX_ENABLE)) {
-        TRY(write_register(RegisterB::NFCFieldOnGuardTimer, std::byte { 0x00 }));
-        TRY(register_set_bits(RegisterA::OperContr, OPER_CONTROL_TX_ENABLE | OPER_CONTROL_RX_ENABLE | OPER_CONTROL_EN_EXTERNAL_FIELD_DETECTOR_AUTOMATICALLY));
-    }*/
+    hw_int.register_set_bits(RegisterA::operation_control, OPER_CONTROL_RX_ENABLE | OPER_CONTROL_TX_ENABLE);
+
+    hw_int.direct_command(Command::stop_all_1);
+    hw_int.direct_command(Command::reset_rx_gain);
 
     sys_int.delay(50);
 

@@ -21,6 +21,9 @@ public:
     /// Generic initialization function. Should be always called
     [[nodiscard]] nfcv::Result<void> init();
 
+    /// Init NFC-V poller values. Should be called after @ref init
+    [[nodiscard]] nfcv::Result<void> init_nfcv_poller();
+
     nfcv::Result<void> field_up(AntennaID antenna) final;
     void field_down() final;
 
@@ -48,6 +51,7 @@ private:
     void set_interrupt_mask(st25r39xxb::IRQType mask);
     [[nodiscard]] st25r39xxb::IRQType read_interrupt();
     /**
+     *
      * @brief Block the code execution until we receive all the interrupts from @p irqs_to_wait_for or the @p timeout_ms expires or some inner timer expires.
      *
      * @param irqs_to_wait_for - mask to interrupts to wait for - every interrupt needs to be triggered
