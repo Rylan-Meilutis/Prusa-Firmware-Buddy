@@ -1,5 +1,10 @@
 #pragma once
 
+#include <option/has_cyphal_logging.h>
+#if !HAS_CYPHAL_LOGGING()
+    #error
+#endif
+
 #include <logging/log.hpp>
 
 #include "cyphal_register.hpp"

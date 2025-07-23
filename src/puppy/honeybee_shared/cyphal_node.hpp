@@ -7,7 +7,6 @@
 #include <cyphal_register_dummy.hpp>
 #include <cyphal_register.hpp>
 #include <cyphal_timesync.hpp>
-#include <cyphal_record.hpp>
 #include <cyphal_port_list.hpp>
 #include <cyphal_task.hpp>
 #include <cyphal_pnp.hpp>
@@ -27,6 +26,12 @@
 #if CYPHAL_CAN_STATS()
     #include <cyphal_can_stats.hpp>
 #endif
+
+#include <option/has_cyphal_logging.h>
+#if HAS_CYPHAL_LOGGING()
+    #include <cyphal_record.hpp>
+#endif
+
 #include <prusa3d/common/CustomExecuteCommand_1_0.h>
 #include <watcher.hpp>
 
@@ -196,8 +201,10 @@ protected:
     can::cyphal::ServerTraited<uavcan_node_GetInfo_1_0_Traits> get_info_server;
     uavcan_node_GetInfo_Response_1_0 get_info_resp;
 
+#if HAS_CYPHAL_LOGGING()
     /// Logging destination
     can::cyphal::Record record;
+#endif
 
     /// Heartbeat subscription to watch if other nodes are alive
     watcher::Heartbeat<WatchNodes> heartbeat_watcher;
@@ -316,7 +323,9 @@ public:
         // Init sub components
         port_list.init();
         time_sync.init(port_list);
+#if HAS_CYPHAL_LOGGING()
         record.init(port_list);
+#endif
         registers.init(port_list);
 #if CYPHAL_CAN_STATS()
         can_stats.init(port_list, registers);
@@ -383,8 +392,10 @@ public:
                 }
             }
 
+#if HAS_CYPHAL_LOGGING()
             // Logging
             record.try_send();
+#endif
 
             // Time synchronization
             time_sync.loop(now);
@@ -411,8 +422,10 @@ public:
                 notify(Notify::time_sync); // Notify app that time sync changed
             }
             if (!first_time_sync && new_is_time_sync_precise) {
+#if HAS_CYPHAL_LOGGING()
                 // Got first valid sync during initialization
                 record.set_time_sync(&time_sync); // Use time_sync for log timestamps
+#endif
                 registers.set_time_sync(&time_sync); // Use time_sync for register timestamps
                 first_time_sync = true;
             }

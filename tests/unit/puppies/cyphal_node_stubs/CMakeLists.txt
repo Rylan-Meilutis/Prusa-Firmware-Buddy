@@ -9,7 +9,6 @@ set(CYPHAL_NODE_TEST_STUBS_SOURCES
     ${CMAKE_SOURCE_DIR}/src/can/cyphal_proto_sender.cpp
     ${CMAKE_SOURCE_DIR}/src/can/cyphal_task.cpp
     ${CMAKE_SOURCE_DIR}/src/can/cyphal_timesync.cpp
-    ${CMAKE_SOURCE_DIR}/src/can/cyphal_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/puppy_impl_stubs.cpp
     PARENT_SCOPE
     )
