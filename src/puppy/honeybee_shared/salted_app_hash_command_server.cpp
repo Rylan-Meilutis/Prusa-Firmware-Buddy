@@ -12,6 +12,8 @@ bool is_debugger_attached() {
     return (CoreDebug->DHCSR & CoreDebug_DHCSR_C_DEBUGEN_Msk);
 #elif defined(STM32C0)
     return (DBG->CR & (DBG_CR_DBG_STOP_Msk | DBG_CR_DBG_STANDBY_Msk));
+#elif defined(UNITTESTS)
+    return false;
 #else
     #error
 #endif

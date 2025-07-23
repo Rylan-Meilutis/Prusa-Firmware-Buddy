@@ -1,9 +1,12 @@
 
 #include "cyphal_timesync.hpp"
 
-#include <metric.h>
+#include <option/has_cyphal_metrics.h>
+#if HAS_CYPHAL_METRICS()
+    #include <metric.h>
+    #include <cinttypes>
 
-#define ENABLE_ALL_TIMESYNC_METRICS METRIC_DISABLED
+    #define ENABLE_ALL_TIMESYNC_METRICS METRIC_DISABLED
 
 METRIC_DEF(metric_raw_offset_us, "timesync_raw_offset_us", METRIC_VALUE_CUSTOM, 0, ENABLE_ALL_TIMESYNC_METRICS);
 METRIC_DEF(metric_raw_drift, "timesync_raw_drift", METRIC_VALUE_CUSTOM, 0, ENABLE_ALL_TIMESYNC_METRICS);
@@ -11,6 +14,7 @@ METRIC_DEF(metric_offset_err_us2, "timesync_offset_err_us2", METRIC_VALUE_CUSTOM
 METRIC_DEF(metric_offset_us, "timesync_offset_us", METRIC_VALUE_CUSTOM, 0, ENABLE_ALL_TIMESYNC_METRICS);
 METRIC_DEF(metric_drift_err, "timesync_drift_err", METRIC_VALUE_CUSTOM, 0, ENABLE_ALL_TIMESYNC_METRICS);
 METRIC_DEF(metric_drift, "timesync_drift", METRIC_VALUE_CUSTOM, 0, ENABLE_ALL_TIMESYNC_METRICS);
+#endif
 
 namespace can::cyphal {
 
@@ -67,13 +71,15 @@ bool TimeSync::loop(int64_t timestamp) {
                     drift_filter.filter(puppy_drift, drift_filter.value());
 
                     // Metrics
+#if HAS_CYPHAL_METRICS()
                     uint32_t ticks_us_now = ticks_us();
-                    metric_record_custom_at_time(&metric_raw_offset_us, ticks_us_now, " v=%lli", new_offset_us);
+                    metric_record_custom_at_time(&metric_raw_offset_us, ticks_us_now, " v=%" PRIi64, new_offset_us);
                     metric_record_custom_at_time(&metric_raw_drift, ticks_us_now, " v=%.6f", puppy_drift);
                     metric_record_custom_at_time(&metric_offset_err_us2, ticks_us_now, " v=%f", offset_filter.error());
                     metric_record_custom_at_time(&metric_offset_us, ticks_us_now, " v=%.10f", offset_filter.value());
                     metric_record_custom_at_time(&metric_drift_err, ticks_us_now, " v=%e", drift_filter.error());
                     metric_record_custom_at_time(&metric_drift, ticks_us_now, " v=%.3e", drift_filter.value());
+#endif
 
                     // Set remote data copy for ISR access
                     bool valid_remote = remote_data_valid.load();

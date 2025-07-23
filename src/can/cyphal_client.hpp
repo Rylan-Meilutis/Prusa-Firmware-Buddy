@@ -206,16 +206,6 @@ public:
     [[nodiscard]] ProtoPortList &get_protoportlist() {
         return request;
     }
-
-    /// @brief Add itself to Cyphal Task.
-    void add_to_task() {
-        cyphal_task.add_suber(*this);
-    }
-
-    /// @brief Remove itself from Cyphal Task.
-    void remove_from_task() {
-        cyphal_task.remove_suber(*this);
-    }
 };
 
 /**

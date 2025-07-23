@@ -133,8 +133,9 @@ public:
      * @brief Manage time synchronization.
      * Run this periodically at least several times a second.
      * @param timestamp local time [us], get_timestamp_us()
+     * @return true each time we get a new synchronization and we have a precise sync
      */
-    [[nodiscard]] bool loop(int64_t timestamp);
+    bool loop(int64_t timestamp);
 
     /**
      * @brief Return if the sync state is valid.

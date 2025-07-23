@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <timing.h>
 #include <logging/log.hpp>
-#include <device/cmsis.h>
 
 LOG_COMPONENT_DEF(can, logging::Severity::debug);
 
@@ -92,7 +91,7 @@ void Task::loop() {
             lost_rx_frames_last = lost_rx_frames;
         }
 
-        uint32_t what;
+        uint32_t what = 0;
         while (xTaskNotifyWaitIndexed(notify_index, 0, 0xffffffff, &what, pdMS_TO_TICKS(10)) == pdPASS) {
             int64_t notify_time = get_timestamp_us();
 
@@ -131,7 +130,7 @@ void Task::loop() {
 void Task::notify(Notify what) {
     assert(loop_task);
 
-    if (__get_IPSR() != 0) { // We are in ISR
+    if (xPortIsInsideInterrupt() != 0) { // We are in ISR
         BaseType_t woken = pdFALSE;
         xTaskNotifyIndexedFromISR(loop_task, notify_index, std::to_underlying(what), eSetBits, &woken);
         portYIELD_FROM_ISR(woken);

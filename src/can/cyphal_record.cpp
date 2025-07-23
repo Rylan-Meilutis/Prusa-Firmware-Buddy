@@ -45,9 +45,9 @@ void Record::member_log_event(logging::FormattedEvent *event) {
             CanardMicrosecond timestamp = static_cast<int64_t>(event->timestamp.sec) * 1000000 + event->timestamp.us;
             if (time_sync != nullptr) {
                 if (in_isr) {
-                    timestamp = std::max(time_sync->get_remote_isr(timestamp), 0LL);
+                    timestamp = std::max<int64_t>(time_sync->get_remote_isr(timestamp), 0);
                 } else {
-                    timestamp = std::max(time_sync->get_remote(timestamp), 0LL);
+                    timestamp = std::max<int64_t>(time_sync->get_remote(timestamp), 0);
                 }
             }
             buffer.record.timestamp.microsecond = timestamp;
@@ -76,7 +76,7 @@ void Record::member_log_event(logging::FormattedEvent *event) {
 
             // Store message into buffer
             buffer.record.text.count = 0;
-            log_format_can_node(event, add_character, &buffer.record);
+            log_format_honeybee_node(event, add_character, &buffer.record);
 
             // Mark as finished
             buffer.filled = true;

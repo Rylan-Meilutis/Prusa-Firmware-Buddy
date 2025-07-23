@@ -101,16 +101,6 @@ public:
         return awaiting_response;
     }
 
-    /// @brief Add itself to Cyphal Task.
-    void add_to_task() {
-        cyphal_task.add_suber(*this);
-    }
-
-    /// @brief Remove itself from Cyphal Task.
-    void remove_from_task() {
-        cyphal_task.remove_suber(*this);
-    }
-
     /// @return Server port-ID.
     [[nodiscard]] inline CanardPortID get_server_id() const {
         return get_port_id();

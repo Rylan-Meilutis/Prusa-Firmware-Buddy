@@ -22,8 +22,8 @@ function(transpile_dsdl)
     "only"
     )
   set(dsdl_root_namespace_dirs # List all DSDL root namespaces to transpile here.
-      ${DSDL_DIR}/public_regulated_data_types/uavcan
-      # Do not use reg types: ${DSDL_DIR}/public_regulated_data_types/reg
+      ${DSDL_DIR}/uavcan
+      # Do not use reg types: ${DSDL_DIR}/reg
       ${DSDL_DIR}/prusa3d
       )
   foreach(ns_dir ${dsdl_root_namespace_dirs})

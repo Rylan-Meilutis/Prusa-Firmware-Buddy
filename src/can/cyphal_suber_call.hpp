@@ -50,17 +50,6 @@ protected:
 
     /// @brief Deserialize data from buffer.
     virtual int8_t deserialize(void *const data, const uint8_t *buffer, size_t *const inout_buffer_size_bytes) = 0;
-
-public:
-    /// @brief Add itself to Cyphal Task.
-    void add_to_task() {
-        cyphal_task.add_suber(*this);
-    }
-
-    /// @brief Remove itself from Cyphal Task.
-    void remove_from_task() {
-        cyphal_task.remove_suber(*this);
-    }
 };
 
 /**

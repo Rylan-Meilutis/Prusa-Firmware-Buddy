@@ -1,30 +1,20 @@
 #pragma once
 
-#include "cyphal_proto_suber.hpp"
 #include "cyphal_server.hpp"
-#include "cyphal_task.hpp"
 #include "cyphal_timesync.hpp"
 
 #include <uavcan/_register/Access_1_0.h>
 #include <uavcan/_register/List_1_0.h>
+
 #include <string>
 
 namespace can::cyphal {
 
 /**
  * @brief This provides a Cyphal register interface.
- * @tparam MAX_REGISTERS maximum number of registers
  */
-template <size_t MAX_REGISTERS>
-class RegisterMachine {
-    /// Respond to register access requests
-    Server<uavcan_register_Access_Request_1_0, uavcan_register_Access_Request_1_0_EXTENT_BYTES_, uavcan_register_Access_Response_1_0, uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_> server_access;
-
-    /// Respond to register list requests
-    Server<uavcan_register_List_Request_1_0, uavcan_register_List_Request_1_0_EXTENT_BYTES_, uavcan_register_List_Response_1_0, uavcan_register_List_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_> server_list;
-
-    TimeSync *time_sync = nullptr; ///< Time synchronization object
-
+class RegisterMachineIface {
+public:
     /**
      * @brief Set and get the value of the register.
      * @param write value to write, check uavcan_register_Value_1_0_is_empty_() before writing
@@ -39,9 +29,21 @@ class RegisterMachine {
         bool is_persistent; ///< Is the register persistent
         bool is_mutable; ///< Is the register mutable
         SetGetCallback set_get; ///< Set and get the value of the register
-    } registers[MAX_REGISTERS];
+    };
+
+private:
+    ServerTraited<uavcan_register_Access_1_0_Traits> server_access; /// Respond to register access requests
+    ServerTraited<uavcan_register_List_1_0_Traits> server_list; ///< Respond to register list requests
+
+    TimeSync *time_sync = nullptr; ///< Time synchronization object
+    ProtoRegister *registers; ///< Storage for registers
+    size_t max_registers; ///< Maximum number of registers
     size_t register_count = 0; ///< Number of registers added
 
+    /**
+     * @brief Response to register access requests.
+     * @param data register write command
+     */
     void access(const uavcan_register_Access_Request_1_0 &data) {
         uavcan_register_Access_Response_1_0 response; ///< Large response object on stack
         size_t i; ///< Index of found register
@@ -124,7 +126,7 @@ class RegisterMachine {
 
         // Add timestamp
         if (time_sync != nullptr) {
-            response.timestamp.microsecond = std::max(time_sync->get_remote(get_timestamp_us()), 0LL);
+            response.timestamp.microsecond = std::max<int64_t>(time_sync->get_remote(get_timestamp_us()), 0);
         } else {
             response.timestamp.microsecond = 0; // Needs to be network time, use 0 if not available
         }
@@ -180,15 +182,20 @@ class RegisterMachine {
     }
 
 public:
-    RegisterMachine()
+    /**
+     * @brief Interface for handling registers without its own storage.
+     * @param max_registers_ maximum number of registers and size of the registers_ array
+     * @param registers_ pointer to the array of registers, must be valid for the lifetime of this object
+     */
+    RegisterMachineIface(size_t max_registers_, ProtoRegister *registers_)
         : server_access(
-            uavcan_register_Access_Request_1_0_deserialize_, uavcan_register_Access_Response_1_0_serialize_, uavcan_register_Access_1_0_FIXED_PORT_ID_,
             [this](const uavcan_register_Access_Request_1_0 &data, [[maybe_unused]] const ProtoSuber::Meta &meta) { access(data); },
             ProtoSender::send_timeout_default, ProtoSuber::multipart_timeout_default)
         , server_list(
-              uavcan_register_List_Request_1_0_deserialize_, uavcan_register_List_Response_1_0_serialize_, uavcan_register_List_1_0_FIXED_PORT_ID_,
               [this](const uavcan_register_List_Request_1_0 &data, [[maybe_unused]] const ProtoSuber::Meta &meta) { list(data); },
-              ProtoSender::send_timeout_default, ProtoSuber::multipart_timeout_default) {
+              ProtoSender::send_timeout_default, ProtoSuber::multipart_timeout_default)
+        , registers(registers_)
+        , max_registers(max_registers_) {
     }
 
     /**
@@ -200,7 +207,7 @@ public:
      * @param persistent reported to the client, true means that the value should survive device reset
      */
     void add_register(const char *name, SetGetCallback set_get, bool is_mutable, bool is_persistent = false) {
-        if (register_count + 1 <= MAX_REGISTERS) {
+        if (register_count + 1 <= max_registers) {
             registers[register_count++] = { .name = name, .port_name_id = INT16_MAX, .is_persistent = is_persistent, .is_mutable = is_mutable, .set_get = set_get };
         } else {
             assert(false);
@@ -216,7 +223,7 @@ public:
      * @note More info in "uavcan/register/384.Access.1.0.dsdl".
      */
     void add_port_name_set(const char *port_name, const char *data_type, CanardPortID port_id) {
-        if (register_count + 2 <= MAX_REGISTERS) {
+        if (register_count + 2 <= max_registers) {
             registers[register_count++] = { .name = port_name, .port_name_id = port_id, .is_persistent = true, .is_mutable = false, .set_get = nullptr };
             registers[register_count++] = { .name = data_type, .port_name_id = port_id, .is_persistent = true, .is_mutable = false, .set_get = nullptr };
         } else {
@@ -258,6 +265,16 @@ public:
     [[nodiscard]] RegisterIds get_server_ids() const {
         return { .access = server_access.get_server_id(), .list = server_list.get_server_id() };
     }
+};
+
+/// @brief Template that stores registers inside.
+template <size_t MAX_REGISTERS>
+class RegisterMachine : public RegisterMachineIface {
+    RegisterMachineIface::ProtoRegister registers_array[MAX_REGISTERS];
+
+public:
+    RegisterMachine()
+        : RegisterMachineIface(MAX_REGISTERS, registers_array) {}
 };
 
 } // namespace can::cyphal

@@ -1,7 +1,7 @@
 Sources for CAN Communication
 =============================
 
-This directory contains the sources for the Cyphal - CAN FD communication between PUB devices.
+This directory contains the sources for the Cyphal - CAN FD communication between Buddy and a Dwarf.
 
 As of now it is very experimental. Don't change files you don't understand and read [Cyphal Guide](https://forum.opencyphal.org/t/the-cyphal-guide/778) instead.
 
@@ -70,6 +70,7 @@ If complete packet (may be composed of multiple frames) is received, the `user_r
 ### `can::Driver`
 
 Currently `can::FdcanDriver` implements that for `STM32` `FDCAN` peripheral.
+It should work on G4 and MP1.
 The `can::Driver` interface is so far missing support for filtering incoming messages.
 That will be needed to get priority messages and timing.
 It could also reduce some load from the CPU on decoding and discarding unwanted messages.

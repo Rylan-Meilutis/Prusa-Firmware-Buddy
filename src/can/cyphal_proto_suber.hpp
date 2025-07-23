@@ -82,6 +82,12 @@ protected:
     }
 
 public:
+    /// @brief Add itself to Cyphal Task.
+    void add_to_task();
+
+    /// @brief Remove itself from Cyphal Task.
+    void remove_from_task();
+
     /**
      * @brief Get Canard subscription object.
      * @note To be used from Task. Do not change this data manually.

@@ -198,16 +198,6 @@ public:
 
         return true;
     }
-
-    /// @brief Add itself to Cyphal Task.
-    void add_to_task() {
-        cyphal_task.add_suber(*this);
-    }
-
-    /// Remove itself from Cyphal Task.
-    void remove_from_task() {
-        cyphal_task.add_suber(*this);
-    }
 };
 
 template <typename Traits, size_t SOURCES>

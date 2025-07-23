@@ -451,6 +451,8 @@ set(BOARDS_WITH_ST7789V "BUDDY")
 set(BOARDS_WITH_ACCELEROMETER "XBUDDY" "DWARF")
 set(BOARDS_WITH_USB_DEVICE "BUDDY" "XBUDDY" "XLBUDDY")
 
+set_feature_for_printers(HAS_CYPHAL_METRICS)
+
 if(${TRANSLATIONS_ENABLED} STREQUAL "<default>")
   if(${PRINTER} IN_LIST PRINTERS_WITH_TRANSLATIONS)
     set(TRANSLATIONS_ENABLED YES)
@@ -796,6 +798,12 @@ set(DEVELOPER_MODE
     CACHE BOOL "Disable wizards, prompts and user-friendliness. Developers like it rough!"
     )
 define_boolean_option(DEVELOPER_MODE ${DEVELOPER_MODE})
+
+set(CYPHAL_CAN_STATS
+    "OFF"
+    CACHE BOOL "Enable mechanisms to measure CAN bus performance (needs DEVELOPER_MODE to be ON)"
+    )
+define_boolean_option(CYPHAL_CAN_STATS ${CYPHAL_CAN_STATS})
 
 set(DEBUG_WITH_BEEPS
     "OFF"
