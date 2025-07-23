@@ -139,7 +139,7 @@ class Heartbeat : public Proto<Watched, uavcan_node_Heartbeat_1_0_OFFLINE_TIMEOU
      * @brief Callback when data is missing.
      * @param what what is missing
      */
-    void proto_callback(Watched what) override {
+    void proto_callback([[maybe_unused]] Watched what) override {
         assert(std::to_underlying(what) < inherited::COUNT);
 #if !DEVELOPER_MODE() && !defined(_DEBUG)
         log_error(Watcher, "Heartbeat timeout for watched=%u, node_id=%hhu",
