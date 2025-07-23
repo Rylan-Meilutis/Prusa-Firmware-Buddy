@@ -115,3 +115,9 @@ extern "C" void vApplicationTickHook(void) {
     // Used by HAL_SPI
     HAL_IncTick();
 }
+
+namespace puppy::fault {
+void trigger_fault(SharedFault) {
+    hal::panic();
+}
+} // namespace puppy::fault

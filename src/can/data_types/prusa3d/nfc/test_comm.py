@@ -36,14 +36,17 @@ async def main():
         id_alloc_pub = node.make_publisher(uavcan.pnp.NodeIDAllocationData_2,
                                            "id_alloc_pub")
 
-        msg = await id_alloc_sub.get(timeout=2)
-        print("ID ASSIGNED")
+        msg = await id_alloc_sub.get(timeout=5)
+        if msg is not None:
+            print("ID ASSIGNED")
 
-        if msg is not None and msg.node_id.value == 0:
             await id_alloc_pub.publish(
                 uavcan.pnp.NodeIDAllocationData_2(
                     node_id=uavcan.node.ID_1(nfc_node_id),
                     unique_id=msg.unique_id))
+
+        else:
+            print("NOT ASSIGNED")
 
     accept_event = node.make_client(
         prusa3d.nfc.command.AcceptEvent_1,

@@ -1,0 +1,5 @@
+bool time_sync_precise # Time synchronization is precise
+
+prusa3d.common.SharedFault.1.0 faults # Contains specific FAULT_*XX* above and shared faults
+
+@sealed

@@ -1,30 +1,15 @@
 #pragma once
 
-#include <span>
+#include <cyphal_node.hpp>
 
 // Optimize Cyphal headers for size
 #pragma GCC push_options
 #pragma GCC optimize("Os")
 
-#include <cyphal_sender_data.hpp>
-#include <cyphal_suber_data.hpp>
-#include <cyphal_client.hpp>
-#include <cyphal_server.hpp>
-#include <cyphal_register_dummy.hpp>
-#include <cyphal_register.hpp>
-#include <cyphal_timesync.hpp>
-#include <cyphal_record.hpp>
-#include <cyphal_port_list.hpp>
-#include <cyphal_task.hpp>
-#include <cyphal_traits_utils.hpp>
-#include <salted_app_hash_command_server.hpp>
-
-#include <uavcan/node/Mode_1_0.h>
-#include <uavcan/node/GetInfo_1_0.h>
-#include <uavcan/node/ExecuteCommand_1_3.h>
-#include <uavcan/node/Heartbeat_1_0.h>
 #include <prusa3d/nfc/command/Request_1_0.h>
 #include <prusa3d/nfc/PortIDs_1_0.h>
+#include <prusa3d/nfc/Status_1_0.h>
+#include <prusa3d/nfc/SetConfig_1_0.h>
 
 #pragma GCC pop_options
 
@@ -34,8 +19,16 @@ class NFCTask;
 
 namespace anfc::cyphal {
 
+enum class Fault {
+};
+
+using ANFCNodeBase = can::cyphal::Node<
+    prusa3d_nfc_Status_1_0_Traits, prusa3d_nfc_PortIDs_1_0_MSG_Status,
+    prusa3d_nfc_SetConfig_1_0_Traits, prusa3d_nfc_PortIDs_1_0_SRV_SetConfig,
+    Fault>;
+
 /// Task that handles the CAN business logic. Mostly just enqueues requests to the nfc task
-class ANFCNode {
+class ANFCNode : public ANFCNodeBase {
 
 public:
     using UID = std::array<uint8_t, sizeof(uavcan_node_GetInfo_Response_1_0::unique_id)>;
@@ -43,18 +36,20 @@ public:
 public:
     ANFCNode(const UID &uid);
 
-    /// Initialize CAN node
-    void init();
-
-    /// Thread function
-    void task();
-
+public:
     /// Enqueues an event to be published
     /// Will block if the event queue is full
     /// This function is thread-safe
     void enqueue_event(prusa3d_nfc_event_Event_1_0 &event) {
         return event_publisher.enqueue_event(event);
     }
+
+protected:
+    void app_init() override;
+    void app_tick(int64_t now_us) override;
+    void app_tick_pnp(int64_t now_us) override;
+    void write_config(const ConfigTraits::Request::Type &config) override;
+    void update_status(StatusTraits::Type &data) override;
 
 private: //* Business logic
     ANFCEventPublisher event_publisher;
@@ -66,34 +61,6 @@ private: //* Business logic
     };
 
     can::cyphal::ServerTraited<StubbedRequestSrvTraits, prusa3d_nfc_PortIDs_1_0_SRV_Request> request_server;
-
-private: //* Scaffolding
-    uavcan_node_GetInfo_Response_1_0 get_info_resp; ///< GetInfo response
-
-    /// Mandatory register interface
-    can::cyphal::RegisterMachine<6> registers; // Set and get registers
-
-    /// Heartbeat message, mandatory state report
-    can::cyphal::SenderDirectTraited<uavcan_node_Heartbeat_1_0_Traits> heartbeat_sender;
-
-    // Last time we sent heartbeat
-    uint32_t last_heartbeat = 0;
-
-    ///< Publish list of used ports
-    can::cyphal::PortList port_list;
-
-    uavcan_node_Mode_1_0 mode = { .value = uavcan_node_Mode_1_0_INITIALIZATION };
-
-    /// ExecuteCommand server, mandatory command interface
-    can::cyphal::ServerTraited<uavcan_node_ExecuteCommand_1_3_Traits> execute_command_server;
-
-    can::cyphal::SaltedAppHashCommandServer salted_app_hash_server;
-
-    /// GetInfo Server, mandatory device info
-    static constexpr const char *name = "cz.prusa3d.honeybee.nfc";
-    can::cyphal::ServerTraited<uavcan_node_GetInfo_1_0_Traits> get_info_server;
-
-    void wait_for_pnp();
 };
 
 } // namespace anfc::cyphal

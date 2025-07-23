@@ -2,7 +2,9 @@
 
 uint16 SRV_AcceptEvent = 100
 uint16 SRV_Request = 101
+uint16 SRV_SetConfig = 102
 
 uint16 MSG_Event = 1000
+uint16 MSG_Status = 1001
 
 @sealed

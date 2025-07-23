@@ -30,6 +30,7 @@ target_sources(
           main.cpp
           nfc.cpp
           stdlib.cpp
+          stub/otp.cpp
   )
 
 target_include_directories(
