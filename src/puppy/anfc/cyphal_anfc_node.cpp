@@ -2,6 +2,8 @@
 
 #include "cyphal_anfc_node.hpp"
 
+#include <option/can_bus_type.h>
+
 #include <bsod.h>
 #include <cyphal_pnp.hpp>
 
@@ -18,7 +20,15 @@ namespace anfc::cyphal {
 using namespace can::cyphal;
 
 ANFCNode::ANFCNode(const UID &uid)
-    : Node(uid.data(), "cz.prusa3d.honeybee.nfc")
+    : Node(uid.data(),
+#if CAN_BUS_TYPE_IS_PUB6()
+        "cz.prusa3d.honeybee.nfc"
+#elif CAN_BUS_TYPE_IS_SLX()
+        "cz.prusa3d.slx.nfc"
+#else
+    #error
+#endif
+        )
     , request_server {
         [this](const auto &data, [[maybe_unused]] const ProtoSuber::Meta &meta) {
             prusa3d_nfc_command_Request_Response_1_0 response;
@@ -28,7 +38,8 @@ ANFCNode::ANFCNode(const UID &uid)
         ProtoSender::send_timeout_default,
         ProtoSuber::multipart_timeout_default,
     } //
-{}
+{
+}
 
 void ANFCNode::app_init() {
     const auto setup_server = [&](ServerVoid &server, const char *port_name, const char *data_type) {

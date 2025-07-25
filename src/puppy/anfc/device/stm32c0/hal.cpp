@@ -2,6 +2,7 @@
 #include "nfc.hpp"
 #include <device/peripherals.h>
 #include <device/hal.h>
+#include <option/can_bus_type.h>
 
 extern "C" {
 #include <FreeRTOSConfig.h>
@@ -121,7 +122,6 @@ void hal::init_can() {
     /* Peripheral clock enable */
     __HAL_RCC_FDCAN1_CLK_ENABLE();
 
-    /* Target bit rate 125kbit/s sampling point 87.5% */
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init = FDCAN_InitTypeDef {
         .ClockDivider = FDCAN_CLOCK_DIV1,
@@ -130,7 +130,9 @@ void hal::init_can() {
         .AutoRetransmission = DISABLE,
         .TransmitPause = ENABLE,
         .ProtocolException = ENABLE,
-        .NominalPrescaler = 24,
+#if CAN_BUS_TYPE_IS_PUB6()
+        /* Target bit rate 125kbit/s sampling point 87.5% */
+            .NominalPrescaler = 24,
         .NominalSyncJumpWidth = 64,
         .NominalTimeSeg1 = 13,
         .NominalTimeSeg2 = 2,
@@ -138,6 +140,19 @@ void hal::init_can() {
         .DataSyncJumpWidth = 16,
         .DataTimeSeg1 = 13,
         .DataTimeSeg2 = 2,
+#elif CAN_BUS_TYPE_IS_SLX()
+        // Target bit rate 500/1000 kbps
+            .NominalPrescaler = 2,
+        .NominalSyncJumpWidth = 12,
+        .NominalTimeSeg1 = 35,
+        .NominalTimeSeg2 = 12,
+        .DataPrescaler = 2,
+        .DataSyncJumpWidth = 6,
+        .DataTimeSeg1 = 17,
+        .DataTimeSeg2 = 6,
+#else
+    #error
+#endif
         .StdFiltersNbr = 0,
         .ExtFiltersNbr = 0,
         .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,

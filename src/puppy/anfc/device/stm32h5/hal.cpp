@@ -2,6 +2,7 @@
 #include "nfc.hpp"
 #include <device/peripherals.h>
 #include <device/hal.h>
+#include <option/can_bus_type.h>
 
 extern "C" {
 #include <FreeRTOSConfig.h>
@@ -156,6 +157,7 @@ void hal::init_can() {
         .ExtFiltersNbr = 0,
         .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,
     };
+    static_assert(CAN_BUS_TYPE_IS_PUB6());
 
     if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK) {
         hal::panic();
