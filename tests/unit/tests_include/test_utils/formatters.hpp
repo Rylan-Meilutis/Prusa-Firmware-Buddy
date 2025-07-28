@@ -6,6 +6,7 @@
 #include <expected>
 #include <string_view>
 #include <cstdint>
+#include <variant>
 
 #include <magic_enum.hpp>
 
@@ -71,6 +72,15 @@ ostream &operator<<(ostream &os, const optional<T> &value) {
     } else {
         os << *value;
     }
+    return os;
+}
+
+template <typename... T>
+ostream &operator<<(ostream &os, const variant<T...> &value) {
+    std::visit([&](const auto &val) {
+        os << val;
+    },
+        value);
     return os;
 }
 
