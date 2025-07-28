@@ -105,6 +105,15 @@ using Event = std::variant<
     LockDSFID,
     WriteAFI, WriteDSFID>;
 
+std::ostream &operator<<(std::ostream &os, const INFCReader::TagDetectedEvent &e) {
+    os << "TagDetectedEvent{tag: " << e.tag << ", antenna: " << e.antenna << "}";
+    return os;
+}
+std::ostream &operator<<(std::ostream &os, const INFCReader::TagLostEvent &e) {
+    os << "TagLostEvent{tag: " << e.tag << "}";
+    return os;
+}
+
 struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> field_up(AntennaID antenna) final {
         antenna_index = antenna;
