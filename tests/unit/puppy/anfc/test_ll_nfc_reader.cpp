@@ -1155,3 +1155,107 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
         }
     }
 }
+
+TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
+    EventLogger logger;
+    logger.events = {};
+    logger.tags[data::uid1] = TagData {
+        .info = data::tag_info1,
+        .antennas = { 0 },
+    };
+    logger.tags[data::uid2] = TagData {
+        .info = data::tag_info1,
+        .antennas = { 1 },
+    };
+
+    LLNFCReader reader(logger);
+    INFCReader::Event event;
+
+    SECTION("No debug") {
+        uint32_t time = 0;
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 1, .antenna = 1 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Remove first tag from the reader
+        logger.tags[data::uid1].antennas = {};
+
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Put the tag back
+        logger.tags[data::uid1].antennas = { 0 };
+
+        // No event should happen - the tag was not forgotten and thus should not be redetected
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+    }
+
+    SECTION("Auto forget") {
+        reader.set_debug_config({ .auto_forget_tag = true });
+
+        uint32_t time = 0;
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 1, .antenna = 1 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Remove first tag from the reader
+        logger.tags[data::uid1].antennas = {};
+
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Put the tag back
+        logger.tags[data::uid1].antennas = { 0 };
+
+        // The reader is alternating antennas, there should be no changes on antenna 1
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // The tag should be reported again and the ID reused
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+    }
+
+    SECTION("Force antenna") {
+        reader.set_debug_config({ .enforce_antenna = 1 });
+
+        uint32_t time = 0;
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 1 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Remove first tag from the reader - should do nothing
+        logger.tags[data::uid1].antennas = {};
+
+        CHECK(!reader.get_event(event, time));
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+
+        // Remove second tag from the reader - should result in tag lost event
+        logger.tags[data::uid2].antennas = {};
+
+        CHECK(reader.get_event(event, time));
+        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
+        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+    }
+}
