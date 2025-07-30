@@ -233,7 +233,8 @@
             "description": "Firmware for NFC addon",
             "cacheVariables": {
                 "PRINTER": "NONE",
-                "BOARD": "ANFC_H5"
+                "BOARD": "ANFC_H5",
+                "CAN_BUS_TYPE": "PUB6"
             }
         },
         {
@@ -241,7 +242,8 @@
             "description": "Firmware for NFC addon",
             "cacheVariables": {
                 "PRINTER": "NONE",
-                "BOARD": "ANFC_C0"
+                "BOARD": "ANFC_C0",
+                "CAN_BUS_TYPE": "PUB6"
             }
         },
         {

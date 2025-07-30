@@ -4591,6 +4591,10 @@
                     "type": "STRING",
                     "value": "ANFC_H5"
                 },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -4637,6 +4641,10 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "ANFC_H5"
+                },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -4685,6 +4693,10 @@
                     "type": "STRING",
                     "value": "ANFC_H5"
                 },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -4731,6 +4743,10 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "ANFC_H5"
+                },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -4779,6 +4795,10 @@
                     "type": "STRING",
                     "value": "ANFC_C0"
                 },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -4825,6 +4845,10 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "ANFC_C0"
+                },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -4873,6 +4897,10 @@
                     "type": "STRING",
                     "value": "ANFC_C0"
                 },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -4919,6 +4947,10 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "ANFC_C0"
+                },
+                "CAN_BUS_TYPE": {
+                    "type": "STRING",
+                    "value": "PUB6"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
