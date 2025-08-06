@@ -7,7 +7,12 @@
 #include <freertos/timing.hpp>
 #include <device/peripherals.h>
 #include <cyphal_anfc_node.hpp>
-#include <can_driver_fdcan.hpp>
+#include <option/can_bus_type.h>
+#if CAN_BUS_TYPE_IS_UART()
+    #include <can_driver_uart.hpp>
+#else
+    #include <can_driver_fdcan.hpp>
+#endif
 #include <device/hal.h>
 #include <o1heap/o1heap.hpp>
 #include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
@@ -45,7 +50,11 @@ auto get_uid() {
     return uid;
 }
 
+#if CAN_BUS_TYPE_IS_UART()
+can::UartDriver can_driver(hal::peripherals::huart2);
+#else
 can::FdcanDriver can_driver(hal::peripherals::hfdcan1, hal::enable_bit_rate_switch);
+#endif
 
 /// Heap allocated for canard
 O1Heap<8192> canard_heap;

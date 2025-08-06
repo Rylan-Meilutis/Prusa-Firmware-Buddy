@@ -35,11 +35,14 @@ void hal::set_status_led(bool set) {
 
 namespace hal {
 void init_clock();
+#if CAN_BUS_TYPE_IS_PUB6()
 void init_can();
+#elif CAN_BUS_TYPE_IS_UART()
+void init_uart();
+#endif
 void init_spi();
 void init_tim3();
 void init_adc();
-void init_uart();
 void init_gpio();
 void init_tim2();
 
@@ -66,8 +69,13 @@ void hal::init() {
     hal::init_clock();
     hal::init_gpio();
     hal::init_spi();
+#if CAN_BUS_TYPE_IS_PUB6()
     hal::init_can();
+#elif CAN_BUS_TYPE_IS_UART()
     hal::init_uart();
+#else
+    #error
+#endif
     hal::init_tim2();
     hal::init_tim3();
     hal::init_adc();
@@ -129,6 +137,7 @@ void hal::init_clock() {
     __HAL_FLASH_SET_PROGRAM_DELAY(FLASH_PROGRAMMING_DELAY_2);
 }
 
+#if CAN_BUS_TYPE_IS_PUB6()
 void hal::init_can() {
     using namespace hal::peripherals;
 
@@ -164,8 +173,6 @@ void hal::init_can() {
         .ExtFiltersNbr = 0,
         .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,
     };
-    static_assert(CAN_BUS_TYPE_IS_PUB6());
-
     if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK) {
         hal::panic();
     }
@@ -193,7 +200,7 @@ void hal::init_can() {
     HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, ISR_PRIORITY_DEFAULT, 0);
     HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);
 }
-
+#elif CAN_BUS_TYPE_IS_UART()
 void hal::init_uart() {
     using namespace hal::peripherals;
 
@@ -250,6 +257,9 @@ void hal::init_uart() {
         hal::panic();
     }
 }
+#else
+    #error
+#endif
 
 void hal::init_spi() {
     using namespace hal::peripherals;

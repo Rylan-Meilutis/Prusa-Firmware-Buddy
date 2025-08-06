@@ -9,7 +9,7 @@ namespace hal {
 
 /// Enable CAN bit rate switch?
 static constexpr const bool enable_bit_rate_switch =
-#if CAN_BUS_TYPE_IS_PUB6()
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_UART()
     false;
 #elif CAN_BUS_TYPE_IS_SLX()
     true;

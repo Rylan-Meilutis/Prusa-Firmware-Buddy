@@ -21,7 +21,7 @@ using namespace can::cyphal;
 
 ANFCNode::ANFCNode(const UID &uid)
     : Node(uid.data(),
-#if CAN_BUS_TYPE_IS_PUB6()
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_UART()
         "cz.prusa3d.honeybee.nfc"
 #elif CAN_BUS_TYPE_IS_SLX()
         "cz.prusa3d.slx.nfc"
