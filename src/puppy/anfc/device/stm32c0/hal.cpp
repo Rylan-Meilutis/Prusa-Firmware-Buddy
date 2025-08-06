@@ -33,7 +33,7 @@ namespace hal {
 void init_clock();
 void init_can();
 void init_spi();
-void init_timer();
+void init_tim3();
 void init_adc();
 void init_gpio();
 } // namespace hal
@@ -60,7 +60,7 @@ void hal::init() {
     hal::init_gpio();
     hal::init_spi();
     hal::init_can();
-    hal::init_timer();
+    hal::init_tim3();
     hal::init_adc();
 }
 
@@ -252,7 +252,7 @@ void hal::init_spi() {
     HAL_NVIC_EnableIRQ(SPI1_IRQn);
 }
 
-void hal::init_timer() {
+void hal::init_tim3() {
     using namespace hal::peripherals;
 
     GPIO_InitTypeDef GPIO_InitStruct {};
