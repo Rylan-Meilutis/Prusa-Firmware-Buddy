@@ -5,6 +5,7 @@
 namespace hal::peripherals {
 extern FDCAN_HandleTypeDef hfdcan1;
 extern SPI_HandleTypeDef hspi1;
+extern UART_HandleTypeDef huart2;
 
 #ifdef HASH_ALGOSELECTION_SHA256
 extern HASH_HandleTypeDef hhash;

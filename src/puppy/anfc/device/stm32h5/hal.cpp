@@ -7,6 +7,7 @@
 extern "C" {
 #include <FreeRTOSConfig.h>
 }
+
 static_assert(configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY == 2);
 #define ISR_PRIORITY_DEFAULT 2 // default ISR priority, used by ISRs that don't need specific ISR priority
 
@@ -38,6 +39,7 @@ void init_can();
 void init_spi();
 void init_tim3();
 void init_adc();
+void init_uart();
 void init_gpio();
 void init_tim2();
 
@@ -49,6 +51,7 @@ void init_hash();
 namespace hal::peripherals {
 FDCAN_HandleTypeDef hfdcan1;
 SPI_HandleTypeDef hspi1;
+UART_HandleTypeDef huart2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim2;
 ADC_HandleTypeDef hadc1;
@@ -64,6 +67,7 @@ void hal::init() {
     hal::init_gpio();
     hal::init_spi();
     hal::init_can();
+    hal::init_uart();
     hal::init_tim2();
     hal::init_tim3();
     hal::init_adc();
@@ -188,6 +192,63 @@ void hal::init_can() {
 
     HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, ISR_PRIORITY_DEFAULT, 0);
     HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);
+}
+
+void hal::init_uart() {
+    using namespace hal::peripherals;
+
+    /* Peripheral clock enable */
+    __HAL_RCC_USART2_CLK_ENABLE();
+
+    /** Initializes the peripherals clock */
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+    PeriphClkInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
+        hal::panic();
+    }
+
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+        .Pin = GPIO_PIN_4 | GPIO_PIN_5,
+        .Mode = GPIO_MODE_AF_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_LOW,
+        .Alternate = GPIO_AF13_USART2
+    };
+
+    /**USART2 GPIO Configuration
+    PB4(NJTRST)     ------> USART2_TX
+    PB5             ------> USART2_RX
+    */
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    huart2.Instance = USART2;
+    huart2.Init = UART_InitTypeDef {
+        .BaudRate = 115200,
+        .WordLength = UART_WORDLENGTH_8B,
+        .StopBits = UART_STOPBITS_1,
+        .Parity = UART_PARITY_NONE,
+        .Mode = UART_MODE_TX_RX,
+        .HwFlowCtl = UART_HWCONTROL_NONE,
+        .OverSampling = UART_OVERSAMPLING_16,
+        .OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE,
+        .ClockPrescaler = UART_PRESCALER_DIV1
+
+    };
+    huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
+    /* USART2 interrupt Init */
+    HAL_NVIC_SetPriority(USART2_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+
+    if ((HAL_UART_Init(&huart2) != HAL_OK) //
+        || (HAL_UARTEx_SetTxFifoThreshold(&huart2, USART_TXFIFO_THRESHOLD_1_8) != HAL_OK) //
+        || (HAL_UARTEx_SetRxFifoThreshold(&huart2, USART_RXFIFO_THRESHOLD_1_8) != HAL_OK) //
+        || (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)) {
+        hal::panic();
+    }
 }
 
 void hal::init_spi() {
@@ -479,6 +540,13 @@ extern "C" void FDCAN1_IT0_IRQHandler(void) {
 
 extern "C" void FDCAN1_IT1_IRQHandler(void) {
     HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
+}
+
+/**
+ * @brief This function handles UART interrupt.
+ */
+extern "C" void USART2_IRQHandler(void) {
+    HAL_UART_IRQHandler(&hal::peripherals::huart2);
 }
 
 extern "C" void TIM2_IRQHandler(void) {
