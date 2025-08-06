@@ -63,6 +63,7 @@ target_link_libraries(
           st25r39xxb
           prusa_nfc_nfcv
           raii
+          cobs
   )
 
 # TODO For now, we need to also explicitly depend on `FreeRTOS::FreeRTOS` because we are using
