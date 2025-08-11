@@ -51,6 +51,7 @@ This file is generated automatically so don't edit it directly
 - USBDevice: logging::Severity::info, src/buddy/usb_device.cpp
 - USBHost: logging::Severity::info, src/buddy/usbh_conf.cpp
 - W25X: logging::Severity::debug, src/common/w25x.cpp
+- WDG: logging::Severity::error, src/device/multi_watchdog.cpp
 - WUI: logging::Severity::debug, lib/WUI/wui.cpp
 - Watcher: logging::Severity::info, src/puppy/honeybee_shared/watcher.cpp
 - can: logging::Severity::debug, src/can/cyphal_task.cpp

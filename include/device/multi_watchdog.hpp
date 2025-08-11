@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <atomic>
+#include <timing.h>
 
 namespace device {
 
@@ -14,9 +15,11 @@ namespace device {
 class MultiWatchdog {
     static MultiWatchdog *list; ///< Beginning of the list
     static std::function<void(void)> refresh; ///< Function to refresh hardware watchdog, nullptr if init() was not called
+    static uint32_t last_refresh_time; ///< Last time when watchdog was refreshed [ms]
 
     MultiWatchdog *next = nullptr; ///< Continuation of a list of all watchdog instances
     uint8_t mark = false; ///< This mark is nonzero if this instance was kicked
+    const char *name = nullptr; ///< Name of the watchdog, for debugging purposes
 
     /**
      * @brief Check the entire list and if all instances are kicked, reload hardware.
@@ -27,7 +30,7 @@ public:
     /**
      * @brief Create an instance of a watchdog and add it to the global list.
      */
-    MultiWatchdog();
+    MultiWatchdog(const char *name);
 
     /**
      * @brief Watchdog cannot be destroyed.
@@ -49,6 +52,19 @@ public:
      * @param hardware true to reset hardware, false to only mark (another instance must reset the hardware)
      */
     void kick(bool hardware = true);
+
+    /**
+     * @brief Log watchdogs that are currently not kicked.
+     */
+    static void log_unkicked();
+
+    /**
+     * @brief Check if some watchdog is about to timeout from software.
+     * @param limit time in ms that can pass without kicking the watchdog
+     * @note This can be used for targets that don't have hardware support for early warning.
+             When early warning is triggered, it will call on_watchdog_early_warning() function that have to be defined by the project.
+     */
+    static void early_check_sw(uint32_t limit);
 };
 
 /**
@@ -60,6 +76,11 @@ class MultiWatchdogExtended : public MultiWatchdog {
     std::atomic<uint32_t> extender = 0; ///< Counts ticks that can pass without kicking the watchdog
 
 public:
+    /**
+     * @brief Create an instance of a watchdog and add it to the global list.
+     */
+    MultiWatchdogExtended(const char *name)
+        : MultiWatchdog(name) {}
     /**
      * @brief Kick and allow tick() to refresh the watchdog for some time.
      * @note This only marks (another instance must reset the hardware).

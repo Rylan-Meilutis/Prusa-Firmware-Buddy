@@ -4,13 +4,20 @@
 #include <bsod.h>
 #include <option/disable_watchdog.h>
 #include <cmsis_compiler.h>
+#include <logging/log.hpp>
+#include <device/hal.h>
 
+extern void on_watchdog_early_warning();
 namespace device {
+
+LOG_COMPONENT_DEF(WDG, logging::Severity::error);
 
 MultiWatchdog *MultiWatchdog::list = nullptr;
 std::function<void(void)> MultiWatchdog::refresh = nullptr;
+uint32_t MultiWatchdog::last_refresh_time = 0;
 
-MultiWatchdog::MultiWatchdog() {
+MultiWatchdog::MultiWatchdog(const char *name) {
+    this->name = name;
     // Add itself on top of list
     __disable_irq();
     next = list;
@@ -36,12 +43,28 @@ void MultiWatchdog::init([[maybe_unused]] std::function<void(void)> init_hw, [[m
     refresh = refresh_;
     __enable_irq();
 #endif /*!DISABLE_WATCHDOG()*/
+    last_refresh_time = HAL_GetTick();
 }
 
 void MultiWatchdog::kick(bool hardware) {
     mark = 0xff; // Mark itself
     if (hardware) {
         check_all(); // Check others
+    }
+}
+
+void MultiWatchdog::early_check_sw(uint32_t limit) {
+    if (HAL_GetTick() - last_refresh_time > limit) {
+        log_unkicked();
+        on_watchdog_early_warning();
+    }
+}
+
+void MultiWatchdog::log_unkicked() {
+    for (device::MultiWatchdog *item = list; item != nullptr; item = item->next) {
+        if (item->mark == 0) {
+            log_critical(WDG, "Watchdog '%s' not kicked", item->name);
+        }
     }
 }
 
@@ -70,6 +93,7 @@ void MultiWatchdog::check_all() {
 
     // Reload hardware
     refresh();
+    last_refresh_time = HAL_GetTick();
 }
 
 void MultiWatchdogExtended::extended_kick() {

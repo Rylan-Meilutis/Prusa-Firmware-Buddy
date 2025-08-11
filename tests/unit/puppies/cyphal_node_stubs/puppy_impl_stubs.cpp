@@ -26,5 +26,5 @@ void _bsod(const char *, const char *, int, ...) {
 }
 
 #include <device/multi_watchdog.hpp>
-device::MultiWatchdog::MultiWatchdog() {}
+device::MultiWatchdog::MultiWatchdog(const char *) {}
 device::MultiWatchdog::~MultiWatchdog() {}
