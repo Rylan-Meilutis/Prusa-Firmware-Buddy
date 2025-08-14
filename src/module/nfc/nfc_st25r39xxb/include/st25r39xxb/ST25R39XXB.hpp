@@ -22,7 +22,7 @@ public:
     [[nodiscard]] nfcv::Result<void> init();
 
     /// Init NFC-V poller values. Should be called after @ref init
-    [[nodiscard]] nfcv::Result<void> init_nfcv_poller(ModulationType modulation_type);
+    [[nodiscard]] nfcv::Result<void> init_nfcv_poller(const ModulationConfiguration &settings);
 
     nfcv::Result<void> field_up(AntennaID antenna) final;
     void field_down() final;

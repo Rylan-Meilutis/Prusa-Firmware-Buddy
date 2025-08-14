@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <limits>
+#include <variant>
 
 namespace st25r39xxb {
 // TODO: move all the registers into separate headers and copy paste documentation
@@ -285,10 +286,15 @@ enum class Amplitude : uint8_t {
     percent_82 = 0xF0,
 };
 
-enum class ModulationType : uint8_t {
-    ook,
-    am
-};
+namespace config {
+    struct AMModulation {
+        Amplitude target_amplitude;
+    };
+
+    struct OOKModulation {};
+
+} // namespace config
+using ModulationConfiguration = std::variant<config::AMModulation, config::OOKModulation>;
 
 namespace constant {
     constexpr size_t FIFO_SIZE = 512;

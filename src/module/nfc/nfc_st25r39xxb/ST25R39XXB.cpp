@@ -7,6 +7,7 @@
 #include <inplace_vector.hpp>
 #include <nfcv/encode.hpp>
 #include <nfcv/decode.hpp>
+#include <utils/overloaded_visitor.hpp>
 
 static constexpr nfcv::Error convert_error(st25r39xxb::IRQType error_irqs) {
     using namespace st25r39xxb;
@@ -249,7 +250,7 @@ void st25r39xxb::ST25R39XXB::set_output_amplitude(st25r39xxb::Amplitude target_a
     hw_int.change_register(RegisterA::tx_driver, std::byte { 0xf0 }, std::byte { std::to_underlying(target_amplitude) });
 }
 
-nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller(ModulationType modulation_type) {
+nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller(const st25r39xxb::ModulationConfiguration &settings) {
     // Enable oscilator and regulator
     // It is recommended that bits en_fd_c<1:0> of the operation control register are set to 01b in Reader mode.
     hw_int.write_register(RegisterA::operation_control, std::byte { 0x81 });
@@ -277,7 +278,7 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller(ModulationType modul
         // Set operation mode to Sub-carrier stream mode
         std::byte value { 0x70 };
         // and RF modulation mode based on the settings (3rd lowest bit 0 - ook 1 - am)
-        if (modulation_type == ModulationType::am) {
+        if (std::holds_alternative<config::AMModulation>(settings)) {
             value |= std::byte { 1 << 2 };
         }
 
@@ -285,12 +286,15 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller(ModulationType modul
     }
 
     {
-        Amplitude target_amplitude = Amplitude::percent_82;
-
-        if (modulation_type == ModulationType::am) {
-            // TODO: Make also this value configurable, since it might work differently on different devices
-            target_amplitude = Amplitude::percent_30;
-        }
+        const Amplitude target_amplitude = std::visit(
+            Overloaded {
+                [](const config::AMModulation &mod) {
+                    return mod.target_amplitude;
+                },
+                [](const auto &) {
+                    return Amplitude::percent_82;
+                } },
+            settings);
 
         set_output_amplitude(target_amplitude);
     }

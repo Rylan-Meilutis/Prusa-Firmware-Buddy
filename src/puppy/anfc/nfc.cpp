@@ -98,7 +98,7 @@ void nfc::readers_init() {
         hal::panic();
     }
 
-    init_res = nfc::reader_1.init_nfcv_poller(st25r39xxb::ModulationType::ook);
+    init_res = nfc::reader_1.init_nfcv_poller({ st25r39xxb::config::OOKModulation {} });
     if (!init_res.has_value()) {
         hal::panic();
     }
