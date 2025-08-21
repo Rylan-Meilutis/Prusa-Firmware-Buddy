@@ -22,9 +22,10 @@ class NFCTask {
 public:
     using Job = stdext::move_only_inplace_function<void()>;
     using EventCallback = stdext::inplace_function<void(prusa3d_nfc_event_Event_1_0 &)>;
+    using HWReconfigurationCallback = stdext::inplace_function<void(const prusa3d_nfc_request_debug_ModulationConfig_1_0 &)>;
 
 public:
-    NFCTask(INFCReader &ll_reader, const EventCallback &event_callback);
+    NFCTask(INFCReader &ll_reader, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback);
 
 public:
     /// Attempts to enqueue a request for processing
@@ -65,6 +66,9 @@ private:
 
     /// Callback for when NFCTask generates an event that should be broadcasted
     EventCallback event_callback_;
+
+    /// Callback for when NFCTask receives request to reconfigure the ll nfc reader (debug only)
+    HWReconfigurationCallback hw_reconfiguration_callback_;
 
     PrusaNFCReader reader_;
 

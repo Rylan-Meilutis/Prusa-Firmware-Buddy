@@ -4,6 +4,21 @@ set(CAN_BUS_TYPE
     )
 define_enum_option(NAME CAN_BUS_TYPE VALUE ${CAN_BUS_TYPE} ALL_VALUES "PUB6;SLX;UART")
 
+set(NFC_ST25R3919B_AWS_CONFIG
+    "NO_AWS"
+    CACHE STRING "Default Active Wave Shaping configuration used by ST25R3919B chip on the board"
+    )
+define_enum_option(
+  NAME NFC_ST25R3919B_AWS_CONFIG VALUE ${NFC_ST25R3919B_AWS_CONFIG} ALL_VALUES
+  "NO_AWS;SLOW;MEDIUM;FAST"
+  )
+
+set(NFC_ST25R3919B_MODULATION
+    "100"
+    CACHE STRING "Default ST25R3919B's modulation amplitude shift setting"
+    )
+define_int_option(NAME NFC_ST25R3919B_MODULATION VALUE ${NFC_ST25R3919B_MODULATION})
+
 if(BOARD STREQUAL "ANFC_C0")
   set(DEVICE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/device/stm32c0")
 

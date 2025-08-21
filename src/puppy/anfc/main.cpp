@@ -74,7 +74,8 @@ can::cyphal::Task can::cyphal::cyphal_task(can_driver, 32, &canard_heap_allocate
 anfc::cyphal::ANFCNode can_node(get_uid());
 
 static LLNFCReader ll_reader { nfc::reader_1 };
-NFCTask nfc_task(ll_reader, [](prusa3d_nfc_event_Event_1_0 &event) { can_node.enqueue_event(event); });
+NFCTask nfc_task(
+    ll_reader, [](prusa3d_nfc_event_Event_1_0 &event) { can_node.enqueue_event(event); }, nfc::reconfigure_readers);
 
 extern "C" int main() {
     hal::init();

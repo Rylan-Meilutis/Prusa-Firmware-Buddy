@@ -6,6 +6,11 @@
 #include <freertos/timing.hpp>
 #include <freertos/binary_semaphore.hpp>
 
+#include <option/nfc_st25r3919b_aws_config.h>
+#include <option/nfc_st25r3919b_modulation.h>
+
+#include <bsod/bsod.h>
+
 #if defined(STM32H5)
     #include <stm32h5xx_hal.h>
 #elif defined(STM32C0)
@@ -92,16 +97,96 @@ namespace {
 st25r39xxb::ST25R39XXB reader_1 { nfcr1::hw_impl, nfcr1::sys_impl };
 } // namespace nfc
 
-void nfc::readers_init() {
+static void configure_readers(const st25r39xxb::ModulationConfiguration &mod_conf) {
     auto init_res = nfc::reader_1.init();
     if (!init_res.has_value()) {
         hal::panic();
     }
 
-    init_res = nfc::reader_1.init_nfcv_poller({ st25r39xxb::config::OOKModulation {} });
+    init_res = nfc::reader_1.init_nfcv_poller(mod_conf);
     if (!init_res.has_value()) {
         hal::panic();
     }
+}
+
+static constexpr st25r39xxb::Amplitude floor_to_valid_amplitude(uint8_t raw_value) {
+    static constexpr std::array<std::pair<uint8_t, st25r39xxb::Amplitude>, 16> conversion_table {
+        std::pair { 0, st25r39xxb::Amplitude::percent_0 },
+        std::pair { 8, st25r39xxb::Amplitude::percent_8 },
+        std::pair { 10, st25r39xxb::Amplitude::percent_10 },
+        std::pair { 11, st25r39xxb::Amplitude::percent_11 },
+        std::pair { 12, st25r39xxb::Amplitude::percent_12 },
+        std::pair { 13, st25r39xxb::Amplitude::percent_13 },
+        std::pair { 14, st25r39xxb::Amplitude::percent_14 },
+        std::pair { 15, st25r39xxb::Amplitude::percent_15 },
+        std::pair { 20, st25r39xxb::Amplitude::percent_20 },
+        std::pair { 25, st25r39xxb::Amplitude::percent_25 },
+        std::pair { 30, st25r39xxb::Amplitude::percent_30 },
+        std::pair { 40, st25r39xxb::Amplitude::percent_40 },
+        std::pair { 50, st25r39xxb::Amplitude::percent_50 },
+        std::pair { 60, st25r39xxb::Amplitude::percent_60 },
+        std::pair { 70, st25r39xxb::Amplitude::percent_70 },
+        std::pair { 82, st25r39xxb::Amplitude::percent_82 },
+    };
+
+    const auto it = std::ranges::lower_bound(conversion_table, raw_value, std::less {}, [](const auto &a) { return a.first; });
+    assert(it != std::end(conversion_table));
+    return it->second;
+}
+
+void nfc::readers_init() {
+    static constexpr auto aws_conf = []() consteval -> st25r39xxb::config::AWS {
+        switch (option::nfc_st25r3919b_aws_config) {
+        case option::NfcSt25r3919bAwsConfig::no_aws:
+            return { std::nullopt };
+        case option::NfcSt25r3919bAwsConfig::slow:
+            return { st25r39xxb::config::AWSTransient::slow };
+        case option::NfcSt25r3919bAwsConfig::medium:
+            return { st25r39xxb::config::AWSTransient::medium };
+        case option::NfcSt25r3919bAwsConfig::fast:
+            return { st25r39xxb::config::AWSTransient::fast };
+        }
+    }();
+    static_assert(option::nfc_st25r3919b_modulation >= 0 && option::nfc_st25r3919b_modulation <= 100);
+    if constexpr (option::nfc_st25r3919b_modulation == 100) {
+        configure_readers({ st25r39xxb::config::OOKModulation { { aws_conf } } });
+    } else {
+        configure_readers({ st25r39xxb::config::AMModulation { { aws_conf }, floor_to_valid_amplitude(option::nfc_st25r3919b_modulation) } });
+    }
+}
+
+void nfc::reconfigure_readers(const prusa3d_nfc_request_debug_ModulationConfig_1_0 &config) {
+    st25r39xxb::ModulationConfiguration res;
+
+    // If target amplitude is set to 100% use OOK Modulation which does technically the same
+    if (config.target_amplitude >= 100) {
+        res = st25r39xxb::config::OOKModulation { { std::nullopt } };
+    } else {
+        // for other values we need to "floor" the desired value to a value that can be configured
+        res = st25r39xxb::config::AMModulation { { std::nullopt }, floor_to_valid_amplitude(config.target_amplitude) };
+    }
+
+    // If we have an AWS preset then propagate correct preset to readers
+    if (config.aws_config.value != prusa3d_nfc_request_debug_AwsConfig_1_0_NO_AWS) {
+        st25r39xxb::config::AWS aws_config {};
+
+        switch (config.aws_config.value) {
+        case prusa3d_nfc_request_debug_AwsConfig_1_0_AWS_SLOW_TRANSIENT:
+            aws_config = st25r39xxb::config::AWSTransient::slow;
+            break;
+        case prusa3d_nfc_request_debug_AwsConfig_1_0_AWS_MEDIUM_TRANSIENT:
+            aws_config = st25r39xxb::config::AWSTransient::medium;
+            break;
+        case prusa3d_nfc_request_debug_AwsConfig_1_0_AWS_FAST_TRANSIENT:
+            aws_config = st25r39xxb::config::AWSTransient::fast;
+            break;
+        default:
+            bsod_unreachable();
+        }
+
+        std::visit([&](auto &a) { a.aws = aws_config; }, res);
+    }
+    configure_readers(res);
 }
 
 void nfc::irq() {

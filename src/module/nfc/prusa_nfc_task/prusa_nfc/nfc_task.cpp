@@ -43,8 +43,9 @@ uint8_t io_result_to_error(const INFCReader::IOResult<T> &io_result) {
 }
 } // namespace
 
-NFCTask::NFCTask(INFCReader &ll_reader, const EventCallback &event_callback)
-    : event_callback_(event_callback)
+NFCTask::NFCTask(INFCReader &ll_reader, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback)
+    : event_callback_ { std::move(event_callback) }
+    , hw_reconfiguration_callback_ { std::move(hw_reconfiguration_callback) }
     , reader_ { ll_reader } //
 {
 }
@@ -477,6 +478,11 @@ void NFCTask::handle_set_debug_config_request(const prusa3d_nfc_request_SetDebug
         .auto_forget_tag = request.auto_forget_tag,
     };
     reader_.ll_reader().set_debug_config(config);
+
+    if (request.modulation_settings.count == 1) {
+        hw_reconfiguration_callback_(request.modulation_settings.elements[0]);
+        reader_.ll_reader().reset_state();
+    }
 }
 
 void NFCTask::handle_get_tag_uid_request(const prusa3d_nfc_request_GetTagUID_1_0 &request, prusa3d_nfc_request_GetTagUIDResult_1_0 &result) {
