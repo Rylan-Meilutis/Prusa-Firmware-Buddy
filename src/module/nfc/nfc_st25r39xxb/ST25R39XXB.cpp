@@ -300,6 +300,55 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::init_nfcv_poller(const st25r39xxb::Mo
     }
 
     set_output_impedance(Impedance::ohm2);
+
+    // Try Setup AWS
+    if (std::visit([](const auto &settings) {
+            return settings.aws.has_value();
+        },
+            settings)) {
+        // Default values taken from reference manual
+        // TODO: anotate what they do
+        hw_int.write_register(RegisterB::auxiliary_modulation_setting, std::byte { 0x94 });
+        hw_int.write_register(RegisterB::aws_config_1, std::byte { 0x08 });
+
+        // Specific setting for eather type of modulation
+        std::visit(Overloaded {
+                       [&](const config::OOKModulation &) {
+                           // For OOK we enable strong sink during modulation and non-symetrical shape
+                           hw_int.change_register(RegisterB::aws_config_2, std::byte { 0xf0 }, std::byte { 0x10 });
+                       },
+                       [&](const config::AMModulation &) {
+                           // For ASK we enable weak sink during modulation and symetrical shape
+                           hw_int.change_register(RegisterB::aws_config_2, std::byte { 0xf0 }, std::byte { 0x20 });
+                       } },
+            settings);
+        // Reference manual mentions setting modulation amplitude, but that is done above
+
+        const auto aws_preset = std::visit([](const auto &settings) -> config::AWSTransient { return settings.aws.value(); }, settings);
+        // Set transients based on reference manual
+        // TODO: We might want to set these manually too and maybe keep these as default "presets"
+        switch (aws_preset) {
+        case config::AWSTransient::slow:
+            hw_int.change_register(RegisterB::aws_config_2, std::byte { 0x0f }, std::byte { 0x0c });
+            hw_int.write_register(RegisterB::aws_time_1, std::byte { 0x01 });
+            hw_int.write_register(RegisterB::aws_time_3, std::byte { 0x9c });
+            hw_int.write_register(RegisterB::aws_time_4, std::byte { 0x0a });
+            break;
+        case config::AWSTransient::medium:
+            hw_int.change_register(RegisterB::aws_config_2, std::byte { 0x0f }, std::byte { 0x08 });
+            hw_int.write_register(RegisterB::aws_time_1, std::byte { 0x01 });
+            hw_int.write_register(RegisterB::aws_time_3, std::byte { 0x79 });
+            hw_int.write_register(RegisterB::aws_time_4, std::byte { 0x07 });
+            break;
+        case config::AWSTransient::fast:
+            hw_int.change_register(RegisterB::aws_config_2, std::byte { 0x0f }, std::byte { 0x04 });
+            hw_int.write_register(RegisterB::aws_time_1, std::byte { 0x01 });
+            hw_int.write_register(RegisterB::aws_time_3, std::byte { 0x57 });
+            hw_int.write_register(RegisterB::aws_time_4, std::byte { 0x06 });
+            break;
+        }
+    }
+
     hw_int.direct_command(Command::change_am_modulation_state);
 
     // Force general purpose timer (gpt) to start automatically at the end of RX

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <limits>
 #include <variant>
+#include <optional>
 
 namespace st25r39xxb {
 // TODO: move all the registers into separate headers and copy paste documentation
@@ -287,11 +288,24 @@ enum class Amplitude : uint8_t {
 };
 
 namespace config {
-    struct AMModulation {
-        Amplitude target_amplitude;
+    enum class AWSTransient : uint8_t {
+        slow,
+        medium,
+        fast,
     };
 
-    struct OOKModulation {};
+    using AWS = std::optional<AWSTransient>;
+
+    struct ModulationBase {
+        AWS aws = std::nullopt;
+    };
+
+    struct AMModulation : public ModulationBase {
+        Amplitude target_amplitude = Amplitude::percent_82;
+    };
+
+    struct OOKModulation : public ModulationBase {
+    };
 
 } // namespace config
 using ModulationConfiguration = std::variant<config::AMModulation, config::OOKModulation>;
