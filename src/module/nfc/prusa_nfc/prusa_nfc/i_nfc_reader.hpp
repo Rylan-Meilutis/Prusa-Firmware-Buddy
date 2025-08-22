@@ -80,6 +80,11 @@ public:
     /// \returns false if there is no event
     [[nodiscard]] virtual bool get_event(Event &e, uint32_t current_time_ms) = 0;
 
+    /// Reads tag UID (identifier number hardcoded by the tag manufacturer)
+    /// \param result buffer the UID will be written into
+    /// \returns size of the read UID in bytes or error
+    [[nodiscard]] virtual IOResult<size_t> get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) = 0;
+
     /// Completely forgets the tag and allows the tag ID to be reused
     /// If the tag is still present, a new TagDetected event will be emitted
     virtual void forget_tag(NFCTagID tag) = 0;

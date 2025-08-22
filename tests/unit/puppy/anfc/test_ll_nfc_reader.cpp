@@ -1259,3 +1259,26 @@ TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
         time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
     }
 }
+
+TEST_CASE("Test NFC get_tag_uid", "[nfcv][prusa_nfc]") {
+    EventLogger logger;
+    logger.events = {};
+    logger.tags[data::uid1] = TagData {
+        .info = data::tag_info1,
+        .antennas = { 0 },
+    };
+
+    LLNFCReader reader(logger);
+    INFCReader::Event event;
+
+    CHECK(reader.get_event(event, 0));
+    CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+
+    nfcv::UID uid;
+    std::array<std::byte, 1> small_buffer;
+    REQUIRE(reader.get_tag_uid(0, uid) == sizeof(uid));
+    CHECK(uid == data::uid1);
+
+    CHECK(reader.get_tag_uid(1, uid) == std::unexpected(INFCReader::IOError::invalid_id));
+    CHECK(reader.get_tag_uid(0, small_buffer) == std::unexpected(INFCReader::IOError::data_too_big));
+}

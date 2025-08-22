@@ -182,6 +182,20 @@ bool LLNFCReader::get_event(Event &e, uint32_t current_time_ms) {
     return true;
 }
 
+INFCReader::IOResult<size_t> LLNFCReader::get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) {
+    if (!is_valid(tag)) {
+        return std::unexpected(IOError::invalid_id);
+    }
+
+    const auto &uid = tags.at(tag).uid;
+    if (buffer.size() < uid.size()) {
+        return std::unexpected(IOError::data_too_big);
+    }
+
+    memcpy(buffer.data(), uid.data(), uid.size());
+    return uid.size();
+}
+
 void LLNFCReader::forget_tag(NFCTagID tag) {
     if (tag >= tags.size()) {
         return;

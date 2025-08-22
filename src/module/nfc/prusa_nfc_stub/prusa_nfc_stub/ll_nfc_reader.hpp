@@ -14,6 +14,8 @@ public:
 
     [[nodiscard]] bool get_event(Event &e, uint32_t current_time_ms) final;
 
+    [[nodiscard]] IOResult<size_t> get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) final;
+
     void forget_tag(NFCTagID tag) final;
 
     void reset_state() final;

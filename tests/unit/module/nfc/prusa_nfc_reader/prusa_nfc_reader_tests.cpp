@@ -43,6 +43,7 @@ public:
     Log log;
 
     std::unordered_map<NFCTagID, ByteString> tag_data;
+    std::vector<std::byte> tag_uid { std::byte { 0xBC }, std::byte { 0x6F }, std::byte { 0x2F }, std::byte { 0x66 }, std::byte { 0x08 }, std::byte { 0x01 }, std::byte { 0x04 }, std::byte { 0xE0 } };
 
     [[nodiscard]] virtual IOResult<void> read(NFCTagID tag, NFCOffset start, const std::span<std::byte> &buffer) final {
 
@@ -89,6 +90,19 @@ public:
 
     [[nodiscard]] virtual bool get_event(Event &e, uint32_t current_timestamp_ms) final {
         return false;
+    }
+
+    [[nodiscard]] IOResult<size_t> get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) final {
+        if (tag != 0) {
+            return std::unexpected(IOError::invalid_id);
+        }
+
+        if (buffer.size() < tag_uid.size()) {
+            return std::unexpected(IOError::data_too_big);
+        }
+
+        memcpy(buffer.data(), tag_uid.data(), tag_uid.size());
+        return tag_uid.size();
     }
 
     virtual void forget_tag(NFCTagID tag) final {
