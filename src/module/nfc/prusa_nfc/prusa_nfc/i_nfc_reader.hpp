@@ -56,6 +56,9 @@ public:
         /// Retrying the operation might help.
         other,
 
+        /// Data is too big and doesn't fit somewhere (tag itself, internal buffers, ...)
+        data_too_big,
+
         /// The operation is not implemented (possibly because of the prameter combination)
         not_implemented,
     };

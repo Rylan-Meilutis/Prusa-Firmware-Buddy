@@ -29,6 +29,9 @@ PrusaNFCReader::Error PrusaNFCReader::to_prusa_error(INFCReader::IOError error) 
     case INFCReader::IOError::not_implemented:
         return Error::not_implemented;
 
+    case INFCReader::IOError::data_too_big:
+        return Error::data_too_big;
+
     case INFCReader::IOError::other:
     case INFCReader::IOError::invalid_id:
         return Error::other;
