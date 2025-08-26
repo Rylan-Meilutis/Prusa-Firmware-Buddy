@@ -6,11 +6,22 @@
 #include <timing.h>
 #include <crc/crc.hpp>
 
+namespace {
+template <typename T, typename E>
+inline void enforce_bsod(const std::expected<T, E> &result) {
+    if (!result.has_value()) {
+        bsod_unreachable();
+    }
+}
+} // namespace
+
 namespace can {
 static UartDriver *instance = nullptr;
 
 UartDriver::UartDriver(UART_HandleTypeDef &huart)
-    : huart(huart) {
+    : curr_recv_buffer(receive_buffers.allocate())
+    , decoder(curr_recv_buffer->get_buffer(), cobs::CobsStreamDecoder::Mode::recovering)
+    , huart(huart) {
     if (instance != nullptr) {
         bsod("UART supports only one driver");
     }
@@ -36,32 +47,36 @@ bool UartDriver::send(const CanardFrame &frame, bool store_timestamp) {
     }
     // Prepare the raw payload for COBS encoding and CRC calculation.
     // - Format: [CAN ID (4B)] [payload length (1B)] [payload (0-64B)] [CRC16 (2B)]
-    std::array<uint8_t, uart::MAX_RAW_FRAME_SIZE> raw_packet_data;
-
     // Pack the 29-bit CAN ID (assuming little-endian byte order)
     static_assert(std::endian::native == std::endian::little);
-    memcpy(&raw_packet_data[0], &frame.extended_can_id, sizeof(frame.extended_can_id));
-    // pack payload size
-    raw_packet_data[4] = static_cast<uint8_t>(frame.payload_size);
+
+    // Reset the state of the buffer after previous message
+    send_buffer.reset();
+
+    // --- 1. Pack CAN ID (4B) ---
+    enforce_bsod(send_buffer.add_bytes({ (const uint8_t *)&frame.extended_can_id, sizeof(frame.extended_can_id) }));
+
+    // --- 2. Pack payload length (1B) ---
+    // Convert and pack payload size
+    const uint8_t payload_size = static_cast<uint8_t>(frame.payload_size);
+    enforce_bsod(send_buffer.add_bytes({ (const uint8_t *)&payload_size, sizeof(payload_size) }));
+
+    // --- 3. Pack payload data (0-64B) ---
     assert(frame.payload != nullptr);
-    // pack payload
-    memcpy(&raw_packet_data[5], frame.payload, frame.payload_size);
+    enforce_bsod(send_buffer.add_bytes({ (const uint8_t *)frame.payload, payload_size }));
 
-    // Calculate CRC
-    uint32_t crc_data_len = uart::HEADER_SIZE + frame.payload_size;
-    uint16_t crc = Crc16CcittFalse().update(raw_packet_data.data(), crc_data_len).get();
-    memcpy(&raw_packet_data[crc_data_len], &crc, uart::CRC_SIZE);
-    size_t packet_len = crc_data_len + uart::CRC_SIZE; // Add 2 bytes of CRC16
+    // --- 4. Calculate and pack CRC16 (2B) ---
+    // Get the data added so far for CRC calculation
+    auto data = send_buffer.get_used_input_buffer();
+    uint16_t crc = Crc16CcittFalse().update(data.data(), data.size()).get();
 
-    auto encoded_packet_len = cobs::encode(raw_packet_data.data(), packet_len, send_buffer.data(), send_buffer.size());
-    if (!encoded_packet_len.has_value()) {
-        bsod_unreachable();
-    };
+    // add CRC and return the result of the addition
+    enforce_bsod(send_buffer.add_bytes({ (const uint8_t *)&crc, uart::CRC_SIZE }));
 
-    send_buffer[encoded_packet_len.value()] = 0x00; // delimeter
-    size_t total_len = encoded_packet_len.value() + 1;
+    auto encoded_message = send_buffer.finalize();
+    enforce_bsod(encoded_message);
 
-    if (HAL_UART_Transmit_IT(&this->huart, send_buffer.data(), total_len) != HAL_OK) {
+    if (HAL_UART_Transmit_IT(&this->huart, encoded_message->data(), encoded_message->size()) != HAL_OK) {
         error_stats.tec++;
         error_stats.err_log++;
         return false;
@@ -80,29 +95,30 @@ void UartDriver::start_listening() {
 
 bool UartDriver::receive(CanardFrame &frame, CanardMicrosecond *timestamp_us) {
 
-    ReceiveBuffer &recv_buffer = receive_buffers[receive_buffer_i];
-    if (!recv_buffer.contains_message) {
+    if (receive_buffers.isEmpty()) {
         return false;
     }
 
-    std::array<uint8_t, uart::MAX_RAW_FRAME_SIZE> decoded_data;
-    auto decoded_size = cobs::decode(recv_buffer.data.data(), recv_buffer.used_size, decoded_data.data(), decoded_data.size());
-    if (!decoded_size.has_value()) {
-        bsod_unreachable();
-    }
-    receive_buffer_i = (receive_buffer_i + 1) % receive_buffers.size();
-    recv_buffer.reset();
+    ReceiveBuffer full_recv_buffer = receive_buffers.peek();
 
-    // TODO: RX timestamp should be handled in HAL_UART_RxCpltCallback if it is expected to be more accurate
+    assert(full_recv_buffer.message().size() != 0);
+    std::span<const uint8_t> decoded_message = full_recv_buffer.message();
+    size_t decoded_size = decoded_message.size();
+
+    std::array<uint8_t, uart::MAX_FRAME_SIZE> decoded_data;
+    std::copy(decoded_message.begin(), decoded_message.end(), decoded_data.data());
+    // copied, we can remove from the queue to prepare it for rx_callbacks ASAP
+    receive_buffers.dequeue();
+
     *timestamp_us = get_timestamp_us();
     // extract message
     memcpy(&frame.extended_can_id, &decoded_data[0], sizeof(frame.extended_can_id));
     frame.payload_size = decoded_data[4];
-    if (decoded_size.value() != static_cast<size_t>(uart::HEADER_SIZE + frame.payload_size + uart::CRC_SIZE)) {
+    if (decoded_size != static_cast<size_t>(uart::HEADER_SIZE + frame.payload_size + uart::CRC_SIZE)) {
         assert(false);
         return false;
     }
-    memcpy(payload_buffer, &decoded_data[5], frame.payload_size);
+    std::copy(&decoded_data[uart::HEADER_SIZE], &decoded_data[uart::HEADER_SIZE + frame.payload_size], payload_buffer);
     frame.payload = payload_buffer;
 
     // Extract received CRC (little-endian)
@@ -121,26 +137,57 @@ bool UartDriver::receive(CanardFrame &frame, CanardMicrosecond *timestamp_us) {
 }
 
 void UartDriver::rx_callback() {
-    UartDriver::ReceiveBuffer &recv_buffer = receive_buffers[rx_callback_i];
 
-    // Check if current receive buffer has a unprocessed message
-    if (recv_buffer.contains_message) {
-        isr_notify(Driver::Notification::RxLost);
-    }
+    // if decoder has no valid buffer, attempt allocation now
+    if (!curr_recv_buffer) {
+        // if allocation fails, drop the current incoming byte and wait for the next isr
+        // the decoder is left in a state that will fail until allocation succeeds.
+        curr_recv_buffer = receive_buffers.allocate();
 
-    // end of a non-empty message
-    else if (uart_rx_byte == '\0') {
-        // only accept incoming '\0' bytes if they signal end of a message
-        if (recv_buffer.used_size != 0) {
-            recv_buffer.contains_message = true;
-            rx_callback_i = (rx_callback_i + 1) % receive_buffers.size();
-            isr_notify(Driver::Notification::RxDone);
+        // if successful, reset decoder into a recovery state to restart the stream cleanly
+        if (curr_recv_buffer) {
+            decoder.reset(cobs::CobsStreamDecoder::Mode::recovering, curr_recv_buffer->get_buffer());
+        } else {
+            // otherwise, keep it in error mode
+            // (this is theoretically not necessary, decoder should already be in error state, but just to be sure)
+            decoder.reset(cobs::CobsStreamDecoder::Mode::error);
         }
     }
-    // byte of a message
-    else {
-        recv_buffer.put(uart_rx_byte);
-    }
+
+    auto finish_cb = [this](std::span<const uint8_t> result) -> void {
+        // ignore empty messages
+        if (result.empty()) {
+            decoder.reset(cobs::CobsStreamDecoder::Mode::decoding);
+            return;
+        }
+
+        curr_recv_buffer->set_message(result);
+
+        receive_buffers.commit(curr_recv_buffer);
+        curr_recv_buffer = receive_buffers.allocate();
+
+        // if new buffer was sucessfuly allocated we can reset the decoder straight away
+        if (curr_recv_buffer) {
+            decoder.reset(cobs::CobsStreamDecoder::Mode::decoding, curr_recv_buffer->get_buffer());
+        } else {
+            // the decoder is put into error mode because it has invalid destination buffer.
+            // eventually some buffer should free up, we will check for that at the start of rx_callback()
+            // we will miss atleast one message - we can live with that
+            decoder.reset(cobs::CobsStreamDecoder::Mode::error);
+        }
+
+        isr_notify(Driver::Notification::RxDone);
+    };
+
+    auto error_cb = [this]([[maybe_unused]] cobs::CobsError error) -> void {
+        decoder.reset(cobs::CobsStreamDecoder::Mode::recovering);
+    };
+
+    decoder.add_byte(
+        uart_rx_byte,
+        finish_cb,
+        error_cb);
+
     start_listening();
 }
 

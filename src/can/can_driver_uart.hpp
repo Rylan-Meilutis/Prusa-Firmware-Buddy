@@ -3,10 +3,12 @@
 #include <can_driver.hpp>
 #include <device/hal.h>
 
-#include <atomic>
-#include <optional>
-#include <utils/atomic_circular_queue.hpp>
+#define DO_NOT_CHECK_ATOMIC_LOCK_FREE
 
+#include <utils/atomic_circular_queue.hpp>
+#include <cobs/cobs.hpp>
+#include <span>
+#include <optional>
 namespace can {
 
 /*
@@ -34,13 +36,11 @@ namespace can {
  */
 
 namespace uart {
-    const uint8_t DELIMETER_SIZE = 1U; // (0x00)
     static constexpr uint8_t HEADER_SIZE = 4U + 1U; // CAN ID (4) + payload length (1)
     static constexpr uint8_t MAX_PAYLOAD_SIZE = CANARD_MTU_CAN_FD; // 64 bytes for CAN FD
     static constexpr uint8_t CRC_SIZE = 2U; // CRC16
-    static constexpr uint8_t MAX_RAW_FRAME_SIZE = HEADER_SIZE + MAX_PAYLOAD_SIZE + CRC_SIZE; // 5 + 64 + 2 = 71 bytes
-    // COBS encoding adds a small overhead and a delimiter byte.
-    static constexpr size_t MAX_ENCODED_FRAME_SIZE = MAX_RAW_FRAME_SIZE + ((MAX_RAW_FRAME_SIZE + 254) / 254) + DELIMETER_SIZE;
+    static constexpr uint8_t MAX_FRAME_SIZE = HEADER_SIZE + MAX_PAYLOAD_SIZE + CRC_SIZE; // 5 + 64 + 2 = 71 bytes
+    static constexpr uint8_t DELIMITER_SIZE = 1U;
 } // namespace uart
 
 /**
@@ -74,30 +74,34 @@ class UartDriver : public Driver {
             return temp;
         }
     };
+
     struct ReceiveBuffer {
-        std::array<uint8_t, uart::MAX_ENCODED_FRAME_SIZE> data;
-        size_t used_size = 0;
-        std::atomic<bool> contains_message = false;
-
-        void put(uint8_t val) {
-            if (used_size >= data.size()) {
-                bsod_unreachable();
-            }
-            data[used_size++] = val;
+        std::span<const uint8_t> message() const {
+            return std::span<const uint8_t>(buffer.data(), message_size);
         }
 
-        void reset() {
-            contains_message = false;
-            used_size = 0;
+        void set_message(std::span<const uint8_t> msg) {
+            assert(msg.data() >= buffer.data() && msg.data() + msg.size() <= buffer.data() + buffer.size());
+            message_size = msg.size();
         }
+
+        std::span<uint8_t> get_buffer() {
+            return std::span(buffer.begin(), buffer.end());
+        }
+
+    private:
+        std::array<uint8_t, uart::MAX_FRAME_SIZE> buffer;
+        size_t message_size = 0;
     };
 
     UartAtomicTimestamp tx_timestamp; // timestamp of the last successful transmission
-
-    std::array<uint8_t, uart::MAX_ENCODED_FRAME_SIZE> send_buffer; // buffer for one frame to be transmitted
-    std::array<ReceiveBuffer, 2> receive_buffers;
-    uint8_t receive_buffer_i = 0, rx_callback_i = 0;
+    cobs::ArrayCobsStreamEncoder<uart::MAX_FRAME_SIZE> send_buffer;
+    AtomicReservableCircularQueue<ReceiveBuffer, uint8_t, 2> receive_buffers;
+    ReceiveBuffer *curr_recv_buffer; // pointer to one currently allocated element of receive_buffers queue
     uint8_t payload_buffer[CANARD_MTU_MAX] = { 0 };
+
+    // decoder is only ever linked with one of the receive buffers
+    cobs::CobsStreamDecoder decoder;
 
     ErrorStats error_stats = ErrorStats {
         .tec = 0,

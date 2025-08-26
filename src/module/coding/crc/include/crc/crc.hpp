@@ -82,7 +82,7 @@ public:
         return *this;
     }
 
-    Crc &update(uint8_t *buf, uint8_t len) {
+    Crc &update(const uint8_t *buf, const uint8_t len) {
         for (uint8_t i = 0; i < len; ++i) {
             this->update(buf[i]);
         }

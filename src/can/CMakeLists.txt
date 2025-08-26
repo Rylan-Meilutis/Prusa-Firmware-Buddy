@@ -5,6 +5,7 @@ target_sources(
                    cyphal_task.cpp cyphal_timesync.cpp
   )
 if(DEFINED CAN_BUS_TYPE AND CAN_BUS_TYPE STREQUAL "UART")
+  target_link_libraries(firmware PRIVATE cobs)
   target_sources(firmware PRIVATE can_driver_uart.cpp)
 else()
   target_sources(firmware PRIVATE can_driver_fdcan.cpp)
