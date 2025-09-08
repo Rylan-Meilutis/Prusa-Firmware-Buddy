@@ -31,7 +31,13 @@ void hal::set_status_led(bool set) {
 
 namespace hal {
 void init_clock();
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
 void init_can();
+#elif CAN_BUS_TYPE_IS_UART()
+void init_uart();
+#else
+    #error
+#endif
 void init_spi();
 void init_tim3();
 void init_tim2();
@@ -40,7 +46,13 @@ void init_gpio();
 } // namespace hal
 
 namespace hal::peripherals {
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
 FDCAN_HandleTypeDef hfdcan1;
+#elif CAN_BUS_TYPE_IS_UART()
+UART_HandleTypeDef huart1;
+#else
+    #error
+#endif
 SPI_HandleTypeDef hspi1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim2;
@@ -61,7 +73,13 @@ void hal::init() {
     hal::init_clock();
     hal::init_gpio();
     hal::init_spi();
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
     hal::init_can();
+#elif CAN_BUS_TYPE_IS_UART()
+    hal::init_uart();
+#else
+    #error
+#endif
     hal::init_tim2();
     hal::init_tim3();
     hal::init_adc();
@@ -113,6 +131,7 @@ void hal::init_clock() {
     }
 }
 
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
 void hal::init_can() {
     using namespace hal::peripherals;
     RCC_PeriphCLKInitTypeDef PeriphClkInit {};
@@ -133,7 +152,7 @@ void hal::init_can() {
         .AutoRetransmission = DISABLE,
         .TransmitPause = ENABLE,
         .ProtocolException = ENABLE,
-#if CAN_BUS_TYPE_IS_PUB6()
+    #if CAN_BUS_TYPE_IS_PUB6()
         /* Target bit rate 125kbit/s sampling point 87.5% */
             .NominalPrescaler = 24,
         .NominalSyncJumpWidth = 64,
@@ -143,7 +162,7 @@ void hal::init_can() {
         .DataSyncJumpWidth = 16,
         .DataTimeSeg1 = 13,
         .DataTimeSeg2 = 2,
-#elif CAN_BUS_TYPE_IS_SLX()
+    #elif CAN_BUS_TYPE_IS_SLX()
         // Target bit rate 500/1000 kbps
             .NominalPrescaler = 2,
         .NominalSyncJumpWidth = 12,
@@ -153,9 +172,9 @@ void hal::init_can() {
         .DataSyncJumpWidth = 6,
         .DataTimeSeg1 = 17,
         .DataTimeSeg2 = 6,
-#else
-    #error
-#endif
+    #else
+        #error
+    #endif
         .StdFiltersNbr = 0,
         .ExtFiltersNbr = 0,
         .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,
@@ -188,6 +207,62 @@ void hal::init_can() {
     HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, ISR_PRIORITY_DEFAULT, 0);
     HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);
 }
+#elif CAN_BUS_TYPE_IS_UART()
+void hal::init_uart() {
+    using namespace hal::peripherals;
+
+    /* Peripheral clock enable */
+    __HAL_RCC_USART1_CLK_ENABLE();
+
+    RCC_PeriphCLKInitTypeDef PeriphClkInit;
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+    PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+        hal::panic();
+    }
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    static constexpr GPIO_InitTypeDef GPIO_InitStruct = {
+        .Pin = GPIO_PIN_9 | GPIO_PIN_10,
+        .Mode = GPIO_MODE_AF_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_LOW,
+        .Alternate = GPIO_AF1_USART1
+    };
+    /**USART1 GPIO Configuration
+    PA9     ------> USART1_TX
+    PA10     ------> USART1_RX
+    */
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    huart1.Instance = USART1;
+    huart1.Init = UART_InitTypeDef {
+        .BaudRate = 115200,
+        .WordLength = UART_WORDLENGTH_8B,
+        .StopBits = UART_STOPBITS_1,
+        .Parity = UART_PARITY_NONE,
+        .Mode = UART_MODE_TX_RX,
+        .HwFlowCtl = UART_HWCONTROL_NONE,
+        .OverSampling = UART_OVERSAMPLING_16,
+        .OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE,
+        .ClockPrescaler = UART_PRESCALER_DIV1
+    };
+    huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
+    /* USART1 interrupt Init */
+    HAL_NVIC_SetPriority(USART1_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
+
+    if ((HAL_UART_Init(&huart1) != HAL_OK) //
+        || (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK) //
+        || (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK) //
+        || (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)) {
+        hal::panic();
+    }
+}
+#else
+    #error
+#endif
 
 void hal::init_spi() {
     using namespace hal::peripherals;
@@ -469,6 +544,7 @@ extern "C" void SPI1_IRQHandler(void) {
     HAL_SPI_IRQHandler(&hspi1);
 }
 
+#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
 /**
  * @brief This function handles FDCAN1 interrupt 0.
  */
@@ -484,6 +560,16 @@ extern "C" void FDCAN1_IT0_IRQHandler(void) {
 extern "C" void FDCAN1_IT1_IRQHandler(void) {
     HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
 }
+#elif CAN_BUS_TYPE_IS_UART()
+/**
+ * @brief This function handles UART interrupt.
+ */
+extern "C" void USART1_IRQHandler(void) {
+    HAL_UART_IRQHandler(&hal::peripherals::huart1);
+}
+#else
+    #error
+#endif
 
 extern "C" void TIM2_IRQHandler(void) {
     HAL_TIM_IRQHandler(&hal::peripherals::htim2);
