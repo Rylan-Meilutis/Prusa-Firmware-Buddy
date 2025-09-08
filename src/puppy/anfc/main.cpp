@@ -52,7 +52,15 @@ auto get_uid() {
 }
 
 #if CAN_BUS_TYPE_IS_UART()
-can::UartDriver can_driver(hal::peripherals::huart2);
+can::UartDriver can_driver(
+    #ifdef STM32C0
+    hal::peripherals::huart1
+    #elif STM32H5
+    hal::peripherals::huart2
+    #else
+        #error
+    #endif
+);
 #else
 can::FdcanDriver can_driver(hal::peripherals::hfdcan1, hal::enable_bit_rate_switch);
 #endif
