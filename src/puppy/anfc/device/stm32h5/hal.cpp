@@ -54,7 +54,7 @@ void init_hash();
 } // namespace hal
 
 namespace hal::peripherals {
-#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
+#if CAN_BUS_TYPE_IS_PUB6()
 FDCAN_HandleTypeDef hfdcan1;
 #elif CAN_BUS_TYPE_IS_UART()
 UART_HandleTypeDef huart2;
@@ -76,7 +76,7 @@ void hal::init() {
     hal::init_clock();
     hal::init_gpio();
     hal::init_spi();
-#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
+#if CAN_BUS_TYPE_IS_PUB6()
     hal::init_can();
 #elif CAN_BUS_TYPE_IS_UART()
     hal::init_uart();
@@ -144,7 +144,7 @@ void hal::init_clock() {
     __HAL_FLASH_SET_PROGRAM_DELAY(FLASH_PROGRAMMING_DELAY_2);
 }
 
-#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
+#if CAN_BUS_TYPE_IS_PUB6()
 void hal::init_can() {
     using namespace hal::peripherals;
 
@@ -543,7 +543,7 @@ extern "C" void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
         nfc::irq();
     }
 }
-#if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
+#if CAN_BUS_TYPE_IS_PUB6()
 /**
  * @brief This function handles FDCAN1 interrupt 0.
  */
