@@ -12,7 +12,7 @@
 #include <cyphal_port_list.hpp>
 
 #include <uavcan/node/Heartbeat_1_0.h>
-#include <option/developer_mode.h>
+#include <option/sysdebug.h>
 
 #include "honeybee_shared_fault.hpp"
 
@@ -113,12 +113,12 @@ private:
     void proto_callback(Watched what) override {
         callback(what);
 
-#if !DEVELOPER_MODE() && !defined(_DEBUG)
+#if !SYSDEBUG()
         log_error(Watcher, "Data_%lu timeout for watched=%u", watcher_n, std::to_underlying(what));
         puppy::fault::trigger_fault(puppy::fault::SharedFault::data_timeout);
-#else /* _DEBUG */
-        log_error(Watcher, "Data_%lu timeout for watched=%u, would fault itself if not debug", watcher_n, std::to_underlying(what));
-#endif /* _DEBUG */
+#else /* SYSDEBUG() */
+        log_error(Watcher, "Data_%lu timeout for watched=%u, would fault itself if not sysdebug", watcher_n, std::to_underlying(what));
+#endif /* SYSDEBUG() */
     }
 };
 
@@ -141,16 +141,16 @@ class Heartbeat : public Proto<Watched, uavcan_node_Heartbeat_1_0_OFFLINE_TIMEOU
      */
     void proto_callback([[maybe_unused]] Watched what) override {
         assert(std::to_underlying(what) < inherited::COUNT);
-#if !DEVELOPER_MODE() && !defined(_DEBUG)
+#if !SYSDEBUG()
         log_error(Watcher, "Heartbeat timeout for watched=%u, node_id=%hhu",
             std::to_underlying(what),
             watch_node_id[std::to_underlying(what)].load());
         puppy::fault::trigger_fault(puppy::fault::SharedFault::heartbeat_missing);
-#else /* DEVELOPER_MODE() */
-        log_error(Watcher, "Heartbeat timeout for watched=%u, node_id=%hhu, would fault itself if not debug",
+#else /* SYSDEBUG() */
+        log_error(Watcher, "Heartbeat timeout for watched=%u, node_id=%hhu, would fault itself if not sysdebug",
             std::to_underlying(what),
             watch_node_id[std::to_underlying(what)].load());
-#endif /* DEVELOPER_MODE() */
+#endif /* SYSDEBUG() */
     }
 
 public:
@@ -194,15 +194,15 @@ public:
             watch_node_id[std::to_underlying(what)].store(node_id);
         } else if (watch_change) {
             if (auto previous = watch_node_id[std::to_underlying(what)].exchange(node_id); previous != node_id) {
-#if !DEVELOPER_MODE() && !defined(_DEBUG)
+#if !SYSDEBUG()
                 log_error(Watcher, "Heartbeat for watched=%u changed node_id from=%hhu to=%hhu",
                     std::to_underlying(what), previous, node_id);
                 // The original node got replaced, so trigger heartbeat_missing fault
                 puppy::fault::trigger_fault(puppy::fault::SharedFault::heartbeat_missing);
-#else /* DEVELOPER_MODE() */
-                log_error(Watcher, "Heartbeat for watched=%u changed node_id from=%hhu to=%hhu, would fault itself if not debug",
+#else /* SYSDEBUG() */
+                log_error(Watcher, "Heartbeat for watched=%u changed node_id from=%hhu to=%hhu, would fault itself if not sysdebug",
                     std::to_underlying(what), previous, node_id);
-#endif /* DEVELOPER_MODE() */
+#endif /* SYSDEBUG() */
             }
         } else {
             if (auto previous = watch_node_id[std::to_underlying(what)].load(); previous != node_id) {

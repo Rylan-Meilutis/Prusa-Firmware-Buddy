@@ -3,6 +3,7 @@
 
 #include <bsod.h>
 #include <otp.hpp>
+#include <option/sysdebug.h>
 
 LOG_COMPONENT_DEF(Node, logging::Severity::info);
 
@@ -35,6 +36,15 @@ void detail::ProtoNode::add_otp_registers(RegisterMachineIface &registers) {
             serial_nr_t sn;
             read.unstructured.value.count = otp_get_serial_nr(sn);
             memcpy(read.unstructured.value.elements, sn.data(), read.unstructured.value.count);
+        },
+        false, true);
+
+    registers.add_register(
+        "sysdebug",
+        []([[maybe_unused]] const uavcan_register_Value_1_0 &write, uavcan_register_Value_1_0 &read) {
+            uavcan_register_Value_1_0_select_bit_(&read);
+            read.bit.value.bitpacked[0] = SYSDEBUG() ? 1 : 0;
+            read.bit.value.count = 1;
         },
         false, true);
 }

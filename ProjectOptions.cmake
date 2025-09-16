@@ -1150,6 +1150,16 @@ set(CYPHAL_CAN_STATS
     )
 define_boolean_option(CYPHAL_CAN_STATS ${CYPHAL_CAN_STATS})
 
+set(SYSDEBUG
+    "OFF"
+    CACHE BOOL "Disable timeouts to ease debugging of nodes (auto ON for DEBUG and DEVELOPER_MODE)"
+    )
+if(${DEBUG} OR ${DEVELOPER_MODE})
+  # SYSDEBUG is automatically enabled in debug and developer mode
+  set(SYSDEBUG "ON")
+endif()
+define_boolean_option(SYSDEBUG ${SYSDEBUG})
+
 set(DEBUG_WITH_BEEPS
     "OFF"
     CACHE BOOL "Colleague annoyance: achievement unlocked"
