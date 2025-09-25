@@ -771,3 +771,45 @@ TEST_CASE("PrusaNFCReader::caching") {
         check_full_read(3);
     }
 }
+
+TEST_CASE("PrusaNFCReader::not_first_ndef_record") {
+    MockNFCReader mock;
+    PrusaNFCReader reader(mock);
+
+    mock.tag_data[0] = tag_data::sample_tag_with_uri;
+
+    // Verify metadata structure
+    {
+        auto meta_r = reader.read_metadata(0);
+
+        // Expecting three reads - URI NDEF header, OpenPrintTag NDEF header, NDEF type, metadata region
+        CHECK(mock.log.reads.size() == 4);
+        CHECK(mock.log.writes.size() == 0);
+
+        // Reset log, start tracking from new
+        mock.log = {};
+
+        REQUIRE(meta_r.has_value());
+        REQUIRE(*meta_r);
+
+        const PrusaNFCReader::TagMetadata &meta = **meta_r;
+        CHECK(meta.is_valid);
+
+        const auto payload_offset = 61;
+
+        const auto &meta_region = meta.region[NFCRegion::meta];
+        CHECK(meta_region.is_present());
+        CHECK(meta_region.span.offset == payload_offset + 0);
+        CHECK(meta_region.span.size == 11);
+
+        const auto &main_region = meta.region[NFCRegion::main];
+        CHECK(main_region.is_present());
+        CHECK(main_region.span.offset == payload_offset + 11);
+        CHECK(main_region.span.size == 196);
+
+        const auto &aux_region = meta.region[NFCRegion::auxiliary];
+        CHECK(aux_region.is_present());
+        CHECK(aux_region.span.offset == payload_offset + 207);
+        CHECK(aux_region.span.size == 32);
+    }
+}

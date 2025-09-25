@@ -118,6 +118,10 @@ empty_tag_with_big_meta_section = nfc_initialize(
     ["-s=256", "-m=32", "-a=16", "-b=1"])
 empty_tag_with_minimal_meta_section = nfc_initialize(["-s=128", "-b=1"])
 
+empty_tag_with_uri = nfc_initialize([
+    "-s=300", "-b=4", "-a=32", "--ndef-uri", "https://3dtag.org/c/4ea3c75dc9"
+])
+
 material_uuid = uuid.UUID("43dab9d7-326c-4c53-9520-eb36a8fa8315")
 write_bytes("material_uuid", material_uuid.bytes)
 
@@ -203,6 +207,9 @@ write_sample = nfc_update(empty_tag_with_big_meta_section,
                               "main_region_size": 400
                           }})
 write_sample_data("corrupt_tag_2", write_sample)
+
+sample_tag_with_uri = nfc_update(empty_tag_with_uri, standard_data)
+write_sample_data("sample_tag_with_uri", sample_tag_with_uri)
 
 # Wrong mime with different length than our official one
 write_sample_data(
