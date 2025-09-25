@@ -62,4 +62,9 @@ public:
     NFCSpan dynamic_field_span(DynamicField field) const {
         return NFCSpan { .offset = dynamic_field_offset(field), .size = dynamic_field_length(field) };
     }
+
+    /// \returns total record length, including the payload
+    NFCOffset record_length() const {
+        return dynamic_field_span(DynamicField::payload).end();
+    }
 };

@@ -14,6 +14,8 @@ static constexpr NFCTagID invalid_nfc_tag = -1;
 /// NFC analog for size_t
 using NFCOffset = uint16_t;
 
+static constexpr NFCOffset invalid_nfc_offset = -1;
+
 /// std::span analog for NFC data
 struct NFCSpan {
 
@@ -51,6 +53,13 @@ public:
         } else {
             return from_offset_end(std::min(offset, other.offset), std::max(end(), other.end()));
         }
+    }
+
+    constexpr NFCSpan added_offset(NFCOffset added_offset) {
+        return NFCSpan {
+            .offset = static_cast<NFCOffset>(offset + added_offset),
+            .size = size
+        };
     }
 
     constexpr bool operator==(const NFCSpan &) const = default;

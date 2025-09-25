@@ -137,31 +137,45 @@ PrusaNFCReader::IOResult<const PrusaNFCReader::TagMetadata *> PrusaNFCReader::re
     };
 
     // Chew through the NDEF header
+    NFCOffset next_record_offset = 0;
     NFCSpan payload_span;
-    {
+    while (true) {
+        const auto record_offset = next_record_offset;
+
+        if (record_offset == invalid_nfc_offset) {
+            // We hit the end -> haven't found our tag
+            return tag_invalid_error;
+        }
+
         // Copy the header so that we can reuse the read buffer (and also for alignment)
         NDEFRecordFullHeader ndef_header;
         {
-            auto io_result = read_span({ .tag = tag, .span = { .offset = 0, .size = sizeof(NDEFRecordFullHeader) } });
+            auto io_result = read_span({ .tag = tag, .span = { .offset = next_record_offset, .size = sizeof(NDEFRecordFullHeader) } });
             if (!io_result) {
                 return handle_error(io_result.error());
             }
             memcpy(&ndef_header, io_result->data(), sizeof(ndef_header));
         }
 
+        if (record_offset == 0 && !ndef_header.message_begin) {
+            // Not a message begin -> invalid data
+            return tag_invalid_error;
+        }
+
+        // Calculate offset of the next NDEF record
+        next_record_offset = ndef_header.message_end ? invalid_nfc_offset : (next_record_offset + ndef_header.record_length());
+
         if (
-            !ndef_header.message_begin // Not a message begin -> invalid data
-            || ndef_header.chunk_flag // Prusa Material NFC does not support chunking
-            || ndef_header.type_name_format != NDEFTypeNameFormat::mime_media_type // The first record has to be the record with the Prusa mime type
+            ndef_header.type_name_format != NDEFTypeNameFormat::mime_media_type
             || ndef_header.type_length != params_.mime_type.length() //
         ) {
-            return tag_invalid_error;
+            continue;
         }
 
         // Check NDEF MIME type
         {
             // Read the NDEF type into the read buffer
-            auto io_result = read_span({ .tag = tag, .span = ndef_header.dynamic_field_span(NDEFRecordFullHeader::DynamicField::type) });
+            auto io_result = read_span({ .tag = tag, .span = ndef_header.dynamic_field_span(NDEFRecordFullHeader::DynamicField::type).added_offset(record_offset) });
             if (!io_result) {
                 return handle_error(io_result.error());
             }
@@ -169,12 +183,20 @@ PrusaNFCReader::IOResult<const PrusaNFCReader::TagMetadata *> PrusaNFCReader::re
             // Different mime type -> the tag is invalid
             const std::string_view tag_mime_type { reinterpret_cast<const char *>(io_result->data()), io_result->size() };
             if (tag_mime_type != params_.mime_type) {
-                return tag_invalid_error;
+                continue;
             }
         }
 
+        if (ndef_header.chunk_flag) {
+            // OpenPrintTag payloads are not allowed to be chunked
+            return tag_invalid_error;
+        }
+
         // Parse and store the payload location
-        payload_span = ndef_header.dynamic_field_span(NDEFRecordFullHeader::DynamicField::payload);
+        payload_span = ndef_header.dynamic_field_span(NDEFRecordFullHeader::DynamicField::payload).added_offset(record_offset);
+
+        // Found the OpenPrintTag NDEF record
+        break;
     }
 
     // No meta region -> mark the whole payload as main region and call it a day
