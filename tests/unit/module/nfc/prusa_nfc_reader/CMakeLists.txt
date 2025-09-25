@@ -1,7 +1,7 @@
 set(CMAKE_CXX_FLAGS_DEBUG "-O0")
 set(CMAKE_C_FLAGS_DEBUG "-O0")
 
-set(DATA_FORMAT_DIR "${PROJECT_ROOT_DIR}/lib/Prusa-Material-Data-Format")
+set(DATA_FORMAT_DIR "${PROJECT_ROOT_DIR}/lib/OpenPrintTag")
 
 file(GLOB_RECURSE ANFC_PY_DEPS CONFIGURE_DEPENDS "${DATA_FORMAT_DIR}/utils/*"
      "${DATA_FORMAT_DIR}/data/*"
