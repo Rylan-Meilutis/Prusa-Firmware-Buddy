@@ -1,11 +1,18 @@
 #pragma once
 
-#include <span>
-#include <cstddef>
+#include <cstdint>
 
 #include <option/can_bus_type.h>
 
 namespace hal {
+
+enum class BoardOrientation : uint8_t {
+    normal,
+    left,
+    right
+};
+
+BoardOrientation get_board_orientation();
 
 /// Enable CAN bit rate switch?
 static constexpr const bool enable_bit_rate_switch =

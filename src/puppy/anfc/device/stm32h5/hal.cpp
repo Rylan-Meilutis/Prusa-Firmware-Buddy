@@ -33,6 +33,10 @@ void hal::set_status_led(bool set) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, set ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
+hal::BoardOrientation hal::get_board_orientation() {
+    return BoardOrientation::normal;
+}
+
 namespace hal {
 void init_clock();
 #if CAN_BUS_TYPE_IS_PUB6()

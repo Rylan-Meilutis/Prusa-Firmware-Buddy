@@ -3,6 +3,7 @@
 #include <device/peripherals.h>
 #include <device/hal.h>
 #include <option/can_bus_type.h>
+#include <option/nfc_board_has_left_right_detection_pin.h>
 
 extern "C" {
 #include <FreeRTOSConfig.h>
@@ -27,6 +28,14 @@ void hal::reset() {
 
 void hal::set_status_led(bool set) {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, set ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+hal::BoardOrientation hal::get_board_orientation() {
+    if constexpr (option::nfc_board_has_left_right_detection_pin) {
+        return (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) == GPIO_PIN_SET) ? BoardOrientation::right : BoardOrientation::left;
+    } else {
+        return BoardOrientation::normal;
+    }
 }
 
 namespace hal {

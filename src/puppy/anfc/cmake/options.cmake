@@ -27,3 +27,13 @@ define_enum_option(
   NAME NFC_ST25R3919B_ENABLED_ANTENNAS VALUE ${NFC_ST25R3919B_ENABLED_ANTENNAS} ALL_VALUES
   "ANTENNA_1;ANTENNA_2;BOTH"
   )
+
+set(NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN
+    NO
+    CACHE
+      BOOL
+      "Sets if firmware should use left/right can names if the left/right detection pin is present"
+    )
+define_boolean_option(
+  NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN ${NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN}
+  )

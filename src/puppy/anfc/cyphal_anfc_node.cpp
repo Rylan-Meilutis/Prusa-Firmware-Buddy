@@ -1,5 +1,3 @@
-
-
 #include "cyphal_anfc_node.hpp"
 
 #include <option/can_bus_type.h>
@@ -68,7 +66,10 @@ void ANFCNode::write_config(const ConfigTraits::Request::Type &config) {
 }
 
 void ANFCNode::update_status(StatusTraits::Type &data) {
-    (void)data;
+    static_assert(std::to_underlying(hal::BoardOrientation::normal) == prusa3d_nfc_BoardOrientation_1_0_NORMAL);
+    static_assert(std::to_underlying(hal::BoardOrientation::left) == prusa3d_nfc_BoardOrientation_1_0_LEFT);
+    static_assert(std::to_underlying(hal::BoardOrientation::right) == prusa3d_nfc_BoardOrientation_1_0_RIGHT);
+    data.board_orientation.value = std::to_underlying(hal::get_board_orientation());
 }
 
 } // namespace anfc::cyphal
