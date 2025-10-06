@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#define REVERSE_TEMP_SENSOR_RANGE_1010 1
+
 // Pt1000 with 1k0 pullup
 // PT1000 temperature sensor with 1k pullup resistor
 // Precise ADC values calculated for PT1000 with voltage divider
