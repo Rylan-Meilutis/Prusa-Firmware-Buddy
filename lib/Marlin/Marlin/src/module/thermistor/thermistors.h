@@ -49,6 +49,10 @@
 #if ANY_THERMISTOR_IS(2008) // XL prototype termistor, TODO: FIX
   #include "thermistor_2008.h"
 #endif
+#if ANY_THERMISTOR_IS(1010) // PT1000
+  #define REVERSE_TEMP_SENSOR_RANGE
+  #include "thermistor_1010.h"
+#endif
 
 #define _TT_NAME(_N) temptable_ ## _N
 #define TT_NAME(_N) _TT_NAME(_N)
