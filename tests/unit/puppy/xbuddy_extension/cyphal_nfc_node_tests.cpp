@@ -26,6 +26,7 @@ public:
     void transmit_node_execute_command_request(NodeId, cyphal::Command, std::span<std::byte>) override {}
     void transmit_file_read_response(NodeId, uint8_t, std::span<std::byte>) override {}
     void transmit_ac_controller_config_request(NodeId, const ac_controller::Config &) override {}
+    void transmit_ac_controller_leds_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const ac_controller::LedConfig &) override {}
 
     bool transmit_nfc_command_request(NodeId, std::span<const std::byte> data) override {
         if (fail) {

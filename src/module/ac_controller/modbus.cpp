@@ -5,3 +5,4 @@
 
 static_assert(modbus::RegisterFile<ac_controller::modbus::Status>);
 static_assert(modbus::RegisterFile<ac_controller::modbus::Config>);
+static_assert(modbus::RegisterFile<ac_controller::modbus::LedConfig>);
