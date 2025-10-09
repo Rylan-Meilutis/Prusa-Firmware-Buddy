@@ -1018,10 +1018,7 @@ STEPPING_INLINE bool append_move_discarding_step_event(step_generator_state_t &s
     if (step_event_u16_t *step_event = PreciseStepping::get_next_free_step_event(next_step_event_queue_head); step_event != nullptr) {
         step_event->time_ticks = 0;
         step_event->flags = step_state.current_flags | STEP_EVENT_FLAG_BEGINNING_OF_MOVE_SEGMENT | extra_step_flags;
-
         PreciseStepping::step_event_queue.head = next_step_event_queue_head;
-        step_state.previous_step_time = 0.;
-        step_state.previous_step_time_ticks = 0;
         return true;
     }
     return false;
