@@ -1,7 +1,7 @@
 # NFC Data Format Specification
 
 ## Used standards
-- [ISO/IEC 15693-3](https://en.wikipedia.org/wiki/ISO/IEC_15693)
+- [ISO/IEC 15693-3 (NFC-V)](https://en.wikipedia.org/wiki/ISO/IEC_15693)
 - [NFC Data Exchange Format (NDEF)](https://nfc-forum.org/build/specifications/data-exchange-format-ndef-technical-specification/)
 - [Concise Binary Object Representation (CBOR)](https://cbor.io/)
 
@@ -50,7 +50,7 @@
 
 - The top layer format of the NFC tag is an NDEF message in a NDEF TLV record.
    - The tag MAY contain other TLV records. The NDEF TLV record doesn't have to be the first TLV record.
-- The message has an **NDEF record** of MIME type **application/vnd.prusa3d.mat.nfc**.
+- The message has an **NDEF record** of MIME type **application/vnd.openprinttag**.
    - The payload of the record consists of:
       1. **Meta section** (CBOR map)
          - Always at the beginning of the payload.
@@ -82,6 +82,7 @@
 1. CBOR maps and arrays SHOULD be encoded as indefinite containers
 1. `bytes` and `uuid` types are encoded as CBOR byte string (type 2)
 1. `number` types can be encoded as either unsigned integers (type 0), signed integers (type 1), half floats or floats
+1. `string` types are encoded as CBOR text string (type 3, UTF-8 is enforced by the CBOR specification)
 
 ### UUIDs
 Each entity referenced in the data can be identified by a [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier). The UUID MAY be explicitly specified through a `XX_uuid`, however that might not be desirable due to space constraints. As an alternative, the following algorithm defines a way to derive UUIDs from other fields.

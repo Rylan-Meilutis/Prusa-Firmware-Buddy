@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:prusa3d/OpenPrintTag.git
 	branch = main
-	commit = c776a798dc529c71b68016f91dc65729a1ceedb5
-	parent = 35dd6e378c7dc30820655ac93420ebdd8b255c50
+	commit = 2b48f3e8d1c76af5f648e789c24e6544d2a30bb1
+	parent = ed68fbc4ad1e579a03a8dc442ff2cbfa35b185ae
 	method = merge
 	cmdver = 0.4.9
