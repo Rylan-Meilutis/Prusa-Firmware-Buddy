@@ -26,7 +26,7 @@ public:
     static constexpr size_t metadata_cache_capacity = 4;
 
     struct Params {
-        std::string_view mime_type = "application/vnd.prusa3d.mat.nfc";
+        std::string_view mime_type = "application/vnd.openprinttag";
 
         /// Whether the tag has a meta region.
         /// False means the the payload only contains the main section (no aux, no meta)

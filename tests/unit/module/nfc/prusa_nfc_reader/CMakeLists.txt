@@ -10,7 +10,8 @@ file(GLOB_RECURSE ANFC_PY_DEPS CONFIGURE_DEPENDS "${DATA_FORMAT_DIR}/utils/*"
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/autogen/sample_data.cpp.in
          ${CMAKE_CURRENT_BINARY_DIR}/autogen/field_enums.hpp
-  DEPENDS gen_anfc_tests_support_files.py ${ANFC_PY_DEPS}
+  DEPENDS gen_anfc_tests_support_files.py config_wrong_mime.yaml config_wrong_mime2.yaml
+          ${ANFC_PY_DEPS}
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_anfc_tests_support_files.py
           ${DATA_FORMAT_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/autogen
