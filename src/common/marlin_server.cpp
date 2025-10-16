@@ -340,10 +340,7 @@ namespace {
             }
 
             if (disable_hotend) {
-                for (int8_t e = 0; e < HOTENDS; e++) {
-                    thermalManager.setTargetHotend(0, e);
-                    set_temp_to_display(0, e);
-                }
+                thermalManager.disable_hotend();
             }
             m_failed = true;
         };
@@ -1539,12 +1536,7 @@ static void prepare_tool_pickup() {
     disable_XY(); // Let user move the carriage
 
     // Disable heaters
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if ((marlin_vars().hotend(e).target_nozzle > 0)) {
-            thermalManager.setTargetHotend(0, e);
-            set_temp_to_display(0, e);
-        }
-    }
+    thermalManager.disable_hotend();
 
     server.print_state = State::CrashRecovery_Tool_Pickup; // Continue with screen to wait for user to pick tools
 }
