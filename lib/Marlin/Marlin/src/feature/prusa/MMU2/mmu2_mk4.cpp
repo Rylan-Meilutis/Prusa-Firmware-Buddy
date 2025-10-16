@@ -618,7 +618,8 @@ bool MMU2::ToolChangeCommonOnce(uint8_t slot) {
             unloadEPosOnFSOff = firstUnloadEPosOnFSOff.value_or(nominalEMotorFSOffReg);
             return true; // success
         } else { // Prepare a retry attempt
-            UnloadInner(PreUnloadPolicy::ExtraRelieveFilament);
+            loadFilamentStarted = false;
+            UnloadInner(PreUnloadPolicy::ExtraRelieveHotFilament);
             if (retries == 2 && cutter_enabled()) {
                 CutFilamentInner(slot); // try cutting filament tip at the last attempt
             }
@@ -796,6 +797,17 @@ void MMU2::UnloadInner(PreUnloadPolicy preUnloadPolicy) {
     case PreUnloadPolicy::Ramming:
         filament_ramming();
         break;
+    case PreUnloadPolicy::ExtraRelieveHotFilament:
+#ifdef USE_TRY_LOAD
+        // try-load printers' ExtraRelieveHotFilament move was always the same as RelieveFilament
+#else
+        // BFW-7473: Assume the filament somehow made it into the melt zone (we have no reliable way of knowing),
+        // but the E-motor skipped during the move.
+        // Therefore, the relieve move must be extra slow in order to allow the filament tip to cool down
+        // and not get wound up on the drive gear -> hence the slow feedrate
+        extruder_move(-60.F, 10.F);
+#endif
+        [[fallthrough]]; // The rest of the relieve move will be done in the following RelieveFilament branch of this switch at a faster pace
     case PreUnloadPolicy::RelieveFilament:
         extruder_move(
 #ifdef USE_TRY_LOAD
@@ -805,19 +817,6 @@ void MMU2::UnloadInner(PreUnloadPolicy preUnloadPolicy) {
             // But E-stall detection is not symmetrical - it needs to retract way more (because the filament may still be somewhere in the nozzle)
             // Theoretically, we should be able to retract the same distance as the failed load (when the E-motor skipped) + some extra margin
             -120.F,
-#endif
-            60.F);
-        planner_synchronize();
-        break;
-    case PreUnloadPolicy::ExtraRelieveFilament:
-        extruder_move(
-#ifdef USE_TRY_LOAD
-            // try-loads are symmetrical
-            -40.F,
-#else
-            // But E-stall detection is not symmetrical - it needs to retract way more (because the filament may still be somewhere in the nozzle)
-            // Theoretically, we should be able to retract the same distance as the failed load (when the E-motor skipped) + some extra margin
-            -180.F,
 #endif
             60.F);
         planner_synchronize();

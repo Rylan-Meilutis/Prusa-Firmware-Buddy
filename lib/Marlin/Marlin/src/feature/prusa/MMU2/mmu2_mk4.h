@@ -384,7 +384,9 @@ private:
         Nothing,
         Ramming,
         RelieveFilament,
-        ExtraRelieveFilament, // longer retraction for E-stall enabled printers
+        ExtraRelieveHotFilament, ///< longer retraction for E-stall enabled printers
+                                 ///< + the move must be slow, because the filament might actually be present in the melt zone
+                                 ///< -> it must cool down while pulling out
     };
     void UnloadObeyAutoRetracted();
     void UnloadInner(PreUnloadPolicy preUnloadPolicy);
