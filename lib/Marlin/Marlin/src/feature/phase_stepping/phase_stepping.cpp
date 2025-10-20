@@ -36,7 +36,7 @@ using namespace phase_stepping;
 using namespace phase_stepping::opts;
 using namespace buddy::hw;
 
-AtomicCircularQueue<ProblemEvents, uint16_t, 4> phase_stepping::debug_events_queue {};
+AtomicCircularQueue<ProblemEvents, uint16_t, 32> phase_stepping::debug_events_queue {};
 
 // Global definitions
 std::array<AxisState, SUPPORTED_AXIS_COUNT> phase_stepping::axis_states = { X_AXIS, Y_AXIS };
@@ -658,12 +658,7 @@ static bool is_refresh_period_sane(uint32_t now, uint32_t last_timer_tick) {
 static FORCE_INLINE FORCE_OFAST void refresh_axis(
     AxisState &axis_state, uint32_t now, uint32_t previous_tick) {
 
-    // At 350 we pass on the cylinder reproducer with bad speeds (aka 350 mm/s!!!)
-    // At 320 we pass bigger parts of the cylinder without the printer stopping (starving)
-    // and skipping
-    // At 340-325 I can hear skips of motors, but eventually we crash
-    static constexpr float speed_diff_threshold = 320.0f;
-    static constexpr float sudden_stop_threshold = 100.0f;
+    static constexpr float speed_diff_threshold = 20.0f;
 
     if (!axis_state.active) {
         return;
@@ -736,9 +731,6 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
 
             calibration_new_move(axis_state);
         } else {
-            if (axis_state.previous_speed > sudden_stop_threshold) {
-                [[maybe_unused]] const auto res = debug_events_queue.enqueue(SuddenStop { .timestamp = now, .axis = axis_index ? 'Y' : 'X', .original_speed = axis_state.previous_speed });
-            }
             // No new movement
             axis_state.is_cruising = false;
             axis_state.is_moving = false;

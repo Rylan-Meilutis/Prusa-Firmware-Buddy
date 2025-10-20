@@ -30,7 +30,6 @@
 #include <metric_handlers.h>
 #include <utils/timing/rate_limiter.hpp>
 #include <utils/overloaded_visitor.hpp>
-#include <utils/atomic_circular_queue.hpp>
 
 #include <Marlin/src/module/temperature.h>
 #include <Marlin/src/module/planner.h>
@@ -405,7 +404,6 @@ void record_dwarf_internal_temperatures() {
 
 #if HAS_PHASE_STEPPING()
 METRIC_DEF(ps_stalled, "ps_stall", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
-METRIC_DEF(ps_sudden_stop, "ps_stopped", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 METRIC_DEF(ps_speed_change, "ps_spd_chng", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
 void record_ps_debug_events() {
@@ -416,11 +414,6 @@ void record_ps_debug_events() {
         if (marlin_server::is_printing()) {
             // Only send the metrics when we are printing - we don't care for stalls when we don't move
             std::visit(Overloaded {
-                           [](const SuddenStop &e) {
-                               metric_record_custom_at_time(&ps_sudden_stop, e.timestamp, " ax=\"%c\",from=%.1f",
-                                   e.axis,
-                                   static_cast<double>(e.original_speed));
-                           },
                            [](const SuddenSpeedChange &e) {
                                metric_record_custom_at_time(&ps_speed_change, e.timestamp, " ax=\"%c\",from=%.1f,to=%.1f",
                                    e.axis,
@@ -437,7 +430,7 @@ void record_ps_debug_events() {
         }
     }
     if (send > 0) {
-        log_info(Metrics, "Sent %u stalled events", send);
+        log_info(Metrics, "Sent %zu stalled events", send);
     }
 }
 #endif

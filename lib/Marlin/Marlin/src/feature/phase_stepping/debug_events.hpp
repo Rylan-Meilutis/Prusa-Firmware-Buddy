@@ -17,13 +17,8 @@ struct SuddenSpeedChange {
     float original_speed;
     float new_speed;
 };
-struct SuddenStop {
-    uint32_t timestamp;
-    char axis;
-    float original_speed;
-};
-using ProblemEvents = std::variant<Stalled, SuddenSpeedChange, SuddenStop>;
+using ProblemEvents = std::variant<Stalled, SuddenSpeedChange>;
 
 /// @brief Queue for debug events
-extern AtomicCircularQueue<ProblemEvents, uint16_t, 4> debug_events_queue;
+extern AtomicCircularQueue<ProblemEvents, uint16_t, 32> debug_events_queue;
 } // namespace phase_stepping
