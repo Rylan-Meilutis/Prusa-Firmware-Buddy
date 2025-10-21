@@ -112,6 +112,20 @@ ScreenSplash::ScreenSplash()
     }
 #endif
 
+#if HAS_SELFTEST() && !PRINTER_IS_PRUSA_iX()
+    // A crude heuristic to make the wizard show only "on the first run"
+    // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose
+    const bool run_wizard = (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result);
+#elif HAS_SELFTEST()
+    const bool run_wizard = false;
+#endif
+
+#if HAS_SELFTEST()
+    if (run_wizard) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
+    }
+#endif
+
 #if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
     //  C1L is shipped with the bed screwed into the bottom of the chassis. And hence the screws have to be removed.
     const bool bed_screws_removal_approved = config_store().heatbed_screws_removal_approved.get();
@@ -135,22 +149,8 @@ ScreenSplash::ScreenSplash()
         };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
     };
-
 #endif
 
-#if HAS_SELFTEST() && !PRINTER_IS_PRUSA_iX()
-    // A crude heuristic to make the wizard show only "on the first run"
-    // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose
-    const bool run_wizard = (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result);
-#elif HAS_SELFTEST()
-    const bool run_wizard = false;
-#endif
-
-#if HAS_SELFTEST()
-    if (run_wizard) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
-    }
-#endif
     const bool network_setup_needed = !config_store().printer_network_setup_done.get();
     if (network_setup_needed) {
         constexpr auto network_callback = +[] {
