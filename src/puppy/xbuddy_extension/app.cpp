@@ -146,11 +146,11 @@ constexpr uint16_t AC_CONTROLLER_MODBUS_ADDR = 0x1a + 8;
 
 class AcController final : public modbus::Callbacks {
 public:
-    Status read_registers(uint8_t, uint16_t address, std::span<uint16_t> out) final {
+    Status read_registers(uint16_t address, std::span<uint16_t> out) final {
         return read_register_file<ac_controller::modbus::Status>(address, out);
     }
 
-    Status write_registers(uint8_t, uint16_t address, std::span<const uint16_t> in) final {
+    Status write_registers(uint16_t address, std::span<const uint16_t> in) final {
         return write_register_file<ac_controller::modbus::Config>(address, in);
     }
 };
@@ -158,7 +158,7 @@ public:
 
 class Logic final : public modbus::Callbacks {
 public:
-    Status read_registers(uint8_t, const uint16_t address, std::span<uint16_t> out) final {
+    Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
         if (const auto status_result = read_register_file<xbuddy_extension::modbus::Status>(address, out);
             status_result != Status::IllegalAddress) {
             return status_result;
@@ -166,7 +166,7 @@ public:
         return Status::IllegalAddress;
     }
 
-    Status write_registers(uint8_t, const uint16_t address, std::span<const uint16_t> in) final {
+    Status write_registers(const uint16_t address, std::span<const uint16_t> in) final {
         if (const auto status = write_register_file<xbuddy_extension::modbus::Config>(address, in);
             status != Status::IllegalAddress) {
             return status;

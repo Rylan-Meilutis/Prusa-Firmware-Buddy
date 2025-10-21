@@ -63,8 +63,8 @@ public:
         Ignore = 255,
     };
 
-    virtual Status read_registers(uint8_t device, uint16_t first_address, std::span<uint16_t> out) = 0;
-    virtual Status write_registers(uint8_t device, uint16_t first_address, std::span<const uint16_t> in) = 0;
+    virtual Status read_registers(uint16_t first_address, std::span<uint16_t> out) = 0;
+    virtual Status write_registers(uint16_t first_address, std::span<const uint16_t> in) = 0;
 };
 
 class Dispatch {

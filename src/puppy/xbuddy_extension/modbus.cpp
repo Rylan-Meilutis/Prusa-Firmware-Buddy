@@ -143,7 +143,7 @@ std::span<std::byte> handle_transaction(
                 abort();
             }
             std::span<uint16_t> out(reinterpret_cast<uint16_t *>(out_buffer), count);
-            status = device_callbacks->read_registers((uint8_t)device_id, address, out);
+            status = device_callbacks->read_registers(address, out);
 
             if (status != Status::Ok) {
                 break;
@@ -178,7 +178,7 @@ std::span<std::byte> handle_transaction(
                 in[i] = get_word(0);
                 request = request.subspan(2);
             }
-            status = device_callbacks->write_registers((uint8_t)device_id, address, in);
+            status = device_callbacks->write_registers(address, in);
             if (status != Status::Ok) {
                 break;
             }
