@@ -3,7 +3,7 @@
 #include <led_animation_controller/animation_controller.hpp>
 #include <led_animation_controller/frame_animation.hpp>
 #include "marlin_vars.hpp"
-#include "client_response.hpp"
+#include <fsm/filament_change_phases.hpp>
 #include <option/has_side_fsensor.h>
 
 namespace leds {

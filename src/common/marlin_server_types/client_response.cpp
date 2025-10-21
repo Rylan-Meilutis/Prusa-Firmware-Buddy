@@ -5,13 +5,16 @@
 #if HAS_MANUAL_BELT_TUNING()
     #include <fsm/manual_belt_tuning_phases.hpp>
 #endif
+
 #if HAS_LOADCELL()
     #include <fsm/nozzle_cleaning_failed_phases.hpp>
 #endif
 
 #if HAS_SELFTEST()
-    #include "fsm/selftest_fsensors_phases.hpp"
+    #include <fsm/selftest_fsensors_phases.hpp>
 #endif
+
+#include <fsm/filament_change_phases.hpp>
 
 namespace ClientResponses {
 
