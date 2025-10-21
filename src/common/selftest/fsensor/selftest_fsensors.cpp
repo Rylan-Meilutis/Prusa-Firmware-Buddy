@@ -47,6 +47,9 @@ constexpr float assisted_insertion_safe_distance_mm = 70;
 /// Extra load should still not exceed assisted_insertion_safe_distance_mm
 constexpr float assisted_insertion_extra_load_distance_mm = 10;
 
+/// How much the filament wiggles forward and back during calibration
+constexpr float calibration_wiggle_distance_mm = 10;
+
 // These values are calibrated for the nextruder. They need to be tweaked for different extruders.
 static_assert(HAS_NEXTRUDER());
 
@@ -338,8 +341,9 @@ void SelftestFSensors::calibrate(FilamentSensorCalibrator::CalibrationPhase phas
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
         // Wiggle the extruder forward and back, it affects the fsensor measurements
         // So we get bigger range of measured values
+        // !!! We need to start by wiggling forward to make sure we don't disengage the filament
         if (!planner.busy()) {
-            const float distance = extruded_distance < 0 ? assisted_insertion_extra_load_distance_mm : -assisted_insertion_extra_load_distance_mm;
+            const float distance = extruded_distance <= 0 ? calibration_wiggle_distance_mm : -calibration_wiggle_distance_mm;
             mapi::extruder_move(distance, extruder_assist_fast_feedrate);
             extruded_distance += distance;
         }
@@ -476,7 +480,7 @@ bool SelftestFSensors::ask_insert_filament() {
         inserted_distance += mapi::extruder_schedule_turning(extruder_assist_slow_feedrate);
 
         // If we've inserted too much, quickly unload to make sure we don't try to force the filament into a cold nozzle
-        if (inserted_distance >= assisted_insertion_safe_distance_mm - assisted_insertion_extra_load_distance_mm) {
+        if (inserted_distance >= assisted_insertion_safe_distance_mm - assisted_insertion_extra_load_distance_mm - calibration_wiggle_distance_mm) {
             mapi::extruder_move(-inserted_distance, extruder_assist_fast_feedrate);
             planner.synchronize();
             inserted_distance = 0;
