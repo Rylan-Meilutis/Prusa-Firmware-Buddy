@@ -7,6 +7,23 @@
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
 
+namespace {
+template <typename OldItem>
+auto read_old_item_value(journal::Backend &backend) {
+    typename OldItem::value_type old_value = OldItem::default_val;
+
+    auto callback = [&](journal::Backend::ItemHeader header, std::array<uint8_t, journal::Backend::MAX_ITEM_SIZE> &buffer) -> void {
+        if (header.id == OldItem::hashed_id) {
+            memcpy(&old_value, buffer.data(), header.len);
+        }
+    };
+
+    backend.read_items_for_migrations(callback);
+
+    return old_value;
+}
+} // namespace
+
 namespace config_store_ns {
 namespace migrations {
 #if HAS_SELFTEST()
@@ -364,21 +381,12 @@ namespace migrations {
 #endif
 
     void printer_setup_done(journal::Backend &backend) {
+        const auto old_value = read_old_item_value<decltype(DeprecatedStore::printer_setup_done)>(backend);
+
         using FirstNewItem = decltype(CurrentStore::printer_hw_config_done);
-        using SecondNewItem = decltype(CurrentStore::printer_network_setup_done);
-        using OldItem = decltype(DeprecatedStore::printer_setup_done);
-
-        OldItem::value_type old_value = OldItem::default_val;
-
-        auto callback = [&](journal::Backend::ItemHeader header, std::array<uint8_t, journal::Backend::MAX_ITEM_SIZE> &buffer) -> void {
-            if (header.id == OldItem::hashed_id) {
-                memcpy(&old_value, buffer.data(), header.len);
-            }
-        };
-
-        backend.read_items_for_migrations(callback);
-
         backend.save_migration_item<FirstNewItem::value_type>(FirstNewItem::hashed_id, old_value);
+
+        using SecondNewItem = decltype(CurrentStore::printer_network_setup_done);
         backend.save_migration_item<SecondNewItem::value_type>(SecondNewItem::hashed_id, old_value);
     }
 } // namespace migrations
