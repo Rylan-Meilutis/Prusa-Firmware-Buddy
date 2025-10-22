@@ -430,7 +430,7 @@ void record_ps_debug_events() {
         }
     }
     if (send > 0) {
-        log_info(Metrics, "Sent %zu stalled events", send);
+        log_info(Metrics, "Sent %zu phstep debug events", send);
     }
 }
 #endif
