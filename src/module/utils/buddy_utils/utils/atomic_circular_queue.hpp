@@ -42,10 +42,10 @@ class BaseAtomicCircularQueue {
 private:
     std::atomic<index_t> head = 0;
     std::atomic<index_t> tail = 0;
-    T queue[N];
 #ifndef NDEBUG
     bool is_allocated = false; // for debugging information
 #endif
+    T queue[N];
 
     static index_t mask(index_t val) { return val & (N - 1); }
 
