@@ -150,9 +150,15 @@ SelftestFSensorsResult SelftestFSensors::run() {
         return Result::aborted;
     }
 
-    /// Reinserting the filament multiple times chould give us better calibration data
+    /// Reinserting the filament multiple times could give us better calibration data
     static constexpr auto round_count = 1;
     for (int i = 0; i < round_count; i++) {
+        if (i > 0) {
+            if (!ask_remove_filament()) {
+                return Result::aborted;
+            }
+        }
+
         /// Calibrate the nins phase
         calibrate(FilamentSensorCalibrator::CalibrationPhase::not_inserted);
 
@@ -162,11 +168,13 @@ SelftestFSensorsResult SelftestFSensors::run() {
 
         /// Calibrate the ins phase
         calibrate(FilamentSensorCalibrator::CalibrationPhase::inserted);
-
-        if (!ask_remove_filament()) {
-            return Result::aborted;
-        }
     }
+
+#if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
+    /// We should not leave the filament in the gears. Move back in the last round.
+    AutoRestore cold_extrude_guard { thermalManager.allow_cold_extrude, true };
+    mapi::extruder_move(-assisted_insertion_safe_distance_mm, extruder_assist_fast_feedrate);
+#endif
 
     fail_guard.disarm();
     return process_and_present_results();
