@@ -451,7 +451,7 @@ static void enable_phase_stepping(AxisEnum axis_num) {
     axis_state.missed_tx_cnt = 0;
     axis_state.enabled = true;
     axis_state.active = true;
-    axis_state.last_was_slow_down = true;
+    axis_state.is_slowed_down = true;
 
     auto enable_mask = PHASE_STEPPING_GENERATOR_X << axis_num;
     PreciseStepping::physical_axis_step_generator_types |= enable_mask;
@@ -716,7 +716,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             axis_state.is_cruising = (current_target->half_accel == 0) && (current_target->duration > 10'000);
             axis_state.is_moving = true;
             auto [end_speed, end_pos] = axis_position(axis_state, current_target->duration);
-            axis_state.last_was_slow_down = std::abs(end_speed) < 2; // if < 2 we slowed down
+            axis_state.is_slowed_down = std::abs(end_speed) < 2; // if < 2 we slowed down
             if (axis_state.stalled_for != 0) {
                 [[maybe_unused]] const auto res = debug_events_queue.enqueue(Stalled {
                     .timestamp = now,
@@ -736,10 +736,10 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             axis_state.is_moving = false;
 
             if (planner.draining()) {
-                axis_state.last_was_slow_down = true;
+                axis_state.is_slowed_down = true;
             }
 
-            if (axis_state.last_was_slow_down) {
+            if (axis_state.is_slowed_down) {
                 ++axis_state.stalled_for;
             }
 

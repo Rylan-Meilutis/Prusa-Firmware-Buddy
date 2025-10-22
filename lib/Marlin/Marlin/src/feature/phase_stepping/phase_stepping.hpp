@@ -184,7 +184,7 @@ struct AxisState {
     int original_microsteps = 0;
     bool had_interpolation = false;
 
-    bool last_was_slow_down = true;
+    bool is_slowed_down = true;
     unsigned stalled_for = 0;
     float previous_speed = 0.0f;
 };
