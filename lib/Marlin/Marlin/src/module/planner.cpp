@@ -944,7 +944,7 @@ void Planner::check_axes_activity() {
 
       raw.z += (
         #if ENABLED(AUTO_BED_LEVELING_UBL)
-          fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0
+          fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0f
         #endif
       );
 
@@ -965,7 +965,7 @@ void Planner::check_axes_activity() {
 
         raw.z -= (
           #if ENABLED(AUTO_BED_LEVELING_UBL)
-            fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0
+            fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0f
           #endif
         );
 

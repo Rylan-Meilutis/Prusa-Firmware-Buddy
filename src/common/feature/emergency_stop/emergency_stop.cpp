@@ -25,14 +25,14 @@ namespace {
     // we'll just schedule the stop, wait for the moves to get through Planner
     // and then park. Only if we travel in Z by more than this, we start doing
     // a bit more.
-    constexpr float allowed_mm = 2.0;
+    constexpr float allowed_mm = 2.0f;
 
     // If we travel even more before any of the above measures had a chance to
     // stop it, we do a BSOD as a last resort.
-    constexpr float extra_emergency_mm = 4.0;
+    constexpr float extra_emergency_mm = 4.0f;
 
     // Don't park below this position.
-    constexpr float min_park_z = 0.6;
+    constexpr float min_park_z = 0.6f;
 
     int32_t current_z() {
         return stepper.position_from_startup(Z_AXIS);

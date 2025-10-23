@@ -8,7 +8,7 @@ template <size_t ITERATIONS = 10>
 const xy_pos_t approximate_center(std::span<const xy_pos_t> points) {
     // Smallest distance / error to deal with
     // Should be safe to div by without precision loss
-    static constexpr float NOTHING_MM { 0.000001 };
+    static constexpr float NOTHING_MM { 0.000001f };
 
     // Guess center as centroid
     xy_pos_t center = { { { .x = 0, .y = 0 } } };

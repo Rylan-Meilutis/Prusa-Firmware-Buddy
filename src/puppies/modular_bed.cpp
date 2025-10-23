@@ -479,7 +479,7 @@ void ModularBed::update_gradients(uint16_t enabled_mask) {
 
 float ModularBed::get_heater_current() {
     Lock guard(mutex);
-    return (currents.value.A_measured + currents.value.B_measured) / 1000.0;
+    return (currents.value.A_measured + currents.value.B_measured) / 1000.0f;
 }
 
 uint16_t ModularBed::get_mcu_temperature() {

@@ -943,7 +943,7 @@
         // 200 step
         #define X_CURRENT 500 // (mA) RMS current. Multiply by 1.414 for peak current.
         #define X_MICROSTEPS 16 // 0..256
-        #define X_RSENSE 0.22
+        #define X_RSENSE 0.22f
         #define X_CHAIN_POS 0
     #endif
 
@@ -957,7 +957,7 @@
         // 200 step
         #define Y_CURRENT 500
         #define Y_MICROSTEPS 16
-        #define Y_RSENSE 0.22
+        #define Y_RSENSE 0.22f
         #define Y_CHAIN_POS 0
     #endif
 
@@ -970,7 +970,7 @@
     #if AXIS_IS_TMC(Z)
         #define Z_CURRENT 600
         #define Z_MICROSTEPS 16
-        #define Z_RSENSE 0.22
+        #define Z_RSENSE 0.22f
         #define Z_CHAIN_POS 0
     #endif
 
@@ -989,7 +989,7 @@
     #if AXIS_IS_TMC(E0)
         #define E0_CURRENT 450
         #define E0_MICROSTEPS 16
-        #define E0_RSENSE 0.22
+        #define E0_RSENSE 0.22f
         #define E0_CHAIN_POS 0
     #endif
 
@@ -1205,7 +1205,7 @@
             #define XY_HOMING_HOLDING_CURRENT 900      // mA: holding current for fixed motor
             #define XY_HOMING_ORIGIN_OFFSET 5.f        // mm: parallel distance from initial origin
             #define XY_HOMING_ORIGIN_BUMP_RETRIES 6    // count: maximum number of measurement attempts
-            #define XY_HOMING_ORIGIN_BUMP_MAX_ERR 0.15 // mm: max error between acceptable probes
+            #define XY_HOMING_ORIGIN_BUMP_MAX_ERR 0.15f // mm: max error between acceptable probes
         #endif
     #endif
 

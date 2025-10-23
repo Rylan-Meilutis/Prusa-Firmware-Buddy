@@ -96,6 +96,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #include <gcode/temperature/M104_M109.hpp>
 #include <config_store/store_instance.hpp>
 #include <marlin_vars.hpp>
+#include <numbers>
 
 #if HAS_AUTO_RETRACT()
   #include <feature/auto_retract/auto_retract.hpp>
@@ -487,11 +488,11 @@ static xy_pos_t offset_for_probe_try(int try_idx) {
   int idx_offset = 0;
 
   do {
-    float perimeter = 2 * radius * M_PI;
+    float perimeter = 2 * radius * std::numbers::pi_v<float>;
     int tries_within_perimeter = static_cast<int>(perimeter / distance) + 1;
     if (try_idx < idx_offset + tries_within_perimeter) {
       int try_within_perimeter = try_idx - idx_offset;
-      float goniom_dist = (static_cast<float>(try_within_perimeter) / static_cast<float>(tries_within_perimeter)) * 2 * M_PI;
+      float goniom_dist = (static_cast<float>(try_within_perimeter) / static_cast<float>(tries_within_perimeter)) * 2 * std::numbers::pi_v<float>;
       return {std::cos(goniom_dist) * radius, std::sin(goniom_dist) * radius};
     } else {
       idx_offset += tries_within_perimeter;
@@ -574,7 +575,7 @@ float run_z_probe(float expected_trigger_z, bool single_only, bool *endstop_trig
 
     // If the nozzle is well over the travel height then
     // move down quickly before doing the slow probe
-    const float z = expected_trigger_z + Z_CLEARANCE_DEPLOY_PROBE + 5.0 + (probe_offset.z < 0 ? -probe_offset.z : 0) - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
+    const float z = expected_trigger_z + Z_CLEARANCE_DEPLOY_PROBE + 5.0f + (probe_offset.z < 0 ? -probe_offset.z : 0) - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
     if (current_position.z > z) {
       // Probe down fast. If the probe never triggered, raise for probe clearance
       if (!do_probe_move(z, MMM_TO_MMS(Z_PROBE_SPEED_FAST))) {

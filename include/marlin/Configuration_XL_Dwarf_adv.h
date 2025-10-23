@@ -275,7 +275,7 @@
         if (axis_num >= 3) {
             return NAN;
         }
-        float arr[] = {-0.2, -0.2, -0.1};
+        float arr[] = {-0.2f, -0.2f, -0.1f};
         return arr[axis_num];
     }
 
@@ -283,7 +283,7 @@
         if (axis_num >= 3) {
             return NAN;
         }
-        float arr[] = { 0.2,  0.2,  0.1};
+        float arr[] = { 0.2f,  0.2f,  0.1f};
         return arr[axis_num];
     }
 
@@ -999,7 +999,7 @@
     #if AXIS_IS_TMC(E0)
         #define E0_CURRENT 400 //520
         #define E0_MICROSTEPS 16 //32
-        #define E0_RSENSE 0.22
+        #define E0_RSENSE 0.22f
         #define E0_CHAIN_POS 0
     #endif
 

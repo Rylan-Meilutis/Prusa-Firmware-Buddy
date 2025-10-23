@@ -74,10 +74,10 @@ ProbeAnalysisBase::Result ProbeAnalysisBase::Analyse() {
     }
     CalculateLoadMeans(features);
     CalculateLoadAngles(features);
-    features.r2_20ms = CalculateSegmentedR2s(features, 0.020);
-    features.r2_30ms = CalculateSegmentedR2s(features, 0.030);
-    features.r2_50ms = CalculateSegmentedR2s(features, 0.050);
-    features.r2_60ms = CalculateSegmentedR2s(features, 0.060);
+    features.r2_20ms = CalculateSegmentedR2s(features, 0.02f);
+    features.r2_30ms = CalculateSegmentedR2s(features, 0.03f);
+    features.r2_50ms = CalculateSegmentedR2s(features, 0.05f);
+    features.r2_60ms = CalculateSegmentedR2s(features, 0.06f);
 
 #ifdef PROBE_ANALYSIS_WITH_METRICS
     {

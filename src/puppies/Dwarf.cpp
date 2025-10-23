@@ -556,7 +556,7 @@ float Dwarf::get_24V() {
     // BFW-6219.
     // Lock guard(*mutex);
 
-    return RegisterGeneralStatus.value.system_24V_mV / 1000.0;
+    return RegisterGeneralStatus.value.system_24V_mV / 1000.0f;
 }
 
 float Dwarf::get_heater_current() {
@@ -565,7 +565,7 @@ float Dwarf::get_heater_current() {
     // BFW-6219.
     // Lock guard(*mutex);
 
-    return RegisterGeneralStatus.value.heater_current_mA / 1000.0;
+    return RegisterGeneralStatus.value.heater_current_mA / 1000.0f;
 }
 
 void Dwarf::set_heatbreak_target_temp(int16_t target) {

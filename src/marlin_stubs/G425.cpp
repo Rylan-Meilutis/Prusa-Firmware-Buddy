@@ -517,7 +517,7 @@ const std::optional<xyz_pos_t> get_single_xyz_center(const xyz_pos_t initial, co
     std::array<xy_pos_t, MAX_HITS> max_hits;
     std::span<xy_pos_t> hits(max_hits.begin(), PHASE_XY_HITS[std::to_underlying(phase)]);
     for (uint hit_no = 0; xy_pos_t & hit : hits) {
-        hit = probe_xy_verify(start, 2 * PI / hits.size() * hit_no++, PROBE_XY_UNCERTAIN_DIST_MM, tool, phase);
+        hit = probe_xy_verify(start, 2 * std::numbers::pi_v<float> / hits.size() * hit_no++, PROBE_XY_UNCERTAIN_DIST_MM, tool, phase);
     }
     xyz_pos_t center = approximate_center(hits);
     center.z = start.z;

@@ -329,7 +329,7 @@ static EnergyContainer signal_local_energy(SignalView signal, int window_size) {
 // Given a an annotation of signal, precisely locate markers in the signal.
 // Returns tuple of indices for start and end marker.
 static std::tuple<int, int> locate_signal_markers(const SamplesAnnotation &annot,
-    const SignalContainer &signal, float search_window = 0.1) {
+    const SignalContainer &signal, float search_window = 0.1f) {
     static const float ENERGY_WIN_S = 0.005f;
     int energy_win = annot.sampling_freq * ENERGY_WIN_S;
 
@@ -860,9 +860,9 @@ static float plan_no_movement_block(AxisEnum physical_axis, int direction, float
 
     // We fake no movement synchronous with planner via arbitrarily small speed.
     // We accelerate to this speed and then decelerate to zero.
-    static const float NO_MOVEMENT_SPEED = 0.1; // mm/s
+    constexpr float NO_MOVEMENT_SPEED = 0.1f; // mm/s
     float accel = 2 * NO_MOVEMENT_SPEED / duration;
-    float dist = direction * 2 * (0.5 * accel * duration * duration / 4); // Up and down
+    float dist = direction * 2 * (0.5f * accel * duration * duration / 4); // Up and down
 
     auto [d_x, d_y] = physical_to_logical(
         physical_axis == AxisEnum::X_AXIS ? dist : 0,

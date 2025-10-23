@@ -795,7 +795,7 @@
             { -50, 1500 / 60.F}, \
         }
 
-    #define PAUSE_PARK_RETRACT_FEEDRATE 10.8 // (mm/s) Initial retract feedrate.
+    #define PAUSE_PARK_RETRACT_FEEDRATE 10.8f // (mm/s) Initial retract feedrate.
     #define PAUSE_PARK_RETRACT_LENGTH 1 // (mm) Initial retract.
         // This short retract is done immediately, before parking the nozzle.
     #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 27 // (mm/s) Unload filament feedrate. This can be pretty fast.
@@ -804,7 +804,7 @@
         //   For Bowden, the full length of the tube and nozzle.
         //   For direct drive, the full length of the nozzle.
         //   Set to 0 for manual unloading.
-    #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 5.4 // (mm/s) Slow move when starting load.
+    #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 5.4f // (mm/s) Slow move when starting load.
     #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 30 // (mm) Slow length, to allow time to insert material. //60
         // 0 to disable start loading and skip to fast load only
     #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 18 // (mm/s) Load filament feedrate. This can be pretty fast. //40
@@ -812,7 +812,7 @@
     #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 50 // (mm) Load length of filament, from extruder gear to nozzle. //75
         //   For Bowden, the full length of the tube and nozzle.
         //   For direct drive, the full length of the nozzle.
-    #define ADVANCED_PAUSE_PURGE_FEEDRATE 2.7 // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
+    #define ADVANCED_PAUSE_PURGE_FEEDRATE 2.7f // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
     #define ADVANCED_PAUSE_PURGE_LENGTH 21 // (mm) Length to extrude after loading. //50
 #endif
 
@@ -932,7 +932,7 @@
     #if AXIS_IS_TMC(X)
         #define X_CURRENT 300 // (mA) RMS current.  MK3 motors
         #define X_MICROSTEPS 16 // 0..256
-        #define X_RSENSE 0.22
+        #define X_RSENSE 0.22f
         #define X_CHAIN_POS 0
     #endif
 
@@ -945,7 +945,7 @@
     #if AXIS_IS_TMC(Y)
         #define Y_CURRENT 370 // (mA) RMS current.  MK3 motors
         #define Y_MICROSTEPS 16
-        #define Y_RSENSE 0.22
+        #define Y_RSENSE 0.22f
         #define Y_CHAIN_POS 0
     #endif
 
@@ -958,7 +958,7 @@
     #if AXIS_IS_TMC(Z)
         #define Z_CURRENT 600
         #define Z_MICROSTEPS 16
-        #define Z_RSENSE 0.22
+        #define Z_RSENSE 0.22f
         #define Z_CHAIN_POS 0
     #endif
 
@@ -977,7 +977,7 @@
     #if AXIS_IS_TMC(E0)
         #define E0_CURRENT 490
         #define E0_MICROSTEPS 32
-        #define E0_RSENSE 0.22
+        #define E0_RSENSE 0.22f
         #define E0_CHAIN_POS 0
     #endif
 
