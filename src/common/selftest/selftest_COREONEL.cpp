@@ -21,7 +21,6 @@
 #include <common/timing.h>
 #include <config_store/store_instance.hpp>
 #include <guiconfig/wizard_config.hpp>
-#include <option/has_mmu2.h>
 
 #include <cstdarg>
 #include <fcntl.h>

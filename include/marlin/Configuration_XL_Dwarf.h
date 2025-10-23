@@ -139,16 +139,6 @@
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
 
-/**
- * Prusa Multi-Material Unit v2
- *
- * Requires EXTRUDERS = 5
- *
- * For additional configuration see Configuration_adv.h
- */
-//#define PRUSA_MMU2
-
-
 /* Prusa Dwarf
  *
  * - Counterpart to the PRUSA_TOOLCHANGER.

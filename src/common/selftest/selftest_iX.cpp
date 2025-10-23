@@ -30,7 +30,6 @@
 #include "selftest_result_type.hpp"
 #include "selftest_types.hpp"
 #include <config_store/store_instance.hpp>
-#include <option/has_mmu2.h>
 #include "i_selftest.hpp"
 
 using namespace selftest;

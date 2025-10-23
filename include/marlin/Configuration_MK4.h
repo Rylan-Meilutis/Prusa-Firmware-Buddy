@@ -153,17 +153,6 @@
 //#define SINGLENOZZLE
 
 /**
- * Prusa Multi-Material Unit v2
- *
- * Requires EXTRUDERS = 5
- *
- * For additional configuration see Configuration_adv.h
- */
-#if HAS_MMU2()
-#define MMU_MODEL PRUSA_MMU2S
-#endif
-
-/**
  * Tool mapping and spool join - adopted from XL's toolchange, reimplemented for MMU2
  */
 #if HAS_MMU2()

@@ -41,14 +41,6 @@ public:
     static uint8_t get_current_tool();
     static void set_filament_type(uint8_t index, uint8_t type);
 
-#if HAS_LCD_MENU && ENABLED(MMU2_MENUS)
-    static bool unload();
-    static void load_filament(uint8_t);
-    static void load_all();
-    static bool load_filament_to_nozzle(uint8_t index);
-    static bool eject_filament(uint8_t index, bool recover);
-#endif
-
 private:
     static bool rx_str_P(const char *str);
     static void tx_str_P(const char *str);
@@ -63,12 +55,6 @@ private:
     static void command(const uint8_t cmd);
     static bool get_response();
     static void manage_response(const bool move_axes, const bool turn_off_nozzle);
-
-#if HAS_LCD_MENU && ENABLED(MMU2_MENUS)
-    static void load_to_nozzle();
-    static void filament_ramming();
-    static void execute_extruder_sequence(const E_Step *sequence, int steps);
-#endif
 
     static void filament_runout();
 

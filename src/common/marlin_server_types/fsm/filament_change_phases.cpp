@@ -1,5 +1,7 @@
 #include "filament_change_phases.hpp"
 
+#include <option/has_mmu2.h>
+
 namespace ClientResponses {
 
 // declare 2d arrays of single buttons for radio buttons

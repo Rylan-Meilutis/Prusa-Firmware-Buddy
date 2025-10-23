@@ -9,6 +9,7 @@
     #include "screen_menu_tools.hpp"
 #endif
 #include "src/module/prusa/toolchanger.h"
+#include <option/has_mmu2.h>
 
 using ScreenMenuOdometer__ = ScreenMenu<EFooter::On, MI_RETURN, MI_ODOMETER_DIST_X, MI_ODOMETER_DIST_Y, MI_ODOMETER_DIST_Z, MI_ODOMETER_DIST_E,
 #if HAS_TOOLCHANGER()

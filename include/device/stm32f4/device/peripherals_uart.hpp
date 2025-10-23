@@ -3,7 +3,6 @@
 #include <device/hal.h>
 #include <hw/buffered_serial.hpp>
 #include <option/has_esp.h>
-#include <option/has_mmu2.h>
 #include <option/has_mmu2_over_uart.h>
 #include <option/has_puppies.h>
 #include <option/has_tmc_uart.h>

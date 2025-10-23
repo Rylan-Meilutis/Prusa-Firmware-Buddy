@@ -17,7 +17,7 @@
 
 LOG_COMPONENT_REF(Buddy);
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 #if HAS_TOOLCHANGER()
@@ -449,7 +449,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                 auto feature = cmd.get_string();
                 feature.trim();
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
                 if (MMU2::mmu2.Enabled() && compare(feature, "MMU3")) {
                     break;
                 }
@@ -490,7 +490,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
     }
 
     const auto visit_tool = [&](const auto &visitor) {
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
         // MMU-equipped printers have only one nozzle diameter for all tools/slots
         // Makes the pre-print screen hide the nozzle sizes, which is both good and bad at the same time
         // -> "?.??" is gone, but no actual diameter is shown anymore - that can be tweaked further on the visualization side.

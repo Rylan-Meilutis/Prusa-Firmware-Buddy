@@ -40,6 +40,8 @@
   #include "trinamic.h"
 #endif
 
+#include <option/has_mmu2.h>
+
 //
 // X, Y, Z Stepper enable / disable
 //
@@ -507,7 +509,7 @@
 /**
  * Extruder indirection for the single E axis
  */
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
   #define E_STEP_WRITE(E,V) E0_STEP_WRITE(V)
   #define   NORM_E_DIR(E)   E0_DIR_WRITE(!INVERT_E0_DIR)
   #define    REV_E_DIR(E)   E0_DIR_WRITE( INVERT_E0_DIR)

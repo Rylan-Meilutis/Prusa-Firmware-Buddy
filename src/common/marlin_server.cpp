@@ -65,7 +65,8 @@
 #include "utility_extensions.hpp"
 #include <common/gcode/gcode_info_scan.hpp>
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
     #include "../Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
@@ -92,7 +93,6 @@
 #include <option/has_gui.h>
 #include <option/has_toolchanger.h>
 #include <option/has_selftest.h>
-#include <option/has_mmu2.h>
 #include <option/has_dwarf.h>
 #include <option/has_remote_bed.h>
 #include <option/has_modular_bed.h>
@@ -717,7 +717,7 @@ void handle_nfc() {
 
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 /// Helper function that enqueues gcodes to safely unload filament from nozzle back to mmu
 ///
 /// To safely unload a filament we need to ensure that the nozzle has correct temperature.
@@ -918,7 +918,7 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     }
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     if (MMU2::mmu2.Enabled()) {
         // Unloading from nozzle is handled by Slicer, do not use auto_retract (frequent filament changes cause retract_tracker cannot properly hold valid value)
         // When we are running single-filament gcode with MMU, we should unload current filament.
@@ -926,7 +926,7 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
             safely_unload_filament_from_nozzle_to_mmu();
         }
     } else
-#endif // ENABLED(PRUSA_MMU2)
+#endif
 
 #if HAS_AUTO_RETRACT()
         if (true) {

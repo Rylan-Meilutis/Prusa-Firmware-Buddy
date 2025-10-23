@@ -16,7 +16,9 @@
 #include "Marlin/src/module/stepper.h"
 #include "Marlin/src/module/printcounter.h"
 #include "Marlin/src/module/temperature.h"
-#if ENABLED(PRUSA_MMU2)
+
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
@@ -52,7 +54,6 @@
 #include <feature/safety_timer/safety_timer.hpp>
 
 #include <option/has_human_interactions.h>
-#include <option/has_mmu2.h>
 #include <option/has_wastebin.h>
 #include <option/has_side_fsensor.h>
 

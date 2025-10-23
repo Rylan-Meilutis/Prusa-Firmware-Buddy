@@ -16,6 +16,7 @@
 #include <option/developer_mode.h>
 #include "printers.h"
 #include <Marlin/src/module/motion.h>
+#include <option/has_mmu2.h>
 #include <option/has_gui.h>
 #if HAS_GUI()
     #include "screen_menu_filament_changeall.hpp"

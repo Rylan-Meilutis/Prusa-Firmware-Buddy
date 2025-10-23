@@ -4,6 +4,7 @@
 #include <led_animation_controller/frame_animation.hpp>
 #include "marlin_vars.hpp"
 #include <fsm/filament_change_phases.hpp>
+#include <option/has_mmu2.h>
 #include <option/has_side_fsensor.h>
 
 namespace leds {

@@ -5,6 +5,7 @@
 #include <module/prusa/spool_join.hpp>
 #include <mmu2_toolchanger_common.hpp>
 #include <print_utils.hpp>
+#include <option/has_mmu2.h>
 
 /**
  * @brief Provides helper functions. Expects valid gcode loaded

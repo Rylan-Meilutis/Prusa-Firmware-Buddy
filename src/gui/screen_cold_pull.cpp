@@ -9,6 +9,7 @@
     #include <window_tool_action_box.hpp>
 #endif
 
+#include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
 #endif

@@ -1,5 +1,7 @@
 #include "mmu2_mk4.h"
 
+#include <option/has_mmu2.h>
+
 #ifndef UNITTEST
     #include "../../Marlin/src/core/macros.h"
     #include "../../Marlin/src/core/types.h"
@@ -126,13 +128,13 @@ void WaitForHotendTargetTempBeep() {
     MakeSound(Prompt);
 }
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 MMU2 mmu2;
 #endif
 
 MMU2::MMU2()
     : logic(
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     #if HAS_MMU2_OVER_UART()
         &mmu2Serial
     #else
@@ -156,7 +158,7 @@ MMU2::MMU2()
     , tmcFailures(0) {
 }
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 void MMU2::Start() {
     mmu2Serial.begin();
 

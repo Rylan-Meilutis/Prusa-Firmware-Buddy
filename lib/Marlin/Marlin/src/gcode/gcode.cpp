@@ -58,6 +58,7 @@ GcodeSuite gcode;
   #include "module/prusa/tool_mapper.hpp"
 #endif
 
+#include <option/has_mmu2.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
 #include <option/has_modular_bed.h>
@@ -559,7 +560,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 402: M402(); break;                                  // M402: Stow probe
       #endif
 
-      #if ENABLED(PRUSA_MMU2)
+      #if HAS_MMU2()
         case 403: M403(); break;
       #endif
 

@@ -6,6 +6,7 @@
 #include "img_resources.hpp"
 #include <numeric_input_config_common.hpp>
 #include <utils/string_builder.hpp>
+#include <option/has_mmu2.h>
 
 #if ENABLED(PRUSA_TOOLCHANGER)
     #include "module/prusa/toolchanger.h"

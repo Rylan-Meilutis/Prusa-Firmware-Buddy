@@ -3,7 +3,6 @@
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
 #include <option/has_adc_side_fsensor.h>
-#include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_config_store_wo_backend.h>
 #include <option/has_touch.h>

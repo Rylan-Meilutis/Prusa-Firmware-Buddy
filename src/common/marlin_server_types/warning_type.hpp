@@ -10,6 +10,7 @@
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_bed_fan.h>
 #include <option/has_psu_fan.h>
+#include <option/has_mmu2.h>
 
 enum class WarningType : uint32_t {
 #if HAS_EMERGENCY_STOP()

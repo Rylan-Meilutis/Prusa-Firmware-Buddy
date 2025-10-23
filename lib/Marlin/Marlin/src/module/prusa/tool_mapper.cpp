@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <iterator>
 #include <mutex>
+#include <option/has_mmu2.h>
 
 #if ENABLED(PRUSA_TOOL_MAPPING)
 

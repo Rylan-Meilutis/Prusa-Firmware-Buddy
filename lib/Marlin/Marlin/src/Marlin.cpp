@@ -126,7 +126,8 @@
   #include "feature/caselight.h"
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
   #include "feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
@@ -438,7 +439,7 @@ void idle(bool waiting) {
     }
   #endif
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     MMU2::mmu2.mmu_loop();
   #endif
 

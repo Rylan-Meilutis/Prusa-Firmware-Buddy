@@ -33,10 +33,6 @@
   #include "../../../module/tool_change.h"
 #endif
 
-#if ENABLED(MMU2_MENUS)
-  #include "../../../lcd/menu/menu_mmu2.h"
-#endif
-
 /*
  * M600: Pause for filament change
  *
@@ -89,12 +85,6 @@ void GcodeSuite::M600() {
     park_point += hotend_offset[active_extruder];
   #endif
 
-  #if ENABLED(MMU2_MENUS)
-    // For MMU2 reset retract and load/unload values so they don't mess with MMU filament handling
-    constexpr float unload_length = 0.5f,
-                    slow_load_length = 0.0f,
-                    fast_load_length = 0.0f;
-  #else
     // Unload filament
     const float unload_length = -ABS(parser.seen('U') ? parser.value_axis_units(E_AXIS)
                                                       : fc_settings[active_extruder].unload_length);
@@ -105,8 +95,6 @@ void GcodeSuite::M600() {
     // Fast load filament
     const float fast_load_length = ABS(parser.seen('L') ? parser.value_axis_units(E_AXIS)
                                                         : fc_settings[active_extruder].load_length);
-  #endif
-
   const int beep_count = parser.intval('B',
     #ifdef FILAMENT_CHANGE_ALERT_BEEPS
       FILAMENT_CHANGE_ALERT_BEEPS
@@ -116,13 +104,8 @@ void GcodeSuite::M600() {
   );
 
   if (pause_print(retract, park_point, unload_length, true DXC_PASS)) {
-    #if ENABLED(MMU2_MENUS)
-      mmu2_M600();
-      resume_print(slow_load_length, fast_load_length, 0, beep_count DXC_PASS);
-    #else
       wait_for_confirmation(true, beep_count DXC_PASS);
       resume_print(slow_load_length, fast_load_length, ADVANCED_PAUSE_PURGE_LENGTH, beep_count DXC_PASS);
-    #endif
   }
 
   #if EXTRUDERS > 1

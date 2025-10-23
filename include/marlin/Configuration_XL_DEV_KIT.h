@@ -149,16 +149,6 @@
 //#define SINGLENOZZLE
 
 /**
- * Prusa Multi-Material Unit v2
- *
- * Requires EXTRUDERS = 5
- *
- * For additional configuration see Configuration_adv.h
- */
-//#define PRUSA_MMU2
-
-
-/**
  * Prusa Toolchanger
  *
  *  Multiple semi-independent extruders.

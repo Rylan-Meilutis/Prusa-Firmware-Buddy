@@ -47,6 +47,7 @@
 #include <power_panic.hpp>
 #include <logging/log_dest_file.hpp>
 #include <numeric_input_config_common.hpp>
+#include <option/has_mmu2.h>
 
 #include <type_traits>
 

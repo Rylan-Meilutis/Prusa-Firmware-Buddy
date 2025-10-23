@@ -25,6 +25,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_planner.h>
+#include <option/has_mmu2.h>
 
 /**
  * SanityCheck.h
@@ -1589,11 +1590,9 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
 /**
  * Prusa MMU2 requirements
  */
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
   #if EXTRUDERS != 5
-    #error "PRUSA_MMU2 requires EXTRUDERS = 5."
-  #elif DISABLED(ADVANCED_PAUSE_FEATURE)
-    static_assert(nullptr == strstr(MMU2_FILAMENT_RUNOUT_SCRIPT, "M600"), "ADVANCED_PAUSE_FEATURE is required to use M600 with PRUSA_MMU2.");
+    #error "HAS_MMU2() requires EXTRUDERS = 5."
   #endif
 #endif
 

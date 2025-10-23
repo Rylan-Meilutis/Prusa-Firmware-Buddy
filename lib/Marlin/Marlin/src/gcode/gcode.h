@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <option/has_mmu2.h>
+
 /**
  * gcode.h - Temporary container for all gcode handlers
  */
@@ -671,7 +673,7 @@ private:
     static void M402();
   #endif
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     static void M403();
   #endif
 

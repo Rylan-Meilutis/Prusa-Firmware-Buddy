@@ -6,8 +6,6 @@
  */
 #pragma once
 
-#include <option/has_mmu2.h>
-
 typedef enum {
     stsIdle,
     stsStart,

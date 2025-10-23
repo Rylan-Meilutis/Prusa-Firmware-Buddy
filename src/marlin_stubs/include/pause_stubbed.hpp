@@ -16,6 +16,7 @@
 #include <fsm/filament_change_phases.hpp>
 
 #include <option/has_human_interactions.h>
+#include <option/has_mmu2.h>
 #include <option/has_nozzle_cleaner.h>
 #include <option/has_side_fsensor.h>
 

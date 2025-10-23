@@ -6,6 +6,7 @@
 #include <img_resources.hpp>
 #include "mmu2_toolchanger_common.hpp"
 #include "print_time_module.hpp"
+#include <option/has_mmu2.h>
 
 namespace {
 constexpr const char *txt_print_started { N_("Print started") };
