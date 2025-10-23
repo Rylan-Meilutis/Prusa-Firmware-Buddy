@@ -20,6 +20,7 @@ namespace {
     static constexpr auto X_RIGHT_OF_LEVER = 50.f; ///< An X-axis position to the right of the lever.
     static constexpr auto X_SWITCH_OFF = 35.f; ///< The X-axis position to move to on Y_LEVER to close the vents.
     static constexpr auto X_SWITCH_ON = 42.f; ///< The X-axis position to move to on Y_LEVER to open the vents.
+    static constexpr auto lever_move_feedrate = feedRate_t(17.0f);
 #else
     #error
 #endif
@@ -69,7 +70,7 @@ namespace {
         // Move into the lever's Y-axis line.
         plan_to_y(Y_LEVER);
         // Move horizontally to engage the lever and switch it.
-        plan_to_x(wanted_state == VentState::open ? X_SWITCH_ON : X_SWITCH_OFF);
+        plan_to_x(wanted_state == VentState::open ? X_SWITCH_ON : X_SWITCH_OFF, lever_move_feedrate);
         // Back out to the safe Y-axis position to avoid a collision on future moves.
         plan_to_y(Y_SAFE);
     }
