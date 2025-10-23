@@ -63,7 +63,7 @@ set(unused "${CMAKE_VERBOSE_MAKEFILE} ${CMAKE_RULE_MESSAGES}")
 set(CMAKE_CXX_STANDARD 23)
 
 # enable all warnings (well, not all, but some)
-add_compile_options(-Wall -Wsign-compare)
+add_compile_options(-Wall -Wsign-compare -Wfloat-conversion)
 
 # make all paths stored inside firmware relative
 add_compile_options(-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.)
