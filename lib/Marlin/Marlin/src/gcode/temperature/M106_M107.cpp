@@ -22,6 +22,7 @@
 
 #include "../../inc/MarlinConfig.h"
 
+#include <option/has_toolchanger.h>
 #include <option/has_bed_fan.h>
 #if HAS_BED_FAN()
     #include <feature/bed_fan/controller.hpp>
@@ -44,7 +45,7 @@
     #if ENABLED(SINGLENOZZLE)
         #define _ALT_P active_extruder
         #define _CNT_P EXTRUDERS
-    #elif ENABLED(PRUSA_TOOLCHANGER)
+    #elif HAS_TOOLCHANGER()
         #define _ALT_P 0
         #define _CNT_P FAN_COUNT
     #else
@@ -77,7 +78,7 @@ static bool set_special_fan_speed(uint8_t fan, int8_t tool, uint8_t speed, bool 
             }
         }
         return true; // Eat this G-code, heatbreak fan is not controlled by Marlin
-    #endif /* HAS_TOOLCHANGER() */
+    #endif
 
     #if XL_ENCLOSURE_SUPPORT()
     case 3:

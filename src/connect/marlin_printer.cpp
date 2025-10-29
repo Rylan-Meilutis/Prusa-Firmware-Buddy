@@ -56,6 +56,7 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
 
 #include <config_store/store_instance.hpp>
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>

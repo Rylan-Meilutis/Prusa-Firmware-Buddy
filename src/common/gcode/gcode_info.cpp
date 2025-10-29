@@ -20,9 +20,11 @@ LOG_COMPONENT_REF(Buddy);
 #if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
+
+#include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include <config_store/store_instance.hpp>
 

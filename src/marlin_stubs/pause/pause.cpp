@@ -57,6 +57,7 @@
 #include <option/has_human_interactions.h>
 #include <option/has_wastebin.h>
 #include <option/has_side_fsensor.h>
+#include <option/has_toolchanger.h>
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -1195,7 +1196,7 @@ bool Pause::tool_change([[maybe_unused]] uint8_t target_extruder, [[maybe_unused
         // Change tool, don't lift or return Z as it was done by parking
         return prusa_toolchanger.tool_change(target_extruder, tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return true;
 }

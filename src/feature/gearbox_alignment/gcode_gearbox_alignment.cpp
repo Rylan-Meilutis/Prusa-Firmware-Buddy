@@ -11,6 +11,7 @@
 #include <Marlin/src/module/temperature.h>
 #include <Marlin/src/gcode/gcode.h>
 #include <mapi/cold_extrude.hpp>
+#include <option/has_toolchanger.h>
 
 namespace {
 class GearboxAlignmentWizard {

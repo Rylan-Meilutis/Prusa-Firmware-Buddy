@@ -11,8 +11,8 @@
     #include <module/prusa/toolchanger.h>
     #if HAS_SIDE_FSENSOR()
         #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif /*HAS_SIDE_FSENSOR()*/
-#endif /*HAS_TOOLCHANGER()*/
+    #endif
+#endif
 
 static constexpr const char *hw_check_items[] = {
     N_("None"),
@@ -59,7 +59,7 @@ void MI_SIDE_FSENSOR_REMAP::OnChange([[maybe_unused]] size_t old_index) {
         set_value(side_fsensor_remap::is_remapped());
     }
 }
-#endif /*HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()*/
+#endif
 
 #if HAS_EXTENDED_PRINTER_TYPE()
 MI_EXTENDED_PRINTER_TYPE::MI_EXTENDED_PRINTER_TYPE()

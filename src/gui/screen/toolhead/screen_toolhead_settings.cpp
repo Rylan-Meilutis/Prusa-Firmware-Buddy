@@ -7,6 +7,7 @@
 #include <gcode/queue.h>
 #include <module/planner.h>
 #include <utils/string_builder.hpp>
+#include <option/has_toolchanger.h>
 
 #include "screen_toolhead_settings_fs.hpp"
 #include "screen_toolhead_settings_dock.hpp"

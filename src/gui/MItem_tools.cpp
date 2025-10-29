@@ -51,7 +51,8 @@
 
 #include <type_traits>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "../../../lib/Marlin/Marlin/src/module/prusa/toolchanger.h"
     #include "screen_menu_tools.hpp"
     #include <window_tool_action_box.hpp>
@@ -854,7 +855,7 @@ void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
 }
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
 /**********************************************************************************************/
 // MI_TOOL_LEDS_ENABLE
 MI_TOOL_LEDS_ENABLE::MI_TOOL_LEDS_ENABLE()
@@ -879,7 +880,7 @@ void MI_TRIGGER_POWER_PANIC::click([[maybe_unused]] IWindowMenu &windowMenu) {
 }
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
 /*****************************************************************************/
 MI_PICK_PARK_TOOL::MI_PICK_PARK_TOOL()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {

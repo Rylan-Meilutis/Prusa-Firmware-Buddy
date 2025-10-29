@@ -43,6 +43,7 @@
 
 #include <option/has_esp.h>
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 #if PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_MINI()
     #include <screen_menu_bed_level_correction.hpp>

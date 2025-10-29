@@ -27,7 +27,6 @@
 #include <option/has_mmu2.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
-#include <option/has_toolchanger.h>
 
 // clang-format off
 
@@ -159,18 +158,6 @@
 #define PRUSA_SPOOL_JOIN
 #endif
 
-
-/**
- * Prusa Toolchanger
- *
- *  Multiple semi-independent extruders.
- *  Connected by shared bus and shared step/dir.
- *  Stepping done by marlin.
- *  PID and fan controll done by extruder.
- */
-#if HAS_TOOLCHANGER()
-    #define PRUSA_TOOLCHANGER
-#endif
 
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).

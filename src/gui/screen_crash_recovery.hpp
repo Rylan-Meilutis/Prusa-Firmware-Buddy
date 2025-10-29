@@ -6,6 +6,7 @@
 #include <common/fsm_base_types.hpp>
 #include "window_wizard_icon.hpp"
 #include "radio_button.hpp"
+#include <option/has_toolchanger.h>
 
 class ScreenCrashRecovery;
 

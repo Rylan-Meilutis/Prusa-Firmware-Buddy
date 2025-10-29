@@ -38,7 +38,8 @@
   #include "../../feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include "../../module/prusa/toolchanger.h"
 #endif
 
@@ -115,7 +116,7 @@ void GcodeSuite::T(uint8_t tool_index) {
     // S1 was provided => do not return
     int move_type = !parser.seen('S') ? 0 : parser.intval('S', 1);
     if (move_type >= 1) return_type = tool_return_t::no_return;
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
     // toolchange to or from no tool is no_return, but if user provided X, Y or Z, return to that position
     if (((tool_index == PrusaToolChanger::MARLIN_NO_TOOL_PICKED || active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED)) && destination == current_position) {
     return_type = tool_return_t::no_return;

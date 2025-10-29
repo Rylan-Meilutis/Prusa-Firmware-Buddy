@@ -169,7 +169,7 @@ void M600_manual(const GCodeParser2 &p) {
         park_point.y = LOGICAL_TO_NATIVE(park_point.y, Y_AXIS);
     }
 
-#if HAS_HOTEND_OFFSET && DISABLED(PRUSA_TOOLCHANGER)
+#if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
     park_point += hotend_offset[active_extruder];
 #endif
 

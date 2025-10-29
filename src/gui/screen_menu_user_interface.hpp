@@ -10,7 +10,6 @@
 #include "MItem_menus.hpp"
 #include "printers.h"
 #include <option/has_side_leds.h>
-#include <option/has_toolchanger.h>
 #include <option/has_leds.h>
 #include <option/has_touch.h>
 #include <option/xbuddy_extension_variant.h>

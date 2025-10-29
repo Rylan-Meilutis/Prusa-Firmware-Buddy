@@ -4,6 +4,7 @@
 #include "../../Marlin/src/module/temperature.h"
 #include "selftest_heater.h"
 #include <option/has_remote_bed.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_REMOTE_BED()
     #include <feature/remote_bed/remote_bed.hpp>

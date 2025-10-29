@@ -7,6 +7,7 @@
 
 #include <config_store/store_definition.hpp>
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 #include <gui/menu_item/menu_item_select_menu.hpp>
 
 #if HAS_MMU2()

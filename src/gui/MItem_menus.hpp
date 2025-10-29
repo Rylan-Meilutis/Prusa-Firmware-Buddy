@@ -2,7 +2,6 @@
 
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
-#include <option/has_toolchanger.h>
 #include <option/has_side_leds.h>
 #include <option/has_filament_sensors_menu.h>
 #include <option/has_leds.h>

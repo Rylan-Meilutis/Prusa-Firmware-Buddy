@@ -75,7 +75,8 @@
   #include "../../feature/spindle_laser.h"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include <module/prusa/toolchanger.h>
 #endif
 
@@ -209,7 +210,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
 
       if (DEBUGGING(LEVELING)) DEBUG_POS("home_z_safely", dest_pos);
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
       do_blocking_move_to_xy(dest_pos, PrusaToolChanger::limit_stealth_feedrate(XY_PROBE_FEEDRATE_MM_S));
 #elif HAS_NOZZLE_CLEANER()
     // with nozzle cleaner (iX), move in Y first to avoid going over the cleaner
@@ -640,8 +641,8 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
     }
   #endif
 
-  // Always home with tool 0 active (but not with PRUSA_TOOLCHANGER)
-  #if HAS_MULTI_HOTEND && DISABLED(PRUSA_TOOLCHANGER)
+  // Always home with tool 0 active (but not with HAS_TOOLCHANGER())
+  #if HAS_MULTI_HOTEND && !HAS_TOOLCHANGER()
     const uint8_t old_tool_index = active_extruder;
     tool_change(0, tool_return_t::no_return);
   #endif
@@ -713,7 +714,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   void (*reenable_wt_Y)(AxisEnum) = NULL;
 #endif
 
-  #if ENABLED(PRUSA_TOOLCHANGER)
+  #if HAS_TOOLCHANGER()
   if (!failed && should_home_at_all(X_AXIS) && should_home_at_all(Y_AXIS)) {
     // Bump right edge to align toolchanger locking plates
     if (!prusa_toolchanger.align_locks()) {
@@ -727,7 +728,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   if (!failed && (axes_need_homing(_BV(X_AXIS)) || current_position.x > X_MAX_POS - MOVE_BACK_BEFORE_HOMING_DISTANCE)) {
     do_homing_move(X_AXIS, -1 * MOVE_BACK_BEFORE_HOMING_DISTANCE); // Move a bit left to avoid unlocking the tool
   }
-  #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+  #endif
 
   // Home Y (before X)
   if (ENABLED(HOME_Y_BEFORE_X) && !failed && should_home_to_level(Y_AXIS, AxisHomeLevel::imprecise)) {
@@ -750,7 +751,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   #if HAS_PRECISE_HOMING_COREXY()
     // absolute refinement requires both axes to be already probed
     if (!failed && (should_home_to_level(X_AXIS, AxisHomeLevel::full) || should_home_to_level(Y_AXIS, AxisHomeLevel::full))) {
-      #if DISABLED(PRUSA_TOOLCHANGER)
+      #if !HAS_TOOLCHANGER()
         // skip refinement without data if we're not allowed to calibrate
         const bool do_refine = (corexy_home_is_calibrated() || flags.can_calibrate || flags.force_calibrate);
       #else
@@ -773,7 +774,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
         stepper.set_separate_multi_axis(false);
       #endif
 
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
       if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         // When no tool is picked, make sure to pick one
         failed = !prusa_toolchanger.tool_change(0, tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
@@ -885,7 +886,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   TERN_(CAN_SET_LEVELING_AFTER_G28, if (leveling_restore_state) set_bed_leveling_enabled());
 
   // Restore the active tool after homing
-  #if HAS_MULTI_HOTEND && DISABLED(PRUSA_TOOLCHANGER)
+  #if HAS_MULTI_HOTEND && !HAS_TOOLCHANGER()
     tool_change(old_tool_index, true);   // Do move if one of these
   #endif
 

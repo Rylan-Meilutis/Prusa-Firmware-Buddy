@@ -10,7 +10,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /* HAS_TOOLCHANGER() */
+#endif
 
 #include <option/has_sheet_profiles.h>
 #if HAS_SHEET_PROFILES()
@@ -55,7 +55,7 @@ bool is_selftest_successfully_completed() {
             }
         }
 
-#endif /* HAS_TOOLCHANGER() */
+#endif
 
 #if HAS_SWITCHED_FAN_TEST()
         if (sr.tools[e].fansSwitched != TestResult_Passed) {

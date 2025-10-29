@@ -1,7 +1,8 @@
 #pragma once
 #include <inc/MarlinConfigPre.h>
+#include <option/has_toolchanger.h>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include "toolchanger_utils.h"
     #include "bsod.h"
 
@@ -223,4 +224,4 @@ private:
 
 extern PrusaToolChanger prusa_toolchanger;
 
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif

@@ -8,7 +8,8 @@
 #include <utils/string_builder.hpp>
 #include <option/has_mmu2.h>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
 #endif
 #if HAS_MMU2()
@@ -18,7 +19,7 @@
 /*****************************************************************************/
 // MI_NOZZLE_ABSTRACT
 is_hidden_t MI_NOZZLE_ABSTRACT::is_hidden([[maybe_unused]] uint8_t tool_nr) {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     return prusa_toolchanger.is_tool_enabled(tool_nr) ? is_hidden_t::no : is_hidden_t::yes;
 #else
     return is_hidden_t::no;
@@ -27,7 +28,7 @@ is_hidden_t MI_NOZZLE_ABSTRACT::is_hidden([[maybe_unused]] uint8_t tool_nr) {
 
 MI_NOZZLE_ABSTRACT::MI_NOZZLE_ABSTRACT(uint8_t tool_nr, [[maybe_unused]] const char *label)
     : WiSpin(uint16_t(marlin_vars().hotend(tool_nr).target_nozzle), numeric_input_config::nozzle_temperature,
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         prusa_toolchanger.is_toolchanger_enabled() ? _(label) : _(generic_label),
 #else
         _(generic_label),
@@ -147,7 +148,7 @@ MI_FLOWFACT_ABSTRACT::MI_FLOWFACT_ABSTRACT(uint8_t tool_nr, [[maybe_unused]] con
         MMU2::mmu2.Enabled() ? _(label) : _(generic_label),
 #else
         _(generic_label),
-#endif /*TOOLCHANGER or MMU2*/
+#endif
         nullptr, is_enabled_t::yes, is_hidden(tool_nr))
     , tool_nr(tool_nr) {
 }

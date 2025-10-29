@@ -16,7 +16,7 @@
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include "marlin_server.hpp"
 
@@ -208,7 +208,7 @@ static void atomic_finish() {
         // Continue with toolcrash recovery
         marlin_server::powerpanic_finish_toolcrash();
     } else
-#endif /* HAS_TOOLCHANGER() */
+#endif
     {
         if (state_buf.planner.was_paused) {
             marlin_server::powerpanic_finish_pause();
@@ -362,7 +362,7 @@ void resume_loop() {
             break; // Skip lift and rehome
             // Will continue with toolcrash recovery
         }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         if (state_buf.crash.recover_flags & Crash_s::RECOVER_AXIS_STATE) {
             // lift and rehome
@@ -720,7 +720,7 @@ void panic_loop() {
         state_buf.toolchanger.precrash_tool = prusa_toolchanger.get_precrash().tool_nr;
         state_buf.toolchanger.return_type = prusa_toolchanger.get_precrash().return_type;
         state_buf.toolchanger.return_pos = prusa_toolchanger.get_precrash().return_pos;
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         log_info(PowerPanic, "powerpanic saving");
         if (runtime_state.orig_state != PPState::Prepared) {
@@ -756,7 +756,7 @@ void panic_loop() {
             if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL) { // Is in the toolchange area
                 // Do not move X or Y
             } else
-#endif /*HAS_TOOLCHANGER()*/
+#endif
             {
                 if (runtime_state.orig_axes_home_level.is_homed(test_axes, AxisHomeLevel::imprecise)) {
                     // axis position is currently known, move to the closest endpoint
@@ -893,7 +893,7 @@ void ac_fault_isr() {
             state_buf.crash.start_current_position = prusa_toolchanger.get_precrash().return_pos;
             toNative(state_buf.crash.start_current_position); // return_pos is in logical coordinates, needs to be modified in place
         } else
-#endif /*HAS_TOOLCHANGER()*/
+#endif
         {
             state_buf.crash.start_current_position = crash_s.start_current_position;
         }
@@ -963,7 +963,7 @@ void ac_fault_isr() {
 #if HAS_TOOLCHANGER()
         // Restore planner config if it was changed by toolchange
         prusa_toolchanger.try_restore();
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         state_buf.planner.settings = planner.user_settings;
 

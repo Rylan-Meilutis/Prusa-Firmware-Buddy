@@ -2,7 +2,8 @@
 #include "module/planner.h"
 #include "module/tool_change.h"
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "Marlin/src/module/stepper.h"
     #include "Marlin/src/module/motion.h"
     #include "Marlin/src/feature/bedlevel/bedlevel.h"
@@ -834,4 +835,4 @@ void PrusaToolChanger::unpark_to(const xy_pos_t &destination) {
     conf_restorer.restore_jerk();
 }
 
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif

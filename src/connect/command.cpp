@@ -5,6 +5,7 @@
 
 #include <general_response.hpp>
 #include <module/prusa/tool_mapper.hpp>
+#include <option/has_toolchanger.h>
 #include <netif_settings.h>
 #include <str_utils.hpp>
 

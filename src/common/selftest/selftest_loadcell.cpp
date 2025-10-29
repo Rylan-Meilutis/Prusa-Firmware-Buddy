@@ -22,7 +22,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 LOG_COMPONENT_REF(Selftest);
 using namespace selftest;
@@ -108,7 +108,7 @@ LoopResult CSelftestPart_Loadcell::stateCooldownInit() {
             }
             // else we would have to home near user which defeats the purpose of hiding the nozzle
         }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
         IPartHandler::SetFsmPhase(PhasesSelftest::Loadcell_cooldown);
         log_info(Selftest, "%s cooling needed, target: %d current: %f", rConfig.partname,
             static_cast<int>(rConfig.cool_temp), static_cast<double>(temp));

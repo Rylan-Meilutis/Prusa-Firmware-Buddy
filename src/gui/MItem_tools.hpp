@@ -20,6 +20,7 @@
 #include <option/buddy_enable_connect.h>
 #include <option/has_belt_tuning.h>
 #include <option/has_auto_retract.h>
+#include <option/has_toolchanger.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
 
@@ -570,7 +571,7 @@ public:
     MI_TOOL_LEDS_ENABLE();
     virtual void OnChange(size_t old_index) override;
 };
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #if ENABLED(POWER_PANIC)
 class MI_TRIGGER_POWER_PANIC : public IWindowMenuItem {

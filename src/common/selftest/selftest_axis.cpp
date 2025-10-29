@@ -20,7 +20,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 using namespace selftest;
 LOG_COMPONENT_REF(Selftest);

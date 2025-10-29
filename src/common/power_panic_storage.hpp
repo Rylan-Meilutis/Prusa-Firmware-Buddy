@@ -7,7 +7,7 @@
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include "marlin_server.hpp"
 
@@ -145,7 +145,7 @@ struct state_toolchanger_t {
     uint8_t precrash_tool; ///< Tool wanted to be picked before panic
     tool_return_t return_type : 8; ///< Where to return after recovery
     uint32_t : 16; ///< Padding to keep the structure size aligned to 32 bit
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 };
 
 #pragma GCC diagnostic pop

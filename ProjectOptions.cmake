@@ -403,7 +403,7 @@ define_enum_option(
 # MK4 technically doesn't have door sensor but needs to check valid FW-HW
 set_feature_for_printers_master_board(HAS_DOOR_SENSOR "COREONE" "COREONEL" "MK4")
 
-set_feature_for_printers(HAS_TOOLCHANGER "XL" "XL_DEV_KIT")
+set_feature_for_printers_master_board(HAS_TOOLCHANGER "XL" "XL_DEV_KIT")
 set_feature_for_printers(HAS_SIDE_FSENSOR "iX" "XL" "COREONE" "COREONEL")
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
 set_feature_for_printers(HAS_FILAMENT_SENSORS_MENU "XL" "COREONE" "COREONEL")

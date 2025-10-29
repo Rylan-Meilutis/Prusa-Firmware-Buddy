@@ -58,7 +58,7 @@ Endstops::esbits_t Endstops::live_state = 0;
   std::atomic<bool> Endstops::z_probe_enabled { false };
 #endif
 
-#ifdef PRUSA_TOOLCHANGER
+#if HAS_TOOLCHANGER()
   std::atomic<bool> Endstops::xy_probe_enabled { false };
 #endif
 
@@ -312,7 +312,7 @@ void Endstops::not_homing() {
 #endif
 
 // Enable / disable endstop xy-probe checking
-#ifdef PRUSA_TOOLCHANGER
+#if HAS_TOOLCHANGER()
   void Endstops::enable_xy_probe(const bool onoff) {
     xy_probe_enabled = onoff;
     resync();

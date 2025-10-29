@@ -5,6 +5,7 @@
 #include "fonts.hpp"
 #include "utility_extensions.hpp"
 
+#include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <window_tool_action_box.hpp>
 #endif

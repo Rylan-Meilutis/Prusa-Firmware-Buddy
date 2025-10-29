@@ -4,6 +4,7 @@
 #pragma once
 
 #include <option/has_chamber_api.h>
+#include <option/has_toolchanger.h>
 #include <option/xbuddy_extension_variant.h>
 
 #include "screen_menu.hpp"

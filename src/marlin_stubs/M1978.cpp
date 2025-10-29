@@ -15,6 +15,7 @@
 #include <printers.h>
 #include <option/has_switched_fan_test.h>
 
+#include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <Marlin/src/module/prusa/toolchanger.h>
 #endif

@@ -16,6 +16,7 @@
 #include <option/has_ac_controller.h>
 #include <option/has_dwarf.h>
 #include <option/has_puppy_modularbed.h>
+#include <option/has_toolchanger.h>
 #include <buddy/ccm_thread.hpp>
 #include <buddy/bootstrap_state.hpp>
 #include "bsod.h"
@@ -103,7 +104,7 @@ static void verify_puppies_running() {
 }
 
 static void puppy_task_loop() {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     size_t slow_stage = 0; ///< Switch slow action
 #endif
 
@@ -116,7 +117,7 @@ static void puppy_task_loop() {
         [[maybe_unused]] uint32_t cycle_ticks = ticks_ms(); ///< Only one tick read per cycle, value will be reused by last_ticks_ms()
         // One slow action
         bool worked = false;
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.update()) {
             return;
         }
@@ -206,7 +207,7 @@ static void puppy_task_loop() {
                 worked |= status == CommunicationStatus::OK;
             }
 #endif
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         } while (!worked && slow_stage != orig_stage); // End if we did some work or if no stage has anything to do
 #endif
         osDelay(worked ? 1 : 2); // Longer delay if we did no work
@@ -316,7 +317,7 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
                 break;
             }
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
             // select active tool (previously active tool, or first one when starting)
             if (!prusa_toolchanger.init(first_run)) {
                 log_error(Puppies, "Unable to select tool, retrying");

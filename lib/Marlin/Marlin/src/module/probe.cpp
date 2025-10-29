@@ -39,6 +39,7 @@
 #include "endstops.h"
 #include <module/planner.h>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
+#include <option/has_toolchanger.h>
 
 #include "../gcode/gcode.h"
 #include "../lcd/ultralcd.h"
@@ -1004,7 +1005,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
     measured_z += probe_offset.z;
 
     #if HAS_HOTEND_OFFSET
-    #if DISABLED(PRUSA_TOOLCHANGER)
+    #if !HAS_TOOLCHANGER()
       #error not implemented
     #endif
     // measured Z is in probe's logical coordinate space, shift it to printers native coordinate space

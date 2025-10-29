@@ -4,11 +4,15 @@
 #include <mutex>
 #include <option/has_mmu2.h>
 #include <option/has_tool_mapping.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_TOOL_MAPPING()
 
     #include "module/prusa/tool_mapper.hpp"
     #include "mmu2_toolchanger_common.hpp"
+    #if HAS_TOOLCHANGER()
+        #include <module/prusa/toolchanger.h>
+    #endif
 
 // This value is important only for XL, for MMU it should just be something bigger than 5 (num of slots)
 uint8_t get_invalid_tool_number() {

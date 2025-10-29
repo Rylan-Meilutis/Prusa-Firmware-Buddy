@@ -33,6 +33,7 @@
 #include <feature/input_shaper/input_shaper_config.hpp>
 #include <config_store/store_instance.hpp>
 #include <metric.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_TRINAMIC && defined(XY_HOMING_MEASURE_SENS_MIN)
     #include <configuration.hpp>
@@ -934,7 +935,7 @@ bool corexy_home_refine(float fr_mm_s, CoreXYCalibrationMode mode) {
         config_store().corexy_grid_origin.set(calibrated_origin);
     } else if (calibrated_origin.uninitialized()) {
         // we have no origin, but calibration was explicitly disabled
-#if DISABLED(PRUSA_TOOLCHANGER)
+#if !HAS_TOOLCHANGER()
         bsod("homing precisely without calibrated origin");
 #else
         // TODO[BFW-6527]: this is a temporary workaround until home calibration is enforced

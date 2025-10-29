@@ -72,7 +72,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_FLOWFACT<0>,
 #if HAS_TOOLCHANGER()
     MI_FLOWFACT<1>, MI_FLOWFACT<2>, MI_FLOWFACT<3>, MI_FLOWFACT<4>,
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 #if HAS_FILAMENT_SENSORS_MENU()
     MI_FILAMENT_SENSORS,
 #else

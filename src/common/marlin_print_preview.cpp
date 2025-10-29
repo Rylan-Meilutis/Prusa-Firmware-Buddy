@@ -26,9 +26,9 @@
 #endif
 
 #include <option/has_toolchanger.h>
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif
 
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()

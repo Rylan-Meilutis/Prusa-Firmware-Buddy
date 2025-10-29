@@ -14,8 +14,8 @@
     #include <module/prusa/toolchanger.h>
     #if HAS_SIDE_FSENSOR()
         #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif /*HAS_SIDE_FSENSOR()*/
-#endif /*HAS_TOOLCHANGER()*/
+    #endif
+#endif
 
 #include <option/has_precise_homing_corexy.h>
 
@@ -164,7 +164,7 @@ Tool get_last_enabled_tool() {
             return static_cast<Tool>(i);
         }
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     return Tool::Tool1;
 }
 
@@ -174,7 +174,7 @@ Tool get_next_tool(Tool tool) {
     do {
         tool = tool + 1;
     } while (!prusa_toolchanger.is_tool_enabled(std::to_underlying(tool)));
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     return tool;
 }
 

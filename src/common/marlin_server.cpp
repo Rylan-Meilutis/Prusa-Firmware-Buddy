@@ -135,7 +135,7 @@
     #include "power_panic.hpp"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
 #endif
 
@@ -875,7 +875,7 @@ static void cycle() {
 #if HAS_TOOLCHANGER()
     // Check if tool didn't fall off
     prusa_toolchanger.loop(!printer_idle(), printer_paused());
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #if HAS_I2C_EXPANDER()
     io_expander_read_loop();
@@ -1185,7 +1185,7 @@ static void settings_load() {
 
     job_id = config_store().job_id.get();
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     // TODO: This is temporary until better offset store method is implemented
     prusa_toolchanger.load_tool_offsets();
 #endif
@@ -1553,7 +1553,7 @@ static bool crash_recovery_begin_toolchange() {
     }
     return false;
 }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
 /**
  * @brief Part of crash recovery begin when reason of crash is failed homing.
@@ -1872,8 +1872,8 @@ void powerpanic_finish_toolcrash() {
     crash_s.set_state(Crash_s::REPEAT_WAIT);
     server.print_state = State::CrashRecovery_ToolchangePowerPanic;
 }
-    #endif /*HAS_TOOLCHANGER()*/
-#endif /*ENABLED(POWER_PANIC)*/
+    #endif
+#endif
 
 #if ENABLED(AXIS_MEASURE)
 enum class Axis_length_t {
@@ -1934,7 +1934,7 @@ bool active_extruder_fan_checks() {
     if (marlin_vars().fan_check_enabled
 #if HAS_TOOLCHANGER()
         && prusa_toolchanger.is_any_tool_active() // Nothing to check
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     ) {
         auto check_fan = [](CFanCtlCommon &fan, const char *fan_name) {
             if (!fan.is_fan_ok()) {
@@ -2088,7 +2088,7 @@ static void _server_print_loop(void) {
                     enqueue_gcode("T0 S1 D0"); // Pick tool 0 (can be remapped to anything) before print
                 }
             }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 #if HAS_MMU2()
             if (MMU2::mmu2.Enabled() && GCodeInfo::getInstance().is_singletool_gcode() && MMU2::mmu2.get_current_tool() == MMU2::FILAMENT_UNKNOWN) {
                 // POC: Handle singletool G-code which doesn't have T commands in it
@@ -2573,7 +2573,7 @@ static void _server_print_loop(void) {
                 break; // Skip crash recovery and go directly to toolchange
             }
         }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
         else if (crash_s.get_state() == Crash_s::REPEAT_WAIT) { // REPEAT_WAIT could be toolfall, but it was handled above
             crash_recovery_begin_home();
@@ -2608,7 +2608,7 @@ static void _server_print_loop(void) {
         crash_recovery_begin_toolchange(); // Also sets server.print_state
         break;
     }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     case State::CrashRecovery_Retracting: {
         if (planner.processing()) {
             break;
@@ -2628,7 +2628,7 @@ static void _server_print_loop(void) {
             prepare_tool_pickup(); // Go to tool pickup instead of homing
             break;
         }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
         measure_axes_and_home();
         break;
@@ -2695,7 +2695,7 @@ static void _server_print_loop(void) {
         }
         break;
     }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     case State::CrashRecovery_XY_HOME: {
         if (is_processing()) {
             break;
@@ -2868,7 +2868,7 @@ static void _server_print_loop(void) {
 
 #if HAS_TEMP_HEATBREAK
     for (int8_t e = 0; e < HOTENDS; e++) {
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.is_tool_enabled(e)) {
             continue;
         }
@@ -3029,7 +3029,7 @@ void park_head() {
         line_to_current_position(NOZZLE_PARK_XY_FEEDRATE); // Move to safe Y
         planner.synchronize();
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     xyz_pos_t park = XYZ_NOZZLE_PARK_POINT_ON_PRINT_END;
     park.z = current_position.z;

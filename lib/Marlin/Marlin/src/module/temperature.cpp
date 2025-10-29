@@ -45,6 +45,7 @@
 #include <module/motion.h>
 #include "../../../../src/common/adc.hpp"
 #include "../marlin_stubs/skippable_gcode.hpp"
+#include <option/has_toolchanger.h>
 
 #include <option/has_planner.h>
 #if HAS_PLANNER()
@@ -665,7 +666,7 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
   #if HOTENDS
     if (heater_id >= H_E0 && heater_id <= H_E5) {
       const uint8_t tool_id = heater_id - (uint8_t)H_E0;
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         return prusa_toolchanger.getTool(tool_id).get_heater_pwm();
       #else
         return temp_hotend[tool_id].soft_pwm_amount;
@@ -675,7 +676,7 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
   #if HAS_TEMP_HEATBREAK
     if (heater_id >= H_HEATBREAK_E0 && heater_id <= H_HEATBREAK_E5) {
       const uint8_t tool_id = heater_id - (uint8_t)H_HEATBREAK_E0;
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         return prusa_toolchanger.getTool(tool_id).get_heatbreak_fan_pwr();
       #else
         return temp_heatbreak[tool_id].soft_pwm_amount;
@@ -1566,7 +1567,7 @@ void Temperature::manage_heater() {
     if (ELAPSED(ms, next_heatbreak_check_ms)) {
       next_heatbreak_check_ms = ms + HEATBREAK_CHECK_INTERVAL;
 
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
           // fan is regulted on dwarf - just update marlin's PWM value
           set_fan_speed(HEATBREAK_FAN_ID, prusa_toolchanger.getActiveToolOrFirst().get_heatbreak_fan_pwr());
       #else
@@ -1694,7 +1695,7 @@ void Temperature::suspend_heatbreak_fan(millis_t ms) {
         return 0.0;
       }
 
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       return prusa_toolchanger.getTool(e).get_hotend_temp();
     #endif
 
@@ -1856,7 +1857,7 @@ void translate_ac_controller_faults() {
  */
 void Temperature::updateTemperaturesFromRawValues() {
   #if HOTENDS
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = prusa_toolchanger.getTool(e).get_hotend_temp();
     #else
       for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = analog_to_celsius_hotend(temp_hotend[e].raw, e);
@@ -1895,7 +1896,7 @@ void Temperature::updateTemperaturesFromRawValues() {
     temp_chamber.celsius = analog_to_celsius_chamber(temp_chamber.raw);
   #endif
   #if HAS_TEMP_HEATBREAK
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = prusa_toolchanger.getTool(e).get_heatbreak_temp();
     #else
       for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = analog_to_celsius_heatbreak(temp_heatbreak[e].raw);
@@ -1914,7 +1915,7 @@ void Temperature::updateTemperaturesFromRawValues() {
   // Reset the watchdog on good temperature measurement
   watchdog_refresh();
 
-  #if ENABLED(PRUSA_TOOLCHANGER)
+  #if HAS_TOOLCHANGER()
   if(temp_bed.celsius == 0) {
     return; // Avoid marking reading as good when the bed temperature was not read
   }
@@ -2520,20 +2521,20 @@ void Temperature::readings_ready() {
             || temp_hotend[e].soft_pwm_amount > 0
           #endif
         );
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         if (temp_hotend[e].celsius > temp_range[e].maxtemp) // Toolchanger doesn't report raw
-      #else /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #else
         if (rawtemp > temp_range[e].raw_max * tdir)
-      #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #endif
         {
           max_temp_error((heater_ind_t)e);
         }
 
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         if (heater_on && temp_hotend[e].celsius < temp_range[e].mintemp) // Toolchanger doesn't report raw
-      #else /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #else
         if (heater_on && rawtemp < temp_range[e].raw_min * tdir)
-      #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #endif
         {
               min_temp_error((heater_ind_t)e);
         }
@@ -2569,7 +2570,7 @@ void Temperature::readings_ready() {
       #else
         #define HEATBREAKCMP(A,B) ((A)>=(B))
       #endif
-      #if !ENABLED(PRUSA_TOOLCHANGER)
+      #if !HAS_TOOLCHANGER()
         //const bool chamber_on = (temp_chamber.target > 0);
         const bool heater_on = (temp_hotend[e].target > 0
                                 #if ENABLED(PIDTEMP)
@@ -3036,7 +3037,7 @@ void Temperature::isr() {
         temp_hotend[ee].target = new_temp;
 
         start_watching_hotend(ee);
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
         prusa_toolchanger.getTool(ee).set_hotend_target_temp(temp_hotend[ee].target);
     #endif
     }

@@ -158,7 +158,6 @@
  */
 
 #if HAS_TOOLCHANGER()
-#define PRUSA_TOOLCHANGER
 #define PRUSA_SPOOL_JOIN
 #endif
 

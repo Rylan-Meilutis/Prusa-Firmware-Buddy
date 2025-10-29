@@ -2,6 +2,7 @@
 #include <selftest_snake_config.hpp>
 #include <inc/Conditionals_LCD.h>
 #include <printers.h>
+#include <option/has_toolchanger.h>
 
 namespace SelftestSnake {
 

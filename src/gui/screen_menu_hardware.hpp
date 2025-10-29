@@ -44,7 +44,7 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 // ================================
 #if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
     MI_SIDE_FSENSOR_REMAP,
-#endif /*HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()*/
+#endif
     MI_FS_AUTOLOAD,
 
 // ================================

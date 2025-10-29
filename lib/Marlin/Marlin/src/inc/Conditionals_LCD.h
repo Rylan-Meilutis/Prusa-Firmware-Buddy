@@ -22,6 +22,7 @@
 #pragma once
 
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 /**
  * Conditionals_LCD.h
@@ -66,7 +67,7 @@
 
   #define E_STEPPERS      1
   #define E_MANUAL        1
-#elif ENABLED(PRUSA_TOOLCHANGER)
+#elif HAS_TOOLCHANGER()
   #define E_STEPPERS      1
   #define E_MANUAL        EXTRUDERS
 #endif

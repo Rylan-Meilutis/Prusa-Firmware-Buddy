@@ -39,10 +39,6 @@
 #include <Pin.hpp>
 #include <cmath>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
-    #include "../../lib/Marlin/Marlin/src/module/prusa/toolchanger.h"
-#endif
-
 namespace {
 /**
  * @brief hwio Marlin wrapper errors

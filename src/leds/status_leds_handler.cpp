@@ -7,6 +7,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_tool_mapping.h>
 #include <option/has_side_fsensor.h>
+#include <option/has_toolchanger.h>
 
 namespace leds {
 

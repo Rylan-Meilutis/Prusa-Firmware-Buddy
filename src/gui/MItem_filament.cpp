@@ -117,7 +117,7 @@ MI_CHANGEALL::MI_CHANGEALL()
 void MI_CHANGEALL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeAllFilaments>);
 }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 /*****************************************************************************/
 // MI_PURGE

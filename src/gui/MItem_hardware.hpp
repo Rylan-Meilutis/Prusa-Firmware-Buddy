@@ -41,7 +41,7 @@ public:
 protected:
     virtual void OnChange(size_t old_index) override;
 };
-#endif /*HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()*/
+#endif
 
 #if HAS_EXTENDED_PRINTER_TYPE()
 class MI_EXTENDED_PRINTER_TYPE : public MenuItemSelectMenu {

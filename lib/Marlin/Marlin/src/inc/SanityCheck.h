@@ -555,10 +555,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #error "SINGLENOZZLE requires 2 or more EXTRUDERS."
 #endif
 
-#if HAS_REMOTE_ACCELEROMETER() && !HAS_TOOLCHANGER()
-  #error "REMOTE_ACCELEROMETER requires PRUSA_TOOLCHANGER"
-#endif
-
 /**
  * Limited number of servos
  */

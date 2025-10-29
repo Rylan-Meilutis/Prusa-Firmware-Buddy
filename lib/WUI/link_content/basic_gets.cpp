@@ -21,6 +21,7 @@
 #include <common/directory.hpp>
 #include <version/version.hpp>
 #include <common/printer_model.hpp>
+#include <option/has_toolchanger.h>
 
 using namespace json;
 using namespace marlin_server;

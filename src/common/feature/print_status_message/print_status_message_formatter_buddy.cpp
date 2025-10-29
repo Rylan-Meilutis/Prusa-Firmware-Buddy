@@ -1,5 +1,6 @@
 #include "print_status_message_formatter_buddy.hpp"
 
+#include <option/has_toolchanger.h>
 #include <option/has_translations.h>
 
 #include <buddy/unreachable.hpp>

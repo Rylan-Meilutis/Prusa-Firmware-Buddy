@@ -89,6 +89,7 @@
 #include <option/has_wastebin.h>
 #include <option/has_dwarf.h>
 #include <option/has_emergency_stop.h>
+#include <option/has_toolchanger.h>
 
 #include <option/has_emergency_stop.h>
 #if HAS_EMERGENCY_STOP()
@@ -454,7 +455,7 @@ void restore_feedrate_and_scaling() {
     #endif
   ) {
 
-    #if HAS_HOTEND_OFFSET && DISABLED(PRUSA_TOOLCHANGER)
+    #if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
 
       // Software endstops are relative to the tool 0 workspace, so
       // the movement limits must be shifted by the tool offset to

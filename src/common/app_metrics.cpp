@@ -38,13 +38,14 @@
 #include <Marlin/src/feature/phase_stepping/debug_events.hpp>
 
 #include <config_store/store_instance.hpp>
+#include <option/has_toolchanger.h>
 
 #if BOARD_IS_XLBUDDY()
     #include <puppies/Dwarf.hpp>
     #include <Marlin/src/module/prusa/toolchanger.h>
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     // Loop through existing extruders
     #define FOREACH_EXTRUDER()                  \
         for (int e = 0; e < EXTRUDERS - 1; e++) \
@@ -162,7 +163,7 @@ void RecordMarlinVariables() {
     METRIC_DEF(is_printing, "is_printing", METRIC_VALUE_INTEGER, 5000, METRIC_ENABLED);
     metric_record_integer(&is_printing, printingIsActive() ? 1 : 0);
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     METRIC_DEF(active_extruder_metric, "active_extruder", METRIC_VALUE_INTEGER, 1000, METRIC_ENABLED);
     metric_record_integer(&active_extruder_metric, active_extruder);
 #endif

@@ -46,7 +46,8 @@ GcodeSuite gcode;
   #include "../feature/prusa/crash_recovery.hpp"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include "module/prusa/toolchanger.h"
 #endif
 
@@ -107,7 +108,7 @@ int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> 
 
   static_assert(EXTRUDERS <= INT8_MAX, "We need to return int8_t");
   bool valid_extruder = (e < EXTRUDERS);
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
   valid_extruder = valid_extruder && prusa_toolchanger.is_tool_enabled(e);
 #endif
   if (valid_extruder) {

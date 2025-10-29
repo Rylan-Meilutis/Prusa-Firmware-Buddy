@@ -17,15 +17,11 @@
 #if HAS_LOADCELL()
     #include "loadcell.hpp"
 #endif
-#include <option/has_toolchanger.h>
-#if HAS_TOOLCHANGER()
-    #include <module/prusa/toolchanger.h>
-#endif /* HAS_TOOLCHANGER() */
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /* HAS_TOOLCHANGER() */
+#endif
 
 static constexpr feedRate_t Z_CALIB_ALIGN_AXIS_FEEDRATE = 15.f; // mm/s
 static constexpr float Z_CALIB_EXTRA_HIGHT = 5.f; // mm

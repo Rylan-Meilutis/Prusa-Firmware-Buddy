@@ -14,6 +14,7 @@
 #include <option/developer_mode.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_phase_stepping.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_MMU2()
     #include "MItem_mmu.hpp"

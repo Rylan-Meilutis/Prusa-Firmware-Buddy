@@ -3,7 +3,6 @@
 #include <option/has_dwarf.h>
 #include <option/has_esp.h>
 #include <option/has_gearbox_alignment.h>
-#include <option/has_toolchanger.h>
 #include <option/has_loadcell.h>
 #include <option/has_selftest.h>
 #include <option/has_phase_stepping_calibration.h>

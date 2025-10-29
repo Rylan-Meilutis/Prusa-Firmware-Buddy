@@ -1,8 +1,9 @@
 #include "toolchanger_utils.h"
 #include "tool_offset.hpp"
 #include "dock_position.hpp"
+#include <option/has_toolchanger.h>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include "Marlin/src/module/stepper.h"
     #include "Marlin/src/feature/bedlevel/bedlevel.h"
     #include "Marlin.h"
@@ -540,4 +541,4 @@ bool PrusaToolChangerUtils::wait(stdext::inplace_function<bool()> function, uint
     return result;
 }
 
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif

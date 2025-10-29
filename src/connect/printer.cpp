@@ -3,6 +3,7 @@
 #include <crc32.h>
 
 #include <cstring>
+#include <option/has_toolchanger.h>
 
 using std::make_tuple;
 using std::optional;

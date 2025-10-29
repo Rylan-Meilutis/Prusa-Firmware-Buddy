@@ -13,7 +13,6 @@
 #include <atomic>
 #include <bitset>
 #include "config_features.h"
-#include <option/has_toolchanger.h>
 
 #include <inplace_function.hpp>
 

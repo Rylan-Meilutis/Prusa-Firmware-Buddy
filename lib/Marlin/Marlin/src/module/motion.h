@@ -37,6 +37,7 @@
 #if HAS_BED_PROBE
   #include "probe.h"
 #endif
+#include <option/has_toolchanger.h>
 #include <option/has_wastebin.h>
 
 // Axis homed and known-position states
@@ -378,7 +379,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
   #else
     #define _WS position_shift
   #endif
-  #if DISABLED(PRUSA_TOOLCHANGER)
+  #if !HAS_TOOLCHANGER()
     #define NATIVE_TO_LOGICAL(POS, AXIS) ((POS) + _WS[AXIS])
     #define LOGICAL_TO_NATIVE(POS, AXIS) ((POS) - _WS[AXIS])
     FORCE_INLINE void toLogical(xy_pos_t &raw)   { raw += _WS; }
