@@ -297,7 +297,7 @@ TEST_CASE("Render") {
         idle.slots[2] = Printer::SlotInfo {
             .material = { "PETG" },
             .hardened = true,
-            .nozzle_diameter = 0.6,
+            .nozzle_diameter = 0.6f,
         };
         params.emplace(idle);
 
