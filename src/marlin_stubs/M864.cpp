@@ -3,9 +3,14 @@
 #include "gcode/parser.h"
 #include "inc/MarlinConfig.h"
 #include "PrusaGcodeSuite.hpp"
-#include "module/prusa/spool_join.hpp"
 
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
+static_assert(HAS_SPOOL_JOIN());
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -54,5 +59,3 @@ void PrusaGcodeSuite::M864() {
 }
 
 /** @}*/
-
-#endif

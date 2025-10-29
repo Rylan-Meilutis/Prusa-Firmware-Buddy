@@ -565,8 +565,10 @@ set_feature_for_printers(
 
 if(HAS_TOOLCHANGER OR HAS_MMU2)
   define_boolean_option(HAS_TOOL_MAPPING yes)
+  define_boolean_option(HAS_SPOOL_JOIN yes)
 else()
   define_boolean_option(HAS_TOOL_MAPPING no)
+  define_boolean_option(HAS_SPOOL_JOIN no)
 endif()
 
 # Set printer board

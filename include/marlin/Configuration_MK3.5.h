@@ -145,14 +145,6 @@
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
 
-/**
- * Tool mapping and spool join - adopted from XL's toolchange, reimplemented for MMU2
- */
-#if HAS_MMU2()
-#define PRUSA_SPOOL_JOIN
-#endif
-
-
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.

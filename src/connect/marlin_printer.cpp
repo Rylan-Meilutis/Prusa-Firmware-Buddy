@@ -1,6 +1,5 @@
 #include "marlin_printer.hpp"
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
 #include "printer_common.hpp"
 #include "hostname.hpp"
 
@@ -26,6 +25,11 @@
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
+#endif
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
 
 #include <option/has_esp.h>
@@ -489,7 +493,9 @@ namespace {
 
         auto cleanup = []() {
             tool_mapper.reset();
+    #if HAS_SPOOL_JOIN()
             spool_join.reset();
+    #endif
             tool_mapper.set_enable(false);
         };
         // Wipe defaults (eg mapping 1-1, 2-2, ...) - we want to replace it,
@@ -511,10 +517,12 @@ namespace {
                     break;
                 }
 
+    #if HAS_SPOOL_JOIN()
                 if (!spool_join.add_join(curr_tool, tool_mapping[i][j])) {
                     cleanup();
                     return "Invalid spool join setting";
                 }
+    #endif
             }
         }
         return nullptr;

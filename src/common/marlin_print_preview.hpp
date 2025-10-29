@@ -5,7 +5,6 @@
 #pragma once
 #include "client_response.hpp"
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
 #include <marlin_events.h>
 #include <bitset>
 #include "gcode_info.hpp"
@@ -13,6 +12,11 @@
 #include <option/has_tool_mapping.h>
 #include <async_job/async_job.hpp>
 #include <inplace_function.hpp>
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
 
 /**
  * @brief Parent class handling changes of state
@@ -138,7 +142,7 @@ public:
      */
     static bool check_extruder_need_filament_load(uint8_t physical_extruder, uint8_t no_gcode_value, stdext::inplace_function<uint8_t(uint8_t)> gcode_extruder_getter);
 
-#if ENABLED(PRUSA_SPOOL_JOIN) && HAS_TOOL_MAPPING()
+#if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
     struct ToolsMappingValidty {
         std::bitset<EXTRUDERS> unassigned_gcodes {};
         std::bitset<EXTRUDERS> mismatched_filaments {};

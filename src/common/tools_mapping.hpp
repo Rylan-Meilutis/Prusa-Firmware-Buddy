@@ -4,7 +4,11 @@
 #include <limits>
 #include <stdint.h>
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
 
 namespace tools_mapping {
 
@@ -30,7 +34,7 @@ uint8_t to_physical_tool(uint8_t gcode_tool);
  */
 uint8_t to_gcode_tool(uint8_t physical_tool);
 
-#if ENABLED(PRUSA_SPOOL_JOIN) && HAS_TOOL_MAPPING()
+#if HAS_SPOOL_JOIN()
 /**
  * @brief Returns the gcode_tool that is printed by given physical_tool, with the given mapper/joiner configuration
  *

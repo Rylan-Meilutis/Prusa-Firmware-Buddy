@@ -148,21 +148,6 @@
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
 
-/**
- * Prusa Toolchanger
- *
- *  Multiple semi-independent extruders.
- *  Connected by shared bus and shared step/dir.
- *  Stepping done by marlin.
- *  PID and fan controll done by extruder.
- *
- */
-
-#if HAS_TOOLCHANGER()
-#define PRUSA_SPOOL_JOIN
-#endif
-
-
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.

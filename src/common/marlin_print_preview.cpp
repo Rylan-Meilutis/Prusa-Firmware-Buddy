@@ -25,6 +25,11 @@
     #include <e2ee/key.hpp>
 #endif
 
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
@@ -39,7 +44,6 @@
 #include "tools_mapping.hpp"
 #include <buddy/unreachable.hpp>
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
 #include <mmu2_toolchanger_common.hpp>
 #include <common/gcode/gcode_info_scan.hpp>
 
@@ -130,7 +134,7 @@ Response IPrintPreview::GetResponse() {
     return phase ? marlin_server::get_response_from_phase(*phase) : Response::_none;
 }
 
-#if ENABLED(PRUSA_SPOOL_JOIN) && HAS_TOOL_MAPPING()
+#if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
 
 bool PrintPreview::ToolsMappingValidty::all_ok() const {
     return unassigned_gcodes.count() == 0 &&
@@ -765,7 +769,7 @@ PrintPreview::Result PrintPreview::Loop() {
 #endif
 
         if (tools_mapping::is_tool_mapping_possible()) {
-#if ENABLED(PRUSA_SPOOL_JOIN) && HAS_TOOL_MAPPING()
+#if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
             if ((skip_if_able >= marlin_server::PreviewSkipIfAble::tool_mapping) && PrintPreview::check_tools_mapping_validity(tool_mapper, spool_join, gcode_info).all_ok()) {
                 // we can skip tools mapping if there is not warning/error in global tools mapping
                 ChangeState(State::done);

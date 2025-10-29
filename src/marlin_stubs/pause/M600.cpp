@@ -50,9 +50,12 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
 #if HAS_LEDS()
     #include "leds/status_leds_handler.hpp"
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
-    #include "module/prusa/spool_join.hpp"
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
+
 #if ENABLED(CRASH_RECOVERY)
     #include <feature/prusa/crash_recovery.hpp>
 #endif /*ENABLED(CRASH_RECOVERY)*/
@@ -113,7 +116,7 @@ void GcodeSuite::M600() {
 
     bool do_manual_m600 = true;
 
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
     if (is_auto_m600) {
 
         uint8_t current_tool = 0;

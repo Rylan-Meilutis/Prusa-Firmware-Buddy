@@ -11,11 +11,17 @@
 #include <window_icon.hpp>
 #include <window_colored_rect.hpp>
 #include <gcode_info.hpp>
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
-    #include <module/prusa/spool_join.hpp>
     #include <module/prusa/tool_mapper.hpp>
 #endif
+
 #include <multi_filament_change.hpp>
 
 class ToolsMappingBody : public window_t {

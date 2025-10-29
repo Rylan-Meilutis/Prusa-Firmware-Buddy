@@ -2105,7 +2105,7 @@ PREDEFINED             = "HAS_SIDE_LEDS()=1" \
                          "HAS_TOOLCHANGER()=1" \
                          "PRINT_CHECKING_Q_CMDS" \
                          "HAS_TOOL_MAPPING()=1" \
-                         "PRUSA_SPOOL_JOIN"
+                         "HAS_SPOOL_JOIN()=1"
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The

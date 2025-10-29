@@ -1,5 +1,6 @@
 #include "print_status_message_formatter_buddy.hpp"
 
+#include <option/has_spool_join.h>
 #include <option/has_toolchanger.h>
 #include <option/has_translations.h>
 
@@ -29,7 +30,7 @@ static constexpr EnumArray<Message::Type, const char *, Message::Type::_cnt> mes
 #if ENABLED(DETECT_PRINT_SHEET)
         { Message::Type::detecting_steel_sheet, N_("Detecting steel sheet") },
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         { Message::Type::spool_joined, N_("Spool joined") },
         { Message::Type::joining_spool, N_("Joining spool") },
 #endif
@@ -58,7 +59,7 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
 
     case Message::Type::homing:
     case Message::Type::recalibrating_home:
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
     case Message::Type::spool_joined:
     case Message::Type::joining_spool:
 #endif

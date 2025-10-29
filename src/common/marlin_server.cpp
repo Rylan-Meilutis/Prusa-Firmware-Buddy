@@ -19,7 +19,6 @@
 #include "utils/exponential_backoff.hpp"
 #include "bsod.h"
 #include "module/prusa/tool_mapper.hpp"
-#include "module/prusa/spool_join.hpp"
 #include "print_utils.hpp"
 #include "random.h"
 #include "timing.h"
@@ -73,6 +72,11 @@
 #include <option/has_cancel_object.h>
 #if HAS_CANCEL_OBJECT()
     #include <feature/cancel_object/cancel_object.hpp>
+#endif
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include "module/prusa/spool_join.hpp"
 #endif
 
 #include "hwio.h"
@@ -993,6 +997,9 @@ void static finalize_print(bool finished) {
 
 #if HAS_TOOL_MAPPING()
     tool_mapper.reset();
+#endif
+
+#if HAS_SPOOL_JOIN()
     spool_join.reset();
 #endif
 

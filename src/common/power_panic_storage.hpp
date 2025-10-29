@@ -28,9 +28,12 @@
 #if HAS_TOOL_MAPPING()
     #include "module/prusa/tool_mapper.hpp"
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
-    #include "module/prusa/spool_join.hpp"
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
+
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
 #endif
@@ -175,7 +178,7 @@ struct state_t {
 #if HAS_TOOL_MAPPING()
     ToolMapper::serialized_state_t tool_mapping;
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
     SpoolJoin::serialized_state_t spool_join;
 #endif
 #if HAS_CHAMBER_API()

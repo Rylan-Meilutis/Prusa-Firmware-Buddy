@@ -5,10 +5,10 @@
 #include <array>
 #include <optional>
 #include <mutex>
+#include <option/has_spool_join.h>
 #include <option/has_tool_mapping.h>
 
-#if ENABLED(PRUSA_SPOOL_JOIN)
-
+static_assert(HAS_SPOOL_JOIN());
 static_assert(HAS_TOOL_MAPPING());
 
 /**
@@ -87,5 +87,3 @@ private:
 };
 
 extern SpoolJoin spool_join;
-
-#endif

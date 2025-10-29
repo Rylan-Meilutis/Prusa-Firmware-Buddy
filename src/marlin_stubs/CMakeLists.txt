@@ -13,7 +13,6 @@ target_sources(
           M862_1.cpp
           M862_4.cpp
           M863.cpp
-          M864.cpp
           M865.cpp
           M876.cpp
           M9140_M9150.cpp
@@ -57,6 +56,10 @@ endif()
 
 if(HAS_LEDS)
   target_sources(firmware PRIVATE M150.cpp)
+endif()
+
+if(HAS_SPOOL_JOIN)
+  target_sources(firmware PRIVATE M864.cpp)
 endif()
 
 if(HAS_TOOLCHANGER)

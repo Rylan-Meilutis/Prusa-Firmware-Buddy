@@ -17,6 +17,7 @@
 #include <option/buddy_enable_connect.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_automatic_chamber_vents.h>
+#include <option/has_spool_join.h>
 
 #include <gcode/gcode_parser.hpp>
 
@@ -113,7 +114,7 @@ void M862_6(); //< Check gcode level
 void M863(); //< tool mapping control
 #endif
 
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
 void M864(); //< spool join control
 #endif
 

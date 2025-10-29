@@ -8,7 +8,6 @@
 #include <option/developer_mode.h>
 #include <version.h>
 #include <tools_mapping.hpp>
-#include <module/prusa/spool_join.hpp>
 #include "mutable_path.hpp"
 #include <logging/log.hpp>
 #include <option/has_mmu2.h>
@@ -19,6 +18,11 @@ LOG_COMPONENT_REF(Buddy);
 
 #if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
+#endif
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
 
 #include <option/has_toolchanger.h>
