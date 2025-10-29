@@ -201,37 +201,6 @@ void GcodeSuite::dwell(millis_t time) {
 }
 
 /**
- * When G29_RETRY_AND_RECOVER is enabled, call G29() in
- * a loop with recovery and retry handling.
- */
-#if HAS_LEVELING && ENABLED(G29_RETRY_AND_RECOVER)
-
-  #ifndef G29_MAX_RETRIES
-    #define G29_MAX_RETRIES 0
-  #endif
-
-  void GcodeSuite::G29_with_retry() {
-    uint8_t retries = G29_MAX_RETRIES;
-    while (G29()) { // G29 should return true for failed probes ONLY
-      if (retries--) event_probe_recover();
-      else {
-        event_probe_failure();
-        return;
-      }
-    }
-
-    #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_action_prompt_end();
-    #endif
-
-    #ifdef G29_SUCCESS_COMMANDS
-      process_subcommands_now_P(PSTR(G29_SUCCESS_COMMANDS));
-    #endif
-  }
-
-#endif // HAS_LEVELING && G29_RETRY_AND_RECOVER
-
-/**
  * Process the parsed command and dispatch it to its handler
  */
 void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
@@ -282,13 +251,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 28: G28(); break;                                 // G28: Home all axes, one at a time
 
       #if HAS_LEVELING
-        case 29:                                                  // G29: Bed leveling calibration
-          #if ENABLED(G29_RETRY_AND_RECOVER)
-            G29_with_retry();
-          #else
-            G29();
-          #endif
-          break;
+        case 29: G29(); break;                                    // G29: Bed leveling calibration
       #endif // HAS_LEVELING
 
       #if HAS_BED_PROBE

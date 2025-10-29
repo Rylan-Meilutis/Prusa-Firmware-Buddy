@@ -96,8 +96,3 @@ extern uint16_t job_id;
 #if HAS_SUICIDE
   inline void suicide() { OUT_WRITE(SUICIDE_PIN, LOW); }
 #endif
-
-#if ENABLED(G29_RETRY_AND_RECOVER)
-  void event_probe_recover();
-  void event_probe_failure();
-#endif

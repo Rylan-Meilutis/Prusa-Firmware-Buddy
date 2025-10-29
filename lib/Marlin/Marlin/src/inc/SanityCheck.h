@@ -756,12 +756,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #error "MESH_EDIT_GFX_OVERLAY requires AUTO_BED_LEVELING_UBL and a Graphical LCD."
 #endif
 
-#if ENABLED(G29_RETRY_AND_RECOVER)
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
-    #error "G29_RETRY_AND_RECOVER is not compatible with UBL."
-  #endif
-#endif
-
 /**
  * LCD_BED_LEVELING requirements
  */

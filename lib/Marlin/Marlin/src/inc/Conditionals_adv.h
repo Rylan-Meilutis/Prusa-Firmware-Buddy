@@ -99,12 +99,4 @@
       #define ACTION_REASON_ON_FILAMENT_RUNOUT "filament_runout"
     #endif
   #endif
-  #if ENABLED(G29_RETRY_AND_RECOVER)
-    #ifndef ACTION_ON_G29_RECOVER
-      #define ACTION_ON_G29_RECOVER "probe_rewipe"
-    #endif
-    #ifndef ACTION_ON_G29_FAILURE
-      #define ACTION_ON_G29_FAILURE "probe_failed"
-    #endif
-  #endif
 #endif

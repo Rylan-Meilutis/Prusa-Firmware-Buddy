@@ -405,13 +405,7 @@ private:
   static void G28();
 
   #if HAS_LEVELING
-    #if ENABLED(G29_RETRY_AND_RECOVER)
-      static void G29_with_retry();
-      #define G29_TYPE bool
-    #else
-      #define G29_TYPE void
-    #endif
-    static G29_TYPE G29();
+    static void G29();
   #endif
 
   #if HAS_BED_PROBE
