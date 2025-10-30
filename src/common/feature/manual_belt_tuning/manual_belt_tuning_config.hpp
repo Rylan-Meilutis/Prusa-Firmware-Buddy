@@ -30,11 +30,6 @@ constexpr float length_bottom_belt = length_belt + 0.005f;
 constexpr int16_t calib_position_x = 240;
 constexpr int16_t calib_position_y = -8;
 
-// range of valid measured frequencies
-// outside measurements are considered to have x-gantry misalignment
-constexpr uint16_t freq_result_min = 90;
-constexpr uint16_t freq_result_max = 98;
-
 // constants for calculating how many revolutions to do for any frequency differences
 // this constants represents average frequency change of the belt per one revolution of its own screw
 constexpr uint16_t belt_hz_per_rev = 15;
@@ -53,11 +48,6 @@ constexpr float length_bottom_belt = 0.3245f;
 
 constexpr int16_t calib_position_x = 294;
 constexpr int16_t calib_position_y = 0;
-
-// range of valid measured frequencies
-// outside measurements are considered to have x-gantry misalignment
-constexpr uint16_t freq_result_min = 76; // loosen to 75 if needed
-constexpr uint16_t freq_result_max = 82; // loosen to 83 if needed
 
 // constants for calculating how many revolutions to do for any frequency differences
 // this constants represents average frequency change of the belt per one revolution of its own screw
@@ -109,5 +99,9 @@ constexpr float floor_to_half(float val) {
 constexpr float higher_freq_belt_optimal = floor_to_half(tension_to_freq(tension_optimal_N, length_top_belt));
 // optimal frequency for bottom belt (in some cases lower belt has higher freq and optimal frequencies are switched)
 constexpr float lower_freq_belt_optimal = floor_to_half(tension_to_freq(tension_optimal_N, length_bottom_belt));
+
+// outside measurements are considered to have x-gantry misalignment
+constexpr uint16_t freq_result_min = static_cast<uint16_t>(lower_freq_belt_optimal - 3);
+constexpr uint16_t freq_result_max = static_cast<uint16_t>(higher_freq_belt_optimal + 3);
 
 }; // namespace manual_belt_tuning
