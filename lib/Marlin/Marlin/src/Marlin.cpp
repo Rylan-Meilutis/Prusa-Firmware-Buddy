@@ -110,7 +110,7 @@
   #include "feature/bedlevel/bedlevel.h"
 #endif
 
-#if BOTH(ADVANCED_PAUSE_FEATURE, PAUSE_PARK_NO_STEPPER_TIMEOUT)
+#if ENABLED(ADVANCED_PAUSE_FEATURE)
   #include "feature/pause.h"
 #endif
 
@@ -271,7 +271,7 @@ void manage_inactivity() {
   [[maybe_unused]] const millis_t ms = millis();
 
   // Prevent steppers timing-out in the middle of M600
-  #if BOTH(ADVANCED_PAUSE_FEATURE, PAUSE_PARK_NO_STEPPER_TIMEOUT)
+  #if ENABLED(ADVANCED_PAUSE_FEATURE)
     #define MOVE_AWAY_TEST !did_pause_print
   #else
     #define MOVE_AWAY_TEST true
