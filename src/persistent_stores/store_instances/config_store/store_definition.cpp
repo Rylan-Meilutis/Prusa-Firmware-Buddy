@@ -135,6 +135,10 @@ void CurrentStore::perform_config_migrations() {
         }
     }
 #endif
+    if (should_migrate<4>()) {
+        // Don't show "Happy Printing" screen when upgrading firmware
+        happy_printing_seen.set(true);
+    }
     // To add a migration:
     // - increment newest_config_version
     // - add if(should_migrate<X>) { your migration code } at the END of this function
