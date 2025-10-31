@@ -47,6 +47,7 @@ void XBuddyExtension::step() {
     const auto target_temp = chamber().target_temperature();
     const auto filtration_backend = chamber_filtration().backend();
     const auto filtration_pwm = chamber_filtration().output_pwm();
+    const auto temp = chamber().current_temperature();
 
     std::lock_guard _lg(mutex_);
 
@@ -64,7 +65,6 @@ void XBuddyExtension::step() {
     const auto rpm0 = puppies::xbuddy_extension.get_fan_rpm(0);
     const auto rpm1 = puppies::xbuddy_extension.get_fan_rpm(1);
     const auto rpm2 = puppies::xbuddy_extension.get_fan_rpm(2);
-    const auto temp = chamber_temperature();
 
     // Trigger fatal error due to chamber temperature only if we get valid values, that are not reasonable
     if (temp.has_value()) {
