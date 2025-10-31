@@ -15,6 +15,7 @@ public:
     using FanPWM = PWM255;
     using FanPWMOrAuto = PWM255OrAuto;
 
+#if PRINTER_IS_PRUSA_COREONE()
     /// Temperature at which the fans start spinning at full speed, no matter what
     static constexpr Temperature overheating_temp = 60.0f;
 
@@ -23,6 +24,18 @@ public:
 
     /// Temperature at which the normal fan control may be restored, after emergency temperature
     static constexpr Temperature recovery_temp = 55.0f;
+#elif PRINTER_IS_PRUSA_COREONEL()
+    /// Temperature at which the fans start spinning at full speed, no matter what
+    static constexpr Temperature overheating_temp = 65.0f;
+
+    /// Temperature at which the print is stopped and fans at full power, not matter what
+    static constexpr Temperature critical_temp = 68.0f;
+
+    /// Temperature at which the normal fan control may be restored, after emergency temperature
+    static constexpr Temperature recovery_temp = 60.0f;
+#else
+    #error
+#endif
 
     // Numbers pulled out of thin air
     static constexpr FanPWM max_pwm { 255 };

@@ -33,9 +33,14 @@
     #include <Configuration.h>
 #endif
 
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+#if PRINTER_IS_PRUSA_COREONE()
 namespace {
 constexpr buddy::Temperature chamber_maxtemp = 60;
+constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
+} // namespace
+#elif PRINTER_IS_PRUSA_COREONEL()
+namespace {
+constexpr buddy::Temperature chamber_maxtemp = 65;
 constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
 } // namespace
 #endif
