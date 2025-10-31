@@ -6,7 +6,6 @@
 #include <puppies/xbuddy_extension.hpp>
 #include <feature/chamber/chamber.hpp>
 #include <feature/chamber_filtration/chamber_filtration.hpp>
-#include <feature/xbuddy_extension/cooling.hpp>
 #include <marlin_server.hpp>
 #include <leds/side_strip_handler.hpp>
 #include <buddy/unreachable.hpp>

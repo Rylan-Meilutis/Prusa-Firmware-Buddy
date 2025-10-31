@@ -1,6 +1,9 @@
 #pragma once
 
-#include "cooling.hpp"
+#include <option/xbuddy_extension_variant.h>
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    #include "cooling.hpp"
+#endif
 
 #include <optional>
 
