@@ -17,6 +17,9 @@
 #include "Marlin/src/module/printcounter.h"
 #include "Marlin/src/module/temperature.h"
 
+#include <option/has_pause.h>
+static_assert(HAS_PAUSE());
+
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
@@ -93,8 +96,7 @@ static void nozzle_cleaner_load_or_runout_load_gcode(Pause::LoadType load_type) 
 // check unsupported features
 // filament sensor is no longer part of marlin thus it must be disabled
 // clang-format off
-#if (!ENABLED(EXTENSIBLE_UI)) || \
-    (!ENABLED(ADVANCED_PAUSE_FEATURE))
+#if (!ENABLED(EXTENSIBLE_UI))
 #error unsupported
 #endif
 // clang-format on

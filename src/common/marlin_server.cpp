@@ -1,5 +1,6 @@
 #include "marlin_server.hpp"
 
+#include <option/has_pause.h>
 #include <common/directory.hpp>
 #include <freertos/critical_section.hpp>
 #include <marlin_stubs/skippable_gcode.hpp>
@@ -2642,10 +2643,10 @@ static void _server_print_loop(void) {
         // save the current resume position
         server.resume.pos = current_position;
 
-    #if ENABLED(ADVANCED_PAUSE_FEATURE)
+    #if HAS_PAUSE()
         /// retract and save E stepper position
         retract();
-    #endif // ENABLED(ADVANCED_PAUSE_FEATURE)
+    #endif
 
         server.print_state = State::CrashRecovery_Retracting;
         break;
@@ -3014,10 +3015,10 @@ void retract() {
 #endif
 
 // server.motion_param.save_reset();  // TODO: currently disabled (see Crash_s::save_parameters())
-#if ENABLED(ADVANCED_PAUSE_FEATURE)
+#if HAS_PAUSE()
     float mm = PAUSE_PARK_RETRACT_LENGTH / planner.e_factor[active_extruder];
     plan_move_by(PAUSE_PARK_RETRACT_FEEDRATE, 0, 0, 0, -mm);
-#endif // ENABLED(ADVANCED_PAUSE_FEATURE)
+#endif
 }
 
 void lift_head() {
@@ -3105,10 +3106,10 @@ void unpark_head_ZE(void) {
     destination.z = server.resume.pos.z;
     prepare_internal_move_to_destination(NOZZLE_PARK_Z_FEEDRATE);
 
-#if ENABLED(ADVANCED_PAUSE_FEATURE)
+#if HAS_PAUSE()
     // Undo E retract
     plan_move_by(PAUSE_PARK_RETRACT_FEEDRATE, 0, 0, 0, server.resume.pos.e - current_position.e);
-#endif // ENABLED(ADVANCED_PAUSE_FEATURE)
+#endif
 }
 
 bool all_axes_homed(void) {

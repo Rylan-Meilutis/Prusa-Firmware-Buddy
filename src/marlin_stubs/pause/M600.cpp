@@ -29,11 +29,8 @@
 
 LOG_COMPONENT_REF(PRUSA_GCODE);
 
-// clang-format off
-#if !ENABLED(ADVANCED_PAUSE_FEATURE)
-    #error unsupported
-#endif
-// clang-format on
+#include <option/has_pause.h>
+static_assert(HAS_PAUSE());
 
 #include "Marlin/src/gcode/gcode.h"
 #include "Marlin/src/module/motion.h"

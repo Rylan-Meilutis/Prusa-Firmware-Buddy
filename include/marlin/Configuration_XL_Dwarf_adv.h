@@ -804,8 +804,7 @@
  *
  * Requires an LCD display.
  */
-#define ADVANCED_PAUSE_FEATURE HAS_PAUSE()
-#if ENABLED(ADVANCED_PAUSE_FEATURE)
+#if HAS_PAUSE()
     #define FILAMENT_UNLOAD_RAMMING_SEQUENCE \
         { \
             { 1, 100 }, \

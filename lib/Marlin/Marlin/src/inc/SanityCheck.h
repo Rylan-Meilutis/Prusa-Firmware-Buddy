@@ -26,6 +26,7 @@
 #include <option/has_gcode_compatibility.h>
 #include <option/has_planner.h>
 #include <option/has_mmu2.h>
+#include <option/has_pause.h>
 
 /**
  * SanityCheck.h
@@ -105,10 +106,6 @@
   #error "PROBE_SERVO_DEACTIVATION_DELAY is deprecated. Use DEACTIVATE_SERVOS_AFTER_MOVE instead."
 #elif defined(SERVO_DEACTIVATION_DELAY)
   #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
-#elif ENABLED(FILAMENTCHANGEENABLE)
-  #error "FILAMENTCHANGEENABLE is now ADVANCED_PAUSE_FEATURE. Please update your configuration."
-#elif ENABLED(FILAMENT_CHANGE_FEATURE)
-  #error "FILAMENT_CHANGE_FEATURE is now ADVANCED_PAUSE_FEATURE. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_X_POS) || defined(FILAMENT_CHANGE_Y_POS)
   #error "FILAMENT_CHANGE_[XY]_POS is now set with NOZZLE_PARK_POINT. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_Z_ADD)
@@ -478,9 +475,9 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
 /**
  * Advanced Pause
  */
-#if ENABLED(ADVANCED_PAUSE_FEATURE)
+#if HAS_PAUSE()
   #if !HAS_RESUME_CONTINUE
-    #error "ADVANCED_PAUSE_FEATURE currently requires an LCD controller or EMERGENCY_PARSER."
+    #error "HAS_PAUSE() currently requires an LCD controller or EMERGENCY_PARSER."
   #elif ENABLED(PREVENT_LENGTHY_EXTRUDE) && FILAMENT_CHANGE_UNLOAD_LENGTH > EXTRUDE_MAXLENGTH
     #error "FILAMENT_CHANGE_UNLOAD_LENGTH must be less than or equal to EXTRUDE_MAXLENGTH."
   #elif ENABLED(PREVENT_LENGTHY_EXTRUDE) && FILAMENT_CHANGE_SLOW_LOAD_LENGTH > EXTRUDE_MAXLENGTH
