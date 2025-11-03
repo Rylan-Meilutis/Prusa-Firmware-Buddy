@@ -179,7 +179,8 @@ int get_exclusive_mode();
 void set_exclusive_mode(int exclusive);
 
 // display different value than target, used in preheat
-void set_temp_to_display(float value, uint8_t extruder);
+// Called automatically from setTargetHotend since 6.6. Don't forget to add it back if you're cherry-picking to older branches!
+[[deprecated]] void set_temp_to_display(float value, uint8_t extruder);
 
 // called to set target bed (sets both marlin_vars and thermal_manager)
 void set_target_bed(int16_t value);

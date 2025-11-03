@@ -297,7 +297,12 @@ namespace {
     PhasesColdPull cool_down() {
 
         thermalManager.disable_hotend(); // cool down without target to avoid PID handling target temp
+
+    // This is a legit use (is it?) - ignore the deprecated warning
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         marlin_server::set_temp_to_display(HOTEND_COLD_TEMP, active_extruder); // still show target temperature
+    #pragma GCC diagnostic pop
 
         auto too_hot = []() {
             return static_cast<uint16_t>(Temperature::degHotend(active_extruder)) > HOTEND_COLD_TEMP;
