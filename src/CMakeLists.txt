@@ -101,7 +101,7 @@ elseif(BOARD STREQUAL "XBUDDY_EXTENSION")
   add_subdirectory(freertos)
   add_subdirectory(puppy/xbuddy_extension)
 
-elseif(BOARD MATCHES "^ANFC_")
+elseif(BOARD STREQUAL "ANFC_C0")
   add_subdirectory(freertos)
   add_subdirectory(puppy/anfc)
   add_subdirectory(puppy/honeybee_shared)

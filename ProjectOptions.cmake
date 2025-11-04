@@ -28,7 +28,6 @@ set(BOARD_VALID_OPTS
     "XL_DEV_KIT_XLB"
     "XBUDDY_EXTENSION"
     "ANFC_C0"
-    "ANFC_H5" # temporary dev only
     )
 set(MCU_VALID_OPTS
     "<default>"
@@ -178,8 +177,6 @@ if(${MCU} STREQUAL "<default>")
     set(MCU "STM32H503CBU7")
   elseif(${BOARD} STREQUAL "ANFC_C0")
     set(MCU "STM32C092KCUX")
-  elseif(${BOARD} STREQUAL "ANFC_H5")
-    set(MCU "STM32H503KBU7")
   else()
     message(FATAL_ERROR "Don't know what MCU to set as default for this board/version")
   endif()
