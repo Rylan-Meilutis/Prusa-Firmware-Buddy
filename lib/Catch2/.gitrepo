@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = git@github.com:catchorg/Catch2.git
-	branch = v2.13.7
-	commit = c4e3767e265808590986d5db6ca1b5532a7f3d13
-	parent = 419a414abcb4e81fa8433f661aa226b916196d81
+	branch = devel
+	commit = 31ee3beb0a474463e0101674c22f2fef0311d601
+	parent = a20eaf882190c29f55e4ebda38747c13f6297c35
 	method = merge
-	cmdver = 0.4.3
+	cmdver = 0.4.9

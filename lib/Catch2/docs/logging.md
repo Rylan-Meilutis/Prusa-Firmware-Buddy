@@ -1,36 +1,34 @@
 <a id="top"></a>
 # Logging macros
 
-Additional messages can be logged during a test case. Note that the messages logged with `INFO` are scoped and thus will not be reported if failure occurs in scope preceding the message declaration. An example:
+Catch2 provides various macros for logging extra information when
+running a test. These macros default to being scoped, and associate with
+all assertions in the scope, regardless of whether they pass or fail.
 
+**example**
 ```cpp
-TEST_CASE("Foo") {
+TEST_CASE("Simple info") {
     INFO("Test case start");
-    for (int i = 0; i < 2; ++i) {
-        INFO("The number is " << i);
-        CHECK(i == 0);
+    SECTION("A") {
+        INFO("Section A");
+        CHECK(false);        // 1
     }
+    SECTION("B") {
+        INFO("Section B");
+        CHECK(false);        // 2
+    }
+    CHECK(false);            // 3
 }
+```
+The first assertion will report messages "Test case start", and "Section A"
+as extra information. The second one will report messages "Test case
+started" and "Section B", while the third one will only report "Test case
+started" as the extra info.
 
-TEST_CASE("Bar") {
-    INFO("Test case start");
-    for (int i = 0; i < 2; ++i) {
-        INFO("The number is " << i);
-        CHECK(i == i);
-    }
-    CHECK(false);
-}
-```
-When the `CHECK` fails in the "Foo" test case, then two messages will be printed.
-```
-Test case start
-The number is 1
-```
-When the last `CHECK` fails in the "Bar" test case, then only one message will be printed: `Test case start`.
 
 ## Logging without local scope
 
-> [Introduced](https://github.com/catchorg/Catch2/issues/1522) in Catch 2.7.0.
+> [Introduced](https://github.com/catchorg/Catch2/issues/1522) in Catch2 2.7.0.
 
 `UNSCOPED_INFO` is similar to `INFO` with two key differences:
 
@@ -106,13 +104,17 @@ This semicolon will be removed with next major version. It is highly advised to 
 
 **UNSCOPED_INFO(** _message expression_ **)**
 
-> [Introduced](https://github.com/catchorg/Catch2/issues/1522) in Catch 2.7.0.
+> [Introduced](https://github.com/catchorg/Catch2/issues/1522) in Catch2 2.7.0.
 
 Similar to `INFO`, but messages are not limited to their own scope: They are removed from the buffer after each assertion, section or test case, whichever comes first.
 
 **WARN(** _message expression_ **)**
 
 The message is always reported but does not fail the test.
+
+**SUCCEED(** _message expression_ **)**
+
+The message is reported and the test case succeeds.
 
 **FAIL(** _message expression_ **)**
 
