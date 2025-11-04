@@ -1,12 +1,6 @@
 #include "precise_timer.hpp"
 
-#if defined(STM32C0)
-    #include <stm32c0xx_hal.h>
-#elif defined(STM32H5)
-    #include <stm32h5xx_hal.h>
-#else
-    #error
-#endif
+#include <stm32c0xx_hal.h>
 
 namespace hal::peripherals {
 extern TIM_HandleTypeDef htim2;

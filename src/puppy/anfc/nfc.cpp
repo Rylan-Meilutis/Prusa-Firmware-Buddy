@@ -11,13 +11,7 @@
 
 #include <bsod/bsod.h>
 
-#if defined(STM32H5)
-    #include <stm32h5xx_hal.h>
-#elif defined(STM32C0)
-    #include <stm32c0xx_hal.h>
-#else
-    #error
-#endif
+#include <stm32c0xx_hal.h>
 
 namespace nfc {
 namespace {
@@ -80,15 +74,8 @@ namespace {
     };
 
     namespace nfcr1 {
-#ifdef STM32H5
-        static const auto chip_select_port = GPIOA;
-        static constexpr auto chip_select_pin = GPIO_PIN_1;
-#elifdef STM32C0
         static const auto chip_select_port = GPIOA;
         static constexpr auto chip_select_pin = GPIO_PIN_4;
-#else
-    #error
-#endif
 
         HWImpl hw_impl(&hal::peripherals::hspi1, chip_select_port, chip_select_pin);
         SysImpl sys_impl {};

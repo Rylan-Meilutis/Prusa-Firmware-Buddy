@@ -9,13 +9,7 @@ namespace precise_timing {
 
 using Frequency = uint32_t;
 
-#if defined(STM32C0)
 static constexpr Frequency counter_period = 48'000'000;
-#elif defined(STM32H5)
-static constexpr Frequency counter_period = 240'000'000;
-#else
-    #error
-#endif
 
 /// Helper class to convert time from internal counter into real timestamps
 class Timer {

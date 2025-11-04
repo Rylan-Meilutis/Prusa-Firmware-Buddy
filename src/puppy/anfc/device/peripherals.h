@@ -1,19 +1,14 @@
 #pragma once
 
-#include <device/hal.h>
 #include <option/can_bus_type.h>
+
+#include <stm32c0xx_hal.h>
 
 namespace hal::peripherals {
 #if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
 extern FDCAN_HandleTypeDef hfdcan1;
 #elif CAN_BUS_TYPE_IS_UART()
-    #ifdef STM32C0
 extern UART_HandleTypeDef huart1;
-    #elif STM32H5
-extern UART_HandleTypeDef huart2;
-    #else
-        #error
-    #endif
 #else
     #error
 #endif
