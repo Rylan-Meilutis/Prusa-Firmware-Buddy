@@ -176,7 +176,6 @@ LoopResult CSelftestPart_Dock::state_ask_user_lock_tool() {
 
 LoopResult CSelftestPart_Dock::state_hold_position() {
     marlin_server::enqueue_gcode("M17 XY");
-    marlin_server::enqueue_gcode("M18 S0"); // Ensure motors are enabled as the user fastens the screws
     return LoopResult::RunNext;
 }
 
@@ -227,7 +226,6 @@ LoopResult CSelftestPart_Dock::state_measure() {
 
     // Home
     marlin_server::enqueue_gcode("G28 XY R0");
-    marlin_server::enqueue_gcode("M18 S0"); // Ensure motors are enabled as the user fastens the screws
 
     return LoopResult::RunNext;
 }
@@ -423,8 +421,7 @@ LoopResult CSelftestPart_Dock::state_selftest_leave() {
     if (remaining_park_unpark_cycles) {
         return LoopResult::GoToMark1;
     }
-    // Re-enable motor timeout (disable due to user waits)
-    marlin_server::enqueue_gcode_printf("M18 S%d", DEFAULT_STEPPER_DEACTIVE_TIME);
+
     return LoopResult::RunNext;
 }
 

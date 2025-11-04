@@ -500,10 +500,6 @@ void CSelftest::restoreAfterSelftest() {
     }
 
     thermalManager.disable_all_heaters();
-
-    // Keep steppers enabled, so the next test doesn't have to rehome
-    // Reset stepper timeout
-    marlin_server::enqueue_gcode_printf("M18 S%d", DEFAULT_STEPPER_DEACTIVE_TIME);
 }
 
 void CSelftest::next() {
