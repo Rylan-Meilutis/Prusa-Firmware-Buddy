@@ -46,7 +46,8 @@ GcodeSuite gcode;
   #include "../feature/prusa/crash_recovery.hpp"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include "module/prusa/toolchanger.h"
 #endif
 
@@ -54,10 +55,12 @@ GcodeSuite gcode;
 
 #include "odometer.hpp"
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
   #include "module/prusa/tool_mapper.hpp"
 #endif
 
+#include <option/has_mmu2.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
 #include <option/has_modular_bed.h>
@@ -95,7 +98,7 @@ int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> 
     e = *extruder;
 
     if(!is_physical) {
-    #if ENABLED(PRUSA_TOOL_MAPPING)
+    #if HAS_TOOL_MAPPING()
       // map logical tool to physical tool if mapping is enabled
       const uint8_t mapped = tool_mapper.to_physical(e);
       e = mapped == ToolMapper::NO_TOOL_MAPPED ? -1 : mapped;
@@ -105,7 +108,7 @@ int8_t GcodeSuite::get_target_extruder_from_option_value(std::optional<uint8_t> 
 
   static_assert(EXTRUDERS <= INT8_MAX, "We need to return int8_t");
   bool valid_extruder = (e < EXTRUDERS);
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
   valid_extruder = valid_extruder && prusa_toolchanger.is_tool_enabled(e);
 #endif
   if (valid_extruder) {
@@ -139,7 +142,7 @@ int8_t GcodeSuite::get_target_extruder_from_command_p() {
  */
 int8_t GcodeSuite::get_target_e_stepper_from_command() {
   int8_t e = parser.intval('T', -1);
-  #if ENABLED(PRUSA_TOOL_MAPPING)
+  #if HAS_TOOL_MAPPING()
     // map logical tool to physical tool if mapping is enabled
     const uint8_t mapped = tool_mapper.to_physical(e);
     e = mapped == ToolMapper::NO_TOOL_MAPPED ? -1 : mapped;
@@ -198,37 +201,6 @@ void GcodeSuite::dwell(millis_t time) {
 }
 
 /**
- * When G29_RETRY_AND_RECOVER is enabled, call G29() in
- * a loop with recovery and retry handling.
- */
-#if HAS_LEVELING && ENABLED(G29_RETRY_AND_RECOVER)
-
-  #ifndef G29_MAX_RETRIES
-    #define G29_MAX_RETRIES 0
-  #endif
-
-  void GcodeSuite::G29_with_retry() {
-    uint8_t retries = G29_MAX_RETRIES;
-    while (G29()) { // G29 should return true for failed probes ONLY
-      if (retries--) event_probe_recover();
-      else {
-        event_probe_failure();
-        return;
-      }
-    }
-
-    #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_action_prompt_end();
-    #endif
-
-    #ifdef G29_SUCCESS_COMMANDS
-      process_subcommands_now_P(PSTR(G29_SUCCESS_COMMANDS));
-    #endif
-  }
-
-#endif // HAS_LEVELING && G29_RETRY_AND_RECOVER
-
-/**
  * Process the parsed command and dispatch it to its handler
  */
 void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
@@ -279,13 +251,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 28: G28(); break;                                 // G28: Home all axes, one at a time
 
       #if HAS_LEVELING
-        case 29:                                                  // G29: Bed leveling calibration
-          #if ENABLED(G29_RETRY_AND_RECOVER)
-            G29_with_retry();
-          #else
-            G29();
-          #endif
-          break;
+        case 29: G29(); break;                                    // G29: Bed leveling calibration
       #endif // HAS_LEVELING
 
       #if HAS_BED_PROBE
@@ -559,12 +525,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 402: M402(); break;                                  // M402: Stow probe
       #endif
 
-      #if ENABLED(PRUSA_MMU2)
+      #if HAS_MMU2()
         case 403: M403(); break;
-      #endif
-
-      #if HAS_FILAMENT_SENSOR
-        case 412: M412(); break;                                  // M412: Enable/Disable filament runout detection
       #endif
 
       #if HAS_LEVELING
@@ -630,10 +592,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 605: M605(); break;                                  // M605: Set Dual X Carriage movement mode
       #endif
 
-      #if ENABLED(FILAMENT_LOAD_UNLOAD_GCODES)
-        case 701: M701(); break;                                  // M701: Load Filament
-        case 702: M702(); break;                                  // M702: Unload Filament
-      #endif
+      case 701: M701(); break;                                    // M701: Load Filament
+      case 702: M702(); break;                                    // M702: Unload Filament
 
       #if ENABLED(MAX7219_GCODE)
         case 7219: M7219(); break;                                // M7219: Set LEDs, columns, and rows
@@ -673,19 +633,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(DEBUG_GCODE_PARSER)
         case 800: parser.debug(); break;                          // M800: GCode Parser Test for M
-      #endif
-
-      #if ENABLED(I2C_POSITION_ENCODERS)
-        case 860: M860(); break;                                  // M860: Report encoder module position
-        case 861: M861(); break;                                  // M861: Report encoder module status
-        case 862: M862(); break;                                  // M862: Perform axis test
-        case 863: M863(); break;                                  // M863: Calibrate steps/mm
-        case 864: M864(); break;                                  // M864: Change module address
-        case 865: M865(); break;                                  // M865: Check module firmware version
-        case 866: M866(); break;                                  // M866: Report axis error count
-        case 867: M867(); break;                                  // M867: Toggle error correction
-        case 868: M868(); break;                                  // M868: Set error correction threshold
-        case 869: M869(); break;                                  // M869: Report axis error
       #endif
 
       #if HAS_LOCAL_ACCELEROMETER() || HAS_REMOTE_ACCELEROMETER()

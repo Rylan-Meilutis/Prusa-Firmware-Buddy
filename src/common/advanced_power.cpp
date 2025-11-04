@@ -118,7 +118,7 @@ void AdvancedPower::Update() {
 
 #if HAS_MMU2()
 bool AdvancedPower::MMUOvercurentFaultDetected() const {
-    return (MMUFault.read() == Pin::State::high);
+    return (ext_fault.read() == Pin::State::high);
 }
 #endif
 

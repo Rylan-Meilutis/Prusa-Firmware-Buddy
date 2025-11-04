@@ -202,7 +202,7 @@ namespace {
                     JSON_OBJ_END JSON_COMMA;
                 }
 #endif
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
                 JSON_FIELD_OBJ("chamber");
                     JSON_FIELD_FFIXED("temp", params.chamber_info.current_temp, 1) JSON_COMMA;
                     JSON_FIELD_INT("target_temp", params.chamber_info.target_temp) JSON_COMMA;
@@ -435,7 +435,7 @@ namespace {
                         JSON_FIELD_STR_FORMAT("version", "%d.%d.%d", params.mmu_version.major, params.mmu_version.minor, params.mmu_version.build);
                     JSON_OBJ_END JSON_COMMA;
 #endif
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
                     JSON_FIELD_BOOL("addon_power", params.addon_power) JSON_COMMA;
 #endif
                     JSON_FIELD_INT("slots", params.enabled_tool_cnt());

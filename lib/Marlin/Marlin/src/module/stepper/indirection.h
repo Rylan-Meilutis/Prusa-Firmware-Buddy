@@ -40,6 +40,9 @@
   #include "trinamic.h"
 #endif
 
+#include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
+
 //
 // X, Y, Z Stepper enable / disable
 //
@@ -137,7 +140,7 @@
   #define E0_disable NOOP
 #endif
 
-#if (E_STEPPERS > 1 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E1_ENABLE
+#if (E_STEPPERS > 1 || HAS_TOOLCHANGER()) && HAS_E1_ENABLE
   #define  E1_enable E1_ENABLE_WRITE( E_ENABLE_ON)
   #define E1_disable E1_ENABLE_WRITE(!E_ENABLE_ON)
 #else
@@ -145,7 +148,7 @@
   #define E1_disable NOOP
 #endif
 
-#if (E_STEPPERS > 2 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E2_ENABLE
+#if (E_STEPPERS > 2 || HAS_TOOLCHANGER()) && HAS_E2_ENABLE
   #define  E2_enable E2_ENABLE_WRITE( E_ENABLE_ON)
   #define E2_disable E2_ENABLE_WRITE(!E_ENABLE_ON)
 #else
@@ -153,7 +156,7 @@
   #define E2_disable NOOP
 #endif
 
-#if (E_STEPPERS > 3 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E3_ENABLE
+#if (E_STEPPERS > 3 || HAS_TOOLCHANGER()) && HAS_E3_ENABLE
   #define  E3_enable E3_ENABLE_WRITE( E_ENABLE_ON)
   #define E3_disable E3_ENABLE_WRITE(!E_ENABLE_ON)
 #else
@@ -161,7 +164,7 @@
   #define E3_disable NOOP
 #endif
 
-#if (E_STEPPERS > 4 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E4_ENABLE
+#if (E_STEPPERS > 4 || HAS_TOOLCHANGER()) && HAS_E4_ENABLE
   #define  E4_enable E4_ENABLE_WRITE( E_ENABLE_ON)
   #define E4_disable E4_ENABLE_WRITE(!E_ENABLE_ON)
 #else
@@ -169,7 +172,7 @@
   #define E4_disable NOOP
 #endif
 
-#if (E_STEPPERS > 5 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E5_ENABLE
+#if (E_STEPPERS > 5 || HAS_TOOLCHANGER()) && HAS_E5_ENABLE
   #define  E5_enable E5_ENABLE_WRITE( E_ENABLE_ON)
   #define E5_disable E5_ENABLE_WRITE(!E_ENABLE_ON)
 #else
@@ -185,7 +188,7 @@
   #define disable_E0() NOOP
 #endif
 
-#if (E_STEPPERS > 1 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E1_ENABLE
+#if (E_STEPPERS > 1 || HAS_TOOLCHANGER()) && HAS_E1_ENABLE
   #define  enable_E1() E1_enable
   #define disable_E1() E1_disable
 #else
@@ -193,7 +196,7 @@
   #define disable_E1() NOOP
 #endif
 
-#if (E_STEPPERS > 2 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E2_ENABLE
+#if (E_STEPPERS > 2 || HAS_TOOLCHANGER()) && HAS_E2_ENABLE
   #define  enable_E2() E2_enable
   #define disable_E2() E2_disable
 #else
@@ -201,7 +204,7 @@
   #define disable_E2() NOOP
 #endif
 
-#if (E_STEPPERS > 3 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E3_ENABLE
+#if (E_STEPPERS > 3 || HAS_TOOLCHANGER()) && HAS_E3_ENABLE
   #define  enable_E3() E3_enable
   #define disable_E3() E3_disable
 #else
@@ -209,7 +212,7 @@
   #define disable_E3() NOOP
 #endif
 
-#if (E_STEPPERS > 4 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E4_ENABLE
+#if (E_STEPPERS > 4 || HAS_TOOLCHANGER()) && HAS_E4_ENABLE
   #define  enable_E4() E4_enable
   #define disable_E4() E4_disable
 #else
@@ -217,7 +220,7 @@
   #define disable_E4() NOOP
 #endif
 
-#if (E_STEPPERS > 5 || ENABLED(PRUSA_TOOLCHANGER)) && HAS_E5_ENABLE
+#if (E_STEPPERS > 5 || HAS_TOOLCHANGER()) && HAS_E5_ENABLE
   #define  enable_E5() E5_enable
   #define disable_E5() E5_disable
 #else
@@ -507,15 +510,10 @@
 /**
  * Extruder indirection for the single E axis
  */
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
   #define E_STEP_WRITE(E,V) E0_STEP_WRITE(V)
   #define   NORM_E_DIR(E)   E0_DIR_WRITE(!INVERT_E0_DIR)
   #define    REV_E_DIR(E)   E0_DIR_WRITE( INVERT_E0_DIR)
-
-#elif ENABLED(MK2_MULTIPLEXER) // One multiplexed stepper driver, reversed on odd index
-  #define E_STEP_WRITE(E,V) E0_STEP_WRITE(V)
-  #define   NORM_E_DIR(E)   do{ E0_DIR_WRITE(TEST(E, 0) ? !INVERT_E0_DIR:  INVERT_E0_DIR); }while(0)
-  #define    REV_E_DIR(E)   do{ E0_DIR_WRITE(TEST(E, 0) ?  INVERT_E0_DIR: !INVERT_E0_DIR); }while(0)
 
 #elif E_STEPPERS > 1
 

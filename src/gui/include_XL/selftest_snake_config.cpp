@@ -14,8 +14,8 @@
     #include <module/prusa/toolchanger.h>
     #if HAS_SIDE_FSENSOR()
         #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif /*HAS_SIDE_FSENSOR()*/
-#endif /*HAS_TOOLCHANGER()*/
+    #endif
+#endif
 
 #include <option/has_precise_homing_corexy.h>
 
@@ -133,13 +133,6 @@ uint64_t get_test_mask(Action action) {
         return stmHeaters_bed;
     case Action::NozzleHeaters:
         return stmHeaters_noz;
-    case Action::Gears:
-#if HAS_PRECISE_HOMING_COREXY()
-    case Action::PreciseHoming:
-#endif
-        bsod("This should be gcode");
-    case Action::FilamentSensorCalibration:
-        return stmFSensor;
     case Action::Loadcell:
         return stmLoadcell;
     case Action::ZAlign:
@@ -148,28 +141,20 @@ uint64_t get_test_mask(Action action) {
         return stmDocks;
     case Action::ToolOffsetsCalibration:
         return stmToolOffsets;
+
+    case Action::Gears:
+#if HAS_PRECISE_HOMING_COREXY()
+    case Action::PreciseHoming:
+#endif
+    case Action::FilamentSensorCalibration:
     case Action::Fans:
     case Action::PhaseSteppingCalibration:
-        bsod("get_test_mask");
-        break;
     case Action::_count:
-        break;
+        // Implemented as a gcode/invalid
+        bsod_unreachable();
     }
-    assert(false);
-    return stmNone;
-}
 
-void ask_config(Action action) {
-    switch (action) {
-    case Action::FilamentSensorCalibration: {
-#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
-        side_fsensor_remap::ask_to_remap(); // Ask user whether to remap filament sensors
-#endif /*HAS_TOOLCHANGER()*/
-    } break;
-
-    default:
-        break;
-    }
+    bsod_unreachable();
 }
 
 Tool get_last_enabled_tool() {
@@ -179,7 +164,7 @@ Tool get_last_enabled_tool() {
             return static_cast<Tool>(i);
         }
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     return Tool::Tool1;
 }
 
@@ -189,7 +174,7 @@ Tool get_next_tool(Tool tool) {
     do {
         tool = tool + 1;
     } while (!prusa_toolchanger.is_tool_enabled(std::to_underlying(tool)));
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     return tool;
 }
 

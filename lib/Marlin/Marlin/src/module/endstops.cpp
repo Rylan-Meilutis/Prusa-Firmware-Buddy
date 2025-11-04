@@ -58,7 +58,7 @@ Endstops::esbits_t Endstops::live_state = 0;
   std::atomic<bool> Endstops::z_probe_enabled { false };
 #endif
 
-#ifdef PRUSA_TOOLCHANGER
+#if HAS_TOOLCHANGER()
   std::atomic<bool> Endstops::xy_probe_enabled { false };
 #endif
 
@@ -312,7 +312,7 @@ void Endstops::not_homing() {
 #endif
 
 // Enable / disable endstop xy-probe checking
-#ifdef PRUSA_TOOLCHANGER
+#if HAS_TOOLCHANGER()
   void Endstops::enable_xy_probe(const bool onoff) {
     xy_probe_enabled = onoff;
     resync();
@@ -419,35 +419,6 @@ void __O2 Endstops::M119() {
   #endif
   #if HAS_CUSTOM_PROBE_PIN
     print_es_state(READ(Z_MIN_PROBE_PIN) != Z_MIN_PROBE_ENDSTOP_INVERTING, PSTR(MSG_Z_PROBE));
-  #endif
-  #if HAS_FILAMENT_SENSOR
-    #if NUM_RUNOUT_SENSORS == 1
-      print_es_state(READ(FIL_RUNOUT_PIN) != FIL_RUNOUT_INVERTING, PSTR(MSG_FILAMENT_RUNOUT_SENSOR));
-    #else
-      for (uint8_t i = 1; i <= NUM_RUNOUT_SENSORS; i++) {
-        pin_t pin;
-        switch (i) {
-          default: continue;
-          case 1: pin = FIL_RUNOUT_PIN; break;
-          case 2: pin = FIL_RUNOUT2_PIN; break;
-          #if NUM_RUNOUT_SENSORS > 2
-            case 3: pin = FIL_RUNOUT3_PIN; break;
-            #if NUM_RUNOUT_SENSORS > 3
-              case 4: pin = FIL_RUNOUT4_PIN; break;
-              #if NUM_RUNOUT_SENSORS > 4
-                case 5: pin = FIL_RUNOUT5_PIN; break;
-                #if NUM_RUNOUT_SENSORS > 5
-                  case 6: pin = FIL_RUNOUT6_PIN; break;
-                #endif
-              #endif
-            #endif
-          #endif
-        }
-        SERIAL_ECHOPGM(MSG_FILAMENT_RUNOUT_SENSOR);
-        if (i > 1) { SERIAL_CHAR(' '); SERIAL_CHAR('0' + i); }
-        print_es_state(extDigitalRead(pin) != FIL_RUNOUT_INVERTING);
-      }
-    #endif
   #endif
   #if ENABLED(BLTOUCH)
     bltouch._reset_SW_mode();

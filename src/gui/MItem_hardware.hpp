@@ -5,6 +5,7 @@
 #include <option/has_side_fsensor.h>
 #include <option/has_toolchanger.h>
 #include <option/has_emergency_stop.h>
+#include <option/has_automatic_chamber_vents.h>
 #include <option/has_manual_chamber_vents.h>
 #include <common/extended_printer_type.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
@@ -40,7 +41,7 @@ public:
 protected:
     virtual void OnChange(size_t old_index) override;
 };
-#endif /*HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()*/
+#endif
 
 #if HAS_EXTENDED_PRINTER_TYPE()
 class MI_EXTENDED_PRINTER_TYPE : public MenuItemSelectMenu {
@@ -75,7 +76,7 @@ protected:
 };
 #endif
 
-#if HAS_MANUAL_CHAMBER_VENTS()
+#if HAS_MANUAL_CHAMBER_VENTS() || HAS_AUTOMATIC_CHAMBER_VENTS()
 class MI_CHECK_MANUAL_VENT_STATE : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_CHECK_MANUAL_VENT_STATE();

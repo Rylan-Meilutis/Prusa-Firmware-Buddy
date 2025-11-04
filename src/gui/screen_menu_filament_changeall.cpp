@@ -16,6 +16,7 @@
 #include <utils/string_builder.hpp>
 #include <algorithm_extensions.hpp>
 #include <filament_list.hpp>
+#include <option/has_toolchanger.h>
 
 using namespace multi_filament_change;
 

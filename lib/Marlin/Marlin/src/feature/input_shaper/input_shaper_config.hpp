@@ -110,6 +110,9 @@ inline constexpr AxisConfig axis_x_default {
 #elif PRINTER_IS_PRUSA_COREONE()
     .type = Type::ei,
     .frequency = 60.0,
+#elif PRINTER_IS_PRUSA_COREONEL()
+    .type = Type::ei,
+    .frequency = 65.0,
 #else
     .type = Type::mzv,
     .frequency = 50.7f,
@@ -127,6 +130,9 @@ inline constexpr AxisConfig axis_y_default {
     .type = Type::mzv,
     .frequency = 35.4,
 #elif PRINTER_IS_PRUSA_COREONE()
+    .type = Type::ei,
+    .frequency = 50.0,
+#elif PRINTER_IS_PRUSA_COREONEL()
     .type = Type::ei,
     .frequency = 50.0,
 #else
@@ -150,7 +156,7 @@ inline constexpr AxisConfig axis_defaults[3] = { axis_x_default, axis_y_default,
 
 inline constexpr bool weight_adjust_enabled_default = {
 // DO NOT CHANGE DEFAULTS WITHOUT CHANGING EEPROM CODE!
-#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     false
 #else
     true
@@ -159,7 +165,7 @@ inline constexpr bool weight_adjust_enabled_default = {
 
 inline constexpr WeightAdjustConfig weight_adjust_y_default {
     // DO NOT CHANGE DEFAULTS WITHOUT CHANGING EEPROM CODE!
-#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     .frequency_delta = 0,
 #else
     .frequency_delta = -20.0f,

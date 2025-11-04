@@ -1,7 +1,9 @@
 #pragma once
 
+#include <option/has_automatic_chamber_vents.h>
 #include <option/has_chamber_api.h>
 #include <option/has_auto_retract.h>
+#include <option/has_spool_join.h>
 
 #include "print_status_message_data.hpp"
 #include <inc/MarlinConfigPre.h>
@@ -34,7 +36,7 @@ struct PrintStatusMessage {
 #if ENABLED(DETECT_PRINT_SHEET)
         detecting_steel_sheet,
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         spool_joined,
         joining_spool,
 #endif
@@ -43,6 +45,10 @@ struct PrintStatusMessage {
 #endif
 #if HAS_AUTO_RETRACT()
         auto_retracting,
+#endif
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+        opening_chamber_vents,
+        closing_chamber_vents,
 #endif
 
         _cnt
@@ -99,7 +105,7 @@ struct PrintStatusMessage {
 #if ENABLED(DETECT_PRINT_SHEET)
         TypeRecord<Type::detecting_steel_sheet, std::monostate>,
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         TypeRecord<Type::spool_joined, std::monostate>,
         TypeRecord<Type::joining_spool, std::monostate>,
 #endif
@@ -108,6 +114,10 @@ struct PrintStatusMessage {
 #endif
 #if HAS_AUTO_RETRACT()
         TypeRecord<Type::auto_retracting, PrintStatusMessageDataProgress>,
+#endif
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+        TypeRecord<Type::opening_chamber_vents, std::monostate>,
+        TypeRecord<Type::closing_chamber_vents, std::monostate>,
 #endif
 
         TypeRecord<Type::none, std::monostate>>;

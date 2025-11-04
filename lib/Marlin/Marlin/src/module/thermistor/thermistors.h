@@ -49,6 +49,9 @@
 #if ANY_THERMISTOR_IS(2008) // XL prototype termistor, TODO: FIX
   #include "thermistor_2008.h"
 #endif
+#if ANY_THERMISTOR_IS(1010) // PT1000
+  #include "thermistor_1010.h"
+#endif
 
 #define _TT_NAME(_N) temptable_ ## _N
 #define TT_NAME(_N) _TT_NAME(_N)
@@ -162,8 +165,12 @@ static_assert(
 // Set the high and low raw values for the heaters
 // For thermistors the highest temperature results in the lowest ADC value
 // For thermocouples the highest temperature results in the highest ADC value
+#define TEMP_SENSOR(N) TEMP_SENSOR_##N
+#define _TT_REV(N)    REVERSE_TEMP_SENSOR_RANGE_##N
+#define TT_REV(N)     TERN0(HEATER_##N##_USES_THERMISTOR, DEFER4(_TT_REV)(TEMP_SENSOR(N)))
+
 #ifndef HEATER_0_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_0_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(0) || !defined(HEATER_0_USES_THERMISTOR)
     #define HEATER_0_RAW_HI_TEMP 16383
     #define HEATER_0_RAW_LO_TEMP 0
   #else
@@ -172,7 +179,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_1_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_1_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(1) || !defined(HEATER_1_USES_THERMISTOR)
     #define HEATER_1_RAW_HI_TEMP 16383
     #define HEATER_1_RAW_LO_TEMP 0
   #else
@@ -181,7 +188,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_2_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_2_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(2) || !defined(HEATER_2_USES_THERMISTOR)
     #define HEATER_2_RAW_HI_TEMP 16383
     #define HEATER_2_RAW_LO_TEMP 0
   #else
@@ -190,7 +197,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_3_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_3_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(3) || !defined(HEATER_3_USES_THERMISTOR)
     #define HEATER_3_RAW_HI_TEMP 16383
     #define HEATER_3_RAW_LO_TEMP 0
   #else
@@ -199,7 +206,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_4_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_4_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(4) || !defined(HEATER_4_USES_THERMISTOR)
     #define HEATER_4_RAW_HI_TEMP 16383
     #define HEATER_4_RAW_LO_TEMP 0
   #else
@@ -208,7 +215,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_5_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_5_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(5) || !defined(HEATER_5_USES_THERMISTOR)
     #define HEATER_5_RAW_HI_TEMP 16383
     #define HEATER_5_RAW_LO_TEMP 0
   #else
@@ -217,7 +224,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_BED_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_BED_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(BED) || !defined(HEATER_BED_USES_THERMISTOR)
     #define HEATER_BED_RAW_HI_TEMP 16383
     #define HEATER_BED_RAW_LO_TEMP 0
   #else
@@ -226,7 +233,7 @@ static_assert(
   #endif
 #endif
 #ifndef HEATER_CHAMBER_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATER_CHAMBER_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(CHAMBER) || !defined(HEATER_CHAMBER_USES_THERMISTOR)
     #define HEATER_CHAMBER_RAW_HI_TEMP 16383
     #define HEATER_CHAMBER_RAW_LO_TEMP 0
   #else
@@ -236,7 +243,7 @@ static_assert(
 #endif
 
 #ifndef HEATBREAK_RAW_HI_TEMP
-  #if defined(REVERSE_TEMP_SENSOR_RANGE) || !defined(HEATBREAK_USES_THERMISTOR)
+  #if defined(REVERSE_TEMP_SENSOR_RANGE) || TT_REV(HEATBREAK) || !defined(HEATBREAK_USES_THERMISTOR)
     #define HEATBREAK_RAW_HI_TEMP 16383
     #define HEATBREAK_RAW_LO_TEMP 0
   #else
@@ -256,3 +263,6 @@ static_assert(
 #endif
 
 #undef REVERSE_TEMP_SENSOR_RANGE
+#undef TEMP_SENSOR
+#undef _TT_REV
+#undef TT_REV

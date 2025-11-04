@@ -16,7 +16,7 @@ void SelftestResult_Log(const SelftestResult &results) {
         if (buddy::puppies::dwarfs[e].is_enabled() == false) {
             continue;
         }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         log_info(Selftest, "Print fan %u result is %s", e, ToString(results.tools[e].printFan));
         log_info(Selftest, "Heatbreak fan %u result is %s", e, ToString(results.tools[e].heatBreakFan));

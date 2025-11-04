@@ -4,6 +4,8 @@
 #include "data_exchange.hpp"
 #include "otp.hpp"
 #include "timing_precise.hpp"
+#include <adc.hpp>
+#include <common/hwio_pindef.h>
 #include <option/bootloader.h>
 #include <option/has_door_sensor.h>
 #if HAS_DOOR_SENSOR()
@@ -69,19 +71,15 @@ Configuration::Configuration() {
 }
 
 bool Configuration::has_inverted_fans() const {
-    return get_board_bom_id() < 37;
-}
-
-bool Configuration::has_inverted_mmu_reset() const {
-    return get_board_bom_id() >= 37;
+    return !PRINTER_IS_PRUSA_iX() && get_board_bom_id() < 37;
 }
 
 bool Configuration::has_mmu_power_up_hw() const {
-    return get_board_bom_id() >= 37;
+    return PRINTER_IS_PRUSA_iX() || get_board_bom_id() >= 37;
 }
 
 bool Configuration::has_trinamic_oscillators() const {
-    return get_board_bom_id() >= 37;
+    return PRINTER_IS_PRUSA_iX() || get_board_bom_id() >= 37;
 }
 
 bool Configuration::is_fw_compatible_with_hw() const {
@@ -116,8 +114,16 @@ bool Configuration::is_fw_compatible_with_hw() const {
     }
     #endif /* !PRINTER_IS_PRUSA_MK3_5() */
 
+    // Disconnected thermistor should read 0x3ff value (10-bit adc channel with oversampling).
+    // However, there are some 3V3 fluctuations so we allow changes on 2 least significant bits
+    // When the thermistor is connected, we read values around 0x3D0
+    constexpr uint32_t disconnected_bed_mask = 0b11'1111'1100;
+    [[maybe_unused]] const bool bed_thermistor_connected = (AdcGet::bed() & disconnected_bed_mask) != disconnected_bed_mask;
+
     #if PRINTER_IS_PRUSA_COREONE()
-    return door_sensor_connected;
+    return door_sensor_connected && bed_thermistor_connected;
+    #elif PRINTER_IS_PRUSA_COREONEL()
+    return door_sensor_connected && !bed_thermistor_connected;
     #elif PRINTER_IS_PRUSA_MK4()
     return !door_sensor_connected && (loveboard_present || !mk35_extruder_detected);
     #elif PRINTER_IS_PRUSA_MK3_5()
@@ -155,14 +161,39 @@ bool Configuration::needs_heatbreak_thermistor_table_5() const {
 }
 #endif
 
-bool Configuration::needs_push_pull_mmu_reset_pin() const {
-    // xBuddy schematics says: Revisions older than 34 must use open drain only.
-    return get_board_bom_id() >= 34;
-}
-
 bool Configuration::needs_software_mmu_powerup() const {
     // TODO: When we have a new bom this should be edited
     return true;
+}
+
+void Configuration::setup_ext_reset() const {
+    const auto &config = Configuration::Instance();
+
+    // Newer BOMs need push-pull for the reset pin, older open drain.
+    // Setting it like this is a bit hacky, because the ext_reset defined in hwio_pindef is constexpr,
+    // so it's not possible to change it right at the source.
+    if (config.needs_push_pull_mmu_reset_pin()) {
+        OutputPin pin = buddy::hw::ext_reset;
+        pin.m_mode = OMode::pushPull;
+        pin.configure();
+    }
+}
+
+void Configuration::activate_ext_reset() const {
+    ext_reset.write(Configuration::Instance().has_inverted_mmu_reset() ? Pin::State::low : Pin::State::high);
+}
+
+void Configuration::deactivate_ext_reset() const {
+    ext_reset.write(Configuration::Instance().has_inverted_mmu_reset() ? Pin::State::high : Pin::State::low);
+}
+
+bool Configuration::has_inverted_mmu_reset() const {
+    return !PRINTER_IS_PRUSA_iX() && get_board_bom_id() >= 37;
+}
+
+bool Configuration::needs_push_pull_mmu_reset_pin() const {
+    // xBuddy schematics says: Revisions older than 34 must use open drain only.
+    return PRINTER_IS_PRUSA_iX() || get_board_bom_id() >= 34;
 }
 
 } // namespace buddy::hw

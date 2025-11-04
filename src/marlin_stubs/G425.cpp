@@ -52,7 +52,8 @@
 #include "Marlin/src/gcode/gcode.h"
 #include "../../module/stepper.h"
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "loadcell.hpp"
     #include "../../module/prusa/toolchanger.h"
     #include "../../module/probe.h"
@@ -623,7 +624,7 @@ inline void calibrate_all_toolheads(measurements_t &m) {
     TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
     for (int8_t e = 0; e < HOTENDS; e++) {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.getTool(e).is_enabled()) {
             continue;
         }
@@ -633,7 +634,7 @@ inline void calibrate_all_toolheads(measurements_t &m) {
 
 #if HAS_HOTEND_OFFSET
     normalize_hotend_offsets();
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
     prusa_toolchanger.save_tool_offsets();
     #endif
 #endif
@@ -699,7 +700,7 @@ inline bool calibrate_all_simple() {
     // Measure centers
     std::array<xyz_pos_t, HOTENDS> centers;
     for (int8_t e = 0; e < HOTENDS; e++) {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.getTool(e).is_enabled()) {
             continue;
         }
@@ -743,7 +744,7 @@ inline bool calibrate_all_simple() {
 
     // Check offsets
     for (int8_t e = 0; e < HOTENDS; e++) {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.getTool(e).is_enabled()) {
             hotend_offset[e].reset();
             continue;

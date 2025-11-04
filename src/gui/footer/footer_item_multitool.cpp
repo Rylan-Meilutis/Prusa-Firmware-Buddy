@@ -45,9 +45,9 @@ string_view_utf8 FooterItemCurrentTool::static_makeView(int value) {
     } else {
         buff[0] = ((value + 1) % 10) + '0'; // Indexing from tool 1
     }
-#else /*HAS_TOOLCHANGER()*/
+#else
     buff[0] = (value % 10) + '0'; // avoid rendering >1 characters
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return string_view_utf8::MakeRAM(buff);
 }

@@ -31,6 +31,15 @@ public:
     AnyGcodeFormatReader &operator=(AnyGcodeFormatReader &&);
     ~AnyGcodeFormatReader();
 
+    bool open(const char *filename, bool allow_decryption = false
+#if HAS_E2EE_SUPPORT()
+        ,
+        e2ee::IdentityCheckLevel identity_check_lvl = config_store().identity_check.get()
+#endif
+    );
+
+    void close();
+
     IGcodeReader *get(); // never returns nullptr
     IGcodeReader &operator*() { return *get(); }
     IGcodeReader *operator->() { return get(); }

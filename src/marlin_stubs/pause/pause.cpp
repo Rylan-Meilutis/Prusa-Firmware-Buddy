@@ -16,7 +16,9 @@
 #include "Marlin/src/module/stepper.h"
 #include "Marlin/src/module/printcounter.h"
 #include "Marlin/src/module/temperature.h"
-#if ENABLED(PRUSA_MMU2)
+
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
@@ -50,11 +52,12 @@
 #include <buddy/unreachable.hpp>
 #include <sound.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
+#include <mapi/cold_extrude.hpp>
 
 #include <option/has_human_interactions.h>
-#include <option/has_mmu2.h>
 #include <option/has_wastebin.h>
 #include <option/has_side_fsensor.h>
+#include <option/has_toolchanger.h>
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -91,10 +94,7 @@ static void nozzle_cleaner_load_or_runout_load_gcode(Pause::LoadType load_type) 
 // filament sensor is no longer part of marlin thus it must be disabled
 // clang-format off
 #if (!ENABLED(EXTENSIBLE_UI)) || \
-    (!ENABLED(ADVANCED_PAUSE_FEATURE)) || \
-    HAS_FILAMENT_SENSOR || \
-    NUM_RUNOUT_SENSORS > 1 || \
-    ENABLED(ADVANCED_PAUSE_CONTINUOUS_PURGE)
+    (!ENABLED(ADVANCED_PAUSE_FEATURE))
 #error unsupported
 #endif
 // clang-format on
@@ -202,7 +202,6 @@ PausePrivatePhase::PausePrivatePhase()
 void PausePrivatePhase::setPhase(PhasesLoadUnload ph) {
     phase = ph;
     if (load_unload_mode) {
-        log_info(MarlinServer, "setPhase %i %i", int(ph), int(state));
         // Do not call progress_mapper.update_progress() here. We want to completely skip states that do nothing and remap the remaining progress
         // If we update progress here, the phase would be included in the progress mapping
         marlin_server::fsm_change(phase, fsm::serialize_data(FSMLoadUnloadData { .mode = *load_unload_mode, .progress = progress_mapper.current_progress() }));
@@ -351,7 +350,7 @@ bool Pause::ensureSafeTemperatureNotifyProgress() {
 }
 
 [[nodiscard]] Pause::StopConditions Pause::do_e_move_notify_progress_coldextrude(const float &length, const feedRate_t &fr_mm_s, StopConditions check_for) {
-    AutoRestore cold_extrude_guard(thermalManager.allow_cold_extrude, true);
+    mapi::ColdExtrudeGuard cold_extrude_guard;
     return do_e_move_notify_progress(length, fr_mm_s, check_for);
 }
 
@@ -417,7 +416,7 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
 
         // Filament should be already out of gears by now, we move it just to be sure it's removable manually
         std::ignore = do_e_move_notify_progress_coldextrude(-20.f, (FILAMENT_CHANGE_UNLOAD_FEEDRATE), StopConditions::Accomplished);
-        Sound_Play(eSOUND_TYPE::SingleBeep);
+        sound::play(SoundType::single_beep);
         set(LoadState::loading_obstruction);
         return;
     }
@@ -507,7 +506,7 @@ void Pause::filament_push_ask_process(Response response) {
         // BFW-5134
         if (settings.extruder_mmu_rework) {
 #if ENABLED(PREVENT_COLD_EXTRUSION)
-            AutoRestore ar_ce(thermalManager.allow_cold_extrude, true);
+            mapi::ColdExtrudeGuard cold_extrude_guard;
 #endif
             mapi::extruder_schedule_turning(3);
         }
@@ -597,8 +596,7 @@ void Pause::assist_insertion_process([[maybe_unused]] Response response) {
     }
 
 #if ENABLED(PREVENT_COLD_EXTRUSION)
-    AutoRestore<bool> CE(thermalManager.allow_cold_extrude);
-    thermalManager.allow_cold_extrude = true;
+    mapi::ColdExtrudeGuard cold_extrude_guard;
 #endif
     // Enqueue an E move, but only if there are no more than 4 moves scheduled.
     // This ensures that there is always 0.4mm of movement enqueued in advance,
@@ -1194,7 +1192,7 @@ bool Pause::tool_change([[maybe_unused]] uint8_t target_extruder, [[maybe_unused
         // Change tool, don't lift or return Z as it was done by parking
         return prusa_toolchanger.tool_change(target_extruder, tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return true;
 }
@@ -1499,10 +1497,6 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
 #endif
 
     invoke_loop();
-
-#if ADVANCED_PAUSE_RESUME_PRIME != 0
-    do_pause_e_move(ADVANCED_PAUSE_RESUME_PRIME, feedRate_t(ADVANCED_PAUSE_PURGE_FEEDRATE));
-#endif
 
     // Now all extrusion positions are resumed and ready to be confirmed
     // Set extruder to saved position

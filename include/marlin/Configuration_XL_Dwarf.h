@@ -139,42 +139,6 @@
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
 
-/**
- * Průša MK2 Single Nozzle Multi-Material Multiplexer, and variants.
- *
- * This device allows one stepper driver on a control board to drive
- * two to eight stepper motors, one at a time, in a manner suitable
- * for extruders.
- *
- * This option only allows the multiplexer to switch on tool-change.
- * Additional options to configure custom E moves are pending.
- */
-//#define MK2_MULTIPLEXER
-#if ENABLED(MK2_MULTIPLEXER)
-// Override the default DIO selector pins here, if needed.
-// Some pins files may provide defaults for these pins.
-//#define E_MUX0_PIN 40  // Always Required
-//#define E_MUX1_PIN 42  // Needed for 3 to 8 inputs
-//#define E_MUX2_PIN 44  // Needed for 5 to 8 inputs
-#endif
-
-/**
- * Prusa Multi-Material Unit v2
- *
- * Requires EXTRUDERS = 5
- *
- * For additional configuration see Configuration_adv.h
- */
-//#define PRUSA_MMU2
-
-
-/* Prusa Dwarf
- *
- * - Counterpart to the PRUSA_TOOLCHANGER.
- * - This instance of Marlin is going to be extruder only.
- */
-#define PRUSA_DWARF
-
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.
@@ -548,7 +512,8 @@
 //
 #define CLASSIC_JERK
 #if DISABLED(CLASSIC_JERK)
-    #define JUNCTION_DEVIATION_MM 0.02 // (mm) Distance from real junction edge
+    #define JUNCTION_DEVIATION_MM 0.01f // (mm) Distance from real junction edge
+    #define JD_SMALL_SEGMENT_HANDLING   // Handle small segments (< 1 mm) with large junction angles (> 135°) based on a local curvature estimate, instead of just the junction angle.
 #endif
 
 /**
@@ -812,8 +777,6 @@
 
 // @section homing
 
-//#define NO_MOTION_BEFORE_HOMING  // Inhibit movement until all axes have been homed
-
 //#define UNKNOWN_Z_NO_RAISE // Don't raise Z (lower the bed) if Z is "unknown." For beds that fall when Z is powered off.
 
 #define Z_HOMING_HEIGHT 4 // (mm) Minimal Z height before homing (G28) for Z clearance above the bed, clamps, ...
@@ -890,38 +853,6 @@
 
 #if EITHER(MIN_SOFTWARE_ENDSTOPS, MAX_SOFTWARE_ENDSTOPS)
 //#define SOFT_ENDSTOPS_MENU_ITEM  // Enable/Disable software endstops from the LCD
-#endif
-
-/**
- * Filament Runout Sensors
- * Mechanical or opto endstops are used to check for the presence of filament.
- *
- * RAMPS-based boards use SERVO3_PIN for the first runout sensor.
- * For other boards you may need to define FIL_RUNOUT_PIN, FIL_RUNOUT2_PIN, etc.
- * By default the firmware assumes HIGH=FILAMENT PRESENT.
- */
-//#define FILAMENT_RUNOUT_SENSOR
-#if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    #define NUM_RUNOUT_SENSORS 1 // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
-    #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
-    #define FIL_RUNOUT_PULLUP // Use internal pullup for filament runout pins.
-    //#define FIL_RUNOUT_PULLDOWN      // Use internal pulldown for filament runout pins.
-
-    // Set one or more commands to execute on filament runout.
-    // (After 'M412 H' Marlin will ask the host to handle the process.)
-    #define FILAMENT_RUNOUT_SCRIPT "M600"
-
-// After a runout is detected, continue printing this length of filament
-// before executing the runout script. Useful for a sensor at the end of
-// a feed tube. Requires 4 bytes SRAM per sensor, plus 4 bytes overhead.
-//#define FILAMENT_RUNOUT_DISTANCE_MM 25
-
-    #ifdef FILAMENT_RUNOUT_DISTANCE_MM
-    // Enable this option to use an encoder disc that toggles the runout pin
-    // as the filament moves. (Be sure to set FILAMENT_RUNOUT_DISTANCE_MM
-    // large enough to avoid false positives.)
-    //#define FILAMENT_MOTION_SENSOR
-    #endif
 #endif
 
 //===========================================================================

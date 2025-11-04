@@ -20,6 +20,7 @@
 #include <option/buddy_enable_connect.h>
 #include <option/has_belt_tuning.h>
 #include <option/has_auto_retract.h>
+#include <option/has_toolchanger.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
 
@@ -522,7 +523,7 @@ public:
 class MI_SIDE_LEDS_MAX_BRIGTHNESS : public WiSpin {
 
     static constexpr const char *const label =
-    #if PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         N_("Chamber Lights");
     #else
         N_("RGB Side Strip");
@@ -550,7 +551,7 @@ public:
 
 class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
     static constexpr const char *const label =
-    #if PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         N_("Chamber Dimming");
     #else
         N_("RGB Side Strip Dimming");
@@ -570,7 +571,7 @@ public:
     MI_TOOL_LEDS_ENABLE();
     virtual void OnChange(size_t old_index) override;
 };
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #if ENABLED(POWER_PANIC)
 class MI_TRIGGER_POWER_PANIC : public IWindowMenuItem {

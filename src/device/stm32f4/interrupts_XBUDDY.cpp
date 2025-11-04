@@ -4,7 +4,6 @@
 #include <device/peripherals_uart.hpp>
 #include <hw/buffered_serial.hpp>
 #include <option/buddy_enable_wui.h>
-#include <option/has_mmu2.h>
 #include <option/has_puppies.h>
 #include <printers.h>
 #include <option/has_esp.h>

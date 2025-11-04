@@ -20,6 +20,7 @@ enum class FwAutoUpdate : uint8_t {
     tester_mode_1 = 0xCA,
     tester_mode_2 = 0xCB,
     tester_mode_3 = 0xCC,
+    tester_mode_4 = 0xCD,
 };
 
 struct __attribute__((packed)) DataExchange {
@@ -133,6 +134,7 @@ static FwAutoUpdate get_auto_update_flag(void) {
     case FwAutoUpdate::tester_mode_1:
     case FwAutoUpdate::tester_mode_2:
     case FwAutoUpdate::tester_mode_3:
+    case FwAutoUpdate::tester_mode_4:
         return ram_data_exchange.fw_update_flag;
     }
     return FwAutoUpdate::off; // somehow corrupted data in shared RAM, no update
@@ -192,6 +194,7 @@ bool running_in_tester_mode() {
     case FwAutoUpdate::tester_mode_1:
     case FwAutoUpdate::tester_mode_2:
     case FwAutoUpdate::tester_mode_3:
+    case FwAutoUpdate::tester_mode_4:
         return true;
     }
     return false;

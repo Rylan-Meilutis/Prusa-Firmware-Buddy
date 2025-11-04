@@ -16,8 +16,8 @@ public:
 
 class MMU final : public modbus::Callbacks {
 public:
-    virtual Status read_registers(uint8_t, uint16_t address, std::span<uint16_t> out) override;
-    virtual Status write_registers(uint8_t, uint16_t address, std::span<const uint16_t> in) override;
+    virtual Status read_registers(uint16_t address, std::span<uint16_t> out) override;
+    virtual Status write_registers(uint16_t address, std::span<const uint16_t> in) override;
 
 private:
     Status read_register(uint16_t address, uint16_t &out);

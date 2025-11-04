@@ -10,7 +10,6 @@
 #include "MItem_menus.hpp"
 #include <MItem_tools.hpp>
 #include "option/has_side_leds.h"
-#include "option/has_toolchanger.h"
 #include <option/has_chamber_filtration_api.h>
 #include <device/board.h>
 #include <gui/menu_item/specific/menu_items_chamber.hpp>

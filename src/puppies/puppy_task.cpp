@@ -13,10 +13,17 @@
 #include "Marlin/src/module/stepper.h"
 #include "Marlin/src/module/prusa/toolchanger.h"
 #include <tasks.hpp>
+#include <option/has_ac_controller.h>
 #include <option/has_dwarf.h>
 #include <option/has_puppy_modularbed.h>
+#include <option/has_toolchanger.h>
 #include <buddy/ccm_thread.hpp>
+#include <buddy/bootstrap_state.hpp>
 #include "bsod.h"
+
+#if HAS_AC_CONTROLLER()
+    #include <puppies/ac_controller.hpp>
+#endif
 
 #if HAS_PUPPY_MODULARBED()
     #include <puppies/modular_bed.hpp>
@@ -76,6 +83,8 @@ static void verify_puppies_running() {
         const bool xbuddy_extension_ok = true;
 #endif
 
+        // Note: We don't ping AC controller. It's not a separate device from modbus point of view, that one is virtual & proxied by extension board.
+
         if (num_dwarfs_dead == 0 && modular_bed_ok && xbuddy_extension_ok) {
             log_info(Puppies, "All puppies are reacheable. Continuing");
             return;
@@ -95,7 +104,7 @@ static void verify_puppies_running() {
 }
 
 static void puppy_task_loop() {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     size_t slow_stage = 0; ///< Switch slow action
 #endif
 
@@ -108,7 +117,7 @@ static void puppy_task_loop() {
         [[maybe_unused]] uint32_t cycle_ticks = ticks_ms(); ///< Only one tick read per cycle, value will be reused by last_ticks_ms()
         // One slow action
         bool worked = false;
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.update()) {
             return;
         }
@@ -179,7 +188,7 @@ static void puppy_task_loop() {
                 CommunicationStatus status = xbuddy_extension.refresh();
                 if (status == CommunicationStatus::ERROR) {
     #if PUPPY_TASK_DEBUG()
-                    log_error(Puppies, "xbuddy_extension.refresh() == CommunicationStatus::ERROR")
+                    log_error(Puppies, "xbuddy_extension.refresh() == CommunicationStatus::ERROR");
     #else
                     return;
     #endif
@@ -188,7 +197,17 @@ static void puppy_task_loop() {
                 worked |= status == CommunicationStatus::OK;
             }
 #endif
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_AC_CONTROLLER()
+            {
+                CommunicationStatus status = ac_controller.refresh();
+                if (status == CommunicationStatus::ERROR) {
+                    return;
+                }
+
+                worked |= status == CommunicationStatus::OK;
+            }
+#endif
+#if HAS_TOOLCHANGER()
         } while (!worked && slow_stage != orig_stage); // End if we did some work or if no stage has anything to do
 #endif
         osDelay(worked ? 1 : 2); // Longer delay if we did no work
@@ -220,8 +239,50 @@ static bool puppy_initial_scan() {
         return false;
     }
 #endif
+
+#if HAS_AC_CONTROLLER()
+    if (ac_controller.initial_scan() == CommunicationStatus::ERROR) {
+        return false;
+    }
+#endif
     return true;
 }
+
+#if HAS_AC_CONTROLLER()
+[[nodiscard]] bool wait_for_ac_controller() {
+    // AC controller is vital part of the printer, there is no upper limit
+    // on how long we are willing to wait for the bootstrap.
+    for (;;) {
+        // At this point, puppy_task_loop() is not yet running, so we must
+        // manually call refresh() on puppies. Without this, XBE can't make
+        // progress while flashing/veryfing ACC. It would also stop sending
+        // healthy heartbeats which would in turn put ACC into safe state.
+        // We should run this as often as possible to minimize time when
+        // XBE is waiting for firmware chunk.
+        if (xbuddy_extension.refresh() == CommunicationStatus::ERROR) {
+            return false;
+        }
+        if (ac_controller.refresh() == CommunicationStatus::ERROR) {
+            return false;
+        }
+        using xbuddy_extension::NodeState;
+        switch (ac_controller.get_node_state()) {
+        case NodeState::unknown:
+            bootstrap_state_set(0, BootstrapStage::ac_controller_unknown);
+            break;
+        case NodeState::verify:
+            bootstrap_state_set(0, BootstrapStage::ac_controller_verify);
+            break;
+        case NodeState::flash:
+            bootstrap_state_set(xbuddy_extension.get_flash_progress_percent(), BootstrapStage::ac_controller_flash);
+            break;
+        case NodeState::ready:
+            bootstrap_state_set(0, BootstrapStage::ac_controller_ready);
+            return true;
+        }
+    }
+}
+#endif
 
 static void puppy_task_body([[maybe_unused]] void const *argument) {
     TaskDeps::wait(TaskDeps::Tasks::puppy_task_start);
@@ -256,11 +317,17 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
                 break;
             }
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
             // select active tool (previously active tool, or first one when starting)
             if (!prusa_toolchanger.init(first_run)) {
                 log_error(Puppies, "Unable to select tool, retrying");
                 break;
+            }
+#endif
+
+#if HAS_AC_CONTROLLER()
+            if (!wait_for_ac_controller()) {
+                break; // go to puppy recovery
             }
 #endif
 

@@ -5,6 +5,7 @@
 
 #include <general_response.hpp>
 #include <module/prusa/tool_mapper.hpp>
+#include <option/has_toolchanger.h>
 #include <netif_settings.h>
 #include <str_utils.hpp>
 
@@ -126,7 +127,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
     uint32_t expected_args = 0;
     uint32_t seen_args = 0;
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
     bool in_tool_mapping = false;
     uint32_t tool_mapping_index_outer = 0;
     uint32_t tool_mapping_index_inner = 0;
@@ -137,7 +138,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
         auto is_arg = [&](const string_view name, Type type) -> bool {
             return event.depth == 2 && in_kwargs && event.type == type && event.key == name;
         };
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         auto is_tool_mapping_index = [&]() -> std::optional<uint32_t> {
             if (in_tool_mapping && event.type == Type::Array && event.depth == 3) {
                 return convert_num<uint32_t>(event.key.value());
@@ -277,7 +278,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
             PATH_ARG(CreateFolder)
             PATH_ARG(StartEncryptedDownload)
             PATH_ARG(StartInlineDownload)
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         } else if (is_arg("tool_mapping", Type::Object)) {
             in_tool_mapping = true;
             if (auto *cmd = get_if<StartPrint>(&data); cmd != nullptr) {
@@ -403,7 +404,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
         } else if (is_arg("id", Type::Primitive)) {
             INT_ARG(CancelObject, uint16_t, id, ArgId)
             INT_ARG(UncancelObject, uint16_t, id, ArgId)
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
         } else if (is_arg("chamber.target_temp", Type::Primitive)) {
             SET_VALUE_ARG(PropertyName::ChamberTargetTemp, uint32_t);
         } else if (is_arg("chamber.fan_pwm_target", Type::Primitive)) {

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <option/bootloader_update.h>
+#include <option/has_ac_controller.h>
 #include <option/has_dwarf.h>
 #include <option/has_esp.h>
 #include <option/has_puppies.h>
@@ -44,6 +45,12 @@ enum class BootstrapStage : uint8_t {
     #if HAS_XBUDDY_EXTENSION()
     flashing_xbuddy_extension,
     verifying_xbuddy_extension,
+    #endif
+    #if HAS_AC_CONTROLLER()
+    ac_controller_unknown,
+    ac_controller_verify,
+    ac_controller_flash,
+    ac_controller_ready,
     #endif
 #endif
 };

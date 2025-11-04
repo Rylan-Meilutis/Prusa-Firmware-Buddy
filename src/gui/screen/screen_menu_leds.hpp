@@ -5,6 +5,7 @@
 
 #include "screen_menu.hpp"
 #include "MItem_tools.hpp"
+#include <option/has_toolchanger.h>
 
 using ScreenMenuLeds__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_LEDS()

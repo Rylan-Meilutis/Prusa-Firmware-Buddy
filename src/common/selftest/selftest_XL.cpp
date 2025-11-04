@@ -18,7 +18,6 @@
 #include "selftest_heaters_type.hpp"
 #include "selftest_heaters_interface.hpp"
 #include "selftest_loadcell_interface.hpp"
-#include "selftest_fsensor_interface.hpp"
 #include "selftest_axis_interface.hpp"
 #include "selftest_netstatus_interface.hpp"
 #include "selftest_dock_interface.hpp"
@@ -26,7 +25,6 @@
 #include "selftest_axis_config.hpp"
 #include "selftest_heater_config.hpp"
 #include "selftest_loadcell_config.hpp"
-#include "selftest_fsensor_config.hpp"
 #include "calibration_z.hpp"
 #include "fanctl.hpp"
 #include "timing.h"
@@ -189,15 +187,6 @@ static constexpr LoadcellConfig_t Config_Loadcell[] = {
     make_loadcell_config(3, "Loadcell 4"),
     make_loadcell_config(4, "Loadcell 5")
 };
-
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensor = { {
-    { .extruder_id = 0 },
-    { .extruder_id = 1 },
-    { .extruder_id = 2 },
-    { .extruder_id = 3 },
-    { .extruder_id = 4 },
-    { .extruder_id = 5 },
-} };
 
 static consteval DockConfig_t make_dock_config(uint8_t index) {
     return {
@@ -409,12 +398,6 @@ void CSelftest::Loop() {
             }
         }
         break;
-
-    case stsFSensor_calibration:
-        if ((ret = selftest::phaseFSensor(tool_mask, pFSensor, Config_FSensor))) {
-            return;
-        }
-        break;
     case stsSelftestStop:
         restoreAfterSelftest();
         break;
@@ -517,10 +500,6 @@ void CSelftest::restoreAfterSelftest() {
     }
 
     thermalManager.disable_all_heaters();
-
-    // Keep steppers enabled, so the next test doesn't have to rehome
-    // Reset stepper timeout
-    marlin_server::enqueue_gcode_printf("M18 S%d", DEFAULT_STEPPER_DEACTIVE_TIME);
 }
 
 void CSelftest::next() {

@@ -37,6 +37,7 @@
 #if HAS_BED_PROBE
   #include "probe.h"
 #endif
+#include <option/has_toolchanger.h>
 #include <option/has_wastebin.h>
 
 // Axis homed and known-position states
@@ -325,12 +326,6 @@ bool axis_unhomed_error(uint8_t axis_bits=0x07, AxisHomeLevel required_level = A
 
 static inline bool homing_needed_error(uint8_t axis_bits=0x07) { return axis_unhomed_error(axis_bits); }
 
-#if ENABLED(NO_MOTION_BEFORE_HOMING)
-  #define MOTION_CONDITIONS (IsRunning() && !axis_unhomed_error())
-#else
-  #define MOTION_CONDITIONS IsRunning()
-#endif
-
 void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, bool homing_z_with_probe = true);
 
 void set_axis_is_not_at_home(const AxisEnum axis);
@@ -378,7 +373,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
   #else
     #define _WS position_shift
   #endif
-  #if DISABLED(PRUSA_TOOLCHANGER)
+  #if !HAS_TOOLCHANGER()
     #define NATIVE_TO_LOGICAL(POS, AXIS) ((POS) + _WS[AXIS])
     #define LOGICAL_TO_NATIVE(POS, AXIS) ((POS) - _WS[AXIS])
     FORCE_INLINE void toLogical(xy_pos_t &raw)   { raw += _WS; }

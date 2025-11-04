@@ -18,6 +18,8 @@
 #include <option/has_belt_tuning.h>
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_door_sensor_calibration.h>
+#include <option/has_automatic_chamber_vents.h>
+#include <option/has_spool_join.h>
 
 #if HAS_LOADCELL()
     #include "loadcell.hpp"
@@ -212,12 +214,12 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M853();
             break;
 #endif
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         case 863:
             PrusaGcodeSuite::M863();
             break;
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         case 864:
             PrusaGcodeSuite::M864();
             break;
@@ -225,6 +227,12 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 865:
             PrusaGcodeSuite::M865();
             break;
+
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+        case 870:
+            PrusaGcodeSuite::M870();
+            break;
+#endif
 
 #if HAS_TRINAMIC
         case 919:
@@ -304,6 +312,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
         case 1980:
             PrusaGcodeSuite::M1980();
+            break;
+#endif
+#if HAS_SELFTEST()
+        case 1981:
+            PrusaGcodeSuite::M1981();
             break;
 #endif
         case 9140:

@@ -611,23 +611,6 @@
 //#define MESH_MAX_Y Y_BED_SIZE - (MESH_INSET)
 #endif
 
-/**
- * Repeatedly attempt G29 leveling until it succeeds.
- * Stop after G29_MAX_RETRIES attempts.
- */
-//#define G29_RETRY_AND_RECOVER
-#if ENABLED(G29_RETRY_AND_RECOVER)
-    #define G29_MAX_RETRIES 3
-    #define G29_HALT_ON_FAILURE
-    /**
-   * Specify the GCODE commands that will be executed when leveling succeeds,
-   * between attempts, and after the maximum number of retries have been tried.
-   */
-    #define G29_SUCCESS_COMMANDS "M117 Bed leveling done."
-    #define G29_RECOVER_COMMANDS "M117 Probe failed. Rewiping.\nG28\nG12 P0 S12 T0"
-    #define G29_FAILURE_COMMANDS "M117 Bed leveling failed.\nG0 Z10\nM300 P25 S880\nM300 P50 S0\nM300 P25 S880\nM300 P50 S0\nM300 P25 S880\nM300 P50 S0\nG4 S1"
-
-#endif
 
 // @section extras
 
@@ -801,7 +784,6 @@
  * Adds the GCode M600 for initiating filament change.
  *
  * Requires an LCD display.
- * This feature is required for the default FILAMENT_RUNOUT_SCRIPT.
  */
 #define ADVANCED_PAUSE_FEATURE HAS_PAUSE()
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
@@ -846,30 +828,8 @@
     #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 50 // (mm) Load length of filament, from extruder gear to nozzle. //75
         //   For Bowden, the full length of the tube and nozzle.
         //   For direct drive, the full length of the nozzle.
-    //#define ADVANCED_PAUSE_CONTINUOUS_PURGE       // Purge continuously up to the purge length until interrupted.
     #define ADVANCED_PAUSE_PURGE_FEEDRATE 2.7 // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
     #define ADVANCED_PAUSE_PURGE_LENGTH 27 // (mm) Length to extrude after loading. //50
-        //   Set to 0 for manual extrusion.
-        //   Filament can be extruded repeatedly from the Filament Change menu
-        //   until extrusion is consistent, and to purge old filament.
-    #define ADVANCED_PAUSE_RESUME_PRIME 0 // (mm) Extra distance to prime nozzle after returning from park.
-
-// Filament Unload does a Retract, Delay, and Purge first:
-    #define FILAMENT_UNLOAD_RETRACT_LENGTH 0 // (mm) Unload initial retract length.
-    #define FILAMENT_UNLOAD_DELAY 0 // (ms) Delay for the filament to cool after retract.
-    #define FILAMENT_UNLOAD_PURGE_LENGTH 15 // (mm) An unretract is done, then this length is purged.
-    #define FILAMENT_UNLOAD_PURGE_FEEDRATE 24 // (mm/s)
-	#define FILAMENT_UNLOAD_PHASE1_LENGHT       20  // (mm)fast phase
-	#define FILAMENT_UNLOAD_PHASE2_LENGHT       30  // (mm)slow phase
-
-    #define PAUSE_PARK_NOZZLE_TIMEOUT 45 // (seconds) Time limit before the nozzle is turned off for safety.
-    #define FILAMENT_CHANGE_ALERT_BEEPS 10 // Number of alert beeps to play when a response is needed.
-    #define PAUSE_PARK_NO_STEPPER_TIMEOUT // Enable for XYZ steppers to stay powered on during filament change.
-
-//#define HOME_BEFORE_FILAMENT_CHANGE           // Ensure homing has been completed prior to parking for filament change
-
-    #define FILAMENT_LOAD_UNLOAD_GCODES // Add M701/M702 Load/Unload G-codes, plus Load/Unload in the LCD Prepare menu.
-//#define FILAMENT_UNLOAD_ALL_EXTRUDERS         // Allow M702 to unload all extruders above a minimum target temp (as set by M302)
 #endif
 
 // @section tmc
@@ -1409,7 +1369,6 @@
  *
  * See https://reprap.org/wiki/G-code#Action_commands
  * Common commands ........ poweroff, pause, paused, resume, resumed, cancel
- * G29_RETRY_AND_RECOVER .. probe_rewipe, probe_failed
  *
  * Some features add reason codes to extend these commands.
  *
@@ -1420,101 +1379,6 @@
 #if ENABLED(HOST_ACTION_COMMANDS)
     #define HOST_PROMPT_SUPPORT
 #endif
-
-//===========================================================================
-//====================== I2C Position Encoder Settings ======================
-//===========================================================================
-
-/**
- * I2C position encoders for closed loop control.
- * Developed by Chris Barr at Aus3D.
- *
- * Wiki: http://wiki.aus3d.com.au/Magnetic_Encoder
- * Github: https://github.com/Aus3D/MagneticEncoder
- *
- * Supplier: http://aus3d.com.au/magnetic-encoder-module
- * Alternative Supplier: http://reliabuild3d.com/
- *
- * Reliabuild encoders have been modified to improve reliability.
- */
-
-//#define I2C_POSITION_ENCODERS
-#if ENABLED(I2C_POSITION_ENCODERS)
-    /**
-     * The number of encoders installed; max of 5
-     * encoders supported currently.
-     */
-    #define I2CPE_ENCODER_CNT 1
-    #define I2CPE_ENC_1_ADDR I2CPE_PRESET_ADDR_X // I2C address of the encoder. 30-200.
-    #define I2CPE_ENC_1_AXIS X_AXIS // Axis the encoder module is installed on.  <X|Y|Z|E>_AXIS.
-    /**
-     * Type of encoder:  I2CPE_ENC_TYPE_LINEAR -or- I2CPE_ENC_TYPE_ROTARY.
-     */
-    #define I2CPE_ENC_1_TYPE I2CPE_ENC_TYPE_LINEAR
-    /**
-     * 1024 for magnetic strips with 2mm poles
-     * 2048 for 1mm poles. For linear encoders this is ticks / mm,
-     * for rotary encoders this is ticks / revolution.
-     */
-    #define I2CPE_ENC_1_TICKS_UNIT 2048
-    //#define I2CPE_ENC_1_TICKS_REV     (16 * 200)            // Only needed for rotary encoders; number of stepper
-    // steps per full revolution (motor steps/rev * microstepping)
-    //#define I2CPE_ENC_1_INVERT                              // Invert the direction of axis travel.
-    #define I2CPE_ENC_1_EC_METHOD I2CPE_ECM_MICROSTEP // Type of error error correction.
-    /**
-     * Threshold size for error (in mm) above which the
-     * printer will attempt to correct the error; errors
-     * smaller than this are ignored to minimize effects of
-     * measurement noise / latency (filter).
-     */
-    #define I2CPE_ENC_1_EC_THRESH 0.10
-    #define I2CPE_ENC_2_ADDR I2CPE_PRESET_ADDR_Y // Same as above, but for encoder 2.
-    #define I2CPE_ENC_2_AXIS Y_AXIS
-    #define I2CPE_ENC_2_TYPE I2CPE_ENC_TYPE_LINEAR
-    #define I2CPE_ENC_2_TICKS_UNIT 2048
-    //#define I2CPE_ENC_2_TICKS_REV   (16 * 200)
-    //#define I2CPE_ENC_2_INVERT
-    #define I2CPE_ENC_2_EC_METHOD I2CPE_ECM_MICROSTEP
-    #define I2CPE_ENC_2_EC_THRESH 0.10
-
-    #define I2CPE_ENC_3_ADDR I2CPE_PRESET_ADDR_Z // Encoder 3.  Add additional configuration options
-    #define I2CPE_ENC_3_AXIS Z_AXIS // as above, or use defaults below.
-
-    #define I2CPE_ENC_4_ADDR I2CPE_PRESET_ADDR_E // Encoder 4.
-    #define I2CPE_ENC_4_AXIS E_AXIS
-
-    #define I2CPE_ENC_5_ADDR 34 // Encoder 5.
-    #define I2CPE_ENC_5_AXIS E_AXIS
-
-    // Default settings for encoders which are enabled, but without settings configured above.
-    #define I2CPE_DEF_TYPE I2CPE_ENC_TYPE_LINEAR
-    #define I2CPE_DEF_ENC_TICKS_UNIT 2048
-    #define I2CPE_DEF_TICKS_REV (16 * 200)
-    #define I2CPE_DEF_EC_METHOD I2CPE_ECM_NONE
-    #define I2CPE_DEF_EC_THRESH 0.1
-    /**
-     * Threshold size for error (in mm) error on any given
-     * axis after which the printer will abort. Comment out to
-     * disable abort behaviour.
-     */
-    //#define I2CPE_ERR_THRESH_ABORT  100.0
-    /**
-     * After an encoder fault, there must be no further fault
-     * for this amount of time (in ms) before the encoder
-     * is trusted again.
-     */
-    #define I2CPE_TIME_TRUSTED 10000
-    /**
-   * Position is checked every time a new command is executed from the buffer but during long moves,
-   * this setting determines the minimum update time between checks. A value of 100 works well with
-   * error rolling average when attempting to correct only for skips and not for vibration.
-   */
-    #define I2CPE_MIN_UPD_TIME_MS 4 // (ms) Minimum time between encoder checks.
-
-    // Use a rolling average to identify persistant errors that indicate skips, as opposed to vibration and noise.
-    #define I2CPE_ERR_ROLLING_AVERAGE
-
-#endif // I2C_POSITION_ENCODERS
 
 /**
  * NanoDLP Sync support
@@ -1539,59 +1403,6 @@
 //#define WEBSUPPORT        // Start a webserver with auto-discovery
 //#define OTASUPPORT        // Support over-the-air firmware updates
 #endif
-
-/**
- * Prusa Multi-Material Unit v2
- * Enable in Configuration.h
- */
-#if ENABLED(PRUSA_MMU2)
-
-    // Serial port used for communication with MMU2.
-    // For AVR enable the UART port used for the MMU. (e.g., internalSerial)
-    // For 32-bit boards check your HAL for available serial ports. (e.g., Serial2)
-    #define INTERNAL_SERIAL_PORT 2
-    #define MMU2_SERIAL internalSerial
-
-    // Use hardware reset for MMU if a pin is defined for it
-    //#define MMU2_RST_PIN 23
-
-    // Enable if the MMU2 has 12V stepper motors (MMU2 Firmware 1.0.2 and up)
-    //#define MMU2_MODE_12V
-
-    // G-code to execute when MMU2 F.I.N.D.A. probe detects filament runout
-    #define MMU2_FILAMENT_RUNOUT_SCRIPT "M600"
-
-    // Add an LCD menu for MMU2
-    //#define MMU2_MENUS
-    #if ENABLED(MMU2_MENUS)
-        // Settings for filament load / unload from the LCD menu.
-        // This is for Prusa MK3-style extruders. Customize for your hardware.
-        #define MMU2_FILAMENTCHANGE_EJECT_FEED 80.0
-        #define MMU2_LOAD_TO_NOZZLE_SEQUENCE \
-            { 7.2, 562 },                    \
-                { 14.4, 871 },               \
-                { 36.0, 1393 },              \
-                { 14.4, 871 },               \
-            { 50.0, 198 }
-
-        #define MMU2_RAMMING_SEQUENCE \
-            { 1.0, 1000 },            \
-                { 1.0, 1500 },        \
-                { 2.0, 2000 },        \
-                { 1.5, 3000 },        \
-                { 2.5, 4000 },        \
-                { -15.0, 5000 },      \
-                { -14.0, 1200 },      \
-                { -6.0, 600 },        \
-                { 10.0, 700 },        \
-                { -10.0, 400 },       \
-            { -50.0, 2000 }
-
-    #endif
-
-//#define MMU2_DEBUG  // Write debug info to serial output
-
-#endif // PRUSA_MMU2
 
 // Prusa M73 implementation
 #define M73_PRUSA

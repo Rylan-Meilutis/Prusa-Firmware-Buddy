@@ -15,6 +15,8 @@
 #include <print_utils.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <buddy/unreachable.hpp>
+#include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 namespace {
 

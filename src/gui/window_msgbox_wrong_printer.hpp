@@ -3,6 +3,7 @@
 #include "window_msgbox.hpp"
 #include <guiconfig/guiconfig.h>
 #include <find_error.hpp>
+#include <option/has_mmu2.h>
 
 class MsgBoxInvalidPrinter : public MsgBoxTitled {
     struct Message {

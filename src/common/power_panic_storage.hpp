@@ -7,7 +7,7 @@
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include "marlin_server.hpp"
 
@@ -25,12 +25,15 @@
     #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
     #include "module/prusa/tool_mapper.hpp"
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
-    #include "module/prusa/spool_join.hpp"
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
+
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
 #endif
@@ -145,7 +148,7 @@ struct state_toolchanger_t {
     uint8_t precrash_tool; ///< Tool wanted to be picked before panic
     tool_return_t return_type : 8; ///< Where to return after recovery
     uint32_t : 16; ///< Padding to keep the structure size aligned to 32 bit
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 };
 
 #pragma GCC diagnostic pop
@@ -172,10 +175,10 @@ struct state_t {
 #if HAS_CANCEL_OBJECT()
     buddy::CancelObject::State cancel_object;
 #endif
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
     ToolMapper::serialized_state_t tool_mapping;
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
     SpoolJoin::serialized_state_t spool_join;
 #endif
 #if HAS_CHAMBER_API()

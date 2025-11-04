@@ -88,6 +88,11 @@ namespace rs485 {
      */
     std::span<std::byte> receive();
 
+    /// Blocks until message is received or timeout occurs.
+    /// Returned span is valid until next transmit()
+    /// Returns empty span if timeout occurs.
+    std::span<std::byte> receive_timeout(uint32_t timeout_ms);
+
     /**
      * Transmit message.
      * Does not block.
@@ -153,5 +158,12 @@ namespace memory {
     extern const std::span<std::byte> peripheral_address_region;
 
 }; // namespace memory
+
+namespace rng {
+
+    /// Obtain a truly random number.
+    uint32_t get();
+
+} // namespace rng
 
 } // namespace hal

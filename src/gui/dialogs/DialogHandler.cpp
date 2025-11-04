@@ -34,6 +34,7 @@
 #if HAS_SELFTEST()
     #include <screen_fan_selftest.hpp>
     #include "ScreenSelftest.hpp"
+    #include <gui/screen/selftest/screen_selftest_fsensors.hpp>
 #endif
 
 #if ENABLED(CRASH_RECOVERY)
@@ -261,6 +262,7 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
 #if HAS_SELFTEST()
     FSMScreenDef<ClientFSM::Selftest, ScreenSelftest>,
     FSMScreenDef<ClientFSM::FansSelftest, ScreenFanSelftest>,
+    FSMScreenDef<ClientFSM::SelftestFSensors, ScreenSelftestFSensors>,
 #endif
 #if HAS_ESP()
     FSMScreenDef<ClientFSM::NetworkSetup, ScreenNetworkSetup>,

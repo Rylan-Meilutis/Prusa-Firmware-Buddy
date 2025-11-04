@@ -35,6 +35,10 @@ constexpr auto op_xchg = [](auto &mem, auto val) { mem = val; };
 
 } // namespace
 
+extern "C" __attribute__((__used__)) uint8_t __atomic_fetch_add_1(volatile void *memv, uint8_t val, int model) {
+    return atomic_op<op_add>(memv, val, model);
+}
+
 extern "C" __attribute__((__used__)) uint16_t __atomic_fetch_add_2(volatile void *memv, uint16_t val, int model) {
     return atomic_op<op_add>(memv, val, model);
 }

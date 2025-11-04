@@ -8,7 +8,6 @@
 #include <option/developer_mode.h>
 #include <version.h>
 #include <tools_mapping.hpp>
-#include <module/prusa/spool_join.hpp>
 #include "mutable_path.hpp"
 #include <logging/log.hpp>
 #include <option/has_mmu2.h>
@@ -17,12 +16,19 @@
 
 LOG_COMPONENT_REF(Buddy);
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     #include "Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
+#include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include <config_store/store_instance.hpp>
 
@@ -449,7 +455,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                 auto feature = cmd.get_string();
                 feature.trim();
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
                 if (MMU2::mmu2.Enabled() && compare(feature, "MMU3")) {
                     break;
                 }
@@ -490,7 +496,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
     }
 
     const auto visit_tool = [&](const auto &visitor) {
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
         // MMU-equipped printers have only one nozzle diameter for all tools/slots
         // Makes the pre-print screen hide the nozzle sizes, which is both good and bad at the same time
         // -> "?.??" is gone, but no actual diameter is shown anymore - that can be tweaked further on the visualization side.

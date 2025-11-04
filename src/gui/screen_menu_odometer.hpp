@@ -5,10 +5,11 @@
 
 #include "screen_menu.hpp"
 #include "MItem_tools.hpp"
-#if (HAS_TOOLCHANGER())
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "screen_menu_tools.hpp"
 #endif
-#include "src/module/prusa/toolchanger.h"
+#include <option/has_mmu2.h>
 
 using ScreenMenuOdometer__ = ScreenMenu<EFooter::On, MI_RETURN, MI_ODOMETER_DIST_X, MI_ODOMETER_DIST_Y, MI_ODOMETER_DIST_Z, MI_ODOMETER_DIST_E,
 #if HAS_TOOLCHANGER()
@@ -23,7 +24,7 @@ using ScreenMenuOdometer__ = ScreenMenu<EFooter::On, MI_RETURN, MI_ODOMETER_DIST
     MI_ODOMETER_TOOL_N<2>,
     MI_ODOMETER_TOOL_N<3>,
     MI_ODOMETER_TOOL_N<4>,
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 #if HAS_MMU2()
     MI_ODOMETER_MMU_CHANGES,
 #endif

@@ -18,12 +18,12 @@ AnyGcodeFormatReader::~AnyGcodeFormatReader() {
 
 AnyGcodeFormatReader::AnyGcodeFormatReader(AnyGcodeFormatReader &&other)
     : storage { std::move(other.storage) } {
-    other.storage = ClosedReader {};
+    other.close();
 }
 
 AnyGcodeFormatReader &AnyGcodeFormatReader::operator=(AnyGcodeFormatReader &&other) {
     storage = std::move(other.storage);
-    other.storage = ClosedReader {};
+    other.close();
     return *this;
 }
 
@@ -38,6 +38,23 @@ AnyGcodeFormatReader::AnyGcodeFormatReader(const char *filename, bool allow_decr
 #endif
     )
     : storage { ClosedReader {} } {
+
+    open(filename, allow_decryption
+#if HAS_E2EE_SUPPORT()
+        ,
+        identity_check_lvl
+#endif
+    );
+}
+
+bool AnyGcodeFormatReader::open(const char *filename, bool allow_decryption
+#if HAS_E2EE_SUPPORT()
+    ,
+    e2ee::IdentityCheckLevel identity_check_lvl
+#endif
+) {
+    close();
+
     transfers::Transfer::Path path(filename);
     struct stat info {};
 
@@ -45,12 +62,12 @@ AnyGcodeFormatReader::AnyGcodeFormatReader(const char *filename, bool allow_decr
     bool is_partial = false;
 
     if (stat(path.as_destination(), &info) != 0) {
-        return;
+        return false;
     }
 
     if (S_ISDIR(info.st_mode)) {
         if (stat(path.as_partial(), &info) != 0) {
-            return;
+            return false;
         }
 
         is_partial = true;
@@ -58,7 +75,7 @@ AnyGcodeFormatReader::AnyGcodeFormatReader(const char *filename, bool allow_decr
 
     unique_file_ptr file = unique_file_ptr(fopen(is_partial ? path.as_partial() : path.as_destination(), "rb"));
     if (!file) {
-        return;
+        return false;
     }
 
     if (filename_is_bgcode(filename)) {
@@ -75,12 +92,18 @@ AnyGcodeFormatReader::AnyGcodeFormatReader(const char *filename, bool allow_decr
     }
 
     else {
-        return;
+        return false;
     }
 
     if (is_partial) {
         get()->update_validity(path.as_destination());
     }
+
+    return true;
+}
+
+void AnyGcodeFormatReader::close() {
+    storage.emplace<ClosedReader>();
 }
 
 IGcodeReader *AnyGcodeFormatReader::get() {

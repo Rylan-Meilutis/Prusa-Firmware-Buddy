@@ -1,5 +1,7 @@
 #include "mmu2_mk4.h"
 
+#include <option/has_mmu2.h>
+
 #ifndef UNITTEST
     #include "../../Marlin/src/core/macros.h"
     #include "../../Marlin/src/core/types.h"
@@ -26,9 +28,11 @@
 #ifndef UNITTEST
     // because it brings in whole Marlin and the unit tests commit suicide ...
     #include "../../../module/prusa/spool_join.hpp"
+    #include "../../../../../../../src/common/mapi/cold_extrude.hpp"
     #include <metric.h>
 #else
     #include "stubs/spool_join_stub.h"
+    #include <stubs/cold_extrude_stub.hpp>
 #endif
 
 #include "../../../../../../../src/mmu2/mmu2_bootloader.hpp"
@@ -126,13 +130,13 @@ void WaitForHotendTargetTempBeep() {
     MakeSound(Prompt);
 }
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 MMU2 mmu2;
 #endif
 
 MMU2::MMU2()
     : logic(
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     #if HAS_MMU2_OVER_UART()
         &mmu2Serial
     #else
@@ -156,7 +160,7 @@ MMU2::MMU2()
     , tmcFailures(0) {
 }
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 void MMU2::Start() {
     mmu2Serial.begin();
 
@@ -724,9 +728,9 @@ bool MMU2::tool_change(char code, uint8_t slot) {
     } break;
 
     case 'x': {
-        auto emt = thermal_setExtrudeMintemp(0); // Allow cold extrusion since Tx only loads to the gears not nozzle
+        // Allow cold extrusion since Tx only loads to the gears not nozzle
+        mapi::ColdExtrudeGuard cold_extrude_guard;
         tool_change(slot);
-        thermal_setExtrudeMintemp(emt);
     } break;
 
     case 'c': {
@@ -777,9 +781,9 @@ void MMU2::UnloadObeyAutoRetracted() {
         UnloadInner(PreUnloadPolicy::Ramming);
     } else {
         // otherwise it's not even necessary to wait for temperature, the filament can be pulled out of the nube directly
-        auto emt = thermal_setExtrudeMintemp(0); // Allow cold extrusion since Tx only loads to the gears not nozzle
+        // Allow cold extrusion since Tx only loads to the gears not nozzle
+        mapi::ColdExtrudeGuard cold_extrude_guard;
         UnloadInner(PreUnloadPolicy::RelieveFilament);
-        thermal_setExtrudeMintemp(emt);
     }
 }
 
@@ -892,11 +896,11 @@ bool MMU2::loading_test(uint8_t slot) {
         CommandInProgressGuard cipg(CommandInProgress::TestLoad, commandInProgressManager);
         FSensorBlockRunout blockRunout;
         BlockEStallDetection blockEStallDetection;
-        auto emt = thermal_setExtrudeMintemp(0); // Allow cold extrusion - load test doesn't push filament all the way into the nozzle
+        // Allow cold extrusion since Tx only loads to the gears not nozzle
+        mapi::ColdExtrudeGuard cold_extrude_guard;
         ToolChangeCommon(slot);
         planner_synchronize();
         UnloadInner(PreUnloadPolicy::RelieveFilament);
-        thermal_setExtrudeMintemp(emt);
     }
     ScreenUpdateEnable();
     return true;

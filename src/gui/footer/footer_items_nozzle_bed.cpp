@@ -20,7 +20,7 @@
 #if HAS_TOOLCHANGER()
     #include <puppies/Dwarf.hpp>
     #include "Marlin/src/module/prusa/toolchanger.h"
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 FooterItemNozzle::FooterItemNozzle(window_t *parent)
     : FooterItemHeater(parent, &img::nozzle_16x16, static_makeView, static_readValue) {
@@ -46,7 +46,7 @@ FooterItemAllNozzles::FooterItemAllNozzles(window_t *parent)
     : FooterIconText_IntVal(parent, &img::nozzle_16x16, static_makeView, static_readValue) {
 #if HAS_TOOLCHANGER()
     icon.Hide();
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 }
 
 uint FooterItemAllNozzles::nozzle_n = 0;
@@ -157,7 +157,7 @@ void FooterItemAllNozzles::unconditionalDraw() {
                 COLOR_ORANGE);
         }
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 }
 
 changed_t FooterItemAllNozzles::updateValue() {
@@ -237,9 +237,9 @@ int FooterItemAllNozzles::static_readValue() {
     }
 
     return keep_value; // Return nozzle number in higher 16 bits and shown temperature in lower 16 bits
-#else /*HAS_TOOLCHANGER()*/
+#else
     return static_cast<uint16_t>(round(marlin_vars().active_hotend().temp_nozzle)); // Nozzle 0 temperature
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 }
 
 // This methods cannot be one - need separate buffers

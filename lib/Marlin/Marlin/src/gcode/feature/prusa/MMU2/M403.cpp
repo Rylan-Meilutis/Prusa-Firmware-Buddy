@@ -22,7 +22,9 @@
 
 #include "../../../../inc/MarlinConfigPre.h"
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+
+#if HAS_MMU2()
 
     #include "../../../gcode.h"
     #include "../../../../feature/prusa/MMU2/mmu2_mk4.h"
@@ -61,4 +63,4 @@ void GcodeSuite::M403() {
 
 /** @}*/
 
-#endif // PRUSA_MMU2
+#endif

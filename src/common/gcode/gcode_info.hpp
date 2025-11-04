@@ -7,7 +7,6 @@
 #pragma once
 
 #include <utils/color.hpp>
-#include <option/has_toolchanger.h>
 #include <option/has_mmu2.h>
 #include <option/has_gcode_compatibility.h>
 #include <common/filament.hpp>

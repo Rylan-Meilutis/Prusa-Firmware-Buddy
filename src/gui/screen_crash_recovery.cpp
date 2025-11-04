@@ -30,7 +30,7 @@
 
     #if HAS_TOOLCHANGER()
         #include <module/prusa/toolchanger.h>
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
 using namespace crash_recovery;
 
@@ -114,15 +114,15 @@ static constexpr const char *en_text_homefail_info = N_("Try checking belt tensi
 static constexpr const char *en_text_tool_careful = N_("!! Careful, tools are hot !!");
 
 RepeatedBeep::RepeatedBeep() {
-    Sound_Play(eSOUND_TYPE::WaitingBeep);
+    sound::play(SoundType::waiting_beep);
 }
 
 RepeatedBeep::~RepeatedBeep() {
-    Sound_Stop();
+    sound::stop();
 }
 
 SingleBeep::SingleBeep() {
-    Sound_Play(eSOUND_TYPE::SingleBeep);
+    sound::play(SoundType::single_beep);
 }
 
 SingleBeep::~SingleBeep() {
@@ -189,7 +189,7 @@ WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen)
           prusa_toolchanger.is_toolchanger_enabled() ? _(en_text_repeat_info_tool) : _(en_text_repeat_info)
     #else
           _(en_text_repeat_info)
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
               )
     , radio(&screen, GuiDefaults::GetButtonRect_AvoidFooter(screen.GetRect()), ClientResponses::get_available_responses(PhasesCrashRecovery::repeated_crash), &texts) {
 
@@ -254,7 +254,7 @@ WinsToolRecovery::WinsToolRecovery(ScreenCrashRecovery &screen)
     leds::SideStripHandler::instance().set_custom_color(leds::ColorRGBW(255, 0, 0), 400, 100);
         #endif
 }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
 ScreenCrashRecovery::ScreenCrashRecovery()
     : screen_t()
@@ -268,7 +268,7 @@ ScreenCrashRecovery::ScreenCrashRecovery()
 }
 
 ScreenCrashRecovery::~ScreenCrashRecovery() {
-    Sound_Stop();
+    sound::stop();
 }
 
 bool ScreenCrashRecovery::Change(fsm::BaseData data) {
@@ -404,7 +404,7 @@ void ScreenCrashRecovery::change_phase(PhasesCrashRecovery new_phase) {
     case PhasesCrashRecovery::tool_recovery:
         window.emplace<WinsToolRecovery>(*this);
         break;
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     }
 }
 

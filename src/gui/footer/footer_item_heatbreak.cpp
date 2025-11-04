@@ -11,7 +11,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 FooterItemHeatBreak::FooterItemHeatBreak(window_t *parent)
     : FooterIconText_IntVal(parent, &img::heatbreak_dark_16x16, static_makeView, static_readValue) {
@@ -27,7 +27,7 @@ int FooterItemHeatBreak::static_readValue() {
     if (marlin_vars().active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         return no_tool_value;
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return int(marlin_vars().active_hotend().temp_heatbreak * 10.F);
 }

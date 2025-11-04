@@ -32,12 +32,12 @@
 #include <option/has_gui.h>
 #include <option/has_local_bed.h>
 
+#if PRINTER_IS_PRUSA_iX() && HAS_XBUDDY_EXTENSION()
+    #include <feature/xbuddy_extension/xbuddy_extension.hpp>
+#endif
+
 #include <Pin.hpp>
 #include <cmath>
-
-#if ENABLED(PRUSA_TOOLCHANGER)
-    #include "../../lib/Marlin/Marlin/src/module/prusa/toolchanger.h"
-#endif
 
 namespace {
 /**
@@ -55,17 +55,6 @@ enum {
 };
 
 } // end anonymous namespace
-
-#if PRINTER_IS_PRUSA_iX()
-static_assert(std::clamp(MAX_HEATBREAK_TURBINE_POWER, 0, 100) == MAX_HEATBREAK_TURBINE_POWER);
-static_assert(std::clamp(MIN_HEATBREAK_TURBINE_POWER, 0, 100) == MIN_HEATBREAK_TURBINE_POWER);
-
-static_assert(MAX_HEATBREAK_TURBINE_POWER > MIN_HEATBREAK_TURBINE_POWER);
-
-// bottom PWM threshold for the turbine to spin
-// values below it will be equated to 0
-static constexpr int _pwm_turbine_min_threshold = static_cast<int>(static_cast<int>(TIM3_default_Period) * (MIN_HEATBREAK_TURBINE_POWER / 100.0));
-#endif
 
 static const TIM_OC_InitTypeDef sConfigOC_default = {
     TIM_OCMODE_PWM1, // OCMode
@@ -321,24 +310,6 @@ static void analogWrite_HEATER_0(int new_value) {
     }
 }
 
-#if PRINTER_IS_PRUSA_iX()
-static void analogWrite_TURBINE(int new_value) {
-    static int old_value = 0;
-    if (old_value != new_value) {
-        const int32_t pwm_max = static_cast<int>(std::round(static_cast<int>(TIM3_default_Period) * (MAX_HEATBREAK_TURBINE_POWER / 100.0)));
-        uint32_t pulse = (new_value * pwm_max) / _pwm_analogWrite_max;
-        if (pulse < _pwm_turbine_min_threshold) {
-            // if below minimum threshold, set turbine PWM to 0
-            pulse = 0;
-        }
-        // inverting the PWM value for the iX turbine
-        pulse = _pwm_analogWrite_max - pulse;
-        hwio_pwm_set_val(&htim3, TIM_CHANNEL_3, pulse);
-        old_value = new_value;
-    }
-}
-#endif
-
 /**
  * @brief Write digital pin to be used from Marlin
  *
@@ -421,9 +392,10 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue) {
     if (HAL_PWM_Initialized) {
         switch (ulPin) {
         case MARLIN_PIN(FAN1):
+#if PRINTER_IS_PRUSA_iX() && HAS_XBUDDY_EXTENSION()
+            buddy::xbuddy_extension().set_heatbreak_fan_pwm(ulValue);
+#else
             Fans::heat_break(0).set_pwm(ulValue);
-#if PRINTER_IS_PRUSA_iX()
-            analogWrite_TURBINE(ulValue);
 #endif
             return;
         case MARLIN_PIN(FAN):

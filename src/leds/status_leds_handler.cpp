@@ -1,9 +1,13 @@
 #include "leds/status_leds_handler.hpp"
 
-#include "leds/animation_controller.hpp"
+#include <led_animation_controller/animation_controller.hpp>
+#include <led_animation_controller/frame_animation.hpp>
 #include "marlin_vars.hpp"
-#include "client_response.hpp"
+#include <fsm/filament_change_phases.hpp>
+#include <option/has_mmu2.h>
+#include <option/has_tool_mapping.h>
 #include <option/has_side_fsensor.h>
+#include <option/has_toolchanger.h>
 
 namespace leds {
 
@@ -99,7 +103,7 @@ static StateAnimation marlin_to_anim_state() {
     case State::PrintPreviewImage:
     case State::PrintPreviewConfirmed:
     case State::PrintPreviewQuestions:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
     case State::Exit:
@@ -125,6 +129,7 @@ static StateAnimation marlin_to_anim_state() {
         }
     }
     case State::Paused:
+    case State::MediaErrorRecovery_BufferData:
         return StateAnimation::Warning;
 
     case State::Aborting_Begin:
@@ -240,6 +245,10 @@ void StatusLedsHandler::set_animation(StateAnimation state) {
     controller_instance().set(animations[state]);
 }
 
+ColorRGBW StatusLedsHandler::get_color() const {
+    return color;
+}
+
 bool StatusLedsHandler::get_active() {
     std::lock_guard lock(mutex);
     return active;
@@ -286,7 +295,9 @@ void StatusLedsHandler::update() {
 
     if (state != old_state) {
         old_state = state;
-        controller_instance().set(animations[state]);
+        const auto &animation = animations[state];
+        color = animation.color;
+        controller_instance().set(animation);
     }
 
     controller_instance().update();

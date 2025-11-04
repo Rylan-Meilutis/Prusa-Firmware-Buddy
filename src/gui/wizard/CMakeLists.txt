@@ -22,10 +22,7 @@ target_sources(
   )
 
 if(NOT (${PRINTER} STREQUAL "MINI"))
-  target_sources(
-    firmware PRIVATE selftest_frame_fsensor.cpp selftest_frame_loadcell.cpp
-                     selftest_result_fsensor.cpp selftest_result_loadcell.cpp
-    )
+  target_sources(firmware PRIVATE selftest_frame_loadcell.cpp selftest_result_loadcell.cpp)
 endif()
 
 if(${PRINTER} STREQUAL "XL")

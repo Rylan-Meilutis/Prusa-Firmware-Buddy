@@ -13,7 +13,6 @@ target_sources(
           M862_1.cpp
           M862_4.cpp
           M863.cpp
-          M864.cpp
           M865.cpp
           M876.cpp
           M9140_M9150.cpp
@@ -52,11 +51,15 @@ if(HAS_NOZZLE_CLEANER)
 endif()
 
 if(HAS_SELFTEST)
-  target_sources(firmware PRIVATE G162.cpp G163.cpp M1978.cpp)
+  target_sources(firmware PRIVATE G162.cpp G163.cpp M1978.cpp M1981.cpp)
 endif()
 
 if(HAS_LEDS)
   target_sources(firmware PRIVATE M150.cpp)
+endif()
+
+if(HAS_SPOOL_JOIN)
+  target_sources(firmware PRIVATE M864.cpp)
 endif()
 
 if(HAS_TOOLCHANGER)
@@ -101,4 +104,8 @@ endif()
 
 if(HAS_ESP)
   target_sources(firmware PRIVATE M1703.cpp)
+endif()
+
+if(HAS_AUTOMATIC_CHAMBER_VENTS)
+  target_sources(firmware PRIVATE M870.cpp)
 endif()

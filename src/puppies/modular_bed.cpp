@@ -488,7 +488,7 @@ uint16_t ModularBed::get_mcu_temperature() {
 }
 
 void ModularBed::safe_state() {
-    buddy::hw::modularBedReset.set();
+    buddy::hw::modular_bed_reset.set();
 }
 
 ModularBed modular_bed(puppyModbus, PuppyBootstrap::get_modbus_address_for_dock(Dock::MODULAR_BED));

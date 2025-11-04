@@ -299,9 +299,10 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::OutputPin, zCs, BUDDY_PIN(CS_Z), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, eCs, BUDDY_PIN(CS_E), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, RS485FlowControlPuppies, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin_Inverted, modularBedReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin, MMUEnable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::InputPin, MMUFault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_reset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin_Inverted, modular_bed_reset, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p1, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_pwr_enable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::InputPin, ext_fault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, heaterCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p5, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, inputCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, faultMemoryReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
@@ -341,9 +342,9 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::OutputPin, zCs, BUDDY_PIN(CS_Z), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, eCs, BUDDY_PIN(CS_E), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, RS485FlowControlPuppies, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin, MMUReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::openDrain COMMA OSpeed::low, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin, MMUEnable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::InputPin, MMUFault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_reset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::openDrain COMMA OSpeed::low, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_pwr_enable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::InputPin, ext_fault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, heaterCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p5, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, inputCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, faultMemoryReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
@@ -369,9 +370,9 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::OutputPin, zCs, BUDDY_PIN(CS_Z), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, eCs, BUDDY_PIN(CS_E), Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, RS485FlowControlPuppies, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin, MMUReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::openDrain COMMA OSpeed::low, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::OutputPin, MMUEnable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-            MACRO_FUNCTION(buddy::hw::InputPin, MMUFault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_reset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p8, Pin::State::high COMMA OMode::openDrain COMMA OSpeed::low, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, ext_pwr_enable, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p2, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::InputPin, ext_fault, buddy::hw::IoPort::B COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, heaterCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p5, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputPin, inputCurrentFault, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p6, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, faultMemoryReset, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p7, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \

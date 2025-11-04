@@ -18,7 +18,7 @@
 #include <option/has_toolchanger.h>
 #include <option/developer_mode.h>
 #include <option/has_mmu2.h>
-#include <option/xbuddy_extension_variant_standard.h>
+#include <option/xbuddy_extension_variant.h>
 #include <option/has_chamber_filtration_api.h>
 #include <device/board.h>
 #include <gui/screen/screen_m600.hpp>
@@ -29,7 +29,7 @@
 #if HAS_CHAMBER_API()
     #include <gui/menu_item/specific/menu_items_chamber.hpp>
 #endif
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <gui/menu_item/specific/menu_items_xbuddy_extension.hpp>
 #endif
 
@@ -58,7 +58,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_CHAMBER_TARGET_TEMP,
 #endif
     MI_PRINTFAN,
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     MI_XBUDDY_EXTENSION_COOLING_FANS,
     MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
     MI_XBE_FILTRATION_FAN,
@@ -72,7 +72,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_FLOWFACT<0>,
 #if HAS_TOOLCHANGER()
     MI_FLOWFACT<1>, MI_FLOWFACT<2>, MI_FLOWFACT<3>, MI_FLOWFACT<4>,
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 #if HAS_FILAMENT_SENSORS_MENU()
     MI_FILAMENT_SENSORS,
 #else

@@ -26,6 +26,7 @@
 
 #include "parser.h"
 
+#include <option/has_mmu2.h>
 #include "../Marlin.h"
 
 #if NUM_SERIAL > 1
@@ -134,7 +135,7 @@ void GCodeParser::parse(char *p) {
       // Skip spaces to get the numeric part
       while (*p == ' ') p++;
 
-      #if ENABLED(PRUSA_MMU2)
+      #if HAS_MMU2()
         if (letter == 'T') {
           // check for special MMU2 T?/Tx/Tc commands
           if (*p == '?' || *p == 'x' || *p == 'c') {

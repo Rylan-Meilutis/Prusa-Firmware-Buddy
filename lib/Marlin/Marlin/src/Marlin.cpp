@@ -97,10 +97,6 @@
   #include "module/servo.h"
 #endif
 
-#if ENABLED(I2C_POSITION_ENCODERS)
-  #include "feature/I2CPositionEncoder.h"
-#endif
-
 #if HAS_CUTTER
   #include "feature/spindle_laser.h"
 #endif
@@ -114,19 +110,16 @@
   #include "feature/bedlevel/bedlevel.h"
 #endif
 
-#if BOTH(ADVANCED_PAUSE_FEATURE, PAUSE_PARK_NO_STEPPER_TIMEOUT)
+#if ENABLED(ADVANCED_PAUSE_FEATURE)
   #include "feature/pause.h"
-#endif
-
-#if HAS_FILAMENT_SENSOR
-  #include "feature/runout.h"
 #endif
 
 #if HAS_CASE_LIGHT
   #include "feature/caselight.h"
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
   #include "feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
@@ -146,10 +139,6 @@ bool wait_for_heatup = true;
 
 #if PIN_EXISTS(CHDK)
   extern millis_t chdk_timeout;
-#endif
-
-#if ENABLED(I2C_POSITION_ENCODERS)
-  I2CPositionEncodersMgr I2CPEM;
 #endif
 
 uint16_t job_id = 0;
@@ -230,37 +219,6 @@ void disable_all_steppers() {
   disable_e_steppers();
 }
 
-#if ENABLED(G29_RETRY_AND_RECOVER)
-
-  void event_probe_failure() {
-    #ifdef ACTION_ON_G29_FAILURE
-      host_action(PSTR(ACTION_ON_G29_FAILURE));
-    #endif
-    #ifdef G29_FAILURE_COMMANDS
-      gcode.process_subcommands_now_P(PSTR(G29_FAILURE_COMMANDS));
-    #endif
-    #if ENABLED(G29_HALT_ON_FAILURE)
-      #ifdef ACTION_ON_CANCEL
-        host_action_cancel();
-      #endif
-      kill(GET_TEXT(MSG_LCD_PROBING_FAILED));
-    #endif
-  }
-
-  void event_probe_recover() {
-    #if ENABLED(HOST_PROMPT_SUPPORT)
-      host_prompt_do(PROMPT_INFO, PSTR("G29 Retrying"), PSTR("Dismiss"));
-    #endif
-    #ifdef ACTION_ON_G29_RECOVER
-      host_action(PSTR(ACTION_ON_G29_RECOVER));
-    #endif
-    #ifdef G29_RECOVER_COMMANDS
-      gcode.process_subcommands_now_P(PSTR(G29_RECOVER_COMMANDS));
-    #endif
-  }
-
-#endif
-
 /**
  * Printing is active when the print job timer is running
  */
@@ -289,7 +247,6 @@ bool anyHeatherIsActive() {
 
 /**
  * Manage several activities:
- *  - Check for Filament Runout
  *  - Keep the command buffer full
  *  - Check if CHDK_PIN needs to go LOW
  *  - Check for KILL button held down
@@ -300,16 +257,12 @@ bool anyHeatherIsActive() {
 
 void manage_inactivity() {
 
-  #if HAS_FILAMENT_SENSOR
-    runout.run();
-  #endif
-
   if (queue.length < BUFSIZE) queue.get_available_commands();
 
   [[maybe_unused]] const millis_t ms = millis();
 
   // Prevent steppers timing-out in the middle of M600
-  #if BOTH(ADVANCED_PAUSE_FEATURE, PAUSE_PARK_NO_STEPPER_TIMEOUT)
+  #if ENABLED(ADVANCED_PAUSE_FEATURE)
     #define MOVE_AWAY_TEST !did_pause_print
   #else
     #define MOVE_AWAY_TEST true
@@ -415,17 +368,6 @@ void idle(bool waiting) {
 
   thermalManager.manage_heater();
 
-  #if ENABLED(I2C_POSITION_ENCODERS)
-    static millis_t i2cpem_next_update_ms;
-    if (planner.busy()) {
-      const millis_t ms = millis();
-      if (ELAPSED(ms, i2cpem_next_update_ms)) {
-        I2CPEM.update();
-        i2cpem_next_update_ms = ms + I2CPE_MIN_UPD_TIME_MS;
-      }
-    }
-  #endif
-
   #ifdef HAL_IDLETASK
     HAL_idletask();
   #endif
@@ -438,7 +380,7 @@ void idle(bool waiting) {
     }
   #endif
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     MMU2::mmu2.mmu_loop();
   #endif
 
@@ -501,10 +443,6 @@ void stop() {
 void setup() {
 
   HAL_init();
-
-  #if HAS_FILAMENT_SENSOR
-    runout.setup();
-  #endif
 
   setup_killpin();
 
@@ -664,18 +602,8 @@ void setup() {
     update_case_light();
   #endif
 
-  #if ENABLED(MK2_MULTIPLEXER)
-    SET_OUTPUT(E_MUX0_PIN);
-    SET_OUTPUT(E_MUX1_PIN);
-    SET_OUTPUT(E_MUX2_PIN);
-  #endif
-
   #if ENABLED(BLTOUCH)
     bltouch.init(/*set_voltage=*/true);
-  #endif
-
-  #if ENABLED(I2C_POSITION_ENCODERS)
-    I2CPEM.init();
   #endif
 
   #if ENABLED(USE_WATCHDOG)

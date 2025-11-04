@@ -58,7 +58,7 @@ void tool_change(const uint8_t new_tool,
                  tool_change_lift_t z_lift /*= tool_change_lift_t::full_lift*/,
                  bool z_return /*= true*/){
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     (void) return_type;
     (void) z_lift;
     (void) z_return;

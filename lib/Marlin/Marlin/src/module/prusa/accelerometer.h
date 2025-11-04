@@ -116,6 +116,11 @@ public:
         out.val[A_AXIS] = sample.val[1];
         out.val[B_AXIS] = sample.val[0];
         out.val[Z_AXIS] = sample.val[2];
+#elif PRINTER_IS_PRUSA_COREONEL()
+        assert(X_AXIS == A_AXIS && Y_AXIS == B_AXIS);
+        out.val[A_AXIS] = -sample.val[1];
+        out.val[B_AXIS] = -sample.val[0];
+        out.val[Z_AXIS] = sample.val[2];
 #elif PRINTER_IS_PRUSA_XL()
         static constexpr float cos45 = static_cast<float>(M_SQRT1_2);
         static constexpr float sin45 = static_cast<float>(M_SQRT1_2);
@@ -144,6 +149,13 @@ public:
         static constexpr float sin45 = static_cast<float>(M_SQRT1_2);
         out.val[X_AXIS] = sample.val[1] * cos45 - sample.val[0] * sin45;
         out.val[Y_AXIS] = sample.val[1] * sin45 + sample.val[0] * cos45;
+        out.val[Z_AXIS] = sample.val[2];
+#elif PRINTER_IS_PRUSA_COREONEL()
+        // Accelerometer is fixed to the head in a way that is diagonal to the logical axes. Therefore, we need to perform a 45° rotation.
+        static constexpr float cos45 = static_cast<float>(M_SQRT1_2);
+        static constexpr float sin45 = static_cast<float>(M_SQRT1_2);
+        out.val[X_AXIS] = (-sample.val[1]) * cos45 + sample.val[0] * sin45;
+        out.val[Y_AXIS] = (+sample.val[1]) * sin45 + sample.val[0] * cos45;
         out.val[Z_AXIS] = sample.val[2];
 #elif PRINTER_IS_PRUSA_XL()
         out.val[X_AXIS] = sample.val[2];

@@ -7,6 +7,7 @@
 #include <Marlin/src/module/motion.h>
 #include <config_store/store_instance.hpp>
 #include <utils/string_builder.hpp>
+#include <option/has_toolchanger.h>
 
 #ifdef PRINT_CHECKING_Q_CMDS
 
@@ -39,9 +40,9 @@ void PrusaGcodeSuite::M862_1() {
     // Get for which tool
     #if HAS_TOOLCHANGER()
     const uint8_t default_tool = active_extruder;
-    #else /*HAS_TOOLCHANGER()*/
+    #else
     const uint8_t default_tool = 0;
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     uint8_t tool = parser.byteval('T', default_tool);
 
     // Fetch diameter from EEPROM

@@ -39,7 +39,8 @@
   #include "modular_heatbed.h"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include "prusa/toolchanger.h"
 #endif
 
@@ -656,7 +657,7 @@ class Temperature {
             celsius
           #endif
         ;
-        #if ENABLED(PRUSA_TOOLCHANGER)
+        #if HAS_TOOLCHANGER()
           prusa_toolchanger.getTool(HOTEND_INDEX).set_heatbreak_target_temp(celsius);
         #endif
         start_watching_heatbreak(HOTEND_INDEX);
@@ -725,7 +726,7 @@ public:
           #if ENABLED(PID_EXTRUSION_SCALING)
             last_e_position = 0;
           #endif
-          #if ENABLED(PRUSA_TOOLCHANGER)
+          #if HAS_TOOLCHANGER()
             // Set PID parameters to all dwarves
             for (int8_t e = 0; e < HOTENDS; e++) {
               buddy::puppies::dwarfs[e].set_pid(Temperature::temp_hotend[e].pid.Kp, Temperature::temp_hotend[e].pid.Ki, Temperature::temp_hotend[e].pid.Kd);

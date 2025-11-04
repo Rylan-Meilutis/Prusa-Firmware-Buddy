@@ -6,10 +6,13 @@
 #include <client_response.hpp>
 #include <marlin_vars.hpp>
 #include <fsm/safety_timer_phases.hpp>
+#include <fsm/filament_change_phases.hpp>
 #include <option/has_esp.h>
 #include <option/has_manual_chamber_vents.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_mmu2.h>
+#include <option/has_tool_mapping.h>
+#include <option/has_toolchanger.h>
 #include <option/has_dwarf.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_phase_stepping_calibration.h>
@@ -19,9 +22,11 @@
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_door_sensor_calibration.h>
-#include <option/xbuddy_extension_variant_standard.h>
+#include <option/xbuddy_extension_variant.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_belt_tuning.h>
+#include <option/has_bed_fan.h>
+#include <option/has_psu_fan.h>
 
 #if HAS_LOADCELL()
     #include <fsm/nozzle_cleaning_failed_phases.hpp>
@@ -83,7 +88,7 @@ optional<ErrCode> attention_while_printpreview(const PhasesPrintPreview preview_
 #endif
     case PhasesPrintPreview::file_error:
         return ErrCode::CONNECT_PRINT_PREVIEW_FILE_ERROR;
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case PhasesPrintPreview::tools_mapping:
         return ErrCode::CONNECT_PRINT_PREVIEW_TOOLS_MAPPING;
 #endif
@@ -245,6 +250,7 @@ DeviceState get_state(bool ready) {
 #if HAS_SELFTEST()
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
+    case ClientFSM::SelftestFSensors:
 #endif
 #if HAS_ESP()
     case ClientFSM::NetworkSetup:
@@ -329,7 +335,7 @@ DeviceState get_print_state(State state, bool ready) {
     case State::CrashRecovery_Tool_Pickup:
         return DeviceState::Attention;
 #endif
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
         return DeviceState::Attention;
 #endif
@@ -372,6 +378,7 @@ DeviceState get_print_state(State state, bool ready) {
     case State::Paused:
 
     case State::Resuming_BufferData:
+    case State::MediaErrorRecovery_BufferData:
     case State::Resuming_Begin:
     case State::Resuming_Reheating:
     case State::Pausing_Failed_Code:
@@ -462,6 +469,7 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #if HAS_SELFTEST()
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
+    case ClientFSM::SelftestFSensors:
 #endif
 #if HAS_ESP()
     case ClientFSM::NetworkSetup:
@@ -677,12 +685,12 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::ERR_TEMPERATURE_CHAMBER_CRITICAL_TEMP;
 #endif
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD() || XL_ENCLOSURE_SUPPORT()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD() || XL_ENCLOSURE_SUPPORT()
     case WarningType::ChamberFiltrationFanError:
         return ErrCode::CONNECT_CHAMBER_FILTRATION_FAN_ERROR;
 #endif
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     case WarningType::ChamberCoolingFanError:
         return ErrCode::CONNECT_CHAMBER_COOLING_FAN_ERROR;
 #endif
@@ -713,6 +721,15 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #if HAS_SELFTEST()
     case WarningType::SelftestNotSuccessfullyCompleted:
         return ErrCode::CONNECT_UNFINISHED_SELFTEST;
+#endif
+
+#if HAS_BED_FAN()
+    case WarningType::BedFanError:
+        return ErrCode::CONNECT_BED_FAN_ERROR;
+#endif
+#if HAS_PSU_FAN()
+    case WarningType::PsuFanError:
+        return ErrCode::CONNECT_PSU_FAN_ERROR;
 #endif
 
     case WarningType::_cnt:

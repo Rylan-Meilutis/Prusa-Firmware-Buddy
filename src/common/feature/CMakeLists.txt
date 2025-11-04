@@ -51,6 +51,14 @@ if(HAS_LOADCELL)
   add_subdirectory(nozzle_cleaning_failed)
 endif()
 
+if(HAS_BED_FAN)
+  add_subdirectory(bed_fan)
+endif()
+
+if(HAS_PSU_FAN)
+  add_subdirectory(psu_fan)
+endif()
+
 add_subdirectory(ramming)
 add_subdirectory(cork)
 add_subdirectory(safety_timer)

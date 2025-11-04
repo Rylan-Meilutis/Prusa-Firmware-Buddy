@@ -14,12 +14,17 @@ static_assert(HAS_DOOR_SENSOR_CALIBRATION(), "Doesn't support door sensor calibr
 static_assert(HAS_DOOR_SENSOR(), "Doesn't support door sensor, but tries to compile door sensor calibration");
 
 using marlin_server::wait_for_response;
+using namespace door_sensor_calibration;
 
 class DoorSensorCalibration {
 public:
     DoorSensorCalibration() = default;
 
-    void run() {
+    void run(const RunArgs &args) {
+        if (args.ask_enable_only) {
+            fsm_change(PhaseDoorSensorCalibration::ask_enable_safety_features);
+        }
+
         do {
             run_current_phase();
         } while (curr_phase != PhaseDoorSensorCalibration::finish);
@@ -107,6 +112,7 @@ private:
         switch (wait_for_response(curr_phase)) {
         case Response::Yes:
             config_store().emergency_stop_enable.set(true);
+            config_store().emergency_stop_disable_consent_given.set(false);
             fsm_change(PhaseDoorSensorCalibration::finish);
             break;
         case Response::No:
@@ -122,6 +128,7 @@ private:
         switch (wait_for_response(curr_phase)) {
         case Response::Disable:
             config_store().emergency_stop_enable.set(false);
+            config_store().emergency_stop_disable_consent_given.set(true);
             fsm_change(PhaseDoorSensorCalibration::finish);
             break;
         case Response::Cancel:
@@ -187,12 +194,13 @@ private:
 
     PhaseDoorSensorCalibration curr_phase = PhaseDoorSensorCalibration::skip_ask;
     PhaseDoorSensorCalibration last_phase = PhaseDoorSensorCalibration::skip_ask;
+    marlin_server::FSM_Holder holder { PhaseDoorSensorCalibration::skip_ask };
 };
 
 namespace door_sensor_calibration {
-void run() {
+void run(const RunArgs &args) {
     DoorSensorCalibration calibration;
-    marlin_server::FSM_Holder holder { PhaseDoorSensorCalibration::skip_ask };
-    calibration.run();
+    calibration.run(args);
 }
+
 } // namespace door_sensor_calibration

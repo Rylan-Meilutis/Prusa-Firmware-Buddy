@@ -55,6 +55,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
 
   if(HAS_LEDS)
     add_subdirectory(leds)
+    target_link_libraries(firmware PRIVATE led_animation_controller)
   endif()
 
   add_subdirectory(buddy)

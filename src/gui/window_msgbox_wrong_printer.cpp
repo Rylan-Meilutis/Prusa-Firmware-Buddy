@@ -2,6 +2,7 @@
 #include "img_resources.hpp"
 
 #include <guiconfig/guiconfig.h>
+#include <option/has_mmu2.h>
 
 MsgBoxInvalidPrinter::Message::Message(window_t *parent, const string_view_utf8 &text, HWCheckSeverity severity, bool valid)
     : icon(parent, {}, (severity == HWCheckSeverity::Abort) ? &img::nok_16x16 : &img::warning_16x16)

@@ -40,7 +40,11 @@
     #include <config_store/store_instance.hpp>
 #endif
 
-#include <feature/phase_stepping/phase_stepping.hpp>
+#include <option/has_phase_stepping.h>
+#if HAS_PHASE_STEPPING()
+    #include <feature/phase_stepping/phase_stepping.hpp>
+#endif
+
 #include <HardwareSerial.h>
 
 enum StealthIndex : uint8_t { STEALTH_AXIS_XY,
@@ -673,9 +677,14 @@ void restore_trinamic_drivers() {
 }
 
 void reset_trinamic_drivers() {
-    if (phase_stepping::any_axis_enabled()) {
-        bsod("reset tmc hurts phase stepping");
+#if HAS_PHASE_STEPPING()
+    // This function is once called during print boot, when the phase_stepping is not yet initialized
+    // Instantiating the guard there was triggering an assert.
+    std::optional<phase_stepping::EnsureDisabled> guard;
+    if (phase_stepping::is_initialized()) {
+        guard.emplace();
     }
+#endif
 
     static constexpr bool stealthchop_by_axis[] = {
 #if ENABLED(STEALTHCHOP_XY)

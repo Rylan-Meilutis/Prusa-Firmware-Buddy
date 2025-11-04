@@ -4,6 +4,11 @@
 #include "../../Marlin/src/module/temperature.h"
 #include "selftest_heater.h"
 #include <option/has_remote_bed.h>
+#include <option/has_toolchanger.h>
+
+#if HAS_REMOTE_BED()
+    #include <feature/remote_bed/remote_bed.hpp>
+#endif
 
 LOG_COMPONENT_REF(Selftest);
 using namespace selftest;
@@ -32,7 +37,7 @@ void PowerCheckBoth::Callback([[maybe_unused]] CSelftestPart_Heater &part) {
 #endif
 
 #if HAS_REMOTE_BED()
-    const float bed_voltage_V = 24; // Modular bed does not measure this
+    const float bed_voltage_V = remote_bed::get_heater_voltage(); // Modular bed does not measure this
     const float bed_current_A = advancedpower.get_bed_current();
     const float bed_power_W = bed_current_A * bed_voltage_V;
     [[maybe_unused]] const float total_current_A = nozzle_current_A + bed_current_A;

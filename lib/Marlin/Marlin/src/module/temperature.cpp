@@ -45,6 +45,7 @@
 #include <module/motion.h>
 #include "../../../../src/common/adc.hpp"
 #include "../marlin_stubs/skippable_gcode.hpp"
+#include <option/has_toolchanger.h>
 
 #include <option/has_planner.h>
 #if HAS_PLANNER()
@@ -84,12 +85,17 @@
   #include <feature/safety_timer/safety_timer.hpp>
 #endif
 
+#include <option/has_ac_controller.h>
 #include <option/has_dwarf.h>
 #include <option/has_local_bed.h>
 #include <option/has_remote_bed.h>
 #include <option/has_modular_bed.h>
 #include <utils/serial_logging_disabler.hpp>
 #include <raii/scope_guard.hpp>
+
+#if HAS_AC_CONTROLLER()
+    #include <puppies/ac_controller.hpp>
+#endif
 
 LOG_COMPONENT_REF(MarlinServer);
 
@@ -383,10 +389,15 @@ volatile bool Temperature::temp_meas_ready = false;
       #endif
       #define ONHEATINGSTART() printerEventLEDs.onBedHeatingStart()
       #define ONHEATING(S,C,T) printerEventLEDs.onBedHeating(S,C,T)
-    #else
+    #else /* ENABLED(PIDTEMP) && DISABLED(PIDTEMPBED) */
       #define GHV(B,H) H
       #if ENABLED(HW_PWM_HEATERS)
-        #define SHV(B,H) analogWrite_HEATER_BED(H)
+        // Need to write soft_pwm_amount even when using hardware pwm heater to prevent
+        // power manager from shutting us down, leading to temperature check failure.
+        #define SHV(B,H) do {                         \
+            analogWrite(HEATER_0_PIN, H);             \
+            temp_hotend[heater].soft_pwm_amount = H;  \
+        } while (0)
       #else
         #define SHV(B,H) (temp_hotend[heater].soft_pwm_amount = H)
       #endif
@@ -655,7 +666,7 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
   #if HOTENDS
     if (heater_id >= H_E0 && heater_id <= H_E5) {
       const uint8_t tool_id = heater_id - (uint8_t)H_E0;
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         return prusa_toolchanger.getTool(tool_id).get_heater_pwm();
       #else
         return temp_hotend[tool_id].soft_pwm_amount;
@@ -665,7 +676,7 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
   #if HAS_TEMP_HEATBREAK
     if (heater_id >= H_HEATBREAK_E0 && heater_id <= H_HEATBREAK_E5) {
       const uint8_t tool_id = heater_id - (uint8_t)H_HEATBREAK_E0;
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         return prusa_toolchanger.getTool(tool_id).get_heatbreak_fan_pwr();
       #else
         return temp_heatbreak[tool_id].soft_pwm_amount;
@@ -1556,7 +1567,7 @@ void Temperature::manage_heater() {
     if (ELAPSED(ms, next_heatbreak_check_ms)) {
       next_heatbreak_check_ms = ms + HEATBREAK_CHECK_INTERVAL;
 
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
           // fan is regulted on dwarf - just update marlin's PWM value
           set_fan_speed(HEATBREAK_FAN_ID, prusa_toolchanger.getActiveToolOrFirst().get_heatbreak_fan_pwr());
       #else
@@ -1599,9 +1610,9 @@ void Temperature::manage_heater() {
     #elif HOTENDS
       #error "This is made for one hotend!"
     #endif /* HOTENDS */
-    #if HAS_HEATED_BED
+    #if HAS_LOCAL_BED()
       analogWrite_HEATER_BED(temp_bed.soft_pwm_amount);
-    #endif /* HAS_HEATED_BED */
+    #endif
   #endif
 
   #if HAS_FAN0
@@ -1684,7 +1695,7 @@ void Temperature::suspend_heatbreak_fan(millis_t ms) {
         return 0.0;
       }
 
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       return prusa_toolchanger.getTool(e).get_hotend_temp();
     #endif
 
@@ -1716,7 +1727,7 @@ constexpr float compensate_bed_temperature(float celsius) {
   }
   return celsius;
 }
-#elif PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_XL_DEV_KIT()
+#elif PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_XL_DEV_KIT() || PRINTER_IS_PRUSA_COREONEL()
 constexpr float compensate_bed_temperature(float celsius) {
   return celsius;
 }
@@ -1786,6 +1797,58 @@ constexpr float compensate_bed_temperature(float celsius) {
   }
 #endif // HAS_TEMP_BOARD
 
+#if HAS_AC_CONTROLLER()
+
+static void translate_ac_controller_faults(const char* pubby_name, ac_controller::Faults faults) {
+  if (!faults) return;
+
+  // Some faults are intentionally missing, because they shouldn't occur in normal printer operation.
+  // We might as well BSOD when they do. No need to waste FLASH for them and error page would be pointless too.
+
+  if (faults & ac_controller::Faults::RCD_TRIPPED) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_RCD_TRIPPED);
+  if (faults & ac_controller::Faults::POWERPANIC) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_POWERPANIC);
+  // ac_controller::Faults::OVERHEAT intentionally missing
+  // Neither PSU NTC nor triac NTC are physically present on CORE One L version of AC controller
+  if (faults & ac_controller::Faults::PSU_FAN_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_PSU_FAN_NOK);
+  // ac_controller::Faults::PSU_NTC_DISCONNECT intentionally missing
+  // ac_controller::Faults::PSU_NTC_SHORT intentionally missing
+  // PSU NTC is not physically present on CORE One L version of AC controller
+  if (faults & ac_controller::Faults::BED_NTC_DISCONNECT) return fatal_error(ErrCode::ERR_TEMPERATURE_AC_CONTROLLER_BED_NTC_DISCONNECT);
+  if (faults & ac_controller::Faults::BED_NTC_SHORT) return fatal_error(ErrCode::ERR_TEMPERATURE_AC_CONTROLLER_BED_NTC_SHORT);
+  // ac_controller::Faults::TRIAC_NTC_DISCONNECT intentionally missing
+  // ac_controller::Faults::TRIAC_NTC_SHORT intentionally missing
+  // Triac NTC is not physically present on CORE One L version of AC controller
+  if (faults & ac_controller::Faults::BED_FAN0_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_BED_FAN0_NOK);
+  if (faults & ac_controller::Faults::BED_FAN1_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_BED_FAN1_NOK);
+  // ac_controller::Faults::TRIAC_FAN_NOK intentionally missing
+  // Triac fan is not physically present on CORE One L version of AC controller
+  if (faults & ac_controller::Faults::GRID_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_GRID_NOK);
+  // ac_controller::Faults::CHAMBER_LOAD_NOK intentionally missing
+  // Chamber heater is not physically present on CORE One L version of AC controller
+  if (faults & ac_controller::Faults::BED_LOAD_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_BED_LOAD_NOK);
+  if (faults & ac_controller::Faults::PSU_NOK) return fatal_error(ErrCode::ERR_ELECTRO_AC_CONTROLLER_PSU_NOK);
+  if (faults & ac_controller::Faults::BED_RUNAWAY) return fatal_error(ErrCode::ERR_TEMPERATURE_BED_THERMAL_RUNAWAY);
+  if (faults & ac_controller::Faults::MCU_OVERHEAT) return fatal_error(ErrCode::ERR_TEMPERATURE_PUBBY_MCU_OVERHEAT, pubby_name);
+  if (faults & ac_controller::Faults::PCB_OVERHEAT) return fatal_error(ErrCode::ERR_TEMPERATURE_PUBBY_PCB_OVERHEAT, pubby_name);
+  if (faults & ac_controller::Faults::DATA_TIMEOUT) return fatal_error(ErrCode::ERR_ELECTRO_PUBBY_DATA_TIMEOUT, pubby_name);
+  if (faults & ac_controller::Faults::HEARTBEAT_MISSING) return fatal_error(ErrCode::ERR_ELECTRO_PUBBY_HEARTBEAT_MISSING, pubby_name);
+  // ac_controller::Faults::UNKNOWN intentionally missing
+  // This fault is only ever triggered by development version of the AC controller
+
+  // We still want to provide some details if the fault slips to production.
+  bsod("%s faults=%" PRIu32, pubby_name, static_cast<uint32_t>(faults));
+}
+
+void translate_ac_controller_faults() {
+  static constexpr const char* pubby_name = "AC controller";
+  if (const auto faults = buddy::puppies::ac_controller.get_faults()) {
+    translate_ac_controller_faults(pubby_name, *faults);
+  } else {
+    fatal_error(ErrCode::ERR_SYSTEM_PUPPY_NOT_RESPONDING, pubby_name);
+  }
+}
+#endif
+
 /**
  * Get the raw values into the actual temperatures.
  * The raw values are created in interrupt context,
@@ -1794,7 +1857,7 @@ constexpr float compensate_bed_temperature(float celsius) {
  */
 void Temperature::updateTemperaturesFromRawValues() {
   #if HOTENDS
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = prusa_toolchanger.getTool(e).get_hotend_temp();
     #else
       for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = analog_to_celsius_hotend(temp_hotend[e].raw, e);
@@ -1803,6 +1866,9 @@ void Temperature::updateTemperaturesFromRawValues() {
   #if HAS_HEATED_BED
     #if HAS_MODULAR_BED()
       updateModularBedTemperature();
+    #elif HAS_AC_CONTROLLER()
+      translate_ac_controller_faults();
+      temp_bed.celsius = buddy::puppies::ac_controller.get_bed_temp().value_or(0);
     #else
       temp_bed.celsius = analog_to_celsius_bed(temp_bed.raw);
     #endif
@@ -1830,7 +1896,7 @@ void Temperature::updateTemperaturesFromRawValues() {
     temp_chamber.celsius = analog_to_celsius_chamber(temp_chamber.raw);
   #endif
   #if HAS_TEMP_HEATBREAK
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
       for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = prusa_toolchanger.getTool(e).get_heatbreak_temp();
     #else
       for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = analog_to_celsius_heatbreak(temp_heatbreak[e].raw);
@@ -1849,7 +1915,7 @@ void Temperature::updateTemperaturesFromRawValues() {
   // Reset the watchdog on good temperature measurement
   watchdog_refresh();
 
-  #if ENABLED(PRUSA_TOOLCHANGER)
+  #if HAS_TOOLCHANGER()
   if(temp_bed.celsius == 0) {
     return; // Avoid marking reading as good when the bed temperature was not read
   }
@@ -2455,20 +2521,20 @@ void Temperature::readings_ready() {
             || temp_hotend[e].soft_pwm_amount > 0
           #endif
         );
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         if (temp_hotend[e].celsius > temp_range[e].maxtemp) // Toolchanger doesn't report raw
-      #else /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #else
         if (rawtemp > temp_range[e].raw_max * tdir)
-      #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #endif
         {
           max_temp_error((heater_ind_t)e);
         }
 
-      #if ENABLED(PRUSA_TOOLCHANGER)
+      #if HAS_TOOLCHANGER()
         if (heater_on && temp_hotend[e].celsius < temp_range[e].mintemp) // Toolchanger doesn't report raw
-      #else /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #else
         if (heater_on && rawtemp < temp_range[e].raw_min * tdir)
-      #endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+      #endif
         {
               min_temp_error((heater_ind_t)e);
         }
@@ -2504,7 +2570,7 @@ void Temperature::readings_ready() {
       #else
         #define HEATBREAKCMP(A,B) ((A)>=(B))
       #endif
-      #if !ENABLED(PRUSA_TOOLCHANGER)
+      #if !HAS_TOOLCHANGER()
         //const bool chamber_on = (temp_chamber.target > 0);
         const bool heater_on = (temp_hotend[e].target > 0
                                 #if ENABLED(PIDTEMP)
@@ -2971,7 +3037,7 @@ void Temperature::isr() {
         temp_hotend[ee].target = new_temp;
 
         start_watching_hotend(ee);
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
         prusa_toolchanger.getTool(ee).set_hotend_target_temp(temp_hotend[ee].target);
     #endif
     }
@@ -3107,6 +3173,10 @@ void Temperature::isr() {
         advanced_modular_bed->update_bedlet_temps(temp_bed.enabled_mask, temp_bed.target);
     #endif
 
+    #if HAS_AC_CONTROLLER()
+        buddy::puppies::ac_controller.set_bed_target_temp(temp_bed.target);
+    #endif
+
         start_watching_bed();
     }
 
@@ -3235,6 +3305,12 @@ void Temperature::isr() {
         if (marlin_debug_flags & MARLIN_DEBUG_DRYRUN) {
             // In dry run, the bed is left cold. The temperature would never stabilize.
             return;
+        }
+
+        if (temp_bed.target < bed_frame_est_celsius) {
+          // Do not wait for cooldown. Cooling is slow and propagated evenly across the bed, it won't warp the bed differently.
+          log_info(MarlinServer, "Absorbing heat: target lower than actual temp, continuing");
+          return;
         }
 
         if (temp_bed.target <= room_temperature) {

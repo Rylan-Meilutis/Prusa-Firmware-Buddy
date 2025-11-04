@@ -13,6 +13,7 @@
 struct metric_s;
 
 class FSensorADC final : public IFSensor {
+    friend class FilamentSensorCalibratorADC;
 
 public:
     using Value = int32_t;
@@ -30,48 +31,20 @@ protected:
      */
     virtual Value GetFilteredValue() const override { return fs_filtered_value.load(); };
 
-    const uint8_t tool_index;
-    const bool is_side;
-
-    CalibrateRequest req_calibrate { CalibrateRequest::NoCalibration };
-    bool flg_invalid_calib { false };
-
     virtual void cycle() override;
-
-    /**
-     * @brief Calibrate reference value with filament NOT inserted
-     */
-    void CalibrateNotInserted(Value filtered_value);
-
-    /**
-     * @brief Calibrate reference value with filament inserted
-     */
-    void CalibrateInserted(Value filtered_value);
 
     virtual void record_state() override;
 
 public:
-    FSensorADC(uint8_t tool_index, bool is_side_sensor);
+    FSensorADC(FilamentSensorID id);
 
-    /**
-     * @brief calibrate filament sensor and store it to eeprom
-     * thread safe, only sets flag --> !!! is not done instantly !!!
-     */
-    virtual void SetCalibrateRequest(CalibrateRequest) override;
-    virtual bool IsCalibrationFinished() const override;
-    virtual void SetInvalidateCalibrationFlag() override;
+    FilamentSensorCalibrator *create_calibrator(FilamentSensorCalibrator::Storage &storage) final;
 
     void load_settings();
 
     void set_filtered_value_from_IRQ(Value filtered_value);
 
-    void invalidate_calibration();
-
 private:
     // Limit metrics recording for each tool
-    RateLimiter<uint32_t> limit_record;
-
-    uint32_t value_span = 0;
-
-    static constexpr float fs_selftest_span_multipler { 1.2 };
+    RateLimiter<uint32_t> limit_record { 49 /*ms*/ };
 };

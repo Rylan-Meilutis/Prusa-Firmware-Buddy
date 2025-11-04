@@ -37,12 +37,9 @@
   #undef PIDTEMP
   #undef AUTOTEMP
   #undef PID_EXTRUSION_SCALING
-  #undef FILAMENT_RUNOUT_SENSOR
   #undef ADVANCED_PAUSE_FEATURE
   #undef FILAMENT_RUNOUT_DISTANCE_MM
-  #undef FILAMENT_LOAD_UNLOAD_GCODES
   #undef DISABLE_INACTIVE_EXTRUDER
-  #undef FILAMENT_LOAD_UNLOAD_GCODES
   #undef PREVENT_COLD_EXTRUSION
   #undef PREVENT_LENGTHY_EXTRUDE
   #undef THERMAL_PROTECTION_HOTENDS
@@ -90,21 +87,5 @@
   #endif
   #ifndef ACTION_ON_SAFETY_TIMER_EXPIRED
     #define ACTION_ON_SAFETY_TIMER_EXPIRED "safety_timer_expired"
-  #endif
-  #if HAS_FILAMENT_SENSOR
-    #ifndef ACTION_ON_FILAMENT_RUNOUT
-      #define ACTION_ON_FILAMENT_RUNOUT "filament_runout"
-    #endif
-    #ifndef ACTION_REASON_ON_FILAMENT_RUNOUT
-      #define ACTION_REASON_ON_FILAMENT_RUNOUT "filament_runout"
-    #endif
-  #endif
-  #if ENABLED(G29_RETRY_AND_RECOVER)
-    #ifndef ACTION_ON_G29_RECOVER
-      #define ACTION_ON_G29_RECOVER "probe_rewipe"
-    #endif
-    #ifndef ACTION_ON_G29_FAILURE
-      #define ACTION_ON_G29_FAILURE "probe_failed"
-    #endif
   #endif
 #endif

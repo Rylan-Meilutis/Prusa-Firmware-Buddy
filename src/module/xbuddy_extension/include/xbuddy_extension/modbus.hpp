@@ -12,6 +12,24 @@
 
 namespace xbuddy_extension::modbus {
 
+/// Helper struct to group chunk request parameters together.
+struct ChunkRequest {
+    uint16_t file_id; ///< request to receive a chunk of this file
+    uint16_t offset_lo; ///< request to receive a chunk with this offset (lower 16 bits)
+    uint16_t offset_hi; ///< request to receive a chunk with this offset (upper 16 bits)
+
+    bool operator==(const ChunkRequest &) const = default;
+};
+
+/// Helper struct to group digest request parameters together.
+struct DigestRequest {
+    uint16_t file_id; ///< request to compute digest of this file
+    uint16_t salt_lo; ///< request to compute digest with this salt (lower 16 bits)
+    uint16_t salt_hi; ///< request to compute digest with this salt (upper 16 bits)
+
+    bool operator==(const DigestRequest &) const = default;
+};
+
 /// MODBUS register file for reporting current status of xBuddyExtension to motherboard.
 struct Status {
     static constexpr uint16_t address = 0x8000;
@@ -19,6 +37,12 @@ struct Status {
     std::array<uint16_t, fan_count> fan_rpm; /// RPM of the fan
     uint16_t temperature; /// decidegree Celsius (eg. 23.5°C = 235 in the register)
     uint16_t filament_sensor; /// FilamentSensorState
+
+    ChunkRequest chunk_request; ///< request to receive a chunk
+
+    DigestRequest digest_request; ///< request to compute digest
+
+    uint16_t log_message_sequence; ///< increments when new log message available
 };
 
 /// MODBUS register file for setting desired config of xBuddyExtension from motherboard.
@@ -44,6 +68,37 @@ struct Config {
     ///
     /// Warning: PWM timer shared with some fans.
     uint16_t w_led_frequency;
+
+    /// A value that's changing regularly, to signal to the device that the
+    /// master is alive. If it doesn't change, it can assume the master is
+    /// dead in some way and act accordingly.
+    uint16_t activity;
+};
+
+/// MODBUS register file for transferring chunk from motherboard.
+struct Chunk {
+    static constexpr uint16_t address = 0x9100;
+
+    ChunkRequest request; ///< echoed back to prevent mixup
+    uint16_t size; ///< how many valid bytes are in data; must be full unless it's the last chunk
+    std::array<uint16_t, 119> data; ///< actual bytes of the chunk (little endian)
+};
+
+/// MODBUS register file for transferring digest from motherboard.
+struct Digest {
+    static constexpr uint16_t address = 0x9200;
+
+    DigestRequest request; ///< echoed back to prevent mixup
+    std::array<uint16_t, 16> data; ///< actual bytes of the digest (little endian)
+};
+
+/// MODBUS register file for reporting log messages from xBuddyExtension to motherboard.
+struct LogMessage {
+    static constexpr uint16_t address = 0x9300;
+
+    uint16_t sequence; ///< sequence number when this record was written, see Status::log_message_sequence
+    uint16_t text_size; ///< length of valid text_data in bytes
+    std::array<uint16_t, 121> text_data; ///< actual bytes of log message (little endian)
 };
 
 } // namespace xbuddy_extension::modbus

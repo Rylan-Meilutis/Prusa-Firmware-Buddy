@@ -170,9 +170,6 @@ LoopResult CSelftestPart_ToolOffsets::state_home_park() {
     marlin_server::enqueue_gcode("G1 Z30");
     marlin_server::enqueue_gcode("G1 G90");
 
-    // Ensure steppers keep enabled after homing, avoid re-home after sheet removal.
-    marlin_server::enqueue_gcode("M18 S0");
-
     // Ensure tool 0 is picked (no risky toolchange is needed with calibration pin installed)
     marlin_server::enqueue_gcode("T0 S1 L0 D0");
     marlin_server::enqueue_gcode("G28 O");
@@ -216,7 +213,6 @@ LoopResult CSelftestPart_ToolOffsets::state_calibrate() {
  */
 LoopResult CSelftestPart_ToolOffsets::state_finish_calibration() {
     bool calibration_success = full_calibration();
-    marlin_server::enqueue_gcode_printf("M18 S%d", DEFAULT_STEPPER_DEACTIVE_TIME);
     if (!calibration_success) {
         return LoopResult::Fail;
     }

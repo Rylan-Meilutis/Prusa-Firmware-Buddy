@@ -41,6 +41,12 @@
 
     #include <mapi/motion.hpp>
 
+#include <option/has_nozzle_cleaner.h>
+
+#if HAS_NOZZLE_CLEANER()
+    #include "../../../feature/nozzle_cleaner/include/nozzle_cleaner.hpp"
+#endif
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -262,6 +268,11 @@ void GcodeSuite::G29() {
 
     BlockEStallDetection block_e_stall_detection;
 
+#if HAS_NOZZLE_CLEANER()
+    const uint8_t max_nozzle_cleaning_retries = 3;        
+    uint8_t nozzle_cleaning_retries = 0;
+#endif
+
     while (true) {
         ubl.g29_min_max_measured_z = std::nullopt;
         ubl.g29_nozzle_cleaning_failed = false;
@@ -288,6 +299,36 @@ void GcodeSuite::G29() {
 
     #if HAS_LOADCELL() && ENABLED(PROBE_CLEANUP_SUPPORT)
         if (ubl.g29_nozzle_cleaning_failed) {
+        #if HAS_NOZZLE_CLEANER()
+            // If we have nozzle cleaner, we try to use it first and retry nozzle cleaning but only a limited number of times
+            if (nozzle_cleaning_retries < max_nozzle_cleaning_retries) {
+                nozzle_cleaning_retries++;
+                // Nozzle cleaner code
+                while (true) {
+                    if (planner.draining()) return;
+                    
+                    if (nozzle_cleaner::is_loader_idle()) {
+                        nozzle_cleaner::load_g12_gcode();
+                    }
+                    if (nozzle_cleaner::is_loader_buffering()) {
+                        idle(true); // Wait for the loader to finish buffering
+                        continue; // We are not ready yet, we need to wait for the loader to finish buffering
+                    }
+                    break;
+                }
+                if(nozzle_cleaner::execute()) {
+                    // Nozzle cleaner cleaning succeeded, proceed to retry nozzle cleaning
+                    continue;
+                } else {
+                    // Something went wrong, we cannot continue
+                    log_error(Marlin, "Nozzle cleaner cleaning failed and cannot continue");
+                    // and fallthrough to the wizard
+                }
+            } else {
+                nozzle_cleaning_retries = 0;
+                //and fallthrough to the wizard
+            }
+        #endif
             // Using the M600 position for this. While we are not changing
             // filament, we want the nozzle to park at an accessible place to
             // have it cleaned and the M600 position happens to be just what we

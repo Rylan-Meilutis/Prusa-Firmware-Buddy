@@ -6,6 +6,7 @@
 
 #include <option/has_esp.h>
 #include <option/has_toolchanger.h>
+#include <option/has_tool_mapping.h>
 #include <option/has_side_leds.h>
 #include <option/has_belt_tuning.h>
 #include <option/has_manual_belt_tuning.h>
@@ -15,6 +16,8 @@
 #include <option/has_emergency_stop.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_door_sensor_calibration.h>
+#include <option/has_automatic_chamber_vents.h>
+#include <option/has_spool_join.h>
 
 #include <gcode/gcode_parser.hpp>
 
@@ -107,15 +110,19 @@ void M862_6(); //< Check gcode level
 /// @}
 #endif
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
 void M863(); //< tool mapping control
 #endif
 
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
 void M864(); //< spool join control
 #endif
 
 void M865(); //< Set up ad-hoc filament
+
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+void M870(); ///< Open or close ventilation intake
+#endif
 
 void M591(); //< configure Filament stuck monitoring
 #if PRINTER_IS_PRUSA_iX()
@@ -148,6 +155,9 @@ void M1703(); //< Wi-fi setup. Prusa platform specific
 void M1978(); //< Fan Selftest
 #if HAS_DOOR_SENSOR_CALIBRATION()
 void M1980(); //< Door sensor calibration
+#endif
+#if HAS_SELFTEST()
+void M1981(); //< Filament sensors selftest
 #endif
 
 void M9140(); //< Set normal (non-stealth) mode

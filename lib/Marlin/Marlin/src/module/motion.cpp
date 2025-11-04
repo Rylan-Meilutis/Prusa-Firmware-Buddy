@@ -89,6 +89,7 @@
 #include <option/has_wastebin.h>
 #include <option/has_dwarf.h>
 #include <option/has_emergency_stop.h>
+#include <option/has_toolchanger.h>
 
 #include <option/has_emergency_stop.h>
 #if HAS_EMERGENCY_STOP()
@@ -454,7 +455,7 @@ void restore_feedrate_and_scaling() {
     #endif
   ) {
 
-    #if HAS_HOTEND_OFFSET && DISABLED(PRUSA_TOOLCHANGER)
+    #if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
 
       // Software endstops are relative to the tool 0 workspace, so
       // the movement limits must be shifted by the tool offset to
@@ -986,10 +987,6 @@ void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unuse
     }
   #endif
 
-  #if ENABLED(I2C_POSITION_ENCODERS)
-    I2CPEM.homed(axis);
-  #endif
-
   #if ENABLED(BABYSTEP_DISPLAY_TOTAL)
     babystep.reset_total(axis);
   #endif
@@ -1012,10 +1009,6 @@ void set_axis_is_not_at_home(const AxisEnum axis) {
   axes_home_level[axis] = AxisHomeLevel::not_homed;
 
   if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPAIR("<<< set_axis_is_not_at_home(", axis_codes[axis], ")");
-
-  #if ENABLED(I2C_POSITION_ENCODERS)
-    I2CPEM.unhomed(axis);
-  #endif
 }
 
 // those metrics are intentionally not static, as it is expected that they might be referenced

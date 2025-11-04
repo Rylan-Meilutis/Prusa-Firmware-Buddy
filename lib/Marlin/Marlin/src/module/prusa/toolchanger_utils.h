@@ -1,7 +1,8 @@
 #pragma once
 #include <inc/MarlinConfigPre.h>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include <inc/MarlinConfig.h>
     #include <puppies/Dwarf.hpp>
     #include <module/tool_change.h>
@@ -292,4 +293,4 @@ public:
     bool try_restore() { return conf_restorer.try_restore(); }
 };
 
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif

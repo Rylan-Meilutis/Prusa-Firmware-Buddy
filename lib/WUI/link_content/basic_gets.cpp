@@ -4,6 +4,7 @@
 #include "lwip/init.h"
 #include "netdev.h"
 #include <config_store/store_instance.hpp>
+#include <option/has_tool_mapping.h>
 
 #include <segmented_json_macros.h>
 #include <json_encode.h>
@@ -18,9 +19,9 @@
 #include <cstdio>
 #include "printers.h"
 #include <common/directory.hpp>
-#include <option/has_mmu2.h>
 #include <version/version.hpp>
 #include <common/printer_model.hpp>
+#include <option/has_toolchanger.h>
 
 using namespace json;
 using namespace marlin_server;
@@ -82,6 +83,7 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
         link_state_str = "PAUSED";
         break;
     case State::Paused:
+    case State::MediaErrorRecovery_BufferData:
         printing = paused = true;
         ready = operational = false;
         link_state_str = "PAUSED";
@@ -118,7 +120,7 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
     case State::Idle:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
     case State::PrintInit:
@@ -290,6 +292,7 @@ JsonResult get_job_octoprint(size_t resume_point, JsonOutput &output) {
         state = "Pausing";
         break;
     case State::PowerPanic_AwaitingResume:
+    case State::MediaErrorRecovery_BufferData:
     case State::Paused:
         has_job = true;
         state = "Paused";
@@ -317,7 +320,7 @@ JsonResult get_job_octoprint(size_t resume_point, JsonOutput &output) {
     case State::Idle:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
     case State::PrintInit:

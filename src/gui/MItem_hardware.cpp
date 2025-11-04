@@ -11,8 +11,8 @@
     #include <module/prusa/toolchanger.h>
     #if HAS_SIDE_FSENSOR()
         #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif /*HAS_SIDE_FSENSOR()*/
-#endif /*HAS_TOOLCHANGER()*/
+    #endif
+#endif
 
 static constexpr const char *hw_check_items[] = {
     N_("None"),
@@ -51,7 +51,7 @@ void MI_SIDE_FSENSOR_REMAP::OnChange([[maybe_unused]] size_t old_index) {
 
     #if HAS_SELFTEST()
         Validate(); // Do not redraw this switch yet
-        marlin_client::test_start_with_data(stmFSensor, static_cast<ToolMask>(mask)); // Start filament sensor calibration for moved tools
+        marlin_client::gcode_printf("M1981 F%i", (int)mask); // Start filament sensor calibration for moved tools
     #endif
 
     } else {
@@ -59,7 +59,7 @@ void MI_SIDE_FSENSOR_REMAP::OnChange([[maybe_unused]] size_t old_index) {
         set_value(side_fsensor_remap::is_remapped());
     }
 }
-#endif /*HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()*/
+#endif
 
 #if HAS_EXTENDED_PRINTER_TYPE()
 MI_EXTENDED_PRINTER_TYPE::MI_EXTENDED_PRINTER_TYPE()
@@ -127,25 +127,23 @@ MI_EMERGENCY_STOP_ENABLE::MI_EMERGENCY_STOP_ENABLE()
     : WI_ICON_SWITCH_OFF_ON_t(config_store().emergency_stop_enable.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};
 
 void MI_EMERGENCY_STOP_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
-    if (value()) {
-        config_store().emergency_stop_enable.set(true);
-    } else {
-        if (user_made_informed_decision_to_disable_door_sensor()) {
-            config_store().emergency_stop_enable.set(false);
-        } else {
-            // revert the change in GUI and keep config store intact
-            set_value(true);
-        }
+    if (!value() && !user_made_informed_decision_to_disable_door_sensor()) {
+        // revert the change in GUI and keep config store intact
+        set_value(true);
+        return;
     }
+
+    config_store().emergency_stop_enable.set(value());
+    config_store().emergency_stop_disable_consent_given.set(!value());
 }
 #endif
 
-#if HAS_MANUAL_CHAMBER_VENTS()
+#if HAS_MANUAL_CHAMBER_VENTS() || HAS_AUTOMATIC_CHAMBER_VENTS()
 MI_CHECK_MANUAL_VENT_STATE::MI_CHECK_MANUAL_VENT_STATE()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().check_manual_vent_state.get(), _("Check Ventilation Grilles"), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().check_chamber_vent_state.get(), _("Check Ventilation Grilles"), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 
 void MI_CHECK_MANUAL_VENT_STATE::OnChange([[maybe_unused]] size_t old_index) {
-    config_store().check_manual_vent_state.set(value());
+    config_store().check_chamber_vent_state.set(value());
 }
 #endif
 

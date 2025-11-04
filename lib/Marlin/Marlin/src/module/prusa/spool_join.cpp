@@ -10,6 +10,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <option/has_mmu2.h>
 #include "module/temperature.h"
 #include "module/planner.h" // for get_axis_position_mm
 #include "marlin_vars.hpp"
@@ -259,7 +260,7 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
     // change to new tool
     destination = return_pos;
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
     MMU2::mmu2.tool_change_full(new_tool);
 #else
     tool_change(new_tool, tool_return_t::purge_and_to_destination /* For MMU unused */);

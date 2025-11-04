@@ -21,10 +21,6 @@
 #include <random.h>
 #include "bsod.h"
 
-#if HAS_XBUDDY_EXTENSION()
-    #include <buddy/mmu_port.hpp>
-#endif
-
 LOG_COMPONENT_REF(Puppies);
 
 namespace buddy::puppies {
@@ -330,7 +326,7 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
 #endif
 #if HAS_PUPPY_MODULARBED()
     case Dock::MODULAR_BED:
-        modularBedReset.write(state);
+        modular_bed_reset.write(state);
         break;
 #endif
 #if HAS_XBUDDY_EXTENSION()
@@ -338,9 +334,9 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
         // Soooooo the reset pin is inverted on XBE, ...
         // so when we want to activate reset on XBE we need to deactivate reset pin in the mmu port
         if (state == Pin::State::high) {
-            mmu_port::deactivate_reset();
+            buddy::hw::Configuration::Instance().deactivate_ext_reset();
         } else {
-            mmu_port::activate_reset();
+            buddy::hw::Configuration::Instance().activate_ext_reset();
         }
     } break;
 #endif

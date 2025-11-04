@@ -8,8 +8,6 @@
 #include "selftest_axis.h"
 #include "selftest_axis_config.hpp"
 #include "selftest_axis_interface.hpp"
-#include "selftest_fsensor_config.hpp"
-#include "selftest_fsensor_interface.hpp"
 #include "selftest_heater_config.hpp"
 #include "selftest_heaters_interface.hpp"
 #include "selftest_loadcell_config.hpp"
@@ -23,7 +21,6 @@
 #include <common/timing.h>
 #include <config_store/store_instance.hpp>
 #include <guiconfig/wizard_config.hpp>
-#include <option/has_mmu2.h>
 
 #include <cstdarg>
 #include <fcntl.h>
@@ -146,16 +143,6 @@ static constexpr LoadcellConfig_t Config_Loadcell[] = { {
     .z_extra_pos_fr = uint32_t(maxFeedrates[Z_AXIS]),
     .max_validation_time = 1000,
 } };
-
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensor = { {
-    { .extruder_id = 0 },
-} };
-
-#if HAS_MMU2()
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensorMMU = { {
-    { .extruder_id = 0 },
-} };
-#endif
 
 // class representing whole self-test
 class CSelftest : public ISelftest {
@@ -304,23 +291,6 @@ void CSelftest::Loop() {
         if (phaseWait()) {
             return;
         }
-        break;
-    case stsFSensor_calibration:
-        if (selftest::phaseFSensor(ToolMask::AllTools, pFSensor, Config_FSensor)) {
-            return;
-        }
-        break;
-    case stsFSensor_flip_mmu_at_the_end:
-#if HAS_MMU2()
-        // enable/disable the MMU according to the MMU Rework toggle. Used from
-        // the menus when we need to calibrate the FS before enabling/disabling
-        // the rework or the MMU itself.
-
-        // We don't check the result here. If FS is calibrated and enabled
-        // at the end of the selftest, MMU will be enabled, otherwise not.
-        marlin_server::enqueue_gcode(config_store().is_mmu_rework.get() ? "M709 S1" : "M709 S0");
-#endif
-
         break;
     case stsSelftestStop:
         restoreAfterSelftest();

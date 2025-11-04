@@ -3,6 +3,11 @@
 #include <limits>
 #include <atomic>
 #include <cassert>
+#include <bsod/bsod.h>
+
+#ifndef ACQ_ASSERT
+    #define ACQ_ASSERT(cond) assert(cond)
+#endif
 
 /**
  * @brief   SPSC (Single Producer Single Consumer) Atomic Circular Queue class
@@ -18,11 +23,11 @@
  * distinguish between empty and full without losing a slot.
  */
 template <typename T, typename index_t, auto N>
-class AtomicCircularQueue {
+class BaseAtomicCircularQueue {
     static_assert(std::numeric_limits<index_t>::is_integer, "Buffer index has to be an integer type");
     static_assert(!std::numeric_limits<index_t>::is_signed, "Buffer index has to be an unsigned type");
 
-    // Note: We cannto allow N == max, because then we wouldn't be able to distinct between full and empty queue.
+    // Note: We cannot allow N == max, because then we wouldn't be able to distinct between full and empty queue.
     // There always needs to be a one "extra" index value free
     static_assert(N < std::numeric_limits<index_t>::max(), "Buffer size bigger than the index can support");
     static_assert((N & (N - 1)) == 0, "The size of the queue has to be a power of 2");
@@ -34,9 +39,50 @@ class AtomicCircularQueue {
 private:
     std::atomic<index_t> head = 0;
     std::atomic<index_t> tail = 0;
+#ifndef NDEBUG
+    bool is_allocated = false; // for debugging information
+#endif
     T queue[N];
 
     static index_t mask(index_t val) { return val & (N - 1); }
+
+protected:
+    /**
+     * @brief   Reserves a slot in the queue for writing.
+     * @note    Only one slot may be allocated at a time
+     * @details Reserves the next available slot and returns a pointer to it.
+     *          The caller should write to this location, then call commit().
+     *          The item is not visible to consumers until commit() is called.
+     * @return  Pointer to the reserved slot, or nullptr if queue is full
+     */
+    T *allocate() {
+        if (isFull()) {
+            return nullptr;
+        }
+
+#ifndef NDEBUG
+        ACQ_ASSERT(!is_allocated);
+        is_allocated = true;
+#endif
+
+        return &queue[mask(tail)];
+    }
+
+    /**
+     * @brief   Commits a previously allocated slot
+     * @details Makes the item written to an allocated slot visible to consumers.
+     *          Must be called after allocate() and writing to the returned pointer.
+     * @return  true if successful
+     */
+    void commit([[maybe_unused]] T *item) {
+#ifndef NDEBUG
+        ACQ_ASSERT(item == &queue[mask(tail)]);
+        ACQ_ASSERT(is_allocated);
+        is_allocated = false;
+#endif
+
+        tail += 1;
+    }
 
 public:
     /// Removes an item from the queue and stores it into \param target
@@ -59,48 +105,12 @@ public:
      * @return  type T item
      */
     T dequeue() {
-        assert(!isEmpty());
+        ACQ_ASSERT(!isEmpty());
 
         index_t index = head;
         T ret = std::move(queue[mask(index++)]);
         head = index;
         return ret;
-    }
-
-    /**
-     * @brief   Adds an item to the queue
-     * @details Adds an item to the queue on the location pointed by the buffer_t
-     *          tail variable. Returns false if no queue space is available.
-     * @param   item Item to be added to the queue
-     * @return  true if the operation was successful
-     */
-    [[nodiscard]] bool enqueue(const T &item) {
-        if (isFull()) {
-            return false;
-        }
-
-        index_t index = tail;
-        queue[mask(index++)] = item;
-        tail = index;
-        return true;
-    }
-
-    /**
-     * @brief   Adds an item to the queue
-     * @details Adds an item to the queue on the location pointed by the buffer_t
-     *          tail variable. Returns false if no queue space is available.
-     * @param   item Item to be added to the queue
-     * @return  true if the operation was successful
-     */
-    [[nodiscard]] bool enqueue(T &&item) {
-        if (isFull()) {
-            return false;
-        }
-
-        index_t index = tail;
-        queue[mask(index++)] = std::move(item);
-        tail = index;
-        return true;
     }
 
     /**
@@ -145,4 +155,49 @@ public:
      * @brief Clear the contents of the queue
      */
     void clear() { head.store(tail); }
+};
+
+template <typename T, typename index_t, index_t N>
+class AtomicCircularQueue : public BaseAtomicCircularQueue<T, index_t, N> {
+public:
+    /**
+     * @brief   Adds an item to the queue
+     * @details Adds an item to the queue on the location pointed by the buffer_t
+     *          tail variable. Returns false if no queue space is available.
+     * @param   item Item to be added to the queue
+     * @return  true if the operation was successful
+     */
+    [[nodiscard]] bool enqueue(const T &item) {
+        auto ptr = this->allocate();
+        if (!ptr) {
+            return false;
+        }
+        *ptr = item;
+        this->commit(ptr);
+        return true;
+    }
+
+    /**
+     * @brief   Adds an item to the queue
+     * @details Adds an item to the queue on the location pointed by the buffer_t
+     *          tail variable. Returns false if no queue space is available.
+     * @param   item Item to be added to the queue
+     * @return  true if the operation was successful
+     */
+    [[nodiscard]] bool enqueue(T &&item) {
+        auto ptr = this->allocate();
+        if (!ptr) {
+            return false;
+        }
+        *ptr = std::move(item);
+        this->commit(ptr);
+        return true;
+    }
+};
+
+template <typename T, typename index_t, index_t N>
+class AtomicReservableCircularQueue : public BaseAtomicCircularQueue<T, index_t, N> {
+public:
+    using BaseAtomicCircularQueue<T, index_t, N>::allocate;
+    using BaseAtomicCircularQueue<T, index_t, N>::commit;
 };

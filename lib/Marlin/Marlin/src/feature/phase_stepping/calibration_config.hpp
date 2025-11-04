@@ -41,7 +41,7 @@ static inline constexpr const AxisCalibrationConfig xy_axis_calibration_config {
     .min_magnitude = 0.016f,
     .magnitude_quotient = 1.4f
 };
-#elif PRINTER_IS_PRUSA_iX()
+#elif PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONEL()
 static inline constexpr const AxisCalibrationConfig xy_axis_calibration_config {
     .speed_range = { 0.1f, 3.f },
     .enabled_harmonics = 0b1010,

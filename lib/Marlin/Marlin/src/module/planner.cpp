@@ -119,6 +119,7 @@
 #endif
 
 #include <feature/safety_timer/safety_timer.hpp>
+#include <freertos/critical_section.hpp>
 
 #include <marlin_vars.hpp>
 #include "configuration_store.h"
@@ -162,12 +163,16 @@ void Planner::apply_settings(const user_planner_settings_t &settings, const bool
   static constexpr planner_settings_t standard_limits = {
     .max_acceleration_mm_per_s2 = HWLIMIT_NORMAL_MAX_ACCELERATION,
     .max_feedrate_mm_s = HWLIMIT_NORMAL_MAX_FEEDRATE,
+    #if HAS_CLASSIC_JERK
     .max_jerk = HWLIMIT_NORMAL_JERK,
+    #endif
   };
   static constexpr planner_settings_t stealth_limits = {
     .max_acceleration_mm_per_s2 = HWLIMIT_STEALTH_MAX_ACCELERATION,
     .max_feedrate_mm_s = HWLIMIT_STEALTH_MAX_FEEDRATE,
+    #if HAS_CLASSIC_JERK
     .max_jerk = HWLIMIT_STEALTH_JERK,
+    #endif
   };
   const auto &limits = stealth_mode_ ? stealth_limits : standard_limits;
 
@@ -194,7 +199,9 @@ void Planner::apply_settings(const user_planner_settings_t &settings, const bool
   if (!no_limits) {
     apply_limit(&planner_settings_t::max_feedrate_mm_s);
     apply_limit(&planner_settings_t::max_acceleration_mm_per_s2);
+    #if HAS_CLASSIC_JERK
     apply_limit(&planner_settings_t::max_jerk);
+    #endif
   }
 
   refresh_acceleration_rates();
@@ -764,14 +771,40 @@ void Planner::recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, const float sa
 }
 
 void Planner::recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr)) {
-  // Initialize block index to the last block in the planner buffer.
-  const uint8_t block_index = prev_block_index(block_buffer_head);
-  // If there is just one block, no planning can be done. Avoid it!
-  if (block_index != block_buffer_planned) {
-    reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
-    forward_pass();
+  {
+    // During our recalculation, we block at least some of the blocks from the
+    // move ISR. That way it can't consume it all the way to standstill, which is
+    // risky.
+    //
+    // Make sure we don't get pushed aside by something while we are at it to
+    // unblock the whole movement system. All the network stuff, puppies, etc,
+    // can wait (hopefully, this is fast and it is just computation, no talk to
+    // perpipherals or other tasks).
+    //
+    // Note that we do _not_ block the actual stepping/phase stepping - these are
+    // interrupts with higher than max priority and freeRTOS doesn't disable
+    // these.
+    freertos::CriticalSection section;
+    // Check that the move interrupt has lower priority (denoted by higher
+    // _number_, yes, 0 is the highest priority) than what freertos is able to
+    // disable - that is, that we disable move interrupt by the above critical
+    // section.
+    static_assert(ISR_PRIORITY_MOVE_TIMER > configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+
+    // Initialize block index to the last block in the planner buffer.
+    const uint8_t block_index = prev_block_index(block_buffer_head);
+    // If there is just one block, no planning can be done. Avoid it!
+    if (block_index != block_buffer_planned) {
+      reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
+      forward_pass();
+    }
+    recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
   }
-  recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
+
+  // Inform the move ISR that there is a new block added to the queue. If it
+  // wants one, now is a good time to pick it up when it's fresh instead of
+  // waiting up to 1ms for it to be its turn.
+  PreciseStepping::wake_up();
 }
 
 /**
@@ -1787,16 +1820,29 @@ bool Planner::_populate_block(block_t * const block,
 
           vmax_junction_sqr = (junction_acceleration * junction_deviation_mm * sin_theta_d2) / (1.0f - sin_theta_d2);
           #if ENABLED(JD_SMALL_SEGMENT_HANDLING)
-            if (block->millimeters < 1) {
+            // For small moves with >135° junction (octagon) find speed for approximate arc
+            if (block->millimeters < 1 && junction_cos_theta < -0.7071067812f) {
+              // Fast acos(-t) approximation (max. error +-0.033rad = 1.89°)
+              // Based on MinMax polynomial published by W. Randolph Franklin, see
+              // https://wrf.ecse.rpi.edu/Research/Short_Notes/arcsin/onlyelem.html
+              //  acos( t) = pi / 2 - asin(x)
+              //  acos(-t) = pi - acos(t) ... pi / 2 + asin(x)
 
-              // Fast acos approximation, minus the error bar to be safe
-              const float junction_theta = (RADIANS(-40) * sq(junction_cos_theta) - RADIANS(50)) * junction_cos_theta + RADIANS(90) - 0.18f;
+              const float neg = junction_cos_theta < 0 ? -1 : 1,
+                          t = neg * junction_cos_theta,
+                          asinx =       0.032843707f
+                                + t * (-1.451838349f
+                                + t * ( 29.66153956f
+                                + t * (-131.1123477f
+                                + t * ( 262.8130562f
+                                + t * (-242.7199627f
+                                + t * ( 84.31466202f ) ))))),
+                          junction_theta = RADIANS(90) + neg * asinx; // acos(-t)
 
-              // If angle is greater than 135 degrees (octagon), find speed for approximate arc
-              if (junction_theta > RADIANS(135)) {
-                const float limit_sqr = block->millimeters / (RADIANS(180) - junction_theta) * junction_acceleration;
-                NOMORE(vmax_junction_sqr, limit_sqr);
-              }
+              // NOTE: junction_theta bottoms out at 0.033 which avoids divide by 0.
+
+              const float limit_sqr = (block->millimeters * junction_acceleration) / junction_theta;
+              NOMORE(vmax_junction_sqr, limit_sqr);
             }
           #endif //JD_SMALL_SEGMENT_HANDLING
 

@@ -3,6 +3,7 @@
 #include <common/directory.hpp>
 #include <freertos/critical_section.hpp>
 #include <marlin_stubs/skippable_gcode.hpp>
+#include <mapi/parking.hpp>
 #include "marlin_client_queue.hpp"
 #include "marlin_server_request.hpp"
 #include <inttypes.h>
@@ -19,7 +20,6 @@
 #include "utils/exponential_backoff.hpp"
 #include "bsod.h"
 #include "module/prusa/tool_mapper.hpp"
-#include "module/prusa/spool_join.hpp"
 #include "print_utils.hpp"
 #include "random.h"
 #include "timing.h"
@@ -65,13 +65,19 @@
 #include "utility_extensions.hpp"
 #include <common/gcode/gcode_info_scan.hpp>
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
     #include "../Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
 #include <option/has_cancel_object.h>
 #if HAS_CANCEL_OBJECT()
     #include <feature/cancel_object/cancel_object.hpp>
+#endif
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include "module/prusa/spool_join.hpp"
 #endif
 
 #include "hwio.h"
@@ -91,8 +97,8 @@
 
 #include <option/has_gui.h>
 #include <option/has_toolchanger.h>
+#include <option/has_tool_mapping.h>
 #include <option/has_selftest.h>
-#include <option/has_mmu2.h>
 #include <option/has_dwarf.h>
 #include <option/has_remote_bed.h>
 #include <option/has_modular_bed.h>
@@ -101,10 +107,11 @@
 #include <option/has_sheet_profiles.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_chamber_api.h>
-#include <option/xbuddy_extension_variant_standard.h>
+#include <option/xbuddy_extension_variant.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_uneven_bed_prompt.h>
 #include <option/has_nextruder.h>
+#include <option/has_automatic_chamber_vents.h>
 
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -133,7 +140,7 @@
     #include "power_panic.hpp"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
 #endif
 
@@ -165,7 +172,7 @@
     #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 #if HAS_EMERGENCY_STOP()
@@ -192,6 +199,17 @@
 
 #if HAS_NOZZLE_CLEANER()
     #include <nozzle_cleaner.hpp>
+#endif
+
+#include "option/has_bed_fan.h"
+#if HAS_BED_FAN()
+    #include <feature/bed_fan/bed_fan.hpp>
+    #include <feature/bed_fan/controller.hpp>
+#endif
+
+#include <option/has_psu_fan.h>
+#if HAS_PSU_FAN()
+    #include <feature/psu_fan/psu_fan.hpp>
 #endif
 
 using namespace ExtUI;
@@ -410,13 +428,20 @@ namespace {
     constinit std::array<ErrorChecker, HOTENDS> hotendFanErrorChecker;
     constinit ErrorChecker printFanErrorChecker;
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     constinit ErrorChecker xbe_cool_fan_checker; // Handles both cooling fans (we cannot differentiate anyway)
     constinit ErrorChecker xbe_filter_fan_checker;
 #endif
 
 #if XL_ENCLOSURE_SUPPORT()
     constinit ErrorChecker enclosure_fan_checker;
+#endif
+
+#if HAS_BED_FAN()
+    constinit ErrorChecker bed_fan_checker; // Handles both bed_fans
+#endif
+#if HAS_PSU_FAN()
+    constinit ErrorChecker psu_fan_checker;
 #endif
 
 #ifdef HAS_TEMP_HEATBREAK
@@ -511,7 +536,7 @@ static void handle_warnings() {
 #if HAS_MANUAL_CHAMBER_VENTS()
     case PhasesWarning::ChamberVents:
         if (response == Response::Disable) {
-            config_store().check_manual_vent_state.set(false);
+            config_store().check_chamber_vent_state.set(false);
         }
         break;
 #endif
@@ -698,7 +723,7 @@ void handle_nfc() {
 
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#if HAS_MMU2()
 /// Helper function that enqueues gcodes to safely unload filament from nozzle back to mmu
 ///
 /// To safely unload a filament we need to ensure that the nozzle has correct temperature.
@@ -797,7 +822,7 @@ static void cycle() {
     buddy::emergency_stop().step();
 #endif
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     buddy::xbuddy_extension().step();
 #endif
 
@@ -806,6 +831,10 @@ static void cycle() {
     // Although the timeout should never trigger within idle() (= when a gcode is run),
     // We still need to run the step() there to prevent "sampling bias" so that the timer could reset itself during movements and single-injected gcodes
     buddy::stepper_timeout().step();
+
+#if HAS_BED_FAN()
+    bed_fan::controller().step();
+#endif
 
     record_fanctl_metrics();
 
@@ -851,7 +880,7 @@ static void cycle() {
 #if HAS_TOOLCHANGER()
     // Check if tool didn't fall off
     prusa_toolchanger.loop(!printer_idle(), printer_paused());
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #if HAS_I2C_EXPANDER()
     io_expander_read_loop();
@@ -895,12 +924,15 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     }
 #endif
 
-#if ENABLED(PRUSA_MMU2)
-    if (MMU2::mmu2.Enabled() && (!finished || GCodeInfo::getInstance().is_singletool_gcode())) {
+#if HAS_MMU2()
+    if (MMU2::mmu2.Enabled()) {
+        // Unloading from nozzle is handled by Slicer, do not use auto_retract (frequent filament changes cause retract_tracker cannot properly hold valid value)
         // When we are running single-filament gcode with MMU, we should unload current filament.
-        safely_unload_filament_from_nozzle_to_mmu();
+        if (!finished || GCodeInfo::getInstance().is_singletool_gcode()) {
+            safely_unload_filament_from_nozzle_to_mmu();
+        }
     } else
-#endif // ENABLED(PRUSA_MMU2)
+#endif
 
 #if HAS_AUTO_RETRACT()
         if (true) {
@@ -913,10 +945,7 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
 #if HAS_NOZZLE_CLEANER()
     // Here the nozzle cleaner loader should already be ready to execute the gcode.
     nozzle_cleaner::execute();
-
-    xyz_pos_t park = XYZ_NOZZLE_PARK_POINT;
-    park.z = current_position.z;
-    plan_park_move_to_xyz(park, NOZZLE_PARK_XY_FEEDRATE, NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
+    mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }));
 #endif
 
     return true;
@@ -964,8 +993,11 @@ void static finalize_print(bool finished) {
     print_area.reset_bounding_rect();
 #endif
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
     tool_mapper.reset();
+#endif
+
+#if HAS_SPOOL_JOIN()
     spool_join.reset();
 #endif
 
@@ -989,6 +1021,13 @@ void static finalize_print(bool finished) {
 
 #if HAS_CHAMBER_FILTRATION_API()
     buddy::chamber_filtration().check_filter_expiration();
+
+    /// Reset filtration overrides possibly set by M147/148
+    buddy::chamber_filtration().set_needs_filtration_override(Tristate::other);
+#endif
+
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    buddy::xbuddy_extension().set_chamber_regulator_legacy(true); // For compatibility with old gcodes on coreone
 #endif
 
     if (config_store().show_fsensors_disabled_warning_after_print.get()) {
@@ -1123,7 +1162,7 @@ void enqueue_gcode_printf(const char *gcode, ...) {
 
 bool inject(InjectQueueRecord record) {
     if (!queue.inject(record)) {
-        // TODO: If requested, figure out thread-safe way to call Sound_Play(eSOUND_TYPE::SingleBeepAlwaysLoud);
+        // TODO: If requested, figure out thread-safe way to call sound::play(SoundType::single_beep_always_loud);
         return false;
     }
     return true;
@@ -1154,7 +1193,7 @@ static void settings_load() {
 
     job_id = config_store().job_id.get();
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     // TODO: This is temporary until better offset store method is implemented
     prusa_toolchanger.load_tool_offsets();
 #endif
@@ -1201,7 +1240,7 @@ bool print_preview() {
         || server.print_state == State::PrintPreviewImage
         || server.print_state == State::PrintPreviewConfirmed
         || server.print_state == State::PrintPreviewQuestions
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
         || server.print_state == State::PrintPreviewToolsMapping
 #endif
         ;
@@ -1214,7 +1253,7 @@ bool is_printing() {
     case State::Finished:
     case State::PrintPreviewInit:
     case State::PrintPreviewImage:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
         return false;
@@ -1297,7 +1336,7 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
     case State::PrintPreviewImage:
     case State::PrintPreviewConfirmed:
     case State::PrintPreviewQuestions:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
         // These are acceptable states from which we can start the print -> continue executing the function
@@ -1410,6 +1449,7 @@ void print_abort(void) {
 #endif
     case State::Printing:
     case State::Paused:
+    case State::MediaErrorRecovery_BufferData:
     case State::Resuming_BufferData:
     case State::Resuming_Reheating:
     case State::Finishing_WaitIdle:
@@ -1423,7 +1463,7 @@ void print_abort(void) {
     case State::PrintPreviewImage:
     case State::PrintPreviewConfirmed:
     case State::PrintPreviewQuestions:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
         server.print_state = State::Aborting_Preview;
@@ -1522,7 +1562,7 @@ static bool crash_recovery_begin_toolchange() {
     }
     return false;
 }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
 /**
  * @brief Part of crash recovery begin when reason of crash is failed homing.
@@ -1588,6 +1628,29 @@ void clear_media_error() {
     clear_warning(WarningType::NotDownloaded);
 }
 
+std::optional<WarningType> prefetch_status_to_warning(MediaPrefetchManager::Status status) {
+    using Status = MediaPrefetchManager::Status;
+
+    switch (status) {
+
+    case Status::usb_error:
+        return WarningType::USBFlashDiskError;
+
+    case Status::corruption:
+        return WarningType::GcodeCorruption;
+
+    case Status::not_downloaded:
+        return WarningType::NotDownloaded;
+
+    case Status::ok:
+    case Status::end_of_buffer:
+    case Status::end_of_file:
+        return std::nullopt;
+    }
+
+    bsod_unreachable();
+}
+
 void media_print_loop() {
     /// Size of the gcode queue
     METRIC_DEF(metric_gcode_queue_size, "gcd_que_sz", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
@@ -1614,18 +1677,6 @@ void media_print_loop() {
         /// Number of commands in the prefetch buffer
         METRIC_DEF(metric_prefetch_buffer_commands, "ftch_cmds", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
         metric_record_integer(&metric_prefetch_buffer_commands, metrics.commands_in_buffer);
-
-        const auto media_error = [status](WarningType warning_type) {
-            // There's still a fetch running, this isn't completely final ‒ the
-            // fetch itself can recover from the error (and sometimes it does,
-            // but the actual recovery takes time). Wait for the final verdict.
-            if (status.fetch_active) {
-                return;
-            }
-            set_warning(warning_type);
-            schedule_media_retry();
-            print_pause();
-        };
 
         if (!print_state.file_open_reported && metrics.stream_size_estimate) {
             print_state.file_open_reported = true;
@@ -1675,16 +1726,20 @@ void media_print_loop() {
             return;
 
         case Status::usb_error:
-            media_error(WarningType::USBFlashDiskError);
-            return;
-
         case Status::corruption:
-            media_error(WarningType::GcodeCorruption);
-            return;
+        case Status::not_downloaded: {
+            if (status.fetch_active) {
+                // There's still a fetch running, this isn't completely final ‒ the
+                // fetch itself can recover from the error (and sometimes it does,
+                // but the actual recovery takes time). Wait for the final verdict.
+                return;
+            }
 
-        case Status::not_downloaded:
-            media_error(WarningType::NotDownloaded);
+            set_warning(*prefetch_status_to_warning(status.status));
+            schedule_media_retry();
+            print_pause();
             return;
+        }
         }
     }
 }
@@ -1783,10 +1838,15 @@ void try_recover_from_media_error() {
         // If we're printing, simply try issuing a fetch to make sure everything's fine
         media_prefetch.issue_fetch();
 
-    } else if (print_state.recover_media_error_backoff.get().has_value()) {
+    } else if (server.print_state == State::Paused && print_state.recover_media_error_backoff.get().has_value()) {
         // Do NOT reset - will be reset if the resume is successful
         // print_state.recover_media_error_backoff.get().reset();
-        print_resume();
+        server.print_state = State::MediaErrorRecovery_BufferData;
+        update_sfn();
+        media_prefetch_start();
+
+    } else {
+        // We cannot attempt recovery right now, but recover_media_error_backoff should make us retry sometime later
     }
 }
 
@@ -1841,8 +1901,8 @@ void powerpanic_finish_toolcrash() {
     crash_s.set_state(Crash_s::REPEAT_WAIT);
     server.print_state = State::CrashRecovery_ToolchangePowerPanic;
 }
-    #endif /*HAS_TOOLCHANGER()*/
-#endif /*ENABLED(POWER_PANIC)*/
+    #endif
+#endif
 
 #if ENABLED(AXIS_MEASURE)
 enum class Axis_length_t {
@@ -1903,7 +1963,7 @@ bool active_extruder_fan_checks() {
     if (marlin_vars().fan_check_enabled
 #if HAS_TOOLCHANGER()
         && prusa_toolchanger.is_any_tool_active() // Nothing to check
-#endif /*HAS_TOOLCHANGER()*/
+#endif
     ) {
         auto check_fan = [](CFanCtlCommon &fan, const char *fan_name) {
             if (!fan.is_fan_ok()) {
@@ -1988,7 +2048,7 @@ static void _server_print_loop(void) {
 
     case State::PrintPreviewImage:
     case State::PrintPreviewConfirmed:
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::PrintPreviewToolsMapping:
 #endif
     case State::PrintPreviewQuestions: {
@@ -2039,7 +2099,7 @@ static void _server_print_loop(void) {
             fsm_destroy(ClientFSM::PrintPreview);
             break;
 
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
         case PrintPreview::Result::ToolsMapping:
             new_state = State::PrintPreviewToolsMapping;
             break;
@@ -2057,7 +2117,7 @@ static void _server_print_loop(void) {
                     enqueue_gcode("T0 S1 D0"); // Pick tool 0 (can be remapped to anything) before print
                 }
             }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 #if HAS_MMU2()
             if (MMU2::mmu2.Enabled() && GCodeInfo::getInstance().is_singletool_gcode() && MMU2::mmu2.get_current_tool() == MMU2::FILAMENT_UNKNOWN) {
                 // POC: Handle singletool G-code which doesn't have T commands in it
@@ -2116,7 +2176,7 @@ static void _server_print_loop(void) {
             }
         }
 
-#if ENABLED(PRUSA_TOOL_MAPPING) && (HOTENDS > 1)
+#if HAS_TOOL_MAPPING() && (HOTENDS > 1)
         if (!server.print_is_serial) {
             // Cooldown unused tools
             // Ignore spool join - spool joined tools will get heated as spool join is activated
@@ -2182,13 +2242,16 @@ static void _server_print_loop(void) {
                 fsm_create(PhasesPrinting::active);
             }
         }
-#if HAS_MANUAL_CHAMBER_VENTS()
-        if (config_store().check_manual_vent_state.get()) {
-            buddy::chamber().check_vent_state();
+#if HAS_MANUAL_CHAMBER_VENTS() || HAS_AUTOMATIC_CHAMBER_VENTS()
+        if (config_store().check_chamber_vent_state.get()) {
+            buddy::chamber().manage_ventilation_state();
         }
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
         buddy::chamber_filtration().check_filter_expiration();
+#endif
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+        buddy::xbuddy_extension().set_chamber_regulator_legacy(true); // For compatibility with old gcodes on coreone
 #endif
         break;
 
@@ -2235,23 +2298,43 @@ static void _server_print_loop(void) {
         }
 
         break;
-    case State::Resuming_BufferData: {
+    case State::Resuming_BufferData:
+    case State::MediaErrorRecovery_BufferData: {
         const auto metrics = media_prefetch.get_metrics();
+        if (metrics.is_fetching) {
+            // Wait till the media prefetch finishes
+            break;
+        }
 
-        if (!metrics.is_fetching) {
-            // Fetching done.
-            if (MediaPrefetchManager::is_error(metrics.tail_status)) {
-                // Still failing.
-                schedule_media_retry();
-                media_prefetch.stop();
-                // Go back to Paused (the only state where we could come from).
-                server.print_state = State::Paused;
-            } else {
-                // Let's continue with resuming!
-                server.print_state = State::Resuming_Begin;
-                clear_media_error();
+        using Status = MediaPrefetchManager::Status;
+
+        switch (metrics.tail_status) {
+
+        case Status::ok:
+        case Status::end_of_file:
+        case Status::end_of_buffer:
+            // The media_prefetch feched something successfully, let's continue with resuming!
+            server.print_state = State::Resuming_Begin;
+            clear_media_error();
+            break;
+
+        case Status::usb_error:
+        case Status::corruption:
+        case Status::not_downloaded: {
+            // Still failing.
+            schedule_media_retry();
+            media_prefetch.stop();
+
+            // Show a warning, but only if the unpause was requested by the user explicitly
+            // Do not spam warnings when we're doing background periodic media error recoveries
+            if (server.print_state != State::MediaErrorRecovery_BufferData) {
+                set_warning(*prefetch_status_to_warning(metrics.tail_status));
             }
-        } // Else -> keep waiting for more data.
+
+            // Go back to Paused (the only state where we could have come from).
+            server.print_state = State::Paused;
+        }
+        }
         break;
     }
     case State::Resuming_Begin:
@@ -2432,7 +2515,7 @@ static void _server_print_loop(void) {
             break;
         }
 
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
         if (PrintPreview::Instance().GetState() == PrintPreview::State::tools_mapping_wait_user) {
             PrintPreview::tools_mapping_cleanup();
         }
@@ -2539,7 +2622,7 @@ static void _server_print_loop(void) {
                 break; // Skip crash recovery and go directly to toolchange
             }
         }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
         else if (crash_s.get_state() == Crash_s::REPEAT_WAIT) { // REPEAT_WAIT could be toolfall, but it was handled above
             crash_recovery_begin_home();
@@ -2574,7 +2657,7 @@ static void _server_print_loop(void) {
         crash_recovery_begin_toolchange(); // Also sets server.print_state
         break;
     }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     case State::CrashRecovery_Retracting: {
         if (planner.processing()) {
             break;
@@ -2594,7 +2677,7 @@ static void _server_print_loop(void) {
             prepare_tool_pickup(); // Go to tool pickup instead of homing
             break;
         }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
 
         measure_axes_and_home();
         break;
@@ -2661,7 +2744,7 @@ static void _server_print_loop(void) {
         }
         break;
     }
-    #endif /*HAS_TOOLCHANGER()*/
+    #endif
     case State::CrashRecovery_XY_HOME: {
         if (is_processing()) {
             break;
@@ -2784,7 +2867,7 @@ static void _server_print_loop(void) {
         const auto fan_state = Fans::print(active_extruder).get_state();
         printFanErrorChecker.checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::PrintFanError, false, true);
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
         const bool cool_fan_ok = buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_1) && buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_2);
         xbe_cool_fan_checker.checkTrue(cool_fan_ok, WarningType::ChamberCoolingFanError, false, false);
         if (cool_fan_ok) {
@@ -2796,7 +2879,7 @@ static void _server_print_loop(void) {
         if (filter_fan_ok) {
             xbe_filter_fan_checker.reset();
         }
-#endif /* XBUDDY_EXTENSION_VARIANT_STANDARD() */
+#endif /* XBUDDY_EXTENSION_VARIANT_IS_STANDARD() */
 #if XL_ENCLOSURE_SUPPORT()
         const bool enclosure_fan_ok = Fans::enclosure().is_fan_ok();
         if (!enclosure_fan_ok && !enclosure_fan_checker.isFailed()) {
@@ -2805,6 +2888,20 @@ static void _server_print_loop(void) {
         enclosure_fan_checker.checkTrue(enclosure_fan_ok, WarningType::EnclosureFanError, false, false);
         if (enclosure_fan_ok) {
             enclosure_fan_checker.reset();
+        }
+#endif
+#if HAS_BED_FAN()
+        const bool bed_fans_ok = bed_fan::bed_fan().is_rpm_ok();
+        bed_fan_checker.checkTrue(bed_fans_ok, WarningType::BedFanError, false, false);
+        if (bed_fans_ok) {
+            bed_fan_checker.reset();
+        }
+#endif
+#if HAS_PSU_FAN()
+        const bool psu_fan_ok = psu_fan::psu_fan().is_rpm_ok();
+        psu_fan_checker.checkTrue(psu_fan_ok, WarningType::PsuFanError, false, false);
+        if (psu_fan_ok) {
+            psu_fan_checker.reset();
         }
 #endif
     }
@@ -2820,7 +2917,7 @@ static void _server_print_loop(void) {
 
 #if HAS_TEMP_HEATBREAK
     for (int8_t e = 0; e < HOTENDS; e++) {
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
         if (!prusa_toolchanger.is_tool_enabled(e)) {
             continue;
         }
@@ -2887,10 +2984,6 @@ void resuming_begin(void) {
     thermalManager.set_fan_speed(0, 0); // disable print fan
 #endif
     server.print_state = State::Resuming_Reheating;
-
-    if (!server.print_is_serial) {
-        media_prefetch_start();
-    }
 }
 
 const GCodeReaderStreamRestoreInfo &stream_restore_info() {
@@ -2981,7 +3074,7 @@ void park_head() {
         line_to_current_position(NOZZLE_PARK_XY_FEEDRATE); // Move to safe Y
         planner.synchronize();
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     xyz_pos_t park = XYZ_NOZZLE_PARK_POINT_ON_PRINT_END;
     park.z = current_position.z;

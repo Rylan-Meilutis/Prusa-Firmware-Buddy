@@ -35,9 +35,9 @@
 
 static auto *extruder_filament_sensor(uint8_t index) {
 #if FILAMENT_SENSOR_IS_ADC()
-    static FSensorADC extruder_filament_sensor(0, false);
+    static FSensorADC extruder_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 0 });
 #elif FILAMENT_SENSOR_IS_BINARY()
-    static FSensorPhotoElectric extruder_filament_sensor;
+    static FSensorPhotoElectric extruder_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 0 });
 #else
     #error
 #endif
@@ -53,19 +53,19 @@ IFSensor *GetExtruderFSensor(uint8_t index) {
 IFSensor *GetSideFSensor([[maybe_unused]] uint8_t index) {
 #if HAS_MMU2()
     if (index == 0 && config_store().mmu2_enabled.get()) {
-        static FSensorMMU mmu_filament_sensor;
+        static FSensorMMU mmu_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 });
         return &mmu_filament_sensor;
     }
 #endif
 
 #if HAS_XBUDDY_EXTENSION()
     if (index == 0 && buddy::xbuddy_extension().status() != buddy::XBuddyExtension::Status::disabled) {
-        static FSensorXBuddyExtension xbe_filament_sensor;
+        static FSensorXBuddyExtension xbe_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 });
         return &xbe_filament_sensor;
     }
 #elif PRINTER_IS_PRUSA_iX()
     if (index == 0) {
-        static FSensor_iXSide sensor;
+        static FSensor_iXSide sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 });
         return &sensor;
     }
 #endif
