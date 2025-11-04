@@ -1,4 +1,9 @@
 #include <catch2/catch.hpp>
+#include <stdexcept>
+#define ACQ_ASSERT(cond)                                      \
+    if (!(cond)) {                                            \
+        throw std::runtime_error("Assertion failed: " #cond); \
+    }
 #include <utils/atomic_circular_queue.hpp>
 
 TEST_CASE("atomic_circular_queue", "[atomic_circular_queue]") {

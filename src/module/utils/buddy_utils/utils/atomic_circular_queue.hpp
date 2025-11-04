@@ -5,13 +5,8 @@
 #include <cassert>
 #include <bsod/bsod.h>
 
-#ifdef UNITTESTS
-    #undef assert
-    #define assert(expr)                                              \
-        do {                                                          \
-            if (!(expr))                                              \
-                throw std::runtime_error("Assertion failed: " #expr); \
-        } while (0)
+#ifndef ACQ_ASSERT
+    #define ACQ_ASSERT(cond) assert(cond)
 #endif
 
 /**
@@ -64,7 +59,7 @@ protected:
         }
 
 #ifndef NDEBUG
-        assert(!is_allocated);
+        ACQ_ASSERT(!is_allocated);
         is_allocated = true;
 #endif
 
@@ -79,8 +74,8 @@ protected:
      */
     void commit([[maybe_unused]] T *item) {
 #ifndef NDEBUG
-        assert(item == &queue[mask(tail)]);
-        assert(is_allocated);
+        ACQ_ASSERT(item == &queue[mask(tail)]);
+        ACQ_ASSERT(is_allocated);
         is_allocated = false;
 #endif
 
@@ -108,7 +103,7 @@ public:
      * @return  type T item
      */
     T dequeue() {
-        assert(!isEmpty());
+        ACQ_ASSERT(!isEmpty());
 
         index_t index = head;
         T ret = std::move(queue[mask(index++)]);
