@@ -4,12 +4,12 @@ if(NOT BOARD STREQUAL "ANFC")
   message(FATAL_ERROR "Unsupported nfc board: ${BOARD}")
 endif()
 
-target_link_options(firmware PUBLIC "-L" "${CMAKE_CURRENT_SOURCE_DIR}/device")
+target_link_options(firmware PUBLIC "-L" "${CMAKE_CURRENT_SOURCE_DIR}/link")
 if(BOOTLOADER STREQUAL "EMPTY" OR BOOTLOADER)
-  target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/device/link_boot.ld")
+  target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/link_boot.ld")
   set(BOOTLOADER_SIZE 49152)
 else()
-  target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/device/link_noboot.ld")
+  target_set_linker_script(firmware "${CMAKE_CURRENT_SOURCE_DIR}/link/link_noboot.ld")
   set(BOOTLOADER_SIZE 0)
 endif()
 
@@ -19,28 +19,29 @@ target_compile_definitions(
 
 add_library(HAL_Config INTERFACE)
 target_compile_definitions(HAL_Config INTERFACE STM32C092xx USE_HAL_DRIVER)
-target_include_directories(HAL_Config INTERFACE config)
+target_include_directories(HAL_Config INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/config")
 add_library(STM32C0_HAL_Config ALIAS HAL_Config)
 
 target_sources(
   firmware
   PRIVATE "${CMAKE_SOURCE_DIR}/src/device/multi_watchdog.cpp"
-          anfc_event_publisher.cpp
-          cyphal_anfc_node.cpp
-          device/atomic_c0.cpp
-          device/hal.cpp
-          device/startup.s
-          device/system.c
-          enum_mapping_check.cpp
-          main.cpp
-          nfc.cpp
-          precise_timer.cpp
-          stdlib.cpp
-          stub/otp.cpp
+          src/anfc_event_publisher.cpp
+          src/atomic_c0.cpp
+          src/cyphal_anfc_node.cpp
+          src/enum_mapping_check.cpp
+          src/hal.cpp
+          src/main.cpp
+          src/nfc.cpp
+          src/otp.cpp
+          src/precise_timer.cpp
+          src/startup.s
+          src/stdlib.cpp
+          src/system.c
   )
 
 target_include_directories(
-  firmware PRIVATE . ${CMAKE_SOURCE_DIR}/include stub ../shared/hal ../honeybee_shared device
+  firmware PRIVATE . ${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src ../shared/hal
+                   ../honeybee_shared
   )
 
 target_link_libraries(
@@ -72,4 +73,4 @@ target_link_libraries(firmware PRIVATE FreeRTOS::FreeRTOS)
 
 add_library(FreeRTOS_Config INTERFACE)
 target_link_libraries(FreeRTOS_Config INTERFACE STM32C0xx::CMSIS)
-target_include_directories(FreeRTOS_Config INTERFACE config)
+target_include_directories(FreeRTOS_Config INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/config")
