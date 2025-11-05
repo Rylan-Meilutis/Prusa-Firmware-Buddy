@@ -1,8 +1,9 @@
 #include "toolchanger_utils.h"
 #include "tool_offset.hpp"
 #include "dock_position.hpp"
+#include <option/has_toolchanger.h>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include "Marlin/src/module/stepper.h"
     #include "Marlin/src/feature/bedlevel/bedlevel.h"
     #include "Marlin.h"
@@ -484,7 +485,9 @@ void PrusaToolChangerUtils::ConfRestorer::sample() {
     if (sampled) {
         bsod("Double sampled planner configuration");
     }
+    #if HAS_CLASSIC_JERK
     sampled_jerk = planner.settings.max_jerk;
+    #endif
     sampled_travel_acceleration = planner.settings.travel_acceleration;
     sampled_feedrate_mm_s = feedrate_mm_s;
     sampled_feedrate_percentage = feedrate_percentage;
@@ -502,7 +505,9 @@ void PrusaToolChangerUtils::ConfRestorer::restore_jerk() {
     }
 
     auto s = planner.user_settings;
+    #if HAS_CLASSIC_JERK
     s.max_jerk = sampled_jerk;
+    #endif
     planner.apply_settings(s);
 }
 
@@ -536,4 +541,4 @@ bool PrusaToolChangerUtils::wait(stdext::inplace_function<bool()> function, uint
     return result;
 }
 
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif

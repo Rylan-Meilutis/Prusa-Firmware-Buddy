@@ -110,10 +110,6 @@
     #include <nfc.hpp>
 #endif
 
-#if HAS_XBUDDY_EXTENSION()
-    #include <buddy/mmu_port.hpp>
-#endif
-
 #if HAS_ADVANCED_POWER()
     #include <advanced_power.hpp>
 #endif
@@ -266,7 +262,7 @@ extern "C" void main_cpp(void) {
     SPI_INIT(led);
 #endif
 
-#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     /*
      * MK3.5 HW detected on MK4 firmware or vice versa
      * MK4 HW detected on CORE ONE firmware or vice versa
@@ -446,10 +442,8 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_XBUDDY_EXTENSION()
-    mmu_port::setup_reset_pin();
-    // Yes, this is intentional.
-    // MMUEnable is probably a misnomer now that we have xBuddyExtension.
-    buddy::hw::MMUEnable.set();
+    buddy::hw::Configuration::Instance().setup_ext_reset();
+    buddy::hw::ext_pwr_enable.set();
 #endif
 
 #if HAS_MMU2_OVER_UART()
@@ -754,9 +748,6 @@ int main() {
     // case this is a noboot build
     data_exchange_init();
 
-#if PRINTER_IS_PRUSA_iX()
-    hw_preinit_turbine_disable();
-#endif
     // define the startup task
     osThreadDef(startup, startup_task, TASK_PRIORITY_STARTUP, 0, 1024 + 512 + 256);
     osThreadCreate(osThread(startup), NULL);

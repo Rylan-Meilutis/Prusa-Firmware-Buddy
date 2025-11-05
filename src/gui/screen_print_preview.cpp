@@ -16,7 +16,6 @@
 #include <selftest_result_evaluation.hpp>
 #include <window_msgbox_wrong_printer.hpp>
 #include <raii/auto_restore.hpp>
-#include <option/has_toolchanger.h>
 #include <option/has_mmu2.h>
 #include <device/board.h>
 #if HAS_MMU2()
@@ -50,7 +49,7 @@ void ScreenPrintPreview::Change(fsm::BaseData data) {
     if (phase != PhasesPrintPreview::main_dialog) {
         hide_main_dialog();
     }
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     if (phase != PhasesPrintPreview::tools_mapping) {
         tools_mapping.reset();
         header.set_show_bed_info(false);
@@ -118,7 +117,7 @@ void ScreenPrintPreview::Change(fsm::BaseData data) {
         pMsgbox = makeMsgBox(_(label_file_error), _(gcode.error_str()), img::error_16x16);
         break;
 
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case PhasesPrintPreview::tools_mapping:
         show_tools_mapping();
         break;
@@ -153,7 +152,7 @@ void ScreenPrintPreview::show_main_dialog() {
 }
 
 void ScreenPrintPreview::show_tools_mapping() {
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     #if HAS_MMU2()
     if (!MMU2::mmu2.Enabled()) {
         return;
@@ -193,7 +192,7 @@ void ScreenPrintPreview::windowEvent([[maybe_unused]] window_t *sender, [[maybe_
     case GUI_event_t::TOUCH_SWIPE_LEFT:
     case GUI_event_t::TOUCH_SWIPE_RIGHT: {
         if (phase == PhasesPrintPreview::main_dialog) {
-            Sound_Play(eSOUND_TYPE::ButtonEcho);
+            sound::play(SoundType::button_echo);
             marlin_client::FSM_response(phase, Response::Back);
         }
     }

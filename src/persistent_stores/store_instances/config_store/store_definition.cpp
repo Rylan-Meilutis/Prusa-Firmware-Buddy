@@ -3,7 +3,6 @@
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
 #include <option/has_adc_side_fsensor.h>
-#include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_config_store_wo_backend.h>
 #include <option/has_touch.h>
@@ -38,22 +37,10 @@ void CurrentStore::perform_config_check() {
     /// Whether this is the first run of the printer after assembly/factory reset
     [[maybe_unused]] const bool is_first_run = (config_store_init_result() == InitResult::cold_start);
 
-#if HAS_SELFTEST()
-    // Do not show pritner setup screen if the user has run any selftests
-    // This is for backwards compatibility - we don't want to show the screen after the firmware update introducing it for already configured printers
-    if (selftest_result.get() != selftest_result.default_val) {
-        printer_setup_done.set(true);
-    }
-#endif
-
     // We cannot change a default value of config store items for backwards compatibility reasons.
     // So this is a place to instead set them to something for new installations
     if (is_first_run || force_default_hw_config.get()) {
         force_default_hw_config.set(false);
-
-#if HAS_TOUCH()
-        touch_enabled.set(true);
-#endif
 
 #if PRINTER_IS_PRUSA_MK4()
         static_assert(extended_printer_type_model[1] == PrinterModel::mk4s);
@@ -137,6 +124,21 @@ void CurrentStore::perform_config_migrations() {
         set_selftest_result_tool(0, st);
     }
 #endif
+#if HAS_SELFTEST()
+    if (should_migrate<3>()) {
+        // BFW-7867
+        // Do not show pritner setup screen if the user has run any selftests
+        // This is for backwards compatibility - we don't want to show the screen after the firmware update introducing it for already configured printers
+        if (selftest_result.get() != selftest_result.default_val) {
+            printer_hw_config_done.set(true);
+            printer_network_setup_done.set(true);
+        }
+    }
+#endif
+    if (should_migrate<4>()) {
+        // Don't show "Happy Printing" screen when upgrading firmware
+        happy_printing_seen.set(true);
+    }
     // To add a migration:
     // - increment newest_config_version
     // - add if(should_migrate<X>) { your migration code } at the END of this function

@@ -169,7 +169,7 @@ class WithBeepAlertSound : public Base {
 public:
     WithBeepAlertSound(auto &&...args)
         : Base(args...) {
-        Sound_Play(eSOUND_TYPE::SingleBeep);
+        sound::play(SoundType::single_beep);
     }
 };
 
@@ -179,7 +179,7 @@ class WithBeepWaitSound : public Base {
 public:
     WithBeepWaitSound(auto &&...args)
         : Base(args...) {
-        Sound_Play(eSOUND_TYPE::SingleBeep);
+        sound::play(SoundType::single_beep);
     }
 
     void update(const fsm::PhaseData &fsm_data) {
@@ -191,7 +191,7 @@ public:
 
         const auto data = fsm::deserialize_data<FSMLoadUnloadData>(fsm_data);
         if (data.mode == LoadUnloadMode::Change || data.mode == LoadUnloadMode::FilamentStuck) { /// this sound should be beeping only for M600 || runout
-            Sound_Play(eSOUND_TYPE::WaitingBeep);
+            sound::play(SoundType::waiting_beep);
         }
     }
 
@@ -212,7 +212,7 @@ public:
         ) {
     }
     ~FrameBase() {
-        Sound_Stop();
+        sound::stop();
     }
 
 private:
@@ -426,7 +426,7 @@ using Frames = FrameDefinitionList<DialogLoadUnload::FrameStorage,
     FrameDefinition<Phase::Ramming_unstoppable, FrameProgress, txt_ram>,
     FrameDefinition<Phase::Unloading_stoppable, FrameProgress, txt_unload>,
     FrameDefinition<Phase::Unloading_unstoppable, FrameProgress, txt_unload>,
-    FrameDefinition<Phase::IsFilamentUnloaded, FrameProgress, txt_unload_confirm>,
+    FrameDefinition<Phase::IsFilamentUnloaded, WithBeepWaitSound<FrameProgress>, txt_unload_confirm>,
     FrameDefinition<Phase::FilamentNotInFS, WithBeepAlertSound<FrameProgress>, txt_filament_not_in_fs>,
     FrameDefinition<Phase::ManualUnload_continuable, FrameProgress, txt_manual_unload>,
     FrameDefinition<Phase::ManualUnload_uncontinuable, FrameProgress, txt_manual_unload>,
@@ -511,7 +511,7 @@ DialogLoadUnload::DialogLoadUnload(fsm::BaseData data)
 }
 
 DialogLoadUnload::~DialogLoadUnload() {
-    Sound_Stop();
+    sound::stop();
     destroy_frame();
 }
 

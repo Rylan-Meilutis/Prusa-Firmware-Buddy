@@ -10,7 +10,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /* HAS_TOOLCHANGER() */
+#endif
 
 #include <option/has_sheet_profiles.h>
 #if HAS_SHEET_PROFILES()
@@ -55,7 +55,7 @@ bool is_selftest_successfully_completed() {
             }
         }
 
-#endif /* HAS_TOOLCHANGER() */
+#endif
 
 #if HAS_SWITCHED_FAN_TEST()
         if (sr.tools[e].fansSwitched != TestResult_Passed) {
@@ -69,11 +69,12 @@ bool is_selftest_successfully_completed() {
         }
 #endif /* HAS_GEARBOX_ALIGNMENT */
 
-#if FILAMENT_SENSOR_IS_ADC()
-        if (!all_passed(sr.tools[e].fsensor)) {
+        if (
+            sr.tools[e].fsensor == TestResult_Failed
+            // For the Mini, the filament sensor is optional
+            && !(PRINTER_IS_PRUSA_MINI() && sr.tools[0].fsensor == TestResult_Skipped)) {
             return false;
         }
-#endif /* FILAMENT_SENSOR_ADC() */
 
 #if HAS_LOADCELL()
         if (!all_passed(sr.tools[e].loadcell)) {

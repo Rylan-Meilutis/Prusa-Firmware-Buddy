@@ -16,6 +16,7 @@
 #include <option/developer_mode.h>
 #include "printers.h"
 #include <Marlin/src/module/motion.h>
+#include <option/has_mmu2.h>
 #include <option/has_gui.h>
 #if HAS_GUI()
     #include "screen_menu_filament_changeall.hpp"
@@ -24,10 +25,15 @@
     #include <e2ee/key.hpp>
 #endif
 
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
 #include <option/has_toolchanger.h>
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif
 
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()
@@ -38,7 +44,6 @@
 #include "tools_mapping.hpp"
 #include <buddy/unreachable.hpp>
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
 #include <mmu2_toolchanger_common.hpp>
 #include <common/gcode/gcode_info_scan.hpp>
 
@@ -67,7 +72,7 @@ std::optional<PhasesPrintPreview> IPrintPreview::getCorrespondingPhase(IPrintPre
     case State::new_firmware_available_wait_user:
         return PhasesPrintPreview::new_firmware_available;
 
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     case State::tools_mapping_wait_user:
         return PhasesPrintPreview::tools_mapping;
 #endif
@@ -129,7 +134,7 @@ Response IPrintPreview::GetResponse() {
     return phase ? marlin_server::get_response_from_phase(*phase) : Response::_none;
 }
 
-#if ENABLED(PRUSA_SPOOL_JOIN) && ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
 
 bool PrintPreview::ToolsMappingValidty::all_ok() const {
     return unassigned_gcodes.count() == 0 &&
@@ -228,8 +233,10 @@ bool PrintPreview::check_extruder_need_filament_load(uint8_t physical_extruder, 
         return false;
     }
 
-    // when tool doesn't have filament, it needs load
-    return !FSensors_instance().ToolHasFilament(physical_extruder);
+    FilamentSensorState extruder_state = GetExtruderFSensor(physical_extruder) ? GetExtruderFSensor(physical_extruder)->get_state() : FilamentSensorState::Disabled;
+    FilamentSensorState side_state = GetSideFSensor(physical_extruder) ? GetSideFSensor(physical_extruder)->get_state() : FilamentSensorState::Disabled;
+
+    return (extruder_state == FilamentSensorState::NoFilament) || (side_state == FilamentSensorState::NoFilament);
 }
 
 static bool check_extruder_need_filament_load_tools_mapping(uint8_t physical_extruder) {
@@ -385,7 +392,7 @@ void PrintPreview::tools_mapping_cleanup(bool leaving_to_print) {
     if (!leaving_to_print) {
         // stop preheating bed
         marlin_server::set_target_bed(0);
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         tool_mapper.reset();
         spool_join.reset();
 #endif
@@ -591,7 +598,7 @@ PrintPreview::Result PrintPreview::Loop() {
         }
         break;
 
-#if HAS_MMU2() || HAS_TOOLCHANGER()
+#if HAS_TOOL_MAPPING()
     case State::tools_mapping_wait_user:
         switch (response) {
 
@@ -762,7 +769,7 @@ PrintPreview::Result PrintPreview::Loop() {
 #endif
 
         if (tools_mapping::is_tool_mapping_possible()) {
-#if ENABLED(PRUSA_SPOOL_JOIN) && ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
             if ((skip_if_able >= marlin_server::PreviewSkipIfAble::tool_mapping) && PrintPreview::check_tools_mapping_validity(tool_mapper, spool_join, gcode_info).all_ok()) {
                 // we can skip tools mapping if there is not warning/error in global tools mapping
                 ChangeState(State::done);
@@ -825,7 +832,7 @@ PrintPreview::Result PrintPreview::stateToResult() const {
     case State::done:
         return Result::Inactive;
 
-#if HAS_MMU2() || HAS_TOOLCHANGER()
+#if HAS_TOOL_MAPPING()
     case State::tools_mapping_wait_user:
         return Result::ToolsMapping;
 #endif

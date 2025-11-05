@@ -139,6 +139,10 @@ constexpr PrinterGCodeCompatibilityReport gcode_compatibility_report_constexpr(c
         upgrade_from(PrinterModel::mk4s);
         result.chamber_compatibility_mode = true;
         break;
+    case CompatGroup::coreonel:
+        upgrade_from(PrinterModel::coreone);
+        // No special handling needed, we are just physically larger
+        break;
     }
 
     // Clear all compatibility modes if we're not compatible

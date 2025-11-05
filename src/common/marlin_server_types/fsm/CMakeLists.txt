@@ -1,1 +1,1 @@
-target_sources(marlin_server_types PUBLIC safety_timer_phases.cpp)
+target_sources(marlin_server_types PUBLIC filament_change_phases.cpp safety_timer_phases.cpp)

@@ -5,8 +5,13 @@
 #include <config_store/store_instance.hpp>
 #include <marlin_server.hpp>
 #include <marlin_server_shared.h>
+#include <option/has_automatic_chamber_vents.h>
 #include <option/has_xbuddy_extension.h>
 #include <feature/safety_timer/safety_timer.hpp>
+
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+    #include <marlin_stubs/feature/automatic_chamber_vents/automatic_chamber_vents.hpp>
+#endif
 
 #if XL_ENCLOSURE_SUPPORT()
     #include <hw/xl/xl_enclosure.hpp>
@@ -16,7 +21,7 @@
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     #define HAS_CHAMBER_TEMPERATURE_THERMISTOR_POSITION_OFFSET() 1
 #elif PRINTER_IS_PRUSA_XL()
     #define HAS_CHAMBER_TEMPERATURE_THERMISTOR_POSITION_OFFSET() 0
@@ -33,6 +38,15 @@ namespace {
 constexpr buddy::Temperature chamber_maxtemp = 60;
 constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
 } // namespace
+#elif PRINTER_IS_PRUSA_COREONEL()
+namespace {
+constexpr buddy::Temperature chamber_maxtemp = 65;
+constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
+} // namespace
+#elif PRINTER_IS_PRUSA_XL()
+// Not used for chamber on XL
+#else
+    #error
 #endif
 
 namespace buddy {
@@ -81,7 +95,7 @@ Chamber::Capabilities Chamber::capabilities_nolock() const {
             // Always show temperature control menu items, even if auto cooling is disabled
                 .always_show_temperature_control = true,
 
-    #if PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
             .max_temp = { chamber_maxtemp - chamber_maxtemp_safety_margin },
     #endif
         };
@@ -118,13 +132,17 @@ Chamber::Backend Chamber::backend() const {
 std::optional<Temperature> Chamber::current_temperature() const {
     const auto chamber_tempearture = thermistor_temperature();
 #if HAS_CHAMBER_TEMPERATURE_THERMISTOR_POSITION_OFFSET()
-    #if PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     const auto bed_temperature = thermalManager.degBed();
     static constexpr Temperature min_temp = 20.f;
     if (chamber_tempearture.has_value() && bed_temperature > *chamber_tempearture && *chamber_tempearture > min_temp) {
         static constexpr Temperature bed_max = BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN;
         static constexpr Temperature chamber_max = chamber_maxtemp;
+        #if PRINTER_IS_PRUSA_COREONEL()
+        static constexpr Temperature offset = 8.f / ((bed_max - min_temp) * std::sqrt(chamber_max - min_temp));
+        #else
         static constexpr Temperature offset = 6.f / ((bed_max - min_temp) * std::sqrt(chamber_max - min_temp));
+        #endif
         return chamber_tempearture.value() + offset * (bed_temperature - chamber_tempearture.value()) * std::sqrt(chamber_tempearture.value() - min_temp);
     }
     #else
@@ -173,7 +191,7 @@ void Chamber::reset() {
 }
 
 #if HAS_MANUAL_CHAMBER_VENTS()
-void Chamber::check_vent_state() {
+void Chamber::manage_ventilation_state() {
     const auto fil_target = config_store().get_filament_type(0).parameters().chamber_target_temperature;
     constexpr uint8_t temp_limit = 45; // Limit for closed grills is chamber max temperature of PETG
 
@@ -185,6 +203,25 @@ void Chamber::check_vent_state() {
         } else if (fil_target.value() <= temp_limit && vent_state_ != Chamber::VentState::open) {
             marlin_server::set_warning(WarningType::OpenChamberVents);
             vent_state_ = Chamber::VentState::open;
+        }
+    }
+}
+#endif
+
+#if HAS_AUTOMATIC_CHAMBER_VENTS()
+void Chamber::manage_ventilation_state() {
+    const auto fil_target = config_store().get_filament_type(0).parameters().chamber_target_temperature;
+    constexpr uint8_t temp_limit = 45; // Limit for closed grills is chamber max temperature of PETG
+
+    if (fil_target.has_value()) {
+        if (fil_target.value() > temp_limit && vent_state_ != Chamber::VentState::closed) {
+            if (automatic_chamber_vents::close()) {
+                vent_state_ = Chamber::VentState::closed;
+            }
+        } else if (fil_target.value() <= temp_limit && vent_state_ != Chamber::VentState::open) {
+            if (automatic_chamber_vents::open()) {
+                vent_state_ = Chamber::VentState::open;
+            }
         }
     }
 }

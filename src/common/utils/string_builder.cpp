@@ -19,11 +19,15 @@ void StringBuilder::init(char *buffer, size_t buffer_size) {
     *current_pos_ = '\0';
 }
 
-const char *StringBuilder::str() const {
-#ifdef _DEBUG
+void StringBuilder::check() const {
     if (is_problem()) {
         bsod("StringBuilder overflow");
     }
+}
+
+const char *StringBuilder::str() const {
+#ifdef _DEBUG
+    check();
 #endif
 
     return str_nocheck();

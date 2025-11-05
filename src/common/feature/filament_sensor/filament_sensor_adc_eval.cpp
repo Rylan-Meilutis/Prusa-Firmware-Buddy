@@ -4,7 +4,7 @@
 
 namespace FSensorADCEval {
 
-FilamentSensorState evaluate_state(Value filtered_value, Value fs_ref_nins_value, Value fs_ref_ins_value, FilamentSensorState previous_state, Value value_span_hack) {
+FilamentSensorState evaluate_state(Value filtered_value, Value fs_ref_nins_value, Value fs_ref_ins_value, FilamentSensorState previous_state) {
     if (filtered_value == filtered_value_not_ready) {
         return FilamentSensorState::NotInitialized;
     }
@@ -19,15 +19,8 @@ FilamentSensorState evaluate_state(Value filtered_value, Value fs_ref_nins_value
     }
 
     // reference value not calibrated or out of sensible bounds
-    if (!is_calibrated(fs_ref_nins_value)) {
+    if (!is_calibrated(fs_ref_ins_value) || !is_calibrated(fs_ref_nins_value)) {
         return FilamentSensorState::NotCalibrated;
-    }
-
-    // Only ref nins is calibrated -> approximate the state just from the nins reference
-    // This is typically when we're in the middle of the calibration
-    // Temporary hack till the new fsensor calibration comes
-    if (!is_calibrated(fs_ref_ins_value)) {
-        return (filtered_value < fs_ref_nins_value - value_span_hack) || (filtered_value > fs_ref_nins_value + value_span_hack) ? FilamentSensorState::HasFilament : FilamentSensorState::NoFilament;
     }
 
     const auto midpoint = (fs_ref_nins_value + fs_ref_ins_value) / 2;

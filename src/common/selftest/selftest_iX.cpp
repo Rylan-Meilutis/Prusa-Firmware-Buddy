@@ -19,20 +19,17 @@
 #include "selftest_heaters_type.hpp"
 #include "selftest_heaters_interface.hpp"
 #include "selftest_loadcell_interface.hpp"
-#include "selftest_fsensor_interface.hpp"
 #include "selftest_axis_interface.hpp"
 #include "selftest_netstatus_interface.hpp"
 #include "selftest_axis_config.hpp"
 #include "selftest_heater_config.hpp"
 #include "selftest_loadcell_config.hpp"
-#include "selftest_fsensor_config.hpp"
 #include "calibration_z.hpp"
 #include "fanctl.hpp"
 #include "timing.h"
 #include "selftest_result_type.hpp"
 #include "selftest_types.hpp"
 #include <config_store/store_instance.hpp>
-#include <option/has_mmu2.h>
 #include "i_selftest.hpp"
 
 using namespace selftest;
@@ -169,16 +166,6 @@ static constexpr LoadcellConfig_t Config_Loadcell[] = { {
     .z_extra_pos_fr = uint32_t(maxFeedrates[Z_AXIS]),
     .max_validation_time = 1000,
 } };
-
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensor = { {
-    { .extruder_id = 0 },
-} };
-
-#if HAS_MMU2()
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensorMMU = { {
-    { .extruder_id = 0, .mmu_mode = true },
-} };
-#endif
 
 // class representing whole self-test
 class CSelftest : public ISelftest {
@@ -328,18 +315,6 @@ void CSelftest::Loop() {
             return;
         }
         break;
-    case stsFSensor_calibration:
-        if (selftest::phaseFSensor(ToolMask::AllTools, pFSensor, Config_FSensor)) {
-            return;
-        }
-        break;
-#if HAS_MMU2()
-    case stsFSensorMMU_calibration:
-        if (selftest::phaseFSensor(1, pFSensor, Config_FSensorMMU)) {
-            return;
-        }
-        break;
-#endif
     case stsSelftestStop:
         restoreAfterSelftest();
         break;

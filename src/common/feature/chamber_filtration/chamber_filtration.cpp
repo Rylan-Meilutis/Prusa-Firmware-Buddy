@@ -90,42 +90,34 @@ PWM255 ChamberFiltration::output_pwm() const {
 void ChamberFiltration::step() {
     assert(osThreadGetId() == marlin_server::server_task);
 
+    // The step acutally doesn't need to run often at all,
+    // do not run it every marlin cycle
+    const auto now_s = ticks_s();
+    if (!step_rate_limiter_s_.check(now_s)) {
+        return;
+    }
+
     std::lock_guard _lg(mutex_);
 
     if (!is_enabled()) {
         output_pwm_ = {};
-        is_printing_prev_ = false;
-        needs_filtration_ = false;
+        last_filtration_need_s_ = std::nullopt;
         return;
     }
 
-    // Only start filtering after we've extruded first filament
-    // We don't want the filtering fans to slow down the chamber heatup
-    const bool is_printing = marlin_server::is_printing_state(marlin_vars().print_state.get()) && (planner.max_printed_z > 0);
-    const bool was_printing = is_printing_prev_;
-    is_printing_prev_ = is_printing;
-
-    if (is_printing && !was_printing) {
-        // Checking is a bit expensive, do it only at the beginning of the print
-        update_needs_filtration();
-    }
-
-    const auto now_s = ticks_s();
-
     // Determine output PWM of the fans
-    if (!needs_filtration_.value_or(false)) {
-        output_pwm_ = {};
-
-    } else if (is_printing) {
+    if (needs_filtration()) {
+        // Filtration is currently needed
         output_pwm_ = config_store().chamber_print_filtration_enable.get() ? config_store().chamber_mid_print_filtration_pwm.get() : PWM255(0);
-        last_print_s_ = now_s;
+        last_filtration_need_s_ = now_s;
 
-    } else if (config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, last_print_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
+    } else if (last_filtration_need_s_.has_value() && config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, *last_filtration_need_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
+        // Filtration is not currently needed, running post print filtration
         output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
 
     } else {
         output_pwm_ = {};
-        needs_filtration_ = std::nullopt; // Reset the flag after the print is done so that it doesn't affect the next print
+        last_filtration_need_s_ = std::nullopt;
     }
 
     const auto commit_unaccounted_filter_usage = [&](int min_s = 1) {
@@ -240,34 +232,45 @@ void ChamberFiltration::handle_filter_expiration_warning(Response response) {
     }
 }
 
-void ChamberFiltration::update_needs_filtration() {
+bool ChamberFiltration::needs_filtration() const {
+    // If explicitly set to false, we will never filter, so return early
+    // If explicitly set to true, that will still depend on whether the nozzle is hot or not
+    if (needs_filtration_override_ == Tristate::no) {
+        return false;
+    }
+
     // Check the always on flag (applies to all prints) [BFW-6829]
-    if (config_store().chamber_filtration_always_on.get()) {
-        needs_filtration_ = true;
-        return;
-    }
-    // Check if special gcode M147 or M148 overrides the setting (current print only) [BFW-6828]
-    if (needs_filtration_.has_value()) {
-        return;
-    }
-    needs_filtration_ = false;
-    GCodeInfo::getInstance().for_each_used_extruder([this]([[maybe_unused]] uint8_t logical_ix, uint8_t tool_index, const GCodeInfo::ExtruderInfo &extruder_info) {
-        const bool loaded_filament_requires_filtration = config_store().get_filament_type(tool_index).parameters().requires_filtration;
+    const bool always_filter = config_store().chamber_filtration_always_on.get() || (needs_filtration_override_ == Tristate::yes);
 
-        const bool gcode_filament_requires_filtration = //
-            extruder_info.filament_name.has_value()
-            ? FilamentType::from_name(extruder_info.filament_name->data()).parameters().requires_filtration
-            : false;
+    for (uint8_t extruder = 0; extruder < HOTENDS; extruder++) {
+        const auto hotend = hotend_from_extruder(extruder);
+        const auto hotend_temp = marlin_vars().hotend(hotend).temp_nozzle.get();
 
-        if (loaded_filament_requires_filtration || gcode_filament_requires_filtration) {
-            needs_filtration_ = true;
+        // Save on config store lookups if the nozzle is cold
+        if (hotend_temp <= 70) {
+            continue;
         }
-    });
+
+        const FilamentTypeParameters filament = config_store().get_filament_type(extruder).parameters();
+
+        const bool hotend_is_hot =
+            // Give some headroom over preheat temperature, we don't want the filtration to trigger when oscilating around it
+            (hotend_temp > filament.nozzle_preheat_temperature + 5)
+
+            // Backup in case the filament has nozzle_preheat_temperature set up weirdly
+            || (hotend_temp >= filament.nozzle_temperature - 5);
+
+        if (hotend_is_hot && (filament.requires_filtration || always_filter)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-void ChamberFiltration::set_needs_filtration(bool needs_filtration) {
+void ChamberFiltration::set_needs_filtration_override(Tristate set) {
     std::lock_guard _lg(mutex_);
-    needs_filtration_ = needs_filtration;
+    needs_filtration_override_ = set;
 }
 
 } // namespace buddy

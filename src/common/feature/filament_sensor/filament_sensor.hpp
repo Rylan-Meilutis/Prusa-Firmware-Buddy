@@ -13,6 +13,9 @@
 #include "filament_sensor_states.hpp"
 #include "hx717.hpp"
 
+#include "filament_sensor_id.hpp"
+#include <feature/filament_sensor/calibrator/filament_sensor_calibrator.hpp>
+
 class IFSensor {
     friend class FilamentSensors;
 
@@ -25,6 +28,12 @@ public:
         filament_inserted,
         filament_removed
     };
+
+    IFSensor(FilamentSensorID id);
+
+    inline FilamentSensorID id() const {
+        return id_;
+    }
 
     inline FilamentSensorState get_state() const { return state; }
 
@@ -41,22 +50,18 @@ public:
      */
     virtual int32_t GetFilteredValue() const { return 0; };
 
-    // interface methods for sensors with calibration
-    // meant to use just flags to be thread safe
-    enum class CalibrateRequest {
-        CalibrateHasFilament,
-        CalibrateNoFilament,
-        NoCalibration,
-    };
-    virtual void SetCalibrateRequest(CalibrateRequest) {}
-    virtual bool IsCalibrationFinished() const { return true; }
-    virtual void SetInvalidateCalibrationFlag() {}
+    /// Instantiates a class within the \param storage that handles the sensor calibration
+    /// !!! Can return nullptr if the filament sensor cannot be checked in any way
+    virtual FilamentSensorCalibrator *create_calibrator(FilamentSensorCalibrator::Storage &storage);
 
 protected:
     // Protected functions are only to be called from FilamentSensors to prevent race conditions
-
     std::atomic<FilamentSensorState> state = FilamentSensorState::Disabled;
 
+    /// Identification of the filament sensor
+    const FilamentSensorID id_;
+
+protected:
     /// Records metrics specific for the sensor
     virtual void record_state() {};
 

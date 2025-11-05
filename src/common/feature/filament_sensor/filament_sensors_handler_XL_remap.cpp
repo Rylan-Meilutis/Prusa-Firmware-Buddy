@@ -73,7 +73,9 @@ uint32_t ask_to_remap() {
             if (current_mapping[e] != new_mapping[e]) {
                 eeres.tools[e].fsensor = TestResult_Unknown;
                 if (auto side = GetSideFSensor(e); side) {
-                    side->SetInvalidateCalibrationFlag();
+                    // Invalidate the sensor calibration
+                    FilamentSensorCalibrator::Storage storage;
+                    side->create_calibrator(storage)->finish();
                 }
                 remapped |= 1 << e;
             }

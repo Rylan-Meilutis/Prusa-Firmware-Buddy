@@ -3,6 +3,7 @@
 #include <crc32.h>
 
 #include <cstring>
+#include <option/has_toolchanger.h>
 
 using std::make_tuple;
 using std::optional;
@@ -84,7 +85,7 @@ uint32_t Printer::Params::telemetry_fingerprint(bool include_xy_axes) const {
         .add(int(enclosure_info.temp))
         .add(enclosure_info.fan_rpm / 500)
 #endif
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         .add(int(chamber_info.fan_1_rpm / 500))
         .add(int(chamber_info.fan_2_rpm / 500))
 #endif
@@ -160,7 +161,7 @@ uint32_t Printer::info_fingerprint() const {
         .add(parameters.enclosure_info.post_print)
         .add(parameters.enclosure_info.post_print_filtration_time)
 #endif
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         .add(parameters.addon_power)
 #endif
         .done();

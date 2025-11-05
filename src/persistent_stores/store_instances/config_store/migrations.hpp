@@ -36,9 +36,6 @@ namespace deprecated_ids {
     inline constexpr uint16_t selftest_result_pre_gears[] {
         journal::hash("Selftest Result V23"),
     };
-    inline constexpr uint16_t fsensor_enabled_v1[] {
-        journal::hash("FSensor Enabled"),
-    };
 #if PRINTER_IS_PRUSA_MK4()
     inline constexpr uint16_t extended_printer_type[] {
         journal::hash("400 step motors on X and Y axis"),
@@ -91,6 +88,12 @@ namespace deprecated_ids {
         decltype(DeprecatedStore::filament_auto_retracted_bitset)::hashed_id,
     };
 #endif
+    inline constexpr uint16_t printer_setup_done[] {
+        decltype(DeprecatedStore::printer_setup_done)::hashed_id,
+    };
+    inline constexpr uint16_t fsensor_enabled[] {
+        decltype(DeprecatedStore::fsensor_enabled_v2)::hashed_id,
+    };
 } // namespace deprecated_ids
 
 namespace migrations {
@@ -103,7 +106,6 @@ namespace migrations {
     void footer_setting_v2(journal::Backend &backend);
 
     void selftest_result_pre_gears(journal::Backend &backend);
-    void fsensor_enabled_v1(journal::Backend &backend);
 
 #if PRINTER_IS_PRUSA_MK4()
     void extended_printer_type(journal::Backend &backend);
@@ -129,6 +131,10 @@ namespace migrations {
 #if HAS_AUTO_RETRACT()
     void filament_auto_retract(journal::Backend &backend);
 #endif
+
+    void printer_setup_done(journal::Backend &backend);
+
+    void fsensor_enabled(journal::Backend &backend);
 } // namespace migrations
 
 /**
@@ -145,7 +151,6 @@ inline constexpr journal::Backend::MigrationFunction migration_functions[] {
 #if HAS_SELFTEST()
         { migrations::selftest_result_pre_gears, deprecated_ids::selftest_result_pre_gears },
 #endif
-        { migrations::fsensor_enabled_v1, deprecated_ids::fsensor_enabled_v1 },
         { migrations::footer_setting_v2, deprecated_ids::footer_setting_v2 },
 
 #if PRINTER_IS_PRUSA_MK4()
@@ -170,6 +175,8 @@ inline constexpr journal::Backend::MigrationFunction migration_functions[] {
 #if HAS_AUTO_RETRACT()
         { migrations::filament_auto_retract, deprecated_ids::filament_auto_retracted_bitset },
 #endif
+        { migrations::printer_setup_done, deprecated_ids::printer_setup_done },
+        { migrations::fsensor_enabled, deprecated_ids::fsensor_enabled },
 };
 
 // Span of migration versions to simplify passing it around

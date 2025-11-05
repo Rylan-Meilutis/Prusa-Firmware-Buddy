@@ -27,7 +27,6 @@
 #include <option/has_mmu2.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
-#include <option/has_toolchanger.h>
 
 // clang-format off
 
@@ -151,57 +150,6 @@
 
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
-
-/**
- * Průša MK2 Single Nozzle Multi-Material Multiplexer, and variants.
- *
- * This device allows one stepper driver on a control board to drive
- * two to eight stepper motors, one at a time, in a manner suitable
- * for extruders.
- *
- * This option only allows the multiplexer to switch on tool-change.
- * Additional options to configure custom E moves are pending.
- */
-//#define MK2_MULTIPLEXER
-#if ENABLED(MK2_MULTIPLEXER)
-// Override the default DIO selector pins here, if needed.
-// Some pins files may provide defaults for these pins.
-//#define E_MUX0_PIN 40  // Always Required
-//#define E_MUX1_PIN 42  // Needed for 3 to 8 inputs
-//#define E_MUX2_PIN 44  // Needed for 5 to 8 inputs
-#endif
-
-/**
- * Prusa Multi-Material Unit v2
- *
- * Requires EXTRUDERS = 5
- *
- * For additional configuration see Configuration_adv.h
- */
-#if HAS_MMU2()
-#define MMU_MODEL PRUSA_MMU2S
-#endif
-
-/**
- * Tool mapping and spool join - adopted from XL's toolchange, reimplemented for MMU2
- */
-#if HAS_MMU2()
-#define PRUSA_TOOL_MAPPING
-#define PRUSA_SPOOL_JOIN
-#endif
-
-
-/**
- * Prusa Toolchanger
- *
- *  Multiple semi-independent extruders.
- *  Connected by shared bus and shared step/dir.
- *  Stepping done by marlin.
- *  PID and fan controll done by extruder.
- */
-#if HAS_TOOLCHANGER()
-    #define PRUSA_TOOLCHANGER
-#endif
 
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
@@ -372,15 +320,13 @@
 
 #if ENABLED(PIDTEMPHEATBREAK)
     //#define PID_HEATBREAK_DEBUG // enable debug output for heatbreak fan PID regulator
-    #define MAX_HEATBREAK_POWER 255 // limits duty cycle to heatbreak fan; 255=full current
-    #define MIN_START_HEATBREAK_POWER 255 // Minimum PWM needed to start fan spinning reliably
-    #define MIN_STOP_HEATBREAK_POWER 55 // Minimum PWM needed to keep fan spinning reliably
+    #define MAX_HEATBREAK_POWER 153 // limits duty cycle to heatbreak fan; 255=full current
+    #define MIN_START_HEATBREAK_POWER 63 // Minimum PWM needed to start fan spinning reliably
+    #define MIN_STOP_HEATBREAK_POWER MIN_START_HEATBREAK_POWER // Minimum PWM needed to keep fan spinning reliably
     #define HEATBREAK_FAN_KICK_CYCLES -1 // Output at least MIN_START_HEATBREAK_POWER once per cycles, -1 to deliver starting pulse just once
     #define HEATBREAK_FAN_ALWAYS_ON_NOZZLE_TEMPERATURE 45 // Never switch off heatbreak fan when nozzle temperature is over
     #define DEFAULT_HEATBREAK_TEMPERATURE 45
     #define HEATBREAK_FAN_ID 1  //fan id for autocontroll
-    #define MAX_HEATBREAK_TURBINE_POWER 60 // [%] maximum turbine power
-    #define MIN_HEATBREAK_TURBINE_POWER 25 // [%] minimum turbine power to get it spinning reliably
     #define HEATBREAK_PID_K1 0.995
     #define DEFAULT_heatbreakKp 25.50
     #define DEFAULT_heatbreakKi 5.00
@@ -585,10 +531,11 @@
 //
 // Use Junction Deviation instead of traditional Jerk Limiting
 //
-//#define JUNCTION_DEVIATION
-#define CLASSIC_JERK
+// #define JUNCTION_DEVIATION
+// #define CLASSIC_JERK
 #if DISABLED(CLASSIC_JERK)
-    #define JUNCTION_DEVIATION_MM 0.02 // (mm) Distance from real junction edge
+    #define JUNCTION_DEVIATION_MM 0.01f // (mm) Distance from real junction edge
+    #define JD_SMALL_SEGMENT_HANDLING   // Handle small segments (< 1 mm) with large junction angles (> 135°) based on a local curvature estimate, instead of just the junction angle.
 #endif
 
 /**
@@ -878,8 +825,6 @@
 
 // @section homing
 
-//#define NO_MOTION_BEFORE_HOMING  // Inhibit movement until all axes have been homed
-
 //#define UNKNOWN_Z_NO_RAISE // Don't raise Z (lower the bed) if Z is "unknown." For beds that fall when Z is powered off.
 /**
  * (mm) Minimal Z height before homing (G28) for Z clearance above the bed, clamps, ...
@@ -962,38 +907,6 @@
 
 #if EITHER(MIN_SOFTWARE_ENDSTOPS, MAX_SOFTWARE_ENDSTOPS)
 //#define SOFT_ENDSTOPS_MENU_ITEM  // Enable/Disable software endstops from the LCD
-#endif
-
-/**
- * Filament Runout Sensors
- * Mechanical or opto endstops are used to check for the presence of filament.
- *
- * RAMPS-based boards use SERVO3_PIN for the first runout sensor.
- * For other boards you may need to define FIL_RUNOUT_PIN, FIL_RUNOUT2_PIN, etc.
- * By default the firmware assumes HIGH=FILAMENT PRESENT.
- */
-//#define FILAMENT_RUNOUT_SENSOR
-#if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    #define NUM_RUNOUT_SENSORS 1 // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
-    #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
-    #define FIL_RUNOUT_PULLUP // Use internal pullup for filament runout pins.
-    //#define FIL_RUNOUT_PULLDOWN      // Use internal pulldown for filament runout pins.
-
-    // Set one or more commands to execute on filament runout.
-    // (After 'M412 H' Marlin will ask the host to handle the process.)
-    #define FILAMENT_RUNOUT_SCRIPT "M600"
-
-// After a runout is detected, continue printing this length of filament
-// before executing the runout script. Useful for a sensor at the end of
-// a feed tube. Requires 4 bytes SRAM per sensor, plus 4 bytes overhead.
-//#define FILAMENT_RUNOUT_DISTANCE_MM 25
-
-    #ifdef FILAMENT_RUNOUT_DISTANCE_MM
-    // Enable this option to use an encoder disc that toggles the runout pin
-    // as the filament moves. (Be sure to set FILAMENT_RUNOUT_DISTANCE_MM
-    // large enough to avoid false positives.)
-    //#define FILAMENT_MOTION_SENSOR
-    #endif
 #endif
 
 //===========================================================================

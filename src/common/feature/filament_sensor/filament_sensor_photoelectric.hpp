@@ -10,6 +10,10 @@
 #include <feature/filament_sensor/filament_sensor.hpp>
 
 class FSensorPhotoElectric : public IFSensor {
+public:
+    // Inherit constructor
+    using IFSensor::IFSensor;
+
 protected:
     virtual void force_set_enabled(bool set) override;
     virtual void cycle() override;

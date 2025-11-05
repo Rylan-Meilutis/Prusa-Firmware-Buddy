@@ -1,7 +1,7 @@
 #pragma once
 
-#include "client_response.hpp"
 #include <screen_fsm.hpp>
+#include <fsm/filament_change_phases.hpp>
 
 class DialogLoadUnload : public DialogFSM {
 public:

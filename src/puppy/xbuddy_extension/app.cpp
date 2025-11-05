@@ -1,13 +1,17 @@
 /// @file
 #include "app.hpp"
 
+#include "cyphal_application.hpp"
 #include "hal.hpp"
+#include "master_activity.hpp"
 #include "mmu.hpp"
 #include "modbus.hpp"
 #include "temperature.hpp"
+#include <ac_controller/modbus.hpp>
 #include <cstdlib>
 #include <span>
 #include <freertos/timing.hpp>
+#include <option/has_ac_controller.h>
 #include <xbuddy_extension/mmu_bridge.hpp>
 #include <xbuddy_extension/modbus.hpp>
 
@@ -20,6 +24,24 @@ void read_register_file_callback(xbuddy_extension::modbus::Status &status) {
     // Note: Mainboard expects this in decidegree Celsius.
     status.temperature = 10 * temperature::raw_to_celsius(hal::temperature::get_raw());
     status.filament_sensor = hal::filament_sensor::get();
+    const auto flash_data = cyphal::application().request();
+    status.chunk_request.file_id = static_cast<uint16_t>(flash_data.flash_request);
+    status.chunk_request.offset_lo = static_cast<uint16_t>(flash_data.offset & 0xFFFF);
+    status.chunk_request.offset_hi = static_cast<uint16_t>(flash_data.offset >> 16);
+    status.digest_request.file_id = static_cast<uint16_t>(flash_data.hash_request);
+    status.digest_request.salt_lo = static_cast<uint16_t>(flash_data.hash_salt & 0xFFFF);
+    status.digest_request.salt_hi = static_cast<uint16_t>(flash_data.hash_salt >> 16);
+    const auto log = cyphal::application().get_log();
+    status.log_message_sequence = log.sequence;
+}
+
+void read_register_file_callback(xbuddy_extension::modbus::LogMessage &log_message) {
+    static_assert(std::endian::native == std::endian::little);
+    const auto log = cyphal::application().get_log();
+    const auto text_size = std::min(sizeof(log_message.text_data), log.text.size());
+    log_message.sequence = log.sequence;
+    log_message.text_size = text_size;
+    memcpy(log_message.text_data.data(), log.text.data(), text_size);
 }
 
 bool write_register_file_callback(const xbuddy_extension::modbus::Config &config) {
@@ -36,8 +58,67 @@ bool write_register_file_callback(const xbuddy_extension::modbus::Config &config
     hal::mmu::nreset_pin_set(static_cast<bool>(config.mmu_nreset));
     // Technically, this frequency is common also for some fans. But they seem to work fine.
     hal::w_led::set_frequency(config.w_led_frequency);
+    // Master's activity. Value that should be changing regularly.
+    // If it doesn't change from time to time, it means the master is not properly alive.
+    master_activity.store(config.activity, std::memory_order_relaxed);
     return true;
 }
+
+bool write_register_file_callback(const xbuddy_extension::modbus::Digest &hash) {
+    const auto salt = (uint32_t)hash.request.salt_hi << 16 | (uint32_t)hash.request.salt_lo;
+    const auto file = (cyphal::FirmwareFile)hash.request.file_id;
+    return cyphal::application().receive_digest(file, salt, std::as_bytes(std::span { hash.data }));
+}
+
+bool write_register_file_callback(const xbuddy_extension::modbus::Chunk &chunk) {
+    const bool last = chunk.size != chunk.data.size() * 2;
+    const uint16_t file_id = chunk.request.file_id;
+    const uint32_t offset = (uint32_t)chunk.request.offset_hi << 16 | (uint32_t)chunk.request.offset_lo;
+    const uint8_t *data_ptr = reinterpret_cast<const uint8_t *>(chunk.data.data());
+    return cyphal::application().receive_chunk(data_ptr, chunk.size, last, file_id, offset);
+}
+
+#if HAS_AC_CONTROLLER()
+
+void read_register_file_callback(ac_controller::modbus::Status &modbus_status) {
+    xbuddy_extension::NodeState node_state;
+    ac_controller::Status status;
+    cyphal::application().request(node_state, status);
+
+    modbus_status.mcu_temp = status.mcu_temp * 10;
+    modbus_status.bed_temp = status.bed_temp * 10;
+    modbus_status.bed_voltage = status.bed_voltage * 10;
+    modbus_status.bed_fan_rpm = status.bed_fan_rpm;
+    modbus_status.psu_fan_rpm = status.psu_fan_rpm;
+    const auto faults = static_cast<uint32_t>(status.faults);
+    modbus_status.faults_lo = faults & 0xFFFF;
+    modbus_status.faults_hi = (faults >> 16) & 0xFFFF;
+    modbus_status.node_state = static_cast<uint16_t>(node_state);
+}
+
+static std::optional<float> modbus_parse_target_temperature(uint16_t temp) {
+    return temp ? std::optional<float> { 0.1f * temp } : std::nullopt;
+}
+
+static std::optional<uint8_t> modbus_parse_pwm(uint16_t pwm) {
+    return pwm ? std::optional<uint8_t> { pwm } : std::nullopt;
+}
+
+bool write_register_file_callback(const ac_controller::modbus::Config &modbus_config) {
+    return cyphal::application().receive(ac_controller::Config {
+        .bed_target_temp = modbus_parse_target_temperature(modbus_config.bed_target_temp),
+        .bed_fan_pwm = modbus_parse_pwm(modbus_config.bed_fan_pwm),
+        .psu_fan_pwm = modbus_parse_pwm(modbus_config.psu_fan_pwm),
+        .led_color = ac_controller::ColorRGBW {
+            .r = static_cast<uint8_t>(modbus_config.led_r),
+            .g = static_cast<uint8_t>(modbus_config.led_g),
+            .b = static_cast<uint8_t>(modbus_config.led_b),
+            .w = static_cast<uint8_t>(modbus_config.led_w),
+        },
+    });
+}
+
+#endif
 
 // TODO decide how to handle weird indexing schizophrenia caused by PuppyBootstrap::get_modbus_address_for_dock()
 constexpr uint16_t MY_MODBUS_ADDR = 0x1a + 7;
@@ -70,63 +151,50 @@ Status write_register_file(uint16_t address, std::span<const uint16_t> in) {
     }
 }
 
-class Logic final : public modbus::Callbacks {
+#if HAS_AC_CONTROLLER()
+
+constexpr uint16_t AC_CONTROLLER_MODBUS_ADDR = 0x1a + 8;
+
+class AcController final : public modbus::Callbacks {
 public:
-    Status read_registers(uint8_t, const uint16_t address, std::span<uint16_t> out) final {
-        return read_register_file<xbuddy_extension::modbus::Status>(address, out);
+    Status read_registers(uint16_t address, std::span<uint16_t> out) final {
+        return read_register_file<ac_controller::modbus::Status>(address, out);
     }
 
-    Status write_registers(uint8_t, const uint16_t address, std::span<const uint16_t> in) final {
-        return write_register_file<xbuddy_extension::modbus::Config>(address, in);
+    Status write_registers(uint16_t address, std::span<const uint16_t> in) final {
+        return write_register_file<ac_controller::modbus::Config>(address, in);
     }
 };
+#endif
 
-class Dispatch final : public modbus::Callbacks {
+class Logic final : public modbus::Callbacks {
 public:
-    struct SubDevice {
-        uint8_t id;
-        modbus::Callbacks *callbacks;
-    };
-
-private:
-    std::span<SubDevice> sub_devices;
-
-    template <class F>
-    Status with(uint8_t device, F f) {
-        for (const auto &sub_device : sub_devices) {
-            if (sub_device.id == device) {
-                return f(*sub_device.callbacks);
-            }
+    Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
+        if (const auto status_result = read_register_file<xbuddy_extension::modbus::Status>(address, out);
+            status_result != Status::IllegalAddress) {
+            return status_result;
         }
-
-        return Status::Ignore;
-    }
-
-    bool all_distinct() {
-        for (size_t i = 0; i < sub_devices.size(); i++) {
-            for (size_t j = i + 1; j < sub_devices.size(); j++) {
-                if (sub_devices[i].id == sub_devices[j].id) {
-                    return false;
-                }
-            }
+        if (const auto log_message_result = read_register_file<xbuddy_extension::modbus::LogMessage>(address, out);
+            log_message_result != Status::IllegalAddress) {
+            return log_message_result;
         }
-        return true;
+        return Status::IllegalAddress;
     }
 
-public:
-    Dispatch(std::span<SubDevice> sub_devices)
-        : sub_devices { sub_devices } {
-        if (!all_distinct()) {
-            abort();
+    Status write_registers(const uint16_t address, std::span<const uint16_t> in) final {
+        if (const auto status = write_register_file<xbuddy_extension::modbus::Config>(address, in);
+            status != Status::IllegalAddress) {
+            return status;
         }
-    }
-
-    Status read_registers(uint8_t device, uint16_t address, std::span<uint16_t> out) {
-        return with(device, [&](auto &cbacks) { return cbacks.read_registers(device, address, out); });
-    }
-
-    Status write_registers(uint8_t device, uint16_t address, std::span<const uint16_t> in) {
-        return with(device, [&](auto &cbacks) { return cbacks.write_registers(device, address, in); });
+        if (const auto status = write_register_file<xbuddy_extension::modbus::Chunk>(address, in);
+            status != Status::IllegalAddress) {
+            return status;
+        }
+        if (const auto status = write_register_file<xbuddy_extension::modbus::Digest>(address, in);
+            status != Status::IllegalAddress) {
+            return status;
+        }
+        return Status::IllegalAddress;
     }
 };
 
@@ -148,24 +216,33 @@ void ensure_silent_interval() {
 void app::run() {
     Logic logic;
     MMU mmu;
+#if HAS_AC_CONTROLLER()
+    AcController ac_controller;
+#endif
 
-    std::array sub_devices = {
-        Dispatch::SubDevice { MY_MODBUS_ADDR, &logic },
-        Dispatch::SubDevice { MMU_MODBUS_ADDR, &mmu },
+    std::array devices = {
+        modbus::Dispatch::Device { MY_MODBUS_ADDR, logic },
+        modbus::Dispatch::Device { MMU_MODBUS_ADDR, mmu },
+#if HAS_AC_CONTROLLER()
+        modbus::Dispatch::Device { AC_CONTROLLER_MODBUS_ADDR, ac_controller },
+#endif
     };
+    modbus::Dispatch modbus_dispatch { devices };
 
-    Dispatch modbus_callbacks { sub_devices };
-
-    alignas(uint16_t) std::byte response_buffer[32]; // is enough for now
+    alignas(uint16_t) std::byte response_buffer[256];
     hal::rs485::start_receiving();
     for (;;) {
-        const auto request = hal::rs485::receive();
-        const auto response = modbus::handle_transaction(modbus_callbacks, request, response_buffer);
-        if (response.size()) {
-            ensure_silent_interval();
-            hal::rs485::transmit_and_then_start_receiving(response);
+        const auto request = hal::rs485::receive_timeout(1);
+        if (request.empty()) {
+            cyphal::run_for_a_while();
         } else {
-            hal::rs485::start_receiving();
+            const auto response = modbus::handle_transaction(modbus_dispatch, request, response_buffer);
+            if (response.size()) {
+                ensure_silent_interval();
+                hal::rs485::transmit_and_then_start_receiving(response);
+            } else {
+                hal::rs485::start_receiving();
+            }
         }
     }
 }

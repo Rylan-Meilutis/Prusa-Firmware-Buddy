@@ -24,6 +24,7 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
 #if HAS_SELFTEST()
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
+    case ClientFSM::SelftestFSensors:
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
     case ClientFSM::GearboxAlignment:

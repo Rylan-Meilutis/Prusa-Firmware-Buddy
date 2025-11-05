@@ -11,6 +11,8 @@
 #include "../precise_stepping/precise_stepping.hpp"
 #include "../precise_stepping/internal.hpp"
 #include "../input_shaper/input_shaper.hpp"
+#include "axes.hpp"
+#include "debug_events.hpp"
 #include <config_store/store_instance.hpp>
 
 #include <device/peripherals.h>
@@ -20,6 +22,7 @@
 
 #include <Pin.hpp>
 #include <logging/log.hpp>
+#include <metric.h>
 
 #include <cassert>
 #include <cmath>
@@ -32,6 +35,8 @@ LOG_COMPONENT_DEF(PhaseStepping, logging::Severity::debug);
 using namespace phase_stepping;
 using namespace phase_stepping::opts;
 using namespace buddy::hw;
+
+AtomicCircularQueue<ProblemEvents, uint16_t, 32> phase_stepping::debug_events_queue {};
 
 // Global definitions
 std::array<AxisState, SUPPORTED_AXIS_COUNT> phase_stepping::axis_states = { X_AXIS, Y_AXIS };
@@ -291,6 +296,10 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
     return next_step_event;
 }
 
+bool phase_stepping::is_initialized() {
+    return initialized;
+}
+
 #ifdef _DEBUG
 void phase_stepping::assert_initialized() {
     // This is explicitly kept non-inline to serve as a single trap point
@@ -446,6 +455,7 @@ static void enable_phase_stepping(AxisEnum axis_num) {
     axis_state.missed_tx_cnt = 0;
     axis_state.enabled = true;
     axis_state.active = true;
+    axis_state.is_slowed_down = true;
 
     auto enable_mask = PHASE_STEPPING_GENERATOR_X << axis_num;
     PreciseStepping::physical_axis_step_generator_types |= enable_mask;
@@ -612,7 +622,7 @@ template <float breakpoint, float endpoint, int reduction_to>
     return regulate_current<6.f, 10.f, 150>(speed);
 #elif PRINTER_IS_PRUSA_iX() // TODO simple copy-paste of XL values. To be removed as soon as iX values are measured
     return regulate_current<6.f, 10.f, 150>(speed);
-#elif PRINTER_IS_PRUSA_COREONE()
+#elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     return current_regulation_range_max;
 #elif PRINTER_IS_PRUSA_MK4()
     return current_regulation_range_max;
@@ -651,6 +661,9 @@ static bool is_refresh_period_sane(uint32_t now, uint32_t last_timer_tick) {
 
 static FORCE_INLINE FORCE_OFAST void refresh_axis(
     AxisState &axis_state, uint32_t now, uint32_t previous_tick) {
+
+    static constexpr float speed_diff_threshold = 20.0f;
+
     if (!axis_state.active) {
         return;
     }
@@ -700,8 +713,22 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
         if (current_target.has_value()) {
             axis_state.current_target = *current_target;
 
+            if (std::abs(current_target->start_v - axis_state.previous_speed) > speed_diff_threshold) {
+                [[maybe_unused]] const auto res = debug_events_queue.enqueue(SuddenSpeedChange { .timestamp = now, .axis = axis_index ? 'Y' : 'X', .original_speed = axis_state.previous_speed, .new_speed = current_target->start_v });
+            }
+
             axis_state.is_cruising = (current_target->half_accel == 0) && (current_target->duration > 10'000);
             axis_state.is_moving = true;
+            auto [end_speed, end_pos] = axis_position(axis_state, current_target->duration);
+            axis_state.is_slowed_down = std::abs(end_speed) < 2; // if < 2 we slowed down
+            if (axis_state.stalled_for != 0) {
+                [[maybe_unused]] const auto res = debug_events_queue.enqueue(Stalled {
+                    .timestamp = now,
+                    .axis = axis_index ? 'Y' : 'X',
+                    .number_of_iteration = axis_state.stalled_for,
+                });
+            }
+            axis_state.stalled_for = 0;
 
             move_position = current_target->initial_pos;
             move_epoch = ticks_diff(now, axis_state.initial_time);
@@ -711,6 +738,15 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             // No new movement
             axis_state.is_cruising = false;
             axis_state.is_moving = false;
+
+            if (planner.draining()) {
+                axis_state.is_slowed_down = true;
+            }
+
+            if (!axis_state.is_slowed_down) {
+                ++axis_state.stalled_for;
+            }
+
             break;
         }
     }
@@ -718,6 +754,8 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
     auto [speed, position] = axis_state.current_target.has_value()
         ? axis_position(axis_state, move_epoch)
         : std::make_tuple(0.f, move_position);
+
+    axis_state.previous_speed = speed;
 
     float physical_position = resolve_axis_inversion(axis_state.inverted, position);
     float physical_speed = resolve_axis_inversion(axis_state.inverted, speed);

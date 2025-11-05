@@ -31,6 +31,9 @@
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 
+#include <option/has_bed_fan.h>
+#include <option/has_psu_fan.h>
+
 using namespace fan_selftest;
 
 namespace {
@@ -43,7 +46,9 @@ static constexpr size_t row_2 = WizardDefaults::row_1 + WizardDefaults::progress
 static constexpr size_t row_3 = row_2 + WizardDefaults::row_h;
 static constexpr size_t row_4 = row_3 + WizardDefaults::row_h;
 static constexpr size_t row_5 = row_4 + WizardDefaults::row_h;
-static constexpr size_t row_6 = row_5 + WizardDefaults::row_h + 20;
+static constexpr size_t row_6 = row_5 + WizardDefaults::row_h;
+static constexpr size_t row_7 = row_6 + WizardDefaults::row_h;
+static constexpr size_t row_8 = row_7 + WizardDefaults::row_h + 20;
 
 static constexpr const char *en_text_header = N_("SELFTEST");
 static constexpr const char *en_text_fan_test = N_("Fan RPM tests");
@@ -63,6 +68,13 @@ static constexpr const char *en_text_enclosure_fan = N_("Enclosure fan");
 static constexpr const char *en_text_cooling_fans = N_("Cooling fans");
 static constexpr const char *en_text_filtration_fan = N_("Filtration fan");
 
+#endif
+
+#if HAS_BED_FAN()
+static constexpr const char *en_text_bed_fan = N_("Bed fans");
+#endif
+#if HAS_PSU_FAN()
+static constexpr const char *en_text_psu_fan = N_("PSU fan");
 #endif
 
 #if PRINTER_IS_PRUSA_MK3_5()
@@ -103,6 +115,16 @@ namespace frame {
 #if HAS_SWITCHED_FAN_TEST()
         WindowIconOkNgArray switched_fan_icons;
         window_text_t switched_fan_label;
+#endif
+
+#if HAS_BED_FAN()
+        window_text_t bed_fan_label;
+        WindowIconOkNgArray bed_fan_icons;
+#endif
+
+#if HAS_PSU_FAN()
+        window_text_t psu_fan_label;
+        WindowIconOkNgArray psu_fan_icons;
 #endif
 
         void show_results() {
@@ -162,6 +184,15 @@ namespace frame {
             }
 #endif /* HAS_CHAMBER_API() */
 
+#if HAS_BED_FAN()
+            const auto bed_fan_results = config_store().bed_fan_selftest_result.get();
+            process_fan_result(bed_fan_results.fans[0], bed_fan_icons, 0);
+            process_fan_result(bed_fan_results.fans[1], bed_fan_icons, 1);
+#endif
+#if HAS_PSU_FAN()
+            process_fan_result(config_store().psu_fan_selftest_result.get(), psu_fan_icons, 0);
+#endif
+
 #if HAS_SWITCHED_FAN_TEST()
             if (switched_fans) {
                 info.SetText(_(en_text_info_switched));
@@ -188,7 +219,7 @@ namespace frame {
             , print_label_icon { parent, &img::turbine_16x16, point_i16_t({ WizardDefaults::col_0, row_2 }) }
             , heatbreak_label { parent, Rect16(col_texts, row_3, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_hotend_fan) }
             , heatbreak_label_icon { parent, &img::fan_16x16, point_i16_t({ WizardDefaults::col_0, row_3 }) }
-            , info { parent, Rect16(col_texts, row_6, col_texts_w, WizardDefaults::row_h * 4), is_multiline::yes, is_closed_on_click_t::no }
+            , info { parent, Rect16(col_texts, row_8, col_texts_w, WizardDefaults::row_h * 4), is_multiline::yes, is_closed_on_click_t::no }
             , print_icons { make_fan_icon_array(parent, row_2, HOTENDS) }
             , heatbreak_icons { make_fan_icon_array(parent, row_3, HOTENDS) }
 #if HAS_CHAMBER_API()
@@ -199,6 +230,14 @@ namespace frame {
 #if HAS_SWITCHED_FAN_TEST()
             , switched_fan_icons { make_fan_icon_array(parent, row_5, HOTENDS) }
             , switched_fan_label { parent, Rect16(col_texts, row_5, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_fans_switched) }
+#endif
+#if HAS_BED_FAN()
+            , bed_fan_label { parent, Rect16( col_texts, row_6, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_bed_fan) }
+            , bed_fan_icons { make_fan_icon_array(parent, row_6, 2) }
+#endif
+#if HAS_PSU_FAN()
+            , psu_fan_label { parent, Rect16( col_texts, row_7, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_psu_fan) }
+            , psu_fan_icons { make_fan_icon_array(parent, row_7, 1) }
 #endif
         // clang-format on
         {

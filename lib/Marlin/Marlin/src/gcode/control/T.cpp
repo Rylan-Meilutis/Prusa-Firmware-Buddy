@@ -23,7 +23,9 @@
 #include "../gcode.h"
 #include "../../module/tool_change.h"
 #include "bsod.h"
-#if ENABLED(PRUSA_TOOL_MAPPING)
+
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
   #include "module/prusa/tool_mapper.hpp"
 #endif
 
@@ -31,11 +33,13 @@
   #include "../../module/motion.h"
 #endif
 
-#if ENABLED(PRUSA_MMU2)
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
   #include "../../feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
   #include "../../module/prusa/toolchanger.h"
 #endif
 
@@ -68,7 +72,7 @@
  *   - `0` - Do not return in Z after lift
  *   - `1` - Normal return
  *
- * For PRUSA_MMU2:
+ * For printers with MMU unit:
  * - `T[n]` - Gcode to extrude at least 38.10 mm at feedrate 19.02 mm/s must follow immediately to load to extruder wheels.
  * - `T?` - Gcode to extrude shouldn't have to follow. Load to extruder wheels is done automatically.
  * - `Tx` - Same as T?, but nozzle doesn't have to be preheated. Tc requires a preheated nozzle to finish filament load.
@@ -76,7 +80,7 @@
  */
 void GcodeSuite::T(uint8_t tool_index) {
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
   const bool map = !parser.seen('M') || parser.boolval('M', true);
   if (map) {
     tool_index = tool_mapper.to_physical(tool_index);
@@ -91,7 +95,7 @@ void GcodeSuite::T(uint8_t tool_index) {
     DEBUG_POS("BEFORE", current_position);
   }
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     if (parser.string_arg) {
       // @@TODO MMU2::mmu2.tool_change(parser.string_arg);   // Special commands T?/Tx/Tc
       return;
@@ -112,7 +116,7 @@ void GcodeSuite::T(uint8_t tool_index) {
     // S1 was provided => do not return
     int move_type = !parser.seen('S') ? 0 : parser.intval('S', 1);
     if (move_type >= 1) return_type = tool_return_t::no_return;
-    #if ENABLED(PRUSA_TOOLCHANGER)
+    #if HAS_TOOLCHANGER()
     // toolchange to or from no tool is no_return, but if user provided X, Y or Z, return to that position
     if (((tool_index == PrusaToolChanger::MARLIN_NO_TOOL_PICKED || active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED)) && destination == current_position) {
     return_type = tool_return_t::no_return;

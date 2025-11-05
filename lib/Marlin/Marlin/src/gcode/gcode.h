@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <option/has_mmu2.h>
+
 /**
  * gcode.h - Temporary container for all gcode handlers
  */
@@ -171,7 +173,6 @@
  * M402 - Deactivate and stow Z probe. (Requires a probe)
  * M403 - Set filament type for PRUSA MMU2
  * M410 - Quickstop. Abort all planned moves.
- * M412 - Enable / Disable Filament Runout Detection. (Requires FILAMENT_RUNOUT_SENSOR)
  * M420 - Enable/Disable Leveling (with current values) S1=enable S0=disable (Requires ABL)
  * M421 - Set a single Z coordinate in the Mesh Leveling grid. X<units> Y<units> Z<units> (Requires AUTO_BED_LEVELING_UBL)
  * M422 - Set Z Stepper automatic alignment position using probe. X<units> Y<units> A<axis> (Requires Z_STEPPER_AUTO_ALIGN)
@@ -193,20 +194,10 @@
  * M604 - Abort (serial) print
  * M605 - Set Dual X-Carriage movement mode: "M605 S<mode> [X<x_offset>] [R<temp_offset>]". (Requires MULTI_NOZZLE_DUPLICATION)
  * M666 - Set/get offsets for dual endstops (Requires [XYZ]_DUAL_ENDSTOPS).
- * M701 - Load filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
- * M702 - Unload filament (Requires FILAMENT_LOAD_UNLOAD_GCODES)
+ * M701 - Load filament
+ * M702 - Unload filament
  * M851 - Set Z probe's XYZ offsets in current units. (Negative values: X=left, Y=front, Z=below)
  * M852 - Set skew factors: "M852 [I<xy>] [J<xz>] [K<yz>]". (Requires SKEW_CORRECTION_GCODE, and SKEW_CORRECTION_FOR_Z for IJ)
- * M860 - Report the position of position encoder modules.
- * M861 - Report the status of position encoder modules.
- * M862 - Perform an axis continuity test for position encoder modules.
- * M863 - Perform steps-per-mm calibration for position encoder modules.
- * M864 - Change position encoder module I2C address.
- * M865 - Check position encoder module firmware version.
- * M866 - Report or reset position encoder module error count.
- * M867 - Enable/disable or toggle error correction for position encoder modules.
- * M868 - Report or set position encoder module error correction threshold.
- * M869 - Report position encoder module error.
  * M876 - Handle Prompt Response. (Requires HOST_PROMPT_SUPPORT and not EMERGENCY_PARSER)
  * M900 - Get or Set Linear Advance K-factor. (PA Compatibility with old LIN_ADVANCE)
  * M906 - Set or get motor current in milliamps using axis codes X, Y, Z, E. Report values if no axis codes given. (Requires at least one _DRIVER_TYPE defined as TMC2130/2160/5130/5160/2208/2209/2660)
@@ -249,10 +240,6 @@
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_cancel_object.h>
-
-#if ENABLED(I2C_POSITION_ENCODERS)
-  #include "../feature/I2CPositionEncoder.h"
-#endif
 
 #if ANY(POLAR) || defined(G0_FEEDRATE)
   #define HAS_FAST_MOVES 1
@@ -417,13 +404,7 @@ private:
   static void G28();
 
   #if HAS_LEVELING
-    #if ENABLED(G29_RETRY_AND_RECOVER)
-      static void G29_with_retry();
-      #define G29_TYPE bool
-    #else
-      #define G29_TYPE void
-    #endif
-    static G29_TYPE G29();
+    static void G29();
   #endif
 
   #if HAS_BED_PROBE
@@ -671,12 +652,8 @@ private:
     static void M402();
   #endif
 
-  #if ENABLED(PRUSA_MMU2)
+  #if HAS_MMU2()
     static void M403();
-  #endif
-
-  #if HAS_FILAMENT_SENSOR
-    static void M412();
   #endif
 
   #if HAS_LEVELING
@@ -739,10 +716,8 @@ private:
     static void M666();
   #endif
 
-  #if ENABLED(FILAMENT_LOAD_UNLOAD_GCODES)
-    static void M701();
-    static void M702();
-  #endif
+  static void M701();
+  static void M702();
 
   #if HAS_BED_PROBE
     static void M851();
@@ -750,19 +725,6 @@ private:
 
   #if ENABLED(SKEW_CORRECTION_GCODE)
     static void M852();
-  #endif
-
-  #if ENABLED(I2C_POSITION_ENCODERS)
-    FORCE_INLINE static void M860() { I2CPEM.M860(); }
-    FORCE_INLINE static void M861() { I2CPEM.M861(); }
-    FORCE_INLINE static void M862() { I2CPEM.M862(); }
-    FORCE_INLINE static void M863() { I2CPEM.M863(); }
-    FORCE_INLINE static void M864() { I2CPEM.M864(); }
-    FORCE_INLINE static void M865() { I2CPEM.M865(); }
-    FORCE_INLINE static void M866() { I2CPEM.M866(); }
-    FORCE_INLINE static void M867() { I2CPEM.M867(); }
-    FORCE_INLINE static void M868() { I2CPEM.M868(); }
-    FORCE_INLINE static void M869() { I2CPEM.M869(); }
   #endif
 
   // Linear Advance / Pressure Advance compatibility

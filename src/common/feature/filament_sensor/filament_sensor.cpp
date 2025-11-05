@@ -5,7 +5,16 @@
  */
 
 #include <feature/filament_sensor/filament_sensor.hpp>
-#include "metric.h"
+#include <feature/filament_sensor/calibrator/filament_sensor_calibrator_basic.hpp>
+
+IFSensor::IFSensor(FilamentSensorID id)
+    : id_(id) {
+}
+
+FilamentSensorCalibrator *IFSensor::create_calibrator(FilamentSensorCalibrator::Storage &storage) {
+    // Most filament sensors don't require calibration, create a class that just tests the functionality
+    return storage.emplace<FilamentSensorCalibratorBasic>(*this);
+}
 
 void IFSensor::check_for_events() {
     const auto previous_state = last_check_event_state_;

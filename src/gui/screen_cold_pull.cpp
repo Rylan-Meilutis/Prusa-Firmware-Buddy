@@ -5,10 +5,12 @@
 #include "fonts.hpp"
 #include "utility_extensions.hpp"
 
+#include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <window_tool_action_box.hpp>
 #endif
 
+#include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
 #endif
@@ -290,8 +292,7 @@ namespace frame {
     public:
         explicit HeatUp(window_t *parent)
             : ProgressFrame(parent, _(text1), _(text2)) {
-            Sound_Play(eSOUND_TYPE::SingleBeep);
-            Sound_Play(eSOUND_TYPE::SingleBeep);
+            sound::play(SoundType::single_beep);
         }
 
         void update(fsm::PhaseData fsm_data) {
@@ -309,7 +310,7 @@ namespace frame {
     public:
         explicit AutomaticPull(window_t *parent)
             : TextFrame(parent, _(text1)) {
-            Sound_Play(eSOUND_TYPE::SingleBeep);
+            sound::play(SoundType::single_beep);
         }
 
         static constexpr const char *text1 = N_("Unloading");

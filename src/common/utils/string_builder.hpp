@@ -65,6 +65,9 @@ public:
     }
 
 public:
+    /// Raise BSOD if is_problem(), otherwise do nothing.
+    void check() const;
+
     const char *str() const;
 
     inline const char *str_nocheck() const {

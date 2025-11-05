@@ -47,10 +47,12 @@
 #include <power_panic.hpp>
 #include <logging/log_dest_file.hpp>
 #include <numeric_input_config_common.hpp>
+#include <option/has_mmu2.h>
 
 #include <type_traits>
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER()
     #include "../../../lib/Marlin/Marlin/src/module/prusa/toolchanger.h"
     #include "screen_menu_tools.hpp"
     #include <window_tool_action_box.hpp>
@@ -325,26 +327,23 @@ void MI_TIMEOUT::OnChange(size_t old_index) {
 
 /*****************************************************************************/
 // MI_SOUND_MODE
-static constexpr EnumArray<eSOUND_MODE, const char *, eSOUND_MODE::_count> sound_mode_values {
-    { eSOUND_MODE::ONCE, N_("Once") },
-    { eSOUND_MODE::LOUD, N_("Loud") },
-    { eSOUND_MODE::SILENT, N_("Silent") },
-    { eSOUND_MODE::ASSIST, N_("Assist") },
-#ifdef _DEBUG
-    { eSOUND_MODE::DEBUG, N_("Debug") },
-#endif
+static constexpr EnumArray<SoundMode, const char *, SoundMode::_count> sound_mode_values {
+    { SoundMode::once, N_("Once") },
+    { SoundMode::loud, N_("Loud") },
+    { SoundMode::silent, N_("Silent") },
+    { SoundMode::assist, N_("Assist") },
 };
 
 size_t MI_SOUND_MODE::init_index() const {
-    eSOUND_MODE sound_mode = Sound_GetMode();
-    return (size_t)(sound_mode > eSOUND_MODE::_last ? eSOUND_MODE::_default_sound : sound_mode);
+    SoundMode sound_mode = sound::get_mode();
+    return (size_t)(sound_mode > SoundMode::_last ? SoundMode::_default_sound : sound_mode);
 }
 MI_SOUND_MODE::MI_SOUND_MODE()
     : MenuItemSwitch(_("Sound Mode"), sound_mode_values, init_index()) {
 }
 
 void MI_SOUND_MODE::OnChange(size_t /*old_index*/) {
-    Sound_SetMode(static_cast<eSOUND_MODE>(get_index()));
+    sound::set_mode(static_cast<SoundMode>(get_index()));
 }
 
 /*****************************************************************************/
@@ -355,10 +354,10 @@ static constexpr NumericInputConfig sound_volume_spin_config = {
 };
 
 MI_SOUND_VOLUME::MI_SOUND_VOLUME()
-    : WiSpin(static_cast<uint8_t>(Sound_GetVolume()), sound_volume_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : WiSpin(static_cast<uint8_t>(sound::get_volume()), sound_volume_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 
 void MI_SOUND_VOLUME::OnClick() {
-    Sound_SetVolume(GetVal());
+    sound::set_volume(GetVal());
 }
 
 /*****************************************************************************/
@@ -856,7 +855,7 @@ void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
 }
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
 /**********************************************************************************************/
 // MI_TOOL_LEDS_ENABLE
 MI_TOOL_LEDS_ENABLE::MI_TOOL_LEDS_ENABLE()
@@ -881,7 +880,7 @@ void MI_TRIGGER_POWER_PANIC::click([[maybe_unused]] IWindowMenu &windowMenu) {
 }
 #endif
 
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
 /*****************************************************************************/
 MI_PICK_PARK_TOOL::MI_PICK_PARK_TOOL()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {

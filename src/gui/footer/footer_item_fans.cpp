@@ -10,7 +10,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 // static variables
 IFooterItemFan::buffer_t FooterItemPrintFan::buffer;
@@ -42,7 +42,7 @@ int FooterItemPrintFan::static_readValue() {
     if (marlin_vars().active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         return no_tool_value;
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return marlin_vars().active_hotend().print_fan_rpm;
 }
@@ -56,7 +56,7 @@ int FooterItemHeatBreakFan::static_readValue() {
     if (marlin_vars().active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         return no_tool_value;
     }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
     return marlin_vars().active_hotend().heatbreak_fan_rpm;
 }

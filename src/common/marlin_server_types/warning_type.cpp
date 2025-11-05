@@ -1,6 +1,7 @@
 #include "warning_type.hpp"
 
 #include <bitset>
+#include <option/has_mmu2.h>
 
 constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
     switch (warning) {

@@ -1,6 +1,7 @@
 #include "nozzle_cleaner.hpp"
 #include "Marlin/src/gcode/gcode.h"
 #include "raii/scope_guard.hpp"
+#include <gcode_loader.hpp>
 
 namespace nozzle_cleaner {
 

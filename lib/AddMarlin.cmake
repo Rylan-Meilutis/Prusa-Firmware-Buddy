@@ -56,7 +56,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/feature/print_area.cpp
             Marlin/Marlin/src/feature/prusa/e-stall_detector.cpp
             Marlin/Marlin/src/feature/prusa/measure_axis.cpp
-            Marlin/Marlin/src/feature/runout.cpp
             Marlin/Marlin/src/feature/spindle_laser.cpp
             Marlin/Marlin/src/feature/twibus.cpp
             Marlin/Marlin/src/gcode/bedlevel/G42.cpp
@@ -94,7 +93,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/gcode/feature/modular_bed/M557.cpp
             Marlin/Marlin/src/gcode/feature/pressure_advance/M572.cpp
             Marlin/Marlin/src/gcode/feature/print_area/M555.cpp
-            Marlin/Marlin/src/gcode/feature/runout/M412.cpp
             Marlin/Marlin/src/gcode/feature/trinamic/M122.cpp
             Marlin/Marlin/src/gcode/feature/trinamic/M569.cpp
             Marlin/Marlin/src/gcode/feature/trinamic/M906.cpp
@@ -244,6 +242,10 @@ target_link_libraries(
          raii
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)
+
+if(HAS_AC_CONTROLLER)
+  target_link_libraries(Marlin PRIVATE ac_controller)
+endif()
 
 if(HAS_XBUDDY_EXTENSION)
   target_link_libraries(Marlin PUBLIC xbuddy_extension)

@@ -16,7 +16,7 @@
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 #include "marlin_server.hpp"
 
@@ -40,12 +40,15 @@
     #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
     #include "module/prusa/tool_mapper.hpp"
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
-    #include "module/prusa/spool_join.hpp"
+
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
 #endif
+
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
 #endif
@@ -208,7 +211,7 @@ static void atomic_finish() {
         // Continue with toolcrash recovery
         marlin_server::powerpanic_finish_toolcrash();
     } else
-#endif /* HAS_TOOLCHANGER() */
+#endif
     {
         if (state_buf.planner.was_paused) {
             marlin_server::powerpanic_finish_pause();
@@ -319,7 +322,6 @@ void resume_loop() {
         planner.apply_settings(state_buf.planner.settings);
         planner.refresh_acceleration_rates();
 #if !HAS_CLASSIC_JERK
-        planner.max_e_jerk = state_buf.planner.max_jerk.e;
         planner.junction_deviation_mm = state_buf.planner.junction_deviation_mm;
 #endif
 
@@ -334,10 +336,10 @@ void resume_loop() {
 #if HAS_CANCEL_OBJECT()
         buddy::cancel_object().set_state(state_buf.cancel_object);
 #endif
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         tool_mapper.deserialize(state_buf.tool_mapping);
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         spool_join.deserialize(state_buf.spool_join);
 #endif
 #if HAS_CHAMBER_API()
@@ -363,7 +365,7 @@ void resume_loop() {
             break; // Skip lift and rehome
             // Will continue with toolcrash recovery
         }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         if (state_buf.crash.recover_flags & Crash_s::RECOVER_AXIS_STATE) {
             // lift and rehome
@@ -544,7 +546,7 @@ bool shutdown_loop() {
 #if BOARD_IS_XBUDDY()
     case ShutdownState::mmu:
         // Cut power to the MMU connector
-        buddy::hw::MMUEnable.reset();
+        buddy::hw::ext_pwr_enable.reset();
         break;
 #endif
 
@@ -701,10 +703,10 @@ void panic_loop() {
 #if HAS_CANCEL_OBJECT()
         state_buf.cancel_object = buddy::cancel_object().state();
 #endif
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         tool_mapper.serialize(state_buf.tool_mapping);
 #endif
-#if ENABLED(PRUSA_SPOOL_JOIN)
+#if HAS_SPOOL_JOIN()
         spool_join.serialize(state_buf.spool_join);
 #endif
 #if HAS_CHAMBER_API()
@@ -721,7 +723,7 @@ void panic_loop() {
         state_buf.toolchanger.precrash_tool = prusa_toolchanger.get_precrash().tool_nr;
         state_buf.toolchanger.return_type = prusa_toolchanger.get_precrash().return_type;
         state_buf.toolchanger.return_pos = prusa_toolchanger.get_precrash().return_pos;
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         log_info(PowerPanic, "powerpanic saving");
         if (runtime_state.orig_state != PPState::Prepared) {
@@ -757,7 +759,7 @@ void panic_loop() {
             if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL) { // Is in the toolchange area
                 // Do not move X or Y
             } else
-#endif /*HAS_TOOLCHANGER()*/
+#endif
             {
                 if (runtime_state.orig_axes_home_level.is_homed(test_axes, AxisHomeLevel::imprecise)) {
                     // axis position is currently known, move to the closest endpoint
@@ -783,7 +785,7 @@ void panic_loop() {
 
         log_info(PowerPanic, "powerpanic complete");
         if (should_beep) {
-            Sound_Play(eSOUND_TYPE::CriticalAlert);
+            sound::play(SoundType::critical_alert);
         }
         power_panic_state = PPState::WaitingToDie;
         break;
@@ -894,7 +896,7 @@ void ac_fault_isr() {
             state_buf.crash.start_current_position = prusa_toolchanger.get_precrash().return_pos;
             toNative(state_buf.crash.start_current_position); // return_pos is in logical coordinates, needs to be modified in place
         } else
-#endif /*HAS_TOOLCHANGER()*/
+#endif
         {
             state_buf.crash.start_current_position = crash_s.start_current_position;
         }
@@ -964,12 +966,11 @@ void ac_fault_isr() {
 #if HAS_TOOLCHANGER()
         // Restore planner config if it was changed by toolchange
         prusa_toolchanger.try_restore();
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
         state_buf.planner.settings = planner.user_settings;
 
 #if !HAS_CLASSIC_JERK
-        state_buf.planner.max_jerk.e = planner.max_e_jerk;
         state_buf.planner.junction_deviation_mm = planner.junction_deviation_mm;
 #endif
     }

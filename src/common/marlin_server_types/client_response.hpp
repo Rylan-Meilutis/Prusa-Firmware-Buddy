@@ -33,6 +33,7 @@
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_selftest.h>
 #include <option/has_toolchanger.h>
+#include <option/has_tool_mapping.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_chamber_api.h>
 #include <option/has_chamber_filtration_api.h>
@@ -121,108 +122,6 @@ enum class PhaseWait : PhaseUnderlyingType {
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhaseWait) { return ClientFSM::Wait; }
 
-// define enum classes for responses here
-// and YES phase can have 0 responses
-// every enum must have "_last"
-// EVERY response shall have a unique ID (so every button in GUI is unique)
-enum class PhasesLoadUnload : PhaseUnderlyingType {
-    initial,
-    ChangingTool,
-    Parking_stoppable,
-    Parking_unstoppable,
-    WaitingTemp_stoppable,
-    WaitingTemp_unstoppable,
-    Ramming_stoppable,
-    Ramming_unstoppable,
-    Unloading_stoppable,
-    Unloading_unstoppable,
-    IsFilamentUnloaded,
-    FilamentNotInFS,
-    ManualUnload_continuable,
-    ManualUnload_uncontinuable,
-    UserPush_stoppable,
-    UserPush_unstoppable,
-    MakeSureInserted_stoppable,
-    MakeSureInserted_unstoppable,
-    Inserting_stoppable,
-    Inserting_unstoppable,
-    IsFilamentInGear,
-    Ejecting_stoppable,
-    Ejecting_unstoppable,
-#if HAS_SIDE_FSENSOR()
-    LoadingObstruction_stoppable,
-    LoadingObstruction_unstoppable,
-#endif
-    Loading_stoppable,
-    Loading_unstoppable,
-    LoadingToGears_stoppable,
-    LoadingToGears_unstoppable,
-    Purging_stoppable,
-    Purging_unstoppable,
-    AwaitingFilament_stoppable,
-    AwaitingFilament_unstoppable,
-    IsColor,
-    IsColorPurge,
-    Unparking,
-#if HAS_NOZZLE_CLEANER()
-    UnloadNozzleCleaning,
-    LoadNozzleCleaning,
-#endif
-#if HAS_LOADCELL()
-    FilamentStuck,
-#endif
-
-#if HAS_AUTO_RETRACT()
-    AutoRetracting,
-#endif
-
-#if HAS_MMU2()
-    // MMU-specific dialogs
-    LoadFilamentIntoMMU,
-    // internal states of the MMU
-    MMU_EngagingIdler,
-    MMU_DisengagingIdler,
-    MMU_UnloadingToFinda,
-    MMU_UnloadingToPulley,
-    MMU_FeedingToFinda,
-    MMU_FeedingToBondtech,
-    MMU_FeedingToNozzle,
-    MMU_AvoidingGrind,
-    MMU_FinishingMoves,
-    MMU_ERRDisengagingIdler,
-    MMU_ERREngagingIdler,
-    MMU_ERRWaitingForUser,
-    MMU_ERRInternal,
-    MMU_ERRHelpingFilament,
-    MMU_ERRTMCFailed,
-    MMU_UnloadingFilament,
-    MMU_LoadingFilament,
-    MMU_SelectingFilamentSlot,
-    MMU_PreparingBlade,
-    MMU_PushingFilament,
-    MMU_PerformingCut,
-    MMU_ReturningSelector,
-    MMU_ParkingSelector,
-    MMU_EjectingFilament,
-    MMU_RetractingFromFinda,
-    MMU_Homing,
-    MMU_MovingSelector,
-    MMU_FeedingToFSensor,
-    MMU_HWTestBegin,
-    MMU_HWTestIdler,
-    MMU_HWTestSelector,
-    MMU_HWTestPulley,
-    MMU_HWTestCleanup,
-    MMU_HWTestExec,
-    MMU_HWTestDisplay,
-    MMU_ErrHwTestFailed,
-#endif
-
-    _cnt,
-    _last = _cnt - 1
-};
-constexpr inline ClientFSM client_fsm_from_phase(PhasesLoadUnload) { return ClientFSM::Load_unload; }
-
 enum class PhasesPreheat : PhaseUnderlyingType {
     initial,
     UserTempSelection,
@@ -242,7 +141,7 @@ enum class PhasesPrintPreview : PhaseUnderlyingType {
 #if HAS_MMU2()
     mmu_filament_inserted,
 #endif
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
     tools_mapping,
 #endif
     wrong_filament,
@@ -273,19 +172,6 @@ enum class PhasesSelftest : PhaseUnderlyingType {
     Loadcell_fail,
     _first_Loadcell = Loadcell_prepare,
     _last_Loadcell = Loadcell_fail,
-
-    FSensor_ask_unload,
-    FSensor_wait_tool_pick,
-    FSensor_unload_confirm,
-    FSensor_calibrate,
-    FSensor_insertion_wait,
-    FSensor_insertion_ok,
-    FSensor_insertion_calibrate,
-    Fsensor_enforce_remove,
-    FSensor_done,
-    FSensor_fail,
-    _first_FSensor = FSensor_ask_unload,
-    _last_FSensor = FSensor_fail,
 
     CalibZ,
     _first_CalibZ = CalibZ,
@@ -647,98 +533,6 @@ constexpr inline ClientFSM client_fsm_from_phase(PhaseDoorSensorCalibration) { r
 
 namespace ClientResponses {
 
-// declare 2d arrays of single buttons for radio buttons
-inline constexpr EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesLoadUnload>()> LoadUnloadResponses {
-    { PhasesLoadUnload::initial, {} },
-        { PhasesLoadUnload::ChangingTool, {} },
-        { PhasesLoadUnload::Parking_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Parking_unstoppable, {} },
-        { PhasesLoadUnload::WaitingTemp_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::WaitingTemp_unstoppable, {} },
-        { PhasesLoadUnload::Ramming_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Ramming_unstoppable, {} },
-        { PhasesLoadUnload::Unloading_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Unloading_unstoppable, {} },
-        { PhasesLoadUnload::IsFilamentUnloaded, { Response::Yes, Response::No } },
-        { PhasesLoadUnload::FilamentNotInFS, { Response::Help } },
-        { PhasesLoadUnload::ManualUnload_continuable, { Response::Continue, Response::Retry } },
-        { PhasesLoadUnload::ManualUnload_uncontinuable, { Response::Help, Response::Retry } },
-        { PhasesLoadUnload::UserPush_stoppable, { Response::Continue, Response::Stop } },
-        { PhasesLoadUnload::UserPush_unstoppable, { Response::Continue } },
-        { PhasesLoadUnload::MakeSureInserted_stoppable, { Response::Stop, Response::Help } },
-        { PhasesLoadUnload::MakeSureInserted_unstoppable, { Response::Help } },
-        { PhasesLoadUnload::Inserting_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Inserting_unstoppable, {} },
-        { PhasesLoadUnload::IsFilamentInGear, { Response::Yes, Response::No } },
-        { PhasesLoadUnload::Ejecting_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Ejecting_unstoppable, {} },
-#if HAS_SIDE_FSENSOR()
-        { PhasesLoadUnload::LoadingObstruction_stoppable, { Response::Retry, Response::Stop } },
-        { PhasesLoadUnload::LoadingObstruction_unstoppable, { Response::Retry, Response::Help } },
-#endif
-        { PhasesLoadUnload::Loading_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Loading_unstoppable, {} },
-        { PhasesLoadUnload::LoadingToGears_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::LoadingToGears_unstoppable, {} },
-        { PhasesLoadUnload::Purging_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::Purging_unstoppable, {} },
-        { PhasesLoadUnload::AwaitingFilament_stoppable, { Response::Stop } },
-        { PhasesLoadUnload::AwaitingFilament_unstoppable, {} },
-        { PhasesLoadUnload::IsColor, { Response::Yes, Response::Purge_more, Response::Retry } },
-        { PhasesLoadUnload::IsColorPurge, { Response::Yes, Response::Purge_more } },
-        { PhasesLoadUnload::Unparking, {} },
-#if HAS_NOZZLE_CLEANER()
-        { PhasesLoadUnload::UnloadNozzleCleaning, {} },
-        { PhasesLoadUnload::LoadNozzleCleaning, {} },
-#endif
-#if HAS_LOADCELL()
-        { PhasesLoadUnload::FilamentStuck, { Response::Unload } },
-#endif
-#if HAS_AUTO_RETRACT()
-        { PhasesLoadUnload::AutoRetracting, {} },
-#endif
-#if HAS_MMU2()
-        { PhasesLoadUnload::LoadFilamentIntoMMU, { Response::Continue } },
-
-        { PhasesLoadUnload::MMU_EngagingIdler, {} },
-        { PhasesLoadUnload::MMU_DisengagingIdler, {} },
-        { PhasesLoadUnload::MMU_UnloadingToFinda, {} },
-        { PhasesLoadUnload::MMU_UnloadingToPulley, {} },
-        { PhasesLoadUnload::MMU_FeedingToFinda, {} },
-        { PhasesLoadUnload::MMU_FeedingToBondtech, {} },
-        { PhasesLoadUnload::MMU_FeedingToNozzle, {} },
-        { PhasesLoadUnload::MMU_AvoidingGrind, {} },
-        { PhasesLoadUnload::MMU_FinishingMoves, {} },
-        { PhasesLoadUnload::MMU_ERRDisengagingIdler, {} },
-        { PhasesLoadUnload::MMU_ERREngagingIdler, {} },
-        { PhasesLoadUnload::MMU_ERRWaitingForUser, { Response::Retry, Response::Slowly, Response::Continue, Response::Restart, Response::Unload, Response::Stop, Response::MMU_disable } },
-        { PhasesLoadUnload::MMU_ERRInternal, {} },
-        { PhasesLoadUnload::MMU_ERRHelpingFilament, {} },
-        { PhasesLoadUnload::MMU_ERRTMCFailed, {} },
-        { PhasesLoadUnload::MMU_UnloadingFilament, {} },
-        { PhasesLoadUnload::MMU_LoadingFilament, {} },
-        { PhasesLoadUnload::MMU_SelectingFilamentSlot, {} },
-        { PhasesLoadUnload::MMU_PreparingBlade, {} },
-        { PhasesLoadUnload::MMU_PushingFilament, {} },
-        { PhasesLoadUnload::MMU_PerformingCut, {} },
-        { PhasesLoadUnload::MMU_ReturningSelector, {} },
-        { PhasesLoadUnload::MMU_ParkingSelector, {} },
-        { PhasesLoadUnload::MMU_EjectingFilament, {} },
-        { PhasesLoadUnload::MMU_RetractingFromFinda, {} },
-        { PhasesLoadUnload::MMU_Homing, {} },
-        { PhasesLoadUnload::MMU_MovingSelector, {} },
-        { PhasesLoadUnload::MMU_FeedingToFSensor, {} },
-        { PhasesLoadUnload::MMU_HWTestBegin, {} },
-        { PhasesLoadUnload::MMU_HWTestIdler, {} },
-        { PhasesLoadUnload::MMU_HWTestSelector, {} },
-        { PhasesLoadUnload::MMU_HWTestPulley, {} },
-        { PhasesLoadUnload::MMU_HWTestCleanup, {} },
-        { PhasesLoadUnload::MMU_HWTestExec, {} },
-        { PhasesLoadUnload::MMU_HWTestDisplay, {} },
-        { PhasesLoadUnload::MMU_ErrHwTestFailed, {} },
-#endif
-};
-
 inline constexpr EnumArray<PhasesPreheat, PhaseResponses, CountPhases<PhasesPreheat>()> PreheatResponses {
     { PhasesPreheat::initial, {} },
 
@@ -786,7 +580,7 @@ inline constexpr EnumArray<PhasesPrintPreview, PhaseResponses, CountPhases<Phase
                                                          Response::No,
                                                      } },
 #endif
-#if HAS_TOOLCHANGER() || HAS_MMU2()
+#if HAS_TOOL_MAPPING()
         { PhasesPrintPreview::tools_mapping, {
                                                  Response::Back,
                                                  Response::Filament,
@@ -822,17 +616,6 @@ inline constexpr EnumArray<PhasesSelftest, PhaseResponses, CountPhases<PhasesSel
     { PhasesSelftest::Loadcell_user_tap_check, {} },
     { PhasesSelftest::Loadcell_user_tap_ok, {} },
     { PhasesSelftest::Loadcell_fail, {} },
-
-    { PhasesSelftest::FSensor_ask_unload, { Response::Continue, Response::Unload, Response::Abort } },
-    { PhasesSelftest::FSensor_wait_tool_pick, {} },
-    { PhasesSelftest::FSensor_unload_confirm, { Response::Yes, Response::No } },
-    { PhasesSelftest::FSensor_calibrate, {} },
-    { PhasesSelftest::FSensor_insertion_wait, { Response::Abort_invalidate_test } },
-    { PhasesSelftest::FSensor_insertion_ok, { Response::Continue, Response::Abort_invalidate_test } },
-    { PhasesSelftest::FSensor_insertion_calibrate, { Response::Abort_invalidate_test } },
-    { PhasesSelftest::Fsensor_enforce_remove, { Response::Abort_invalidate_test } },
-    { PhasesSelftest::FSensor_done, {} },
-    { PhasesSelftest::FSensor_fail, {} },
 
     { PhasesSelftest::CalibZ, {} },
 
@@ -1162,9 +945,6 @@ enum class SelftestParts {
     #endif
     CalibZ,
     Heaters,
-    #if FILAMENT_SENSOR_IS_ADC()
-    FSensor,
-    #endif
     FirstLayer,
     FirstLayerQuestions,
     #if HAS_TOOLCHANGER()
@@ -1183,10 +963,6 @@ inline constexpr PhasesSelftest SelftestGetFirstPhaseFromPart(SelftestParts part
     #if HAS_LOADCELL()
     case SelftestParts::Loadcell:
         return PhasesSelftest::_first_Loadcell;
-    #endif
-    #if FILAMENT_SENSOR_IS_ADC()
-    case SelftestParts::FSensor:
-        return PhasesSelftest::_first_FSensor;
     #endif
     case SelftestParts::CalibZ:
         return PhasesSelftest::_first_CalibZ;
@@ -1218,10 +994,6 @@ inline constexpr PhasesSelftest SelftestGetLastPhaseFromPart(SelftestParts part)
     #if HAS_LOADCELL()
     case SelftestParts::Loadcell:
         return PhasesSelftest::_last_Loadcell;
-    #endif
-    #if FILAMENT_SENSOR_IS_ADC()
-    case SelftestParts::FSensor:
-        return PhasesSelftest::_last_FSensor;
     #endif
     case SelftestParts::CalibZ:
         return PhasesSelftest::_last_CalibZ;
@@ -1265,11 +1037,6 @@ inline constexpr SelftestParts SelftestGetPartFromPhase(PhasesSelftest ph) {
     }
     #endif
 
-    #if FILAMENT_SENSOR_IS_ADC()
-    if (SelftestPartContainsPhase(SelftestParts::FSensor, ph)) {
-        return SelftestParts::FSensor;
-    }
-    #endif
     if (SelftestPartContainsPhase(SelftestParts::Axis, ph)) {
         return SelftestParts::Axis;
     }

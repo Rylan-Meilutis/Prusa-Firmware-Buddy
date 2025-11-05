@@ -35,6 +35,6 @@ inline bool within_limits(Value value) {
  * @param fs_ref_nins_value Reference value with filament NOT inserted
  * @param fs_ref_ins_value Reference value with filament inserted
  */
-FilamentSensorState evaluate_state(Value filtered_value, Value fs_ref_nins_value, Value fs_ref_ins_value, FilamentSensorState previous_state, Value value_span_hack);
+FilamentSensorState evaluate_state(Value filtered_value, Value fs_ref_nins_value, Value fs_ref_ins_value, FilamentSensorState previous_state);
 
 } // namespace FSensorADCEval

@@ -72,7 +72,7 @@ void MI_UNLOAD::click(IWindowMenu &) {
     }
 #endif
     marlin_client::gcode("M702 W2"); // unload with return option
-    Sound_Stop(); // TODO what is Sound_Stop(); doing here?
+    sound::stop(); // TODO what is sound::stop(); doing here?
 }
 
 /*****************************************************************************/
@@ -105,7 +105,7 @@ void MI_CHANGE::click(IWindowMenu &) {
     }
 #endif
     marlin_client::gcode("M1600 R"); // non print filament change
-    Sound_Stop(); // TODO what is Sound_Stop(); doing here?
+    sound::stop(); // TODO what is sound::stop(); doing here?
 }
 
 #if HAS_TOOLCHANGER()
@@ -117,7 +117,7 @@ MI_CHANGEALL::MI_CHANGEALL()
 void MI_CHANGEALL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeAllFilaments>);
 }
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 /*****************************************************************************/
 // MI_PURGE

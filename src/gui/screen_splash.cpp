@@ -18,12 +18,15 @@
 #include "bsod.h"
 #include <guiconfig/guiconfig.h>
 #include <feature/factory_reset/factory_reset.hpp>
+#include <window_msgbox_happy_printing.hpp>
 
 #include <option/bootloader.h>
 #include <option/developer_mode.h>
 #include <option/has_translations.h>
 #include <option/has_e2ee_support.h>
 #include <gui/screen_printer_setup.hpp>
+#include <option/has_emergency_stop.h>
+#include <option/has_heatbed_screws_during_transport.h>
 
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()
@@ -91,93 +94,114 @@ ScreenSplash::ScreenSplash()
     return;
 #endif
 
+    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
+
+#if HAS_EMERGENCY_STOP()
+    static constexpr auto needs_emergency_stop_consent = [] {
+        return !config_store().emergency_stop_enable.get()
+            && !config_store().emergency_stop_disable_consent_given.get();
+    };
+    // Check first time - avoid black screen blinking if we're sure we won't need it
+    if (needs_emergency_stop_consent()) {
+        constexpr auto callback = +[] {
+            // Check again - the user might have given the consent as part of the selftest snake
+            if (needs_emergency_stop_consent()) {
+                // Run the door sensor calibration, only ask for the consent (and run the calibration)
+                marlin_client::gcode("M1980 O");
+                static_assert(HAS_DOOR_SENSOR_CALIBRATION());
+            }
+        };
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
+    }
+#endif
+
 #if HAS_SELFTEST() && !PRINTER_IS_PRUSA_iX()
-    const bool run_wizard =
-        []() {
-            SelftestResult sr = config_store().selftest_result.get();
-
-            auto any_passed = [](std::same_as<TestResult> auto... results) -> bool {
-                static_assert(sizeof...(results) > 0, "Pass at least one result");
-
-                return ((results == TestResult_Passed) || ...);
-            };
-
-            if (any_passed(sr.xaxis, sr.yaxis, sr.zaxis, sr.bed
-    #if PRINTER_IS_PRUSA_XL()
-                    ,
-                    config_store().selftest_result_phase_stepping.get()
-
-    #endif
-                        )) {
-                return false;
-            }
-            for (size_t e = 0; e < config_store_ns::max_tool_count; e++) {
-    #if HAS_TOOLCHANGER()
-                if (!prusa_toolchanger.is_tool_enabled(e)) {
-                    continue;
-                }
-    #endif
-                if (any_passed(sr.tools[e].printFan, sr.tools[e].heatBreakFan,
-    #if HAS_SWITCHED_FAN_TEST()
-                        sr.tools[e].fansSwitched,
-    #endif /* HAS_SWITCHED_FAN_TEST() */
-                        sr.tools[e].nozzle, sr.tools[e].fsensor, sr.tools[e].loadcell, sr.tools[e].dockoffset, sr.tools[e].tooloffset)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }();
+    // A crude heuristic to make the wizard show only "on the first run"
+    // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose
+    const bool run_wizard = (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result);
 #elif HAS_SELFTEST()
     const bool run_wizard = false;
 #endif
 
-    constexpr auto pepa_callback = +[] {
-        const char *txt =
-#if PRINTER_IS_PRUSA_XL()
-            N_("Hi, this is your\nOriginal Prusa XL printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MK4()
-            // The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
-            N_("Hi, this is your\nOriginal Prusa printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MK3_5()
-            N_("Hi, this is your\nOriginal Prusa MK3.5 printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MINI()
-            N_("Hi, this is your\nOriginal Prusa MINI printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_iX()
-            N_("Hi, this is your\nOriginal Prusa iX printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_COREONE()
-            N_("Hi, this is your\nPrusa CORE One printer.\n"
-               "I would like to guide you\nthrough the setup process.");
-#else
-    #error unknown config
-#endif
-        MsgBoxPepaCentered(_(txt), Responses_Ok);
-    };
-
-#if HAS_TOUCH()
-    constexpr auto touch_error_callback = +[] {
-        touchscreen.set_enabled(false);
-        MsgBoxWarning(_("Touch driver failed to initialize, touch functionality disabled"), Responses_Ok);
-    };
-#endif
-
-    constexpr auto network_callback = +[] {
-        // Calls network_initial_setup_wizard
-        marlin_client::gcode("M1703 A");
-    };
 #if HAS_SELFTEST()
     if (run_wizard) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
     }
 #endif
-    if (!config_store().printer_setup_done.get()) {
+
+#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
+    //  C1L is shipped with the bed screwed into the bottom of the chassis. And hence the screws have to be removed.
+    const bool bed_screws_removal_approved = config_store().heatbed_screws_removal_approved.get();
+
+    if (!bed_screws_removal_approved) {
+        // Ask the user to approve the removal of the bed screws
+        static constexpr point_ui16_t icon_point = point_ui16_t(40, 20);
+        constexpr auto callback = [] {
+            MsgBoxIconned msgbox(
+                Rect16(0, 0, GuiDefaults::ScreenWidth, GuiDefaults::ScreenHeight),
+                icon_point,
+                Responses_Ok,
+                0,
+                nullptr,
+                _("Before using the 3D printer, it is necessary to remove all 3 screws, that secure the heated bed during transport.\n\nThe screws are marked with a sticker."),
+                is_multiline::yes,
+                &img::ac_heatbed_screw_80x246,
+                is_closed_on_click_t::yes);
+            Screens::Access()->gui_loop_until_dialog_closed();
+            config_store().heatbed_screws_removal_approved.set(true);
+        };
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
+    };
+#endif
+
+    const bool network_setup_needed = !config_store().printer_network_setup_done.get();
+    if (network_setup_needed) {
+        constexpr auto network_callback = +[] {
+            // Calls network_initial_setup_wizard
+            marlin_client::gcode("M1703 A");
+        };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, network_callback>);
+    }
+
+    const bool hw_config_needed = !config_store().printer_hw_config_done.get();
+    if (hw_config_needed) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
+    }
+
+    if (network_setup_needed || hw_config_needed
+#if HAS_SELFTEST()
+        || run_wizard
+#endif
+    ) {
+        constexpr auto pepa_callback = +[] {
+            const char *txt =
+#if PRINTER_IS_PRUSA_XL()
+                N_("Hi, this is your\nOriginal Prusa XL printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_MK4()
+                // The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
+                N_("Hi, this is your\nOriginal Prusa printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_MK3_5()
+                N_("Hi, this is your\nOriginal Prusa MK3.5 printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_MINI()
+                N_("Hi, this is your\nOriginal Prusa MINI printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_iX()
+                N_("Hi, this is your\nOriginal Prusa iX printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_COREONE()
+                N_("Hi, this is your\nPrusa CORE One printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#elif PRINTER_IS_PRUSA_COREONEL()
+                N_("Hi, this is your\nPrusa CORE One L printer.\n"
+                   "I would like to guide you\nthrough the setup process.");
+#else
+    #error unknown config
+#endif
+            MsgBoxPepaCentered(_(txt), Responses_Ok);
+        };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, pepa_callback>);
     }
 
@@ -212,6 +236,10 @@ ScreenSplash::ScreenSplash()
 
 #if HAS_TOUCH()
     if (touchscreen.is_enabled() && !touchscreen.is_hw_ok()) {
+        constexpr auto touch_error_callback = +[] {
+            touchscreen.set_enabled(false);
+            MsgBoxWarning(_("Touch driver failed to initialize, touch functionality disabled"), Responses_Ok);
+        };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, touch_error_callback>);
     }
 #endif // HAS_TOUCH
@@ -255,6 +283,12 @@ ScreenSplash::ScreenSplash()
     #if HAS_XBUDDY_EXTENSION()
                 { BootstrapStage::flashing_xbuddy_extension, 10 },
                 { BootstrapStage::verifying_xbuddy_extension, 1 },
+    #endif
+    #if HAS_AC_CONTROLLER()
+                { BootstrapStage::ac_controller_unknown, 1 },
+                { BootstrapStage::ac_controller_verify, 1 },
+                { BootstrapStage::ac_controller_flash, 10 },
+                { BootstrapStage::ac_controller_ready, 1 },
     #endif
 #endif
         }) };
@@ -311,6 +345,16 @@ static const char *message(BootstrapStage stage) {
         return "Flashing xbuddy extension";
     case BootstrapStage::verifying_xbuddy_extension:
         return "Verifying xbuddy extension";
+    #endif
+    #if HAS_AC_CONTROLLER()
+    case BootstrapStage::ac_controller_unknown:
+        return "AC controller: unknown";
+    case BootstrapStage::ac_controller_verify:
+        return "AC controller: verifying";
+    case BootstrapStage::ac_controller_flash:
+        return "AC controller: flashing";
+    case BootstrapStage::ac_controller_ready:
+        return "AC controller: ready";
     #endif
 #endif
     }

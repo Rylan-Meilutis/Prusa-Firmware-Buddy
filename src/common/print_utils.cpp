@@ -17,6 +17,7 @@
 #include <gcode/gcode_reader_restore_info.hpp>
 
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>

@@ -17,13 +17,11 @@
 #include "selftest_heaters_type.hpp"
 #include "selftest_heaters_interface.hpp"
 #include "selftest_loadcell_interface.hpp"
-#include "selftest_fsensor_interface.hpp"
 #include "selftest_axis_interface.hpp"
 #include "selftest_netstatus_interface.hpp"
 #include "selftest_axis_config.hpp"
 #include "selftest_heater_config.hpp"
 #include "selftest_loadcell_config.hpp"
-#include "selftest_fsensor_config.hpp"
 #include "selftest_revise_printer_setup.hpp"
 #include "calibration_z.hpp"
 #include "fanctl.hpp"
@@ -169,14 +167,6 @@ static constexpr LoadcellConfig_t Config_Loadcell[] = { {
     .max_validation_time = 1000,
 } };
 
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensor = { {
-    { .extruder_id = 0 },
-} };
-
-static constexpr std::array<const FSensorConfig_t, HOTENDS> Config_FSensorMMU = { {
-    { .extruder_id = 0 },
-} };
-
 // class representing whole self-test
 class CSelftest : public ISelftest {
 public:
@@ -244,7 +234,7 @@ bool CSelftest::Start(const uint64_t test_mask, [[maybe_unused]] const TestData 
     m_Mask = (SelftestMask_t)(m_Mask | uint64_t(stmSelftestStart)); // any selftest state will trigger selftest additional init
     m_Mask = (SelftestMask_t)(m_Mask | uint64_t(stmSelftestStop)); // any selftest state will trigger selftest additional deinit
 
-    uint32_t full_test_check_mask = stmXYZAxis | stmHeaters | stmLoadcell | stmFSensor;
+    uint32_t full_test_check_mask = stmXYZAxis | stmHeaters | stmLoadcell;
     if ((full_test_check_mask & test_mask) == full_test_check_mask) {
         m_Mask = (SelftestMask_t)(m_Mask | to_one_hot(stsXAxis));
     }
@@ -395,24 +385,6 @@ void CSelftest::Loop() {
                 return;
             }
         }
-        break;
-
-    case stsFSensor_calibration:
-        if (selftest::phaseFSensor(ToolMask::AllTools, pFSensor, Config_FSensor)) {
-            return;
-        }
-        break;
-    case stsFSensor_flip_mmu_at_the_end:
-#if HAS_MMU2()
-        // enable/disable the MMU according to the MMU Rework toggle. Used from
-        // the menus when we need to calibrate the FS before enabling/disabling
-        // the rework or the MMU itself.
-
-        // We don't check the result here. If FS is calibrated and enabled
-        // at the end of the selftest, MMU will be enabled, otherwise not.
-        marlin_server::enqueue_gcode(config_store().is_mmu_rework.get() ? "M709 S1" : "M709 S0");
-#endif
-
         break;
     case stsSelftestStop:
         restoreAfterSelftest();

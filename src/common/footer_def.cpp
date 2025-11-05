@@ -1,6 +1,7 @@
 #include "footer_def.hpp"
 
 #include <option/has_chamber_api.h>
+#include <option/has_mmu2.h>
 
 #include <utils/enum_array.hpp>
 

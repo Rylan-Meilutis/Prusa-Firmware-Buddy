@@ -244,7 +244,7 @@ modbus::Callbacks::Status MMU::write_register(uint16_t address, uint16_t value) 
 }
 #endif
 
-modbus::Callbacks::Status MMU::read_registers(uint8_t, uint16_t address, std::span<uint16_t> out) {
+modbus::Callbacks::Status MMU::read_registers(uint16_t address, std::span<uint16_t> out) {
     for (uint16_t i = 0; i < out.size(); i++) {
         if (auto status = read_register(address + i, out[i]); status != Status::Ok) {
             return status;
@@ -253,7 +253,7 @@ modbus::Callbacks::Status MMU::read_registers(uint8_t, uint16_t address, std::sp
     return Status::Ok;
 }
 
-modbus::Callbacks::Status MMU::write_registers(uint8_t, uint16_t address, std::span<const uint16_t> in) {
+modbus::Callbacks::Status MMU::write_registers(uint16_t address, std::span<const uint16_t> in) {
     for (uint16_t i = 0; i < in.size(); i++) {
         if (auto status = write_register(address + i, in[i]); status != Status::Ok) {
             return status;

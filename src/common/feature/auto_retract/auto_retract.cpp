@@ -138,7 +138,10 @@ void AutoRetract::maybe_deretract_to_nozzle() {
     }
 
     if (!ready_to_extrude()) {
-        log_error(MarlinServer, "auto_retract: Cannot perform deretract");
+        if (!DEBUGGING(DRYRUN)) {
+            // With dry run this spams logs and overflows the RTT buffers
+            log_error(MarlinServer, "auto_retract: Cannot perform deretract");
+        }
         return;
     }
 

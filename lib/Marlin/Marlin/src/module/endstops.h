@@ -27,8 +27,9 @@
 
 #include "../inc/MarlinConfig.h"
 #include <stdint.h>
+#include <option/has_toolchanger.h>
 
-#if HAS_BED_PROBE || defined(PRUSA_TOOLCHANGER)
+#if HAS_BED_PROBE || HAS_TOOLCHANGER()
 #include <atomic>
 #endif
 
@@ -82,7 +83,7 @@ class Endstops {
         #if HAS_BED_PROBE
           || z_probe_enabled
         #endif
-        #ifdef PRUSA_TOOLCHANGER
+        #if HAS_TOOLCHANGER()
           || xy_probe_enabled
         #endif
       );
@@ -157,7 +158,7 @@ class Endstops {
     #endif
 
     // Enable / disable endstop xy-probe checking
-    #ifdef PRUSA_TOOLCHANGER
+    #if HAS_TOOLCHANGER()
       static std::atomic<bool> xy_probe_enabled;
       static void enable_xy_probe(const bool onoff=true);
     #endif

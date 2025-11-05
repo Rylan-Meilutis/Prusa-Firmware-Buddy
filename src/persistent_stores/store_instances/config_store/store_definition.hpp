@@ -16,7 +16,7 @@
 #include <Marlin/src/feature/input_shaper/input_shaper_config.hpp>
 #include <module/temperature.h>
 #include <config.h>
-#include <sound_enum.h>
+#include <sound_enum.hpp>
 #include <footer_eeprom.hpp>
 #include <time_tools.hpp>
 #include <encoded_filament.hpp>
@@ -44,13 +44,18 @@
 #include <option/has_auto_retract.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_manual_chamber_vents.h>
+#include <option/has_automatic_chamber_vents.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_e2ee_support.h>
 #include <option/has_manual_belt_tuning.h>
+#include <option/has_bed_fan.h>
+#include <option/has_psu_fan.h>
+#include <option/has_heatbed_screws_during_transport.h>
 #include <common/extended_printer_type.hpp>
 #include <common/hw_check.hpp>
 #include <pwm_utils.hpp>
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
+#include <feature/bed_fan/selftest_result.hpp>
 #include <print_fan_type.hpp>
 
 #if HAS_SHEET_PROFILES()
@@ -148,16 +153,17 @@ struct CurrentStore
     void perform_config_check();
 
     /// Config store "version", gets incremented each time we need to add a new config migration
-    static constexpr uint8_t newest_config_version = 2;
+    static constexpr uint8_t newest_config_version = 4;
 
     /// Stores newest_migration_version of the previous firmware
     StoreItem<uint8_t, 0, ItemFlag::special, journal::hash("Config Version")> config_version;
 
     /// If false, a ScreenPrinterSetup will appear on printer boot
-    StoreItem<bool, false, ItemFlag::calibrations, journal::hash("Printer setup done")> printer_setup_done;
+    StoreItem<bool, false, ItemFlag::network, journal::hash("Printer network done")> printer_network_setup_done;
+    StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Printer hw-config done")> printer_hw_config_done;
 
     /// Global filament sensor enable
-    StoreItem<bool, defaults::fsensor_enabled, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("FSensor Enabled V2")> fsensor_enabled;
+    StoreItem<bool, true, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("FSensor Enabled")> fsensor_enabled;
 
     /// BFW-5545 When filament sensor is not responding during filament change, the user has an option to disable it.
     /// This is a flag to remind them to turn it back on again when they finis printing
@@ -206,7 +212,7 @@ struct CurrentStore
     // General network settings
     StoreItem<std::array<char, lan_hostname_max_len + 1>, defaults::net_hostname, ItemFlag::network, journal::hash("Hostname")> hostname;
 
-    StoreItem<eSOUND_MODE, defaults::sound_mode, ItemFlag::user_interface, journal::hash("Sound Mode")> sound_mode;
+    StoreItem<SoundMode, defaults::sound_mode, ItemFlag::user_interface, journal::hash("Sound Mode")> sound_mode;
     StoreItem<uint8_t, defaults::sound_volume, ItemFlag::user_interface, journal::hash("Sound Volume")> sound_volume;
     StoreItem<uint16_t, defaults::language, ItemFlag::user_interface, journal::hash("Language")> language;
     StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("File Sort")> file_sort; // filebrowser file sort options
@@ -341,7 +347,7 @@ struct CurrentStore
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Run LEDs")> run_leds;
     StoreItem<bool, defaults::heat_entire_bed, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Heat Entire Bed")> heat_entire_bed;
-    StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Touch Enabled")> touch_enabled;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Touch Enabled")> touch_enabled;
     StoreItem<bool, false, ItemFlag::user_interface | ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Touch Sig Workaround")> touch_sig_workaround;
 
 #if HAS_TOOLCHANGER() // for now not ifdefing per-extruder as well for simplicity
@@ -625,7 +631,8 @@ struct CurrentStore
 
 #if HAS_XBUDDY_EXTENSION()
     StoreItem<XBEFanTestResults, XBEFanTestResults {}, ItemFlag::calibrations, journal::hash("XBE Chamber fan selftest results")> xbe_fan_test_results;
-    StoreItem<bool, true, ItemFlag::features, journal::hash("XBE USB Host power")> xbe_usb_power;
+    // Has flag of hw_config because the user toggles this as part of hw_config in printer setup
+    StoreItem<bool, true, ItemFlag::hw_config, journal::hash("XBE USB Host power")> xbe_usb_power;
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
     StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
 #endif
@@ -636,7 +643,19 @@ struct CurrentStore
 
 #if HAS_EMERGENCY_STOP()
     StoreItem<bool, false, ItemFlag::features, journal::hash("Emergency stop enable v2")> emergency_stop_enable;
+
+    /// Whether the user has given a consent for the emergency stop to be disabled
+    StoreItem<bool, false, ItemFlag::features, journal::hash("Emergency stop disable consent")> emergency_stop_disable_consent_given;
+
+    // These two guys must have the same flags. If the emergency_stop gets factory-reset to off, we need to ask the user for the consent again.
+    static_assert(decltype(emergency_stop_enable)::flags == decltype(emergency_stop_disable_consent_given)::flags);
 #endif
+
+#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
+    StoreItem<bool, false, ItemFlag::features, journal::hash("Heatbed screws removal approved")> heatbed_screws_removal_approved;
+#endif
+
+    StoreItem<bool, false, ItemFlag::features, journal::hash("Happy Printing Seen")> happy_printing_seen;
 
 #if HAS_ILI9488_DISPLAY()
     StoreItem<bool, false, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Reduce Display Baudrate")> reduce_display_baudrate;
@@ -707,8 +726,8 @@ struct CurrentStore
     static_assert(HOTENDS <= 8);
 #endif
 
-#if HAS_MANUAL_CHAMBER_VENTS()
-    StoreItem<bool, true, ItemFlag::printer_state, journal::hash("Check chamber ventilation state")> check_manual_vent_state;
+#if HAS_MANUAL_CHAMBER_VENTS() || HAS_AUTOMATIC_CHAMBER_VENTS()
+    StoreItem<bool, true, ItemFlag::printer_state, journal::hash("Check chamber ventilation state")> check_chamber_vent_state;
 #endif
 
 #if HAS_MANUAL_BELT_TUNING()
@@ -716,6 +735,13 @@ struct CurrentStore
 #endif
 
     StoreItem<bool, DEVELOPMENT_ITEMS(), ItemFlag::user_interface | ItemFlag::common_misconfigurations, journal::hash("Fast Draw Enabled")> fast_draw_enabled;
+
+#if HAS_BED_FAN()
+    StoreItem<bed_fan::SelftestResult, bed_fan::SelftestResult {}, ItemFlag::calibrations, journal::hash("Bed fan selftest results")> bed_fan_selftest_result;
+#endif
+#if HAS_PSU_FAN()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("PSU fan selftest result")> psu_fan_selftest_result;
+#endif
 
 private:
     void perform_config_migrations();
@@ -741,9 +767,6 @@ struct DeprecatedStore
     StoreItem<SelftestResult_pre_23, defaults::selftest_result_pre_23, journal::hash("Selftest Result")> selftest_result_pre_23;
     // Selftest Result version before adding Gearbox Alignment result to EEPROM
     StoreItem<SelftestResult_pre_gears, defaults::selftest_result_pre_gears, journal::hash("Selftest Result V23")> selftest_result_pre_gears;
-
-    // Changing Filament Sensor default state to remove necessity of FS dialog on startup
-    StoreItem<bool, true, journal::hash("FSensor Enabled")> fsensor_enabled_v1;
 
     // An item was added to the middle of the footer enum and it caused eeprom corruption. This store footer item  was deleted and a new one is created without migration so as to force default footer value onto everyone, which is better than 'random values' (especially on mini where it could cause duplicated items shown). Default value was removed since we no longer need to keep it
     StoreItem<uint32_t, 0, journal::hash("Footer Setting")> footer_setting_v1;
@@ -852,6 +875,18 @@ struct DeprecatedStore
 
         StoreItem<bool, true, ItemFlag::calibrations, journal::hash("Run Selftest")> run_selftest;
         */
+
+    // This was replaced by 2 separate items for network and hw_config
+    StoreItem<bool, false, journal::hash("Printer setup done")> printer_setup_done;
+
+    static inline constexpr bool fsensor_enabled_v2_default {
+#if PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_MK3_5()
+        true // MINI and 3.5 do not require any calibration
+#else
+        false
+#endif
+    };
+    StoreItem<bool, fsensor_enabled_v2_default, journal::hash("FSensor Enabled V2")> fsensor_enabled_v2;
 };
 
 } // namespace config_store_ns

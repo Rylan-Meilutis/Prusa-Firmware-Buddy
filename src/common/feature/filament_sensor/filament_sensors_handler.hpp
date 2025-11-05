@@ -13,7 +13,6 @@
 #include <atomic>
 #include <bitset>
 #include "config_features.h"
-#include <option/has_toolchanger.h>
 
 #include <inplace_function.hpp>
 
@@ -51,7 +50,6 @@ public:
         return has_mmu;
     }
     bool MMUReadyToPrint();
-    bool ToolHasFilament(uint8_t tool_nr);
 
     void DecEvLock();
     void IncEvLock();

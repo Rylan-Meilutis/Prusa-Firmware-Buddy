@@ -1,6 +1,5 @@
 #include "marlin_printer.hpp"
 #include <module/prusa/tool_mapper.hpp>
-#include <module/prusa/spool_join.hpp>
 #include "printer_common.hpp"
 #include "hostname.hpp"
 
@@ -28,6 +27,11 @@
     #include <leds/side_strip_handler.hpp>
 #endif
 
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
+
 #include <option/has_esp.h>
 
 #if XL_ENCLOSURE_SUPPORT()
@@ -39,7 +43,7 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
     #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     #include <feature/chamber/chamber.hpp>
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
@@ -56,6 +60,7 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
 
 #include <config_store/store_instance.hpp>
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
@@ -305,7 +310,7 @@ Printer::Params MarlinPrinter::params() const {
         .time_in_use = config_store().chamber_filter_time_used_s.get()
     };
 #endif
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     {
         auto xbe = buddy::xbuddy_extension().get_fan12_state(); // avoid locking 2 mutexes just to read a single value (and we are reading 4 values)
         params.chamber_info = {
@@ -477,7 +482,7 @@ bool MarlinPrinter::job_control(JobControl control) {
     return false;
 }
 
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
 namespace {
     const char *handle_tool_mapping(const ToolMapping &tool_mapping) {
     #if HAS_MMU2()
@@ -488,7 +493,9 @@ namespace {
 
         auto cleanup = []() {
             tool_mapper.reset();
+    #if HAS_SPOOL_JOIN()
             spool_join.reset();
+    #endif
             tool_mapper.set_enable(false);
         };
         // Wipe defaults (eg mapping 1-1, 2-2, ...) - we want to replace it,
@@ -510,10 +517,12 @@ namespace {
                     break;
                 }
 
+    #if HAS_SPOOL_JOIN()
                 if (!spool_join.add_join(curr_tool, tool_mapping[i][j])) {
                     cleanup();
                     return "Invalid spool join setting";
                 }
+    #endif
             }
         }
         return nullptr;
@@ -527,7 +536,7 @@ const char *MarlinPrinter::start_print(const char *path, [[maybe_unused]] const 
     }
 
     if (tools_mapping.has_value()) {
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
         if (const char *error = handle_tool_mapping(tools_mapping.value()); error != nullptr) {
             return error;
         }

@@ -21,45 +21,13 @@
  */
 #pragma once
 
+#include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
+
 /**
  * Conditionals_LCD.h
  * Conditionals that need to be set before Configuration_adv.h or pins.h
  */
-
-/**
- *  Multi-Material-Unit supported models
- */
-#define PRUSA_MMU1             1
-#define PRUSA_MMU2             2
-#define PRUSA_MMU2S            3
-#define EXTENDABLE_EMU_MMU2   12
-#define EXTENDABLE_EMU_MMU2S  13
-
-#ifdef MMU_MODEL
-  #define HAS_MMU 1
-  #if MMU_MODEL == PRUSA_MMU1
-    #define HAS_PRUSA_MMU1 1
-  #elif MMU_MODEL % 10 == PRUSA_MMU2
-    #define HAS_PRUSA_MMU2 1
-  #elif MMU_MODEL % 10 == PRUSA_MMU2S
-    #define HAS_PRUSA_MMU2 1
-    #define HAS_PRUSA_MMU2S 1
-  #endif
-  #if MMU_MODEL >= EXTENDABLE_EMU_MMU2
-    #define HAS_EXTENDABLE_MMU 1
-  #endif
-#endif
-
-#undef PRUSA_MMU1
-#undef PRUSA_MMU2
-#undef PRUSA_MMU2S
-#undef EXTENDABLE_EMU_MMU2
-#undef EXTENDABLE_EMU_MMU2S
-
-#ifdef HAS_PRUSA_MMU2
-  // TODO: compatibility stub for Marlin 2.0. Remove after merge. Use HAS_PRUSA_MMU2 instead.
-  #define PRUSA_MMU2 1
-#endif
 
 /**
  * Extruders have some combination of stepper motors and hotends
@@ -95,22 +63,17 @@
   #define E_STEPPERS      2
   #define E_MANUAL        1
 
-#elif HAS_PRUSA_MMU2                // Průša Multi-Material Unit v2
+#elif HAS_MMU2()                // Průša Multi-Material Unit v2
 
   #define E_STEPPERS      1
   #define E_MANUAL        1
-#elif ENABLED(PRUSA_TOOLCHANGER)
+#elif HAS_TOOLCHANGER()
   #define E_STEPPERS      1
   #define E_MANUAL        EXTRUDERS
 #endif
 
-// No inactive extruders with Průša MMU1
-#if HAS_PRUSA_MMU1
-  #undef DISABLE_INACTIVE_EXTRUDER
-#endif
-
 // Průša MMU1, MMU(S) 2.0 and EXTENDABLE_EMU_MMU2(S) force SINGLENOZZLE
-#if HAS_MMU
+#if HAS_MMU2()
   #define SINGLENOZZLE
 #endif
 
@@ -568,7 +531,6 @@
 
 #define HAS_SOFTWARE_ENDSTOPS        EITHER(MIN_SOFTWARE_ENDSTOPS, MAX_SOFTWARE_ENDSTOPS)
 #define HAS_RESUME_CONTINUE          ANY(EXTENSIBLE_UI, EMERGENCY_PARSER)
-#define HAS_FILAMENT_SENSOR          ENABLED(FILAMENT_RUNOUT_SENSOR)
 
 #define Z_MULTI_STEPPER_DRIVERS EITHER(Z_DUAL_STEPPER_DRIVERS, Z_TRIPLE_STEPPER_DRIVERS)
 #if EITHER(Z_DUAL_ENDSTOPS, Z_TRIPLE_ENDSTOPS)

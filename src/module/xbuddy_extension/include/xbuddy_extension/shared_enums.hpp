@@ -20,4 +20,12 @@ enum class Fan {
 
 static constexpr uint8_t fan_count = 3;
 
+/// High-level cyphal node state for reporting.
+enum class NodeState {
+    unknown,
+    verify,
+    flash,
+    ready,
+};
+
 } // namespace xbuddy_extension

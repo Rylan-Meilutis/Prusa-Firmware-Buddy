@@ -50,6 +50,9 @@ public:
 
     uint8_t get_requested_fan_pwm(size_t fan_idx);
 
+    /// Get current flash progress (0-100 percent, 0 if not flashing)
+    uint8_t get_flash_progress_percent() const;
+
     bool get_usb_power() const;
 
     // These are called from the puppy task.
@@ -145,6 +148,23 @@ private:
     using Status = xbuddy_extension::modbus::Status;
     ModbusInputRegisterBlock<Status::address, Status> status;
 
+    // Track last log sequence to detect new log messages
+    uint16_t last_log_message_sequence = 0;
+
+    // To not send activity updates too often.
+    uint32_t last_activity_update = 0;
+
+    // Just don't resend another request unless a new request comes.
+    xbuddy_extension::modbus::ChunkRequest last_chunk_request = {};
+
+    // The file we are reading from during flashing (-1 when not flashing).
+    int flash_fd = -1;
+
+    // The size of the flash file (cached when opening, 0 when not flashing).
+    size_t flash_file_size = 0;
+
+    void close_flash_file();
+
     CommunicationStatus refresh_holding();
     CommunicationStatus refresh_input(uint32_t max_age);
 
@@ -153,6 +173,9 @@ private:
     MMUModbusRequest mmuModbusRq;
 
     CommunicationStatus refresh_mmu();
+    CommunicationStatus write_chunk();
+    CommunicationStatus write_digest();
+    CommunicationStatus refresh_log_message();
 };
 
 extern XBuddyExtension xbuddy_extension;

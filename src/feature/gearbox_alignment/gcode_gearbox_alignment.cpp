@@ -10,6 +10,8 @@
 #include <Marlin/src/Marlin.h>
 #include <Marlin/src/module/temperature.h>
 #include <Marlin/src/gcode/gcode.h>
+#include <mapi/cold_extrude.hpp>
+#include <option/has_toolchanger.h>
 
 namespace {
 class GearboxAlignmentWizard {
@@ -68,8 +70,7 @@ private:
     }
 
     void move_gear() {
-        AutoRestore<bool> CE(thermalManager.allow_cold_extrude);
-        thermalManager.allow_cold_extrude = true;
+        mapi::ColdExtrudeGuard cold_extrude_guard;
         constexpr const float feedrate = 8;
         mapi::extruder_schedule_turning(feedrate, -0.6);
     }
@@ -112,9 +113,7 @@ private:
     void intro() {
         switch (marlin_server::wait_for_response(PhaseGearboxAlignment::intro)) {
         case Response::Skip:
-            // Skipped gearvox alignment is considered passed;
-            // this is meant for users with prebuilt printer.
-            finish(TestResult_Passed);
+            finish(TestResult_Skipped);
             return;
         case Response::Continue:
 #if HAS_TOOLCHANGER()

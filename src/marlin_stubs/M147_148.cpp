@@ -24,5 +24,5 @@ void PrusaGcodeSuite::M147_148() {
         return;
     }
 
-    buddy::chamber_filtration().set_needs_filtration(p.command().codenum == 147);
+    buddy::chamber_filtration().set_needs_filtration_override(p.command().codenum == 147);
 }

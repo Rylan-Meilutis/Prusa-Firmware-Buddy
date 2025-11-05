@@ -12,6 +12,8 @@ if(HAS_XBUDDY_EXTENSION)
 endif()
 
 if(BOARD_IS_MASTER_BOARD)
+  add_subdirectory(calibrator)
+
   if(PRINTER STREQUAL "iX")
     target_sources(
       firmware PRIVATE filament_sensor_ix_side.cpp filament_sensors_handler_default.cpp

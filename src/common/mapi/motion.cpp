@@ -38,7 +38,7 @@ bool extruder_move(float distance, float feed_rate, bool ignore_flow_factor) {
 
 float extruder_schedule_turning(float feed_rate, float step) {
     if (planner.movesplanned() <= 3) {
-        extruder_move(step, feed_rate);
+        extruder_move(feed_rate > 0 ? step : -step, std::abs(feed_rate));
         return step;
     }
 

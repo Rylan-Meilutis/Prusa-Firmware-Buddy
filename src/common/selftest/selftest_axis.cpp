@@ -20,7 +20,7 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-#endif /*HAS_TOOLCHANGER()*/
+#endif
 
 using namespace selftest;
 LOG_COMPONENT_REF(Selftest);
@@ -131,6 +131,12 @@ uint32_t CSelftestPart_Axis::estimate_move(float len_mm, float fr_mms) {
 LoopResult CSelftestPart_Axis::stateHomeXY() {
 
     log_info(Selftest, "%s home single axis", config.partname);
+
+#ifdef HOMING_PREEMPTIVE_MOVE_Y
+    ArrayStringBuilder<14> gcode;
+    gcode.append_printf("G0 Y%f", HOMING_PREEMPTIVE_MOVE_Y);
+    queue.enqueue_one_now(gcode.str());
+#endif
 
     const auto home_result = GcodeSuite::G28_no_parser(config.axis == X_AXIS, config.axis == Y_AXIS, false,
         G28Flags {

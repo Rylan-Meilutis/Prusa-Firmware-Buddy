@@ -1,14 +1,7 @@
 #include "config_features.h"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <config_store/store_instance.hpp>
-
-// clang-format off
-#if (!ENABLED(FILAMENT_LOAD_UNLOAD_GCODES)) || \
-    ENABLED(NO_MOTION_BEFORE_HOMING)
-    #error unsupported
-#endif
-// clang-format on
-
+#include <option/has_mmu2.h>
 #include "../../../lib/Marlin/Marlin/src/Marlin.h"
 #include "../../../lib/Marlin/Marlin/src/module/motion.h"
 #include "../../../lib/Marlin/Marlin/src/module/planner.h"
@@ -16,6 +9,7 @@
 #include "pause_stubbed.hpp"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "M70X.hpp"
+#include <option/has_toolchanger.h>
 
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
@@ -168,11 +162,11 @@ void filament_gcodes::M1700_no_parser(const M1700Args &args) {
         // Set temperature to all tools
         // Cooldown is always applied to all tools
         for (int8_t e = 0; e < HOTENDS; e++) {
-#if ENABLED(PRUSA_TOOLCHANGER)
+#if HAS_TOOLCHANGER()
             if (!prusa_toolchanger.is_tool_enabled(e)) {
                 continue;
             }
-#endif /*ENABLED(PRUSA_TOOLCHANGER)*/
+#endif
             set_extruder_temp(e);
         }
 

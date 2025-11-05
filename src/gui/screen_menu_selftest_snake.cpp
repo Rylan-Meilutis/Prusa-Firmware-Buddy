@@ -10,12 +10,17 @@
 #include <option/has_toolchanger.h>
 #include <option/has_manual_belt_tuning.h>
 #include <buddy/unreachable.hpp>
+#include <window_msgbox_happy_printing.hpp>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
 #endif
 #include "queue.h"
 #include "Marlin/src/gcode/queue.h"
 #include "selftest/i_selftest.hpp"
+
+#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
+    #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
+#endif
 
 using namespace SelftestSnake;
 
@@ -63,13 +68,15 @@ Action get_previous_action(Action action) {
     return _get_valid_action(static_cast<Action>(std::to_underlying(action) - 1), -1);
 }
 
-bool are_previous_completed(Action action) {
-    if (action == get_first_action()) {
-        return true;
-    }
+bool is_completed(TestResult test_result) {
+    // Skipped is also considered completed - it marks non-obligatory tests that have been explicitly skipped by the user
+    return test_result == TestResult_Passed || test_result == TestResult_Skipped;
+}
 
-    for (Action act = action; act > get_first_action(); act = get_previous_action(act)) {
-        if (get_test_result(get_previous_action(act), Tool::_all_tools) != TestResult_Passed) {
+bool are_previous_completed(Action action) {
+    for (Action act = action; act > get_first_action();) {
+        act = get_previous_action(act);
+        if (!is_completed(get_test_result(act, Tool::_all_tools))) {
             return false;
         }
     }
@@ -82,6 +89,7 @@ const img::Resource *get_icon(Action action, Tool tool) {
     case TestResult_Passed:
         return &img::ok_color_16x16;
     case TestResult_Skipped:
+        return &img::ok_16x16;
     case TestResult_Unknown:
         return &img::na_color_16x16;
     case TestResult_Failed:
@@ -129,6 +137,12 @@ static SnakeConfig snake_config {};
 namespace {
 
 void do_snake(Action action, Tool tool = Tool::_first) {
+    // Code checked - this should never happen. Let's assume a bit of sanity here.
+    // _all_tools would break out gcode selftests
+    if (tool == Tool::_all_tools) {
+        bsod_unreachable();
+    }
+
     if (!are_previous_completed(action) && !snake_config.in_progress) {
         if (MsgBoxQuestion(_("Previous Calibrations & Tests are not all done. Continue anyway?"), Responses_YesNo, 1) == Response::No) {
             snake_config.reset();
@@ -151,6 +165,17 @@ void do_snake(Action action, Tool tool = Tool::_first) {
         case Action::Fans:
             marlin_client::gcode("M1978");
             break;
+
+        case Action::FilamentSensorCalibration:
+#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
+            if (!snake_config.in_progress || tool == Tool::_first) {
+                // Ask user whether to remap filament sensors
+                side_fsensor_remap::ask_to_remap();
+            }
+#endif
+            marlin_client::gcode_printf("M1981 T%d", static_cast<int>(tool));
+            break;
+
 #if HAS_GEARBOX_ALIGNMENT()
         case Action::Gears:
             marlin_client::gcode_printf("M1979 T%d", static_cast<int>(tool));
@@ -179,12 +204,8 @@ void do_snake(Action action, Tool tool = Tool::_first) {
     }
 
     if (has_submenu(action)) {
-        if (!snake_config.in_progress || tool == Tool::_first) { // Ask only for first tool or if it is selected in submenu
-            ask_config(action);
-        }
         marlin_client::test_start_with_data(get_test_mask(action), get_tool_mask(tool));
     } else {
-        ask_config(action);
         marlin_client::test_start(get_test_mask(action));
     }
 
@@ -193,7 +214,7 @@ void do_snake(Action action, Tool tool = Tool::_first) {
 
 void continue_snake() {
     const TestResult last_test_result = get_test_result(snake_config.last_action, snake_config.last_tool);
-    if ((last_test_result != TestResult_Passed && last_test_result != TestResult_Skipped)
+    if (!is_completed(last_test_result)
         || SelftestInstance().IsAborted()) { // last selftest didn't pass
         snake_config.reset();
         return;
@@ -433,7 +454,7 @@ void ScreenMenuSTSWizard::draw() {
 }
 
 void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void *param) {
-    if (GetFirstDialog()) {
+    if (event != GUI_event_t::LOOP || GetFirstDialog()) {
         return;
     }
 
@@ -462,9 +483,8 @@ void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void 
         draw_enabled = true;
     }
 
-    if (get_test_result(get_last_action(), Tool::_all_tools) == TestResult_Passed && are_previous_completed(get_last_action())) {
-        MsgBoxPepaCentered(_("Happy printing!"),
-            { Response::Continue, Response::_none, Response::_none, Response::_none });
+    if (is_completed(get_test_result(get_last_action(), Tool::_all_tools)) && are_previous_completed(get_last_action())) {
+        MsgBoxHappyPrinting();
         Screens::Access()->Close();
     }
 }

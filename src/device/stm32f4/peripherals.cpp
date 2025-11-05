@@ -85,25 +85,6 @@ PCA9557 io_expander1(I2C_HANDLE_FOR(io_expander1), 0x1);
 // Initialization
 //
 
-#if PRINTER_IS_PRUSA_iX()
-// called at earliest possible time after system/core inits to set turbine PWM pin (heatbed PWM pin) high and disable it
-void hw_preinit_turbine_disable() {
-    uint32_t offset = 0;
-    uint32_t pin = BED_HEAT_Pin;
-    while (!(pin & 0x1)) {
-        pin >>= 1;
-        offset++;
-    }
-    uint32_t temp = BED_HEAT_GPIO_Port->MODER;
-    temp &= ~(GPIO_MODER_MODER0 << (offset * 2U));
-    temp |= ((GPIO_MODE_OUTPUT_PP) << (offset * 2U));
-    BED_HEAT_GPIO_Port->MODER = temp;
-    temp = BED_HEAT_GPIO_Port->ODR;
-    temp |= BED_HEAT_Pin;
-    BED_HEAT_GPIO_Port->ODR = temp;
-}
-#endif
-
 void hw_rtc_init() {
     hrtc.Instance = RTC;
     hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -238,7 +219,7 @@ void hw_dma_init() {
     HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, ISR_PRIORITY_DEFAULT, 0);
     HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
     // DMA2_Stream7_IRQn interrupt configuration
-    #if PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, ISR_PRIORITY_PUPPIES_USART, 0);
     #else
     HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, ISR_PRIORITY_DEFAULT, 0);
@@ -272,7 +253,7 @@ void hw_dma_init() {
     HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, ISR_PRIORITY_DEFAULT, 0);
     HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 // DMA2_Stream2_IRQn interrupt configuration
-#if (PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE())
+#if (PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL())
     HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, ISR_PRIORITY_PUPPIES_USART, 0);
 #else
     HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, ISR_PRIORITY_DEFAULT, 0);
@@ -377,7 +358,7 @@ void hw_adc3_init() {
     config_adc_ch(&hadc3, ADC_CHANNEL_14, AdcChannel::board_I);
         #if PRINTER_IS_PRUSA_iX()
     config_adc_ch(&hadc3, ADC_CHANNEL_15, AdcChannel::case_T);
-        #elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_MK4()
+        #elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_MK4()
     config_adc_ch(&hadc3, ADC_CHANNEL_15, AdcChannel::door_sensor);
         #endif
     #elif BOARD_IS_XLBUDDY()

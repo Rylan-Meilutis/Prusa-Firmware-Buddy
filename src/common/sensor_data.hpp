@@ -2,8 +2,10 @@
 
 #include <buddy/door_sensor.hpp>
 #include <device/board.h>
+#include <option/has_bed_fan.h>
 #include <option/has_door_sensor.h>
 #include <option/has_loadcell.h>
+#include <option/has_psu_fan.h>
 #include <option/has_remote_bed.h>
 #include <utils/atomic.hpp>
 #include <utils/timing/rate_limiter.hpp>
@@ -57,6 +59,16 @@ public:
 #endif
 #if HAS_REMOTE_BED()
     RelaxedAtomic<float> bedMCUTemperature;
+#endif
+#if HAS_BED_FAN()
+    RelaxedAtomic<uint16_t> bed_fan1_rpm;
+    RelaxedAtomic<uint16_t> bed_fan2_rpm;
+    RelaxedAtomic<uint8_t> bed_fan1_pwm;
+    RelaxedAtomic<uint8_t> bed_fan2_pwm;
+#endif
+#if HAS_PSU_FAN()
+    RelaxedAtomic<uint16_t> psu_fan_rpm;
+    RelaxedAtomic<uint8_t> psu_fan_pwm;
 #endif
 
     void update();

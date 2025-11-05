@@ -149,11 +149,6 @@ TestResult get_test_result(Action action, Tool tool);
 ToolMask get_tool_mask(Tool tool);
 uint64_t get_test_mask(Action action);
 
-/**
- * @brief Question user to choose configuration before doing the test.
- */
-void ask_config(Action action);
-
 Tool get_last_enabled_tool();
 
 /**

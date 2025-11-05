@@ -7,6 +7,7 @@
 #include <gcode/queue.h>
 #include <module/planner.h>
 #include <utils/string_builder.hpp>
+#include <option/has_toolchanger.h>
 
 #include "screen_toolhead_settings_fs.hpp"
 #include "screen_toolhead_settings_dock.hpp"
@@ -268,7 +269,11 @@ void MI_CALIBRATE_FILAMENT_SENSORS::click(IWindowMenu &) {
         return;
     }
 
-    marlin_client::test_start_with_data(stmFSensor, (toolhead() == all_toolheads) ? ToolMask::AllTools : static_cast<ToolMask>(1 << std::get<ToolheadIndex>(toolhead())));
+    if (toolhead() == all_toolheads) {
+        marlin_client::gcode_printf("M1981 F%i", (1 << HOTENDS) - 1);
+    } else {
+        marlin_client::gcode_printf("M1981 T%i", std::get<ToolheadIndex>(toolhead()));
+    }
 }
 #endif
 
@@ -301,7 +306,7 @@ ScreenToolheadDetail::ScreenToolheadDetail(Toolhead toolhead)
     menu_set_toolhead(container, toolhead);
 
     // Do not show certain items until printer setup is done
-    if (!config_store().printer_setup_done.get()) {
+    if (!config_store().printer_hw_config_done.get()) {
 #if HAS_TOOLCHANGER()
         container.Item<MI_DOCK>().set_is_hidden();
         container.Item<MI_NOZZLE_OFFSET>().set_is_hidden();

@@ -11,14 +11,12 @@
 
     #include "common.hpp"
     #include "lut.hpp"
-    #include "axes.hpp"
 
     #include <utils/atomic_circular_queue.hpp>
     #include <core/types.h>
     #include <bsod.h>
 
     #include <algorithm>
-    #include <memory>
     #include <atomic>
     #include <cassert>
     #include <optional>
@@ -73,7 +71,7 @@ struct AxisState {
     // will dequeue items from pending_targets and set it as the current_target. When the position
     // is reached the cycle repeats, until no more targets are present and current_target is reset.
     std::optional<MoveTarget> current_target; // Current target to move
-    AtomicCircularQueue<MoveTarget, unsigned, 16> pending_targets; // 16 element queue of pre-processed elements
+    AtomicCircularQueue<MoveTarget, unsigned, 128> pending_targets; // queue of pre-processed elements
     /// Synchronization primitive to allow phase stepping to "steal" the next target.
     ///
     /// The scenario is, the next target is "owned" by the stepper interrupt,
@@ -115,7 +113,10 @@ struct AxisState {
         ///
         /// To be called from the stepping interrupt.
         void set(const MoveTarget &v) {
-            state.store(State::updating, std::memory_order_acquire);
+            // We don't really _need_ the old value, but unfortunately, acquire
+            // memory order needs to be on an operation that reads.
+            [[maybe_unused]] State old = state.exchange(State::updating, std::memory_order_acquire);
+            assert(old != State::updating);
             value = v;
             state.store(State::full, std::memory_order_release);
         }
@@ -182,6 +183,10 @@ struct AxisState {
 
     int original_microsteps = 0;
     bool had_interpolation = false;
+
+    bool is_slowed_down = true;
+    unsigned stalled_for = 0;
+    float previous_speed = 0.0f;
 };
 
 /**
@@ -313,6 +318,11 @@ void check_state();
  * This array keeps axis state (and LUT tables) for each axis
  **/
 extern std::array<AxisState, opts::SUPPORTED_AXIS_COUNT> axis_states;
+
+/**
+ * Returns whether init() has been called
+ */
+bool is_initialized();
 
     /**
      * Ensure init() has been called

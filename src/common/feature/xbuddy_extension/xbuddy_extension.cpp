@@ -6,7 +6,6 @@
 #include <puppies/xbuddy_extension.hpp>
 #include <feature/chamber/chamber.hpp>
 #include <feature/chamber_filtration/chamber_filtration.hpp>
-#include <feature/xbuddy_extension/cooling.hpp>
 #include <marlin_server.hpp>
 #include <leds/side_strip_handler.hpp>
 #include <buddy/unreachable.hpp>
@@ -30,13 +29,16 @@ XBuddyExtension &xbuddy_extension() {
 }
 
 XBuddyExtension::XBuddyExtension() {
+#if XBUDDY_EXTENSION_VARIANT_IS_iX()
+    buddy::puppies::xbuddy_extension.set_mmu_power(true);
+#endif
 }
 
 XBuddyExtension::Status XBuddyExtension::status() const {
     return Status::ready;
 }
 
-#if XBUDDY_EXTENSION_VARIANT_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
 void XBuddyExtension::step() {
     // Obtain these values before locking the mutex.
     // Chamber API is accessing XBuddyExtension in some methods as well, so we might cause a deadlock otherwise.
@@ -44,6 +46,7 @@ void XBuddyExtension::step() {
     const auto target_temp = chamber().target_temperature();
     const auto filtration_backend = chamber_filtration().backend();
     const auto filtration_pwm = chamber_filtration().output_pwm();
+    const auto temp = chamber().current_temperature();
 
     std::lock_guard _lg(mutex_);
 
@@ -61,7 +64,6 @@ void XBuddyExtension::step() {
     const auto rpm0 = puppies::xbuddy_extension.get_fan_rpm(0);
     const auto rpm1 = puppies::xbuddy_extension.get_fan_rpm(1);
     const auto rpm2 = puppies::xbuddy_extension.get_fan_rpm(2);
-    const auto temp = chamber_temperature();
 
     // Trigger fatal error due to chamber temperature only if we get valid values, that are not reasonable
     if (temp.has_value()) {
@@ -299,6 +301,21 @@ void XBuddyExtension::set_usb_power(bool enabled) {
 
 bool XBuddyExtension::usb_power() const {
     return config_store().xbe_usb_power.get();
+}
+
+#elif XBUDDY_EXTENSION_VARIANT_IS_iX()
+void XBuddyExtension::set_heatbreak_fan_pwm(uint32_t value) {
+    // Fan 1 and Fan 2 on xbe share PWM, but the interface is schizophrenic, we need to set both
+    buddy::puppies::xbuddy_extension.set_fan_pwm(0, value);
+    buddy::puppies::xbuddy_extension.set_fan_pwm(1, value);
+}
+
+void XBuddyExtension::set_white_led(uint32_t intensity) {
+    buddy::puppies::xbuddy_extension.set_white_led(intensity);
+}
+
+void XBuddyExtension::set_rgbw_led(leds::ColorRGBW rgbw) {
+    buddy::puppies::xbuddy_extension.set_rgbw_led({ rgbw.r, rgbw.g, rgbw.b, rgbw.w });
 }
 #endif
 

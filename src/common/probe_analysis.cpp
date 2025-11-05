@@ -467,7 +467,7 @@ float ProbeAnalysisBase::InterpolateFinalZCoordinate(Features &features) {
     float middleTimestamp = features.decompressionLine.GetTime(loadAtDecompressionEnd - 120 + 70);
     float zDecompressionMiddle = features.riseLine.GetY(middleTimestamp);
     return (zDecompressionEnd + zDecompressionMiddle) / 2
-#if PRINTER_IS_PRUSA_COREONE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         + 0.02f
 #endif
         ;
