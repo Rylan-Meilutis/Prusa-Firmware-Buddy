@@ -1,5 +1,7 @@
 #pragma once
 
+#include <option/nfc_board_has_filament_sensors.h>
+
 #include <array>
 #include <utility>
 #include <cstdint>
@@ -43,12 +45,13 @@ using Temperature = int16_t;
 
 enum class Channel : uint8_t {
     board_temp,
+    fs_1,
+    fs_2,
     _cnt
 };
 
 namespace impl {
     alignas(uint32_t) extern std::array<Raw<16>, std::to_underlying(Channel::_cnt)> buffer;
-
     Raw<16> get_raw(Channel channel);
 } // namespace impl
 

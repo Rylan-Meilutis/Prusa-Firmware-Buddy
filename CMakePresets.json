@@ -5243,6 +5243,10 @@
                     "type": "STRING",
                     "value": "YES"
                 },
+                "NFC_BOARD_HAS_FILAMENT_SENSORS": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -5295,6 +5299,10 @@
                     "value": "PUB6"
                 },
                 "NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "NFC_BOARD_HAS_FILAMENT_SENSORS": {
                     "type": "STRING",
                     "value": "YES"
                 },
@@ -5353,6 +5361,10 @@
                     "type": "STRING",
                     "value": "YES"
                 },
+                "NFC_BOARD_HAS_FILAMENT_SENSORS": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -5405,6 +5417,10 @@
                     "value": "PUB6"
                 },
                 "NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "NFC_BOARD_HAS_FILAMENT_SENSORS": {
                     "type": "STRING",
                     "value": "YES"
                 },

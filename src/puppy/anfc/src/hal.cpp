@@ -441,11 +441,13 @@ void hal::init_adc() {
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**ADC1 GPIO Configuration
     PA0     ------> ADC1_IN0
+    PA1     ------> ADC1_IN1
+    PA2     ------> ADC1_IN2
     */
 
     {
         static constexpr GPIO_InitTypeDef GPIO_InitStruct = {
-            .Pin = GPIO_PIN_0,
+            .Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2,
             .Mode = GPIO_MODE_ANALOG,
             .Pull = GPIO_NOPULL,
             .Speed = GPIO_SPEED_FREQ_HIGH,
@@ -512,9 +514,23 @@ void hal::init_adc() {
         hal::panic();
     }
 
+    // FS_ADC_R - ADC1_IN1 - PA1
+    static_assert(std::to_underlying(adc::Channel::fs_1) == 1); // verify chanel number to enum mapping
+    sConfig.Channel = ADC_CHANNEL_1;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        hal::panic();
+    }
+
+    // FS_ADC_L - ADC1_IN2 - PA2
+    static_assert(std::to_underlying(adc::Channel::fs_2) == 2); // verify chanel number to enum mapping
+    sConfig.Channel = ADC_CHANNEL_2;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        hal::panic();
+    }
+
     // Verify that the buffer is uint32_t aligned as required by the DMA, so we can safely cast it into uint32_t *
     static_assert(alignof(adc::impl::buffer) == std::alignment_of_v<uint32_t>);
-    static_assert(adc::impl::buffer.size() == 1);
+    static_assert(adc::impl::buffer.size() == 3);
     if (HAL_ADC_Start_DMA(&hadc1, reinterpret_cast<uint32_t *>(adc::impl::buffer.data()), adc::impl::buffer.size()) != HAL_OK) {
         hal::panic();
     }

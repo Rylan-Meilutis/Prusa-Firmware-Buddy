@@ -37,3 +37,9 @@ set(NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN
 define_boolean_option(
   NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN ${NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN}
   )
+
+set(NFC_BOARD_HAS_FILAMENT_SENSORS
+    NO
+    CACHE BOOL "Sets if firmware should include support for filament sensors if the board has them"
+    )
+define_boolean_option(NFC_BOARD_HAS_FILAMENT_SENSORS ${NFC_BOARD_HAS_FILAMENT_SENSORS})
