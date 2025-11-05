@@ -25,6 +25,7 @@ add_library(STM32C0_HAL_Config ALIAS HAL_Config)
 target_sources(
   firmware
   PRIVATE "${CMAKE_SOURCE_DIR}/src/device/multi_watchdog.cpp"
+          src/adc.cpp
           src/anfc_event_publisher.cpp
           src/atomic_c0.cpp
           src/cyphal_anfc_node.cpp

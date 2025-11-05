@@ -1,5 +1,6 @@
 #include "hal.hpp"
 #include "nfc.hpp"
+#include "adc.hpp"
 #include <device/peripherals.h>
 #include <device/hal.h>
 #include <option/can_bus_type.h>
@@ -66,6 +67,7 @@ SPI_HandleTypeDef hspi1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim2;
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 } // namespace hal::peripherals
 
 void HAL_MspInit(void) {
@@ -425,10 +427,55 @@ void hal::init_tim2() {
 void hal::init_adc() {
     using namespace hal::peripherals;
 
-    ADC_ChannelConfTypeDef sConfig = {};
-
-    // no need to configure GPIOs, default configuration is working properly for ADC
     __HAL_RCC_ADC_CLK_ENABLE();
+
+    {
+        RCC_PeriphCLKInitTypeDef PeriphClkInit {};
+        PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+        PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_SYSCLK;
+        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+            hal::panic();
+        }
+    }
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**ADC1 GPIO Configuration
+    PA0     ------> ADC1_IN0
+    */
+
+    {
+        static constexpr GPIO_InitTypeDef GPIO_InitStruct = {
+            .Pin = GPIO_PIN_0,
+            .Mode = GPIO_MODE_ANALOG,
+            .Pull = GPIO_NOPULL,
+            .Speed = GPIO_SPEED_FREQ_HIGH,
+            .Alternate = 0,
+        };
+
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    }
+
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    hdma_adc1.Instance = DMA1_Channel1;
+    hdma_adc1.Init.Request = DMA_REQUEST_ADC1;
+    hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_adc1.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    hdma_adc1.Init.Mode = DMA_CIRCULAR;
+    hdma_adc1.Init.Priority = DMA_PRIORITY_MEDIUM;
+
+    if (HAL_DMA_Init(&hdma_adc1) != HAL_OK) {
+        hal::panic();
+    }
+
+    __HAL_LINKDMA(&hadc1, DMA_Handle, hdma_adc1);
+
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
     hadc1.Init.Resolution = ADC_RESOLUTION_12B;
@@ -437,20 +484,26 @@ void hal::init_adc() {
     hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
     hadc1.Init.LowPowerAutoWait = DISABLE;
     hadc1.Init.LowPowerAutoPowerOff = DISABLE;
-    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
     hadc1.Init.NbrOfConversion = 1;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-    hadc1.Init.DMAContinuousRequests = DISABLE;
+    hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-    hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_1CYCLE_5;
-    hadc1.Init.OversamplingMode = DISABLE;
+    hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_19CYCLES_5;
+    hadc1.Init.OversamplingMode = ENABLE;
+    // Note: With oversampling 16x we don't need to do any shifts for better accuracy
+    // To enable better resolution, please refer to the STM32C0 reference manual (chapter 16.9)
+    hadc1.Init.Oversampling.Ratio = ADC_OVERSAMPLING_RATIO_16;
+    hadc1.Init.Oversampling.RightBitShift = ADC_RIGHTBITSHIFT_NONE;
+    hadc1.Init.Oversampling.TriggeredMode = ADC_TRIGGEREDMODE_SINGLE_TRIGGER;
     hadc1.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
     if (HAL_ADC_Init(&hadc1) != HAL_OK) {
         hal::panic();
     }
 
+    ADC_ChannelConfTypeDef sConfig = {};
     // Ambient Temperature - ADC1_IN0 - PA0
     sConfig.Channel = ADC_CHANNEL_0;
     sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
@@ -458,15 +511,10 @@ void hal::init_adc() {
         hal::panic();
     }
 
-    // FS_ADC_R - ADC1_IN1 - PA1
-    sConfig.Channel = ADC_CHANNEL_1;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-        hal::panic();
-    }
-
-    // FS_ADC_L - ADC1_IN2 - PA2
-    sConfig.Channel = ADC_CHANNEL_2;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+    // Verify that the buffer is uint32_t aligned as required by the DMA, so we can safely cast it into uint32_t *
+    static_assert(alignof(adc::impl::buffer) == std::alignment_of_v<uint32_t>);
+    static_assert(adc::impl::buffer.size() == 1);
+    if (HAL_ADC_Start_DMA(&hadc1, reinterpret_cast<uint32_t *>(adc::impl::buffer.data()), adc::impl::buffer.size()) != HAL_OK) {
         hal::panic();
     }
 }
@@ -551,6 +599,10 @@ extern "C" void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
 
 extern "C" void SPI1_IRQHandler(void) {
     HAL_SPI_IRQHandler(&hspi1);
+}
+
+extern "C" void DMA1_Channel1_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_adc1);
 }
 
 #if CAN_BUS_TYPE_IS_PUB6() || CAN_BUS_TYPE_IS_SLX()
