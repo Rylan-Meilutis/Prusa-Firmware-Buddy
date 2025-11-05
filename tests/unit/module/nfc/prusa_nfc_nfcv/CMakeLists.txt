@@ -1,3 +1,0 @@
-add_executable(test_ll_nfc_reader test_ll_nfc_reader.cpp)
-target_link_libraries(test_ll_nfc_reader prusa_nfc_nfcv)
-add_catch_test(test_ll_nfc_reader)

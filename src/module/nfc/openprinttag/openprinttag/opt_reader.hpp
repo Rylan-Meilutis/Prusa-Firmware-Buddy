@@ -7,15 +7,16 @@
 #include <inplace_vector.hpp>
 #include <inplace_function.hpp>
 #include <utils/enum_array.hpp>
-
 #include <utils/cache.hpp>
-#include "nfc_defines.hpp"
-#include "i_nfc_reader.hpp"
 
-#include "prusa_nfc_defines.hpp"
+#include "util_defines.hpp"
+#include "opt_backend.hpp"
+#include "opt_defines.hpp"
 
-/// Higher-level NFC interface, working with the Prusa Material NFC format
-class PrusaNFCReader {
+namespace openprinttag {
+
+/// Higher-level NFC interface, working with the OpenPrintTag format
+class OPTReader {
 
 public:
     /// Maximum size of tag we support (have buffers for)
@@ -33,10 +34,10 @@ public:
         bool has_meta_region : 1 = true;
     };
 
-    struct NFCTagField {
-        NFCTagID tag;
-        NFCSection section;
-        NFCField field;
+    struct TagField {
+        TagID tag;
+        Section section;
+        Field field;
     };
 
     // Do not change indexes - reflected in the DSDL
@@ -71,17 +72,17 @@ public:
         _cnt,
     };
 
-    static Error to_prusa_error(INFCReader::IOError error);
+    static Error to_reader_error(OPTBackend::IOError error);
 
     template <typename T>
     using IOResult = std::expected<T, Error>;
 
-    using Event = INFCReader::Event;
+    using Event = OPTBackend::Event;
 
     struct RegionMetadata {
         /// Region span, from the start of the NFC tag
         /// ! Warning - in the meta region CBOR, the offsets are relative to the NDEF payload start
-        NFCSpan span;
+        PayloadSpan span;
 
         inline bool is_present() const {
             return span.size != 0;
@@ -89,19 +90,19 @@ public:
     };
 
     struct TagMetadata {
-        EnumArray<NFCRegion, RegionMetadata, 3> region;
+        EnumArray<Region, RegionMetadata, 3> region;
 
         /// Stores whether the tag is a valid Prusa tag
         bool is_valid : 1 = false;
 
         const RegionMetadata &meta_region() const {
-            return region[NFCRegion::meta];
+            return region[Region::meta];
         }
         const RegionMetadata &main_region() const {
-            return region[NFCRegion::main];
+            return region[Region::main];
         }
         const RegionMetadata &aux_region() const {
-            return region[NFCRegion::auxiliary];
+            return region[Region::auxiliary];
         }
     };
 
@@ -116,7 +117,7 @@ public:
     };
 
 public:
-    PrusaNFCReader(INFCReader &reader);
+    OPTReader(OPTBackend &backend);
 
     const Params &params() const {
         return params_;
@@ -125,23 +126,23 @@ public:
     /// Lower-level reader interface
     // If used for writing operations, calling invalidate_cache is recommended.
     /// !!! Use at your own risk.
-    INFCReader &ll_reader() {
-        return reader_;
+    OPTBackend &backend() {
+        return backend_;
     }
 
     /// Configures the reader with the specified parameters
     void set_params(const Params &set);
 
-    /// See INFCReader::get_event
+    /// See OPTBackend::get_event
     [[nodiscard]] bool get_event(Event &event, uint32_t current_time_ms);
 
     /// Invalidates all the cache records the reader has for the specified tag
-    /// To be called if the tag gets somehow changed outside of the PrusaNFCReader control
-    void invalidate_cache(NFCTagID tag);
+    /// To be called if the tag gets somehow changed outside of the OPTReader control
+    void invalidate_cache(TagID tag);
 
     /// Completely forgets the tag and allows the tag ID to be reused
     /// If the tag is still present, a new TagDetected event will be emitted
-    void forget_tag(NFCTagID tag);
+    void forget_tag(TagID tag);
 
     /// Completely reset reader state.
     /// Should invalidate all caches and memory.
@@ -150,39 +151,39 @@ public:
 
 public:
     /// \returns metadata for the tag. Employs the cache if possible
-    [[nodiscard]] IOResult<const TagMetadata *> read_metadata(NFCTagID tag);
+    [[nodiscard]] IOResult<const TagMetadata *> read_metadata(TagID tag);
 
     /// Enumerates fields of section \param section in \param tag and stores the list of the fields into \param result.
     /// \returns Number of fields stored in \p result
-    [[nodiscard]] IOResult<std::span<const NFCField>> enumerate_fields(NFCTagID tag, NFCRegion section, const std::span<NFCField> &result);
+    [[nodiscard]] IOResult<std::span<const Field>> enumerate_fields(TagID tag, Region section, const std::span<Field> &result);
 
     /// Removes the specified field from the tag.
-    [[nodiscard]] IOResult<WriteReport> remove_field(const NFCTagField &field);
+    [[nodiscard]] IOResult<WriteReport> remove_field(const TagField &field);
 
-    [[nodiscard]] IOResult<bool> read_field_bool(const NFCTagField &field);
-    [[nodiscard]] IOResult<int32_t> read_field_int32(const NFCTagField &field);
-    [[nodiscard]] IOResult<int64_t> read_field_int64(const NFCTagField &field);
-    [[nodiscard]] IOResult<float> read_field_float(const NFCTagField &field);
-    [[nodiscard]] IOResult<std::string_view> read_field_string(const NFCTagField &field, const std::span<char> &buffer);
-    [[nodiscard]] IOResult<std::basic_string_view<std::byte>> read_field_bytes(const NFCTagField &field, const std::span<std::byte> &buffer);
-    [[nodiscard]] IOResult<std::span<const uint16_t>> read_field_uint16_array(const NFCTagField &field, const std::span<uint16_t> &buffer);
+    [[nodiscard]] IOResult<bool> read_field_bool(const TagField &field);
+    [[nodiscard]] IOResult<int32_t> read_field_int32(const TagField &field);
+    [[nodiscard]] IOResult<int64_t> read_field_int64(const TagField &field);
+    [[nodiscard]] IOResult<float> read_field_float(const TagField &field);
+    [[nodiscard]] IOResult<std::string_view> read_field_string(const TagField &field, const std::span<char> &buffer);
+    [[nodiscard]] IOResult<std::basic_string_view<std::byte>> read_field_bytes(const TagField &field, const std::span<std::byte> &buffer);
+    [[nodiscard]] IOResult<std::span<const uint16_t>> read_field_uint16_array(const TagField &field, const std::span<uint16_t> &buffer);
 
-    [[nodiscard]] IOResult<WriteReport> write_field_bool(const NFCTagField &field, bool value);
-    [[nodiscard]] IOResult<WriteReport> write_field_int32(const NFCTagField &field, int32_t value);
-    [[nodiscard]] IOResult<WriteReport> write_field_int64(const NFCTagField &field, int64_t value);
-    [[nodiscard]] IOResult<WriteReport> write_field_float(const NFCTagField &field, float value);
-    [[nodiscard]] IOResult<WriteReport> write_field_string(const NFCTagField &field, const std::string_view &value);
-    [[nodiscard]] IOResult<WriteReport> write_field_bytes(const NFCTagField &field, const std::basic_string_view<std::byte> &value);
-    [[nodiscard]] IOResult<WriteReport> write_field_uint16_array(const NFCTagField &field, const std::span<const uint16_t> &value);
+    [[nodiscard]] IOResult<WriteReport> write_field_bool(const TagField &field, bool value);
+    [[nodiscard]] IOResult<WriteReport> write_field_int32(const TagField &field, int32_t value);
+    [[nodiscard]] IOResult<WriteReport> write_field_int64(const TagField &field, int64_t value);
+    [[nodiscard]] IOResult<WriteReport> write_field_float(const TagField &field, float value);
+    [[nodiscard]] IOResult<WriteReport> write_field_string(const TagField &field, const std::string_view &value);
+    [[nodiscard]] IOResult<WriteReport> write_field_bytes(const TagField &field, const std::basic_string_view<std::byte> &value);
+    [[nodiscard]] IOResult<WriteReport> write_field_uint16_array(const TagField &field, const std::span<const uint16_t> &value);
 
 private: // Reading internal functions
     /// Read the specified span from the NFC tag and stores it into the read buffer
     /// \returns the read data (might not be aligned with the read buffer)
-    [[nodiscard]] IOResult<std::span<std::byte>> read_span(const NFCTagSpan &span);
+    [[nodiscard]] IOResult<std::span<std::byte>> read_span(const TagPayloadSpan &span);
 
     /// Defined in the .cpp
     template <typename T, auto f>
-    [[nodiscard]] inline IOResult<T> read_field_primitive(const NFCTagField &field);
+    [[nodiscard]] inline IOResult<T> read_field_primitive(const TagField &field);
 
     /// Defined in the .cpp, to hide the cbor library
     struct CBORValue;
@@ -195,22 +196,22 @@ private: // Reading internal functions
 
     /// The callback is expected to read or skip every value
     /// \returns result of cbor_read or cbor_skip
-    using EnumerateCallback = stdext::inplace_function<EnumerateCallbackResult(NFCField field, CBORValue v)>;
+    using EnumerateCallback = stdext::inplace_function<EnumerateCallbackResult(Field field, CBORValue v)>;
 
     /// Calls \p callback for each field in the \p section of \p tag
     /// \returns size of the read CBOR object (if the iteration was not stopped using StopEnumerating)
-    [[nodiscard]] IOResult<NFCOffset> enumerate_fields_callback(NFCTagID tag, NFCSection section, const EnumerateCallback &callback);
+    [[nodiscard]] IOResult<PayloadPos> enumerate_fields_callback(TagID tag, Section section, const EnumerateCallback &callback);
 
     /// Calls \p callback for each fielkd in the section at \p span
     /// \returns size of the read CBOR object (if the iteration was not stopped using StopEnumerating)
-    [[nodiscard]] IOResult<NFCOffset> enumerate_fields_callback(const NFCTagSpan &span, const EnumerateCallback &callback);
+    [[nodiscard]] IOResult<PayloadPos> enumerate_fields_callback(const TagPayloadSpan &span, const EnumerateCallback &callback);
 
     using ReadFieldCallbackResult = std::variant<int, Error>;
 
     using ReadFieldCallback = stdext::inplace_function<ReadFieldCallbackResult(CBORValue v)>;
 
     /// Calls \p callback over CBOR \p field
-    IOResult<void> read_field_impl(const NFCTagField &field, const ReadFieldCallback &callback);
+    IOResult<void> read_field_impl(const TagField &field, const ReadFieldCallback &callback);
 
 private: // Writing internal functions
     /// Defined in the .cpp, to hide the cbor library
@@ -220,11 +221,11 @@ private: // Writing internal functions
 
     /// Writes the specified field on the tag.
     /// \param callback is called for writing the field value. If not set, the function will remove the field instead.
-    IOResult<WriteReport> write_field_impl(const NFCTagField &field, const WriteFieldCallback &callback);
+    IOResult<WriteReport> write_field_impl(const TagField &field, const WriteFieldCallback &callback);
 
 private:
     /// Lower-level reader that we're using to communicate with the NFC
-    INFCReader &reader_;
+    OPTBackend &backend_;
 
 private:
     /// Buffer for NFC reading operations
@@ -234,16 +235,18 @@ private:
     std::array<std::byte, max_tag_size> write_buffer_;
 
     struct {
-        NFCTagID tag = invalid_nfc_tag;
+        TagID tag = invalid_nfc_tag;
 
         /// What is currently stored in the read buffer
-        NFCSpan span;
+        PayloadSpan span;
 
     } read_buffer_cache_;
 
     /// Cache of basic NFC tag information, so that we don't have to parse it for every access
-    Cache<NFCTagID, TagMetadata, metadata_cache_capacity> metadata_cache_;
+    Cache<TagID, TagMetadata, metadata_cache_capacity> metadata_cache_;
 
 private:
     Params params_;
 };
+
+} // namespace openprinttag

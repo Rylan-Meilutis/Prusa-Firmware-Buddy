@@ -7,25 +7,27 @@
 #include <prusa3d/nfc/event/Event_1_0.h>
 #include <prusa3d/nfc/util/ReaderError_1_0.h>
 
+using namespace openprinttag;
+
 namespace {
-bool is_valid_section(std::underlying_type_t<NFCSection> section) {
-    return section < std::to_underlying(NFCSection::_cnt);
+bool is_valid_section(std::underlying_type_t<Section> section) {
+    return section < std::to_underlying(Section::_cnt);
 }
 
-std::optional<PrusaNFCReader::NFCTagField> parse_request_field(const prusa3d_nfc_util_TagField_1_0 &field) {
+std::optional<OPTReader::TagField> parse_request_field(const prusa3d_nfc_util_TagField_1_0 &field) {
     if (!is_valid_section(field.section.value)) {
         return std::nullopt;
     }
 
-    return PrusaNFCReader::NFCTagField {
+    return OPTReader::TagField {
         .tag = field.tag.value,
-        .section = static_cast<NFCSection>(field.section.value),
+        .section = static_cast<Section>(field.section.value),
         .field = field.field.value,
     };
 }
 
 template <typename T>
-uint8_t io_result_to_error(const PrusaNFCReader::IOResult<T> &io_result) {
+uint8_t io_result_to_error(const OPTReader::IOResult<T> &io_result) {
     if (io_result.has_value()) {
         return prusa3d_nfc_util_ReaderError_1_0_NO_ERROR;
     } else {
@@ -34,19 +36,19 @@ uint8_t io_result_to_error(const PrusaNFCReader::IOResult<T> &io_result) {
 }
 
 template <typename T>
-uint8_t io_result_to_error(const INFCReader::IOResult<T> &io_result) {
+uint8_t io_result_to_error(const OPTBackend::IOResult<T> &io_result) {
     if (io_result.has_value()) {
         return prusa3d_nfc_util_ReaderError_1_0_NO_ERROR;
     } else {
-        return std::to_underlying(PrusaNFCReader::to_prusa_error(io_result.error()));
+        return std::to_underlying(OPTReader::to_reader_error(io_result.error()));
     }
 }
 } // namespace
 
-NFCTask::NFCTask(INFCReader &ll_reader, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback)
+NFCTask::NFCTask(OPTBackend &backend, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback)
     : event_callback_ { std::move(event_callback) }
     , hw_reconfiguration_callback_ { std::move(hw_reconfiguration_callback) }
-    , reader_ { ll_reader } //
+    , reader_ { backend } //
 {}
 
 bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
@@ -117,7 +119,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
             }
             memcpy(mime_type_buffer_.data(), req.mime_type.value.elements, mime_len);
 
-            reader_.set_params(PrusaNFCReader::Params {
+            reader_.set_params(OPTReader::Params {
                 .mime_type = std::string_view(mime_type_buffer_.data(), mime_len),
                 .has_meta_region = req.has_meta_region,
             });
@@ -173,7 +175,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 void NFCTask::task() {
     while (true) {
         // Process a reader event
-        if (PrusaNFCReader::Event e; radio_enabled_ && reader_.get_event(e, freertos::millis())) {
+        if (OPTReader::Event e; radio_enabled_ && reader_.get_event(e, freertos::millis())) {
             handle_event(e);
 
             // We've done something -> skip the delay
@@ -200,18 +202,18 @@ bool NFCTask::enqueue_job(Job &&job) {
     return job_queue_.enqueue(std::move(job));
 }
 
-void NFCTask::handle_event(const PrusaNFCReader::Event &event) {
+void NFCTask::handle_event(const OPTReader::Event &event) {
     prusa3d_nfc_event_Event_1_0 msg;
 
     std::visit([&]<typename T>(const T &e) {
-        if constexpr (std::is_same_v<T, INFCReader::TagDetectedEvent>) {
+        if constexpr (std::is_same_v<T, OPTBackend::TagDetectedEvent>) {
             prusa3d_nfc_event_EventData_1_0_select_tag_detected_(&msg.data);
             msg.data.tag_detected = {
                 .tag { e.tag },
                 .antenna { e.antenna },
             };
 
-        } else if constexpr (std::is_same_v<T, INFCReader::TagLostEvent>) {
+        } else if constexpr (std::is_same_v<T, OPTBackend::TagLostEvent>) {
             prusa3d_nfc_event_EventData_1_0_select_tag_lost_(&msg.data);
             msg.data.tag_lost.tag.value = e.tag;
 
@@ -231,7 +233,7 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
         return;
     }
 
-    using Error = PrusaNFCReader::Error;
+    using Error = OPTReader::Error;
 
     const auto set_error_result = [&](Error error) {
         prusa3d_nfc_util_ValueOrError_1_0_select_error_(&result);
@@ -348,7 +350,7 @@ void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_
     }
     const auto field = *field_opt;
 
-    PrusaNFCReader::IOResult<PrusaNFCReader::WriteReport> io_result;
+    OPTReader::IOResult<OPTReader::WriteReport> io_result;
 
     static_assert(prusa3d_nfc_util_Value_1_0_UNION_OPTION_COUNT_ == 7);
     if (prusa3d_nfc_util_Value_1_0_is_bool__(&request.value)) {
@@ -376,7 +378,7 @@ void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_
         io_result = reader_.write_field_uint16_array(field, std::span<const uint16_t>(val.elements, val.count));
 
     } else {
-        io_result = std::unexpected(PrusaNFCReader::Error::other);
+        io_result = std::unexpected(OPTReader::Error::other);
     }
 
     error = io_result_to_error(io_result);
@@ -395,7 +397,7 @@ void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_Enumerat
         return;
     }
 
-    const auto io_result = reader_.enumerate_fields(static_cast<NFCTagID>(request.tag.value), static_cast<NFCSection>(request.section.value), result.fields.value.elements);
+    const auto io_result = reader_.enumerate_fields(static_cast<TagID>(request.tag.value), static_cast<Section>(request.section.value), result.fields.value.elements);
     if (!io_result) {
         prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
         result._error._error = std::to_underlying(io_result.error());
@@ -422,7 +424,7 @@ void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &req
     prusa3d_nfc_request_RawReadResult_1_0_select_data_(&result);
     result.data.value.count = request.num_bytes;
 
-    const auto io_result = reader_.ll_reader().read(request.tag.value, request.offset, std::span(reinterpret_cast<std::byte *>(result.data.value.elements), request.num_bytes));
+    const auto io_result = reader_.backend().read(request.tag.value, request.offset, std::span(reinterpret_cast<std::byte *>(result.data.value.elements), request.num_bytes));
     if (!io_result) {
         prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
         result._error._error = std::to_underlying(io_result.error());
@@ -438,7 +440,7 @@ void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &r
     // Who knows what we are writing to the tag - invalidate higher-level reader cache
     reader_.invalidate_cache(request.tag.value);
 
-    const auto io_result = reader_.ll_reader().write(request.tag.value, request.offset, std::span(reinterpret_cast<const std::byte *>(request.data.value.elements), request.data.value.count));
+    const auto io_result = reader_.backend().write(request.tag.value, request.offset, std::span(reinterpret_cast<const std::byte *>(request.data.value.elements), request.data.value.count));
     result._error = io_result_to_error(io_result);
 }
 
@@ -451,13 +453,13 @@ void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_Initialize
     // We're circumventing the high-level reader here, so invalidate its caches, things might have changed
     reader_.invalidate_cache(request.tag.value);
 
-    const INFCReader::InitializeTagParams params {
+    const OPTBackend::InitializeTagParams params {
         .password = std::bit_cast<uint32_t>(request.password),
         .protect_first_num_bytes = request.protect_first_num_bytes,
-        .protection_policy = static_cast<INFCReader::InitializeTagParams::ProtectionPolicy>(request.protection_policy),
+        .protection_policy = static_cast<OPTBackend::InitializeTagParams::ProtectionPolicy>(request.protection_policy),
         .best_effort = request.best_effort,
     };
-    const auto io_result = reader_.ll_reader().initialize_tag(request.tag.value, params);
+    const auto io_result = reader_.backend().initialize_tag(request.tag.value, params);
     result._error = io_result_to_error(io_result);
 }
 
@@ -467,20 +469,20 @@ void NFCTask::handle_unlock_tag_request(const prusa3d_nfc_request_UnlockTag_1_0 
         return;
     }
 
-    const auto io_result = reader_.ll_reader().unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
+    const auto io_result = reader_.backend().unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
     result._error = io_result_to_error(io_result);
 }
 
 void NFCTask::handle_set_debug_config_request(const prusa3d_nfc_request_SetDebugConfig_1_0 &request) {
-    const INFCReader::DebugConfig config {
+    const OPTBackend::DebugConfig config {
         .auto_forget_tag = request.auto_forget_tag,
     };
-    reader_.ll_reader().enforce_antenna(request.enforce_antenna);
-    reader_.ll_reader().set_debug_config(config);
+    reader_.backend().enforce_antenna(request.enforce_antenna);
+    reader_.backend().set_debug_config(config);
 
     if (request.modulation_settings.count == 1) {
         hw_reconfiguration_callback_(request.modulation_settings.elements[0]);
-        reader_.ll_reader().reset_state();
+        reader_.backend().reset_state();
     }
 }
 
@@ -493,7 +495,7 @@ void NFCTask::handle_get_tag_uid_request(const prusa3d_nfc_request_GetTagUID_1_0
     }
 
     prusa3d_nfc_request_GetTagUIDResult_1_0_select_uid_(&result);
-    const auto io_result = reader_.ll_reader().get_tag_uid(request.tag.value, std::span { reinterpret_cast<std::byte *>(&result.uid.value.elements), sizeof(result.uid.value.elements) });
+    const auto io_result = reader_.backend().get_tag_uid(request.tag.value, std::span { reinterpret_cast<std::byte *>(&result.uid.value.elements), sizeof(result.uid.value.elements) });
     if (!io_result) {
         prusa3d_nfc_request_GetTagUIDResult_1_0_select_error_(&result);
         result._error._error = io_result_to_error(io_result);

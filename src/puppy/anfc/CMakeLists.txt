@@ -57,10 +57,10 @@ target_link_libraries(
           canard
           BuddyHeaders
           o1heap
-          prusa_nfc_reader
+          openprinttag
+          openprinttag_nfcv
           prusa_nfc_task
           st25r39xxb
-          prusa_nfc_nfcv
           raii
           cobs
           crc

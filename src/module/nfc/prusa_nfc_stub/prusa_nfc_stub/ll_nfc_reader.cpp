@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+using namespace openprinttag;
+
 /*
  * data:
  *   aux:
@@ -53,7 +55,7 @@ LLNFCReader::LLNFCReader() {
     memcpy(tag_data_, default_tag_data, sizeof(default_tag_data));
 }
 
-INFCReader::IOResult<void> LLNFCReader::read(NFCTagID tag, NFCOffset start, const std::span<std::byte> &buffer) {
+OPTBackend::IOResult<void> LLNFCReader::read(TagID tag, PayloadPos start, const std::span<std::byte> &buffer) {
     if (tag != 0) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -66,7 +68,7 @@ INFCReader::IOResult<void> LLNFCReader::read(NFCTagID tag, NFCOffset start, cons
     return {};
 }
 
-INFCReader::IOResult<void> LLNFCReader::write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &buffer) {
+OPTBackend::IOResult<void> LLNFCReader::write(TagID tag, PayloadPos start, const std::span<const std::byte> &buffer) {
     if (tag != 0) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -89,7 +91,7 @@ bool LLNFCReader::get_event(Event &e, [[maybe_unused]] uint32_t current_time_ms)
     return false;
 }
 
-INFCReader::IOResult<size_t> LLNFCReader::get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) {
+OPTBackend::IOResult<size_t> LLNFCReader::get_tag_uid(TagID tag, const std::span<std::byte> &buffer) {
     static constexpr std::array uid { std::byte { 0xBC }, std::byte { 0x6F }, std::byte { 0x2F }, std::byte { 0x66 }, std::byte { 0x08 }, std::byte { 0x01 }, std::byte { 0x04 }, std::byte { 0xE0 } };
     if (tag != 0) {
         return std::unexpected(IOError::invalid_id);
@@ -103,7 +105,7 @@ INFCReader::IOResult<size_t> LLNFCReader::get_tag_uid(NFCTagID tag, const std::s
     return uid.size();
 }
 
-void LLNFCReader::forget_tag(NFCTagID tag) {
+void LLNFCReader::forget_tag(TagID tag) {
     if (tag == 0) {
         tag_detected_reported_ = false;
     }

@@ -6,19 +6,21 @@
 #include <limits>
 #include <inplace_vector.hpp>
 
-#include "nfc_defines.hpp"
+#include "util_defines.hpp"
+
+namespace openprinttag {
 
 /// Interface for low-level reading from NFC tags
-class INFCReader {
+class OPTBackend {
 
 public:
     /// A new tag has been detected by the reader
     struct TagDetectedEvent {
-        NFCTagID tag;
+        TagID tag;
 
         /// Antenna the tag has been detected on.
         /// If tag gets moved from antenna to antenna, the reader will emit TagLost and new TagDetected (and likely assign a new ID to the tag)
-        NFCAntenna antenna;
+        ReaderAntenna antenna;
 
         inline bool operator==(const TagDetectedEvent &) const = default;
     };
@@ -26,7 +28,7 @@ public:
     /// The reader has lost connection with a tag
     /// Please call \p forget_tag after processing this event to allow reuse of the tag ID
     struct TagLostEvent {
-        NFCTagID tag;
+        TagID tag;
 
         inline bool operator==(const TagLostEvent &) const = default;
     };
@@ -38,8 +40,8 @@ public:
     };
 
     struct TagInfo {
-        /// Region for TLV records - that's where the PrusaNFCReader operates on
-        NFCSpan tlv_span;
+        /// Region for TLV records - that's where the OPTReader operates on
+        PayloadSpan tlv_span;
     };
 
     using Event = std::variant<TagDetectedEvent, TagLostEvent>;
@@ -71,11 +73,11 @@ public:
 public:
     /// Reads \p buffer.size() bytes from \p tag into \p buffer, starting at position \p start
     /// \returns whether the operation was successful
-    [[nodiscard]] virtual IOResult<void> read(NFCTagID tag, NFCOffset start, const std::span<std::byte> &buffer) = 0;
+    [[nodiscard]] virtual IOResult<void> read(TagID tag, PayloadPos start, const std::span<std::byte> &buffer) = 0;
 
     /// Writes \p buffer.size() bytes to \p tag, starting at position \p start
     /// \returns whether the operation was successful
-    [[nodiscard]] virtual IOResult<void> write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &data) = 0;
+    [[nodiscard]] virtual IOResult<void> write(TagID tag, PayloadPos start, const std::span<const std::byte> &data) = 0;
 
     /// Reads a single event and stores it in \p e
     /// \param timestamp of current time, from function like freertos::millis
@@ -85,14 +87,14 @@ public:
     /// Reads tag UID (identifier number hardcoded by the tag manufacturer)
     /// \param result buffer the UID will be written into
     /// \returns size of the read UID in bytes or error
-    [[nodiscard]] virtual IOResult<size_t> get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) = 0;
+    [[nodiscard]] virtual IOResult<size_t> get_tag_uid(TagID tag, const std::span<std::byte> &buffer) = 0;
 
     /// Parses the Capability Container of the tag and returns relevant data
-    [[nodiscard]] virtual IOResult<void> read_tag_info(NFCTagID tag, TagInfo &target) = 0;
+    [[nodiscard]] virtual IOResult<void> read_tag_info(TagID tag, TagInfo &target) = 0;
 
     /// Completely forgets the tag and allows the tag ID to be reused
     /// If the tag is still present, a new TagDetected event will be emitted
-    virtual void forget_tag(NFCTagID tag) = 0;
+    virtual void forget_tag(TagID tag) = 0;
 
     virtual void reset_state() = 0;
 
@@ -102,8 +104,8 @@ public:
     }
 
     /// Use all antennas, do not enforce a specific one
-    static constexpr NFCAntenna no_antenna_enforce = std::numeric_limits<NFCAntenna>::max();
-    inline void enforce_antenna(NFCAntenna antenna) {
+    static constexpr ReaderAntenna no_antenna_enforce = std::numeric_limits<ReaderAntenna>::max();
+    inline void enforce_antenna(ReaderAntenna antenna) {
         enforced_antenna = antenna;
     }
 
@@ -128,7 +130,7 @@ public:
 
         /// If > 0, first N bytes of the tag will be protected according to the data protection policy
         /// The number has to be aligned to the tag block size
-        NFCOffset protect_first_num_bytes = 0;
+        PayloadPos protect_first_num_bytes = 0;
 
         /// Determines how the tag should be protected
         /// - Protects first \p data_protection_size bytes of data
@@ -145,7 +147,7 @@ public:
     /// - (optionally) Locks the headers data
     /// Might be implemented only for specific chip models and specific parameter configurations
     /// All init-time data should be written to the tag beforehand using \p raw_write
-    [[nodiscard]] virtual IOResult<void> initialize_tag(NFCTagID tag, const InitializeTagParams &params) {
+    [[nodiscard]] virtual IOResult<void> initialize_tag(TagID tag, const InitializeTagParams &params) {
         (void)tag, (void)params;
         return std::unexpected(IOError::not_implemented);
     }
@@ -153,7 +155,7 @@ public:
     /// Removes write protection for the memory protected by the specified write password
     /// !!! This does not fully undo the password protection, nor does it change the password
     /// !!! Registers and other things will still be protected
-    [[nodiscard]] virtual IOResult<void> unlock_tag(NFCTagID tag, uint32_t password) {
+    [[nodiscard]] virtual IOResult<void> unlock_tag(TagID tag, uint32_t password) {
         (void)tag, (void)password;
         return std::unexpected(IOError::not_implemented);
     }
@@ -162,5 +164,7 @@ protected:
     DebugConfig debug_config_;
 
     /// If set, only the specified antenna will ever be used
-    NFCAntenna enforced_antenna = no_antenna_enforce;
+    ReaderAntenna enforced_antenna = no_antenna_enforce;
 };
+
+} // namespace openprinttag

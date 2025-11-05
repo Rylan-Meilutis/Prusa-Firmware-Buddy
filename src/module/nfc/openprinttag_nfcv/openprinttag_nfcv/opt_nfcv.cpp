@@ -1,13 +1,15 @@
-#include "ll_nfc_reader.hpp"
+#include "opt_nfcv.hpp"
 
 #include <bitset>
 #include <raii/scope_guard.hpp>
 
+using namespace openprinttag;
+
 namespace {
 
-INFCReader::IOError to_prusa_error(nfcv::Error error) {
+OPTBackend::IOError to_prusa_error(nfcv::Error error) {
     using E = nfcv::Error;
-    using R = INFCReader::IOError;
+    using R = OPTBackend::IOError;
 
     switch (error) {
 
@@ -36,19 +38,19 @@ INFCReader::IOError to_prusa_error(nfcv::Error error) {
     std::unreachable();
 }
 
-std::unexpected<INFCReader::IOError> to_prusa_unexpected(nfcv::Error error) {
+std::unexpected<OPTBackend::IOError> to_prusa_unexpected(nfcv::Error error) {
     return std::unexpected(to_prusa_error(error));
 }
 
 } // namespace
 
-LLNFCReader::LLNFCReader(nfcv::ReaderWriterInterface &reader, NFCAntenna enforced_antenna)
+OPTBackend_NFCV::OPTBackend_NFCV(nfcv::ReaderWriterInterface &reader, ReaderAntenna enforced_antenna)
     : reader(reader) {
     reset_state();
     enforce_antenna(enforced_antenna);
 }
 
-INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, size_t buffer_size, const stdext::inplace_function<IOOpFunc> &impl) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::io_op(TagID tag, PayloadPos start, size_t buffer_size, const stdext::inplace_function<IOOpFunc> &impl) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -70,10 +72,10 @@ INFCReader::IOResult<void> LLNFCReader::io_op(NFCTagID tag, NFCOffset start, siz
     return {};
 }
 
-INFCReader::IOResult<void> LLNFCReader::read(NFCTagID tag, NFCOffset start, const std::span<std::byte> &buffer) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::read(TagID tag, PayloadPos start, const std::span<std::byte> &buffer) {
     // Default lambda capture doesn't fit the stdext::inplace_function so we need a helper to pass the data correctly
     struct {
-        NFCOffset start;
+        PayloadPos start;
         const std::span<std::byte> &buffer;
     } ref = {
         .start = start,
@@ -84,7 +86,7 @@ INFCReader::IOResult<void> LLNFCReader::read(NFCTagID tag, NFCOffset start, cons
     });
 }
 
-nfcv::Result<void> LLNFCReader::read_impl(const TagData &tag_data, NFCOffset start, const std::span<std::byte> &buffer) {
+nfcv::Result<void> OPTBackend_NFCV::read_impl(const TagData &tag_data, PayloadPos start, const std::span<std::byte> &buffer) {
     auto block_index = start / tag_data.block_size;
     auto it = buffer.begin();
     int32_t in_block_byte_offset = start % tag_data.block_size;
@@ -104,16 +106,16 @@ nfcv::Result<void> LLNFCReader::read_impl(const TagData &tag_data, NFCOffset sta
     return {};
 }
 
-INFCReader::IOResult<void> LLNFCReader::write(NFCTagID tag, NFCOffset start, const std::span<const std::byte> &buffer) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::write(TagID tag, PayloadPos start, const std::span<const std::byte> &buffer) {
     // Default lambda capture doesn't fit the stdext::inplace_function so we need a helper to pass the data correctly
     struct {
-        NFCOffset start;
+        PayloadPos start;
         const std::span<const std::byte> &buffer;
     } ref = { .start = start, .buffer = buffer };
     return io_op(tag, start, buffer.size(), [this, &ref](const TagData &tag_data) { return write_impl(tag_data, ref.start, ref.buffer); });
 }
 
-nfcv::Result<void> LLNFCReader::write_impl(const TagData &tag_data, NFCOffset start, const std::span<const std::byte> &buffer) {
+nfcv::Result<void> OPTBackend_NFCV::write_impl(const TagData &tag_data, PayloadPos start, const std::span<const std::byte> &buffer) {
     std::array<std::byte, nfcv::MAX_BLOCK_SIZE_IN_BYTES> tmp_buf {};
     const std::span<std::byte> tmp_buf_block_span { tmp_buf.data(), tag_data.block_size };
     auto source_it = buffer.begin();
@@ -163,7 +165,7 @@ nfcv::Result<void> LLNFCReader::write_impl(const TagData &tag_data, NFCOffset st
     return {};
 }
 
-bool LLNFCReader::get_event(Event &e, uint32_t current_time_ms) {
+bool OPTBackend_NFCV::get_event(Event &e, uint32_t current_time_ms) {
     // check for events to report
     if (events.isEmpty()) {
         if (!discoveries_limiter.check(current_time_ms)) {
@@ -183,7 +185,7 @@ bool LLNFCReader::get_event(Event &e, uint32_t current_time_ms) {
     return true;
 }
 
-INFCReader::IOResult<size_t> LLNFCReader::get_tag_uid(NFCTagID tag, const std::span<std::byte> &buffer) {
+OPTBackend::IOResult<size_t> OPTBackend_NFCV::get_tag_uid(TagID tag, const std::span<std::byte> &buffer) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -197,7 +199,7 @@ INFCReader::IOResult<size_t> LLNFCReader::get_tag_uid(NFCTagID tag, const std::s
     return uid.size();
 }
 
-INFCReader::IOResult<void> LLNFCReader::read_tag_info(NFCTagID tag, TagInfo &target) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::read_tag_info(TagID tag, TagInfo &target) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -214,13 +216,13 @@ INFCReader::IOResult<void> LLNFCReader::read_tag_info(NFCTagID tag, TagInfo &tar
 
     target = {
         // TLV starts right after the CC and ends with the tag
-        .tlv_span = NFCSpan::from_offset_end(sizeof(cc), cc.memory_length_8 * 8),
+        .tlv_span = PayloadSpan::from_offset_end(sizeof(cc), cc.memory_length_8 * 8),
     };
 
     return {};
 }
 
-void LLNFCReader::forget_tag(NFCTagID tag) {
+void OPTBackend_NFCV::forget_tag(TagID tag) {
     if (tag >= tags.size()) {
         return;
     }
@@ -229,14 +231,14 @@ void LLNFCReader::forget_tag(NFCTagID tag) {
     tag_data.state = TagData::State::free;
 }
 
-void LLNFCReader::reset_state() {
+void OPTBackend_NFCV::reset_state() {
     for (size_t i = 0; i < tags.size(); ++i) {
         forget_tag(i);
     }
     events.clear();
 }
 
-INFCReader::IOResult<void> LLNFCReader::initialize_tag(NFCTagID tag, const InitializeTagParams &params) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::initialize_tag(TagID tag, const InitializeTagParams &params) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -393,7 +395,7 @@ INFCReader::IOResult<void> LLNFCReader::initialize_tag(NFCTagID tag, const Initi
     std::unreachable();
 }
 
-INFCReader::IOResult<void> LLNFCReader::unlock_tag(NFCTagID tag, uint32_t password) {
+OPTBackend::IOResult<void> OPTBackend_NFCV::unlock_tag(TagID tag, uint32_t password) {
     if (!is_valid(tag)) {
         return std::unexpected(IOError::invalid_id);
     }
@@ -431,7 +433,7 @@ INFCReader::IOResult<void> LLNFCReader::unlock_tag(NFCTagID tag, uint32_t passwo
     return {};
 }
 
-bool LLNFCReader::is_valid(NFCTagID tag_id) {
+bool OPTBackend_NFCV::is_valid(TagID tag_id) {
     static_assert(!std::is_signed_v<decltype(tag_id)>);
     if (tag_id >= tags.size()) {
         return false;
@@ -440,7 +442,7 @@ bool LLNFCReader::is_valid(NFCTagID tag_id) {
     return tags.at(tag_id).state == TagData::State::known;
 }
 
-std::unexpected<INFCReader::IOError> LLNFCReader::handle_io_error(NFCTagID tag, nfcv::Error error) {
+std::unexpected<OPTBackend::IOError> OPTBackend_NFCV::handle_io_error(TagID tag, nfcv::Error error) {
     if (!is_valid(tag)) {
         return std::unexpected(to_prusa_error(error));
     }
@@ -448,7 +450,7 @@ std::unexpected<INFCReader::IOError> LLNFCReader::handle_io_error(NFCTagID tag, 
     if (error == nfcv::Error::no_response) {
         // Lets see if this is going to work, if it is too eager, then we can maybe set some timer and check if it happens too often
         // Can fail, that's ok
-        if (events.enqueue(INFCReader::TagLostEvent { .tag = tag })) {
+        if (events.enqueue(OPTBackend::TagLostEvent { .tag = tag })) {
             tags.at(tag).state = TagData::State::lost;
         }
     }
@@ -456,8 +458,8 @@ std::unexpected<INFCReader::IOError> LLNFCReader::handle_io_error(NFCTagID tag, 
     return std::unexpected(to_prusa_error(error));
 }
 
-void LLNFCReader::run_next_discovery() {
-    if (enforced_antenna != INFCReader::no_antenna_enforce) {
+void OPTBackend_NFCV::run_next_discovery() {
+    if (enforced_antenna != OPTBackend::no_antenna_enforce) {
         discovery_antenna = enforced_antenna;
     }
 
@@ -506,10 +508,10 @@ void LLNFCReader::run_next_discovery() {
             // valid tag_id
             continue;
         }
-        NFCTagID tag_id = std::distance(tags.begin(), tag_data);
+        TagID tag_id = std::distance(tags.begin(), tag_data);
 
         // enqueue event to send
-        if (!events.enqueue(INFCReader::TagDetectedEvent { .tag = tag_id, .antenna = discovery_antenna })) {
+        if (!events.enqueue(OPTBackend::TagDetectedEvent { .tag = tag_id, .antenna = discovery_antenna })) {
             // we have too many events - this should never happend but lets be sure
             // we can't report the tag => so we don't want to store it
             // if this ultimately happens increase the events queue by little bit
@@ -549,13 +551,13 @@ void LLNFCReader::run_next_discovery() {
     }
 
     // Lets find a uid that we lost
-    for (NFCTagID tag_id = 0; tag_id < tags.size(); ++tag_id) {
+    for (TagID tag_id = 0; tag_id < tags.size(); ++tag_id) {
         if (is_valid(tag_id)) {
             auto &tag_data = tags.at(tag_id);
             // check if the tag was found during this procedure and check if originaly the it was found on current antenna
             if (tag_data.antenna == discovery_antenna && !found_tags.test(tag_id)) {
                 // Detected lost tag - lets mark it and enqueue an event
-                if (!events.enqueue(INFCReader::TagLostEvent { .tag = tag_id })) {
+                if (!events.enqueue(OPTBackend::TagLostEvent { .tag = tag_id })) {
                     // we have too many events - this should never happend but lets be sure
                     // we can't report the lost tag => so we don't want to mark it as lost
                     // if this ultimately happens increase the events queue by little bit

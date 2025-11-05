@@ -4,11 +4,13 @@
 #include <cstring>
 #include <bit>
 
+using namespace openprinttag;
+
 static_assert(sizeof(NDEFRecordStaticHeader) == 2);
 static_assert(sizeof(NDEFRecordFullHeader) == 7);
 
-NFCOffset NDEFRecordFullHeader::dynamic_field_data_offset(DynamicField field) const {
-    NFCOffset result = 0;
+PayloadPos NDEFRecordFullHeader::dynamic_field_data_offset(DynamicField field) const {
+    PayloadPos result = 0;
 
     if (field == DynamicField::payload_length) {
         return result;
@@ -39,7 +41,7 @@ NFCOffset NDEFRecordFullHeader::dynamic_field_data_offset(DynamicField field) co
     std::abort();
 }
 
-NFCOffset NDEFRecordFullHeader::dynamic_field_length(DynamicField field) const {
+PayloadPos NDEFRecordFullHeader::dynamic_field_length(DynamicField field) const {
     switch (field) {
 
     case DynamicField::payload_length:

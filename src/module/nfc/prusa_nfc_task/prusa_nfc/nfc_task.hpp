@@ -5,8 +5,8 @@
 
 #include <utils/atomic_circular_queue.hpp>
 #include <move_only_inplace_function.hpp>
-#include <prusa_nfc/prusa_nfc_reader.hpp>
-#include <prusa_nfc/i_nfc_reader.hpp>
+#include <openprinttag/opt_reader.hpp>
+#include <openprinttag/opt_backend.hpp>
 
 #include <freertos/mutex.hpp>
 #include <o1heap/o1heap.hpp>
@@ -25,7 +25,7 @@ public:
     using HWReconfigurationCallback = stdext::inplace_function<void(const prusa3d_nfc_request_debug_ModulationConfig_1_0 &)>;
 
 public:
-    NFCTask(INFCReader &ll_reader, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback);
+    NFCTask(openprinttag::OPTBackend &backend, EventCallback &&event_callback, HWReconfigurationCallback &&hw_reconfiguration_callback);
 
 public:
     /// Attempts to enqueue a request for processing
@@ -42,7 +42,7 @@ private:
     [[nodiscard]] bool enqueue_job(Job &&job);
 
 private:
-    void handle_event(const PrusaNFCReader::Event &event);
+    void handle_event(const openprinttag::OPTReader::Event &event);
 
     void handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 &request, prusa3d_nfc_util_ValueOrError_1_0 &result);
     void handle_write_field_request(const prusa3d_nfc_request_WriteField_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result);
@@ -70,7 +70,7 @@ private:
     /// Callback for when NFCTask receives request to reconfigure the ll nfc reader (debug only)
     HWReconfigurationCallback hw_reconfiguration_callback_;
 
-    PrusaNFCReader reader_;
+    openprinttag::OPTReader reader_;
 
     std::array<char, 64> mime_type_buffer_;
 

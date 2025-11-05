@@ -10,21 +10,21 @@ file(GLOB_RECURSE ANFC_PY_DEPS CONFIGURE_DEPENDS "${DATA_FORMAT_DIR}/utils/*"
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/autogen/sample_data.cpp.in
          ${CMAKE_CURRENT_BINARY_DIR}/autogen/field_enums.hpp
-  DEPENDS gen_anfc_tests_support_files.py config_wrong_mime.yaml config_wrong_mime2.yaml
+  DEPENDS gen_opt_tests_support_files.py config_wrong_mime.yaml config_wrong_mime2.yaml
           ${ANFC_PY_DEPS}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_anfc_tests_support_files.py
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_opt_tests_support_files.py
           ${DATA_FORMAT_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/autogen
   )
 
 add_executable(
-  prusa_nfc_reader_tests
+  openprinttag_reader_tests
   ${CMAKE_CURRENT_BINARY_DIR}/autogen/field_enums.hpp
-  ${CMAKE_CURRENT_BINARY_DIR}/autogen/sample_data.cpp.in prusa_nfc_reader_tests.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/autogen/sample_data.cpp.in opt_reader_tests.cpp
   )
 target_include_directories(
-  prusa_nfc_reader_tests PRIVATE include ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/common
-                                 ${CMAKE_SOURCE_DIR}/src/puppy/anfc ${CMAKE_CURRENT_BINARY_DIR}
+  openprinttag_reader_tests PRIVATE include ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/common
+                                    ${CMAKE_SOURCE_DIR}/src/puppy/anfc ${CMAKE_CURRENT_BINARY_DIR}
   )
-target_link_libraries(prusa_nfc_reader_tests SG14 prusa_nfc_reader buddy_utils)
-add_catch_test(prusa_nfc_reader_tests)
+target_link_libraries(openprinttag_reader_tests SG14 openprinttag buddy_utils)
+add_catch_test(openprinttag_reader_tests)

@@ -3,7 +3,7 @@ target_sources(prusa_nfc_task PRIVATE prusa_nfc/nfc_task.cpp)
 target_include_directories(prusa_nfc_task PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(
   prusa_nfc_task
-  PRIVATE prusa_nfc_reader
+  PRIVATE openprinttag
           freertos
           o1heap
           SG14

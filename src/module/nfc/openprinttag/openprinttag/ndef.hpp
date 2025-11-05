@@ -1,6 +1,8 @@
 #pragma once
 
-#include "nfc_defines.hpp"
+#include "util_defines.hpp"
+
+namespace openprinttag {
 
 enum class NDEFTypeNameFormat : uint8_t {
     empty = 0,
@@ -56,22 +58,24 @@ public:
 
 public:
     /// \returns offset of the dynamic field relative to the header start
-    NFCOffset dynamic_field_offset(DynamicField field) const {
+    PayloadPos dynamic_field_offset(DynamicField field) const {
         return dynamic_field_data_offset(field) + sizeof(NDEFRecordStaticHeader);
     }
 
     /// \returns offset of the dynamic field relative to the dynamic_data start
-    NFCOffset dynamic_field_data_offset(DynamicField field) const;
+    PayloadPos dynamic_field_data_offset(DynamicField field) const;
 
-    NFCOffset dynamic_field_length(DynamicField field) const;
+    PayloadPos dynamic_field_length(DynamicField field) const;
 
     /// \returns span of the dynamic field relative to the header start
-    NFCSpan dynamic_field_span(DynamicField field) const {
-        return NFCSpan { .offset = dynamic_field_offset(field), .size = dynamic_field_length(field) };
+    PayloadSpan dynamic_field_span(DynamicField field) const {
+        return PayloadSpan { .offset = dynamic_field_offset(field), .size = dynamic_field_length(field) };
     }
 
     /// \returns total record length, including the payload
-    NFCOffset record_length() const {
+    PayloadPos record_length() const {
         return dynamic_field_span(DynamicField::payload).end();
     }
 };
+
+} // namespace openprinttag

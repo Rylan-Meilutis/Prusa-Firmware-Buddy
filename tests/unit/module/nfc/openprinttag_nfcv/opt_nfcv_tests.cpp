@@ -1,4 +1,4 @@
-#include <prusa_nfc_nfcv/ll_nfc_reader.hpp>
+#include <openprinttag_nfcv/opt_nfcv.hpp>
 
 #include <nfcv/rw_interface.hpp>
 #include <nfcv/encode.hpp>
@@ -11,6 +11,8 @@
 #include <unordered_set>
 #include <map>
 
+using namespace openprinttag;
+
 struct TagData {
     nfcv::TagInfo info;
     std::optional<bool> eas;
@@ -21,7 +23,7 @@ struct TagData {
     bool dsfid_locked = false;
 
     /// Antennas the tag is detected by
-    std::unordered_set<NFCAntenna> antennas;
+    std::unordered_set<ReaderAntenna> antennas;
 
     /// Whether the tag should not respond to Inventory commands
     bool stay_quiet = false;
@@ -111,14 +113,16 @@ using Event = std::variant<
     LockDSFID,
     WriteAFI, WriteDSFID>;
 
-std::ostream &operator<<(std::ostream &os, const INFCReader::TagDetectedEvent &e) {
+namespace std {
+std::ostream &operator<<(std::ostream &os, const OPTBackend::TagDetectedEvent &e) {
     os << "TagDetectedEvent{tag: " << e.tag << ", antenna: " << e.antenna << "}";
     return os;
 }
-std::ostream &operator<<(std::ostream &os, const INFCReader::TagLostEvent &e) {
+std::ostream &operator<<(std::ostream &os, const OPTBackend::TagLostEvent &e) {
     os << "TagLostEvent{tag: " << e.tag << "}";
     return os;
 }
+} // namespace std
 
 struct EventLogger : public nfcv::ReaderWriterInterface {
     nfcv::Result<void> field_up(AntennaID antenna) final {
@@ -378,11 +382,11 @@ constexpr nfcv::UID uid1_slix2 { std::byte { 0xBC }, std::byte { 0x6F }, std::by
 constexpr nfcv::TagInfo tag_info1 { .dsfid = std::nullopt, .afi = std::nullopt, .mem_size = nfcv::TagInfo::MemorySize { .block_size = 4, .block_count = 64 }, .ic_ref = std::nullopt };
 } // namespace data
 
-TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][openprinttag]") {
     EventLogger logger {};
 
-    LLNFCReader reader(logger);
-    INFCReader::Event event;
+    OPTBackend_NFCV reader(logger);
+    OPTBackend::Event event;
 
     SECTION("Test simple TagDisovered -> TagLost functionality") {
         logger.events = {};
@@ -393,8 +397,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
 
         auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -424,8 +428,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
 
         res = reader.get_event(event, 501);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagLostEvent>(event));
-        REQUIRE(std::get<INFCReader::TagLostEvent>(event).tag == 0);
+        REQUIRE(std::holds_alternative<OPTBackend::TagLostEvent>(event));
+        REQUIRE(std::get<OPTBackend::TagLostEvent>(event).tag == 0);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -446,8 +450,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
 
         auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -462,8 +466,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 10);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
@@ -489,8 +493,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
 
         auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -505,8 +509,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 10);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
@@ -517,8 +521,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 251);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 2);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 2);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 1 },
                                                     Inventory {},
@@ -542,8 +546,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
 
         auto res = reader.get_event(event, 1);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -558,8 +562,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 10);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 1);
         CHECK(logger.events.empty());
 
         logger.events.clear();
@@ -577,8 +581,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 501);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagLostEvent>(event));
-        CHECK(std::get<INFCReader::TagLostEvent>(event).tag == 1);
+        REQUIRE(std::holds_alternative<OPTBackend::TagLostEvent>(event));
+        CHECK(std::get<OPTBackend::TagLostEvent>(event).tag == 1);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 0 },
                                                     Inventory {},
@@ -636,8 +640,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
         logger.events.clear();
         res = reader.get_event(event, 1751);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 1);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 1);
         CHECK(std::ranges::equal(logger.events, std::vector<Event> {
                                                     FieldUp { .antenna = 1 },
                                                     Inventory {},
@@ -649,7 +653,7 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][prusa_nfc]"
     }
 }
 
-TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC-V tag read ops", "[nfcv][openprinttag]") {
     std::vector<std::byte> tag1 {};
     tag1.resize(data::tag_info1.mem_size.value().block_size * data::tag_info1.mem_size.value().block_count);
     std::ranges::generate(tag1, [n = 0]() mutable { return static_cast<std::byte>(n++); });
@@ -661,13 +665,13 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         .antennas = { 0 },
     };
 
-    LLNFCReader reader { logger };
+    OPTBackend_NFCV reader { logger };
 
-    INFCReader::Event event;
+    OPTBackend::Event event;
     auto res = reader.get_event(event, 0);
     REQUIRE(res == true);
-    REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-    CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+    REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+    CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
     logger.events.clear();
 
     SECTION("Reading small chunk of data (inside of 1 block)") {
@@ -749,7 +753,7 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         const auto read_res = reader.read(1, 3, std::span { data });
 
         REQUIRE(!read_res.has_value());
-        REQUIRE(read_res.error() == INFCReader::IOError::invalid_id);
+        REQUIRE(read_res.error() == OPTBackend::IOError::invalid_id);
     }
 
     SECTION("Reading data out of range - totaly out of range (big offset)") {
@@ -758,7 +762,7 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         const auto read_res = reader.read(0, 270, std::span { data });
 
         REQUIRE(!read_res.has_value());
-        REQUIRE(read_res.error() == INFCReader::IOError::outside_of_bounds);
+        REQUIRE(read_res.error() == OPTBackend::IOError::outside_of_bounds);
     }
 
     SECTION("Reading data out of range - overlaping range") {
@@ -767,11 +771,11 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][prusa_nfc]") {
         const auto read_res = reader.read(0, 250, std::span { data });
 
         REQUIRE(!read_res.has_value());
-        REQUIRE(read_res.error() == INFCReader::IOError::outside_of_bounds);
+        REQUIRE(read_res.error() == OPTBackend::IOError::outside_of_bounds);
     }
 }
 
-TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC-V tags write ops", "[nfcv][openprinttag]") {
     std::vector<std::byte> tag1 {};
     tag1.resize(data::tag_info1.mem_size.value().block_size * data::tag_info1.mem_size.value().block_count);
     std::ranges::generate(tag1, [n = 0]() mutable { return static_cast<std::byte>(n++); });
@@ -783,17 +787,17 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
         .antennas = { 0 },
     };
 
-    LLNFCReader reader { logger };
+    OPTBackend_NFCV reader { logger };
 
-    INFCReader::Event event;
+    OPTBackend::Event event;
     auto res = reader.get_event(event, 0);
     REQUIRE(res == true);
-    REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-    CHECK(std::get<INFCReader::TagDetectedEvent>(event).tag == 0);
+    REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+    CHECK(std::get<OPTBackend::TagDetectedEvent>(event).tag == 0);
     logger.events.clear();
 
     SECTION("Write aligned data") {
-        constexpr NFCOffset offset = 0;
+        constexpr PayloadPos offset = 0;
         std::array<std::byte, 32> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -818,7 +822,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write unaligned data - overflow in the beginning") {
-        constexpr NFCOffset offset = 2;
+        constexpr PayloadPos offset = 2;
         std::array<std::byte, 18> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -842,7 +846,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write unaligned data - overflow at the end") {
-        constexpr NFCOffset offset = 4;
+        constexpr PayloadPos offset = 4;
         std::array<std::byte, 18> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -868,7 +872,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write data smaller then sector - start of sector") {
-        constexpr NFCOffset offset = 0;
+        constexpr PayloadPos offset = 0;
         std::array<std::byte, 2> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -889,7 +893,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write data smaller then sector - middle of sector") {
-        constexpr NFCOffset offset = 1;
+        constexpr PayloadPos offset = 1;
         std::array<std::byte, 2> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -911,7 +915,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write data smaller then sector - end of sector") {
-        constexpr NFCOffset offset = 2;
+        constexpr PayloadPos offset = 2;
         std::array<std::byte, 2> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -933,7 +937,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][prusa_nfc]") {
     }
 
     SECTION("Write data smaller then sector - overlapping sectors") {
-        constexpr NFCOffset offset = 3;
+        constexpr PayloadPos offset = 3;
         std::array<std::byte, 2> data;
         std::ranges::generate(data, [n = 0]() mutable { return static_cast<std::byte>(255 - (n++)); });
         const auto write_res = reader.write(0, offset, std::span { data });
@@ -1018,7 +1022,7 @@ TEST_CASE("Test NFC-V register commands", "[nfcv]") {
     }
 }
 
-TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC-V tag initialization", "[nfcv][openprinttag]") {
     constexpr auto tag_uid = data::uid1_slix2;
 
     EventLogger logger;
@@ -1030,8 +1034,8 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
         .antennas = { 0 },
     };
 
-    LLNFCReader reader(logger);
-    INFCReader::Event event;
+    OPTBackend_NFCV reader(logger);
+    OPTBackend::Event event;
 
     auto &tag = logger.tags[tag_uid];
 
@@ -1041,25 +1045,25 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
 
     // Process tag detection
     {
-        INFCReader::Event event;
+        OPTBackend::Event event;
         auto res = reader.get_event(event, 0);
         REQUIRE(res == true);
-        REQUIRE(std::holds_alternative<INFCReader::TagDetectedEvent>(event));
-        const auto &ev = std::get<INFCReader::TagDetectedEvent>(event);
+        REQUIRE(std::holds_alternative<OPTBackend::TagDetectedEvent>(event));
+        const auto &ev = std::get<OPTBackend::TagDetectedEvent>(event);
         CHECK(ev.tag == 0);
         logger.events.clear();
     }
 
-    constexpr auto io_success = INFCReader::IOResult<void>();
+    constexpr auto io_success = OPTBackend::IOResult<void>();
 
-    constexpr NFCOffset lock_boundary = 32;
+    constexpr PayloadPos lock_boundary = 32;
 
     constexpr std::array test1 { std::byte { 0x12 }, std::byte { 0x34 } };
     constexpr std::array test2 { std::byte { 0x56 }, std::byte { 0x78 } };
     std::array<std::byte, 2> read_buf;
 
     const auto check_write_access = [&](bool locked, bool registers_locked) {
-        const INFCReader::IOResult<void> expected_write_result = locked ? std::unexpected(INFCReader::IOError::other) : INFCReader::IOResult<void> {};
+        const OPTBackend::IOResult<void> expected_write_result = locked ? std::unexpected(OPTBackend::IOError::other) : OPTBackend::IOResult<void> {};
 
         // Reads should always succeed
         CHECK(reader.read(0, lock_boundary, read_buf) == io_success);
@@ -1091,7 +1095,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
         check_write_access(false, false);
     }
 
-    using Params = INFCReader::InitializeTagParams;
+    using Params = OPTBackend::InitializeTagParams;
     Params params {
         .password = 0xdeadbeef,
         .protect_first_num_bytes = lock_boundary,
@@ -1108,7 +1112,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
 
         if (locked) {
             // Double locking should fail
-            CHECK(reader.initialize_tag(0, params) == std::unexpected(INFCReader::IOError::other));
+            CHECK(reader.initialize_tag(0, params) == std::unexpected(OPTBackend::IOError::other));
         }
 
         check_write_access(locked, locked);
@@ -1126,7 +1130,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
         const auto r = reader.initialize_tag(0, params);
 
         // Update unittests if this gets supported
-        REQUIRE(r == std::unexpected(INFCReader::IOError::not_implemented));
+        REQUIRE(r == std::unexpected(OPTBackend::IOError::not_implemented));
     }
 
     SECTION("Write password protection") {
@@ -1156,7 +1160,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][prusa_nfc]") {
     }
 }
 
-TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC debug mode", "[nfcv][openprinttag]") {
     EventLogger logger;
     logger.events = {};
     logger.tags[data::uid1] = TagData {
@@ -1168,35 +1172,35 @@ TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
         .antennas = { 1 },
     };
 
-    LLNFCReader reader(logger);
-    INFCReader::Event event;
+    OPTBackend_NFCV reader(logger);
+    OPTBackend::Event event;
 
     SECTION("No debug") {
         uint32_t time = 0;
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 1, .antenna = 1 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 1, .antenna = 1 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Remove first tag from the reader
         logger.tags[data::uid1].antennas = {};
 
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagLostEvent { .tag = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Put the tag back
         logger.tags[data::uid1].antennas = { 0 };
 
         // No event should happen - the tag was not forgotten and thus should not be redetected
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
     }
 
     SECTION("Auto forget") {
@@ -1204,37 +1208,37 @@ TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
 
         uint32_t time = 0;
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 1, .antenna = 1 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 1, .antenna = 1 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Remove first tag from the reader
         logger.tags[data::uid1].antennas = {};
 
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagLostEvent { .tag = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Put the tag back
         logger.tags[data::uid1].antennas = { 0 };
 
         // The reader is alternating antennas, there should be no changes on antenna 1
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // The tag should be reported again and the ID reused
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
     }
 
     SECTION("Force antenna") {
@@ -1242,25 +1246,25 @@ TEST_CASE("Test NFC debug mode", "[nfcv][prusa_nfc]") {
 
         uint32_t time = 0;
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 1 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 0, .antenna = 1 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Remove first tag from the reader - should do nothing
         logger.tags[data::uid1].antennas = {};
 
         CHECK(!reader.get_event(event, time));
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
 
         // Remove second tag from the reader - should result in tag lost event
         logger.tags[data::uid2].antennas = {};
 
         CHECK(reader.get_event(event, time));
-        CHECK(event == INFCReader::Event { INFCReader::TagLostEvent { .tag = 0 } });
-        time += LLNFCReader::PAUSE_BETWEEN_DISCOVERIES_MS;
+        CHECK(event == OPTBackend::Event { OPTBackend::TagLostEvent { .tag = 0 } });
+        time += OPTBackend_NFCV::PAUSE_BETWEEN_DISCOVERIES_MS;
     }
 }
 
-TEST_CASE("Test NFC get_tag_uid", "[nfcv][prusa_nfc]") {
+TEST_CASE("Test NFC get_tag_uid", "[nfcv][openprinttag]") {
     EventLogger logger;
     logger.events = {};
     logger.tags[data::uid1] = TagData {
@@ -1268,17 +1272,17 @@ TEST_CASE("Test NFC get_tag_uid", "[nfcv][prusa_nfc]") {
         .antennas = { 0 },
     };
 
-    LLNFCReader reader(logger);
-    INFCReader::Event event;
+    OPTBackend_NFCV reader(logger);
+    OPTBackend::Event event;
 
     CHECK(reader.get_event(event, 0));
-    CHECK(event == INFCReader::Event { INFCReader::TagDetectedEvent { .tag = 0, .antenna = 0 } });
+    CHECK(event == OPTBackend::Event { OPTBackend::TagDetectedEvent { .tag = 0, .antenna = 0 } });
 
     nfcv::UID uid;
     std::array<std::byte, 1> small_buffer;
     REQUIRE(reader.get_tag_uid(0, uid) == sizeof(uid));
     CHECK(uid == data::uid1);
 
-    CHECK(reader.get_tag_uid(1, uid) == std::unexpected(INFCReader::IOError::invalid_id));
-    CHECK(reader.get_tag_uid(0, small_buffer) == std::unexpected(INFCReader::IOError::data_too_big));
+    CHECK(reader.get_tag_uid(1, uid) == std::unexpected(OPTBackend::IOError::invalid_id));
+    CHECK(reader.get_tag_uid(0, small_buffer) == std::unexpected(OPTBackend::IOError::data_too_big));
 }
