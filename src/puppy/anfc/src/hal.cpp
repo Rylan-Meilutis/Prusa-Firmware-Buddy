@@ -528,9 +528,23 @@ void hal::init_adc() {
         hal::panic();
     }
 
+    // MCU TEMP
+    static_assert(std::to_underlying(adc::Channel::mcu_temp) == 3);
+    sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        hal::panic();
+    }
+
+    // VRef
+    static_assert(std::to_underlying(adc::Channel::vref_int) == 4);
+    sConfig.Channel = ADC_CHANNEL_VREFINT;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        hal::panic();
+    }
+
     // Verify that the buffer is uint32_t aligned as required by the DMA, so we can safely cast it into uint32_t *
     static_assert(alignof(adc::impl::buffer) == std::alignment_of_v<uint32_t>);
-    static_assert(adc::impl::buffer.size() == 3);
+    static_assert(adc::impl::buffer.size() == 5);
     if (HAL_ADC_Start_DMA(&hadc1, reinterpret_cast<uint32_t *>(adc::impl::buffer.data()), adc::impl::buffer.size()) != HAL_OK) {
         hal::panic();
     }

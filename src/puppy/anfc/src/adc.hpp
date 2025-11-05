@@ -47,6 +47,8 @@ enum class Channel : uint8_t {
     board_temp,
     fs_1,
     fs_2,
+    mcu_temp,
+    vref_int,
     _cnt
 };
 
@@ -56,4 +58,5 @@ namespace impl {
 } // namespace impl
 
 Temperature get_board_temperature();
+Temperature get_mcu_temperature();
 } // namespace adc

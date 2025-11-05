@@ -5,6 +5,8 @@
 #include <limits>
 #include <utility>
 
+#include <stm32c0xx_hal.h>
+
 namespace adc {
 namespace {
     constexpr auto ntcg104lh104jdts_conversion_table = std::to_array<std::pair<Raw<16>, Temperature>>({
@@ -64,6 +66,15 @@ namespace {
     static_assert(calc_board_temp(Raw<16> { 0xf5c0 }) == 22);
     static_assert(calc_board_temp(Raw<16> { 0xf640 }) == 21);
     static_assert(calc_board_temp(Raw<16> { 0xf6c0 }) == 20);
+
+    Temperature calc_mcu_temp(Raw<12> raw_value, Raw<12> vref_raw) {
+        // Copied from https://github.com/STMicroelectronics/STM32CubeC0/blob/220515eaa28ef8848d304e6d52400aa2bbd84661/Projects/NUCLEO-C092RC/Examples_LL/ADC/ADC_MultiChannelSingleConversion_Init/Src/main.c#L258
+        // and adjusted by values from datasheet and reference manual.
+        uint16_t vref = __LL_ADC_CALC_VREFANALOG_VOLTAGE(vref_raw.to_raw(), LL_ADC_RESOLUTION_12B);
+        uint16_t *ts_cal1 = TEMPSENSOR_CAL1_ADDR;
+        uint16_t ts_v_at_30 = __LL_ADC_CALC_DATA_TO_VOLTAGE(TEMPSENSOR_CAL_VREFANALOG, *ts_cal1, LL_ADC_RESOLUTION_12B);
+        return __LL_ADC_CALC_TEMPERATURE_TYP_PARAMS(2'530, ts_v_at_30, TEMPSENSOR_CAL1_TEMP, vref, raw_value.to_raw(), LL_ADC_RESOLUTION_12B);
+    }
 } // namespace
 
 alignas(uint32_t) std::array<Raw<16>, std::to_underlying(Channel::_cnt)> impl::buffer;
@@ -71,6 +82,12 @@ alignas(uint32_t) std::array<Raw<16>, std::to_underlying(Channel::_cnt)> impl::b
 Raw<16> impl::get_raw(Channel channel) {
     assert(std::to_underlying(channel) < impl::buffer.size());
     return impl::buffer[std::to_underlying(channel)];
+}
+
+Temperature get_mcu_temperature() {
+    const auto raw_temp = impl::get_raw(Channel::mcu_temp);
+    const auto vref_raw = impl::get_raw(Channel::vref_int);
+    return calc_mcu_temp(raw_temp.convert_precision<12>(), vref_raw.convert_precision<12>());
 }
 
 Temperature get_board_temperature() {
