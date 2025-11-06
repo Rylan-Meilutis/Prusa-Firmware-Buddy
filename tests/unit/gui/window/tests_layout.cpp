@@ -52,7 +52,7 @@ point_ui16_t icon_meas(const uint8_t *pi) {
 
 static bool g_use_font_2x2 = false;
 
-font_t *resource_font(Font) {
+const font_t *resource_font(Font) {
     return g_use_font_2x2 ? &font_2dot : &font_dot;
 }
 

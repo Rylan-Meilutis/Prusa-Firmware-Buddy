@@ -33,7 +33,7 @@ struct font_t {
     FontCharacterSet charset; // character set (see README_FONT)
 };
 
-font_t *resource_font(Font id);
+const font_t *resource_font(Font id);
 
 /**
  * @brief Font size in pixels.
