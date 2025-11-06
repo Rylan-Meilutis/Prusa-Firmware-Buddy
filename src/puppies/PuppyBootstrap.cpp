@@ -17,11 +17,16 @@
 #include <option/puppy_flash_fw.h>
 #include <option/has_dwarf.h>
 #include <option/has_puppy_modularbed.h>
+#include <option/has_xbuddy_extension.h>
 #include <puppies/puppy_crash_dump.hpp>
 #include <option/has_indx_head.h>
 #include <cstring>
 #include <random.h>
 #include "bsod.h"
+
+#if HAS_XBUDDY_EXTENSION()
+    #include <puppies/xbuddy_extension.hpp>
+#endif
 
 LOG_COMPONENT_REF(Puppies);
 
@@ -424,6 +429,12 @@ bool PuppyBootstrap::discover(PuppyType type, BootloaderProtocol::Address addres
         } else {
             log_warning(Puppies, "Puppy's hardware ID was not written properly to its OTP");
         }
+
+#if HAS_XBUDDY_EXTENSION()
+        if (type == XBUDDY_EXTENSION) {
+            xbuddy_extension.set_otp(*reinterpret_cast<const OTP_v5 *>(otp));
+        }
+#endif
     } // else - older bootloader has revision 0
 
     if (hwinfo.hw_type != get_puppy_info(type).hw_info_hwtype) {

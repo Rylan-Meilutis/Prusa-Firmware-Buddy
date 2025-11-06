@@ -47,11 +47,17 @@ public:
     MI_OTP_XLCD();
 };
 
+class MI_OTP_XBUDDY_EXTENSION final : public WindowMenuInfoOtp {
+public:
+    MI_OTP_XBUDDY_EXTENSION();
+};
+
 using ScreenMenuBoardInfo__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_RETURN,
     MI_OTP_MOTHERBOARD,
     MI_OTP_LOVEBOARD,
-    MI_OTP_XLCD>;
+    MI_OTP_XLCD,
+    MI_OTP_XBUDDY_EXTENSION>;
 
 class ScreenMenuBoardInfo : public ScreenMenuBoardInfo__ {
 public:

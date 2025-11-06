@@ -462,6 +462,16 @@ CommunicationStatus XBuddyExtension::refresh_log_message() {
     return CommunicationStatus::OK;
 }
 
+void XBuddyExtension::set_otp(const OTP_v5 &otp_data) {
+    Lock lock(mutex);
+    otp = otp_data;
+}
+
+OTP_v5 XBuddyExtension::get_otp() const {
+    Lock lock(mutex);
+    return otp;
+}
+
 XBuddyExtension xbuddy_extension(puppyModbus, std::to_underlying(modbus::ServerAddress::xbuddy_extension));
 
 } // namespace buddy::puppies

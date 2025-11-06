@@ -6,6 +6,7 @@
 #include <freertos/mutex.hpp>
 #include <xbuddy_extension/modbus.hpp>
 #include <xbuddy_extension/shared_enums.hpp>
+#include <common/otp_types.hpp>
 
 namespace buddy::puppies {
 
@@ -58,6 +59,9 @@ public:
     CommunicationStatus initial_scan();
     CommunicationStatus ping();
 
+    void set_otp(const OTP_v5 &);
+    OTP_v5 get_otp() const;
+
 private:
     // The registers cached here are accessed from different tasks.
     mutable freertos::Mutex mutex;
@@ -65,6 +69,8 @@ private:
     // If reading/refresh failed, this'll be in invalid state and we'll return
     // nullopt for queries.
     bool valid = false;
+
+    OTP_v5 otp = {};
 
     using Config = xbuddy_extension::modbus::Config;
     ModbusHoldingRegisterBlock<Config::address, Config> config;

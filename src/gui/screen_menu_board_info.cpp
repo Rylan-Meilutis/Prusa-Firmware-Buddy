@@ -6,8 +6,13 @@
 #include <device/board.h>
 #include <gui/img_resources.hpp>
 #include <option/has_love_board.h>
+#include <option/has_xbuddy_extension.h>
 #include <option/has_xlcd.h>
 #include <utils/string_builder.hpp>
+
+#if HAS_XBUDDY_EXTENSION()
+    #include <puppies/xbuddy_extension.hpp>
+#endif
 
 WindowMenuInfoOtpBase::WindowMenuInfoOtpBase(const OTP_v2 &otp) {
     StringBuilder { buffer }
@@ -73,6 +78,15 @@ MI_OTP_XLCD::MI_OTP_XLCD()
     : WindowMenuInfoOtp {
 #if HAS_XLCD()
     "xLCD", data_exchange::get_xlcd_eeprom()
+#endif
+}
+{
+}
+
+MI_OTP_XBUDDY_EXTENSION::MI_OTP_XBUDDY_EXTENSION()
+    : WindowMenuInfoOtp {
+#if HAS_XBUDDY_EXTENSION()
+    "Extension board", buddy::puppies::xbuddy_extension.get_otp()
 #endif
 }
 {
