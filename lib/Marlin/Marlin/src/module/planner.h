@@ -847,9 +847,6 @@ class Planner {
     // Wait for busy(). Does not wait when draining!
     static void synchronize();
 
-    // Indicate whether the buffer is being drained intentionally
-    static bool emptying() { return emptying_buffer || draining_buffer; }
-
     // Wait for busy(), then disable all steppers
     static void finish_and_disable();
 

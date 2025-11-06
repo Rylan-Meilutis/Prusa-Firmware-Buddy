@@ -123,6 +123,7 @@
 
 #include <marlin_vars.hpp>
 #include "configuration_store.h"
+#include <raii/auto_restore.hpp>
 #include "bsod.h"
 
 constexpr const int32_t MIN_MSTEPS_PER_SEGMENT = MIN_STEPS_PER_SEGMENT * PLANNER_STEPS_MULTIPLIER;
@@ -1157,11 +1158,9 @@ bool Planner::busy() {
  * Block until all buffered steps are executed / cleaned
  */
 void Planner::synchronize() {
-  bool emptying_buffer_orig = emptying();
-  emptying_buffer = true;
+  AutoRestore eb(emptying_buffer, true);
   start_moving();
   while (busy()) idle(true);
-  emptying_buffer = emptying_buffer_orig;
 #if HAS_PHASE_STEPPING()
   phase_stepping::check_state();
 #endif // HAS_PHASE_STEPPING()
@@ -1581,7 +1580,7 @@ bool Planner::_populate_block(block_t * const block,
       const uint8_t total_blocks_queued = movesplanned();
 
       // Do not slowdown when implicitly stopping and/or when the queue still contains at least one command
-      if (!emptying() && queue.length <= 3 && WITHIN(total_blocks_queued, 2, (BLOCK_BUFFER_SIZE) / (SLOWDOWN_DIVISOR) - 1)) {
+      if (!draining() && !emptying_buffer && queue.length <= 3 && WITHIN(total_blocks_queued, 2, (BLOCK_BUFFER_SIZE) / (SLOWDOWN_DIVISOR) - 1)) {
         const int32_t time_diff = settings.min_segment_time_us - segment_time_us;
         if (time_diff > 0) {
           // Buffer is draining so add extra time. The amount of time added increases if the buffer is still emptied more.
