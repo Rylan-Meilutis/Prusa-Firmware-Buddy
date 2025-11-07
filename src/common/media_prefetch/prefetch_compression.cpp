@@ -6,7 +6,7 @@
 #include <cstring>
 
 #ifdef UNITTESTS
-    #include <catch2/catch.hpp>
+    #include <catch2/catch_all.hpp>
     #undef assert
     #define assert(x) REQUIRE(x)
 #else

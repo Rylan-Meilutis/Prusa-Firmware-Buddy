@@ -1,7 +1,7 @@
 /// @file
 #include <freertos/mutex.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 thread_local int freertos::Mutex::locked_mutex_count = 0;
 

@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <st25r39xxb/hw_interface.hpp>
 
 #include <vector>

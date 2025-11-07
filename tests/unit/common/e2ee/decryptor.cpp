@@ -1,7 +1,7 @@
 #include <gcode_reader_binary.hpp>
 #include <e2ee/decryptor.hpp>
 #include <fcntl.h>
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 constexpr uint8_t encryption_key[] = {
     0xb1, 0x1c, 0x6c, 0xb1, 0xf4, 0x10, 0x22, 0x11,

@@ -1,7 +1,7 @@
 #include <nhttp/job_command.h>
 #include <nhttp/handler.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using nhttp::handler::ConnectionState;
 using nhttp::handler::Continue;

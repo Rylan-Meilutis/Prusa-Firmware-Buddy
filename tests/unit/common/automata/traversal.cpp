@@ -1,6 +1,6 @@
 #include "test_execution.h"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace automata;
 using std::get;

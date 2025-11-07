@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include <feature/filament_sensor/filament_sensor_adc_eval.hpp>
 #include <fstream>
 #include <string>

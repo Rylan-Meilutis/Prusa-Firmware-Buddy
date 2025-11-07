@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <common/circular_buffer.hpp>
 
 TEST_CASE("CircularBuffer basics", "[circular_buffer]") {

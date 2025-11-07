@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "crc32.h"
 #include "dummy_eeprom_chip.h"
 #include <journal/backend.hpp>

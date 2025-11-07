@@ -3,7 +3,7 @@
 #include "cyphal_presentation.hpp"
 #include <cyphal_application_impl.hpp>
 #include <master_activity.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <vector>
 
 using Application = cyphal::ApplicationImpl;

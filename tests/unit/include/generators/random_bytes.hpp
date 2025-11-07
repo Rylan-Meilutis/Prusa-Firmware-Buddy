@@ -1,5 +1,9 @@
 #pragma once
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators_all.hpp>
+#include <random>
 
 struct RandomBytesGenerator final : public Catch::Generators::IGenerator<std::vector<uint8_t>> {
     RandomBytesGenerator(size_t min, size_t max)
@@ -52,9 +56,9 @@ protected:
 };
 
 auto random_bytes(size_t min, size_t max) {
-    return Catch::Generators::GeneratorWrapper<std::vector<uint8_t>>(Catch::Generators::pf::make_unique<RandomBytesGenerator>(min, max));
+    return Catch::Generators::GeneratorWrapper<std::vector<uint8_t>>(Catch::Detail::make_unique<RandomBytesGenerator>(min, max));
 }
 
 auto random_bytes(size_t length) {
-    return Catch::Generators::GeneratorWrapper<std::vector<uint8_t>>(Catch::Generators::pf::make_unique<RandomBytesGenerator>(length));
+    return Catch::Generators::GeneratorWrapper<std::vector<uint8_t>>(Catch::Detail::make_unique<RandomBytesGenerator>(length));
 }

@@ -1,5 +1,5 @@
 
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include "provider.h"
 #include "translation_provider_FILE.hpp"
 #include "fnt-indices.hpp"

@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include "algorithm_scale.hpp"
 
 TEST_CASE("checking scales", "[scale]") {

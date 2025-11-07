@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <stdexcept>
 #define ACQ_ASSERT(cond)                                      \
     if (!(cond)) {                                            \

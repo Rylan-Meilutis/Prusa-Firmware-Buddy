@@ -2,7 +2,7 @@
 
 // The path length constants live in gui :-(
 #include <gui/file_list_defs.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <cstring>
 #include <string_view>
 

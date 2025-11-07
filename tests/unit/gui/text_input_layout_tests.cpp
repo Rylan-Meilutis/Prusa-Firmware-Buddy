@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <dialog_text_input_layout.in.cpp>
 
 using namespace dialog_text_input;

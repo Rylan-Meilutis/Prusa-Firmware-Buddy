@@ -2,6 +2,7 @@
 
 #include <array>
 #include <algorithm>
+#include <numeric>
 
 enum class DynamicIndexMappingType {
     /// Single static item that is always in the list

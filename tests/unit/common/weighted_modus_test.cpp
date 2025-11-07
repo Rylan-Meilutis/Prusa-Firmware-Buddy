@@ -1,8 +1,6 @@
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include "homing_modus.hpp"
-
-using Catch::Matchers::Equals;
 
 TEST_CASE("Circular distance", "") {
 

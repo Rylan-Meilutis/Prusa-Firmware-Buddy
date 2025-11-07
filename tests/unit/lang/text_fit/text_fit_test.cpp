@@ -1,6 +1,6 @@
 #include "text_fit_test.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <lang/string_view_utf8.hpp>
 #include "translator.hpp"
 #include <translation_provider_CPUFLASH.hpp>

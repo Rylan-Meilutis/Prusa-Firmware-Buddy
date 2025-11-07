@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <test_utils/formatters.hpp>
 
 #include <openprinttag_stub/opt_stub.hpp>

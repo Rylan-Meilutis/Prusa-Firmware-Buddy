@@ -2,7 +2,8 @@
 
 #include <gcode_reader_any.hpp>
 #include <common/thumbnail_sizes.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <deque>
 #include <iostream>

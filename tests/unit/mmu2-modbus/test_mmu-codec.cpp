@@ -1,7 +1,7 @@
 #include <xbuddy_extension/mmu_bridge.hpp>
 #include "../../../lib/Marlin/Marlin/src/feature/prusa/MMU2/protocol_logic.h"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 namespace MMU2 {
 void LogResponseMsg(const char *) {}

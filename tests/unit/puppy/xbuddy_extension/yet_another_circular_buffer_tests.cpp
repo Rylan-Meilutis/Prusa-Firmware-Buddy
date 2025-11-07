@@ -1,7 +1,7 @@
 #include "yet_another_circular_buffer.hpp"
 
 #include <array>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 constexpr size_t buffer_size = 8;
 

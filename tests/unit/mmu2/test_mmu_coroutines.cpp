@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <mmu2/mmu2_bootloader_coroutine.hpp>
 #include <memory_resource>
 

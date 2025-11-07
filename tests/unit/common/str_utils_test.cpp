@@ -1,17 +1,15 @@
 /// str_utils tests
 
-#include <string.h>
-#include <iostream>
-#include <cstdint>
-#include <vector>
-
-// #define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
-#include "catch2/catch.hpp"
-
-using Catch::Matchers::Equals;
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <lang/string_view_utf8.hpp>
 #include <str_utils.hpp>
+
+#include <cstdint>
+#include <vector>
+
+using Catch::Matchers::Equals;
 
 template <typename T>
 void test_from_chars_light() {

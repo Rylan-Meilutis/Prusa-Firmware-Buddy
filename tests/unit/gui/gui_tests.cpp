@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <numeric_input_config.hpp>
 
 TEST_CASE("gui::numeric_input_config") {

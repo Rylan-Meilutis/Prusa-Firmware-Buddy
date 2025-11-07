@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <utils/timing/rate_limiter.hpp>
 
 TEST_CASE("RateLimiter::uint8_t", "[ratelimiter]") {

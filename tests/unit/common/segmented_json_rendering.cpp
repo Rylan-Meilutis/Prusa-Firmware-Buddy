@@ -1,7 +1,7 @@
 #include <segmented_json.h>
 #include <segmented_json_macros.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <deque>
 #include <string>
 #include <string_view>

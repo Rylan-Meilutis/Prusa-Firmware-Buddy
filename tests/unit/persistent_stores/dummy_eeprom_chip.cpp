@@ -2,7 +2,7 @@
 
 #include "dummy_eeprom_chip.h"
 #include <cstring>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 DummyEepromChip eeprom_chip;
 
 void DummyEepromChip::get(uint16_t address, uint8_t *pdata, uint16_t len) {

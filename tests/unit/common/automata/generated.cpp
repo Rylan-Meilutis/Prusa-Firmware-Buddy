@@ -4,7 +4,7 @@
 #include <http_req.h>
 #include "test_execution.h"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <string_view>
 
 using namespace automata;

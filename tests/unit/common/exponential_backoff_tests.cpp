@@ -1,7 +1,7 @@
 
 #include <utils/exponential_backoff.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Exponential backoff") {
     buddy::ExponentialBackoff<uint32_t, 3, 17> backoff;

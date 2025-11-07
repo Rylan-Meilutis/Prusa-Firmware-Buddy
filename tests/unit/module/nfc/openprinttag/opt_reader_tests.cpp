@@ -1,4 +1,6 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <unordered_map>
 #include <string>
@@ -597,7 +599,7 @@ TEST_CASE("OPTReader::edge_cases") {
         }
 
         {
-            INFO("Writing to the damaged part should fail without any writes")
+            INFO("Writing to the damaged part should fail without any writes");
             CHECK(reader.write_field_float(field(MainField::transmission_distance), 18) == std::unexpected(OPTReader::Error::region_corrupt));
             CHECK(mock.log.reads.size() == 0); // Should have been cached
             CHECK(mock.log.writes.size() == 0);
@@ -726,7 +728,7 @@ TEST_CASE("OPTReader::caching") {
 
     {
         INFO("But the oldest-accessed tag should have been thrown out of the cache");
-        INFO("Now we should have tag 0 replacing tag 1")
+        INFO("Now we should have tag 0 replacing tag 1");
         check_full_read(0);
         check_no_read(0);
     }

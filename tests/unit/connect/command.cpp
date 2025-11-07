@@ -3,7 +3,7 @@
 #include <module/prusa/tool_mapper.hpp>
 #include <cstring>
 #include <format>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace connect_client;
 using std::array;

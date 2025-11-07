@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <utils/timing/combo_counter.hpp>
 
 TEST_CASE("ComboCounter::uint8_t") {

@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <utils/timing/timer_event_period_tracker.hpp>
 
 TEST_CASE("timer_event_period_tracker", "[timer_event_period_tracker]") {

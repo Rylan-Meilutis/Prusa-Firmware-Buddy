@@ -1,5 +1,8 @@
-#include "catch2/catch.hpp"
-#include <tuple>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <sstream>
 #include <iostream>
 #include <cstring>
@@ -15,7 +18,7 @@ extern "C" uint32_t ticks_us() {
 }
 
 template <typename It>
-class IteratorDistance : public Catch::MatcherBase<int> {
+class IteratorDistance : public Catch::Matchers::MatcherBase<int> {
     It a;
     It b;
 
@@ -60,7 +63,7 @@ SCENARIO("Analysis properly handles its sample window", "[probe_analysis]") {
             THEN("reports it's not ready for analysis") {
                 auto result = analysis.Analyse();
                 REQUIRE(!result);
-                REQUIRE_THAT(result.error().description, Catch::Equals("small-window"));
+                REQUIRE_THAT(result.error().description, Catch::Matchers::Equals("small-window"));
             }
         }
 
@@ -75,7 +78,7 @@ SCENARIO("Analysis properly handles its sample window", "[probe_analysis]") {
             THEN("it is still not ready") {
                 auto result = analysis.Analyse();
                 REQUIRE(!result);
-                REQUIRE_THAT(result.error().description, Catch::Equals("small-window"));
+                REQUIRE_THAT(result.error().description, Catch::Matchers::Equals("small-window"));
             }
         }
 
@@ -94,7 +97,7 @@ SCENARIO("Analysis properly handles its sample window", "[probe_analysis]") {
             THEN("it is ready for analysis") {
                 auto result = analysis.Analyse();
                 REQUIRE(!result);
-                REQUIRE_THAT(result.error().description, Catch::Equals("load-lines"));
+                REQUIRE_THAT(result.error().description, Catch::Matchers::Equals("load-lines"));
             }
         }
 
@@ -165,7 +168,7 @@ SCENARIO("Analysis properly handles its sample window", "[probe_analysis]") {
             THEN("the instance is no longer ready") {
                 auto result = analysis.Analyse();
                 REQUIRE(!result);
-                REQUIRE_THAT(result.error().description, Catch::Equals("small-window"));
+                REQUIRE_THAT(result.error().description, Catch::Matchers::Equals("small-window"));
             }
 
             THEN("the instance has an empty window") {

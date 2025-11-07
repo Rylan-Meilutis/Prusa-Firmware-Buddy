@@ -1,7 +1,7 @@
 #include "stub_interfaces.h"
 #include <mmu2_serial.h>
 #include <typeinfo>
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 MMU2SerialSim mmu2SerialSim;
 

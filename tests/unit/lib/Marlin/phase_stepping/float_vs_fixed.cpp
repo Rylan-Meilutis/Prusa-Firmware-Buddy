@@ -1,7 +1,7 @@
 #include "lut_old.hpp"
 #include <lut.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace phase_stepping;
 

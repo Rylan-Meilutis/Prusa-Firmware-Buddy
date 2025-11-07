@@ -1,5 +1,7 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <round_fixed.hpp>
+
+#include <cmath>
 
 using namespace phase_stepping;
 
@@ -8,7 +10,8 @@ template <class T>
 T round_fixed_floaty(T val, int bits) {
     int offset = 1 << bits;
     long double real_value = static_cast<long double>(val) / static_cast<long double>(offset);
-    return static_cast<T>(roundl(real_value));
+    T result = std::roundl(real_value);
+    return static_cast<T>(result);
 }
 
 TEST_CASE("Round fixed") {

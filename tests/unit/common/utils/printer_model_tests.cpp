@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <common/printer_model.hpp>
 #include <common/printer_model_data.hpp>

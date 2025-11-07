@@ -23,7 +23,7 @@
 #include <lwip/priv/altcp_priv.h>
 #include "time_mock.h"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <memory>
 #include <vector>
 

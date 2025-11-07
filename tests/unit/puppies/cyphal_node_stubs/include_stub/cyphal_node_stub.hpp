@@ -1,6 +1,6 @@
 #pragma once
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <prusa3d/nfc/PortIDs_1_0.h>
 #include <prusa3d/nfc/SetConfig_1_0.h>

@@ -1,6 +1,6 @@
 #include <feature/cork/tracker.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 extern "C" uint32_t rand_u() {
     return 42;

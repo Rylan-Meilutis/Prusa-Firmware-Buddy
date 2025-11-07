@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <generators/random_bytes.hpp>
 
 #include <nfcv/decode.hpp>

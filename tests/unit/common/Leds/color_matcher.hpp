@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
 #include <utils/led_color.hpp>
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include <array>
 
 namespace leds {

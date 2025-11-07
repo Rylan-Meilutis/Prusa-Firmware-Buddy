@@ -2,7 +2,7 @@
 #include <new> // bring in placement new
 #include <mmu2_mk4.h>
 #include <algorithm>
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 bool MockLog::Matches(std::initializer_list<std::string_view> msgs) const {
     return std::equal(log.begin(), log.end(), msgs.begin());

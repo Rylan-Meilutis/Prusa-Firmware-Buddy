@@ -4,7 +4,9 @@
 #include <limits.h>
 #include <string.h>
 
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+
 #include "path.h"
 
 /// PATH_MAX is not defined in MinGW32 with __STRICT_ANSI__ defined

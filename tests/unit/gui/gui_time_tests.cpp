@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include "gui_time.hpp"
 
 uint32_t tick = 0;

@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 
 #include <mmu2_mk4.h>
 #include <inttypes.h>
