@@ -620,8 +620,8 @@ class Planner {
     FORCE_INLINE static block_t* get_next_free_block(uint8_t &next_buffer_head, const uint8_t count=1) {
 
       // Wait until there are enough slots free or if aborting
-      while (moves_free() < count && !draining_buffer) { idle(true); }
-      if (draining_buffer || PreciseStepping::stopping())
+      while (moves_free() < count && !draining()) { idle(true); }
+      if (draining() || PreciseStepping::stopping())
         return nullptr;
 
       // Return the first available block

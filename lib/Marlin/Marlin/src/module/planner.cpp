@@ -1042,7 +1042,7 @@ float Planner::triggered_position_mm(const AxisEnum axis) {
 
 void Planner::finish_and_disable() {
   synchronize();
-  if (!draining_buffer) disable_all_steppers();
+  if (!draining()) disable_all_steppers();
 }
 
 
@@ -1150,7 +1150,7 @@ float Planner::get_axis_position_mm(const AxisEnum axis) {
 
 
 bool Planner::busy() {
-  return !draining_buffer && processing();
+  return !draining() && processing();
 }
 
 /**
@@ -2397,14 +2397,14 @@ bool Planner::buffer_segment(const abce_pos_t &abce
 #if HAS_CEILING_CLEARANCE()
   // BFW-7734 only check when a negative Z-move is planned - it's a workaround for ceiling check sometimes reporting false positives yet for unknown reasons
   if(target.z < position.z){
-    // ! Important: call before checking for draining_buffer
+    // ! Important: call before checking for draining()
     // Note: I don't remember why I thought it was important and now I think it should probably be under the check
     buddy::check_ceiling_clearance(abce);
   }
 #endif
 
   // If we are aborting, do not accept queuing of movements
-  if (draining_buffer || PreciseStepping::stopping()) return false;
+  if (draining() || PreciseStepping::stopping()) return false;
 
   // Make sure we are at the correct temperatures before doing any move whatsoever
   // Also doing any printer movement resets the timer
@@ -2417,7 +2417,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce
     buddy::emergency_stop().assert_can_plan_movement();
 
     // Check once more (this could have changed during the maybe_block)
-    if (draining_buffer || PreciseStepping::stopping()) return false;
+    if (draining() || PreciseStepping::stopping()) return false;
   }
 #endif
 
@@ -2536,7 +2536,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce
 
 bool Planner::buffer_raw_segment(const abce_pos_t &abce, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
     // If we are aborting, do not accept queuing of movements
-    if (draining_buffer || PreciseStepping::stopping()) {
+    if (draining() || PreciseStepping::stopping()) {
         return false;
     }
 
