@@ -66,15 +66,13 @@ else
 fi
 rm -rf full-chars.txt latin-chars.txt digits-chars.txt latin-and-katakana-chars.txt latin-and-cyrillic-chars.txt
 
-# Generate binary from the font
-python3 utils/translations_and_fonts/png2font.py \
+# Generate C++ header directly from PNG
+python3 utils/translations_and_fonts/png2cc.py \
  --source="${png_dst}${dst_name}.png" \
- --output="${dst_name}.bin" \
+ --output="src/gui/res/cc/${dst_name}.hpp" \
  --width=${w} \
  --height=${h} \
  --columns=16 \
- --rows=${char_rows}
-
-# Generate C++ header from binary
-python3 utils/translations_and_fonts/bin2cc.py ${dst_name}.bin src/gui/res/cc/${dst_name}.hpp ${type} ${w} ${h} FontCharacterSet::${charset_option}
-rm -rf ${dst_name}.bin
+ --rows=${char_rows} \
+ --type=${type} \
+ --charset=${charset_option}

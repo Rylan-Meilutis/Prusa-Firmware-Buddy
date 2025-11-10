@@ -2,13 +2,14 @@
 
 import argparse
 import sys
+import math
 from PIL import Image
 
 
-def png2font(src_filename, out_filename, char_w, char_h, columns, rows):
+def png2font(src_img, char_w, char_h, columns, rows):
+    """Convert PNG image to binary font format, returning the charset data."""
 
-    # Load source PNG
-    src_img = Image.open(src_filename)
+    # Convert image to RGB
     src_rgb = src_img.convert('RGB')
     src_w, src_h = src_rgb.size
 
@@ -45,13 +46,29 @@ def png2font(src_filename, out_filename, char_w, char_h, columns, rows):
             # Update character pixel data
             charset_data[offs] |= opacity << i
 
-    with open(out_filename, 'wb') as out_file:
-        out_file.write(charset_data)
+    return charset_data
+
+
+def bin2cc(charset_data, dst_file, var_name, w, h, charset_enum):
+    """Convert binary font data to C++ header format."""
+
+    font_name = f'font_{var_name}_{w}x{h}'
+
+    dst_file.write(f'#include "font_character_sets.hpp"\n')
+    dst_file.write(f'constexpr uint8_t {font_name}_data[] = {{\n')
+
+    for byte in charset_data:
+        dst_file.write(f'    0x{byte:02x},\n')
+
+    dst_file.write('};\n')
+    dst_file.write(
+        f'constexpr font_t {font_name} = {{ {w}, {h}, {math.ceil(w/2)}, {font_name}_data, 32, FontCharacterSet::{charset_enum} }};\n'
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='png2font - convert PNG image to binary font format')
+        description='png2cc - convert PNG image to C++ font header')
 
     parser.add_argument('--source',
                         dest='source',
@@ -60,7 +77,7 @@ def main():
     parser.add_argument('--output',
                         dest='output',
                         required=True,
-                        help='output charset binary file name')
+                        help='output C++ header file name')
     parser.add_argument('--width',
                         dest='width',
                         type=int,
@@ -81,12 +98,30 @@ def main():
                         type=int,
                         required=True,
                         help='charset rows')
+    parser.add_argument('--type',
+                        dest='type',
+                        required=True,
+                        help='font type (regular, bold, ...)')
+    parser.add_argument('--charset',
+                        dest='charset',
+                        required=True,
+                        help='charset (full, latin, ...)')
 
     args = parser.parse_args()
 
     try:
-        png2font(args.source, args.output, args.width, args.height,
-                 args.columns, args.rows)
+        # Load source PNG
+        src_img = Image.open(args.source)
+
+        # Convert PNG to binary font format
+        charset_data = png2font(src_img, args.width, args.height, args.columns,
+                                args.rows)
+
+        # Write C++ header file
+        with open(args.output, 'w') as out_file:
+            bin2cc(charset_data, out_file, args.type, args.width, args.height,
+                   args.charset)
+
         return 0
     except Exception as e:
         print(f'Error: {e}', file=sys.stderr)

@@ -62,17 +62,6 @@ ipp_path            - destination path with name of the to be generated ipp file
                       It's either "src/guiapi/include/fnt-full-indices.ipp" or "src/guiapi/include/fnt-latin-indices.ipp" or "src/guiapi/include/fnt-digits-indices.ipp" or "src/guiapi/include/fnt-latin-and-katakana-indices.ipp" or "src/guiapi/include/fnt-latin-and-cyrillic-indices.ipp"
 ```
 
-2. Run utils/translations_and_fonts/png2font.py
-
-3. Run utils/translations_and_fonts/bin2cc.py
-```bash
-src_filename - path to the .bin file from previous step
-dst_filename - "src/gui/res/cc/{name}.hpp" destination of .hpp file to be included; name of header file should correspond used png file from step 1
-type         - type of given font; e.g. "15px-LiberationMono-regular_9x16.png" -> type = regular
-width        - pixel width of given font
-height       - pixel height of given font
-charset      - character set option, "full" (latin + katakana + cyrillic) or "digits" (0-9 + '.' + '?' + '%' + '-') or "latin" or "latin_and_katakana" or "latin_and_cyrillic"
-```
-
-4. Redo steps 1-3 for all fonts that are to be changed
-5. At last chang includes in src/gui/fonts.cpp to the ones just added and cleanup unused ones
+2. Run utils/translations_and_fonts/png2cc.py to generate C++ header from PNG
+3. Redo steps 1-2 for all fonts that are to be changed
+4. At last change includes in src/gui/fonts.cpp to the ones just added and cleanup unused ones
