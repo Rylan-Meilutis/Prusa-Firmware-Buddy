@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <array>
 #include <cstdint>
 #include <algorithm>
@@ -14,21 +15,29 @@ public:
     bool ProcessSample(int32_t value);
 
     void SetDetectionThreshold(float dt) {
-        detectionThreshold = dt;
+        detectionThreshold.store(dt, std::memory_order_relaxed);
     }
 
-    constexpr float DetectionThreshold() const { return detectionThreshold; }
+    constexpr float DetectionThreshold() const { return detectionThreshold.load(std::memory_order_relaxed); }
 
 #ifndef UNITTEST
 private:
 #endif
     std::array<int32_t, 5> buffer {}; // Buffer to store previous input values
-    float detectionThreshold = 700'000.F;
+    std::atomic<float> detectionThreshold = 700'000.F;
 #ifdef UNITTEST
     float filteredValue; // for unit tests, filteredValue is a member of the class allowing better debugging experience
 #endif
 };
 
+// Note about thread safety.
+//
+// We read the reports from the default (Marlin) task, but feed the samples
+// from some other place (interrupt or puppy task). Therefore, we need to deal with thread safety.
+//
+// The filter and bucket "live" inside the place where we feed samples. We
+// communicate by setting atomic flags. Clearing of both the filter and the
+// bucket happens through flags too.
 class EMotorStallDetector {
     friend class BlockEStallDetection;
     friend class EStallDetectionStateLatch;
@@ -46,20 +55,20 @@ public:
     void ProcessSample(int32_t value, uint32_t time_us);
 
     /// @returns raw detected flag disregarding blocked and enabled flags
-    constexpr bool DetectedRaw() const { return detected; }
+    constexpr bool DetectedRaw() const { return detected.load(std::memory_order_relaxed); }
 
     /// @returns true if a stall has been detected somewhere in the past.
     /// The idea is to keep the filter running almost asynchronnously in the back and ask for the @ref detected flag occasionally.
     /// When the flag has been read by the caller code, it may clear it in order to get a new detected == true in the future.
     constexpr bool DetectedUnreported() const {
-        return detected_many && (!reported) && (blocked <= 0) && enabled;
+        return detected_many.load(std::memory_order_relaxed) && (!reported) && (blocked <= 0) && enabled;
     }
 
     inline void ClearDetected() {
-        detected = false;
-        detected_many = false;
+        detected.store(false, std::memory_order_relaxed);
+        detected_many.store(false, std::memory_order_relaxed);
         reported = false;
-        bucket.reset();
+        clear_bucket.store(true, std::memory_order_relaxed);
     }
 
     inline bool Reported() const {
@@ -126,10 +135,15 @@ private:
     int blocked = 0;
 
     /// true if filter value exceeded the threshold
-    bool detected : 1 = false;
+    std::atomic<bool> detected = false;
 
     /// true if multiple detections (based on the bucket above) happened.
-    bool detected_many : 1 = false;
+    std::atomic<bool> detected_many = false;
+
+    /// true if we requested clearing of bucket.
+    ///
+    /// Because the request comes from a different thread than in which the bucket lives.
+    std::atomic<bool> clear_bucket = false;
 
     /// Set to true when \ref Evaluate returns true.
     bool reported : 1 = false;
@@ -144,14 +158,14 @@ public:
     BlockEStallDetection() {
         auto &emsd = EMotorStallDetector::Instance();
         emsd.blocked++;
-        emsd.detected = false;
-        emsd.detected_many = false;
+        emsd.detected.store(false, std::memory_order_relaxed);
+        emsd.detected_many.store(false, std::memory_order_relaxed);
     }
     ~BlockEStallDetection() {
         auto &emsd = EMotorStallDetector::Instance();
         emsd.blocked--;
         if (emsd.blocked == 0) {
-            emsd.bucket.reset();
+            emsd.clear_bucket.store(true, std::memory_order_relaxed);
         }
     }
 };

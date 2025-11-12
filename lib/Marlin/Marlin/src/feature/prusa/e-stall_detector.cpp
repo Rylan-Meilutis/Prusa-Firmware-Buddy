@@ -53,7 +53,7 @@ bool MotorStallFilter::ProcessSample(int32_t value) {
     for (size_t i = 0; i < combinedFilter.size(); ++i) {
         filteredValue += combinedFilter[i] * buffer[i];
     }
-    return filteredValue > detectionThreshold;
+    return filteredValue > detectionThreshold.load(std::memory_order_relaxed);
 }
 
 void EMotorStallDetector::SetEnabled(bool set) {
@@ -71,10 +71,16 @@ void EMotorStallDetector::SetEnabled(bool set) {
 #if HAS_LOADCELL()
 void EMotorStallDetector::ProcessSample(int32_t value, uint32_t time_us) {
     const bool detected_now = emf.ProcessSample(value);
-    detected |= detected_now;
-    if (detected_now && !bucket.add_sample(time_us)) {
-        // false -> sample didn't "fit" -> there were many in short time
-        detected_many = true;
+    if (clear_bucket.load(std::memory_order_relaxed)) {
+        clear_bucket.store(false, std::memory_order_relaxed);
+        bucket.reset();
+    }
+    if (detected_now) {
+        detected.store(true, std::memory_order_relaxed);
+        if (!bucket.add_sample(time_us)) {
+            // false -> sample didn't "fit" -> there were many in short time
+            detected_many.store(true, std::memory_order_relaxed);
+        }
     }
 }
 
@@ -87,7 +93,7 @@ bool EMotorStallDetector::Evaluate(bool movingE, bool directionE) {
         return false;
     }
 
-    if (!detected_many) {
+    if (!detected_many.load(std::memory_order_relaxed)) {
         return false;
     }
 
