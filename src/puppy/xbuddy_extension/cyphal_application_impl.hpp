@@ -51,6 +51,8 @@ inline FirmwareFile get_firmware_file_for_node_name(NodeName node_name) {
         break;
     case NodeName::cz_prusa3d_honeybee_ac_controller:
         return FirmwareFile::firmware_ac_controller;
+    case NodeName::cz_prusa3d_honeybee_nfc:
+        return FirmwareFile::firmware_anfc;
     }
     return FirmwareFile::none;
 }
@@ -227,6 +229,8 @@ private:
                 ac_controller->seen_status = false;
             }
         };
+        struct NfcAlive {
+        };
         struct Inert {
         };
         /// A node can be in one of these states during its lifetime.
@@ -236,6 +240,7 @@ private:
         /// * Verify - we want to verify it's firmware's hash.
         /// * Flash - depending on the verification result, we want to load a new firmware into the device. Or we can skip this phase.
         /// * AcControllerAlive - AC controller node is active and operational.
+        /// * NfcAlive - NFC node is active and operational.
         /// * Inert - "trash" state, for nodes of unknown state or otherwise weird situations we don't know what to do about.
         using State = std::variant<
             // No state, before the node is properly allocated and born.
@@ -244,6 +249,7 @@ private:
             Verify,
             Flash,
             AcControllerAlive,
+            NfcAlive,
             Inert>;
         State state;
 
@@ -276,6 +282,8 @@ private:
                         return AcControllerAlive {
                             .ac_controller = &application->ac_controller,
                         };
+                    case NodeName::cz_prusa3d_honeybee_nfc:
+                        return NfcAlive {};
                     }
                     // We passed verification, but don't know what to do about the node, so...
                     return Inert {};
@@ -499,10 +507,19 @@ private:
             return false;
         }
 
+        bool step(Presentation &presentation, const TimePoint, ApplicationImpl *, NodeId node_id, NfcAlive &alive) {
+            // TODO BFW-8076 perform some useful work here
+            (void)presentation;
+            (void)node_id;
+            (void)alive;
+            return false;
+        }
+
         bool verified() const {
             return std::visit(
                 Overloaded {
                     [](const AcControllerAlive &) { return true; },
+                    [](const NfcAlive &) { return true; },
                     [](const Verify &verify) { return verify.finalized() && verify.matches; },
                     [](const auto &) { return false; } },
                 state);
@@ -801,6 +818,7 @@ public:
                     [](const ApplicationImpl::Node::AcControllerAlive &alive) {
                         return alive.ac_controller->seen_status ? NodeState::ready : NodeState::verify;
                     },
+                    [](const ApplicationImpl::Node::NfcAlive &) { return NodeState::ready; },
                     [](const ApplicationImpl::Node::Inert &) { return NodeState::unknown; },
                 },
                 node.state);

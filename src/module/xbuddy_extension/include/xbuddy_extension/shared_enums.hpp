@@ -32,6 +32,7 @@ enum class NodeState {
 enum class FileId {
     none = 0,
     firmware_ac_controller,
+    firmware_anfc,
 };
 
 } // namespace xbuddy_extension

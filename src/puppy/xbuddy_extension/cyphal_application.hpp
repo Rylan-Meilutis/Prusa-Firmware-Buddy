@@ -23,6 +23,7 @@ using TimePoint = freertos::TimePoint;
 enum class NodeName : uint8_t {
     none = 0,
     cz_prusa3d_honeybee_ac_controller,
+    cz_prusa3d_honeybee_nfc,
 };
 
 /// Parse raw node name.

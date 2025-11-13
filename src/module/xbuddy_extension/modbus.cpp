@@ -25,6 +25,7 @@ xbuddy_extension::FileId xbuddy_extension::modbus::parse_file_id(uint16_t file_i
     switch (const auto value = static_cast<FileId>(file_id)) {
     case FileId::none:
     case FileId::firmware_ac_controller:
+    case FileId::firmware_anfc:
         return value;
     }
     return FileId::none;

@@ -13,6 +13,9 @@ NodeName parse_node_name(Bytes raw) {
     if (equal(raw, "cz.prusa3d.honeybee.ac_controller"sv)) {
         return NodeName::cz_prusa3d_honeybee_ac_controller;
     }
+    if (equal(raw, "cz.prusa3d.honeybee.nfc"sv)) {
+        return NodeName::cz_prusa3d_honeybee_nfc;
+    }
     return NodeName::none;
 }
 

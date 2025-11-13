@@ -26,6 +26,8 @@ static const char *get_file_path(FileId file_id) {
         break;
     case FileId::firmware_ac_controller:
         return "/internal/res/puppies/fw-ac_controller.bin";
+    case FileId::firmware_anfc:
+        return "/internal/res/puppies/fw-anfc.bin";
     }
     bsod_unreachable();
 }
