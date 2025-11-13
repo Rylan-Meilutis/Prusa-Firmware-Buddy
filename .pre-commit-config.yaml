@@ -80,9 +80,9 @@ exclude: |
     lib/Middlewares/Third_Party/LwIP/|
     lib/Middlewares/Third_Party/littlefs/|
     lib/Middlewares/Third_Party/mbedtls/|
+    lib/OpenPrintTag/|
     lib/Prusa-Error-Codes/|
     lib/Prusa-Firmware-MMU/|
-    lib/OpenPrintTag/|
     lib/QR/|
     lib/Segger|
     lib/TMCStepper/|
@@ -95,14 +95,13 @@ exclude: |
     lib/libbgcode/|
     lib/liblightmodbus/|
     lib/libsysbase/|
+    lib/nanocbor/|
     lib/o1heap/|
     lib/printf|
     lib/sfl-library|
     lib/tinyusb/|
     lib/magic_enum/|
     lib/SG14/|
-    lib/nanocbor/|
-    lib/libcanard/|
     src/can/data_types/public_regulated_data_types/|
     tests/stubs/FreeRTOS|
     tests/unit/common/gcode/.*\.gcode$|
