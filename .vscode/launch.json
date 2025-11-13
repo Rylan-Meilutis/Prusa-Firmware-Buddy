@@ -295,7 +295,7 @@
             ],
             "toolchainPrefix": "arm-none-eabi",
             "device": "STM32C092RC",
-            "svdFile": "${workspaceRoot}/utils/debug/svd/STM32C092.svd", // TODO change to .dependencies once available at https://raw.githubusercontent.com/modm-io/cmsis-svd-stm32/
+            "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-c0-ce4b873ae4a471cf28d7a7c9c69ded252d949672/STM32C092.svd",
             "rtos": "FreeRTOS",
             "rttConfig": {
                 "enabled": true,
