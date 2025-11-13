@@ -410,8 +410,6 @@ define_enum_option(
   NAME XBUDDY_EXTENSION_VARIANT VALUE "${XBUDDY_EXTENSION_VARIANT}" ALL_VALUES "NONE;STANDARD;iX"
   )
 
-set_feature_for_printers_master_board(HAS_ANFC "COREONE" "COREONEL")
-
 # MK4 technically doesn't have door sensor but needs to check valid FW-HW
 set_feature_for_printers_master_board(HAS_DOOR_SENSOR "COREONE" "COREONEL" "MK4")
 
@@ -552,6 +550,7 @@ set_feature_for_printers_master_board(HAS_CHAMBER_VENTS "COREONE" "COREONEL")
 set_feature_for_printers_master_board(HAS_BED_FAN "COREONEL")
 set_feature_for_printers_master_board(HAS_PSU_FAN "COREONEL")
 set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL")
+set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL")
 set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL")
 
 # Use websocket to talk to Connect instead of many http requests.
