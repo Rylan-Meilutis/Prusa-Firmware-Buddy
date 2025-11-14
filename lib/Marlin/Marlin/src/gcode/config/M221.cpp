@@ -23,8 +23,6 @@
 #include "../gcode.h"
 #include "../../module/planner.h"
 
-#if EXTRUDERS
-
 /** \addtogroup G-Codes
  * @{
  */
@@ -69,5 +67,3 @@ void GcodeSuite::M221() {
 }
 
 /** @}*/
-
-#endif // EXTRUDERS

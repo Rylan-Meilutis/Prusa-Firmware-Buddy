@@ -373,10 +373,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 76: M76(); break;                                      // M76: Pause print timer
       case 77: M77(); break;                                      // M77: Stop print timer
 
-      #if EXTRUDERS
-        case 104: M104(); break;                                  // M104: Set hot end temperature
-        case 109: M109(); break;                                  // M109: Wait for hotend temperature to reach target
-      #endif
+      case 104: M104(); break;                                    // M104: Set hot end temperature
+      case 109: M109(); break;                                    // M109: Wait for hotend temperature to reach target
 
       case 105: M105(); return;                                   // M105: Report Temperatures (and say "ok")
 
@@ -474,9 +472,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       case 220: M220(); break;                                    // M220: Set Feedrate Percentage: S<percent> ("FR" on your LCD)
 
-      #if EXTRUDERS
-        case 221: M221(); break;                                  // M221: Set Flow Percentage
-      #endif
+      case 221: M221(); break;                                    // M221: Set Flow Percentage
 
       #if HAS_SERVOS
         case 280: M280(); break;                                  // M280: Set servo position absolute

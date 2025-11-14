@@ -40,19 +40,11 @@
  *
  * These defines must be simple constants for use in REPEAT, etc.
  */
-#if EXTRUDERS
-  #define HAS_EXTRUDERS 1
-  #if EXTRUDERS > 1
-    #define HAS_MULTI_EXTRUDER 1
-  #endif
-  #define E_AXIS_N(E) AxisEnum(E_AXIS + E_INDEX_N(E))
-#else
-  #undef EXTRUDERS
-  #define EXTRUDERS 0
-  #undef SINGLENOZZLE
-  #undef HOTEND_IDLE_TIMEOUT
-  #undef DISABLE_E
+#define HAS_EXTRUDERS 1
+#if EXTRUDERS > 1
+  #define HAS_MULTI_EXTRUDER 1
 #endif
+#define E_AXIS_N(E) AxisEnum(E_AXIS + E_INDEX_N(E))
 
 #define E_OPTARG(N) OPTARG(HAS_MULTI_EXTRUDER, N)
 #define E_TERN_(N)  TERN_(HAS_MULTI_EXTRUDER, N)
@@ -438,17 +430,13 @@
 #endif
 #define XYZE_N (NUM_AXES + E_STEPPERS)
 
-#if HOTENDS
-  #define HAS_HOTEND 1
-  #ifndef HOTEND_OVERSHOOT
-    #define HOTEND_OVERSHOOT 15
-  #endif
-  #if HOTENDS > 1
-    #define HAS_MULTI_HOTEND 1
-    #define HAS_HOTEND_OFFSET 1
-  #endif
-#else
-  #undef PID_PARAMS_PER_HOTEND
+#define HAS_HOTEND 1
+#ifndef HOTEND_OVERSHOOT
+  #define HOTEND_OVERSHOOT 15
+#endif
+#if HOTENDS > 1
+  #define HAS_MULTI_HOTEND 1
+  #define HAS_HOTEND_OFFSET 1
 #endif
 
 // Helper macros for extruder and hotend arrays

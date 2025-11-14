@@ -516,11 +516,7 @@ private:
   static void M83();
   static void M86();
   static void M92();
-
-  #if EXTRUDERS
-    static void M109();
-  #endif
-
+  static void M109();
   static void M105();
 
   #if FAN_COUNT > 0
@@ -591,10 +587,7 @@ private:
   #endif
 
   static void M220();
-
-  #if EXTRUDERS
-    static void M221();
-  #endif
+  static void M221();
 
   #if HAS_I2C_EXPANDER()
     static void M260();

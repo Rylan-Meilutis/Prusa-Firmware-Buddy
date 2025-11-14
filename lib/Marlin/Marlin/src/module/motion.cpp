@@ -292,18 +292,13 @@ void line_to_current_position(const feedRate_t &fr_mm_s/*=feedrate_mm_s*/) {
 void prepare_internal_move_to_destination(const feedRate_t &fr_mm_s/*=0.0f*/, const PrepareMoveHints & hints) {
   const uint16_t old_pct = feedrate_percentage;
   feedrate_percentage = 100;
-
-  #if EXTRUDERS
-     const float old_fac = planner.e_factor[active_extruder];
-     planner.e_factor[active_extruder] = 1.0f;
-  #endif
+  const float old_fac = planner.e_factor[active_extruder];
+  planner.e_factor[active_extruder] = 1.0f;
 
   prepare_move_to(destination, fr_mm_s ?: feedrate_mm_s, hints);
 
   feedrate_percentage = old_pct;
-  #if EXTRUDERS
-    planner.e_factor[active_extruder] = old_fac;
-  #endif
+  planner.e_factor[active_extruder] = old_fac;
 }
 
 /**

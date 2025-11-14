@@ -270,15 +270,12 @@ class Temperature {
 
     static volatile bool in_temp_isr;
 
-    #if HOTENDS
-        #define HOTEND_TEMPS HOTENDS
-      static hotend_info_t temp_hotend[HOTEND_TEMPS];
+      #define HOTEND_TEMPS HOTENDS
+    static hotend_info_t temp_hotend[HOTEND_TEMPS];
 
-      // timestamp when temeperature reached target +-TEMP_WINDOW, 0 when outside this window
-      // note: 0 is valid timestamp, but if temperature reaches window at time 0, it will just be evaluated again little later, so it doesn't cause any bug
-      static uint32_t temp_hotend_residency_start_ms[HOTEND_TEMPS];
-      
-    #endif
+    // timestamp when temeperature reached target +-TEMP_WINDOW, 0 when outside this window
+    // note: 0 is valid timestamp, but if temperature reaches window at time 0, it will just be evaluated again little later, so it doesn't cause any bug
+    static uint32_t temp_hotend_residency_start_ms[HOTEND_TEMPS];
 
     #if HAS_HEATED_BED
       static bed_info_t temp_bed;
@@ -366,9 +363,7 @@ class Temperature {
       static bool extrusion_scaling_enabled;
     #endif
 
-    #if HOTENDS
-      static temp_range_t temp_range[HOTENDS];
-    #endif
+    static temp_range_t temp_range[HOTENDS];
 
     #if HAS_HEATED_BED
       #if WATCH_BED
@@ -426,9 +421,7 @@ class Temperature {
      * Static (class) methods
      */
 
-    #if HOTENDS
-      static float analog_to_celsius_hotend(const int raw, const uint8_t e);
-    #endif
+    static float analog_to_celsius_hotend(const int raw, const uint8_t e);
 
     #if HAS_HEATED_BED
       static float analog_to_celsius_bed(const int raw);
@@ -536,19 +529,11 @@ class Temperature {
     //deg=degreeCelsius
 
     FORCE_INLINE static float degHotend(const uint8_t E_NAME) {
-      return (0
-        #if HOTENDS
-          + temp_hotend[HOTEND_INDEX].celsius
-        #endif
-      );
+      return temp_hotend[HOTEND_INDEX].celsius;
     }
 
     FORCE_INLINE static int16_t degTargetHotend(const uint8_t E_NAME) {
-      return (0
-        #if HOTENDS
-          + temp_hotend[HOTEND_INDEX].target
-        #endif
-      );
+      return temp_hotend[HOTEND_INDEX].target;
     }
 
     #if WATCH_HOTENDS
@@ -557,20 +542,16 @@ class Temperature {
       static inline void start_watching_hotend(const uint8_t=0) {}
     #endif
 
-    #if HOTENDS
+    #if HAS_TEMP_HOTEND
+      static void setTargetHotend(const int16_t celsius, const uint8_t E_NAME);
 
-      #if HAS_TEMP_HOTEND
-        static void setTargetHotend(const int16_t celsius, const uint8_t E_NAME);
+      /// @returns whether the hotend has stabilized on the target temperature (or if the target temp is 0)
+      static bool is_hotend_temperature_reached(uint8_t hotend);
 
-        /// @returns whether the hotend has stabilized on the target temperature (or if the target temp is 0)
-        static bool is_hotend_temperature_reached(uint8_t hotend);
+      static bool are_hotend_temperatures_reached();
 
-        static bool are_hotend_temperatures_reached();
-
-        static bool wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false);
-      #endif
-
-    #endif // HOTENDS
+      static bool wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false);
+    #endif
 
     #if HAS_HEATED_BED
 

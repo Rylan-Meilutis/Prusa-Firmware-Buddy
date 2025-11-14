@@ -26,26 +26,6 @@
  * Defines that depend on advanced configuration.
  */
 
-#if EXTRUDERS == 0
-  #define NO_VOLUMETRICS
-  #undef TEMP_SENSOR_0
-  #undef TEMP_SENSOR_1
-  #undef TEMP_SENSOR_2
-  #undef TEMP_SENSOR_3
-  #undef TEMP_SENSOR_4
-  #undef TEMP_SENSOR_5
-  #undef PIDTEMP
-  #undef AUTOTEMP
-  #undef PID_EXTRUSION_SCALING
-  #undef FILAMENT_RUNOUT_DISTANCE_MM
-  #undef DISABLE_INACTIVE_EXTRUDER
-  #undef PREVENT_COLD_EXTRUSION
-  #undef PREVENT_LENGTHY_EXTRUDE
-  #undef THERMAL_PROTECTION_HOTENDS
-  #undef THERMAL_PROTECTION_PERIOD
-  #undef WATCH_TEMP_PERIOD
-#endif
-
 #define HAS_CUTTER EITHER(SPINDLE_FEATURE, LASER_FEATURE)
 
 #if !defined(__AVR__) || !defined(USBCON)

@@ -24,8 +24,6 @@
 
 #include "M104_M109.hpp"
 
-#if EXTRUDERS
-
 #include "../gcode.h"
 #include "../../module/temperature.h"
 #include "../../module/motion.h"
@@ -175,5 +173,3 @@ void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {
   return;
 }
 /** @}*/
-
-#endif // EXTRUDERS
