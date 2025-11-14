@@ -15,6 +15,15 @@ inline constexpr bool is_std_array_v = is_std_array<T>::value;
 
 namespace stdext {
 
+/// Creates new array containing integer sequence of length \p size
+/// Integers can be optionally mapped to arbitrary type using \p map_fn
+template <std::size_t size, auto map_fn = [](std::size_t i) { return i; }>
+consteval auto make_iota_array() {
+    return []<std::size_t... i>(std::index_sequence<i...>) {
+        return std::array { map_fn(i)... };
+    }(std::make_index_sequence<size>());
+}
+
 /// Maps each item \p x in \p array to \p f(x) in the result array
 /// \returns array with of the mapped values
 template <typename T, size_t size, typename F>
