@@ -945,6 +945,8 @@ void ProtocolLogic::LogError(const char *reason_P) {
 #if HAS_MMU2_OVER_UART()
     SERIAL_ECHOPGM(", last bytes: ");
     SERIAL_ECHOLN(lrb);
+#else
+    SERIAL_ECHOLN();
 #endif
 }
 
