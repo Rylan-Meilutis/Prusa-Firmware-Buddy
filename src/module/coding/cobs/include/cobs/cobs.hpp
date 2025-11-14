@@ -132,7 +132,7 @@ public:
      */
     void reset(OptionalBuffer new_input_buffer = std::nullopt, OptionalBuffer new_encoded_buffer = std::nullopt);
 
-    [[nodiscard]] const std::span<const uint8_t> get_input_buffer() { return input_buffer; }
+    [[nodiscard]] const std::span<const uint8_t> get_used_input_buffer() { return input_buffer.first(state.write_position); }
 
 protected:
     CobsStreamEncoder() = default;
