@@ -650,6 +650,7 @@ bool MMU2::ToolChangeCommonOnce(uint8_t slot) {
 
 void MMU2::ToolChangeCommon(uint8_t slot) {
     UpdateCurrentFilamentType(slot);
+    SaveResumePos();
     while (!ToolChangeCommonOnce(slot)) { // while not successfully fed into extruder's PTFE tube
         if (planner_draining()) {
             return; // power panic happening, pretend the G-code finished ok
@@ -796,6 +797,7 @@ bool MMU2::set_filament_type(uint8_t /*slot*/, uint8_t /*type*/) {
 
 void MMU2::UnloadObeyAutoRetracted() {
     CommandInProgressGuard cipg(CommandInProgress::UnloadFilament, commandInProgressManager);
+    SaveResumePos();
     if (!marlin_is_retracted()) {
         // if not already auto-retracted, do the ramming ourself
         WaitForHotendTargetTempBeep();
@@ -934,6 +936,7 @@ bool MMU2::load_filament(uint8_t slot) {
     FullScreenMsgLoad(slot);
     {
         CommandInProgressGuard cipg(CommandInProgress::LoadFilament, commandInProgressManager);
+        SaveResumePos();
         for (;;) {
             Disable_E0();
             logic.LoadFilament(slot);
@@ -991,6 +994,7 @@ bool MMU2::eject_filament(uint8_t slot, bool enableFullScreenMsg /* = true */) {
         }
 
         CommandInProgressGuard cipg(CommandInProgress::EjectFilament, commandInProgressManager);
+        SaveResumePos();
         for (;;) {
             Disable_E0();
             logic.EjectFilament(slot);
@@ -1041,7 +1045,6 @@ void MMU2::SaveAndPark(bool move_axes) {
 
         if (move_axes) {
             mmu_print_saved |= SavedState::ParkExtruder;
-            resume_position = planner_current_position(); // save current pos
 
             // lift Z
             move_raise_z(MMU_ERR_Z_PAUSE_LIFT);
@@ -1052,6 +1055,11 @@ void MMU2::SaveAndPark(bool move_axes) {
             }
         }
     }
+}
+
+void MMU2::SaveResumePos() {
+    resume_position = planner_current_position(); // save current pos
+    mmu_print_saved = SavedState::None;
 }
 
 void MMU2::ResumeHotendTemp() {
@@ -1175,7 +1183,8 @@ void MMU2::CheckUserInput() {
 /// But - in case of an error, the command is not yet finished, but we must react accordingly - move the printhead elsewhere, stop heating, eat a cat or so.
 /// That's what's being done here...
 bool MMU2::manage_response(const bool move_axes, const bool turn_off_nozzle) {
-    mmu_print_saved = SavedState::None;
+    // multiple calls to manage_response may occur sequentially due to premature finish optimization
+    // -> must no reset the pause state and resume position unless the command really finished ok
 
     MARLIN_KEEPALIVE_STATE_IN_PROCESS;
 
