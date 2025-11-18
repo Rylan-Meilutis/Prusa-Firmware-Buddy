@@ -555,6 +555,7 @@ set_feature_for_printers_master_board(
 set_feature_for_printers_master_board(
   HAS_CHAMBER_FILTRATION_API "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "XL"
   )
+set_feature_for_printers(HAS_CYPHAL_TIMESYNC "HONEYBEE_NEXT")
 set_feature_for_printers_master_board(XL_ENCLOSURE_SUPPORT "XL")
 set_feature_for_printers(HAS_SWITCHED_FAN_TEST "MK4" "MK3.5" "COREONE" "COREONEL")
 set_feature_for_printers_master_board(
