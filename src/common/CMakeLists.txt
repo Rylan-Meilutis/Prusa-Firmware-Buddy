@@ -78,6 +78,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             sys.cpp
             sys_time.cpp
             tasks.cpp
+            tool_index.cpp
             tools_mapping.cpp
             w25x.cpp
             w25x_communication.cpp
