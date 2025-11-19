@@ -55,6 +55,10 @@ if(HAS_PSU_FAN)
   add_subdirectory(psu_fan)
 endif()
 
+if(HAS_ANFC)
+  add_subdirectory(openprinttag)
+endif()
+
 add_subdirectory(ramming)
 add_subdirectory(cork)
 add_subdirectory(safety_timer)
