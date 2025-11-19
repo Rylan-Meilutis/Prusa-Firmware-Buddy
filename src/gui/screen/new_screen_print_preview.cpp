@@ -150,22 +150,22 @@ using Frames = FrameDefinitionList<ScreenPrintPreview::FrameStorage,
     FrameDefinition<Phase::loading, FrameWait, text_loading>,
     FrameDefinition<Phase::download_wait, FrameWait, text_downloading>,
     FrameDefinition<Phase::main_dialog, frames::FrameThumbnailPreview>,
-    FrameDefinition<Phase::unfinished_selftest, FramePrompt, Phase::unfinished_selftest, print_preview_phase_error_code_mapper>,
-    FrameDefinition<Phase::new_firmware_available, FramePrompt, Phase::new_firmware_available, print_preview_phase_error_code_mapper>,
+    FrameDefinition<Phase::unfinished_selftest, FramePrompt, Phase::unfinished_selftest, map_print_preview_phase_to_error_code>,
+    FrameDefinition<Phase::new_firmware_available, FramePrompt, Phase::new_firmware_available, map_print_preview_phase_to_error_code>,
     FrameDefinition<Phase::wrong_printer, FrameInvalidPrinter, Phase::wrong_printer>,
     FrameDefinition<Phase::wrong_printer_abort, FrameInvalidPrinter, Phase::wrong_printer_abort>,
-    FrameDefinition<Phase::filament_not_inserted, FramePrompt, Phase::filament_not_inserted, print_preview_phase_error_code_mapper>,
+    FrameDefinition<Phase::filament_not_inserted, FramePrompt, Phase::filament_not_inserted, map_print_preview_phase_to_error_code>,
 #if HAS_MMU2()
-    FrameDefinition<Phase::mmu_filament_inserted, FramePrompt, Phase::mmu_filament_inserted, print_preview_phase_error_code_mapper>,
+    FrameDefinition<Phase::mmu_filament_inserted, FramePrompt, Phase::mmu_filament_inserted, map_print_preview_phase_to_error_code>,
 #endif
 #if HAS_TOOL_MAPPING()
     FrameDefinition<Phase::tools_mapping, frames::FrameToolMapping>,
 #endif
-    FrameDefinition<Phase::wrong_filament, FramePrompt, Phase::wrong_filament, print_preview_phase_error_code_mapper>,
+    FrameDefinition<Phase::wrong_filament, FramePrompt, Phase::wrong_filament, map_print_preview_phase_to_error_code>,
 #if HAS_E2EE_SUPPORT()
     FrameDefinition<Phase::untrusted_identity, frames::FrameUntrustedIdentity>,
 #endif
-    FrameDefinition<Phase::file_error, FramePrompt, Phase::file_error, print_preview_phase_error_code_mapper>>;
+    FrameDefinition<Phase::file_error, FramePrompt, Phase::file_error, map_print_preview_phase_to_error_code>>;
 
 } // namespace
 

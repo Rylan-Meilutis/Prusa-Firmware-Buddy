@@ -28,6 +28,7 @@
 #include <option/has_bed_fan.h>
 #include <option/has_psu_fan.h>
 #include <option/has_human_interactions.h>
+#include <fsm/print_preview_mapper.hpp>
 
 #if HAS_LOADCELL()
     #include <fsm/nozzle_cleaning_failed_phases.hpp>
@@ -69,37 +70,7 @@ optional<ErrCode> crash_recovery_attention(const PhasesCrashRecovery &phase) {
 #endif
 
 optional<ErrCode> attention_while_printpreview(const PhasesPrintPreview preview_phases) {
-    switch (preview_phases) {
-    case PhasesPrintPreview::unfinished_selftest:
-        return ErrCode::CONNECT_UNFINISHED_SELFTEST;
-    case PhasesPrintPreview::new_firmware_available:
-        return ErrCode::CONNECT_PRINT_PREVIEW_NEW_FW;
-    case PhasesPrintPreview::wrong_printer:
-        // This one can mean a lot of things, type of printer, nozzle diameter, wrong number of tools etc.
-        // Eventually we want to distinquish between them, to do so we will need to somehow mimic the
-        // logic in window_msgbox_wrong_printer.cpp using GCodeInfo::ValidPrinterSettings
-        return ErrCode::CONNECT_PRINT_PREVIEW_WRONG_PRINTER;
-    case PhasesPrintPreview::filament_not_inserted:
-        return ErrCode::CONNECT_PRINT_PREVIEW_NO_FILAMENT;
-    case PhasesPrintPreview::wrong_filament:
-        return ErrCode::CONNECT_PRINT_PREVIEW_WRONG_FILAMENT;
-#if HAS_E2EE_SUPPORT()
-    case PhasesPrintPreview::untrusted_identity:
-        return ErrCode::CONNECT_UNTRUSTED_IDENTITY;
-#endif
-    case PhasesPrintPreview::file_error:
-        return ErrCode::CONNECT_PRINT_PREVIEW_FILE_ERROR;
-#if HAS_TOOL_MAPPING()
-    case PhasesPrintPreview::tools_mapping:
-        return ErrCode::CONNECT_PRINT_PREVIEW_TOOLS_MAPPING;
-#endif
-#if HAS_MMU2()
-    case PhasesPrintPreview::mmu_filament_inserted:
-        return ErrCode::CONNECT_PRINT_PREVIEW_MMU_FILAMENT_INSERTED;
-#endif
-    default:
-        return nullopt;
-    }
+    return map_print_preview_phase_to_error_code(preview_phases);
 }
 
 bool is_warning_attention(const fsm::BaseData &data) {

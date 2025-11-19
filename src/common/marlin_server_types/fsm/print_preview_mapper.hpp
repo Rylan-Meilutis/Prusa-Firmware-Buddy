@@ -1,0 +1,42 @@
+#pragma once
+
+#include <fsm/print_preview_phases.hpp>
+#include <error_codes.hpp>
+
+constexpr std::optional<ErrCode> map_print_preview_phase_to_error_code(const FSMAndPhase print_preview_phase) {
+    if (print_preview_phase.fsm != ClientFSM::PrintPreview) {
+        return std::nullopt;
+    }
+
+    switch (static_cast<PhasesPrintPreview>(print_preview_phase.phase)) {
+    case PhasesPrintPreview::unfinished_selftest:
+        return ErrCode::CONNECT_UNFINISHED_SELFTEST;
+    case PhasesPrintPreview::filament_not_inserted:
+        return ErrCode::CONNECT_PRINT_PREVIEW_NO_FILAMENT;
+#if HAS_MMU2()
+    case PhasesPrintPreview::mmu_filament_inserted:
+        return ErrCode::CONNECT_PRINT_PREVIEW_MMU_FILAMENT_INSERTED;
+#endif
+#if HAS_E2EE_SUPPORT()
+    case PhasesPrintPreview::untrusted_identity:
+        return ErrCode::CONNECT_UNTRUSTED_IDENTITY;
+#endif
+    case PhasesPrintPreview::file_error:
+        return ErrCode::CONNECT_PRINT_PREVIEW_FILE_ERROR;
+    case PhasesPrintPreview::wrong_printer:
+    case PhasesPrintPreview::wrong_printer_abort:
+        return ErrCode::CONNECT_PRINT_PREVIEW_WRONG_PRINTER;
+    case PhasesPrintPreview::wrong_filament:
+        return ErrCode::CONNECT_PRINT_PREVIEW_WRONG_FILAMENT;
+    case PhasesPrintPreview::new_firmware_available:
+        return ErrCode::CONNECT_PRINT_PREVIEW_NEW_FW;
+    case PhasesPrintPreview::loading:
+    case PhasesPrintPreview::main_dialog:
+    case PhasesPrintPreview::download_wait:
+#if HAS_TOOL_MAPPING()
+    case PhasesPrintPreview::tools_mapping:
+#endif
+        break;
+    }
+    return std::nullopt;
+}

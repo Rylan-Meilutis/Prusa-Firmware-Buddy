@@ -1,3 +1,4 @@
+#pragma once
 
 #include <fsm/nozzle_cleaning_failed_phases.hpp>
 #include <option/buddy_enable_connect.h>
