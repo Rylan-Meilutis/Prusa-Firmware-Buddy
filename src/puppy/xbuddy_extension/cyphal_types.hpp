@@ -86,16 +86,16 @@ private:
 
 public:
     /// Construct invalid/unset NodeId.
-    NodeId()
+    constexpr NodeId()
         : value { 255 } {}
 
-    explicit NodeId(uint8_t value)
+    constexpr explicit NodeId(uint8_t value)
         : value { value } {}
 
-    explicit operator uint8_t() const { return value; }
+    constexpr explicit operator uint8_t() const { return value; }
 
-    bool operator==(const NodeId other) const { return value == other.value; }
-    bool operator!=(const NodeId other) const { return !(*this == other); }
+    constexpr bool operator==(const NodeId &) const = default;
+    constexpr bool operator!=(const NodeId &) const = default;
 };
 
 /// Strong type representing command to be executed on the node.
