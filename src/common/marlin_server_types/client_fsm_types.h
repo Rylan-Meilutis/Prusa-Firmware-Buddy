@@ -91,9 +91,6 @@ enum class PreheatMode : uint8_t {
     Load,
     Unload,
     Purge,
-    Change_phase1, // do unload, call Change_phase2 after load finishes
-    Change_phase2, // do load, meant to be used recursively in Change_phase1
-    Unload_askUnloaded,
     Autoload,
     _last = Autoload
 };

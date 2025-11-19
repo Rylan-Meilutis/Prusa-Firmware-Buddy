@@ -179,19 +179,15 @@ void preheat_menu::ScreenPreheat::update_frame() {
 
         case PreheatMode::Load:
         case PreheatMode::Autoload:
-        case PreheatMode::Change_phase2: // use load caption, not a bug
             return N_("Preheating for load");
 
         case PreheatMode::Unload:
-        case PreheatMode::Change_phase1: // use unload caption, not a bug
             return N_("Preheating for unload");
 
         case PreheatMode::Purge:
             return N_("Preheating for purge");
-
-        default:
-            return N_("---");
         }
+        bsod_unreachable();
     }();
 
     header.SetText(_(title));

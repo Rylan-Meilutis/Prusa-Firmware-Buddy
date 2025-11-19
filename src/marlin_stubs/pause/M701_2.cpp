@@ -136,7 +136,7 @@ void filament_gcodes::M702_no_parser(std::optional<float> unload_length, float z
 #else
     if (op_preheat) {
 #endif
-        PreheatData data = PreheatData::make(PreheatMode::Unload, target_extruder, *op_preheat); // TODO do I need PreheatMode::Unload_askUnloaded
+        PreheatData data = PreheatData::make(PreheatMode::Unload, target_extruder, *op_preheat);
         // avoid preheating bed in this case
         auto preheat_ret = preheat(data, target_extruder, PreheatBehavior::force_preheat_only_extruder());
         if (preheat_ret.first) {
@@ -363,7 +363,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, uint8_
     // LOAD
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
-        PreheatData data = PreheatData::make(PreheatMode::Change_phase2, target_extruder, preheat);
+        PreheatData data = PreheatData::make(PreheatMode::Load, target_extruder, preheat);
         auto preheat_ret = preheat_for_change_load(data, target_extruder);
         if (preheat_ret.first) {
             // canceled

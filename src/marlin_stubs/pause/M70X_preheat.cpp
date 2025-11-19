@@ -40,7 +40,7 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data, bool brea
 }
 
 static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data, uint8_t target_extruder) {
-    bool canKnowTemp = preheat_data.mode == PreheatMode::Unload || preheat_data.mode == PreheatMode::Change_phase1 || preheat_data.mode == PreheatMode::Purge || preheat_data.mode == PreheatMode::Unload_askUnloaded;
+    bool canKnowTemp = preheat_data.mode == PreheatMode::Unload || preheat_data.mode == PreheatMode::Purge;
 
     // Check if we are using operation which can get temp from printer and check if it can get the temp from available info (inserted filament or set temperature in temperature menu and no filament inserted)
     if (canKnowTemp && ((config_store().get_filament_type(target_extruder) != FilamentType::none))) {
