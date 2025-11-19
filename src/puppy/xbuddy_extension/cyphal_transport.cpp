@@ -109,9 +109,9 @@ public:
         }
     }
 
-    [[nodiscard]] bool transmit(const CanardMicrosecond deadline, const CanardTransferMetadata &metadata, uint8_t *buffer, size_t size) {
+    [[nodiscard]] bool transmit(const CanardMicrosecond deadline, const CanardTransferMetadata &metadata, const std::span<const std::byte> &buffer) {
         LockGuard lock { mutex };
-        return canardTxPush(&tx_queue, &canard, deadline, &metadata, size, buffer) > 0;
+        return canardTxPush(&tx_queue, &canard, deadline, &metadata, buffer.size(), buffer.data()) > 0;
     }
 
     void dispose(CanardRxTransfer &transfer) {

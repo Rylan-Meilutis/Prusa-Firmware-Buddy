@@ -1,8 +1,9 @@
 /// @file
 #pragma once
 
-#include <cstddef>
 #include <canard.h>
+#include <cstddef>
+#include <span>
 
 namespace cyphal {
 
@@ -26,8 +27,7 @@ public:
     [[nodiscard]] virtual bool transmit(
         const CanardMicrosecond deadline,
         const CanardTransferMetadata &metadata,
-        uint8_t *buffer,
-        size_t size)
+        const std::span<const std::byte> &buffer)
         = 0;
 
     /// Receive a transfer from cyphal.

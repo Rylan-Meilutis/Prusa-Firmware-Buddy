@@ -401,9 +401,9 @@ private:
 
     template <class T>
     [[nodiscard]] bool transmit(const T &object, uint8_t remote_node_id, uint8_t transfer_id) {
-        uint8_t buffer[NunavutTraits<T>::serialization_buffer_size_bytes];
+        std::byte buffer[NunavutTraits<T>::serialization_buffer_size_bytes];
         size_t size = sizeof(buffer);
-        if (NunavutTraits<T>::serialize(&object, buffer, &size) == 0) {
+        if (NunavutTraits<T>::serialize(&object, (uint8_t *)buffer, &size) == 0) {
             const CanardTransferMetadata metadata = {
                 .priority = CanardPriorityNominal,
                 .transfer_kind = NunavutTraits<T>::transfer_kind,
@@ -412,7 +412,7 @@ private:
                 .transfer_id = transfer_id,
             };
             const CanardMicrosecond deadline = 0; // unlimited
-            return cyphal::transport().transmit(deadline, metadata, buffer, size);
+            return cyphal::transport().transmit(deadline, metadata, { buffer, size });
         } else {
             return false;
         }
