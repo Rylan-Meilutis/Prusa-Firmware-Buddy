@@ -444,7 +444,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
       )
     get_filename_component(ANFC_BINARY_PATH "firmware.bin" REALPATH BASE_DIR "${ANFC_BINARY_DIR}")
     ExternalProject_Add(
-      anfc
+      anfc_firmware
       SOURCE_DIR "${ANFC_SOURCE_DIR}"
       BINARY_DIR "${ANFC_BINARY_DIR}"
       CMAKE_ARGS
