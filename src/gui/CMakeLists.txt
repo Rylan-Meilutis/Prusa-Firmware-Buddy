@@ -1,14 +1,6 @@
 target_include_directories(firmware PRIVATE .)
 add_subdirectory(include_${PRINTER})
 
-if(BOARD STREQUAL "BUDDY")
-  add_subdirectory(resolution_240x320)
-endif()
-
-if(BOARD STREQUAL "XBUDDY" OR BOARD STREQUAL "XLBUDDY")
-  add_subdirectory(resolution_480x320)
-endif()
-
 target_sources(
   firmware
   PRIVATE auto_layout.cpp
@@ -72,7 +64,6 @@ target_sources(
           screen_menu_user_interface.cpp
           screen_messages.cpp
           screen_move_z.cpp
-          screen_print_preview.cpp
           screen_printer_setup.cpp
           screen_printing.cpp
           screen_printing_end_result.cpp

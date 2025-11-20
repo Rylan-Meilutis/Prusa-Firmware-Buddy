@@ -4,13 +4,44 @@
 #include "ScreenPrintingModel.hpp"
 #include "i18n.h"
 #include "ScreenHandler.hpp"
-#include "screen_printing_layout.hpp"
-
+#include <guiconfig/guiconfig.h>
+#include "img_resources.hpp"
+#include "window_icon.hpp"
 namespace {
 constexpr uint16_t btn_size = GuiDefaults::ButtonIconSize;
 constexpr uint16_t btn_y_offset = 185;
 constexpr uint16_t btn_text_spacing = 5;
 constexpr uint16_t text_height = 17;
+
+#if HAS_LARGE_DISPLAY()
+inline constexpr uint16_t btn_padding = 90;
+inline constexpr uint16_t btn_spacing = 30;
+inline constexpr WindowMultiIconButton::Pngs icon_resources[] = {
+    { img::settings_80x80, img::settings_80x80_focused, img::settings_80x80_disabled },
+    { img::pause_80x80, img::pause_80x80_focused, img::pause_80x80_disabled },
+    { img::stop_80x80, img::stop_80x80_focused, img::stop_80x80_disabled },
+    { img::resume_80x80, img::resume_80x80_focused, img::resume_80x80_disabled },
+    { img::home_80x80, img::home_80x80_focused, img::home_80x80_disabled },
+    { img::reprint_80x80, img::reprint_80x80_focused, img::reprint_80x80_disabled },
+    { img::disconnect_80x80, img::disconnect_80x80_focused, img::disconnect_80x80_disabled },
+    { img::set_ready_80x80, img::set_ready_80x80_focused, img::set_ready_80x80_disabled },
+};
+#elif HAS_MINI_DISPLAY()
+inline constexpr uint16_t btn_padding = 8;
+inline constexpr uint16_t btn_spacing = 16;
+inline constexpr WindowMultiIconButton::Pngs icon_resources[] = {
+    { img::settings_64x64, img::settings_64x64_focused, img::settings_64x64_disabled },
+    { img::pause_64x64, img::pause_64x64_focused, img::pause_64x64_disabled },
+    { img::stop_64x64, img::stop_64x64_focused, img::stop_64x64_disabled },
+    { img::resume_64x64, img::resume_64x64_focused, img::resume_64x64_disabled },
+    { img::home_64x64, img::home_64x64_focused, img::home_64x64_disabled },
+    { img::reprint_64x64, img::reprint_64x64_focused, img::reprint_64x64_disabled },
+    { img::disconnect_64x64, img::disconnect_64x64_focused, img::disconnect_64x64_disabled },
+    { img::set_ready_64x64, img::set_ready_64x64_focused, img::set_ready_64x64_disabled },
+};
+#else
+    #error
+#endif
 
 constexpr const char *label_resources[] = {
     N_("Tune"),
