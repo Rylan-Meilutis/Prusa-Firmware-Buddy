@@ -1,6 +1,7 @@
 #pragma once
 
 #include "filament.hpp"
+#include <utils/string/inplace_string.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
@@ -8,10 +9,10 @@
 // For historic reasons, the FilamentTypeParameters is split across multiple structures in the EEPROM
 
 // !!! DO NOT CHANGE - this is used in config store
-struct __attribute__((packed)) FilamentTypeParameters_EEPROM1 {
+struct FilamentTypeParameters_EEPROM1 {
 
 public:
-    std::array<char, 8> name { '\0' };
+    InplaceString<8> name;
 
     uint16_t nozzle_temperature;
     uint16_t nozzle_preheat_temperature = 170;
@@ -28,6 +29,7 @@ public:
     constexpr bool operator==(const FilamentTypeParameters_EEPROM1 &) const = default;
     constexpr bool operator!=(const FilamentTypeParameters_EEPROM1 &) const = default;
 };
+static_assert(sizeof(FilamentTypeParameters_EEPROM1) == 14);
 
 #if HAS_CHAMBER_API()
 // !!! DO NOT CHANGE - this is used in config store

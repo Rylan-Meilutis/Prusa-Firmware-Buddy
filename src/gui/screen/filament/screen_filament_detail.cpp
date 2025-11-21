@@ -54,12 +54,12 @@ void MI_FILAMENT_NAME::click(IWindowMenu &) {
     FilamentTypeParameters::Name buf = filament_type.parameters().name;
 
     while (true) {
-        if (!DialogTextInput::exec(GetLabel(), buf)) {
+        if (!DialogTextInput::exec(GetLabel(), buf.data_)) {
             return;
         }
 
-        for (char *chp = buf.data(); *chp; chp++) {
-            *chp = toupper(*chp);
+        for (char &ch : buf) {
+            ch = toupper(ch);
         }
 
         if (const auto r = filament_type.can_be_renamed_to(buf.data()); !r) {

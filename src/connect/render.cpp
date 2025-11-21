@@ -190,7 +190,7 @@ namespace {
                 JSON_FIELD_FFIXED("target_bed", params.target_bed, 1) JSON_COMMA;
                 JSON_FIELD_INT("speed", params.print_speed) JSON_COMMA;
                 JSON_FIELD_INT("flow", params.flow_factor) JSON_COMMA;
-                if (strlen(params.slots[params.preferred_slot()].material.data()) > 0) {
+                if (!params.slots[params.preferred_slot()].material.empty()) {
                     JSON_FIELD_STR("material", params.slots[params.preferred_slot()].material.data()) JSON_COMMA;
                 }
 #if XL_ENCLOSURE_SUPPORT()
@@ -398,7 +398,7 @@ namespace {
                                     JSON_FIELD_FFIXED("nozzle_diameter", params.slots[state.iter].nozzle_diameter, 2) JSON_COMMA;
                                     JSON_FIELD_BOOL("high_flow", params.slots[state.iter].high_flow) JSON_COMMA;
                                     JSON_FIELD_BOOL("hardened", params.slots[state.iter].hardened) JSON_COMMA;
-                                    JSON_FIELD_STR("material", *params.slots[state.iter].material.data() ? params.slots[state.iter].material.data() : "---");
+                                    JSON_FIELD_STR("material", !params.slots[state.iter].material.empty() ? params.slots[state.iter].material.data() : "---");
                                 JSON_OBJ_END;
 
                                 state.need_comma = true;

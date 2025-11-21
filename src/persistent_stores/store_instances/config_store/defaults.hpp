@@ -281,14 +281,18 @@ namespace defaults {
         std::array<FilamentTypeParameters_EEPROM1, user_filament_type_count> result;
         for (size_t i = 0; i < result.size(); i++) {
             const size_t display_ix = i + 1;
+            const std::array name {
+                'U', 'S', 'E', 'R',
+                static_cast<char>('0' + (display_ix >= 10 ? display_ix / 10 : display_ix % 10)),
+                static_cast<char>(display_ix >= 10 ? ('0' + display_ix % 10) : '\0'),
+                '\0'
+            };
+
             result[i] = FilamentTypeParameters_EEPROM1 {
-                .name = {
-                    'U', 'S', 'E', 'R',
-                    static_cast<char>('0' + (display_ix >= 10 ? display_ix / 10 : display_ix % 10)),
-                    static_cast<char>(display_ix >= 10 ? ('0' + display_ix % 10) : '\0'),
-                    '\0'
-                },
-                .nozzle_temperature = 215, .nozzle_preheat_temperature = 170, .heatbed_temperature = 0,
+                .name = name.data(),
+                .nozzle_temperature = 215,
+                .nozzle_preheat_temperature = 170,
+                .heatbed_temperature = 0,
 #if HAS_CHAMBER_API()
                 .requires_filtration = false,
 #endif

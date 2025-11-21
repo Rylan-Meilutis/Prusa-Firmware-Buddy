@@ -17,6 +17,7 @@
 #include <buddy/unreachable.hpp>
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#include <string_builder.hpp>
 
 namespace {
 
@@ -153,13 +154,9 @@ void print_right_tool_into_buffer(size_t idx, std::array<std::array<char, ToolsM
     FilamentTypeParameters::Name loaded_filament_name = loaded_filament_type.parameters().name;
 
 #if HAS_MMU2()
-    static constexpr std::array unknown_filament_names = {
-        "FIL1", "FIL2", "FIL3", "FIL4", "FIL5"
-    };
-
     // Upon request from the Content team - if we get "---", translate it into FILAM - a crude and awful hack :(
-    if (loaded_filament_type == FilamentType::none && idx < unknown_filament_names.size()) {
-        strlcpy(loaded_filament_name.data(), unknown_filament_names[idx], filament_name_buffer_size);
+    if (loaded_filament_type == FilamentType::none) {
+        StringBuilder(loaded_filament_name.data_).append_printf("FIL%i", idx + 1);
     }
 #endif
 

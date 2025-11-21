@@ -9,6 +9,8 @@
 #include <string_view>
 #include <optional>
 
+#include <utils/string/inplace_string.hpp>
+
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
 
@@ -37,10 +39,9 @@ constexpr size_t adhoc_filament_type_count = 6;
 struct FilamentTypeParameters {
 
 public:
-    using Name = std::array<char, filament_name_buffer_size>;
-
-    /// Name of the filament (zero terminated).
-    Name name { '\0' };
+    using Name = InplaceString<filament_name_buffer_size>;
+    /// Name of the filament (NOT necessarily zero terminated).
+    Name name;
 
     /// Nozzle temperature for the filament, in degrees Celsius
     int16_t nozzle_temperature = 215;
@@ -79,18 +80,6 @@ public:
 public:
     constexpr bool operator==(const FilamentTypeParameters &) const = default;
     constexpr bool operator!=(const FilamentTypeParameters &) const = default;
-
-    consteval static Name name_from_str(const char *str) {
-        Name result;
-
-        // This is a consteval function, strlcpy doesn't work
-        for (auto r = result.begin(), re = result.end(); r != re && *str; r++, str++) {
-            *r = *str;
-        }
-
-        result[result.size() - 1] = '\0';
-        return result;
-    }
 };
 
 // !!! DO NOT REORDER, DO NOT CHANGE - this is used in config store
