@@ -173,7 +173,8 @@ pipeline {
                             'all,slx-anfc,release,noboot',
                             'all,anfc,release,noboot',
                             'all,slx-anfc,release,yesboot',
-                            'all,anfc,release,yesboot'
+                            'all,anfc,release,yesboot',
+                            'all,anfc-uart,release,noboot'
                     }
                 }
                 stages {
