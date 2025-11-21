@@ -237,8 +237,18 @@ void StringReaderUtf8::advance() {
     }
 
     switch (view_.type()) {
-    case Type::memory_string:
+    case Type::zero_terminated_string:
         view_.memory_ptr++;
+        break;
+
+    case Type::string_view:
+        view_.memory_ptr++;
+        view_.magical_value -= 2;
+
+        // size == 0; magical_value = size * 2 + 1
+        if (view_.magical_value == 1) {
+            view_ = string_view_utf8::MakeNULLSTR();
+        }
         break;
 
     case Type::file_string:
@@ -257,34 +267,41 @@ uint8_t StringReaderUtf8::peek() const {
     }
 
     switch (view_.type()) {
-    case Type::memory_string:
+    case Type::zero_terminated_string:
+    case Type::string_view:
         return *view_.memory_ptr;
 
     case Type::file_string:
         return file_peek();
 
     case Type::null_string:
+        return '\0';
+
     case Type::formatted_string:
+        // Should not happen
         break;
     }
 
+    assert(0);
     return '\0'; // Should not happen
 }
 
 uint8_t StringReaderUtf8::file_peek() const {
-    if (!view_.file) {
+    FILE *file = reinterpret_cast<FILE *>(view_.magical_value);
+
+    if (!file) {
         return '\0';
     }
 
     uint8_t c;
     // sync among multiple reads from the sameMO file
-    if (ftell(view_.file) != static_cast<long>(view_.file_offset)) {
-        if (fseek(view_.file, view_.file_offset, SEEK_SET) != 0) {
+    if (ftell(file) != static_cast<long>(view_.file_offset)) {
+        if (fseek(file, view_.file_offset, SEEK_SET) != 0) {
             return '\0';
         }
     }
 
-    if (fread(&c, 1, 1, view_.file) != 1) {
+    if (fread(&c, 1, 1, file) != 1) {
         return '\0';
     }
     return c;
@@ -301,7 +318,7 @@ FormatBuilder::FormatBuilder(string_view_utf8 str_view, StringViewUtf8ParamBase 
 
 string_view_utf8 FormatBuilder::finalize() {
     string_view_utf8 result;
-    result.file = FORMATTED_STRING_MARKER;
+    result.magical_value = 1;
     result.formatted_string_params = &params;
     return result;
 }

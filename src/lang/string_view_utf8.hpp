@@ -10,9 +10,8 @@
 #include <type_traits>
 #include <string_view>
 
-#define UTF8_IS_NONASCII(ch)    ((ch)&0x80)
-#define UTF8_IS_CONT(ch)        (((ch)&0xC0) == 0x80)
-#define FORMATTED_STRING_MARKER (FILE *)1 // Special value for formatted string view
+#define UTF8_IS_NONASCII(ch) ((ch)&0x80)
+#define UTF8_IS_CONT(ch)     (((ch)&0xC0) == 0x80)
 
 using unichar = std::uint32_t;
 class StringViewUtf8ParamBase;
@@ -41,27 +40,33 @@ public:
 
     enum class Type : uint8_t {
         /// No string.
-        /// Both \p file and \p memory_ptr are null
         null_string,
 
-        /// The string is stored in the memory (RAM/CPU FLASH)
-        /// \p file is null, \p memory_ptr contains the pointer
-        memory_string,
+        /// Zero-terminated string
+        /// \p memory_ptr contains the pointer
+        zero_terminated_string,
 
-        /// The strnig is stored in the file
-        /// \p file contains the file handle, \p file_offset contains the offset
+        /// Non-zero-terminated string
+        /// \p memory_ptr contains the pointer
+        /// \p magical_value equals to (size * 2) + 1
+        string_view,
+
+        /// String stored in a file
+        /// \p magical_value contains the file handle, \p file_offset contains the offset
         file_string,
 
-        /// The string is formatted
-        /// \p file pointer is set to FORMATTED_STRING_MARKER
+        /// Formatted string
         /// \p formatted_string_params points to StringViewUtf8Parameters, which contains the original string_view_utf8 and buffer with preformatted parameters
         /// While reading StringViewReaderUtf8 is switching between original string_view and parameter buffer
         formatted_string,
     };
 
 private:
-    /// If the string view points to a file string, contains the file handle. Otherwise null.
-    FILE *file = nullptr;
+    /// 0 -> Type::zero_terminated_string string (or Type::null_string)
+    /// 1 -> Type::formatted_string
+    /// odd -> Type::string_view
+    /// even -> Type::file_string
+    uintptr_t magical_value = 0;
 
     union {
         /// If file is null, this is a poitner to the memory
@@ -89,12 +94,20 @@ public:
     unichar getFirstUtf8Char() const;
 
     constexpr inline Type type() const {
-        if (file) {
-            return file == FORMATTED_STRING_MARKER ? Type::formatted_string : Type::file_string;
-        } else if (memory_ptr) {
-            return Type::memory_string;
-        } else {
+        if (magical_value == 0 && !memory_ptr) {
             return Type::null_string;
+
+        } else if (magical_value == 0) {
+            return Type::zero_terminated_string;
+
+        } else if (magical_value == 1) {
+            return Type::formatted_string;
+
+        } else if (magical_value & 1) {
+            return Type::string_view;
+
+        } else {
+            return Type::file_string;
         }
     }
 
@@ -128,6 +141,7 @@ public:
     /// Construct string_view_utf8 to provide data from CPU FLASH
     static string_view_utf8 MakeCPUFLASH(const uint8_t *utf8raw) {
         string_view_utf8 s;
+        s.magical_value = 0;
         s.memory_ptr = utf8raw;
         return s;
     }
@@ -140,6 +154,7 @@ public:
     /// basically the same as from CPU FLASH, only the string_view_utf8's type differs of course
     static string_view_utf8 MakeRAM(const uint8_t *utf8raw) {
         string_view_utf8 s;
+        s.magical_value = 0;
         s.memory_ptr = utf8raw;
         return s;
     }
@@ -148,12 +163,22 @@ public:
         return MakeRAM(reinterpret_cast<const uint8_t *>(utf8raw));
     }
 
+    static inline string_view_utf8 MakeRAM(std::string_view str) {
+        string_view_utf8 s;
+        s.magical_value = str.size() * 2 + 1;
+        s.memory_ptr = reinterpret_cast<const uint8_t *>(str.data());
+        return s;
+    }
+
     /// Construct string_view_utf8 to provide data from FILE
     /// The FILE *f shall aready be positioned to the spot, where the string starts
     static string_view_utf8 MakeFILE(::FILE *f, uint32_t offset) {
+        // If file is not aligned (and thus always even), we couldn't use the odd values for string_view
+        static_assert(alignof(::FILE) > 1);
+
         string_view_utf8 s;
         if (f) {
-            s.file = f;
+            s.magical_value = std::bit_cast<uintptr_t>(f);
             s.file_offset = offset;
         }
         return s;
@@ -174,7 +199,7 @@ public:
 
     /// string view has the same resource
     bool is_same_ref(const string_view_utf8 &other) const {
-        return (file == other.file) && (memory_ptr == other.memory_ptr);
+        return (magical_value == other.magical_value) && (memory_ptr == other.memory_ptr);
     }
 
     /// Formatted string_view replaces format specifiers in the translated text with preformatted parameters from parameter buffer inside params buffer
