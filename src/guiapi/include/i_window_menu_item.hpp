@@ -205,10 +205,10 @@ public:
         set_show_disabled_extension(false);
     }
 
-    void set_is_hidden(is_hidden_t set);
+    void set_is_hidden(bool set = true);
 
-    inline void set_is_hidden(bool set = true) {
-        set_is_hidden(set ? is_hidden_t::yes : is_hidden_t::no);
+    inline void set_is_hidden(is_hidden_t set) {
+        set_is_hidden(set == is_hidden_t::yes);
     }
 
     void hide() {
