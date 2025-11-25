@@ -266,28 +266,25 @@ private:
         } last_command;
 
         /// If verifide, move to Alive (depending on the node name).
-        void try_activate(ApplicationImpl *application) {
-            assert(std::holds_alternative<Verify>(state));
-            const auto &verify = get<Verify>(state);
+        State try_activate(ApplicationImpl *application, const Verify &verify) {
             if (verify.finalized()) {
                 if (verify.matches) {
                     switch (info.name) {
                     case NodeName::cz_prusa3d_honeybee_ac_controller:
-                        state = AcControllerAlive {
+                        return AcControllerAlive {
                             .ac_controller = &application->ac_controller,
                         };
-                        break;
                     default:
                         // We passed verification, but don't know what to do about the node, so...
-                        state = Inert {};
-                        break;
+                        return Inert {};
                     }
                 } else {
                     // We know the hash doesn't match -> reflash
-                    state = Flash {};
+                    return Flash {};
                 }
             }
             // else -> waiting for more answers
+            return verify;
         }
 
         bool execute_command(Presentation &presentation, TimePoint now, NodeId node_id, Command command, std::span<std::byte> parameter) {
@@ -437,7 +434,7 @@ private:
                     if (filesystem.hash_response == get_firmware_file_for_node_name(info.name) && filesystem.hash_salt == verify.salt) {
                         verify.received_from_source = true;
                         verify.received(filesystem.hash_digest);
-                        try_activate(application);
+                        state = try_activate(application, verify);
                         filesystem.hash_request = filesystem.hash_response = FirmwareFile::none;
                         presentation.transmit_diagnostic_record(Severity::notice, "hash received");
                         return true;
@@ -743,7 +740,7 @@ public:
                 if (auto *verify = std::get_if<Node::Verify>(&node->state); verify != nullptr) {
                     verify->received_from_device = true;
                     verify->received(output);
-                    node->try_activate(this);
+                    node->state = node->try_activate(this, *verify);
                 } else {
                     // TODO BFW-7918
                     // Can it happen?
