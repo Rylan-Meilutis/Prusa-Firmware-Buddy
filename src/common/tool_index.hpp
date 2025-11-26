@@ -58,7 +58,15 @@ struct PhysicalToolIndexExtension {};
 /// - XL has (up to) 5 physical tools
 /// - INDX has a lot if physical tools (even though only one nozzle can be heated at a time)
 /// - MINI, MKx, C1 (non-index) have a single physical tool
+#if PRINTER_IS_PRUSA_XL()
+// HOTENDS is set to 6 instead of 5.
+// Values 0 to 4 represents tools and 5 represents no tool, which we need to disallow in strong types.
+// For representing no tool we will use NoTool type instead.
+static_assert(HOTENDS == 6);
+using PhysicalToolIndex = ToolIndex<HOTENDS - 1, PhysicalToolIndexExtension>;
+#else
 using PhysicalToolIndex = ToolIndex<HOTENDS, PhysicalToolIndexExtension>;
+#endif
 
 template <typename Derived>
 struct VirtualToolIndexExtension {
@@ -70,7 +78,15 @@ struct VirtualToolIndexExtension {
 /// where multiple virtual tools can be mapped to a single physical tool and swapped through multiplexing (MMU).
 /// This more or less corresponds with the old marlin EXTRUDERS macro.
 /// Used virtual tools are surjectively mapped to physical tools.
+#if PRINTER_IS_PRUSA_XL()
+// EXTRUDERS is set to 6 instead of 5.
+// Values 0 to 4 represents tools and 5 represents no tool, which we need to disallow in strong types.
+// For representing no tool we will use NoTool type instead.
+static_assert(EXTRUDERS == 6);
+using VirtualToolIndex = ToolIndex<EXTRUDERS - 1, VirtualToolIndexExtension>;
+#else
 using VirtualToolIndex = ToolIndex<EXTRUDERS, VirtualToolIndexExtension>;
+#endif
 
 template <typename Derived>
 struct GcodeToolIndexExtension {};
