@@ -12,7 +12,7 @@ target_sources(
          time_sync.cpp
   )
 
-target_link_libraries(firmware PRIVATE crc)
+target_link_libraries(firmware PRIVATE crc modbus)
 
 target_link_libraries(BuddyHeaders INTERFACE lightmodbus)
 

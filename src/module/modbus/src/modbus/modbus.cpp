@@ -27,9 +27,9 @@ Dispatch::Dispatch(std::span<Callbacks *> devices)
     }
 }
 
-modbus::Callbacks *Dispatch::get_device(uint8_t id) {
+modbus::Callbacks *Dispatch::get_device(ServerAddress server_address) {
     for (const auto &device : devices) {
-        if (device && device->server_address() == id) {
+        if (device && device->server_address() == server_address) {
             return device;
         }
     }
@@ -95,7 +95,7 @@ std::span<std::byte> handle_transaction(
     };
 
     const auto device_id = request[0];
-    modbus::Callbacks *device_callbacks = dispatch.get_device(static_cast<uint8_t>(device_id));
+    modbus::Callbacks *device_callbacks = dispatch.get_device(static_cast<ServerAddress>(device_id));
     if (!device_callbacks) {
         return {};
     }

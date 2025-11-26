@@ -44,7 +44,6 @@ public:
     #include "mmu2_serial.h"
 #elif HAS_XBUDDY_EXTENSION()
     #include <puppies/xbuddy_extension.hpp>
-    #include <xbuddy_extension/mmu_bridge.hpp>
 #else
     #error
 #endif

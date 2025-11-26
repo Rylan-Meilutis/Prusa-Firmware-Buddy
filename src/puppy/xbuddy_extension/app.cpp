@@ -151,7 +151,7 @@ Status write_register_file(uint16_t address, std::span<const uint16_t> in) {
 
 class AcController final : public modbus::Callbacks {
 public:
-    uint8_t server_address() const final { return 0x1a + 8; }
+    modbus::ServerAddress server_address() const final { return modbus::ServerAddress::ac_controller; }
 
     Status read_registers(uint16_t address, std::span<uint16_t> out) final {
         return read_register_file<ac_controller::modbus::Status>(address, out);
@@ -165,7 +165,7 @@ public:
 
 class Logic final : public modbus::Callbacks {
 public:
-    uint8_t server_address() const final { return 0x1a + 7; }
+    modbus::ServerAddress server_address() const final { return modbus::ServerAddress::xbuddy_extension; }
 
     Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
         if (const auto status_result = read_register_file<xbuddy_extension::modbus::Status>(address, out);

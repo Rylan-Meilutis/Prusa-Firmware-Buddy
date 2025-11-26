@@ -6,8 +6,6 @@
 
 namespace xbuddy_extension::mmu_bridge {
 
-constexpr uint8_t modbusUnitNr = 220;
-
 // Note: ordering of registers is important, do not change arbitrarily as the modbus register block mapping may break
 constexpr uint8_t buttonRegisterAddress = 252;
 constexpr uint8_t commandInProgressRegisterAddress = 253;

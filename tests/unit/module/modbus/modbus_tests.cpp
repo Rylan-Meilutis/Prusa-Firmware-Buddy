@@ -13,7 +13,7 @@ public:
     static constexpr size_t reg_count = 4;
     std::array<uint16_t, reg_count> registers = { 0, 1, 2, 3 };
 
-    virtual uint8_t server_address() const override { return 1; }
+    virtual ServerAddress server_address() const override { return static_cast<ServerAddress>(1); }
 
     virtual Status read_registers(uint16_t address, std::span<uint16_t> out) override {
         REQUIRE(reinterpret_cast<intptr_t>(out.data()) % alignof(uint16_t) == 0);

@@ -1,7 +1,7 @@
 ///@file
 #include <puppies/ac_controller.hpp>
 
-#include <puppies/PuppyBootstrap.hpp>
+#include <modbus/server_address.hpp>
 
 using Lock = std::unique_lock<freertos::Mutex>;
 using xbuddy_extension::NodeState;
@@ -196,6 +196,6 @@ bool AcController::all_valid() const {
     return valid && static_cast<NodeState>(status.value.node_state) == NodeState::ready;
 }
 
-AcController ac_controller(puppyModbus, 0x1a + 8);
+AcController ac_controller(puppyModbus, std::to_underlying(modbus::ServerAddress::ac_controller));
 
 } // namespace buddy::puppies

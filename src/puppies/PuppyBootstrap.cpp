@@ -11,6 +11,7 @@
 #include <buddy/unreachable.hpp>
 #include "timing.h"
 #include "bsod.h"
+#include <modbus/server_address.hpp>
 #include "otp.hpp"
 #include <option/has_puppies_bootloader.h>
 #include <option/puppy_flash_fw.h>
@@ -568,5 +569,11 @@ void PuppyBootstrap::start_fingerprint_computation(BootloaderProtocol::Address a
     flasher.set_address(address);
     flasher.compute_fingerprint(salt);
 }
+
+constexpr bool is_equal_address(Dock dock, modbus::ServerAddress server_address) {
+    return std::to_underlying(PuppyBootstrap::get_modbus_address_for_dock(dock)) == std::to_underlying(server_address);
+}
+
+static_assert(is_equal_address(Dock::XBUDDY_EXTENSION, modbus::ServerAddress::xbuddy_extension));
 
 } // namespace buddy::puppies

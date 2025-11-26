@@ -7,10 +7,11 @@
 #include <cassert>
 #include <cinttypes>
 #include <logging/log.hpp>
+#include <modbus/modbus.hpp>
 #include <mutex>
-#include <puppies/PuppyBootstrap.hpp>
 #include <sys/fcntl.h>
 #include <sys/unistd.h>
+#include <utility>
 #include <xbuddy_extension/shared_enums.hpp>
 
 LOG_COMPONENT_REF(MMU2);
@@ -492,6 +493,8 @@ XBuddyExtension::MMUModbusRequest XBuddyExtension::MMUModbusRequest::make_comman
     return request;
 }
 
+static constexpr uint8_t modbusUnitNr = std::to_underlying(modbus::ServerAddress::mmu);
+
 CommunicationStatus XBuddyExtension::refresh_mmu() {
     // process MMU request
     // the result is written back into the MMUModbusRequest structure
@@ -501,9 +504,9 @@ CommunicationStatus XBuddyExtension::refresh_mmu() {
     case MMUModbusRequest::RW::read: {
         mmuModbusRq.rw = MMUModbusRequest::RW::read_inactive; // deactivate as it will be processed shortly
         // even if the communication fails, the MMU state machine handles it, it is not required to performs repeats at the MODBUS level
-        auto rv = bus.read_holding(xbuddy_extension::mmu_bridge::modbusUnitNr, &mmuModbusRq.u.read.value, 1, mmuModbusRq.u.read.address, mmuModbusRq.timestamp_ms, 0);
+        auto rv = bus.read_holding(modbusUnitNr, &mmuModbusRq.u.read.value, 1, mmuModbusRq.u.read.address, mmuModbusRq.timestamp_ms, 0);
         log_debug(MMU2, "read holding(uni=%" PRIu8 " val=%" PRIu16 " adr=%" PRIu16 " ts=%" PRIu32 " rv=%" PRIu8,
-            xbuddy_extension::mmu_bridge::modbusUnitNr, mmuModbusRq.u.read.value, mmuModbusRq.u.read.address, mmuModbusRq.timestamp_ms, (uint8_t)rv);
+            modbusUnitNr, mmuModbusRq.u.read.value, mmuModbusRq.u.read.address, mmuModbusRq.timestamp_ms, (uint8_t)rv);
         if (rv == CommunicationStatus::OK) {
             mmuModbusRq.u.read.accepted = true; // this is a bit speculative
             mmuValidResponseReceived = true;
@@ -516,10 +519,10 @@ CommunicationStatus XBuddyExtension::refresh_mmu() {
     case MMUModbusRequest::RW::write: {
         mmuModbusRq.rw = MMUModbusRequest::RW::write_inactive; // deactivate as it will be processed shortly
         bool dirty = true; // force send the MODBUS message
-        auto rv = bus.write_holding(xbuddy_extension::mmu_bridge::modbusUnitNr, &mmuModbusRq.u.write.value, 1, mmuModbusRq.u.write.address, dirty);
+        auto rv = bus.write_holding(modbusUnitNr, &mmuModbusRq.u.write.value, 1, mmuModbusRq.u.write.address, dirty);
         mmuModbusRq.timestamp_ms = last_ticks_ms(); // write_holding doesn't update the timestamp, must be done manually
         log_debug(MMU2, "write holding(uni=%" PRIu8 " val=%" PRIu16 " adr=%" PRIu16 " ts=%" PRIu32 " rv=%" PRIu8,
-            xbuddy_extension::mmu_bridge::modbusUnitNr, mmuModbusRq.u.write.value, mmuModbusRq.u.write.address, mmuModbusRq.timestamp_ms, (uint8_t)rv);
+            modbusUnitNr, mmuModbusRq.u.write.value, mmuModbusRq.u.write.address, mmuModbusRq.timestamp_ms, (uint8_t)rv);
         if (rv == CommunicationStatus::OK) {
             mmuModbusRq.u.write.accepted = true; // this is a bit speculative
             mmuValidResponseReceived = true;
@@ -531,7 +534,7 @@ CommunicationStatus XBuddyExtension::refresh_mmu() {
 
     case MMUModbusRequest::RW::query: {
         mmuModbusRq.rw = MMUModbusRequest::RW::query_inactive; // deactivate as it will be processed shortly
-        auto rv = bus.read(xbuddy_extension::mmu_bridge::modbusUnitNr, mmuQuery, 0);
+        auto rv = bus.read(modbusUnitNr, mmuQuery, 0);
         log_debug(MMU2, "read=%" PRIu8, (uint8_t)rv);
         if (rv == CommunicationStatus::OK) {
             mmuModbusRq.timestamp_ms = mmuQuery.last_read_timestamp_ms;
@@ -544,7 +547,7 @@ CommunicationStatus XBuddyExtension::refresh_mmu() {
         mmuModbusRq.rw = MMUModbusRequest::RW::command_inactive; // deactivate as it will be processed shortly
         bool dirty = true; // force send the MODBUS message
         log_debug(MMU2, "command");
-        auto rv = bus.write_holding(xbuddy_extension::mmu_bridge::modbusUnitNr, &mmuModbusRq.u.command.cp, 1, xbuddy_extension::mmu_bridge::commandInProgressRegisterAddress, dirty);
+        auto rv = bus.write_holding(modbusUnitNr, &mmuModbusRq.u.command.cp, 1, xbuddy_extension::mmu_bridge::commandInProgressRegisterAddress, dirty);
         if (rv != CommunicationStatus::OK) {
             const auto [command, param] = xbuddy_extension::mmu_bridge::unpack_command(mmuModbusRq.u.command.cp);
             log_info(MMU2, "command %d failed, param %d", command, param);
@@ -560,7 +563,7 @@ CommunicationStatus XBuddyExtension::refresh_mmu() {
         // Beware: this command's round-trip may span over 10-20 ms which is close to the MODBUS timeout which is being used for the MMU protocol_logic as well.
         // If the round-trips become longer, MMU protocol_logic must get a larger timeout in mmu_response_received (should cause no harm afterall)
         mmuQuery.value.cip = mmuModbusRq.u.command.cp;
-        rv = bus.read_holding(xbuddy_extension::mmu_bridge::modbusUnitNr, &mmuQuery.value.commandStatus, 1, xbuddy_extension::mmu_bridge::commandStatusRegisterAddress, mmuModbusRq.timestamp_ms, 0);
+        rv = bus.read_holding(modbusUnitNr, &mmuQuery.value.commandStatus, 1, xbuddy_extension::mmu_bridge::commandStatusRegisterAddress, mmuModbusRq.timestamp_ms, 0);
 
         if (rv == CommunicationStatus::OK) {
             log_debug(MMU2, "command query result ok");
@@ -623,10 +626,6 @@ bool XBuddyExtension::mmu_response_received(uint32_t rqSentTimestamp_ms) const {
     return mmuValidResponseReceived && td >= 0 && td < PuppyModbus::MODBUS_READ_TIMEOUT_MS;
 }
 
-#ifndef UNITTESTS
-XBuddyExtension xbuddy_extension(puppyModbus, PuppyBootstrap::get_modbus_address_for_dock(Dock::XBUDDY_EXTENSION));
-#else
-XBuddyExtension xbuddy_extension(puppyModbus, 42);
-#endif
+XBuddyExtension xbuddy_extension(puppyModbus, std::to_underlying(modbus::ServerAddress::xbuddy_extension));
 
 } // namespace buddy::puppies

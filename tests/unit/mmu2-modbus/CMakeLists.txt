@@ -13,6 +13,6 @@ target_include_directories(
   mmu2-modbus_tests PRIVATE include ${CMAKE_SOURCE_DIR}/include
                             ${CMAKE_SOURCE_DIR}/src/common/utils
   )
-target_link_libraries(mmu2-modbus_tests freertos-mock logging-mock xbuddy_extension)
+target_link_libraries(mmu2-modbus_tests freertos-mock logging-mock modbus xbuddy_extension)
 
 add_catch_test(mmu2-modbus_tests)

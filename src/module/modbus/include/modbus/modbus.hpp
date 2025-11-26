@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <span>
+#include <modbus/server_address.hpp>
 
 namespace modbus {
 
@@ -63,7 +64,7 @@ public:
         Ignore = 255,
     };
 
-    virtual uint8_t server_address() const = 0;
+    virtual ServerAddress server_address() const = 0;
     virtual Status read_registers(uint16_t first_address, std::span<uint16_t> out) = 0;
     virtual Status write_registers(uint16_t first_address, std::span<const uint16_t> in) = 0;
 };
@@ -72,7 +73,7 @@ class Dispatch {
 public:
     Dispatch(std::span<Callbacks *> devices);
 
-    modbus::Callbacks *get_device(uint8_t id);
+    modbus::Callbacks *get_device(ServerAddress);
 
 private:
     std::span<Callbacks *> devices;
