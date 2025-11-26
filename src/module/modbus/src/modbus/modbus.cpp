@@ -1,5 +1,5 @@
 /// @file
-#include "modbus.hpp"
+#include <modbus/modbus.hpp>
 
 #include <cstdlib>
 #include <cassert>

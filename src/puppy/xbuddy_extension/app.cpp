@@ -6,7 +6,7 @@
 #include "hal.hpp"
 #include "master_activity.hpp"
 #include "mmu.hpp"
-#include "modbus.hpp"
+#include <modbus/modbus.hpp>
 #include "temperature.hpp"
 #include <ac_controller/modbus.hpp>
 #include <cstdlib>

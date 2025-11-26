@@ -1,4 +1,4 @@
-#include <puppy/xbuddy_extension/modbus.hpp>
+#include <modbus/modbus.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 

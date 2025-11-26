@@ -1,7 +1,7 @@
 /// @file
 #pragma once
 
-#include "modbus.hpp"
+#include <modbus/modbus.hpp>
 #include <cstdint>
 #include <modules/protocol.h>
 #include <xbuddy_extension/mmu_bridge.hpp>

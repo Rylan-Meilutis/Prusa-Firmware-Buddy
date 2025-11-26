@@ -32,7 +32,6 @@ target_sources(
           main.cpp
           master_activity.cpp
           mmu.cpp
-          modbus.cpp
           stdlib.c
           stm32h503.s
           temperature.cpp
@@ -52,6 +51,7 @@ target_link_libraries(
           canard
           o1heap
           ac_controller
+          modbus
   )
 
 # TODO For now, we need to also explicitly depend on `FreeRTOS::FreeRTOS` because we are using
