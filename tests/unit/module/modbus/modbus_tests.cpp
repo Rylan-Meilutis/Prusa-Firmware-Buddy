@@ -106,7 +106,7 @@ TEST_CASE("Modbus transaction - refused inputs") {
     }
 
     SECTION("Other device with unknown function") {
-        REQUIRE(trans_with_crc(dispatch, "\2\8\0\1\0\1", 6, out_buffer).empty());
+        REQUIRE(trans_with_crc(dispatch, "\2\x08\0\1\0\1", 6, out_buffer).empty());
     }
 
     SECTION("Low bytes") {
