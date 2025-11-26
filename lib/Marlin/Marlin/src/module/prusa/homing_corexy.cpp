@@ -382,7 +382,7 @@ S sum_along(const T *seq, const size_t size, const size_t axis) {
  * @brief Part of precise homing.
  * @param axis Physical axis to measure
  * @param c_dist AB cycle distance from the endstop
- * @param m_dist 1/2 distance from the endstop (mm)
+ * @param m_dist AB distance from the endstop (mm)
  * @param fr_mm_s Service move feedrate
  * @return True on success
  */
@@ -392,47 +392,60 @@ static bool measure_phase_cycles(AxisEnum axis, xy_pos_t &c_dist, xy_pos_t &m_di
     MeasurementGuard setup_guard(other_axis);
     ++internal::probe_id;
 
-    const int32_t measure_max_dist = static_cast<int32_t>((XY_HOMING_ORIGIN_OFFSET * 4) / planner.mm_per_step[axis]);
+    // allow half a cycle of tolerance, we'll restrict the tolerance during validation
+    const float measure_bump_max_err = planner.mm_per_step[axis] * phase_cycle_steps(axis) / 2;
+
+    const int32_t measure_max_dist = (XY_HOMING_ORIGIN_OFFSET * 4) / planner.mm_per_step[axis];
     const int32_t measure_dir = (axis == B_AXIS ? -X_HOME_DIR : -Y_HOME_DIR);
     const xy_long_t origin_steps = { stepper.position(A_AXIS), stepper.position(B_AXIS) };
+
+    // keep the average of at least n values having less than max_err of separation between each
     constexpr int probe_n = 2;
     xy_long_t p_steps[probe_n];
-    xy_pos_t p_dist[probe_n] = { -XY_HOMING_ORIGIN_BUMP_MAX_ERR, -XY_HOMING_ORIGIN_BUMP_MAX_ERR };
+    xy_pos_t p_dist[probe_n];
 
-    uint8_t retry;
-    for (retry = 0; retry != XY_HOMING_ORIGIN_BUMP_RETRIES; ++retry) {
-        const uint8_t slot0 = retry % probe_n;
-        const uint8_t slot1 = (retry + 1) % probe_n;
+    // keep sampling *while* cycling on retries (we don't know which probes are good yet)
+    uint8_t retries = 0;
+    for (uint8_t idx = 0; retries != XY_HOMING_ORIGIN_BUMP_RETRIES;) {
+        const uint8_t slot = idx % probe_n;
 
-        // measure distance B+/B-
-        if (!measure_axis_distance(axis, origin_steps, measure_max_dist * measure_dir, p_steps[slot1][1], p_dist[slot1][1], fr_mm_s)
-            || !measure_axis_distance(axis, origin_steps, measure_max_dist * -measure_dir, p_steps[slot1][0], p_dist[slot1][0], fr_mm_s)) {
-            if (!planner.draining()) {
-                SERIAL_ECHOLN("endstop not reached");
+        // measure distance B-/B+
+        for (uint8_t dir = 0; dir != 2; ++dir) {
+            if (!measure_axis_distance(axis, origin_steps, measure_max_dist * (dir ? measure_dir : -measure_dir), p_steps[slot][dir], p_dist[slot][dir], fr_mm_s)) {
+                SERIAL_ECHOLNPAIR("endstop ", (dir == 0 ? '-' : '+'), " not reached");
                 ui.status_printf_P(0, "Endstop not reached");
+                return false;
             }
-            return false;
         }
 
         // keep signs positive
         LOOP_XY(i) {
-            p_steps[slot1][i] = abs(p_steps[slot1][i]);
-            p_dist[slot1][i] = abs(p_dist[slot1][i]);
+            p_steps[slot][i] = abs(p_steps[slot][i]);
+            p_dist[slot][i] = abs(p_dist[slot][i]);
         }
 
-        const float p_diff[2] = {
-            abs(p_dist[slot0][0] - p_dist[slot1][0]),
-            abs(p_dist[slot0][1] - p_dist[slot1][1])
-        };
+        // check for maximum probe difference in the window
+        float p_diff[2] = { 0, 0 };
+        if (idx >= probe_n && probe_n > 1) {
+            for (uint8_t n = 0; n < probe_n - 1; ++n) {
+                LOOP_XY(i) {
+                    p_diff[i] = max(p_diff[i], abs(p_dist[n][i] - p_dist[n + 1][i]));
+                }
+            }
+        }
 
         metric_record_custom(&metric_phxy_probe, ",a=%u p=%u,r=%u,d0=%.3f,d1=%.3f",
-            axis, internal::probe_id, retry, (double)p_diff[0], (double)p_diff[1]);
+            axis, internal::probe_id, retries, (double)p_diff[0], (double)p_diff[1]);
 
-        if (p_diff[0] < float(XY_HOMING_ORIGIN_BUMP_MAX_ERR) && p_diff[1] < float(XY_HOMING_ORIGIN_BUMP_MAX_ERR)) {
-            break;
+        if (idx >= probe_n) {
+            if (p_diff[0] < measure_bump_max_err && p_diff[1] < measure_bump_max_err) {
+                break;
+            }
+            ++retries;
         }
+        ++idx;
     }
-    if (retry == XY_HOMING_ORIGIN_BUMP_RETRIES) {
+    if (retries == XY_HOMING_ORIGIN_BUMP_RETRIES) {
         SERIAL_ECHOLN("axis measurement failed: too many failed probes");
         ui.status_printf_P(0, "Axis measurement failed");
         return false;

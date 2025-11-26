@@ -1088,7 +1088,6 @@
             #define XY_HOMING_HOLDING_CURRENT 950      // mA: holding current for fixed motor
             #define XY_HOMING_ORIGIN_OFFSET 5.f        // mm: parallel distance from initial origin
             #define XY_HOMING_ORIGIN_BUMP_RETRIES 6    // count: maximum number of measurement attempts
-            #define XY_HOMING_ORIGIN_BUMP_MAX_ERR 0.15 // mm: max error between acceptable probes
         #endif
     #endif
 

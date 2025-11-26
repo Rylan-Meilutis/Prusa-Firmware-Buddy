@@ -1108,7 +1108,6 @@
             #define XY_HOMING_MEASURE_FR 70.f           // mm/s: bumping feedrate
             #define XY_HOMING_ORIGIN_OFFSET 5.f         // mm: parallel distance from initial origin
             #define XY_HOMING_ORIGIN_BUMP_RETRIES 10    // count: maximum number of measurement attempts
-            #define XY_HOMING_ORIGIN_BUMP_MAX_ERR 0.075f // mm: max error between acceptable probes
         #endif
     #endif
 
