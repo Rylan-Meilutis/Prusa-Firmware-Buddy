@@ -56,6 +56,7 @@ constinit const EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesLo
 #endif
 #if HAS_MMU2()
         { PhasesLoadUnload::LoadFilamentIntoMMU, { Response::Continue } },
+        { PhasesLoadUnload::MMUDummyStartNoAttention, {} },
 
         { PhasesLoadUnload::MMU_EngagingIdler, {} },
         { PhasesLoadUnload::MMU_DisengagingIdler, {} },

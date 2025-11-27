@@ -65,6 +65,7 @@ enum class PhasesLoadUnload : PhaseUnderlyingType {
 #if HAS_MMU2()
     // MMU-specific dialogs
     LoadFilamentIntoMMU,
+    MMUDummyStartNoAttention,
     // internal states of the MMU
     MMU_EngagingIdler,
     MMU_DisengagingIdler,

@@ -78,6 +78,7 @@ static constexpr const char *txt_mmu_hw_test_exec = N_("HW test exec");
 static constexpr const char *txt_mmu_hw_test_display = N_("HW test display");
 static constexpr const char *txt_mmu_errhw_test_fail = N_("ERR HW test failed");
 static constexpr const char *txt_mmu_insert_filament = N_("Press CONTINUE and push filament into MMU.");
+static constexpr const char *txt_mmu_dummy_start = N_("");
 #endif // HAS_MMU2()
 
 static const constexpr int PROGRESS_BAR_H = 16;
@@ -465,6 +466,7 @@ using Frames = FrameDefinitionList<DialogLoadUnload::FrameStorage,
 #endif
 #if HAS_MMU2()
     FrameDefinition<Phase::LoadFilamentIntoMMU, FrameProgress, txt_mmu_insert_filament>,
+    FrameDefinition<Phase::MMUDummyStartNoAttention, FrameProgress, txt_mmu_dummy_start>,
     FrameDefinition<Phase::MMU_EngagingIdler, FrameProgress, txt_mmu_engag_idler>,
     FrameDefinition<Phase::MMU_DisengagingIdler, FrameProgress, txt_mmu_diseng_idler>,
     FrameDefinition<Phase::MMU_UnloadingToFinda, FrameProgress, txt_mmu_unload_finda>,

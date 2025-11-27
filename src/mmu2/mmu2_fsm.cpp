@@ -172,7 +172,7 @@ bool Fsm::Activate() {
     }
 
     created_this = true;
-    marlin_server::fsm_create(PhasesLoadUnload::LoadFilamentIntoMMU);
+    marlin_server::fsm_create(PhasesLoadUnload::MMUDummyStartNoAttention);
     return true;
 }
 
