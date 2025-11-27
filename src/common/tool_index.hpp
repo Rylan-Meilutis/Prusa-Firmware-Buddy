@@ -8,8 +8,6 @@
 #include <inc/MarlinConfig.h>
 #include <common/array_extensions.hpp>
 #include <bsod.h>
-#include <module/prusa/toolchanger.h>
-#include <module/prusa/tool_mapper.hpp>
 
 /// Strong type for reprezenting no tool using `std::variant<SomeToolIndex, NoTool>`
 struct NoTool {};
@@ -58,20 +56,7 @@ struct PhysicalToolIndexExtension {
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool
     /// @param index
     /// @deprecated This function should be removed after removing all special (notool) values in raw indices
-    static inline constexpr std::variant<Derived, NoTool> from_raw_notool(uint8_t index) {
-#if PRINTER_IS_PRUSA_XL()
-        // count on XL is set to EXTRUDERS - 1 / HOTENDS - 1,
-        // because of legacy definition of EXTRUDERS / HOTENDS to 6 instead of 5.
-        // Values 0 to 4 are actual tools, 5 represents no tool (using MARLIN_NO_TOOL_PICKED).
-        // If we encounter MARLIN_NO_TOOL_PICKED we need to return NoTool and check for it on call site.
-        static_assert(Derived::count == PrusaToolChanger::MARLIN_NO_TOOL_PICKED);
-        if (index == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
-            return NoTool {};
-        }
-#endif
-        // Other non-tool values treat as invalid values -> raise bsod
-        return Derived(index);
-    }
+    static std::variant<Derived, NoTool> from_raw_notool(uint8_t index);
 };
 
 /// Strong type for indexing physical tools.
@@ -99,16 +84,7 @@ struct VirtualToolIndexExtension {
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool
     /// @param index
     /// @deprecated This function should be removed after removing all special (notool) values in raw indices
-    static inline constexpr std::variant<Derived, NoTool> from_raw_notool(uint8_t index) {
-#if HAS_TOOL_MAPPING()
-        // There is 255 (NO_TOOL_MAPPED) used as no tool at some places.
-        if (index == ToolMapper::NO_TOOL_MAPPED) {
-            return NoTool {};
-        }
-#endif
-        // Other non-tool values treat as invalid values -> raise bsod
-        return Derived(index);
-    }
+    static std::variant<Derived, NoTool> from_raw_notool(uint8_t index);
 };
 
 /// Strong type for indexing "virtual" tools.
