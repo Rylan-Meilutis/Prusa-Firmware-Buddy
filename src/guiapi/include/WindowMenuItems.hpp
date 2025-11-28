@@ -25,6 +25,9 @@ public:
         return value_;
     }
 
+    /// If true, the displayed switch icon will be inverted to the actual value
+    void set_invert_value(bool set);
+
 protected:
     virtual invalidate_t change(int dif) override;
     virtual void OnChange([[maybe_unused]] size_t old_index) {} // TODO: Remove this ugly legacy parameter
@@ -33,7 +36,10 @@ protected:
     virtual void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;
 
 private:
-    bool value_ = false;
+    bool value_ : 1 = false;
+
+    /// See @p set_invert_value
+    bool invert_value_ : 1 = false;
 };
 
 class MI_RETURN : public IWindowMenuItem {
