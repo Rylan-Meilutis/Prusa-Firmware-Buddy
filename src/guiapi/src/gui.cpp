@@ -160,7 +160,13 @@ void gui_invalidate(void) {
 }
 
 static uint8_t guiloop_nesting = 0;
-uint8_t gui_get_nesting(void) { return guiloop_nesting; }
+uint8_t gui_get_nesting(void) {
+    return guiloop_nesting;
+}
+
+void gui_reset_loop_timer() {
+    gui_loop_timer.reset();
+}
 
 void gui_bare_loop() {
     ++guiloop_nesting;

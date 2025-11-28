@@ -295,6 +295,10 @@ void Screens::InnerLoop() {
         }
         current->InitState(creator_node.init_data);
         creator_node.MakeEmpty();
+
+        // Trigger a GUI loop immediately after creating a screen
+        // Some display changes happen on first loop, because they cannot be done in the constructor
+        gui_reset_loop_timer();
     }
 }
 

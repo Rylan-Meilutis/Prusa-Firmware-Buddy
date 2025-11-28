@@ -23,6 +23,9 @@ extern void gui_redraw(void);
 
 extern uint8_t gui_get_nesting(void);
 
+/// Reset the loop timer, triggering a LOOP immediately before the next draw
+void gui_reset_loop_timer();
+
 extern void gui_loop(void);
 extern void gui_error_run(void);
 
