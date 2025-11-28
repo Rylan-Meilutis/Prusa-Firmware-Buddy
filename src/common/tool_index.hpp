@@ -8,6 +8,7 @@
 #include <inc/MarlinConfig.h>
 #include <common/array_extensions.hpp>
 #include <bsod.h>
+#include <option/board_is_master_board.h>
 
 /// Strong type for reprezenting no tool using `std::variant<SomeToolIndex, NoTool>`
 struct NoTool {};
@@ -66,7 +67,7 @@ struct PhysicalToolIndexExtension {
 /// - XL has (up to) 5 physical tools
 /// - INDX has a lot if physical tools (even though only one nozzle can be heated at a time)
 /// - MINI, MKx, C1 (non-index) have a single physical tool
-#if PRINTER_IS_PRUSA_XL()
+#if PRINTER_IS_PRUSA_XL() && BOARD_IS_MASTER_BOARD()
 // HOTENDS is set to 6 instead of 5.
 // Values 0 to 4 represents tools and 5 represents no tool, which we need to disallow in strong types.
 // For representing no tool we will use NoTool type instead.
@@ -92,7 +93,7 @@ struct VirtualToolIndexExtension {
 /// where multiple virtual tools can be mapped to a single physical tool and swapped through multiplexing (MMU).
 /// This more or less corresponds with the old marlin EXTRUDERS macro.
 /// Used virtual tools are surjectively mapped to physical tools.
-#if PRINTER_IS_PRUSA_XL()
+#if PRINTER_IS_PRUSA_XL() && BOARD_IS_MASTER_BOARD()
 // EXTRUDERS is set to 6 instead of 5.
 // Values 0 to 4 represents tools and 5 represents no tool, which we need to disallow in strong types.
 // For representing no tool we will use NoTool type instead.
