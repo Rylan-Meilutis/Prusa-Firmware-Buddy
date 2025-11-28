@@ -12,6 +12,7 @@ set(PRINTER_VALID_OPTS
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     "MINI"
     "MK4"
     "MK3.5"
@@ -278,6 +279,7 @@ set(PRINTERS_WITH_FILAMENT_SENSOR_ADC
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     )
 
 set_feature_for_printers(
@@ -291,6 +293,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(
   HAS_PAUSE
@@ -303,6 +306,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 # CRASH_DETECTION requires SELFTEST to work
 set_feature_for_printers_master_board(
@@ -315,6 +319,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 # POWER_PANIC requires SELFTEST and CRASH_DETECTION to work
 set_feature_for_printers_master_board(
@@ -326,6 +331,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 define_enum_option(NAME POWER_PANIC_STORAGE VALUE FLASH ALL_VALUES "FLASH;BKPSRAM")
 set_feature_for_printers(HAS_PRECISE_HOMING "MK4" "MK3.5")
@@ -337,6 +343,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(
   HAS_PHASE_STEPPING
@@ -345,9 +352,12 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   "MK4"
   )
-set_feature_for_printers_master_board(HAS_PHASE_STEPPING_SELFTEST "iX" "XL" "COREONEL")
+set_feature_for_printers_master_board(
+  HAS_PHASE_STEPPING_SELFTEST "iX" "XL" "COREONEL" "COREONEL_INDX"
+  )
 set_feature_for_printers_master_board(
   HAS_PHASE_STEPPING_CALIBRATION
   "XL"
@@ -355,9 +365,18 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   "MK4"
   )
-set(PRINTERS_WITH_BURST_STEPPING "XL" "MK4" "iX" "COREONE" "COREONE_INDX" "COREONEL")
+set(PRINTERS_WITH_BURST_STEPPING
+    "XL"
+    "MK4"
+    "iX"
+    "COREONE"
+    "COREONE_INDX"
+    "COREONEL"
+    "COREONEL_INDX"
+    )
 set_feature_for_printers_master_board(
   HAS_INPUT_SHAPER_CALIBRATION
   "MK4"
@@ -367,6 +386,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers(
   HAS_SELFTEST
@@ -378,6 +398,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers(
   HAS_HUMAN_INTERACTIONS
@@ -388,6 +409,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(
   HAS_LOADCELL
@@ -398,6 +420,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(
   HAS_NEXTRUDER
@@ -418,6 +441,7 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(HAS_FILAMENT_HEATBREAK_PARAM "iX")
 set(PRINTERS_WITH_RESOURCES
@@ -429,21 +453,34 @@ set(PRINTERS_WITH_RESOURCES
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     )
 set_feature_for_printers(HAS_BOWDEN "MINI")
-set(PRINTERS_WITH_PUPPIES_BOOTLOADER "XL" "iX" "XL_DEV_KIT" "COREONE" "COREONE_INDX" "COREONEL")
+set(PRINTERS_WITH_PUPPIES_BOOTLOADER
+    "XL"
+    "iX"
+    "XL_DEV_KIT"
+    "COREONE"
+    "COREONE_INDX"
+    "COREONEL"
+    "COREONEL_INDX"
+    )
 set(PRINTERS_WITH_DWARF "XL" "XL_DEV_KIT")
 
 # MODULAR_BED is a bed consisting of several bedlets
 set_feature_for_printers_master_board(HAS_MODULAR_BED "iX" "XL" "XL_DEV_KIT")
 # REMOTE_BED means there is a daughterboard controlling the bed
-set_feature_for_printers_master_board(HAS_REMOTE_BED "iX" "XL" "XL_DEV_KIT" "COREONEL")
+set_feature_for_printers_master_board(
+  HAS_REMOTE_BED "iX" "XL" "XL_DEV_KIT" "COREONEL" "COREONEL_INDX"
+  )
 # LOCAL_BED means the motherboard is directly controlling the bed
 set_feature_for_printers_master_board(HAS_LOCAL_BED "COREONE" "COREONE_INDX" "MINI" "MK4" "MK3.5")
 # PUPPY_MODULARBED is remote modular bed implemented as a puppy, i.e. communicating over modbus
 set_feature_for_printers_master_board(HAS_PUPPY_MODULARBED "iX" "XL" "XL_DEV_KIT")
 
-set_feature_for_printers_master_board(HAS_XBUDDY_EXTENSION "COREONE" "COREONE_INDX" "COREONEL" "iX")
+set_feature_for_printers_master_board(
+  HAS_XBUDDY_EXTENSION "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "iX"
+  )
 if(NOT DEFINED XBUDDY_EXTENSION_VARIANT)
   set(XBUDDY_EXTENSION_VARIANT "NONE")
 endif()
@@ -452,12 +489,24 @@ define_enum_option(
   )
 
 # MK4 technically doesn't have door sensor but needs to check valid FW-HW
-set_feature_for_printers_master_board(HAS_DOOR_SENSOR "COREONE" "COREONE_INDX" "COREONEL" "MK4")
+set_feature_for_printers_master_board(
+  HAS_DOOR_SENSOR "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "MK4"
+  )
 
 set_feature_for_printers_master_board(HAS_TOOLCHANGER "XL" "XL_DEV_KIT")
-set_feature_for_printers(HAS_SIDE_FSENSOR "iX" "XL" "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(
+  HAS_SIDE_FSENSOR
+  "iX"
+  "XL"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
+  )
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
-set_feature_for_printers(HAS_FILAMENT_SENSORS_MENU "XL" "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(
+  HAS_FILAMENT_SENSORS_MENU "XL" "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
+  )
 
 set_feature_for_printers(
   HAS_ESP
@@ -468,14 +517,16 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 
 set_feature_for_printers(HAS_EMBEDDED_ESP32 "XL")
-set(PRINTERS_WITH_SIDE_LEDS "XL" "COREONE" "COREONE_INDX" "COREONEL")
+set(PRINTERS_WITH_SIDE_LEDS "XL" "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 set(PRINTERS_WITH_TRANSLATIONS
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     "MK4"
     "MK3.5"
     "XL"
@@ -493,12 +544,15 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers(HAS_MMU2 "MK4" "MK3.5" "COREONE" "COREONEL")
 set_feature_for_printers(HAS_CONFIG_STORE_WO_BACKEND "XL_DEV_KIT")
-set_feature_for_printers_master_board(HAS_CHAMBER_API "XL" "COREONE" "COREONE_INDX" "COREONEL")
 set_feature_for_printers_master_board(
-  HAS_CHAMBER_FILTRATION_API "COREONE" "COREONE_INDX" "COREONEL" "XL"
+  HAS_CHAMBER_API "XL" "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
+  )
+set_feature_for_printers_master_board(
+  HAS_CHAMBER_FILTRATION_API "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "XL"
   )
 set_feature_for_printers_master_board(XL_ENCLOSURE_SUPPORT "XL")
 set_feature_for_printers(HAS_SWITCHED_FAN_TEST "MK4" "MK3.5" "COREONE" "COREONEL")
@@ -511,8 +565,8 @@ set_feature_for_printers_master_board(
   "COREONEL"
   "XL"
   )
-set_feature_for_printers(HAS_EMERGENCY_STOP "COREONE" "COREONE_INDX" "COREONEL")
-set_feature_for_printers(HAS_CEILING_CLEARANCE "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(HAS_EMERGENCY_STOP "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(HAS_CEILING_CLEARANCE "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 set_feature_for_printers(
   HAS_CANCEL_OBJECT
   "MK4"
@@ -521,14 +575,11 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   "XL"
   "MINI"
   )
-set_feature_for_printers(
-  HAS_AUTO_RETRACT "COREONE"
-  # "COREONE_INDX" - Will be implemented later
-  "COREONEL" "MK4" "iX" "XL"
-  )
+set_feature_for_printers(HAS_AUTO_RETRACT "COREONE" "COREONEL" "MK4" "iX" "XL")
 set_feature_for_printers_master_board(
   HAS_E2EE_SUPPORT
   "MK4"
@@ -537,25 +588,28 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   "XL"
   "UNITTESTS"
   )
 
 # Printers that support any form of backwards gcode compatibility modes
-set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREONEL") # INDX_TODO:
-                                                                                     # Implement
+set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREONEL")
 
 # Checks for bed evenness during G29 and if it's too uneven, offers Z alignment calibration.
 # Requires SELFTEST to work
-set_feature_for_printers(HAS_UNEVEN_BED_PROMPT "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(HAS_UNEVEN_BED_PROMPT "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 
-set_feature_for_printers(HAS_DOOR_SENSOR_CALIBRATION "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(
+  HAS_DOOR_SENSOR_CALIBRATION "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
+  )
 
 # Set GUI settings
 set(PRINTERS_WITH_GUI
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     "MINI"
     "MK4"
     "MK3.5"
@@ -566,6 +620,7 @@ set(PRINTERS_WITH_GUI_W480H320
     "COREONE"
     "COREONE_INDX"
     "COREONEL"
+    "COREONEL_INDX"
     "MK4"
     "MK3.5"
     "XL"
@@ -581,6 +636,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 # disable serial printing for MINI to save flash
 set_feature_for_printers(
@@ -593,6 +649,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 
 # Local accelerometer communicates directly over SPI
@@ -604,6 +661,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 # Remote accelerometer communicates indirectly over MODBUS
 set_feature_for_printers(HAS_REMOTE_ACCELEROMETER "XL" "XL_DEV_KIT")
@@ -616,23 +674,39 @@ set_feature_for_printers(HAS_BED_LEVEL_CORRECTION "MK3.5" "MINI")
 
 set_feature_for_printers(HAS_SHEET_SUPPORT "MINI" "MK3.5")
 
-set_feature_for_printers(HAS_NFC "MK3.5" "MK4" "COREONE" "COREONE_INDX" "COREONEL")
+set_feature_for_printers(
+  HAS_NFC
+  "MK3.5"
+  "MK4"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
+  )
 
 set_feature_for_printers(HAS_NOZZLE_CLEANER "iX")
 set_feature_for_printers(HAS_MANUAL_BELT_TUNING "COREONE" "COREONEL" "iX")
 set_feature_for_printers_master_board(
-  HAS_I2C_EXPANDER "MK3.5" "MK4" "COREONE" "COREONE_INDX" "COREONEL"
+  HAS_I2C_EXPANDER
+  "MK3.5"
+  "MK4"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers(HAS_WASTEBIN "iX")
 set_feature_for_printers_master_board(HAS_PRINT_FAN_TYPE "XL")
 # GEARBOX_ALIGNMENT requires SELFTEST
 set_feature_for_printers_master_board(HAS_GEARBOX_ALIGNMENT "MK4" "COREONE" "COREONEL" "XL")
-set_feature_for_printers_master_board(HAS_CHAMBER_VENTS "COREONE" "COREONE_INDX" "COREONEL")
-set_feature_for_printers_master_board(HAS_BED_FAN "COREONEL")
-set_feature_for_printers_master_board(HAS_PSU_FAN "COREONEL")
-set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL")
-set_feature_for_printers(HAS_ANFC "COREONE" "COREONE_INDX" "COREONEL")
-set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL")
+set_feature_for_printers_master_board(
+  HAS_CHAMBER_VENTS "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
+  )
+set_feature_for_printers_master_board(HAS_BED_FAN "COREONEL" "COREONEL_INDX")
+set_feature_for_printers_master_board(HAS_PSU_FAN "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(HAS_ANFC "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL" "COREONEL_INDX")
 
 # Use websocket to talk to Connect instead of many http requests.
 #
@@ -650,11 +724,11 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   "XL_DEV_KIT"
   )
 
-set_feature_for_printers(HAS_INDX "COREONE_INDX") # Don't add "COREONE" or "COREONEL", they have
-                                                  # separate builds
+set_feature_for_printers(HAS_INDX "COREONE_INDX" "COREONEL_INDX")
 
 if(HAS_TOOLCHANGER OR HAS_MMU2)
   define_boolean_option(HAS_TOOL_MAPPING yes)
@@ -1003,6 +1077,7 @@ if(BOOTLOADER STREQUAL "YES"
    AND (PRINTER STREQUAL "COREONE"
         OR PRINTER STREQUAL "COREONE_INDX"
         OR PRINTER STREQUAL "COREONEL"
+        OR PRINTER STREQUAL "COREONEL_INDX"
         OR PRINTER STREQUAL "MINI"
         OR PRINTER STREQUAL "MK4"
         OR PRINTER STREQUAL "MK3.5"
