@@ -170,7 +170,11 @@ public:
 
     /// Appends name of the filament to the builder
     /// If the filament type is non-preset, it visually distincts it (for example by appending PLA (Custom))
+    /// Pulls the filament name from FilamentTypeParameters
     void build_name_with_info(StringBuilder &builder) const;
+
+    /// Overload that does not fetch from FilamentTypeParameters
+    void build_name_with_info(std::string_view filament_name, StringBuilder &builder) const;
 
     /// \returns parameters of the filament type
     FilamentTypeParameters parameters() const;

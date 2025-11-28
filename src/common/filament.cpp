@@ -264,8 +264,8 @@ bool FilamentType::matches(const std::string_view &name) const {
     return parameters().name == name;
 }
 
-void FilamentType::build_name_with_info(StringBuilder &builder) const {
-    builder.append_std_string_view(parameters().name);
+void FilamentType::build_name_with_info(std::string_view filament_name, StringBuilder &builder) const {
+    builder.append_std_string_view(filament_name);
 
     const char *suffix =
 #if HAS_MINI_DISPLAY()
@@ -300,6 +300,10 @@ void FilamentType::build_name_with_info(StringBuilder &builder) const {
         builder.append_string_view(_(suffix));
         builder.append_char(')');
     }
+}
+
+void FilamentType::build_name_with_info(StringBuilder &builder) const {
+    build_name_with_info(parameters().name, builder);
 }
 
 FilamentTypeParameters FilamentType::parameters() const {
