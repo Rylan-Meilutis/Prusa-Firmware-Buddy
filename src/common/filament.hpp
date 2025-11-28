@@ -127,8 +127,6 @@ struct PendingAdHocFilamentType {
     inline constexpr bool operator!=(const PendingAdHocFilamentType &) const = default;
 };
 
-extern FilamentTypeParameters pending_adhoc_filament_parameters;
-
 struct NoFilamentType {
     inline constexpr bool operator==(const NoFilamentType &) const = default;
     inline constexpr bool operator!=(const NoFilamentType &) const = default;

@@ -40,6 +40,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/utils/color.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/gcode_parser_custom_types_tests.cpp
   )
+target_link_libraries(gcode_parser_custom_types_tests freertos_tests)
 target_include_directories(
   gcode_parser_custom_types_tests
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/stub ${CMAKE_SOURCE_DIR}/src/common/gcode

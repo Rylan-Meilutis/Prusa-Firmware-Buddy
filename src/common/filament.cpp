@@ -16,6 +16,8 @@
 #include <config_store/store_instance.hpp>
 #include <Configuration.h>
 #include <common/aggregate_arity.hpp>
+#include <utils/mutex_atomic.hpp>
+#include <freertos/mutex.hpp>
 
 // !!! If these value change, you need to inspect usages and possibly write up some config store migrations
 static_assert(filament_name_buffer_size == 8);
@@ -226,8 +228,10 @@ constexpr bool chamber_temperatures_are_within_spec(const FilamentTypeParameters
 static_assert(std::ranges::all_of(preset_filament_parameters, chamber_temperatures_are_within_spec));
 #endif
 
-FilamentTypeParameters pending_adhoc_filament_parameters {
-    .name = "CUSTOM",
+MutexAtomic<FilamentTypeParameters, freertos::Mutex> pending_adhoc_filament_parameters_ {
+    FilamentTypeParameters {
+        .name = "CUSTOM",
+    },
 };
 
 FilamentType FilamentType::from_name(const std::string_view &name) {
@@ -354,7 +358,7 @@ FilamentTypeParameters FilamentType::parameters() const {
                 std::monostate());
 
         } else if constexpr (std::is_same_v<T, PendingAdHocFilamentType>) {
-            return pending_adhoc_filament_parameters;
+            return pending_adhoc_filament_parameters_.load();
 
         } else if constexpr (std::is_same_v<T, NoFilamentType>) {
             return none_filament_parameters;
@@ -420,7 +424,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #endif
 
         } else if constexpr (std::is_same_v<T, PendingAdHocFilamentType>) {
-            pending_adhoc_filament_parameters = set;
+            pending_adhoc_filament_parameters_.store(set);
 
         } else if constexpr (std::is_same_v<T, NoFilamentType>) {
             assert(false);
@@ -457,7 +461,7 @@ std::expected<void, const char *> FilamentType::can_be_renamed_to(const std::str
     // Check for name collisions
     if (
         // Ad-hoc filaments can "override" standard ones, so we allow name collisions for them
-        !std::holds_alternative<AdHocFilamentType>(*this)
+        !std::holds_alternative<AdHocFilamentType>(*this) && !std::holds_alternative<PendingAdHocFilamentType>(*this)
 
         && std::ranges::any_of(all_filament_types, [&](FilamentType ft) {
                return (ft != *this) && (new_name == ft.parameters().name);
