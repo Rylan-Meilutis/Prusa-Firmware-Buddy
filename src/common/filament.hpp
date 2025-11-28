@@ -143,8 +143,8 @@ constexpr size_t total_filament_type_count = preset_filament_type_count + user_f
 struct FilamentType : public FilamentType_ {
 
 public:
-    // For FilamentType::none
-    static constexpr NoFilamentType none = {};
+    static const FilamentType none;
+    static const FilamentType pending_adhoc;
 
     static constexpr const char *adhoc_pending_gcode_code = "#";
 
@@ -226,3 +226,6 @@ public:
     inline constexpr bool operator==(const FilamentType &) const = default;
     inline constexpr bool operator!=(const FilamentType &) const = default;
 };
+
+constexpr FilamentType FilamentType::none = NoFilamentType {};
+constexpr FilamentType FilamentType::pending_adhoc = PendingAdHocFilamentType {};

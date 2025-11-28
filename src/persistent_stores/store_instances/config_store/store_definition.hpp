@@ -360,7 +360,7 @@ struct CurrentStore
     StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, VirtualToolIndex::count> loaded_filament_type;
 
     /// User-defined filament ordering. Does not need to contain all the filaments - the rest will be appended to the back using the standard rules
-    StoreItem<std::array<FilamentType, max_total_filament_count>, FilamentType::none, ItemFlag::user_presets, journal::hash("Filament Order")> filament_order;
+    StoreItem<std::array<FilamentType, max_total_filament_count>, NoFilamentType {}, ItemFlag::user_presets, journal::hash("Filament Order")> filament_order;
 
     StoreItem<std::bitset<max_preset_filament_type_count>, defaults::visible_preset_filament_types, ItemFlag::user_presets, journal::hash("Visible Preset Filament Types")> visible_preset_filament_types;
 
