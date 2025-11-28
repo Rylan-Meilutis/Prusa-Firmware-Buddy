@@ -1,25 +1,17 @@
 /// @file
 #include <xbuddy_extension/modbus.hpp>
 
-#include <type_traits>
+#include <modbus/traits.hpp>
 
-static_assert(std::is_standard_layout_v<xbuddy_extension::modbus::Status>);
-static_assert(std::is_standard_layout_v<xbuddy_extension::modbus::Config>);
-static_assert(std::is_standard_layout_v<xbuddy_extension::modbus::Chunk>);
-static_assert(std::is_standard_layout_v<xbuddy_extension::modbus::Digest>);
-static_assert(std::is_standard_layout_v<xbuddy_extension::modbus::LogMessage>);
+static_assert(modbus::RegisterFile<xbuddy_extension::modbus::Status>);
+static_assert(modbus::RegisterFile<xbuddy_extension::modbus::Config>);
+static_assert(modbus::RegisterFile<xbuddy_extension::modbus::Chunk>);
+static_assert(modbus::RegisterFile<xbuddy_extension::modbus::Digest>);
+static_assert(modbus::RegisterFile<xbuddy_extension::modbus::LogMessage>);
 
 // Chunk structure is optimized to transfer as much data as possible
-// in a single MODBUS transaction to improve throughput:
-//  * MODBUS PDU is 253 bytes
-//  * of those, 6 are used for function header
-//  * this leaves 247 bytes
-//  * which means 123 16-bit registers
-static_assert(6 /*header*/ + sizeof(xbuddy_extension::modbus::Chunk) + 1 /*unused*/ == 253 /*pdu*/);
-
-// TODO invent some better trait for this
-static_assert(6 /*header*/ + sizeof(xbuddy_extension::modbus::Digest) < 253 /*pdu*/);
-static_assert(6 /*header*/ + sizeof(xbuddy_extension::modbus::LogMessage) < 253 /*pdu*/);
+// in a single MODBUS transaction to improve throughput.
+static_assert(sizeof(xbuddy_extension::modbus::Chunk) == modbus::max_register_file_size_bytes);
 
 xbuddy_extension::FileId xbuddy_extension::modbus::parse_file_id(uint16_t file_id) {
     switch (const auto value = static_cast<FileId>(file_id)) {
