@@ -10,6 +10,11 @@
 
 namespace buddy::openprinttag {
 
+inline bool has_tool_openprinttag_reader([[maybe_unused]] VirtualToolIndex tool) {
+    // TODO
+    return true;
+}
+
 struct ToolTagField;
 
 /// Class representing a specific tag associated with a specific tool
@@ -21,12 +26,23 @@ public:
 
 public:
     /// @returns tag assigned to the specified tool, if there is any
-    static std::optional<ToolTag> for_tool(VirtualToolIndex tool);
+    static std::optional<ToolTag> for_tool(VirtualToolIndex tool) {
+        return ToolTag { tool, 0 };
+    }
 
 public:
+    inline VirtualToolIndex tool() const {
+        return tool_;
+    }
+
     /// @returns a struct representing a specific field on the tag
     template <typename F>
     inline ToolTagField field(F field) const;
+
+private:
+    explicit inline ToolTag(VirtualToolIndex tool, AssignSeq seq)
+        : tool_(tool)
+        , seq_(seq) {}
 
 private:
     VirtualToolIndex tool_;
@@ -34,7 +50,7 @@ private:
     /// Tag assignment ID for the specified tool.
     /// This value changes every time the tag for the specified tool is changed
     /// This ensures that when we issue multiple read requests, they are all read from the same NFC tag, or they fail.
-    AssignSeq assign_seq_;
+    AssignSeq seq_;
 };
 
 struct ToolTagField {
