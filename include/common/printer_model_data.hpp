@@ -134,6 +134,15 @@ inline constexpr std::array printer_model_info {
         .gcode_check_code = 350,
         .id_str = "COREONEL",
     },
+    PrinterModelInfo {
+        .model = PrinterModel::coreone_indx,
+        .compatibility_group = PrinterModelCompatibilityGroup::coreone_indx,
+        .version = { 7, 10, 0 },
+        .help_url = "core-one-indx",
+        .usb_pid = 36,
+        .gcode_check_code = 360,
+        .id_str = "COREONE-INDX",
+    },
 };
 
 inline constexpr std::array printer_model_mmu_variant {
