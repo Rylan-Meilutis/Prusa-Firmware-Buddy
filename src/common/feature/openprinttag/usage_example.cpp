@@ -1,21 +1,20 @@
 #include "requests_read.hpp"
+#include "requests_read_multi.hpp"
 
-namespace opt = buddy::openprinttag;
+namespace buddy::openprinttag {
 
 void opt_usage_example() {
-    const auto tag_opt = opt::ToolTag::for_tool(VirtualToolIndex::from_raw(0));
+    const auto tag_opt = ToolTag::for_tool(VirtualToolIndex::from_raw(0));
     if (!tag_opt) {
         return;
     }
 
     const auto tag = *tag_opt;
 
-    std::array<char, 64> material_name_buffer;
+    ReadFieldRequest<MainField::material_name> material_name { tag };
+    ReadFieldRequest<MainField::density> density { tag };
 
-    opt::ReadStringRequestBase material_name { tag.field(opt::MainField::material_name), material_name_buffer };
-    opt::ReadFloatRequest density { tag.field(opt::MainField::density) };
-
-    opt::SyncRequest sync;
+    SyncRequest sync;
 
     material_name.issue();
     density.issue();
@@ -26,5 +25,25 @@ void opt_usage_example() {
         // We could possibly give the request group a semaphore or something as well
     }
 
-    printf("%s", material_name.result()->data());
+    const auto mat = material_name.result();
+    printf("%.*s", mat->size(), mat->data());
 }
+
+__attribute__((__used__)) void opt_usage_example_2() {
+    const auto tag_opt = ToolTag::for_tool(VirtualToolIndex::from_raw(0));
+    if (!tag_opt) {
+        return;
+    }
+
+    MultiReadFieldRequest<MainField::material_name, MainField::density> read { *tag_opt };
+
+    while (!read.finished()) {
+        // Wait for the request group to finish
+        // We could possibly give the request group a semaphore or something as well
+    }
+
+    const auto mat = read.result<MainField::material_name>();
+    // printf("%.*s", mat->size(), mat->data());
+}
+
+} // namespace buddy::openprinttag

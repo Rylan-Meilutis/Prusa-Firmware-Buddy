@@ -6,7 +6,7 @@
 
 #include <tool_index.hpp>
 
-#include "defines.hpp"
+#include <feature/openprinttag/detail/defines.hpp>
 
 namespace buddy::openprinttag {
 

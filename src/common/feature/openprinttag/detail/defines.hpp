@@ -16,7 +16,10 @@ using FieldType = ::openprinttag::FieldType;
 using MainField = ::openprinttag::MainField;
 using AuxField = ::openprinttag::AuxField;
 
-template <auto field>
-using FieldMeta = ::openprinttag::FieldMeta<field>;
+template <typename T>
+concept CField = ::openprinttag::CField<T>;
+
+template <CField auto field>
+using FieldTraits = ::openprinttag::FieldTraits<field>;
 
 } // namespace buddy::openprinttag
