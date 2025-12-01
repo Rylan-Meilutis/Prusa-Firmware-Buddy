@@ -334,9 +334,6 @@ if(CMAKE_CROSSCOMPILING)
     -Wl,--defsym=printf=printf_,--defsym=sprintf=sprintf_,--defsym=snprintf=snprintf_,--defsym=vprintf=vprintf_,--defsym=vsnprintf=vsnprintf_
     )
 
-  # wrap _dtoa to ensure formatting of floats isn't being called from ISR
-  add_link_options(-Wl,--wrap=_dtoa_r)
-
   # disable warnings about RWX sections due to CrashCatcher's "safe" page
   add_link_options(-Wl,--no-warn-rwx-segments)
 endif()
