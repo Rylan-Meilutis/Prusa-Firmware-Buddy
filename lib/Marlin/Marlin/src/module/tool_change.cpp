@@ -65,7 +65,7 @@ void tool_change(const uint8_t new_tool,
     MMU2::mmu2.tool_change(new_tool);
 
   #elif HAS_TOOLCHANGER()
-    bool ret [[maybe_unused]] = prusa_toolchanger.tool_change(new_tool, return_type, current_position, z_lift, z_return);
+    bool ret [[maybe_unused]] = prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw_notool(new_tool), return_type, current_position, z_lift, z_return);
 
   #else
     #error Not implemented

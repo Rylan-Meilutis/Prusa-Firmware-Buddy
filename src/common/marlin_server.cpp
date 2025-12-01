@@ -2708,7 +2708,7 @@ static void _server_print_loop(void) {
                 toNative(return_pos); // Needs to be modified in place, stored in logical coordinates
                 return_type = prusa_toolchanger.get_precrash().return_type;
             }
-            if (!prusa_toolchanger.tool_change(prusa_toolchanger.get_precrash().tool_nr,
+            if (!prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw_notool(prusa_toolchanger.get_precrash().tool_nr),
                     return_type,
                     return_pos,
                     tool_change_lift_t::no_lift,

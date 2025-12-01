@@ -159,7 +159,7 @@ LoopResult CSelftestPart_Axis::stateHomeZ() {
 #if HAS_TOOLCHANGER()
     // The next Z axis check needs to be done with a tool. This will re-home XY on-demand
     if (prusa_toolchanger.is_toolchanger_enabled() && (prusa_toolchanger.has_tool() == false)) {
-        if (!prusa_toolchanger.tool_change(0, tool_return_t::no_return, {})) {
+        if (!prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, {})) {
             return LoopResult::Fail;
         }
     }

@@ -1,6 +1,7 @@
 #pragma once
 #include <inc/MarlinConfigPre.h>
 #include <option/has_toolchanger.h>
+#include <tool_index.hpp>
 
 #if HAS_TOOLCHANGER()
     #include "toolchanger_utils.h"
@@ -25,7 +26,7 @@ public:
      * @param z_return when true, printer will go to return_position.z after toolchange is complete, false will leave Z in last state (possibly lifted by z_lift)
      * @return true if toolchange was successful
      */
-    [[nodiscard]] bool tool_change(const uint8_t new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift = tool_change_lift_t::full_lift, bool z_return = true);
+    [[nodiscard]] bool tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift = tool_change_lift_t::full_lift, bool z_return = true);
 
     /// Structure to remember wanted toolchange result in case of a crash
     struct PrecrashData {

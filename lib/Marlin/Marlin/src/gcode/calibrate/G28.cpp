@@ -776,7 +776,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
       #if HAS_TOOLCHANGER()
       if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         // When no tool is picked, make sure to pick one
-        failed = !prusa_toolchanger.tool_change(0, tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
+        failed = !prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
       }
       #endif
 

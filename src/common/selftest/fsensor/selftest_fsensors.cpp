@@ -260,7 +260,7 @@ bool SelftestFSensors::prepare() {
 
 #if HAS_TOOLCHANGER()
     if (prusa_toolchanger.is_toolchanger_enabled()) {
-        const auto toolchange_result = prusa_toolchanger.tool_change(params_.tool, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false);
+        const auto toolchange_result = prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw_notool(params_.tool), tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false);
         if (!toolchange_result) {
             return false;
         }

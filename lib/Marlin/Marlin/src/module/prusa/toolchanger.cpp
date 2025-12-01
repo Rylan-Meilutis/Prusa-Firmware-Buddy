@@ -1,6 +1,7 @@
 #include "toolchanger.h"
 #include "module/planner.h"
 #include "module/tool_change.h"
+#include "utils/overloaded_visitor.hpp"
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -182,8 +183,12 @@ bool PrusaToolChanger::check_emergency_stop() {
     return false;
 }
 
-bool PrusaToolChanger::tool_change(const uint8_t new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool z_return) {
+bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool z_return) {
     // WARNING: called from default(marlin) task
+    uint8_t raw_new_tool = match(
+        new_tool,
+        [](PhysicalToolIndex physical_tool) { return physical_tool.to_raw(); },
+        [](NoTool) { return MARLIN_NO_TOOL_PICKED; });
 
     // Check where we should return to
     if (return_type == tool_return_t::to_destination || return_type == tool_return_t::purge_and_to_destination) {
@@ -202,17 +207,14 @@ bool PrusaToolChanger::tool_change(const uint8_t new_tool, tool_return_t return_
         bsod("Recursion in tool_change()");
     }
 
-    if (new_tool >= EXTRUDERS) {
-        toolchanger_error("Invalid extruder");
-    }
     if (!is_toolchanger_enabled()) {
-        if (new_tool == active_extruder) {
+        if (raw_new_tool == active_extruder) {
             return true; // Allow singletool printer to change to tool 0
         }
         toolchanger_error("Toolchanger not enabled");
     }
 
-    Dwarf *new_dwarf = (new_tool == MARLIN_NO_TOOL_PICKED) ? nullptr : &dwarfs[new_tool]; ///< Dwarf to change to
+    Dwarf *new_dwarf = (raw_new_tool == MARLIN_NO_TOOL_PICKED) ? nullptr : &dwarfs[raw_new_tool]; ///< Dwarf to change to
     if (new_dwarf && !new_dwarf->is_enabled()) {
         toolchanger_error("Toolchange to tool that is not enabled");
     }
@@ -220,7 +222,7 @@ bool PrusaToolChanger::tool_change(const uint8_t new_tool, tool_return_t return_
     // Store input parameters to repeat toolchange if needed (position cleared)
     xyz_pos_t store_return_position = return_position;
     toLogical(store_return_position); // Position is stored without tool offset, needs to be converted in place
-    precrash_data = { new_tool, return_type, store_return_position };
+    precrash_data = { raw_new_tool, return_type, store_return_position };
 
     Dwarf *old_dwarf = picked_dwarf.load(); ///< Change from physically picked dwarf
 
@@ -317,10 +319,10 @@ bool PrusaToolChanger::tool_change(const uint8_t new_tool, tool_return_t return_
     // request select, wait for it to complete
     request_active_switch(new_dwarf);
     const uint8_t old_tool = active_extruder;
-    active_extruder = new_tool;
-    update_software_endstops(X_AXIS, old_tool, new_tool);
-    update_software_endstops(Y_AXIS, old_tool, new_tool);
-    update_software_endstops(Z_AXIS, old_tool, new_tool);
+    active_extruder = raw_new_tool;
+    update_software_endstops(X_AXIS, old_tool, raw_new_tool);
+    update_software_endstops(Y_AXIS, old_tool, raw_new_tool);
+    update_software_endstops(Z_AXIS, old_tool, raw_new_tool);
 
     hotend_currently_applied_offset = new_hotend_offset;
 
