@@ -216,7 +216,7 @@ ScreenSplash::ScreenSplash()
 
         } else if (model != current_base_model) {
             constexpr auto callback = +[] {
-                StringViewUtf8Parameters<16> params;
+                StringViewUtf8Parameters<25> params;
                 MsgBoxError(
                     _("Printer type changed from %s to %s.\nFactory reset will be performed.\nSome configuration (network, filament profiles, ...) will be preserved.")
                         .formatted(params, PrinterModelInfo::get(config_store().last_boot_base_printer_model.get()).id_str, PrinterModelInfo::firmware_base().id_str),

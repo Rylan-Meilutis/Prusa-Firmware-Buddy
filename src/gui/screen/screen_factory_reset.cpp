@@ -178,7 +178,7 @@ void WindowMenuFactoryReset::setup_item(ItemVariant &variant, int index) {
 
     case MenuItem::hard_reset: {
         const auto callback = [] {
-            StringViewUtf8Parameters<20> params;
+            StringViewUtf8Parameters<24> params;
             static constexpr const char *msg = N_(
                 "This operation cannot be undone. Current configuration will be lost!"
                 "\nYou will need a USB drive with this firmware (%s_firmware_%s.bbf file) to start the printer again."
