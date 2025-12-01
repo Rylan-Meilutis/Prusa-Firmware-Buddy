@@ -640,7 +640,7 @@ void hal::init_gpio() {
 }
 
 extern "C" void hal_panic() {
-    bsod_system();
+    hal::panic();
 }
 
 extern "C" void NMI_Handler() {
