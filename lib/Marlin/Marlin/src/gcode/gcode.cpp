@@ -658,7 +658,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
     break;
 
     #if EXTRUDERS > 1
-      case 'T': T(parser.codenum); break;                           // Tn: Tool Change
+      case 'T': T(); break;                           // Tn: Tool Change
     #endif
 
     default:

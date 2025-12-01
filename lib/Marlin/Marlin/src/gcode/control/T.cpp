@@ -24,7 +24,6 @@
 #include "../../module/tool_change.h"
 #include "bsod.h"
 #include <tool_index.hpp>
-#include <utils/variant_utils.hpp>
 
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
@@ -80,20 +79,24 @@
  * - `Tx` - Same as T?, but nozzle doesn't have to be preheated. Tc requires a preheated nozzle to finish filament load.
  * - `Tc` - Load to nozzle after filament was prepared by Tc and nozzle is already heated.
  */
-void GcodeSuite::T(uint8_t tool_index) {
-
+void GcodeSuite::T() {
+  auto gcode_tool = GcodeToolIndex::from_raw(parser.codenum);
+  VirtualToolIndex virtual_tool = [&](){
 #if HAS_TOOL_MAPPING()
-  const bool map = !parser.seen('M') || parser.boolval('M', true);
-  if (map) {
-    tool_index = tool_mapper.to_virtual(tool_index);
-    if (tool_index == tool_mapper.NO_TOOL_MAPPED) {
-      raise_redscreen(ErrCode::ERR_UNDEF, "Toolchange to tool that is disabled by tool mapping", "PrusaToolChanger");
+    const bool map = !parser.seen('M') || parser.boolval('M', true);
+    if (map) {
+      uint8_t raw_virtual = tool_mapper.to_virtual(gcode_tool.to_raw());
+      if (raw_virtual == tool_mapper.NO_TOOL_MAPPED) {
+        raise_redscreen(ErrCode::ERR_UNDEF, "Toolchange to tool disabled by tool mapping", "PrusaToolChanger");
+      }
+      return VirtualToolIndex::from_raw(raw_virtual);
     }
-  }
 #endif
+    return VirtualToolIndex::from_raw(gcode_tool.to_raw());
+  }();
 
   if (DEBUGGING(LEVELING)) {
-    DEBUG_ECHOLNPAIR(">>> T(", tool_index, ")");
+    DEBUG_ECHOLNPAIR(">>> T(", virtual_tool.to_raw(), ")");
     DEBUG_POS("BEFORE", current_position);
   }
 
@@ -122,8 +125,8 @@ void GcodeSuite::T(uint8_t tool_index) {
     if (move_type >= 1) return_type = tool_return_t::no_return;
     #if HAS_TOOLCHANGER()
     // toolchange to or from no tool is no_return, but if user provided X, Y or Z, return to that position
-    if (((tool_index == PrusaToolChanger::MARLIN_NO_TOOL_PICKED || active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED)) && destination == current_position) {
-    return_type = tool_return_t::no_return;
+    if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED && destination == current_position) {
+      return_type = tool_return_t::no_return;
     }
     #endif
 
@@ -131,7 +134,7 @@ void GcodeSuite::T(uint8_t tool_index) {
     if (z_lift > tool_change_lift_t::_last_item) z_lift = tool_change_lift_t::full_lift; // invalid input, use full_lift
     bool z_down = parser.byteval('D', 1);
 
-    tool_change(stdext::to_variant(VirtualToolIndex::from_raw_notool(tool_index)), return_type, z_lift, z_down);
+    tool_change(virtual_tool, return_type, z_lift, z_down);
 
   #endif
 

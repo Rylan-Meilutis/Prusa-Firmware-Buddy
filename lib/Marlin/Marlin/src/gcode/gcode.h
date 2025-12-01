@@ -228,6 +228,7 @@
 #include "../inc/MarlinConfig.h"
 #include "parser.h"
 
+#include <tool_index.hpp>
 #include <common/printer_model.hpp>
 
 #include <option/has_i2c_expander.h>
@@ -368,7 +369,7 @@ public:
    */
   static bool G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags = G28Flags());
 
-  static void T(const uint8_t tool_index);
+  static void T();
 
 private:
 
