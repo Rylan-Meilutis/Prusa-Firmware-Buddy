@@ -184,7 +184,7 @@ public:
     void StoreSample(uint32_t time_us, float currentZ, float currentLoad);
 
     /// Run the analysis and return its result
-    Result Analyse();
+    Result Analyse(bool is_nozzle_clean = false);
 
     /// Clear the analysis window
     void Reset() {
@@ -351,7 +351,7 @@ public:
      * @note This function is auto-generated based on trained models.
      *       Hand-made changes will be lost (so don't make them).
      */
-    bool HasOutOfRangeFeature(Features &features, const char **feature, float *value) const;
+    bool HasOutOfRangeFeature(Features &features, const char **feature, float *value, bool is_nozzle_clean = false) const;
 
 protected:
     ProbeAnalysisBase(CircleBufferBaseT<Record> &window, float loadDelay, int skipBorderSamples)

@@ -509,7 +509,11 @@ static xy_pos_t offset_for_probe_try(int try_idx) {
  *
  * @return The Z position of the bed at the current XY or NAN on error.
  */
-float run_z_probe(float expected_trigger_z, bool single_only, bool *endstop_triggered) {
+float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *endstop_triggered /*= nullptr*/, bool is_nozzle_clean /*= false*/) {
+  if (DEBUGGING(LEVELING)) {
+    SERIAL_ECHOLNPAIR(">>> run_z_probe x=", current_position.x, ", y=", current_position.y, ", z=", current_position.z);
+  }
+
   // Stop the probe before it goes too low to prevent damage.
   // If Z isn't known then probe to -10mm.
   float z_probe_low_point = expected_trigger_z + Z_PROBE_LOW_POINT;
@@ -816,7 +820,7 @@ bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max) {
       probe_deployed = true;
 
       // probe
-      float result = run_z_probe(0, /*single_only=*/true);
+      float result = run_z_probe(0, /*single_only=*/true, /*endstop_triggered=*/nullptr, /*is_nozzle_clean=*/true);
       if (planner.draining()) {
         should_continue = false;
         break;
