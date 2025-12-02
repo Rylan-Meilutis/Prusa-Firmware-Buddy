@@ -417,7 +417,7 @@ private:
 #endif
 // -------------------------------FRAME STORAGE--------------------------------
 using Frames = FrameDefinitionList<DialogLoadUnload::FrameStorage,
-    FrameDefinition<Phase::initial, WithBeepWaitSound<FrameProgress>, txt_init>,
+    FrameDefinition<Phase::initial, FrameProgress, txt_init>,
     FrameDefinition<Phase::ChangingTool, FrameProgress, txt_tool>,
     FrameDefinition<Phase::Parking_stoppable, FrameProgress, txt_parking>,
     FrameDefinition<Phase::Parking_unstoppable, FrameProgress, txt_parking>,
