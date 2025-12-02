@@ -100,43 +100,35 @@ void GcodeSuite::T() {
     DEBUG_POS("BEFORE", current_position);
   }
 
-  #if HAS_MMU2()
-    if (parser.string_arg) {
-      // @@TODO MMU2::mmu2.tool_change(parser.string_arg);   // Special commands T?/Tx/Tc
-      return;
-    }
+#if HAS_MMU2()
+  if (parser.string_arg) {
+    // @@TODO MMU2::mmu2.tool_change(parser.string_arg);   // Special commands T?/Tx/Tc
+    return;
+  }
+#endif
+
+  static_assert(EXTRUDERS > 1);
+
+  get_destination_from_command(); // sets destination = current position or user request
+
+  // by default, Tx goes to specified destination or current position, unless following:
+  tool_return_t return_type = tool_return_t::to_destination;
+
+  // S1 was provided => do not return
+  int move_type = !parser.seen('S') ? 0 : parser.intval('S', 1);
+  if (move_type >= 1) return_type = tool_return_t::no_return;
+  #if HAS_TOOLCHANGER()
+  // toolchange to or from no tool is no_return, but if user provided X, Y or Z, return to that position
+  if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED && destination == current_position) {
+    return_type = tool_return_t::no_return;
+  }
   #endif
 
-  #if EXTRUDERS < 2
+  auto z_lift = static_cast<tool_change_lift_t>(parser.byteval('L', static_cast<uint8_t>(tool_change_lift_t::full_lift)));
+  if (z_lift > tool_change_lift_t::_last_item) z_lift = tool_change_lift_t::full_lift; // invalid input, use full_lift
+  bool z_down = parser.byteval('D', 1);
 
-    #error why is this dead code?
-
-    tool_change(tool_index);
-
-  #else
-
-    get_destination_from_command(); // sets destination = current position or user request
-
-    // by default, Tx goes to specified destination or current position, unless following:
-    tool_return_t return_type = tool_return_t::to_destination;
-
-    // S1 was provided => do not return
-    int move_type = !parser.seen('S') ? 0 : parser.intval('S', 1);
-    if (move_type >= 1) return_type = tool_return_t::no_return;
-    #if HAS_TOOLCHANGER()
-    // toolchange to or from no tool is no_return, but if user provided X, Y or Z, return to that position
-    if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED && destination == current_position) {
-      return_type = tool_return_t::no_return;
-    }
-    #endif
-
-    auto z_lift = static_cast<tool_change_lift_t>(parser.byteval('L', static_cast<uint8_t>(tool_change_lift_t::full_lift)));
-    if (z_lift > tool_change_lift_t::_last_item) z_lift = tool_change_lift_t::full_lift; // invalid input, use full_lift
-    bool z_down = parser.byteval('D', 1);
-
-    tool_change(virtual_tool, return_type, z_lift, z_down);
-
-  #endif
+  tool_change(virtual_tool, return_type, z_lift, z_down);
 
   if (DEBUGGING(LEVELING)) {
     DEBUG_POS("AFTER", current_position);
