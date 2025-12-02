@@ -161,208 +161,36 @@ void CurrentStore::perform_config_migrations() {
 }
 
 int32_t CurrentStore::get_extruder_fs_ref_nins_value([[maybe_unused]] uint8_t index) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    return extruder_fs_ref_nins_value_0.get();
-#else
-    switch (index) {
-    case 0:
-        return extruder_fs_ref_nins_value_0.get();
-    case 1:
-        return extruder_fs_ref_nins_value_1.get();
-    case 2:
-        return extruder_fs_ref_nins_value_2.get();
-    case 3:
-        return extruder_fs_ref_nins_value_3.get();
-    case 4:
-        return extruder_fs_ref_nins_value_4.get();
-    case 5:
-        return extruder_fs_ref_nins_value_5.get();
-    default:
-        assert(false && "invalid index");
-        return 0;
-    }
-#endif
+    return extruder_fs_ref_nins_values.get(index);
 }
 
 void CurrentStore::set_extruder_fs_ref_nins_value([[maybe_unused]] uint8_t index, int32_t value) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    extruder_fs_ref_nins_value_0.set(value);
-#else
-    switch (index) {
-    case 0:
-        extruder_fs_ref_nins_value_0.set(value);
-        break;
-    case 1:
-        extruder_fs_ref_nins_value_1.set(value);
-        break;
-    case 2:
-        extruder_fs_ref_nins_value_2.set(value);
-        break;
-    case 3:
-        extruder_fs_ref_nins_value_3.set(value);
-        break;
-    case 4:
-        extruder_fs_ref_nins_value_4.set(value);
-        break;
-    case 5:
-        extruder_fs_ref_nins_value_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
-#endif
+    extruder_fs_ref_nins_values.set(index, value);
 }
 
 int32_t CurrentStore::get_extruder_fs_ref_ins_value([[maybe_unused]] uint8_t index) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    return extruder_fs_ref_ins_value_0.get();
-#else
-    switch (index) {
-    case 0:
-        return extruder_fs_ref_ins_value_0.get();
-    case 1:
-        return extruder_fs_ref_ins_value_1.get();
-    case 2:
-        return extruder_fs_ref_ins_value_2.get();
-    case 3:
-        return extruder_fs_ref_ins_value_3.get();
-    case 4:
-        return extruder_fs_ref_ins_value_4.get();
-    case 5:
-        return extruder_fs_ref_ins_value_5.get();
-    default:
-        assert(false && "invalid index");
-        return 0;
-    }
-#endif
+    return extruder_fs_ref_ins_values.get(index);
 }
 
 void CurrentStore::set_extruder_fs_ref_ins_value([[maybe_unused]] uint8_t index, int32_t value) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    extruder_fs_ref_ins_value_0.set(value);
-#else
-    switch (index) {
-    case 0:
-        extruder_fs_ref_ins_value_0.set(value);
-        break;
-    case 1:
-        extruder_fs_ref_ins_value_1.set(value);
-        break;
-    case 2:
-        extruder_fs_ref_ins_value_2.set(value);
-        break;
-    case 3:
-        extruder_fs_ref_ins_value_3.set(value);
-        break;
-    case 4:
-        extruder_fs_ref_ins_value_4.set(value);
-        break;
-    case 5:
-        extruder_fs_ref_ins_value_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
-#endif
+    extruder_fs_ref_ins_values.set(index, value);
 }
 
 #if HAS_ADC_SIDE_FSENSOR()
 int32_t CurrentStore::get_side_fs_ref_nins_value(uint8_t index) {
-    switch (index) {
-    case 0:
-        return side_fs_ref_nins_value_0.get();
-    case 1:
-        return side_fs_ref_nins_value_1.get();
-    case 2:
-        return side_fs_ref_nins_value_2.get();
-    case 3:
-        return side_fs_ref_nins_value_3.get();
-    case 4:
-        return side_fs_ref_nins_value_4.get();
-    case 5:
-        return side_fs_ref_nins_value_5.get();
-    default:
-        assert(false && "invalid index");
-        return 0;
-    }
+    return side_fs_ref_nins_values.get(index);
 }
 
 void CurrentStore::set_side_fs_ref_nins_value(uint8_t index, int32_t value) {
-    switch (index) {
-    case 0:
-        side_fs_ref_nins_value_0.set(value);
-        break;
-    case 1:
-        side_fs_ref_nins_value_1.set(value);
-        break;
-    case 2:
-        side_fs_ref_nins_value_2.set(value);
-        break;
-    case 3:
-        side_fs_ref_nins_value_3.set(value);
-        break;
-    case 4:
-        side_fs_ref_nins_value_4.set(value);
-        break;
-    case 5:
-        side_fs_ref_nins_value_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
+    side_fs_ref_nins_values.set(index, value);
 }
 
 int32_t CurrentStore::get_side_fs_ref_ins_value(uint8_t index) {
-    switch (index) {
-    case 0:
-        return side_fs_ref_ins_value_0.get();
-    case 1:
-        return side_fs_ref_ins_value_1.get();
-    case 2:
-        return side_fs_ref_ins_value_2.get();
-    case 3:
-        return side_fs_ref_ins_value_3.get();
-    case 4:
-        return side_fs_ref_ins_value_4.get();
-    case 5:
-        return side_fs_ref_ins_value_5.get();
-    default:
-        assert(false && "invalid index");
-        return 0;
-    }
+    return side_fs_ref_ins_values.get(index);
 }
 
 void CurrentStore::set_side_fs_ref_ins_value(uint8_t index, int32_t value) {
-    switch (index) {
-    case 0:
-        side_fs_ref_ins_value_0.set(value);
-        break;
-    case 1:
-        side_fs_ref_ins_value_1.set(value);
-        break;
-    case 2:
-        side_fs_ref_ins_value_2.set(value);
-        break;
-    case 3:
-        side_fs_ref_ins_value_3.set(value);
-        break;
-    case 4:
-        side_fs_ref_ins_value_4.set(value);
-        break;
-    case 5:
-        side_fs_ref_ins_value_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
+    side_fs_ref_ins_values.set(index, value);
 }
 #endif
 
@@ -482,59 +310,11 @@ void CurrentStore::set_filament_type(uint8_t index, FilamentType value) {
 }
 
 float CurrentStore::get_nozzle_diameter([[maybe_unused]] uint8_t index) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    return nozzle_diameter_0.get();
-#else
-    switch (index) {
-    case 0:
-        return nozzle_diameter_0.get();
-    case 1:
-        return nozzle_diameter_1.get();
-    case 2:
-        return nozzle_diameter_2.get();
-    case 3:
-        return nozzle_diameter_3.get();
-    case 4:
-        return nozzle_diameter_4.get();
-    case 5:
-        return nozzle_diameter_5.get();
-    default:
-        assert(false && "invalid index");
-        return {};
-    }
-#endif
+    return nozzle_diameters.get(index);
 }
 
 void CurrentStore::set_nozzle_diameter([[maybe_unused]] uint8_t index, float value) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    nozzle_diameter_0.set(value);
-#else
-    switch (index) {
-    case 0:
-        nozzle_diameter_0.set(value);
-        break;
-    case 1:
-        nozzle_diameter_1.set(value);
-        break;
-    case 2:
-        nozzle_diameter_2.set(value);
-        break;
-    case 3:
-        nozzle_diameter_3.set(value);
-        break;
-    case 4:
-        nozzle_diameter_4.set(value);
-        break;
-    case 5:
-        nozzle_diameter_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
-#endif
+    nozzle_diameters.set(index, value);
 }
 
 float CurrentStore::get_odometer_axis(uint8_t index) {
@@ -570,116 +350,21 @@ void CurrentStore::set_odometer_axis(uint8_t index, float value) {
 }
 
 float CurrentStore::get_odometer_extruded_length([[maybe_unused]] uint8_t index) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    return odometer_extruded_length_0.get();
-#else
-    switch (index) {
-    case 0:
-        return odometer_extruded_length_0.get();
-    case 1:
-        return odometer_extruded_length_1.get();
-    case 2:
-        return odometer_extruded_length_2.get();
-    case 3:
-        return odometer_extruded_length_3.get();
-    case 4:
-        return odometer_extruded_length_4.get();
-    case 5:
-        return odometer_extruded_length_5.get();
-    default:
-        assert(false && "invalid index");
-        return {};
-    }
-#endif
+    return odometer_extruded_lengths.get(index);
 }
 
 void CurrentStore::set_odometer_extruded_length([[maybe_unused]] uint8_t index, float value) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    odometer_extruded_length_0.set(value);
-#else
-    switch (index) {
-    case 0:
-        odometer_extruded_length_0.set(value);
-        break;
-    case 1:
-        odometer_extruded_length_1.set(value);
-        break;
-    case 2:
-        odometer_extruded_length_2.set(value);
-        break;
-    case 3:
-        odometer_extruded_length_3.set(value);
-        break;
-    case 4:
-        odometer_extruded_length_4.set(value);
-        break;
-    case 5:
-        odometer_extruded_length_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
-#endif
+    odometer_extruded_lengths.set(index, value);
 }
 
 uint32_t CurrentStore::get_odometer_toolpicks([[maybe_unused]] uint8_t index) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    return odometer_toolpicks_0.get();
-#else
-    switch (index) {
-    case 0:
-        return odometer_toolpicks_0.get();
-    case 1:
-        return odometer_toolpicks_1.get();
-    case 2:
-        return odometer_toolpicks_2.get();
-    case 3:
-        return odometer_toolpicks_3.get();
-    case 4:
-        return odometer_toolpicks_4.get();
-    case 5:
-        return odometer_toolpicks_5.get();
-    default:
-        assert(false && "invalid index");
-        return {};
-    }
-#endif
+    return odometer_toolpicks.get(index);
 }
 
 void CurrentStore::set_odometer_toolpicks([[maybe_unused]] uint8_t index, uint32_t value) {
-#if HOTENDS <= 1
-    assert(index == 0);
-    odometer_toolpicks_0.set(value);
-#else
-    switch (index) {
-    case 0:
-        odometer_toolpicks_0.set(value);
-        break;
-    case 1:
-        odometer_toolpicks_1.set(value);
-        break;
-    case 2:
-        odometer_toolpicks_2.set(value);
-        break;
-    case 3:
-        odometer_toolpicks_3.set(value);
-        break;
-    case 4:
-        odometer_toolpicks_4.set(value);
-        break;
-    case 5:
-        odometer_toolpicks_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
-        return;
-    }
-#endif
+    odometer_toolpicks.set(index, value);
 }
+
 #if HAS_SELFTEST()
 SelftestTool CurrentStore::get_selftest_result_tool(uint8_t index) {
     assert(index < config_store_ns::max_tool_count);

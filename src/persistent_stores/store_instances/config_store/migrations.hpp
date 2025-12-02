@@ -94,6 +94,74 @@ namespace deprecated_ids {
     inline constexpr uint16_t fsensor_enabled[] {
         decltype(DeprecatedStore::fsensor_enabled_v2)::hashed_id,
     };
+    inline constexpr uint16_t nozzle_is_hardened[] {
+        decltype(DeprecatedStore::nozzle_is_hardened_v8)::hashed_id,
+    };
+    inline constexpr uint16_t nozzle_is_high_flow[] {
+        decltype(DeprecatedStore::nozzle_is_high_flow_v8)::hashed_id,
+    };
+    inline constexpr uint16_t nozzle_diameters[] {
+        decltype(DeprecatedStore::nozzle_diameter_0)::hashed_id,
+#if PRINTER_IS_PRUSA_XL()
+            decltype(DeprecatedStore::nozzle_diameter_1)::hashed_id,
+            decltype(DeprecatedStore::nozzle_diameter_2)::hashed_id,
+            decltype(DeprecatedStore::nozzle_diameter_3)::hashed_id,
+            decltype(DeprecatedStore::nozzle_diameter_4)::hashed_id,
+            decltype(DeprecatedStore::nozzle_diameter_5)::hashed_id,
+#endif
+    };
+    inline constexpr uint16_t odometer_extruded_lengths[] {
+        decltype(DeprecatedStore::odometer_extruded_length_0)::hashed_id,
+#if PRINTER_IS_PRUSA_XL()
+            decltype(DeprecatedStore::odometer_extruded_length_1)::hashed_id,
+            decltype(DeprecatedStore::odometer_extruded_length_2)::hashed_id,
+            decltype(DeprecatedStore::odometer_extruded_length_3)::hashed_id,
+            decltype(DeprecatedStore::odometer_extruded_length_4)::hashed_id,
+            decltype(DeprecatedStore::odometer_extruded_length_5)::hashed_id,
+#endif
+    };
+    inline constexpr uint16_t odometer_toolpicks[] {
+        decltype(DeprecatedStore::odometer_toolpicks_0)::hashed_id,
+#if PRINTER_IS_PRUSA_XL()
+            decltype(DeprecatedStore::odometer_toolpicks_1)::hashed_id,
+            decltype(DeprecatedStore::odometer_toolpicks_2)::hashed_id,
+            decltype(DeprecatedStore::odometer_toolpicks_3)::hashed_id,
+            decltype(DeprecatedStore::odometer_toolpicks_4)::hashed_id,
+            decltype(DeprecatedStore::odometer_toolpicks_5)::hashed_id,
+#endif
+    };
+#if PRINTER_IS_PRUSA_XL()
+    inline constexpr uint16_t side_fs_ref_values[] {
+        decltype(DeprecatedStore::side_fs_ref_nins_value_0)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_0)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_nins_value_1)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_1)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_nins_value_2)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_2)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_nins_value_3)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_3)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_nins_value_4)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_4)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_nins_value_5)::hashed_id,
+        decltype(DeprecatedStore::side_fs_ref_ins_value_5)::hashed_id,
+    };
+#endif
+    inline constexpr uint16_t extruder_fs_ref_values[] {
+        decltype(DeprecatedStore::extruder_fs_ref_nins_value_0)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_0)::hashed_id,
+#if PRINTER_IS_PRUSA_XL()
+            decltype(DeprecatedStore::extruder_fs_ref_nins_value_1)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_1)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_nins_value_2)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_2)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_nins_value_3)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_3)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_nins_value_4)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_4)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_nins_value_5)::hashed_id,
+            decltype(DeprecatedStore::extruder_fs_ref_ins_value_5)::hashed_id,
+#endif
+    };
 } // namespace deprecated_ids
 
 namespace migrations {
@@ -127,14 +195,23 @@ namespace migrations {
     void
     emergency_stop(journal::Backend &backend);
 #endif
-
-#if HAS_AUTO_RETRACT()
-    void filament_auto_retract(journal::Backend &backend);
-#endif
-
     void printer_setup_done(journal::Backend &backend);
 
     void fsensor_enabled(journal::Backend &backend);
+
+    void nozzle_is_hardened(journal::Backend &backend);
+
+    void nozzle_is_high_flow(journal::Backend &backend);
+
+    void nozzle_diameters(journal::Backend &backend);
+
+    void odometer_extruded_lengths(journal::Backend &backend);
+
+    void odometer_toolpicks(journal::Backend &backend);
+#if PRINTER_IS_PRUSA_XL()
+    void side_fs_ref_values(journal::Backend &backend);
+#endif
+    void extruder_fs_ref_values(journal::Backend &backend);
 } // namespace migrations
 
 /**
@@ -172,11 +249,17 @@ inline constexpr journal::Backend::MigrationFunction migration_functions[] {
 #if HAS_EMERGENCY_STOP()
         { migrations::emergency_stop, deprecated_ids::emergency_stop_enable },
 #endif
-#if HAS_AUTO_RETRACT()
-        { migrations::filament_auto_retract, deprecated_ids::filament_auto_retracted_bitset },
-#endif
         { migrations::printer_setup_done, deprecated_ids::printer_setup_done },
         { migrations::fsensor_enabled, deprecated_ids::fsensor_enabled },
+        { migrations::nozzle_is_hardened, deprecated_ids::nozzle_is_hardened },
+        { migrations::nozzle_is_high_flow, deprecated_ids::nozzle_is_high_flow },
+        { migrations::nozzle_diameters, deprecated_ids::nozzle_diameters },
+        { migrations::odometer_extruded_lengths, deprecated_ids::odometer_extruded_lengths },
+        { migrations::odometer_toolpicks, deprecated_ids::odometer_toolpicks },
+#if PRINTER_IS_PRUSA_XL()
+        { migrations::side_fs_ref_values, deprecated_ids::side_fs_ref_values },
+#endif
+        { migrations::extruder_fs_ref_values, deprecated_ids::extruder_fs_ref_values },
 };
 
 // Span of migration versions to simplify passing it around

@@ -58,6 +58,7 @@
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
 #include <feature/bed_fan/selftest_result.hpp>
 #include <print_fan_type.hpp>
+#include <tool_index.hpp>
 
 #if HAS_SHEET_PROFILES()
     #include <common/sheet.hpp>
@@ -286,36 +287,14 @@ struct CurrentStore
     // filament sensor values:
     // ref value: value of filament sensor in moment of calibration (w/o filament present)
     // value span: minimal difference of raw values between the two states of the filament sensor
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 0")> extruder_fs_ref_nins_value_0;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 0")> extruder_fs_ref_ins_value_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 1")> extruder_fs_ref_nins_value_1;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 1")> extruder_fs_ref_ins_value_1;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 2")> extruder_fs_ref_nins_value_2;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 2")> extruder_fs_ref_ins_value_2;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 3")> extruder_fs_ref_nins_value_3;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 3")> extruder_fs_ref_ins_value_3;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 4")> extruder_fs_ref_nins_value_4;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 4")> extruder_fs_ref_ins_value_4;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Value 5")> extruder_fs_ref_nins_value_5;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Value 5")> extruder_fs_ref_ins_value_5;
-#endif
 
-#if HAS_ADC_SIDE_FSENSOR() // for now not ifdefing per-extruder as well for simplicity
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 0")> side_fs_ref_nins_value_0;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 0")> side_fs_ref_ins_value_0;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 1")> side_fs_ref_nins_value_1;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 1")> side_fs_ref_ins_value_1;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 2")> side_fs_ref_nins_value_2;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 2")> side_fs_ref_ins_value_2;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 3")> side_fs_ref_nins_value_3;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 3")> side_fs_ref_ins_value_3;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 4")> side_fs_ref_nins_value_4;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 4")> side_fs_ref_ins_value_4;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Value 5")> side_fs_ref_nins_value_5;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Value 5")> side_fs_ref_ins_value_5;
-#endif
+    StoreItemArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Values v16"), 16, PhysicalToolIndex::count> extruder_fs_ref_nins_values;
+    StoreItemArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Values v16"), 16, PhysicalToolIndex::count> extruder_fs_ref_ins_values;
 
+#if HAS_ADC_SIDE_FSENSOR()
+    StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, PhysicalToolIndex::count> side_fs_ref_nins_values;
+    StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Values v16"), 16, PhysicalToolIndex::count> side_fs_ref_ins_values;
+#endif
 #if HAS_MMU2()
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Is MMU Rework")> is_mmu_rework; // Indicates printer has been reworked for MMU (has a different FS behavior)
 #endif
@@ -378,7 +357,7 @@ struct CurrentStore
     void set_tool_offset(uint8_t index, ToolOffset value);
 #endif
 
-    StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 8, EXTRUDERS> loaded_filament_type;
+    StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, VirtualToolIndex::count> loaded_filament_type;
 
     /// User-defined filament ordering. Does not need to contain all the filaments - the rest will be appended to the back using the standard rules
     StoreItem<std::array<FilamentType, max_total_filament_count>, FilamentType::none, ItemFlag::user_presets, journal::hash("Filament Order")> filament_order;
@@ -395,12 +374,12 @@ struct CurrentStore
     StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 3"), 32, user_filament_type_count> user_filament_parameters_3;
 #endif
 
-    StoreItemArray<FilamentTypeParameters_EEPROM1, defaults::adhoc_filament_parameters, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters"), 8, adhoc_filament_type_count> adhoc_filament_parameters;
+    StoreItemArray<FilamentTypeParameters_EEPROM1, defaults::adhoc_filament_parameters, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters"), 16, adhoc_filament_type_count> adhoc_filament_parameters;
 #if HAS_CHAMBER_API()
-    StoreItemArray<FilamentTypeParameters_EEPROM2, FilamentTypeParameters_EEPROM2 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 2"), 8, adhoc_filament_type_count> adhoc_filament_parameters_2;
+    StoreItemArray<FilamentTypeParameters_EEPROM2, FilamentTypeParameters_EEPROM2 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 2"), 16, adhoc_filament_type_count> adhoc_filament_parameters_2;
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
-    StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 3"), 8, adhoc_filament_type_count> adhoc_filament_parameters_3;
+    StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 3"), 16, adhoc_filament_type_count> adhoc_filament_parameters_3;
 #endif
 
     StoreItem<std::bitset<max_user_filament_type_count>, defaults::visible_user_filament_types, ItemFlag::user_presets, journal::hash("Visible User Filament Types")> visible_user_filament_types;
@@ -422,26 +401,20 @@ struct CurrentStore
     // Note: hash is kept for backwards compatibility
     StoreItem<bool, false, ItemFlag::features, journal::hash("Heatup Bed")> filament_change_preheat_all;
 
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 0")> nozzle_diameter_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 1")> nozzle_diameter_1;
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 2")> nozzle_diameter_2;
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 3")> nozzle_diameter_3;
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 4")> nozzle_diameter_4;
-    StoreItem<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter 5")> nozzle_diameter_5;
-#endif
+    // This makes sure that we do not exceed 16 hotends, a lot of things are limited to 16 hotends (bitsets, arrays, etc)
+    static_assert(PhysicalToolIndex::count <= 16);
+
+    /// Stores the nozzle diameter for each hotend
+    StoreItemArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter Array"), 16, PhysicalToolIndex::count> nozzle_diameters;
 
     float get_nozzle_diameter(uint8_t index);
     void set_nozzle_diameter(uint8_t index, float value);
 
-    // If this assert fails, we need to do some migrations on the following items
-    static_assert(HOTENDS <= 8);
-
     /// Stores whether a nozzle is hardened (resistant to abrasive filament) or not. One bit per each hotend
-    StoreItem<std::bitset<8>, defaults::nozzle_is_hardened, ItemFlag::hw_config, journal::hash("Nozzle is Hardened")> nozzle_is_hardened;
+    StoreItem<std::bitset<16>, defaults::nozzle_is_hardened, ItemFlag::hw_config, journal::hash("Nozzle is Hardened v16")> nozzle_is_hardened;
 
     /// Stores whether a nozzle is high-flow (supports high-flow print profile) or not. One bit per each hotend
-    StoreItem<std::bitset<8>, defaults::nozzle_is_high_flow, ItemFlag::hw_config, journal::hash("Nozzle is High-Flow")> nozzle_is_high_flow;
+    StoreItem<std::bitset<16>, defaults::nozzle_is_high_flow, ItemFlag::hw_config, journal::hash("Nozzle is High-Flow v16")> nozzle_is_high_flow;
 
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor X")> homing_bump_divisor_x;
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor Y")> homing_bump_divisor_y;
@@ -465,26 +438,12 @@ struct CurrentStore
     float get_odometer_axis(uint8_t index);
     void set_odometer_axis(uint8_t index, float value);
 
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 0")> odometer_extruded_length_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 1")> odometer_extruded_length_1;
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 2")> odometer_extruded_length_2;
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 3")> odometer_extruded_length_3;
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 4")> odometer_extruded_length_4;
-    StoreItem<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Length 5")> odometer_extruded_length_5;
-#endif
+    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, PhysicalToolIndex::count> odometer_extruded_lengths;
 
     float get_odometer_extruded_length(uint8_t index);
     void set_odometer_extruded_length(uint8_t index, float value);
 
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 0")> odometer_toolpicks_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 1")> odometer_toolpicks_1;
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 2")> odometer_toolpicks_2;
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 3")> odometer_toolpicks_3;
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 4")> odometer_toolpicks_4;
-    StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("Odometer Toolpicks 5")> odometer_toolpicks_5;
-#endif
+    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, PhysicalToolIndex::count> odometer_toolpicks;
 
     uint32_t get_odometer_toolpicks(uint8_t index);
     void set_odometer_toolpicks(uint8_t index, uint32_t value);
@@ -575,7 +534,7 @@ struct CurrentStore
 
 #if HAS_HOTEND_TYPE_SUPPORT()
     // Nozzle Sock has is here for backwards compatibility (should be binary compatible)
-    StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 8, HOTENDS> hotend_type;
+    StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 16, PhysicalToolIndex::count> hotend_type;
 #endif
 
     StoreItem<int16_t, defaults::homing_sens_x, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens X")> homing_sens_x; // X axis homing sensitivity
@@ -721,7 +680,7 @@ struct CurrentStore
 #endif
 
 #if HAS_PRINT_FAN_TYPE()
-    StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 8, HOTENDS> print_fan_type;
+    StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 16, PhysicalToolIndex::count> print_fan_type;
 #endif
 
 #if HAS_AUTO_RETRACT()
@@ -734,13 +693,11 @@ struct CurrentStore
 
     // Each hotend holds retracted distance. This value is compressed (casted to uint8) to range < 0 ; 255 > with 255 being special value reserved for unknown distance
     // DO NOT ACCESS THIS ARRAY DIRECTLY, user getter/setter instead
-    StoreItemArray<uint8_t, uint8_t { 255 }, ItemFlag::printer_state, journal::hash("Filament retracted distances"), 8, HOTENDS> filament_retracted_distances;
+    StoreItemArray<uint8_t, uint8_t { 255 }, ItemFlag::printer_state, journal::hash("Filament retracted"), 16, PhysicalToolIndex::count> filament_retracted_distances;
 
     // Casts float of range < 0.0f ; 254f > to uint8. Value 255 is reserved to unknown value
     void set_filament_retracted_distance(uint8_t tool_idx, std::optional<float> dist);
     std::optional<float> get_filament_retracted_distance(uint8_t tool_idx);
-
-    static_assert(HOTENDS <= 8);
 #endif
 
 #if HAS_CHAMBER_VENTS()
@@ -807,7 +764,6 @@ struct DeprecatedStore
     StoreItem<EncodedFilamentType, EncodedFilamentType {}, journal::hash("Filament Type 4")> filament_type_4;
     StoreItem<EncodedFilamentType, EncodedFilamentType {}, journal::hash("Filament Type 5")> filament_type_5;
 #endif
-
     // There was wrong default value for XL, so V2 version was introduced to reset it to proper default value
     StoreItem<bool, true, journal::hash("Input Shaper Weight Adjust Y Enabled")> input_shaper_weight_adjust_y_enabled;
 
@@ -908,6 +864,67 @@ struct DeprecatedStore
 #endif
     };
     StoreItem<bool, fsensor_enabled_v2_default, journal::hash("FSensor Enabled V2")> fsensor_enabled_v2;
+
+    /// Stores whether a nozzle is hardened (resistant to abrasive filament) or not. One bit per each hotend
+    StoreItem<std::bitset<8>, 0, journal::hash("Nozzle is Hardened")> nozzle_is_hardened_v8;
+
+    /// Stores whether a nozzle is high-flow (supports high-flow print profile) or not. One bit per each hotend
+    StoreItem<std::bitset<8>, defaults::nozzle_is_high_flow, journal::hash("Nozzle is High-Flow")> nozzle_is_high_flow_v8;
+
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 0")> nozzle_diameter_0;
+#if HOTENDS > 1 // for now only doing one ifdef for simplicity
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 1")> nozzle_diameter_1;
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 2")> nozzle_diameter_2;
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 3")> nozzle_diameter_3;
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 4")> nozzle_diameter_4;
+    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 5")> nozzle_diameter_5;
+#endif
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 0")> odometer_extruded_length_0;
+#if HOTENDS > 1 // for now only doing one ifdef for simplicity
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 1")> odometer_extruded_length_1;
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 2")> odometer_extruded_length_2;
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 3")> odometer_extruded_length_3;
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 4")> odometer_extruded_length_4;
+    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 5")> odometer_extruded_length_5;
+#endif
+
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 0")> odometer_toolpicks_0;
+#if HOTENDS > 1 // for now only doing one ifdef for simplicity
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 1")> odometer_toolpicks_1;
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 2")> odometer_toolpicks_2;
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 3")> odometer_toolpicks_3;
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 4")> odometer_toolpicks_4;
+    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 5")> odometer_toolpicks_5;
+#endif
+#if PRINTER_IS_PRUSA_XL() // for now not ifdefing per-extruder as well for simplicity
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 0")> side_fs_ref_nins_value_0;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 0")> side_fs_ref_ins_value_0;
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 1")> side_fs_ref_nins_value_1;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 1")> side_fs_ref_ins_value_1;
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 2")> side_fs_ref_nins_value_2;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 2")> side_fs_ref_ins_value_2;
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 3")> side_fs_ref_nins_value_3;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 3")> side_fs_ref_ins_value_3;
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 4")> side_fs_ref_nins_value_4;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 4")> side_fs_ref_ins_value_4;
+    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 5")> side_fs_ref_nins_value_5;
+    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 5")> side_fs_ref_ins_value_5;
+#endif
+
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 0")> extruder_fs_ref_nins_value_0;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 0")> extruder_fs_ref_ins_value_0;
+#if HOTENDS > 1 // for now only doing one ifdef for simplicity
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 1")> extruder_fs_ref_nins_value_1;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 1")> extruder_fs_ref_ins_value_1;
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 2")> extruder_fs_ref_nins_value_2;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 2")> extruder_fs_ref_ins_value_2;
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 3")> extruder_fs_ref_nins_value_3;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 3")> extruder_fs_ref_ins_value_3;
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 4")> extruder_fs_ref_nins_value_4;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 4")> extruder_fs_ref_ins_value_4;
+    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 5")> extruder_fs_ref_nins_value_5;
+    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 5")> extruder_fs_ref_ins_value_5;
+#endif
 };
 
 } // namespace config_store_ns

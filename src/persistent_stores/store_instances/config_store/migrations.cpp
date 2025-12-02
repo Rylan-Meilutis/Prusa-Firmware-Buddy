@@ -382,5 +382,143 @@ namespace migrations {
         using NewItem = decltype(CurrentStore::fsensor_enabled);
         backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, old_value);
     }
+
+    void nozzle_is_hardened(journal::Backend &backend) {
+        using OldItem = decltype(DeprecatedStore::nozzle_is_hardened_v8);
+        using NewItem = decltype(CurrentStore::nozzle_is_hardened);
+
+        const OldItem::value_type old_bitset = read_old_item_value<OldItem>(backend);
+        const std::bitset<16> new_bitset = old_bitset.to_ulong();
+
+        backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, new_bitset);
+    }
+
+    void nozzle_is_high_flow(journal::Backend &backend) {
+        using OldItem = decltype(DeprecatedStore::nozzle_is_high_flow_v8);
+        using NewItem = decltype(CurrentStore::nozzle_is_high_flow);
+
+        const OldItem::value_type old_bitset = read_old_item_value<OldItem>(backend);
+        const std::bitset<16> new_bitset = old_bitset.to_ulong();
+
+        backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, new_bitset);
+    }
+
+    void nozzle_diameters(journal::Backend &backend) {
+        using NewItem = decltype(CurrentStore::nozzle_diameters);
+
+        const std::array old_data {
+            read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_0)>(backend),
+#if PRINTER_IS_PRUSA_XL()
+                read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_1)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_2)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_3)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_4)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::nozzle_diameter_5)>(backend),
+#endif
+        };
+
+        for (uint8_t i = 0; i < old_data.size(); ++i) {
+            backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id_first + i, old_data[i]);
+        }
+    }
+    void odometer_extruded_lengths(journal::Backend &backend) {
+        using NewItem = decltype(CurrentStore::odometer_extruded_lengths);
+
+        const std::array old_data {
+            read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_0)>(backend),
+#if PRINTER_IS_PRUSA_XL()
+                read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_1)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_2)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_3)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_4)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_extruded_length_5)>(backend),
+#endif
+        };
+
+        for (uint8_t i = 0; i < old_data.size(); ++i) {
+            backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id_first + i, old_data[i]);
+        }
+    }
+
+    void odometer_toolpicks(journal::Backend &backend) {
+        using NewItem = decltype(CurrentStore::odometer_toolpicks);
+
+        const std::array old_data {
+            read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_0)>(backend),
+#if PRINTER_IS_PRUSA_XL()
+                read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_1)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_2)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_3)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_4)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::odometer_toolpicks_5)>(backend),
+#endif
+        };
+
+        for (uint8_t i = 0; i < old_data.size(); ++i) {
+            backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id_first + i, old_data[i]);
+        }
+    }
+#if PRINTER_IS_PRUSA_XL()
+    void side_fs_ref_values(journal::Backend &backend) {
+        using NewNins = decltype(CurrentStore::side_fs_ref_nins_values);
+        using NewIns = decltype(CurrentStore::side_fs_ref_ins_values);
+
+        const std::array old_side_fs_ref_nins_values {
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_0)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_1)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_2)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_3)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_4)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_nins_value_5)>(backend),
+        };
+
+        const std::array old_side_fs_ref_ins_values {
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_0)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_1)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_2)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_3)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_4)>(backend),
+            read_old_item_value<decltype(DeprecatedStore::side_fs_ref_ins_value_5)>(backend),
+        };
+
+        for (uint8_t i = 0; i < old_side_fs_ref_nins_values.size(); ++i) {
+            backend.save_migration_item<NewNins::value_type>(NewNins::hashed_id_first + i, old_side_fs_ref_nins_values[i]);
+            backend.save_migration_item<NewIns::value_type>(NewIns::hashed_id_first + i, old_side_fs_ref_ins_values[i]);
+        }
+    }
+#endif
+
+    void extruder_fs_ref_values(journal::Backend &backend) {
+        using NewNins = decltype(CurrentStore::extruder_fs_ref_nins_values);
+        using NewIns = decltype(CurrentStore::extruder_fs_ref_ins_values);
+
+        const std::array old_extruder_fs_ref_nins_values {
+            read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_0)>(backend),
+#if PRINTER_IS_PRUSA_XL()
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_1)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_2)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_3)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_4)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_nins_value_5)>(backend),
+#endif
+        };
+
+        const std::array old_extruder_fs_ref_ins_values {
+            read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_0)>(backend),
+#if PRINTER_IS_PRUSA_XL()
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_1)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_2)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_3)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_4)>(backend),
+                read_old_item_value<decltype(DeprecatedStore::extruder_fs_ref_ins_value_5)>(backend),
+#endif
+        };
+
+        for (uint8_t i = 0; i < old_extruder_fs_ref_nins_values.size(); ++i) {
+            backend.save_migration_item<NewNins::value_type>(NewNins::hashed_id_first + i, old_extruder_fs_ref_nins_values[i]);
+            backend.save_migration_item<NewIns::value_type>(NewIns::hashed_id_first + i, old_extruder_fs_ref_ins_values[i]);
+        }
+    }
+
 } // namespace migrations
 } // namespace config_store_ns
