@@ -7,6 +7,7 @@ prusa3d.nfc.request.RequestID.1.0 request_id
 prusa3d.nfc.request.RequestData.1.0 request
 
 @sealed
+@assert _offset_.max / 8 == 266
 
 ---
 
@@ -19,3 +20,4 @@ uint8 OK = 0
 uint8 REQUEST_QUEUE_FULL = 1
 
 @sealed
+@assert _offset_.max / 8 == 1

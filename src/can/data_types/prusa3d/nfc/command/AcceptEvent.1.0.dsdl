@@ -3,11 +3,14 @@
 prusa3d.nfc.event.EventID.1.0 event_id
 
 @sealed
+@assert _offset_.max / 8 == 2
 
 ---
 
 # Whether the event was properly accepted
 # Could be false because of internal queues being full or because the event_id does not match
 bool ok
+void7
 
 @sealed
+@assert _offset_.max / 8 == 1
