@@ -1,6 +1,6 @@
 @union
 
-uavcan.primitive.array.Natural16.1.0 fields
+uint16[<=128] fields
 prusa3d.nfc.util.ReaderError.1.0 error
 
 @sealed
