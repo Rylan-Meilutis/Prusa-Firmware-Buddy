@@ -24,6 +24,7 @@ target_sources(
   PRIVATE app.cpp
           cmsis.cpp
           cyphal_application.cpp
+          cyphal_nfc_node.cpp
           cyphal_presentation.cpp
           cyphal_transport.cpp
           hal.cpp
@@ -51,6 +52,7 @@ target_link_libraries(
           canard
           o1heap
           ac_controller
+          anfc
           modbus
   )
 
