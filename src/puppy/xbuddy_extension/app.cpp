@@ -123,12 +123,12 @@ bool write_register_file_callback(const ac_controller::modbus::Config &modbus_co
 using Status = modbus::Callbacks::Status;
 
 /// Read a register from a struct mapped to Modbus address space.
-template <class T>
-Status read_register_file(uint16_t address, std::span<uint16_t> out) {
+template <class T, class... Args>
+Status read_register_file(uint16_t address, std::span<uint16_t> out, Args &&...args) {
     static_assert(sizeof(T) % 2 == 0);
     static_assert(alignof(T) == 2);
     if (T::address == address && out.size() == sizeof(T) / 2) {
-        read_register_file_callback(*reinterpret_cast<T *>(out.data()));
+        read_register_file_callback(*reinterpret_cast<T *>(out.data()), std::forward<Args>(args)...);
         return Status::Ok;
     } else {
         return Status::IllegalAddress;
@@ -136,12 +136,12 @@ Status read_register_file(uint16_t address, std::span<uint16_t> out) {
 }
 
 /// Write a register to a struct mapped to Modbus address space.
-template <class T>
-Status write_register_file(uint16_t address, std::span<const uint16_t> in) {
+template <class T, class... Args>
+Status write_register_file(uint16_t address, std::span<const uint16_t> in, Args &&...args) {
     static_assert(sizeof(T) % 2 == 0);
     static_assert(alignof(T) == 2);
     if (T::address == address && in.size() == sizeof(T) / 2) {
-        return write_register_file_callback(*reinterpret_cast<const T *>(in.data())) ? Status::Ok : Status::SlaveDeviceFailure;
+        return write_register_file_callback(*reinterpret_cast<const T *>(in.data()), std::forward<Args>(args)...) ? Status::Ok : Status::SlaveDeviceFailure;
     } else {
         return Status::IllegalAddress;
     }
