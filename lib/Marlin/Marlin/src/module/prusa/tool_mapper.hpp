@@ -63,7 +63,7 @@ public:
     void deserialize(serialized_state_t &from);
 
 private:
-    [[nodiscard]] uint8_t to_gcode_unlocked(uint8_t virtual_tool) const;
+    [[nodiscard]] std::variant<GcodeToolIndex, NoTool> to_gcode_unlocked(VirtualToolIndex virtual_tool) const;
     bool set_unassigned_unlocked(uint8_t gcode_tool);
 
     mutable freertos::Mutex mutex;

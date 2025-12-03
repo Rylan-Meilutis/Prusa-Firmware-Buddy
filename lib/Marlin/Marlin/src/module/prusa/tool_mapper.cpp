@@ -60,10 +60,11 @@ bool ToolMapper::set_mapping(uint8_t gcode_tool, uint8_t virtual_tool) {
     }
 
     // if this virtual tool is already mapped to some gcode tool, remove this assignment
-    uint8_t previous_gcode = to_gcode_unlocked(virtual_tool);
-    if (previous_gcode != NO_TOOL_MAPPED) {
-        gcode_to_virtual[previous_gcode] = NoTool {};
-    }
+    auto maybe_gcode = to_gcode_unlocked(VirtualToolIndex::from_raw(virtual_tool));
+    match(
+        maybe_gcode,
+        [&](GcodeToolIndex previous_gcode) { gcode_to_virtual[previous_gcode.to_raw()] = NoTool {}; },
+        [](NoTool) {});
 
     // do the mapping
     gcode_to_virtual[gcode_tool] = VirtualToolIndex::from_raw(virtual_tool);
@@ -103,17 +104,23 @@ uint8_t ToolMapper::to_virtual(uint8_t gcode_tool, bool ignore_enabled) const {
 }
 uint8_t ToolMapper::to_gcode(uint8_t virtual_tool) const {
     std::unique_lock lock(mutex);
-    return to_gcode_unlocked(virtual_tool);
+    if (virtual_tool >= VirtualToolIndex::count) {
+        return NO_TOOL_MAPPED;
+    }
+    auto maybe_gcode = to_gcode_unlocked(VirtualToolIndex::from_raw(virtual_tool));
+    return match(
+        maybe_gcode,
+        [](GcodeToolIndex gcode_tool) { return gcode_tool.to_raw(); },
+        [](NoTool) { return NO_TOOL_MAPPED; });
 }
 
-uint8_t ToolMapper::to_gcode_unlocked(uint8_t virtual_tool) const {
-    for (uint8_t i = 0; i < GcodeToolIndex::count; i++) {
-        auto *maybe_virtual = std::get_if<VirtualToolIndex>(&gcode_to_virtual[i]);
-        if (maybe_virtual && maybe_virtual->to_raw() == virtual_tool) {
-            return i;
+std::variant<GcodeToolIndex, NoTool> ToolMapper::to_gcode_unlocked(VirtualToolIndex virtual_tool) const {
+    for (auto gcode_tool : GcodeToolIndex::all()) {
+        if (gcode_to_virtual[gcode_tool.to_raw()] == std::variant<VirtualToolIndex, NoTool> { virtual_tool }) {
+            return gcode_tool;
         }
     }
-    return NO_TOOL_MAPPED;
+    return NoTool {};
 }
 
 void ToolMapper::reset() {
