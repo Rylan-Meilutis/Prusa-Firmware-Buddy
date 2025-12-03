@@ -10,6 +10,7 @@ enum class ServerAddress : uint8_t {
     ac_controller = 0x1a + 8,
     anfc0 = 221,
     anfc1 = 222,
+    invalid = 255,
     mmu = 220,
     xbuddy_extension = 0x1a + 7,
 };
