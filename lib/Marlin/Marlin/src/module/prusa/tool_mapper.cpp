@@ -1,4 +1,6 @@
 #include "inc/MarlinConfig.h"
+#include <utils/overloaded_visitor.hpp>
+#include <common/array_extensions.hpp>
 #include <cstddef>
 #include <iterator>
 #include <mutex>
@@ -23,11 +25,18 @@ uint8_t get_invalid_tool_number() {
     #endif
 }
 
+/// returns std::array with VirtualToolIndex(i) at i-th index
+constexpr auto get_default_mapping() {
+    return stdext::make_iota_array<GcodeToolIndex::count, [](std::size_t i) {
+        return std::variant<VirtualToolIndex, NoTool>(VirtualToolIndex::from_raw(i));
+    }>();
+}
+
 ToolMapper tool_mapper;
 
-ToolMapper::ToolMapper() {
-    reset();
-}
+ToolMapper::ToolMapper()
+    : enabled(false)
+    , gcode_to_virtual(get_default_mapping()) {}
 
 ToolMapper &ToolMapper::operator=(const ToolMapper &other) {
     std::scoped_lock lock(mutex, other.mutex);
@@ -53,11 +62,11 @@ bool ToolMapper::set_mapping(uint8_t gcode_tool, uint8_t virtual_tool) {
     // if this virtual tool is already mapped to some gcode tool, remove this assignment
     uint8_t previous_gcode = to_gcode_unlocked(virtual_tool);
     if (previous_gcode != NO_TOOL_MAPPED) {
-        gcode_to_virtual[previous_gcode] = NO_TOOL_MAPPED;
+        gcode_to_virtual[previous_gcode] = NoTool {};
     }
 
     // do the mapping
-    gcode_to_virtual[gcode_tool] = virtual_tool;
+    gcode_to_virtual[gcode_tool] = VirtualToolIndex::from_raw(virtual_tool);
     return true;
 }
 
@@ -72,7 +81,7 @@ bool ToolMapper::set_unassigned_unlocked(uint8_t gcode_tool) {
         return false;
     }
 
-    gcode_to_virtual[gcode_tool] = NO_TOOL_MAPPED;
+    gcode_to_virtual[gcode_tool] = NoTool {};
     return true;
 }
 
@@ -83,8 +92,11 @@ void ToolMapper::set_enable(bool enable) {
 
 uint8_t ToolMapper::to_virtual(uint8_t gcode_tool, bool ignore_enabled) const {
     std::unique_lock lock(mutex);
-    if ((ignore_enabled || enabled) && gcode_tool < std::size(gcode_to_virtual)) {
-        return gcode_to_virtual[gcode_tool];
+    if ((ignore_enabled || enabled) && gcode_tool < GcodeToolIndex::count) {
+        return match(
+            gcode_to_virtual[gcode_tool],
+            [](VirtualToolIndex virtual_tool) { return virtual_tool.to_raw(); },
+            [](NoTool) { return NO_TOOL_MAPPED; });
     } else {
         return gcode_tool; // no maping
     }
@@ -95,8 +107,9 @@ uint8_t ToolMapper::to_gcode(uint8_t virtual_tool) const {
 }
 
 uint8_t ToolMapper::to_gcode_unlocked(uint8_t virtual_tool) const {
-    for (size_t i = 0; i < std::size(gcode_to_virtual); i++) {
-        if (gcode_to_virtual[i] == virtual_tool) {
+    for (uint8_t i = 0; i < GcodeToolIndex::count; i++) {
+        auto *maybe_virtual = std::get_if<VirtualToolIndex>(&gcode_to_virtual[i]);
+        if (maybe_virtual && maybe_virtual->to_raw() == virtual_tool) {
             return i;
         }
     }
@@ -105,9 +118,7 @@ uint8_t ToolMapper::to_gcode_unlocked(uint8_t virtual_tool) const {
 
 void ToolMapper::reset() {
     std::unique_lock lock(mutex);
-    for (size_t i = 0; i < std::size(gcode_to_virtual); i++) {
-        gcode_to_virtual[i] = i;
-    }
+    gcode_to_virtual = get_default_mapping();
     enabled = false;
 }
 
@@ -123,16 +134,19 @@ void ToolMapper::serialize(serialized_state_t &to) {
     // the objekt at this point (they do that before starting the print). If this ever changes
     // we should rethink this, this is called from default task, not ISR, so it might be ok to lock.
     to.enabled = enabled;
-    for (int8_t e = 0; e < EXTRUDERS; e++) {
-        to.gcode_to_virtual[e] = gcode_to_virtual[e];
+    for (auto gcode_tool : GcodeToolIndex::all()) {
+        to.gcode_to_virtual[gcode_tool.to_raw()] = match(
+            gcode_to_virtual[gcode_tool.to_raw()],
+            [](VirtualToolIndex virtual_tool) { return virtual_tool.to_raw(); },
+            [](NoTool) { return NO_TOOL_MAPPED; });
     }
 }
 
 void ToolMapper::deserialize(serialized_state_t &from) {
     std::unique_lock lock(mutex);
     enabled = from.enabled;
-    for (int8_t e = 0; e < EXTRUDERS; e++) {
-        gcode_to_virtual[e] = from.gcode_to_virtual[e];
+    for (auto gcode_tool : GcodeToolIndex::all()) {
+        gcode_to_virtual[gcode_tool.to_raw()] = VirtualToolIndex::from_raw_notool(from.gcode_to_virtual[gcode_tool.to_raw()]);
     }
 }
 

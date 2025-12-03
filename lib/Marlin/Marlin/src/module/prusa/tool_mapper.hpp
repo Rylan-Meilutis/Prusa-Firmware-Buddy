@@ -5,6 +5,7 @@
 #include <limits>
 #include <mutex>
 #include <option/has_tool_mapping.h>
+#include <tool_index.hpp>
 
 #if HAS_TOOL_MAPPING()
 
@@ -67,7 +68,7 @@ private:
 
     mutable freertos::Mutex mutex;
     bool enabled;
-    uint8_t gcode_to_virtual[EXTRUDERS];
+    std::array<std::variant<VirtualToolIndex, NoTool>, GcodeToolIndex::count> gcode_to_virtual;
 };
 
 extern ToolMapper tool_mapper;
