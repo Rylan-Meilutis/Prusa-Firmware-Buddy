@@ -1,6 +1,7 @@
 /// @file
 #pragma once
 
+#include "cyphal_nfc_node.hpp"
 #include "cyphal_presentation.hpp"
 #include "cyphal_types.hpp"
 #include <ac_controller/faults.hpp>
@@ -77,6 +78,8 @@ public:
     [[nodiscard]] virtual bool receive(const ac_controller::Config &) = 0;
     virtual const ModbusRequest &request() = 0;
     virtual void request(xbuddy_extension::NodeState &, ac_controller::Status &) = 0;
+
+    [[nodiscard]] virtual NfcNode &get_nfc(anfc::Device) = 0;
 
     /// Log message buffer structure exposed via Modbus
     struct LogData {

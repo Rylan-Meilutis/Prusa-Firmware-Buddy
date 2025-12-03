@@ -1,9 +1,11 @@
 #include <cyphal_application.hpp>
 
 #include "cyphal_presentation.hpp"
+#include <algorithm>
 #include <cyphal_application_impl.hpp>
 #include <master_activity.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <modbus/traits.hpp>
 #include <vector>
 
 using Application = cyphal::ApplicationImpl;
@@ -131,12 +133,22 @@ public:
         abort();
     }
 
-    bool transmit_nfc_command_request(NodeId remote_node_id, std::span<const std::byte>) final {
-        abort();
+    struct NfcCommand {
+        NodeId node_id;
+        std::vector<std::byte> data;
+        constexpr auto operator<=>(const NfcCommand &) const = default;
+    };
+    std::vector<NfcCommand> nfc_requests;
+    std::vector<NfcCommand> nfc_accept_events;
+
+    bool transmit_nfc_command_request(NodeId remote_node_id, std::span<const std::byte> data) final {
+        nfc_requests.push_back({ remote_node_id, std::vector<std::byte>(data.begin(), data.end()) });
+        return true;
     }
 
-    bool transmit_nfc_command_accept_event(NodeId remote_node_id, std::span<const std::byte>) final {
-        abort();
+    bool transmit_nfc_command_accept_event(NodeId remote_node_id, std::span<const std::byte> data) final {
+        nfc_accept_events.push_back({ remote_node_id, std::vector<std::byte>(data.begin(), data.end()) });
+        return true;
     }
 
     constexpr auto operator<=>(const MockPresentation &) const = default;
@@ -174,6 +186,21 @@ TimePoint make_timepoint(uint32_t ms) {
     return TimePoint { std::chrono::milliseconds { ms } };
 }
 
+std::vector<std::byte> as_bytes(const anfc::modbus::Event &event) {
+    auto span = modbus::payload(event);
+    return { span.begin(), span.end() };
+}
+
+std::vector<std::byte> as_bytes(const anfc::modbus::Request &request) {
+    auto span = modbus::payload(request);
+    return { span.begin(), span.end() };
+}
+
+template <size_t N>
+std::vector<std::byte> as_bytes(const std::array<std::byte, N> &arr) {
+    return { arr.begin(), arr.end() };
+}
+
 MockPresentation run_without_master_activity(Application &app, MockPresentation &mock, TimePoint timepoint) {
     auto mock_before = mock;
     while (app.step(mock, timepoint)) {
@@ -191,10 +218,50 @@ const auto known_node_name = [] {
     return as_bytes(std::span { name.data(), name.size() });
 }();
 
+const auto nfc_node_name = [] {
+    std::string_view name { "cz.prusa3d.honeybee.nfc" };
+    return as_bytes(std::span { name.data(), name.size() });
+}();
+
 const auto unknown_node_name = [] {
     std::string_view name { "cz.prusa3d.honeybee.unknown" };
     return as_bytes(std::span { name.data(), name.size() });
 }();
+
+void setup_nfc_node(Application &app, MockPresentation &mock, NodeId node_id, uint32_t unique_id, uint32_t &time) {
+    // node asks for PNP allocation, it is given a node id
+    {
+        app.receive_pnp_allocation(make_unique_id(unique_id));
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.pnp_allocation.size() == mock_before.pnp_allocation.size() + 1);
+        REQUIRE(mock.pnp_allocation.back().node_id == node_id);
+    }
+    // node sends a heartbeat, it receives a node info request
+    {
+        const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
+        app.receive_node_heartbeat(node_id, make_timepoint(time), healthy_firmware);
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.node_get_info_request.size() == mock_before.node_get_info_request.size() + 1);
+        REQUIRE(mock.node_get_info_request.back() == node_id);
+    }
+    // node responds with node info, it receives a digest request
+    {
+        app.receive_node_get_info_response(node_id, nfc_node_name);
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.node_execute_command_request.size() == mock_before.node_execute_command_request.size() + 1);
+        REQUIRE(mock.node_execute_command_request.back().command == Command::get_app_salted_hash);
+        REQUIRE(app.request().hash_request == cyphal::FirmwareFile::firmware_anfc);
+    }
+    // node and motherboard respond with a matching hash, no more work is done
+    {
+        const auto digest = generate_random_digest();
+        const auto received = app.receive_digest(cyphal::FirmwareFile::firmware_anfc, 0, digest);
+        REQUIRE(received);
+        app.receive_node_execute_command_response(node_id, 0, digest);
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock == mock_before);
+    }
+}
 
 SCENARIO("heart beats") {
     GIVEN("initial application state") {
@@ -679,6 +746,146 @@ SCENARIO("happy case") {
                     // TODO BFW-7918
                     // Check that no communication happens with that node...
                 }
+            }
+        }
+    }
+}
+
+SCENARIO("NFC node allocation") {
+    const auto node_id = NodeId { 1 };
+
+    GIVEN("ready NFC node") {
+        MockPresentation mock;
+        Application app;
+        uint32_t time = 0;
+        setup_nfc_node(app, mock, node_id, 0x11111111, time);
+
+        WHEN("request is queued on the virtual device") {
+            anfc::modbus::Request request = {};
+            request.size = 3;
+            request.data[0] = 0xAA;
+            request.data[1] = 0xBB;
+            auto &nfc0 = app.get_nfc(anfc::Device::anfc0);
+            CHECK(nfc0.queue(request));
+            const auto mock_before = run(app, mock, make_timepoint(4));
+
+            THEN("the same request is transmitted to the node") {
+                REQUIRE(mock.nfc_requests.size() == mock_before.nfc_requests.size() + 1);
+                CHECK(mock.nfc_requests.back().node_id == node_id);
+                CHECK(mock.nfc_requests.back().data == as_bytes(request));
+            }
+        }
+
+        WHEN("event is received from the node") {
+            const auto event_data = std::array { std::byte { 0xDE }, std::byte { 0xAD } };
+            app.receive_nfc_event(node_id, event_data);
+            anfc::modbus::Event event;
+            auto &nfc0 = app.get_nfc(anfc::Device::anfc0);
+            nfc0.consume(event);
+
+            THEN("the same event can be consumed on the virtual device") {
+                CHECK(as_bytes(event) == as_bytes(event_data));
+            }
+        }
+    }
+}
+
+SCENARIO("multiple NFC node allocation") {
+    const auto node_id1 = NodeId { 1 };
+    const auto node_id2 = NodeId { 2 };
+
+    GIVEN("two ready NFC nodes") {
+        MockPresentation mock;
+        Application app;
+        uint32_t time = 0;
+        setup_nfc_node(app, mock, node_id1, 0x11111111, time);
+        setup_nfc_node(app, mock, node_id2, 0x22222222, time);
+
+        THEN("both nodes are allocated to different devices") {
+            auto &nfc0 = app.get_nfc(anfc::Device::anfc0);
+            auto &nfc1 = app.get_nfc(anfc::Device::anfc1);
+
+            anfc::modbus::Request request0 = {};
+            request0.size = 1;
+            request0.data[0] = 0x01;
+            CHECK(nfc0.queue(request0));
+
+            anfc::modbus::Request request1 = {};
+            request1.size = 1;
+            request1.data[0] = 0x02;
+            CHECK(nfc1.queue(request1));
+
+            run(app, mock, make_timepoint(time));
+            REQUIRE(mock.nfc_requests.size() == 2);
+
+            const auto expected0 = MockPresentation::NfcCommand { node_id1, as_bytes(request0) };
+            const auto expected1 = MockPresentation::NfcCommand { node_id2, as_bytes(request1) };
+            CHECK(std::ranges::find(mock.nfc_requests, expected0) != mock.nfc_requests.end());
+            CHECK(std::ranges::find(mock.nfc_requests, expected1) != mock.nfc_requests.end());
+        }
+
+        WHEN("a third NFC node tries to allocate") {
+            const auto node_id3 = NodeId { 3 };
+            setup_nfc_node(app, mock, node_id3, 0x33333333, time);
+
+            THEN("third node goes to Inert state (no NFC device available)") {
+                // The node should not cause any NFC communication
+                // We can test this by verifying events sent to node3 are ignored
+                const auto event_data = std::array { std::byte { 0xFF } };
+                app.receive_nfc_event(node_id3, event_data);
+
+                // Neither anfc0 nor anfc1 should have this event
+                anfc::modbus::Event event0, event1;
+                app.get_nfc(anfc::Device::anfc0).consume(event0);
+                app.get_nfc(anfc::Device::anfc1).consume(event1);
+                CHECK(event0.size == 0);
+                CHECK(event1.size == 0);
+            }
+        }
+    }
+}
+
+SCENARIO("NFC node event routing") {
+    const auto node_id1 = NodeId { 1 };
+    const auto node_id2 = NodeId { 2 };
+
+    GIVEN("two active NFC nodes") {
+        MockPresentation mock;
+        Application app;
+        uint32_t time = 0;
+        setup_nfc_node(app, mock, node_id1, 0x11111111, time);
+        setup_nfc_node(app, mock, node_id2, 0x22222222, time);
+
+        WHEN("different events are received from both nodes") {
+            const auto event1_data = std::array { std::byte { 0x11 }, std::byte { 0x22 } };
+            const auto event2_data = std::array { std::byte { 0x33 }, std::byte { 0x44 }, std::byte { 0x55 } };
+
+            app.receive_nfc_event(node_id1, event1_data);
+            app.receive_nfc_event(node_id2, event2_data);
+
+            THEN("events are routed to correct devices") {
+                anfc::modbus::Event event0;
+                anfc::modbus::Event event1;
+                app.get_nfc(anfc::Device::anfc0).consume(event0);
+                app.get_nfc(anfc::Device::anfc1).consume(event1);
+
+                CHECK(as_bytes(event0) == as_bytes(event1_data));
+                CHECK(as_bytes(event1) == as_bytes(event2_data));
+            }
+        }
+
+        WHEN("event is received from unallocated node") {
+            const auto event_data = std::array { std::byte { 0xAA } };
+            app.receive_nfc_event(NodeId { 10 }, event_data);
+
+            THEN("event is ignored by both nodes") {
+                anfc::modbus::Event event0;
+                anfc::modbus::Event event1;
+                app.get_nfc(anfc::Device::anfc0).consume(event0);
+                app.get_nfc(anfc::Device::anfc1).consume(event1);
+
+                CHECK(event0.size == 0);
+                CHECK(event1.size == 0);
             }
         }
     }

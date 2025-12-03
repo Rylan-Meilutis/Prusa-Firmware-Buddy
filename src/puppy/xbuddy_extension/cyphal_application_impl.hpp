@@ -2,7 +2,9 @@
 #pragma once
 
 #include "cyphal_application.hpp"
+#include "cyphal_nfc_node.hpp"
 #include "cyphal_presentation.hpp"
+#include <anfc/modbus.hpp>
 #include "hal.hpp"
 #include "master_activity.hpp"
 #include "yet_another_circular_buffer.hpp"
@@ -164,6 +166,13 @@ private:
     };
     AcController ac_controller;
 
+    using NfcNodes = std::array<std::pair<anfc::Device, NfcNode>, anfc::device_count>;
+    NfcNodes nfc_nodes { {
+        { anfc::Device::anfc0, {} },
+        { anfc::Device::anfc1, {} },
+    } };
+    NfcNodes::iterator next_nfc_node = nfc_nodes.begin();
+
     /// Buffer for the latest log message; messages not fitting will be truncated.
     struct LogBuffer {
         size_t text_size = 0;
@@ -230,6 +239,7 @@ private:
             }
         };
         struct NfcAlive {
+            anfc::Device device;
         };
         struct Inert {
         };
@@ -283,7 +293,7 @@ private:
                             .ac_controller = &application->ac_controller,
                         };
                     case NodeName::cz_prusa3d_honeybee_nfc:
-                        return NfcAlive {};
+                        return application->allocate_nfc_device();
                     }
                     // We passed verification, but don't know what to do about the node, so...
                     return Inert {};
@@ -506,12 +516,8 @@ private:
             return false;
         }
 
-        bool step(Presentation &presentation, const TimePoint, ApplicationImpl *, NodeId node_id, NfcAlive &alive) {
-            // TODO BFW-8076 perform some useful work here
-            (void)presentation;
-            (void)node_id;
-            (void)alive;
-            return false;
+        bool step(Presentation &presentation, const TimePoint, ApplicationImpl *application, NodeId node_id, NfcAlive &alive) {
+            return application->get_nfc(alive.device).step(presentation, node_id);
         }
 
         bool verified() const {
@@ -907,9 +913,29 @@ public:
     }
 
     void receive_nfc_event(cyphal::NodeId node_id, std::span<const std::byte> data) final {
-        // TODO BFW-8076 perform some useful work here
-        (void)node_id;
-        (void)data;
+        if (Node *node = get_node(node_id)) {
+            if (auto *alive = std::get_if<Node::NfcAlive>(&node->state)) {
+                get_nfc(alive->device).receive_event(data);
+            }
+        }
+    }
+
+    [[nodiscard]] NfcNode &get_nfc(anfc::Device device_) final {
+        for (auto &[device, node] : nfc_nodes) {
+            if (device == device_) {
+                return node;
+            }
+        }
+        abort();
+    }
+
+    [[nodiscard]] Node::State allocate_nfc_device() {
+        if (next_nfc_node == nfc_nodes.end()) {
+            return Node::Inert {};
+        }
+        const auto device = next_nfc_node->first;
+        ++next_nfc_node;
+        return Node::NfcAlive { .device = device };
     }
 };
 
