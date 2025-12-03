@@ -11,7 +11,11 @@
 #include <option/board_is_master_board.h>
 
 /// Strong type for reprezenting no tool using `std::variant<SomeToolIndex, NoTool>`
-struct NoTool {};
+struct NoTool {
+    inline constexpr bool operator==(const NoTool &) const {
+        return true;
+    }
+};
 
 /// Strong base type for indexing tools, providing common functionality between PhysicalToolIndex, VirtualToolIndex and GcodeToolIndex
 template <const int count_, template <typename> typename Extension>
@@ -37,7 +41,9 @@ public:
         return stdext::make_iota_array<count, from_raw>();
     }
 
-    constexpr bool operator==(const ToolIndex &) const = default;
+    inline constexpr bool operator==(const ToolIndex &other) const {
+        return value == other.value;
+    }
 
 private:
     inline explicit constexpr ToolIndex(uint8_t index)
