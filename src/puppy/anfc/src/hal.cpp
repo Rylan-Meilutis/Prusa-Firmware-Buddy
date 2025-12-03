@@ -21,7 +21,6 @@ static_assert(configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY == 2);
 // SVC_Handler + PendSV_Handler + SysTick_Handler are defined by FreeRTOS
 
 void hal::panic() {
-    asm volatile("bkpt 0");
     NVIC_SystemReset();
 }
 
