@@ -176,12 +176,8 @@ public:
 
     class ErrorLogSupressor {
     public:
-        [[nodiscard]] ErrorLogSupressor() {
-            puppyModbus.suppress_error_logs = true;
-        }
-        ~ErrorLogSupressor() {
-            puppyModbus.suppress_error_logs = false;
-        }
+        [[nodiscard]] ErrorLogSupressor();
+        ~ErrorLogSupressor();
     };
 
     static constexpr auto MODBUS_READ_TIMEOUT_MS = 30;
@@ -191,11 +187,19 @@ private:
 
     ModbusMaster master;
     std::optional<ModbusValueReference> active_value;
+    ModbusExceptionCode last_exception_code = MODBUS_EXCEP_NONE;
     std::array<uint8_t, MODBUS_RECEIVE_BUFFER_SIZE> response_buffer;
-    bool suppress_error_logs;
 
-    ModbusErrorInfo make_request(RequestTiming *const timing, uint8_t retries = 3);
-    ModbusErrorInfo make_single_request(RequestTiming *const timing);
+    [[nodiscard]] CommunicationStatus make_request(RequestTiming *const timing, size_t retries);
+
+    enum class SingleRequestResult {
+        ok = 0,
+        fail,
+        retry,
+        recover_and_retry,
+    };
+    [[nodiscard]] SingleRequestResult make_single_request(RequestTiming *const timing);
+
     static ModbusError static_data_callback(const ModbusMaster *master, const ModbusDataCallbackArgs *args);
     static ModbusError static_exception_callback(
         const ModbusMaster *master,
@@ -203,7 +207,6 @@ private:
         uint8_t function,
         ModbusExceptionCode code);
     ModbusError data_callback(const ModbusDataCallbackArgs *args);
-    void log_internal_error(ModbusErrorInfo error);
     CommunicationStatus read_input(uint8_t unit, uint16_t *data, uint16_t count, uint16_t address, RequestTiming *const timing, uint32_t &timestamp_ms, uint32_t max_age_ms);
 
 public:

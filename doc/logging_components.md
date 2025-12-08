@@ -27,7 +27,7 @@ This file is generated automatically so don't edit it directly
 - MarlinServer: logging::Severity::info, src/common/marlin_server.cpp
 - MediaPrefetch: logging::Severity::debug, src/common/media_prefetch/media_prefetch.cpp
 - Metrics: logging::Severity::info, src/common/metric.cpp
-- Modbus: logging::Severity::info, src/puppies/PuppyModbus.cpp
+- Modbus: lowest_severity, src/puppies/PuppyModbus.cpp
 - ModbusControl: logging::Severity::info, src/puppy/dwarf/modbus/ModbusControl.cpp
 - ModbusFIFODecoder: logging::Severity::info, src/puppies/fifo_decoder.cpp
 - ModbusFIFOEncoder: logging::Severity::info, src/puppy/dwarf/fifo_encoder.cpp

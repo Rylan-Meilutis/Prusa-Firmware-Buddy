@@ -9,3 +9,5 @@ struct ModbusErrorInfo {};
 struct ModbusDataCallbackArgs {};
 
 struct ModbusExceptionCode {};
+
+static inline constexpr ModbusExceptionCode MODBUS_EXCEP_NONE;
