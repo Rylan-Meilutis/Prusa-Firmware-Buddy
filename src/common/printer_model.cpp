@@ -13,6 +13,25 @@ static constexpr const PrinterModelInfo &firmware_base_constexpr = *std::find_if
 
 static_assert(firmware_base_constexpr.version.type == PRINTER_TYPE, "Mismatch printer version");
 
+static_assert(
+    std::to_underlying(PrinterModel::mk3) == 0
+        && std::to_underlying(PrinterModel::mk3s) == 1
+        && std::to_underlying(PrinterModel::mk3_5) == 2
+        && std::to_underlying(PrinterModel::mk3_5s) == 3
+        && std::to_underlying(PrinterModel::mk3_9) == 4
+        && std::to_underlying(PrinterModel::mk3_9s) == 5
+        && std::to_underlying(PrinterModel::mk4) == 6
+        && std::to_underlying(PrinterModel::mk4s) == 7
+        && std::to_underlying(PrinterModel::mini) == 8
+        && std::to_underlying(PrinterModel::xl) == 9
+        && std::to_underlying(PrinterModel::xl_dev_kit) == 10
+        && std::to_underlying(PrinterModel::ix) == 11
+        && std::to_underlying(PrinterModel::coreone) == 12
+        && std::to_underlying(PrinterModel::coreonel) == 13
+        && std::to_underlying(PrinterModel::coreone_indx) == 14
+        && std::to_underlying(PrinterModel::coreonel_indx) == 15,
+    "Order should not change, it will create a discrepancy in stored EEPROM values");
+
 // Some checks about the printer data
 static_assert([] {
     for (size_t i = 0; i < printer_model_info.size(); i++) {

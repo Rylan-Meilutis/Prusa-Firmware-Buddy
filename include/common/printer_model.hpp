@@ -10,7 +10,7 @@ using GCodeCheckPrinterModelCode = uint16_t;
 
 /// Printer model enum is stored in EEPROM as last booted FW model. Order is important and should not change.
 enum class PrinterModel : uint8_t {
-    mk3,
+    mk3 = 0,
     mk3s,
     mk3_5,
     mk3_5s,
