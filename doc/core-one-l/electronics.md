@@ -76,7 +76,7 @@ for ACC, which are forwarded through XBE.
 |---------|------------------------------------------------|
 | 0x11    | XBE bootloader                                 |
 | 0x21    | XBE application                                |
-| 0x22    | ACC virtual device provided by XBE application |
+| 0xdb    | ACC virtual device provided by XBE application |
 | 0xdc    | MMU virtual device provided by XBE application |
 
 

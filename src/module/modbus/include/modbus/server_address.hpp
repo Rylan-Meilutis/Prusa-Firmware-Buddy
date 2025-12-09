@@ -7,7 +7,7 @@ namespace modbus {
 enum class ServerAddress : uint8_t {
     // Note: sorted alphabetically by server name, not by address
 
-    ac_controller = 0x1a + 8,
+    ac_controller = 219,
     anfc0 = 221,
     anfc1 = 222,
     invalid = 255,
