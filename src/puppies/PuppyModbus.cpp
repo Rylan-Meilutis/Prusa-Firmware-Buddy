@@ -14,8 +14,8 @@ namespace buddy::puppies {
 
 PuppyModbus puppyModbus;
 
-constexpr auto lowest_severity = logging::Severity::info;
-LOG_COMPONENT_DEF(Modbus, lowest_severity);
+constexpr auto default_modbus_severity = logging::Severity::info;
+LOG_COMPONENT_DEF(Modbus, default_modbus_severity);
 
 std::array<uint8_t, PuppyModbus::MODBUS_RECEIVE_BUFFER_SIZE> modbus_buffer;
 
@@ -38,7 +38,7 @@ PuppyModbus::ErrorLogSupressor::ErrorLogSupressor() {
 }
 
 PuppyModbus::ErrorLogSupressor::~ErrorLogSupressor() {
-    LOG_COMPONENT(Modbus).lowest_severity = lowest_severity;
+    LOG_COMPONENT(Modbus).lowest_severity = default_modbus_severity;
 }
 
 PuppyModbus::PuppyModbus() {
@@ -186,7 +186,7 @@ PuppyModbus::SingleRequestResult PuppyModbus::make_single_request(RequestTiming 
 }
 
 CommunicationStatus PuppyModbus::make_request(RequestTiming *const timing, size_t retries) {
-    for (;;) {
+    while (retries-- > 0) {
         switch (make_single_request(timing)) {
         case SingleRequestResult::ok:
             return CommunicationStatus::OK;
@@ -202,16 +202,13 @@ CommunicationStatus PuppyModbus::make_request(RequestTiming *const timing, size_
             PuppyBus::ErrorRecovery();
             [[fallthrough]];
         case SingleRequestResult::retry:
-            if (retries--) {
-                metric_record_event(&modbus_reqfail);
-                freertos::delay(10);
-                continue;
-            } else {
-                return CommunicationStatus::ERROR;
-            }
+            metric_record_event(&modbus_reqfail);
+            freertos::delay(10);
+            continue;
         }
         bsod_unreachable();
     }
+    return CommunicationStatus::ERROR;
 }
 
 ModbusDevice::ModbusDevice(PuppyModbus &bus, uint8_t unit)
@@ -234,8 +231,7 @@ CommunicationStatus PuppyModbus::read_input(uint8_t unit, bool *data, uint16_t c
 
     active_value = { data, unit, address, count };
 
-    const size_t retries = 3;
-    const auto status = make_request(nullptr, retries);
+    const auto status = make_request(nullptr);
     if (status == CommunicationStatus::OK) {
         timestamp_ms = last_ticks_ms();
     } else {
@@ -256,8 +252,7 @@ CommunicationStatus PuppyModbus::read_input(uint8_t unit, uint16_t *data, uint16
 
     active_value = { data, unit, address, count };
 
-    const size_t retries = 3;
-    const auto status = make_request(timing, retries);
+    const auto status = make_request(timing);
     if (status == CommunicationStatus::OK) {
         timestamp_ms = last_ticks_ms();
     } else {
@@ -280,8 +275,7 @@ CommunicationStatus PuppyModbus::read_holding(uint8_t unit, uint16_t *data, uint
 
     active_value = { data, unit, address, count };
 
-    const size_t retries = 3;
-    const auto status = make_request(nullptr, retries);
+    const auto status = make_request(nullptr);
     if (status == CommunicationStatus::OK) {
         timestamp_ms = last_ticks_ms();
     } else {
@@ -304,8 +298,7 @@ CommunicationStatus PuppyModbus::write_holding(uint8_t unit, const uint16_t *dat
 
     active_value = std::nullopt;
 
-    const size_t retries = 3;
-    const auto status = make_request(nullptr, retries);
+    const auto status = make_request(nullptr);
     if (status == CommunicationStatus::OK) {
         dirty = false;
     } else {
@@ -326,8 +319,7 @@ CommunicationStatus PuppyModbus::write_coil(uint8_t unit, bool value, uint16_t a
 
     active_value = std::nullopt;
 
-    const size_t retries = 3;
-    const auto status = make_request(nullptr, retries);
+    const auto status = make_request(nullptr);
     if (status == CommunicationStatus::OK) {
         dirty = false;
     } else {
@@ -344,8 +336,7 @@ CommunicationStatus PuppyModbus::ReadFIFO(uint8_t unit, uint16_t address, std::a
 
     active_value = { static_cast<void *>(buffer.data()), unit, address, static_cast<uint16_t>(buffer.size()) };
 
-    const size_t retries = 0;
-    const auto status = make_request(nullptr, retries);
+    const auto status = make_request(nullptr, 0);
     if (status == CommunicationStatus::OK) {
         read = active_value->data_processed;
     } else {

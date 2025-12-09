@@ -190,7 +190,7 @@ private:
     ModbusExceptionCode last_exception_code = MODBUS_EXCEP_NONE;
     std::array<uint8_t, MODBUS_RECEIVE_BUFFER_SIZE> response_buffer;
 
-    [[nodiscard]] CommunicationStatus make_request(RequestTiming *const timing, size_t retries);
+    [[nodiscard]] CommunicationStatus make_request(RequestTiming *const timing, size_t retries = 3);
 
     enum class SingleRequestResult {
         ok = 0,
