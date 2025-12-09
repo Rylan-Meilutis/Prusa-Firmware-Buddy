@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <span>
 #include <freertos/timing.hpp>
+#include <modbus/traits.hpp>
 #include <option/has_ac_controller.h>
 #include <option/has_anfc.h>
 #include <xbuddy_extension/modbus.hpp>
@@ -187,38 +188,43 @@ void read_register_file_callback(anfc::modbus::Event &event, anfc::Device device
 using Status = modbus::Callbacks::Status;
 
 /// Read a register from a struct mapped to Modbus address space.
-template <class T, class... Args>
-Status read_register_file(uint16_t address, std::span<uint16_t> out, Args &&...args) {
-    static_assert(sizeof(T) % 2 == 0);
-    static_assert(alignof(T) == 2);
-    if (T::address == address && out.size() == sizeof(T) / 2) {
-        read_register_file_callback(*reinterpret_cast<T *>(out.data()), std::forward<Args>(args)...);
+template <modbus::RegisterFile RF, class... Args>
+Status read_single_register_file(uint16_t address, std::span<uint16_t> out, Args &&...args) {
+    if (RF::address == address && out.size() == sizeof(RF) / 2) {
+        read_register_file_callback(*reinterpret_cast<RF *>(out.data()), std::forward<Args>(args)...);
         return Status::Ok;
     } else {
         return Status::IllegalAddress;
     }
 }
 
+/// Read registers from structs mapped to Modbus address space.
+template <modbus::RegisterFile... RFs, class... Args>
+Status read_register_file(uint16_t address, std::span<uint16_t> out, Args &&...args) {
+    Status result = Status::IllegalAddress;
+    (void)((result = read_single_register_file<RFs>(address, out, std::forward<Args>(args)...), result != Status::IllegalAddress) || ...);
+    return result;
+}
+
 /// Write a register to a struct mapped to Modbus address space.
-template <class T, class... Args>
-Status write_register_file(uint16_t address, std::span<const uint16_t> in, Args &&...args) {
-    static_assert(sizeof(T) % 2 == 0);
-    static_assert(alignof(T) == 2);
-    if (T::address == address && in.size() == sizeof(T) / 2) {
-        return write_register_file_callback(*reinterpret_cast<const T *>(in.data()), std::forward<Args>(args)...) ? Status::Ok : Status::SlaveDeviceFailure;
+template <modbus::RegisterFile RF, class... Args>
+Status write_single_register_file(uint16_t address, std::span<const uint16_t> in, Args &&...args) {
+    if (RF::address == address && in.size() == sizeof(RF) / 2) {
+        return write_register_file_callback(*reinterpret_cast<const RF *>(in.data()), std::forward<Args>(args)...) ? Status::Ok : Status::SlaveDeviceFailure;
     } else {
         return Status::IllegalAddress;
     }
 }
 
-#if HAS_AC_CONTROLLER()
-
-template <class... Ts>
-Status write_multiple_register_files(uint16_t address, std::span<const uint16_t> in) {
+/// Write registers to structs mapped to Modbus address space.
+template <modbus::RegisterFile... RFs, class... Args>
+Status write_register_file(uint16_t address, std::span<const uint16_t> in, Args &&...args) {
     Status result = Status::IllegalAddress;
-    ((result = write_register_file<Ts>(address, in), result != Status::IllegalAddress) || ...);
+    (void)((result = write_single_register_file<RFs>(address, in, std::forward<Args>(args)...), result != Status::IllegalAddress) || ...);
     return result;
 }
+
+#if HAS_AC_CONTROLLER()
 
 class AcController final : public modbus::Callbacks {
 public:
@@ -229,7 +235,7 @@ public:
     }
 
     Status write_registers(uint16_t address, std::span<const uint16_t> in) final {
-        return write_multiple_register_files<ac_controller::modbus::Config, ac_controller::modbus::LedConfig>(address, in);
+        return write_register_file<ac_controller::modbus::Config, ac_controller::modbus::LedConfig>(address, in);
     }
 };
 #endif
@@ -253,15 +259,7 @@ public:
     }
 
     Status write_registers(uint16_t address, std::span<const uint16_t> in) final {
-        if (const auto status = write_register_file<anfc::modbus::AcceptEvent>(address, in, device);
-            status != Status::IllegalAddress) {
-            return status;
-        }
-        if (const auto status = write_register_file<anfc::modbus::Request>(address, in, device);
-            status != Status::IllegalAddress) {
-            return status;
-        }
-        return Status::IllegalAddress;
+        return write_register_file<anfc::modbus::AcceptEvent, anfc::modbus::Request>(address, in, device);
     }
 };
 
@@ -272,31 +270,11 @@ public:
     modbus::ServerAddress server_address() const final { return modbus::ServerAddress::xbuddy_extension; }
 
     Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
-        if (const auto status_result = read_register_file<xbuddy_extension::modbus::Status>(address, out);
-            status_result != Status::IllegalAddress) {
-            return status_result;
-        }
-        if (const auto log_message_result = read_register_file<xbuddy_extension::modbus::LogMessage>(address, out);
-            log_message_result != Status::IllegalAddress) {
-            return log_message_result;
-        }
-        return Status::IllegalAddress;
+        return read_register_file<xbuddy_extension::modbus::Status, xbuddy_extension::modbus::LogMessage>(address, out);
     }
 
     Status write_registers(const uint16_t address, std::span<const uint16_t> in) final {
-        if (const auto status = write_register_file<xbuddy_extension::modbus::Config>(address, in);
-            status != Status::IllegalAddress) {
-            return status;
-        }
-        if (const auto status = write_register_file<xbuddy_extension::modbus::Chunk>(address, in);
-            status != Status::IllegalAddress) {
-            return status;
-        }
-        if (const auto status = write_register_file<xbuddy_extension::modbus::Digest>(address, in);
-            status != Status::IllegalAddress) {
-            return status;
-        }
-        return Status::IllegalAddress;
+        return write_register_file<xbuddy_extension::modbus::Config, xbuddy_extension::modbus::Chunk, xbuddy_extension::modbus::Digest>(address, in);
     }
 };
 
