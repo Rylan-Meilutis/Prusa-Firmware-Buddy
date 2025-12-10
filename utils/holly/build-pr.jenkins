@@ -396,6 +396,32 @@ pipeline {
                         }
                     }
                 }
+
+                stage('Check Fixup Commits') {
+                    agent any
+                    when {
+                        expression { env.CHANGE_TARGET }
+                    }
+                    steps {
+                        script {
+                            def fixupCommits = sh(
+                                script: "git log --pretty=format:'%s' remotes/origin/${env.CHANGE_TARGET}..HEAD --grep='^fixup!'",
+                                returnStdout: true
+                            ).trim()
+
+                            if (fixupCommits) {
+                                error("Found fixup! commits in the PR branch. Please squash them before merging:\n${fixupCommits}")
+                            } else {
+                                echo "No fixup! commits found."
+                            }
+                        }
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
             }
         }
     }
