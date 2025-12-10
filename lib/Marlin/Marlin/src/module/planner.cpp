@@ -1294,7 +1294,7 @@ bool Planner::_populate_block(block_t * const block,
   block->mstep_event_count = _MAX(block->msteps.a, block->msteps.b, block->msteps.c, e_msteps);
 
   // Always calculate the block length if we are going to keep it
-  if (block->mstep_event_count >= MIN_MSTEPS_PER_SEGMENT || block->flag.raw_block) {
+  if (block->mstep_event_count >= MIN_MSTEPS_PER_SEGMENT || hints.raw_block) {
     if (block->msteps.a || block->msteps.b || block->msteps.c) {
       block->millimeters = SQRT(sq(delta_mm.x) + sq(delta_mm.y) + sq(delta_mm.z));
     } else {
