@@ -10,9 +10,16 @@
 #include <bsod.h>
 #include <option/board_is_master_board.h>
 
-/// Strong type for reprezenting no tool using `std::variant<SomeToolIndex, NoTool>`
+/// Strong type for representing no tool using `std::variant<SomeToolIndex, NoTool>`
 struct NoTool {
     inline constexpr bool operator==(const NoTool &) const {
+        return true;
+    }
+};
+
+/// Strong type for representing all tools using `std::variant<SomeToolIndex, AllTools>`
+struct AllTools {
+    inline constexpr bool operator==(const AllTools &) const {
         return true;
     }
 };
