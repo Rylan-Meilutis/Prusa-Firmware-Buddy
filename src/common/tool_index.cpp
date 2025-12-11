@@ -173,6 +173,17 @@ std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8
 template <>
 std::variant<VirtualToolIndex, NoTool> VirtualExtension::from_raw_notool(uint8_t index) {
 #if HAS_TOOL_MAPPING()
+    #if PRINTER_IS_PRUSA_XL() && HAS_TOOLCHANGER()
+    // count on XL is set to EXTRUDERS - 1 / HOTENDS - 1,
+    // because of legacy definition of EXTRUDERS / HOTENDS to 6 instead of 5.
+    // Values 0 to 4 are actual tools, 5 represents no tool (using MARLIN_NO_TOOL_PICKED).
+    // If we encounter MARLIN_NO_TOOL_PICKED we need to return NoTool and check for it on call site.
+    static_assert(VirtualToolIndex::count == PrusaToolChanger::MARLIN_NO_TOOL_PICKED);
+    if (index == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
+        return NoTool {};
+    }
+    #endif
+
     // There is 255 (NO_TOOL_MAPPED) used as no tool at some places.
     if (index == ToolMapper::NO_TOOL_MAPPED) {
         return NoTool {};
