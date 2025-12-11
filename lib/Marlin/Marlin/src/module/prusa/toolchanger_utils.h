@@ -113,13 +113,13 @@ public:
      * @brief Get binary mask of all enabled dwarfs.
      * @return high bits for dwarfs that is_enabled()
      */
-    uint8_t get_enabled_mask();
+    uint16_t get_enabled_mask();
 
     /**
      * @brief Get binary mask of all parked dwarfs.
      * @return high bits for dwarfs that is_enabled() && is_parked() && !is_picked()
      */
-    uint8_t get_parked_mask();
+    uint16_t get_parked_mask();
 
     inline bool is_toolchanger_enabled() {
         return toolchanger_enabled;

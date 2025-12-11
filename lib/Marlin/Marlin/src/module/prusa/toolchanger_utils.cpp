@@ -218,9 +218,9 @@ uint8_t PrusaToolChangerUtils::detect_tool_nr() {
     }
 }
 
-uint8_t PrusaToolChangerUtils::get_enabled_mask() {
-    static_assert(PhysicalToolIndex::count < 8, "Using uint8_t as a mask of dwarves");
-    uint8_t mask = 0;
+uint16_t PrusaToolChangerUtils::get_enabled_mask() {
+    static_assert(PhysicalToolIndex::count < 16, "Using uint16_t as a mask of dwarves");
+    uint16_t mask = 0;
 
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         mask |= (0x01 << tool.to_raw());
@@ -229,9 +229,9 @@ uint8_t PrusaToolChangerUtils::get_enabled_mask() {
     return mask;
 }
 
-uint8_t PrusaToolChangerUtils::get_parked_mask() {
-    static_assert(PhysicalToolIndex::count < 8, "Using uint8_t as a mask of dwarves");
-    uint8_t mask = 0;
+uint16_t PrusaToolChangerUtils::get_parked_mask() {
+    static_assert(PhysicalToolIndex::count < 16, "Using uint16_t as a mask of dwarves");
+    uint16_t mask = 0;
 
     for (auto tool : PhysicalToolIndex::all()) {
         if (dwarfs[tool].is_enabled() && !dwarfs[tool].is_picked() && dwarfs[tool].is_parked()) {

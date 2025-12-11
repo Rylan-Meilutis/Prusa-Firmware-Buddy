@@ -287,7 +287,7 @@ bool ScreenCrashRecovery::Change(fsm::BaseData data) {
 
     #if HAS_TOOL_CRASH_RECOVERY()
         else if constexpr (std::is_same_v<T, WinsToolRecovery>) {
-            Crash_recovery_tool_fsm state(data.GetData());
+            const auto state = Crash_recovery_tool_fsm::deserialize(data.GetData());
             for (int i = 0; i < buddy::puppies::DWARF_MAX_COUNT; i++) {
                 const auto tool_mask = (1 << i);
                 if (state.enabled & tool_mask) { // This tool exists

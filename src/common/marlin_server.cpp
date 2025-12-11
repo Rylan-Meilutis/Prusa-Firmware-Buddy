@@ -1603,8 +1603,8 @@ static void prepare_tool_pickup() {
  * @return true on toolcrash when there is no parking and replay and when should break current switch case
  */
 static bool crash_recovery_begin_toolchange() {
-    Crash_recovery_tool_fsm cr_fsm(prusa_toolchanger.get_enabled_mask(), 0);
-    fsm_create(PhasesCrashRecovery::tool_recovery, cr_fsm.Serialize()); // Ask user to park all dwarves
+    const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
+    fsm_create(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize()); // Ask user to park all dwarves
 
     if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
         prepare_tool_pickup(); // If crash happens during toolchange, skip crash recovery and go directly to tool pickup
@@ -2789,8 +2789,8 @@ static void _server_print_loop(void) {
 
                 // Toolchange failed again, ask user again to park all dwarves
                 crash_s.count_crash(); // Count as another crash
-                Crash_recovery_tool_fsm cr_fsm(prusa_toolchanger.get_enabled_mask(), 0);
-                fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.Serialize());
+                const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
+                fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
 
                 prepare_tool_pickup();
                 break;
@@ -2798,8 +2798,8 @@ static void _server_print_loop(void) {
 
             server.print_state = State::CrashRecovery_XY_HOME; // Reheat and resume, unpark is skipped in later stages
         } else {
-            Crash_recovery_tool_fsm cr_fsm(prusa_toolchanger.get_enabled_mask(), prusa_toolchanger.get_parked_mask());
-            fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.Serialize());
+            const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask(), .parked = prusa_toolchanger.get_parked_mask() };
+            fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
         }
         break;
     }
