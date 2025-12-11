@@ -2,14 +2,17 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
 #include <variant>
 
 #include <inc/MarlinConfig.h>
 #include <common/array_extensions.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <bsod.h>
+#include <utils/overloaded_visitor.hpp>
 #include <option/board_is_master_board.h>
+#include <printers.h>
+
+#include "tool_index_iterator.hpp"
 
 /// Strong type for representing no tool using `std::variant<SomeToolIndex, NoTool>`
 struct NoTool {
@@ -28,7 +31,10 @@ struct AllTools {
 /// Strong base type for indexing tools, providing common functionality between PhysicalToolIndex, VirtualToolIndex and GcodeToolIndex
 template <const int count_, template <typename> typename Extension>
 struct ToolIndex : public Extension<ToolIndex<count_, Extension>> {
+
 public:
+    using Iterator = ToolIndexIterator<ToolIndex>;
+
     /// Creates ToolIndex from raw uint8_t
     /// Use `from_raw_notool` instead, if you are not sure that raw index represent only valid tool
     /// @param index must be less than ToolIndex::count
@@ -51,8 +57,8 @@ public:
     static constexpr uint8_t count = count_;
 
     /// List of all tools the printer offers, for `for()` loops
-    static consteval std::array<ToolIndex, count> all() {
-        return stdext::make_iota_array<count, from_raw>();
+    static consteval Iterator all() {
+        return Iterator::make_all();
     }
 
     inline constexpr bool operator==(const ToolIndex &other) const {
@@ -181,4 +187,18 @@ auto to_physical_tool_index(const std::variant<T...> &variant) {
         }
     };
     return std::visit(f, variant);
+}
+
+/// @returns range of tools represented by the variant
+/// NoTool returns an empty range
+/// AllTools returns a range of all tools
+/// Tool returns a single item range
+template <typename Index, typename... Variants>
+auto tool_index_iterator(const std::variant<Index, Variants...> &variant) {
+    using Iterator = Index::Iterator;
+    return match(
+        variant,
+        [](Index i) { return Iterator::make_single(i); },
+        [](NoTool) { return Iterator::make_empty(); },
+        [](AllTools) { return Iterator::make_all(); });
 }
