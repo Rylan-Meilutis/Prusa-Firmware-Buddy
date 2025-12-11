@@ -12,7 +12,7 @@ public:
     void issue();
 
     inline bool finished() const {
-        return sync_request_.finished();
+        return requests_span_.back()->finished();
     }
 
     /// @returns list of all requests in the multirequest (excluding the sync request)
@@ -20,17 +20,10 @@ public:
         return requests_span_;
     }
 
-    inline SyncRequest &sync_request() {
-        return sync_request_;
-    }
-
 protected:
     MultiRequestBase() = default;
 
 protected:
-    /// Should be issued after everything else
-    SyncRequest sync_request_;
-
     /// To be set by the child
     std::span<Request *> requests_span_;
 };

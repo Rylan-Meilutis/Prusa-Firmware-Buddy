@@ -80,14 +80,4 @@ private:
     bool finished_ : 1 = false;
 };
 
-/// A dumy noop request, useful for synchronization purposes
-/// Once @p finished(), all previously enqueued requests must be finished as well
-class SyncRequest final : public Request {
-
-public:
-    SyncRequest()
-        : Request(no_associated_region) {
-    }
-};
-
 } // namespace buddy::openprinttag

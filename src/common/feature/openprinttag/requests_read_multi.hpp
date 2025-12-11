@@ -15,6 +15,7 @@ class MultiReadFieldRequestImpl final : public MultiRequestBase {
 
 public:
     static constexpr auto fields = ValuePack<fields_...> {};
+    static_assert(sizeof...(fields_) > 0);
 
 public:
     MultiReadFieldRequestImpl(ToolTag tag)

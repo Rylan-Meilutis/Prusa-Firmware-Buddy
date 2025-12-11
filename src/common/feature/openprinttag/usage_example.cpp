@@ -14,13 +14,10 @@ void opt_usage_example() {
     ReadFieldRequest<MainField::material_name> material_name { tag };
     ReadFieldRequest<MainField::density> density { tag };
 
-    SyncRequest sync;
-
     material_name.issue();
     density.issue();
-    sync.issue();
 
-    while (!sync.finished()) {
+    while (!density.finished()) {
         // Wait for the request group to finish
         // We could possibly give the request group a semaphore or something as well
     }

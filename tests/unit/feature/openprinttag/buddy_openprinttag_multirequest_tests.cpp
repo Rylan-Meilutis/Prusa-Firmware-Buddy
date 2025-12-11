@@ -32,11 +32,10 @@ TEST_CASE("buddy::openprinttag::MultiRequest") {
         r.issue();
 
         // MultiReadRequest is supposed to deduplicate fields and issue them all in order
-        REQUIRE(request_log.size() == 4);
+        REQUIRE(request_log.size() == 3);
         CHECK(request_log[0] == &r.request<MainField::material_name>());
         CHECK(request_log[1] == &r.request<MainField::nominal_netto_full_weight>());
         CHECK(request_log[2] == &r.request<AuxField::consumed_weight>());
-        CHECK(request_log[3] == &r.sync_request());
     };
 
     {
