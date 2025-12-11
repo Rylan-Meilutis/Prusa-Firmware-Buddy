@@ -43,7 +43,7 @@ void window_dlg_wait_t::wait_for_gcodes_to_finish() {
 void window_dlg_wait_t::wait_until(const string_view_utf8 &second_string, const stdext::inplace_function<bool()> &until_f) {
     window_dlg_wait_t dlg(second_string);
     Screens::Access()->gui_loop_until_dialog_closed([&] {
-        if (!until_f()) {
+        if (until_f()) {
             Screens::Access()->Close();
         }
     });

@@ -24,7 +24,7 @@ public:
     /// Does this in a somewhat smart way that doesn't obstruct warnings
     static void wait_for_gcodes_to_finish();
 
-    /// Displays a waiting dialog and blocks until @p until_condition returns true
+    /// Displays a waiting dialog and blocks until @p until_f returns true
     static void wait_until(const string_view_utf8 &second_string, const stdext::inplace_function<bool()> &until_f);
 
     virtual void Change(fsm::BaseData) override;
