@@ -218,8 +218,20 @@ class ModbusProtocol(object):
         return rx_pdu
 
     def read_input_registers(self, address, length):
-        return self._transaction(b'\x04' + address.to_bytes(2, 'big') +
+        data = self._transaction(b'\x04' + address.to_bytes(2, 'big') +
                                  length.to_bytes(2, 'big'))
+        function = data[0]
+        if function == 0x84:
+            exception_code = data[1]
+            raise Exception(f'Modbus exception code: {exception_code}')
+        byte_count = data[1]
+        if byte_count != length * 2:
+            raise Exception('length mismatch')
+        registers = []
+        for i in range(length):
+            reg = parse_int_modbus(data[2 + i * 2:4 + i * 2])
+            registers.append(reg)
+        return registers
 
 
 def main():
