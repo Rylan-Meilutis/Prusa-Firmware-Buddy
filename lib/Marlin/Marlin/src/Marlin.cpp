@@ -231,7 +231,9 @@ bool anyHeatherIsActive() {
   #if HAS_HEATED_BED
     active |= thermalManager.degTargetBed() != 0;
   #endif
-  for (int8_t e = 0; e < HOTENDS; e++) active |= thermalManager.degTargetHotend(e) != 0;
+  for (auto tool : PhysicalToolIndex::all()) {
+    active |= thermalManager.degTargetHotend(tool) != 0;
+  }
   return active;
 }
 
@@ -597,8 +599,8 @@ void setup() {
   #endif
 
   #if HAS_TEMP_HEATBREAK_CONTROL
-    for (int8_t e = 0; e < HOTENDS; e++){
-      thermalManager.setTargetHeatbreak(DEFAULT_HEATBREAK_TEMPERATURE, e);
+    for (auto tool : PhysicalToolIndex::all()) {
+      thermalManager.setTargetHeatbreak(DEFAULT_HEATBREAK_TEMPERATURE, tool);
     }
   #endif
 }

@@ -140,22 +140,22 @@ namespace frame {
             };
 
             const SelftestResult result = config_store().selftest_result.get();
-            for (size_t i = 0; i < HOTENDS; i++) {
+            for (auto tool : PhysicalToolIndex::all()) {
 #if HAS_TOOLCHANGER()
-                if (!prusa_toolchanger.is_tool_enabled(i)) {
+                if (!prusa_toolchanger.is_tool_enabled(tool)) {
                     continue;
                 }
 #endif
 #if HAS_SWITCHED_FAN_TEST()
-                if (process_fan_result(result.tools[i].fansSwitched, switched_fan_icons, i)) {
-                    print_icons.SetState(SelftestSubtestState_t::not_good, i);
-                    heatbreak_icons.SetState(SelftestSubtestState_t::not_good, i);
+                if (process_fan_result(result.tools[tool].fansSwitched, switched_fan_icons, tool.to_raw())) {
+                    print_icons.SetState(SelftestSubtestState_t::not_good, tool.to_raw());
+                    heatbreak_icons.SetState(SelftestSubtestState_t::not_good, tool.to_raw());
                     switched_fans = true;
                     continue;
                 }
 #endif
-                process_fan_result(result.tools[i].printFan, print_icons, i);
-                process_fan_result(result.tools[i].heatBreakFan, heatbreak_icons, i);
+                process_fan_result(result.tools[tool].printFan, print_icons, tool.to_raw());
+                process_fan_result(result.tools[tool].heatBreakFan, heatbreak_icons, tool.to_raw());
             }
 
 #if HAS_CHAMBER_API()
@@ -247,12 +247,12 @@ namespace frame {
             heatbreak_label.set_font(Font::small);
 #endif
 #if HAS_TOOLCHANGER()
-            for (size_t i = 0; i < HOTENDS; i++) {
-                if (!prusa_toolchanger.is_tool_enabled(i)) {
-                    print_icons.SetIconHidden(i, true);
-                    heatbreak_icons.SetIconHidden(i, true);
+            for (auto tool : PhysicalToolIndex::all()) {
+                if (!prusa_toolchanger.is_tool_enabled(tool)) {
+                    print_icons.SetIconHidden(tool.to_raw(), true);
+                    heatbreak_icons.SetIconHidden(tool.to_raw(), true);
     #if HAS_SWITCHED_FAN_TEST()
-                    swtiched_fan_icons.SetIconHidden(i, true);
+                    swtiched_fan_icons.SetIconHidden(tool.to_raw(), true);
     #endif
                 }
             }

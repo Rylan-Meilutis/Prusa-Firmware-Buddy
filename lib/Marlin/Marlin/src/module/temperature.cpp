@@ -1638,8 +1638,8 @@ void Temperature::suspend_heatbreak_fan(millis_t ms) {
   // TODO: why do have next_heatbreak_check_ms instead of using the nicer watch_heatbreak?
   next_heatbreak_check_ms = millis() + ms;
 
-  for (int8_t e = 0; e < HOTENDS; e++){
-    temp_heatbreak[e].soft_pwm_amount = 0;
+  for (auto tool : PhysicalToolIndex::all()) {
+    temp_heatbreak[tool].soft_pwm_amount = 0;
   }
   WRITE_HEATER_HEATBREAK(LOW);
 }
@@ -1840,9 +1840,13 @@ void translate_ac_controller_faults() {
  */
 void Temperature::updateTemperaturesFromRawValues() {
   #if HAS_TOOLCHANGER()
-    for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = prusa_toolchanger.getTool(e).get_hotend_temp();
+    for (auto tool : PhysicalToolIndex::all()) {
+      temp_hotend[tool].celsius = prusa_toolchanger.getTool(tool).get_hotend_temp();
+    }
   #else
-    for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].celsius = analog_to_celsius_hotend(temp_hotend[e].raw, e);
+    for (auto tool : PhysicalToolIndex::all()) {
+      temp_hotend[tool].celsius = analog_to_celsius_hotend(temp_hotend[tool].raw, tool);
+    }
   #endif
   #if HAS_HEATED_BED
     #if HAS_MODULAR_BED()
@@ -1878,9 +1882,13 @@ void Temperature::updateTemperaturesFromRawValues() {
   #endif
   #if HAS_TEMP_HEATBREAK
     #if HAS_TOOLCHANGER()
-      for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = prusa_toolchanger.getTool(e).get_heatbreak_temp();
+      for (auto tool : PhysicalToolIndex::all()) {
+        temp_heatbreak[tool].celsius = prusa_toolchanger.getTool(tool).get_heatbreak_temp();
+      }
     #else
-      for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].celsius = analog_to_celsius_heatbreak(temp_heatbreak[e].raw);
+      for (auto tool : PhysicalToolIndex::all()) {
+        temp_heatbreak[tool].celsius = analog_to_celsius_heatbreak(temp_heatbreak[tool].raw);
+      }
     #endif
   #endif
   #if HAS_TEMP_BOARD
@@ -2352,7 +2360,9 @@ void Temperature::disable_heaters(Temperature::disable_bed_t disable_bed) {
     planner.autotemp_enabled = false;
   #endif
 
-  for (int8_t e = 0; e < HOTENDS; e++) setTargetHotend(0, e);
+  for (auto tool : PhysicalToolIndex::all()) {
+    setTargetHotend(0, tool);
+  }
 
   #if HAS_HEATED_BED
     if (disable_bed == disable_bed_t::yes){
@@ -2424,7 +2434,9 @@ void Temperature::set_current_temp_raw() {
   #endif
 
   #if HAS_TEMP_HEATBREAK
-    for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].update();
+    for (auto tool : PhysicalToolIndex::all()) {
+      temp_heatbreak[tool].update();
+    }
   #endif
 
   #if HAS_TEMP_BOARD
@@ -2444,7 +2456,9 @@ void Temperature::readings_ready() {
   // Update the raw values if they've been read. Else we could be updating them during reading.
   if (!temp_meas_ready) set_current_temp_raw();
 
-  for (int8_t e = 0; e < HOTENDS; e++) temp_hotend[e].reset();
+  for (auto tool : PhysicalToolIndex::all()) {
+    temp_hotend[tool].reset();
+  }
 
   #if HAS_HEATED_BED
     temp_bed.reset();
@@ -2455,7 +2469,9 @@ void Temperature::readings_ready() {
   #endif
 
   #if HAS_TEMP_HEATBREAK
-    for (int8_t e = 0; e < HOTENDS; e++) temp_heatbreak[e].reset();
+    for (auto tool : PhysicalToolIndex::all()) {
+      temp_heatbreak[tool].reset();
+    }
   #endif
 
   #if HAS_TEMP_BOARD
@@ -2536,23 +2552,27 @@ void Temperature::readings_ready() {
   #endif
 
   #if HAS_TEMP_HEATBREAK
-    for (int8_t e = 0; e < HOTENDS; e++){
-      #if TEMPDIRHEATBREAK < 0
-        #define HEATBREAKCMP(A,B) ((A)<=(B))
-      #else
-        #define HEATBREAKCMP(A,B) ((A)>=(B))
-      #endif
-      #if !HAS_TOOLCHANGER()
+    #if TEMPDIRHEATBREAK < 0
+      #define HEATBREAKCMP(A,B) ((A)<=(B))
+    #else
+      #define HEATBREAKCMP(A,B) ((A)>=(B))
+    #endif
+    #if !HAS_TOOLCHANGER()
+    for (auto tool : PhysicalToolIndex::all()) {
         //const bool chamber_on = (temp_chamber.target > 0);
-        const bool heater_on = (temp_hotend[e].target > 0
+        const bool heater_on = (temp_hotend[tool].target > 0
                                 #if ENABLED(PIDTEMP)
-                                || temp_hotend[e].soft_pwm_amount > 0
-#endif
+                                || temp_hotend[tool].soft_pwm_amount > 0
+                                #endif
         );
-        if (HEATBREAKCMP(temp_heatbreak[e].raw, maxtemp_raw_HEATBREAK)) max_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + e));
-        if (heater_on && HEATBREAKCMP(mintemp_raw_HEATBREAK, temp_heatbreak[e].raw)) min_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + e));
-      #endif
+        if (HEATBREAKCMP(temp_heatbreak[tool].raw, maxtemp_raw_HEATBREAK)) {
+            max_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + tool.to_raw()));
+        }
+        if (heater_on && HEATBREAKCMP(mintemp_raw_HEATBREAK, temp_heatbreak[tool].raw)) {
+            min_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + tool.to_raw()));
+        }
     }
+    #endif
   #endif
 
   #if HAS_TEMP_BOARD
@@ -2894,9 +2914,9 @@ void Temperature::isr() {
     #endif // HAS_TEMP_BOARD
 
     #if HOTENDS > 1
-      for (int8_t e = 0; e < HOTENDS; e++) print_heater_state(degHotend(e), degTargetHotend(e)
-        , (heater_ind_t)e
-      );
+      for (auto tool : PhysicalToolIndex::all()) {
+        print_heater_state(degHotend(tool), degTargetHotend(tool), (heater_ind_t)tool.to_raw());
+      }
     #endif
     SERIAL_ECHOPAIR(" @:", getHeaterPower((heater_ind_t)target_extruder));
     #if HAS_HEATED_BED
@@ -2911,10 +2931,10 @@ void Temperature::isr() {
       SERIAL_ECHOPAIR(" HBR@:", getHeaterPower((heater_ind_t)(H_HEATBREAK_E0 + target_extruder)));
     #endif
     #if HOTENDS > 1
-      for (int8_t e = 0; e < HOTENDS; e++) {
-        SERIAL_ECHOPAIR(" @", e);
+      for (auto tool : PhysicalToolIndex::all()) {
+        SERIAL_ECHOPAIR(" @", tool.to_raw());
         SERIAL_CHAR(':');
-        SERIAL_ECHO(getHeaterPower((heater_ind_t)e));
+        SERIAL_ECHO(getHeaterPower((heater_ind_t)tool.to_raw()));
       }
     #endif
 
@@ -2969,8 +2989,8 @@ void Temperature::isr() {
     }
 
     bool Temperature::are_hotend_temperatures_reached() {
-      for(uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        if (!is_hotend_temperature_reached(hotend)) {
+      for (auto tool : PhysicalToolIndex::all()) {
+        if (!is_hotend_temperature_reached(tool)) {
             return false;
         }
       }

@@ -42,15 +42,15 @@ bool is_selftest_successfully_completed() {
     }
 #endif /* HAS_SHEET_PROFILES() */
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
 #if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(e)) {
+        if (!prusa_toolchanger.is_tool_enabled(tool)) {
             continue;
         }
 
         // Without toolchanger, we don't have tool offsets
         if (prusa_toolchanger.is_toolchanger_enabled()) {
-            if (!all_passed(sr.tools[e].dockoffset, sr.tools[e].tooloffset)) {
+            if (!all_passed(sr.tools[tool].dockoffset, sr.tools[tool].tooloffset)) {
                 return false;
             }
         }
@@ -58,31 +58,31 @@ bool is_selftest_successfully_completed() {
 #endif
 
 #if HAS_SWITCHED_FAN_TEST()
-        if (sr.tools[e].fansSwitched != TestResult_Passed) {
+        if (sr.tools[tool].fansSwitched != TestResult_Passed) {
             return false;
         }
 #endif /* HAS_SWITCHED_FAN_TEST() */
 
 #if HAS_GEARBOX_ALIGNMENT()
-        if (sr.tools[e].gears == TestResult_Failed) {
+        if (sr.tools[tool].gears == TestResult_Failed) {
             return false;
         }
 #endif /* HAS_GEARBOX_ALIGNMENT */
 
         if (
-            sr.tools[e].fsensor == TestResult_Failed
+            sr.tools[tool].fsensor == TestResult_Failed
             // For the Mini, the filament sensor is optional
             && !(PRINTER_IS_PRUSA_MINI() && sr.tools[0].fsensor == TestResult_Skipped)) {
             return false;
         }
 
 #if HAS_LOADCELL()
-        if (!all_passed(sr.tools[e].loadcell)) {
+        if (!all_passed(sr.tools[tool].loadcell)) {
             return false;
         }
 #endif /* HAS_LOADCELL() */
 
-        if (!all_passed(sr.tools[e].printFan, sr.tools[e].heatBreakFan, sr.tools[e].nozzle)) {
+        if (!all_passed(sr.tools[tool].printFan, sr.tools[tool].heatBreakFan, sr.tools[tool].nozzle)) {
             return false;
         }
     }

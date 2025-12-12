@@ -1179,10 +1179,10 @@ static void settings_load() {
     Temperature::temp_bed.pid.Kd = config_store().pid_bed_d.get();
 #endif
 #if ENABLED(PIDTEMP)
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        Temperature::temp_hotend[e].pid.Kp = config_store().pid_nozzle_p.get();
-        Temperature::temp_hotend[e].pid.Ki = config_store().pid_nozzle_i.get();
-        Temperature::temp_hotend[e].pid.Kd = config_store().pid_nozzle_d.get();
+    for (auto tool : PhysicalToolIndex::all()) {
+        Temperature::temp_hotend[tool].pid.Kp = config_store().pid_nozzle_p.get();
+        Temperature::temp_hotend[tool].pid.Ki = config_store().pid_nozzle_i.get();
+        Temperature::temp_hotend[tool].pid.Kd = config_store().pid_nozzle_d.get();
     }
     thermalManager.updatePID();
 #endif
@@ -2000,8 +2000,8 @@ static void resuming_reheating() {
     }
 
     // Check if nozzles are being reheated
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        if (Temperature::degTargetHotend(hotend) != server.resume.nozzle_temp[hotend]) {
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (Temperature::degTargetHotend(tool) != server.resume.nozzle_temp[tool]) {
             // Stopped reheating, can happen if there is an error during reheating
             server.print_state = State::Paused;
             return;
@@ -2856,12 +2856,12 @@ static void _server_print_loop(void) {
 #endif
 
     if (do_fan_check) {
-        for (int8_t e = 0; e < HOTENDS; e++) {
 #if !PRINTER_IS_PRUSA_iX()
-            const auto fan_state = Fans::heat_break(e).get_state();
-            hotendFanErrorChecker[e].checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::HotendFanError, true, true);
-#endif
+        for (auto tool : PhysicalToolIndex::all()) {
+            const auto fan_state = Fans::heat_break(tool).get_state();
+            hotendFanErrorChecker[tool].checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::HotendFanError, true, true);
         }
+#endif
         const auto fan_state = Fans::print(active_extruder).get_state();
         printFanErrorChecker.checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::PrintFanError, false, true);
 
@@ -2890,9 +2890,9 @@ static void _server_print_loop(void) {
 #endif
     }
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (Fans::heat_break(e).get_rpm_is_ok()) {
-            hotendFanErrorChecker[e].reset();
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (Fans::heat_break(tool).get_rpm_is_ok()) {
+            hotendFanErrorChecker[tool].reset();
         }
     }
     if (Fans::print(active_extruder).get_rpm_is_ok()) {
@@ -2900,14 +2900,14 @@ static void _server_print_loop(void) {
     }
 
 #if HAS_TEMP_HEATBREAK
-    for (int8_t e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
     #if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(e)) {
+        if (!prusa_toolchanger.is_tool_enabled(tool)) {
             continue;
         }
     #endif
 
-        const auto temp = thermalManager.degHeatbreak(e);
+        const auto temp = thermalManager.degHeatbreak(tool);
 
         // Heatbreak is not yet initialized -> nothing to check
         if (temp == TempInfo::celsius_uninitialized) {
@@ -2915,11 +2915,11 @@ static void _server_print_loop(void) {
         }
         // Heatbreak started reporting valid temperatures -> clear the warning
         else if (temp > 10) {
-            heatBreakThermistorErrorChecker[e].reset();
+            heatBreakThermistorErrorChecker[tool].reset();
         }
         // Getting 0 -> heatbreak error
         else {
-            heatBreakThermistorErrorChecker[e].checkTrue(!NEAR_ZERO(temp), WarningType::HeatBreakThermistorFail, true, true);
+            heatBreakThermistorErrorChecker[tool].checkTrue(!NEAR_ZERO(temp), WarningType::HeatBreakThermistorFail, true, true);
         }
     }
 #endif
@@ -2929,9 +2929,9 @@ static void _server_print_loop(void) {
     // Check MCU temperatures
     mcuMaxTempErrorChecker.check(AdcGet::getMCUTemp(), WarningType::BuddyMCUMaxTemp, "Buddy");
 #if HAS_DWARF()
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (prusa_toolchanger.is_tool_enabled(e)) {
-            dwarfMaxTempErrorChecker[e].check(buddy::puppies::dwarfs[e].get_mcu_temperature(), WarningType::DwarfMCUMaxTemp, dwarf_names[e]);
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (prusa_toolchanger.is_tool_enabled(tool)) {
+            dwarfMaxTempErrorChecker[tool].check(buddy::puppies::dwarfs[tool].get_mcu_temperature(), WarningType::DwarfMCUMaxTemp, dwarf_names[tool]);
         }
     }
 #endif /*HAS_DWARF()*/
@@ -2942,16 +2942,16 @@ static void _server_print_loop(void) {
 
 void resuming_begin(void) {
     // Reset errors, so it can be triggered immediately again
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        hotendFanErrorChecker[e].reset();
+    for (auto tool : PhysicalToolIndex::all()) {
+        hotendFanErrorChecker[tool].reset();
     }
     printFanErrorChecker.reset();
 
     mcuMaxTempErrorChecker.reset();
 #if HAS_DWARF()
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (prusa_toolchanger.is_tool_enabled(e)) {
-            dwarfMaxTempErrorChecker[e].reset();
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (prusa_toolchanger.is_tool_enabled(tool)) {
+            dwarfMaxTempErrorChecker[tool].reset();
         }
     }
 #endif /*HAS_DWARF()*/
@@ -2959,8 +2959,8 @@ void resuming_begin(void) {
     modbedMaxTempErrorChecker.reset();
 #endif /*HAS_REMOTE_BED()*/
 
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        thermalManager.setTargetHotend(server.resume.nozzle_temp[hotend], hotend);
+    for (auto tool : PhysicalToolIndex::all()) {
+        thermalManager.setTargetHotend(server.resume.nozzle_temp[tool], tool);
     }
 
 #if FAN_COUNT > 0

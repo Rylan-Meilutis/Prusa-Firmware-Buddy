@@ -854,8 +854,8 @@ MI_TOOL_LEDS_ENABLE::MI_TOOL_LEDS_ENABLE()
     : WI_ICON_SWITCH_OFF_ON_t(config_store().tool_leds_enabled.get(), _(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes) {
 }
 void MI_TOOL_LEDS_ENABLE::OnChange(size_t old_index) {
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        prusa_toolchanger.getTool(e).set_cheese_led(!old_index ? 0xff : 0x00, 0x00);
+    for (auto tool : PhysicalToolIndex::all()) {
+        prusa_toolchanger.getTool(tool).set_cheese_led(!old_index ? 0xff : 0x00, 0x00);
     }
     config_store().tool_leds_enabled.set(!old_index);
 }

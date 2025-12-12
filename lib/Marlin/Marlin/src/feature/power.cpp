@@ -78,7 +78,11 @@ bool Power::is_power_needed() {
       #endif // E_STEPPERS
   ) return true;
 
-  for (int8_t e = 0; e < HOTENDS; e++) if (thermalManager.degTargetHotend(e) > 0 || thermalManager.temp_hotend[e].soft_pwm_amount > 0) return true;
+  for (auto tool : PhysicalToolIndex::all()) {
+    if (thermalManager.degTargetHotend(tool) > 0 || thermalManager.temp_hotend[tool].soft_pwm_amount > 0) {
+      return true;
+    }
+  }
 
   #if HAS_HEATED_BED
     if (thermalManager.degTargetBed() > 0 || thermalManager.temp_bed.soft_pwm_amount > 0) return true;

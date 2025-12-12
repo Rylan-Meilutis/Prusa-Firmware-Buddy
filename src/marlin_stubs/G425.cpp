@@ -729,49 +729,44 @@ inline bool calibrate_all_simple() {
     tool_change(NoTool {}, tool_return_t::no_return);
 
     // Apply the offset
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (!prusa_toolchanger.getTool(e).is_enabled()) {
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (!prusa_toolchanger.getTool(tool).is_enabled()) {
             continue;
         }
         // One might ask why the "-" in front of the centers[e].
         // Remember, when tool is bend +x it will find the object at the position -x.
-        hotend_offset[e] = -centers[e];
+        hotend_offset[tool] = -centers[tool];
     }
     normalize_hotend_offsets();
 
     // Check offsets
-    for (int8_t e = 0; e < HOTENDS; e++) {
-#if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.getTool(e).is_enabled()) {
-            hotend_offset[e].reset();
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (!tool.is_enabled()) {
+            hotend_offset[tool].reset();
             continue;
         }
-#endif
 
-        if (hotend_offset[e].x < X_MIN_OFFSET || hotend_offset[e].x > X_MAX_OFFSET) {
-            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, e + 1, 'X', static_cast<double>(hotend_offset[e].x), static_cast<double>(X_MIN_OFFSET), static_cast<double>(X_MAX_OFFSET));
+        if (hotend_offset[tool].x < X_MIN_OFFSET || hotend_offset[tool].x > X_MAX_OFFSET) {
+            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, tool.to_raw() + 1, 'X', static_cast<double>(hotend_offset[tool].x), static_cast<double>(X_MIN_OFFSET), static_cast<double>(X_MAX_OFFSET));
         }
-        if (hotend_offset[e].y < Y_MIN_OFFSET || hotend_offset[e].y > Y_MAX_OFFSET) {
-            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, e + 1, 'Y', static_cast<double>(hotend_offset[e].y), static_cast<double>(Y_MIN_OFFSET), static_cast<double>(Y_MAX_OFFSET));
+        if (hotend_offset[tool].y < Y_MIN_OFFSET || hotend_offset[tool].y > Y_MAX_OFFSET) {
+            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, tool.to_raw() + 1, 'Y', static_cast<double>(hotend_offset[tool].y), static_cast<double>(Y_MIN_OFFSET), static_cast<double>(Y_MAX_OFFSET));
         }
-        if (hotend_offset[e].z < Z_MIN_OFFSET || hotend_offset[e].z > Z_MAX_OFFSET) {
-            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, e + 1, 'Z', static_cast<double>(hotend_offset[e].z), static_cast<double>(Z_MIN_OFFSET), static_cast<double>(Z_MAX_OFFSET));
+        if (hotend_offset[tool].z < Z_MIN_OFFSET || hotend_offset[tool].z > Z_MAX_OFFSET) {
+            fatal_error(ErrCode::ERR_MECHANICAL_TOOL_OFFSET_OUT_OF_BOUNDS, tool.to_raw() + 1, 'Z', static_cast<double>(hotend_offset[tool].z), static_cast<double>(Z_MIN_OFFSET), static_cast<double>(Z_MAX_OFFSET));
         }
     }
     prusa_toolchanger.save_tool_offsets();
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (!prusa_toolchanger.getTool(e).is_enabled()) {
-            continue;
-        }
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         osDelay(100); // Some time to send the metric before sending the next one
         metric_record_custom(
             &metric_offset,
             ",t=%u x=%.3f,y=%.3f,z=%.3f",
-            e,
-            static_cast<double>(hotend_offset[e].x),
-            static_cast<double>(hotend_offset[e].y),
-            static_cast<double>(hotend_offset[e].z));
+            tool.to_raw(),
+            static_cast<double>(hotend_offset[tool].x),
+            static_cast<double>(hotend_offset[tool].y),
+            static_cast<double>(hotend_offset[tool].z));
     }
     return true;
 }

@@ -60,13 +60,13 @@ void GcodeSuite::M218() {
   if (!parser.seen("XYZ")) {
     SERIAL_ECHO_START();
     SERIAL_ECHOPGM(MSG_HOTEND_OFFSET);
-    for (int8_t e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
       SERIAL_CHAR(' ');
-      SERIAL_ECHO(hotend_offset[e].x);
+      SERIAL_ECHO(hotend_offset[tool].x);
       SERIAL_CHAR(',');
-      SERIAL_ECHO(hotend_offset[e].y);
+      SERIAL_ECHO(hotend_offset[tool].y);
       SERIAL_CHAR(',');
-      SERIAL_ECHO_F(hotend_offset[e].z, 3);
+      SERIAL_ECHO_F(hotend_offset[tool].z, 3);
     }
     SERIAL_EOL();
   }

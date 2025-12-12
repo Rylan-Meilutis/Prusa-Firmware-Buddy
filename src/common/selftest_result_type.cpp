@@ -11,25 +11,25 @@
 LOG_COMPONENT_REF(Selftest);
 
 void SelftestResult_Log(const SelftestResult &results) {
-    for (int e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
 #if HAS_TOOLCHANGER()
-        if (buddy::puppies::dwarfs[e].is_enabled() == false) {
+        if (buddy::puppies::dwarfs[tool].is_enabled() == false) {
             continue;
         }
 #endif
 
-        log_info(Selftest, "Print fan %u result is %s", e, ToString(results.tools[e].printFan));
-        log_info(Selftest, "Heatbreak fan %u result is %s", e, ToString(results.tools[e].heatBreakFan));
+        log_info(Selftest, "Print fan %u result is %s", tool.to_raw(), ToString(results.tools[tool].printFan));
+        log_info(Selftest, "Heatbreak fan %u result is %s", tool.to_raw(), ToString(results.tools[tool].heatBreakFan));
 #if HAS_SWITCHED_FAN_TEST()
-        log_info(Selftest, "Fans switched %u result is %s", e, ToString(results.tools[e].fansSwitched));
+        log_info(Selftest, "Fans switched %u result is %s", tool.to_raw(), ToString(results.tools[tool].fansSwitched));
 #endif /* HAS_SWITCHED_FAN_TEST() */
-        log_info(Selftest, "Nozzle heater %u result is %s", e, ToString(results.tools[e].nozzle));
+        log_info(Selftest, "Nozzle heater %u result is %s", tool.to_raw(), ToString(results.tools[tool].nozzle));
 #if FILAMENT_SENSOR_IS_ADC()
-        log_info(Selftest, "Filament sensor %u result is %s", e, ToString(results.tools[e].fsensor));
-        log_info(Selftest, "Side filament sensor %u result is %s", e, ToString(results.tools[e].sideFsensor));
+        log_info(Selftest, "Filament sensor %u result is %s", tool.to_raw(), ToString(results.tools[tool].fsensor));
+        log_info(Selftest, "Side filament sensor %u result is %s", tool.to_raw(), ToString(results.tools[tool].sideFsensor));
 #endif /*FILAMENT_SENSOR_IS_ADC()*/
 #if HAS_LOADCELL()
-        log_info(Selftest, "Loadcell result %u is %s", e, ToString(results.tools[e].loadcell));
+        log_info(Selftest, "Loadcell result %u is %s", tool.to_raw(), ToString(results.tools[tool].loadcell));
 #endif /*HAS_LOADCELL()*/
     }
     log_info(Selftest, "X axis result is %s", ToString(results.xaxis));

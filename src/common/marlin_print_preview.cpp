@@ -398,9 +398,9 @@ void PrintPreview::tools_mapping_cleanup(bool leaving_to_print) {
 
 #if PRINTER_IS_PRUSA_XL()
     // set dwarf leds to be handled 'normally'
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        prusa_toolchanger.getTool(e).set_cheese_led(); // Default LED config
-        prusa_toolchanger.getTool(e).set_status_led(); // Default status LED
+    for (auto tool : PhysicalToolIndex::all()) {
+        prusa_toolchanger.getTool(tool).set_cheese_led(); // Default LED config
+        prusa_toolchanger.getTool(tool).set_status_led(); // Default status LED
     }
 #endif
 }

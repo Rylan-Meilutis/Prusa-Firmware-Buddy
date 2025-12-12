@@ -479,8 +479,8 @@ void CSelftest::phaseSelftestStart() {
         m_result.bed = TestResult_Unknown;
     }
     if (m_Mask & to_one_hot(stsHeaters_noz_ena)) {
-        for (int8_t e = 0; e < HOTENDS; e++) {
-            m_result.tools[e].nozzle = TestResult_Unknown;
+        for (auto tool : PhysicalToolIndex::all()) {
+            m_result.tools[tool].nozzle = TestResult_Unknown;
         }
     }
     config_store().selftest_result.set(m_result); // reset status for all selftest parts in eeprom
@@ -489,9 +489,9 @@ void CSelftest::phaseSelftestStart() {
 void CSelftest::restoreAfterSelftest() {
     // disable heater target values - thermalManager.disable_all_heaters does not do that
     thermalManager.setTargetBed(0);
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (buddy::puppies::dwarfs[e].is_enabled()) {
-            thermalManager.setTargetHotend(0, e);
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (buddy::puppies::dwarfs[tool].is_enabled()) {
+            thermalManager.setTargetHotend(0, tool);
         }
     }
 

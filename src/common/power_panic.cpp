@@ -350,8 +350,8 @@ void resume_loop() {
         }
 #endif
 #if HAS_TEMP_HEATBREAK_CONTROL
-        for (uint8_t e = 0; e < HOTENDS; e++) {
-            thermalManager.setTargetHeatbreak(state_buf.heatbreak_temperatures[e], e);
+        for (auto tool : PhysicalToolIndex::all()) {
+            thermalManager.setTargetHeatbreak(state_buf.heatbreak_temperatures[tool], tool);
         }
 
 #endif
@@ -381,8 +381,8 @@ void resume_loop() {
         if (state_buf.planner.was_paused) {
             resume_state = ResumeState::ParkForPause;
         } else {
-            for (int8_t e = 0; e < HOTENDS; e++) {
-                thermalManager.setTargetHotend(state_buf.planner.target_nozzle[e], e);
+            for (auto tool : PhysicalToolIndex::all()) {
+                thermalManager.setTargetHotend(state_buf.planner.target_nozzle[tool], tool);
             }
             // setTargetBed is already called higher up in this function
 
@@ -712,8 +712,8 @@ void panic_loop() {
         state_buf.chamber_target_temp = static_cast<uint16_t>(buddy::chamber().target_temperature().value_or(chamber_temp_off));
 #endif
 #if HAS_TEMP_HEATBREAK_CONTROL
-        for (uint8_t e = 0; e < HOTENDS; e++) {
-            state_buf.heatbreak_temperatures[e] = Temperature::degTargetHeatbreak(e);
+        for (auto tool : PhysicalToolIndex::all()) {
+            state_buf.heatbreak_temperatures[tool] = Temperature::degTargetHeatbreak(tool);
         }
 #endif
         state_buf.gcode_stream_restore_info = marlin_server::stream_restore_info();

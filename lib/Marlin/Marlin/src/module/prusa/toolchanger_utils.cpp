@@ -293,14 +293,14 @@ void PrusaToolChangerUtils::save_tool_offsets() {
 }
 
 void PrusaToolChangerUtils::load_tool_offsets() {
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (e < static_cast<int8_t>(config_store_ns::max_tool_count)) {
-            ToolOffset offset = config_store().get_tool_offset(e);
-            hotend_offset[e].x = offset.x;
-            hotend_offset[e].y = offset.y;
-            hotend_offset[e].z = offset.z;
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (tool.to_raw() < static_cast<int8_t>(config_store_ns::max_tool_count)) {
+            ToolOffset offset = config_store().get_tool_offset(tool);
+            hotend_offset[tool].x = offset.x;
+            hotend_offset[tool].y = offset.y;
+            hotend_offset[tool].z = offset.z;
         } else {
-            hotend_offset[e].reset();
+            hotend_offset[tool].reset();
         }
     }
 }
@@ -368,9 +368,9 @@ bool PrusaToolChangerUtils::save_tool_offsets_to_file(const char *filename) {
         return false;
     }
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
         std::array<char, 40> buffer;
-        int n = snprintf(buffer.data(), buffer.size(), "%f %f %f\n", hotend_offset[e].x, hotend_offset[e].y, hotend_offset[e].z);
+        int n = snprintf(buffer.data(), buffer.size(), "%f %f %f\n", hotend_offset[tool].x, hotend_offset[tool].y, hotend_offset[tool].z);
         fwrite(buffer.data(), sizeof(char), std::min<int>(n, buffer.size() - 1), file);
     }
 
@@ -386,7 +386,7 @@ bool PrusaToolChangerUtils::load_tool_offsets_from_usb() {
         return false;
     }
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
+    for (auto tool : PhysicalToolIndex::all()) {
         std::array<char, 40> buffer;
         size_t pos = 0;
 
@@ -400,13 +400,13 @@ bool PrusaToolChangerUtils::load_tool_offsets_from_usb() {
             buffer[pos++] = c;
         }
 
-        hotend_offset[e].x = strtof(buffer.data(), nullptr);
+        hotend_offset[tool].x = strtof(buffer.data(), nullptr);
 
         char *second = strnstr(buffer.data(), " ", pos) + 1;
-        hotend_offset[e].y = strtof(second, nullptr);
+        hotend_offset[tool].y = strtof(second, nullptr);
 
         char *third = strnstr(second, " ", pos) + 1;
-        hotend_offset[e].z = strtof(third, nullptr);
+        hotend_offset[tool].z = strtof(third, nullptr);
     }
 
     hotend_offset[MARLIN_NO_TOOL_PICKED].reset(); // Discard any offset on no tool

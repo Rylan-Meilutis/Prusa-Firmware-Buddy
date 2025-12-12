@@ -108,12 +108,12 @@ ScreenSelftestTemp::ScreenSelftestTemp(window_t *parent, PhasesSelftest ph, fsm:
 
 #if HAS_TOOLCHANGER()
     // when toolchanger enabled, hide results of tools that are not connected
-    for (size_t i = 0; i < HOTENDS; i++) {
-        if (!prusa_toolchanger.is_tool_enabled(i)) {
-            icons_noz_prep.SetIconHidden(i, true);
-            icons_noz_heat.SetIconHidden(i, true);
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (!prusa_toolchanger.is_tool_enabled(tool)) {
+            icons_noz_prep.SetIconHidden(tool.to_raw(), true);
+            icons_noz_heat.SetIconHidden(tool.to_raw(), true);
     #if HAS_HEATBREAK_TEMP()
-            icons_heatbreak.SetIconHidden(i, true);
+            icons_heatbreak.SetIconHidden(tool.to_raw(), true);
     #endif
         }
     }
@@ -156,8 +156,10 @@ ScreenSelftestTemp::ScreenSelftestTemp(window_t *parent, PhasesSelftest ph, fsm:
             icon_bed_heat.SetRect(top_row_1_icon_rect);
         }
 
+        bool hidden = true;
         if (is_tested(dt, SelftestHeaters_t::TestedParts::noz)) {
             // Nozzle is tested - all cases
+            hidden = false;
             text_noz.Show();
             progress_noz.Show();
             text_noz_prep.Show();
@@ -165,19 +167,8 @@ ScreenSelftestTemp::ScreenSelftestTemp(window_t *parent, PhasesSelftest ph, fsm:
 #if HAS_HEATBREAK_TEMP()
             text_heatbreak.Show();
 #endif
-            for (size_t i = 0; i < HOTENDS; i++) {
-#if HAS_TOOLCHANGER()
-                if (prusa_toolchanger.is_tool_enabled(i))
-#endif
-                {
-                    icons_noz_prep.SetIconHidden(i, false);
-                    icons_noz_heat.SetIconHidden(i, false);
-#if HAS_HEATBREAK_TEMP()
-                    icons_heatbreak.SetIconHidden(i, false);
-#endif
-                }
-            }
         } else {
+            hidden = true;
             text_noz.Hide();
             progress_noz.Hide();
             text_noz_prep.Hide();
@@ -185,18 +176,14 @@ ScreenSelftestTemp::ScreenSelftestTemp(window_t *parent, PhasesSelftest ph, fsm:
 #if HAS_HEATBREAK_TEMP()
             text_heatbreak.Hide();
 #endif
-            for (size_t i = 0; i < HOTENDS; i++) {
-#if HAS_TOOLCHANGER()
-                if (prusa_toolchanger.is_tool_enabled(i))
-#endif
-                {
-                    icons_noz_prep.SetIconHidden(i, true);
-                    icons_noz_heat.SetIconHidden(i, true);
+        }
+
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            icons_noz_prep.SetIconHidden(tool.to_raw(), hidden);
+            icons_noz_heat.SetIconHidden(tool.to_raw(), hidden);
 #if HAS_HEATBREAK_TEMP()
-                    icons_heatbreak.SetIconHidden(i, true);
+            icons_heatbreak.SetIconHidden(tool.to_raw(), hidden);
 #endif
-                }
-            }
         }
 
         if (is_tested(dt, SelftestHeaters_t::TestedParts::bed)) {

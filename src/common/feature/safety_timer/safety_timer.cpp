@@ -47,8 +47,8 @@ SafetyTimer::NozzleTargetTemperatures SafetyTimer::original_hotend_targets() con
         return nozzle_temperatures_to_restore_;
     } else {
         NozzleTargetTemperatures result;
-        for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-            result[hotend] = Temperature::degTargetHotend(hotend);
+        for (auto tool : PhysicalToolIndex::all()) {
+            result[tool] = Temperature::degTargetHotend(tool);
         }
         return result;
     }

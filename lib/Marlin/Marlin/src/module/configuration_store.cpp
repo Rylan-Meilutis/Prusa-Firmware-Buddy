@@ -337,12 +337,12 @@ void MarlinSettings::reset() {
   //
 
   #if ENABLED(PIDTEMP)
-    for (int8_t e = 0; e < HOTENDS; e++) {
-      PID_PARAM(Kp, e) = float(DEFAULT_Kp);
-      PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
-      PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
+    for (auto tool : PhysicalToolIndex::all()) {
+      PID_PARAM(Kp, tool) = float(DEFAULT_Kp);
+      PID_PARAM(Ki, tool) = scalePID_i(DEFAULT_Ki);
+      PID_PARAM(Kd, tool) = scalePID_d(DEFAULT_Kd);
       #if ENABLED(PID_EXTRUSION_SCALING)
-        PID_PARAM(Kc, e) = DEFAULT_Kc;
+        PID_PARAM(Kc, tool) = DEFAULT_Kc;
       #endif
     }
   #endif
@@ -362,10 +362,10 @@ void MarlinSettings::reset() {
   #endif
 
   #if ENABLED(PIDTEMPHEATBREAK)
-    for (int8_t e = 0; e < HOTENDS; e++) {
-      thermalManager.temp_heatbreak[e].pid.Kp = DEFAULT_heatbreakKp;
-      thermalManager.temp_heatbreak[e].pid.Ki = scalePID_i(DEFAULT_heatbreakKi);
-      thermalManager.temp_heatbreak[e].pid.Kd = scalePID_d(DEFAULT_heatbreakKd);
+    for (auto tool : PhysicalToolIndex::all()) {
+      thermalManager.temp_heatbreak[tool].pid.Kp = DEFAULT_heatbreakKp;
+      thermalManager.temp_heatbreak[tool].pid.Ki = scalePID_i(DEFAULT_heatbreakKi);
+      thermalManager.temp_heatbreak[tool].pid.Kd = scalePID_d(DEFAULT_heatbreakKd);
     }
   #endif
 
@@ -701,18 +701,18 @@ void MarlinSettings::reset() {
       CONFIG_ECHO_HEADING("PID settings:");
 
       #if ENABLED(PIDTEMP)
-        for (int8_t e = 0; e < HOTENDS; e++) {
+        for (auto tool : PhysicalToolIndex::all()) {
           CONFIG_ECHO_START();
           SERIAL_ECHOPAIR("  M301"
             #if HOTENDS > 1 && ENABLED(PID_PARAMS_PER_HOTEND)
-              " E", e,
+              " E", tool.to_raw(),
             #endif
-              " P", PID_PARAM(Kp, e)
-            , " I", unscalePID_i(PID_PARAM(Ki, e))
-            , " D", unscalePID_d(PID_PARAM(Kd, e))
+              " P", PID_PARAM(Kp, tool)
+            , " I", unscalePID_i(PID_PARAM(Ki, tool))
+            , " D", unscalePID_d(PID_PARAM(Kd, tool))
           );
           #if ENABLED(PID_EXTRUSION_SCALING)
-            SERIAL_ECHOPAIR(" C", PID_PARAM(Kc, e));
+            SERIAL_ECHOPAIR(" C", PID_PARAM(Kc, tool));
           #endif
           SERIAL_EOL();
         }
