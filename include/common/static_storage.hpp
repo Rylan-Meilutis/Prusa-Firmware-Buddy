@@ -17,11 +17,10 @@
  * This is basically std::aligned_union_t which doesn't require
  * knowledge of the types upfront with some convenience functions.
  */
-template <size_t size_, typename Alignment_ = void *>
+template <size_t size_, size_t alignment = 8>
 class StaticStorageUnsafe {
 
 public:
-    using Alignment = Alignment_;
     static constexpr size_t size = size_;
 
     /** Access the value of type T previously created at this storage */
@@ -62,11 +61,11 @@ public:
     template <class... T>
     static constexpr bool can_construct() {
         constexpr auto f = []<typename U>() {
-            return sizeof(U) <= size && alignof(U) <= alignof(Alignment);
+            return sizeof(U) <= size && alignof(U) <= alignment;
         };
         return (f.template operator()<T>() && ...);
     }
 
 private:
-    alignas(Alignment) std::array<std::byte, size> bytes;
+    alignas(alignment) std::array<std::byte, size> bytes;
 };
