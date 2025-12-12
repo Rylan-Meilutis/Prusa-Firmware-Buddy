@@ -8,6 +8,8 @@
 #include <utils/timing/timer.hpp>
 #include <option/has_human_interactions.h>
 #include <inc/MarlinConfig.h>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 namespace buddy {
 
@@ -20,7 +22,8 @@ class SafetyTimer {
 public:
     using Time = uint32_t;
 
-    using NozzleTargetTemperatures = std::array<int16_t, HOTENDS>;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    using NozzleTargetTemperatures = StrongIndexArray<int16_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
 
     enum class State : uint8_t {
         /// Either not expired or expired without the ability to restore (= outside of print)

@@ -56,6 +56,8 @@
 
 #include <usb_host/usbh_async_diskio.hpp>
 #include <gcode/gcode_reader_restore_info.hpp>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 #include "feature/print_area.h"
 
@@ -78,7 +80,8 @@ struct state_planner_t {
     float junction_deviation_mm;
 #endif
 
-    std::array<int16_t, HOTENDS> target_nozzle;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    StrongIndexArray<int16_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> target_nozzle;
     int16_t flow_percentage[HOTENDS];
     int16_t target_bed;
     int16_t extrude_min_temp;
@@ -187,7 +190,8 @@ struct state_t {
     uint16_t chamber_target_temp;
 #endif
 #if HAS_TEMP_HEATBREAK_CONTROL
-    std::array<uint8_t, HOTENDS> heatbreak_temperatures;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    StrongIndexArray<uint8_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> heatbreak_temperatures;
 #endif
     GCodeReaderStreamRestoreInfo gcode_stream_restore_info;
 

@@ -67,6 +67,8 @@
 #include <bsod_gui.hpp>
 #include <marlin_server.hpp>
 #include <center_approx.hpp>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 /**
  * G425 backs away from the calibration object by various distances
@@ -698,7 +700,7 @@ inline bool calibrate_all_simple() {
 
     bool failed = false;
     // Measure centers
-    std::array<xyz_pos_t, HOTENDS> centers;
+    StrongIndexArray<xyz_pos_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> centers;
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         tool_change(tool, tool_return_t::no_return);
         std::optional<xyz_pos_t> center = get_xyz_center(tool.to_raw());

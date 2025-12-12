@@ -152,7 +152,7 @@ Temperature thermalManager;
   bool Temperature::adaptive_fan_slowing = true;
 #endif
 
-hotend_info_t Temperature::temp_hotend[HOTENDS]; // = { 0 }
+StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> Temperature::temp_hotend;
 uint32_t Temperature::temp_hotend_residency_start_ms[HOTENDS];
 
 #if ENABLED(AUTO_POWER_CHAMBER_FAN)
@@ -228,7 +228,7 @@ uint32_t Temperature::temp_hotend_residency_start_ms[HOTENDS];
 #endif
 
 #if HAS_TEMP_HEATBREAK
-  heatbreak_info_t Temperature::temp_heatbreak[HOTENDS]; // = { 0 }
+  StrongIndexArray<heatbreak_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> Temperature::temp_heatbreak;
 
   int16_t Temperature::mintemp_raw_HEATBREAK = HEATBREAK_RAW_LO_TEMP;
 

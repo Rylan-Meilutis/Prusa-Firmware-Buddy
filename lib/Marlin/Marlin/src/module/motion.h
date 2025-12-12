@@ -39,6 +39,8 @@
 #endif
 #include <option/has_toolchanger.h>
 #include <option/has_wastebin.h>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 // Axis homed and known-position states
 static constexpr uint8_t xyz_bits = _BV(X_AXIS) | _BV(Y_AXIS) | _BV(Z_AXIS);
@@ -206,13 +208,15 @@ XYZ_DEFS(signed char, home_dir, HOME_DIR);
 #endif
 
 #if HAS_HOTEND_OFFSET
-  extern xyz_pos_t hotend_offset[HOTENDS];
+  // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+  extern StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset;
   extern xyz_pos_t hotend_currently_applied_offset; // Difference to position without hotend offset. Used for tool park/pickup
   void reset_hotend_offsets();
 #elif HOTENDS
-  constexpr xyz_pos_t hotend_offset[HOTENDS] { };
+  // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+  constexpr StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset {};
 #else
-  constexpr xyz_pos_t hotend_offset[1]  {  };
+  constexpr StrongIndexArray<xyz_pos_t, 1, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset {};
 #endif
 
 typedef struct { xyz_pos_t min, max; } axis_limits_t;

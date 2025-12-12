@@ -428,7 +428,8 @@ namespace {
         }
     };
 
-    constinit std::array<ErrorChecker, HOTENDS> hotendFanErrorChecker;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    constinit StrongIndexArray<ErrorChecker, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotendFanErrorChecker;
     constinit ErrorChecker printFanErrorChecker;
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
@@ -441,18 +442,21 @@ namespace {
 #endif
 
 #ifdef HAS_TEMP_HEATBREAK
-    constinit std::array<ErrorChecker, HOTENDS> heatBreakThermistorErrorChecker;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    constinit StrongIndexArray<ErrorChecker, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> heatBreakThermistorErrorChecker;
 #endif
     constinit HotendErrorChecker hotendErrorChecker;
 
     constinit MCUTempErrorChecker mcuMaxTempErrorChecker; ///< Check Buddy MCU temperature
 #if HAS_DWARF()
-    static constexpr std::array<const char *, HOTENDS> dwarf_names {
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    static constexpr StrongIndexArray<const char *, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarf_names {
         "Dwarf 1", "Dwarf 2", "Dwarf 3", "Dwarf 4", "Dwarf 5", "Dwarf 6"
     };
 
     /// Check Dwarf MCU temperature
-    constinit std::array<MCUTempErrorChecker, HOTENDS> dwarfMaxTempErrorChecker;
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    constinit StrongIndexArray<MCUTempErrorChecker, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfMaxTempErrorChecker;
 #endif /*HAS_DWARF()*/
 #if HAS_REMOTE_BED()
     constinit MCUTempErrorChecker modbedMaxTempErrorChecker; ///< Check ModularBed MCU temperature

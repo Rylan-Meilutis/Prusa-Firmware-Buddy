@@ -754,13 +754,13 @@ uint16_t Dwarf::get_fan_state(uint8_t fan_nr) const {
     return RegisterGeneralStatus.value.fan[fan_nr].state;
 }
 
-std::array<Dwarf, DWARF_MAX_COUNT> dwarfs { {
-    { 1, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_1) },
-    { 2, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_2) },
-    { 3, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_3) },
-    { 4, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_4) },
-    { 5, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_5) },
-    { 6, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_6) },
-} };
+StrongIndexArray<Dwarf, DWARF_MAX_COUNT, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfs {
+    Dwarf { 1, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_1) },
+    Dwarf { 2, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_2) },
+    Dwarf { 3, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_3) },
+    Dwarf { 4, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_4) },
+    Dwarf { 5, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_5) },
+    Dwarf { 6, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_6) },
+};
 
 } // namespace buddy::puppies

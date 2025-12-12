@@ -137,7 +137,7 @@ xyze_pos_t destination; // {0}
 
 // Extruder offsets
 #if HAS_HOTEND_OFFSET
-  xyz_pos_t hotend_offset[HOTENDS]; // Initialized by settings.load()
+  StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset;  // Initialized by settings.load()
   xyz_pos_t hotend_currently_applied_offset;
   void reset_hotend_offsets() {
     constexpr float tmp[XYZ][HOTENDS] = { HOTEND_OFFSET_X, HOTEND_OFFSET_Y, HOTEND_OFFSET_Z };

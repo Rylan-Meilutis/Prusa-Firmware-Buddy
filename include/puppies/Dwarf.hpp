@@ -15,6 +15,8 @@
 #include <include/dwarf_errors.hpp>
 #include <feature/filament_sensor/filament_sensor.hpp>
 #include <timing.h>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 namespace freertos {
 class Mutex;
@@ -462,6 +464,7 @@ protected:
     void decode_accelerometer_freq(const AccelerometerSamplingRate &data) final;
 };
 
-extern std::array<Dwarf, DWARF_MAX_COUNT> dwarfs;
+// we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+extern StrongIndexArray<Dwarf, DWARF_MAX_COUNT, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfs;
 
 } // namespace buddy::puppies

@@ -46,6 +46,7 @@
 
 #include <atomic>
 #include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 #ifndef SOFT_PWM_SCALE
   #define SOFT_PWM_SCALE 0
@@ -271,7 +272,8 @@ class Temperature {
 
     static volatile bool in_temp_isr;
 
-    static hotend_info_t temp_hotend[HOTENDS];
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    static StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_hotend;
 
     // timestamp when temeperature reached target +-TEMP_WINDOW, 0 when outside this window
     // note: 0 is valid timestamp, but if temperature reaches window at time 0, it will just be evaluated again little later, so it doesn't cause any bug
@@ -294,7 +296,8 @@ class Temperature {
     #endif
 
     #if HAS_TEMP_HEATBREAK
-      static heatbreak_info_t temp_heatbreak[HOTENDS];
+      // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+      static StrongIndexArray<heatbreak_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_heatbreak;
     #endif
 
     #if PRINTER_IS_PRUSA_iX()

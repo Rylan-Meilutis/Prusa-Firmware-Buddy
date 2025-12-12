@@ -2,6 +2,8 @@
 
 #include <config_store/constants.hpp>
 #include <config_store/old_eeprom/constants.hpp>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 /**
  * @brief Generic selftest results.
@@ -133,7 +135,8 @@ struct SelftestResult {
     // It was replaced by a result supporting more than one toolhead, that can
     // be found in SelftTool class
     TestResult deprecated_gears : 2 {};
-    SelftestTool tools[config_store_ns::max_tool_count] {};
+    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
+    StrongIndexArray<SelftestTool, config_store_ns::max_tool_count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> tools {};
 
     bool operator==(const SelftestResult &) const = default;
 };
