@@ -58,6 +58,6 @@ static constexpr E from_shared(SharedFault fault) {
 }
 
 /// @brief Trigger shared fault
-void trigger_fault(SharedFault);
+bool trigger_fault(SharedFault);
 
 } // namespace puppy::fault

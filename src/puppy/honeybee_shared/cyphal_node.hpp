@@ -587,12 +587,25 @@ public:
      * @brief Set fault to be sent in status.
      * This can be used from ISR.
      * When set, health will change to WARNING, disregarding if advisory is set.
+     * @param fault this fault
+     * @return true if this is a new fault, false if repeated
      * @note This just sets fault to cyphal register, no other action is taken.
-     *       To trigger fault of the system, use hub::trigger_fault().
+     *       To trigger fault of the system, use device::trigger_fault().
      */
-    void set_fault(SpecificFault fault) {
-        fault_mask |= (1 << fault);
-        notify(Notify::status, Notify::heartbeat); // Send status and heartbeat immediately
+    bool set_fault(SpecificFault fault) {
+        const auto mask = (1 << std::to_underlying(fault));
+        const bool is_already_active = (fault_mask.load() & mask) != 0;
+
+        fault_mask |= mask;
+
+        if (!is_already_active) {
+            // Fault is new, send heartbeat & status immediately
+            notify(Notify::status, Notify::heartbeat);
+            log_error(Node, "Fault %u (%s) set", std::to_underlying(fault), magic_enum::enum_name(fault).data());
+            return true;
+        }
+
+        return false;
     }
 };
 

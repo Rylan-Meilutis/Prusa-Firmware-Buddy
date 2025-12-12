@@ -10,17 +10,34 @@
 #include <prusa3d/nfc/PortIDs_1_0.h>
 #include <prusa3d/nfc/Status_1_0.h>
 #include <prusa3d/nfc/SetConfig_1_0.h>
+#include <honeybee_shared_fault.hpp>
 
 #pragma GCC pop_options
 
 #include "anfc_event_publisher.hpp"
 
 class NFCTask;
+using puppy::fault::SharedFault;
 
 namespace anfc::cyphal {
 
 enum class Fault {
+    // no specific faults yet
+    _specific_count,
+    _specific_last = _specific_count - 1,
+
+    // Shared faults
+    _shared_first = SharedFault::_shared_first, ///< This is a barrier for puppy specific faults
+
+    mcu_overheat = SharedFault::mcu_overheat,
+    pcb_overheat = SharedFault::pcb_overheat,
+    data_timeout = SharedFault::data_timeout,
+    heartbeat_missing = SharedFault::heartbeat_missing,
+    unknown = SharedFault::unknown,
 };
+
+/// @brief Specify templated conversion.
+static inline Fault from_shared(puppy::fault::SharedFault f) { return puppy::fault::from_shared<Fault>(f); };
 
 using ANFCNodeBase = can::cyphal::Node<
     prusa3d_nfc_Status_1_0_Traits, prusa3d_nfc_PortIDs_1_0_MSG_Status,

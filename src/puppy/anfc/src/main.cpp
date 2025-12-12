@@ -152,7 +152,15 @@ _bsod(const char *fmt, const char *file_name, int line_number, ...) {
 }
 
 namespace puppy::fault {
-void trigger_fault(SharedFault) {
-    hal::panic();
+
+bool trigger_fault(anfc::cyphal::Fault fault) {
+    auto ret = can_node.set_fault(fault);
+
+    return ret;
 }
+
+bool trigger_fault(puppy::fault::SharedFault fault) {
+    return trigger_fault(anfc::cyphal::from_shared(fault));
+}
+
 } // namespace puppy::fault

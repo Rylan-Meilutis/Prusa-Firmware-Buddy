@@ -1,6 +1,6 @@
 #include <cyphal_node.hpp>
 
-void puppy::fault::trigger_fault(SharedFault) {}
+bool puppy::fault::trigger_fault(SharedFault) {}
 
 int64_t get_timestamp_us() {
     return 0;
