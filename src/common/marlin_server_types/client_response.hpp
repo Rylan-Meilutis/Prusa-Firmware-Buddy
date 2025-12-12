@@ -123,7 +123,6 @@ enum class PhaseWait : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhaseWait) { return ClientFSM::Wait; }
 
 enum class PhasesPreheat : PhaseUnderlyingType {
-    initial,
     UserTempSelection,
     _last = UserTempSelection
 };
@@ -472,8 +471,6 @@ constexpr inline ClientFSM client_fsm_from_phase(PhaseDoorSensorCalibration) { r
 namespace ClientResponses {
 
 inline constexpr EnumArray<PhasesPreheat, PhaseResponses, CountPhases<PhasesPreheat>()> PreheatResponses {
-    { PhasesPreheat::initial, {} },
-
     // Additionally, filament type selection is passed through FSMResponseVariant(FilamentType)
     { PhasesPreheat::UserTempSelection, { Response::Abort, Response::Cooldown } },
 };
