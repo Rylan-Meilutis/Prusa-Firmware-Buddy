@@ -21,7 +21,7 @@ static FSMResponseVariant preheatTempKnown(uint8_t target_extruder) {
     return FSMResponseVariant::make(filament_type);
 }
 
-static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data, bool break_on_autoload = false) {
+static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
     marlin_server::FSM_Holder holder { PhasesPreheat::UserTempSelection, preheat_data.serialize() };
 
     while (true) {
@@ -31,7 +31,9 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data, bool brea
         if (preheat_data.mode == PreheatMode::Autoload && FSensors_instance().sensor_state(LogicalFilamentSensor::primary_runout) == FilamentSensorState::NoFilament) {
             return FSMResponseVariant::make(Response::Abort);
         }
-        if (break_on_autoload && FSensors_instance().IsAutoloadInProgress()) {
+
+        // If someone inserts a filament while in the actual "Preheat" menu, abort (so that we can spin up the load FSM)
+        if (preheat_data.mode == PreheatMode::Preheat && FSensors_instance().IsAutoloadInProgress()) {
             return FSMResponseVariant();
         }
 
@@ -125,7 +127,7 @@ std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::p
 
 void filament_gcodes::M1700_no_parser(const M1700Args &args) {
     InProgress progress;
-    const FSMResponseVariant response_variant = preheatTempUnKnown(PreheatData::make(args.mode, args.tool, args.preheat), true);
+    const FSMResponseVariant response_variant = preheatTempUnKnown(PreheatData::make(args.mode, args.tool, args.preheat));
 
     // autoload ocurred
     if (!response_variant) {
