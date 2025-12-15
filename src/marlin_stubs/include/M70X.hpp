@@ -67,15 +67,6 @@ struct M1700Args {
     /// preheat this tool
     std::variant<VirtualToolIndex, AllTools> tool;
 
-    // Temporary, will be deleted a few commits down the line
-    inline int8_t target_extruder() const {
-        return match(
-            tool, //
-            [](VirtualToolIndex i) -> int8_t { return i.to_raw(); }, //
-            [](AllTools) -> int8_t { return -1; } //
-        );
-    }
-
     /// save selected filament settings to EEPROM
     bool save;
 

@@ -8,22 +8,25 @@
 #include <dynamic_index_mapping.hpp>
 #include <window_menu_virtual.hpp>
 #include <window_menu_callback_item.hpp>
+#include <tool_index.hpp>
 
 #include <MItem_tools.hpp>
 #include <fsm_preheat_type.hpp>
 
 namespace preheat_menu {
 
+using PreheatToolIndex = PreheatData::ToolIndex;
+
 class WindowMenuPreheat;
 
 // extra space at the end is intended
 class MI_FILAMENT : public WiInfo<sizeof("999/999 ")> {
 public:
-    MI_FILAMENT(FilamentType filament_type, uint8_t target_extruder);
+    MI_FILAMENT(FilamentType filament_type, PreheatToolIndex target_extruder);
     void click(IWindowMenu &) final;
 
     const FilamentType filament_type;
-    const uint8_t target_extruder;
+    const PreheatToolIndex tool;
     FilamentTypeParameters::Name filament_name;
 };
 
@@ -39,7 +42,7 @@ public:
         return index_mapping.total_item_count();
     }
 
-    static bool handle_filament_selection(FilamentType filament_type, uint8_t target_extruder);
+    static bool handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool);
 
 protected:
     void update_list();
@@ -71,7 +74,7 @@ private:
     bool show_all_filaments_ = false;
 
     /// Extruder we're doing the load/preheat for
-    uint8_t extruder_index = 0;
+    PreheatToolIndex tool = AllTools {};
 };
 
 class ScreenPreheat : public ScreenFSM {

@@ -70,11 +70,13 @@ static bool load_unload(Pause::LoadType load_type, pause::Settings &rSettings) {
 void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const std::optional<float> &fast_load_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, int8_t mmu_slot, std::optional<Color> color_to_be_loaded, ResumePrint_t resume_print_request) {
     InProgress progress;
 
+    const auto virtual_tool = VirtualToolIndex::from_raw(target_extruder);
+
     const bool do_purge_only = fast_load_length.has_value() && fast_load_length <= 0.0f;
 
     if (op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
-            PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::Purge : PreheatMode::Load, target_extruder, *op_preheat);
+            PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::Purge : PreheatMode::Load, virtual_tool, *op_preheat);
             auto preheat_ret = data.mode == PreheatMode::Load ? preheat_for_change_load(data, target_extruder) : preheat(data, target_extruder, PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
             if (preheat_ret.first) {
                 // canceled
@@ -131,12 +133,14 @@ void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const s
 void filament_gcodes::M702_no_parser(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, bool ask_unloaded) {
     InProgress progress;
 
+    const auto virtual_tool = VirtualToolIndex::from_raw(target_extruder);
+
 #if HAS_AUTO_RETRACT()
     if (op_preheat && !buddy::auto_retract().is_safely_retracted_for_unload(hotend_from_extruder(target_extruder))) {
 #else
     if (op_preheat) {
 #endif
-        PreheatData data = PreheatData::make(PreheatMode::Unload, target_extruder, *op_preheat);
+        PreheatData data = PreheatData::make(PreheatMode::Unload, virtual_tool, *op_preheat);
         // avoid preheating bed in this case
         auto preheat_ret = preheat(data, target_extruder, PreheatBehavior::force_preheat_only_extruder());
         if (preheat_ret.first) {
@@ -215,6 +219,8 @@ void filament_gcodes::M70X_process_user_response(PreheatStatus::Result res, uint
 }
 
 void filament_gcodes::M1701_no_parser(const std::optional<float> &fast_load_length, float z_min_pos, uint8_t target_extruder) {
+    const auto virtual_tool = VirtualToolIndex::from_raw(target_extruder);
+
     filament::set_type_to_load(FilamentType::none);
     filament::set_color_to_load(std::nullopt);
 
@@ -268,7 +274,7 @@ void filament_gcodes::M1701_no_parser(const std::optional<float> &fast_load_leng
     }
 
     if constexpr (option::has_human_interactions) {
-        PreheatData data = PreheatData::make(PreheatMode::Autoload, target_extruder, RetAndCool_t::Return);
+        PreheatData data = PreheatData::make(PreheatMode::Autoload, virtual_tool, RetAndCool_t::Return);
         auto preheat_ret = preheat_for_change_load(data, target_extruder);
 
         if (preheat_ret.first) {
@@ -350,7 +356,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
     settings.SetRetractLength(0.f);
 
     // Pick the right tool
-    if (!Pause::Instance().tool_change(target_extruder, Pause::LoadType::unload, settings)) {
+    if (!Pause::Instance().tool_change(virtual_tool.to_raw(), Pause::LoadType::unload, settings)) {
         return;
     }
 
@@ -365,7 +371,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
     // LOAD
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
-        PreheatData data = PreheatData::make(PreheatMode::Load, target_extruder, preheat);
+        PreheatData data = PreheatData::make(PreheatMode::Load, virtual_tool, preheat);
         auto preheat_ret = preheat_for_change_load(data, target_extruder);
         if (preheat_ret.first) {
             // canceled

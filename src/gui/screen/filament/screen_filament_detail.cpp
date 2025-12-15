@@ -138,7 +138,7 @@ ScreenFilamentDetail::ScreenFilamentDetail(PreheatModeParams params)
     : ScreenFilamentDetail(N_("CUSTOM PARAMETERS")) {
 
     setup(PendingAdHocFilamentType {});
-    setup_preheat_mode_confirm(VirtualToolIndex::from_raw(params.target_extruder));
+    setup_preheat_mode_confirm(params.tool);
 }
 
 ScreenFilamentDetail::ScreenFilamentDetail(const char *title)
@@ -220,14 +220,14 @@ void ScreenFilamentDetail::setup(FilamentType filament_type) {
     setup(filament_type, filament_type.parameters());
 }
 
-void screen_filament_detail::ScreenFilamentDetail::setup_preheat_mode_confirm(VirtualToolIndex tool) {
+void screen_filament_detail::ScreenFilamentDetail::setup_preheat_mode_confirm(PreheatModeParams::ToolIndex tool) {
     auto &confirm_item = Item<MI_CONFIRM>();
     confirm_item.set_is_hidden(false);
     confirm_item.callback = [this, tool] {
         // handle_filament_selection is reading from the filament parameters for checking, so we need to update them
         save_changes();
 
-        if (preheat_menu::WindowMenuPreheat::handle_filament_selection(PendingAdHocFilamentType {}, tool.to_raw())) {
+        if (preheat_menu::WindowMenuPreheat::handle_filament_selection(PendingAdHocFilamentType {}, tool)) {
             Screens::Access()->Close();
         }
     };

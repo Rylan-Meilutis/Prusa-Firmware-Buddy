@@ -4,7 +4,7 @@
 #include "marlin_client.hpp"
 #include "stdlib.h"
 #include "i18n.h"
-#include <limits>
+#include <utils/variant_utils.hpp>
 #include <filament_gui.hpp>
 #include <utils/string_builder.hpp>
 #include <gui/screen/filament/screen_filament_detail.hpp>
@@ -13,10 +13,10 @@
 using namespace preheat_menu;
 
 // * MI_FILAMENT
-MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, uint8_t target_extruder)
+MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
     : WiInfo({}, nullptr, is_enabled_t::yes, is_hidden_t::no)
     , filament_type(filament_type)
-    , target_extruder(target_extruder) //
+    , tool(tool) //
 {
     const auto filament_params = filament_type.parameters();
     filament_name = filament_params.name;
@@ -29,7 +29,7 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, uint8_t target_extruder)
 }
 
 void MI_FILAMENT::click(IWindowMenu &) {
-    WindowMenuPreheat::handle_filament_selection(filament_type, target_extruder);
+    WindowMenuPreheat::handle_filament_selection(filament_type, tool);
 }
 
 // * WindowMenuPreheat
@@ -39,17 +39,10 @@ WindowMenuPreheat::WindowMenuPreheat(window_t *parent, const Rect16 &rect)
 }
 
 void WindowMenuPreheat::set_data(const PreheatData &data) {
+    tool = data.tool;
+
     index_mapping.set_item_enabled<Item::return_>(data.has_return_option);
     index_mapping.set_item_enabled<Item::cooldown>(data.has_cooldown_option);
-
-    // PreheatData might contain -1 for extruder index - that would screw things up
-    extruder_index = data.extruder;
-    if (extruder_index >= EXTRUDERS) {
-        extruder_index = marlin_vars().active_extruder.get();
-    }
-    if (extruder_index >= EXTRUDERS) {
-        extruder_index = 0;
-    }
 
     update_list();
 }
@@ -65,10 +58,10 @@ void WindowMenuPreheat::set_show_all_filaments(bool set) {
     move_focus_to_index(prev_focused_index);
 }
 
-bool WindowMenuPreheat::handle_filament_selection(FilamentType filament_type, uint8_t target_extruder) {
+bool WindowMenuPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool) {
     const auto filament = filament_type.parameters();
 
-    if (filament.is_abrasive && !config_store().nozzle_is_hardened.get().test(target_extruder)) {
+    if (filament.is_abrasive && std::holds_alternative<VirtualToolIndex>(tool) && !config_store().nozzle_is_hardened.get().test(std::get<VirtualToolIndex>(tool).to_raw())) {
         StringViewUtf8Parameters<filament_name_buffer_size + 1> params;
         if (MsgBoxWarning(_("Filament '%s' is abrasive, but you don't have a hardened nozzle installed. Do you really want to continue?").formatted(params, filament.name.data()), Responses_YesNo) != Response::Yes) {
             return false;
@@ -120,13 +113,13 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
     }
 
     case Item::filament_section:
-        variant.emplace<MI_FILAMENT>(filament_list[mapping.pos_in_section], extruder_index);
+        variant.emplace<MI_FILAMENT>(filament_list[mapping.pos_in_section], tool);
         break;
 
     case Item::adhoc_filament: {
         const auto callback = [this] {
             const ScreenFilamentDetail::PreheatModeParams params {
-                .target_extruder = extruder_index,
+                .tool = tool,
             };
             Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(params));
         };

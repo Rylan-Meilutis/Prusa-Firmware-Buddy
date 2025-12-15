@@ -161,7 +161,9 @@ public:
     /// When the detail screen is opened from within the preheat menu.
     /// Adds a "Confirm" button that sends the filament as a response to the preheat FSM
     struct PreheatModeParams {
-        uint8_t target_extruder = 0;
+        using ToolIndex = std::variant<VirtualToolIndex, AllTools>;
+
+        ToolIndex tool = AllTools {};
     };
 
 public:
@@ -183,7 +185,7 @@ public:
 protected:
     ScreenFilamentDetail(const char *title);
 
-    void setup_preheat_mode_confirm(VirtualToolIndex tool);
+    void setup_preheat_mode_confirm(PreheatModeParams::ToolIndex tool);
 
 protected:
     FilamentType filament_type_;
