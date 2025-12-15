@@ -21,7 +21,51 @@ txtroll_t focused_menu_item_roll;
 
 using namespace window_menu_item_private;
 
-constexpr IWindowMenuItem::ColorScheme IWindowMenuItem::color_scheme_title = {
+constexpr const IWindowMenuItem::ColorScheme IWindowMenuItem::color_scheme_default {
+    .text {
+        .focused = GuiDefaults::MenuColorBack,
+        .unfocused = GuiDefaults::MenuColorText,
+    },
+    .back {
+        .focused = GuiDefaults::MenuColorFocusedBack,
+        .unfocused = GuiDefaults::MenuColorBack,
+    },
+    .rop {
+        .focused { .swap_bw = has_swapped_bw::yes },
+        .unfocused {},
+    },
+};
+constexpr const IWindowMenuItem::ColorScheme IWindowMenuItem::color_scheme_default_disabled {
+    .text {
+        .focused = GuiDefaults::MenuColorBack,
+        .unfocused = GuiDefaults::MenuColorDisabled,
+    },
+    .back {
+        .focused = GuiDefaults::MenuColorDisabled,
+        .unfocused = GuiDefaults::MenuColorBack,
+    },
+    .rop {
+        .focused { .swap_bw = has_swapped_bw::yes },
+        .unfocused {},
+    },
+};
+
+constexpr const IWindowMenuItem::ColorScheme IWindowMenuItem::color_scheme_dev_item {
+    .text {
+        .focused = GuiDefaults::MenuColorDevelopment,
+        .unfocused = GuiDefaults::MenuColorDevelopment,
+    },
+    .back {
+        .focused = GuiDefaults::MenuColorFocusedBack,
+        .unfocused = GuiDefaults::MenuColorBack,
+    },
+    .rop {
+        .focused { .swap_bw = has_swapped_bw::yes },
+        .unfocused {},
+    },
+};
+
+constexpr const IWindowMenuItem::ColorScheme IWindowMenuItem::color_scheme_title = {
     .text = {
         .focused = COLOR_WHITE,
         .unfocused = COLOR_WHITE,
@@ -222,16 +266,11 @@ bool IWindowMenuItem::is_touch_in_extension_rect(IWindowMenu &window_menu, point
 }
 
 void IWindowMenuItem::Print(Rect16 rect) {
-    ropfn raster_op;
-    if (clr_scheme) {
-        raster_op = IsFocused() ? clr_scheme->rop.focused : clr_scheme->rop.unfocused;
-    } else {
-        raster_op.shadow = IsEnabled() ? is_shadowed::no : is_shadowed::yes;
-        raster_op.swap_bw = IsFocused() ? has_swapped_bw::yes : has_swapped_bw::no;
-    }
-
-    Color mi_color_back = GetBackColor();
-    Color mi_color_text = GetTextColor();
+    const ColorScheme *scheme = deduce_color_scheme();
+    const bool focused = IsFocused();
+    const ropfn raster_op = focused ? scheme->rop.focused : scheme->rop.unfocused;
+    Color mi_color_back = focused ? scheme->back.focused : scheme->back.unfocused;
+    Color mi_color_text = focused ? scheme->text.focused : scheme->text.unfocused;
 
     if (IsIconInvalid() && IsLabelInvalid() && IsExtensionInvalid()) {
         render_rounded_rect(rect, GuiDefaults::MenuColorBack, mi_color_back, GuiDefaults::MenuItemCornerRadius, MIC_ALL_CORNERS);
@@ -270,50 +309,6 @@ void IWindowMenuItem::Print(Rect16 rect) {
     }
 
     Validate();
-}
-
-/*  color               options: |enabled|focused|dev_only|
- *   MenuColorDevelopment         | 101 or 111
- *   MenuColorDevelopmentDisabled | 001 or 011
- *   MenuColorBack                | 110 or 010
- *   MenuColorText                | 100
- *   MenuColorDisabled            | 000
- */
-Color IWindowMenuItem::GetTextColor() const {
-    if (clr_scheme) {
-        return IsFocused() ? clr_scheme->text.focused : clr_scheme->text.unfocused;
-    }
-
-    Color ret;
-    if (IsEnabled() && hidden == (uint8_t)is_hidden_t::dev) {
-        ret = GuiDefaults::MenuColorDevelopment;
-    } else if (hidden == (uint8_t)is_hidden_t::dev) {
-        ret = GuiDefaults::MenuColorDevelopmentDisabled;
-    } else if (IsFocused()) {
-        ret = GuiDefaults::MenuColorBack;
-    } else if (IsEnabled()) {
-        ret = GuiDefaults::MenuColorText;
-    } else {
-        ret = GuiDefaults::MenuColorDisabled;
-    }
-    return ret;
-}
-
-/*  color               options: |enabled|focused|
- *   MenuColorBack                | 10 or 00
- *   MenuColorFocusedBack         | 11
- *   MenuColorDisabled            | 01
- */
-Color IWindowMenuItem::GetBackColor() const {
-    if (clr_scheme) {
-        return IsFocused() ? clr_scheme->back.focused : clr_scheme->back.unfocused;
-    }
-
-    Color ret = GuiDefaults::MenuColorBack;
-    if (IsFocused()) {
-        ret = IsEnabled() ? GuiDefaults::MenuColorFocusedBack : GuiDefaults::MenuColorDisabled;
-    }
-    return ret;
 }
 
 void IWindowMenuItem::printIcon(Rect16 icon_rect, ropfn raster_op, Color color_back) const {
@@ -427,6 +422,21 @@ void IWindowMenuItem::set_color_scheme(const ColorScheme *scheme) {
 
 void IWindowMenuItem::reset_color_scheme() {
     set_color_scheme(nullptr);
+}
+
+const IWindowMenuItem::ColorScheme *IWindowMenuItem::deduce_color_scheme() const {
+    if (clr_scheme) {
+        return clr_scheme;
+
+    } else if (!IsEnabled()) {
+        return &color_scheme_default_disabled;
+
+    } else if (hidden == (uint8_t)is_hidden_t::dev) {
+        return &color_scheme_dev_item;
+
+    } else {
+        return &color_scheme_default;
+    }
 }
 
 void IWindowMenuItem::set_icon_position(const IconPosition position) {

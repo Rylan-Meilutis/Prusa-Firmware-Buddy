@@ -57,22 +57,31 @@ public:
         };
 
         struct ROpPair {
-            ropfn focused = { .invert = is_inverted::yes };
+            ropfn focused {
+                .invert = is_inverted::yes,
+            };
             ropfn unfocused = {};
         };
 
-        ColorPair text = {
+        ColorPair text {
             .focused = GuiDefaults::MenuColorBack,
             .unfocused = GuiDefaults::MenuColorText,
         };
-        ColorPair back = {
+        ColorPair back {
             .focused = GuiDefaults::MenuColorFocusedBack,
             .unfocused = GuiDefaults::MenuColorBack,
         };
-        ROpPair rop = {};
+        ROpPair rop {
+
+        };
     };
 
-    static const ColorScheme color_scheme_title;
+    static constinit const ColorScheme color_scheme_default;
+    static constinit const ColorScheme color_scheme_default_disabled;
+
+    static constinit const ColorScheme color_scheme_dev_item;
+
+    static constinit const ColorScheme color_scheme_title;
 
     enum class IconPosition : uint8_t {
         left,
@@ -169,9 +178,6 @@ protected:
     void setLabelFont(Font);
     Font getLabelFont() const;
 
-    Color GetTextColor() const;
-    Color GetBackColor() const;
-
     void showDevOnly() {
         if (hidden != (uint8_t)is_hidden_t::dev) {
             hidden = (uint8_t)is_hidden_t::dev;
@@ -263,6 +269,10 @@ public:
 
     void set_color_scheme(const ColorScheme *scheme);
     void reset_color_scheme();
+
+    /// @returns color scheme of the item.
+    /// If the scheme is not explicitly specified, returns default scheme based on the item state
+    const ColorScheme *deduce_color_scheme() const;
 
     void set_icon_position(const IconPosition position);
     IconPosition get_icon_position() const;
