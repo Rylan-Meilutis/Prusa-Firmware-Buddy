@@ -373,7 +373,10 @@ namespace {
     #endif
 
     PhasesColdPull automatic_pull() {
-        thermalManager.setTargetHotend(HOTEND_END_TEMP, active_extruder);
+        const auto virtual_tool = std::get<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+        const auto physical_tool = virtual_tool.to_physical();
+
+        thermalManager.setTargetHotend(HOTEND_END_TEMP, physical_tool);
 
         {
     #if ENABLED(PREVENT_COLD_EXTRUSION)
@@ -383,8 +386,8 @@ namespace {
             planner.synchronize();
 
             // mark filament unloaded
-            config_store().set_filament_type(active_extruder, FilamentType::none);
-            filament_gcodes::M70X_process_user_response(PreheatStatus::Result::DoneNoFilament, active_extruder);
+            config_store().set_filament_type(virtual_tool, FilamentType::none);
+            filament_gcodes::M70X_process_user_response(PreheatStatus::Result::DoneNoFilament, virtual_tool);
         }
         return PhasesColdPull::manual_pull;
     }

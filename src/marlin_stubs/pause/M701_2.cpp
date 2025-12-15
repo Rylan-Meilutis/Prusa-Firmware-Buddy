@@ -80,7 +80,7 @@ void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const s
             auto preheat_ret = data.mode == PreheatMode::Load ? preheat_for_change_load(data, target_extruder) : preheat(data, target_extruder, PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
             if (preheat_ret.first) {
                 // canceled
-                M70X_process_user_response(*preheat_ret.first, target_extruder);
+                M70X_process_user_response(*preheat_ret.first, virtual_tool);
                 return;
             }
 
@@ -118,10 +118,10 @@ void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const s
     // Load
     if (load_unload(do_purge_only ? Pause::LoadType::load_purge : Pause::LoadType::load, settings)) {
         if (!do_resume_print) {
-            M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, target_extruder);
+            M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, virtual_tool);
         }
     } else {
-        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, target_extruder);
+        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, virtual_tool);
     }
     planner.set_e_position_mm((destination.e = current_position.e = current_position_tmp.e));
 
@@ -145,7 +145,7 @@ void filament_gcodes::M702_no_parser(std::optional<float> unload_length, float z
         auto preheat_ret = preheat(data, target_extruder, PreheatBehavior::force_preheat_only_extruder());
         if (preheat_ret.first) {
             // canceled
-            M70X_process_user_response(*preheat_ret.first, target_extruder);
+            M70X_process_user_response(*preheat_ret.first, virtual_tool);
             return;
         }
     }
@@ -174,7 +174,7 @@ void filament_gcodes::M702_no_parser(std::optional<float> unload_length, float z
 
     // Unload
     load_unload(ask_unloaded ? Pause::LoadType::unload_confirm : Pause::LoadType::unload, settings);
-    M70X_process_user_response(PreheatStatus::Result::CooledDown, target_extruder);
+    M70X_process_user_response(PreheatStatus::Result::CooledDown, virtual_tool);
     planner.set_e_position_mm((destination.e = current_position.e = current_position_tmp.e));
 }
 
@@ -192,17 +192,17 @@ void SetResult(Result res) {
 
 } // namespace PreheatStatus
 
-void filament_gcodes::M70X_process_user_response(PreheatStatus::Result res, uint8_t target_extruder) {
+void filament_gcodes::M70X_process_user_response(PreheatStatus::Result res, VirtualToolIndex target_extruder) {
     // modify temperatures
     switch (res) {
     case PreheatStatus::Result::DoneHasFilament: {
         const float disp_temp = config_store().get_filament_type(target_extruder).parameters().nozzle_preheat_temperature;
-        thermalManager.setTargetHotend(static_cast<int16_t>(disp_temp), target_extruder);
+        thermalManager.setTargetHotend(static_cast<int16_t>(disp_temp), target_extruder.to_physical());
         break;
     }
     case PreheatStatus::Result::CooledDown:
         // set temperatures to zero
-        thermalManager.setTargetHotend(0, target_extruder);
+        thermalManager.setTargetHotend(0, target_extruder.to_physical());
         thermalManager.setTargetBed(0);
         thermalManager.set_fan_speed(0, 0);
         break;
@@ -362,9 +362,9 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
 
     // Unload
     if (load_unload(PRINTER_IS_PRUSA_iX() ? Pause::LoadType::unload : Pause::LoadType::unload_confirm, settings)) {
-        M70X_process_user_response(PreheatStatus::Result::DoneNoFilament, target_extruder);
+        M70X_process_user_response(PreheatStatus::Result::DoneNoFilament, virtual_tool);
     } else {
-        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, target_extruder);
+        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, virtual_tool);
         return;
     }
 
@@ -375,7 +375,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
         auto preheat_ret = preheat_for_change_load(data, target_extruder);
         if (preheat_ret.first) {
             // canceled
-            M70X_process_user_response(*preheat_ret.first, target_extruder);
+            M70X_process_user_response(*preheat_ret.first, virtual_tool);
             return;
         }
 
@@ -392,8 +392,8 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
 #endif
 
     if (load_unload(Pause::LoadType::load, settings)) {
-        M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, target_extruder);
+        M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, virtual_tool);
     } else {
-        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, target_extruder);
+        M70X_process_user_response(PreheatStatus::Result::DidNotFinish, virtual_tool);
     }
 }
