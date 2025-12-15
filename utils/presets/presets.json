@@ -365,7 +365,7 @@
             "name": "coreonel-anfc",
             "description": "Firmware for NFC addon for CoreOneL printer",
             "cacheVariables": {
-                "PRINTER": "COREONE",
+                "PRINTER": "COREONEL",
                 "BOARD": "ANFC",
                 "CAN_BUS_TYPE": "PUB6",
                 "NFC_ST25R3919B_ENABLED_ANTENNAS": "ANTENNA_2"

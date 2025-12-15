@@ -7145,7 +7145,7 @@
                 },
                 "PRINTER": {
                     "type": "STRING",
-                    "value": "COREONE"
+                    "value": "COREONEL"
                 },
                 "BOARD": {
                     "type": "STRING",
@@ -7200,7 +7200,7 @@
                 },
                 "PRINTER": {
                     "type": "STRING",
-                    "value": "COREONE"
+                    "value": "COREONEL"
                 },
                 "BOARD": {
                     "type": "STRING",
@@ -7255,7 +7255,7 @@
                 },
                 "PRINTER": {
                     "type": "STRING",
-                    "value": "COREONE"
+                    "value": "COREONEL"
                 },
                 "BOARD": {
                     "type": "STRING",
@@ -7310,7 +7310,7 @@
                 },
                 "PRINTER": {
                     "type": "STRING",
-                    "value": "COREONE"
+                    "value": "COREONEL"
                 },
                 "BOARD": {
                     "type": "STRING",
