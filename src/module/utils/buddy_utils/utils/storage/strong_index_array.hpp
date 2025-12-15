@@ -27,10 +27,7 @@ class StrongIndexArray : public std::array<Item, capacity> {
 public:
     using BaseArray = std::array<Item, capacity>;
 
-public:
-    template <typename... Arg>
-    inline constexpr StrongIndexArray(Arg &&...arg)
-        : BaseArray { std::forward<Arg>(arg)... } {}
+    using BaseArray::operator=;
 
     inline constexpr const Item &operator[](Index index) const {
         return BaseArray::operator[](index_f(index));
