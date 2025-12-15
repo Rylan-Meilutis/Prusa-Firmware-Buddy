@@ -12,7 +12,7 @@
 #include <common/sys.hpp>
 #include "timing.h"
 #include <logging/log.hpp>
-#include "probe_position_lookback.hpp"
+#include "position_lookback.hpp"
 #include "bsod.h"
 #include "config_features.h"
 #if ENABLED(POWER_PANIC)
@@ -299,7 +299,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us) {
     // save sample timestamp/age
     last_sample_time_us = time_us;
 
-    const xyze_pos_t pos_sample = buddy::probePositionLookback.get_position_at(time_us);
+    const xyze_pos_t pos_sample = buddy::positionLookback.get_position_at(time_us);
     const float z_pos = pos_sample.z;
 
     const MetricsData metrics_data {

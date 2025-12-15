@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
-#include "probe_position_lookback.hpp"
+#include "position_lookback.hpp"
 #include "math.h"
 
 using namespace buddy;
 
-class ProbePositionLookback : public ProbePositionLookbackBase {
+class PositionLookback : public PositionLookbackBase {
 
 public:
     Sample current_sample;
@@ -14,12 +14,12 @@ public:
     }
 
     void add_sample(uint32_t time_us, float x_pos, float y_pos, float z_pos, float e_pos) {
-        ProbePositionLookbackBase::add_sample(Sample { .time = time_us, .x = x_pos, .y = y_pos, .z = z_pos, .e = e_pos });
+        PositionLookbackBase::add_sample(Sample { .time = time_us, .x = x_pos, .y = y_pos, .z = z_pos, .e = e_pos });
     }
 };
 
-TEST_CASE("probe_position_lookback_basic") {
-    ProbePositionLookback l;
+TEST_CASE("position_lookback_basic") {
+    PositionLookback l;
 
     l.add_sample(1000, 1, 10, 100, 1000);
     l.add_sample(2000, 20, 30, 200, 2000);
@@ -95,8 +95,8 @@ TEST_CASE("probe_position_lookback_basic") {
     REQUIRE(s10.e == 3500);
 }
 
-TEST_CASE("probe_position_lookback_buffer_wraparound") {
-    ProbePositionLookback l;
+TEST_CASE("position_lookback_buffer_wraparound") {
+    PositionLookback l;
 
     // add many samples
     for (uint32_t i = 0; i < 1000; i++) {
@@ -126,8 +126,8 @@ TEST_CASE("probe_position_lookback_buffer_wraparound") {
     }
 }
 
-TEST_CASE("probe_position_lookback_timer_wraparound") {
-    ProbePositionLookback l;
+TEST_CASE("position_lookback_timer_wraparound") {
+    PositionLookback l;
 
     constexpr uint32_t max = std::numeric_limits<uint32_t>::max();
     constexpr uint32_t step = 1000;
@@ -158,9 +158,9 @@ TEST_CASE("probe_position_lookback_timer_wraparound") {
     REQUIRE(l.get_position_at(stop + step * 2).x == 500);
 }
 
-TEST_CASE("probe_position_nan_return_test") {
+TEST_CASE("position_nan_return_test") {
     // test case that was actually failing in XL, problem was time difference was too high
-    ProbePositionLookback l;
+    PositionLookback l;
 
     l.add_sample(32569660, 0, 0, 0, 0);
     l.add_sample(32571686, 0, 0, 0, 0);

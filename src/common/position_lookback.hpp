@@ -9,7 +9,7 @@
 
 namespace buddy {
 
-class ProbePositionLookbackBase {
+class PositionLookbackBase {
 
 public:
     struct Sample {
@@ -46,7 +46,7 @@ protected:
 };
 
 #ifndef UNITTESTS
-class ProbePositionLookback : public ProbePositionLookbackBase {
+class PositionLookback : public PositionLookbackBase {
 public:
     /// Minimum time between samples (in us)
     static constexpr size_t SAMPLES_REQUESTED_DIFF = 1900;
@@ -58,7 +58,7 @@ private:
     Sample generate_sample() const final;
 };
 
-extern ProbePositionLookback probePositionLookback;
+extern PositionLookback positionLookback;
 #endif
 
 } // namespace buddy

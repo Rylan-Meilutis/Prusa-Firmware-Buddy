@@ -1,5 +1,5 @@
 
-#include "probe_position_lookback.hpp"
+#include "position_lookback.hpp"
 #include <raii/scope_guard.hpp>
 #include <bsod/bsod.h>
 #include "timing.h"
@@ -10,7 +10,7 @@
 
 namespace buddy {
 
-void ProbePositionLookbackBase::add_sample(Sample sample) {
+void PositionLookbackBase::add_sample(Sample sample) {
     const auto new_newest_sample_pos = (newest_sample_pos + 1) % NUM_SAMPLES;
     auto &new_newest_sample = samples[new_newest_sample_pos];
 
@@ -30,7 +30,7 @@ void ProbePositionLookbackBase::add_sample(Sample sample) {
     newest_sample_pos = new_newest_sample_pos;
 }
 
-xyze_pos_t ProbePositionLookbackBase::get_position_at(uint32_t time_us) const {
+xyze_pos_t PositionLookbackBase::get_position_at(uint32_t time_us) const {
     // store position of last sample before proceeding (new sample might be added later from interrupt)
     size_t s1_pos = newest_sample_pos;
 
@@ -95,7 +95,7 @@ xyze_pos_t ProbePositionLookbackBase::get_position_at(uint32_t time_us) const {
 }
 
 #ifndef UNITTESTS
-void ProbePositionLookback::update() {
+void PositionLookback::update() {
     // Check that we are in an ISR
     assert(__get_IPSR());
 
@@ -109,7 +109,7 @@ void ProbePositionLookback::update() {
     add_sample(sample);
 }
 
-ProbePositionLookback::Sample ProbePositionLookback::generate_sample() const {
+PositionLookback::Sample PositionLookback::generate_sample() const {
     return Sample {
         .time = ticks_us(),
         .x = planner.get_axis_position_mm(AxisEnum::X_AXIS),
@@ -119,7 +119,7 @@ ProbePositionLookback::Sample ProbePositionLookback::generate_sample() const {
     };
 }
 
-ProbePositionLookback probePositionLookback;
+PositionLookback positionLookback;
 #endif
 
 } // namespace buddy

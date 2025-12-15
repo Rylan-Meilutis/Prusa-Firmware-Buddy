@@ -81,7 +81,7 @@ LOG_COMPONENT_REF(Marlin);
     #include <feature/emergency_stop/emergency_stop.hpp>
 #endif
 
-#include "probe_position_lookback.hpp"
+#include "position_lookback.hpp"
 #include <config_store/store_instance.hpp>
 #include <utils/serial_logging_disabler.hpp>
 
@@ -300,7 +300,7 @@ void adc_tick_1ms(void) {
 #endif
 
 #if HAS_LOADCELL()
-    buddy::probePositionLookback.update();
+    buddy::positionLookback.update();
 #endif
 }
 
