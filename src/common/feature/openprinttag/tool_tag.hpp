@@ -27,7 +27,13 @@ public:
 public:
     /// @returns tag assigned to the specified tool, if there is any
     static std::optional<ToolTag> for_tool(VirtualToolIndex tool) {
-        return ToolTag { tool, 0 };
+        // Just a stub for testing
+        // TODO proper implementation
+        if (tool.to_raw() < 2) {
+            return ToolTag { tool, 0 };
+        } else {
+            return std::nullopt;
+        }
     }
 
 public:
