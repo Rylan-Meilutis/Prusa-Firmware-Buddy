@@ -87,7 +87,8 @@ enum class LoadUnloadMode : uint8_t {
 };
 
 enum class PreheatMode : uint8_t {
-    None,
+    /// Selecting filament just for preheating (from the menu)
+    Preheat,
     Load,
     Unload,
     Purge,

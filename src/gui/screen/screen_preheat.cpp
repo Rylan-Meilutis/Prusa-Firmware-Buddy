@@ -167,7 +167,7 @@ void preheat_menu::ScreenPreheat::update_frame() {
     const PreheatData data = PreheatData::deserialize(fsm_base_data.GetData());
     const auto title = [&] -> const char * {
         switch (data.mode) {
-        case PreheatMode::None:
+        case PreheatMode::Preheat:
             return N_("Preheating");
 
         case PreheatMode::Load:
