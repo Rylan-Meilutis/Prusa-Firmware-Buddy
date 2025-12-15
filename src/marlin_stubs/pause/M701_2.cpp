@@ -299,8 +299,10 @@ void filament_gcodes::M1701_no_parser(const std::optional<float> &fast_load_leng
     PreheatStatus::SetResult(PreheatStatus::Result::DoneHasFilament);
 }
 
-void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, uint8_t target_extruder, RetAndCool_t preheat, AskFilament_t ask_filament, std::optional<Color> color_to_be_loaded) {
+void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, VirtualToolIndex virtual_tool, RetAndCool_t preheat, AskFilament_t ask_filament, std::optional<Color> color_to_be_loaded) {
     InProgress progress;
+
+    uint8_t target_extruder = virtual_tool.to_raw();
 
     FilamentType filament = config_store().get_filament_type(target_extruder);
     if (filament == FilamentType::none && ask_filament == AskFilament_t::Never) {
@@ -313,7 +315,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, uint8_
         M1700_no_parser(M1700Args {
             .preheat = preheat,
             .mode = PreheatMode::Unload,
-            .target_extruder = static_cast<int8_t>(target_extruder),
+            .tool = virtual_tool,
             .save = true,
             .enforce_target_temp = true,
             .preheat_bed = config_store().filament_change_preheat_all.get(),
@@ -324,7 +326,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, uint8_
             .set_heatbreak = true,
 #endif
         });
-        filament = config_store().get_filament_type(target_extruder);
+        filament = config_store().get_filament_type(virtual_tool);
         if (filament == FilamentType::none) {
             return; // no need to set PreheatStatus::Result::DoneNoFilament, M1700 did that
         }

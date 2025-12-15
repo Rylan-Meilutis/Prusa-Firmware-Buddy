@@ -42,20 +42,20 @@
 void PrusaGcodeSuite::M1700() {
     const uint8_t preheat = std::min(parser.byteval('W', 3), uint8_t(RetAndCool_t::last_));
 
-    int8_t target_extruder;
-    if (parser.seen('T') && parser.intval('T') == -1) {
-        target_extruder = -1; // -1 means all extruders
+    std::variant<VirtualToolIndex, AllTools> tool = AllTools {};
+    if (parser.intval('T') == -1) {
+        tool = AllTools {}; // -1 means all extruders
     } else {
-        target_extruder = GcodeSuite::get_target_extruder_from_command(); // Get particular extruder or current extruder
-        if (target_extruder < 0) {
-            return;
+        const auto e = GcodeSuite::get_target_extruder_from_command(); // Get particular extruder or current extruder
+        if (e > 0) {
+            tool = VirtualToolIndex::from_raw(e);
         }
     }
 
     filament_gcodes::M1700_no_parser(filament_gcodes::M1700Args {
         .preheat = RetAndCool_t(preheat),
         .mode = PreheatMode::None,
-        .target_extruder = target_extruder,
+        .tool = tool,
         .save = parser.boolval('S'),
         .enforce_target_temp = parser.boolval('E'),
         .preheat_bed = parser.boolval('B', true),
@@ -139,7 +139,7 @@ void PrusaGcodeSuite::M1600() {
     const filament_gcodes::AskFilament_t ask_unload = filament_gcodes::AskFilament_t(p.option<int>('U').value_or(0));
     const bool hasReturn = p.option<bool>('R').value_or(false);
 
-    filament_gcodes::M1600_no_parser(filament_to_be_loaded, target_extruder, hasReturn ? RetAndCool_t::Return : RetAndCool_t::Neither, ask_unload, color_to_be_loaded);
+    filament_gcodes::M1600_no_parser(filament_to_be_loaded, VirtualToolIndex::from_raw(target_extruder), hasReturn ? RetAndCool_t::Return : RetAndCool_t::Neither, ask_unload, color_to_be_loaded);
 }
 
 /** @}*/

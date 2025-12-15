@@ -125,7 +125,7 @@ std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::p
 
 void filament_gcodes::M1700_no_parser(const M1700Args &args) {
     InProgress progress;
-    const FSMResponseVariant response_variant = preheatTempUnKnown(PreheatData::make(args.mode, args.target_extruder, args.preheat), true);
+    const FSMResponseVariant response_variant = preheatTempUnKnown(PreheatData::make(args.mode, args.target_extruder(), args.preheat), true);
 
     // autoload ocurred
     if (!response_variant) {
@@ -141,25 +141,21 @@ void filament_gcodes::M1700_no_parser(const M1700Args &args) {
     const FilamentType filament = response_variant.value_or<FilamentType>(FilamentType::none);
     const FilamentTypeParameters fil_cnf = filament.parameters();
 
-    const auto set_extruder_temp = [&](uint8_t extruder) {
-        thermalManager.setTargetHotend(args.enforce_target_temp ? fil_cnf.nozzle_temperature : fil_cnf.nozzle_preheat_temperature, extruder);
-    };
+    auto iterator = tool_index_iterator(args.tool);
+    if (response == Response::Cooldown) {
+        // Cooldown applies for all tools
+        iterator = VirtualToolIndex::Iterator::make_all();
+    }
+    iterator = iterator.skip_all_disabled();
 
-    if (response == Response::Cooldown || args.target_extruder < 0) {
-        // Set temperature to all tools
-        // Cooldown is always applied to all tools
-        for (int8_t e = 0; e < HOTENDS; e++) {
-#if HAS_TOOLCHANGER()
-            if (!prusa_toolchanger.is_tool_enabled(e)) {
-                continue;
-            }
-#endif
-            set_extruder_temp(e);
+    for (VirtualToolIndex virtual_tool : iterator) {
+        const PhysicalToolIndex physical_tool = virtual_tool.to_physical();
+        thermalManager.setTargetHotend(args.enforce_target_temp ? fil_cnf.nozzle_temperature : fil_cnf.nozzle_preheat_temperature, physical_tool);
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+        if (args.set_heatbreak) {
+            thermalManager.setTargetHeatbreak(fil_cnf.heatbreak_temperature, physical_tool);
         }
-
-    } else {
-        // Preheat only target tool
-        set_extruder_temp(args.target_extruder);
+#endif
     }
 
     if (args.preheat_bed) {
@@ -171,13 +167,6 @@ void filament_gcodes::M1700_no_parser(const M1700Args &args) {
         buddy::chamber().set_target_temperature(fil_cnf.chamber_target_temperature);
     }
 #endif
-
-#if HAS_FILAMENT_HEATBREAK_PARAM()
-    if (args.set_heatbreak) {
-        thermalManager.setTargetHeatbreak(fil_cnf.heatbreak_temperature, args.target_extruder);
-    }
-#endif
-
     // cooldown pressed
     if (filament == FilamentType::none) {
         thermalManager.set_fan_speed(0, 0);
@@ -186,13 +175,9 @@ void filament_gcodes::M1700_no_parser(const M1700Args &args) {
         unhomed_z_lift(10);
     }
 
-    if (args.save) {
-        if (args.target_extruder < 0) {
-            for (int8_t e = 0; e < HOTENDS; e++) {
-                config_store().set_filament_type(e, filament);
-            }
-        } else {
-            config_store().set_filament_type(args.target_extruder, filament);
+    if (args.save && response != Response::Cooldown) {
+        for (const VirtualToolIndex tool : iterator) {
+            config_store().set_filament_type(tool, filament);
         }
     }
 

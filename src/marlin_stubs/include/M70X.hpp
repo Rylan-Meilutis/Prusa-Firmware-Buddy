@@ -22,6 +22,7 @@
 #include "pause_stubbed.hpp"
 #include <color.hpp>
 #include <option/has_chamber_api.h>
+#include <utils/overloaded_visitor.hpp>
 
 namespace filament_gcodes {
 using Func = bool (Pause::*)(const pause::Settings &); // member fnc pointer
@@ -54,7 +55,7 @@ void M701_no_parser(FilamentType filament_to_be_loaded, const std::optional<floa
 void M702_no_parser(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, bool ask_unloaded);
 void M70X_process_user_response(PreheatStatus::Result res, uint8_t target_extruder);
 
-void M1600_no_parser(FilamentType filament_to_be_loaded, uint8_t target_extruder, RetAndCool_t preheat, AskFilament_t ask_filament, std::optional<Color> color_to_be_loaded);
+void M1600_no_parser(FilamentType filament_to_be_loaded, VirtualToolIndex virtual_tool, RetAndCool_t preheat, AskFilament_t ask_filament, std::optional<Color> color_to_be_loaded);
 
 struct M1700Args {
     /// include return and/or cooldown items in menu
@@ -63,8 +64,17 @@ struct M1700Args {
     /// preheat mode as part of load/unload
     PreheatMode mode;
 
-    /// preheat this extruder (indexed from 0), or -1 to preheat all
-    int8_t target_extruder;
+    /// preheat this tool
+    std::variant<VirtualToolIndex, AllTools> tool;
+
+    // Temporary, will be deleted a few commits down the line
+    inline int8_t target_extruder() const {
+        return match(
+            tool, //
+            [](VirtualToolIndex i) -> int8_t { return i.to_raw(); }, //
+            [](AllTools) -> int8_t { return -1; } //
+        );
+    }
 
     /// save selected filament settings to EEPROM
     bool save;
