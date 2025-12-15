@@ -15,12 +15,6 @@
     #include <feature/chamber/chamber.hpp>
 #endif
 
-static FSMResponseVariant preheatTempKnown(uint8_t target_extruder) {
-    const FilamentType filament_type = config_store().get_filament_type(target_extruder);
-    assert(filament_type != FilamentType::none);
-    return FSMResponseVariant::make(filament_type);
-}
-
 static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
     marlin_server::FSM_Holder holder { PhasesPreheat::UserTempSelection, preheat_data.serialize() };
 
@@ -41,13 +35,22 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
     }
 }
 
-static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data, uint8_t target_extruder) {
-    bool canKnowTemp = preheat_data.mode == PreheatMode::Unload || preheat_data.mode == PreheatMode::Purge;
+static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data) {
+    const auto filament_type = [&] {
+        if ((preheat_data.mode != PreheatMode::Unload) && (preheat_data.mode != PreheatMode::Purge)) {
+            // We cannot know the temperature, and thus must ask the user
+            return FilamentType::none;
+        }
 
-    // Check if we are using operation which can get temp from printer and check if it can get the temp from available info (inserted filament or set temperature in temperature menu and no filament inserted)
-    if (canKnowTemp && ((config_store().get_filament_type(target_extruder) != FilamentType::none))) {
-        // We can get temperature without user telling us
-        return preheatTempKnown(target_extruder);
+        return match(
+            preheat_data.tool, //
+            [](VirtualToolIndex i) { return config_store().get_filament_type(i); }, //
+            [](AllTools) { return FilamentType::none; });
+    }();
+
+    if (filament_type != FilamentType::none) {
+        // We know the filament parameters, no need to ask the user
+        return FSMResponseVariant::make(filament_type);
 
     } else {
         // we need to ask the user for temperature
@@ -56,7 +59,7 @@ static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data, 
 }
 
 std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::preheat(PreheatData preheat_data, uint8_t target_extruder, PreheatBehavior preheat_arg) {
-    const FSMResponseVariant response = evaluate_preheat_conditions(preheat_data, target_extruder);
+    const FSMResponseVariant response = evaluate_preheat_conditions(preheat_data);
 
     if (response.holds_alternative<FilamentType>()) {
         const FilamentType filament = response.value<FilamentType>();
