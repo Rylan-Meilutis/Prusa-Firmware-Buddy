@@ -161,23 +161,6 @@ public:
     }
 
     /**
-     * @brief Read a simple register, try multiple times.
-     *
-     * @warning If this timeouts, you can repeat the call,
-     *   but you cannot use 32 attempts during the sum of timeouts on both sides.
-     *   If server uses the same timeouts, it is 2 * get_client_timeout().
-     *
-     * @param name register name
-     * @param attempts try to get response this many times
-     * @param remote_node_id node id of remote node
-     * @param mutex_timeout timeout to lock mutex to prevent concurrent calls of this function
-     * @param tx_timeout timeout to transmit request, discard if it gets stuck in queue for this long
-     * @return value of register read, nullopt if response not received
-     */
-    [[nodiscard]] std::optional<RegisterVariant> repeat_read(const char *name, size_t attempts, CanardNodeID remote_node_id,
-        TickType_t mutex_timeout = portMAX_DELAY, TickType_t tx_timeout = portMAX_DELAY);
-
-    /**
      * @brief Write a simple register, try multiple times.
      *
      * @warning If this timeouts, you can repeat the call,

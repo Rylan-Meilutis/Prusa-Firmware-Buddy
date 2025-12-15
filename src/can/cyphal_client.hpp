@@ -110,37 +110,6 @@ protected:
         }
     }
 
-    /**
-     * @brief Send request and wait for response, try multiple times.
-     *
-     * @warning If this timeouts, you can repeat the call,
-     *   but you cannot use 32 attempts during the sum of timeouts on both sides.
-     *   If server uses the same timeouts, it is 2 * get_client_timeout().
-     *
-     * @param request_data send this
-     * @param attempts try to get response this many times
-     * @param remote_node_id set remote node ID if set, otherwise keep previous
-     * @param tx_timeout timeout for transmit mutex, discard if the Cyphal thread is busy for this long
-     * @return whether the response was received or not
-     *
-     * @note Don't use together with wait_response_ready().
-     */
-    [[nodiscard]] ClientCallResult repeat_call_void(const void *const request_data, size_t attempts, std::optional<CanardNodeID> remote_node_id, TickType_t tx_timeout) {
-        // Set timeout as a roundtrip delay + 1 ms
-        const TickType_t response_timeout = pdMS_TO_TICKS(2 * get_client_timeout() / 1000 + 1);
-
-        ClientCallResult res = ClientCallResult::TxTimeout;
-        for (uint32_t attempt = 0; attempt < attempts; attempt++) {
-            cancel_waiting(); // Cancel any previous operation
-            res = call_void(request_data, response_timeout, remote_node_id, tx_timeout);
-            if (res == ClientCallResult::Received) {
-                return ClientCallResult::Received;
-            }
-        }
-
-        return res;
-    }
-
 public:
     /**
      * @brief Cancel waiting for response.
@@ -270,8 +239,7 @@ public:
      *    Deafult is ProtoSuber::multipart_timeout_default to access Python server or ProtoSuber::multipart_timeout_short to access normal server.
      * @note Roundtrip delay limit and suggested call() timeout is sum of send_timeout and multipart_timeout in both client and server.
      *    If same, then it is "2 * (send_timeout + multipart_timeout)" or "2 * get_client_timeout()".
-     * @warning The multipart_timeout_default can get you stuck for too long. Expecially when used with repeat_call().
-     *    Repeat call waits for up to "attempts * 2 * (send_timeout + multipart_timeout)".
+     * @warning The multipart_timeout_default can get you stuck for too long.
      *    Clients that ask Python server should use only single frame requests and responses.
      *    That way, the multipart_timeout does not matter and only sets the roundtrip delay.
      *    Clients that ask non-Python server should use multipart_timeout_short.
@@ -310,26 +278,6 @@ public:
     ClientCallResult call(const T_REQUEST &request_data, TickType_t response_timeout, std::optional<CanardNodeID> remote_node_id = std::nullopt, TickType_t tx_timeout = portMAX_DELAY) {
         return call_void(reinterpret_cast<const void *>(&request_data), response_timeout, remote_node_id, tx_timeout);
     }
-
-    /**
-     * @brief Send request and wait for response, try multiple times.
-     *
-     * @warning If this timeouts, you can repeat the call,
-     *   but you cannot use 32 attempts during the sum of timeouts on both sides.
-     *   If server uses the same timeouts, it is 2 * get_client_timeout().
-     *
-     * @param request_data send this
-     * @param attempts try to get response this many times
-     * @param remote_node_id set remote node ID if set, otherwise keep previous
-     * @param tx_timeout timeout for transmit mutex, discard if the Cyphal thread is busy for this long
-     * @return whether the response was received or not
-     *
-     * @note Don't use together with wait_response_ready().
-     */
-    [[nodiscard]] ClientCallResult repeat_call(const T_REQUEST &request_data, size_t attempts,
-        std::optional<CanardNodeID> remote_node_id = std::nullopt, TickType_t tx_timeout = portMAX_DELAY) {
-        return repeat_call_void(reinterpret_cast<const void *>(&request_data), attempts, remote_node_id, tx_timeout);
-    }
 };
 
 template <typename Traits>
@@ -354,8 +302,7 @@ public:
      *    Deafult is ProtoSuber::multipart_timeout_default to access Python server or ProtoSuber::multipart_timeout_short to access normal server.
      * @note Roundtrip delay limit and suggested call() timeout is sum of send_timeout and multipart_timeout in both client and server.
      *    If same, then it is "2 * (send_timeout + multipart_timeout)" or "2 * get_client_timeout()".
-     * @warning The multipart_timeout_default can get you stuck for too long. Expecially when used with repeat_call().
-     *    Repeat call waits for up to "attempts * 2 * (send_timeout + multipart_timeout)".
+     * @warning The multipart_timeout_default can get you stuck for too long.
      *    Clients that ask Python server should use only single frame requests and responses.
      *    That way, the multipart_timeout does not matter and only sets the roundtrip delay.
      *    Clients that ask non-Python server should use multipart_timeout_short.

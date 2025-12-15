@@ -27,7 +27,7 @@ public:
      */
     static int8_t dummy_serialize([[maybe_unused]] const uint8_t *const obj, [[maybe_unused]] uint8_t *const buffer, size_t *const inout_buffer_size_bytes);
 
-    static constexpr CanardMicrosecond send_timeout_default = 7'000; ///< Default timeout to transmit
+    static constexpr CanardMicrosecond send_timeout_default = 100'000; ///< Default timeout to transmit
 
 protected:
     CanardPriority priority; ///< Cyphal priority of the message

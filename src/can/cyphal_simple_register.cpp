@@ -176,31 +176,7 @@ std::optional<RegisterVariant> SimpleRegisterClient::call(const char *name, cons
     // Send request and wait for response
     cancel_waiting(); // Cancel any previous waiting
     response_value = std::nullopt; // Clear response to be sure we got one
-    if (Client::call(request, response_timeout, remote_node_id, tx_timeout) == ClientCallResult::Received) {
-        return response_value;
-    }
-
-    return std::nullopt; // No response or Tx timeout
-}
-
-std::optional<RegisterVariant> SimpleRegisterClient::repeat_read(const char *name, size_t attempts,
-    CanardNodeID remote_node_id, TickType_t mutex_timeout, TickType_t tx_timeout) {
-    // Request
-    SimpleRegisterRequest request;
-    request.name.name.count = strnlen(name, sizeof(request.name.name.elements));
-    memcpy(request.name.name.elements, name, request.name.name.count);
-    request.reg = RegisterVariantUtils::Empty; // Empty request
-
-    // Lock mutex
-    Task::RAIILock lock(call_mutex, mutex_timeout);
-    if (lock.is_locked() == false) {
-        return std::nullopt; // Mutex timeout
-    }
-
-    // Send request and wait for response
-    cancel_waiting(); // Cancel any previous waiting
-    response_value = std::nullopt; // Clear response to be sure we got one
-    if (Client::repeat_call(request, attempts, remote_node_id, tx_timeout) == ClientCallResult::Received) {
+    if (Client::call(request, remote_node_id, response_timeout, tx_timeout) == ClientCallResult::Received) {
         return response_value;
     }
 

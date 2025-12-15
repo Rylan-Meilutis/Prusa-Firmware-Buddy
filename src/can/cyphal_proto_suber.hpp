@@ -41,8 +41,8 @@ public:
         return 0;
     }
 
-    static constexpr CanardMicrosecond multipart_timeout_default = 193'000; ///< Longer timeout for multipart messages to arrive from Python
-    static constexpr CanardMicrosecond multipart_timeout_short = 7'000; ///< Shorter timeout for multipart messages from non-Python devices
+    static constexpr CanardMicrosecond multipart_timeout_default = 1'000'000; ///< Longer timeout for multipart messages to arrive from Python
+    static constexpr CanardMicrosecond multipart_timeout_short = 100'000; ///< Shorter timeout for multipart messages from non-Python devices
 
 protected:
     CanardRxSubscription raw = {}; ///< Canard subscription object
