@@ -751,20 +751,17 @@ class Planner {
      */
     static abce_pos_t get_machine_position_mm() { return position_float; }
 
-    // Deprecated alias for gcode_exceptions().throw_unhandled()
-    // TODO replace all usages one day
+    [[deprecated("Use gcode_exceptions().throw_unhandled()")]]
     static void quick_stop();
 
     // Called to force a quick stop of the machine and wait for it to finish
     // Will wait for the buffers to empty and then resume queuing
     static void quick_stop_and_resume();
 
-    // Deprecated alias for gcode_exceptions().is_unwinding()
-    // TODO replace all usages one day
+    [[deprecated("Use gcode_exceptions().is_unwinding()")]]
     static bool draining();
 
-    // Deprecated alias for gcode_exceptions().finish_unwinding_unhandled_exception()
-    // TODO replace all usages one day
+    [[deprecated("Use gcode_exceptions().finish_unwinding_unhandled_exception()")]]
     static void resume_queuing();
 
     // Force any planned move to start immediately

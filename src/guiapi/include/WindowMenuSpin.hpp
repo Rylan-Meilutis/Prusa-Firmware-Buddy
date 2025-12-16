@@ -40,12 +40,12 @@ public:
     /// Sets either value or special_value if \param val std::nullopt
     void set_value(std::optional<float> val);
 
-    /// Deprecated legacy variant of value()
+    [[deprecated("Use value()")]]
     inline float GetVal() const {
         return value();
     }
 
-    /// Deprecated legacy variant of set_value()
+    [[deprecated("Use set_value()")]]
     inline void SetVal(float val) {
         set_value(val);
     }

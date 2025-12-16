@@ -111,7 +111,7 @@ public:
     /// Focus = visually selected
     bool is_focused() const;
 
-    /// Legacy deprecated alternative to is_focused
+    [[deprecated("Use is_focused()")]]
     inline bool IsFocused() const {
         return is_focused();
     }
@@ -203,14 +203,9 @@ public:
     /// Sets whether the item should show the extension (value) when disabled
     void set_show_disabled_extension(bool set);
 
-    /// Deprecated. Use set_show_disabled_extension
+    [[deprecated("Use set_show_disabled_extension()")]]
     inline void ShowDisabledExtension() {
         set_show_disabled_extension(true);
-    }
-
-    /// Deprecated. Use set_show_disabled_extension
-    inline void DontShowDisabledExtension() {
-        set_show_disabled_extension(false);
     }
 
     void set_is_hidden(bool set = true);

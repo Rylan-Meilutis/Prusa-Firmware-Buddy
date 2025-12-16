@@ -22,7 +22,7 @@ public:
     ToolMapper &operator=(const ToolMapper &other);
 
     /// Create new mapping of tool
-    /// @deprecated use the ToolIndex overload
+    [[deprecated("Use the ToolIndex overload")]]
     inline bool set_mapping(uint8_t gcode_tool, uint8_t virtual_tool) {
         if (gcode_tool >= GcodeToolIndex::count || virtual_tool >= VirtualToolIndex::count) {
             return false;
@@ -47,8 +47,8 @@ public:
 
     /// Convert gcode tool to virtual
     /// note: might return NO_TOOL_MAPPED, so check for this value
-    /// @deprecated use the ToolIndex overload
-    [[nodiscard]] inline uint8_t to_virtual(uint8_t gcode_tool, bool ignore_enabled = false) const {
+    [[deprecated("Use the ToolIndex overload")]] [[nodiscard]]
+    inline uint8_t to_virtual(uint8_t gcode_tool, bool ignore_enabled = false) const {
         if (gcode_tool >= GcodeToolIndex::count) {
             return NO_TOOL_MAPPED;
         }
@@ -63,8 +63,8 @@ public:
     [[nodiscard]] std::variant<VirtualToolIndex, NoTool> to_virtual(GcodeToolIndex gcode_tool, bool ignore_enabled = false) const;
 
     /// Convert virtual tool to gcode
-    /// @deprecated use the ToolIndex overload
-    [[nodiscard]] inline uint8_t to_gcode(uint8_t virtual_tool) const {
+    [[deprecated("Use the ToolIndex overload")]] [[nodiscard]]
+    inline uint8_t to_gcode(uint8_t virtual_tool) const {
         if (virtual_tool >= VirtualToolIndex::count) {
             return NO_TOOL_MAPPED;
         }
@@ -95,7 +95,7 @@ public:
         }
     }
 
-    /// @deprecated use the ToolIndex overload
+    [[deprecated("Use the ToolIndex overload")]]
     inline bool set_unassigned(uint8_t gcode_tool) {
         if (gcode_tool >= GcodeToolIndex::count) {
             return false;
@@ -110,8 +110,7 @@ public:
     }
 
     /// This is special tool identifier, that says that this tool is not mapped to any tool, and is threfore disabled by tool mapping
-    /// @deprecated use NoTool from tool_index.hpp instead
-    static constexpr auto NO_TOOL_MAPPED = std::numeric_limits<uint8_t>::max();
+    [[deprecated("Use NoTool from tool_index.hpp")]] static constexpr auto NO_TOOL_MAPPED = std::numeric_limits<uint8_t>::max();
 
     /// Container with serialized state of tool mapping
     struct __attribute__((packed)) serialized_state_t {

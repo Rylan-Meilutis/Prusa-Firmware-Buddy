@@ -41,13 +41,13 @@ public:
     /// Creates ToolIndex from raw uint8_t
     /// Use `from_raw_notool` instead, if you are not sure that raw index represent only valid tool
     /// @param index must be less than ToolIndex::count
-    /// @deprecated Replace raw index with ToolIndex for better safety
+    /// @note Try to replace raw index with ToolIndex for better safety
     static inline constexpr ToolIndex from_raw(uint8_t index) {
         return ToolIndex(index);
     }
 
     /// @returns raw index as uint8_t
-    /// @deprecated Replace raw index with ToolIndex for better safety
+    /// @note Try to replace raw index with ToolIndex for better safety
     inline constexpr uint8_t to_raw() const { return this->value; }
 
     /// @returns Index of the tool, starting from 1, for display purposes
@@ -99,7 +99,7 @@ struct PhysicalToolIndexExtension {
     /// Checks for legacy values representing no tool
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool
     /// @param index
-    /// @deprecated This function should be removed after removing all special (notool) values in raw indices
+    [[deprecated("Should be removed after removing all special (notool) values in raw indices")]]
     static std::variant<Derived, NoTool> from_raw_notool(uint8_t index);
 
     /// @returns currently picked physical tool
@@ -136,7 +136,7 @@ struct VirtualToolIndexExtension {
     /// Checks for legacy values representing no tool
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool
     /// @param index
-    /// @deprecated This function should be removed after removing all special (notool) values in raw indices
+    [[deprecated("Should be removed after removing all special (notool) values in raw indices")]]
     static std::variant<Derived, NoTool> from_raw_notool(uint8_t index);
 
     /// @returns currently active virtual tool

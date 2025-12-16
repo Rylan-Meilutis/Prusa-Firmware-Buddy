@@ -533,7 +533,7 @@ class Temperature {
       return temp_hotend[HOTEND_INDEX].celsius;
     }
 
-    /// Deprecated, use the ToolIndex overload
+    [[deprecated("Use the ToolIndex overload")]]
     FORCE_INLINE static int16_t degTargetHotend(const uint8_t E_NAME) {
       return temp_hotend[HOTEND_INDEX].target;
     }
@@ -549,7 +549,7 @@ class Temperature {
     #endif
 
     #if HAS_TEMP_HOTEND
-      /// Deprecated, use the ToolIndex overload
+      [[deprecated("Use the ToolIndex overload")]]
       static void setTargetHotend(const int16_t celsius, const uint8_t E_NAME);
 
       static inline void setTargetHotend(const int16_t celsius, PhysicalToolIndex tool) {

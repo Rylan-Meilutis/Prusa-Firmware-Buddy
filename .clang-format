@@ -21,4 +21,5 @@ ObjCBlockIndentWidth: 4
 ObjCSpaceAfterProperty: true
 SortIncludes: Never
 SpaceBeforeCpp11BracedList: true
+BreakAfterAttributes: Leave
 ...
