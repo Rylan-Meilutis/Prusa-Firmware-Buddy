@@ -288,12 +288,12 @@ struct CurrentStore
     // ref value: value of filament sensor in moment of calibration (w/o filament present)
     // value span: minimal difference of raw values between the two states of the filament sensor
 
-    StoreItemArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Values v16"), 16, PhysicalToolIndex::count> extruder_fs_ref_nins_values;
-    StoreItemArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Values v16"), 16, PhysicalToolIndex::count> extruder_fs_ref_ins_values;
+    StoreItemArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_nins_values;
+    StoreItemArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_ins_values;
 
 #if HAS_ADC_SIDE_FSENSOR()
-    StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, PhysicalToolIndex::count> side_fs_ref_nins_values;
-    StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Values v16"), 16, PhysicalToolIndex::count> side_fs_ref_ins_values;
+    StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, HOTENDS> side_fs_ref_nins_values;
+    StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Values v16"), 16, HOTENDS> side_fs_ref_ins_values;
 #endif
 #if HAS_MMU2()
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Is MMU Rework")> is_mmu_rework; // Indicates printer has been reworked for MMU (has a different FS behavior)
@@ -357,7 +357,7 @@ struct CurrentStore
     void set_tool_offset(uint8_t index, ToolOffset value);
 #endif
 
-    StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, VirtualToolIndex::count> loaded_filament_type;
+    StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, EXTRUDERS> loaded_filament_type;
 
     /// User-defined filament ordering. Does not need to contain all the filaments - the rest will be appended to the back using the standard rules
     StoreItem<std::array<FilamentType, max_total_filament_count>, NoFilamentType {}, ItemFlag::user_presets, journal::hash("Filament Order")> filament_order;
@@ -402,10 +402,10 @@ struct CurrentStore
     StoreItem<bool, false, ItemFlag::features, journal::hash("Heatup Bed")> filament_change_preheat_all;
 
     // This makes sure that we do not exceed 16 hotends, a lot of things are limited to 16 hotends (bitsets, arrays, etc)
-    static_assert(PhysicalToolIndex::count <= 16);
+    static_assert(HOTENDS <= 16);
 
     /// Stores the nozzle diameter for each hotend
-    StoreItemArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter Array"), 16, PhysicalToolIndex::count> nozzle_diameters;
+    StoreItemArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter Array"), 16, HOTENDS> nozzle_diameters;
 
     float get_nozzle_diameter(uint8_t index);
     void set_nozzle_diameter(uint8_t index, float value);
@@ -438,12 +438,12 @@ struct CurrentStore
     float get_odometer_axis(uint8_t index);
     void set_odometer_axis(uint8_t index, float value);
 
-    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, PhysicalToolIndex::count> odometer_extruded_lengths;
+    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, HOTENDS> odometer_extruded_lengths;
 
     float get_odometer_extruded_length(uint8_t index);
     void set_odometer_extruded_length(uint8_t index, float value);
 
-    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, PhysicalToolIndex::count> odometer_toolpicks;
+    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, HOTENDS> odometer_toolpicks;
 
     uint32_t get_odometer_toolpicks(uint8_t index);
     void set_odometer_toolpicks(uint8_t index, uint32_t value);
@@ -534,7 +534,7 @@ struct CurrentStore
 
 #if HAS_HOTEND_TYPE_SUPPORT()
     // Nozzle Sock has is here for backwards compatibility (should be binary compatible)
-    StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 16, PhysicalToolIndex::count> hotend_type;
+    StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 16, HOTENDS> hotend_type;
 #endif
 
     StoreItem<int16_t, defaults::homing_sens_x, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens X")> homing_sens_x; // X axis homing sensitivity
@@ -680,7 +680,7 @@ struct CurrentStore
 #endif
 
 #if HAS_PRINT_FAN_TYPE()
-    StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 16, PhysicalToolIndex::count> print_fan_type;
+    StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 16, HOTENDS> print_fan_type;
 #endif
 
 #if HAS_AUTO_RETRACT()
@@ -693,7 +693,7 @@ struct CurrentStore
 
     // Each hotend holds retracted distance. This value is compressed (casted to uint8) to range < 0 ; 255 > with 255 being special value reserved for unknown distance
     // DO NOT ACCESS THIS ARRAY DIRECTLY, user getter/setter instead
-    StoreItemArray<uint8_t, uint8_t { 255 }, ItemFlag::printer_state, journal::hash("Filament retracted"), 16, PhysicalToolIndex::count> filament_retracted_distances;
+    StoreItemArray<uint8_t, uint8_t { 255 }, ItemFlag::printer_state, journal::hash("Filament retracted"), 16, HOTENDS> filament_retracted_distances;
 
     // Casts float of range < 0.0f ; 254f > to uint8. Value 255 is reserved to unknown value
     void set_filament_retracted_distance(uint8_t tool_idx, std::optional<float> dist);
