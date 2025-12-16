@@ -45,24 +45,37 @@ public:
         return BaseArray::at(index_f(index));
     }
 
-    inline constexpr Item &operator[](size_t index)
+    // Do NOT remove these methods or the [[deprecated]] attributes;
+    // they are an integral part of the class design.
+    //
+    // These overloads allow size_t indexing during refactoring but mark the usage
+    // as deprecated (appearing as strikethrough in editor) to guide the transition
+    // toward the strong Index type.
+
+    [[deprecated("Try to use strong Index type for indexing")]]
+    inline constexpr Item &
+    operator[](size_t index)
         requires(weak_indexing == strong_index_array::AllowWeakIndexing::yes)
     {
         return BaseArray::operator[](index);
     }
 
-    inline constexpr const Item &operator[](size_t index) const
+    [[deprecated("Try to use strong Index type for indexing")]]
+    inline constexpr const Item &
+    operator[](size_t index) const
         requires(weak_indexing == strong_index_array::AllowWeakIndexing::yes)
     {
         return BaseArray::operator[](index);
     }
 
+    [[deprecated("Try to use strong Index type for indexing")]]
     inline constexpr Item &at(size_t index)
         requires(weak_indexing == strong_index_array::AllowWeakIndexing::yes)
     {
         return BaseArray::at(index);
     }
 
+    [[deprecated("Try to use strong Index type for indexing")]]
     inline constexpr const Item &at(size_t index) const
         requires(weak_indexing == strong_index_array::AllowWeakIndexing::yes)
     {
