@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <inplace_function.hpp>
 #include <optional>
 
@@ -29,19 +30,6 @@ public:
      * @param notification which event happened
      */
     using NotifyCallback = stdext::inplace_function<void(Notification notification)>;
-
-    struct ErrorStats {
-        uint8_t tec; ///< Transmit error counter
-        uint8_t rec; ///< Receive error counter
-
-        /**
-         * @brief CAN error logging.
-         * The counter is incremented each time when a CAN protocol error causes
-         * the transmit error counter or the receive error counter to be incremented.
-         * Each get_error_stats() clears this counter.
-         */
-        unsigned int err_log;
-    };
 
 private:
     /// Notify the application about events. Called from ISR or task.
@@ -120,11 +108,10 @@ public:
     virtual void set_filter(uint32_t index, const CanardFilter &filter, bool timestamp, bool high_prio) = 0;
 
     /**
-     * @brief Get error statistics.
-     * @note Reading clears err_log counter.
-     * @return error statistics
+     * @brief Get sum of error increments in both Rx and Tx error counters since start.
+     * @return error log counter
      */
-    virtual ErrorStats get_error_stats() = 0;
+    virtual uint32_t get_error_log() const = 0;
 
     /// ------------------
     /// Interrupt handlers

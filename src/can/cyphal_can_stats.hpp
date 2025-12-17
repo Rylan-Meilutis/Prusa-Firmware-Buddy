@@ -45,9 +45,10 @@ class CanStats {
     uint32_t rx_transfer_id_mismatch = 0; ///< Count transfer-ID mismatches
     CanardTransferID rx_transfer_id = 0; ///< Transfer ID of the last received message
 
-    Driver::ErrorStats can_errors = {}; ///< CAN errors
+    uint32_t can_error_log_start = 0; ///< CAN error log counter when the test started
+    uint32_t can_error_log_end = 0; ///< CAN error log counter when the test ended
     std::atomic<uint32_t> print_stats = 0; ///< Print stats this many times
-    int64_t last_ptint_time = 0; ///< Last time when stats were printed
+    int64_t last_print_time = 0; ///< Last time when stats were printed
 
     /**
      * @brief Task to send measurement messages.

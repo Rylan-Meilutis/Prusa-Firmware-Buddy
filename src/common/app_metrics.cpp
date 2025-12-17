@@ -12,6 +12,10 @@
 #include <adc.hpp>
 #include <option/has_door_sensor.h>
 #include <option/has_local_bed.h>
+#include <option/has_cyphal_metrics.h>
+#if HAS_CYPHAL_METRICS()
+    #include <cyphal_task.hpp>
+#endif /* HAS_CYPHAL_METRICS() */
 #include <option/has_advanced_power.h>
 #if HAS_ADVANCED_POWER()
     #include "advanced_power.hpp"
@@ -151,6 +155,11 @@ void RecordRuntimeStats() {
         METRIC_DEF(store_items, "store_items", METRIC_VALUE_INTEGER, store_metrics_interval_ms, METRIC_ENABLED);
         metric_record_integer(&store_items, config_store().get_backend().item_write_count());
     }
+
+#if HAS_CYPHAL_METRICS()
+    METRIC_DEF(can_error_log, "can_error_log", METRIC_VALUE_INTEGER, 505, METRIC_ENABLED);
+    metric_record_integer(&can_error_log, can::cyphal::cyphal_task.get_error_log());
+#endif /* HAS_CYPHAL_METRICS() */
 }
 
 void RecordMarlinVariables() {

@@ -40,6 +40,9 @@ void CanStats::on_command(const RawPacketTraits::Type &message, CanardNodeID rem
         rx_err = 0;
         rx_transfer_id_mismatch = 0;
         rx_transfer_id = transfer_id;
+
+        // Sample CAN error log counter
+        can_error_log_start = cyphal_task.get_error_log();
     } else if (memcmp(message.serialized_data.data(), command_end.serialized_data.data(), command_len) == 0) {
         // End command
         if (rx_node_id != remote_node_id) {
@@ -47,8 +50,8 @@ void CanStats::on_command(const RawPacketTraits::Type &message, CanardNodeID rem
         }
         rx_node_id = CANARD_NODE_ID_UNSET; // Reset node ID
 
-        // Store results
-        can_errors = cyphal_task.get_error_stats();
+        // Sample CAN error log counter
+        can_error_log_end = cyphal_task.get_error_log();
 
         // Print stats, one print now and the rest from task
         print_stats.store(print_stats_n_times);
@@ -183,10 +186,10 @@ bool CanStats::start_tx_session(size_t parameter_len, const uint8_t *parameter) 
 }
 
 void CanStats::poll_finished_stats(int64_t now) {
-    if (print_stats.load() > 0 && now - last_ptint_time > print_stats_interval) {
-        log_info(can, "Stats end counts: cnt=%lu, dups=%lu, miss=%lu, err=%lu, tid_miss=%lu", rx_counter, rx_duplicates, rx_missing, rx_err, rx_transfer_id_mismatch);
-        log_info(can, "Stats end driver: rec=%hhu, tec=%hhu, error log counter=%u", can_errors.rec, can_errors.tec, can_errors.err_log);
-        last_ptint_time = now;
+    if (print_stats.load() > 0 && now - last_print_time > print_stats_interval) {
+        log_info(can, "Stats: cnt=%lu, dups=%lu, miss=%lu, err=%lu, tid_miss=%lu, err_log=%lu",
+            rx_counter, rx_duplicates, rx_missing, rx_err, rx_transfer_id_mismatch, can_error_log_end - can_error_log_start);
+        last_print_time = now;
         print_stats--;
     }
 }

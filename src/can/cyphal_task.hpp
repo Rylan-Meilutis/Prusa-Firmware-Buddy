@@ -458,11 +458,10 @@ public:
     void set_filter(uint32_t index, const CanardFilter &filter, bool timestamp, bool high_prio) { driver.set_filter(index, filter, timestamp, high_prio); }
 
     /**
-     * @brief Get error statistics.
-     * @note Reading clears err_log counter.
-     * @return error statistics
+     * @brief Get sum of error increments in both Rx and Tx error counters since start.
+     * @return error log counter
      */
-    Driver::ErrorStats get_error_stats() { return driver.get_error_stats(); }
+    uint32_t get_error_log() { return driver.get_error_log(); }
 
     /**
      * @brief Set callback for driver and Cyphal error notifications.

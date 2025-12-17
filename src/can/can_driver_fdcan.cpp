@@ -27,6 +27,14 @@ namespace {
 
 FdcanDriver *FdcanDriver::list = nullptr;
 
+void FdcanDriver::update_error_log(uint32_t add) {
+    FDCAN_ErrorCountersTypeDef error_counters;
+    if (auto ret = HAL_FDCAN_GetErrorCounters(&hfdcan, &error_counters); ret != HAL_OK) {
+        bsod("CAN HAL error stats %i,%i", static_cast<int>(ret), static_cast<int>(hfdcan.ErrorCode));
+    }
+    error_log += (error_counters.ErrorLogging + add);
+}
+
 FdcanDriver &FdcanDriver::get_driver(FDCAN_HandleTypeDef *hfdcan_isr) {
     FdcanDriver *driver = list; // Get first driver in the list
     while (driver != nullptr && &driver->hfdcan != hfdcan_isr) { // Find one that matches
@@ -53,7 +61,8 @@ void FdcanDriver::start(bool automatic_retransmission_enable) {
                 | FDCAN_IT_RX_FIFO1_MESSAGE_LOST
                 | FDCAN_IT_BUS_OFF
                 | FDCAN_IT_ERROR_PASSIVE
-                | FDCAN_IT_ERROR_WARNING,
+                | FDCAN_IT_ERROR_WARNING
+                | FDCAN_IT_ERROR_LOGGING_OVERFLOW,
             full_tx_location_mask())
         != HAL_OK) {
         assert(false);
@@ -150,6 +159,9 @@ bool FdcanDriver::send(const CanardFrame &frame, bool store_timestamp) {
         if (hfdcan.ErrorCode) {
             bsod("CAN HAL Tx failed %i,%i", static_cast<int>(ret), static_cast<int>(hfdcan.ErrorCode));
         }
+
+        update_error_log();
+
         return false; // Needs to be sent next time
     } else {
         last_tx_priority = frame.extended_can_id; // Last ID put to hardware queue
@@ -306,6 +318,7 @@ bool FdcanDriver::receive(CanardFrame &frame, CanardMicrosecond *timestamp_us) {
             *timestamp_us = get_timestamp_us(); // Approximate timestamp
         }
     } else {
+        update_error_log();
         return false; // No frame in the FIFOs
     }
 
@@ -344,17 +357,11 @@ void FdcanDriver::set_filter(uint32_t index, const CanardFilter &filter, bool ti
     }
 }
 
-Driver::ErrorStats FdcanDriver::get_error_stats() {
-    FDCAN_ErrorCountersTypeDef error_counters;
-    if (auto ret = HAL_FDCAN_GetErrorCounters(&hfdcan, &error_counters); ret != HAL_OK) {
-        bsod("CAN HAL error stats %i,%i", static_cast<int>(ret), static_cast<int>(hfdcan.ErrorCode));
+extern "C" void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef *hfdcan) {
+    auto &driver = FdcanDriver::get_driver(hfdcan); // Get driver instance
+    if (HAL_FDCAN_GetError(hfdcan) & HAL_FDCAN_ERROR_LOG_OVERFLOW) {
+        driver.update_error_log(1); // Add 1 for the overflow event
     }
-
-    return {
-        .tec = static_cast<uint8_t>(error_counters.TxErrorCnt),
-        .rec = static_cast<uint8_t>((error_counters.RxErrorPassive != 0 ? 0x80 : 0x00) | error_counters.RxErrorCnt),
-        .err_log = error_counters.ErrorLogging,
-    };
 }
 
 extern "C" void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t ErrorStatusITs) {

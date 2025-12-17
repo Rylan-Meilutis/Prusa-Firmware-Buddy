@@ -28,6 +28,8 @@ class FdcanDriver : public Driver {
 
     bool enable_bit_rate_switch; ///< Enable bit rate switch?
 
+    std::atomic<uint32_t> error_log = 0; ///< Sum of error increments in both Rx and Tx error counters since start, add to this in the child
+
     /**
      * @brief Sanitize message timestamp.
      * @param time_isr time sampled in the ISR as close to the event as possible, needs to be less than TIM3_OVERFLOW apart from frame_timestamp [us]
@@ -113,11 +115,10 @@ public:
     void set_filter(uint32_t index, const CanardFilter &filter, bool timestamp, bool high_prio) override;
 
     /**
-     * @brief Get error statistics.
-     * @note Reading clears err_log counter.
-     * @return error statistics
+     * @brief Get sum of error increments in both Rx and Tx error counters since start.
+     * @return error log counter
      */
-    ErrorStats get_error_stats() override;
+    uint32_t get_error_log() const override { return error_log; };
 
     /// ------------------
     /// Interrupt handlers
@@ -143,6 +144,13 @@ public:
      * @param  time_isr timestamp of the interrupt
      */
     void rx_fifo1_sample_time(int64_t time_isr);
+
+    /**
+     * @brief Read error log counter and add to error_log.
+     * @param add additional value to add to error_log
+     * @note The add parameter is used on overflow interrupt when we add 255 from register value and 1 for the overflow event.
+     */
+    void update_error_log(uint32_t add = 0);
 };
 
 } // namespace can
