@@ -266,9 +266,7 @@ uint32_t Planner::cutoff_long;
 xyze_float_t Planner::previous_speed;
 float Planner::previous_nominal_speed;
 
-#if ENABLED(DISABLE_INACTIVE_EXTRUDER)
-  uint8_t Planner::g_uc_extruder_last_move[EXTRUDERS] = { 0 };
-#endif
+uint8_t Planner::g_uc_extruder_last_move[EXTRUDERS] = { 0 };
 
 #ifdef XY_FREQUENCY_LIMIT
   // Old direction bits. Used for speed calculations
@@ -1385,8 +1383,6 @@ bool Planner::_populate_block(block_t * const block,
       powerManager.power_on();
     #endif
 
-    #if ENABLED(DISABLE_INACTIVE_EXTRUDER) // Enable only the selected extruder
-
       #define DISABLE_IDLE_E(N) if (!g_uc_extruder_last_move[N]) disable_E##N();
 
       for (uint8_t i = 0; i < EXTRUDERS; i++)
@@ -1488,14 +1484,6 @@ bool Planner::_populate_block(block_t * const block,
           #endif // EXTRUDERS > 2
         #endif // EXTRUDERS > 1
       }
-    #else
-      enable_E0();
-      enable_E1();
-      enable_E2();
-      enable_E3();
-      enable_E4();
-      enable_E5();
-    #endif
 
     // Perform E pre-move hooks
     motor_prepare_move_e();
@@ -2091,8 +2079,6 @@ bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target
         Power::power_on();
     #endif
 
-    #if ENABLED(DISABLE_INACTIVE_EXTRUDER) // Enable only the selected extruder
-
         #define DISABLE_IDLE_E(N) if (!g_uc_extruder_last_move[N]) disable_E##N();
 
         for (uint8_t i = 0; i < EXTRUDERS; i++)
@@ -2194,14 +2180,6 @@ bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target
             #endif // EXTRUDERS > 2
         #endif // EXTRUDERS > 1
         }
-    #else
-        enable_E0();
-        enable_E1();
-        enable_E2();
-        enable_E3();
-        enable_E4();
-        enable_E5();
-    #endif
     }
 
     block->acceleration = acceleration;

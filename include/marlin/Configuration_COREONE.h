@@ -798,7 +798,6 @@
 // @section extruder
 
 #define DISABLE_E false // For all extruders
-#define DISABLE_INACTIVE_EXTRUDER // Keep only the active extruder enabled
 
 // default values
 #define DEFAULT_INVERT_X_DIR true

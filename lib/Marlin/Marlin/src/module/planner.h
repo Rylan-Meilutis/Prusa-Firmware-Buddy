@@ -369,12 +369,10 @@ class Planner {
       static float last_fade_z;
     #endif
 
-    #if ENABLED(DISABLE_INACTIVE_EXTRUDER)
-      /**
-       * Counters to manage disabling inactive extruders
-       */
-      static uint8_t g_uc_extruder_last_move[EXTRUDERS];
-    #endif // DISABLE_INACTIVE_EXTRUDER
+    /**
+     * Counters to manage disabling inactive extruders
+     */
+    static uint8_t g_uc_extruder_last_move[EXTRUDERS];
 
     #ifdef XY_FREQUENCY_LIMIT
       // Used for the frequency limit
