@@ -6,6 +6,8 @@
 #include "Marlin/src/module/temperature.h"
 #include "fanctl.hpp"
 #include <marlin_stubs/G425.hpp>
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 using namespace selftest;
 LOG_COMPONENT_REF(Selftest);
@@ -13,18 +15,18 @@ LOG_COMPONENT_REF(Selftest);
 namespace {
 /// @brief Set temperature to all enabled tools
 void set_nozzle_temps(int16_t temp) {
-    for (uint8_t tool_nr = 0; tool_nr < HOTENDS; tool_nr++) {
-        if (is_tool_selftest_enabled(tool_nr, ToolMask::AllTools)) { // set temperature on all tools, its not possible to calibrate just one tool
-            thermalManager.setTargetHotend(temp, tool_nr);
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (is_tool_selftest_enabled(tool, ToolMask::AllTools)) { // set temperature on all tools, its not possible to calibrate just one tool
+            thermalManager.setTargetHotend(temp, tool);
         }
     }
 }
 
 /// @brief Check temperature of all enabled tools is at target
 bool all_nozzles_at_target() {
-    for (uint8_t tool_nr = 0; tool_nr < HOTENDS; tool_nr++) {
-        if (is_tool_selftest_enabled(tool_nr, ToolMask::AllTools)) { // check temperature on all tools, its not possible to calibrate just one tool
-            if (!thermalManager.is_hotend_temperature_reached(tool_nr)) {
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (is_tool_selftest_enabled(tool, ToolMask::AllTools)) { // check temperature on all tools, its not possible to calibrate just one tool
+            if (!thermalManager.is_hotend_temperature_reached(tool)) {
                 return false;
             }
         }
@@ -38,11 +40,11 @@ class FanCoolingManager {
 public:
     /// Request cooldown on all tools
     static void cooldown() {
-        for (uint8_t tool_nr = 0; tool_nr < HOTENDS; tool_nr++) {
-            if (is_tool_selftest_enabled(tool_nr, ToolMask::AllTools) && thermalManager.degHotend(tool_nr) > SelftestToolOffsets_t::TOOL_CALIBRATION_TEMPERATURE && // tool is hot
-                !tool_cooling_down[tool_nr]) { // cooling is not already turned on
+        for (auto tool : PhysicalToolIndex::all()) {
+            if (is_tool_selftest_enabled(tool, ToolMask::AllTools) && thermalManager.degHotend(tool) > SelftestToolOffsets_t::TOOL_CALIBRATION_TEMPERATURE && // tool is hot
+                !tool_cooling_down[tool]) { // cooling is not already turned on
 
-                start_cooling(tool_nr);
+                start_cooling(tool);
             }
         }
     }
@@ -51,44 +53,44 @@ public:
 
     static void manage() {
         // periodically check if tool is cooled down, stop fans
-        for (uint8_t tool_nr = 0; tool_nr < HOTENDS; tool_nr++) {
-            if (is_tool_selftest_enabled(tool_nr, ToolMask::AllTools) && // manage temperature on all tools, its not possible to calibrate just one tool
-                thermalManager.degHotend(tool_nr) <= SelftestToolOffsets_t::TOOL_CALIBRATION_TEMPERATURE && tool_cooling_down[tool_nr]) {
-                stop_cooling(tool_nr);
+        for (auto tool : PhysicalToolIndex::all()) {
+            if (is_tool_selftest_enabled(tool, ToolMask::AllTools) && // manage temperature on all tools, its not possible to calibrate just one tool
+                thermalManager.degHotend(tool) <= SelftestToolOffsets_t::TOOL_CALIBRATION_TEMPERATURE && tool_cooling_down[tool]) {
+                stop_cooling(tool);
             }
         }
     }
 
     /// When cooldown is active, reset it and go back to normal fan operation
     static void reset() {
-        for (uint8_t tool_nr = 0; tool_nr < HOTENDS; tool_nr++) {
-            if (is_tool_selftest_enabled(tool_nr, ToolMask::AllTools) && // manage temperature on all tools, its not possible to calibrate just one tool
-                tool_cooling_down[tool_nr]) { // tool is cooling down
+        for (auto tool : PhysicalToolIndex::all()) {
+            if (is_tool_selftest_enabled(tool, ToolMask::AllTools) && // manage temperature on all tools, its not possible to calibrate just one tool
+                tool_cooling_down[tool]) { // tool is cooling down
 
-                stop_cooling(tool_nr);
+                stop_cooling(tool);
             }
         }
     }
 
 private:
-    static bool tool_cooling_down[HOTENDS];
+    static StrongIndexArray<bool, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> tool_cooling_down;
 
-    static void start_cooling(uint8_t tool_nr) {
-        tool_cooling_down[tool_nr] = true;
-        Fans::print(tool_nr).enter_selftest_mode();
-        Fans::heat_break(tool_nr).enter_selftest_mode();
-        Fans::print(tool_nr).selftest_set_pwm(255);
-        Fans::heat_break(tool_nr).selftest_set_pwm(255);
+    static void start_cooling(PhysicalToolIndex tool) {
+        tool_cooling_down[tool] = true;
+        Fans::print(tool).enter_selftest_mode();
+        Fans::heat_break(tool).enter_selftest_mode();
+        Fans::print(tool).selftest_set_pwm(255);
+        Fans::heat_break(tool).selftest_set_pwm(255);
     }
 
-    static void stop_cooling(uint8_t tool_nr) {
-        tool_cooling_down[tool_nr] = false;
-        Fans::print(tool_nr).exit_selftest_mode();
-        Fans::heat_break(tool_nr).exit_selftest_mode();
+    static void stop_cooling(PhysicalToolIndex tool) {
+        tool_cooling_down[tool] = false;
+        Fans::print(tool).exit_selftest_mode();
+        Fans::heat_break(tool).exit_selftest_mode();
     }
 };
 
-bool FanCoolingManager::tool_cooling_down[HOTENDS] = { false };
+StrongIndexArray<bool, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> FanCoolingManager::tool_cooling_down = { false };
 
 CSelftestPart_ToolOffsets::CSelftestPart_ToolOffsets(IPartHandler &state_machine, const ToolOffsetsConfig_t &config, SelftestToolOffsets_t &result)
     : state_machine(state_machine)
