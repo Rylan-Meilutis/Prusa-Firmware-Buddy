@@ -8,6 +8,7 @@
 #include <dynamic_index_mapping.hpp>
 #include <window_menu_virtual.hpp>
 #include <window_menu_callback_item.hpp>
+#include <option/has_anfc.h>
 #include <tool_index.hpp>
 
 #include <MItem_tools.hpp>
@@ -30,7 +31,27 @@ public:
     FilamentTypeParameters::Name filament_name;
 };
 
-class WindowMenuPreheat : public WindowMenuVirtual<WindowMenuCallbackItem, MI_FILAMENT> {
+#if HAS_ANFC()
+class MI_FROM_OPENPRINTTAG : public IWindowMenuItem {
+public:
+    MI_FROM_OPENPRINTTAG(VirtualToolIndex tool);
+
+    void click(IWindowMenu &) final;
+    void Loop() final;
+
+    const VirtualToolIndex tool_;
+};
+
+#endif
+
+using WindowMenuPreheatBase = WindowMenuVirtual<
+    WindowMenuCallbackItem,
+#if HAS_ANFC()
+    MI_FROM_OPENPRINTTAG,
+#endif
+    MI_FILAMENT>;
+
+class WindowMenuPreheat : public WindowMenuPreheatBase {
 
 public:
     WindowMenuPreheat(window_t *parent, const Rect16 &rect);
@@ -54,6 +75,9 @@ protected:
 private:
     enum class Item {
         return_,
+#if HAS_ANFC()
+        from_openprinttag,
+#endif
         filament_section,
         show_all,
         cooldown,
@@ -62,10 +86,13 @@ private:
 
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Item>>({
         { Item::return_, DynamicIndexMappingType::optional_item },
-        { Item::filament_section, DynamicIndexMappingType::dynamic_section },
-        { Item::adhoc_filament },
-        { Item::show_all, DynamicIndexMappingType::optional_item },
-        { Item::cooldown, DynamicIndexMappingType::optional_item },
+#if HAS_ANFC()
+            { Item::from_openprinttag, DynamicIndexMappingType::optional_item },
+#endif
+            { Item::filament_section, DynamicIndexMappingType::dynamic_section },
+            { Item::adhoc_filament },
+            { Item::show_all, DynamicIndexMappingType::optional_item },
+            { Item::cooldown, DynamicIndexMappingType::optional_item },
     });
 
 private:

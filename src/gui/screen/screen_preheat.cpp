@@ -10,6 +10,11 @@
 #include <gui/screen/filament/screen_filament_detail.hpp>
 #include <ScreenHandler.hpp>
 
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
+    #include <screen/openprinttag/screen_opt_filament_detail.hpp>
+#endif
+
 using namespace preheat_menu;
 
 // * MI_FILAMENT
@@ -32,6 +37,28 @@ void MI_FILAMENT::click(IWindowMenu &) {
     WindowMenuPreheat::handle_filament_selection(filament_type, tool);
 }
 
+#if HAS_ANFC()
+// * MI_FROM_OPENPRINTTAG
+MI_FROM_OPENPRINTTAG::MI_FROM_OPENPRINTTAG(VirtualToolIndex tool)
+    : IWindowMenuItem(_("Scan OpenPrintTag"))
+    , tool_(tool) {
+}
+
+void MI_FROM_OPENPRINTTAG::click(IWindowMenu &) {
+    const auto tag = buddy::openprinttag::ToolTag::for_tool(tool_);
+    if (!tag.has_value()) {
+        // Will get disabled in Loop
+        return;
+    }
+
+    Screens::Access()->Open(buddy::openprinttag::screen_openprinttag_preheat_mode_creator(*tag));
+}
+
+void MI_FROM_OPENPRINTTAG::Loop() {
+    set_enabled(buddy::openprinttag::ToolTag::for_tool(tool_).has_value());
+}
+#endif
+
 // * WindowMenuPreheat
 WindowMenuPreheat::WindowMenuPreheat(window_t *parent, const Rect16 &rect)
     : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) //
@@ -43,6 +70,12 @@ void WindowMenuPreheat::set_data(const PreheatData &data) {
 
     index_mapping.set_item_enabled<Item::return_>(data.has_return_option);
     index_mapping.set_item_enabled<Item::cooldown>(data.has_cooldown_option);
+
+#if HAS_ANFC()
+    index_mapping.set_item_enabled<Item::from_openprinttag>(
+        std::holds_alternative<VirtualToolIndex>(tool) //
+        && buddy::openprinttag::has_tool_openprinttag_reader(std::get<VirtualToolIndex>(tool)));
+#endif
 
     update_list();
 }
@@ -81,6 +114,14 @@ void WindowMenuPreheat::update_list() {
     index_mapping.set_section_size<Item::filament_section>(filament_list.size());
     index_mapping.set_item_enabled<Item::show_all>(!show_all_filaments_);
     setup_items();
+
+#if HAS_ANFC()
+    // If there is an NFC tag detected for the specified tool, auto-focus the "Load from openprinttag"
+    if (std::holds_alternative<VirtualToolIndex>(tool) //
+        && buddy::openprinttag::ToolTag::for_tool(std::get<VirtualToolIndex>(tool)).has_value()) {
+        move_focus_to_index(index_mapping.to_index<Item::from_openprinttag>());
+    }
+#endif
 }
 
 void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
@@ -95,6 +136,12 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
         variant.emplace<WindowMenuCallbackItem>(_("Return"), callback, &img::folder_up_16x16);
         break;
     }
+
+#if HAS_ANFC()
+    case Item::from_openprinttag:
+        variant.emplace<MI_FROM_OPENPRINTTAG>(std::get<VirtualToolIndex>(tool));
+        break;
+#endif
 
     case Item::cooldown: {
         const auto callback = [] {
