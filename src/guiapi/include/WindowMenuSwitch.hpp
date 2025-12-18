@@ -11,11 +11,6 @@ public:
         translate_items_ = set;
     }
 
-    [[deprecated("Use MenuItemSelectMenu::set_current_item")]]
-    inline void set_index(int set) {
-        MenuItemSelectMenu::set_current_item(set);
-    }
-
     inline int item_count() const final {
         return items_.size();
     }

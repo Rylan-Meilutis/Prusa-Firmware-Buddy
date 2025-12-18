@@ -56,7 +56,7 @@ void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t e
         Invalidate();
         break;
     case ClickCommand::Reset_directions:
-        Item<MI_DIRECTION_E>().set_index(0);
+        Item<MI_DIRECTION_E>().set_current_item(0);
         Invalidate();
         break;
     default:

@@ -72,18 +72,18 @@ void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t e
         Item<MI_STEPS_PER_UNIT_Z>().SetVal(std::abs(config_store().axis_steps_per_unit_z.default_val));
         Item<MI_STEPS_PER_UNIT_E>().SetVal(std::abs(config_store().axis_steps_per_unit_e0.default_val));
         // Set default axis direction
-        Item<MI_DIRECTION_X>().set_index(0);
-        Item<MI_DIRECTION_Y>().set_index(0);
-        Item<MI_DIRECTION_Z>().set_index(0);
-        Item<MI_DIRECTION_E>().set_index(0);
+        Item<MI_DIRECTION_X>().set_current_item(0);
+        Item<MI_DIRECTION_Y>().set_current_item(0);
+        Item<MI_DIRECTION_Z>().set_current_item(0);
+        Item<MI_DIRECTION_E>().set_current_item(0);
         Invalidate();
         break;
     case ClickCommand::Reset_directions:
         // set index to Prusa
-        Item<MI_DIRECTION_X>().set_index(0);
-        Item<MI_DIRECTION_Y>().set_index(0);
-        Item<MI_DIRECTION_Z>().set_index(0);
-        Item<MI_DIRECTION_E>().set_index(0);
+        Item<MI_DIRECTION_X>().set_current_item(0);
+        Item<MI_DIRECTION_Y>().set_current_item(0);
+        Item<MI_DIRECTION_Z>().set_current_item(0);
+        Item<MI_DIRECTION_E>().set_current_item(0);
         Invalidate();
         break;
     case ClickCommand::Reset_currents:

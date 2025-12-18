@@ -207,7 +207,7 @@ MI_NET_IP::MI_NET_IP(NetDeviceID device_id)
     , device_id(device_id) //
 {
     set_translate_items(false);
-    this->set_index(netdev_get_ip_obtained_type(this->device_id()));
+    this->set_current_item(netdev_get_ip_obtained_type(this->device_id()));
 }
 
 void MI_NET_IP::OnChange([[maybe_unused]] size_t old_index) {

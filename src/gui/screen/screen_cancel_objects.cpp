@@ -63,7 +63,7 @@ private:
 
         // set_enabled is especially necessary for the "current object" field, as we might currently be outside of any valid object
         set_enabled(cancel_object().is_object_cancellable(object_));
-        set_index(cancel_object().is_object_cancelled(object_));
+        set_current_item(cancel_object().is_object_cancelled(object_));
 
         // Update label
         {
