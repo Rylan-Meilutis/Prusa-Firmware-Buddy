@@ -83,8 +83,16 @@ std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::p
     }
 }
 
-filament_gcodes::PreheatBehavior filament_gcodes::PreheatBehavior::for_filament_change() {
-    return PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get());
+filament_gcodes::PreheatBehavior filament_gcodes::PreheatBehavior::for_filament_change(bool force_temp) {
+    const bool preheat_all = config_store().filament_change_preheat_all.get();
+
+    return PreheatBehavior {
+        .force_temp = force_temp,
+        .preheat_bed = preheat_all,
+#if HAS_CHAMBER_API()
+        .set_chamber_temperature = preheat_all,
+#endif
+    };
 }
 
 void filament_gcodes::preheat_to(FilamentType filament, std::variant<PhysicalToolIndex, AllTools> tools, PreheatBehavior preheat_arg) {

@@ -87,7 +87,7 @@ void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const s
 
             filament_to_be_loaded = preheat_ret.second;
         } else {
-            preheat_to(filament_to_be_loaded, physical_tool, PreheatBehavior::no_force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
+            preheat_to(filament_to_be_loaded, physical_tool, PreheatBehavior::for_filament_change(false));
         }
     }
     filament::set_type_to_load(filament_to_be_loaded);
@@ -344,7 +344,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
 #else
     {
 #endif
-        preheat_to(filament, virtual_tool.to_physical(), PreheatBehavior::no_force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
+        preheat_to(filament, virtual_tool.to_physical(), PreheatBehavior::for_filament_change(false));
     }
     xyze_pos_t current_position_tmp = current_position;
 
@@ -380,7 +380,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
 
         filament_to_be_loaded = preheat_ret.second;
     } else {
-        preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::no_force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
+        preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_change(false));
     }
     filament::set_type_to_load(filament_to_be_loaded);
     filament::set_color_to_load(color_to_be_loaded);

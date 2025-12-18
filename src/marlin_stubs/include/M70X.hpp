@@ -108,38 +108,18 @@ struct PreheatBehavior {
 #if HAS_CHAMBER_API()
     bool set_chamber_temperature : 1; ///< true -> heat up chamber as well, false otherwise
 #endif
-    static constexpr PreheatBehavior force_preheat_bed_and_chamber(bool cf) {
-        return PreheatBehavior {
-            .force_temp = true,
-            .preheat_bed = cf
-#if HAS_CHAMBER_API()
-                ,
-            .set_chamber_temperature = cf
-#endif
-        };
-    }
-    static constexpr PreheatBehavior no_force_preheat_bed_and_chamber(bool cf) {
-        return PreheatBehavior {
-            .force_temp = false,
-            .preheat_bed = cf
-#if HAS_CHAMBER_API()
-                ,
-            .set_chamber_temperature = cf
-#endif
-        };
-    }
+
     static constexpr PreheatBehavior force_preheat_only_extruder() {
         return PreheatBehavior {
             .force_temp = true,
-            .preheat_bed = false
+            .preheat_bed = false,
 #if HAS_CHAMBER_API()
-                ,
-            .set_chamber_temperature = false
+            .set_chamber_temperature = false,
 #endif
         };
     }
     /// @returns preheat behavior for loads during filament change
-    static PreheatBehavior for_filament_change();
+    static PreheatBehavior for_filament_change(bool force_temp = true);
 };
 
 std::pair<std::optional<PreheatStatus::Result>, FilamentType> preheat(PreheatData preheat_data, PreheatBehavior preheat_arg);
