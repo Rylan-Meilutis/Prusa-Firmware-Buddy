@@ -37,9 +37,6 @@ public:
     /// Return temporary value (retraction is positive) of \param physical_tool
     std::optional<float> get_retracted_distance(PhysicalToolIndex physical_tool) const;
 
-    /// Forget all hotends (invalidate and set back to extruder_to_nozzle_distance)
-    void reset();
-
 private:
     RetractTracker();
     StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> retracted_distances;

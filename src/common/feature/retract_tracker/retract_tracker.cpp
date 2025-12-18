@@ -3,7 +3,11 @@
 using namespace buddy;
 
 RetractTracker::RetractTracker() {
-    reset();
+    for (auto &dist : retracted_distances) {
+        // Starts as if it is fully retracted (to the edge of the extruder)
+        // After the value validates (travels at least +extruder_to_nozzle_distance) we can start to keep track of retracted distance
+        dist = extruder_to_nozzle_distance;
+    }
 }
 
 void RetractTracker::track_extruder_move(PhysicalToolIndex physical_tool, float extrusion_distance) {
@@ -17,15 +21,6 @@ void RetractTracker::track_extruder_move(PhysicalToolIndex physical_tool, float 
         // if we retract more than extruder_to_nozzle_distance, we most likely lost the track of the retractions, because the filament is no longer engaged with the extruder
         distance_valid.set(physical_tool.to_raw(), false);
     }
-}
-
-void RetractTracker::reset() {
-    for (PhysicalToolIndex physical_tool : PhysicalToolIndex::all()) {
-        // Starts as if it is fully retracted (to the edge of the extruder)
-        // After the value validates (travels at least +extruder_to_nozzle_distance) we can start to keep track of retracted distance
-        retracted_distances[physical_tool] = extruder_to_nozzle_distance;
-    }
-    distance_valid.reset();
 }
 
 std::optional<float> RetractTracker::get_retracted_distance(PhysicalToolIndex physical_tool) const {
