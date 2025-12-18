@@ -78,7 +78,7 @@ void filament_gcodes::M701_no_parser(FilamentType filament_to_be_loaded, const s
     if (op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
             PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::Purge : PreheatMode::Load, virtual_tool, *op_preheat);
-            auto preheat_ret = data.mode == PreheatMode::Load ? preheat_for_change_load(data) : preheat(data, PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
+            auto preheat_ret = preheat(data, PreheatBehavior::for_filament_change());
             if (preheat_ret.first) {
                 // canceled
                 M70X_process_user_response(*preheat_ret.first, virtual_tool);
@@ -276,7 +276,7 @@ void filament_gcodes::M1701_no_parser(const std::optional<float> &fast_load_leng
 
     if constexpr (option::has_human_interactions) {
         PreheatData data = PreheatData::make(PreheatMode::Autoload, virtual_tool, RetAndCool_t::Return);
-        auto preheat_ret = preheat_for_change_load(data);
+        auto preheat_ret = preheat(data, PreheatBehavior::for_filament_change());
 
         if (preheat_ret.first) {
             // canceled
@@ -371,7 +371,7 @@ void filament_gcodes::M1600_no_parser(FilamentType filament_to_be_loaded, Virtua
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
         PreheatData data = PreheatData::make(PreheatMode::Load, virtual_tool, preheat);
-        auto preheat_ret = preheat_for_change_load(data);
+        auto preheat_ret = ::preheat(data, PreheatBehavior::for_filament_change());
         if (preheat_ret.first) {
             // canceled
             M70X_process_user_response(*preheat_ret.first, virtual_tool);

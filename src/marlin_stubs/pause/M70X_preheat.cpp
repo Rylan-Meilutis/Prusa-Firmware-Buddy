@@ -83,6 +83,10 @@ std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::p
     }
 }
 
+filament_gcodes::PreheatBehavior filament_gcodes::PreheatBehavior::for_filament_change() {
+    return PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get());
+}
+
 void filament_gcodes::preheat_to(FilamentType filament, std::variant<PhysicalToolIndex, AllTools> tools, PreheatBehavior preheat_arg) {
     const FilamentTypeParameters fil_cnf = filament.parameters();
 
@@ -110,30 +114,6 @@ void filament_gcodes::preheat_to(FilamentType filament, std::variant<PhysicalToo
         buddy::chamber().set_target_temperature(fil_cnf.chamber_target_temperature);
     }
 #endif
-}
-
-std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::preheat_for_change_load(PreheatData data) {
-    const FSMResponseVariant response = preheatTempUnKnown(data);
-
-    if (response.holds_alternative<FilamentType>()) {
-        const FilamentType filament = response.value<FilamentType>();
-        // change temp every time (unlike normal preheat)
-        preheat_to(filament, to_physical_tool_index<AllTools>(data.tool), PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
-        return { std::nullopt, filament };
-    }
-
-    switch (response.value_or<Response>(Response::_none)) {
-
-    case Response::Abort:
-        return { PreheatStatus::Result::Aborted, FilamentType::none };
-
-    case Response::Cooldown:
-        return { PreheatStatus::Result::CooledDown, FilamentType::none };
-
-    default:
-        // should not happen
-        return { PreheatStatus::Result::Error, FilamentType::none };
-    }
 }
 
 void filament_gcodes::M1700_no_parser(const M1700Args &args) {

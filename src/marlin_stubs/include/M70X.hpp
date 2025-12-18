@@ -138,11 +138,13 @@ struct PreheatBehavior {
 #endif
         };
     }
+    /// @returns preheat behavior for loads during filament change
+    static PreheatBehavior for_filament_change();
 };
 
 std::pair<std::optional<PreheatStatus::Result>, FilamentType> preheat(PreheatData preheat_data, PreheatBehavior preheat_arg);
-std::pair<std::optional<PreheatStatus::Result>, FilamentType> preheat_for_change_load(PreheatData data);
 void preheat_to(FilamentType filament, std::variant<PhysicalToolIndex, AllTools> tools, PreheatBehavior preheat_arg);
+
 } // namespace filament_gcodes
 
 namespace PreheatStatus {
