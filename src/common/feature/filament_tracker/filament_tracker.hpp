@@ -31,16 +31,35 @@ public:
     #error
 #endif
 
-    /// Adds \param extrusion_distance (retraction is negative) to temporary value of active hotend
-    void track_extruder_move(PhysicalToolIndex physical_tool, float extrusion_distance);
+    /// Lets the tracker know about a planned extruder move
+    /// The only place this should be called from is planner.buffer_segment
+    void track_extruder_move(VirtualToolIndex virtual_tool, float e_delta);
 
-    /// Return temporary value (retraction is positive) of \param physical_tool
+    /// @returns how much the filament is retracted  (in mm) from the nozzle of @p physical_tool
+    ///   or std::nullopt if the value is not known
     std::optional<float> get_retracted_distance(PhysicalToolIndex physical_tool) const;
+
+    /// @returns how much filament (in mm) has been extruded from the nozzle since last reset
+    /// This value is NOT persistent
+    uint32_t get_extruded_distance(VirtualToolIndex virtual_tool) const;
 
 private:
     FilamentTracker();
+
+private: // * per-PhysicalToolIndex things
     StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> retracted_distances;
     std::bitset<PhysicalToolIndex::count> distance_valid; ///< The hotend validates  by traveling at least +extruder_to_nozzle_distance
+
+private: // * per-VirtualToolIndex things
+    /// Planner reports the filament usage in possibly very small numbers
+    /// To prevent accumulation errors, we've split the thing between two floats
+    struct ExtrudedDistance {
+        uint32_t integral = 0;
+        float fractional = 0;
+    };
+
+    /// This is used for filament usage tracking, so it must be per VIRTUAL tool.
+    StrongIndexArray<ExtrudedDistance, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> extruded_distances;
 };
 
 FilamentTracker &filament_tracker();

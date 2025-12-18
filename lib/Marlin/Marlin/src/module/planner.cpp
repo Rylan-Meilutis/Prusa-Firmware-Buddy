@@ -2182,13 +2182,16 @@ bool Planner::buffer_segment(const abce_pos_t &abce
     gcode_exceptions().report_xyz_move();
   }
 
-#if HAS_FILAMENT_TRACKER()
   if (target.e != position.e) {
-    if(physical_tool.has_value()) {
-      buddy::filament_tracker().track_extruder_move(*physical_tool, abce.e - position_float.e);
+    /// Extruder movement without a tool picked doesn't make any sense
+    if(!physical_tool.has_value()) {
+      bsod("E move without tool");
     }
+    
+  #if HAS_FILAMENT_TRACKER()
+    buddy::filament_tracker().track_extruder_move(*virtual_tool, abce.e - position_float.e);
+  #endif
   }
-#endif
 
 #if HAS_AUTO_RETRACT()
   if (target.e > position.e) {
@@ -2204,7 +2207,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce
     // Invalidate auto_retract value if we retract E at least some amount (5 mm)
     // maybe_retract_from_nozzle will overwrite the value at the end of it's sequence, other moves invalidate auto_retract value
     // Before retract tracker's value is validated invalidate on any retract E move (10)
-    if (physical_tool.has_value() && buddy::filament_tracker().get_retracted_distance(*physical_tool).value_or(10) > 5) {
+    if (buddy::filament_tracker().get_retracted_distance(*physical_tool).value_or(10) > 5) {
       buddy::auto_retract().set_retracted_distance(physical_tool->to_raw(), std::nullopt);
     }
   }
