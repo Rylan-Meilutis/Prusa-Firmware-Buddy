@@ -1,6 +1,7 @@
 /// \file
 #pragma once
 
+#include <type_traits>
 #include <inplace_function.hpp>
 
 #include <utils/uncopyable.hpp>
@@ -22,9 +23,12 @@ protected:
     /// Calls callbacks of all registered Subscribers
     /// The execution order depends on the insertion order - newer hooks execute first.
     /// Warning - if a hook removes itself during the call, it can cause UB or crash.
-    void call_all(Args &&...args) {
+    template <typename... CallArgs>
+    void call_all(CallArgs &&...args) {
+        static_assert((std::is_same_v<std::decay_t<CallArgs>, std::decay_t<Args>> && ...), "Implicit argument conversion in a for loop");
+
         for (auto it = first_; it; it = it->next_) {
-            it->callback_(std::forward<Args>(args)...);
+            it->callback_(std::forward<CallArgs>(args)...);
         }
     }
 
