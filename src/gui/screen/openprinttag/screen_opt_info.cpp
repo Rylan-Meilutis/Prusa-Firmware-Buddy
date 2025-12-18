@@ -7,7 +7,7 @@
 #include <feature/openprinttag/data_utils.hpp>
 #include <string_builder.hpp>
 #include <screen/openprinttag/opt_request_wizard.hpp>
-#include <screen/filament/screen_filament_detail.hpp>
+#include <screen/openprinttag/screen_opt_filament_detail.hpp>
 
 namespace buddy::openprinttag {
 
@@ -34,7 +34,7 @@ void WindowMenuOPTInfo::setup_item(ItemVariant &variant, int index) {
 
     case Item::print_parameters:
         const auto callback = [this] {
-            MsgBoxError(_("To unlock this functionality, you need to buy the Prusa: Tags & Spools Expansion Pack (not a DLC)."), Responses_Ok);
+            Screens::Access()->Open(screen_openprinttag_filament_detail_creator(*screen_->tag_));
         };
         variant.emplace<WindowMenuCallbackItem>(_("Printing Parameters"), callback, nullptr, expands_t::yes);
         break;
