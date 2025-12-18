@@ -114,7 +114,7 @@ static bool is_format_specifier(char c) {
 static bool is_precision_specifier(char c) {
     constexpr char bitset_offset = 32;
     static constexpr std::bitset<96> precision_specifiers = []() {
-        constexpr const char *chars = "0123456789.-+lh";
+        constexpr const char *chars = "0123456789.*-+lh";
         std::bitset<96> bs;
         for (const char *ch = chars; *ch; ch++) {
             bs.set(*ch - bitset_offset);
