@@ -31,7 +31,6 @@ endif()
 add_subdirectory(print_status_message)
 
 if(HAS_AUTO_RETRACT)
-  add_subdirectory(retract_tracker)
   add_subdirectory(auto_retract)
 endif()
 
@@ -64,3 +63,4 @@ add_subdirectory(cork)
 add_subdirectory(safety_timer)
 add_subdirectory(stepper_timeout)
 add_subdirectory(gcode_exception)
+add_subdirectory(retract_tracker)

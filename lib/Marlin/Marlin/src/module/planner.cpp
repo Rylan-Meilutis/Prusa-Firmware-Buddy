@@ -115,9 +115,9 @@
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
   #include <feature/auto_retract/auto_retract.hpp>
-  #include <feature/retract_tracker/retract_tracker.hpp>
 #endif
-
+  
+#include <feature/retract_tracker/retract_tracker.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
 #include <freertos/critical_section.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
@@ -2178,13 +2178,13 @@ bool Planner::buffer_segment(const abce_pos_t &abce
     gcode_exceptions().report_xyz_move();
   }
 
-#if HAS_AUTO_RETRACT()
   if (target.e != position.e) {
     if(physical_tool.has_value()) {
       buddy::retract_tracker().track_extruder_move(*physical_tool, abce.e - position_float.e);
     }
   }
 
+#if HAS_AUTO_RETRACT()
   if (target.e > position.e) {
     buddy::auto_retract().maybe_deretract_to_nozzle();
     

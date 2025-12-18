@@ -189,8 +189,9 @@
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
-    #include <feature/retract_tracker/retract_tracker.hpp>
 #endif
+
+#include <feature/retract_tracker/retract_tracker.hpp>
 
 #include <option/buddy_enable_wui.h>
 #if BUDDY_ENABLE_WUI()
