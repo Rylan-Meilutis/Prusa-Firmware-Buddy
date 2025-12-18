@@ -186,7 +186,7 @@ PuppyModbus::SingleRequestResult PuppyModbus::make_single_request(RequestTiming 
 }
 
 CommunicationStatus PuppyModbus::make_request(RequestTiming *const timing, size_t retries) {
-    while (retries-- > 0) {
+    do {
         switch (make_single_request(timing)) {
         case SingleRequestResult::ok:
             return CommunicationStatus::OK;
@@ -207,7 +207,7 @@ CommunicationStatus PuppyModbus::make_request(RequestTiming *const timing, size_
             continue;
         }
         bsod_unreachable();
-    }
+    } while (retries-- > 0);
     return CommunicationStatus::ERROR;
 }
 
