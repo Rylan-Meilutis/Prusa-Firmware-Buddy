@@ -77,10 +77,9 @@ public:
         mmu_load,
         mmu_unload_start,
 #endif
-#if HAS_NOZZLE_CLEANER()
-        load_nozzle_clean,
-#endif
-        load_prime,
+        /// Priming, auto-retract, NFC, ...
+        /// Small hint of the linearization of the pause (BFW-7441)
+        load_finalize,
         runout_during_load,
         stop,
         _finished, // From here on are only "terminal" states that have no handler linked to them apart from reporting final status of FSM
@@ -200,9 +199,6 @@ private:
 #if HAS_LOADCELL() && !HAS_INDX()
     void filament_stuck_ask_process(Response response);
 #endif
-#if HAS_AUTO_RETRACT()
-    void auto_retract_process(Response response);
-#endif
     void ram_sequence_process(Response response);
     void unload_process(Response response);
     void unloaded_ask_process(Response response);
@@ -235,10 +231,7 @@ private:
     void mmu_load_process(Response response);
     void mmu_unload_start_process(Response response);
 #endif
-#if HAS_NOZZLE_CLEANER()
-    void load_nozzle_clean_process(Response response);
-#endif
-    void load_prime_process(Response response);
+    void load_finalize_process(Response response);
     void runout_during_load_process(Response response);
     void stop_process(Response response);
 
@@ -250,7 +243,9 @@ private:
             { LoadState::filament_stuck_ask, &Pause::filament_stuck_ask_process },
 #endif
 #if HAS_AUTO_RETRACT()
-            { LoadState::auto_retract, &Pause::auto_retract_process },
+            // Should never get called (now is part of load_finalize)
+            // But it is necessary for the progress mapper
+            { LoadState::auto_retract, nullptr },
 #endif
             { LoadState::ram_sequence, &Pause::ram_sequence_process },
             { LoadState::unload, &Pause::unload_process },
@@ -284,10 +279,7 @@ private:
             { LoadState::mmu_load, &Pause::mmu_load_process },
             { LoadState::mmu_unload_start, &Pause::mmu_unload_start_process },
 #endif
-#if HAS_NOZZLE_CLEANER()
-            { LoadState::load_nozzle_clean, &Pause::load_nozzle_clean_process },
-#endif
-            { LoadState::load_prime, &Pause::load_prime_process },
+            { LoadState::load_finalize, &Pause::load_finalize_process },
             { LoadState::runout_during_load, &Pause::runout_during_load_process },
             { LoadState::stop, &Pause::stop_process },
     };

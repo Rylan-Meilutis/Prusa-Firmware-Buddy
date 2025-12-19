@@ -752,7 +752,7 @@ void Pause::purge_nozzle_clean_process([[maybe_unused]] Response response) {
             return;
         case StopConditions::UserStopped:
             planner.quick_stop_and_resume();
-            set(LoadState::load_prime);
+            set(LoadState::load_finalize);
             return;
         default:
             break;
@@ -772,7 +772,7 @@ void Pause::purge_nozzle_clean_process([[maybe_unused]] Response response) {
         planner.synchronize(); // Wait for the park to finish before continuing
     }
     config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
-    set(LoadState::load_prime);
+    set(LoadState::load_finalize);
 }
 #endif // HAS_NOZZLE_CLEANER()
 
@@ -788,7 +788,7 @@ void Pause::color_correct_ask_process(Response response) {
         break;
 
     case Response::Yes:
-        set(LoadState::load_prime);
+        set(LoadState::load_finalize);
         break;
 
     default:
@@ -807,7 +807,7 @@ void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
             // TODO tell user that he has already loaded filament if he really wants to continue
             // TODO check fsensor .. how should I behave if filament is not detected ???
             // some error?
-            set(LoadState::load_prime);
+            set(LoadState::load_finalize);
             return;
         }
         config_store().set_filament_type(settings.mmu_filament_to_load, filament::get_type_to_load());
@@ -816,7 +816,7 @@ void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
         set(LoadState::color_correct_ask);
     } else if (load_type == LoadType::filament_change) {
         if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-            set(LoadState::load_prime);
+            set(LoadState::load_finalize);
             return;
         }
 
@@ -835,7 +835,7 @@ void Pause::mmu_load_ask_process(Response response) {
 
 void Pause::mmu_load_process([[maybe_unused]] Response response) {
     if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-        set(LoadState::load_prime);
+        set(LoadState::load_finalize);
         return;
     }
 
@@ -903,15 +903,20 @@ void Pause::eject_process([[maybe_unused]] Response response) {
     }
 }
 
-void Pause::load_prime_process([[maybe_unused]] Response response) {
+void Pause::load_finalize_process(Response) {
 #if HAS_AUTO_RETRACT()
+    // Only retract from nozzle outside printing
     if (!marlin_server::is_printing()) {
-        // Only retract from nozzle outside printing
-        set(LoadState::auto_retract);
-        return;
+        setPhase(PhasesLoadUnload::AutoRetracting);
+        PauseFsmDurationNotifier progress_notifier(*this, standard_ramming_sequence(StandardRammingSequence::auto_retract, marlin_vars().active_hotend_id()).duration_estimate_ms());
+        auto_retract().maybe_retract_from_nozzle();
+    }
+#else
+    if constexpr (false) {
     }
 #endif
-    if (load_type == LoadType::filament_change || load_type == LoadType::filament_stuck) {
+    // Otherwise prime the nozzle
+    else if (load_type == LoadType::filament_change || load_type == LoadType::filament_stuck) {
         // Feed a little bit of filament to stabilize pressure in nozzle
 
         // Last poop after user clicked color - yes
@@ -927,23 +932,21 @@ void Pause::load_prime_process([[maybe_unused]] Response response) {
     }
 
 #if HAS_NOZZLE_CLEANER()
-    nozzle_cleaner_load_or_runout_load_gcode(load_type);
-    set(LoadState::load_nozzle_clean);
-    return;
+    {
+        nozzle_cleaner_load_or_runout_load_gcode(load_type);
+        setPhase(PhasesLoadUnload::LoadNozzleCleaning);
+        while (!nozzle_cleaner::execute()) {
+            if (planner.draining() || check_user_stop(getResponse())) {
+                set(LoadState::stop);
+                break;
+            }
+            idle(true);
+        }
+    }
 #endif
 
     set(LoadState::_finished);
 }
-
-#if HAS_NOZZLE_CLEANER()
-void Pause::load_nozzle_clean_process([[maybe_unused]] Response response) {
-    setPhase(PhasesLoadUnload::LoadNozzleCleaning);
-
-    if (nozzle_cleaner::execute()) {
-        set(LoadState::_finished);
-    }
-}
-#endif
 
 void Pause::stop_process([[maybe_unused]] Response response) {
     if (!planner.busy()) {
@@ -1025,22 +1028,6 @@ void Pause::filament_stuck_ask_process(Response response) {
     if (response == Response::Unload) {
         set(LoadState::unload_wait_temp);
     }
-}
-#endif
-
-#if HAS_AUTO_RETRACT()
-void Pause::auto_retract_process([[maybe_unused]] Response response) {
-    setPhase(PhasesLoadUnload::AutoRetracting);
-    PauseFsmDurationNotifier progress_notifier(*this, standard_ramming_sequence(StandardRammingSequence::auto_retract, marlin_vars().active_hotend_id()).duration_estimate_ms());
-    auto_retract().maybe_retract_from_nozzle();
-
-    #if HAS_NOZZLE_CLEANER()
-    nozzle_cleaner_load_or_runout_load_gcode(load_type);
-    set(LoadState::load_nozzle_clean);
-    return;
-    #endif
-
-    set(LoadState::_finished);
 }
 #endif
 
