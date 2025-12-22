@@ -197,7 +197,11 @@ namespace {
             { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
 #endif
             { StateAnimation::Aborting, { { 0, 0, 0 }, 1000, 0, 400, solid } },
+#if PRINTER_IS_PRUSA_iX()
+            { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
+#else
             { StateAnimation::Warning, { { 255, 255, 0 }, 1000, 0, 1000, pulsing } },
+#endif
             { StateAnimation::PowerPanic, { { 0, 0, 0 }, 1000, 0, 400, solid } },
             { StateAnimation::PowerUp, { { 0, 255, 0 }, 1500, 0, 1500, pulsing } },
 #if PRINTER_IS_PRUSA_iX()
