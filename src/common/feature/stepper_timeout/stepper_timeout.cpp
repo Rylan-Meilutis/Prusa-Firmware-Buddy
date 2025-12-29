@@ -12,8 +12,8 @@ StepperTimeoutManager &stepper_timeout() {
     return instance;
 }
 
-StepperTimeoutManager::StepperTimeoutManager()
-    : timer_((DEFAULT_STEPPER_DEACTIVE_TIME)*1000U) {
+StepperTimeoutManager::StepperTimeoutManager() {
+    set_interval_ms(DEFAULT_STEPPER_DEACTIVE_TIME * 1000);
 }
 
 void StepperTimeoutManager::reset() {

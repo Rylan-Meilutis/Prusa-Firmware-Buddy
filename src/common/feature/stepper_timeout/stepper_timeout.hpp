@@ -3,6 +3,7 @@
 
 #include <utils/uncopyable.hpp>
 #include <utils/timing/timer.hpp>
+#include <cstdint>
 
 namespace buddy {
 
@@ -34,8 +35,8 @@ private:
     StepperTimeoutManager();
 
 private:
-    utils::Timer<uint32_t> timer_;
-    bool enabled_ = true;
+    utils::Timer<uint32_t> timer_ { UINT32_MAX };
+    bool enabled_ = false;
 };
 
 StepperTimeoutManager &stepper_timeout();
