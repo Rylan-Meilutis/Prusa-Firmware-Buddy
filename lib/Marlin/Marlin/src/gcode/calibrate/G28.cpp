@@ -473,7 +473,6 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   #endif
 
   DEBUG_SECTION(log_G28, "G28", DEBUGGING(LEVELING));
-  if (DEBUGGING(LEVELING)) log_machine_info();
 
   TERN_(BD_SENSOR, bdl.config_state = 0);
 

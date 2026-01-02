@@ -53,8 +53,6 @@ void safe_delay(millis_t ms);           // Delay ensuring that temperatures are 
 
 #endif
 
-#define log_machine_info() NOOP
-
 /**
  * A restorer instance remembers a variable's value before setting a
  * new value, then restores the old value when it goes out of scope.

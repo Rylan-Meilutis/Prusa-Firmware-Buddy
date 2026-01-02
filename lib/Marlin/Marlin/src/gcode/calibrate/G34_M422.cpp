@@ -86,7 +86,6 @@ inline void set_all_z_lock(const bool lock) {
 void GcodeSuite::G34() {
   if (DEBUGGING(LEVELING)) {
     DEBUG_ECHOLNPGM(">>> G34");
-    log_machine_info();
   }
 
   do { // break out on error
