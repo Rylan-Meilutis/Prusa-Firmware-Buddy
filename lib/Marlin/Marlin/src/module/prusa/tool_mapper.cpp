@@ -1,5 +1,4 @@
 #include "module/prusa/tool_mapper.hpp"
-#include <common/array_extensions.hpp>
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 

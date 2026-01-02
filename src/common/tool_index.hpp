@@ -5,7 +5,7 @@
 #include <variant>
 
 #include <inc/MarlinConfig.h>
-#include <common/array_extensions.hpp>
+#include <utils/array_extensions.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <bsod.h>
 #include <utils/overloaded_visitor.hpp>

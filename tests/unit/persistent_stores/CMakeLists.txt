@@ -31,7 +31,7 @@ target_include_directories(
          ${CMAKE_SOURCE_DIR}/lib/Marlin/Marlin/src/
   )
 
-target_link_libraries(eeprom_unit_tests SG14 freertos_tests)
+target_link_libraries(eeprom_unit_tests SG14 freertos_tests buddy_utils)
 
 add_catch_test(eeprom_unit_tests)
 

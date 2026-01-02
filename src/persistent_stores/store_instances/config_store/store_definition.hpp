@@ -3,7 +3,7 @@
 
 #include <bitset>
 
-#include <common/array_extensions.hpp>
+#include <utils/array_extensions.hpp>
 #include "constants.hpp"
 #include "defaults.hpp"
 #include <option/has_config_store_wo_backend.h>

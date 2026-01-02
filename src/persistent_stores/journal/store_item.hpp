@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common/array_extensions.hpp>
+#include <utils/array_extensions.hpp>
 
 #include "concepts.hpp"
 #include <freertos/task.hpp>
