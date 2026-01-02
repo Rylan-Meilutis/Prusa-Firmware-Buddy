@@ -45,7 +45,6 @@
   #include "../../module/prusa/toolchanger.h"
 #endif
 
-#define DEBUG_OUT 0
 #include "../../core/debug_out.h"
 
 /** \addtogroup G-Codes

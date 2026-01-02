@@ -34,7 +34,6 @@ bool BLTouch::last_written_mode; // Initialized by settings.load, 0 = Open Drain
 
 void stop();
 
-#define DEBUG_OUT 0
 #include "../core/debug_out.h"
 
 bool BLTouch::command(const BLTCommand cmd, const millis_t &ms) {

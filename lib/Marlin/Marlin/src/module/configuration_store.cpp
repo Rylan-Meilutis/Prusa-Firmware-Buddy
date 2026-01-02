@@ -106,7 +106,7 @@
   void M970_report(bool eeprom);
 #endif
 
-#define DEBUG_OUT ENABLED(EEPROM_CHITCHAT)
+static_assert(!ENABLED(EEPROM_CHITCHAT)); // EEPROM_CHITCHAT was used to enable DEBUG_OUT, but DEBUG_OUT was removed
 #include "../core/debug_out.h"
 
 // Limit an index to an array size

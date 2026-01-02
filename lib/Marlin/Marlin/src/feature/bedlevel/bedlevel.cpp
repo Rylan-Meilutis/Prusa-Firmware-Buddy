@@ -39,7 +39,6 @@
   #include "../../lcd/ultralcd.h"
 #endif
 
-#define DEBUG_OUT 0
 #include "../../core/debug_out.h"
 
 #if ENABLED(EXTENSIBLE_UI)

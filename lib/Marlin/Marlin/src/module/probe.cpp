@@ -84,7 +84,6 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
   #include "../lcd/extensible_ui/ui_api.h"
 #endif
 
-#define DEBUG_OUT 0
 #include "../core/debug_out.h"
 
 #include "metric.h"
