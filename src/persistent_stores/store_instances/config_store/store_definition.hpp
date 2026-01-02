@@ -384,14 +384,14 @@ struct CurrentStore
 
     StoreItem<std::bitset<max_user_filament_type_count>, defaults::visible_user_filament_types, ItemFlag::user_presets, journal::hash("Visible User Filament Types")> visible_user_filament_types;
 
-    /// Depreccated, use the overload with VirtualToolIndex
+    [[deprecated("Use the overload with VirtualToolIndex")]]
     FilamentType get_filament_type(uint8_t index);
 
     inline FilamentType get_filament_type(VirtualToolIndex tool) {
         return get_filament_type(tool.to_raw());
     }
 
-    /// Depreccated, use the overload with VirtualToolIndex
+    [[deprecated("Use the overload with VirtualToolIndex")]]
     void set_filament_type(uint8_t index, FilamentType value);
 
     inline void set_filament_type(VirtualToolIndex tool, FilamentType value) {
