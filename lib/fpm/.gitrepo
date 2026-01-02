@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:MikeLankamp/fpm.git
+	branch = master
+	commit = aca475058b762e81a61495473a74fc8e48915fc6
+	parent = 72a6cb9d908b412575bb8ba0a2a6f764b81cf19b
+	method = merge
+	cmdver = 0.4.9
