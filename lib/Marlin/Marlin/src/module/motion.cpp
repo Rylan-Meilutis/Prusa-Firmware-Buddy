@@ -68,7 +68,7 @@
   #endif // ENABLED(CRASH_RECOVERY)
 #endif
 
-#define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+#define DEBUG_OUT 0
 #include "../core/debug_out.h"
 
 #if HAS_PRECISE_HOMING()

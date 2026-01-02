@@ -54,7 +54,7 @@
     #include "loadcell.hpp"
   #endif
 
-  #define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+  #define DEBUG_OUT 0
   #include "../../../core/debug_out.h"
 
   #if ENABLED(EXTENSIBLE_UI)

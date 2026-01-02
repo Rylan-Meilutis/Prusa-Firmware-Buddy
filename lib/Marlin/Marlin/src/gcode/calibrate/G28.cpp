@@ -84,7 +84,7 @@
 #  include "../../feature/prusa/e-stall_detector.h"
 #endif
 
-#define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+#define DEBUG_OUT 0
 #include "../../core/debug_out.h"
 
 #include <feature/tmc_util.h> // for disabling Wave Table during homing

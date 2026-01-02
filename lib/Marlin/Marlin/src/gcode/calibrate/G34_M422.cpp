@@ -42,7 +42,7 @@
    #include "../../libs/least_squares_fit.h"
 #endif
 
-#define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+#define DEBUG_OUT 0
 #include "../../core/debug_out.h"
 
 // Sanity-check the count of Z_STEPPER_ALIGN_XY points

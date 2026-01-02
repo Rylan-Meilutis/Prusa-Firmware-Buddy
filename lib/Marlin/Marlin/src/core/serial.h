@@ -33,13 +33,8 @@ enum MarlinDebugFlags : uint8_t {
   MARLIN_DEBUG_ERRORS        = _BV(2), ///< Not implemented
   MARLIN_DEBUG_DRYRUN        = _BV(3), ///< Ignore temperature setting and E movement commands
   MARLIN_DEBUG_COMMUNICATION = _BV(4), ///< Not implemented
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    MARLIN_DEBUG_LEVELING    = _BV(5), ///< Print detailed output for homing and leveling
-    MARLIN_DEBUG_MESH_ADJUST = _BV(6), ///< UBL bed leveling
-  #else
-    MARLIN_DEBUG_LEVELING    = 0,
-    MARLIN_DEBUG_MESH_ADJUST = 0,
-  #endif
+  MARLIN_DEBUG_LEVELING    = 0,
+  MARLIN_DEBUG_MESH_ADJUST = 0,
   MARLIN_DEBUG_ALL           = 0xFF
 };
 

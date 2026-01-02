@@ -26,7 +26,7 @@
 #include "../../../module/motion.h"
 #include "../../../feature/print_area.h"
 
-#define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+#define DEBUG_OUT 0
 #include "../../../core/debug_out.h"
 
 #define UBL_VERSION "1.01"

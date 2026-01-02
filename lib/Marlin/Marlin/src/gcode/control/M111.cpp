@@ -44,17 +44,10 @@ void GcodeSuite::M111() {
                     str_debug_2[] PROGMEM = MSG_DEBUG_INFO,
                     str_debug_4[] PROGMEM = MSG_DEBUG_ERRORS,
                     str_debug_8[] PROGMEM = MSG_DEBUG_DRYRUN,
-                    str_debug_16[] PROGMEM = MSG_DEBUG_COMMUNICATION
-                    #if ENABLED(DEBUG_LEVELING_FEATURE)
-                      , str_debug_lvl[] PROGMEM = MSG_DEBUG_LEVELING
-                    #endif
-                    ;
+                    str_debug_16[] PROGMEM = MSG_DEBUG_COMMUNICATION;
 
   static PGM_P const debug_strings[] PROGMEM = {
     str_debug_1, str_debug_2, str_debug_4, str_debug_8, str_debug_16
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      , str_debug_lvl
-    #endif
   };
 
   SERIAL_ECHO_START();

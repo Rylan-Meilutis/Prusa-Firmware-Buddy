@@ -918,13 +918,6 @@
  */
 #define RESTORE_LEVELING_AFTER_G28 false
 
-/**
- * Enable detailed logging of G28, G29, M48, etc.
- * Turn on with the command 'M111 S32'.
- * NOTE: Requires a lot of PROGMEM!
- */
-//#define DEBUG_LEVELING_FEATURE
-
 #if ENABLED(AUTO_BED_LEVELING_UBL)
     // Gradually reduce leveling correction until a set height is reached,
     // at which point movement will be level to the machine's XY plane.

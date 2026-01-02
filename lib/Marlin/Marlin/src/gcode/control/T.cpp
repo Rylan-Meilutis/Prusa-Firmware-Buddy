@@ -31,7 +31,7 @@
   #include "module/prusa/tool_mapper.hpp"
 #endif
 
-#if ENABLED(DEBUG_LEVELING_FEATURE) || EXTRUDERS > 1
+#if EXTRUDERS > 1
   #include "../../module/motion.h"
 #endif
 
@@ -45,7 +45,7 @@
   #include "../../module/prusa/toolchanger.h"
 #endif
 
-#define DEBUG_OUT ENABLED(DEBUG_LEVELING_FEATURE)
+#define DEBUG_OUT 0
 #include "../../core/debug_out.h"
 
 /** \addtogroup G-Codes
