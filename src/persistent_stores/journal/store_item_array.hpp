@@ -10,14 +10,14 @@
 
 namespace journal {
 
-template <typename Child, StoreItemDataC DataT, auto default_val, ItemFlags flags_, auto backend, uint8_t item_count>
+template <typename Child, StoreItemDataC DataT, auto default_val_, ItemFlags flags_, auto backend, uint8_t item_count>
 struct JournalItemArrayBase {
-protected:
-    using DefaultVal = std::remove_cvref_t<decltype(default_val)>;
-    using ItemArray = std::array<DataT, item_count>;
-    ItemArray data_array;
 
 public:
+    using DefaultVal = std::remove_cvref_t<decltype(default_val_)>;
+    static constexpr DefaultVal default_val = default_val_;
+
+    using ItemArray = std::array<DataT, item_count>;
     using BackendT = std::remove_cvref_t<std::invoke_result_t<decltype(backend)>>;
     using value_type = DataT;
     using DataArg = JournalItemBase<DataT, backend, false>::DataArg;
@@ -29,6 +29,9 @@ public:
     static_assert(data_size < BackendT::MAX_ITEM_SIZE, "Item is too large");
     static_assert(std::is_same_v<DefaultVal, std::array<DataT, item_count>> || std::is_same_v<DefaultVal, DataT>);
     static_assert(item_count > 0);
+
+protected:
+    ItemArray data_array;
 
 public:
     static constexpr DataT get_default_val(uint8_t index) {
