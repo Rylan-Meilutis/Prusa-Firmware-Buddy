@@ -65,6 +65,11 @@ const img::Resource *warning_dialog_icon(WarningType warning_type) {
 
     case WarningType::NotDownloaded:
         return &img::no_stream_48x48;
+
+#if HAS_ANFC()
+    case WarningType::OpenPrintTagAssigned:
+        return &img::openprinttag_48x16;
+#endif
     }
 }
 

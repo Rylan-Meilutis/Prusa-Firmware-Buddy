@@ -87,11 +87,18 @@ PhasesWarning warning_type_phase(WarningType warning) {
 
 constexpr uint32_t warning_lifespan_sec_constexpr(WarningType type) {
     switch (type) {
+
 #if HAS_CHAMBER_VENTS()
     case WarningType::OpenChamberVents:
     case WarningType::CloseChamberVents:
         return 60;
 #endif
+
+#if HAS_ANFC()
+    case WarningType::OpenPrintTagAssigned:
+        return 5;
+#endif
+
     default:
         return uint32_t(-1); // Unlimited
     }
