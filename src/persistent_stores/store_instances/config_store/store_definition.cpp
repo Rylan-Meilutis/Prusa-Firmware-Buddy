@@ -299,12 +299,17 @@ void CurrentStore::set_filament_type(uint8_t index, FilamentType value) {
         value = new_value;
     }
 
-#if HAS_AUTO_RETRACT()
     if (value == FilamentType::none) {
+#if HAS_ANFC()
+        // Unassign OpenPrintTag on filament removal
+        opt_tool_assigned_tag.set_to_default(index);
+#endif
+
+#if HAS_AUTO_RETRACT()
         // On filament removal, it invalidates retracted distance
         buddy::auto_retract().set_retracted_distance(HAS_TOOLCHANGER() ? index : 0, std::nullopt);
-    }
 #endif
+    }
 
     loaded_filament_type.set(index, value);
 }

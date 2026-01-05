@@ -56,6 +56,7 @@ static_assert(HAS_PAUSE());
 #include <sound.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
 #include <mapi/cold_extrude.hpp>
+#include <feature/gcode_exception/gcode_exception.hpp>
 
 #include <option/has_human_interactions.h>
 #include <option/has_wastebin.h>
@@ -66,6 +67,11 @@ static_assert(HAS_PAUSE());
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
+#endif
+
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
 #endif
 
 LOG_COMPONENT_REF(MarlinServer);
@@ -904,6 +910,21 @@ void Pause::eject_process([[maybe_unused]] Response response) {
 }
 
 void Pause::load_finalize_process(Response) {
+    [[maybe_unused]] const auto virtual_tool = VirtualToolIndex::from_raw(settings.target_extruder);
+
+#if HAS_ANFC()
+    // If tag is detected, assign it to the tool
+    if (auto tag = buddy::openprinttag::ToolTag::for_tool_ephemeral(virtual_tool)) {
+        config_store().opt_tool_assigned_tag.set(virtual_tool.to_raw(), tag->uid_hash());
+
+        // Pop up a "warning" saying that the OpenPrintTag has been assigned
+        // We're using the warning mechanism here because it alows us to pop up the screen asynchronously
+        // and keep autoretracting/cleaning on the background.
+        // The screen will timeout after a few seconds.
+        marlin_server::set_warning(WarningType::OpenPrintTagAssigned);
+    }
+#endif
+
 #if HAS_AUTO_RETRACT()
     // Only retract from nozzle outside printing
     if (!marlin_server::is_printing()) {
