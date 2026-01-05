@@ -3,6 +3,7 @@
 #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #include <numeric_input_config_common.hpp>
 #include <feature/chamber/chamber.hpp>
+#include <feature/chamber_filtration/chamber_filtration.hpp>
 
 namespace {
 void setup_fan_item(WiSpin &item, buddy::XBuddyExtension::Fan fan) {
@@ -28,12 +29,16 @@ FanPWMAndRPM fan_info_function(auto) {
         .rpm = buddy::xbuddy_extension().fan_rpm(fan),
     };
 }
+
+bool disabled_cooling_fans() {
+    return buddy::xbuddy_extension().using_filtration_fan_instead_of_cooling_fans();
+}
 } // namespace
 
 // MI_XBUDDY_EXTENSION_CHAMBER_FANS
 // =============================================
 MI_XBUDDY_EXTENSION_COOLING_FANS::MI_XBUDDY_EXTENSION_COOLING_FANS()
-    : WiSpin(0, numeric_input_config::percent_with_auto, _("Chamber Fans")) //
+    : WiSpin(0, disabled_cooling_fans() ? numeric_input_config::percent_with_disabled : numeric_input_config::percent_with_auto, _("Chamber Fans")) //
 {
     setup_fan_item(*this, buddy::XBuddyExtension::Fan::cooling_fan_1);
 }
