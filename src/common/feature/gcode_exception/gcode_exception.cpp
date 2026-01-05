@@ -64,8 +64,8 @@ bool GCodeExceptionManager::maybe_finish_unwinding() {
         return false;
     }
 
-    for (auto *handler : handlers_) {
-        if (handler->is_being_thrown_at_) {
+    for (const auto &handler : handlers_) {
+        if (handler.is_being_thrown_at_) {
             // Some active are still triggered - we cannot resume
             return false;
         }
@@ -84,7 +84,7 @@ bool GCodeExceptionManager::maybe_finish_unwinding() {
 }
 
 void GCodeExceptionManager::update_handlers_cache() {
-    can_move_xyz_ = std::ranges::all_of(handlers_, [](GCodeExceptionHandlerBase *handler) -> bool { return handler->extent_ == GCEHandlerExtent::any_move; });
+    can_move_xyz_ = std::ranges::all_of(handlers_, [](const GCodeExceptionHandlerBase &handler) -> bool { return handler.extent_ == GCEHandlerExtent::any_move; });
 }
 
 GCodeExceptionHandlerBase::GCodeExceptionHandlerBase(GCEHandlerExtent interruptable_movements)
@@ -94,7 +94,7 @@ GCodeExceptionHandlerBase::GCodeExceptionHandlerBase(GCEHandlerExtent interrupta
     // Do not allow quickstopping any other moves
     planner.synchronize();
 
-    ge.handlers_.push_front(this);
+    ge.handlers_.push_front(*this);
     ge.update_handlers_cache();
 }
 
@@ -103,7 +103,7 @@ bool GCodeExceptionHandlerBase::finalize() {
 
     planner.synchronize();
 
-    ge.handlers_.remove(this);
+    ge.handlers_.remove(*this);
     ge.update_handlers_cache();
 
     // If this was the only triggered handler, resume_local should resume the execution

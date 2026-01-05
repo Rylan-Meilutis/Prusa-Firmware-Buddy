@@ -56,3 +56,10 @@ add_catch_test(leaky_bucket_tests)
 add_executable(value_pack_tests value_pack_tests.cpp)
 target_link_libraries(value_pack_tests buddy_utils)
 add_catch_test(value_pack_tests)
+
+# single_linked_list_tests
+add_executable(single_linked_list_tests single_linked_list_tests.cpp)
+target_include_directories(
+  single_linked_list_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/module/utils/buddy_utils
+  )
+add_catch_test(single_linked_list_tests)

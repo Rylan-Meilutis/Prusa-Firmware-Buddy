@@ -6,7 +6,63 @@
 #include <utils/uncopyable.hpp>
 #include <utils/storage/single_linked_list.hpp>
 
-class GCodeExceptionHandlerBase;
+enum class GCEHandlerExtent : uint8_t {
+    /// The GCodeExceptionHandler is only intended for handling quickstops during extruder moves
+    /// This is easier to handle, because quickstopping during extruder moves does not result in losing homing
+    extruder_only,
+
+    /// The GCodeExceptionHandler can recover from quick stopping even during printhead movements
+    /// This requires way more consideration, as quickstopping such move can cause skipped steps and thus homing loss.
+    /// And rehoming can result in origin shift.
+    any_move,
+};
+
+class GCodeExceptionHandlerBase : public Uncopyable {
+    friend class GCodeExceptionManager;
+
+protected:
+    explicit GCodeExceptionHandlerBase(GCEHandlerExtent extent);
+
+    /// Finalizes the handler (to be called only in the destructor)
+    /// @returns if finalizing the handler resulted in unwinding finish (and thus the handler callback should be called)
+    bool finalize();
+
+private:
+    /// Next handler in the linked list
+    GCodeExceptionHandlerBase *next_handler_ = nullptr;
+
+    /// See GCEHandlerExtent
+    const GCEHandlerExtent extent_ : 1;
+
+    /// Whether gcode_exceptions().throw_at(this) has been called
+    bool is_being_thrown_at_ : 1 = false;
+};
+
+/// Provides a "try-catch" block for the "gcode exception system".
+/// Only to be used from on marlin thread
+///
+/// For usage example, see gcode_exception_example.cpp
+template <typename F>
+class GCodeExceptionHandler final : public GCodeExceptionHandlerBase {
+
+public:
+    /// @param extent what type of quick stop is the handler callback able to recover from
+    /// @param handle_callback callback function that is called upon recovery if gcode_exceptions().throw_at(this) has been called
+    /// Note:
+    explicit GCodeExceptionHandler(GCEHandlerExtent extent, F &&handle_callback)
+        : GCodeExceptionHandlerBase(extent)
+        , handle_callback_(handle_callback) {
+    }
+
+    inline ~GCodeExceptionHandler() {
+        if (finalize()) {
+            handle_callback_();
+        }
+    }
+
+private:
+    F handle_callback_;
+};
 
 /// Manager for an alternative, "cooperative" exception system.
 /// (Because standard C++ exception system is not enabled in the Buddy firmware.)
@@ -72,10 +128,8 @@ private:
     void update_handlers_cache();
 
 private:
-    static inline GCodeExceptionHandlerBase **next_handler(GCodeExceptionHandlerBase *);
-
     /// Currently active handlers
-    SingleLinkedList<GCodeExceptionHandlerBase, next_handler> handlers_;
+    SingleLinkedList<&GCodeExceptionHandlerBase::next_handler_> handlers_;
 
     /// Increased by 1 with every throw()
     uint32_t throw_count_ = 0;
@@ -89,65 +143,3 @@ private:
 };
 
 GCodeExceptionManager &gcode_exceptions();
-
-enum class GCEHandlerExtent : uint8_t {
-    /// The GCodeExceptionHandler is only intended for handling quickstops during extruder moves
-    /// This is easier to handle, because quickstopping during extruder moves does not result in losing homing
-    extruder_only,
-
-    /// The GCodeExceptionHandler can recover from quick stopping even during printhead movements
-    /// This requires way more consideration, as quickstopping such move can cause skipped steps and thus homing loss.
-    /// And rehoming can result in origin shift.
-    any_move,
-};
-
-class GCodeExceptionHandlerBase : public Uncopyable {
-    friend class GCodeExceptionManager;
-
-protected:
-    explicit GCodeExceptionHandlerBase(GCEHandlerExtent extent);
-
-    /// Finalizes the handler (to be called only in the destructor)
-    /// @returns if finalizing the handler resulted in unwinding finish (and thus the handler callback should be called)
-    bool finalize();
-
-private:
-    /// Next handler in the linked list
-    GCodeExceptionHandlerBase *next_handler_ = nullptr;
-
-    /// See GCEHandlerExtent
-    const GCEHandlerExtent extent_ : 1;
-
-    /// Whether gcode_exceptions().throw_at(this) has been called
-    bool is_being_thrown_at_ : 1 = false;
-};
-
-/// Provides a "try-catch" block for the "gcode exception system".
-/// Only to be used from on marlin thread
-///
-/// For usage example, see gcode_exception_example.cpp
-template <typename F>
-class GCodeExceptionHandler final : public GCodeExceptionHandlerBase {
-
-public:
-    /// @param extent what type of quick stop is the handler callback able to recover from
-    /// @param handle_callback callback function that is called upon recovery if gcode_exceptions().throw_at(this) has been called
-    /// Note:
-    explicit GCodeExceptionHandler(GCEHandlerExtent extent, F &&handle_callback)
-        : GCodeExceptionHandlerBase(extent)
-        , handle_callback_(handle_callback) {
-    }
-
-    inline ~GCodeExceptionHandler() {
-        if (finalize()) {
-            handle_callback_();
-        }
-    }
-
-private:
-    F handle_callback_;
-};
-
-inline GCodeExceptionHandlerBase **GCodeExceptionManager::next_handler(GCodeExceptionHandlerBase *i) {
-    return &(i->next_handler_);
-}
