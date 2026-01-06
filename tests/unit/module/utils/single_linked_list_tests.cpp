@@ -255,6 +255,32 @@ TEST_CASE("SingleLinkedList iterator", "[single_linked_list]") {
         CHECK(it1 != it2);
         CHECK(it1 == list.end());
     }
+
+    SECTION("post-increment returns old iterator position") {
+        TestList list;
+        Node node1 { .value = 1 };
+        Node node2 { .value = 2 };
+        Node node3 { .value = 3 };
+
+        list.push_front(node1);
+        list.push_front(node2);
+        list.push_front(node3);
+
+        auto it = list.begin();
+
+        // Post-increment should return iterator to current position
+        // while advancing 'it' to the next position
+        auto old = it++;
+
+        // 'old' should still point to node3 (value 3)
+        CHECK((*old).value == 3);
+
+        // 'it' should now point to node2 (value 2)
+        CHECK((*it).value == 2);
+
+        // They should not be equal
+        CHECK(old != it);
+    }
 }
 
 TEST_CASE("SingleLinkedList with fancy pointers", "[single_linked_list]") {

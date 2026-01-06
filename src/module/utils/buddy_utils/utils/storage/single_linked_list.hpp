@@ -74,8 +74,10 @@ public:
             i_ = i_->*next_ptr;
             return *this;
         }
-        inline iterator &operator++(int) {
-            return operator++();
+        inline iterator operator++(int) {
+            iterator tmp = *this;
+            operator++();
+            return tmp;
         }
 
         inline value_type &operator*() const {
