@@ -6,7 +6,7 @@
 #include <option/has_anfc.h>
 
 enum class PhasesPreheat : PhaseUnderlyingType {
-    UserTempSelection,
+    user_temp_selection,
 
 #if HAS_ANFC()
     /// Asks the user to load the data from OpenPrintTag
@@ -16,7 +16,7 @@ enum class PhasesPreheat : PhaseUnderlyingType {
     /// allowing the user to adjust them
     /// This is typically necessary when the parameters on the tag are incomplete.
     /// !!! Currently, this is implemented as a hack where the GUI opens ScreenOPTFilamentDetail and immediately sends Response::Ok
-    /// !!! This then switches the FSM to UserTempSelection; the OPT is handled in a standard PendingAdHocFilament way
+    /// !!! This then switches the FSM to user_temp_selection; the OPT is handled in a standard PendingAdHocFilament way
     openprinttag_parameters,
 #endif
 
@@ -28,7 +28,7 @@ namespace ClientResponses {
 
 inline constexpr EnumArray<PhasesPreheat, PhaseResponses, PhasesPreheat::_cnt> preheat_responses {
     // Additionally, filament type selection is passed through FSMResponseVariant(FilamentType)
-    { PhasesPreheat::UserTempSelection, { Response::Abort, Response::Cooldown } },
+    { PhasesPreheat::user_temp_selection, { Response::Abort, Response::Cooldown } },
 
 #if HAS_ANFC()
         { PhasesPreheat::ask_load_openprinttag, { Response::Yes, Response::No, Response::Always, Response::Never } },

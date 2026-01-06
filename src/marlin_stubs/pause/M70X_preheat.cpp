@@ -156,7 +156,7 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
 
                 fsm.change(PhasesPreheat::openprinttag_parameters, serialized_data);
 
-                // Wait for the ScreenOPTFilamentDetail to open and then switch to UserTempSelection phase
+                // Wait for the ScreenOPTFilamentDetail to open and then switch to user_temp_selection phase
                 // See hack explanation in PhasesPreheat::openprinttag_parameters doxygen
                 while (true) {
                     switch (marlin_server::get_response_from_phase(PhasesPreheat::openprinttag_parameters)) {
@@ -183,10 +183,10 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
     }
 #endif
 
-    fsm.change(PhasesPreheat::UserTempSelection, serialized_data);
+    fsm.change(PhasesPreheat::user_temp_selection, serialized_data);
 
     while (true) {
-        if (const auto ret = marlin_server::get_response_variant_from_phase(PhasesPreheat::UserTempSelection)) {
+        if (const auto ret = marlin_server::get_response_variant_from_phase(PhasesPreheat::user_temp_selection)) {
             return ret;
         }
 

@@ -205,7 +205,7 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
     case Item::return_: {
         const auto callback = [this] {
             Validate(); /// don't redraw since we leave the menu
-            marlin_client::FSM_response(PhasesPreheat::UserTempSelection, Response::Abort);
+            marlin_client::FSM_response(PhasesPreheat::user_temp_selection, Response::Abort);
         };
         variant.emplace<WindowMenuCallbackItem>(_("Return"), callback, &img::folder_up_16x16);
         break;
@@ -219,7 +219,7 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
 
     case Item::cooldown: {
         const auto callback = [] {
-            marlin_client::FSM_response(PhasesPreheat::UserTempSelection, Response::Cooldown);
+            marlin_client::FSM_response(PhasesPreheat::user_temp_selection, Response::Cooldown);
         };
         variant.emplace<WindowMenuCallbackItem>(_(get_response_text(Response::Cooldown)), callback);
         break;
@@ -256,7 +256,7 @@ void WindowMenuPreheat::screenEvent(window_t *sender, GUI_event_t event, void *p
     case GUI_event_t::TOUCH_SWIPE_LEFT:
     case GUI_event_t::TOUCH_SWIPE_RIGHT:
         if (index_mapping.is_item_enabled<Item::return_>()) {
-            marlin_client::FSM_response(PhasesPreheat::UserTempSelection, Response::Abort);
+            marlin_client::FSM_response(PhasesPreheat::user_temp_selection, Response::Abort);
             return;
         }
         break;
@@ -375,7 +375,7 @@ using Frames
         FrameDefinition<Phase::ask_load_openprinttag, FrameAskLoadOpenPrintTag>,
         FrameDefinition<Phase::openprinttag_parameters, FrameOPTParameters>,
 #endif
-        FrameDefinition<Phase::UserTempSelection, FrameFilamentSelection>>;
+        FrameDefinition<Phase::user_temp_selection, FrameFilamentSelection>>;
 
 } // namespace
 
@@ -399,7 +399,7 @@ bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, Prehea
         }
     }
 
-    marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(filament_type));
+    marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(filament_type));
     return true;
 }
 
