@@ -5,4 +5,8 @@ prusa3d.nfc.util.TagID.1.0 tag
 # If tag switches antennas, the reader will emit TagLost (for the original antenna) followed by TagDetected on the new one (and with a possibly different ID)
 prusa3d.nfc.util.AntennaID.1.0 antenna
 
+# UID of the tag
+# This can possibly fail and return an empty buffer (but should never happen for NFCV)
+uint8[<=8] uid
+
 @sealed

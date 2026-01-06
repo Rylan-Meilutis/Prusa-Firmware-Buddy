@@ -208,10 +208,14 @@ void NFCTask::handle_event(const OPTReader::Event &event) {
     std::visit([&]<typename T>(const T &e) {
         if constexpr (std::is_same_v<T, OPTBackend::TagDetectedEvent>) {
             prusa3d_nfc_event_EventData_1_0_select_tag_detected_(&msg.data);
-            msg.data.tag_detected = {
+            auto &ev_data = msg.data.tag_detected;
+            ev_data = {
                 .tag { e.tag },
                 .antenna { e.antenna },
             };
+
+            const auto uid_result = reader_.backend().get_tag_uid(e.tag, std::as_writable_bytes(std::span { ev_data.uid.elements }));
+            ev_data.uid.count = uid_result.value_or(0);
 
         } else if constexpr (std::is_same_v<T, OPTBackend::TagLostEvent>) {
             prusa3d_nfc_event_EventData_1_0_select_tag_lost_(&msg.data);
