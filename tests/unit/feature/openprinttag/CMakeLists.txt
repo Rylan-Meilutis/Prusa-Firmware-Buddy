@@ -10,7 +10,9 @@ target_include_directories(
   buddy_openprinttag_multirequest_tests PRIVATE stub_include_multirequest
                                                 ${CMAKE_SOURCE_DIR}/src/common
   )
-target_link_libraries(buddy_openprinttag_multirequest_tests openprinttag_fields buddy_utils)
+target_link_libraries(
+  buddy_openprinttag_multirequest_tests openprinttag_fields buddy_utils logging-mock
+  )
 add_catch_test(buddy_openprinttag_multirequest_tests)
 
 # buddy_openprinttag_datautils_tests
@@ -28,5 +30,7 @@ target_include_directories(
   buddy_openprinttag_datautils_tests PRIVATE stub_include_datautils ${CMAKE_SOURCE_DIR}/include
                                              ${CMAKE_SOURCE_DIR}/src/common
   )
-target_link_libraries(buddy_openprinttag_datautils_tests openprinttag_fields buddy_utils)
+target_link_libraries(
+  buddy_openprinttag_datautils_tests openprinttag_fields buddy_utils logging-mock
+  )
 add_catch_test(buddy_openprinttag_datautils_tests)

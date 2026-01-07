@@ -1,5 +1,9 @@
 #include "requests_base.hpp"
 
+#include <logging/log.hpp>
+
+LOG_COMPONENT_DEF(OpenPrintTag, logging::Severity::info);
+
 namespace buddy::openprinttag {
 
 #ifndef UNITTESTS
