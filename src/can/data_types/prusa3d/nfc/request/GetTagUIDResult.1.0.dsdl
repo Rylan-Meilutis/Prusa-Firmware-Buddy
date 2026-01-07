@@ -1,6 +1,6 @@
 @union
 
-uint8[<=8] uid
+uint8[8] uid
 prusa3d.nfc.util.ReaderError.1.0 error
 
 @sealed

@@ -214,8 +214,12 @@ void NFCTask::handle_event(const OPTReader::Event &event) {
                 .antenna { e.antenna },
             };
 
-            const auto uid_result = reader_.backend().get_tag_uid(e.tag, std::as_writable_bytes(std::span { ev_data.uid.elements }));
-            ev_data.uid.count = uid_result.value_or(0);
+            const auto uid_span = std::as_writable_bytes(std::span { ev_data.uid });
+            const auto uid_result = reader_.backend().get_tag_uid(e.tag, uid_span);
+            if (uid_result.value_or(0) != uid_span.size()) {
+                // OPTBackend_NFCV should never fail on this
+                bsod_unreachable();
+            }
 
         } else if constexpr (std::is_same_v<T, OPTBackend::TagLostEvent>) {
             prusa3d_nfc_event_EventData_1_0_select_tag_lost_(&msg.data);
@@ -499,13 +503,17 @@ void NFCTask::handle_get_tag_uid_request(const prusa3d_nfc_request_GetTagUID_1_0
     }
 
     prusa3d_nfc_request_GetTagUIDResult_1_0_select_uid_(&result);
-    const auto io_result = reader_.backend().get_tag_uid(request.tag.value, std::span { reinterpret_cast<std::byte *>(&result.uid.elements), sizeof(result.uid.elements) });
+    const auto uid_span = std::as_writable_bytes(std::span { result.uid });
+    const auto io_result = reader_.backend().get_tag_uid(request.tag.value, uid_span);
+
     if (!io_result) {
         prusa3d_nfc_request_GetTagUIDResult_1_0_select_error_(&result);
         result._error._error = io_result_to_error(io_result);
         return;
     }
 
-    result.uid.count = *io_result;
-    return;
+    if (*io_result != uid_span.size()) {
+        // OPTBackend_NFCV should never fail on this
+        bsod_unreachable();
+    }
 }
