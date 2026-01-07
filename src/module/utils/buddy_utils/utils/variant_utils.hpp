@@ -42,6 +42,11 @@ auto to_variant(auto &&input) {
     return ToVariantResult<decltype(input)> { std::forward<decltype(input)>(input) };
 }
 
+template <typename T, typename... V>
+bool holds_value(const std::variant<V...> &variant, const T &value) {
+    return std::holds_alternative<T>(variant) && std::get<T>(variant) == value;
+}
+
 /// @returns Optionally returns a specified item from std::variant, if the variant holds the item.
 template <typename T, typename... V>
 std::optional<T> get_optional(const std::variant<V...> &v) {
