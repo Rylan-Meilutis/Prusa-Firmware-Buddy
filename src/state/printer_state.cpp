@@ -696,6 +696,9 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #if HAS_ANFC()
     case WarningType::OpenPrintTagAssigned:
         return ErrCode::ERR_CONNECT_OPENPRINTTAG_ASSIGNED;
+
+    case WarningType::OpenPrintTagCannotTrack:
+        return ErrCode::ERR_CONNECT_OPENPRINTTAG_CANNOT_TRACK;
 #endif
 
     case WarningType::_cnt:

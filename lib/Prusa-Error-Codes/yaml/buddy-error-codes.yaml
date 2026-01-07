@@ -885,6 +885,13 @@ Errors:
     gui_layout: "warning_dialog"
     approved: false
 
+  - code: "XX405"
+    title: "OPENPRINTTAG CANNOT TRACK"
+    text: "The OpenPrintTag does not allow filament usage tracking. Filament consumption will not be saved."
+    id: "OPENPRINTTAG_CANNOT_TRACK"
+    gui_layout: "warning_dialog"
+    approved: false
+
   - code: "XX501"
     printers: [iX, XL]
     title: "MODULAR BED ERROR"

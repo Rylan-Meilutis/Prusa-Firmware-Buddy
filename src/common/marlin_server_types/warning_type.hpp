@@ -102,6 +102,9 @@ enum class WarningType : uint32_t {
     /// OpenPrintTag has been assigned to the specified tool, will do filament tracking
     /// This is an info, not a warning
     OpenPrintTagAssigned,
+
+    /// Filament tracking failed for any reason
+    OpenPrintTagCannotTrack,
 #endif
 
 #if HAS_ILI9488_DISPLAY() && HAS_HUMAN_INTERACTIONS()
