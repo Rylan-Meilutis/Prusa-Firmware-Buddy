@@ -15,6 +15,10 @@ public:
         : Request(tag_field.section)
         , tag_field_(tag_field) {}
 
+    inline ToolTagField tag_field() const {
+        return tag_field_;
+    }
+
 protected:
     const ToolTagField tag_field_;
 };
