@@ -1,4 +1,5 @@
 add_subdirectory(detail)
+add_subdirectory(filament_usage_tracker)
 
 target_sources(firmware PRIVATE data_utils.cpp requests_read.cpp tool_tag.cpp tool_tag_buddy.cpp)
 
