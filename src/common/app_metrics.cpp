@@ -46,13 +46,8 @@
 #endif
 
 #if HAS_TOOLCHANGER()
-    // Loop through existing extruders
-    #define FOREACH_EXTRUDER()                  \
-        for (int e = 0; e < EXTRUDERS - 1; e++) \
-            if (buddy::puppies::dwarfs[e].is_enabled())
     #define active_extruder_or_first active_extruder
 #else
-    #define FOREACH_EXTRUDER()       for (int e = 0; e < 1; e++)
     #define active_extruder_or_first 0
 #endif
 
@@ -172,8 +167,8 @@ void RecordMarlinVariables() {
     METRIC_DEF(heatbreak, "temp_hbr", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED); // float value, tag "n": extruder index, tag "a": is active extruder
     static auto heatbreak_should_record = RateLimiter<uint32_t>(1000);
     if (heatbreak_should_record.check(ticks_ms())) {
-        FOREACH_EXTRUDER() {
-            metric_record_custom(&heatbreak, ",n=%i,a=%i value=%.2f", e, e == active_extruder_or_first, static_cast<double>(thermalManager.degHeatbreak(e)));
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            metric_record_custom(&heatbreak, ",n=%i,a=%i value=%.2f", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<double>(thermalManager.degHeatbreak(tool)));
         }
     }
 #endif
@@ -224,16 +219,16 @@ void RecordMarlinVariables() {
     METRIC_DEF(nozzle, "temp_noz", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED);
     static auto nozzle_should_record = RateLimiter<uint32_t>(1000 - 10);
     if (nozzle_should_record.check(ticks_ms())) {
-        FOREACH_EXTRUDER() {
-            metric_record_custom(&nozzle, ",n=%i,a=%i value=%.2f", e, e == active_extruder, static_cast<double>(thermalManager.degHotend(e)));
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            metric_record_custom(&nozzle, ",n=%i,a=%i value=%.2f", tool.to_raw(), tool.to_raw() == active_extruder, static_cast<double>(thermalManager.degHotend(tool)));
         }
     }
 
     METRIC_DEF(target_nozzle, "ttemp_noz", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED);
     static auto target_nozzle_should_record = RateLimiter<uint32_t>(1000 + 9);
     if (target_nozzle_should_record.check(ticks_ms())) {
-        FOREACH_EXTRUDER() {
-            metric_record_custom(&target_nozzle, ",n=%i,a=%i value=%ii", e, e == active_extruder, thermalManager.degTargetHotend(e));
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            metric_record_custom(&target_nozzle, ",n=%i,a=%i value=%ii", tool.to_raw(), tool.to_raw() == active_extruder, thermalManager.degTargetHotend(tool));
         }
     }
 
@@ -387,8 +382,8 @@ void record_dwarf_internal_temperatures() {
     METRIC_DEF(mcu, "dwarfs_mcu_temp", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED); // float value, tag "n": extruder index, tag "a": is active extruder
     static auto mcu_should_record = RateLimiter<uint32_t>(1002);
     if (mcu_should_record.check(ticks_ms())) {
-        FOREACH_EXTRUDER() {
-            metric_record_custom(&mcu, ",n=%i,a=%i value=%i", e, e == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[e].get_mcu_temperature()));
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            metric_record_custom(&mcu, ",n=%i,a=%i value=%i", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[tool].get_mcu_temperature()));
         }
     }
 
@@ -396,8 +391,8 @@ void record_dwarf_internal_temperatures() {
     METRIC_DEF(board, "dwarfs_board_temp", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED); // float value, tag "n": extruder index, tag "a": is active extruder
     static auto board_should_record = RateLimiter<uint32_t>(1003);
     if (board_should_record.check(ticks_ms())) {
-        FOREACH_EXTRUDER() {
-            metric_record_custom(&board, ",n=%i,a=%i value=%i", e, e == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[e].get_board_temperature()));
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            metric_record_custom(&board, ",n=%i,a=%i value=%i", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[tool].get_board_temperature()));
         }
     }
 }
