@@ -1,6 +1,7 @@
 /// @file
 #pragma once
 
+#include <optional>
 #include <variant>
 #include <utility>
 #include <utils/overloaded_visitor.hpp>
