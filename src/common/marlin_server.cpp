@@ -218,6 +218,11 @@
     #include <feature/psu_fan/psu_fan.hpp>
 #endif
 
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
+#endif
+
 using namespace ExtUI;
 
 using ClientQueue = marlin_client::ClientQueue;
@@ -826,6 +831,10 @@ static void cycle() {
     buddy::xbuddy_extension().step();
 #endif
 
+#if HAS_ANFC()
+    buddy::openprinttag::filament_usage_tracker().step();
+#endif
+
     buddy::safety_timer().step();
 
     // Although the timeout should never trigger within idle() (= when a gcode is run),
@@ -909,6 +918,10 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
         return false; // We are not ready yet, we need to wait for the loader to finish buffering
     }
 #endif // HAS_NOZZLE_CLEANER()
+
+#if HAS_ANFC()
+    buddy::openprinttag::filament_usage_tracker().flush(AllTools {});
+#endif
 
 #if HAS_AUTO_RETRACT()
     // During multi tool printing, slicer handles retraction/ramming and keeps FW in the dark
