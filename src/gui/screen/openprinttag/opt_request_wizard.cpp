@@ -22,7 +22,6 @@ bool multirequest_with_troubleshooting(buddy::openprinttag::MultiRequestBase &mu
             MsgBoxError(_("Data on the OpenPrintTag are corrupt. Operation failed."), Responses_Ok);
         };
 
-        bool reissue_request = false;
         for (Request *req : multirequest.requests()) {
             if (!req->has_error()) {
                 continue;
@@ -45,8 +44,7 @@ bool multirequest_with_troubleshooting(buddy::openprinttag::MultiRequestBase &mu
                     return false;
 
                 case Response::Retry:
-                    reissue_request = true;
-                    break;
+                    goto continue_issue_loop;
 
                 default:
                     bsod_unreachable();
@@ -72,13 +70,6 @@ bool multirequest_with_troubleshooting(buddy::openprinttag::MultiRequestBase &mu
             case Error::_cnt:
                 bsod_unreachable();
             }
-
-            if (reissue_request) {
-                break;
-            }
-        }
-        if (reissue_request) {
-            continue;
         }
 
         if (aux_region_corrupt) {
@@ -88,6 +79,7 @@ bool multirequest_with_troubleshooting(buddy::openprinttag::MultiRequestBase &mu
         }
 
         return true;
+    continue_issue_loop: // Just makes the main loop continue and retry
     }
 }
 
