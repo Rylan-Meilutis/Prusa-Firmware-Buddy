@@ -8,6 +8,7 @@
 #include "cmsis_os.h"
 #include "malloc.h"
 #include "heap.h"
+#include <utils/variant_utils.hpp>
 #include <adc.hpp>
 #include <option/has_door_sensor.h>
 #include <option/has_local_bed.h>
@@ -43,12 +44,6 @@
 #if BOARD_IS_XLBUDDY()
     #include <puppies/Dwarf.hpp>
     #include <Marlin/src/module/prusa/toolchanger.h>
-#endif
-
-#if HAS_TOOLCHANGER()
-    #define active_extruder_or_first active_extruder
-#else
-    #define active_extruder_or_first 0
 #endif
 
 using namespace buddy::metrics;
@@ -168,7 +163,7 @@ void RecordMarlinVariables() {
     static auto heatbreak_should_record = RateLimiter<uint32_t>(1000);
     if (heatbreak_should_record.check(ticks_ms())) {
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-            metric_record_custom(&heatbreak, ",n=%i,a=%i value=%.2f", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<double>(thermalManager.degHeatbreak(tool)));
+            metric_record_custom(&heatbreak, ",n=%i,a=%i value=%.2f", tool.to_raw(), stdext::holds_value(PhysicalToolIndex::currently_selected(), tool), static_cast<double>(thermalManager.degHeatbreak(tool)));
         }
     }
 #endif
@@ -383,7 +378,7 @@ void record_dwarf_internal_temperatures() {
     static auto mcu_should_record = RateLimiter<uint32_t>(1002);
     if (mcu_should_record.check(ticks_ms())) {
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-            metric_record_custom(&mcu, ",n=%i,a=%i value=%i", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[tool].get_mcu_temperature()));
+            metric_record_custom(&mcu, ",n=%i,a=%i value=%i", tool.to_raw(), stdext::holds_value(PhysicalToolIndex::currently_selected(), tool), static_cast<int>(buddy::puppies::dwarfs[tool].get_mcu_temperature()));
         }
     }
 
@@ -392,7 +387,7 @@ void record_dwarf_internal_temperatures() {
     static auto board_should_record = RateLimiter<uint32_t>(1003);
     if (board_should_record.check(ticks_ms())) {
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-            metric_record_custom(&board, ",n=%i,a=%i value=%i", tool.to_raw(), tool.to_raw() == active_extruder_or_first, static_cast<int>(buddy::puppies::dwarfs[tool].get_board_temperature()));
+            metric_record_custom(&board, ",n=%i,a=%i value=%i", tool.to_raw(), stdext::holds_value(PhysicalToolIndex::currently_selected(), tool), static_cast<int>(buddy::puppies::dwarfs[tool].get_board_temperature()));
         }
     }
 }
