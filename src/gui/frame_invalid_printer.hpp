@@ -26,5 +26,4 @@ private:
     std::array<Message, hw_check_type_count + 3 + (HAS_MMU2() ? 1 : 0)> messages;
 
     Message unsupported_features;
-    window_text_t unsupported_features_text;
 };

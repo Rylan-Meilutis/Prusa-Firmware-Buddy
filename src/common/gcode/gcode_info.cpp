@@ -220,20 +220,6 @@ void GCodeInfo::EvaluateToolsValid() {
     });
 }
 
-void GCodeInfo::ValidPrinterSettings::add_unsupported_feature(const char *feature, size_t length) {
-    unsupported_features = true;
-    size_t occupied = strlen(unsupported_features_text);
-    size_t free = sizeof(unsupported_features_text) - occupied;
-    if (occupied == 0) {
-        strncpy(unsupported_features_text, feature, std::min(length, free));
-    } else if (free > length + 2) {
-        strcat(unsupported_features_text, ", ");
-        strncat(unsupported_features_text, feature, length);
-    } else {
-        strcpy(unsupported_features_text + sizeof(unsupported_features_text) - 4, "...");
-    }
-}
-
 bool GCodeInfo::ValidPrinterSettings::is_valid(bool is_tools_mapping_possible) const {
     return wrong_printer_model.is_valid() && wrong_gcode_level.is_valid() && wrong_firmware.is_valid()
 #if HAS_GCODE_COMPATIBILITY()
@@ -456,7 +442,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                 }
 
                 if (!find(feature)) {
-                    valid_printer_settings.add_unsupported_feature(feature.begin, feature.end - feature.begin);
+                    valid_printer_settings.unsupported_features = true;
                 }
                 break;
             }

@@ -115,8 +115,6 @@ public:
         Feature outdated_firmware { config_store().hw_check_firmware.get() }; // M115 Ux.yy.z disagrees (TODO: Separate EEVAR?)
         Feature sliced_without_input_shaper { config_store().hw_check_input_shaper.get() }; // G-code sliced with a profile that has input shaper
         bool unsupported_features { false };
-        char unsupported_features_text[37] { "" };
-        void add_unsupported_feature(const char *feature, size_t length);
 
         char latest_fw_version[sizeof("99.99.99-alpha99+999999")];
 

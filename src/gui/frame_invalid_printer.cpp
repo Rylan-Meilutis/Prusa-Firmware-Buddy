@@ -44,8 +44,7 @@ FrameInvalidPrinter::FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPrev
     })
     , unsupported_features(parent,
           (HAS_LARGE_DISPLAY() ? _("Following features are required:") : _("Features required:")),
-          HWCheckSeverity::Abort, !valid_printer_settings.unsupported_features)
-    , unsupported_features_text(parent, {}, is_multiline::no) {
+          HWCheckSeverity::Abort, !valid_printer_settings.unsupported_features) {
 
     static constexpr const Rect16::Width_t icon_margin = GuiDefaults::InvalidPrinterIconMargin;
     static constexpr const Rect16::Height_t line_spacing = GuiDefaults::InvalidPrinterLineSpacing;
@@ -67,7 +66,7 @@ FrameInvalidPrinter::FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPrev
 
 #if HAS_LARGE_DISPLAY()
     // Make a separator empty line only if there is room for it
-    auto lines = std::count_if(begin(messages), end(messages), [](auto &m) { return m.text.HasVisibleFlag(); }) + (unsupported_features.text.HasVisibleFlag() ? 2 : 0);
+    auto lines = std::count_if(begin(messages), end(messages), [](auto &m) { return m.text.HasVisibleFlag(); }) + (unsupported_features.text.HasVisibleFlag() ? 1 : 0);
     if (lines <= 6) {
         icon_rect += Rect16::Top_t(item_h);
         text_rect += Rect16::Top_t(item_h);
@@ -83,19 +82,5 @@ FrameInvalidPrinter::FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPrev
             m.icon.SetRect(icon_rect);
             m.text.SetRect(text_rect);
         }
-    }
-
-    // Show unsupported features
-    if (unsupported_features.text.HasVisibleFlag()) {
-        icon_rect += Rect16::Top_t(item_h);
-        text_rect += Rect16::Top_t(item_h);
-        unsupported_features.icon.SetRect(icon_rect);
-        unsupported_features.text.SetRect(text_rect);
-        text_rect += Rect16::Top_t(item_h);
-        text_rect += Rect16::Left_t(10);
-        unsupported_features_text.SetText(string_view_utf8::MakeRAM(valid_printer_settings.unsupported_features_text));
-        unsupported_features_text.SetRect(text_rect);
-    } else {
-        unsupported_features_text.Hide();
     }
 }
