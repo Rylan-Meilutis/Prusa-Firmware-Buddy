@@ -259,7 +259,11 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
       if (position_is_reachable(destination)) {
         do_blocking_move_to(destination);
         bool endstop_triggered;
-        run_z_probe(0 - (Z_PROBE_LOW_POINT) + DETECT_PRINT_SHEET_Z_POINT, true, &endstop_triggered);
+        run_z_probe({
+          .expected_trigger_z = 0 - (Z_PROBE_LOW_POINT) + DETECT_PRINT_SHEET_Z_POINT,
+          .single_only = true,
+          .endstop_triggered = &endstop_triggered
+        });
         if(!endstop_triggered) {
           return false;
         }

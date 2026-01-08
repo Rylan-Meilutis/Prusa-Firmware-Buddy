@@ -501,24 +501,26 @@ static xy_pos_t offset_for_probe_try(int try_idx) {
  * @details Used by probe_at_point to get the bed Z height at the current XY.
  *          Leaves current_position.z at the height where the probe triggered.
  *
- * @param expected_trigger_z do not probe lower than expected_trigger_z + Z_PROBE_LOW_POINT [mm]
- * @param single_only
- * @param[out] endstop_triggered
+ * @param params Struct containing parameters for the probing operation:
+ * @param params.expected_trigger_z do not probe lower than expected_trigger_z + Z_PROBE_LOW_POINT [mm]
+ * @param params.single_only
+ * @param[out] params.endstop_triggered
  *  - true endstop was triggered earlier than expected_trigger_z was reached
  *  - false endstop was not reached
+ * @param params.is_nozzle_clean If true, skip any nozzle cleaning routines before probing.
  *
  * @return The Z position of the bed at the current XY or NAN on error.
  */
-float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *endstop_triggered /*= nullptr*/, bool is_nozzle_clean /*= false*/) {
+float run_z_probe(const RunZProbeParams& params) {
   if (DEBUGGING(LEVELING)) {
     SERIAL_ECHOLNPAIR(">>> run_z_probe x=", current_position.x, ", y=", current_position.y, ", z=", current_position.z);
   }
 
   // Stop the probe before it goes too low to prevent damage.
   // If Z isn't known then probe to -10mm.
-  float z_probe_low_point = expected_trigger_z + Z_PROBE_LOW_POINT;
-  if (endstop_triggered)
-    *endstop_triggered = true;
+  float z_probe_low_point = params.expected_trigger_z + Z_PROBE_LOW_POINT;
+  if (params.endstop_triggered)
+    *params.endstop_triggered = true;
 
   // We expect PA delays to be already avoided here
   assert(pressure_advance::PressureAdvanceDisabler::is_active());
@@ -534,8 +536,8 @@ float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *
 
     // Do a first probe at the fast speed
     if (do_probe_move(z_probe_low_point, MMM_TO_MMS(Z_PROBE_SPEED_FAST))) {
-      if(endstop_triggered)
-        *endstop_triggered = false;
+      if(params.endstop_triggered)
+        *params.endstop_triggered = false;
       if (planner.draining())
         return NAN;
 
@@ -554,7 +556,7 @@ float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *
 
     // If the nozzle is well over the travel height then
     // move down quickly before doing the slow probe
-    const float z = expected_trigger_z + Z_CLEARANCE_DEPLOY_PROBE + 5.0f + (probe_offset.z < 0 ? -probe_offset.z : 0) - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
+    const float z = params.expected_trigger_z + Z_CLEARANCE_DEPLOY_PROBE + 5.0f + (probe_offset.z < 0 ? -probe_offset.z : 0) - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
     if (current_position.z > z) {
       // Probe down fast. If the probe never triggered, raise for probe clearance
       if (!do_probe_move(z, MMM_TO_MMS(Z_PROBE_SPEED_FAST))) {
@@ -613,8 +615,8 @@ float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *
 
       // Probe downward slowly to find the bed
       if (do_probe_move(z_probe_low_point, MMM_TO_MMS(Z_PROBE_SPEED_SLOW))) {
-        if(endstop_triggered)
-          *endstop_triggered = false;
+        if(params.endstop_triggered)
+          *params.endstop_triggered = false;
         if (planner.draining())
           return NAN;
 
@@ -692,7 +694,7 @@ float run_z_probe(float expected_trigger_z, bool single_only /*= false*/, bool *
         UNUSED(z);
       #endif
 
-      if (single_only)
+      if (params.single_only)
         break;
 
       #if TOTAL_PROBING > 2
@@ -820,7 +822,12 @@ bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max) {
       probe_deployed = true;
 
       // probe
-      float result = run_z_probe(0, /*single_only=*/true, /*endstop_triggered=*/nullptr, /*is_nozzle_clean=*/true);
+      float result = run_z_probe({
+        .expected_trigger_z = 0.f,
+        .single_only = true,
+        .endstop_triggered = nullptr,
+        .is_nozzle_clean = true
+      });
       if (planner.draining()) {
         should_continue = false;
         break;
@@ -865,7 +872,7 @@ float probe_here(float expected_trigger_z)
   float res = NAN;
   DEPLOY_PROBE();
   for(int i=0; i <= TOTAL_PROBING; i++){
-    res = run_z_probe(expected_trigger_z, true) + probe_offset.z + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
+    res = run_z_probe({ .expected_trigger_z = expected_trigger_z, .single_only = true }) + probe_offset.z + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
     if (!std::isnan(res))
       break;
   }
@@ -928,7 +935,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 
   float measured_z = NAN;
   if (!DEPLOY_PROBE()) {
-    measured_z = run_z_probe(0);
+    measured_z = run_z_probe({ .expected_trigger_z = 0.f});
     const float move_away_from = std::isnan(measured_z) ? current_position.z : measured_z;
 
     measured_z += probe_offset.z;
