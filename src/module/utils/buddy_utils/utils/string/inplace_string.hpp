@@ -27,6 +27,10 @@ public:
     }
 
 public:
+    static consteval size_t capacity() {
+        return capacity_;
+    }
+
     /// @returns number of characters of the string
     constexpr size_t size() const {
         return strnlen(data_.data(), capacity_);
