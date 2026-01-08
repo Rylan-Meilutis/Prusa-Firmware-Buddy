@@ -50,13 +50,7 @@ void GCodeInfo::set_gcode_file(const char *filepath_sfn, const char *filename_lf
     strlcpy(gcode_file_name.data(), filename_lfn, gcode_file_name.size());
 }
 
-GCodeInfo::GCodeInfo()
-    : printing_time { "?" }
-    , has_preview_thumbnail_(false)
-    , has_progress_thumbnail_(false)
-    , filament_described(false)
-    , per_extruder_info() //
-{
+GCodeInfo::GCodeInfo() {
 }
 
 bool GCodeInfo::check_still_valid() {
@@ -103,8 +97,8 @@ void GCodeInfo::load(IGcodeReader &reader) {
     reader.generate_index(index, ignore_crc);
 
 #if HAS_GUI()
-    has_preview_thumbnail_ = IGcodeReader::Index::present(index.thumbnails[0].position);
-    has_progress_thumbnail_ = IGcodeReader::Index::present(index.thumbnails[1].position) || IGcodeReader::Index::present(index.thumbnails[2].position);
+    info_.has_preview_thumbnail_ = IGcodeReader::Index::present(index.thumbnails[0].position);
+    info_.has_progress_thumbnail_ = IGcodeReader::Index::present(index.thumbnails[1].position) || IGcodeReader::Index::present(index.thumbnails[2].position);
 #endif
 
     // If we didn't get any thumbnails in the index, it means they are mixed into the metadata.
@@ -112,11 +106,11 @@ void GCodeInfo::load(IGcodeReader &reader) {
     const bool plaintext_gcodes = std::find_if(index.thumbnails.begin(), index.thumbnails.end(), [](const auto &t) { return t.position == IGcodeReader::Index::not_indexed; }) != index.thumbnails.end();
 
     // scan info G-codes and comments
-    valid_printer_settings = ValidPrinterSettings(); // reset to valid state
+    info_.valid_printer_settings = ValidPrinterSettings(); // reset to valid state
     per_extruder_info = {}; // Reset extruder info
-    sliced_with_input_shaper_ = false; // Reset input shaper flag
+    info_.sliced_with_input_shaper_ = false; // Reset input shaper flag
 #if EXTRUDERS > 1
-    filament_wipe_tower_g = std::nullopt;
+    info_.filament_wipe_tower_g = std::nullopt;
 #endif
 
     GcodeBuffer buffer;
@@ -154,8 +148,8 @@ void GCodeInfo::load(IGcodeReader &reader) {
             parse_gcode(buffer.line, gcode_counter);
         }
         // If we didnt find any M862.6 "Input Shaper" command, we assume that the gcode was not sliced with input shaper.
-        if (!sliced_with_input_shaper_ && !PRINTER_IS_PRUSA_iX()) {
-            valid_printer_settings.sliced_without_input_shaper.fail();
+        if (!info_.sliced_with_input_shaper_ && !PRINTER_IS_PRUSA_iX()) {
+            info_.valid_printer_settings.sliced_without_input_shaper.fail();
         }
     }
 
@@ -175,21 +169,19 @@ int GCodeInfo::GivenExtrudersCount() const {
 void GCodeInfo::reset_info() {
     is_loaded_ = false;
     is_printable_ = false;
-    has_preview_thumbnail_ = false;
-    has_progress_thumbnail_ = false;
-    filament_described = false;
-    valid_printer_settings = ValidPrinterSettings();
-    sliced_with_input_shaper_ = false;
-    per_extruder_info.fill({});
-    printing_time[0] = 0;
     error_str_ = {};
 #if HAS_E2EE_SUPPORT()
     identity_info = std::nullopt;
 #endif
+
+    info_ = {};
+    per_extruder_info.fill({});
 }
 
 void GCodeInfo::EvaluateToolsValid() {
     for_each_used_extruder([this]([[maybe_unused]] uint8_t logical_ix, [[maybe_unused]] uint8_t physical_tool, const GCodeInfo::ExtruderInfo &extruder_info) {
+        auto &valid_printer_settings = info_.valid_printer_settings;
+
 #if HAS_TOOLCHANGER()
         // tool is used in gcode, but not enabled in printer
         if (!prusa_toolchanger.is_tool_enabled(physical_tool)) {
@@ -315,6 +307,8 @@ bool GCodeInfo::is_up_to_date(const char *new_version_string) {
 }
 
 void GCodeInfo::parse_m555(GcodeBuffer::String cmd) {
+    auto &bed_preheat_area = info_.bed_preheat_area;
+
     // parses print area into bed_preheat_area.
     cmd.skip_ws();
     bed_preheat_area = PrintArea::rect_t::max();
@@ -363,6 +357,8 @@ void GCodeInfo::parse_m555(GcodeBuffer::String cmd) {
 }
 
 void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
+    auto &valid_printer_settings = info_.valid_printer_settings;
+
     {
         // format is M862.x, so remove dot
         char dot = cmd.pop_front();
@@ -463,7 +459,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                 }
 #endif
                 if (compare(feature, "Input Shaper")) {
-                    sliced_with_input_shaper_ = true;
+                    info_.sliced_with_input_shaper_ = true;
                 }
 
                 if (!find(feature)) {
@@ -551,6 +547,8 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
             }
 
             if (!is_up_to_date(cmd.c_str())) {
+                auto &valid_printer_settings = info_.valid_printer_settings;
+
                 valid_printer_settings.outdated_firmware.fail();
                 strlcpy(valid_printer_settings.latest_fw_version, cmd.c_str(), std::min(sizeof(valid_printer_settings.latest_fw_version), cmd.len() + 1 /* +1 for the null terminator */));
                 // Cut the string at the comment start
@@ -576,13 +574,13 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
     }
 
     else if ((cmd.skip_gcode(gcode_info::m140_set_bed_temp) || cmd.skip_gcode(gcode_info::m190_wait_bed_temp)) && cmd.skip_to_param('S')) {
-        bed_preheat_temp = cmd.get_uint();
+        info_.bed_preheat_temp = cmd.get_uint();
     }
 
     else if ((cmd.skip_gcode(gcode_info::m104_set_hotend_temp) || cmd.skip_gcode(gcode_info::m109_wait_hotend_temp)) && cmd.skip_to_param('S')) {
         // Consider the maximum found value found in the gcode (search_first_x_gcodes)
         // This is because there can be lower preheating for ABL
-        hotend_preheat_temp = std::max<uint16_t>(cmd.get_uint(), hotend_preheat_temp.value_or(0));
+        info_.hotend_preheat_temp = std::max<uint16_t>(cmd.get_uint(), info_.hotend_preheat_temp.value_or(0));
     }
 }
 
@@ -597,9 +595,9 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
                     has_thumbnail = true;
                 }
             };
-            check(thumbnail_sizes::preview_thumbnail_width, thumbnail_sizes::preview_thumbnail_height, has_preview_thumbnail_);
-            check(thumbnail_sizes::progress_thumbnail_width, thumbnail_sizes::progress_thumbnail_height, has_progress_thumbnail_);
-            check(thumbnail_sizes::old_progress_thumbnail_width, thumbnail_sizes::progress_thumbnail_height, has_progress_thumbnail_);
+            check(thumbnail_sizes::preview_thumbnail_width, thumbnail_sizes::preview_thumbnail_height, info_.has_preview_thumbnail_);
+            check(thumbnail_sizes::progress_thumbnail_width, thumbnail_sizes::progress_thumbnail_height, info_.has_progress_thumbnail_);
+            check(thumbnail_sizes::old_progress_thumbnail_width, thumbnail_sizes::progress_thumbnail_height, info_.has_progress_thumbnail_);
 
             return;
         }
@@ -617,7 +615,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
     if (name == gcode_info::time) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-        snprintf(printing_time.begin(), printing_time.size(), "%s", val.c_str());
+        snprintf(info_.printing_time.begin(), info_.printing_time.size(), "%s", val.c_str());
 #pragma GCC diagnostic pop
 
     } else {
@@ -637,7 +635,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
                     FilamentTypeParameters::Name filament_name;
                     snprintf(filament_name.data(), filament_name.capacity(), "%.*s", static_cast<int>(item->size()), item->data());
                     per_extruder_info[extruder].filament_name = filament_name;
-                    filament_described = true;
+                    info_.filament_described = true;
 
                 } else if (is_filament_used_mm) {
                     float val;
@@ -664,7 +662,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
             // load amount of material used filament for wipe tower
             float temp;
             sscanf(val.c_str(), "%f", &temp);
-            filament_wipe_tower_g = temp;
+            info_.filament_wipe_tower_g = temp;
         }
 #endif
     }

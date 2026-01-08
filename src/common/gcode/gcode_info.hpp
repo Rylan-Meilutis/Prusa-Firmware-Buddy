@@ -147,19 +147,25 @@ private:
     std::optional<e2ee::IdentityInfo> identity_info;
 #endif
 
-    time_buff printing_time; ///< Stores string representation of printing time left
-#if EXTRUDERS > 1
-    std::optional<float> filament_wipe_tower_g = { std::nullopt }; ///< Grams of filament used for wipe tower
-#endif
-    bool sliced_with_input_shaper_ = false; ///< True if gcode was sliced with input shaper
-    bool has_preview_thumbnail_; ///< True if gcode has preview thumbnail
-    bool has_progress_thumbnail_; ///< True if gcode has progress thumbnail
-    bool filament_described; ///< Filament info was found in gcode's comments
-    ValidPrinterSettings valid_printer_settings; ///< Info about matching hardware
     GCodePerExtruderInfo per_extruder_info; ///< Info about G-code for each extruder
-    std::optional<uint16_t> bed_preheat_temp { std::nullopt }; ///< Holds bed preheat temperature
-    std::optional<PrintArea::rect_t> bed_preheat_area { std::nullopt }; ///< Holds bed preheat area
-    std::optional<uint16_t> hotend_preheat_temp { std::nullopt }; ///< Holds hotend preheat temperature
+
+    // Struct with all the data, so that we can safely reset everything by just info_ = {}
+    struct GenericInfo {
+        time_buff printing_time { '?', '\0' }; ///< Stores string representation of printing time left
+#if EXTRUDERS > 1
+        std::optional<float> filament_wipe_tower_g = { std::nullopt }; ///< Grams of filament used for wipe tower
+#endif
+        bool sliced_with_input_shaper_ = false; ///< True if gcode was sliced with input shaper
+        bool has_preview_thumbnail_ = false; ///< True if gcode has preview thumbnail
+        bool has_progress_thumbnail_ = false; ///< True if gcode has progress thumbnail
+        bool filament_described = false; ///< Filament info was found in gcode's comments
+        ValidPrinterSettings valid_printer_settings; ///< Info about matching hardware
+
+        std::optional<uint16_t> bed_preheat_temp { std::nullopt }; ///< Holds bed preheat temperature
+        std::optional<PrintArea::rect_t> bed_preheat_area { std::nullopt }; ///< Holds bed preheat area
+        std::optional<uint16_t> hotend_preheat_temp { std::nullopt }; ///< Holds hotend preheat temperatureF
+    };
+    GenericInfo info_;
 
 public:
     /**
@@ -167,7 +173,7 @@ public:
      */
     void reset_info();
 
-    const time_buff &get_printing_time() const { return printing_time; } ///< Get string representation of printing time left
+    const time_buff &get_printing_time() const { return info_.printing_time; } ///< Get string representation of printing time left
     bool is_loaded() const { return is_loaded_; }
 
     inline bool has_error() const { return error_str_; } ///< Returns whether there is an (unrecoverable) error detected. The error message can then be obtained using error_str
@@ -194,16 +200,16 @@ public:
     }
 #endif
 
-    bool has_preview_thumbnail() const { return has_preview_thumbnail_; } ///< Check if file has preview thumbnail
-    bool has_progress_thumbnail() const { return has_progress_thumbnail_; } ///< Check if file has progress thumbnail
-    bool has_filament_described() const { return filament_described; } ///< Check if file has filament described
-    const ValidPrinterSettings &get_valid_printer_settings() const { return valid_printer_settings; } ///< Get info about matching hardware
+    bool has_preview_thumbnail() const { return info_.has_preview_thumbnail_; } ///< Check if file has preview thumbnail
+    bool has_progress_thumbnail() const { return info_.has_progress_thumbnail_; } ///< Check if file has progress thumbnail
+    bool has_filament_described() const { return info_.filament_described; } ///< Check if file has filament described
+    const ValidPrinterSettings &get_valid_printer_settings() const { return info_.valid_printer_settings; } ///< Get info about matching hardware
     const GCodePerExtruderInfo &get_per_extruder_info() const { return per_extruder_info; } ///< Get info about G-code for each extruder
-    const std::optional<uint16_t> &get_bed_preheat_temp() const { return bed_preheat_temp; } ///< Get info about bed preheat temperature
-    const std::optional<PrintArea::rect_t> &get_bed_preheat_area() const { return bed_preheat_area; } ///< Get info about G-preheat area
-    inline const std::optional<uint16_t> &get_hotend_preheat_temp() const { return hotend_preheat_temp; }
+    const std::optional<uint16_t> &get_bed_preheat_temp() const { return info_.bed_preheat_temp; } ///< Get info about bed preheat temperature
+    const std::optional<PrintArea::rect_t> &get_bed_preheat_area() const { return info_.bed_preheat_area; } ///< Get info about G-preheat area
+    inline const std::optional<uint16_t> &get_hotend_preheat_temp() const { return info_.hotend_preheat_temp; }
 #if EXTRUDERS > 1
-    std::optional<float> get_filament_wipe_tower_g() const { return filament_wipe_tower_g; } ///< filament used for wipe tower
+    std::optional<float> get_filament_wipe_tower_g() const { return info_.filament_wipe_tower_g; } ///< filament used for wipe tower
 #endif
 
     /**
