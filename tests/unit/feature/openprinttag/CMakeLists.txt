@@ -3,8 +3,8 @@ set(OPT_SRC "${CMAKE_SOURCE_DIR}/src/common/feature/openprinttag")
 # buddy_openprinttag_multirequest_tests
 add_executable(
   buddy_openprinttag_multirequest_tests
-  ${OPT_SRC}/detail/requests_base.cpp ${OPT_SRC}/detail/requests_multi_base.cpp
-  buddy_openprinttag_multirequest_tests.cpp
+  ${OPT_SRC}/tool_tag.cpp ${OPT_SRC}/detail/requests_base.cpp
+  ${OPT_SRC}/detail/requests_multi_base.cpp buddy_openprinttag_multirequest_tests.cpp
   )
 target_include_directories(
   buddy_openprinttag_multirequest_tests PRIVATE stub_include_multirequest

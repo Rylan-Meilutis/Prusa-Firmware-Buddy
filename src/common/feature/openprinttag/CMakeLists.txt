@@ -1,6 +1,6 @@
 add_subdirectory(detail)
 
-target_sources(firmware PRIVATE data_utils.cpp requests_read.cpp tool_tag.cpp)
+target_sources(firmware PRIVATE data_utils.cpp requests_read.cpp tool_tag.cpp tool_tag_buddy.cpp)
 
 # Will get optimized out, added just for checking that it compiles
 target_sources(firmware PRIVATE usage_example.cpp)

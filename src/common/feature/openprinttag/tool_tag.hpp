@@ -46,6 +46,8 @@ public:
     static std::optional<ToolTag> for_tool_assigned(VirtualToolIndex tool);
 
 public:
+    explicit ToolTag(VirtualToolIndex tool, UIDHash uid_hash);
+
     inline VirtualToolIndex tool() const {
         return tool_;
     }
@@ -62,16 +64,11 @@ public:
     constexpr inline bool operator!=(const ToolTag &) const = default;
 
 private:
-    explicit inline ToolTag(VirtualToolIndex tool, UIDHash uid_hash)
-        : tool_(tool)
-        , uid_hash_(uid_hash) {}
-
-private:
-    VirtualToolIndex tool_;
-
     /// Hash of the tag UID (to reduce size)
     /// This ensures that we don't accidentally read/write something from a different tag (if tag for a tool changes suddenly)
     UIDHash uid_hash_;
+
+    VirtualToolIndex tool_;
 };
 
 struct ToolTagField {
