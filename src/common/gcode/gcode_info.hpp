@@ -17,6 +17,7 @@
 #include <array>
 #include <feature/print_area.h>
 #include <utils/compact_optional.hpp>
+#include <utils/tristate.hpp>
 
 // these strings are meant NOT to be translated
 namespace gcode_info {
@@ -66,8 +67,10 @@ public:
         CompactOptional<float, NAN> nozzle_diameter; /**< stores diameter of nozzle*/
 
         CompactOptional<Color, COLOR_NONE> extruder_colour; /**< stores colour of extruder*/
-        std::optional<bool> requires_hardened_nozzle;
-        std::optional<bool> requires_high_flow_nozzle;
+
+        // Tristate::other represents std::nullopt/data not present in the gcode
+        Tristate requires_hardened_nozzle = Tristate::other;
+        Tristate requires_high_flow_nozzle = Tristate::other;
 
         inline bool used() const {
             /// At least this much filament [g] to be considered used (just purge is about 0.06 g on both XL and MK3)

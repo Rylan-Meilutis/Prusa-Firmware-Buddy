@@ -60,8 +60,8 @@ TEST_CASE("GCodeInfo") {
                 auto extruder_info = info.get_extruder_info(0);
                 CHECK(extruder_info.used());
                 CHECK(strcmp(extruder_info.filament_name->data(), "PLA") == 0);
-                CHECK(!extruder_info.requires_hardened_nozzle.has_value());
-                CHECK(!extruder_info.requires_high_flow_nozzle.has_value());
+                CHECK(extruder_info.requires_hardened_nozzle == Tristate::other);
+                CHECK(extruder_info.requires_high_flow_nozzle == Tristate::other);
             }
         }
     }
