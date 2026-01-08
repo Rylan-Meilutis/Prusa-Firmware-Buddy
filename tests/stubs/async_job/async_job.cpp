@@ -1,10 +1,12 @@
 #include "async_job.hpp"
 
-void AsyncJob::issue(const std::function<void(AsyncJobExecutionControl &)> &f) {
+void AsyncJobBase::issue(const std::function<void(AsyncJobExecutionControl &)> &f) {
     AsyncJobExecutionControl ctrl;
     ctrl.job = this;
     was_discarded_ = false;
     f(ctrl);
+    executed_job_count++;
+    state_ = State::finished;
     discard_after = {};
 }
 

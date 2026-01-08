@@ -5,11 +5,13 @@
 #include <functional>
 #include <optional>
 
-class AsyncJob;
+inline size_t executed_job_count = 0;
+
+class AsyncJobBase;
 
 class AsyncJobExecutionControl {
 public:
-    AsyncJob *job = nullptr;
+    AsyncJobBase *job = nullptr;
 
     bool is_discarded();
 };
@@ -22,17 +24,28 @@ public:
     }
 };
 
-class AsyncJob {
+class AsyncJobBase {
 
 public:
+    enum class State {
+        idle,
+        queued,
+        running,
+        finished,
+        cancelled
+    };
+
+    inline State state() const {
+        return state_;
+    }
+
     bool is_active() const {
-        return false;
+        return (state_ == State::queued) || (state_ == State::running);
     }
 
     void discard() {
+        state_ = State::idle;
     }
-
-    void issue(const std::function<void(AsyncJobExecutionControl &)> &f);
 
     bool was_discarded() {
         if (discard_check_callback) {
@@ -48,6 +61,34 @@ public:
 
     size_t discard_check_count = 0;
 
+    State state_ = State::idle;
+
     /// When set, the function is executed on each discard check
     std::function<void()> discard_check_callback;
+
+protected:
+    void issue(const std::function<void(AsyncJobExecutionControl &)> &f);
+};
+
+class AsyncJob : public AsyncJobBase {
+
+public:
+    using AsyncJobBase::issue;
+};
+
+template <typename T>
+class AsyncJobWithResult : public AsyncJobBase {
+
+public:
+    void issue(const std::function<void(AsyncJobExecutionControl &, T &result)> &f) {
+        AsyncJobBase::issue([this, &f](AsyncJobExecutionControl &control) {
+            f(control, result_);
+        });
+    }
+
+    const T &result() const {
+        return result_;
+    }
+
+    T result_;
 };
