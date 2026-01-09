@@ -105,14 +105,6 @@ void GCodeInfo::load(IGcodeReader &reader) {
     // This is a workaround way how to check that the reader is PlainGCodeReader (we don't have RTTI)
     const bool plaintext_gcodes = std::find_if(index.thumbnails.begin(), index.thumbnails.end(), [](const auto &t) { return t.position == IGcodeReader::Index::not_indexed; }) != index.thumbnails.end();
 
-    // scan info G-codes and comments
-    info_.valid_printer_settings = ValidPrinterSettings(); // reset to valid state
-    per_extruder_info = {}; // Reset extruder info
-    info_.sliced_with_input_shaper_ = false; // Reset input shaper flag
-#if EXTRUDERS > 1
-    info_.filament_wipe_tower_g = std::nullopt;
-#endif
-
     GcodeBuffer buffer;
 
     // parse metadata
