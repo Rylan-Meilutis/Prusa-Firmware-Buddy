@@ -495,7 +495,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
             visitor(per_extruder_info[e]);
         }
 #else
-        if (tool < EXTRUDERS) {
+        if (tool < per_extruder_info.size()) {
             visitor(per_extruder_info[tool]);
         }
 #endif

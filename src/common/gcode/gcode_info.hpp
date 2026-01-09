@@ -18,6 +18,8 @@
 #include <feature/print_area.h>
 #include <utils/compact_optional.hpp>
 #include <utils/tristate.hpp>
+#include <utils/storage/strong_index_array.hpp>
+#include <tool_index.hpp>
 
 // these strings are meant NOT to be translated
 namespace gcode_info {
@@ -133,7 +135,8 @@ public:
         bool is_fatal(bool is_tools_mapping_possible = false) const;
     };
 
-    using GCodePerExtruderInfo = std::array<ExtruderInfo, EXTRUDERS>;
+    // we keep old array size instead of GcodeToolIndex::count because of weak indexing (see definition of GcodeToolIndex::count)
+    using GCodePerExtruderInfo = StrongIndexArray<ExtruderInfo, EXTRUDERS, GcodeToolIndex, GcodeToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
 
 private:
     // atomic flags to signal to other thread, the progress of gcode loading
@@ -221,14 +224,19 @@ public:
      */
     bool is_singletool_gcode() const;
 
+    [[deprecated("Use ToolIndex overload")]]
+    const ExtruderInfo &get_extruder_info(uint8_t extruder) const {
+        assert(extruder < std::size(per_extruder_info));
+        return per_extruder_info[extruder];
+    }
+
     /**
      * @brief Get info about G-code for given extruder
      * @param[in] extruder - extruder number [indexed from 0]
      * @return ExtruderInfo for given extruder
      */
-    const ExtruderInfo &get_extruder_info(uint8_t extruder) const {
-        assert(extruder < std::size(per_extruder_info));
-        return per_extruder_info[extruder];
+    const ExtruderInfo &get_extruder_info(GcodeToolIndex tool) const {
+        return per_extruder_info[tool];
     }
 
     /// Calls \param callback for each extruder that is used for the print
