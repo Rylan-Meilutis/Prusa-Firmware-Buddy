@@ -10,10 +10,6 @@
 
 LOG_COMPONENT_REF(OpenPrintTag);
 
-#ifndef UNITTESTS
-extern osThreadId defaultTaskHandle;
-#endif
-
 namespace buddy::openprinttag {
 
 FilamentUsageTracker &filament_usage_tracker_unsafe() {
@@ -23,7 +19,7 @@ FilamentUsageTracker &filament_usage_tracker_unsafe() {
 
 FilamentUsageTracker &filament_usage_tracker() {
 #ifndef UNITTESTS
-    assert(xTaskGetCurrentTaskHandle() == defaultTaskHandle);
+    assert(marlin_server::is_marlin_server_thread());
 #endif
 
     return filament_usage_tracker_unsafe();

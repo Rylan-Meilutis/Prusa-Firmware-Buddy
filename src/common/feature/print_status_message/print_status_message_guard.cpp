@@ -1,10 +1,10 @@
 #include "print_status_message_guard.hpp"
 #include "print_status_message_mgr.hpp"
 
-extern osThreadId defaultTaskHandle;
+#include <marlin_server.hpp>
 
 PrintStatusMessageGuard::PrintStatusMessageGuard(bool clear_temporary_msg) {
-    assert(xTaskGetCurrentTaskHandle() == defaultTaskHandle);
+    assert(marlin_server::is_marlin_server_thread());
 
     auto &psm = print_status_message();
     std::scoped_lock guard(psm.mutex_);

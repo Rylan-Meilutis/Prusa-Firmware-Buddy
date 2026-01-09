@@ -227,6 +227,8 @@ using namespace ExtUI;
 
 using ClientQueue = marlin_client::ClientQueue;
 
+extern osThreadId defaultTaskHandle;
+
 LOG_COMPONENT_DEF(MarlinServer, logging::Severity::info);
 
 //-----------------------------------------------------------------------------
@@ -3637,6 +3639,10 @@ Response wait_for_response(FSMAndPhase fsm_and_phase, uint32_t timeout_ms) {
 
         ::idle(true);
     }
+}
+
+bool is_marlin_server_thread() {
+    return osThreadGetId() == defaultTaskHandle;
 }
 
 } // namespace marlin_server

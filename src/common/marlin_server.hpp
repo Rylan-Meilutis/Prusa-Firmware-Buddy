@@ -295,4 +295,7 @@ void powerpanic_finish_toolcrash();
 
 void request_calibrations_screen();
 
+/// @returns whether the current thread is the server thread
+bool is_marlin_server_thread();
+
 } // namespace marlin_server
