@@ -18,6 +18,7 @@
 #include <feature/print_area.h>
 #include <utils/compact_optional.hpp>
 #include <utils/tristate.hpp>
+#include <gcode/gcode_compatibility.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <tool_index.hpp>
 
@@ -53,8 +54,6 @@ public:
     // GCODE_LEVEL from PrusaGcodeSuite.hpp, but we don't want to include the header.
     static constexpr uint32_t gcode_level = 2;
 
-    static constexpr auto supported_features = std::to_array({ "Input shaper" });
-
     // search this many g-code at the beginning of the file for the various g-codes (M862.x nozzle size, bed heating, nozzle heating)
     static constexpr size_t search_first_x_gcodes = 200;
 
@@ -84,55 +83,6 @@ public:
         }
     };
 
-    struct ValidPrinterSettings {
-        class Feature {
-            bool wrong : 1 = false;
-            HWCheckSeverity severity : 2;
-
-        public:
-            Feature(HWCheckSeverity severity_)
-                : severity(severity_) {}
-
-            HWCheckSeverity get_severity() const { return severity; }
-            bool is_valid() const { return !wrong || severity == HWCheckSeverity::Ignore; }
-            bool is_fatal() const { return wrong && severity == HWCheckSeverity::Abort; }
-            void fail() { wrong = true; }
-        };
-
-        Feature wrong_tools { HWCheckSeverity::Abort }; // Tools that are used, are not connected (toolchanger only). Can be handled by tools mapping screen
-        Feature wrong_nozzle_diameter { config_store().hw_check_nozzle.get() }; // M862.1 disagree. Can be handled by tools mapping screen
-        Feature nozzle_not_hardened { config_store().hw_check_nozzle.get() }; // M862.1 disagree. Can be handled by tools mapping screen
-        Feature nozzle_not_high_flow { config_store().hw_check_nozzle.get() }; // M862.1 disagree. Can be handled by tools mapping screen
-        Feature wrong_printer_model { config_store().hw_check_model.get() }; // M862.2 or M862.3 or printer_model (from comments) disagree
-        Feature wrong_gcode_level { config_store().hw_check_gcode_level.get() }; // M862.5 disagree
-        Feature wrong_firmware { config_store().hw_check_firmware.get() }; // M862.4 Px.yy.z disagrees
-#if HAS_MMU2()
-        Feature nozzle_flow_mismatch { config_store().hw_check_nozzle.get() }; // Nozzle flow rate doesn't match flow rate in G-code and printing with MMU enabled
-#endif
-#if HAS_GCODE_COMPATIBILITY()
-        Feature gcode_compatibility_mode { config_store().hw_check_gcode_compatibility.get() };
-#endif
-        Feature outdated_firmware { config_store().hw_check_firmware.get() }; // M115 Ux.yy.z disagrees (TODO: Separate EEVAR?)
-        Feature sliced_without_input_shaper { config_store().hw_check_input_shaper.get() }; // G-code sliced with a profile that has input shaper
-        bool unsupported_features { false };
-
-        char latest_fw_version[sizeof("99.99.99-alpha99+999999")];
-
-        /**
-         * @brief Are all printer setting valid?
-         * @param is_tools_mapping_possible Whether to check all settings or only those not handled by tools mapping screen
-         * @return true if all Feature wrong_xxx.is_valid()
-         */
-        bool is_valid(bool is_tools_mapping_possible = false) const;
-
-        /**
-         * @brief Is any printer setting fatal?
-         * @param is_tools_mapping_possible Whether to check all settings or only those not handled by tools mapping screen
-         * @return true if any Feature wrong_xxx.is_fatal()
-         */
-        bool is_fatal(bool is_tools_mapping_possible = false) const;
-    };
-
     // we keep old array size instead of GcodeToolIndex::count because of weak indexing (see definition of GcodeToolIndex::count)
     using GCodePerExtruderInfo = StrongIndexArray<ExtruderInfo, EXTRUDERS, GcodeToolIndex, GcodeToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
 
@@ -160,7 +110,12 @@ private:
         bool has_preview_thumbnail_ = false; ///< True if gcode has preview thumbnail
         bool has_progress_thumbnail_ = false; ///< True if gcode has progress thumbnail
         bool filament_described = false; ///< Filament info was found in gcode's comments
-        ValidPrinterSettings valid_printer_settings; ///< Info about matching hardware
+        bool new_firmware_available = false;
+
+        /// Failure of some checks can be determined directly during GCodeInfo scan
+        buddy::gcode_compatibility::ChecksTraits<buddy::gcode_compatibility::GeneralCheck>::Bitset failed_gcode_checks;
+
+        InplaceString<sizeof("99.99.99-alpha99+999999")> latest_fw_version;
 
         std::optional<uint16_t> bed_preheat_temp { std::nullopt }; ///< Holds bed preheat temperature
         std::optional<PrintArea::rect_t> bed_preheat_area { std::nullopt }; ///< Holds bed preheat area
@@ -201,10 +156,13 @@ public:
     }
 #endif
 
+    const GenericInfo &info() const {
+        return info_;
+    }
+
     bool has_preview_thumbnail() const { return info_.has_preview_thumbnail_; } ///< Check if file has preview thumbnail
     bool has_progress_thumbnail() const { return info_.has_progress_thumbnail_; } ///< Check if file has progress thumbnail
     bool has_filament_described() const { return info_.filament_described; } ///< Check if file has filament described
-    const ValidPrinterSettings &get_valid_printer_settings() const { return info_.valid_printer_settings; } ///< Get info about matching hardware
     const GCodePerExtruderInfo &get_per_extruder_info() const { return per_extruder_info; } ///< Get info about G-code for each extruder
     const std::optional<uint16_t> &get_bed_preheat_temp() const { return info_.bed_preheat_temp; } ///< Get info about bed preheat temperature
     const std::optional<PrintArea::rect_t> &get_bed_preheat_area() const { return info_.bed_preheat_area; } ///< Get info about G-preheat area
@@ -292,9 +250,6 @@ public:
      * @param reader gcode file reader, it cannot be accessed by other threads at the same time
      */
     void load(IGcodeReader &reader);
-
-    /** Evaluates tool compatibility*/
-    void EvaluateToolsValid();
 
 private:
     /** Iterate over items separated by some delimeter character */

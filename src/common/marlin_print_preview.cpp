@@ -850,19 +850,36 @@ IPrintPreview::State PrintPreview::stateFromSelftestCheck() {
 }
 
 IPrintPreview::State PrintPreview::stateFromUpdateCheck() {
-    if (GCodeInfo::getInstance().get_valid_printer_settings().outdated_firmware.is_valid()) {
-        return stateFromPrinterCheck();
-    } else {
+    if (GCodeInfo::getInstance().info().new_firmware_available && config_store().hw_check_firmware.get() != HWCheckSeverity::Ignore) {
         new_firmware_open_ms = ticks_ms();
         return State::new_firmware_available_wait_user;
+    } else {
+        return stateFromPrinterCheck();
     }
 }
 
 IPrintPreview::State PrintPreview::stateFromPrinterCheck() {
-    GCodeInfo::getInstance().EvaluateToolsValid(); // Evaluate tool validity after tools mapping is done
-    if (GCodeInfo::getInstance().get_valid_printer_settings().is_valid(tools_mapping::is_tool_mapping_possible())) {
-        return stateFromFilamentPresence();
+    buddy::gcode_compatibility::CompatibilityReport report;
+    if (tools_mapping::is_tool_mapping_possible()) {
+        // Only check non-tool related things
+        // Tool checks are handled by the tool mapping screen
+        report.generate_without_toolmapping();
+
     } else {
-        return GCodeInfo::getInstance().get_valid_printer_settings().is_fatal(tools_mapping::is_tool_mapping_possible()) ? State::wrong_printer_wait_user_abort : State::wrong_printer_wait_user;
+        report.generate_with_toolmapping({});
     }
+
+    switch (report.failure_severity()) {
+
+    case HWCheckSeverity::Ignore:
+        return stateFromFilamentPresence();
+
+    case HWCheckSeverity::Warning:
+        return State::wrong_printer_wait_user;
+
+    case HWCheckSeverity::Abort:
+        return State::wrong_printer_wait_user_abort;
+    }
+
+    bsod_unreachable();
 }

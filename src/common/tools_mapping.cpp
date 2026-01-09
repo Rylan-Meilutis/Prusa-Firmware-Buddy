@@ -68,18 +68,4 @@ uint8_t to_gcode_tool_custom(const ToolMapper &mapper, const SpoolJoin &joiner, 
     }
 }
 #endif
-
-void execute_on_whole_chain(uint8_t physical_tool, stdext::inplace_function<void(uint8_t)> executable) {
-#if HAS_SPOOL_JOIN()
-    executable(spool_join.get_first_spool_1_from_chain(physical_tool));
-
-    auto followup_spool = spool_join.get_spool_2(physical_tool);
-    while (followup_spool.has_value()) {
-        executable(followup_spool.value());
-        followup_spool = spool_join.get_spool_2(followup_spool.value());
-    }
-#else
-    executable(physical_tool);
-#endif
-}
 } // namespace tools_mapping

@@ -2,6 +2,7 @@
 
 #include <config_store/store_instance.hpp>
 #include <gcode_info.hpp>
+#include <feature/filament_sensor/filament_sensors_handler.hpp>
 
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
@@ -241,5 +242,108 @@ const SpoolJoin &CompatibilityReport::default_spool_join() {
     return spool_join;
 }
 #endif
+
+void CompatibilityReport::generate_without_toolmapping(const GCodeInfo &gcode_info) {
+    *this = {};
+
+    failed_general_checks |= gcode_info.info().failed_gcode_checks;
+
+    if (!gcode_info.info().sliced_with_input_shaper_ && !PRINTER_IS_PRUSA_iX()) {
+        failed_general_checks.set(GeneralCheck::input_shaper);
+    }
+}
+
+void CompatibilityReport::generate_with_toolmapping(const ToolMappingArgs &args) {
+    generate_without_toolmapping(args.gcode_info);
+    generate_toolmapping_only_noclear(args);
+}
+
+void CompatibilityReport::generate_toolmapping_only(const ToolMappingArgs &args) {
+    *this = {};
+    generate_toolmapping_only_noclear(args);
+}
+
+void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] const ToolMappingArgs &args) {
+    const auto &gcode_info = GCodeInfo::getInstance();
+
+#if HAS_MMU2()
+    const bool mmu_enabled = MMU2::mmu2.Enabled();
+#else
+    const bool mmu_enabled = false;
+#endif
+
+    for (GcodeToolIndex gcode_tool : GcodeToolIndex::all().skip_all_disabled()) {
+        auto &gcode_tool_fails = failed_gcode_tool_checks[gcode_tool];
+
+        const auto &extruder_info = gcode_info.get_extruder_info(gcode_tool);
+        if (!extruder_info.used()) {
+            continue;
+        }
+
+#if HAS_TOOL_MAPPING()
+        const auto base_virtual_tool_opt = gcode_tool.to_virtual(args.tool_mapper);
+#else
+        const auto base_virtual_tool_opt = gcode_tool.to_virtual();
+#endif
+
+        if (!std::holds_alternative<VirtualToolIndex>(base_virtual_tool_opt)) {
+            gcode_tool_fails.set(GCodeToolCheck::tool_assigned);
+            continue;
+        }
+        const VirtualToolIndex base_virtual_tool = std::get<VirtualToolIndex>(base_virtual_tool_opt);
+
+#if HAS_MMU2()
+        // Make sure that MMU gcode is sliced with the correct nozzle.
+        // Slicing with a non-HF nozzle while HF nozzle is installed results in unsufficient purging.
+        // Slicing for a HF nozzle without having it leads to extruder skipping.
+        // Note: Always checking first bit in the config store, since nozzle_is_high_flow is set per toolhead and MMU always uses first one.
+        if (extruder_info.requires_high_flow_nozzle == Tristate::yes
+            && !config_store().nozzle_is_high_flow.get().test(0)
+            && !gcode_info.is_singletool_gcode()
+            && mmu_enabled) {
+            failed_virtual_tool_checks[base_virtual_tool].set(VirtualToolCheck::nozzle_not_high_flow);
+        }
+#endif
+
+        const auto virtual_tool_check = [&](VirtualToolIndex virtual_tool) {
+            auto &virtual_tool_fails = failed_virtual_tool_checks[virtual_tool];
+
+            const PhysicalToolIndex physical_tool = virtual_tool.to_physical();
+
+            if (!physical_tool.is_enabled()) {
+                virtual_tool_fails.set(VirtualToolCheck::correct_tool);
+                return;
+            }
+
+            if (auto dia = extruder_info.nozzle_diameter; !dia.has_value() || std::abs(*dia - config_store().get_nozzle_diameter(physical_tool.to_raw())) > 0.001f) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_diameter);
+            }
+            if (extruder_info.requires_hardened_nozzle == Tristate::yes && !config_store().nozzle_is_hardened.get()[physical_tool.to_raw()]) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_hardened);
+            }
+            if (extruder_info.requires_high_flow_nozzle == Tristate::yes && !config_store().nozzle_is_high_flow.get()[physical_tool.to_raw()]) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_high_flow);
+            }
+
+            // With MMU, the filaments are intentionally unloaded at the start of the print
+            if (!mmu_enabled) {
+                if (auto fs = GetExtruderFSensor(physical_tool); fs && fs->get_state() == FilamentSensorState::NoFilament) {
+                    virtual_tool_fails.set(VirtualToolCheck::filament_loaded);
+                }
+                if (auto fs = GetSideFSensor(physical_tool); !mmu_enabled && fs && fs->get_state() == FilamentSensorState::NoFilament) {
+                    virtual_tool_fails.set(VirtualToolCheck::filament_loaded);
+                }
+            }
+        };
+
+#if HAS_SPOOL_JOIN()
+        for (std::optional<VirtualToolIndex> tool = base_virtual_tool; tool.has_value(); tool = args.spool_join.get_spool_2(*tool)) {
+            virtual_tool_check(*tool);
+        }
+#else
+        virtual_tool_check(base_virtual_tool);
+#endif
+    }
+}
 
 } // namespace buddy::gcode_compatibility

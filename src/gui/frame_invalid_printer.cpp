@@ -8,6 +8,7 @@
 #include <utils/string_builder.hpp>
 #include <fonts.hpp>
 
+/* Will be completely rewritten in the next commit
 FrameInvalidPrinter::Message::Message(window_t *parent, const string_view_utf8 &text, HWCheckSeverity severity, bool valid)
     : icon(parent, {}, (severity == HWCheckSeverity::Abort) ? &img::nok_16x16 : &img::warning_16x16)
     , text(parent, {}, is_multiline::yes, is_closed_on_click_t::no, text) {
@@ -84,3 +85,4 @@ FrameInvalidPrinter::FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPrev
         }
     }
 }
+    */

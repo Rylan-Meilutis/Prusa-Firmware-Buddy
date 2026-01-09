@@ -140,10 +140,6 @@ void GCodeInfo::load(IGcodeReader &reader) {
 
             parse_gcode(buffer.line, gcode_counter);
         }
-        // If we didnt find any M862.6 "Input Shaper" command, we assume that the gcode was not sliced with input shaper.
-        if (!info_.sliced_with_input_shaper_ && !PRINTER_IS_PRUSA_iX()) {
-            info_.valid_printer_settings.sliced_without_input_shaper.fail();
-        }
     }
 
     is_loaded_ = true;
@@ -169,82 +165,6 @@ void GCodeInfo::reset_info() {
 
     info_ = {};
     per_extruder_info.fill({});
-}
-
-void GCodeInfo::EvaluateToolsValid() {
-    for_each_used_extruder([this]([[maybe_unused]] uint8_t logical_ix, [[maybe_unused]] uint8_t physical_tool, const GCodeInfo::ExtruderInfo &extruder_info) {
-        auto &valid_printer_settings = info_.valid_printer_settings;
-
-#if HAS_TOOLCHANGER()
-        // tool is used in gcode, but not enabled in printer
-        if (!prusa_toolchanger.is_tool_enabled(physical_tool)) {
-            valid_printer_settings.wrong_tools.fail();
-        }
-#endif
-
-#if HAS_MMU2()
-        // Make sure that MMU gcode is sliced with the correct nozzle.
-        // Slicing with a non-HF nozzle while HF nozzle is installed results in unsufficient purging.
-        // Slicing for a HF nozzle without having it leads to extruder skipping.
-        // Note: Always checking first bit in the config store, since nozzle_is_high_flow is set per toolhead and MMU always uses first one.
-        if (extruder_info.requires_high_flow_nozzle != Tristate::other
-            && (Tristate(config_store().nozzle_is_high_flow.get()[0]) != extruder_info.requires_high_flow_nozzle)
-            && !is_singletool_gcode()
-            && MMU2::mmu2.Enabled()) {
-            valid_printer_settings.nozzle_flow_mismatch.fail();
-        }
-#endif
-
-        auto do_nozzle_check = [&](uint8_t hotend) {
-            assert(hotend < HOTENDS);
-
-            if (auto dia = extruder_info.nozzle_diameter; dia && std::abs(*dia - config_store().get_nozzle_diameter(hotend)) > 0.001f) {
-                valid_printer_settings.wrong_nozzle_diameter.fail();
-            }
-            if (extruder_info.requires_hardened_nozzle == Tristate::yes && !config_store().nozzle_is_hardened.get()[hotend]) {
-                valid_printer_settings.nozzle_not_hardened.fail();
-            }
-            if (extruder_info.requires_high_flow_nozzle == Tristate::yes && !config_store().nozzle_is_high_flow.get()[hotend]) {
-                valid_printer_settings.nozzle_not_high_flow.fail();
-            }
-        };
-
-#if ENABLED(SINGLENOZZLE)
-        do_nozzle_check(0);
-#else
-        tools_mapping::execute_on_whole_chain(physical_tool,
-            [&](uint8_t physical) {
-                do_nozzle_check(physical); // here should be map to hotend from this extruder but the #if ENABLED(SINGLENOZZLE) should be enough for now
-            });
-#endif
-    });
-}
-
-bool GCodeInfo::ValidPrinterSettings::is_valid(bool is_tools_mapping_possible) const {
-    return wrong_printer_model.is_valid() && wrong_gcode_level.is_valid() && wrong_firmware.is_valid()
-#if HAS_GCODE_COMPATIBILITY()
-        && gcode_compatibility_mode.is_valid()
-#endif
-#if HAS_MMU2()
-        && nozzle_flow_mismatch.is_valid()
-#endif
-        && !unsupported_features
-        && (is_tools_mapping_possible // if is_possible -> always true -> handled by tools_mapping screen
-            || (wrong_tools.is_valid() && wrong_nozzle_diameter.is_valid() && nozzle_not_hardened.is_valid() && nozzle_not_high_flow.is_valid()))
-        && sliced_without_input_shaper.is_valid();
-}
-
-bool GCodeInfo::ValidPrinterSettings::is_fatal(bool is_tools_mapping_possible) const {
-    return wrong_printer_model.is_fatal() || wrong_gcode_level.is_fatal() || wrong_firmware.is_fatal()
-#if HAS_GCODE_COMPATIBILITY()
-        || gcode_compatibility_mode.is_fatal()
-#endif
-#if HAS_MMU2()
-        || nozzle_flow_mismatch.is_fatal()
-#endif
-        || (!is_tools_mapping_possible // if is_possible -> always false -> handled by tools_mapping screen
-            && (wrong_tools.is_fatal() || wrong_nozzle_diameter.is_fatal() || nozzle_not_hardened.is_fatal() || nozzle_not_high_flow.is_fatal()))
-        || sliced_without_input_shaper.is_fatal();
 }
 
 bool GCodeInfo::is_up_to_date(const char *new_version_string) {
@@ -336,7 +256,7 @@ void GCodeInfo::parse_m555(GcodeBuffer::String cmd) {
 }
 
 void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
-    auto &valid_printer_settings = info_.valid_printer_settings;
+    using Check = buddy::gcode_compatibility::GeneralCheck;
 
     {
         // format is M862.x, so remove dot
@@ -352,20 +272,21 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
     const auto check_compatibility = [&](const PrinterModelInfo *gcode_printer) {
         // Unknown gcode printer, sayonara!
         if (!gcode_printer) {
-            valid_printer_settings.wrong_printer_model.fail();
+            info_.failed_gcode_checks.set(Check::printer_model);
             return;
         }
         const PrinterGCodeCompatibilityReport compatibility = PrinterModelInfo::current().gcode_compatibility_report(*gcode_printer);
 
         // If there isn't full compatibility of the gcode, report wrong printer model
         if (compatibility != PrinterGCodeCompatibilityReport { .is_compatible = true }) {
-            valid_printer_settings.wrong_printer_model.fail();
-
 #if HAS_GCODE_COMPATIBILITY()
             if (compatibility.is_compatible) {
-                valid_printer_settings.gcode_compatibility_mode.fail();
-            }
+                info_.failed_gcode_checks.set(Check::gcode_compatibility_mode);
+            } else
 #endif
+            {
+                info_.failed_gcode_checks.set(Check::printer_model);
+            }
         }
     };
 
@@ -395,7 +316,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
             case '4':
                 // Parse M862.4 for minimal required firmware version
                 if (!is_up_to_date(cmd.c_str())) {
-                    valid_printer_settings.wrong_firmware.fail();
+                    info_.failed_gcode_checks.set(Check::minimum_fw_version);
                 }
                 break;
 
@@ -405,7 +326,7 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
 
             case '5':
                 if (cmd.get_uint() > gcode_level) {
-                    valid_printer_settings.wrong_gcode_level.fail();
+                    info_.failed_gcode_checks.set(Check::gcode_level);
                 }
                 break;
 
@@ -421,29 +342,24 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                     }
                     return *b == '\0';
                 };
-                auto find = [&](GcodeBuffer::String feature) {
-                    for (auto &f : supported_features) {
-                        if (compare(feature, f)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
                 auto feature = cmd.get_string();
                 feature.trim();
 
 #if HAS_MMU2()
-                if (MMU2::mmu2.Enabled() && compare(feature, "MMU3")) {
+                if (compare(feature, "MMU3")) {
+                    if (!MMU2::mmu2.Enabled()) {
+                        info_.failed_gcode_checks.set(Check::mmu);
+                    }
                     break;
                 }
 #endif
                 if (compare(feature, "Input Shaper")) {
                     info_.sliced_with_input_shaper_ = true;
+                    break;
                 }
 
-                if (!find(feature)) {
-                    valid_printer_settings.unsupported_features = true;
-                }
+                log_error(Buddy, "Unsupported feature: %s", feature.c_str());
+                info_.failed_gcode_checks.set(Check::unsupported_features);
                 break;
             }
             }
@@ -526,12 +442,11 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
             }
 
             if (!is_up_to_date(cmd.c_str())) {
-                auto &valid_printer_settings = info_.valid_printer_settings;
+                info_.new_firmware_available = true;
+                strlcpy(info_.latest_fw_version.data(), cmd.c_str(), std::min(info_.latest_fw_version.capacity(), cmd.len() + 1 /* +1 for the null terminator */));
 
-                valid_printer_settings.outdated_firmware.fail();
-                strlcpy(valid_printer_settings.latest_fw_version, cmd.c_str(), std::min(sizeof(valid_printer_settings.latest_fw_version), cmd.len() + 1 /* +1 for the null terminator */));
                 // Cut the string at the comment start
-                char *comment_start = strchr(valid_printer_settings.latest_fw_version, ';');
+                char *comment_start = strchr(info_.latest_fw_version.data(), ';');
                 if (comment_start) {
                     *comment_start = '\0';
                 }

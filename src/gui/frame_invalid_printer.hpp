@@ -7,7 +7,11 @@
 
 class FrameInvalidPrinter : public FramePrompt {
 public:
-    FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPreview phase);
+    FrameInvalidPrinter(window_frame_t *parent, PhasesPrintPreview phase)
+        : FramePrompt(parent, phase, {}) {}
+
+    /* Will be completely rewritten in the next commit
+        No point in wasting time making it work with the new system
 
 private:
     struct Message {
@@ -26,4 +30,6 @@ private:
     std::array<Message, hw_check_type_count + 3 + (HAS_MMU2() ? 1 : 0)> messages;
 
     Message unsupported_features;
+
+    */
 };

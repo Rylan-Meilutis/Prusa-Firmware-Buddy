@@ -29,7 +29,8 @@ void PrusaGcodeSuite::M862_6() {
     // P is ignored when printing (it is handled before printing by GCodeInfo.*)
     if (parser.boolval('Q')) {
         char temp_buf[sizeof("  M862.6 P\"01234567890123456789\"")];
-        for (auto &feature : GCodeInfo::supported_features) {
+        // TODO: Fix not reporting MMU
+        for (auto feature : { "Input Shaper" }) {
             SERIAL_ECHO_START();
             snprintf(temp_buf, sizeof(temp_buf), PSTR("  M862.6 P\"%s\""), feature);
             SERIAL_ECHO(temp_buf);
