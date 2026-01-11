@@ -1,1 +1,2 @@
 add_subdirectory(signal_processing)
+add_subdirectory(signal2step)
