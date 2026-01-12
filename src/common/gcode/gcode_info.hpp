@@ -13,7 +13,7 @@
 #include <common/hw_check.hpp>
 #include <config_store/store_instance.hpp>
 #include "gcode_buffer.hpp"
-#include "gcode_reader_any.hpp"
+#include <gcode_reader_interface.hpp>
 #include <array>
 #include <feature/print_area.h>
 #include <utils/compact_optional.hpp>

@@ -7,6 +7,7 @@
 
 #include "window_icon.hpp"
 #include "gcode_info.hpp"
+#include <gcode/gcode_reader_any.hpp>
 
 class WindowThumbnail : public window_icon_t {
 public:

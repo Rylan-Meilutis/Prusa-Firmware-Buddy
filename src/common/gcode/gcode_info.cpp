@@ -13,6 +13,7 @@
 #include <option/has_mmu2.h>
 #include <version/version.hpp>
 #include "common/printer_model.hpp"
+#include <gcode_reader_plaintext.hpp>
 
 LOG_COMPONENT_REF(Buddy);
 

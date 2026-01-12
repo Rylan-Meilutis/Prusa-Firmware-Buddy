@@ -295,11 +295,11 @@ void IWindowMenuItem::Print(Rect16 rect) {
     if (IsLabelInvalid()) {
         if (is_focused()) {
             // Is focused -> use shared roll instance
-            focused_menu_item_roll.render_text(label_rect, label, label_font, mi_color_back, mi_color_text, GuiDefaults::MenuPaddingItems, GuiDefaults::MenuAlignment());
+            focused_menu_item_roll.render_text(label_rect, label, label_font, mi_color_back, mi_color_text, GuiDefaults::MenuPaddingItems, Align_t::LeftTop());
 
         } else {
             // Not focused -> render without roll
-            render_text_align(label_rect, label, label_font, mi_color_back, mi_color_text, GuiDefaults::MenuPaddingItems, text_flags(GuiDefaults::MenuAlignment(), is_multiline::no, check_overflow::no), true);
+            render_text_align(label_rect, label, label_font, mi_color_back, mi_color_text, GuiDefaults::MenuPaddingItems, text_flags(Align_t::LeftTop(), is_multiline::no, check_overflow::no), true);
         }
     }
 
