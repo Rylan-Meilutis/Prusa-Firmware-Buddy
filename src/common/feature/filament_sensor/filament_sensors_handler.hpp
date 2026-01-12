@@ -13,6 +13,7 @@
 #include <atomic>
 #include <bitset>
 #include "config_features.h"
+#include <tool_index.hpp>
 
 #include <inplace_function.hpp>
 
@@ -139,8 +140,20 @@ private:
 // singleton
 FilamentSensors &FSensors_instance();
 
+[[deprecated("Use the ToolIndex overload")]]
 IFSensor *GetExtruderFSensor(uint8_t index);
+
+inline IFSensor *GetExtruderFSensor(PhysicalToolIndex tool) {
+    return GetExtruderFSensor(tool.to_raw());
+}
+
+[[deprecated("Use the ToolIndex overload")]]
 IFSensor *GetSideFSensor(uint8_t index);
+
+inline IFSensor *GetSideFSensor(PhysicalToolIndex tool) {
+    return GetSideFSensor(tool.to_raw());
+}
+
 bool hasActiveFilamentSensor(uint8_t index);
 
 /**
