@@ -61,7 +61,7 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
         msg = N_("The tag is corrupt, locked, missing lenght/weight data or otherwise unsuitable.");
     }
 
-    assert((msg != nullptr) == is_tracking_);
+    assert((msg == nullptr) == is_tracking_);
     if (msg) {
         MsgBoxError(_(msg), Responses_Ok);
     }
