@@ -492,7 +492,7 @@ void M1978() {
 #endif
 #if HAS_PSU_FAN()
     static constexpr auto HIGH_PSU_FAN_RANGE = fan_selftest::FanRPMRange { .rpm_min = 4500, .rpm_max = 5500 };
-    static constexpr auto LOW_PSU_FAN_RANGE = fan_selftest::FanRPMRange { .rpm_min = 2000, .rpm_max = 2500 };
+    static constexpr auto LOW_PSU_FAN_RANGE = fan_selftest::FanRPMRange { .rpm_min = 1800, .rpm_max = 2500 };
     PSUFanHandler psu_fan { HIGH_PSU_FAN_RANGE, LOW_PSU_FAN_RANGE };
     fan_container[container_index++] = &psu_fan;
 #endif
