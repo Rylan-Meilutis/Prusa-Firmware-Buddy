@@ -869,6 +869,11 @@ FORCE_OFAST void phase_stepping::handle_periodic_refresh() {
 }
 
 bool phase_stepping::any_axis_enabled() {
+    if (!initialized) {
+        // Nothing can be enabled if we are not even initialized.
+        return false;
+    }
+
     return std::ranges::any_of(axis_states, [](const auto &state) -> bool {
         return (state.enabled);
     });
