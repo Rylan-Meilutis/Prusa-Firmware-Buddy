@@ -27,7 +27,7 @@ public:
 };
 
 /// Automatically lays out the windows in a vertical stack, based on the provided configuration
-void layout_vertical_stack(const Rect16 &rect, const std::span<window_t *> &windows, const std::span<const StackLayoutItem> &items);
+void layout_vertical_stack(const Rect16 &rect, std::span<window_t *> windows, std::span<const StackLayoutItem> items);
 
 namespace standard_stack_layout {
 
