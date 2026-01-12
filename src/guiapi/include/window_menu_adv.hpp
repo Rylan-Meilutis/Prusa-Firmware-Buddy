@@ -47,6 +47,16 @@ protected:
             scroll_bar.SetRect(window_menu_frame_ns::calc_scroll_bar_rect(GetRect()));
             break;
 
+        case GUI_event_t::KNOB:
+        case GUI_event_t::CLICK:
+            // This is a HACK for situations where we want the system to be able to change focus between menus and something else
+            // - the parent window_frame_t has a capture
+            // - the focus is then "rotated" between the frame children - radio buttons, menus, ...
+            // - Because the ExtendedMenu is the child of the frame instead of the menu itself, it is the extended menu that gets the focus
+            // - That means that the Extended menu is getting the knob events instead of underlying menu. So we need to pass the events to it.
+            menu.WindowEvent(sender, event, param);
+            return;
+
         default:
             break;
         }
