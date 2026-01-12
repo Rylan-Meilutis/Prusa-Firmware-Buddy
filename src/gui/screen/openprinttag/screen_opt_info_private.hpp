@@ -47,8 +47,8 @@ namespace {
         void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const final;
 
     private:
-        VirtualToolIndex tool_;
-        bool is_tracking_;
+        const VirtualToolIndex tool_;
+        bool is_tracking_ = false;
     };
 
     class ScreenOPTInfo;
