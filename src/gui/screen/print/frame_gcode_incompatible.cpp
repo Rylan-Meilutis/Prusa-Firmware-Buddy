@@ -1,88 +1,136 @@
 #include "frame_gcode_incompatible.hpp"
 
-#include "img_resources.hpp"
-#include <guiconfig/guiconfig.h>
-#include <option/has_mmu2.h>
-#include <find_error.hpp>
-#include <fsm/print_preview_mapper.hpp>
-#include <utils/string_builder.hpp>
-#include <fonts.hpp>
+#include <gcode_compatibility.hpp>
+#include <tools_mapping.hpp>
+#include <client_response_texts.hpp>
+#include <marlin_client.hpp>
+#include <img_resources.hpp>
+#include <window_msgbox.hpp>
+#include <gui/auto_layout.hpp>
 
-/* Will be completely rewritten in the next commit
-FrameGCodeIncompatible::Message::Message(window_t *parent, const string_view_utf8 &text, HWCheckSeverity severity, bool valid)
-    : icon(parent, {}, (severity == HWCheckSeverity::Abort) ? &img::nok_16x16 : &img::warning_16x16)
-    , text(parent, {}, is_multiline::yes, is_closed_on_click_t::no, text) {
-    if (valid) {
-        icon.Hide();
-        this->text.Hide();
+using namespace buddy;
+
+namespace screen_print_preview {
+
+static constexpr IWindowMenuItem::ColorScheme fatal_check_color_scheme {
+    .text {
+        .focused = COLOR_RED,
+        .unfocused = COLOR_RED,
+    },
+};
+
+static constexpr IWindowMenuItem::ColorScheme failed_check_color_scheme {
+    .text {
+        .focused = COLOR_ORANGE,
+        .unfocused = COLOR_ORANGE,
+    },
+};
+
+WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect16 rect, PhasesPrintPreview phase)
+    : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no)
+    , phase_(phase) {
+
+    gcode_compatibility::CompatibilityReport report;
+    if (tools_mapping::is_tool_mapping_possible()) {
+        // Only check non-tool related things
+        // Tool checks are handled by the tool mapping screen
+        report.generate_without_toolmapping();
+
+    } else {
+        report.generate_with_toolmapping({});
     }
+
+    report.visit_failed_checks([this](const auto &fail) {
+        failed_checks_.push_back(fail.meta);
+        return failed_checks_.size() != failed_checks_.max_size();
+    });
+
+    setup_items();
 }
 
-FrameGCodeIncompatible::Message::Message(window_t *parent, const string_view_utf8 &text, const GCodeInfo::ValidPrinterSettings::Feature &feature)
-    : Message(parent, text, feature.get_severity(), feature.is_valid()) {}
+int screen_print_preview::WindowMenuGCodeIncompatible::item_count() const {
+    return failed_checks_.size();
+}
 
-FrameGCodeIncompatible::FrameGCodeIncompatible(window_frame_t *parent, PhasesPrintPreview phase)
-    : FramePrompt(parent, phase, map_print_preview_phase_to_error_code)
-    , valid_printer_settings(GCodeInfo::getInstance().get_valid_printer_settings())
-    , messages({
-        { parent, _("Printer doesn't have enough tools"), valid_printer_settings.wrong_tools },
-            { parent, _("Nozzle diameter doesn't match"), valid_printer_settings.wrong_nozzle_diameter },
-            { parent, _("Nozzle is not hardened"), valid_printer_settings.nozzle_not_hardened },
-            { parent, _("Nozzle is not high-flow"), valid_printer_settings.nozzle_not_high_flow },
-            { parent, _("Printer model doesn't match"), valid_printer_settings.wrong_printer_model },
-            { parent, _("G-code version doesn't match"), valid_printer_settings.wrong_gcode_level },
-#if HAS_GCODE_COMPATIBILITY()
-            { parent, _("G-code compatibility mode"), valid_printer_settings.gcode_compatibility_mode },
-#endif
-            { parent,
-                (HAS_LARGE_DISPLAY() ? _("Newer firmware is required: %s") : _("Newer FW req.: %s"))
-                    .formatted(wrong_fw_version_params, valid_printer_settings.latest_fw_version),
-                valid_printer_settings.wrong_firmware },
-#if HAS_MMU2()
-            { parent, _("Nozzle flow rate doesn't match"), valid_printer_settings.nozzle_flow_mismatch },
-#endif
-            { parent, _("G-code not sliced for input shaping"), valid_printer_settings.sliced_without_input_shaper },
-    })
-    , unsupported_features(parent,
-          (HAS_LARGE_DISPLAY() ? _("Following features are required:") : _("Features required:")),
-          HWCheckSeverity::Abort, !valid_printer_settings.unsupported_features) {
+void screen_print_preview::WindowMenuGCodeIncompatible::setup_item(ItemVariant &variant, int index) {
+    const auto &meta = *failed_checks_[index];
+    const HWCheckSeverity severity = meta.evaluate_severity();
 
-    static constexpr const Rect16::Width_t icon_margin = GuiDefaults::InvalidPrinterIconMargin;
-    static constexpr const Rect16::Height_t line_spacing = GuiDefaults::InvalidPrinterLineSpacing;
-    static constexpr const Rect16::Width_t img_w = img::warning_16x16.w;
-    static constexpr const Rect16::Height_t img_h = img::warning_16x16.h;
+    const auto cb = [&meta] {
+        if (meta.description) {
+            MsgBoxInfo(_(meta.description), Responses_Ok);
+        }
+    };
 
-    Rect16::Height_t h = resource_font(info.get_font())->h;
-
-    Rect16 icon_rect = { info.GetRect().TopLeft(), img_w, img_h };
+    auto &item = variant.emplace<WindowMenuCallbackItem>(_(meta.title), cb);
+    item.set_color_scheme(severity == HWCheckSeverity::Abort ? &fatal_check_color_scheme : &failed_check_color_scheme);
 
 #if HAS_MINI_DISPLAY()
-    Rect16::Height_t item_h = (std::min(h, img_h) + line_spacing) * 2;
-    Rect16 text_rect = info.GetRect() = Rect16::Height_t(2 * item_h);
-#elif HAS_LARGE_DISPLAY()
-    Rect16::Height_t item_h = std::min(h, img_h) + line_spacing;
-    Rect16 text_rect = info.GetRect() = Rect16::Height_t(h);
+    item.setLabelFont(Font::small);
+#else
+    item.SetIconId(hw_check_severity_icons[severity]);
 #endif
-    info.SetRect(text_rect);
 
-#if HAS_LARGE_DISPLAY()
-    // Make a separator empty line only if there is room for it
-    auto lines = std::count_if(begin(messages), end(messages), [](auto &m) { return m.text.HasVisibleFlag(); }) + (unsupported_features.text.HasVisibleFlag() ? 1 : 0);
-    if (lines <= 6) {
-        icon_rect += Rect16::Top_t(item_h);
-        text_rect += Rect16::Top_t(item_h);
-    }
-#endif
-    text_rect += Rect16::Left_t(img_w + icon_margin);
-    text_rect -= Rect16::Width_t(img_w + icon_margin);
-
-    for (auto &m : messages) {
-        if (m.text.HasVisibleFlag()) {
-            icon_rect += Rect16::Top_t(item_h);
-            text_rect += Rect16::Top_t(item_h);
-            m.icon.SetRect(icon_rect);
-            m.text.SetRect(text_rect);
-        }
+    if (meta.description) {
+        item.set_show_expand_icon();
     }
 }
-    */
+
+FrameGCodeIncompatible::FrameGCodeIncompatible(window_frame_t *parent, PhasesPrintPreview phase)
+    : title_(parent, Rect16 {}, is_multiline::yes)
+    , title_line_(parent, {})
+    , menu_(parent, Rect16 {}, phase)
+    , radio_(parent, Rect16 {}, phase) {
+
+    title_.SetAlignment(Align_t::LeftBottom());
+    title_.SetText(_("G-Code incompatibilities detected"));
+#if HAS_MINI_DISPLAY()
+    title_.set_font(Font::small);
+#endif
+
+    title_line_.SetBackColor(COLOR_DARK_GRAY);
+
+    static constexpr std::array layout {
+        // Title
+        StackLayoutItem {
+            .height = 32,
+            .margin_side = 16,
+            .margin_top = 4,
+            .margin_bottom = 4,
+        },
+
+        // Title line
+        StackLayoutItem {
+            .height = 2,
+            .margin_side = 16,
+            .margin_bottom = 4,
+        },
+
+        // Incompatibilities list (menu)
+        StackLayoutItem {
+            .height = StackLayoutItem::stretch,
+#if !HAS_MINI_DISPLAY()
+            .margin_side = 16,
+#endif
+        },
+
+        // Radio
+        standard_stack_layout::for_radio,
+    };
+    auto windows = std::to_array<window_t *>({
+        &title_,
+        &title_line_,
+        &menu_,
+        &radio_,
+    });
+
+    layout_vertical_stack(menu_.GetParent()->GetRect(), windows, layout);
+
+    // Do NOT capture anything - the window frame itself should be able to handle passing events through
+    // and make KNOB events focus previous/next element
+    // parent->CaptureNormalWindow(nullptr);
+    // But we gotta set focus to the radio
+    radio_.SetFocus();
+}
+
+} // namespace screen_print_preview
