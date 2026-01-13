@@ -75,7 +75,7 @@ struct HeatbedletInfo {
     uint32_t m_TemperaturePeak_StartTime;
 
     uint32_t m_NextPreheatCheckTime;
-    uint32_t m_NextPreheatCheckTemperature;
+    float m_NextPreheatCheckTemperature;
 
     static HeatbedletInfo *Get(uint32_t heatbedletIndex) {
         return &(s_HBInfoArray[heatbedletIndex]);
