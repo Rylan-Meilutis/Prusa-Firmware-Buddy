@@ -16,6 +16,9 @@ add_library(bsod_catch STATIC "${CMAKE_CURRENT_SOURCE_DIR}/tests_include/bsod.cp
 target_link_libraries(bsod_catch PUBLIC bsod)
 target_link_libraries(bsod_catch PRIVATE Catch2::Catch2)
 link_libraries(bsod_catch)
+# Link pthread for all tests (needed for some gcc versions)
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
 
 # Prepend our stubbed libintl header to override the host's gettext
 include_directories(${CMAKE_SOURCE_DIR}/tests/stubs/host)
