@@ -174,15 +174,30 @@ bool marlin_is_retracted() {
 }
 
 int16_t thermal_degTargetHotend() {
-    return thermalManager.degTargetHotend(active_extruder);
+    return match(
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool) { return thermalManager.degTargetHotend(physical_tool); },
+        [](NoTool) -> int16_t {
+            assert(false);
+            return 0;
+        });
 }
 
 float thermal_degHotend() {
-    return thermalManager.degHotend(active_extruder);
+    return match(
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool) { return thermalManager.degHotend(physical_tool); },
+        [](NoTool) {
+            assert(false);
+            return 0.0f;
+        });
 }
 
 void thermal_setTargetHotend(int16_t t) {
-    thermalManager.setTargetHotend(t, active_extruder);
+    match(
+        PhysicalToolIndex::currently_selected(),
+        [t](PhysicalToolIndex physical_tool) { thermalManager.setTargetHotend(t, physical_tool); },
+        [](NoTool) { assert(false); });
 }
 
 void safe_delay_keep_alive(uint16_t t) {
