@@ -10,6 +10,7 @@ MenuItemSwitch::MenuItemSwitch(const string_view_utf8 &label, const std::span<co
 }
 
 bool MenuItemSwitch::on_item_selected([[maybe_unused]] int old_index, [[maybe_unused]] int new_index) {
+    set_current_item(new_index); // OnChange() expects updated MenuItemSelectMenu::current_item_ for correct function
     OnChange(old_index);
     return true;
 }
