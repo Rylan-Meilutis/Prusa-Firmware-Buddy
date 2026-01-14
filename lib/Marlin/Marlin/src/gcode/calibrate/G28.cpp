@@ -602,7 +602,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
   // Always home with tool 0 active (but not with HAS_TOOLCHANGER())
   #if HAS_MULTI_HOTEND && !HAS_TOOLCHANGER()
-    const uint8_t old_tool_index = active_extruder;
+    const auto old_tool_index = PhysicalToolIndex::currently_selected();
     tool_change(0, tool_return_t::no_return);
   #endif
 
@@ -730,7 +730,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
       #endif
 
       #if HAS_TOOLCHANGER()
-      if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
+      if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
         // When no tool is picked, make sure to pick one
         failed = !prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
       }
