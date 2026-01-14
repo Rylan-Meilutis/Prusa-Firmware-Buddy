@@ -16,6 +16,7 @@
 #include "tool_index_iterator.hpp"
 
 /// Strong type for representing no tool using `std::variant<SomeToolIndex, NoTool>`
+/// This type means a VALID situation where the toolchanger has no tool picked
 struct NoTool {
     inline constexpr bool operator==(const NoTool &) const {
         return true;
@@ -24,6 +25,13 @@ struct NoTool {
 
 /// Strong type for representing all tools using `std::variant<SomeToolIndex, AllTools>`
 struct AllTools {
+    inline constexpr bool operator==(const AllTools &) const {
+        return true;
+    }
+};
+
+/// Strong type for representing when a tool is not mapped, like `std::variant<SomeToolIndex, ToolNotMapped>`
+struct ToolNotMapped {
     inline constexpr bool operator==(const AllTools &) const {
         return true;
     }
@@ -167,11 +175,11 @@ struct GcodeToolIndexExtension {
 
     /// @returns VirtualToolIndex corresponding to the GCodeToolIndex, if there is any
     /// Will return NoTool if no tool is mapped
-    std::variant<VirtualToolIndex, NoTool> to_virtual() const;
+    std::variant<VirtualToolIndex, ToolNotMapped> to_virtual() const;
 
     /// @returns PhysicalToolIndex corresponding to the GCodeToolIndex, if there is any
     /// Will return NoTool if no tool is mapped
-    std::variant<PhysicalToolIndex, NoTool> to_physical() const;
+    std::variant<PhysicalToolIndex, ToolNotMapped> to_physical() const;
 };
 
 /// Strong type for indexing virtual tools before toolmapping.

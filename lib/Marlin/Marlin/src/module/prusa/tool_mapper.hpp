@@ -19,6 +19,9 @@
  */
 class ToolMapper {
 public:
+    using ToVirtualResult = std::variant<VirtualToolIndex, ToolNotMapped>;
+    using ToGCodeResult = std::variant<GcodeToolIndex, ToolNotMapped>;
+
     ToolMapper &operator=(const ToolMapper &other);
 
     /// Create new mapping of tool
@@ -56,11 +59,11 @@ public:
         return match(
             maybe_virtual,
             [](VirtualToolIndex virtual_tool) { return virtual_tool.to_raw(); },
-            [](NoTool) { return NO_TOOL_MAPPED; });
+            [](ToolNotMapped) { return NO_TOOL_MAPPED; });
     }
 
     /// Convert gcode tool to virtual
-    [[nodiscard]] std::variant<VirtualToolIndex, NoTool> to_virtual(GcodeToolIndex gcode_tool, bool ignore_enabled = false) const;
+    [[nodiscard]] ToVirtualResult to_virtual(GcodeToolIndex gcode_tool, bool ignore_enabled = false) const;
 
     /// Convert virtual tool to gcode
     [[deprecated("Use the ToolIndex overload")]] [[nodiscard]]
@@ -72,11 +75,11 @@ public:
         return match(
             maybe_gcode,
             [](GcodeToolIndex gcode_tool) { return gcode_tool.to_raw(); },
-            [](NoTool) { return NO_TOOL_MAPPED; });
+            [](ToolNotMapped) { return NO_TOOL_MAPPED; });
     }
 
     /// Convert virtual tool to gcode
-    [[nodiscard]] inline std::variant<GcodeToolIndex, NoTool> to_gcode(VirtualToolIndex virtual_tool) const {
+    [[nodiscard]] inline ToGCodeResult to_gcode(VirtualToolIndex virtual_tool) const {
         std::unique_lock lock(mutex);
         return to_gcode_unlocked(virtual_tool);
     }
@@ -125,16 +128,17 @@ public:
     void deserialize(serialized_state_t &from);
 
 private:
-    using GcodeToVirtualArray = StrongIndexArray<std::variant<VirtualToolIndex, NoTool>, GcodeToolIndex::count, GcodeToolIndex, GcodeToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
+    using GcodeToVirtualArray = StrongIndexArray<ToVirtualResult, GcodeToolIndex::count, GcodeToolIndex, GcodeToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
+
     /// std::array with VirtualToolIndex(i) at i-th index
     static constexpr GcodeToVirtualArray default_mapping = { stdext::make_iota_array<GcodeToolIndex::count, [](std::size_t i) {
-        return std::variant<VirtualToolIndex, NoTool>(VirtualToolIndex::from_raw(i));
+        return ToVirtualResult(VirtualToolIndex::from_raw(i));
     }>() };
 
-    [[nodiscard]] std::variant<GcodeToolIndex, NoTool> to_gcode_unlocked(VirtualToolIndex virtual_tool) const;
+    [[nodiscard]] ToGCodeResult to_gcode_unlocked(VirtualToolIndex virtual_tool) const;
 
     inline void set_unassigned_unlocked(GcodeToolIndex gcode_tool) {
-        gcode_to_virtual[gcode_tool] = NoTool {};
+        gcode_to_virtual[gcode_tool] = ToolNotMapped {};
     }
 
     mutable freertos::Mutex mutex;

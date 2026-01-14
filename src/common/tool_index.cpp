@@ -38,7 +38,7 @@ PhysicalToolIndex VirtualExtension::to_physical() const {
 }
 
 template <>
-std::variant<VirtualToolIndex, NoTool> GcodeExtension::to_virtual() const {
+std::variant<VirtualToolIndex, ToolNotMapped> GcodeExtension::to_virtual() const {
     [[maybe_unused]] const auto &self = static_cast<const GcodeToolIndex &>(*this);
 
 #if HAS_TOOL_MAPPING()
@@ -49,12 +49,12 @@ std::variant<VirtualToolIndex, NoTool> GcodeExtension::to_virtual() const {
 }
 
 template <>
-std::variant<PhysicalToolIndex, NoTool> GcodeExtension::to_physical() const {
-    using Result = std::variant<PhysicalToolIndex, NoTool>;
+std::variant<PhysicalToolIndex, ToolNotMapped> GcodeExtension::to_physical() const {
+    using Result = std::variant<PhysicalToolIndex, ToolNotMapped>;
     return match(
         to_virtual(), //
         [](VirtualToolIndex t) -> Result { return t.to_physical(); }, //
-        [](NoTool) -> Result { return NoTool {}; });
+        [](ToolNotMapped) -> Result { return ToolNotMapped {}; });
 }
 
 template <>
@@ -104,7 +104,7 @@ bool GcodeExtension::is_enabled() const {
     return match(
         self.to_virtual(), //
         [](VirtualToolIndex t) { return t.is_enabled(); }, //
-        [](NoTool) { return false; });
+        [](ToolNotMapped) { return false; });
 }
 
 template <>
