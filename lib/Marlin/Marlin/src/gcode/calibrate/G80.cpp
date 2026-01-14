@@ -24,24 +24,20 @@ static void run_gcode(const char *fmt, ...) {
  */
 
 /**
- *### G80: Mesh Bed Leveling (MK3.5, MK3.9, MK4/S) <a href="https://reprap.org/wiki/G-code#G80:_Mesh-based_Z_probe">G80: Mesh-based Z probe</a>
- *
- * MK3.5, MK3.9 and MK4 Only
+ *### G80: Mesh Bed Leveling <a href="https://reprap.org/wiki/G-code#G80:_Mesh-based_Z_probe">G80: Mesh-based Z probe</a>
  *
  *#### Usage
  *
  *    G80
  */
 void GcodeSuite::G80() {
-    const int target_extruder =
-    #if EXTRUDERS > 1
-        active_extruder;
-    #else
-        0;
-    #endif
+    const int target_extruder = match(PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool){ return physical_tool.to_raw(); },
+        [](NoTool) -> uint8_t { fatal_error("cannot do G80 with no picked tool", "GcodeSuite"); }
+    );
 
     // calc target temperatures
-    float print_temp = thermalManager.degTargetHotend(active_extruder);
+    float print_temp = thermalManager.degTargetHotend(target_extruder);
     float mbl_temp;
     if (print_temp >= 250) {
         mbl_temp = print_temp - 25;
