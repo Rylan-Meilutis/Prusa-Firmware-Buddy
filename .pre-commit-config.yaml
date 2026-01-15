@@ -47,6 +47,7 @@ repos:
     - id: mixed-line-ending
 exclude: |
   (?x)^(
+    lib/CMSIS-DSP/|
     lib/Catch2/|
     lib/CrashCatcher/|
     lib/Drivers/|
