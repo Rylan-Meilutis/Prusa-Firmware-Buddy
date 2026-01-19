@@ -20,7 +20,6 @@ inline constexpr int max_bootstrap_perc { 90 };
 enum PuppyType : size_t {
     DWARF,
     MODULARBED,
-    XBUDDY_EXTENSION,
     INDX_HEAD,
 };
 
@@ -52,9 +51,6 @@ constexpr auto DOCKS = std::to_array({
         Dock::DWARF_5,
         Dock::DWARF_6,
 #endif
-#if HAS_XBUDDY_EXTENSION()
-        Dock::XBUDDY_EXTENSION,
-#endif
 #if HAS_INDX_HEAD()
         Dock::INDX_HEAD,
 #endif
@@ -82,10 +78,6 @@ constexpr const char *to_string(Dock k) {
     case Dock::DWARF_6:
         return "DWARF_6";
 #endif
-#if HAS_XBUDDY_EXTENSION()
-    case Dock::XBUDDY_EXTENSION:
-        return "XBUDDY_EXTENSION";
-#endif
 #if HAS_INDX_HEAD()
     case Dock::INDX_HEAD:
         return "INDX_HEAD";
@@ -111,10 +103,6 @@ constexpr PuppyType to_puppy_type(Dock dock) {
     case Dock::DWARF_6:
         return DWARF;
 #endif
-#if HAS_XBUDDY_EXTENSION()
-    case Dock::XBUDDY_EXTENSION:
-        return XBUDDY_EXTENSION;
-#endif
 #if HAS_INDX_HEAD()
     case Dock::INDX_HEAD:
         return INDX_HEAD;
@@ -134,10 +122,6 @@ constexpr bool is_dynamicly_addressable(PuppyType puppy) {
 #if HAS_DWARF()
     case DWARF:
         return true;
-#endif
-#if HAS_XBUDDY_EXTENSION()
-    case XBUDDY_EXTENSION:
-        return false;
 #endif
 #if HAS_INDX_HEAD()
     case INDX_HEAD:
@@ -191,14 +175,6 @@ inline constexpr PuppyInfo get_puppy_info(PuppyType puppy) {
             "modularbed",
             "/internal/res/puppies/fw-modularbed.bin",
             43,
-        };
-#endif
-#if HAS_XBUDDY_EXTENSION()
-    case XBUDDY_EXTENSION:
-        return {
-            "xbuddy extension",
-            "/internal/res/puppies/fw-xbuddy-extension.bin",
-            44,
         };
 #endif
 #if HAS_INDX_HEAD()
@@ -255,12 +231,6 @@ inline constexpr DockInfo get_dock_info(Dock dock) {
     case Dock::DWARF_6:
         return {
             "/internal/dump_dwarf6.dmp",
-        };
-#endif
-#if HAS_XBUDDY_EXTENSION()
-    case Dock::XBUDDY_EXTENSION:
-        return {
-            "/internal/dump_xbuddy_extension.dmp",
         };
 #endif
 #if HAS_INDX_HEAD()

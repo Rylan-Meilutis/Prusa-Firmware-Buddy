@@ -932,6 +932,17 @@ else()
 endif()
 define_boolean_option(HAS_PUPPIES ${HAS_PUPPIES})
 
+# Puppy bootstrap is needed for puppies other than XBE (which has its own)
+if(HAS_DWARF
+   OR HAS_INDX_HEAD
+   OR HAS_PUPPY_MODULARBED
+   )
+  set(HAS_PUPPY_BOOTSTRAP YES)
+else()
+  set(HAS_PUPPY_BOOTSTRAP NO)
+endif()
+define_boolean_option(HAS_PUPPY_BOOTSTRAP ${HAS_PUPPY_BOOTSTRAP})
+
 if(${BOARD} IN_LIST BOARDS_WITH_USB_DEVICE)
   set(HAS_USB_DEVICE YES)
 else()

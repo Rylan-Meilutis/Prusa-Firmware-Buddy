@@ -9,7 +9,6 @@
 #include <common/timing.h>
 #include <logging/log.hpp>
 #include <option/has_toolchanger.h>
-#include <puppies/PuppyBootstrap.hpp>
 #include <tasks.hpp>
 
 #include <option/has_dwarf.h>
@@ -40,12 +39,18 @@
 
 #include <option/has_xbuddy_extension.h>
 #if HAS_XBUDDY_EXTENSION()
+    #include <puppies/xbuddy_extension_bootstrap.hpp>
     #include <puppies/xbuddy_extension.hpp>
 #endif
 
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include <puppies/mmu.hpp>
+#endif
+
+#include <option/has_puppy_bootstrap.h>
+#if HAS_PUPPY_BOOTSTRAP()
+    #include <puppies/PuppyBootstrap.hpp>
 #endif
 
 #define PUPPY_TASK_DEBUG() false
@@ -81,12 +86,14 @@ namespace {
 
 static std::atomic<bool> stop_request = false; // when this is set to true, puppy task will gracefully stop its execution
 
+#if HAS_PUPPY_BOOTSTRAP()
 static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::BootstrapResult minimal_config) {
     // boostrap first
     log_info(Puppies, "Starting bootstrap");
     PuppyBootstrap puppy_bootstrap { PuppyModbus::share_buffer() };
     return puppy_bootstrap.run(minimal_config);
 }
+#endif
 
 static void verify_puppies_running(PuppyModbus &bus) {
     // wait for all the puppies to be reacheable
@@ -358,14 +365,25 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
     PuppyModbus &bus = buddy::puppies::puppyModbus;
     [[maybe_unused]] bool first_run = true;
 
+#if HAS_PUPPY_BOOTSTRAP()
     // by default, we want one modular bed and one dwarf
     PuppyBootstrap::BootstrapResult minimal_puppy_config = PuppyBootstrap::MINIMAL_PUPPY_CONFIG;
+#endif
 
     do {
+#if HAS_XBUDDY_EXTENSION()
+        {
+            BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
+            xbuddy_extension_bootstrap(bootloader_protocol);
+        }
+#endif
+
+#if HAS_PUPPY_BOOTSTRAP()
         // reset and flash the puppies
         auto bootstrap_result = bootstrap_puppies(minimal_puppy_config);
         // once some puppies are detected, consider this minimal puppy config (do no allow disconnection of puppy while running)
         minimal_puppy_config = bootstrap_result;
+#endif
 
 #if HAS_PUPPY_MODULARBED()
         // set what puppies are connected

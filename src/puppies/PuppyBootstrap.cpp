@@ -50,12 +50,6 @@ static BootstrapStage flashing_stage(PuppyType puppy_type) {
 #else
         break;
 #endif
-    case XBUDDY_EXTENSION:
-#if HAS_XBUDDY_EXTENSION()
-        return BootstrapStage::flashing_xbuddy_extension;
-#else
-        break;
-#endif
     case INDX_HEAD:
 #if HAS_INDX_HEAD()
         return BootstrapStage::flashing_indx_head;
@@ -77,12 +71,6 @@ static BootstrapStage check_fingerprint_stage(PuppyType puppy_type) {
     case MODULARBED:
 #if HAS_PUPPY_MODULARBED()
         return BootstrapStage::verifying_modular_bed;
-#else
-        break;
-#endif
-    case XBUDDY_EXTENSION:
-#if HAS_XBUDDY_EXTENSION()
-        return BootstrapStage::verifying_xbuddy_extension;
 #else
         break;
 #endif
@@ -353,20 +341,10 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
         modular_bed_reset.write(state);
         break;
 #endif
-#if HAS_XBUDDY_EXTENSION()
-    case Dock::XBUDDY_EXTENSION: {
-        // Soooooo the reset pin is inverted on XBE, ...
-        // so when we want to activate reset on XBE we need to deactivate reset pin in the mmu port
-        if (state == Pin::State::high) {
-            buddy::hw::Configuration::Instance().deactivate_ext_reset();
-        } else {
-            buddy::hw::Configuration::Instance().activate_ext_reset();
-        }
-    } break;
-#endif
 #if HAS_INDX_HEAD()
     case Dock::INDX_HEAD:
         // INDX_TODO
+        (void)state;
         break;
 #endif
     default:
@@ -428,12 +406,6 @@ bool PuppyBootstrap::discover(PuppyType type, BootloaderProtocol::Address addres
         } else {
             log_warning(Puppies, "Puppy's hardware ID was not written properly to its OTP");
         }
-
-#if HAS_XBUDDY_EXTENSION()
-        if (type == XBUDDY_EXTENSION) {
-            xbuddy_extension.set_otp(*reinterpret_cast<const OTP_v5 *>(otp));
-        }
-#endif
     } // else - older bootloader has revision 0
 
     if (hwinfo.hw_type != get_puppy_info(type).hw_info_hwtype) {

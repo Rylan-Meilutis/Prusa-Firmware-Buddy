@@ -1,8 +1,8 @@
 #pragma once
 #include "crash_dump/dump.hpp"
 #include <device/board.h>
-#include <option/has_puppies.h>
-#if HAS_PUPPIES()
+#include <option/has_puppy_bootstrap.h>
+#if HAS_PUPPY_BOOTSTRAP()
     #include <puppies/puppy_crash_dump.hpp>
 #endif
 
@@ -16,7 +16,7 @@ struct DumpHandler {
 };
 
 inline constexpr auto dump_handlers { std::to_array<DumpHandler>({
-#if HAS_PUPPIES()
+#if HAS_PUPPY_BOOTSTRAP()
     {
         .presence_check = buddy::puppies::crash_dump::is_a_dump_in_filesystem,
         .usb_save = []() { buddy::puppies::crash_dump::save_dumps_to_usb(); },

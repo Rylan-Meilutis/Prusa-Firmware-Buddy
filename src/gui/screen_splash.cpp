@@ -269,6 +269,11 @@ ScreenSplash::ScreenSplash()
                 { BootstrapStage::flashing_esp, 1 },
                 { BootstrapStage::reflashing_esp, 1 },
 #endif
+#if HAS_XBUDDY_EXTENSION()
+                { BootstrapStage::looking_for_xbuddy_extension, 1 },
+                { BootstrapStage::verifying_xbuddy_extension, 1 },
+                { BootstrapStage::flashing_xbuddy_extension, 10 },
+#endif
 #if HAS_PUPPIES()
                 { BootstrapStage::waking_up_puppies, 1 },
                 { BootstrapStage::looking_for_puppies, 1 },
@@ -280,10 +285,6 @@ ScreenSplash::ScreenSplash()
     #if HAS_PUPPY_MODULARBED()
                 { BootstrapStage::flashing_modular_bed, 10 },
                 { BootstrapStage::verifying_modular_bed, 1 },
-    #endif
-    #if HAS_XBUDDY_EXTENSION()
-                { BootstrapStage::flashing_xbuddy_extension, 10 },
-                { BootstrapStage::verifying_xbuddy_extension, 1 },
     #endif
     #if HAS_AC_CONTROLLER()
                 { BootstrapStage::ac_controller_unknown, 1 },
@@ -326,6 +327,14 @@ static const char *message(BootstrapStage stage) {
     case BootstrapStage::reflashing_esp:
         return "[ESP] Reflashing broken sectors";
 #endif
+#if HAS_XBUDDY_EXTENSION()
+    case BootstrapStage::looking_for_xbuddy_extension:
+        return "Looking for xbuddy extension";
+    case BootstrapStage::verifying_xbuddy_extension:
+        return "Verifying xbuddy extension";
+    case BootstrapStage::flashing_xbuddy_extension:
+        return "Flashing xbuddy extension";
+#endif
 #if HAS_PUPPIES()
     case BootstrapStage::waking_up_puppies:
         return "Waking up puppies";
@@ -344,12 +353,6 @@ static const char *message(BootstrapStage stage) {
         return "Flashing modularbed";
     case BootstrapStage::verifying_modular_bed:
         return "Verifying modularbed";
-    #endif
-    #if HAS_XBUDDY_EXTENSION()
-    case BootstrapStage::flashing_xbuddy_extension:
-        return "Flashing xbuddy extension";
-    case BootstrapStage::verifying_xbuddy_extension:
-        return "Verifying xbuddy extension";
     #endif
     #if HAS_AC_CONTROLLER()
     case BootstrapStage::ac_controller_unknown:

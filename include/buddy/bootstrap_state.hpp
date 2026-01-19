@@ -31,6 +31,11 @@ enum class BootstrapStage : uint8_t {
     flashing_esp,
     reflashing_esp,
 #endif
+#if HAS_XBUDDY_EXTENSION()
+    looking_for_xbuddy_extension,
+    verifying_xbuddy_extension,
+    flashing_xbuddy_extension,
+#endif
 #if HAS_PUPPIES()
     waking_up_puppies,
     looking_for_puppies,
@@ -42,10 +47,6 @@ enum class BootstrapStage : uint8_t {
     #if HAS_PUPPY_MODULARBED()
     flashing_modular_bed,
     verifying_modular_bed,
-    #endif
-    #if HAS_XBUDDY_EXTENSION()
-    flashing_xbuddy_extension,
-    verifying_xbuddy_extension,
     #endif
     #if HAS_AC_CONTROLLER()
     ac_controller_unknown,

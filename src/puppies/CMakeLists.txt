@@ -1,20 +1,17 @@
 # Cmake for puppies (Dwarf + Modular bed)
 
 target_sources(
-  firmware
-  PUBLIC fifo_decoder.cpp
-         modbus.cpp
-         puppy_crash_dump.cpp
-         puppy_task.cpp
-         PuppyBootstrap.cpp
-         PuppyBus.cpp
-         PuppyModbus.cpp
-         time_sync.cpp
+  firmware PUBLIC fifo_decoder.cpp modbus.cpp puppy_task.cpp PuppyBus.cpp PuppyModbus.cpp
+                  time_sync.cpp
   )
 
 target_link_libraries(firmware PRIVATE crc modbus)
 
 target_link_libraries(BuddyHeaders INTERFACE lightmodbus)
+
+if(HAS_PUPPY_BOOTSTRAP)
+  target_sources(firmware PUBLIC puppy_crash_dump.cpp PuppyBootstrap.cpp)
+endif()
 
 if(HAS_DWARF)
   target_sources(firmware PUBLIC Dwarf.cpp)
@@ -25,7 +22,7 @@ if(HAS_PUPPY_MODULARBED)
 endif()
 
 if(HAS_XBUDDY_EXTENSION)
-  target_sources(firmware PUBLIC xbuddy_extension.cpp)
+  target_sources(firmware PUBLIC xbuddy_extension.cpp xbuddy_extension_bootstrap.cpp)
 endif()
 
 if(HAS_AC_CONTROLLER)
