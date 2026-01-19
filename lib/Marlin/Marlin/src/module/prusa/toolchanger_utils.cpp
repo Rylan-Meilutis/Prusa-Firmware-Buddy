@@ -176,17 +176,17 @@ bool PrusaToolChangerUtils::update(PuppyModbus &bus) {
 
 uint8_t PrusaToolChangerUtils::get_active_tool_nr() const {
     return match(
-        VirtualToolIndex::currently_selected(),
-        [](VirtualToolIndex virtual_tool) { return virtual_tool.to_raw(); },
-        [](NoTool) { return VirtualToolIndex::count; });
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool) { return physical_tool.to_raw(); },
+        [](NoTool) { return PhysicalToolIndex::count; });
 }
 
 bool PrusaToolChangerUtils::is_any_tool_active() const {
-    return std::holds_alternative<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+    return std::holds_alternative<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
 }
 
 bool PrusaToolChangerUtils::is_tool_active(uint8_t idx) const {
-    return VirtualToolIndex::currently_selected() == VirtualToolIndex::from_raw_notool(idx);
+    return PhysicalToolIndex::currently_selected() == PhysicalToolIndex::from_raw_notool(idx);
 }
 
 uint8_t PrusaToolChangerUtils::get_num_enabled_tools() const {
@@ -195,8 +195,8 @@ uint8_t PrusaToolChangerUtils::get_num_enabled_tools() const {
 
 Dwarf *PrusaToolChangerUtils::get_marlin_picked_tool() {
     return match(
-        VirtualToolIndex::currently_selected(),
-        [](VirtualToolIndex virtual_tool) { return &dwarfs[virtual_tool.to_physical()]; },
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool) { return &dwarfs[physical_tool]; },
         [](NoTool) -> Dwarf * { return nullptr; });
 }
 
