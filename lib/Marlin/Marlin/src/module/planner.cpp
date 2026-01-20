@@ -2386,10 +2386,10 @@ bool Planner::buffer_line(const xyze_pos_t &cart, const feedRate_t fr_mm_s
   return buffer_segment(machine, fr_mm_s, VirtualToolIndex::from_raw_notool(extruder), hints);
 } // buffer_line()
 
-bool Planner::buffer_raw_line(const xyze_pos_t &cart, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
+bool Planner::buffer_raw_line(const xyze_pos_t &cart, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, std::variant<VirtualToolIndex, NoTool> tool) {
     xyze_pos_t machine = cart;
     TERN_(HAS_POSITION_MODIFIERS, apply_modifiers(machine));
-    return buffer_raw_segment(machine, acceleration, nominal_speed, entry_speed, exit_speed, VirtualToolIndex::from_raw_notool(extruder));
+    return buffer_raw_segment(machine, acceleration, nominal_speed, entry_speed, exit_speed, tool);
 } // buffer_raw_line()
 
 /**

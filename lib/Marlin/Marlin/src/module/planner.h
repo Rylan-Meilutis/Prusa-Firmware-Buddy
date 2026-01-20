@@ -696,7 +696,7 @@ class Planner {
     );
 
     static bool buffer_raw_line(const xyze_pos_t &cart, float acceleration, float nominal_speed,
-        float entry_speed, float exit_speed, uint8_t extruder);
+        float entry_speed, float exit_speed, std::variant<VirtualToolIndex, NoTool> tool);
 
     /**
      * Set the planner.position and individual stepper positions.
