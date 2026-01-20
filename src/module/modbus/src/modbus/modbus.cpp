@@ -9,6 +9,9 @@ using Status = modbus::Callbacks::Status;
 static constexpr const std::byte read_holding_registers { 0x03 };
 static constexpr const std::byte read_input_registers { 0x04 };
 static constexpr const std::byte write_multiple_registers { 0x10 };
+static constexpr const std::byte read_coils { 0x01 };
+static constexpr const std::byte write_coil { 0x05 };
+static constexpr const std::byte write_coils { 0x0F };
 
 static constexpr std::byte modbus_byte_lo(uint16_t value) {
     return std::byte(value & 0xff);
@@ -167,6 +170,85 @@ std::span<std::byte> handle_transaction(
             resp(modbus_byte_lo(count));
         }
     } break;
+    case write_coils:
+        if (request.size() < 5) {
+            return {};
+        } else {
+            const uint16_t address = get_word(0);
+            const uint16_t no_coils = get_word(2);
+            const uint8_t bytes = (uint8_t)request[4];
+
+            // 5 comes from lenght of the header of the message
+            // request has to be larger than header + bytes
+            if (request.size() < static_cast<size_t>(5 + bytes)) {
+                return {};
+            }
+            const auto data = request.subspan(5, bytes);
+
+            status = device_callbacks->write_coils(address, no_coils, data);
+            if (status != Status::Ok) {
+                break;
+            }
+
+            resp(modbus_byte_hi(address));
+            resp(modbus_byte_lo(address));
+            resp(modbus_byte_hi(no_coils));
+            resp(modbus_byte_lo(no_coils));
+        }
+        break;
+    case write_coil:
+        if (request.size() != 4) {
+            return {};
+        } else {
+            const uint16_t address = get_word(0);
+            const uint16_t data = get_word(2);
+
+            std::array<std::byte, 1> in;
+
+            if (data == 0x0000) {
+                in.at(0) = std::byte { 0x00 };
+            } else if (data == 0xFF00) {
+                in.at(0) = std::byte { 0x01 };
+            } else {
+                return {};
+            }
+
+            status = device_callbacks->write_coils(address, 1, in);
+            if (status != Status::Ok) {
+                break;
+            }
+
+            resp(modbus_byte_hi(address));
+            resp(modbus_byte_lo(address));
+            resp(modbus_byte_hi(data));
+            resp(modbus_byte_lo(data));
+        }
+        break;
+    case read_coils:
+        if (request.size() != 4) {
+            return {};
+        } else {
+            const uint16_t address = get_word(0);
+            const uint16_t no_coils = get_word(2);
+
+            if (no_coils == 0) {
+                return {};
+            }
+            const uint8_t bytes = (((no_coils - 1) / 8) + 1);
+
+            resp(std::byte { bytes });
+
+            std::byte *out_buffer = response_buffer.data() + (response - response_buffer.begin());
+            std::span<std::byte> out(out_buffer, bytes);
+            status = device_callbacks->read_coils(address, no_coils, out);
+
+            if (status != Status::Ok) {
+                break;
+            }
+
+            response += bytes;
+        }
+        break;
     default:
         status = Status::IllegalFunction;
     }
@@ -188,6 +270,14 @@ std::span<std::byte> handle_transaction(
     resp(modbus_byte_lo(crc));
     resp(modbus_byte_hi(crc));
     return { response_buffer.begin(), response };
+}
+
+Status Callbacks::read_coils(uint16_t, uint16_t, std::span<std::byte>) {
+    return Status::IllegalFunction;
+}
+
+Status Callbacks::write_coils(uint16_t, uint16_t, std::span<const std::byte>) {
+    return Status::IllegalFunction;
 }
 
 } // namespace modbus

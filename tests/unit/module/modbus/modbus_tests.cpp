@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstring>
+#include <bitset>
 
 using namespace modbus;
 
@@ -12,6 +13,8 @@ class MockDevice1 final : public Callbacks {
 public:
     static constexpr size_t reg_count = 4;
     std::array<uint16_t, reg_count> registers = { 0, 1, 2, 3 };
+    static constexpr size_t coil_count = 20;
+    std::bitset<coil_count> coils { 0xAAAAA };
 
     virtual ServerAddress server_address() const override { return static_cast<ServerAddress>(1); }
 
@@ -36,6 +39,33 @@ public:
 
         for (size_t i = 0; i < in.size(); i++) {
             registers[address + i] = in[i];
+        }
+
+        return Status::Ok;
+    }
+
+    virtual Status read_coils(uint16_t first_address, uint16_t no_coils, std::span<std::byte> out) override {
+        if (first_address + no_coils >= coils.size()) {
+            return Status::IllegalAddress;
+        }
+
+        for (int coil = 0; coil < no_coils; coil++) {
+            if (coils[first_address + coil]) {
+                out[(coil / 8)] |= std::byte((1 << (coil % 8)));
+            } else {
+                out[(coil / 8)] &= std::byte((~(1 << (coil % 8))));
+            }
+        }
+        return Status::Ok;
+    }
+
+    virtual Status write_coils(uint16_t first_address, uint16_t no_coils, std::span<const std::byte> in) override {
+        if (first_address + no_coils >= coils.size()) {
+            return Status::IllegalAddress;
+        }
+
+        for (int coil = 0; coil < no_coils; coil++) {
+            coils[first_address + coil] = (std::to_integer<uint8_t>(in[(coil / 8)]) & (1 << (coil % 8)));
         }
 
         return Status::Ok;
@@ -194,4 +224,81 @@ TEST_CASE("Success read") {
     const uint8_t *resp = reinterpret_cast<const uint8_t *>(response.data());
 
     REQUIRE(memcmp("\1\3\4\0\1\0\2", resp, 7) == 0);
+}
+
+TEST_CASE("Success coils read") {
+    MockDevice1 md1;
+    std::array<modbus::Callbacks *, 1> devices { &md1 };
+    modbus::Dispatch dispatch { devices };
+
+    alignas(uint16_t) std::array<std::byte, 40> out_buffer;
+
+    auto response = trans_with_crc(dispatch, "\1\1\0\1\0\x11", 6, out_buffer);
+    REQUIRE(response.size() == 8);
+    REQUIRE(compute_crc(response) == 0);
+    const uint8_t *resp = reinterpret_cast<const uint8_t *>(response.data());
+
+    REQUIRE(memcmp("\1\1\3\x55\x55\1", resp, 6) == 0);
+}
+
+TEST_CASE("Sucess coil write") {
+    MockDevice1 md1;
+    std::array<modbus::Callbacks *, 1> devices { &md1 };
+    modbus::Dispatch dispatch { devices };
+
+    alignas(uint16_t) std::array<std::byte, 40> out_buffer;
+
+    auto response = trans_with_crc(dispatch, "\1\5\0\1\0\0", 6, out_buffer);
+    REQUIRE(response.size() == 8);
+    REQUIRE(compute_crc(response) == 0);
+    const uint8_t *resp = reinterpret_cast<const uint8_t *>(response.data());
+
+    REQUIRE(memcmp("\1\5\0\1\0\0", resp, 6) == 0);
+
+    REQUIRE(!md1.coils[1]);
+
+    response = trans_with_crc(dispatch, "\1\5\0\1\xFF\0", 6, out_buffer);
+    REQUIRE(response.size() == 8);
+    REQUIRE(compute_crc(response) == 0);
+    resp = reinterpret_cast<const uint8_t *>(response.data());
+
+    REQUIRE(memcmp("\1\5\0\1\xFF\0", resp, 6) == 0);
+
+    REQUIRE(md1.coils[1]);
+}
+
+TEST_CASE("Sucess coils write") {
+    MockDevice1 md1;
+    std::array<modbus::Callbacks *, 1> devices { &md1 };
+    modbus::Dispatch dispatch { devices };
+
+    alignas(uint16_t) std::array<std::byte, 40> out_buffer;
+
+    auto response = trans_with_crc(dispatch, "\1\x0F\0\1\0\x10\2\x01\x0F", 10, out_buffer);
+    REQUIRE(response.size() == 8);
+    REQUIRE(compute_crc(response) == 0);
+    const uint8_t *resp = reinterpret_cast<const uint8_t *>(response.data());
+
+    REQUIRE(memcmp("\1\x0F\0\1\0\x10", resp, 6) == 0);
+
+    REQUIRE(!md1.coils[0]);
+    REQUIRE(md1.coils[1]);
+    REQUIRE(!md1.coils[2]);
+    REQUIRE(!md1.coils[3]);
+    REQUIRE(!md1.coils[4]);
+    REQUIRE(!md1.coils[5]);
+    REQUIRE(!md1.coils[6]);
+    REQUIRE(!md1.coils[7]);
+    REQUIRE(!md1.coils[8]);
+    REQUIRE(md1.coils[9]);
+    REQUIRE(md1.coils[10]);
+    REQUIRE(md1.coils[11]);
+    REQUIRE(md1.coils[12]);
+    REQUIRE(!md1.coils[13]);
+    REQUIRE(!md1.coils[14]);
+    REQUIRE(!md1.coils[15]);
+    REQUIRE(!md1.coils[16]);
+    REQUIRE(md1.coils[17]);
+    REQUIRE(!md1.coils[18]);
+    REQUIRE(md1.coils[19]);
 }

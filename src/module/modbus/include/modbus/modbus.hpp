@@ -68,6 +68,8 @@ public:
     virtual ServerAddress server_address() const = 0;
     virtual Status read_registers(uint16_t first_address, std::span<uint16_t> out) = 0;
     virtual Status write_registers(uint16_t first_address, std::span<const uint16_t> in) = 0;
+    virtual Status read_coils(uint16_t first_address, uint16_t count, std::span<std::byte> out);
+    virtual Status write_coils(uint16_t first_address, uint16_t count, std::span<const std::byte> in);
 };
 
 class Dispatch {
