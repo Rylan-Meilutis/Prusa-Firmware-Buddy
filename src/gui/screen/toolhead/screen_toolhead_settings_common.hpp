@@ -18,12 +18,10 @@
 
 namespace screen_toolhead_settings {
 
-/// Applies settings to all toolheads
-using ToolheadIndex = ::PhysicalToolIndex;
 using Toolhead = std::variant<PhysicalToolIndex, AllTools>;
 
 static constexpr auto toolhead_count = PhysicalToolIndex::count;
-static constexpr Toolhead default_toolhead = ToolheadIndex::from_raw(0);
+static constexpr Toolhead default_toolhead = PhysicalToolIndex::from_raw(0);
 static constexpr Toolhead all_toolheads = AllTools {};
 
 template <typename T>
@@ -90,7 +88,7 @@ protected:
         if (this->toolhead() == all_toolheads) {
             std::optional<Value> result;
 
-            for (auto i : ToolheadIndex::all()) {
+            for (auto i : PhysicalToolIndex::all()) {
                 if (prusa_toolchanger.is_tool_enabled(i)) {
                     const auto val = read_value_impl(i);
                     if (result.has_value() && *result != val) {
@@ -104,27 +102,27 @@ protected:
         } else
 #endif
         {
-            return read_value_impl(std::get<ToolheadIndex>(this->toolhead()));
+            return read_value_impl(std::get<PhysicalToolIndex>(this->toolhead()));
         }
     }
 
     /// Stores the value in the config store. If \p toolhead is \p all_toolheads, sets value for all toolheads
-    /// Expects \p Child to have \p store_value_impl(ToolheadIndex)
+    /// Expects \p Child to have \p store_value_impl(PhysicalToolIndex)
     void store_value(Value value) {
 #if HAS_TOOLCHANGER()
         if (this->toolhead() == all_toolheads) {
-            for (auto i : ToolheadIndex::all()) {
+            for (auto i : PhysicalToolIndex::all()) {
                 store_value_impl(i, value);
             }
         } else
 #endif
         {
-            store_value_impl(std::get<ToolheadIndex>(this->toolhead()), value);
+            store_value_impl(std::get<PhysicalToolIndex>(this->toolhead()), value);
         }
     }
 
-    virtual Value read_value_impl(ToolheadIndex toolhead) = 0;
-    virtual void store_value_impl(ToolheadIndex index, Value value) = 0;
+    virtual Value read_value_impl(PhysicalToolIndex toolhead) = 0;
+    virtual void store_value_impl(PhysicalToolIndex index, Value value) = 0;
 
 protected:
     /// Stores whether the user has previously confirmed msgbox_confirm_change for this item, to prevent repeating the confirmation on subsequent changes

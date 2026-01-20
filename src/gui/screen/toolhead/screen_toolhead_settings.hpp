@@ -20,8 +20,8 @@ namespace screen_toolhead_settings {
 class MI_NOZZLE_DIAMETER final : public MI_TOOLHEAD_SPECIFIC_SPIN {
 public:
     MI_NOZZLE_DIAMETER(Toolhead toolhead = default_toolhead);
-    float read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, float set) final;
+    float read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, float set) final;
 };
 
 class MI_NOZZLE_DIAMETER_HELP : public IWindowMenuItem {
@@ -40,8 +40,8 @@ public:
 
     void update();
 
-    HotendType read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, HotendType set) final;
+    HotendType read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, HotendType set) final;
 
 protected:
     bool on_item_selected(int old_index, int new_index) override;
@@ -54,8 +54,8 @@ class MI_NOZZLE_SOCK : public MI_TOOLHEAD_SPECIFIC_TOGGLE {
 public:
     MI_NOZZLE_SOCK(Toolhead toolhead = default_toolhead);
 
-    bool read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, bool set) final;
+    bool read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, bool set) final;
 };
 
 using MI_HOTEND_SOCK_OR_TYPE = std::conditional_t<hotend_type_only_sock, MI_NOZZLE_SOCK, MI_HOTEND_TYPE>;
@@ -64,15 +64,15 @@ using MI_HOTEND_SOCK_OR_TYPE = std::conditional_t<hotend_type_only_sock, MI_NOZZ
 class MI_NOZZLE_HARDENED : public MI_TOOLHEAD_SPECIFIC_TOGGLE {
 public:
     MI_NOZZLE_HARDENED(Toolhead toolhead = default_toolhead);
-    bool read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, bool set) final;
+    bool read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, bool set) final;
 };
 
 class MI_NOZZLE_HIGH_FLOW : public MI_TOOLHEAD_SPECIFIC_TOGGLE {
 public:
     MI_NOZZLE_HIGH_FLOW(Toolhead toolhead = default_toolhead);
-    bool read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, bool set) final;
+    bool read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, bool set) final;
 };
 
 #if HAS_TOOLCHANGER()
@@ -127,8 +127,8 @@ public:
 
     void update();
 
-    PrintFanType read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, PrintFanType set) final;
+    PrintFanType read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, PrintFanType set) final;
 
 protected:
     bool on_item_selected(int old_index, int new_index) override;

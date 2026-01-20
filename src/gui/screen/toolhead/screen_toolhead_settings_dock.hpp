@@ -7,15 +7,15 @@ namespace screen_toolhead_settings {
 class MI_DOCK_X : public MI_TOOLHEAD_SPECIFIC_SPIN {
 public:
     MI_DOCK_X(Toolhead toolhead = default_toolhead);
-    float read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, float set) final;
+    float read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, float set) final;
 };
 
 class MI_DOCK_Y : public MI_TOOLHEAD_SPECIFIC_SPIN {
 public:
     MI_DOCK_Y(Toolhead toolhead = default_toolhead);
-    float read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, float set) final;
+    float read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, float set) final;
 };
 
 #if HAS_SELFTEST()

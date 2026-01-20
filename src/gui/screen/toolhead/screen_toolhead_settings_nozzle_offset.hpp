@@ -7,8 +7,8 @@ namespace screen_toolhead_settings {
 class MI_NOZZLE_OFFSET_COMPONENT : public MI_TOOLHEAD_SPECIFIC_SPIN {
 public:
     MI_NOZZLE_OFFSET_COMPONENT(uint8_t component, Toolhead toolhead = default_toolhead);
-    float read_value_impl(ToolheadIndex ix) final;
-    void store_value_impl(ToolheadIndex ix, float set) final;
+    float read_value_impl(PhysicalToolIndex ix) final;
+    void store_value_impl(PhysicalToolIndex ix, float set) final;
 
 private:
     const uint8_t component_;

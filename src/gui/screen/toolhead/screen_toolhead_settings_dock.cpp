@@ -15,11 +15,11 @@ MI_DOCK_X::MI_DOCK_X(Toolhead toolhead)
     update();
 }
 
-float MI_DOCK_X::read_value_impl(ToolheadIndex ix) {
+float MI_DOCK_X::read_value_impl(PhysicalToolIndex ix) {
     return prusa_toolchanger.get_tool_info(prusa_toolchanger.getTool(ix)).dock_x;
 }
 
-void MI_DOCK_X::store_value_impl(ToolheadIndex ix, float set) {
+void MI_DOCK_X::store_value_impl(PhysicalToolIndex ix, float set) {
     const buddy::puppies::Dwarf &dwarf = prusa_toolchanger.getTool(ix);
     PrusaToolInfo info = prusa_toolchanger.get_tool_info(dwarf);
     info.dock_x = set;
@@ -33,11 +33,11 @@ MI_DOCK_Y::MI_DOCK_Y(Toolhead toolhead)
     update();
 }
 
-float MI_DOCK_Y::read_value_impl(ToolheadIndex ix) {
+float MI_DOCK_Y::read_value_impl(PhysicalToolIndex ix) {
     return prusa_toolchanger.get_tool_info(prusa_toolchanger.getTool(ix)).dock_y;
 }
 
-void MI_DOCK_Y::store_value_impl(ToolheadIndex ix, float set) {
+void MI_DOCK_Y::store_value_impl(PhysicalToolIndex ix, float set) {
     const buddy::puppies::Dwarf &dwarf = prusa_toolchanger.getTool(ix);
     PrusaToolInfo info = prusa_toolchanger.get_tool_info(dwarf);
     info.dock_y = set;
@@ -52,7 +52,7 @@ MI_DOCK_CALIBRATE::MI_DOCK_CALIBRATE(Toolhead toolhead)
 }
 
 void MI_DOCK_CALIBRATE::click(IWindowMenu &) {
-    marlin_client::test_start_with_data(stmDocks, std::get<ToolheadIndex>(toolhead()));
+    marlin_client::test_start_with_data(stmDocks, std::get<PhysicalToolIndex>(toolhead()));
 }
 #endif
 

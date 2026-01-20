@@ -34,11 +34,11 @@ MI_NOZZLE_OFFSET_COMPONENT::MI_NOZZLE_OFFSET_COMPONENT(uint8_t component, Toolhe
     SetLabel(_("Offset %c").formatted(label_params_, "XYZ"[component]));
 }
 
-float MI_NOZZLE_OFFSET_COMPONENT::read_value_impl(ToolheadIndex ix) {
+float MI_NOZZLE_OFFSET_COMPONENT::read_value_impl(PhysicalToolIndex ix) {
     return hotend_offset[ix].pos[component_];
 }
 
-void MI_NOZZLE_OFFSET_COMPONENT::store_value_impl(ToolheadIndex ix, float set) {
+void MI_NOZZLE_OFFSET_COMPONENT::store_value_impl(PhysicalToolIndex ix, float set) {
     hotend_offset[ix].pos[component_] = set;
     prusa_toolchanger.save_tool_offsets();
 }
