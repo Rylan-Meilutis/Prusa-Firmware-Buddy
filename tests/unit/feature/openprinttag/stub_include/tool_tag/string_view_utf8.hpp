@@ -1,6 +1,8 @@
 #pragma once
 
-class string_view_utf8;
+struct string_view_utf8 {};
 
-template <int i>
-class StringViewUtf8Parameters;
+struct StringViewUtf8ParamBase {};
+
+template <size_t>
+struct StringViewUtf8Parameters : public StringViewUtf8ParamBase {};

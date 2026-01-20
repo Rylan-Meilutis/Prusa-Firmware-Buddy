@@ -66,7 +66,7 @@ public:
     using DisplayNameParams = StringViewUtf8Parameters<4>;
 
     /// @returns display name of the tool - something like "Slot 1" or "Tool 1"
-    string_view_utf8 display_name(DisplayNameParams &params);
+    string_view_utf8 display_name(StringViewUtf8ParamBase &params) const;
 
     /// Allow simpler conversion to integer when using StrongIndexArray
     /// @note pass-by-reference is needed to avoid circular dependencies

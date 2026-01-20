@@ -198,12 +198,12 @@ std::variant<VirtualToolIndex, NoTool> VirtualExtension::from_raw_notool(uint8_t
 #if BOARD_IS_MASTER_BOARD()
 
 template <>
-string_view_utf8 PhysicalToolIndex::display_name(DisplayNameParams &params) {
+string_view_utf8 PhysicalToolIndex::display_name(StringViewUtf8ParamBase &params) const {
     return _("Tool %i").formatted(params, display_index());
 }
 
 template <>
-string_view_utf8 VirtualToolIndex::display_name(DisplayNameParams &params) {
+string_view_utf8 VirtualToolIndex::display_name(StringViewUtf8ParamBase &params) const {
     if constexpr (PhysicalToolIndex::count == VirtualToolIndex::count) {
         // For multi-tool printers with 1:1 mapping between virtual and physica tools, introducing some extra slots/indexing would just confuse the users.
         // So in that case, refer to the virtual tools same as to the physical ones, because they're are 1:1.
@@ -214,7 +214,7 @@ string_view_utf8 VirtualToolIndex::display_name(DisplayNameParams &params) {
 }
 
 template <>
-string_view_utf8 GcodeToolIndex::display_name(DisplayNameParams &params) {
+string_view_utf8 GcodeToolIndex::display_name(StringViewUtf8ParamBase &params) const {
     return _("GCode Tool %i").formatted(params, display_index());
 }
 
