@@ -634,7 +634,7 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
 inline constexpr PhaseResponses ColdPullResponses[] = {
     { Response::Continue, Response::Stop }, // introduction,
     #if HAS_TOOLCHANGER()
-    { Response::Continue, Response::Tool1, Response::Tool2, Response::Tool3, Response::Tool4, Response::Tool5 }, // select_tool
+    { Response::Continue }, // select_tool; selected tool passed through FSMResponseVariant as PhysicalToolIndex
     {}, // pick_tool
     #endif
     #if HAS_MMU2()
