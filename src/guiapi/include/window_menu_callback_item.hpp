@@ -25,4 +25,7 @@ protected:
 public:
     /// Callback that gets called on click
     Callback callback;
+
+    /// String view params for user convenience - can be used for whatever
+    StringViewUtf8Parameters<8> string_view_params;
 };
