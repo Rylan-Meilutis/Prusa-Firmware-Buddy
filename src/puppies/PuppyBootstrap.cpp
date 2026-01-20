@@ -1,6 +1,5 @@
 #include "puppies/PuppyBootstrap.hpp"
 #include "puppies/BootloaderProtocol.hpp"
-#include "puppies/PuppyBus.hpp"
 #include "bsod.h"
 #include <sys/stat.h>
 #include "assert.h"
@@ -98,7 +97,6 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
     [[maybe_unused]] unsigned int max_attempts) {
     PuppyBootstrap::BootstrapResult result;
     bootstrap_state_set(0, BootstrapStage::waking_up_puppies);
-    auto guard = buddy::puppies::PuppyBus::LockGuard();
 
 #if HAS_PUPPIES_BOOTLOADER()
     while (true) {
@@ -248,7 +246,8 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run_address_assignment() {
             get_puppy_info(puppy_type).name, std::to_underlying(*dock));
 
         // Wait for puppy to boot up
-        osDelay(5);
+        // INDX_TODO: Check if correct
+        osDelay(puppy_type == INDX_HEAD ? 200 : 5);
 
         if (is_dynamicly_addressable(puppy_type)) {
             // assign address to all of them
@@ -256,7 +255,8 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run_address_assignment() {
             assign_address(BootloaderProtocol::Address::DEFAULT_ADDRESS, address);
 
             // delay to make sure that command was sent fully before reset
-            osDelay(10);
+            // INDX_TODO: Check if correct
+            osDelay(puppy_type == INDX_HEAD ? 200 : 10);
 
             // reset, all the not-bootstrapped-yet puppies which we don't care about now
             reset_puppies_range(std::next(dock), DOCKS.end());
@@ -338,8 +338,7 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
 #endif
 #if HAS_INDX_HEAD()
     case Dock::INDX_HEAD:
-        // INDX_TODO
-        (void)state;
+        xbuddy_extension.set_mmu_nreset(puppyModbus, state == Pin::State::low);
         break;
 #endif
     default:

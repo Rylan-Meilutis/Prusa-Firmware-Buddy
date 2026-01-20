@@ -72,6 +72,9 @@ public:
 #if HAS_DWARF()
             | 1 << static_cast<uint16_t>(Dock::DWARF_1)
 #endif
+#if HAS_INDX_HEAD()
+            | 1 << static_cast<uint16_t>(Dock::INDX_HEAD)
+#endif
     };
 
 private:

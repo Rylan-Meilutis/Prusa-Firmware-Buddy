@@ -385,6 +385,17 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 }
 #endif
 
+#if HAS_INDX_HEAD()
+static void indx_head_power_on(PuppyModbus &bus) {
+    // INDX_TODO: wait and see see if we will power INDX_HEAD through XBE or not
+    #if HAS_XBUDDY_EXTENSION()
+    xbuddy_extension.set_mmu_power(bus, true);
+    #else
+        #error
+    #endif
+}
+#endif
+
 static void puppy_task_body([[maybe_unused]] void const *argument) {
     TaskDeps::wait(TaskDeps::Tasks::puppy_task_start);
 
@@ -403,6 +414,10 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
             xbuddy_extension_bootstrap(bootloader_protocol);
         }
         xbuddy_extension_verify_running(bus);
+#endif
+
+#if HAS_INDX_HEAD()
+        indx_head_power_on(bus);
 #endif
 
 #if HAS_PUPPY_BOOTSTRAP()

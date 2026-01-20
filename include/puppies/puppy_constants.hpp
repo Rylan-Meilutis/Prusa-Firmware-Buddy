@@ -125,7 +125,7 @@ constexpr bool is_dynamicly_addressable(PuppyType puppy) {
 #endif
 #if HAS_INDX_HEAD()
     case INDX_HEAD:
-        return false; // INDX_TODO: Check if correct
+        return true; // INDX_TODO: Check if correct
 #endif
     default:
         std::abort();
@@ -180,9 +180,9 @@ inline constexpr PuppyInfo get_puppy_info(PuppyType puppy) {
 #if HAS_INDX_HEAD()
     case INDX_HEAD:
         return {
-            "dwarf",
+            "indx_head",
             "/internal/res/puppies/fw-dwarf.bin", // INDX_TODO: Replace with indx head FW
-            45,
+            42, // INDX_TODO: Replace with indx head HW
         };
 #endif
     default:
