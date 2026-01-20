@@ -280,8 +280,8 @@ class Planner {
       static uint8_t last_extruder;                 // Respond to extruder change
     #endif
 
-    static int16_t flow_percentage[EXTRUDERS];    // Extrusion factor for each extruder
-    static float e_factor[EXTRUDERS];             // The flow percentage and volumetric multiplier combine to scale E movement
+    static StrongIndexArray<int16_t, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> flow_percentage; // Extrusion factor for each extruder
+    static StrongIndexArray<float, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> e_factor;  // The flow percentage and volumetric multiplier combine to scale E movement
 
     #if DISABLED(NO_VOLUMETRICS)
       static float filament_size[EXTRUDERS],          // diameter of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder
