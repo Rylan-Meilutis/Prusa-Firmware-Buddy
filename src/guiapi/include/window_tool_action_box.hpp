@@ -30,7 +30,6 @@ enum class Action {
     CalibrateDock,
     Park,
     Return,
-    Select,
 };
 
 enum class DialogResult {
@@ -81,11 +80,6 @@ consteval auto get_label(Tool tool, Action action) -> const char * {
         { Tool::Tool2, Action::PickInactive, N_("Pick Tool 2") },
         { Tool::Tool4, Action::PickInactive, N_("Pick Tool 4") },
         { Tool::Tool5, Action::PickInactive, N_("Pick Tool 5") },
-        { Tool::Tool1, Action::Select, N_("Pick Tool 1") },
-        { Tool::Tool3, Action::Select, N_("Pick Tool 3") },
-        { Tool::Tool2, Action::Select, N_("Pick Tool 2") },
-        { Tool::Tool4, Action::Select, N_("Pick Tool 4") },
-        { Tool::Tool5, Action::Select, N_("Pick Tool 5") },
         { Tool::Tool1, Action::PickCurrent, N_("Pick Tool 1 (Current)") },
         { Tool::Tool3, Action::PickCurrent, N_("Pick Tool 3 (Current)") },
         { Tool::Tool2, Action::PickCurrent, N_("Pick Tool 2 (Current)") },
@@ -162,16 +156,6 @@ using MenuPickPark = WinMenuContainer<MI_Return,
     MI_PickPark_ToolBox<Tool::Tool5>>;
 
 template <Tool tool>
-using MI_Select = MI_TOOL<tool, Action::Select, is_closed_on_click_t::yes, is_hidden_if_inactive_t::no>;
-
-using MenuSelect = WinMenuContainer<MI_Return,
-    MI_Select<Tool::Tool1>,
-    MI_Select<Tool::Tool2>,
-    MI_Select<Tool::Tool3>,
-    MI_Select<Tool::Tool4>,
-    MI_Select<Tool::Tool5>>;
-
-template <Tool tool>
 using MI_PickAndGo_Current = MI_TOOL<tool, Action::PickCurrent, is_closed_on_click_t::yes, is_hidden_if_inactive_t::yes>;
 
 template <Tool tool>
@@ -200,7 +184,7 @@ using MenuCalibrateDock = WinMenuContainer<MI_Return,
     MI_CalibrateDock<Tool::Tool5>>;
 
 template <typename ActionMenuT>
-concept ActionMenuC = is_any_of<ActionMenuT, MenuPickPark, MenuSelect, MenuPickAndGo, MenuCalibrateDock>;
+concept ActionMenuC = is_any_of<ActionMenuT, MenuPickPark, MenuPickAndGo, MenuCalibrateDock>;
 
 template <typename ActionMenuT>
 concept ActionMenuHasFooterC = ActionMenuC<ActionMenuT> && is_any_of<ActionMenuT, MenuPickPark>;
