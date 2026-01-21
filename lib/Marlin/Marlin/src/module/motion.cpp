@@ -129,7 +129,7 @@ xyze_pos_t destination; // {0}
 
 // The active extruder (tool). Set with T<extruder> command.
 #if EXTRUDERS > 1
-  uint8_t active_extruder; // = 0
+  std::atomic<uint8_t> active_extruder; // = 0
 #endif
 
 // Extruder offsets

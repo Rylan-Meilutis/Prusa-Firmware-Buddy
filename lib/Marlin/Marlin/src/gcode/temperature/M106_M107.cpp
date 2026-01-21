@@ -54,7 +54,7 @@
         #define _ALT_P 0
         #define _CNT_P FAN_COUNT
     #else
-        #define _ALT_P _MIN(active_extruder, FAN_COUNT - 1)
+        #define _ALT_P _MIN(active_extruder.load(), FAN_COUNT - 1)
         #define _CNT_P FAN_COUNT
     #endif
 

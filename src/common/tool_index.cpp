@@ -82,7 +82,7 @@ bool VirtualToolIndex::is_enabled() const {
 
 #elif HAS_MMU2()
     static_assert(PhysicalToolIndex::count == 1);
-    if (MMU2::mmu2.Enabled()) {
+    if (config_store().mmu2_enabled.get()) {
         // MMU has five slots, the virtual tool count should match
         static_assert(VirtualToolIndex::count == 5);
 

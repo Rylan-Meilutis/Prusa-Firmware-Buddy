@@ -33,6 +33,7 @@
 #include <inplace_function.hpp>
 #include <array>
 #include <span>
+#include <atomic>
 
 #if HAS_BED_PROBE
   #include "probe.h"
@@ -171,9 +172,9 @@ extern int16_t feedrate_percentage;
 
 // The active extruder (tool). Set with T<extruder> command.
 #if EXTRUDERS > 1
-  extern uint8_t active_extruder;
+  extern std::atomic<uint8_t> active_extruder;
 #else
-  constexpr uint8_t active_extruder = 0;
+  constexpr std::atomic<uint8_t> active_extruder = 0;
 #endif
 
 /**

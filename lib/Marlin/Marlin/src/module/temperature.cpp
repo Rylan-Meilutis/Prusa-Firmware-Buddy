@@ -552,7 +552,7 @@ temp_range_t Temperature::temp_range[HOTENDS] = ARRAY_BY_HOTENDS(sensor_heater_0
         SerialLoggingDisabler sld;
         
         #if HAS_TEMP_SENSOR
-          print_heater_states(isbed ? active_extruder : heater);
+          print_heater_states(isbed ? active_extruder.load() : heater);
           SERIAL_EOL();
         #endif
         next_temp_ms = ms + 2000UL;
