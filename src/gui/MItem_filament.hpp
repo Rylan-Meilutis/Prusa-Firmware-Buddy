@@ -27,9 +27,6 @@ public:
 class MI_CHANGE : public IWindowMenuItem {
     constexpr static const char *const label = N_("Change Filament");
 
-    static bool AvailableForTool(uint8_t tool);
-    static bool AvailableForAnyTool();
-
 public:
     MI_CHANGE();
     virtual void click(IWindowMenu &) override;
@@ -49,9 +46,6 @@ protected:
 
 class MI_PURGE : public IWindowMenuItem {
     constexpr static const char *const label = N_("Purge Filament");
-
-    static bool AvailableForTool(uint8_t tool);
-    static bool AvailableForAnyTool();
 
 public:
     MI_PURGE();

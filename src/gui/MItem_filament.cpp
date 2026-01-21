@@ -1,6 +1,6 @@
-/**
- * @file MItem_filament.cpp
- */
+/// @file
+
+#include <algorithm>
 
 #include "MItem_filament.hpp"
 #include "sound.hpp"
@@ -8,49 +8,66 @@
 #include "ScreenHandler.hpp"
 #include <window_msgbox.hpp>
 #include <option/has_toolchanger.h>
+#include <window_dlg_wait.hpp>
+
 #if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
-    #include "window_tool_action_box.hpp"
+    #include <gui/dialogs/dialog_tool_select.hpp>
     #include "screen_menu_filament_changeall.hpp"
 #endif
 #include <config_store/store_instance.hpp>
 
-#if HAS_TOOLCHANGER()
-/// @brief  will show dialog where user can pick tool
-/// @param is_tool_enabled callback function that should return true when tool is available for that action, false when not available
-[[nodiscard]] ToolBox::DialogResult show_tool_selector_dialog(ToolBox::DialogToolActionBox<ToolBox::MenuPickAndGo>::IsToolEnabledFP available_for_tool = nullptr) {
-    if (prusa_toolchanger.is_toolchanger_enabled()) {
-        ToolBox::DialogResult result;
-        {
-            ToolBox::DialogToolActionBox<ToolBox::MenuPickAndGo> d;
-            if (available_for_tool) {
-                d.DisableNotAvailable(available_for_tool);
-            }
-            d.Preselect(prusa_toolchanger.get_active_tool_nr() + 1); // PickAndGo has return;
-            Screens::Access()->gui_loop_until_dialog_closed();
-            result = d.get_result();
-        }
+namespace {
 
-        // when action follows, avoid redrawing parent screen to avoid flicker back to parent screen
-        // note: this has to be called after DialogToolActionBox destructor is called, otherwise it would re-validate parent screen
-        if (result != ToolBox::DialogResult::Return) {
-            Screens::Access()->Get()->Validate();
-        }
-        return result;
+bool tool_has_filament(VirtualToolIndex tool) {
+    return config_store().get_filament_type(tool) != FilamentType::none;
+}
+
+bool any_tool_has_filament() {
+    return std::ranges::any_of(VirtualToolIndex::all(), tool_has_filament);
+}
+
+void setup_item(IWindowMenuItem &item) {
+    if (!PhysicalToolIndex::single_enabled_tool().has_value()) {
+        // More tools are enabled, show expand icon
+        item.set_show_expand_icon();
+    }
+}
+
+} // namespace
+
+#if HAS_TOOLCHANGER()
+[[nodiscard]] bool show_tool_selector_dialog(SelectToolDialogArgs::ToolFilter tool_filter = SelectToolDialogArgs::default_tool_filter) {
+    const auto tool = select_tool_dialog({
+        .allow_return = true,
+        .tool_filter = tool_filter,
+    });
+
+    if (!tool) {
+        return false;
     }
 
-    return ToolBox::DialogResult::Unknown;
+    marlin_client::gcode("G27 P0 Z5"); // Lift Z if not high enough
+    marlin_client::gcode_printf("T%d S1 L0 D0", tool->to_raw());
+    window_dlg_wait_t::wait_for_gcodes_to_finish();
+
+    // when action follows, avoid redrawing parent screen to avoid flicker back to parent screen
+    Screens::Access()->Get()->Validate();
+
+    return true;
 }
 #endif
 
 /*****************************************************************************/
 // MI_LOAD
 MI_LOAD::MI_LOAD()
-    : IWindowMenuItem(_(label)) {}
+    : IWindowMenuItem(_(label)) {
+    setup_item(*this);
+}
 
 void MI_LOAD::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (show_tool_selector_dialog() == ToolBox::DialogResult::Return) {
+    if (!show_tool_selector_dialog()) {
         return;
     }
 #endif
@@ -67,11 +84,13 @@ void MI_LOAD::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_UNLOAD
 MI_UNLOAD::MI_UNLOAD()
-    : IWindowMenuItem(_(label)) {}
+    : IWindowMenuItem(_(label)) {
+    setup_item(*this);
+}
 
 void MI_UNLOAD::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (show_tool_selector_dialog() == ToolBox::DialogResult::Return) {
+    if (!show_tool_selector_dialog()) {
         return;
     }
 #endif
@@ -82,29 +101,17 @@ void MI_UNLOAD::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_CHANGE
 MI_CHANGE::MI_CHANGE()
-    : IWindowMenuItem(_(label)) {}
-
-bool MI_CHANGE::AvailableForTool(uint8_t tool) {
-    bool has_filament_eeprom = config_store().get_filament_type(tool) != FilamentType::none;
-    return has_filament_eeprom;
-}
-
-bool MI_CHANGE::AvailableForAnyTool() {
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (AvailableForTool(e)) {
-            return true;
-        }
-    }
-    return false;
+    : IWindowMenuItem(_(label)) {
+    setup_item(*this);
 }
 
 void MI_CHANGE::Loop() {
-    set_enabled(AvailableForAnyTool());
+    set_enabled(any_tool_has_filament());
 }
 
 void MI_CHANGE::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (show_tool_selector_dialog(AvailableForTool) == ToolBox::DialogResult::Return) {
+    if (!show_tool_selector_dialog(tool_has_filament)) {
         return;
     }
 #endif
@@ -116,7 +123,7 @@ void MI_CHANGE::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_CHANGEALL
 MI_CHANGEALL::MI_CHANGEALL()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes) {}
+    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {}
 
 void MI_CHANGEALL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeAllFilaments>);
@@ -126,31 +133,19 @@ void MI_CHANGEALL::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_PURGE
 MI_PURGE::MI_PURGE()
-    : IWindowMenuItem(_(label)) {}
+    : IWindowMenuItem(_(label)) {
+    setup_item(*this);
+}
 
 void MI_PURGE::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (show_tool_selector_dialog(AvailableForTool) == ToolBox::DialogResult::Return) {
+    if (!show_tool_selector_dialog(tool_has_filament)) {
         return;
     }
 #endif
     marlin_client::gcode("M701 L0 W2"); // load with distance 0 and return option
 }
 
-bool MI_PURGE::AvailableForTool(uint8_t tool) {
-    bool has_filament_eeprom = config_store().get_filament_type(tool) != FilamentType::none;
-    return has_filament_eeprom;
-}
-
-bool MI_PURGE::AvailableForAnyTool() {
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (AvailableForTool(e)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void MI_PURGE::Loop() {
-    set_enabled(AvailableForAnyTool());
+    set_enabled(any_tool_has_filament());
 }
