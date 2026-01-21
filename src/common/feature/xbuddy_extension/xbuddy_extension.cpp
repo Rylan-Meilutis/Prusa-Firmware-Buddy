@@ -311,6 +311,8 @@ void XBuddyExtension::set_heatbreak_fan_pwm(uint32_t value) {
 }
 
 void XBuddyExtension::set_white_led(uint32_t intensity) {
+    std::lock_guard guard(mutex_);
+
     if (white_intensity_override) {
         intensity = *white_intensity_override;
     }
@@ -319,6 +321,7 @@ void XBuddyExtension::set_white_led(uint32_t intensity) {
 
 void XBuddyExtension::set_strobe(std::optional<uint16_t> freq) {
     assert(freq != 0);
+    std::lock_guard guard(mutex_);
 
     if (freq) {
         white_intensity_override = strobe_pwm;
