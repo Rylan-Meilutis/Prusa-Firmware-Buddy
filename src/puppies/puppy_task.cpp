@@ -102,6 +102,33 @@ static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::Bootstr
 }
 #endif
 
+static void puppy_run_timeout() {
+#if PUPPY_TASK_DEBUG()
+    log_error(Puppies, "ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT");
+    osDelay(1000);
+#else
+    fatal_error(ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT);
+#endif
+}
+
+#if HAS_XBUDDY_EXTENSION()
+static void xbuddy_extension_verify_running(PuppyModbus &bus) {
+    // usually takes 50ms but let's be generous
+    constexpr auto timeout_ms = 200;
+
+    const auto start_ms = ticks_ms();
+    for (;;) {
+        if (xbuddy_extension.ping(bus) != CommunicationStatus::ERROR) {
+            return;
+        }
+        if (ticks_diff(ticks_ms(), start_ms) > timeout_ms) {
+            puppy_run_timeout();
+        }
+    }
+}
+#endif
+
+#if HAS_PUPPY_BOOTSTRAP()
 static void verify_puppies_running(PuppyModbus &bus) {
     // wait for all the puppies to be reacheable
     log_info(Puppies, "Waiting for puppies to boot");
@@ -112,12 +139,12 @@ static void verify_puppies_running(PuppyModbus &bus) {
     auto reacheability_wait_start = ticks_ms();
     do {
         bool modular_bed_ok = true;
-#if HAS_PUPPY_MODULARBED()
+    #if HAS_PUPPY_MODULARBED()
         modular_bed_ok = !modular_bed.is_enabled() || (modular_bed.ping(bus) != CommunicationStatus::ERROR);
-#endif
+    #endif
 
         uint8_t num_dwarfs_ok = 0, num_dwarfs_dead = 0;
-#if HAS_DWARF()
+    #if HAS_DWARF()
         for (Dwarf &dwarf : dwarfs) {
             if (dwarf.is_enabled()) {
                 if (dwarf.ping(bus) != CommunicationStatus::ERROR) {
@@ -127,37 +154,29 @@ static void verify_puppies_running(PuppyModbus &bus) {
                 }
             }
         }
-#endif
-#if HAS_INDX_HEAD()
+    #endif
+    #if HAS_INDX_HEAD()
         // INDX_TODO: Check if buddy::puppies::indx is running
+        (void)bus;
         num_dwarfs_ok++;
-#endif
-
-#if HAS_XBUDDY_EXTENSION()
-        const bool xbuddy_extension_ok = xbuddy_extension.ping(bus) != CommunicationStatus::ERROR;
-#else
-        const bool xbuddy_extension_ok = true;
-#endif
+    #endif
 
         // Note: We don't ping AC controller. It's not a separate device from modbus point of view, that one is virtual & proxied by extension board.
 
-        if (num_dwarfs_dead == 0 && modular_bed_ok && xbuddy_extension_ok) {
+        if (num_dwarfs_dead == 0 && modular_bed_ok) {
             log_info(Puppies, "All puppies are reacheable. Continuing");
             return;
         } else if (ticks_diff(reacheability_wait_start + WAIT_TIME, ticks_ms()) > 0) {
-            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i, xbuddy_extension: %i), waiting another 200 ms",
-                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok), static_cast<int>(xbuddy_extension_ok));
+            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i), waiting another 200 ms",
+                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok));
             osDelay(200);
             continue;
         } else {
-#if PUPPY_TASK_DEBUG()
-            log_error(Puppies, "ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT");
-#else
-            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT);
-#endif
+            puppy_run_timeout();
         }
     } while (true);
 }
+#endif
 
 static void puppy_task_loop(PuppyModbus &bus) {
 #if HAS_TOOLCHANGER() && HAS_DWARF()
@@ -383,6 +402,7 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
             BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
             xbuddy_extension_bootstrap(bootloader_protocol);
         }
+        xbuddy_extension_verify_running(bus);
 #endif
 
 #if HAS_PUPPY_BOOTSTRAP()
@@ -390,20 +410,20 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
         auto bootstrap_result = bootstrap_puppies(minimal_puppy_config);
         // once some puppies are detected, consider this minimal puppy config (do no allow disconnection of puppy while running)
         minimal_puppy_config = bootstrap_result;
-#endif
 
-#if HAS_PUPPY_MODULARBED()
+    #if HAS_PUPPY_MODULARBED()
         // set what puppies are connected
         modular_bed.set_enabled(bootstrap_result.is_dock_occupied(Dock::MODULAR_BED));
-#endif
-#if HAS_DWARF()
+    #endif
+    #if HAS_DWARF()
         for (const auto dwarf_dock : DWARFS) {
             dwarfs[to_dwarf_index(dwarf_dock)].set_enabled(bootstrap_result.is_dock_occupied(dwarf_dock));
         }
-#endif
+    #endif
 
         // wait for puppies to boot up, ensure they are running
         verify_puppies_running(bus);
+#endif
 
         do {
             // do intial scan of puppies to init them

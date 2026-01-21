@@ -271,11 +271,6 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run_address_assignment() {
         } else {
             log_info(Puppies, "Dock %d: no puppy discovered", std::to_underlying(*dock));
         }
-
-        // Reset all subsequent puppies again. A workaround for XBuddyExtension
-        // bootloader getting messed up by messages for other puppies.
-        reset_puppies_range(std::next(dock), DOCKS.end());
-        osDelay(5);
     }
 
     verify_address_assignment(result);
