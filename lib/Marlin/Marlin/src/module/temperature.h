@@ -273,7 +273,7 @@ class Temperature {
 
     // timestamp when temeperature reached target +-TEMP_WINDOW, 0 when outside this window
     // note: 0 is valid timestamp, but if temperature reaches window at time 0, it will just be evaluated again little later, so it doesn't cause any bug
-    static uint32_t temp_hotend_residency_start_ms[HOTENDS];
+    static StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_hotend_residency_start_ms;
 
     #if HAS_HEATED_BED
       static bed_info_t temp_bed;
@@ -358,7 +358,7 @@ class Temperature {
       static bool extrusion_scaling_enabled;
     #endif
 
-    static temp_range_t temp_range[HOTENDS];
+    static StrongIndexArray<temp_range_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_range;
 
     #if HAS_HEATED_BED
       #if WATCH_BED
