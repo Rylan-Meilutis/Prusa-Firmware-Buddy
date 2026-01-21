@@ -250,7 +250,7 @@ protected:
             }
 
             if (IWindowMenuItem * item; ap_count_ == 0 && (item = item_at(1))) {
-                item->SetIconId(img::spinner_16x16_stages[(current_ms / 256) % img::spinner_16x16_stages.size()]);
+                item->SetIconId(img::spinner_16x16_animated());
             }
             break;
         }

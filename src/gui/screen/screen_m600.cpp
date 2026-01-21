@@ -126,8 +126,7 @@ void MI_M600::Loop() {
 
 void MI_M600::update_enqueued_icon() {
     if (enqueued) {
-        const auto current_ms = ticks_ms();
-        SetIconId(img::spinner_16x16_stages[(current_ms / 256) % img::spinner_16x16_stages.size()]);
+        SetIconId(img::spinner_16x16_animated());
     } else {
         SetIconId(nullptr);
     }
