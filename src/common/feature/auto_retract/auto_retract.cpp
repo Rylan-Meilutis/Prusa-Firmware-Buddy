@@ -5,6 +5,7 @@
 #include <feature/ramming/standard_ramming_sequence.hpp>
 #include <module/planner.h>
 #include <raii/auto_restore.hpp>
+#include <feature/gcode_exception/gcode_exception.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <logging/log.hpp>
 #include <feature/print_status_message/print_status_message_guard.hpp>
@@ -215,13 +216,10 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
 }
 
 bool AutoRetract::ready_to_extrude() const {
-    if (thermalManager.tooColdToExtrude(active_extruder)) {
-        return false;
-    }
-
-    if (planner.draining()) {
-        return false;
-    }
-
-    return true;
+    return match(
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex physical_tool) {
+            return !thermalManager.tooColdToExtrude(physical_tool) && !gcode_exceptions().is_unwinding();
+        },
+        [](NoTool) { return false; });
 }
