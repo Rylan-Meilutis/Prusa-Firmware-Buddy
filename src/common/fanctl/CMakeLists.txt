@@ -10,7 +10,6 @@ elseif(BOARD STREQUAL "XBUDDY")
     firmware PRIVATE CFanCtl3Wire.cpp CFanCtlCommon.cpp xbuddy/CFanCtl3WireDynamic.cpp
                      xbuddy/fanctl_instances.cpp
     )
-  target_include_directories(BuddyHeaders INTERFACE xbudy)
 elseif(BOARD IN_LIST BUDDY_BOARDS)
   target_sources(firmware PRIVATE buddy/fanctl_instances.cpp CFanCtl3Wire.cpp CFanCtlCommon.cpp)
 elseif(BOARD STREQUAL "DWARF")
