@@ -1549,9 +1549,8 @@ HAL_TEMP_TIMER_ISR() {
 
 class SoftPWM {
 public:
-  uint8_t count;
-  inline bool add(const uint8_t mask, const uint8_t amount) {
-    count = (count & mask) + amount; return (count > mask);
+  inline bool add(const uint8_t amount) {
+    return (amount > 0);
   }
 };
 
@@ -1571,10 +1570,8 @@ void Temperature::isr() {
       static SoftPWM soft_pwm_bed;
     #endif
 
-      constexpr uint8_t pwm_mask = 0;
-
       #define _PWM_MOD(N,S,T) do{                           \
-        const bool on = S.add(pwm_mask, T.soft_pwm_amount); \
+        const bool on = S.add(T.soft_pwm_amount); \
         WRITE_HEATER_##N(on);                               \
       }while(0)
 
@@ -1607,8 +1604,8 @@ void Temperature::isr() {
         #endif
       }
       else {
-        #define _PWM_LOW(N,S) do{ if (S.count <= pwm_count_tmp) WRITE_HEATER_##N(LOW); }while(0)
-        #define _PWM_LOW_E(N) _PWM_LOW(N, soft_pwm_hotend[N])
+        #define _PWM_LOW(N,T) do{ if (T.soft_pwm_amount <= pwm_count_tmp) WRITE_HEATER_##N(LOW); }while(0)
+        #define _PWM_LOW_E(N) _PWM_LOW(N, temp_hotend[N])
         _PWM_LOW_E(0);
         #if HOTENDS > 1
           _PWM_LOW_E(1);
@@ -1627,7 +1624,7 @@ void Temperature::isr() {
         #endif // HOTENDS > 1
 
         #if HAS_LOCAL_BED()
-          _PWM_LOW(BED, soft_pwm_bed);
+          _PWM_LOW(BED, temp_bed);
         #endif
       }
 
