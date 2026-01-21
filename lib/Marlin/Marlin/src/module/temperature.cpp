@@ -1561,7 +1561,7 @@ void Temperature::isr() {
   static ADCSensorState adc_sensor_state = StartupDelay;
 
   #if DISABLED(HW_PWM_HEATERS)
-    static uint8_t pwm_count = _BV(SOFT_PWM_SCALE);
+    static uint8_t pwm_count = 1;
     // avoid multiple loads of pwm_count
     uint8_t pwm_count_tmp = pwm_count;
 
@@ -1571,13 +1571,8 @@ void Temperature::isr() {
       static SoftPWM soft_pwm_bed;
     #endif
 
-      constexpr uint8_t pwm_mask =
-        #if ENABLED(SOFT_PWM_DITHER)
-          _BV(SOFT_PWM_SCALE) - 1
-        #else
-          0
-        #endif
-      ;
+      constexpr uint8_t pwm_mask = 0;
+
       #define _PWM_MOD(N,S,T) do{                           \
         const bool on = S.add(pwm_mask, T.soft_pwm_amount); \
         WRITE_HEATER_##N(on);                               \
@@ -1636,15 +1631,7 @@ void Temperature::isr() {
         #endif
       }
 
-      // SOFT_PWM_SCALE to frequency:
-      //
-      // 0: 16000000/64/256/128 =   7.6294 Hz
-      // 1:                / 64 =  15.2588 Hz
-      // 2:                / 32 =  30.5176 Hz
-      // 3:                / 16 =  61.0352 Hz
-      // 4:                /  8 = 122.0703 Hz
-      // 5:                /  4 = 244.1406 Hz
-      pwm_count = pwm_count_tmp + _BV(SOFT_PWM_SCALE);
+      pwm_count = pwm_count_tmp + 1;
 
   #endif // HW_PWM_HEATERS
 

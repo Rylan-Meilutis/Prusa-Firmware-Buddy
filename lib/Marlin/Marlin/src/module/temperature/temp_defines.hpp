@@ -3,10 +3,6 @@
 
 #include <inc/MarlinConfig.h>
 
-#ifndef SOFT_PWM_SCALE
-    #define SOFT_PWM_SCALE 0
-#endif
-
 #if HOTENDS <= 1
     #define HOTEND_INDEX 0
     #define E_NAME

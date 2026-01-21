@@ -1222,18 +1222,6 @@
 //Ignore Z axes enable mod
 #define POWER_IGNORE_Z 1
 
-// Incrementing this by 1 will double the software PWM frequency,
-// affecting heaters.
-// However, control resolution will be halved for each increment;
-// at zero value, there are 128 effective control positions.
-#define SOFT_PWM_SCALE 0
-
-// If SOFT_PWM_SCALE is set to a value higher than 0, dithering can
-// be used to mitigate the associated resolution loss. If enabled,
-// some of the PWM cycles are stretched so on average the desired
-// duty cycle is attained.
-//#define SOFT_PWM_DITHER
-
 // SkeinForge sends the wrong arc g-codes when using Arc Point as fillet procedure
 //#define SF_ARC_FIX
 
