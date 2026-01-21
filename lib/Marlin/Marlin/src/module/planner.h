@@ -675,11 +675,7 @@ class Planner {
      *  extruder    - target extruder
      *  hints       - optional parameters to aid planner calculations
      */
-    static bool buffer_segment(const abce_pos_t &abce
-      , const feedRate_t fr_mm_s
-      , const uint8_t extruder
-      , const PlannerHints &hints=PlannerHints()
-    );
+    static bool buffer_segment(const abce_pos_t &abce, const feedRate_t fr_mm_s, std::variant<VirtualToolIndex, NoTool> tool, const PlannerHints &hints=PlannerHints());
 
     static bool buffer_raw_segment(const abce_pos_t &abce, float acceleration, float nominal_speed,
         float entry_speed, float exit_speed, uint8_t extruder);

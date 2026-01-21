@@ -518,7 +518,7 @@ void plan_move_by(const feedRate_t fr, const float dx, const float dy, const flo
   target.y += dy;
   target.z += dz;
   target.e += de;
-  planner.buffer_segment(target, fr, active_extruder);
+  planner.buffer_segment(target, fr, VirtualToolIndex::currently_selected());
 }
 
 uint8_t axes_need_homing(uint8_t axis_bits/*=0x07*/, AxisHomeLevel required_level) {
@@ -740,7 +740,7 @@ void do_homing_move_axis_rel(const AxisEnum axis, const float distance, const fe
   current_position[axis] = 0;
   sync_plan_position();
   current_position[axis] = distance;
-  planner.buffer_segment(current_position, fr_mm_s, active_extruder);
+  planner.buffer_segment(current_position, fr_mm_s, VirtualToolIndex::currently_selected());
   planner.synchronize();
 }
 
@@ -920,7 +920,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
       planner.apply_modifiers(target, true);
     }
     #endif
-    planner.buffer_segment(target, fr_mm_s, active_extruder, planner_hints);
+    planner.buffer_segment(target, fr_mm_s, VirtualToolIndex::currently_selected(), planner_hints);
   };
 
   while (--segment_count) {

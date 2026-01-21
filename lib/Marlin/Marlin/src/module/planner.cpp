@@ -2130,17 +2130,17 @@ void Planner::buffer_sync_block() {
  * @param extruder      target extruder
  * @param hints         optional parameters to aid planner calculations
  */
-bool Planner::buffer_segment(const abce_pos_t &abce
-  , const feedRate_t fr_mm_s
-  , const uint8_t extruder
-  , const PlannerHints &hints/*=PlannerHints()*/
-) {
+bool Planner::buffer_segment(const abce_pos_t &abce, const feedRate_t fr_mm_s, std::variant<VirtualToolIndex, NoTool> tool, const PlannerHints &hints/*=PlannerHints()*/) {
+  uint8_t extruder = match(tool,
+    [](VirtualToolIndex virtual_tool){ return virtual_tool.to_raw(); },
+    [](NoTool){ return VirtualToolIndex::count; }
+  );
 
 #if defined(Z_CEILING_CLEARANCE) != HAS_CEILING_CLEARANCE()
   #error Z_CEILING_CLEARANCE must be defined only if HAS_CEILING_CLEARANCE()
 #endif
 
-  [[maybe_unused]] const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+  [[maybe_unused]] const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(tool);
   [[maybe_unused]] const auto physical_tool = virtual_tool.transform(&VirtualToolIndex::to_physical);
 
   // The target position of the tool in absolute mini-steps
@@ -2379,7 +2379,7 @@ bool Planner::buffer_line(const xyze_pos_t &cart, const feedRate_t fr_mm_s
 ) {
   xyze_pos_t machine = cart;
   TERN_(HAS_POSITION_MODIFIERS, apply_modifiers(machine));
-  return buffer_segment(machine, fr_mm_s, extruder, hints);
+  return buffer_segment(machine, fr_mm_s, VirtualToolIndex::from_raw_notool(extruder), hints);
 } // buffer_line()
 
 bool Planner::buffer_raw_line(const xyze_pos_t &cart, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
