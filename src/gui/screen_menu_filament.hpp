@@ -23,10 +23,4 @@ class ScreenMenuFilament : public ScreenMenuFilament__ {
 public:
     constexpr static const char *label = N_("FILAMENT");
     ScreenMenuFilament();
-
-protected:
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
-
-private:
-    void deactivate_item();
 };

@@ -34,7 +34,7 @@ public:
     MI_CHANGE();
     virtual void click(IWindowMenu &) override;
 
-    void UpdateEnableState();
+    void Loop() final;
 };
 
 class MI_CHANGEALL : public IWindowMenuItem {
@@ -57,5 +57,5 @@ public:
     MI_PURGE();
     virtual void click(IWindowMenu &) override;
 
-    void UpdateEnableState();
+    void Loop() final;
 };

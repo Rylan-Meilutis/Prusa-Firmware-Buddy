@@ -98,7 +98,7 @@ bool MI_CHANGE::AvailableForAnyTool() {
     return false;
 }
 
-void MI_CHANGE::UpdateEnableState() {
+void MI_CHANGE::Loop() {
     set_enabled(AvailableForAnyTool());
 }
 
@@ -151,6 +151,6 @@ bool MI_PURGE::AvailableForAnyTool() {
     return false;
 }
 
-void MI_PURGE::UpdateEnableState() {
+void MI_PURGE::Loop() {
     set_enabled(AvailableForAnyTool());
 }
