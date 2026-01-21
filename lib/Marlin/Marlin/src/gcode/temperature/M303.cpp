@@ -50,7 +50,7 @@ void GcodeSuite::M303() {
   #if ENABLED(PIDTEMPBED)
     #define SI H_BED
   #else
-    #define SI H_E0
+    #define SI H_NOZZLE_FIRST
   #endif
   #if ENABLED(PIDTEMP)
     #define EI HOTENDS - 1

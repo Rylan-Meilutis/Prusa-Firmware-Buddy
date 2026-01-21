@@ -322,7 +322,7 @@ static bool should_check_fault_status(bool is_parked, bool is_picked) {
 
 void UpdateRegisters() {
     ModbusRegisters::SetRegValue(ModbusRegisters::SystemInputRegister::hotend_measured_temperature, clamp_to_int16(Temperature::degHotend(0)));
-    ModbusRegisters::SetRegValue(ModbusRegisters::SystemInputRegister::hotend_pwm_state, Temperature::getHeaterPower(H_E0));
+    ModbusRegisters::SetRegValue(ModbusRegisters::SystemInputRegister::hotend_pwm_state, Temperature::getHeaterPower(H_NOZZLE_FIRST));
     ModbusRegisters::SetBitValue(ModbusRegisters::SystemDiscreteInput::is_picked, Cheese::is_picked());
     ModbusRegisters::SetBitValue(ModbusRegisters::SystemDiscreteInput::is_parked, Cheese::is_parked());
     ModbusRegisters::SetBitValue(ModbusRegisters::SystemDiscreteInput::is_button_up_pressed, buddy::hw::button1.read() == buddy::hw::Pin::State::low);

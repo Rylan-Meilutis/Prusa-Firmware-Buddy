@@ -135,7 +135,7 @@ Temperature thermalManager;
   #define _BED_PSTR(h)
 #endif
 #if HAS_TEMP_HEATBREAK_CONTROL
-  #define _HEATBREAK_PSTR(h,N) ((HOTENDS) > N && (H_HEATBREAK_E0 + h) == N) ? GET_TEXT(MSG_HEATBREAK) :
+  #define _HEATBREAK_PSTR(h,N) ((HOTENDS) > N && (H_HEATBREAK_FIRST + h) == N) ? GET_TEXT(MSG_HEATBREAK) :
 #else
   #define _HEATBREAK_PSTR(h,N)
 #endif
@@ -630,8 +630,8 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
       #endif
     }
   #endif
-  if (heater_id >= H_E0 && heater_id <= H_E5) {
-    const uint8_t tool_id = heater_id - (uint8_t)H_E0;
+  if (heater_id >= H_NOZZLE_FIRST && heater_id <= H_NOZZLE_LAST) {
+    const uint8_t tool_id = heater_id - (uint8_t)H_NOZZLE_FIRST;
     #if HAS_TOOLCHANGER()
       return prusa_toolchanger.getTool(tool_id).get_heater_pwm();
     #else
@@ -639,8 +639,8 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
     #endif
   }
   #if HAS_TEMP_HEATBREAK
-    if (heater_id >= H_HEATBREAK_E0 && heater_id <= H_HEATBREAK_E5) {
-      const uint8_t tool_id = heater_id - (uint8_t)H_HEATBREAK_E0;
+    if (heater_id >= H_HEATBREAK_FIRST && heater_id <= H_HEATBREAK_LAST) {
+      const uint8_t tool_id = heater_id - (uint8_t)H_HEATBREAK_FIRST;
       #if HAS_TOOLCHANGER()
         return prusa_toolchanger.getTool(tool_id).get_heatbreak_fan_pwr();
       #else
@@ -780,7 +780,7 @@ void Temperature::max_temp_error(const heater_ind_t heater) {
   #endif
   #if HAS_TEMP_HEATBREAK
     //we have multiple heartbreak thermistors and they have always the highest ID
-    if(heater >= H_HEATBREAK_E0){
+    if(heater >= H_HEATBREAK_FIRST){
         _temp_error(heater, PSTR(MSG_T_MAXTEMP), GET_TEXT(MSG_ERR_MAXTEMP_HEATBREAK));
     }
   #endif
@@ -796,7 +796,7 @@ void Temperature::min_temp_error(const heater_ind_t heater) {
   #endif
   #if HAS_TEMP_HEATBREAK
     //we have multiple heartbreak thermistors and they have always the highest ID
-    if(heater >= H_HEATBREAK_E0){
+    if(heater >= H_HEATBREAK_FIRST){
         _temp_error(heater, PSTR(MSG_T_MINTEMP), GET_TEXT(MSG_ERR_MINTEMP_HEATBREAK));
     }
   #endif
@@ -2519,10 +2519,10 @@ void Temperature::readings_ready() {
                                 #endif
         );
         if (HEATBREAKCMP(temp_heatbreak[tool].raw, maxtemp_raw_HEATBREAK)) {
-            max_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + tool.to_raw()));
+            max_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_FIRST + tool.to_raw()));
         }
         if (heater_on && HEATBREAKCMP(mintemp_raw_HEATBREAK, temp_heatbreak[tool].raw)) {
-            min_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_E0 + tool.to_raw()));
+            min_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_FIRST + tool.to_raw()));
         }
     }
     #endif
@@ -2807,9 +2807,9 @@ void Temperature::isr() {
     #endif
     #if HAS_TEMP_HOTEND
     if (e == INDEX_NONE) k = 'T';
-    if (e >= H_E0 && e <= H_E5) {
+    if (e >= H_NOZZLE_FIRST && e <= H_NOZZLE_LAST) {
       k = 'T';
-      tool_nr = e - H_E0;
+      tool_nr = e - H_NOZZLE_FIRST;
     }
     #endif
     #if HAS_HEATED_BED
@@ -2819,9 +2819,9 @@ void Temperature::isr() {
       if (e == H_BOARD) k = 'A';
     #endif
     #if HAS_TEMP_HEATBREAK
-      if (e >= H_HEATBREAK_E0 && e <= H_HEATBREAK_E5){
+      if (e >= H_HEATBREAK_FIRST && e <= H_HEATBREAK_LAST){
         k = 'X';
-        tool_nr = e - H_HEATBREAK_E0;
+        tool_nr = e - H_HEATBREAK_FIRST;
       }
     #endif
 
@@ -2855,7 +2855,7 @@ void Temperature::isr() {
     #if HAS_TEMP_HEATBREAK
       print_heater_state(degHeatbreak(target_extruder)
           , degTargetHeatbreak(target_extruder)
-        , (heater_ind_t) (H_HEATBREAK_E0 + target_extruder)
+        , (heater_ind_t) (H_HEATBREAK_FIRST + target_extruder)
       );
     #endif // HAS_TEMP_HEATBREAK
 
@@ -2881,7 +2881,7 @@ void Temperature::isr() {
     #endif
 
     #if HAS_TEMP_HEATBREAK
-      SERIAL_ECHOPAIR(" HBR@:", getHeaterPower((heater_ind_t)(H_HEATBREAK_E0 + target_extruder)));
+      SERIAL_ECHOPAIR(" HBR@:", getHeaterPower((heater_ind_t)(H_HEATBREAK_FIRST + target_extruder)));
     #endif
     #if HOTENDS > 1
       for (auto tool : PhysicalToolIndex::all()) {

@@ -59,11 +59,12 @@
 typedef enum : int8_t {
   INDEX_NONE = -5,
   H_REDUNDANT, H_CHAMBER, H_BOARD, H_BED,
-  H_E0, H_E1, H_E2, H_E3, H_E4, H_E5,
-  H_HEATBREAK_E0, H_HEATBREAK_E1, H_HEATBREAK_E2, H_HEATBREAK_E3, H_HEATBREAK_E4, H_HEATBREAK_E5,
+  H_NOZZLE_FIRST,
+  H_NOZZLE_LAST = H_NOZZLE_FIRST + HOTENDS - 1,
+  H_HEATBREAK_FIRST,
+  H_HEATBREAK_LAST = H_HEATBREAK_FIRST + HOTENDS - 1
 } heater_ind_t;
-static_assert(H_E0 == 0); // lots of places in are indexed by this, and assumes H_E0 is zero
-static_assert(EXTRUDERS <= 6);
+static_assert(H_NOZZLE_FIRST == 0); // lots of places in are indexed by this, and assumes H_E0 is zero
 
 
 // PID storage
