@@ -105,6 +105,16 @@ public:
         return *tool;
     }
 
+    /// @returns index of the last enabled tool + 1
+    /// Useful for determining how many tool items display in the UI
+    static uint8_t enabled_range_size() {
+        uint8_t result = ToolIndex::count;
+        while (!ToolIndex::from_raw(result - 1).is_enabled()) {
+            result--;
+        }
+        return result;
+    }
+
     /// List of all tools the printer offers, for `for()` loops
     static consteval Iterator all() {
         return Iterator::make_all();

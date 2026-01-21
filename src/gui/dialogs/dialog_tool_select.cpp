@@ -33,11 +33,7 @@ public:
         , args_(args) {
 
         index_mapping_.set_item_enabled<Item::return_>(args.allow_return);
-
-        // Set item count to cover the highest active tool
-        for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
-            index_mapping_.set_section_size<Item::tool>(tool.to_raw() + 1);
-        }
+        index_mapping_.set_section_size<Item::tool>(VirtualToolIndex::enabled_range_size());
 
         setup_items();
     }
