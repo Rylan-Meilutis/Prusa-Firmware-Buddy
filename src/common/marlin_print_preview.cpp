@@ -859,14 +859,18 @@ IPrintPreview::State PrintPreview::stateFromUpdateCheck() {
 }
 
 IPrintPreview::State PrintPreview::stateFromPrinterCheck() {
+    // Determine whether we want to show the incompatibilities screen
+
     buddy::gcode_compatibility::CompatibilityReport report;
     if (tools_mapping::is_tool_mapping_possible()) {
         // Only check non-tool related things
-        // Tool checks are handled by the tool mapping screen
+        // Tool checks will be handled on the tool mapping screen
         report.generate_without_toolmapping();
 
     } else {
-        report.generate_with_toolmapping({});
+        // There will be no separate tooomapping screen,
+        // so show all problems, with the naive 1:1 toolmapping
+        report.generate_full({});
     }
 
     switch (report.failure_severity()) {

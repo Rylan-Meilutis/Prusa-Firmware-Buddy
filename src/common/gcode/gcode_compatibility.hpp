@@ -238,7 +238,7 @@ struct CompatibilityReport {
     void generate_toolmapping_only(const ToolMappingArgs &args);
 
     /// generate_without_toolmapping + generate_toolmapping_only
-    void generate_with_toolmapping(const ToolMappingArgs &args);
+    void generate_full(const ToolMappingArgs &args);
 
 private:
     void generate_toolmapping_only_noclear(const ToolMappingArgs &args);

@@ -32,12 +32,14 @@ WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect1
 
     gcode_compatibility::CompatibilityReport report;
     if (tools_mapping::is_tool_mapping_possible()) {
-        // Only check non-tool related things
-        // Tool checks are handled by the tool mapping screen
+        // Only report non-tool related problems
+        // Tool checks will be handled on the tool mapping screen
         report.generate_without_toolmapping();
 
     } else {
-        report.generate_with_toolmapping({});
+        // There will be no separate tooomapping screen,
+        // so show all problems, with the naive 1:1 toolmapping
+        report.generate_full({});
     }
 
     report.visit_failed_checks([this](const auto &fail) {

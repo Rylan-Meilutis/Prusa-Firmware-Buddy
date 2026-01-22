@@ -253,7 +253,7 @@ void CompatibilityReport::generate_without_toolmapping(const GCodeInfo &gcode_in
     }
 }
 
-void CompatibilityReport::generate_with_toolmapping(const ToolMappingArgs &args) {
+void CompatibilityReport::generate_full(const ToolMappingArgs &args) {
     generate_without_toolmapping(args.gcode_info);
     generate_toolmapping_only_noclear(args);
 }
