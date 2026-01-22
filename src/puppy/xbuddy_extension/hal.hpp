@@ -157,11 +157,4 @@ namespace usb {
     void power_pin_set(bool);
 } // namespace usb
 
-namespace memory {
-
-    /// Memory address region dedicated to peripherals control
-    extern const std::span<std::byte> peripheral_address_region;
-
-}; // namespace memory
-
 } // namespace hal

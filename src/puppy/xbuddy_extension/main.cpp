@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include <cmsis_gcc.h>
 #include "hal.hpp"
+#include "hal_memory.hpp"
 #include "task.h"
 #include <freertos/timing.hpp>
 

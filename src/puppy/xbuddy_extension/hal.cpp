@@ -15,8 +15,6 @@
 #include <utils/timing/timer_event_period_tracker.hpp>
 #include <atomic>
 
-const std::span<std::byte> hal::memory::peripheral_address_region(reinterpret_cast<std::byte *>(PERIPH_BASE_NS), 0x10000000);
-
 static UART_HandleTypeDef huart_rs485;
 alignas(uint16_t) static std::byte rx_buf_rs485[256];
 static volatile size_t rx_len_rs485;
