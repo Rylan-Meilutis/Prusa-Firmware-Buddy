@@ -26,6 +26,7 @@ target_sources(
           hal_memory.cpp
           hal_pub.cpp
           hal_rng.cpp
+          hal_usb.cpp
           main.cpp
           master_activity.cpp
           stdlib.c

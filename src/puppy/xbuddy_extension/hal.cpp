@@ -5,6 +5,7 @@
 #include "hal_clock.hpp"
 #include "hal_pub.hpp"
 #include "hal_rng.hpp"
+#include "hal_usb.hpp"
 #include <bitset>
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/stream_buffer.hpp>
@@ -582,17 +583,6 @@ static void mmu_pins_init() {
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 }
 
-void usb_pins_init() {
-    constexpr GPIO_InitTypeDef GPIO_InitStruct {
-        .Pin = GPIO_PIN_2,
-        .Mode = GPIO_MODE_OUTPUT_PP,
-        .Pull = GPIO_NOPULL,
-        .Speed = GPIO_SPEED_FREQ_LOW,
-        .Alternate = 0,
-    };
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-}
-
 static constexpr auto FSENSOR_PIN = EXTENSION_IS_IX() ? GPIO_PIN_9 : GPIO_PIN_5;
 
 static void filament_sensor_pins_init() {
@@ -624,7 +614,7 @@ void hal::init() {
     enable_fans();
     mmu_pins_init();
     mmu::nreset_pin_set(false);
-    usb_pins_init();
+    hal::usb::init();
     hal::pub::init();
     filament_sensor_pins_init();
     hal::rng::init();
@@ -870,8 +860,4 @@ bool hal::mmu::power_pin_get() {
 
 bool hal::mmu::nreset_pin_get() {
     return HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_SET;
-}
-
-void hal::usb::power_pin_set(bool enabled) {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, enabled ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
