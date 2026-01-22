@@ -52,14 +52,14 @@ public:
     static UniquePtr Screen(const Creator::Arg & = {}) {
         // Note: the Arg must be in the function so that the function prototype matches Creator::Func
         static_assert(sizeof(T) <= storage.size(), "Screen memory space is too small");
-        return make_static_unique_ptr<T>(storage.data(), args...);
+        return make_static_unique_ptr<T>(storage, args...);
     }
 
     template <class T, typename Arg>
     static inline Creator ScreenWithArg(Arg arg) {
         static_assert(sizeof(T) <= storage.size(), "Screen memory space is too small");
         static constexpr auto ctor = +[](const Creator::Arg &arg_variant) -> UniquePtr {
-            return make_static_unique_ptr<T>(storage.data(), arg_variant.value<Arg>());
+            return make_static_unique_ptr<T>(storage, arg_variant.value<Arg>());
         };
         return Creator(ctor, Creator::Arg::make(arg));
     }

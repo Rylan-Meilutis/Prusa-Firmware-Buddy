@@ -21,8 +21,7 @@ class ScreenSelftest : public screen_t {
 
     template <typename T>
     static static_unique_ptr<SelftestFrame> creator(ScreenSelftest &rThs, PhasesSelftest phase, fsm::PhaseData data) {
-        static_assert(sizeof(T) <= storage_size, "Error selftest part does not fit");
-        return make_static_unique_ptr<T>(rThs.storage.data(), &rThs, phase, data);
+        return make_static_unique_ptr<T>(rThs.storage, &rThs, phase, data);
     }
 
     using fnc = static_unique_ptr<SelftestFrame> (*)(ScreenSelftest &rThs, PhasesSelftest phase, fsm::PhaseData data); // function pointer definition

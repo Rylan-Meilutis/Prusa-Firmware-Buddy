@@ -27,7 +27,7 @@ MsgBoxBase::MsgBoxBase(Rect16 rect, const PhaseResponses &resp, size_t def_btn, 
     , result(Response::_none) {
     flags.close_on_click = close;
     static_assert(sizeof(RadioButton) <= std::tuple_size_v<RadioMemSpace>);
-    pButtons = make_static_unique_ptr<RadioButton>(&radio_mem_space, this, GuiDefaults::GetButtonRect(rect), resp, labels);
+    pButtons = make_static_unique_ptr<RadioButton>(radio_mem_space, this, GuiDefaults::GetButtonRect(rect), resp, labels);
     pButtons->SetBtnIndex(def_btn);
     CaptureNormalWindow(*pButtons);
 }
@@ -58,7 +58,7 @@ void MsgBoxBase::BindToFSM(FSMAndPhase phase) {
     // First reset, then create new class; we cannot afford constructing and then destructing because it's the same memory
     pButtons.reset();
     static_assert(sizeof(T) <= std::tuple_size_v<RadioMemSpace>);
-    pButtons = make_static_unique_ptr<T>(radio_mem_space.data(), this, rc, phase);
+    pButtons = make_static_unique_ptr<T>(radio_mem_space, this, rc, phase);
 
     has_icon ? pButtons->SetHasIcon() : pButtons->ClrHasIcon();
     pButtons->SetBackColor(back);

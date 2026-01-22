@@ -72,8 +72,7 @@ alignas(std::max_align_t) static std::array<uint8_t, 1300> mem_space;
 // safer than make_static_unique_ptr, checks storage size
 template <class T, class... Args>
 static static_unique_ptr<IDialogMarlin> make_dialog_ptr(Args &&...args) {
-    static_assert(sizeof(T) <= mem_space.size(), "Error dialog does not fit");
-    return make_static_unique_ptr<T>(mem_space.data(), std::forward<Args>(args)...);
+    return make_static_unique_ptr<T>(mem_space, std::forward<Args>(args)...);
 }
 
 struct FSMScreenDefBase {

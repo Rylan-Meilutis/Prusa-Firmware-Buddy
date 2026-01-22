@@ -26,12 +26,19 @@ public:
         reset();
     }
 
-    template <class... Args>
-    static static_unique_ptr make(void *place, Args &&...args) {
+    template <size_t arrsz, class... Args>
+    static static_unique_ptr make(std::array<uint8_t, arrsz> &place, Args &&...args) {
+        static_assert(arrsz >= sizeof(T));
+
+        if (std::bit_cast<uintptr_t>(place.data()) % alignof(T) != 0) {
+            // Unaligned
+            bsod_unreachable();
+        }
+
         constexpr Deleter deleter = +[](void *ptr) {
             reinterpret_cast<T *>(ptr)->~T();
         };
-        return static_unique_ptr(::new (place) T(std::forward<Args>(args)...), deleter);
+        return static_unique_ptr(::new (place.data()) T(std::forward<Args>(args)...), deleter);
     }
 
     template <typename T2, typename = std::enable_if_t<std::is_convertible_v<T2 *, T *>>>
@@ -116,7 +123,7 @@ private:
     Deleter deleter = nullptr;
 };
 
-template <class T, class... Args>
-auto make_static_unique_ptr(void *place, Args &&...args) {
+template <class T, size_t arrsz, class... Args>
+auto make_static_unique_ptr(std::array<uint8_t, arrsz> &place, Args &&...args) {
     return static_unique_ptr<T>::make(place, std::forward<Args>(args)...);
 }
