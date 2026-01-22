@@ -96,19 +96,15 @@ private:
 // TODO: This is only temporary - will be changed to a Screen in the next PR
 class FrameToolMapping {
 public:
-    FrameToolMapping(window_frame_t *parent) {
-        tools_mapping = make_static_unique_ptr<ToolsMappingBody>(msg_box_mem_space.data(), parent, GCodeInfo::getInstance());
-        parent->CaptureNormalWindow(*tools_mapping);
-        tools_mapping->Show();
-        tools_mapping->Invalidate();
+    FrameToolMapping(window_frame_t *parent)
+        : tools_mapping(parent, GCodeInfo::getInstance()) {
+        parent->CaptureNormalWindow(tools_mapping);
+        tools_mapping.Show();
+        tools_mapping.Invalidate();
     }
 
 private:
-    using UniquePtrMapping = static_unique_ptr<ToolsMappingBody>;
-    UniquePtrMapping tools_mapping;
-
-    using MsgBoxMemSpace = std::array<uint8_t, 1592>;
-    MsgBoxMemSpace msg_box_mem_space;
+    ToolsMappingBody tools_mapping;
 };
 #endif
 
