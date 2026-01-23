@@ -32,6 +32,7 @@ public:
     static Hotend &for_tool(uint8_t tool);
 
 public:
+    /// Target temperature of the nozzle
     TargetTemperature nozzle_target_temp() const {
         return nozzle_target_temp_;
     }

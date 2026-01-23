@@ -44,6 +44,7 @@
 #include <utils/storage/strong_index_array.hpp>
 #include <module/temperature/temp_defines.hpp>
 #include <module/temperature/thermal_runaway.hpp>
+#include <hotend/hotend.hpp>
 
 #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
   #include <module/temperature/thermal_model_protection.hpp>
@@ -154,11 +155,14 @@ struct ModularBedHeater: public HeaterInfo {
 };
 #endif
 
-#if ENABLED(PIDTEMP)
-  typedef struct PIDHeaterInfo<hotend_pid_t> hotend_info_t;
-#else
-  typedef heater_info_t hotend_info_t;
-#endif
+struct hotend_info_t : public TempInfo {
+  static_assert(ENABLED(PIDTEMP));
+  hotend_pid_t pid;  // Initialized by settings.load()
+  
+  // target moved to Hotend
+  uint8_t soft_pwm_amount;
+};
+
 #if HAS_HEATED_BED
   #if ENABLED(PIDTEMPBED)
     typedef struct PIDHeaterInfo<PID_t> bed_info_t;
@@ -191,6 +195,7 @@ struct ModularBedHeater: public HeaterInfo {
 class Temperature {
   friend class MarlinTemptableRawMinMax;
   friend class BaseHotend;
+  friend class LocalHotend;
 
   public:
 
@@ -397,13 +402,14 @@ class Temperature {
       return degHotend(tool.to_raw());
     }
 
-    [[deprecated("Use the ToolIndex overload")]]
+    [[deprecated("Use the Hotend functions directly")]]
     FORCE_INLINE static int16_t degTargetHotend(const uint8_t E_NAME) {
-      return temp_hotend[HOTEND_INDEX].target;
+      return Hotend::for_tool(HOTEND_INDEX).nozzle_target_temp();
     }
 
+    [[deprecated("Use the Hotend functions directly")]]
     inline static auto degTargetHotend(PhysicalToolIndex tool) {
-      return degTargetHotend(tool.to_raw());
+      return Hotend::for_tool(tool).nozzle_target_temp();
     }
 
     inline static bool targetTooColdToExtrude(PhysicalToolIndex physical_tool) {

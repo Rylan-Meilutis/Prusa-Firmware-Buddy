@@ -534,7 +534,8 @@ static HeatbreakRegulator heatbreak_regulator[HOTENDS];
 #endif // PIDTEMPBED
 
 void Temperature::update_temp_residency_hotend(uint8_t hotend) {
-  const float temp_diff = ABS(temp_hotend[hotend].target - temp_hotend[hotend].celsius);
+  auto &h = Hotend::for_tool(hotend);
+  const float temp_diff = ABS(h.nozzle_target_temp() - temp_hotend[hotend].celsius);
 
   if (!temp_hotend_residency_start_ms[hotend] && temp_diff < TEMP_WINDOW) {
     // Start the TEMP_RESIDENCY_TIME timer when we reach target temp for the first time.
@@ -581,10 +582,11 @@ void Temperature::manage_heater() {
     last_e_position = e_position;
   #endif
 
-  const auto current_tool = PhysicalToolIndex::currently_selected();
+  [[maybe_unused]] const auto current_tool = PhysicalToolIndex::currently_selected();
 
   for (int8_t e = 0; e < HOTENDS; e++) {
     const auto tool = PhysicalToolIndex::from_raw_notool(e);
+    Hotend &hotend = Hotend::for_tool(tool);
 
     #if ENABLED(THERMAL_PROTECTION_HOTENDS)
       if (degHotend(e) > temp_range[e].maxtemp)
@@ -595,7 +597,7 @@ void Temperature::manage_heater() {
 
     #if ENABLED(THERMAL_PROTECTION_HOTENDS)
       // Check for thermal runaway
-      thermal_runaway_hotends[e].step(temp_hotend[e].celsius, temp_hotend[e].target, (heater_ind_t)e, THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS, false);
+      thermal_runaway_hotends[e].step(temp_hotend[e].celsius, hotend.nozzle_target_temp(), (heater_ind_t)e, THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS, false);
     #endif
 
     HotendRegulatorResult regulation_result {
@@ -608,7 +610,7 @@ void Temperature::manage_heater() {
         .hotend_index = (uint8_t)e,
         .fan_speed = fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
         .current_temp = temp_hotend[e].celsius,
-        .target_temp = temp_hotend[e].target,
+        .target_temp = hotend.nozzle_target_temp(),
       #if ENABLED(PID_EXTRUSION_SCALING)
         .e_volume_delta = (extrusion_scaling_enabled && tool == current_tool) ? e_volume_delta : 0,
       #endif
@@ -1301,8 +1303,9 @@ void Temperature::readings_ready() {
 
   for (auto tool : PhysicalToolIndex::all()) {
     const auto e = tool.to_raw();
+    const Hotend &hotend = Hotend::for_tool(tool);
 
-    const bool heater_on = (temp_hotend[e].target > 0
+    const bool heater_on = (hotend.nozzle_target_temp() > 0
       #if ENABLED(PIDTEMP)
         || temp_hotend[e].soft_pwm_amount > 0
       #endif
@@ -1337,8 +1340,10 @@ void Temperature::readings_ready() {
   #if HAS_TEMP_HEATBREAK
     #if !HAS_TOOLCHANGER()
     for (auto tool : PhysicalToolIndex::all()) {
+        Hotend &hotend = Hotend::for_tool(tool);
+
         //const bool chamber_on = (temp_chamber.target > 0);
-        const bool heater_on = (temp_hotend[tool].target > 0
+        const bool heater_on = (hotend.nozzle_target_temp() > 0
                                 #if ENABLED(PIDTEMP)
                                 || temp_hotend[tool].soft_pwm_amount > 0
                                 #endif
@@ -1718,6 +1723,8 @@ void Temperature::isr() {
     }
 
     bool Temperature::wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling/*=true*/, bool fan_cooling/*=false*/) {
+      Hotend &hotend = Hotend::for_tool(target_extruder);
+
       #if BOARD_IS_MASTER_BOARD()
         // Keep all heaters on while we're waiting for temperatures
         buddy::SafetyTimerBlocker safety_timer_blocker;
@@ -1750,7 +1757,7 @@ void Temperature::isr() {
 
         // Target temperature might be changed during the loop
         if (target_temp != degTargetHotend(target_extruder)) {
-          wants_to_cool = temp_hotend[target_extruder].target < temp_hotend[target_extruder].celsius;
+          wants_to_cool = hotend.nozzle_target_temp() < temp_hotend[target_extruder].celsius;
           target_temp = degTargetHotend(target_extruder);
 
           // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>

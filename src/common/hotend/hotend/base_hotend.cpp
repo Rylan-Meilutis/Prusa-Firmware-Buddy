@@ -36,8 +36,6 @@ void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {
     // target changed, reset time when it reached target
     t.temp_hotend_residency_start_ms[tool_] = 0;
 
-    // Temporarily, we have the values duplicated until we migrate the temperature.cpp more
-    t.temp_hotend[tool_].target = new_temp;
     nozzle_target_temp_ = new_temp;
 
 #if BOARD_IS_MASTER_BOARD()
