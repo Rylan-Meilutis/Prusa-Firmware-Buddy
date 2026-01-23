@@ -112,7 +112,6 @@ static_assert(BOARD_IS_BUDDY() || BOARD_IS_XBUDDY());
 
 #define TEMP_BOARD_PIN         MARLIN_PIN(THERM2) // Analog Input
 #define TEMP_HEATBREAK_PIN     MARLIN_PIN(TEMP_HEATBREAK) // Analog Input todo: why it is defined for all printers?
-#define TEMP_CHAMBER_PIN       MARLIN_PIN(AMBIENT) // Analog Input
 
 #if PRINTER_IS_PRUSA_iX()
 #define TEMP_PSU_PIN           MARLIN_PIN(TEMP_PSU)

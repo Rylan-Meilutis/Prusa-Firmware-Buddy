@@ -116,14 +116,6 @@
     */
 #endif
 
-/**
- * Thermal Protection parameters for the heated chamber.
- */
-#if ENABLED(THERMAL_PROTECTION_CHAMBER)
-    #define THERMAL_PROTECTION_CHAMBER_PERIOD 20 // Seconds
-    #define THERMAL_PROTECTION_CHAMBER_HYSTERESIS 2 // Degrees Celsius
-#endif
-
 #if ENABLED(PIDTEMP)
     // this adds an experimental additional term to the heating power, proportional to the extrusion speed.
     // if Kc is chosen well, the additional required power due to increased melting should be compensated.
@@ -173,7 +165,6 @@
 #define E3_AUTO_FAN_PIN -1
 #define E4_AUTO_FAN_PIN -1
 #define E5_AUTO_FAN_PIN -1
-#define CHAMBER_AUTO_FAN_PIN -1
 #define EXTRUDER_AUTO_FAN_TEMPERATURE 50
 #define EXTRUDER_AUTO_FAN_SPEED 255 // 255 == full speed
 

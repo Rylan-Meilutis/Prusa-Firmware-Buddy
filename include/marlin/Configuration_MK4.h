@@ -173,7 +173,6 @@
 #define TEMP_SENSOR_BED 2004
 #define TEMP_SENSOR_HEATBREAK 2008
 #define TEMP_SENSOR_BOARD 2000
-#define TEMP_SENSOR_CHAMBER 0
 
 #define TEMP_RESIDENCY_TIME 5 // (seconds) Time to wait for hotend to "settle" in M109
 #define TEMP_WINDOW 1 // (°C) Temperature proximity for the "temperature reached" timer
@@ -182,8 +181,6 @@
 #define TEMP_BED_RESIDENCY_TIME 5 // (seconds) Time to wait for bed to "settle" in M190
 #define TEMP_BED_WINDOW 1 // (°C) Temperature proximity for the "temperature reached" timer
 #define TEMP_BED_HYSTERESIS 3 // (°C) Temperature proximity considered "close enough" to the target
-
-#define TEMP_CHAMBER_HYSTERESIS 3 // (°C) Temperature proximity considered "close enough" to the target
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
@@ -195,7 +192,6 @@
 #define HEATER_5_MINTEMP 5
 #define BED_MINTEMP 5
 #define HEATBREAK_MINTEMP 5
-#define CHAMBER_MINTEMP 5
 #define BOARD_MINTEMP 5
 
 // Above this temperature the heater will be switched off.
@@ -211,7 +207,6 @@
 #define BED_MAXTEMP 125
 #define BED_MAXTEMP_SAFETY_MARGIN 5
 #define HEATBREAK_MAXTEMP 100
-#define CHAMBER_MAXTEMP 100
 #define BOARD_MAXTEMP 120
 
 //===========================================================================
@@ -352,7 +347,6 @@
 
 #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
 #define THERMAL_PROTECTION_BED // Enable thermal protection for the heated bed
-//#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
 
 //===========================================================================
 //============================= Mechanical Settings =========================

@@ -168,7 +168,6 @@
 #define TEMP_SENSOR_4 5
 #define TEMP_SENSOR_5 5
 #define TEMP_SENSOR_BED 5
-#define TEMP_SENSOR_CHAMBER 2000
 #define TEMP_SENSOR_HEATBREAK 5
 #define TEMP_SENSOR_BOARD 2000
 
@@ -180,8 +179,6 @@
 #define TEMP_BED_WINDOW 3 // (°C) Temperature proximity for the "temperature reached" timer
 #define TEMP_BED_HYSTERESIS 3 // (°C) Temperature proximity considered "close enough" to the target
 
-#define TEMP_CHAMBER_HYSTERESIS 3 // (°C) Temperature proximity considered "close enough" to the target
-
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
 #define HEATER_0_MINTEMP 5
@@ -192,7 +189,6 @@
 #define HEATER_5_MINTEMP 5
 #define BED_MINTEMP 5
 #define HEATBREAK_MINTEMP 5
-#define CHAMBER_MINTEMP 5
 #define BOARD_MINTEMP 5
 
 // Above this temperature the heater will be switched off.
@@ -209,7 +205,6 @@
 #define BED_MAXTEMP 120
 #define BED_MAXTEMP_SAFETY_MARGIN 5
 #define HEATBREAK_MAXTEMP 100
-#define CHAMBER_MAXTEMP 100
 #define BOARD_MAXTEMP 120
 
 //===========================================================================
@@ -351,7 +346,6 @@
 #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
 // BED is protected by modular bed controller
 //#define THERMAL_PROTECTION_BED // Enable thermal protection for the heated bed
-#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
 
 //===========================================================================
 //============================= Mechanical Settings =========================

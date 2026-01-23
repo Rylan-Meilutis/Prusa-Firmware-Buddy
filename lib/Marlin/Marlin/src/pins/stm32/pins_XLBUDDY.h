@@ -95,7 +95,6 @@ static_assert(BOARD_IS_XLBUDDY());
 
 #define TEMP_BOARD_PIN         MARLIN_PIN(THERM2) // Dummy, measured by puppy
 #define TEMP_HEATBREAK_PIN     MARLIN_PIN(TEMP_HEATBREAK) // Dummy, measured by puppy
-#define TEMP_CHAMBER_PIN       MARLIN_PIN(AMBIENT) // Analog Input
 
 #define HEATER_HEATBREAK_PIN   MARLIN_PIN(FAN1)
 #define FAN1_PIN               MARLIN_PIN(FAN1)
