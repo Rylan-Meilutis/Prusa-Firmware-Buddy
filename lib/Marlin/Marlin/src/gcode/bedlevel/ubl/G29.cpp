@@ -316,7 +316,7 @@ void GcodeSuite::G29() {
                     if (planner.draining()) return;
                     
                     if (nozzle_cleaner::is_loader_idle()) {
-                        nozzle_cleaner::load_g12_gcode();
+                        nozzle_cleaner::load_clean_gcode();
                     }
                     if (nozzle_cleaner::is_loader_buffering()) {
                         idle(true); // Wait for the loader to finish buffering

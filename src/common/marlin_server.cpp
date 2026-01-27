@@ -915,7 +915,7 @@ static void cycle() {
 static bool pre_finalize_print([[maybe_unused]] bool finished) {
 #if HAS_NOZZLE_CLEANER()
     if (nozzle_cleaner::is_loader_idle()) {
-        nozzle_cleaner::load_g12_gcode();
+        nozzle_cleaner::load_clean_gcode();
     }
     if (nozzle_cleaner::is_loader_buffering()) {
         return false; // We are not ready yet, we need to wait for the loader to finish buffering

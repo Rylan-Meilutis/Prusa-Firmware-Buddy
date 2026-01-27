@@ -5,27 +5,26 @@
 
 namespace nozzle_cleaner {
 
-ConstexprString load_sequence = "G1 X267.4 Y284.75 F3000\n"
-                                "G1 X253.4 Y284.75 F3000\n"
-                                "G1 X267.4 Y284.75 F3000\n"
-                                "G1 X253.4 Y284.75 F3000\n"
-                                "G1 X222.49 Y303.28 F5000\n"
-                                "G1 X240.88 Y284.89 F2000\n"
-                                "G1 X243.2 Y296.12\n"
-                                "G1 X232.48 Y285.4\n"
-                                "G1 X238.46 Y300.86\n"
-                                "G1 X227.74 Y290.14\n"
-                                "G1 X233.72 Y305.6\n"
-                                "G1 X223 Y294.88\n"
-                                "G1 X238.46 Y300.86\n"
-                                "G1 X227.74 Y290.14\n"
-                                "G1 X243.2 Y296.12\n"
-                                "G1 X243.71 Y287.72\n"
-                                "G1 X225.32 Y306.11\n"
-                                "G1 X227.74 Y290.14\n"
-                                "G1 X233.72 Y305.6\n"
-                                "G1 X240.88 Y284.89\n"
-                                "G27";
+ConstexprString clean_sequence = "G1 X267.4 Y284.75 F3000\n"
+                                 "G1 X253.4 Y284.75 F3000\n"
+                                 "G1 X267.4 Y284.75 F3000\n"
+                                 "G1 X253.4 Y284.75 F3000\n"
+                                 "G1 X222.49 Y303.28 F5000\n"
+                                 "G1 X240.88 Y284.89 F2000\n"
+                                 "G1 X243.2 Y296.12\n"
+                                 "G1 X232.48 Y285.4\n"
+                                 "G1 X238.46 Y300.86\n"
+                                 "G1 X227.74 Y290.14\n"
+                                 "G1 X233.72 Y305.6\n"
+                                 "G1 X223 Y294.88\n"
+                                 "G1 X238.46 Y300.86\n"
+                                 "G1 X227.74 Y290.14\n"
+                                 "G1 X243.2 Y296.12\n"
+                                 "G1 X243.71 Y287.72\n"
+                                 "G1 X225.32 Y306.11\n"
+                                 "G1 X227.74 Y290.14\n"
+                                 "G1 X233.72 Y305.6\n"
+                                 "G1 X240.88 Y284.89";
 
 ConstexprString unload_sequence = "G1 X267.4 Y284.75 F3000\n"
                                   "G1 X253.4 Y284.75 F3000\n"
@@ -33,39 +32,14 @@ ConstexprString unload_sequence = "G1 X267.4 Y284.75 F3000\n"
                                   "G1 X253.4 Y284.75 F3000\n"
                                   "G27";
 
-ConstexprString runout_sequence = "G1 X267.4 Y284.75 F3000\n"
-                                  "G1 X253.4 Y284.75 F3000\n"
-                                  "G1 X267.4 Y284.75 F3000\n"
-                                  "G1 X253.4 Y284.75 F3000\n"
-                                  "G1 X222.49 Y303.28 F5000\n"
-                                  "G1 X240.88 Y284.89 F2000\n"
-                                  "G1 X243.2 Y296.12\n"
-                                  "G1 X232.48 Y285.4\n"
-                                  "G1 X238.46 Y300.86\n"
-                                  "G1 X227.74 Y290.14\n"
-                                  "G1 X233.72 Y305.6\n"
-                                  "G1 X223 Y294.88\n"
-                                  "G1 X238.46 Y300.86\n"
-                                  "G1 X227.74 Y290.14\n"
-                                  "G1 X243.2 Y296.12\n"
-                                  "G1 X243.71 Y287.72\n"
-                                  "G1 X225.32 Y306.11\n"
-                                  "G1 X227.74 Y290.14\n"
-                                  "G1 X233.72 Y305.6\n"
-                                  "G1 X240.88 Y284.89";
-
-ConstexprString g12_sequence = runout_sequence;
-
 ConstexprString vblade_cut_sequence = "G1 X267.4 Y284.75 F3000\n"
                                       "G1 X253.4 Y284.75 F3000\n"
                                       "G1 X267.4 Y284.75 F3000\n"
                                       "G1 X253.4 Y284.75 F3000\n"
                                       "G1 X253.4 Y305.0 F3000";
 
-ConstexprString load_filename = "nozzle_cleaner_load";
+ConstexprString clean_filename = "nozzle_cleaner_clean";
 ConstexprString unload_filename = "nozzle_cleaner_unload";
-ConstexprString runout_filename = "nozzle_cleaner_runout";
-ConstexprString g12_filename = "nozzle_cleaner_g12";
 ConstexprString vblade_cut_filename = "nozzle_cleaner_vblade_cut";
 
 static GCodeLoader &nozzle_cleaner_gcode_loader_instance() {
@@ -73,20 +47,12 @@ static GCodeLoader &nozzle_cleaner_gcode_loader_instance() {
     return nozzle_cleaner_gcode_loader;
 }
 
-void load_load_gcode() {
-    nozzle_cleaner_gcode_loader_instance().load_gcode(load_filename, load_sequence);
-}
-
-void load_runout_gcode() {
-    nozzle_cleaner_gcode_loader_instance().load_gcode(runout_filename, runout_sequence);
+void load_clean_gcode() {
+    nozzle_cleaner_gcode_loader_instance().load_gcode(clean_filename, clean_sequence);
 }
 
 void load_unload_gcode() {
     nozzle_cleaner_gcode_loader_instance().load_gcode(unload_filename, unload_sequence);
-}
-
-void load_g12_gcode() {
-    nozzle_cleaner_gcode_loader_instance().load_gcode(g12_filename, g12_sequence);
 }
 
 void load_vblade_cut_gcode() {

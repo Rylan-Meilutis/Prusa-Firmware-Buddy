@@ -23,7 +23,7 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
  */
 
 void PrusaGcodeSuite::G12() {
-    marlin_server::inject({ GCodeFilename(nozzle_cleaner::g12_filename, nozzle_cleaner::g12_sequence) });
+    marlin_server::inject({ GCodeFilename(nozzle_cleaner::clean_filename, nozzle_cleaner::clean_sequence) });
 }
 
 /** @}*/
