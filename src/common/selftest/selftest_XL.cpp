@@ -99,7 +99,7 @@ static consteval HeaterConfig_t make_nozzle_config(const char *name) {
         .partname = name,
         .type = heater_type_t::Nozzle,
         .tool_nr = index,
-        .getTemp = []() { return thermalManager.temp_hotend[index].celsius; },
+        .getTemp = []() { return Hotend::for_tool(index).nozzle_temp(); },
         .setTargetTemp = [](int target_temp) { thermalManager.setTargetHotend(target_temp, index); },
         .refKp = Temperature::temp_hotend[index].pid.Kp,
         .refKi = Temperature::temp_hotend[index].pid.Ki,

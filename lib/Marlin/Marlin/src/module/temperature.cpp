@@ -351,7 +351,7 @@ int16_t Temperature::getHeaterPower(const heater_ind_t heater_id) {
     uint8_t fanState = 0;
 
     for (int8_t e = 0; e < HOTENDS; e++)
-      if (temp_hotend[e].celsius >= EXTRUDER_AUTO_FAN_TEMPERATURE)
+      if (Hotend::for_tool(e).nozzle_temp() >= EXTRUDER_AUTO_FAN_TEMPERATURE)
         SBI(fanState, pgm_read_byte(&fanBit[e]));
 
     #define _UPDATE_AUTO_FAN(P,D,A) do{                  \
@@ -527,7 +527,7 @@ static HeatbreakRegulator heatbreak_regulator[HOTENDS];
 
 void Temperature::update_temp_residency_hotend(uint8_t hotend) {
   auto &h = Hotend::for_tool(hotend);
-  const float temp_diff = ABS(h.nozzle_target_temp() - temp_hotend[hotend].celsius);
+  const float temp_diff = ABS(h.nozzle_target_temp() - h.nozzle_temp());
 
   if (!temp_hotend_residency_start_ms[hotend] && temp_diff < TEMP_WINDOW) {
     // Start the TEMP_RESIDENCY_TIME timer when we reach target temp for the first time.
@@ -590,7 +590,7 @@ void Temperature::manage_heater() {
 
     #if ENABLED(THERMAL_PROTECTION_HOTENDS)
       // Check for thermal runaway
-      thermal_runaway_hotends[e].step(temp_hotend[e].celsius, hotend.nozzle_target_temp(), (heater_ind_t)e, THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS, false);
+      thermal_runaway_hotends[e].step(hotend.nozzle_temp(), hotend.nozzle_target_temp(), (heater_ind_t)e, THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS, false);
     #endif
 
     HotendRegulatorResult regulation_result {
@@ -598,11 +598,11 @@ void Temperature::manage_heater() {
       .feed_forward = 0,
     };
 
-    if(temp_hotend[e].celsius > temp_range[e].mintemp && temp_hotend[e].celsius < temp_range[e].maxtemp) {
+    if(hotend.nozzle_temp() > temp_range[e].mintemp && hotend.nozzle_temp() < temp_range[e].maxtemp) {
       regulation_result = hotend_regulators[e].get_pid_output_hotend(HotendRegulatorArgs{
         .hotend_index = (uint8_t)e,
         .fan_speed = fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
-        .current_temp = temp_hotend[e].celsius,
+        .current_temp = hotend.nozzle_temp(),
         .target_temp = hotend.nozzle_target_temp(),
       #if ENABLED(PID_EXTRUSION_SCALING)
         .e_volume_delta = (extrusion_scaling_enabled && tool == current_tool) ? e_volume_delta : 0,
@@ -707,7 +707,7 @@ void Temperature::manage_heater() {
             temp_heatbreak[0].soft_pwm_amount = (int)heatbreak_regulator[0].step(HeatbreakRegulator::Args{
               .current_temp = temp_heatbreak[0].celsius,
               .target_temp = temp_heatbreak[0].target,
-              .current_hotend_temp = temp_hotend[0].celsius,
+              .current_hotend_temp = Hotend::for_tool(PhysicalToolIndex::from_raw(0)).nozzle_temp(),
             });
             set_fan_speed(HEATBREAK_FAN_ID, temp_heatbreak[0].soft_pwm_amount);
           #endif
@@ -1280,10 +1280,10 @@ void Temperature::readings_ready() {
     );
   #if HAS_TOOLCHANGER()
     // Toolchanger doesn't report raw
-    if (temp_hotend[e].celsius > temp_range[e].maxtemp) {
+    if (hotend.nozzle_temp() > temp_range[e].maxtemp) {
       max_temp_error((heater_ind_t)e);
     }
-    if (heater_on && temp_hotend[e].celsius < temp_range[e].mintemp) {
+    if (heater_on && hotend.nozzle_temp() < temp_range[e].mintemp) {
       min_temp_error((heater_ind_t)e);
     }
   #else
@@ -1725,7 +1725,7 @@ void Temperature::isr() {
 
         // Target temperature might be changed during the loop
         if (target_temp != degTargetHotend(target_extruder)) {
-          wants_to_cool = hotend.nozzle_target_temp() < temp_hotend[target_extruder].celsius;
+          wants_to_cool = hotend.nozzle_target_temp() < hotend.nozzle_temp();
           target_temp = degTargetHotend(target_extruder);
 
           // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>

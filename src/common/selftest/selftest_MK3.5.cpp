@@ -97,7 +97,7 @@ static constexpr HeaterConfig_t Config_HeaterNozzle[] = {
     {
         .partname = "Nozzle",
         .type = heater_type_t::Nozzle,
-        .getTemp = []() { return thermalManager.temp_hotend[0].celsius; },
+        .getTemp = []() { return Hotend::for_tool(0).nozzle_temp(); },
         .setTargetTemp = [](int target_temp) { thermalManager.setTargetHotend(target_temp, 0); },
         .refKp = Temperature::temp_hotend[0].pid.Kp,
         .refKi = Temperature::temp_hotend[0].pid.Ki,
