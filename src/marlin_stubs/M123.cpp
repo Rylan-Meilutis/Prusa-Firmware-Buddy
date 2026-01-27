@@ -36,8 +36,13 @@ void PrusaGcodeSuite::M123() {
 }
 
 void M123::print_fan_speed() {
+    auto maybe_tool = PhysicalToolIndex::currently_selected();
+    if (std::holds_alternative<NoTool>(maybe_tool)) {
+        return;
+    }
+    auto tool = std::get<PhysicalToolIndex>(maybe_tool);
     char buffer[50];
-    snprintf(buffer, sizeof buffer, "E0:%d RPM PRN1:%d RPM E0@:%u PRN1@:%u\n", Fans::heat_break(active_extruder).get_actual_rpm(), Fans::print(active_extruder).get_actual_rpm(), Fans::heat_break(active_extruder).get_pwm(), Fans::print(active_extruder).get_pwm());
+    snprintf(buffer, sizeof buffer, "E0:%d RPM PRN1:%d RPM E0@:%u PRN1@:%u\n", Fans::heat_break(tool).get_actual_rpm(), Fans::print(tool).get_actual_rpm(), Fans::heat_break(tool).get_pwm(), Fans::print(tool).get_pwm());
     SERIAL_ECHO(buffer);
     SERIAL_EOL();
 }
