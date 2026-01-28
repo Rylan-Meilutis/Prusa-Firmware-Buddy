@@ -235,6 +235,7 @@ typedef struct { int16_t raw_min, raw_max, mintemp, maxtemp; } temp_range_t;
 #define THERMISTOR_RESISTANCE_NOMINAL_C 25.0f          // mmmmm comfortable
 
 class Temperature {
+  friend class MarlinTemptableRawMinMax;
 
   public:
 
