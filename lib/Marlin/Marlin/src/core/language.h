@@ -162,12 +162,6 @@
 #define MSG_KILL_BUTTON                     "KILL caused by KILL button/pin"
 
 // temperature.cpp strings
-#define MSG_PID_AUTOTUNE                    "PID Autotune"
-#define MSG_PID_AUTOTUNE_START              MSG_PID_AUTOTUNE " start"
-#define MSG_PID_AUTOTUNE_FAILED             MSG_PID_AUTOTUNE " failed!"
-#define MSG_PID_BAD_EXTRUDER_NUM            MSG_PID_AUTOTUNE_FAILED " Bad extruder number"
-#define MSG_PID_TEMP_TOO_HIGH               MSG_PID_AUTOTUNE_FAILED " Temperature too high"
-#define MSG_PID_TIMEOUT                     MSG_PID_AUTOTUNE_FAILED " timeout"
 #define MSG_BIAS                            " bias: "
 #define MSG_D                               " d: "
 #define MSG_T_MIN                           " min: "
@@ -179,7 +173,6 @@
 #define MSG_KI                              " Ki: "
 #define MSG_KD                              " Kd: "
 #define MSG_AT                              " @:"
-#define MSG_PID_AUTOTUNE_FINISHED           MSG_PID_AUTOTUNE " finished! Put the last Kp, Ki and Kd constants from below into Configuration.h"
 #define MSG_PID_DEBUG                       " PID_DEBUG "
 #define MSG_PID_DEBUG_INPUT                 ": Input "
 #define MSG_PID_DEBUG_OUTPUT                " Output "

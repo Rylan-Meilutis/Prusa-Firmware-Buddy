@@ -1306,9 +1306,3 @@
  * M862.x support for print checking Q commands (P are always supported)
  */
 #define PRINT_CHECKING_Q_CMDS
-
-
-/**
- * Enable PID autotune
- **/
-#define PID_AUTOTUNE

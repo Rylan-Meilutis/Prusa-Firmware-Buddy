@@ -655,10 +655,6 @@ public:
      * Perform auto-tuning for hotend or bed in response to M303
      */
     #if HAS_PID_HEATING
-      #if ENABLED(PID_AUTOTUNE)
-        static void PID_autotune(const float &target, const heater_ind_t hotend, const int8_t ncycles, const bool set_result=false);
-      #endif
-
       /**
        * Update the temp manager when PID values change
        */

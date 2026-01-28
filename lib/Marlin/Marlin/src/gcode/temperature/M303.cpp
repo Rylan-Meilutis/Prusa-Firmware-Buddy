@@ -22,10 +22,9 @@
 
 #include "../../inc/MarlinConfig.h"
 
-#if HAS_PID_HEATING && ENABLED(PID_AUTOTUNE)
+#if HAS_PID_HEATING
 
 #include "../gcode.h"
-#include "../../module/temperature.h"
 
 /** \addtogroup G-Codes
  * @{
@@ -34,44 +33,11 @@
 /**
  *### M303: Run PID tuning <a href="https://reprap.org/wiki/G-code#M303:_Run_PID_tuning">M303: Run PID tuning</a>
  *
- *#### Usage
- *
- *    M303 [ S | E | C | U ]
- *
- *#### Parameters
- *
- * - `S` - Set the target temperature. (default 150C / 70C)
- * - `E` - Extruder
- *   - `-1` - for the bed
- * - `C` - Cycles minimum 3. Default 5.
- * - `U` - Use PID result
+ * Not currently supported - the old Marlin code grew incompatible with our changes.
  */
 void GcodeSuite::M303() {
-  #if ENABLED(PIDTEMPBED)
-    #define SI H_BED
-  #else
-    #define SI H_NOZZLE_FIRST
-  #endif
-  #if ENABLED(PIDTEMP)
-    #define EI HOTENDS - 1
-  #else
-    #define EI H_BED
-  #endif
-  const heater_ind_t e = (heater_ind_t)parser.intval('E');
-  if (!WITHIN(e, SI, EI)) {
-    SERIAL_ECHOLNPGM(MSG_PID_BAD_EXTRUDER_NUM);
-    return;
-  }
-
-  const int c = parser.intval('C', 5);
-  const bool u = parser.boolval('U');
-  const int16_t temp = static_cast<int16_t>(parser.celsiusval('S', e < 0 ? 70 : 150));
-
-  #if DISABLED(BUSY_WHILE_HEATING)
-    KEEPALIVE_STATE(NOT_BUSY);
-  #endif
-
-  thermalManager.PID_autotune(temp, e, c, u);
+  // Not supported, the code was a mess, sorry guys
+  SERIAL_ECHOLNPGM("M303 is not supported");
 }
 
 /** @}*/
