@@ -1,0 +1,1 @@
+target_sources(Marlin PRIVATE model_based_hotend_regulator.cpp standard_hotend_regulator.cpp)

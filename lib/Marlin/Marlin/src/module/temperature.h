@@ -302,6 +302,11 @@ class Temperature {
       FORCE_INLINE static void setExtrusionScalingEnabled(bool enabled) { extrusion_scaling_enabled = enabled; }
     #endif
 
+    #if ENABLED(PID_EXTRUSION_SCALING)
+      static uint32_t last_e_position;
+      static bool extrusion_scaling_enabled;
+    #endif
+
   private:
 
     #if EARLY_WATCHDOG
@@ -312,11 +317,6 @@ class Temperature {
 
     #if WATCH_HOTENDS
       static heater_watch_t watch_hotend[HOTENDS];
-    #endif
-
-    #if ENABLED(PID_EXTRUSION_SCALING)
-      static uint32_t last_e_position;
-      static bool extrusion_scaling_enabled;
     #endif
 
     #if HAS_HEATED_BED
@@ -686,14 +686,6 @@ public:
     static void updateTemperaturesFromRawValues();
 
     static void checkExtruderAutoFans();
-
-    static float get_pid_output_hotend(
-#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-            float &feed_forward ,
-#endif
-            const uint8_t e
-      );
-    static float get_model_output_hotend(float &last_target, float &expected, const uint8_t e);
 
     #if ENABLED(PIDTEMPBED)
       static float get_pid_output_bed();
