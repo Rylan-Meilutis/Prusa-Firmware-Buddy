@@ -204,11 +204,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
 #if HAS_TEMP_HEATBREAK
   StrongIndexArray<heatbreak_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> Temperature::temp_heatbreak;
 
-  int16_t Temperature::mintemp_raw_HEATBREAK = HEATBREAK_RAW_LO_TEMP;
-
-  #ifdef HEATBREAK_MAXTEMP
-    int16_t Temperature::maxtemp_raw_HEATBREAK = HEATBREAK_RAW_HI_TEMP;
-  #endif
+  static MarlinTemptableRawMinMax minmaxtemp_raw_HEATBREAK;
 
   #if WATCH_HEATBREAK
     heater_watch_t Temperature::watch_heatbreak[HOTENDS] = {0};
@@ -220,12 +216,6 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
 #if HAS_TEMP_BOARD
   board_info_t Temperature::temp_board; // = { 0 }
 
-  int16_t Temperature::mintemp_raw_BOARD = BOARD_RAW_LO_TEMP;
-
-  #ifdef BOARD_MAXTEMP
-    int16_t Temperature::maxtemp_raw_BOARD = BOARD_RAW_HI_TEMP;
-  #endif
-
 #endif
 
 #if HAS_HEATED_BED
@@ -234,12 +224,8 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
   uint32_t Temperature::bed_frame_millis = 0;
 
   // Init min and max temp with extreme values to prevent false errors during startup
-  #ifdef BED_MINTEMP
-    int16_t Temperature::mintemp_raw_BED = HEATER_BED_RAW_LO_TEMP;
-  #endif
-  #ifdef BED_MAXTEMP
-    int16_t Temperature::maxtemp_raw_BED = HEATER_BED_RAW_HI_TEMP;
-  #endif
+  static MarlinTemptableRawMinMax minmaxtemp_raw_BED;
+
   #if WATCH_BED
     heater_watch_t Temperature::watch_bed; // = { 0 }
   #endif
@@ -1646,29 +1632,11 @@ void Temperature::init() {
   delay(250);
 
   #if HAS_HEATED_BED
-    #ifdef BED_MINTEMP
-      while (analog_to_celsius_bed(mintemp_raw_BED) < BED_MINTEMP) mintemp_raw_BED += TEMPDIR(BED) * (OVERSAMPLENR);
-    #endif
-    #ifdef BED_MAXTEMP
-      while (analog_to_celsius_bed(maxtemp_raw_BED) > BED_MAXTEMP) maxtemp_raw_BED -= TEMPDIR(BED) * (OVERSAMPLENR);
-    #endif
+    minmaxtemp_raw_BED = MarlinTemptableRawMinMax::compute(BED_TEMPTABLE, BED_MINTEMP, BED_MAXTEMP);
   #endif // HAS_HEATED_BED
 
   #if HAS_TEMP_HEATBREAK
-    #ifdef HEATBREAK_MINTEMP
-      while (analog_to_celsius_heatbreak(mintemp_raw_HEATBREAK) < HEATBREAK_MINTEMP) mintemp_raw_HEATBREAK += TEMPDIRHEATBREAK * (OVERSAMPLENR);
-    #endif
-    #ifdef HEATBREAK_MAXTEMP
-      while (analog_to_celsius_heatbreak(maxtemp_raw_HEATBREAK) > HEATBREAK_MAXTEMP) maxtemp_raw_HEATBREAK -= TEMPDIRHEATBREAK * (OVERSAMPLENR);
-    #endif
-  #endif
-  #if HAS_TEMP_BOARD
-    #ifdef BOARD_MINTEMP
-      while (analog_to_celsius_board(mintemp_raw_BOARD) < BOARD_MINTEMP) mintemp_raw_BOARD += TEMPDIRBOARD * (OVERSAMPLENR);
-    #endif
-    #ifdef BOARD_MAXTEMP
-      while (analog_to_celsius_board(maxtemp_raw_BOARD) > BOARD_MAXTEMP) maxtemp_raw_BOARD -= TEMPDIRBOARD * (OVERSAMPLENR);
-    #endif
+    minmaxtemp_raw_HEATBREAK = MarlinTemptableRawMinMax::compute(heatbreak_temptable(), HEATBREAK_MINTEMP, HEATBREAK_MAXTEMP);
   #endif
 
   // At the end of init, load the temperatures
@@ -1960,11 +1928,6 @@ void Temperature::readings_ready() {
   }
 
   #if HAS_HEATED_BED
-    #if TEMPDIR(BED) < 0
-      #define BEDCMP(A,B) ((A)<=(B))
-    #else
-      #define BEDCMP(A,B) ((A)>=(B))
-    #endif
     #if HAS_REMOTE_BED()
       //With remote bed we get temperatures in °C from controller. No raw values to check.
     #endif
@@ -1974,17 +1937,11 @@ void Temperature::readings_ready() {
         || (temp_bed.soft_pwm_amount > 0)
       #endif
     ;
-      if (BEDCMP(temp_bed.raw, maxtemp_raw_BED)) max_temp_error(H_BED);
-      if (bed_on && BEDCMP(mintemp_raw_BED, temp_bed.raw)) min_temp_error(H_BED);
+      minmaxtemp_raw_BED.check_temperror(temp_bed.raw, H_BED, bed_on);
     #endif
   #endif
 
   #if HAS_TEMP_HEATBREAK
-    #if TEMPDIRHEATBREAK < 0
-      #define HEATBREAKCMP(A,B) ((A)<=(B))
-    #else
-      #define HEATBREAKCMP(A,B) ((A)>=(B))
-    #endif
     #if !HAS_TOOLCHANGER()
     for (auto tool : PhysicalToolIndex::all()) {
         //const bool chamber_on = (temp_chamber.target > 0);
@@ -1993,12 +1950,7 @@ void Temperature::readings_ready() {
                                 || temp_hotend[tool].soft_pwm_amount > 0
                                 #endif
         );
-        if (HEATBREAKCMP(temp_heatbreak[tool].raw, maxtemp_raw_HEATBREAK)) {
-            max_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_FIRST + tool.to_raw()));
-        }
-        if (heater_on && HEATBREAKCMP(mintemp_raw_HEATBREAK, temp_heatbreak[tool].raw)) {
-            min_temp_error(static_cast<heater_ind_t>(H_HEATBREAK_FIRST + tool.to_raw()));
-        }
+        minmaxtemp_raw_HEATBREAK.check_temperror(temp_heatbreak[tool].raw, H_HEATBREAK_FIRST + tool.to_raw(), heater_on);
     }
     #endif
   #endif

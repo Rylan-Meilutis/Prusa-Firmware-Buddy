@@ -326,12 +326,6 @@ class Temperature {
       #if DISABLED(PIDTEMPBED)
         static millis_t next_bed_check_ms;
       #endif
-      #ifdef BED_MINTEMP
-        static int16_t mintemp_raw_BED;
-      #endif
-      #ifdef BED_MAXTEMP
-        static int16_t maxtemp_raw_BED;
-      #endif
     #endif
 
     #if HAS_TEMP_HEATBREAK
@@ -339,21 +333,6 @@ class Temperature {
       static heater_watch_t watch_heatbreak[HOTENDS];
       #endif
       static millis_t next_heatbreak_check_ms;
-      #ifdef HEATBREAK_MINTEMP
-        static int16_t mintemp_raw_HEATBREAK;
-      #endif
-      #ifdef HEATBREAK_MAXTEMP
-        static int16_t maxtemp_raw_HEATBREAK;
-      #endif
-    #endif
-
-    #if HAS_TEMP_BOARD
-      #ifdef BOARD_MINTEMP
-        static int16_t mintemp_raw_BOARD;
-      #endif
-      #ifdef BOARD_MAXTEMP
-        static int16_t maxtemp_raw_BOARD;
-      #endif
     #endif
 
     #if HAS_AUTO_FAN
