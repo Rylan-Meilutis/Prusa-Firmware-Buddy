@@ -2182,22 +2182,25 @@ bool Planner::buffer_segment(const abce_pos_t &abce, const feedRate_t fr_mm_s, s
     gcode_exceptions().report_xyz_move();
   }
 
-  if (target.e != position.e) {
+  if (!hints.move.is_service_extruder_move && target.e != position.e) {
     /// Extruder movement without a tool picked doesn't make any sense
     if(!physical_tool.has_value()) {
       bsod("E move without tool");
     }
 
-    #if HAS_FILAMENT_TRACKER()
-      // Note: This is not >>ideal<<, because although the moves get planned, they might get discarded through (gcode_exceptions/quick_stop)
-      // Most notably, this will track some extra filament usage if user intterupts purging
-      // Tying this directly to the immediate motor positions might be better, but one would also need to also handle the origin resets
-      buddy::filament_tracker().track_extruder_move(*virtual_tool, (abce.e - position_float.e) * e_factor[virtual_tool->to_raw()]);
-    #endif
+#if HAS_FILAMENT_TRACKER()
+    // Note: This is not >>ideal<<, because although the moves get planned, they might get discarded through (gcode_exceptions/quick_stop)
+    // Most notably, this will track some extra filament usage if user intterupts purging
+    // Tying this directly to the immediate motor positions might be better, but one would also need to also handle the origin resets
+    buddy::filament_tracker().track_extruder_move(*virtual_tool, (abce.e - position_float.e) * e_factor[virtual_tool->to_raw()]);
+#endif
   }
 
 #if HAS_AUTO_RETRACT()
-  if (target.e > position.e) {
+  if (hints.move.is_service_extruder_move) {
+    // Extruder switch move is out of filament gears
+    
+  } else if (target.e > position.e) {
     buddy::auto_retract().maybe_deretract_to_nozzle();
     
   } else if (hints.move.is_printing_move && buddy::auto_retract().will_deretract()) {
@@ -2247,7 +2250,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce, const feedRate_t fr_mm_s, s
       set_machine_position_mm(crash_s.crash_position);
 
       // reset the hints
-      static const PlannerHints default_hints;
+      static const PlannerHints default_hints; // INDX_TODO: Investigate crash
       segment_hints = &default_hints;
 
       // continue normally
