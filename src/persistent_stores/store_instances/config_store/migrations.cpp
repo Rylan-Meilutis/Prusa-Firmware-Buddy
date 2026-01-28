@@ -364,26 +364,6 @@ namespace migrations {
         backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, old_value);
     }
 
-    void nozzle_is_hardened(journal::Backend &backend) {
-        using OldItem = decltype(DeprecatedStore::nozzle_is_hardened_v8);
-        using NewItem = decltype(CurrentStore::nozzle_is_hardened);
-
-        const OldItem::value_type old_bitset = read_old_item_value<OldItem>(backend);
-        const std::bitset<16> new_bitset = old_bitset.to_ulong();
-
-        backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, new_bitset);
-    }
-
-    void nozzle_is_high_flow(journal::Backend &backend) {
-        using OldItem = decltype(DeprecatedStore::nozzle_is_high_flow_v8);
-        using NewItem = decltype(CurrentStore::nozzle_is_high_flow);
-
-        const OldItem::value_type old_bitset = read_old_item_value<OldItem>(backend);
-        const std::bitset<16> new_bitset = old_bitset.to_ulong();
-
-        backend.save_migration_item<NewItem::value_type>(NewItem::hashed_id, new_bitset);
-    }
-
     void nozzle_diameters(journal::Backend &backend) {
         using NewItem = decltype(CurrentStore::nozzle_diameters);
 

@@ -94,12 +94,6 @@ namespace deprecated_ids {
     inline constexpr uint16_t fsensor_enabled[] {
         decltype(DeprecatedStore::fsensor_enabled_v2)::hashed_id,
     };
-    inline constexpr uint16_t nozzle_is_hardened[] {
-        decltype(DeprecatedStore::nozzle_is_hardened_v8)::hashed_id,
-    };
-    inline constexpr uint16_t nozzle_is_high_flow[] {
-        decltype(DeprecatedStore::nozzle_is_high_flow_v8)::hashed_id,
-    };
     inline constexpr uint16_t nozzle_diameters[] {
         decltype(DeprecatedStore::nozzle_diameter_0)::hashed_id,
 #if PRINTER_IS_PRUSA_XL()
@@ -199,10 +193,6 @@ namespace migrations {
 
     void fsensor_enabled(journal::Backend &backend);
 
-    void nozzle_is_hardened(journal::Backend &backend);
-
-    void nozzle_is_high_flow(journal::Backend &backend);
-
     void nozzle_diameters(journal::Backend &backend);
 
     void odometer_extruded_lengths(journal::Backend &backend);
@@ -251,8 +241,6 @@ inline constexpr journal::Backend::MigrationFunction migration_functions[] {
 #endif
         { migrations::printer_setup_done, deprecated_ids::printer_setup_done },
         { migrations::fsensor_enabled, deprecated_ids::fsensor_enabled },
-        { migrations::nozzle_is_hardened, deprecated_ids::nozzle_is_hardened },
-        { migrations::nozzle_is_high_flow, deprecated_ids::nozzle_is_high_flow },
         { migrations::nozzle_diameters, deprecated_ids::nozzle_diameters },
         { migrations::odometer_extruded_lengths, deprecated_ids::odometer_extruded_lengths },
         { migrations::odometer_toolpicks, deprecated_ids::odometer_toolpicks },

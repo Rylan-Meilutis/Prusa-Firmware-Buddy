@@ -417,12 +417,11 @@ struct CurrentStore
     inline void set_nozzle_diameter(PhysicalToolIndex tool, float value) {
         set_nozzle_diameter(tool.to_raw(), value);
     }
-
     /// Stores whether a nozzle is hardened (resistant to abrasive filament) or not. One bit per each hotend
-    StoreItem<std::bitset<16>, defaults::nozzle_is_hardened, ItemFlag::hw_config, journal::hash("Nozzle is Hardened v16")> nozzle_is_hardened;
+    StoreItem<std::bitset<16>, defaults::nozzle_is_hardened, ItemFlag::hw_config, journal::hash("Nozzle is Hardened")> nozzle_is_hardened;
 
     /// Stores whether a nozzle is high-flow (supports high-flow print profile) or not. One bit per each hotend
-    StoreItem<std::bitset<16>, defaults::nozzle_is_high_flow, ItemFlag::hw_config, journal::hash("Nozzle is High-Flow v16")> nozzle_is_high_flow;
+    StoreItem<std::bitset<16>, defaults::nozzle_is_high_flow, ItemFlag::hw_config, journal::hash("Nozzle is High-Flow")> nozzle_is_high_flow;
 
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor X")> homing_bump_divisor_x;
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor Y")> homing_bump_divisor_y;
@@ -884,12 +883,6 @@ struct DeprecatedStore
 #endif
     };
     StoreItem<bool, fsensor_enabled_v2_default, journal::hash("FSensor Enabled V2")> fsensor_enabled_v2;
-
-    /// Stores whether a nozzle is hardened (resistant to abrasive filament) or not. One bit per each hotend
-    StoreItem<std::bitset<8>, 0, journal::hash("Nozzle is Hardened")> nozzle_is_hardened_v8;
-
-    /// Stores whether a nozzle is high-flow (supports high-flow print profile) or not. One bit per each hotend
-    StoreItem<std::bitset<8>, defaults::nozzle_is_high_flow, journal::hash("Nozzle is High-Flow")> nozzle_is_high_flow_v8;
 
     StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 0")> nozzle_diameter_0;
 #if HOTENDS > 1 // for now only doing one ifdef for simplicity
