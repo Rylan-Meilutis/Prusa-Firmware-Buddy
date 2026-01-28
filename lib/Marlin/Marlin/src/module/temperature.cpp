@@ -45,6 +45,7 @@
 #include <module/motion.h>
 #include "../../../../src/common/adc.hpp"
 #include "../marlin_stubs/skippable_gcode.hpp"
+#include <module/temperature/marlin_temptable.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -109,8 +110,7 @@
 LOG_COMPONENT_REF(MarlinServer);
 
 #if HOTEND_USES_THERMISTOR
-    static void* heater_ttbl_map[HOTENDS] = ARRAY_BY_HOTENDS((void*)HEATER_0_TEMPTABLE, (void*)HEATER_1_TEMPTABLE, (void*)HEATER_2_TEMPTABLE, (void*)HEATER_3_TEMPTABLE, (void*)HEATER_4_TEMPTABLE, (void*)HEATER_5_TEMPTABLE);
-    static constexpr uint8_t heater_ttbllen_map[HOTENDS] = ARRAY_BY_HOTENDS(HEATER_0_TEMPTABLE_LEN, HEATER_1_TEMPTABLE_LEN, HEATER_2_TEMPTABLE_LEN, HEATER_3_TEMPTABLE_LEN, HEATER_4_TEMPTABLE_LEN, HEATER_5_TEMPTABLE_LEN);
+    static constexpr MarlinTempTable heater_ttbl_map[HOTENDS] = ARRAY_BY_HOTENDS(HEATER_0_TEMPTABLE, HEATER_1_TEMPTABLE, HEATER_2_TEMPTABLE, HEATER_3_TEMPTABLE, HEATER_4_TEMPTABLE, HEATER_5_TEMPTABLE);
     static_assert(HOTENDS <= 6);
 #endif
 
@@ -1585,28 +1585,6 @@ void Temperature::suspend_heatbreak_fan(millis_t ms) {
 }
 #endif
 
-/**
- * Bisect search for the range of the 'raw' value, then interpolate
- * proportionally between the under and over values.
- */
-#define SCAN_THERMISTOR_TABLE(TBL,LEN) do{                             \
-  uint8_t l = 0, r = LEN, m;                                           \
-  for (;;) {                                                           \
-    m = (l + r) >> 1;                                                  \
-    if (!m) return short(pgm_read_word(&TBL[0][1]));                   \
-    if (m == l || m == r) return short(pgm_read_word(&TBL[LEN-1][1])); \
-    short v00 = pgm_read_word(&TBL[m-1][0]),                           \
-          v10 = pgm_read_word(&TBL[m-0][0]);                           \
-         if (raw < v00) r = m;                                         \
-    else if (raw > v10) l = m;                                         \
-    else {                                                             \
-      const short v01 = short(pgm_read_word(&TBL[m-1][1])),            \
-                  v11 = short(pgm_read_word(&TBL[m-0][1]));            \
-      return v01 + (raw - v00) * float(v11 - v01) / float(v10 - v00);  \
-    }                                                                  \
-  }                                                                    \
-}while(0)
-
 // Derived from RepRap FiveD extruder::getTemperature()
 // For hot end temperature measurement.
 float Temperature::analog_to_celsius_hotend(const int raw, const uint8_t e) {
@@ -1625,8 +1603,7 @@ float Temperature::analog_to_celsius_hotend(const int raw, const uint8_t e) {
 
   #if HOTEND_USES_THERMISTOR
     // Thermistor with conversion table?
-    const short(*tt)[][2] = (short(*)[][2])(heater_ttbl_map[e]);
-    SCAN_THERMISTOR_TABLE((*tt), heater_ttbllen_map[e]);
+    return marlin_temptable_lookup(heater_ttbl_map[e], raw);
   #endif
 
   return 0;
@@ -1659,7 +1636,7 @@ constexpr float compensate_bed_temperature(float celsius) {
 #endif
 
   float scan_thermistor_table_bed(const int raw){
-      SCAN_THERMISTOR_TABLE(BED_TEMPTABLE,BED_TEMPTABLE_LEN);
+      return marlin_temptable_lookup(BED_TEMPTABLE, raw);
   }
   // Derived from RepRap FiveD extruder::getTemperature()
   // For bed temperature measurement.
@@ -1683,12 +1660,12 @@ constexpr float compensate_bed_temperature(float celsius) {
     #if ENABLED(HEATBREAK_USES_THERMISTOR)
       #if (BOARD_IS_XBUDDY())
           if (buddy::hw::Configuration::Instance().needs_heatbreak_thermistor_table_5()) {
-              SCAN_THERMISTOR_TABLE((TT_NAME(5)), (COUNT(TT_NAME(5))));
+              return marlin_temptable_lookup((TT_NAME(5)), raw);
           } else {
-              SCAN_THERMISTOR_TABLE(HEATBREAK_TEMPTABLE, HEATBREAK_TEMPTABLE_LEN);
+              return marlin_temptable_lookup(HEATBREAK_TEMPTABLE, raw);
           }
       #else
-          SCAN_THERMISTOR_TABLE(HEATBREAK_TEMPTABLE, HEATBREAK_TEMPTABLE_LEN);
+          return marlin_temptable_lookup(HEATBREAK_TEMPTABLE, raw);
       #endif
     #else
       return 0;
@@ -1701,7 +1678,7 @@ constexpr float compensate_bed_temperature(float celsius) {
   // For ambient temperature measurement.
   float Temperature::analog_to_celsius_board(const int raw) {
     #if ENABLED(BOARD_USES_THERMISTOR)
-      SCAN_THERMISTOR_TABLE(BOARD_TEMPTABLE, BOARD_TEMPTABLE_LEN);
+      return marlin_temptable_lookup(BOARD_TEMPTABLE, raw);
     #else
       return 0;
     #endif

@@ -73,6 +73,7 @@ exclude: |
        module/stepper\.|
        gcode/temperature/M106_M107\.cpp$|
        bedlevel/ubl/G29\.cpp$|
+       module/temperature/|
        $ # LAST LINE OF THE GROUP, DON'T FORGET TO ADD "OR" AT THE END OF YOURS
      )|
     lib/Middlewares/Third_Party/FatFs/|

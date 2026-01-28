@@ -24,6 +24,8 @@ add_library(
   Marlin/Marlin/src/module/temperature.cpp
   )
 
+add_subdirectory(Marlin/Marlin/src/module/temperature)
+
 if(HAS_PLANNER)
   target_sources(
     Marlin
