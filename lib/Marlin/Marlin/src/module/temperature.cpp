@@ -1370,19 +1370,21 @@ constexpr float compensate_bed_temperature(float celsius) {
 #endif // HAS_HEATED_BED
 
 #if HAS_TEMP_HEATBREAK
+  MarlinTempTable heatbreak_temptable() {
+    #if (BOARD_IS_XBUDDY())
+        if (buddy::hw::Configuration::Instance().needs_heatbreak_thermistor_table_5()) {
+            return TT_NAME(5);
+        }
+    #endif
+
+    return HEATBREAK_TEMPTABLE;
+  }
+
   // Derived from RepRap FiveD extruder::getTemperature()
   // For heatbreak temperature measurement.
   float Temperature::analog_to_celsius_heatbreak(const int raw) {
     #if ENABLED(HEATBREAK_USES_THERMISTOR)
-      #if (BOARD_IS_XBUDDY())
-          if (buddy::hw::Configuration::Instance().needs_heatbreak_thermistor_table_5()) {
-              return marlin_temptable_lookup((TT_NAME(5)), raw);
-          } else {
-              return marlin_temptable_lookup(HEATBREAK_TEMPTABLE, raw);
-          }
-      #else
-          return marlin_temptable_lookup(HEATBREAK_TEMPTABLE, raw);
-      #endif
+      return marlin_temptable_lookup(heatbreak_temptable(), raw);
     #else
       return 0;
     #endif
