@@ -180,27 +180,6 @@ struct ModularBedHeater: public HeaterInfo {
   typedef temp_info_t board_info_t;
 #endif
 
-// Heater watch handling
-typedef struct {
-  /**
-   * The target temperature that should be reached by the next check.
-   * @warning: This value is not the same as temp_heatbreak.target
-   */
-  int16_t target;
-  /**
-   * The time in milliseconds to wait for the temperature to rise.
-   * @note: The value 0 means no watch.
-   */
-  millis_t next_ms;
-  /**
-   * Checks if the next_ms has elapsed since the last call.
-   * @retval true if ${next_ms} has elapsed and the watch is active. (next_ms != 0)
-   * @retval false if ${next_ms} has not elapsed or the watch is inactive. (next_ms == 0) 
-   */
-  inline bool elapsed(const millis_t &ms) { return (next_ms != 0) && ELAPSED(ms, next_ms); }
-  inline bool elapsed() { return elapsed(millis()); }
-} heater_watch_t;
-
 #define THERMISTOR_ADC_RESOLUTION       1024           // 10-bit ADC .. shame to waste 12-bits of resolution on 32-bit
 #define THERMISTOR_ABS_ZERO_C           -273.15f       // bbbbrrrrr cold !
 #define THERMISTOR_RESISTANCE_NOMINAL_C 25.0f          // mmmmm comfortable
@@ -284,23 +263,13 @@ class Temperature {
 
     static volatile bool temp_meas_ready;
 
-    #if WATCH_HOTENDS
-      static heater_watch_t watch_hotend[HOTENDS];
-    #endif
-
     #if HAS_HEATED_BED
-      #if WATCH_BED
-        static heater_watch_t watch_bed;
-      #endif
       #if DISABLED(PIDTEMPBED)
         static millis_t next_bed_check_ms;
       #endif
     #endif
 
     #if HAS_TEMP_HEATBREAK
-      #if WATCH_HEATBREAK
-      static heater_watch_t watch_heatbreak[HOTENDS];
-      #endif
       static millis_t next_heatbreak_check_ms;
     #endif
 

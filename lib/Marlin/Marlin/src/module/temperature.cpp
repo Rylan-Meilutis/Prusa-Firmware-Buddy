@@ -47,6 +47,7 @@
 #include "../marlin_stubs/skippable_gcode.hpp"
 #include <module/temperature/marlin_temptable.hpp>
 #include <module/temperature/steady_state_hotend.hpp>
+#include <module/temperature/heater_watch.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -206,7 +207,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
 #endif // FAN_COUNT > 0
 
 #if WATCH_HOTENDS
-  heater_watch_t Temperature::watch_hotend[HOTENDS]; // = { { 0 } }
+  heater_watch_t watch_hotend[HOTENDS];
 #endif
 
 #if HAS_TEMP_HEATBREAK
@@ -215,7 +216,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
   static MarlinTemptableRawMinMax minmaxtemp_raw_HEATBREAK;
 
   #if WATCH_HEATBREAK
-    heater_watch_t Temperature::watch_heatbreak[HOTENDS] = {0};
+    heater_watch_t watch_heatbreak[HOTENDS];
   #endif
   millis_t Temperature::next_heatbreak_check_ms;
 
@@ -235,7 +236,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
   static MarlinTemptableRawMinMax minmaxtemp_raw_BED;
 
   #if WATCH_BED
-    heater_watch_t Temperature::watch_bed; // = { 0 }
+    heater_watch_t watch_bed;
   #endif
   #if DISABLED(PIDTEMPBED)
     millis_t Temperature::next_bed_check_ms;
