@@ -713,6 +713,8 @@ void Temperature::manage_heater() {
       regulation_result = hotend_regulators[e].get_pid_output_hotend(HotendRegulatorArgs{
         .hotend_index = (uint8_t)e,
         .fan_speed = fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
+        .current_temp = temp_hotend[e].celsius,
+        .target_temp = temp_hotend[e].target,
       });
     }
     

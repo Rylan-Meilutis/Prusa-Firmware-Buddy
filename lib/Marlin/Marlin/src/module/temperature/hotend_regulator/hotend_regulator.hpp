@@ -10,6 +10,12 @@ struct HotendRegulatorArgs {
     /// Speed of the print cooling fan
     /// Used in steady_state_hotend
     uint8_t fan_speed;
+
+    /// Current temperature of the hotend, in °C
+    float current_temp;
+
+    /// Target temperature of the hotend, in °C
+    int16_t target_temp;
 };
 
 struct HotendRegulatorResult {

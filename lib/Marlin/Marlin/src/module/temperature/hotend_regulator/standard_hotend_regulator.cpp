@@ -12,7 +12,6 @@ static constexpr float sample_frequency = TEMP_TIMER_FREQUENCY / MIN_ADC_ISR_LOO
 
 HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const HotendRegulatorArgs &args) {
     // TODO: Get rid of these dependencies on thermalManager
-    auto &temp_hotend = thermalManager.temp_hotend;
     auto &hotend_idle = thermalManager.hotend_idle;
 #if ENABLED(PID_EXTRUSION_SCALING)
     auto &last_e_position = thermalManager.last_e_position;
@@ -21,12 +20,12 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
 
     const uint8_t ee = args.hotend_index;
 
-    const float pid_error = temp_hotend[ee].target - temp_hotend[ee].celsius;
+    const float pid_error = args.target_temp - args.current_temp;
 
     float pid_output;
     float feed_forward = 0;
 
-    if (temp_hotend[ee].target == 0
+    if (args.target_temp == 0
         || pid_error < -(PID_FUNCTIONAL_RANGE)
 #if HEATER_IDLE_HANDLER
         || hotend_idle[ee].timed_out
@@ -51,7 +50,7 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
 
     #if ENABLED(STEADY_STATE_HOTEND)
         static constexpr float pid_max_inv = 1.0f / PID_MAX;
-        feed_forward = steady_state_hotend(temp_hotend[ee].target, args.fan_speed * pid_max_inv);
+        feed_forward = steady_state_hotend(args.target_temp, args.fan_speed * pid_max_inv);
         pid_output += feed_forward;
     #endif
 #endif
@@ -70,7 +69,7 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
             const int32_t e_pos_diff = e_position - last_e_position;
             last_e_position = e_position;
 
-            work_pid.Kc = e_pos_diff * planner.mm_per_step[E_AXIS] * distance_to_volume_per_second * (temp_hotend[ee].celsius - ambient_temp) * PID_PARAM(Kc, ee);
+            work_pid.Kc = e_pos_diff * planner.mm_per_step[E_AXIS] * distance_to_volume_per_second * (args.current_temp - ambient_temp) * PID_PARAM(Kc, ee);
             if (extrusion_scaling_enabled) {
                 pid_output += work_pid.Kc;
             }
@@ -94,7 +93,7 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
         SERIAL_ECHO_START();
         SERIAL_ECHOPAIR(
             MSG_PID_DEBUG, ee,
-            MSG_PID_DEBUG_INPUT, temp_hotend[ee].celsius,
+            MSG_PID_DEBUG_INPUT, args.current_temp,
             MSG_PID_DEBUG_OUTPUT, pid_output);
         SERIAL_ECHOPAIR(
     #if ENABLED(STEADY_STATE_HOTEND)
