@@ -776,7 +776,11 @@ void Temperature::manage_heater() {
             else if (temp_heatbreak[0].celsius <= temp_heatbreak[0].target - (TEMP_HEATBREAK_HYSTERESIS))
               temp_heatbreak[0].soft_pwm_amount = MAX_HEATBREAK_POWER >> 1;
           #elif ENABLED(PIDTEMPHEATBREAK)
-            temp_heatbreak[0].soft_pwm_amount = (int)heatbreak_regulator[0].step();
+            temp_heatbreak[0].soft_pwm_amount = (int)heatbreak_regulator[0].step(HeatbreakRegulator::Args{
+              .current_temp = temp_heatbreak[0].celsius,
+              .target_temp = temp_heatbreak[0].target,
+              .current_hotend_temp = temp_hotend[0].celsius,
+            });
             set_fan_speed(HEATBREAK_FAN_ID, temp_heatbreak[0].soft_pwm_amount);
           #endif
         } else {

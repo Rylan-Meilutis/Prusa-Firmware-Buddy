@@ -8,16 +8,15 @@
 // TODO: Somehow move this to CMAKE?
 #if ENABLED(PIDTEMPHEATBREAK)
 
-float HeatbreakRegulator::step() {
+float HeatbreakRegulator::step(const Args &args) {
     static_assert(HOTENDS <= 1, "Not implemented for more hotends.");
 
-    // TODO: Get rid of these links
-    auto &temp_heatbreak = thermalManager.temp_heatbreak;
-    auto &temp_hotend = thermalManager.temp_hotend;
+    // TODO: Rethink where the PID config is stored
+    const auto &pid = thermalManager.temp_heatbreak[0].pid;
 
     #if DISABLED(PID_OPENLOOP)
     float pid_output = 0;
-    const float pid_error = temp_heatbreak[0].celsius - temp_heatbreak[0].target;
+    const float pid_error = args.current_temp - args.target_temp;
 
     if (pid_reset) {
         temp_iState = 0.0;
@@ -26,8 +25,8 @@ float HeatbreakRegulator::step() {
         pid_reset = false;
     }
 
-    work_pid.Kp = temp_heatbreak[0].pid.Kp * pid_error;
-    work_pid.Kd = work_pid.Kd + HEATBREAK_PID_K2 * (temp_heatbreak[0].pid.Kd * (pid_error - temp_dState) - work_pid.Kd);
+    work_pid.Kp = pid.Kp * pid_error;
+    work_pid.Kd = work_pid.Kd + HEATBREAK_PID_K2 * (pid.Kd * (pid_error - temp_dState) - work_pid.Kd);
 
     pid_output = work_pid.Kp + work_pid.Kd;
 
@@ -36,15 +35,15 @@ float HeatbreakRegulator::step() {
             || (((pid_output + work_pid.Ki) > MAX_HEATBREAK_POWER) && (pid_error > 0)))) {
         temp_iState += pid_error;
     }
-    work_pid.Ki = temp_heatbreak[0].pid.Ki * temp_iState;
+    work_pid.Ki = pid.Ki * temp_iState;
 
     pid_output += work_pid.Ki;
     temp_dState = pid_error;
 
-    if (temp_hotend[0].celsius > HEATBREAK_FAN_ALWAYS_ON_NOZZLE_TEMPERATURE) {
+    if (args.current_hotend_temp > HEATBREAK_FAN_ALWAYS_ON_NOZZLE_TEMPERATURE) {
         pid_output = constrain(pid_output, MIN_STOP_HEATBREAK_POWER, MAX_HEATBREAK_POWER);
         if (work_pid.Ki < MIN_STOP_HEATBREAK_POWER) {
-            temp_iState = MIN_STOP_HEATBREAK_POWER / temp_heatbreak[0].pid.Ki;
+            temp_iState = MIN_STOP_HEATBREAK_POWER / pid.Ki;
         }
     } else {
         pid_output = constrain(pid_output, 0, MAX_HEATBREAK_POWER);
@@ -85,8 +84,9 @@ float HeatbreakRegulator::step() {
     {
         SERIAL_ECHO_START();
         SERIAL_ECHOLNPAIR(
-            " PID_HEATBREAK_DEBUG : Input ", temp_heatbreak[0].celsius, " Output ", pid_output, " fan_kick_counter ", fan_kick_counter, " temp_hotend[0].celsius ", temp_hotend[0].celsius,
+            " PID_HEATBREAK_DEBUG : Input ", args.current_temp, " Output ", pid_output, " fan_kick_counter ", fan_kick_counter, " current_hotend_temp ", args.current_hotend_temp
         #if DISABLED(PID_OPENLOOP)
+            ,
             MSG_PID_DEBUG_PTERM, work_pid.Kp,
             MSG_PID_DEBUG_ITERM, work_pid.Ki,
             MSG_PID_DEBUG_DTERM, work_pid.Kd,
