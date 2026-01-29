@@ -5,18 +5,15 @@
 #include <inc/MarlinConfig.h>
 #include <module/temperature/temp_defines.hpp>
 #include <module/thermistor/thermistors.h>
+#include <module/temperature/hotend_regulator/hotend_regulator.hpp>
 
 class ModelBasedHotendRegulator {
 
 public:
-    float get_pid_output_hotend(
-#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        float &feed_forward,
-#endif
-        const uint8_t e);
+    HotendRegulatorResult get_pid_output_hotend(const HotendRegulatorArgs &args);
 
 private:
-    float get_model_output_hotend(const uint8_t e);
+    float get_model_output_hotend(const HotendRegulatorArgs &args);
 
     enum class Ramp : uint_least8_t {
         Up,

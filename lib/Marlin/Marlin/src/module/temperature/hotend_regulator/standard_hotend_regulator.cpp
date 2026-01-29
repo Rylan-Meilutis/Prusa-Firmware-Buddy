@@ -10,7 +10,7 @@ static_assert(DISABLED(PID_OPENLOOP), "Not supported anymore");
 
 static constexpr float sample_frequency = TEMP_TIMER_FREQUENCY / MIN_ADC_ISR_LOOPS / OVERSAMPLENR;
 
-float StandardHotendRegulator::get_pid_output_hotend(const uint8_t E_NAME) {
+HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const HotendRegulatorArgs &args) {
     // TODO: Get rid of these dependencies on thermalManager
     auto &temp_hotend = thermalManager.temp_hotend;
     auto &fan_speed = thermalManager.fan_speed;
@@ -20,14 +20,12 @@ float StandardHotendRegulator::get_pid_output_hotend(const uint8_t E_NAME) {
     const auto extrusion_scaling_enabled = thermalManager.extrusion_scaling_enabled;
 #endif
 
-    const uint8_t ee = HOTEND_INDEX;
+    const uint8_t ee = args.hotend_index;
 
     const float pid_error = temp_hotend[ee].target - temp_hotend[ee].celsius;
 
     float pid_output;
-#if ALL(STEADY_STATE_HOTEND, PID_DEBUG)
-    float feed_forward_debug = -1.0f;
-#endif
+    float feed_forward = 0;
 
     if (temp_hotend[ee].target == 0
         || pid_error < -(PID_FUNCTIONAL_RANGE)
@@ -54,10 +52,7 @@ float StandardHotendRegulator::get_pid_output_hotend(const uint8_t E_NAME) {
 
     #if ENABLED(STEADY_STATE_HOTEND)
         static constexpr float pid_max_inv = 1.0f / PID_MAX;
-        const float feed_forward = steady_state_hotend(temp_hotend[ee].target, fan_speed[0] * pid_max_inv);
-        #if ENABLED(PID_DEBUG)
-        feed_forward_debug = feed_forward;
-        #endif
+        feed_forward = steady_state_hotend(temp_hotend[ee].target, fan_speed[0] * pid_max_inv);
         pid_output += feed_forward;
     #endif
 #endif
@@ -104,7 +99,7 @@ float StandardHotendRegulator::get_pid_output_hotend(const uint8_t E_NAME) {
             MSG_PID_DEBUG_OUTPUT, pid_output);
         SERIAL_ECHOPAIR(
     #if ENABLED(STEADY_STATE_HOTEND)
-            " fTerm ", feed_forward_debug,
+            " fTerm ", feed_forward,
     #endif
             MSG_PID_DEBUG_PTERM, work_pid.Kp,
             MSG_PID_DEBUG_ITERM, work_pid.Ki,
@@ -117,5 +112,9 @@ float StandardHotendRegulator::get_pid_output_hotend(const uint8_t E_NAME) {
         SERIAL_EOL();
     }
 #endif // PID_DEBUG
-    return pid_output;
+
+    return HotendRegulatorResult {
+        .pid_output = pid_output,
+        .feed_forward = feed_forward,
+    };
 }

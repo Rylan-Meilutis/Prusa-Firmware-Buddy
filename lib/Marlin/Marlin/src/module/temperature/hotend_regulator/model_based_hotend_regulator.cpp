@@ -15,12 +15,12 @@ static_assert(DISABLED(PID_OPENLOOP), "Not supported anymore");
 //! @param expected Expected measurable hotend temperature in this cycle
 //! @param E_NAME hotend index
 
-float ModelBasedHotendRegulator::get_model_output_hotend(const uint8_t E_NAME) {
+float ModelBasedHotendRegulator::get_model_output_hotend(const HotendRegulatorArgs &args) {
     // TODO: Get rid of these dependencies on thermalManager
     auto &temp_hotend = thermalManager.temp_hotend;
     auto &fan_speed = thermalManager.fan_speed;
 
-    const uint8_t ee = HOTEND_INDEX;
+    const uint8_t ee = args.hotend_index;
 
     float hotend_pwm = 0;
 
@@ -88,12 +88,7 @@ float ModelBasedHotendRegulator::get_model_output_hotend(const uint8_t E_NAME) {
     return hotend_pwm;
 }
 
-float ModelBasedHotendRegulator::get_pid_output_hotend(
-#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-    float &feed_forward,
-#endif
-    const uint8_t E_NAME) {
-
+HotendRegulatorResult ModelBasedHotendRegulator::get_pid_output_hotend(const HotendRegulatorArgs &args) {
     // TODO: Get rid of these dependencies on thermalManager
     auto &temp_hotend = thermalManager.temp_hotend;
     auto &hotend_idle = thermalManager.hotend_idle;
@@ -102,12 +97,10 @@ float ModelBasedHotendRegulator::get_pid_output_hotend(
     const auto extrusion_scaling_enabled = thermalManager.extrusion_scaling_enabled;
 #endif
 
-    const uint8_t ee = HOTEND_INDEX;
+    const uint8_t ee = args.hotend_index;
 
     float pid_output;
-#if ENABLED(PID_DEBUG)
-    float feed_forward_debug = -1.0f;
-#endif
+    float feed_forward = 0;
 
     if (temp_hotend[ee].target == 0
 #if HEATER_IDLE_HANDLER
@@ -124,14 +117,8 @@ float ModelBasedHotendRegulator::get_pid_output_hotend(
             expected_temp = temp_hotend[ee].celsius;
             pid_reset = false;
         }
-#if DISABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        const float
-#endif
-            feed_forward
-            = get_model_output_hotend(ee);
-#if ENABLED(PID_DEBUG)
-        feed_forward_debug = feed_forward;
-#endif
+        feed_forward = get_model_output_hotend(args);
+
         const float pid_error = expected_temp - temp_hotend[ee].celsius;
         work_pid.Kd = work_pid.Kd + PID_K2 * (PID_PARAM(Kd, ee) * (pid_error - temp_dState) - work_pid.Kd);
         work_pid.Kp = PID_PARAM(Kp, ee) * pid_error;
@@ -183,7 +170,7 @@ float ModelBasedHotendRegulator::get_pid_output_hotend(
             MSG_PID_DEBUG_OUTPUT, pid_output);
         SERIAL_ECHOPAIR(
             " target ", expected_temp,
-            " fTerm ", feed_forward_debug,
+            " fTerm ", feed_forward,
             MSG_PID_DEBUG_PTERM, work_pid.Kp,
             MSG_PID_DEBUG_ITERM, work_pid.Ki,
             MSG_PID_DEBUG_DTERM, work_pid.Kd
@@ -196,5 +183,8 @@ float ModelBasedHotendRegulator::get_pid_output_hotend(
     }
 #endif // PID_DEBUG
 
-    return pid_output;
+    return HotendRegulatorResult {
+        .pid_output = pid_output,
+        .feed_forward = feed_forward,
+    };
 }

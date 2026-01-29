@@ -704,23 +704,21 @@ void Temperature::manage_heater() {
       thermal_runaway_hotends[e].step(temp_hotend[e].celsius, temp_hotend[e].target, (heater_ind_t)e, THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS, thermalManager.hotend_idle[e].timed_out);
     #endif
 
-      {
-    #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        float pid_output = .0f;
-        float feed_forward = .0f;
-    #endif
+    HotendRegulatorResult regulation_result {
+      .pid_output = 0,
+      .feed_forward = 0,
+    };
 
-        temp_hotend[e].soft_pwm_amount = (temp_hotend[e].celsius > temp_range[e].mintemp) && temp_hotend[e].celsius < temp_range[e].maxtemp ?
+    if(temp_hotend[e].celsius > temp_range[e].mintemp && temp_hotend[e].celsius < temp_range[e].maxtemp) {
+      regulation_result = hotend_regulators[e].get_pid_output_hotend(HotendRegulatorArgs{
+        .hotend_index = (uint8_t)e,
+      });
+    }
+    
+    temp_hotend[e].soft_pwm_amount = static_cast<int>(regulation_result.pid_output) >> soft_pwm_bit_shift;
     #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-            (int)(pid_output = hotend_regulators[e].get_pid_output_hotend(feed_forward, e))
-    #else
-            (int)(hotend_regulators[e].get_pid_output_hotend(e))
+        thermal_model_protection(regulation_result.pid_output, regulation_result.feed_forward, e);
     #endif
-              >> soft_pwm_bit_shift : 0;
-    #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        thermal_model_protection(pid_output, feed_forward, e);
-    #endif
-      }
 
     #if WATCH_HOTENDS
       if (hotend_idle[e].timed_out)

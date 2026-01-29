@@ -5,12 +5,12 @@
 
 #include <inc/MarlinConfig.h>
 #include <module/temperature/temp_defines.hpp>
+#include <module/temperature/hotend_regulator/hotend_regulator.hpp>
 
 class StandardHotendRegulator {
 
 public:
-    float get_pid_output_hotend(
-        const uint8_t e);
+    HotendRegulatorResult get_pid_output_hotend(const HotendRegulatorArgs &args);
 
 private:
     hotend_pid_t work_pid;
