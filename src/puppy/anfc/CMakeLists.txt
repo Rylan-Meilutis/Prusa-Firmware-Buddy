@@ -65,6 +65,7 @@ target_link_libraries(
           raii
           crc
           mbedTLS
+          log_dev_null
   )
 
 # TODO For now, we need to also explicitly depend on `FreeRTOS::FreeRTOS` because we are using
