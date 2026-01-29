@@ -16,11 +16,6 @@ float HeatbreakRegulator::step() {
     auto &temp_hotend = thermalManager.temp_hotend;
 
     #if DISABLED(PID_OPENLOOP)
-
-    static PID_t work_pid { 0 };
-    static float temp_iState = 0, temp_dState = 0;
-    static bool pid_reset = true;
-    static int fan_kick_counter = 0;
     float pid_output = 0;
     const float pid_error = temp_heatbreak[0].celsius - temp_heatbreak[0].target;
 
