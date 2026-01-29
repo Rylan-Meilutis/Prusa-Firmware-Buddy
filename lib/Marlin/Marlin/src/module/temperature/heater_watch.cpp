@@ -1,6 +1,9 @@
 /// @file
 #include "heater_watch.hpp"
 
+#include <module/temperature.h>
+#include <bsod.h>
+
 void HeaterWatch::reset(const Config &config, float current_temp, int16_t target_temp) {
     if ((target_temp > 0)
         // Invert the comparison logic if check_for_cooling_instead
@@ -13,4 +16,18 @@ void HeaterWatch::reset(const Config &config, float current_temp, int16_t target
     } else {
         next_ms = 0;
     }
+}
+
+void HeaterWatch::check(const Config &config, float current_temp, int16_t target_temp) {
+    if (!next_ms || !ELAPSED(millis(), next_ms)) {
+        return;
+    }
+
+    // Invert the comparison logic if check_for_cooling_instead
+    // Note: current_temp is float, so equality case probably doesn't matter
+    if ((current_temp < target) ^ config.watch_cooling_instead) {
+        fatal_error(config.error_code);
+    }
+
+    reset(config, current_temp, target_temp);
 }

@@ -5,6 +5,8 @@
 
 #include <core/millis_t.h>
 #include <wiring_time.h>
+#include <module/temperature/temp_defines.hpp>
+#include <error_codes.hpp>
 
 /// Class for sanity-checking the heaters (that they heat up in a required time)
 class HeaterWatch {
@@ -21,6 +23,9 @@ public:
 
         /// Minimum target-current temperature difference for the watch to engage
         int16_t min_temp_diff;
+
+        /// Error code to raise if the watch fails
+        ErrCode error_code;
 
         /// Inverts the checking logic
         /// !!! If true, temp_increase and min_temp_diff should probably be negative
@@ -39,7 +44,15 @@ public:
         return elapsed(millis());
     }
 
-    // TODO private:
+    inline bool is_running() const {
+        return next_ms != 0;
+    }
+
+protected:
+    void reset(const Config &config, float current_temp, int16_t target_temp);
+    void check(const Config &config, float current_temp, int16_t target_temp);
+
+private:
     /**
      * The target temperature that should be reached by the next check.
      * @warning: This value is not the same as temp_heatbreak.target
@@ -51,9 +64,6 @@ public:
      * @note: The value 0 means no watch.
      */
     millis_t next_ms = 0;
-
-protected:
-    void reset(const Config &config, float current_temp, int16_t target_temp);
 };
 
 template <HeaterWatch::Config config>
@@ -62,5 +72,9 @@ class HeaterWatchWithConfig : public HeaterWatch {
 public:
     void reset(float current_temp, int16_t target_temp) {
         HeaterWatch::reset(config, current_temp, target_temp);
+    }
+
+    void check(float current_temp, int16_t target_temp) {
+        HeaterWatch::check(config, current_temp, target_temp);
     }
 };

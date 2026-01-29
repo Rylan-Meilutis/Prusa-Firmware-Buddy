@@ -211,6 +211,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
     .temp_increase = WATCH_TEMP_INCREASE,
     .period_s = WATCH_TEMP_PERIOD,
     .min_temp_diff = WATCH_TEMP_INCREASE + TEMP_HYSTERESIS + 1,
+    .error_code = ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR,
   };
 
   HeaterWatchWithConfig<watch_hotend_config> watch_hotend[HOTENDS];
@@ -226,6 +227,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
       .temp_increase = -WATCH_HEATBREAK_TEMP_DECREASE,
       .period_s = WATCH_HEATBREAK_TEMP_PERIOD,
       .min_temp_diff = -HEATBREAK_MAXTEMP_OFFSET,
+      .error_code = ErrCode::ERR_TEMPERATURE_HEATBREAK_COOLING_TOO_SLOW,
       .watch_cooling_instead = true,
     };
 
@@ -254,6 +256,7 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
     .temp_increase = WATCH_BED_TEMP_INCREASE,
     .period_s = WATCH_BED_TEMP_PERIOD,
     .min_temp_diff = WATCH_BED_TEMP_INCREASE + TEMP_BED_HYSTERESIS + 1,
+    .error_code = ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR,
   };
 
   HeaterWatchWithConfig<watch_bed_config> watch_bed;
@@ -662,13 +665,7 @@ void Temperature::manage_heater() {
     #endif
 
     #if WATCH_HOTENDS
-        // Make sure temperature is increasing
-        if (watch_hotend[e].next_ms && ELAPSED(ms, watch_hotend[e].next_ms)) { // Time to check this extruder?
-          if (degHotend(e) < watch_hotend[e].target)                           // Failed to increase enough?
-            fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR);
-          else                                                                 // Start again if the target is still far off
-            start_watching_hotend(e);
-        }
+      watch_hotend[e].check(degHotend(e), degTargetHotend(e));
     #endif
 
   } // HOTEND_LOOP
@@ -688,13 +685,7 @@ void Temperature::manage_heater() {
     #endif
 
     #if WATCH_BED
-      // Make sure temperature is increasing
-      if (watch_bed.elapsed(ms)) {        // Time to check the bed?
-        if (degBed() < watch_bed.target)                                // Failed to increase enough?
-          fatal_error(ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR);
-        else                                                            // Start again if the target is still far off
-          start_watching_bed();
-      }
+      watch_bed.check(degBed(), degTargetBed());
     #endif // WATCH_BED
 
     do {
@@ -736,13 +727,7 @@ void Temperature::manage_heater() {
 
     #if WATCH_HEATBREAK
     static_assert(HOTENDS == 1, "Multiple hotends not implemented" );
-    if (watch_heatbreak[0].elapsed(ms)) { // Time to check the heatbreak?
-        if (degHeatbreak(0) > watch_heatbreak[0].target) { // Failed to cool down enough
-          fatal_error(ErrCode::ERR_TEMPERATURE_HEATBREAK_COOLING_TOO_SLOW); // Red screen
-        } else {
-          start_watching_heatbreak(0); // Start again if the target still was not reached
-        }
-      }
+    watch_heatbreak[0].check(degHeatbreak(0), degTargetHeatbreak(0));
     #endif
 
     if (ELAPSED(ms, next_heatbreak_check_ms)) {
@@ -777,7 +762,7 @@ void Temperature::manage_heater() {
           #endif
         } else {
           #if WATCH_HEATBREAK
-          if(watch_heatbreak[0].next_ms == 0) { // if we are not watching heatbreak (not in process of cooling down)
+          if(!watch_heatbreak[0].is_running()) { // if we are not watching heatbreak (not in process of cooling down)
             fatal_error(ErrCode::ERR_TEMPERATURE_HEATBREAK_MAXTEMP_ERR); // Red screen
           }
           #endif
