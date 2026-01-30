@@ -189,14 +189,17 @@ IPrintPreview::State PrintPreview::stateFromFilamentPresence() const {
         if (!config_store().fsensor_enabled.get()) {
             return State::checks_done;
         }
+
+        buddy::gcode_compatibility::CompatibilityReport report;
+        report.generate_toolmapping_only({});
+
         // with MMU, its only possible to check that filament is properly unloaded, no check of filaments presence in each "tool"
         if (FSensors_instance().MMUReadyToPrint()) {
             return State::checks_done;
         } else if (GCodeInfo::getInstance().is_singletool_gcode()
             && FSensors_instance().WhereIsFilament() == MMU2::FilamentState::AT_FSENSOR
-            // TODO migrate to gcode_compatibility
-            && check_correct_filament_type_tools_mapping(0) // only allow this shortcut print start if filament type is matching
-                                                            // Note: existence of a valid gcode extruder index 0 has been verified in the is_singletool_gcode() call
+            // only allow this shortcut print start if filament type is matching
+            && !report.failed(buddy::gcode_compatibility::VirtualToolCheck::filament_type) //
         ) {
             // beware: State::checks_done shows the toolmapping screen.
             // We don't want that in MMU mode printing a single material gcode with filament already loaded in the nozzle.
@@ -290,13 +293,13 @@ IPrintPreview::State PrintPreview::stateFromFilamentType() const {
         return State::checks_done; // filament loaded/type checks are handled by the tools_mapping screen
     }
 
-    // Check match of loaded and G-code types
-    for (int8_t e = 0; e < EXTRUDERS; e++) { // e == physical_extruder
-        // TODO migrate to gcode_compatibility
-        if (!check_correct_filament_type_tools_mapping(e)) {
-            return State::wrong_filament_wait_user;
-        }
+    buddy::gcode_compatibility::CompatibilityReport report;
+    report.generate_toolmapping_only({});
+
+    if (report.failed(buddy::gcode_compatibility::VirtualToolCheck::filament_type)) {
+        return State::wrong_filament_wait_user;
     }
+
     return State::checks_done;
 }
 

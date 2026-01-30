@@ -209,6 +209,24 @@ struct CompatibilityReport {
     /// Severity of the failures
     HWCheckSeverity failure_severity() const;
 
+    bool failed(GeneralCheck check) const {
+        return failed_general_checks.test(check);
+    }
+
+    bool failed(VirtualToolCheck check, VirtualToolIndex tool) const {
+        return failed_virtual_tool_checks[tool].test(check);
+    }
+    bool failed(VirtualToolCheck check) const {
+        return std::ranges::any_of(VirtualToolIndex::all(), [&](auto tool) { return failed(check, tool); });
+    }
+
+    bool failed(GCodeToolCheck check, GcodeToolIndex tool) const {
+        return failed_gcode_tool_checks[tool].test(check);
+    }
+    bool failed(GCodeToolCheck check) const {
+        return std::ranges::any_of(GcodeToolIndex::all(), [&](auto tool) { return failed(check, tool); });
+    }
+
     static const GCodeInfo &default_gcode_info();
 #if HAS_TOOL_MAPPING()
     static const ToolMapper &default_tool_mapper();
