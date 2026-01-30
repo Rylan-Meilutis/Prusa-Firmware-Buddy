@@ -136,6 +136,14 @@ constinit const ChecksTraits<VirtualToolCheck>::Metadata ChecksTraits<VirtualToo
             .description = N_("One of the used tools does not have a filament loaded. Filament sensors need to be disabled for the print."),
         },
     },
+    {
+        VirtualToolCheck::filament_type,
+        CheckMetadata {
+            .severity = HWCheckSeverity::Warning,
+            .title = N_("Wrong filament type"),
+            .description = N_("G-Code is sliced for a different filament type than what is currently loaded in the assigned tool."),
+        },
+    },
 };
 
 template <>
@@ -324,6 +332,15 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
             }
             if (extruder_info.requires_high_flow_nozzle == Tristate::yes && !config_store().nozzle_is_high_flow.get()[physical_tool.to_raw()]) {
                 virtual_tool_fails.set(VirtualToolCheck::nozzle_high_flow);
+            }
+
+            const FilamentType loaded_filament_type = config_store().get_filament_type(virtual_tool);
+            const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
+
+            // Check filament type
+            // Don't report errors if the gcode did not provide the filament type
+            if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---" && fn != loaded_filament_params.name) {
+                virtual_tool_fails.set(VirtualToolCheck::filament_type);
             }
 
             // With MMU, the filaments are intentionally unloaded at the start of the print

@@ -169,6 +169,8 @@ bool PrintPreview::check_correct_filament_type(uint8_t physical_extruder, uint8_
         return true; // filament type unspecified, return tool OK
     }
 
+    // Note: Logic copied from here. This function will be removed
+
     const FilamentType loaded_filament_type = config_store().get_filament_type(physical_extruder);
     const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
 
@@ -192,6 +194,7 @@ IPrintPreview::State PrintPreview::stateFromFilamentPresence() const {
             return State::checks_done;
         } else if (GCodeInfo::getInstance().is_singletool_gcode()
             && FSensors_instance().WhereIsFilament() == MMU2::FilamentState::AT_FSENSOR
+            // TODO migrate to gcode_compatibility
             && check_correct_filament_type_tools_mapping(0) // only allow this shortcut print start if filament type is matching
                                                             // Note: existence of a valid gcode extruder index 0 has been verified in the is_singletool_gcode() call
         ) {
@@ -289,6 +292,7 @@ IPrintPreview::State PrintPreview::stateFromFilamentType() const {
 
     // Check match of loaded and G-code types
     for (int8_t e = 0; e < EXTRUDERS; e++) { // e == physical_extruder
+        // TODO migrate to gcode_compatibility
         if (!check_correct_filament_type_tools_mapping(e)) {
             return State::wrong_filament_wait_user;
         }
@@ -785,6 +789,11 @@ IPrintPreview::State PrintPreview::stateFromPrinterCheck() {
         // There will be no separate tooomapping screen,
         // so show all problems, with the naive 1:1 toolmapping
         report.generate_full({});
+    }
+
+    // Ignore wrong filament types here, they are handled separately in stateFromFilamentType
+    for (auto &vtd : report.failed_virtual_tool_checks) {
+        vtd.reset(buddy::gcode_compatibility::VirtualToolCheck::filament_type);
     }
 
     switch (report.failure_severity()) {

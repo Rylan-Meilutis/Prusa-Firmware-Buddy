@@ -104,6 +104,9 @@ enum class VirtualToolCheck : uint8_t {
     /// This is checked through the filament sensor
     filament_loaded,
 
+    /// Filament type in gcodeinfo matches the filamenttype loaded to the tool
+    filament_type,
+
     _cnt
 };
 
