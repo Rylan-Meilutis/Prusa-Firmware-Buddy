@@ -155,34 +155,6 @@ static bool check_extruder_need_filament_load_tools_mapping(uint8_t physical_ext
     return PrintPreview::check_extruder_need_filament_load(physical_extruder, tools_mapping::no_tool, tools_mapping::to_gcode_tool);
 }
 
-bool PrintPreview::check_correct_filament_type(uint8_t physical_extruder, uint8_t no_gcode_value, stdext::inplace_function<uint8_t(uint8_t)> gcode_extruder_getter) {
-    const auto gcode_extruder = gcode_extruder_getter(physical_extruder);
-    if (gcode_extruder == no_gcode_value) {
-        return true; // nothing to check, this extruder doesn't print anything
-    }
-
-    const auto &extruder_info = GCodeInfo::getInstance().get_extruder_info(gcode_extruder);
-    if (!extruder_info.used()) {
-        return true; // when tool not used in print, return OK filament type
-    }
-
-    if (extruder_info.filament_name.empty()) {
-        return true; // filament type unspecified, return tool OK
-    }
-
-    // Note: Logic copied from here. This function will be removed
-
-    const FilamentType loaded_filament_type = config_store().get_filament_type(physical_extruder);
-    const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
-
-    // when filament type not known, return that filament type is OK
-    return (extruder_info.filament_name == "---") || (extruder_info.filament_name == loaded_filament_params.name);
-}
-
-static bool check_correct_filament_type_tools_mapping(uint8_t physical_extruder) {
-    return PrintPreview::check_correct_filament_type(physical_extruder, tools_mapping::no_tool, tools_mapping::to_gcode_tool);
-}
-
 IPrintPreview::State PrintPreview::stateFromFilamentPresence() const {
 
 #if HAS_MMU2()
