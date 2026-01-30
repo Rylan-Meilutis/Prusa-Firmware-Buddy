@@ -666,7 +666,7 @@ void Temperature::manage_heater() {
     
     temp_hotend[e].soft_pwm_amount = static_cast<int>(regulation_result.pid_output) >> soft_pwm_bit_shift;
     #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        thermal_model_protection[e].thermal_model_protection(regulation_result.pid_output, regulation_result.feed_forward, e);
+        thermal_model_protection[e].step(regulation_result.pid_output, regulation_result.feed_forward);
     #endif
 
     #if WATCH_HOTENDS

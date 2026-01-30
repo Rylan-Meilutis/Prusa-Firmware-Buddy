@@ -2,6 +2,7 @@
 #pragma once
 
 #include <inc/MarlinConfig.h>
+#include <utils/timing/rate_limiter.hpp>
 
 class ThermalModelProtection {
 
@@ -15,11 +16,10 @@ public:
      *
      * @param pid_output heater PWM output
      * @param feed_forward part of the heater PWM output not affected by temperature readings
-     * @param e hotend index
      */
-    void thermal_model_protection(const float &pid_output, const float &feed_forward, const uint8_t E_NAME);
+    void step(float pid_output, float feed_forward);
 
-    bool is_ok() const;
+    [[nodiscard]] bool is_ok() const;
 
 private:
     millis_t timer = 0;
