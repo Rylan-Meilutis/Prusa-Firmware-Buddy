@@ -5,9 +5,31 @@
 #include <feature/openprinttag/requests_read.hpp>
 #include <feature/filament_tracker/filament_tracker.hpp>
 #include <freertos/timing.hpp>
+#include <set>
 
 using namespace buddy;
 using namespace buddy::openprinttag;
+
+using Items = std::vector<uint8_t>;
+
+using VirtualExtension = VirtualToolIndexExtension<VirtualToolIndex>;
+using PhysicalExtension = PhysicalToolIndexExtension<PhysicalToolIndex>;
+using GcodeExtension = GcodeToolIndexExtension<GcodeToolIndex>;
+
+std::set<uint8_t> enabled_physical_tools;
+std::set<uint8_t> enabled_virtual_tools;
+
+template <>
+bool PhysicalToolIndex::is_enabled() const {
+    const auto &self = static_cast<const PhysicalToolIndex &>(*this);
+    return enabled_physical_tools.contains(self.to_raw());
+}
+
+template <>
+bool VirtualToolIndex::is_enabled() const {
+    const auto &self = static_cast<const VirtualToolIndex &>(*this);
+    return enabled_virtual_tools.contains(self.to_raw());
+}
 
 namespace std {
 inline ostream &operator<<(ostream &os, VirtualToolIndex o) {
