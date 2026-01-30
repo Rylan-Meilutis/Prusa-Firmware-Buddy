@@ -46,6 +46,7 @@
 #include <module/prusa/tool_mapper.hpp>
 #include <mmu2_toolchanger_common.hpp>
 #include <common/gcode/gcode_info_scan.hpp>
+#include <utils/variant_utils.hpp>
 
 // would be nice to have option leave phase as it was
 // something like std::pair<enum {delete, leave, has_value },PhasesPrintPreview>
@@ -261,30 +262,30 @@ static void queue_filament_load_gcodes() {
 }
 
 static void queue_filament_change_gcodes() {
-    // Queue change filament gcode for every tool with mismatched filament type
-    for (int8_t e = 0; e < EXTRUDERS; e++) { // e == physical_extruder
-        auto gcode_extruder = tools_mapping::to_gcode_tool(e);
-        if (gcode_extruder == tools_mapping::no_tool) {
-            continue; // this extruder doesn't print anything
-        }
+    buddy::gcode_compatibility::CompatibilityReport report;
+    report.generate_toolmapping_only({});
 
-        // already has corrent filament type
-        if (check_correct_filament_type_tools_mapping(e)) {
+    // Queue change filament gcode for every tool with mismatched filament type
+    for (auto gcode_tool : GcodeToolIndex::all()) {
+        // TODO: Consider spool join? Is it necessary? This will probbaly be pre-filled with defaults, so no spool join
+        const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(gcode_tool.to_virtual());
+        if (!virtual_tool.has_value()) {
             continue;
         }
 
-        // pass filament type from gcode, so that user doesn't have to select filament type
-        const char *filament_name = GCodeInfo::getInstance().get_extruder_info(gcode_extruder).filament_name.data();
+        if (!report.failed(buddy::gcode_compatibility::VirtualToolCheck::filament_type, *virtual_tool)) {
+            continue;
+        }
 
-#if HOTENDS > 1 // Here we would love mapping of extruder -> hotend, but since we don't have it, this check will have to suffice
         // if printer has multiple hotends (eg: XL), preheat all that will be loaded to save time for user
-        auto temp_old = config_store().get_filament_type(e).parameters().nozzle_temperature;
+        auto temp_old = config_store().get_filament_type(*virtual_tool).parameters().nozzle_temperature;
+        thermalManager.setTargetHotend(temp_old, virtual_tool->to_physical());
 
-        thermalManager.setTargetHotend(temp_old, e);
-#endif
+        // pass filament type from gcode, so that user doesn't have to select filament type
+        const char *filament_name = GCodeInfo::getInstance().get_extruder_info(gcode_tool).filament_name.data();
 
-        // M1600 - change, R - add return option, U1 - Ask filament type if unknown, T - tool, Sxxx - preselect filament type
-        marlin_server::enqueue_gcode_printf("M1600 S\"%s\" T%d R U1", filament_name, e);
+        // M1600 - change, R - add return option, U1 - Ask filament type if unknown, T - tool, Sxxx - preselect filament type, P - do not use toolmapping
+        marlin_server::enqueue_gcode_printf("M1600 S\"%s\" T%d R U1 P", filament_name, virtual_tool->to_raw());
     }
 }
 
