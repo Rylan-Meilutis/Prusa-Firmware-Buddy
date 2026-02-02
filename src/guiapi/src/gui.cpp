@@ -159,6 +159,10 @@ void gui_invalidate(void) {
     gui_invalid = true;
 }
 
+void gui_validate() {
+    gui_invalid = false;
+}
+
 static uint8_t guiloop_nesting = 0;
 uint8_t gui_get_nesting(void) {
     return guiloop_nesting;

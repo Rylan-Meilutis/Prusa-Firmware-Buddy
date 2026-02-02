@@ -3,6 +3,7 @@
 
 #include <gui.hpp>
 #include <raii/auto_restore.hpp>
+#include <gui_invalidate.hpp>
 
 static const uint32_t MENU_TIMEOUT_MS = 30000;
 
@@ -78,6 +79,10 @@ void Screens::Close() {
 
     close = true;
     creator_node.MakeEmpty();
+
+    // Don't redraw the screen since we're closing it
+    // This prevents extra redraws if for example there has been a dialog open just before closing the screen
+    gui_validate();
 }
 
 bool Screens::Close(const ScreenFactory::Creator &creator) {

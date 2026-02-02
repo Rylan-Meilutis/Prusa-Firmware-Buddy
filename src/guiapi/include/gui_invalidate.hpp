@@ -8,3 +8,7 @@
 #pragma once
 
 void gui_invalidate();
+
+/// Markt the GUI as valid (falsely)
+/// Can be used to prevent unnecessary redraws
+void gui_validate();
