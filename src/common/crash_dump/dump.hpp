@@ -21,6 +21,7 @@ enum class MsgType : uint8_t {
     BSOD = 3, // BSOD dump
     STACK_OVF = 4, // stack overflow dump
     FATAL_WARNING = 5, // it is unsafe to let printer boot up, but it is not an error (mk3.5 upgrade kit is shipped with mk4 fw)
+    FACTORY_RESET = 6,
 
     EMPTY = 0xff, ///< Nothing dumped
 };

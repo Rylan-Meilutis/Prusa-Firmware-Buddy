@@ -18,6 +18,7 @@
 #include <crash_dump/dump.hpp>
 #include <screen_splash.hpp>
 #include <wdt.hpp>
+#include <feature/factory_reset/factory_reset.hpp>
 
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
@@ -39,6 +40,11 @@ void gui_error_run(void) {
     display::enable_resource_file();
 
     LangEEPROM::getInstance(); // Initialize language EEPROM value
+
+    // Handle factory reset before setting up the error screen
+    if (crash_dump::message_get_type() == crash_dump::MsgType::FACTORY_RESET) {
+        FactoryReset::perform_internal();
+    }
 
     screen_node screen_initializer { ScreenFactory::Screen<ScreenError> };
     Screens::Init(screen_initializer);

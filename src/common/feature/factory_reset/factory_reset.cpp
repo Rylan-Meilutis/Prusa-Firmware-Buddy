@@ -1,20 +1,13 @@
 #include "factory_reset.hpp"
 
 #include <common/w25x.hpp>
-#include <wdt.hpp>
 #include <common/st25dv64k.h>
 #include <common/sys.hpp>
-
-#include <Marlin.h>
-
-#include <window_msgbox.hpp>
-#include <ScreenHandler.hpp>
+#include <crash_dump/dump.hpp>
 #include <bootloader/bootloader.hpp>
-#include <freertos/critical_section.hpp>
 #include <config_store/store_definition.hpp>
 #include <option/bootloader.h>
 #include <gui.hpp>
-#include <sound.hpp>
 #include <display_helper.h>
 
 #include <option/has_phase_stepping.h>
@@ -51,7 +44,30 @@ static_assert(store_flags == preset_flags);
 
 extern osThreadId displayTaskHandle;
 
+static uint16_t encode_params(bool hard_reset, FactoryReset::ItemBitset items_to_keep) {
+    static_assert(std::to_underlying(FactoryReset::Item::_cnt) < 16, "ItemBitset must fit in 15 bits");
+    return static_cast<uint16_t>(items_to_keep.to_ulong()) | (hard_reset ? (1 << 15) : 0);
+}
+
+static bool decode_hard_reset(uint16_t encoded_params) {
+    return encoded_params & (1 << 15);
+}
+
+static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
+    return FactoryReset::ItemBitset(encoded_params & ~(1 << 15));
+}
+
 [[noreturn]] void FactoryReset::perform(bool hard_reset, ItemBitset items_to_keep) {
+    crash_dump::save_message(crash_dump::MsgType::FACTORY_RESET, encode_params(hard_reset, items_to_keep), nullptr, nullptr);
+    sys_reset();
+}
+
+[[noreturn]] void FactoryReset::perform_internal() {
+    const uint16_t encoded_params = crash_dump::load_message_error_code();
+    crash_dump::message_set_displayed();
+
+    const bool hard_reset = decode_hard_reset(encoded_params);
+    const ItemBitset items_to_keep = decode_items_to_keep(encoded_params);
     assert(osThreadGetId() == displayTaskHandle);
 
     // Render the screen
@@ -115,11 +131,6 @@ extern osThreadId displayTaskHandle;
         render_rect(Rect16::fromLTWH(progress_rect.Left(), progress_rect.Top(), progress_rect.Width() * progress_pct / 100, progress_rect.Height()), COLOR_ORANGE);
     };
 
-    // Stop any sound plays. We will be entering a critical section and don't want to hear a long beep during all that wiping
-    sound::stop();
-    sound::update_1ms();
-
-    // !!! Do this before entering the critical section, as it does all sorts of file access and logging
     if (!hard_reset) {
 #if HAS_PHASE_STEPPING()
         // Phase stepping is a calibration that is stored on xFlash, not in the config store -> it needs special handling
@@ -168,21 +179,10 @@ extern osThreadId displayTaskHandle;
         }
     }
 
-    // Kick the watchdog
-    wdt_iwdg_refresh();
-
-    // Disable all sorts of stuff
-    {
-        thermalManager.disable_all_heaters();
-        thermalManager.zero_fan_speeds();
-        disable_all_steppers();
-    }
-
     // Wipe EEPROM
     for (uint16_t address = 0; address <= (8096 - 4); address += 4) {
         static constexpr uint32_t empty = ~0;
         st25dv64k_user_write_bytes(address, &empty, 4);
-        wdt_iwdg_refresh();
     }
 
     indicate_progress(66);
@@ -190,7 +190,6 @@ extern osThreadId displayTaskHandle;
     if (hard_reset) {
         // Wipe xFlash
         w25x_chip_erase([] {
-            wdt_iwdg_refresh();
         });
 
 #if BOOTLOADER()
@@ -231,14 +230,8 @@ extern osThreadId displayTaskHandle;
     indicate_progress(100);
 
     // Wait a few seconds so that the user can visually verify that the factory reset is complete
-    constexpr const int few = 3;
-    for (int i = 0; i < few; ++i) {
-        wdt_iwdg_refresh();
-        HAL_Delay(1000);
-    }
+    HAL_Delay(3000);
 
-    // We cannot display msg box here - it would be trying to load an icon from xFlash that we've probably wiped.
-    // Also, fonts might be in xFlash one day.
     // Just restart the system
     sys_reset();
 }

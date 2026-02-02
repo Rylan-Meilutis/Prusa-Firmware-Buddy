@@ -145,6 +145,8 @@ ScreenError::ScreenError()
         case MsgType::FATAL_WARNING:
             txt_debug_info.Hide();
             break;
+        case MsgType::FACTORY_RESET:
+            [[fallthrough]];
         case MsgType::EMPTY:
             break;
         }

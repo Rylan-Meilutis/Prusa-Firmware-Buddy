@@ -53,6 +53,10 @@ public:
     };
 
 public:
+    /// Executes a previously requested factory reset after reboot.
+    /// Reads parameters from the crash dump message.
+    [[noreturn]] static void perform_internal();
+
     /// Performs a factory reset with the specified parameters.
     /// !!! Has to be executed on the GUI thread
     [[noreturn]] static void perform(bool hard_reset, ItemBitset items_to_keep);
