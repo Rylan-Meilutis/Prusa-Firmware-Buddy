@@ -12,6 +12,7 @@
 
 #include <option/has_gcode_compatibility.h>
 #include <option/has_mmu2.h>
+#include <option/has_anfc.h>
 
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
@@ -113,6 +114,11 @@ enum class VirtualToolCheck : uint8_t {
 enum class GCodeToolCheck : uint8_t {
     /// Fails if the gcode tool is not assigned to anything
     tool_assigned,
+
+#if HAS_ANFC()
+    /// Fails if there is not enough filament on the spools
+    enough_filament,
+#endif
 
     _cnt
 };

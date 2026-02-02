@@ -20,6 +20,11 @@
     #include <module/prusa/spool_join.hpp>
 #endif
 
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
+#endif
+
 namespace buddy::gcode_compatibility {
 
 template <>
@@ -153,9 +158,19 @@ constinit const ChecksTraits<GCodeToolCheck>::Metadata ChecksTraits<GCodeToolChe
         CheckMetadata {
             .severity = HWCheckSeverity::Abort,
             .title = N_("Unmapped tool"),
-            .description = N_("G-Code tool is not mapped"),
+            .description = N_("G-Code tool is not mapped."),
         },
     },
+#if HAS_ANFC()
+        {
+            GCodeToolCheck::enough_filament,
+            CheckMetadata {
+                .severity = HWCheckSeverity::Warning, // TODO: Sanitize HWCheckType and use it here as well
+                .title = N_("Not enough filament"),
+                .description = N_("There is not enough filament remaining on the spools to print the model."),
+            },
+        },
+#endif
 };
 
 HWCheckSeverity CheckMetadata::evaluate_severity() const {
@@ -314,6 +329,12 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
         }
 #endif
 
+#if HAS_ANFC()
+        /// Sums remaining filament across the whole spool join chain
+        /// Is set to NAN if any of the spooljoined tools does not have an OPT assigned
+        float remaining_filament_g = 0;
+#endif
+
         const auto virtual_tool_check = [&](VirtualToolIndex virtual_tool) {
             auto &virtual_tool_fails = failed_virtual_tool_checks[virtual_tool];
 
@@ -352,6 +373,16 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                     virtual_tool_fails.set(VirtualToolCheck::filament_loaded);
                 }
             }
+
+#if HAS_ANFC()
+            if (auto v = buddy::openprinttag::filament_usage_tracker().remaining_filament_g(virtual_tool)) {
+                remaining_filament_g += *v;
+            } else {
+                // At least one of the spools does not have an OPT
+                // We cannot rely on the remaining filament calculations
+                remaining_filament_g = NAN;
+            }
+#endif
         };
 
 #if HAS_SPOOL_JOIN()
@@ -360,6 +391,14 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
         }
 #else
         virtual_tool_check(base_virtual_tool);
+#endif
+
+#if HAS_ANFC()
+        // Note: Comparing NAN to anything is always FALSE, so if either of the values is unknown, we do not fail this check
+        // We want to fail this check only when we are certain that we don't have enough filament
+        if (extruder_info.filament_used_g.value_or(NAN) > remaining_filament_g) {
+            gcode_tool_fails.set(GCodeToolCheck::enough_filament);
+        }
 #endif
     }
 }
