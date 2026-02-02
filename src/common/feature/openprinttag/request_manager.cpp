@@ -301,6 +301,10 @@ void Manager::add_request(Badge<Request>, Request &request) {
 
     remove_request_nolock(request);
     pending_requests.push_front(request);
+
+    // Reset request.finished in case this is a reissue
+    request.finished_ = false;
+    request.error_ = Request::Error::_cnt;
 }
 
 void Manager::remove_request(Badge<Request>, Request &request) {
