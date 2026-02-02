@@ -12,20 +12,17 @@ LOG_COMPONENT_REF(OpenPrintTag);
 
 namespace buddy::openprinttag {
 
-FilamentUsageTracker &filament_usage_tracker_unsafe() {
+FilamentUsageTracker &filament_usage_tracker() {
     static FilamentUsageTracker instance;
     return instance;
 }
 
-FilamentUsageTracker &filament_usage_tracker() {
-#ifndef UNITTESTS
-    assert(marlin_server::is_marlin_server_thread());
-#endif
-
-    return filament_usage_tracker_unsafe();
+void FilamentUsageTracker::flush(const FlushArgs &args) {
+    std::lock_guard _lg(mutex_);
+    return flush_nolock(args);
 }
 
-void FilamentUsageTracker::flush(const FlushArgs &args) {
+void FilamentUsageTracker::flush_nolock(const FlushArgs &args) {
     for (VirtualToolIndex tool : tool_index_iterator(args.tools)) {
         ToolData &td = tool_data_[tool];
         td.write_pending = true;
@@ -34,30 +31,45 @@ void FilamentUsageTracker::flush(const FlushArgs &args) {
 }
 
 uint32_t FilamentUsageTracker::uncommited_consumption_mm(VirtualToolIndex tool) const {
+    std::lock_guard _lg(mutex_);
+    return uncommited_consumption_mm_nolock(tool);
+}
+
+uint32_t FilamentUsageTracker::uncommited_consumption_mm_nolock(VirtualToolIndex tool) const {
     return std::max<uint32_t>(0, filament_tracker().get_extruded_distance(tool) - tool_data_[tool].base_extruded_distance_mm);
 }
 
 std::optional<float> FilamentUsageTracker::remaining_filament_g(VirtualToolIndex tool) const {
+    std::lock_guard _lg(mutex_);
+
     const auto &tool_data = tool_data_[tool];
     if (std::isnan(tool_data.base_remaining_filament_g)) {
         return std::nullopt;
     }
 
-    return std::max<float>(0, tool_data.base_remaining_filament_g - uncommited_consumption_mm(tool) * tool_data.g_per_mm);
+    return std::max<float>(0, tool_data.base_remaining_filament_g - uncommited_consumption_mm_nolock(tool) * tool_data.g_per_mm);
 }
 
 bool FilamentUsageTracker::is_tracking(VirtualToolIndex tool) const {
+    std::lock_guard _lg(mutex_);
+
     const auto &tool_data = tool_data_[tool];
     return !tool_data.init_pending && !tool_data.unrecoverable_error;
 }
 
 void FilamentUsageTracker::step() {
+#ifndef UNITTESTS
+    assert(marlin_server::is_marlin_server_thread());
+#endif
+
+    std::lock_guard _lg(mutex_);
+
     if (!step_limiter_ms_.check(freertos::millis())) {
         return;
     }
 
     if (flush_timer_ms_.check(freertos::millis())) {
-        flush({
+        flush_nolock({
             .tools = AllTools {},
             .warn_on_failure = false,
         });
@@ -117,7 +129,7 @@ void FilamentUsageTracker::step() {
         assert(!std::isnan(tool_data.g_per_mm));
         const auto &args = write_consumption_args_.emplace(WriteConsumptionArgs {
             .tag = tool_tag,
-            .extruded_distance_delta_mm = uncommited_consumption_mm(current_tool_),
+            .extruded_distance_delta_mm = uncommited_consumption_mm_nolock(current_tool_),
             .g_per_mm = tool_data.g_per_mm,
         });
 
@@ -303,10 +315,6 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
 
         marlin_server::clear_warning(WarningType::OpenPrintTagUsageWriteFailed);
     };
-}
-
-bool is_filament_usage_tracking(VirtualToolIndex tool) {
-    return filament_usage_tracker_unsafe().is_tracking(tool);
 }
 
 } // namespace buddy::openprinttag

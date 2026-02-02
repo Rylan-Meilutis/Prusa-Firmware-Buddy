@@ -27,7 +27,7 @@ MenuItemFilamentTracking::MenuItemFilamentTracking(VirtualToolIndex tool)
 void MenuItemFilamentTracking::Loop() {
     const auto assigned_tag = ToolTag::for_tool_assigned(tool_);
     const auto ephemeral_tag = ToolTag::for_tool_ephemeral(tool_);
-    const auto new_is_tracking = assigned_tag && (assigned_tag == ephemeral_tag) && buddy::openprinttag::is_filament_usage_tracking(tool_);
+    const auto new_is_tracking = assigned_tag && (assigned_tag == ephemeral_tag) && buddy::openprinttag::filament_usage_tracker().is_tracking(tool_);
 
     if (is_tracking_ != new_is_tracking) {
         is_tracking_ = new_is_tracking;
@@ -63,7 +63,7 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
         msg = N_("Currently detected OpenPrintTag is different to the assigned one present during filament load.");
         responses = { Response::Ok, Response::Replace };
 
-    } else if (!buddy::openprinttag::is_filament_usage_tracking(tool_)) {
+    } else if (!buddy::openprinttag::filament_usage_tracker().is_tracking(tool_)) {
         msg = N_("The tag is corrupt, locked, missing lenght/weight data or otherwise unsuitable.");
     }
 

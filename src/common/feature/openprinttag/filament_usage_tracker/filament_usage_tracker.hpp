@@ -11,12 +11,14 @@
 #include <feature/openprinttag/tool_tag.hpp>
 #include <utils/timing/rate_limiter.hpp>
 #include <inplace_function.hpp>
+#include <freertos/mutex.hpp>
 
 namespace buddy::openprinttag {
 
 /// Class that handles writing filament usage to OpenPrintTag
+/// Public functions are thread-safe
 class FilamentUsageTracker {
-    friend FilamentUsageTracker &filament_usage_tracker_unsafe();
+    friend FilamentUsageTracker &filament_usage_tracker();
     friend class FilamentUsageTrackerTester;
 
 public:
@@ -116,6 +118,10 @@ private:
     RateLimiter<uint32_t> step_limiter_ms_ { step_limiter_interval_ms };
 
 private:
+    void flush_nolock(const FlushArgs &args);
+
+    [[nodiscard]] uint32_t uncommited_consumption_mm_nolock(VirtualToolIndex tool) const;
+
     /// Finish callback when we determine that the tag cannot be used for filament tracking, without change of recovery
     static void cannot_track_finish_cb(ToolData &tool_data);
 
@@ -134,14 +140,11 @@ private:
 
     /// write_consumption_async arguments do not fit to a stdext::inplace_function storage for the async job, so we have to store them separately
     std::optional<WriteConsumptionArgs> write_consumption_args_;
+
+    mutable freertos::Mutex mutex_;
 };
 
 /// @returns instance of the FilamentUsageTracker singleton
-/// !!! To be used only from the default task
 FilamentUsageTracker &filament_usage_tracker();
-
-/// @returns filament_usage_tracker().is_tracking(tool)
-/// Contrary to filament_usage_tracker, this can be used from any thread - but the result is purely informational and prone to race conditions.
-bool is_filament_usage_tracking(VirtualToolIndex tool);
 
 } // namespace buddy::openprinttag
