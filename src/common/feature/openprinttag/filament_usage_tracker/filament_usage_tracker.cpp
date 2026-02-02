@@ -24,6 +24,12 @@ void FilamentUsageTracker::flush(const FlushArgs &args) {
 
 void FilamentUsageTracker::flush_nolock(const FlushArgs &args) {
     for (VirtualToolIndex tool : tool_index_iterator(args.tools)) {
+        // We need this check to prevent setting warn_if_next_write_fails
+        // and then popping up warnings if init fails
+        if (uncommited_consumption_mm_nolock(tool) == 0) {
+            continue;
+        }
+
         ToolData &td = tool_data_[tool];
         td.write_pending = true;
         td.warn_if_next_write_fails |= args.warn_on_failure;
@@ -91,7 +97,11 @@ void FilamentUsageTracker::step() {
     if (async_job_.state() == AsyncJobBase::State::finished) {
         // Call the async job finish callback
         if (auto f = async_job_.result()) {
-            f(tool_data_[current_tool_]);
+            f({
+                .tracker = *this,
+                .tool_data = tool_data_[current_tool_],
+                .tool = current_tool_,
+            });
         }
 
         // Return to idle state so that the callback is not called multiple times
@@ -134,20 +144,15 @@ void FilamentUsageTracker::step() {
             .g_per_mm = tool_data.g_per_mm,
         });
 
-        if (args.extruded_distance_delta_mm > 0) {
-            async_job_.issue([&args](AsyncJobExecutionControl &ctrl, AsyncJobFinishCallback &result) {
-                result = write_consumption_async(ctrl, args);
-            });
-
-        } else {
-            // We have nothing to write
-            tool_data.write_pending = false;
-            tool_data.warn_if_next_write_fails = false;
-        }
+        async_job_.issue([&args](AsyncJobExecutionControl &ctrl, AsyncJobFinishCallback &result) {
+            result = write_consumption_async(ctrl, args);
+        });
     }
 }
 
-void FilamentUsageTracker::cannot_track_finish_cb(ToolData &tool_data) {
+void FilamentUsageTracker::cannot_track_finish_cb(const AsyncJobFinishCallbackArgs &args) {
+    auto &tool_data = args.tool_data;
+
     // Further disregard this tag
     tool_data.unrecoverable_error = true;
     tool_data.init_pending = false;
@@ -157,7 +162,9 @@ void FilamentUsageTracker::cannot_track_finish_cb(ToolData &tool_data) {
     marlin_server::set_warning(WarningType::OpenPrintTagCannotTrack);
 }
 
-void FilamentUsageTracker::retry_finish_cb(ToolData &tool_data) {
+void FilamentUsageTracker::retry_finish_cb(const AsyncJobFinishCallbackArgs &args) {
+    auto &tool_data = args.tool_data;
+
     // Show the warning even if this is not a write. If we fail init before write, it's also not good.
     if (tool_data.warn_if_next_write_fails) {
         marlin_server::set_warning(WarningType::OpenPrintTagUsageWriteFailed);
@@ -220,10 +227,15 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_asy
 
     const float remaining_g = full_weight - req.result<AuxField::consumed_weight>().value_or(0);
 
-    return [g_per_mm, remaining_g](ToolData &tool_data) {
+    return [g_per_mm, remaining_g](const AsyncJobFinishCallbackArgs &args) {
+        auto &tool_data = args.tool_data;
+
         tool_data.g_per_mm = g_per_mm;
         tool_data.base_remaining_filament_g = remaining_g;
         tool_data.init_pending = false;
+
+        // In case there is any untracked filament usage, write it immediately
+        args.tracker.flush_nolock({ .tools = args.tool });
     };
 }
 
@@ -307,7 +319,9 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
         }
     }
 
-    return [extruded = args.extruded_distance_delta_mm, consumed_diff](ToolData &tool_data) {
+    return [extruded = args.extruded_distance_delta_mm, consumed_diff](const AsyncJobFinishCallbackArgs &args) {
+        auto &tool_data = args.tool_data;
+
         // Let the tracker know that we've succesfully written this amount of filament usage
         tool_data.base_extruded_distance_mm += extruded;
         tool_data.base_remaining_filament_g -= consumed_diff;

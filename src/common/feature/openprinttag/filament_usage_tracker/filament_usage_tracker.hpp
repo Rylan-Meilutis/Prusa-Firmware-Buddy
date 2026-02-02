@@ -101,7 +101,13 @@ private:
 
     StrongIndexArray<ToolData, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> tool_data_;
 
-    using AsyncJobFinishCallback = stdext::inplace_function<void(ToolData &tool_data)>;
+    struct AsyncJobFinishCallbackArgs {
+        FilamentUsageTracker &tracker;
+        ToolData &tool_data;
+        VirtualToolIndex tool;
+    };
+
+    using AsyncJobFinishCallback = stdext::inplace_function<void(const AsyncJobFinishCallbackArgs &args)>;
 
     /// Single job slot for doing the OPT IO asynchronously
     /// The result is a function that should be called once the async job finishes
@@ -123,10 +129,10 @@ private:
     [[nodiscard]] uint32_t uncommited_consumption_mm_nolock(VirtualToolIndex tool) const;
 
     /// Finish callback when we determine that the tag cannot be used for filament tracking, without change of recovery
-    static void cannot_track_finish_cb(ToolData &tool_data);
+    static void cannot_track_finish_cb(const AsyncJobFinishCallbackArgs &args);
 
     /// Finish callback when something failed, but retrying might help
-    static void retry_finish_cb(ToolData &tool_data);
+    static void retry_finish_cb(const AsyncJobFinishCallbackArgs &args);
 
     static AsyncJobFinishCallback tool_init_async(AsyncJobExecutionControl &ctrl, ToolTag tag);
 
