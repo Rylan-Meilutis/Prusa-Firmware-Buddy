@@ -1333,7 +1333,7 @@ measure_calibration_speeds(AxisEnum axis, const AxisCalibrationConfig &calibrati
             forward_samples.push_back(sample);
         });
 
-    if (!forward_annotation.movement_ok) {
+    if (!forward_annotation.movement_ok || forward_annotation.accel_error != PrusaAccelerometer::Error::none) {
         log_error(PhaseStepping, "Speed sweep movement failed: acc_error %u, movement_ok %d",
             static_cast<unsigned>(forward_annotation.accel_error), forward_annotation.movement_ok);
         return std::unexpected(CalibrateAxisError::speed_sweep_movement_failed);
@@ -1351,7 +1351,7 @@ measure_calibration_speeds(AxisEnum axis, const AxisCalibrationConfig &calibrati
             backward_samples.push_back(sample);
         });
 
-    if (!backward_annotation.movement_ok) {
+    if (!backward_annotation.movement_ok || backward_annotation.accel_error != PrusaAccelerometer::Error::none) {
         log_error(PhaseStepping, "Speed sweep movement failed: acc_error %u, movement_ok %d",
             static_cast<unsigned>(backward_annotation.accel_error), backward_annotation.movement_ok);
         return std::unexpected(CalibrateAxisError::speed_sweep_movement_failed);
@@ -1471,7 +1471,7 @@ static std::expected<float, CalibrateAxisError> find_approx_mag(AxisEnum axis,
                 samples.push_back(sample);
             });
 
-        if (!annotation.movement_ok) {
+        if (!annotation.movement_ok || annotation.accel_error != PrusaAccelerometer::Error::none) {
             log_error(PhaseStepping, "Param sweep movement failed: acc_error %u, movement_ok %d",
                 static_cast<unsigned>(annotation.accel_error), annotation.movement_ok);
             return std::unexpected(CalibrateAxisError::param_sweep_movement_failed);
@@ -1551,7 +1551,7 @@ static std::expected<float, CalibrateAxisError> find_approx_mag(AxisEnum axis,
         calib_config.fine_movement_duration * speed, harmonic, params, [&](AccelerometerSample sample) {
             samples.push_back(sample);
         });
-    if (!annotation.movement_ok) {
+    if (!annotation.movement_ok || annotation.accel_error != PrusaAccelerometer::Error::none) {
         log_error(PhaseStepping, "Param sweep movement failed: acc_error %u, movement_ok %d",
             static_cast<unsigned>(annotation.accel_error), annotation.movement_ok);
         return std::unexpected(CalibrateAxisError::param_sweep_movement_failed);
@@ -1601,7 +1601,7 @@ collect_param_sweep_response(AxisEnum axis, const AxisCalibrationConfig &calib_c
                     samples.push_back(sample);
                 });
 
-            if (!annotation.movement_ok) {
+            if (!annotation.movement_ok || annotation.accel_error != PrusaAccelerometer::Error::none) {
                 log_error(PhaseStepping, "Param sweep movement failed: acc_error %u, movement_ok %d",
                     static_cast<unsigned>(annotation.accel_error), annotation.movement_ok);
                 return std::unexpected(CalibrateAxisError::param_sweep_movement_failed);
