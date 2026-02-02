@@ -54,6 +54,9 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
     if (!ephemeral_tag) {
         msg = N_("No OpenPrintTag detected for the tool/slot.");
 
+    } else if (!assigned_tag) {
+        msg = N_("The filament has no OpenPrintTag assigned. To assign a tag, it must be detected during the filament load.");
+
     } else if (ephemeral_tag != assigned_tag) {
         msg = N_("Currently detected OpenPrintTag is different to the assigned one present during filament load.");
 
