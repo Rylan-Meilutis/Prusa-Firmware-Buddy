@@ -148,6 +148,9 @@ struct TaskControlBlock {
 #if HAS_GUI()
     StaticTask_t display;
 #endif
+#if BUDDY_ENABLE_WUI()
+    StaticTask_t network;
+#endif
 #if BUDDY_ENABLE_CONNECT()
     StaticTask_t connect;
 #endif
@@ -163,6 +166,9 @@ struct TaskStack {
 #endif
 #if HAS_GUI()
     uint32_t display[1536];
+#endif
+#if BUDDY_ENABLE_WUI()
+    uint32_t network[1024];
 #endif
 #if BUDDY_ENABLE_CONNECT()
     uint32_t connect[2336];
@@ -365,8 +371,7 @@ extern "C" void main_cpp(void) {
             skip_esp_flashing();
     #endif
 
-            TaskDeps::wait(TaskDeps::Tasks::network);
-            start_network_task(/*allow_full=*/false);
+            create_task("network", network_run_minimal, TASK_PRIORITY_WUI, task_stack.network, task_control_block.network);
             create_task("connect", connect_client::run_error, TASK_PRIORITY_CONNECT, task_stack.connect, task_control_block.connect);
         }
 #endif
@@ -530,8 +535,7 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if BUDDY_ENABLE_WUI()
-    TaskDeps::wait(TaskDeps::Tasks::network);
-    start_network_task(/*allow_full=*/true);
+    create_task("network", network_run, TASK_PRIORITY_WUI, task_stack.network, task_control_block.network);
 #endif
 
 #if BUDDY_ENABLE_CONNECT()

@@ -36,7 +36,6 @@
 #include <mutex>
 #include "http_lifetime.h"
 #include <buddy/main.h>
-#include <buddy/ccm_thread.hpp>
 #include "tasks.hpp"
 
 #include "netdev.h"
@@ -560,7 +559,9 @@ private:
             events = 0;
         }
     }
-    static void task_main(const void *) {
+    static void task_main(bool allow_full) {
+        TaskDeps::wait(TaskDeps::Tasks::network);
+        NetworkState::allow_full = allow_full;
         // Initialize our own thread ID.
         NetworkState state;
         state.run();
@@ -598,10 +599,8 @@ public:
         last_esp_ok = sys_now();
 #endif
     }
-    static void run_task(bool allow_full) {
-        NetworkState::allow_full = allow_full;
-        osThreadCCMDef(network, task_main, TASK_PRIORITY_WUI, 0, 1024);
-        osThreadCreate(osThread(network), nullptr);
+    static void run(bool allow_full) {
+        task_main(allow_full);
     }
     static void notify(NetworkAction action) {
         // Read out of the atomic variable
@@ -685,8 +684,12 @@ bool NetworkState::allow_full = false;
 
 } // namespace
 
-void start_network_task(bool allow_full) {
-    NetworkState::run_task(allow_full);
+void network_run() {
+    NetworkState::run(true);
+}
+
+void network_run_minimal() {
+    NetworkState::run(false);
 }
 
 const char *wui_get_password() {

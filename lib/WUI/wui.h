@@ -16,13 +16,11 @@
 extern "C" {
 #endif
 
-// Start the networking task.
-//
-// If allow_full is set, then we also initiate a marlin client and run the link
-// server (as set by configuration). If it is false, this is skipped and only
-// minimal set of networking is set up. This is used to initiate networking in
-// error screen - we want to send error there, but not start anything else.
-void start_network_task(bool allow_full);
+// Entry point for the networking task with full functionality (marlin client, link server).
+void network_run();
+
+// Entry point for minimal networking (error screen only, no marlin client or link server).
+void network_run_minimal();
 
 // TODO: Less colliding names? Or C++ namespace and such?
 void notify_ethernet_data();
