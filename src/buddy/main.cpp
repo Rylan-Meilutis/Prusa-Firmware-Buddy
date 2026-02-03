@@ -367,7 +367,6 @@ extern "C" void main_cpp(void) {
 
             TaskDeps::wait(TaskDeps::Tasks::network);
             start_network_task(/*allow_full=*/false);
-            TaskDeps::wait(TaskDeps::Tasks::connect);
             create_task("connect", connect_client::run_error, TASK_PRIORITY_CONNECT, task_stack.connect, task_control_block.connect);
         }
 #endif
@@ -540,7 +539,6 @@ extern "C" void main_cpp(void) {
         // FIXME: We should be able to split networking to the lower-level network part and the Link part. Currently, both are done through WUI.
         #error "Can't have connect without WUI"
     #endif
-    TaskDeps::wait(TaskDeps::Tasks::connect);
     create_task("connect", connect_client::run, TASK_PRIORITY_CONNECT, task_stack.connect, task_control_block.connect);
 #endif
 
