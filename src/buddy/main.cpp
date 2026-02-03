@@ -153,6 +153,9 @@ struct TaskControlBlock {
 #if HAS_GUI()
     StaticTask_t display;
 #endif
+#if HAS_PUPPIES()
+    StaticTask_t puppies;
+#endif
 #if BUDDY_ENABLE_WUI()
     StaticTask_t network;
 #endif
@@ -171,6 +174,9 @@ struct TaskStack {
 #endif
 #if HAS_GUI()
     uint32_t display[1536];
+#endif
+#if HAS_PUPPIES()
+    uint32_t puppies[896];
 #endif
 #if BUDDY_ENABLE_WUI()
     uint32_t network[1024];
@@ -528,7 +534,7 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_PUPPIES()
-    buddy::puppies::start_puppy_task();
+    create_task("puppies", buddy::puppies::run, TASK_PRIORITY_PUPPY_TASK, task_stack.puppies, task_control_block.puppies);
     #if HAS_MMU2()
     // for printers with MMU connected through MODBUS, the MMU implementation relies vaguely on MODBUS data structures
     // -> better have the puppy task at least existent

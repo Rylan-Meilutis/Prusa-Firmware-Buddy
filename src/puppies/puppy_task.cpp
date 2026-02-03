@@ -3,7 +3,6 @@
 #include "Marlin/src/module/prusa/toolchanger.h"
 #include "Marlin/src/module/stepper.h"
 #include <buddy/bootstrap_state.hpp>
-#include <buddy/ccm_thread.hpp>
 #include <cmsis_os.h>
 #include <common/bsod.h>
 #include <common/timing.h>
@@ -396,7 +395,7 @@ static void indx_head_power_on(PuppyModbus &bus) {
 }
 #endif
 
-static void puppy_task_body([[maybe_unused]] void const *argument) {
+void run() {
     TaskDeps::wait(TaskDeps::Tasks::puppy_task_start);
 
     PuppyModbus &bus = buddy::puppies::puppyModbus;
@@ -483,11 +482,6 @@ static void puppy_task_body([[maybe_unused]] void const *argument) {
         log_error(Puppies, "Communication error, going to recovery puppies");
         osDelay(1300); // Needs to be here to give puppies time to finish dumping
     } while (true);
-}
-
-void start_puppy_task() {
-    osThreadCCMDef(puppies, puppy_task_body, TASK_PRIORITY_PUPPY_TASK, 0, 896);
-    osThreadCreate(osThread(puppies), NULL);
 }
 
 void suspend_puppy_task() {

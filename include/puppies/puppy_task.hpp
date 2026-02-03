@@ -2,10 +2,10 @@
 
 namespace buddy::puppies {
 
-/// Initialize and start task taking care of the puppies via Modbus
-void start_puppy_task();
+/// Entry point for task taking care of the puppies via Modbus.
+void run();
 
-/// Suspend puppy task
+/// Suspend puppy task.
 void suspend_puppy_task();
 
 } // namespace buddy::puppies
