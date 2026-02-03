@@ -682,7 +682,7 @@ static void process_request_flags();
 static void retract();
 static void lift_head();
 static void retract_and_lift();
-static void park_head();
+static void park_head(bool is_pause);
 
 static void settings_load();
 
@@ -2287,7 +2287,7 @@ static void _server_print_loop(void) {
         if (!is_processing()) {
             server.resume.pos = current_position;
             retract_and_lift();
-            park_head();
+            park_head(true);
             server.print_state = State::Pausing_ParkHead;
         }
         break;
@@ -2488,7 +2488,7 @@ static void _server_print_loop(void) {
             // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning
             GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = false });
 #endif
-            park_head();
+            park_head(false);
         }
 
         thermalManager.disable_all_heaters();
@@ -2556,7 +2556,7 @@ static void _server_print_loop(void) {
 #ifdef PARK_HEAD_ON_PRINT_FINISH
             if (!server.print_is_serial) {
                 retract_and_lift();
-                park_head();
+                park_head(false);
             }
 #endif // PARK_HEAD_ON_PRINT_FINISH
         }
@@ -3075,7 +3075,7 @@ static void retract_and_lift() {
     lift_head();
 }
 
-static void park_head() {
+static void park_head([[maybe_unused]] bool is_pause) {
     if (!all_axes_homed()) {
         return;
     }
@@ -3090,7 +3090,14 @@ static void park_head() {
     }
 #endif
 
-    mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT_ON_PRINT_END } }));
+#if PRINTER_IS_PRUSA_iX()
+    if (is_pause) {
+        mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }));
+    } else
+#endif
+    {
+        mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT_ON_PRINT_END } }));
+    }
 }
 
 void unpark_head_XY(void) {
