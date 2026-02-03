@@ -2,6 +2,7 @@
 #include "Marlin/src/gcode/gcode.h"
 #include "raii/scope_guard.hpp"
 #include <gcode_loader.hpp>
+#include <Marlin/src/module/motion.h>
 
 namespace nozzle_cleaner {
 
@@ -74,6 +75,13 @@ bool execute() {
     // If we are idle or buffering there is no point in trying to execute but we dont want to reset if we are buffering so we just return false
     if (is_loader_idle() || is_loader_buffering()) {
         return false;
+    }
+
+    // skip the execution if XY is not homed; we could save ourselves the
+    // whole gcode loading too, but that'd add extra conditions and edge cases
+    if (!(axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise) && axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))) {
+        reset();
+        return true;
     }
 
     auto loader_result = nozzle_cleaner_gcode_loader_instance().get_result();
