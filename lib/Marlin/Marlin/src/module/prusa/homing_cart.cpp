@@ -52,16 +52,6 @@ static bool isCalibratedHome(uint16_t (&mscnt)[homeSamplesCount], uint8_t axis) 
 }
 
 /**
- *  Move back and forth to endstop
- * \returns MSCNT position after endstop has been hit
- */
-static int32_t home_and_get_mscnt(AxisEnum axis, int axis_home_dir, feedRate_t fr_mm_s, float &probe_offset) {
-    probe_offset = homeaxis_single_run(axis, axis_home_dir, fr_mm_s);
-    const int32_t mscnt = (axis == X_AXIS) ? stepperX.MSCNT() : stepperY.MSCNT();
-    return mscnt;
-}
-
-/**
  * \returns calibrated value from EEPROM in microsteps
  *          always 256 microsteps per step, range 0 to 1023
  */
@@ -126,7 +116,8 @@ static int32_t home_and_get_calibration_offset(AxisEnum axis, int axis_home_dir,
     PrintStatusMessageGuard status_guard;
 
     do {
-        const int32_t mscnt = home_and_get_mscnt(axis, axis_home_dir, fr_mm_s / homing_bump_divisor[axis], probe_offset);
+        probe_offset = homeaxis_single_run(axis, axis_home_dir, fr_mm_s / homing_bump_divisor[axis]);
+        const int32_t mscnt = (axis == X_AXIS) ? stepperX.MSCNT() : stepperY.MSCNT();
 
         if ((probe_offset >= axis_home_min_diff(axis))
             && (probe_offset <= axis_home_max_diff(axis))
