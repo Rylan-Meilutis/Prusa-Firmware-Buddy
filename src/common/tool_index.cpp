@@ -20,15 +20,14 @@
 
 #include <option/board_is_master_board.h>
 
-using VirtualExtension = VirtualToolIndexExtension<VirtualToolIndex>;
-using PhysicalExtension = PhysicalToolIndexExtension<PhysicalToolIndex>;
-using GcodeExtension = GcodeToolIndexExtension<GcodeToolIndex>;
+using VirtualExtension = VirtualToolIndexExtension;
+using PhysicalExtension = PhysicalToolIndexExtension;
+using GcodeExtension = GcodeToolIndexExtension;
 
 static_assert(std::input_iterator<VirtualToolIndex::Iterator>);
 static_assert(std::input_iterator<PhysicalToolIndex::Iterator>);
 static_assert(std::input_iterator<GcodeToolIndex::Iterator>);
 
-template <>
 PhysicalToolIndex VirtualExtension::to_physical() const {
     [[maybe_unused]] const auto &self = static_cast<const VirtualToolIndex &>(*this);
 
@@ -42,25 +41,21 @@ PhysicalToolIndex VirtualExtension::to_physical() const {
 }
 
 #if HAS_TOOL_MAPPING()
-template <>
 std::variant<VirtualToolIndex, ToolNotMapped> GcodeExtension::to_virtual(const ToolMapper &tool_mapper) const {
     [[maybe_unused]] const auto &self = static_cast<const GcodeToolIndex &>(*this);
     return tool_mapper.to_virtual(self);
 }
 
-template <>
 std::variant<VirtualToolIndex, ToolNotMapped> GcodeExtension::to_virtual() const {
     return to_virtual(tool_mapper);
 }
 #else
-template <>
 std::variant<VirtualToolIndex, ToolNotMapped> GcodeExtension::to_virtual() const {
     const auto &self = static_cast<const GcodeToolIndex &>(*this);
     return VirtualToolIndex::from_raw(self.to_raw());
 }
 #endif
 
-template <>
 std::variant<PhysicalToolIndex, ToolNotMapped> GcodeExtension::to_physical() const {
     return to_physical_tool_index<ToolNotMapped>(to_virtual());
 }
@@ -115,7 +110,6 @@ bool GcodeToolIndex::is_enabled() const {
         [](ToolNotMapped) { return false; });
 }
 
-template <>
 std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::currently_selected() {
 #if HAS_TOOLCHANGER()
     static_assert(!HAS_MMU2());
@@ -134,7 +128,6 @@ std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::currently_selected() 
 #endif
 }
 
-template <>
 std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
 #if HAS_TOOLCHANGER()
     static_assert(!HAS_MMU2());
@@ -164,7 +157,6 @@ std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
 #endif
 }
 
-template <>
 std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8_t index) {
 #if PRINTER_IS_PRUSA_XL() && BOARD_IS_MASTER_BOARD()
     // count on XL is set to EXTRUDERS - 1 / HOTENDS - 1,
@@ -180,7 +172,6 @@ std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8
     return PhysicalToolIndex::from_raw(index);
 }
 
-template <>
 std::variant<VirtualToolIndex, NoTool> VirtualExtension::from_raw_notool(uint8_t index) {
 #if HAS_TOOL_MAPPING()
     #if PRINTER_IS_PRUSA_XL() && HAS_TOOLCHANGER()

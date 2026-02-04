@@ -7,9 +7,9 @@
 
 using Items = std::vector<uint8_t>;
 
-using VirtualExtension = VirtualToolIndexExtension<VirtualToolIndex>;
-using PhysicalExtension = PhysicalToolIndexExtension<PhysicalToolIndex>;
-using GcodeExtension = GcodeToolIndexExtension<GcodeToolIndex>;
+using VirtualExtension = VirtualToolIndexExtension;
+using PhysicalExtension = PhysicalToolIndexExtension;
+using GcodeExtension = GcodeToolIndexExtension;
 
 std::set<uint8_t> enabled_physical_tools;
 std::set<uint8_t> enabled_virtual_tools;
