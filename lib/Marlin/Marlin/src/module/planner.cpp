@@ -2408,7 +2408,7 @@ bool Planner::buffer_raw_line(const xyze_pos_t &cart, const float acceleration, 
 
 void Planner::set_machine_position_mm(const abce_pos_t &abce) {
   const auto virtual_notool = VirtualToolIndex::currently_selected();
-  const bool has_tool = std::holds_alternative<NoTool>(virtual_notool);
+  const bool has_tool = std::holds_alternative<VirtualToolIndex>(virtual_notool);
 
   #if ENABLED(DISTINCT_E_FACTORS)
     last_extruder = active_extruder;
