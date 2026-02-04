@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <crc/crc.hpp>
 #include <modbus/modbus_constants.hpp>
 
 using Status = modbus::Callbacks::Status;
@@ -32,19 +33,9 @@ modbus::Callbacks *Dispatch::get_device(ServerAddress server_address) {
 }
 
 uint16_t compute_crc(std::span<const std::byte> bytes) {
-    uint16_t crc = 0xffff;
-    for (auto byte : bytes) {
-        crc ^= uint16_t(byte);
-        for (int bit = 0; bit < 8; ++bit) {
-            if (crc & 1) {
-                crc >>= 1;
-                crc ^= 0xa001;
-            } else {
-                crc >>= 1;
-            }
-        }
-    }
-    return crc;
+    Crc16Modbus crc;
+    crc.update(bytes);
+    return crc.get();
 }
 
 std::span<std::byte> handle_transaction(

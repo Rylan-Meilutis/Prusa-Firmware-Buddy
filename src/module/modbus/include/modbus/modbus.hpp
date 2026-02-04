@@ -99,7 +99,7 @@ std::span<std::byte> handle_transaction(
 
 /// Computes the CRC based on modbus.
 ///
-/// Exposed for unit tests, not needed in "real applications"
+/// Used internally by handle_transaction() and exposed publicly for unit testing.
 uint16_t compute_crc(std::span<const std::byte> bytes);
 
 /// Interface to be used to reduce dependencies when you don't need to directly
