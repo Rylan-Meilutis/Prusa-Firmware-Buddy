@@ -116,12 +116,6 @@ typedef struct PlannerBlock {
   bool is_sync() { return flag.sync_position; }
   bool is_move() { return !is_sync(); }
 
-  #if EXTRUDERS > 1
-    uint8_t extruder;                       // The extruder to move (if E move)
-  #else
-    static constexpr uint8_t extruder = 0;
-  #endif
-
   uint8_t direction_bits;                   // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
 
   #if FAN_COUNT > 0

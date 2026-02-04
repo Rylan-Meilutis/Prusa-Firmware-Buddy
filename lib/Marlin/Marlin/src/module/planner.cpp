@@ -1351,11 +1351,7 @@ bool Planner::_populate_block(block_t * const block,
   #if FAN_COUNT > 0
     FANS_LOOP(i) block->fan_speed[i] = thermalManager.fan_speed[i];
   #endif
-
-  #if EXTRUDERS > 1
-    block->extruder = extruder;
-  #endif
-
+  
   #if ENABLED(AUTO_POWER_CONTROL)
     if (block->msteps.x || block->msteps.y || block->msteps.z)
       powerManager.power_on();
@@ -1939,10 +1935,6 @@ bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target
 
     #if FAN_COUNT > 0
         FANS_LOOP(i) block->fan_speed[i] = Temperature::fan_speed[i];
-    #endif
-
-    #if EXTRUDERS > 1
-        block->extruder = extruder;
     #endif
 
     #if ENABLED(AUTO_POWER_CONTROL)
