@@ -8,7 +8,8 @@
 #pragma once
 
 #include <stdint.h>
-
+#include <span>
+#include <cstddef>
 #ifdef __AVR__
     // AVR has optimized assembly versions of some crc functions
     #include <util/crc16.h>
@@ -82,12 +83,20 @@ public:
         return *this;
     }
 
-    Crc &update(const uint8_t *buf, const uint8_t len) {
-        for (uint8_t i = 0; i < len; ++i) {
-            this->update(buf[i]);
+    Crc &update(std::span<const std::byte> bytes) {
+        const auto *data = reinterpret_cast<const uint8_t *>(bytes.data());
+        for (size_t i = 0; i < bytes.size(); ++i) {
+            this->update(data[i]);
         }
         return *this;
     }
+
+    [[deprecated("Use overload taking span of bytes")]]
+    Crc &update(const uint8_t *buf, size_t len) {
+        return update(std::span<const std::byte>(
+            reinterpret_cast<const std::byte *>(buf), len));
+    }
+
     T get() {
         return this->crc;
     }
