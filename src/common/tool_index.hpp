@@ -187,6 +187,8 @@ private:
 };
 
 struct PhysicalToolIndexExtension {
+    /// @returns virtual tool currently assigned to @p this physical tool
+    std::variant<VirtualToolIndex, NoTool> currently_selected_virtual_tool() const;
 
     /// Checks for legacy values representing no tool
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool

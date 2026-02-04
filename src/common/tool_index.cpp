@@ -128,17 +128,10 @@ std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::currently_selected() 
 #endif
 }
 
-std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
-#if HAS_TOOLCHANGER()
-    static_assert(!HAS_MMU2());
-    static_assert(PhysicalToolIndex::count == PrusaToolChanger::MARLIN_NO_TOOL_PICKED);
-    if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
-        return NoTool {};
-    } else {
-        return VirtualToolIndex::from_raw(active_extruder);
-    }
+std::variant<VirtualToolIndex, NoTool> PhysicalExtension::currently_selected_virtual_tool() const {
+    const auto &self = static_cast<const PhysicalToolIndex &>(*this);
 
-#elif HAS_MMU2()
+#if HAS_MMU2()
     static_assert(PhysicalToolIndex::count == 1);
     if (MMU2::mmu2.Enabled()) {
         const auto e = MMU2::mmu2.get_current_tool();
@@ -147,14 +140,21 @@ std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
         } else {
             return VirtualToolIndex::from_raw(e);
         }
-    } else {
-        return VirtualToolIndex::from_raw(0);
     }
-
 #else
-    static_assert(VirtualToolIndex::count == 1);
-    return VirtualToolIndex::from_raw(0);
+    static_assert(PhysicalToolIndex::count == VirtualToolIndex::count);
 #endif
+
+    return VirtualToolIndex::from_raw(self.to_raw());
+}
+
+std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
+    using Result = std::variant<VirtualToolIndex, NoTool>;
+    return match(
+        PhysicalToolIndex::currently_selected(), //
+        [](PhysicalToolIndex t) -> Result { return t.currently_selected_virtual_tool(); }, //
+        [](NoTool) -> Result { return NoTool {}; } //
+    );
 }
 
 std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8_t index) {
