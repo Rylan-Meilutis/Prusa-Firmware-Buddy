@@ -2235,7 +2235,7 @@ bool Planner::buffer_segment(const abce_pos_t &abce, const feedRate_t fr_mm_s, s
   #if EITHER(PREVENT_COLD_EXTRUSION, PREVENT_LENGTHY_EXTRUDE)
     if (const float de = target.e - position.e) {
       #if ENABLED(PREVENT_COLD_EXTRUSION)
-        if (hints.move.extrusion_safety_checks && thermalManager.tooColdToExtrude(extruder)) {
+        if (hints.move.extrusion_safety_checks && thermalManager.tooColdToExtrude(*physical_tool)) {
           position.e = target.e; // Behave as if the move really took place, but ignore E part
           position_float.e = abce.e;
           SERIAL_ECHO_MSG(MSG_ERR_COLD_EXTRUDE_STOP);
