@@ -267,25 +267,13 @@ class Temperature {
       FORCE_INLINE static bool tooColdToExtrude(const uint8_t E_NAME) {
         return tooCold(static_cast<int16_t>(degHotend(HOTEND_INDEX)));
       }
-
-      [[deprecated("Use the ToolIndex overload")]]
-      FORCE_INLINE static bool targetTooColdToExtrude(const uint8_t E_NAME) {
-        return tooCold(degTargetHotend(HOTEND_INDEX));
-      }
     #else
       [[deprecated("Use the ToolIndex overload")]]
       FORCE_INLINE static bool tooColdToExtrude(const uint8_t) { return false; }
-
-      [[deprecated("Use the ToolIndex overload")]]
-      FORCE_INLINE static bool targetTooColdToExtrude(const uint8_t) { return false; }
     #endif
 
     inline static bool tooColdToExtrude(PhysicalToolIndex physical_tool) {
       return tooColdToExtrude(physical_tool.to_raw());
-    }
-
-    inline static bool targetTooColdToExtrude(PhysicalToolIndex physical_tool) {
-      return targetTooColdToExtrude(physical_tool.to_raw());
     }
 
     #if HEATER_IDLE_HANDLER
@@ -459,6 +447,14 @@ class Temperature {
 
     inline static auto degTargetHotend(PhysicalToolIndex tool) {
       return degTargetHotend(tool.to_raw());
+    }
+
+    inline static bool targetTooColdToExtrude(PhysicalToolIndex physical_tool) {
+      #if ENABLED(PREVENT_COLD_EXTRUSION)
+        return tooCold(degTargetHotend(physical_tool));
+      #else
+        return false;
+      #endif
     }
 
     #if WATCH_HOTENDS

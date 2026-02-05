@@ -1521,7 +1521,7 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
     // Restore target temperatures, otherwise targetTooColdToExtrude would return true
     buddy::safety_timer().reset_restore_nonblocking();
 
-    if (!DEBUGGING(DRYRUN) && settings.unload_length && thermalManager.targetTooColdToExtrude(settings.target_extruder)) {
+    if (!DEBUGGING(DRYRUN) && settings.unload_length && thermalManager.targetTooColdToExtrude(settings.virtual_tool().to_physical())) {
         SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
         return; // unable to reach safe temperature
     }
