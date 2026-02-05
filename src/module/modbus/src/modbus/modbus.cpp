@@ -3,15 +3,9 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <modbus/modbus_constants.hpp>
 
 using Status = modbus::Callbacks::Status;
-
-static constexpr const std::byte read_holding_registers { 0x03 };
-static constexpr const std::byte read_input_registers { 0x04 };
-static constexpr const std::byte write_multiple_registers { 0x10 };
-static constexpr const std::byte read_coils { 0x01 };
-static constexpr const std::byte write_coil { 0x05 };
-static constexpr const std::byte write_coils { 0x0F };
 
 static constexpr std::byte modbus_byte_lo(uint16_t value) {
     return std::byte(value & 0xff);
@@ -101,8 +95,8 @@ std::span<std::byte> handle_transaction(
     };
 
     switch (function) {
-    case read_holding_registers:
-    case read_input_registers: {
+    case modbus::fc::read_holding_registers:
+    case modbus::fc::read_input_registers: {
         if (request.size() != 4) {
             return {};
         } else {
@@ -137,7 +131,7 @@ std::span<std::byte> handle_transaction(
             }
         }
     } break;
-    case write_multiple_registers: {
+    case modbus::fc::write_multiple_registers: {
         if (request.size() < 5) {
             return {};
         } else {
@@ -170,7 +164,7 @@ std::span<std::byte> handle_transaction(
             resp(modbus_byte_lo(count));
         }
     } break;
-    case write_coils:
+    case modbus::fc::write_coils:
         if (request.size() < 5) {
             return {};
         } else {
@@ -196,7 +190,7 @@ std::span<std::byte> handle_transaction(
             resp(modbus_byte_lo(no_coils));
         }
         break;
-    case write_coil:
+    case modbus::fc::write_coil:
         if (request.size() != 4) {
             return {};
         } else {
@@ -224,7 +218,7 @@ std::span<std::byte> handle_transaction(
             resp(modbus_byte_lo(data));
         }
         break;
-    case read_coils:
+    case modbus::fc::read_coils:
         if (request.size() != 4) {
             return {};
         } else {
