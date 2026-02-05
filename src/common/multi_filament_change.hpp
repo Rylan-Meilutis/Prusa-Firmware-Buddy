@@ -10,7 +10,7 @@ namespace multi_filament_change {
 /// Number of tools shown in the multi filament change menu
 static constexpr size_t tool_count = 5;
 
-enum class Action {
+enum class Action : uint8_t {
     /// Keep as is, do not change the filament
     keep,
 

@@ -16,7 +16,7 @@ public:
     using Callback = stdext::inplace_function<void(AsyncJobExecutionControl &control)>;
     using Executor = AsyncJobExecutor;
 
-    enum class State {
+    enum class State : uint8_t {
         /// Not queued
         idle,
 

@@ -11,7 +11,7 @@ class FilamentSensorCalibrator {
 public:
     using Storage = InplaceAny<32>;
 
-    enum class CalibrationPhase {
+    enum class CalibrationPhase : uint8_t {
         /// The sensor should be in the not_inserted state right now
         not_inserted,
 

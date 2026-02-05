@@ -43,7 +43,7 @@ public: // Common/utilities
     /// \returns What capabilities the chamber has
     Capabilities capabilities() const;
 
-    enum class Backend {
+    enum class Backend : uint8_t {
         none,
 #if XL_ENCLOSURE_SUPPORT()
         xl_enclosure,
@@ -81,7 +81,7 @@ public: // Temperature control
     /// !HAS TO BE CALLED FROM DEFAULT THREAD ONLY!
     void manage_ventilation_state();
 
-    enum class VentState {
+    enum class VentState : uint8_t {
         unknown,
         open,
         closed,

@@ -9,7 +9,7 @@
 #include <inc/MarlinConfigPre.h>
 
 struct PrintStatusMessage {
-    enum Type {
+    enum Type : uint8_t {
         none,
 
         /// Custom, performatted text

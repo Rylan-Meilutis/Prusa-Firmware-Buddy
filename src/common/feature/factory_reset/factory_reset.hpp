@@ -11,7 +11,7 @@ public:
     using ItemFlag = config_store_ns::ItemFlag;
 
     /// Specific items that can be kept or reset
-    enum class Item {
+    enum class Item : uint8_t {
         calibrations,
         common_misconfigurations,
         network,

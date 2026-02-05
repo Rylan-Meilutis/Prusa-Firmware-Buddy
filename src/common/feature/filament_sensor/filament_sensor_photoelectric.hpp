@@ -33,7 +33,7 @@ private:
 
     FilamentSensorState last_set_state_target = FilamentSensorState::NotInitialized;
 
-    enum class MeasurePhase {
+    enum class MeasurePhase : uint8_t {
         p0,
         p1,
     };

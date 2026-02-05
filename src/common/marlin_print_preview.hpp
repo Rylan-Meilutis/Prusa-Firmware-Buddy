@@ -25,7 +25,7 @@
  */
 class IPrintPreview {
 public:
-    enum class State {
+    enum class State : uint8_t {
         inactive,
 
         init,
@@ -86,7 +86,7 @@ class PrintPreview : public IPrintPreview {
     uint32_t new_firmware_open_ms { 0 };
     static constexpr uint32_t new_firmware_timeout_ms { 30000 }; // three seconds
 public:
-    enum class Result {
+    enum class Result : uint8_t {
         Wait,
         // Showing the image and asking if print.
         Image,

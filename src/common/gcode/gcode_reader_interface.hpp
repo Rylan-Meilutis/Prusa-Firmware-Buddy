@@ -18,7 +18,7 @@
 
 class IGcodeReader {
 public:
-    enum class Continuations {
+    enum class Continuations : uint8_t {
         /// Anything over the limit is discarded.
         ///
         /// If anything was discarded can be checked with line_complete.
@@ -32,7 +32,7 @@ public:
     using Result_t = GCodeReaderResult;
 
     /// Expected image format
-    enum class ImgType {
+    enum class ImgType : uint8_t {
         Unknown,
         PNG,
         QOI,
@@ -48,7 +48,7 @@ public:
     using StreamRestoreInfo = GCodeReaderStreamRestoreInfo;
 
     /// What is currently being streamed (determined by the last stream_XX_start and its success)
-    enum class StreamMode {
+    enum class StreamMode : uint8_t {
         none,
         metadata,
         gcode,

@@ -17,7 +17,7 @@ concept GCodeParser2CompatibleType = requires(T) {
 class GCodeParser2 : public GCodeBasicParser {
 
 public:
-    enum class OptionError {
+    enum class OptionError : uint8_t {
         /// The option is not present at all
         not_present,
 

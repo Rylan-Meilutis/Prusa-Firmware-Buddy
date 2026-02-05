@@ -13,7 +13,7 @@
 
 class Loadcell {
 public:
-    enum class TareMode {
+    enum class TareMode : uint8_t {
         Continuous,
         Static,
     };
