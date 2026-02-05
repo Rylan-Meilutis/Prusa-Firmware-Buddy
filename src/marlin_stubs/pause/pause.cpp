@@ -16,6 +16,7 @@
 #include "Marlin/src/module/stepper.h"
 #include "Marlin/src/module/printcounter.h"
 #include "Marlin/src/module/temperature.h"
+#include <utils/variant_utils.hpp>
 
 #include <option/has_pause.h>
 static_assert(HAS_PAUSE());
@@ -280,12 +281,17 @@ bool Pause::is_target_temperature_safe() {
     // Restore target temperatures, otherwise targetTooColdToExtrude would return true
     buddy::safety_timer().reset_restore_nonblocking();
 
+    auto active_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+    if (!active_tool.has_value()) {
+        return false;
+    }
+
 #if HAS_AUTO_RETRACT()
-    if (load_type == LoadType::unload && auto_retract().is_safely_retracted_for_unload(hotend_from_extruder(active_extruder))) {
+    if (load_type == LoadType::unload && auto_retract().is_safely_retracted_for_unload(*active_tool)) {
         return true; // Its safe to unload even if the temp is too low if we are retracted
     }
 #endif
-    if (!DEBUGGING(DRYRUN) && thermalManager.targetTooColdToExtrude(active_extruder)) {
+    if (!DEBUGGING(DRYRUN) && thermalManager.targetTooColdToExtrude(*active_tool)) {
         SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
         return false;
     } else {
