@@ -1219,10 +1219,10 @@ void Pause::manual_unload_process(Response response) {
     }
 }
 
-bool Pause::tool_change([[maybe_unused]] uint8_t target_extruder, [[maybe_unused]] LoadType load_type_,
+bool Pause::tool_change([[maybe_unused]] VirtualToolIndex target_tool, [[maybe_unused]] LoadType load_type_,
     [[maybe_unused]] const pause::Settings &settings_) {
 #if HAS_TOOLCHANGER()
-    if (target_extruder != active_extruder) {
+    if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), target_tool.to_physical())) {
         settings = settings_;
         load_type = load_type_;
 
@@ -1235,7 +1235,7 @@ bool Pause::tool_change([[maybe_unused]] uint8_t target_extruder, [[maybe_unused
         setPhase(PhasesLoadUnload::ChangingTool);
 
         // Change tool, don't lift or return Z as it was done by parking
-        return prusa_toolchanger.tool_change(to_physical_tool_index<NoTool>(VirtualToolIndex::from_raw_notool(target_extruder)), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
+        return prusa_toolchanger.tool_change(target_tool.to_physical(), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
     }
 #endif
 

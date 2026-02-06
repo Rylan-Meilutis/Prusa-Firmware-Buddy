@@ -12,6 +12,7 @@
 #include "pause_settings.hpp"
 #include "pause_settings.hpp"
 #include "marlin_server.hpp"
+#include <tool_index.hpp>
 #include <array>
 #include <fsm/filament_change_phases.hpp>
 
@@ -176,7 +177,7 @@ public:
      * @param settings_ config for park and othe Pause stuff
      * @return true on success
      */
-    bool tool_change(uint8_t target_extruder, LoadType load_type, const pause::Settings &settings_);
+    bool tool_change(VirtualToolIndex target_tool, LoadType load_type, const pause::Settings &settings_);
 
     void filament_change(const pause::Settings &settings_, bool is_filament_stuck);
 

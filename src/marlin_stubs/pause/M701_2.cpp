@@ -104,7 +104,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
     xyze_pos_t current_position_tmp = current_position;
 
     // Pick the right tool
-    if (!Pause::Instance().tool_change(virtual_tool.to_raw(), Pause::LoadType::load, settings)) {
+    if (!Pause::Instance().tool_change(virtual_tool, Pause::LoadType::load, settings)) {
         return;
     }
 
@@ -160,7 +160,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
     xyze_pos_t current_position_tmp = current_position;
 
     // Pick the right tool
-    if (!Pause::Instance().tool_change(virtual_tool.to_raw(), Pause::LoadType::unload, settings)) {
+    if (!Pause::Instance().tool_change(virtual_tool, Pause::LoadType::unload, settings)) {
         return;
     }
 
@@ -356,7 +356,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     settings.SetRetractLength(0.f);
 
     // Pick the right tool
-    if (!Pause::Instance().tool_change(virtual_tool.to_raw(), Pause::LoadType::unload, settings)) {
+    if (!Pause::Instance().tool_change(virtual_tool, Pause::LoadType::unload, settings)) {
         return;
     }
 
