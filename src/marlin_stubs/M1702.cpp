@@ -12,6 +12,7 @@
 #include <common/marlin_server.hpp>
 #include <raii/auto_restore.hpp>
 #include <mapi/cold_extrude.hpp>
+#include <utils/variant_utils.hpp>
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -47,7 +48,7 @@ namespace {
     constexpr const millis_t PROGRESS_MILLIS { 500 }; // in ms
 
     #if HAS_TOOLCHANGER()
-    uint8_t selected_tool { 0 };
+    PhysicalToolIndex selected_tool = PhysicalToolIndex::from_raw(0);
     #endif
 
     #if HAS_MMU2()
@@ -105,10 +106,9 @@ namespace {
 
     #if HAS_TOOLCHANGER()
     PhasesColdPull select_tool() {
-        selected_tool = PrusaToolChanger::MARLIN_NO_TOOL_PICKED;
         const auto r = marlin_server::wait_for_response_variant(PhasesColdPull::select_tool);
         if (auto tool = r.value_maybe<PhysicalToolIndex>()) {
-            selected_tool = tool->to_raw();
+            selected_tool = *tool;
             return PhasesColdPull::pick_tool;
 
         } else {
@@ -117,13 +117,7 @@ namespace {
     }
 
     PhasesColdPull pick_tool() {
-        if (selected_tool == PrusaToolChanger::MARLIN_NO_TOOL_PICKED && active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
-            return PhasesColdPull::introduction;
-        }
-        tool_change(PhysicalToolIndex::from_raw(selected_tool), tool_return_t::no_return, tool_change_lift_t::full_lift, 1);
-        if (active_extruder == PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
-            return PhasesColdPull::introduction;
-        }
+        tool_change(selected_tool, tool_return_t::no_return, tool_change_lift_t::full_lift, 1);
         return PhasesColdPull::unload_ptfe;
     }
     #endif
