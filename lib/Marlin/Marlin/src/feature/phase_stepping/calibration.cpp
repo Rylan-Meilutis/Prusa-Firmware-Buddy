@@ -402,7 +402,24 @@ public:
         return sqrt(sin_sum * sin_sum + cos_sum * cos_sum) * 2 / buffer.size();
     }
 
-    float get_power() const {
+    float get_windowed_power() {
+        if (hann_window.empty()) {
+            std::size_t size = buffer.size();
+            hann_window.reserve(size);
+            for (std::size_t i = 0; i < size; i++) {
+                float x = 2 * std::numbers::pi_v<float> * i / (size - 1);
+                hann_window.push_back(0.5f * (1 - std::cos(x)));
+            }
+        }
+
+        float sin_sum = 0;
+        float cos_sum = 0;
+
+        for (std::size_t i = 0; i < buffer.size(); i++) {
+            auto [sin_val, cos_val] = buffer[(i + current_pos) % buffer.size()];
+            sin_sum += sin_val * hann_window[i];
+            cos_sum += cos_val * hann_window[i];
+        }
         return sin_sum * sin_sum + cos_sum * cos_sum;
     }
 };
@@ -564,7 +581,7 @@ static std::array<DftSweepResult, 2> motor_speed_dft_sweep(SignalView signal,
             next_sample_idx += direction;
             if (i % step_size_idx == 0) {
                 float speed = start_speed + (top_speed - start_speed) * static_cast<float>(i) / ramp_samples;
-                res.samples.push_back(window.get_power() / speed);
+                res.samples.push_back(window.get_windowed_power() / speed);
             }
         }
     }
