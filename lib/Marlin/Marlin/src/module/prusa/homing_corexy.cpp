@@ -413,7 +413,8 @@ static bool measure_phase_cycles(const AxisEnum axis, const xy_long_t &ab_off,
     ++internal::probe_id;
 
     // allow half a cycle of measurement tolerance, validation will further restrict allowance to 1/4
-    const float measure_bump_max_err = planner.mm_per_step[axis] * phase_cycle_steps(axis) / 2;
+    const int32_t measure_bump_max_err_steps = phase_cycle_steps(axis) / 2;
+    const float measure_bump_max_err_mm = planner.mm_per_step[axis] * measure_bump_max_err_steps;
 
     const int32_t measure_dir = (axis == B_AXIS ? -X_HOME_DIR : -Y_HOME_DIR);
     const xy_long_t origin_steps = { stepper.position(A_AXIS), stepper.position(B_AXIS) };
@@ -423,10 +424,16 @@ static bool measure_phase_cycles(const AxisEnum axis, const xy_long_t &ab_off,
     const int32_t exp_a = ab_off[1] * phase_cycle_steps(axis);
     const int32_t exp_dist_steps[2] = { exp_d + exp_a * measure_dir, exp_d - exp_a * measure_dir };
 
-    // absolute tolerance for the travel move
-    const float home_max_diff_mm = 2 * max(axis_home_max_diff(A_AXIS) - axis_home_min_diff(A_AXIS), axis_home_max_diff(B_AXIS) - axis_home_min_diff(B_AXIS));
-    const float home_abs_eps_mm = home_max_diff_mm * std::numbers::sqrt2_v<float>;
-    const int32_t measure_eps_steps = static_cast<int32_t>(home_abs_eps_mm / planner.mm_per_step[axis] + phase_cycle_steps(axis) * 2);
+    // absolute tolerance for the travel move:
+    // - maximum diagonal shift of classic homing (maximum relative difference or absolute bump tolerance)
+    // - 2*cycle due to the maximum outwards A+B phase alignment
+    // - bump tolerance allowed by the new measurement
+    const float home_max_diff_mm = max(max(axis_home_max_diff(A_AXIS) - axis_home_min_diff(A_AXIS),
+                                           axis_home_max_diff(B_AXIS) - axis_home_min_diff(B_AXIS))
+            * std::numbers::sqrt2_v<float>,
+        measure_bump_max_err_mm);
+    const int32_t measure_eps_steps = static_cast<int32_t>(home_max_diff_mm / planner.mm_per_step[axis]
+        + phase_cycle_steps(axis) * 2 + measure_bump_max_err_steps);
     const int32_t measure_acc_steps = static_cast<int32_t>(travel_accel_distance(fr_mm_s) * std::numbers::sqrt2_v<float> / planner.mm_per_step[axis]);
 
     // keep the average of at least n values having less than max_err of separation between each
@@ -489,7 +496,7 @@ static bool measure_phase_cycles(const AxisEnum axis, const xy_long_t &ab_off,
             axis, internal::probe_id, retries, (double)p_diff[0], (double)p_diff[1]);
 
         if (idx >= probe_n) {
-            if (p_diff[0] < measure_bump_max_err && p_diff[1] < measure_bump_max_err) {
+            if (p_diff[0] < measure_bump_max_err_mm && p_diff[1] < measure_bump_max_err_mm) {
                 break;
             }
             ++retries;
