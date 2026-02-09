@@ -557,6 +557,7 @@ void PreciseStepping::init() {
         | (!INVERT_Y_DIR ? STEP_EVENT_FLAG_Y_DIR : 0)
         | (!INVERT_Z_DIR ? STEP_EVENT_FLAG_Z_DIR : 0)
         | (!INVERT_E0_DIR ? STEP_EVENT_FLAG_E_DIR : 0);
+    PreciseStepping::inverted_dirs_set = true;
 
 #if HAS_PHASE_STEPPING()
     // Initialize phase stepping after setting inverted_dirs so we can use Stepper::is_axis_inverted()
