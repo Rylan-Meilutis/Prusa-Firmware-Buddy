@@ -593,11 +593,6 @@ void Temperature::manage_heater() {
     #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
         thermal_model_protection[e].step(regulation_result.pid_output, regulation_result.feed_forward);
     #endif
-
-    #if WATCH_HOTENDS
-      watch_hotend[e].check(degHotend(e), degTargetHotend(e));
-    #endif
-
   } // HOTEND_LOOP
 
   #if HAS_AUTO_FAN

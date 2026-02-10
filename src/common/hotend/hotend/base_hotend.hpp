@@ -3,6 +3,7 @@
 
 #include <hotend/hotend.hpp>
 #include <module/temperature/thermal_runaway.hpp>
+#include <module/temperature/heater_watch.hpp>
 
 /// Represents a base for all non-dummy hotends
 class BaseHotend : public Hotend {
@@ -40,6 +41,10 @@ protected:
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
     ThermalRunaway thermal_runaway_;
+#endif
+
+#if WATCH_HOTENDS
+    HeaterWatch heater_watch_;
 #endif
 
     /// timestamp when temeperature reached target +-TEMP_WINDOW, 0 when outside this window

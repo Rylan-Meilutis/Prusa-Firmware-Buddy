@@ -9,7 +9,7 @@
 #include <error_codes.hpp>
 
 /// Class for sanity-checking the heaters (that they heat up in a required time)
-class HeaterWatch {
+class HeaterWatchBase {
 
 public:
     struct Config {
@@ -66,15 +66,22 @@ private:
     millis_t next_ms = 0;
 };
 
-template <HeaterWatch::Config config>
-class HeaterWatchWithConfig : public HeaterWatch {
+class HeaterWatch final : public HeaterWatchBase {
+
+public:
+    using HeaterWatchBase::check;
+    using HeaterWatchBase::reset;
+};
+
+template <HeaterWatchBase::Config config>
+class HeaterWatchWithConfig final : public HeaterWatchBase {
 
 public:
     void reset(float current_temp, int16_t target_temp) {
-        HeaterWatch::reset(config, current_temp, target_temp);
+        HeaterWatchBase::reset(config, current_temp, target_temp);
     }
 
     void check(float current_temp, int16_t target_temp) {
-        HeaterWatch::check(config, current_temp, target_temp);
+        HeaterWatchBase::check(config, current_temp, target_temp);
     }
 };

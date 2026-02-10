@@ -10,6 +10,15 @@
     #include <feature/safety_timer/safety_timer.hpp>
 #endif
 
+#if WATCH_HOTENDS
+static constexpr HeaterWatchBase::Config heater_watch_config {
+    .temp_increase = WATCH_TEMP_INCREASE,
+    .period_s = WATCH_TEMP_PERIOD,
+    .min_temp_diff = WATCH_TEMP_INCREASE + TEMP_HYSTERESIS + 1,
+    .error_code = ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR,
+};
+#endif
+
 BaseHotend::BaseHotend(PhysicalToolIndex tool, const Config *config)
     : base_config_(*config)
     , tool_(tool) {
@@ -26,8 +35,6 @@ void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {
     // We cannot overwrite target temps while the safety_timer is active, deactivate it first
     buddy::safety_timer().reset_restore_nonblocking();
 #endif
-
-    auto &t = thermalManager;
 
     const int16_t new_temp = std::min<int16_t>(set, base_config_.max_nozzle_temp - HEATER_MAXTEMP_SAFETY_MARGIN);
 
@@ -52,11 +59,14 @@ void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {
 #endif
 
 #if WATCH_HOTENDS
-    watch_hotend[tool_].reset(t.degHotend(tool_), new_temp);
+    heater_watch_.reset(heater_watch_config, nozzle_temp(), new_temp);
 #endif
 }
 
 void BaseHotend::manage() {
+    // Note: Checks in BaseHotend meansthat we're checking them twice on remote hotends if the remote hotend also uses this API (once on the master board, once on the remote tool board)
+    // But better safe than sorry
+
     if (nozzle_temp() > base_config_.max_nozzle_temp) {
         thermalManager.max_temp_error((heater_ind_t)tool_.to_raw());
     }
@@ -68,9 +78,11 @@ void BaseHotend::manage() {
     manage_temp_residency();
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
-    // Note: This being in BaseHotend means that we're checking for this twice on remote hotends
-    // But better safe than sorry
     thermal_runaway_.step(nozzle_temp(), nozzle_target_temp(), (heater_ind_t)tool_.to_raw(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS);
+#endif
+
+#if WATCH_HOTENDS
+    heater_watch_.check(heater_watch_config, nozzle_temp(), nozzle_target_temp());
 #endif
 }
 
