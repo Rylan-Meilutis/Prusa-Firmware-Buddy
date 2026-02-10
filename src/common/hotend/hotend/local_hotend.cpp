@@ -13,10 +13,9 @@
 
 LocalHotend::LocalHotend(PhysicalToolIndex tool, const Config *config)
     : BaseHotend(tool, &config->base_config)
-    , local_config_(*config) {
-
-    // Setup heater temp range
-    temp_range[tool_] = temp_range_t(local_config_.nozzle_temp_table, base_config_.min_nozzle_temp, base_config_.max_nozzle_temp);
+    , local_config_(*config)
+    , nozzle_raw_temp_range_ { MarlinTemptableRawMinMax::compute(local_config_.nozzle_temp_table, base_config_.min_nozzle_temp, base_config_.max_nozzle_temp) } //
+{
 }
 
 void LocalHotend::manage() {
@@ -86,5 +85,5 @@ void LocalHotend::isr_on_readings_ready() {
 #endif
     );
 
-    temp_range[tool_].raw.check_temperror(nozzle_raw_temp_, (heater_ind_t)tool_.to_raw(), heater_on);
+    nozzle_raw_temp_range_.check_temperror(nozzle_raw_temp_, (heater_ind_t)tool_.to_raw(), heater_on);
 }

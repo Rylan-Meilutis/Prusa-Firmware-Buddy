@@ -6,6 +6,8 @@
 
 #include "base_hotend.hpp"
 
+#include <module/temperature/marlin_temptable.hpp>
+
 #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
     #include <module/temperature/thermal_model_protection.hpp>
 #endif
@@ -42,6 +44,8 @@ protected:
 
 protected:
     const Config &local_config_;
+
+    MarlinTemptableRawMinMax nozzle_raw_temp_range_;
 
     HotendRegulator nozzle_regulator_;
 
