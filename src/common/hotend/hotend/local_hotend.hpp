@@ -6,6 +6,19 @@
 
 #include "base_hotend.hpp"
 
+#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
+    #include <module/temperature/thermal_model_protection.hpp>
+#endif
+
+#if ENABLED(MODEL_BASED_HOTEND_REGULATOR)
+    #include <module/temperature/hotend_regulator/model_based_hotend_regulator.hpp>
+using HotendRegulator = ModelBasedHotendRegulator;
+
+#else
+    #include <module/temperature/hotend_regulator/standard_hotend_regulator.hpp>
+using HotendRegulator = StandardHotendRegulator;
+#endif
+
 /// Represents a hotend that is controlled on the current processor (not on a dwarf)
 class LocalHotend final : public BaseHotend {
 
@@ -29,6 +42,16 @@ protected:
 
 protected:
     const Config &local_config_;
+
+    HotendRegulator nozzle_regulator_;
+
+#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
+    ThermalModelProtection thermal_model_protection_;
+#endif
+
+#if ENABLED(PID_EXTRUSION_SCALING)
+    uint32_t last_e_position_ = 0;
+#endif
 
     /// Written from the Temperature ISR, read from the defaultTask
     /// !!! Contains a sum of OVERSAMPLENR samples

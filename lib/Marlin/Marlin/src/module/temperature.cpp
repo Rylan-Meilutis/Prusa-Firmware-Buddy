@@ -47,6 +47,7 @@
 #include "../marlin_stubs/skippable_gcode.hpp"
 #include <module/temperature/steady_state_hotend.hpp>
 #include <module/temperature/temperature_declares.hpp>
+#include <module/temperature/heater_watch.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -105,27 +106,11 @@
 #include <raii/scope_guard.hpp>
 #include <hotend/hotend.hpp>
 
-#if ENABLED(MODEL_BASED_HOTEND_REGULATOR)
-  #include <module/temperature/hotend_regulator/model_based_hotend_regulator.hpp>
-  using HotendRegulator = ModelBasedHotendRegulator;
-#else
-  #include <module/temperature/hotend_regulator/standard_hotend_regulator.hpp>
-  using HotendRegulator = StandardHotendRegulator;
-#endif
-
-HotendRegulator hotend_regulators[HOTENDS];
-
 #if HAS_AC_CONTROLLER()
     #include <puppies/ac_controller.hpp>
 #endif
 
 LOG_COMPONENT_REF(MarlinServer);
-
-#if ENABLED(HW_PWM_HEATERS)
-  static constexpr uint8_t soft_pwm_bit_shift = 0;
-#else
-  static constexpr uint8_t soft_pwm_bit_shift = 1;
-#endif
 
 // Rough estimate of room temperature
 static constexpr float room_temperature = 25.0f;
@@ -200,10 +185,6 @@ StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::t
 
 #endif // FAN_COUNT > 0
 
-#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-  ThermalModelProtection Temperature::thermal_model_protection[HOTENDS];
-#endif
-
 #if HAS_TEMP_HEATBREAK
   StrongIndexArray<heatbreak_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> Temperature::temp_heatbreak;
 
@@ -277,7 +258,6 @@ StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::t
 volatile bool Temperature::temp_meas_ready = false;
 
 #if ENABLED(PID_EXTRUSION_SCALING)
-  uint32_t Temperature::last_e_position;
   bool Temperature::extrusion_scaling_enabled = true;
 #endif
 
@@ -556,44 +536,9 @@ void Temperature::manage_heater() {
 
   millis_t ms = millis();
 
-  #if ENABLED(PID_EXTRUSION_SCALING)
-    uint32_t e_position = stepper.position(E_AXIS);
-    static constexpr float sample_frequency = TEMP_TIMER_FREQUENCY / MIN_ADC_ISR_LOOPS / OVERSAMPLENR;
-    constexpr float distance_to_volume = std::numbers::pi_v<float> * std::pow(DEFAULT_NOMINAL_FILAMENT_DIA / 2, 2.f);
-    constexpr float distance_to_volume_per_second = distance_to_volume * sample_frequency;
-    const float e_volume_delta = (e_position - last_e_position) * planner.mm_per_step[E_AXIS] * distance_to_volume_per_second;
-    last_e_position = e_position;
-  #endif
-
-  [[maybe_unused]] const auto current_tool = PhysicalToolIndex::currently_selected();
-
-  for (int8_t e = 0; e < HOTENDS; e++) {
-    const auto tool = PhysicalToolIndex::from_raw_notool(e);
-    Hotend &hotend = Hotend::for_tool(tool);
-    hotend.manage();
-
-    HotendRegulatorResult regulation_result {
-      .pid_output = 0,
-      .feed_forward = 0,
-    };
-
-    if(hotend.nozzle_temp() > temp_range[e].mintemp && hotend.nozzle_temp() < temp_range[e].maxtemp) {
-      regulation_result = hotend_regulators[e].get_pid_output_hotend(HotendRegulatorArgs{
-        .hotend_index = (uint8_t)e,
-        .fan_speed = fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
-        .current_temp = hotend.nozzle_temp(),
-        .target_temp = hotend.nozzle_target_temp(),
-      #if ENABLED(PID_EXTRUSION_SCALING)
-        .e_volume_delta = (extrusion_scaling_enabled && tool == current_tool) ? e_volume_delta : 0,
-      #endif
-      });
-    }
-    
-    temp_hotend[e].soft_pwm_amount = static_cast<int>(regulation_result.pid_output) >> soft_pwm_bit_shift;
-    #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-        thermal_model_protection[e].step(regulation_result.pid_output, regulation_result.feed_forward);
-    #endif
-  } // HOTEND_LOOP
+  for (auto tool : PhysicalToolIndex::all()) {
+    Hotend::for_tool(tool).manage();
+  }
 
   #if HAS_AUTO_FAN
     if (ELAPSED(ms, next_auto_fan_check_ms)) { // only need to check fan state very infrequently
@@ -974,10 +919,6 @@ void Temperature::init() {
     // Flag that the thermalManager should be running
     if (inited) return;
     inited = true;
-  #endif
-
-  #if BOTH(PIDTEMP, PID_EXTRUSION_SCALING)
-    last_e_position = 0;
   #endif
 
   #if HAS_HEATER_0
@@ -1946,9 +1887,6 @@ void Temperature::setTargetHeatbreak(const int16_t celsius, const uint8_t E_NAME
 
 #if ENABLED(PIDTEMP)
 void Temperature::updatePID() {
-  #if ENABLED(PID_EXTRUSION_SCALING)
-    last_e_position = 0;
-  #endif
   #if HAS_TOOLCHANGER()
     // Set PID parameters to all dwarves
     for (auto tool : PhysicalToolIndex::all()) {

@@ -22,3 +22,9 @@ struct temp_range_t {
 };
 
 inline StrongIndexArray<temp_range_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_range;
+
+#if ENABLED(HW_PWM_HEATERS)
+static constexpr uint8_t soft_pwm_bit_shift = 0;
+#else
+static constexpr uint8_t soft_pwm_bit_shift = 1;
+#endif

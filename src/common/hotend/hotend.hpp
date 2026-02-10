@@ -49,6 +49,12 @@ public:
 
     virtual void set_nozzle_target_temp(TargetTemperature set) = 0;
 
+#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
+    bool is_thermal_model_protection_ok() const {
+        return thermal_model_protection_ok_;
+    }
+#endif
+
 protected:
     explicit Hotend() = default;
 
@@ -67,4 +73,8 @@ protected:
     TargetTemperature nozzle_target_temp_ = 0;
 
     bool nozzle_temp_reached_ : 1 = false;
+
+#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
+    bool thermal_model_protection_ok_ : 1 = false;
+#endif
 };

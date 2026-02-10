@@ -43,11 +43,8 @@
 #include <tool_index.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <module/temperature/temp_defines.hpp>
+#include <module/temperature/thermal_runaway.hpp>
 #include <hotend/hotend.hpp>
-
-#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-  #include <module/temperature/thermal_model_protection.hpp>
-#endif
 
 #define DUMMY_PID_VALUE 3000.0f
 
@@ -259,7 +256,6 @@ class Temperature {
     #endif
 
     #if ENABLED(PID_EXTRUSION_SCALING)
-      static uint32_t last_e_position;
       static bool extrusion_scaling_enabled;
     #endif
 
@@ -569,23 +565,10 @@ public:
         }
       #endif
     #endif
-
-    #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-      static bool saneTempReadingHotend(const uint8_t E_NAME) {
-          return thermal_model_protection[HOTEND_INDEX].is_ok();
-      }
-    #else
-      static bool saneTempReadingHotend(const uint8_t){return true;}
-    #endif
-
     
     static void _temp_error(const heater_ind_t e, PGM_P const serial_msg, PGM_P const lcd_msg);
     static void min_temp_error(const heater_ind_t e);
     static void max_temp_error(const heater_ind_t e);
-
-    #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
-      static ThermalModelProtection thermal_model_protection[HOTENDS];
-    #endif
 
   private:
     static void set_current_temp_raw();

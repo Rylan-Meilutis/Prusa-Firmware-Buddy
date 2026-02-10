@@ -2941,7 +2941,10 @@ static void _server_print_loop(void) {
     }
 #endif
 
-    hotendErrorChecker.checkTrue(Temperature::saneTempReadingHotend(0));
+#if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
+    static_assert(PhysicalToolIndex::count == 1);
+    hotendErrorChecker.checkTrue(Hotend::for_tool(PhysicalToolIndex::from_raw(0)).is_thermal_model_protection_ok());
+#endif
 
     // Check MCU temperatures
     mcuMaxTempErrorChecker.check(AdcGet::getMCUTemp(), WarningType::BuddyMCUMaxTemp, "Buddy");
