@@ -206,18 +206,6 @@ StrongIndexArray<uint32_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw
 
 #endif // FAN_COUNT > 0
 
-#if WATCH_HOTENDS
-  static constexpr HeaterWatch::Config watch_hotend_config {
-    .temp_increase = WATCH_TEMP_INCREASE,
-    .period_s = WATCH_TEMP_PERIOD,
-    .min_temp_diff = WATCH_TEMP_INCREASE + TEMP_HYSTERESIS + 1,
-    .error_code = ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR,
-  };
-
-  HeaterWatchWithConfig<watch_hotend_config> watch_hotend[HOTENDS];
-#endif
-
-
 #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
   ThermalModelProtection Temperature::thermal_model_protection[HOTENDS];
 #endif
@@ -298,43 +286,6 @@ volatile bool Temperature::temp_meas_ready = false;
   uint32_t Temperature::last_e_position;
   bool Temperature::extrusion_scaling_enabled = true;
 #endif
-
-struct temp_range_t {
-  int16_t mintemp, maxtemp;
-  MarlinTemptableRawMinMax raw;
-
-  temp_range_t(MarlinTempTable temptable, int16_t mintemp, int16_t maxtemp)
-    : mintemp(mintemp)
-    , maxtemp(maxtemp)
-    , raw(MarlinTemptableRawMinMax::compute(temptable, mintemp, maxtemp))
-    {}
-};
-
-#define TEMP_RANGE_INIT(i) temp_range_t(TT_NAME(THERMISTOR_HEATER_ ## i), HEATER_ ## i ## _MINTEMP, HEATER_ ## i ## _MAXTEMP)
-                        
-static StrongIndexArray<temp_range_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_range {
-  #if HOTENDS > 0
-    TEMP_RANGE_INIT(0),
-  #endif
-  #if HOTENDS > 1
-    TEMP_RANGE_INIT(1),
-  #endif
-  #if HOTENDS > 2
-    TEMP_RANGE_INIT(2),
-  #endif
-  #if HOTENDS > 3
-    TEMP_RANGE_INIT(3),
-  #endif
-  #if HOTENDS > 4
-    TEMP_RANGE_INIT(4),
-  #endif
-  #if HOTENDS > 5
-    TEMP_RANGE_INIT(5),
-  #endif
-};
-static_assert(HOTENDS <= 6);
-
-#undef TEMP_RANGE_INIT
 
 #if HAS_AUTO_FAN
   millis_t Temperature::next_auto_fan_check_ms = 0;
