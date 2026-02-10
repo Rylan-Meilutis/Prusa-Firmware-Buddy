@@ -48,7 +48,7 @@ using ANFCNodeBase = can::cyphal::Node<
     can::cyphal::defaults::WatchNodes,
     can::cyphal::defaults::Notify,
     2, // node_id_request
-    14 // MAX_REGISTERS
+    15 // MAX_REGISTERS
     >;
 
 /// Task that handles the CAN business logic. Mostly just enqueues requests to the nfc task
