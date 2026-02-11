@@ -21,8 +21,8 @@ static constexpr IWindowMenuItem::ColorScheme fatal_check_color_scheme {
 
 static constexpr IWindowMenuItem::ColorScheme failed_check_color_scheme {
     .text {
-        .focused = COLOR_ORANGE,
-        .unfocused = COLOR_ORANGE,
+        .focused = COLOR_BRAND,
+        .unfocused = COLOR_BRAND,
     },
 };
 

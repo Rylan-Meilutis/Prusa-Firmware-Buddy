@@ -227,7 +227,7 @@ public:
     FrameProgress(window_t *parent, Phase phase, const char *label_text)
         : FrameBase(parent)
         , title(parent, get_title_rect(parent->GetRect()), is_multiline::no, is_closed_on_click_t::no, {})
-        , progress_bar(parent, get_progress_bar_rect(parent->GetRect()), COLOR_ORANGE, GuiDefaults::EnableDialogBigLayout ? COLOR_DARK_GRAY : COLOR_GRAY, PROGRESS_BAR_CORNER_RADIUS)
+        , progress_bar(parent, get_progress_bar_rect(parent->GetRect()), COLOR_BRAND, GuiDefaults::EnableDialogBigLayout ? COLOR_DARK_GRAY : COLOR_GRAY, PROGRESS_BAR_CORNER_RADIUS)
         , progress_number(parent, get_progress_number_rect(parent->GetRect()), 0, "%.0f%%", Font::big)
         , label(parent, get_label_rect(parent->GetRect()), is_multiline::yes, is_closed_on_click_t::no, _(label_text))
         , radio(parent, WizardDefaults::RectRadioButton(1), phase)

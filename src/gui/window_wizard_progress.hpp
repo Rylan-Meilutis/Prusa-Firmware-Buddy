@@ -13,7 +13,7 @@
 class window_wizard_progress_t : public WindowProgressBar {
 public:
     window_wizard_progress_t(window_t *parent, Rect16::Top_t top)
-        : WindowProgressBar(parent, compute_rect(top), COLOR_ORANGE, COLOR_GRAY) {}
+        : WindowProgressBar(parent, compute_rect(top), COLOR_BRAND, COLOR_GRAY) {}
 
     static Rect16 compute_rect(Rect16::Top_t top) {
         return Rect16(WizardDefaults::progress_LR_margin, top, WizardDefaults::progress_width, WizardDefaults::progress_h);
@@ -23,5 +23,5 @@ public:
 class window_wizard_line_t : public WindowColoredRect {
 public:
     window_wizard_line_t(window_t *parent, Rect16::Top_t top)
-        : WindowColoredRect { parent, window_wizard_progress_t::compute_rect(top), COLOR_ORANGE } {}
+        : WindowColoredRect { parent, window_wizard_progress_t::compute_rect(top), COLOR_BRAND } {}
 };

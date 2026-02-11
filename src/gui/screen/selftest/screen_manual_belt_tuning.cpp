@@ -258,10 +258,10 @@ public:
         , done(parent, phase) {
         plus.SetAlignment(Align_t::Center());
         plus.set_font(Font::big);
-        plus.SetTextColor(COLOR_ORANGE);
+        plus.SetTextColor(COLOR_BRAND);
         minus.SetAlignment(Align_t::Center());
         minus.set_font(Font::big);
-        minus.SetTextColor(COLOR_ORANGE);
+        minus.SetTextColor(COLOR_BRAND);
         numb.SetAlignment(Align_t::Center());
 
         static_cast<window_frame_t *>(parent)->CaptureNormalWindow(done);

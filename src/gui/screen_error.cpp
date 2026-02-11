@@ -169,8 +169,8 @@ ScreenError::ScreenError()
         txt_debug_info.SetTextColor(COLOR_GRAY);
         txt_printer_code.SetTextColor(COLOR_GRAY);
         txt_fw_version.SetTextColor(COLOR_GRAY);
-        txt_err_title.SetTextColor(COLOR_ORANGE);
-        title_line.SetBackColor(COLOR_ORANGE); // Have to be called after setting up layout
+        txt_err_title.SetTextColor(COLOR_BRAND);
+        title_line.SetBackColor(COLOR_BRAND); // Have to be called after setting up layout
     }
 
     qr.set_error_code(ErrCode(error_code));

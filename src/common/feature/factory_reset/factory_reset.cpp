@@ -128,7 +128,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
     }
 
     const auto indicate_progress = [&](int progress_pct) {
-        render_rect(Rect16::fromLTWH(progress_rect.Left(), progress_rect.Top(), progress_rect.Width() * progress_pct / 100, progress_rect.Height()), COLOR_ORANGE);
+        render_rect(Rect16::fromLTWH(progress_rect.Left(), progress_rect.Top(), progress_rect.Width() * progress_pct / 100, progress_rect.Height()), COLOR_BRAND);
     };
 
     if (!hard_reset) {

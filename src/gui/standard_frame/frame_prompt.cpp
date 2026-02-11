@@ -29,7 +29,7 @@ FramePrompt::FramePrompt(window_frame_t *parent, FSMAndPhase fsm_phase, const st
 {
     title.SetAlignment(title_alignment);
     title.set_font(GuiDefaults::FontBig);
-    title.SetTextColor(COLOR_ORANGE);
+    title.SetTextColor(COLOR_BRAND);
 
     info.SetAlignment(info_alignment);
 #if HAS_MINI_DISPLAY()

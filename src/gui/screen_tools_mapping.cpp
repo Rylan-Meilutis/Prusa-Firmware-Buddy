@@ -126,7 +126,7 @@ void set_idle(window_text_t &item, window_colored_rect *color) {
 
 void set_selected(window_text_t &item, window_colored_rect *color) {
     item.SetTextColor(COLOR_WHITE);
-    item.SetBackColor(COLOR_ORANGE);
+    item.SetBackColor(COLOR_BRAND);
     if (color) {
         color->set_parent_color(COLOR_BLACK);
     }
@@ -325,8 +325,8 @@ ToolsMappingBody::ToolsMappingBody(window_t *parent, GCodeInfo &gcode_info)
           _("MMU filament")
 #endif
               )
-    , left_line(parent, left_line_rect, COLOR_ORANGE)
-    , right_line(parent, right_line_rect, COLOR_ORANGE)
+    , left_line(parent, left_line_rect, COLOR_BRAND)
+    , right_line(parent, right_line_rect, COLOR_BRAND)
     , middle_connector(parent, middle_connectors_rect)
     , left_gcode_texts(make_left_gcode_text(std::make_index_sequence<max_item_rows>(), parent, left_gcode_label_buffers, gcode_info, drawing_nozzles))
     , right_phys_texts(make_right_phys_text(std::make_index_sequence<max_item_rows>(), parent, right_phys_label_buffers, drawing_nozzles))
@@ -564,7 +564,7 @@ void ToolsMappingBody::go_left() {
     } else {
         // go to left
         bottom_radio.Change(responses_no_print);
-        left_line.SetBackColor(COLOR_ORANGE);
+        left_line.SetBackColor(COLOR_BRAND);
         right_line.SetBackColor(COLOR_GRAY);
         auto idx = std::distance(std::begin(left_gcode_idx_to_real), std::find(std::begin(left_gcode_idx_to_real), std::begin(left_gcode_idx_to_real) + gcode.UsedExtrudersCount(), last_left_real));
         assert(idx >= 0 && idx < gcode.UsedExtrudersCount());
@@ -584,7 +584,7 @@ void ToolsMappingBody::go_left() {
 void ToolsMappingBody::go_right() {
     bottom_radio.Change(responses_no_print);
     left_line.SetBackColor(COLOR_GRAY);
-    right_line.SetBackColor(COLOR_ORANGE);
+    right_line.SetBackColor(COLOR_BRAND);
     if (auto real_physical = mapper.to_virtual(last_left_real);
         real_physical == ToolMapper::NO_TOOL_MAPPED) {
         // if left has nothing assigned on the right
