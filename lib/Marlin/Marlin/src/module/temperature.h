@@ -47,26 +47,6 @@
 #include <module/temperature/thermal_runaway.hpp>
 #include <hotend/hotend.hpp>
 
-#define DUMMY_PID_VALUE 3000.0f
-
-#if ENABLED(PIDTEMP)
-  #define _PID_Kp(H) Temperature::temp_hotend[H].pid.Kp
-  #define _PID_Ki(H) Temperature::temp_hotend[H].pid.Ki
-  #define _PID_Kd(H) Temperature::temp_hotend[H].pid.Kd
-  #if ENABLED(PID_EXTRUSION_SCALING)
-    #define _PID_Kc(H) Temperature::temp_hotend[H].pid.Kc
-  #else
-    #define _PID_Kc(H) 1
-  #endif
-#else
-  #define _PID_Kp(H) DUMMY_PID_VALUE
-  #define _PID_Ki(H) DUMMY_PID_VALUE
-  #define _PID_Kd(H) DUMMY_PID_VALUE
-  #define _PID_Kc(H) 1
-#endif
-
-#define PID_PARAM(F,H) _PID_##F(H)
-
 #if HAS_PID_HEATING
   #define PID_K2           (1 - float(PID_K1))
   #define HEATBREAK_PID_K2 (1-float(HEATBREAK_PID_K1))
@@ -106,9 +86,6 @@ struct ModularBedHeater: public HeaterInfo {
 struct hotend_info_t {
   uint16_t acc;
   inline void sample(const uint16_t s) { acc += s; }
-
-  static_assert(ENABLED(PIDTEMP));
-  HotendPIDConfig pid;  // Initialized by settings.load()
   
   // target moved to Hotend
   uint8_t soft_pwm_amount;
@@ -490,19 +467,6 @@ public:
      * Switch off all hotends, set all hotend target temperatures to 0
      */
     static void disable_hotend();
-
-    /**
-     * Perform auto-tuning for hotend or bed in response to M303
-     */
-    #if HAS_PID_HEATING
-      /**
-       * Update the temp manager when PID values change
-       */
-      #if ENABLED(PIDTEMP)
-        static void updatePID();
-      #endif
-
-    #endif
 
     #if HAS_TEMP_SENSOR
       static void print_heater_states(const uint8_t target_extruder);

@@ -50,10 +50,13 @@ public:
 
     virtual void set_nozzle_target_temp(TargetTemperature set) = 0;
 
-    // TODO: Will be de-virtualized in the next commit
-    virtual const HotendPIDConfig &nozzle_pid_config() const = 0;
+    const HotendPIDConfig &nozzle_pid_config() const {
+        return nozzle_pid_config_;
+    }
 
-    virtual void set_nozzle_pid_config(const HotendPIDConfig &set) = 0;
+    virtual void set_nozzle_pid_config(const HotendPIDConfig &set) {
+        nozzle_pid_config_ = set;
+    }
 
     /// Compatibility function for heater selftests
     PID_t nozzle_pid_config_compat() const;
@@ -81,6 +84,7 @@ protected:
     virtual void isr_on_readings_ready() {};
 
 protected:
+    HotendPIDConfig nozzle_pid_config_;
     Temperature nozzle_temp_ = temperature_uninitialized;
     TargetTemperature nozzle_target_temp_ = 0;
 

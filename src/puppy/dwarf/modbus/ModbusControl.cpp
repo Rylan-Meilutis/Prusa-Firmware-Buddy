@@ -15,6 +15,7 @@
 #include "utility_extensions.hpp"
 #include "advanced_power.hpp"
 #include "accelerometer.hpp"
+#include <hotend/hotend.hpp>
 
 namespace dwarf::ModbusControl {
 
@@ -258,19 +259,23 @@ void ProcessModbusMessages() {
                     std::to_underlying(ModbusRegisters::SystemHoldingRegister::pid_start) + i));
             };
 
+            HotendPIDConfig pid;
             uint32_t temp_data; ///< Use to convert two registers into one float
 
             temp_data = get_reg(0) | (get_reg(1) << 16); // Stored LSB first in buddy
-            memcpy(&Temperature::temp_hotend[0].pid.Kp, &temp_data, sizeof(temp_data));
-            static_assert(sizeof(Temperature::temp_hotend[0].pid.Kp) == sizeof(temp_data));
+            memcpy(&pid.Kp, &temp_data, sizeof(temp_data));
+            static_assert(sizeof(pid.Kp) == sizeof(temp_data));
 
             temp_data = get_reg(2) | (get_reg(3) << 16);
-            memcpy(&Temperature::temp_hotend[0].pid.Ki, &temp_data, sizeof(temp_data));
-            static_assert(sizeof(Temperature::temp_hotend[0].pid.Ki) == sizeof(temp_data));
+            memcpy(&pid.Ki, &temp_data, sizeof(temp_data));
+            static_assert(sizeof(pid.Ki) == sizeof(temp_data));
 
             temp_data = get_reg(4) | (get_reg(5) << 16);
-            memcpy(&Temperature::temp_hotend[0].pid.Kd, &temp_data, sizeof(temp_data));
-            static_assert(sizeof(Temperature::temp_hotend[0].pid.Kd) == sizeof(temp_data));
+            memcpy(&pid.Kd, &temp_data, sizeof(temp_data));
+            static_assert(sizeof(pid.Kd) == sizeof(temp_data));
+
+            static_assert(sizeof(pid) == sizeof(float) * 3);
+            Hotend::for_tool(PhysicalToolIndex::from_raw(0)).set_nozzle_pid_config(pid);
 
             break;
         }

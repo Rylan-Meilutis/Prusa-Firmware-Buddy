@@ -24,10 +24,6 @@ public:
 public:
     void set_nozzle_target_temp(TargetTemperature set) override;
 
-    const HotendPIDConfig &nozzle_pid_config() const override;
-
-    void set_nozzle_pid_config(const HotendPIDConfig &set) override;
-
 protected:
     /// !!! Careful, the config pointer is stored, so make sure the config is persistent!
     explicit BaseHotend(PhysicalToolIndex tool, const Config *config);

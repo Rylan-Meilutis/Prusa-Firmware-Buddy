@@ -149,10 +149,6 @@ void MarlinSettings::postprocess() {
     // steps per s2 needs to be updated to agree with units per s2
     planner.refresh_acceleration_rates();
 
-    #if ENABLED(PIDTEMP)
-      thermalManager.updatePID();
-    #endif
-
     #if DISABLED(NO_VOLUMETRICS)
       planner.calculate_volumetric_multipliers();
     #elif EXTRUDERS
@@ -335,12 +331,7 @@ void MarlinSettings::reset() {
 
   #if ENABLED(PIDTEMP)
     for (auto tool : PhysicalToolIndex::all()) {
-      PID_PARAM(Kp, tool) = float(DEFAULT_Kp);
-      PID_PARAM(Ki, tool) = scalePID_i(DEFAULT_Ki);
-      PID_PARAM(Kd, tool) = scalePID_d(DEFAULT_Kd);
-      #if ENABLED(PID_EXTRUSION_SCALING)
-        PID_PARAM(Kc, tool) = DEFAULT_Kc;
-      #endif
+      Hotend::for_tool(tool).set_nozzle_pid_config(HotendPIDConfig{});
     }
   #endif
 
@@ -678,17 +669,19 @@ void MarlinSettings::reset() {
 
       #if ENABLED(PIDTEMP)
         for (auto tool : PhysicalToolIndex::all()) {
+          const auto &pid = Hotend::for_tool(tool).nozzle_pid_config();
+
           CONFIG_ECHO_START();
           SERIAL_ECHOPAIR("  M301"
             #if HOTENDS > 1 && ENABLED(PID_PARAMS_PER_HOTEND)
               " E", tool.to_raw(),
             #endif
-              " P", PID_PARAM(Kp, tool)
-            , " I", unscalePID_i(PID_PARAM(Ki, tool))
-            , " D", unscalePID_d(PID_PARAM(Kd, tool))
+              " P", pid.Kp
+            , " I", unscalePID_i(pid.Ki)
+            , " D", unscalePID_d(pid.Kd)
           );
           #if ENABLED(PID_EXTRUSION_SCALING)
-            SERIAL_ECHOPAIR(" C", PID_PARAM(Kc, tool));
+            SERIAL_ECHOPAIR(" C", pid.Kc);
           #endif
           SERIAL_EOL();
         }

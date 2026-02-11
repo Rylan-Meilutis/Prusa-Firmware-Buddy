@@ -1199,11 +1199,8 @@ static void settings_load() {
 #endif
 #if ENABLED(PIDTEMP)
     for (auto tool : PhysicalToolIndex::all()) {
-        Temperature::temp_hotend[tool].pid.Kp = DEFAULT_Kp;
-        Temperature::temp_hotend[tool].pid.Ki = scalePID_i(DEFAULT_Ki);
-        Temperature::temp_hotend[tool].pid.Kd = scalePID_d(DEFAULT_Kd);
+        Hotend::for_tool(tool).set_nozzle_pid_config(HotendPIDConfig {});
     }
-    thermalManager.updatePID();
 #endif
 
     marlin_vars().fan_check_enabled = config_store().fan_check_enabled.get();

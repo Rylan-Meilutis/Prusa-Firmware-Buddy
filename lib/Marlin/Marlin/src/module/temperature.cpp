@@ -237,10 +237,6 @@ StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::t
 #endif // HAS_HEATED_BED
 
 // Initialized by settings.load()
-#if ENABLED(PIDTEMP)
-  //hotend_pid_t Temperature::pid[HOTENDS];
-#endif
-
 #if PRINTER_IS_PRUSA_iX()
   TempInfo Temperature::temp_psu;
   TempInfo Temperature::temp_ambient;
@@ -1883,19 +1879,6 @@ void Temperature::setTargetHeatbreak(const int16_t celsius, const uint8_t E_NAME
   #endif
   #if WATCH_HEATBREAK
     watch_heatbreak[HOTEND_INDEX].reset(degHeatbreak(HOTEND_INDEX), degTargetHeatbreak(HOTEND_INDEX));
-  #endif
-}
-#endif
-
-#if ENABLED(PIDTEMP)
-void Temperature::updatePID() {
-  // TODO: Migrate this fully to Hotends
-  #if HAS_TOOLCHANGER()
-    // Set PID parameters to all dwarves
-    for (auto tool : PhysicalToolIndex::all()) {
-      const auto& pid = Temperature::temp_hotend[tool].pid;
-      buddy::puppies::dwarfs[tool].set_pid(pid.Kp, pid.Ki, pid.Kd);
-    }
   #endif
 }
 #endif
