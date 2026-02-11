@@ -559,6 +559,11 @@ void Temperature::manage_heater() {
     if (emergency_parser.killed_by_M112) kill();
   #endif
 
+  // !!! This is SURPRISINGLY EXTREMELY IMPORTANT
+  // It limits the manage heater stepping to ~TEMP_TIMER_FREQUENCY
+  // which somewhat ensures constant-ish dT for the PID regulators
+  // without this, things would go haywire
+  // This is still very sloppy though - BFW-8354
   if (!temp_meas_ready) return;
 
   updateTemperaturesFromRawValues(); // also resets the watchdog
