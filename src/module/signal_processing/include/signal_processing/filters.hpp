@@ -170,6 +170,69 @@ private:
     std::array<Biquad<T>, N> stages {};
 };
 
+// Median filter with compile-time window size N.
+// Uses std::nth_element (O(N) average) for the general case and a
+// hardcoded sorting network for N==5.
+template <typename T, std::size_t N>
+class MedianFilter {
+public:
+    static_assert(N > 0 && N % 2 == 1, "Median filter window must be odd and > 0");
+    using sample_type = T;
+
+    MedianFilter() = default;
+
+    T filter(T input) {
+        buffer_[write_index_] = input;
+        write_index_ = (write_index_ + 1) % N;
+
+        if (count_ < N) {
+            ++count_;
+            return input;
+        }
+
+        std::array<T, N> tmp = buffer_;
+
+        if constexpr (N == 1) {
+            return tmp[0];
+        } else if constexpr (N == 3) {
+            // Sorting network for 3 elements (3 comparisons)
+            auto s = [](T &a, T &b) { if (a > b) { T t = a; a = b; b = t; } };
+            s(tmp[0], tmp[1]);
+            s(tmp[1], tmp[2]);
+            s(tmp[0], tmp[1]);
+            return tmp[1];
+        } else if constexpr (N == 5) {
+            // Sorting network for 5 elements (9 comparisons, optimal)
+            auto s = [](T &a, T &b) { if (a > b) { T t = a; a = b; b = t; } };
+            s(tmp[0], tmp[1]);
+            s(tmp[3], tmp[4]);
+            s(tmp[2], tmp[4]);
+            s(tmp[2], tmp[3]);
+            s(tmp[0], tmp[3]);
+            s(tmp[0], tmp[2]);
+            s(tmp[1], tmp[4]);
+            s(tmp[1], tmp[3]);
+            s(tmp[1], tmp[2]);
+            return tmp[2];
+        } else {
+            constexpr std::size_t mid = N / 2;
+            std::nth_element(tmp.begin(), tmp.begin() + mid, tmp.end());
+            return tmp[mid];
+        }
+    }
+
+    void reset() {
+        buffer_.fill(T { 0 });
+        write_index_ = 0;
+        count_ = 0;
+    }
+
+private:
+    std::array<T, N> buffer_ {};
+    std::size_t write_index_ = 0;
+    std::size_t count_ = 0;
+};
+
 template <typename T, std::size_t N>
 constexpr std::array<T, N> moving_average_coeffs() {
     static_assert(N > 0, "Moving average window size must be non-zero");
