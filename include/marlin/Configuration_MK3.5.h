@@ -215,7 +215,6 @@
     //#define PID_DEBUG             // Sends debug data to the serial port.
     //#define PID_OPENLOOP 1        // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
     #define HW_PWM_HEATERS          // PWM with hardware PWM output
-    //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
     // Set/get with gcode: M301 E[extruder number, 0-2]
     /**
      * If the temperature difference between the target temperature and the actual temperature

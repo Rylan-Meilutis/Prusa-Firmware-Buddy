@@ -80,9 +80,9 @@ void GcodeSuite::M301() {
     hotend.set_nozzle_pid_config(pid);
 
     SERIAL_ECHO_START();
-    #if ENABLED(PID_PARAMS_PER_HOTEND)
-    SERIAL_ECHOPAIR(" e:", e); // specify extruder in serial output
-    #endif // PID_PARAMS_PER_HOTEND
+    if constexpr (PhysicalToolIndex::count > 1) {
+        SERIAL_ECHOPAIR(" e:", e); // specify extruder in serial output
+    }
     SERIAL_ECHOPAIR(" p:", pid.Kp,
         " i:", unscalePID_i(pid.Ki),
         " d:", unscalePID_d(pid.Kd));

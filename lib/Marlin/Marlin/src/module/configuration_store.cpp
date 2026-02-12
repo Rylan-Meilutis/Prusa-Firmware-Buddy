@@ -673,7 +673,7 @@ void MarlinSettings::reset() {
 
           CONFIG_ECHO_START();
           SERIAL_ECHOPAIR("  M301"
-            #if HOTENDS > 1 && ENABLED(PID_PARAMS_PER_HOTEND)
+            #if HOTENDS > 1
               " E", tool.to_raw(),
             #endif
               " P", pid.Kp
