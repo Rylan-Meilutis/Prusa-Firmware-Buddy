@@ -143,9 +143,6 @@ extern bool relative_mode;
 extern xyze_pos_t current_position,  // High-level current tool position
                   destination;       // Destination for a move
 
-// Scratch space for a cartesian result
-extern xyz_pos_t cartes;
-
 #if defined(XY_PROBE_SPEED_INITIAL)
   #define XY_PROBE_FEEDRATE_MM_S MMM_TO_MMS(XY_PROBE_SPEED_INITIAL)
 #else

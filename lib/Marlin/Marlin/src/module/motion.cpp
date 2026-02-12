@@ -171,9 +171,6 @@ float homing_bump_divisor[] = { 0, 0, 0 }; // on printers with HAS_PRECISE_HOMIN
 float homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
 #endif
 
-// Cartesian conversion result goes here:
-xyz_pos_t cartes;
-
 /**
  * The workspace can be offset by some commands, or
  * these offsets may be omitted to save on computation.
@@ -221,18 +218,6 @@ void sync_plan_position_e() {
 }
 
 /**
- * Get the stepper positions in the cartes[] array.
- *
- * The result is in the current coordinate space with
- * leveling applied. The coordinates need to be run through
- * unapply_leveling to obtain the "ideal" coordinates
- * suitable for current_position, etc.
- */
-void get_cartesian_from_steppers() {
-  planner.get_axis_position_mm(static_cast<xyz_pos_t&>(cartes));
-}
-
-/**
  * Set the current_position for an axis based on
  * the stepper positions, removing any leveling that
  * may have been applied.
@@ -244,17 +229,18 @@ void get_cartesian_from_steppers() {
  * after updating the current_position.
  */
 void set_current_from_steppers_for_axis(const AxisEnum axis) {
-  get_cartesian_from_steppers();
+  // Cartesian conversion result goes here:
+  xyze_pos_t cartes = current_position;
+  planner.get_axis_position_mm(cartes);
 
   #if HAS_POSITION_MODIFIERS
-    xyze_pos_t pos = { cartes.x, cartes.y, cartes.z, current_position.e };
-    planner.unapply_modifiers(pos
+    planner.unapply_modifiers(cartes
       #if HAS_LEVELING
         , true
       #endif
     );
-    xyze_pos_t &cartes = pos;
   #endif
+  
   if (axis == ALL_AXES_ENUM)
     current_position = cartes;
   else
