@@ -976,11 +976,22 @@ RefineResult corexy_calibrate_homing_during_G28(float xy_mm_s, const G28Flags &f
   }
 #endif
 
-  if (!corexy_home_refine(xy_mm_s, CoreXYCalibrationMode::force)) {
-    return RefineResult::refine_fail;
+  for (uint8_t retry = 0; retry < PRECISE_HOMING_COREXY_RETRIES; retry++) {
+    if (planner.draining()) {
+      return RefineResult::hard_fail;
+    }
+
+    if (corexy_home_refine(xy_mm_s, CoreXYCalibrationMode::force)) {
+      return RefineResult::success;
+    }
+
+    // Always re-home to ensure we are in the right position
+    if (!corexy_rehome_xy(xy_mm_s)) {
+      return RefineResult::hard_fail;
+    }
   }
 
-  return RefineResult::success;
+  return RefineResult::refine_fail;
 }
 
 RefineResult corexy_refine_during_G28_once(float fr_mm_s, const G28Flags &flags) {
