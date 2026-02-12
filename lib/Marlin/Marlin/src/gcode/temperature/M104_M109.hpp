@@ -8,7 +8,7 @@ struct M109Flags {
   int16_t target_temp;
   bool wait_heat = true;            // Wait only when heating
   bool wait_heat_or_cool = false;   // Wait for heating or cooling
-  bool autotemp = false;            // Use AUTOTEMP with S, B, F parameters
+  bool autotemp = false;         // Use print fan to assist cooling/heating during wait
   std::optional<float> display_temp = std::nullopt; // If nullopt -> display nozzle temp
 };
 

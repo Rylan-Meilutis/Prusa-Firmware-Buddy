@@ -255,13 +255,6 @@ StrongIndexArray<float, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_st
 
 skew_factor_t Planner::skew_factor; // Initialized by settings.load()
 
-#if ENABLED(AUTOTEMP)
-  float Planner::autotemp_max = 250,
-        Planner::autotemp_min = 210,
-        Planner::autotemp_factor = 0.1f;
-  bool Planner::autotemp_enabled = false;
-#endif
-
 // private:
 
 xyze_long_t Planner::position{0};
@@ -843,32 +836,6 @@ void Planner::discard_current_unprocessed_block() {
   }
 }
 
-#if ENABLED(AUTOTEMP)
-
-  void Planner::getHighESpeed() {
-    static float oldt = 0;
-
-    if (!autotemp_enabled) return;
-    if (thermalManager.degTargetHotend(0) + 2 < autotemp_min) return; // probably temperature set to zero.
-
-    float high = 0.0;
-    for (uint8_t b = block_buffer_tail; b != block_buffer_head; b = next_block_index(b)) {
-      block_t* block = &block_buffer[b];
-      if (block->msteps.x || block->msteps.y || block->msteps.z) {
-        const float se = (float)block->msteps.e / block->mstep_event_count * block->nominal_speed; // mm/sec;
-        NOLESS(high, se);
-      }
-    }
-
-    float t = autotemp_min + high * autotemp_factor;
-    LIMIT(t, autotemp_min, autotemp_max);
-    if (t < oldt) t = t * (1 - float(AUTOTEMP_OLDWEIGHT)) + oldt * float(AUTOTEMP_OLDWEIGHT);
-    oldt = t;
-    thermalManager.setTargetHotend(t, 0);
-  }
-
-#endif // AUTOTEMP
-
 /**
  * Maintain fans, paste extruder pressure,
  */
@@ -917,10 +884,6 @@ void Planner::check_axes_activity() {
   #endif
   #if ENABLED(DISABLE_E)
     if (!axis_active.e) disable_e_steppers();
-  #endif
-
-  #if ENABLED(AUTOTEMP)
-    getHighESpeed();
   #endif
 }
 
@@ -2606,16 +2569,6 @@ void Planner::set_max_jerk(const AxisEnum axis, float targetValue) {
     UNUSED(axis); UNUSED(targetValue);
   #endif
 }
-
-#if ENABLED(AUTOTEMP)
-
-  void Planner::autotemp_M104_M109() {
-    if ((autotemp_enabled = parser.seen('F'))) autotemp_factor = parser.value_float();
-    if (parser.seen('S')) autotemp_min = parser.value_celsius();
-    if (parser.seen('B')) autotemp_max = parser.value_celsius();
-  }
-
-#endif
 
 void Motion_Parameters::save_reset(const bool no_limits) {
   save();

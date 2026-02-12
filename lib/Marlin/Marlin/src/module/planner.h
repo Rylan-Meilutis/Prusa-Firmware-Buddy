@@ -905,13 +905,6 @@ class Planner {
      */
     static void discard_current_unprocessed_block();
 
-    #if ENABLED(AUTOTEMP)
-      static float autotemp_min, autotemp_max, autotemp_factor;
-      static bool autotemp_enabled;
-      static void getHighESpeed();
-      static void autotemp_M104_M109();
-    #endif
-
     #if HAS_LINEAR_E_JERK
       #pragma GCC diagnostic push
       #pragma GCC diagnostic ignored "-Wdouble-promotion"

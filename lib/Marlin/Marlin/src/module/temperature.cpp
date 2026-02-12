@@ -1149,11 +1149,6 @@ void Temperature::disable_local_heaters() {
 }
 
 void Temperature::disable_heaters(Temperature::disable_bed_t disable_bed) {
-
-  #if ENABLED(AUTOTEMP)
-    planner.autotemp_enabled = false;
-  #endif
-
   for (auto tool : PhysicalToolIndex::all()) {
     setTargetHotend(0, tool);
   }

@@ -293,7 +293,6 @@ namespace Language_en {
   PROGMEM Language_Str MSG_FLOW_4                          = _UxGT("Flow ") LCD_STR_N4;
   PROGMEM Language_Str MSG_FLOW_5                          = _UxGT("Flow ") LCD_STR_N5;
   PROGMEM Language_Str MSG_CONTROL                         = _UxGT("Control");
-  PROGMEM Language_Str MSG_AUTOTEMP                        = _UxGT("Autotemp");
   PROGMEM Language_Str MSG_LCD_ON                          = _UxGT("On");
   PROGMEM Language_Str MSG_LCD_OFF                         = _UxGT("Off");
   PROGMEM Language_Str MSG_AUTOTUNE_PID                    = _UxGT("PID Autotune");

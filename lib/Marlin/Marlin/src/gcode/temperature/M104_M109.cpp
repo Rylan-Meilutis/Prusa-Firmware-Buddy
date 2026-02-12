@@ -96,10 +96,6 @@ void GcodeSuite::M104() {
     // This is a legit use
     marlin_server::call_manually::set_temp_to_display( parser.value_celsius(), target_extruder);
   }
-
-  #if ENABLED(AUTOTEMP)
-    planner.autotemp_M104_M109();
-  #endif
 }
 
 /**
@@ -171,9 +167,6 @@ void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {
     #endif
     }
 
-  #if ENABLED(AUTOTEMP)
-    planner.autotemp_M104_M109();
-  #endif
   if (set_temp) {
     (void)thermalManager.wait_for_hotend(target_extruder, no_wait_for_cooling, flags.autotemp);
   }
