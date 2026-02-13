@@ -18,6 +18,8 @@
 class ToolMapper;
 #endif
 
+class StringBuilder;
+
 #include "tool_index_iterator.hpp"
 
 template <const int count_, typename Extension>
@@ -189,6 +191,9 @@ struct PhysicalToolIndexExtension {
     /// @returns virtual tool currently assigned to @p this physical tool
     std::variant<VirtualToolIndex, NoTool> currently_selected_virtual_tool() const;
 
+    /// Builds details about the virtual tool (things like nozzle diameter, ...)
+    void build_details(StringBuilder &sb) const;
+
     /// Checks for legacy values representing no tool
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool
     /// @param index
@@ -203,6 +208,9 @@ struct PhysicalToolIndexExtension {
 
 struct VirtualToolIndexExtension {
     PhysicalToolIndex to_physical() const;
+
+    /// Builds details about the virtual tool (things like loaded filament, nozzle diameter, ...)
+    void build_details(StringBuilder &sb) const;
 
     /// Checks for legacy values representing no tool
     /// Use `from_raw` instead, if you are sure that raw index represent only valid tool

@@ -7,16 +7,25 @@
 #include <marlin_vars.hpp>
 #include <utils/variant_utils.hpp>
 #include <img_resources.hpp>
+#include <string_builder.hpp>
 
 namespace {
 
-class MenuItemTool : public IWindowMenuItem {
+class MenuItemTool : public WiInfo<64> {
 
 public:
     using Tool = std::variant<PhysicalToolIndex, NoTool>;
 
     MenuItemTool(Tool tool)
-        : tool_(tool) {
+        : WiInfo<64>(string_view_utf8 {})
+        , tool_(tool) {
+
+        if (auto t = stdext::get_optional<PhysicalToolIndex>(tool)) {
+            StringBuilder sb(value_array_);
+            t->build_details(sb);
+            value_ = string_view_utf8::MakeRAM(value_array_.data());
+            update_extension_width();
+        }
     }
 
     void click(IWindowMenu &) override {

@@ -12,6 +12,8 @@
 #include <ScreenHandler.hpp>
 #include <window_header.hpp>
 #include <dynamic_index_mapping.hpp>
+#include <string_builder.hpp>
+#include <config_store/store_instance.hpp>
 
 namespace {
 
@@ -25,7 +27,38 @@ static constexpr auto index_mapping_items = std::to_array<DynamicIndexMappingRec
     { Item::tool, DynamicIndexMappingType::dynamic_section },
 });
 
-class SelectToolMenu : public WindowMenuVirtual<MI_RETURN, WindowMenuCallbackItem> {
+class SelectToolMenu;
+
+class MI_TOOL final : public WiInfo<64> {
+
+public:
+    MI_TOOL(SelectToolMenu &menu, VirtualToolIndex tool)
+        : WiInfo(string_view_utf8 {})
+        , menu_(menu)
+        , tool_(tool) {
+
+        SetLabel(tool.display_name(label_params_));
+
+        if (stdext::holds_value(VirtualToolIndex::currently_selected(), tool)) {
+            SetIconId(&img::arrow_right_10x16);
+        }
+
+        StringBuilder sb(value_array_);
+        tool_.build_details(sb);
+        value_ = string_view_utf8::MakeRAM(value_array_.data());
+        update_extension_width();
+    }
+
+    void click(IWindowMenu &) override;
+
+private:
+    SelectToolMenu &menu_;
+    const VirtualToolIndex tool_;
+    StringViewUtf8Parameters<8> label_params_;
+};
+
+class SelectToolMenu : public WindowMenuVirtual<MI_RETURN, MI_TOOL> {
+    friend class MI_TOOL;
 
 public:
     SelectToolMenu(window_frame_t *parent, Rect16 rect, const SelectToolDialogArgs &args)
@@ -53,19 +86,8 @@ public:
 
         case Item::tool: {
             const auto tool = VirtualToolIndex::from_raw(m.pos_in_section);
-
-            const auto callback = [this, tool] {
-                result = tool;
-                Screens::Access()->Close();
-            };
-
-            WindowMenuCallbackItem &item = variant.emplace<WindowMenuCallbackItem>(string_view_utf8 {}, callback);
-            item.SetLabel(tool.display_name(item.string_view_params));
+            MI_TOOL &item = variant.emplace<MI_TOOL>(*this, tool);
             item.set_enabled(tool.is_enabled() && args_.tool_filter(tool));
-
-            if (stdext::holds_value(VirtualToolIndex::currently_selected(), tool)) {
-                item.SetIconId(&img::arrow_right_10x16);
-            }
             break;
         }
         }
@@ -78,6 +100,11 @@ private:
     const SelectToolDialogArgs args_;
     DynamicIndexMapping<index_mapping_items> index_mapping_;
 };
+
+void MI_TOOL::click(IWindowMenu &) {
+    menu_.result = tool_;
+    Screens::Access()->Close();
+}
 
 class SelectToolDialog final : public IDialog {
 

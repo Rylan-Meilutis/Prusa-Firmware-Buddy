@@ -19,6 +19,10 @@
 #endif
 
 #include <option/board_is_master_board.h>
+#if BOARD_IS_MASTER_BOARD()
+    #include <config_store/store_instance.hpp>
+    #include <string_builder.hpp>
+#endif
 
 using VirtualExtension = VirtualToolIndexExtension;
 using PhysicalExtension = PhysicalToolIndexExtension;
@@ -219,6 +223,51 @@ string_view_utf8 VirtualToolIndex::display_name(StringViewUtf8ParamBase &params)
 template <>
 string_view_utf8 GcodeToolIndex::display_name(StringViewUtf8ParamBase &params) const {
     return _("GCode Tool %i").formatted(params, display_index());
+}
+
+static void build_physical_details(StringBuilder &sb, const PhysicalToolIndex &self) {
+    sb.append_float(
+        config_store().get_nozzle_diameter(self),
+        {
+            .max_decimal_places = 2,
+            .skip_zero_before_dot = true,
+        });
+    sb.append_string(" mm");
+
+    if (config_store().nozzle_is_hardened.get().test(self.to_raw())) {
+        sb.append_string(" H");
+    }
+    if (config_store().nozzle_is_high_flow.get().test(self.to_raw())) {
+        sb.append_string(" HF");
+    }
+}
+
+static void build_virtual_details(StringBuilder &sb, const VirtualToolIndex &self) {
+    // Display currently loaded filament
+    if (sb.byte_count() > 0) {
+        sb.append_char(' ');
+    }
+    sb.append_string(config_store().get_filament_type(self).parameters().name.data());
+}
+
+void PhysicalToolIndexExtension::build_details(StringBuilder &sb) const {
+    build_physical_details(sb, static_cast<const PhysicalToolIndex &>(*this));
+
+    // If the Physical-Virtual mapping is 1:1, show also virtual tool properties
+    if constexpr (PhysicalToolIndex::count == VirtualToolIndex::count) {
+        build_virtual_details(sb, std::get<VirtualToolIndex>(currently_selected_virtual_tool()));
+    }
+}
+
+void VirtualToolIndexExtension::build_details(StringBuilder &sb) const {
+    const auto &self = static_cast<const VirtualToolIndex &>(*this);
+
+    // Discern physical properties if we have multiple physical tools
+    if constexpr (PhysicalToolIndex::count > 1) {
+        build_physical_details(sb, to_physical());
+    }
+
+    build_virtual_details(sb, self);
 }
 
 #endif
