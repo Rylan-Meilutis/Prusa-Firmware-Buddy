@@ -418,12 +418,6 @@
   #define HAS_HOTEND_OFFSET 1
 #endif
 
-// Helper macros for extruder and hotend arrays
-#define ARRAY_BY_EXTRUDERS(V...) ARRAY_N(EXTRUDERS, V)
-#define ARRAY_BY_EXTRUDERS1(v1) ARRAY_N_1(EXTRUDERS, v1)
-#define ARRAY_BY_HOTENDS(V...) ARRAY_N(HOTENDS, V)
-#define ARRAY_BY_HOTENDS1(v1) ARRAY_N_1(HOTENDS, v1)
-
 /**
  * The BLTouch Probe emulates a servo probe
  * and uses "special" angles for its state.

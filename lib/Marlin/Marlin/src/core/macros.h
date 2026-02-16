@@ -750,7 +750,3 @@
 #define __MAPLIST() _MAPLIST
 
 #define MAPLIST(OP,V...) EVAL(_MAPLIST(OP,V))
-
-// Temperature Sensor Config
-#define _HAS_E_TEMP(N) || (TEMP_SENSOR_##N != 0)
-#define HAS_E_TEMP_SENSOR (0 REPEAT(EXTRUDERS, _HAS_E_TEMP))
