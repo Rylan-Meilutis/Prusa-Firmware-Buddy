@@ -36,7 +36,6 @@
  *  EXTRUDERS    - Number of Selectable Tools
  *  HOTENDS      - Number of hotends, whether connected or separate
  *  E_STEPPERS   - Number of actual E stepper motors
- *  E_MANUAL     - Number of E steppers for LCD move options
  *
  * These defines must be simple constants for use in REPEAT, etc.
  */
@@ -51,17 +50,13 @@
 #define E_TERN0(N)  TERN0(HAS_MULTI_EXTRUDER, N)
 
 #if ENABLED(E_DUAL_STEPPER_DRIVERS) // E0/E1 steppers act in tandem as E0
-
   #define E_STEPPERS      2
-  #define E_MANUAL        1
 
 #elif HAS_MMU2()                // Průša Multi-Material Unit v2
-
   #define E_STEPPERS      1
-  #define E_MANUAL        1
+
 #elif HAS_TOOLCHANGER()
   #define E_STEPPERS      1
-  #define E_MANUAL        EXTRUDERS
 #endif
 
 // Průša MMU1, MMU(S) 2.0 and EXTENDABLE_EMU_MMU2(S) force SINGLENOZZLE
@@ -81,9 +76,6 @@
 #endif
 #ifndef E_STEPPERS
   #define E_STEPPERS EXTRUDERS
-#endif
-#ifndef E_MANUAL
-  #define E_MANUAL EXTRUDERS
 #endif
 
 #if E_STEPPERS <= 7
