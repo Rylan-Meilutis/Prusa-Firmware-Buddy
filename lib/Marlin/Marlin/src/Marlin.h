@@ -47,6 +47,7 @@ void enable_e_steppers();
 void enable_all_steppers();
 void disable_e_stepper(const uint8_t e);
 void disable_e_steppers();
+void disable_xy_steppers();
 void disable_all_steppers();
 
 #if BOARD_IS_DWARF()
