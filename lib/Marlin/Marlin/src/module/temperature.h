@@ -204,10 +204,6 @@ class Temperature {
       #endif
     #endif
 
-    #if HAS_TEMP_HEATBREAK
-      static millis_t next_heatbreak_check_ms;
-    #endif
-
   public:
     #if ENABLED(PID_EXTRUSION_SCALING)
       static int16_t lpq_len;
@@ -295,7 +291,8 @@ class Temperature {
      * Call periodically to manage heaters
      */
     static void manage_heater() __O2; // __O2 added to work around a compiler error
-    static inline void task() { manage_heater(); } // stub
+    
+    static void manage_fans();
 
     // Return true if the temperatures have been sampled at least once
     static bool temperatures_ready();
@@ -414,8 +411,6 @@ class Temperature {
 
         FORCE_INLINE static bool isHeatingHeatbreak(const uint8_t E_NAME)     { return temp_heatbreak[HOTEND_INDEX].target > temp_heatbreak[HOTEND_INDEX].celsius; }
         FORCE_INLINE static bool isCoolingHeatbreak(const uint8_t E_NAME)     { return temp_heatbreak[HOTEND_INDEX].target < temp_heatbreak[HOTEND_INDEX].celsius; }
-
-        static void suspend_heatbreak_fan(millis_t ms);
       #endif
     #endif // HAS_TEMP_HEATBREAK
 

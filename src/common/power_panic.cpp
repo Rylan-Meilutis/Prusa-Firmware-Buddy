@@ -122,10 +122,15 @@ void ac_fault_task_main() {
 
     // heaters are *already* disabled via HW, but stop temperature and fan regulation too
     thermalManager.disable_all_heaters();
+
+    // Set all fanSpeeds to zero
     thermalManager.zero_fan_speeds();
-#if !HAS_DWARF() && !XBUDDY_EXTENSION_VARIANT_IS_iX() && HAS_TEMP_HEATBREAK && HAS_TEMP_HEATBREAK_CONTROL
-    thermalManager.suspend_heatbreak_fan(2000);
-#endif
+
+    // Apply the fan speeds immediately to appliedFanSpeed (don't wait to go through the planner)
+    thermalManager.applyScaledFanSpeed();
+
+    // Write the appliedFanSpeed to the actual PWM pins
+    thermalManager.manage_fans();
 
     // stop & disable endstops
     marlin_server::print_quick_stop_powerpanic();

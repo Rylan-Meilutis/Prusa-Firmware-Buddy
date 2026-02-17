@@ -18,9 +18,16 @@ void DwarfHotend::set_nozzle_pid_config(const HotendPIDConfig &set) {
 }
 
 void DwarfHotend::manage() {
+    const bool is_current_tool = stdext::holds_value(PhysicalToolIndex::currently_selected(), tool_);
+
     auto &tool = prusa_toolchanger.getTool(tool_);
     nozzle_temp_ = tool.get_hotend_temp();
     nozzle_heater_pwm_ = static_cast<uint8_t>(tool.get_heater_pwm());
+
+    // fan is regulted on dwarf - just update marlin's PWM value
+    if (is_current_tool) {
+        thermalManager.set_fan_speed(HEATBREAK_FAN_ID, tool.get_heatbreak_fan_pwr());
+    }
 
     // !!! MUST be called after temps are set properly
     BaseHotend::manage();

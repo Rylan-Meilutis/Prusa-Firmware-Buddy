@@ -197,7 +197,6 @@ Temperature thermalManager;
 
     HeaterWatchWithConfig<watch_heatbreak_config> watch_heatbreak[HOTENDS];
   #endif
-  millis_t Temperature::next_heatbreak_check_ms;
 
 #endif
 
@@ -410,13 +409,6 @@ void Temperature::min_temp_error(const heater_ind_t heater) {
 
 #endif // PIDTEMPBED
 
-#if ENABLED(PIDTEMPHEATBREAK)
-
-#include <module/temperature/heatbreak_regulator.hpp>
-static HeatbreakRegulator heatbreak_regulator[HOTENDS];
-
-#endif // PIDTEMPBED
-
 /**
  * Manage heating activities for extruder hot-ends and a heated bed
  *  - Acquire updated temperature readings
@@ -494,65 +486,15 @@ void Temperature::manage_heater() {
 
   #endif
 
-  #if HAS_TEMP_HEATBREAK
-
-    #ifndef HEATBREAK_CHECK_INTERVAL
-      #define HEATBREAK_CHECK_INTERVAL 1000UL
-    #endif
-
-    #if WATCH_HEATBREAK
-    static_assert(HOTENDS == 1, "Multiple hotends not implemented" );
-    watch_heatbreak[0].check(degHeatbreak(0), degTargetHeatbreak(0));
-    #endif
-
-    if (ELAPSED(ms, next_heatbreak_check_ms)) {
-      next_heatbreak_check_ms = ms + HEATBREAK_CHECK_INTERVAL;
-
-      #if HAS_TOOLCHANGER()
-          // fan is regulted on dwarf - just update marlin's PWM value
-          set_fan_speed(HEATBREAK_FAN_ID, prusa_toolchanger.getActiveToolOrFirst().get_heatbreak_fan_pwr());
-      #else
-        #if HOTENDS > 1
-          #error not supported
-        #endif
-        // iX has a non-constant maxtemp for the heatbreak, so we need to explicitly set it
-        #if PRINTER_IS_PRUSA_iX()
-        int16_t heatbreak_maxtemp = degTargetHeatbreak(active_extruder) + HEATBREAK_MAXTEMP_OFFSET;
-        #else
-        int16_t heatbreak_maxtemp = HEATBREAK_MAXTEMP;
-        #endif
-        if (WITHIN(temp_heatbreak[0].celsius, HEATBREAK_MINTEMP, heatbreak_maxtemp)) {
-          #if ENABLED(HEATBREAK_LIMIT_SWITCHING)
-            if (temp_heatbreak[0].celsius >= temp_heatbreak[0].target + TEMP_HEATBREAK_HYSTERESIS)
-              temp_heatbreak[0].soft_pwm_amount = 0;
-            else if (temp_heatbreak[0].celsius <= temp_heatbreak[0].target - (TEMP_HEATBREAK_HYSTERESIS))
-              temp_heatbreak[0].soft_pwm_amount = MAX_HEATBREAK_POWER >> 1;
-          #elif ENABLED(PIDTEMPHEATBREAK)
-            temp_heatbreak[0].soft_pwm_amount = (int)heatbreak_regulator[0].step(HeatbreakRegulator::Args{
-              .current_temp = temp_heatbreak[0].celsius,
-              .target_temp = temp_heatbreak[0].target,
-              .current_hotend_temp = Hotend::for_tool(PhysicalToolIndex::from_raw(0)).nozzle_temp(),
-            });
-            set_fan_speed(HEATBREAK_FAN_ID, temp_heatbreak[0].soft_pwm_amount);
-          #endif
-        } else {
-          #if WATCH_HEATBREAK
-          if(!watch_heatbreak[0].is_running()) { // if we are not watching heatbreak (not in process of cooling down)
-            fatal_error(ErrCode::ERR_TEMPERATURE_HEATBREAK_MAXTEMP_ERR); // Red screen
-          }
-          #endif
-          temp_heatbreak[0].soft_pwm_amount = 255;
-          set_fan_speed(HEATBREAK_FAN_ID, temp_heatbreak[0].soft_pwm_amount);
-        }
-      #endif
-    }
-  #endif // HAS_TEMP_HEATBREAK
-
   UNUSED(ms);
   #if HAS_LOCAL_BED()
     analogWrite_HEATER_BED(temp_bed.soft_pwm_amount);
   #endif
 
+  manage_fans();
+}
+
+void Temperature::manage_fans() {
   #if HAS_FAN0
     analogWrite(FAN0_PIN, applied_fan_speed[0]);
   #endif
@@ -585,18 +527,6 @@ bool Temperature::are_all_temperatures_reached() {
 
   return true;
 }
-
-#if HAS_TEMP_HEATBREAK && HAS_TEMP_HEATBREAK_CONTROL
-void Temperature::suspend_heatbreak_fan(millis_t ms) {
-  // TODO: why do have next_heatbreak_check_ms instead of using the nicer watch_heatbreak?
-  next_heatbreak_check_ms = millis() + ms;
-
-  for (auto tool : PhysicalToolIndex::all()) {
-    temp_heatbreak[tool].soft_pwm_amount = 0;
-  }
-  WRITE_HEATER_HEATBREAK(LOW);
-}
-#endif
 
 #if HAS_HEATED_BED
 

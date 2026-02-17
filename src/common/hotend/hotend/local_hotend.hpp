@@ -7,6 +7,7 @@
 #include "base_hotend.hpp"
 
 #include <module/temperature/marlin_temptable.hpp>
+#include <module/temperature/heatbreak_regulator.hpp>
 
 #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
     #include <module/temperature/thermal_model_protection.hpp>
@@ -64,6 +65,11 @@ protected:
 
     virtual void isr_soft_pwm(PWM255 phase) override;
 
+private:
+#if HAS_TEMP_HEATBREAK
+    void manage_heatbreak();
+#endif
+
 protected:
     const Config &local_config_;
 
@@ -71,12 +77,20 @@ protected:
 
     HotendRegulator nozzle_regulator_;
 
+#if ENABLED(PIDTEMPHEATBREAK)
+    HeatbreakRegulator heatbreak_fan_regulator_;
+#endif
+
 #if ENABLED(MODEL_DETECT_STUCK_THERMISTOR)
     ThermalModelProtection thermal_model_protection_;
 #endif
 
 #if ENABLED(PID_EXTRUSION_SCALING)
     uint32_t last_e_position_ = 0;
+#endif
+
+#if HAS_TEMP_HEATBREAK
+    millis_t next_heatbreak_check_ms_ = 0;
 #endif
 
     /// Written from the Temperature ISR, read from the defaultTask

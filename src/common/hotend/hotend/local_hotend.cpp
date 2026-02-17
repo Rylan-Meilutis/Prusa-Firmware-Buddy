@@ -11,6 +11,11 @@
     #include <module/stepper.h>
 #endif
 
+#include <option/has_power_panic.h>
+#if HAS_POWER_PANIC()
+    #include <power_panic.hpp>
+#endif
+
 LocalHotend::LocalHotend(PhysicalToolIndex tool, const Config *config)
     : BaseHotend(tool, &config->base_config)
     , local_config_(*config)
@@ -103,6 +108,10 @@ void LocalHotend::manage() {
 
     digitalWrite(local_config_.auto_fan_pin, auto_fan_out_);
 #endif
+
+#if HAS_TEMP_HEATBREAK
+    manage_heatbreak();
+#endif
 }
 
 void LocalHotend::isr_on_readings_ready() {
@@ -125,3 +134,63 @@ void LocalHotend::isr_soft_pwm(PWM255 phase) {
         digitalWrite(local_config_.nozzle_heater_marlin_pin, pwm > 0 && phase.value <= pwm);
     }
 }
+
+#if HAS_TEMP_HEATBREAK
+void LocalHotend::manage_heatbreak() {
+    // To support these, we would need to rework fans, because there is only single HEATBREAK_FAN_ID
+    static_assert(PhysicalToolIndex::count == 1, "Multiple local heatbreaks not currently supported");
+
+    const auto ms = millis();
+    if (!ELAPSED(ms, next_heatbreak_check_ms_)) {
+        return;
+    }
+
+    #if HAS_POWER_PANIC()
+    // Do not re-enable the heatbreak fan during power panic
+    if (power_panic::is_ac_fault_active()) {
+        return;
+    }
+    #endif
+
+    // !!! Needs to stay on a 1s step because of the PID controller
+    next_heatbreak_check_ms_ = ms + 1000;
+
+    #if WATCH_HEATBREAK
+    watch_heatbreak[tool_].check(degHeatbreak(tool_), degTargetHeatbreak(tool_));
+    #endif
+
+    auto &temp = thermalManager.temp_heatbreak[tool_];
+
+    // iX has a non-constant maxtemp for the heatbreak, so we need to explicitly set it
+    #if PRINTER_IS_PRUSA_iX()
+    int16_t heatbreak_maxtemp = degTargetHeatbreak(active_extruder) + HEATBREAK_MAXTEMP_OFFSET;
+    #else
+    int16_t heatbreak_maxtemp = HEATBREAK_MAXTEMP;
+    #endif
+
+    if (WITHIN(temp.celsius, HEATBREAK_MINTEMP, heatbreak_maxtemp)) {
+    #if ENABLED(HEATBREAK_LIMIT_SWITCHING)
+        if (temp.celsius >= temp.target + TEMP_HEATBREAK_HYSTERESIS) {
+            temp.soft_pwm_amount = 0;
+        } else if (temp.celsius <= temp.target - (TEMP_HEATBREAK_HYSTERESIS)) {
+            temp.soft_pwm_amount = MAX_HEATBREAK_POWER >> 1;
+        }
+    #elif ENABLED(PIDTEMPHEATBREAK)
+        temp.soft_pwm_amount = (int)heatbreak_fan_regulator_.step(HeatbreakRegulator::Args {
+            .current_temp = temp.celsius,
+            .target_temp = temp.target,
+            .current_hotend_temp = nozzle_temp(),
+        });
+        thermalManager.set_fan_speed(HEATBREAK_FAN_ID, temp.soft_pwm_amount);
+    #endif
+    } else {
+    #if WATCH_HEATBREAK
+        if (!thermalManager.watch_heatbreak[tool_].is_running()) { // if we are not watching heatbreak (not in process of cooling down)
+            fatal_error(ErrCode::ERR_TEMPERATURE_HEATBREAK_MAXTEMP_ERR); // Red screen
+        }
+    #endif
+        temp.soft_pwm_amount = 255;
+        thermalManager.set_fan_speed(HEATBREAK_FAN_ID, temp.soft_pwm_amount);
+    }
+}
+#endif
