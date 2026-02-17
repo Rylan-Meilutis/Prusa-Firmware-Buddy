@@ -656,6 +656,7 @@ static void process_request_flags();
 
 static void retract();
 static void lift_head();
+static void retract_and_lift();
 static void park_head();
 
 static void settings_load();
@@ -2255,6 +2256,7 @@ static void _server_print_loop(void) {
     case State::Pausing_WaitIdle:
         if (!is_processing()) {
             server.resume.pos = current_position;
+            retract_and_lift();
             park_head();
             server.print_state = State::Pausing_ParkHead;
         }
@@ -2451,6 +2453,7 @@ static void _server_print_loop(void) {
 #else
         {
 #endif
+            retract_and_lift();
             park_head();
         }
 
@@ -2521,6 +2524,7 @@ static void _server_print_loop(void) {
 
 #ifdef PARK_HEAD_ON_PRINT_FINISH
             if (!server.print_is_serial) {
+                retract_and_lift();
                 park_head();
             }
 #endif // PARK_HEAD_ON_PRINT_FINISH
@@ -3031,10 +3035,12 @@ static void lift_head() {
     }
 }
 
-static void park_head() {
+static void retract_and_lift() {
     retract();
     lift_head();
+}
 
+static void park_head() {
     if (!all_axes_homed()) {
         return;
     }
