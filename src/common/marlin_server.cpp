@@ -2484,6 +2484,10 @@ static void _server_print_loop(void) {
         {
 #endif
             retract_and_lift();
+#if HAS_NOZZLE_CLEANER()
+            // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning
+            GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = false });
+#endif
             park_head();
         }
 
