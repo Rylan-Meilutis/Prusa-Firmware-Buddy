@@ -223,9 +223,9 @@ typedef float celsius_float_t;
 #define FI FORCE_INLINE
 
 // Forward declarations
-template<typename T> struct XYval;
-template<typename T> struct XYZval;
-template<typename T> struct XYZEval;
+template<typename T, typename Tag = void> struct XYval;
+template<typename T, typename Tag = void> struct XYZval;
+template<typename T, typename Tag = void> struct XYZEval;
 
 typedef struct XYval<bool>          xy_bool_t;
 typedef struct XYZval<bool>        xyz_bool_t;
@@ -308,11 +308,12 @@ void toNative(xyze_pos_t &raw);
 
 //
 // Paired XY coordinates, counters, flags, etc.
+// Tag is used for creating strong type variants
 //
-template<typename T>
+template<typename T, typename Tag>
 struct XYval {
-  using XYZval = ::XYZval<T>;
-  using XYZEval = ::XYZEval<T>;
+  using XYZval = ::XYZval<T, Tag>;
+  using XYZEval = ::XYZEval<T, Tag>;
 
   union {
     struct { T x, y; };
@@ -349,19 +350,19 @@ struct XYval {
   // Explicit copy and copies with conversion
   FI XYval           copy()                    const { return *this; }
   FI XYval            ABS()                    const { return { T(_ABS(x)), T(_ABS(y)) }; }
-  FI XYval<int16_t>    asInt()                          { return { int16_t(x), int16_t(y) }; }
-  FI XYval<int16_t>    asInt()                    const { return { int16_t(x), int16_t(y) }; }
-  FI XYval<int32_t>   asLong()                          { return { int32_t(x), int32_t(y) }; }
-  FI XYval<int32_t>   asLong()                    const { return { int32_t(x), int32_t(y) }; }
-  FI XYval<int32_t>   ROUNDL()                          { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
-  FI XYval<int32_t>   ROUNDL()                    const { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
-  FI XYval<float>    asFloat()                          { return { static_cast<float>(x), static_cast<float>(y) }; }
-  FI XYval<float>    asFloat()                    const { return { static_cast<float>(x), static_cast<float>(y) }; }
-  FI XYval<float> reciprocal()                    const { return {  _RECIP(x),  _RECIP(y) }; }
+  FI XYval<int16_t, Tag>    asInt()                          { return { int16_t(x), int16_t(y) }; }
+  FI XYval<int16_t, Tag>    asInt()                    const { return { int16_t(x), int16_t(y) }; }
+  FI XYval<int32_t, Tag>   asLong()                          { return { int32_t(x), int32_t(y) }; }
+  FI XYval<int32_t, Tag>   asLong()                    const { return { int32_t(x), int32_t(y) }; }
+  FI XYval<int32_t, Tag>   ROUNDL()                          { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
+  FI XYval<int32_t, Tag>   ROUNDL()                    const { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
+  FI XYval<float, Tag>    asFloat()                          { return { static_cast<float>(x), static_cast<float>(y) }; }
+  FI XYval<float, Tag>    asFloat()                    const { return { static_cast<float>(x), static_cast<float>(y) }; }
+  FI XYval<float, Tag> reciprocal()                    const { return {  _RECIP(x),  _RECIP(y) }; }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYval<float>  asLogical()                    const { XYval<float> o = asFloat(); toLogical(o); return o; }
-  FI XYval<float>   asNative()                    const { XYval<float> o = asFloat(); toNative(o);  return o; }
+  FI XYval<float, Tag>  asLogical()                    const { auto o = asFloat(); toLogical(o); return o; }
+  FI XYval<float, Tag>   asNative()                    const { auto o = asFloat(); toNative(o);  return o; }
 
   // Cast to a type with more fields by making a new object
   FI operator XYZval()                               { return { x, y }; }
@@ -444,11 +445,12 @@ struct XYval {
 
 //
 // Linear Axes coordinates, counters, flags, etc.
+// Tag is used for creating strong type variants
 //
-template<typename T>
+template<typename T, typename Tag>
 struct XYZval {
-  using XYval = ::XYval<T>;
-  using XYZEval = ::XYZEval<T>;
+  using XYval = ::XYval<T, Tag>;
+  using XYZEval = ::XYZEval<T, Tag>;
 
   union {
     struct { T NUM_AXIS_ARGS(); };
@@ -505,19 +507,19 @@ struct XYZval {
   // Explicit copy and copies with conversion
   FI XYZval          copy()                   const { XYZval o = *this; return o; }
   FI XYZval           ABS()                   const { return NUM_AXIS_ARRAY(T(_ABS(x)), T(_ABS(y)), T(_ABS(z)), T(_ABS(i)), T(_ABS(j)), T(_ABS(k)), T(_ABS(u)), T(_ABS(v)), T(_ABS(w))); }
-  FI XYZval<int16_t>   asInt()                         { return NUM_AXIS_ARRAY(int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
-  FI XYZval<int16_t>   asInt()                   const { return NUM_AXIS_ARRAY(int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
-  FI XYZval<int32_t>  asLong()                         { return NUM_AXIS_ARRAY(int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
-  FI XYZval<int32_t>  asLong()                   const { return NUM_AXIS_ARRAY(int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
-  FI XYZval<int32_t>  ROUNDL()                         { return NUM_AXIS_ARRAY(int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
-  FI XYZval<int32_t>  ROUNDL()                   const { return NUM_AXIS_ARRAY(int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
-  FI XYZval<float>   asFloat()                         { return NUM_AXIS_ARRAY(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
-  FI XYZval<float>   asFloat()                   const { return NUM_AXIS_ARRAY(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
-  FI XYZval<float> reciprocal()                  const { return NUM_AXIS_ARRAY(_RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
+  FI XYZval<int16_t, Tag>   asInt()                         { return NUM_AXIS_ARRAY(int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
+  FI XYZval<int16_t, Tag>   asInt()                   const { return NUM_AXIS_ARRAY(int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
+  FI XYZval<int32_t, Tag>  asLong()                         { return NUM_AXIS_ARRAY(int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
+  FI XYZval<int32_t, Tag>  asLong()                   const { return NUM_AXIS_ARRAY(int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
+  FI XYZval<int32_t, Tag>  ROUNDL()                         { return NUM_AXIS_ARRAY(int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
+  FI XYZval<int32_t, Tag>  ROUNDL()                   const { return NUM_AXIS_ARRAY(int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
+  FI XYZval<float, Tag>   asFloat()                         { return NUM_AXIS_ARRAY(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
+  FI XYZval<float, Tag>   asFloat()                   const { return NUM_AXIS_ARRAY(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
+  FI XYZval<float, Tag> reciprocal()                  const { return NUM_AXIS_ARRAY(_RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYZval<float> asLogical()                   const { XYZval<float> o = asFloat(); toLogical(o); return o; }
-  FI XYZval<float>  asNative()                   const { XYZval<float> o = asFloat(); toNative(o);  return o; }
+  FI XYZval<float, Tag> asLogical()                   const { auto o = asFloat(); toLogical(o); return o; }
+  FI XYZval<float, Tag>  asNative()                   const { auto o = asFloat(); toNative(o);  return o; }
 
   // In-place cast to types having fewer fields
   FI operator XYval()                         const { return XYval{x, y}; }
@@ -602,11 +604,12 @@ struct XYZval {
 
 //
 // Logical Axes coordinates, counters, etc.
+// Tag is used for creating strong type variants
 //
-template<typename T>
+template<typename T, typename Tag>
 struct XYZEval {
-  using XYval = ::XYval<T>;
-  using XYZval = ::XYZval<T>;
+  using XYval = ::XYval<T, Tag>;
+  using XYZval = ::XYZval<T, Tag>;
 
   union {
     struct { T LOGICAL_AXIS_ARGS(); };
@@ -661,19 +664,19 @@ struct XYZEval {
   // Explicit copy and copies with conversion
   FI XYZEval          copy()  const { XYZEval v = *this; return v; }
   FI XYZEval           ABS()  const { return LOGICAL_AXIS_ARRAY(T(_ABS(e)), T(_ABS(x)), T(_ABS(y)), T(_ABS(z)), T(_ABS(i)), T(_ABS(j)), T(_ABS(k)), T(_ABS(u)), T(_ABS(v)), T(_ABS(w))); }
-  FI XYZEval<int16_t>   asInt()        { return LOGICAL_AXIS_ARRAY(int16_t(e), int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
-  FI XYZEval<int16_t>   asInt()  const { return LOGICAL_AXIS_ARRAY(int16_t(e), int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
-  FI XYZEval<int32_t>  asLong()        { return LOGICAL_AXIS_ARRAY(int32_t(e), int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
-  FI XYZEval<int32_t>  asLong()  const { return LOGICAL_AXIS_ARRAY(int32_t(e), int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
-  FI XYZEval<int32_t>  ROUNDL()        { return LOGICAL_AXIS_ARRAY(int32_t(LROUND(e)), int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
-  FI XYZEval<int32_t>  ROUNDL()  const { return LOGICAL_AXIS_ARRAY(int32_t(LROUND(e)), int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
-  FI XYZEval<float>   asFloat()        { return LOGICAL_AXIS_ARRAY(static_cast<float>(e), static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
-  FI XYZEval<float>   asFloat()  const { return LOGICAL_AXIS_ARRAY(static_cast<float>(e), static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
-  FI XYZEval<float> reciprocal() const { return LOGICAL_AXIS_ARRAY(_RECIP(e),  _RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
+  FI XYZEval<int16_t, Tag>   asInt()        { return LOGICAL_AXIS_ARRAY(int16_t(e), int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
+  FI XYZEval<int16_t, Tag>   asInt()  const { return LOGICAL_AXIS_ARRAY(int16_t(e), int16_t(x), int16_t(y), int16_t(z), int16_t(i), int16_t(j), int16_t(k), int16_t(u), int16_t(v), int16_t(w)); }
+  FI XYZEval<int32_t, Tag>  asLong()        { return LOGICAL_AXIS_ARRAY(int32_t(e), int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
+  FI XYZEval<int32_t, Tag>  asLong()  const { return LOGICAL_AXIS_ARRAY(int32_t(e), int32_t(x), int32_t(y), int32_t(z), int32_t(i), int32_t(j), int32_t(k), int32_t(u), int32_t(v), int32_t(w)); }
+  FI XYZEval<int32_t, Tag>  ROUNDL()        { return LOGICAL_AXIS_ARRAY(int32_t(LROUND(e)), int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
+  FI XYZEval<int32_t, Tag>  ROUNDL()  const { return LOGICAL_AXIS_ARRAY(int32_t(LROUND(e)), int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(i)), int32_t(LROUND(j)), int32_t(LROUND(k)), int32_t(LROUND(u)), int32_t(LROUND(v)), int32_t(LROUND(w))); }
+  FI XYZEval<float, Tag>   asFloat()        { return LOGICAL_AXIS_ARRAY(static_cast<float>(e), static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
+  FI XYZEval<float, Tag>   asFloat()  const { return LOGICAL_AXIS_ARRAY(static_cast<float>(e), static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(i), static_cast<float>(j), static_cast<float>(k), static_cast<float>(u), static_cast<float>(v), static_cast<float>(w)); }
+  FI XYZEval<float, Tag> reciprocal() const { return LOGICAL_AXIS_ARRAY(_RECIP(e),  _RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYZEval<float> asLogical()  const { XYZEval<float> o = asFloat(); toLogical(o); return o; }
-  FI XYZEval<float>  asNative()  const { XYZEval<float> o = asFloat(); toNative(o);  return o; }
+  FI XYZEval<float, Tag> asLogical()  const { auto o = asFloat(); toLogical(o); return o; }
+  FI XYZEval<float, Tag>  asNative()  const { auto o = asFloat(); toNative(o);  return o; }
 
   // In-place cast to types having fewer fields
   FI operator       XYval&()        { return *(XYval*)this; }
