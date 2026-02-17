@@ -83,7 +83,9 @@ struct ModularBedHeater: public HeaterInfo {
 };
 #endif
 
-struct hotend_info_t {
+/// Accumulates hotend temperature readouts (OVERSAMPLENR times) in the Temperature::isr
+/// Then Hotend::isr_on_readings_ready is called (from ISR again) that reads the acc, processes it and clears it
+struct TemperatureADCAccumulator {
   uint16_t acc;
   inline void sample(const uint16_t s) { acc += s; }
 };
@@ -126,8 +128,11 @@ class Temperature {
 
     static volatile bool in_temp_isr;
 
-    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
-    static StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> temp_hotend;
+    #if HAS_TEMP_ADC_0
+      static_assert(PhysicalToolIndex::count == 1, "Multiple local hotends are not supported");
+      // TODO: One day, get rid of this, but that will require Temperature::isr refactoring
+      inline static TemperatureADCAccumulator temp_hotend;
+    #endif
 
     #if HAS_HEATED_BED
       static bed_info_t temp_bed;

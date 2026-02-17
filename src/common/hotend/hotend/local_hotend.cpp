@@ -106,7 +106,8 @@ void LocalHotend::manage() {
 }
 
 void LocalHotend::isr_on_readings_ready() {
-    auto &acc = thermalManager.temp_hotend[tool_.to_raw()].acc;
+    static_assert(PhysicalToolIndex::count == 1, "Multiple local hotends are not supported");
+    auto &acc = thermalManager.temp_hotend.acc;
 
     // Note: Before Hotend refactoring, updating the raw value was waiting for temp_meas_ready
     // Now, we are using std::atomic like sane people, so it shouldn't be necessary

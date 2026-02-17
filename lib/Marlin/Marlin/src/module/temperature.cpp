@@ -142,8 +142,6 @@ Temperature thermalManager;
 
 // public:
 
-StrongIndexArray<hotend_info_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> Temperature::temp_hotend;
-
 #if FAN_COUNT > 0
 
   uint8_t Temperature::fan_speed[FAN_COUNT] = {};
@@ -835,21 +833,7 @@ void Temperature::init() {
   #if HAS_TEMP_ADC_0
     HAL_ANALOG_SELECT(TEMP_0_PIN);
   #endif
-  #if HAS_TEMP_ADC_1
-    HAL_ANALOG_SELECT(TEMP_1_PIN);
-  #endif
-  #if HAS_TEMP_ADC_2
-    HAL_ANALOG_SELECT(TEMP_2_PIN);
-  #endif
-  #if HAS_TEMP_ADC_3
-    HAL_ANALOG_SELECT(TEMP_3_PIN);
-  #endif
-  #if HAS_TEMP_ADC_4
-    HAL_ANALOG_SELECT(TEMP_4_PIN);
-  #endif
-  #if HAS_TEMP_ADC_5
-    HAL_ANALOG_SELECT(TEMP_5_PIN);
-  #endif
+
   #if PRINTER_IS_PRUSA_iX()
     HAL_ANALOG_SELECT(TEMP_PSU_PIN);
     HAL_ANALOG_SELECT(TEMP_AMBIENT_PIN);
@@ -1078,7 +1062,7 @@ void Temperature::isr() {
 
     #if HAS_TEMP_ADC_0
       case PrepareTemp_0: HAL_START_ADC(TEMP_0_PIN); break;
-      case MeasureTemp_0: ACCUMULATE_ADC(temp_hotend[0]); break;
+      case MeasureTemp_0: ACCUMULATE_ADC(temp_hotend); break;
     #endif
 
     #if HAS_LOCAL_BED()
@@ -1102,31 +1086,6 @@ void Temperature::isr() {
       case MeasureTemp_PSU: ACCUMULATE_ADC(temp_psu); break;
       case PrepareTemp_AMBIENT: HAL_START_ADC(TEMP_AMBIENT_PIN); break;
       case MeasureTemp_AMBIENT: ACCUMULATE_ADC(temp_ambient); break;
-    #endif
-
-    #if HAS_TEMP_ADC_1
-      case PrepareTemp_1: HAL_START_ADC(TEMP_1_PIN); break;
-      case MeasureTemp_1: ACCUMULATE_ADC(temp_hotend[1]); break;
-    #endif
-
-    #if HAS_TEMP_ADC_2
-      case PrepareTemp_2: HAL_START_ADC(TEMP_2_PIN); break;
-      case MeasureTemp_2: ACCUMULATE_ADC(temp_hotend[2]); break;
-    #endif
-
-    #if HAS_TEMP_ADC_3
-      case PrepareTemp_3: HAL_START_ADC(TEMP_3_PIN); break;
-      case MeasureTemp_3: ACCUMULATE_ADC(temp_hotend[3]); break;
-    #endif
-
-    #if HAS_TEMP_ADC_4
-      case PrepareTemp_4: HAL_START_ADC(TEMP_4_PIN); break;
-      case MeasureTemp_4: ACCUMULATE_ADC(temp_hotend[4]); break;
-    #endif
-
-    #if HAS_TEMP_ADC_5
-      case PrepareTemp_5: HAL_START_ADC(TEMP_5_PIN); break;
-      case MeasureTemp_5: ACCUMULATE_ADC(temp_hotend[5]); break;
     #endif
 
     case StartupDelay: break;

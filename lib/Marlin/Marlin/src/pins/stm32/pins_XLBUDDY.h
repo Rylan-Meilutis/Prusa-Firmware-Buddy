@@ -85,13 +85,6 @@ static_assert(BOARD_IS_XLBUDDY());
 // Temperature Sensors
 //
 #define TEMP_0_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-#define TEMP_1_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-#define TEMP_2_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-#define TEMP_3_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-#define TEMP_4_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-#define TEMP_5_PIN             MARLIN_PIN(TEMP_0)     // Dummy, measured by puppy
-
-
 
 #define TEMP_BOARD_PIN         MARLIN_PIN(THERM2) // Dummy, measured by puppy
 #define TEMP_HEATBREAK_PIN     MARLIN_PIN(TEMP_HEATBREAK) // Dummy, measured by puppy

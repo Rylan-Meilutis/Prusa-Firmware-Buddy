@@ -225,39 +225,9 @@
 #ifndef HEATER_0_PIN
   #define HEATER_0_PIN -1
 #endif
-#ifndef HEATER_1_PIN
-  #define HEATER_1_PIN -1
-#endif
-#ifndef HEATER_2_PIN
-  #define HEATER_2_PIN -1
-#endif
-#ifndef HEATER_3_PIN
-  #define HEATER_3_PIN -1
-#endif
-#ifndef HEATER_4_PIN
-  #define HEATER_4_PIN -1
-#endif
-#ifndef HEATER_5_PIN
-  #define HEATER_5_PIN -1
-#endif
 
 #ifndef TEMP_0_PIN
   #define TEMP_0_PIN -1
-#endif
-#ifndef TEMP_1_PIN
-  #define TEMP_1_PIN -1
-#endif
-#ifndef TEMP_2_PIN
-  #define TEMP_2_PIN -1
-#endif
-#ifndef TEMP_3_PIN
-  #define TEMP_3_PIN -1
-#endif
-#ifndef TEMP_4_PIN
-  #define TEMP_4_PIN -1
-#endif
-#ifndef TEMP_5_PIN
-  #define TEMP_5_PIN -1
 #endif
 
 #if DISABLED(PSU_CONTROL) || !defined(PS_ON_PIN)

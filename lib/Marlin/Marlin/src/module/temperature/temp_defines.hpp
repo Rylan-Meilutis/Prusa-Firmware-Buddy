@@ -65,26 +65,6 @@ enum ADCSensorState : char {
     PrepareTemp_AMBIENT,
     MeasureTemp_AMBIENT,
 #endif
-#if HAS_TEMP_ADC_1
-    PrepareTemp_1,
-    MeasureTemp_1,
-#endif
-#if HAS_TEMP_ADC_2
-    PrepareTemp_2,
-    MeasureTemp_2,
-#endif
-#if HAS_TEMP_ADC_3
-    PrepareTemp_3,
-    MeasureTemp_3,
-#endif
-#if HAS_TEMP_ADC_4
-    PrepareTemp_4,
-    MeasureTemp_4,
-#endif
-#if HAS_TEMP_ADC_5
-    PrepareTemp_5,
-    MeasureTemp_5,
-#endif
     SensorsReady, // Temperatures ready. Delay the next round of readings to let ADC pins settle.
     StartupDelay // Startup, delay initial temp reading a tiny bit so the hardware can settle
 };

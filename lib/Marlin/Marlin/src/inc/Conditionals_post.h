@@ -197,54 +197,15 @@
  * Temp Sensor defines
  */
 
-#define ANY_TEMP_SENSOR_IS(n) (TEMP_SENSOR_0 == (n) || TEMP_SENSOR_1 == (n) || TEMP_SENSOR_2 == (n) || TEMP_SENSOR_3 == (n) || TEMP_SENSOR_4 == (n) || TEMP_SENSOR_5 == (n) || TEMP_SENSOR_BED == (n))
+#define ANY_TEMP_SENSOR_IS(n) (TEMP_SENSOR_0 == (n) || TEMP_SENSOR_BED == (n))
 
 #if TEMP_SENSOR_0 > 0
   #define THERMISTOR_HEATER_0 TEMP_SENSOR_0
   #define HEATER_0_USES_THERMISTOR
-#else
-  #undef HEATER_0_MINTEMP
-  #undef HEATER_0_MAXTEMP
 #endif
 
-#if TEMP_SENSOR_1 > 0
-  #define THERMISTOR_HEATER_1 TEMP_SENSOR_1
-  #define HEATER_1_USES_THERMISTOR
-#else
-  #undef HEATER_1_MINTEMP
-  #undef HEATER_1_MAXTEMP
-#endif
-
-#if TEMP_SENSOR_2 > 0
-  #define THERMISTOR_HEATER_2 TEMP_SENSOR_2
-  #define HEATER_2_USES_THERMISTOR
-#else
-  #undef HEATER_2_MINTEMP
-  #undef HEATER_2_MAXTEMP
-#endif
-
-#if TEMP_SENSOR_3 > 0
-  #define THERMISTOR_HEATER_3 TEMP_SENSOR_3
-  #define HEATER_3_USES_THERMISTOR
-#else
-  #undef HEATER_3_MINTEMP
-  #undef HEATER_3_MAXTEMP
-#endif
-
-#if TEMP_SENSOR_4 > 0
-  #define THERMISTOR_HEATER_4 TEMP_SENSOR_4
-  #define HEATER_4_USES_THERMISTOR
-#else
-  #undef HEATER_4_MINTEMP
-  #undef HEATER_4_MAXTEMP
-#endif
-
-#if TEMP_SENSOR_5 > 0
-  #define THERMISTOR_HEATER_5 TEMP_SENSOR_5
-  #define HEATER_5_USES_THERMISTOR
-#else
-  #undef HEATER_5_MINTEMP
-  #undef HEATER_5_MAXTEMP
+#if defined(TEMP_1) || defined(TEMP_SENSOR_1) || defined(HEATER_1_MINTEMP) || defined(HEATER_1_MAXTEMP)
+  #error Support for multiple local hotends removed
 #endif
 
 #if TEMP_SENSOR_BED > 0
@@ -614,15 +575,11 @@
 // ADC Temp Sensors (Thermistor or Thermocouple with amplifier ADC interface)
 #define HAS_ADC_TEST(P) (PIN_EXISTS(TEMP_##P) && TEMP_SENSOR_##P != 0)
 #define HAS_TEMP_ADC_0 HAS_ADC_TEST(0)
-#define HAS_TEMP_ADC_1 HAS_ADC_TEST(1)
-#define HAS_TEMP_ADC_2 HAS_ADC_TEST(2)
-#define HAS_TEMP_ADC_3 HAS_ADC_TEST(3)
-#define HAS_TEMP_ADC_4 HAS_ADC_TEST(4)
-#define HAS_TEMP_ADC_5 HAS_ADC_TEST(5)
 #define HAS_TEMP_ADC_HEATBREAK HAS_ADC_TEST(HEATBREAK)
 #define HAS_TEMP_ADC_BOARD HAS_ADC_TEST(BOARD)
 
-#define HAS_TEMP_HOTEND HAS_TEMP_ADC_0
+// Not tied to HAS_ADC_XX, this needs to be true even if we have remote hotends
+#define HAS_TEMP_HOTEND 1
 #define HAS_TEMP_HEATBREAK HAS_TEMP_ADC_HEATBREAK
 #define HAS_TEMP_BOARD HAS_TEMP_ADC_BOARD
 #define HAS_TEMP_HEATBREAK_CONTROL (HAS_TEMP_HEATBREAK && PIN_EXISTS(HEATER_HEATBREAK))  // For future use to control heatbreak temperature
