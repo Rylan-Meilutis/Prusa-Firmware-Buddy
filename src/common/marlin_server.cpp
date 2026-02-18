@@ -3006,6 +3006,11 @@ void set_media_position(uint32_t set) {
 }
 
 void retract() {
+    // Can't retract without a tool picked (no extruder to drive)
+    if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+        return;
+    }
+
 #if HAS_AUTO_RETRACT()
     if (buddy::auto_retract().will_deretract()) {
         // Filament is already retracted, don't retact it more
