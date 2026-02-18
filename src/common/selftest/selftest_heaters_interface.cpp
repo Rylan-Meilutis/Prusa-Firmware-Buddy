@@ -59,12 +59,15 @@ static inline void power_check_callback(CSelftestPart_Heater &part) {
 }
 #endif
 
-void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles, const std::span<const HeaterConfig_t> config_nozzle) {
+void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles, const std::span<const HeaterConfig_t, PhysicalToolIndex::count> config_nozzle) {
     resultHeaters.tested_parts |= to_one_hot(SelftestHeaters_t::TestedParts::noz);
 
     for (size_t i = 0; i < config_nozzle.size(); i++) {
-        // reset result
-        resultHeaters.noz[PhysicalToolIndex::from_raw(i)] = SelftestHeater_t(0, SelftestSubtestState_t::undef, SelftestSubtestState_t::undef);
+        // mark test as failed (so it will be failed after reset - disconnected cables can cause rsod)
+        auto result = config_store().selftest_result.get();
+        result.tools[PhysicalToolIndex::from_raw(i)].nozzle = TestResult_Failed;
+        config_store().selftest_result.set(result);
+        resultHeaters.noz[PhysicalToolIndex::from_raw(i)] = SelftestHeater_t(0, SelftestSubtestState_t::not_good, SelftestSubtestState_t::not_good);
 
         if (pNozzles[i] == nullptr) {
 #if HAS_TOOLCHANGER()
@@ -129,8 +132,11 @@ void phaseHeaters_bed_ena(IPartHandler *&pBed, const HeaterConfig_t &config_bed)
         }
     }
 
-    // reset result
-    resultHeaters.bed = SelftestHeater_t(0, SelftestSubtestState_t::undef, SelftestSubtestState_t::undef);
+    // mark test as failed (so it will be failed after reset)
+    auto result = config_store().selftest_result.get();
+    result.bed = TestResult_Failed;
+    config_store().selftest_result.set(result);
+    resultHeaters.bed = SelftestHeater_t(0, SelftestSubtestState_t::not_good, SelftestSubtestState_t::not_good);
     resultHeaters.tested_parts |= to_one_hot(SelftestHeaters_t::TestedParts::bed);
 
     if (pBed == nullptr) {
