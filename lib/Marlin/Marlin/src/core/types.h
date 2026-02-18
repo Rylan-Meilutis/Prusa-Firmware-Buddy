@@ -300,10 +300,10 @@ typedef abce_float_t abce_pos_t;
 
 // External conversion methods
 template<typename V>
-void toLogical(V &v);
+[[nodiscard]] V toLogical(const V &v);
 
 template<typename V>
-void toNative(V &v);
+[[nodiscard]] V toNative(const V &v);
 
 //
 // Paired XY coordinates, counters, flags, etc.
@@ -360,8 +360,8 @@ struct XYval {
   FI XYval<float, Tag> reciprocal()                    const { return {  _RECIP(x),  _RECIP(y) }; }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYval<float, Tag>  asLogical()                    const { auto o = asFloat(); toLogical(o); return o; }
-  FI XYval<float, Tag>   asNative()                    const { auto o = asFloat(); toNative(o);  return o; }
+  FI XYval  asLogical()                    const { return toLogical(*this); }
+  FI XYval   asNative()                    const { return toNative(*this); }
 
   // Cast to a type with more fields by making a new object
   explicit FI operator XYZval()                         const { return NUM_AXIS_ARRAY(x, y, 0, 0, 0, 0, 0, 0, 0); }
@@ -495,8 +495,8 @@ struct XYZval {
   FI XYZval<float, Tag> reciprocal()                  const { return NUM_AXIS_ARRAY(_RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYZval<float, Tag> asLogical()                   const { auto o = asFloat(); toLogical(o); return o; }
-  FI XYZval<float, Tag>  asNative()                   const { auto o = asFloat(); toNative(o);  return o; }
+  FI XYZval  asLogical()                    const { return toLogical(*this); }
+  FI XYZval   asNative()                    const { return toNative(*this); }
 
   // In-place cast to types having fewer fields
   FI operator XYval()                         const { return XYval{x, y}; }
@@ -635,8 +635,8 @@ struct XYZEval {
   FI XYZEval<float, Tag> reciprocal() const { return LOGICAL_AXIS_ARRAY(_RECIP(e),  _RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(i),  _RECIP(j),  _RECIP(k),  _RECIP(u),  _RECIP(v),  _RECIP(w)); }
 
   // Marlin workspace shifting is done with G92 and M206
-  FI XYZEval<float, Tag> asLogical()  const { auto o = asFloat(); toLogical(o); return o; }
-  FI XYZEval<float, Tag>  asNative()  const { auto o = asFloat(); toNative(o);  return o; }
+  FI XYZEval  asLogical()                    const { return toLogical(*this); }
+  FI XYZEval   asNative()                    const { return toNative(*this); }
 
   // In-place cast to types having fewer fields
   FI operator       XYval&()        { return *(XYval*)this; }

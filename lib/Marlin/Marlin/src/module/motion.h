@@ -419,13 +419,13 @@ inline xyz_pos_t native_logical_offset() {
 }
 
 template<typename V>
-void toLogical(V &v) {
-  v += native_logical_offset();
+[[nodiscard]] V toLogical(const V &v) {
+  return v + native_logical_offset();
 }
 
 template<typename V>
-void toNative(V &v) {
-  v -= native_logical_offset();
+[[nodiscard]] V toNative(const V &v) {
+  return v - native_logical_offset();
 }
 
 #undef _WS
