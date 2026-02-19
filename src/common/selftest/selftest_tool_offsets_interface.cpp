@@ -50,9 +50,8 @@ TestReturn phaseToolOffsets([[maybe_unused]] const ToolMask tool_mask, IPartHand
             continue; // Tool is not enabled
         }
 
-        if (eeres.tools[i].tooloffset == TestResult_Passed
-            && pToolOffsets->GetResult() == TestResult_Skipped) {
-            continue; // Test was successful and now aborted, do not regress
+        if (pToolOffsets->GetResult() == TestResult_Skipped) {
+            continue; // Test was aborted, do not regress
         }
 
         // Store tool calibration state
