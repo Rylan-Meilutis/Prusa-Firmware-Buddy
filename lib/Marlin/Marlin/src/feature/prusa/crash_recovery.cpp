@@ -98,9 +98,9 @@ void Crash_s::stop_and_save() {
     // would require keeping more state), it's only usable to abort or return to the same position.
     planner.get_axis_position_mm(crash_current_position);
 
-    #if HAS_POSITION_MODIFIERS
+    #if HAS_LEVELING
     planner.unapply_leveling(crash_current_position);
-    #endif /*HAS_POSITION_MODIFIERS*/
+    #endif
 }
 
 void check_stack_unwound() {
