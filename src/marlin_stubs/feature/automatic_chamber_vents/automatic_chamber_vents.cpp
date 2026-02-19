@@ -48,7 +48,7 @@ namespace {
     void plan_to_x(float x, feedRate_t feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S)) {
         xyze_pos_t xyz = current_position;
         xyz.x = x;
-        prepare_move_to(xyz, feedrate, { .apply_modifiers = false /*XY move doesn't need MBL*/ });
+        prepare_move_to(xyz, feedrate, {});
     }
 
     /// @brief Plans a move to a new Y-axis coordinate.
@@ -57,7 +57,7 @@ namespace {
     void plan_to_y(float y, feedRate_t feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S)) {
         xyze_pos_t xyz = current_position;
         xyz.y = y;
-        prepare_move_to(xyz, feedrate, { .apply_modifiers = false /*XY move doesn't need MBL*/ });
+        prepare_move_to(xyz, feedrate, {});
     }
 
     /// @brief Prepares the printer for a vent lever switch.

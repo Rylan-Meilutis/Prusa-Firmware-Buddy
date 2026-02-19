@@ -872,7 +872,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
   if (hints.do_segment) {
     // Segment the move enough for MBL
     #if ENABLED(AUTO_BED_LEVELING_UBL)
-    if(hints.apply_modifiers && planner.leveling_active && planner.leveling_active_at_z(target.z)) {
+    if(planner.leveling_active && planner.leveling_active_at_z(target.z)) {
       segment_count = std::max(segment_count, static_cast<SegmentCount>(std::round(xy_distance / LEVELED_SEGMENT_LENGTH)));
     }
     #endif
@@ -897,12 +897,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
   };
 
   const auto buffer_move = [&](xyze_pos_t target) {
-    #if HAS_LEVELING
-    if(hints.apply_modifiers) {
-      planner.apply_leveling(target);
-    }
-    #endif
-    planner.buffer_segment(target, fr_mm_s, PhysicalToolIndex::currently_selected(), planner_hints);
+    planner.buffer_segment(to_machine_pos(target), fr_mm_s, PhysicalToolIndex::currently_selected(), planner_hints);
   };
 
   while (--segment_count) {
