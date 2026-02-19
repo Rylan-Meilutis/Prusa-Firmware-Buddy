@@ -191,7 +191,7 @@ void cubic_b_spline(
     apply_motion_limits(new_bez);
     bez_target = new_bez;
 
-    #if HAS_LEVELING && !PLANNER_LEVELING
+    #if HAS_LEVELING
       xyze_pos_t pos = bez_target;
       planner.apply_leveling(pos);
     #else

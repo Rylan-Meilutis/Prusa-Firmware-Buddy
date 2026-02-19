@@ -1476,8 +1476,7 @@ void Pause::unpark_nozzle_and_notify() {
 
         // Gotta apply leveling, otherwise the move would move the axes to non-leveled coordinates
         // (because do_blocking_move_to->plan_park_move_to->buffer_line doesn't apply the leveling :/)
-        // If PLANNER_LEVELING is true, the leveling is applied inside buffer_line
-#if HAS_LEVELING && !PLANNER_LEVELING
+#if HAS_LEVELING
         planner.apply_leveling(resume_pos_adj);
 #endif
 

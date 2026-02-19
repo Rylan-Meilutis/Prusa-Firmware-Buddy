@@ -104,10 +104,9 @@ void motion_do_blocking_move_to_z(float z, float feedRate_mm_s) {
     xyze_pos_t target_pos = current_position;
     target_pos.z = z;
 
-#if HAS_LEVELING && !PLANNER_LEVELING
+#if HAS_LEVELING
     // Gotta apply leveling, otherwise the move would move to non-leveled coordinates
     // (and potentially crash into model)
-    // If PLANNER_LEVELING is true, the leveling is applied inside buffer_line
     planner.apply_leveling(target_pos);
 #endif
 

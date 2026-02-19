@@ -519,12 +519,7 @@ class Planner {
     #if HAS_POSITION_MODIFIERS
       FORCE_INLINE static void apply_modifiers(xyze_pos_t &pos
         #if HAS_LEVELING
-          , bool leveling =
-          #if PLANNER_LEVELING
-            true
-          #else
-            false
-          #endif
+          , bool leveling = false
         #endif
       ) {
         #if ENABLED(SKEW_CORRECTION)
@@ -537,12 +532,7 @@ class Planner {
 
       FORCE_INLINE static void unapply_modifiers(xyze_pos_t &pos
         #if HAS_LEVELING
-          , bool leveling =
-          #if PLANNER_LEVELING
-            true
-          #else
-            false
-          #endif
+          , bool leveling = false
         #endif
       ) {
         #if HAS_LEVELING
