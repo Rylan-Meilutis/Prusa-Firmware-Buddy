@@ -22,11 +22,11 @@ using namespace multi_filament_change;
 
 MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
     : MenuItemSelectMenu({})
-    , tool_ix(tool_ix) //
+    , tool(VirtualToolIndex::from_raw(tool_ix)) //
 {
-    has_filament_loaded = (config_store().get_filament_type(tool_ix) != FilamentType::none);
-    set_is_hidden(!is_tool_enabled(tool_ix));
-    SetLabel(_(HAS_MMU2() ? N_("Tool %u Filament") : N_("Filament %u")).formatted(label_params, static_cast<unsigned>(tool_ix) + 1));
+    has_filament_loaded = (config_store().get_filament_type(tool) != FilamentType::none);
+    set_is_hidden(!tool.is_enabled());
+    SetLabel(tool.display_name(label_params));
 }
 
 void MI_ActionSelect::set_config(const ConfigItem &set) {
@@ -100,7 +100,7 @@ MenuMultiFilamentChange::MenuMultiFilamentChange(window_t *parent, const Rect16 
 
 void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig &set) {
     // Set the correct indexes for the actions
-    stdext::visit_sequence<tool_count>([&]<size_t ix>() {
+    stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
         container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().set_config(set[ix]);
     });
 }
@@ -119,17 +119,17 @@ void MenuMultiFilamentChange::carry_out_changes() {
     struct ToolConfig : public ConfigItem {
         FilamentType old_filament = FilamentType::none;
     };
-    std::array<ToolConfig, tool_count> tool_config = [&]<size_t... ix>(std::index_sequence<ix...>) {
-        return std::array<ToolConfig, tool_count> {
-            ToolConfig { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config(), config_store().get_filament_type(ix) }...
+    auto tool_config = [&]<size_t... ix>(std::index_sequence<ix...>) {
+        return StrongIndexArray<ToolConfig, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> {
+            ToolConfig { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config(), config_store().get_filament_type(VirtualToolIndex::from_raw(ix)) }...
         };
-    }(std::make_index_sequence<tool_count>());
+    }(std::make_index_sequence<VirtualToolIndex::count>());
 
     // Validate the inputs
-    for (size_t tool = 0; tool < tool_count; tool++) {
+    for (auto tool : VirtualToolIndex::all()) {
         auto &config = tool_config[tool];
 
-        if (!is_tool_enabled(tool)) {
+        if (!tool.is_enabled()) {
             config.action = Action::keep;
             continue;
         }
@@ -147,15 +147,15 @@ void MenuMultiFilamentChange::carry_out_changes() {
 
 #if HAS_TOOLCHANGER()
     // Set all temperatures
-    for (size_t tool = 0; tool < tool_count; tool++) {
+    for (auto tool : VirtualToolIndex::all()) {
         const auto &config = tool_config[tool];
         if (config.action == Action::keep) {
             continue;
         }
 
         const uint16_t temperature = max(config.new_filament.parameters().nozzle_temperature, config.old_filament.parameters().nozzle_temperature);
-        marlin_client::set_target_nozzle(temperature, tool);
-        marlin_client::set_display_nozzle(temperature, tool);
+        marlin_client::set_target_nozzle(temperature, tool.to_physical());
+        marlin_client::set_display_nozzle(temperature, tool.to_physical());
     }
 
     // Lift Z to prevent unparking and parking of each tool
@@ -173,7 +173,7 @@ void MenuMultiFilamentChange::carry_out_changes() {
     */
 
     // Carry out the changes
-    for (size_t tool = 0; tool < tool_count; tool++) {
+    for (auto tool : VirtualToolIndex::all()) {
         const auto &config = tool_config[tool];
         switch (config.action) {
 
@@ -184,20 +184,20 @@ void MenuMultiFilamentChange::carry_out_changes() {
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
 #else
-            marlin_client::gcode_printf("M702 T%d W2", tool);
+            marlin_client::gcode_printf("M702 T%d W2", tool.to_raw());
 #endif
             break;
 
         case Action::change: {
 #if HAS_MMU2()
-            marlin_client::gcode_printf("M704 P%d", tool);
+            marlin_client::gcode_printf("M704 P%d", tool.to_raw());
             config_store().set_filament_type(tool, config.new_filament);
 #else
             ArrayStringBuilder<MAX_CMD_SIZE> command_builder;
 
             // M1600 - filament change (doesn't ask for unload)
             // M701 - filament load
-            command_builder.append_printf((config.old_filament != FilamentType::none) ? "M1600 S\"%s\" T%d R" : "M701 S\"%s\" T%d W2", config.new_filament.parameters().name.data(), tool);
+            command_builder.append_printf((config.old_filament != FilamentType::none) ? "M1600 S\"%s\" T%d R" : "M701 S\"%s\" T%d W2", config.new_filament.parameters().name.data(), tool.to_raw());
 
             if (config.color.has_value()) {
                 command_builder.append_printf(" O%" PRIu32, config.color->raw);

@@ -33,7 +33,7 @@ private:
     });
 
 private:
-    const uint8_t tool_ix;
+    const VirtualToolIndex tool;
     bool has_filament_loaded = false;
     std::optional<Color> color;
 
@@ -60,7 +60,7 @@ struct MenuMultiFilamentChange__<std::index_sequence<ix...>> {
         MI_ApplyChanges>;
 };
 
-using MenuMultiFilamentChange_ = MenuMultiFilamentChange__<std::make_index_sequence<multi_filament_change::tool_count>>;
+using MenuMultiFilamentChange_ = MenuMultiFilamentChange__<std::make_index_sequence<VirtualToolIndex::count>>;
 
 class MenuMultiFilamentChange : public WindowMenu {
 

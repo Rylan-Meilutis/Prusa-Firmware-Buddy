@@ -4,11 +4,9 @@
 #include <array>
 
 #include <filament.hpp>
+#include <tool_index.hpp>
 
 namespace multi_filament_change {
-
-/// Number of tools shown in the multi filament change menu
-static constexpr size_t tool_count = 5;
 
 enum class Action : uint8_t {
     /// Keep as is, do not change the filament
@@ -27,7 +25,7 @@ struct ConfigItem {
     std::optional<Color> color;
 };
 
-using Config = std::array<ConfigItem, tool_count>;
+using Config = std::array<ConfigItem, VirtualToolIndex::count>;
 
 } // namespace multi_filament_change
 
