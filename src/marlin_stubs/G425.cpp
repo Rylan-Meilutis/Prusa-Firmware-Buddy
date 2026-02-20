@@ -626,13 +626,8 @@ inline void calibrate_all_toolheads(measurements_t &m) {
     TEMPORARY_BACKLASH_CORRECTION(all_on);
     TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
-#if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.getTool(e).is_enabled()) {
-            continue;
-        }
-#endif
-        calibrate_toolhead(m, e);
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        calibrate_toolhead(m, tool.to_raw());
     }
 
 #if HAS_HOTEND_OFFSET

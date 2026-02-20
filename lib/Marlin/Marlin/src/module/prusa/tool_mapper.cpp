@@ -22,7 +22,7 @@ ToolMapper &ToolMapper::operator=(const ToolMapper &other) {
 
 bool ToolMapper::set_mapping(GcodeToolIndex gcode_tool, VirtualToolIndex virtual_tool) {
     std::unique_lock lock(mutex);
-    if (!is_tool_enabled(virtual_tool.to_raw())) {
+    if (!virtual_tool.is_enabled()) {
         return false;
     }
 

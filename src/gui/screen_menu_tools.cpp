@@ -32,12 +32,12 @@ MI_INFO_DWARF_MCU_TEMPERATURE::MI_INFO_DWARF_MCU_TEMPERATURE()
 
 MI_ODOMETER_DIST_E::MI_ODOMETER_DIST_E(const char *const label, int index)
     : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes,
-        prusa_toolchanger.is_toolchanger_enabled() && prusa_toolchanger.is_tool_enabled(index) ? is_hidden_t::no : is_hidden_t::yes, -1) {
+        PhysicalToolIndex::from_raw(index).is_enabled() ? is_hidden_t::no : is_hidden_t::yes, -1) {
 }
 
 MI_ODOMETER_TOOL::MI_ODOMETER_TOOL(const char *const label, int index)
     : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), nullptr, is_enabled_t::yes,
-        prusa_toolchanger.is_toolchanger_enabled() && prusa_toolchanger.is_tool_enabled(index) ? is_hidden_t::no : is_hidden_t::yes, 0,
+        PhysicalToolIndex::from_raw(index).is_enabled() ? is_hidden_t::no : is_hidden_t::yes, 0,
         [&](const std::span<char> &buffer) {
             snprintf(buffer.data(), buffer.size(), "%lu %s", value(), times_label);
         }) {

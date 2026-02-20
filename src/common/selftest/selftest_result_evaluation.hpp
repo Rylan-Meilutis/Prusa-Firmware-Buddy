@@ -26,13 +26,8 @@ constexpr TestResult evaluate_results(std::same_as<TestResult> auto... results) 
 
 constexpr TestResult merge_hotends_evaluations(std::invocable<int8_t> auto evaluate_one) {
     TestResult res { TestResult_Passed };
-    for (int8_t e = 0; e < HOTENDS; e++) {
-#if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(e)) {
-            continue;
-        }
-#endif
-        res = evaluate_results(res, evaluate_one(e));
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        res = evaluate_results(res, evaluate_one(tool.to_raw()));
     }
     return res;
 };

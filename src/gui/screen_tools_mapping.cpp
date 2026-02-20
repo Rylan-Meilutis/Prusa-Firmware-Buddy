@@ -31,6 +31,7 @@ using namespace buddy::gcode_compatibility;
 namespace {
 
 static_assert(window_line_connector::max_one_side_points >= ToolsMappingBody::max_item_rows, "Can't fit all rows into connector");
+static_assert(ToolsMappingBody::max_item_rows == VirtualToolIndex::count);
 
 /**
  * @brief Main text zone is as follows
@@ -300,12 +301,8 @@ bool all_nozzles_same(GCodeInfo &gcode_info) {
     }
 
     // check physicals
-    for (int8_t e = 0; e < PhysicalToolIndex::count; e++) {
-        if (!is_tool_enabled(e)) {
-            continue;
-        }
-
-        if (!nozzles_are_matching(first_value, get_nozzle_diameter(e))) {
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        if (!nozzles_are_matching(first_value, get_nozzle_diameter(tool.to_raw()))) {
             return false;
         }
     }

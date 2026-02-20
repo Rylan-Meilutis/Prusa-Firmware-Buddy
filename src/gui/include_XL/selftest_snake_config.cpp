@@ -2,6 +2,7 @@
 #include <selftest_types.hpp>
 #include <selftest_result_evaluation.hpp>
 #include <config_store/store_instance.hpp>
+#include <tool_index.hpp>
 
 #include <option/has_side_fsensor.h>
 #include <option/has_chamber_api.h>
@@ -136,14 +137,11 @@ uint64_t get_test_mask(Action action) {
 }
 
 Tool get_last_enabled_tool() {
-#if HAS_TOOLCHANGER()
-    for (int i = EXTRUDERS - 1; i >= 0; --i) {
-        if (prusa_toolchanger.is_tool_enabled(i)) {
-            return static_cast<Tool>(i);
-        }
+    auto result = Tool::Tool1;
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        result = static_cast<Tool>(tool.to_raw());
     }
-#endif
-    return Tool::Tool1;
+    return result;
 }
 
 Tool get_next_tool(Tool tool) {

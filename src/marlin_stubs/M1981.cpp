@@ -37,19 +37,13 @@ void M1981() {
         tools |= (1 << *tool);
     }
 
-    for (uint8_t tool = 0; tool < HOTENDS; tool++) {
-        if (!(tools & (1 << tool))) {
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        if (!(tools & (1 << tool.to_raw()))) {
             continue;
         }
-
-#if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(tool)) {
-            continue;
-        }
-#endif
 
         using Result = SelftestFSensorsResult;
-        const Result test_result = run_selftest_fsensors({ .tool = tool });
+        const Result test_result = run_selftest_fsensors({ .tool = tool.to_raw() });
         switch (test_result) {
 
         case Result::success:
