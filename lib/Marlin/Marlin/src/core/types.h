@@ -154,7 +154,7 @@ enum AxisEnum : uint8_t {
 
   // Extruder axes may be considered distinctly
   #define _EN_ITEM(N) , E##N##_AXIS
-  REPEAT(EXTRUDERS, _EN_ITEM)
+  REPEAT(E_STEPPERS, _EN_ITEM)
   #undef _EN_ITEM
 
   // Core also keeps toolhead directions
