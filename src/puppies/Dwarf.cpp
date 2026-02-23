@@ -374,11 +374,7 @@ CommunicationStatus Dwarf::set_hotend_target_temp(float target) {
 }
 
 int Dwarf::get_heater_pwm() {
-    // FIXME:
-    // Called from interrupts, can't lock :-(
-    // BFW-6219.
-    // Lock guard(*mutex);
-
+    Lock guard(*mutex);
     return RegisterGeneralStatus.value.HotendPWMState;
 }
 
