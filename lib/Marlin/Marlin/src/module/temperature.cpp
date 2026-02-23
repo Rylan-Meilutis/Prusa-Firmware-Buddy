@@ -139,11 +139,6 @@ Temperature thermalManager;
 
 #define MIN_BED_POWER 0
 #define MAX_BED_POWER 255
-#if HAS_LOCAL_BED()
-  #define WRITE_HEATER_BED(v) analogWrite_HEATER_BED((v) ? MAX_BED_POWER : MIN_BED_POWER)
-#else
-  #define WRITE_HEATER_BED(v)
-#endif
 
 // public:
 
@@ -574,7 +569,6 @@ void Temperature::manage_heater() {
           }
           else {
             temp_bed.soft_pwm_amount = 0;
-            WRITE_HEATER_BED(LOW);
           }
         #endif
       }
@@ -638,10 +632,8 @@ void Temperature::manage_heater() {
   #endif // HAS_TEMP_HEATBREAK
 
   UNUSED(ms);
-  #if ENABLED(HW_PWM_HEATERS)
-    #if HAS_LOCAL_BED()
-      analogWrite_HEATER_BED(temp_bed.soft_pwm_amount);
-    #endif
+  #if HAS_LOCAL_BED()
+    analogWrite_HEATER_BED(temp_bed.soft_pwm_amount);
   #endif
 
   #if HAS_FAN0
@@ -911,7 +903,7 @@ void Temperature::init() {
   #endif
 
   #if HAS_LOCAL_BED()
-    WRITE_HEATER_BED(LOW);
+    analogWrite_HEATER_BED(0);
   #endif
 
   #if HAS_FAN0
@@ -1036,9 +1028,9 @@ void Temperature::disable_heaters(Temperature::disable_bed_t disable_bed) {
   #if HAS_HEATED_BED
     if (disable_bed == disable_bed_t::yes){
       setTargetBed(0);
-      #if HAS_LOCAL_BED()
       temp_bed.soft_pwm_amount = 0;
-      WRITE_HEATER_BED(LOW);
+      #if HAS_LOCAL_BED()
+      analogWrite_HEATER_BED(0);
       #endif
     }
   #endif
@@ -1151,7 +1143,6 @@ HAL_TEMP_TIMER_ISR() {
 }
 
 void Temperature::isr() {
-
   static int8_t temp_count = -1;
   static ADCSensorState adc_sensor_state = StartupDelay;
 
@@ -1167,10 +1158,6 @@ void Temperature::isr() {
     for(auto tool : PhysicalToolIndex::all()) {
       Hotend::for_tool(tool).isr_soft_pwm(PWM255(pwm_count_tmp));
     }
-
-    #if HAS_LOCAL_BED() && DISABLED(HW_PWM_HEATERS)
-      WRITE_HEATER_BED(temp_bed.soft_pwm_amount > 0 && pwm_count_tmp <= temp_bed.soft_pwm_amount);
-    #endif
   }
 
 
