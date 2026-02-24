@@ -667,7 +667,7 @@ float run_z_probe(const RunZProbeParams& params) {
         loadcell.WaitBarrier(window_end);
 
         METRIC_DEF(analysis_result, "probe_analysis", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
-        auto result = loadcell.analysis.Analyse();
+        auto result = loadcell.analysis.Analyse(params.is_nozzle_clean);
 
         if (result.has_value()) {
           success = true;
