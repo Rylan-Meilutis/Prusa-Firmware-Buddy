@@ -23,22 +23,12 @@
 
 #include "../../inc/MarlinConfigPre.h"
 
-#if ENABLED(PROBE_MANUALLY)
-  extern bool g29_in_progress;
-#else
-  constexpr bool g29_in_progress = false;
-#endif
-
 bool leveling_is_valid();
 void set_bed_leveling_enabled(const bool enable=true);
 void reset_bed_level();
 
 #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
   void set_z_fade_height(const float zfh, const bool do_report=true);
-#endif
-
-#if ENABLED(PROBE_MANUALLY)
-  void _manual_goto_xy(const xy_pos_t &pos);
 #endif
 
 /**

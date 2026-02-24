@@ -513,9 +513,6 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
     const bool leveling_restore_state = parser.boolval('L', TERN1(RESTORE_LEVELING_AFTER_G28, planner.leveling_active));
   #endif
 
-  // Cancel any prior G29 session
-  TERN_(PROBE_MANUALLY, g29_in_progress = false);
-
   // Disable leveling before homing
   TERN_(HAS_LEVELING, set_bed_leveling_enabled(false));
 

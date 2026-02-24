@@ -27,14 +27,6 @@
 #include "bedlevel.h"
 #include "../../module/planner.h"
 
-#if ENABLED(PROBE_MANUALLY)
-  #include "../../module/motion.h"
-#endif
-
-#if ENABLED(PROBE_MANUALLY)
-  bool g29_in_progress = false;
-#endif
-
 #if ENABLED(LCD_BED_LEVELING)
   #include "../../lcd/ultralcd.h"
 #endif
@@ -118,30 +110,5 @@ void reset_bed_level() {
     set_bed_leveling_enabled(false);
   #endif
 }
-
-#if ENABLED(PROBE_MANUALLY)
-
-  void _manual_goto_xy(const xy_pos_t &pos) {
-
-    #ifdef MANUAL_PROBE_START_Z
-      constexpr float startz = _MAX(0, MANUAL_PROBE_START_Z);
-      #if MANUAL_PROBE_HEIGHT > 0
-        do_blocking_move_to_xy_z(pos, MANUAL_PROBE_HEIGHT);
-        do_blocking_move_to_z(startz);
-      #else
-        do_blocking_move_to_xy_z(pos, startz);
-      #endif
-    #elif MANUAL_PROBE_HEIGHT > 0
-      const float prev_z = current_position.z;
-      do_blocking_move_to_xy_z(pos, MANUAL_PROBE_HEIGHT);
-      do_blocking_move_to_z(prev_z);
-    #else
-      do_blocking_move_to_xy(pos);
-    #endif
-
-    current_position = pos;
-  }
-
-#endif
 
 #endif // HAS_LEVELING

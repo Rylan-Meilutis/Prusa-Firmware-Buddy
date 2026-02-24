@@ -69,7 +69,7 @@
 
 #endif
 
-#if HAS_LEVELING && (HAS_BED_PROBE || ENABLED(PROBE_MANUALLY))
+#if HAS_LEVELING && HAS_BED_PROBE
   float probe_min_x();
   float probe_max_x();
   float probe_min_y();

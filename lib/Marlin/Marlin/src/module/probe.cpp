@@ -996,7 +996,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 
 #endif // HAS_BED_PROBE
 
-#if HAS_LEVELING && (HAS_BED_PROBE || ENABLED(PROBE_MANUALLY))
+#if HAS_LEVELING && HAS_BED_PROBE
  float probe_min_x() {
     return (X_MIN_POS) + probe_offset.x + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.x);
   }
