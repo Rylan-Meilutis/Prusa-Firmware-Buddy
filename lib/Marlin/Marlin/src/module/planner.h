@@ -417,19 +417,6 @@ class Planner {
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
 
-      /**
-       * Get the Z leveling fade factor based on the given Z height,
-       * re-calculating only when needed.
-       *
-       *  Returns 1.0 if planner.z_fade_height is 0.0.
-       *  Returns 0.0 if Z is past the specified 'Fade Height'.
-       */
-      static inline float fade_scaling_factor_for_z(const float rz) {
-        if (!z_fade_height) return 1;
-        if (rz >= z_fade_height) return 0;
-        return 1 - rz * inverse_z_fade_height;
-      }
-
       FORCE_INLINE static void set_z_fade_height(const float zfh) {
         z_fade_height = zfh > 0 ? zfh : 0;
         inverse_z_fade_height = RECIPROCAL(z_fade_height);
@@ -440,8 +427,6 @@ class Planner {
       }
 
     #else
-
-      FORCE_INLINE static float fade_scaling_factor_for_z(const float) { return 1; }
 
       FORCE_INLINE static bool leveling_active_at_z(const float) { return true; }
 
