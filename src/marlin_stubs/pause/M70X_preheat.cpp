@@ -85,9 +85,30 @@ std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::p
 void filament_gcodes::preheat_to(FilamentType filament, uint8_t target_extruder, PreheatBehavior preheat_arg) {
     const FilamentTypeParameters fil_cnf = filament.parameters();
 
+    int16_t target_temp = fil_cnf.nozzle_temperature;
+
+    // If the previously loaded filament had a higher nozzle temperature,
+    // preheat to that temperature to ensure the remnants in the nozzle
+    // will melt enough to allow the load.
+    //
+    // If the previously loaded filament is unknown, preheat to 280C
+    // for the case there was a high-temperature filament in the nozzle
+    // previously.
+    //
+    // Only do this if there's no currently loaded filament to avoid
+    // preheating to 280C if we're already loaded.
+    if (!config_store().get_filament_type(target_extruder)) {
+        int16_t prev_temp = 280; // default previous filament temperature in case the previous filament is unknown
+        const FilamentType prev_filament = config_store().get_previous_filament_type(target_extruder);
+        if (prev_filament != FilamentType::none) {
+            prev_temp = prev_filament.parameters().nozzle_temperature;
+        }
+        target_temp = std::max(target_temp, prev_temp);
+    }
+
     // change temp only if it is lower than currently loaded filament
-    if (preheat_arg.force_temp || thermalManager.degTargetHotend(target_extruder) < fil_cnf.nozzle_temperature) {
-        thermalManager.setTargetHotend(fil_cnf.nozzle_temperature, target_extruder);
+    if (preheat_arg.force_temp || thermalManager.degTargetHotend(target_extruder) < target_temp) {
+        thermalManager.setTargetHotend(target_temp, target_extruder);
 
         const uint8_t extruder =
 #if HAS_MMU2()
@@ -100,7 +121,7 @@ void filament_gcodes::preheat_to(FilamentType filament, uint8_t target_extruder,
             target_extruder;
 #endif
 
-        marlin_server::set_temp_to_display(fil_cnf.nozzle_temperature, extruder);
+        marlin_server::set_temp_to_display(target_temp, extruder);
         if (preheat_arg.preheat_bed && (preheat_arg.force_temp || (thermalManager.degTargetBed() < fil_cnf.heatbed_temperature))) {
             thermalManager.setTargetBed(fil_cnf.heatbed_temperature);
         }

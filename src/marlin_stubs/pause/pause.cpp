@@ -618,6 +618,16 @@ void Pause::move_to_purge_process([[maybe_unused]] Response response) {
 
 void Pause::load_wait_temp_process([[maybe_unused]] Response response) {
     if (ensureSafeTemperatureNotifyProgress()) { // blocking -> checks for user stop
+        // We preheated to the higher temeperature of the filament currently
+        // being loaded and the previously loaded filament. Drop the target to
+        // the temperature of the filament currently being loaded just before
+        // loading it into the nozzle (this will drop the nozzle temperature by
+        // itself, overheating the new filament a bit less).
+        thermalManager.setTargetHotend(
+            filament::get_type_to_load().parameters().nozzle_temperature,
+            settings.GetExtruder());
+        marlin_server::set_temp_to_display(filament::get_type_to_load().parameters().nozzle_temperature, settings.GetExtruder());
+
         if (load_type == LoadType::load_purge) {
             set(LoadState::purge);
         } else {
