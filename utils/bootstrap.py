@@ -298,7 +298,7 @@ def get_dependency_directory(dependency) -> Path:
     return Path(directory_for_dependency(dependency, version))
 
 
-def switch_to_venv_if_nedded():
+def switch_to_venv_if_needed():
     if not running_in_venv and os.environ.get('BUDDY_NO_VIRTUALENV') != '1':
         prepare_venv_if_needed(include_integration=False)
         print('Switching to Buddy\'s virtual environment.', file=sys.stderr)
