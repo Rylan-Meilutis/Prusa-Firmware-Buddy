@@ -447,15 +447,12 @@ class Planner {
 
     #endif
 
-    #if HAS_LEVELING
-      /**
-       * Apply leveling to transform a cartesian position
-       * as it will be given to the planner and steppers.
-       */
-      static void apply_leveling(xyz_pos_t &raw);
-      static void unapply_leveling(xyz_pos_t &raw);
-    #endif
-
+    /**
+      * Apply leveling to transform a cartesian position
+      * as it will be given to the planner and steppers.
+      */
+    static void apply_leveling(xyz_pos_t &raw);
+    static void unapply_leveling(xyz_pos_t &raw);
 
     // Number of moves currently in the planner including the busy block, if any
     FORCE_INLINE static uint8_t movesplanned() { return BLOCK_MOD(block_buffer_head - block_buffer_tail); }

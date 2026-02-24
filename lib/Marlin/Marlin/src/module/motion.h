@@ -424,6 +424,24 @@ template<template <typename T, typename Tag> typename V, typename T>
   return v.template to_tag<NativePosTag>() - native_logical_offset();
 }
 
+/// Transforms the native position to machine position (applies MBL)
+MachinePosXYZ to_machine_pos(const xyz_pos_t &pos);
+
+/// Transform a machine position to a native position (unapplies MBL)
+xyz_pos_t to_native_pos(const MachinePosXYZ &pos);
+
+inline MachinePosXYZE to_machine_pos(const xyze_pos_t &pos) {
+    MachinePosXYZE result = pos;
+    result.set(to_machine_pos(xyz_pos_t(pos))); // Only change the XYZ coordinates
+    return result;
+}
+
+inline xyze_pos_t to_native_pos(const MachinePosXYZE &pos) {
+    xyze_pos_t result = pos;
+    result.set(to_native_pos(MachinePosXYZ(pos))); // Only change the XYZ coordinates
+    return result;
+}
+
 #undef _WS
 
 /**

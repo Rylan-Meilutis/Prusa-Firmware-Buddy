@@ -32,6 +32,7 @@ if(HAS_PLANNER)
     PRIVATE Marlin/Marlin/src/feature/precise_stepping/precise_stepping.cpp
             Marlin/Marlin/src/gcode/config/M92.cpp
             Marlin/Marlin/src/module/endstops.cpp
+            Marlin/Marlin/src/module/machine_pos_conv.cpp
             Marlin/Marlin/src/module/motion.cpp
             Marlin/Marlin/src/module/planner.cpp
             Marlin/Marlin/src/module/stepper.cpp

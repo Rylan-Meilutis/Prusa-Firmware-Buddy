@@ -923,45 +923,15 @@ void Planner::check_axes_activity() {
    *              Leveled XYZ on completion
    */
   void Planner::apply_leveling(xyz_pos_t &raw) {
-    if (!leveling_active) return;
-
-    #if HAS_MESH
-
-      #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-        const float fade_scaling_factor = fade_scaling_factor_for_z(raw.z);
-      #else
-        constexpr float fade_scaling_factor = 1.0;
-      #endif
-
-      raw.z += (
-        #if ENABLED(AUTO_BED_LEVELING_UBL)
-          fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0f
-        #endif
-      );
-
-    #endif
+    // This hack works only because the NativePosTag is currently the same as MachinePosTag
+    // TODO REMOVEME
+    raw = to_machine_pos(raw);
   }
 
   void Planner::unapply_leveling(xyz_pos_t &raw) {
-
-    if (leveling_active) {
-
-      #if HAS_MESH
-
-        #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-          const float fade_scaling_factor = fade_scaling_factor_for_z(raw.z);
-        #else
-          constexpr float fade_scaling_factor = 1.0;
-        #endif
-
-        raw.z -= (
-          #if ENABLED(AUTO_BED_LEVELING_UBL)
-            fade_scaling_factor ? fade_scaling_factor * ubl.get_z_correction(raw) : 0.0f
-          #endif
-        );
-
-      #endif
-    }
+    // This hack works only because the NativePosTag is currently the same as MachinePosTag
+    // TODO REMOVEME
+    raw = to_native_pos(raw);
   }
 
 #endif // HAS_LEVELING
