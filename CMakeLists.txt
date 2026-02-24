@@ -346,6 +346,12 @@ endif()
 
 add_subdirectory(lib)
 
+# Polite boards are not polluting global cmake state. Keep the list sorted!
+list(APPEND POLITE_BOARDS "ANFC")
+list(APPEND POLITE_BOARDS "INDX_HEAD")
+list(APPEND POLITE_BOARDS "TOOL_OFFSET_SENSOR")
+list(APPEND POLITE_BOARDS "XBUDDY_EXTENSION")
+
 #
 # Build Puppy Firmwares
 #
@@ -717,11 +723,7 @@ elseif(BOARD STREQUAL "MODULARBED")
             otp
             cortex-m0-atomic
     )
-elseif(BOARD STREQUAL "XBUDDY_EXTENSION")
-  # let us manage the libraries where needed, not globally
-elseif(BOARD STREQUAL "ANFC")
-  # let us manage the libraries where needed, not globally
-elseif(BOARD STREQUAL "TOOL_OFFSET_SENSOR")
+elseif(BOARD IN_LIST POLITE_BOARDS)
   # let us manage the libraries where needed, not globally
 elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_link_libraries(
@@ -746,6 +748,8 @@ elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
             heatshrink_decoder # todo: remove
             version
     )
+else()
+  message(FATAL_ERROR "Add ${BOARD} to POLITE_BOARDS (probably)")
 endif()
 
 option(DSDL_TRANSPILE "Enable DSDL transcompilation" ON)
