@@ -91,10 +91,10 @@ bool Stepper::separate_multi_axis = false;
 uint8_t Stepper::last_direction_bits; // = 0
 uint8_t Stepper::axis_did_move; // = 0
 
-xyz_long_t Stepper::endstops_trigsteps;
-xyze_long_t Stepper::count_position { 0 };
-xyze_long_t Stepper::count_position_from_startup { 0 };
-xyze_long_t Stepper::count_position_last_block { 0 };
+xyz_steps_t Stepper::endstops_trigsteps;
+abce_steps_t Stepper::count_position { 0 };
+abce_steps_t Stepper::count_position_from_startup { 0 };
+abce_steps_t Stepper::count_position_last_block { 0 };
 xyze_int8_t Stepper::count_direction { 0 };
 
 /**
@@ -152,8 +152,23 @@ float Stepper::segment_progress() {
         return NAN;
     }
 
-    xyze_ulong_t planned_msteps = current_block->msteps;
-    xyze_long_t done_msteps = (count_position - count_position_last_block) * PLANNER_STEPS_MULTIPLIER;
+    xyze_msteps_t planned_msteps = current_block->msteps;
+    abce_steps_t diff_steps = (count_position - count_position_last_block);
+#if ENABLED(COREXY)
+    xyze_msteps_t done_msteps = {
+        (diff_steps[A_AXIS] + diff_steps[B_AXIS]) * PLANNER_STEPS_MULTIPLIER / 2,
+        CORESIGN(diff_steps[A_AXIS] - diff_steps[B_AXIS]) * PLANNER_STEPS_MULTIPLIER / 2,
+        diff_steps[C_AXIS] * PLANNER_STEPS_MULTIPLIER,
+        diff_steps[E_AXIS] * PLANNER_STEPS_MULTIPLIER,
+    };
+#else
+    xyze_msteps_t done_msteps = {
+        diff_steps[X_AXIS] * PLANNER_STEPS_MULTIPLIER,
+        diff_steps[Y_AXIS] * PLANNER_STEPS_MULTIPLIER,
+        diff_steps[Z_AXIS] * PLANNER_STEPS_MULTIPLIER,
+        diff_steps[E_AXIS] * PLANNER_STEPS_MULTIPLIER,
+    };
+#endif
 
     float planned;
     float done;
@@ -362,22 +377,23 @@ void Stepper::init() {
  * This allows get_axis_position_mm to correctly
  * derive the current XYZ position later on.
  */
-void Stepper::_set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e) {
+void Stepper::_set_position(const int32_t &x, const int32_t &y, const int32_t &z, const int32_t &e) {
 #if CORE_IS_XY
     // corexy positioning
     // these equations follow the form of the dA and dB equations on http://www.corexy.com/theory.html
-    count_position.set(a + b, CORESIGN(a - b), c);
+    abce_steps_t new_position = { x + y, CORESIGN(x - y), z, e };
 #elif CORE_IS_XZ
     // corexz planning
-    count_position.set(a + c, b, CORESIGN(a - c));
+    abce_steps_t new_position = { x + z, y, CORESIGN(x - z), e };
 #elif CORE_IS_YZ
     // coreyz planning
-    count_position.set(a, b + c, CORESIGN(b - c));
+    abce_steps_t new_position = { x, y + z, CORESIGN(y - z), e };
 #else
     // default non-h-bot planning
-    count_position.set(a, b, c);
+    abce_steps_t new_position = { x, y, z, e };
 #endif
-    count_position.e = e;
+
+    count_position = new_position;
 }
 
 // Signal endstops were triggered - This function can be called from
@@ -399,15 +415,15 @@ void Stepper::endstop_triggered(const AxisEnum axis) {
 void Stepper::report_positions() {
     // Note that the reported position is not atomic/synchronous for all axes
     // to avoid locking the step ISR
-    const xyz_long_t pos = count_position;
+    const abc_steps_t pos = count_position;
 
 #if CORE_IS_XY || CORE_IS_XZ
-    SERIAL_ECHOPAIR(MSG_COUNT_A, pos.x, " B:", pos.y);
+    SERIAL_ECHOPAIR(MSG_COUNT_A, pos.a, " B:", pos.b);
 #else
     SERIAL_ECHOPAIR(MSG_COUNT_X, pos.x, " Y:", pos.y);
 #endif
 #if CORE_IS_XZ || CORE_IS_YZ
-    SERIAL_ECHOLNPAIR(" C:", pos.z);
+    SERIAL_ECHOLNPAIR(" C:", pos.c);
 #else
     SERIAL_ECHOLNPAIR(" Z:", pos.z);
 #endif

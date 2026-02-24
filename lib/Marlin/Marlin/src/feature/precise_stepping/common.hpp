@@ -9,7 +9,7 @@
 #include "fwdecl.hpp"
 
 #include "../../inc/MarlinConfig.h"
-#include "../../core/types.h"
+#include "../../core/mtypes.hpp"
 
 #include <option/has_phase_stepping.h>
 
@@ -262,7 +262,7 @@ struct step_generator_state_t {
     StepEventFlag_t current_flags; // current active/direction flags for all axes
     step_event_i32_t buffered_step; // accumulator for multi-axis step fusion
 
-    xyze_long_t current_distance; // current axis position (steps, physical)
+    abce_steps_t current_distance; // current axis position (steps, physical)
 
     // Number of markers indicating the start of move segments that need to be inserted into step events.
     // Be aware that very short move segments could produce just one single step event or none step event

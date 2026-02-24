@@ -254,7 +254,7 @@ StrongIndexArray<float, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_st
 
 // private:
 
-xyze_long_t Planner::position{0};
+xyze_msteps_t Planner::position{0};
 
 uint32_t Planner::cutoff_long;
 
@@ -1124,7 +1124,7 @@ void Planner::synchronize() {
  *
  * Returns true if movement was properly queued, false otherwise
  */
-bool Planner::_buffer_msteps(const xyze_long_t &target, const xyze_pos_t &target_float
+bool Planner::_buffer_msteps(const xyze_msteps_t &target, const xyze_pos_t &target_float
   , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
 ) {
   assert(fr_mm_s > 0);
@@ -1192,7 +1192,7 @@ void Planner::manage_extruders(uint8_t extruder) {
  * @return  true if movement is acceptable, false otherwise
  */
 bool Planner::_populate_block(block_t * const block,
-  const xyze_long_t &target, const xyze_pos_t &target_float
+  const xyze_msteps_t &target, const xyze_pos_t &target_float
   , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
 ) {
   assert(fr_mm_s > 0);
@@ -1220,7 +1220,7 @@ bool Planner::_populate_block(block_t * const block,
   if (de < 0) SBI(dm, E_AXIS);
 
   const float e_msteps_float = de * e_factor[extruder];
-  const uint32_t e_msteps = static_cast<uint32_t>(std::abs(e_msteps_float) + 0.5f);
+  const int32_t e_msteps = static_cast<int32_t>(std::abs(e_msteps_float) + 0.5f);
 
   // Clear all flags, including the "busy" bit
   block->flag.clear();
@@ -1245,9 +1245,9 @@ bool Planner::_populate_block(block_t * const block,
    * Having the real displacement of the head, we can calculate the total movement length and apply the desired speed.
    */
   xyze_float_t delta_mm;
-  delta_mm.a = da * mm_per_mstep[A_AXIS];
-  delta_mm.b = db * mm_per_mstep[B_AXIS];
-  delta_mm.c = dc * mm_per_mstep[C_AXIS];
+  delta_mm.x = da * mm_per_mstep[X_AXIS];
+  delta_mm.y = db * mm_per_mstep[Y_AXIS];
+  delta_mm.z = dc * mm_per_mstep[Z_AXIS];
   delta_mm.e = e_msteps_float * mm_per_mstep[E_AXIS_N(extruder)];
   block->mstep_event_count = _MAX(block->msteps.a, block->msteps.b, block->msteps.c, e_msteps);
 
@@ -1796,7 +1796,7 @@ bool Planner::_populate_block(block_t * const block,
   return true;
 } // _populate_block()
 
-bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target, const xyze_pos_t &target_float, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
+bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &target, const xyze_pos_t &target_float, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
     const int32_t da = target.a - position.a,
                   db = target.b - position.b,
                   dc = target.c - position.c;
@@ -1847,9 +1847,9 @@ bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target
    * Having the real displacement of the head, we can calculate the total movement length and apply the desired speed.
      */
     xyze_float_t delta_mm;
-    delta_mm.a = float(da) * mm_per_mstep[A_AXIS];
-    delta_mm.b = float(db) * mm_per_mstep[B_AXIS];
-    delta_mm.c = float(dc) * mm_per_mstep[C_AXIS];
+    delta_mm.x = float(da) * mm_per_mstep[X_AXIS];
+    delta_mm.y = float(db) * mm_per_mstep[Y_AXIS];
+    delta_mm.z = float(dc) * mm_per_mstep[Z_AXIS];
     delta_mm.e = float(de) * mm_per_mstep[E_AXIS_N(extruder)];
 
     if (da == 0 && db == 0 && dc == 0) {
@@ -1981,7 +1981,7 @@ bool Planner::populate_raw_block(block_t *const block, const abce_long_t &target
     return true;
 } // populate_raw_block()
 
-bool Planner::buffer_raw_block(const xyze_long_t &target, const xyze_pos_t &target_float, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
+bool Planner::buffer_raw_block(const xyze_msteps_t &target, const xyze_pos_t &target_float, const float acceleration, const float nominal_speed, const float entry_speed, const float exit_speed, const uint8_t extruder) {
     // Wait for the next available block
     uint8_t next_buffer_head;
     block_t *const block = get_next_free_block(next_buffer_head);
@@ -2031,7 +2031,12 @@ void Planner::buffer_sync_block() {
   block->flag.apply(BLOCK_BIT_SYNC_POSITION);
 
   // Convert current mini-steps to absolute step count
-  block->sync_step_position = position / PLANNER_STEPS_MULTIPLIER;
+  block->sync_step_position = {
+    position[X_AXIS] / PLANNER_STEPS_MULTIPLIER,
+    position[Y_AXIS] / PLANNER_STEPS_MULTIPLIER,
+    position[Z_AXIS] / PLANNER_STEPS_MULTIPLIER,
+    position[E_AXIS] / PLANNER_STEPS_MULTIPLIER
+  };
 
   block_buffer_head = next_buffer_head;
 } // buffer_sync_block()
@@ -2042,7 +2047,7 @@ void Planner::buffer_sync_block() {
  * @description Add a new linear movement to the buffer in axis units.
  *              Leveling and kinematics should be applied before calling this.
  *
- * @param a,b,c,e       Target positions in mm and/or degrees
+ * @param x,y,z,e       Target positions in mm and/or degrees
  * @param fr_mm_s       (target) speed of the move
  * @param extruder      target extruder
  * @param hints         optional parameters to aid planner calculations
@@ -2059,10 +2064,10 @@ bool Planner::buffer_segment(const xyze_pos_t &xyze, const feedRate_t fr_mm_s, s
 
   // The target position of the tool in absolute mini-steps
   // Calculate target position in absolute mini-steps
-  const xyze_long_t target = {
-    int32_t(LROUND(xyze.a * settings.axis_msteps_per_mm[A_AXIS])),
-    int32_t(LROUND(xyze.b * settings.axis_msteps_per_mm[B_AXIS])),
-    int32_t(LROUND(xyze.c * settings.axis_msteps_per_mm[C_AXIS])),
+  const xyze_msteps_t target = {
+    int32_t(LROUND(xyze.x * settings.axis_msteps_per_mm[X_AXIS])),
+    int32_t(LROUND(xyze.y * settings.axis_msteps_per_mm[Y_AXIS])),
+    int32_t(LROUND(xyze.z * settings.axis_msteps_per_mm[Z_AXIS])),
     int32_t(LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(extruder)]))
   };
 
@@ -2290,11 +2295,12 @@ bool Planner::buffer_raw_segment(const xyze_pos_t &xyze, const float acceleratio
 
     // The target position of the tool in absolute mini-steps
     // Calculate target position in absolute mini-steps
-    const xyze_long_t target = { { {
-        int32_t(LROUND(xyze.a * settings.axis_msteps_per_mm[A_AXIS])),
-        int32_t(LROUND(xyze.b * settings.axis_msteps_per_mm[B_AXIS])),
-        int32_t(LROUND(xyze.c * settings.axis_msteps_per_mm[C_AXIS])),
-        int32_t(LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(extruder)])) } } };
+    const xyze_msteps_t target = {
+      int32_t(LROUND(xyze.x * settings.axis_msteps_per_mm[X_AXIS])),
+      int32_t(LROUND(xyze.y * settings.axis_msteps_per_mm[Y_AXIS])),
+      int32_t(LROUND(xyze.z * settings.axis_msteps_per_mm[Z_AXIS])),
+      int32_t(LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(extruder)]))
+    };
 
     // DRYRUN prevents E moves from taking place
     if (DEBUGGING(DRYRUN)) {
@@ -2336,34 +2342,28 @@ bool Planner::buffer_raw_line(const xyze_pos_t &cart, const float acceleration, 
  */
 
 void Planner::set_machine_position_mm(const xyze_pos_t &xyze) {
-  const auto virtual_notool = VirtualToolIndex::currently_selected();
-  const bool has_tool = std::holds_alternative<VirtualToolIndex>(virtual_notool);
-
   #if ENABLED(DISTINCT_E_FACTORS)
     last_extruder = active_extruder;
   #endif
   position_float = xyze;
-  position.set(LROUND(xyze.a * settings.axis_msteps_per_mm[A_AXIS]),
-               LROUND(xyze.b * settings.axis_msteps_per_mm[B_AXIS]),
-               LROUND(xyze.c * settings.axis_msteps_per_mm[C_AXIS]));
-
-  if(has_tool) {
-    position.e = LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(std::get<VirtualToolIndex>(virtual_notool).to_raw())]);
-  }
+  position = {
+    LROUND(xyze.x * settings.axis_msteps_per_mm[X_AXIS]),
+    LROUND(xyze.y * settings.axis_msteps_per_mm[Y_AXIS]),
+    LROUND(xyze.z * settings.axis_msteps_per_mm[Z_AXIS]),
+    LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(active_extruder)]),
+  };
 
   if (processing()) {
     //previous_nominal_speed = 0.0f; // Reset planner junction speeds. Assume start from rest.
     //previous_speed.reset();
     buffer_sync_block();
   } else {
-    xyze_long_t stepper_position = { 
-      LROUND(xyze.a * settings.axis_steps_per_mm[A_AXIS]),
-      LROUND(xyze.b * settings.axis_steps_per_mm[B_AXIS]),
-      LROUND(xyze.c * settings.axis_steps_per_mm[C_AXIS]),
+    const xyze_steps_t stepper_position = {
+      LROUND(xyze.x * settings.axis_steps_per_mm[X_AXIS]),
+      LROUND(xyze.y * settings.axis_steps_per_mm[Y_AXIS]),
+      LROUND(xyze.z * settings.axis_steps_per_mm[Z_AXIS]),
+      LROUND(xyze.e * settings.axis_steps_per_mm[E_AXIS_N(active_extruder)])
     };
-    if(has_tool) {
-      stepper_position.e = LROUND(xyze.e * settings.axis_steps_per_mm[E_AXIS_N(std::get<VirtualToolIndex>(virtual_notool).to_raw())]);
-    }
     stepper.set_position(stepper_position);
   }
 }

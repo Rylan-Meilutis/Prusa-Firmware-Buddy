@@ -282,7 +282,7 @@ xy_pos_t probe_xy(const xyz_pos_t center, const float angle, const uint8_t tool,
     planner.synchronize();
 
     // Mark initial position
-    xyze_long_t initial_pos_msteps = planner.get_position_msteps();
+    xyze_msteps_t initial_pos_msteps = planner.get_position_msteps();
     xyze_pos_t initial_mm = current_position;
 
     // Setup probe for XY endstop

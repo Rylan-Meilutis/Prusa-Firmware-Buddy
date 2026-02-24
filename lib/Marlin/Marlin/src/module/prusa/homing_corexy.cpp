@@ -71,7 +71,7 @@ void corexy_ab_to_xy(const ab_steps_t &steps, xy_pos_t &mm) {
 }
 
 /// Convert raw AB steps to XY mm and position in mini-steps
-static void corexy_ab_to_xy(const ab_steps_t &steps, xy_pos_t &mm, xy_long_t &pos_msteps) {
+static void corexy_ab_to_xy(const ab_steps_t &steps, xy_pos_t &mm, xy_msteps_t &pos_msteps) {
     const float x = static_cast<float>(steps.a + steps.b) / 2.f;
     const float y = static_cast<float>(CORESIGN(steps.a - steps.b)) / 2.f;
     mm.x = x * planner.mm_per_step[X_AXIS];
@@ -89,7 +89,7 @@ void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm) {
 }
 
 /// Convert raw AB steps to XY mm and position in mini-steps, filling others from current state
-static void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm, xyze_long_t &pos_msteps) {
+static void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm, xyze_msteps_t &pos_msteps) {
     pos_msteps = planner.get_position_msteps();
     corexy_ab_to_xy(steps, mm, pos_msteps);
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
@@ -97,7 +97,7 @@ static void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm, xyze_long
     }
 }
 
-static void plan_raw_move(const xyze_pos_t target_mm, const xyze_long_t target_pos, const feedRate_t fr_mm_s) {
+static void plan_raw_move(const xyze_pos_t target_mm, const xyze_msteps_t target_pos, const feedRate_t fr_mm_s) {
     planner._buffer_msteps(target_pos, target_mm, fr_mm_s, active_extruder, { .raw_block = true });
     planner.synchronize();
 }
@@ -105,7 +105,7 @@ static void plan_raw_move(const xyze_pos_t target_mm, const xyze_long_t target_p
 static void plan_corexy_raw_move(const ab_steps_t &target_steps_ab, const feedRate_t fr_mm_s) {
     // reconstruct full final position
     xyze_pos_t target_mm;
-    xyze_long_t target_pos_msteps;
+    xyze_msteps_t target_pos_msteps;
     corexy_ab_to_xyze(target_steps_ab, target_mm, target_pos_msteps);
 
     plan_raw_move(target_mm, target_pos_msteps, fr_mm_s);
@@ -234,6 +234,8 @@ struct measure_axis_params {
  */
 static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_steps, const int32_t dist,
     int32_t &m_steps, float &m_dist, const float fr_mm_s, const measure_axis_params &params) {
+    const AxisEnum fixed_axis = (axis == B_AXIS ? A_AXIS : B_AXIS);
+
     // full initial position
     const abce_steps_t initial_steps = { origin_steps.a, origin_steps.b, stepper.position(C_AXIS), stepper.position(E_AXIS) };
     xyze_pos_t initial_mm;
@@ -244,15 +246,18 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     target_steps[axis] += dist;
 
     xyze_pos_t target_mm;
-    xyze_long_t target_pos_msteps;
-    corexy_ab_to_xy(target_steps, target_mm, target_pos_msteps);
+    corexy_ab_to_xy(target_steps, target_mm);
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
         target_mm[i] = initial_mm[i];
     }
-    const xyze_long_t initial_pos_msteps = planner.get_position_msteps();
-    LOOP_S_L_N(i, C_AXIS, XYZE_N) {
-        target_pos_msteps[i] = initial_pos_msteps[i];
-    }
+
+    // ensure the fixed axis doesn't move due to CORE AB->XY->AB rounding: recalculate msteps
+    // by difference directly since this is how the raw move plans the movement
+    const xyze_msteps_t initial_pos_msteps = planner.get_position_msteps();
+    xyze_msteps_t target_pos_msteps = initial_pos_msteps;
+    const int32_t dist_msteps = dist * PLANNER_STEPS_MULTIPLIER;
+    target_pos_msteps[axis] -= dist_msteps / 2;
+    target_pos_msteps[fixed_axis] += dist_msteps / 2;
 
     // prepare stepper for the move
     assert(MeasurementGuard::is_active());
@@ -299,7 +304,6 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     }
 
     // sanity checks
-    const AxisEnum fixed_axis = (axis == B_AXIS ? A_AXIS : B_AXIS);
     if (hit_steps[fixed_axis] != initial_steps[fixed_axis] || initial_steps[fixed_axis] != stepper.position(fixed_axis)) {
         bsod("fixed axis moved unexpectedly");
     }

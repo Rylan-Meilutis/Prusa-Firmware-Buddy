@@ -64,15 +64,15 @@ private:
      * @see triggered_position() to retrieve the triggered position
      * The position is kept logical (cartesian), relative to home
      **/
-    static xyz_long_t endstops_trigsteps;
+    static xyz_steps_t endstops_trigsteps;
 
     //
     // Positions of stepper motors, in step units
     //
-    static xyze_long_t count_position; // Current position (relative to home origin)
-    static xyze_long_t count_position_from_startup; // Current position (absolute)
-    static xyze_long_t count_position_last_block; // Position (relative to home origin) at the end
-                                                  // of the last block
+    static abce_steps_t count_position; // Current position (relative to home origin)
+    static abce_steps_t count_position_from_startup; // Current position (absolute)
+    static abce_steps_t count_position_last_block; // Position (relative to home origin) at the end
+                                                   // of the last block
 
     //
     // Current direction of stepper motors (+1 or -1)
@@ -133,12 +133,12 @@ public:
 #endif
 
     // Set the current position in steps for all axes at once
-    static inline void set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e) {
+    static inline void set_position(const int32_t &x, const int32_t &y, const int32_t &z, const int32_t &e) {
         planner.synchronize();
         StepIsrDisabler step_guard;
-        _set_position(a, b, c, e);
+        _set_position(x, y, z, e);
     }
-    static inline void set_position(const xyze_long_t &abce) { set_position(abce.a, abce.b, abce.c, abce.e); }
+    static inline void set_position(const xyze_steps_t &xyze) { set_position(xyze.x, xyze.y, xyze.z, xyze.e); }
 
     static inline void set_axis_position(const AxisEnum a, const int32_t &v) {
         planner.synchronize();
@@ -186,8 +186,8 @@ public:
 
 private:
     // Set the current position in steps
-    static void _set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e);
-    FORCE_INLINE static void _set_position(const xyze_long_t &spos) { _set_position(spos.a, spos.b, spos.c, spos.e); }
+    static void _set_position(const int32_t &x, const int32_t &y, const int32_t &z, const int32_t &e);
+    FORCE_INLINE static void _set_position(const xyze_steps_t &spos) { _set_position(spos.x, spos.y, spos.z, spos.e); }
 
     friend class PreciseStepping;
 };

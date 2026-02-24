@@ -44,7 +44,7 @@ uint16_t PreciseStepping::inverted_dirs = 0;
 bool PreciseStepping::inverted_dirs_set = false;
 double PreciseStepping::total_print_time = 0.;
 xyze_double_t PreciseStepping::total_start_pos = { 0., 0., 0., 0. };
-xyze_long_t PreciseStepping::total_start_pos_msteps = { 0, 0, 0, 0 };
+xyze_msteps_t PreciseStepping::total_start_pos_msteps = { 0, 0, 0, 0 };
 PreciseSteppingFlag_t PreciseStepping::flags = 0;
 
 uint32_t PreciseStepping::waiting_before_delivering_start_time = 0;
@@ -86,27 +86,27 @@ static std::atomic<uint32_t> special_event_time_us = 0;
 std::atomic<uint32_t> PreciseStepping::stall_count = 0;
 #endif
 
-STEPPING_INLINE xyze_long_t get_oriented_msteps_from_block(const block_t &block) {
-    const xyze_long_t direction = {
-        { { (block.direction_bits & _BV(X_AXIS)) ? -1 : 1,
-            (block.direction_bits & _BV(Y_AXIS)) ? -1 : 1,
-            (block.direction_bits & _BV(Z_AXIS)) ? -1 : 1,
-            (block.direction_bits & _BV(E_AXIS)) ? -1 : 1 } }
+STEPPING_INLINE xyze_msteps_t get_oriented_msteps_from_block(const block_t &block) {
+    const xyze_msteps_t direction = {
+        (block.direction_bits & _BV(X_AXIS)) ? -1 : 1,
+        (block.direction_bits & _BV(Y_AXIS)) ? -1 : 1,
+        (block.direction_bits & _BV(Z_AXIS)) ? -1 : 1,
+        (block.direction_bits & _BV(E_AXIS)) ? -1 : 1
     };
 
-    return block.msteps.asLong() * direction;
+    return block.msteps * direction;
 }
 
 STEPPING_INLINE double convert_oriented_msteps_to_distance(const int32_t msteps, const uint8_t axis) {
     return msteps * (double)Planner::mm_per_mstep[axis];
 }
 
-STEPPING_INLINE xyze_double_t convert_oriented_msteps_to_distance(const xyze_long_t &msteps) {
+STEPPING_INLINE xyze_double_t convert_oriented_msteps_to_distance(const xyze_msteps_t &msteps) {
     const xyze_double_t distance_mm = {
-        { { (double)msteps.x * (double)Planner::mm_per_mstep[X_AXIS],
-            (double)msteps.y * (double)Planner::mm_per_mstep[Y_AXIS],
-            (double)msteps.z * (double)Planner::mm_per_mstep[Z_AXIS],
-            (double)msteps.e * (double)Planner::mm_per_mstep[E_AXIS] } }
+        (double)msteps.x * (double)Planner::mm_per_mstep[X_AXIS],
+        (double)msteps.y * (double)Planner::mm_per_mstep[Y_AXIS],
+        (double)msteps.z * (double)Planner::mm_per_mstep[Z_AXIS],
+        (double)msteps.e * (double)Planner::mm_per_mstep[E_AXIS]
     };
 
     return distance_mm;

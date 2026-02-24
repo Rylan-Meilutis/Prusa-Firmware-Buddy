@@ -38,6 +38,7 @@
 #endif
 
 #include "motion.h"
+#include "../core/mtypes.hpp"
 #include "../gcode/queue.h"
 #include "../feature/precise_stepping/precise_stepping.hpp"
 #include "../feature/phase_stepping/phase_stepping.hpp"
@@ -130,8 +131,8 @@ typedef struct PlannerBlock {
         acceleration;                       // acceleration mm/sec^2
 
   union {
-    xyze_ulong_t msteps {};                    // Mini-step count along each axis
-    xyze_long_t sync_step_position;         // Absolute step counts to set when this sync block is executed
+    xyze_msteps_t msteps {};                   // Mini-step count along each axis
+    xyze_steps_t sync_step_position;        // Absolute step counts to set when this sync block is executed
   };
   uint32_t mstep_event_count;               // The number of mini-step events required to complete this block
 
@@ -300,7 +301,7 @@ class Planner {
     static xyze_pos_t position_float;
 
     /// Currently planned machine position, in msteps
-    xyze_long_t get_position_msteps() const { return position; };
+    xyze_msteps_t get_position_msteps() const { return position; };
 
     /// Maximum Z position at which we printed so far for
     static float max_printed_z;
@@ -313,7 +314,7 @@ class Planner {
      * The current position of the tool in absolute mini-steps
      * Recalculated if any axis_steps_per_mm or axis_msteps_per_mm are changed by gcode
      */
-    static xyze_long_t position;
+    static xyze_msteps_t position;
 
   private:
     /**
@@ -494,11 +495,11 @@ class Planner {
      *
      * Returns true if movement was buffered, false otherwise
      */
-    static bool _buffer_msteps(const xyze_long_t &target, const xyze_pos_t &target_float
+    static bool _buffer_msteps(const xyze_msteps_t &target, const xyze_pos_t &target_float
       , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
     );
 
-    static bool buffer_raw_block(const xyze_long_t &target, const xyze_pos_t &target_float,
+    static bool buffer_raw_block(const xyze_msteps_t &target, const xyze_pos_t &target_float,
         float acceleration, float nominal_speed, float entry_speed, float exit_speed, uint8_t extruder);
 
     /**
@@ -517,11 +518,11 @@ class Planner {
      * @return  true if movement is acceptable, false otherwise
      */
     static bool _populate_block(block_t * const block,
-        const xyze_long_t &target, const xyze_pos_t &target_float
+        const xyze_msteps_t &target, const xyze_pos_t &target_float
       , feedRate_t fr_mm_s, const uint8_t extruder, const PlannerHints &hints
     );
 
-    static bool populate_raw_block(block_t *const block, const xyze_long_t &target,
+    static bool populate_raw_block(block_t *const block, const xyze_msteps_t &target,
         const xyze_pos_t &target_float, float acceleration, float nominal_speed,
         float entry_speed, float exit_speed, uint8_t extruder);
 
