@@ -266,9 +266,32 @@ void filament_gcodes::preheat_to(FilamentType filament, std::variant<PhysicalToo
     // change temp only if it is lower than currently loaded filament
     // TODO: Why? This is now very problematic with the new heatbreak and chamber params
     for (const PhysicalToolIndex tool : tool_index_iterator(tools)) {
-        if (preheat_arg.force_temp || thermalManager.degTargetHotend(tool) < fil_cnf.nozzle_temperature) {
+        int16_t target_temp = fil_cnf.nozzle_temperature;
+
+        if (const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(tool.currently_selected_virtual_tool())) {
+            // If the previously loaded filament had a higher nozzle temperature,
+            // preheat to that temperature to ensure the remnants in the nozzle
+            // will melt enough to allow the load.
+            //
+            // If the previously loaded filament is unknown, preheat to 250C
+            // for the case there was a high-temperature filament in the nozzle
+            // previously.
+            //
+            // Only do this if there's no currently loaded filament to avoid
+            // preheating to 250C if we're already loaded.
+            if (!config_store().get_filament_type(*virtual_tool)) {
+                int16_t prev_temp = 250; // default previous filament temperature in case the previous filament is unknown
+                const FilamentType prev_filament = config_store().get_previous_filament_type(*virtual_tool);
+                if (prev_filament != FilamentType::none) {
+                    prev_temp = prev_filament.parameters().nozzle_temperature;
+                }
+                target_temp = std::max(target_temp, prev_temp);
+            }
+        }
+
+        if (preheat_arg.force_temp || thermalManager.degTargetHotend(tool) < target_temp) {
             hotend_temp_changed = true;
-            thermalManager.setTargetHotend(fil_cnf.nozzle_temperature, tool);
+            thermalManager.setTargetHotend(target_temp, tool);
         }
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
