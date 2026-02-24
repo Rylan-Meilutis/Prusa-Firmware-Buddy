@@ -1226,6 +1226,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
     // BFW-8396
     current_position[axis] -= bump;
     planner.buffer_segment(current_position, real_fr_mm_s, PhysicalToolIndex::currently_selected());
+    planner.synchronize();
 
     // Slow move towards endstop until triggered
 
