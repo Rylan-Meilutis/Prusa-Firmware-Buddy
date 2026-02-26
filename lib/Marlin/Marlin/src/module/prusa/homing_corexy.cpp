@@ -938,7 +938,9 @@ bool corexy_rehome_xy(float fr_mm_s) {
 static bool corexy_rehome_and_phase(MachinePosXYZE &origin_pos, ab_steps_t &origin_steps, float fr_mm_s, bool rehome) {
     // ignore starting position if requested, otherwise assume to be already homed
     if (rehome) {
-        corexy_rehome_xy(fr_mm_s);
+        if (!corexy_rehome_xy(fr_mm_s)) {
+            return false;
+        }
     }
 
     // reposition parallel to the origin
