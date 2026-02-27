@@ -86,7 +86,11 @@ static void corexy_ab_to_xy(const ab_steps_t &steps, xy_pos_t &mm, xy_msteps_t &
 
 /// Convert raw AB steps to XY mm, filling others from current state
 void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm) {
-    corexy_ab_to_xy(steps, mm);
+    {
+        xy_pos_t xy;
+        corexy_ab_to_xy(steps, xy);
+        mm.set(xy);
+    }
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
         mm[i] = planner.get_axis_position_mm((AxisEnum)i);
     }
@@ -95,7 +99,13 @@ void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm) {
 /// Convert raw AB steps to XY mm and position in mini-steps, filling others from current state
 static void corexy_ab_to_xyze(const ab_steps_t &steps, xyze_pos_t &mm, xyze_msteps_t &pos_msteps) {
     pos_msteps = planner.get_position_msteps();
-    corexy_ab_to_xy(steps, mm, pos_msteps);
+    {
+        xy_pos_t xy;
+        xy_msteps_t xy_msteps;
+        corexy_ab_to_xy(steps, xy, xy_msteps);
+        mm.set(xy);
+        pos_msteps.set(xy_msteps);
+    }
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
         mm[i] = planner.get_axis_position_mm((AxisEnum)i);
     }
@@ -243,14 +253,18 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     // full initial position
     const abce_steps_t initial_steps = { origin_steps.a, origin_steps.b, stepper.position(C_AXIS), stepper.position(E_AXIS) };
     xyze_pos_t initial_mm;
-    corexy_ab_to_xyze(initial_steps, initial_mm);
+    corexy_ab_to_xyze(initial_steps.xy(), initial_mm);
 
     // full target position
     abce_steps_t target_steps = initial_steps;
     target_steps[axis] += dist;
 
     xyze_pos_t target_mm;
-    corexy_ab_to_xy(target_steps, target_mm);
+    {
+        xy_pos_t target_xy_mm;
+        corexy_ab_to_xy(target_steps.xy(), target_xy_mm);
+        target_mm.set(target_xy_mm);
+    }
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
         target_mm[i] = initial_mm[i];
     }
@@ -299,7 +313,7 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
         endstops.hit_on_purpose();
         planner.reset_position();
         hit_steps = { stepper.position(A_AXIS), stepper.position(B_AXIS), stepper.position(C_AXIS), stepper.position(E_AXIS) };
-        corexy_ab_to_xyze(hit_steps, hit_mm);
+        corexy_ab_to_xyze(hit_steps.xy(), hit_mm);
     } else {
         hit_steps = target_steps;
         hit_mm = target_mm;

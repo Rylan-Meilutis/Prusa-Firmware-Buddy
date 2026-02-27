@@ -286,7 +286,7 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
             destination.set(match(
                 change_data.original_extruder,
                 [](VirtualToolIndex virtual_tool) { return prusa_toolchanger.get_tool_dock_position(virtual_tool.to_physical()); },
-                [](NoTool) -> xy_float_t { return xy_float_t(current_position); }));
+                [](NoTool) -> xy_float_t { return current_position.xy(); }));
         }
         tool_change(stdext::to_variant(change_data.original_extruder), tool_return_t::to_destination, tool_change_lift_t::mbl_only_lift, true);
         report_current_position();

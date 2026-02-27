@@ -1043,7 +1043,7 @@
 
           // Reachable. Check if it's the best_so_far location to the nozzle.
 
-          const xy_pos_t diff = current_position - mpos;
+          const xy_pos_t diff = (current_position - mpos).xy();
           const float distance = (ref - mpos).magnitude() + diff.magnitude() * 0.1f;
 
           // factor in the distance from the current location for the normal case

@@ -86,9 +86,9 @@ TemporaryBedLevelingState::TemporaryBedLevelingState(const bool enable) : saved(
     planner.set_z_fade_height(zfh);
 
     if (leveling_was_active) {
-      const xyz_pos_t oldpos = current_position;
+      const xyz_pos_t oldpos = current_position.xyz();
       set_bed_leveling_enabled(true);
-      if (do_report && oldpos != current_position)
+      if (do_report && oldpos != current_position.xyz())
         report_current_position();
     }
   }

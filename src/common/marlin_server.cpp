@@ -2739,7 +2739,7 @@ static void _server_print_loop(void) {
 
             // Pickup lost tool
             tool_return_t return_type = tool_return_t::no_return; // If it continues with replay, no need to return
-            xyz_pos_t return_pos = current_position; //                              return Z to current Z
+            xyz_pos_t return_pos = current_position.xyz(); //                    return Z to current Z
             if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
                 // After toolcrash, return to what was requested before the crash
                 // return_pos is stored in logical coordinates

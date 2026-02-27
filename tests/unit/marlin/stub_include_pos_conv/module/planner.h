@@ -19,7 +19,7 @@ inline struct UBL {
 
     static inline float z_correction = 0;
 
-    static inline float get_z_correction(const xyz_pos_t &) {
+    static inline float get_z_correction(const xy_pos_t &) {
         return z_correction;
     }
 

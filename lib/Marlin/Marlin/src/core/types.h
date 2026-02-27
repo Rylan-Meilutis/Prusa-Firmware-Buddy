@@ -504,8 +504,8 @@ struct XYZval {
   FI auto  asLogical() const requires(std::is_same_v<Tag, NativePosTag>) { return toLogical(*this); }
   FI auto   asNative() const requires(std::is_same_v<Tag, LogicalPosTag>) { return toNative(*this); }
 
-  // In-place cast to types having fewer fields
-  FI operator XYval()                         const { return XYval{x, y}; }
+  // Cast to a type with fewer fields
+  [[nodiscard]] FI XYval xy() const { return {x, y}; }
 
   // Cast to a type with more fields by making a new object
   explicit FI operator       XYZEval()                 const { return LOGICAL_AXIS_ARRAY(0, x, y, z, i, j, k, u, v, w); }
@@ -644,11 +644,9 @@ struct XYZEval {
   FI auto  asLogical() const requires(std::is_same_v<Tag, NativePosTag>) { return toLogical(*this); }
   FI auto   asNative() const requires(std::is_same_v<Tag, LogicalPosTag>) { return toNative(*this); }
 
-  // In-place cast to types having fewer fields
-  FI operator       XYval&()        { return *(XYval*)this; }
-  FI operator const XYval&()  const { return *(const XYval*)this; }
-  FI operator       XYZval&()       { return *(XYZval*)this; }
-  FI operator const XYZval&() const { return *(const XYZval*)this; }
+  // Cast to types with fewer fields
+  [[nodiscard]] FI XYval xy() const { return {x, y}; }
+  [[nodiscard]] FI XYZval xyz() const { return NUM_AXIS_ARRAY(x, y, z, i, j, k, u, v, w); }
 
   // Accessor via an AxisEnum (or any integer) [index]
   FI       T&    operator[](const int n)                  { return pos[n]; }

@@ -199,7 +199,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
     TERN_(HOMING_Z_WITH_PROBE, dest_pos -= probe_offset);
     TERN_(HAS_HOTEND_OFFSET, dest_pos -= hotend_currently_applied_offset);
 
-    if (position_is_reachable(dest_pos)) {
+    if (position_is_reachable(dest_pos.xy())) {
 #if HAS_TOOLCHANGER()
       do_blocking_move_to_xy(dest_pos, PrusaToolChanger::limit_stealth_feedrate(XY_PROBE_FEEDRATE_MM_S));
 #elif HAS_NOZZLE_CLEANER()
@@ -256,7 +256,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
 
       TERN_(HOMING_Z_WITH_PROBE, destination -= probe_offset);
 
-      if (position_is_reachable(destination)) {
+      if (position_is_reachable(destination.xy())) {
         do_blocking_move_to(destination);
         bool endstop_triggered;
         run_z_probe({
@@ -748,7 +748,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
         }
 
         // When no tool is picked, make sure to pick one
-        failed = !prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
+        failed = !prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, current_position.xyz(), tool_change_lift_t::no_lift, false);
       }
       #endif
 

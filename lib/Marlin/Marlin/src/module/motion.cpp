@@ -845,7 +845,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
     apply_motion_limits(target);
   }
 
-  if (!position_is_reachable(target)) {
+  if (!position_is_reachable(target.xy())) {
       return;
   }
 

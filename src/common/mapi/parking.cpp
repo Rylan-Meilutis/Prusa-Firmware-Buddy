@@ -141,7 +141,7 @@ void park(ZAction z_action, const ParkingPosition &parking_position) {
         }
     }
 
-    const xy_pos_t park_destination = parking_position.to_xyz_pos(current_position);
+    const xy_pos_t park_destination = parking_position.to_xyz_pos(current_position.xyz()).xy();
 #if HAS_NOZZLE_CLEANER()
     pre_park_move_pattern(fr_xy, park_destination);
 #endif

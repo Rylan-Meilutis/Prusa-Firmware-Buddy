@@ -981,14 +981,14 @@ void Pause::stop_process([[maybe_unused]] Response response) {
 
     planner.quick_stop_and_resume();
     xyze_pos_t real_current_position;
-    planner.get_axis_position_mm(static_cast<xyz_pos_t &>(real_current_position));
+    planner.get_axis_position_mm(real_current_position);
     real_current_position[E_AXIS] = 0;
 #if HAS_LEVELING
     planner.unapply_leveling(real_current_position);
 #endif
 
     // Lose homing only if we interrupted XYZ movement. quick_stop on extruder movement is fine
-    if (xyz_pos_t(current_position) != xyz_pos_t(real_current_position)) {
+    if (current_position.xyz() != real_current_position.xyz()) {
         set_all_unhomed();
     }
 
@@ -1237,7 +1237,7 @@ bool Pause::tool_change([[maybe_unused]] VirtualToolIndex target_tool, [[maybe_u
         setPhase(PhasesLoadUnload::ChangingTool);
 
         // Change tool, don't lift or return Z as it was done by parking
-        return prusa_toolchanger.tool_change(target_tool.to_physical(), tool_return_t::no_return, current_position, tool_change_lift_t::no_lift, false);
+        return prusa_toolchanger.tool_change(target_tool.to_physical(), tool_return_t::no_return, current_position.xyz(), tool_change_lift_t::no_lift, false);
     }
 #endif
 
@@ -1349,7 +1349,7 @@ void Pause::park_nozzle_and_notify() {
     float XY_len = 0;
     float begin_pos = 0;
     float end_pos = 0;
-    const bool x_greater_than_y = parkMoveXGreaterThanY(current_position, settings.park_pos);
+    const bool x_greater_than_y = parkMoveXGreaterThanY(current_position.xyz(), settings.park_pos);
     if (x_greater_than_y) {
         if (!isnan(settings.park_pos.x)) {
             begin_pos = axes_need_homing(_BV(X_AXIS)) ? float(X_HOME_POS) : current_position.x;
@@ -1444,7 +1444,7 @@ void Pause::unpark_nozzle_and_notify() {
 
     setPhase(PhasesLoadUnload::Unparking);
     // Move XY to starting position, then Z
-    const bool x_greater_than_y = parkMoveXGreaterThanY(current_position, settings.resume_pos);
+    const bool x_greater_than_y = parkMoveXGreaterThanY(current_position.xyz(), settings.resume_pos.xyz());
     const float &begin_pos = x_greater_than_y ? current_position.x : current_position.y;
     const float &end_pos = x_greater_than_y ? settings.resume_pos.x : settings.resume_pos.y;
 

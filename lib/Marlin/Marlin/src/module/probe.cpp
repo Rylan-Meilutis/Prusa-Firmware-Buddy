@@ -157,7 +157,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 
   // Move down to the bed to stow the probe
   void run_stow_moves_script() {
-    const xyz_pos_t oldpos = current_position;
+    const xyz_pos_t oldpos = current_position.xyz();
     endstops.enable_z_probe(false);
     do_blocking_move_to_z(TOUCH_MI_RETRACT_Z, MMM_TO_MMS(HOMING_FEEDRATE_Z));
     do_blocking_move_to(oldpos, MMM_TO_MMS(HOMING_FEEDRATE_Z));
@@ -353,7 +353,7 @@ bool set_probe_deployed(const bool deploy) {
     }
   #endif
 
-  const xy_pos_t old_xy = current_position;
+  const xy_pos_t old_xy = current_position.xy();
   probe_specific_action(deploy);
   do_blocking_move_to(old_xy);
   #if DISABLED(NOZZLE_LOAD_CELL)
@@ -564,7 +564,7 @@ float run_z_probe(const RunZProbeParams& params) {
   #ifdef EXTRA_PROBING
     float probes[TOTAL_PROBING];
   #elif ENABLED(NOZZLE_LOAD_CELL)
-    xy_pos_t center_pos = current_position;
+    xy_pos_t center_pos = current_position.xy();
     int probe_idx = 0;
     bool success = false;
     float last_probe_z = NAN;
@@ -889,7 +889,7 @@ float probe_here(float expected_trigger_z)
 float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE_PT_NONE*/, const uint8_t verbose_level/*=0*/, const bool probe_relative/*=true*/) {
   xyz_pos_t npos = xyz_pos_t(pos);
   if (probe_relative) {
-    if (!position_is_reachable_by_probe(npos)) {
+    if (!position_is_reachable_by_probe(npos.xy())) {
       #if ENABLED(HALT_ON_PROBING_ERROR)
         kill("PROBING ERROR", "Could not reach the bed, XY position not within machine coordinates!");
       #endif
@@ -897,7 +897,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
     }
     npos -= probe_offset; // Get the nozzle position
   }
-  else if (!position_is_reachable(npos)) {
+  else if (!position_is_reachable(npos.xy())) {
     #if ENABLED(HALT_ON_PROBING_ERROR)
       kill("PROBING ERROR", "Could not reach the bed, XY position not within machine coordinates!");
     #endif

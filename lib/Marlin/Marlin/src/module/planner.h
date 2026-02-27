@@ -438,7 +438,17 @@ class Planner {
       * as it will be given to the planner and steppers.
       */
     static void apply_leveling(xyz_pos_t &raw);
+    static inline void apply_leveling(xyze_pos_t &raw) {
+      xyz_pos_t xyz = raw.xyz();
+      apply_leveling(xyz);
+      raw.set(xyz);
+    }
     static void unapply_leveling(xyz_pos_t &raw);
+    static inline void unapply_leveling(xyze_pos_t &raw) {
+      xyz_pos_t xyz = raw.xyz();
+      unapply_leveling(xyz);
+      raw.set(xyz);
+    }
 
     // Number of moves currently in the planner including the busy block, if any
     FORCE_INLINE static uint8_t movesplanned() { return BLOCK_MOD(block_buffer_head - block_buffer_tail); }

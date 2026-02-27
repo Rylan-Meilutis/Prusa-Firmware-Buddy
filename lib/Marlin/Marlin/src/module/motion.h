@@ -249,6 +249,11 @@ typedef struct { xyz_pos_t min, max; } axis_limits_t;
   extern bool soft_endstops_enabled;
   extern axis_limits_t soft_endstop;
   void apply_motion_limits(xyz_pos_t &target);
+  inline void apply_motion_limits(xyze_pos_t &target) {
+    xyz_pos_t xyz = target.xyz();
+    apply_motion_limits(xyz);
+    target.set(xyz);
+  }
   void update_software_endstops(const AxisEnum axis
     #if HAS_HOTEND_OFFSET
       , const uint8_t old_tool_index=0, const uint8_t new_tool_index=0
@@ -338,8 +343,8 @@ void do_blocking_move_to_z(const float &rz, const feedRate_t &fr_mm_s=0.0f, Segm
 
 void do_blocking_move_to_xy(const float &rx, const float &ry, const feedRate_t &fr_mm_s=0.0f);
 void do_blocking_move_to_xy(const xy_pos_t &raw, const feedRate_t &fr_mm_s=0.0f);
-FORCE_INLINE void do_blocking_move_to_xy(const xyz_pos_t &raw, const feedRate_t &fr_mm_s=0.0f)  { do_blocking_move_to_xy(xy_pos_t(raw), fr_mm_s); }
-FORCE_INLINE void do_blocking_move_to_xy(const xyze_pos_t &raw, const feedRate_t &fr_mm_s=0.0f) { do_blocking_move_to_xy(xy_pos_t(raw), fr_mm_s); }
+FORCE_INLINE void do_blocking_move_to_xy(const xyz_pos_t &raw, const feedRate_t &fr_mm_s=0.0f)  { do_blocking_move_to_xy(raw.xy(), fr_mm_s); }
+FORCE_INLINE void do_blocking_move_to_xy(const xyze_pos_t &raw, const feedRate_t &fr_mm_s=0.0f) { do_blocking_move_to_xy(raw.xy(), fr_mm_s); }
 
 void remember_feedrate_and_scaling();
 void remember_feedrate_scaling_off();
@@ -461,13 +466,13 @@ xyz_pos_t to_native_pos(const MachinePosXYZ &pos);
 
 inline MachinePosXYZE to_machine_pos(const xyze_pos_t &pos) {
     MachinePosXYZE result = pos;
-    result.set(to_machine_pos(xyz_pos_t(pos))); // Only change the XYZ coordinates
+    result.set(to_machine_pos(pos.xyz())); // Only change the XYZ coordinates
     return result;
 }
 
 inline xyze_pos_t to_native_pos(const MachinePosXYZE &pos) {
     xyze_pos_t result = pos;
-    result.set(to_native_pos(MachinePosXYZ(pos))); // Only change the XYZ coordinates
+    result.set(to_native_pos(pos.xyz())); // Only change the XYZ coordinates
     return result;
 }
 

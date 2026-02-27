@@ -115,7 +115,7 @@ void cubic_b_spline(
   const uint8_t extruder
 ) {
   // Absolute first and second control points are recovered.
-  const xy_pos_t first = position + offsets[0], second = target + offsets[1];
+  const xy_pos_t first = (position + offsets[0]).xy(), second = (target + offsets[1]).xy();
 
   xyze_pos_t bez_target;
   bez_target.set(position.x, position.y);

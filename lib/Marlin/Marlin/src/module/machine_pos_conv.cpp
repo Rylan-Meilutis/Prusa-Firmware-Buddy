@@ -15,7 +15,7 @@ MachinePosXYZ to_machine_pos(const xyz_pos_t &pos) {
 
 #if HAS_MESH
     if (planner.leveling_active) {
-        const float mbl_correction = ubl.get_z_correction(result);
+        const float mbl_correction = ubl.get_z_correction(result.xy());
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
         if (Planner::z_fade_height != 0.0f) {
@@ -37,7 +37,7 @@ xyz_pos_t to_native_pos(const MachinePosXYZ &pos) {
 
 #if HAS_MESH
     if (planner.leveling_active) {
-        const float mbl_correction = ubl.get_z_correction(result);
+        const float mbl_correction = ubl.get_z_correction(result.xy());
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
         if (Planner::z_fade_height != 0) {

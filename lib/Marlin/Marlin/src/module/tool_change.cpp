@@ -73,7 +73,7 @@ void tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
       [](PhysicalToolIndex physical_tool) -> MaybePhysical { return physical_tool; },
       [](NoTool) -> MaybePhysical { return NoTool{}; }
     );
-    bool ret [[maybe_unused]] = prusa_toolchanger.tool_change(maybe_physical, return_type, current_position, z_lift, z_return);
+    bool ret [[maybe_unused]] = prusa_toolchanger.tool_change(maybe_physical, return_type, current_position.xyz(), z_lift, z_return);
 
   #else
     #error Not implemented

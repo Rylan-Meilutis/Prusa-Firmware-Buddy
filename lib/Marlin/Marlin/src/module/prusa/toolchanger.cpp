@@ -189,7 +189,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
 
     // Check where we should return to
     if (return_type == tool_return_t::to_destination || return_type == tool_return_t::purge_and_to_destination) {
-        return_position = xyz_pos_t(destination);
+        return_position = destination.xyz();
     }
 
     // if we don't know position of all axes, do not return to current position
@@ -367,7 +367,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
         // Move back in XY direction
         if (return_type > tool_return_t::no_return) {
             // Move back to the original (or adjusted) position
-            unpark_to(return_position); // schedule a smooth XY transition to return_position
+            unpark_to(return_position.xy()); // schedule a smooth XY transition to return_position
         }
 
         // Now move down in Z
@@ -618,7 +618,7 @@ bool PrusaToolChanger::park(Dwarf &dwarf) {
     planner.set_max_jerk(AxisEnum::Y_AXIS, arc_move::arc_tg_jerk);
 
     // attempt to plan a smooth arc move
-    float arc_r = arc_move::arc_radius(current_position, target_pos);
+    float arc_r = arc_move::arc_radius(current_position.xy(), target_pos);
     if (arc_r >= arc_move::arc_min_radius) {
         if (arc_r < arc_move::arc_max_radius) {
             // Arc is smaller than typical, need to slow down
@@ -626,7 +626,7 @@ bool PrusaToolChanger::park(Dwarf &dwarf) {
             float rel_size = (arc_r - arc_move::arc_min_radius) / (arc_move::arc_max_radius - arc_move::arc_min_radius);
             tangent_fr = fminf(tangent_fr, PARKING_FINAL_MAX_SPEED + rel_size * (TRAVEL_MOVE_MM_S - PARKING_FINAL_MAX_SPEED));
         }
-        arc_move::plan_pos2dock(arc_r, current_position, target_pos,
+        arc_move::plan_pos2dock(arc_r, current_position.xy(), target_pos,
             tangent_fr, target_fr);
     }
 
@@ -828,7 +828,7 @@ void PrusaToolChanger::unpark_to(const xy_pos_t &destination) {
     planner.set_max_jerk(AxisEnum::Y_AXIS, arc_move::arc_tg_jerk);
 
     // attempt to plan a smooth arc move
-    float arc_r = arc_move::arc_radius(destination, current_position);
+    float arc_r = arc_move::arc_radius(destination, current_position.xy());
     if (arc_r >= arc_move::arc_min_radius) {
         if (arc_r < arc_move::arc_max_radius) {
             // Arc is smaller than typical, need to slow down
@@ -837,7 +837,7 @@ void PrusaToolChanger::unpark_to(const xy_pos_t &destination) {
             arc_fr = fminf(arc_fr, PARKING_FINAL_MAX_SPEED + rel_size * (TRAVEL_MOVE_MM_S - PARKING_FINAL_MAX_SPEED));
         }
 
-        arc_move::plan_dock2pos(arc_r, destination, current_position, arc_fr, arc_fr);
+        arc_move::plan_dock2pos(arc_r, destination, current_position.xy(), arc_fr, arc_fr);
     }
 
     // move to the destination

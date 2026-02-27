@@ -233,7 +233,9 @@ class unified_bed_leveling {
      * Z-Height at both ends. Then it does a linear interpolation of these heights based
      * on the Y position within the cell.
      */
-    static float get_z_correction(const float &rx0, const float &ry0) {
+    static float get_z_correction(const xy_pos_t &pos) {
+      const float rx0 = pos.x;
+      const float ry0 = pos.y;
       // Avoid working with off-mesh points, clamp to mesh area - consider non-meshed area is flat
       float irx0 = constrain(rx0, MESH_MIN_X, MESH_MAX_X);
       float iry0 = constrain(ry0, MESH_MIN_Y, MESH_MAX_Y);
@@ -260,7 +262,6 @@ class unified_bed_leveling {
       }
       return z0;
     }
-    static inline float get_z_correction(const xy_pos_t &pos) { return get_z_correction(pos.x, pos.y); }
 
     static inline float mesh_index_to_xpos(const uint8_t i) {
       return MESH_MIN_X + i * (MESH_X_DIST);

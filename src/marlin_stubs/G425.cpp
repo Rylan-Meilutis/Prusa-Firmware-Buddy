@@ -250,7 +250,7 @@ void go_to_safe_height() {
 }
 
 void go_to_safety_circle(const xyz_pos_t center, const float radius) {
-    current_position.set(closest_point_on_circle(current_position, center, radius));
+    current_position.set(closest_point_on_circle(current_position.xy(), center.xy(), radius));
     line_to_current_position(INTERPROBE_FEEDRATE_MMS);
     planner.synchronize();
 }
@@ -263,9 +263,9 @@ xyz_pos_t initial_position(const xyz_pos_t center, const float angle, const floa
 
 void go_to_initial(const xyz_pos_t center, const float angle, const float radius) {
     const xyz_pos_t initial = initial_position(center, angle, radius);
-    const xy_pos_t current = current_position;
+    const xy_pos_t current = current_position.xy();
 
-    if (current != initial) {
+    if (current != initial.xy()) {
         feedrate_mm_s = INTERPROBE_FEEDRATE_MMS;
         plan_arc(xyze_pos_t(initial), { { { .x = center.x - current.x, .y = center.y - current.y } } }, false, 0);
     }
@@ -347,7 +347,7 @@ xy_pos_t probe_xy(const xyz_pos_t center, const float angle, const uint8_t tool,
         static_cast<double>(hit_mm.x),
         static_cast<double>(hit_mm.y));
 
-    return hit_mm;
+    return hit_mm.xy();
 }
 
 xy_pos_t synthetic_probe(const xyz_pos_t center, const float angle) {
@@ -435,7 +435,7 @@ float probe_z(const xyz_pos_t position, float uncertainty, const int num_measure
         }
 
         // Move to the position where we probe
-        current_position.set(xy_pos_t(position) + offset);
+        current_position.set(position.xy() + offset);
         current_position.z = top_expected_position + uncertainty;
         calibration_move();
 
@@ -523,7 +523,7 @@ const std::optional<xyz_pos_t> get_single_xyz_center(const xyz_pos_t initial, co
     center.z = start.z;
 
     if (phase == Phase::final) {
-        if (!check_deviation(center, hits)) {
+        if (!check_deviation(center.xy(), hits)) {
             return std::nullopt;
         }
     }

@@ -91,7 +91,7 @@ void GcodeSuite::M420() {
   // (Don't disable for just M420 or M420 V)
   if (seen_S && !to_enable) set_bed_leveling_enabled(false);
 
-  xyz_pos_t oldpos = current_position;
+  xyz_pos_t oldpos = current_position.xyz();
 
   #if ENABLED(AUTO_BED_LEVELING_UBL)
 
@@ -207,7 +207,7 @@ void GcodeSuite::M420() {
   #endif
 
   // Report change in position
-  if (oldpos != current_position)
+  if (oldpos != current_position.xyz())
     report_current_position();
 }
 

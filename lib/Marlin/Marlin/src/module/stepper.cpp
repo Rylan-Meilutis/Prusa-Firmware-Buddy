@@ -415,7 +415,7 @@ void Stepper::endstop_triggered(const AxisEnum axis) {
 void Stepper::report_positions() {
     // Note that the reported position is not atomic/synchronous for all axes
     // to avoid locking the step ISR
-    const abc_steps_t pos = count_position;
+    const abc_steps_t pos = count_position.xyz();
 
 #if CORE_IS_XY || CORE_IS_XZ
     SERIAL_ECHOPAIR(MSG_COUNT_A, pos.a, " B:", pos.b);
