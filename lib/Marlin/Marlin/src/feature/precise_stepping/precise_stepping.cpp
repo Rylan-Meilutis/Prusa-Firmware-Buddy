@@ -626,7 +626,7 @@ void PreciseStepping::reset_from_halt(bool preserve_step_fraction) {
         total_start_pos_msteps.y = (stepper.count_position_from_startup.x - stepper.count_position_from_startup.y) * PLANNER_STEPS_MULTIPLIER / 2;
         total_start_pos_msteps.z = stepper.count_position_from_startup.z * PLANNER_STEPS_MULTIPLIER;
 #else
-        total_start_pos_msteps = stepper.count_position_from_startup * PLANNER_STEPS_MULTIPLIER;
+        total_start_pos_msteps = stepper.count_position_from_startup.to_tag<MStepsCartTag>() * PLANNER_STEPS_MULTIPLIER;
 #endif
     } else {
         // Attempt to recover the step fraction only on axes which weren't interrupted by a stop as
