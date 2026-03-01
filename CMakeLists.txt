@@ -73,6 +73,9 @@ add_compile_options(-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.)
 # make the builds reproducible
 add_compile_options(-frandom-seed=BuddyFW)
 
+# Do not allow non-ascii identifiers and bidi shenanigans
+add_compile_options(-fno-extended-identifiers -Wbidi-chars=any)
+
 add_compile_options(
   $<$<COMPILE_LANGUAGE:CXX>:-Wno-register> $<$<COMPILE_LANGUAGE:CXX>:-Wno-volatile>
   )
