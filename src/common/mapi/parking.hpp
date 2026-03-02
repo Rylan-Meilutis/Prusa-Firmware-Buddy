@@ -92,8 +92,35 @@ static constexpr EnumArray<ParkPosition, ParkingPosition, ParkPosition::_cnt> pa
 void move_out_of_nozzle_cleaner_area();
 #endif
 
+/**
+ * @brief Parks the toolhead at the specified position.
+ *
+ * Moves the toolhead to a parking position, optionally adjusting the Z axis first.
+ * On printers with a nozzle cleaner, the function automatically performs intermediate
+ * moves to avoid collisions with the brush/v-blade area.
+ *
+ * Does nothing if X or Y axes are not homed.
+ *
+ * @param z_action Specifies how to handle Z axis movement before XY parking:
+ *        - @c move_to_at_least: Raise Z to at least the parking Z height (won't lower)
+ *        - @c absolute_move: Move Z to the exact parking Z height
+ *        - @c relative_move: Raise Z by the parking Z value (clamped to Z_MAX_POS)
+ *        - @c no_move: Skip Z movement, only park XY
+ * @param parking_position Target position for parking. Axes set to @c Unchanged
+ *        will retain their current position. Defaults to the standard park position.
+ */
 void park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
 
+/**
+ * @brief Homes required axes if needed, then parks the toolhead.
+ *
+ * Same as park(), but performs homing first on axes that will be moved
+ * (based on @p parking_position and @p z_action). Z is only homed if
+ * @p z_action is @c absolute_move.
+ *
+ * @param z_action @see park()
+ * @param parking_position @see park()
+ */
 void home_if_needed_and_park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
 
 } // namespace mapi
