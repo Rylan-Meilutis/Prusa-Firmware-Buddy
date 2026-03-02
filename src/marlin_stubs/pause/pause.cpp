@@ -441,7 +441,6 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
     case LoadType::autoload:
         // if filament is not present we want to break and not set loaded filament
         // we have already loaded the filament in gear, now just wait for temperature to rise
-        config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
         set(LoadState::load_wait_temp);
         handle_filament_removal(LoadState::filament_push_ask);
         break;
