@@ -79,8 +79,6 @@ namespace ExtUI {
   void onPrintTimerPaused();
   void onPrintTimerStopped();
   void onFilamentRunout(const extruder_t extruder);
-  void onUserConfirmRequired(const char * const msg);
-  void onUserConfirmRequired_P(PGM_P const pstr);
   void onFactoryReset();
   void onStoreSettings(char *);
   void onLoadSettings(const char *);

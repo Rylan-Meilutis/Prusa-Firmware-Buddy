@@ -80,21 +80,10 @@ void GcodeSuite::M0_M1() {
 
   planner.synchronize();
 
-  #if ENABLED(EXTENSIBLE_UI)
-
-    if (has_message)
-      ExtUI::onUserConfirmRequired(args); // Can this take an SRAM string??
-    else
-      ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_USERWAIT));
-
-  #else
-
-    if (has_message) {
-      SERIAL_ECHO_START();
-      SERIAL_ECHOLN(args);
-    }
-
-  #endif
+  if (has_message) {
+    SERIAL_ECHO_START();
+    SERIAL_ECHOLN(args);
+  }
 
   KEEPALIVE_STATE(PAUSED_FOR_USER);
   wait_for_user = true;
@@ -102,10 +91,7 @@ void GcodeSuite::M0_M1() {
   #if ENABLED(HOST_PROMPT_SUPPORT)
     host_prompt_do(PROMPT_USER_CONTINUE, PSTR("M0/1 Break Called"), PSTR("Continue"));
   #endif
-  #if ENABLED(EXTENSIBLE_UI)
-    ExtUI::onUserConfirmRequired_P(PSTR("M0/1 Break Called"));
-  #endif
-
+  
   if (ms > 0) {
     ms += millis();  // wait until this time for a click
     while (PENDING(millis(), ms) && wait_for_user) idle(true);

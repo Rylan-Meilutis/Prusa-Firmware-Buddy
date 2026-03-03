@@ -48,15 +48,6 @@
 #include "ui_api.h"
 #include "../ultralcd.h"
 
-namespace ExtUI {
-
-  void onUserConfirmRequired_P(PGM_P const pstr) {
-    char msg[strlen_P(pstr) + 1];
-    strcpy_P(msg, pstr);
-    onUserConfirmRequired(msg);
-  }
-} // namespace ExtUI
-
 // At the moment, we piggy-back off the ultralcd calls, but this could be cleaned up in the future
 
 void MarlinUI::init() {

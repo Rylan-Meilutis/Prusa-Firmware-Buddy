@@ -3718,10 +3718,6 @@ void onPrintTimerStopped() {
     log_info(MarlinServer, "ExtUI: onPrintTimerStopped");
 }
 
-void onUserConfirmRequired(const char *const msg) {
-    log_info(MarlinServer, "ExtUI: onUserConfirmRequired: %s", msg);
-}
-
 void onFactoryReset() {
     log_info(MarlinServer, "ExtUI: onFactoryReset");
 }
