@@ -10,6 +10,7 @@
 #include "probe_analysis.hpp"
 #include <atomic>
 #include <printers.h>
+#include <option/has_indx.h>
 
 class Loadcell {
 public:
@@ -152,6 +153,12 @@ private:
         static constexpr float gain = 276.1148366795870f;
         static constexpr std::array<const float, 5> a = { { 1, -3.678167822936356f, 5.211060348827695f, -3.364842682922483f, 0.837181651256023f } };
     };
+#elif HAS_INDX()
+    // butter(2, [0.01290492, 0.10365027]) — same ~2.4-19.0Hz passband as MK4, recalculated for 366Hz sampling
+    struct ZFilterParams {
+        static constexpr float gain = 5.9405335153e+01f;
+        static constexpr std::array<const float, 5> a = { { 1.0f, -3.5770043970f, 4.8268008110f, -2.9178955271f, 0.6682431852f } };
+    };
 #else /*PRINTER*/
     // Original
     struct ZFilterParams {
@@ -255,9 +262,17 @@ private:
         bool initialized_ = false;
     };
 
+#if HAS_INDX()
+    static constexpr float scale = 0.0128f;
+#else
     static constexpr float scale = 0.0192f;
+#endif
     static constexpr float thresholdStatic = -125.f;
+#if HAS_INDX()
+    static constexpr float thresholdContinuous = -50.f;
+#else
     static constexpr float thresholdContinuous = -40.f;
+#endif
     static constexpr float hysteresis = 80.f;
     float failsOnLoadAbove;
     float failsOnLoadBelow;
