@@ -16,8 +16,18 @@
 # Services
 #
 
+# Ac Controller
+# Used to be GET_CONFIG = 20, can be reused
+uint16 SRV_AC_CONTROLLER_SET_CONFIG = 21
+# Used to be GET_STATUS = 22, can be reused
+
 # Tool offset sensor (PUB6)
 uint16 SRV_TOOL_OFFSET_SENSOR_CONFIG = 90
+
+# NFC (PUB6)
+uint16 SRV_NFC_ACCEPT_EVENT = 100
+uint16 SRV_NFC_REQUEST = 101
+uint16 SRV_NFC_SET_CONFIG = 102
 
 #
 # Messages
@@ -26,9 +36,18 @@ uint16 SRV_TOOL_OFFSET_SENSOR_CONFIG = 90
 # Common
 uint16 MSG_COMMON_METRICS = 500
 uint16 MSG_COMMON_STATS = 501 # CAN measurements, uses raw data, see CyphalStats
+uint16 MSG_AUTO_BOOT_CANCEL = 502
+
+# AC Controller
+uint16 MSG_AC_CONTROLLER_STATUS = 600
+uint16 MSG_AC_CONTROLLER_LEDS = 601 # This is broadcast by master, would need changes if we had two AC Controllers
 
 # Tool offset sensor (PUB6)
 uint16 MSG_TOOL_OFFSET_SENSOR_DATA = 900
 uint16 MSG_TOOL_OFFSET_SENSOR_STATUS = 901
+
+# NFC (PUB6)
+uint16 MSG_NFC_EVENT = 1000
+uint16 MSG_NFC_STATUS = 1001
 
 @sealed
