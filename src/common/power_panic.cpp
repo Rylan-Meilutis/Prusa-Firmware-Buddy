@@ -504,6 +504,13 @@ void resume_loop() {
         }
 
         atomic_finish();
+
+        // Re-prepare for the next power panic now that power is stable, to
+        // avoid expensive erase.
+        //
+        // For the non-resumed print, it is done in MBL/G29.
+        prepare();
+
         log_info(PowerPanic, "resuming complete");
 
         resume_state = ResumeState::Error;
