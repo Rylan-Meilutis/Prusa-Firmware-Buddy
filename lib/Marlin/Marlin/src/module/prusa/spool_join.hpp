@@ -50,7 +50,12 @@ public:
     }
 
     // removes whole join chain that contains given spool
+    [[deprecated("Use the overload with ToolIndex")]]
     bool remove_join_chain_containing(uint8_t spool);
+
+    bool remove_join_chain_containing(VirtualToolIndex tool) {
+        return remove_join_chain_containing(tool.to_raw());
+    }
 
     [[deprecated("Use the overload with ToolIndex")]]
     uint8_t get_first_spool_1_from_chain(uint8_t spool_2) const;
@@ -63,8 +68,8 @@ public:
     [[deprecated("Use the overload with ToolIndex")]]
     uint8_t get_last_spool_2_from_chain(uint8_t spool_1) const;
 
-    inline uint8_t get_last_spool_2_from_chain(VirtualToolIndex spool_1) const {
-        return get_last_spool_2_from_chain(spool_1.to_raw());
+    inline VirtualToolIndex get_last_spool_2_from_chain(VirtualToolIndex spool_1) const {
+        return VirtualToolIndex::from_raw(get_last_spool_2_from_chain(spool_1.to_raw()));
     }
 
     [[deprecated("Use the overload with ToolIndex")]]
