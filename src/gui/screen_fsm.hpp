@@ -28,7 +28,8 @@ template <class Storage, class... T>
 struct FrameDefinitionList {
     static void create_frame(Storage &storage, auto phase, auto... args) {
         auto f = [&]<auto phase_, typename Frame, auto... constructor_args>(FrameDefinition<phase_, Frame, constructor_args...>) {
-            static_assert(!std::is_base_of_v<window_t, Frame>, "Frames should not inherit from window_t (ideally from anything), it incrases flash usage");
+            static_assert(
+                !std::is_base_of_v<window_t, Frame> || requires { Frame::needs_to_inherit_from_window_t; }, "Frames should not inherit from window_t (ideally from anything), it increases flash usage");
 
             if (phase == phase_) {
                 storage.template create<Frame>(args..., constructor_args...);
