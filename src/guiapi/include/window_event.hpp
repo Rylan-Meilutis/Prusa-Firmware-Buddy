@@ -22,6 +22,13 @@ enum class GUI_event_t : uint8_t {
     /// If the event IS accepted, the accepting code is responsible for making a sound if it wants to.
     KNOB,
 
+    /// Window has gained focus
+    /// Event parameter contains a pointer to GuiEventContext holding gui_event::FocusInEvent
+    FOCUS_IN,
+
+    /// Window has lost focus
+    FOCUS_OUT,
+
     CLICK, ///< clicked (tag > 0)          ... captured window only
     HOLD, ///< held button                ... captured window only
     HELD_LEFT, ///< held and moved left        ... captured window only

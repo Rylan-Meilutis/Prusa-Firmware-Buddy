@@ -341,6 +341,41 @@ void IWindowMenu::windowEvent(window_t *sender, GUI_event_t event, void *param) 
         ensure_item_on_screen(focused_item_index());
         break;
 
+    case GUI_event_t::FOCUS_IN: {
+        auto &ctx = *static_cast<GuiEventContext *>(param);
+        auto &ev = ctx.event.value<gui_event::FocusInEvent>();
+
+        const auto item_count = this->item_count();
+        if (item_count == 0) {
+            // No heuristics
+            break;
+        }
+
+        using Reason = gui_event::FocusInEvent::Reason;
+        switch (ev.reason) {
+
+        case Reason::unspecified:
+            break;
+
+        case Reason::forward_focus_chain:
+            move_focus_to_index(0);
+            break;
+
+        case Reason::reverse_focus_chain:
+            move_focus_to_index(item_count - 1);
+            break;
+        }
+        break;
+    }
+
+    case GUI_event_t::FOCUS_OUT: {
+        // If the menu loses focus, unfocus the focused item
+        if (focused_item_index().has_value()) {
+            IWindowMenuItem::move_focus(nullptr);
+        }
+        break;
+    }
+
     default:
         window_t::windowEvent(sender, event, param);
         break;

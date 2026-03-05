@@ -292,7 +292,7 @@ void window_frame_t::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t 
             }
 
             pWin = pNext;
-            pWin->SetFocus();
+            pWin->SetFocus(step > 0 ? gui_event::FocusInEvent::Reason::forward_focus_chain : gui_event::FocusInEvent::Reason::reverse_focus_chain);
             diff -= step;
             any_consumed = true;
             sound::play(SoundType::encoder_move);
@@ -300,6 +300,35 @@ void window_frame_t::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t 
 
         if (any_consumed) {
             ctx.accept();
+        }
+        break;
+    }
+
+    case GUI_event_t::FOCUS_IN: {
+        auto &ctx = *static_cast<GuiEventContext *>(param);
+        auto &ev = ctx.event.value<gui_event::FocusInEvent>();
+
+        using Reason = gui_event::FocusInEvent::Reason;
+        switch (ev.reason) {
+
+        case Reason::unspecified:
+            pWin = nullptr;
+            break;
+
+        case Reason::forward_focus_chain:
+            pWin = GetFirstEnabledSubWin();
+            break;
+
+        case Reason::reverse_focus_chain:
+            pWin = last_normal;
+            if (!pWin->IsEnabled()) {
+                pWin = GetPrevEnabledSubWin(pWin);
+            }
+            break;
+        }
+
+        if (pWin) {
+            pWin->SetFocus(ev.reason);
         }
         break;
     }

@@ -123,6 +123,39 @@ void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param)
         }
     }
         return;
+
+    case GUI_event_t::FOCUS_IN: {
+        auto &ctx = *static_cast<GuiEventContext *>(param);
+        auto &ev = ctx.event.value<gui_event::FocusInEvent>();
+
+        const auto item_count = this->GetBtnCount();
+        if (item_count == 0) {
+            // No heuristics
+            break;
+        }
+
+        using Reason = gui_event::FocusInEvent::Reason;
+        switch (ev.reason) {
+
+        case Reason::unspecified:
+            break;
+
+        case Reason::forward_focus_chain:
+            SetBtnIndex(0);
+            break;
+
+        case Reason::reverse_focus_chain:
+            SetBtnIndex(item_count - 1);
+            break;
+        }
+        break;
+    }
+
+    case GUI_event_t::FOCUS_OUT: {
+        // This would be a nice place to unselect all buttons, but the code does not allow it
+        break;
+    }
+
     default:
         window_t::windowEvent(sender, event, param);
     }

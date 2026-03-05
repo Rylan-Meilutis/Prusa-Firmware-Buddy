@@ -11,6 +11,8 @@
 #include "compact_pointer.hpp"
 // !!! all windows should use gui::GetTick() to access tick value!!!
 
+#include <gui/event/focus_event.hpp>
+
 class window_t {
     Rect16 rect; // (8 bytes) display rectangle
     CompactRAMPointer<window_t> parent;
@@ -91,7 +93,7 @@ public:
     void ClrEnforceCapture();
     void EnableLongHoldScreenAction();
     void DisableLongHoldScreenAction();
-    void SetFocus();
+    void SetFocus(gui_event::FocusInEvent::Reason reason = gui_event::FocusInEvent::Reason::unspecified);
 
     inline bool IsEnabled() const {
         return flags.enabled;

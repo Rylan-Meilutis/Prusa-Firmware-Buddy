@@ -111,7 +111,7 @@ void window_t::ClrEnforceCapture() { flags.enforce_capture_when_not_visible = fa
 void window_t::DisableLongHoldScreenAction() { flags.has_long_hold_screen_action = false; };
 void window_t::EnableLongHoldScreenAction() { flags.has_long_hold_screen_action = true; };
 
-void window_t::SetFocus() {
+void window_t::SetFocus(gui_event::FocusInEvent::Reason reason) {
     if (!flags.visible || !flags.enabled) { // IsVisible() is not used -> window behind the dialog can be set by this
         return;
     }
@@ -121,10 +121,14 @@ void window_t::SetFocus() {
 
     if (focused_ptr) {
         focused_ptr->Invalidate();
+        focused_ptr->WindowEvent(nullptr, GUI_event_t::FOCUS_OUT, nullptr);
     }
     focused_ptr = this;
     Invalidate();
     gui_invalidate();
+
+    GuiEventContext ctx { gui_event::FocusInEvent { .reason = reason } };
+    windowEvent(nullptr, GUI_event_t::FOCUS_IN, &ctx);
 }
 
 void window_t::set_visible(bool set) {
