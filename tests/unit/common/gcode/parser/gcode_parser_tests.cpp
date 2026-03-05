@@ -89,6 +89,27 @@ TEST_CASE("gcode_parser::gcode_parser::params_tests") {
     }
 }
 
+TEST_CASE("gcode_parser::gcode_parser::m865_like_command") {
+    std::array<char, 64> buf;
+
+    GCodeParser2 p(fail_test_error_callback);
+    REQUIRE(p.parse("M865 X R N\"XXX\" T275 P170 B100 G0 C0 D0 E0 F0"));
+    CHECK(p.command() == GCodeCommand { .letter = 'M', .codenum = 865 });
+    CHECK(option_list(p) == "BCDEFGNPRTX");
+
+    CHECK(p.option<bool>('X') == true);
+    CHECK(p.option<bool>('R') == true);
+    CHECK(p.option<std::string_view>('N', buf) == "XXX");
+    CHECK(p.option<int>('T') == 275);
+    CHECK(p.option<int>('P') == 170);
+    CHECK(p.option<int>('B') == 100);
+    CHECK(p.option<int>('G') == 0);
+    CHECK(p.option<int>('C') == 0);
+    CHECK(p.option<int>('D') == 0);
+    CHECK(p.option<int>('E') == 0);
+    CHECK(p.option<int>('F') == 0);
+}
+
 TEST_CASE("gcode_parser::gcode_parser::failure_tests") {
     // Check unclosed quotes
     CHECK(test_parse_failure<GCodeParser2>("G13 X\""));
