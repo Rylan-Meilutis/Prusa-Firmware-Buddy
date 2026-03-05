@@ -28,7 +28,7 @@
 
 #include <static_alocation_ptr.hpp>
 #if HAS_TOOL_MAPPING()
-    #include <screen_tools_mapping.hpp>
+    #include <gui/screen/print/frame_tool_mapping.hpp>
 #endif
 
 #if HAS_MMU2()
@@ -92,22 +92,6 @@ private:
     GCodeInfoWithDescription gcode_description;
 };
 
-#if HAS_TOOL_MAPPING()
-// TODO: This is only temporary - will be changed to a Screen in the next PR
-class FrameToolMapping {
-public:
-    FrameToolMapping(window_frame_t *parent)
-        : tools_mapping(parent, GCodeInfo::getInstance()) {
-        parent->CaptureNormalWindow(tools_mapping);
-        tools_mapping.Show();
-        tools_mapping.Invalidate();
-    }
-
-private:
-    ToolsMappingBody tools_mapping;
-};
-#endif
-
 #if HAS_E2EE_SUPPORT()
 class FrameUntrustedIdentity : FramePrompt {
 public:
@@ -139,7 +123,7 @@ using Frames = FrameDefinitionList<ScreenPrintPreview::FrameStorage,
     FrameDefinition<Phase::mmu_filament_inserted, FramePrompt, Phase::mmu_filament_inserted, map_print_preview_phase_to_error_code>,
 #endif
 #if HAS_TOOL_MAPPING()
-    FrameDefinition<Phase::tools_mapping, frames::FrameToolMapping>,
+    FrameDefinition<Phase::tools_mapping, FrameToolMapping>,
 #endif
     FrameDefinition<Phase::wrong_filament, FramePrompt, Phase::wrong_filament, map_print_preview_phase_to_error_code>,
 #if HAS_E2EE_SUPPORT()
