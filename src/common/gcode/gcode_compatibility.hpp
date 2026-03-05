@@ -9,6 +9,7 @@
 #include <tool_index.hpp>
 #include <inplace_function.hpp>
 #include <string_view_utf8.hpp>
+#include <marlin_server_types/general_response.hpp>
 
 #include <option/has_gcode_compatibility.h>
 #include <option/has_mmu2.h>
@@ -281,7 +282,7 @@ struct CompatibilityReport {
     /// Some warning ignores can change printer state (for example filament not loaded disables FS)
     /// @returns true if the user confirmed to skip all warnings
     /// !!! TO BE EXECUTED FROM THE GUI THREAD ONLY
-    [[nodiscard]] bool gui_confirm_all_incompatibilities() const;
+    [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort) const;
 
 private:
     void generate_toolmapping_only_noclear(const ToolMappingArgs &args);

@@ -430,10 +430,10 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
     }
 }
 
-bool CompatibilityReport::gui_confirm_all_incompatibilities() const {
+bool CompatibilityReport::gui_confirm_all_incompatibilities(Response abort_response) const {
     const auto highest_severity_failed_check = this->highest_severity_failed_check();
     if (auto &ch = highest_severity_failed_check; ch.has_value() && ch->meta->evaluate_severity() == HWCheckSeverity::Abort) {
-        MsgBoxError(_(ch->meta->description), { Response::Abort });
+        MsgBoxError(_(ch->meta->description), { abort_response });
         return false;
     }
 
@@ -445,10 +445,10 @@ bool CompatibilityReport::gui_confirm_all_incompatibilities() const {
 
         // Special case for the filament loaded check - continuing that one requires disabling the filament sensors
         else if (check.meta == &ChecksTraits<VirtualToolCheck>::metadata[VirtualToolCheck::filament_loaded]) {
-            if (MsgBoxWarning(_(check.meta->description), { Response::Abort, Response::FS_disable }) == Response::FS_disable) {
+            if (MsgBoxWarning(_(check.meta->description), { abort_response, Response::FS_disable }) == Response::FS_disable) {
 #if HAS_SPOOL_JOIN()
                 if (does_spool_join) {
-                    MsgBoxError(_("Cannot disable filament sensors, because they are required for spool join."), { Response::Abort });
+                    MsgBoxError(_("Cannot disable filament sensors, because they are required for spool join."), { abort_response });
                     return false;
                 }
 #endif
@@ -460,7 +460,7 @@ bool CompatibilityReport::gui_confirm_all_incompatibilities() const {
         }
 
         else {
-            return MsgBoxWarning(_(check.meta->description), { Response::Abort, Response::Ignore }) == Response::Ignore;
+            return MsgBoxWarning(_(check.meta->description), { abort_response, Response::Ignore }) == Response::Ignore;
         }
     });
 }

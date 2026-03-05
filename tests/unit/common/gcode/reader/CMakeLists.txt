@@ -62,8 +62,10 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/utils/color.cpp gcode_info.cpp
   )
 target_include_directories(
-  gcode_info_test PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs # Must be before lib/Marlin include
-                         ${CMAKE_SOURCE_DIR}/lib/Marlin/Marlin/src ${CMAKE_SOURCE_DIR}/src/lang
+  gcode_info_test
+  PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs # Must be before lib/Marlin include
+         ${CMAKE_SOURCE_DIR}/lib/Marlin/Marlin/src ${CMAKE_SOURCE_DIR}/src/lang
+         ${CMAKE_SOURCE_DIR}/src/common
   )
 target_link_libraries(gcode_info_test gcode_reader_test_base version)
 add_catch_test(gcode_info_test)
