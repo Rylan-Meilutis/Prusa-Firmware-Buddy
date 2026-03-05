@@ -82,7 +82,7 @@ public: // Focus related stuff
     /// Sets $index to be focused.
     /// The implementaiton should also ensure that the focused index is on the screen afterwards
     /// \returns if successful
-    bool move_focus_to_index(std::optional<int> index);
+    bool move_focus_to_index(std::optional<int> index, gui_event::FocusInEvent::Reason reason = gui_event::FocusInEvent::Reason::unspecified);
 
     /// Moves the focus by $amount items. Sets the focus if there is no focus.
     /// \returns if the focus was changed
@@ -95,6 +95,12 @@ public: // Focus related stuff
     ///
     /// \returns focused index of the clicked item, if the focus move was successful
     std::optional<int> move_focus_touch_click(void *event_param);
+
+    /// @returns whether an item at the specified index can be focused
+    virtual bool is_item_focusable(int index) const {
+        (void)index;
+        return true;
+    };
 
     /// Returns whether the container should focus an item on container init.
     /// This is false with enabled touchscreen.

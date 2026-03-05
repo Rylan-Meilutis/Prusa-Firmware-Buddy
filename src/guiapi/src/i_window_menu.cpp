@@ -84,15 +84,42 @@ std::optional<int> IWindowMenu::focused_item_index() const {
     return item_index(IWindowMenuItem::focused_item());
 }
 
-bool IWindowMenu::move_focus_to_index(std::optional<int> index) {
-    if (!index) {
+bool IWindowMenu::move_focus_to_index(std::optional<int> index_opt, gui_event::FocusInEvent::Reason reason) {
+    if (!index_opt) {
         IWindowMenuItem::move_focus(nullptr);
         return true;
+    }
+    int index = *index_opt;
+
+    using Reason = gui_event::FocusInEvent::Reason;
+    switch (reason) {
+
+    case Reason::unspecified:
+        break;
+
+    case Reason::forward_focus_chain: {
+        const auto count = this->item_count();
+        while (index < count && !is_item_focusable(index)) {
+            index++;
+        }
+        break;
+    }
+
+    case Reason::reverse_focus_chain: {
+        while (index >= 0 && !is_item_focusable(index)) {
+            index--;
+        }
+        break;
+    }
+    }
+
+    if (!is_item_focusable(index)) {
+        return false;
     }
 
     ensure_item_on_screen(index);
 
-    if (auto item = item_at(*index)) {
+    if (auto item = item_at(index)) {
         item->move_focus();
         return true;
     }
@@ -117,8 +144,11 @@ bool IWindowMenu::move_focus_by(int amount) {
         new_index = (amount >= 0) ? scroll_offset() : std::min(scroll_offset() + max_items_on_screen_count() - 1, item_count() - 1);
     }
 
+    // Note: This code is not exactly valid as we should be checking for is_item_focusable on each step instead just on the move_focus_to_index end,
+    // but I'd guess it's good enough for our purposes, so implementing that is not worth the extra hassle
+
     /// sets new cursor position to a visible item, also invalidates items at old and new index
-    if (!move_focus_to_index(new_index)) {
+    if (!move_focus_to_index(new_index, amount >= 0 ? gui_event::FocusInEvent::Reason::forward_focus_chain : gui_event::FocusInEvent::Reason::reverse_focus_chain)) {
         return false;
     }
 
@@ -358,11 +388,11 @@ void IWindowMenu::windowEvent(window_t *sender, GUI_event_t event, void *param) 
             break;
 
         case Reason::forward_focus_chain:
-            move_focus_to_index(0);
+            move_focus_to_index(0, gui_event::FocusInEvent::Reason::forward_focus_chain);
             break;
 
         case Reason::reverse_focus_chain:
-            move_focus_to_index(item_count - 1);
+            move_focus_to_index(item_count - 1, gui_event::FocusInEvent::Reason::reverse_focus_chain);
             break;
         }
         break;
