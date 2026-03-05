@@ -284,16 +284,6 @@ void CSelftest::Loop() {
         phaseStart();
         break;
     case stsSelftestStart:
-        if (m_Mask & to_one_hot(stsHeaters_bed_ena)) {
-            // set bed to 35°C
-            // heater test will start after temperature pass tru 40°C (we dont want to entire bed and sheet to be tempered at it)
-            // so don't set 40°C, it could also trigger cooldown in case temperature is or similar 40.1°C
-            thermalManager.setTargetBed(35);
-        }
-        if (m_Mask & to_one_hot(stsHeaters_noz_ena)) {
-            // no need to preheat nozzle, it heats up much faster than bed
-            thermalManager.disable_hotend();
-        }
         break;
     case stsDocks:
         if (prusa_toolchanger.is_toolchanger_enabled() && (ret = selftest::phaseDocks(tool_mask, pDocks, Config_Docks))) {
