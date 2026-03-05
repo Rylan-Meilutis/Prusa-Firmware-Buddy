@@ -21,6 +21,11 @@ IWindowMenu::IWindowMenu(window_t *parent, Rect16 rect)
 
 void IWindowMenu::set_scroll_offset(int set) {
     assert(set >= 0 && set <= max_scroll_offset());
+
+    if (scroll_offset_ == set) {
+        return;
+    }
+
     scroll_offset_ = set;
 
     // invalidate, but let invalid_background flag as it was
@@ -30,7 +35,11 @@ void IWindowMenu::set_scroll_offset(int set) {
     flags.invalid_background = back;
 
     // The text roll needs to be invalidated, it has different coordinates now
-    IWindowMenuItem::reset_roll();
+    if (IsFocused()) {
+        IWindowMenuItem::reset_roll();
+    }
+
+    WindowEvent(this, GUI_event_t::SCROLL_CHANGED, nullptr);
 }
 
 bool IWindowMenu::ensure_item_on_screen(std::optional<int> opt_index) {
