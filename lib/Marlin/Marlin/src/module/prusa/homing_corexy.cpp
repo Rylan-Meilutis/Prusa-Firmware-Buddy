@@ -260,8 +260,13 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     const xyze_msteps_t initial_pos_msteps = planner.get_position_msteps();
     xyze_msteps_t target_pos_msteps = initial_pos_msteps;
     const int32_t dist_msteps = dist * PLANNER_STEPS_MULTIPLIER;
-    target_pos_msteps[axis] -= dist_msteps / 2;
-    target_pos_msteps[fixed_axis] += dist_msteps / 2;
+    if (axis == B_AXIS) {
+        target_pos_msteps[X_AXIS] += dist_msteps / 2;
+        target_pos_msteps[Y_AXIS] -= dist_msteps / 2;
+    } else {
+        target_pos_msteps[X_AXIS] += dist_msteps / 2;
+        target_pos_msteps[Y_AXIS] += dist_msteps / 2;
+    }
 
     // prepare stepper for the move
     assert(MeasurementGuard::is_active());
