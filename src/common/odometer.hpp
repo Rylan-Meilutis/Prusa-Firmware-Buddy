@@ -5,6 +5,7 @@
 #include <atomic>
 #include <utils/utility_extensions.hpp>
 #include <inc/MarlinConfig.h>
+#include <tool_index.hpp>
 
 /// Singleton class that measures
 /// distance traveled and filament consumed
@@ -24,8 +25,8 @@ private:
     /// new values are stored to RAM (fast, unlimited writes)
     /// it should be stored to EEPROM after a while (slow, limited number of writes)
     std::atomic<float> trip_xyz[axis_count] = {};
-    std::atomic<float> extruded[HOTENDS] = {};
-    std::atomic<uint32_t> toolpick[HOTENDS] = {};
+    StrongIndexArray<std::atomic<float>, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> extruded {};
+    StrongIndexArray<std::atomic<uint32_t>, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> toolpick {};
     std::atomic<uint32_t> duration_time = 0;
     std::atomic<uint32_t> mmu_changes = 0;
 
@@ -57,17 +58,17 @@ public:
 
     /**
      * @brief Add extruded length to count.
-     * @param extruder for this extruders [indexed from 0]
+     * @param tool target tool
      * @param value extruded length [meter]
      */
-    void add_extruded(uint8_t extruder, float value);
+    void add_extruded(PhysicalToolIndex tool, float value);
 
     /**
-     * @brief Get extruded length for a particular extruder.
-     * @param extruder for this extruder [indexed from 0]
+     * @brief Get extruded length for a particular tool.
+     * @param tool target tool
      * @return extruded length [meter]
      */
-    float get_extruded(uint8_t extruder);
+    float get_extruded(PhysicalToolIndex tool);
 
     /**
      * @brief Get extruded length for all extruders.
@@ -77,16 +78,16 @@ public:
 
     /**
      * @brief Add one toolpick to count.
-     * @param extruder for this extruder [indexed from 0]
+     * @param tool target tool
      */
-    void add_toolpick(uint8_t extruder);
+    void add_toolpick(PhysicalToolIndex tool);
 
     /**
      * @brief Get count of toolchanges for one tool.
-     * @param extruder for this extruder [indexed from 0]
-     * @return toolpicks for one extruder [1]
+     * @param tool target tool
+     * @return toolpick count [1]
      */
-    uint32_t get_toolpick(uint8_t extruder);
+    uint32_t get_toolpick(PhysicalToolIndex tool);
 
     /**
      * @brief Get count of all toolchanges.

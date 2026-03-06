@@ -63,7 +63,7 @@ constexpr std::array stats {
             .title = N_("Extruded Filament"),
             .fmt_f = [](StringBuilder &sb) { fmt_distance_mm(sb, Odometer_s::instance().get_extruded_all()); },
             .item_count = PhysicalToolIndex::count,
-            .item_fmt_f = [](StringBuilder &sb, uint8_t item_index) { fmt_distance_mm(sb, Odometer_s::instance().get_extruded(item_index)); },
+            .item_fmt_f = [](StringBuilder &sb, uint8_t item_index) { fmt_distance_mm(sb, Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(item_index))); },
         },
 #if HAS_MMU2()
         Stat {
@@ -76,7 +76,7 @@ constexpr std::array stats {
             .title = N_("Toolchanges"),
             .fmt_f = [](StringBuilder &sb) { sb.append_printf("%" PRIu32, Odometer_s::instance().get_toolpick_all()); },
             .item_count = PhysicalToolIndex::count,
-            .item_fmt_f = [](StringBuilder &sb, uint8_t item_index) { sb.append_printf("%" PRIu32, Odometer_s::instance().get_toolpick(item_index)); },
+            .item_fmt_f = [](StringBuilder &sb, uint8_t item_index) { sb.append_printf("%" PRIu32, Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(item_index))); },
         },
 #endif
         Stat {

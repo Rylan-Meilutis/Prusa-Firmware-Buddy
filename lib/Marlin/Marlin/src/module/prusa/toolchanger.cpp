@@ -816,7 +816,7 @@ bool PrusaToolChanger::pickup(Dwarf &dwarf) {
     move(info.dock_x + PICK_X_OFFSET_3, SAFE_Y_WITH_TOOL, limited_feedrate); // tool extracted
 
     log_info(PrusaToolChanger, "Dwarf #%u picked successfully", dwarf.dwarf_index());
-    Odometer_s::instance().add_toolpick(dwarf.dwarf_index()); // Count picks
+    Odometer_s::instance().add_toolpick(PhysicalToolIndex::from_raw(dwarf.dwarf_index())); // Count picks
     return true;
 }
 

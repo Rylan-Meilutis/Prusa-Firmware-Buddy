@@ -354,20 +354,20 @@ void CurrentStore::set_odometer_axis(uint8_t index, float value) {
     }
 }
 
-float CurrentStore::get_odometer_extruded_length([[maybe_unused]] uint8_t index) {
-    return odometer_extruded_lengths.get(index);
+float CurrentStore::get_odometer_extruded_length(PhysicalToolIndex tool) {
+    return odometer_extruded_lengths.get(tool.to_raw());
 }
 
-void CurrentStore::set_odometer_extruded_length([[maybe_unused]] uint8_t index, float value) {
-    odometer_extruded_lengths.set(index, value);
+void CurrentStore::set_odometer_extruded_length(PhysicalToolIndex tool, float value) {
+    odometer_extruded_lengths.set(tool.to_raw(), value);
 }
 
-uint32_t CurrentStore::get_odometer_toolpicks([[maybe_unused]] uint8_t index) {
-    return odometer_toolpicks.get(index);
+uint32_t CurrentStore::get_odometer_toolpicks(PhysicalToolIndex tool) {
+    return odometer_toolpicks.get(tool.to_raw());
 }
 
-void CurrentStore::set_odometer_toolpicks([[maybe_unused]] uint8_t index, uint32_t value) {
-    odometer_toolpicks.set(index, value);
+void CurrentStore::set_odometer_toolpicks(PhysicalToolIndex tool, uint32_t value) {
+    odometer_toolpicks.set(tool.to_raw(), value);
 }
 
 #if HAS_SELFTEST()

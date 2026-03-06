@@ -224,7 +224,9 @@ void GcodeSuite::get_destination_from_command() {
   LOOP_XYZ(i) {
     Odometer_s::instance().add_axis(Odometer_s::axis_t(i), destination[i] - current_position[i]);
   }
-  Odometer_s::instance().add_extruded(active_extruder, destination.e - current_position.e);
+  if(auto tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected())) {
+    Odometer_s::instance().add_extruded(*tool, destination.e - current_position.e);
+  }
 }
 
 /**

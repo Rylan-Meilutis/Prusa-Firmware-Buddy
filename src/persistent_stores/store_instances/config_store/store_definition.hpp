@@ -454,15 +454,15 @@ struct CurrentStore
     float get_odometer_axis(uint8_t index);
     void set_odometer_axis(uint8_t index, float value);
 
-    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, HOTENDS> odometer_extruded_lengths;
+    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, PhysicalToolIndex::count> odometer_extruded_lengths;
 
-    float get_odometer_extruded_length(uint8_t index);
-    void set_odometer_extruded_length(uint8_t index, float value);
+    float get_odometer_extruded_length(PhysicalToolIndex tool);
+    void set_odometer_extruded_length(PhysicalToolIndex tool, float value);
 
-    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, HOTENDS> odometer_toolpicks;
+    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, PhysicalToolIndex::count> odometer_toolpicks;
 
-    uint32_t get_odometer_toolpicks(uint8_t index);
-    void set_odometer_toolpicks(uint8_t index, uint32_t value);
+    uint32_t get_odometer_toolpicks(PhysicalToolIndex tool);
+    void set_odometer_toolpicks(PhysicalToolIndex tool, uint32_t value);
 
     StoreItem<uint32_t, 0, ItemFlag::stats, journal::hash("MMU toolchanges")> mmu_changes;
     // Last time (in the mmu_changes) the user did maintenance

@@ -18,11 +18,11 @@ bool Odometer_s::changed() {
         }
     }
 
-    for (size_t i = 0; i < HOTENDS; ++i) {
-        if (extruded[i] != 0) {
+    for (const auto tool : PhysicalToolIndex::all()) {
+        if (extruded[tool] != 0) {
             return true;
         }
-        if (toolpick[i] != 0) {
+        if (toolpick[tool] != 0) {
             return true;
         }
     }
@@ -51,14 +51,12 @@ void Odometer_s::force_to_eeprom() {
         trip_xyz[i] = 0;
     }
 
-    for (size_t i = 0; i < HOTENDS; ++i) {
-        store.set_odometer_extruded_length(i, get_extruded(i));
-        extruded[i] = 0;
-    }
+    for (const auto tool : PhysicalToolIndex::all()) {
+        store.set_odometer_extruded_length(tool, get_extruded(tool));
+        extruded[tool] = 0;
 
-    for (size_t i = 0; i < HOTENDS; ++i) {
-        store.set_odometer_toolpicks(i, get_toolpick(i));
-        toolpick[i] = 0;
+        store.set_odometer_toolpicks(tool, get_toolpick(tool));
+        toolpick[tool] = 0;
     }
 
     store.odometer_time.set(get_time());
@@ -85,38 +83,34 @@ float Odometer_s::get_axis(axis_t axis) {
     return config_store().get_odometer_axis(std::to_underlying(axis)) + trip_xyz[std::to_underlying(axis)].load();
 }
 
-void Odometer_s::add_extruded(uint8_t extruder, float value) {
-    assert(extruder < HOTENDS);
-    extruded[extruder] += value; // E axis counts filament used instead of filament moved
+void Odometer_s::add_extruded(PhysicalToolIndex tool, float value) {
+    extruded[tool] += value; // E axis counts filament used instead of filament moved
 }
 
-float Odometer_s::get_extruded(uint8_t extruder) {
-    assert(extruder < HOTENDS);
-    return config_store().get_odometer_extruded_length(extruder) + MAX(0.0f, extruded[extruder].load());
+float Odometer_s::get_extruded(PhysicalToolIndex tool) {
+    return config_store().get_odometer_extruded_length(tool) + MAX(0.0f, extruded[tool].load());
 }
 
 float Odometer_s::get_extruded_all() {
     float sum = 0;
-    for (uint8_t i = 0; i < HOTENDS; ++i) {
-        sum += get_extruded(i);
+    for (const auto tool : PhysicalToolIndex::all()) {
+        sum += get_extruded(tool);
     }
     return sum;
 }
 
-void Odometer_s::add_toolpick(uint8_t extruder) {
-    assert(extruder < HOTENDS);
-    toolpick[extruder]++;
+void Odometer_s::add_toolpick(PhysicalToolIndex tool) {
+    toolpick[tool]++;
 }
 
-uint32_t Odometer_s::get_toolpick(uint8_t extruder) {
-    assert(extruder < HOTENDS);
-    return config_store().get_odometer_toolpicks(extruder) + toolpick[extruder].load();
+uint32_t Odometer_s::get_toolpick(PhysicalToolIndex tool) {
+    return config_store().get_odometer_toolpicks(tool) + toolpick[tool].load();
 }
 
 uint32_t Odometer_s::get_toolpick_all() {
     uint32_t sum = 0;
-    for (uint8_t i = 0; i < HOTENDS; ++i) {
-        sum += get_toolpick(i);
+    for (const auto tool : PhysicalToolIndex::all()) {
+        sum += get_toolpick(tool);
     }
     return sum;
 }
