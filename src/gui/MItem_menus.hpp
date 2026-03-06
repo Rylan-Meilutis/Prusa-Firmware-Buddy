@@ -72,9 +72,6 @@ using MI_VERSION_INFO
 using MI_SENSOR_INFO
     = MI_SCREEN<N_("Sensor Info"), class ScreenMenuSensorInfo>;
 
-using MI_ODOMETER
-    = MI_SCREEN<N_("Statistics"), class ScreenMenuOdometer>;
-
 using MI_FAIL_STAT
     = MI_SCREEN<N_("Fail Stats"), class ScreenMenuFailStat>;
 
@@ -132,9 +129,6 @@ using MI_HARDWARE_TUNE
 
 using MI_SYSTEM
     = MI_SCREEN<N_("System"), class ScreenMenuSystem>;
-
-using MI_PRINT_STATISTICS
-    = MI_SCREEN<N_("Print Statistics"), class ScreenMenuStatistics>;
 
 using MI_INFO
     = MI_SCREEN<N_("Info"), class ScreenMenuInfo>;

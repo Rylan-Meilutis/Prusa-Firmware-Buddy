@@ -295,63 +295,6 @@ protected:
     virtual void OnClick() override;
 };
 
-class MI_ODOMETER_DIST : public WI_FORMATABLE_LABEL_t<float> {
-public:
-    MI_ODOMETER_DIST(const string_view_utf8 &label, const img::Resource *icon, is_enabled_t enabled, is_hidden_t hidden, float initVal);
-};
-
-class MI_ODOMETER_DIST_X : public MI_ODOMETER_DIST {
-    constexpr static const char *const label = N_("X Axis");
-
-public:
-    MI_ODOMETER_DIST_X();
-};
-class MI_ODOMETER_DIST_Y : public MI_ODOMETER_DIST {
-    constexpr static const char *const label = N_("Y Axis");
-
-public:
-    MI_ODOMETER_DIST_Y();
-};
-class MI_ODOMETER_DIST_Z : public MI_ODOMETER_DIST {
-    constexpr static const char *const label = N_("Z Axis");
-
-public:
-    MI_ODOMETER_DIST_Z();
-};
-
-/// Extruded filament
-class MI_ODOMETER_DIST_E : public MI_ODOMETER_DIST {
-    constexpr static const char *const generic_label = N_("Filament");
-
-public:
-    MI_ODOMETER_DIST_E(const char *const label, int index);
-    MI_ODOMETER_DIST_E();
-};
-
-/// Tool picked
-class MI_ODOMETER_TOOL : public WI_FORMATABLE_LABEL_t<uint32_t> {
-    constexpr static const char *const generic_label = N_("Tools Changed");
-    constexpr static const char *const times_label = N_("times"); // Tools Changed      123 times
-
-public:
-    MI_ODOMETER_TOOL(const char *const label, int index);
-    MI_ODOMETER_TOOL();
-};
-
-class MI_ODOMETER_MMU_CHANGES : public WI_FORMATABLE_LABEL_t<uint32_t> {
-    constexpr static const char *const label = N_("MMU filament loads");
-
-public:
-    MI_ODOMETER_MMU_CHANGES();
-};
-
-class MI_ODOMETER_TIME : public WI_FORMATABLE_LABEL_t<uint32_t> {
-    constexpr static const char *const label = N_("Print Time");
-
-public:
-    MI_ODOMETER_TIME();
-};
-
 #if BOARD_IS_XBUDDY()
 
 class MI_INFO_BED_VOLTAGE : public MenuItemAutoUpdatingLabel<float> {

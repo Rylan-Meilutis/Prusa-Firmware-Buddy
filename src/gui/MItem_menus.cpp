@@ -8,7 +8,6 @@
 #include "screen_menu_temperature.hpp"
 #include "screen_menu_move.hpp"
 #include "screen_menu_sensor_info.hpp"
-#include "screen_menu_odometer.hpp"
 #include "screen_menu_version_info.hpp"
 #include "screen_menu_metrics.hpp"
 #include "screen_menu_network_status.hpp"
@@ -24,7 +23,6 @@
 #include "screen_menu_hardware.hpp"
 #include "screen_menu_hardware_tune.hpp"
 #include "screen_menu_system.hpp"
-#include "screen_menu_statistics.hpp"
 #include "screen_menu_error_test.hpp"
 #include "screen_menu_input_shaper.hpp"
 #include <screen_menu_languages.hpp>
@@ -107,7 +105,6 @@ template struct MI_SCREEN_CTOR<ScreenFilamentsVisibility>;
 template struct MI_SCREEN_CTOR<ScreenMenuFanInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuVersionInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuSensorInfo>;
-template struct MI_SCREEN_CTOR<ScreenMenuOdometer>;
 template struct MI_SCREEN_CTOR<ScreenMenuFailStat>;
 template struct MI_SCREEN_CTOR<ScreenMenuTemperature>;
 template struct MI_SCREEN_CTOR<ScreenMenuMove>;
@@ -129,7 +126,6 @@ template struct MI_SCREEN_CTOR<ScreenMenuNetworkStatus>;
 template struct MI_SCREEN_CTOR<ScreenMenuHardware>;
 template struct MI_SCREEN_CTOR<ScreenMenuHardwareTune>;
 template struct MI_SCREEN_CTOR<ScreenMenuSystem>;
-template struct MI_SCREEN_CTOR<ScreenMenuStatistics>;
 template struct MI_SCREEN_CTOR<ScreenMenuInfo>;
 template struct MI_SCREEN_CTOR<ScreenFactoryReset>;
 template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
