@@ -43,6 +43,7 @@ FRESULT fatfs_test_contiguous_file(
 #if FF_MAX_SS == FF_MIN_SS
     clsz = (DWORD)fp->obj.fs->csize * FF_MAX_SS; /* Cluster size */
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     clsz = (DWORD)fp->obj.fs->csize * fp->obj.fs->ssize;
 #endif
     fsz = f_size(fp);

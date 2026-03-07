@@ -35,6 +35,7 @@
 #define _TMC_CLASS(MODEL, L, E)       __TMC_CLASS(MODEL, L, E)
 #define TMC_CLASS(ST, A)              _TMC_CLASS(ST##_DRIVER_TYPE, TMC_##ST##_LABEL, A##_AXIS)
 #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TMC_CLASS_E(I) TMC_CLASS(E##I, E##I)
 #else
     #define TMC_CLASS_E(I) TMC_CLASS(E##I, E)
@@ -45,8 +46,10 @@
 #if AXIS_IS_TMC(X)
     #define TMC_DRIVER_TYPE X_DRIVER_TYPE
 #elif AXIS_IS_TMC(Y)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TMC_DRIVER_TYPE Y_DRIVER_TYPE
 #elif AXIS_IS_TMC(Z)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TMC_DRIVER_TYPE Y_DRIVER_TYPE
 #elif AXIS_IS_TMC(E0)
     #define TMC_DRIVER_TYPE E0_DRIVER_TYPE
@@ -116,8 +119,10 @@ extern TMC_CLASS(Z, Z) stepperZ;
 
 // Z2 Stepper
 #if HAS_Z2_ENABLE && AXIS_IS_TMC(Z2)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS(Z2, Z) stepperZ2;
     #if AXIS_HAS_SQUARE_WAVE(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z2_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -128,8 +133,10 @@ extern TMC_CLASS(Z2, Z) stepperZ2;
 
 // Z3 Stepper
 #if HAS_Z3_ENABLE && AXIS_IS_TMC(Z3)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS(Z3, Z) stepperZ3;
     #if AXIS_HAS_SQUARE_WAVE(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z3_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -152,8 +159,10 @@ extern TMC_CLASS_E(0) stepperE0;
 
 // E1 Stepper
 #if AXIS_IS_TMC(E1)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS_E(1) stepperE1;
     #if AXIS_HAS_SQUARE_WAVE(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define E1_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -164,8 +173,10 @@ extern TMC_CLASS_E(1) stepperE1;
 
 // E2 Stepper
 #if AXIS_IS_TMC(E2)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS_E(2) stepperE2;
     #if AXIS_HAS_SQUARE_WAVE(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define E2_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -176,8 +187,10 @@ extern TMC_CLASS_E(2) stepperE2;
 
 // E3 Stepper
 #if AXIS_IS_TMC(E3)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS_E(3) stepperE3;
     #if AXIS_HAS_SQUARE_WAVE(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define E3_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -188,8 +201,10 @@ extern TMC_CLASS_E(3) stepperE3;
 
 // E4 Stepper
 #if AXIS_IS_TMC(E4)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS_E(4) stepperE4;
     #if AXIS_HAS_SQUARE_WAVE(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define E4_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \
@@ -200,8 +215,10 @@ extern TMC_CLASS_E(4) stepperE4;
 
 // E5 Stepper
 #if AXIS_IS_TMC(E5)
+// #error dead code found by automatic analyses (see BFW-5461)
 extern TMC_CLASS_E(5) stepperE5;
     #if AXIS_HAS_SQUARE_WAVE(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define E5_STEP_WRITE(STATE)     \
             do {                         \
                 if (STATE)               \

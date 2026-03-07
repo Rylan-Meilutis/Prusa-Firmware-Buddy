@@ -49,18 +49,23 @@ static void setup_endstop_interrupts() {
     attachInterrupt(Z_MIN_PIN, endstop_ISR, CHANGE);
   #endif
   #if HAS_Z2_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     attachInterrupt(Z2_MAX_PIN, endstop_ISR, CHANGE);
   #endif
   #if HAS_Z2_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     attachInterrupt(Z2_MIN_PIN, endstop_ISR, CHANGE);
   #endif
   #if HAS_Z3_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     attachInterrupt(Z3_MAX_PIN, endstop_ISR, CHANGE);
   #endif
   #if HAS_Z3_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     attachInterrupt(Z3_MIN_PIN, endstop_ISR, CHANGE);
   #endif
   #if HAS_Z_MIN_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     attachInterrupt(Z_MIN_PROBE_PIN, endstop_ISR, CHANGE);
   #endif
 }

@@ -20,9 +20,11 @@ uint8_t get_assigned_modbus_address() {
     // Bootloader gets addresses 0x0A+, modbus uses addresses 0x1A+, add 0x10 to convert from boot address to modbus address
     return (application_startup_arguments.modbus_address + 0x10);
 #elif BOARD_IS_MODULARBED()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // non-bootloader version of puppy will use fixed address
     return 0x1a; // use Modular bed default address
 #elif BOARD_IS_DWARF()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // non-bootloader version of puppy will use fixed address
     return 0x1b; // use DWARF_1 address
 #else

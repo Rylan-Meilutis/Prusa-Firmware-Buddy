@@ -56,7 +56,9 @@ void GcodeSuite::M122() {
   if (print_all) LOOP_XYZE(i) print_axis[i] = true;
 
   #if ENABLED(TMC_DEBUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(MONITOR_DRIVER_STATUS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const bool sflag = parser.seen('S'), s0 = sflag && !parser.value_bool();
       if (sflag) tmc_set_report_interval(s0 ? 0 : MONITOR_DRIVER_STATUS_INTERVAL_MS);
       if (!s0 && parser.seenval('P')) tmc_set_report_interval(_MIN(parser.value_ushort(), MONITOR_DRIVER_STATUS_INTERVAL_MS));

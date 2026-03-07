@@ -15,6 +15,7 @@ extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi1;
 
 #ifdef HASH_ALGOSELECTION_SHA256
+// #error dead code found by automatic analyses (see BFW-5461)
 extern HASH_HandleTypeDef hhash;
 #endif
 } // namespace hal::peripherals

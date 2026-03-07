@@ -68,6 +68,7 @@
 
     /* Handle support for more than one server via SNTP_MAX_SERVERS */
     #if SNTP_MAX_SERVERS > 1
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define SNTP_SUPPORT_MULTIPLE_SERVERS 1
     #else /* NTP_MAX_SERVERS > 1 */
         #define SNTP_SUPPORT_MULTIPLE_SERVERS 0
@@ -122,6 +123,7 @@
         #if LWIP_HAVE_INT64
             #define SNTP_FRAC_TO_US(f) ((u32_t)(((u64_t)(f)*1000000UL) >> 32))
         #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             #define SNTP_FRAC_TO_US(f) ((u32_t)(f) / 4295)
         #endif
     #endif /* !SNTP_FRAC_TO_US */
@@ -134,6 +136,7 @@
      */
     #ifndef SNTP_SET_SYSTEM_TIME_NTP
         #ifdef SNTP_SET_SYSTEM_TIME_US
+            // #error dead code found by automatic analyses (see BFW-5461)
             #define SNTP_SET_SYSTEM_TIME_NTP(s, f) \
                 SNTP_SET_SYSTEM_TIME_US((u32_t)((s) + DIFF_SEC_1970_2036), SNTP_FRAC_TO_US(f))
         #else
@@ -164,6 +167,7 @@
 
     /* Round-trip delay arithmetic helpers */
     #if SNTP_COMP_ROUNDTRIP
+        // #error dead code found by automatic analyses (see BFW-5461)
         #if !LWIP_HAVE_INT64
             #error "SNTP round-trip delay compensation requires 64-bit arithmetic"
         #endif
@@ -186,6 +190,7 @@ struct sntp_time {
  */
 struct sntp_timestamps {
     #if SNTP_COMP_ROUNDTRIP || SNTP_CHECK_RESPONSE >= 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     struct sntp_time orig;
     struct sntp_time recv;
     #endif
@@ -199,6 +204,7 @@ struct sntp_timestamps {
      * - unsigned 32 bits seconds fraction (2^32 = 1 second)
      */
     #ifdef PACK_STRUCT_USE_INCLUDES
+        // #error dead code found by automatic analyses (see BFW-5461)
         #include "arch/bpstruct.h"
     #endif
 PACK_STRUCT_BEGIN
@@ -217,6 +223,7 @@ struct sntp_msg {
 } PACK_STRUCT_STRUCT;
 PACK_STRUCT_END
     #ifdef PACK_STRUCT_USE_INCLUDES
+        // #error dead code found by automatic analyses (see BFW-5461)
         #include "arch/epstruct.h"
     #endif
 
@@ -239,15 +246,18 @@ struct sntp_server {
     u8_t reachability;
     #endif /* SNTP_MONITOR_SERVER_REACHABILITY */
     #if SNTP_SUPPORT_MULTIPLE_SERVERS
+    // #error dead code found by automatic analyses (see BFW-5461)
     u8_t kod_received;
     #endif
 };
 static struct sntp_server sntp_servers[SNTP_MAX_SERVERS];
 
     #if SNTP_GET_SERVERS_FROM_DHCP || SNTP_GET_SERVERS_FROM_DHCPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 static u8_t sntp_set_servers_from_dhcp;
     #endif /* SNTP_GET_SERVERS_FROM_DHCP || SNTP_GET_SERVERS_FROM_DHCPV6 */
     #if SNTP_SUPPORT_MULTIPLE_SERVERS
+// #error dead code found by automatic analyses (see BFW-5461)
 /** The currently used server (initialized to 0) */
 static u8_t sntp_current_server;
     #else /* SNTP_SUPPORT_MULTIPLE_SERVERS */
@@ -259,22 +269,26 @@ static u8_t sntp_current_server;
 /** Retry time, initialized with SNTP_RETRY_TIMEOUT and doubled with each retry. */
 static u32_t sntp_retry_timeout;
     #else /* SNTP_RETRY_TIMEOUT_EXP */
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define SNTP_RESET_RETRY_TIMEOUT()
         #define sntp_retry_timeout SNTP_RETRY_TIMEOUT
     #endif /* SNTP_RETRY_TIMEOUT_EXP */
 
     #if SNTP_CHECK_RESPONSE >= 1
+// #error dead code found by automatic analyses (see BFW-5461)
 /** Saves the last server address to compare with response */
 static ip_addr_t sntp_last_server_address;
     #endif /* SNTP_CHECK_RESPONSE >= 1 */
 
     #if SNTP_CHECK_RESPONSE >= 2
+// #error dead code found by automatic analyses (see BFW-5461)
 /** Saves the last timestamp sent (which is sent back by the server)
  * to compare against in response. Stored in network byte order. */
 static struct sntp_time sntp_last_timestamp_sent;
     #endif /* SNTP_CHECK_RESPONSE >= 2 */
 
     #if defined(LWIP_DEBUG) && !defined(sntp_format_time)
+// #error dead code found by automatic analyses (see BFW-5461)
 /* Debug print helper. */
 static const char *
 sntp_format_time(s32_t sec) {
@@ -296,7 +310,9 @@ sntp_process(const struct sntp_timestamps *timestamps) {
     frac = lwip_ntohl(timestamps->xmit.frac);
 
     #if SNTP_COMP_ROUNDTRIP
+        // #error dead code found by automatic analyses (see BFW-5461)
         #if SNTP_CHECK_RESPONSE >= 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (timestamps->recv.sec != 0 || timestamps->recv.frac != 0)
         #endif
     {
@@ -341,6 +357,7 @@ sntp_initialize_request(struct sntp_msg *req) {
     req->li_vn_mode = SNTP_LI_NO_WARNING | SNTP_VERSION | SNTP_MODE_CLIENT;
 
     #if SNTP_CHECK_RESPONSE >= 2 || SNTP_COMP_ROUNDTRIP
+    // #error dead code found by automatic analyses (see BFW-5461)
     {
         s32_t secs;
         u32_t sec, frac;
@@ -350,6 +367,7 @@ sntp_initialize_request(struct sntp_msg *req) {
         frac = lwip_htonl(frac);
 
         #if SNTP_CHECK_RESPONSE >= 2
+        // #error dead code found by automatic analyses (see BFW-5461)
         sntp_last_timestamp_sent.sec = sec;
         sntp_last_timestamp_sent.frac = frac;
         #endif
@@ -390,6 +408,7 @@ sntp_retry(void *arg) {
 }
 
     #if SNTP_SUPPORT_MULTIPLE_SERVERS
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * If Kiss-of-Death is received (or another packet parsing error),
  * try the next server or retry the current server and increase the retry
@@ -415,6 +434,7 @@ sntp_try_next_server(void *arg) {
         }
         if (!ip_addr_isany(&sntp_servers[sntp_current_server].addr)
         #if SNTP_SERVER_DNS
+            // #error dead code found by automatic analyses (see BFW-5461)
             || (sntp_servers[sntp_current_server].name != NULL)
         #endif
         ) {
@@ -456,6 +476,7 @@ sntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
 
     err = ERR_ARG;
     #if SNTP_CHECK_RESPONSE >= 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* check server address and port */
     if (((sntp_opmode != SNTP_OPMODE_POLL) || ip_addr_cmp(addr, &sntp_last_server_address)) && (port == SNTP_PORT))
     #else /* SNTP_CHECK_RESPONSE >= 1 */
@@ -477,6 +498,7 @@ sntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
                 } else {
                     pbuf_copy_partial(p, &timestamps, sizeof(timestamps), SNTP_OFFSET_TIMESTAMPS);
     #if SNTP_CHECK_RESPONSE >= 2
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     /* check originate_timetamp against sntp_last_timestamp_sent */
                     if (timestamps.orig.sec != sntp_last_timestamp_sent.sec || timestamps.orig.frac != sntp_last_timestamp_sent.frac) {
                         LWIP_DEBUGF(SNTP_DEBUG_WARN,
@@ -499,6 +521,7 @@ sntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
         }
     }
     #if SNTP_CHECK_RESPONSE >= 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     else {
         /* packet from wrong remote address or port, wait for correct response */
         err = ERR_TIMEOUT;
@@ -567,6 +590,7 @@ sntp_send_request(const ip_addr_t *server_addr) {
         sys_untimeout(sntp_try_next_server, NULL);
         sys_timeout((u32_t)SNTP_RECV_TIMEOUT, sntp_try_next_server, NULL);
     #if SNTP_CHECK_RESPONSE >= 1
+        // #error dead code found by automatic analyses (see BFW-5461)
         /* save server address to verify it in sntp_recv */
         ip_addr_copy(sntp_last_server_address, *server_addr);
     #endif /* SNTP_CHECK_RESPONSE >= 1 */
@@ -672,6 +696,7 @@ void sntp_init(void) {
     #if SNTP_STARTUP_DELAY
                 sys_timeout((u32_t)SNTP_STARTUP_DELAY_FUNC, sntp_request, NULL);
     #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 sntp_request(NULL);
     #endif
             } else if (sntp_opmode == SNTP_OPMODE_LISTENONLY) {
@@ -746,6 +771,7 @@ u8_t sntp_getreachability(u8_t idx) {
     #endif /* SNTP_MONITOR_SERVER_REACHABILITY */
 
     #if SNTP_GET_SERVERS_FROM_DHCP || SNTP_GET_SERVERS_FROM_DHCPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * Config SNTP server handling by IP address, name, or DHCP; clear table
  * @param set_servers_from_dhcp enable or disable getting server addresses from dhcp
@@ -772,6 +798,7 @@ void sntp_setserver(u8_t idx, const ip_addr_t *server) {
         if (server != NULL) {
             sntp_servers[idx].addr = (*server);
     #if SNTP_SUPPORT_MULTIPLE_SERVERS
+            // #error dead code found by automatic analyses (see BFW-5461)
             sntp_servers[idx].kod_received = 0;
     #endif
         } else {
@@ -784,6 +811,7 @@ void sntp_setserver(u8_t idx, const ip_addr_t *server) {
 }
 
     #if LWIP_DHCP && SNTP_GET_SERVERS_FROM_DHCP
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * Initialize one of the NTP servers by IP address, required by DHCP
  *
@@ -807,6 +835,7 @@ void dhcp_set_ntp_servers(u8_t num, const ip4_addr_t *server) {
     #endif /* LWIP_DHCP && SNTP_GET_SERVERS_FROM_DHCP */
 
     #if LWIP_IPV6_DHCP6 && SNTP_GET_SERVERS_FROM_DHCPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * Initialize one of the NTP servers by IP address, required by DHCPV6
  *
@@ -854,6 +883,7 @@ sntp_getserver(u8_t idx) {
  */
 u8_t sntp_getkodreceived(u8_t idx) {
     #if SNTP_SUPPORT_MULTIPLE_SERVERS
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (idx < SNTP_MAX_SERVERS) {
         return sntp_servers[idx].kod_received;
     }
@@ -875,6 +905,7 @@ void sntp_setservername(u8_t idx, const char *server) {
     if (idx < SNTP_MAX_SERVERS) {
         sntp_servers[idx].name = server;
         #if SNTP_SUPPORT_MULTIPLE_SERVERS
+        // #error dead code found by automatic analyses (see BFW-5461)
         sntp_servers[idx].kod_received = 0;
         #endif
     }

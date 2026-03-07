@@ -9,6 +9,7 @@ using namespace can::cyphal;
 
 bool is_debugger_attached() {
 #if defined(STM32H5) || defined(STM32G4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     return (CoreDebug->DHCSR & CoreDebug_DHCSR_C_DEBUGEN_Msk);
 #elif defined(STM32C0)
     return (DBG->CR & (DBG_CR_DBG_STOP_Msk | DBG_CR_DBG_STANDBY_Msk));

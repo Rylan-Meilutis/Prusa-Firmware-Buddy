@@ -28,6 +28,7 @@
 #include "../../module/planner.h"
 
 #if ENABLED(LCD_BED_LEVELING)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../lcd/ultralcd.h"
 #endif
 
@@ -40,6 +41,7 @@ bool leveling_is_valid() {
     #if ENABLED(AUTO_BED_LEVELING_UBL)
       ubl.mesh_is_valid()
     #else // 3POINT, LINEAR
+      // #error dead code found by automatic analyses (see BFW-5461)
       true
     #endif
   ;
@@ -102,6 +104,7 @@ void reset_bed_level() {
   #if ENABLED(AUTO_BED_LEVELING_UBL)
     ubl.reset();
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     set_bed_leveling_enabled(false);
   #endif
 }

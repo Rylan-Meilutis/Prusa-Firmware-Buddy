@@ -16,6 +16,7 @@
         #include "res/cc/font_regular_11x18_latin_and_katakana.hpp" //Font::normal
         #include "res/cc/font_regular_9x16_latin_and_katakana.hpp" //Font::special
     #elif ENABLE_TRANSLATION_UK()
+        // #error dead code found by automatic analyses (see BFW-5461)
         #include "res/cc/font_regular_7x13_latin_and_cyrillic.hpp" //Font::small
         #include "res/cc/font_regular_11x18_latin_and_cyrillic.hpp" //Font::normal
         #include "res/cc/font_regular_9x16_latin_and_cyrillic.hpp" //Font::special

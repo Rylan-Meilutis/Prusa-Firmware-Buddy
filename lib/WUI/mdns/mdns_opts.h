@@ -52,6 +52,7 @@
  * transport. IGMP is needed for IPv4 multicast.
  */
 #ifndef LWIP_MDNS_RESPONDER
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define LWIP_MDNS_RESPONDER 0
 #endif /* LWIP_MDNS_RESPONDER */
 
@@ -75,6 +76,7 @@
  * that are pending.
  */
 #ifndef MDNS_MAX_STORED_PKTS
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MDNS_MAX_STORED_PKTS 4
 #endif
 

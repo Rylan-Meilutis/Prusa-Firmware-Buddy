@@ -42,6 +42,7 @@ namespace Language_en {
   #ifdef NOT_EXTENDED_ISO10646_1_5X7
     PROGMEM Language_Str MSG_CUBED                         = _UxGT("^3");
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     PROGMEM Language_Str MSG_CUBED                         = _UxGT("³");
   #endif
 
@@ -547,6 +548,7 @@ namespace Language_en {
   PROGMEM Language_Str MSG_EXPECTED_PRINTER                = _UxGT("INCORRECT PRINTER");
 
   #if LCD_WIDTH >= 20
+    // #error dead code found by automatic analyses (see BFW-5461)
     PROGMEM Language_Str MSG_INFO_PRINT_COUNT              = _UxGT("Print Count");
     PROGMEM Language_Str MSG_INFO_COMPLETED_PRINTS         = _UxGT("Completed");
     PROGMEM Language_Str MSG_INFO_PRINT_TIME               = _UxGT("Total Print time");
@@ -649,6 +651,7 @@ namespace Language_en {
   //                        ...or up to 2 lines on a 3-line display
   //
   #if LCD_HEIGHT >= 4
+    // #error dead code found by automatic analyses (see BFW-5461)
     PROGMEM Language_Str MSG_ADVANCED_PAUSE_WAITING        = _UxGT(MSG_2_LINE("Press Button", "to resume print"));
     PROGMEM Language_Str MSG_PAUSE_PRINT_INIT              = _UxGT(MSG_1_LINE("Parking..."));
     PROGMEM Language_Str MSG_FILAMENT_CHANGE_INIT          = _UxGT(MSG_3_LINE("Wait for", "filament change", "to start"));

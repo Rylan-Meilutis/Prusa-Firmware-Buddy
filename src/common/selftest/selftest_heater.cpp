@@ -199,6 +199,7 @@ LoopResult CSelftestPart_Heater::stateWait() {
     return LoopResult::RunCurrent;
 
 #if (0)
+    // #error dead code found by automatic analyses (see BFW-5461)
     // used to be commented code I just moved it and wrapped in #if (0) instead
     if ((Selftest.m_Time - m_Time) < TEMP_WAIT_CYCLE_DELAY) {
         float temp = m_config.getTemp();
@@ -235,6 +236,7 @@ LoopResult CSelftestPart_Heater::stateMeasure() {
         return LoopResult::RunCurrent;
     }
 #if (0)
+    // #error dead code found by automatic analyses (see BFW-5461)
     // used to be commented code I just moved it and wrapped in #if (0) instead
     if ((Selftest.m_Time - m_Time) < TEMP_MEASURE_CYCLE_DELAY) {
         float temp = m_config.getTemp();

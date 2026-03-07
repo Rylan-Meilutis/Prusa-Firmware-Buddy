@@ -49,6 +49,7 @@
 #endif
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
 #endif
 
@@ -431,6 +432,7 @@ void restore_feedrate_and_scaling() {
   ) {
 
     #if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       // Software endstops are relative to the tool 0 workspace, so
       // the movement limits must be shifted by the tool offset to
@@ -559,6 +561,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             #if ANY(CORE_IS_XY, MARKFORGED_XY, MARKFORGED_YX) && Y_SENSORLESS
               stealth_states.y = enable_crash_detection(Y_AXIS);
             #elif CORE_IS_XZ && Z_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               stealth_states.z = enable_crash_detection(Z_AXIS);
             #endif
             break;
@@ -573,6 +576,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             #if ANY(CORE_IS_XY, MARKFORGED_XY, MARKFORGED_YX) && X_SENSORLESS
               stealth_states.x = enable_crash_detection(X_AXIS);
             #elif CORE_IS_YZ && Z_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               stealth_states.z = enable_crash_detection(Z_AXIS);
             #endif
             break;
@@ -583,33 +587,42 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             TERN_(Z2_SENSORLESS, stealth_states.z2 = enable_crash_detection(Z2_AXIS));
             TERN_(Z3_SENSORLESS, stealth_states.z3 = enable_crash_detection(Z3_AXIS));
             #if CORE_IS_XZ && X_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               stealth_states.x = enable_crash_detection(X_AXIS);
             #elif CORE_IS_YZ && Y_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               stealth_states.y = enable_crash_detection(Y_AXIS);
             #endif
             break;
         #endif
         #if I_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case I_AXIS: stealth_states.i = enable_crash_detection(I_AXIS); break;
         #endif
         #if J_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case J_AXIS: stealth_states.j = enable_crash_detection(J_AXIS); break;
         #endif
         #if K_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case K_AXIS: stealth_states.k = enable_crash_detection(K_AXIS); break;
         #endif
         #if U_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case U_AXIS: stealth_states.u = enable_crash_detection(U_AXIS); break;
         #endif
         #if V_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case V_AXIS: stealth_states.v = enable_crash_detection(V_AXIS); break;
         #endif
         #if W_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case W_AXIS: stealth_states.w = enable_crash_detection(W_AXIS); break;
         #endif
       }
 
       #if ENABLED(IMPROVE_HOMING_RELIABILITY) && HOMING_SG_GUARD_DURATION > 0
+        // #error dead code found by automatic analyses (see BFW-5461)
         sg_guard_period = millis() + default_sg_guard_duration;
       #endif
 
@@ -624,10 +637,13 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             #if ENABLED(CRASH_RECOVERY)
               crash_s.end_sensorless_homing_per_axis(axis, enable_stealth.x);
             #else
+              // #error dead code found by automatic analyses (see BFW-5461)
               disable_crash_detection(X_AXIS, enable_stealth.x);
               #if ANY(CORE_IS_XY, MARKFORGED_XY, MARKFORGED_YX) && Y_SENSORLESS
+                // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(Y_AXIS, enable_stealth.y);
               #elif CORE_IS_XZ && Z_SENSORLESS
+                // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(Z_AXIS, enable_stealth.z);
               #endif
             #endif // ENABLED(CRASH_RECOVERY)
@@ -638,10 +654,13 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             #if ENABLED(CRASH_RECOVERY)
               crash_s.end_sensorless_homing_per_axis(axis, enable_stealth.y);
             #else
+              // #error dead code found by automatic analyses (see BFW-5461)
               disable_crash_detection(Y_AXIS, enable_stealth.y);
               #if ANY(CORE_IS_XY, MARKFORGED_XY, MARKFORGED_YX) && X_SENSORLESS
+                // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(X_AXIS, enable_stealth.x);
               #elif CORE_IS_YZ && Z_SENSORLESS
+                // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(Z_AXIS, enable_stealth.z);
               #endif
             #endif // ENABLED(CRASH_RECOVERY)
@@ -653,28 +672,36 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
             TERN_(Z2_SENSORLESS, disable_crash_detection(Z2_AXIS, enable_stealth.z2));
             TERN_(Z3_SENSORLESS, disable_crash_detection(Z3_AXIS, enable_stealth.z3));
             #if CORE_IS_XZ && X_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               disable_crash_detection(X_AXIS, enable_stealth.x);
             #elif CORE_IS_YZ && Y_SENSORLESS
+              // #error dead code found by automatic analyses (see BFW-5461)
               disable_crash_detection(Y_AXIS, enable_stealth.y);
             #endif
             break;
         #endif
         #if I_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case I_AXIS: disable_crash_detection(I_AXIS, enable_stealth.i); break;
         #endif
         #if J_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case J_AXIS: disable_crash_detection(J_AXIS, enable_stealth.j); break;
         #endif
         #if K_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case K_AXIS: disable_crash_detection(K_AXIS, enable_stealth.k); break;
         #endif
         #if U_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case U_AXIS: disable_crash_detection(U_AXIS, enable_stealth.u); break;
         #endif
         #if V_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case V_AXIS: disable_crash_detection(V_AXIS, enable_stealth.v); break;
         #endif
         #if W_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           case W_AXIS: disable_crash_detection(W_AXIS, enable_stealth.w); break;
         #endif
       }
@@ -739,6 +766,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
     #endif
 
   #if HOMING_Z_WITH_PROBE && QUIET_PROBING
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (axis == Z_AXIS && homing_z_with_probe) {
       probing_pause(true);
     }
@@ -754,6 +782,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
       #if ENABLED(SENSORLESS_HOMING)
         bool enable_sensorless_homing =
         #if HOMING_Z_WITH_PROBE && !Z_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           !moving_probe_toward_bed || !homing_z_with_probe
         #else
           true
@@ -762,6 +791,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
         if (enable_sensorless_homing) {
           stealth_states = start_sensorless_homing_per_axis(axis);
           #if SENSORLESS_STALLGUARD_DELAY
+            // #error dead code found by automatic analyses (see BFW-5461)
             safe_delay(SENSORLESS_STALLGUARD_DELAY); // Short delay needed to settle
           #endif
 	}
@@ -802,6 +832,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
   #endif
 
   #if HOMING_Z_WITH_PROBE && QUIET_PROBING
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (axis == Z_AXIS && homing_z_with_probe) {
       probing_pause(false);
     }
@@ -815,6 +846,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
 	if (enable_sensorless_homing) {
 	  end_sensorless_homing_per_axis(axis, stealth_states);
           #if SENSORLESS_STALLGUARD_DELAY
+            // #error dead code found by automatic analyses (see BFW-5461)
             safe_delay(SENSORLESS_STALLGUARD_DELAY); // Short delay needed to settle
           #endif
 	}
@@ -1027,6 +1059,7 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
     Crash_Temporary_Deactivate ctd;
     const bool orig_crash [[maybe_unused]] = ctd.get_orig_state();
   #else /*ENABLED(CRASH_RECOVERY)*/
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr bool orig_crash [[maybe_unused]] = false;
   #endif /*ENABLED(CRASH_RECOVERY)*/
 
@@ -1156,6 +1189,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
 
   // Set flags for X, Y, Z motor locking
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     switch (axis) {
       case Z_AXIS:
       stepper.set_separate_multi_axis(true);
@@ -1166,6 +1200,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
   // Fast move towards endstop until triggered
 
   #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (axis == Z_AXIS && homing_z_with_probe && bltouch.deploy()) {
       return NAN; // The initial DEPLOY
     }
@@ -1188,6 +1223,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
       ) * axis_home_dir, real_fr_mm_s, false, homing_z_with_probe);
 
   #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (axis == Z_AXIS && homing_z_with_probe) {
       bltouch.stow(); // Intermediate STOW (in LOW SPEED MODE)
     }
@@ -1222,6 +1258,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
       return NAN;
 
     #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (axis == Z_AXIS && homing_z_with_probe && bltouch.deploy()) {
         return NAN; // Intermediate DEPLOY (in LOW SPEED MODE)
       }
@@ -1257,6 +1294,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
     steps_after_bump[i] = stepper.position_from_startup(axis);
 
     #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (axis == Z_AXIS && homing_z_with_probe) {
         bltouch.stow(); // The final STOW
       }
@@ -1264,6 +1302,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
   }
 
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool pos_dir = axis_home_dir > 0;
       if (axis == Z_AXIS) {
         // we push the function pointers for the stepper lock function into an array

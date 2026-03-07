@@ -28,6 +28,7 @@
 #include "../inc/MarlinConfigPre.h"
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "host_actions.h"
 #endif
 
@@ -53,6 +54,7 @@ public:
     EP_M41,
     EP_M410,
     #if ENABLED(HOST_PROMPT_SUPPORT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       EP_M8,
       EP_M87,
       EP_M876,
@@ -65,6 +67,7 @@ public:
   static bool killed_by_M112;
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static uint8_t M876_reason;
   #endif
 
@@ -102,6 +105,7 @@ public:
           case '1': state = EP_M1;     break;
           case '4': state = EP_M4;     break;
           #if ENABLED(HOST_PROMPT_SUPPORT)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case '8': state = EP_M8;     break;
           #endif
           default: state  = EP_IGNORE;
@@ -133,6 +137,7 @@ public:
         break;
 
       #if ENABLED(HOST_PROMPT_SUPPORT)
+        // #error dead code found by automatic analyses (see BFW-5461)
       case EP_M8:
         state = (c == '7') ? EP_M87 : EP_IGNORE;
         break;
@@ -174,6 +179,7 @@ public:
             case EP_M112: killed_by_M112 = true; break;
             case EP_M410: quickstop_stepper(); break;
             #if ENABLED(HOST_PROMPT_SUPPORT)
+              // #error dead code found by automatic analyses (see BFW-5461)
               case EP_M876SN: host_response_handler(M876_reason); break;
             #endif
             default: break;

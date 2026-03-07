@@ -23,6 +23,7 @@
 #include "../inc/MarlinConfigPre.h"
 
 #if ENABLED(BACKLASH_COMPENSATION)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "backlash.h"
 
@@ -30,21 +31,27 @@
 #include "../module/planner.h"
 
 #ifdef BACKLASH_DISTANCE_MM
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     xyz_float_t Backlash::distance_mm = BACKLASH_DISTANCE_MM;
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     const xyz_float_t Backlash::distance_mm = BACKLASH_DISTANCE_MM;
   #endif
 #endif
 
 #if ENABLED(BACKLASH_GCODE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   uint8_t Backlash::correction = (BACKLASH_CORRECTION) * 0xFF;
   #ifdef BACKLASH_SMOOTHING_MM
+    // #error dead code found by automatic analyses (see BFW-5461)
     float Backlash::smoothing_mm = BACKLASH_SMOOTHING_MM;
   #endif
 #endif
 
 #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+  // #error dead code found by automatic analyses (see BFW-5461)
   xyz_float_t Backlash::measured_mm{0};
   xyz_uint8_t Backlash::measured_count{0};
 #endif
@@ -72,6 +79,7 @@ void Backlash::add_correction_msteps(const int32_t &da, const int32_t &db, const
   if (correction == 0) return;
 
   #ifdef BACKLASH_SMOOTHING_MM
+    // #error dead code found by automatic analyses (see BFW-5461)
     // The segment proportion is a value greater than 0.0 indicating how much residual_error
     // is corrected for in this segment. The contribution is based on segment length and the
     // smoothing distance. Since the computation of this proportion involves a floating point
@@ -82,6 +90,7 @@ void Backlash::add_correction_msteps(const int32_t &da, const int32_t &db, const
     // to segments where there is no direction change.
     static xyz_long_t residual_error{0};
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // No direction change, no correction.
     if (!changed_dir) return;
     // No leftover residual error from segment to segment
@@ -101,6 +110,7 @@ void Backlash::add_correction_msteps(const int32_t &da, const int32_t &db, const
       // Decide how much of the residual error to correct in this segment
       int32_t error_correction = residual_error[axis];
       #ifdef BACKLASH_SMOOTHING_MM
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (error_correction && smoothing_mm != 0) {
           // Take up a portion of the residual_error in this segment, but only when
           // the current segment travels in the same direction as the correction
@@ -123,9 +133,12 @@ void Backlash::add_correction_msteps(const int32_t &da, const int32_t &db, const
 }
 
 #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if HAS_CUSTOM_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TEST_PROBE_PIN (READ(Z_MIN_PROBE_PIN) != Z_MIN_PROBE_ENDSTOP_INVERTING)
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TEST_PROBE_PIN (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING)
   #endif
 

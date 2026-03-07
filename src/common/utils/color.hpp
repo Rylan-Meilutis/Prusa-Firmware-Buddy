@@ -92,6 +92,7 @@ constexpr Color COLOR_BRASS = Color::from_rgb(184, 134, 11); // Dark goldenrod f
 
 // Brand color - switches based on build variant
 #if SIGNATURE_OAK()
+                                                             // #error dead code found by automatic analyses (see BFW-5461)
 constexpr Color COLOR_BRAND = COLOR_BRASS;
 #else
 constexpr Color COLOR_BRAND = COLOR_ORANGE;

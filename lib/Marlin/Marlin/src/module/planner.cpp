@@ -85,6 +85,7 @@
 #endif
 
 #if ENABLED(BACKLASH_COMPENSATION)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/backlash.h"
 #endif
 
@@ -230,6 +231,7 @@ float Planner::mm_per_mstep[XYZE_N];          // (mm) Millimeters per mini-step
 #endif
 
 #if ENABLED(DISTINCT_E_FACTORS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   uint8_t Planner::last_extruder = 0;     // Respond to extruder change
 #endif
 
@@ -249,6 +251,7 @@ StrongIndexArray<float, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_st
           Planner::inverse_z_fade_height;
   #endif
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   constexpr bool Planner::leveling_active;
 #endif
 
@@ -264,6 +267,7 @@ float Planner::previous_nominal_speed;
 uint8_t Planner::g_uc_extruder_last_move[EXTRUDERS] = { 0 };
 
 #ifdef XY_FREQUENCY_LIMIT
+  // #error dead code found by automatic analyses (see BFW-5461)
   // Old direction bits. Used for speed calculations
   unsigned char Planner::old_direction_bits = 0;
   // Segment times (in µs). Used for speed calculations
@@ -322,6 +326,7 @@ void Planner::init() {
 }
 
 #if ENABLED(S_CURVE_ACCELERATION)
+  // #error dead code found by automatic analyses (see BFW-5461)
   // All other 32-bit MPUs can easily do inverse using hardware division,
   // so we don't need to reduce precision or to use assembly language at all.
   // This routine, for all other archs, returns 0x100000000 / d ~= 0xFFFFFFFF / d
@@ -348,6 +353,7 @@ void Planner::calculate_trapezoid_for_block(block_t * const block, const float e
   block->final_speed = exit_speed;
 
   #if ENABLED(S_CURVE_ACCELERATION)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const float nomr = 1.0f / block->nominal_speed;
     const float entry_factor = entry_speed * nomr,
                 exit_factor = exit_speed * nomr;
@@ -839,6 +845,7 @@ void Planner::discard_current_unprocessed_block() {
 void Planner::check_axes_activity() {
 
   #if ANY(DISABLE_X, DISABLE_Y, DISABLE_Z, DISABLE_E)
+    // #error dead code found by automatic analyses (see BFW-5461)
     xyze_bool_t axis_active = { false };
   #endif
 
@@ -850,6 +857,7 @@ void Planner::check_axes_activity() {
     #endif
 
     #if ANY(DISABLE_X, DISABLE_Y, DISABLE_Z, DISABLE_E)
+      // #error dead code found by automatic analyses (see BFW-5461)
       for (uint8_t b = block_buffer_tail; b != block_buffer_head; b = next_block_index(b)) {
         block_t *block = &block_buffer[b];
         LOOP_XYZE(i) if (block->msteps[i]) axis_active[i] = true;
@@ -867,19 +875,24 @@ void Planner::check_axes_activity() {
   // Disable inactive axes
   //
   #if (ENABLED(XY_LINKED_ENABLE) && (ENABLED(DISABLE_X) || ENABLED(DISABLE_Y)))
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (!axis_active.x && !axis_active.y) disable_XY();
   #else
     #if ENABLED(DISABLE_X)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (!axis_active.x) disable_X();
     #endif
     #if ENABLED(DISABLE_Y)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (!axis_active.y) disable_Y();
     #endif
   #endif
   #if ENABLED(DISABLE_Z)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (!axis_active.z) disable_Z();
   #endif
   #if ENABLED(DISABLE_E)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (!axis_active.e) disable_e_steppers();
   #endif
 }
@@ -914,6 +927,7 @@ void Planner::check_axes_activity() {
     #if ENABLED(Z_SAFE_HOMING)
       Z_SAFE_HOMING_X_POINT, Z_SAFE_HOMING_Y_POINT
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       X_HOME_POS, Y_HOME_POS
     #endif
   };
@@ -1263,6 +1277,7 @@ bool Planner::_populate_block(block_t * const block,
    * should *never* remove steps!
    */
   #if ENABLED(BACKLASH_COMPENSATION)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (!hints.no_discard) {
       backlash.add_correction_msteps(da, db, dc, dm, block);
     }
@@ -1295,12 +1310,14 @@ bool Planner::_populate_block(block_t * const block,
       if (block->msteps.z) enable_Z();
     #endif
   #elif CORE_IS_XZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (block->msteps.a || block->msteps.c) {
       enable_X();
       enable_Z();
     }
     if (block->msteps.y) enable_Y();
   #elif CORE_IS_YZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (block->msteps.b || block->msteps.c) {
       enable_Y();
       enable_Z();
@@ -1386,6 +1403,7 @@ bool Planner::_populate_block(block_t * const block,
           const uint32_t nst = segment_time_us + LROUND(2 * time_diff / total_blocks_queued);
           inverse_secs = 1000000.0f / nst;
           #if defined(XY_FREQUENCY_LIMIT)
+            // #error dead code found by automatic analyses (see BFW-5461)
             segment_time_us = nst;
           #endif
         }
@@ -1394,6 +1412,7 @@ bool Planner::_populate_block(block_t * const block,
 
     block->nominal_speed = block->millimeters * inverse_secs;           // (mm/sec) Always > 0
     #if ENABLED(S_CURVE_ACCELERATION)
+      // #error dead code found by automatic analyses (see BFW-5461)
       block->nominal_rate = CEIL(block->mstep_event_count * inverse_secs); // (mini-step/sec) Always > 0
     #endif
     assert(block->nominal_speed > 0); // This assert just saved you 4 hours of digging through input shaper internals. You're welcome.
@@ -1424,12 +1443,14 @@ bool Planner::_populate_block(block_t * const block,
       const feedRate_t cs = ABS(current_speed[i] = delta_mm_i * inverse_secs);
       if (cs > settings.max_feedrate_mm_s[i]) NOMORE(speed_factor, settings.max_feedrate_mm_s[i] / cs);
       #if ENABLED(DISTINCT_E_FACTORS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (i == E_AXIS) i += extruder;
       #endif
     }
 
     // Max segment time in µs.
     #ifdef XY_FREQUENCY_LIMIT
+      // #error dead code found by automatic analyses (see BFW-5461)
       // Check and limit the xy direction change frequency
       const unsigned char direction_change = block->direction_bits ^ old_direction_bits;
       old_direction_bits = block->direction_bits;
@@ -1469,6 +1490,7 @@ bool Planner::_populate_block(block_t * const block,
     if (speed_factor < 1.0f) {
       current_speed *= speed_factor;
     #if ENABLED(S_CURVE_ACCELERATION)
+      // #error dead code found by automatic analyses (see BFW-5461)
       block->nominal_rate *= speed_factor;
     #endif
       block->nominal_speed *= speed_factor;
@@ -1500,6 +1522,7 @@ bool Planner::_populate_block(block_t * const block,
       accel = CEIL((e_msteps ? settings.acceleration : settings.travel_acceleration) * msteps_per_mm);
 
       #if ENABLED(DISTINCT_E_FACTORS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define ACCEL_IDX extruder
       #else
         #define ACCEL_IDX 0
@@ -1520,6 +1543,7 @@ bool Planner::_populate_block(block_t * const block,
       }
     }
     #if ENABLED(S_CURVE_ACCELERATION)
+      // #error dead code found by automatic analyses (see BFW-5461)
       block->acceleration_msteps_per_s2 = accel;
     #endif
     block->acceleration = accel / msteps_per_mm;
@@ -1582,6 +1606,7 @@ bool Planner::_populate_block(block_t * const block,
         float junction_cos_theta = (-prev_unit_vec.x * unit_vec.x) + (-prev_unit_vec.y * unit_vec.y)
                                  + (-prev_unit_vec.z * unit_vec.z) + (-prev_unit_vec.e * unit_vec.e);
         #if ENABLED(JD_DEBUG_OUTPUT)
+          // #error dead code found by automatic analyses (see BFW-5461)
           SERIAL_ECHO_F(junction_cos_theta, 7);
         #endif
 
@@ -1654,6 +1679,7 @@ bool Planner::_populate_block(block_t * const block,
 
       uint8_t limited = 0;
       #if HAS_LINEAR_E_JERK
+        // #error dead code found by automatic analyses (see BFW-5461)
         LOOP_XYZ(i)
       #else
         LOOP_XYZE(i)
@@ -1690,6 +1716,7 @@ bool Planner::_populate_block(block_t * const block,
         // Now limit the jerk in all axes.
         const float smaller_speed_factor = vmax_junction / previous_nominal_speed;
         #if HAS_LINEAR_E_JERK
+          // #error dead code found by automatic analyses (see BFW-5461)
           LOOP_XYZ(axis)
         #else
           LOOP_XYZE(axis)
@@ -1728,6 +1755,7 @@ bool Planner::_populate_block(block_t * const block,
       previous_safe_speed = safe_speed;
 
       #if DISABLED(CLASSIC_JERK)
+        // #error dead code found by automatic analyses (see BFW-5461)
         vmax_junction_sqr = _MIN(vmax_junction_sqr, sq(vmax_junction));
       #else
         vmax_junction_sqr = sq(vmax_junction);
@@ -1737,6 +1765,7 @@ bool Planner::_populate_block(block_t * const block,
 
     // Max entry speed of this block equals the max exit speed of the previous block.
     #if ENABLED(JD_DEBUG_OUTPUT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHO(" ");
       SERIAL_ECHO(vmax_junction_sqr);
       SERIAL_EOL();
@@ -1865,6 +1894,7 @@ bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &targ
             }
         #endif
     #elif CORE_IS_XZ
+      // #error dead code found by automatic analyses (see BFW-5461)
         if (block->msteps.a || block->msteps.c) {
             enable_X();
             enable_Z();
@@ -1873,6 +1903,7 @@ bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &targ
             enable_Y();
         }
     #elif CORE_IS_YZ
+      // #error dead code found by automatic analyses (see BFW-5461)
         if (block->msteps.b || block->msteps.c) {
             enable_Y();
             enable_Z();
@@ -2172,6 +2203,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
 
   // When changing extruders recalculate mini-steps corresponding to the E position
   #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (last_extruder != extruder && settings.axis_msteps_per_mm[E_AXIS_N(extruder)] != settings.axis_msteps_per_mm[E_AXIS_N(last_extruder)]) {
       position.e = LROUND(position.e * settings.axis_msteps_per_mm[E_AXIS_N(extruder)] * mm_per_mstep[E_AXIS_N(last_extruder)]);
       last_extruder = extruder;
@@ -2231,6 +2263,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
 #if ENABLED(CRASH_RECOVERY)
       , *segment_hints
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
       , hints
 #endif
   )) return false;
@@ -2325,6 +2358,7 @@ bool Planner::buffer_raw_line(const MachinePosXYZE &cart, const float accelerati
 
 void Planner::set_machine_position_mm(const MachinePosXYZE &xyze) {
   #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     last_extruder = active_extruder;
   #endif
   position_float = xyze;
@@ -2373,6 +2407,7 @@ void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_ind
   }
 
   #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     last_extruder = active_extruder;
   #endif
   position.e = LROUND(settings.axis_msteps_per_mm[*e_axis_index] * e);
@@ -2418,6 +2453,7 @@ void Planner::reset_position() {
 // Recalculate the mini-steps/s^2 acceleration rates, based on the mm/s^2
 void Planner::refresh_acceleration_rates() {
   #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define AXIS_CONDITION (i < E_AXIS || i == E_AXIS_N(active_extruder))
   #else
     #define AXIS_CONDITION true
@@ -2429,6 +2465,7 @@ void Planner::refresh_acceleration_rates() {
   }
   cutoff_long = std::numeric_limits<uint32_t>::max() / highest_rate;
   #if HAS_LINEAR_E_JERK
+    // #error dead code found by automatic analyses (see BFW-5461)
     recalculate_max_e_jerk();
   #endif
 }
@@ -2446,6 +2483,7 @@ void Planner::refresh_positioning() {
 }
 
 #if ENABLED(DISTINCT_E_FACTORS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   void Planner::refresh_e_positioning(const uint8_t extruder) {
     mm_per_step[E_AXIS_N(extruder)] = 1.f / settings.axis_steps_per_mm[E_AXIS_N(extruder)];
     mm_per_half_step[E_AXIS_N(extruder)] = mm_per_step[E_AXIS_N(extruder)] / 2.f;
@@ -2471,10 +2509,13 @@ inline void limit_and_warn(float &val, const uint8_t axis, PGM_P const setting_n
 
 void Planner::set_max_acceleration(const uint8_t axis, float targetValue) {
   #if ENABLED(LIMITED_MAX_ACCEL_EDITING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifdef MAX_ACCEL_EDIT_VALUES
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xyze_float_t max_accel_edit = MAX_ACCEL_EDIT_VALUES;
       const xyze_float_t &max_acc_edit_scaled = max_accel_edit;
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xyze_float_t max_accel_edit = DEFAULT_MAX_ACCELERATION,
                              max_acc_edit_scaled = max_accel_edit * 2;
     #endif
@@ -2488,10 +2529,13 @@ void Planner::set_max_acceleration(const uint8_t axis, float targetValue) {
 
 void Planner::set_max_feedrate(const uint8_t axis, float targetValue) {
   #if ENABLED(LIMITED_MAX_FR_EDITING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifdef MAX_FEEDRATE_EDIT_VALUES
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xyze_float_t max_fr_edit = MAX_FEEDRATE_EDIT_VALUES;
       const xyze_float_t &max_fr_edit_scaled = max_fr_edit;
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xyze_float_t max_fr_edit = DEFAULT_MAX_FEEDRATE,
                              max_fr_edit_scaled = max_fr_edit * 2;
     #endif
@@ -2506,10 +2550,13 @@ void Planner::set_max_feedrate(const uint8_t axis, float targetValue) {
 void Planner::set_max_jerk(const AxisEnum axis, float targetValue) {
   #if HAS_CLASSIC_JERK
     #if ENABLED(LIMITED_JERK_EDITING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xyze_float_t max_jerk_edit =
         #ifdef MAX_JERK_EDIT_VALUES
+          // #error dead code found by automatic analyses (see BFW-5461)
           MAX_JERK_EDIT_VALUES
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           { (DEFAULT_XJERK) * 2, (DEFAULT_YJERK) * 2,
             (DEFAULT_ZJERK) * 2, (DEFAULT_EJERK) * 2 }
         #endif

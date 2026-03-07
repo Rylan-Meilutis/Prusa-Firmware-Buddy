@@ -1262,6 +1262,7 @@ SamplesAnnotation phase_stepping::capture_speed_sweep_samples(AxisEnum axis,
 }
 
 #ifdef SERIAL_DEBUG
+// #error dead code found by automatic analyses (see BFW-5461)
 static void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 static void serial_printf(const char *fmt, ...) {
@@ -1277,6 +1278,7 @@ static void serial_printf(const char *fmt, ...) {
 static void debug_dump_raw_measurement(const char *name, const SignalContainer &signal,
     const SamplesAnnotation &annotation, const SignalView &signal_view) {
 #ifdef SERIAL_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_printf("# raw_signal {");
     serial_printf("\"name\": \"%s\", ", name);
 
@@ -1306,6 +1308,7 @@ static void debug_dump_raw_measurement(const char *name, const SignalContainer &
 
 static void debug_dump_dft_sweep_result(const char *name, int harmonic, int dir, const DftSweepResult &result) {
 #ifdef SERIAL_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_printf("# dft_speed_sweep_result {");
     serial_printf("\"name\": \"%s%d\", ", name, dir);
     serial_printf("\"harmonic\": %d, ", harmonic);
@@ -1324,6 +1327,7 @@ static void debug_dump_dft_sweep_result(const char *name, int harmonic, int dir,
 
 static void debug_dump_harmonic_peaks(const char *name, const stdext::inplace_vector<HarmonicPeak, opts::CORRECTION_HARMONICS> &peaks) {
 #ifdef SERIAL_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_printf("# harmonic_peaks {");
     serial_printf("\"name\": \"%s\", ", name);
     serial_printf("\"peaks\": [");
@@ -1343,6 +1347,7 @@ static void debug_dump_harmonic_peaks(const char *name, const stdext::inplace_ve
 
 static void debug_dump_magnitude_search(int harmonic, float magnitude, const MagnitudeContainer &response) {
 #ifdef SERIAL_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_printf("# magnitude_search {");
     serial_printf("\"harmonic\": %d, ", harmonic);
     serial_printf("\"magnitude\": %f, ", magnitude);
@@ -1359,6 +1364,7 @@ static void debug_dump_magnitude_search(int harmonic, float magnitude, const Mag
 
 static void debug_dump_param_search(int harmonic, const SweepParams &params, int move_dir, const MagnitudeContainer &response) {
 #ifdef SERIAL_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_printf("# param_search {");
     serial_printf("\"harmonic\": %d, ", harmonic);
     serial_printf("\"move_dir\": %d, ", move_dir);

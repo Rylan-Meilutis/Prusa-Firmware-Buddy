@@ -71,6 +71,7 @@ struct IF<true, L, R> { typedef L type; };
 #define SECONDARY_AXIS_CODE(V...) CODE_N(SECONDARY_AXES, V)
 
 #if HAS_ROTATIONAL_AXES
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXIS_GANG(V...) GANG_N(ROTATIONAL_AXES, V)
 #endif
 
@@ -339,6 +340,7 @@ struct XYval {
   #if LOGICAL_AXES > NUM_AXES
     FI void set(const T (&arr)[LOGICAL_AXES])           { x = arr[0]; y = arr[1]; }
     #if DISTINCT_AXES > LOGICAL_AXES
+      // #error dead code found by automatic analyses (see BFW-5461)
       FI void set(const T (&arr)[DISTINCT_AXES])        { x = arr[0]; y = arr[1]; }
     #endif
   #endif
@@ -457,25 +459,32 @@ struct XYZval {
     FI void set(const T (&arr)[LOGICAL_AXES])          { NUM_AXIS_CODE(x = arr[0], y = arr[1], z = arr[2], i = arr[3], j = arr[4], k = arr[5], u = arr[6], v = arr[7], w = arr[8]); }
     FI void set(LOGICAL_AXIS_ARGS(const T))            { NUM_AXIS_CODE(a = x,      b = y,      c = z,     _i = i,     _j = j,     _k = k,     _u = u,     _v = v,     _w = w   ); }
     #if DISTINCT_AXES > LOGICAL_AXES
+      // #error dead code found by automatic analyses (see BFW-5461)
       FI void set(const T (&arr)[DISTINCT_AXES])       { NUM_AXIS_CODE(x = arr[0], y = arr[1], z = arr[2], i = arr[3], j = arr[4], k = arr[5], u = arr[6], v = arr[7], w = arr[8]); }
     #endif
   #endif
   #if HAS_I_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz) { x = px; y = py; z = pz; }
   #endif
   #if HAS_J_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi) { x = px; y = py; z = pz; i = pi; }
   #endif
   #if HAS_K_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj) { x = px; y = py; z = pz; i = pi; j = pj; }
   #endif
   #if HAS_U_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk) { x = px; y = py; z = pz; i = pi; j = pj; k = pk; }
   #endif
   #if HAS_V_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk, const T pu) { x = px; y = py; z = pz; i = pi; j = pj; k = pk; u = pu; }
   #endif
   #if HAS_W_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk, const T pu, const T pv) { x = px; y = py; z = pz; i = pi; j = pj; k = pk; u = pu; v = pv; }
   #endif
 
@@ -589,21 +598,27 @@ struct XYZEval {
   FI void set(const T px)                                                                                       { x = px; }
   FI void set(const T px, const T py)                                                                           { x = px; y = py; }
   #if HAS_I_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz)                                                             { x = px; y = py; z = pz; }
   #endif
   #if HAS_J_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi)                                                 { x = px; y = py; z = pz; i = pi; }
   #endif
   #if HAS_K_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj)                                     { x = px; y = py; z = pz; i = pi; j = pj; }
   #endif
   #if HAS_U_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk)                         { x = px; y = py; z = pz; i = pi; j = pj; k = pk; }
   #endif
   #if HAS_V_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk, const T pu)             { x = px; y = py; z = pz; i = pi; j = pj; k = pk; u = pu; }
   #endif
   #if HAS_W_AXIS
+    // #error dead code found by automatic analyses (see BFW-5461)
     FI void set(const T px, const T py, const T pz, const T pi, const T pj, const T pk, const T pu, const T pv) { x = px; y = py; z = pz; i = pi; j = pj; k = pk; u = pu; v = pv; }
   #endif
 

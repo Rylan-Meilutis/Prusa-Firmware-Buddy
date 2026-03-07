@@ -33,6 +33,7 @@
 #include "../../inc/MarlinConfigPre.h"
 
 #if HAS_DRIVER(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "TMC26X.h"
 #endif
 
@@ -93,6 +94,7 @@
 #endif
 
 #if HAS_Z2_ENABLE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z2_enable  Z2_ENABLE_WRITE( Z_ENABLE_ON)
   #define Z2_disable Z2_ENABLE_WRITE(!Z_ENABLE_ON)
 #else
@@ -101,6 +103,7 @@
 #endif
 
 #if HAS_Z3_ENABLE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z3_enable  Z3_ENABLE_WRITE( Z_ENABLE_ON)
   #define Z3_disable Z3_ENABLE_WRITE(!Z_ENABLE_ON)
 #else
@@ -212,18 +215,22 @@
 
 // Z2 Stepper
 #if HAS_Z2_ENABLE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifndef Z2_ENABLE_INIT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_ENABLE_INIT SET_OUTPUT(Z2_ENABLE_PIN)
     #define Z2_ENABLE_WRITE(STATE) WRITE(Z2_ENABLE_PIN,STATE)
     #define Z2_ENABLE_READ() READ(Z2_ENABLE_PIN)
   #endif
   #ifndef Z2_DIR_INIT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_DIR_INIT SET_OUTPUT(Z2_DIR_PIN)
     #define Z2_DIR_WRITE(STATE) WRITE(Z2_DIR_PIN,STATE)
     #define Z2_DIR_READ() READ(Z2_DIR_PIN)
   #endif
   #define Z2_STEP_INIT SET_OUTPUT(Z2_STEP_PIN)
   #ifndef Z2_STEP_WRITE
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_STEP_WRITE(STATE) WRITE(Z2_STEP_PIN,STATE)
   #endif
   #define Z2_STEP_READ READ(Z2_STEP_PIN)
@@ -233,18 +240,22 @@
 
 // Z3 Stepper
 #if HAS_Z3_ENABLE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifndef Z3_ENABLE_INIT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_ENABLE_INIT SET_OUTPUT(Z3_ENABLE_PIN)
     #define Z3_ENABLE_WRITE(STATE) WRITE(Z3_ENABLE_PIN,STATE)
     #define Z3_ENABLE_READ() READ(Z3_ENABLE_PIN)
   #endif
   #ifndef Z3_DIR_INIT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_DIR_INIT SET_OUTPUT(Z3_DIR_PIN)
     #define Z3_DIR_WRITE(STATE) WRITE(Z3_DIR_PIN,STATE)
     #define Z3_DIR_READ() READ(Z3_DIR_PIN)
   #endif
   #define Z3_STEP_INIT SET_OUTPUT(Z3_STEP_PIN)
   #ifndef Z3_STEP_WRITE
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_STEP_WRITE(STATE) WRITE(Z3_STEP_PIN,STATE)
   #endif
   #define Z3_STEP_READ READ(Z3_STEP_PIN)
@@ -363,24 +374,30 @@
   #define    REV_E_DIR(E)   E0_DIR_WRITE( INVERT_E0_DIR)
 
 #elif E_STEPPERS > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #if E_STEPPERS > 5
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _E_STEP_WRITE(E,V) do{ switch (E) { case 0: E0_STEP_WRITE(V); break; case 1: E1_STEP_WRITE(V); break; case 2: E2_STEP_WRITE(V); break; case 3: E3_STEP_WRITE(V); break; case 4: E4_STEP_WRITE(V); case 5: E5_STEP_WRITE(V); } }while(0)
     #define   _NORM_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE(!INVERT_E0_DIR); break; case 1: E1_DIR_WRITE(!INVERT_E1_DIR); break; case 2: E2_DIR_WRITE(!INVERT_E2_DIR); break; case 3: E3_DIR_WRITE(!INVERT_E3_DIR); break; case 4: E4_DIR_WRITE(!INVERT_E4_DIR); case 5: E5_DIR_WRITE(!INVERT_E5_DIR); } }while(0)
     #define    _REV_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE( INVERT_E0_DIR); break; case 1: E1_DIR_WRITE( INVERT_E1_DIR); break; case 2: E2_DIR_WRITE( INVERT_E2_DIR); break; case 3: E3_DIR_WRITE( INVERT_E3_DIR); break; case 4: E4_DIR_WRITE( INVERT_E4_DIR); case 5: E5_DIR_WRITE( INVERT_E5_DIR); } }while(0)
   #elif E_STEPPERS > 4
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _E_STEP_WRITE(E,V) do{ switch (E) { case 0: E0_STEP_WRITE(V); break; case 1: E1_STEP_WRITE(V); break; case 2: E2_STEP_WRITE(V); break; case 3: E3_STEP_WRITE(V); break; case 4: E4_STEP_WRITE(V); } }while(0)
     #define   _NORM_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE(!INVERT_E0_DIR); break; case 1: E1_DIR_WRITE(!INVERT_E1_DIR); break; case 2: E2_DIR_WRITE(!INVERT_E2_DIR); break; case 3: E3_DIR_WRITE(!INVERT_E3_DIR); break; case 4: E4_DIR_WRITE(!INVERT_E4_DIR); } }while(0)
     #define    _REV_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE( INVERT_E0_DIR); break; case 1: E1_DIR_WRITE( INVERT_E1_DIR); break; case 2: E2_DIR_WRITE( INVERT_E2_DIR); break; case 3: E3_DIR_WRITE( INVERT_E3_DIR); break; case 4: E4_DIR_WRITE( INVERT_E4_DIR); } }while(0)
   #elif E_STEPPERS > 3
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _E_STEP_WRITE(E,V) do{ switch (E) { case 0: E0_STEP_WRITE(V); break; case 1: E1_STEP_WRITE(V); break; case 2: E2_STEP_WRITE(V); break; case 3: E3_STEP_WRITE(V); } }while(0)
     #define   _NORM_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE(!INVERT_E0_DIR); break; case 1: E1_DIR_WRITE(!INVERT_E1_DIR); break; case 2: E2_DIR_WRITE(!INVERT_E2_DIR); break; case 3: E3_DIR_WRITE(!INVERT_E3_DIR); } }while(0)
     #define    _REV_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE( INVERT_E0_DIR); break; case 1: E1_DIR_WRITE( INVERT_E1_DIR); break; case 2: E2_DIR_WRITE( INVERT_E2_DIR); break; case 3: E3_DIR_WRITE( INVERT_E3_DIR); } }while(0)
   #elif E_STEPPERS > 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _E_STEP_WRITE(E,V) do{ switch (E) { case 0: E0_STEP_WRITE(V); break; case 1: E1_STEP_WRITE(V); break; case 2: E2_STEP_WRITE(V); } }while(0)
     #define   _NORM_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE(!INVERT_E0_DIR); break; case 1: E1_DIR_WRITE(!INVERT_E1_DIR); break; case 2: E2_DIR_WRITE(!INVERT_E2_DIR); } }while(0)
     #define    _REV_E_DIR(E)   do{ switch (E) { case 0: E0_DIR_WRITE( INVERT_E0_DIR); break; case 1: E1_DIR_WRITE( INVERT_E1_DIR); break; case 2: E2_DIR_WRITE( INVERT_E2_DIR); } }while(0)
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _E_STEP_WRITE(E,V) do{ if (E == 0) { E0_STEP_WRITE(V); } else { E1_STEP_WRITE(V); } }while(0)
     #define   _NORM_E_DIR(E)   do{ if (E == 0) { E0_DIR_WRITE(!INVERT_E0_DIR); } else { E1_DIR_WRITE(!INVERT_E1_DIR); } }while(0)
     #define    _REV_E_DIR(E)   do{ if (E == 0) { E0_DIR_WRITE( INVERT_E0_DIR); } else { E1_DIR_WRITE( INVERT_E1_DIR); } }while(0)
@@ -396,6 +413,7 @@
   #define    REV_E_DIR(E)   E0_DIR_WRITE( INVERT_E0_DIR)
 
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define E_STEP_WRITE(E,V) NOOP
   #define   NORM_E_DIR(E)   NOOP
   #define    REV_E_DIR(E)   NOOP

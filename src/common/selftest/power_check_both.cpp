@@ -7,6 +7,7 @@
 #include <option/has_toolchanger.h>
 
 #if HAS_REMOTE_BED()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <feature/remote_bed/remote_bed.hpp>
 #endif
 
@@ -25,11 +26,13 @@ using namespace selftest;
 void PowerCheckBoth::Callback([[maybe_unused]] CSelftestPart_Heater &part) {
 
 #if HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     const float nozzle_current_A = advancedpower.get_nozzle_current(part.m_config.tool_nr);
     const float nozzle_voltage_V = advancedpower.get_nozzle_voltage(part.m_config.tool_nr);
     const uint32_t nozzle_pwm = Hotend::for_tool(part.m_config.tool_nr).nozzle_heater_pwm().value;
     const float nozzle_power_W = nozzle_voltage_V * nozzle_current_A;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     const float nozzle_current_A = advancedpower.heater_current();
     const float nozzle_voltage_V = advancedpower.heater_voltage();
     const uint32_t nozzle_pwm = Hotend::for_tool(0).nozzle_heater_pwm().value;
@@ -37,11 +40,13 @@ void PowerCheckBoth::Callback([[maybe_unused]] CSelftestPart_Heater &part) {
 #endif
 
 #if HAS_REMOTE_BED()
+    // #error dead code found by automatic analyses (see BFW-5461)
     const float bed_voltage_V = remote_bed::get_heater_voltage(); // Modular bed does not measure this
     const float bed_current_A = advancedpower.get_bed_current();
     const float bed_power_W = bed_current_A * bed_voltage_V;
     [[maybe_unused]] const float total_current_A = nozzle_current_A + bed_current_A;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     const float bed_voltage_V = advancedpower.bed_voltage();
     [[maybe_unused]] const float total_current_A = advancedpower.input_current();
     const float total_power_W = bed_voltage_V * total_current_A;

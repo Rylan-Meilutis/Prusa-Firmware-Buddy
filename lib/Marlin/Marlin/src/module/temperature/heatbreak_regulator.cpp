@@ -80,17 +80,20 @@ float HeatbreakRegulator::step(const Args &args) {
     }
 
     #else // PID_OPENLOOP
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     const float pid_output = constrain(args.target_temp, 0, MAX_HEATBREAK_POWER);
 
     #endif // PID_OPENLOOP
 
     #if ENABLED(PID_HEATBREAK_DEBUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     {
         SERIAL_ECHO_START();
         SERIAL_ECHOLNPAIR(
             " PID_HEATBREAK_DEBUG : Input ", args.current_temp, " Output ", pid_output, " fan_kick_counter ", fan_kick_counter, " current_hotend_temp ", args.current_hotend_temp
         #if DISABLED(PID_OPENLOOP)
+            // #error dead code found by automatic analyses (see BFW-5461)
             ,
             MSG_PID_DEBUG_PTERM, work_pid.Kp,
             MSG_PID_DEBUG_ITERM, work_pid.Ki,

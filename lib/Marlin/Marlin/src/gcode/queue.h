@@ -75,6 +75,7 @@ public:
    * The port that the command was received on
    */
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     static int16_t port[BUFSIZE];
   #endif
 
@@ -152,12 +153,14 @@ private:
 
   static void _commit_command(bool say_ok
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       , int16_t p=-1
     #endif
   );
 
   static bool _enqueue(const char* cmd, bool say_ok=false
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       , int16_t p=-1
     #endif
   );

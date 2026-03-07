@@ -108,6 +108,7 @@ static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::Bootstr
 
 static void puppy_run_timeout() {
 #if PUPPY_TASK_DEBUG()
+    // #error dead code found by automatic analyses (see BFW-5461)
     log_error(Puppies, "ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT");
     osDelay(1000);
 #else
@@ -272,6 +273,7 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 CommunicationStatus status = xbuddy_extension.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
     #if PUPPY_TASK_DEBUG()
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     log_error(Puppies, "xbuddy_extension.refresh() == CommunicationStatus::ERROR");
     #else
                     return;

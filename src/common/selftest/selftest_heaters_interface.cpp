@@ -23,6 +23,7 @@
 #endif
 
 #if HAS_SELFTEST_POWER_CHECK_BOTH()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "power_check_both.hpp"
 #endif
 
@@ -50,6 +51,7 @@ static void HeatbreakCorrelation([[maybe_unused]] CSelftestPart_Heater &h) {}
 // Splits implementation for printers with independent bed, nozzle measurement and others
 static inline void power_check_callback(CSelftestPart_Heater &part) {
     #if HAS_SELFTEST_POWER_CHECK_BOTH()
+    // #error dead code found by automatic analyses (see BFW-5461)
     PowerCheckBoth::Instance().Callback(part);
     #else
     part.single_check_callback();
@@ -103,6 +105,7 @@ void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &
 #endif
             });
 #if HAS_SELFTEST_POWER_CHECK_BOTH()
+            // #error dead code found by automatic analyses (see BFW-5461)
             PowerCheckBoth::Instance().BindNozzle(&pNoz->GetInstance());
 #endif
         }
@@ -151,6 +154,7 @@ void phaseHeaters_bed_ena(IPartHandler *&pBed, const HeaterConfig_t &config_bed)
         pBed_->SetStateChangedHook(&power_check_callback);
         pBed_->SetStateRemainedHook(&power_check_callback);
     #if HAS_SELFTEST_POWER_CHECK_BOTH()
+        // #error dead code found by automatic analyses (see BFW-5461)
         PowerCheckBoth::Instance().BindBed(&pBed_->GetInstance());
     #endif
 #endif
@@ -195,6 +199,7 @@ bool phaseHeaters(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles
     for (size_t i = 0; i < PhysicalToolIndex::count; i++) {
         if (just_finished_noz[i]) {
 #if HAS_SELFTEST_POWER_CHECK_BOTH()
+            // #error dead code found by automatic analyses (see BFW-5461)
             PowerCheckBoth::Instance().UnBindNozzle();
 #endif
             delete pNozzles[i];
@@ -205,6 +210,7 @@ bool phaseHeaters(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles
     if (just_finished_bed) {
         assert(pBed && *pBed);
 #if HAS_SELFTEST_POWER_CHECK_BOTH()
+        // #error dead code found by automatic analyses (see BFW-5461)
         PowerCheckBoth::Instance().UnBindBed();
 #endif
         delete *pBed;

@@ -852,6 +852,7 @@ void hw_tim3_init() {
 #elif BOARD_IS_XLBUDDY()
     BUDDY_UNREACHABLE();
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // If there ever is another board, this needs to fail loudly.
     #error "Unsupported board"
 #endif
@@ -889,6 +890,7 @@ void hw_tim3_init() {
 }
 
 #if HAS_BURST_STEPPING()
+// #error dead code found by automatic analyses (see BFW-5461)
 void hw_tim8_init() {
     TIM_ClockConfigTypeDef sClockSourceConfig {};
     TIM_MasterConfigTypeDef sMasterConfig {};

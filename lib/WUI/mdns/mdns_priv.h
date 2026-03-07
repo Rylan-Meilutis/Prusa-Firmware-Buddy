@@ -44,6 +44,7 @@
 #include <lwip/pbuf.h>
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 extern "C" {
 #endif
 
@@ -209,6 +210,7 @@ struct mdns_host {
     struct mdns_delayed_msg ipv4;
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     /** delayed msg struct for IPv6 */
     struct mdns_delayed_msg ipv6;
     #endif
@@ -228,6 +230,7 @@ struct udp_pcb *get_mdns_pcb(void);
 #endif /* LWIP_MDNS_RESPONDER */
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 }
 #endif
 

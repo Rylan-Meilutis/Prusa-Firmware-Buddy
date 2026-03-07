@@ -26,10 +26,12 @@
  */
 
 #if defined(STM32GENERIC) && defined(STM32F7)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../../../inc/MarlinConfigPre.h"
 
 #if HAS_DRIVER(TMC2660)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include <stdbool.h>
 #include <SPI.h>
@@ -175,6 +177,7 @@ TMC26XStepper::TMC26XStepper(const int16_t in_steps, int16_t cs_pin, int16_t dir
 void TMC26XStepper::start() {
 
   #ifdef TMC_DEBUG1
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOLNPGM("\n  TMC26X stepper library");
     SERIAL_ECHOPAIR("\n  CS pin: ", cs_pin);
     SERIAL_ECHOPAIR("\n  DIR pin: ", dir_pin);
@@ -220,6 +223,7 @@ void TMC26XStepper::setSpeed(uint16_t whatSpeed) {
   this->speed = whatSpeed;
   this->step_delay = 60UL * sq(1000UL) / ((uint32_t)this->number_of_steps * (uint32_t)whatSpeed * (uint32_t)this->microsteps);
   #ifdef TMC_DEBUG0 // crashes
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPAIR("\nStep delay in micros: ", this->step_delay);
   #endif
   // Update the next step time
@@ -312,10 +316,12 @@ void TMC26XStepper::setCurrent(uint16_t current) {
     // and recalculate the current setting
     current_scaling = (byte)((resistor_value * mASetting * 32.0 / (0.165 * sq(1000.0))) - 0.5); //theoretically - 1.0 for better rounding it is 0.5
     #ifdef TMC_DEBUG0 // crashes
+      // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_ECHOPAIR("\nCS (Vsense=1): ",current_scaling);
     #endif
   }
   #ifdef TMC_DEBUG0 // crashes
+    // #error dead code found by automatic analyses (see BFW-5461)
     else
       SERIAL_ECHOPAIR("\nCS: ", current_scaling);
   #endif
@@ -402,6 +408,7 @@ void TMC26XStepper::setMicrosteps(const int16_t in_steps) {
   microsteps = _BV(8 - setting_pattern);
 
   #ifdef TMC_DEBUG0 // crashes
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPAIR("\n Microstepping: ", microsteps);
   #endif
 
@@ -798,6 +805,7 @@ int16_t TMC26XStepper::version() { return 1; }
 
 void TMC26XStepper::debugLastStatus() {
   #ifdef TMC_DEBUG1
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (this->started) {
       if (this->getOverTemperature()&TMC26X_OVERTEMPERATURE_PREWARING)
         SERIAL_ECHOLNPGM("\n  WARNING: Overtemperature Prewarning!");
@@ -860,6 +868,7 @@ inline void TMC26XStepper::send262(uint32_t datagram) {
   //datagram &=REGISTER_BIT_PATTERN;
 
   #ifdef TMC_DEBUG1
+    // #error dead code found by automatic analyses (see BFW-5461)
     //SERIAL_PRINTF("Sending ");
     //SERIAL_PRINTF("Sending ", datagram,HEX);
     //SERIAL_ECHOPAIR("\n\nSending \n", print_hex_long(datagram));
@@ -875,6 +884,7 @@ inline void TMC26XStepper::send262(uint32_t datagram) {
   i_datagram >>= 4;
 
   #ifdef TMC_DEBUG1
+    // #error dead code found by automatic analyses (see BFW-5461)
     //SERIAL_PRINTF("Received ");
     //SERIAL_PRINTF("Received ", i_datagram,HEX);
     //SERIAL_ECHOPAIR("\n\nReceived \n", i_datagram);

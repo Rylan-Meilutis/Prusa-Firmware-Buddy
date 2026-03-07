@@ -23,6 +23,7 @@
 #include "../inc/MarlinConfig.h"
 
 #if HAS_CASE_LIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 uint8_t case_light_brightness = CASE_LIGHT_DEFAULT_BRIGHTNESS;
 bool case_light_on = CASE_LIGHT_DEFAULT_ON;
@@ -37,6 +38,7 @@ uint8_t case_light_brightness_sav;   // saves brighness info so can restore when
 bool case_light_arg_flag;  // flag to notify if S or P argument type
 
 #ifndef INVERT_CASE_LIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define INVERT_CASE_LIGHT false
 #endif
 
@@ -50,11 +52,14 @@ void update_case_light() {
   const uint8_t i = case_light_on ? case_light_brightness : 0, n10ct = INVERT_CASE_LIGHT ? 255 - i : i;
 
     #if DISABLED(CASE_LIGHT_NO_BRIGHTNESS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (PWM_PIN(CASE_LIGHT_PIN))
         analogWrite(pin_t(CASE_LIGHT_PIN),
           #if CASE_LIGHT_MAX_PWM == 255
+            // #error dead code found by automatic analyses (see BFW-5461)
             n10ct
           #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             map(n10ct, 0, 255, 0, CASE_LIGHT_MAX_PWM)
           #endif
         );

@@ -51,6 +51,7 @@
  */
 void GcodeSuite::M290() {
   #if ENABLED(BABYSTEP_XY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     LOOP_NUM_AXES(a)
       if (parser.seenval(AXIS_CHAR(a)) || (a == Z_AXIS && parser.seenval('S'))) {
         const float offs = constrain(parser.value_axis_units((AxisEnum)a), -2, 2);
@@ -65,6 +66,7 @@ void GcodeSuite::M290() {
 }
 
 #if ENABLED(EP_BABYSTEPPING) && DISABLED(EMERGENCY_PARSER)
+  // #error dead code found by automatic analyses (see BFW-5461)
   // Without Emergency Parser M293/M294 will be added to the queue
   void GcodeSuite::M293() { babystep.z_up(); }
   void GcodeSuite::M294() { babystep.z_down(); }

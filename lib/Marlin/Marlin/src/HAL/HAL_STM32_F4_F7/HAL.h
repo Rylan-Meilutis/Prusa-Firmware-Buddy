@@ -58,20 +58,26 @@
 #if SERIAL_PORT == -1
   #define MYSERIAL0 SerialUSB
 #elif SERIAL_PORT == 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MYSERIAL0 SerialUART1
 #elif SERIAL_PORT == 2
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MYSERIAL0 SerialUART2
 #elif SERIAL_PORT == 3
   #define MYSERIAL0 SerialUART3
 #elif SERIAL_PORT == 4
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MYSERIAL0 SerialUART4
 #elif SERIAL_PORT == 5
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MYSERIAL0 SerialUART5
 #elif SERIAL_PORT == 6
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MYSERIAL0 SerialUART6
 #endif
 
 #ifdef SERIAL_PORT_2
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if defined(STM32F4) && SERIAL_PORT_2 == 0
     #error "Serial port 0 does not exist"
   #endif
@@ -82,18 +88,25 @@
   #endif
   #define NUM_SERIAL 2
   #if SERIAL_PORT_2 == -1
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUSB
   #elif SERIAL_PORT_2 == 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART1
   #elif SERIAL_PORT_2 == 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART2
   #elif SERIAL_PORT_2 == 3
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART3
   #elif SERIAL_PORT_2 == 4
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART4
   #elif SERIAL_PORT_2 == 5
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART5
   #elif SERIAL_PORT_2 == 6
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MYSERIAL1 SerialUART6
   #endif
 #else
@@ -108,6 +121,7 @@
 #endif
 
 #ifndef strncpy_P
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define strncpy_P(dest, src, num) strncpy((dest), (src), (num))
 #endif
 

@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(G38_PROBE_TARGET)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 
@@ -47,6 +48,7 @@ inline bool G38_run_probe() {
   bool G38_pass_fail = false;
 
   #if MULTIPLE_PROBING > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Get direction of move and retract
     xyz_float_t retract_mm;
     LOOP_XYZ(i) {
@@ -59,8 +61,10 @@ inline bool G38_run_probe() {
 
   // Move flag value
   #if ENABLED(G38_PROBE_AWAY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const uint8_t move_value = parser.subcode;
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr uint8_t move_value = 1;
   #endif
 
@@ -74,6 +78,7 @@ inline bool G38_run_probe() {
     G38_pass_fail = true;
 
     #if MULTIPLE_PROBING > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       // Move away by the retract distance
       destination = current_position + retract_mm;
       endstops.enable(false);
@@ -112,8 +117,10 @@ void GcodeSuite::G38(const int8_t subcode) {
 
   const bool error_on_fail =
     #if ENABLED(G38_PROBE_AWAY)
+      // #error dead code found by automatic analyses (see BFW-5461)
       !TEST(subcode, 0)
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       (subcode == 2)
     #endif
   ;

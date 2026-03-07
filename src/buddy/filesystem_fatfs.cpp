@@ -53,6 +53,7 @@ typedef struct {
     FIL fil;
     WORD flags;
 #ifdef FATFS_FSTAT
+    // #error dead code found by automatic analyses (see BFW-5461)
     char *path; // Path is needed for fstat_r
 #endif
 } FIL_EX;
@@ -163,6 +164,7 @@ static time_t get_posix_time(DWORD fdate, DWORD ftime) {
 }
 
 #if FF_USE_CHMOD && !FF_FS_READONLY
+// #error dead code found by automatic analyses (see BFW-5461)
 static FILINFO get_fatfs_time(
     const struct timeval last_access,
     const struct timeval modification) {
@@ -228,6 +230,7 @@ static int open_r(struct _reent *r, void *fileStruct, const char *path, int flag
     }
 
 #ifdef FATFS_FSTAT
+    // #error dead code found by automatic analyses (see BFW-5461)
     size_t len = strlen(path) + 1; // +1 for the termination char
     f->path = malloc(len);
     if (f->path) {
@@ -259,6 +262,7 @@ static int close_r(struct _reent *r, void *fileStruct) {
     PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
     FRESULT result;
 #ifdef FATFS_FSTAT
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (f->path) {
         free(f->path);
     }
@@ -439,6 +443,7 @@ static int stat_r(struct _reent *r, const char *path, struct stat *st) {
 
 static int fstat_r(struct _reent *r, __attribute__((unused)) void *fileStruct, __attribute__((unused)) struct stat *st) {
 #ifdef FATFS_FSTAT
+    // #error dead code found by automatic analyses (see BFW-5461)
     PREPARE_FIL_EX(f, fileStruct);
     if (f->path) {
         int res = stat_r(r, f->path, st);
@@ -527,6 +532,7 @@ static int chmod_r(struct _reent *r, __attribute__((unused)) const char *path, _
     r->_errno = ENOTSUP;
     return -1;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FRESULT result;
 
     if (IS_EMPTY(path)) {
@@ -552,6 +558,7 @@ static int chmod_r(struct _reent *r, __attribute__((unused)) const char *path, _
 
 static int fchmod_r(struct _reent *r, __attribute__((unused)) void *fileStruct, __attribute__((unused)) mode_t mode) {
 #ifdef FATFS_FSTAT
+    // #error dead code found by automatic analyses (see BFW-5461)
     PREPARE_FIL_EX(f, fileStruct);
     if (f->path) {
         return chmod_r(r, f->path, mode);
@@ -697,6 +704,7 @@ static int statvfs_r(struct _reent *r, const char *path, struct statvfs *buf) {
 
     buf->f_frsize = ff->csize;
 #if FF_MAX_SS != FF_MIN_SS
+    // #error dead code found by automatic analyses (see BFW-5461)
     buf->f_bsize = ff->ssize;
 #else
     buf->f_bsize = FF_MAX_SS;
@@ -709,6 +717,7 @@ static int statvfs_r(struct _reent *r, const char *path, struct statvfs *buf) {
     buf->f_fsid = (device & 0xFFFF) | (((uint32_t)(ff->pdrv)) << 16); // 16b for filesystems, 16b for driver per filesystem
     buf->f_flag = ST_NOSUID;
 #ifdef _USE_LFN
+    // #error dead code found by automatic analyses (see BFW-5461)
     buf->f_namemax = _MAX_LFN;
 #else
     buf->f_namemax = 12;
@@ -759,6 +768,7 @@ static int utimes_r(struct _reent *r, __attribute__((unused)) const char *filena
     r->_errno = EPERM;
     return -1;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FRESULT result;
     FILINFO finfo;
 

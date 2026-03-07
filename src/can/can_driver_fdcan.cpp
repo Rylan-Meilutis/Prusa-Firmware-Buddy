@@ -347,6 +347,7 @@ void FdcanDriver::set_filter(uint32_t index, const CanardFilter &filter, bool ti
         .FilterID1 = filter.extended_can_id,
         .FilterID2 = filter.extended_mask,
 #if STM32MP15x || STM32MP25x
+        // #error dead code found by automatic analyses (see BFW-5461)
         .RxBufferIndex = 0,
         .IsCalibrationMsg = 0,
 #endif /* STM32MP15x || STM32MP25x */

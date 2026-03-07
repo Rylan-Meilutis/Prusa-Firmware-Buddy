@@ -96,6 +96,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_PHASE_STEPPING_SCREEN,
 #endif
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     MI_ERROR_TEST,
 #endif
     MI_USER_INTERFACE, MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,

@@ -4,6 +4,7 @@
 #include "../../module/planner.h"
 
 #ifndef Z_HOMING_HEIGHT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_HOMING_HEIGHT 0
 #endif
 

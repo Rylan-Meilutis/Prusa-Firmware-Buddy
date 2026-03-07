@@ -11,6 +11,7 @@
     #error "HAS_PRECISE_HOMING_COREXY() is mutually exclusive with HAS_PRECISE_HOMING()"
 #endif
 #ifdef HAS_TMC_WAVETABLE
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Wavetable restoration needs to happen after refinement succeeds, and
     // not per-axis as currently done. Ensure the setting is not enabled by mistake.
     #error "HAS_PRECISE_HOMING_COREXY() is not compatible with HAS_TMC_WAVETABLE"
@@ -144,6 +145,7 @@ static int16_t axis_mscnt(const AxisEnum axis) {
 #if HAS_PHASE_STEPPING()
     return phase_stepping::logical_ustep(axis);
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     return stepper_axis(axis).MSCNT();
 #endif
 }
@@ -350,6 +352,7 @@ static measure_axis_params measure_axis_defaults(const AxisEnum axis) {
 
 #if HAS_TRINAMIC
     #ifdef XY_HOMING_MEASURE_SENS
+    // #error dead code found by automatic analyses (see BFW-5461)
     params.sensitivity = XY_HOMING_MEASURE_SENS;
     #else
     params.sensitivity = (axis == A_AXIS ? X_STALL_SENSITIVITY : Y_STALL_SENSITIVITY);
@@ -513,6 +516,7 @@ static bool measure_phase_cycles(const AxisEnum axis, const ab_grid_t &ab_off,
                 SERIAL_ECHOLNPAIR("endstop ", (dir == 0 ? '-' : '+'), ": planned travel too short",
                     p_steps[slot][dir], ">", exp_dir_steps_max);
 #if 0 // Temporarily ignore until more data is collected
+    // #error dead code found by automatic analyses (see BFW-5461)
                 ui.status_printf_P(0, "Endstop not reached");
                 return false;
 #endif

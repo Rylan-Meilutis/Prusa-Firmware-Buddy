@@ -29,6 +29,7 @@ static const char errormagic[] PROGMEM = "Error:";
 static const char echomagic[]  PROGMEM = "echo:";
 
 #if NUM_SERIAL > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   int8_t serial_port_index = SERIAL_PORT;
 #endif
 

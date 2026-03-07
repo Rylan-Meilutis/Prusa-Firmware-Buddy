@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "mmu2/progress_codes.h"
 #else
     #include "../../../../../../Prusa-Firmware-MMU/src/logic/progress_codes.h"

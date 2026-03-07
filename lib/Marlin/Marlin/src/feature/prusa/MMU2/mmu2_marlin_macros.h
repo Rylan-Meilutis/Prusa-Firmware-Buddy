@@ -4,6 +4,7 @@
 #pragma once
 
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "Marlin.h"
     // brings _O and _T macros into MMU
     #include "language.h"

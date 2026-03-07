@@ -50,6 +50,7 @@ static StatusLeds &get_status_leds() {
 
 #if HAS_SIDE_LEDS()
     #if defined(UNITTESTS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define HAS_SIDE_LED_DRIVER() 0
     #elif PRINTER_IS_PRUSA_XL()
         #define HAS_SIDE_LED_DRIVER() 1

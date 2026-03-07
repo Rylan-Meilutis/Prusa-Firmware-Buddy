@@ -182,6 +182,7 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
         wait_for_fingerprint(fingerprint_wait_start);
 
     #if !PUPPY_FLASH_FW()
+        // #error dead code found by automatic analyses (see BFW-5461)
         // Get fingerprint from puppies to start the app
         BootloaderProtocol::status_t result = flasher.get_fingerprint(fingerprints.get_fingerprint(dock));
         if (result != BootloaderProtocol::COMMAND_OK) {
@@ -222,6 +223,7 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
     }
 
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     reset_all_puppies();
     result = MINIMAL_PUPPY_CONFIG;
 #endif // HAS_PUPPIES_BOOTLOADER()

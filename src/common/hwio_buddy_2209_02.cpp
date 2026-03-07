@@ -369,6 +369,7 @@ uint32_t analogRead(uint32_t ulPin) {
 #if (HAS_TEMP_HEATBREAK)
         case MARLIN_PIN(TEMP_HEATBREAK):
     #if (BOARD_IS_BUDDY())
+            // #error dead code found by automatic analyses (see BFW-5461)
             return AdcGet::pinda();
     #elif (BOARD_IS_XBUDDY())
             return AdcGet::heatbreakTemp();

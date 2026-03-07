@@ -8,6 +8,7 @@
 #include "defaults.hpp"
 #include <option/has_config_store_wo_backend.h>
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <no_backend/store.hpp>
 #else
     #include <journal/store.hpp>
@@ -151,6 +152,7 @@ struct ItemFlag {
 
 struct CurrentStore
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     : public no_backend::NBJournalCurrentStoreConfig
 #else
     : public journal::CurrentStoreConfig<journal::Backend, backend>
@@ -762,6 +764,7 @@ private:
  */
 struct DeprecatedStore
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     : public no_backend::NBJournalDeprecatedStoreConfig
 #else
     : public journal::DeprecatedStoreConfig<journal::Backend>

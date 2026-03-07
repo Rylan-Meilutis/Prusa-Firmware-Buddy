@@ -29,23 +29,28 @@ constexpr uint8_t all_on = 0xFF, all_off = 0x00;
 class Backlash {
 public:
   #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static xyz_float_t distance_mm;
     static uint8_t correction;
     #ifdef BACKLASH_SMOOTHING_MM
+      // #error dead code found by automatic analyses (see BFW-5461)
       static float smoothing_mm;
     #endif
 
     static inline void set_correction(const float &v) { correction = _MAX(0, _MIN(1.0, v)) * all_on; }
     static inline float get_correction() { return float(ui8_to_percent(correction)) / 100.0f; }
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     static constexpr uint8_t correction = (BACKLASH_CORRECTION) * 0xFF;
     static const xyz_float_t distance_mm;
     #ifdef BACKLASH_SMOOTHING_MM
+      // #error dead code found by automatic analyses (see BFW-5461)
       static constexpr float smoothing_mm = BACKLASH_SMOOTHING_MM;
     #endif
   #endif
 
   #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     private:
       static xyz_float_t measured_mm;
       static xyz_uint8_t measured_count;
@@ -57,11 +62,13 @@ public:
     // Return the measurement averaged over all readings
     return (
       #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+        // #error dead code found by automatic analyses (see BFW-5461)
         measured_count[a] > 0 ? measured_mm[a] / measured_count[a] :
       #endif
       0
     );
     #if DISABLED(MEASURE_BACKLASH_WHEN_PROBING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       UNUSED(a);
     #endif
   }
@@ -69,10 +76,12 @@ public:
   static inline bool has_measurement(const AxisEnum a) {
     return (false
       #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+        // #error dead code found by automatic analyses (see BFW-5461)
         || (measured_count[a] > 0)
       #endif
     );
     #if DISABLED(MEASURE_BACKLASH_WHEN_PROBING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       UNUSED(a);
     #endif
   }

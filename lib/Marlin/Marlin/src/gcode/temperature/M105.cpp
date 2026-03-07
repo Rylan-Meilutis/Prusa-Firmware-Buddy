@@ -54,6 +54,7 @@ void GcodeSuite::M105() {
     SERIAL_EOL();
 
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     SERIAL_ECHOLNPGM(" T:0"); // Some hosts send M105 to test the serial connection
 

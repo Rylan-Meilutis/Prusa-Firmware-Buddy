@@ -23,6 +23,7 @@
 #include "../gcode.h"
 
 #if ENABLED(PLATFORM_M997_SUPPORT)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 /**
  * M997: Perform in-application firmware update

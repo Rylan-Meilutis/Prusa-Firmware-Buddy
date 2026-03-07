@@ -47,6 +47,7 @@
 #include <string.h>
 
 #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <lwip/prot/ip6.h>
 #endif
 
@@ -56,6 +57,7 @@
 static void mdns_clear_outmsg(struct mdns_outmsg *outmsg);
 
     #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
 Abusing to hardcode prusalink service
 /**
  * Call user supplied function to setup TXT data
@@ -309,6 +311,7 @@ mdns_add_hostv4_ptr_answer(struct mdns_outpacket *reply, struct mdns_outmsg *msg
     #endif
 
     #if LWIP_IPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 /** Write an IPv6 address (AAAA) RR to outpacket */
 static err_t
 mdns_add_aaaa_answer(struct mdns_outpacket *reply, struct mdns_outmsg *msg,
@@ -598,6 +601,7 @@ err_t mdns_create_outpacket(struct netif *netif, struct mdns_outmsg *msg,
     }
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (msg->host_replies & REPLY_HOST_AAAA) {
         int addrindex;
         for (addrindex = 0; addrindex < LWIP_IPV6_NUM_ADDRESSES; addrindex++) {
@@ -707,6 +711,7 @@ err_t mdns_create_outpacket(struct netif *netif, struct mdns_outmsg *msg,
          */
         if ((msg->serv_replies[i] & (REPLY_SERVICE_NAME_PTR | REPLY_SERVICE_SRV)) || (msg->host_replies & (REPLY_HOST_A | REPLY_HOST_AAAA))) {
     #if LWIP_IPV6
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (!(msg->host_replies & REPLY_HOST_AAAA)) {
                 int addrindex;
                 for (addrindex = 0; addrindex < LWIP_IPV6_NUM_ADDRESSES; addrindex++) {
@@ -905,6 +910,7 @@ void mdns_start_multicast_timeouts_ipv4(struct netif *netif) {
     #endif
 
     #if LWIP_IPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  *  Called by timeouts when timer is passed, allows multicast IPv6 traffic again.
  *

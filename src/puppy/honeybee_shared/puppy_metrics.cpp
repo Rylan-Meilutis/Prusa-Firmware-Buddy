@@ -28,6 +28,7 @@ void record_puppy_system() {
         static TaskStatus_t task_statuses[TASK_ARRAY_SIZE] = {};
 
 #if configGENERATE_RUN_TIME_STATS
+        // #error dead code found by automatic analyses (see BFW-5461)
         // Runtime since last record
         static uint32_t last_totaltime = 0;
         uint32_t totaltime = ticks_ms();
@@ -64,6 +65,7 @@ void record_puppy_system() {
                 metric_record_custom(&stack, ",n=%.7s t=%i,m=%hu", task_name, s, task_statuses[idx].usStackHighWaterMark);
 
 #if configGENERATE_RUN_TIME_STATS
+                // #error dead code found by automatic analyses (see BFW-5461)
                 // Report runtime usage, runtime can overflow and the difference still be valid
                 if (task_statuses[idx].xTaskNumber <= std::size(last_runtime)) {
                     const uint32_t runtime_percent = (task_statuses[idx].ulRunTimeCounter - last_runtime[task_statuses[idx].xTaskNumber - 1]) / delta_totaltime;

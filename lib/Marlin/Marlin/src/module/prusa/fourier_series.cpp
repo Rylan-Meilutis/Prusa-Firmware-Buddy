@@ -6,6 +6,7 @@
 #include "fourier_series.h"
 #include "metric.h"
 #ifdef FOURIER_SERIES_OUTPUT_SAMPLES
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "../../../../../tinyusb/src/class/cdc/cdc_device.h"
 #endif
 #include <tuple>
@@ -32,6 +33,7 @@ FourierSeries3d::FourierSeries3d(float frequency)
 uint32_t FourierSeries3d::add_sample(const float sample_time, const PrusaAccelerometer::Acceleration &sample) {
 
 #if 0 // error: 'sample' is not a constant expression
+    // #error dead code found by automatic analyses (see BFW-5461)
     static_assert(std::tuple_size_v<decltype(m_sum)> == std::size(sample.val), "Dimension doesn't match.");
 #endif
 
@@ -44,6 +46,7 @@ uint32_t FourierSeries3d::add_sample(const float sample_time, const PrusaAcceler
     }
 
 #ifdef FOURIER_SERIES_OUTPUT_SAMPLES
+    // #error dead code found by automatic analyses (see BFW-5461)
     char buff[40];
     snprintf(buff, 40, "%f %f %f\n", static_cast<double>(sample.val[1]), static_cast<double>(amplitude.real()), static_cast<double>(amplitude.imag()));
     tud_cdc_n_write_str(0, buff);

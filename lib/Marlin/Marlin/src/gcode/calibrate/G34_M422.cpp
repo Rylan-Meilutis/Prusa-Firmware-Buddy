@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/planner.h"
@@ -31,28 +32,35 @@
 #include "../../module/probe.h"
 
 #if HOTENDS > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../module/tool_change.h"
 #endif
 
 #if HAS_LEVELING
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../feature/bedlevel/bedlevel.h"
 #endif
 
 #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+  // #error dead code found by automatic analyses (see BFW-5461)
    #include "../../libs/least_squares_fit.h"
 #endif
 
 // Sanity-check the count of Z_STEPPER_ALIGN_XY points
 constexpr xy_pos_t sanity_arr_z_align[] = Z_STEPPER_ALIGN_XY;
 #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   static_assert(COUNT(sanity_arr_z_align) >= Z_STEPPER_COUNT,
     "Z_STEPPER_ALIGN_XY requires at least three {X,Y} entries (Z, Z2, Z3, ...)."
   );
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   static_assert(COUNT(sanity_arr_z_align) == Z_STEPPER_COUNT,
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       "Z_STEPPER_ALIGN_XY requires three {X,Y} entries (Z, Z2, and Z3)."
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       "Z_STEPPER_ALIGN_XY requires two {X,Y} entries (Z and Z2)."
     #endif
   );
@@ -61,6 +69,7 @@ constexpr xy_pos_t sanity_arr_z_align[] = Z_STEPPER_ALIGN_XY;
 static xy_pos_t z_auto_align_pos[Z_STEPPER_COUNT] = Z_STEPPER_ALIGN_XY;
 
 #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   static xy_pos_t z_stepper_pos[] = Z_STEPPER_ALIGN_STEPPER_XY;
 #endif
 
@@ -70,6 +79,7 @@ inline void set_all_z_lock(const bool lock) {
   stepper.set_z_lock(lock);
   stepper.set_z2_lock(lock);
   #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepper.set_z3_lock(lock);
   #endif
 }
@@ -98,8 +108,10 @@ void GcodeSuite::G34() {
 
     const float z_auto_align_amplification =
       #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         Z_STEPPER_ALIGN_AMP;
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         parser.floatval('A', Z_STEPPER_ALIGN_AMP);
         if (!WITHIN(ABS(z_auto_align_amplification), 0.5f, 2.0f)) {
           SERIAL_ECHOLNPGM("?(A)mplification out of bounds (0.5-2.0).");
@@ -114,28 +126,34 @@ void GcodeSuite::G34() {
 
     // Disable the leveling matrix before auto-aligning
     #if HAS_LEVELING
+      // #error dead code found by automatic analyses (see BFW-5461)
       #if ENABLED(RESTORE_LEVELING_AFTER_G34)
+        // #error dead code found by automatic analyses (see BFW-5461)
         const bool leveling_was_active = planner.leveling_active;
       #endif
       set_bed_leveling_enabled(false);
     #endif
 
     #if ENABLED(CNC_WORKSPACE_PLANES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       workspace_plane = PLANE_XY;
     #endif
 
     // Always home with tool 0 active
     #if HOTENDS > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       const uint8_t old_tool_index = active_extruder;
       tool_change(0, true);
     #endif
 
     #if BOTH(BLTOUCH, BLTOUCH_HS_MODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
         // In BLTOUCH HS mode, the probe travels in a deployed state.
         // Users of G34 might have a badly misaligned bed, so raise Z by the
         // length of the deployed pin (BLTOUCH stroke < 7mm)
       #define Z_BASIC_CLEARANCE Z_CLEARANCE_BETWEEN_PROBES + 7.0f
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z_BASIC_CLEARANCE Z_CLEARANCE_BETWEEN_PROBES
     #endif
 
@@ -143,10 +161,12 @@ void GcodeSuite::G34() {
     // iteration this will be re-calculated based on the actual bed position
     float z_probe = Z_BASIC_CLEARANCE + (G34_MAX_GRADE) * 0.01f * (
       #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        // #error dead code found by automatic analyses (see BFW-5461)
          SQRT(_MAX(HYPOT2(z_auto_align_pos[0].x - z_auto_align_pos[0].y, z_auto_align_pos[1].x - z_auto_align_pos[1].y),
                    HYPOT2(z_auto_align_pos[1].x - z_auto_align_pos[1].y, z_auto_align_pos[2].x - z_auto_align_pos[2].y),
                    HYPOT2(z_auto_align_pos[2].x - z_auto_align_pos[2].y, z_auto_align_pos[0].x - z_auto_align_pos[0].y)))
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
          HYPOT(z_auto_align_pos[0].x - z_auto_align_pos[0].y, z_auto_align_pos[1].x - z_auto_align_pos[1].y)
       #endif
     );
@@ -204,6 +224,7 @@ void GcodeSuite::G34() {
       z_probe = Z_BASIC_CLEARANCE + z_measured_max + z_maxdiff;
 
       #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         // Replace the initial values in z_measured with calculated heights at
         // each stepper position. This allows the adjustment algorithm to be
         // shared between both possible probing mechanisms.
@@ -235,6 +256,7 @@ void GcodeSuite::G34() {
       SERIAL_ECHOLNPAIR("\n"
         "DIFFERENCE Z1-Z2=", ABS(z_measured[0] - z_measured[1])
         #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           , " Z2-Z3=", ABS(z_measured[1] - z_measured[2])
           , " Z3-Z1=", ABS(z_measured[2] - z_measured[0])
         #endif
@@ -251,6 +273,7 @@ void GcodeSuite::G34() {
                     z_align_abs = ABS(z_align_move);
 
         #if DISABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           // Optimize one iteration's correction based on the first measurements
           if (z_align_abs > 0.0f) amplification = iteration == 1 ? _MIN(last_z_align_move[zstepper] / z_align_abs, 2.0f) : z_auto_align_amplification;
         #endif
@@ -274,6 +297,7 @@ void GcodeSuite::G34() {
           case 0: stepper.set_z_lock(false); break;
           case 1: stepper.set_z2_lock(false); break;
           #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 2: stepper.set_z3_lock(false); break;
           #endif
         }
@@ -299,12 +323,14 @@ void GcodeSuite::G34() {
 
     // Restore the active tool after homing
     #if HOTENDS > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       tool_change(old_tool_index, (
           true
       ));
     #endif
 
     #if HAS_LEVELING && ENABLED(RESTORE_LEVELING_AFTER_G34)
+      // #error dead code found by automatic analyses (see BFW-5461)
       set_bed_leveling_enabled(leveling_was_active);
     #endif
 
@@ -340,6 +366,7 @@ void GcodeSuite::M422() {
     for (uint8_t i = 0; i < G34_PROBE_COUNT; ++i)
       SERIAL_ECHOLNPAIR("M422 S", i + 1, " X", z_auto_align_pos[i].x, " Y", z_auto_align_pos[i].y);
     #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       for (uint8_t i = 0; i < Z_STEPPER_COUNT; ++i)
         SERIAL_ECHOLNPAIR("M422 W", i + 1, " X", z_stepper_pos[i].x, " Y", z_stepper_pos[i].y);
     #endif
@@ -349,6 +376,7 @@ void GcodeSuite::M422() {
   const bool is_probe_point = parser.seen('S');
 
   #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (is_probe_point && parser.seen('W')) {
       SERIAL_ECHOLNPGM("?(S) and (W) may not be combined.");
       return;
@@ -357,6 +385,7 @@ void GcodeSuite::M422() {
 
   xy_pos_t *pos_dest = (
     #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       !is_probe_point ? z_stepper_pos :
     #endif
     z_auto_align_pos
@@ -373,6 +402,7 @@ void GcodeSuite::M422() {
   }
   else {
     #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       position_index = parser.intval('W') - 1;
       if (!WITHIN(position_index, 0, Z_STEPPER_COUNT - 1)) {
         SERIAL_ECHOLNPGM("?(W) Z-Stepper index invalid.");

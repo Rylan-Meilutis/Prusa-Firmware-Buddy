@@ -514,6 +514,7 @@ void w25x_chip_erase() {
 }
 
 #if 0 // unused
+    // #error dead code found by automatic analyses (see BFW-5461)
 void w25x_rd_uid(uint8_t *uid) {
     OptionalMutex eraseMutex(erase_mutex);
     {

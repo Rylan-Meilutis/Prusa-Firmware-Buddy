@@ -62,6 +62,7 @@ void MI_EXPORT::click(IWindowMenu &) {
 }
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
 MI_IDENTITY_CHECKING::MI_IDENTITY_CHECKING()
     : WI_SWITCH_t<3>(static_cast<size_t>(config_store().identity_check.get()), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no,
         _(str_Known), _(str_Ask), _(str_All)) {}

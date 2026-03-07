@@ -881,6 +881,7 @@ static void cycle() {
 #if HAS_SELFTEST()
     if (!SelftestInstance().IsInProgress()) {
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     {
 #endif
         _server_print_loop(); // we need call print loop here because it must be processed while blocking commands (M109)
@@ -1956,6 +1957,7 @@ static Axis_length_t axis_length_ok(AxisEnum axis) {
     }
     return Axis_length_t::shorter;
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     return Axis_length_t::ok;
     #endif // HAS_SELFTEST
 }
@@ -3440,6 +3442,7 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         buddy::cancel_object().set_object_cancelled(request.cancel_object_id, request.type == Request::Type::CancelObjectID);
         return true;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     case Request::Type::CancelObjectID:
     case Request::Type::UncancelObjectID:
         return false;
@@ -3465,6 +3468,7 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         marlin_server::test_start(request.test_start.test_mask, request.test_start.test_data);
         return true;
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         return false;
 #endif
     }

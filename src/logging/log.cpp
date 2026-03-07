@@ -9,11 +9,13 @@ static logging::Destination *destinations_head = NULL;
 
 extern logging::Component __start_log_components[]
 #if __APPLE__
+    // #error dead code found by automatic analyses (see BFW-5461)
     __asm("section$start$__DATA$log_components")
 #endif
         ;
 
 #if __APPLE__
+// #error dead code found by automatic analyses (see BFW-5461)
 extern logging::Component __end_log_components[] __asm("section$end$__DATA$log_components");
 #elif !defined(__arm__)
     #define __end_log_components __stop_log_components

@@ -75,6 +75,7 @@ namespace defaults {
     inline constexpr std::array<char, metrics_host_size + 1> metrics_host { "matrix.prusa.vc" };
     inline constexpr bool enable_metrics { true };
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Production build need user to intentionally allow them
     inline constexpr std::array<char, metrics_host_size + 1> metrics_host { "" };
     inline constexpr bool enable_metrics { false };

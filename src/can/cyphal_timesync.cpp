@@ -3,6 +3,7 @@
 
 #include <option/has_cyphal_metrics.h>
 #if HAS_CYPHAL_METRICS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <metric.h>
     #include <cinttypes>
 
@@ -72,6 +73,7 @@ bool TimeSync::loop(int64_t timestamp) {
 
                     // Metrics
 #if HAS_CYPHAL_METRICS()
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     uint32_t ticks_us_now = ticks_us();
                     metric_record_custom_at_time(&metric_raw_offset_us, ticks_us_now, " v=%" PRIi64, new_offset_us);
                     metric_record_custom_at_time(&metric_raw_drift, ticks_us_now, " v=%.6f", puppy_drift);

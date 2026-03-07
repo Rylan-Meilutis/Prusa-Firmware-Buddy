@@ -202,6 +202,7 @@ class TWIBus {
     void relay(const uint8_t bytes, const uint8_t style=0);
 
     #if ENABLED(DEBUG_TWIBUS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       /**
        * @brief Prints a debug message
        * @details Prints a simple debug message "TWIBus::function: value"

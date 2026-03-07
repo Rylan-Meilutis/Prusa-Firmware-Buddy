@@ -115,6 +115,7 @@
   #define  USB_DEVICE_MANUFACTURE_NAME    WEBSITE_URL
 #endif
 #ifdef CUSTOM_MACHINE_NAME
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define  USB_DEVICE_PRODUCT_NAME        CUSTOM_MACHINE_NAME
 #else
   #define  USB_DEVICE_PRODUCT_NAME        MACHINE_NAME

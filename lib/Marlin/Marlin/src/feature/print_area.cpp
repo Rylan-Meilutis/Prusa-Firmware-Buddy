@@ -40,6 +40,7 @@ void PrintArea::set_bounding_rect(rect_t new_bounding_rect) {
   if (enlarged)
     reset_bed_level();
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   UNUSED(enlarged);
 #endif
 }

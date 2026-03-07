@@ -17,6 +17,7 @@
 
 #include <option/has_cyphal_metrics.h>
 #if HAS_CYPHAL_METRICS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <prusa3d/common/metrics/Broadcast_1_0.h>
     #include <prusa3d/common/PortIds_0_1.h>
     #include <puppy_metrics.hpp>
@@ -24,11 +25,13 @@
 
 #include <option/cyphal_can_stats.h>
 #if CYPHAL_CAN_STATS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <cyphal_can_stats.hpp>
 #endif
 
 #include <option/has_cyphal_logging.h>
 #if HAS_CYPHAL_LOGGING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <cyphal_record.hpp>
 #endif
 
@@ -71,6 +74,7 @@ namespace detail {
         static void add_otp_registers(RegisterMachineIface &registers);
 
 #if HAS_CYPHAL_METRICS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         /// Add metrics registers
         static void add_metrics_registers(RegisterMachineIface &registers);
 #endif /* HAS_CYPHAL_METRICS() */
@@ -211,6 +215,7 @@ protected:
     uavcan_node_GetInfo_Response_1_0 get_info_resp;
 
 #if HAS_CYPHAL_LOGGING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     /// Logging destination
     can::cyphal::Record record;
 #endif
@@ -229,6 +234,7 @@ protected:
 
 public:
 #if HAS_CYPHAL_METRICS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     /// Metrics sender
     can::cyphal::SenderDirectTraited<prusa3d_common_metrics_Broadcast_1_0_Traits,
         prusa3d_common_PortIds_0_1_MSG_COMMON_METRICS>
@@ -236,6 +242,7 @@ public:
 #endif
 
 #if CYPHAL_CAN_STATS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     /// Bus communication statistics
     can::cyphal::CanStats can_stats;
 #endif
@@ -272,6 +279,7 @@ public:
                       hasher.handle_request(execute_command_server, data, resp);
                       return; // Response was either already sent or will be sent later
 #if CYPHAL_CAN_STATS()
+                      // #error dead code found by automatic analyses (see BFW-5461)
                   case prusa3d_common_CustomExecuteCommand_1_0_COMMAND_START_CAN_STAT_TX:
                       if (can_stats.start_tx_session(data.parameter.count, data.parameter.elements)) {
                           resp.status = uavcan_node_ExecuteCommand_Response_1_3_STATUS_SUCCESS;
@@ -307,6 +315,7 @@ public:
               },
               ProtoSender::send_timeout_default, ProtoSuber::multipart_timeout_short)
 #if HAS_CYPHAL_METRICS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         , metrics_sender(CanardTransferKindMessage,
               CANARD_NODE_ID_UNSET, ProtoSender::send_timeout_default,
               CanardPrioritySlow)
@@ -368,6 +377,7 @@ public:
         detail::ProtoNode::add_otp_registers(registers);
 
 #if HAS_CYPHAL_METRICS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         detail::ProtoNode::add_metrics_registers(registers);
 #endif /* HAS_CYPHAL_METRICS() */
 
@@ -388,10 +398,12 @@ public:
         port_list.init();
         time_sync.init(port_list);
 #if HAS_CYPHAL_LOGGING()
+        // #error dead code found by automatic analyses (see BFW-5461)
         record.init(port_list);
 #endif
         registers.init(port_list);
 #if CYPHAL_CAN_STATS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         can_stats.init(port_list, registers);
 #endif
         heartbeat_watcher.init(port_list);
@@ -406,6 +418,7 @@ public:
         port_list.add(execute_command_server);
         port_list.add(get_info_server);
 #if HAS_CYPHAL_METRICS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         port_list.add(metrics_sender);
 #endif
         port_list.add(status_sender);
@@ -415,6 +428,7 @@ public:
         registers.add_port_name_set("srv.set_config", ConfigTraits::full_name_and_version, config_server.get_server_id());
         registers.add_port_name_set("pub.status", StatusTraits::full_name_and_version, status_sender.get_port_id());
 #if HAS_CYPHAL_METRICS()
+        // #error dead code found by automatic analyses (see BFW-5461)
         registers.add_port_name_set("pub.metrics", prusa3d_common_metrics_Broadcast_1_0_Traits::full_name_and_version, metrics_sender.get_port_id());
 #endif
 
@@ -457,6 +471,7 @@ public:
             }
 
 #if HAS_CYPHAL_LOGGING()
+            // #error dead code found by automatic analyses (see BFW-5461)
             // Logging
             record.try_send();
 #endif
@@ -487,6 +502,7 @@ public:
             }
             if (!first_time_sync && new_is_time_sync_precise) {
 #if HAS_CYPHAL_LOGGING()
+                // #error dead code found by automatic analyses (see BFW-5461)
                 // Got first valid sync during initialization
                 record.set_time_sync(&time_sync); // Use time_sync for log timestamps
 #endif
@@ -517,6 +533,7 @@ public:
             }
 
 #if HAS_CYPHAL_METRICS()
+            // #error dead code found by automatic analyses (see BFW-5461)
             // Record metrics
             metrics::record_puppy_system();
 #endif
@@ -525,6 +542,7 @@ public:
             app_tick(now);
 
 #if CYPHAL_CAN_STATS()
+            // #error dead code found by automatic analyses (see BFW-5461)
             // Print results of CAN stats
             can_stats.poll_finished_stats(now);
 #endif

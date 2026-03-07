@@ -137,6 +137,7 @@ typedef struct PlannerBlock {
   uint32_t mstep_event_count;               // The number of mini-step events required to complete this block
 
   #if ENABLED(S_CURVE_ACCELERATION)
+    // #error dead code found by automatic analyses (see BFW-5461)
     uint32_t cruise_rate,                   // The actual cruise rate to use, between end of the acceleration phase and start of deceleration phase
              acceleration_time,             // Acceleration time and deceleration time in STEP timer counts
              deceleration_time,
@@ -172,6 +173,7 @@ typedef struct {
 
   #if HAS_CLASSIC_JERK
     #if HAS_LINEAR_E_JERK
+      // #error dead code found by automatic analyses (see BFW-5461)
       xyz_pos_t max_jerk;              // (mm/s^2) M205 XYZ - The largest speed change requiring no acceleration.
     #else
       xyze_pos_t max_jerk;             // (mm/s^2) M205 XYZE - The largest speed change requiring no acceleration.
@@ -198,6 +200,7 @@ typedef struct {
   #endif
   #if HAS_CLASSIC_JERK
     #if HAS_LINEAR_E_JERK
+      // #error dead code found by automatic analyses (see BFW-5461)
       xyz_pos_t max_jerk;                       // (mm/s^2) M205 XYZ - The largest speed change requiring no acceleration.
     #else
       xyze_pos_t max_jerk;                      // (mm/s^2) M205 XYZE - The largest speed change requiring no acceleration.
@@ -212,6 +215,7 @@ typedef struct {
 
 struct PlannerHints {
   #if ENABLED(HINTS_SAFE_EXIT_SPEED)
+    // #error dead code found by automatic analyses (see BFW-5461)
     float safe_exit_speed_sqr = 0.0;  // Square of the speed considered "safe" at the end of the segment
                                       // i.e., at or below the exit speed of the segment that the planner
                                       // would calculate if it knew the as-yet-unbuffered path
@@ -246,6 +250,7 @@ class Planner {
 
 
     #if ENABLED(DISTINCT_E_FACTORS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static uint8_t last_extruder;                 // Respond to extruder change
     #endif
 
@@ -294,6 +299,7 @@ class Planner {
         static float z_fade_height, inverse_z_fade_height;
       #endif
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       static constexpr bool leveling_active = false;
     #endif
 
@@ -308,6 +314,7 @@ class Planner {
     static float max_printed_z;
 
     #if ENABLED(SD_ABORT_ON_ENDSTOP_HIT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static bool abort_on_endstop_hit;
     #endif
 
@@ -340,6 +347,7 @@ class Planner {
     static void manage_extruders(uint8_t extruder);
 
     #ifdef XY_FREQUENCY_LIMIT
+      // #error dead code found by automatic analyses (see BFW-5461)
       // Used for the frequency limit
       #define MAX_FREQ_TIME_US (uint32_t)(1000000.0 / XY_FREQUENCY_LIMIT)
       // Old direction bits. Used for speed calculations
@@ -373,6 +381,7 @@ class Planner {
     static void refresh_positioning();
 
     #if ENABLED(DISTINCT_E_FACTORS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void refresh_e_positioning(const uint8_t extruder=active_extruder);
     #endif
 
@@ -429,6 +438,7 @@ class Planner {
       }
 
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       FORCE_INLINE static bool leveling_active_at_z(const float) { return true; }
 
@@ -798,14 +808,17 @@ class Planner {
     static void discard_current_unprocessed_block();
 
     #if HAS_LINEAR_E_JERK
+      // #error dead code found by automatic analyses (see BFW-5461)
       #pragma GCC diagnostic push
       #pragma GCC diagnostic ignored "-Wdouble-promotion"
       FORCE_INLINE static void recalculate_max_e_jerk() {
         #define GET_MAX_E_JERK(N) SQRT(SQRT(0.5) * junction_deviation_mm * (N) * RECIPROCAL(1.0 - SQRT(0.5)))
         #if ENABLED(DISTINCT_E_FACTORS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           for (uint8_t i = 0; i < EXTRUDERS; i++)
             max_e_jerk[i] = GET_MAX_E_JERK(settings.max_acceleration_mm_per_s2[E_AXIS_N(i)]);
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           max_e_jerk = GET_MAX_E_JERK(settings.max_acceleration_mm_per_s2[E_AXIS]);
         #endif
       }
@@ -838,6 +851,7 @@ class Planner {
     }
 
     #if ENABLED(S_CURVE_ACCELERATION)
+      // #error dead code found by automatic analyses (see BFW-5461)
       /**
        * Calculate the speed reached given initial speed, acceleration and distance
        */

@@ -312,6 +312,7 @@ public:
 };
 
 #else // ENABLED(CRASH_RECOVERY)
+// #error dead code found by automatic analyses (see BFW-5461)
 
 /// Stubs for printers without CRASH_RECOVERY support
 static constexpr struct {

@@ -403,6 +403,7 @@
       switch (test_pattern) {
 
         #if ENABLED(UBL_DEVEL_DEBUGGING)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case -1:
             g29_eeprom_dump();
             break;
@@ -592,6 +593,7 @@
     }
 
     #if ENABLED(UBL_DEVEL_DEBUGGING)
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       //
       // Much of the 'What?' command can be eliminated. But until we are fully debugged, it is
@@ -621,6 +623,7 @@
     }
 
     #ifdef Z_PROBE_END_SCRIPT
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (probe_deployed) {
         planner.synchronize();
         gcode.process_subcommands_now_P(PSTR(Z_PROBE_END_SCRIPT));
@@ -843,6 +846,7 @@
     if (parser.seen('P')) {
       const int pv = parser.value_int();
       #if !HAS_BED_PROBE
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (pv == 1) {
           SERIAL_ECHOLNPGM("G29 P1 requires a probe.\n");
           err_flag = true;
@@ -934,11 +938,13 @@
   static uint8_t ubl_state_at_invocation = 0;
 
   #if ENABLED(UBL_DEVEL_DEBUGGING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static uint8_t ubl_state_recursion_chk = 0;
   #endif
 
   void unified_bed_leveling::save_ubl_active_state_and_disable() {
     #if ENABLED(UBL_DEVEL_DEBUGGING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       ubl_state_recursion_chk++;
       if (ubl_state_recursion_chk != 1) {
         SERIAL_ECHOLNPGM("save_ubl_active_state_and_disabled() called multiple times in a row.");
@@ -951,6 +957,7 @@
 
   void unified_bed_leveling::restore_ubl_active_state_and_leave() {
     #if ENABLED(UBL_DEVEL_DEBUGGING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (--ubl_state_recursion_chk) {
         SERIAL_ECHOLNPGM("restore_ubl_active_state_and_leave() called too many times.");
         return;
@@ -1301,6 +1308,7 @@
   #endif // UBL_G29_P31
 
   #if ENABLED(UBL_DEVEL_DEBUGGING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /**
      * Much of the 'What?' command can be eliminated. But until we are fully debugged, it is
      * good to have the extra information. Soon... we prune this to just a few items
@@ -1316,12 +1324,14 @@
       serial_delay(50);
 
       #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_ECHOLNPAIR_F("Fade Height M420 Z", planner.z_fade_height, 4);
       #endif
 
       adjust_mesh_to_mean(g29_c_flag, g29_constant);
 
       #if HAS_BED_PROBE
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_ECHOLNPAIR_F("Probe Offset M851 Z", probe_offset.z, 7);
       #endif
 
@@ -1355,12 +1365,14 @@
       SERIAL_EOL();
 
       #if HAS_KILL
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_ECHOLNPAIR("Kill pin on :", int(KILL_PIN), "  state:", READ(KILL_PIN));
       #endif
       SERIAL_EOL();
       serial_delay(50);
 
       #if ENABLED(UBL_DEVEL_DEBUGGING)
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_ECHOLNPAIR("ubl_state_at_invocation :", ubl_state_at_invocation, "\nubl_state_recursion_chk :", ubl_state_recursion_chk);
         serial_delay(50);
 
@@ -1436,6 +1448,7 @@
         for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
           z_values[x][y] -= tmp_z_values[x][y];
           #if ENABLED(EXTENSIBLE_UI)
+            // #error dead code found by automatic analyses (see BFW-5461)
             ExtUI::onMeshUpdate(x, y, z_values[x][y]);
           #endif
         }

@@ -55,6 +55,7 @@ static bool is_waiting_for_connect_set_ready() {
 #if BUDDY_ENABLE_CONNECT()
     return connect_client::is_connect_registered() && !connect_client::MarlinPrinter::is_printer_ready();
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     return false;
 #endif
 }

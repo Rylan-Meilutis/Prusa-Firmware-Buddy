@@ -58,6 +58,7 @@ enum StealthIndex : uint8_t { STEALTH_AXIS_XY,
 //   AI = Axis Enum Index
 // SWHW = SW/SH UART selection
 #if ENABLED(TMC_USE_SW_SPI)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define __TMC_SPI_DEFINE(IC, ST, L, AI) TMCMarlin<IC##Stepper> stepper##ST(L, AI, ST##_CS_PIN, ST##_RSENSE, TMC_SW_MOSI, TMC_SW_MISO, TMC_SW_SCK, ST##_CHAIN_POS)
 #else
     #define __TMC_SPI_DEFINE(IC, ST, L, AI) TMCMarlin<IC##Stepper> stepper##ST(L, AI, ST##_CS_PIN, ST##_RSENSE, ST##_CHAIN_POS)
@@ -73,6 +74,7 @@ enum StealthIndex : uint8_t { STEALTH_AXIS_XY,
 #define TMC_UART_DEFINE(SWHW, ST, AI)      _TMC_UART_DEFINE(SWHW, ST##_DRIVER_TYPE, ST, AI##_AXIS)
 
 #if ENABLED(DISTINCT_E_FACTORS) && E_STEPPERS > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TMC_SPI_DEFINE_E(AI)        TMC_SPI_DEFINE(E##AI, E##AI)
     #define TMC_UART_DEFINE_E(SWHW, AI) TMC_UART_DEFINE(SWHW, E##AI, E##AI)
 #else
@@ -91,9 +93,11 @@ TMC_SPI_DEFINE(Y, Y);
 TMC_SPI_DEFINE(Z, Z);
 #endif
 #if AXIS_HAS_SPI(Z2)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE(Z2, Z);
 #endif
 #if AXIS_HAS_SPI(Z3)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE(Z3, Z);
 #endif
 #if AXIS_HAS_SPI(E0)
@@ -104,18 +108,23 @@ TMC_SPI_DEFINE_E(0);
     #endif
 #endif
 #if AXIS_HAS_SPI(E1)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE_E(1);
 #endif
 #if AXIS_HAS_SPI(E2)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE_E(2);
 #endif
 #if AXIS_HAS_SPI(E3)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE_E(3);
 #endif
 #if AXIS_HAS_SPI(E4)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE_E(4);
 #endif
 #if AXIS_HAS_SPI(E5)
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_SPI_DEFINE_E(5);
 #endif
 
@@ -193,6 +202,7 @@ void tmc_init(TMCMarlin<TMC2130Stepper> &st, const uint16_t mA, const uint16_t m
 #endif // TMC2130
 
 #if HAS_DRIVER(TMC2160)
+// #error dead code found by automatic analyses (see BFW-5461)
 void tmc_init(TMCMarlin<TMC2160Stepper> &st, const uint16_t mA, const uint16_t microsteps, const uint32_t thrs, const bool stealth) {
     st.begin();
 
@@ -203,6 +213,7 @@ void tmc_init(TMCMarlin<TMC2160Stepper> &st, const uint16_t mA, const uint16_t m
     chopconf.hend = chopper_timing.hend + 3;
     chopconf.hstrt = chopper_timing.hstrt - 1;
     #if ENABLED(SQUARE_WAVE_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     chopconf.dedge = true;
     #endif
     st.CHOPCONF(chopconf.sr);
@@ -226,8 +237,10 @@ void tmc_init(TMCMarlin<TMC2160Stepper> &st, const uint16_t mA, const uint16_t m
     st.PWMCONF(pwmconf.sr);
 
     #if ENABLED(HYBRID_THRESHOLD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.set_pwm_thrs(thrs);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     UNUSED(thrs);
     #endif
 
@@ -243,6 +256,7 @@ void tmc_init(TMCMarlin<TMC2160Stepper> &st, const uint16_t mA, const uint16_t m
         #ifdef X_HARDWARE_SERIAL
 TMC_UART_DEFINE(HW, X, X);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(SW, X, X);
         #endif
     #endif
@@ -250,6 +264,7 @@ TMC_UART_DEFINE(SW, X, X);
         #ifdef Y_HARDWARE_SERIAL
 TMC_UART_DEFINE(HW, Y, Y);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(SW, Y, Y);
         #endif
     #endif
@@ -257,20 +272,27 @@ TMC_UART_DEFINE(SW, Y, Y);
         #ifdef Z_HARDWARE_SERIAL
 TMC_UART_DEFINE(HW, Z, Z);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(SW, Z, Z);
         #endif
     #endif
     #if AXIS_HAS_UART(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef Z2_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(HW, Z2, Z);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(SW, Z2, Z);
         #endif
     #endif
     #if AXIS_HAS_UART(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef Z3_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(HW, Z3, Z);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE(SW, Z3, Z);
         #endif
     #endif
@@ -278,41 +300,57 @@ TMC_UART_DEFINE(SW, Z3, Z);
         #ifdef E0_HARDWARE_SERIAL
 TMC_UART_DEFINE_E(HW, 0);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 0);
         #endif
     #endif
     #if AXIS_HAS_UART(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E1_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(HW, 1);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 1);
         #endif
     #endif
     #if AXIS_HAS_UART(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E2_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(HW, 2);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 2);
         #endif
     #endif
     #if AXIS_HAS_UART(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E3_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(HW, 3);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 3);
         #endif
     #endif
     #if AXIS_HAS_UART(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E4_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(HW, 4);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 4);
         #endif
     #endif
     #if AXIS_HAS_UART(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E5_HARDWARE_SERIAL
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(HW, 5);
         #else
+// #error dead code found by automatic analyses (see BFW-5461)
 TMC_UART_DEFINE_E(SW, 5);
         #endif
     #endif
@@ -322,6 +360,7 @@ void tmc_serial_begin() {
         #ifdef X_HARDWARE_SERIAL
     X_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperX.beginSerial(115200);
         #endif
     #endif
@@ -329,6 +368,7 @@ void tmc_serial_begin() {
         #ifdef Y_HARDWARE_SERIAL
     Y_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperY.beginSerial(115200);
         #endif
     #endif
@@ -336,20 +376,27 @@ void tmc_serial_begin() {
         #ifdef Z_HARDWARE_SERIAL
     Z_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef Z2_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z2_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ2.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef Z3_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z3_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ3.beginSerial(115200);
         #endif
     #endif
@@ -357,41 +404,57 @@ void tmc_serial_begin() {
         #ifdef E0_HARDWARE_SERIAL
     E0_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE0.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E1_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     E1_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE1.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E2_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     E2_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE2.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E3_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     E3_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE3.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E4_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     E4_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE4.beginSerial(115200);
         #endif
     #endif
     #if AXIS_HAS_UART(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #ifdef E5_HARDWARE_SERIAL
+    // #error dead code found by automatic analyses (see BFW-5461)
     E5_HARDWARE_SERIAL.begin(115200);
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE5.beginSerial(115200);
         #endif
     #endif
@@ -399,6 +462,7 @@ void tmc_serial_begin() {
 #endif
 
 #if HAS_DRIVER(TMC2208)
+// #error dead code found by automatic analyses (see BFW-5461)
 void tmc_init(TMCMarlin<TMC2208Stepper> &st, const uint16_t mA, const uint16_t microsteps, const uint32_t thrs, const bool stealth) {
     TMC2208_n::GCONF_t gconf { 0 };
     gconf.pdn_disable = true; // Use UART
@@ -415,6 +479,7 @@ void tmc_init(TMCMarlin<TMC2208Stepper> &st, const uint16_t mA, const uint16_t m
     chopconf.hend = chopper_timing.hend + 3;
     chopconf.hstrt = chopper_timing.hstrt - 1;
     #if ENABLED(SQUARE_WAVE_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     chopconf.dedge = true;
     #endif
     st.CHOPCONF(chopconf.sr);
@@ -435,8 +500,10 @@ void tmc_init(TMCMarlin<TMC2208Stepper> &st, const uint16_t mA, const uint16_t m
     st.PWMCONF(pwmconf.sr);
 
     #if ENABLED(HYBRID_THRESHOLD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.set_pwm_thrs(thrs);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     UNUSED(thrs);
     #endif
 
@@ -482,6 +549,7 @@ void tmc_init(TMCMarlin<TMC2209Stepper> &st, const uint16_t mA, const uint16_t m
     st.PWMCONF(pwmconf.sr);
 
     #if ENABLED(HYBRID_THRESHOLD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.set_pwm_thrs(thrs);
     #else
     UNUSED(thrs);
@@ -493,6 +561,7 @@ void tmc_init(TMCMarlin<TMC2209Stepper> &st, const uint16_t mA, const uint16_t m
 #endif // TMC2209
 
 #if HAS_DRIVER(TMC2660)
+// #error dead code found by automatic analyses (see BFW-5461)
 void tmc_init(TMCMarlin<TMC2660Stepper> &st, const uint16_t mA, const uint16_t microsteps, const uint32_t, const bool) {
     st.begin();
 
@@ -507,18 +576,21 @@ void tmc_init(TMCMarlin<TMC2660Stepper> &st, const uint16_t mA, const uint16_t m
     st.rms_current(mA);
     st.microsteps(microsteps);
     #if ENABLED(SQUARE_WAVE_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.dedge(true);
     #endif
     st.intpol(INTERPOLATE);
     st.diss2g(true); // Disable short to ground protection. Too many false readings?
 
     #if ENABLED(TMC_DEBUG)
+                     // #error dead code found by automatic analyses (see BFW-5461)
     st.rdsel(0b01);
     #endif
 }
 #endif // TMC2660
 
 #if HAS_DRIVER(TMC5130)
+// #error dead code found by automatic analyses (see BFW-5461)
 void tmc_init(TMCMarlin<TMC5130Stepper> &st, const uint16_t mA, const uint16_t microsteps, const uint32_t thrs, const bool stealth) {
     st.begin();
 
@@ -529,6 +601,7 @@ void tmc_init(TMCMarlin<TMC5130Stepper> &st, const uint16_t mA, const uint16_t m
     chopconf.hend = chopper_timing.hend + 3;
     chopconf.hstrt = chopper_timing.hstrt - 1;
     #if ENABLED(SQUARE_WAVE_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     chopconf.dedge = true;
     #endif
     st.CHOPCONF(chopconf.sr);
@@ -549,8 +622,10 @@ void tmc_init(TMCMarlin<TMC5130Stepper> &st, const uint16_t mA, const uint16_t m
     st.PWMCONF(pwmconf.sr);
 
     #if ENABLED(HYBRID_THRESHOLD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.set_pwm_thrs(thrs);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     UNUSED(thrs);
     #endif
 
@@ -559,6 +634,7 @@ void tmc_init(TMCMarlin<TMC5130Stepper> &st, const uint16_t mA, const uint16_t m
 #endif // TMC5130
 
 #if HAS_DRIVER(TMC5160)
+// #error dead code found by automatic analyses (see BFW-5461)
 void tmc_init(TMCMarlin<TMC5160Stepper> &st, const uint16_t mA, const uint16_t microsteps, const uint32_t thrs, const bool stealth) {
     st.begin();
 
@@ -569,6 +645,7 @@ void tmc_init(TMCMarlin<TMC5160Stepper> &st, const uint16_t mA, const uint16_t m
     chopconf.hend = chopper_timing.hend + 3;
     chopconf.hstrt = chopper_timing.hstrt - 1;
     #if ENABLED(SQUARE_WAVE_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     chopconf.dedge = true;
     #endif
     st.CHOPCONF(chopconf.sr);
@@ -592,8 +669,10 @@ void tmc_init(TMCMarlin<TMC5160Stepper> &st, const uint16_t mA, const uint16_t m
     st.PWMCONF(pwmconf.sr);
 
     #if ENABLED(HYBRID_THRESHOLD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     st.set_pwm_thrs(thrs);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     UNUSED(thrs);
     #endif
     st.GSTAT(); // Clear GSTAT
@@ -611,27 +690,34 @@ void restore_trinamic_drivers() {
     stepperZ.push();
 #endif
 #if AXIS_IS_TMC(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ2.push();
 #endif
 #if AXIS_IS_TMC(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ3.push();
 #endif
 #if AXIS_IS_TMC(E0)
     stepperE0.push();
 #endif
 #if AXIS_IS_TMC(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE1.push();
 #endif
 #if AXIS_IS_TMC(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE2.push();
 #endif
 #if AXIS_IS_TMC(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE3.push();
 #endif
 #if AXIS_IS_TMC(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE4.push();
 #endif
 #if AXIS_IS_TMC(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperE5.push();
 #endif
 }
@@ -660,6 +746,7 @@ void reset_trinamic_drivers() {
 #endif
         ,
 #if ENABLED(STEALTHCHOP_E)
+        // #error dead code found by automatic analyses (see BFW-5461)
         true
 #else
         false
@@ -668,6 +755,7 @@ void reset_trinamic_drivers() {
 
 #if AXIS_IS_TMC(X)
     #if DISABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(X, STEALTH_AXIS_XY);
     #else
     tmc_init(stepperX, get_default_rms_current_ma_x(), get_microsteps_x(), X_HYBRID_THRESHOLD, stealthchop_by_axis[STEALTH_AXIS_XY]);
@@ -675,6 +763,7 @@ void reset_trinamic_drivers() {
 #endif
 #if AXIS_IS_TMC(Y)
     #if DISABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(Y, STEALTH_AXIS_XY);
     #else
     tmc_init(stepperY, get_default_rms_current_ma_y(), get_microsteps_y(), Y_HYBRID_THRESHOLD, stealthchop_by_axis[STEALTH_AXIS_XY]);
@@ -682,15 +771,18 @@ void reset_trinamic_drivers() {
 #endif
 #if AXIS_IS_TMC(Z)
     #if DISABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(Z, STEALTH_AXIS_Z);
     #else
     tmc_init(stepperZ, get_default_rms_current_ma_z(), get_microsteps_z(), Z_HYBRID_THRESHOLD, stealthchop_by_axis[STEALTH_AXIS_Z]);
     #endif
 #endif
 #if AXIS_IS_TMC(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(Z2, STEALTH_AXIS_Z);
 #endif
 #if AXIS_IS_TMC(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(Z3, STEALTH_AXIS_Z);
 #endif
 #if AXIS_IS_TMC(E0)
@@ -701,18 +793,23 @@ void reset_trinamic_drivers() {
     #endif
 #endif
 #if AXIS_IS_TMC(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(E1, STEALTH_AXIS_E);
 #endif
 #if AXIS_IS_TMC(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(E2, STEALTH_AXIS_E);
 #endif
 #if AXIS_IS_TMC(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(E3, STEALTH_AXIS_E);
 #endif
 #if AXIS_IS_TMC(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(E4, STEALTH_AXIS_E);
 #endif
 #if AXIS_IS_TMC(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC_INIT(E5, STEALTH_AXIS_E);
 #endif
 
@@ -732,9 +829,11 @@ void reset_trinamic_drivers() {
     stepperZ.stall_sensitivity(Z_STALL_SENSITIVITY);
         #endif
         #if AXIS_HAS_STALLGUARD(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ2.stall_sensitivity(Z_STALL_SENSITIVITY);
         #endif
         #if AXIS_HAS_STALLGUARD(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     stepperZ3.stall_sensitivity(Z_STALL_SENSITIVITY);
         #endif
     #endif
@@ -768,10 +867,12 @@ TMCStepperType &stepper_axis(const AxisEnum axis) {
         return stepperZ;
 #endif
 #if AXIS_IS_TMC(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case Z2_AXIS:
         return stepperZ2;
 #endif
 #if AXIS_IS_TMC(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case Z3_AXIS:
         return stepperZ3;
 #endif
@@ -780,22 +881,27 @@ TMCStepperType &stepper_axis(const AxisEnum axis) {
         return stepperE0;
 #endif
 #if AXIS_IS_TMC(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E1_AXIS:
         return stepperE1;
 #endif
 #if AXIS_IS_TMC(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E2_AXIS:
         return stepperE2;
 #endif
 #if AXIS_IS_TMC(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E3_AXIS:
         return stepperE3;
 #endif
 #if AXIS_IS_TMC(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E4_AXIS:
         return stepperE4;
 #endif
 #if AXIS_IS_TMC(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E5_AXIS:
         return stepperE5;
 #endif

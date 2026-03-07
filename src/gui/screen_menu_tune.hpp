@@ -117,6 +117,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 
 /* MI_FOOTER_SETTINGS,*/ // currently experimental, but we want it in future
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     MI_ERROR_TEST,
 #endif
     MI_MESSAGES>;

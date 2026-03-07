@@ -46,6 +46,7 @@
 void GcodeSuite::M118() {
   bool hasE = false, hasA = false;
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     int8_t port = -1; // Assume no redirect
   #endif
   char *p = parser.string_arg;
@@ -56,6 +57,7 @@ void GcodeSuite::M118() {
       case 'A': hasA = true; break;
       case 'E': hasE = true; break;
       #if NUM_SERIAL > 1
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 'P': port = p[1] - '0'; break;
       #endif
     }
@@ -64,12 +66,14 @@ void GcodeSuite::M118() {
   }
 
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     const int8_t old_serial = serial_port_index;
     if (WITHIN(port, 0, NUM_SERIAL))
       serial_port_index = (
         port == 0 ? SERIAL_BOTH
         : port == 1 ? SERIAL_PORT
         #ifdef SERIAL_PORT_2
+          // #error dead code found by automatic analyses (see BFW-5461)
           : port == 2 ? SERIAL_PORT_2
         #endif
         : SERIAL_PORT
@@ -81,6 +85,7 @@ void GcodeSuite::M118() {
   SERIAL_ECHOLN(p);
 
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     serial_port_index = old_serial;
   #endif
 }

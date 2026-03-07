@@ -44,9 +44,11 @@
 
 // Defined only if the sanity-check is bypassed
 #ifndef X_BED_SIZE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define X_BED_SIZE X_MAX_LENGTH
 #endif
 #ifndef Y_BED_SIZE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Y_BED_SIZE Y_MAX_LENGTH
 #endif
 
@@ -54,6 +56,7 @@
 #define _X_HALF_BED ((X_BED_SIZE) / 2)
 #define _Y_HALF_BED ((Y_BED_SIZE) / 2)
 #if ENABLED(BED_CENTER_AT_0_0)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define X_CENTER 0
   #define Y_CENTER 0
 #else
@@ -84,15 +87,18 @@
     #define CORE_AXIS_2 B_AXIS
     #define NORMAL_AXIS Z_AXIS
   #elif CORE_IS_XZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define CORE_AXIS_1 A_AXIS
     #define NORMAL_AXIS Y_AXIS
     #define CORE_AXIS_2 C_AXIS
   #elif CORE_IS_YZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define NORMAL_AXIS X_AXIS
     #define CORE_AXIS_1 B_AXIS
     #define CORE_AXIS_2 C_AXIS
   #endif
   #if ANY(COREYX, COREZX, COREZY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define CORESIGN(n) (-(n))
   #else
     #define CORESIGN(n) (n)
@@ -105,14 +111,17 @@
 #ifdef MANUAL_X_HOME_POS
   #define X_HOME_POS MANUAL_X_HOME_POS
 #elif ENABLED(BED_CENTER_AT_0_0)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
 #else
   #define X_HOME_POS (X_HOME_DIR < 0 ? X_MIN_POS : X_MAX_POS)
 #endif
 
 #ifdef MANUAL_Y_HOME_POS
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Y_HOME_POS MANUAL_Y_HOME_POS
 #elif ENABLED(BED_CENTER_AT_0_0)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
 #else
   #define Y_HOME_POS (Y_HOME_DIR < 0 ? Y_MIN_POS : Y_MAX_POS)
@@ -128,6 +137,7 @@
  * Z Sled Probe requires Z_SAFE_HOMING
  */
 #if ENABLED(Z_PROBE_SLED)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z_SAFE_HOMING
 #endif
 
@@ -146,9 +156,11 @@
     #define _SAFE_POINT(A) A##_CENTER
   #endif
   #ifndef Z_SAFE_HOMING_X_POINT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_SAFE_HOMING_X_POINT _SAFE_POINT(X)
   #endif
   #ifndef Z_SAFE_HOMING_Y_POINT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_SAFE_HOMING_Y_POINT _SAFE_POINT(Y)
   #endif
 #endif
@@ -157,6 +169,7 @@
  * Host keep alive
  */
 #ifndef DEFAULT_KEEPALIVE_INTERVAL
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DEFAULT_KEEPALIVE_INTERVAL 2
 #endif
 
@@ -164,15 +177,19 @@
  * Set defaults for missing (newer) options
  */
 #ifndef DISABLE_INACTIVE_X
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DISABLE_INACTIVE_X DISABLE_X
 #endif
 #ifndef DISABLE_INACTIVE_Y
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DISABLE_INACTIVE_Y DISABLE_Y
 #endif
 #ifndef DISABLE_INACTIVE_Z
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DISABLE_INACTIVE_Z DISABLE_Z
 #endif
 #ifndef DISABLE_INACTIVE_E
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DISABLE_INACTIVE_E DISABLE_E
 #endif
 
@@ -184,6 +201,7 @@
     #if PSU_ACTIVE_HIGH
       #define PSU_NAME "XBox"     // X-Box 360 (203W)
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define PSU_NAME "ATX"      // ATX style
     #endif
   #else
@@ -230,6 +248,7 @@
   #define THERMISTORBOARD TEMP_SENSOR_BOARD
   #define BOARD_USES_THERMISTOR
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef BOARD_MINTEMP
   #undef BOARD_MINTEMP
 #endif
@@ -259,20 +278,27 @@
 
 #ifndef MINIMUM_STEPPER_POST_DIR_DELAY
   #if HAS_DRIVER(TB6560)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 15000
   #elif HAS_DRIVER(TB6600)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 1500
   #elif HAS_DRIVER(DRV8825)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 650
   #elif HAS_DRIVER(LV8729)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 500
   #elif HAS_DRIVER(A5984)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 400
   #elif HAS_DRIVER(A4988)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 200
   #elif TRINAMICS
     #define MINIMUM_STEPPER_POST_DIR_DELAY 20
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_POST_DIR_DELAY 0   // Expect at least 10µS since one Stepper ISR must transpire
   #endif
 #endif
@@ -283,131 +309,176 @@
 
 #ifndef MINIMUM_STEPPER_PULSE
   #if HAS_DRIVER(TB6560)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 30
   #elif HAS_DRIVER(TB6600)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 3
   #elif HAS_DRIVER(DRV8825)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 2
   #elif HAS_DRIVER(A4988) || HAS_DRIVER(A5984)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 1
   #elif HAS_DRIVER(LV8729)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 0
   #elif TRINAMICS
     #define MINIMUM_STEPPER_PULSE 0
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MINIMUM_STEPPER_PULSE 2
   #endif
 #endif
 
 #ifndef MAXIMUM_STEPPER_RATE
   #if HAS_DRIVER(TB6560)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 15000
   #elif HAS_DRIVER(TB6600)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 150000
   #elif HAS_DRIVER(LV8729)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 200000
   #elif HAS_DRIVER(DRV8825)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 250000
   #elif TRINAMICS
     #define MAXIMUM_STEPPER_RATE 400000
   #elif HAS_DRIVER(A4988)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 500000
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXIMUM_STEPPER_RATE 250000
   #endif
 #endif
 
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if Z_HOME_DIR > 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if Z2_USE_ENDSTOP == _XMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
       #define Z2_MAX_PIN X_MIN_PIN
     #elif Z2_USE_ENDSTOP == _XMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
       #define Z2_MAX_PIN X_MAX_PIN
     #elif Z2_USE_ENDSTOP == _YMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
       #define Z2_MAX_PIN Y_MIN_PIN
     #elif Z2_USE_ENDSTOP == _YMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
       #define Z2_MAX_PIN Y_MAX_PIN
     #elif Z2_USE_ENDSTOP == _ZMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
       #define Z2_MAX_PIN Z_MIN_PIN
     #elif Z2_USE_ENDSTOP == _ZMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
       #define Z2_MAX_PIN Z_MAX_PIN
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MAX_ENDSTOP_INVERTING false
     #endif
     #define Z2_MIN_ENDSTOP_INVERTING false
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if Z2_USE_ENDSTOP == _XMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
       #define Z2_MIN_PIN X_MIN_PIN
     #elif Z2_USE_ENDSTOP == _XMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
       #define Z2_MIN_PIN X_MAX_PIN
     #elif Z2_USE_ENDSTOP == _YMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
       #define Z2_MIN_PIN Y_MIN_PIN
     #elif Z2_USE_ENDSTOP == _YMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
       #define Z2_MIN_PIN Y_MAX_PIN
     #elif Z2_USE_ENDSTOP == _ZMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
       #define Z2_MIN_PIN Z_MIN_PIN
     #elif Z2_USE_ENDSTOP == _ZMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
       #define Z2_MIN_PIN Z_MAX_PIN
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_MIN_ENDSTOP_INVERTING false
     #endif
     #define Z2_MAX_ENDSTOP_INVERTING false
   #endif
   #if Z_HOME_DIR > 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if Z3_USE_ENDSTOP == _XMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
       #define Z3_MAX_PIN X_MIN_PIN
     #elif Z3_USE_ENDSTOP == _XMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
       #define Z3_MAX_PIN X_MAX_PIN
     #elif Z3_USE_ENDSTOP == _YMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
       #define Z3_MAX_PIN Y_MIN_PIN
     #elif Z3_USE_ENDSTOP == _YMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
       #define Z3_MAX_PIN Y_MAX_PIN
     #elif Z3_USE_ENDSTOP == _ZMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
       #define Z3_MAX_PIN Z_MIN_PIN
     #elif Z3_USE_ENDSTOP == _ZMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
       #define Z3_MAX_PIN Z_MAX_PIN
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MAX_ENDSTOP_INVERTING false
     #endif
     #define Z3_MIN_ENDSTOP_INVERTING false
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if Z3_USE_ENDSTOP == _XMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
       #define Z3_MIN_PIN X_MIN_PIN
     #elif Z3_USE_ENDSTOP == _XMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
       #define Z3_MIN_PIN X_MAX_PIN
     #elif Z3_USE_ENDSTOP == _YMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
       #define Z3_MIN_PIN Y_MIN_PIN
     #elif Z3_USE_ENDSTOP == _YMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
       #define Z3_MIN_PIN Y_MAX_PIN
     #elif Z3_USE_ENDSTOP == _ZMIN_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
       #define Z3_MIN_PIN Z_MIN_PIN
     #elif Z3_USE_ENDSTOP == _ZMAX_
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
       #define Z3_MIN_PIN Z_MAX_PIN
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_MIN_ENDSTOP_INVERTING false
     #endif
     #define Z3_MAX_ENDSTOP_INVERTING false
@@ -452,22 +523,29 @@
  * Set ENDSTOPPULLDOWNS for active endstop switches
  */
 #if ENABLED(ENDSTOPPULLDOWNS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if ENABLED(USE_XMAX_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_XMAX
   #endif
   #if ENABLED(USE_YMAX_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_YMAX
   #endif
   #if ENABLED(USE_ZMAX_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_ZMAX
   #endif
   #if ENABLED(USE_XMIN_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_XMIN
   #endif
   #if ENABLED(USE_YMIN_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_YMIN
   #endif
   #if ENABLED(USE_ZMIN_PLUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLDOWN_ZMIN
   #endif
 #endif
@@ -545,9 +623,11 @@
   #endif
   #define Z_SENSORLESS  (AXIS_HAS_STALLGUARD(Z)  && defined(Z_STALL_SENSITIVITY))
   #if (AXIS_HAS_STALLGUARD(Z2) && defined(Z2_STALL_SENSITIVITY))
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_SENSORLESS 1
   #endif
   #if (AXIS_HAS_STALLGUARD(Z3) && defined(Z3_STALL_SENSITIVITY))
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_SENSORLESS 1
   #endif
 #endif
@@ -592,6 +672,7 @@
 #define HAS_TEMP_SENSOR (HAS_TEMP_HOTEND || HAS_HEATED_BED)
 
 #if !HAS_TEMP_SENSOR
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef AUTO_REPORT_TEMPERATURES
 #endif
 
@@ -624,6 +705,7 @@
 #define HAS_SERVOS  (NUM_SERVOS > 0)
 
 #if HAS_SERVOS && !defined(Z_PROBE_SERVO_NR)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z_PROBE_SERVO_NR -1
 #endif
 
@@ -643,6 +725,7 @@
 #define HAS_STEPPER_RESET     (PIN_EXISTS(STEPPER_RESET))
 
 #if !HAS_TEMP_SENSOR
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef AUTO_REPORT_TEMPERATURES
 #endif
 
@@ -653,6 +736,7 @@
  * a ballpark safe margin to prevent wait-forever situation.
  */
 #ifndef EXTRUDE_MINTEMP
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define EXTRUDE_MINTEMP 170
 #endif
 
@@ -680,12 +764,14 @@
 #endif
 
 #if HAS_FAN2
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define FAN_COUNT 3
 #elif HAS_FAN1
   #define FAN_COUNT 2
 #elif HAS_FAN0
   #define FAN_COUNT 1
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define FAN_COUNT 0
 #endif
 
@@ -697,7 +783,9 @@
  * MIN/MAX case light PWM scaling
  */
 #if HAS_CASE_LIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifndef CASE_LIGHT_MAX_PWM
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define CASE_LIGHT_MAX_PWM 255
   #elif !WITHIN(CASE_LIGHT_MAX_PWM, 1, 255)
     #error "CASE_LIGHT_MAX_PWM must be a value from 1 to 255."
@@ -709,18 +797,24 @@
  */
 #if HAS_BED_PROBE
   #if ENABLED(ENDSTOPPULLUPS) && HAS_Z_MIN_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ENDSTOPPULLUP_ZMIN_PROBE
   #endif
   #ifndef Z_PROBE_OFFSET_RANGE_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_PROBE_OFFSET_RANGE_MIN -20
   #endif
   #ifndef Z_PROBE_OFFSET_RANGE_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_PROBE_OFFSET_RANGE_MAX 20
   #endif
   #ifndef XY_PROBE_SPEED
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifdef HOMING_FEEDRATE_XY
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define XY_PROBE_SPEED HOMING_FEEDRATE_XY
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define XY_PROBE_SPEED 4000
     #endif
   #endif
@@ -752,6 +846,7 @@
 #define QUIET_PROBING (HAS_BED_PROBE && DELAY_BEFORE_PROBING > 0)
 
 #if HAS_PAUSE() && !defined(FILAMENT_CHANGE_SLOW_LOAD_LENGTH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 0
 #endif
 
@@ -764,6 +859,7 @@
  * These can be further constrained in code for Delta
  */
 #ifndef MIN_PROBE_EDGE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MIN_PROBE_EDGE 0
 #endif
 #ifndef MIN_PROBE_EDGE_LEFT
@@ -784,6 +880,7 @@
 #endif
 
 #if ENABLED(SEGMENT_LEVELED_MOVES) && !defined(LEVELED_SEGMENT_LENGTH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define LEVELED_SEGMENT_LENGTH 5
 #endif
 
@@ -798,6 +895,7 @@
     #define _MESH_MAX_X (_MIN(X_MAX_BED - (MESH_INSET), X_MAX_POS))
     #define _MESH_MAX_Y (_MIN(Y_MAX_BED - (MESH_INSET), Y_MAX_POS))
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _MESH_MIN_X (_MAX(X_MIN_BED + MESH_INSET, X_MIN_POS + nozzle_to_probe_offset.x))
     #define _MESH_MIN_Y (_MAX(Y_MIN_BED + MESH_INSET, Y_MIN_POS + nozzle_to_probe_offset.y))
     #define _MESH_MAX_X (_MIN(X_MAX_BED - (MESH_INSET), X_MAX_POS + nozzle_to_probe_offset.x))
@@ -824,21 +922,27 @@
  * Z_HOMING_HEIGHT / Z_CLEARANCE_BETWEEN_PROBES
  */
 #ifndef Z_HOMING_HEIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifndef Z_CLEARANCE_BETWEEN_PROBES
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_HOMING_HEIGHT 0
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_HOMING_HEIGHT Z_CLEARANCE_BETWEEN_PROBES
   #endif
 #endif
 
 #if PROBE_SELECTED
   #ifndef Z_CLEARANCE_BETWEEN_PROBES
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_CLEARANCE_BETWEEN_PROBES Z_HOMING_HEIGHT
   #endif
   #ifndef Z_CLEARANCE_MULTI_PROBE
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_CLEARANCE_MULTI_PROBE Z_CLEARANCE_BETWEEN_PROBES
   #endif
   #if ENABLED(BLTOUCH) && !defined(BLTOUCH_DELAY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BLTOUCH_DELAY 500
   #endif
 #endif
@@ -857,6 +961,7 @@
 
 // Number of VFAT entries used. Each entry has 13 UTF-16 characters
 #if ENABLED(SCROLL_LONG_FILENAMES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MAX_VFAT_ENTRIES (5)
 #else
   #define MAX_VFAT_ENTRIES (2)
@@ -864,6 +969,7 @@
 
 // Defined here to catch the above defines
 #if ENABLED(SDCARD_SORT_ALPHA)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define HAS_FOLDER_SORTING (FOLDER_SORTING || ENABLED(SDSORT_GCODE))
 #endif
 
@@ -871,16 +977,19 @@
 #define EARLY_WATCHDOG (ENABLED(USE_WATCHDOG) && defined(ARDUINO_ARCH_SAM))
 
 #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z_STEPPER_COUNT 3
 #else
   #define Z_STEPPER_COUNT 1
 #endif
 
 #if !NUM_SERIAL
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef BAUD_RATE_GCODE
 #endif
 
 #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef Z_STEPPER_ALIGN_AMP
 #endif
 #ifndef Z_STEPPER_ALIGN_AMP

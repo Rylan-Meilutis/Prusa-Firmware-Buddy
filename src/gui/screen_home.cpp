@@ -229,6 +229,7 @@ screen_home_data_t::screen_home_data_t()
     {
         StringBuilder sb(header_text);
 #if SIGNATURE_OAK()
+        // #error dead code found by automatic analyses (see BFW-5461)
         sb.append_string("SIGNATURE OAK ");
 #else
         sb.append_string("PRUSA ");
@@ -238,6 +239,7 @@ screen_home_data_t::screen_home_data_t()
         sb.append_string(version::project_version);
         sb.append_string(version::project_version_suffix_short);
 #if DEVELOPER_MODE()
+        // #error dead code found by automatic analyses (see BFW-5461)
         sb.append_string(" DEV");
 #endif
 #ifdef _DEBUG

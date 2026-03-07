@@ -31,6 +31,7 @@
  */
 
 #if defined(STM32GENERIC) && (defined(STM32F4) || defined(STM32F7))
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../../inc/MarlinConfig.h"
 
@@ -50,11 +51,13 @@ static SPISettings spiConfig;
 // ------------------------
 
 #if ENABLED(SOFTWARE_SPI)
+  // #error dead code found by automatic analyses (see BFW-5461)
   // ------------------------
   // Software SPI
   // ------------------------
   #error "Software SPI not supported for STM32F4/7. Use Hardware SPI."
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 // ------------------------
 // Hardware SPI
@@ -122,8 +125,10 @@ uint8_t spiRec() {
 void spiRead(uint8_t* buf, uint16_t nbyte) {
   SPI.beginTransaction(spiConfig);
   #ifdef STM32GENERIC
+    // #error dead code found by automatic analyses (see BFW-5461)
     SPI.dmaTransfer(0, const_cast<uint8_t*>(buf), nbyte);
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     SPI.transfer((uint8_t*)buf, nbyte);
   #endif
   SPI.endTransaction();
@@ -154,8 +159,10 @@ void spiSendBlock(uint8_t token, const uint8_t* buf) {
   SPI.beginTransaction(spiConfig);
   SPI.transfer(token);
   #ifdef STM32GENERIC
+    // #error dead code found by automatic analyses (see BFW-5461)
     SPI.dmaSend(const_cast<uint8_t*>(buf), 512);
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     SPI.transfer((uint8_t*)buf, nullptr, 512);
   #endif
   SPI.endTransaction();

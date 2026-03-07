@@ -135,12 +135,14 @@ using namespace buddy::hw;
 
 static void ili9488_set_cs(void) {
 #if (BOARD_IS_BUDDY())
+    // #error dead code found by automatic analyses (see BFW-5461)
     displayCs.write(Pin::State::high);
 #endif
 }
 
 static void ili9488_clr_cs(void) {
 #if (BOARD_IS_BUDDY())
+    // #error dead code found by automatic analyses (see BFW-5461)
     displayCs.write(Pin::State::low);
 #endif
 }
@@ -599,6 +601,7 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     auto o_data = p_buf.begin(); ///< Pointer to output pixel data in buffer
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Measure time it takes to draw QOI image
     #warning "Spamming the log"
     struct ImgMeasure {
@@ -701,6 +704,7 @@ void ili9488_inversion_tgl(void) {
     ili9488_config.is_inverted = !ili9488_inversion_get();
     ili9488_cmd(CMD_INVOFF + ili9488_config.is_inverted, 0, 0);
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // to be portable
     if (ili9488_inversion_get()) {
         ili9488_inversion_off();

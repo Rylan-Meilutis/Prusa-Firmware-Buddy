@@ -56,6 +56,7 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
     temp_dState = pid_error;
 
 #if ENABLED(PID_DEBUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (args.hotend_index == active_extruder) {
         SERIAL_ECHO_START();
         SERIAL_ECHOPAIR(
@@ -64,12 +65,14 @@ HotendRegulatorResult StandardHotendRegulator::get_pid_output_hotend(const Hoten
             MSG_PID_DEBUG_OUTPUT, pid_output);
         SERIAL_ECHOPAIR(
     #if ENABLED(STEADY_STATE_HOTEND)
+            // #error dead code found by automatic analyses (see BFW-5461)
             " fTerm ", feed_forward,
     #endif
             MSG_PID_DEBUG_PTERM, work_pid.Kp,
             MSG_PID_DEBUG_ITERM, work_pid.Ki,
             MSG_PID_DEBUG_DTERM, work_pid.Kd
     #if ENABLED(PID_EXTRUSION_SCALING)
+            // #error dead code found by automatic analyses (see BFW-5461)
             ,
             MSG_PID_DEBUG_CTERM, work_pid.Kc
     #endif

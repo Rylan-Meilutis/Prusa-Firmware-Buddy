@@ -473,6 +473,7 @@ void PrusaToolChangerUtils::ConfRestorer::sample() {
         bsod("Double sampled planner configuration");
     }
     #if HAS_CLASSIC_JERK
+    // #error dead code found by automatic analyses (see BFW-5461)
     sampled_jerk = planner.settings.max_jerk;
     #endif
     sampled_travel_acceleration = planner.settings.travel_acceleration;
@@ -493,6 +494,7 @@ void PrusaToolChangerUtils::ConfRestorer::restore_jerk() {
 
     auto s = planner.user_settings;
     #if HAS_CLASSIC_JERK
+    // #error dead code found by automatic analyses (see BFW-5461)
     s.max_jerk = sampled_jerk;
     #endif
     planner.apply_settings(s);

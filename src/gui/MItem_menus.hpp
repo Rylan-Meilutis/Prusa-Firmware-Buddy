@@ -152,6 +152,7 @@ using MI_PRINTER_SETUP
     = MI_SCREEN<N_("Printer Setup"), screen_printer_setup_private::ScreenPrinterSetup, nullptr, is_hidden_t::dev>;
 
 #if DEVELOPER_MODE()
+// #error dead code found by automatic analyses (see BFW-5461)
 
 using MI_ERROR_TEST
     = MI_SCREEN<N_("Test Errors"), class ScreenMenuErrorTest, nullptr, is_hidden_t::dev>;

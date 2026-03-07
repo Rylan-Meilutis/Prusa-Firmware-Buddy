@@ -14,6 +14,7 @@ extern "C" float get_z_max_pos_mm() {
     }
     log_debug(EEPROM, "%s returned %f", __PRETTY_FUNCTION__, double(ret));
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     log_error(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__);
 #endif
     return ret;
@@ -30,6 +31,7 @@ extern "C" void set_z_max_pos_mm(float max_pos) {
     }
     log_debug(EEPROM, "%s set %f", __PRETTY_FUNCTION__, double(max_pos));
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     log_error(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__);
 #endif
 }
@@ -102,6 +104,7 @@ extern "C" bool get_print_area_based_heating_enabled() {
 }
 
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 extern "C" bool has_wrong_x() {
     log_info(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__);
     return false;
@@ -220,6 +223,7 @@ extern "C" void set_PRUSA_direction_e() {
     DEFAULT_INVERT_E0_DIR ? set_negative_direction_e() : set_positive_direction_e();
 }
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 extern "C" void set_wrong_direction_x() { log_error(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__); }
 extern "C" void set_wrong_direction_y() { log_error(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__); }
 extern "C" void set_wrong_direction_z() { log_error(EEPROM, "called %s while USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES is disabled", __PRETTY_FUNCTION__); }
@@ -247,6 +251,7 @@ bool get_has_400step_xy_motors() {
 #elif PRINTER_IS_PRUSA_iX()
     return false;
 #elif PRINTER_IS_PRUSA_XL_DEV_KIT()
+    // #error dead code found by automatic analyses (see BFW-5461)
     return false;
 #elif PRINTER_IS_PRUSA_MK3_5()
     return false;

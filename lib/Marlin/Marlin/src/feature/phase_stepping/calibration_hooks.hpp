@@ -4,6 +4,7 @@
 namespace phase_stepping {
 
 #if !HAS_PHASE_STEPPING_CALIBRATION()
+// #error dead code found by automatic analyses (see BFW-5461)
 
 // stubs that do nothing
 static inline void calibration_move_cleanup(const AxisState &axis_state) {};

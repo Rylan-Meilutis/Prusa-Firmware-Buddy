@@ -219,6 +219,7 @@ void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
 
 void st7789v_spi_rd_bytes(uint8_t *pb, uint16_t size) {
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
 //#ifdef ST7789V_DMA
     if (size <= 4)
         HAL_SPI_Receive(&SPI_HANDLE_FOR(lcd), pb, size, HAL_MAX_DELAY);
@@ -536,6 +537,7 @@ void st7789v_inversion_off(void) {
 
 void st7789v_inversion_tgl(void) {
 #if CMD_INVON == CMD_INVOFF + 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     // faster code if CMD_INVON == CMD_INVOFF + 1
     // The result of the logical negation operator ! is 1 if the value of its operand is 0,
     // 0 if the value of its operand is non-zero.
@@ -628,6 +630,7 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     auto o_data = p_buf.begin(); ///< Pointer to output pixel data in buffer
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Measure time it takes to draw QOI image
     #warning "Spamming the log"
     struct ImgMeasure {

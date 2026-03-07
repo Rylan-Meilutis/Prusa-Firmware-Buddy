@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if HAS_CUTTER
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../feature/spindle_laser.h"
@@ -72,17 +73,20 @@
 void GcodeSuite::M3_M4(const bool is_M4) {
 
   #if ENABLED(SPINDLE_FEATURE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     planner.synchronize();   // Wait for movement to complete before changing power
   #endif
 
   cutter.set_direction(is_M4);
 
   #if ENABLED(SPINDLE_LASER_PWM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (parser.seenval('O'))
       cutter.set_ocr_power(parser.value_byte()); // The OCR is a value from 0 to 255 (uint8_t)
     else
       cutter.set_power(parser.intval('S', 255));
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     cutter.set_enabled(true);
   #endif
 }
@@ -92,6 +96,7 @@ void GcodeSuite::M3_M4(const bool is_M4) {
  */
 void GcodeSuite::M5() {
   #if ENABLED(SPINDLE_FEATURE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     planner.synchronize();
   #endif
   cutter.set_enabled(false);

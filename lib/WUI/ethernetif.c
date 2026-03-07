@@ -28,21 +28,25 @@ void log_dropped_packet_rx(size_t len);
 #define IFNAME1 'R'
 
 #if defined(__ICCARM__) /*!< IAR Compiler */
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma data_alignment = 4
 #endif
 __ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __ALIGN_END; /* Ethernet Rx MA Descriptor */
 
 #if defined(__ICCARM__) /*!< IAR Compiler */
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma data_alignment = 4
 #endif
 __ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __ALIGN_END; /* Ethernet Tx DMA Descriptor */
 
 #if defined(__ICCARM__) /*!< IAR Compiler */
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma data_alignment = 4
 #endif
 __ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethernet Receive Buffer */
 
 #if defined(__ICCARM__) /*!< IAR Compiler */
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma data_alignment = 4
 #endif
 __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
@@ -199,6 +203,7 @@ static void low_level_init(struct netif *netif) {
     #if LWIP_ARP
     netif->flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     netif->flags |= NETIF_FLAG_BROADCAST;
     #endif /* LWIP_ARP */
 
@@ -410,6 +415,7 @@ void ethernetif_input_once(struct netif *netif) {
 }
 
 #if !LWIP_ARP
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * This function has to be completed by user in case of ARP OFF.
  *
@@ -456,6 +462,7 @@ err_t ethernetif_init(struct netif *netif) {
         #if LWIP_ARP
     netif->output = etharp_output;
         #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* The user should write ist own code in low_level_output_arp_off function */
     netif->output = low_level_output_arp_off;
         #endif /* LWIP_ARP */
@@ -463,6 +470,7 @@ err_t ethernetif_init(struct netif *netif) {
 #endif /* LWIP_IPV4 */
 
 #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
 

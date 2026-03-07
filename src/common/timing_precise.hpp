@@ -36,6 +36,7 @@ FORCE_INLINE static void timing_delay_4cycles(uint32_t cy) { // +1 cycle
     #if ARCH_PIPELINE_RELOAD_CYCLES < 2
         #define EXTRA_NOP_CYCLES " nop\n\t"
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define EXTRA_NOP_CYCLES ""
     #endif
 

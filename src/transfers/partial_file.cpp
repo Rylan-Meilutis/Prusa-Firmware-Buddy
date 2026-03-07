@@ -373,6 +373,7 @@ void PartialFile::print_progress() {
      * don't want to go even further for this message.
      */
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Note: we are accessing state here directly. We are being called from places that are already locked.
     std::array<char, 40> progress;
     for (auto &c : progress) {

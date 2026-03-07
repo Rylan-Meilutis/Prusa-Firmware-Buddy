@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(BEZIER_CURVE_SUPPORT)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #if AXIS_COLLISION('I') || AXIS_COLLISION('J')
   #error "G5 parameter 'I' or 'J' collision with axis name."
@@ -32,6 +33,7 @@
 #include "../../module/planner_bezier.h"
 
 #if ENABLED(CRASH_RECOVERY)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include <feature/prusa/crash_recovery.hpp>
 #endif
 
@@ -49,6 +51,7 @@
  */
 void GcodeSuite::G5() {
   #if ENABLED(CNC_WORKSPACE_PLANES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (workspace_plane != PLANE_XY) {
       SERIAL_ERROR_MSG(STR_ERR_BAD_PLANE_MODE);
       return;
@@ -56,6 +59,7 @@ void GcodeSuite::G5() {
   #endif
 
   #if ENABLED(CRASH_RECOVERY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     // allow full instruction recovery
     crash_s.set_gcode_replay_flags(Crash_s::RECOVER_FULL);
   #endif

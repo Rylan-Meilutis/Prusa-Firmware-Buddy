@@ -31,6 +31,7 @@
 
 //#define DEBUG_GCODE_PARSER
 #if ENABLED(DEBUG_GCODE_PARSER)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../libs/hex_print_routines.h"
 #endif
 
@@ -74,14 +75,17 @@ public:
   #endif
 
   #if ENABLED(GCODE_MOTION_MODES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static int16_t motion_mode_codenum;
     #if USE_GCODE_SUBCODES
+      // #error dead code found by automatic analyses (see BFW-5461)
       static uint8_t motion_mode_subcode;
     #endif
     FORCE_INLINE static void cancel_motion_mode() { motion_mode_codenum = -1; }
   #endif
 
   #if ENABLED(DEBUG_GCODE_PARSER)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void debug();
   #endif
 
@@ -111,6 +115,7 @@ public:
       SBI32(codebits, ind);                      // parameter exists
       param[ind] = ptr ? ptr - command_ptr : 0;  // parameter offset or 0
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (codenum == 800) {
           SERIAL_ECHOPAIR("Set bit ", (int)ind, " of codebits (", hex_address((void*)(codebits >> 16)));
           print_hex_word((uint16_t)(codebits & 0xFFFF));
@@ -150,6 +155,7 @@ public:
     #ifdef CPU_32_BIT
       FORCE_INLINE static bool seen(const char * const str) { return !!(codebits & letter_bits(str)); }
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       // At least one of a list of code letters was seen
       FORCE_INLINE static bool seen(const char * const str) {
         const uint32_t letrbits = letter_bits(str);

@@ -30,6 +30,7 @@
 #include "../inc/MarlinConfig.h"
 
 #if ENABLED(BEZIER_CURVE_SUPPORT)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "planner.h"
 #include "motion.h"
@@ -192,9 +193,11 @@ void cubic_b_spline(
     bez_target = new_bez;
 
     #if HAS_LEVELING
+      // #error dead code found by automatic analyses (see BFW-5461)
       xyze_pos_t pos = bez_target;
       planner.apply_leveling(pos);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       const xyze_pos_t &pos = bez_target;
     #endif
 

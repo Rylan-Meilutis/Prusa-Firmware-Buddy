@@ -54,6 +54,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if SHARED_SERVOS
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "servo.h"
 #include "servo_private.h"
@@ -151,6 +152,7 @@ void Servo::move(const int value) {
     write(value);
     safe_delay(servo_delay[servoIndex]);
     #if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       detach();
     #endif
   }

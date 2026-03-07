@@ -91,6 +91,7 @@ PrinterGCodeCompatibilityReport GcodeSuite::compatibility;
 #endif
 
 #if ENABLED(CNC_WORKSPACE_PLANES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   GcodeSuite::WorkspacePlane GcodeSuite::workspace_plane = PLANE_XY;
 #endif
 
@@ -257,6 +258,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       case 0: case 1: G0_G1(                                      // G0: Fast Move, G1: Linear Move
                         #if defined(G0_FEEDRATE)
+                          // #error dead code found by automatic analyses (see BFW-5461)
                           parser.codenum == 0
                         #endif
                       );
@@ -269,10 +271,12 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 4: G4(); break;                                        // G4: Dwell
 
       #if ENABLED(BEZIER_CURVE_SUPPORT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 5: G5(); break;                                      // G5: Cubic B_spline
       #endif
 
       #if ENABLED(CNC_WORKSPACE_PLANES)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 17: G17(); break;                                    // G17: Select Plane XY
         case 18: G18(); break;                                    // G18: Select Plane ZX
         case 19: G19(); break;                                    // G19: Select Plane YZ
@@ -291,21 +295,26 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #if HAS_BED_PROBE
         case 30: G30(); break;                                    // G30: Single Z probe
         #if ENABLED(Z_PROBE_SLED)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 31: G31(); break;                                  // G31: dock the sled
           case 32: G32(); break;                                  // G32: undock the sled
         #endif
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 34: G34(); break;                                    // G34: Z Stepper automatic alignment using probe
       #endif
 
       #if ENABLED(G38_PROBE_TARGET)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 38:                                                  // G38.2, G38.3: Probe towards target
           if (WITHIN(parser.subcode, 2,
             #if ENABLED(G38_PROBE_AWAY)
+              // #error dead code found by automatic analyses (see BFW-5461)
               5
             #else
+              // #error dead code found by automatic analyses (see BFW-5461)
               3
             #endif
           )) G38(parser.subcode);                                 // G38.4, G38.5: Probe away from target
@@ -330,6 +339,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 800: parser.debug(); break;                          // G800: GCode Parser Test for G
       #endif
 
@@ -344,22 +354,27 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if HAS_CUTTER
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 3: M3_M4(false); break;                              // M3: Turn ON Laser | Spindle (clockwise), set Power | Speed
         case 4: M3_M4(true ); break;                              // M4: Turn ON Laser | Spindle (counter-clockwise), set Power | Speed
         case 5: M5(); break;                                      // M5: Turn OFF Laser | Spindle
       #endif
 
       #if ENABLED(COOLANT_CONTROL)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #if ENABLED(COOLANT_MIST)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 7: M7(); break;                                    // M7: Mist coolant ON
         #endif
         #if ENABLED(COOLANT_FLOOD)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 8: M8(); break;                                    // M8: Flood coolant ON
         #endif
         case 9: M9(); break;                                      // M9: Coolant OFF
       #endif
 
       #if ENABLED(EXPECTED_PRINTER_CHECK)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 16: M16(); break;                                    // M16: Expected printer check
       #endif
 
@@ -380,10 +395,12 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 32: M32(); break;                                    // M32: Select file and start SD print
 
         #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 33: M33(); break;                                  // M33: Get the long full path to a file or folder
         #endif
 
         #if BOTH(SDCARD_SORT_ALPHA, SDSORT_GCODE)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 34: M34(); break;                                  // M34: Set SD card sorting options
         #endif
 
@@ -393,6 +410,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 46: M46(); break;                                      // M46: Report ip4 address
 
       #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 48: M48(); break;                                    // M48: Z probe repeatability test
       #endif
 
@@ -427,8 +445,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
           case 876: M876(); break;                                // M876: Handle Host prompt responses
         #endif
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 108: case 112: case 410:
         #if ENABLED(HOST_PROMPT_SUPPORT)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 876:
         #endif
         break;
@@ -476,6 +496,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 201: M201(); break;                                    // M201: Set max acceleration for print moves (units/s^2)
 
       #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 202: M202(); break;                                  // M202: Not used for Sprinter/grbl gen6
       #endif
 
@@ -504,8 +525,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 221: M221(); break;                                    // M221: Set Flow Percentage
 
       #if HAS_SERVOS
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 280: M280(); break;                                  // M280: Set servo position absolute
         #if ENABLED(EDITABLE_SERVO_ANGLES)
+          // #error dead code found by automatic analyses (see BFW-5461)
           case 281: M281(); break;                                // M281: Set servo angles
         #endif
       #endif
@@ -536,6 +559,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 380: M380(); break;                                  // M380: Activate solenoid on active (or specified) extruder
         case 381: M381(); break;                                  // M381: Disable all solenoids or, if MANUAL_SOLENOID_CONTROL, active (or specified) solenoid
       #endif
@@ -560,6 +584,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if ENABLED(BACKLASH_GCODE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 425: M425(); break;                                  // M425: Tune backlash compensation
       #endif
 
@@ -575,6 +600,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if ENABLED(SD_ABORT_ON_ENDSTOP_HIT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 540: M540(); break;                                  // M540: Set abort on endstop hit for SD printing
       #endif
 
@@ -588,6 +614,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 572: M572(); break;                                    // M572: Set parameters for pressure advance.
 
       #if ENABLED(BAUD_RATE_GCODE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 575: M575(); break;                                  // M575: Set serial baudrate
       #endif
 
@@ -612,6 +639,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 702: M702(); break;                                    // M702: Unload Filament
 
       #if ENABLED(MAX7219_GCODE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 7219: M7219(); break;                                // M7219: Set LEDs, columns, and rows
       #endif
 
@@ -640,6 +668,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 350: M350(); break;                                  // M350: Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
       #endif
       #if HAS_CASE_LIGHT
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 355: M355(); break;                                  // M355: Set case light brightness
       #endif
 
@@ -648,6 +677,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 800: parser.debug(); break;                          // M800: GCode Parser Test for M
       #endif
 
@@ -667,10 +697,12 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 422: M422(); break;                                  // M422: Set Z Stepper automatic alignment position using probe
       #endif
 
       #if ENABLED(PLATFORM_M997_SUPPORT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 997: M997(); break;                                  // M997: Perform in-application firmware update
       #endif
 

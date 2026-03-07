@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(DIRECT_STEPPING)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../../feature/direct_stepping.h"
 

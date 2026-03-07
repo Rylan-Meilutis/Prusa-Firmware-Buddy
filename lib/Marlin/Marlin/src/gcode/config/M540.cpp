@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(SD_ABORT_ON_ENDSTOP_HIT)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/stepper.h"

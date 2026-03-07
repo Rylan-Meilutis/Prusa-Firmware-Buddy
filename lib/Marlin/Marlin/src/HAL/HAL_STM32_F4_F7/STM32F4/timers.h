@@ -78,6 +78,7 @@ extern void TC6_Handler();
   } tTimerConfig;
   typedef tTimerConfig stm32_timer_t;
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   typedef stimer_t stm32_timer_t;
 #endif
 
@@ -116,6 +117,7 @@ FORCE_INLINE static hal_timer_t HAL_timer_get_compare(const uint8_t timer_num) {
       __HAL_TIM_CLEAR_FLAG(&TimerHandle[timer_num].handle, TIM_FLAG_UPDATE);
   }
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define HAL_timer_isr_prologue(TIMER_NUM)
 #endif
 

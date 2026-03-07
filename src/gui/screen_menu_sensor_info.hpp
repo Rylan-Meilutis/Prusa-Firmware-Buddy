@@ -88,6 +88,7 @@ struct ScreenMenuSensorInfo__<std::index_sequence<hotend...>> {
         MI_PINDA,
     #endif
     #if PRINTER_IS_PRUSA_MINI()
+        // #error dead code found by automatic analyses (see BFW-5461)
         MI_MINDA,
     #endif
     #if HAS_MMU2()

@@ -3,6 +3,7 @@
 #pragma once
 #include <stdint.h>
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "mmu2/error_codes.h"
     #include "mmu2/progress_codes.h"
 #else

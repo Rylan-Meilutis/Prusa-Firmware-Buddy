@@ -67,6 +67,7 @@
   float unified_bed_leveling::z_values[GRID_MAX_POINTS_X][GRID_MAX_POINTS_Y];
 
   #if HAS_LCD_MENU
+    // #error dead code found by automatic analyses (see BFW-5461)
     bool unified_bed_leveling::lcd_map_control = false;
   #endif
 

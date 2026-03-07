@@ -22,6 +22,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(EDITABLE_SERVO_ANGLES)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/servo.h"

@@ -162,6 +162,7 @@ using FrameInsertFilamentNotReady = WithConstructorArgs<FrameTextAndImage,
     #endif
 #else
     #if HAS_SIDE_FSENSOR()
+    // #error dead code found by automatic analyses (see BFW-5461)
     N_("Push the filament through the side and extruder filament sensors."),
     #else
     N_("Insert the filament into the extruder filament sensor."),

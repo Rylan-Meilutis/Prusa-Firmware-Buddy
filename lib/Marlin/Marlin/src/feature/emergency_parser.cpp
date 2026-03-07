@@ -27,6 +27,7 @@
 #include "../inc/MarlinConfigPre.h"
 
 #if ENABLED(EMERGENCY_PARSER)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "emergency_parser.h"
 
@@ -35,6 +36,7 @@ bool EmergencyParser::killed_by_M112, // = false
      EmergencyParser::enabled;
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
+  // #error dead code found by automatic analyses (see BFW-5461)
   uint8_t EmergencyParser::M876_reason; // = 0
 #endif
 

@@ -35,6 +35,7 @@ static DMA_HandleTypeDef hdma_uart8_tx;
 static DMA_HandleTypeDef hdma_adc1;
 static DMA_HandleTypeDef hdma_adc3;
     #if HAS_BURST_STEPPING()
+// #error dead code found by automatic analyses (see BFW-5461)
 static DMA_HandleTypeDef hdma_tim8;
     #endif
 #elif BOARD_IS_XLBUDDY()
@@ -55,6 +56,7 @@ static DMA_HandleTypeDef hdma_uart8_tx;
 static DMA_HandleTypeDef hdma_adc1;
 static DMA_HandleTypeDef hdma_adc3;
     #if HAS_BURST_STEPPING()
+// #error dead code found by automatic analyses (see BFW-5461)
 static DMA_HandleTypeDef hdma_tim8;
     #endif
 #else
@@ -409,6 +411,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
         // communication.
         GPIO_InitStruct.Pull = GPIO_PULLUP;
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         GPIO_InitStruct.Pull = GPIO_NOPULL;
     #endif
     #if BOARD_IS_XBUDDY()
@@ -531,6 +534,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
         HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
     #if HAS_BURST_STEPPING()
+        // #error dead code found by automatic analyses (see BFW-5461)
         HAL_NVIC_SetPriority(SPI4_IRQn, ISR_PRIORITY_DEFAULT, 0);
         HAL_NVIC_EnableIRQ(SPI4_IRQn);
     #else
@@ -948,6 +952,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim) {
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     }
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     else if (htim->Instance == TIM8) {
         /* TIM8 DMA Init */
         hdma_tim8.Instance = DMA2_Stream1;

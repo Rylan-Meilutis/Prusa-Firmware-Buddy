@@ -43,6 +43,7 @@ enum EndstopEnum : char {
 class Endstops {
   public:
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       typedef uint16_t esbits_t;
       static float z2_endstop_adj;
       static float z3_endstop_adj;
@@ -124,6 +125,7 @@ class Endstops {
     static void not_homing();
 
     #if ENABLED(VALIDATE_HOMING_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       // If the last move failed to trigger an endstop, call kill
       static void validate_homing_move();
     #else

@@ -93,6 +93,7 @@ void SideStripWriter::write(uint8_t *pb, uint16_t size) {
         HAL_SPI_Abort(hspi);
         assert(can_be_used_by_dma(pb));
     #if HAS_BURST_STEPPING()
+        // #error dead code found by automatic analyses (see BFW-5461)
         HAL_SPI_Transmit_IT(hspi, pb, size);
     #else
         HAL_SPI_Transmit_DMA(hspi, pb, size);

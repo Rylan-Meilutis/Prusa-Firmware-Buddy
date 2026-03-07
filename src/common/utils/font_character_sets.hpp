@@ -14,6 +14,7 @@ enum class FontCharacterSet : uint8_t {
     #if ENABLE_TRANSLATION_JA()
     latin_and_katakana = 2, /// standard ASCII <32;127> + all required non-ascii latin + all katakana characters <0x30A0;0x30FF> + japanese ',' + japanese '.'
     #elif ENABLE_TRANSLATION_UK()
+    // #error dead code found by automatic analyses (see BFW-5461)
     latin_and_cyrillic = 3, /// standard ASCII <32;127> + all required non-ascii latin + all cyrillic standard characters <0x0400;0x04FF>
     #else
     latin = 4, /// standard ASCII (32 - 127) + all required non-ascii latin

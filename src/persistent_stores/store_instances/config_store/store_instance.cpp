@@ -5,6 +5,7 @@ using namespace config_store_ns;
 
 void init_config_store() {
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     config_store(); // called to ensure object creation
     config_store_init_result() = config_store_ns::InitResult::normal;
 #else

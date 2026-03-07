@@ -20,6 +20,7 @@
 #include <option/board_is_master_board.h>
 
 #if !defined(configUSE_NEWLIB_REENTRANT) || (configUSE_NEWLIB_REENTRANT != 1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #warning "#define configUSE_NEWLIB_REENTRANT 1"
 #endif
 

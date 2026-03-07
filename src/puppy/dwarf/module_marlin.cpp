@@ -23,6 +23,7 @@
 
 #include <option/has_planner.h>
 #if HAS_PLANNER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <module/planner.h>
 #endif
 
@@ -124,6 +125,7 @@ void dwarf::modules::marlin::start() {
 
 [[noreturn]] void stop_marlin() {
 #if HAS_PLANNER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     planner.quick_stop();
 #endif
 

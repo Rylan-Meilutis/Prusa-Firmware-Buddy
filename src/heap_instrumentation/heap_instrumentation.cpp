@@ -35,8 +35,10 @@
 /// Different boards have different MCUs and those have different RAM size
 #define RAM_START "0x20000000"
 #if BOARD_IS_BUDDY()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define RAM_END "0x20020000"
 #elif BOARD_IS_XBUDDY() || BOARD_IS_XLBUDDY()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define RAM_END "0x20030000"
 #else
     #error "unknown board"

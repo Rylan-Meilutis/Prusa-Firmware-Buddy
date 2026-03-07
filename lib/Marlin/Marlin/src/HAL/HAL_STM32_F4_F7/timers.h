@@ -26,6 +26,7 @@
 #elif STM32G0
   #include "STM32G0/timers.h"
 #elif STM32F7
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "STM32F7/timers.h"
 #else
   #error "Unknown MCU"

@@ -23,11 +23,13 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(COOLANT_CONTROL)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/planner.h"
 
 #if ENABLED(COOLANT_MIST)
+  // #error dead code found by automatic analyses (see BFW-5461)
   /**
    * M7: Mist Coolant On
    */
@@ -38,6 +40,7 @@
 #endif
 
 #if ENABLED(COOLANT_FLOOD)
+  // #error dead code found by automatic analyses (see BFW-5461)
   /**
    * M8: Flood Coolant On
    */
@@ -53,9 +56,11 @@
 void GcodeSuite::M9() {
   planner.synchronize();                            // Wait for move to arrive
   #if ENABLED(COOLANT_MIST)
+    // #error dead code found by automatic analyses (see BFW-5461)
     WRITE(COOLANT_MIST_PIN, COOLANT_MIST_INVERT);   // Turn off Mist coolant
   #endif
   #if ENABLED(COOLANT_FLOOD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     WRITE(COOLANT_FLOOD_PIN, COOLANT_FLOOD_INVERT); // Turn off Flood coolant
   #endif
 }

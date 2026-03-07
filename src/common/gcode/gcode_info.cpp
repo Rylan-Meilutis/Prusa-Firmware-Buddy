@@ -497,6 +497,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
         }
     }
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     (void)plaintext_gcodes;
 #endif
 

@@ -45,6 +45,7 @@
 #include <string.h>
 
 #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <lwip/prot/ip6.h>
 #endif
 
@@ -356,6 +357,7 @@ err_t mdns_build_reverse_v4_domain(struct mdns_domain *domain, const ip4_addr_t 
     #endif
 
     #if LWIP_IPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * Build domain for reverse lookup of IP address
  * like b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa. for 2001:db8::567:89ab

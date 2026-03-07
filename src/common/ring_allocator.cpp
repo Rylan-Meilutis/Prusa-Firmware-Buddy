@@ -35,6 +35,7 @@ void RingAllocator::free(void *ptr) {
 
     rec->in_use = false;
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     used_records--;
     used_bytes -= available_size(rec);
 #endif
@@ -74,12 +75,14 @@ void RingAllocator::merge(Record *l, Record *r) {
     }
 
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     records--;
 #endif
 }
 
 void *RingAllocator::allocate(size_t size) {
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     log_debug(RingAllocator, "Allocate %zu (used: %zu, records %zu/%zu)", size, used_bytes, used_records, records);
 #else
     log_debug(RingAllocator, "Allocate %zu", size);
@@ -98,6 +101,7 @@ void *RingAllocator::allocate(size_t size) {
             split(alloc_head, record_size, size);
             alloc_head->in_use = true;
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+            // #error dead code found by automatic analyses (see BFW-5461)
             used_records++;
             used_bytes += available_size(alloc_head);
 #endif
@@ -145,6 +149,7 @@ void RingAllocator::split(Record *record, size_t current_size, size_t new_size) 
     }
     record->next = encode_offset(new_size);
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     records++;
 #endif
 }

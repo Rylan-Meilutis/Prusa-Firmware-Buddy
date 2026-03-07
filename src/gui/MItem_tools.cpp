@@ -256,6 +256,7 @@ void MI_DISABLE_STEP::click(IWindowMenu & /*window_menu*/) {
 /*****************************************************************************/
 // MI_ENTER_DFU
 #ifdef BUDDY_ENABLE_DFU_ENTRY
+// #error dead code found by automatic analyses (see BFW-5461)
 MI_ENTER_DFU::MI_ENTER_DFU()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
 }

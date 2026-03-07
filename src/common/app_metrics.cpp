@@ -14,6 +14,7 @@
 #include <option/has_local_bed.h>
 #include <option/has_cyphal_metrics.h>
 #if HAS_CYPHAL_METRICS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <cyphal_task.hpp>
 #endif /* HAS_CYPHAL_METRICS() */
 #include <option/has_advanced_power.h>
@@ -157,6 +158,7 @@ void RecordRuntimeStats() {
     }
 
 #if HAS_CYPHAL_METRICS()
+    // #error dead code found by automatic analyses (see BFW-5461)
     METRIC_DEF(can_error_log, "can_error_log", METRIC_VALUE_INTEGER, 505, METRIC_ENABLED);
     metric_record_integer(&can_error_log, can::cyphal::cyphal_task.get_error_log());
 #endif /* HAS_CYPHAL_METRICS() */

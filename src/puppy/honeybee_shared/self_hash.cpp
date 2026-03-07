@@ -23,6 +23,7 @@ bool self_hash_get(uint32_t salt, uint8_t output[32]) {
         + reinterpret_cast<size_t>(&__fw_descriptor_length);
 
 #ifdef HASH_ALGOSELECTION_SHA256
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     // Use hardware sha when available
     ret = (HAL_HASH_Accumulate(&hhash, reinterpret_cast<uint8_t *>(&salt), sizeof(salt), HAL_MAX_DELAY) == HAL_OK);

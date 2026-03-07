@@ -45,21 +45,27 @@ typedef unsigned char BLTCommand;
  */
 
 #ifndef BLTOUCH_SET5V_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_SET5V_DELAY   150
 #endif
 #ifndef BLTOUCH_SETOD_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_SETOD_DELAY   150
 #endif
 #ifndef BLTOUCH_MODE_STORE_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_MODE_STORE_DELAY 150
 #endif
 #ifndef BLTOUCH_DEPLOY_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_DEPLOY_DELAY   750
 #endif
 #ifndef BLTOUCH_STOW_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_STOW_DELAY     750
 #endif
 #ifndef BLTOUCH_RESET_DELAY
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLTOUCH_RESET_DELAY    500
 #endif
 

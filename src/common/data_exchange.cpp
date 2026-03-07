@@ -42,8 +42,10 @@ DataExchange &ram_data_exchange = *(DataExchange *)SRAM1_BASE;
 static_assert(sizeof(DataExchange) == 100);
 
 #if !BOOTLOADER()
+// #error dead code found by automatic analyses (see BFW-5461)
 
     #if HAS_XLCD() || HAS_LOVE_BOARD() || PRINTER_IS_PRUSA_MK3_5()
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * @brief reads OTP data from external onewire AT21CSxx eeprom
  * currently supports only OTP_v2 (and OTP_v5 since it is the same)
@@ -79,6 +81,7 @@ static void load_otp_from_eeprom(AT21CSxx &eeprom, OTP_v2 &calib_data, OtpStatus
     #endif
 
     #if HAS_XLCD()
+// #error dead code found by automatic analyses (see BFW-5461)
 static void read_xlcd(XlcdEeprom &data, OtpStatus &status) {
     // LCD reset
     __HAL_RCC_GPIOG_CLK_ENABLE(); // enable lcd reset pin port clock
@@ -96,6 +99,7 @@ static void read_xlcd(XlcdEeprom &data, OtpStatus &status) {
     #endif
 
     #if HAS_LOVE_BOARD() || PRINTER_IS_PRUSA_MK3_5()
+// #error dead code found by automatic analyses (see BFW-5461)
 static void read_loveboard(LoveBoardEeprom &data, OtpStatus &status) {
     __HAL_RCC_GPIOF_CLK_ENABLE(); // enable loveboard eeprom pin port clock
     AT21CSxx eeprom { GPIOF, GPIO_PIN_13 };
@@ -116,11 +120,13 @@ void data_exchange_init() {
     ram_data_exchange.loveboard_eeprom = {};
 
     #if HAS_XLCD()
+    // #error dead code found by automatic analyses (see BFW-5461)
     read_xlcd(ram_data_exchange.xlcd_eeprom, ram_data_exchange.xlcd_status);
     #endif
 
     // MK3.5 doesn't have a loveboard, but it needs the detection to complain if it's running on an MK4
     #if HAS_LOVE_BOARD() || PRINTER_IS_PRUSA_MK3_5()
+    // #error dead code found by automatic analyses (see BFW-5461)
     read_loveboard(ram_data_exchange.loveboard_eeprom, ram_data_exchange.loveboard_status);
     #endif
 }

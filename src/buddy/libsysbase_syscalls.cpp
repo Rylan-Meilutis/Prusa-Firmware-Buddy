@@ -12,6 +12,7 @@
 osMutexDef(libsysbase_mutex);
 
 #if defined(_RETARGETABLE_LOCKING)
+// #error dead code found by automatic analyses (see BFW-5461)
 // This part is not yet tested
 
 struct __lock {

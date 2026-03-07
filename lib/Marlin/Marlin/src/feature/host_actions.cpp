@@ -102,6 +102,7 @@ void host_action(const char * const pstr, const bool eol) {
 
   void host_response_handler(const uint8_t response) {
     #ifdef DEBUG_HOST_ACTIONS
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHOLNPAIR("M876 Handle Reason: ", host_prompt_reason);
       SERIAL_ECHOLNPAIR("M876 Handle Response: ", response);
     #endif

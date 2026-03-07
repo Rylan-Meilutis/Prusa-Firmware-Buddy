@@ -70,6 +70,7 @@ void GcodeSuite::G92() {
 
   bool didE = false;
   #if !HAS_POSITION_SHIFT
+    // #error dead code found by automatic analyses (see BFW-5461)
     bool didXYZ = false;
   #else
     constexpr bool didXYZ = false;
@@ -78,6 +79,7 @@ void GcodeSuite::G92() {
   #if USE_GCODE_SUBCODES
     const uint8_t subcode_G92 = parser.subcode;
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr uint8_t subcode_G92 = 0;
   #endif
 
@@ -101,6 +103,7 @@ void GcodeSuite::G92() {
                       d = v - current_position[i];
           if (!NEAR_ZERO(d)) {
             #if !HAS_POSITION_SHIFT
+              // #error dead code found by automatic analyses (see BFW-5461)
               if (i == E_AXIS) didE = true; else didXYZ = true;
               current_position[i] = v;        // Without workspaces revert to Marlin 1.0 behavior
             #elif HAS_POSITION_SHIFT

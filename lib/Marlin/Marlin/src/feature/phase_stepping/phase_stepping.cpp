@@ -3,6 +3,7 @@
 #include "debug_util.hpp"
 
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "burst_stepper.hpp"
 #else
     #include "quick_tmc_spi.hpp"
@@ -335,6 +336,7 @@ void phase_stepping::check_state() {
         }
 
     #if HAS_BURST_STEPPING()
+        // #error dead code found by automatic analyses (see BFW-5461)
         assert(!burst_stepping::busy());
 
         // Ensure driver_phase is in sync with MSCNT
@@ -366,6 +368,7 @@ bool phase_stepping::processing() {
 
     // ensure the last target has also been flushed
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (burst_stepping::busy()) {
         return true;
     }
@@ -456,6 +459,7 @@ static void enable_phase_stepping(AxisEnum axis_num) {
 
     axis_state.last_phase = current_phase;
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     axis_state.driver_phase = current_phase;
     burst_stepping::init();
 #else
@@ -497,6 +501,7 @@ static inline void single_step_axis(AxisEnum axis) {
     #if ENABLED(SQUARE_WAVE_STEPPING)
         X_STEP_SET();
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         X_STEP_SET();
         delay_us_precise<MINIMUM_STEPPER_PULSE>();
         X_STEP_RESET();
@@ -506,6 +511,7 @@ static inline void single_step_axis(AxisEnum axis) {
     #if ENABLED(SQUARE_WAVE_STEPPING)
         Y_STEP_SET();
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         Y_STEP_SET();
         delay_us_precise<MINIMUM_STEPPER_PULSE>();
         Y_STEP_RESET();
@@ -515,6 +521,7 @@ static inline void single_step_axis(AxisEnum axis) {
     #if ENABLED(SQUARE_WAVE_STEPPING)
         Z_STEP_SET();
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         Z_STEP_SET();
         delay_us_precise<MINIMUM_STEPPER_PULSE>();
         Z_STEP_RESET();
@@ -806,6 +813,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
     assert(phase_difference(axis_state.last_phase, new_phase) < 256);
 
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     int phase_correction = calibration_phase_correction(axis_state, current_lut, position, new_phase);
 
     int shifted_phase = normalize_motor_phase(new_phase + phase_correction);
@@ -865,6 +873,7 @@ FORCE_OFAST void phase_stepping::handle_periodic_refresh() {
     last_timer_tick = now;
 
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Fire the previously setup steps...
     if (burst_stepping::fire()) {
         if (!PreciseStepping::stopping()) {
@@ -917,6 +926,7 @@ int phase_stepping::logical_ustep(AxisEnum axis) {
     // ensure we're not being called while still moving
     assert(!axis_state.current_target.has_value());
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     assert(!burst_stepping::busy());
     assert(mscnt == axis_state.driver_phase);
 #endif
@@ -1045,6 +1055,7 @@ extern "C" void PHSTEP_TIMER_ISR_HANDLER(void) {
 // quick_tmc_spi.cpp, burst_stepper.cpp, axes.cpp and lut.cpp instead of
 // compiling them separately:
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "burst_stepper.cpp"
 #else
     #include "quick_tmc_spi.cpp"

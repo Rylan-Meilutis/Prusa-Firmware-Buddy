@@ -64,10 +64,12 @@
 #include "stm32f4xx.h"
 
 #if !defined(HSE_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSE_VALUE ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined(HSI_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSI_VALUE ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
@@ -144,6 +146,7 @@ const uint8_t APBPrescTable[8] = { 0, 0, 0, 0, 1, 2, 3, 4 };
  */
 
 #if defined(DATA_IN_ExtSRAM) || defined(DATA_IN_ExtSDRAM)
+// #error dead code found by automatic analyses (see BFW-5461)
 static void SystemInit_ExtMemCtl(void);
 #endif /* DATA_IN_ExtSRAM || DATA_IN_ExtSDRAM */
 
@@ -200,11 +203,13 @@ void SystemInit(void) {
     __HAL_RCC_APB2_RELEASE_RESET();
 
 #if defined(DATA_IN_ExtSRAM) || defined(DATA_IN_ExtSDRAM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SystemInit_ExtMemCtl();
 #endif /* DATA_IN_ExtSRAM || DATA_IN_ExtSDRAM */
 
     /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
+    // #error dead code found by automatic analyses (see BFW-5461)
     SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #endif
 }
@@ -289,8 +294,10 @@ void SystemCoreClockUpdate(void) {
 }
 
 #if defined(DATA_IN_ExtSRAM) && defined(DATA_IN_ExtSDRAM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) \
         || defined(STM32F469xx) || defined(STM32F479xx)
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * @brief  Setup the external memory controller.
  *         Called in startup_stm32f4xx.s before jump to main.
@@ -434,12 +441,14 @@ void SystemInit_ExtMemCtl(void) {
     FMC_Bank5_6->SDCR[0] = (tmpreg & 0xFFFFFDFF);
 
         #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Configure and enable Bank1_SRAM2 */
     FMC_Bank1->BTCR[2] = 0x00001011;
     FMC_Bank1->BTCR[3] = 0x00000201;
     FMC_Bank1E->BWTR[2] = 0x0fffffff;
         #endif /* STM32F427xx || STM32F437xx || STM32F429xx || STM32F439xx */
         #if defined(STM32F469xx) || defined(STM32F479xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Configure and enable Bank1_SRAM2 */
     FMC_Bank1->BTCR[2] = 0x00001091;
     FMC_Bank1->BTCR[3] = 0x00110212;
@@ -450,6 +459,7 @@ void SystemInit_ExtMemCtl(void) {
 }
     #endif /* STM32F427xx || STM32F437xx || STM32F429xx || STM32F439xx || STM32F469xx || STM32F479xx */
 #elif defined(DATA_IN_ExtSRAM) || defined(DATA_IN_ExtSDRAM)
+// #error dead code found by automatic analyses (see BFW-5461)
 /**
  * @brief  Setup the external memory controller.
  *         Called in startup_stm32f4xx.s before jump to main.
@@ -462,15 +472,19 @@ void SystemInit_ExtMemCtl(void) {
     __IO uint32_t tmp = 0x00;
     #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) \
         || defined(STM32F446xx) || defined(STM32F469xx) || defined(STM32F479xx)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #if defined(DATA_IN_ExtSDRAM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     register uint32_t tmpreg = 0, timeout = 0xFFFF;
     register __IO uint32_t index;
 
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Enable GPIOA, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG interface
       clock */
     RCC->AHB1ENR |= 0x0000007D;
             #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Enable GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH and GPIOI interface
       clock */
     RCC->AHB1ENR |= 0x000001F8;
@@ -479,6 +493,7 @@ void SystemInit_ExtMemCtl(void) {
     tmp = READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_GPIOCEN);
 
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Connect PAx pins to FMC Alternate function */
     GPIOA->AFR[0] |= 0xC0000000;
     GPIOA->AFR[1] |= 0x00000000;
@@ -554,6 +569,7 @@ void SystemInit_ExtMemCtl(void) {
 
             #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) \
                 || defined(STM32F469xx) || defined(STM32F479xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Connect PHx pins to FMC Alternate function */
     GPIOH->AFR[0] = 0x00C0CC00;
     GPIOH->AFR[1] = 0xCCCCCCCC;
@@ -587,8 +603,10 @@ void SystemInit_ExtMemCtl(void) {
 
             /* Configure and enable SDRAM bank1 */
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCR[0] = 0x00001954;
             #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCR[0] = 0x000019E4;
             #endif /* STM32F446xx */
     FMC_Bank5_6->SDTR[0] = 0x01115351;
@@ -614,8 +632,10 @@ void SystemInit_ExtMemCtl(void) {
 
             /* Auto refresh command */
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCMR = 0x000000F3;
             #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCMR = 0x00000073;
             #endif /* STM32F446xx */
     timeout = 0xFFFF;
@@ -625,8 +645,10 @@ void SystemInit_ExtMemCtl(void) {
 
             /* MRD register program */
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCMR = 0x00044014;
             #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDCMR = 0x00046014;
             #endif /* STM32F446xx */
     timeout = 0xFFFF;
@@ -637,8 +659,10 @@ void SystemInit_ExtMemCtl(void) {
     /* Set refresh count */
     tmpreg = FMC_Bank5_6->SDRTR;
             #if defined(STM32F446xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDRTR = (tmpreg | (0x0000050C << 1));
             #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     FMC_Bank5_6->SDRTR = (tmpreg | (0x0000027C << 1));
             #endif /* STM32F446xx */
 
@@ -651,8 +675,10 @@ void SystemInit_ExtMemCtl(void) {
     #if defined(STM32F405xx) || defined(STM32F415xx) || defined(STM32F407xx) || defined(STM32F417xx)    \
         || defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) \
         || defined(STM32F469xx) || defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx)
+        // #error dead code found by automatic analyses (see BFW-5461)
 
         #if defined(DATA_IN_ExtSRAM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /*-- GPIOs Configuration -----------------------------------------------------*/
     /* Enable GPIOD, GPIOE, GPIOF and GPIOG interface clock */
     RCC->AHB1ENR |= 0x00000078;
@@ -712,6 +738,7 @@ void SystemInit_ExtMemCtl(void) {
     RCC->AHB3ENR |= 0x00000001;
 
             #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Delay after an RCC peripheral clock enabling */
     tmp = READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FMCEN);
     /* Configure and enable Bank1_SRAM2 */
@@ -720,6 +747,7 @@ void SystemInit_ExtMemCtl(void) {
     FMC_Bank1E->BWTR[2] = 0x0fffffff;
             #endif /* STM32F427xx || STM32F437xx || STM32F429xx || STM32F439xx */
             #if defined(STM32F469xx) || defined(STM32F479xx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Delay after an RCC peripheral clock enabling */
     tmp = READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FMCEN);
     /* Configure and enable Bank1_SRAM2 */
@@ -729,6 +757,7 @@ void SystemInit_ExtMemCtl(void) {
             #endif /* STM32F469xx || STM32F479xx */
             #if defined(STM32F405xx) || defined(STM32F415xx) || defined(STM32F407xx) || defined(STM32F417xx) \
                 || defined(STM32F412Zx) || defined(STM32F412Vx)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Delay after an RCC peripheral clock enabling */
     tmp = READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FSMCEN);
     /* Configure and enable Bank1_SRAM2 */

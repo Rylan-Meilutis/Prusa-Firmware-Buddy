@@ -79,6 +79,7 @@ int w25x_fetch_error() {
 }
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
 struct Measure {
     const char *fmt;
     uint32_t len;

@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(BACKLASH_GCODE)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../../feature/backlash.h"
 #include "../../module/planner.h"
@@ -61,6 +62,7 @@ void GcodeSuite::M425() {
   }
 
   #ifdef BACKLASH_SMOOTHING_MM
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (parser.seen('S')) {
       planner.synchronize();
       backlash.smoothing_mm = parser.value_linear_units();
@@ -82,10 +84,12 @@ void GcodeSuite::M425() {
     }
 
     #ifdef BACKLASH_SMOOTHING_MM
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHOLNPAIR("  Smoothing (mm):                 S", backlash.smoothing_mm);
     #endif
 
     #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHOPGM("  Average measured backlash (mm):");
       if (backlash.has_any_measurement()) {
         LOOP_XYZ(a) if (backlash.has_measurement(AxisEnum(a))) {

@@ -41,8 +41,10 @@
 #endif
 
 #if ENABLED(TMC_DEBUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../libs/hex_print_routines.h"
   #if ENABLED(MONITOR_DRIVER_STATUS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static uint16_t report_tmc_status_interval; // = 0
   #endif
 #endif
@@ -115,19 +117,24 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
          is_s2g:1,
          is_error:1
          #if ENABLED(TMC_DEBUG)
+           // #error dead code found by automatic analyses (see BFW-5461)
            , is_stall:1
            , is_stealth:1
            , is_standstill:1
           #if HAS_STALLGUARD
+            // #error dead code found by automatic analyses (see BFW-5461)
            , sg_result_reasonable:1
           #endif
          #endif
       ;
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #if HAS_TMCX1X0 || HAS_TMC220x
+        // #error dead code found by automatic analyses (see BFW-5461)
         uint8_t cs_actual;
       #endif
       #if HAS_STALLGUARD
+        // #error dead code found by automatic analyses (see BFW-5461)
         uint16_t sg_result;
       #endif
     #endif
@@ -136,6 +143,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #if HAS_TMCX1X0
 
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static uint32_t get_pwm_scale(TMC2130Stepper &st) { return st.PWM_SCALE(); }
     #endif
 
@@ -143,6 +151,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       constexpr uint8_t OT_bp = 25, OTPW_bp = 26;
       constexpr uint32_t S2G_bm = 0x18000000;
       #if ENABLED(TMC_DEBUG)
+        // #error dead code found by automatic analyses (see BFW-5461)
         constexpr uint16_t SG_RESULT_bm = 0x3FF; // 0:9
         constexpr uint8_t STEALTH_bp = 14;
         constexpr uint32_t CS_ACTUAL_bm = 0x1F0000; // 16:20
@@ -152,10 +161,12 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       TMC_driver_data data;
       const auto ds = data.drv_status = st.DRV_STATUS();
       #ifdef __AVR__
+        // #error dead code found by automatic analyses (see BFW-5461)
 
         // 8-bit optimization saves up to 70 bytes of PROGMEM per axis
         uint8_t spart;
         #if ENABLED(TMC_DEBUG)
+          // #error dead code found by automatic analyses (see BFW-5461)
           data.sg_result = ds & SG_RESULT_bm;
           spart = ds >> 8;
           data.is_stealth = TEST(spart, STEALTH_bp - 8);
@@ -167,6 +178,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
         data.is_otpw = TEST(spart, OTPW_bp - 24);
         data.is_s2g = !!(spart & (S2G_bm >> 24));
         #if ENABLED(TMC_DEBUG)
+          // #error dead code found by automatic analyses (see BFW-5461)
           data.is_stall = TEST(spart, STALL_GUARD_bp - 24);
           data.is_standstill = TEST(spart, STST_bp - 24);
           data.sg_result_reasonable = !data.is_standstill; // sg_result has no reasonable meaning while standstill
@@ -178,6 +190,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
         data.is_otpw = TEST(ds, OTPW_bp);
         data.is_s2g = !!(ds & S2G_bm);
         #if ENABLED(TMC_DEBUG)
+          // #error dead code found by automatic analyses (see BFW-5461)
           constexpr uint8_t CS_ACTUAL_sb = 16;
           data.sg_result = ds & SG_RESULT_bm;
           data.is_stealth = TEST(ds, STEALTH_bp);
@@ -195,8 +208,10 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #endif // HAS_TMCX1X0
 
   #if HAS_TMC220x
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static uint32_t get_pwm_scale(TMC2208Stepper &st) { return st.pwm_scale_sum(); }
     #endif
 
@@ -209,9 +224,11 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       data.is_ot = TEST(ds, OT_bp);
       data.is_s2g = !!(ds & S2G_bm);
       #if ENABLED(TMC_DEBUG)
+        // #error dead code found by automatic analyses (see BFW-5461)
         constexpr uint32_t CS_ACTUAL_bm = 0x1F0000; // 16:20
         constexpr uint8_t STEALTH_bp = 30, STST_bp = 31;
         #ifdef __AVR__
+          // #error dead code found by automatic analyses (see BFW-5461)
           // 8-bit optimization saves up to 12 bytes of PROGMEM per axis
           uint8_t spart = ds >> 16;
           data.cs_actual = spart & (CS_ACTUAL_bm >> 16);
@@ -219,12 +236,14 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
           data.is_stealth = TEST(spart, STEALTH_bp - 24);
           data.is_standstill = TEST(spart, STST_bp - 24);
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           constexpr uint8_t CS_ACTUAL_sb = 16;
           data.cs_actual = (ds & CS_ACTUAL_bm) >> CS_ACTUAL_sb;
           data.is_stealth = TEST(ds, STEALTH_bp);
           data.is_standstill = TEST(ds, STST_bp);
         #endif
         #if HAS_STALLGUARD
+          // #error dead code found by automatic analyses (see BFW-5461)
           data.sg_result_reasonable = false;
         #endif
       #endif
@@ -234,8 +253,10 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #endif // TMC2208 || TMC2209
 
   #if HAS_DRIVER(TMC2660)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static uint32_t get_pwm_scale(TMC2660Stepper) { return 0; }
     #endif
 
@@ -249,6 +270,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       data.is_ot = TEST(spart, OT_bp);
       data.is_s2g = !!(ds & S2G_bm);
       #if ENABLED(TMC_DEBUG)
+        // #error dead code found by automatic analyses (see BFW-5461)
         constexpr uint8_t STALL_GUARD_bp = 0;
         constexpr uint8_t STST_bp = 7, SG_RESULT_sp = 10;
         constexpr uint32_t SG_RESULT_bm = 0xFFC00; // 10:19
@@ -269,6 +291,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       if (data.is_ot) SERIAL_ECHOLNPGM("overtemperature");
       if (data.is_s2g) SERIAL_ECHOLNPGM("coil short circuit");
       #if ENABLED(TMC_DEBUG)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_report_all(true, true, true, true);
       #endif
       kill(PSTR("Driver error"));
@@ -294,10 +317,13 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     st.printLabel();
     SERIAL_CHAR(':'); SERIAL_PRINT(pwm_scale, DEC);
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #if HAS_TMCX1X0 || HAS_TMC220x
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_CHAR('/'); SERIAL_PRINT(data.cs_actual, DEC);
       #endif
       #if HAS_STALLGUARD
+        // #error dead code found by automatic analyses (see BFW-5461)
         SERIAL_CHAR('/');
         if (data.sg_result_reasonable)
           SERIAL_ECHO(data.sg_result);
@@ -310,6 +336,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     if (data.is_ot)           SERIAL_CHAR('O'); // Over-temperature
     if (data.is_otpw)         SERIAL_CHAR('W'); // over-temperature pre-Warning
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (data.is_stall)      SERIAL_CHAR('G'); // stallGuard
       if (data.is_stealth)    SERIAL_CHAR('T'); // stealthChop
       if (data.is_standstill) SERIAL_CHAR('I'); // standstIll
@@ -348,12 +375,14 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       #endif
 
       #if CURRENT_STEP_DOWN > 0
+        // #error dead code found by automatic analyses (see BFW-5461)
         // Decrease current if is_otpw is true and driver is enabled and there's been more than 4 warnings
         if (data.is_otpw && st.otpw_count > 4) {
           uint16_t I_rms = st.getMilliamps();
           if (st.isEnabled() && I_rms > 100) {
             st.rms_current(I_rms - (CURRENT_STEP_DOWN));
             #if ENABLED(REPORT_CURRENT_CHANGE)
+              // #error dead code found by automatic analyses (see BFW-5461)
               st.printLabel();
               SERIAL_ECHOLNPAIR(" current decreased to ", st.getMilliamps());
             #endif
@@ -369,6 +398,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     }
 
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (need_debug_reporting)
         report_polled_driver_data(st, data);
     #endif
@@ -382,6 +412,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     if (need_update_error_counters)
       next_poll = ms + MONITOR_DRIVER_STATUS_INTERVAL_MS;
     #if ENABLED(TMC_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static millis_t next_debug_reporting = 0;
       if (report_tmc_status_interval && ELAPSED(ms, next_debug_reporting)) {
         need_debug_reporting = true;
@@ -399,31 +430,39 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
         monitor_tmc_driver(stepperZ, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperZ2, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperZ3, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E0)
         monitor_tmc_driver(stepperE0, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperE1, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperE2, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperE3, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperE4, need_update_error_counters, need_debug_reporting);
       #endif
       #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         monitor_tmc_driver(stepperE5, need_update_error_counters, need_debug_reporting);
       #endif
 
       #if ENABLED(TMC_DEBUG)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (need_debug_reporting) SERIAL_EOL();
       #endif
     }
@@ -432,18 +471,22 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
 #endif // MONITOR_DRIVER_STATUS
 
 #if ENABLED(TMC_DEBUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   /**
    * M122 [S<0|1>] [Pnnn] Enable periodic status reports
    */
   #if ENABLED(MONITOR_DRIVER_STATUS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     void tmc_set_report_interval(const uint16_t update_interval) {
       if ((report_tmc_status_interval = update_interval))
         SERIAL_ECHOLNPGM("axis:pwm_scale"
           #if HAS_STEALTHCHOP
+            // #error dead code found by automatic analyses (see BFW-5461)
             "/curr_scale"
           #endif
           #if HAS_STALLGUARD
+            // #error dead code found by automatic analyses (see BFW-5461)
             "/mech_load"
           #endif
           "|flags|warncount"
@@ -526,6 +569,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   static void print_vsense(TMC &st) { serialprintPGM(st.vsense() ? PSTR("1=.18") : PSTR("0=.325")); }
 
   #if HAS_DRIVER(TMC2130) || HAS_DRIVER(TMC5130)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void _tmc_status(TMC2130Stepper &st, const TMC_debug_enum i) {
       switch (i) {
         case TMC_PWM_SCALE: SERIAL_PRINT(st.PWM_SCALE(), DEC); break;
@@ -536,6 +580,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     }
   #endif
   #if HAS_TMCX1X0
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void _tmc_parse_drv_status(TMC2130Stepper &st, const TMC_drv_status_enum i) {
       switch (i) {
         case TMC_STALLGUARD: if (st.stallguard()) SERIAL_CHAR('*'); break;
@@ -548,6 +593,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #endif
 
   #if HAS_DRIVER(TMC2160) || HAS_DRIVER(TMC5160)
+    // #error dead code found by automatic analyses (see BFW-5461)
     template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
     void print_vsense(TMCMarlin<TMC2160Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &) { }
 
@@ -572,6 +618,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #endif
 
   #if HAS_TMC220x
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void _tmc_status(TMC2208Stepper &st, const TMC_debug_enum i) {
       switch (i) {
         case TMC_PWM_SCALE: SERIAL_PRINT(st.pwm_scale_sum(), DEC); break;
@@ -583,6 +630,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     }
 
     #if HAS_DRIVER(TMC2209)
+      // #error dead code found by automatic analyses (see BFW-5461)
       template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
       static void _tmc_status(TMCMarlin<TMC2209Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st, const TMC_debug_enum i) {
         switch (i) {
@@ -609,6 +657,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #endif
 
   #if HAS_DRIVER(TMC2660)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void _tmc_parse_drv_status(TMC2660Stepper, const TMC_drv_status_enum) { }
   #endif
 
@@ -640,6 +689,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
         if (tstep_value != 0xFFFFF) SERIAL_ECHO(tstep_value); else SERIAL_ECHOPGM("max");
       } break;
       #if ENABLED(HYBRID_THRESHOLD)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case TMC_TPWMTHRS: SERIAL_ECHO(uint32_t(st.TPWMTHRS())); break;
         case TMC_TPWMTHRS_MMS: {
           const uint32_t tpwmthrs_val = st.get_pwm_thrs();
@@ -648,6 +698,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
       #endif
       case TMC_OTPW: serialprint_truefalse(st.otpw()); break;
       #if ENABLED(MONITOR_DRIVER_STATUS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case TMC_OTPW_TRIGGERED: serialprint_truefalse(st.getOTPW()); break;
       #endif
       case TMC_TOFF: SERIAL_PRINT(st.toff(), DEC); break;
@@ -659,6 +710,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   }
 
   #if HAS_DRIVER(TMC2660)
+    // #error dead code found by automatic analyses (see BFW-5461)
     template<char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
     void tmc_status(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st, const TMC_debug_enum i) {
       SERIAL_CHAR('\t');
@@ -715,45 +767,56 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   static void tmc_debug_loop(const TMC_debug_enum i, const bool print_x, const bool print_y, const bool print_z, const bool print_e) {
     if (print_x) {
       #if AXIS_IS_TMC(X)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperX, i);
       #endif
     }
 
     if (print_y) {
       #if AXIS_IS_TMC(Y)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperY, i);
       #endif
     }
 
     if (print_z) {
       #if AXIS_IS_TMC(Z)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperZ, i);
       #endif
       #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperZ2, i);
       #endif
       #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperZ3, i);
       #endif
     }
 
     if (print_e) {
       #if AXIS_IS_TMC(E0)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE0, i);
       #endif
       #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE1, i);
       #endif
       #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE2, i);
       #endif
       #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE3, i);
       #endif
       #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE4, i);
       #endif
       #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_status(stepperE5, i);
       #endif
     }
@@ -764,45 +827,56 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   static void drv_status_loop(const TMC_drv_status_enum i, const bool print_x, const bool print_y, const bool print_z, const bool print_e) {
     if (print_x) {
       #if AXIS_IS_TMC(X)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperX, i);
       #endif
     }
 
     if (print_y) {
       #if AXIS_IS_TMC(Y)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperY, i);
       #endif
     }
 
     if (print_z) {
       #if AXIS_IS_TMC(Z)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperZ, i);
       #endif
       #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperZ2, i);
       #endif
       #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperZ3, i);
       #endif
     }
 
     if (print_e) {
       #if AXIS_IS_TMC(E0)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE0, i);
       #endif
       #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE1, i);
       #endif
       #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE2, i);
       #endif
       #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE3, i);
       #endif
       #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE4, i);
       #endif
       #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_parse_drv_status(stepperE5, i);
       #endif
     }
@@ -819,6 +893,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     #define DRV_REPORT(LABEL, ITEM) do{ SERIAL_ECHOPGM(LABEL); drv_status_loop(ITEM, print_x, print_y, print_z, print_e); }while(0)
     TMC_REPORT("\t",                 TMC_CODES);
     #if HAS_DRIVER(TMC2209)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_REPORT("Address\t",        TMC_UART_ADDR);
     #endif
     TMC_REPORT("Enabled\t",          TMC_ENABLED);
@@ -828,11 +903,13 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     TMC_REPORT("Run current",        TMC_IRUN);
     TMC_REPORT("Hold current",       TMC_IHOLD);
     #if HAS_DRIVER(TMC2160) || HAS_DRIVER(TMC5160)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_REPORT("Global scaler",    TMC_GLOBAL_SCALER);
     #endif
     TMC_REPORT("CS actual",          TMC_CS_ACTUAL);
     TMC_REPORT("PWM scale",          TMC_PWM_SCALE);
     #if HAS_DRIVER(TMC2130) || HAS_DRIVER(TMC2224) || HAS_DRIVER(TMC2660) || HAS_TMC220x
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_REPORT("vsense\t",         TMC_VSENSE);
     #endif
     TMC_REPORT("stealthChop",        TMC_STEALTHCHOP);
@@ -842,6 +919,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     TMC_REPORT("[mm/s]\t",           TMC_TPWMTHRS_MMS);
     TMC_REPORT("OT prewarn",         TMC_OTPW);
     #if ENABLED(MONITOR_DRIVER_STATUS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_REPORT("OT prewarn has\n"
                  "been triggered",   TMC_OTPW_TRIGGERED);
     #endif
@@ -853,6 +931,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
 
     DRV_REPORT("DRVSTATUS",          TMC_DRV_CODES);
     #if HAS_TMCX1X0
+      // #error dead code found by automatic analyses (see BFW-5461)
       DRV_REPORT("stallguard\t",     TMC_STALLGUARD);
       DRV_REPORT("sg_result",        TMC_SG_RESULT);
       DRV_REPORT("fsactive\t",       TMC_FSACTIVE);
@@ -865,6 +944,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     DRV_REPORT("otpw\t",             TMC_DRV_OTPW);
     DRV_REPORT("ot\t",               TMC_OT);
     #if HAS_TMC220x
+      // #error dead code found by automatic analyses (see BFW-5461)
       DRV_REPORT("157C\t",           TMC_T157);
       DRV_REPORT("150C\t",           TMC_T150);
       DRV_REPORT("143C\t",           TMC_T143);
@@ -879,6 +959,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   #define PRINT_TMC_REGISTER(REG_CASE) case TMC_GET_##REG_CASE: print_hex_long(st.REG_CASE(), ':'); break
 
   #if HAS_TMCX1X0
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void tmc_get_ic_registers(TMC2130Stepper &st, const TMC_get_registers_enum i) {
       switch (i) {
         PRINT_TMC_REGISTER(TCOOLTHRS);
@@ -889,10 +970,12 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     }
   #endif
   #if HAS_TMC220x
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void tmc_get_ic_registers(TMC2208Stepper, const TMC_get_registers_enum) { SERIAL_CHAR('\t'); }
   #endif
 
   #if HAS_TRINAMIC
+    // #error dead code found by automatic analyses (see BFW-5461)
     template<class TMC>
     static void tmc_get_registers(TMC &st, const TMC_get_registers_enum i) {
       switch (i) {
@@ -914,6 +997,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
     }
   #endif
   #if HAS_DRIVER(TMC2660)
+    // #error dead code found by automatic analyses (see BFW-5461)
     template <char AXIS_LETTER, char DRIVER_ID, AxisEnum AXIS_ID>
     static void tmc_get_registers(TMCMarlin<TMC2660Stepper, AXIS_LETTER, DRIVER_ID, AXIS_ID> &st, const TMC_get_registers_enum i) {
       switch (i) {
@@ -933,45 +1017,56 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
   static void tmc_get_registers(TMC_get_registers_enum i, const bool print_x, const bool print_y, const bool print_z, const bool print_e) {
     if (print_x) {
       #if AXIS_IS_TMC(X)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperX, i);
       #endif
     }
 
     if (print_y) {
       #if AXIS_IS_TMC(Y)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperY, i);
       #endif
     }
 
     if (print_z) {
       #if AXIS_IS_TMC(Z)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperZ, i);
       #endif
       #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperZ2, i);
       #endif
       #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperZ3, i);
       #endif
     }
 
     if (print_e) {
       #if AXIS_IS_TMC(E0)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE0, i);
       #endif
       #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE1, i);
       #endif
       #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE2, i);
       #endif
       #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE3, i);
       #endif
       #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE4, i);
       #endif
       #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         tmc_get_registers(stepperE5, i);
       #endif
     }
@@ -1053,6 +1148,7 @@ uint32_t tmc_feedrate_to_period(AxisEnum axis_id, uint16_t msteps, const float f
 #endif // HAS_DRIVER(TMC2209)
 
 #if HAS_DRIVER(TMC2260)
+  // #error dead code found by automatic analyses (see BFW-5461)
   bool tmc_enable_stallguard(TMCMarlin<TMC2660Stepper>) {
     // TODO
     return false;
@@ -1105,9 +1201,11 @@ void test_tmc_connection(const bool test_x, const bool test_y, const bool test_z
       axis_connection += test_connection(stepperZ);
     #endif
     #if AXIS_IS_TMC(Z2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperZ2);
     #endif
     #if AXIS_IS_TMC(Z3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperZ3);
     #endif
   }
@@ -1117,18 +1215,23 @@ void test_tmc_connection(const bool test_x, const bool test_y, const bool test_z
       axis_connection += test_connection(stepperE0);
     #endif
     #if AXIS_IS_TMC(E1)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperE1);
     #endif
     #if AXIS_IS_TMC(E2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperE2);
     #endif
     #if AXIS_IS_TMC(E3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperE3);
     #endif
     #if AXIS_IS_TMC(E4)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperE4);
     #endif
     #if AXIS_IS_TMC(E5)
+      // #error dead code found by automatic analyses (see BFW-5461)
       axis_connection += test_connection(stepperE5);
     #endif
   }
@@ -1400,6 +1503,7 @@ extern uint16_t tmc_sg_result(uint8_t axis) {
   #elif HAS_DRIVER(TMC2209)
         return pStep[axis]->SG_RESULT();
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
         return 0;
   #endif
     } else {

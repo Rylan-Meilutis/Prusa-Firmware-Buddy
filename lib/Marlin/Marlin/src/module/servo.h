@@ -29,15 +29,20 @@
 #include "../HAL/shared/servo.h"
 
 #if HAS_SERVO_ANGLES
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #if defined(Z_PROBE_SERVO_NR)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define ASRC(N,E) (Z_PROBE_SERVO_NR == N ? asrc[E] : 0)
     #if ENABLED(BLTOUCH)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #include "../feature/bltouch.h"
     #endif
     #ifdef BLTOUCH_ANGLES
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define SADATA  BLTOUCH_ANGLES
     #elif defined(Z_SERVO_ANGLES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define SADATA  Z_SERVO_ANGLES
     #else
       #error "Servo angles are needed!"
@@ -45,24 +50,30 @@
   #endif
 
   #if ENABLED(EDITABLE_SERVO_ANGLES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     extern uint16_t servo_angles[NUM_SERVOS][2];
     #define BASE_SERVO_ANGLES base_servo_angles
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BASE_SERVO_ANGLES servo_angles
   #endif
 
   constexpr uint16_t asrc[] = SADATA;
   #if REQ_ANGLES
+    // #error dead code found by automatic analyses (see BFW-5461)
     static_assert(COUNT(asrc) == REQ_ANGLES, "SWITCHING_EXTRUDER_SERVO_ANGLES needs " STRINGIFY(REQ_ANGLES) " angles.");
   #endif
 
   constexpr uint16_t BASE_SERVO_ANGLES [NUM_SERVOS][2] = {
       { ASRC(0,0), ASRC(0,1) }
     #if NUM_SERVOS > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       , { ASRC(1,0), ASRC(1,1) }
       #if NUM_SERVOS > 2
+        // #error dead code found by automatic analyses (see BFW-5461)
         , { ASRC(2,0), ASRC(2,1) }
         #if NUM_SERVOS > 3
+          // #error dead code found by automatic analyses (see BFW-5461)
           , { ASRC(3,0), ASRC(3,1) }
         #endif
       #endif
@@ -70,6 +81,7 @@
   };
 
   #if HAS_Z_SERVO_PROBE
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][0])
     #define STOW_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][1])
   #endif

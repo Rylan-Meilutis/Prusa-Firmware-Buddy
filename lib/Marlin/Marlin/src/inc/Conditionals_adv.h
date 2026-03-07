@@ -38,9 +38,11 @@
   // 256 is the max TX buffer limit due to uint8_t head and tail
   // : [0, 4, 8, 16, 32, 64, 128, 256]
   #ifndef TX_BUFFER_SIZE
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TX_BUFFER_SIZE 32
   #endif
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   // SERIAL_XON_XOFF not supported on USB-native devices
   #undef SERIAL_XON_XOFF
 #endif

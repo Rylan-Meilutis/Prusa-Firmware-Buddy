@@ -42,6 +42,7 @@ class MarlinSettings {
     #if DISABLED(DISABLE_M503)
       static void report(const bool forReplay=false);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       FORCE_INLINE
       static void report(const bool=false) {}
     #endif

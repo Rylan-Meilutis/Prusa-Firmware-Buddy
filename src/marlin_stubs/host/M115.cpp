@@ -79,7 +79,8 @@ void GcodeSuite::M115() {
     // SERIAL_XON_XOFF
     cap_line(PSTR("SERIAL_XON_XOFF")
 #if ENABLED(SERIAL_XON_XOFF)
-                 ,
+        // #error dead code found by automatic analyses (see BFW-5461)
+        ,
         true
 #endif
     );
@@ -150,13 +151,15 @@ void GcodeSuite::M115() {
     // CASE LIGHTS (M355)
     cap_line(PSTR("TOGGLE_LIGHTS")
 #if HAS_CASE_LIGHT
-                 ,
+        // #error dead code found by automatic analyses (see BFW-5461)
+        ,
         true
 #endif
     );
     cap_line(PSTR("CASE_LIGHT_BRIGHTNESS")
 #if HAS_CASE_LIGHT
-                 ,
+        // #error dead code found by automatic analyses (see BFW-5461)
+        ,
         PWM_PIN(CASE_LIGHT_PIN)
 #endif
     );
@@ -164,7 +167,8 @@ void GcodeSuite::M115() {
     // EMERGENCY_PARSER (M108, M112, M410, M876)
     cap_line(PSTR("EMERGENCY_PARSER")
 #if ENABLED(EMERGENCY_PARSER)
-                 ,
+        // #error dead code found by automatic analyses (see BFW-5461)
+        ,
         true
 #endif
     );
@@ -191,7 +195,8 @@ void GcodeSuite::M115() {
     // MOTION_MODES (M80-M89)
     cap_line(PSTR("MOTION_MODES")
 #if ENABLED(GCODE_MOTION_MODES)
-                 ,
+        // #error dead code found by automatic analyses (see BFW-5461)
+        ,
         true
 #endif
     );

@@ -129,12 +129,15 @@
 #endif
 
 #ifndef E0_STEP_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define E0_STEP_PIN -1
 #endif
 #ifndef E0_DIR_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define E0_DIR_PIN -1
 #endif
 #ifndef E0_ENABLE_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define E0_ENABLE_PIN -1
 #endif
 #ifndef E1_STEP_PIN
@@ -212,6 +215,7 @@
 #endif
 
 #ifndef FAN_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define FAN_PIN -1
 #endif
 #define FAN0_PIN FAN_PIN
@@ -227,6 +231,7 @@
 #endif
 
 #ifndef TEMP_0_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define TEMP_0_PIN -1
 #endif
 
@@ -249,10 +254,13 @@
 // Assign endstop pins for boards with only 3 connectors
 //
 #ifdef X_STOP_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if X_HOME_DIR < 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define X_MIN_PIN X_STOP_PIN
     #define X_MAX_PIN -1
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define X_MIN_PIN -1
     #define X_MAX_PIN X_STOP_PIN
   #endif
@@ -263,10 +271,13 @@
 #endif
 
 #ifdef Y_STOP_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if Y_HOME_DIR < 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Y_MIN_PIN Y_STOP_PIN
     #define Y_MAX_PIN -1
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Y_MIN_PIN -1
     #define Y_MAX_PIN Y_STOP_PIN
   #endif
@@ -277,16 +288,20 @@
 #endif
 
 #ifdef Z_STOP_PIN
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if Z_HOME_DIR < 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_MIN_PIN Z_STOP_PIN
     #define Z_MAX_PIN -1
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_MIN_PIN -1
     #define Z_MAX_PIN Z_STOP_PIN
   #endif
 #elif Z_HOME_DIR < 0
   #define Z_STOP_PIN Z_MIN_PIN
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z_STOP_PIN Z_MAX_PIN
 #endif
 
@@ -299,31 +314,37 @@
 #endif
 
 #if DISABLED(USE_XMAX_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef X_MAX_PIN
   #define X_MAX_PIN          -1
 #endif
 
 #if DISABLED(USE_YMAX_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef Y_MAX_PIN
   #define Y_MAX_PIN          -1
 #endif
 
 #if DISABLED(USE_ZMAX_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef Z_MAX_PIN
   #define Z_MAX_PIN          -1
 #endif
 
 #if DISABLED(USE_XMIN_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef X_MIN_PIN
   #define X_MIN_PIN          -1
 #endif
 
 #if DISABLED(USE_YMIN_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef Y_MIN_PIN
   #define Y_MIN_PIN          -1
 #endif
 
 #if DISABLED(USE_ZMIN_PLUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef Z_MIN_PIN
   #define Z_MIN_PIN          -1
 #endif
@@ -340,8 +361,10 @@
 #define _EPIN(p,q) __EPIN(p,q)
 
 #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z2_E_INDEX E_STEPPERS
   #ifndef Z2_STEP_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_STEP_PIN   _EPIN(Z2_E_INDEX, STEP)
     #define Z2_DIR_PIN    _EPIN(Z2_E_INDEX, DIR)
     #define Z2_ENABLE_PIN _EPIN(Z2_E_INDEX, ENABLE)
@@ -350,27 +373,35 @@
     #endif
   #endif
   #ifndef Z2_CS_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_CS_PIN     _EPIN(Z2_E_INDEX, CS)
   #endif
   #ifndef Z2_MS1_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_MS1_PIN    _EPIN(Z2_E_INDEX, MS1)
   #endif
   #ifndef Z2_MS2_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_MS2_PIN    _EPIN(Z2_E_INDEX, MS2)
   #endif
   #ifndef Z2_MS3_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z2_MS3_PIN    _EPIN(Z2_E_INDEX, MS3)
   #endif
   #if AXIS_DRIVER_TYPE_Z2(TMC2208) || AXIS_DRIVER_TYPE_Z2(TMC2209)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifndef Z2_SERIAL_TX_PIN
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_SERIAL_TX_PIN _EPIN(Z2_E_INDEX, SERIAL_TX)
     #endif
     #ifndef Z2_SERIAL_RX_PIN
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z2_SERIAL_RX_PIN _EPIN(Z2_E_INDEX, SERIAL_RX)
     #endif
   #endif
   #define Z3_E_INDEX INCREMENT(Z2_E_INDEX)
   #ifndef Z3_STEP_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_STEP_PIN   _EPIN(Z3_E_INDEX, STEP)
     #define Z3_DIR_PIN    _EPIN(Z3_E_INDEX, DIR)
     #define Z3_ENABLE_PIN _EPIN(Z3_E_INDEX, ENABLE)
@@ -379,22 +410,29 @@
     #endif
   #endif
   #ifndef Z3_CS_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_CS_PIN     _EPIN(Z3_E_INDEX, CS)
   #endif
   #ifndef Z3_MS1_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_MS1_PIN    _EPIN(Z3_E_INDEX, MS1)
   #endif
   #ifndef Z3_MS2_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_MS2_PIN    _EPIN(Z3_E_INDEX, MS2)
   #endif
   #ifndef Z3_MS3_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z3_MS3_PIN    _EPIN(Z3_E_INDEX, MS3)
   #endif
   #if AXIS_DRIVER_TYPE_Z3(TMC2208) || AXIS_DRIVER_TYPE_Z3(TMC2209)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifndef Z3_SERIAL_TX_PIN
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_SERIAL_TX_PIN _EPIN(Z3_E_INDEX, SERIAL_TX)
     #endif
     #ifndef Z3_SERIAL_RX_PIN
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z3_SERIAL_RX_PIN _EPIN(Z3_E_INDEX, SERIAL_RX)
     #endif
   #endif

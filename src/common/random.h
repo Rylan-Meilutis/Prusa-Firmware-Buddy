@@ -9,6 +9,7 @@
 #ifdef __cplusplus
     #define RAND_DECL extern "C"
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define RAND_DECL
 #endif
 

@@ -10,6 +10,7 @@
 
 #include <option/developer_mode.h>
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <bsod.h>
 #endif
 
@@ -23,6 +24,7 @@ RAND_DECL uint32_t rand_u() {
     }
 
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Dev build -> make the devs know RNG failed
     bsod("HAL RNG failed.");
 #else

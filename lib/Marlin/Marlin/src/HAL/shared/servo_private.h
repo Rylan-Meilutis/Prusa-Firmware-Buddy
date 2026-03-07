@@ -44,10 +44,13 @@
 
 // Architecture specific include
 #ifdef __AVR__
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_AVR/ServoTimers.h"
 #elif defined(ARDUINO_ARCH_SAM)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_DUE/ServoTimers.h"
 #elif defined(__SAMD51__)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_SAMD51/ServoTimers.h"
 #else
   #error "This library only supports boards with an AVR, SAM3X or SAMD51 processor."

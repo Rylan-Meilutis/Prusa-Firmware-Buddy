@@ -40,12 +40,15 @@
 #endif
 
 #if N_ARC_CORRECTION < 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef N_ARC_CORRECTION
   #define N_ARC_CORRECTION 1
 #endif
 #if !defined(MAX_ARC_SEGMENT_MM) && defined(MIN_ARC_SEGMENT_MM)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MAX_ARC_SEGMENT_MM MIN_ARC_SEGMENT_MM
 #elif !defined(MIN_ARC_SEGMENT_MM) && defined(MAX_ARC_SEGMENT_MM)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define MIN_ARC_SEGMENT_MM MAX_ARC_SEGMENT_MM
 #endif
 
@@ -56,6 +59,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
   const bool clockwise, const uint8_t circles, bool last_segment) {
 
   #if ENABLED(CNC_WORKSPACE_PLANES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     AxisEnum axis_p, axis_q, axis_l;
     switch (gcode.workspace_plane) {
       default:
@@ -216,6 +220,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
   };
 
   #if ENABLED(FEEDRATE_SCALING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     hints.inv_duration = (scaled_fr_mm_s / flat_mm) * segments;
   #endif
 
@@ -285,6 +290,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
     #endif
 
     #if ENABLED(HINTS_SAFE_EXIT_SPEED)
+      // #error dead code found by automatic analyses (see BFW-5461)
       // An arc can always complete within limits from a speed which...
       // a) is <= any configured maximum speed,
       // b) does not require centripetal force greater than any configured maximum acceleration,
@@ -349,6 +355,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
       #endif
 
       #if ENABLED(HINTS_SAFE_EXIT_SPEED)
+        // #error dead code found by automatic analyses (see BFW-5461)
         // calculate safe speed for stopping by the end of the arc
         const float arc_mm_remaining = flat_mm - segment_mm * i;
         hints.safe_exit_speed_sqr = _MIN(limiting_speed_sqr, 2 * limiting_accel * arc_mm_remaining);
@@ -369,6 +376,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
   #endif
 
   #if ENABLED(HINTS_SAFE_EXIT_SPEED)
+    // #error dead code found by automatic analyses (see BFW-5461)
     hints.safe_exit_speed_sqr = 0.0f;
   #endif
 
@@ -433,6 +441,7 @@ void GcodeSuite::G2_G3(const bool clockwise) {
   #endif
 
   #if ENABLED(SF_ARC_FIX)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool relative_mode_backup = relative_mode;
     relative_mode = true;
   #endif
@@ -459,6 +468,7 @@ void GcodeSuite::G2_G3(const bool clockwise) {
   }
   else {
     #if ENABLED(CNC_WORKSPACE_PLANES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       char achar, bchar;
       switch (workspace_plane) {
         default:
@@ -478,6 +488,7 @@ void GcodeSuite::G2_G3(const bool clockwise) {
   } else if (arc_offset != xy_pos_t{0, 0}) {
 
     #if ENABLED(ARC_P_CIRCLES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       // P indicates number of circles to do
       const int8_t circles_to_do = parser.byteval('P');
       if (!WITHIN(circles_to_do, 0, 100))

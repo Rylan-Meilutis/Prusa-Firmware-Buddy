@@ -14,12 +14,14 @@
 // #define ISR_DEBUG_NOOPT // Do not optimize ISR functions for debugging
 
 #ifdef ISR_DEADLINE_DEBUGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     #warning "Dedline detection isn't working as intended after PreciseStepping::step_isr() was rewroted."
 #endif
 
 #ifndef ISR_DEBUG_NOOPT
     #define FORCE_OFAST __attribute__((optimize("-Ofast")))
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define FORCE_OFAST // no-op
 #endif
 
@@ -61,6 +63,7 @@ STEPPING_INLINE float fast_sqrt(float in) {
         : "=t"(out)
         : "t"(in));
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     out = sqrtf(in);
 #endif
     return out;

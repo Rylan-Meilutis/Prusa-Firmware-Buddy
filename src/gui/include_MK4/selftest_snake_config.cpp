@@ -4,6 +4,7 @@
 #include <option/has_toolchanger.h>
 #include <config_store/store_instance.hpp>
 #if HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <module/prusa/toolchanger.h>
 #endif
 

@@ -21,10 +21,12 @@
 
 #if PRINTER_IS_PRUSA_MINI()
     #if ENABLE_TRANSLATION_JA()
+// #error dead code found by automatic analyses (see BFW-5461)
 static constexpr const uint16_t font_latin_and_katakana_char_indices[] = {
         #include "../guiapi/include/fnt-latin-and-katakana-indices.ipp"
 };
     #elif ENABLE_TRANSLATION_UK()
+// #error dead code found by automatic analyses (see BFW-5461)
 static constexpr const uint16_t font_latin_and_cyrillic_char_indices[] = {
         #include "../guiapi/include/fnt-latin-and-cyrillic-indices.ipp"
 };
@@ -49,8 +51,10 @@ bool hasASCII(FontCharacterSet charset_option) {
         charset_option == FontCharacterSet::full;
 #else
     #if ENABLE_TRANSLATION_JA()
+        // #error dead code found by automatic analyses (see BFW-5461)
         charset_option == FontCharacterSet::latin_and_katakana;
     #elif ENABLE_TRANSLATION_UK()
+        // #error dead code found by automatic analyses (see BFW-5461)
         charset_option == FontCharacterSet::latin_and_cyrillic;
     #else
         charset_option == FontCharacterSet::latin;
@@ -77,11 +81,13 @@ uint32_t get_char_position_in_font(unichar c, const font_t *pf) {
     switch (pf->charset) {
 #if PRINTER_IS_PRUSA_MINI()
     #if ENABLE_TRANSLATION_JA()
+        // #error dead code found by automatic analyses (see BFW-5461)
     case FontCharacterSet::latin_and_katakana:
         first = std::begin(font_latin_and_katakana_char_indices);
         last = std::end(font_latin_and_katakana_char_indices);
         break;
     #elif ENABLE_TRANSLATION_UK()
+        // #error dead code found by automatic analyses (see BFW-5461)
     case FontCharacterSet::latin_and_cyrillic:
         first = std::begin(font_latin_and_cyrillic_char_indices);
         last = std::end(font_latin_and_cyrillic_char_indices);

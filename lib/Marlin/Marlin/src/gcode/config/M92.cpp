@@ -34,6 +34,7 @@ void report_M92(const bool echo=true, const int8_t e=-1) {
   SERIAL_EOL();
 
   #if ENABLED(DISTINCT_E_FACTORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     for (uint8_t i = 0; i < E_STEPPERS; i++) {
       if (e >= 0 && i != e) continue;
       if (echo) SERIAL_ECHO_START(); else SERIAL_CHAR(' ');
@@ -85,6 +86,7 @@ void GcodeSuite::M92() {
   // No arguments? Show M92 report.
   if (!parser.seen("XYZE"
     #if ENABLED(MAGIC_NUMBERS_GCODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       "HL"
     #endif
   )) {
@@ -127,7 +129,9 @@ void GcodeSuite::M92() {
   planner.refresh_positioning();
 
   #if ENABLED(MAGIC_NUMBERS_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #ifndef Z_MICROSTEPS
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define Z_MICROSTEPS 16
     #endif
     const float wanted = parser.floatval('L');

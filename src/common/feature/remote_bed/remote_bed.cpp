@@ -46,6 +46,7 @@ void remote_bed::safe_state() {
 }
 
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 
     #error "HAS_REMOTE_BED enabled, but not chosen which one"
 

@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(BAUD_RATE_GCODE)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 
@@ -43,14 +44,17 @@ void GcodeSuite::M575() {
         SERIAL_ECHO_START();
         SERIAL_ECHOLNPAIR(" Serial "
           #if NUM_SERIAL > 1
+            // #error dead code found by automatic analyses (see BFW-5461)
             , '0',
           #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             "0"
           #endif
           " baud rate set to ", baud
         );
       }
       #if NUM_SERIAL > 1
+        // #error dead code found by automatic analyses (see BFW-5461)
         const bool set1 = (port == -99 || port == 1);
         if (set1) {
           SERIAL_ECHO_START();
@@ -63,6 +67,7 @@ void GcodeSuite::M575() {
       if (set0) { MYSERIAL0.end(); MYSERIAL0.begin(baud); }
 
       #if NUM_SERIAL > 1
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (set1) { MYSERIAL1.end(); MYSERIAL1.begin(baud); }
       #endif
 

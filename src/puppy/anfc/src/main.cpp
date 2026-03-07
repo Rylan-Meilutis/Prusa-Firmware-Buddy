@@ -56,6 +56,7 @@ can::UartDriver can_driver(
     #ifdef STM32C0
     hal::peripherals::huart1
     #elif STM32H5
+    // #error dead code found by automatic analyses (see BFW-5461)
     hal::peripherals::huart2
     #else
         #error

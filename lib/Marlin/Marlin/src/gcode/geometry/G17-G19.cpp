@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(CNC_WORKSPACE_PLANES)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 

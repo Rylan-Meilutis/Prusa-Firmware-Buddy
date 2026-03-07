@@ -70,11 +70,13 @@ void GcodeSuite::M420() {
              to_enable = seen_S ? parser.value_bool() : planner.leveling_active;
 
   #if ENABLED(MARLIN_DEV_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (parser.intval('S') == 2) {
       for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
         for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
           Z_VALUES(x, y) = 0.001 * random(-200, 200);
           #if ENABLED(EXTENSIBLE_UI)
+            // #error dead code found by automatic analyses (see BFW-5461)
             ExtUI::onMeshUpdate(x, y, Z_VALUES(x, y));
           #endif
         }
@@ -129,8 +131,10 @@ void GcodeSuite::M420() {
           ubl.adjust_mesh_to_mean(true, cval);
 
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
 
           #if ENABLED(M420_C_USE_MEAN)
+            // #error dead code found by automatic analyses (see BFW-5461)
 
             // Get the sum and average of all mesh values
             float mesh_sum = 0;
@@ -140,6 +144,7 @@ void GcodeSuite::M420() {
             const float zmean = mesh_sum / float(GRID_MAX_POINTS);
 
           #else
+            // #error dead code found by automatic analyses (see BFW-5461)
 
             // Find the low and high mesh values
             float lo_val = 100, hi_val = -100;
@@ -162,6 +167,7 @@ void GcodeSuite::M420() {
               for (uint8_t y = GRID_MAX_POINTS_Y; y--;) {
                 Z_VALUES(x, y) -= zmean;
                 #if ENABLED(EXTENSIBLE_UI)
+                  // #error dead code found by automatic analyses (see BFW-5461)
                   ExtUI::onMeshUpdate(x, y, Z_VALUES(x, y));
                 #endif
               }

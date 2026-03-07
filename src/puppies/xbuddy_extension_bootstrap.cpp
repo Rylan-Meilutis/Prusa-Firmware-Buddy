@@ -161,6 +161,7 @@ static void verify_and_flash(
         flash(bootloader_protocol, firmware_info);
     }
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // We still need a valid salt and fingerprint for subsequent run_app().
     // Just read back the computed fingerprint, the puppy will always accept it.
     bootstrap_state_set(0, BootstrapStage::verifying_xbuddy_extension);
@@ -208,6 +209,7 @@ void xbuddy_extension_bootstrap(BootloaderProtocol &bootloader_protocol) {
         fatal_error(ErrCode::ERR_SYSTEM_PUPPY_START_APP_ERR);
     }
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     (void)bootloader_protocol;
 #endif
 }

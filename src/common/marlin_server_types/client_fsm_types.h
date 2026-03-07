@@ -113,5 +113,6 @@ enum class RetAndCool_t : uint8_t {
 };
 
 #else // !__cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 // C
 #endif //__cplusplus

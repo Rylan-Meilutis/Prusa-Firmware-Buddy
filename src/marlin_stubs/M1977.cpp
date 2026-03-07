@@ -129,6 +129,7 @@ static PhasesPhaseStepping intro_helper() {
 }
 
 #if DEVELOPER_MODE()
+// #error dead code found by automatic analyses (see BFW-5461)
 
 __attribute__((format(printf, 2, 3))) static void fdprintf(int fd, const char *fmt, ...) {
     std::array<char, 64> buffer;
@@ -193,6 +194,7 @@ std::optional<uint8_t> evaluate_calibration_result(const CalibrationResult &cali
 
 PhasesPhaseStepping evaluate_result(Context &context) {
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     dump_calibration_result(context);
 #endif
     const auto reduction_x = evaluate_calibration_result(context.calibration_result_x);

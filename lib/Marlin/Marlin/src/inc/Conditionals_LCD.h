@@ -50,6 +50,7 @@
 #define E_TERN0(N)  TERN0(HAS_MULTI_EXTRUDER, N)
 
 #if ENABLED(E_DUAL_STEPPER_DRIVERS) // E0/E1 steppers act in tandem as E0
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define E_STEPPERS      2
 
 #elif HAS_MMU2()                // Průša Multi-Material Unit v2
@@ -93,6 +94,7 @@
             #if E_STEPPERS <= 1
               #undef INVERT_E1_DIR
               #if E_STEPPERS == 0
+                // #error dead code found by automatic analyses (see BFW-5461)
                 #undef INVERT_E0_DIR
               #endif
             #endif
@@ -108,27 +110,36 @@
  * All the logical axes except for the tool (E) axis
  */
 #ifdef NUM_AXES
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef NUM_AXES
   #define NUM_AXES_WARNING 1
 #endif
 
 #ifdef W_DRIVER_TYPE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 9
 #elif defined(V_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 8
 #elif defined(U_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 7
 #elif defined(K_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 6
 #elif defined(J_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 5
 #elif defined(I_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 4
 #elif defined(Z_DRIVER_TYPE)
   #define NUM_AXES 3
 #elif defined(Y_DRIVER_TYPE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 2
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define NUM_AXES 1
 #endif
 #if NUM_AXES >= XY
@@ -136,23 +147,31 @@
   #if NUM_AXES >= XYZ
     #define HAS_Z_AXIS 1
     #if defined(Z3_DRIVER_TYPE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define NUM_Z_STEPPERS 3
     #elif defined(Z2_DRIVER_TYPE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define NUM_Z_STEPPERS 2
     #else
       #define NUM_Z_STEPPERS 1
     #endif
     #if NUM_AXES >= 4
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define HAS_I_AXIS 1
       #if NUM_AXES >= 5
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define HAS_J_AXIS 1
         #if NUM_AXES >= 6
+          // #error dead code found by automatic analyses (see BFW-5461)
           #define HAS_K_AXIS 1
           #if NUM_AXES >= 7
+            // #error dead code found by automatic analyses (see BFW-5461)
             #define HAS_U_AXIS 1
             #if NUM_AXES >= 8
+              // #error dead code found by automatic analyses (see BFW-5461)
               #define HAS_V_AXIS 1
               #if NUM_AXES >= 9
+                // #error dead code found by automatic analyses (see BFW-5461)
                 #define HAS_W_AXIS 1
               #endif
             #endif
@@ -164,6 +183,7 @@
 #endif
 
 #if E_STEPPERS <= 0
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef E0_DRIVER_TYPE
 #endif
 #if E_STEPPERS <= 1
@@ -189,6 +209,7 @@
 #endif
 
 #if !HAS_Y_AXIS
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef ENDSTOPPULLUP_YMIN
   #undef ENDSTOPPULLUP_YMAX
   #undef Y_MIN_ENDSTOP_INVERTING
@@ -206,6 +227,7 @@
 #endif
 
 #if !HAS_Z_AXIS
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef ENDSTOPPULLUP_ZMIN
   #undef ENDSTOPPULLUP_ZMAX
   #undef Z_MIN_ENDSTOP_INVERTING
@@ -333,6 +355,7 @@
 #if NUM_AXES >= 3
   #define PRIMARY_LINEAR_AXES 3
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define PRIMARY_LINEAR_AXES NUM_AXES
 #endif
 
@@ -348,16 +371,22 @@
  * For these axes, positions are specified in angular degrees.
  */
 #if ENABLED(AXIS9_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 6
 #elif ENABLED(AXIS8_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 5
 #elif ENABLED(AXIS7_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 4
 #elif ENABLED(AXIS6_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 3
 #elif ENABLED(AXIS5_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 2
 #elif ENABLED(AXIS4_ROTATES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ROTATIONAL_AXES 1
 #else
   #define ROTATIONAL_AXES 0
@@ -378,6 +407,7 @@
 #if HAS_EXTRUDERS
   #define LOGICAL_AXES INCREMENT(NUM_AXES)
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define LOGICAL_AXES NUM_AXES
 #endif
 
@@ -396,6 +426,7 @@
  *  distinguished.
  */
 #if ENABLED(DISTINCT_E_FACTORS) && E_STEPPERS > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define DISTINCT_AXES (NUM_AXES + E_STEPPERS)
   #define DISTINCT_E E_STEPPERS
   #define E_INDEX_N(E) (E)
@@ -423,14 +454,18 @@
  * and uses "special" angles for its state.
  */
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifndef Z_PROBE_SERVO_NR
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_PROBE_SERVO_NR 0
   #endif
   #ifndef NUM_SERVOS
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define NUM_SERVOS (Z_PROBE_SERVO_NR + 1)
   #endif
   #undef DEACTIVATE_SERVOS_AFTER_MOVE
   #if NUM_SERVOS == 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     #undef SERVO_DELAY
     #define SERVO_DELAY { 50 }
   #endif
@@ -439,16 +474,19 @@
   #undef Z_MIN_PROBE_ENDSTOP_INVERTING
   #define Z_MIN_PROBE_ENDSTOP_INVERTING false
   #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #undef Z_MIN_ENDSTOP_INVERTING
     #define Z_MIN_ENDSTOP_INVERTING false
   #endif
 #endif
 
 #ifndef PREHEAT_1_LABEL
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define PREHEAT_1_LABEL "PLA"
 #endif
 
 #ifndef PREHEAT_2_LABEL
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define PREHEAT_2_LABEL "ABS"
 #endif
 
@@ -469,6 +507,7 @@
     #define HOMING_Z_WITH_PROBE 1
   #endif
   #ifndef Z_PROBE_LOW_POINT
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_PROBE_LOW_POINT -5
   #endif
   #if ENABLED(Z_PROBE_ALLEN_KEY)
@@ -494,17 +533,21 @@
 #define HAS_RESUME_CONTINUE          ANY(EXTENSIBLE_UI, EMERGENCY_PARSER)
 
 #if ENABLED(MORGAN_SCARA)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define IS_SCARA 1
 #endif
 static_assert(!(ENABLED(DELTA) || ENABLED(IS_SCARA)), "Support dropped");
 
 #ifndef INVERT_X_DIR
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define INVERT_X_DIR false
 #endif
 #ifndef INVERT_Y_DIR
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define INVERT_Y_DIR false
 #endif
 #ifndef INVERT_Z_DIR
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define INVERT_Z_DIR false
 #endif
 #ifndef INVERT_E_DIR
@@ -519,5 +562,6 @@ static_assert(!(ENABLED(DELTA) || ENABLED(IS_SCARA)), "Support dropped");
   #define HAS_ENDSTOPS 1
   #define COORDINATE_OKAY(N,L,H) WITHIN(N,L,H)
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define COORDINATE_OKAY(N,L,H) true
 #endif

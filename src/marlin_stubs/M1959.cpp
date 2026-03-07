@@ -105,6 +105,7 @@ public:
             fclose(f);
         }
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         std::ignore = axis;
 #endif
     }
@@ -360,6 +361,7 @@ static PhasesInputShaperCalibration measuring_x_axis(Context &context) {
     #if HAS_ATTACHABLE_ACCELEROMETER()
     constexpr auto next_phase = PhasesInputShaperCalibration::attach_to_bed;
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // there is no bedslinger with permanent accelerometer at the moment, but we can dream...
     constexpr auto next_phase = PhasesInputShaperCalibration::measuring_y_axis;
     #endif

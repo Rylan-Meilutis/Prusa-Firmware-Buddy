@@ -43,5 +43,6 @@ void print_hex_long(const uint32_t w, const char delimiter);
 #ifdef CPU_32_BIT
   typedef uint32_t ptr_int_t;
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   typedef uint16_t ptr_int_t;
 #endif

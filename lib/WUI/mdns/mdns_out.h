@@ -46,6 +46,7 @@
 #include <lwip/timeouts.h>
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 extern "C" {
 #endif
 
@@ -118,6 +119,7 @@ void mdns_send_unicast_msg_delayed_ipv4(void *arg);
 void mdns_start_multicast_timeouts_ipv4(struct netif *netif);
     #endif
     #if LWIP_IPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 void mdns_multicast_timeout_reset_ipv6(void *arg);
 void mdns_multicast_probe_timeout_reset_ipv6(void *arg);
 void mdns_multicast_timeout_25ttl_reset_ipv6(void *arg);
@@ -133,6 +135,7 @@ err_t mdns_send_request(struct mdns_request *req, struct netif *netif, const ip_
 #endif /* LWIP_MDNS_RESPONDER */
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 }
 #endif
 

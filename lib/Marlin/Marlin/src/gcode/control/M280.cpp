@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if HAS_SERVOS
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/servo.h"

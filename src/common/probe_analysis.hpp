@@ -17,6 +17,7 @@
 #include <circle_buffer.hpp>
 
 #ifndef M_PI
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define M_PI 3.14159265358979323846f
 #endif
 

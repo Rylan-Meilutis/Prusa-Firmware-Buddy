@@ -101,8 +101,10 @@ static std::atomic<bool> burst_busy = false;
 
 void burst_stepping::init() {
 #if BOARD_IS_XBUDDY()
+    // #error dead code found by automatic analyses (see BFW-5461)
     setup_xbuddy_pinout();
 #elif BOARD_IS_XLBUDDY()
+    // #error dead code found by automatic analyses (see BFW-5461)
     auto otp_bom_id = otp_get_bom_id();
     if (!otp_bom_id.has_value()) {
         bsod("Unable to determine board BOM ID");
@@ -119,9 +121,11 @@ void burst_stepping::init() {
 
 // initial step state
 #if BOARD_IS_XLBUDDY()
+    // #error dead code found by automatic analyses (see BFW-5461)
     step_signals[X_AXIS] = buddy::hw::XStep;
     step_signals[Y_AXIS] = buddy::hw::YStep;
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     step_signals[X_AXIS] = &buddy::hw::xStep;
     step_signals[Y_AXIS] = &buddy::hw::yStep;
 #endif

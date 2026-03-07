@@ -21,6 +21,7 @@
  */
 
 #if defined(STM32GENERIC) && defined(STM32F7)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../HAL.h"
 #include "timers.h"
@@ -63,6 +64,7 @@ void HAL_timer_start(const uint8_t timer_num, const uint32_t frequency) {
       timerConfig[0].callback = (uint32_t)TC6_Handler;
       HAL_NVIC_SetPriority(timerConfig[0].IRQ_Id, ISR_PRIORITY_STEP_TIMER, 0);
       #if PIN_EXISTS(STEPPER_ENABLE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         OUT_WRITE(STEPPER_ENABLE_PIN, HIGH);
       #endif
       break;

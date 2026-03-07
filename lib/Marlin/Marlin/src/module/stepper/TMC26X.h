@@ -32,8 +32,10 @@
 
 #include <SPI.h>
 #if defined(STM32GENERIC) && defined(STM32F7)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../HAL/HAL_STM32_F4_F7/STM32F7/TMC2660.h"
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include <TMC26XStepper.h>
 #endif
 
@@ -41,6 +43,7 @@ void tmc26x_init_to_defaults();
 
 // X Stepper
 #if AXIS_DRIVER_TYPE_X(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperX;
   #define X_ENABLE_INIT NOOP
   #define X_ENABLE_WRITE(STATE) stepperX.setEnabled(STATE)
@@ -49,6 +52,7 @@ void tmc26x_init_to_defaults();
 
 // Y Stepper
 #if AXIS_DRIVER_TYPE_Y(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperY;
   #define Y_ENABLE_INIT NOOP
   #define Y_ENABLE_WRITE(STATE) stepperY.setEnabled(STATE)
@@ -57,6 +61,7 @@ void tmc26x_init_to_defaults();
 
 // Z Stepper
 #if AXIS_DRIVER_TYPE_Z(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperZ;
   #define Z_ENABLE_INIT NOOP
   #define Z_ENABLE_WRITE(STATE) stepperZ.setEnabled(STATE)
@@ -65,6 +70,7 @@ void tmc26x_init_to_defaults();
 
 // Z2 Stepper
 #if HAS_Z2_ENABLE && AXIS_DRIVER_TYPE_Z2(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperZ2;
   #define Z2_ENABLE_INIT NOOP
   #define Z2_ENABLE_WRITE(STATE) stepperZ2.setEnabled(STATE)
@@ -73,6 +79,7 @@ void tmc26x_init_to_defaults();
 
 // Z3 Stepper
 #if HAS_Z3_ENABLE && ENABLED(Z3_IS_TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperZ3;
   #define Z3_ENABLE_INIT NOOP
   #define Z3_ENABLE_WRITE(STATE) stepperZ3.setEnabled(STATE)
@@ -81,6 +88,7 @@ void tmc26x_init_to_defaults();
 
 // E0 Stepper
 #if AXIS_DRIVER_TYPE_E0(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE0;
   #define E0_ENABLE_INIT NOOP
   #define E0_ENABLE_WRITE(STATE) stepperE0.setEnabled(STATE)
@@ -89,6 +97,7 @@ void tmc26x_init_to_defaults();
 
 // E1 Stepper
 #if AXIS_DRIVER_TYPE_E1(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE1;
   #define E1_ENABLE_INIT NOOP
   #define E1_ENABLE_WRITE(STATE) stepperE1.setEnabled(STATE)
@@ -97,6 +106,7 @@ void tmc26x_init_to_defaults();
 
 // E2 Stepper
 #if AXIS_DRIVER_TYPE_E2(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE2;
   #define E2_ENABLE_INIT NOOP
   #define E2_ENABLE_WRITE(STATE) stepperE2.setEnabled(STATE)
@@ -105,6 +115,7 @@ void tmc26x_init_to_defaults();
 
 // E3 Stepper
 #if AXIS_DRIVER_TYPE_E3(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE3;
   #define E3_ENABLE_INIT NOOP
   #define E3_ENABLE_WRITE(STATE) stepperE3.setEnabled(STATE)
@@ -113,6 +124,7 @@ void tmc26x_init_to_defaults();
 
 // E4 Stepper
 #if AXIS_DRIVER_TYPE_E4(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE4;
   #define E4_ENABLE_INIT NOOP
   #define E4_ENABLE_WRITE(STATE) stepperE4.setEnabled(STATE)
@@ -121,6 +133,7 @@ void tmc26x_init_to_defaults();
 
 // E5 Stepper
 #if AXIS_DRIVER_TYPE_E5(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern TMC26XStepper stepperE5;
   #define E5_ENABLE_INIT NOOP
   #define E5_ENABLE_WRITE(STATE) stepperE5.setEnabled(STATE)

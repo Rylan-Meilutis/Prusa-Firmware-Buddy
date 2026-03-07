@@ -45,6 +45,7 @@ uint8_t to_gcode_tool(uint8_t physical_tool) {
 #if HAS_SPOOL_JOIN() && HAS_TOOL_MAPPING()
     return to_gcode_tool_custom(tool_mapper, spool_join, physical_tool);
 #elif HAS_TOOL_MAPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (auto gcode_tool = tool_mapper.to_gcode(physical_tool); gcode_tool != ToolMapper::NO_TOOL_MAPPED) {
         return gcode_tool;
     } else { // this tool isn't mapped nor joined

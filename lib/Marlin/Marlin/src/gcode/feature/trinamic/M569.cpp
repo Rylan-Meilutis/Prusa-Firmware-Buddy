@@ -47,6 +47,7 @@ static void set_stealth_status(const bool enable, const int8_t target_extruder) 
     const uint8_t index = parser.byteval('I');
   #endif
   #if defined(DEFAULT_MAX_FEEDRATE_STEALTHCHOP)
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr feedRate_t DMF[] = DEFAULT_MAX_FEEDRATE;
     constexpr feedRate_t DMFS[] = DEFAULT_MAX_FEEDRATE_STEALTHCHOP;
     #define TMC_SET_STEALTH(Q, I) do{ \
@@ -74,9 +75,11 @@ static void set_stealth_status(const bool enable, const int8_t target_extruder) 
           if (index == 0) TMC_SET_STEALTH(Z, i);
         #endif
         #if AXIS_HAS_STEALTHCHOP(Z2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (index == 1) TMC_SET_STEALTH(Z2, i);
         #endif
         #if AXIS_HAS_STEALTHCHOP(Z3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (index == 2) TMC_SET_STEALTH(Z3, i);
         #endif
         break;
@@ -87,18 +90,23 @@ static void set_stealth_status(const bool enable, const int8_t target_extruder) 
             case 0: TMC_SET_STEALTH(E0, i); break;
           #endif
           #if AXIS_HAS_STEALTHCHOP(E1)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 1: TMC_SET_STEALTH(E1, i); break;
           #endif
           #if AXIS_HAS_STEALTHCHOP(E2)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 2: TMC_SET_STEALTH(E2, i); break;
           #endif
           #if AXIS_HAS_STEALTHCHOP(E3)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 3: TMC_SET_STEALTH(E3, i); break;
           #endif
           #if AXIS_HAS_STEALTHCHOP(E4)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 4: TMC_SET_STEALTH(E4, i); break;
           #endif
           #if AXIS_HAS_STEALTHCHOP(E5)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 5: TMC_SET_STEALTH(E5, i); break;
           #endif
         }
@@ -121,27 +129,34 @@ static void say_stealth_status() {
     TMC_SAY_STEALTH_STATUS(Z);
   #endif
   #if AXIS_HAS_STEALTHCHOP(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(Z2);
   #endif
   #if AXIS_HAS_STEALTHCHOP(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(Z3);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E0)
     TMC_SAY_STEALTH_STATUS(E0);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(E1);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(E2);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(E3);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(E4);
   #endif
   #if AXIS_HAS_STEALTHCHOP(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TMC_SAY_STEALTH_STATUS(E5);
   #endif
 }

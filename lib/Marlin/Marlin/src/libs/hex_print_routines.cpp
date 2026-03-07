@@ -31,6 +31,7 @@
     constexpr int byte_start = 4;
     static char _hex[] = "0x00000000";
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr int byte_start = 0;
     static char _hex[] = "0x0000";
   #endif
@@ -68,6 +69,7 @@
     #ifdef CPU_32_BIT
       (void)hex_long((ptr_int_t)w);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       (void)hex_word((ptr_int_t)w);
     #endif
     return _hex;

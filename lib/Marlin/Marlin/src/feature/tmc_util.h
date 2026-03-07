@@ -202,12 +202,14 @@ class TMCMarlin : public TMCMarlinBase<TMC> {
 };
 
 #if HAS_DRIVER(TMC2208)
+  // #error dead code found by automatic analyses (see BFW-5461)
 template<>
 class TMCMarlin<TMC2208Stepper> : public TMCMarlinBase<TMC2208Stepper> {
   public:
     using TMCMarlinBase::TMCMarlinBase; // import constructors
 
     #if HAS_STEALTHCHOP
+      // #error dead code found by automatic analyses (see BFW-5461)
       inline void refresh_stepping_mode() { en_spreadCycle(!this->stored.stealthChop_enabled); }
       inline bool get_stealthChop_status() { return !this->en_spreadCycle(); }
     #endif
@@ -292,7 +294,9 @@ void test_tmc_connection(const bool test_x, const bool test_y, const bool test_z
 void initial_test_tmc_connection();
 
 #if ENABLED(TMC_DEBUG)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if ENABLED(MONITOR_DRIVER_STATUS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     void tmc_set_report_interval(const uint16_t update_interval);
   #endif
   void tmc_report_all(const bool print_x, const bool print_y, const bool print_z, const bool print_e);
@@ -309,6 +313,7 @@ void initial_test_tmc_connection();
 #if USE_SENSORLESS
 
   #if ENABLED(IMPROVE_HOMING_RELIABILITY) && HOMING_SG_GUARD_DURATION > 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     extern millis_t sg_guard_period;
     constexpr uint16_t default_sg_guard_duration = HOMING_SG_GUARD_DURATION;
   #endif

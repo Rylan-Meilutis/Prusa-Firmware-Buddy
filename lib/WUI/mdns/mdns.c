@@ -95,6 +95,7 @@ static const ip_addr_t v4group = DNS_MQUERY_IPV4_GROUP_INIT;
     #endif
 
     #if LWIP_IPV6
+        // #error dead code found by automatic analyses (see BFW-5461)
         #include "lwip/mld6.h"
 /* IPv6 multicast group FF02::FB */
 static const ip_addr_t v6group = DNS_MQUERY_IPV6_GROUP_INIT;
@@ -130,6 +131,7 @@ static mdns_name_result_cb_t mdns_name_result_cb;
         /* first probe timeout SHOULD be random 0-250 ms*/
         #define MDNS_INITIAL_PROBE_DELAY_MS (LWIP_RAND() % MDNS_PROBE_DELAY_MS)
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define MDNS_INITIAL_PROBE_DELAY_MS MDNS_PROBE_DELAY_MS
     #endif
 
@@ -256,6 +258,7 @@ check_host(struct netif *netif, struct mdns_rr_info *rr, u8_t *reverse_v6_reply)
     /* Handle PTR for our addresses */
     if (rr->type == DNS_RRTYPE_PTR || rr->type == DNS_RRTYPE_ANY) {
     #if LWIP_IPV6
+        // #error dead code found by automatic analyses (see BFW-5461)
         int i;
         for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
             if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
@@ -291,6 +294,7 @@ check_host(struct netif *netif, struct mdns_rr_info *rr, u8_t *reverse_v6_reply)
         }
     #endif
     #if LWIP_IPV6
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (rr->type == DNS_RRTYPE_AAAA || rr->type == DNS_RRTYPE_ANY) {
             replies |= REPLY_HOST_AAAA;
         }
@@ -525,6 +529,7 @@ mdns_announce(struct netif *netif, const ip_addr_t *destination) {
     }
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
         if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
             announce.host_replies |= REPLY_HOST_AAAA | REPLY_HOST_PTR_V6;
@@ -804,6 +809,7 @@ mdns_convert_out_to_in_pkt(struct mdns_packet *inpkt, struct mdns_outpacket *out
 static void
 mdns_debug_print_answer(struct mdns_packet *pkt, struct mdns_answer *a) {
     #ifdef LWIP_DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Arbitrarily chose 200 -> don't want to see more then that. It's only
      * for debug so not that important. */
     char string[200];
@@ -1138,6 +1144,7 @@ mdns_parse_pkt_known_answers(struct netif *netif, struct mdns_packet *pkt,
                     }
     #endif
     #if LWIP_IPV6
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     if (match & REPLY_HOST_PTR_V6) {
                         LWIP_DEBUGF(MDNS_DEBUG, ("MDNS: Skipping known answer: v6 PTR\n"));
                         reply->host_reverse_v6_replies &= ~rev_v6;
@@ -1156,6 +1163,7 @@ mdns_parse_pkt_known_answers(struct netif *netif, struct mdns_packet *pkt,
     #endif
             } else if (match & REPLY_HOST_AAAA) {
     #if LWIP_IPV6
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (ans.rd_length == sizeof(ip6_addr_p_t) &&
                     /* TODO this clears all AAAA responses if first addr is set as known */
                     pbuf_memcmp(pkt->pbuf, ans.rd_offset, netif_ip6_addr(netif, 0), ans.rd_length) == 0) {
@@ -1455,6 +1463,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
         delay_response = 0;
     }
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (IP_IS_V6_VAL(pkt->source_addr) && reply.probe_query_recv
         && !reply.unicast_reply_requested && !mdns->ipv6.multicast_probe_timeout) {
         delay_response = 0;
@@ -1478,6 +1487,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
      */
 
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     if ((IP_IS_V6_VAL(pkt->source_addr) && mdns->ipv6.multicast_timeout_25TTL)) {
         listen_to_QU_bit = 1;
     }
@@ -1499,6 +1509,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
     if (delay_response) {
         if (send_unicast) {
     #if LWIP_IPV6
+            // #error dead code found by automatic analyses (see BFW-5461)
             /* Add answers to IPv6 waiting list if:
              *  - it's a IPv6 incoming packet
              *  - no message is in it yet
@@ -1532,6 +1543,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
     #endif
         } else {
     #if LWIP_IPV6
+            // #error dead code found by automatic analyses (see BFW-5461)
             /* Add answers to IPv6 waiting list if:
              *  - it's a IPv6 incoming packet
              *  - the 1 second timeout is passed (RFC6762 section 6)
@@ -1598,6 +1610,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
         } else {
             /* Set IP/port to use when responding multicast */
     #if LWIP_IPV6
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (IP_IS_V6_VAL(pkt->source_addr)) {
                 if (mdns->ipv6.multicast_timeout && !reply.probe_query_recv) {
                     LWIP_DEBUGF(MDNS_DEBUG, ("MDNS: we just multicasted, ignore question\n"));
@@ -1623,6 +1636,7 @@ mdns_handle_question(struct mdns_packet *pkt, struct netif *netif) {
             } else {
                 LWIP_DEBUGF(MDNS_DEBUG, ("MDNS: Multicast answer send successfully\n"));
     #if LWIP_IPV6
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (IP_IS_V6_VAL(pkt->source_addr)) {
                     mdns_start_multicast_timeouts_ipv6(netif);
                 }
@@ -1928,6 +1942,7 @@ mdns_handle_response(struct mdns_packet *pkt, struct netif *netif) {
     #endif
                 } else if (ans.info.type == DNS_RRTYPE_AAAA) {
     #if LWIP_IPV6
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     if (ans.rd_length == sizeof(ip6_addr_p_t)) {
                         for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
                             if (pbuf_memcmp(pkt->pbuf, ans.rd_offset, netif_ip6_addr(netif, i), ans.rd_length) == 0) {
@@ -2058,6 +2073,7 @@ mdns_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
      *  that originated on the link. Others are discarded.
      */
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (IP_IS_V6(ip_current_dest_addr())) {
         /* instead of having one 'v6group' per netif, just compare zoneless here */
         if (!ip_addr_zoneless_eq(ip_current_dest_addr(), &v6group)) {
@@ -2184,6 +2200,7 @@ mdns_define_probe_rrs_to_send(struct netif *netif, struct mdns_outmsg *outmsg) {
     }
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
         if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
             outmsg->host_replies |= REPLY_HOST_AAAA;
@@ -2230,6 +2247,7 @@ mdns_probe_and_announce(void *arg) {
     #endif
         {
     #if LWIP_IPV6
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (mdns_send_probe(netif, &v6group) == ERR_OK)
     #endif
             {
@@ -2313,6 +2331,7 @@ err_t mdns_resp_add_netif(struct netif *netif) {
     #endif
 
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     mdns->ipv6.delayed_msg_multicast.dest_port = LWIP_IANA_PORT_MDNS;
     SMEMCPY(&mdns->ipv6.delayed_msg_multicast.dest_addr, &v6group,
         sizeof(ip_addr_t));
@@ -2326,6 +2345,7 @@ err_t mdns_resp_add_netif(struct netif *netif) {
     }
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     res = mld6_joingroup_netif(netif, ip_2_ip6(&v6group));
     if (res != ERR_OK) {
         goto cleanup;
@@ -2351,6 +2371,7 @@ cleanup:
  */
 err_t mdns_resp_remove_netif(struct netif *netif) {
     #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
     Abuse of the original code to hardcode the services.
     int i;
     #endif
@@ -2374,6 +2395,7 @@ err_t mdns_resp_remove_netif(struct netif *netif) {
     // * We don't have its address and we don't know it originated from this netif.
 
     #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
     Abuse of the original code to hardcode the services.
     for (i = 0; i < MDNS_MAX_SERVICES; i++) {
         struct mdns_service *service = mdns->services[i];
@@ -2388,6 +2410,7 @@ err_t mdns_resp_remove_netif(struct netif *netif) {
     igmp_leavegroup_netif(netif, ip_2_ip4(&v4group));
     #endif
     #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     mld6_leavegroup_netif(netif, ip_2_ip6(&v6group));
     #endif
 
@@ -2397,6 +2420,7 @@ err_t mdns_resp_remove_netif(struct netif *netif) {
 }
 
     #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
 /**
  * @ingroup mdns
  * Update MDNS hostname for a network interface.
@@ -2466,6 +2490,7 @@ s8_t mdns_resp_add_service_prusalink(struct netif *netif) {
 }
 
     #if 0
+        // #error dead code found by automatic analyses (see BFW-5461)
 Abuse of the original code to hardcode the services.
 /**
  * @ingroup mdns
@@ -2658,6 +2683,7 @@ err_t mdns_search_service(const char *name, const char *service, enum mdns_sd_pr
     *request_id = slot;
         /* now prepare a MDNS request and send it (on specified interface) */
         #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     mdns_send_request(req, netif, &v6group);
         #endif
         #if LWIP_IPV4
@@ -2687,6 +2713,7 @@ void mdns_resp_announce(struct netif *netif) {
     if (mdns->state >= MDNS_STATE_ANNOUNCING) {
         /* Announce on IPv6 and IPv4 */
     #if LWIP_IPV6
+        // #error dead code found by automatic analyses (see BFW-5461)
         mdns_announce(netif, &v6group);
         mdns_start_multicast_timeouts_ipv6(netif);
     #endif
@@ -2766,6 +2793,7 @@ void mdns_resp_init(void) {
     #if LWIP_MULTICAST_TX_OPTIONS
     udp_set_multicast_ttl(mdns_pcb, MDNS_IP_TTL);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     mdns_pcb->ttl = MDNS_IP_TTL;
     #endif
     res = udp_bind(mdns_pcb, IP_ANY_TYPE, LWIP_IANA_PORT_MDNS);

@@ -31,42 +31,54 @@
 // TMC26X Driver objects and inits
 //
 #if HAS_DRIVER(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "TMC26X.h"
 
 #define _TMC26X_DEFINE(ST) TMC26XStepper stepper##ST(200, ST##_CS_PIN, ST##_STEP_PIN, ST##_DIR_PIN, ST##_MAX_CURRENT, ST##_SENSE_RESISTOR)
 
 #if AXIS_DRIVER_TYPE_X(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(X);
 #endif
 #if AXIS_DRIVER_TYPE_Y(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(Y);
 #endif
 #if AXIS_DRIVER_TYPE_Z(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(Z);
 #endif
 #if AXIS_DRIVER_TYPE_Z2(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(Z2);
 #endif
 #if AXIS_DRIVER_TYPE_Z3(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(Z3);
 #endif
 #if AXIS_DRIVER_TYPE_E0(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E0);
 #endif
 #if AXIS_DRIVER_TYPE_E1(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E1);
 #endif
 #if AXIS_DRIVER_TYPE_E2(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E2);
 #endif
 #if AXIS_DRIVER_TYPE_E3(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E3);
 #endif
 #if AXIS_DRIVER_TYPE_E4(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E4);
 #endif
 #if AXIS_DRIVER_TYPE_E5(TMC26X)
+  // #error dead code found by automatic analyses (see BFW-5461)
   _TMC26X_DEFINE(E5);
 #endif
 
@@ -77,36 +89,47 @@
 
 void tmc26x_init_to_defaults() {
   #if AXIS_DRIVER_TYPE_X(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(X);
   #endif
   #if AXIS_DRIVER_TYPE_Y(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(Y);
   #endif
   #if AXIS_DRIVER_TYPE_Z(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(Z);
   #endif
   #if AXIS_DRIVER_TYPE_Z2(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(Z2);
   #endif
   #if AXIS_DRIVER_TYPE_Z3(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(Z3);
   #endif
   #if AXIS_DRIVER_TYPE_E0(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E0);
   #endif
   #if AXIS_DRIVER_TYPE_E1(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E1);
   #endif
   #if AXIS_DRIVER_TYPE_E2(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E2);
   #endif
   #if AXIS_DRIVER_TYPE_E3(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E3);
   #endif
   #if AXIS_DRIVER_TYPE_E4(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E4);
   #endif
   #if AXIS_DRIVER_TYPE_E5(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     _TMC26X_INIT(E5);
   #endif
 }

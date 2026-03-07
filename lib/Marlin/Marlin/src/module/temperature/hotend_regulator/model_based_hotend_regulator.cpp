@@ -124,6 +124,7 @@ HotendRegulatorResult ModelBasedHotendRegulator::get_pid_output_hotend(const Hot
     }
 
 #if ENABLED(PID_DEBUG)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (args.hotend_index == active_extruder) {
         SERIAL_ECHO_START();
         SERIAL_ECHOPAIR(
@@ -137,6 +138,7 @@ HotendRegulatorResult ModelBasedHotendRegulator::get_pid_output_hotend(const Hot
             MSG_PID_DEBUG_ITERM, work_pid.Ki,
             MSG_PID_DEBUG_DTERM, work_pid.Kd
     #if ENABLED(PID_EXTRUSION_SCALING)
+            // #error dead code found by automatic analyses (see BFW-5461)
             ,
             MSG_PID_DEBUG_CTERM, work_pid.Kc
     #endif

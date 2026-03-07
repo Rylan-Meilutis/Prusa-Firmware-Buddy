@@ -11,6 +11,7 @@
 LOG_COMPONENT_REF(GUI);
 
 #ifndef MAXPATHNAMELENGTH
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define MAXPATHNAMELENGTH F_MAXPATHNAMELENGTH
 #endif
 

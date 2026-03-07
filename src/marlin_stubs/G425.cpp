@@ -40,6 +40,7 @@
 #include "inc/Conditionals_LCD.h"
 
 #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "../../feature/backlash.h"
 #endif
 
@@ -161,12 +162,14 @@ enum class Phase : uint8_t {
 #define TEMPORARY_SOFT_ENDSTOP_STATE(enable) REMEMBER(tes, soft_endstops_enabled, enable);
 
 #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TEMPORARY_BACKLASH_CORRECTION(value) REMEMBER(tbst, backlash.correction, value)
 #else
     #define TEMPORARY_BACKLASH_CORRECTION(value)
 #endif
 
 #if ENABLED(BACKLASH_GCODE) && defined(BACKLASH_SMOOTHING_MM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TEMPORARY_BACKLASH_SMOOTHING(value) REMEMBER(tbsm, backlash.smoothing_mm, value)
 #else
     #define TEMPORARY_BACKLASH_SMOOTHING(value)
@@ -577,6 +580,7 @@ inline bool calibrate_toolhead(measurements_t &m, const uint8_t extruder) {
 #if HOTENDS > 1
     set_nozzle(m, extruder);
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     UNUSED(extruder);
 #endif
 
@@ -657,6 +661,7 @@ inline void calibrate_all() {
     calibrate_all_toolheads(m);
 
 #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     calibrate_backlash(m);
 #endif
 

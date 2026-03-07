@@ -69,6 +69,7 @@ bool GCodeQueue::pause_serial_commands = false;
  * The port that the command was received on
  */
 #if NUM_SERIAL > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   int16_t GCodeQueue::port[BUFSIZE];
 #endif
 
@@ -114,11 +115,13 @@ void GCodeQueue::clear() {
  */
 void GCodeQueue::_commit_command(bool say_ok
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     , int16_t p/*=-1*/
   #endif
 ) {
   send_ok[index_w] = say_ok;
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     port[index_w] = p;
   #endif
   sdpos_buffer[index_w] = sdpos;
@@ -134,6 +137,7 @@ void GCodeQueue::_commit_command(bool say_ok
  */
 bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     , int16_t pn/*=-1*/
   #endif
 ) {
@@ -141,6 +145,7 @@ bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
   strcpy(command_buffer[index_w], cmd);
   _commit_command(say_ok
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       , pn
     #endif
   );
@@ -260,6 +265,7 @@ void GCodeQueue::enqueue_now_P(PGM_P const pgcode) {
  */
 void GCodeQueue::ok_to_send() {
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     const int16_t pn = port[index_r];
     if (pn < 0) return;
     PORT_REDIRECT(pn);
@@ -267,6 +273,7 @@ void GCodeQueue::ok_to_send() {
   if (!send_ok[index_r]) return;
   SERIAL_ECHOPGM(MSG_OK);
   #if ENABLED(ADVANCED_OK)
+    // #error dead code found by automatic analyses (see BFW-5461)
     char* p = command_buffer[index_r];
     if (*p == 'N') {
       SERIAL_ECHO(' ');
@@ -286,6 +293,7 @@ void GCodeQueue::ok_to_send() {
  */
 void GCodeQueue::flush_and_request_resend() {
   #if NUM_SERIAL > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     const int16_t p = port[index_r];
     if (p < 0) return;
     PORT_REDIRECT(p);
@@ -300,6 +308,7 @@ inline bool serial_data_available() {
   return false
     || MYSERIAL0.available()
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       || MYSERIAL1.available()
     #endif
   ;
@@ -309,6 +318,7 @@ inline int read_serial(const uint8_t index) {
   switch (index) {
     case 0: return MYSERIAL0.read();
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       case 1: return MYSERIAL1.read();
     #endif
     default: return -1;
@@ -339,6 +349,7 @@ void GCodeQueue::get_serial_commands() {
   static char serial_line_buffer[NUM_SERIAL][MAX_CMD_SIZE];
   static bool serial_comment_mode[NUM_SERIAL] = { false }
               #if ENABLED(PAREN_COMMENTS)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 , serial_comment_paren_mode[NUM_SERIAL] = { false }
               #endif
             ;
@@ -346,6 +357,7 @@ void GCodeQueue::get_serial_commands() {
   // If the command buffer is empty for too long,
   // send "wait" to indicate Marlin is still waiting.
   #if NO_TIMEOUTS > 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     static millis_t last_command_time = 0;
     const millis_t ms = millis();
     if (length == 0 && !serial_data_available() && ELAPSED(ms, last_command_time + NO_TIMEOUTS)) {
@@ -372,6 +384,7 @@ void GCodeQueue::get_serial_commands() {
         // Start with comment mode off
         serial_comment_mode[i] = false;
         #if ENABLED(PAREN_COMMENTS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           serial_comment_paren_mode[i] = false;
         #endif
 
@@ -423,6 +436,7 @@ void GCodeQueue::get_serial_commands() {
         #endif
 
         #if defined(NO_TIMEOUTS) && NO_TIMEOUTS > 0
+          // #error dead code found by automatic analyses (see BFW-5461)
           last_command_time = ms;
         #endif
 
@@ -432,6 +446,7 @@ void GCodeQueue::get_serial_commands() {
         // Add the command to the queue
         _enqueue(serial_line_buffer[i], true
           #if NUM_SERIAL > 1
+            // #error dead code found by automatic analyses (see BFW-5461)
             , i
           #endif
         );
@@ -444,6 +459,7 @@ void GCodeQueue::get_serial_commands() {
         // if we have one more character, copy it over
         if ((c = read_serial(i)) >= 0 && !serial_comment_mode[i]
           #if ENABLED(PAREN_COMMENTS)
+            // #error dead code found by automatic analyses (see BFW-5461)
             && !serial_comment_paren_mode[i]
           #endif
         )
@@ -452,11 +468,13 @@ void GCodeQueue::get_serial_commands() {
       else { // it's not a newline, carriage return or escape char
         if (serial_char == ';') serial_comment_mode[i] = true;
         #if ENABLED(PAREN_COMMENTS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           else if (serial_char == '(') serial_comment_paren_mode[i] = true;
           else if (serial_char == ')') serial_comment_paren_mode[i] = false;
         #endif
         else if (!serial_comment_mode[i]
           #if ENABLED(PAREN_COMMENTS)
+            // #error dead code found by automatic analyses (see BFW-5461)
             && ! serial_comment_paren_mode[i]
           #endif
         ) serial_line_buffer[i][serial_count[i]++] = serial_char;

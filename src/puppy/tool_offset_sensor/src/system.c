@@ -46,23 +46,29 @@
 #include "stm32c0xx.h"
 
 #if !defined(HSE_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSE_VALUE (40000000UL) /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined(HSI_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSI_VALUE (48000000UL) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
 #if !defined(LSI_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define LSI_VALUE (32000UL) /*!< Value of LSI in Hz*/
 #endif /* LSI_VALUE */
 
 #if !defined(LSE_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define LSE_VALUE (32768UL) /*!< Value of LSE in Hz*/
 #endif /* LSE_VALUE */
 
 #if defined(RCC_HSI48_SUPPORT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if !defined(HSI48_VALUE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define HSI48_VALUE 48000000U /*!< Value of the HSI48 oscillator in Hz */
     #endif /* HSI48_VALUE */
 #endif /* RCC_HSI48_SUPPORT */
@@ -143,6 +149,7 @@ void SystemInit(void) {
 
     /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
+    // #error dead code found by automatic analyses (see BFW-5461)
     SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
     SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
@@ -193,6 +200,7 @@ void SystemCoreClockUpdate(void) {
 #if defined(RCC_CR_SYSDIV)
     sysdiv = (uint32_t)(((RCC->CR & RCC_CR_SYSDIV) >> RCC_CR_SYSDIV_Pos) + 1U);
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     sysdiv = 1U;
 #endif /* RCC_CR_SYSDIV */
 
@@ -203,6 +211,7 @@ void SystemCoreClockUpdate(void) {
         break;
 
 #if defined(RCC_HSI48_SUPPORT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     case RCC_CFGR_SW_1: /* HSI48 used as system clock */
         SystemCoreClock = (HSI48_VALUE / sysdiv);
         break;

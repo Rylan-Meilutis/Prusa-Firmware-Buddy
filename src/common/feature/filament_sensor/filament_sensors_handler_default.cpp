@@ -64,6 +64,7 @@ IFSensor *GetSideFSensor([[maybe_unused]] uint8_t index) {
         return &xbe_filament_sensor;
     }
 #elif PRINTER_IS_PRUSA_iX()
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (index == 0) {
         static FSensor_iXSide sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 });
         return &sensor;

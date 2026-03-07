@@ -12,6 +12,7 @@
     #define TICK_TIMER_IRQHandler TIM5_IRQHandler
     #define TICK_TIMER_IS_32BIT   1
 #elif MCU_IS_STM32G0()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define TICK_TIMER            TIM3
     #define TICK_TIMER_CLK_ENABLE __HAL_RCC_TIM3_CLK_ENABLE
     #define TICK_TIMER_IRQ        TIM3_IRQn

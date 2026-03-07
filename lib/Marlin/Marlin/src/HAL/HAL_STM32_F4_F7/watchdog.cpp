@@ -21,10 +21,12 @@
  */
 
 #if defined(STM32GENERIC) && (defined(STM32F4) || defined(STM32F7))
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(USE_WATCHDOG)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #include "watchdog.h"
 

@@ -167,6 +167,7 @@ class Temperature {
         return tooCold(static_cast<int16_t>(degHotend(HOTEND_INDEX)));
       }
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       [[deprecated("Use the ToolIndex overload")]]
       FORCE_INLINE static bool tooColdToExtrude(const uint8_t) { return false; }
     #endif
@@ -187,6 +188,7 @@ class Temperature {
   private:
 
     #if EARLY_WATCHDOG
+      // #error dead code found by automatic analyses (see BFW-5461)
       static bool inited;   // If temperature controller is running
     #endif
 
@@ -317,6 +319,7 @@ class Temperature {
       #if ENABLED(PREVENT_COLD_EXTRUSION)
         return tooCold(degTargetHotend(physical_tool));
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         return false;
       #endif
     }

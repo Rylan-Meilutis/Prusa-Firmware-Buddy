@@ -39,6 +39,7 @@ millis_t Power::lastPowerOn;
 
 bool Power::is_power_needed() {
   #if ENABLED(AUTO_POWER_FANS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FANS_LOOP(i) if (thermalManager.fan_speed[i]) return true;
   #endif
 
@@ -46,25 +47,32 @@ bool Power::is_power_needed() {
   if (X_ENABLE_READ() == X_ENABLE_ON || Y_ENABLE_READ() == Y_ENABLE_ON
     #if POWER_IGNORE_Z
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       || Z_ENABLE_READ() == Z_ENABLE_ON
     #endif
     #if HAS_HEATED_BED
       || thermalManager.temp_bed.soft_pwm_amount > 0
     #endif
       #if HAS_Z2_ENABLE
+        // #error dead code found by automatic analyses (see BFW-5461)
         || Z2_ENABLE_READ() == Z_ENABLE_ON
       #endif
       #if E_STEPPERS
         || E0_ENABLE_READ() == E_ENABLE_ON
         #if E_STEPPERS > 1
+          // #error dead code found by automatic analyses (see BFW-5461)
           || E1_ENABLE_READ() == E_ENABLE_ON
           #if E_STEPPERS > 2
+            // #error dead code found by automatic analyses (see BFW-5461)
             || E2_ENABLE_READ() == E_ENABLE_ON
             #if E_STEPPERS > 3
+              // #error dead code found by automatic analyses (see BFW-5461)
               || E3_ENABLE_READ() == E_ENABLE_ON
               #if E_STEPPERS > 4
+                // #error dead code found by automatic analyses (see BFW-5461)
                 || E4_ENABLE_READ() == E_ENABLE_ON
                 #if E_STEPPERS > 5
+                  // #error dead code found by automatic analyses (see BFW-5461)
                   || E5_ENABLE_READ() == E_ENABLE_ON
                 #endif // E_STEPPERS > 5
               #endif // E_STEPPERS > 4

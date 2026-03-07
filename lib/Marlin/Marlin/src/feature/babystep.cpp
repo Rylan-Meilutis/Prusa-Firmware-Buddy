@@ -30,6 +30,7 @@
 #include "../module/stepper.h"
 
 #if ENABLED(BABYSTEP_ALWAYS_AVAILABLE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../gcode/gcode.h"
 #endif
 
@@ -48,6 +49,7 @@ void Babystep::step_axis(const AxisEnum axis) {
 
 void Babystep::task() {
   #if ENABLED(BABYSTEP_XY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     LOOP_XYZ(axis) step_axis((AxisEnum)axis);
   #else
     step_axis(Z_AXIS);
@@ -63,6 +65,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
   #if ENABLED(BABYSTEP_WITHOUT_HOMING)
     #define CAN_BABYSTEP(AXIS) true
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     extern uint8_t axis_known_position;
     #define CAN_BABYSTEP(AXIS) TEST(axis_known_position, AXIS)
   #endif
@@ -72,6 +75,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
   accum += distance; // Count up babysteps for the UI
 
   #if ENABLED(BABYSTEP_ALWAYS_AVAILABLE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BSA_ENABLE(AXIS) do{ switch (AXIS) { case X_AXIS: enable_X(); break; case Y_AXIS: enable_Y(); break; case Z_AXIS: enable_Z(); break; default: break; } }while(0)
   #else
     #define BSA_ENABLE(AXIS) NOOP
@@ -79,6 +83,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
 
   #if IS_CORE
     #if ENABLED(BABYSTEP_XY)
+      // #error dead code found by automatic analyses (see BFW-5461)
       switch (axis) {
         case CORE_AXIS_1: // X on CoreXY and CoreXZ, Y on CoreYZ
           BSA_ENABLE(CORE_AXIS_1);
@@ -99,6 +104,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
           break;
       }
     #elif CORE_IS_XZ || CORE_IS_YZ
+      // #error dead code found by automatic analyses (see BFW-5461)
       // Only Z stepping needs to be handled here
       BSA_ENABLE(CORE_AXIS_1);
       BSA_ENABLE(CORE_AXIS_2);
@@ -110,6 +116,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
     #endif
   #else
     #if ENABLED(BABYSTEP_XY)
+      // #error dead code found by automatic analyses (see BFW-5461)
       BSA_ENABLE(axis);
     #else
       BSA_ENABLE(Z_AXIS);

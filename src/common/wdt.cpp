@@ -54,6 +54,7 @@ void wdt_wwdg_init(void) {
 
 void wdt_tick_1ms(void) {
 #ifdef WDT_WWDG_ENABLED
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (hwwdg.Instance) {
         if (wdt_wwdg_counter++ >= WDT_WWDG_REFRESH_DELAY) {
             if (__HAL_RCC_WWDG_IS_CLK_DISABLED()) {

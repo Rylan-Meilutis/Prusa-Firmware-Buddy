@@ -252,6 +252,7 @@ namespace frame {
                     print_icons.SetIconHidden(tool.to_raw(), true);
                     heatbreak_icons.SetIconHidden(tool.to_raw(), true);
     #if HAS_SWITCHED_FAN_TEST()
+                    // #error dead code found by automatic analyses (see BFW-5461)
                     swtiched_fan_icons.SetIconHidden(tool.to_raw(), true);
     #endif
                 }

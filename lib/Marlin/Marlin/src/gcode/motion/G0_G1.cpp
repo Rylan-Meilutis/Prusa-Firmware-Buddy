@@ -24,6 +24,7 @@
 #include "../../module/motion.h"
 
 #if ENABLED(NANODLP_Z_SYNC)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../module/planner.h"
 #endif
 
@@ -34,6 +35,7 @@
 extern xyze_pos_t destination;
 
 #if ENABLED(VARIABLE_G0_FEEDRATE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   feedRate_t fast_move_feedrate = MMM_TO_MMS(G0_FEEDRATE);
 #endif
 
@@ -66,8 +68,10 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   #endif
 
   #ifdef G0_FEEDRATE
+    // #error dead code found by automatic analyses (see BFW-5461)
     feedRate_t old_feedrate;
     #if ENABLED(VARIABLE_G0_FEEDRATE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (fast_move) {
         old_feedrate = feedrate_mm_s;             // Back up the (old) motion mode feedrate
         feedrate_mm_s = fast_move_feedrate;       // Get G0 feedrate from last usage
@@ -78,10 +82,13 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
 
   #ifdef G0_FEEDRATE
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (fast_move) {
       #if ENABLED(VARIABLE_G0_FEEDRATE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         fast_move_feedrate = feedrate_mm_s;       // Save feedrate for the next G0
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         old_feedrate = feedrate_mm_s;             // Back up the (new) motion mode feedrate
         feedrate_mm_s = MMM_TO_MMS(G0_FEEDRATE);  // Get the fixed G0 feedrate
       #endif
@@ -95,14 +102,18 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   #endif
 
   #ifdef G0_FEEDRATE
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Restore the motion mode feedrate
     if (fast_move) feedrate_mm_s = old_feedrate;
   #endif
 
   #if ENABLED(NANODLP_Z_SYNC)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(NANODLP_ALL_AXIS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define _MOVE_SYNC parser.seenval('X') || parser.seenval('Y') || parser.seenval('Z')  // For any move wait and output sync message
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define _MOVE_SYNC parser.seenval('Z')  // Only for Z move
     #endif
     if (_MOVE_SYNC) {

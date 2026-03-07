@@ -61,6 +61,7 @@ static void enable_or_disable_E(uint8_t index, bool value) {
         break;
 #endif
 #if (E_STEPPERS > 5 || HAS_TOOLCHANGER()) && HAS_E5_ENABLE
+    // #error dead code found by automatic analyses (see BFW-5461)
     case 5:
         E5_ENABLE_WRITE(pin_value);
         break;
@@ -114,22 +115,27 @@ void stepper_enable(AxisEnum axis, bool enabled) {
         return enable_or_disable_E(0, enabled);
 #endif
 #if E_STEPPERS > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E1_AXIS:
         return enable_or_disable_E(1, enabled);
 #endif
 #if E_STEPPERS > 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E2_AXIS:
         return enable_or_disable_E(2, enabled);
 #endif
 #if E_STEPPERS > 3
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E3_AXIS:
         return enable_or_disable_E(3, enabled);
 #endif
 #if E_STEPPERS > 4
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E4_AXIS:
         return enable_or_disable_E(4, enabled);
 #endif
 #if E_STEPPERS > 5
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E5_AXIS:
         return enable_or_disable_E(5, enabled);
 #endif
@@ -163,22 +169,27 @@ bool stepper_enabled(AxisEnum axis) {
         return E0_ENABLE_READ();
 #endif
 #if E_STEPPERS > 1
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E1_AXIS:
         return E1_ENABLE_READ();
 #endif
 #if E_STEPPERS > 2
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E2_AXIS:
         return E2_ENABLE_READ();
 #endif
 #if E_STEPPERS > 3
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E3_AXIS:
         return E3_ENABLE_READ();
 #endif
 #if E_STEPPERS > 4
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E4_AXIS:
         return E4_ENABLE_READ();
 #endif
 #if E_STEPPERS > 5
+    // #error dead code found by automatic analyses (see BFW-5461)
     case E5_AXIS:
         return E5_ENABLE_READ();
 #endif

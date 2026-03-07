@@ -146,6 +146,7 @@
     #ifdef LWIP_RAND
         #define SNTP_STARTUP_DELAY 1
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define SNTP_STARTUP_DELAY 0
     #endif
 #endif

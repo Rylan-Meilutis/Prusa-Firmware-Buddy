@@ -2,6 +2,7 @@
 
 #include <option/has_config_store_wo_backend.h>
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <no_backend/store.hpp>
 #else
     #include <journal/store.hpp>
@@ -25,6 +26,7 @@ enum class InitResult {
  */
 inline decltype(auto) config_store() {
 #if HAS_CONFIG_STORE_WO_BACKEND()
+    // #error dead code found by automatic analyses (see BFW-5461)
     return no_backend::store<config_store_ns::CurrentStore, config_store_ns::DeprecatedStore>();
 #else
     return journal::store<config_store_ns::CurrentStore, config_store_ns::DeprecatedStore, config_store_ns::migration_functions_span>();

@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../feature/solenoid.h"
@@ -35,8 +36,10 @@
  */
 void GcodeSuite::M380() {
   #if ENABLED(MANUAL_SOLENOID_CONTROL)
+    // #error dead code found by automatic analyses (see BFW-5461)
     enable_solenoid(parser.intval('S', active_extruder));
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     enable_solenoid_on_active_extruder();
   #endif
 }
@@ -47,8 +50,10 @@ void GcodeSuite::M380() {
  */
 void GcodeSuite::M381() {
   #if ENABLED(MANUAL_SOLENOID_CONTROL)
+    // #error dead code found by automatic analyses (see BFW-5461)
     disable_solenoid(parser.intval('S', active_extruder));
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     disable_all_solenoids();
   #endif
 }

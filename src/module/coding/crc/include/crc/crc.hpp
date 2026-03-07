@@ -11,6 +11,7 @@
 #include <span>
 #include <cstddef>
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     // AVR has optimized assembly versions of some crc functions
     #include <util/crc16.h>
 #else

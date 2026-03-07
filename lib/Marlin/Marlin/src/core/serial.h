@@ -43,6 +43,7 @@ extern uint8_t marlin_debug_flags;
 
 #define SERIAL_BOTH 0x7F
 #if NUM_SERIAL > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern int8_t serial_port_index;
   #define _PORT_REDIRECT(n,p)   REMEMBER(n,serial_port_index,p)
   #define _PORT_RESTORE(n)      RESTORE(n)
@@ -71,8 +72,10 @@ extern uint8_t marlin_debug_flags;
 #define SERIAL_FLUSH()          SERIAL_OUT(flush)
 
 #ifdef __STM32F1__
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define SERIAL_FLUSHTX()      SERIAL_OUT(flush)
 #elif TX_BUFFER_SIZE > 0
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define SERIAL_FLUSHTX()      SERIAL_OUT(flushTX)
 #else
   #define SERIAL_FLUSHTX()

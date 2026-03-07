@@ -38,6 +38,7 @@
 #endif
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
 #endif
 
@@ -64,11 +65,13 @@ Endstops::esbits_t Endstops::live_state = 0;
 
 // Initialized by settings.load()
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   float Endstops::z2_endstop_adj;
   float Endstops::z3_endstop_adj;
 #endif
 
 #if ENABLED(IMPROVE_HOMING_RELIABILITY) && HOMING_SG_GUARD_DURATION > 0
+  // #error dead code found by automatic analyses (see BFW-5461)
   millis_t sg_guard_period; // = 0
 #endif
 
@@ -82,8 +85,10 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_XMIN)
       SET_INPUT_PULLUP(X_MIN_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_XMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(X_MIN_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(X_MIN_PIN);
     #endif
   #endif
@@ -92,8 +97,10 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_YMIN)
       SET_INPUT_PULLUP(Y_MIN_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_YMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Y_MIN_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Y_MIN_PIN);
     #endif
   #endif
@@ -102,28 +109,38 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_ZMIN)
       SET_INPUT_PULLUP(Z_MIN_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z_MIN_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z_MIN_PIN);
     #endif
   #endif
 
   #if HAS_Z2_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(Z2_MIN_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z2_MIN_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z2_MIN_PIN);
     #endif
   #endif
 
   #if HAS_Z3_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(Z3_MIN_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z3_MIN_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z3_MIN_PIN);
     #endif
   #endif
@@ -132,8 +149,10 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_XMAX)
       SET_INPUT_PULLUP(X_MAX_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_XMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(X_MAX_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(X_MAX_PIN);
     #endif
   #endif
@@ -142,8 +161,10 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_YMAX)
       SET_INPUT_PULLUP(Y_MAX_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_YMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Y_MAX_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Y_MAX_PIN);
     #endif
   #endif
@@ -152,48 +173,66 @@ void Endstops::init() {
     #if ENABLED(ENDSTOPPULLUP_ZMAX)
       SET_INPUT_PULLUP(Z_MAX_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z_MAX_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z_MAX_PIN);
     #endif
   #endif
 
   #if HAS_Z2_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(Z2_MAX_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z2_MAX_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z2_MAX_PIN);
     #endif
   #endif
 
   #if HAS_Z3_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(Z3_MAX_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMAX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z3_MAX_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z3_MAX_PIN);
     #endif
   #endif
 
   #if HAS_CALIBRATION_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(CALIBRATION_PIN_PULLUP)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(CALIBRATION_PIN);
     #elif ENABLED(CALIBRATION_PIN_PULLDOWN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(CALIBRATION_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(CALIBRATION_PIN);
     #endif
   #endif
 
   #if HAS_CUSTOM_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMIN_PROBE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLUP(Z_MIN_PROBE_PIN);
     #elif ENABLED(ENDSTOPPULLDOWN_ZMIN_PROBE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT_PULLDOWN(Z_MIN_PROBE_PIN);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SET_INPUT(Z_MIN_PROBE_PIN);
     #endif
   #endif
@@ -205,6 +244,7 @@ void Endstops::init() {
   // Enable endstops
   enable_globally(
     #if ENABLED(ENDSTOPS_ALWAYS_ON_DEFAULT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       true
     #else
       false
@@ -216,6 +256,7 @@ void Endstops::init() {
 // Called at ~1KHz from Temperature ISR: Poll endstop state if required
 void Endstops::poll() {
   #if DISABLED(ENDSTOP_INTERRUPTS_FEATURE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     update();
   #endif
 
@@ -248,6 +289,7 @@ void Endstops::not_homing() {
 }
 
 #if ENABLED(VALIDATE_HOMING_ENDSTOPS)
+  // #error dead code found by automatic analyses (see BFW-5461)
   // If the last move failed to trigger an endstop, call kill
   void Endstops::validate_homing_move() {
     if (trigger_state()) hit_on_purpose();
@@ -278,6 +320,7 @@ void Endstops::resync() {
   #if ENABLED(ENDSTOP_INTERRUPTS_FEATURE)
     update();
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     safe_delay(2);  // Wait for Temperature ISR to run at least once (runs at 1KHz)
   #endif
 }
@@ -306,6 +349,7 @@ void Endstops::event_handler() {
     ENDSTOP_HIT_TEST_Z();
 
     #if HAS_CUSTOM_PROBE_PIN
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define P_AXIS Z_AXIS
       if (TEST(hit_state, Z_MIN_PROBE)) _ENDSTOP_HIT_ECHO(P, 'P');
     #endif
@@ -323,6 +367,7 @@ static void print_es_state(const bool is_hit, PGM_P const label=nullptr) {
 
 void __O2 Endstops::M119() {
   #if ENABLED(BLTOUCH)
+    // #error dead code found by automatic analyses (see BFW-5461)
     bltouch._set_SW_mode();
   #endif
   SERIAL_ECHOLNPGM(MSG_M119_REPORT);
@@ -343,24 +388,30 @@ void __O2 Endstops::M119() {
     ES_REPORT(Z_MIN);
   #endif
   #if HAS_Z2_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     ES_REPORT(Z2_MIN);
   #endif
   #if HAS_Z3_MIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     ES_REPORT(Z3_MIN);
   #endif
   #if HAS_Z_MAX
     ES_REPORT(Z_MAX);
   #endif
   #if HAS_Z2_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     ES_REPORT(Z2_MAX);
   #endif
   #if HAS_Z3_MAX
+    // #error dead code found by automatic analyses (see BFW-5461)
     ES_REPORT(Z3_MAX);
   #endif
   #if HAS_CUSTOM_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     print_es_state(READ(Z_MIN_PROBE_PIN) != Z_MIN_PROBE_ENDSTOP_INVERTING, PSTR(MSG_Z_PROBE));
   #endif
   #if ENABLED(BLTOUCH)
+    // #error dead code found by automatic analyses (see BFW-5461)
     bltouch._reset_SW_mode();
   #endif
 } // Endstops::M119
@@ -381,6 +432,7 @@ void Endstops::update() {
   #define COPY_LIVE_STATE(SRC_BIT, DST_BIT) SET_BIT_TO(live_state, DST_BIT, TEST(live_state, SRC_BIT))
 
   #if ENABLED(G38_PROBE_TARGET) && PIN_EXISTS(Z_MIN_PROBE) && !(CORE_IS_XY || CORE_IS_XZ)
+    // #error dead code found by automatic analyses (see BFW-5461)
     // If G38 command is active check Z_MIN_PROBE for ALL movement
     if (G38_move) UPDATE_ENDSTOP_BIT(Z, MIN_PROBE);
   #endif
@@ -400,6 +452,7 @@ void Endstops::update() {
     #define Y_AXIS_HEAD Y_AXIS
   #endif
   #if CORE_IS_XZ || CORE_IS_YZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_AXIS_HEAD Z_HEAD
   #else
     #define Z_AXIS_HEAD Z_AXIS
@@ -427,14 +480,19 @@ void Endstops::update() {
   #if HAS_Z_MIN
     UPDATE_ENDSTOP_BIT(Z, MIN);
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #if HAS_Z2_MIN
+        // #error dead code found by automatic analyses (see BFW-5461)
         UPDATE_ENDSTOP_BIT(Z2, MIN);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         COPY_LIVE_STATE(Z_MIN, Z2_MIN);
       #endif
       #if HAS_Z3_MIN
+        // #error dead code found by automatic analyses (see BFW-5461)
         UPDATE_ENDSTOP_BIT(Z3, MIN);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         COPY_LIVE_STATE(Z_MIN, Z3_MIN);
       #endif
     #endif
@@ -442,21 +500,27 @@ void Endstops::update() {
 
   // When closing the gap check the enabled probe
   #if HAS_CUSTOM_PROBE_PIN
+    // #error dead code found by automatic analyses (see BFW-5461)
     UPDATE_ENDSTOP_BIT(Z, MIN_PROBE);
   #endif
 
   #if HAS_Z_MAX
     // Check both Z dual endstops
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       UPDATE_ENDSTOP_BIT(Z, MAX);
       #if HAS_Z2_MAX
+        // #error dead code found by automatic analyses (see BFW-5461)
         UPDATE_ENDSTOP_BIT(Z2, MAX);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         COPY_LIVE_STATE(Z_MAX, Z2_MAX);
       #endif
       #if HAS_Z3_MAX
+        // #error dead code found by automatic analyses (see BFW-5461)
         UPDATE_ENDSTOP_BIT(Z3, MAX);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         COPY_LIVE_STATE(Z_MAX, Z3_MAX);
       #endif
     #elif !HAS_CUSTOM_PROBE_PIN || Z_MAX_PIN != Z_MIN_PROBE_PIN
@@ -501,9 +565,12 @@ void Endstops::update() {
   }while(0)
 
   #if ENABLED(G38_PROBE_TARGET) && PIN_EXISTS(Z_MIN_PROBE) && !(CORE_IS_XY || CORE_IS_XZ)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(G38_PROBE_AWAY)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define _G38_OPEN_STATE (G38_move >= 4)
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define _G38_OPEN_STATE LOW
     #endif
     // If G38 command is active check Z_MIN_PROBE for ALL movement
@@ -569,6 +636,7 @@ void Endstops::update() {
     if (stepper.motor_direction(Z_AXIS_HEAD)) { // Z -direction. Gantry down, bed up.
       #if HAS_Z_MIN
         #if ENABLED(Z_TRIPLE_ENDSTOPS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           PROCESS_TRIPLE_ENDSTOP(Z, Z2, Z3, MIN);
         #else
           #if HAS_LOADCELL()
@@ -576,8 +644,10 @@ void Endstops::update() {
           #elif ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
             if (z_probe_enabled) PROCESS_ENDSTOP(Z, MIN);
           #elif HAS_CUSTOM_PROBE_PIN
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (!z_probe_enabled) PROCESS_ENDSTOP(Z, MIN);
           #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             PROCESS_ENDSTOP(Z, MIN);
           #endif
         #endif
@@ -585,12 +655,14 @@ void Endstops::update() {
 
       // When closing the gap check the enabled probe
       #if HAS_CUSTOM_PROBE_PIN
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (z_probe_enabled) PROCESS_ENDSTOP(Z, MIN_PROBE);
       #endif
     }
     else { // Z +direction. Gantry up, bed down.
       #if HAS_Z_MAX
         #if ENABLED(Z_TRIPLE_ENDSTOPS)
+          // #error dead code found by automatic analyses (see BFW-5461)
           PROCESS_TRIPLE_ENDSTOP(Z, Z2, Z3, MAX);
         #elif !HAS_CUSTOM_PROBE_PIN || Z_MAX_PIN != Z_MIN_PROBE_PIN
           // If this pin is not hijacked for the bed probe

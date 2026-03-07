@@ -10,6 +10,7 @@ using namespace xbuddy_extension::mmu_bridge;
 
 // #define SIMULATE_MMU
 #ifdef SIMULATE_MMU
+// #error dead code found by automatic analyses (see BFW-5461)
 modbus::Callbacks::Status MMU::read_register(uint16_t address, uint16_t &out) {
     switch (address) {
     case 0: // first registers need to be read via the 'S' query. MMU FW would handle the 'R' query as well, but the bootloader wouldn't

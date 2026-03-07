@@ -25,6 +25,7 @@
 #include "../../../inc/MarlinConfig.h"
 
 #if HAS_CASE_LIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../../feature/caselight.h"
 
  /**

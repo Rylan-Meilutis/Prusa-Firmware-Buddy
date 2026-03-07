@@ -91,6 +91,7 @@ ScreenSplash::ScreenSplash()
 #endif
 
 #if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // don't present any screen or wizard
     return;
 #endif

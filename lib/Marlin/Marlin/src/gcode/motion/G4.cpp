@@ -50,6 +50,7 @@ void GcodeSuite::G4() {
 
   planner.synchronize();
   #if ENABLED(NANODLP_Z_SYNC)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOLNPGM(STR_Z_MOVE_COMP);
   #endif
 

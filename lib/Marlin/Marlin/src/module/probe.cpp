@@ -31,6 +31,7 @@
 #include "probe.h"
 
 #ifdef EXTRA_PROBING_DBG
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "dbg.h"
 #endif
 
@@ -51,12 +52,14 @@
 #endif
 
 #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/backlash.h"
 #endif
 
 xyz_pos_t probe_offset; // Initialized by settings.load()
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
 #endif
 
@@ -69,14 +72,17 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #endif
 
 #if HAS_Z_SERVO_PROBE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "servo.h"
 #endif
 
 #if ENABLED(SENSORLESS_PROBING)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/motordriver_util.h"
 #endif
 
 #if QUIET_PROBING
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "stepper/indirection.h"
 #endif
 
@@ -100,8 +106,10 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #endif
 
 #if ENABLED(Z_PROBE_SLED)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #ifndef SLED_DOCKING_OFFSET
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define SLED_DOCKING_OFFSET 0
   #endif
 
@@ -116,22 +124,27 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
     do_blocking_move_to_x(X_MAX_POS + SLED_DOCKING_OFFSET - ((stow) ? 1 : 0));
 
     #if HAS_SOLENOID_1 && DISABLED(EXT_SOLENOID)
+      // #error dead code found by automatic analyses (see BFW-5461)
       WRITE(SOL1_PIN, !stow); // switch solenoid
     #endif
   }
 
 #elif ENABLED(TOUCH_MI_PROBE)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   // Move to the magnet to unlock the probe
   void run_deploy_moves_script() {
     #if TOUCH_MI_DEPLOY_XPOS > X_MAX_BED
+      // #error dead code found by automatic analyses (see BFW-5461)
       TemporaryGlobalEndstopsState unlock_x(false);
     #endif
     #if TOUCH_MI_DEPLOY_YPOS > Y_MAX_BED
+      // #error dead code found by automatic analyses (see BFW-5461)
       TemporaryGlobalEndstopsState unlock_y(false);
     #endif
 
     #if ENABLED(TOUCH_MI_MANUAL_DEPLOY)
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       const screenFunc_t prev_screen = ui.currentScreen;
       LCD_MESSAGEPGM(MSG_MANUAL_DEPLOY_TOUCHMI);
@@ -140,6 +153,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
       KEEPALIVE_STATE(PAUSED_FOR_USER);
       wait_for_user = true; // LCD click or M108 will clear this
       #if ENABLED(HOST_PROMPT_SUPPORT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         host_prompt_do(PROMPT_USER_CONTINUE, PSTR("Deploy TouchMI probe."), PSTR("Continue"));
       #endif
       while (wait_for_user) idle(true);
@@ -147,10 +161,13 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
       ui.goto_screen(prev_screen);
 
     #elif defined(TOUCH_MI_DEPLOY_XPOS) && defined(TOUCH_MI_DEPLOY_YPOS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       do_blocking_move_to_xy(TOUCH_MI_DEPLOY_XPOS, TOUCH_MI_DEPLOY_YPOS);
     #elif defined(TOUCH_MI_DEPLOY_XPOS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       do_blocking_move_to_x(TOUCH_MI_DEPLOY_XPOS);
     #elif defined(TOUCH_MI_DEPLOY_YPOS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       do_blocking_move_to_y(TOUCH_MI_DEPLOY_YPOS);
     #endif
   }
@@ -164,38 +181,49 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
   }
 
 #elif ENABLED(Z_PROBE_ALLEN_KEY)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   void run_deploy_moves_script() {
     #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_1
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t deploy_1 = Z_PROBE_ALLEN_KEY_DEPLOY_1;
       do_blocking_move_to(deploy_1, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_2
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t deploy_2 = Z_PROBE_ALLEN_KEY_DEPLOY_2;
       do_blocking_move_to(deploy_2, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_3
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t deploy_3 = Z_PROBE_ALLEN_KEY_DEPLOY_3;
       do_blocking_move_to(deploy_3, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_4
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t deploy_4 = Z_PROBE_ALLEN_KEY_DEPLOY_4;
       do_blocking_move_to(deploy_4, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_5
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_5_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_DEPLOY_5_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t deploy_5 = Z_PROBE_ALLEN_KEY_DEPLOY_5;
@@ -205,35 +233,45 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 
   void run_stow_moves_script() {
     #ifdef Z_PROBE_ALLEN_KEY_STOW_1
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t stow_1 = Z_PROBE_ALLEN_KEY_STOW_1;
       do_blocking_move_to(stow_1, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_STOW_2
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t stow_2 = Z_PROBE_ALLEN_KEY_STOW_2;
       do_blocking_move_to(stow_2, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_STOW_3
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t stow_3 = Z_PROBE_ALLEN_KEY_STOW_3;
       do_blocking_move_to(stow_3, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_STOW_4
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t stow_4 = Z_PROBE_ALLEN_KEY_STOW_4;
       do_blocking_move_to(stow_4, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE));
     #endif
     #ifdef Z_PROBE_ALLEN_KEY_STOW_5
+      // #error dead code found by automatic analyses (see BFW-5461)
       #ifndef Z_PROBE_ALLEN_KEY_STOW_5_FEEDRATE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define Z_PROBE_ALLEN_KEY_STOW_5_FEEDRATE 0.0
       #endif
       constexpr xyz_pos_t stow_5 = Z_PROBE_ALLEN_KEY_STOW_5;
@@ -244,17 +282,22 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 #endif // Z_PROBE_ALLEN_KEY
 
 #if QUIET_PROBING
+  // #error dead code found by automatic analyses (see BFW-5461)
   void probing_pause(const bool p) {
     #if ENABLED(PROBING_STEPPERS_OFF)
+      // #error dead code found by automatic analyses (see BFW-5461)
       disable_e_steppers();
       #if NONE(HOME_AFTER_DEACTIVATE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         disable_XY();
       #endif
     #endif
     if (p) safe_delay(
       #if DELAY_BEFORE_PROBING > 25
+        // #error dead code found by automatic analyses (see BFW-5461)
         DELAY_BEFORE_PROBING
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         25
       #endif
     );
@@ -286,30 +329,38 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
   #endif /*ENABLED(NOZZLE_LOAD_CELL)*/
 
   #if ENABLED(SOLENOID_PROBE)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     #if HAS_SOLENOID_1
+      // #error dead code found by automatic analyses (see BFW-5461)
       WRITE(SOL1_PIN, deploy);
     #endif
 
   #elif ENABLED(Z_PROBE_SLED)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     dock_sled(!deploy);
 
   #elif HAS_Z_SERVO_PROBE
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     #if DISABLED(BLTOUCH)
+      // #error dead code found by automatic analyses (see BFW-5461)
       MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][deploy ? 0 : 1]);
     #elif ENABLED(BLTOUCH_HS_MODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       // In HIGH SPEED MODE, use the normal retractable probe logic in this code
       // i.e. no intermediate STOWs and DEPLOYs in between individual probe actions
       if (deploy) bltouch.deploy(); else bltouch.stow();
     #endif
 
   #elif EITHER(TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     deploy ? run_deploy_moves_script() : run_stow_moves_script();
 
   #elif ENABLED(RACK_AND_PINION_PROBE)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     do_blocking_move_to_x(deploy ? Z_PROBE_DEPLOY_X : Z_PROBE_RETRACT_X);
   #endif
@@ -324,11 +375,13 @@ bool set_probe_deployed(const bool deploy) {
   #if ENABLED(FIX_MOUNTED_PROBE)
     const bool deploy_stow_condition = deploy;
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     constexpr bool deploy_stow_condition = true;
   #endif
 
   // For beds that fall when Z is powered off only raise for trusted Z
   #if ENABLED(UNKNOWN_Z_NO_RAISE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool unknown_condition = TEST(axis_known_position, Z_AXIS);
   #else
     constexpr float unknown_condition = true;
@@ -343,8 +396,10 @@ bool set_probe_deployed(const bool deploy) {
   #endif
 
   #if EITHER(Z_PROBE_SLED, Z_PROBE_ALLEN_KEY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (axis_unhomed_error(
       #if ENABLED(Z_PROBE_SLED)
+        // #error dead code found by automatic analyses (see BFW-5461)
         _BV(X_AXIS)
       #endif
     )) {
@@ -387,17 +442,20 @@ bool set_probe_deployed(const bool deploy) {
 
 static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
   #if ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (bltouch.deploy()) return true; // DEPLOY in LOW SPEED MODE on every probe action
   #endif
 
   // Disable stealthChop if used. Enable diag1 pin on driver.
   #if ENABLED(SENSORLESS_PROBING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     sensorless_t stealth_states { false };
     stealth_states.z = enable_crash_detection(Z_AXIS);
     endstops.enable(true);
   #endif
 
   #if QUIET_PROBING
+    // #error dead code found by automatic analyses (see BFW-5461)
     probing_pause(true);
   #endif
 
@@ -422,24 +480,29 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
         #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
           Z_MIN
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           Z_MIN_PROBE
         #endif
       )
   ;
 
   #if QUIET_PROBING
+    // #error dead code found by automatic analyses (see BFW-5461)
     probing_pause(false);
   #endif
 
   // Re-enable stealthChop if used. Disable diag1 pin on driver.
   #if ENABLED(SENSORLESS_PROBING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     endstops.not_homing();
     #if NEITHER(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
+      // #error dead code found by automatic analyses (see BFW-5461)
       disable_crash_detection(Z_AXIS, stealth_states.z);
     #endif
   #endif
 
   #if ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (probe_triggered && bltouch.stow()) return true; // STOW in LOW SPEED MODE on trigger on every probe action
   #endif
 
@@ -529,6 +592,7 @@ float run_z_probe(const RunZProbeParams& params) {
 
   // Double-probing does a fast probe followed by a slow probe
   #if TOTAL_PROBING == 2
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     // Do a first probe at the fast speed
     if (do_probe_move(z_probe_low_point, MMM_TO_MMS(Z_PROBE_SPEED_FAST))) {
@@ -538,6 +602,7 @@ float run_z_probe(const RunZProbeParams& params) {
         return NAN;
 
       #if ENABLED(HALT_ON_PROBING_ERROR)
+        // #error dead code found by automatic analyses (see BFW-5461)
         kill("PROBING ERROR", "Could not reach the bed, FAST Probe fail!");
       #endif
       return NAN;
@@ -617,6 +682,7 @@ float run_z_probe(const RunZProbeParams& params) {
           return NAN;
 
         #if ENABLED(HALT_ON_PROBING_ERROR)
+          // #error dead code found by automatic analyses (see BFW-5461)
           kill("PROBING ERROR", "Could not reach the bed, SLOW Probe fail!");
         #endif
         return NAN;
@@ -644,6 +710,7 @@ float run_z_probe(const RunZProbeParams& params) {
       #endif
 
       #if ENABLED(MEASURE_BACKLASH_WHEN_PROBING)
+        // #error dead code found by automatic analyses (see BFW-5461)
         backlash.measure_with_probe();
       #endif
 
@@ -685,8 +752,10 @@ float run_z_probe(const RunZProbeParams& params) {
           SERIAL_ECHOLN(")");
         }
       #elif TOTAL_PROBING > 2
+        // #error dead code found by automatic analyses (see BFW-5461)
         probes_total += z;
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         UNUSED(z);
       #endif
 
@@ -728,6 +797,7 @@ float run_z_probe(const RunZProbeParams& params) {
     const float measured_z = probes_total * RECIPROCAL(MULTIPLE_PROBING);
 
   #elif TOTAL_PROBING == 2
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     const float z2 = current_position.z;
 
@@ -735,6 +805,7 @@ float run_z_probe(const RunZProbeParams& params) {
     const float measured_z = (z2 * 3.0 + first_probe_z * 2.0) * 0.2;
 
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     // Return the single probe result
     const float measured_z = current_position.z;
@@ -891,6 +962,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
   if (probe_relative) {
     if (!position_is_reachable_by_probe(npos.xy())) {
       #if ENABLED(HALT_ON_PROBING_ERROR)
+        // #error dead code found by automatic analyses (see BFW-5461)
         kill("PROBING ERROR", "Could not reach the bed, XY position not within machine coordinates!");
       #endif
       return NAN; // The given position is in terms of the probe
@@ -899,6 +971,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
   }
   else if (!position_is_reachable(npos.xy())) {
     #if ENABLED(HALT_ON_PROBING_ERROR)
+      // #error dead code found by automatic analyses (see BFW-5461)
       kill("PROBING ERROR", "Could not reach the bed, XY position not within machine coordinates!");
     #endif
     return NAN; // The given position is in terms of the nozzle
@@ -970,6 +1043,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
   if (isnan(measured_z)) {
     STOW_PROBE();
     #if ENABLED(HALT_ON_PROBING_ERROR)
+      // #error dead code found by automatic analyses (see BFW-5461)
       kill("PROBING ERROR", "Could not reach the bed, endstop was not triggered!");
     #endif
   }
@@ -978,6 +1052,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 }
 
 #if HAS_Z_SERVO_PROBE
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   void servo_probe_init() {
     /**

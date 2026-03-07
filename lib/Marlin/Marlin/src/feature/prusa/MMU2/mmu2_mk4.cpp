@@ -38,6 +38,7 @@
 #include "../../../../../../../src/mmu2/mmu2_bootloader.hpp"
 
 #ifdef __AVR__
+// #error dead code found by automatic analyses (see BFW-5461)
 // As of FW 3.12 we only support building the FW with only one extruder, all the multi-extruder infrastructure will be removed.
 // Saves at least 800B of code size
 static_assert(EXTRUDERS == 1);
@@ -146,6 +147,7 @@ MMU2::MMU2()
         &buddy::puppies::mmu
     #endif
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         nullptr
 #endif
         ,
@@ -362,6 +364,7 @@ void __attribute__((noinline)) MMU2::mmu_loop_inner(bool reportErrors) {
 }
 
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 void MMU2::Start() {}
 void MMU2::Stop() {}
 void MMU2::Reset(ResetForm /*level*/) {}

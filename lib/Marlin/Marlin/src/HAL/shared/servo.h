@@ -68,23 +68,32 @@
  */
 
 #if IS_TEENSY32
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_TEENSY31_32/Servo.h"
 #elif IS_TEENSY35 || IS_TEENSY36
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_TEENSY35_36/Servo.h"
 #elif defined(TARGET_LPC1768)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_LPC1768/Servo.h"
 #elif defined(__STM32F1__) || defined(TARGET_STM32F1)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_STM32F1/Servo.h"
 #elif defined(STM32GENERIC) && defined(STM32F4)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_STM32_F4_F7/Servo.h"
 #elif defined(ARDUINO_ARCH_STM32)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_STM32/Servo.h"
 #elif defined(ARDUINO_ARCH_ESP32)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../HAL_ESP32/Servo.h"
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include <stdint.h>
 
   #if defined(__AVR__) || defined(ARDUINO_ARCH_SAM) || defined(__SAMD51__)
+    // #error dead code found by automatic analyses (see BFW-5461)
     // we're good to go
   #else
     #error "This library only supports boards with an AVR, SAM3X or SAMD51 processor."

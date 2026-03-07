@@ -859,6 +859,7 @@ err_t espif_init(struct netif *netif) {
     netif->name[1] = 'l';
     netif->output = etharp_output;
 #if LWIP_IPV6
+    // #error dead code found by automatic analyses (see BFW-5461)
     netif->output_ip6 = ethip6_output;
 #endif
     netif->linkoutput = low_level_output;

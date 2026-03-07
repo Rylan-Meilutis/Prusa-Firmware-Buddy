@@ -11,6 +11,7 @@
 // Oak shares build-level printer version 7.1.0 with Core One to avoid bootloader changes.
 // Return coreone to prevent firmware reset.
 #if SIGNATURE_OAK()
+// #error dead code found by automatic analyses (see BFW-5461)
 static constexpr const PrinterModelInfo &firmware_base_constexpr = printer_model_info[std::to_underlying(PrinterModel::coreone)];
 #else
 static constexpr const PrinterModelInfo &firmware_base_constexpr = *std::find_if(printer_model_info.begin(), printer_model_info.end(), [](const PrinterModelInfo &info) {
@@ -84,6 +85,7 @@ const PrinterModelInfo &PrinterModelInfo::get(PrinterModel model) {
 
 const PrinterModelInfo &PrinterModelInfo::current() {
 #if SIGNATURE_OAK()
+    // #error dead code found by automatic analyses (see BFW-5461)
     return get_constexpr(PrinterModel::coreone_oak);
 #elif HAS_EXTENDED_PRINTER_TYPE()
     const auto model_index = config_store().extended_printer_type.get();

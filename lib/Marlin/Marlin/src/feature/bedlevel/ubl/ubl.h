@@ -79,6 +79,7 @@ class unified_bed_leveling {
 
 
     #if ENABLED(UBL_DEVEL_DEBUGGING)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void g29_what_command();
       static void g29_eeprom_dump();
       static void g29_compare_current_mesh_to_stored_mesh();
@@ -189,6 +190,7 @@ class unified_bed_leveling {
     }
 
     #if !UBL_SEGMENTED
+      // #error dead code found by automatic analyses (see BFW-5461)
     /**
      * z_correction_for_x_on_horizontal_mesh_line is an optimization for
      * the case where the printer is making a vertical line that only crosses horizontal mesh lines.

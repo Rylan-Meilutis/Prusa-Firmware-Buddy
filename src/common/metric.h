@@ -81,6 +81,7 @@ typedef struct metric_s {
 } metric_t;
 
 #if __APPLE__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _METRIC_DEF_ATTRS(name) __attribute__((used, section("__DATA,metric_definitions")))
 #elif !defined(__arm__)
     #define _METRIC_DEF_ATTRS(name) __attribute__((used, section("metric_definitions")))

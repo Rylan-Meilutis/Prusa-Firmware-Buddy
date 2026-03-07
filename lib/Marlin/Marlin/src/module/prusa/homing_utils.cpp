@@ -44,6 +44,7 @@ bool disable_modifiers_if(bool condition, bool do_z) {
     bool leveling_was_active = false;
 #if HAS_LEVELING
     #if ENABLED(RESTORE_LEVELING_AFTER_G28)
+    // #error dead code found by automatic analyses (see BFW-5461)
     leveling_was_active = planner.leveling_active;
     #else
     if (!do_z) {

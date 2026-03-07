@@ -136,6 +136,7 @@ template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
 template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
 
 #if DEVELOPER_MODE()
+// #error dead code found by automatic analyses (see BFW-5461)
 template struct MI_SCREEN_CTOR<ScreenMenuErrorTest>;
 #endif
 

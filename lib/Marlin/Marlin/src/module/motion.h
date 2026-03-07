@@ -241,6 +241,7 @@ XYZ_DEFS(signed char, home_dir, HOME_DIR);
   // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
   constexpr StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset {};
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   constexpr StrongIndexArray<xyz_pos_t, 1, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset {};
 #endif
 
@@ -350,6 +351,7 @@ void restore_feedrate_and_scaling();
 #if HAS_Z_AXIS
   uint8_t do_z_clearance(const float zclear, const bool lower_allowed=false);
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   inline uint8_t do_z_clearance(float, bool=false) { return 0; }
 #endif
 
@@ -428,8 +430,10 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
     extern xyz_pos_t workspace_offset;
     #define _WS workspace_offset
   #elif HAS_HOME_OFFSET
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _WS home_offset
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _WS position_shift
   #endif
 #endif

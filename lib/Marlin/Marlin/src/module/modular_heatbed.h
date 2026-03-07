@@ -9,6 +9,7 @@
     #define X_HBL_COUNT 4   // Number of heatbedlets in X direction
     #define Y_HBL_COUNT 4   // Number of heatbedlets in Y direction
 #elif PRINTER_IS_PRUSA_XL_DEV_KIT()
+  // #error dead code found by automatic analyses (see BFW-5461)
     #define X_HBL_COUNT 4   // Number of heatbedlets in X direction
     #define Y_HBL_COUNT 4   // Number of heatbedlets in Y direction
 #elif PRINTER_IS_PRUSA_iX()

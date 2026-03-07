@@ -75,27 +75,34 @@
       tmc_report_otpw(stepperZ);
     #endif
     #if M91x_USE(Z2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperZ2);
     #endif
     #if M91x_USE(Z3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperZ3);
     #endif
     #if M91x_USE_E(0)
       tmc_report_otpw(stepperE0);
     #endif
     #if M91x_USE_E(1)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperE1);
     #endif
     #if M91x_USE_E(2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperE2);
     #endif
     #if M91x_USE_E(3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperE3);
     #endif
     #if M91x_USE_E(4)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperE4);
     #endif
     #if M91x_USE_E(5)
+      // #error dead code found by automatic analyses (see BFW-5461)
       tmc_report_otpw(stepperE5);
     #endif
   }
@@ -129,24 +136,28 @@
     #if M91x_SOME_X
       const bool hasX = parser.seen(axis_codes.x);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr bool hasX = false;
     #endif
 
     #if M91x_SOME_Y
       const bool hasY = parser.seen(axis_codes.y);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr bool hasY = false;
     #endif
 
     #if M91x_SOME_Z
       const bool hasZ = parser.seen(axis_codes.z);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr bool hasZ = false;
     #endif
 
     #if M91x_SOME_E
       const bool hasE = parser.seen(axis_codes.e);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr bool hasE = false;
     #endif
 
@@ -172,9 +183,11 @@
         if (hasNone || zval == 1 || (hasZ && zval < 0)) tmc_clear_otpw(stepperZ);
       #endif
       #if M91x_USE(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || zval == 2 || (hasZ && zval < 0)) tmc_clear_otpw(stepperZ2);
       #endif
       #if M91x_USE(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || zval == 3 || (hasZ && zval < 0)) tmc_clear_otpw(stepperZ3);
       #endif
     #endif
@@ -185,18 +198,23 @@
         if (hasNone || eval == 0 || (hasE && eval < 0)) tmc_clear_otpw(stepperE0);
       #endif
       #if M91x_USE_E(1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || eval == 1 || (hasE && eval < 0)) tmc_clear_otpw(stepperE1);
       #endif
       #if M91x_USE_E(2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || eval == 2 || (hasE && eval < 0)) tmc_clear_otpw(stepperE2);
       #endif
       #if M91x_USE_E(3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || eval == 3 || (hasE && eval < 0)) tmc_clear_otpw(stepperE3);
       #endif
       #if M91x_USE_E(4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || eval == 4 || (hasE && eval < 0)) tmc_clear_otpw(stepperE4);
       #endif
       #if M91x_USE_E(5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (hasNone || eval == 5 || (hasE && eval < 0)) tmc_clear_otpw(stepperE5);
       #endif
     #endif
@@ -254,9 +272,11 @@
             if (index < 2) TMC_SET_PWMTHRS(Z,Z);
           #endif
           #if AXIS_HAS_STEALTHCHOP(Z2)
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (index == 0 || index == 2) TMC_SET_PWMTHRS(Z,Z2);
           #endif
           #if AXIS_HAS_STEALTHCHOP(Z3)
+            // #error dead code found by automatic analyses (see BFW-5461)
             if (index == 0 || index == 3) TMC_SET_PWMTHRS(Z,Z3);
           #endif
           break;
@@ -269,18 +289,23 @@
                 case 0: TMC_SET_PWMTHRS_E(0); break;
               #endif
               #if E_STEPPERS > 1 && AXIS_HAS_STEALTHCHOP(E1)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 case 1: TMC_SET_PWMTHRS_E(1); break;
               #endif
               #if E_STEPPERS > 2 && AXIS_HAS_STEALTHCHOP(E2)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 case 2: TMC_SET_PWMTHRS_E(2); break;
               #endif
               #if E_STEPPERS > 3 && AXIS_HAS_STEALTHCHOP(E3)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 case 3: TMC_SET_PWMTHRS_E(3); break;
               #endif
               #if E_STEPPERS > 4 && AXIS_HAS_STEALTHCHOP(E4)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 case 4: TMC_SET_PWMTHRS_E(4); break;
               #endif
               #if E_STEPPERS > 5 && AXIS_HAS_STEALTHCHOP(E5)
+                // #error dead code found by automatic analyses (see BFW-5461)
                 case 5: TMC_SET_PWMTHRS_E(5); break;
               #endif
             }
@@ -300,27 +325,34 @@
         TMC_SAY_PWMTHRS(Z,Z);
       #endif
       #if AXIS_HAS_STEALTHCHOP(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS(Z,Z2);
       #endif
       #if AXIS_HAS_STEALTHCHOP(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS(Z,Z3);
       #endif
       #if E_STEPPERS && AXIS_HAS_STEALTHCHOP(E0)
         TMC_SAY_PWMTHRS_E(0);
       #endif
       #if E_STEPPERS > 1 && AXIS_HAS_STEALTHCHOP(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS_E(1);
       #endif
       #if E_STEPPERS > 2 && AXIS_HAS_STEALTHCHOP(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS_E(2);
       #endif
       #if E_STEPPERS > 3 && AXIS_HAS_STEALTHCHOP(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS_E(3);
       #endif
       #if E_STEPPERS > 4 && AXIS_HAS_STEALTHCHOP(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS_E(4);
       #endif
       #if E_STEPPERS > 5 && AXIS_HAS_STEALTHCHOP(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         TMC_SAY_PWMTHRS_E(5);
       #endif
     }
@@ -363,6 +395,7 @@
               #if ENABLED(CRASH_RECOVERY)
                 if (index < 2) crash_s.home_sensitivity[0] = value;
               #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (index < 2) stepperX.stall_sensitivity(value);
               #endif
             #endif
@@ -377,6 +410,7 @@
               #if ENABLED(CRASH_RECOVERY)
                 if (index < 2) crash_s.home_sensitivity[1] = value;
               #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (index < 2) stepperY.stall_sensitivity(value);
               #endif
             #endif
@@ -391,20 +425,25 @@
               #if ENABLED(CRASH_RECOVERY)
                 if (index < 2) crash_s.home_sensitivity[2] = value;
               #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (index < 2) stepperZ.stall_sensitivity(value);
               #endif
             #endif
             #if AXIS_HAS_STALLGUARD(Z2)
+              // #error dead code found by automatic analyses (see BFW-5461)
               #if ENABLED(CRASH_RECOVERY)
                 #error "Not implemented."
               #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (index == 0 || index == 2) stepperZ2.stall_sensitivity(value);
               #endif
             #endif
             #if AXIS_HAS_STALLGUARD(Z3)
+              // #error dead code found by automatic analyses (see BFW-5461)
               #if ENABLED(CRASH_RECOVERY)
                 #error "Not implemented."
               #else
+                // #error dead code found by automatic analyses (see BFW-5461)
                 if (index == 0 || index == 3) stepperZ3.stall_sensitivity(value);
               #endif
             #endif
@@ -422,24 +461,33 @@
         SERIAL_ECHOPGM("Z homing sensitivity: ");
         SERIAL_PRINTLN(crash_s.home_sensitivity[2], DEC);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #if X_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           #if AXIS_HAS_STALLGUARD(X)
+            // #error dead code found by automatic analyses (see BFW-5461)
             tmc_print_sgt(stepperX);
           #endif
         #endif
         #if Y_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           #if AXIS_HAS_STALLGUARD(Y)
+            // #error dead code found by automatic analyses (see BFW-5461)
             tmc_print_sgt(stepperY);
           #endif
         #endif
         #if Z_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           #if AXIS_HAS_STALLGUARD(Z)
+            // #error dead code found by automatic analyses (see BFW-5461)
             tmc_print_sgt(stepperZ);
           #endif
           #if AXIS_HAS_STALLGUARD(Z2)
+            // #error dead code found by automatic analyses (see BFW-5461)
             tmc_print_sgt(stepperZ2);
           #endif
           #if AXIS_HAS_STALLGUARD(Z3)
+            // #error dead code found by automatic analyses (see BFW-5461)
             tmc_print_sgt(stepperZ3);
           #endif
         #endif

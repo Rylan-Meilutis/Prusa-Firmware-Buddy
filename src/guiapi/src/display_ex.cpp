@@ -215,6 +215,7 @@ static inline void store_to_buffer(uint8_t *buffer, Rect16 rect, uint16_t artefa
 LOG_COMPONENT_REF(GUI);
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
 struct StoreCharInBufferMeasure {
     const font_t *font;
     const uint32_t cyccnt;

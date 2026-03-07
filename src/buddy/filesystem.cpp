@@ -13,6 +13,7 @@ LOG_COMPONENT_DEF(FileSystem, logging::Severity::info);
 
 void filesystem_init() {
 #if !defined(_RETARGETABLE_LOCKING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     libsysbase_syscalls_init();
 #endif
 
@@ -32,6 +33,7 @@ void filesystem_init() {
 }
 void init_only_littlefs() {
 #if !defined(_RETARGETABLE_LOCKING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     libsysbase_syscalls_init();
 #endif
 

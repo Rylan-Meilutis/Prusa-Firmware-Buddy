@@ -507,6 +507,7 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
 
     TEMPORARY_AUTO_REPORT_OFF(suspend_auto_report);
 #ifdef FOURIER_SERIES_OUTPUT_SAMPLES
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOLN("Yraw  sinf cosf");
 #endif
 
@@ -664,6 +665,7 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
     result.gain = result.amplitude / acceleration;
 
 #ifdef M958_VERBOSE
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHO_START();
     SERIAL_ECHOPAIR_F("frequency ", frequency);
     SERIAL_ECHOPAIR_F(" Msampl ", (sample_nr + 1));

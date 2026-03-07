@@ -29,16 +29,20 @@
 #include "../inc/MarlinConfig.h"
 
 #if ENABLED(SPINDLE_FEATURE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define _MSG_CUTTER(M) MSG_SPINDLE_##M
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define _MSG_CUTTER(M) MSG_LASER_##M
 #endif
 #define MSG_CUTTER(M) _MSG_CUTTER(M)
 
 #if SPEED_POWER_MAX > 255
+  // #error dead code found by automatic analyses (see BFW-5461)
   typedef uint16_t cutter_power_t;
   #define CUTTER_MENU_TYPE uint16_5
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   typedef uint8_t cutter_power_t;
   #define CUTTER_MENU_TYPE uint8
 #endif
@@ -68,6 +72,7 @@ public:
   static void update_output();
 
   #if ENABLED(SPINDLE_LASER_PWM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void set_ocr(const uint8_t ocr);
     static inline void set_ocr_power(const cutter_power_t pwr) { power = pwr; set_ocr(pwr); }
   #endif
@@ -75,13 +80,16 @@ public:
   // Wait for spindle to spin up or spin down
   static inline void power_delay() {
     #if SPINDLE_LASER_POWERUP_DELAY || SPINDLE_LASER_POWERDOWN_DELAY
+      // #error dead code found by automatic analyses (see BFW-5461)
       safe_delay(enabled() ? SPINDLE_LASER_POWERUP_DELAY : SPINDLE_LASER_POWERDOWN_DELAY);
     #endif
   }
 
   #if ENABLED(SPINDLE_CHANGE_DIR)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void set_direction(const bool reverse);
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     static inline void set_direction(const bool) {}
   #endif
 

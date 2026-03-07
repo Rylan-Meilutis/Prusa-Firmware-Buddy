@@ -1,5 +1,6 @@
 #pragma once
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <avr/pgmspace.h>
 #endif
 
@@ -32,6 +33,7 @@ void LogResponseMsg(const char *msg);
 
 #ifndef UNITTEST
     #ifdef __AVR__
+  // #error dead code found by automatic analyses (see BFW-5461)
         #include "Marlin.h"
     #else
         #include "../../core/serial.h"

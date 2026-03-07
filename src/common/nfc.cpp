@@ -6,6 +6,7 @@
 
 // ntohs
 #ifdef UNITTESTS
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <arpa/inet.h>
 #else
     #include <lwip/def.h>

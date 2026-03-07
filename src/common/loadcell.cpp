@@ -329,6 +329,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us) {
 
     if (Endstops::is_z_probe_enabled()) {
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
       // TODO: temporarily disabled for release until true overloads are resolved
       // load is negative, so flip the signs accordingly just below
         if ((isfinite(failsOnLoadAbove) && loadForEndstops < -failsOnLoadAbove)

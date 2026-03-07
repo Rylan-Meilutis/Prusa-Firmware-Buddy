@@ -258,6 +258,7 @@ void TWIBus::flush() {
 }
 
 #if ENABLED(DEBUG_TWIBUS)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   // static
   void TWIBus::prefix(FSTR_P const func) {

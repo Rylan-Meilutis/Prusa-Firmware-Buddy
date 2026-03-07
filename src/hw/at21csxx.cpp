@@ -19,8 +19,10 @@
  */
 #pragma GCC push_options
 #ifdef _DEBUG
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma GCC optimize("Og")
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #pragma GCC optimize("Os")
 #endif
 

@@ -8,6 +8,7 @@
 #include "mmu2_bootloader_result.h"
 
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "mmu2_protocol_logic.h"
 typedef float feedRate_t;
 

@@ -37,6 +37,7 @@
 
 #include <option/has_burst_stepping.h>
 #if HAS_BURST_STEPPING()
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/phase_stepping/burst_stepper.hpp"
 #endif
 
@@ -82,10 +83,12 @@
 #endif
 
 #if ENABLED(DIGIPOT_I2C)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/digipot/digipot.h"
 #endif
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/bltouch.h"
 #endif
 
@@ -95,14 +98,17 @@
 #endif
 
 #if HAS_SERVOS
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "module/servo.h"
 #endif
 
 #if HAS_CUTTER
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/spindle_laser.h"
 #endif
 
 #if ENABLED(G38_PROBE_TARGET)
+  // #error dead code found by automatic analyses (see BFW-5461)
   uint8_t G38_move; // = 0
   bool G38_did_trigger; // = false
 #endif
@@ -117,6 +123,7 @@
 #endif
 
 #if HAS_CASE_LIGHT
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/caselight.h"
 #endif
 
@@ -147,16 +154,19 @@ uint16_t job_id = 0;
 
 void setup_killpin() {
   #if HAS_KILL
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_INPUT_PULLUP(KILL_PIN);
   #endif
 }
 
 void setup_powerhold() {
   #if HAS_SUICIDE
+    // #error dead code found by automatic analyses (see BFW-5461)
     OUT_WRITE(SUICIDE_PIN, HIGH);
   #endif
   #if HAS_POWER_SWITCH
     #if ENABLED(PS_DEFAULT_OFF)
+      // #error dead code found by automatic analyses (see BFW-5461)
       powersupply_on = true;  PSU_OFF();
     #else
       powersupply_on = false; PSU_ON();
@@ -168,6 +178,7 @@ void setup_powerhold() {
  * Stepper Reset (RigidBoard, et.al.)
  */
 #if HAS_STEPPER_RESET
+  // #error dead code found by automatic analyses (see BFW-5461)
   void disableStepperDrivers() { OUT_WRITE(STEPPER_RESET_PIN, LOW); } // Drive down to keep motor driver chips in reset
   void enableStepperDrivers()  { SET_INPUT(STEPPER_RESET_PIN); }      // Set to input, allowing pullups to pull the pin high
 #endif
@@ -263,6 +274,7 @@ void manage_inactivity() {
   #endif
 
   #if HAS_KILL
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     // Check if the kill button was pressed and wait just in case it was an accidental
     // key kill key press
@@ -284,6 +296,7 @@ void manage_inactivity() {
   #endif
 
   #if HAS_HOME
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Handle a standalone HOME button
     constexpr millis_t HOME_DEBOUNCE_DELAY = 1000UL;
     static millis_t next_home_key_ms; // = 0
@@ -318,6 +331,7 @@ void manage_inactivity() {
   #endif /* HAS_PLANNER() */
 
   #if PIN_EXISTS(FET_SAFETY)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static millis_t FET_next;
     if (ELAPSED(ms, FET_next)) {
       FET_next = ms + FET_SAFETY_DELAY;  // 2uS pulse every FET_SAFETY_DELAY mS
@@ -356,6 +370,7 @@ void idle(bool waiting) {
   thermalManager.manage_heater();
 
   #ifdef HAL_IDLETASK
+    // #error dead code found by automatic analyses (see BFW-5461)
     HAL_idletask();
   #endif
 
@@ -418,12 +433,14 @@ void setup() {
   setup_powerhold();
 
   #if HAS_STEPPER_RESET
+    // #error dead code found by automatic analyses (see BFW-5461)
     disableStepperDrivers();
   #endif
 
   #if NUM_SERIAL > 0
     MYSERIAL0.begin(BAUDRATE);
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       MYSERIAL1.begin(BAUDRATE);
     #endif
   #endif
@@ -432,6 +449,7 @@ void setup() {
     uint32_t serial_connect_timeout = millis() + 1000UL;
     while (!MYSERIAL0 && PENDING(millis(), serial_connect_timeout)) { /*nada*/ }
     #if NUM_SERIAL > 1
+      // #error dead code found by automatic analyses (see BFW-5461)
       serial_connect_timeout = millis() + 1000UL;
       while (!MYSERIAL1 && PENDING(millis(), serial_connect_timeout)) { /*nada*/ }
     #endif
@@ -516,21 +534,26 @@ void setup() {
   #endif /* HAS_PLANNER() */
 
   #if HAS_SERVOS
+    // #error dead code found by automatic analyses (see BFW-5461)
     servo_init();
   #endif
 
   #if HAS_Z_SERVO_PROBE
+    // #error dead code found by automatic analyses (see BFW-5461)
     servo_probe_init();
   #endif
 
   #if HAS_CUTTER
+    // #error dead code found by automatic analyses (see BFW-5461)
     cutter.init();
   #endif
 
   #if ENABLED(COOLANT_MIST)
+    // #error dead code found by automatic analyses (see BFW-5461)
     OUT_WRITE(COOLANT_MIST_PIN, COOLANT_MIST_INVERT);   // Init Mist Coolant OFF
   #endif
   #if ENABLED(COOLANT_FLOOD)
+    // #error dead code found by automatic analyses (see BFW-5461)
     OUT_WRITE(COOLANT_FLOOD_PIN, COOLANT_FLOOD_INVERT); // Init Flood Coolant OFF
   #endif
 
@@ -539,18 +562,22 @@ void setup() {
   #endif
 
   #if HAS_STEPPER_RESET
+    // #error dead code found by automatic analyses (see BFW-5461)
     enableStepperDrivers();
   #endif
 
   #if ENABLED(DIGIPOT_I2C)
+    // #error dead code found by automatic analyses (see BFW-5461)
     digipot_i2c_init();
   #endif
 
   #if EITHER(Z_PROBE_SLED, SOLENOID_PROBE) && HAS_SOLENOID_1
+    // #error dead code found by automatic analyses (see BFW-5461)
     OUT_WRITE(SOL1_PIN, LOW); // OFF
   #endif
 
   #if HAS_HOME
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_INPUT_PULLUP(HOME_PIN);
   #endif
 
@@ -559,11 +586,13 @@ void setup() {
   #endif
 
   #if HAS_CASE_LIGHT
+    // #error dead code found by automatic analyses (see BFW-5461)
       if (PWM_PIN(CASE_LIGHT_PIN)) SET_PWM(CASE_LIGHT_PIN); else SET_OUTPUT(CASE_LIGHT_PIN);
     update_case_light();
   #endif
 
   #if ENABLED(BLTOUCH)
+    // #error dead code found by automatic analyses (see BFW-5461)
     bltouch.init(/*set_voltage=*/true);
   #endif
 
@@ -572,6 +601,7 @@ void setup() {
   #endif
 
   #ifdef STARTUP_COMMANDS
+    // #error dead code found by automatic analyses (see BFW-5461)
     queue.inject_P(PSTR(STARTUP_COMMANDS));
   #endif
 

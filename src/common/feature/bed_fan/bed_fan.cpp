@@ -44,6 +44,7 @@ bool BedFan::is_rpm_ok() {
 }
 
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 
     #error
 

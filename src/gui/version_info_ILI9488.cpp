@@ -27,6 +27,7 @@ ScreenMenuVersionInfo::ScreenMenuVersionInfo()
         const version_t *bootloader_version = (const version_t *)BOOTLOADER_VERSION_ADDRESS;
         sb.append_printf("%d.%d.%d", bootloader_version->major, bootloader_version->minor, bootloader_version->patch);
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         sb.append_string("noboot");
 #endif
         Item<MI_INFO_BOOTLOADER>().ChangeInformation(sb.str());

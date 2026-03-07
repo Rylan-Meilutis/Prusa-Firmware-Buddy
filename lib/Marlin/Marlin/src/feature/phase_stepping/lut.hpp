@@ -35,6 +35,7 @@ struct CoilCurrents {
 };
 
 #if HAS_BURST_STEPPING()
+// #error dead code found by automatic analyses (see BFW-5461)
 using correction_t = int;
 #else
 using correction_t = CoilCurrents;
@@ -74,6 +75,7 @@ public:
     int get_phase_shift_for_calibration(int idx, int extra_harmonic, int extra_phase, int extra_mag) const;
 
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     correction_t get_correction(int idx) const { return get_phase_shift(idx); }
     correction_t get_correction_for_calibration(int idx, int extra_harmonic, int extra_phase, int extra_mag) const {
         return get_phase_shift_for_calibration(idx, extra_harmonic, extra_phase, extra_mag);

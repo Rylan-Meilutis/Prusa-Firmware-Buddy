@@ -175,6 +175,7 @@ void M600_manual(const GCodeParser2 &p) {
     }
 
 #if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     park_point += hotend_offset[active_extruder];
 #endif
 

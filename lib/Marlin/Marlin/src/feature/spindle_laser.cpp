@@ -27,6 +27,7 @@
 #include "../inc/MarlinConfig.h"
 
 #if HAS_CUTTER
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "spindle_laser.h"
 
@@ -39,15 +40,18 @@ cutter_power_t SpindleLaser::power; // = 0
 void SpindleLaser::init() {
   OUT_WRITE(SPINDLE_LASER_ENA_PIN, !SPINDLE_LASER_ACTIVE_HIGH); // Init spindle to off
   #if ENABLED(SPINDLE_CHANGE_DIR)
+    // #error dead code found by automatic analyses (see BFW-5461)
     OUT_WRITE(SPINDLE_DIR_PIN, SPINDLE_INVERT_DIR ? 255 : 0);   // Init rotation to clockwise (M3)
   #endif
   #if ENABLED(SPINDLE_LASER_PWM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_PWM(SPINDLE_LASER_PWM_PIN);
     analogWrite(pin_t(SPINDLE_LASER_PWM_PIN), SPINDLE_LASER_PWM_OFF);  // set to lowest speed
   #endif
 }
 
 #if ENABLED(SPINDLE_LASER_PWM)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   /**
    * ocr_val_mode() is used for debugging and to get the points needed to compute the RPM vs ocr_val line
@@ -66,6 +70,7 @@ void SpindleLaser::apply_power(const cutter_power_t inpow) {
   if (inpow == last_power_applied) return;
   last_power_applied = inpow;
   #if ENABLED(SPINDLE_LASER_PWM)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (enabled()) {
       #define _scaled(F) ((F - (SPEED_POWER_INTERCEPT)) * inv_slope)
       constexpr float inv_slope = RECIPROCAL(SPEED_POWER_SLOPE),
@@ -82,15 +87,18 @@ void SpindleLaser::apply_power(const cutter_power_t inpow) {
       analogWrite(pin_t(SPINDLE_LASER_PWM_PIN), SPINDLE_LASER_PWM_OFF);  // Only write low byte
     }
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     WRITE(SPINDLE_LASER_ENA_PIN, (SPINDLE_LASER_ACTIVE_HIGH) ? enabled() : !enabled());
   #endif
 }
 
 #if ENABLED(SPINDLE_CHANGE_DIR)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   void SpindleLaser::set_direction(const bool reverse) {
     const bool dir_state = (reverse == SPINDLE_INVERT_DIR); // Forward (M3) HIGH when not inverted
     #if ENABLED(SPINDLE_STOP_ON_DIR_CHANGE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       if (enabled() && READ(SPINDLE_DIR_PIN) != dir_state) disable();
     #endif
     WRITE(SPINDLE_DIR_PIN, dir_state);

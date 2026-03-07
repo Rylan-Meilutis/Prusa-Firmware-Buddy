@@ -22,6 +22,7 @@
 #pragma once
 
 #ifndef __has_include
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define __has_include(...) 1
 #endif
 
@@ -159,6 +160,7 @@
   }
 
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #define NOLESS(v, n) \
     do{ \
@@ -402,6 +404,7 @@
 #ifdef __cplusplus
   template <class T> static constexpr const T ABS(const T v) { return v >= 0 ? v : -v; }
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define ABS(a) ({__typeof__(a) _a = (a); _a >= 0 ? _a : -_a;})
 #endif
 
@@ -544,6 +547,7 @@
   }
 
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #define __MIN_N(N,V...) MIN_##N(V)
   #define _MIN_N(N,V...)  __MIN_N(N,V)

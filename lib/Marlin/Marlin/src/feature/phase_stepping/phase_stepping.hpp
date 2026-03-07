@@ -55,6 +55,7 @@ struct AxisState {
     float offset = 0; // Physical offset to apply to targets
     int last_phase = 0; // Last known physical rotor phase
     #if HAS_BURST_STEPPING()
+                        // #error dead code found by automatic analyses (see BFW-5461)
     int driver_phase = 0; // Last known phase the driver uses
     #else
     CoilCurrents last_currents; // Currently applied coil currents

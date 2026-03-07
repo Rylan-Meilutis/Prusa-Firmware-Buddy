@@ -30,31 +30,37 @@
 constexpr bool
   bSERIAL_XON_XOFF = (false
     #if ENABLED(SERIAL_XON_XOFF)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   ),
   bEMERGENCY_PARSER = (false
     #if ENABLED(EMERGENCY_PARSER)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   ),
   bSERIAL_STATS_DROPPED_RX = (false
     #if ENABLED(SERIAL_STATS_DROPPED_RX)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   ),
   bSERIAL_STATS_RX_BUFFER_OVERRUNS = (false
     #if ENABLED(SERIAL_STATS_RX_BUFFER_OVERRUNS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   ),
   bSERIAL_STATS_RX_FRAMING_ERRORS = (false
     #if ENABLED(SERIAL_STATS_RX_FRAMING_ERRORS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   ),
   bSERIAL_STATS_MAX_RX_QUEUED = (false
     #if ENABLED(SERIAL_STATS_MAX_RX_QUEUED)
+      // #error dead code found by automatic analyses (see BFW-5461)
       || true
     #endif
   );

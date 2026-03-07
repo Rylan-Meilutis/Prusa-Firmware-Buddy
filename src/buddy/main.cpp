@@ -120,6 +120,7 @@
 #endif
 
 #if BUDDY_ENABLE_CONNECT() && !BUDDY_ENABLE_WUI()
+    // #error dead code found by automatic analyses (see BFW-5461)
     // FIXME: We should be able to split networking to the lower-level network part and the Link part. Currently, both are done through WUI.
     #error "Can't have connect without WUI"
 #endif
@@ -298,6 +299,7 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     hw_tim8_init();
 #endif
 
@@ -630,6 +632,7 @@ extern "C" void idle_callback() {
 
 void init_error_screen() {
 #if HAS_TOUCH
+    // #error dead code found by automatic analyses (see BFW-5461)
     touchscreen.disable_till_reset();
 #endif
 
@@ -753,6 +756,7 @@ int main() {
 }
 
 #ifdef USE_FULL_ASSERT
+// #error dead code found by automatic analyses (see BFW-5461)
 /// Used by stm32 HAL"
 void assert_failed(uint8_t *file, uint32_t line) {
     _bsod("STM32 assert fail", file, line);

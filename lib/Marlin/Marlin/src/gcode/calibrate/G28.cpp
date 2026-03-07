@@ -40,6 +40,7 @@
 #endif
 
 #if ENABLED(BD_SENSOR)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../feature/bedlevel/bdl/bdl.h"
 #endif
 
@@ -58,6 +59,7 @@
 #include "../../module/probe.h"
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../feature/bltouch.h"
 #endif
 
@@ -66,12 +68,15 @@
 #if ENABLED(EXTENSIBLE_UI)
   //#include "../../lcd/extui/ui_api.h"
 #elif ENABLED(DWIN_CREALITY_LCD)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../lcd/e3v2/creality/dwin.h"
 #elif ENABLED(DWIN_LCD_PROUI)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../lcd/e3v2/proui/dwin.h"
 #endif
 
 #if ENABLED(LASER_FEATURE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../feature/spindle_laser.h"
 #endif
 
@@ -165,6 +170,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
       #if ANY(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
         UNUSED(stealth_states);
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         TERN_(X_SENSORLESS, disable_crash_detection(X_AXIS, stealth_states.x));
         TERN_(Y_SENSORLESS, disable_crash_detection(Y_AXIS, stealth_states.y));
       #endif
@@ -190,6 +196,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
       xy_float_t okay_homing_xy = safe_homing_xy;
       okay_homing_xy -= home_offset;
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xy_float_t okay_homing_xy = safe_homing_xy;
     #endif
 
@@ -249,6 +256,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
         xy_float_t okay_homing_xy = sheet_detect_xy;
         okay_homing_xy -= home_offset;
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         constexpr xy_float_t okay_homing_xy = safe_homing_xy;
       #endif
 
@@ -338,6 +346,7 @@ void GcodeSuite::G28() {
   flags.can_calibrate = !parser.seen('D');
   flags.force_calibrate = parser.seen('C');
   #if ENABLED(MARLIN_DEV_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     flags.simulate = parser.seen('S');
   #endif
   #if ENABLED(DETECT_PRINT_SHEET)
@@ -455,6 +464,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
 
   #if ENABLED(MARLIN_DEV_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (flags.simulate) {
       planner.synchronize();
       if (planner.draining())
@@ -481,10 +491,12 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
    * Set the laser power to false to stop the planner from processing the current power setting.
    */
   #if ENABLED(LASER_FEATURE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     planner.laser_inline.status.isPowered = false;
   #endif
 
   #if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const M_StateEnum old_grblstate = M_State_grbl;
     set_and_report_grblstate(M_HOMING);
   #endif
@@ -510,6 +522,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
   // Disable the leveling matrix before homing
   #if CAN_SET_LEVELING_AFTER_G28
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool leveling_restore_state = parser.boolval('L', TERN1(RESTORE_LEVELING_AFTER_G28, planner.leveling_active));
   #endif
 
@@ -538,42 +551,49 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
       }
     #endif
     #if HAS_CURRENT_HOME(I)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_I = stepperI.getMilliamps();
       if(!no_change) {
         stepperI.rms_current(I_CURRENT_HOME);
       }
     #endif
     #if HAS_CURRENT_HOME(J)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_J = stepperJ.getMilliamps();
       if(!no_change) {
         stepperJ.rms_current(J_CURRENT_HOME);
       }
     #endif
     #if HAS_CURRENT_HOME(K)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_K = stepperK.getMilliamps();
       if(!no_change) {
         stepperK.rms_current(K_CURRENT_HOME);
       }
     #endif
     #if HAS_CURRENT_HOME(U)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_U = stepperU.getMilliamps();
       if(!no_change) {
         stepperU.rms_current(U_CURRENT_HOME);
       }
     #endif
     #if HAS_CURRENT_HOME(V)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_V = stepperV.getMilliamps();
       if(!no_change) {
         stepperV.rms_current(V_CURRENT_HOME);
       }
     #endif
     #if HAS_CURRENT_HOME(W)
+      // #error dead code found by automatic analyses (see BFW-5461)
       const int16_t tmc_save_current_W = stepperW.getMilliamps();
       if(!no_change) {
         stepperW.rms_current(W_CURRENT_HOME);
       }
     #endif
     #if SENSORLESS_STALLGUARD_DELAY
+      // #error dead code found by automatic analyses (see BFW-5461)
       safe_delay(SENSORLESS_STALLGUARD_DELAY); // Short delay needed to settle
     #endif
   #endif
@@ -611,6 +631,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
   // Always home with tool 0 active (but not with HAS_TOOLCHANGER())
   #if HAS_MULTI_HOTEND && !HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     const auto old_tool_index = PhysicalToolIndex::currently_selected();
     tool_change(0, tool_return_t::no_return);
   #endif
@@ -735,6 +756,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   #if HAS_Z_AXIS && DISABLED(HOME_Z_FIRST)
     if (!failed && should_home_at_all(Z_AXIS)) {
       #if EITHER(Z_TRIPLE_ENDSTOPS, Z_STEPPER_AUTO_ALIGN)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepper.set_all_z_lock(false);
         stepper.set_separate_multi_axis(false);
       #endif
@@ -825,6 +847,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
         }
         #endif
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         failed = !homeaxis(Z_AXIS);
       #endif
       }
@@ -858,6 +881,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
   // Restore the active tool after homing
   #if HAS_MULTI_HOTEND && !HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     tool_change(old_tool_index, true);   // Do move if one of these
   #endif
 
@@ -869,24 +893,31 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
       stepperY.rms_current(tmc_save_current_Y);
     #endif
     #if HAS_CURRENT_HOME(I)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperI.rms_current(tmc_save_current_I);
     #endif
     #if HAS_CURRENT_HOME(J)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperJ.rms_current(tmc_save_current_J);
     #endif
     #if HAS_CURRENT_HOME(K)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperK.rms_current(tmc_save_current_K);
     #endif
     #if HAS_CURRENT_HOME(U)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperU.rms_current(tmc_save_current_U);
     #endif
     #if HAS_CURRENT_HOME(V)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperV.rms_current(tmc_save_current_V);
     #endif
     #if HAS_CURRENT_HOME(W)
+      // #error dead code found by automatic analyses (see BFW-5461)
       stepperW.rms_current(tmc_save_current_W);
     #endif
     #if SENSORLESS_STALLGUARD_DELAY
+      // #error dead code found by automatic analyses (see BFW-5461)
       safe_delay(SENSORLESS_STALLGUARD_DELAY); // Short delay needed to settle
     #endif
   #endif // HAS_HOMING_CURRENT

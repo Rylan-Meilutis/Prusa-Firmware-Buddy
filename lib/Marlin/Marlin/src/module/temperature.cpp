@@ -84,6 +84,7 @@
 #if ENABLED(BABYSTEPPING)
   #include "../feature/babystep.h"
   #if ENABLED(BABYSTEP_ALWAYS_AVAILABLE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include "../gcode/gcode.h"
   #endif
 #endif
@@ -91,6 +92,7 @@
 #include "printcounter.h"
 
 #if ENABLED(EMERGENCY_PARSER)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/emergency_parser.h"
 #endif
 
@@ -226,6 +228,7 @@ Temperature thermalManager;
 // private:
 
 #if EARLY_WATCHDOG
+  // #error dead code found by automatic analyses (see BFW-5461)
   bool Temperature::inited = false;
 #endif
 
@@ -365,17 +368,20 @@ void Temperature::min_temp_error(const heater_ind_t heater) {
       }
 
     #else // PID_OPENLOOP
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       const float pid_output = constrain(temp_bed.target, 0, MAX_BED_POWER);
 
     #endif // PID_OPENLOOP
 
     #if ENABLED(PID_BED_DEBUG)
+      // #error dead code found by automatic analyses (see BFW-5461)
     {
       SERIAL_ECHO_START();
       SERIAL_ECHOLNPAIR(
         " PID_BED_DEBUG : Input ", temp_bed.celsius, " Output ", pid_output,
         #if DISABLED(PID_OPENLOOP)
+          // #error dead code found by automatic analyses (see BFW-5461)
           MSG_PID_DEBUG_PTERM, work_pid.Kp,
           MSG_PID_DEBUG_ITERM, work_pid.Ki,
           MSG_PID_DEBUG_DTERM, work_pid.Kd,
@@ -402,11 +408,13 @@ void Temperature::min_temp_error(const heater_ind_t heater) {
 void Temperature::manage_heater() {
 
   #if EARLY_WATCHDOG
+    // #error dead code found by automatic analyses (see BFW-5461)
     // If thermal manager is still not running, make sure to at least reset the watchdog!
     if (!inited) return watchdog_refresh();
   #endif
 
   #if ENABLED(EMERGENCY_PARSER)
+    // #error dead code found by automatic analyses (see BFW-5461)
     if (emergency_parser.killed_by_M112) kill();
   #endif
 
@@ -488,6 +496,7 @@ void Temperature::manage_fans() {
     analogWrite(FAN1_PIN, applied_fan_speed[1]);
   #endif
   #if HAS_FAN2
+    // #error dead code found by automatic analyses (see BFW-5461)
     analogWrite(FAN2_PIN, applied_fan_speed[2]);
   #endif
 }
@@ -552,8 +561,10 @@ constexpr float compensate_bed_temperature(float celsius) {
       celsius = compensate_bed_temperature(celsius);
       return celsius;
     #elif HAS_MODULARBED()
+      // #error dead code found by automatic analyses (see BFW-5461)
       return raw
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       return 0;
     #endif
   }
@@ -566,6 +577,7 @@ constexpr float compensate_bed_temperature(float celsius) {
     #if ENABLED(BOARD_USES_THERMISTOR)
       return marlin_temptable_lookup(TT_NAME(TEMP_SENSOR_BOARD), raw);
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       return 0;
     #endif
   }
@@ -692,6 +704,7 @@ void Temperature::updateTemperaturesFromRawValues() {
 void Temperature::init() {
 
   #if EARLY_WATCHDOG
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Flag that the thermalManager should be running
     if (inited) return;
     inited = true;
@@ -708,6 +721,7 @@ void Temperature::init() {
     INIT_FAN_PIN(FAN1_PIN);
   #endif
   #if HAS_FAN2
+    // #error dead code found by automatic analyses (see BFW-5461)
     INIT_FAN_PIN(FAN2_PIN);
   #endif
 
@@ -1125,6 +1139,7 @@ void Temperature::isr() {
       // Loop until the temperature has stabilized
 
       #if DISABLED(BUSY_WHILE_HEATING) && ENABLED(HOST_KEEPALIVE_FEATURE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         KEEPALIVE_STATE(NOT_BUSY);
       #endif
 
@@ -1222,6 +1237,7 @@ void Temperature::isr() {
     #ifdef BED_MAXTEMP
             _MIN(celsius, BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN)
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
             celsius
     #endif
             ;
@@ -1261,6 +1277,7 @@ void Temperature::isr() {
         // Loop until the temperature has stabilized
         #define TEMP_BED_CONDITIONS (!residency_start_ms || PENDING(now, residency_start_ms + (TEMP_BED_RESIDENCY_TIME) * 1000UL))
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         // Loop until the temperature is very close target
         #define TEMP_BED_CONDITIONS (wants_to_cool ? isCoolingBed() : isHeatingBed())
       #endif
@@ -1271,6 +1288,7 @@ void Temperature::isr() {
       millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
 
       #if DISABLED(BUSY_WHILE_HEATING) && ENABLED(HOST_KEEPALIVE_FEATURE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         KEEPALIVE_STATE(NOT_BUSY);
       #endif
 

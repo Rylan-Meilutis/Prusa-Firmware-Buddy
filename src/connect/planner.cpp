@@ -96,6 +96,7 @@ namespace {
     // Telemetry every 15 seconds at least.
     const constexpr Duration TELEMETRY_INTERVAL_LONG = 1000 * 15;
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Telemetry every 4 seconds (unlike websocket, we can't receive a command
     // asynchronously).
     const constexpr Duration TELEMETRY_INTERVAL_LONG = 1000 * 5;
@@ -844,6 +845,7 @@ void Planner::handle_cancel_object_command(const Command &command, uint16_t obje
     };
 
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     planned_event = Event {
         EventType::Rejected,
         command.id,

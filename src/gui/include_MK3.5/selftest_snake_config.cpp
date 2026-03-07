@@ -5,6 +5,7 @@
 #include <config_store/store_instance.hpp>
 #include <common/SteelSheets.hpp>
 #if HAS_TOOLCHANGER()
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <module/prusa/toolchanger.h>
 #endif
 

@@ -396,6 +396,7 @@ void CSelftest::next() {
 // don't skip Z calibration and X and Y axis tests when loadcell fails
 // currently only disabled we might want it back
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     case stsZcalib:
     case stsXAxis:
     case stsYAxis: // Y is not skipped even if X fails

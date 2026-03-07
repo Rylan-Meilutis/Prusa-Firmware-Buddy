@@ -11,6 +11,7 @@
 using namespace buddy::puppies;
 
 #ifdef TIME_SYNC_DEBUG
+// #error dead code found by automatic analyses (see BFW-5461)
 METRIC_DEF(metric_buddy_time_us, "buddy_t", METRIC_VALUE_INTEGER, 0, METRIC_ENABLED);
 METRIC_DEF(metric_puppy_time_us, "puppy_t", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 METRIC_DEF(metric_sync_roundtrip_us, "sync_rt", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
@@ -63,6 +64,7 @@ void TimeSync::sync(const uint32_t puppy_time_us, const RequestTiming timing) {
         average_drift_ppb = static_cast<int32_t>(drift_filter.filter(puppy_drift_ppb, 0));
 
 #ifdef TIME_SYNC_DEBUG
+        // #error dead code found by automatic analyses (see BFW-5461)
         metric_record_custom(&metric_sync_roundtrip_us, ",n=%d v=%d", id, roundtrip_us);
         metric_record_custom(&metric_puppy_time_us, ",n=%d v=%d", id, puppy_time_us);
         metric_record_integer(&metric_buddy_time_us, buddy_time_us);

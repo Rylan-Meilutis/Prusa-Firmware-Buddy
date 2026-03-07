@@ -33,6 +33,7 @@ TRACED_ISR(DMA2_Stream6_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(flash).hd
 TRACED_ISR(DMA2_Stream5_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(lcd).hdmatx);
 
 #if HAS_BURST_STEPPING()
+// #error dead code found by automatic analyses (see BFW-5461)
 
 // DMA is required for burst stepping and can't be used by leds
 BARE_ISR(DMA2_Stream1_IRQHandler, HAL_DMA_IRQHandler, hspi4.hdmatx);

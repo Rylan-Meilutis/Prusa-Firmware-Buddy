@@ -30,6 +30,7 @@
 #include "../Marlin.h"
 
 #if NUM_SERIAL > 1
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "queue.h"
 #endif
 
@@ -49,8 +50,10 @@ int GCodeParser::codenum;
 #endif
 
 #if ENABLED(GCODE_MOTION_MODES)
+  // #error dead code found by automatic analyses (see BFW-5461)
   int16_t GCodeParser::motion_mode_codenum = -1;
   #if USE_GCODE_SUBCODES
+    // #error dead code found by automatic analyses (see BFW-5461)
     uint8_t GCodeParser::motion_mode_subcode;
   #endif
 #endif
@@ -119,9 +122,12 @@ void GCodeParser::parse(char *p) {
   }
 
   #if ENABLED(GCODE_MOTION_MODES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ARC_SUPPORT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define GTOP 3
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define GTOP 1
     #endif
   #endif
@@ -170,14 +176,17 @@ void GCodeParser::parse(char *p) {
       while (*p == ' ') p++;
 
       #if ENABLED(GCODE_MOTION_MODES)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (letter == 'G' && (codenum <= GTOP || codenum == 5
                                 #if ENABLED(G38_PROBE_TARGET)
+                                  // #error dead code found by automatic analyses (see BFW-5461)
                                   || codenum == 38
                                 #endif
                              )
         ) {
           motion_mode_codenum = codenum;
           #if USE_GCODE_SUBCODES
+            // #error dead code found by automatic analyses (see BFW-5461)
             motion_mode_subcode = subcode;
           #endif
         }
@@ -186,7 +195,9 @@ void GCodeParser::parse(char *p) {
       break;
 
     #if ENABLED(GCODE_MOTION_MODES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #if ENABLED(ARC_SUPPORT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         case 'I': case 'J': case 'R':
           if (motion_mode_codenum != 2 && motion_mode_codenum != 3) return;
       #endif
@@ -197,6 +208,7 @@ void GCodeParser::parse(char *p) {
         command_letter = 'G';
         codenum = motion_mode_codenum;
         #if USE_GCODE_SUBCODES
+          // #error dead code found by automatic analyses (see BFW-5461)
           subcode = motion_mode_subcode;
         #endif
         p--; // Back up one character to use the current parameter
@@ -215,6 +227,7 @@ void GCodeParser::parse(char *p) {
   // Only use string_arg for these M codes
   if (letter == 'M') switch (codenum) {
     #if ENABLED(EXPECTED_PRINTER_CHECK)
+      // #error dead code found by automatic analyses (see BFW-5461)
       case 16:
     #endif
     case 23: case 28: case 30: case 117: case 118: case 973: case 928: string_arg = p; return;
@@ -222,6 +235,7 @@ void GCodeParser::parse(char *p) {
   }
 
   #if ENABLED(DEBUG_GCODE_PARSER)
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool debug = codenum == 800;
   #endif
 
@@ -263,6 +277,7 @@ void GCodeParser::parse(char *p) {
       const bool has_num = valid_float(p);
 
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (debug) {
           SERIAL_ECHOPAIR("Got letter ", code, " at index ", (int)(p - command_ptr - 1));
           if (has_num) SERIAL_ECHOPGM(" (has_num)");
@@ -272,11 +287,13 @@ void GCodeParser::parse(char *p) {
       if (!has_num && !string_arg) {            // No value? First time, keep as string_arg
         string_arg = p - 1;
         #if ENABLED(DEBUG_GCODE_PARSER)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (debug) SERIAL_ECHOPAIR(" string_arg: ", hex_address((void*)string_arg)); // DEBUG
         #endif
       }
 
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (debug) SERIAL_EOL();
       #endif
 
@@ -287,6 +304,7 @@ void GCodeParser::parse(char *p) {
     else if (!string_arg) {                     // Not A-Z? First time, keep as the string_arg
       string_arg = p - 1;
       #if ENABLED(DEBUG_GCODE_PARSER)
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (debug) SERIAL_ECHOPAIR(" string_arg: ", hex_address((void*)string_arg)); // DEBUG
       #endif
     }
@@ -304,16 +322,19 @@ void GCodeParser::unknown_command_error() {
 }
 
 #if ENABLED(DEBUG_GCODE_PARSER)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   void GCodeParser::debug() {
     SERIAL_ECHOPAIR("Command: ", command_ptr, " (", command_letter);
     SERIAL_ECHO(codenum);
     SERIAL_ECHOLNPGM(")");
     #if ENABLED(FASTER_GCODE_PARSER)
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHOPGM(" args: { ");
       for (char c = 'A'; c <= 'Z'; ++c) if (seen(c)) { SERIAL_CHAR(c); SERIAL_CHAR(' '); }
       SERIAL_CHAR('}');
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       SERIAL_ECHOPAIR(" args: { ", command_args, " }");
     #endif
     if (string_arg) SERIAL_ECHOPAIR(" string: \"", string_arg, "\"");

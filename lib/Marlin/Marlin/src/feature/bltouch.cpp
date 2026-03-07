@@ -23,6 +23,7 @@
 #include "../inc/MarlinConfig.h"
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "bltouch.h"
 
@@ -52,13 +53,16 @@ void BLTouch::init(const bool set_voltage/*=false*/) {
   _stow();
 
   #if ENABLED(BLTOUCH_FORCE_MODE_SET)
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     constexpr bool should_set = true;
 
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     const bool should_set = last_written_mode != (false
       #if ENABLED(BLTOUCH_SET_5V_MODE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         || true
       #endif
     );
@@ -68,6 +72,7 @@ void BLTouch::init(const bool set_voltage/*=false*/) {
   if (should_set && set_voltage)
     mode_conv_proc((false
       #if ENABLED(BLTOUCH_SET_5V_MODE)
+        // #error dead code found by automatic analyses (see BFW-5461)
         || true
       #endif
     ));
@@ -85,8 +90,10 @@ void BLTouch::clear() {
 bool BLTouch::triggered() {
   return (
     #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
+      // #error dead code found by automatic analyses (see BFW-5461)
       READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING
     #else
+      // #error dead code found by automatic analyses (see BFW-5461)
       READ(Z_MIN_PROBE_PIN) != Z_MIN_PROBE_ENDSTOP_INVERTING
     #endif
   );
@@ -112,6 +119,7 @@ bool BLTouch::deploy_proc() {
 
   // One of the recommended ANTClabs ways to probe, using SW MODE
   #if ENABLED(BLTOUCH_FORCE_SW_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
    _set_SW_mode();
   #endif
 

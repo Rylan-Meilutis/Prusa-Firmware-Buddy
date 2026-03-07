@@ -404,6 +404,7 @@ PrintPreview::Result PrintPreview::Loop() {
         // We're ready to print now
         ChangeState((skip_if_able > marlin_server::PreviewSkipIfAble::no) ? stateFromSelftestCheck() : State::preview_wait_user);
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         ChangeState(State::preview_wait_user);
 #endif
         break;

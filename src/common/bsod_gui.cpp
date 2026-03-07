@@ -41,6 +41,7 @@ typedef struct tskTaskControlBlock {
     volatile StackType_t *pxTopOfStack; /*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
 
 #if (portUSING_MPU_WRAPPERS == 1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     xMPU_SETTINGS xMPUSettings; /*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
 #endif
 
@@ -52,10 +53,12 @@ typedef struct tskTaskControlBlock {
     /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
 #if (portSTACK_GROWTH > 0)
+    // #error dead code found by automatic analyses (see BFW-5461)
     StackType_t *pxEndOfStack; /*< Points to the end of the stack on architectures where the stack grows up from low memory. */
 #endif
 
 #if (portCRITICAL_NESTING_IN_TCB == 1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     UBaseType_t uxCriticalNesting; /*< Holds the critical section nesting depth for ports that do not maintain their own count in the port layer. */
 #endif
 
@@ -70,10 +73,12 @@ typedef struct tskTaskControlBlock {
 #endif
 
 #if (configUSE_APPLICATION_TASK_TAG == 1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     TaskHookFunction_t pxTaskTag;
 #endif
 
 #if (configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0)
+    // #error dead code found by automatic analyses (see BFW-5461)
     void *pvThreadLocalStoragePointers[configNUM_THREAD_LOCAL_STORAGE_POINTERS];
 #endif
 

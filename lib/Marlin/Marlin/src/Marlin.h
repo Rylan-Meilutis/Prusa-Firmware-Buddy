@@ -24,6 +24,7 @@
 #include "inc/MarlinConfig.h"
 
 #ifdef DEBUG_GCODE_PARSER
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "gcode/parser.h"
 #endif
 
@@ -35,6 +36,7 @@ void idle(bool waiting);
 void manage_inactivity();
 
 #if ENABLED(G38_PROBE_TARGET)
+  // #error dead code found by automatic analyses (see BFW-5461)
   extern uint8_t G38_move;          // Flag to tell the ISR that G38 is in progress, and the type
   extern bool G38_did_trigger;      // Flag from the ISR to indicate the endstop changed
 #endif
@@ -84,11 +86,13 @@ extern uint16_t job_id;
     #define PSU_ON()  powerManager.power_on()
     #define PSU_OFF() powerManager.power_off()
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define PSU_ON()  PSU_PIN_ON()
     #define PSU_OFF() PSU_PIN_OFF()
   #endif
 #endif
 
 #if HAS_SUICIDE
+  // #error dead code found by automatic analyses (see BFW-5461)
   inline void suicide() { OUT_WRITE(SUICIDE_PIN, LOW); }
 #endif

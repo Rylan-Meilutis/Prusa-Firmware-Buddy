@@ -83,6 +83,7 @@ Stepper stepper; // Singleton
 // public:
 
 #if ENABLED(Z_TRIPLE_ENDSTOPS) || ENABLED(Z_STEPPER_AUTO_ALIGN)
+                 // #error dead code found by automatic analyses (see BFW-5461)
 bool Stepper::separate_multi_axis = false;
 #endif
 
@@ -202,9 +203,11 @@ void Stepper::init() {
 #if HAS_Z_DIR
     Z_DIR_INIT;
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && HAS_Z2_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z2_DIR_INIT;
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && HAS_Z3_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z3_DIR_INIT;
     #endif
 #endif
@@ -212,18 +215,23 @@ void Stepper::init() {
     E0_DIR_INIT;
 #endif
 #if HAS_E1_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     E1_DIR_INIT;
 #endif
 #if HAS_E2_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     E2_DIR_INIT;
 #endif
 #if HAS_E3_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     E3_DIR_INIT;
 #endif
 #if HAS_E4_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     E4_DIR_INIT;
 #endif
 #if HAS_E5_DIR
+    // #error dead code found by automatic analyses (see BFW-5461)
     E5_DIR_INIT;
 #endif
 
@@ -248,12 +256,14 @@ void Stepper::init() {
         Z_ENABLE_WRITE(HIGH);
     }
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && HAS_Z2_ENABLE
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z2_ENABLE_INIT;
     if (!Z_ENABLE_ON) {
         Z2_ENABLE_WRITE(HIGH);
     }
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && HAS_Z3_ENABLE
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z3_ENABLE_INIT;
     if (!Z_ENABLE_ON) {
         Z3_ENABLE_WRITE(HIGH);
@@ -291,6 +301,7 @@ void Stepper::init() {
     }
 #endif
 #if HAS_E5_ENABLE
+    // #error dead code found by automatic analyses (see BFW-5461)
     E5_ENABLE_INIT;
     if (!E_ENABLE_ON) {
         E5_ENABLE_WRITE(HIGH);
@@ -329,10 +340,12 @@ void Stepper::init() {
 
 #if HAS_Z_STEP
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z2_STEP_INIT;
     Z2_STEP_WRITE(INVERT_Z_STEP_PIN);
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     Z3_STEP_INIT;
     Z3_STEP_WRITE(INVERT_Z_STEP_PIN);
     #endif
@@ -344,18 +357,23 @@ void Stepper::init() {
     E_AXIS_INIT(0);
 #endif
 #if E_STEPPERS > 1 && HAS_E1_STEP
+    // #error dead code found by automatic analyses (see BFW-5461)
     E_AXIS_INIT(1);
 #endif
 #if E_STEPPERS > 2 && HAS_E2_STEP
+    // #error dead code found by automatic analyses (see BFW-5461)
     E_AXIS_INIT(2);
 #endif
 #if E_STEPPERS > 3 && HAS_E3_STEP
+    // #error dead code found by automatic analyses (see BFW-5461)
     E_AXIS_INIT(3);
 #endif
 #if E_STEPPERS > 4 && HAS_E4_STEP
+    // #error dead code found by automatic analyses (see BFW-5461)
     E_AXIS_INIT(4);
 #endif
 #if E_STEPPERS > 5 && HAS_E5_STEP
+    // #error dead code found by automatic analyses (see BFW-5461)
     E_AXIS_INIT(5);
 #endif
 
@@ -383,9 +401,11 @@ void Stepper::_set_position(const int32_t &x, const int32_t &y, const int32_t &z
     // these equations follow the form of the dA and dB equations on http://www.corexy.com/theory.html
     abce_steps_t new_position = { x + y, CORESIGN(x - y), z, e };
 #elif CORE_IS_XZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     // corexz planning
     abce_steps_t new_position = { x + z, y, CORESIGN(x - z), e };
 #elif CORE_IS_YZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     // coreyz planning
     abce_steps_t new_position = { x, y + z, CORESIGN(y - z), e };
 #else
@@ -423,6 +443,7 @@ void Stepper::report_positions() {
     SERIAL_ECHOPAIR(MSG_COUNT_X, pos.x, " Y:", pos.y);
 #endif
 #if CORE_IS_XZ || CORE_IS_YZ
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOLNPAIR(" C:", pos.c);
 #else
     SERIAL_ECHOLNPAIR(" Z:", pos.z);
@@ -434,8 +455,10 @@ void Stepper::report_positions() {
     #if ENABLED(SQUARE_WAVE_STEPPING) && (MINIMUM_STEPPER_PRE_DIR_DELAY > 0) && (MINIMUM_STEPPER_POST_DIR_DELAY > 0)
         #define STEP_PULSE_CYCLES 0 // minimum step time is ensured due to required direction change delays
     #elif MINIMUM_STEPPER_PULSE
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define STEP_PULSE_CYCLES ((MINIMUM_STEPPER_PULSE)*CYCLES_PER_MICROSECOND)
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define STEP_PULSE_CYCLES 0
     #endif
 
@@ -448,6 +471,7 @@ void Stepper::report_positions() {
     #define _APPLY_DIR(AXIS, INVERT) AXIS##_APPLY_DIR(INVERT)
 
     #if EXTRA_CYCLES_BABYSTEP > 20
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define _SAVE_START const hal_timer_t pulse_start = HAL_timer_get_count(PULSE_TIMER_NUM)
         #define _PULSE_WAIT                                                                                                                      \
             while (EXTRA_CYCLES_BABYSTEP > (uint32_t)(HAL_timer_get_count(PULSE_TIMER_NUM) - pulse_start) * (PULSE_TIMER_PRESCALE)) { /* nada */ \
@@ -455,8 +479,10 @@ void Stepper::report_positions() {
     #else
         #define _SAVE_START NOOP
         #if EXTRA_CYCLES_BABYSTEP > 0
+            // #error dead code found by automatic analyses (see BFW-5461)
             #define _PULSE_WAIT delay_ns_precise<EXTRA_CYCLES_BABYSTEP * NANOSECONDS_PER_CYCLE>()
         #elif STEP_PULSE_CYCLES > 0
+            // #error dead code found by automatic analyses (see BFW-5461)
             #define _PULSE_WAIT NOOP
         #else
             #define _PULSE_WAIT delay_us_precise<4>()
@@ -488,27 +514,34 @@ void Stepper::babystep(const AxisEnum axis, const bool direction) {
     switch (axis) {
 
     #if ENABLED(BABYSTEP_XY)
+        // #error dead code found by automatic analyses (see BFW-5461)
 
     case X_AXIS:
         #if CORE_IS_XY
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(X, false, direction);
         BABYSTEP_AXIS(Y, false, direction);
         #elif CORE_IS_XZ
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(X, false, direction);
         BABYSTEP_AXIS(Z, false, direction);
         #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(X, false, direction);
         #endif
         break;
 
     case Y_AXIS:
         #if CORE_IS_XY
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(X, false, direction);
         BABYSTEP_AXIS(Y, false, direction ^ (CORESIGN(1) < 0));
         #elif CORE_IS_YZ
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(Y, false, direction);
         BABYSTEP_AXIS(Z, false, direction ^ (CORESIGN(1) < 0));
         #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(Y, false, direction);
         #endif
         break;
@@ -518,10 +551,12 @@ void Stepper::babystep(const AxisEnum axis, const bool direction) {
     case Z_AXIS: {
 
     #if CORE_IS_XZ
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(X, BABYSTEP_INVERT_Z, direction);
         BABYSTEP_AXIS(Z, BABYSTEP_INVERT_Z, direction ^ (CORESIGN(1) < 0));
 
     #elif CORE_IS_YZ
+        // #error dead code found by automatic analyses (see BFW-5461)
         BABYSTEP_AXIS(Y, BABYSTEP_INVERT_Z, direction);
         BABYSTEP_AXIS(Z, BABYSTEP_INVERT_Z, direction ^ (CORESIGN(1) < 0));
 
@@ -557,9 +592,11 @@ void Stepper::microstep_mode(const uint8_t driver, const uint8_t stepping) {
         stepperZ.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperZ2.microsteps(steping);
     #endif
     #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperZ3.microsteps(stepping);
     #endif
         break;
@@ -568,18 +605,23 @@ void Stepper::microstep_mode(const uint8_t driver, const uint8_t stepping) {
         stepperE0.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperE1.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperE2.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperE3.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperE4.microsteps(stepping);
     #endif
     #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         stepperE5.microsteps(stepping);
     #endif
         break;
@@ -609,11 +651,13 @@ void Stepper::microstep_readings() {
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("Z2:");
     snprintf(msg, 7, "%u\n", stepperZ2.microsteps());
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("Z3:");
     snprintf(msg, 7, "%u\n", stepperZ3.microsteps());
     SERIAL_ECHOPGM(msg);
@@ -624,26 +668,31 @@ void Stepper::microstep_readings() {
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("E1:");
     snprintf(msg, 7, "%u\n", stepperE1.microsteps());
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("E2:");
     snprintf(msg, 7, "%u\n", stepperE2.microsteps());
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("E3:");
     snprintf(msg, 7, "%u\n", stepperE2.microsteps());
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("E4:");
     snprintf(msg, 7, "%u\n", stepperE3.microsteps());
     SERIAL_ECHOPGM(msg);
     #endif
     #if AXIS_IS_TMC(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHOPGM("E5:");
     snprintf(msg, 7, "%u\n", stepperE5.microsteps());
     SERIAL_ECHOPGM(msg);

@@ -241,6 +241,7 @@
 #include <option/has_cancel_object.h>
 
 #if ANY(POLAR) || defined(G0_FEEDRATE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define HAS_FAST_MOVES 1
 #endif
 
@@ -253,6 +254,7 @@ struct G28Flags {
   bool can_calibrate = false;
   bool force_calibrate = false;
   #if ENABLED(MARLIN_DEV_MODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     bool simulate = false;
   #endif
 
@@ -304,6 +306,7 @@ public:
   static PrinterGCodeCompatibilityReport compatibility;
 
   #if ENABLED(CNC_WORKSPACE_PLANES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /**
      * Workspace planes only apply to G2/G3 moves
      * (and "canned cycles" - not a current feature)
@@ -394,14 +397,17 @@ private:
   static void G4();
 
   #if ENABLED(BEZIER_CURVE_SUPPORT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void G5();
   #endif
 
   #if ENABLED(DIRECT_STEPPING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void G6();
   #endif
 
   #if ENABLED(CNC_WORKSPACE_PLANES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void G17();
     static void G18();
     static void G19();
@@ -418,17 +424,20 @@ private:
   #if HAS_BED_PROBE
     static void G30();
     #if ENABLED(Z_PROBE_SLED)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void G31();
       static void G32();
     #endif
   #endif
 
   #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void G34();
     static void M422();
   #endif
 
   #if ENABLED(G38_PROBE_TARGET)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void G38(const int8_t subcode);
   #endif
 
@@ -451,21 +460,26 @@ private:
   #endif
 
   #if HAS_CUTTER
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M3_M4(const bool is_M4);
     static void M5();
   #endif
 
   #if ENABLED(COOLANT_CONTROL)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(COOLANT_MIST)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void M7();
     #endif
     #if ENABLED(COOLANT_FLOOD)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void M8();
     #endif
     static void M9();
   #endif
 
   #if ENABLED(EXPECTED_PRINTER_CHECK)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M16();
   #endif
 
@@ -492,9 +506,11 @@ private:
   #if ENABLED(SDCARD_GCODES)
     static void M32();
     #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void M33();
     #endif
     #if BOTH(SDCARD_SORT_ALPHA, SDSORT_GCODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void M34();
     #endif
   #endif
@@ -502,6 +518,7 @@ private:
   static void M46();
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M48();
   #endif
 
@@ -573,6 +590,7 @@ private:
   static void M201();
 
   #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M202(); // Not used for Sprinter/grbl gen6
   #endif
 
@@ -603,8 +621,10 @@ private:
   #endif
 
   #if HAS_SERVOS
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M280();
     #if ENABLED(EDITABLE_SERVO_ANGLES)
+      // #error dead code found by automatic analyses (see BFW-5461)
       static void M281();
     #endif
   #endif
@@ -634,10 +654,12 @@ private:
   #endif
 
   #if HAS_CASE_LIGHT
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M355();
   #endif
 
   #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M380();
     static void M381();
   #endif
@@ -659,6 +681,7 @@ private:
   #endif
 
   #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M425();
   #endif
 
@@ -678,6 +701,7 @@ private:
   #endif
 
   #if ENABLED(SD_ABORT_ON_ENDSTOP_HIT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M540();
   #endif
 
@@ -692,6 +716,7 @@ private:
   static void M572_internal(float pressure_advance, float smooth_time);
 
   #if ENABLED(BAUD_RATE_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M575();
   #endif
 
@@ -706,6 +731,7 @@ private:
   static void M604();
 
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M666();
   #endif
 
@@ -753,12 +779,14 @@ private:
 #endif
 
   #if ENABLED(PLATFORM_M997_SUPPORT)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M997();
   #endif
 
   static void M999();
 
   #if ENABLED(MAX7219_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void M7219();
   #endif
 };

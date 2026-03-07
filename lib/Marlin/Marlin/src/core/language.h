@@ -29,11 +29,13 @@
 #define LCD_LANGUAGE en
 
 #ifdef DEFAULT_SOURCE_CODE_URL
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef  SOURCE_CODE_URL
   #define SOURCE_CODE_URL DEFAULT_SOURCE_CODE_URL
 #endif
 
 #ifdef CUSTOM_MACHINE_NAME
+  // #error dead code found by automatic analyses (see BFW-5461)
   #undef  MACHINE_NAME
   #define MACHINE_NAME CUSTOM_MACHINE_NAME
 #else
@@ -230,6 +232,7 @@
  *
  */
 #if ENABLED(NUMBER_TOOLS_FROM_0)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define LCD_STR_N0 "0"
   #define LCD_STR_N1 "1"
   #define LCD_STR_N2 "2"

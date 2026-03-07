@@ -25,6 +25,7 @@ bool enable_crash_detection(AxisEnum axis) {
     #if HAS_TRINAMIC
     return tmc_enable_stallguard(stepper_axis(axis));
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     bsod("Unknown driver");
     #endif
 }
@@ -34,6 +35,7 @@ void disable_crash_detection(AxisEnum axis, bool restore_stealth) {
     #if HAS_TRINAMIC
     tmc_disable_stallguard(stepper_axis(axis), restore_stealth);
     #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     bsod("Unknown driver");
     #endif
 }
@@ -53,27 +55,34 @@ void motor_driver_init() {
     SET_CS_PIN(Z);
     #endif
     #if AXIS_HAS_SPI(Z2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(Z2);
     #endif
     #if AXIS_HAS_SPI(Z3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(Z3);
     #endif
     #if AXIS_HAS_SPI(E0)
     SET_CS_PIN(E0);
     #endif
     #if AXIS_HAS_SPI(E1)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(E1);
     #endif
     #if AXIS_HAS_SPI(E2)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(E2);
     #endif
     #if AXIS_HAS_SPI(E3)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(E3);
     #endif
     #if AXIS_HAS_SPI(E4)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(E4);
     #endif
     #if AXIS_HAS_SPI(E5)
+    // #error dead code found by automatic analyses (see BFW-5461)
     SET_CS_PIN(E5);
     #endif
 #endif
@@ -214,6 +223,7 @@ void reset_stepper_drivers() {
     SERIAL_ECHOPGM("Resetting stepper drivers\n");
 
 #if HAS_DRIVER(TMC26X)
+    // #error dead code found by automatic analyses (see BFW-5461)
     tmc26x_init_to_defaults();
 #endif
 

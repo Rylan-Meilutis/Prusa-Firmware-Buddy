@@ -66,6 +66,7 @@ static_assert(BOARD_IS_BUDDY() || BOARD_IS_XBUDDY());
 #define E0_ENABLE_PIN          MARLIN_PIN(E0_ENA)
 
 #if HAS_DRIVER(TMC2208)
+  // #error dead code found by automatic analyses (see BFW-5461)
   /**
    * TMC2208 stepper drivers
    *
@@ -88,6 +89,7 @@ static_assert(BOARD_IS_BUDDY() || BOARD_IS_XBUDDY());
   #define X_SLAVE_ADDRESS 1
   #define Y_SLAVE_ADDRESS 3
 #if BOARD_IS_XBUDDY()
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define Z_SLAVE_ADDRESS 2
   #define E0_SLAVE_ADDRESS 0
 #elif BOARD_IS_BUDDY()

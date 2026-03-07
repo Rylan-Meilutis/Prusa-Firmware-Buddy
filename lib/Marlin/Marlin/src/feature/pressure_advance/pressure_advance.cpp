@@ -121,6 +121,7 @@ pressure_advance_params_t create_pressure_advance_params(const pressure_advance:
 #ifndef PRESSURE_ADVANCE_SIMPLE_WINDOW_FILTER
     params.filter = create_normalized_bartlett_window_filter(filter_length);
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     params.filter = create_simple_window_filter(filter_length);
 #endif
     params.filter_total_time = params.sampling_rate * double(filter_length);

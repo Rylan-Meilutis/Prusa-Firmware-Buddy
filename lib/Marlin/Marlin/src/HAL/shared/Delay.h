@@ -35,6 +35,7 @@
 #if defined(__arm__) || defined(__thumb__)
 
   #if __CORTEX_M == 7
+    // #error dead code found by automatic analyses (see BFW-5461)
 
     // Cortex-M7 can use the cycle counter of the DWT unit
     // http://www.anthonyvh.com/2017/05/18/cortex_m-cycle_counter/
@@ -66,6 +67,7 @@
       #if ARCH_PIPELINE_RELOAD_CYCLES < 2
         #define EXTRA_NOP_CYCLES A("nop")
       #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define EXTRA_NOP_CYCLES ""
       #endif
 
@@ -107,6 +109,7 @@
   #endif
 
 #elif defined(__AVR__)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #define nop() __asm__ __volatile__("nop;\n\t":::)
 
@@ -146,6 +149,7 @@
   #undef nop
 
 #elif defined(ESP32)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   FORCE_INLINE static void DELAY_CYCLES(uint32_t x) {
     unsigned long ccount, stop;
@@ -160,10 +164,12 @@
   }
 
 #elif defined(__PLAT_LINUX__)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   // specified inside platform
 
 #else
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   #error "Unsupported MCU architecture"
 

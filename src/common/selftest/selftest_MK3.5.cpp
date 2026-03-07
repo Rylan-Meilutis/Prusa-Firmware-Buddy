@@ -46,6 +46,7 @@ static constexpr float Zfr_table_bw[] = { HOMING_FEEDRATE_Z / 60 };
 #ifdef Z_AXIS_DO_NOT_TEST_MOVE_DOWN
 static constexpr size_t z_fr_tables_size = sizeof(Zfr_table_fw) / sizeof(Zfr_table_fw[0]);
 #else
+// #error dead code found by automatic analyses (see BFW-5461)
 static constexpr size_t z_fr_tables_size = sizeof(Zfr_table_fw) / sizeof(Zfr_table_fw[0]) + sizeof(Zfr_table_bw) / sizeof(Zfr_table_bw[0]);
 #endif
 
@@ -271,6 +272,7 @@ void CSelftest::Loop() {
     }
     case stsMoveZup:
 #ifndef Z_AXIS_DO_NOT_TEST_MOVE_DOWN
+        // #error dead code found by automatic analyses (see BFW-5461)
         queue.enqueue_one_now("G0 Z100"); // move to 100 mm
 #endif
         break;

@@ -77,5 +77,6 @@ static_assert(BOARD_IS_DWARF());
 #define FAN1_PIN               MARLIN_PIN(FAN1)
 
 #if defined(MARLIN_PORT_HEATER_ENABLE) && defined(MARLIN_PIN_NR_HEATER_ENABLE)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define PS_ON_PIN              MARLIN_PIN(HEATER_ENABLE)
 #endif

@@ -61,6 +61,7 @@ private:
     static_assert(sizeof(Record) == 4);
 
 #ifdef EXTRA_RING_ALLOCATOR_LOGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     size_t used_bytes = 0;
     size_t used_records = 0;
     size_t records = 1;

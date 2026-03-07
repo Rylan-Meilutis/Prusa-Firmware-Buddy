@@ -121,6 +121,7 @@ void log_destination_unregister(Destination *destination);
 #endif
 
 #if __APPLE__
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define _LOG_COMPONENT_ATTRS __attribute__((used, section("__DATA,log_components")))
 #elif !defined(__arm__)
     #define _LOG_COMPONENT_ATTRS __attribute__((used, section("log_components")))
@@ -196,6 +197,7 @@ void log_destination_unregister(Destination *destination);
 #if LOG_LOWEST_SEVERITY <= 3
     #define log_warning(component, fmt, ...) log_event(logging::Severity::warning, component, fmt, ##__VA_ARGS__)
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define log_warning(component, fmt, ...)
 #endif
 
@@ -204,6 +206,7 @@ void log_destination_unregister(Destination *destination);
 #if LOG_LOWEST_SEVERITY <= 4
     #define log_error(component, fmt, ...) log_event(logging::Severity::error, component, fmt, ##__VA_ARGS__)
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define log_error(component, fmt, ...)
 #endif
 
@@ -212,6 +215,7 @@ void log_destination_unregister(Destination *destination);
 #if LOG_LOWEST_SEVERITY <= 5
     #define log_critical(component, fmt, ...) log_event(logging::Severity::critical, component, fmt, ##__VA_ARGS__)
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define log_critical(component, fmt, ...)
 #endif
 

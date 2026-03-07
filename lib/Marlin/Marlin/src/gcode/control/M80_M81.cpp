@@ -28,6 +28,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if HAS_SUICIDE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../Marlin.h"
 #endif
 
@@ -77,10 +78,12 @@
      * a print without suicide...
      */
     #if HAS_SUICIDE
+      // #error dead code found by automatic analyses (see BFW-5461)
       OUT_WRITE(SUICIDE_PIN, HIGH);
     #endif
 
     #if DISABLED(AUTO_POWER_CONTROL)
+      // #error dead code found by automatic analyses (see BFW-5461)
       delay(100); // Wait for power to settle
       restore_stepper_drivers();
     #endif
@@ -110,6 +113,7 @@ void GcodeSuite::M81() {
   safe_delay(1000); // Wait 1 second before switching off
 
   #if HAS_SUICIDE
+    // #error dead code found by automatic analyses (see BFW-5461)
     suicide();
   #elif HAS_POWER_SWITCH
     PSU_OFF();

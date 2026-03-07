@@ -38,11 +38,15 @@
 
 
 #ifdef CUSTOM_VERSION_FILE
+  // #error dead code found by automatic analyses (see BFW-5461)
   #if defined(__has_include)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #if __has_include(CUSTOM_VERSION_FILE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       #include XSTR(../../CUSTOM_VERSION_FILE)
     #endif
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include XSTR(../../CUSTOM_VERSION_FILE)
   #endif
 #endif

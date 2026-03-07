@@ -24,6 +24,7 @@
 LOG_COMPONENT_DEF(PreciseStepping, logging::Severity::debug);
 
 #if defined(ISR_DEADLINE_DEBUGGING) || defined(ISR_EVENT_DEBUGGING)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #include <sound.hpp>
 #endif
 
@@ -1176,6 +1177,7 @@ void PreciseStepping::loop() {
     }
 
 #ifdef ISR_DEADLINE_DEBUGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     uint8_t step_dl_miss_buf = step_dl_miss;
     if (step_dl_miss_buf) {
         step_dl_miss_buf = __atomic_exchange_n(&step_dl_miss, 0, __ATOMIC_RELAXED);
@@ -1184,6 +1186,7 @@ void PreciseStepping::loop() {
     }
 #endif
 #ifdef ISR_EVENT_DEBUGGING
+    // #error dead code found by automatic analyses (see BFW-5461)
     uint8_t step_ev_miss_buf = step_ev_miss;
     if (step_ev_miss_buf) {
         step_ev_miss_buf = __atomic_exchange_n(&step_ev_miss, 0, __ATOMIC_RELAXED);
@@ -1576,6 +1579,7 @@ void PreciseStepping::step_generator_state_init(const move_t &move) {
             }
         }
 #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         if (physical_axis_step_generator_types & (PHASE_STEPPING_GENERATOR_X << i)) {
             phase_stepping::init_step_generator_classic(move, step_generators_pool.classic_step_generator[i], step_generator_state);
         } else {
@@ -1592,6 +1596,7 @@ void PreciseStepping::step_generator_state_init(const move_t &move) {
         classic_step_generator_init(move, step_generators_pool.classic_step_generator[E_AXIS], step_generator_state);
     }
 #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     classic_step_generator_init(move, step_generators_pool.classic_step_generator[E_AXIS], step_generator_state);
 #endif
 

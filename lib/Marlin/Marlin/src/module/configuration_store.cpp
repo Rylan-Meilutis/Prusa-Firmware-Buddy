@@ -72,10 +72,12 @@
 #endif
 
 #if HAS_SERVOS
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "servo.h"
 #endif
 
 #if HAS_SERVOS && HAS_SERVO_ANGLES
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define EEPROM_NUM_SERVOS NUM_SERVOS
 #else
   #define EEPROM_NUM_SERVOS NUM_SERVO_PLUGS
@@ -84,6 +86,7 @@
 #include "../feature/pause.h"
 
 #if ENABLED(BACKLASH_COMPENSATION)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/backlash.h"
 #endif
 
@@ -93,6 +96,7 @@
 #endif
 
 #if ENABLED(BLTOUCH)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
 #endif
 
@@ -152,6 +156,7 @@ void MarlinSettings::postprocess() {
     #if DISABLED(NO_VOLUMETRICS)
       planner.calculate_volumetric_multipliers();
     #elif EXTRUDERS
+      // #error dead code found by automatic analyses (see BFW-5461)
       for (uint8_t i = COUNT(planner.e_factor); i--;)
         planner.refresh_e_factor(i);
     #endif
@@ -167,6 +172,7 @@ void MarlinSettings::postprocess() {
     #endif
 
     #if HAS_LINEAR_E_JERK
+      // #error dead code found by automatic analyses (see BFW-5461)
       planner.recalculate_max_e_jerk();
     #endif
 
@@ -209,12 +215,15 @@ void MarlinSettings::reset_motion(const bool no_limits) {
 
     #if HAS_CLASSIC_JERK
       #ifndef DEFAULT_XJERK
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define DEFAULT_XJERK 0
       #endif
       #ifndef DEFAULT_YJERK
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define DEFAULT_YJERK 0
       #endif
       #ifndef DEFAULT_ZJERK
+        // #error dead code found by automatic analyses (see BFW-5461)
         #define DEFAULT_ZJERK 0
       #endif
       s.max_jerk.set(DEFAULT_XJERK, DEFAULT_YJERK, DEFAULT_ZJERK);
@@ -256,10 +265,12 @@ void MarlinSettings::reset() {
   #endif
 
   #if ENABLED(BACKLASH_GCODE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     backlash.correction = (BACKLASH_CORRECTION) * 255;
     constexpr xyz_float_t tmp = BACKLASH_DISTANCE_MM;
     backlash.distance_mm = tmp;
     #ifdef BACKLASH_SMOOTHING_MM
+      // #error dead code found by automatic analyses (see BFW-5461)
       backlash.smoothing_mm = BACKLASH_SMOOTHING_MM;
     #endif
   #endif
@@ -282,6 +293,7 @@ void MarlinSettings::reset() {
 
   #if HAS_BED_PROBE
     #ifndef NOZZLE_TO_PROBE_OFFSET
+      // #error dead code found by automatic analyses (see BFW-5461)
       #define NOZZLE_TO_PROBE_OFFSET { 0, 0, 0 }
     #endif
     constexpr float dpo[XYZ] = NOZZLE_TO_PROBE_OFFSET;
@@ -294,6 +306,7 @@ void MarlinSettings::reset() {
   //
 
   #if ENABLED(EDITABLE_SERVO_ANGLES)
+    // #error dead code found by automatic analyses (see BFW-5461)
     COPY(servo_angles, base_servo_angles);
   #endif
 
@@ -309,17 +322,22 @@ void MarlinSettings::reset() {
   //
 
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
       endstops.z2_endstop_adj = (
         #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
+          // #error dead code found by automatic analyses (see BFW-5461)
           Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           0
         #endif
       );
       endstops.z3_endstop_adj = (
         #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
+          // #error dead code found by automatic analyses (see BFW-5461)
           Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
         #else
+          // #error dead code found by automatic analyses (see BFW-5461)
           0
         #endif
       );
@@ -357,6 +375,7 @@ void MarlinSettings::reset() {
 
     parser.volumetric_enabled =
       #if ENABLED(VOLUMETRIC_DEFAULT_ON)
+        // #error dead code found by automatic analyses (see BFW-5461)
         true
       #else
         false
@@ -370,6 +389,7 @@ void MarlinSettings::reset() {
   #if HAS_PLANNER()
     endstops.enable_globally(
       #if ENABLED(ENDSTOPS_ALWAYS_ON_DEFAULT)
+        // #error dead code found by automatic analyses (see BFW-5461)
         true
       #else
         false
@@ -490,6 +510,7 @@ void MarlinSettings::reset() {
         #endif
       );
       #if ENABLED(DISTINCT_E_FACTORS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         CONFIG_ECHO_START();
         for (uint8_t i = 0; i < E_STEPPERS; i++) {
           SERIAL_ECHOLNPAIR(
@@ -510,6 +531,7 @@ void MarlinSettings::reset() {
         #endif
       );
       #if ENABLED(DISTINCT_E_FACTORS)
+        // #error dead code found by automatic analyses (see BFW-5461)
         CONFIG_ECHO_START();
         for (uint8_t i = 0; i < E_STEPPERS; i++)
           SERIAL_ECHOLNPAIR(
@@ -618,11 +640,13 @@ void MarlinSettings::reset() {
     #endif // HAS_LEVELING
 
     #if ENABLED(EDITABLE_SERVO_ANGLES)
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       CONFIG_ECHO_HEADING("Servo Angles:");
       for (uint8_t i = 0; i < NUM_SERVOS; i++) {
         switch (i) {
           #if (ENABLED(BLTOUCH) && defined(BLTOUCH_ANGLES)) || (defined(Z_SERVO_ANGLES) && defined(Z_PROBE_SERVO_NR))
+            // #error dead code found by automatic analyses (see BFW-5461)
             case Z_PROBE_SERVO_NR:
           #endif
             CONFIG_ECHO_START();
@@ -634,6 +658,7 @@ void MarlinSettings::reset() {
     #endif // EDITABLE_SERVO_ANGLES
 
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      // #error dead code found by automatic analyses (see BFW-5461)
 
       CONFIG_ECHO_HEADING("Endstop adjustment:");
       CONFIG_ECHO_START();
@@ -716,16 +741,19 @@ void MarlinSettings::reset() {
       #endif
 
       #if AXIS_IS_TMC(Z2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOPGM(" I1");
         SERIAL_ECHOLNPAIR(
           #if AXIS_IS_TMC(Z2)
+            // #error dead code found by automatic analyses (see BFW-5461)
             " Z", stepperZ2.getMilliamps()
           #endif
         );
       #endif
 
       #if AXIS_IS_TMC(Z3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" I2 Z", stepperZ3.getMilliamps());
       #endif
@@ -735,22 +763,27 @@ void MarlinSettings::reset() {
         SERIAL_ECHOLNPAIR(" T0 E", stepperE0.getMilliamps());
       #endif
       #if AXIS_IS_TMC(E1)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" T1 E", stepperE1.getMilliamps());
       #endif
       #if AXIS_IS_TMC(E2)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" T2 E", stepperE2.getMilliamps());
       #endif
       #if AXIS_IS_TMC(E3)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" T3 E", stepperE3.getMilliamps());
       #endif
       #if AXIS_IS_TMC(E4)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" T4 E", stepperE4.getMilliamps());
       #endif
       #if AXIS_IS_TMC(E5)
+        // #error dead code found by automatic analyses (see BFW-5461)
         say_M906(forReplay);
         SERIAL_ECHOLNPAIR(" T5 E", stepperE5.getMilliamps());
       #endif
@@ -778,11 +811,13 @@ void MarlinSettings::reset() {
         #endif
 
         #if AXIS_HAS_STEALTHCHOP(Z2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" I1 Z", stepperZ2.get_pwm_thrs());
         #endif
 
         #if AXIS_HAS_STEALTHCHOP(Z3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" I2 Z", stepperZ3.get_pwm_thrs());
         #endif
@@ -792,22 +827,27 @@ void MarlinSettings::reset() {
           SERIAL_ECHOLNPAIR(" T0 E", stepperE0.get_pwm_thrs());
         #endif
         #if AXIS_HAS_STEALTHCHOP(E1)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" T1 E", stepperE1.get_pwm_thrs());
         #endif
         #if AXIS_HAS_STEALTHCHOP(E2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" T2 E", stepperE2.get_pwm_thrs());
         #endif
         #if AXIS_HAS_STEALTHCHOP(E3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" T3 E", stepperE3.get_pwm_thrs());
         #endif
         #if AXIS_HAS_STEALTHCHOP(E4)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" T4 E", stepperE4.get_pwm_thrs());
         #endif
         #if AXIS_HAS_STEALTHCHOP(E5)
+          // #error dead code found by automatic analyses (see BFW-5461)
           say_M913(forReplay);
           SERIAL_ECHOLNPAIR(" T5 E", stepperE5.get_pwm_thrs());
         #endif
@@ -835,12 +875,14 @@ void MarlinSettings::reset() {
         #endif
 
         #if Z2_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           CONFIG_ECHO_START();
           say_M914();
           SERIAL_ECHOLNPAIR(" I1 Z", stepperZ2.stall_sensitivity());
         #endif
 
         #if Z3_SENSORLESS
+          // #error dead code found by automatic analyses (see BFW-5461)
           CONFIG_ECHO_START();
           say_M914();
           SERIAL_ECHOLNPAIR(" I2 Z", stepperZ3.stall_sensitivity());
@@ -878,6 +920,7 @@ void MarlinSettings::reset() {
         }
 
         #if AXIS_HAS_STEALTHCHOP(Z2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           const bool chop_z2 = stepperZ2.get_stealthChop_status();
         #else
           constexpr bool chop_z2 = false;
@@ -890,6 +933,7 @@ void MarlinSettings::reset() {
         }
 
         #if AXIS_HAS_STEALTHCHOP(Z3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperZ3.get_stealthChop_status()) { say_M569(forReplay, PSTR("I2 Z"), true); }
         #endif
 
@@ -897,18 +941,23 @@ void MarlinSettings::reset() {
           if (stepperE0.get_stealthChop_status()) { say_M569(forReplay, PSTR("T0 E"), true); }
         #endif
         #if AXIS_HAS_STEALTHCHOP(E1)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperE1.get_stealthChop_status()) { say_M569(forReplay, PSTR("T1 E"), true); }
         #endif
         #if AXIS_HAS_STEALTHCHOP(E2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperE2.get_stealthChop_status()) { say_M569(forReplay, PSTR("T2 E"), true); }
         #endif
         #if AXIS_HAS_STEALTHCHOP(E3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperE3.get_stealthChop_status()) { say_M569(forReplay, PSTR("T3 E"), true); }
         #endif
         #if AXIS_HAS_STEALTHCHOP(E4)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperE4.get_stealthChop_status()) { say_M569(forReplay, PSTR("T4 E"), true); }
         #endif
         #if AXIS_HAS_STEALTHCHOP(E5)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (stepperE5.get_stealthChop_status()) { say_M569(forReplay, PSTR("T5 E"), true); }
         #endif
 
@@ -935,6 +984,7 @@ void MarlinSettings::reset() {
     #endif
 
     #if ENABLED(BACKLASH_GCODE)
+      // #error dead code found by automatic analyses (see BFW-5461)
       CONFIG_ECHO_HEADING("Backlash compensation:");
       CONFIG_ECHO_START();
       SERIAL_ECHOLNPAIR(
@@ -943,6 +993,7 @@ void MarlinSettings::reset() {
         " Y", LINEAR_UNIT(backlash.distance_mm.y),
         " Z", LINEAR_UNIT(backlash.distance_mm.z)
         #ifdef BACKLASH_SMOOTHING_MM
+          // #error dead code found by automatic analyses (see BFW-5461)
           , " S", LINEAR_UNIT(backlash.smoothing_mm)
         #endif
       );
@@ -950,6 +1001,7 @@ void MarlinSettings::reset() {
 
     #if HAS_PHASE_STEPPING()
       #if HAS_BURST_STEPPING()
+        // #error dead code found by automatic analyses (see BFW-5461)
         CONFIG_ECHO_HEADING("Phase stepping (burst):");
       #else
         CONFIG_ECHO_HEADING("Phase stepping:");

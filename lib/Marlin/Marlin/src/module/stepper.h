@@ -120,9 +120,11 @@ public:
 #endif
 
 #if ENABLED(Z_TRIPLE_ENDSTOPS) || ENABLED(Z_STEPPER_AUTO_ALIGN)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FORCE_INLINE static void set_separate_multi_axis(const bool state) { separate_multi_axis = state; }
 #endif
 #if ENABLED(Z_TRIPLE_ENDSTOPS) || BOTH(Z_STEPPER_AUTO_ALIGN, Z_TRIPLE_STEPPER_DRIVERS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     FORCE_INLINE static void set_z_lock(const bool state) { locked_Z_motor = state; }
     FORCE_INLINE static void set_z2_lock(const bool state) { locked_Z2_motor = state; }
     FORCE_INLINE static void set_z3_lock(const bool state) { locked_Z3_motor = state; }

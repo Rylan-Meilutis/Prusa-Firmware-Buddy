@@ -17,12 +17,14 @@ static_assert(sizeof(metric_t) == 12);
 
 extern metric_t __start_metric_definitions[]
 #if __APPLE__
+    // #error dead code found by automatic analyses (see BFW-5461)
     __asm("section$start$__DATA$metric_definitions")
 #endif
         ;
 
 extern metric_t __end_metric_definitions[]
 #if __APPLE__
+    // #error dead code found by automatic analyses (see BFW-5461)
     __asm("section$end$__DATA$metric_definitions")
 #endif
         ;

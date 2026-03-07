@@ -54,14 +54,17 @@
 
 #ifndef __AVR__
   #ifndef strchr_P // Some platforms define a macro (DUE, teensy35)
+    // #error dead code found by automatic analyses (see BFW-5461)
     inline const char* strchr_P(const char *s, int c) { return strchr(s,c); }
     //#define strchr_P(s,c) strchr(s,c)
   #endif
 
   #ifndef snprintf_P
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define snprintf_P snprintf
   #endif
   #ifndef vsnprintf_P
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define vsnprintf_P vsnprintf
   #endif
 #endif

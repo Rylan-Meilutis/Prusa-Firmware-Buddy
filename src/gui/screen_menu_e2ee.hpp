@@ -43,6 +43,7 @@ protected:
 };
 
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
 // Disabled for now, because the identity checking is not complete
 // having it disabled and the default being Accept all means, that
 // the feature is invisible for users.

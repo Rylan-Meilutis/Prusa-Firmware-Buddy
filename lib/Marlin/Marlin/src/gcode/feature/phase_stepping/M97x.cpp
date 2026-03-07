@@ -47,6 +47,7 @@ void M970_report(bool eeprom = false) {
 
 static void report_state() {
 #if HAS_BURST_STEPPING()
+    // #error dead code found by automatic analyses (see BFW-5461)
     SERIAL_ECHO("phstep (burst)");
 #else
     SERIAL_ECHO("phstep");

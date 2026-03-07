@@ -143,6 +143,7 @@ public:
      */
     virtual AbstractByteReader *stream_thumbnail_start(uint16_t expected_width, uint16_t expected_height, ImgType expected_type, bool allow_larger = false) = 0;
 #if 0
+    // #error dead code found by automatic analyses (see BFW-5461)
     // TODO: Once we need it (do we? Will we?)
     /**
      * Start streaming a thumbnail on given position.

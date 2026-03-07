@@ -82,9 +82,11 @@ void GcodeSuite::M906() {
           if (index == 0) TMC_SET_CURRENT(Z);
         #endif
         #if AXIS_IS_TMC(Z2)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (index == 1) TMC_SET_CURRENT(Z2);
         #endif
         #if AXIS_IS_TMC(Z3)
+          // #error dead code found by automatic analyses (see BFW-5461)
           if (index == 2) TMC_SET_CURRENT(Z3);
         #endif
         break;
@@ -96,18 +98,23 @@ void GcodeSuite::M906() {
             case 0: TMC_SET_CURRENT(E0); break;
           #endif
           #if AXIS_IS_TMC(E1)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 1: TMC_SET_CURRENT(E1); break;
           #endif
           #if AXIS_IS_TMC(E2)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 2: TMC_SET_CURRENT(E2); break;
           #endif
           #if AXIS_IS_TMC(E3)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 3: TMC_SET_CURRENT(E3); break;
           #endif
           #if AXIS_IS_TMC(E4)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 4: TMC_SET_CURRENT(E4); break;
           #endif
           #if AXIS_IS_TMC(E5)
+            // #error dead code found by automatic analyses (see BFW-5461)
             case 5: TMC_SET_CURRENT(E5); break;
           #endif
         }
@@ -126,27 +133,34 @@ void GcodeSuite::M906() {
       TMC_SAY_CURRENT(Z);
     #endif
     #if AXIS_IS_TMC(Z2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(Z2);
     #endif
     #if AXIS_IS_TMC(Z3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(Z3);
     #endif
     #if AXIS_IS_TMC(E0)
       TMC_SAY_CURRENT(E0);
     #endif
     #if AXIS_IS_TMC(E1)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(E1);
     #endif
     #if AXIS_IS_TMC(E2)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(E2);
     #endif
     #if AXIS_IS_TMC(E3)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(E3);
     #endif
     #if AXIS_IS_TMC(E4)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(E4);
     #endif
     #if AXIS_IS_TMC(E5)
+      // #error dead code found by automatic analyses (see BFW-5461)
       TMC_SAY_CURRENT(E5);
     #endif
   }

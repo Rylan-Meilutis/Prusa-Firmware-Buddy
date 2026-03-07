@@ -475,6 +475,7 @@ extern "C" {
 /* Exported macro ----------------------------------------------------------------------------------------------------*/
 
 #ifdef USE_FULL_ASSERT
+    // #error dead code found by automatic analyses (see BFW-5461)
     /**
      * @brief  The assert_param macro is used for function's parameters check.
      * @param  expr: If expr is false, it calls assert_failed function

@@ -3,6 +3,7 @@
 #include "mmu2_fsensor.h"
 
 #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     // on MK3/S/+ we shuffle the timers a bit, thus "_millis" may not equal "millis"
     #include "system_timer.h"
 #else
@@ -334,6 +335,7 @@ StepStatus ProtocolLogic::ExpectingMessage() {
 #if HAS_MMU2_OVER_UART()
 void ProtocolLogic::SendMsg(RequestMsg rq) {
     #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Buddy FW cannot use stack-allocated txbuff - DMA doesn't work with CCMRAM
     // No restrictions on MK3/S/+ though
     uint8_t txbuff[Protocol::MaxRequestSize()];
@@ -346,6 +348,7 @@ void ProtocolLogic::SendMsg(RequestMsg rq) {
 
 void ProtocolLogic::SendWriteMsg(RequestMsg rq) {
     #ifdef __AVR__
+    // #error dead code found by automatic analyses (see BFW-5461)
     // Buddy FW cannot use stack-allocated txbuff - DMA doesn't work with CCMRAM
     // No restrictions on MK3/S/+ though
     uint8_t txbuff[Protocol::MaxRequestSize()];

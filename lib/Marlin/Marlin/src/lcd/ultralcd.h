@@ -28,6 +28,7 @@
 #define HAS_ENCODER_WHEEL   (BUTTONS_EXIST(EN1, EN2))
 
 #if HAS_DIGITAL_BUTTONS
+  // #error dead code found by automatic analyses (see BFW-5461)
 
   // Wheel spin pins where BA is 00, 10, 11, 01 (1 bit always changes)
   #define BLEN_A 0
@@ -39,6 +40,7 @@
   #define BUTTON_PRESSED(BN) !READ(BTN_## BN)
 
   #if BUTTON_EXISTS(ENC)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BLEN_C 2
     #define EN_C _BV(BLEN_C)
   #endif
@@ -69,6 +71,7 @@
 #endif
 
 #if BUTTON_EXISTS(BACK)
+  // #error dead code found by automatic analyses (see BFW-5461)
   #define BLEN_D 3
   #define EN_D _BV(BLEN_D)
   #define LCD_BACK_CLICKED() (buttons & EN_D)
@@ -77,9 +80,12 @@
 #endif
 
 #ifndef BUTTON_CLICK
+  // #error dead code found by automatic analyses (see BFW-5461)
   #ifdef EN_C
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BUTTON_CLICK() (buttons & EN_C)
   #else
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define BUTTON_CLICK() false
   #endif
 #endif
@@ -95,6 +101,7 @@ public:
   }
 
   #if ENABLED(LCD_HAS_STATUS_INDICATORS)
+    // #error dead code found by automatic analyses (see BFW-5461)
     static void update_indicators();
   #endif
 

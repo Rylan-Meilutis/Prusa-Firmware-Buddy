@@ -43,6 +43,7 @@ static const float Zfr_table_bw[] = { 10 };
 static constexpr size_t xy_fr_table_size = sizeof(XYfr_table) / sizeof(XYfr_table[0]);
 
 #ifdef Z_AXIS_DO_NOT_TEST_MOVE_DOWN
+// #error dead code found by automatic analyses (see BFW-5461)
 static constexpr size_t z_fr_tables_size = sizeof(Zfr_table_fw) / sizeof(Zfr_table_fw[0]);
 #else
 static constexpr size_t z_fr_tables_size = sizeof(Zfr_table_fw) / sizeof(Zfr_table_fw[0]) + sizeof(Zfr_table_bw) / sizeof(Zfr_table_bw[0]);

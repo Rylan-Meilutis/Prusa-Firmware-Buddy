@@ -128,14 +128,17 @@
  */
 
 #if !defined(HSE_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSE_VALUE (25000000UL) /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined(CSI_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define CSI_VALUE (4000000UL) /*!< Value of the Internal oscillator in Hz*/
 #endif /* CSI_VALUE */
 
 #if !defined(HSI_VALUE)
+    // #error dead code found by automatic analyses (see BFW-5461)
     #define HSI_VALUE (64000000UL) /*!< Value of the Internal oscillator in Hz */
 #endif /* HSI_VALUE */
 
@@ -214,6 +217,7 @@ void SystemInit(void) {
 
     /* Reset HSEON, HSECSSON, HSEBYP, HSEEXT, HSIDIV, HSIKERON, CSION, CSIKERON, HSI48 and PLLxON bits */
 #if defined(RCC_CR_PLL3ON)
+    // #error dead code found by automatic analyses (see BFW-5461)
     RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_HSECSSON | RCC_CR_HSEBYP | RCC_CR_HSEEXT | RCC_CR_HSIDIV | RCC_CR_HSIKERON | RCC_CR_CSION | RCC_CR_CSIKERON | RCC_CR_HSI48ON | RCC_CR_PLL1ON | RCC_CR_PLL2ON | RCC_CR_PLL3ON);
 #else
     RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_HSECSSON | RCC_CR_HSEBYP | RCC_CR_HSEEXT | RCC_CR_HSIDIV | RCC_CR_HSIKERON | RCC_CR_CSION | RCC_CR_CSIKERON | RCC_CR_HSI48ON | RCC_CR_PLL1ON | RCC_CR_PLL2ON);
@@ -223,6 +227,7 @@ void SystemInit(void) {
     RCC->PLL1CFGR = 0U;
     RCC->PLL2CFGR = 0U;
 #if defined(RCC_CR_PLL3ON)
+    // #error dead code found by automatic analyses (see BFW-5461)
     RCC->PLL3CFGR = 0U;
 #endif /* RCC_CR_PLL3ON */
 
@@ -235,6 +240,7 @@ void SystemInit(void) {
     /* Reset PLL2FRACR register */
     RCC->PLL2FRACR = 0x00000000U;
 #if defined(RCC_CR_PLL3ON)
+    // #error dead code found by automatic analyses (see BFW-5461)
     /* Reset PLL3DIVR register */
     RCC->PLL3DIVR = 0x01010280U;
     /* Reset PLL3FRACR register */
@@ -249,6 +255,7 @@ void SystemInit(void) {
 
 /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
+    // #error dead code found by automatic analyses (see BFW-5461)
     SCB->VTOR = SRAM1_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
     SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */

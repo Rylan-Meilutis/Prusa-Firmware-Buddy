@@ -43,6 +43,7 @@
 #include "mdns_priv.h"
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 extern "C" {
 #endif
 
@@ -60,6 +61,7 @@ int mdns_domain_eq(struct mdns_domain *a, struct mdns_domain *b);
 err_t mdns_build_reverse_v4_domain(struct mdns_domain *domain, const ip4_addr_t *addr);
     #endif
     #if LWIP_IPV6
+// #error dead code found by automatic analyses (see BFW-5461)
 err_t mdns_build_reverse_v6_domain(struct mdns_domain *domain, const ip6_addr_t *addr);
     #endif
 err_t mdns_build_host_domain(struct mdns_domain *domain, const char *name);
@@ -74,6 +76,7 @@ err_t mdns_write_domain(struct mdns_outpacket *outpkt, struct mdns_domain *domai
 #endif /* LWIP_MDNS_RESPONDER */
 
 #ifdef __cplusplus
+// #error dead code found by automatic analyses (see BFW-5461)
 }
 #endif
 

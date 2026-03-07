@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfigPre.h"
 
 #if ENABLED(GCODE_MOTION_MODES)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 

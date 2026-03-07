@@ -23,6 +23,7 @@
 #include "../../inc/MarlinConfig.h"
 
 #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
+  // #error dead code found by automatic analyses (see BFW-5461)
 
 #include "../gcode.h"
 #include "../../module/motion.h"
@@ -31,6 +32,7 @@
 #include "../../feature/bedlevel/bedlevel.h"
 
 #if HAS_LEVELING
+  // #error dead code found by automatic analyses (see BFW-5461)
   #include "../../module/planner.h"
 #endif
 
@@ -104,6 +106,7 @@ void GcodeSuite::M48() {
   // Disable bed level correction in M48 because we want the raw data when we probe
 
   #if HAS_LEVELING
+    // #error dead code found by automatic analyses (see BFW-5461)
     const bool was_enabled = planner.leveling_active;
     set_bed_leveling_enabled(false);
   #endif
@@ -231,6 +234,7 @@ void GcodeSuite::M48() {
 
   // Re-enable bed level correction if it had been on
   #if HAS_LEVELING
+    // #error dead code found by automatic analyses (see BFW-5461)
     set_bed_leveling_enabled(was_enabled);
   #endif
 

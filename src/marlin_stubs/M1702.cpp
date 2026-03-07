@@ -98,6 +98,7 @@ namespace {
     #elif HAS_MMU2()
             return MMU2::mmu2.Enabled() ? PhasesColdPull::unload_ptfe : PhasesColdPull::prepare_filament;
     #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             return PhasesColdPull::prepare_filament;
     #endif
         default:
@@ -250,6 +251,7 @@ namespace {
     #if HAS_TOOLCHANGER() || HAS_MMU2()
         return PhasesColdPull::load_ptfe;
     #else
+        // #error dead code found by automatic analyses (see BFW-5461)
         return PhasesColdPull::prepare_filament;
     #endif
     }
@@ -286,6 +288,7 @@ namespace {
     #if HAS_TOOLCHANGER() || HAS_MMU2()
             return PhasesColdPull::load_ptfe;
     #else
+            // #error dead code found by automatic analyses (see BFW-5461)
             return PhasesColdPull::prepare_filament;
     #endif
         }
