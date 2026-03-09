@@ -53,7 +53,7 @@ public:
     uint8_t GetBtnIndex() const { return flags.class_specific.button_index; }
     virtual std::optional<size_t> IndexFromResponse(Response btn) const = 0;
 
-    void SetBtnCount(uint8_t cnt) { flags.class_specific.button_count = cnt & ((1 << RESPONSE_BITS) - 1); }
+    void SetBtnCount(uint8_t cnt) { flags.class_specific.button_count = std::min<uint8_t>(cnt, MAX_RESPONSES); }
     uint8_t GetBtnCount() const { return flags.class_specific.button_count; }
 
     // Disables automatic redrawing of the currently selected button (useful when radio_button is not the only scrollable window on the screen)
