@@ -216,7 +216,7 @@ protected:
         // The item is already set to the right wifi item -> do nothing
         // We do this to prevent calling expensive espif_scan_get_ap_ssid unnecesarily
         // This optimization makes sense when all items are re-setup when new wi-fi appears
-        if (std::holds_alternative<MI_WIFI>(variant) && std::get<MI_WIFI>(variant).wifi_index() == wifi_index) {
+        if (variant.holds_alternative<MI_WIFI>() && variant.get<MI_WIFI>().wifi_index() == wifi_index) {
             return;
         }
 

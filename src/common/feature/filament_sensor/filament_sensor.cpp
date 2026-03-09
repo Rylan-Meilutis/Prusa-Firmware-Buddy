@@ -13,7 +13,7 @@ IFSensor::IFSensor(FilamentSensorID id)
 
 FilamentSensorCalibrator *IFSensor::create_calibrator(FilamentSensorCalibrator::Storage &storage) {
     // Most filament sensors don't require calibration, create a class that just tests the functionality
-    return storage.emplace<FilamentSensorCalibratorBasic>(*this);
+    return &storage.emplace<FilamentSensorCalibratorBasic>(*this);
 }
 
 void IFSensor::check_for_events() {

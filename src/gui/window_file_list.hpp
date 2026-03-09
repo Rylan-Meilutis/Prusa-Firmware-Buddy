@@ -44,7 +44,8 @@ public:
         : IWindowMenuItem(label, icon, is_enabled_t::yes, is_hidden_t::no) {}
 };
 
-class window_file_list_t : public WindowMenuVirtual<WindowMenuItem, MI_RETURN> {
+// Needs smaller item size, otherwise wouldn't fit into MINI's RAM
+class window_file_list_t : public WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, 32> {
 
 public:
     static constexpr const char *root = "/usb";

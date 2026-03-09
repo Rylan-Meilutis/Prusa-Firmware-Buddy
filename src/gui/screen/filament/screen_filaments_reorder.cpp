@@ -170,8 +170,8 @@ void WindowMenuFilamentsReorder::setup_item(ItemVariant &variant, int index) {
 
 void WindowMenuFilamentsReorder::update_all() {
     for (auto &i : buffered_items()) {
-        if (std::holds_alternative<MI_FILAMENT>(i)) {
-            std::get<MI_FILAMENT>(i).update();
+        if (auto item = i.get_if<MI_FILAMENT>()) {
+            item->update();
         }
     }
 }

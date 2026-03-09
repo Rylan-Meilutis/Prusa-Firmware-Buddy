@@ -1,9 +1,8 @@
 #pragma once
 
-#include <array>
-#include <variant>
 #include <i_window_menu.hpp>
 #include <i_window_menu_item.hpp>
+#include <utils/storage/inplace_any.hpp>
 
 /// Base class of WindowMenuVirtual (read the desc there)
 class WindowMenuVirtualBase : public IWindowMenu {
@@ -63,13 +62,12 @@ private:
 
 /// WindowMenu implementation that only keeps items that are currently on the screen in the memory.
 /// This allows dynamically sized menus (for example file or wi-fi list).
-/// \p ItemVariants specifies what IWindowMenu subtypes the menu uses and can spawn.
 /// User of this class only needs to override \p item_count and \p setup_item functions.
-template <uint8_t item_buffer_size_, typename... ItemVariants>
+template <uint8_t item_buffer_size_, size_t max_item_sizeof_>
 class WindowMenuVirtualSized : public WindowMenuVirtualBase {
 
 public:
-    using ItemVariant = std::variant<std::monostate, ItemVariants...>;
+    using ItemVariant = InplaceAny<max_item_sizeof_, std::max_align_t, IWindowMenuItem>;
     static constexpr auto item_buffer_size = item_buffer_size_;
 
 public:
@@ -89,24 +87,12 @@ protected:
         if (index.has_value()) {
             setup_item(variant, *index);
         } else {
-            variant.template emplace<std::monostate>();
+            variant.reset();
         }
     }
 
     IWindowMenuItem *item_at_buffer_slot(int buffer_slot) final {
-        if (item_buffer_[buffer_slot].valueless_by_exception()) {
-            return nullptr;
-        }
-
-        constexpr auto visit_f = []<typename T>(T &item) -> IWindowMenuItem * {
-            if constexpr (std::is_same_v<T, std::monostate>) {
-                return nullptr;
-            } else {
-                return static_cast<IWindowMenuItem *>(&item);
-            }
-        };
-
-        return std::visit(visit_f, item_buffer_[buffer_slot]);
+        return item_buffer_[buffer_slot].get_base_if();
     }
 
     /// \returns item instance variants that are currently in the buffer
@@ -119,9 +105,9 @@ private:
 };
 
 template <typename... ItemVariants>
-class WindowMenuVirtual : public WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, ItemVariants...> {
+class WindowMenuVirtual : public WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, 160> {
 
 public:
     // Use parent constructor
-    using WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, ItemVariants...>::WindowMenuVirtualSized;
+    using WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, 160>::WindowMenuVirtualSized;
 };

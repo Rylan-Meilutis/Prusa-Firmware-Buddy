@@ -84,7 +84,7 @@ void window_file_list_t::Load(WF_Sort_t sort, const char *sfnAtCursor, const cha
         IWindowMenu::set_scroll_offset(target_scroll_offset);
     }
 
-    WindowMenuVirtual::setup_items();
+    WindowMenuVirtualSized::setup_items();
 
     // Focus item if appropriate
     {
@@ -143,7 +143,7 @@ const char *window_file_list_t::TopItemSFN() {
 }
 
 window_file_list_t::window_file_list_t(window_t *parent, Rect16 rc)
-    : WindowMenuVirtual(parent, rc, CloseScreenReturnBehavior::no) {
+    : WindowMenuVirtualSized(parent, rc, CloseScreenReturnBehavior::no) {
 
     assert(max_items_on_screen_count() <= item_buffer_size);
 

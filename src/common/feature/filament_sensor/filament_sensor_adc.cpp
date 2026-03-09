@@ -82,5 +82,5 @@ void FSensorADC::record_state() {
 }
 
 FilamentSensorCalibrator *FSensorADC::create_calibrator(FilamentSensorCalibrator::Storage &storage) {
-    return storage.emplace<FilamentSensorCalibratorADC>(*this);
+    return &storage.emplace<FilamentSensorCalibratorADC>(*this);
 }
