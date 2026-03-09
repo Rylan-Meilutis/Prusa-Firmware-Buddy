@@ -954,7 +954,9 @@ void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unuse
 
   axes_home_level[axis] = level; 
 
-    current_position[axis] = base_home_pos(axis)
+  auto new_machine_position = current_machine_position();
+
+  new_machine_position[axis] = base_home_pos(axis)
       #if HAS_PRECISE_HOMING()
         - calibrated_home_offset(axis)
       #endif
@@ -967,14 +969,16 @@ void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unuse
     if (axis == Z_AXIS) {
       #if HOMING_Z_WITH_PROBE
         if (homing_z_with_probe) {
-          current_position.z -= probe_offset.z;
+          new_machine_position.z -= probe_offset.z;
           #if HAS_HOTEND_OFFSET
-           current_position.z -= hotend_currently_applied_offset.z;
+          new_machine_position.z -= hotend_currently_applied_offset.z;
           #endif
         }
       #endif /*HOMING_Z_WITH_PROBE*/
     }
   #endif
+
+    set_current_position(to_native_pos(new_machine_position));
 }
 
 /**
