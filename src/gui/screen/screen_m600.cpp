@@ -64,7 +64,7 @@ void MI_M600::click([[maybe_unused]] IWindowMenu &window_menu) {
     match(
         marlin_vars().active_extruder.get(),
         [](VirtualToolIndex virtual_tool) { inject(virtual_tool.to_raw()); },
-        [](NoTool) { assert(false); });
+        [](NoTool) { assert(false); /* theoretically reachable edge case - do nothing */ });
 }
 
 void MI_M600::Loop() {
