@@ -35,6 +35,8 @@ public:
      */
     template <class T, class... Args>
     constexpr T *create(Args &&...args) {
+        static_assert(sizeof(T) <= size);
+        static_assert(alignof(T) <= alignment);
         static_assert(can_construct<T>());
         return std::construct_at(as<T>(), std::forward<Args>(args)...);
     }
