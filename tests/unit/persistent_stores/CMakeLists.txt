@@ -2,7 +2,6 @@ add_executable(
   eeprom_unit_tests
   ${CMAKE_CURRENT_SOURCE_DIR}/EEPROM_journal_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/dummy_eeprom_chip.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/random_common.cpp
   ${CMAKE_SOURCE_DIR}/src/common/random_sw.cpp
   ${CMAKE_SOURCE_DIR}/src/persistent_stores/journal/backend.cpp
   ${CMAKE_SOURCE_DIR}/src/persistent_stores/storage_drivers/eeprom_storage.cpp
@@ -31,7 +30,7 @@ target_include_directories(
          ${CMAKE_SOURCE_DIR}/lib/Marlin/Marlin/src/
   )
 
-target_link_libraries(eeprom_unit_tests SG14 freertos_tests buddy_utils)
+target_link_libraries(eeprom_unit_tests SG14 freertos_tests buddy_utils random random_sw)
 
 add_catch_test(eeprom_unit_tests)
 

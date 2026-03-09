@@ -49,6 +49,8 @@ target_link_libraries(
   raii
   logging-mock
   buddy_utils
+  random
+  random_sw
   )
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/encrypted_text

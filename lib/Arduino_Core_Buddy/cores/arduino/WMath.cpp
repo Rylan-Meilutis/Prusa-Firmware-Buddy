@@ -22,7 +22,7 @@ extern "C" {
 }
 #include "WMath.h"
 
-#include <random.h>
+#include <random/random.h>
 
 extern void randomSeed(uint32_t dwSeed) {
     // We're using HW RNG, there's no way to seed

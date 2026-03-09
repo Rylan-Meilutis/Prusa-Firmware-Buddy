@@ -13,7 +13,7 @@
 #include <option/has_puppies_bootloader.h>
 #include <option/puppy_flash_fw.h>
 #include <puppies/xbuddy_extension.hpp>
-#include <random.h>
+#include <random/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <utils/uncopyable.hpp>

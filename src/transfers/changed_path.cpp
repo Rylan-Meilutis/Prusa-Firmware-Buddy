@@ -1,7 +1,7 @@
 #include "changed_path.hpp"
 
 #include <crc32.h>
-#include <random.h>
+#include <random/random.h>
 
 #include <cassert>
 #include <cstring>

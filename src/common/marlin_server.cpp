@@ -22,7 +22,7 @@
 #include "bsod.h"
 #include "module/prusa/tool_mapper.hpp"
 #include "print_utils.hpp"
-#include "random.h"
+#include <random/random.h>
 #include "timing.h"
 #include "cmsis_os.h"
 #include <logging/log.hpp>

@@ -1,7 +1,7 @@
 /// @file
 /// @brief HW RNG implementation of random.h
 
-#include "random.h"
+#include <random/random.h>
 
 #include <device/hal.h>
 #include <freertos/mutex.hpp>
@@ -12,6 +12,9 @@
 #if DEVELOPER_MODE()
     // #error dead code found by automatic analyses (see BFW-5461)
     #include <bsod.h>
+#else
+    // failsafe for error from secure generator
+    #include <random_sw/random_sw.h>
 #endif
 
 static freertos::Mutex rand_strong_mutex;

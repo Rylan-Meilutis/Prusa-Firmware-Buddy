@@ -43,7 +43,7 @@
 #include "otp.hpp"
 #include <config_store/store_instance.hpp>
 #include <nhttp/server.h>
-#include <random.h>
+#include <random/random.h>
 
 LOG_COMPONENT_DEF(WUI, logging::Severity::debug);
 LOG_COMPONENT_DEF(Network, logging::Severity::info);

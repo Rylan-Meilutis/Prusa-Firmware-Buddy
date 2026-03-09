@@ -33,7 +33,7 @@
 #include "wui.h"
 #include <tasks.hpp>
 #include <option/has_embedded_esp32.h>
-#include <random.h>
+#include <random/random.h>
 
 #include <lwip/def.h>
 #include <lwip/ethip6.h>

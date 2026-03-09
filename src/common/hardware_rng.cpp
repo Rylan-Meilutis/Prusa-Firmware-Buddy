@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stm32f4xx_hal.h>
 #include <mbedtls/entropy_poll.h>
-#include <random.h>
+#include <random/random.h>
 
 extern "C" int mbedtls_hardware_poll([[maybe_unused]] void *Data, unsigned char *Output, size_t Len, size_t *oLen) {
 

@@ -1,7 +1,8 @@
 /// @file
 /// @brief Software implementation of random.h
 
-#include "random.h"
+#include <random/random.h>
+#include <random_sw/random_sw.h>
 
 #include <stdlib.h>
 

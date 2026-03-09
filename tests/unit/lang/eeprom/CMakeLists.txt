@@ -1,9 +1,9 @@
 # define the test executable
 add_executable(
   language_eeprom_tests
-  ${CMAKE_SOURCE_DIR}/src/common/random_common.cpp ${CMAKE_SOURCE_DIR}/src/common/random_sw.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/language_eeprom.cpp ${CMAKE_SOURCE_DIR}/src/lang/translator.cpp
-  ${CMAKE_SOURCE_DIR}/tests/unit/test_main.cpp tests.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/random_sw.cpp ${CMAKE_SOURCE_DIR}/src/common/language_eeprom.cpp
+  ${CMAKE_SOURCE_DIR}/src/lang/translator.cpp ${CMAKE_SOURCE_DIR}/tests/unit/test_main.cpp
+  tests.cpp
   )
 
 # define required search paths
@@ -31,7 +31,7 @@ target_include_directories(
 # define custom macros
 target_compile_definitions(language_eeprom_tests PUBLIC LANGEEPROM_UNITTEST)
 
-target_link_libraries(language_eeprom_tests SG14 freertos_tests buddy_utils)
+target_link_libraries(language_eeprom_tests SG14 freertos_tests buddy_utils random random_sw)
 
 # tell build system about the test case
 add_catch_test(language_eeprom_tests)

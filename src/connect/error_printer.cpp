@@ -1,7 +1,7 @@
 #include "error_printer.hpp"
 #include "printer_common.hpp"
 #include <config_store/store_instance.hpp>
-#include <common/random.h>
+#include <random/random.h>
 #include <common/sys.hpp>
 
 using printer_state::DeviceState;

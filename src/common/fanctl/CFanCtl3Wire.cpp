@@ -11,7 +11,8 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 #include <stdlib.h>
-#include <random.h>
+#include <random/random.h>
+#include <random_sw/random_sw.h>
 #include <algorithm>
 
 #if (BOARD_IS_XBUDDY())

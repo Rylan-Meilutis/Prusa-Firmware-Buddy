@@ -1,6 +1,6 @@
 #pragma once
 
-#include <random.h>
+#include <random/random.h>
 class Custom_uint31_t {
 public:
     // Constructor with optional initialization

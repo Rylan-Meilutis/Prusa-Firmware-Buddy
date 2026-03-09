@@ -1,7 +1,7 @@
 #include "monitor.hpp"
 
 #include <timing.h>
-#include <random.h>
+#include <random/random.h>
 
 #include <algorithm>
 #include <cassert>

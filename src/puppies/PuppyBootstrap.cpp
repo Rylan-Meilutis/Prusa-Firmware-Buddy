@@ -20,7 +20,7 @@
 #include <puppies/puppy_crash_dump.hpp>
 #include <option/has_indx_head.h>
 #include <cstring>
-#include <random.h>
+#include <random/random.h>
 #include "bsod.h"
 
 #if HAS_XBUDDY_EXTENSION()

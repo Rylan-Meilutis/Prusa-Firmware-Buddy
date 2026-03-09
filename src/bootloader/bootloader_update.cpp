@@ -11,7 +11,7 @@
 #include <string.h>
 #include <freertos/critical_section.hpp>
 #include <span>
-#include <random.h>
+#include <random/random.h>
 
 #include <unique_file_ptr.hpp>
 

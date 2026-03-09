@@ -49,6 +49,8 @@ target_link_libraries(
          logging-mock
          buddy_utils
          freertos-mock
+         random
+         random_sw
   )
 
 add_executable(gcode_reader_test gcode_reader.cpp)

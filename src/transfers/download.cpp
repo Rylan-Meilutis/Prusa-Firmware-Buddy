@@ -5,7 +5,7 @@
 #include <common/http/resp_parser.h>
 #include <common/tcpip_callback_nofail.hpp>
 #include <common/pbuf_deleter.hpp>
-#include <common/random.h>
+#include <random/random.h>
 #ifndef UNITTESTS
     // Avoid deep transitive dependency hell in unit tests...
     #include <nhttp/server.h>

@@ -19,11 +19,6 @@
 /// !!! This function is not ISR-safe
 RAND_DECL uint32_t rand_u();
 
-/// Generates a 32-bit random number using a SW RNG.
-/// This function is ISR-safe.
-/// !!! Not cryptographically safe.
-RAND_DECL uint32_t rand_u_sw();
-
 /// Cryptographically secure version of rand_u. Can fail.
 /// !!! This function is not ISR-safe
 ///

@@ -239,6 +239,7 @@ target_link_libraries(
          bsod
          SG14
          buddy_utils
+         random
          raii
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)

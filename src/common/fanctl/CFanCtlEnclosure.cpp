@@ -3,7 +3,7 @@
 #include "CFanCtlEnclosure.hpp"
 #include <device/hal.h>
 #include "cmsis_os.h"
-#include <random.h>
+#include <random/random.h>
 
 CFanCtlEnclosure::CFanCtlEnclosure(const buddy::hw::InputPin &pin_tach,
     uint16_t min_rpm, uint16_t max_rpm)

@@ -6,6 +6,6 @@ add_executable(
 target_include_directories(
   cork_gcode PUBLIC ${CMAKE_SOURCE_DIR}/src/common ${CMAKE_SOURCE_DIR}/src/lang
   )
-target_link_libraries(cork_gcode freertos-mock)
+target_link_libraries(cork_gcode freertos-mock random random_sw)
 
 add_catch_test(cork_gcode)
