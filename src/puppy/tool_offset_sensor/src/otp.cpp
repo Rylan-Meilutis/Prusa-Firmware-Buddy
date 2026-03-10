@@ -28,6 +28,11 @@ std::optional<board_revision_t> otp_get_board_revision() {
             ++i;
         }
         ++i;
+
+        if (i + 1 >= sizeof(datamatrix)) {
+            return board_revision_t { 0 }; // revision code not present or malformed
+        }
+
         board_revision_t revision = 0;
         revision += (datamatrix[i] - '0') * 10;
         revision += (datamatrix[i + 1] - '0');
