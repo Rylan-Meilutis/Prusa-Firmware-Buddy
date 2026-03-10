@@ -83,11 +83,12 @@ void SafetyTimer::reset_restore_nonblocking() {
     // !!! Set BEFORE setting the target temperatures, otherwise we would get a recursion
     state_ = State::restoring;
 
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        assert(thermalManager.degTargetHotend(hotend) <= 0);
+    for (auto tool : PhysicalToolIndex::all()) {
+        auto &hotend = Hotend::for_tool(tool);
+        assert(hotend.nozzle_target_temp() <= 0);
 
-        const auto temp = nozzle_temperatures_to_restore_[hotend];
-        thermalManager.setTargetHotend(temp, hotend);
+        const auto temp = nozzle_temperatures_to_restore_[tool];
+        hotend.set_nozzle_target_temp(temp);
     }
 }
 
@@ -109,15 +110,16 @@ void SafetyTimer::reset_restore_blocking() {
     // Prevent the timer from timing out during the heatup
     SafetyTimerBlocker timer_blocker;
 
-    std::array<float, HOTENDS> start_temperatures;
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        start_temperatures[hotend] = Temperature::degHotend(hotend);
+    StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> start_temperatures;
+    for (auto tool : PhysicalToolIndex::all()) {
+        start_temperatures[tool] = Hotend::for_tool(tool).nozzle_temp();
     }
 
     while (!planner.draining() && state() == State::restoring) {
         float min_progress = 1;
-        for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-            const float hotend_progress = to_normalized_progress(start_temperatures[hotend], Temperature::degTargetHotend(hotend), Temperature::degHotend(hotend));
+        for (auto tool : PhysicalToolIndex::all()) {
+            const auto &hotend = Hotend::for_tool(tool);
+            const float hotend_progress = to_normalized_progress(start_temperatures[tool], hotend.nozzle_target_temp(), hotend.nozzle_temp());
             min_progress = std::min(min_progress, hotend_progress);
         }
         marlin_server::fsm_change(PhaseSafetyTimer::resuming, fsm::serialize_data<float>(min_progress * 100));
@@ -145,8 +147,8 @@ void SafetyTimer::trigger() {
     activity_timer_.stop();
 
     bool has_anything_to_disable = false;
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        has_anything_to_disable |= (Temperature::degTargetHotend(hotend) > 0);
+    for (auto tool : PhysicalToolIndex::all()) {
+        has_anything_to_disable |= (Hotend::for_tool(tool).nozzle_target_temp() > 0);
     }
 
     const bool should_activate = marlin_server::is_processing() || marlin_server::is_printing();
@@ -197,8 +199,8 @@ void SafetyTimer::trigger() {
 
     state_ = State::active;
 
-    for (uint8_t hotend = 0; hotend < HOTENDS; hotend++) {
-        nozzle_temperatures_to_restore_[hotend] = thermalManager.degTargetHotend(hotend);
+    for (auto tool : PhysicalToolIndex::all()) {
+        nozzle_temperatures_to_restore_[tool] = Hotend::for_tool(tool).nozzle_target_temp();
     }
 
 #ifdef ACTION_ON_SAFETY_TIMER_EXPIRED

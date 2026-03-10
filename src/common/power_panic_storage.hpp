@@ -80,8 +80,8 @@ struct state_planner_t {
     float junction_deviation_mm;
 #endif
 
-    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
-    StrongIndexArray<int16_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> target_nozzle;
+    StrongIndexArray<int16_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> target_nozzle;
+    int16_t _padding_target_nozzle[PhysicalToolIndex::count % 2]; // we need even number of int16_t
     int16_t flow_percentage[HOTENDS];
     int16_t target_bed;
     int16_t extrude_min_temp;

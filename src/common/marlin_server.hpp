@@ -127,8 +127,7 @@ bool print_preview();
 
 struct resume_state_t {
     xyze_pos_t pos = {}; // resume position for unpark_head
-    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
-    StrongIndexArray<int16_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> nozzle_temp; // target nozzle temperatures
+    StrongIndexArray<int16_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> nozzle_temp; // target nozzle temperatures
     uint8_t fan_speed = 0; // resume fan speed
     uint16_t print_speed = 0; // resume printing speed
 };

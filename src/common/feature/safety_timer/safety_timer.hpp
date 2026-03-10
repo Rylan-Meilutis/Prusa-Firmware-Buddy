@@ -21,9 +21,7 @@ class SafetyTimer {
 
 public:
     using Time = uint32_t;
-
-    // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
-    using NozzleTargetTemperatures = StrongIndexArray<int16_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes>;
+    using NozzleTargetTemperatures = StrongIndexArray<int16_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static>;
 
     enum class State : uint8_t {
         /// Either not expired or expired without the ability to restore (= outside of print)
