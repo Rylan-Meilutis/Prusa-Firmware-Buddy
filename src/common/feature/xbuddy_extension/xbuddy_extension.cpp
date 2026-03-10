@@ -9,7 +9,7 @@
 #include <marlin_server.hpp>
 #include <leds/side_strip_handler.hpp>
 #include <buddy/unreachable.hpp>
-#include <CFanCtl3Wire.hpp> // for FANCTL_START_TIMEOUT
+#include <fanctl/CFanCtl3Wire.hpp> // for FANCTL_START_TIMEOUT
 #include <utils/timing/rate_limiter.hpp>
 
 namespace {

@@ -1,7 +1,7 @@
 
 #include <fanctl.hpp>
 #include "hwio_pindef.h"
-#include <CFanCtl3Wire.hpp>
+#include <fanctl/CFanCtl3Wire.hpp>
 #include <CFanCtlCommonConsts.hpp>
 #include <option/has_love_board.h>
 #include <hw_configuration.hpp>

@@ -240,6 +240,7 @@ target_link_libraries(
          SG14
          buddy_utils
          random
+         fanctl
          raii
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)

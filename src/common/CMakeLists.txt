@@ -1,6 +1,6 @@
 target_include_directories(firmware PRIVATE . include)
 
-target_link_libraries(firmware PRIVATE buddy_utils bsod random random_sw)
+target_link_libraries(firmware PRIVATE buddy_utils bsod random random_sw fanctl)
 
 if(BOARD IN_LIST BUDDY_BOARDS)
   target_sources(

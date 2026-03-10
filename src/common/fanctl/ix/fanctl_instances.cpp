@@ -2,7 +2,7 @@
 #include <fanctl.hpp>
 #include "fan_ctl_ix_turbine.hpp"
 #include "hwio_pindef.h"
-#include <CFanCtl3Wire.hpp>
+#include <fanctl/CFanCtl3Wire.hpp>
 #include <CFanCtlCommonConsts.hpp>
 #include <option/has_love_board.h>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "CFanCtlCommon.hpp"
+#include <fanctl/CFanCtlCommon.hpp>
 #include "printers.h"
 #include <device/board.h>
 #include <cstddef>

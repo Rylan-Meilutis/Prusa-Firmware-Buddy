@@ -12,7 +12,7 @@
 #include "printers.h"
 #include "fanctl.hpp"
 #include <option/has_dwarf.h>
-#include "CFanCtl3Wire.hpp"
+#include <fanctl/CFanCtl3Wire.hpp>
 
 #if HAS_REMOTE_BED()
     #include <common/feature/remote_bed/remote_bed.hpp>

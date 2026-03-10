@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "CFanCtlCommon.hpp"
+#include <fanctl/CFanCtl3Wire.hpp>
 
 static constexpr uint16_t fanctl_turbine_rpm_max = 7200;
 

@@ -1,20 +1,11 @@
 
-#include "CFanCtlCommon.hpp"
+#include <fanctl/CFanCtlCommon.hpp>
 #include <fanctl.hpp>
 #include "metric.h"
 #include "Marlin/src/module/motion.h" // for active_extruder
 #include <common/sensor_data.hpp>
 #include <utils/utility_extensions.hpp>
 #include <cmath>
-
-bool CFanCtlCommon::is_fan_ok() const {
-    if (selftest_mode || get_pwm() == 0) {
-        return true;
-    }
-
-    const auto state = get_state();
-    return get_rpm_is_ok() || (state != running && state != error_running && state != error_starting);
-}
 
 void record_fanctl_metrics() {
     METRIC_DEF(metric, "fan", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);

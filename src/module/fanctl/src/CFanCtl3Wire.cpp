@@ -3,7 +3,7 @@
  */
 
 #include <stdint.h>
-#include "CFanCtl3Wire.hpp"
+#include <fanctl/CFanCtl3Wire.hpp>
 #include <stdlib.h>
 #include <random/random.h>
 #include <random_sw/random_sw.h>

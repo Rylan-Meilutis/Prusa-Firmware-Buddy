@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <CFanCtlCommon.hpp>
+#include <fanctl/CFanCtlCommon.hpp>
 
 class CFanCtlPuppy final : public CFanCtlCommon {
 public:
