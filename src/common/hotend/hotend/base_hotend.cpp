@@ -2,6 +2,7 @@
 #include "base_hotend.hpp"
 
 #include <module/temperature.h>
+#include <filament.hpp>
 
 #include <option/board_is_master_board.h>
 #if BOARD_IS_MASTER_BOARD()
@@ -21,6 +22,10 @@ static constexpr HeaterWatchBase::Config heater_watch_config {
 BaseHotend::BaseHotend(PhysicalToolIndex tool, const Config *config)
     : base_config_(*config)
     , tool_(tool) {
+}
+
+bool BaseHotend::supports_filament(const FilamentTypeParameters &filament) const {
+    return base_config_.max_nozzle_temp >= filament.nozzle_temperature;
 }
 
 void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {

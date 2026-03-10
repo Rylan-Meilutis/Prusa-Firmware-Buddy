@@ -8,6 +8,8 @@
 #include <pwm_utils.hpp>
 #include <atomic>
 
+struct FilamentTypeParameters;
+
 /// Class representing a hotend
 /// This is an abstract class, hotend implementations differ
 class Hotend : public Uncopyable {
@@ -35,6 +37,8 @@ public:
     static Hotend &for_tool(uint8_t tool);
 
 public:
+    virtual bool supports_filament(const FilamentTypeParameters &filament) const = 0;
+
     /// Current temperature of the nozzle
     Temperature nozzle_temp() const {
         return nozzle_temp_;
