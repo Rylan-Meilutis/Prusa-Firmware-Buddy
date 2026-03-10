@@ -570,6 +570,7 @@ if(BOARD STREQUAL "DWARF"
    OR BOARD STREQUAL "MODULARBED"
    OR BOARD STREQUAL "XBUDDY_EXTENSION"
    OR BOARD STREQUAL "ANFC"
+   OR BOARD STREQUAL "TOOL_OFFSET_SENSOR"
    )
   add_custom_command(
     TARGET firmware
@@ -725,6 +726,8 @@ elseif(BOARD STREQUAL "MODULARBED")
 elseif(BOARD STREQUAL "XBUDDY_EXTENSION")
   # let us manage the libraries where needed, not globally
 elseif(BOARD STREQUAL "ANFC")
+  # let us manage the libraries where needed, not globally
+elseif(BOARD STREQUAL "TOOL_OFFSET_SENSOR")
   # let us manage the libraries where needed, not globally
 elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_link_libraries(

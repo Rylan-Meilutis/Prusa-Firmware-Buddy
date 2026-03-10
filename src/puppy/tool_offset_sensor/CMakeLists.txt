@@ -22,9 +22,12 @@ add_library(STM32C0_HAL_Config ALIAS HAL_Config)
 
 target_sources(
   firmware
-  PRIVATE src/atomic_c0.cpp
+  PRIVATE "${CMAKE_SOURCE_DIR}/src/device/multi_watchdog.cpp"
+          src/atomic_c0.cpp
+          src/cyphal_tool_offset_sensor_node.cpp
           src/hal.cpp
           src/main.cpp
+          src/otp.cpp
           src/precise_timer.cpp
           src/startup.s
           src/stdlib.cpp
@@ -41,12 +44,14 @@ target_link_libraries(
   PRIVATE STM32C0::HAL
           HAL_Config
           printf::printf
+          SG14
           buddy_utils
           freertos
           dsdl_uavcan
           dsdl_prusa3d
           canard
           BuddyHeaders
+          o1heap
           raii
           crc
           mbedTLS

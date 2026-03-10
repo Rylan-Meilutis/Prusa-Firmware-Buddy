@@ -30,11 +30,13 @@ void hal::set_status_led(bool set) {
 namespace hal {
 void init_clock();
 void init_gpio();
+void init_can();
 void init_tim2();
 } // namespace hal
 
 namespace hal::peripherals {
 TIM_HandleTypeDef htim2;
+FDCAN_HandleTypeDef hfdcan1;
 } // namespace hal::peripherals
 
 void HAL_MspInit(void) {
@@ -50,6 +52,7 @@ void hal::init() {
     HAL_Init();
     hal::init_clock();
     hal::init_gpio();
+    hal::init_can();
     hal::init_tim2();
 }
 
@@ -110,6 +113,66 @@ void hal::init_gpio() {
     HAL_GPIO_Init(D_LED_USR_GPIO_Port, &GPIO_InitStruct);
 }
 
+void hal::init_can() {
+    using namespace hal::peripherals;
+
+    RCC_PeriphCLKInitTypeDef PeriphClkInit {};
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN1;
+    PeriphClkInit.Fdcan1ClockSelection = RCC_FDCAN1CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+        bsod_system();
+    }
+
+    __HAL_RCC_FDCAN1_CLK_ENABLE();
+
+    hfdcan1.Instance = FDCAN1;
+    hfdcan1.Init = FDCAN_InitTypeDef {
+        .ClockDivider = FDCAN_CLOCK_DIV1,
+        .FrameFormat = enable_bit_rate_switch ? FDCAN_FRAME_FD_BRS : FDCAN_FRAME_FD_NO_BRS,
+        .Mode = FDCAN_MODE_NORMAL,
+        .AutoRetransmission = DISABLE,
+        .TransmitPause = ENABLE,
+        .ProtocolException = ENABLE,
+        .NominalPrescaler = 2,
+        .NominalSyncJumpWidth = 64,
+        .NominalTimeSeg1 = 139,
+        .NominalTimeSeg2 = 20,
+        .DataPrescaler = 10,
+        .DataSyncJumpWidth = 8,
+        .DataTimeSeg1 = 27,
+        .DataTimeSeg2 = 4,
+        .StdFiltersNbr = 0,
+        .ExtFiltersNbr = 0,
+        .TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION,
+    };
+
+    if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK) {
+        bsod_system();
+    }
+
+    /**FDCAN1 GPIO Configuration
+      PB0      ------> FDCAN1_RX
+      PB1      ------> FDCAN1_TX
+      */
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+        .Pin = GPIO_PIN_0 | GPIO_PIN_1,
+        .Mode = GPIO_MODE_AF_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_HIGH,
+        .Alternate = GPIO_AF3_FDCAN1,
+    };
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /* FDCAN1 interrupt Init */
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
+
+    HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);
+}
+
 void hal::init_tim2() {
     using namespace hal::peripherals;
 
@@ -159,4 +222,12 @@ extern "C" void UsageFault_Handler() {
 
 extern "C" void TIM2_IRQHandler(void) {
     HAL_TIM_IRQHandler(&hal::peripherals::htim2);
+}
+
+extern "C" void FDCAN1_IT0_IRQHandler(void) {
+    HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
+}
+
+extern "C" void FDCAN1_IT1_IRQHandler(void) {
+    HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
 }

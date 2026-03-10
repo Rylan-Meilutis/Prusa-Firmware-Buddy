@@ -2,4 +2,6 @@
 
 prusa3d.common.SharedFault.1.0 faults
 
+bool time_sync_precise # Time synchronization is precise
+
 @sealed

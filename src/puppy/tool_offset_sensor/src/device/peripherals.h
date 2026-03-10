@@ -5,4 +5,8 @@
 #define D_LED_USR_GPIO_Port GPIOA
 #define D_LED_USR_Pin       GPIO_PIN_7
 
+namespace hal::peripherals {
+extern FDCAN_HandleTypeDef hfdcan1;
+}
+
 #define TIM3_OVERFLOW 1

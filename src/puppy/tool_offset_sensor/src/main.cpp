@@ -1,31 +1,93 @@
+#define DO_NOT_CHECK_ATOMIC_LOCK_FREE
 #include "hal.hpp"
+
+#include <cyphal_tool_offset_sensor_node.hpp>
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <freertos/timing.hpp>
 #include <device/peripherals.h>
 #include <can_driver_fdcan.hpp>
-
 #include <device/hal.h>
+#include <o1heap/o1heap.hpp>
+#include <cstring>
 
 // This magical incantation is required for fw_descriptor integration in cmake to work.
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
 
 static void main_task_code(void *) {
     while (true) {
-        freertos::delay(1000);
-        hal::set_status_led(true);
-        freertos::delay(1000);
-        hal::set_status_led(false);
+        freertos::delay(100); // TODO the delay to be accomodated to the needs of the task BFW-8360
+        // TODO implement functionality here BFW-8360
     };
 }
 
-constexpr const size_t main_task_stack_size = 512;
+namespace {
+constexpr size_t main_task_stack_size = 1024;
 alignas(32) StackType_t main_task_stack[main_task_stack_size];
 StaticTask_t main_task_control_block;
 
+// CAN node app task, processes requests from the CAN. Implemented in can_node
+constexpr size_t node_task_stack_size = 1024 / sizeof(StackType_t);
+alignas(32) StackType_t node_task_stack[node_task_stack_size];
+StaticTask_t node_task_control_block;
+
+// High-priority task that is woken up when we need to receive/send over CAN and handles the request
+constexpr size_t can_task_stack_size = 2048 / sizeof(StackType_t);
+alignas(32) StackType_t can_task_stack[can_task_stack_size];
+StaticTask_t can_task_control_block;
+
+auto get_uid() {
+    tool_offset_sensor::cyphal::ToolOffsetSensorNode::UID uid;
+    static constexpr size_t copy_bytes = std::min<size_t>(MCU_UID_SIZE, uid.size());
+    std::memcpy(uid.data(), reinterpret_cast<const void *>(UID_BASE), copy_bytes);
+    std::memset(uid.data() + MCU_UID_SIZE, 0, uid.size() - copy_bytes);
+    return uid;
+}
+
+can::FdcanDriver can_driver(hal::peripherals::hfdcan1, hal::enable_bit_rate_switch);
+
+// Heap allocated for canard
+O1Heap<8192> canard_heap;
+
+void *canard_heap_allocate(CanardInstance *, size_t bytes) {
+    return canard_heap.alloc(bytes);
+}
+void canard_heap_free(CanardInstance *, void *ptr) {
+    canard_heap.free(ptr);
+}
+} // namespace
+
+// Cannot be in private namespace - linked with src/can
+// Also, has to be initialized before can_node
+can::cyphal::Task::RxQueue<1> cyphal_task_rx_queue;
+can::cyphal::Task can::cyphal::cyphal_task(can_driver, cyphal_task_rx_queue, 32, &canard_heap_allocate, &canard_heap_free);
+
+tool_offset_sensor::cyphal::ToolOffsetSensorNode can_node(get_uid());
+
 extern "C" int main() {
     hal::init();
+
+    // Set up Cyphal node and communication basics
+    can_node.init();
+
+    [[maybe_unused]] TaskHandle_t can_task_handle = xTaskCreateStatic(
+        can::cyphal::Task::task,
+        "can_task",
+        can_task_stack_size,
+        &can::cyphal::cyphal_task,
+        tskIDLE_PRIORITY + 2,
+        can_task_stack,
+        &can_task_control_block);
+
+    [[maybe_unused]] TaskHandle_t node_task_handle = xTaskCreateStatic(
+        [](void *) { can_node.task(); },
+        "node_task",
+        node_task_stack_size,
+        nullptr,
+        tskIDLE_PRIORITY + 1,
+        node_task_stack,
+        &node_task_control_block);
 
     [[maybe_unused]] TaskHandle_t main_task_handle = xTaskCreateStatic(
         main_task_code,
@@ -53,3 +115,15 @@ _bsod(const char *fmt, const char *file_name, int line_number, ...) {
     (void)fmt, (void)file_name, (void)line_number;
     hal::panic();
 }
+
+namespace puppy::fault {
+
+bool trigger_fault(tool_offset_sensor::cyphal::Fault fault) {
+    return can_node.set_fault(fault);
+}
+
+bool trigger_fault(puppy::fault::SharedFault fault) {
+    return trigger_fault(tool_offset_sensor::cyphal::from_shared(fault));
+}
+
+} // namespace puppy::fault
