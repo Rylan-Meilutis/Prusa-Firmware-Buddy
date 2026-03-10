@@ -55,16 +55,13 @@
 #include <device/board.h>
 #include <option/has_e2ee_support.h>
 
-/// number of bits used to encode response
-// TODO: Make 2 everywhere: BFW-6028
-#if HAS_MMU2() || HAS_TOOLCHANGER()
-    #define RESPONSE_BITS 4
+/// Maximum number of responses available during a FSM phase
+#if HAS_MMU2()
+    // MMU_ERRWaitingForUser I'm angrily looking at you
+    #define MAX_RESPONSES 7
 #else
-    #define RESPONSE_BITS 2
+    #define MAX_RESPONSES 4
 #endif
-
-/// maximum number of responses in one phase
-#define MAX_RESPONSES (1 << RESPONSE_BITS)
 
 using PhaseResponses = std::array<Response, MAX_RESPONSES>;
 inline constexpr PhaseResponses empty_phase_responses = {};
