@@ -22,7 +22,6 @@
 #pragma once
 
 #include <cmath>
-#include <option/has_pause.h>
 
 // clang-format off
 
@@ -699,47 +698,6 @@
 #if EXTRUDERS > 1
     // Z raise distance for tool-change, as needed for some extruders
     #define TOOLCHANGE_ZRAISE 2 // (mm)
-#endif
-
-/**
- * Advanced Pause
- * Experimental feature for filament change support and for parking the nozzle when paused.
- * Adds the GCode M600 for initiating filament change.
- *
- * Requires an LCD display.
- */
-#if HAS_PAUSE()
-    #define FILAMENT_UNLOAD_RAMMING_SEQUENCE \
-        { \
-            { 1, 100 }, \
-            { 1, 300 }, \
-            { 3, 800 }, \
-            { 2, 1200 }, \
-            { 2, 2200 }, \
-            { 2, 2600 }, \
-            { -2, 2200 }, \
-            { -20, 3000 }, \
-            { -30, 4000 }, \
-        }
-    #define PAUSE_PARK_RETRACT_FEEDRATE 66 // (mm/s) Initial retract feedrate.
-    #define PAUSE_PARK_RETRACT_LENGTH 2 // (mm) Initial retract.
-// This short retract is done immediately, before parking the nozzle.
-    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 80 // (mm/s) Unload filament feedrate. This can be pretty fast.
-    #define FILAMENT_CHANGE_UNLOAD_ACCEL 1250 // (mm/s^2) Lower acceleration may allow a faster feedrate.
-    #define FILAMENT_CHANGE_UNLOAD_LENGTH 420 // (mm) The length of filament for a complete unload.
-//   For Bowden, the full length of the tube and nozzle.
-//   For direct drive, the full length of the nozzle.
-//   Set to 0 for manual unloading.
-    #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 10 // (mm/s) Slow move when starting load.
-    #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 40 // (mm) Slow length, to allow time to insert material.
-// 0 to disable start loading and skip to fast load only
-    #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 80 // (mm/s) Load filament feedrate. This can be pretty fast.
-    #define FILAMENT_CHANGE_FAST_LOAD_ACCEL 625 // (mm/s^2) Lower acceleration may allow a faster feedrate.
-    #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 320 // (mm) Load length of filament, from extruder gear to nozzle.
-//   For Bowden, the full length of the tube and nozzle.
-//   For direct drive, the full length of the nozzle.
-    #define ADVANCED_PAUSE_PURGE_FEEDRATE 3 // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
-    #define ADVANCED_PAUSE_PURGE_LENGTH 50 // (mm) Length to extrude after loading.
 #endif
 
 // @section tmc
