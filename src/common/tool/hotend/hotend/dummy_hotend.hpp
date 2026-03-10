@@ -10,7 +10,7 @@ class DummyHotend final : public Hotend {
 public:
     explicit DummyHotend();
 
-    bool supports_filament(const FilamentTypeParameters &filament) const override { return false; }
+    bool supports_filament(const FilamentTypeParameters &) const override { return false; }
 
     void set_nozzle_target_temp([[maybe_unused]] TargetTemperature set) override {}
 
