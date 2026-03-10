@@ -296,11 +296,12 @@ class Temperature {
     //inline so that there is no performance decrease.
     //deg=degreeCelsius
 
-    [[deprecated("Use the ToolIndex overload")]]
+    [[deprecated("Use the Hotend functions directly")]]
     FORCE_INLINE static float degHotend(const uint8_t E_NAME) {
       return Hotend::for_tool(HOTEND_INDEX).nozzle_temp();
     }
 
+    [[deprecated("Use the Hotend functions directly")]]
     inline static float degHotend(PhysicalToolIndex tool) {
       return Hotend::for_tool(tool).nozzle_temp();
     }
