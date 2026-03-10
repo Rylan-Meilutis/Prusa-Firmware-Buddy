@@ -80,6 +80,10 @@
                 "ANFC_BINARY_DIR": {
                     "type": "FILEPATH",
                     "value": "build-vscode-anfc"
+                },
+                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
+                    "type": "FILEPATH",
+                    "value": "build-vscode-tool-offset-sensor"
                 }
             }
         },

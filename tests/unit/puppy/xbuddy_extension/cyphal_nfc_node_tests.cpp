@@ -1,6 +1,7 @@
 #include <cyphal_nfc_node.hpp>
 
 #include "cyphal_presentation.hpp"
+#include <tool_offset_sensor/types.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cstring>
 #include <modbus/traits.hpp>
@@ -27,6 +28,7 @@ public:
     void transmit_file_read_response(NodeId, uint8_t, std::span<std::byte>) override {}
     void transmit_ac_controller_config_request(NodeId, const ac_controller::Config &) override {}
     void transmit_ac_controller_leds_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const ac_controller::LedConfig &) override {}
+    void transmit_tool_offset_sensor_config_request(NodeId, const tool_offset_sensor::Config &) override {}
 
     bool transmit_nfc_command_request(NodeId, std::span<const std::byte> data) override {
         if (fail) {

@@ -3,6 +3,7 @@
 
 #include "cyphal_types.hpp"
 #include <ac_controller/types.hpp>
+#include <tool_offset_sensor/types.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -19,6 +20,7 @@ public:
     virtual void transmit_file_read_response(NodeId remote_node_id, uint8_t transfer_id, std::span<std::byte> data) = 0;
     virtual void transmit_ac_controller_config_request(NodeId remote_node_id, const ac_controller::Config &) = 0;
     virtual void transmit_ac_controller_leds_config_request(cyphal::NodeId remote_node_id, const ac_controller::LedConfig &r) = 0;
+    virtual void transmit_tool_offset_sensor_config_request(NodeId remote_node_id, const tool_offset_sensor::Config &) = 0;
 
     /// Transmit prusa3d.nfc.command.Request.1
     /// Caller is responsible for properly serializing the message.

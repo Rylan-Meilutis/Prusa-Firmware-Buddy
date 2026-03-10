@@ -9,6 +9,7 @@
 #include <freertos/timing.hpp>
 #include <option/has_ac_controller.h>
 #include <option/has_anfc.h>
+#include <option/has_tool_offset_sensor.h>
 #include <span>
 #include <string.h>
 #include <uavcan/diagnostic/Record_1_1.h>
@@ -23,6 +24,11 @@
 #if HAS_AC_CONTROLLER()
     #include <prusa3d/ac_controller/Config_1_0.h>
     #include <prusa3d/ac_controller/Status_1_0.h>
+#endif
+
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <prusa3d/tool_offset_sensor/Config_1_0.h>
+    #include <prusa3d/tool_offset_sensor/Status_1_0.h>
 #endif
 
 #if HAS_ANFC()
@@ -78,6 +84,10 @@ struct NunavutTraits;
     #define prusa3d_ac_controller_Config_Request_1_0_FIXED_PORT_ID_ prusa3d_common_PortIds_0_1_SRV_AC_CONTROLLER_SET_CONFIG
     #define prusa3d_ac_controller_Status_1_0_FIXED_PORT_ID_         prusa3d_common_PortIds_0_1_MSG_AC_CONTROLLER_STATUS
     #define prusa3d_common_leds_Config_1_0_FIXED_PORT_ID_           prusa3d_common_PortIds_0_1_MSG_AC_CONTROLLER_LEDS
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    #define prusa3d_tool_offset_sensor_Config_Request_1_0_FIXED_PORT_ID_ prusa3d_common_PortIds_0_1_SRV_TOOL_OFFSET_SENSOR_CONFIG
+    #define prusa3d_tool_offset_sensor_Status_1_0_FIXED_PORT_ID_         prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_STATUS
 #endif
 #if HAS_ANFC()
     #define prusa3d_nfc_command_AcceptEvent_Request_1_0_FIXED_PORT_ID_ prusa3d_common_PortIds_0_1_SRV_NFC_ACCEPT_EVENT
@@ -145,6 +155,11 @@ static uint16_t convert(const prusa3d_common_FanState_1_0 &fan_state) {
 
 #endif
 
+#if HAS_TOOL_OFFSET_SENSOR()
+TRAITS(prusa3d_tool_offset_sensor_Config_Request_1_0, CanardTransferKindRequest);
+TRAITS(prusa3d_tool_offset_sensor_Status_1_0, CanardTransferKindMessage);
+#endif
+
 #if HAS_ANFC()
 TRAITS(prusa3d_nfc_command_AcceptEvent_Request_1_0, CanardTransferKindRequest);
 TRAITS(prusa3d_nfc_command_Request_Request_1_0, CanardTransferKindRequest);
@@ -165,6 +180,9 @@ private:
         uint8_t ac_controller_config = 0;
         uint8_t leds_config = 0;
 #endif
+#if HAS_TOOL_OFFSET_SENSOR()
+        uint8_t tool_offset_sensor_config = 0;
+#endif
 #if HAS_ANFC()
         uint8_t nfc_command_accept_event = 0;
         uint8_t nfc_command_request = 0;
@@ -182,6 +200,9 @@ public:
         subscribe<uavcan_diagnostic_Record_1_1>();
 #if HAS_AC_CONTROLLER()
         subscribe<prusa3d_ac_controller_Status_1_0>();
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+        subscribe<prusa3d_tool_offset_sensor_Status_1_0>();
 #endif
 #if HAS_ANFC()
         // We intentionally do not subscribe to NFC command responses here.
@@ -231,6 +252,10 @@ private:
 #if HAS_AC_CONTROLLER()
             case prusa3d_ac_controller_Status_1_0_FIXED_PORT_ID_:
                 return receive_helper<prusa3d_ac_controller_Status_1_0>(now, transfer);
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+            case prusa3d_tool_offset_sensor_Status_1_0_FIXED_PORT_ID_:
+                return receive_helper<prusa3d_tool_offset_sensor_Status_1_0>(now, transfer);
 #endif
 #if HAS_ANFC()
             case prusa3d_nfc_event_Event_1_0_FIXED_PORT_ID_:
@@ -332,6 +357,14 @@ private:
                 .psu_fan_rpm = convert(message.psu_fan_state),
                 .faults = convert(message.faults),
             });
+    }
+#endif
+
+#if HAS_TOOL_OFFSET_SENSOR()
+    void receive(const cyphal::TimePoint, const CanardRxTransfer &, const prusa3d_tool_offset_sensor_Status_1_0 &) {
+        application.receive_tool_offset_sensor_status(
+            // TODO empty status for now, we will fill it in later when we have actual data to report BFW-8360
+            tool_offset_sensor::Status {});
     }
 #endif
 
@@ -468,6 +501,22 @@ private:
         // LED config is a broadcast message (CanardTransferKindMessage), not a request
         // Therefore we must use CANARD_NODE_ID_UNSET instead of a specific node ID
         (void)serialize_and_transmit(request, anonymous, transfer_id.leds_config++);
+#else
+        (void)remote_node_id;
+        (void)r;
+#endif
+    }
+
+    void transmit_tool_offset_sensor_config_request(cyphal::NodeId remote_node_id, const tool_offset_sensor::Config &r) override {
+#if HAS_TOOL_OFFSET_SENSOR()
+        prusa3d_tool_offset_sensor_Config_Request_1_0 request;
+        std::memset(&request, 0, sizeof(request));
+        if (r.enable_streaming.has_value()) {
+            request.enable_streaming = *r.enable_streaming;
+        } else {
+            request.enable_streaming = false;
+        }
+        (void)serialize_and_transmit(request, remote_node_id, transfer_id.tool_offset_sensor_config++);
 #else
         (void)remote_node_id;
         (void)r;

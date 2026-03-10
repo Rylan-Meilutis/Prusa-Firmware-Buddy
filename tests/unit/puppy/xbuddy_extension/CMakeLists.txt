@@ -21,9 +21,9 @@ target_link_libraries(
   xbuddy_extension_cyphal_application_tests
   ac_controller
   anfc
-  buddy_utils
-  freertos_tests
   tool_offset_sensor
+  freertos_tests
+  buddy_utils
   xbuddy_extension
   )
 add_catch_test(xbuddy_extension_cyphal_application_tests)
@@ -32,7 +32,7 @@ add_executable(
   cyphal_nfc_node_tests ${CMAKE_SOURCE_DIR}/src/puppy/xbuddy_extension/cyphal_nfc_node.cpp
                         cyphal_nfc_node_tests.cpp
   )
-target_link_libraries(cyphal_nfc_node_tests ac_controller anfc)
+target_link_libraries(cyphal_nfc_node_tests ac_controller anfc tool_offset_sensor)
 target_include_directories(
   cyphal_nfc_node_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/puppy/xbuddy_extension
   )

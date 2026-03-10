@@ -171,6 +171,8 @@ private:
     AcController ac_controller;
 
     struct ToolOffsetSensor {
+        tool_offset_sensor::Config desired = tool_offset_sensor::Config { .enable_streaming = std::optional<bool> { false } };
+        tool_offset_sensor::Config active;
         tool_offset_sensor::Status status;
         bool seen_status = false;
     };
@@ -268,6 +270,7 @@ private:
         /// * Flash - depending on the verification result, we want to load a new firmware into the device. Or we can skip this phase.
         /// * AcControllerAlive - AC controller node is active and operational.
         /// * NfcAlive - NFC node is active and operational.
+        /// * ToolOffsetSensorAlive - tool offset sensor node is active and operational.
         /// * Inert - "trash" state, for nodes of unknown state or otherwise weird situations we don't know what to do about.
         using State = std::variant<
             // No state, before the node is properly allocated and born.
@@ -277,6 +280,7 @@ private:
             Flash,
             AcControllerAlive,
             NfcAlive,
+            ToolOffsetSensorAlive,
             Inert>;
         State state;
 
@@ -298,7 +302,7 @@ private:
             Command command;
         } last_command;
 
-        /// If verifide, move to Alive (depending on the node name).
+        /// If verified, move to Alive (depending on the node name).
         State try_activate(ApplicationImpl *application, const Verify &verify) {
             if (verify.finalized()) {
                 if (verify.matches) {
@@ -312,8 +316,9 @@ private:
                     case NodeName::cz_prusa3d_honeybee_nfc:
                         return application->allocate_nfc_device();
                     case NodeName::cz_prusa3d_honeybee_tool_offset_sensor:
-                        // TODO BFW-8356 Cyphal task is not implemented yet, just repeat flashing for testing now.
-                        return Flash {};
+                        return ToolOffsetSensorAlive {
+                            .tool_offset_sensor = &application->tool_offset_sensor,
+                        };
                     }
                     // We passed verification, but don't know what to do about the node, so...
                     return Inert {};
@@ -541,6 +546,15 @@ private:
             return false;
         }
 
+        bool step(Presentation &presentation, const TimePoint, ApplicationImpl *, NodeId node_id, ToolOffsetSensorAlive &alive) {
+            if (alive.tool_offset_sensor->active != alive.tool_offset_sensor->desired) {
+                alive.tool_offset_sensor->active = alive.tool_offset_sensor->desired;
+                presentation.transmit_tool_offset_sensor_config_request(node_id, alive.tool_offset_sensor->active);
+                return true;
+            }
+            return false;
+        }
+
         bool step(Presentation &presentation, const TimePoint, ApplicationImpl *application, NodeId node_id, NfcAlive &alive) {
             return application->get_nfc(alive.device).step(presentation, node_id);
         }
@@ -550,6 +564,7 @@ private:
                 state,
                 [](const AcControllerAlive &) { return true; },
                 [](const NfcAlive &) { return true; },
+                [](const ToolOffsetSensorAlive &) { return true; },
                 [](const Verify &verify) { return verify.finalized() && verify.matches; },
                 [](const auto &) { return false; });
         }
@@ -925,8 +940,9 @@ public:
         status = ac_controller.status;
     }
 
-    void request_tool_offset_sensor(xbuddy_extension::NodeState &node_state) final {
+    void request_tool_offset_sensor(xbuddy_extension::NodeState &node_state, tool_offset_sensor::Status &status) final {
         node_state = get_node_state(NodeName::cz_prusa3d_honeybee_tool_offset_sensor);
+        status = tool_offset_sensor.status;
     }
 
     void receive_ac_controller_status(const ac_controller::Config &config, const ac_controller::Status &status) final {
@@ -978,6 +994,10 @@ public:
         ++next_nfc_node;
         return Node::NfcAlive { .device = device };
     }
-};
 
+    void receive_tool_offset_sensor_status(const tool_offset_sensor::Status &status) final {
+        tool_offset_sensor.status = status;
+        tool_offset_sensor.seen_status = true;
+    }
+};
 } // namespace cyphal

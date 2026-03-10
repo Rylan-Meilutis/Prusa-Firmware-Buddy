@@ -184,11 +184,11 @@ bool write_register_file_callback(const ac_controller::modbus::LedConfig &modbus
 
 void read_register_file_callback(tool_offset_sensor::modbus::Status &modbus_status) {
     xbuddy_extension::NodeState node_state;
-    cyphal::application().request_tool_offset_sensor(node_state);
+    tool_offset_sensor::Status status;
+    cyphal::application().request_tool_offset_sensor(node_state, status);
     modbus_status.node_state = static_cast<uint16_t>(node_state);
-    // TODO BFW-8356 populate LDC data once the application firmware reports it
+    // TODO BFW-8360 populate LDC data once the application firmware reports it
 }
-
 #endif
 
 #if HAS_ANFC()

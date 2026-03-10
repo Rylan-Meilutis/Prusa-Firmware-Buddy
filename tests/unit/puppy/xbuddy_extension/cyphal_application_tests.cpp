@@ -1,6 +1,7 @@
 #include <cyphal_application.hpp>
 
 #include "cyphal_presentation.hpp"
+#include <tool_offset_sensor/types.hpp>
 #include <algorithm>
 #include <cyphal_application_impl.hpp>
 #include <master_activity.hpp>
@@ -138,6 +139,10 @@ public:
     }
 
     void transmit_ac_controller_leds_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const ac_controller::LedConfig &) {
+        abort();
+    }
+
+    void transmit_tool_offset_sensor_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const tool_offset_sensor::Config &) {
         abort();
     }
 

@@ -72,6 +72,7 @@ public:
     virtual void receive_ac_controller_status(const ac_controller::Config &, const ac_controller::Status &) = 0;
     virtual void receive_diagnostic_record(NodeId remote_node_id, const Bytes &text) = 0;
     virtual void receive_nfc_event(cyphal::NodeId remote_node_id, std::span<const std::byte>) = 0;
+    virtual void receive_tool_offset_sensor_status(const tool_offset_sensor::Status &) = 0;
     virtual void log_from_app(std::string_view s) = 0;
 
     // Called by modbus handlers.
@@ -82,7 +83,7 @@ public:
     [[nodiscard]] virtual bool receive(const ac_controller::LedConfig &) = 0;
     virtual const ModbusRequest &request() = 0;
     virtual void request_ac_controller(xbuddy_extension::NodeState &, ac_controller::Status &) = 0;
-    virtual void request_tool_offset_sensor(xbuddy_extension::NodeState &) = 0;
+    virtual void request_tool_offset_sensor(xbuddy_extension::NodeState &, tool_offset_sensor::Status &) = 0;
 
     [[nodiscard]] virtual NfcNode &get_nfc(anfc::Device) = 0;
 
