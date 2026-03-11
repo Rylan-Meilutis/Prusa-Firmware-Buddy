@@ -51,11 +51,15 @@
 void GcodeSuite::M218() {
 
   const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  if (target_extruder < 0 || target_extruder >= PhysicalToolIndex::count) {
+    SERIAL_ECHOLNPAIR("M218 wrong tool: ", target_extruder);
+    return;
+  }
+  auto tool = PhysicalToolIndex::from_raw(target_extruder);
 
-  if (parser.seenval('X')) hotend_offset[target_extruder].x = parser.value_linear_units();
-  if (parser.seenval('Y')) hotend_offset[target_extruder].y = parser.value_linear_units();
-  if (parser.seenval('Z')) hotend_offset[target_extruder].z = parser.value_linear_units();
+  if (parser.seenval('X')) hotend_offset[tool].x = parser.value_linear_units();
+  if (parser.seenval('Y')) hotend_offset[tool].y = parser.value_linear_units();
+  if (parser.seenval('Z')) hotend_offset[tool].z = parser.value_linear_units();
 
   if (!parser.seen("XYZ")) {
     SERIAL_ECHO_START();
