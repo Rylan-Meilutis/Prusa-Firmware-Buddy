@@ -346,12 +346,7 @@ struct CurrentStore
     StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 4")> tool_offset_4;
     StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 5")> tool_offset_5;
 
-    [[deprecated("Use the ToolIndex overload")]]
-    ToolOffset get_tool_offset(uint8_t index);
-
-    inline ToolOffset get_tool_offset(PhysicalToolIndex index) {
-        return get_tool_offset(index.to_raw());
-    }
+    ToolOffset get_tool_offset(PhysicalToolIndex tool);
 
     void set_tool_offset(uint8_t index, ToolOffset value);
 #endif

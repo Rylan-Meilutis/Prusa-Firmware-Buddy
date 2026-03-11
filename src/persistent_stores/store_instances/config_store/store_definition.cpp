@@ -241,8 +241,9 @@ void CurrentStore::set_dock_position(uint8_t index, DockPosition value) {
     }
 }
 
-ToolOffset CurrentStore::get_tool_offset(uint8_t index) {
-    switch (index) {
+ToolOffset CurrentStore::get_tool_offset(PhysicalToolIndex tool) {
+    static_assert(PhysicalToolIndex::count <= 5);
+    switch (tool.to_raw()) {
     case 0:
         return tool_offset_0.get();
     case 1:
@@ -253,12 +254,8 @@ ToolOffset CurrentStore::get_tool_offset(uint8_t index) {
         return tool_offset_3.get();
     case 4:
         return tool_offset_4.get();
-    case 5:
-        return tool_offset_5.get();
-    default:
-        assert(false && "invalid index");
-        return {};
     }
+    bsod_unreachable();
 }
 
 void CurrentStore::set_tool_offset(uint8_t index, ToolOffset value) {
