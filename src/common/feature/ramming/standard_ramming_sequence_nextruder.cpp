@@ -62,14 +62,6 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
     }
 
     case StandardRammingSequence::unload: {
-    #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_XL()
-        static constexpr buddy::RammingSequenceArray seq({
-            { 20, 1500 },
-            { -50, 2700 },
-            { -5, 50 },
-            { -50, 1500 },
-        });
-    #else
         // Same as auto-retract sequence, just the last push is longer so that the filament gets out of gears
         static constexpr RammingSequenceArray seq({
             { 8, 995 },
@@ -84,7 +76,6 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
             { -20, 210 },
             { -50, 2000 },
         });
-    #endif
         return seq;
     }
 #endif
