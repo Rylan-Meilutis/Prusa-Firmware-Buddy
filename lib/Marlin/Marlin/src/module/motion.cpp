@@ -139,13 +139,9 @@ xyze_pos_t destination; // {0}
   StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset;  // Initialized by settings.load()
   xyz_pos_t hotend_currently_applied_offset;
   void reset_hotend_offsets() {
-    constexpr float tmp[XYZ][HOTENDS] = { { 0 }, { 0 }, { 0 } };
-    static_assert(
-      !tmp[X_AXIS][0] && !tmp[Y_AXIS][0] && !tmp[Z_AXIS][0],
-      "Offsets for the first hotend must be 0.0."
-    );
-    // Transpose from [XYZ][HOTENDS] to [HOTENDS][XYZ]
-    for (int8_t e = 0; e < HOTENDS; e++) LOOP_XYZ(a) hotend_offset[e][a] = tmp[a][e];
+    for (auto &offset : hotend_offset) {
+      offset.reset();
+    }
   }
 #endif
 
