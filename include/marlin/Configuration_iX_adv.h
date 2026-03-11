@@ -796,22 +796,6 @@
  */
 #define ADVANCED_PAUSE_FEATURE HAS_PAUSE()
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
-    #define FILAMENT_UNLOAD_RAMMING_SEQUENCE \
-        { \
-            { 20, 1200 }, \
-            { 2, 2400 }, \
-            { -72, 2400 }, \
-            { 40, 700 }, \
-            { -55, 400 }, \
-            { 81, 4000},\
-            { 3, 3000},\
-            { -25, 6000},\
-            { -20, 300},\
-            { 20, 300},\
-            { -60, 300}\
-        }
-    #define FILAMENT_RUNOUT_RAMMING_SEQUENCE FILAMENT_UNLOAD_RAMMING_SEQUENCE
-
     #define PAUSE_PARK_RETRACT_FEEDRATE 40 // (mm/s) Initial retract feedrate.
     /**
      * (mm) Initial retract.

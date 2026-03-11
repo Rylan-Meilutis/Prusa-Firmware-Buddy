@@ -774,22 +774,6 @@
  */
 #define ADVANCED_PAUSE_FEATURE HAS_PAUSE()
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
-    #define FILAMENT_UNLOAD_RAMMING_SEQUENCE \
-            { \
-                { 20, 1500 }, \
-                { -50, 2700 }, \
-                { -5, 50 }, \
-                { -50, 1500 }, \
-            }
-
-    #define FILAMENT_RUNOUT_RAMMING_SEQUENCE \
-           { \
-                { 7, 1500 }, \
-                { -50, 2700 }, \
-                { -5, 50 }, \
-                { -50, 1500 }, \
-            }
-
     #define FILAMENT_MMU2_RAMMING_SEQUENCE \
         { \
             { 20, 1500 / 60.F}, \
