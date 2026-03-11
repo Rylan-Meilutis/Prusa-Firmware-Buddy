@@ -209,10 +209,12 @@ inline void set_nozzle([[maybe_unused]] measurements_t &m, const uint8_t extrude
 
 #if HAS_HOTEND_OFFSET
 inline void normalize_hotend_offsets() {
-    for (uint8_t e = 1; e < HOTENDS; e++) {
-        hotend_offset[e] -= hotend_offset[0];
+    const auto first_hotend_offset = hotend_offset[PhysicalToolIndex::from_raw(0)];
+    for (auto tool : PhysicalToolIndex::all()) {
+        hotend_offset[tool] -= first_hotend_offset;
     }
-    hotend_offset[0].reset();
+    [[maybe_unused]] const auto zero_offset = hotend_offset[PhysicalToolIndex::from_raw(0)];
+    assert(zero_offset.x == 0 && zero_offset.y == 0 && zero_offset.z == 0);
     hotend_offset[PrusaToolChanger::MARLIN_NO_TOOL_PICKED].reset(); // Avoid offset on no tool
 }
 #endif
@@ -225,8 +227,9 @@ MachinePosXY pos_on_circle(float radius, int idx, int total_points) {
 
 // This function requires normalize_hotend_offsets() to be called
 inline void report_hotend_offsets() {
-    for (uint8_t e = 1; e < HOTENDS; e++) {
-        SERIAL_ECHOLNPAIR("T", int(e), " Hotend Offset X", hotend_offset[e].x, " Y", hotend_offset[e].y, " Z", hotend_offset[e].z);
+    for (auto tool : PhysicalToolIndex::all()) {
+        const auto &offset = hotend_offset[tool];
+        SERIAL_ECHOLNPAIR("T", static_cast<int>(tool.to_raw()), " Hotend Offset X", offset.x, " Y", offset.y, " Z", offset.z);
     }
 }
 
@@ -593,6 +596,13 @@ inline void update_measurements(measurements_t &m, const AxisEnum axis) {
  *    - Call calibrate_backlash() beforehand for best accuracy
  */
 inline bool calibrate_toolhead(measurements_t &m, const uint8_t extruder) {
+    if (extruder >= PhysicalToolIndex::count) {
+        SERIAL_ECHOLNPAIR("G425: Tool ", extruder, " not valid.");
+        assert(false);
+        return false;
+    }
+    const auto tool = PhysicalToolIndex::from_raw(extruder);
+
     TEMPORARY_BACKLASH_CORRECTION(all_on);
     TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
@@ -618,12 +628,12 @@ inline bool calibrate_toolhead(measurements_t &m, const uint8_t extruder) {
 // Adjust the hotend offset
 #if HAS_HOTEND_OFFSET
     #if HAS_X_CENTER
-    hotend_offset[extruder].x += m.pos_error.x;
+    hotend_offset[tool].x += m.pos_error.x;
     #endif
     #if HAS_Y_CENTER
-    hotend_offset[extruder].y += m.pos_error.y;
+    hotend_offset[tool].y += m.pos_error.y;
     #endif
-    hotend_offset[extruder].z += m.pos_error.z;
+    hotend_offset[tool].z += m.pos_error.z;
     normalize_hotend_offsets();
 #endif
 

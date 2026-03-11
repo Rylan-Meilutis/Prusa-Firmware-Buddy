@@ -586,12 +586,12 @@ void MarlinSettings::reset() {
     #if HAS_HOTEND_OFFSET
       CONFIG_ECHO_HEADING("Hotend offsets:");
       CONFIG_ECHO_START();
-      for (uint8_t e = 1; e < HOTENDS; e++) {
+      for (auto tool : PhysicalToolIndex::all()) {
         SERIAL_ECHOPAIR(
-          "  M218 T", (int)e,
-          " X", LINEAR_UNIT(hotend_offset[e].x), " Y", LINEAR_UNIT(hotend_offset[e].y)
+          "  M218 T", static_cast<int>(tool.to_raw()),
+          " X", LINEAR_UNIT(hotend_offset[tool].x), " Y", LINEAR_UNIT(hotend_offset[tool].y)
         );
-        SERIAL_ECHOLNPAIR_F(" Z", LINEAR_UNIT(hotend_offset[e].z), 3);
+        SERIAL_ECHOLNPAIR_F(" Z", LINEAR_UNIT(hotend_offset[tool].z), 3);
       }
     #endif
 

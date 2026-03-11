@@ -572,8 +572,9 @@ void PrusaToolChanger::loop(bool printing, bool paused) {
     // Update the currently applied offset when idling (so that a manual swap is reflected), but
     // _not_ during print where toolchange() is in charge to do the heavy lifting
     if (!printing) {
-        if (active_extruder != MARLIN_NO_TOOL_PICKED) {
-            hotend_currently_applied_offset = hotend_offset[active_extruder];
+        const auto physical_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+        if (physical_tool.has_value()) {
+            hotend_currently_applied_offset = hotend_offset[*physical_tool];
         }
     }
 }

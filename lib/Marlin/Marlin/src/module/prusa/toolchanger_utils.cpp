@@ -274,7 +274,7 @@ void PrusaToolChangerUtils::save_tool_info() {
 
 void PrusaToolChangerUtils::save_tool_offsets() {
     for (auto tool : PhysicalToolIndex::all()) {
-        const auto offset = hotend_offset[tool];
+        const auto &offset = hotend_offset[tool];
         config_store().set_tool_offset(tool, { .x = offset.x, .y = offset.y, .z = offset.z });
     }
 }
