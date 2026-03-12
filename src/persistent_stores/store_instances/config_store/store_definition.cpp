@@ -195,8 +195,8 @@ void CurrentStore::set_side_fs_ref_ins_value(uint8_t index, int32_t value) {
 #endif
 
 #if HAS_TOOLCHANGER()
-DockPosition CurrentStore::get_dock_position(uint8_t index) {
-    switch (index) {
+DockPosition CurrentStore::get_dock_position(PhysicalToolIndex tool) {
+    switch (tool.to_raw()) {
     case 0:
         return dock_position_0.get();
     case 1:
@@ -207,12 +207,8 @@ DockPosition CurrentStore::get_dock_position(uint8_t index) {
         return dock_position_3.get();
     case 4:
         return dock_position_4.get();
-    case 5:
-        return dock_position_5.get();
-    default:
-        assert(false && "invalid index");
-        return {};
     }
+    bsod_unreachable();
 }
 
 void CurrentStore::set_dock_position(uint8_t index, DockPosition value) {

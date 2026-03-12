@@ -387,7 +387,7 @@ struct CurrentStore
     StoreItem<DockPosition, defaults::dock_position, ItemFlag::calibrations, journal::hash("Dock Position 4")> dock_position_4;
     StoreItem<DockPosition, defaults::dock_position, ItemFlag::calibrations, journal::hash("Dock Position 5")> dock_position_5;
 
-    DockPosition get_dock_position(uint8_t index);
+    DockPosition get_dock_position(PhysicalToolIndex tool);
     void set_dock_position(uint8_t index, DockPosition value);
 
     StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 0")> tool_offset_0;

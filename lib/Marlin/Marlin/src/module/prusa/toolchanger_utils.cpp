@@ -255,7 +255,7 @@ buddy::puppies::Dwarf &PrusaToolChangerUtils::getTool(uint8_t tool_index) {
 
 void PrusaToolChangerUtils::load_tool_info() {
     for (auto tool : PhysicalToolIndex::all()) {
-        DockPosition position = config_store().get_dock_position(tool.to_raw());
+        DockPosition position = config_store().get_dock_position(tool);
         tool_info[tool].dock_x = position.x;
         tool_info[tool].dock_y = position.y;
     }
