@@ -263,7 +263,7 @@ void PrusaToolChangerUtils::load_tool_info() {
 
 void PrusaToolChangerUtils::save_tool_info() {
     for (auto tool : PhysicalToolIndex::all()) {
-        config_store().set_dock_position(tool.to_raw(), { .x = tool_info[tool].dock_x, .y = tool_info[tool].dock_y });
+        config_store().set_dock_position(tool, { .x = tool_info[tool].dock_x, .y = tool_info[tool].dock_y });
     }
 }
 

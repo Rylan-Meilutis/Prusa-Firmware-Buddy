@@ -211,30 +211,25 @@ DockPosition CurrentStore::get_dock_position(PhysicalToolIndex tool) {
     bsod_unreachable();
 }
 
-void CurrentStore::set_dock_position(uint8_t index, DockPosition value) {
-    switch (index) {
+void CurrentStore::set_dock_position(PhysicalToolIndex tool, DockPosition value) {
+    switch (tool.to_raw()) {
     case 0:
         dock_position_0.set(value);
-        break;
+        return;
     case 1:
         dock_position_1.set(value);
-        break;
+        return;
     case 2:
         dock_position_2.set(value);
-        break;
+        return;
     case 3:
         dock_position_3.set(value);
-        break;
+        return;
     case 4:
         dock_position_4.set(value);
-        break;
-    case 5:
-        dock_position_5.set(value);
-        break;
-    default:
-        assert(false && "invalid index");
         return;
     }
+    bsod_unreachable();
 }
 
 ToolOffset CurrentStore::get_tool_offset(PhysicalToolIndex tool) {
