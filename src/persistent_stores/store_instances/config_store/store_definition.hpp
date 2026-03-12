@@ -281,13 +281,64 @@ struct CurrentStore
     // ref value: value of filament sensor in moment of calibration (w/o filament present)
     // value span: minimal difference of raw values between the two states of the filament sensor
 
-    StoreItemArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_nins_values;
-    StoreItemArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_ins_values;
+    static constexpr auto extruder_fs_ref_nins_hashes = stdext::array_sub_copy<HOTENDS>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Extruder FS Ref Value 0"), //
+        journal::hash("Extruder FS Ref Value 1"), //
+        journal::hash("Extruder FS Ref Value 2"), //
+        journal::hash("Extruder FS Ref Value 3"), //
+        journal::hash("Extruder FS Ref Value 4"), //
+        journal::hash("Extruder FS Ref Value 5"), //
+        journal::hash("Extruder FS Ref Value 6"), //
+        journal::hash("Extruder FS Ref Value 7"), //
+        journal::hash("Extruder FS Ref Value 8"), //
+    }));
+    StoreItemLegacyArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, extruder_fs_ref_nins_hashes> extruder_fs_ref_nins_values;
+
+    static constexpr auto extruder_fs_ref_ins_hashes = stdext::array_sub_copy<HOTENDS>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Extruder FS INS Ref Value 0"), //
+        journal::hash("Extruder FS INS Ref Value 1"), //
+        journal::hash("Extruder FS INS Ref Value 2"), //
+        journal::hash("Extruder FS INS Ref Value 3"), //
+        journal::hash("Extruder FS INS Ref Value 4"), //
+        journal::hash("Extruder FS INS Ref Value 5"), //
+        journal::hash("Extruder FS INS Ref Value 6"), //
+        journal::hash("Extruder FS INS Ref Value 7"), //
+        journal::hash("Extruder FS INS Ref Value 8"), //
+    }));
+    StoreItemLegacyArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, extruder_fs_ref_ins_hashes> extruder_fs_ref_ins_values;
 
 #if HAS_ADC_SIDE_FSENSOR()
-    StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, HOTENDS> side_fs_ref_nins_values;
-    StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS Ref INS Values v16"), 16, HOTENDS> side_fs_ref_ins_values;
+    static constexpr auto side_fs_ref_nins_hashes = stdext::array_sub_copy<HOTENDS>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Side FS Ref Value 0"), //
+        journal::hash("Side FS Ref Value 1"), //
+        journal::hash("Side FS Ref Value 2"), //
+        journal::hash("Side FS Ref Value 3"), //
+        journal::hash("Side FS Ref Value 4"), //
+        journal::hash("Side FS Ref Value 5"), //
+        journal::hash("Side FS Ref Value 6"), //
+        journal::hash("Side FS Ref Value 7"), //
+        journal::hash("Side FS Ref Value 8"), //
+    }));
+    StoreItemLegacyArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, side_fs_ref_nins_hashes> side_fs_ref_nins_values;
+
+    static constexpr auto side_fs_ref_ins_hashes = stdext::array_sub_copy<HOTENDS>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Side FS Ref INS Value 0"), //
+        journal::hash("Side FS Ref INS Value 1"), //
+        journal::hash("Side FS Ref INS Value 2"), //
+        journal::hash("Side FS Ref INS Value 3"), //
+        journal::hash("Side FS Ref INS Value 4"), //
+        journal::hash("Side FS Ref INS Value 5"), //
+        journal::hash("Side FS Ref INS Value 6"), //
+        journal::hash("Side FS Ref INS Value 7"), //
+        journal::hash("Side FS Ref INS Value 8"), //
+    }));
+    StoreItemLegacyArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, side_fs_ref_ins_hashes> side_fs_ref_ins_values;
 #endif
+
 #if HAS_MMU2()
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Is MMU Rework")> is_mmu_rework; // Indicates printer has been reworked for MMU (has a different FS behavior)
 #endif
@@ -398,7 +449,19 @@ struct CurrentStore
     static_assert(HOTENDS <= 16);
 
     /// Stores the nozzle diameter for each hotend
-    StoreItemArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter Array"), 16, HOTENDS> nozzle_diameters;
+    static constexpr auto nozzle_diameter_hashes = stdext::array_sub_copy<HOTENDS>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Nozzle Diameter 0"), //
+        journal::hash("Nozzle Diameter 1"), //
+        journal::hash("Nozzle Diameter 2"), //
+        journal::hash("Nozzle Diameter 3"), //
+        journal::hash("Nozzle Diameter 4"), //
+        journal::hash("Nozzle Diameter 5"), //
+        journal::hash("Nozzle Diameter 6"), //
+        journal::hash("Nozzle Diameter 7"), //
+        journal::hash("Nozzle Diameter 8"), //
+    }));
+    StoreItemLegacyArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, nozzle_diameter_hashes> nozzle_diameters;
 
     [[deprecated("Use the ToolIndex overload")]]
     float get_nozzle_diameter(uint8_t index);
@@ -448,12 +511,36 @@ struct CurrentStore
     float get_odometer_axis(uint8_t index);
     void set_odometer_axis(uint8_t index, float value);
 
-    StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, PhysicalToolIndex::count> odometer_extruded_lengths;
+    static constexpr auto odometer_extruded_length_hashes = stdext::array_sub_copy<PhysicalToolIndex::count>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Odometer Extruded Length 0"), //
+        journal::hash("Odometer Extruded Length 1"), //
+        journal::hash("Odometer Extruded Length 2"), //
+        journal::hash("Odometer Extruded Length 3"), //
+        journal::hash("Odometer Extruded Length 4"), //
+        journal::hash("Odometer Extruded Length 5"), //
+        journal::hash("Odometer Extruded Length 6"), //
+        journal::hash("Odometer Extruded Length 7"), //
+        journal::hash("Odometer Extruded Length 8"), //
+    }));
+    StoreItemLegacyArray<float, 0.0f, ItemFlag::stats, odometer_extruded_length_hashes> odometer_extruded_lengths;
 
     float get_odometer_extruded_length(PhysicalToolIndex tool);
     void set_odometer_extruded_length(PhysicalToolIndex tool, float value);
 
-    StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, PhysicalToolIndex::count> odometer_toolpicks;
+    static constexpr auto odometer_toolpick_hashes = stdext::array_sub_copy<PhysicalToolIndex::count>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Odometer Toolpicks 0"), //
+        journal::hash("Odometer Toolpicks 1"), //
+        journal::hash("Odometer Toolpicks 2"), //
+        journal::hash("Odometer Toolpicks 3"), //
+        journal::hash("Odometer Toolpicks 4"), //
+        journal::hash("Odometer Toolpicks 5"), //
+        journal::hash("Odometer Toolpicks 6a"), // 'Odometer Toolpicks 6' conflicts with 'Nozzle Type'
+        journal::hash("Odometer Toolpicks 7"), //
+        journal::hash("Odometer Toolpicks 8"), //
+    }));
+    StoreItemLegacyArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, odometer_toolpick_hashes> odometer_toolpicks;
 
     uint32_t get_odometer_toolpicks(PhysicalToolIndex tool);
     void set_odometer_toolpicks(PhysicalToolIndex tool, uint32_t value);
@@ -887,62 +974,15 @@ struct DeprecatedStore
     };
     StoreItem<bool, fsensor_enabled_v2_default, journal::hash("FSensor Enabled V2")> fsensor_enabled_v2;
 
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 0")> nozzle_diameter_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 1")> nozzle_diameter_1;
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 2")> nozzle_diameter_2;
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 3")> nozzle_diameter_3;
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 4")> nozzle_diameter_4;
-    StoreItem<float, defaults::nozzle_diameter, journal::hash("Nozzle Diameter 5")> nozzle_diameter_5;
-#endif
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 0")> odometer_extruded_length_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 1")> odometer_extruded_length_1;
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 2")> odometer_extruded_length_2;
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 3")> odometer_extruded_length_3;
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 4")> odometer_extruded_length_4;
-    StoreItem<float, 0.0f, journal::hash("Odometer Extruded Length 5")> odometer_extruded_length_5;
-#endif
-
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 0")> odometer_toolpicks_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 1")> odometer_toolpicks_1;
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 2")> odometer_toolpicks_2;
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 3")> odometer_toolpicks_3;
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 4")> odometer_toolpicks_4;
-    StoreItem<uint32_t, 0, journal::hash("Odometer Toolpicks 5")> odometer_toolpicks_5;
-#endif
-#if PRINTER_IS_PRUSA_XL() // for now not ifdefing per-extruder as well for simplicity
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 0")> side_fs_ref_nins_value_0;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 0")> side_fs_ref_ins_value_0;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 1")> side_fs_ref_nins_value_1;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 1")> side_fs_ref_ins_value_1;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 2")> side_fs_ref_nins_value_2;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 2")> side_fs_ref_ins_value_2;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 3")> side_fs_ref_nins_value_3;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 3")> side_fs_ref_ins_value_3;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 4")> side_fs_ref_nins_value_4;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 4")> side_fs_ref_ins_value_4;
-    StoreItem<int32_t, defaults::side_fs_ref_nins_value, journal::hash("Side FS Ref Value 5")> side_fs_ref_nins_value_5;
-    StoreItem<int32_t, defaults::side_fs_ref_ins_value, journal::hash("Side FS Ref INS Value 5")> side_fs_ref_ins_value_5;
-#endif
-
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 0")> extruder_fs_ref_nins_value_0;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 0")> extruder_fs_ref_ins_value_0;
-#if HOTENDS > 1 // for now only doing one ifdef for simplicity
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 1")> extruder_fs_ref_nins_value_1;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 1")> extruder_fs_ref_ins_value_1;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 2")> extruder_fs_ref_nins_value_2;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 2")> extruder_fs_ref_ins_value_2;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 3")> extruder_fs_ref_nins_value_3;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 3")> extruder_fs_ref_ins_value_3;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 4")> extruder_fs_ref_nins_value_4;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 4")> extruder_fs_ref_ins_value_4;
-    StoreItem<int32_t, defaults::extruder_fs_ref_nins_value, journal::hash("Extruder FS Ref Value 5")> extruder_fs_ref_nins_value_5;
-    StoreItem<int32_t, defaults::extruder_fs_ref_ins_value, journal::hash("Extruder FS INS Ref Value 5")> extruder_fs_ref_ins_value_5;
-#endif
-
     /*
+        StoreItemArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, journal::hash("Nozzle Diameter Array"), 16, HOTENDS> nozzle_diameters;
+        StoreItemArray<float, 0.0f, ItemFlag::stats, journal::hash("Odometer Extruded Lengths v16"), 16, PhysicalToolIndex::count> odometer_extruded_lengths;
+        StoreItemArray<uint32_t, uint32_t { 0 }, ItemFlag::stats, journal::hash("Odometer Toolpicks v16"), 16, PhysicalToolIndex::count> odometer_toolpicks;
+        StoreItemArray<int32_t, defaults::extruder_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Extruder FS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_nins_values;
+        StoreItemArray<int32_t, defaults::extruder_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Extruder FS INS Ref Values v16"), 16, HOTENDS> extruder_fs_ref_ins_values;
+        StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, HOTENDS> side_fs_ref_nins_values;
+        StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS INS Values v16"), 16, HOTENDS> side_fs_ref_ins_values;
+
         // nozzle PID variables
         StoreItem<float, defaults::pid_nozzle_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle P")> pid_nozzle_p;
         StoreItem<float, defaults::pid_nozzle_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle I")> pid_nozzle_i;
