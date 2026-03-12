@@ -988,9 +988,10 @@ void Planner::command(const Command &command, const SetValue &params) {
     const char *err = nullptr;
 
     auto adjust_nozzle = [&](size_t idx, auto cback) {
+        const auto vt = VirtualToolIndex::from_raw(idx);
         auto slot = printer.params().slots[idx];
         cback(slot);
-        printer.set_slot_info(idx, slot);
+        printer.set_slot_info(vt, slot);
     };
 
     switch (params.name) {

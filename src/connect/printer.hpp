@@ -19,8 +19,9 @@
 #include <filament.hpp>
 #include <feature/filament_sensor/filament_sensor_states.hpp>
 
+#include <tool_index.hpp>
+
 #include <option/has_mmu2.h>
-#include <option/has_toolchanger.h>
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
@@ -99,12 +100,6 @@ public:
     static constexpr size_t Y_AXIS_POS = 1;
     static constexpr size_t Z_AXIS_POS = 2;
 
-#if HAS_MMU2() || HAS_TOOLCHANGER() || defined(UNITTESTS)
-    static constexpr size_t NUMBER_OF_SLOTS = 5;
-#else
-    static constexpr size_t NUMBER_OF_SLOTS = 1;
-#endif
-
     class Params {
     private:
         // Living in the Printer we come from
@@ -112,7 +107,7 @@ public:
 
     public:
         Params(const std::optional<BorrowPaths> &paths);
-        std::array<SlotInfo, NUMBER_OF_SLOTS> slots;
+        std::array<SlotInfo, VirtualToolIndex::count> slots;
 #if XL_ENCLOSURE_SUPPORT()
         EnclosureInfo enclosure_info;
 #endif
@@ -130,12 +125,8 @@ public:
         // 0b00011111 for MMU enabled
         // Something arbitrary for XL, depending on its heads available (note that they don't have to be "continuous")
         uint8_t slot_mask = 1;
-        static_assert(8 * sizeof slot_mask >= NUMBER_OF_SLOTS);
-        // Note: the 1 is used as default Slot
-        // in case neither MMU nor toolchanger is present
-        // 0 means "no tool active" (possible with MMU or toolchanger)
-        // A 1-based index.
-        uint8_t active_slot = 1;
+        static_assert(8 * sizeof slot_mask >= VirtualToolIndex::count);
+        std::variant<VirtualToolIndex, NoTool> active_slot = NoTool {};
         float temp_bed = 0;
 #if PRINTER_IS_PRUSA_iX()
         float temp_psu = 0;
@@ -170,14 +161,7 @@ public:
             return std::popcount(slot_mask);
         }
         // Either the active slot, if any, or the first available slot if no slot is active.
-        uint8_t preferred_slot() const;
-        // Either the active head, if any, or the first available one.
-        //
-        // This is the same as preferred_slot for XL (where tools and slots are
-        // the same thing), but always returns 0 on other printers, including
-        // ones with MMU (they have multiple filament slots, but just one head
-        // / nozzle / ...).
-        uint8_t preferred_head() const;
+        VirtualToolIndex preferred_slot() const;
     };
 
     struct Config {
@@ -308,7 +292,7 @@ public:
 
     uint32_t info_fingerprint() const;
 
-    virtual void set_slot_info(size_t idx, const SlotInfo &slot) = 0;
+    virtual void set_slot_info(VirtualToolIndex vt, const SlotInfo &slot) = 0;
 };
 
 } // namespace connect_client

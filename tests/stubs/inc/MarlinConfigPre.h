@@ -6,10 +6,10 @@
 #define Z_DRIVER_TYPE
 
 #define HOTENDS         1
-#define EXTRUDERS       5
+#define EXTRUDERS       6 // 5 + NoTool (matching real firmware config)
 #define SWITCH_ENABLED_ 1
 #define SINGLENOZZLE
 
 #define LOGICAL_AXES 4
 #define NUM_AXES     4
-#define E_STEPPERS   5
+#define E_STEPPERS   6

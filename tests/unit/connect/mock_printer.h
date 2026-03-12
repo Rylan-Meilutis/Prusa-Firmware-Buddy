@@ -135,7 +135,7 @@ public:
         return nullptr;
     }
 
-    virtual void set_slot_info(size_t, const SlotInfo &) override {}
+    virtual void set_slot_info(VirtualToolIndex, const SlotInfo &) override {}
 
 #if HAS_CANCEL_OBJECT()
     virtual void set_object_cancelled(uint16_t, bool) override {}

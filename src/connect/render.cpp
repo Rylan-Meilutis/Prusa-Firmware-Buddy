@@ -31,7 +31,6 @@
 #include <mbedtls/base64.h>
 
 #include <option/has_mmu2.h>
-#include <option/has_toolchanger.h>
 
 using json::JsonOutput;
 using json::JsonResult;
@@ -123,11 +122,15 @@ namespace {
         const auto params = state.printer.params();
 
         const optional<Monitor::Status> transfer_status = get_transfer_status(resume_point, state);
-        const auto &preferred_head = params.slots[params.preferred_head()];
+        const auto &preferred = params.slots[params.preferred_slot().to_raw()];
+        const uint8_t active_slot = match(
+            params.active_slot,
+            [](VirtualToolIndex vt) -> uint8_t { return vt.to_raw() + 1; },
+            [](NoTool) -> uint8_t { return 0; });
 
 #if PRINTER_IS_PRUSA_iX()
-        auto extruder_fs_state = preferred_head.extruder_fs_state;
-        auto remote_fs_state = preferred_head.remote_fs_state;
+        auto extruder_fs_state = preferred.extruder_fs_state;
+        auto remote_fs_state = preferred.remote_fs_state;
 #endif
 
         // Keep the indentation of the JSON in here!
@@ -173,10 +176,10 @@ namespace {
             // need to coordinate with Connect, as these are probably
             // "essential" fields right now.
             if (telemetry.mode == SendTelemetry::Mode::Full) {
-                JSON_FIELD_FFIXED("temp_nozzle", preferred_head.temp_nozzle, 1) JSON_COMMA;
+                JSON_FIELD_FFIXED("temp_nozzle", preferred.temp_nozzle, 1) JSON_COMMA;
                 JSON_FIELD_FFIXED("temp_bed", params.temp_bed, 1) JSON_COMMA;
 #if PRINTER_IS_PRUSA_iX()
-                JSON_FIELD_FFIXED("temp_heatbreak", preferred_head.temp_heatbreak, 1) JSON_COMMA;
+                JSON_FIELD_FFIXED("temp_heatbreak", preferred.temp_heatbreak, 1) JSON_COMMA;
                 JSON_FIELD_FFIXED("temp_psu", params.temp_psu, 1) JSON_COMMA;
                 JSON_FIELD_FFIXED("temp_ambient", params.temp_ambient, 1) JSON_COMMA;
                 if (extruder_fs_state) {
@@ -190,8 +193,8 @@ namespace {
                 JSON_FIELD_FFIXED("target_bed", params.target_bed, 1) JSON_COMMA;
                 JSON_FIELD_INT("speed", params.print_speed) JSON_COMMA;
                 JSON_FIELD_INT("flow", params.flow_factor) JSON_COMMA;
-                if (!params.slots[params.preferred_slot()].material.empty()) {
-                    JSON_FIELD_STR("material", params.slots[params.preferred_slot()].material.data()) JSON_COMMA;
+                if (!params.slots[params.preferred_slot().to_raw()].material.empty()) {
+                    JSON_FIELD_STR("material", params.slots[params.preferred_slot().to_raw()].material.data()) JSON_COMMA;
                 }
 #if XL_ENCLOSURE_SUPPORT()
                 if (params.enclosure_info.present) {
@@ -219,18 +222,15 @@ namespace {
                 }
                 JSON_FIELD_FFIXED("axis_z", params.pos[Printer::Z_AXIS_POS], 2) JSON_COMMA;
                 if (params.has_job) {
-                    JSON_FIELD_INT("fan_extruder", preferred_head.heatbreak_fan_rpm) JSON_COMMA;
-                    JSON_FIELD_INT("fan_print", preferred_head.print_fan_rpm) JSON_COMMA;
+                    JSON_FIELD_INT("fan_extruder", preferred.heatbreak_fan_rpm) JSON_COMMA;
+                    JSON_FIELD_INT("fan_print", preferred.print_fan_rpm) JSON_COMMA;
                     JSON_FIELD_FFIXED("filament", params.filament_used, 1) JSON_COMMA;
                 }
 
-#if HAS_MMU2() || HAS_TOOLCHANGER()
-                // Skip if we have single-tool XL or mk4 without MMU/with MMU disabled.
                 if (params.enabled_tool_cnt() > 1) {
                     JSON_FIELD_OBJ("slot");
                         state.iter = 0;
                         while (state.iter < params.slots.size()) {
-                            // Note: XL can have multiple slots, but not consequitive, therefore the trick with a mask.
                             if (params.slot_mask & (1 << state.iter)) {
                                 JSON_CUSTOM("\"%zu\":{", state.iter + 1);
                                     JSON_FIELD_STR("material", params.slots[state.iter].material.data()) JSON_COMMA;
@@ -242,17 +242,12 @@ namespace {
                             state.iter++;
                         }
 #if HAS_MMU2()
-                        // If we are in here (enabled_tool_cnt() > 0), it can
-                        // be either because we have MMU _enabled_ - therefore,
-                        // we send the info, or because we have a toolchanger
-                        // (in which case it's not MMU and we don't send it).
                         JSON_FIELD_INT("state", params.progress_code) JSON_COMMA;
                         JSON_FIELD_STR_FORMAT("command", "%c", params.command_code) JSON_COMMA;
 #endif
-                        JSON_FIELD_INT("active", params.active_slot);
+                        JSON_FIELD_INT("active", active_slot);
                     JSON_OBJ_END JSON_COMMA;
                 }
-#endif
             }
             if (state.background_command_id.has_value()) {
                 JSON_FIELD_INT("command_id", *state.background_command_id) JSON_COMMA;
@@ -349,7 +344,7 @@ namespace {
                     JSON_FIELD_STR("fingerprint", info.fingerprint) JSON_COMMA;
                     // TODO: Deprecated, kept for now for backwards compatibility. Parts of the tools object.
                     // Remove eventually.
-                    JSON_FIELD_FFIXED("nozzle_diameter", params.slots[params.preferred_head()].nozzle_diameter, 2) JSON_COMMA;
+                    JSON_FIELD_FFIXED("nozzle_diameter", params.slots[params.preferred_slot().to_raw()].nozzle_diameter, 2) JSON_COMMA;
                     JSON_FIELD_BOOL("transfer_paused", !params.can_start_download) JSON_COMMA;
                     if (strlen(creds.pl_password) > 0) {
                         JSON_FIELD_STR("api_key", creds.pl_password) JSON_COMMA;
@@ -388,7 +383,7 @@ namespace {
                     JSON_OBJ_END JSON_COMMA;
 
                     JSON_FIELD_OBJ("tools");
-                        for (state.iter = 0, state.need_comma = false; state.iter < Printer::NUMBER_OF_SLOTS; state.iter ++) {
+                        for (state.iter = 0, state.need_comma = false; state.iter < params.slots.size(); state.iter ++) {
                             if (params.slot_mask & (1 << state.iter)) {
                                 if (state.need_comma) {
                                     JSON_COMMA;

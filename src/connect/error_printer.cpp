@@ -140,7 +140,7 @@ void ErrorPrinter::reset_printer() {
     sys_reset();
 }
 
-void ErrorPrinter::set_slot_info(size_t, const SlotInfo &) {
+void ErrorPrinter::set_slot_info(VirtualToolIndex, const SlotInfo &) {
     // Nothing in the error state
 }
 

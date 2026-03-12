@@ -3,7 +3,6 @@
 #include <crc32.h>
 
 #include <cstring>
-#include <option/has_toolchanger.h>
 
 using std::make_tuple;
 using std::optional;
@@ -139,7 +138,7 @@ uint32_t Printer::info_fingerprint() const {
     const auto creds = net_creds();
     const auto &parameters = params();
 
-    for (size_t i = 0; i < NUMBER_OF_SLOTS; i++) {
+    for (size_t i = 0; i < parameters.slots.size(); i++) {
         if (parameters.slot_mask & (1 << i)) {
             const auto &slot = parameters.slots[i];
             crc
@@ -208,27 +207,12 @@ const char *Printer::Params::job_lfn() const {
     }
 }
 
-uint8_t Printer::Params::preferred_slot() const {
-    if (active_slot > 0) {
-        // There's a slot active, use that one
-        // (on XL, they can theoretically have different diameters)
-        // Active slot is 1-based index.
-        return active_slot - 1;
-    } else {
-        // If none is active, pick the first one that is enabled
-        // (which doesn't have to be 0, technically speaking).
-        //
-        // That nicely corresponds to number of zeroes at the end of the mask O:-)
-        return std::countr_zero(slot_mask);
-    }
-}
-
-uint8_t Printer::Params::preferred_head() const {
-#if HAS_TOOLCHANGER()
-    return preferred_slot();
-#else
-    return 0;
-#endif
+VirtualToolIndex Printer::Params::preferred_slot() const {
+    return match(
+        active_slot,
+        [](VirtualToolIndex vt) { return vt; },
+        // We need to give Connect _some_ temperature. Pick the first enabled tool.
+        [this](NoTool) { return VirtualToolIndex::from_raw(std::countr_zero(slot_mask)); });
 }
 
 } // namespace connect_client

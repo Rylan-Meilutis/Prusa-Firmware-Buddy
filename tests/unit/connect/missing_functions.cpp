@@ -1,5 +1,6 @@
 #include <common/filepath_operation.h>
 #include <marlin_events.h>
+#include <tool_index.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -13,6 +14,11 @@ bool f_gcode_get_next_comment_assignment(FILE *, char *, int, char *, int) {
 
 bool random32bit(uint32_t *output) {
     *output = random();
+    return true;
+}
+
+template <>
+bool VirtualToolIndex::is_enabled() const {
     return true;
 }
 

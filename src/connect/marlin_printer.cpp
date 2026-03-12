@@ -66,11 +66,6 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
     #include <mmu2/mmu2_fsm.hpp>
 #endif
 
-#include <option/has_toolchanger.h>
-#if HAS_TOOLCHANGER()
-    #include <Marlin/src/module/prusa/toolchanger.h>
-#endif
-
 using marlin_client::GcodeTryResult;
 using printer_state::DeviceState;
 using printer_state::get_state;
@@ -227,58 +222,40 @@ namespace {
 #if HAS_MMU2()
         params.progress_code = MMU2::Fsm::Instance().reporter.GetProgressCode();
         params.command_code = MMU2::Fsm::Instance().reporter.GetCommandInProgress();
-        const bool mmu_enabled = config_store().mmu2_enabled.get() && marlin_vars().mmu2_state == std::to_underlying(MMU2::xState::Active);
-        params.slot_mask = mmu_enabled ? 0b00011111 : 1;
         params.mmu_version = MMU2::mmu2.GetMMUFWVersion();
-        // Note: 0 means no active tool, indexing from 1
-        params.active_slot = MMU2::mmu2.get_current_tool() == MMU2::FILAMENT_UNKNOWN ? 0 : MMU2::mmu2.get_current_tool() + 1;
-#elif HAS_TOOLCHANGER()
-        params.active_slot = match(
-            PhysicalToolIndex::currently_selected(),
-            [](PhysicalToolIndex physical_tool) { return physical_tool.to_raw() + 1; },
-            [](NoTool) { return 0; });
-        // For XL, it is possible to have "holes" in the enabled tools.
-        // Therefore, we need to enable all slots and skip particular ones, not
-        // do 1..n.
-        params.slot_mask = prusa_toolchanger.get_enabled_mask();
-#else
-        // Anything else - all slots (usually 1) are enabled.
-        // 1 << NUMBER_OF_SLOTS -> 1000 (as many zeroes as NUMBER_OF_SLOTS)
-        // 1000 - 1 -> 0111 (turn the trailing zeroes to ones)
-        params.slot_mask = (1 << Printer::NUMBER_OF_SLOTS) - 1;
 #endif
-        for (size_t i = 0; i < params.slots.size(); i++) {
-            if (params.slot_mask & (1 << i)) {
-#if HAS_TOOLCHANGER()
-                auto &hotend = marlin_vars().hotend(i);
-                const size_t nozzle = i;
-#else
-                // only one hotend in any other situation
-                auto &hotend = marlin_vars().active_hotend();
-                const size_t nozzle = 0;
-#endif
-                params.slots[i].material = config_store().get_filament_type(i).parameters().name;
-                params.slots[i].temp_nozzle = hotend.temp_nozzle;
-#if PRINTER_IS_PRUSA_iX()
-                params.slots[i].temp_heatbreak = hotend.temp_heatbreak;
 
-                if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::extruder)) {
-                    params.slots[i].extruder_fs_state = sensor->get_state();
-                } else {
-                    params.slots[i].extruder_fs_state.reset();
-                }
-                if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::side)) {
-                    params.slots[i].remote_fs_state = sensor->get_state();
-                } else {
-                    params.slots[i].remote_fs_state.reset();
-                }
-#endif
-                params.slots[i].print_fan_rpm = hotend.print_fan_rpm;
-                params.slots[i].heatbreak_fan_rpm = hotend.heatbreak_fan_rpm;
-                params.slots[i].nozzle_diameter = config_store().get_nozzle_diameter(nozzle);
-                params.slots[i].hardened = config_store().nozzle_is_hardened.get()[nozzle];
-                params.slots[i].high_flow = config_store().nozzle_is_high_flow.get()[nozzle];
+        params.active_slot = VirtualToolIndex::currently_selected();
+
+        params.slot_mask = 0;
+        for (VirtualToolIndex vt : VirtualToolIndex::all().skip_all_disabled()) {
+            const uint8_t i = vt.to_raw();
+            const PhysicalToolIndex pt = vt.to_physical();
+            const auto &hotend = marlin_vars().hotend(pt);
+            params.slot_mask |= (1 << i);
+
+            auto &slot = params.slots[i];
+            slot.material = config_store().get_filament_type(vt).parameters().name;
+            slot.temp_nozzle = hotend.temp_nozzle;
+#if PRINTER_IS_PRUSA_iX()
+            slot.temp_heatbreak = hotend.temp_heatbreak;
+
+            if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::extruder)) {
+                slot.extruder_fs_state = sensor->get_state();
+            } else {
+                slot.extruder_fs_state.reset();
             }
+            if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::side)) {
+                slot.remote_fs_state = sensor->get_state();
+            } else {
+                slot.remote_fs_state.reset();
+            }
+#endif
+            slot.print_fan_rpm = hotend.print_fan_rpm;
+            slot.heatbreak_fan_rpm = hotend.heatbreak_fan_rpm;
+            slot.nozzle_diameter = config_store().get_nozzle_diameter(pt);
+            slot.hardened = config_store().nozzle_is_hardened.get().test(pt.to_raw());
+            slot.high_flow = config_store().nozzle_is_high_flow.get().test(pt.to_raw());
         }
     }
 } // namespace
@@ -676,18 +653,19 @@ std::optional<MarlinPrinter::FinishedJobResult> MarlinPrinter::get_prior_job_res
     return nullopt;
 }
 
-void MarlinPrinter::set_slot_info(size_t idx, const SlotInfo &info) {
-    config_store().set_nozzle_diameter(idx, info.nozzle_diameter);
+void MarlinPrinter::set_slot_info(VirtualToolIndex vt, const SlotInfo &info) {
+    const auto pt = vt.to_physical();
+    config_store().set_nozzle_diameter(pt, info.nozzle_diameter);
     // The below ones are, technically, a bit racy. That is, if some other
     // thread does something similar with a different nozzle than us, there's a
     // change one of the changes may get lost. But we consider such occurence
     // to be improbable (eg. user setting the nozzle params at the printer and
     // through Connect at the very same moment).
     auto hardened = config_store().nozzle_is_hardened.get();
-    hardened[idx] = info.hardened;
+    hardened[pt.to_raw()] = info.hardened;
     config_store().nozzle_is_hardened.set(hardened);
     auto high_flow = config_store().nozzle_is_high_flow.get();
-    high_flow[idx] = info.high_flow;
+    high_flow[pt.to_raw()] = info.high_flow;
     config_store().nozzle_is_high_flow.set(high_flow);
 }
 

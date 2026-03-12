@@ -43,7 +43,7 @@ private:
     virtual void reset_printer() override;
     virtual const char *dialog_action(printer_state::DialogId dialog_id, Response response) override;
     virtual std::optional<FinishedJobResult> get_prior_job_result(uint16_t job_id) const override;
-    virtual void set_slot_info(size_t, const SlotInfo &);
+    virtual void set_slot_info(VirtualToolIndex, const SlotInfo &) override;
 
 public:
     ErrorPrinter();
