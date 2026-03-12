@@ -26,6 +26,7 @@ target_sources(
           src/atomic_c0.cpp
           src/cyphal_tool_offset_sensor_node.cpp
           src/hal.cpp
+          src/i2c_manager.cpp
           src/main.cpp
           src/otp.cpp
           src/precise_timer.cpp

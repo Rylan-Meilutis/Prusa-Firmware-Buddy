@@ -1,11 +1,13 @@
 #include "hal.hpp"
-#include "bsod.h"
+#include <bsod.h>
 #include <device/peripherals.h>
 #include <device/hal.h>
+#include <i2c_manager.hpp>
 
 extern "C" {
 #include <FreeRTOSConfig.h>
 }
+
 static_assert(configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY == 5);
 #define ISR_PRIORITY_DEFAULT 5 // default ISR priority, used by ISRs that don't need specific ISR priority
 
@@ -32,6 +34,7 @@ void init_clock();
 void init_gpio();
 void init_can();
 void init_tim2();
+void init_i2c();
 } // namespace hal
 
 namespace hal::peripherals {
@@ -54,6 +57,7 @@ void hal::init() {
     hal::init_gpio();
     hal::init_can();
     hal::init_tim2();
+    hal::init_i2c();
 }
 
 void hal::init_clock() {
@@ -102,15 +106,17 @@ void hal::init_clock() {
 
 void hal::init_gpio() {
     // D_LED_USR - PA7
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    static constexpr GPIO_InitTypeDef GPIO_InitStruct {
-        .Pin = D_LED_USR_Pin,
-        .Mode = GPIO_MODE_OUTPUT_PP,
-        .Pull = GPIO_NOPULL,
-        .Speed = GPIO_SPEED_FREQ_LOW,
-        .Alternate = 0,
-    };
-    HAL_GPIO_Init(D_LED_USR_GPIO_Port, &GPIO_InitStruct);
+    {
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+            .Pin = D_LED_USR_Pin,
+            .Mode = GPIO_MODE_OUTPUT_PP,
+            .Pull = GPIO_NOPULL,
+            .Speed = GPIO_SPEED_FREQ_LOW,
+            .Alternate = 0,
+        };
+        HAL_GPIO_Init(D_LED_USR_GPIO_Port, &GPIO_InitStruct);
+    }
 }
 
 void hal::init_can() {
@@ -196,6 +202,69 @@ void hal::init_tim2() {
     }
 }
 
+void hal::init_i2c() {
+    __HAL_RCC_I2C1_CONFIG(RCC_I2C1CLKSOURCE_PCLK1);
+    I2C1_GPIO_CLK_ENABLE();
+
+    GPIO_InitTypeDef GPIO_InitStruct = {
+        .Pin = I2C1_SDA_Pin | I2C1_SCL_Pin,
+        .Mode = GPIO_MODE_AF_OD,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_VERY_HIGH,
+        .Alternate = GPIO_AF6_I2C1,
+    };
+    HAL_GPIO_Init(I2C1_SDA_GPIO_Port, &GPIO_InitStruct);
+
+    __HAL_RCC_I2C1_CLK_ENABLE();
+
+    HAL_NVIC_SetPriority(I2C1_IRQn, ISR_PRIORITY_DEFAULT, 0);
+    HAL_NVIC_EnableIRQ(I2C1_IRQn);
+
+    i2c::Manager::get_instance(); // Ensure the I2C manager is initialized before we start using it
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::ok);
+        return;
+    }
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::ok);
+        return;
+    }
+}
+
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::ok);
+        return;
+    }
+}
+
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::ok);
+        return;
+    }
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::error);
+        return;
+    }
+}
+
+void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (hi2c == i2c::Manager::get_instance().handle()) {
+        i2c::Manager::get_instance().isr_complete(i2c::Result::error);
+        return;
+    }
+}
+
 extern "C" void hal_panic() {
     hal::panic();
 }
@@ -230,4 +299,13 @@ extern "C" void FDCAN1_IT0_IRQHandler(void) {
 
 extern "C" void FDCAN1_IT1_IRQHandler(void) {
     HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
+}
+
+extern "C" void I2C1_IRQHandler() {
+    auto hi2c = i2c::Manager::get_instance().handle();
+    if (hi2c->Instance->ISR & (I2C_FLAG_BERR | I2C_FLAG_ARLO | I2C_FLAG_OVR)) {
+        HAL_I2C_ER_IRQHandler(hi2c);
+    } else {
+        HAL_I2C_EV_IRQHandler(hi2c);
+    }
 }
