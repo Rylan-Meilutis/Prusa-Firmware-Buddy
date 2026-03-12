@@ -281,10 +281,8 @@ void PrusaToolChangerUtils::save_tool_offsets() {
 
 void PrusaToolChangerUtils::load_tool_offsets() {
     for (auto tool : PhysicalToolIndex::all()) {
-        ToolOffset offset = config_store().get_tool_offset(tool);
-        hotend_offset[tool].x = offset.x;
-        hotend_offset[tool].y = offset.y;
-        hotend_offset[tool].z = offset.z;
+        const auto offset = config_store().get_tool_offset(tool);
+        hotend_offset[tool] = xyz_pos_t { .x = offset.x, .y = offset.y, .z = offset.z };
     }
 }
 
