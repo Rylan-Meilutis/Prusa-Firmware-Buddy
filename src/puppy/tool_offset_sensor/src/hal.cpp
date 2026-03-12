@@ -117,6 +117,24 @@ void hal::init_gpio() {
         };
         HAL_GPIO_Init(D_LED_USR_GPIO_Port, &GPIO_InitStruct);
     }
+    // LDC1612_SD - PA12
+    {
+        LDC1612_SD_GPIO_CLK_ENABLE();
+        static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+            .Pin = LDC1612_SD_Pin,
+            .Mode = GPIO_MODE_OUTPUT_PP,
+            .Pull = GPIO_NOPULL,
+            .Speed = GPIO_SPEED_FREQ_LOW,
+            .Alternate = 0,
+        };
+        HAL_GPIO_Init(LDC1612_SD_GPIO_Port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(LDC1612_SD_GPIO_Port, LDC1612_SD_Pin, GPIO_PIN_RESET);
+    }
+    // LDC1612_OSC - PA9
+    {
+        LDC1612_OSC_GPIO_CLK_ENABLE();
+        HAL_RCC_MCOConfig(RCC_MCO1_PA9, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_2);
+    }
 }
 
 void hal::init_can() {
@@ -264,6 +282,8 @@ void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c) {
         return;
     }
 }
+
+LDC1612 hal::ldc1612 = {};
 
 extern "C" void hal_panic() {
     hal::panic();

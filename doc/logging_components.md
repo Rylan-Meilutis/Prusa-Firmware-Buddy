@@ -21,6 +21,7 @@ This file is generated automatically so don't edit it directly
 - Fsm: logging::Severity::debug, src/common/fsm_states.cpp
 - GUI: logging::Severity::debug, src/gui/logger.cpp
 - INDX: logging::Severity::info, src/puppies/INDX.cpp
+- LDC1612: logging::Severity::warning, src/puppy/tool_offset_sensor/src/ldc1612.cpp
 - Loadcell: logging::Severity::info, src/common/loadcell.cpp
 - MMU2: logging::Severity::info, src/common/appmain.cpp
 - Marlin: logging::Severity::info, src/common/marlin_log_component.cpp

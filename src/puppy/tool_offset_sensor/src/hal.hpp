@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ldc1612.hpp>
 
 namespace hal {
 
@@ -18,5 +19,7 @@ void set_status_led(bool set);
 
 void __attribute__((noreturn)) panic();
 void __attribute__((noreturn)) reset();
+
+extern LDC1612 ldc1612;
 
 } // namespace hal

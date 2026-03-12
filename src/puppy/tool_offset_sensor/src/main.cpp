@@ -11,14 +11,110 @@
 #include <device/hal.h>
 #include <o1heap/o1heap.hpp>
 #include <cstring>
+#include <ldc1612.hpp>
+
+LOG_COMPONENT_REF(LDC1612)
 
 // This magical incantation is required for fw_descriptor integration in cmake to work.
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
 
 static void main_task_code(void *) {
+
+    while (true) { // repeat initialization until successful
+        if (hal::ldc1612.is_device_present()) {
+            log_debug(LDC1612, "Device detected successfully");
+        } else {
+            log_error(LDC1612, "Device not detected");
+            freertos::delay(1000);
+            continue;
+        }
+
+        if (hal::ldc1612.reset()) {
+            log_debug(LDC1612, "Device reset successfully");
+        } else {
+            log_error(LDC1612, "Failed to reset device");
+            freertos::delay(1000);
+            continue;
+        }
+
+        LDC1612::ChannelConfig ch_config {
+            .rcount = 0x0005,
+            .settlecount = 0x000A,
+            .fin_divider = 3,
+            .fref_divider = 10,
+            .drive_current = 16,
+            .offset = 0
+        };
+
+        LDC1612::DeviceConfig device_config {
+            .sleep_mode = false,
+            .use_external_clock = false,
+            .rp_override_en = false,
+            .auto_amp_dis = false,
+            .mux_config = {
+                .deglitch = LDC1612::DeglitchFilter::MHz_3_3 },
+            .error_config = {
+                .report_underrange = true,
+                .report_overrange = true,
+                .report_watchdog = true,
+                .report_amplitude_high = true,
+                .report_amplitude_low = true,
+                .int_on_underrange = true,
+                .int_on_overrange = true,
+                .int_on_watchdog = true,
+                .int_on_amplitude_high = true,
+                .int_on_amplitude_low = true,
+                .int_on_zero_count = true,
+                .int_on_data_ready = true,
+            },
+            .ch0 = ch_config,
+            .ch1 = ch_config
+        };
+
+        if (hal::ldc1612.initialize(device_config)) {
+            log_debug(LDC1612, "Device initialized successfully");
+        } else {
+            log_error(LDC1612, "Failed to initialize device");
+            freertos::delay(1000);
+            continue;
+        }
+
+        if (hal::ldc1612.set_dual_channel_mode()) {
+            log_debug(LDC1612, "Dual channel mode set successfully");
+        } else {
+            log_error(LDC1612, "Failed to set dual channel mode");
+            freertos::delay(1000);
+            continue;
+        }
+        break;
+    }
+
     while (true) {
-        freertos::delay(100); // TODO the delay to be accomodated to the needs of the task BFW-8360
-        // TODO implement functionality here BFW-8360
+        static uint8_t consecutive_failures = 0;
+
+        if (consecutive_failures >= 5) {
+            log_error(LDC1612, "Too many consecutive failures, resetting board");
+            freertos::delay(100); // delay to propagate message before reset
+            hal::reset();
+        }
+        freertos::delay(100);
+
+        auto status = hal::ldc1612.read_status();
+        if (!status.has_value()) {
+            log_warning(LDC1612, "Failed to read status");
+            consecutive_failures++;
+            continue;
+        } else if (status->data_ready) {
+            auto ch0_data = hal::ldc1612.read_channel(LDC1612::Channel::CH0);
+            auto ch1_data = hal::ldc1612.read_channel(LDC1612::Channel::CH1);
+            if (ch0_data.has_value() && ch1_data.has_value()) {
+                log_warning(LDC1612, "CH0: %u, CH1: %u", static_cast<unsigned int>(ch0_data.value()), static_cast<unsigned int>(ch1_data.value()));
+                consecutive_failures = 0;
+            } else {
+                log_warning(LDC1612, "Failed to read channel data");
+                consecutive_failures++;
+            }
+        }
     };
 }
 
