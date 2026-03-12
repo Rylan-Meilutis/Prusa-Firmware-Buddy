@@ -194,47 +194,6 @@ void CurrentStore::set_side_fs_ref_ins_value(uint8_t index, int32_t value) {
 }
 #endif
 
-#if HAS_TOOLCHANGER()
-ToolOffset CurrentStore::get_tool_offset(PhysicalToolIndex tool) {
-    static_assert(PhysicalToolIndex::count <= 5);
-    switch (tool.to_raw()) {
-    case 0:
-        return tool_offset_0.get();
-    case 1:
-        return tool_offset_1.get();
-    case 2:
-        return tool_offset_2.get();
-    case 3:
-        return tool_offset_3.get();
-    case 4:
-        return tool_offset_4.get();
-    }
-    bsod_unreachable();
-}
-
-void CurrentStore::set_tool_offset(PhysicalToolIndex tool, ToolOffset value) {
-    static_assert(PhysicalToolIndex::count <= 5);
-    switch (tool.to_raw()) {
-    case 0:
-        tool_offset_0.set(value);
-        return;
-    case 1:
-        tool_offset_1.set(value);
-        return;
-    case 2:
-        tool_offset_2.set(value);
-        return;
-    case 3:
-        tool_offset_3.set(value);
-        return;
-    case 4:
-        tool_offset_4.set(value);
-        return;
-    }
-    bsod_unreachable();
-}
-#endif
-
 FilamentType CurrentStore::get_filament_type([[maybe_unused]] uint8_t index) {
     return loaded_filament_type.get(index);
 }

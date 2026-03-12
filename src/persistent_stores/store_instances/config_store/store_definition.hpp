@@ -401,15 +401,26 @@ struct CurrentStore
         dock_positions.set(tool.to_raw(), value);
     }
 
-    StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 0")> tool_offset_0;
-    StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 1")> tool_offset_1;
-    StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 2")> tool_offset_2;
-    StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 3")> tool_offset_3;
-    StoreItem<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, journal::hash("Tool Offset 4")> tool_offset_4;
+    static constexpr auto tool_offset_hashes = stdext::array_sub_copy<PhysicalToolIndex::count>(std::to_array<uint16_t>({
+        // Note: those // at the end are there to make the gen_journal_hashes script work
+        journal::hash("Tool Offset 0"), //
+        journal::hash("Tool Offset 1"), //
+        journal::hash("Tool Offset 2"), //
+        journal::hash("Tool Offset 3"), //
+        journal::hash("Tool Offset 4"), //
+        journal::hash("Tool Offset 5"), //
+        journal::hash("Tool Offset 6"), //
+        journal::hash("Tool Offset 7"), //
+    }));
+    StoreItemLegacyArray<ToolOffset, defaults::tool_offset, ItemFlag::calibrations, tool_offset_hashes> tool_offsets;
 
-    ToolOffset get_tool_offset(PhysicalToolIndex tool);
+    inline ToolOffset get_tool_offset(PhysicalToolIndex tool) {
+        return tool_offsets.get(tool.to_raw());
+    }
 
-    void set_tool_offset(PhysicalToolIndex tool, ToolOffset value);
+    inline void set_tool_offset(PhysicalToolIndex tool, ToolOffset value) {
+        tool_offsets.set(tool.to_raw(), value);
+    }
 #endif
 
     StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, EXTRUDERS> loaded_filament_type;
@@ -1004,8 +1015,6 @@ struct DeprecatedStore
         StoreItem<float, defaults::pid_bed_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed I")> pid_bed_i;
         StoreItem<float, defaults::pid_bed_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed D")> pid_bed_d;
         */
-
-    StoreItem<ToolOffset, defaults::tool_offset, journal::hash("Tool Offset 5")> tool_offset_5;
 };
 
 } // namespace config_store_ns
