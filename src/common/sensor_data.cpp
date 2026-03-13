@@ -74,7 +74,7 @@ void SensorData::update() {
 #endif
 
     // Heatbreak fan speed
-    hbrFan = thermalManager.fan_speed[1];
+    heatbreak_fan_pwm = thermalManager.fan_speed[1];
 
 #if BOARD_IS_XBUDDY()
 

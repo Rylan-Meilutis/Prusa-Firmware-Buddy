@@ -35,7 +35,7 @@ public:
     RelaxedAtomic<float> sandwichTemp;
     RelaxedAtomic<float> splitterTemp;
     RelaxedAtomic<float> boardTemp;
-    RelaxedAtomic<float> hbrFan;
+    RelaxedAtomic<float> heatbreak_fan_pwm;
 #if BOARD_IS_XLBUDDY()
     RelaxedAtomic<float> inputVoltage;
     RelaxedAtomic<float> sandwich5VVoltage;

@@ -12,7 +12,7 @@ MI_INFO_PRINT_FAN::MI_INFO_PRINT_FAN()
 MI_INFO_HBR_FAN::MI_INFO_HBR_FAN()
     : WI_FAN_LABEL_t(PRINTER_IS_PRUSA_MK3_5() ? _("Hotend Fan") : _("Heatbreak Fan"),
         [](auto) { return FanPWMAndRPM {
-                       .pwm = static_cast<uint8_t>(sensor_data().hbrFan.load()),
+                       .pwm = static_cast<uint8_t>(sensor_data().heatbreak_fan_pwm.load()),
                        .rpm = marlin_vars().active_hotend().heatbreak_fan_rpm,
                    }; } //
     ) {}

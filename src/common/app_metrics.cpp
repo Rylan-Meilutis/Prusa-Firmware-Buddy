@@ -260,7 +260,7 @@ void RecordMarlinVariables() {
 #if FAN_COUNT >= 2
     {
         METRIC_DEF(heatbreak_fan_speed, "fan_hbr_speed", METRIC_VALUE_INTEGER, 502, METRIC_DISABLED);
-        metric_record_integer(&heatbreak_fan_speed, static_cast<int>(sensor_data().hbrFan.load()));
+        metric_record_integer(&heatbreak_fan_speed, static_cast<int>(sensor_data().heatbreak_fan_pwm.load()));
     }
 #endif
 
