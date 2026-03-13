@@ -421,14 +421,6 @@ FrameToolMapping::FrameToolMapping(window_frame_t *parent)
 {
     parent->CaptureNormalWindow(*this);
 
-    gcode_tools_title_.SetText(_("G-Code filaments"));
-
-#if HAS_MMU2()
-    virtual_tools_title_.SetText(_("MMU filaments"));
-#else
-    virtual_tools_title_.SetText(_("Printer tools"));
-#endif
-
     for (auto *title : { &gcode_tools_title_, &virtual_tools_title_ }) {
         title->set_font(Font::small);
         title->SetAlignment(Align_t::CenterBottom());
@@ -641,6 +633,18 @@ void FrameToolMapping::update_mapping() {
     // Ditto with disabled virtual tools
     for (const auto virtual_tool : VirtualToolIndex::all()) {
         processed_virtual_tools.set(virtual_tool.to_raw(), !virtual_tool.is_enabled());
+    }
+
+    // Update the titles
+    {
+        gcode_tools_title_.SetText(_("G-Code filaments (%i)").formatted(gcode_tools_title_params_, GcodeToolIndex::count - processed_gcode_tools.count()));
+
+#if HAS_MMU2()
+        const char *virtual_tool_title = N_("MMU filaments (%i)");
+#else
+        const char *virtual_tool_title = N_("Printer tools (%i)");
+#endif
+        virtual_tools_title_.SetText(_(virtual_tool_title).formatted(virtual_tools_title_params_, VirtualToolIndex::count - processed_virtual_tools.count()));
     }
 
     // Show Actually used GCode tools in order

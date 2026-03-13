@@ -250,6 +250,8 @@ private:
     /// Updates the widgets in the next suitable event
     bool mapping_update_scheduled_ = false;
 
+    StringViewUtf8Parameters<4> gcode_tools_title_params_, virtual_tools_title_params_;
+
 private: // GUI
     window_text_t gcode_tools_title_;
     WindowColoredRect gcode_tools_title_line_;
