@@ -237,7 +237,7 @@ class Temperature {
        */
       static inline void applyScaledFanSpeed() {
         #if FAN_COUNT > 0
-          FANS_LOOP(i) applied_fan_speed[i] = scaledFanSpeed(i);
+          FANS_LOOP(i) applied_fan_speed[i] = fan_speed[i];
         #endif
       }
 
@@ -248,21 +248,12 @@ class Temperature {
        */
       static inline void applyScaledFanSpeed(const uint8_t delayed_fan_speed[FAN_COUNT]) {
         #if FAN_COUNT > 0
-          FANS_LOOP(i) applied_fan_speed[i] = scaledFanSpeed(i, delayed_fan_speed[i]);
+          FANS_LOOP(i) applied_fan_speed[i] = delayed_fan_speed[i];
         #endif
       }
 
       static void set_fan_speed(const uint8_t target, const uint16_t speed);
       static constexpr inline uint8_t fanPercent(const uint8_t speed) { return ui8_to_percent(speed); }
-
-      static inline uint8_t scaledFanSpeed([[maybe_unused]] const uint8_t target, const uint8_t fs) {
-        return fs;
-      }
-
-      static inline uint8_t scaledFanSpeed(const uint8_t target) {
-        return scaledFanSpeed(target, fan_speed[target]);
-      }
-
     #endif // FAN_COUNT > 0
 
     static inline void zero_fan_speeds() {
