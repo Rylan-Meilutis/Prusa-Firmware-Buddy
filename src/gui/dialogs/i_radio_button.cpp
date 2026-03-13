@@ -152,7 +152,8 @@ void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param)
     }
 
     case GUI_event_t::FOCUS_OUT: {
-        // This would be a nice place to unselect all buttons, but the code does not allow it
+        // Unselect all buttons
+        set_button_index_nocheck(this->GetBtnCount());
         break;
     }
 
@@ -355,7 +356,10 @@ void IRadioButton::invalidateWhatIsNeeded() {
 }
 
 void IRadioButton::SetBtnIndex(uint8_t index) {
-    uint8_t idx = (index < GetBtnCount()) ? index : 0;
+    set_button_index_nocheck(index < GetBtnCount() ? index : 0);
+}
+
+void IRadioButton::set_button_index_nocheck(uint8_t idx) {
     if (idx != flags.class_specific.button_index) {
         flags.class_specific.button_index = idx;
         invalidateWhatIsNeeded();

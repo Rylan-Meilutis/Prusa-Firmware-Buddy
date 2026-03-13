@@ -49,6 +49,7 @@ public:
     bool IsEnabled(size_t index) const;
 
     void SetBtnIndex(uint8_t index);
+
     void SetBtn(Response btn);
     uint8_t GetBtnIndex() const { return flags.class_specific.button_index; }
     virtual std::optional<size_t> IndexFromResponse(Response btn) const = 0;
@@ -90,4 +91,9 @@ protected:
     // radio buttons currently do not support layout change
     // it is done by having multiple radio buttons and show/hide them
     virtual void set_layout(ColorLayout) override {}
+
+private:
+    /// Does not clamp the index to the valid range.
+    /// If the index is out of range, no button is selected.
+    void set_button_index_nocheck(uint8_t index);
 };
