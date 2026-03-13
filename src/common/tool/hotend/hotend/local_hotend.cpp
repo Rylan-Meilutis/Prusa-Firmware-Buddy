@@ -139,6 +139,10 @@ void LocalHotend::manage() {
     #endif
 
     Fans::heat_break(tool_).set_pwm(auto_fan_pwm);
+
+    #if HAS_TEMP_HEATBREAK
+        #error Cannot have both heabtreak control and autofan
+    #endif
 #endif
 
 #if HAS_TEMP_HEATBREAK
