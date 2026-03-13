@@ -37,7 +37,7 @@ private:
 
     // Search this many last bytes for "metadata" comments.
     // With increasing size of the comment section, this will have to be increased as well
-    static constexpr const size_t search_last_x_bytes = 50000;
+    static constexpr const size_t search_last_x_bytes = 75000;
 
     uint32_t gcodes_in_metadata = 0;
     uint32_t file_size = 0;
