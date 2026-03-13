@@ -73,6 +73,7 @@ static_assert(BOARD_IS_DWARF());
 
 #define FAN_PIN                MARLIN_PIN(FAN)
 
+#define HAS_TEMP_HEATBREAK_CONTROL 1
 #define HEATER_HEATBREAK_PIN   MARLIN_PIN(FAN1)
 #define FAN1_PIN               MARLIN_PIN(FAN1)
 
