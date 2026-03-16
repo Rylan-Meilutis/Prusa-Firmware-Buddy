@@ -27,6 +27,7 @@ public:
         : MenuItemSwitch({}, cancel_switch_items) //
     {
         set_object(object, true);
+        set_behavior(Behavior::quick_cycle);
     }
 
     struct CurrentObject {};

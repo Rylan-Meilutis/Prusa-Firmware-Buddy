@@ -70,6 +70,7 @@ public:
         : MenuItemSwitch(_(FactoryReset::items_config[item].title), item_texts, bitset->test(std::to_underlying(item)))
         , item_(item)
         , bitset_(bitset) {
+        set_behavior(Behavior::quick_cycle);
     }
 
 private:
