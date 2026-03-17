@@ -15,7 +15,7 @@
 
 namespace {
 
-using Buffer = std::array<char, 31>;
+using Buffer = std::array<char, 36>;
 // Generate a link into the provided buffer, return the pointer to the buffer (for convenience).
 //
 // Eg. prusa.io/mk4-phstep-qr
@@ -31,7 +31,7 @@ Buffer addr(bool qr) {
     if (qr) {
         builder.append_string("-qr");
     }
-    // Check that we fit within the 29 character buffer.
+    // Check that we fit within the 36 character buffer.
     assert(!builder.is_problem());
     return buffer;
 }
