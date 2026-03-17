@@ -165,7 +165,7 @@ static TaskControlBlock task_control_block;
 
 /// Keep task stacks together and in the CCMRAM.
 struct TaskStack {
-    uint32_t marlin[1160];
+    uint32_t marlin[1360];
 #if HAS_POWER_PANIC()
     uint32_t acfault[80];
 #endif
