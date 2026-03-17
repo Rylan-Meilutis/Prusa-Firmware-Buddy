@@ -3317,8 +3317,10 @@ static void _server_update_vars() {
         extruder.temp_heatbreak = hotend.heatbreak_temp();
         extruder.target_heatbreak = hotend.heatbreak_target_temp();
 #endif
-        // FIXME: flow_percentage should be indexed by VirtualToolIndex
-        extruder.flow_factor = static_cast<uint16_t>(planner.flow_percentage[tool.to_raw()]);
+        const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(tool.currently_selected_virtual_tool());
+        if (virtual_tool.has_value()) {
+            extruder.flow_factor = static_cast<uint16_t>(planner.flow_percentage[*virtual_tool]);
+        }
         extruder.print_fan_rpm = Fans::print(tool).get_actual_rpm();
         extruder.heatbreak_fan_rpm = Fans::heat_break(tool).get_actual_rpm();
     }
