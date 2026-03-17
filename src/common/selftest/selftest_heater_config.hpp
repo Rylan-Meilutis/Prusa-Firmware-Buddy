@@ -39,7 +39,7 @@ struct HeaterConfig_t {
     using temp_setter = void (*)(int);
     const char *partname;
     heater_type_t type;
-    uint8_t tool_nr { 0 }; // when type=Nozzle, this will contain related nozzle number
+    PhysicalToolIndex tool_nr = PhysicalToolIndex::from_raw(0);
     temp_getter getTemp;
     temp_setter setTargetTemp;
     PID_t (*get_pid)();

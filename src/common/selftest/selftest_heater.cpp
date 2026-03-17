@@ -122,16 +122,16 @@ LoopResult CSelftestPart_Heater::stateSetup() {
 
 LoopResult CSelftestPart_Heater::stateTakeControlOverFans() {
     log_info(Selftest, "%s took control of fans", m_config.partname);
-    m_config.print_fan_fnc(m_config.tool_nr).enter_selftest_mode();
-    m_config.heatbreak_fan_fnc(m_config.tool_nr).enter_selftest_mode();
+    m_config.print_fan_fnc(m_config.tool_nr.to_raw()).enter_selftest_mode();
+    m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).enter_selftest_mode();
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Heater::stateFansActivate() {
     if (enable_cooldown) {
         log_info(Selftest, "%s set fans to maximum", m_config.partname);
-        m_config.print_fan_fnc(m_config.tool_nr).selftest_set_pwm(255); // it will be restored by exitSelftestMode
-        m_config.heatbreak_fan_fnc(m_config.tool_nr).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.print_fan_fnc(m_config.tool_nr.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
     }
     return LoopResult::RunNext;
 }
@@ -163,8 +163,8 @@ LoopResult CSelftestPart_Heater::stateCooldown() {
 }
 
 LoopResult CSelftestPart_Heater::stateFansDeactivate() {
-    m_config.print_fan_fnc(m_config.tool_nr).exit_selftest_mode();
-    m_config.heatbreak_fan_fnc(m_config.tool_nr).exit_selftest_mode();
+    m_config.print_fan_fnc(m_config.tool_nr.to_raw()).exit_selftest_mode();
+    m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).exit_selftest_mode();
     log_info(Selftest, "%s returned control of fans", m_config.partname);
     return LoopResult::RunNext;
 }
@@ -258,7 +258,7 @@ LoopResult CSelftestPart_Heater::stateMeasure() {
 
 #if HAS_HOTEND_TYPE_SUPPORT()
     if (m_config.type == heater_type_t::Nozzle) {
-        hw_diff += hotend_type_heater_selftest_offset(config_store().hotend_type.get(m_config.tool_nr));
+        hw_diff += hotend_type_heater_selftest_offset(config_store().hotend_type.get(m_config.tool_nr.to_raw()));
     }
 #endif
 
@@ -304,9 +304,9 @@ void CSelftestPart_Heater::single_check_callback() {
     float power;
 
     if (m_config.type == heater_type_t::Nozzle) {
-        current = advancedpower.get_nozzle_current(m_config.tool_nr); // This will either give 1.5 A or 0 depending if PWM is on or off
-        voltage = advancedpower.get_nozzle_voltage(m_config.tool_nr);
-        pwm = advancedpower.get_nozzle_pwm(m_config.tool_nr);
+        current = advancedpower.get_nozzle_current(m_config.tool_nr.to_raw()); // This will either give 1.5 A or 0 depending if PWM is on or off
+        voltage = advancedpower.get_nozzle_voltage(m_config.tool_nr.to_raw());
+        pwm = advancedpower.get_nozzle_pwm(m_config.tool_nr.to_raw());
         power = current * voltage;
 
         /**

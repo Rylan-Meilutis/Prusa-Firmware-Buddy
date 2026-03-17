@@ -95,14 +95,16 @@ static const AxisConfig_t Config_ZAxis = {
 
 template <int index>
 static consteval HeaterConfig_t make_nozzle_config(const char *name) {
+    static_assert(index >= 0 && index < PhysicalToolIndex::count);
+    static constexpr auto tool = PhysicalToolIndex::from_raw(index);
     return {
         .partname = name,
         .type = heater_type_t::Nozzle,
-        .tool_nr = index,
-        .getTemp = []() { return Hotend::for_tool(index).nozzle_temp(); },
-        .setTargetTemp = [](int target_temp) { thermalManager.setTargetHotend(target_temp, index); },
-        .get_pid = []() { return Hotend::for_tool(index).nozzle_pid_config_compat(); },
-        .set_pid = [](const PID_t &pid) { Hotend::for_tool(index).set_nozzle_pid_config_compat(pid); },
+        .tool_nr = tool,
+        .getTemp = []() { return Hotend::for_tool(tool).nozzle_temp(); },
+        .setTargetTemp = [](int target_temp) { Hotend::for_tool(tool).set_nozzle_target_temp(target_temp); },
+        .get_pid = []() { return Hotend::for_tool(tool).nozzle_pid_config_compat(); },
+        .set_pid = [](const PID_t &pid) { Hotend::for_tool(tool).set_nozzle_pid_config_compat(pid); },
         .heatbreak_fan_fnc = Fans::heat_break,
         .print_fan_fnc = Fans::print,
         .heat_time_ms = 42000,
@@ -135,7 +137,7 @@ static constexpr HeaterConfig_t Config_HeaterNozzle[] = {
 static constexpr HeaterConfig_t Config_HeaterBed = {
     .partname = "Bed",
     .type = heater_type_t::Bed,
-    .tool_nr = 0,
+    .tool_nr = PhysicalToolIndex::from_raw(0),
     .getTemp = []() { return thermalManager.temp_bed.celsius; },
     .setTargetTemp = [](int target_temp) { thermalManager.setTargetBed(target_temp); },
     .get_pid = []() { return PID_t {}; },

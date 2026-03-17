@@ -35,10 +35,9 @@ static SelftestHeaters_t resultHeaters;
 #if HAS_TEMP_HEATBREAK_CONTROL
 static void HeatbreakCorrelation(CSelftestPart_Heater &h) {
     assert(h.m_config.type == heater_type_t::Nozzle);
-    const uint8_t tool_nr = h.m_config.tool_nr;
-    const float temp = thermalManager.degHeatbreak(tool_nr);
+    const float temp = thermalManager.degHeatbreak(h.m_config.tool_nr);
     if ((temp > h.m_config.heatbreak_max_temp) || (temp < h.m_config.heatbreak_min_temp)) {
-        resultHeaters.noz[PhysicalToolIndex::from_raw(tool_nr)].heatbreak_error = true;
+        resultHeaters.noz[h.m_config.tool_nr].heatbreak_error = true;
         h.state_machine.Fail();
     }
 }
