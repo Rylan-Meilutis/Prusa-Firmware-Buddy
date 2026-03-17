@@ -7,6 +7,7 @@
 #include "window_wizard_icon.hpp"
 #include "radio_button.hpp"
 #include <option/has_toolchanger.h>
+#include <option/has_tool_crash_recovery.h>
 
 class ScreenCrashRecovery;
 
@@ -89,6 +90,7 @@ struct WinsHomeFail {
     WinsHomeFail(ScreenCrashRecovery &screen);
 };
 
+#if HAS_TOOL_CRASH_RECOVERY()
 struct WinsToolRecovery {
     window_text_t text_long;
     window_text_t text_careful;
@@ -100,9 +102,10 @@ struct WinsToolRecovery {
 
     WinsToolRecovery(ScreenCrashRecovery &screen);
 };
+#endif
 
 using WinVariant = std::variant<
-#if HAS_TOOLCHANGER()
+#if HAS_TOOL_CRASH_RECOVERY()
     WinsToolRecovery,
 #endif
     WinsCheckAxis, WinsHome, WinsAxisNok, WinsRepeatedCrash, WinsHomeFail>;

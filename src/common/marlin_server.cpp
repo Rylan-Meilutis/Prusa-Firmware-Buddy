@@ -1568,7 +1568,7 @@ static void measure_axes_and_home() {
     server.print_state = State::CrashRecovery_XY_HOME;
 }
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
 /**
  * @brief Deselect tool, disable XY steppers and switch to Tool_Pickup server print_state.
  */
@@ -2648,7 +2648,7 @@ static void _server_print_loop(void) {
         if (0) {
         } // dummy if to start with else
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
         else if (crash_s.is_toolchange_event()) {
             if (crash_recovery_begin_toolchange()) {
                 break; // Skip crash recovery and go directly to toolchange
@@ -2682,7 +2682,7 @@ static void _server_print_loop(void) {
         server.print_state = State::CrashRecovery_Retracting;
         break;
     }
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     case State::CrashRecovery_ToolchangePowerPanic: {
         // server.resume.nozzle_temp is already configured by powerpanic
         endstops.enable_globally(false);
@@ -2704,7 +2704,7 @@ static void _server_print_loop(void) {
             break;
         }
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
         if (crash_s.is_toolchange_event()) {
             prepare_tool_pickup(); // Go to tool pickup instead of homing
             break;
@@ -2729,7 +2729,7 @@ static void _server_print_loop(void) {
         server.print_state = State::CrashRecovery_XY_HOME;
         break;
     }
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     case State::CrashRecovery_Tool_Pickup: {
         if (is_processing()) {
             break;

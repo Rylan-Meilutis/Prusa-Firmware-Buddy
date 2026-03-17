@@ -46,6 +46,7 @@
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_human_interactions.h>
+#include <option/has_tool_crash_recovery.h>
 
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
@@ -263,7 +264,7 @@ enum class PhasesCrashRecovery : PhaseUnderlyingType {
     axis_long,
     repeated_crash,
     home_fail, //< Homing failed, ask to retry
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     tool_recovery, //< Toolchanger recovery, tool fell off
     _last = tool_recovery
     #else
@@ -576,7 +577,7 @@ inline constexpr PhaseResponses CrashRecoveryResponses[] = {
     {}, // axis long
     { Response::Resume, Response::Pause }, // repeated crash
     { Response::Retry }, // home_fail
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     { Response::Continue }, // toolchanger recovery
     #endif
 };

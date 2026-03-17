@@ -216,7 +216,7 @@ WinsHomeFail::WinsHomeFail(ScreenCrashRecovery &screen)
     #endif
 }
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
 WinsToolRecovery::WinsToolRecovery(ScreenCrashRecovery &screen)
     : text_long(&screen, text_long_rc, is_multiline::yes, is_closed_on_click_t::no, _(en_text_long_tool))
     , text_careful(&screen, { 0, tool_row_careful, GuiDefaults::ScreenWidth, char_h }, is_multiline::yes, is_closed_on_click_t::no, _(en_text_tool_careful))
@@ -285,7 +285,7 @@ bool ScreenCrashRecovery::Change(fsm::BaseData data) {
             mem.icon_home_axes.SetState(state.x);
         }
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
         else if constexpr (std::is_same_v<T, WinsToolRecovery>) {
             Crash_recovery_tool_fsm state(data.GetData());
             for (int i = 0; i < buddy::puppies::DWARF_MAX_COUNT; i++) {
@@ -396,7 +396,7 @@ void ScreenCrashRecovery::change_phase(PhasesCrashRecovery new_phase) {
         window.emplace<WinsHomeFail>(*this);
         break;
 
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     case PhasesCrashRecovery::tool_recovery:
         window.emplace<WinsToolRecovery>(*this);
         break;

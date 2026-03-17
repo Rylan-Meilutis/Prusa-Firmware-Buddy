@@ -28,6 +28,7 @@
 #include <option/has_bed_fan.h>
 #include <option/has_psu_fan.h>
 #include <option/has_human_interactions.h>
+#include <option/has_tool_crash_recovery.h>
 #include <fsm/print_preview_mapper.hpp>
 
 #if HAS_LOADCELL()
@@ -59,7 +60,7 @@ optional<ErrCode> crash_recovery_attention(const PhasesCrashRecovery &phase) {
         return ErrCode::CONNECT_CRASH_RECOVERY_REPEATED_CRASH;
     case PhasesCrashRecovery::home_fail:
         return ErrCode::CONNECT_CRASH_RECOVERY_HOME_FAIL;
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOL_CRASH_RECOVERY()
     case PhasesCrashRecovery::tool_recovery:
         return ErrCode::CONNECT_CRASH_RECOVERY_TOOL_PICKUP;
     #endif
