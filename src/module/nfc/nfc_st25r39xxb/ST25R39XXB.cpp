@@ -416,6 +416,9 @@ nfcv::Result<void> st25r39xxb::ST25R39XXB::field_up(AntennaID antenna) {
         return {};
     }
 
+    // Electro recommended having the field down during switching
+    field_down();
+
     // Select antenna
     static constexpr std::byte ANTENNA_CONTROL_MASK { 0b0100'0000 };
     hw_int.change_register(RegisterA::io_configuration_1, ANTENNA_CONTROL_MASK, antenna ? ANTENNA_CONTROL_MASK : std::byte { 0 });
