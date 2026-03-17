@@ -97,6 +97,8 @@
 
 #include <feature/gcode_exception/gcode_exception.hpp>
 
+#include <serial_logging_disabler.hpp>
+
 #define XYZ_CONSTS(T, NAME, OPT) const PROGMEM XYZval<T> NAME##_P = { X_##OPT, Y_##OPT, Z_##OPT }
 
 XYZ_CONSTS(float, base_min_pos,   MIN_POS);
@@ -191,6 +193,8 @@ float homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
  * Output the current position to serial
  */
 void report_current_position() {
+  // Do not log coordinates, only print to serial
+  SerialLoggingDisabler sld;
   const auto lpos = current_position.asLogical();
   SERIAL_ECHOPAIR("X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e);
 
