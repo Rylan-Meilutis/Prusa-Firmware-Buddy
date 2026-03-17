@@ -4,7 +4,7 @@
 #include <utils/uncopyable.hpp>
 
 /// RAII guard that disables sending serial messages to the logging subsystem
-/// Only to be used on defaultTask
+/// Only to be used on the marlin task
 class SerialLoggingDisabler : public Uncopyable {
 
 public:
