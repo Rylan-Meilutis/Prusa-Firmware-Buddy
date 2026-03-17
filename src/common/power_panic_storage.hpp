@@ -64,6 +64,8 @@
 // WARNING: mind the alignment, the following structures are not automatically packed
 // as they're shared also for the on-memory copy. The on-memory copy can be avoided
 // if we decide to use two flash blocks (keeping one as a working set)
+// main reason for this warnings is we want to keep the structure small
+// so if you see this warning, just reorder the fields, eventually add some minimal padding
 #pragma GCC diagnostic push
 #pragma GCC diagnostic warning "-Wpadded"
 
@@ -74,20 +76,23 @@ namespace power_panic {
 struct state_planner_t {
     user_planner_settings_t settings;
 
+    // IS/PA
+    input_shaper::AxisConfig axis_config[3]; // XYZ
+    input_shaper::AxisConfig original_y;
+    input_shaper::WeightAdjustConfig axis_y_weight_adjust;
+    pressure_advance::Config axis_e_config;
+
     float z_position;
     float max_printed_z;
 #if DISABLED(CLASSIC_JERK)
     float junction_deviation_mm;
 #endif
 
-    StrongIndexArray<int16_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> target_nozzle;
-    int16_t _padding_target_nozzle[PhysicalToolIndex::count % 2]; // we need even number of int16_t
-    int16_t flow_percentage[HOTENDS];
     int16_t target_bed;
     int16_t extrude_min_temp;
 #if HAS_MODULAR_BED()
     uint16_t enabled_bedlets_mask;
-    uint8_t _padding_heat[2]; // padding to 2 or 4 bytes?
+    uint8_t _padding_heat[2]; // padding to 4 bytes
 #endif
 
     uint16_t print_speed;
@@ -99,15 +104,14 @@ struct state_planner_t {
 
     PrinterGCodeCompatibilityReport compatibility;
 
+    StrongIndexArray<int16_t, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> target_nozzle;
+    int16_t flow_percentage[HOTENDS];
+
     uint8_t marlin_debug_flags;
 
-    uint8_t _padding_is[3];
-
-    // IS/PA
-    input_shaper::AxisConfig axis_config[3]; // XYZ
-    input_shaper::AxisConfig original_y;
-    input_shaper::WeightAdjustConfig axis_y_weight_adjust;
-    pressure_advance::Config axis_e_config;
+    // everything to target_nozle is aligned - padding the remaining fields
+    static constexpr int _size_to_pad = sizeof(target_nozzle) + sizeof(flow_percentage) + sizeof(marlin_debug_flags);
+    uint8_t _padding[(4 - _size_to_pad % 4) % 4];
 };
 
 // fully independent state that persist across panics until the end of the print
