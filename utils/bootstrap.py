@@ -117,7 +117,7 @@ dependencies = {
     'firmware-mmu': {
         'version': '3.0.4',
         'files': [
-            'https://github.com/DRracer/Prusa-Firmware-MMU/releases/download/v3.0.4-beta/MMU3_FW3.0.4+936.hex'
+            'https://github.com/prusa3d/Prusa-Firmware-MMU/releases/download/v3.0.4/MMU3_FW3.0.4+936.hex'
         ],
     },
     'mini404': {
