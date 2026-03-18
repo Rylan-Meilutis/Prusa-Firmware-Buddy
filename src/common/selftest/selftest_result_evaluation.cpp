@@ -44,7 +44,7 @@ bool is_selftest_successfully_completed() {
 
     for (auto tool : PhysicalToolIndex::all()) {
 #if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(tool)) {
+        if (!tool.is_enabled()) {
             continue;
         }
 

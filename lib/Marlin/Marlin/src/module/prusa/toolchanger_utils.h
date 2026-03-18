@@ -127,7 +127,12 @@ public:
 
     ///@return True if at least one dwarf is connected through splitter.
     inline bool is_splitter_enabled() {
-        return is_tool_enabled(2) || is_tool_enabled(3) || is_tool_enabled(4) || is_tool_enabled(5);
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (tool.to_raw() >= 2) {
+                return true;
+            }
+        }
+        return false;
     }
 
     [[deprecated("Use the ToolIndex overload")]]

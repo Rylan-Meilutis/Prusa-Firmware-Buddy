@@ -423,6 +423,21 @@ void PrusaToolChanger::crash_deselect_dwarf() {
     }
 }
 
+void PrusaToolChanger::toolcheck_enable() {
+    const auto selected_tool = PhysicalToolIndex::currently_selected();
+
+    // Revert selected to active tool
+    for (auto tool : PhysicalToolIndex::all()) {
+        /// TODO do not access puppyModbus outside of puppy task
+        /// BFW-8185
+        getTool(tool).set_selected(buddy::puppies::puppyModbus, tool.is_enabled() && stdext::holds_value(selected_tool, tool));
+    }
+
+    if (!block_tool_check.exchange(false)) { // Test if was blocked
+        bsod("Toolchange loop() enabled but not blocked");
+    }
+}
+
 void PrusaToolChanger::toolcrash() {
     #if ENABLED(CRASH_RECOVERY)
     if (crash_s.is_active() && (crash_s.get_state() == Crash_s::PRINTING)) {

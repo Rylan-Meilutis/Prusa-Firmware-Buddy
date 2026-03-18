@@ -111,20 +111,7 @@ public:
     /**
      * @brief Reenable loop() with automatic toolchange and toolfall detection.
      */
-    void toolcheck_enable() {
-        const auto selected_tool = PhysicalToolIndex::currently_selected();
-
-        // Revert selected to active tool
-        for (auto tool : PhysicalToolIndex::all()) {
-            /// TODO do not access puppyModbus outside of puppy task
-            /// BFW-8185
-            getTool(tool).set_selected(buddy::puppies::puppyModbus, is_tool_enabled(tool) && stdext::holds_value(selected_tool, tool));
-        }
-
-        if (!block_tool_check.exchange(false)) { // Test if was blocked
-            bsod("Toolchange loop() enabled but not blocked");
-        }
-    }
+    void toolcheck_enable();
 
     /**
      * @brief Bail out this toolchange fast

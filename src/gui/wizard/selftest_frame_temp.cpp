@@ -109,7 +109,7 @@ ScreenSelftestTemp::ScreenSelftestTemp(window_t *parent, PhasesSelftest ph, fsm:
 #if HAS_TOOLCHANGER()
     // when toolchanger enabled, hide results of tools that are not connected
     for (auto tool : PhysicalToolIndex::all()) {
-        if (!prusa_toolchanger.is_tool_enabled(tool)) {
+        if (!tool.is_enabled()) {
             icons_noz_prep.SetIconHidden(tool.to_raw(), true);
             icons_noz_heat.SetIconHidden(tool.to_raw(), true);
     #if HAS_HEATBREAK_TEMP()

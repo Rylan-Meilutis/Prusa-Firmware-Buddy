@@ -142,7 +142,7 @@ namespace frame {
             const SelftestResult result = config_store().selftest_result.get();
             for (auto tool : PhysicalToolIndex::all()) {
 #if HAS_TOOLCHANGER()
-                if (!prusa_toolchanger.is_tool_enabled(tool)) {
+                if (!tool.is_enabled()) {
                     continue;
                 }
 #endif
@@ -248,7 +248,7 @@ namespace frame {
 #endif
 #if HAS_TOOLCHANGER()
             for (auto tool : PhysicalToolIndex::all()) {
-                if (!prusa_toolchanger.is_tool_enabled(tool)) {
+                if (!tool.is_enabled()) {
                     print_icons.SetIconHidden(tool.to_raw(), true);
                     heatbreak_icons.SetIconHidden(tool.to_raw(), true);
     #if HAS_SWITCHED_FAN_TEST()

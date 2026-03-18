@@ -18,9 +18,8 @@ IMI_AnySensor::IMI_AnySensor(uint8_t sensor_index, bool is_side, const char *lab
 {
     update();
 
-#if HAS_TOOLCHANGER()
-    set_is_hidden(!prusa_toolchanger.is_tool_enabled(sensor_index));
-#endif
+    const auto tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::from_raw_notool(sensor_index));
+    set_is_hidden(!(tool.has_value() && tool->is_enabled()));
 
     // Format label
     {

@@ -19,11 +19,11 @@
 /*****************************************************************************/
 // MI_NOZZLE_ABSTRACT
 is_hidden_t MI_NOZZLE_ABSTRACT::is_hidden([[maybe_unused]] uint8_t tool_nr) {
-#if HAS_TOOLCHANGER()
-    return prusa_toolchanger.is_tool_enabled(tool_nr) ? is_hidden_t::no : is_hidden_t::yes;
-#else
-    return is_hidden_t::no;
-#endif
+    const auto tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::from_raw_notool(tool_nr));
+    if (tool.has_value() && tool->is_enabled()) {
+        return is_hidden_t::no;
+    }
+    return is_hidden_t::yes;
 }
 
 MI_NOZZLE_ABSTRACT::MI_NOZZLE_ABSTRACT(uint8_t tool_nr, [[maybe_unused]] const char *label)
@@ -124,13 +124,11 @@ void MI_SPEED::OnClick() {
 /*****************************************************************************/
 // MI_FLOWFACT_ABSTRACT
 is_hidden_t MI_FLOWFACT_ABSTRACT::is_hidden([[maybe_unused]] uint8_t tool_nr) {
-#if HAS_TOOLCHANGER()
-    return prusa_toolchanger.is_tool_enabled(tool_nr) ? is_hidden_t::no : is_hidden_t::yes;
-#elif HAS_MMU2()
-    return (tool_nr == 0 || MMU2::mmu2.Enabled()) ? is_hidden_t::no : is_hidden_t::yes;
-#else
-    return is_hidden_t::no;
-#endif
+    const auto tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::from_raw_notool(tool_nr));
+    if (tool.has_value() && tool->is_enabled()) {
+        return is_hidden_t::no;
+    }
+    return is_hidden_t::yes;
 }
 
 static constexpr NumericInputConfig flowfact_spin_config {

@@ -80,7 +80,7 @@ LoopResult CSelftestPart_Heater::stateShowSkippedDialog() {
 LoopResult CSelftestPart_Heater::stateSetup() {
 #if HAS_TOOLCHANGER()
     // if this tool is not enabled, end this test immediately and set result to undefined
-    if (!prusa_toolchanger.is_tool_enabled(m_config.tool_nr)) {
+    if (!m_config.tool_nr.is_enabled()) {
         m_StartTime = m_EndTime = SelftestInstance().GetTime();
         rResult.prep_state = SelftestSubtestState_t::undef;
         rResult.heat_state = SelftestSubtestState_t::undef;

@@ -15,29 +15,36 @@
 
 // Meyer's singleton
 FSensorADC *getExtruderFSensor(uint8_t index) {
-    static std::array<FSensorADC, EXTRUDERS> printer_sensors = { {
-        { 0, false },
-        { 1, false },
-        { 2, false },
-        { 3, false },
-        { 4, false },
-        { 5, false },
+    static StrongIndexArray<FSensorADC, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> printer_sensors = { {
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 0 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 1 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 2 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 3 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::extruder, .index = 4 } },
     } };
 
-    return (index < 5 && prusa_toolchanger.is_tool_enabled(index)) ? &printer_sensors[index] : nullptr; // 6th sensor is not calibrated and causing errors
+    const auto tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::from_raw_notool(index));
+    if (tool.has_value() && tool->is_enabled()) {
+        return &printer_sensors[*tool];
+    }
+    return nullptr;
 }
 
 // Meyer's singleton
 FSensorADC *getSideFSensor(uint8_t index) {
-    static std::array<FSensorADC, EXTRUDERS> side_sensors = { {
-        { 0, true },
-        { 1, true },
-        { 2, true },
-        { 3, true },
-        { 4, true },
-        { 5, true },
+    static StrongIndexArray<FSensorADC, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> side_sensors = { {
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 1 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 2 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 3 } },
+        FSensorADC { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 4 } },
     } };
-    return (index < 5 && prusa_toolchanger.is_tool_enabled(index)) ? &side_sensors[index] : nullptr; // 6th sensor is not calibrated and causing errors
+
+    const auto tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::from_raw_notool(index));
+    if (tool.has_value() && tool->is_enabled()) {
+        return &side_sensors[*tool];
+    }
+    return nullptr;
 }
 
 // function returning abstract sensor - used in higher level api

@@ -2964,7 +2964,7 @@ static void _server_print_loop(void) {
 #if HAS_TEMP_HEATBREAK
     for (auto tool : PhysicalToolIndex::all()) {
     #if HAS_TOOLCHANGER()
-        if (!prusa_toolchanger.is_tool_enabled(tool)) {
+        if (!tool.is_enabled()) {
             continue;
         }
     #endif
@@ -2995,7 +2995,7 @@ static void _server_print_loop(void) {
     mcuMaxTempErrorChecker.check(AdcGet::getMCUTemp(), WarningType::BuddyMCUMaxTemp, "Buddy");
 #if HAS_DWARF()
     for (auto tool : PhysicalToolIndex::all()) {
-        if (prusa_toolchanger.is_tool_enabled(tool)) {
+        if (tool.is_enabled()) {
             dwarfMaxTempErrorChecker[tool].check(buddy::puppies::dwarfs[tool].get_mcu_temperature(), WarningType::DwarfMCUMaxTemp, dwarf_names[tool]);
         }
     }
@@ -3015,7 +3015,7 @@ void resuming_begin(void) {
     mcuMaxTempErrorChecker.reset();
 #if HAS_DWARF()
     for (auto tool : PhysicalToolIndex::all()) {
-        if (prusa_toolchanger.is_tool_enabled(tool)) {
+        if (tool.is_enabled()) {
             dwarfMaxTempErrorChecker[tool].reset();
         }
     }

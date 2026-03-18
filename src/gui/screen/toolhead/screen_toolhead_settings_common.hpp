@@ -88,9 +88,9 @@ protected:
         if (this->toolhead() == all_toolheads) {
             std::optional<Value> result;
 
-            for (auto i : PhysicalToolIndex::all()) {
-                if (prusa_toolchanger.is_tool_enabled(i)) {
-                    const auto val = read_value_impl(i);
+            for (auto tool : PhysicalToolIndex::all()) {
+                if (tool.is_enabled()) {
+                    const auto val = read_value_impl(tool);
                     if (result.has_value() && *result != val) {
                         return std::nullopt;
                     }

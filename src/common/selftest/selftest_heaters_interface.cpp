@@ -70,7 +70,7 @@ void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &
 
         if (pNozzles[i] == nullptr) {
 #if HAS_TOOLCHANGER()
-            if (!prusa_toolchanger.is_tool_enabled(config_nozzle[i].tool_nr)) {
+            if (!config_nozzle[i].tool_nr.is_enabled()) {
                 continue; // don't test disabled tools
             }
 #endif
