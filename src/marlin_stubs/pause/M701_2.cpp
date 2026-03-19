@@ -97,7 +97,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
     settings.SetRetractLength(0.f);
     settings.SetMmuFilamentToLoad(mmu_slot);
 
-    mapi::ParkingPosition park_position = mapi::park_positions[do_purge_only ? mapi::ParkPosition::purge : mapi::ParkPosition::load];
+    mapi::ParkingPosition park_position = mapi::get_parking_position(do_purge_only ? mapi::ParkPosition::purge : mapi::ParkPosition::load);
     park_position.z = std::max({ current_position.z + Z_NOZZLE_PARK_RISE, z_min_pos, planner.max_printed_z + Z_NOZZLE_PARK_RISE });
 
     settings.SetParkPoint(park_position);

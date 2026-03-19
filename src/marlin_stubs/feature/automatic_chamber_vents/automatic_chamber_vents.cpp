@@ -71,7 +71,7 @@ namespace {
 
     void after() {
         // Return to the home position after the vent operation.
-        mapi::park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::park]);
+        mapi::park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::park));
     }
 
     void switch_lever(VentState wanted_state) {

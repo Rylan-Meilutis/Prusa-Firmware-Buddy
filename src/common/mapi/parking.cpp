@@ -3,7 +3,29 @@
 #include <Marlin/src/gcode/gcode.h>
 #include <Marlin/src/module/motion.h>
 
+#include <option/has_wastebin.h>
+
 namespace mapi {
+
+ParkingPosition get_parking_position(ParkPosition position) {
+    switch (position) {
+    case ParkPosition::park:
+        return ParkingPosition(XYZ_NOZZLE_PARK_POINT);
+    case ParkPosition::purge:
+#if HAS_WASTEBIN()
+        return ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, Z_AXIS_LOAD_POS };
+#else
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS };
+#endif
+    case ParkPosition::load:
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS };
+    case ParkPosition::loadcell_selftest:
+        return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
+    case ParkPosition::_cnt:
+        bsod_unreachable();
+    }
+    bsod_unreachable();
+}
 
 xyz_pos_t ParkingPosition::to_xyz_pos(const xyz_pos_t &pos) const {
     xyz_pos_t result {

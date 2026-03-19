@@ -537,7 +537,7 @@ void Pause::await_filament_process([[maybe_unused]] Response response) {
 
     // Either side sensor not working or it has filament, go to loading
     if (!FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
-        mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::load]);
+        mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::load));
         if (settings.extruder_mmu_rework) {
             set_timed(LoadState::assist_insertion);
         } else {
@@ -630,7 +630,7 @@ void Pause::load_to_gears_process([[maybe_unused]] Response response) { // slow 
 
 void Pause::move_to_purge_process([[maybe_unused]] Response response) {
     if constexpr (option::has_side_fsensor) {
-        mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::purge]);
+        mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::purge));
     }
     set(LoadState::load_wait_temp);
 }
@@ -734,7 +734,7 @@ void Pause::purge_nozzle_clean_process([[maybe_unused]] Response response) {
     static constexpr uint8_t retry_cnt = 3; // Number of maximum retries for the whole nozzle cleaning purge loop
 
     setPhase(is_unstoppable() ? PhasesLoadUnload::Purging_unstoppable : PhasesLoadUnload::Purging_stoppable);
-    mapi::park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::purge]); // park just to be sure
+    mapi::park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::purge)); // park just to be sure
     planner.synchronize(); // Finish any pending moves before starting the purge
 
     ScopeGuard resetLoader = [&] {
@@ -774,7 +774,7 @@ void Pause::purge_nozzle_clean_process([[maybe_unused]] Response response) {
             }
             return; // This exits the loop and method and does not change the state so the whole loop will begin again
         };
-        mapi::park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::purge]);
+        mapi::park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::purge));
         planner.synchronize(); // Wait for the park to finish before continuing
     }
     config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());

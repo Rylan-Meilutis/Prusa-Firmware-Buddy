@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/types.h>
-#include <utils/enum_array.hpp>
 #include <variant>
 
 #include <option/has_nozzle_cleaner.h>
@@ -76,17 +75,7 @@ struct ParkingPosition {
     bool operator==(const ParkingPosition &) const = default;
 };
 
-static constexpr EnumArray<ParkPosition, ParkingPosition, ParkPosition::_cnt> park_positions {
-    { ParkPosition::park, ParkingPosition(XYZ_NOZZLE_PARK_POINT) },
-#if HAS_WASTEBIN()
-        { ParkPosition::purge, ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, Z_AXIS_LOAD_POS } },
-#else
-        { ParkPosition::purge, ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS } },
-
-#endif
-        { ParkPosition::load, ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS } },
-        { ParkPosition::loadcell_selftest, ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT) },
-};
+ParkingPosition get_parking_position(ParkPosition position);
 
 #if HAS_NOZZLE_CLEANER()
 void move_out_of_nozzle_cleaner_area();
@@ -109,7 +98,7 @@ void move_out_of_nozzle_cleaner_area();
  * @param parking_position Target position for parking. Axes set to @c Unchanged
  *        will retain their current position. Defaults to the standard park position.
  */
-void park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
+void park(ZAction z_action, const ParkingPosition &parking_position = get_parking_position(ParkPosition::park));
 
 /**
  * @brief Homes required axes if needed, then parks the toolhead.
@@ -121,6 +110,6 @@ void park(ZAction z_action, const ParkingPosition &parking_position = park_posit
  * @param z_action @see park()
  * @param parking_position @see park()
  */
-void home_if_needed_and_park(ZAction z_action, const ParkingPosition &parking_position = park_positions[ParkPosition::park]);
+void home_if_needed_and_park(ZAction z_action, const ParkingPosition &parking_position = get_parking_position(ParkPosition::park));
 
 } // namespace mapi

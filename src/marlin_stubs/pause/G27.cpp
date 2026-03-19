@@ -64,7 +64,7 @@ void GcodeSuite::G27() {
 
     mapi::ParkingPosition parking_position;
     if (auto where_to_park = parser.option<mapi::ParkPosition>('W', mapi::ParkPosition::_cnt)) {
-        parking_position = mapi::park_positions[*where_to_park];
+        parking_position = mapi::get_parking_position(*where_to_park);
     } else {
         auto parse_axis = [&parser](char letter, mapi::ParkingPosition::Variant &axis) {
             if (auto res = parser.option<float>(letter)) {
@@ -78,7 +78,7 @@ void GcodeSuite::G27() {
 
         // If no axis has been specified (comparing against a position with all axes unchanged)
         if (parking_position == mapi::ParkingPosition {}) {
-            parking_position = mapi::park_positions[mapi::ParkPosition::park];
+            parking_position = mapi::get_parking_position(mapi::ParkPosition::park);
         }
     }
 

@@ -83,7 +83,7 @@ LoopResult CSelftestPart_Loadcell::stateParking() {
         planner.synchronize();
     }
 
-    mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::park_positions[mapi::ParkPosition::loadcell_selftest]);
+    mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::loadcell_selftest));
     return LoopResult::RunNext;
 }
 
