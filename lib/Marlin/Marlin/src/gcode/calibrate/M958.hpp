@@ -48,6 +48,8 @@ float maybe_calibrate_and_get_accelerometer_sample_period(PrusaAccelerometer &ac
 
 float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_hook, PrusaAccelerometer &accelerometer);
 
+[[nodiscard]] StepEventFlag_t setup_steppers(StepEventFlag_t axis_flag);
+
 float get_step_len(StepEventFlag_t axis_flag, const uint16_t orig_mres[]);
 
 struct VibrateMeasureParams {

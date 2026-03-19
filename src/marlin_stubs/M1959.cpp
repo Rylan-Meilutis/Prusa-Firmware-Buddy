@@ -282,14 +282,12 @@ static PhasesInputShaperCalibration measuring_axis(
     MicrostepRestorer microstepRestorer;
     enable_all_steppers(); // enable all axes to have the same state as printing
 
-    stepper_microsteps(logicalAxis, 128);
-
     VibrateMeasureParams args {
         .excitation_acceleration = acceleration_requested,
         .excitation_cycles = cycles,
         .klipper_mode = klipper_mode,
         .calibrate_accelerometer = true,
-        .axis_flag = axis_flag,
+        .axis_flag = setup_steppers(axis_flag),
     };
     if (!args.setup(microstepRestorer)) {
         bsod("setup failed");

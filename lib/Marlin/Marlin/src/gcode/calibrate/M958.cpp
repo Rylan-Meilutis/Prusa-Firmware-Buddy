@@ -766,7 +766,10 @@ static StepEventFlag_t setup_axis() {
         // no axis requested, assume X
         axis_flag = StepEventFlag::STEP_EVENT_FLAG_STEP_X;
     }
+    return setup_steppers(axis_flag);
+}
 
+StepEventFlag_t setup_steppers(StepEventFlag_t axis_flag) {
 #if ENABLED(COREXY)
     // For Core XY, X and Y are actually A and B motors, so we need to use both
     // and for Y axis reverse the B direction
