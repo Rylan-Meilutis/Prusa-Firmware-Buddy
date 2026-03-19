@@ -366,8 +366,8 @@ bool hasActiveFilamentSensor(uint8_t index) {
     const auto side_sensor = GetSideFSensor(index);
     const auto ext_sensor = GetExtruderFSensor(index);
 
-    const auto side_ok = side_sensor && is_fsensor_working_state(side_sensor->get_state());
-    const auto ext_ok = ext_sensor && is_fsensor_working_state(ext_sensor->get_state());
+    const auto side_ok = is_fsensor_working_state(side_sensor);
+    const auto ext_ok = is_fsensor_working_state(ext_sensor);
 
     return side_ok || ext_ok;
 }

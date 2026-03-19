@@ -412,7 +412,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                 does_spool_join = true;
 
                 const auto previous_physical_tool = previous_virtual_tool->to_physical();
-                if (!is_fsensor_working_state(GetExtruderFSensor(previous_physical_tool)->get_state()) && !is_fsensor_working_state(GetSideFSensor(previous_physical_tool)->get_state())) {
+                if (!is_fsensor_working_state(GetExtruderFSensor(previous_physical_tool)) && !is_fsensor_working_state(GetSideFSensor(previous_physical_tool))) {
                     virtual_tool_fails.set(VirtualToolCheck::can_spool_join);
                 }
             }
