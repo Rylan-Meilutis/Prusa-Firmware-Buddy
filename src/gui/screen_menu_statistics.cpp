@@ -14,6 +14,7 @@
 #include <WindowMenuItems.hpp>
 #include <dynamic_index_mapping.hpp>
 #include <MItem_menus.hpp>
+#include <gui/screen/screen_menu_virtual.hpp>
 
 namespace {
 
@@ -173,18 +174,9 @@ private:
     const Stat &stat_;
 };
 
-class WindowMenuStats final : public WindowMenuVirtual {
-public:
-    WindowMenuStats(window_t *parent, Rect16 rect)
-        : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::yes) {
-        setup_items();
-    }
-
-    int item_count() const override {
-        return stats_mapping.total_item_count();
-    }
-
-    void setup_item(ItemVariant &variant, int index) override {
+static constexpr screen_menu_virtual::Configuration statistics_configuration {
+    .item_count = []() -> int { return stats_mapping.total_item_count(); },
+    .item_constructor = [](WindowMenuVirtual::ItemVariant &variant, int index) {
         const auto mapping = stats_mapping.from_index(index);
         switch (mapping.item) {
 
@@ -199,18 +191,13 @@ public:
         case StatsItem::stats_section:
             variant.emplace<MenuItemStats>(stats[mapping.pos_in_section]);
             break;
-        }
-    }
-};
-
-class ScreenStats final : public ScreenMenuBase<WindowMenuStats> {
-public:
-    ScreenStats()
-        : ScreenMenuBase(nullptr, _("STATISTICS"), EFooter::Off) {}
+        } //
+    },
+    .title = N_("STATISTICS"),
 };
 
 } // namespace
 
 MI_STATISTICS::MI_STATISTICS()
-    : MI_SCREEN_BASE(ScreenFactory::Screen<ScreenStats>, N_("Print Statistics")) {
+    : MI_SCREEN_BASE(ScreenFactory::ScreenWithArg<ScreenMenuVirtual>(&statistics_configuration), N_("Print Statistics")) {
 }
