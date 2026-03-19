@@ -106,6 +106,17 @@ LOG_COMPONENT_DEF(Probe, logging::Severity::info);
 #include <config_store/store_instance.hpp>
 #include <marlin_vars.hpp>
 #include <numbers>
+#include <filament.hpp>
+#include "printers.h"
+
+bool probe_should_check_angle_after() {
+#if PRINTER_IS_PRUSA_iX()
+    // don't check angle_after for PA, it often causes MBL fails as the nozzle
+    // is sticking to the PA-specific sheet and the pulling force fails the check
+    return config_store().get_filament_type(active_extruder).parameters().base_preset != PresetFilamentType::PA;
+#endif
+  return true;
+}
 
 #if HAS_AUTO_RETRACT()
   #include <feature/auto_retract/auto_retract.hpp>
@@ -808,7 +819,7 @@ float run_z_probe(const RunZProbeParams& params) {
         }
 
         METRIC_DEF(analysis_result, "probe_analysis", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
-        auto result = loadcell.analysis.Analyse(params.check_angle_after);
+        auto result = loadcell.analysis.Analyse(params.check_angle_after ? *params.check_angle_after : probe_should_check_angle_after());
 
         if (result.has_value()) {
           z_sum += result->z_coordinate;

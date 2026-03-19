@@ -49,13 +49,14 @@
   enum class ApplyToolCorrections : bool { no = false,
       yes = true };
 
+  bool probe_should_check_angle_after();
+
   struct RunZProbeParams {
     float expected_trigger_z;
     bool single_only = false;
     bool *endstop_triggered = nullptr;
-    bool is_nozzle_clean = false;
     uint8_t required_successes = 1;
-    bool check_angle_after = true;
+    std::optional<bool> check_angle_after = std::nullopt;
   };
 
   float run_z_probe(const RunZProbeParams& params);
