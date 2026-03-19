@@ -808,7 +808,7 @@ float run_z_probe(const RunZProbeParams& params) {
         }
 
         METRIC_DEF(analysis_result, "probe_analysis", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
-        auto result = loadcell.analysis.Analyse(params.is_nozzle_clean);
+        auto result = loadcell.analysis.Analyse(params.check_angle_after);
 
         if (result.has_value()) {
           z_sum += result->z_coordinate;
@@ -967,7 +967,7 @@ bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max) {
         .expected_trigger_z = 0.f,
         .single_only = true,
         .endstop_triggered = nullptr,
-        .is_nozzle_clean = true
+        .check_angle_after = false,
       });
       if (planner.draining()) {
         should_continue = false;

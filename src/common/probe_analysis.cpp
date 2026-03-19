@@ -38,7 +38,7 @@ void ProbeAnalysisBase::StoreSample(uint32_t time_us, float currentZ, float curr
 #endif
 }
 
-ProbeAnalysisBase::Result ProbeAnalysisBase::Analyse(bool is_nozzle_clean /*= false*/) {
+ProbeAnalysisBase::Result ProbeAnalysisBase::Analyse(bool check_angle_after) {
     analysisInProgress = true;
     ScopeGuard _sg = [this] {
         analysisInProgress = false;
@@ -163,7 +163,7 @@ ProbeAnalysisBase::Result ProbeAnalysisBase::Analyse(bool is_nozzle_clean /*= fa
     {
         const char *feature = "feature-out-of-range";
         float value;
-        if (HasOutOfRangeFeature(features, &feature, &value, is_nozzle_clean)) {
+        if (HasOutOfRangeFeature(features, &feature, &value, check_angle_after)) {
             return std::unexpected(AnalysisError { .description = feature, .arg = value });
         }
     }
@@ -556,7 +556,7 @@ int ProbeAnalysisBase::Classify(Features &features) {
     }
 }
 
-bool ProbeAnalysisBase::HasOutOfRangeFeature(Features &features, const char **feature, float *value, bool is_nozzle_clean /*= false*/) const {
+bool ProbeAnalysisBase::HasOutOfRangeFeature(Features &features, const char **feature, float *value, bool check_angle_after) const {
     if (features.loadMeanBeforeCompression < -154.48058105323756f || features.loadMeanBeforeCompression > 152.44410035911991f) {
         *feature = "load_mean_before_compression";
         *value = features.loadMeanBeforeCompression;
@@ -647,7 +647,7 @@ bool ProbeAnalysisBase::HasOutOfRangeFeature(Features &features, const char **fe
         *value = features.r2_60ms.decompressionEnd;
         return true;
     }
-    if (!is_nozzle_clean) {
+    if (check_angle_after) {
         // this is too strict for nozzle clean, where 3 consecutive good probes are required.
         auto compressedvsDecompressedAngleAfter = features.compressedLine.CalculateAngle(features.afterDecompressionLine, false);
         if (std::abs(compressedvsDecompressedAngleAfter) > 40) {

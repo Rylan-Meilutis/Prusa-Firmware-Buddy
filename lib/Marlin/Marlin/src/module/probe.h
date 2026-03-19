@@ -55,6 +55,7 @@
     bool *endstop_triggered = nullptr;
     bool is_nozzle_clean = false;
     uint8_t required_successes = 1;
+    bool check_angle_after = true;
   };
 
   float run_z_probe(const RunZProbeParams& params);
