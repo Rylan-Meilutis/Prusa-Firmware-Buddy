@@ -7,6 +7,7 @@
 #include "../PrusaGcodeSuite.hpp"
 #include "../../../lib/Marlin/Marlin/src/gcode/gcode.h"
 #include "M70X.hpp"
+#include <utils/variant_utils.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -46,9 +47,9 @@ void PrusaGcodeSuite::M1700() {
     if (parser.intval('T') == -1) {
         tool = AllTools {}; // -1 means all extruders
     } else {
-        const auto e = GcodeSuite::get_target_extruder_from_command(); // Get particular extruder or current extruder
-        if (e > 0) {
-            tool = VirtualToolIndex::from_raw(e);
+        const std::optional<VirtualToolIndex> vt = stdext::get_optional<VirtualToolIndex>(GcodeSuite::get_target_virtual_from_command()); // Get particular extruder or current extruder
+        if (vt.has_value()) {
+            tool = *vt;
         }
     }
 
@@ -93,12 +94,12 @@ void PrusaGcodeSuite::M1701() {
     const std::optional<float> fast_load_length = std::abs(isL ? parser.value_axis_units(E_AXIS) : FILAMENT_CHANGE_FAST_LOAD_LENGTH);
     const float min_Z_pos = parser.linearval('Z', Z_AXIS_LOAD_POS);
 
-    const int8_t target_extruder = GcodeSuite::get_target_extruder_from_command();
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(GcodeSuite::get_target_virtual_from_command());
+    if (!virtual_tool.has_value()) {
         return;
     }
 
-    filament_gcodes::M1701_autoload(fast_load_length, min_Z_pos, target_extruder);
+    filament_gcodes::M1701_autoload(fast_load_length, min_Z_pos, virtual_tool->to_raw());
 }
 
 /**
@@ -130,8 +131,8 @@ void PrusaGcodeSuite::M1600() {
         return;
     }
 
-    const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command_p(p);
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command_p(p));
+    if (!virtual_tool.has_value()) {
         return;
     }
 
@@ -140,7 +141,7 @@ void PrusaGcodeSuite::M1600() {
     const filament_gcodes::AskFilament_t ask_unload = filament_gcodes::AskFilament_t(p.option<int>('U').value_or(0));
     const bool hasReturn = p.option<bool>('R').value_or(false);
 
-    filament_gcodes::M1600_change_filament(filament_to_be_loaded, VirtualToolIndex::from_raw(target_extruder), hasReturn ? RetAndCool_t::Return : RetAndCool_t::Neither, ask_unload, color_to_be_loaded);
+    filament_gcodes::M1600_change_filament(filament_to_be_loaded, *virtual_tool, hasReturn ? RetAndCool_t::Return : RetAndCool_t::Neither, ask_unload, color_to_be_loaded);
 }
 
 /** @}*/

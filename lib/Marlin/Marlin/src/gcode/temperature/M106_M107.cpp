@@ -40,6 +40,7 @@
     #include "../../module/temperature.h"
     #include "fanctl.hpp"
     #include <device/board.h>
+    #include <utils/variant_utils.hpp>
     #include <option/xbuddy_extension_variant.h>
     #include <pwm_utils.hpp>
 
@@ -200,7 +201,8 @@ void GcodeSuite::M106() {
     if (parser.seen('S') || parser.seen('A') || auto_control) {
         const uint8_t speed = parser.byteval('S', 255);
 
-        if (set_special_fan_speed(p, get_target_extruder_from_command(), speed, auto_control)) {
+        const std::optional<VirtualToolIndex> vt = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+        if (set_special_fan_speed(p, vt.has_value() ? vt->to_raw() : -1, speed, auto_control)) {
             // Done in the function
 
         } else if (p < _CNT_P) {
@@ -254,7 +256,8 @@ void GcodeSuite::M106() {
 void GcodeSuite::M107() {
     const uint8_t p = parser.byteval('P', _ALT_P);
 
-    if (set_special_fan_speed(p, get_target_extruder_from_command(), 0, false)) {
+    const std::optional<VirtualToolIndex> vt = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (set_special_fan_speed(p, vt.has_value() ? vt->to_raw() : -1, 0, false)) {
         return;
     }
 

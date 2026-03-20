@@ -22,6 +22,7 @@
 
 #include "../gcode.h"
 #include "../../module/planner.h"
+#include <utils/variant_utils.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -43,8 +44,8 @@
  */
 void GcodeSuite::M221() {
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  if (!virtual_tool.has_value()) return;
 
   if (parser.seenval('S')) {
     int16_t flow_percentage = parser.value_int();
@@ -53,14 +54,14 @@ void GcodeSuite::M221() {
         flow_percentage = static_cast<int16_t>(flow_percentage / 0.95f);
       }
     #endif
-    planner.flow_percentage[target_extruder] = flow_percentage;
-    planner.refresh_e_factor(target_extruder);
+    planner.flow_percentage[*virtual_tool] = flow_percentage;
+    planner.refresh_e_factor(virtual_tool->to_raw());
   }
   else {
     SERIAL_ECHO_START();
     SERIAL_CHAR('E');
-    SERIAL_CHAR('0' + target_extruder);
-    SERIAL_ECHOPAIR(" Flow: ", planner.flow_percentage[target_extruder]);
+    SERIAL_CHAR('0' + virtual_tool->to_raw());
+    SERIAL_ECHOPAIR(" Flow: ", planner.flow_percentage[*virtual_tool]);
     SERIAL_CHAR('%');
     SERIAL_EOL();
   }

@@ -27,6 +27,7 @@ static_assert(HAS_PAUSE());
 
 #include "../../../lib/Marlin/Marlin/src/gcode/gcode.h"
 #include "../../../lib/Marlin/Marlin/src/feature/pause.h"
+#include <utils/variant_utils.hpp>
 #include "../../../lib/Marlin/Marlin/src/module/motion.h"
 #include "../../../lib/Marlin/Marlin/src/module/printcounter.h"
 
@@ -53,24 +54,24 @@ static_assert(HAS_PAUSE());
  */
 void GcodeSuite::M603() {
 
-    const int8_t target_extruder = get_target_extruder_from_command();
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (!virtual_tool.has_value()) {
         return;
     }
 
     // Unload length
     if (parser.seen('U')) {
-        fc_settings[target_extruder].unload_length = ABS(parser.value_axis_units(E_AXIS));
+        fc_settings[virtual_tool->to_raw()].unload_length = ABS(parser.value_axis_units(E_AXIS));
 #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-        NOMORE(fc_settings[target_extruder].unload_length, EXTRUDE_MAXLENGTH);
+        NOMORE(fc_settings[virtual_tool->to_raw()].unload_length, EXTRUDE_MAXLENGTH);
 #endif
     }
 
     // Load length
     if (parser.seen('L')) {
-        fc_settings[target_extruder].load_length = ABS(parser.value_axis_units(E_AXIS));
+        fc_settings[virtual_tool->to_raw()].load_length = ABS(parser.value_axis_units(E_AXIS));
 #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-        NOMORE(fc_settings[target_extruder].load_length, EXTRUDE_MAXLENGTH);
+        NOMORE(fc_settings[virtual_tool->to_raw()].load_length, EXTRUDE_MAXLENGTH);
 #endif
     }
 }

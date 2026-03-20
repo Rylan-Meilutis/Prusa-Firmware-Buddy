@@ -28,6 +28,7 @@
 #include "../../module/temperature.h"
 #include "../../module/motion.h"
 #include "../../lcd/ultralcd.h"
+#include <utils/variant_utils.hpp>
 
 #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
   #include "../../module/printcounter.h"
@@ -54,10 +55,10 @@
 void GcodeSuite::M142() {
   if (DEBUGGING(DRYRUN)) return;
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  if (!virtual_tool.has_value()) return;
 
-  if (parser.seenval('S')) thermalManager.setTargetHeatbreak(static_cast<int16_t>(parser.value_celsius()), target_extruder);
+  if (parser.seenval('S')) thermalManager.setTargetHeatbreak(static_cast<int16_t>(parser.value_celsius()), virtual_tool->to_raw());
 }
 
 /** @}*/

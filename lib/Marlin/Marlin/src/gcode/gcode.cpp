@@ -95,7 +95,7 @@ PrinterGCodeCompatibilityReport GcodeSuite::compatibility;
   GcodeSuite::WorkspacePlane GcodeSuite::workspace_plane = PLANE_XY;
 #endif
 
-std::variant<VirtualToolIndex, NoTool, GcodeSuite::ToolParsingError> GcodeSuite::get_virtual_tool_from_command(uint8_t tool_index, bool tool_mapping) {
+GcodeSuite::VirtualToolFromCommand GcodeSuite::get_virtual_tool_from_command(uint8_t tool_index, bool tool_mapping) {
   if(tool_mapping) {
     if (tool_index > GcodeToolIndex::count) {
       return ToolParsingError { .msg =  "Invalid tool index" };
@@ -103,13 +103,9 @@ std::variant<VirtualToolIndex, NoTool, GcodeSuite::ToolParsingError> GcodeSuite:
     } else if (tool_index == GcodeToolIndex::count) {
       return NoTool{};
     }
-    
-    using Result = std::variant<VirtualToolIndex, NoTool, ToolParsingError>;
-    return match(GcodeToolIndex::from_raw(tool_index).to_virtual(),
-      [] (VirtualToolIndex virtual_tool) -> Result { return virtual_tool; },
-      [] (ToolNotMapped) -> Result { return ToolParsingError { .msg = "Tool is not mapped" }; }
-    );
-    
+
+    return stdext::to_variant(GcodeToolIndex::from_raw(tool_index).to_virtual());
+
   } else {
     if (tool_index > VirtualToolIndex::count) {
       return ToolParsingError { .msg = "Invalid tool index" };
@@ -123,38 +119,54 @@ std::variant<VirtualToolIndex, NoTool, GcodeSuite::ToolParsingError> GcodeSuite:
   }
 }
 
-int8_t GcodeSuite::get_target_extruder_from_optional(std::optional<uint8_t> extruder, const bool tool_map) {
+GcodeSuite::VirtualToolFromCommand GcodeSuite::get_target_virtual_from_optional(std::optional<uint8_t> extruder, const bool tool_map) {
   auto maybe_virtual = extruder.transform([&](uint8_t e){
     return get_virtual_tool_from_command(e, tool_map);
   }).value_or(stdext::to_variant(VirtualToolIndex::currently_selected()));
 
-  auto virtual_tool = std::get_if<VirtualToolIndex>(&maybe_virtual);
-  if (virtual_tool && virtual_tool->is_enabled()) {
-    return virtual_tool->to_raw();
-  }
+  const auto report_error = [&]() {
+    SERIAL_ECHO_START();
+    SERIAL_ECHOLNPAIR(" " MSG_INVALID_EXTRUDER " ", static_cast<std::optional<int>>(extruder).value_or(-1));
+  };
 
-  SERIAL_ECHO_START();
-  SERIAL_ECHOLNPAIR(" " MSG_INVALID_EXTRUDER " ", static_cast<std::optional<int>>(extruder).value_or(-1));
-  auto error = std::get_if<ToolParsingError>(&maybe_virtual);
-  if (error) {
-    SERIAL_ECHOLNPAIR(" ", error->msg);
-  }
-  return -1;
+  return match(maybe_virtual,
+    [&](VirtualToolIndex vt) -> VirtualToolFromCommand {
+      if (vt.is_enabled()) {
+        return vt;
+      } else {
+        report_error();
+        return ToolParsingError { .msg = "Tool is disabled" };
+      }
+    },
+    [&](NoTool) -> VirtualToolFromCommand {
+      report_error();
+      return NoTool{};
+    },
+    [&](ToolNotMapped tnm) -> VirtualToolFromCommand {
+      report_error();
+      return tnm;
+    },
+    [&](ToolParsingError err) -> VirtualToolFromCommand {
+      report_error();
+      SERIAL_ECHOLNPAIR(" ", err.msg);
+      return err;
+    }
+  );
 }
 
 /**
- * Get the target extruder from the T parameter or the active_extruder
- * Return -1 if the T parameter is out of range
+ * Get the target extruder from the T parameter or the currently selected tool.
+ * Returns VirtualToolFromCommand variant (VirtualToolIndex, NoTool, ToolNotMapped, or ToolParsingError).
  */
-int8_t GcodeSuite::get_target_extruder_from_command() {
-  return get_target_extruder_from_optional(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt, true);
+GcodeSuite::VirtualToolFromCommand GcodeSuite::get_target_virtual_from_command() {
+  return get_target_virtual_from_optional(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt, true);
 }
 
 /**
  * + specify if target extruder is logical or physical
  */
-int8_t GcodeSuite::get_target_extruder_from_command_p() {
-  return get_target_extruder_from_optional(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt, 
+GcodeSuite::VirtualToolFromCommand GcodeSuite::get_target_virtual_from_command_p() {
+  return get_target_virtual_from_optional(parser.seenval('T') ? std::optional(parser.value_byte()) : std::nullopt,
   parser.seen('P') ? !parser.value_bool() : true);
 }
 /**

@@ -4,6 +4,7 @@
 #include "M70X.hpp"
 #include "fs_event_autolock.hpp"
 #include "../../../lib/Marlin/Marlin/src/gcode/gcode.h"
+#include <utils/variant_utils.hpp>
 #include "../../../lib/Marlin/Marlin/src/feature/prusa/e-stall_detector.h"
 #include "pause_stubbed.hpp"
 #include "pause_settings.hpp"
@@ -52,11 +53,11 @@ void GcodeSuite::M701() {
     const float min_Z_pos = p.option<float>('Z').value_or(Z_AXIS_LOAD_POS);
     const auto op_preheat = p.option<RetAndCool_t>('W', std::to_underlying(RetAndCool_t::last_) + 1);
 
-    const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command(p);
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command(p));
+    if (!virtual_tool.has_value()) {
         return;
     }
-    const auto target_tool = VirtualToolIndex::from_raw(target_extruder);
+    const VirtualToolIndex target_tool = *virtual_tool;
 
     const int8_t mmu_slot = p.option<int8_t>('P').value_or(-1);
     const ResumePrint_t resume_print = static_cast<ResumePrint_t>(p.option<bool>('R').value_or(false));
@@ -92,11 +93,11 @@ void GcodeSuite::M702() {
     const uint8_t preheat = parser.byteval('W', 255);
     const bool ask_unloaded = parser.seen('I');
 
-    const int8_t target_extruder = GcodeSuite::get_target_extruder_from_command();
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(GcodeSuite::get_target_virtual_from_command());
+    if (!virtual_tool.has_value()) {
         return;
     }
-    const auto target_tool = VirtualToolIndex::from_raw(target_extruder);
+    const VirtualToolIndex target_tool = *virtual_tool;
 
     std::optional<RetAndCool_t> op_preheat = std::nullopt;
     if (preheat <= uint8_t(RetAndCool_t::last_)) {

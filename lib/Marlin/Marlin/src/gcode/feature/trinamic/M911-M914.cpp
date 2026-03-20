@@ -28,6 +28,7 @@
 #include "../../../feature/tmc_util.h"
 #include "../../../module/stepper/indirection.h"
 #include "../../../module/planner.h"
+#include <utils/variant_utils.hpp>
 #include "../../queue.h"
 
 #include "config_store/store_instance.hpp"
@@ -282,9 +283,9 @@
           break;
         case E_AXIS: {
           #if E_STEPPERS
-            const int8_t target_extruder = get_target_extruder_from_command();
-            if (target_extruder < 0) return;
-            switch (target_extruder) {
+            const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+            if (!virtual_tool.has_value()) return;
+            switch (virtual_tool->to_raw()) {
               #if AXIS_HAS_STEALTHCHOP(E0)
                 case 0: TMC_SET_PWMTHRS_E(0); break;
               #endif

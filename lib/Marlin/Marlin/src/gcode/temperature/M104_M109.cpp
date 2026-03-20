@@ -29,6 +29,7 @@
 #include "../../module/motion.h"
 #include "../../module/planner.h"
 #include "../../lcd/ultralcd.h"
+#include <utils/variant_utils.hpp>
 #include "../../Marlin.h"
 
 #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
@@ -66,8 +67,9 @@ void GcodeSuite::M104() {
   #if HAS_MMU2() // MMU2 doesn't handle different temps per slot, sayonara! (TODO?)
 	  constexpr int8_t target_extruder = 0;
   #else
-    const int8_t target_extruder = get_target_extruder_from_command();
-    if (target_extruder < 0) return;
+    const std::optional<VirtualToolIndex> te = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (!te.has_value()) return;
+    const uint8_t target_extruder = te->to_raw();
   #endif
 
   if (parser.seenval('S')) {
@@ -117,8 +119,9 @@ void GcodeSuite::M109() {
    #if HAS_MMU2() // MMU2 doesn't handle different temps per slot, sayonara! (TODO?)
     constexpr int8_t target_extruder = 0;
   #else
-    const int8_t target_extruder = get_target_extruder_from_command();
-    if (target_extruder < 0) return;
+    const std::optional<VirtualToolIndex> te = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (!te.has_value()) return;
+    const uint8_t target_extruder = te->to_raw();
   #endif
   M109Flags flags {
     .target_temp = static_cast<int16_t>(

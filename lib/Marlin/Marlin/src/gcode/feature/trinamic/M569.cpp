@@ -27,6 +27,7 @@
 #include "../../gcode.h"
 #include "../../../feature/tmc_util.h"
 #include "../../../module/stepper/indirection.h"
+#include <utils/variant_utils.hpp>
 
 template<typename TMC>
 void tmc_say_stealth_status(TMC &st) {
@@ -186,9 +187,9 @@ static void say_stealth_status() {
  */
 void GcodeSuite::M569() {
   if (parser.seen('S')){
-    int8_t target_extruder = get_target_extruder_from_command();
-    if (target_extruder < 0) return;
-    set_stealth_status(parser.value_bool(), target_extruder);
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (!virtual_tool.has_value()) return;
+    set_stealth_status(parser.value_bool(), virtual_tool->to_raw());
   } else
     say_stealth_status();
 }

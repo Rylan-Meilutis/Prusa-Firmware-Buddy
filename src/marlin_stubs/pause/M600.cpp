@@ -150,11 +150,11 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool,
     std::optional<FilamentType> filament_type, bool);
 
 void M600_manual(const GCodeParser2 &p) {
-    const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command_p(p);
-    if (target_extruder < 0) {
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command_p(p));
+    if (!virtual_tool.has_value()) {
         return;
     }
-    auto target_tool = VirtualToolIndex::from_raw(target_extruder);
+    VirtualToolIndex target_tool = *virtual_tool;
 
     XYZval<float, LogicalPosTag> logical_park_point { NAN, NAN, NAN };
 

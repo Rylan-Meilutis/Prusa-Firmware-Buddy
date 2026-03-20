@@ -22,6 +22,7 @@
 
 #include "../gcode.h"
 #include "../../module/temperature.h"
+#include <utils/variant_utils.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -42,14 +43,14 @@
  */
 void GcodeSuite::M105() {
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  if (!virtual_tool.has_value()) return;
 
   SERIAL_ECHOPGM(MSG_OK);
 
   #if HAS_TEMP_SENSOR
 
-    thermalManager.print_heater_states(target_extruder);
+    thermalManager.print_heater_states(virtual_tool->to_raw());
 
     SERIAL_EOL();
 

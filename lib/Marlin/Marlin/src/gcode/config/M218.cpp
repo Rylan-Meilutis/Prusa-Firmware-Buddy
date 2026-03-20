@@ -26,6 +26,7 @@
 
 #include "../gcode.h"
 #include "../../module/motion.h"
+#include <utils/variant_utils.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -50,12 +51,14 @@
  */
 void GcodeSuite::M218() {
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0 || target_extruder >= PhysicalToolIndex::count) {
-    SERIAL_ECHOLNPAIR("M218 wrong tool: ", target_extruder);
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  // FIXME: The virtual_tool->to_raw() >= PhysicalToolIndex::count is clearly wrong.
+  // Will be fixed in some follow-up commit.
+  if (!virtual_tool.has_value() || virtual_tool->to_raw() >= PhysicalToolIndex::count) {
+    SERIAL_ECHOLNPAIR("M218 wrong tool: ", virtual_tool.has_value() ? (int)virtual_tool->to_raw() : -1);
     return;
   }
-  auto tool = PhysicalToolIndex::from_raw(target_extruder);
+  auto tool = PhysicalToolIndex::from_raw(virtual_tool->to_raw());
 
   if (parser.seenval('X')) hotend_offset[tool].x = parser.value_linear_units();
   if (parser.seenval('Y')) hotend_offset[tool].y = parser.value_linear_units();

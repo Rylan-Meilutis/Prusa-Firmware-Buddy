@@ -236,13 +236,13 @@ private:
  *
  */
 void PrusaGcodeSuite::M1979() {
-    int8_t target_tool = GcodeSuite::get_target_extruder_from_command();
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(GcodeSuite::get_target_virtual_from_command());
 
     // Wrong value specified in T argument
-    if (target_tool == -1) {
+    if (!virtual_tool.has_value()) {
         return;
     }
-    GearboxAlignmentWizard ga(target_tool);
+    GearboxAlignmentWizard ga(virtual_tool->to_raw());
     ga.execute();
 }
 

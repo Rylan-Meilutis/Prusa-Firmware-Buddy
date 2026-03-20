@@ -3,6 +3,7 @@
  */
 #pragma once
 #include "../../lib/Marlin/Marlin/src/gcode/parser.h"
+#include "../../lib/Marlin/Marlin/src/gcode/gcode.h"
 
 #include <option/has_esp.h>
 #include <option/has_toolchanger.h>
@@ -28,8 +29,8 @@
  */
 namespace PrusaGcodeSuite {
 
-int8_t get_target_extruder_from_command(const GCodeParser2 &p);
-int8_t get_target_extruder_from_command_p(const GCodeParser2 &p);
+GcodeSuite::VirtualToolFromCommand get_target_virtual_from_command(const GCodeParser2 &p);
+GcodeSuite::VirtualToolFromCommand get_target_virtual_from_command_p(const GCodeParser2 &p);
 /** \defgroup G-Codes G-Code Commands
  * @{
  */

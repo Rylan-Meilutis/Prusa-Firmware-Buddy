@@ -23,6 +23,7 @@
 #include "../gcode.h"
 #include "../../Marlin.h"
 #include "../../module/planner.h"
+#include <utils/variant_utils.hpp>
 
 #if DISABLED(NO_VOLUMETRICS)
 
@@ -46,15 +47,15 @@
   */
   void GcodeSuite::M200() {
 
-    const int8_t target_extruder = get_target_extruder_from_command();
-    if (target_extruder < 0) return;
+    const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+    if (!virtual_tool.has_value()) return;
 
     if (parser.seen('D')) {
       // setting any extruder filament size disables volumetric on the assumption that
       // slicers either generate in extruder values as cubic mm or as as filament feeds
       // for all extruders
       if ( (parser.volumetric_enabled = (parser.value_linear_units() != 0)) )
-        planner.set_filament_size(target_extruder, parser.value_linear_units());
+        planner.set_filament_size(virtual_tool->to_raw(), parser.value_linear_units());
     }
     planner.calculate_volumetric_multipliers();
   }
@@ -86,12 +87,12 @@
  */
 void GcodeSuite::M201() {
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  if (!virtual_tool.has_value()) return;
 
   LOOP_XYZE(i) {
     if (parser.seen(axis_codes[i])) {
-      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(target_extruder)) : i);
+      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(virtual_tool->to_raw())) : i);
       planner.set_max_acceleration(a, parser.value_axis_units((AxisEnum)a));
     }
   }
@@ -116,12 +117,12 @@ void GcodeSuite::M201() {
  */
 void GcodeSuite::M203() {
 
-  const int8_t target_extruder = get_target_extruder_from_command();
-  if (target_extruder < 0) return;
+  const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  if (!virtual_tool.has_value()) return;
 
   LOOP_XYZE(i)
     if (parser.seen(axis_codes[i])) {
-      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(target_extruder)) : i);
+      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(virtual_tool->to_raw())) : i);
       planner.set_max_feedrate(a, parser.value_axis_units((AxisEnum)a));
     }
 }

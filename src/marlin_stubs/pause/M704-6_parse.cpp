@@ -53,6 +53,7 @@ void PrusaGcodeSuite::M1704() {
         tool,
         [](VirtualToolIndex virtual_tool) { filament_gcodes::mmu_load_test(virtual_tool); },
         [](NoTool) {},
+        [](ToolNotMapped) { fatal_error("Tool is not mapped", "PrusaGcodeSuite"); },
         [](GcodeSuite::ToolParsingError error) { fatal_error(error.msg, "PrusaGcodeSuite"); });
 }
 
