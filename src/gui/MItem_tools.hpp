@@ -266,14 +266,14 @@ protected:
     static FilamentSensorStateAndValue get_value(IFSensor *fsensor);
 };
 
-class MI_INFO_PRINTER_FILL_SENSOR : public MI_INFO_FILAMENT_SENSOR {
+class MI_INFO_PRINTER_FILAMENT_SENSOR : public MI_INFO_FILAMENT_SENSOR {
 public:
-    MI_INFO_PRINTER_FILL_SENSOR();
+    MI_INFO_PRINTER_FILAMENT_SENSOR();
 };
 
-class MI_INFO_SIDE_FILL_SENSOR : public MI_INFO_FILAMENT_SENSOR {
+class MI_INFO_SIDE_FILAMENT_SENSOR : public MI_INFO_FILAMENT_SENSOR {
 public:
-    MI_INFO_SIDE_FILL_SENSOR();
+    MI_INFO_SIDE_FILAMENT_SENSOR();
 };
 
 class MI_PRINT_PROGRESS_TIME : public WiSpin {

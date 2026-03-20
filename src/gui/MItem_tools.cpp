@@ -545,8 +545,8 @@ FilamentSensorStateAndValue MI_INFO_FILAMENT_SENSOR::get_value(IFSensor *fsensor
 }
 
 /*****************************************************************************/
-// MI_INFO_PRINTER_FILL_SENSOR
-MI_INFO_PRINTER_FILL_SENSOR::MI_INFO_PRINTER_FILL_SENSOR()
+// MI_INFO_PRINTER_FILAMENT_SENSOR
+MI_INFO_PRINTER_FILAMENT_SENSOR::MI_INFO_PRINTER_FILAMENT_SENSOR()
     : MI_INFO_FILAMENT_SENSOR(
         PRINTER_IS_PRUSA_XL() ? _("Tool Filament sensor") : _("Filament Sensor"),
         [](auto) {
@@ -558,8 +558,8 @@ MI_INFO_PRINTER_FILL_SENSOR::MI_INFO_PRINTER_FILL_SENSOR()
     ) {}
 
 /*****************************************************************************/
-// MI_INFO_SIDE_FILL_SENSOR
-MI_INFO_SIDE_FILL_SENSOR::MI_INFO_SIDE_FILL_SENSOR()
+// MI_INFO_SIDE_FILAMENT_SENSOR
+MI_INFO_SIDE_FILAMENT_SENSOR::MI_INFO_SIDE_FILAMENT_SENSOR()
     : MI_INFO_FILAMENT_SENSOR(
         _("Side Filament sensor"),
         [](auto) {
