@@ -673,7 +673,7 @@ void MediaPrefetchManager::read_entry_raw(void *target, size_t bytes) {
 
     // Possibly split into two memcpy calls, if the data wraps around the buffer end
     const auto nonwrapped_bytes = std::min(bytes, buffer_size - read_pos);
-    memcpy(target, &buffer[read_pos], bytes);
+    memcpy(target, &buffer[read_pos], nonwrapped_bytes);
     memcpy(reinterpret_cast<uint8_t *>(target) + nonwrapped_bytes, &buffer[0], bytes - nonwrapped_bytes);
 
     read_pos = (read_pos + bytes) % buffer_size;
