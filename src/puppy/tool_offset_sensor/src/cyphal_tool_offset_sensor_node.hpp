@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cyphal_node.hpp>
+#include <freertos/mutex.hpp>
 
 // Optimize Cyphal headers for size
 #pragma GCC push_options
@@ -9,6 +10,7 @@
 #include <prusa3d/common/PortIds_0_1.h>
 #include <prusa3d/tool_offset_sensor/Status_1_0.h>
 #include <prusa3d/tool_offset_sensor/Config_1_0.h>
+#include <prusa3d/tool_offset_sensor/Data_1_0.h>
 #include <honeybee_shared_fault.hpp>
 #include <utils/uncopyable.hpp>
 
@@ -45,16 +47,31 @@ using ToolOffsetSensorNodeBase = can::cyphal::Node<
     can::cyphal::defaults::WatchNodes,
     can::cyphal::defaults::Notify,
     2, // node_id_request
-    14 // MAX_REGISTERS
+    13 // MAX_REGISTERS
     >;
 
-/// Task that handles the CAN business logic. Mostly just enqueues requests to the tool_offset_sensor task
 class ToolOffsetSensorNode : public ToolOffsetSensorNodeBase, Uncopyable {
 
 public:
     using UID = std::array<uint8_t, sizeof(uavcan_node_GetInfo_Response_1_0::unique_id)>;
 
     ToolOffsetSensorNode(const UID &uid);
+
+    struct ChannelConfig {
+        bool ch0_enabled = false;
+        bool ch1_enabled = false;
+    };
+
+    // Read config snapshot atomically (mutex-guarded)
+    ChannelConfig get_config();
+
+    // Written by node task via write_config()
+    freertos::Mutex config_mutex;
+    ChannelConfig config;
+
+    // Thread-safe publish methods for main task to call
+    void publish_data_ch0(const prusa3d_tool_offset_sensor_Data_1_0 &data);
+    void publish_data_ch1(const prusa3d_tool_offset_sensor_Data_1_0 &data);
 
 protected:
     void app_init() override;
@@ -63,7 +80,16 @@ protected:
     void write_config(const ConfigTraits::Request::Type &config) override;
     void update_status(StatusTraits::Type &data) override;
 
-private: //* Business logic
+private:
+    can::cyphal::SenderDataTraited<
+        prusa3d_tool_offset_sensor_Data_1_0_Traits,
+        prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH0>
+        data_ch0_sender;
+
+    can::cyphal::SenderDataTraited<
+        prusa3d_tool_offset_sensor_Data_1_0_Traits,
+        prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1>
+        data_ch1_sender;
 };
 
 } // namespace tool_offset_sensor::cyphal

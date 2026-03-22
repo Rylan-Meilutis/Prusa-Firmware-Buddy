@@ -12,111 +12,264 @@
 #include <o1heap/o1heap.hpp>
 #include <cstring>
 #include <ldc1612.hpp>
+#include <sampling_rate_tracker.hpp>
+#include <timing.h>
+#include <prusa3d/tool_offset_sensor/Data_1_0.h>
 
 LOG_COMPONENT_REF(LDC1612)
 
 // This magical incantation is required for fw_descriptor integration in cmake to work.
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
 
-static void main_task_code(void *) {
+// Forward declaration
+extern tool_offset_sensor::cyphal::ToolOffsetSensorNode can_node;
 
+namespace {
+
+constexpr LDC1612::ChannelConfig default_ch_config {
+    .rcount = 4096,
+    .settlecount = 64,
+    .fin_divider = 1,
+    .fref_divider = 1,
+    .drive_current = 30,
+    .offset = 0
+};
+
+constexpr LDC1612::DeviceConfig device_config {
+    .sleep_mode = false,
+    .use_external_clock = true,
+    .rp_override_en = false,
+    .auto_amp_dis = false,
+    .mux_config = {
+        .deglitch = LDC1612::DeglitchFilter::MHz_10 },
+    .error_config = {
+        .report_underrange = true,
+        .report_overrange = true,
+        .report_watchdog = true,
+        .report_amplitude_high = false,
+        .report_amplitude_low = false,
+        .int_on_underrange = false,
+        .int_on_overrange = false,
+        .int_on_watchdog = false,
+        .int_on_amplitude_high = false,
+        .int_on_amplitude_low = false,
+        .int_on_zero_count = false,
+        .int_on_data_ready = true,
+    },
+    .ch0 = default_ch_config,
+    .ch1 = default_ch_config
+};
+
+constexpr size_t max_deltas = prusa3d_tool_offset_sensor_Data_1_0_deltas_ARRAY_CAPACITY_;
+
+// Delta compression state for one channel
+struct DeltaCompressor {
+    prusa3d_tool_offset_sensor_Data_1_0 msg = {};
+    int32_t last_sample = 0;
+    bool has_first = false;
+
+    void reset() {
+        memset(&msg, 0, sizeof(msg));
+        last_sample = 0;
+        has_first = false;
+    }
+
+    // Feed a raw sample. Returns true when the message is full and ready to send.
+    bool feed(int32_t sample, uint32_t freq_16_8) {
+        if (!has_first) {
+            msg.frequency = freq_16_8;
+            msg.sample = sample;
+            msg.deltas.count = 0;
+            last_sample = sample;
+            has_first = true;
+            return false;
+        }
+
+        int32_t delta = sample - last_sample;
+        if (delta < INT16_MIN || delta > INT16_MAX || msg.deltas.count >= max_deltas) {
+            // Delta overflow or batch full — message is ready to send.
+            // The current sample will be the first of the next message.
+            // We intentionally do NOT update msg.frequency here: the frame
+            // being flushed should carry the frequency measured at the time
+            // of its last successfully added sample, not the one that
+            // triggered the overflow. The new frequency will go into the
+            // next frame via flush().
+            return true;
+        }
+
+        msg.frequency = freq_16_8;
+        msg.deltas.elements[msg.deltas.count++] = static_cast<int16_t>(delta);
+        last_sample = sample;
+        return false;
+    }
+
+    // Flush a partial frame (if any). Returns true if a message was produced.
+    bool flush_partial(uint8_t &seq) {
+        if (!has_first) {
+            return false;
+        }
+        msg.sequence = seq++;
+        return true;
+    }
+
+    // Prepare the message for sending, start fresh with a new sample.
+    prusa3d_tool_offset_sensor_Data_1_0 flush(uint8_t &sequence, int32_t next_sample, uint32_t freq_16_8) {
+        msg.sequence = sequence++;
+        auto result = msg;
+
+        // Start new message with the sample that didn't fit
+        reset();
+        has_first = true;
+        msg.sample = next_sample;
+        msg.frequency = freq_16_8;
+        last_sample = next_sample;
+
+        return result;
+    }
+};
+
+bool initialize_ldc(LDC1612 &ldc, bool ch0, bool ch1) {
     hal::ldc1612_set_enabled(true);
     freertos::delay(5);
 
-    while (true) { // repeat initialization until successful
-        if (hal::ldc1612.is_device_present()) {
-            log_debug(LDC1612, "Device detected successfully");
-        } else {
-            log_error(LDC1612, "Device not detected");
-            freertos::delay(1000);
-            continue;
-        }
-
-        if (hal::ldc1612.reset()) {
-            log_debug(LDC1612, "Device reset successfully");
-        } else {
-            log_error(LDC1612, "Failed to reset device");
-            freertos::delay(1000);
-            continue;
-        }
-
-        LDC1612::ChannelConfig ch_config {
-            .rcount = 4096,
-            .settlecount = 64,
-            .fin_divider = 1,
-            .fref_divider = 1,
-            .drive_current = 30,
-            .offset = 0
-        };
-
-        LDC1612::DeviceConfig device_config {
-            .sleep_mode = false,
-            .use_external_clock = true,
-            .rp_override_en = false,
-            .auto_amp_dis = false,
-            .mux_config = {
-                .deglitch = LDC1612::DeglitchFilter::MHz_10 },
-            .error_config = {
-                .report_underrange = true,
-                .report_overrange = true,
-                .report_watchdog = true,
-                .report_amplitude_high = false,
-                .report_amplitude_low = false,
-                .int_on_underrange = false,
-                .int_on_overrange = false,
-                .int_on_watchdog = false,
-                .int_on_amplitude_high = false,
-                .int_on_amplitude_low = false,
-                .int_on_zero_count = false,
-                .int_on_data_ready = true,
-            },
-            .ch0 = ch_config,
-            .ch1 = ch_config
-        };
-
-        if (hal::ldc1612.initialize(device_config)) {
-            log_debug(LDC1612, "Device initialized successfully");
-        } else {
-            log_error(LDC1612, "Failed to initialize device");
-            freertos::delay(1000);
-            continue;
-        }
-
-        if (hal::ldc1612.set_dual_channel_mode()) {
-            log_debug(LDC1612, "Dual channel mode set successfully");
-        } else {
-            log_error(LDC1612, "Failed to set dual channel mode");
-            freertos::delay(1000);
-            continue;
-        }
-        break;
+    if (!ldc.is_device_present()) {
+        log_error(LDC1612, "LDC1612 not detected");
+        return false;
     }
 
-    while (true) {
-        static uint8_t consecutive_failures = 0;
+    ldc.reset();
+    if (!ldc.initialize(device_config)) {
+        log_error(LDC1612, "LDC1612 init failed");
+        return false;
+    }
 
+    if (ch0 && ch1) {
+        ldc.set_dual_channel_mode();
+    } else if (ch0) {
+        ldc.set_single_channel_mode(LDC1612::Channel::CH0);
+    } else {
+        ldc.set_single_channel_mode(LDC1612::Channel::CH1);
+    }
+
+    return true;
+}
+
+using PublishFn = void (*)(const prusa3d_tool_offset_sensor_Data_1_0 &);
+
+void publish_ch0(const prusa3d_tool_offset_sensor_Data_1_0 &msg) { can_node.publish_data_ch0(msg); }
+void publish_ch1(const prusa3d_tool_offset_sensor_Data_1_0 &msg) { can_node.publish_data_ch1(msg); }
+
+struct ChannelState {
+    SamplingRateTracker<32> rate { 32 };
+    DeltaCompressor delta;
+    uint8_t seq = 0;
+    PublishFn publish;
+
+    explicit ChannelState(PublishFn publish)
+        : publish(publish) {}
+
+    void flush_and_publish() {
+        if (delta.flush_partial(seq)) {
+            publish(delta.msg);
+        }
+        delta.reset();
+    }
+
+    void reset() {
+        rate.reset();
+        delta.reset();
+    }
+
+    void read_and_publish(LDC1612 &ldc, LDC1612::Channel channel, uint32_t now_us) {
+        auto data = ldc.read_channel(channel);
+        if (!data.has_value()) {
+            return;
+        }
+
+        rate.record(now_us);
+        uint32_t freq = rate.get_frequency_16_8();
+        int32_t sample = static_cast<int32_t>(data.value());
+
+        if (delta.feed(sample, freq)) {
+            publish(delta.flush(seq, sample, freq));
+        }
+    }
+};
+
+} // namespace
+
+static void main_task_code(void *) {
+    LDC1612 ldc;
+    ChannelState ch0_state(publish_ch0);
+    ChannelState ch1_state(publish_ch1);
+
+    bool ldc_powered = false;
+    bool prev_ch0 = false;
+    bool prev_ch1 = false;
+
+    while (true) {
+        auto cfg = can_node.get_config();
+        bool ch0 = cfg.ch0_enabled;
+        bool ch1 = cfg.ch1_enabled;
+
+        bool config_changed = (ch0 != prev_ch0) || (ch1 != prev_ch1);
+        prev_ch0 = ch0;
+        prev_ch1 = ch1;
+
+        static uint8_t consecutive_failures = 0;
         if (consecutive_failures >= 5) {
             log_error(LDC1612, "Too many consecutive failures, resetting board");
             freertos::delay(100); // delay to propagate message before reset
             hal::reset();
         }
 
-        if (!hal::ldc_data_ready.try_acquire_for(200)) {
-            log_warning(LDC1612, "No data ready (timeout)");
+        // Nothing to do - ensure sensor is off and idle
+        if (!ch0 && !ch1) {
+            if (ldc_powered) {
+                ch0_state.flush_and_publish();
+                ch1_state.flush_and_publish();
+                hal::ldc1612_set_enabled(false);
+                ldc_powered = false;
+            }
+            freertos::delay(10);
+            consecutive_failures = 0;
+            continue;
+        }
+
+        // (Re)configure the sensor when first powering on or config changed
+        if (!ldc_powered || config_changed) {
+            if (ldc_powered) {
+                ch0_state.flush_and_publish();
+                ch1_state.flush_and_publish();
+                hal::ldc1612_set_enabled(false);
+                freertos::delay(1);
+            }
+
+            if (!initialize_ldc(ldc, ch0, ch1)) {
+                consecutive_failures++;
+                ldc_powered = false;
+                freertos::delay(10);
+                continue;
+            }
+
+            ldc_powered = true;
+            ch0_state.reset();
+            ch1_state.reset();
+        }
+
+        // Wait for data-ready interrupt
+        if (!hal::ldc_data_ready.try_acquire_for(50)) {
             consecutive_failures++;
             continue;
         }
 
-        freertos::delay(100);
+        uint32_t now_us = static_cast<uint32_t>(ticks_us());
 
-        auto ch0_data = hal::ldc1612.read_channel(LDC1612::Channel::CH0);
-        auto ch1_data = hal::ldc1612.read_channel(LDC1612::Channel::CH1);
-        if (ch0_data.has_value() && ch1_data.has_value()) {
-            log_warning(LDC1612, "CH0: %u, CH1: %u", static_cast<unsigned int>(ch0_data.value()), static_cast<unsigned int>(ch1_data.value()));
-            consecutive_failures = 0;
-        } else {
-            log_warning(LDC1612, "Failed to read channel data");
-            consecutive_failures++;
+        if (ch0) {
+            ch0_state.read_and_publish(ldc, LDC1612::Channel::CH0, now_us);
+        }
+        if (ch1) {
+            ch1_state.read_and_publish(ldc, LDC1612::Channel::CH1, now_us);
         }
     }
 }
