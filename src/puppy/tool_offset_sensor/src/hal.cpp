@@ -49,6 +49,10 @@ void HAL_MspInit(void) {
     // so it is easier to track possible future changes
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
+
+    // On UFQFPN32, PA11/PA12 are remapped to PA9/PA10 by default.
+    // Disable both remaps so PA9 (MCO) and PA12 (LDC1612_SD) work correctly.
+    SYSCFG->CFGR1 &= ~(SYSCFG_CFGR1_PA11_RMP | SYSCFG_CFGR1_PA12_RMP);
 }
 
 void hal::init() {
