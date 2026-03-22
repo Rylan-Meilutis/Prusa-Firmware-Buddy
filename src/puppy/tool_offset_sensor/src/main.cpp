@@ -100,25 +100,25 @@ static void main_task_code(void *) {
             freertos::delay(100); // delay to propagate message before reset
             hal::reset();
         }
-        freertos::delay(100);
 
-        auto status = hal::ldc1612.read_status();
-        if (!status.has_value()) {
-            log_warning(LDC1612, "Failed to read status");
+        if (!hal::ldc_data_ready.try_acquire_for(200)) {
+            log_warning(LDC1612, "No data ready (timeout)");
             consecutive_failures++;
             continue;
-        } else if (status->data_ready) {
-            auto ch0_data = hal::ldc1612.read_channel(LDC1612::Channel::CH0);
-            auto ch1_data = hal::ldc1612.read_channel(LDC1612::Channel::CH1);
-            if (ch0_data.has_value() && ch1_data.has_value()) {
-                log_warning(LDC1612, "CH0: %u, CH1: %u", static_cast<unsigned int>(ch0_data.value()), static_cast<unsigned int>(ch1_data.value()));
-                consecutive_failures = 0;
-            } else {
-                log_warning(LDC1612, "Failed to read channel data");
-                consecutive_failures++;
-            }
         }
-    };
+
+        freertos::delay(100);
+
+        auto ch0_data = hal::ldc1612.read_channel(LDC1612::Channel::CH0);
+        auto ch1_data = hal::ldc1612.read_channel(LDC1612::Channel::CH1);
+        if (ch0_data.has_value() && ch1_data.has_value()) {
+            log_warning(LDC1612, "CH0: %u, CH1: %u", static_cast<unsigned int>(ch0_data.value()), static_cast<unsigned int>(ch1_data.value()));
+            consecutive_failures = 0;
+        } else {
+            log_warning(LDC1612, "Failed to read channel data");
+            consecutive_failures++;
+        }
+    }
 }
 
 namespace {

@@ -144,6 +144,20 @@ void hal::init_gpio() {
         LDC1612_OSC_GPIO_CLK_ENABLE();
         HAL_RCC_MCOConfig(RCC_MCO1_PA9, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1);
     }
+    // LDC1612_INTB - PA1 (falling edge interrupt, data ready)
+    {
+        LDC1612_INTB_GPIO_CLK_ENABLE();
+        static constexpr GPIO_InitTypeDef GPIO_InitStruct {
+            .Pin = LDC1612_INTB_Pin,
+            .Mode = GPIO_MODE_IT_FALLING,
+            .Pull = GPIO_PULLUP,
+            .Speed = GPIO_SPEED_FREQ_LOW,
+            .Alternate = 0,
+        };
+        HAL_GPIO_Init(LDC1612_INTB_GPIO_Port, &GPIO_InitStruct);
+        HAL_NVIC_SetPriority(EXTI0_1_IRQn, ISR_PRIORITY_DEFAULT, 0);
+        HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+    }
 }
 
 void hal::init_can() {
@@ -293,6 +307,7 @@ void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c) {
 }
 
 LDC1612 hal::ldc1612 = {};
+freertos::BinarySemaphore hal::ldc_data_ready;
 
 extern "C" void hal_panic() {
     hal::panic();
@@ -328,6 +343,13 @@ extern "C" void FDCAN1_IT0_IRQHandler(void) {
 
 extern "C" void FDCAN1_IT1_IRQHandler(void) {
     HAL_FDCAN_IRQHandler(&hal::peripherals::hfdcan1);
+}
+
+extern "C" void EXTI0_1_IRQHandler() {
+    if (__HAL_GPIO_EXTI_GET_IT(LDC1612_INTB_Pin)) {
+        __HAL_GPIO_EXTI_CLEAR_IT(LDC1612_INTB_Pin);
+        hal::ldc_data_ready.release_from_isr();
+    }
 }
 
 extern "C" void I2C1_IRQHandler() {

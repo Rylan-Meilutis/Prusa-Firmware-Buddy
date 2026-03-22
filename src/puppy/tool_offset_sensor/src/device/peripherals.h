@@ -19,6 +19,10 @@
 #define LDC1612_OSC_Pin               GPIO_PIN_9
 #define LDC1612_OSC_GPIO_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
 
+#define LDC1612_INTB_GPIO_Port         GPIOA
+#define LDC1612_INTB_Pin               GPIO_PIN_1
+#define LDC1612_INTB_GPIO_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
+
 namespace hal::peripherals {
 extern FDCAN_HandleTypeDef hfdcan1;
 }

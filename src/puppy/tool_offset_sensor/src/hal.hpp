@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <ldc1612.hpp>
+#include <freertos/binary_semaphore.hpp>
 
 namespace hal {
 
@@ -22,5 +23,6 @@ void __attribute__((noreturn)) panic();
 void __attribute__((noreturn)) reset();
 
 extern LDC1612 ldc1612;
+extern freertos::BinarySemaphore ldc_data_ready;
 
 } // namespace hal
