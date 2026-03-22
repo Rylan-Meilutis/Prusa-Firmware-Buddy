@@ -20,6 +20,9 @@ LOG_COMPONENT_REF(LDC1612)
 
 static void main_task_code(void *) {
 
+    hal::ldc1612_set_enabled(true);
+    freertos::delay(5);
+
     while (true) { // repeat initialization until successful
         if (hal::ldc1612.is_device_present()) {
             log_debug(LDC1612, "Device detected successfully");

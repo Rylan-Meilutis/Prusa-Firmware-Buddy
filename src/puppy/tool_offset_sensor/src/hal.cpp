@@ -29,6 +29,11 @@ void hal::set_status_led(bool set) {
     HAL_GPIO_WritePin(D_LED_USR_GPIO_Port, D_LED_USR_Pin, set ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
+void hal::ldc1612_set_enabled(bool enabled) {
+    // SD pin: LOW = active, HIGH = shutdown
+    HAL_GPIO_WritePin(LDC1612_SD_GPIO_Port, LDC1612_SD_Pin, enabled ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
 namespace hal {
 void init_clock();
 void init_gpio();
@@ -121,9 +126,10 @@ void hal::init_gpio() {
         };
         HAL_GPIO_Init(D_LED_USR_GPIO_Port, &GPIO_InitStruct);
     }
-    // LDC1612_SD - PA12
+    // LDC1612_SD - PA12 (starts in shutdown, call ldc1612_set_enabled to wake)
     {
         LDC1612_SD_GPIO_CLK_ENABLE();
+        HAL_GPIO_WritePin(LDC1612_SD_GPIO_Port, LDC1612_SD_Pin, GPIO_PIN_SET);
         static constexpr GPIO_InitTypeDef GPIO_InitStruct {
             .Pin = LDC1612_SD_Pin,
             .Mode = GPIO_MODE_OUTPUT_PP,
@@ -132,7 +138,6 @@ void hal::init_gpio() {
             .Alternate = 0,
         };
         HAL_GPIO_Init(LDC1612_SD_GPIO_Port, &GPIO_InitStruct);
-        HAL_GPIO_WritePin(LDC1612_SD_GPIO_Port, LDC1612_SD_Pin, GPIO_PIN_RESET);
     }
     // LDC1612_OSC - PA9
     {
