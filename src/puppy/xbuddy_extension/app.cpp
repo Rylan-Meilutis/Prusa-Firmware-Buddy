@@ -63,6 +63,13 @@ void read_register_file_callback(xbuddy_extension::modbus::Status &status) {
     status.log_message_sequence = log.sequence;
 }
 
+void read_register_file_callback(xbuddy_extension::modbus::CyphalBridge &bridge) {
+    static_assert(std::endian::native == std::endian::little);
+    auto bytes = std::as_writable_bytes(std::span { bridge.data });
+    bridge.size = static_cast<uint16_t>(cyphal::application().bridge_queue().read_into(bytes.data(), bytes.size()));
+    bridge.bytes_available = static_cast<uint16_t>(cyphal::application().bridge_queue().bytes_available());
+}
+
 void read_register_file_callback(xbuddy_extension::modbus::LogMessage &log_message) {
     static_assert(std::endian::native == std::endian::little);
     const auto log = cyphal::application().get_log();
@@ -204,7 +211,16 @@ void read_register_file_callback(tool_offset_sensor::modbus::Status &modbus_stat
     tool_offset_sensor::Status status;
     cyphal::application().request_tool_offset_sensor(node_state, status);
     modbus_status.node_state = static_cast<uint16_t>(node_state);
-    // TODO BFW-8360 populate LDC data once the application firmware reports it
+    modbus_status.channel_flags = (status.ch0_active ? 1 : 0)
+        | (status.ch1_active ? 2 : 0)
+        | (status.sensor_fault ? 4 : 0);
+    modbus_status.sensor_errors = status.sensor_errors;
+}
+
+bool write_register_file_callback(const tool_offset_sensor::modbus::Config &modbus_config) {
+    return cyphal::application().receive(tool_offset_sensor::Config {
+        .ch0_enabled = static_cast<bool>(modbus_config.ch0_enabled),
+        .ch1_enabled = static_cast<bool>(modbus_config.ch1_enabled) });
 }
 #endif
 
@@ -289,8 +305,8 @@ public:
         return read_register_file<tool_offset_sensor::modbus::Status>(address, out);
     }
 
-    Status write_registers(uint16_t /*address*/, std::span<const uint16_t> /*in*/) final {
-        return Status::IllegalAddress; // Read-only device for now
+    Status write_registers(uint16_t address, std::span<const uint16_t> in) final {
+        return write_register_file<tool_offset_sensor::modbus::Config>(address, in);
     }
 };
 #endif
@@ -325,7 +341,7 @@ public:
     modbus::ServerAddress server_address() const final { return modbus::ServerAddress::xbuddy_extension; }
 
     Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
-        return read_register_file<xbuddy_extension::modbus::Status, xbuddy_extension::modbus::LogMessage>(address, out);
+        return read_register_file<xbuddy_extension::modbus::Status, xbuddy_extension::modbus::LogMessage, xbuddy_extension::modbus::CyphalBridge>(address, out);
     }
 
     Status write_registers(const uint16_t address, std::span<const uint16_t> in) final {

@@ -203,6 +203,9 @@ public:
 #endif
 #if HAS_TOOL_OFFSET_SENSOR()
         subscribe<prusa3d_tool_offset_sensor_Status_1_0>();
+        // Subscribe to Data streams for bridging to XBuddy (raw, no deserialization)
+        subscribe_raw(CanardTransferKindMessage, prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH0, 63);
+        subscribe_raw(CanardTransferKindMessage, prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1, 63);
 #endif
 #if HAS_ANFC()
         // We intentionally do not subscribe to NFC command responses here.
@@ -237,6 +240,12 @@ private:
         }
     }
 
+    void subscribe_raw(CanardTransferKind kind, CanardPortID port_id, size_t extent) {
+        if (!cyphal::transport().subscribe(kind, port_id, extent)) {
+            abort();
+        }
+    }
+
     /// Following functions dispatch and deserialize incoming transfer.
 
     void receive_transfer(const cyphal::TimePoint now, CanardRxTransfer &transfer) {
@@ -256,6 +265,12 @@ private:
 #if HAS_TOOL_OFFSET_SENSOR()
             case prusa3d_tool_offset_sensor_Status_1_0_FIXED_PORT_ID_:
                 return receive_helper<prusa3d_tool_offset_sensor_Status_1_0>(now, transfer);
+            case prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH0:
+            case prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1:
+                return application.bridge_queue().enqueue(
+                    transfer.metadata.port_id,
+                    transfer.payload,
+                    static_cast<uint8_t>(transfer.payload_size));
 #endif
 #if HAS_ANFC()
             case prusa3d_nfc_event_Event_1_0_FIXED_PORT_ID_:
@@ -361,10 +376,14 @@ private:
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-    void receive(const cyphal::TimePoint, const CanardRxTransfer &, const prusa3d_tool_offset_sensor_Status_1_0 &) {
+    void receive(const cyphal::TimePoint, const CanardRxTransfer &, const prusa3d_tool_offset_sensor_Status_1_0 &message) {
         application.receive_tool_offset_sensor_status(
-            // TODO empty status for now, we will fill it in later when we have actual data to report BFW-8360
-            tool_offset_sensor::Status {});
+            tool_offset_sensor::Status {
+                .ch0_active = message.ch0_active,
+                .ch1_active = message.ch1_active,
+                .sensor_fault = message.sensor_fault,
+                .sensor_errors = message.sensor_errors,
+            });
     }
 #endif
 

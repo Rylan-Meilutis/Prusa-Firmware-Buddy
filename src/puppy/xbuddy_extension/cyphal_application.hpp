@@ -1,6 +1,7 @@
 /// @file
 #pragma once
 
+#include "cyphal_bridge_queue.hpp"
 #include "cyphal_nfc_node.hpp"
 #include "cyphal_presentation.hpp"
 #include "cyphal_types.hpp"
@@ -81,11 +82,15 @@ public:
     [[nodiscard]] virtual bool receive_digest(FirmwareFile file, uint32_t salt, xbuddy_extension::DigestStatus status, std::span<const std::byte, 32> digest) = 0;
     [[nodiscard]] virtual bool receive(const ac_controller::Config &) = 0;
     [[nodiscard]] virtual bool receive(const ac_controller::LedConfig &) = 0;
+    [[nodiscard]] virtual bool receive(const tool_offset_sensor::Config &) = 0;
     virtual const ModbusRequest &request() = 0;
     virtual void request_ac_controller(xbuddy_extension::NodeState &, ac_controller::Status &) = 0;
     virtual void request_tool_offset_sensor(xbuddy_extension::NodeState &, tool_offset_sensor::Status &) = 0;
 
     [[nodiscard]] virtual NfcNode &get_nfc(anfc::Device) = 0;
+
+    // Cyphal-to-Modbus bridge queue for streaming raw Cyphal messages
+    virtual CyphalBridgeQueue<512> &bridge_queue() = 0;
 
     /// Log message buffer structure exposed via Modbus
     struct LogData {

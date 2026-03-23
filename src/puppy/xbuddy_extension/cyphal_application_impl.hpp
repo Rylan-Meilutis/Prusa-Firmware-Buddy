@@ -179,6 +179,8 @@ private:
     };
     ToolOffsetSensor tool_offset_sensor;
 
+    CyphalBridgeQueue<512> bridge_queue_;
+
     using NfcNodes = std::array<std::pair<anfc::Device, NfcNode>, anfc::device_count>;
     NfcNodes nfc_nodes { {
         { anfc::Device::anfc0, {} },
@@ -949,6 +951,11 @@ public:
         return true;
     }
 
+    bool receive(const tool_offset_sensor::Config &config) final {
+        tool_offset_sensor.desired = config;
+        return true;
+    }
+
     void request_ac_controller(xbuddy_extension::NodeState &node_state, ac_controller::Status &status) final {
         node_state = get_node_state(NodeName::cz_prusa3d_honeybee_ac_controller);
         status = ac_controller.status;
@@ -957,6 +964,10 @@ public:
     void request_tool_offset_sensor(xbuddy_extension::NodeState &node_state, tool_offset_sensor::Status &status) final {
         node_state = get_node_state(NodeName::cz_prusa3d_honeybee_tool_offset_sensor);
         status = tool_offset_sensor.status;
+    }
+
+    CyphalBridgeQueue<512> &bridge_queue() final {
+        return bridge_queue_;
     }
 
     void receive_ac_controller_status(const ac_controller::Config &config, const ac_controller::Status &status) final {

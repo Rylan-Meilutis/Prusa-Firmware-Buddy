@@ -106,6 +106,17 @@ struct LogMessage {
     std::array<uint16_t, 121> text_data; ///< actual bytes of log message (little endian)
 };
 
+/// MODBUS register file for draining the CyphalBridgeQueue.
+/// Messages are packed as [1B length | 2B port_id LE | length bytes payload]...
+/// Byte content is packed little-endian into uint16 registers.
+struct CyphalBridge {
+    static constexpr uint16_t address = 0x8100;
+
+    uint16_t bytes_available; ///< bytes remaining in queue after this read
+    uint16_t size; ///< valid bytes in data[]
+    std::array<uint16_t, 120> data; ///< packed bridge messages (little endian)
+};
+
 /// Parse FileId from modbus structure.
 FileId parse_file_id(uint16_t);
 
