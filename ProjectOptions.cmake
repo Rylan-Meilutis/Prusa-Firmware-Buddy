@@ -432,7 +432,8 @@ set_feature_for_printers_master_board(
   "COREONEL"
   "COREONEL_INDX"
   )
-set_feature_for_printers_master_board(HAS_CONTACTLESS_OFFSET "MK4")
+set_feature_for_printers_master_board(HAS_CONTACTLESS_OFFSET "COREONE_INDX" "COREONEL_INDX")
+set_feature_for_printers_master_board(HAS_REMOTE_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers_master_board(
   HAS_NEXTRUDER
   "MK4"
@@ -734,11 +735,7 @@ set_feature_for_printers_master_board(HAS_BED_FAN "COREONEL" "COREONEL_INDX")
 set_feature_for_printers_master_board(HAS_PSU_FAN "COREONEL" "COREONEL_INDX")
 set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL" "COREONEL_INDX")
 
-# Feature HAS_TOOL_OFFSET_SENSOR is not enabled for "COREONE_INDX", because it would block start
-# without sensor Only enabled for "COREONEL_INDX"as it is not used for development, but feature is
-# compiled and checked by CI TODO BFW-8358 after full implementation and assembly of sensors to
-# development INDX printers, enable this feature for COREONE_INDX as well
-set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONEL_INDX")
+set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX")
 
 set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL") # TODO: Add INDX once HAS_FILAMENT_TRACKER
                                                         # is sorted out

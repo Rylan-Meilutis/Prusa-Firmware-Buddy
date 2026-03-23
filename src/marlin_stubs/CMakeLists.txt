@@ -99,7 +99,11 @@ if(HAS_DOOR_SENSOR_CALIBRATION)
 endif()
 
 if(HAS_INDX)
-  target_sources(firmware PRIVATE G427.cpp M1982.cpp M1983.cpp)
+  target_sources(firmware PRIVATE M1982.cpp M1983.cpp)
+endif()
+
+if(HAS_TOOL_OFFSET_SENSOR)
+  target_sources(firmware PRIVATE G427.cpp)
 endif()
 
 if(HAS_PRECISE_HOMING_COREXY)
