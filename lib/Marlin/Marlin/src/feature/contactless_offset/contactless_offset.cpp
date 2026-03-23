@@ -503,6 +503,20 @@ struct MotionExecutionResult {
     uint32_t actual_time_ms;
 };
 
+static bool wait_for_first_sample(tool_offset::Sensor &sensor, uint32_t timeout_us = 2'000'000) {
+    uint32_t start = ticks_us();
+    while (!sensor.get_sample().has_value()) {
+        if (sensor.get_last_error() != tool_offset::Sensor::Error::NONE) {
+            return false;
+        }
+        if (ticks_diff(ticks_us(), start) > static_cast<int32_t>(timeout_us)) {
+            return false;
+        }
+        idle(true);
+    }
+    return true;
+}
+
 // Execute motion while recording sensor samples
 template <typename MotionSignal>
 static MotionExecutionResult execute_motion_with_recording(
@@ -530,8 +544,11 @@ static MotionExecutionResult execute_motion_with_recording(
     LineSamplesDebugReporter samples_reporter(label);
     samples_reporter.start();
 
-    // Start the sensor
     sensor.start();
+    if (!wait_for_first_sample(sensor)) {
+        sensor.stop();
+        return result;
+    }
 
     // Enable steppers
     enable_all_steppers();
