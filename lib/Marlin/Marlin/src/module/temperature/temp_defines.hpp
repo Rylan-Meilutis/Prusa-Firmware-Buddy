@@ -44,29 +44,23 @@ struct PID_t {
 enum ADCSensorState : char {
     StartSampling,
 #if HAS_TEMP_ADC_0
-    PrepareTemp_0,
     MeasureTemp_0,
 #endif
 #if HAS_LOCAL_BED()
-    PrepareTemp_BED,
     MeasureTemp_BED,
 #endif
 #if HAS_TEMP_HEATBREAK
-    PrepareTemp_HEATBREAK,
     MeasureTemp_HEATBREAK,
 #endif
 #if HAS_TEMP_BOARD
-    PrepareTemp_BOARD,
     MeasureTemp_BOARD,
 #endif
 #if PRINTER_IS_PRUSA_iX()
-    PrepareTemp_PSU,
     MeasureTemp_PSU,
-    PrepareTemp_AMBIENT,
     MeasureTemp_AMBIENT,
 #endif
     SensorsReady, // Temperatures ready. Delay the next round of readings to let ADC pins settle.
-    StartupDelay // Startup, delay initial temp reading a tiny bit so the hardware can settle
+    StartupDelay
 };
 
 #define ACTUAL_ADC_SAMPLES _MAX(int(MIN_ADC_ISR_LOOPS), int(SensorsReady))
