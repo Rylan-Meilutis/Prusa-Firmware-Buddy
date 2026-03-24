@@ -61,17 +61,17 @@ void GcodeSuite::M603() {
 
     // Unload length
     if (parser.seen('U')) {
-        fc_settings[virtual_tool->to_raw()].unload_length = ABS(parser.value_axis_units(E_AXIS));
+        fc_settings[*virtual_tool].unload_length = ABS(parser.value_axis_units(E_AXIS));
 #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-        NOMORE(fc_settings[virtual_tool->to_raw()].unload_length, EXTRUDE_MAXLENGTH);
+        NOMORE(fc_settings[*virtual_tool].unload_length, EXTRUDE_MAXLENGTH);
 #endif
     }
 
     // Load length
     if (parser.seen('L')) {
-        fc_settings[virtual_tool->to_raw()].load_length = ABS(parser.value_axis_units(E_AXIS));
+        fc_settings[*virtual_tool].load_length = ABS(parser.value_axis_units(E_AXIS));
 #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-        NOMORE(fc_settings[virtual_tool->to_raw()].load_length, EXTRUDE_MAXLENGTH);
+        NOMORE(fc_settings[*virtual_tool].load_length, EXTRUDE_MAXLENGTH);
 #endif
     }
 }

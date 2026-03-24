@@ -109,7 +109,7 @@ void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_cal
             .wait_heat = true,
             .wait_heat_or_cool = false,
         };
-        M109_no_parser(physical_tool.to_raw(), flags);
+        M109_no_parser(physical_tool, flags);
     }
 
 #if HAS_NOZZLE_CLEANER()
@@ -200,13 +200,23 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
         return; // should not do anything when already retracted more than standard distance
     }
     // Wait for temperature to extrude
-    const auto hotend = marlin_vars().active_hotend_id();
+    // FIXME:
+    // * The active_hotend_id() is _probably_ a physical tool index (it
+    //   currently returns the ID on XL and 0 on MMU printers, but it's unclear
+    //   if it's really the intention or just "happens" to be so).
+    // * It is used for physical tool manipulations here (correct), but also to
+    //   query filament properties (incorrent on MMU, always takes the 0th,
+    //   happens-to-be-correct on XL).
+    //
+    // This is probably a low-priority, because MMU printers don't use
+    // autoretract, they just remove the filament completely on print end.
+    const uint8_t hotend = marlin_vars().active_hotend_id();
     planner.synchronize();
     const auto temp_before = thermalManager.degTargetHotend(hotend);
     const M109Flags flags_pre = {
         .target_temp = config_store().get_filament_type(hotend).parameters().nozzle_temperature,
     };
-    M109_no_parser(hotend, flags_pre);
+    M109_no_parser(PhysicalToolIndex::from_raw(hotend), flags_pre);
 
     {
         BlockEStallDetection estall_blocker;
@@ -233,7 +243,7 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
         .wait_heat_or_cool = true,
         .autotemp = true, // Use fans to cool
     };
-    M109_no_parser(hotend, flags_post);
+    M109_no_parser(PhysicalToolIndex::from_raw(hotend), flags_post);
 }
 
 bool AutoRetract::ready_to_extrude() const {

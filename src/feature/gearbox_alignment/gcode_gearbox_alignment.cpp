@@ -23,7 +23,7 @@ class GearboxAlignmentWizard {
 public:
     static constexpr PhaseGearboxAlignment first_phase = PhaseGearboxAlignment::intro;
 
-    GearboxAlignmentWizard(const uint8_t _tool = 0)
+    GearboxAlignmentWizard(PhysicalToolIndex _tool)
         : tool(_tool)
         , holder(first_phase) {
     }
@@ -35,7 +35,7 @@ public:
     }
 
 private:
-    const uint8_t tool;
+    const PhysicalToolIndex tool;
     marlin_server::FSM_Holder holder;
     PhaseGearboxAlignment curr_phase = first_phase;
 
@@ -67,9 +67,9 @@ private:
     }
 
     void finish(TestResult test_result) {
-        SelftestTool selftest_tool = config_store().get_selftest_result_tool(tool);
+        SelftestTool selftest_tool = config_store().get_selftest_result_tool(tool.to_raw());
         selftest_tool.gears = test_result;
-        config_store().set_selftest_result_tool(tool, selftest_tool);
+        config_store().set_selftest_result_tool(tool.to_raw(), selftest_tool);
         fsm_change(PhaseGearboxAlignment::finish);
         return;
     }
@@ -81,7 +81,7 @@ private:
     }
 
     void filament_check() {
-        if (IFSensor *sensor = GetExtruderFSensor(tool)) {
+        if (IFSensor *sensor = GetExtruderFSensor(tool.to_raw())) {
             switch (sensor->get_state()) {
             case FilamentSensorState::HasFilament:
                 fsm_change(PhaseGearboxAlignment::filament_loaded_ask_unload);
@@ -125,7 +125,7 @@ private:
             return;
         case Response::Continue:
 #if HAS_TOOLCHANGER()
-            tool_change(VirtualToolIndex::from_raw(tool));
+            tool_change(tool);
 #endif
             filament_check();
             return;
@@ -242,7 +242,7 @@ void PrusaGcodeSuite::M1979() {
     if (!tool.has_value()) {
         return;
     }
-    GearboxAlignmentWizard ga(tool->to_raw());
+    GearboxAlignmentWizard ga(*tool);
     ga.execute();
 }
 

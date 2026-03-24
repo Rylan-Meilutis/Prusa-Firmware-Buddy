@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <tool_index.hpp>
 
 
 struct M109Flags {
@@ -14,7 +15,7 @@ struct M109Flags {
 
 /**
 * @brief Set extruder temperature and wait.
-* 
+*
 * @param flags @see M109Flags
 */
-void M109_no_parser(uint8_t target_extruder, const M109Flags& flags = {});
+void M109_no_parser(PhysicalToolIndex tool, const M109Flags& flags = {});

@@ -8,6 +8,7 @@
 #include <common/marlin_server.hpp>
 #include <gcode/gcode.h>
 #include <raii/auto_restore.hpp>
+#include <utils/variant_utils.hpp>
 
 using namespace marlin_server;
 using namespace nozzle_cleaning_failed_wizard;
@@ -188,7 +189,11 @@ public:
             .wait_heat_or_cool = true,
             .autotemp = true,
         };
-        M109_no_parser(active_extruder, flags);
+        const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+        if (!tool.has_value()) {
+            return false;
+        }
+        M109_no_parser(*tool, flags);
         return !planner.draining();
     }
 

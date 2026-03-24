@@ -419,6 +419,11 @@ class Planner {
 
     #if DISABLED(NO_VOLUMETRICS)
 
+      FORCE_INLINE static void set_filament_size(VirtualToolIndex e, const float v) {
+        set_filament_size(e.to_raw(), v);
+      }
+
+      [[deprecated]]
       FORCE_INLINE static void set_filament_size(const uint8_t e, const float v) {
         filament_size[e] = v;
         // make sure all extruders have some sane value for the filament size

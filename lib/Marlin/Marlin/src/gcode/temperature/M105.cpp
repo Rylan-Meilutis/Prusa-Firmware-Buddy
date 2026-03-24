@@ -50,7 +50,7 @@ void GcodeSuite::M105() {
 
   #if HAS_TEMP_SENSOR
 
-    thermalManager.print_heater_states(tool->to_raw());
+    thermalManager.print_heater_states(*tool);
 
     SERIAL_EOL();
 

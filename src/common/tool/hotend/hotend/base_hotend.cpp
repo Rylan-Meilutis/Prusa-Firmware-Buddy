@@ -54,7 +54,7 @@ void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {
 
 #if BOARD_IS_MASTER_BOARD()
     // This is a legit use
-    marlin_server::call_manually::set_temp_to_display(new_temp, tool_.to_raw());
+    marlin_server::call_manually::set_temp_to_display(new_temp, tool_);
 #endif
 
 #if WATCH_HOTENDS

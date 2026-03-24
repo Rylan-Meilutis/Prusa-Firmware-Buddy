@@ -324,6 +324,11 @@ class Temperature {
 
       static bool are_hotend_temperatures_reached();
 
+      static bool wait_for_hotend(PhysicalToolIndex target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false) {
+        return wait_for_hotend(target_extruder.to_raw(), no_wait_for_cooling, fan_cooling);
+      }
+
+      [[deprecated]]
       static bool wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false);
     #endif
 
@@ -431,6 +436,11 @@ public:
     static void disable_hotend();
 
     #if HAS_TEMP_SENSOR
+      static void print_heater_states(PhysicalToolIndex target_extruder) {
+        print_heater_states(target_extruder.to_raw());
+      }
+
+      [[deprecated]]
       static void print_heater_states(const uint8_t target_extruder);
       #if ENABLED(AUTO_REPORT_TEMPERATURES)
         static uint8_t auto_report_temp_interval;

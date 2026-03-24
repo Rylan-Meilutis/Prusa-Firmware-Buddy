@@ -11,7 +11,7 @@
 #include <option/has_mmu2.h>
 
 // cannot be class member (externed in marlin)
-fil_change_settings_t fc_settings[EXTRUDERS];
+StrongIndexArray<fil_change_settings_t, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> fc_settings;
 
 using namespace pause;
 

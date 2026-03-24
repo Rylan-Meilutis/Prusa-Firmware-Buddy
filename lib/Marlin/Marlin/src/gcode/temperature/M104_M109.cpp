@@ -41,7 +41,6 @@
 #endif
 
 #include "marlin_server.hpp"
-#include <option/has_mmu2.h>
 
 /** \addtogroup G-Codes
  * @{
@@ -66,7 +65,6 @@ void GcodeSuite::M104() {
 
   const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
   if (!tool.has_value()) return;
-  const uint8_t target_extruder = tool->to_raw();
 
   if (parser.seenval('S')) {
     const int16_t temp = static_cast<int16_t>(parser.value_celsius());
@@ -74,7 +72,7 @@ void GcodeSuite::M104() {
       singlenozzle_temp[tool->to_raw()] = temp;
       if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), *tool)) return;
     #endif
-    thermalManager.setTargetHotend(temp, target_extruder);
+    thermalManager.setTargetHotend(temp, *tool);
 
     #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
       /*
@@ -92,7 +90,7 @@ void GcodeSuite::M104() {
   if(parser.seenval('D')) {
     // Override display_temp set by setTargetHotend
     // This is a legit use
-    marlin_server::call_manually::set_temp_to_display( parser.value_celsius(), target_extruder);
+    marlin_server::call_manually::set_temp_to_display( parser.value_celsius(), *tool);
   }
 }
 
@@ -114,7 +112,6 @@ void GcodeSuite::M104() {
 void GcodeSuite::M109() {
   const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
   if (!tool.has_value()) return;
-  const uint8_t target_extruder = tool->to_raw();
   M109Flags flags {
     .target_temp = static_cast<int16_t>(
       parser.seenval('S') ? parser.value_celsius() :
@@ -125,10 +122,10 @@ void GcodeSuite::M109() {
     .autotemp = parser.boolval('F'),
     .display_temp = parser.seenval('D') ? std::optional<float>(parser.value_celsius()) : std::nullopt
   };
-  M109_no_parser(target_extruder, flags);
+  M109_no_parser(*tool, flags);
 }
 
-void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {
+void M109_no_parser(PhysicalToolIndex tool, const M109Flags& flags) {
 
   if (DEBUGGING(DRYRUN)) return;
 
@@ -140,11 +137,11 @@ void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {
       singlenozzle_temp[tool.to_raw()] = temp;
       if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), tool)) return;
     #endif
-    thermalManager.setTargetHotend(temp, target_extruder);
+    thermalManager.setTargetHotend(temp, tool);
     if(flags.display_temp.has_value()) {
       // Override display_temp set by setTargetHotend
       // This is a legit use
-      marlin_server::call_manually::set_temp_to_display(*flags.display_temp, target_extruder);
+      marlin_server::call_manually::set_temp_to_display(*flags.display_temp, tool);
     }
 
     #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
@@ -163,7 +160,7 @@ void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {
     }
 
   if (set_temp) {
-    (void)thermalManager.wait_for_hotend(target_extruder, no_wait_for_cooling, flags.autotemp);
+    (void)thermalManager.wait_for_hotend(tool, no_wait_for_cooling, flags.autotemp);
   }
 
   return;

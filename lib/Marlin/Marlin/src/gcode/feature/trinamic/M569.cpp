@@ -42,7 +42,7 @@ void tmc_set_stealthChop(TMC &st, const bool enable) {
   st.refresh_stepping_mode();
 }
 
-static void set_stealth_status(const bool enable, const int8_t target_extruder) {
+static void set_stealth_status(const bool enable, PhysicalToolIndex target_extruder) {
 
   #if AXIS_HAS_STEALTHCHOP(X) || AXIS_HAS_STEALTHCHOP(Y) || AXIS_HAS_STEALTHCHOP(Z) || AXIS_HAS_STEALTHCHOP(Z2) || AXIS_HAS_STEALTHCHOP(Z3)
     const uint8_t index = parser.byteval('I');
@@ -188,7 +188,7 @@ void GcodeSuite::M569() {
   if (parser.seen('S')){
     const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
     if (!tool.has_value()) return;
-    set_stealth_status(parser.value_bool(), tool->to_raw());
+    set_stealth_status(parser.value_bool(), *tool);
   } else
     say_stealth_status();
 }

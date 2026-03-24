@@ -55,7 +55,7 @@
       // slicers either generate in extruder values as cubic mm or as as filament feeds
       // for all extruders
       if ( (parser.volumetric_enabled = (parser.value_linear_units() != 0)) )
-        planner.set_filament_size(virtual_tool->to_raw(), parser.value_linear_units());
+        planner.set_filament_size(*virtual_tool, parser.value_linear_units());
     }
     planner.calculate_volumetric_multipliers();
   }

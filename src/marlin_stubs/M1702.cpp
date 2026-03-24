@@ -303,7 +303,7 @@ namespace {
         thermalManager.disable_hotend(); // cool down without target to avoid PID handling target temp
 
         // This is a legit use (is it?)
-        marlin_server::call_manually::set_temp_to_display(HOTEND_COLD_TEMP, active_tool->to_raw()); // still show target temperature
+        marlin_server::call_manually::set_temp_to_display(HOTEND_COLD_TEMP, *active_tool); // still show target temperature
 
         auto too_hot = [active_tool]() {
             return static_cast<uint16_t>(Temperature::degHotend(*active_tool)) > HOTEND_COLD_TEMP;

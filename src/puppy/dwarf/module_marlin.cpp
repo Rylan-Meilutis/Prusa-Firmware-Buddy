@@ -356,4 +356,4 @@ uint8_t did_pause_print;
 
 // configuration_store
 
-fil_change_settings_t fc_settings[EXTRUDERS];
+StrongIndexArray<fil_change_settings_t, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> fc_settings;

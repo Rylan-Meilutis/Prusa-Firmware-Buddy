@@ -31,6 +31,8 @@ typedef struct {
 } fil_change_settings_t;
 
 #include "../inc/MarlinConfigPre.h"
+#include <tool_index.hpp>
+#include <utils/storage/strong_index_array.hpp>
 
 #include <option/has_pause.h>
 #if HAS_PAUSE()
@@ -67,7 +69,7 @@ enum PauseMenuResponse : char {
 extern PauseMode pause_mode;
 extern PauseMenuResponse pause_menu_response;
 
-extern fil_change_settings_t fc_settings[EXTRUDERS];
+extern StrongIndexArray<fil_change_settings_t, EXTRUDERS, VirtualToolIndex, VirtualToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> fc_settings;
 
 extern uint8_t did_pause_print;
 
