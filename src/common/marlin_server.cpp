@@ -115,6 +115,10 @@
 #include <option/has_nextruder.h>
 #include <option/has_human_interactions.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_motor_current_profiles.h>
+#if HAS_MOTOR_CURRENT_PROFILES()
+    #include <feature/motor_current_profile/motor_current_profile.hpp>
+#endif
 
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -1018,6 +1022,10 @@ void static finalize_print(bool finished) {
         server.mmu_maintenance_checked = true;
     }
 #endif // HAS_MMU2()
+
+#if HAS_MOTOR_CURRENT_PROFILES()
+    buddy::set_active_motor_current_profile(buddy::StandardMotorCurrentProfile::fw_default);
+#endif
 
 #if !PRINTER_IS_PRUSA_iX()
     // On iX, we're not cooling down the bed after the print.
