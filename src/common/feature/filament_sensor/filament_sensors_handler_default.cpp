@@ -60,7 +60,7 @@ IFSensor *GetSideFSensor([[maybe_unused]] uint8_t index) {
 
 #if HAS_XBUDDY_EXTENSION()
     if (index == 0 && buddy::xbuddy_extension().status() != buddy::XBuddyExtension::Status::disabled) {
-        static FSensorXBuddyExtension xbe_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 });
+        static FSensorXBuddyExtension xbe_filament_sensor(FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 }, FSensorXBuddyExtension::Source::gpio);
         return &xbe_filament_sensor;
     }
 #elif PRINTER_IS_PRUSA_iX()

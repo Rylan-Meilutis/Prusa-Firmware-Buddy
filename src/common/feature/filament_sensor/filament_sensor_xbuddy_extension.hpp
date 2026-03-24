@@ -5,8 +5,15 @@
 class FSensorXBuddyExtension : public IFSensor {
 
 public:
-    // Inherit constructor
-    using IFSensor::IFSensor;
+    enum class Source {
+        /// Single fsensor on the GPIO connector
+        gpio,
+
+        /// OneWire-based array of sensors on the EXT connector
+        ext,
+    };
+
+    FSensorXBuddyExtension(FilamentSensorID id, Source source);
 
 protected:
     virtual void cycle() override;
@@ -14,4 +21,6 @@ protected:
 
 private:
     FilamentSensorState interpret_state() const;
+
+    const Source source_;
 };

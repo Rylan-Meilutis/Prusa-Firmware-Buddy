@@ -2,12 +2,16 @@
 
 #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 
+FSensorXBuddyExtension::FSensorXBuddyExtension(FilamentSensorID id, Source source)
+    : IFSensor(id)
+    , source_(source) {}
+
 void FSensorXBuddyExtension::cycle() {
     state = interpret_state();
 }
 
 int32_t FSensorXBuddyExtension::GetFilteredValue() const {
-    return buddy::xbuddy_extension().gpio_filament_sensor().transform([](auto v) { return static_cast<int>(v); }).value_or(-1);
+    return static_cast<int32_t>(interpret_state());
 }
 
 FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
@@ -24,7 +28,19 @@ FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
         break;
     }
 
-    switch (buddy::xbuddy_extension().gpio_filament_sensor().value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized)) {
+    std::optional<buddy::XBuddyExtension::FilamentSensorState> state;
+    switch (source_) {
+
+    case Source::gpio:
+        state = buddy::xbuddy_extension().gpio_filament_sensor();
+        break;
+
+    case Source::ext:
+        state = buddy::xbuddy_extension().ext_filament_sensor(id_.index);
+        break;
+    }
+
+    switch (state.value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized)) {
 
     case buddy::XBuddyExtension::FilamentSensorState::disconnected:
         return FilamentSensorState::NotConnected;
