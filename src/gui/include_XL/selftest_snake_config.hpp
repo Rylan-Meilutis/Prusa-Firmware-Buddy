@@ -148,7 +148,7 @@ inline constexpr MenuItemText blank_item_texts[] {
 TestResult get_test_result(Action action, Tool tool);
 uint64_t get_test_mask(Action action);
 
-Tool get_last_enabled_tool();
+PhysicalToolIndex get_last_enabled_tool();
 
 /**
  * @brief Get the next enabled tool.

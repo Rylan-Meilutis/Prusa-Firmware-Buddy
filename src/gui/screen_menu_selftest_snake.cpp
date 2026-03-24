@@ -224,17 +224,17 @@ void continue_snake() {
 
     // if the last action was the last action possible
     if (snake_config.last_action == get_last_action()
-        && (!has_submenu(get_last_action()) || snake_config.last_tool == get_last_enabled_tool())) {
+        && (!has_submenu(get_last_action()) || snake_config.last_tool == Tool { get_last_enabled_tool().to_raw() })) {
         snake_config.reset();
         return;
     }
 
-    if (snake_config.auto_continue == SnakeConfig::AutoContinue::submenu && has_submenu(snake_config.last_action) && snake_config.last_tool == get_last_enabled_tool()) {
+    if (snake_config.auto_continue == SnakeConfig::AutoContinue::submenu && has_submenu(snake_config.last_action) && snake_config.last_tool == Tool { get_last_enabled_tool().to_raw() }) {
         snake_config.auto_continue = SnakeConfig::AutoContinue::ask;
     }
 
     if (snake_config.auto_continue == SnakeConfig::AutoContinue::ask) {
-        if (is_multitool() && has_submenu(snake_config.last_action) && snake_config.last_tool != get_last_enabled_tool()) {
+        if (is_multitool() && has_submenu(snake_config.last_action) && snake_config.last_tool != Tool { get_last_enabled_tool().to_raw() }) {
             const auto resp = MsgBoxQuestion(_("FINISH remaining calibrations without proceeding to other tests, or perform ALL Calibrations and Tests?\n\nIf you QUIT, all data up to this point is saved."), { Response::Finish, Response::All, Response::Quit }, 2);
             switch (resp) {
 
@@ -278,7 +278,7 @@ void continue_snake() {
 
     if (!is_multitool()
         || !has_submenu(snake_config.last_action)
-        || snake_config.last_tool == get_last_enabled_tool()) { // singletool or wasn't submenu or was last in a submenu
+        || snake_config.last_tool == Tool { get_last_enabled_tool().to_raw() }) { // singletool or wasn't submenu or was last in a submenu
         do_snake(get_next_action(snake_config.last_action));
     } else { // current submenu not yet finished
         do_snake(snake_config.last_action, get_next_tool(snake_config.last_tool));
@@ -410,7 +410,7 @@ void do_menu_event(window_t *receiver, [[maybe_unused]] window_t *sender, GUI_ev
     }
 
     if (is_submenu) {
-        if (snake_config.last_action == action && snake_config.last_tool == get_last_enabled_tool()) { // finished testing this submenu
+        if (snake_config.last_action == action && snake_config.last_tool == Tool { get_last_enabled_tool().to_raw() }) { // finished testing this submenu
             Screens::Access()->Close();
         }
     }

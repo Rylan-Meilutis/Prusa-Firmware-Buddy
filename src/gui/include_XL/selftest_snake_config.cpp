@@ -137,17 +137,17 @@ uint64_t get_test_mask(Action action) {
     bsod_unreachable();
 }
 
-Tool get_last_enabled_tool() {
-    auto result = Tool::Tool1;
+PhysicalToolIndex get_last_enabled_tool() {
+    auto result = PhysicalToolIndex::from_raw(0);
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-        result = static_cast<Tool>(tool.to_raw());
+        result = tool;
     }
     return result;
 }
 
 Tool get_next_tool(Tool tool) {
 #if HAS_TOOLCHANGER()
-    assert(tool != get_last_enabled_tool() && "Unhandled edge case");
+    assert(tool != Tool { get_last_enabled_tool().to_raw() } && "Unhandled edge case");
     do {
         tool = tool + 1;
     } while (!prusa_toolchanger.is_tool_enabled(std::to_underlying(tool)));
