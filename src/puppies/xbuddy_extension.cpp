@@ -207,14 +207,14 @@ std::optional<float> XBuddyExtension::get_chamber_temp() const {
     return static_cast<float>(status.value.temperature) / 10.0f;
 }
 
-std::optional<XBuddyExtension::FilamentSensorState> XBuddyExtension::get_filament_sensor_state() const {
+std::optional<XBuddyExtension::FilamentSensorState> XBuddyExtension::get_gpio_filament_sensor_state() const {
     Lock lock(mutex);
 
     if (!valid) {
         return std::nullopt;
     }
 
-    return static_cast<FilamentSensorState>(status.value.filament_sensor);
+    return static_cast<FilamentSensorState>(status.value.gpio_filament_sensor);
 }
 
 CommunicationStatus XBuddyExtension::refresh_input(PuppyModbus &bus, uint32_t max_age) {

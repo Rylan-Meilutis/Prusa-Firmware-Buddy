@@ -43,7 +43,9 @@ public:
     std::array<uint16_t, FAN_CNT> get_fans_rpm() const;
 
     std::optional<float> get_chamber_temp() const;
-    std::optional<FilamentSensorState> get_filament_sensor_state() const;
+
+    /// Single GPIO sensor (PA5 on standard, PA9 on iX)
+    std::optional<FilamentSensorState> get_gpio_filament_sensor_state() const;
 
     uint8_t get_requested_fan_pwm(size_t fan_idx);
 

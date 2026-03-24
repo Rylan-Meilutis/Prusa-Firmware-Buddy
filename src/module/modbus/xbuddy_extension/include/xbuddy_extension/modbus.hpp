@@ -36,7 +36,7 @@ struct Status {
 
     std::array<uint16_t, fan_count> fan_rpm; /// RPM of the fan
     uint16_t temperature; /// decidegree Celsius (eg. 23.5°C = 235 in the register)
-    uint16_t filament_sensor; /// FilamentSensorState
+    uint16_t gpio_filament_sensor; ///< Single GPIO sensor (PA5 on standard, PA9 on iX)
 
     ChunkRequest chunk_request; ///< request to receive a chunk
 

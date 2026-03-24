@@ -368,8 +368,8 @@ void XBuddyExtension::set_rgbw_led(leds::ColorRGBW rgbw) {
 }
 #endif
 
-std::optional<XBuddyExtension::FilamentSensorState> XBuddyExtension::filament_sensor() {
-    return puppies::xbuddy_extension.get_filament_sensor_state().transform([](auto val) { return static_cast<FilamentSensorState>(val); });
+std::optional<XBuddyExtension::FilamentSensorState> XBuddyExtension::gpio_filament_sensor() const {
+    return puppies::xbuddy_extension.get_gpio_filament_sensor_state();
 }
 
 } // namespace buddy

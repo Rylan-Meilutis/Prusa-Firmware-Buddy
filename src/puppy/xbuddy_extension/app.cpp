@@ -37,7 +37,7 @@ void read_register_file_callback(xbuddy_extension::modbus::Status &status) {
     status.fan_rpm[2] = hal::fan3::get_rpm();
     // Note: Mainboard expects this in decidegree Celsius.
     status.temperature = static_cast<uint16_t>(10 * temperature::raw_to_celsius(hal::temperature::get_raw()));
-    status.filament_sensor = hal::filament_sensor::get();
+    status.gpio_filament_sensor = static_cast<uint16_t>(hal::filament_sensor::get_gpio());
     const auto flash_data = cyphal::application().request();
     status.chunk_request.file_id = xbuddy_extension::modbus::serialize_file_id(flash_data.flash_request);
     status.chunk_request.offset_lo = static_cast<uint16_t>(flash_data.offset & 0xFFFF);

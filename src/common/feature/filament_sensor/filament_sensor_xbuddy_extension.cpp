@@ -7,7 +7,7 @@ void FSensorXBuddyExtension::cycle() {
 }
 
 int32_t FSensorXBuddyExtension::GetFilteredValue() const {
-    return buddy::xbuddy_extension().filament_sensor().transform([](auto v) { return static_cast<int>(v); }).value_or(-1);
+    return buddy::xbuddy_extension().gpio_filament_sensor().transform([](auto v) { return static_cast<int>(v); }).value_or(-1);
 }
 
 FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
@@ -24,7 +24,7 @@ FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
         break;
     }
 
-    switch (buddy::xbuddy_extension().filament_sensor().value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized)) {
+    switch (buddy::xbuddy_extension().gpio_filament_sensor().value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized)) {
 
     case buddy::XBuddyExtension::FilamentSensorState::disconnected:
         return FilamentSensorState::NotConnected;

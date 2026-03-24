@@ -400,14 +400,15 @@ ISR_HANDLER(DebugMon_Handler)
 
 static uint32_t temperature_raw = 0;
 
-#if !EXTENSION_IS_IX()
-/// FS readout at each phase
-static std::bitset<4> filament_sensor_raw;
-static uint8_t filament_sensor_measuring_phase = 0;
-#endif
+/// Single GPIO filament sensor (PA5 on standard, PA9 on iX)
+static hal::filament_sensor::State gpio_fs_state = hal::filament_sensor::State::uninitialized;
+static size_t gpio_fs_last_millis = 0;
 
-static hal::filament_sensor::State filament_sensor_state = hal::filament_sensor::State::uninitialized;
-static size_t filament_sensor_last_millis = 0;
+#if !EXTENSION_IS_IX()
+/// PA5 debounce: 4 phases with alternating pull-up/pull-down (unused on iX)
+static std::bitset<4> gpio_fs_raw;
+static uint8_t gpio_fs_phase = 0;
+#endif
 
 static void step_temperature_adc() {
     // Until we have a non-blocking DMA or interrupt based ADC, we do this
@@ -420,41 +421,41 @@ static void step_temperature_adc() {
 static void step_filament_sensor() {
     const auto now = freertos::millis();
 
-    // Don't update that often, the pin readouts takes some serious time to stabilize
-    if (now - filament_sensor_last_millis <= 10) {
-        return;
-    }
-
-    filament_sensor_last_millis = now;
+    // --- Single GPIO sensor (FSENSOR_PIN on GPIOA) ---
+    if (now - gpio_fs_last_millis > 10) {
+        gpio_fs_last_millis = now;
 
 #if EXTENSION_IS_IX()
-    filament_sensor_state = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET) ? hal::filament_sensor::State::no_filament : hal::filament_sensor::State::has_filament;
+        gpio_fs_state = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET)
+            ? hal::filament_sensor::State::no_filament
+            : hal::filament_sensor::State::has_filament;
 #else
-    filament_sensor_raw[filament_sensor_measuring_phase] = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET);
-    filament_sensor_measuring_phase = (filament_sensor_measuring_phase + 1) % 4;
+        gpio_fs_raw[gpio_fs_phase] = (HAL_GPIO_ReadPin(GPIOA, FSENSOR_PIN) == GPIO_PIN_SET);
+        gpio_fs_phase = (gpio_fs_phase + 1) % 4;
 
-    // Set up the pull for the next phase, use the time between phases to stabilize the readout
-    LL_GPIO_SetPinPull(GPIOA, GPIO_PIN_5, filament_sensor_measuring_phase % 2 ? GPIO_PULLUP : GPIO_PULLDOWN);
+        // Set up the pull for the next phase, use the time between phases to stabilize the readout
+        LL_GPIO_SetPinPull(GPIOA, GPIO_PIN_5, gpio_fs_phase % 2 ? GPIO_PULLUP : GPIO_PULLDOWN);
 
-    switch (filament_sensor_raw.to_ulong()) {
-    case 0b1111:
-        filament_sensor_state = hal::filament_sensor::State::has_filament;
-        break;
+        switch (gpio_fs_raw.to_ulong()) {
+        case 0b1111:
+            gpio_fs_state = hal::filament_sensor::State::has_filament;
+            break;
 
-    case 0b0000:
-        filament_sensor_state = hal::filament_sensor::State::no_filament;
-        break;
+        case 0b0000:
+            gpio_fs_state = hal::filament_sensor::State::no_filament;
+            break;
 
-    case 0b1010:
-        // The readout followed exactly the pullup changes -> there's nothing connected
-        filament_sensor_state = hal::filament_sensor::State::disconnected;
-        break;
+        case 0b1010:
+            // The readout followed exactly the pullup changes -> there's nothing connected
+            gpio_fs_state = hal::filament_sensor::State::disconnected;
+            break;
 
-    default:
-        // The filament could have been inserted/removed between the phases, wait for definitive values
-        break;
-    }
+        default:
+            // The filament could have been inserted/removed between the phases, wait for definitive values
+            break;
+        }
 #endif
+    }
 }
 
 void hal::step() {
@@ -545,6 +546,6 @@ uint32_t hal::temperature::get_raw() {
     return temperature_raw;
 }
 
-hal::filament_sensor::State hal::filament_sensor::get() {
-    return filament_sensor_state;
+hal::filament_sensor::State hal::filament_sensor::get_gpio() {
+    return gpio_fs_state;
 }

@@ -156,8 +156,8 @@ public: // Other
     void set_rgbw_led(leds::ColorRGBW rgbw);
 #endif
 
-    /// \returns state of the filament sensor
-    std::optional<FilamentSensorState> filament_sensor();
+    /// Single GPIO sensor (PA5 on standard, PA9 on iX)
+    std::optional<FilamentSensorState> gpio_filament_sensor() const;
 
 private:
     mutable freertos::Mutex mutex_;

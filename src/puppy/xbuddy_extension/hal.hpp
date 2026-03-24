@@ -71,7 +71,8 @@ namespace temperature {
 namespace filament_sensor {
     using State = xbuddy_extension::FilamentSensorState;
 
-    State get();
+    /// Single GPIO sensor (PA5 on standard, PA9 on iX)
+    State get_gpio();
 } // namespace filament_sensor
 
 } // namespace hal
