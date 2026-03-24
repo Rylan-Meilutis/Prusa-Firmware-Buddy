@@ -1,0 +1,3 @@
+add_executable(onewire_master_tests onewire_master_tests.cpp)
+target_link_libraries(onewire_master_tests onewire_master)
+add_catch_test(onewire_master_tests)
