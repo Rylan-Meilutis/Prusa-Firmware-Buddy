@@ -163,7 +163,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     }
 
     if (is_flexible) {
-        set.operator()<&Params::do_not_auto_retract>(true);
+        set.operator()<&Params::is_flexible>(true);
     }
 
     const auto unset_missing = [&]<auto Params::*mem_ptr>() {
@@ -182,7 +182,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     // But for example in our printer presets, ASA is set as "requires filtration",
     // so if requires_filtration == true from the preset and the tag did not indicate it, the missing flag is kept
     unset_missing_if_equals.operator()<&Params::is_abrasive>(false);
-    unset_missing_if_equals.operator()<&Params::do_not_auto_retract>(false);
+    unset_missing_if_equals.operator()<&Params::is_flexible>(false);
     unset_missing_if_equals.operator()<&Params::requires_filtration>(false);
 
     if (is_missing<&FilamentTypeParameters::chamber_min_temperature>() && is_missing<&FilamentTypeParameters::chamber_max_temperature>()) {

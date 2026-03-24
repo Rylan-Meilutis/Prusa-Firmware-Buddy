@@ -119,7 +119,7 @@ public:
             return;
         }
 
-        if (config_store().get_filament_type(active_extruder).parameters().do_not_auto_retract) {
+        if (config_store().get_filament_type(active_extruder).parameters().is_flexible) {
             // The filament has auto-retract disabled, globally enabling auto-retract would not help
             return;
         }

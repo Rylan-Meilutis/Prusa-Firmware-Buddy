@@ -113,11 +113,11 @@ public:
     MI_FILAMENT_IS_ABRASIVE();
 };
 
-class MI_FILAMENT_DO_NOT_AUTO_RETRACT final : public WI_ICON_SWITCH_OFF_ON_t {
+class MI_FILAMENT_IS_FLEXIBLE final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
-    static constexpr auto parameter_ptr = &FilamentTypeParameters::do_not_auto_retract;
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::is_flexible;
 
-    MI_FILAMENT_DO_NOT_AUTO_RETRACT();
+    MI_FILAMENT_IS_FLEXIBLE();
 };
 
 class MI_FILAMENT_VISIBLE final : public WI_ICON_SWITCH_OFF_ON_t {
@@ -148,7 +148,7 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
     MI_FILAMENT_MAX_CHAMBER_TEMPERATURE,
 #endif
     MI_FILAMENT_IS_ABRASIVE,
-    MI_FILAMENT_DO_NOT_AUTO_RETRACT,
+    MI_FILAMENT_IS_FLEXIBLE,
 #if HAS_CHAMBER_API()
     MI_FILAMENT_REQUIRES_FILTRATION,
 #endif

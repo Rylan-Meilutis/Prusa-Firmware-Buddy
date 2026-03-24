@@ -87,8 +87,8 @@ void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_cal
         return;
     }
 
-    // Do not auto retract specific filaments (for example TPU might get tangled up in the extruder - BFW-6953)
-    if (config_store().get_filament_type(virtual_tool).parameters().do_not_auto_retract) {
+    // Do not auto retract flexible filaments, they might get tangled in the extruder (BFW-6953)
+    if (config_store().get_filament_type(virtual_tool).parameters().is_flexible) {
         return;
     }
 
@@ -123,7 +123,7 @@ void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_cal
     // We might be retracted a bit, deretract to make sure the ramming sequence runs proper
     maybe_deretract_to_nozzle();
 
-    const auto &sequence = standard_ramming_sequence(StandardRammingSequence::auto_retract, physical_tool.to_raw());
+    const auto &sequence = standard_ramming_sequence(StandardRammingSequence::auto_retract, virtual_tool);
     {
         // No estall detection during the ramming; we may do so too fast sometimes
         // to the point where the motor skips, but we don't care, as it doesn't

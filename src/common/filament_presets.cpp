@@ -148,7 +148,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_target_temperature = 25,
             .requires_filtration = true,
 #endif
-            .do_not_auto_retract = true,
+            .is_flexible = true,
         },
     },
     {

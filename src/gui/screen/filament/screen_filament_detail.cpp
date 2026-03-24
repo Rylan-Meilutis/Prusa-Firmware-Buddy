@@ -107,13 +107,9 @@ MI_FILAMENT_REQUIRES_FILTRATION::MI_FILAMENT_REQUIRES_FILTRATION()
 MI_FILAMENT_IS_ABRASIVE::MI_FILAMENT_IS_ABRASIVE()
     : WI_ICON_SWITCH_OFF_ON_t(false, _("Is Abrasive")) {}
 
-// * MI_FILAMENT_DO_NOT_AUTO_RETRACT
-MI_FILAMENT_DO_NOT_AUTO_RETRACT::MI_FILAMENT_DO_NOT_AUTO_RETRACT()
-    : WI_ICON_SWITCH_OFF_ON_t(false, _("Auto Retract")) {
-
-    // The FilamentTypeParameters field is actually do_not_auto_retract, so we have to invert what we show
-    set_invert_value(true);
-}
+// * MI_FILAMENT_IS_FLEXIBLE
+MI_FILAMENT_IS_FLEXIBLE::MI_FILAMENT_IS_FLEXIBLE()
+    : WI_ICON_SWITCH_OFF_ON_t(false, _("Is Flexible")) {}
 
 // * MI_FILAMENT_VISIBLE
 MI_FILAMENT_VISIBLE::MI_FILAMENT_VISIBLE()

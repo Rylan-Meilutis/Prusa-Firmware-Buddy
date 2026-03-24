@@ -161,7 +161,7 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
         CHECK(info.parameters.name == "PETG");
         CHECK(info.parameters.nozzle_temperature == 240); // (230+250)/2
         CHECK(info.parameters.heatbed_temperature == 85); // (80+90)/2
-        CHECK_FALSE(info.parameters.do_not_auto_retract);
+        CHECK_FALSE(info.parameters.is_flexible);
         CHECK_FALSE(info.parameters.requires_filtration);
         CHECK_FALSE(info.is_missing<&FilamentTypeParameters::nozzle_temperature>());
     }
@@ -180,7 +180,7 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
         FilamentParametersInfo info { req };
 
         CHECK(info.parameters.name == "TPU");
-        CHECK(info.parameters.do_not_auto_retract == true);
+        CHECK(info.parameters.is_flexible == true);
     }
 
     SECTION("Tags") {
@@ -288,7 +288,7 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
 
         CHECK(info.parameters.name == "PLA");
         CHECK_FALSE(info.parameters.requires_filtration);
-        CHECK_FALSE(info.parameters.do_not_auto_retract);
+        CHECK_FALSE(info.parameters.is_flexible);
         CHECK_FALSE(info.parameters.is_abrasive);
     }
 }
