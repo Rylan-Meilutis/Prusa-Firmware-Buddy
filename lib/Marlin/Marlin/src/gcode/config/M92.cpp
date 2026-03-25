@@ -106,17 +106,18 @@ void GcodeSuite::M92() {
     LOOP_XYZE(i) {
       if (parser.seenval(axis_codes[i])) {
         if (i == E_AXIS) {
-          const float value = parser.value_per_axis_units((AxisEnum)(E_AXIS_N(tool->to_raw())));
+          const AxisEnum e_axis = E_AXIS_N(tool->to_raw());
+          const float value = parser.value_per_axis_units(e_axis);
           if (value < 20) {
-            float factor = planner.settings.axis_steps_per_mm[E_AXIS_N(tool->to_raw())] / value; // increase e constants if M92 E14 is given for netfab.
+            float factor = planner.settings.axis_steps_per_mm[e_axis] / value; // increase e constants if M92 E14 is given for netfab.
             #if HAS_CLASSIC_E_JERK
               s.max_jerk.e *= factor;
             #endif
-            s.max_feedrate_mm_s[E_AXIS_N(tool->to_raw())] *= factor;
-            planner.max_acceleration_msteps_per_s2[E_AXIS_N(tool->to_raw())] = static_cast<uint32_t>(planner.max_acceleration_msteps_per_s2[E_AXIS_N(tool->to_raw())] * factor);
+            s.max_feedrate_mm_s[e_axis] *= factor;
+            planner.max_acceleration_msteps_per_s2[e_axis] = static_cast<uint32_t>(planner.max_acceleration_msteps_per_s2[e_axis] * factor);
           }
-          s.axis_steps_per_mm[E_AXIS_N(tool->to_raw())] = value;
-          s.axis_msteps_per_mm[E_AXIS_N(tool->to_raw())] = value * PLANNER_STEPS_MULTIPLIER;
+          s.axis_steps_per_mm[e_axis] = value;
+          s.axis_msteps_per_mm[e_axis] = value * PLANNER_STEPS_MULTIPLIER;
         }
         else {
           s.axis_steps_per_mm[i] = parser.value_per_axis_units((AxisEnum)i);
