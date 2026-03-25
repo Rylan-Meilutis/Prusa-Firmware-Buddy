@@ -8,6 +8,7 @@
 #include <common/marlin_server.hpp>
 #include <gcode/gcode.h>
 #include <raii/auto_restore.hpp>
+#include <tool/hotend/hotend.hpp>
 #include <utils/variant_utils.hpp>
 
 using namespace marlin_server;
@@ -157,14 +158,21 @@ public:
 
     [[nodiscard]] bool wait_temp(int16_t target_temp) {
         fsm_change(Phase::wait_temp);
-        float start_temp = Temperature::degHotend(active_extruder);
+        const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+        if (!tool.has_value()) {
+            return false;
+        }
+
+        float start_temp = Hotend::for_tool(*tool).nozzle_temp();
 
         struct {
             float start_temp;
             int16_t target_temp;
+            PhysicalToolIndex tool;
         } temps {
             start_temp,
-            target_temp
+            target_temp,
+            *tool
         };
 
         // takes care of progress reporing and also handles abort correctly
@@ -177,7 +185,7 @@ public:
             }
             if (!warn_active) {
                 struct NozzleCleaningFailedProgressData data {
-                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(Temperature::degHotend(active_extruder) - temps.start_temp) / static_cast<float>(temps.target_temp - temps.start_temp)) * 255))
+                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(Hotend::for_tool(temps.tool).nozzle_temp() - temps.start_temp) / static_cast<float>(temps.target_temp - temps.start_temp)) * 255))
                 };
                 fsm_change(Phase::wait_temp, fsm::serialize_data(data));
             }
@@ -189,10 +197,6 @@ public:
             .wait_heat_or_cool = true,
             .autotemp = true,
         };
-        const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-        if (!tool.has_value()) {
-            return false;
-        }
         M109_no_parser(*tool, flags);
         return !planner.draining();
     }
