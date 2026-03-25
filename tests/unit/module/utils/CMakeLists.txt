@@ -70,3 +70,8 @@ target_include_directories(
   compact_optional_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/module/utils/buddy_utils
   )
 add_catch_test(compact_optional_tests)
+
+# debouncer_tests
+add_executable(debouncer_tests debouncer_tests.cpp)
+target_include_directories(debouncer_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/module/utils/buddy_utils)
+add_catch_test(debouncer_tests)
