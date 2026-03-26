@@ -6,9 +6,11 @@
 #include <option/has_toolchanger.h>
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_api.h>
+#include <option/has_per_tool_temperatures.h>
 
 #include <Configuration_adv.h>
 #include <fs_autoload_autolock.hpp>
+#include <gui/menu_item/menu_item_virtual_submenu.hpp>
 
 #include <screen_menu.hpp>
 #include <MItem_tools.hpp>
@@ -64,7 +66,10 @@ struct ScreenMenuSensorInfo__<std::index_sequence<hotend...>> {
     #if HAS_CHAMBER_API()
         MI_CHAMBER_TEMP,
     #endif
-        WithConstructorArgs<MI_INFO_NOZZLE_TEMP, hotend>...,
+        MI_INFO_NOZZLE_TEMP,
+    #if HAS_PER_TOOL_TEMPERATURES()
+        MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_INFO_NOZZLE_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
+    #endif
     #if TEMP_SENSOR_HEATBREAK > 0
         WithConstructorArgs<MI_INFO_HEATBREAK_TEMP, hotend>...,
     #endif
