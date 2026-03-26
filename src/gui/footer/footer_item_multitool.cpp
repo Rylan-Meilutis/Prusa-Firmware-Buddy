@@ -35,18 +35,19 @@ FooterItemCurrentTool::FooterItemCurrentTool(window_t *parent)
 
 int FooterItemCurrentTool::static_readValue() {
     return match(
-        marlin_vars().active_extruder.get(),
-        [](VirtualToolIndex virtual_tool) { return virtual_tool.display_index(); },
-        [](NoTool) -> uint8_t { return 0; });
+        VirtualToolIndex::currently_selected(),
+        [](VirtualToolIndex virtual_tool) -> int { return virtual_tool.to_raw(); },
+        [](NoTool) -> int { return -1; });
 }
 
 string_view_utf8 FooterItemCurrentTool::static_makeView(int value) {
-    static std::array<char, 3> buff;
-    StringBuilder b(buff);
-    if (std::holds_alternative<VirtualToolIndex>(VirtualToolIndex::currently_selected())) {
-        b.append_float(value, { .max_decimal_places = 0, .skip_zero_before_dot = false });
+    static std::array<char, 4> buff;
+    if (value >= 0) {
+        StringViewUtf8Parameters<4> params;
+        VirtualToolIndex::from_raw(value).compact_display_name(params).copyToRAM(buff);
     } else {
-        b.append_char('-'); // No filament loaded
+        StringBuilder b(buff);
+        b.append_char('-');
     }
     return string_view_utf8::MakeRAM(buff.data());
 }

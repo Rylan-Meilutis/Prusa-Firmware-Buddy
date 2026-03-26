@@ -33,7 +33,7 @@ const char *footer::to_string(Item item) {
         { Item::sheets, HAS_SHEET_PROFILES() ? (const char *)N_("Sheets") : nullptr },
         { Item::finda, HAS_MMU2() ? (const char *)N_("Finda") : nullptr },
         { Item::current_tool,
-#if defined(FOOTER_HAS_TOOL_NR)
+#if FOOTER_HAS_TOOL_NR()
             N_("Current tool")
 #else
             nullptr

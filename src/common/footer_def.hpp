@@ -25,14 +25,12 @@
     #define FOOTER_LINES__          2
     #define FOOTER_ITEMS_PER_LINE__ 3
 #else
-    #if (defined(PRINTER_TYPE) && PRINTER_IS_PRUSA_XL())
-        #define FOOTER_HAS_TOOL_NR
-    #endif
     #define FOOTER_LINES__          1
     #define FOOTER_ITEMS_PER_LINE__ 5
 #endif
 
 #define HAS_PER_TOOL_NOZZLE_TEMPERATURE() (HAS_TOOLCHANGER() && !HAS_INDX())
+#define FOOTER_HAS_TOOL_NR()              (EXTRUDERS > 1)
 
 namespace footer {
 inline constexpr uint8_t default_center_n_and_fewer = FOOTER_ITEMS_PER_LINE__ - 1;
@@ -117,7 +115,7 @@ inline constexpr std::array item_list {
         Item::finda,
 #endif
 
-#if defined(FOOTER_HAS_TOOL_NR)
+#if FOOTER_HAS_TOOL_NR()
         Item::current_tool,
 #endif
 

@@ -68,7 +68,7 @@ using FooterItemMappings = TypeList< //
 #if HAS_MMU2()
     FooterItemMappingRec<FooterItemFinda, Item::finda>,
 #endif
-#if defined(FOOTER_HAS_TOOL_NR)
+#if FOOTER_HAS_TOOL_NR()
     FooterItemMappingRec<FooterItemCurrentTool, Item::current_tool>,
 #endif
 #if HAS_PER_TOOL_NOZZLE_TEMPERATURE()
