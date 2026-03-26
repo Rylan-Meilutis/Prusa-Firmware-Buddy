@@ -9,6 +9,7 @@
 #include "MarlinPin.h"
 #include <device/hal.h>
 #include <limits>
+#include <cassert>
 
 /*
 ADC channels, ranks, ...
