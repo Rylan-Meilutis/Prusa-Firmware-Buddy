@@ -29,6 +29,10 @@
 #endif
 
 #include <fanctl.hpp>
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <puppies/INDX.hpp>
+#endif
 
 SensorData &sensor_data() {
     static SensorData instance;
@@ -105,6 +109,11 @@ void SensorData::update() {
 
     #endif
 
+    #if HAS_INDX()
+    HeadBoardTemperature = buddy::puppies::indx.get_board_temperature();
+    HeadMCUTemperature = buddy::puppies::indx.get_mcu_temperature();
+    #endif
+
 #elif BOARD_IS_XLBUDDY()
 
     // Input voltage
@@ -122,10 +131,10 @@ void SensorData::update() {
     buddy::puppies::Dwarf &dwarf = prusa_toolchanger.getActiveToolOrFirst();
 
     // Dwarf board temperature
-    dwarfBoardTemperature = dwarf.get_board_temperature();
+    HeadBoardTemperature = dwarf.get_board_temperature();
 
     // Dwarf MCU temperature
-    dwarfMCUTemperature = dwarf.get_mcu_temperature();
+    HeadMCUTemperature = dwarf.get_mcu_temperature();
 
 #endif
 #if HAS_BED_FAN()

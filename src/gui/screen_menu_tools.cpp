@@ -19,7 +19,7 @@
 /*****************************************************************************/
 MI_INFO_DWARF_BOARD_TEMPERATURE::MI_INFO_DWARF_BOARD_TEMPERATURE()
     : MenuItemAutoUpdatingLabel(_("Dwarf Board Temp"), standard_print_format::temp_c,
-        [](auto) { return sensor_data().dwarfBoardTemperature.load(); } //
+        [](auto) { return sensor_data().HeadBoardTemperature.load(); } //
     ) {}
 
 /*****************************************************************************/
@@ -27,5 +27,5 @@ MI_INFO_DWARF_BOARD_TEMPERATURE::MI_INFO_DWARF_BOARD_TEMPERATURE()
 /*****************************************************************************/
 MI_INFO_DWARF_MCU_TEMPERATURE::MI_INFO_DWARF_MCU_TEMPERATURE()
     : MenuItemAutoUpdatingLabel(_("Dwarf MCU Temp"), standard_print_format::temp_c,
-        [](auto) { return sensor_data().dwarfMCUTemperature.load(); } //
+        [](auto) { return sensor_data().HeadMCUTemperature.load(); } //
     ) {}

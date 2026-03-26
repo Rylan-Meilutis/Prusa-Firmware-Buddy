@@ -7,6 +7,8 @@
 #include <option/has_loadcell.h>
 #include <option/has_psu_fan.h>
 #include <option/has_remote_bed.h>
+#include <option/has_dwarf.h>
+#include <option/has_indx.h>
 #include <utils/atomic.hpp>
 #include <utils/timing/rate_limiter.hpp>
 
@@ -41,16 +43,18 @@ public:
     RelaxedAtomic<float> sandwich5VVoltage;
     RelaxedAtomic<float> sandwich5VCurrent;
     RelaxedAtomic<float> buddy5VCurrent;
-    RelaxedAtomic<float> dwarfBoardTemperature;
-    RelaxedAtomic<float> dwarfMCUTemperature;
 #elif BOARD_IS_XBUDDY()
     RelaxedAtomic<float> bed_voltage;
     RelaxedAtomic<float> heater_voltage;
     RelaxedAtomic<float> heater_current;
     RelaxedAtomic<float> input_current;
     RelaxedAtomic<float> mmuCurrent;
-#else
 #endif
+#if HAS_DWARF() || HAS_INDX()
+    RelaxedAtomic<float> HeadBoardTemperature;
+    RelaxedAtomic<float> HeadMCUTemperature;
+#endif
+
 #if HAS_DOOR_SENSOR()
     RelaxedAtomic<buddy::DoorSensor::DetailedState> door_sensor_detailed_state;
 #endif

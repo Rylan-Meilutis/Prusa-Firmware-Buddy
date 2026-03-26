@@ -376,11 +376,11 @@ void RecordPrintFilename() {
 void record_dwarf_internal_temperatures() {
     {
         METRIC_DEF(metric_dwarfBoardTemperature, "dwarf_board_temp", METRIC_VALUE_INTEGER, 1001, METRIC_ENABLED);
-        metric_record_integer(&metric_dwarfBoardTemperature, static_cast<int>(sensor_data().dwarfBoardTemperature.load()));
+        metric_record_integer(&metric_dwarfBoardTemperature, static_cast<int>(sensor_data().HeadBoardTemperature.load()));
     }
     {
         METRIC_DEF(metric_dwarfMCUTemperature, "dwarf_mcu_temp", METRIC_VALUE_INTEGER, 1001, METRIC_DISABLED);
-        metric_record_integer(&metric_dwarfMCUTemperature, static_cast<int>(sensor_data().dwarfMCUTemperature.load()));
+        metric_record_integer(&metric_dwarfMCUTemperature, static_cast<int>(sensor_data().HeadMCUTemperature.load()));
     }
 
     // All MCU temperatures
