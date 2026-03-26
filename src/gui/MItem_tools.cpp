@@ -583,16 +583,23 @@ std::optional<FilamentSensorStateAndValue> MI_INFO_EXTRUDER_FILAMENT_SENSOR::val
 
 /*****************************************************************************/
 // MI_INFO_SIDE_FILAMENT_SENSOR
-MI_INFO_SIDE_FILAMENT_SENSOR::MI_INFO_SIDE_FILAMENT_SENSOR()
+MI_INFO_SIDE_FILAMENT_SENSOR::MI_INFO_SIDE_FILAMENT_SENSOR(std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool)
     : MI_INFO_FILAMENT_SENSOR(
-        _("Side Filament sensor"),
-        [](auto) {
-            return match(
-                marlin_vars().active_extruder.get(),
-                [](VirtualToolIndex virtual_tool) { return get_value(GetSideFSensor(virtual_tool.to_physical())); },
-                [](NoTool) -> Value { return std::nullopt; });
-        } //
-    ) {
+        string_view_utf8 {},
+        [](auto *item) { return static_cast<MI_INFO_SIDE_FILAMENT_SENSOR *>(item)->value(); })
+    , tool_(tool) {
+    SetLabel(match(
+        tool_,
+        [&](PhysicalToolIndex t) { return t.display_name(label_params_); },
+        [](CurrentlySelectedTool) { return _("Side Filament sensor"); }));
+}
+
+std::optional<FilamentSensorStateAndValue> MI_INFO_SIDE_FILAMENT_SENSOR::value() const {
+    const auto tool = resolve_tool_index(tool_);
+    if (!tool.has_value()) {
+        return std::nullopt;
+    }
+    return get_value(GetSideFSensor(*tool));
 }
 
 #if BOARD_IS_XBUDDY()

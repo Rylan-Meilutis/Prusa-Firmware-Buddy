@@ -7,6 +7,7 @@
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_api.h>
 #include <option/has_per_tool_temperatures.h>
+#include <option/has_side_fsensor.h>
 
 #include <Configuration_adv.h>
 #include <fs_autoload_autolock.hpp>
@@ -89,7 +90,12 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
     #if HOTENDS > 1
     MenuItemVirtualSubmenu<N_("Extruder Filament Sensors"), MI_INFO_EXTRUDER_FILAMENT_SENSOR, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
     #endif
+    #if HAS_SIDE_FSENSOR()
     MI_INFO_SIDE_FILAMENT_SENSOR,
+        #if HOTENDS > 1
+    MenuItemVirtualSubmenu<N_("Side Filament Sensors"), MI_INFO_SIDE_FILAMENT_SENSOR, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
+        #endif
+    #endif
     #if PRINTER_IS_PRUSA_MK3_5()
     MI_PINDA,
     #endif
