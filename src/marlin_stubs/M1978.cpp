@@ -282,10 +282,10 @@ private:
 
     void reset_fan_result() {
         SelftestResult result = config_store().selftest_result.get();
-        for (auto &tool : result.tools) {
-            tool.printFan = TestResult_Unknown;
-            tool.heatBreakFan = TestResult_Unknown;
-            tool.fansSwitched = TestResult_Unknown;
+        for (auto tool : PhysicalToolIndex::all()) {
+            result.set_print_fan(tool, TestResult_Unknown);
+            result.set_heatbreak_fan(tool, TestResult_Unknown);
+            result.set_fans_switched(tool, TestResult_Unknown);
         }
         config_store().selftest_result.set(result);
 
@@ -328,14 +328,14 @@ private:
         for (auto *fan : fans) {
             switch (fan->get_type()) {
             case FanType::print:
-                result.tools[fan->get_desc_num()].printFan = fan->test_result();
+                result.set_print_fan(fan->get_desc_num(), fan->test_result());
 #if HAS_SWITCHED_FAN_TEST()
                 // Also save fanSwitched
-                result.tools[fan->get_desc_num()].fansSwitched = fans_switched[fan->get_desc_num()] ? TestResult_Failed : TestResult_Passed;
+                result.set_fans_switched(fan->get_desc_num(), fans_switched[fan->get_desc_num()] ? TestResult_Failed : TestResult_Passed);
 #endif
                 break;
             case FanType::heatbreak:
-                result.tools[fan->get_desc_num()].heatBreakFan = fan->test_result();
+                result.set_heatbreak_fan(fan->get_desc_num(), fan->test_result());
                 break;
 #if XL_ENCLOSURE_SUPPORT()
             case FanType::xl_enclosure:

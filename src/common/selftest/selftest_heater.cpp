@@ -51,7 +51,7 @@ uint32_t CSelftestPart_Heater::estimate(const HeaterConfig_t &config) {
 
 LoopResult CSelftestPart_Heater::stateCheckHbrPassed() {
     SelftestResult eeres = config_store().selftest_result.get();
-    if (!eeres.tools[m_config.tool_nr].has_heatbreak_fan_passed()) {
+    if (!eeres.has_heatbreak_fan_passed(m_config.tool_nr)) {
         IPartHandler::SetFsmPhase(PhasesSelftest::HeatersDisabledDialog);
         nozzle_test_skipped = true;
     }

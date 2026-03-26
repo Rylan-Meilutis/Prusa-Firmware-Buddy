@@ -119,9 +119,9 @@ void CurrentStore::perform_config_migrations() {
         // This created a need for gear test refactoring
         // [[ BFW-5785 ]]
 
-        SelftestTool st = get_selftest_result_tool(0);
-        st.gears = selftest_result.get().deprecated_gears;
-        set_selftest_result_tool(0, st);
+        auto sr = selftest_result.get();
+        sr.set_gearbox(0, sr.deprecated_gears);
+        selftest_result.set(sr);
     }
 #endif
 #if HAS_SELFTEST()

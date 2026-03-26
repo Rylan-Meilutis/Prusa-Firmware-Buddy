@@ -304,7 +304,7 @@ void CSelftest::Loop() {
             }
         }
 
-        if (m_result.tools[0].nozzle == TestResult_Failed) {
+        if (m_result.get_nozzle_heater(0) == TestResult_Failed) {
             switch (phase_revise_printer_setup()) {
 
             case RevisePrinterSetupResult::running:

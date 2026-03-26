@@ -31,7 +31,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     case Action::Fans: {
         TestResult res = merge_hotends_evaluations(
             [&](int8_t e) {
-                return evaluate_results(sr.tools[e].evaluate_fans());
+                return sr.evaluate_fans(e);
             });
 #if HAS_CHAMBER_API()
         switch (chamber().backend()) {
@@ -66,17 +66,17 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
 #endif
     case Action::Loadcell:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].loadcell);
+            return sr.get_loadcell(e);
         });
     case Action::ZCheck:
         return evaluate_results(sr.zaxis);
     case Action::Heaters:
         return evaluate_results(sr.bed, merge_hotends_evaluations([&](int8_t e) {
-            return evaluate_results(sr.tools[e].nozzle);
+            return sr.get_nozzle_heater(e);
         }));
     case Action::Gears:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].gears);
+            return sr.get_gearbox(e);
         });
     case Action::DoorSensor:
         return evaluate_results(config_store().selftest_result_door_sensor.get());

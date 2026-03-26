@@ -34,7 +34,7 @@ TestResult get_test_result(Action action, Tool tool) {
     case Action::Fans: {
         TestResult res = merge_hotends_evaluations(
             [&](int8_t e) {
-                return evaluate_results(sr.tools[e].evaluate_fans());
+                return sr.evaluate_fans(e);
             });
 #if HAS_CHAMBER_API()
         switch (buddy::chamber().backend()) {
@@ -61,28 +61,27 @@ TestResult get_test_result(Action action, Tool tool) {
 #endif
     case Action::DockCalibration:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].dockoffset);
+            return sr.get_dock_offset(e);
         });
     case Action::Loadcell:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].loadcell);
+            return sr.get_loadcell(e);
         });
     case Action::ToolOffsetsCalibration:
-        return merge_hotends_evaluations(
-            [&](int8_t e) {
-                return evaluate_results(sr.tools[e].tooloffset);
-            });
+        return merge_hotends_evaluations([&](int8_t e) {
+            return sr.get_tool_offset(e);
+        });
     case Action::ZCheck:
         return evaluate_results(sr.zaxis);
     case Action::BedHeaters:
         return evaluate_results(sr.bed);
     case Action::NozzleHeaters:
         return merge_hotends_evaluations([&](int8_t e) {
-            return evaluate_results(sr.tools[e].nozzle);
+            return sr.get_nozzle_heater(e);
         });
     case Action::Heaters:
         return evaluate_results(sr.bed, merge_hotends_evaluations([&](int8_t e) {
-            return evaluate_results(sr.tools[e].nozzle);
+            return sr.get_nozzle_heater(e);
         }));
     case Action::FilamentSensorCalibration:
         return merge_hotends(tool, [&](const int8_t e) {
@@ -92,7 +91,7 @@ TestResult get_test_result(Action action, Tool tool) {
         return evaluate_results(config_store().selftest_result_phase_stepping.get());
     case Action::Gears:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].gears);
+            return sr.get_gearbox(e);
         });
     case Action::_count:
         break;

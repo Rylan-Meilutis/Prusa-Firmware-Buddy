@@ -52,7 +52,7 @@ TestReturn phaseToolOffsets([[maybe_unused]] const ToolMask tool_mask, IPartHand
         }
 
         // Store tool calibration state
-        eeres.tools[physical_tool].tooloffset = pToolOffsets->GetResult();
+        eeres.set_tool_offset(physical_tool, pToolOffsets->GetResult());
     }
     config_store().selftest_result.set(eeres);
 

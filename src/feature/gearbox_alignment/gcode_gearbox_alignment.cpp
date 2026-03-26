@@ -67,9 +67,9 @@ private:
     }
 
     void finish(TestResult test_result) {
-        SelftestTool selftest_tool = config_store().get_selftest_result_tool(tool.to_raw());
-        selftest_tool.gears = test_result;
-        config_store().set_selftest_result_tool(tool.to_raw(), selftest_tool);
+        auto sr = config_store().selftest_result.get();
+        sr.set_gearbox(tool, test_result);
+        config_store().selftest_result.set(sr);
         fsm_change(PhaseGearboxAlignment::finish);
         return;
     }

@@ -17,7 +17,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     case Action::Fans:
         return merge_hotends_evaluations(
             [&](int8_t e) {
-                return evaluate_results(sr.tools[e].evaluate_fans());
+                return sr.evaluate_fans(e);
             });
     case Action::ZAlign:
         return evaluate_results(sr.zalign);
@@ -31,13 +31,13 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
 #endif
     case Action::Loadcell:
         return merge_hotends(tool, [&](const int8_t e) {
-            return evaluate_results(sr.tools[e].loadcell);
+            return sr.get_loadcell(e);
         });
     case Action::ZCheck:
         return evaluate_results(sr.zaxis);
     case Action::Heaters:
         return evaluate_results(sr.bed, merge_hotends_evaluations([&](int8_t e) {
-            return evaluate_results(sr.tools[e].nozzle);
+            return sr.get_nozzle_heater(e);
         }));
     case Action::FilamentSensorCalibration:
         return merge_hotends(tool, [&](const int8_t e) {

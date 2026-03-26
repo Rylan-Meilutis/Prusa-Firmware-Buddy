@@ -17,7 +17,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     case Action::Fans:
         return merge_hotends_evaluations(
             [&](int8_t e) {
-                return evaluate_results(sr.tools[e].evaluate_fans());
+                return sr.evaluate_fans(e);
             });
     case Action::ZAlign:
         return evaluate_results(sr.zalign);
@@ -27,7 +27,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
         return evaluate_results(sr.zaxis);
     case Action::Heaters:
         return evaluate_results(sr.bed, merge_hotends_evaluations([&](int8_t e) {
-            return evaluate_results(sr.tools[e].nozzle);
+            return sr.get_nozzle_heater(e);
         }));
     case Action::FirstLayer:
         // instead of test result that isn't saved to eeprom, consider calibrated sheet as passed.

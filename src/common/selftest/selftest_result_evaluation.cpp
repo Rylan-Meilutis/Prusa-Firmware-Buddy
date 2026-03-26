@@ -50,21 +50,15 @@ bool is_selftest_successfully_completed() {
 
         // Without toolchanger, we don't have tool offsets
         if (prusa_toolchanger.is_toolchanger_enabled()) {
-            if (!all_passed(sr.tools[tool].dockoffset, sr.tools[tool].tooloffset)) {
+            if (!all_passed(sr.get_dock_offset(tool), sr.get_tool_offset(tool))) {
                 return false;
             }
         }
 
 #endif
 
-#if HAS_SWITCHED_FAN_TEST()
-        if (sr.tools[tool].fansSwitched != TestResult_Passed) {
-            return false;
-        }
-#endif /* HAS_SWITCHED_FAN_TEST() */
-
 #if HAS_GEARBOX_ALIGNMENT()
-        if (sr.tools[tool].gears == TestResult_Failed) {
+        if (sr.get_gearbox(tool) == TestResult_Failed) {
             return false;
         }
 #endif /* HAS_GEARBOX_ALIGNMENT */
@@ -76,12 +70,16 @@ bool is_selftest_successfully_completed() {
         }
 
 #if HAS_LOADCELL()
-        if (!all_passed(sr.tools[tool].loadcell)) {
+        if (!all_passed(sr.get_loadcell(tool))) {
             return false;
         }
 #endif /* HAS_LOADCELL() */
 
-        if (!all_passed(sr.tools[tool].printFan, sr.tools[tool].heatBreakFan, sr.tools[tool].nozzle)) {
+        if (sr.get_nozzle_heater(tool) != TestResult_Passed) {
+            return false;
+        }
+
+        if (sr.evaluate_fans(tool) != TestResult_Passed) {
             return false;
         }
     }

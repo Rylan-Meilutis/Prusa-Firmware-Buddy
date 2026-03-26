@@ -147,15 +147,15 @@ namespace frame {
                 }
 #endif
 #if HAS_SWITCHED_FAN_TEST()
-                if (process_fan_result(result.tools[tool].fansSwitched, switched_fan_icons, tool.to_raw())) {
+                if (process_fan_result(result.get_fans_switched(tool), switched_fan_icons, tool.to_raw())) {
                     print_icons.SetState(SelftestSubtestState_t::not_good, tool.to_raw());
                     heatbreak_icons.SetState(SelftestSubtestState_t::not_good, tool.to_raw());
                     switched_fans = true;
                     continue;
                 }
 #endif
-                process_fan_result(result.tools[tool].printFan, print_icons, tool.to_raw());
-                process_fan_result(result.tools[tool].heatBreakFan, heatbreak_icons, tool.to_raw());
+                process_fan_result(result.get_print_fan(tool), print_icons, tool.to_raw());
+                process_fan_result(result.get_heatbreak_fan(tool), heatbreak_icons, tool.to_raw());
             }
 
 #if HAS_CHAMBER_API()

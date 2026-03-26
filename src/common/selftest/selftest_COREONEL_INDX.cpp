@@ -365,12 +365,15 @@ void CSelftest::next() {
             return; // current state can be run
         break;      // current state cannot be run
 #endif
-    case stsZAxis: // loadcell and both X and Y must be OK to test Z
-        if (m_result.tools[0].loadcell == TestResult_Passed && m_result.xaxis == TestResult_Passed && m_result.yaxis == TestResult_Passed) {
+    case stsZAxis: { // loadcell and both X and Y must be OK to test Z
+        bool loadcell_passed = m_result.get_loadcell(0) == TestResult_Passed;
+        bool xy_axis_passed = m_result.xaxis == TestResult_Passed && m_result.yaxis == TestResult_Passed;
+        if (loadcell_passed && xy_axis_passed) {
             return; // current state can be run
         }
         m_result.zaxis = TestResult_Unknown;
         break; // current state cannot be run
+    }
     default:
         return; // current state can be run
     }

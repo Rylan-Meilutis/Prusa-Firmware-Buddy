@@ -31,23 +31,20 @@ typedef enum {
  * @brief Results for selftests of one tool.
  */
 struct SelftestTool {
-    TestResult printFan : 2;
-    TestResult heatBreakFan : 2;
-    TestResult fansSwitched : 2; // encapsuling with HAS_SWITCHED_FAN_TEST macro would introduce problems since selftest_result is saved on eeprom as a whole structure
-    TestResult nozzle : 2;
+    TestResult _printFan : 2;
+    TestResult _heatBreakFan : 2;
+    TestResult _fansSwitched : 2; // encapsuling with HAS_SWITCHED_FAN_TEST macro would introduce problems since selftest_result is saved on eeprom as a whole structure
+    TestResult _nozzle : 2;
     // BFW-8374: fsensor and sideFsensor are no longer used. Selftest results
     // are derived directly from existence of calibration data, not from
     // separate flags. Do not reuse, or we get confusion on upgrades/downgrades.
-    TestResult deprecated_fsensor : 2;
-    TestResult loadcell : 2;
+    TestResult _deprecated_fsensor : 2;
+    TestResult _loadcell : 2;
     // Same as above.
-    TestResult deprecated_sideFsensor : 2;
-    TestResult dockoffset : 2;
-    TestResult tooloffset : 2;
-    TestResult gears : 2;
-
-    bool has_heatbreak_fan_passed();
-    TestResult evaluate_fans();
+    TestResult _deprecated_sideFsensor : 2;
+    TestResult _dockoffset : 2;
+    TestResult _tooloffset : 2;
+    TestResult _gears : 2;
 
     bool operator==(const SelftestTool &rhs) const = default;
 };
@@ -74,6 +71,114 @@ struct SelftestResult {
     StrongIndexArray<SelftestTool, tools_count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> tools {};
 
     bool operator==(const SelftestResult &) const = default;
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_print_fan(uint8_t tool) const;
+    inline TestResult get_print_fan(PhysicalToolIndex tool) const {
+        return get_print_fan(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_print_fan(uint8_t tool, TestResult result);
+    inline void set_print_fan(PhysicalToolIndex tool, TestResult result) {
+        set_print_fan(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_heatbreak_fan(uint8_t tool) const;
+    inline TestResult get_heatbreak_fan(PhysicalToolIndex tool) const {
+        return get_heatbreak_fan(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_heatbreak_fan(uint8_t tool, TestResult result);
+    inline void set_heatbreak_fan(PhysicalToolIndex tool, TestResult result) {
+        set_heatbreak_fan(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_fans_switched(uint8_t tool) const;
+    inline TestResult get_fans_switched(PhysicalToolIndex tool) const {
+        return get_fans_switched(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_fans_switched(uint8_t tool, TestResult result);
+    inline void set_fans_switched(PhysicalToolIndex tool, TestResult result) {
+        set_fans_switched(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    bool has_heatbreak_fan_passed(uint8_t tool) const;
+    inline bool has_heatbreak_fan_passed(PhysicalToolIndex tool) const {
+        return has_heatbreak_fan_passed(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult evaluate_fans(uint8_t tool) const;
+    inline TestResult evaluate_fans(PhysicalToolIndex tool) const {
+        return evaluate_fans(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_nozzle_heater(uint8_t tool) const;
+    inline TestResult get_nozzle_heater(PhysicalToolIndex tool) const {
+        return get_nozzle_heater(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_nozzle_heater(uint8_t tool, TestResult result);
+    inline void set_nozzle_heater(PhysicalToolIndex tool, TestResult result) {
+        set_nozzle_heater(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_loadcell(uint8_t tool) const;
+    inline TestResult get_loadcell(PhysicalToolIndex tool) const {
+        return get_loadcell(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_loadcell(uint8_t tool, TestResult result);
+    inline void set_loadcell(PhysicalToolIndex tool, TestResult result) {
+        set_loadcell(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_dock_offset(uint8_t tool) const;
+    inline TestResult get_dock_offset(PhysicalToolIndex tool) const {
+        return get_dock_offset(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_dock_offset(uint8_t tool, TestResult result);
+    inline void set_dock_offset(PhysicalToolIndex tool, TestResult result) {
+        set_dock_offset(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_tool_offset(uint8_t tool) const;
+    inline TestResult get_tool_offset(PhysicalToolIndex tool) const {
+        return get_tool_offset(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_tool_offset(uint8_t tool, TestResult result);
+    inline void set_tool_offset(PhysicalToolIndex tool, TestResult result) {
+        set_tool_offset(tool.to_raw(), result);
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    TestResult get_gearbox(uint8_t tool) const;
+    inline TestResult get_gearbox(PhysicalToolIndex tool) const {
+        return get_gearbox(tool.to_raw());
+    }
+
+    [[deprecated("Use the ToolIndex overload")]]
+    void set_gearbox(uint8_t tool, TestResult result);
+    inline void set_gearbox(PhysicalToolIndex tool, TestResult result) {
+        set_gearbox(tool.to_raw(), result);
+    }
 };
 
 #pragma pack(pop)
