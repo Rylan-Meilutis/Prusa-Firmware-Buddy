@@ -13,7 +13,6 @@ target_sources(
           selftest_invalid_state.cpp
           selftest_result_axis.cpp
           selftest_result_eth.cpp
-          selftest_result_fans.cpp
           selftest_result_heaters.cpp
           selftest_view.cpp
           selftest_view_item.cpp
