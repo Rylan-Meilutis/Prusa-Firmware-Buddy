@@ -1,5 +1,7 @@
 #include "data_utils.hpp"
 
+#include <option/has_chamber_filtration_api.h>
+
 namespace buddy::openprinttag {
 
 AmountsInfo::AmountsInfo(const RequestRef &req) {
@@ -195,8 +197,12 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     // so if requires_filtration == true from the preset and the tag did not indicate it, the missing flag is kept
     unset_missing_if_equals.operator()<&Params::is_abrasive>(false);
     unset_missing_if_equals.operator()<&Params::is_flexible>(false);
-    unset_missing_if_equals.operator()<&Params::requires_filtration>(false);
 
+#if HAS_CHAMBER_FILTRATION_API()
+    unset_missing_if_equals.operator()<&Params::requires_filtration>(false);
+#endif
+
+#if HAS_CHAMBER_API()
     if (is_missing<&FilamentTypeParameters::chamber_min_temperature>() && is_missing<&FilamentTypeParameters::chamber_max_temperature>()) {
         // Chamber target temperature is not required if neither chamber_min_temperature or chamber_max_temperature are present
         unset_missing.operator()<&FilamentTypeParameters::chamber_target_temperature>();
@@ -205,6 +211,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     // Chamber min max parameters are never required
     unset_missing.operator()<&FilamentTypeParameters::chamber_min_temperature>();
     unset_missing.operator()<&FilamentTypeParameters::chamber_max_temperature>();
+#endif
 }
 
 } // namespace buddy::openprinttag
