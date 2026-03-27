@@ -13,9 +13,11 @@
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-    #if HAS_SIDE_FSENSOR()
-        #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif
+#endif
+
+#include <option/has_side_fsensor_remap.h>
+#if HAS_SIDE_FSENSOR_REMAP()
+    #include <feature/filament_sensor/filament_sensors_handler_remap.hpp>
 #endif
 
 static constexpr const char *hw_check_items[] = {
@@ -41,7 +43,7 @@ void MI_HARDWARE_G_CODE_CHECKS::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuHardwareChecks>);
 }
 
-#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR_REMAP()
 // MI_SIDE_FSENSOR_REMAP
 MI_SIDE_FSENSOR_REMAP::MI_SIDE_FSENSOR_REMAP()
     : WI_ICON_SWITCH_OFF_ON_t(side_fsensor_remap::is_remapped(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};

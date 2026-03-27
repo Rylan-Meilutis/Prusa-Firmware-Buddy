@@ -23,7 +23,7 @@ if(BOARD_IS_MASTER_BOARD)
       )
   elseif(PRINTER STREQUAL "XL")
     target_sources(
-      firmware PRIVATE filament_sensors_handler_XL.cpp filament_sensors_handler_XL_remap.cpp
+      firmware PRIVATE filament_sensors_handler_remap.cpp filament_sensors_handler_XL.cpp
       )
   elseif(PRINTER STREQUAL "XL_DEV_KIT")
     target_sources(firmware PRIVATE filament_sensors_handler_XL_DEV_KIT.cpp)

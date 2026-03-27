@@ -1,5 +1,5 @@
 
-#include "filament_sensors_handler_XL_remap.hpp"
+#include "filament_sensors_handler_remap.hpp"
 #include <config_store/store_instance.hpp>
 #include <window_msgbox.hpp>
 #include <module/prusa/toolchanger.h>

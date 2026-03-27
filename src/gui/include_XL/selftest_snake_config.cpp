@@ -13,9 +13,11 @@
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
-    #if HAS_SIDE_FSENSOR()
-        #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
-    #endif
+#endif
+
+#include <option/has_side_fsensor_remap.h>
+#if HAS_SIDE_FSENSOR_REMAP()
+    #include <feature/filament_sensor/filament_sensors_handler_remap.hpp>
 #endif
 
 #include <option/has_precise_homing_corexy.h>

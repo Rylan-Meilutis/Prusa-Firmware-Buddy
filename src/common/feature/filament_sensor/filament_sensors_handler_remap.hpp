@@ -2,6 +2,8 @@
 
 #include "filament_sensors_remap_data.hpp"
 
+static_assert(HAS_SIDE_FSENSOR_REMAP(), "You need these for remapping to work");
+
 namespace side_fsensor_remap {
 
 namespace preset {

@@ -50,7 +50,11 @@
     #include <puppies/Dwarf.hpp>
     #include <Marlin/src/module/prusa/toolchanger.h>
     #include <feature/filament_sensor/filament_sensors_handler.hpp>
-    #include <feature/filament_sensor/filament_sensors_handler_XL_remap.hpp>
+#endif
+
+#include <option/has_side_fsensor_remap.h>
+#if HAS_SIDE_FSENSOR_REMAP()
+    #include <feature/filament_sensor/filament_sensors_handler_remap.hpp>
 #endif
 
 #include <option/has_loadcell.h>

@@ -8,6 +8,7 @@
 #include <option/has_chamber_vents.h>
 #include <common/extended_printer_type.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
+#include <option/has_side_fsensor_remap.h>
 
 class MI_HARDWARE_CHECK : public MenuItemSwitch {
 public:
@@ -30,7 +31,7 @@ protected:
     virtual void click(IWindowMenu &windowMenu) override;
 };
 
-#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR_REMAP()
 class MI_SIDE_FSENSOR_REMAP : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("Side FSensor Remap");
 

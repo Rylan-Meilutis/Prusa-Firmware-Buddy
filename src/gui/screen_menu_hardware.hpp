@@ -42,7 +42,7 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 // ================================
 // Filament sensor related
 // ================================
-#if HAS_TOOLCHANGER() && HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR_REMAP()
     MI_SIDE_FSENSOR_REMAP,
 #endif
     MI_FS_AUTOLOAD,

@@ -24,7 +24,6 @@
 #include <selftest_result.hpp>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
-#include <feature/filament_sensor/filament_sensors_remap_data.hpp>
 #include <tristate.hpp>
 #include <tool_index.hpp>
 #include <option/has_loadcell.h>
@@ -90,6 +89,11 @@
 
 #if HAS_SIDE_LEDS()
     #include "leds/dimming_enabled.hpp"
+#endif
+
+#include <option/has_side_fsensor_remap.h>
+#if HAS_SIDE_FSENSOR_REMAP()
+    #include <feature/filament_sensor/filament_sensors_remap_data.hpp>
 #endif
 
 namespace config_store_ns {
@@ -343,7 +347,9 @@ struct CurrentStore
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Is MMU Rework")> is_mmu_rework; // Indicates printer has been reworked for MMU (has a different FS behavior)
 #endif
 
+#if HAS_SIDE_FSENSOR_REMAP()
     StoreItem<side_fsensor_remap::Mapping, defaults::side_fs_remap, ItemFlag::hw_config, journal::hash("Side FS Remap")> side_fs_remap; ///< Side filament sensor remapping
+#endif
 
     //// Helper array-like access functions for filament sensors
     int32_t get_extruder_fs_ref_nins_value(uint8_t index);

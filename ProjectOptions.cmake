@@ -519,6 +519,7 @@ set_feature_for_printers(
   "COREONEL_INDX"
   )
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
+set_feature_for_printers_master_board(HAS_SIDE_FSENSOR_REMAP "XL")
 set_feature_for_printers(
   HAS_FILAMENT_SENSORS_MENU "XL" "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
   )

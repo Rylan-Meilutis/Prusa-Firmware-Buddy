@@ -11,7 +11,6 @@
 #include <common/sheet.hpp>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
-#include <feature/filament_sensor/filament_sensors_remap_data.hpp>
 #include <printers.h>
 #include <common/hw_check.hpp>
 #include <filament_eeprom.hpp>
@@ -22,6 +21,11 @@
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
     #include <hotend_type.hpp>
+#endif
+
+#include <option/has_side_fsensor_remap.h>
+#if HAS_SIDE_FSENSOR_REMAP()
+    #include <feature/filament_sensor/filament_sensors_remap_data.hpp>
 #endif
 
 #include <option/has_sheet_support.h>
@@ -143,7 +147,9 @@ namespace defaults {
 #endif
     };
 
+#if HAS_SIDE_FSENSOR_REMAP()
     inline constexpr side_fsensor_remap::Mapping side_fs_remap = side_fsensor_remap::preset::no_mapping; // No remapping
+#endif
 
     inline constexpr uint16_t print_progress_time { 30 };
 
