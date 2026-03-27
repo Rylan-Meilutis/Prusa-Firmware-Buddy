@@ -63,7 +63,8 @@ namespace Tasks {
         Dependency::puppies_ready,
 #endif
         Dependency::resources_ready);
-    inline constexpr dependency_t connect = make(Dependency::networking_ready, Dependency::autostart_done);
+    inline constexpr dependency_t connect_error = make(Dependency::networking_ready);
+    inline constexpr dependency_t connect_full = connect_error | make(Dependency::autostart_done);
     inline constexpr dependency_t syslog = make(Dependency::networking_ready);
     inline constexpr dependency_t network = make(
 #if HAS_ESP()
