@@ -50,12 +50,15 @@ void GcodeSuite::G426() {
         return;
     }
 
-    SERIAL_ECHOPAIR("X offset: ", result->x, " mm");
-    SERIAL_EOL();
-    SERIAL_ECHOPAIR("Y offset: ", result->y, " mm");
-    SERIAL_EOL();
-    SERIAL_ECHOPAIR("Z offset: ", result->z, " mm");
-    SERIAL_EOL();
+    SERIAL_ECHOPGM("X offset: ");
+    SERIAL_ECHO_F(result->x, 4);
+    SERIAL_ECHOLNPGM(" mm");
+    SERIAL_ECHOPGM("Y offset: ");
+    SERIAL_ECHO_F(result->y, 4);
+    SERIAL_ECHOLNPGM(" mm");
+    SERIAL_ECHOPGM("Z offset: ");
+    SERIAL_ECHO_F(result->z, 4);
+    SERIAL_ECHOLNPGM(" mm");
 }
 
 /** @}*/
