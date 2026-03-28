@@ -5,6 +5,7 @@
 #include <module/probe.h>
 #include <module/temperature.h>
 #include <module/planner.h>
+#include <module/stepper.h>
 #include <module/signal2step.hpp>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
 #include <feature/phase_stepping/phase_stepping.hpp>
@@ -210,42 +211,99 @@ static void debug_report_pass_correlation(
     float inv_val = (max_abs_val > 1e-10f) ? 1.0f / max_abs_val : 0.0f;
     float inv_der = (max_abs_der > 1e-10f) ? 1.0f / max_abs_der : 0.0f;
 
+    // Find per-type best lags
+    int best_lag_value = fine_min, best_lag_deriv = fine_min;
+    float best_val_score = -std::numeric_limits<float>::infinity();
+    float best_der_score = -std::numeric_limits<float>::infinity();
+
+    // Emit header with all three best lags
+    // (best_lag_combined is the existing best_lag parameter)
     serial_printf("# pass_correlation {\"label\": \"%s\", \"pass\": %d, "
-                  "\"fine_min\": %d, \"fine_max\": %d, \"best_lag\": %d, \"scores\": [",
-        label, pass_num, fine_min, fine_max, best_lag);
-    bool first = true;
+                  "\"fine_min\": %d, \"fine_max\": %d, ",
+        label, pass_num, fine_min, fine_max);
+
+    // First pass: find per-type best lags
     for (int lag = fine_min; lag <= fine_max; ++lag) {
         float cv = sp::symmetry_correlation(signal_value, lag, 1.0f) * inv_val;
         float cd = sp::symmetry_correlation(signal_deriv, lag, -1.0f) * inv_der;
-        if (!first) {
+        if (cv > best_val_score) {
+            best_val_score = cv;
+            best_lag_value = lag;
+        }
+        if (cd > best_der_score) {
+            best_der_score = cd;
+            best_lag_deriv = lag;
+        }
+    }
+
+    serial_printf("\"best_lag_value\": %d, \"best_lag_deriv\": %d, \"best_lag_combined\": %d, ",
+        best_lag_value, best_lag_deriv, best_lag);
+
+    // Emit value scores
+    serial_printf("\"value_scores\": [");
+    for (int lag = fine_min; lag <= fine_max; ++lag) {
+        if (lag > fine_min) {
             serial_printf(", ");
         }
-        first = false;
+        serial_printf("%.4f", sp::symmetry_correlation(signal_value, lag, 1.0f) * inv_val);
+    }
+
+    // Emit derivative scores
+    serial_printf("], \"deriv_scores\": [");
+    for (int lag = fine_min; lag <= fine_max; ++lag) {
+        if (lag > fine_min) {
+            serial_printf(", ");
+        }
+        serial_printf("%.4f", sp::symmetry_correlation(signal_deriv, lag, -1.0f) * inv_der);
+    }
+
+    // Emit combined scores
+    serial_printf("], \"combined_scores\": [");
+    for (int lag = fine_min; lag <= fine_max; ++lag) {
+        if (lag > fine_min) {
+            serial_printf(", ");
+        }
+        float cv = sp::symmetry_correlation(signal_value, lag, 1.0f) * inv_val;
+        float cd = sp::symmetry_correlation(signal_deriv, lag, -1.0f) * inv_der;
         serial_printf("%.4f", cv + cd);
     }
     serial_printf("]}\n");
 #endif
 }
 
+struct EnergyRegion {
+    size_t start;
+    size_t end;
+};
+
 template <typename Container>
-static void debug_report_rough_align_envelope(
+static void debug_report_rough_align_energy(
     [[maybe_unused]] const char *label,
     [[maybe_unused]] int decimation,
     [[maybe_unused]] float dt_dec,
-    [[maybe_unused]] int best_offset,
-    [[maybe_unused]] const int peak_offsets[4],
-    [[maybe_unused]] const Container &envelope) {
+    [[maybe_unused]] float threshold,
+    [[maybe_unused]] int offset_original,
+    [[maybe_unused]] const EnergyRegion *regions,
+    [[maybe_unused]] size_t num_regions,
+    [[maybe_unused]] const Container &energy) {
 #ifdef SERIAL_DEBUG
-    serial_printf("# rough_align_envelope {\"label\": \"%s\", \"decimation\": %d, "
-                  "\"dt_dec\": %.6f, \"best_offset\": %d, "
-                  "\"peak_offsets\": [%d, %d, %d, %d], \"envelope\": [",
-        label, decimation, dt_dec, best_offset,
-        peak_offsets[0], peak_offsets[1], peak_offsets[2], peak_offsets[3]);
-    for (size_t i = 0; i < envelope.size(); ++i) {
+    serial_printf("# rough_align_energy {\"label\": \"%s\", \"decimation\": %d, "
+                  "\"dt_dec\": %.6f, \"threshold\": %.6f, \"offset\": %d, \"regions\": [",
+        label, decimation, dt_dec, threshold, offset_original);
+    for (size_t i = 0; i < num_regions; ++i) {
         if (i > 0) {
             serial_printf(", ");
         }
-        serial_printf("%.4f", envelope[i]);
+        serial_printf("[%u, %u]",
+            static_cast<unsigned>(regions[i].start),
+            static_cast<unsigned>(regions[i].end));
+    }
+    serial_printf("], \"energy\": [");
+    for (size_t i = 0; i < energy.size(); ++i) {
+        if (i > 0) {
+            serial_printf(", ");
+        }
+        serial_printf("%.4f", energy[i]);
     }
     serial_printf("]}\n");
 #endif
@@ -304,7 +362,11 @@ static float measure_sensor_true_z(const tool_offset::ProbingConfig &config) {
     pressure_advance::PressureAdvanceDisabler pa_disabler;
     Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
 
-    return probe_here(config.sensor_position.z);
+    // probe_here adds probe_offset.z and hotend_currently_applied_offset.z,
+    // but we want the raw nozzle contact position — subtract them back out.
+    const float probed_z = probe_here(config.sensor_position.z);
+    const float correction = probe_offset.z + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
+    return probed_z - correction;
 }
 
 std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_current_tool_offset(
@@ -327,10 +389,10 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
 
     const float safe_z = config.sensor_position.z + config.safe_z_height;
     do_blocking_move_to_z(safe_z);
-
     do_blocking_move_to_xy(config.sensor_position);
 
     const float sensor_z = measure_sensor_true_z(config);
+
     const float probing_z = sensor_z + config.sensing_z;
     do_blocking_move_to_z(probing_z);
 
@@ -496,6 +558,28 @@ struct RawRecordedSample {
     uint32_t timestamp_us;
     float sensor_value;
 };
+
+static void debug_report_pass_raw_chunk(
+    [[maybe_unused]] const char *label,
+    [[maybe_unused]] int pass_num,
+    [[maybe_unused]] size_t chunk_start,
+    [[maybe_unused]] size_t chunk_size,
+    [[maybe_unused]] const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples) {
+#ifdef SERIAL_DEBUG
+    serial_printf("# pass_raw_chunk {\"label\": \"%s\", \"pass\": %d, "
+                  "\"chunk_start\": %u, \"chunk_size\": %u, \"samples\": [",
+        label, pass_num,
+        static_cast<unsigned>(chunk_start),
+        static_cast<unsigned>(chunk_size));
+    for (size_t i = 0; i < chunk_size; ++i) {
+        if (i > 0) {
+            serial_printf(", ");
+        }
+        serial_printf("%.0f", raw_samples[chunk_start + i].sensor_value);
+    }
+    serial_printf("]}\n");
+#endif
+}
 
 struct MotionExecutionResult {
     sfl::segmented_vector<RawRecordedSample, 512> raw_samples;
@@ -707,14 +791,29 @@ static bool preprocess_signal(
     float dt,
     sfl::segmented_vector<float, 256> &signal_value) {
 
+    // Zero-phase median filter: forward + backward, averaged.
+    // A causal median filter shifts the symmetry axis due to asymmetric
+    // startup transients. Averaging forward and backward passes cancels this.
     sp::MedianFilter<float, 5> median_filter;
 
-    // Pass 1: accumulate stats through median filter for normalization.
-    // Use double to avoid catastrophic cancellation: sensor values (~10^8 from
-    // LDC1612) cause E[X^2]-E[X]^2 to lose all precision in float.
+    signal_value.reserve(chunk_size);
+    for (size_t i = 0; i < chunk_size; ++i) {
+        signal_value.push_back(median_filter.filter(raw_samples[chunk_start_idx + i].sensor_value));
+    }
+
+    sfl::segmented_vector<float, 256> bwd;
+    bwd.reserve(chunk_size);
+    bwd.resize(chunk_size);
+    median_filter.reset();
+    for (size_t i = chunk_size; i-- > 0;) {
+        bwd[i] = median_filter.filter(raw_samples[chunk_start_idx + i].sensor_value);
+    }
+
+    // Average and compute stats in one pass (double precision for LDC1612 values)
     double sum = 0, sum_sq = 0;
     for (size_t i = 0; i < chunk_size; ++i) {
-        double v = static_cast<double>(median_filter.filter(raw_samples[chunk_start_idx + i].sensor_value));
+        double v = static_cast<double>(signal_value[i] + bwd[i]) * 0.5;
+        signal_value[i] = static_cast<float>(v);
         sum += v;
         sum_sq += v * v;
     }
@@ -728,15 +827,10 @@ static bool preprocess_signal(
         return false;
     }
 
-    // Pass 2: median + normalize
+    // Normalize
     constexpr float signal_lowpass_cutoff_hz = 50.0f;
-    median_filter.reset();
-
-    signal_value.reserve(chunk_size);
     for (size_t i = 0; i < chunk_size; ++i) {
-        float median_filtered = median_filter.filter(raw_samples[chunk_start_idx + i].sensor_value);
-        float normalized = (median_filtered - mean) / std_val;
-        signal_value.push_back(normalized);
+        signal_value[i] = (signal_value[i] - mean) / std_val;
     }
 
     // Zero-phase lowpass with odd-extension edge padding.
@@ -862,7 +956,7 @@ static int coarse_fine_symmetry_search(
     auto value_corr = [&](int lag) { return sp::symmetry_correlation(signal_value, lag, 1.0f); };
     auto deriv_corr = [&](int lag) { return sp::symmetry_correlation(signal_deriv, lag, -1.0f); };
 
-    constexpr size_t decimate_factor = 4;
+    constexpr size_t decimate_factor = 8;
 
     // Downsample with averaging for coarse search (avoids aliasing from sample-picking)
     size_t n_ds = n / decimate_factor;
@@ -893,9 +987,9 @@ static int coarse_fine_symmetry_search(
     float coarse_combined = 0;
     search_correlation_range(-max_lag_ds, max_lag_ds, ds_val_corr, ds_der_corr, coarse_best, coarse_combined);
 
-    // Fine pass around coarse result — generous radius since correlation eval is cheap
+    // Fine pass: ±2 coarse bins around coarse result
     int fine_center = coarse_best * static_cast<int>(decimate_factor);
-    int fine_radius = static_cast<int>(8 * decimate_factor);
+    int fine_radius = static_cast<int>(2 * decimate_factor);
     int fine_min = std::max(fine_center - fine_radius, -static_cast<int>(max_lag));
     int fine_max = std::min(fine_center + fine_radius, static_cast<int>(max_lag));
     out_fine_min = fine_min;
@@ -962,21 +1056,19 @@ static SymmetryPeakResult detect_symmetry_peak_streaming(
         return { chunk_start_time_s + (chunk_size / 2) * dt, 0.0f, 0.0f };
     }
 
-    // Preprocess: median + normalize + zero-phase lowpass + detrend
     sfl::segmented_vector<float, 256> signal_value;
     if (!preprocess_signal(raw_samples, chunk_start_idx, chunk_size, dt, signal_value)) {
         return { chunk_start_time_s + (chunk_size / 2) * dt, 0.0f, 0.0f };
     }
 
+    debug_report_pass_raw_chunk(label, pass_num, chunk_start_idx, chunk_size, raw_samples);
     debug_report_pass_preprocessed(label, pass_num, chunk_start_idx, chunk_size, dt, signal_value);
 
-    // Derivative with unit-variance normalization
     sfl::segmented_vector<float, 256> signal_deriv;
     compute_signal_derivative(signal_value, signal_deriv);
 
     debug_report_pass_derivative(label, pass_num, signal_deriv);
 
-    // Coarse-to-fine correlation search
     size_t n = signal_value.size();
     size_t max_lag = std::min(n / 2, static_cast<size_t>(0.5f / dt));
 
@@ -986,7 +1078,6 @@ static SymmetryPeakResult detect_symmetry_peak_streaming(
 
     debug_report_pass_correlation(label, pass_num, fine_min, fine_max, best_lag, signal_value, signal_deriv);
 
-    // Sub-sample refinement
     float refined_lag = refine_lag_parabolic(signal_value, signal_deriv, best_lag, max_lag);
 
     // Convert refined lag to peak time
@@ -999,9 +1090,9 @@ static SymmetryPeakResult detect_symmetry_peak_streaming(
 }
 
 // Rough alignment: find the sample offset that best aligns the expected
-// peak spacing pattern with the actual signal. Uses zero-phase lowpass
-// filtering to merge double peaks, then slides the expected peak template
-// across the envelope to maximize the sum of envelope values at peak positions.
+// peak spacing pattern with the actual signal. Computes a local energy
+// signal (squared amplitude) and detects 4 active regions separated by
+// rest gaps. Works for both bell-shaped and W-shaped sensor responses.
 // Returns the best offset in samples, or nullopt on failure.
 static std::optional<int> rough_align_offset(
     const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
@@ -1010,8 +1101,13 @@ static std::optional<int> rough_align_offset(
     const char *label) {
 
     constexpr size_t min_rough_align_samples = 20;
-    constexpr float envelope_lowpass_cutoff_hz = 4.0f;
     constexpr int decimation = 4;
+    constexpr float energy_lowpass_cutoff_hz = 4.0f;
+    constexpr float threshold_fraction = 0.08f;
+    constexpr float hysteresis_ratio = 0.5f;
+    constexpr float min_gap_s = 0.05f;
+    constexpr float min_region_s = 0.1f;
+    constexpr float duration_tolerance = 0.5f;
 
     const size_t n = raw_samples.size();
     if (n < min_rough_align_samples) {
@@ -1021,7 +1117,7 @@ static std::optional<int> rough_align_offset(
     // Median-filter and decimate the raw samples
     const float dt_dec = dt * decimation;
     const size_t n_dec = n / decimation;
-    sfl::segmented_vector<float, 256> envelope;
+    sfl::segmented_vector<float, 256> energy;
     {
         sp::MedianFilter<float, 5> med;
         size_t dec_count = 0;
@@ -1029,97 +1125,129 @@ static std::optional<int> rough_align_offset(
         for (size_t i = 0; i < n; ++i) {
             acc += med.filter(raw_samples[i].sensor_value);
             if (++dec_count == decimation) {
-                envelope.push_back(acc / decimation);
+                energy.push_back(acc / decimation);
                 acc = 0;
                 dec_count = 0;
             }
         }
     }
 
-    // Zero-phase lowpass with odd-extension edge padding.
-    // Without padding, the biquad startup transient corrupts envelope edges,
-    // biasing the template match by 100+ samples.
+    sp::linear_detrend(energy);
+
+    // Square in-place to get energy — high for both bell and W shapes
+    for (size_t i = 0; i < n_dec; ++i) {
+        energy[i] = energy[i] * energy[i];
+    }
+
+    // Causal lowpass to smooth the energy signal
     {
-        auto lp_coeffs = sp::butterworth_lowpass_biquad_2nd(envelope_lowpass_cutoff_hz, 1.0f / dt_dec);
+        auto lp_coeffs = sp::butterworth_lowpass_biquad_1st(energy_lowpass_cutoff_hz, 1.0f / dt_dec);
         sp::Biquad<float> lp(lp_coeffs);
-
-        const float sample_rate_dec = 1.0f / dt_dec;
-        const size_t tau_samples = static_cast<size_t>(sample_rate_dec / (2.0f * static_cast<float>(M_PI) * envelope_lowpass_cutoff_hz));
-        const size_t pad_len = std::min(10 * tau_samples, n_dec - 1);
-
-        sfl::segmented_vector<float, 256> padded;
-
-        // Front: odd extension around envelope[0]
-        for (size_t i = pad_len; i >= 1; --i) {
-            padded.push_back(2.0f * envelope[0] - envelope[i]);
-        }
         for (size_t i = 0; i < n_dec; ++i) {
-            padded.push_back(envelope[i]);
-        }
-        // Back: odd extension around envelope[n_dec-1]
-        for (size_t i = 1; i <= pad_len; ++i) {
-            padded.push_back(2.0f * envelope[n_dec - 1] - envelope[n_dec - 1 - i]);
-        }
-
-        const size_t pn = padded.size();
-        for (size_t i = 0; i < pn; ++i) {
-            padded[i] = lp.process(padded[i]);
-        }
-        lp.reset();
-        for (size_t i = pn; i-- > 0;) {
-            padded[i] = lp.process(padded[i]);
-        }
-
-        for (size_t i = 0; i < n_dec; ++i) {
-            envelope[i] = padded[pad_len + i];
+            energy[i] = lp.process(energy[i]);
         }
     }
 
-    sp::linear_detrend(envelope);
-
-    // Template matching in decimated domain
-    auto t_peaks = profile.expected_peak_times();
-    int peak_offsets[4];
-    for (int i = 0; i < 4; ++i) {
-        peak_offsets[i] = static_cast<int>(t_peaks[i] / dt_dec);
+    // Adaptive threshold from peak energy
+    float max_energy = 0;
+    for (size_t i = 0; i < n_dec; ++i) {
+        if (energy[i] > max_energy) {
+            max_energy = energy[i];
+        }
     }
-    int template_span = peak_offsets[3];
-
-    int search_min = -peak_offsets[0];
-    int search_max = static_cast<int>(n_dec) - template_span - 1;
-
-    if (search_max <= search_min) {
+    if (max_energy < 1e-10f) {
         return std::nullopt;
     }
 
-    float best_score = -std::numeric_limits<float>::infinity();
-    int best_offset = 0;
+    const float threshold_high = threshold_fraction * max_energy;
+    const float threshold_low = threshold_high * hysteresis_ratio;
 
-    for (int tau = search_min; tau <= search_max; ++tau) {
-        float score = 0;
-        bool valid = true;
-        for (int i = 0; i < 4; ++i) {
-            int idx = peak_offsets[i] + tau;
-            if (idx < 0 || idx >= static_cast<int>(n_dec)) {
-                valid = false;
-                break;
+    // Detect active regions with hysteresis
+    constexpr size_t max_regions = 8;
+    EnergyRegion regions[max_regions];
+    size_t num_regions = 0;
+    bool in_active = false;
+    size_t region_start = 0;
+
+    for (size_t i = 0; i < n_dec; ++i) {
+        if (!in_active) {
+            if (energy[i] >= threshold_high) {
+                in_active = true;
+                region_start = i;
             }
-            score += envelope[idx];
+        } else {
+            if (energy[i] < threshold_low) {
+                in_active = false;
+                if (num_regions < max_regions) {
+                    regions[num_regions++] = { region_start, i };
+                }
+            }
         }
-        if (valid && score > best_score) {
-            best_score = score;
-            best_offset = tau;
+    }
+    if (in_active && num_regions < max_regions) {
+        regions[num_regions++] = { region_start, n_dec };
+    }
+
+    // Merge regions with gaps shorter than min_gap (handles W-shape dip splitting)
+    const size_t min_gap_samples = static_cast<size_t>(min_gap_s / dt_dec);
+    {
+        size_t write = 0;
+        for (size_t r = 0; r < num_regions; ++r) {
+            if (write > 0 && (regions[r].start - regions[write - 1].end) < min_gap_samples) {
+                regions[write - 1].end = regions[r].end;
+            } else {
+                regions[write++] = regions[r];
+            }
+        }
+        num_regions = write;
+    }
+
+    // Discard tiny spurious regions
+    const size_t min_region_samples = static_cast<size_t>(min_region_s / dt_dec);
+    {
+        size_t write = 0;
+        for (size_t r = 0; r < num_regions; ++r) {
+            if ((regions[r].end - regions[r].start) >= min_region_samples) {
+                regions[write++] = regions[r];
+            }
+        }
+        num_regions = write;
+    }
+
+    // Must have exactly 4 regions
+    if (num_regions != 4) {
+        debug_report_rough_align_energy(label, decimation, dt_dec, threshold_high, 0, regions, num_regions, energy);
+        return std::nullopt;
+    }
+
+    // Validate region durations against expected pass times
+    float expected_durations[4] = {
+        profile.pass_time1(),
+        profile.pass_time1(),
+        profile.pass_time2(),
+        profile.pass_time2(),
+    };
+    for (int i = 0; i < 4; ++i) {
+        float detected = static_cast<float>(regions[i].end - regions[i].start) * dt_dec;
+        float expected = expected_durations[i];
+        if (detected < expected * (1.0f - duration_tolerance)
+            || detected > expected * (1.0f + duration_tolerance)) {
+            debug_report_rough_align_energy(label, decimation, dt_dec, threshold_high, 0, regions, num_regions, energy);
+            return std::nullopt;
         }
     }
 
-    debug_report_rough_align_envelope(label, decimation, dt_dec, best_offset, peak_offsets, envelope);
+    // Compute offset: average shift of region centers relative to expected peak times
+    auto t_peaks = profile.expected_peak_times();
+    float offset_sum = 0;
+    for (int i = 0; i < 4; ++i) {
+        float region_center_time = static_cast<float>(regions[i].start + regions[i].end) / 2.0f * dt_dec;
+        offset_sum += (region_center_time - t_peaks[i]);
+    }
+    float avg_offset_time = offset_sum / 4.0f;
+    int offset_original = static_cast<int>(avg_offset_time / dt);
 
-    // Convert back to original sample domain
-    int offset_original = best_offset * decimation;
-
-    log_info(ContactlessOffset, "rough_align: best_offset=%d (%.1fms) score=%.3f search=[%d, %d] (dec=%d)",
-        offset_original, offset_original * dt * 1000.0f, best_score,
-        search_min, search_max, decimation);
+    debug_report_rough_align_energy(label, decimation, dt_dec, threshold_high, offset_original, regions, num_regions, energy);
 
     return offset_original;
 }
