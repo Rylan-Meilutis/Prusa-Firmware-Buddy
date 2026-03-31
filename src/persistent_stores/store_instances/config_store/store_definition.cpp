@@ -323,20 +323,6 @@ void CurrentStore::set_odometer_toolpicks(PhysicalToolIndex tool, uint32_t value
     odometer_toolpicks.set(tool.to_raw(), value);
 }
 
-#if HAS_SELFTEST()
-SelftestTool CurrentStore::get_selftest_result_tool(uint8_t index) {
-    assert(index < SelftestResult::tools_count);
-    return selftest_result.get().tools[index];
-}
-
-void CurrentStore::set_selftest_result_tool(uint8_t index, SelftestTool value) {
-    assert(index < SelftestResult::tools_count);
-    auto tmp = selftest_result.get();
-    tmp.tools[index] = value;
-    selftest_result.set(tmp);
-}
-#endif
-
 #if HAS_SHEET_PROFILES()
 Sheet CurrentStore::get_sheet(uint8_t index) {
     assert(index < config_store_ns::sheets_num);

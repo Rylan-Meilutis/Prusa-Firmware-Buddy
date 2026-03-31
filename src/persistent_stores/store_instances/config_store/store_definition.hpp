@@ -661,9 +661,6 @@ struct CurrentStore
     StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Test Result Phase Stepping")> selftest_result_phase_stepping;
 #endif
 
-    SelftestTool get_selftest_result_tool(uint8_t index);
-    void set_selftest_result_tool(uint8_t index, SelftestTool value);
-
 #if HAS_SHEET_PROFILES()
     StoreItem<uint8_t, 0, ItemFlag::printer_state, journal::hash("Active Sheet")> active_sheet;
     StoreItem<Sheet, defaults::sheet_0, ItemFlag::user_presets, journal::hash("Sheet 0")> sheet_0;
