@@ -120,3 +120,9 @@ add_catch_test(url_decode_tests)
 add_catch_test(json_tests)
 add_catch_test(path_utils_tests)
 add_catch_test(exponential_backoff_tests)
+
+add_executable(encoded_bitset_tests ${CMAKE_CURRENT_SOURCE_DIR}/encoded_bitset_test.cpp)
+target_include_directories(
+  encoded_bitset_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/module/utils/buddy_utils
+  )
+add_catch_test(encoded_bitset_tests)
