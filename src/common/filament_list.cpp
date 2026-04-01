@@ -72,8 +72,9 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         // First walk user ordered filaments
         if (config.user_ordering) {
             const auto order = config_store().filament_order.get();
-            for (auto it = order.begin(); *it; it++) {
-                f(*it);
+            constexpr EncodedFilamentType no_filament;
+            for (auto it = order.begin(); it != order.end() && *it != no_filament; it++) {
+                f(it->decode());
             }
         }
 
