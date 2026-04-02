@@ -37,19 +37,19 @@ void BinarySemaphore::release_from_isr() {
 }
 
 void BinarySemaphore::release_blocking() {
+    static_assert(INCLUDE_vTaskSuspend);
+
     // Same as xSemaphoreGive macro, just the ticksToWait is portMAX_DELAY
-    if (xQueueGenericSend(SemaphoreHandle_t(handle), NULL, portMAX_DELAY, queueSEND_TO_BACK) != pdTRUE) {
-        static_assert(INCLUDE_vTaskSuspend);
-        // Since we are waiting forever and have task suspension, this should never happen.
-        std::abort();
+    while (xQueueGenericSend(SemaphoreHandle_t(handle), NULL, portMAX_DELAY, queueSEND_TO_BACK) != pdTRUE) {
+        // xTaskAbortDelay was called on this task, retry
     }
 }
 
 void BinarySemaphore::acquire() {
-    if (xSemaphoreTake(SemaphoreHandle_t(handle), portMAX_DELAY) != pdTRUE) {
-        static_assert(INCLUDE_vTaskSuspend);
-        // Since we are waiting forever and have task suspension, this should never happen.
-        std::abort();
+    static_assert(INCLUDE_vTaskSuspend);
+
+    while (xSemaphoreTake(SemaphoreHandle_t(handle), portMAX_DELAY) != pdTRUE) {
+        // xTaskAbortDelay was called on this task, retry
     }
 }
 
