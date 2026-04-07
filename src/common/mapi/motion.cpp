@@ -24,8 +24,12 @@ bool extruder_move(float distance, float feed_rate, bool ignore_flow_factor) {
         return true;
     }
 
-    // Temporarily reset extrusion factor, if ignore_flow_factor
-    AutoRestore _ef(planner.e_factor[active_extruder], 1.0f, ignore_flow_factor);
+    // Override e_factor for the current virtual tool (not active_extruder, which
+    // is always 0 on MMU). Only create the restore when actually ignoring flow.
+    const std::optional<AutoRestore<float>> _ef = ignore_flow_factor
+        ? VirtualToolIndex::currently_selected_opt()
+              .transform([](VirtualToolIndex t) { return AutoRestore<float>(planner.e_factor[t], 1.0f); })
+        : std::nullopt;
 
     // We cannot work with current_position, because current_position might or might not have MBL applied on the Z axis.
     // So we gotta use planner.position_float, which should always be matching.

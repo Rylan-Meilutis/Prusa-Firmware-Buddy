@@ -98,6 +98,7 @@
 #include <feature/gcode_exception/gcode_exception.hpp>
 
 #include <serial_logging_disabler.hpp>
+#include <raii/auto_restore.hpp>
 
 #define XYZ_CONSTS(T, NAME, OPT) const PROGMEM XYZval<T> NAME##_P = { X_##OPT, Y_##OPT, Z_##OPT }
 
@@ -286,13 +287,14 @@ void line_to_machine_pos(const MachinePosXYZ &target, feedRate_t fr_mm_s) {
 void prepare_internal_move_to_destination(const feedRate_t &fr_mm_s/*=0.0f*/, const PrepareMoveHints & hints) {
   const uint16_t old_pct = feedrate_percentage;
   feedrate_percentage = 100;
-  const float old_fac = planner.e_factor[active_extruder];
-  planner.e_factor[active_extruder] = 1.0f;
+  // Override e_factor for the current virtual tool (not active_extruder, which
+  // is always 0 on MMU). When NoTool, skip — planner also defaults to 1.0.
+  const std::optional<AutoRestore<float>> _ef = VirtualToolIndex::currently_selected_opt()
+      .transform([](VirtualToolIndex t) { return AutoRestore<float>(planner.e_factor[t], 1.0f); });
 
   prepare_move_to(destination, fr_mm_s ?: feedrate_mm_s, hints);
 
   feedrate_percentage = old_pct;
-  planner.e_factor[active_extruder] = old_fac;
 }
 
 /**
@@ -885,7 +887,9 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
             }
           #endif // PREVENT_COLD_EXTRUSION
           #if ENABLED(PREVENT_LENGTHY_EXTRUDE)
-            const float e_delta = ABS(target.e - current_position.e) * planner.e_factor[active_extruder];
+            const std::optional<VirtualToolIndex> vt = VirtualToolIndex::currently_selected_opt();
+            const float e_fac = vt.has_value() ? planner.e_factor[*vt] : 1.0f;
+            const float e_delta = ABS(target.e - current_position.e) * e_fac;
             if (e_delta > (EXTRUDE_MAXLENGTH)) {
               current_position.e = target.e; // Behave as if the move really took place, but ignore E part
               SERIAL_ECHO_MSG(MSG_ERR_LONG_EXTRUDE_STOP);
