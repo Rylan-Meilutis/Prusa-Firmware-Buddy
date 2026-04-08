@@ -155,5 +155,5 @@ PhysicalToolIndex get_last_enabled_tool();
  * @param tool current tool
  * @return next enabled tool
  */
-Tool get_next_tool(Tool tool);
+PhysicalToolIndex get_next_tool(PhysicalToolIndex tool);
 } // namespace SelftestSnake

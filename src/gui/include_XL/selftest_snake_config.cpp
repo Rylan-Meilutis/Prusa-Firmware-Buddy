@@ -145,12 +145,12 @@ PhysicalToolIndex get_last_enabled_tool() {
     return result;
 }
 
-Tool get_next_tool(Tool tool) {
+PhysicalToolIndex get_next_tool(PhysicalToolIndex tool) {
 #if HAS_TOOLCHANGER()
-    assert(tool != Tool { get_last_enabled_tool().to_raw() } && "Unhandled edge case");
+    assert(tool != get_last_enabled_tool() && "Unhandled edge case");
     do {
-        tool = tool + 1;
-    } while (!prusa_toolchanger.is_tool_enabled(std::to_underlying(tool)));
+        tool = PhysicalToolIndex::from_raw(tool.to_raw() + 1);
+    } while (!tool.is_enabled());
 #endif
     return tool;
 }

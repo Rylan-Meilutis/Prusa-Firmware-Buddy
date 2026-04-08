@@ -94,5 +94,5 @@ inline constexpr MenuItemText blank_item_texts[] {
 TestResult get_test_result(Action action, Tool tool);
 uint64_t get_test_mask(Action action);
 inline PhysicalToolIndex get_last_enabled_tool() { return PhysicalToolIndex::from_raw(0); }
-inline Tool get_next_tool(Tool tool) { return tool; }
+inline PhysicalToolIndex get_next_tool(PhysicalToolIndex tool) { return tool; }
 } // namespace SelftestSnake

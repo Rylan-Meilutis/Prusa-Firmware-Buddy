@@ -281,7 +281,7 @@ void continue_snake() {
         || snake_config.last_tool == get_last_enabled_tool()) { // singletool or wasn't submenu or was last in a submenu
         do_snake(get_next_action(snake_config.last_action));
     } else { // current submenu not yet finished
-        do_snake(snake_config.last_action, get_next_tool(Tool { snake_config.last_tool.to_raw() }));
+        do_snake(snake_config.last_action, Tool { get_next_tool(snake_config.last_tool).to_raw() });
     }
 }
 
