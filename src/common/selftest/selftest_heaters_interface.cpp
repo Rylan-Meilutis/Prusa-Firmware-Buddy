@@ -74,7 +74,7 @@ void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &
         resultHeaters.noz[PhysicalToolIndex::from_raw(i)] = SelftestHeater_t(0, SelftestSubtestState_t::not_good, SelftestSubtestState_t::not_good);
 
         if (pNozzles[i] == nullptr) {
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && !HAS_INDX()
             if (!config_nozzle[i].tool_nr.is_enabled()) {
                 continue; // don't test disabled tools
             }

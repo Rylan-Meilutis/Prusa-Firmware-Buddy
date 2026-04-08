@@ -49,6 +49,18 @@ uint32_t CSelftestPart_Heater::estimate(const HeaterConfig_t &config) {
     return config.heat_time_ms;
 }
 
+PhysicalToolIndex CSelftestPart_Heater::get_picked_tool() {
+#if HAS_INDX()
+    const auto maybe_tool = PhysicalToolIndex::currently_selected_opt();
+    if (!maybe_tool.has_value()) {
+        bsod_unreachable();
+    }
+    return *maybe_tool;
+#else
+    return m_config.tool_nr;
+#endif
+}
+
 LoopResult CSelftestPart_Heater::stateCheckHbrPassed() {
     SelftestResult eeres = config_store().selftest_result.get();
     if (!eeres.has_heatbreak_fan_passed(m_config.tool_nr)) {
@@ -78,7 +90,16 @@ LoopResult CSelftestPart_Heater::stateShowSkippedDialog() {
 }
 
 LoopResult CSelftestPart_Heater::stateSetup() {
-#if HAS_TOOLCHANGER()
+#if HAS_INDX()
+    if (m_config.type == heater_type_t::Nozzle && std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+        bool picked = prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false);
+        if (!picked) {
+            rResult.prep_state = SelftestSubtestState_t::undef;
+            rResult.heat_state = SelftestSubtestState_t::undef;
+            return LoopResult::Abort;
+        }
+    }
+#elif HAS_TOOLCHANGER()
     // if this tool is not enabled, end this test immediately and set result to undefined
     if (!m_config.tool_nr.is_enabled()) {
         m_StartTime = m_EndTime = SelftestInstance().GetTime();
@@ -86,10 +107,6 @@ LoopResult CSelftestPart_Heater::stateSetup() {
         rResult.heat_state = SelftestSubtestState_t::undef;
         return LoopResult::Abort;
     }
-#endif
-
-#if HAS_INDX()
-    tool_change(m_config.tool_nr);
 #endif
 
 #if HAS_TOOLCHANGER()
@@ -126,16 +143,18 @@ LoopResult CSelftestPart_Heater::stateSetup() {
 
 LoopResult CSelftestPart_Heater::stateTakeControlOverFans() {
     log_info(Selftest, "%s took control of fans", m_config.partname);
-    m_config.print_fan_fnc(m_config.tool_nr.to_raw()).enter_selftest_mode();
-    m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).enter_selftest_mode();
+    const auto tool = get_picked_tool();
+    m_config.print_fan_fnc(tool.to_raw()).enter_selftest_mode();
+    m_config.heatbreak_fan_fnc(tool.to_raw()).enter_selftest_mode();
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Heater::stateFansActivate() {
+    const auto tool = get_picked_tool();
     if (enable_cooldown) {
         log_info(Selftest, "%s set fans to maximum", m_config.partname);
-        m_config.print_fan_fnc(m_config.tool_nr.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
-        m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.print_fan_fnc(tool.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.heatbreak_fan_fnc(tool.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
     }
     return LoopResult::RunNext;
 }
@@ -167,8 +186,9 @@ LoopResult CSelftestPart_Heater::stateCooldown() {
 }
 
 LoopResult CSelftestPart_Heater::stateFansDeactivate() {
-    m_config.print_fan_fnc(m_config.tool_nr.to_raw()).exit_selftest_mode();
-    m_config.heatbreak_fan_fnc(m_config.tool_nr.to_raw()).exit_selftest_mode();
+    const auto tool = get_picked_tool();
+    m_config.print_fan_fnc(tool.to_raw()).exit_selftest_mode();
+    m_config.heatbreak_fan_fnc(tool.to_raw()).exit_selftest_mode();
     log_info(Selftest, "%s returned control of fans", m_config.partname);
     return LoopResult::RunNext;
 }

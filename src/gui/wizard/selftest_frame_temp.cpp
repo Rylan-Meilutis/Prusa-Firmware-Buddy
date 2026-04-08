@@ -263,33 +263,24 @@ void ScreenSelftestTemp::change() {
         SelftestHeaters_t dt;
         if (FSMExtendedDataManager::get(dt)) {
             if (is_tested(dt, SelftestHeaters_t::TestedParts::noz)) {
-
 #if HAS_INDX()
-                {
-                    const auto &noz = dt.noz[PhysicalToolIndex::from_raw(0)];
-                    icons_noz_prep.SetState(noz.prep_state, 0);
-                    icons_noz_heat.SetState(noz.heat_state, 0);
-    #if HAS_HEATBREAK_TEMP()
-                    icons_heatbreak.SetState(noz.heatbreak_error ? SelftestSubtestState_t::not_good : SelftestSubtestState_t::ok, 0);
-    #endif
-                    progress_noz.set_progress_percent(noz.progress);
-                }
+                const auto tools = PhysicalToolIndex::Iterator::make_single(PhysicalToolIndex::from_raw(0));
 #else
+                const auto tools = PhysicalToolIndex::all().skip_all_disabled();
+#endif
                 uint8_t progress = std::numeric_limits<decltype(progress)>::max();
-
-                for (const auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                for (const auto tool : tools) {
                     const auto i = tool.to_raw();
                     const auto &noz = dt.noz[tool];
 
                     icons_noz_prep.SetState(noz.prep_state, i);
                     icons_noz_heat.SetState(noz.heat_state, i);
-    #if HAS_HEATBREAK_TEMP()
+#if HAS_HEATBREAK_TEMP()
                     icons_heatbreak.SetState(noz.heatbreak_error ? SelftestSubtestState_t::not_good : SelftestSubtestState_t::ok, i);
-    #endif
+#endif
                     progress = std::min(progress, noz.progress);
                 }
                 progress_noz.set_progress_percent(progress);
-#endif
             }
 
             if (is_tested(dt, SelftestHeaters_t::TestedParts::bed)) {

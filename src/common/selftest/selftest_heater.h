@@ -56,6 +56,8 @@ public:
         SelftestHeater_t &result);
     ~CSelftestPart_Heater();
 
+    PhysicalToolIndex get_picked_tool();
+
     /// Checks that hotend fan test passed for the tool that is being tested.
     /// Changes FSM state if it hasn't, which shows a dialog on non-XL printers
     /// and a notice on XL (on which only the failed tools are skipped and the
