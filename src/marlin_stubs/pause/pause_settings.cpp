@@ -31,7 +31,9 @@ Settings::Settings()
 }
 
 float Settings::GetDefaultFastLoadLength() {
-    return fc_settings[active_extruder].load_length;
+    const VirtualToolIndex tool = VirtualToolIndex::currently_selected_opt()
+                                      .value_or(VirtualToolIndex::from_raw(0));
+    return fc_settings[tool].load_length;
 }
 
 float Settings::GetDefaultSlowLoadLength() {
@@ -39,7 +41,9 @@ float Settings::GetDefaultSlowLoadLength() {
 }
 
 float Settings::GetDefaultUnloadLength() {
-    return fc_settings[active_extruder].unload_length;
+    const VirtualToolIndex tool = VirtualToolIndex::currently_selected_opt()
+                                      .value_or(VirtualToolIndex::from_raw(0));
+    return fc_settings[tool].unload_length;
 }
 
 float Settings::GetDefaultPurgeLength(uint8_t extruder) {
