@@ -384,19 +384,19 @@ void I_MI_STS::Loop() {
     set_icon_position(IconPosition::before_extension);
 }
 
-I_MI_STS_SUBMENU::I_MI_STS_SUBMENU(const char *label, Action action, Tool tool)
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, get_subitem_hidden_state(tool))
+I_MI_STS_SUBMENU::I_MI_STS_SUBMENU(const char *label, Action action, PhysicalToolIndex tool)
+    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, get_subitem_hidden_state(Tool { tool.to_raw() }))
     , action(action)
     , tool(tool) {
     set_icon_position(IconPosition::before_extension);
 }
 
 void I_MI_STS_SUBMENU::click(IWindowMenu &) {
-    do_snake(action, tool);
+    do_snake(action, Tool { tool.to_raw() });
 }
 
 void I_MI_STS_SUBMENU::Loop() {
-    SetIconId(get_icon(action, tool));
+    SetIconId(get_icon(action, Tool { tool.to_raw() }));
 }
 
 namespace SelftestSnake {
