@@ -1140,8 +1140,8 @@ static TwoSpeedAnalysisResult estimate_position_from_peaks(
     log_info(ContactlessOffset, "estimate_position_from_peaks: built position_table with %u entries",
         static_cast<unsigned>(position_table.size()));
 
-    // Dynamic max delay: min(0.5s, 10% of profile duration)
-    float max_delay = std::min(max_delay_fallback_s, profile.total_time() * 0.1f);
+    // Dynamic max delay: at least 0.5s, or 10% of profile duration if larger
+    float max_delay = std::max(max_delay_fallback_s, profile.total_time() * 0.1f);
 
     // Weight peaks by 1/speed: slow passes have better spatial resolution
     float w_slow = (profile.speed1 > 0) ? 1.0f / profile.speed1 : 1.0f;
