@@ -32,6 +32,7 @@ MI_NOZZLE_OFFSET_COMPONENT::MI_NOZZLE_OFFSET_COMPONENT(uint8_t component, Toolhe
     , component_(component) //
 {
     SetLabel(_("Offset %c").formatted(label_params_, "XYZ"[component]));
+    update();
 }
 
 float MI_NOZZLE_OFFSET_COMPONENT::read_value_impl(PhysicalToolIndex ix) {

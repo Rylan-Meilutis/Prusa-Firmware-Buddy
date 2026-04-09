@@ -9,6 +9,7 @@
 #include <utils/string_builder.hpp>
 #include <utils/variant_utils.hpp>
 #include <option/has_toolchanger.h>
+#include <option/has_tool_offset_sensor.h>
 
 #include "screen_toolhead_settings_fs.hpp"
 #include "screen_toolhead_settings_dock.hpp"
@@ -325,10 +326,13 @@ ScreenToolheadDetail::ScreenToolheadDetail(Toolhead toolhead)
 #endif
     }
 
-    // Some options don't make sense for the default toolhead
+    // On XL, the first toolhead is the reference with XYZ offsets of 0,
+    // so it doesn't make sense to show the nozzle offset menu for it.
+    // On INDX printers with a tool offset sensor, there is no reference
+    // toolhead, so all toolheads should show the nozzle offset settings.
     if (toolhead == default_toolhead) {
-#if HAS_TOOLCHANGER()
-        // Nozzle offset is always relative to the first tool, so it does not make sense to calibrate it for tool 0
+#if HAS_TOOLCHANGER() && !HAS_TOOL_OFFSET_SENSOR()
+        // Nozzle offset is always relative to the first tool, so it does not make sense to calibrate it for tool 0 on XL
         container.Item<MI_NOZZLE_OFFSET>().set_is_hidden();
 #endif
     }
