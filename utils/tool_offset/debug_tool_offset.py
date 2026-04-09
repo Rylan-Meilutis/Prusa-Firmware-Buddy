@@ -1231,24 +1231,17 @@ def plot_sweep_analysis(
             continue
 
         margin = 0.02
-        i_start = max(0, int((t_start - margin) / dt))
-        i_end = min(n, int((t_end + margin) / dt))
+        i_start = max(0, int((t_start + tau - margin) / dt))
+        i_end = min(n, int((t_end + tau + margin) / dt))
 
         pass_pos = []
         pass_val = []
-
-        aligned_t_start = i_start * dt - tau
-        start_pos = _interp(profile.time_s, profile.position_mm,
-                            aligned_t_start)
-        pos = start_pos
 
         for j in range(i_start, i_end):
             aligned_t = j * dt - tau
             if aligned_t > profile_t_max or aligned_t < 0:
                 continue
-            vel = _interp(profile.time_s, profile.velocity_mm_s, aligned_t)
-            if pass_pos:
-                pos = pass_pos[-1] + vel * dt
+            pos = _interp(profile.time_s, profile.position_mm, aligned_t)
             pass_pos.append(pos)
             pass_val.append(norm[j])
 
