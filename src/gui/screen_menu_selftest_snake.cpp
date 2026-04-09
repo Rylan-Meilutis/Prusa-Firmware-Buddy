@@ -85,11 +85,7 @@ bool are_previous_completed(Action action) {
     return true;
 }
 
-const img::Resource *get_icon(Action action, Tool tool) {
-    ToolMask mask = AllTools {};
-    if (tool < Tool::_count) {
-        mask = PhysicalToolIndex::from_raw(std::to_underlying(tool));
-    }
+const img::Resource *get_icon(Action action, ToolMask mask) {
     switch (get_test_result(action, mask)) {
     case TestResult::passed:
         return &img::ok_color_16x16;
@@ -380,7 +376,7 @@ void I_MI_STS::click(IWindowMenu &) {
 }
 
 void I_MI_STS::Loop() {
-    SetIconId(get_icon(action, Tool::_all_tools));
+    SetIconId(get_icon(action, AllTools {}));
     set_icon_position(IconPosition::before_extension);
 }
 
@@ -396,7 +392,7 @@ void I_MI_STS_SUBMENU::click(IWindowMenu &) {
 }
 
 void I_MI_STS_SUBMENU::Loop() {
-    SetIconId(get_icon(action, Tool { tool.to_raw() }));
+    SetIconId(get_icon(action, tool));
 }
 
 namespace SelftestSnake {
