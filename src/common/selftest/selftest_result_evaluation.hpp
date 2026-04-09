@@ -20,12 +20,11 @@ constexpr TestResult merge_hotends_evaluations(std::invocable<int8_t> auto evalu
     return res;
 };
 
-constexpr TestResult merge_hotends(Tool tool, stdext::inplace_function<TestResult(int8_t)> evaluate) {
-    if (tool == Tool::_all_tools) {
-        return merge_hotends_evaluations(evaluate);
-    } else {
-        return evaluate(std::to_underlying(tool));
-    }
+constexpr TestResult merge_hotends(ToolMask tool_mask, stdext::inplace_function<TestResult(int8_t)> evaluate) {
+    return match(
+        tool_mask,
+        [&](PhysicalToolIndex tool) { return evaluate(tool.to_raw()); },
+        [&](AllTools) { return merge_hotends_evaluations(evaluate); });
 }
 
 /// Map a filament sensor's calibration status to a TestResult.

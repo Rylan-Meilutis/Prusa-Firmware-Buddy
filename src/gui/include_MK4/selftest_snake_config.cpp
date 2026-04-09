@@ -9,7 +9,7 @@
 #endif
 
 namespace SelftestSnake {
-TestResult get_test_result(Action action, Tool tool) {
+TestResult get_test_result(Action action, ToolMask tool) {
     SelftestResult sr = config_store().selftest_result.get();
 
     switch (action) {

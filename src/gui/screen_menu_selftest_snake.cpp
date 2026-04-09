@@ -77,7 +77,7 @@ bool is_completed(TestResult test_result) {
 bool are_previous_completed(Action action) {
     for (Action act = action; act > get_first_action();) {
         act = get_previous_action(act);
-        if (!is_completed(get_test_result(act, Tool::_all_tools))) {
+        if (!is_completed(get_test_result(act, AllTools {}))) {
             return false;
         }
     }
@@ -86,7 +86,11 @@ bool are_previous_completed(Action action) {
 }
 
 const img::Resource *get_icon(Action action, Tool tool) {
-    switch (get_test_result(action, tool)) {
+    ToolMask mask = AllTools {};
+    if (tool < Tool::_count) {
+        mask = PhysicalToolIndex::from_raw(std::to_underlying(tool));
+    }
+    switch (get_test_result(action, mask)) {
     case TestResult::passed:
         return &img::ok_color_16x16;
     case TestResult::skipped:
@@ -215,7 +219,7 @@ void do_snake(Action action, Tool tool = Tool::_first) {
 };
 
 void continue_snake() {
-    const TestResult last_test_result = get_test_result(snake_config.last_action, Tool { snake_config.last_tool.to_raw() });
+    const TestResult last_test_result = get_test_result(snake_config.last_action, snake_config.last_tool);
     if (!is_completed(last_test_result)
         || SelftestInstance().IsAborted()) { // last selftest didn't pass
         snake_config.reset();
@@ -481,7 +485,7 @@ void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void 
         draw_enabled = true;
     }
 
-    if (is_completed(get_test_result(get_last_action(), Tool::_all_tools)) && are_previous_completed(get_last_action())) {
+    if (is_completed(get_test_result(get_last_action(), AllTools {})) && are_previous_completed(get_last_action())) {
         MsgBoxHappyPrinting();
         Screens::Access()->Close();
     }

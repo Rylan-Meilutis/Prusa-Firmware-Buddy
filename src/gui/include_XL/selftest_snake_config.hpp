@@ -145,7 +145,7 @@ inline constexpr MenuItemText blank_item_texts[] {
         { Action::Gears, N_("%d Gearbox Alignment") },
 };
 
-TestResult get_test_result(Action action, Tool tool);
+TestResult get_test_result(Action action, ToolMask tool);
 uint64_t get_test_mask(Action action);
 
 PhysicalToolIndex get_last_enabled_tool();

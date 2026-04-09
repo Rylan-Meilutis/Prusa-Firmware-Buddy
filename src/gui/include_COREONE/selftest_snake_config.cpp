@@ -23,7 +23,7 @@
 using namespace buddy;
 
 namespace SelftestSnake {
-TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
+TestResult get_test_result(Action action, [[maybe_unused]] ToolMask tool) {
 
     SelftestResult sr = config_store().selftest_result.get();
 
