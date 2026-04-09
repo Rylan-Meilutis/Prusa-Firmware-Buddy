@@ -1040,6 +1040,11 @@ static PositionEstimate estimate_position_iterative(
         return { 0, 0, std::numeric_limits<float>::infinity() };
     }
 
+    // Reject peaks that land on flat regions (rest periods / turnarounds)
+    // where position is not changing — these give degenerate zero-variance
+    // solutions that are meaningless.
+    constexpr float min_velocity_mm_s = 1.0f;
+
     // Grid search over time offset τ within computed bounds
     for (int step = step_min; step <= step_max; ++step) {
         float tau = static_cast<float>(step) * delay_step;
@@ -1062,6 +1067,13 @@ static PositionEstimate estimate_position_iterative(
             if (idx >= table_size - 1) {
                 idx = table_size - 2;
             }
+
+            // Check local velocity — reject peaks on plateaus
+            float velocity = std::abs(position_table[idx + 1] - position_table[idx]) * motion_sampling_freq;
+            if (velocity < min_velocity_mm_s) {
+                continue;
+            }
+
             float frac = fidx - static_cast<float>(idx);
             float pos = position_table[idx] + frac * (position_table[idx + 1] - position_table[idx]);
 
