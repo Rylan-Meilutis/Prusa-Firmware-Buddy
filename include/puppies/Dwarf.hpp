@@ -450,7 +450,6 @@ private:
     bool set_accelerometer_nolock(PuppyModbus &, bool active);
     bool raw_set_loadcell(PuppyModbus &, bool active); // Low level loadcell enable/disable, no dependencies
     bool raw_set_accelerometer(PuppyModbus &, bool active); // Low level accelerometer enable/disable, no dependencies
-    CommunicationStatus read_fifo(PuppyModbus &, std::array<uint16_t, MODBUS_FIFO_LEN> &fifo, size_t &read); // Handle fifo read retries
 
     // Register refresh control
     uint32_t last_update_ms = 0; ///< Last time we updated registers

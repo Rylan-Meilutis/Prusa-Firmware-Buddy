@@ -211,24 +211,6 @@ CommunicationStatus Dwarf::fifo_refresh(PuppyModbus &bus, uint32_t cycle_ticks_m
     return status;
 }
 
-CommunicationStatus Dwarf::read_fifo(PuppyModbus &bus, std::array<uint16_t, MODBUS_FIFO_LEN> &fifo, size_t &read) {
-    CommunicationStatus status = CommunicationStatus::SKIPPED;
-    for (uint8_t i = FIFO_RETRIES; status != CommunicationStatus::OK && i != 0; i--) {
-        status = bus.ReadFIFO(unit, ENCODED_FIFO_ADDRESS, fifo, read);
-        if (status == CommunicationStatus::ERROR) {
-            // Mark acceleration data as corrupted, but retry. Dwarf is most probably ok,
-            // no need to do a full puppy reconnect.
-            PrusaAccelerometer::set_possible_overflow();
-
-            if (power_panic::panic_is_active()) {
-                // Give up early in power panic to unblock.
-                return status;
-            }
-        }
-    }
-    return status;
-}
-
 CommunicationStatus Dwarf::pull_fifo(PuppyModbus &bus, bool &more) {
     Lock guard(*mutex);
     return pull_fifo_nolock(bus, more);
@@ -238,9 +220,10 @@ CommunicationStatus Dwarf::pull_fifo_nolock(PuppyModbus &bus, bool &more) {
     // Read coded FIFO
     std::array<uint16_t, MODBUS_FIFO_LEN> fifo;
     size_t read = 0;
-    CommunicationStatus status = read_fifo(bus, fifo, read);
+    CommunicationStatus status = bus.ReadFIFO(unit, ENCODED_FIFO_ADDRESS, fifo, read, FIFO_RETRIES);
     if (status == CommunicationStatus::ERROR) {
         more = true; // Request failed, most probably there is more data waiting
+        PrusaAccelerometer::set_possible_overflow();
         return status;
     }
 
