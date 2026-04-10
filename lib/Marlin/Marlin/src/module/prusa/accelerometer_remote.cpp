@@ -2,7 +2,13 @@
 
 #include "toolchanger.h"
 #include "accelerometer_utils.h"
-#include <puppies/Dwarf.hpp>
+#include <option/has_dwarf.h>
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <puppies/INDX.hpp>
+#elif HAS_DWARF()
+    #include <puppies/Dwarf.hpp>
+#endif
 #include "bsod.h"
 #include "../../core/serial.h"
 #include <mutex>
@@ -18,7 +24,7 @@ float PrusaAccelerometer::m_sampling_rate = 0;
 /**
  * If this is the first instance of PrusaAccelerometer
  * assign address of our m_sample_buffer to s_sample_buffer
- * and enable active Dwarf accelerometer.
+ * and enable active Dwarf/INDX accelerometer.
  * Do nothing otherwise.
  */
 PrusaAccelerometer::PrusaAccelerometer() {
@@ -32,8 +38,13 @@ PrusaAccelerometer::PrusaAccelerometer() {
         s_sample_buffer = &m_sample_buffer;
     }
 
-    buddy::puppies::Dwarf *dwarf = prusa_toolchanger.get_marlin_picked_tool();
-    if (!dwarf) {
+#if HAS_DWARF()
+    auto *tool = prusa_toolchanger.get_marlin_picked_tool();
+#elif HAS_INDX()
+    // INDX is set up directly through buddy::puppies::indx (INDX_HEAD)
+    auto *tool = std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected()) ? nullptr : &buddy::puppies::indx;
+#endif
+    if (!tool) {
         std::lock_guard lock(s_buffer_mutex);
         m_sample_buffer.error.set(Error::no_active_tool);
         return;
@@ -41,7 +52,7 @@ PrusaAccelerometer::PrusaAccelerometer() {
 
     /// TODO do not access puppyModbus outside of puppy task
     /// BFW-8185
-    if (!dwarf->set_accelerometer(buddy::puppies::puppyModbus, true)) {
+    if (!tool->set_accelerometer(buddy::puppies::puppyModbus, true)) {
         std::lock_guard lock(s_buffer_mutex);
         m_sample_buffer.error.set(Error::communication);
         return;
@@ -49,7 +60,7 @@ PrusaAccelerometer::PrusaAccelerometer() {
 }
 /**
  * If there is address of our m_sample_buffer in s_sample_buffer
- * remove it and disable Dwarf accelerometer.
+ * remove it and disable Dwarf/INDX accelerometer.
  * Do nothing otherwise.
  */
 PrusaAccelerometer::~PrusaAccelerometer() {
@@ -71,13 +82,18 @@ PrusaAccelerometer::~PrusaAccelerometer() {
     case Error::overflow_buddy:
     case Error::overflow_dwarf:
     case Error::overflow_possible: {
-        buddy::puppies::Dwarf *dwarf = prusa_toolchanger.get_marlin_picked_tool();
-        if (!dwarf) {
+#if HAS_DWARF()
+        auto *tool = prusa_toolchanger.get_marlin_picked_tool();
+#elif HAS_INDX()
+        // INDX is set up directly through buddy::puppies::indx (INDX_HEAD)
+        auto *tool = &buddy::puppies::indx;
+#endif
+        if (!tool) {
             break;
         }
         /// TODO do not access puppyModbus outside of puppy task
         /// BFW-8185
-        if (!dwarf->set_accelerometer(buddy::puppies::puppyModbus, false)) {
+        if (!tool->set_accelerometer(buddy::puppies::puppyModbus, false)) {
             SERIAL_ERROR_MSG("Failed to disable accelerometer, communication error");
         }
         break;

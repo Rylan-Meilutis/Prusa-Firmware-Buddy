@@ -673,18 +673,9 @@ set_feature_for_printers(
   )
 
 # Local accelerometer communicates directly over SPI
-set_feature_for_printers(
-  HAS_LOCAL_ACCELEROMETER
-  "MK3.5"
-  "MK4"
-  "iX"
-  "COREONE"
-  "COREONE_INDX"
-  "COREONEL"
-  "COREONEL_INDX"
-  )
+set_feature_for_printers(HAS_LOCAL_ACCELEROMETER "MK3.5" "MK4" "iX" "COREONE" "COREONEL")
 # Remote accelerometer communicates indirectly over MODBUS
-set_feature_for_printers(HAS_REMOTE_ACCELEROMETER "XL" "XL_DEV_KIT")
+set_feature_for_printers(HAS_REMOTE_ACCELEROMETER "XL" "XL_DEV_KIT" "COREONE_INDX" "COREONEL_INDX")
 # Some printers require manual mounting of accelerometer to the board, nozzle or bed
 set_feature_for_printers(HAS_ATTACHABLE_ACCELEROMETER "MK3.5" "MK4" "COREONE")
 

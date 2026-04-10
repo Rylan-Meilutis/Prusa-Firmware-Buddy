@@ -17,6 +17,7 @@ endif()
 if(HAS_INDX)
   target_sources(firmware PUBLIC INDX.cpp)
   target_link_libraries(firmware PUBLIC indx_head)
+  target_link_libraries(BuddyHeaders INTERFACE indx_head)
 endif()
 
 if(HAS_PUPPY_MODULARBED)
