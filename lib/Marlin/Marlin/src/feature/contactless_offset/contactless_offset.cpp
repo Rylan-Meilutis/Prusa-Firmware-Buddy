@@ -389,11 +389,52 @@ static auto create_motion_signal(
         | signal2step::cartesian_to_printer_kinematics();
 }
 
+struct ScanOutcome {
+    float offset;
+    float confidence;
+};
+
+static std::expected<ScanOutcome, const char *> run_scan(
+    const tool_offset::ProbingConfig &config,
+    tool_offset::Sensor &sensor,
+    const char *name,
+    bool along_x,
+    float center,
+    float cross_pos) {
+
+    const float scan_half_width = config.sensing_diameter / 2.0f;
+    const float scan_start = center - scan_half_width;
+    const float scan_end = center + scan_half_width;
+
+    LineMotionConfig cfg;
+    if (along_x) {
+        cfg.start.set(scan_start, cross_pos);
+        cfg.end.set(scan_end, cross_pos);
+    } else {
+        cfg.start.set(cross_pos, scan_start);
+        cfg.end.set(cross_pos, scan_end);
+    }
+    cfg.speed = config.sensing_speed_slow;
+    cfg.speed2 = config.sensing_speed_fast;
+    cfg.rest_time = config.sweep_rest_time;
+
+    debug_report_scan_start(name);
+    auto scan_result = execute_and_analyze_sweep(cfg, sensor, name);
+    if (!scan_result.has_value()) {
+        return std::unexpected(scan_result.error());
+    }
+    const float offset = scan_half_width - scan_result->estimate_all.position_mm;
+    debug_report_scan_result(name, scan_result->confidence, offset);
+    return ScanOutcome { offset, scan_result->confidence };
+}
+
 std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_current_tool_offset(
     const tool_offset::ProbingConfig &config,
     tool_offset::Sensor &sensor,
     const tool_offset::ToolOffset &actual_offset) {
 
+    constexpr float confidence_threshold = 0.95f;
+    constexpr float precision_mm_threshold = 0.1f;
     auto &hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
 
     // Check nozzle temperature before probing
@@ -442,69 +483,53 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     });
 
     // XY offset measurement via two-pass scanning
-    const float scan_half_width = config.sensing_diameter / 2.0f;
     float sensor_x = config.sensor_position.x;
     float sensor_y = config.sensor_position.y;
     float actual_offset_x = std::clamp(actual_offset.x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
     float actual_offset_y = std::clamp(actual_offset.y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
 
-    auto make_line_config = [&](float scan_start, float scan_end,
-                                float cross_pos, bool along_x) {
-        LineMotionConfig cfg;
-        if (along_x) {
-            cfg.start.set(scan_start, cross_pos);
-            cfg.end.set(scan_end, cross_pos);
-        } else {
-            cfg.start.set(cross_pos, scan_start);
-            cfg.end.set(cross_pos, scan_end);
-        }
-        cfg.speed = config.sensing_speed_slow;
-        cfg.speed2 = config.sensing_speed_fast;
-        cfg.rest_time = config.sweep_rest_time;
-        return cfg;
-    };
-
-    auto run_scan = [&](const char *name, bool along_x, float center, float cross_pos)
-        -> std::expected<float, const char *> {
-        auto cfg = make_line_config(center - scan_half_width, center + scan_half_width,
-            cross_pos, along_x);
-        debug_report_scan_start(name);
-        auto scan_result = execute_and_analyze_sweep(cfg, sensor, name);
-        if (!scan_result.has_value()) {
-            return std::unexpected(scan_result.error());
-        }
-        debug_report_scan_result(name, scan_result->confidence, scan_half_width - scan_result->estimate_all.position_mm);
-        return scan_half_width - scan_result->estimate_all.position_mm;
-    };
-
     // Pass 1: center detection — scans centered on sensor_position
-    float confidence_x = 0.0f, confidence_y = 0.0f;
-    auto cd_x = run_scan("center-detection-x", true, sensor_x, sensor_y - actual_offset_y);
+    auto cd_x = run_scan(config, sensor, "center-detection-x", true, sensor_x, sensor_y - actual_offset_y);
     if (!cd_x.has_value()) {
         return std::unexpected(cd_x.error());
     }
-    auto cd_y = run_scan("center-detection-y", false, sensor_y, sensor_x - actual_offset_x);
+    auto cd_y = run_scan(config, sensor, "center-detection-y", false, sensor_y, sensor_x - actual_offset_x);
     if (!cd_y.has_value()) {
         return std::unexpected(cd_y.error());
     }
+    if (cd_x->confidence > confidence_threshold && cd_y->confidence > confidence_threshold && std::abs(actual_offset_x - cd_x->offset) < precision_mm_threshold && std::abs(actual_offset_y - cd_y->offset) < precision_mm_threshold) {
+        // Excellent results, no need for second pass — return early with center detection result
+        result.x = cd_x->offset;
+        result.y = cd_y->offset;
+        return result;
+    }
 
-    actual_offset_x = std::clamp(*cd_x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
-    actual_offset_y = std::clamp(*cd_y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
+    actual_offset_x = std::clamp(cd_x->offset, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
+    actual_offset_y = std::clamp(cd_y->offset, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
 
     debug_report_pass1_center(actual_offset_x, actual_offset_y);
 
     // Pass 2: nozzle offset — cross-axis corrected by pass-1 result
-    auto no_x = run_scan("nozzle-offset-x", true, sensor_x, sensor_y - actual_offset_y);
+    auto no_x = run_scan(config, sensor, "nozzle-offset-x", true, sensor_x, sensor_y - actual_offset_y);
     if (!no_x.has_value()) {
         return std::unexpected(no_x.error());
     }
-    auto no_y = run_scan("nozzle-offset-y", false, sensor_y, sensor_x - actual_offset_x);
+    if (no_x->confidence < confidence_threshold) {
+        // Too low confidence — return error
+        return std::unexpected("Low confidence in X offset measurement");
+    }
+
+    auto no_y = run_scan(config, sensor, "nozzle-offset-y", false, sensor_y, sensor_x - actual_offset_x);
     if (!no_y.has_value()) {
         return std::unexpected(no_y.error());
     }
+    if (no_y->confidence < confidence_threshold) {
+        // Too low confidence — return error
+        return std::unexpected("Low confidence in Y offset measurement");
+    }
 
-    result.x = *no_x;
-    result.y = *no_y;
+    result.x = no_x->offset;
+    result.y = no_y->offset;
     return result;
 }
 
