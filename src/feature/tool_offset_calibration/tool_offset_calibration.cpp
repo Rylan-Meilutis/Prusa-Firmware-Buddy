@@ -173,15 +173,19 @@ void calibrate_xy_offset([[maybe_unused]] PhysicalToolIndex tool) {
         .y = hotend_offset[selected_tool.value()].y,
         .z = 0.0f
     };
-    auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
-    if (!result.has_value()) {
-        log_error(ToolOffsetCalib, "failed: %s", result.error());
-        return;
+    for (int i = 0; i < 3; i++) {
+        log_info(ToolOffsetCalib, "XY offset measurement attempt %d", i + 1);
+        auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
+        if (result.has_value()) {
+            log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
+            hotend_offset[selected_tool.value()].x = result->x;
+            hotend_offset[selected_tool.value()].y = result->y;
+            prusa_toolchanger.save_tool_offset(selected_tool.value());
+            return;
+        } else {
+            log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
+        }
     }
-
-    hotend_offset[selected_tool.value()].x = -result->x;
-    hotend_offset[selected_tool.value()].y = -result->y;
-    prusa_toolchanger.save_tool_offset(selected_tool.value());
 }
 
 using ToolSet = std::bitset<PhysicalToolIndex::count>;
