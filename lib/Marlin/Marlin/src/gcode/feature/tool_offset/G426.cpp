@@ -63,11 +63,6 @@ void GcodeSuite::G426() {
         return;
     }
 
-    // Zero hotend offset and currently applied offset to avoid stale offset
-    // affecting subsequent tool changes (same as G425)
-    reset_hotend_offset(selected_tool.value());
-    hotend_currently_applied_offset = xyz_pos_t {};
-
     // Reset planner state
     planner.synchronize();
     planner.reset_position();
@@ -77,15 +72,26 @@ void GcodeSuite::G426() {
 
     // Perform the measurement for picked tool
     auto sensor = tool_offset::get_default_sensor();
-    auto result = tool_offset::measure_current_tool_offset(config, *sensor);
+    tool_offset::ToolOffset actual_ho = {
+        .x = hotend_offset[selected_tool.value()].x,
+        .y = hotend_offset[selected_tool.value()].y,
+        .z = hotend_offset[selected_tool.value()].z,
+    };
+    // Zero hotend offset and currently applied offset
+    reset_hotend_offset(selected_tool.value());
+    hotend_currently_applied_offset = xyz_pos_t {};
+
+    auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
     if (!result.has_value()) {
         SERIAL_ECHOLNPAIR("G426 failed: ", result.error());
         return;
     }
 
+    // Store newly measured offsets only for XY, keep actual for Z
     hotend_offset[selected_tool.value()].x = result->x;
     hotend_offset[selected_tool.value()].y = result->y;
     prusa_toolchanger.save_tool_offset(selected_tool.value());
+    hotend_currently_applied_offset = xyz_pos_t { result->x, result->y, actual_ho.z };
 
     SERIAL_ECHOPGM("X offset: ");
     SERIAL_ECHO_F(result->x, 4);

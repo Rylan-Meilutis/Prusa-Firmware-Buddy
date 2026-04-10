@@ -66,6 +66,7 @@
 #include <sfl/segmented_vector.hpp>
 #include <puppies/INDX.hpp>
 #include <puppies/PuppyModbus.hpp>
+#include <printers.h>
 
 LOG_COMPONENT_DEF(ContactlessOffset, logging::Severity::debug);
 
@@ -390,7 +391,8 @@ static auto create_motion_signal(
 
 std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_current_tool_offset(
     const tool_offset::ProbingConfig &config,
-    tool_offset::Sensor &sensor) {
+    tool_offset::Sensor &sensor,
+    const tool_offset::ToolOffset &actual_offset) {
 
     auto &hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
 
@@ -441,8 +443,10 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
 
     // XY offset measurement via two-pass scanning
     const float scan_half_width = config.sensing_diameter / 2.0f;
-    const float sensor_x = config.sensor_position.x;
-    const float sensor_y = config.sensor_position.y;
+    float sensor_x = config.sensor_position.x;
+    float sensor_y = config.sensor_position.y;
+    float actual_offset_x = std::clamp(actual_offset.x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
+    float actual_offset_y = std::clamp(actual_offset.y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
 
     auto make_line_config = [&](float scan_start, float scan_end,
                                 float cross_pos, bool along_x) {
@@ -469,39 +473,38 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         if (!scan_result.has_value()) {
             return std::unexpected(scan_result.error());
         }
-        debug_report_scan_result(name, scan_result->confidence, scan_result->estimate_all.position_mm - scan_half_width);
-        return scan_result->estimate_all.position_mm - scan_half_width;
+        debug_report_scan_result(name, scan_result->confidence, scan_half_width - scan_result->estimate_all.position_mm);
+        return scan_half_width - scan_result->estimate_all.position_mm;
     };
 
     // Pass 1: center detection — scans centered on sensor_position
-    auto cd_x = run_scan("center-detection-x", true, sensor_x, sensor_y);
+    float confidence_x = 0.0f, confidence_y = 0.0f;
+    auto cd_x = run_scan("center-detection-x", true, sensor_x, sensor_y - actual_offset_y);
     if (!cd_x.has_value()) {
         return std::unexpected(cd_x.error());
     }
-    auto cd_y = run_scan("center-detection-y", false, sensor_y, sensor_x);
+    auto cd_y = run_scan("center-detection-y", false, sensor_y, sensor_x - actual_offset_x);
     if (!cd_y.has_value()) {
         return std::unexpected(cd_y.error());
     }
 
-    const float max_offset = scan_half_width * 0.8f;
-    const float cd_x_offset = std::clamp(*cd_x, -max_offset, max_offset);
-    const float cd_y_offset = std::clamp(*cd_y, -max_offset, max_offset);
+    actual_offset_x = std::clamp(*cd_x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
+    actual_offset_y = std::clamp(*cd_y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
 
-    debug_report_pass1_center(cd_x_offset, cd_y_offset);
+    debug_report_pass1_center(actual_offset_x, actual_offset_y);
 
     // Pass 2: nozzle offset — cross-axis corrected by pass-1 result
-    auto no_x = run_scan("nozzle-offset-x", true, sensor_x, sensor_y + cd_y_offset);
+    auto no_x = run_scan("nozzle-offset-x", true, sensor_x, sensor_y - actual_offset_y);
     if (!no_x.has_value()) {
         return std::unexpected(no_x.error());
     }
-    auto no_y = run_scan("nozzle-offset-y", false, sensor_y, sensor_x + cd_x_offset);
+    auto no_y = run_scan("nozzle-offset-y", false, sensor_y, sensor_x - actual_offset_x);
     if (!no_y.has_value()) {
         return std::unexpected(no_y.error());
     }
 
-    result.x = - *no_x;
-    result.y = - *no_y;
-
+    result.x = *no_x;
+    result.y = *no_y;
     return result;
 }
 

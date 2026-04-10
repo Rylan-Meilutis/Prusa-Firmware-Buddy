@@ -168,7 +168,12 @@ void calibrate_xy_offset([[maybe_unused]] PhysicalToolIndex tool) {
 
     // Perform the measurement for picked tool
     auto sensor = tool_offset::get_default_sensor();
-    auto result = tool_offset::measure_current_tool_offset(config, *sensor);
+    tool_offset::ToolOffset actual_ho = {
+        .x = hotend_offset[selected_tool.value()].x,
+        .y = hotend_offset[selected_tool.value()].y,
+        .z = 0.0f
+    };
+    auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
     if (!result.has_value()) {
         log_error(ToolOffsetCalib, "failed: %s", result.error());
         return;

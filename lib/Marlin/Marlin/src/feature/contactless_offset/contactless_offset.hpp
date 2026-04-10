@@ -22,6 +22,7 @@ struct ToolOffset {
 // Performs homing, Z probing, and two-pass XY scanning internally.
 std::expected<ToolOffset, const char *> measure_current_tool_offset(
     const ProbingConfig &config,
-    Sensor &sensor);
+    Sensor &sensor,
+    const ToolOffset &actual_offset);
 
 } // namespace tool_offset
