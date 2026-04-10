@@ -6,13 +6,6 @@
 #include <option/has_precise_homing_corexy.h>
 
 namespace SelftestSnake {
-enum class Tool {
-    Tool1 = 0,
-    _count,
-    _all_tools = _count,
-    _last = _count - 1,
-    _first = Tool1,
-};
 
 // Order matters, snake and will be run in the same order, as well as menu items (with indices) will be
 enum class Action {

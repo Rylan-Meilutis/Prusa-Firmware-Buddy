@@ -5,27 +5,6 @@
 #include <option/has_precise_homing_corexy.h>
 
 namespace SelftestSnake {
-enum class Tool {
-    Tool1 = 0,
-    Tool2 = 1,
-    Tool3 = 2,
-    Tool4 = 3,
-    Tool5 = 4,
-    _count,
-    _all_tools = _count,
-    _last = _count - 1,
-    _first = Tool1,
-};
-
-constexpr Tool operator-(Tool tool, int i) {
-    assert(std::to_underlying(tool) - i >= std::to_underlying(Tool::_first));
-    return static_cast<Tool>(std::to_underlying(tool) - i);
-}
-
-constexpr Tool operator+(Tool tool, int i) {
-    assert(std::to_underlying(tool) + i <= std::to_underlying(Tool::_last));
-    return static_cast<Tool>(std::to_underlying(tool) + i);
-}
 
 // Order matters, snake and will be run in the same order, as well as menu items (with indices) will be
 enum class Action {
