@@ -656,7 +656,14 @@ void hal::init() {
     enable_fans();
     mmu_pins_init();
     mmu::nreset_pin_set(false);
+
     usb_pins_init();
+#if EXTENSION_IS_IX()
+    hal::usb::power_pin_set(true);
+#else
+    hal::usb::power_pin_set(false);
+#endif
+
     hal::pub::init();
     filament_sensor_pins_init();
     rng_init();
