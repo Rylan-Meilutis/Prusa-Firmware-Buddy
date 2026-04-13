@@ -345,6 +345,11 @@ void Planner::reset() {
     // getting it because the server didn't get our answer (the service we've
     // connected crashed, or it got lost, etc).
     last_command_id = nullopt;
+
+    // Don't keep IDs across possible server changes.
+    print_start_cmd = nullopt;
+    transfer_start_cmd = nullopt;
+    observed_job_id = nullopt;
 }
 
 void Planner::reset_telemetry() {
@@ -394,35 +399,6 @@ Sleep Planner::sleep(Duration amount, http::Connection *wake_on_readable, bool c
 }
 
 Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_readable) {
-    if (!printer.is_printing()) {
-        // The idea is, we set the ID when we start the print and remove it
-        // once we see we are no longer printing. This is not completely
-        // correct, because:
-        //
-        // * A print can end and a new one start (without using Connect)
-        //   between two calls to next_action, not resetting the command as
-        //   necessary.
-        // * On the other hand, currently we _probably_ can reach some state
-        //   that is not considered "printing" while really printing (eg. the
-        //   Busy state in crash detection, maybe?), in which case we reset it
-        //   even if we shouldn't.
-        // * We don't keep this info across a power panic.
-        //
-        // Nevertheless, this has low impact. Connect asks for JOB_INFO at the
-        // first opportunity it sees a new job, to know if it may remove it
-        // from the queue. In the first case, it would have nothing to remove
-        // (done in the previous job), and the latter likely doesn't happen
-        // because it asks at the beginning and has it already.
-        //
-        // Finding a 100% correct tracking for this would be really complex,
-        // because the start of the print is asynchronous (we don't get an
-        // answer from the marlin right away), we don't know at that point what
-        // job ID we'll have, we don't get notifications about terminated
-        // prints, etc. Out of the just-slightly broken solutions, this one
-        // seems the simplest.
-        print_start_cmd.reset();
-    }
-
     if (perform_cooldown) {
         perform_cooldown = false;
         assert(cooldown.get().has_value());
@@ -451,6 +427,18 @@ Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_read
             EventType::Info,
         };
         return *planned_event;
+    }
+
+    const auto params = printer.params();
+    const std::optional<uint16_t> current_job_id = params.has_job ? std::make_optional(params.job_id) : std::nullopt;
+    if (observed_job_id != current_job_id) {
+        if (observed_job_id.has_value()) {
+            // The previously-observed job just went away (finished or
+            // replaced). The command id no longer belongs to any
+            // current job.
+            print_start_cmd.reset();
+        }
+        observed_job_id = current_job_id;
     }
 
     auto current_transfer = Monitor::instance.id();
@@ -526,8 +514,6 @@ Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_read
             return *planned_event;
         }
     }
-
-    const auto params = printer.params();
 
     if (state_info.set_hash(params.state_fingerprint())) {
         planned_event = Event {

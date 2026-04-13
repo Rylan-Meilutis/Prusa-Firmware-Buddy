@@ -203,6 +203,10 @@ private:
 
     Tracked cancellable_objects;
     Tracked state_info;
+
+    // Tracks which job our print_start_cmd belongs to.
+    std::optional<uint16_t> observed_job_id;
+
     // Tracking of ongoing transfers.
     std::optional<transfers::TransferId> observed_transfer;
 

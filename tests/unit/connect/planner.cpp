@@ -552,6 +552,67 @@ TEST_CASE("Command Set value - xbuddy_extension usb addon power logic") {
     }
 }
 
+// Regression test: print_start_cmd must not leak across jobs.
+//
+// Full scenario (see plan for details):
+//   1. StartPrint command sets print_start_cmd; next JobInfo carries start_cmd_id.
+//   2. Job A appears (has_job=true, job_id=A) -> start_cmd_id stays.
+//   3. Job B replaces A (has_job=true, job_id=B) -> start_cmd_id is dropped.
+//
+// LIMITATION: Step 1 cannot be exercised here because StartPrint requires
+// the file to exist on the real filesystem (is_valid_file_or_transfer uses
+// stat()), and the test environment has no /usb/ mount. Consequently
+// print_start_cmd cannot be set through the normal code path.
+//
+// What IS tested: the edge detector observes transitions correctly and
+// does not propagate a non-existing start_cmd_id across job-id changes.
+TEST_CASE("start_cmd_id does not leak across jobs") {
+    Test test;
+
+    // Initially no job is running (params_idle has has_job = false).
+    // The edge detector's first tick sees nullopt -> nullopt, no change.
+    test.planner.command(Command { CommandId(1), SendJobInfo { 0 } });
+    {
+        const auto action = test.planner.next_action(buffer, nullptr);
+        const auto *event = get_if<Event>(&action);
+        REQUIRE(event != nullptr);
+        REQUIRE(event->type == EventType::JobInfo);
+        // No StartPrint was issued, so start_cmd_id must be absent.
+        REQUIRE_FALSE(event->start_cmd_id.has_value());
+        test.planner.action_done(ActionResult::Ok);
+    }
+
+    // Job A appears.
+    test.params.has_job = true;
+    test.params.job_id = 100;
+
+    test.planner.command(Command { CommandId(2), SendJobInfo { 100 } });
+    {
+        const auto action = test.planner.next_action(buffer, nullptr);
+        const auto *event = get_if<Event>(&action);
+        REQUIRE(event != nullptr);
+        REQUIRE(event->type == EventType::JobInfo);
+        // Still no start_cmd_id because StartPrint could not be issued.
+        REQUIRE_FALSE(event->start_cmd_id.has_value());
+        test.planner.action_done(ActionResult::Ok);
+    }
+
+    // Job B replaces A — regression guard: even if we had a stale
+    // print_start_cmd, it must be cleared here.
+    test.params.has_job = true;
+    test.params.job_id = 200;
+
+    test.planner.command(Command { CommandId(3), SendJobInfo { 200 } });
+    {
+        const auto action = test.planner.next_action(buffer, nullptr);
+        const auto *event = get_if<Event>(&action);
+        REQUIRE(event != nullptr);
+        REQUIRE(event->type == EventType::JobInfo);
+        REQUIRE_FALSE(event->start_cmd_id.has_value());
+        test.planner.action_done(ActionResult::Ok);
+    }
+}
+
 TEST_CASE("Connect duplicates command") {
     Test test;
 

@@ -79,8 +79,13 @@ public:
         return false;
     }
 
+    // Return value for start_print(). nullptr means success; a non-null
+    // string is an error message. Defaults to "No" to preserve existing
+    // test behaviour (StartPrint is rejected).
+    const char *start_print_result = "No";
+
     virtual const char *start_print(const char *, const std::optional<ToolMapping> &) override {
-        return "No";
+        return start_print_result;
     }
 
     virtual const char *delete_file(const char *) override {
