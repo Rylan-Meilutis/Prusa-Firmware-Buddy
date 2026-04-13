@@ -144,6 +144,10 @@ std::optional<Error> tls::connection(const char *connection_host, uint16_t conne
             return Error::InternalError;
         }
 
+        if (fread(der_buffer.get(), static_cast<size_t>(fsize), 1, cert.get()) != 1) {
+            return Error::InternalError;
+        }
+
         if (mbedtls_x509_crt_parse_der_nocopy(&ctxs.x509_certificate, static_cast<const uint8_t *>(der_buffer.get()), fsize) != 0) {
             // Wrong file content
             return Error::Tls;
