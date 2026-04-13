@@ -14,6 +14,7 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <feature/filament_sensor/filament_sensor_states.hpp>
 #include <state/printer_state.hpp>
+#include <transfers/transfer_file_check.hpp>
 #include <common/sys.hpp>
 #include <common/unique_file_ptr.hpp>
 
@@ -516,6 +517,10 @@ namespace {
     }
 } // namespace
 #endif
+
+bool MarlinPrinter::is_valid_file_or_transfer(const char *path) const {
+    return transfers::is_valid_file_or_transfer(path);
+}
 
 const char *MarlinPrinter::start_print(const char *path, [[maybe_unused]] const std::optional<ToolMapping> &tools_mapping) {
     if (!printer_state::remote_print_ready(false)) {

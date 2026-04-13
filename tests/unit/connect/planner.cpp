@@ -554,55 +554,69 @@ TEST_CASE("Command Set value - xbuddy_extension usb addon power logic") {
 
 // Regression test: print_start_cmd must not leak across jobs.
 //
-// Full scenario (see plan for details):
+// Scenario:
 //   1. StartPrint command sets print_start_cmd; next JobInfo carries start_cmd_id.
 //   2. Job A appears (has_job=true, job_id=A) -> start_cmd_id stays.
 //   3. Job B replaces A (has_job=true, job_id=B) -> start_cmd_id is dropped.
-//
-// LIMITATION: Step 1 cannot be exercised here because StartPrint requires
-// the file to exist on the real filesystem (is_valid_file_or_transfer uses
-// stat()), and the test environment has no /usb/ mount. Consequently
-// print_start_cmd cannot be set through the normal code path.
-//
-// What IS tested: the edge detector observes transitions correctly and
-// does not propagate a non-existing start_cmd_id across job-id changes.
 TEST_CASE("start_cmd_id does not leak across jobs") {
     Test test;
 
-    // Initially no job is running (params_idle has has_job = false).
-    // The edge detector's first tick sees nullopt -> nullopt, no change.
-    test.planner.command(Command { CommandId(1), SendJobInfo { 0 } });
+    // Make StartPrint acceptable: the file "exists" and start_print succeeds.
+    test.printer.is_valid_file_or_transfer_result = true;
+    test.printer.start_print_result = nullptr;
+
+    // Commands come as replies to telemetries.
+    test.consume_telemetry();
+
+    // Build a SharedPath pointing to a fake file. SharedPath has no
+    // const char* constructor; we have to borrow the buffer and fill it by
+    // hand, same as the JSON parser does in production.
+    auto path_borrow = buffer.borrow().value();
+    strlcpy(reinterpret_cast<char *>(path_borrow.data()),
+        "/usb/foo.gcode", path_borrow.size());
+
+    // 1. StartPrint issued by Connect. print_start_cmd gets set to 42.
+    //    Note: SharedPath is not stored in planned_event, so the buffer
+    //    borrow is released at the end of this statement.
+    test.planner.command(Command { CommandId(42),
+        StartPrint { SharedPath(move(path_borrow)), std::nullopt } });
     {
         const auto action = test.planner.next_action(buffer, nullptr);
         const auto *event = get_if<Event>(&action);
         REQUIRE(event != nullptr);
         REQUIRE(event->type == EventType::JobInfo);
-        // No StartPrint was issued, so start_cmd_id must be absent.
-        REQUIRE_FALSE(event->start_cmd_id.has_value());
+        REQUIRE(event->start_cmd_id == CommandId(42));
         test.planner.action_done(ActionResult::Ok);
     }
 
-    // Job A appears.
+    test.consume_telemetry();
+
+    // 2. Job A appears (the Connect-started one). SendJobInfo still carries
+    //    start_cmd_id because print_start_cmd is for *this* job.
+    //
+    //    The consume_sleep() tick is required: command(SendJobInfo) snapshots
+    //    the current print_start_cmd at call time, so the edge detector (in
+    //    next_action) must run between mutating params and calling command().
     test.params.has_job = true;
     test.params.job_id = 100;
-
-    test.planner.command(Command { CommandId(2), SendJobInfo { 100 } });
+    test.consume_sleep();
+    test.planner.command(Command { CommandId(43), SendJobInfo { 100 } });
     {
         const auto action = test.planner.next_action(buffer, nullptr);
         const auto *event = get_if<Event>(&action);
         REQUIRE(event != nullptr);
         REQUIRE(event->type == EventType::JobInfo);
-        // Still no start_cmd_id because StartPrint could not be issued.
-        REQUIRE_FALSE(event->start_cmd_id.has_value());
+        REQUIRE(event->start_cmd_id == CommandId(42));
         test.planner.action_done(ActionResult::Ok);
     }
 
-    // Job B replaces A — regression guard: even if we had a stale
-    // print_start_cmd, it must be cleared here.
-    test.params.has_job = true;
-    test.params.job_id = 200;
+    test.consume_telemetry();
 
-    test.planner.command(Command { CommandId(3), SendJobInfo { 200 } });
+    // 3. Job A ends and job B starts locally — the bug scenario. The edge
+    //    detector must drop print_start_cmd before SendJobInfo is answered.
+    test.params.job_id = 200;
+    test.consume_sleep();
+    test.planner.command(Command { CommandId(44), SendJobInfo { 200 } });
     {
         const auto action = test.planner.next_action(buffer, nullptr);
         const auto *event = get_if<Event>(&action);

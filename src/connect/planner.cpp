@@ -709,7 +709,7 @@ void Planner::command(const Command &command, const StartPrint &params) {
     const char *reason = nullptr;
     if (!path_allowed(path)) {
         reason = "Forbidden path";
-    } else if (!transfers::is_valid_file_or_transfer(path)) {
+    } else if (!printer.is_valid_file_or_transfer(path)) {
         reason = "File not found";
     } else if (const char *error = printer.start_print(path, params.tool_mapping); error != nullptr) {
         reason = error;
@@ -879,7 +879,7 @@ void Planner::command(const Command &command, const DeleteFile &params) {
     const char *reason = nullptr;
     if (!path_allowed(path)) {
         reason = "Forbidden path";
-    } else if (!transfers::is_valid_file_or_transfer(path)) {
+    } else if (!printer.is_valid_file_or_transfer(path)) {
         reason = "File not found";
     } else if (auto err = printer.delete_file(path); err != nullptr) {
         reason = err;

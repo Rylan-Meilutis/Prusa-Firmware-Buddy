@@ -79,9 +79,14 @@ public:
         return false;
     }
 
-    // Return value for start_print(). nullptr means success; a non-null
-    // string is an error message. Defaults to "No" to preserve existing
-    // test behaviour (StartPrint is rejected).
+    // Return value for is_valid_file_or_transfer
+    bool is_valid_file_or_transfer_result = false;
+
+    virtual bool is_valid_file_or_transfer(const char *) const override {
+        return is_valid_file_or_transfer_result;
+    }
+
+    // Return value for start_print(). Defaults to "No", most tests get rejected StartPrint.
     const char *start_print_result = "No";
 
     virtual const char *start_print(const char *, const std::optional<ToolMapping> &) override {

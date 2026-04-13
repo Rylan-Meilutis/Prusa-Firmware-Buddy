@@ -241,6 +241,7 @@ public:
     virtual std::optional<NetInfo> net_info(Iface iface) const = 0;
     virtual NetCreds net_creds() const = 0;
     virtual bool job_control(JobControl) = 0;
+    virtual bool is_valid_file_or_transfer(const char *path) const = 0;
     virtual const char *start_print(const char *path, const std::optional<ToolMapping> &tools_mapping) = 0;
     // Deletes a file.
     //
