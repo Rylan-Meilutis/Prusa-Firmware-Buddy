@@ -1,7 +1,5 @@
 #pragma once
 
-#include <span>
-
 #include <i_window_menu_item.hpp>
 
 /// Menu item where user selects a value from a list of items presented as a menu dialog
@@ -20,8 +18,9 @@ public:
         _last = quick_cycle,
     };
 
-    static constexpr size_t value_buffer_size = 32;
     static constexpr Font value_font = GuiDefaults::FontMenuItems;
+
+    using ItemTextParams = StringViewUtf8Parameters<16>;
 
     MenuItemSelectMenu(const string_view_utf8 &label);
 
@@ -43,8 +42,8 @@ public:
     /// \returns number of items in the list
     virtual int item_count() const = 0;
 
-    /// Stores text representation of item at \param index to \param buffer
-    virtual void build_item_text(int index, const std::span<char> &buffer) const = 0;
+    /// Builds text for item @p index and returns it. Can use @param params to store supplementary data.
+    virtual string_view_utf8 build_item_text(int index, ItemTextParams &params) const = 0;
 
 protected:
     /// Called when the current item is changed by the user
@@ -59,6 +58,7 @@ protected:
 
 private:
     int current_item_ = -1;
-    std::array<char, value_buffer_size> value_text_ { '\0' };
+    string_view_utf8 value_;
+    ItemTextParams value_params_;
     Behavior behavior_ = Behavior::submenu;
 };

@@ -78,8 +78,8 @@ int MI_EXTENDED_PRINTER_TYPE::item_count() const {
     return static_cast<int>(extended_printer_type_model.size());
 }
 
-void MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, const std::span<char> &buffer) const {
-    strlcpy(buffer.data(), PrinterModelInfo::get(extended_printer_type_model[index]).id_str, buffer.size());
+string_view_utf8 MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
+    return string_view_utf8::MakeCPUFLASH(PrinterModelInfo::get(extended_printer_type_model[index]).id_str);
 }
 
 bool MI_EXTENDED_PRINTER_TYPE::on_item_selected([[maybe_unused]] int old_index, int new_index) {

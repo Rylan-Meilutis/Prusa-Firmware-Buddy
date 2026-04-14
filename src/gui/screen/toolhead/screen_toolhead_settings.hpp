@@ -36,7 +36,7 @@ public:
     MI_HOTEND_TYPE(Toolhead toolhead = default_toolhead);
 
     int item_count() const final;
-    void build_item_text(int index, const std::span<char> &buffer) const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
 
     void update();
 
@@ -123,7 +123,7 @@ public:
     MI_PRINT_FAN_TYPE(Toolhead toolhead = default_toolhead);
 
     int item_count() const final;
-    void build_item_text(int index, const std::span<char> &buffer) const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
 
     void update();
 

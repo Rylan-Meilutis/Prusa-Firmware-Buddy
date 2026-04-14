@@ -278,8 +278,8 @@ int MI_MMU_NEXTRUDER_REWORK::item_count() const {
     return mmu_rework_items.size();
 }
 
-void MI_MMU_NEXTRUDER_REWORK::build_item_text(int index, const std::span<char> &buffer) const {
-    _(mmu_rework_items[index]).copyToRAM(buffer);
+string_view_utf8 MI_MMU_NEXTRUDER_REWORK::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
+    return _(mmu_rework_items[index]);
 }
 
 bool MI_MMU_NEXTRUDER_REWORK::on_item_selected([[maybe_unused]] int old_index, int new_index) {

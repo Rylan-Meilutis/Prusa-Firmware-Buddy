@@ -63,15 +63,14 @@ int MI_HOTEND_TYPE::item_count() const {
     return hotend_type_list.size() + (has_varying_values_ ? 1 : 0);
 }
 
-void MI_HOTEND_TYPE::build_item_text(int index, const std::span<char> &buffer) const {
-    StringBuilder sb(buffer);
+string_view_utf8 MI_HOTEND_TYPE::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
     const int effective_index = index - (has_varying_values_ ? 1 : 0);
 
     // If has varying values, the 0th item is "-" (for different values)
     if (effective_index == -1) {
-        sb.append_string("-");
+        return string_view_utf8::MakeCPUFLASH("-");
     } else {
-        sb.append_string_view(_(hotend_type_name(hotend_type_list[effective_index])));
+        return _(hotend_type_name(hotend_type_list[effective_index]));
     }
 }
 
@@ -136,15 +135,14 @@ void MI_PRINT_FAN_TYPE::store_value_impl(PhysicalToolIndex ix, PrintFanType set)
     set_print_fan_type(ix.to_raw(), set);
 }
 
-void MI_PRINT_FAN_TYPE::build_item_text(int index, const std::span<char> &buffer) const {
-    StringBuilder sb(buffer);
+string_view_utf8 MI_PRINT_FAN_TYPE::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
     const int effective_index = index - (has_varying_values_ ? 1 : 0);
 
     // If has varying values, the 0th item is "-" (for different values)
     if (effective_index == -1) {
-        sb.append_string("-");
+        return string_view_utf8::MakeCPUFLASH("-");
     } else {
-        sb.append_string_view(_(print_fan_type_names[print_fan_type_list[effective_index]]));
+        return _(print_fan_type_names[print_fan_type_list[effective_index]]);
     }
 }
 

@@ -25,8 +25,8 @@ MI_CHAMBER_FILTRATION_BACKEND::MI_CHAMBER_FILTRATION_BACKEND()
     set_current_item(ix);
 }
 
-void MI_CHAMBER_FILTRATION_BACKEND::build_item_text(int index, const std::span<char> &buffer) const {
-    _(ChamberFiltration::backend_name(items_[index])).copyToRAM(buffer);
+string_view_utf8 MI_CHAMBER_FILTRATION_BACKEND::build_item_text(int index, [[maybe_unused]] ItemTextParams &params) const {
+    return _(ChamberFiltration::backend_name(items_[index]));
 }
 
 bool MI_CHAMBER_FILTRATION_BACKEND::on_item_selected(int, int new_index) {

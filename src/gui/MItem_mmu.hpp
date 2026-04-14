@@ -287,7 +287,7 @@ public:
     MI_MMU_NEXTRUDER_REWORK();
 
     int item_count() const override;
-    void build_item_text(int index, const std::span<char> &buffer) const override;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const override;
 
 protected:
     bool on_item_selected(int old_index, int new_index) override;

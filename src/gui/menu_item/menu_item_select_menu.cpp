@@ -16,7 +16,7 @@ public:
 
 private:
     const int index_;
-    std::array<char, MenuItemSelectMenu::value_buffer_size> label_ { '\0' };
+    MenuItemSelectMenu::ItemTextParams params_;
 };
 
 // Size-sensitive
@@ -58,8 +58,7 @@ private:
 DialogItem::DialogItem(MenuItemSelectMenu &menu, int index)
     : index_(index) //
 {
-    menu.build_item_text(index, label_);
-    SetLabel(string_view_utf8::MakeRAM(label_.data()));
+    SetLabel(menu.build_item_text(index, params_));
 }
 
 void DialogItem::click(IWindowMenu &menu) {
@@ -116,8 +115,8 @@ void MenuItemSelectMenu::force_set_current_item(int set) {
     }
 
     current_item_ = set;
-    build_item_text(set, value_text_);
-    extension_width = resource_font(value_font)->w * (strlen(value_text_.data()) + (GuiDefaults::MenuSwitchHasBrackets ? 2 : 0));
+    value_ = build_item_text(set, value_params_);
+    extension_width = resource_font(value_font)->w * (value_.computeNumUtf8Chars() + (GuiDefaults::MenuSwitchHasBrackets ? 2 : 0));
     InValidateExtension();
 }
 
@@ -150,7 +149,7 @@ void MenuItemSelectMenu::printExtension(Rect16 extension_rect, Color color_text,
     }
 
     const auto text_color = (IsFocused() && IsEnabled()) ? GuiDefaults::ColorSelected : color_text;
-    render_text_align(extension_rect, string_view_utf8::MakeRAM(value_text_.data()), value_font, color_back, text_color, {}, Align_t::Center(), false);
+    render_text_align(extension_rect, value_, value_font, color_back, text_color, {}, Align_t::Center(), false);
 }
 
 void MenuItemSelectMenu::click(IWindowMenu &menu) {

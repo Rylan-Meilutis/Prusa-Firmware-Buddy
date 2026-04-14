@@ -26,7 +26,7 @@ protected:
 
     bool on_item_selected([[maybe_unused]] int old_index, [[maybe_unused]] int new_index) override;
 
-    void build_item_text(int index, const std::span<char> &buffer) const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
 
 private:
     std::span<const char *const> items_;

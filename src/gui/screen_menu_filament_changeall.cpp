@@ -64,26 +64,23 @@ int MI_ActionSelect::item_count() const {
     return index_mapping.total_item_count();
 }
 
-void MI_ActionSelect::build_item_text(int index, const std::span<char> &buffer) const {
+string_view_utf8 MI_ActionSelect::build_item_text(int index, MenuItemSelectMenu::ItemTextParams &params) const {
     const auto mapping = index_mapping.from_index(index);
     switch (mapping.item) {
 
     case Action::keep:
-        _("Don't change").copyToRAM(buffer);
-        break;
+        return _("Don't change");
 
     case Action::unload:
-        _("Unload").copyToRAM(buffer);
-        break;
+        return _("Unload");
 
     case Action::change: {
-        StringBuilder sb(buffer);
-        sb.append_string_view(_(has_filament_loaded ? N_("Change to") : N_("Load")));
-        sb.append_char(' ');
-        sb.append_string(filament_list[mapping.pos_in_section].parameters().name.data());
-        break;
+        const auto fmt = has_filament_loaded ? N_("Change to %s") : N_("Load %s");
+        return _(fmt).formatted(params, filament_list[mapping.pos_in_section].parameters().name.data());
     }
     }
+
+    bsod_unreachable();
 }
 
 MI_ApplyChanges::MI_ApplyChanges()

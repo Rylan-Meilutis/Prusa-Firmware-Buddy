@@ -24,7 +24,7 @@ public:
     ConfigItem config() const;
 
     int item_count() const final;
-    void build_item_text(int index, const std::span<char> &buffer) const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
 
 private:
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Action>>({
