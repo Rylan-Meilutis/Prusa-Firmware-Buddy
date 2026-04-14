@@ -25,7 +25,7 @@ namespace internal {
 } // namespace internal
 
 static inline bool calibration_active_on_axis(const AxisState &axis_state) {
-    return internal::calibration_axis_active == axis_state.axis_index;
+    return internal::calibration_axis_active.load(std::memory_order_relaxed) == axis_state.axis_index;
 }
 
 static inline void calibration_move_cleanup(const AxisState &axis_state) {
