@@ -2,6 +2,7 @@
 # Usage: `source utils/gdb/gdb_stack_offsets.py` in the gdb console
 
 import gdb
+import os
 
 
 def frame_address(frame):
@@ -37,7 +38,7 @@ def invoke():
             # Add source file and line if available
             sal = frame.find_sal()
             if sal and sal.symtab and sal.line:
-                txt += f" at {sal.symtab.filename}:{sal.line}"
+                txt += f" at ./{os.path.relpath(sal.symtab.fullname())}:{sal.line}"
 
             print(txt)
 
