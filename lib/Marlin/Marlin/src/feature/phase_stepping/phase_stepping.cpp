@@ -696,7 +696,13 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
 
     static constexpr float speed_diff_threshold = 20.0f;
 
-    if (!axis_state.active) {
+    // In theory, this is UB (data race, the variables written when enabling aren't
+    // properly synchronized).
+    //
+    // In practice, it probably doesn't matter, as there's a lot of happening
+    // between enabling it and actually getting some segments to step. But the
+    // performance difference matters.
+    if (!axis_state.active.load(std::memory_order_relaxed)) {
         return;
     }
 
@@ -760,8 +766,8 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
                 [[maybe_unused]] const auto res = debug_events_queue.enqueue(SuddenSpeedChange { .timestamp = now, .axis = axis_index ? 'Y' : 'X', .original_speed = axis_state.previous_speed, .new_speed = current_target->start_v });
             }
 
-            axis_state.is_cruising = (current_target->half_accel == 0) && (current_target->duration > 10'000);
-            axis_state.is_moving = true;
+            axis_state.is_cruising.store((current_target->half_accel == 0) && (current_target->duration > 10'000), std::memory_order_release);
+            axis_state.is_moving.store(true, std::memory_order_release);
             auto [end_speed, end_pos] = axis_position(axis_state, current_target->duration);
             axis_state.is_slowed_down = std::abs(end_speed) < 2; // if < 2 we slowed down
             if (axis_state.stalled_for != 0) {
@@ -779,8 +785,8 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             calibration_new_move(axis_state);
         } else {
             // No new movement
-            axis_state.is_cruising = false;
-            axis_state.is_moving = false;
+            axis_state.is_cruising.store(false, std::memory_order_release);
+            axis_state.is_moving.store(false, std::memory_order_release);
 
             if (planner.draining()) {
                 axis_state.is_slowed_down = true;
@@ -886,7 +892,7 @@ FORCE_OFAST void phase_stepping::handle_periodic_refresh() {
 #else
     phase_stepping::spi::finish_transmission();
 
-    if (!PreciseStepping::stopping()) {
+    if (!PreciseStepping::stopping_relaxed()) {
         ++axis_num_to_refresh;
         if (axis_num_to_refresh == axis_states.size()) {
             axis_num_to_refresh = 0;
@@ -894,7 +900,7 @@ FORCE_OFAST void phase_stepping::handle_periodic_refresh() {
         refresh_axis(axis_states[axis_num_to_refresh], now, old_tick);
     }
     if (std::ranges::all_of(axis_states, [](const auto &state) -> bool {
-            return !(state.enabled && state.active) || state.missed_tx_cnt == 0;
+            return !(state.enabled.load(std::memory_order_relaxed) && state.active.load(std::memory_order_relaxed)) || state.missed_tx_cnt == 0;
         })) {
         // Only if all axes have refreshed, we can let tasks to run
         motor_serial_lock_clear_isr_starved();

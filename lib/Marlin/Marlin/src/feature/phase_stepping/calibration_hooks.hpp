@@ -37,7 +37,7 @@ static inline void calibration_move_cleanup(const AxisState &axis_state) {
 
 static inline void calibration_new_move(const AxisState &axis_state) {
     // Make sweep active on current axis if the move is long enough
-    if (internal::calibration_axis_request == axis_state.axis_index && axis_state.is_cruising) {
+    if (internal::calibration_axis_request == axis_state.axis_index && axis_state.is_cruising.load(std::memory_order_relaxed)) {
         internal::calibration_new_move(axis_state);
     }
 }

@@ -414,6 +414,9 @@ public:
     // Return true if the motion is being stopped
     static bool stopping() { return stop_pending; }
 
+    // Relaxed variant for use from highest-priority ISR where seq_cst is unnecessary
+    static bool stopping_relaxed() { return stop_pending.load(std::memory_order_relaxed); }
+
     // Return if any of queues have blocks pending
     static bool has_blocks_queued() { return has_move_segments_queued() || has_step_events_queued(); }
 

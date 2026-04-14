@@ -333,12 +333,12 @@ void motor_serial_lock_release_isr() {
 }
 
 bool motor_serial_lock_held_by_isr() {
-    return motor_bus_owner.load() == BusOwner::ISR;
+    return motor_bus_owner.load(std::memory_order_relaxed) == BusOwner::ISR;
 }
 
 void motor_serial_lock_let_isr_run() {
     int repetition = 0;
-    while (motor_bus_isr_starved.load()) {
+    while (motor_bus_isr_starved.load(std::memory_order_acquire)) {
         if (repetition++ > 100) {
             bsod("phstep starved");
         }
@@ -347,11 +347,11 @@ void motor_serial_lock_let_isr_run() {
 }
 
 void motor_serial_lock_mark_isr_starved() {
-    return motor_bus_isr_starved.store(true);
+    return motor_bus_isr_starved.store(true, std::memory_order_release);
 }
 
 void motor_serial_lock_clear_isr_starved() {
-    return motor_bus_isr_starved.store(false);
+    return motor_bus_isr_starved.store(false, std::memory_order_release);
 }
 
 bool motor_serial_lock_held() {
