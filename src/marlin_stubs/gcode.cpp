@@ -387,10 +387,12 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::G163();
             break;
 #endif
-#if HAS_INDX()
+#if HAS_TOOL_OFFSET_SENSOR()
         case 427:
             PrusaGcodeSuite::G427();
             break;
+#endif
+#if HAS_INDX()
         case 750:
             PrusaGcodeSuite::G750();
             break;

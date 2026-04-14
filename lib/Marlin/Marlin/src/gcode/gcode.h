@@ -207,7 +207,7 @@
  *
  * ************ Custom codes - This can change to suit future G-code regulations
  * G425 - Calibrate using a conductive object. (Requires CALIBRATION_GCODE)
- * G426 - Measure tool offset contactlessly. (Requires HAS_CONTACTLESS_OFFSET)
+ * G426 - Measure tool offset contactlessly. (Requires HAS_TOOL_OFFSET_SENSOR)
  * M958 - Excite harmonic vibration and measure amplitude
  * M959 - Tune input shaper
  * M970 - Set/enable phase stepping
@@ -240,7 +240,7 @@
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_cancel_object.h>
-#include <option/has_contactless_offset.h>
+#include <option/has_tool_offset_sensor.h>
 
 #if ANY(POLAR) || defined(G0_FEEDRATE)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -469,7 +469,7 @@ private:
     static void G425();
   #endif
 
-  #if HAS_CONTACTLESS_OFFSET()
+  #if HAS_TOOL_OFFSET_SENSOR()
     static void G426();
   #endif
 

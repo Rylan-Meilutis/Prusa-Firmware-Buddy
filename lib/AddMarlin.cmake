@@ -231,7 +231,7 @@ if(BOARD_IS_MASTER_BOARD)
     endif()
   endif()
 
-  if(HAS_CONTACTLESS_OFFSET)
+  if(HAS_TOOL_OFFSET_SENSOR)
     target_sources(
       Marlin
       PRIVATE Marlin/Marlin/src/feature/contactless_offset/config.cpp
@@ -239,6 +239,7 @@ if(BOARD_IS_MASTER_BOARD)
               Marlin/Marlin/src/gcode/feature/tool_offset/G426.cpp
       )
     target_link_libraries(Marlin PRIVATE contactless_offset signal_processing)
+    target_link_libraries(Marlin PRIVATE tool_offset_sensor)
   endif()
 endif()
 
@@ -271,8 +272,4 @@ endif()
 
 if(HAS_XBUDDY_EXTENSION)
   target_link_libraries(Marlin PUBLIC xbuddy_extension)
-endif()
-
-if(HAS_REMOTE_TOOL_OFFSET_SENSOR)
-  target_link_libraries(Marlin PRIVATE tool_offset_sensor)
 endif()
