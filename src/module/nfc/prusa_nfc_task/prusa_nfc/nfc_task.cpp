@@ -408,7 +408,7 @@ void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_Enumerat
     const auto io_result = reader_.enumerate_fields(static_cast<TagID>(request.tag.value), static_cast<Section>(request.section.value), result.fields.elements);
     if (!io_result) {
         prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
-        result._error._error = std::to_underlying(io_result.error());
+        result._error._error = io_result_to_error(io_result);
         return;
     }
 
@@ -435,7 +435,7 @@ void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &req
     const auto io_result = reader_.backend().read(request.tag.value, request.offset, std::span(reinterpret_cast<std::byte *>(result.data.elements), request.num_bytes));
     if (!io_result) {
         prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
-        result._error._error = std::to_underlying(io_result.error());
+        result._error._error = io_result_to_error(io_result);
     }
 }
 
