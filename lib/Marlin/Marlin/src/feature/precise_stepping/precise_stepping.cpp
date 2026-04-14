@@ -85,6 +85,16 @@ static std::atomic<uint32_t> special_event_time_us = 0;
 
 #if !BOARD_IS_DWARF()
 std::atomic<uint32_t> PreciseStepping::stall_count = 0;
+std::atomic<uint8_t> PreciseStepping::planner_min_depth = UINT8_MAX;
+std::atomic<uint32_t> PreciseStepping::planner_block_count = 0;
+std::atomic<uint32_t> PreciseStepping::planner_unoptimized_count = 0;
+
+static void atomic_fetch_min_relaxed(std::atomic<uint8_t> &a, uint8_t value) {
+    uint8_t current = a.load(std::memory_order_relaxed);
+    while (value < current
+        && !a.compare_exchange_weak(current, value, std::memory_order_relaxed)) {
+    }
+}
 #endif
 
 STEPPING_INLINE xyze_msteps_t get_oriented_msteps_from_block(const block_t &block) {
@@ -1163,6 +1173,16 @@ bool PreciseStepping::process_queue_of_blocks() {
     }
 
     if (append_move_segments_to_queue(*current_block)) {
+#if !BOARD_IS_DWARF()
+        // Accumulate planner buffer metrics.
+        // Read buffer depth before discard so the current block is included.
+        // A value of 1 means this was the only unprocessed block; 0 is impossible here.
+        atomic_fetch_min_relaxed(planner_min_depth, Planner::nonbusy_movesplanned());
+        planner_block_count.fetch_add(1, std::memory_order_relaxed);
+        if (Planner::optimized_movesplanned() == 0) {
+            planner_unoptimized_count.fetch_add(1, std::memory_order_relaxed);
+        }
+#endif
         Planner::discard_current_unprocessed_block();
         processed = true;
     }

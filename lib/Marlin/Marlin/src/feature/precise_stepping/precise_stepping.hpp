@@ -156,6 +156,12 @@ public:
     /// The idea is that the "subscriber" compares the value to the previous value it has seen and if they differ, the planner has stalled during the time
     /// This doesn't even have to be volatile, even though we're accessing from other threads, as we're only checking for difference and it's only informative.
     static std::atomic<uint32_t> stall_count;
+
+    /// Planner buffer metrics, accumulated per reporting window.
+    /// Written from the move ISR, read+reset from the metrics recording thread.
+    static std::atomic<uint8_t> planner_min_depth; ///< Minimum nonbusy buffer depth (blocks) seen in the current window.
+    static std::atomic<uint32_t> planner_block_count; ///< Cumulative count of move blocks consumed from the planner.
+    static std::atomic<uint32_t> planner_unoptimized_count; ///< Cumulative count of blocks consumed while no fully-optimized block was available.
 #endif
 
     PreciseStepping() = default;

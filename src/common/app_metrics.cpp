@@ -285,6 +285,24 @@ void RecordMarlinVariables() {
     METRIC_DEF(metric_stepper_stall, "stp_stall", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
     metric_record_integer(&metric_stepper_stall, PreciseStepping::stall_count);
 
+    /// Planner buffer metrics.
+    /// plan_cnt: cumulative move blocks consumed (monotonic, consumer computes deltas)
+    /// plan_min: minimum nonbusy_movesplanned() observed per window (reset-on-read)
+    /// plan_unopt: cumulative blocks consumed before the planner marked them as
+    ///             fully optimized (monotonic, consumer computes deltas)
+    METRIC_DEF(metric_planner_block_count, "plan_cnt", METRIC_VALUE_INTEGER, 100, METRIC_DISABLED);
+    METRIC_DEF(metric_planner_min_depth, "plan_min", METRIC_VALUE_INTEGER, 100, METRIC_DISABLED);
+    METRIC_DEF(metric_planner_unoptimized, "plan_unopt", METRIC_VALUE_INTEGER, 100, METRIC_DISABLED);
+
+    const uint32_t plan_count = PreciseStepping::planner_block_count.load(std::memory_order_relaxed);
+    metric_record_integer(&metric_planner_block_count, plan_count);
+
+    const uint8_t plan_min = PreciseStepping::planner_min_depth.exchange(UINT8_MAX, std::memory_order_relaxed);
+    metric_record_integer(&metric_planner_min_depth, plan_min);
+
+    metric_record_integer(&metric_planner_unoptimized, PreciseStepping::planner_unoptimized_count.load(std::memory_order_relaxed));
+
+
     /// Position of the last executed gcode in the media stream
     METRIC_DEF(metric_sdpos, "sdpos", METRIC_VALUE_INTEGER, 100, METRIC_ENABLED);
     metric_record_integer(&metric_sdpos, marlin_vars().media_position.get());
