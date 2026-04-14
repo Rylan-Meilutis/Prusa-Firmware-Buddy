@@ -86,8 +86,6 @@ void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param)
     }
 
     case GUI_event_t::TOUCH_CLICK: {
-        event_conversion_union un;
-        un.pvoid = param;
         std::optional<size_t> new_index = std::nullopt;
 
         size_t btn_count = GetBtnCount();
@@ -98,6 +96,7 @@ void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param)
             new_index = 0; // single button fils entire area, no need to test if it was clicked, just return it
             break;
         default: {
+            event_conversion_union un { .pvoid = param };
             Layout layout = getNormalBtnRects(btn_count);
             for (uint8_t i = 0; i < btn_count; ++i) {
                 // Intentionally do not check for Y coords - should be covered by the overal radio rect
