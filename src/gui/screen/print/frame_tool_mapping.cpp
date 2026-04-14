@@ -127,14 +127,8 @@ void ColumnItem::click(IWindowMenu &) {
         const auto virtual_tool_chain_start = spool_join.get_first_spool_1_from_chain(virtual_tool);
         const auto virtual_tool_original_gcode_tool = stdext::get_optional<GcodeToolIndex>(tool_mapper.to_gcode(virtual_tool_chain_start));
 
-        bool done_anything = false;
-
         // When exiting, we need to update the frame and reorder items
         ScopeGuard scope_guard = [&] {
-            if (!done_anything) {
-                return;
-            }
-
             frame_.select_tool_for_connecting(NoTool {});
 
             // Move focus to the first unconnected item on the other menu to streamline routing
@@ -146,56 +140,17 @@ void ColumnItem::click(IWindowMenu &) {
             frame_.schedule_mapping_update();
         };
 
-        // Virtual tool is already connected - prompt to remove existing
-        if (virtual_tool_original_gcode_tool.has_value()) {
-            // Virtual tool is already in the current join path - offer removing
-            const auto resp = show_msg_box(
-                _("This printer tool is already assigned to a G-Code filament."),
-                { Response::Cancel, Response::Remove }, 1);
-
+        if (gcode_tool == virtual_tool_original_gcode_tool) {
+            // Trying to assign to the same tool
+            const auto resp = show_msg_box(_("This tool is already assigned to this filament."), { Response::Cancel, Response::Remove }, 1);
             switch (resp) {
 
-            case Response::Remove: {
+            case Response::Cancel:
+                scope_guard.disarm();
+                return;
+
+            case Response::Remove:
                 disconnect_virtual_tool(virtual_tool);
-                done_anything = true;
-                break;
-            }
-
-            case Response::Cancel:
-                return;
-
-            default:
-                bsod_unreachable();
-            }
-
-            if (gcode_tool == virtual_tool_original_gcode_tool) {
-                // The user selected the same mapping the tools already had.
-                // We've removed the connection and that's all we want to do.
-                // If we continued, we'd re-connect the tools again, resulting in a pointless operation.
-                return;
-            }
-        }
-
-        // !!! MUST be after the virtual tool already connected check
-        const auto gcode_tool_original_virtual_tool = stdext::get_optional<VirtualToolIndex>(tool_mapper.to_virtual(gcode_tool));
-        if (gcode_tool_original_virtual_tool.has_value()) {
-            // The gcode tool already has a tool assigned - we offer to either replace or spool join
-            const auto resp = show_msg_box(
-                _("This G-Code filament already has a printer tool assigned.\n\nDo you want to REPLACE the connection or add the tool into a SPOOL JOIN, switching to it once the original tool runs out of material?"),
-                { Response::Cancel, Response::SpoolJoin, Response::Replace }, 2);
-
-            switch (resp) {
-
-            case Response::SpoolJoin:
-                spool_join.add_join(spool_join.get_last_spool_2_from_chain(*gcode_tool_original_virtual_tool), virtual_tool);
-                break;
-
-            case Response::Replace:
-                spool_join.remove_join_chain_containing(*gcode_tool_original_virtual_tool);
-                tool_mapper.set_mapping(gcode_tool, virtual_tool);
-                break;
-
-            case Response::Cancel:
                 return;
 
             default:
@@ -203,11 +158,40 @@ void ColumnItem::click(IWindowMenu &) {
             }
 
         } else {
-            // Straightforward, just assign
-            tool_mapper.set_mapping(gcode_tool, virtual_tool);
-        }
+            // Assigning to a different tool (or not tool assigned before)
+            const auto gcode_tool_original_virtual_tool = stdext::get_optional<VirtualToolIndex>(tool_mapper.to_virtual(gcode_tool));
+            if (gcode_tool_original_virtual_tool.has_value()) {
+                // The gcode tool already has a tool assigned - we offer to either replace or spool join
+                const auto resp = show_msg_box(
+                    _("This G-Code filament already has a printer tool assigned.\n\nDo you want to REPLACE the connection or add the tool into a SPOOL JOIN, switching to it once the original tool runs out of material?"),
+                    { Response::Cancel, Response::SpoolJoin, Response::Replace }, 2);
 
-        done_anything = true;
+                switch (resp) {
+
+                case Response::SpoolJoin:
+                    disconnect_virtual_tool(virtual_tool);
+                    spool_join.add_join(spool_join.get_last_spool_2_from_chain(*gcode_tool_original_virtual_tool), virtual_tool);
+                    break;
+
+                case Response::Replace:
+                    disconnect_virtual_tool(virtual_tool);
+                    spool_join.remove_join_chain_containing(*gcode_tool_original_virtual_tool);
+                    tool_mapper.set_mapping(gcode_tool, virtual_tool);
+                    break;
+
+                case Response::Cancel:
+                    scope_guard.disarm();
+                    return;
+
+                default:
+                    bsod_unreachable();
+                }
+
+            } else {
+                // Straightforward, just assign
+                tool_mapper.set_mapping(gcode_tool, virtual_tool);
+            }
+        }
     }
 }
 
