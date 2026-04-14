@@ -359,20 +359,11 @@ uint16_t Indx::get_diag_uart_errors() {
 uint16_t Indx::get_diag_i2c_errors() {
     return register_general_status.value.diag_i2c_errors;
 }
-uint16_t Indx::get_diag_spi_errors() {
-    return register_general_status.value.diag_spi_errors;
-}
 uint16_t Indx::get_diag_i2c_thermo_errors() {
     return register_general_status.value.diag_i2c_thermo_errors;
 }
 uint16_t Indx::get_diag_i2c_led_errors() {
     return register_general_status.value.diag_i2c_led_errors;
-}
-uint16_t Indx::get_diag_spi_accel_errors() {
-    return register_general_status.value.diag_spi_accel_errors;
-}
-uint16_t Indx::get_diag_spi_loadcell_errors() {
-    return register_general_status.value.diag_spi_loadcell_errors;
 }
 
 std::optional<bool> Indx::get_nozzle_present() {

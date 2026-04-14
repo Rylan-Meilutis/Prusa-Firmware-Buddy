@@ -351,7 +351,7 @@ void PuppyBootstrap::reset_puppies_range(DockIterator begin, DockIterator end) {
     };
 
     write_puppies_reset_pin(begin, end, Pin::State::high);
-    osDelay(1);
+    osDelay(10);
     write_puppies_reset_pin(begin, end, Pin::State::low);
 }
 

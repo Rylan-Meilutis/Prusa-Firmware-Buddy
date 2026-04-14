@@ -3,6 +3,7 @@
 
 #include "PuppyModbus.hpp"
 #include "PuppyBus.hpp"
+#include <atomic>
 #include <freertos/mutex.hpp>
 #include <xbuddy_extension/modbus.hpp>
 #include <xbuddy_extension/shared_enums.hpp>
@@ -56,6 +57,9 @@ public:
     uint8_t get_flash_progress_percent() const;
 
     bool get_usb_power() const;
+
+    // Buddy-side communication error counter (since boot)
+    std::atomic<uint16_t> refresh_error_count = 0;
 
     // These are called from the puppy task.
     CommunicationStatus refresh(PuppyModbus &);

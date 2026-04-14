@@ -17,7 +17,7 @@
 
 #include <option/has_indx_head.h>
 #if HAS_INDX_HEAD()
-// #include <puppies/INDX.hpp>
+    #include <puppies/INDX.hpp>
 #endif
 
 #include <option/has_ac_controller.h>
@@ -98,7 +98,7 @@ namespace {
 static std::atomic<bool> stop_request = false; // when this is set to true, puppy task will gracefully stop its execution
 
 #if HAS_PUPPY_BOOTSTRAP()
-static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::BootstrapResult minimal_config) {
+static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::BootstrapResult minimal_config, [[maybe_unused]] PuppyModbus &bus) {
     // boostrap first
     log_info(Puppies, "Starting bootstrap");
     PuppyBootstrap puppy_bootstrap { PuppyModbus::share_buffer() };
@@ -117,6 +117,7 @@ static void puppy_run_timeout() {
 }
 
 #if HAS_XBUDDY_EXTENSION()
+static bool xbe_requires_reset = false;
 static void xbuddy_extension_verify_running(PuppyModbus &bus) {
     // usually takes 50ms but let's be generous
     constexpr auto timeout_ms = 200;
@@ -160,20 +161,17 @@ static void verify_puppies_running(PuppyModbus &bus) {
             }
         }
     #endif
+        bool indx_head_ok = true;
     #if HAS_INDX_HEAD()
-        // INDX_TODO: Check if buddy::puppies::indx is running
-        (void)bus;
-        num_dwarfs_ok++;
+        indx_head_ok = buddy::puppies::indx.ping(bus) != CommunicationStatus::ERROR;
     #endif
 
-        // Note: We don't ping AC controller. It's not a separate device from modbus point of view, that one is virtual & proxied by extension board.
-
-        if (num_dwarfs_dead == 0 && modular_bed_ok) {
+        if (num_dwarfs_dead == 0 && modular_bed_ok && indx_head_ok) {
             log_info(Puppies, "All puppies are reacheable. Continuing");
             return;
         } else if (ticks_diff(reacheability_wait_start + WAIT_TIME, ticks_ms()) > 0) {
-            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i), waiting another 200 ms",
-                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok));
+            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i, indx: %i), waiting another 200 ms",
+                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok), static_cast<int>(indx_head_ok));
             osDelay(200);
             continue;
         } else {
@@ -198,15 +196,10 @@ static void puppy_task_loop(PuppyModbus &bus) {
         // One slow action
         bool worked = false;
 
-        // INDX_TODO: INDX_HEAD check
-
 #if HAS_TOOLCHANGER() && HAS_DWARF()
         if (!prusa_toolchanger.update(bus)) {
             return;
         }
-
-        // INDX_TODO: There is an inconsistency here. INDX has only 1 INDX_HEAD and that needs to be checked but prusa_toolchanger works with TOOLS (nozzles)
-
         // Get dwarf that is selected
         // The source variable is set in this thread in prusa_toolchanger.update() called above, so no race
         auto &active = prusa_toolchanger.getActiveToolOrFirst(); ///< Currently selected dwarf
@@ -267,15 +260,42 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 }
             }
 #endif
+#if HAS_INDX_HEAD()
+            {
+                bool more = true; ///< Pull while there is something in fifo
+                // Pull fifo only this many times
+                for (int active_fifo_attempts = 5; more && active_fifo_attempts > 0; active_fifo_attempts--) {
+                    if (buddy::puppies::indx.pull_fifo(bus, more) == CommunicationStatus::ERROR) {
+                        log_error(Puppies, "Loop exit: indx.pull_fifo() ERROR");
+                        ++buddy::puppies::indx.fifo_error_count;
+    #if !PUPPY_TASK_DEBUG()
+                        return;
+    #endif
+                    }
+                }
+
+                // Try slow refresh of INDX
+                CommunicationStatus status = indx.refresh(bus);
+                if (status == CommunicationStatus::ERROR) {
+                    log_error(Puppies, "Loop exit: indx.refresh() ERROR");
+                    ++buddy::puppies::indx.refresh_error_count;
+    #if !PUPPY_TASK_DEBUG()
+                    return;
+    #endif
+                }
+
+                worked |= status == CommunicationStatus::OK;
+            }
+#endif
 #if HAS_XBUDDY_EXTENSION()
             {
                 // TODO: Deal with possibility of extension being optional
                 CommunicationStatus status = xbuddy_extension.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
-    #if PUPPY_TASK_DEBUG()
-                    // #error dead code found by automatic analyses (see BFW-5461)
-                    log_error(Puppies, "xbuddy_extension.refresh() == CommunicationStatus::ERROR");
-    #else
+                    log_error(Puppies, "Loop exit: xbuddy_extension.refresh() ERROR");
+                    ++xbuddy_extension.refresh_error_count;
+    #if !PUPPY_TASK_DEBUG()
+                    xbe_requires_reset = true;
                     return;
     #endif
                 }
@@ -333,6 +353,15 @@ static void puppy_task_loop(PuppyModbus &bus) {
 
 static bool puppy_initial_scan(PuppyModbus &bus) {
     // init each puppy
+#if HAS_XBUDDY_EXTENSION()
+    // TODO: Eventually, there'll be printers that have the extension as
+    // optional at runtime - we'll have to deal with that somehow.
+    if (xbuddy_extension.initial_scan(bus) == CommunicationStatus::ERROR) {
+        xbe_requires_reset = true;
+        return false;
+    }
+#endif
+
 #if HAS_DWARF()
     for (Dwarf &dwarf : dwarfs) {
         if (dwarf.is_enabled()) {
@@ -343,16 +372,15 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
     }
 #endif
 
-#if HAS_PUPPY_MODULARBED()
-    if (modular_bed.initial_scan(bus) == CommunicationStatus::ERROR) {
+#if HAS_INDX_HEAD()
+    if (indx.initial_scan(bus) == CommunicationStatus::ERROR) {
         return false;
     }
+
 #endif
 
-#if HAS_XBUDDY_EXTENSION()
-    // TODO: Eventually, there'll be printers that have the extension as
-    // optional at runtime - we'll have to deal with that somehow.
-    if (xbuddy_extension.initial_scan(bus) == CommunicationStatus::ERROR) {
+#if HAS_PUPPY_MODULARBED()
+    if (modular_bed.initial_scan(bus) == CommunicationStatus::ERROR) {
         return false;
     }
 #endif
@@ -446,13 +474,22 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 #endif
 
 #if HAS_INDX_HEAD()
-static void indx_head_power_on(PuppyModbus &bus) {
-    // INDX_TODO: wait and see see if we will power INDX_HEAD through XBE or not
-    #if HAS_XBUDDY_EXTENSION()
-    xbuddy_extension.set_mmu_power(bus, true);
-    #else
-        #error
-    #endif
+[[nodiscard]] static bool indx_head_power_on(PuppyModbus &bus) {
+    // This function only works for these printers.
+    static_assert(PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL());
+
+    // INDX head is vital part of the printer, there is no upper limit
+    // on how long we are willing to wait for power-up.
+    for (;;) {
+        switch (xbuddy_extension.set_mmu_power(bus, true)) {
+        case CommunicationStatus::OK:
+            return true;
+        case CommunicationStatus::ERROR:
+            return false;
+        case CommunicationStatus::SKIPPED:
+            continue;
+        }
+    }
 }
 #endif
 
@@ -469,20 +506,30 @@ void run() {
 
     do {
 #if HAS_XBUDDY_EXTENSION()
-        {
-            BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
-            xbuddy_extension_bootstrap(bootloader_protocol);
+        if (first_run || xbe_requires_reset) {
+            {
+                BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
+                xbuddy_extension_bootstrap(bootloader_protocol);
+            }
+            xbuddy_extension_verify_running(bus);
         }
-        xbuddy_extension_verify_running(bus);
 #endif
 
 #if HAS_INDX_HEAD()
-        indx_head_power_on(bus);
+        if (first_run || xbe_requires_reset) {
+            if (!indx_head_power_on(bus)) {
+                break; // go to puppy recovery
+            }
+        }
+#endif
+
+#if HAS_XBUDDY_EXTENSION()
+        xbe_requires_reset = false;
 #endif
 
 #if HAS_PUPPY_BOOTSTRAP()
         // reset and flash the puppies
-        auto bootstrap_result = bootstrap_puppies(minimal_puppy_config);
+        auto bootstrap_result = bootstrap_puppies(minimal_puppy_config, bus);
         // once some puppies are detected, consider this minimal puppy config (do no allow disconnection of puppy while running)
         minimal_puppy_config = bootstrap_result;
 
