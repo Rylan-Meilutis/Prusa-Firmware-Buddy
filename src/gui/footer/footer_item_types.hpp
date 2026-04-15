@@ -59,7 +59,7 @@ using FooterItemMappings = TypeList< //
 #if defined(FOOTER_HAS_LIVE_Z)
     FooterItemMappingRec<FooterItemLiveZ, Item::live_z>,
 #endif
-#if !(PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_MK3_5())
+#if HAS_TEMP_HEATBREAK
     FooterItemMappingRec<FooterItemHeatBreak, Item::heatbreak_temp>,
 #endif
 #if HAS_SHEET_PROFILES()

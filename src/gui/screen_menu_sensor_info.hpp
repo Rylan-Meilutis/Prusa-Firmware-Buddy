@@ -66,7 +66,7 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
     #if HAS_PER_TOOL_TEMPERATURES()
     MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_INFO_NOZZLE_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
     #endif
-    #if TEMP_SENSOR_HEATBREAK > 0
+    #if HAS_TEMP_HEATBREAK
     MI_INFO_HEATBREAK_TEMP,
         #if HAS_PER_TOOL_TEMPERATURES()
     MenuItemVirtualSubmenu<N_("Heatbreak Temperatures"), MI_INFO_HEATBREAK_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,

@@ -37,6 +37,7 @@ private:
     const std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool_;
 };
 
+#if HAS_TEMP_HEATBREAK
 /// Heatbreak current temperature (read only, auto updating)
 class MI_INFO_HEATBREAK_TEMP : public MenuItemAutoUpdatingLabel<float> {
 public:
@@ -48,6 +49,7 @@ private:
     StringViewUtf8Parameters<4> label_params_;
     const std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool_;
 };
+#endif
 
 class MI_HEATBED : public WiSpin {
     constexpr static const char *label =

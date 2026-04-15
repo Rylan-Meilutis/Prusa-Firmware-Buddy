@@ -73,6 +73,7 @@ float MI_INFO_NOZZLE_TEMP::value() const {
 
 /*****************************************************************************/
 // MI_INFO_HEATBREAK_TEMP
+#if HAS_TEMP_HEATBREAK
 MI_INFO_HEATBREAK_TEMP::MI_INFO_HEATBREAK_TEMP(std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool)
     : MenuItemAutoUpdatingLabel(string_view_utf8 {}, standard_print_format::temp_c,
         [](auto *item) { return static_cast<MI_INFO_HEATBREAK_TEMP *>(item)->value(); })
@@ -91,6 +92,7 @@ float MI_INFO_HEATBREAK_TEMP::value() const {
 
     return marlin_vars().hotend(*tool).temp_heatbreak;
 }
+#endif
 
 /*****************************************************************************/
 // MI_HEATBED

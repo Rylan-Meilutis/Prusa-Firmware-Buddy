@@ -96,7 +96,7 @@ inline constexpr std::array item_list {
         Item::all_nozzles,
 #endif
         Item::bed,
-#if !(PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_MK3_5())
+#if HAS_TEMP_HEATBREAK
         Item::heatbreak_temp,
 #endif
 #if HAS_CHAMBER_API()

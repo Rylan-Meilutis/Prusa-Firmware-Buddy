@@ -457,7 +457,7 @@ namespace {
     constinit ErrorChecker enclosure_fan_checker;
 #endif
 
-#ifdef HAS_TEMP_HEATBREAK
+#if HAS_TEMP_HEATBREAK
     // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
     constinit StrongIndexArray<ErrorChecker, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> heatBreakThermistorErrorChecker;
 #endif
@@ -3346,6 +3346,8 @@ static void _server_update_vars() {
 #if HAS_TEMP_HEATBREAK
         // TODO: this should track multiple extruders
         extruder.temp_heatbreak = hotend.heatbreak_temp();
+#endif
+#if HAS_TEMP_HEATBREAK_CONTROL
         extruder.target_heatbreak = hotend.heatbreak_target_temp();
 #endif
         extruder.print_fan_rpm = Fans::print(tool).get_actual_rpm();

@@ -13,6 +13,7 @@
     #include <module/prusa/toolchanger.h>
 #endif
 
+#if HAS_TEMP_HEATBREAK
 FooterItemHeatBreak::FooterItemHeatBreak(window_t *parent)
     : FooterIconText_IntVal(parent, &img::heatbreak_dark_16x16, static_makeView, static_readValue) {
 }
@@ -23,11 +24,11 @@ FooterItemHeatBreak::FooterItemHeatBreak(window_t *parent)
  * @return int - tenths of °C, or negative min if invalid
  */
 int FooterItemHeatBreak::static_readValue() {
-#if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER()
     if (std::holds_alternative<NoTool>(marlin_vars().active_extruder.get())) {
         return no_tool_value;
     }
-#endif
+    #endif
 
     return int(marlin_vars().active_hotend().temp_heatbreak * 10.F);
 }
@@ -58,3 +59,4 @@ string_view_utf8 FooterItemHeatBreak::static_makeView(int value) {
     }
     return string_view_utf8::MakeRAM(buff);
 }
+#endif

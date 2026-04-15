@@ -7,6 +7,7 @@
 #include "ifooter_item.hpp"
 #include "filament.hpp"
 
+#if HAS_TEMP_HEATBREAK
 class FooterItemHeatBreak final : public FooterIconText_IntVal {
     static string_view_utf8 static_makeView(int value);
     static int static_readValue();
@@ -14,3 +15,4 @@ class FooterItemHeatBreak final : public FooterIconText_IntVal {
 public:
     FooterItemHeatBreak(window_t *parent);
 };
+#endif

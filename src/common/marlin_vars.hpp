@@ -381,13 +381,19 @@ public:
         MarlinVariable<float> display_nozzle; // nozzle temperature to display [C]
         MarlinVariable<uint8_t> pwm_nozzle; ///< Hotend PWM (0-255 or 0-127, depending on the type of the printer, dunno how to determine nicely, sigh)
 
-        // heatbreak
+// heatbreak
+#if HAS_TEMP_HEATBREAK
         MarlinVariable<float> temp_heatbreak; // heatbreak temperature [C]
+#endif
+#if HAS_TEMP_HEATBREAK_CONTROL
         MarlinVariable<float> target_heatbreak; // heatbreak target temperature [C]
+#endif
         MarlinVariable<uint16_t> heatbreak_fan_rpm; // Fans::heat_break(active_extruder).getActualRPM() [1/min]
 
-        // others
+// others
+#if FAN_COUNT > 0
         MarlinVariable<uint16_t> print_fan_rpm; // Fans::print(active_extruder).getActualRPM() [1/min]
+#endif
 
         Hotend() {}
         // disable copy constructor
