@@ -167,7 +167,7 @@ std::variant<VirtualToolIndex, NoTool> VirtualExtension::currently_selected() {
 }
 
 std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8_t index) {
-#if PRINTER_IS_PRUSA_XL() && BOARD_IS_MASTER_BOARD()
+#if HAS_TOOLCHANGER() && BOARD_IS_MASTER_BOARD()
     // count on XL is set to EXTRUDERS - 1 / HOTENDS - 1,
     // because of legacy definition of EXTRUDERS / HOTENDS to 6 instead of 5.
     // Values 0 to 4 are actual tools, 5 represents no tool (using MARLIN_NO_TOOL_PICKED).
@@ -183,7 +183,7 @@ std::variant<PhysicalToolIndex, NoTool> PhysicalExtension::from_raw_notool(uint8
 
 std::variant<VirtualToolIndex, NoTool> VirtualExtension::from_raw_notool(uint8_t index) {
 #if HAS_TOOL_MAPPING()
-    #if PRINTER_IS_PRUSA_XL() && HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER()
     // count on XL is set to EXTRUDERS - 1 / HOTENDS - 1,
     // because of legacy definition of EXTRUDERS / HOTENDS to 6 instead of 5.
     // Values 0 to 4 are actual tools, 5 represents no tool (using MARLIN_NO_TOOL_PICKED).
