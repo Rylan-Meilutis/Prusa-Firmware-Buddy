@@ -356,15 +356,6 @@ float Indx::get_heater_current() {
 uint16_t Indx::get_diag_uart_errors() {
     return register_general_status.value.diag_uart_errors;
 }
-uint16_t Indx::get_diag_i2c_errors() {
-    return register_general_status.value.diag_i2c_errors;
-}
-uint16_t Indx::get_diag_i2c_thermo_errors() {
-    return register_general_status.value.diag_i2c_thermo_errors;
-}
-uint16_t Indx::get_diag_i2c_led_errors() {
-    return register_general_status.value.diag_i2c_led_errors;
-}
 
 std::optional<bool> Indx::get_nozzle_present() {
     Lock guard(*mutex);

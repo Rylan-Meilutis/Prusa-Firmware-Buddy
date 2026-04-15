@@ -54,13 +54,6 @@ struct Status {
     uint16_t nozzle_decay_x1000 = 0; // Last ringdown decay × 1000 (e.g. 96 = 0.096)
     // Diagnostics: bus-level error counters
     uint16_t diag_uart_errors = 0;
-    uint16_t diag_i2c_errors = 0;
-    uint16_t diag_spi_errors = 0;
-    // Diagnostics: per-peripheral error counters
-    uint16_t diag_i2c_thermo_errors = 0;
-    uint16_t diag_i2c_led_errors = 0;
-    uint16_t diag_spi_accel_errors = 0;
-    uint16_t diag_spi_loadcell_errors = 0;
 
     static constexpr uint16_t time_sync_address() {
         return address + (offsetof(Status, time_sync_lo) / sizeof(Status::time_sync_lo));

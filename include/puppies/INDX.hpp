@@ -111,9 +111,6 @@ public:
 
     // Diagnostics counters (for testing)
     [[nodiscard]] uint16_t get_diag_uart_errors();
-    [[nodiscard]] uint16_t get_diag_i2c_errors();
-    [[nodiscard]] uint16_t get_diag_i2c_thermo_errors();
-    [[nodiscard]] uint16_t get_diag_i2c_led_errors();
 
     // Buddy-side communication error counters (since boot)
     std::atomic<uint16_t> fifo_error_count = 0;
