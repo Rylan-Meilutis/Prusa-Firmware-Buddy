@@ -50,6 +50,7 @@
 #include <option/has_loadcell_hx717.h>
 #include <option/has_phase_stepping.h>
 #include <option/has_i2c_expander.h>
+#include <option/has_indx.h>
 
 #include <option/has_advanced_power.h>
 #if HAS_ADVANCED_POWER()
@@ -58,10 +59,15 @@
 
 #if HAS_LOADCELL_HX717()
 namespace buddy::hw {
-inline Pin::State zMinReadFn();
 extern "C" void hx717_irq(); // fast data interrupt, used to trigger the following ...
 extern "C" void hx717_soft(); // low-priority soft read interrupt
 } // namespace buddy::hw
+#endif
+
+#if HAS_LOADCELL_HX717() || HAS_INDX()
+namespace buddy::hw {
+Pin::State zMinReadFn();
+}
 #endif
 
 #if BOARD_IS_XLBUDDY()
@@ -138,6 +144,11 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
         #else
             #define MARLIN_PORT_Z_MIN   MARLIN_PORT_V
             #define MARLIN_PIN_NR_Z_MIN MARLIN_PIN_NR_1
+        #endif
+
+        #if HAS_INDX()
+            #define MARLIN_PORT_XY_PROBE   MARLIN_PORT_V
+            #define MARLIN_PIN_NR_XY_PROBE MARLIN_PIN_NR_2
         #endif
 
         #define MARLIN_PORT_Z_DIR           MARLIN_PORT_D
@@ -363,7 +374,7 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::OutputPin, extFlashCs, buddy::hw::IoPort::F COMMA buddy::hw::IoPin::p2, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputOutputPin, touch_sig, buddy::hw::IoPort::C COMMA buddy::hw::IoPin::p8, IMode::input COMMA Pull::none, buddy::hw::noHandler)
     #elif (BOARD_IS_XBUDDY())
-        #define PIN_TABLE_BOARD_SPECIFIC(MACRO_FUNCTION) \
+        #define PIN_TABLE_BOARD_SPECIFIC_COMMON(MACRO_FUNCTION) \
             MACRO_FUNCTION(buddy::hw::OutputPin, heaterEnable, BUDDY_PIN(HEATER_ENABLE), Pin::State::low COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, displayCs, buddy::hw::IoPort::D COMMA buddy::hw::IoPin::p11, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, displayRs, buddy::hw::IoPort::D COMMA buddy::hw::IoPin::p15, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
@@ -393,9 +404,19 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::InputPin, fanTach, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p10, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputOutputPin, touch_sig, buddy::hw::IoPort::C COMMA buddy::hw::IoPin::p8, IMode::input COMMA Pull::none, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, tachoSelectPrintFan, buddy::hw::IoPort::F COMMA buddy::hw::IoPin::p13, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
+
+#if HAS_LOADCELL_HX717()
+        #define PIN_TABLE_BOARD_SPECIFIC(MACRO_FUNCTION) \
+            PIN_TABLE_BOARD_SPECIFIC_COMMON(MACRO_FUNCTION) \
             MACRO_FUNCTION(buddy::hw::InterruptPin, hx717Dout, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p7, IMode::IT_falling COMMA Pull::up COMMA ISR_PRIORITY_HX717_HARD COMMA 0 COMMA false, buddy::hw::hx717_irq) \
             MACRO_FUNCTION(buddy::hw::InterruptPin, hx717Soft, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p3, IMode::IT_rising_falling COMMA Pull::down COMMA ISR_PRIORITY_HX717_SOFT COMMA 0 COMMA false, buddy::hw::hx717_soft) \
             MACRO_FUNCTION(buddy::hw::OutputPin, hx717Sck, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p1, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::very_high, buddy::hw::noHandler)
+#else
+        #define PIN_TABLE_BOARD_SPECIFIC(MACRO_FUNCTION) \
+            PIN_TABLE_BOARD_SPECIFIC_COMMON(MACRO_FUNCTION) \
+            MACRO_FUNCTION(buddy::hw::InputPin, hx717Dout, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p7, IMode::input COMMA Pull::up, buddy::hw::noHandler) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, hx717Sck, buddy::hw::IoPort::G COMMA buddy::hw::IoPin::p1, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::very_high, buddy::hw::noHandler)
+#endif
     #else
         #error
     #endif
@@ -479,7 +500,7 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
         MACRO_FUNCTION(buddy::hw::OutputPin, fanHeatBreakPwm, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p9, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler)
 // clang-format on
 
-    #if HAS_LOADCELL_HX717()
+    #if HAS_LOADCELL_HX717() or HAS_INDX()
 
     /**
      * @brief Define @p VIRTUAL_PIN_TABLE macro containing all virtual pins
@@ -518,7 +539,7 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
         #define HAS_ZMIN_READ_FN 1
     #else
         #define VIRTUAL_PIN_TABLE(MACRO_FUNCTION)
-    #endif // HAS_LOADCELL_HX717()
+    #endif
 
 #endif // Not special board with separate pin definition file.
 

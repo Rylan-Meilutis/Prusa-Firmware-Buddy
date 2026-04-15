@@ -419,7 +419,6 @@
     #define XY_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe
 #endif
 
-
 /**
  * Stepper Drivers
  *

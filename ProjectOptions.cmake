@@ -31,6 +31,7 @@ set(BOARD_VALID_OPTS
     "XBUDDY_EXTENSION"
     "ANFC"
     "TOOL_OFFSET_SENSOR"
+    "INDX_HEAD"
     )
 set(MCU_VALID_OPTS
     "<default>"
@@ -189,6 +190,8 @@ if(${MCU} STREQUAL "<default>")
     set(MCU "STM32C092KCUX")
   elseif(${BOARD} STREQUAL "TOOL_OFFSET_SENSOR")
     set(MCU "STM32C092KCUX")
+  elseif(${BOARD} STREQUAL "INDX_HEAD")
+    set(MCU "STM32C092KCUX")
   else()
     message(FATAL_ERROR "Don't know what MCU to set as default for this board/version")
   endif()
@@ -202,6 +205,7 @@ if(${BOARD} STREQUAL "DWARF"
    OR ${BOARD} STREQUAL "MODULARBED"
    OR ${BOARD} STREQUAL "XBUDDY_EXTENSION"
    OR ${BOARD} STREQUAL "ANFC"
+   OR ${BOARD} STREQUAL "INDX_HEAD"
    OR ${BOARD} STREQUAL "XL_DEV_KIT_XLB"
    OR ${BOARD} STREQUAL "TOOL_OFFSET_SENSOR"
    )
@@ -512,8 +516,8 @@ set_feature_for_printers(
   "iX"
   "XL"
   "COREONE"
-  "COREONE_INDX"
   "COREONEL"
+  "COREONE_INDX"
   "COREONEL_INDX"
   )
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
@@ -694,7 +698,9 @@ set_feature_for_printers(
   )
 
 set_feature_for_printers(HAS_NOZZLE_CLEANER "iX")
-set_feature_for_printers(HAS_MANUAL_BELT_TUNING "COREONE" "COREONEL" "iX")
+set_feature_for_printers(
+  HAS_MANUAL_BELT_TUNING "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "iX"
+  )
 set_feature_for_printers_master_board(
   HAS_I2C_EXPANDER
   "MK3.5"
@@ -904,7 +910,9 @@ else()
 endif()
 define_boolean_option(HAS_BURST_STEPPING ${HAS_BURST_STEPPING})
 
-if((${BOARD} STREQUAL "DWARF") OR (${BOARD} STREQUAL "XBUDDY" AND NOT PRINTER STREQUAL "MK3.5"))
+if((${BOARD} STREQUAL "DWARF") OR (${BOARD} STREQUAL "XBUDDY" AND NOT (PRINTER STREQUAL "MK3.5"
+                                                                       OR HAS_INDX))
+   )
   set(HAS_LOADCELL_HX717 YES)
 else()
   set(HAS_LOADCELL_HX717 NO)
@@ -945,6 +953,7 @@ if(HAS_DWARF
    OR HAS_XBUDDY_EXTENSION
    OR HAS_ANFC
    OR HAS_TOOL_OFFSET_SENSOR
+   OR HAS_INDX_HEAD
    )
   set(HAS_PUPPIES YES)
 else()
@@ -1081,6 +1090,17 @@ if(ENABLE_PUPPY_BOOTLOAD)
     set(TOOL_OFFSET_SENSOR_BINARY_DIR
         "${CMAKE_BINARY_DIR}/tool_offset_sensor-build"
         CACHE PATH "Where to have build directory for the tool offset sensor firmware."
+        )
+  endif()
+
+  if(NOT INDX_HEAD_BINARY_PATH)
+    set(INDX_HEAD_SOURCE_DIR
+        "${CMAKE_SOURCE_DIR}"
+        CACHE PATH "From which source directory to build the active INDx head firmware."
+        )
+    set(INDX_HEAD_BINARY_DIR
+        "${CMAKE_BINARY_DIR}/indx-head-build"
+        CACHE PATH "Where to have build directory for the INDx head firmware."
         )
   endif()
 endif()

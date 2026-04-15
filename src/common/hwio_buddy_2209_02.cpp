@@ -31,6 +31,7 @@
 #include <option/has_gui.h>
 #include <option/has_local_bed.h>
 #include <option/has_puppy_modularbed.h>
+#include <option/has_indx.h>
 
 #if PRINTER_IS_PRUSA_iX() && HAS_XBUDDY_EXTENSION()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
@@ -270,6 +271,14 @@ int digitalRead(uint32_t marlinPin) {
         } else {
             return loadcell.GetMinZEndstop() || static_cast<bool>(buddy::hw::zDiag.read());
         }
+    #if HAS_INDX()
+    case MARLIN_PIN(XY_PROBE):
+        if (XY_PROBE_ENDSTOP_INVERTING) {
+            return !loadcell.GetXYEndstop();
+        } else {
+            return loadcell.GetXYEndstop();
+        }
+    #endif
 #else
     case MARLIN_PIN(Z_MIN):
         return static_cast<bool>(buddy::hw::zMin.read());
