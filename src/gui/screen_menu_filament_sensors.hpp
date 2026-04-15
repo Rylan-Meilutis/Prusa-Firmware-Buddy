@@ -5,6 +5,7 @@
 
 #include "screen_menu.hpp"
 #include <option/has_side_fsensor.h>
+#include <option/has_extruder_fsensor.h>
 #include "MItem_tools.hpp"
 
 namespace NScreenMenuFilamentSensors {
@@ -80,7 +81,10 @@ struct MenuBase_<std::index_sequence<i...>> {
 #if HAS_SIDE_FSENSOR()
         MI_SideSensor<i>...,
 #endif
-        MI_ExtruderSensor<i>..., MI_RestoreDefaults>;
+#if HAS_EXTRUDER_FSENSOR()
+        MI_ExtruderSensor<i>...,
+#endif
+        MI_RestoreDefaults>;
 };
 
 using MenuBase = MenuBase_<std::make_index_sequence<toolhead_count>>::T;

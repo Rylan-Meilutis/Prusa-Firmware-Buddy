@@ -21,6 +21,7 @@
 #include <option/has_nozzle_cleaner.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_indx.h>
+#include <option/has_extruder_fsensor.h>
 
 #include <utils/progress_mapper.hpp>
 
@@ -40,7 +41,7 @@ public:
     enum class LoadState {
         start = 0,
         unload_start,
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
         filament_stuck_ask,
 #endif
 #if HAS_AUTO_RETRACT()
@@ -69,7 +70,7 @@ public:
         purge,
         color_correct_ask,
         eject,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
         loading_obstruction,
 #endif
 #if HAS_MMU2()
@@ -197,7 +198,7 @@ private:
 
     void start_process(Response response);
     void unload_start_process(Response response);
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
     void filament_stuck_ask_process(Response response);
 #endif
     void ram_sequence_process(Response response);
@@ -223,7 +224,7 @@ private:
     void purge_process(Response response);
     void color_correct_ask_process(Response response);
     void eject_process(Response response);
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     void loading_obstruction_process(Response response);
 #endif
 #if HAS_MMU2()
@@ -240,7 +241,7 @@ private:
     static constexpr EnumArray<LoadState, StateHandler, static_cast<int>(LoadState::_finished)> state_handlers {
         { LoadState::start, &Pause::start_process },
             { LoadState::unload_start, &Pause::unload_start_process },
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
             { LoadState::filament_stuck_ask, &Pause::filament_stuck_ask_process },
 #endif
 #if HAS_AUTO_RETRACT()
@@ -271,7 +272,7 @@ private:
             { LoadState::purge, &Pause::purge_process },
             { LoadState::color_correct_ask, &Pause::color_correct_ask_process },
             { LoadState::eject, &Pause::eject_process },
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
             { LoadState::loading_obstruction, &Pause::loading_obstruction_process },
 #endif
 #if HAS_MMU2()

@@ -287,17 +287,8 @@ function(set_feature_for_printers_master_board FEATURE_NAME)
   define_boolean_option(${FEATURE_NAME} ${FEATURE_VALUE})
 endfunction()
 
-set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5")
-set(PRINTERS_WITH_FILAMENT_SENSOR_ADC
-    "MK4"
-    "XL"
-    "iX"
-    "XL_DEV_KIT"
-    "COREONE"
-    "COREONE_INDX"
-    "COREONEL"
-    "COREONEL_INDX"
-    )
+set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5" "COREONE_INDX" "COREONEL_INDX")
+set(PRINTERS_WITH_FILAMENT_SENSOR_ADC "MK4" "XL" "iX" "XL_DEV_KIT" "COREONE" "COREONEL")
 
 set_feature_for_printers(
   HAS_TRINAMIC
@@ -520,6 +511,7 @@ set_feature_for_printers(
   "COREONE_INDX"
   "COREONEL_INDX"
   )
+set_feature_for_printers_master_board(HAS_EXTRUDER_FSENSOR "MK4" "XL" "COREONE" "COREONEL" "iX")
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
 set_feature_for_printers_master_board(HAS_SIDE_FSENSOR_REMAP "XL")
 set_feature_for_printers(

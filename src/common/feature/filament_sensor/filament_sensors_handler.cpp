@@ -236,7 +236,7 @@ void FilamentSensors::process_events() {
         const auto side_fs = sensor(LogicalFilamentSensor::side);
 
         const bool extruder_fs_inserted = extruder_fs && extruder_fs->last_event() == IFSensor::Event::filament_inserted;
-        const bool extruder_fs_no_filament = extruder_fs && extruder_fs->get_state() == FilamentSensorState::NoFilament;
+        const bool extruder_fs_no_filament = !extruder_fs || extruder_fs->get_state() == FilamentSensorState::NoFilament;
 
         const bool side_fs_enabled = side_fs && side_fs->is_enabled();
         const bool side_fs_inserted = side_fs && side_fs->last_event() == IFSensor::Event::filament_inserted;
@@ -283,7 +283,9 @@ void FilamentSensors::process_events() {
     } else {
         // During MMU standard operation, there is no filament loaded to the nozzle when not printing.
         // So it's not a good idea to reset what filament types we have stored.
-        if (!has_mmu && no_filament_surely(LogicalFilamentSensor::extruder) && tool_index < PhysicalToolIndex::count) {
+        const bool filament_surely_removed = no_filament_surely(LogicalFilamentSensor::extruder)
+            || (!sensor(LogicalFilamentSensor::extruder) && no_filament_surely(LogicalFilamentSensor::side));
+        if (!has_mmu && filament_surely_removed && tool_index < PhysicalToolIndex::count) {
             const auto physical_tool = PhysicalToolIndex::from_raw(tool_index);
             const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(physical_tool.currently_selected_virtual_tool());
             if (virtual_tool.has_value()) {

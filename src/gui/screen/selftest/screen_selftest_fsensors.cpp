@@ -7,6 +7,8 @@
 #include <standard_frame/frame_wait.hpp>
 #include <standard_frame/frame_prompt.hpp>
 #include <selftest/fsensor/selftest_fsensors_config.hpp>
+#include <option/has_extruder_fsensor.h>
+#include <option/has_indx.h>
 
 namespace {
 
@@ -28,7 +30,7 @@ constexpr size_t height_of_changeable_area = WizardDefaults::RectRadioButton(1).
 constexpr Rect16 ChangeableRect = { col_0, top_of_changeable_area, WizardDefaults::X_space, height_of_changeable_area };
 
 const char *selftest_title() {
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     return N_("Filament sensors calibration");
 #else
     return N_("Filament sensor calibration");
@@ -42,8 +44,11 @@ class FrameBase {
 public:
     FrameBase(window_frame_t *parent, Phase phase)
         : radio(parent, WizardDefaults::RectRadioButton(1), phase)
-        , footer(parent, 0,
+        , footer(parent, 0
+#if HAS_EXTRUDER_FSENSOR()
+              ,
               footer::Item::f_s_value
+#endif
 #if HAS_SIDE_FSENSOR()
               ,
               footer::Item::f_s_value_side
@@ -131,9 +136,9 @@ using FrameAskMiniHasFsensor = WithConstructorArgs<FrameSpoolAndText, N_("Do you
 #endif
 
 using FrameOfferUnload = WithConstructorArgs<FrameSpoolAndText,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Please make sure there is no filament in the tool and side filament sensors.\n\nYou will need filament to finish this test later.")
-#elif HAS_INDX() // INDX's FS is not exactly extruder
+#elif HAS_SIDE_FSENSOR() || HAS_EXTRUDER_FSENSOR()
     N_("Please make sure there is no filament in the filament sensor.\n\nYou will need filament to finish this test later.")
 #else
     N_("We need to start without the filament in the extruder. Please make sure there is no filament in the filament sensor.")
@@ -141,7 +146,7 @@ using FrameOfferUnload = WithConstructorArgs<FrameSpoolAndText,
     >;
 
 using FrameAskFilament = WithConstructorArgs<FrameSpoolAndText,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Is there any filament in the tool or side filament sensors?")
 #else
     N_("Is filament in the filament sensor?")
@@ -157,16 +162,15 @@ public:
 
 using FrameInsertFilamentNotReady = WithConstructorArgs<FrameTextAndImage,
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
-    #if HAS_SIDE_FSENSOR()
+    #if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Push the filament through the side and extruder filament sensors, until the extruder engages with the filament."),
-    #else
+    #elif HAS_EXTRUDER_FSENSOR()
     N_("Push the filament through extruder filament sensor, until the extruder engages with the filament."),
     #endif
 #else
-    #if HAS_SIDE_FSENSOR()
-    // #error dead code found by automatic analyses (see BFW-5461)
+    #if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Push the filament through the side and extruder filament sensors."),
-    #elif HAS_INDX() // INDX's FS is not exactly extruder
+    #elif HAS_SIDE_FSENSOR()
     N_("Insert the filament into the filament sensor."),
     #else
     N_("Insert the filament into the extruder filament sensor."),
@@ -189,7 +193,7 @@ using FrameInsertFilamentReady = WithConstructorArgs<FrameTextAndImage,
     >;
 
 using FrameRemoveFilamentNotReady = WithConstructorArgs<FrameTextAndImage,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Remove the filament from both filament sensors."),
 #else
     N_("Remove the filament from the filament sensor."),

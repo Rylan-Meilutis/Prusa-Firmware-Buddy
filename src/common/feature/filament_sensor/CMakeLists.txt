@@ -3,8 +3,7 @@ target_sources(
   )
 if(FILAMENT_SENSOR STREQUAL "ADC")
   target_sources(firmware PRIVATE filament_sensor_adc.cpp filament_sensor_adc_eval.cpp)
-endif()
-if(PRINTER STREQUAL "MINI" OR PRINTER STREQUAL "MK3.5")
+elseif(PRINTER STREQUAL "MINI" OR PRINTER STREQUAL "MK3.5")
   target_sources(firmware PRIVATE filament_sensor_photoelectric.cpp)
 endif()
 if(HAS_MMU2)
@@ -17,14 +16,17 @@ endif()
 if(BOARD_IS_MASTER_BOARD)
   add_subdirectory(calibrator)
 
+  if(HAS_SIDE_FSENSOR_REMAP)
+    target_sources(firmware PRIVATE filament_sensors_handler_remap.cpp)
+  endif()
   if(PRINTER STREQUAL "iX")
     target_sources(
       firmware PRIVATE filament_sensor_ix_side.cpp filament_sensors_handler_default.cpp
       )
   elseif(PRINTER STREQUAL "XL" OR PRINTER STREQUAL "XL_DEV_KIT")
-    target_sources(
-      firmware PRIVATE filament_sensors_handler_remap.cpp filament_sensors_handler_XL.cpp
-      )
+    target_sources(firmware PRIVATE filament_sensors_handler_XL.cpp)
+  elseif(PRINTER STREQUAL "COREONE_INDX" OR PRINTER STREQUAL "COREONEL_INDX")
+    target_sources(firmware PRIVATE filament_sensors_handler_INDX.cpp)
   else()
     target_sources(firmware PRIVATE filament_sensors_handler_default.cpp)
   endif()

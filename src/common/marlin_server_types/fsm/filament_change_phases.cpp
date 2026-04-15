@@ -1,7 +1,6 @@
 #include "filament_change_phases.hpp"
 
 #include <option/has_mmu2.h>
-#include <option/has_indx.h>
 
 namespace ClientResponses {
 
@@ -30,7 +29,7 @@ constinit const EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesLo
         { PhasesLoadUnload::IsFilamentInGear, { Response::Yes, Response::No } },
         { PhasesLoadUnload::Ejecting_stoppable, { Response::Stop } },
         { PhasesLoadUnload::Ejecting_unstoppable, {} },
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
         { PhasesLoadUnload::LoadingObstruction_stoppable, { Response::Retry, Response::Stop } },
         { PhasesLoadUnload::LoadingObstruction_unstoppable, { Response::Retry, Response::Help } },
 #endif
@@ -49,7 +48,7 @@ constinit const EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesLo
         { PhasesLoadUnload::UnloadNozzleCleaning, {} },
         { PhasesLoadUnload::LoadNozzleCleaning, {} },
 #endif
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
         { PhasesLoadUnload::FilamentStuck, { Response::Unload } },
 #endif
 #if HAS_AUTO_RETRACT()

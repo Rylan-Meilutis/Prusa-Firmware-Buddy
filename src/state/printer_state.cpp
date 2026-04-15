@@ -30,6 +30,7 @@
 #include <option/has_psu_fan.h>
 #include <option/has_human_interactions.h>
 #include <option/has_tool_crash_recovery.h>
+#include <option/has_extruder_fsensor.h>
 #include <fsm/print_preview_mapper.hpp>
 
 #if HAS_LOADCELL()
@@ -141,11 +142,11 @@ optional<ErrCode> load_unload_attention_while_printing([[maybe_unused]] const fs
 #endif
     // MMU not supported or not active -> all load/unload during print is really attention.
     switch (GetEnumFromPhaseIndex<PhasesLoadUnload>(data.GetPhase())) {
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
     case PhasesLoadUnload::FilamentStuck:
         return ErrCode::ERR_MECHANICAL_STUCK_FILAMENT_DETECTED;
 #endif
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     case PhasesLoadUnload::LoadingObstruction_stoppable:
     case PhasesLoadUnload::LoadingObstruction_unstoppable:
         return ErrCode::ERR_MECHANICAL_LOADING_OBSTRUCTION;

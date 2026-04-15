@@ -1,6 +1,7 @@
 #pragma once
 
 #include <feature/filament_sensor/filament_sensor.hpp>
+#include <xbuddy_extension/shared_enums.hpp>
 
 class FSensorXBuddyExtension : public IFSensor {
 
@@ -23,4 +24,7 @@ private:
     FilamentSensorState interpret_state() const;
 
     const Source source_;
+
+    /// Raw hardware state from XBuddy Extension, exposed via GetFilteredValue() for debugging
+    mutable xbuddy_extension::FilamentSensorState raw_state_ = xbuddy_extension::FilamentSensorState::uninitialized;
 };

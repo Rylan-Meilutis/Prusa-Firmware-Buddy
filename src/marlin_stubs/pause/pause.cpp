@@ -69,6 +69,7 @@ static_assert(HAS_PAUSE());
 #endif
 
 #include <option/has_indx.h>
+#include <option/has_extruder_fsensor.h>
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -406,7 +407,7 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
     }
 #endif
 
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     if (FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder) && FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
         // When filament is in extruder sensor but not in side sensor, it's not a good idea to push another one in
 
@@ -456,7 +457,7 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
     }
 }
 
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
 void Pause::loading_obstruction_process(Response response) {
     setPhase(is_unstoppable() ? PhasesLoadUnload::LoadingObstruction_unstoppable : PhasesLoadUnload::LoadingObstruction_stoppable);
     handle_help(response);
@@ -1050,7 +1051,7 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
     switch (load_type) {
 
     case LoadType::filament_stuck:
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
         set(LoadState::filament_stuck_ask);
 #else
         set(LoadState::manual_unload);
@@ -1067,7 +1068,7 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
     }
 }
 
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
 void Pause::filament_stuck_ask_process(Response response) {
     setPhase(PhasesLoadUnload::FilamentStuck);
 

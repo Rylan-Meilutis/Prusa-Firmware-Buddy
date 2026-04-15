@@ -16,7 +16,7 @@
 
 #include <option/has_mmu2.h>
 #include <option/has_nozzle_cleaner.h>
-#include <option/has_indx.h>
+#include <option/has_extruder_fsensor.h>
 
 namespace {
 
@@ -30,7 +30,11 @@ static constexpr const char *txt_unload = N_("Unloading");
 static constexpr const char *txt_unload_confirm = N_("Was filament unload successful?");
 static constexpr const char *txt_filament_not_in_fs = N_("Please remove filament from filament sensor.");
 static constexpr const char *txt_manual_unload = N_("Please open idler and remove filament manually");
+#if HAS_EXTRUDER_FSENSOR()
+static constexpr const char *txt_push_fil = N_("Push the filament into the extruder and then press CONTINUE.");
+#else
 static constexpr const char *txt_push_fil = N_("Press CONTINUE and push filament into the extruder.");
+#endif
 static constexpr const char *txt_make_sure_inserted = N_("Make sure the filament is inserted through the sensor.");
 static constexpr const char *txt_inserting = N_("Inserting");
 static constexpr const char *txt_is_filament_in_gear = N_("Is filament in extruder gear?");
@@ -378,7 +382,7 @@ private:
 };
 #endif
 
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
 class FrameFStuckNotice : public FrameNotice {
 public:
     FrameFStuckNotice(window_t *parent, Phase phase)
@@ -398,7 +402,7 @@ private:
 };
 #endif
 
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
 class FrameLoadingObstructionNotice : public FrameNotice {
 public:
     FrameLoadingObstructionNotice(window_t *parent, Phase phase)
@@ -442,7 +446,7 @@ using Frames = FrameDefinitionList<DialogLoadUnload::FrameStorage,
     FrameDefinition<Phase::IsFilamentInGear, FrameProgress, txt_is_filament_in_gear>,
     FrameDefinition<Phase::Ejecting_stoppable, FrameProgress, txt_ejecting>,
     FrameDefinition<Phase::Ejecting_unstoppable, FrameProgress, txt_ejecting>,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     FrameDefinition<Phase::LoadingObstruction_stoppable, FrameLoadingObstructionNotice>,
     FrameDefinition<Phase::LoadingObstruction_unstoppable, FrameLoadingObstructionNotice>,
 #endif
@@ -460,7 +464,7 @@ using Frames = FrameDefinitionList<DialogLoadUnload::FrameStorage,
     FrameDefinition<Phase::UnloadNozzleCleaning, FrameProgress, txt_nozzle_cleaning>,
     FrameDefinition<Phase::LoadNozzleCleaning, FrameProgress, txt_nozzle_cleaning>,
 #endif
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
     FrameDefinition<Phase::FilamentStuck, FrameFStuckNotice>,
 #endif
 #if HAS_AUTO_RETRACT()

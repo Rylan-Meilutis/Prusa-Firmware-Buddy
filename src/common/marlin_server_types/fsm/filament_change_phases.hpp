@@ -6,7 +6,7 @@
 #include <option/has_nozzle_cleaner.h>
 #include <option/has_loadcell.h>
 #include <option/has_mmu2.h>
-#include <option/has_indx.h>
+#include <option/has_extruder_fsensor.h>
 #include <option/has_anfc.h>
 
 // define enum classes for responses here
@@ -37,7 +37,7 @@ enum class PhasesLoadUnload : PhaseUnderlyingType {
     IsFilamentInGear,
     Ejecting_stoppable,
     Ejecting_unstoppable,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     LoadingObstruction_stoppable,
     LoadingObstruction_unstoppable,
 #endif
@@ -56,7 +56,7 @@ enum class PhasesLoadUnload : PhaseUnderlyingType {
     UnloadNozzleCleaning,
     LoadNozzleCleaning,
 #endif
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
     FilamentStuck,
 #endif
 
