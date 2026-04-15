@@ -443,6 +443,22 @@
                 "BOARD": "TOOL_OFFSET_SENSOR",
                 "CAN_BUS_TYPE": "PUB6"
             }
+        },
+        {
+            "name": "coreone_indx_indx-head",
+            "description": "Firmware for INDX head",
+            "cacheVariables": {
+                "PRINTER": "COREONE_INDX",
+                "BOARD": "INDX_HEAD"
+            }
+        },
+        {
+            "name": "coreonel_indx_indx-head",
+            "description": "Firmware for INDX head",
+            "cacheVariables": {
+                "PRINTER": "COREONEL_INDX",
+                "BOARD": "INDX_HEAD"
+            }
         }
     ]
 }
