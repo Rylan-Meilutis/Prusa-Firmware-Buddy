@@ -27,6 +27,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 #include <option/has_power_panic.h>
+#include <option/has_indx.h>
 
 /**
  * Configuration_adv.h
@@ -78,7 +79,11 @@
    * and/or decrease WATCH_TEMP_INCREASE. WATCH_TEMP_INCREASE should not be set
    * below 2.
    */
+   #if HAS_INDX()
+    #define WATCH_TEMP_PERIOD 30 // Seconds
+    #else
     #define WATCH_TEMP_PERIOD 20 // Seconds
+    #endif
     #define WATCH_TEMP_INCREASE 2 // Degrees Celsius
 #endif
 
@@ -319,26 +324,27 @@
  *       ±5mm of true values for G425 to succeed.
  */
 //#define CALIBRATION_GCODE
+
 #if ENABLED(CALIBRATION_GCODE)
 
     #define CALIBRATION_MEASUREMENT_RESOLUTION 0.01 // mm
 
     #define CALIBRATION_FEEDRATE_SLOW 60 // mm/m
-    #define CALIBRATION_FEEDRATE_FAST 1200 // mm/m
+    #define CALIBRATION_FEEDRATE_FAST 120 // mm/m
     #define CALIBRATION_FEEDRATE_TRAVEL 3000 // mm/m
 
     // The following parameters refer to the conical section of the nozzle tip.
-    #define CALIBRATION_NOZZLE_TIP_HEIGHT 1.0 // mm
-    #define CALIBRATION_NOZZLE_OUTER_DIAMETER 2.0 // mm
+    #define CALIBRATION_NOZZLE_TIP_HEIGHT 1.0f // mm
+    #define CALIBRATION_NOZZLE_OUTER_DIAMETER 2.0f // mm
 
     // Uncomment to enable reporting (required for "G425 V", but consumes PROGMEM).
-    //#define CALIBRATION_REPORTING
+    #define CALIBRATION_REPORTING
 
     // The true location and dimension the cube/bolt/washer on the bed.
     #define CALIBRATION_OBJECT_CENTER \
-        { 264.0, -22.0, -2.0 } // mm
+        { 180.0f, 180.0f, 4.5f } // mm
     #define CALIBRATION_OBJECT_DIMENSIONS \
-        { 10.0, 10.0, 10.0 } // mm
+        { 6.0f, 6.0f, 9.0f } // mm
 
     // Comment out any sides which are unreachable by the probe. For best
     // auto-calibration results, all sides must be reachable.
@@ -696,13 +702,22 @@
      * Set to 0 for manual unloading.
      */
     #define FILAMENT_CHANGE_UNLOAD_LENGTH 105
+#if HAS_INDX()
+    #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 10 // (mm/s) Slow move when starting load.
+#else
     #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 6 // (mm/s) Slow move when starting load.
+#endif
     /**
      * (mm) Slow length, to allow time to insert material.
      * 0 to disable start loading and skip to fast load only
      */
+#if HAS_INDX()
+    #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 15
+    #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 25 // (mm/s) Load filament feedrate. This can be pretty fast.
+#else
     #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 40
     #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 25 // (mm/s) Load filament feedrate. This can be pretty fast.
+#endif
     #define FILAMENT_CHANGE_FAST_LOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
     /**
      * (mm) Load length of filament, from extruder gear to nozzle.

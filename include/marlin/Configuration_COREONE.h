@@ -27,6 +27,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
+#include <option/has_indx.h>
 
 // clang-format off
 
@@ -141,6 +142,8 @@
 // :[1, 2, 3, 4, 5, 6]
 #if HAS_MMU2()
 #define EXTRUDERS 6 // 5 + NoTool
+#elif HAS_INDX()
+#define EXTRUDERS 9 // 8 + NoTool
 #else
 #define EXTRUDERS 1
 #endif
@@ -157,12 +160,22 @@
 //============================= Thermal Settings ============================
 //===========================================================================
 
-#define TEMP_SENSOR_0 2005
+#if !HAS_INDX() // TEMP sensor is on INDX_HEAD
+    #define TEMP_SENSOR_0 2005
+#endif
 #define TEMP_SENSOR_BED 2004
-#define TEMP_SENSOR_HEATBREAK 2008
+#if HAS_INDX()
+    #define TEMP_SENSOR_HEATBREAK 0
+#else
+    #define TEMP_SENSOR_HEATBREAK 2008
+#endif
 #define TEMP_SENSOR_BOARD 2000
 
-#define TEMP_RESIDENCY_TIME 5 // (seconds) Time to wait for hotend to "settle" in M109
+#if HAS_INDX()
+    #define TEMP_RESIDENCY_TIME 2 // (seconds) Time to wait for hotend to "settle" in M109
+#else
+    #define TEMP_RESIDENCY_TIME 5 // (seconds) Time to wait for hotend to "settle" in M109
+#endif
 #define TEMP_WINDOW 1 // (°C) Temperature proximity for the "temperature reached" timer
 #define TEMP_HYSTERESIS 3 // (°C) Temperature proximity considered "close enough" to the target
 
@@ -270,7 +283,9 @@
  *
  * *** IT IS HIGHLY RECOMMENDED TO LEAVE THIS OPTION ENABLED! ***
  */
-#define PREVENT_COLD_EXTRUSION
+#if !HAS_INDX()
+    #define PREVENT_COLD_EXTRUSION
+#endif
 #define EXTRUDE_MINTEMP 170
 
 /**
@@ -285,7 +300,11 @@
 //===========================================================================
 
 //PID autocooling
+#if HAS_INDX()
+//#define PIDTEMPHEATBREAK
+#else
 #define PIDTEMPHEATBREAK
+#endif
 
 #if ENABLED(PIDTEMPHEATBREAK)
     //#define PID_HEATBREAK_DEBUG // enable debug output for heatbreak fan PID regulator
@@ -395,6 +414,11 @@
     #define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
     #define Z_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
     #define Z_MIN_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe.
+#if HAS_INDX()
+    // INDX_TODO: This is only for testing purposes, verify with hardware
+    #define XY_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe
+#endif
+
 
 /**
  * Stepper Drivers
@@ -445,9 +469,13 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4[, E5]]]]]
  */
+#if HAS_INDX()
+#define DEFAULT_AXIS_STEPS_PER_UNIT \
+    { 100, 100, 400, 550 }
+#else
 #define DEFAULT_AXIS_STEPS_PER_UNIT \
     { 100, 100, 400, 380 }
-
+#endif
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203
@@ -459,8 +487,21 @@
 /// HW limits of feed rate
 #define HWLIMIT_NORMAL_MAX_FEEDRATE \
     { 350, 350, 35, 100 }
+#if HAS_INDX()
+#define HWLIMIT_STEALTH_MAX_FEEDRATE \
+    { 140, 140, 12, 100 }
+#else
 #define HWLIMIT_STEALTH_MAX_FEEDRATE \
     { 160, 160, 12, 100 }
+#endif
+
+#if HAS_INDX()
+/**
+* Default feedrate after startup as used by G0/G1 etc
+* First G0 F<feedrate> overrides this
+*/
+#define DEFAULT_FEEDRATE 240
+#endif
 
 /**
  * Default Max Acceleration (change/s) change = mm/s
@@ -649,11 +690,17 @@
 // Certain types of probes need to stay away from edges
 #define MIN_PROBE_EDGE 0
 
+#if HAS_INDX()
+// X and Y axis travel speed (mm/m) to get to the first probe location
+#define XY_PROBE_SPEED_INITIAL 8000
+// X and Y axis travel speed (mm/m) between probes
+#define XY_PROBE_SPEED 18000
+#else
 // X and Y axis travel speed (mm/m) to get to the first probe location
 //#define XY_PROBE_SPEED_INITIAL
-
 // X and Y axis travel speed (mm/m) between probes
 #define XY_PROBE_SPEED 180 * 44
+#endif
 
 // Feedrate (mm/m) for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST 6 * 100
@@ -748,7 +795,11 @@
 #define DEFAULT_INVERT_X_DIR true
 #define DEFAULT_INVERT_Y_DIR true
 #define DEFAULT_INVERT_Z_DIR false
+#if HAS_INDX()
+#define DEFAULT_INVERT_E0_DIR true
+#else
 #define DEFAULT_INVERT_E0_DIR false
+#endif
 
 #ifdef USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
     //this part if header is accesible only from C++ because of bool
@@ -785,25 +836,58 @@
 
 // Direction of endstops when homing; 1=MAX, -1=MIN
 // :[-1,1]
+#if HAS_INDX()
+#define X_HOME_DIR -1
+#define Y_HOME_DIR 1
+#else
 #define X_HOME_DIR 1
 #define Y_HOME_DIR -1
+#endif
 #define Z_HOME_DIR -1
 
 // @section machine
 
-// The size of the print bed
-#define X_BED_SIZE 250
-#define Y_BED_SIZE 220
-#define Z_SIZE 275
+#if HAS_INDX()
+// Nozzle offset limits
+#define X_MIN_OFFSET -1
+#define X_MAX_OFFSET 1
+#define Y_MIN_OFFSET -1
+#define Y_MAX_OFFSET 1
+#define Z_MIN_OFFSET -2
+#define Z_MAX_OFFSET 1.45f
+#endif
 
-// Travel limits (mm) after homing, corresponding to endstop positions.
-#define X_MIN_POS -2
-#define Y_MIN_POS -19
-#define Z_MIN_POS 0
-#define X_MAX_POS (X_BED_SIZE + 2)
-#define Y_MAX_POS (Y_BED_SIZE + 1)
-#define Y_MAX_PRINT_POS Y_MAX_POS
-#define HOMING_PREEMPTIVE_MOVE_Y 15.f
+
+#if HAS_INDX()
+    // The size of the print bed
+    #define X_BED_SIZE 250
+    #define Y_BED_SIZE 205.5f
+    #define Z_SIZE 275
+    // Travel limits (mm) after homing, corresponding to endstop positions. default x -2.5 y -7.3
+    #define X_MIN_POS -1
+    #define Y_MIN_POS (-33.5f - Y_MAX_OFFSET)
+    #define Z_MIN_POS (0 - Z_MAX_OFFSET)
+    #define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET + 11)
+    #define Y_MAX_PRINT_POS (Y_BED_SIZE - Y_MIN_OFFSET) // maximal print area Y position (excluding toolchanger area)
+    #define Y_MAX_POS (Y_MAX_PRINT_POS) // extra distance in Y to reach toolchanger
+    #define PROBE_MAX_Y Y_BED_SIZE // limit maximal Y probe position (so that tool doesn't hit toolchanger with high tool offsets)
+    #define Y_DOCK_SAFE_OFFSET 28.6f // distance from the side, which could be occupied by INDX (linked to DOCK_SAFE_Y_OFFSET in toolchangers_utils.h)
+    #define Y_DOCK_PARKING_MIN_SAFE_POS (Y_MIN_POS + Y_DOCK_SAFE_OFFSET) // position for save index head (bellow this position the motion on X could damage the nozzles)
+#else
+    // The size of the print bed
+    #define X_BED_SIZE 250
+    #define Y_BED_SIZE 220
+    #define Z_SIZE 275
+    // Travel limits (mm) after homing, corresponding to endstop positions. default x -2.5 y -7.3
+    #define X_MIN_POS -2
+    #define Y_MIN_POS -19
+    #define Z_MIN_POS 0
+    #define X_MAX_POS (X_BED_SIZE + 2)
+    #define Y_MAX_POS (Y_BED_SIZE + 1)
+    #define Y_MAX_PRINT_POS Y_MAX_POS
+    #define HOMING_PREEMPTIVE_MOVE_Y 15.f
+#endif
+
 #ifdef USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
     #define DEFAULT_Z_MAX_POS Z_SIZE
     #define Z_MIN_LEN_LIMIT 1
@@ -958,7 +1042,7 @@
 // Manually set the home position. Leave these undefined for automatic settings.
 //#define MANUAL_X_HOME_POS 0
 //#define MANUAL_Y_HOME_POS 0
-//#define MANUAL_Z_HOME_POS 0
+#define MANUAL_Z_HOME_POS 0
 
 // Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
 //
@@ -972,10 +1056,17 @@
 #define Z_SAFE_HOMING
 
 #if ENABLED(Z_SAFE_HOMING)
-    #define Z_SAFE_HOMING_X_POINT (240) // X point for Z homing when homing all axes (G28).
-    #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
+    #if HAS_INDX()
+        #define Z_SAFE_HOMING_X_POINT (125) // X point for Z homing when homing all axes (G28).
+        #define Z_SAFE_HOMING_Y_POINT (15) // Y point for Z homing when homing all axes (G28).
+    #else
+        #define Z_SAFE_HOMING_X_POINT (240) // X point for Z homing when homing all axes (G28).
+        #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
+    #endif
 
-    #define DETECT_PRINT_SHEET
+    #if !HAS_INDX()
+        #define DETECT_PRINT_SHEET
+    #endif
     #if ENABLED(DETECT_PRINT_SHEET)
         #define DETECT_PRINT_SHEET_X_POINT (245)
         #define DETECT_PRINT_SHEET_Y_POINT (0)
@@ -1045,8 +1136,23 @@
  *    P2  Raise the nozzle by Z-park amount, limited to Z_MAX_POS.
  */
     // Specify a park position as { X, Y, Z }
+#if HAS_INDX()
+    #define X_NOZZLE_CLEANER_ORIGIN 259.7f
+    #define Y_NOZZLE_CLEANER_ORIGIN 63.5f
+
+    #define X_WASTEBIN_SAFE_POINT 250.f //INDX_TODO: Refine
+    #define Y_WASTEBIN_SAFE_POINT 55.5f //INDX_TODO: Refine
+    #define Y_BRUSH_AVOID_POINT 164.5f //INDX_TODO: Refine
+
+    #define X_WASTEBIN_POINT (X_NOZZLE_CLEANER_ORIGIN + 0.65f)
+    #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_ORIGIN + 86.f)
+
+    #define X_NOZZLE_PARK_POINT X_WASTEBIN_POINT
+    #define Y_NOZZLE_PARK_POINT Y_WASTEBIN_POINT
+#else
     #define X_NOZZLE_PARK_POINT (X_MAX_POS - 50.0f)
     #define Y_NOZZLE_PARK_POINT (Y_MIN_POS + 6.0f)
+#endif
     #define Z_NOZZLE_PARK_POINT (20.0f)
     #define Z_NOZZLE_PARK_POINT_MIN 168.0f // Always raise the nozzle by this amount when parking on print end
     #define Z_NOZZLE_PARK_RISE 50.0f // Relative Z rise
@@ -1054,23 +1160,54 @@
     #define XYZ_NOZZLE_PARK_POINT \
         {X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, Z_NOZZLE_PARK_POINT}
 
+#if HAS_INDX()
+    #define XYZ_WASTEBIN_POINT \
+        {X_WASTEBIN_POINT, Y_WASTEBIN_POINT, Z_NOZZLE_PARK_POINT}
+
+    #define XYZ_NOZZLE_PARK_POINT_ON_PRINT_END XYZ_WASTEBIN_POINT
+#else
     #define XYZ_NOZZLE_PARK_POINT_ON_PRINT_END { \
         .x = X_NOZZLE_PARK_POINT, \
         .y = Y_MAX_POS - 10.0f, \
         .z = Z_NOZZLE_PARK_POINT, \
     }
+#endif
 
+#if HAS_INDX()
+    #define XYZ_LOADCELL_SELFTEST_POINT \
+        {X_BED_SIZE / 2.f, Y_DOCK_PARKING_MIN_SAFE_POS, Z_NOZZLE_PARK_POINT}
+#else
     #define XYZ_LOADCELL_SELFTEST_POINT XYZ_NOZZLE_PARK_POINT
-
+#endif
+#if HAS_INDX()
+    #define X_NOZZLE_PARK_POINT_M600 X_WASTEBIN_POINT
+    #define Y_NOZZLE_PARK_POINT_M600 Y_WASTEBIN_POINT
+    #define Z_NOZZLE_PARK_POINT_M600 Z_NOZZLE_PARK_POINT
+#else
     #define X_NOZZLE_PARK_POINT_M600 X_AXIS_LOAD_POS
     #define Y_NOZZLE_PARK_POINT_M600 Y_AXIS_LOAD_POS
     #define Z_NOZZLE_PARK_POINT_M600    60.0f
+#endif
     #define XYZ_NOZZLE_PARK_POINT_M600 \
         {X_NOZZLE_PARK_POINT_M600, Y_NOZZLE_PARK_POINT_M600, Z_NOZZLE_PARK_POINT_M600}
 
+#if HAS_INDX()
+    #define NOZZLE_PARK_XY_FEEDRATE 300 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+#else
     #define NOZZLE_PARK_XY_FEEDRATE 100 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+#endif
+
     #define NOZZLE_PARK_Z_FEEDRATE 5 // (mm/s) Z axis feedrate (not used for delta printers)
 
+#if HAS_INDX()
+    #define X_AXIS_LOAD_POS X_BED_SIZE / 2.f
+    #define Y_AXIS_LOAD_POS Y_DOCK_PARKING_MIN_SAFE_POS + 10.f
+    #define Z_AXIS_LOAD_POS Z_NOZZLE_PARK_POINT
+
+    #define X_AXIS_UNLOAD_POS X_WASTEBIN_POINT
+    #define Y_AXIS_UNLOAD_POS Y_WASTEBIN_POINT
+    #define Z_AXIS_UNLOAD_POS Z_NOZZLE_PARK_POINT
+#else
     #define X_AXIS_LOAD_POS X_NOZZLE_PARK_POINT
     #define Y_AXIS_LOAD_POS Y_NOZZLE_PARK_POINT
     #define Z_AXIS_LOAD_POS  40.0f
@@ -1078,7 +1215,7 @@
     #define X_AXIS_UNLOAD_POS X_AXIS_LOAD_POS
     #define Y_AXIS_UNLOAD_POS Y_AXIS_LOAD_POS
     #define Z_AXIS_UNLOAD_POS Z_AXIS_LOAD_POS
-
+#endif
     /**
      * Park the nozzle after print is finished
      * When disabled, similar functionality can be still achieved with slicer "End G-code"

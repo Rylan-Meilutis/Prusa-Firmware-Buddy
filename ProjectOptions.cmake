@@ -454,9 +454,7 @@ set_feature_for_printers_master_board(
   "XL"
   "XL_DEV_KIT"
   "COREONE"
-  "COREONE_INDX"
   "COREONEL"
-  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(HAS_FILAMENT_HEATBREAK_PARAM "iX")
 set(PRINTERS_WITH_RESOURCES

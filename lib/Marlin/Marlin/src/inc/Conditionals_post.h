@@ -24,6 +24,7 @@
 #include <option/has_local_bed.h>
 #include <option/has_remote_bed.h>
 #include <option/has_pause.h>
+#include <option/has_indx.h>
 
 /**
  * Conditionals_post.h

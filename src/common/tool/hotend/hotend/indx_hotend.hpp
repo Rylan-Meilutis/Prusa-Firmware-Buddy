@@ -25,5 +25,5 @@ protected:
     /// !!! Use only in toolchanger during pickup !!!
     void set_nozzle_target_temp_unchecked(TargetTemperature set);
     /// This is used for saving the target temp when the tool is parked and then restored on pickup.
-    TargetTemperature stored_nozzle_target_temp_ = 0;
+    TargetTemperature stored_nozzle_target_temp_ = 0; // INDX_TODO: Add to power panic
 };

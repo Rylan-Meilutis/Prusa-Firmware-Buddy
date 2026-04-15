@@ -23,6 +23,7 @@
 
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#include <option/has_indx.h>
 
 /**
  * Conditionals_LCD.h
@@ -56,7 +57,7 @@
 #elif HAS_MMU2()                // Průša Multi-Material Unit v2
   #define E_STEPPERS      1
 
-#elif HAS_TOOLCHANGER()
+#elif HAS_TOOLCHANGER() || HAS_INDX()
   #define E_STEPPERS      1
 #endif
 
@@ -442,7 +443,7 @@
 #ifndef HOTEND_OVERSHOOT
   #define HOTEND_OVERSHOOT 15
 #endif
-#if HOTENDS > 1
+#if HOTENDS > 1 || HAS_INDX()
   #define HAS_MULTI_HOTEND 1
   #define HAS_HOTEND_OFFSET 1
 #endif

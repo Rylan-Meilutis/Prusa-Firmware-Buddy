@@ -15,7 +15,7 @@ static MarlinTempTable heatbreak_temptable() {
 }
 #endif
 
-PhysicalTool &PhysicalTool::for_index([[maybe_unused]] PhysicalToolIndex tool) {
+PhysicalTool &PhysicalTool::for_index(PhysicalToolIndex) {
     static const LocalHotend::Config hotend_config {
         .base_config {
             // TODO: Get rid of the macros, put the values directly into this file
