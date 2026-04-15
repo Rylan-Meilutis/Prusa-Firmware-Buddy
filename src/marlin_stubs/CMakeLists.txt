@@ -63,7 +63,11 @@ if(HAS_SPOOL_JOIN)
 endif()
 
 if(HAS_TOOLCHANGER)
-  target_sources(firmware PRIVATE G425.cpp P.cpp)
+  target_sources(firmware PRIVATE P.cpp)
+endif()
+
+if(HAS_TOOL_OFFSET_PIN_CALIBRATION)
+  target_sources(firmware PRIVATE G425.cpp)
 endif()
 
 if(HAS_GUI)

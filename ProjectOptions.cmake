@@ -630,6 +630,8 @@ set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREON
 # Requires SELFTEST to work
 set_feature_for_printers(HAS_UNEVEN_BED_PROMPT "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 
+set_feature_for_printers(HAS_TOOL_OFFSET_PIN_CALIBRATION "XL" "XL_DEV_KIT")
+
 set_feature_for_printers(
   HAS_DOOR_SENSOR_CALIBRATION "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
   )

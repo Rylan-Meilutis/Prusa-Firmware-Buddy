@@ -5,7 +5,10 @@
 #include "selftest_tool_helper.hpp"
 #include "Marlin/src/module/temperature.h"
 #include "fanctl.hpp"
-#include <marlin_stubs/G425.hpp>
+#include <option/has_tool_offset_pin_calibration.h>
+#if HAS_TOOL_OFFSET_PIN_CALIBRATION()
+    #include <marlin_stubs/G425.hpp>
+#endif
 #include <tool_index.hpp>
 #include <utils/storage/strong_index_array.hpp>
 
