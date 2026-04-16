@@ -55,6 +55,10 @@
     #include <puppies/ac_controller.hpp>
 #endif
 
+#if PRINTER_IS_PRUSA_XL()
+    #include <common/printer_model.hpp>
+#endif
+
 LOG_COMPONENT_REF(Selftest);
 
 using namespace fan_selftest;
@@ -92,6 +96,16 @@ constexpr std::uint8_t percentage_to_pwm(std::uint8_t target_percentage) {
 // Then continue with 40% PWM to test if 40% is enough to start spinning.
 constexpr uint8_t pwm_100_percent = percentage_to_pwm(100);
 constexpr uint8_t pwm_40_percent = percentage_to_pwm(40);
+
+/// Runtime print-fan RPM range selector. On XL, returns XL or XLS range
+/// based on extended printer type; elsewhere returns print_fan_range.
+inline const FanRPMRange &current_print_fan_range() {
+#if PRINTER_IS_PRUSA_XL()
+    return (PrinterModelInfo::current().model == PrinterModel::xls) ? print_fan_range_xls : print_fan_range_xl;
+#else
+    return print_fan_range;
+#endif
+}
 
 class FanSelfTestWizard {
 public:
@@ -444,7 +458,7 @@ void M1978() {
 #else
     auto print_fans = [&]<size_t... ix>(std::index_sequence<ix...>) {
         return StrongIndexArray<CommonFanHandler, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> {
-            CommonFanHandler(FanType::print, ix, print_fan_range, &Fans::print(PhysicalToolIndex::from_raw(ix)), print_low_fan_range)...
+            CommonFanHandler(FanType::print, ix, current_print_fan_range(), &Fans::print(PhysicalToolIndex::from_raw(ix)), print_low_fan_range)...
         };
     }(std::make_index_sequence<PhysicalToolIndex::count>());
 

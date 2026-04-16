@@ -20,6 +20,8 @@
 #include <config_store/store_instance.hpp>
 #include "Marlin/src/module/prusa/accelerometer.h"
 #include <common/power_panic.hpp>
+#include <common/printer_model.hpp>
+#include <common/extended_printer_type.hpp>
 
 using namespace fifo_coder;
 
@@ -184,6 +186,8 @@ CommunicationStatus Dwarf::initial_scan(PuppyModbus &bus) {
     // read discrete general stats - contains data about picked/parked, and that is needed immediately upon init to pick correct tool
     status = read_discrete_general_status(bus);
 
+    fan_mode = (PrinterModelInfo::current().model == PrinterModel::xls) ? FanMode::XLS_NATIVE : FanMode::XL_LEGACY;
+
     general_write_dirty.store(true);
     TmcEnable.dirty = true;
     IsSelectedCoil.dirty = true;
@@ -312,6 +316,7 @@ CommunicationStatus Dwarf::write_general(PuppyModbus &bus) {
     block.value.pid.p = pid.p;
     block.value.pid.i = pid.i;
     block.value.pid.d = pid.d;
+    block.value.fan_mode = static_cast<uint16_t>(fan_mode);
     block.dirty = was_dirty;
 
     const CommunicationStatus status = bus.write(unit, block);
@@ -584,6 +589,14 @@ void Dwarf::set_fan(uint8_t fan, uint16_t target) {
 void Dwarf::set_fan_auto(uint8_t fan) {
     debug_assert(fan < NUM_FANS);
     if (fan_pwm_desired[fan].exchange(FAN_MODE_AUTO_PWM) != FAN_MODE_AUTO_PWM) {
+        general_write_dirty.store(true);
+    }
+}
+
+void Dwarf::set_fan_mode(Dwarf::FanMode mode) {
+    Lock guard(*mutex);
+    if (mode != fan_mode) {
+        fan_mode = mode;
         general_write_dirty.store(true);
     }
 }

@@ -12,6 +12,7 @@
 enum class PrintFanType : uint8_t {
     DELTA_BFB0505HHA_CWCD = 0,
     GOM_VD_3706 = 1,
+    LDO_D5015G08B05X71 = 2, // LDO blower for XLS
     _cnt,
     #if PRINTER_IS_PRUSA_XL()
     default_value = DELTA_BFB0505HHA_CWCD,
@@ -22,10 +23,12 @@ static constexpr EnumArray<PrintFanType, const char *, PrintFanType::_cnt> print
     #if PRINTER_IS_PRUSA_XL()
     { PrintFanType::DELTA_BFB0505HHA_CWCD, N_("Black") },
         { PrintFanType::GOM_VD_3706, N_("Silver") },
+        { PrintFanType::LDO_D5015G08B05X71, N_("LDO") },
     #endif // PRINTER_IS_PRUSA_XL()
 };
 
 /// Filtered and ordered list of print fan types, for UI purposes
+/// Note: LDO is not listed here -- on XLS, fan type is auto-set by extended printer type
 static constexpr std::array print_fan_type_list {
     #if PRINTER_IS_PRUSA_XL()
     PrintFanType::DELTA_BFB0505HHA_CWCD,

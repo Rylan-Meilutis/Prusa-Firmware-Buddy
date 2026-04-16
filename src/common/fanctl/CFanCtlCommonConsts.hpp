@@ -6,9 +6,35 @@
 
 // FANCTLPRINT - printing fan
 inline constexpr uint8_t FANCTLPRINT_PWM_MIN = 10; // min duty cycle length 10 / 50 = 0.2 = 20%
+/// Min PWM for XLS native mode (LDO blower with kickstart): 3 / 50 = 6%.
+/// Applied at runtime on the Dwarf when the XLBuddy sets fan_mode != 0.
+///
+/// Kickstart spins the fan up past its stall torque so the steady-state PWM
+/// can sit below the 20% threshold required by the legacy Delta/GOM fans.
+///
+/// Lower bound tuned empirically against the tach sampler in
+/// CFanCtlTach::tick(), which only counts a tach transition as an edge when
+/// pwm_on >= 2. Inside an on-window pwm_on ranges 0..val-1, so:
+///   - val = 2 (4%): no on-tick ever reaches pwm_on = 2 -> edges = 0,
+///     reported RPM = 0, Sensor Info shows "stuck" even though the fan is
+///     clearly spinning. Observed on bench.
+///   - val = 3 (6%): 1 of 3 on-ticks qualifies. Reported RPM is noisy but
+///     consistently non-zero (observed 16..680 RPM on the LDO blower with
+///     kickstart at 3/50 PWM). Combined with FANCTLPRINT_RPM_MIN = 10 on
+///     XL, this is the lowest usable PWM that still produces a measurable
+///     and non-erroring tach reading.
+inline constexpr uint8_t FANCTLPRINT_PWM_MIN_XLS = 3;
 inline constexpr uint8_t FANCTLPRINT_PWM_MAX = 50; // 1000Hz / 50 = 20Hz PWM cycle
 #if PRINTER_IS_PRUSA_MK4()
 inline constexpr uint16_t FANCTLPRINT_RPM_MIN = 90; // Dynamic PWM enables lower RPM
+#elif PRINTER_IS_PRUSA_XL()
+/// XL/XLS share Dwarf firmware. XLS LDO blower at 3/50 PWM bottoms out around
+/// 16 RPM on the tach (see FANCTLPRINT_PWM_MIN_XLS). XL legacy Delta/GOM fans
+/// cruise at 5300-7000 RPM during print, so 10 has ample margin for them too.
+/// ErrorChecker::checkTrue has no debounce — any single sample below this
+/// trips PrintFanError — so the threshold must stay below the worst-case
+/// EWMA dip at the lowest supported PWM, not just the typical value.
+inline constexpr uint16_t FANCTLPRINT_RPM_MIN = 10;
 #else
 inline constexpr uint16_t FANCTLPRINT_RPM_MIN = 150;
 #endif
