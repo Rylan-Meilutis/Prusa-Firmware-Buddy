@@ -1,6 +1,13 @@
 #include <Marlin.h>
 #include <gcode/gcode.h>
 #include <feature/contactless_offset/contactless_offset.hpp>
+#include <module/motion.h>
+#include <module/planner.h>
+#include <feature/pressure_advance/pressure_advance_config.hpp>
+#include <utils/variant_utils.hpp>
+#include <option/has_toolchanger.h>
+#include <module/tool_change.h>
+#include <module/prusa/toolchanger.h>
 
 /** \addtogroup G-Codes
  * @{
@@ -14,7 +21,7 @@
  *
  * #### Usage
  *
- *     G426 [F<speed>] [R<speed2>] [Z<height>] [D<diameter>]
+ *     G426 [F<speed>] [R<speed2>] [Z<height>] [D<diameter>] [X<pos_x>] [Y<pos_y>]
  *
  * #### Parameters
  *
@@ -22,6 +29,8 @@
  * - `R` - Second speed (v2) in mm/s (default: 15)
  * - `Z` - Sensing height in mm above the sensor (default: from config)
  * - `D` - Scan diameter in mm (default: from config)
+ * - `X` - position of the sensor in X axis (default: from config)
+ * - `Y` - position of the sensor in Y axis (default: from config)
  */
 void GcodeSuite::G426() {
     TEMPORARY_AUTO_REPORT_OFF(suspend_auto_report);
@@ -41,14 +50,42 @@ void GcodeSuite::G426() {
     if (parser.seenval('D')) {
         config.sensing_diameter = parser.value_float();
     }
+    if (parser.seenval('X')) {
+        config.sensor_position.x = parser.value_float();
+    }
+    if (parser.seenval('Y')) {
+        config.sensor_position.y = parser.value_float();
+    }
 
+    const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+    if (!selected_tool.has_value()) {
+        SERIAL_ECHOLNPAIR("G426 failed: no tool selected");
+        return;
+    }
+
+    // Zero hotend offset and currently applied offset to avoid stale offset
+    // affecting subsequent tool changes (same as G425)
+    reset_hotend_offset(selected_tool.value());
+    hotend_currently_applied_offset = xyz_pos_t {};
+
+    // Reset planner state
+    planner.synchronize();
+    planner.reset_position();
+
+    // Disable PA to reduce filter delay during probe analysis
+    pressure_advance::PressureAdvanceDisabler pa_disabler;
+
+    // Perform the measurement for picked tool
     auto sensor = tool_offset::get_default_sensor();
     auto result = tool_offset::measure_current_tool_offset(config, *sensor);
-
     if (!result.has_value()) {
         SERIAL_ECHOLNPAIR("G426 failed: ", result.error());
         return;
     }
+
+    hotend_offset[selected_tool.value()].x = result->x;
+    hotend_offset[selected_tool.value()].y = result->y;
+    prusa_toolchanger.save_tool_offset(selected_tool.value());
 
     SERIAL_ECHOPGM("X offset: ");
     SERIAL_ECHO_F(result->x, 4);

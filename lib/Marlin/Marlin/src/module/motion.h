@@ -70,8 +70,8 @@ struct PrepareMoveHints {
 
   /// Whether motion limits should be applied (not allowing moves outside of MIN/MAX coordinates)
   bool apply_motion_limits : 1 = true;
-  
-  MoveHints move = {}; 
+
+  MoveHints move = {};
 
 };
 
@@ -93,7 +93,7 @@ public:
   // Inherit parent constructors and assign operators
   using array::array;
   using array::operator=;
-  
+
   AxesHomeLevel(const array &data) : array(data) {}
 
   static constexpr array no_axes_homed{AxisHomeLevel::not_homed, AxisHomeLevel::not_homed, AxisHomeLevel::not_homed};
@@ -148,7 +148,7 @@ extern bool relative_mode;
  *
  *   Used by 'line_to_current_position' to do a move after changing it.
  *   Used by 'sync_plan_position' to update 'planner.position'.
- * 
+ *
  * TODO Migrate all writes to set_current_position and make read-only
  */
 extern xyze_pos_t current_position;
@@ -236,6 +236,7 @@ XYZ_DEFS(signed char, home_dir, HOME_DIR);
   // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
   extern StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset;
   extern xyz_pos_t hotend_currently_applied_offset; // Difference to position without hotend offset. Used for tool park/pickup
+  void reset_hotend_offset(PhysicalToolIndex tool_index);
   void reset_hotend_offsets();
 #elif HOTENDS
   // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)

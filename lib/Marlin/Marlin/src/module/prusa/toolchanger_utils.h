@@ -250,6 +250,7 @@ public:
     void load_tool_info();
     void save_tool_info();
     void load_tool_offsets();
+    void save_tool_offset(PhysicalToolIndex tool);
     void save_tool_offsets();
 
 protected:

@@ -297,6 +297,9 @@ static MotionExecutionResult execute_motion_with_recording(
     };
 
     auto enqueue_step = [&, prev_ts = uint32_t { 0 }](uint32_t timestamp_us, AxisEnum axis, bool direction) mutable {
+        // Always drain sensor queue to prevent overflow — idle() can be slow during a print
+        receive_samples();
+
         // Enqueue to precise stepping, polling sensor while waiting
         while (precise_stepping::manual::is_full()) {
             receive_samples();
@@ -474,8 +477,8 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         return std::unexpected(no_y.error());
     }
 
-    result.x = *no_x;
-    result.y = *no_y;
+    result.x = - *no_x;
+    result.y = - *no_y;
 
     return result;
 }
