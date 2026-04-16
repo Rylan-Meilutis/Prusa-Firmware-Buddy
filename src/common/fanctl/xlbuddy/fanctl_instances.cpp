@@ -5,6 +5,11 @@
 #include "CFanCtlEnclosure.hpp"
 #include "CFanCtlPuppy.hpp"
 #include "hwio_pindef.h"
+#include <option/has_cpu_fan.h>
+#if HAS_CPU_FAN()
+    #include <CFanCtlCommonConsts.hpp>
+    #include <fanctl/CFanCtl3Wire.hpp>
+#endif
 
 CFanCtlCommon &Fans::print(size_t index) {
     static std::array<CFanCtlPuppy, HOTENDS> instances = {
@@ -45,8 +50,31 @@ CFanCtlCommon &Fans::enclosure() {
     return instance;
 };
 
+#if HAS_CPU_FAN()
+CFanCtlCommon &Fans::cpu() {
+    static auto instance = CFanCtl3Wire(
+        [](bool value) { buddy::hw::cpuFanPwm.writeb(value); },
+        []() { return buddy::hw::cpuFanTach.readb(); },
+        {
+            .min_pwm = FANCTLCPU_PWM_MIN,
+            .max_pwm = FANCTLCPU_PWM_MAX,
+            .min_rpm = FANCTLCPU_RPM_MIN,
+            .max_rpm = FANCTLCPU_RPM_MAX,
+            .thr_pwm = FANCTLCPU_PWM_THR,
+            .autofan = is_autofan_t::no,
+            .skip_tacho = skip_tacho_t::no,
+            .min_pwm_to_measure_rpm = FANCTLCPU_MIN_PWM_TO_MEASURE_RPM,
+            .has_inverted_pwm = false,
+        });
+    return instance;
+}
+#endif
+
 void Fans::tick() {
     Fans::enclosure().tick();
+#if HAS_CPU_FAN()
+    Fans::cpu().tick();
+#endif
 }
 
 void Fans::init_hw() {

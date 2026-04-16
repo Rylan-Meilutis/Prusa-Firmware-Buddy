@@ -746,6 +746,9 @@ set_feature_for_printers_master_board(
   )
 set_feature_for_printers(HAS_WASTEBIN "iX" "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers_master_board(HAS_PRINT_FAN_TYPE "XL")
+# CPU cooling fan on the XLBuddy sandwich board. Compiled in for all XL-family builds; actually
+# started at runtime only on the XLS variant.
+set_feature_for_printers_master_board(HAS_CPU_FAN "XL")
 # GEARBOX_ALIGNMENT requires SELFTEST
 set_feature_for_printers_master_board(HAS_GEARBOX_ALIGNMENT "MK4" "COREONE" "COREONEL" "XL")
 set_feature_for_printers_master_board(

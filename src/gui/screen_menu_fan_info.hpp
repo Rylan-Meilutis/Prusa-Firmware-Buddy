@@ -4,6 +4,7 @@
 #include <basic_screen_menu.hpp>
 #include <MItem_tools.hpp>
 #include <option/has_bed_fan.h>
+#include <option/has_cpu_fan.h>
 #include <option/has_psu_fan.h>
 #include <option/xbuddy_extension_variant.h>
 #include <WindowItemFanLabel.hpp>
@@ -47,6 +48,13 @@ public:
 };
 #endif
 
+#if HAS_CPU_FAN()
+class MI_INFO_CPU_FAN : public WI_FAN_LABEL_t {
+public:
+    MI_INFO_CPU_FAN();
+};
+#endif
+
 using ScreenMenuFanInfo_ = BasicScreenMenu<
     MI_INFO_PRINT_FAN,
     MI_INFO_HBR_FAN,
@@ -61,6 +69,9 @@ using ScreenMenuFanInfo_ = BasicScreenMenu<
 #endif
 #if HAS_PSU_FAN()
     MI_INFO_PSU_FAN,
+#endif
+#if HAS_CPU_FAN()
+    MI_INFO_CPU_FAN,
 #endif
     MI_ALWAYS_HIDDEN>;
 

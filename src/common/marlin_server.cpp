@@ -98,6 +98,8 @@
 #include <option/has_leds.h>
 
 #include "fanctl.hpp"
+#include <common/printer_model.hpp>
+#include <common/extended_printer_type.hpp>
 #include "lcd/extensible_ui/ui_api.h"
 
 #include <option/has_gui.h>
@@ -243,6 +245,11 @@
 #include <option/has_psu_fan.h>
 #if HAS_PSU_FAN()
     #include <feature/psu_fan/psu_fan.hpp>
+#endif
+
+#include <option/has_cpu_fan.h>
+#if HAS_CPU_FAN()
+    #include <cpu_fan_controller.hpp>
 #endif
 
 #include <option/has_anfc.h>
@@ -3955,6 +3962,17 @@ void onIdle() {
     // update sensor values for metrics and sensor screens
     sensor_data().update();
     buddy::metrics::record();
+
+#if BOARD_IS_XLBUDDY() && HAS_EXTENDED_PRINTER_TYPE() && HAS_CPU_FAN()
+    // Update CPU fan speed based on temperature (XLS only). On plain XL
+    // we never touch the fan; the CFanCtl3Wire instance stays at PWM=0,
+    // pin low, MOSFET off.
+    if (PrinterModelInfo::current().model == PrinterModel::xls) {
+        cpu_fan_controller::update(
+            sensor_data().MCUTemp.load(),
+            sensor_data().sandwichTemp.load());
+    }
+#endif
 }
 
 void onPrintTimerStarted() {

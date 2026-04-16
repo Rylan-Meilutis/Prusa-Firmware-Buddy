@@ -6,6 +6,7 @@
 #include <tool_index.hpp>
 #include <option/has_indx.h>
 #include <option/xl_enclosure_support.h>
+#include <option/has_cpu_fan.h>
 
 class Fans {
     Fans() = default;
@@ -37,6 +38,10 @@ public:
     static CFanCtlCommon &dock_fan();
 #endif
 
+#if HAS_CPU_FAN()
+    /// CPU cooling fan on the XLS sandwich board
+    static CFanCtlCommon &cpu();
+#endif
     static void tick();
     // Board-specific fan hardware init touching GPIO / I2C-expander pins; must run after hw_gpio_init().
     static void init_hw();

@@ -1,6 +1,11 @@
 /// @file
 #include "screen_menu_fan_info.hpp"
 
+#if HAS_CPU_FAN()
+    #include <fanctl.hpp>
+    #include <common/printer_model.hpp>
+#endif
+
 #include <img_resources.hpp>
 
 MI_INFO_PRINT_FAN::MI_INFO_PRINT_FAN()
@@ -56,6 +61,22 @@ MI_INFO_PSU_FAN::MI_INFO_PSU_FAN()
                        .rpm = sensor_data().psu_fan_rpm.load(),
                    }; },
     } {}
+#endif
+
+#if HAS_CPU_FAN()
+MI_INFO_CPU_FAN::MI_INFO_CPU_FAN()
+    // translation: menu item showing info about the XLS main-board CPU cooling fan
+    : WI_FAN_LABEL_t(_("CPU Fan"),
+        [](auto) { return FanPWMAndRPM {
+                       .pwm = Fans::cpu().get_pwm(),
+                       .rpm = Fans::cpu().get_actual_rpm(),
+                   }; } //
+    ) {
+    // The CPU fan is physically present only on XLS; hide on plain XL.
+    if (PrinterModelInfo::current().model != PrinterModel::xls) {
+        set_is_hidden();
+    }
+}
 #endif
 
 ScreenMenuFanInfo::ScreenMenuFanInfo()

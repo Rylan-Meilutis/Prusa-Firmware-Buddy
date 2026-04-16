@@ -2,6 +2,7 @@
 
 #include <printers.h>
 #include <option/xl_enclosure_support.h>
+#include <option/has_cpu_fan.h>
 
 // FANCTLPRINT - printing fan
 inline constexpr uint8_t FANCTLPRINT_PWM_MIN = 10; // min duty cycle length 10 / 50 = 0.2 = 20%
@@ -63,3 +64,30 @@ inline constexpr uint8_t FANCTLENCLOSURE_PWM_MAX = 255;
 inline constexpr uint16_t FANCTLENCLOSURE_RPM_MIN = 600;
 inline constexpr uint16_t FANCTLENCLOSURE_RPM_MAX = 2700;
 #endif // XL_ENCLOSURE_SUPPORT
+
+// FANCTLCPU - CPU cooling fan (XLS sandwich board)
+// Driver-level thresholds used by CFanCtl3Wire / get_rpm_is_ok().
+// Selftest pass/fail tolerances live separately in selftest_fans_config.hpp.
+//
+// Fan: LDO-D3007D04Y05X75FX, 5 V 3-wire (VCC/GND/FG, no PWM input), rated
+// 10000 RPM ±15%, 4-pole motor (datasheet: BFW-8968)
+// PWM drives a MOSFET on the
+// sandwich board's 5 V supply. The cpu_fan_controller policy runs it at
+// 0 % or 100 % only -- at 100 % duty the CFanCtlPWM output pin stays
+// permanently high, so the 20 Hz soft-PWM frequency is not audible in
+// practice. MIN is set below the -15 % corner with margin for part
+// variance; MAX sits above the +15 % corner.
+//
+// XLS_TODO: validate reported RPM on real hardware. The new fan is
+// 4-pole vs the previous 2-pole part; CFanCtl3Wire's tach math assumes
+// 4 edges per revolution which matches a 4-pole / 2-pulse-per-rev FG.
+// If on-bench RPM reads ~5000 instead of ~10000, the fan FG is actually
+// 1 pulse/rev (2 edges/rev) and the tach divisor needs adjustment.
+#if HAS_CPU_FAN()
+inline constexpr uint8_t FANCTLCPU_PWM_MIN = 20;
+inline constexpr uint8_t FANCTLCPU_PWM_MAX = 100;
+inline constexpr uint8_t FANCTLCPU_PWM_THR = 70; // 3.5V is the minimum startup voltage, which is 70% of 5V
+inline constexpr uint8_t FANCTLCPU_MIN_PWM_TO_MEASURE_RPM = 0;
+inline constexpr uint16_t FANCTLCPU_RPM_MIN = 6375; // 7500 RPM - 15% = 6375 RPM
+inline constexpr uint16_t FANCTLCPU_RPM_MAX = 8625; // 7500 RPM + 15% = 8625 RPM
+#endif // HAS_CPU_FAN

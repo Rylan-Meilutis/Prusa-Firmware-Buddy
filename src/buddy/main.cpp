@@ -62,6 +62,7 @@
 #include <option/has_nfc.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
+#include <option/has_cpu_fan.h>
 #include "tasks.hpp"
 #include <appmain.hpp>
 #include "safe_state.h"
@@ -272,6 +273,9 @@ static void init_isr_statics() {
 #endif
 #if HAS_INDX()
     Fans::dock_fan();
+#endif
+#if HAS_CPU_FAN()
+    Fans::cpu();
 #endif
     sensor_data();
     GetExtruderFSensor(0);
