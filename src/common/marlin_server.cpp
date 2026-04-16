@@ -2933,12 +2933,10 @@ static void _server_print_loop(void) {
     if (do_fan_check) {
 #if !PRINTER_IS_PRUSA_iX()
         for (auto tool : PhysicalToolIndex::all()) {
-            const auto fan_state = Fans::heat_break(tool).get_state();
-            hotendFanErrorChecker[tool].checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::HotendFanError, true, true);
+            hotendFanErrorChecker[tool].checkTrue(Fans::heat_break(tool).is_fan_ok(), WarningType::HotendFanError, true, true);
         }
 #endif
-        const auto fan_state = Fans::print(active_extruder).get_state();
-        printFanErrorChecker.checkTrue(fan_state != CFanCtlCommon::FanState::error_running && fan_state != CFanCtlCommon::FanState::error_starting, WarningType::PrintFanError, false, true);
+        printFanErrorChecker.checkTrue(Fans::print(active_extruder).is_fan_ok(), WarningType::PrintFanError, false, true);
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
         const bool cool_fan_ok = buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_1) && buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_2);
