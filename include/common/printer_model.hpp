@@ -27,6 +27,7 @@ enum class PrinterModel : uint8_t {
     coreone_indx,
     coreonel_indx,
     coreone_oak,
+    xls,
 
     _cnt
 };
@@ -37,6 +38,7 @@ enum class PrinterModelCompatibilityGroup : uint8_t {
     mk4,
     mk4s,
     xl,
+    xlp,
     ix,
     mini,
     coreone,
@@ -68,6 +70,9 @@ public:
 
     // Compatibility mode for running a MK4(non-S) gcode (or older)
     bool mk4_compatibility_mode : 1 = false;
+
+    /// Compatibility mode for running an XL gcode on XLS (fan scaling)
+    bool xl_compatibility_mode : 1 = false;
 
     /// Compatibility mode for running a non-chamber gcode
     bool chamber_compatibility_mode : 1 = false;

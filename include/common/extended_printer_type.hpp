@@ -37,6 +37,16 @@ static constexpr std::array extended_printer_type_model {
     PrinterModel::mk3_5s,
 };
 
+#elif PRINTER_IS_PRUSA_XL()
+    #define HAS_EXTENDED_PRINTER_TYPE()                    1
+    #define EXTENDED_PRINTER_TYPE_DETERMINES_MOTOR_STEPS() 0
+
+/// !!! Never change order, never remove items - this is used in config store
+static constexpr std::array extended_printer_type_model {
+    PrinterModel::xl,
+    PrinterModel::xls,
+};
+
 #else
     #define HAS_EXTENDED_PRINTER_TYPE() 0
 

@@ -57,6 +57,9 @@ void CurrentStore::perform_config_check() {
         nozzle_is_high_flow.set(1 << 0); // Bitset -> first and only nozzle
 
 #elif PRINTER_IS_PRUSA_XL()
+        static_assert(extended_printer_type_model[1] == PrinterModel::xls);
+        extended_printer_type.set(1); // Default to XLS
+
         // New XL printers have .4mm nozzles: BFW-5638
         for (auto tool : PhysicalToolIndex::all()) {
             set_nozzle_diameter(tool, 0.4f);

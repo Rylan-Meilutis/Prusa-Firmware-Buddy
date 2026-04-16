@@ -38,7 +38,8 @@ static_assert(
         && std::to_underlying(PrinterModel::coreonel) == 13
         && std::to_underlying(PrinterModel::coreone_indx) == 14
         && std::to_underlying(PrinterModel::coreonel_indx) == 15
-        && std::to_underlying(PrinterModel::coreone_oak) == 16,
+        && std::to_underlying(PrinterModel::coreone_oak) == 16
+        && std::to_underlying(PrinterModel::xls) == 17,
     "Order should not change, it will create a discrepancy in stored EEPROM values");
 
 // Some checks about the printer data
@@ -155,6 +156,11 @@ constexpr PrinterGCodeCompatibilityReport gcode_compatibility_report_constexpr(c
     case CompatGroup::coreone_indx: // INDX_TODO: Implement back compatibility
     case CompatGroup::coreonel_indx: // INDX_TODO: Implement gcode compatibility
         // No backwards compatibility
+        break;
+
+    case CompatGroup::xlp:
+        upgrade_from(PrinterModel::xl);
+        result.xl_compatibility_mode = true;
         break;
 
     case CompatGroup::mk3_5:
