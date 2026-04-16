@@ -760,11 +760,11 @@ static std::optional<int> find_rough_time_alignment(
     constexpr size_t min_rough_align_samples = 20;
     constexpr int decimation = 4;
     constexpr float energy_lowpass_cutoff_hz = 4.0f;
-    constexpr float threshold_fraction = 0.08f;
+    constexpr float threshold_fraction = 0.15f;
     constexpr float hysteresis_ratio = 0.5f;
     constexpr float min_gap_s = 0.05f;
     constexpr float min_region_s = 0.1f;
-    constexpr float duration_tolerance = 0.5f;
+    constexpr float duration_tolerance = 0.8f;
 
     const size_t n = raw_samples.size();
     if (n < min_rough_align_samples) {
