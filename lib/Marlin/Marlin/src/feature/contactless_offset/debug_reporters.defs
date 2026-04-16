@@ -71,9 +71,9 @@ static void debug_report_scan_start([[maybe_unused]] const char *label) {
 #endif
 }
 
-static void debug_report_scan_result([[maybe_unused]] const char *label, [[maybe_unused]] float confidence) {
+static void debug_report_scan_result([[maybe_unused]] const char *label, [[maybe_unused]] float confidence, float position_mm) {
 #ifdef SERIAL_DEBUG
-    serial_printf("# scan_result {\"label\": \"%s\", \"confidence\": %.3f}\n", label, confidence);
+    serial_printf("# scan_result {\"label\": \"%s\", \"confidence\": %.3f, \"position_mm\": %.3f}\n", label, confidence, position_mm);
 #endif
 }
 

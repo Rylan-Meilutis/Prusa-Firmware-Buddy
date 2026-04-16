@@ -469,7 +469,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         if (!scan_result.has_value()) {
             return std::unexpected(scan_result.error());
         }
-        debug_report_scan_result(name, scan_result->confidence);
+        debug_report_scan_result(name, scan_result->confidence, scan_result->estimate_all.position_mm - scan_half_width);
         return scan_result->estimate_all.position_mm - scan_half_width;
     };
 
