@@ -20,6 +20,8 @@ public:
         : StandardFFFPhysicalToolBase(hotend_)
         , hotend_(tool_index, hotend_config) {}
 
+    Hotend &hotend() { return hotend_; }
+
 private:
     Hotend hotend_;
 };

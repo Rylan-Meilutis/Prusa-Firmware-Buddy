@@ -131,6 +131,10 @@ protected:
     /// For local hotends, this is set in Hotend::manage and potentially used for soft pwm control
     /// For remote hotends, this is retrieved from the remote board and only used for display/reporting purposes
     /// Possibly accessed from isr_soft_pwm, thus needs to be atomic
+    ///
+    /// @note
+    /// Some hotends might not have a simple pwm value to represent the current power used to heatup the nozzle.
+    /// For such hotends (like indx head, this value should be ignored)
     std::atomic<uint8_t> nozzle_heater_pwm_ = 0;
 
 #if HAS_TEMP_HEATBREAK

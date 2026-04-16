@@ -2,7 +2,6 @@
 
 #include <tool/tool/standard_fff_physical_tool.hpp>
 #include <tool/hotend/hotend/local_hotend.hpp>
-#include <utils/storage/strong_index_array.hpp>
 #include <module/thermistor/thermistors.h>
 #include <hw_configuration.hpp>
 
@@ -16,7 +15,7 @@ static MarlinTempTable heatbreak_temptable() {
 }
 #endif
 
-PhysicalTool &PhysicalTool::for_index(PhysicalToolIndex) {
+PhysicalTool &PhysicalTool::for_index([[maybe_unused]] PhysicalToolIndex tool) {
     static const LocalHotend::Config hotend_config {
         .base_config {
             // TODO: Get rid of the macros, put the values directly into this file
@@ -30,8 +29,8 @@ PhysicalTool &PhysicalTool::for_index(PhysicalToolIndex) {
             .nozzle_heater_marlin_pin = MARLIN_PIN(HEAT0),
             .nozzle_heater_soft_pwm = false,
     };
-    static StandardFFFPhysicalTool<LocalHotend> tool { PhysicalToolIndex::from_raw(0), &hotend_config };
+    static StandardFFFPhysicalTool<LocalHotend> physical_tool { PhysicalToolIndex::from_raw(0), &hotend_config };
     static_assert(PhysicalToolIndex::count == 1);
 
-    return tool;
+    return physical_tool;
 }
