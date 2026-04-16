@@ -2,12 +2,24 @@
 
 #include <stdint.h>
 #include <fanctl/CFanCtlCommon.hpp>
+#include <option/has_dwarf.h>
+#include <option/has_indx.h>
+
+#if HAS_DWARF()
+    #include <puppies/Dwarf.hpp>
+#elif HAS_INDX()
+    #include <puppies/INDX.hpp>
+#endif
 
 class CFanCtlPuppy final : public CFanCtlCommon {
 public:
-    CFanCtlPuppy(uint8_t dwarf_nr, uint8_t fan_nr, bool is_autofan, uint16_t max_rpm)
+    CFanCtlPuppy([[maybe_unused]] uint8_t dwarf_nr, uint8_t fan_nr, bool is_autofan, uint16_t max_rpm)
         : CFanCtlCommon(0, max_rpm)
-        , dwarf_nr(dwarf_nr)
+#if HAS_DWARF()
+        , tool(buddy::puppies::dwarfs[dwarf_nr])
+#elif HAS_INDX()
+        , tool(buddy::puppies::indx)
+#endif
         , fan_nr(fan_nr)
         , is_autofan(is_autofan) {
         reset_fan();
@@ -39,7 +51,11 @@ public:
     virtual void tick() override {}
 
 private:
-    const uint8_t dwarf_nr;
+#if HAS_DWARF()
+    buddy::puppies::Dwarf &tool;
+#elif HAS_INDX()
+    buddy::puppies::Indx &tool;
+#endif
     const uint8_t fan_nr;
     const bool is_autofan;
 };

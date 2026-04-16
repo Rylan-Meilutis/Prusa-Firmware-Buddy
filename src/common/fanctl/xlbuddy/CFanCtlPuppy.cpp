@@ -1,6 +1,5 @@
 #include "CFanCtlPuppy.hpp"
 
-#include "puppies/Dwarf.hpp"
 #include <Marlin/src/module/motion.h>
 
 void CFanCtlPuppy::enter_selftest_mode() {
@@ -16,9 +15,9 @@ void CFanCtlPuppy::exit_selftest_mode() {
 
 void CFanCtlPuppy::reset_fan() {
     if (is_autofan) {
-        buddy::puppies::dwarfs[dwarf_nr].set_fan_auto(fan_nr);
+        tool.set_fan_auto(fan_nr);
     } else {
-        buddy::puppies::dwarfs[dwarf_nr].set_fan(fan_nr, 0);
+        tool.set_fan(fan_nr, 0);
     }
 }
 
@@ -36,7 +35,7 @@ bool CFanCtlPuppy::set_pwm(uint16_t pwm) {
     }
 #endif
 
-    buddy::puppies::dwarfs[dwarf_nr].set_fan(fan_nr, remapped_pwm);
+    tool.set_fan(fan_nr, remapped_pwm);
     return true;
 }
 
@@ -49,27 +48,27 @@ bool CFanCtlPuppy::selftest_set_pwm(uint8_t pwm) {
 
 #if HAS_PRINT_FAN_TYPE()
     if (fan_nr == 0) {
-        PrintFanType pft = get_print_fan_type(dwarf_nr);
+        PrintFanType pft = get_print_fan_type(tool.dwarf_index());
         remapped_pwm = print_fan_remap_pwm(pft, pwm);
     }
 #endif
 
-    buddy::puppies::dwarfs[dwarf_nr].set_fan(fan_nr, remapped_pwm);
+    tool.set_fan(fan_nr, remapped_pwm);
     return true;
 }
 
 uint8_t CFanCtlPuppy::get_pwm() const {
-    return buddy::puppies::dwarfs[dwarf_nr].get_fan_pwm(fan_nr);
+    return tool.get_fan_pwm(fan_nr);
 }
 
 uint16_t CFanCtlPuppy::get_actual_rpm() const {
-    return buddy::puppies::dwarfs[dwarf_nr].get_fan_rpm(fan_nr);
+    return tool.get_fan_rpm(fan_nr);
 }
 
 bool CFanCtlPuppy::get_rpm_is_ok() const {
-    return buddy::puppies::dwarfs[dwarf_nr].get_fan_rpm_ok(fan_nr);
+    return tool.get_fan_rpm_ok(fan_nr);
 }
 
 CFanCtlCommon::FanState CFanCtlPuppy::get_state() const {
-    return static_cast<FanState>(buddy::puppies::dwarfs[dwarf_nr].get_fan_state(fan_nr));
+    return static_cast<FanState>(tool.get_fan_state(fan_nr));
 }
