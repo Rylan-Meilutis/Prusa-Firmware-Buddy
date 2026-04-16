@@ -62,6 +62,10 @@ if(HAS_FILAMENT_TRACKER)
   add_subdirectory(filament_tracker)
 endif()
 
+if(HAS_TOOL_OFFSET_SENSOR)
+  add_subdirectory(tool_offset_calibration)
+endif()
+
 add_subdirectory(motor_current_profile)
 add_subdirectory(ramming)
 add_subdirectory(cork)

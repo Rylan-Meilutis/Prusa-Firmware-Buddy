@@ -145,49 +145,6 @@ bool prepare_tool(PhysicalToolIndex tool) {
     return true;
 }
 
-void calibrate_xy_offset([[maybe_unused]] PhysicalToolIndex tool) {
-    auto config = tool_offset::get_default_probing_config();
-
-    const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-    if (!selected_tool.has_value()) {
-        log_error(ToolOffsetCalib, "failed: no tool selected");
-        return;
-    }
-
-    // Zero hotend offset and currently applied offset to avoid stale offset
-    // affecting subsequent tool changes (same as G425)
-    reset_hotend_offset(selected_tool.value());
-    hotend_currently_applied_offset = xyz_pos_t {};
-
-    // Reset planner state
-    planner.synchronize();
-    planner.reset_position();
-
-    // Disable PA to reduce filter delay during probe analysis
-    pressure_advance::PressureAdvanceDisabler pa_disabler;
-
-    // Perform the measurement for picked tool
-    auto sensor = tool_offset::get_default_sensor();
-    tool_offset::ToolOffset actual_ho = {
-        .x = hotend_offset[selected_tool.value()].x,
-        .y = hotend_offset[selected_tool.value()].y,
-        .z = 0.0f
-    };
-    for (int i = 0; i < 3; i++) {
-        log_info(ToolOffsetCalib, "XY offset measurement attempt %d", i + 1);
-        auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
-        if (result.has_value()) {
-            log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
-            hotend_offset[selected_tool.value()].x = result->x;
-            hotend_offset[selected_tool.value()].y = result->y;
-            prusa_toolchanger.save_tool_offset(selected_tool.value());
-            return;
-        } else {
-            log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
-        }
-    }
-}
-
 using ToolSet = std::bitset<PhysicalToolIndex::count>;
 
 /// Collect the unique set of physical tools needed for the current print,
@@ -264,8 +221,68 @@ void reset_z_tool_offsets() {
 
 namespace tool_offset_calibration {
 
+bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config) {
+    const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+    if (!selected_tool.has_value()) {
+        log_error(ToolOffsetCalib, "failed: no tool selected");
+        return false;
+    }
+    if (tool != selected_tool.value()) {
+        log_error(ToolOffsetCalib, "Selected tool must be picked");
+        return false;
+    }
+
+    // Reset planner state
+    planner.synchronize();
+    planner.reset_position();
+
+    // Disable PA to reduce filter delay during probe analysis
+    pressure_advance::PressureAdvanceDisabler pa_disabler;
+
+    // Perform the measurement for picked tool
+    auto sensor = tool_offset::get_default_sensor();
+    tool_offset::ToolOffset current_ho = {
+        .x = hotend_offset[tool].x,
+        .y = hotend_offset[tool].y,
+        .z = hotend_offset[tool].z,
+    };
+
+    auto offset_for_measurement = current_ho;
+    // Zero hotend offset and currently applied offset
+    reset_hotend_offset(tool);
+    hotend_currently_applied_offset = xyz_pos_t {};
+
+    for (int i = 0; i < 3; i++) {
+        log_info(ToolOffsetCalib, "XY offset measurement attempt %d", i + 1);
+        auto result = tool_offset::measure_current_tool_offset(config, *sensor, offset_for_measurement);
+        if (result.has_value()) {
+            log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
+            // Store newly measured offsets only for XY, keep actual for Z
+            hotend_offset[tool].x = result->x;
+            hotend_offset[tool].y = result->y;
+            hotend_offset[tool].z = current_ho.z;
+            prusa_toolchanger.save_tool_offset(tool);
+            hotend_currently_applied_offset = xyz_pos_t { result->x, result->y, current_ho.z };
+            return true;
+        } else {
+            log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
+            // retrials performed with 0 offsets
+            offset_for_measurement.x = 0;
+            offset_for_measurement.y = 0;
+        }
+    }
+    // Calibration failed after retries, restore original offsets
+    hotend_offset[tool].x = current_ho.x;
+    hotend_offset[tool].y = current_ho.y;
+    hotend_offset[tool].z = current_ho.z;
+    prusa_toolchanger.save_tool_offset(tool);
+    hotend_currently_applied_offset = xyz_pos_t { current_ho.x, current_ho.y, current_ho.z };
+    return false;
+}
+
 bool run(uint8_t r_param, uint8_t probe_count) {
     PrintStatusMessageGuard status_guard;
+    const auto probing_config = tool_offset::get_default_probing_config();
 
     reset_z_tool_offsets(); // Clear old Z offsets to avoid interference with calibration
 
@@ -355,7 +372,9 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         }
 
         // XY calibration for the first tool
-        calibrate_xy_offset(first);
+        if (!calibrate_xy_offset(first, probing_config)) {
+            return false;
+        }
     } // End of temp scope guard
 
     if (mapped_tools.count() == 1) {
@@ -401,7 +420,9 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 return false;
             }
 
-            calibrate_xy_offset(tool);
+            if (!calibrate_xy_offset(tool, probing_config)) {
+                return false;
+            }
         }
         // Interpolate expected Z on the reference line at the actual probed X
         const float t = result->pos.x - ref_first->pos.x;

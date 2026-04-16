@@ -431,7 +431,7 @@ static std::expected<ScanOutcome, const char *> run_scan(
 std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_current_tool_offset(
     const tool_offset::ProbingConfig &config,
     tool_offset::Sensor &sensor,
-    const tool_offset::ToolOffset &actual_offset) {
+    const tool_offset::ToolOffset &current_offset) {
 
     constexpr float confidence_threshold = 0.95f;
     constexpr float precision_mm_threshold = 0.1f;
@@ -485,8 +485,8 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     // XY offset measurement via two-pass scanning
     float sensor_x = config.sensor_position.x;
     float sensor_y = config.sensor_position.y;
-    float actual_offset_x = std::clamp(actual_offset.x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
-    float actual_offset_y = std::clamp(actual_offset.y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
+    float actual_offset_x = std::clamp(current_offset.x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
+    float actual_offset_y = std::clamp(current_offset.y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
 
     // Pass 1: center detection — scans centered on sensor_position
     auto cd_x = run_scan(config, sensor, "center-detection-x", true, sensor_x, sensor_y - actual_offset_y);

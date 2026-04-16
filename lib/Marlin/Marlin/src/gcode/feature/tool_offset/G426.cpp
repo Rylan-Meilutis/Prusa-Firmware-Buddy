@@ -8,6 +8,7 @@
 #include <option/has_toolchanger.h>
 #include <module/tool_change.h>
 #include <module/prusa/toolchanger.h>
+#include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -38,24 +39,12 @@ void GcodeSuite::G426() {
 
     auto config = tool_offset::get_default_probing_config();
 
-    if (parser.seenval('F')) {
-        config.sensing_speed_slow = parser.value_float();
-    }
-    if (parser.seenval('R')) {
-        config.sensing_speed_fast = parser.value_float();
-    }
-    if (parser.seenval('Z')) {
-        config.sensing_z = parser.value_float();
-    }
-    if (parser.seenval('D')) {
-        config.sensing_diameter = parser.value_float();
-    }
-    if (parser.seenval('X')) {
-        config.sensor_position.x = parser.value_float();
-    }
-    if (parser.seenval('Y')) {
-        config.sensor_position.y = parser.value_float();
-    }
+    config.sensing_speed_slow = parser.floatval('F', config.sensing_speed_slow);
+    config.sensing_speed_fast = parser.floatval('R', config.sensing_speed_fast);
+    config.sensing_z = parser.floatval('Z', config.sensing_z);
+    config.sensing_diameter = parser.floatval('D', config.sensing_diameter);
+    config.sensor_position.x = parser.floatval('X', config.sensor_position.x);
+    config.sensor_position.y = parser.floatval('Y', config.sensor_position.y);
 
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     if (!selected_tool.has_value()) {
@@ -63,44 +52,20 @@ void GcodeSuite::G426() {
         return;
     }
 
-    // Reset planner state
-    planner.synchronize();
-    planner.reset_position();
-
-    // Disable PA to reduce filter delay during probe analysis
-    pressure_advance::PressureAdvanceDisabler pa_disabler;
-
-    // Perform the measurement for picked tool
-    auto sensor = tool_offset::get_default_sensor();
-    tool_offset::ToolOffset actual_ho = {
-        .x = hotend_offset[selected_tool.value()].x,
-        .y = hotend_offset[selected_tool.value()].y,
-        .z = hotend_offset[selected_tool.value()].z,
-    };
-    // Zero hotend offset and currently applied offset
-    reset_hotend_offset(selected_tool.value());
-    hotend_currently_applied_offset = xyz_pos_t {};
-
-    auto result = tool_offset::measure_current_tool_offset(config, *sensor, actual_ho);
-    if (!result.has_value()) {
-        SERIAL_ECHOLNPAIR("G426 failed: ", result.error());
-        return;
+    if (tool_offset_calibration::calibrate_xy_offset(selected_tool.value(), config)) {
+        SERIAL_ECHOLN("G426 completed successfully");
+    } else {
+        SERIAL_ECHOLN("G426 failed");
     }
 
-    // Store newly measured offsets only for XY, keep actual for Z
-    hotend_offset[selected_tool.value()].x = result->x;
-    hotend_offset[selected_tool.value()].y = result->y;
-    prusa_toolchanger.save_tool_offset(selected_tool.value());
-    hotend_currently_applied_offset = xyz_pos_t { result->x, result->y, actual_ho.z };
-
     SERIAL_ECHOPGM("X offset: ");
-    SERIAL_ECHO_F(result->x, 4);
+    SERIAL_ECHO_F(hotend_offset[selected_tool.value()].x, 4);
     SERIAL_ECHOLNPGM(" mm");
     SERIAL_ECHOPGM("Y offset: ");
-    SERIAL_ECHO_F(result->y, 4);
+    SERIAL_ECHO_F(hotend_offset[selected_tool.value()].y, 4);
     SERIAL_ECHOLNPGM(" mm");
     SERIAL_ECHOPGM("Z offset: ");
-    SERIAL_ECHO_F(result->z, 4);
+    SERIAL_ECHO_F(hotend_offset[selected_tool.value()].z, 4);
     SERIAL_ECHOLNPGM(" mm");
 }
 
