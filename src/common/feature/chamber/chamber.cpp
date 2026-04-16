@@ -193,39 +193,32 @@ void Chamber::reset() {
 
 #if HAS_CHAMBER_VENTS()
 void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target) {
-
-    const auto control_state = config_store().get_vent_control();
-    if (control_state == VentControl::off) {
+    if (!fil_target.has_value()) {
+        // We don't know whether we should close or open, leave as is
         return;
     }
 
     constexpr uint8_t temp_limit = 45; // Limit for closed grills is chamber max temperature of PETG
+    const auto target_state = (fil_target.value() > temp_limit) ? VentState::closed : VentState::open;
 
-    auto open = [&]() {
-        if (control_state == VentControl::automatic) {
-            automatic_chamber_vents::execute_control(VentState::open);
-        } else {
-            marlin_server::set_warning(WarningType::OpenChamberVents);
-            vent_state_ = Chamber::VentState::open;
-        }
-    };
+    if (vent_state_ == target_state) {
+        // Vents at the correct position
+        return;
+    }
 
-    auto close = [&]() {
-        if (control_state == VentControl::automatic) {
-            automatic_chamber_vents::execute_control(VentState::closed);
-        } else {
-            marlin_server::set_warning(WarningType::CloseChamberVents);
-            vent_state_ = Chamber::VentState::closed;
-        }
-    };
+    switch (config_store().get_vent_control()) {
 
-    // Don't show any vent dialog/manipulate grilles if filament doesn't support chamber temperature control
-    if (fil_target.has_value()) {
-        if (fil_target.value() > temp_limit && vent_state_ != Chamber::VentState::closed) {
-            close();
-        } else if (fil_target.value() <= temp_limit && vent_state_ != Chamber::VentState::open) {
-            open();
-        }
+    case VentControl::off:
+        return;
+
+    case VentControl::automatic:
+        automatic_chamber_vents::execute_control(target_state);
+        break;
+
+    case VentControl::manual:
+        marlin_server::set_warning(target_state == VentState::open ? WarningType::OpenChamberVents : WarningType::CloseChamberVents);
+        vent_state_ = target_state;
+        break;
     }
 }
 #endif
