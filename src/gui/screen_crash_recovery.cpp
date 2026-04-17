@@ -105,7 +105,7 @@ static constexpr const char *en_text_long_short = find_error(ErrCode::CONNECT_CR
 static constexpr const char *en_text_long_long = find_error(ErrCode::CONNECT_CRASH_RECOVERY_AXIS_LONG).err_text;
 static constexpr const char *en_text_long_repeat = find_error(ErrCode::CONNECT_CRASH_RECOVERY_REPEATED_CRASH).err_text;
 static constexpr const char *en_text_repeat_info = N_("Try checking belt tension or decreasing\nsensitivity in the tune menu.");
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
 static constexpr const char *en_text_repeat_info_tool = N_("Try checking belt tension, decreasing sensitivity\nin the tune menu or recalibrating dock position.");
 static constexpr const char *en_text_long_tool = find_error(ErrCode::CONNECT_CRASH_RECOVERY_TOOL_PICKUP).err_text;
     #endif
@@ -185,7 +185,7 @@ WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen)
     , icon_nozzle_crash(&screen, icon_nozzle_crash_rc, &img::nozzle_crash_101x64)
     , icon_nozzle(&screen, icon_nozzle_rc, &img::nozzle_shape_48x48)
     , text_info(&screen, text_repeat_info_rc, is_multiline::yes, is_closed_on_click_t::no,
-    #if HAS_TOOLCHANGER()
+    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
           prusa_toolchanger.is_toolchanger_enabled() ? _(en_text_repeat_info_tool) : _(en_text_repeat_info)
     #else
           _(en_text_repeat_info)

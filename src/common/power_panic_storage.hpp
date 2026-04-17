@@ -5,6 +5,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_chamber_api.h>
 #include <option/has_motor_current_profiles.h>
+#include <option/has_tool_crash_recovery.h>
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
@@ -159,7 +160,7 @@ struct state_progress_t {
 // toolchanger recovery info
 //   can't use PrusaToolChanger::PrecrashData as it doesn't have to be packed
 struct state_toolchanger_t {
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
     XYZval<float, LogicalPosTag> return_pos; ///< Position wanted after toolchange
     uint8_t precrash_tool; ///< Tool wanted to be picked before panic
     tool_return_t return_type : 8; ///< Where to return after recovery
@@ -186,7 +187,9 @@ struct state_t {
     state_planner_t planner;
     state_progress_t progress;
     state_print_t print;
+#if HAS_TOOL_CRASH_RECOVERY()
     state_toolchanger_t toolchanger;
+#endif
 
 #if HAS_CANCEL_OBJECT()
     buddy::CancelObject::State cancel_object;

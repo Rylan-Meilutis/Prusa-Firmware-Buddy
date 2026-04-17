@@ -17,6 +17,7 @@
 #if HAS_MOTOR_CURRENT_PROFILES()
     #include <feature/motor_current_profile/motor_current_profile.hpp>
 #endif
+#include <option/has_tool_crash_recovery.h>
 
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
@@ -230,7 +231,7 @@ static void atomic_reset() {
 static void atomic_finish() {
     HAL_NVIC_DisableIRQ(buddy::hw::acFault.getIRQn());
 
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
     if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL // Was in toolchange area
         && prusa_toolchanger.is_toolchanger_enabled()) { // Toolchanger is installed
 
@@ -385,7 +386,7 @@ void resume_loop() {
 
 #endif
 
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
         if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL) { // Was in toolchange area
             prusa_toolchanger.set_precrash_state({ state_buf.toolchanger.precrash_tool,
                 state_buf.toolchanger.return_type,
@@ -753,7 +754,7 @@ void panic_loop() {
         }
 #endif
         state_buf.gcode_stream_restore_info = marlin_server::stream_restore_info();
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
         // Store tool that was last requested and where to return in case toolchange is ongoing
         state_buf.toolchanger.precrash_tool = prusa_toolchanger.get_precrash().tool_nr;
         state_buf.toolchanger.return_type = prusa_toolchanger.get_precrash().return_type;
@@ -782,7 +783,7 @@ void panic_loop() {
 #endif
             destination = current_position;
             const PrintArea::rect_t print_rect = print_area.get_bounding_rect(); // We need to get out of print area
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
             if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL) { // Is in the toolchange area
                 // Do not move X or Y
             } else
@@ -919,7 +920,7 @@ void ac_fault_isr() {
         }
 
         // save crash parameters
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
         if (crash_s.is_toolchange_event()) {
             // Panic during toolchange, use the intended destination for replay
             // !! We're losing E somewhere?!
