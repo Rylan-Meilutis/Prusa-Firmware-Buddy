@@ -22,7 +22,8 @@ add_library(STM32C0_HAL_Config ALIAS HAL_Config)
 
 target_sources(
   firmware
-  PRIVATE src/hal.cpp
+  PRIVATE src/app.cpp
+          src/hal.cpp
           src/hal_adc.cpp
           src/hal_crc.cpp
           src/hal_spi.cpp
