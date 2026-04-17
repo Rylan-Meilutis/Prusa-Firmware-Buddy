@@ -55,7 +55,7 @@ Errors:
     approved: true
 
   - code: "XX103"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "DOCK POSITION OUT OF BOUNDS"
     text: "Dock %d position differs too much from expected values."
     id: "DOCK_POSITION_OUT_OF_BOUNDS"
@@ -63,7 +63,7 @@ Errors:
     approved: true
 
   - code: "XX104"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "TOOL OFFSET OUT OF BOUNDS"
     text: "Tool %d offset %c: %.3f is out of bounds [%.3f, %.3f]."
     id: "TOOL_OFFSET_OUT_OF_BOUNDS"
@@ -71,7 +71,7 @@ Errors:
     approved: true
 
   - code: "XX105"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "XY PROBE UNSTABLE"
     text: "XY probing failed due to the low measurement stability."
     id: "XY_PROBE_UNSTABLE"
@@ -79,7 +79,7 @@ Errors:
     approved: true
 
   - code: "XX106"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "XY POSITION INVALID"
     text: "Probed XY position is %.3f mm from expected. This is more than allowed difference of %.3f mm."
     id: "XY_POSITION_INVALID"
@@ -87,7 +87,7 @@ Errors:
     approved: true
 
   - code: "XX107"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "PIN NOT REACHED"
     text: "Calibration pin has not been reached. Please check the pin installation."
     id: "PIN_NOT_REACHED"
@@ -105,7 +105,7 @@ Errors:
 
   - code: "XX109"
     printers: [iX, COREONE, COREONE_INDX, COREONEL, COREONEL_INDX, MK4]
-    title: "STEEL SHEEL NOT DETECTED"
+    title: "STEEL SHEET NOT DETECTED"
     text: "Steel sheet was not detected. Please put the sheet on to prevent printer damage."
     action: [Retry, Skip]
     id: "STEEL_SHEET_NOT_DETECTED"
@@ -230,7 +230,7 @@ Errors:
 
   - code: "XX119"
     title: "LOADING OBSTRUCTION"
-    printers: [XL, COREONE, COREONE_INDX, COREONEL, COREONEL_INDX, iX]
+    printers: [XL, COREONE, COREONEL, iX]
     text: "Filament was detected in the extruder filament sensor. Please remove it manually before proceeding."
     id: "LOADING_OBSTRUCTION"
     type: WARNING
@@ -244,6 +244,78 @@ Errors:
     id: "HOMING_CALIBRATION_FROM_MENU_NEEDED"
     gui_layout: "warning_dialog"
     approved: true
+
+  - code: "XX121"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Unknown nozzle"
+    text: "A nozzle was detected but its identity is unknown. Please select the dock it belongs to."
+    id: "NOZZLE_MISMATCH_UNKNOWN"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX122"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Unknown nozzle"
+    text: "Select the dock the nozzle belongs to."
+    id: "NOZZLE_MISMATCH_DOCK_SELECTION"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX123"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Occupied dock"
+    text: "The head hit something on the way to the dock. Make sure the correct dock is selected and empty, then retry."
+    id: "NOZZLE_MISMATCH_DOCK_NOT_EMPTY"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX124"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Tool lost"
+    text: "Expected tool was not detected. The printer needs to rehome before continuing."
+    id: "NOZZLE_MISMATCH_TOOL_LOST"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX125"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Tool pickup failed"
+    text: "Nozzle was not detected after tool pickup."
+    id: "NOZZLE_MISMATCH_PICKUP_FAILED"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX126"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Retry pickup"
+    text: "Make sure the tool is in the dock, then press Continue."
+    id: "NOZZLE_MISMATCH_PICKUP_RETRY"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX127"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Tool park failed"
+    text: "Nozzle was still detected after parking."
+    id: "NOZZLE_MISMATCH_PARK_FAILED"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX128"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Retry tool park"
+    text: "Make sure the dock is accessible, then press Continue."
+    id: "NOZZLE_MISMATCH_PARK_RETRY"
+    gui_layout: "warning_dialog"
+    approved: false
+
+  - code: "XX129"
+    printers: [COREONE_INDX, COREONEL_INDX]
+    title: "Abort print?"
+    text: "This will abort the current print."
+    id: "NOZZLE_MISMATCH_CONFIRM_ABORT"
+    gui_layout: "warning_dialog"
+    approved: false
 
   # TEMPERATURE    xx2xx
 
@@ -350,7 +422,7 @@ Errors:
     deprecated: true
 
   - code: "XX210"
-    printers: [MINI, MK4, COREONE, COREONE_INDX, COREONEL, COREONEL_INDX, iX, MK3.5]
+    printers: [MINI, MK4, COREONE, COREONEL, iX, MK3.5]
     title: "TEMP NOT MATCHING"
     text: "Measured temperature is not matching expected value. Check the thermistor is in contact with hotend. In case of damage, replace it."
     id: "HOTEND_TEMP_NOT_MATCHING"
@@ -900,7 +972,7 @@ Errors:
     approved: true
 
   - code: "XX502"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "DWARF ERROR"
     text: "Dwarf board encountered the following problem: \n%s"
     id: "DWARF_UNKNOWN_ERR"
@@ -1152,7 +1224,7 @@ Errors:
     approved: true
 
   - code: "XX536"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "EXTRUDER ERROR"
     text: "Extruder motor is not spinning on tool %d"
     id: "DWARF_TMC"
@@ -1412,7 +1484,7 @@ Errors:
     approved: true
 
   - code: "XX813"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "CRASH DETECTED"
     text: "Toolchanger problem has been detected.\nPark all tools to docks\nand leave the carriage free."
     id: "CRASH_RECOVERY_TOOL_PICKUP"
@@ -1512,7 +1584,7 @@ Errors:
     approved: true
 
   - code: "XX823"
-    printers: [XL, MK3.5, COREONE_INDX, COREONEL_INDX]
+    printers: [XL, MK3.5]
     title: "Warning"
     text: "Nozzle doesn't seem to have round cross section. Make sure it is clean and perpendicular to the bed."
     id: "NOZZLE_DOES_NOT_HAVE_ROUND_SECTION"
@@ -1537,7 +1609,7 @@ Errors:
     approved: true
 
   - code: "XX826"
-    printers: [XL, COREONE_INDX, COREONEL_INDX]
+    printers: [XL]
     title: "Warning"
     text: "MCU in Dwarf is overheated, likely due to exceeding the printer's operating temperature. Prevent overheating for optimal performance."
     id: "DWARF_MCU_MAX_TEMP"
