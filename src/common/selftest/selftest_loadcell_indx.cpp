@@ -1,9 +1,3 @@
-/**
- * @file selftest_loadcell.cpp
- * @author Radek Vana
- * @copyright Copyright (c) 2021
- */
-
 #include "selftest_loadcell.h"
 #include "config_features.h" //EXTRUDER_AUTO_loadcell_TEMPERATURE
 #include "marlin_server.hpp"
@@ -19,6 +13,7 @@
 #include "algorithm_scale.hpp"
 #include <climits>
 #include <sensor_data.hpp>
+#include <nozzle_cleaner.hpp>
 
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
@@ -29,25 +24,32 @@
 LOG_COMPONENT_REF(Selftest);
 using namespace selftest;
 
-static constexpr int32_t acceptable_noise_range_g = 60;
+static constexpr int32_t acceptable_noise_range_g = 200; // TODO pick correct number
 
 CSelftestPart_Loadcell::CSelftestPart_Loadcell(IPartHandler &state_machine, const LoadcellConfig_t &config,
     SelftestLoadcell_t &result)
     : rStateMachine(state_machine)
     , rConfig(config)
     , rResult(result)
-    , begin_target_temp(thermalManager.degTargetHotend(rConfig.tool_nr))
     , time_start(SelftestInstance().GetTime())
     , log(1000)
     , log_fast(100) // this is only during 1s (will generate 9-10 logs)
 {
-    thermalManager.setTargetHotend(0, rConfig.tool_nr);
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    begin_target_temp = 0;
+    if (tool.has_value()) {
+        begin_target_temp = thermalManager.degTargetHotend(tool->to_raw());
+        thermalManager.setTargetHotend(0, tool->to_raw());
+    }
     endstops.enable(true);
     log_info(Selftest, "%s Started", rConfig.partname);
 }
 
 CSelftestPart_Loadcell::~CSelftestPart_Loadcell() {
-    thermalManager.setTargetHotend(begin_target_temp, rConfig.tool_nr);
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (tool.has_value()) {
+        thermalManager.setTargetHotend(begin_target_temp, tool->to_raw());
+    }
     endstops.enable(false);
 }
 
@@ -75,44 +77,55 @@ LoopResult CSelftestPart_Loadcell::stateParking() {
 
     if (rConfig.z_extra_pos > current_position.z) {
         // Z move might hit the end of the axis
-        current_position.z = rConfig.z_extra_pos;
-        line_to_current_position(rConfig.z_extra_pos_fr);
+        do_z_clearance(100.f);
         planner.synchronize();
     }
 
-    mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::loadcell_selftest));
+    if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+        bool picked = prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false);
+        if (!picked) {
+            return LoopResult::Abort;
+        }
+    }
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Loadcell::stateCooldownInit() {
-    thermalManager.setTargetHotend(0, rConfig.tool_nr); // Disable heating for tested hotend
-    const float temp = thermalManager.degHotend(rConfig.tool_nr);
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (!tool.has_value()) {
+        bsod_unreachable();
+    }
+    thermalManager.setTargetHotend(0, tool->to_raw()); // Disable heating for tested hotend
+    const float temp = thermalManager.degHotend(tool->to_raw());
     rResult.temperature = static_cast<int16_t>(temp);
     need_cooling = temp > rConfig.cool_temp; // Check if temperature is safe
     if (need_cooling) {
-#if HAS_TOOLCHANGER() && !HAS_INDX()
-        if (prusa_toolchanger.is_toolchanger_enabled()) {
-            if (!axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS))) {
-                // Nozzle is hot and axes are known, park it and don't let user touch it
-                marlin_server::enqueue_gcode_printf("P0 S1");
-            }
-            // else we would have to home near user which defeats the purpose of hiding the nozzle
-        }
-#endif
+        // park at nozzle cleaner
+        GcodeSuite::G28_no_parser(true, true, false, {
+                                                         .only_if_needed = true, .z_raise = 3,
+                                                         .precise = false, // We don't need precise position for parking
+                                                     });
+        const auto &gcode = nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::enter_cleaner);
+        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
+
         IPartHandler::SetFsmPhase(PhasesSelftest::Loadcell_cooldown);
         log_info(Selftest, "%s cooling needed, target: %d current: %f", rConfig.partname,
             static_cast<int>(rConfig.cool_temp), static_cast<double>(temp));
-        rConfig.print_fan_fnc(rConfig.tool_nr).enter_selftest_mode();
-        rConfig.heatbreak_fan_fnc(rConfig.tool_nr).enter_selftest_mode();
-        rConfig.print_fan_fnc(rConfig.tool_nr).selftest_set_pwm(255); // it will be restored by exitSelftestMode
-        rConfig.heatbreak_fan_fnc(rConfig.tool_nr).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        rConfig.print_fan_fnc(tool->to_raw()).enter_selftest_mode();
+        rConfig.heatbreak_fan_fnc(tool->to_raw()).enter_selftest_mode();
+        rConfig.print_fan_fnc(tool->to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        rConfig.heatbreak_fan_fnc(tool->to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
         log_info(Selftest, "%s fans set to maximum", rConfig.partname);
     }
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Loadcell::stateCooldown() {
-    const float temp = thermalManager.degHotend(rConfig.tool_nr);
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (!tool.has_value()) {
+        bsod_unreachable();
+    }
+    const float temp = thermalManager.degHotend(tool->to_raw());
     rResult.temperature = static_cast<int16_t>(temp);
 
     // still cooling
@@ -128,34 +141,28 @@ LoopResult CSelftestPart_Loadcell::stateCooldown() {
 }
 
 LoopResult CSelftestPart_Loadcell::stateCooldownDeinit() {
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (!tool.has_value()) {
+        bsod_unreachable();
+    }
     if (need_cooling) { // if cooling was needed, return control of fans
-        rConfig.print_fan_fnc(rConfig.tool_nr).exit_selftest_mode();
-        rConfig.heatbreak_fan_fnc(rConfig.tool_nr).exit_selftest_mode();
+        // unpark from nozzle cleaner
+        const auto &gcode = nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::exit_cleaner);
+        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
+
+        rConfig.print_fan_fnc(tool->to_raw()).exit_selftest_mode();
+        rConfig.heatbreak_fan_fnc(tool->to_raw()).exit_selftest_mode();
         log_info(Selftest, "%s fans disabled", rConfig.partname);
     }
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Loadcell::stateToolSelectInit() {
-    if (PhysicalToolIndex::currently_selected() != PhysicalToolIndex::from_raw_notool(rConfig.tool_nr)) {
-        IPartHandler::SetFsmPhase(PhasesSelftest::Loadcell_tool_select);
-
-        marlin_server::enqueue_gcode_printf("T%d S1 L0 D0", rConfig.tool_nr);
-
-        // go to some reasonable position
-        // Use reasonable feedrate as it was likely set by previous Z move
-        float pos[] = XYZ_LOADCELL_SELFTEST_POINT;
-        auto x = static_cast<int>(pos[0]);
-        auto y = static_cast<int>(pos[1]);
-        marlin_server::enqueue_gcode_printf("G0 X%d Y%d F%d", x, y, XY_PROBE_SPEED_INITIAL);
-    }
+    mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::loadcell_selftest));
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Loadcell::stateToolSelectWaitFinish() {
-    if (queue.has_commands_queued() || planner.processing()) {
-        return LoopResult::RunCurrent;
-    }
     return LoopResult::RunNext;
 }
 

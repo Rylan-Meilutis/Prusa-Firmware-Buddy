@@ -32,7 +32,11 @@ if(CONNECT OR WUI)
 endif()
 
 if(HAS_LOADCELL)
-  target_sources(firmware PRIVATE selftest_loadcell.cpp selftest_loadcell_interface.cpp)
+  if(HAS_INDX)
+    target_sources(firmware PRIVATE selftest_loadcell_indx.cpp selftest_loadcell_interface_indx.cpp)
+  else()
+    target_sources(firmware PRIVATE selftest_loadcell.cpp selftest_loadcell_interface.cpp)
+  endif()
 endif()
 
 if(PRINTER STREQUAL "MINI" OR PRINTER STREQUAL "MK3.5")
