@@ -243,6 +243,7 @@ target_link_libraries(
          random
          fanctl
          raii
+         otp # burst_stepper
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)
 

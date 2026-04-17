@@ -3,7 +3,10 @@
 #include <hwio.h>
 #include <array>
 #include <device/peripherals.h>
-#include "otp.hpp"
+
+#if BOARD_IS_XLBUDDY()
+    #include "otp.hpp"
+#endif
 
 using namespace phase_stepping;
 using namespace phase_stepping::opts;
