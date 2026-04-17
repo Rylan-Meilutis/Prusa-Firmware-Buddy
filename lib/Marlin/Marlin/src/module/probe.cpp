@@ -41,7 +41,6 @@
 #include <module/planner.h>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
 #include <option/has_toolchanger.h>
-#include <option/has_indx.h> // INDX_MERGE_TODO
 
 #include "../gcode/gcode.h"
 #include "../lcd/ultralcd.h"
@@ -632,8 +631,8 @@ float run_z_probe(const RunZProbeParams& params) {
   #elif ENABLED(NOZZLE_LOAD_CELL)
     xy_pos_t center_pos = current_position.xy();
     int probe_idx = 0;
-    bool success = false;
-    float last_probe_z = NAN;
+    uint8_t success_count = 0;
+    float z_sum = 0.0f;
   #endif
 
   #if TOTAL_PROBING > 2 && DISABLED(NOZZLE_LOAD_CELL)
@@ -742,11 +741,12 @@ float run_z_probe(const RunZProbeParams& params) {
         auto result = loadcell.analysis.Analyse(params.is_nozzle_clean);
 
         if (result.has_value()) {
-          success = true;
-          last_probe_z = result->z_coordinate;
+          z_sum += result->z_coordinate;
+          success_count++;
           metric_record_custom(&analysis_result, " ok=%i,desc=\"all-good\"", true);
-          SERIAL_ECHO_MSG("Probe classified as clean and OK");
-          break;
+          SERIAL_ECHOLNPAIR("Probe ", success_count, "/", params.required_successes, " classified as clean and OK, Z: ", result->z_coordinate);
+          if (success_count >= params.required_successes)
+            break;
 
         } else {
           const auto &err = result.error();
@@ -777,7 +777,7 @@ float run_z_probe(const RunZProbeParams& params) {
 
   #if ENABLED(NOZZLE_LOAD_CELL)
 
-    const float measured_z = success ? last_probe_z : NAN;
+    const float measured_z = success_count >= params.required_successes ? z_sum / success_count : NAN;
 
   #elif TOTAL_PROBING > 2
 
@@ -964,7 +964,7 @@ float probe_here(float expected_trigger_z)
  *   - Raise to the BETWEEN height
  * - Return the probed Z position
  */
-float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE_PT_NONE*/, const uint8_t verbose_level/*=0*/, const bool probe_relative/*=true*/) {
+float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE_PT_NONE*/, const uint8_t verbose_level/*=0*/, const bool probe_relative/*=true*/, const uint8_t required_successes/*=1*/) {
   xyz_pos_t npos = xyz_pos_t(pos);
   if (probe_relative) {
     if (!position_is_reachable_by_probe(npos.xy())) {
@@ -1011,13 +1011,13 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 
   float measured_z = NAN;
   if (!DEPLOY_PROBE()) {
-    measured_z = run_z_probe({ .expected_trigger_z = 0.f});
+    measured_z = run_z_probe({ .expected_trigger_z = 0.f, .required_successes = required_successes});
     const float move_away_from = std::isnan(measured_z) ? current_position.z : measured_z;
 
     measured_z += probe_offset.z;
 
     #if HAS_HOTEND_OFFSET
-    #if !HAS_TOOLCHANGER() && !HAS_INDX() // INDX_MERGE_TODO
+    #if !HAS_TOOLCHANGER()
       #error not implemented
     #endif
     // measured Z is in probe's logical coordinate space, shift it to printers native coordinate space
