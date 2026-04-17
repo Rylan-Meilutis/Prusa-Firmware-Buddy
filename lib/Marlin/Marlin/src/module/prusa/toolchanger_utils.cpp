@@ -138,6 +138,11 @@ void PrusaToolChangerUtils::request_active_switch(Dwarf *new_dwarf) {
     }
 }
 
+bool PrusaToolChangerUtils::is_tool_enabled(uint8_t tool) {
+    assert(tool < buddy::puppies::dwarfs.size());
+    return buddy::puppies::dwarfs[tool].is_enabled();
+}
+
 bool PrusaToolChangerUtils::update(PuppyModbus &bus) {
     if (request_toolchange) {
         // Make requested tool active
@@ -209,7 +214,7 @@ float PrusaToolChangerUtils::get_mbl_z_lift_height() const {
     return mbl_max_z_height - mbl_min_z_height;
 }
 
-uint8_t PrusaToolChangerUtils::detect_tool_nr() {
+uint16_t PrusaToolChangerUtils::detect_tool_nr() {
     Dwarf *dwarf = picked_dwarf.load();
     if (dwarf) {
         return dwarf->dwarf_index();
@@ -307,19 +312,6 @@ void PrusaToolChangerUtils::set_tool_info(const buddy::puppies::Dwarf &dwarf, co
 
 void PrusaToolChangerUtils::toolchanger_error(const char *message) const {
     fatal_error(message, "PrusaToolChanger");
-}
-
-void PrusaToolChangerUtils::expand_first_dock_position() {
-    // Compute dock positions using first dock position
-    const PrusaToolInfo first = get_tool_info(dwarfs[PhysicalToolIndex::from_raw(0)]);
-
-    for (auto tool : PhysicalToolIndex::all()) {
-        const PrusaToolInfo computed = {
-            .dock_x = first.dock_x + tool.to_raw() * DOCK_OFFSET_X_MM,
-            .dock_y = first.dock_y
-        };
-        set_tool_info(dwarfs[tool], computed);
-    }
 }
 
 PrusaToolChangerUtils::StepperConfigGuard::StepperConfigGuard() {

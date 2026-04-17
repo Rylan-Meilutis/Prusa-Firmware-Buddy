@@ -5,15 +5,15 @@
 FSensorXBuddyExtension *getSideFSensor(uint8_t index) {
     static std::array<FSensorXBuddyExtension, PhysicalToolIndex::count> sensors = { {
         { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 0 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 1 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 2 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 3 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 4 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 5 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 6 }, FSensorXBuddyExtension::Source::ext },
-        //{ FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 7 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 1 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 2 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 3 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 4 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 5 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 6 }, FSensorXBuddyExtension::Source::ext },
+        { FilamentSensorID { .position = FilamentSensorID::Position::side, .index = 7 }, FSensorXBuddyExtension::Source::ext },
     } };
-    // static_assert(PhysicalToolIndex::count == 8); // INDX_MERGE_TODO: After Configuration are merged
+    static_assert(PhysicalToolIndex::count == 8);
     if (index >= sensors.size() || !PhysicalToolIndex::from_raw(index).is_enabled()) {
         return nullptr;
     }

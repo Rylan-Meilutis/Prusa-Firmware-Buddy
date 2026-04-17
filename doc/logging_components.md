@@ -43,6 +43,7 @@ This file is generated automatically so don't edit it directly
 - PowerPanic: logging::Severity::info, src/common/power_panic.cpp
 - PreciseStepping: logging::Severity::debug, lib/Marlin/Marlin/src/feature/precise_stepping/precise_stepping.cpp
 - PrusaToolChanger: logging::Severity::debug, lib/Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
+- PrusaToolChanger: logging::Severity::debug, lib/Marlin/Marlin/src/module/prusa/toolchanger_utils_indx.cpp
 - Puppies: logging::Severity::debug, src/puppies/puppy_task.cpp
 - Resources: logging::Severity::debug, src/resources/bootstrap.cpp
 - RingAllocator: logging::Severity::info, src/common/ring_allocator.cpp

@@ -1,11 +1,24 @@
 #pragma once
 #include <inc/MarlinConfigPre.h>
 
+#include <option/has_indx.h>
+#include <option/has_dwarf.h>
+#if HAS_INDX()
+    #include <module/prusa/indx_dock_position_defaults.hpp>
+#endif
+#include <utils/storage/strong_index_array.hpp>
+
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <inc/MarlinConfig.h>
-    #include <puppies/Dwarf.hpp>
     #include <puppies/PuppyModbus.hpp>
+
+    #if HAS_DWARF()
+        #include <puppies/Dwarf.hpp>
+    #endif
+    #if HAS_INDX()
+        #include <puppies/INDX.hpp>
+    #endif
     #include <module/tool_change.h>
     #include <tool_index.hpp>
 
@@ -18,6 +31,49 @@ struct PrusaToolInfo {
 
 class PrusaToolChangerUtils {
 public:
+    #if HAS_INDX()
+    static constexpr uint8_t MARLIN_NO_TOOL_PICKED = EXTRUDERS - 1;
+    static constexpr auto PARKING_FINAL_MAX_SPEED = 300.f; ///< Maximum speed (mm/s) for parking
+    static constexpr auto SLOW_MOVE_MM_S = 100; ///< General slow feedrate [mm/s]
+    static constexpr auto Z_HOP_FEEDRATE_MM_S = 10.0f; ///< Feedrate for z hop
+    static constexpr auto TRAVEL_MOVE_MM_S = 300.f; ///< Feedrate for moves around dock
+    static constexpr auto OPEN_HEAD_TRAVEL_MOVE_MM_S = 250.f; ///< Feedrate for open head travel move (skipping on 300 during G28 Z -> tool_change -> open_head)
+
+    // Dock geometry
+    static constexpr StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::no> DOCK_DEFAULT_X_MM { indx_dock_position_defaults::x_mm };
+    static constexpr auto DOCK_DEFAULT_Y_MM = indx_dock_position_defaults::y_mm;
+    static constexpr auto DOCK_INVALID_OFFSET_X_MM = 2.0f;
+    static constexpr auto DOCK_INVALID_OFFSET_Y_MM = 1.0f;
+
+    // Y offsets from dock_y (dock_y is the deepest/full-dock position)
+    static constexpr float DOCK_SAFE_Y_OFFSET = 28.6f; ///< Collision-free distance in front of dock [mm]
+    // Absolute safe Y positions (computed from default dock Y, used by external code for boundary checks)
+    static constexpr auto SAFE_Y_WITH_TOOL = DOCK_DEFAULT_Y_MM + DOCK_SAFE_Y_OFFSET;
+    static constexpr float DOCK_UNLOCK_Y_OFFSET = 10.6f; ///< Y offset for the unlock position [mm]
+
+    // E-axis lock/unlock mechanism
+    static constexpr float E_WIGGLE_DISTANCE = 0.27f; ///< Tooth alignment wiggle distance [mm]
+    static constexpr float E_PARTIAL_UNLOCK_DISTANCE = 1.3f; ///< Partial unlock, head still holds nozzle [mm]
+    static constexpr float E_FULL_OPEN_DISTANCE = 11.2f; ///< Full open distance [mm]
+    static constexpr float E_FULL_CLOSE_DISTANCE = 10.5f; ///< Full lock distance [mm]
+    static constexpr float E_FULL_CLOSE_FINAL_DISTANCE = 2.0f; ///< Final lock distance [mm]
+
+    // E-axis motor currents for lock/unlock
+    static constexpr uint16_t E_WIGGLE_CURRENT_MA = 200; ///< Low current for safe tooth engagement [mA]
+    static constexpr uint16_t E_UNLOCK_CURRENT_MA = 500; ///< Higher current for actual unlock [mA]
+
+    // Park/pickup feedrates [mm/s]
+    static constexpr float PARK_APPROACH_FEEDRATE = 250.0f; ///< Approach to unlock position
+    static constexpr float DOCK_ENGAGE_FEEDRATE = 100.0f; ///< Deeper dock move during park
+    static constexpr float PICKUP_APPROACH_FEEDRATE = 100.0f; ///< Pickup approach into dock
+    static constexpr float E_WIGGLE_FEEDRATE = 13.3f; ///< Tooth alignment E moves
+    static constexpr float E_UNLOCK_FEEDRATE = 25.0f; ///< Partial unlock E move
+    static constexpr float E_FULL_OPEN_FEEDRATE = 25.0f; ///< Full open E move
+    static constexpr float E_LOCK_FEEDRATE = 25.0f; ///< Lock E move
+    static constexpr float FAST_EXIT_FEEDRATE = 250.0f; ///< Fast exit from dock
+    static constexpr uint32_t DOCK_DWELL_MS = 100; ///< Dwell time after lock/unlock [ms]
+    static constexpr uint32_t NOZZLE_VERIFY_TIMEOUT_MS = 15000; ///< Max wait for nozzle presence data after pickup/park [ms]
+    #else
     static constexpr uint8_t MARLIN_NO_TOOL_PICKED = EXTRUDERS - 1;
     static constexpr auto PARKING_CURRENT_MA = 950; ///< Higher motor current on the lock and unlock moves
     static constexpr auto PARKING_STALL_SENSITIVITY = 4; ///< Stall sensitivity used when PARKING_CURRENT_MA is used
@@ -27,11 +83,11 @@ public:
     static constexpr auto SLOW_MOVE_MM_S = 50; ///< Feedrate for tool picking and parking
     static constexpr auto Z_HOP_FEEDRATE_MM_S = 10.0f; ///< Feedrate for z hop
     static constexpr auto TRAVEL_MOVE_MM_S =
-    #if defined(_DEBUG)
+        #if defined(_DEBUG)
         300.f; // stepping computations are too slow for full speed in debug (BFW-8259)
-    #else
+        #else
         400.f;
-    #endif ///< Feedrate for moves around dock
+        #endif ///< Feedrate for moves around dock
     static constexpr uint32_t WAIT_TIME_TOOL_SELECT = 3000; ///< Max wait for puppytask tool switch [ms], needs a lot of time if there is a hiccup in puppy communication
     static constexpr uint32_t WAIT_TIME_TOOL_PARKED_PICKED = 200; ///< Max wait for cheese to detect magnet [ms]
     static constexpr auto SAFE_Y_WITH_TOOL = 360.0f;
@@ -50,7 +106,7 @@ public:
     static constexpr auto PICK_X_OFFSET_2 = -12.8f; ///< Offset from dock_x when tool is fully locked [mm]
     static constexpr auto PICK_X_OFFSET_3 = -9.9f; ///< Offset from dock_x when tool can be pulled from the dock area [mm]
     static constexpr auto X_UNLOCK_DISTANCE_MM = PICK_X_OFFSET_3; ///< Unlock move length while dock calibrating [mm]
-
+    #endif
     /// Feedrate for moves around dock
     static float limit_stealth_feedrate(float feedrate);
 
@@ -63,6 +119,22 @@ public:
      * @return true on success, false on communication error
      */
     bool init(buddy::puppies::PuppyModbus &, bool first_run);
+
+    #if HAS_INDX()
+
+    void set_active_extruder(std::variant<PhysicalToolIndex, NoTool> tool);
+
+    inline bool is_toolchanger_enabled() {
+        return true;
+    }
+
+    const PrusaToolInfo &get_tool_info(PhysicalToolIndex tool_index, bool check_calibrated = false) const;
+    bool is_tool_info_valid(PhysicalToolIndex tool_index, const PrusaToolInfo &info) const;
+    void set_tool_info(PhysicalToolIndex tool_index, const PrusaToolInfo &info);
+
+    [[nodiscard]] PrusaToolInfo create_default_tool_info(PhysicalToolIndex tool_index) const;
+
+    #else // !HAS_INDX()
 
     /**
      * @brief Request change of active dwarf.
@@ -83,7 +155,11 @@ public:
      * @brief Ger marlin tool index of a physically picked tool.
      * Can be called from anywhere.
      */
-    uint8_t detect_tool_nr();
+    uint16_t detect_tool_nr();
+
+    inline bool is_toolchanger_enabled() {
+        return toolchanger_enabled;
+    }
 
     /**
      * @brief Get currently selected dwarf or dwarfs[0] if none is selected
@@ -121,10 +197,6 @@ public:
      */
     uint16_t get_parked_mask();
 
-    inline bool is_toolchanger_enabled() {
-        return toolchanger_enabled;
-    }
-
     ///@return True if at least one dwarf is connected through splitter.
     inline bool is_splitter_enabled() {
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
@@ -135,25 +207,13 @@ public:
         return false;
     }
 
-    [[deprecated("Use the ToolIndex overload")]]
-    inline bool is_tool_enabled(uint8_t tool) {
-        assert(tool < buddy::puppies::dwarfs.size());
-        return buddy::puppies::dwarfs[tool].is_enabled();
-    }
-
-    [[deprecated("Use tool.is_enabled()")]]
-    inline bool is_tool_enabled(PhysicalToolIndex tool) {
-        return is_tool_enabled(tool.to_raw());
-    }
-
-    [[nodiscard]] uint8_t get_num_enabled_tools() const;
-
-    void load_tool_info();
-    void save_tool_info();
-    void load_tool_offsets();
-    void save_tool_offsets();
-
-    void expand_first_dock_position(); // TODO: Is this still needed/wanted ?
+    [[nodiscard]] PrusaToolInfo compute_synthetic_tool_info(const buddy::puppies::Dwarf &dwarf) const;
+    bool autodetect_toolchanger_enabled();
+    /**
+     * @brief Get picked and parked states and detect which tool is active.
+     * Modifies parked, picked and picked_dwarf.
+     */
+    void autodetect_active_tool(buddy::puppies::PuppyModbus &);
 
     class StepperConfigGuard final {
         uint32_t x_stall_sensitivity; ///< Sensitivity to restore [driver specific]
@@ -176,11 +236,24 @@ public:
         ~StepperConfigGuard(); ///< Restore stepper current and stall sensitivity
     };
 
-protected:
-    std::atomic<bool> force_toolchange_gcode = false; ///< after reset force toolchange to init marlin tool variables
-    std::atomic<bool> request_toolchange = false; ///< when true, toolchange was requested and will be executed in puppytask
-    std::atomic<buddy::puppies::Dwarf *> request_toolchange_dwarf; ///< when request_toolchange=true, this specifies what tool will be changed to
+    #endif // HAS_INDX()
 
+    [[deprecated("Use the ToolIndex overload")]]
+    bool is_tool_enabled(uint8_t tool);
+
+    [[deprecated("Use tool.is_enabled()")]]
+    inline bool is_tool_enabled(PhysicalToolIndex tool) {
+        return is_tool_enabled(tool.to_raw());
+    }
+
+    [[nodiscard]] uint8_t get_num_enabled_tools() const;
+
+    void load_tool_info();
+    void save_tool_info();
+    void load_tool_offsets();
+    void save_tool_offsets();
+
+protected:
     /**
      * @brief Structure that sets something in its constructor and resets when destroyed.
      * Function set_state should be lambda and set something if state is true and reset if state is false.
@@ -193,23 +266,23 @@ protected:
         ~ResetOnReturn() { set_state(false); }
     };
 
+    #if !HAS_INDX()
+    std::atomic<bool> force_toolchange_gcode = false; ///< after reset force toolchange to init marlin tool variables
+    std::atomic<bool> request_toolchange = false; ///< when true, toolchange was requested and will be executed in puppytask
+    std::atomic<buddy::puppies::Dwarf *> request_toolchange_dwarf; ///< when request_toolchange=true, this specifies what tool will be changed to
     bool toolchanger_enabled = false;
-
     std::atomic<buddy::puppies::Dwarf *> picked_dwarf = nullptr; ///< what tool was physically detected as picked
-    std::atomic<bool> picked_update = false; ///< Set true each time picked_dwarf is updated
     std::atomic<buddy::puppies::Dwarf *> active_dwarf = nullptr; ///< what tool is active in puppytask
-
-    StrongIndexArray<PrusaToolInfo, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> tool_info;
-
-    [[nodiscard]] PrusaToolInfo compute_synthetic_tool_info(const buddy::puppies::Dwarf &dwarf) const;
-
-    bool autodetect_toolchanger_enabled();
+    std::atomic<bool> picked_update = false; ///< Set true each time picked_dwarf is updated
 
     /**
-     * @brief Get picked and parked states and detect which tool is active.
-     * Modifies parked, picked and picked_dwarf.
+     * @brief Force a selected tool to marlin.
+     * @param dwarf force active_tool to be this dwarf, or nullptr for no tool
      */
-    void autodetect_active_tool(buddy::puppies::PuppyModbus &);
+    void force_marlin_picked_tool(buddy::puppies::Dwarf *dwarf);
+    #endif
+
+    StrongIndexArray<PrusaToolInfo, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> tool_info;
 
     [[noreturn]] void toolchanger_error(const char *message) const;
 
@@ -222,17 +295,12 @@ protected:
     [[nodiscard]] bool wait(stdext::inplace_function<bool()> function, uint32_t timeout_ms);
 
     /**
-     * @brief Force a selected tool to marlin.
-     * @param dwarf force active_tool to be this dwarf, or nullptr for no tool
-     */
-    void force_marlin_picked_tool(buddy::puppies::Dwarf *dwarf);
-
-    /**
      * @brief Get maximum difference of MBL height
      * @return float
      */
     float get_mbl_z_lift_height() const;
 
+    #if !HAS_INDX()
     /**
      * @brief Structure to sample and restore planner feedrate and acceleration.
      * This is important for powerpanic which stores the original values and not temporary values used while changing tools.
@@ -294,14 +362,22 @@ protected:
          */
         void restore_feedrate();
     } conf_restorer;
+    #endif
 
 public:
+    #if HAS_INDX()
+    /**
+     * @brief Noop on INDX
+     */
+    bool try_restore() { return true; }
+    #else
     /**
      * @brief Restore planner feedrate and acceleration.
      * This is for powerpanic to restore original planner config if panic happens during toolchange.
      * @return true if feedrate and acceleration were restored
      */
     bool try_restore() { return conf_restorer.try_restore(); }
+    #endif
 };
 
 #endif

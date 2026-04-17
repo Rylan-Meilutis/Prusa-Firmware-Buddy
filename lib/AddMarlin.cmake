@@ -185,13 +185,21 @@ if(BOARD_IS_MASTER_BOARD)
   endif()
 
   if(HAS_TOOLCHANGER)
+    if(HAS_INDX)
+      target_sources(
+        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger_indx.cpp
+                       Marlin/Marlin/src/module/prusa/toolchanger_utils_indx.cpp
+        )
+    else()
+      target_sources(
+        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger.cpp
+                       Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
+        )
+    endif()
     target_sources(
       Marlin
-      PRIVATE Marlin/Marlin/src/gcode/control/T.cpp
-              Marlin/Marlin/src/module/prusa/spool_join.cpp
+      PRIVATE Marlin/Marlin/src/gcode/control/T.cpp Marlin/Marlin/src/module/prusa/spool_join.cpp
               Marlin/Marlin/src/module/prusa/tool_mapper.cpp
-              Marlin/Marlin/src/module/prusa/toolchanger.cpp
-              Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
               Marlin/Marlin/src/module/tool_change.cpp
       )
   endif()

@@ -501,7 +501,9 @@ set_feature_for_printers_master_board(
   HAS_DOOR_SENSOR "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "MK4"
   )
 
-set_feature_for_printers_master_board(HAS_TOOLCHANGER "XL" "XL_DEV_KIT")
+set_feature_for_printers_master_board(
+  HAS_TOOLCHANGER "XL" "XL_DEV_KIT" "COREONE_INDX" "COREONEL_INDX"
+  )
 set_feature_for_printers(
   HAS_SIDE_FSENSOR
   "iX"

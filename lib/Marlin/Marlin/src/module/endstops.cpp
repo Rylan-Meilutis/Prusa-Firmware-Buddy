@@ -32,6 +32,7 @@
 #include "../lcd/ultralcd.h"
 #include <option/has_loadcell.h>
 #include <option/has_toolchanger.h>
+#include <option/has_indx.h>
 
 #if ENABLED(ENDSTOP_INTERRUPTS_FEATURE)
   #include HAL_PATH(../HAL, endstop_interrupts.h)
@@ -597,7 +598,7 @@ void Endstops::update() {
   }
 
 // Handle XY probing
-#if BOARD_IS_XLBUDDY()
+#if BOARD_IS_XLBUDDY() || HAS_INDX()
   // TODO: This does not clean the endstop bits on xy_probe disable. It cannot as it might clear the real endstops.
   // The hit_on_purpose is supposed to be called cleaning the bits.
   if(stepper.axis_is_moving(X_AXIS)) {
