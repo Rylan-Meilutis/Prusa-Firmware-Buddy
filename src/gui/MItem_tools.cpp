@@ -58,6 +58,10 @@
     #include <gui/screen/screen_tool_pick_park.hpp>
 #endif
 
+#if HAS_INDX()
+    #include <puppies/INDX.hpp>
+#endif
+
 #if HAS_LEDS()
     #include <leds/status_leds_handler.hpp>
 #endif
@@ -796,7 +800,7 @@ void MI_LOAD_SETTINGS::click(IWindowMenu & /*window_menu*/) {
 MI_LEDS_ENABLE::MI_LEDS_ENABLE()
     : WI_ICON_SWITCH_OFF_ON_t(leds::StatusLedsHandler::instance().get_active(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
-void MI_LEDS_ENABLE::OnChange(size_t old_index) {
+void MI_LEDS_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
     if (old_index) {
         leds::StatusLedsHandler::instance().set_active(false);
     } else {
@@ -864,9 +868,17 @@ MI_TOOL_LEDS_ENABLE::MI_TOOL_LEDS_ENABLE()
     : WI_ICON_SWITCH_OFF_ON_t(config_store().tool_leds_enabled.get(), _(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes) {
 }
 void MI_TOOL_LEDS_ENABLE::OnChange(size_t old_index) {
+    #if HAS_DWARF()
     for (auto tool : PhysicalToolIndex::all()) {
         prusa_toolchanger.getTool(tool).set_cheese_led(!old_index ? 0xff : 0x00, 0x00);
     }
+    #elif HAS_INDX()
+    if (!old_index) {
+        buddy::puppies::indx.set_leds_color(COLOR_ORANGE, indx_head::leds::Mode::solid);
+    } else {
+        buddy::puppies::indx.set_leds_color(COLOR_BLACK, indx_head::leds::Mode::off);
+    }
+    #endif
     config_store().tool_leds_enabled.set(!old_index);
 }
 #endif
