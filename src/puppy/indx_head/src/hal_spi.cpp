@@ -2,6 +2,7 @@
 #include "hal_spi.hpp"
 
 #include "hal.hpp"
+#include "rtt.hpp"
 #include <cstddef>
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/timing.hpp>
@@ -20,7 +21,7 @@
     #define SPI_ASSERT(reason, assertion)                                  \
         if (assertion) [[likely]] {                                        \
         } else {                                                           \
-            (void)reason;                                                  \
+            rtt::print(reason);                                            \
             hal::panic(indx_head::errors::FaultStatusMask::assert_failed); \
         }
 

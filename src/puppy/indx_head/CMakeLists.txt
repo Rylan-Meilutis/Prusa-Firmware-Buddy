@@ -28,6 +28,7 @@ target_sources(
           src/hal_spi.cpp
           src/hal_tim.cpp
           src/main.cpp
+          src/rtt.cpp
           src/startup.s
           src/stdlib.cpp
           src/system.c

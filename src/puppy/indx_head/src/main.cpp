@@ -1,5 +1,6 @@
 #pragma GCC poison printf
 #include "hal.hpp"
+#include "rtt.hpp"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -11,6 +12,8 @@
 
 extern "C" int main() {
     hal::init();
+    rtt::init();
+    rtt::print("indx_head started\n");
 }
 
 extern "C" void vApplicationStackOverflowHook([[maybe_unused]] TaskHandle_t xTask, [[maybe_unused]] char *pcTaskName) {
