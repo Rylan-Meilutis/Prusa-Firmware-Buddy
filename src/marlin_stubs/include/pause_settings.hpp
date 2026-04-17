@@ -66,9 +66,6 @@ private:
 
     uint8_t mmu_filament_to_load = 0;
     uint8_t target_extruder;
-
-    // Preloaded from the config_store to prevent querying it each loop
-    bool extruder_mmu_rework : 1 = PRINTER_IS_PRUSA_iX();
 };
 
 } // namespace pause

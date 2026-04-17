@@ -90,6 +90,11 @@ public:
         return logical_sensor_states_[sensor] == FilamentSensorState::NoFilament;
     }
 
+    /// @returns Whether the extruder FS can trigger without extruder turning
+    inline bool is_extruder_fs_independent() const {
+        return extruder_fs_independent;
+    }
+
 protected:
     /// For some historical reason, filament sensor runs in the context of measurement task
     friend void StartMeasurementTask();
@@ -132,6 +137,7 @@ private:
     std::atomic<bool> m600_sent = false;
     std::atomic<bool> autoload_sent = false;
     std::atomic<bool> has_mmu = false; // affect only MMU, named correctly .. it is not "has_side_sensor"
+    std::atomic<bool> extruder_fs_independent = false; /// Whether the extruder FS can trigger without extruder turning
 
     friend IFSensor *GetExtruderFSensor(uint8_t index);
     friend IFSensor *GetSideFSensor(uint8_t index);

@@ -184,6 +184,7 @@ static bool set_mmu_rework(bool set) {
     }
 
     config_store().is_mmu_rework.set(set);
+    FSensors_instance().request_enable_state_update();
 
 #if HAS_SELFTEST() && !PRINTER_IS_PRUSA_MK3_5()
     // Invalidate the extruder fsensor calibration

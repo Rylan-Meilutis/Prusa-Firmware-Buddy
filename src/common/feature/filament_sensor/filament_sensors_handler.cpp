@@ -192,6 +192,16 @@ void FilamentSensors::reconfigure_sensors_if_needed(bool force) {
         false;
 #endif
 
+    extruder_fs_independent =
+#if PRINTER_IS_PRUSA_iX()
+        // iX always has the "MMU rework"
+        false;
+#elif HAS_MMU2()
+        !config_store().is_mmu_rework.get();
+#else
+            true;
+#endif
+
     using LFS = LogicalFilamentSensor;
     auto &ls = logical_sensors_;
 

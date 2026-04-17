@@ -444,7 +444,7 @@ void Pause::load_start_process([[maybe_unused]] Response response) {
         set(LoadState::load_wait_temp);
         break;
     default:
-        if (option::has_side_fsensor && settings.extruder_mmu_rework) {
+        if (option::has_side_fsensor && !FSensors_instance().is_extruder_fs_independent()) {
             if (FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder)) {
                 set(LoadState::move_to_purge);
             } else {
@@ -500,7 +500,7 @@ void Pause::filament_push_ask_process(Response response) {
 
         // With extruder MMU rework, we gotta assist the user with inserting the filament
         // BFW-5134
-        if (settings.extruder_mmu_rework) {
+        if (!FSensors_instance().is_extruder_fs_independent()) {
 #if ENABLED(PREVENT_COLD_EXTRUSION)
             mapi::ColdExtrudeGuard cold_extrude_guard;
 #endif
@@ -510,7 +510,7 @@ void Pause::filament_push_ask_process(Response response) {
     } else {
         setPhase(is_unstoppable() ? PhasesLoadUnload::UserPush_unstoppable : PhasesLoadUnload::UserPush_stoppable);
         const bool has_filament = FSensors_instance().has_filament_surely(LogicalFilamentSensor::extruder);
-        const bool is_mmu_rework_and_has_filament = settings.extruder_mmu_rework && has_filament;
+        const bool is_mmu_rework_and_has_filament = !FSensors_instance().is_extruder_fs_independent() && has_filament;
         const bool side_fs_empty = FSensors_instance().no_filament_surely(LogicalFilamentSensor::side);
         const bool extruder_fs_not_working = !FSensors_instance().is_working(LogicalFilamentSensor::extruder);
 
@@ -534,7 +534,7 @@ void Pause::await_filament_process([[maybe_unused]] Response response) {
     // Either side sensor not working or it has filament, go to loading
     if (!FSensors_instance().no_filament_surely(LogicalFilamentSensor::side)) {
         mapi::home_if_needed_and_park(mapi::ZAction::no_move, mapi::get_parking_position(mapi::ParkPosition::load));
-        if (settings.extruder_mmu_rework) {
+        if (!FSensors_instance().is_extruder_fs_independent()) {
             set_timed(LoadState::assist_insertion);
         } else {
             set(LoadState::filament_push_ask);
@@ -1189,7 +1189,7 @@ void Pause::filament_not_in_fs_process(Response response) {
     // We want to use the sensor that is the closest to the extruder and will not be triggered by the printer itself
     // If we have mmu_rework, the unload itself ejects filament from sensor so we need to use the one that is further
     // Here the runout sensors are handy but in reverse order (since the primary is the further one from extruder)
-    if (!FSensors_instance().has_filament_surely(settings.extruder_mmu_rework ? LogicalFilamentSensor::primary_runout : LogicalFilamentSensor::secondary_runout)) {
+    if (!FSensors_instance().has_filament_surely(!FSensors_instance().is_extruder_fs_independent() ? LogicalFilamentSensor::side : LogicalFilamentSensor::extruder)) {
         if constexpr (!option::has_human_interactions) {
             // In case of no human interactions, require no filament being
             // detected for at least 1s to avoid FS flicking off and on due
