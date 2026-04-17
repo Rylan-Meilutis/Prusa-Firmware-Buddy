@@ -707,7 +707,7 @@ set_feature_for_printers(
   "COREONEL_INDX"
   )
 
-set_feature_for_printers(HAS_NOZZLE_CLEANER "iX")
+set_feature_for_printers(HAS_NOZZLE_CLEANER "iX" "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers(
   HAS_MANUAL_BELT_TUNING "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "iX"
   )
@@ -720,7 +720,7 @@ set_feature_for_printers_master_board(
   "COREONEL"
   "COREONEL_INDX"
   )
-set_feature_for_printers(HAS_WASTEBIN "iX")
+set_feature_for_printers(HAS_WASTEBIN "iX" "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers_master_board(HAS_PRINT_FAN_TYPE "XL")
 # GEARBOX_ALIGNMENT requires SELFTEST
 set_feature_for_printers_master_board(HAS_GEARBOX_ALIGNMENT "MK4" "COREONE" "COREONEL" "XL")
