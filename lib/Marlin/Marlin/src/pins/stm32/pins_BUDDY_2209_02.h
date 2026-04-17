@@ -28,8 +28,7 @@ static_assert(BOARD_IS_BUDDY() || BOARD_IS_XBUDDY());
 
 #define DEFAULT_MACHINE_NAME "Prusa-mini"
 
-
-#if HOTENDS > 1 || E_STEPPERS > 2
+#if !HAS_INDX() && (HOTENDS > 1 || E_STEPPERS > 2)
   #error "Buddy supports up to 1 hotends / E-steppers."
 #endif
 
