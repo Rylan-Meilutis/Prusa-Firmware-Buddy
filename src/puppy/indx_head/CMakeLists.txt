@@ -47,6 +47,7 @@ target_link_libraries(
           indx_head
           bsod
           fpm
+          LP5817
           cortex-m0-atomic
   )
 

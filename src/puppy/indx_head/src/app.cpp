@@ -20,6 +20,9 @@ constexpr uint32_t invalid_nozzle_temp_timeout_ms = 1000 * 2;
 
 constexpr uint32_t control_frequency = 300 /*Hz*/;
 constexpr uint32_t control_delay_us = 1'000'000 / control_frequency;
+
+std::atomic<indx_head::leds::LedConfig> leds_config = {};
+std::atomic<bool> leds_changed = true;
 } // namespace
 
 namespace app {
@@ -57,6 +60,14 @@ void run() {
             // TODO: Update induction heating
         }
 
+        // LEDs control loop
+        if (leds_changed) {
+            leds_changed = false;
+            auto cfg = leds_config.load();
+            hal::i2c::set_led_pwm(cfg.r, cfg.g, cfg.b);
+            hal::i2c::set_led_mode(cfg.mode);
+        }
+
         freertos::delay(1);
     }
 }
@@ -65,4 +76,8 @@ int16_t get_nozzle_temp() {
     return nozzle_temp.load();
 }
 
+void set_led_config(const indx_head::leds::LedConfig cfg) {
+    leds_config.store(cfg);
+    leds_changed = true;
+}
 } // namespace app

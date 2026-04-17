@@ -5,6 +5,7 @@
 
 #include <bsod/bsod.h>
 #include <fpm/math.hpp>
+#include <lp5817/lp5817.hpp>
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/mutex.hpp>
 #include <freertos/timing.hpp>
@@ -276,10 +277,82 @@ namespace {
         }
     } // namespace thermometer
 
+    namespace leds {
+
+        class Impl {
+        public:
+            [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, std::span<const std::byte> tx_buff) {
+                i2c_error_flag.store(false);
+                waiting_for_i2c.store(true);
+                const auto ret = HAL_I2C_Mem_Write_IT(&peripherals::hi2c1, address << 1, offset, I2C_MEMADD_SIZE_8BIT, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buff.data())), tx_buff.size());
+                if (ret != HAL_OK) {
+                    waiting_for_i2c.store(false);
+                    i2c_recover();
+                    return false;
+                }
+                if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
+                    waiting_for_i2c.store(false);
+                    HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1));
+                    i2c_recover();
+                    return false;
+                }
+                if (i2c_error_flag.load()) {
+                    i2c_recover();
+                    return false;
+                }
+                return true;
+            }
+
+            [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, std::span<std::byte> rx_buff) {
+                i2c_error_flag.store(false);
+                waiting_for_i2c.store(true);
+                const auto ret = HAL_I2C_Mem_Read_IT(&peripherals::hi2c1, (address << 1), offset, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(rx_buff.data()), rx_buff.size());
+                if (ret != HAL_OK) {
+                    waiting_for_i2c.store(false);
+                    i2c_recover();
+                    return false;
+                }
+                if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
+                    waiting_for_i2c.store(false);
+                    HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1));
+                    i2c_recover();
+                    return false;
+                }
+                if (i2c_error_flag.load()) {
+                    i2c_recover();
+                    return false;
+                }
+                return true;
+            }
+
+            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] std::span<const std::byte> tx_buf) {
+                bsod_unreachable();
+            }
+            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] std::span<std::byte> rx_buf) {
+                bsod_unreachable();
+            }
+
+            static void delay_ms(uint32_t ms) {
+                freertos::delay(ms);
+            }
+        };
+
+        using Controller = lp5817::LP5817<Impl>;
+        Controller controller;
+
+        void init() {
+            I2CGuard lg;
+
+            if (const auto res = controller.init(); !res.has_value()) {
+                rtt::print("i2c: leds init failed");
+            }
+        }
+    } // namespace leds
 } // namespace
 
 void init_comm() {
     thermometer::init();
+    leds::init();
 }
 
 FloatReading read_tpis_object_temp() {
@@ -332,6 +405,19 @@ FloatReading read_tpis_object_temp() {
     // Transient glitch — return last known good value
     return { .value = last_valid_temp, .valid = true };
 }
+
+void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
+    I2CGuard lg;
+
+    if (const auto res = leds::controller.set_color(r, g, b); !res.has_value()) {
+        rtt::print("i2c: leds set_color_failed\n");
+    }
+}
+
+void set_led_mode([[maybe_unused]] indx_head::leds::Mode mode) {
+    // INDX_HEAD_TODO
+}
+
 } // namespace hal::i2c
 
 // TODO: alias these SOBs

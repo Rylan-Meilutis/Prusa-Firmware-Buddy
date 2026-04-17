@@ -4,9 +4,11 @@
 #include <fpm/fixed.hpp>
 
 #include <indx_head/errors.hpp>
+#include <indx_head/leds.hpp>
 #include <freertos/binary_semaphore.hpp>
 
 #include <array>
+#include <cstdint>
 #include <utility>
 
 namespace hal {
@@ -37,6 +39,8 @@ namespace i2c {
 
     /// Returns ambient and object temperatures
     FloatReading read_tpis_object_temp();
+    void set_led_pwm(uint8_t r, uint8_t g, uint8_t b);
+    void set_led_mode(indx_head::leds::Mode mode);
 } // namespace i2c
 
 namespace tim {
