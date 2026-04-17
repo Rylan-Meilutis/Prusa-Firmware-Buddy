@@ -173,7 +173,13 @@ void FilamentSensors::reconfigure_sensors_if_needed(bool force) {
     const auto new_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     const auto new_tool_index = new_tool ? new_tool->to_raw() : PhysicalToolIndex::count;
 
-    const bool new_has_mmu =
+    if (!force && new_tool_index == tool_index) {
+        return;
+    }
+
+    tool_index = new_tool_index;
+
+    has_mmu =
 #if HAS_MMU2()
         config_store().mmu2_enabled.get(); // there is a slight semantic difference:
     // - mmu2_enabled in eeprom describes the "intent" to enable MMU on the machine (this flag is true even when the MMU is not communicating)
@@ -185,13 +191,6 @@ void FilamentSensors::reconfigure_sensors_if_needed(bool force) {
 #else
         false;
 #endif
-
-    if (!force && new_tool_index == tool_index && new_has_mmu == has_mmu) {
-        return;
-    }
-
-    tool_index = new_tool_index;
-    has_mmu = new_has_mmu;
 
     using LFS = LogicalFilamentSensor;
     auto &ls = logical_sensors_;
