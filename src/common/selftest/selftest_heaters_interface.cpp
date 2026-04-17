@@ -63,7 +63,7 @@ static inline void power_check_callback(CSelftestPart_Heater &part) {
 }
 #endif
 
-void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles, const std::span<const HeaterConfig_t, PhysicalToolIndex::count> config_nozzle) {
+void phaseHeaters_noz_ena(std::array<IPartHandler *, PhysicalToolIndex::count> &pNozzles, const std::span<const HeaterConfig_t, HAS_INDX() ? 1 : PhysicalToolIndex::count> config_nozzle) {
     resultHeaters.tested_parts |= to_one_hot(SelftestHeaters_t::TestedParts::noz);
 
     for (size_t i = 0; i < config_nozzle.size(); i++) {
