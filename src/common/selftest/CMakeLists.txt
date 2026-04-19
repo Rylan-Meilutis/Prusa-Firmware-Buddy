@@ -1,12 +1,20 @@
 add_subdirectory(fsensor)
 
-target_include_directories(Marlin_Config INTERFACE include_${PRINTER})
+if(PRINTER STREQUAL "COREONE_INDX")
+  target_include_directories(Marlin_Config INTERFACE include_COREONE)
+  target_sources(firmware PRIVATE selftest_COREONE.cpp)
+elseif(PRINTER STREQUAL "COREONEL_INDX")
+  target_include_directories(Marlin_Config INTERFACE include_COREONEL)
+  target_sources(firmware PRIVATE selftest_COREONEL.cpp)
+else()
+  target_include_directories(Marlin_Config INTERFACE include_${PRINTER})
+  target_sources(firmware PRIVATE selftest_${PRINTER}.cpp)
+endif()
 
 target_sources(
   firmware
   PRIVATE i_selftest.cpp
           power_check.cpp
-          selftest_${PRINTER}.cpp
           selftest_axis.cpp
           selftest_axis_interface.cpp
           selftest_data.cpp
