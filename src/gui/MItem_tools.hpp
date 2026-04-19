@@ -21,6 +21,7 @@
 #include <option/buddy_enable_connect.h>
 #include <option/has_auto_retract.h>
 #include <option/has_toolchanger.h>
+#include <option/has_indx.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
 
@@ -376,6 +377,33 @@ class MI_INFO_MCU_TEMP final : public MenuItemAutoUpdatingLabel<float> {
 public:
     MI_INFO_MCU_TEMP();
 };
+
+#if HAS_INDX()
+class MI_INFO_INDX_DIAG_UART : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_INDX_DIAG_UART();
+};
+class MI_INFO_INDX_PICKUP_FAIL : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_INDX_PICKUP_FAIL();
+};
+class MI_INFO_INDX_PARK_FAIL : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_INDX_PARK_FAIL();
+};
+class MI_INFO_INDX_FIFO_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_INDX_FIFO_ERR();
+};
+class MI_INFO_INDX_REFRESH_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_INDX_REFRESH_ERR();
+};
+class MI_INFO_XEXT_REFRESH_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
+public:
+    MI_INFO_XEXT_REFRESH_ERR();
+};
+#endif
 
 class MI_FOOTER_RESET : public IWindowMenuItem {
     static constexpr const char *const label = N_("Reset");

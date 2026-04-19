@@ -686,6 +686,33 @@ MI_INFO_MCU_TEMP::MI_INFO_MCU_TEMP()
         [](auto) { return sensor_data().MCUTemp.load(); } //
     ) {}
 
+#if HAS_INDX()
+MI_INFO_INDX_DIAG_UART::MI_INFO_INDX_DIAG_UART()
+    : MenuItemAutoUpdatingLabel(
+        _("INDX UART Err"), "%u",
+        [](auto) { return buddy::puppies::indx.get_diag_uart_errors(); }) {}
+MI_INFO_INDX_PICKUP_FAIL::MI_INFO_INDX_PICKUP_FAIL()
+    : MenuItemAutoUpdatingLabel(
+        _("Pickup Fails"), "%u",
+        [](auto) { return prusa_toolchanger.get_pickup_fail_count(); }) {}
+MI_INFO_INDX_PARK_FAIL::MI_INFO_INDX_PARK_FAIL()
+    : MenuItemAutoUpdatingLabel(
+        _("Park Fails"), "%u",
+        [](auto) { return prusa_toolchanger.get_park_fail_count(); }) {}
+MI_INFO_INDX_FIFO_ERR::MI_INFO_INDX_FIFO_ERR()
+    : MenuItemAutoUpdatingLabel(
+        _("INDX FIFO Err"), "%u",
+        [](auto) { return buddy::puppies::indx.fifo_error_count.load(); }) {}
+MI_INFO_INDX_REFRESH_ERR::MI_INFO_INDX_REFRESH_ERR()
+    : MenuItemAutoUpdatingLabel(
+        _("INDX Refresh Err"), "%u",
+        [](auto) { return buddy::puppies::indx.refresh_error_count.load(); }) {}
+MI_INFO_XEXT_REFRESH_ERR::MI_INFO_XEXT_REFRESH_ERR()
+    : MenuItemAutoUpdatingLabel(
+        _("XBE Refresh Err"), "%u",
+        [](auto) { return buddy::puppies::xbuddy_extension.refresh_error_count.load(); }) {}
+#endif
+
 MI_FOOTER_RESET::MI_FOOTER_RESET()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
