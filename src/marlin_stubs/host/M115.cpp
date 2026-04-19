@@ -25,6 +25,7 @@
 #include <option/has_dwarf.h>
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#include <option/has_indx.h>
 
 #if HAS_TOOLCHANGER()
     #include "../../module/prusa/toolchanger.h"
@@ -186,7 +187,7 @@ void GcodeSuite::M115() {
 
     // THERMAL_PROTECTION
     cap_line(PSTR("THERMAL_PROTECTION")
-#if ((ENABLED(THERMAL_PROTECTION_HOTENDS) || HAS_DWARF()) && (ENABLED(THERMAL_PROTECTION_BED) || !HAS_HEATED_BED || HAS_REMOTE_BED()))
+#if ((ENABLED(THERMAL_PROTECTION_HOTENDS) || HAS_DWARF() || HAS_INDX()) && (ENABLED(THERMAL_PROTECTION_BED) || !HAS_HEATED_BED || HAS_REMOTE_BED()))
                  ,
         true
 #endif
