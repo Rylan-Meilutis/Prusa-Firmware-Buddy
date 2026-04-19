@@ -52,31 +52,10 @@ constexpr float assisted_insertion_extra_load_distance_mm = 10;
 
 /// How much the filament wiggles forward and back during calibration
 constexpr float calibration_wiggle_distance_mm = 10;
-    #elif HAS_INDX()
-
-// INDX_TODO: Implement selftest for side fsensors
-
-/// Used when waiting for the user to insert the filament into the extruder and confirm
-constexpr feedRate_t extruder_assist_slow_feedrate = 0;
-
-/// Used when unloading the filament or doing the extra load
-constexpr feedRate_t extruder_assist_fast_feedrate = 0;
-
-/// Safe distance we can assist with the insertion of the filament by
-/// Basically distance between the filament gear engagement and nozzle
-constexpr float assisted_insertion_safe_distance_mm = 0;
-
-/// After the user confirms that he has inserted the filament (in assist mode), load this extra amount
-/// to ensure that the filament sensor is fully engaged
-/// Extra load should still not exceed assisted_insertion_safe_distance_mm
-constexpr float assisted_insertion_extra_load_distance_mm = 0;
-
-/// How much the filament wiggles forward and back during calibration
-constexpr float calibration_wiggle_distance_mm = 0;
     #endif
 
 // These values are calibrated for the nextruder. They need to be tweaked for different extruders.
-static_assert(HAS_NEXTRUDER() || HAS_INDX());
+static_assert(HAS_NEXTRUDER());
 
 #endif
 
@@ -121,6 +100,11 @@ private:
         abort,
     };
     [[nodiscard]] EarlyFailCheckResult check_early_fail(FilamentSensorCalibrator::CalibrationPhase calib_phase);
+
+    /// Wraps fsm_change to always include the tool index in PhaseData[0]
+    void fsm_change_with_tool(Phase phase) {
+        marlin_server::fsm_change(phase, { params_.tool });
+    }
 
 private:
     const SelftestFSensorsParams params_;
@@ -277,9 +261,9 @@ void SelftestFSensors::finalize() {
 }
 
 bool SelftestFSensors::prepare() {
-    marlin_server::fsm_change(Phase::prepare);
+    fsm_change_with_tool(Phase::prepare);
 
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && !HAS_INDX()
     if (prusa_toolchanger.is_toolchanger_enabled()) {
         const auto toolchange_result = prusa_toolchanger.tool_change(PhysicalToolIndex::from_raw_notool(params_.tool), tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false);
         if (!toolchange_result) {
@@ -294,16 +278,26 @@ bool SelftestFSensors::prepare() {
 bool SelftestFSensors::initial_remove_filament() {
     while (true) {
         {
-            marlin_server::fsm_change(Phase::offer_unload);
+            fsm_change_with_tool(Phase::offer_unload);
             const auto response = marlin_server::wait_for_response(Phase::offer_unload);
             switch (response) {
 
             case Response::Continue:
                 break;
 
-            case Response::Unload:
-                filament_gcodes::M702_unload({}, Z_AXIS_LOAD_POS, RetAndCool_t::Neither, VirtualToolIndex::from_raw(params_.tool), false);
-                break;
+            case Response::Unload: {
+                const auto examined_virtual_tool = VirtualToolIndex::from_raw(params_.tool);
+#if HAS_TOOLCHANGER()
+                const auto examined_physical_tool = examined_virtual_tool.to_physical();
+                if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), examined_physical_tool)) {
+                    const auto tool_change_result = prusa_toolchanger.tool_change(examined_physical_tool, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false);
+                    if (!tool_change_result) {
+                        continue; // Ask user again to unload
+                    }
+                }
+#endif
+                filament_gcodes::M702_unload({}, Z_AXIS_LOAD_POS, RetAndCool_t::Neither, examined_virtual_tool, false);
+            } break;
 
             case Response::Abort:
                 return false;
@@ -314,7 +308,7 @@ bool SelftestFSensors::initial_remove_filament() {
         }
 
         {
-            marlin_server::fsm_change(Phase::ask_filament);
+            fsm_change_with_tool(Phase::ask_filament);
             const auto response = marlin_server::wait_for_response(Phase::ask_filament);
             switch (response) {
 
@@ -359,7 +353,7 @@ bool SelftestFSensors::remove_filament_early_check() {
 void SelftestFSensors::calibrate(FilamentSensorCalibrator::CalibrationPhase phase) {
     log_info(FSensor, "Calibrating phase %i", (int)phase);
 
-    marlin_server::fsm_change(Phase::calibrating);
+    fsm_change_with_tool(Phase::calibrating);
 
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
     mapi::ColdExtrudeGuard cold_extrude_guard;
@@ -399,7 +393,7 @@ SelftestFSensors::AskFilamentCommonResult SelftestFSensors::ask_filament_common(
     }
     const auto phase = is_ready ? ready_phase : not_ready_phase;
 
-    marlin_server::fsm_change(phase);
+    fsm_change_with_tool(phase);
     switch (marlin_server::get_response_from_phase(phase)) {
 
     case Response::Continue:
@@ -440,7 +434,7 @@ SelftestFSensors::EarlyFailCheckResult SelftestFSensors::check_early_fail([[mayb
 
     if (cnt_failed > 0 || cnt_not_ready > 0) {
         if (!ignore_early_fail_) {
-            marlin_server::fsm_change(Phase::not_ready_confirm_continue);
+            fsm_change_with_tool(Phase::not_ready_confirm_continue);
             switch (marlin_server::wait_for_response(Phase::not_ready_confirm_continue)) {
 
             case Response::Continue:
@@ -582,7 +576,7 @@ SelftestFSensorsResult SelftestFSensors::process_and_present_results(bool aborte
     }
 
     const auto phase = success ? Phase::success : Phase::failed;
-    marlin_server::fsm_change(phase);
+    fsm_change_with_tool(phase);
 
     // Wait for the user to press ok/done. If the selftest succeeded, automatically continue after a few seconds.
     marlin_server::wait_for_response(phase, success ? 3000 : 0);
