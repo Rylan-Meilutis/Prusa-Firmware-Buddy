@@ -10,6 +10,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_manual_belt_tuning.h>
 #include <bsod/bsod.h>
+#include <option/has_side_fsensor_remap.h>
 #include <window_msgbox_happy_printing.hpp>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>

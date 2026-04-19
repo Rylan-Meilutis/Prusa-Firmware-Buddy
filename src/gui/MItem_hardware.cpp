@@ -2,7 +2,7 @@
 #include "ScreenHandler.hpp"
 #include "WindowMenuSpin.hpp"
 #include <option/has_toolchanger.h>
-#include <option/has_side_fsensor.h>
+#include <option/has_side_fsensor_remap.h>
 #include <common/nozzle_diameter.hpp>
 #include <screen_menu_hardware_checks.hpp>
 #include <common/printer_model_data.hpp>

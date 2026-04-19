@@ -2,7 +2,7 @@
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
 #include <config_store/store_instance.hpp>
-#include <option/has_side_fsensor.h>
+#include <option/has_side_fsensor_remap.h>
 #include <option/has_toolchanger.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_vents.h>

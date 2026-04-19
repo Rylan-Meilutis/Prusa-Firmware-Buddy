@@ -14,7 +14,7 @@
 #include <option/has_loadcell.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_toolchanger.h>
-#include <option/has_side_fsensor.h>
+#include <option/has_side_fsensor_remap.h>
 #include <option/has_modular_bed.h>
 #include <option/has_mmu2.h>
 #include <option/has_auto_retract.h>
