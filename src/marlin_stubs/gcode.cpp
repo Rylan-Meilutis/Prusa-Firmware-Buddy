@@ -388,6 +388,9 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 427:
             PrusaGcodeSuite::G427();
             break;
+        case 750:
+            PrusaGcodeSuite::G750();
+            break;
 #endif
         default:
             processed = false;

@@ -117,3 +117,7 @@ endif()
 if(HAS_CHAMBER_VENTS)
   target_sources(firmware PRIVATE M870.cpp)
 endif()
+
+if(HAS_INDX)
+  target_sources(firmware PRIVATE G750.cpp)
+endif()

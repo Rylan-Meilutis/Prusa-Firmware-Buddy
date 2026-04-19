@@ -96,6 +96,7 @@ void M709(); //< MMU turn on/off/reset
 /// @name INDX specific G-CODES
 #if HAS_INDX()
 void G427(); ///< Tool offset calibration (Z-probe + XY tool offset board calib)
+void G750(); ///< Move to absolute X,Y position with nozzle cleaner origin offset
 #endif
 
 #ifdef PRINT_CHECKING_Q_CMDS
