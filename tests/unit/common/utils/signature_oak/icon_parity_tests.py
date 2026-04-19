@@ -29,6 +29,16 @@ PENDING_BRASS: set[str] = {
     # "example_icon_64x64.png",
 }
 
+# Icons that intentionally do not require a brass variant, even if they contain
+# orange pixels in the standard theme.
+NO_BRASS_REQUIRED: set[str] = {
+    # Cleaner is only on INDX and won't be on Signature Oak,
+    # so we can ignore these icons and not make brass variants.
+    "cleaner_calibration_x.png",
+    "cleaner_calibration_y.png",
+    "cleaner_calibration_z.png",
+}
+
 
 def is_orange(r: int, g: int, b: int) -> bool:
     return (abs(r - ORANGE_RGB[0]) < COLOR_TOLERANCE
@@ -65,7 +75,10 @@ def main() -> int:
     ]
 
     pending = [icon for icon in missing if icon in PENDING_BRASS]
-    failing = [icon for icon in missing if icon not in PENDING_BRASS]
+    failing = [
+        icon for icon in missing
+        if icon not in PENDING_BRASS and icon not in NO_BRASS_REQUIRED
+    ]
 
     if pending:
         print(
