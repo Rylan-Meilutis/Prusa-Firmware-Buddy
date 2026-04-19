@@ -30,7 +30,7 @@ public:
     static constexpr float XY_PROBE_THRESHOLD { 40 };
     static constexpr float XY_PROBE_HYSTERESIS { 20 };
 
-    static constexpr unsigned int ANALYSIS_WINDOW_SIZE = 430; // Effective window size
+    static constexpr unsigned int ANALYSIS_WINDOW_SIZE = HAS_INDX() ? 600 : 430; // Effective window size (INDX loadcell has higher sampling freq -> need longer window to cover)
     static constexpr float MIN_ANALYSIS_WINDOW_SIZE = buddy::ProbeAnalysisBase::initialFrequency
         * (TOUCHDOWN_DELAY_MS / 1000.f + buddy::ProbeAnalysisBase::analysisLookback + buddy::ProbeAnalysisBase::analysisLookahead);
     static_assert(ANALYSIS_WINDOW_SIZE >= MIN_ANALYSIS_WINDOW_SIZE);

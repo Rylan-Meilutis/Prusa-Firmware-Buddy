@@ -22,6 +22,7 @@
 #include "../Marlin/src/module/endstops.h"
 #include "feature/prusa/e-stall_detector.h"
 #include <metric_handlers.h>
+#include <option/has_indx.h>
 
 LOG_COMPONENT_DEF(Loadcell, logging::Severity::info);
 
@@ -355,8 +356,12 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us) {
 }
 
 void Loadcell::HomingSafetyCheck() const {
-    // We need signed int because the last sample can be slightly in the future, caused by time sync with dwarves.
+// We need signed int because the last sample can be slightly in the future, caused by time sync with dwarves.
+#if HAS_INDX()
+    static constexpr int32_t MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US = 200000;
+#else
     static constexpr int32_t MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US = 100000;
+#endif
     int32_t since_last = ticks_diff(ticks_us(), last_sample_time_us.load());
     if (since_last > MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US) {
         fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);

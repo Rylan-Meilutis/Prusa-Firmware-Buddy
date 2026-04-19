@@ -15,6 +15,7 @@
     #include "metric.h"
 #endif
 #include <circle_buffer.hpp>
+#include <option/has_indx.h>
 
 #ifndef M_PI
     // #error dead code found by automatic analyses (see BFW-5461)
@@ -199,7 +200,7 @@ public:
     const int skipBorderSamples;
 
     /// Initial sampling frequency, will be changed by SetSamplingIntervalMs() from a real data
-    static constexpr float initialFrequency = 320.0f;
+    static constexpr float initialFrequency = HAS_INDX() ? 366.0f : 320.0f;
 
     /// Time interval in seconds specifying the samples ignored when calculating the intersection
     /// between before and compression line features.
