@@ -448,6 +448,9 @@ void PrusaToolChanger::open_head(PhysicalToolIndex tool) {
 
     {
         EMotorGuard guard;
+        e_move(E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE); // Ensure fully closed to start with
+        planner.synchronize();
+
         wiggle_and_partial_unlock();
 
         // Full open (no Y movement needed — no nozzle to release)
@@ -684,14 +687,6 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
 
     // Lock nozzle in head
     e_move(+E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE);
-    planner.synchronize();
-
-    // Final lock position
-    move(info.dock_x, info.dock_y + DOCK_UNLOCK_Y_OFFSET, PICKUP_APPROACH_FEEDRATE);
-    planner.synchronize();
-
-    // Final lock nozzle in head
-    e_move(+E_FULL_CLOSE_FINAL_DISTANCE, E_LOCK_FEEDRATE);
     planner.synchronize();
 
     // Restore E position (service mechanism move, not filament)
