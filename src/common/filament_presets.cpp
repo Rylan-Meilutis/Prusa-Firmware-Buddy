@@ -64,7 +64,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
         {
             .name = "PC",
             .nozzle_temperature = 275,
-            .nozzle_preheat_temperature = HAS_LOADCELL() ? 170 : 275 - 25,
+            .nozzle_preheat_temperature = HAS_LOADCELL() ? 275 - 25 : 170,
             .heatbed_temperature = 100,
 #if HAS_FILAMENT_HEATBREAK_PARAM()
             .heatbreak_temperature = 65,
@@ -140,7 +140,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
         {
             .name = "FLEX",
             .nozzle_temperature = 240,
-            .nozzle_preheat_temperature = HAS_LOADCELL() ? 170 : 210,
+            .nozzle_preheat_temperature = HAS_LOADCELL() ? 210 : 170,
             .heatbed_temperature = 50,
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 15,
@@ -157,6 +157,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "PA",
             // MINI has slightly lower max nozzle temperature but it is still OK for polyamid
             .nozzle_temperature = PRINTER_IS_PRUSA_MINI() ? 280 : 285,
+            .nozzle_preheat_temperature = PRINTER_IS_PRUSA_MINI() ? 280 - 25 : 285 - 25,
             .heatbed_temperature = 100,
 #if HAS_CHAMBER_API()
             .chamber_min_temperature = 40,
