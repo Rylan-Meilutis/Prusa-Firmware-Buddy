@@ -163,7 +163,8 @@ void hal::ext_fs::step() {
         const std::byte gpio_data = gpio_read_rx[0];
 
         for (uint8_t i = 0; i < fsensors_per_device; i++) {
-            auto &fs = fs_data[current_device_ix * fsensors_per_device + i];
+            // GPIO bits are wired in descending order on the PCB: bit 0 = last tool in group, bit 3 = first
+            auto &fs = fs_data[current_device_ix * fsensors_per_device + (fsensors_per_device - 1 - i)];
 
             FSState state = FSState::disconnected;
             if (is_response_valid) {
