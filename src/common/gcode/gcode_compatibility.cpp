@@ -4,6 +4,7 @@
 #include <gcode_info.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <print_utils.hpp>
+#include <test_result.hpp>
 #include <window_msgbox.hpp>
 
 #include <option/has_mmu2.h>
@@ -20,6 +21,8 @@
 #if HAS_SPOOL_JOIN()
     #include <module/prusa/spool_join.hpp>
 #endif
+
+#include <option/has_indx.h>
 
 #include <option/has_anfc.h>
 #if HAS_ANFC()
@@ -98,6 +101,16 @@ constinit const ChecksTraits<GeneralCheck>::Metadata ChecksTraits<GeneralCheck>:
                 .description = N_("G-Code requires more tools than are currently enabled."),
             },
         },
+#if HAS_INDX()
+        {
+            GeneralCheck::nozzle_cleaner_not_calibrated,
+            CheckMetadata {
+                .severity = HWCheckSeverity::Abort,
+                .title = N_("Nozzle cleaner not calibrated"),
+                .description = N_("Please calibrate the nozzle cleaner first."),
+            },
+        },
+#endif
 };
 
 template <>
@@ -310,6 +323,12 @@ void CompatibilityReport::generate_without_toolmapping(const GCodeInfo &gcode_in
     if (gcode_info.UsedExtrudersCount() > get_num_of_enabled_tools()) {
         failed_general_checks.set(GeneralCheck::not_enough_tools);
     }
+
+#if HAS_INDX()
+    if (config_store().selftest_result_nozzle_cleaner_calibration.get() != TestResult::passed) {
+        failed_general_checks.set(GeneralCheck::nozzle_cleaner_not_calibrated);
+    }
+#endif
 }
 
 void CompatibilityReport::generate_full(const ToolMappingArgs &args) {

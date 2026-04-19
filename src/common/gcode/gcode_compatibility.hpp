@@ -12,6 +12,7 @@
 #include <marlin_server_types/general_response.hpp>
 
 #include <option/has_gcode_compatibility.h>
+#include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <option/has_anfc.h>
 
@@ -77,6 +78,11 @@ enum class GeneralCheck : uint8_t {
 
     /// Fails if gcode uses more tools than there are enabled tools
     not_enough_tools,
+
+#if HAS_INDX()
+    /// Fails if the nozzle cleaner is not calibrated
+    nozzle_cleaner_not_calibrated,
+#endif
 
     _cnt
 };
