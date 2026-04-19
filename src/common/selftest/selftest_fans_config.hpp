@@ -38,7 +38,11 @@ constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6800, .rpm_max = 8700 }
 #elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 constexpr FanRPMRange print_fan_range = { .rpm_min = 4800, .rpm_max = 6799 };
 constexpr FanRPMRange print_low_fan_range = benevolent_fan_range;
+    #if HAS_INDX()
+constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 12000, .rpm_max = 18000 };
+    #else
 constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6800, .rpm_max = 8700 };
+    #endif
 constexpr FanRPMRange chamber_fan_range = FanRPMRange::nominal_with_percentual_tolerance(8500, 15);
 constexpr FanRPMRange filtration_fan_range = FanRPMRange::nominal_with_percentual_tolerance(3400, 15);
 #elif PRINTER_IS_PRUSA_iX()

@@ -15,6 +15,7 @@
 #include <printers.h>
 #include <option/has_switched_fan_test.h>
 
+#include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <Marlin/src/module/prusa/toolchanger.h>
@@ -164,6 +165,7 @@ public:
             return;
         }
 #endif
+#if !HAS_INDX()
         change_phase(PhasesFansSelftest::test_40_percent);
         set_low_speed_fan_range();
         set_up_measurement(0);
@@ -172,6 +174,7 @@ public:
         wait(wait_rpm_40_percent_delay);
         measure(measure_rpm_40_percent_delay);
         evaluate();
+#endif
         finish_and_show_results();
     }
 
@@ -409,6 +412,23 @@ namespace PrusaGcodeSuite {
  */
 void M1978() {
 
+#if HAS_INDX()
+    // INDX has a single shared print fan and heatbreak fan on the body,
+    // not per-nozzle fans. Create one handler for each.
+    CommonFanHandler indx_print_fan(FanType::print, 0, print_fan_range,
+        &Fans::print(PhysicalToolIndex::from_raw(0)));
+    CommonFanHandler indx_heatbreak_fan(FanType::heatbreak, 0, heatbreak_fan_range,
+        &Fans::heat_break(PhysicalToolIndex::from_raw(0)));
+
+    std::array<FanHandler *, 2 + 5 /* reserve for chamber/bed/psu fans */> fan_container;
+    std::array<std::pair<FanHandler *, FanHandler *>, 1> tool_fan_pairs;
+
+    size_t container_index = 0;
+    uint8_t pairs = 0;
+    fan_container[container_index++] = &indx_print_fan;
+    fan_container[container_index++] = &indx_heatbreak_fan;
+    tool_fan_pairs[pairs++] = std::make_pair<FanHandler *, FanHandler *>(&indx_print_fan, &indx_heatbreak_fan);
+#else
     auto print_fans = [&]<size_t... ix>(std::index_sequence<ix...>) {
         return StrongIndexArray<CommonFanHandler, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> {
             CommonFanHandler(FanType::print, ix, print_fan_range, &Fans::print(PhysicalToolIndex::from_raw(ix)), print_low_fan_range)...
@@ -431,6 +451,7 @@ void M1978() {
         fan_container[container_index++] = &heatbreak_fans[tool];
         tool_fan_pairs[pairs++] = std::make_pair(&print_fans[tool], &heatbreak_fans[tool]);
     }
+#endif
 
 #if XL_ENCLOSURE_SUPPORT()
     CommonFanHandler xl_enclosure_fan(FanType::xl_enclosure, 0, benevolent_fan_range, &Fans::enclosure());

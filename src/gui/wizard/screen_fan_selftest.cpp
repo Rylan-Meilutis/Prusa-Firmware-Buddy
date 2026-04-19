@@ -9,6 +9,7 @@
 #include <window_text.hpp>
 #include <status_footer.hpp>
 
+#include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <Marlin/src/module/prusa/toolchanger.h>
@@ -46,6 +47,7 @@ namespace {
 static constexpr size_t col_texts = WizardDefaults::col_after_icon;
 static constexpr size_t col_results = WizardDefaults::status_icon_X_pos;
 static constexpr size_t col_texts_w = col_results - col_texts;
+static constexpr size_t tool_icon_count = option::has_indx ? 1 : PhysicalToolIndex::count;
 
 static constexpr size_t row_2 = WizardDefaults::row_1 + WizardDefaults::progress_row_h;
 static constexpr size_t row_3 = row_2 + WizardDefaults::row_h;
@@ -140,12 +142,11 @@ namespace frame {
             };
 
             const SelftestResult result = config_store().selftest_result.get();
-            for (auto tool : PhysicalToolIndex::all()) {
-#if HAS_TOOLCHANGER()
-                if (!tool.is_enabled()) {
+            for (uint8_t i = 0; i < tool_icon_count; i++) {
+                const auto tool = PhysicalToolIndex::from_raw(i);
+                if (!option::has_indx && !tool.is_enabled()) {
                     continue;
                 }
-#endif
 #if HAS_SWITCHED_FAN_TEST()
                 if (process_fan_result(result.get_fans_switched(tool), switched_fan_icons, tool.to_raw())) {
                     print_icons.SetState(SelftestSubtestState_t::not_good, tool.to_raw());
@@ -220,8 +221,8 @@ namespace frame {
             , heatbreak_label { parent, Rect16(col_texts, row_3, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_hotend_fan) }
             , heatbreak_label_icon { parent, &img::fan_16x16, point_i16_t({ WizardDefaults::col_0, row_3 }) }
             , info { parent, Rect16(col_texts, row_8, col_texts_w, WizardDefaults::row_h * 4), is_multiline::yes, is_closed_on_click_t::no }
-            , print_icons { make_fan_icon_array(parent, row_2, PhysicalToolIndex::count) }
-            , heatbreak_icons { make_fan_icon_array(parent, row_3, PhysicalToolIndex::count) }
+            , print_icons { make_fan_icon_array(parent, row_2, tool_icon_count) }
+            , heatbreak_icons { make_fan_icon_array(parent, row_3, tool_icon_count) }
 #if HAS_CHAMBER_API()
             , enclosure_label { parent, Rect16(col_texts, row_4, col_texts_w, WizardDefaults::txt_h), is_multiline::no, is_closed_on_click_t::no, _(en_text_enclosure_fan) }
             , enclosure_label_icon { parent, &img::fan_16x16, point_i16_t({ WizardDefaults::col_0, row_4 }) }
@@ -246,7 +247,7 @@ namespace frame {
             print_label.set_font(Font::small);
             heatbreak_label.set_font(Font::small);
 #endif
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && !HAS_INDX()
             for (auto tool : PhysicalToolIndex::all()) {
                 if (!tool.is_enabled()) {
                     print_icons.SetIconHidden(tool.to_raw(), true);
