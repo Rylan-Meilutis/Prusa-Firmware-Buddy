@@ -24,6 +24,10 @@
     #include <puppies/xbuddy_extension.hpp>
 #endif
 
+#if HAS_INDX_HEAD()
+    #include <puppies/INDX.hpp>
+#endif
+
 LOG_COMPONENT_REF(Puppies);
 
 namespace buddy::puppies {
@@ -397,6 +401,12 @@ bool PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address a
         } else {
             log_warning(Puppies, "Puppy's hardware ID was not written properly to its OTP");
         }
+
+#if HAS_INDX_HEAD()
+        if (type == INDX_HEAD) {
+            indx.set_otp(*reinterpret_cast<const OTP_v5 *>(otp));
+        }
+#endif
     } // else - older bootloader has revision 0
 
     if (hwinfo.hw_type != get_puppy_info(type).hw_info_hwtype) {

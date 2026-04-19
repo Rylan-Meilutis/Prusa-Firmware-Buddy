@@ -52,12 +52,18 @@ public:
     MI_OTP_XBUDDY_EXTENSION();
 };
 
+class MI_OTP_INDX_HEAD final : public WindowMenuInfoOtp {
+public:
+    MI_OTP_INDX_HEAD();
+};
+
 using ScreenMenuBoardInfo__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_RETURN,
     MI_OTP_MOTHERBOARD,
     MI_OTP_LOVEBOARD,
     MI_OTP_XLCD,
-    MI_OTP_XBUDDY_EXTENSION>;
+    MI_OTP_XBUDDY_EXTENSION,
+    MI_OTP_INDX_HEAD>;
 
 class ScreenMenuBoardInfo : public ScreenMenuBoardInfo__ {
 public:

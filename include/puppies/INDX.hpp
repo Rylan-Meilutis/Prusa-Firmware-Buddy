@@ -8,6 +8,7 @@
 
 #include <indx_head/modbus.hpp>
 
+#include <otp/types.hpp>
 #include "puppies/PuppyModbus.hpp"
 #include <fifo_coder/fifo_decoder.hpp>
 #include "puppies/time_sync.hpp"
@@ -144,7 +145,12 @@ public:
     bool get_fan_rpm_ok(uint8_t fan_nr) const;
     uint16_t get_fan_state(uint8_t fan_nr) const;
 
+    void set_otp(const OTP_v5 &);
+    OTP_v5 get_otp() const;
+
 private:
+    OTP_v5 otp = {};
+
     ModbusInputRegisterBlock<indx_head::modbus::Status::address, indx_head::modbus::Status> register_general_status {};
 
     // Cached from RegisterGeneralStatus.ToolFilamentSensor, for use from an interrupt (where we can't lock).

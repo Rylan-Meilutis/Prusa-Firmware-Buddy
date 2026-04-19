@@ -491,6 +491,16 @@ uint16_t Indx::get_fan_state(uint8_t fan_nr) const {
     bsod_unreachable();
 }
 
+void Indx::set_otp(const OTP_v5 &otp_data) {
+    Lock guard(*mutex);
+    otp = otp_data;
+}
+
+OTP_v5 Indx::get_otp() const {
+    Lock guard(*mutex);
+    return otp;
+}
+
 #if HAS_INDX_HEAD()
 Indx indx { PuppyBootstrap::get_modbus_address_for_dock(Dock::INDX_HEAD) };
 #endif

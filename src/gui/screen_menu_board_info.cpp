@@ -5,6 +5,7 @@
 #include <common/otp.hpp>
 #include <device/board.h>
 #include <gui/img_resources.hpp>
+#include <option/has_indx_head.h>
 #include <option/has_love_board.h>
 #include <option/has_xbuddy_extension.h>
 #include <option/has_xlcd.h>
@@ -12,6 +13,10 @@
 
 #if HAS_XBUDDY_EXTENSION()
     #include <puppies/xbuddy_extension.hpp>
+#endif
+
+#if HAS_INDX_HEAD()
+    #include <puppies/INDX.hpp>
 #endif
 
 WindowMenuInfoOtpBase::WindowMenuInfoOtpBase(const OTP_v2 &otp) {
@@ -87,6 +92,15 @@ MI_OTP_XBUDDY_EXTENSION::MI_OTP_XBUDDY_EXTENSION()
     : WindowMenuInfoOtp {
 #if HAS_XBUDDY_EXTENSION()
     "Extension board", buddy::puppies::xbuddy_extension.get_otp()
+#endif
+}
+{
+}
+
+MI_OTP_INDX_HEAD::MI_OTP_INDX_HEAD()
+    : WindowMenuInfoOtp {
+#if HAS_INDX_HEAD()
+    "INDX head", buddy::puppies::indx.get_otp()
 #endif
 }
 {
