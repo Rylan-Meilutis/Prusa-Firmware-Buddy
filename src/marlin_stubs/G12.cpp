@@ -2,8 +2,6 @@
 
 #include <nozzle_cleaner.hpp>
 #include <logging/log.hpp>
-#include "common/gcode/inject_queue_actions.hpp"
-#include "marlin_server.hpp"
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -48,7 +46,6 @@ void PrusaGcodeSuite::G12() {
         buddy::auto_retract().maybe_retract_from_nozzle();
     }
 #endif
-#if HAS_INDX()
     {
         uint16_t s_param = std::to_underlying(nozzle_cleaner::Sequence::clean);
         (void)parser.store_option_if_present('S', s_param);
@@ -59,14 +56,7 @@ void PrusaGcodeSuite::G12() {
             return;
         }
 
-        const auto &gcode = nozzle_cleaner::get_sequence(seq);
-        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
-        return;
-    }
-#endif
-    {
-        const auto &gcode = nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::clean);
-        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
+        (void)nozzle_cleaner::load_and_execute(seq);
     }
 }
 
