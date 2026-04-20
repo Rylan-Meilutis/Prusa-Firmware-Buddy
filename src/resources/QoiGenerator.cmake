@@ -27,16 +27,12 @@ else()
   set(qoi_icon_deps "")
 endif()
 
-if(PRINTER STREQUAL "MINI")
-  # mini only loads images that are actually used, because it has small xflash
-  set(qoi_used_files ${CMAKE_SOURCE_DIR}/src/gui/res/mini_used_imgs.txt)
-  set(qou_used_files_arg -input_filter=${qoi_used_files})
-endif()
+set(qoi_used_files ${CMAKE_SOURCE_DIR}/src/gui/res/${PRINTER}_used_imgs.txt)
 
 add_custom_command(
   OUTPUT "${qoi_data_file}" "${qoi_resources_file}"
   COMMAND "${Python3_EXECUTABLE}" "${qoi_generator_py}" "${qoi_source_dir}" "${qoi_resources_file}"
-          "${qoi_data_file}" ${qou_used_files_arg}
+          "${qoi_data_file}" "${qoi_used_files}"
   DEPENDS ${qoi_icon_deps} "${qoi_generator_py}" "${qoi_used_files}"
   VERBATIM
   )

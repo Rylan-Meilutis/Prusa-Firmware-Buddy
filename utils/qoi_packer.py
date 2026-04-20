@@ -20,11 +20,9 @@ def main():
                         type=Path,
                         help='Path to file where to create QOI data file')
     parser.add_argument(
-        '-input_filter',
+        'input_filter',
         type=Path,
-        help='Path to file with list of actually used images in this printer',
-        default=None,
-        required=False)
+        help='Path to file with list of actually used images in this printer')
 
     args = parser.parse_args()
 
@@ -36,19 +34,14 @@ def main():
     else:
         png_files.append(args.input.resolve())
 
-    filtered_pngs = None
-    if (args.input_filter):
-        filtered_pngs = []
-        with open(args.input_filter.resolve(), 'r') as fd:
-            for line in fd:
-                filtered_pngs.append(line.strip())
+    filtered_pngs = []
+    with open(args.input_filter.resolve(), 'r') as fd:
+        for line in fd:
+            filtered_pngs.append(line.strip())
 
     offset = 0
     with open(args.resources_file, 'w') as resources_file, \
          open(args.data_file, 'wb+') as data_file:
-
-        if filtered_pngs:
-            resources_file.write(f"// filter file used: {args.input_filter}\n")
 
         for png_file in png_files:
             with Image.open(png_file.resolve()).convert('RGBA') as png:
@@ -58,7 +51,7 @@ def main():
                 data = qoi.encode(numpy.array(png))
                 size = len(data)
 
-                if (filtered_pngs is None or name + ".png" in filtered_pngs):
+                if name + ".png" in filtered_pngs:
                     resources_file.write(
                         f'inline constexpr Resource {name}({offset}, {width}, {height});\n'
                     )
