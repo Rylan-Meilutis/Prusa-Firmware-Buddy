@@ -50,6 +50,7 @@ target_link_libraries(
           bsod
           raii
           fpm
+          ADS131M02
           LP5817
           cortex-m0-atomic
   )

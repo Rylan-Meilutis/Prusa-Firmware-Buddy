@@ -3,6 +3,7 @@
 
 #include "hal.hpp"
 #include "rtt.hpp"
+#include <ads131m02/ADS131M02.hpp>
 #include <cstddef>
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/timing.hpp>
@@ -53,7 +54,7 @@ namespace {
         uint32_t cs_pin;
     };
 
-    [[nodiscard, maybe_unused]] bool transmit_receive(const TransmitReceiveParameters &params) {
+    [[nodiscard]] bool transmit_receive(const TransmitReceiveParameters &params) {
         const auto &[tx_data, rx_data, size, cs_port, cs_pin] = params;
 
         // caller must ensure these preconditions
@@ -136,11 +137,65 @@ namespace accel {
 } // namespace accel
 
 namespace loadcell {
+    namespace {
+        class SPIDevice : Uncopyable {
+        public:
+            [[nodiscard]] bool transmit_receive(std::span<const std::byte> tx, std::span<std::byte> rx) {
+                SPI_ASSERT("sizes must match\n", tx.size() == rx.size());
+                SPI_ASSERT("config must not be changed in-flight\n", !LL_SPI_IsEnabled(SPIx));
+
+                MODIFY_REG(SPIx->CR1, SPI_CR1_CPOL, LL_SPI_POLARITY_LOW);
+                return hal::spi::transmit_receive({
+                    .tx_data = tx.data(),
+                    .rx_data = rx.data(),
+                    .size = tx.size(),
+                    .cs_port = GPIOA,
+                    .cs_pin = GPIO_PIN_15,
+                });
+            }
+        };
+
+        class ADS131M02 final : public ::ADS131M02::Impl<SPIDevice> {
+        public:
+            using ADS131M02::Impl<SPIDevice>::Impl;
+
+            void enable_adc_mco() const final {
+                hal::clk::enable_adc_mco();
+            }
+
+            void disable_adc_mco() const final {
+                hal::clk::disable_adc_mco();
+            }
+
+            void delay(uint32_t ms) const final {
+                freertos::delay(ms);
+            }
+        };
+
+        ADS131M02 ads131m02;
+    } // namespace
+
     void init() {
+        /// Blocks until the loadcell is detected and configured.
+        /// The loadcell is critical — the system cannot operate without it.
+        while (!ads131m02.init_comm()) {
+            freertos::yield();
+        }
     }
 
     std::optional<uint32_t> get_sample() {
-        return std::nullopt;
+        if (auto result = ads131m02.read_sample()) [[likely]] {
+            return *result;
+        } else {
+            switch (result.error()) {
+            case ::ADS131M02::ReadSampleError::transmit_failed:
+            case ::ADS131M02::ReadSampleError::not_ready:
+                break;
+            case ::ADS131M02::ReadSampleError::crc_mismatch:
+                hal::panic(indx_head::errors::FaultStatusMask::loadcell_crc_mismatch);
+            }
+            return std::nullopt;
+        }
     }
 
 } // namespace loadcell
