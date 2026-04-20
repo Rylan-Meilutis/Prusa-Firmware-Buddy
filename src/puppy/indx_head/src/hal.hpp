@@ -69,6 +69,13 @@ namespace adc {
     }
 } // namespace adc
 
+namespace clk {
+    /// Enables MCO output of ADC clock
+    void enable_adc_mco();
+    /// Disables MCO output of ADC clock
+    void disable_adc_mco();
+} // namespace clk
+
 namespace peripherals {
     extern ADC_HandleTypeDef hadc1;
     extern freertos::BinarySemaphore adc_semaphore;

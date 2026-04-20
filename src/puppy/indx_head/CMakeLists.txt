@@ -25,6 +25,7 @@ target_sources(
   PRIVATE src/app.cpp
           src/hal.cpp
           src/hal_adc.cpp
+          src/hal_clk.cpp
           src/hal_crc.cpp
           src/hal_i2c.cpp
           src/hal_spi.cpp
