@@ -65,6 +65,38 @@ constexpr int32_t activity_update_every_ms = 300;
 
 } // namespace
 
+namespace xbuddy_extension::modbus {
+namespace {
+
+    void compute_digest_response(DigestRequest request, FileId file_id, Digest &modbus_digest) {
+        const ClosingFileDescriptor fd { ::open(file_id) };
+
+        const uint32_t salt = static_cast<uint32_t>(request.salt_hi << 16) | static_cast<uint32_t>(request.salt_lo);
+        modbus_digest.request = request;
+
+        DigestStatus digest_status;
+        if (fd.fd == -1) {
+            modbus_digest.data = {};
+            digest_status = DigestStatus::unavailable;
+        } else {
+            // we defined Digest::data as little endian => no byte swapping needed
+            // we also compute the digest in-place and save some stack space
+            static_assert(std::endian::native == std::endian::little);
+            const auto buddy_digest = std::as_writable_bytes(std::span { modbus_digest.data });
+            if (buddy::compute_file_digest(fd.fd, salt, buddy_digest)) {
+                digest_status = DigestStatus::ok;
+            } else {
+                log_error(Buddy, "buddy::compute_file_digest() failed");
+                modbus_digest.data = {};
+                digest_status = DigestStatus::retry;
+            }
+        }
+        modbus_digest.status = serialize_digest_status(digest_status);
+    }
+
+} // namespace
+} // namespace xbuddy_extension::modbus
+
 namespace buddy::puppies {
 
 void XBuddyExtension::set_fan_pwm(size_t fan_idx, uint8_t pwm) {
@@ -357,8 +389,8 @@ CommunicationStatus XBuddyExtension::write_chunk(PuppyModbus &bus) {
     return CommunicationStatus::ERROR;
 }
 
-CommunicationStatus XBuddyExtension::write_digest(PuppyModbus &bus) {
-    const xbuddy_extension::modbus::DigestRequest &current_request = status.value.digest_request;
+CommunicationStatus XBuddyExtension::write_digest(PuppyModbus &bus, DigestComputeFn compute) {
+    const xbuddy_extension::modbus::DigestRequest current_request = status.value.digest_request;
 
     if (current_request == last_digest_request) {
         return CommunicationStatus::SKIPPED;
@@ -369,31 +401,10 @@ CommunicationStatus XBuddyExtension::write_digest(PuppyModbus &bus) {
         return CommunicationStatus::OK;
     }
 
-    const ClosingFileDescriptor fd { open(file_id) };
-
-    const uint32_t salt = static_cast<uint32_t>(current_request.salt_hi << 16) | static_cast<uint32_t>(current_request.salt_lo);
+    // Callback runs the slow work with the mutex released and reacquires
+    // before returning.
     xbuddy_extension::modbus::Digest modbus_digest;
-    modbus_digest.request = current_request;
-
-    const auto digest_status = [&] {
-        if (fd.fd == -1) {
-            modbus_digest.data = {};
-            return xbuddy_extension::DigestStatus::unavailable;
-        } else {
-            // we defined Digest::data as little endian => no byte swapping needed
-            // we also compute the digest in-place and save some stack space
-            static_assert(std::endian::native == std::endian::little);
-            const auto buddy_digest = std::as_writable_bytes(std::span { modbus_digest.data });
-            if (buddy::compute_file_digest(fd.fd, salt, buddy_digest)) {
-                return xbuddy_extension::DigestStatus::ok;
-            } else {
-                log_error(Buddy, "buddy::compute_file_digest() failed");
-                modbus_digest.data = {};
-                return xbuddy_extension::DigestStatus::retry;
-            }
-        }
-    }();
-    modbus_digest.status = xbuddy_extension::modbus::serialize_digest_status(digest_status);
+    compute(current_request, file_id, modbus_digest);
 
     if (bus.write_holding_registers(modbus::ServerAddress::xbuddy_extension, modbus_digest)) {
         last_digest_request = current_request;
@@ -423,7 +434,12 @@ CommunicationStatus XBuddyExtension::refresh(PuppyModbus &bus) {
         refresh_holding(bus),
         refresh_log_message(bus),
         write_chunk(bus),
-        write_digest(bus),
+        write_digest(bus, [&lock](xbuddy_extension::modbus::DigestRequest request, FileId file_id, xbuddy_extension::modbus::Digest &out) {
+            // Release mutex for the slow digest computation (file read + SHA256).
+            lock.unlock();
+            xbuddy_extension::modbus::compute_digest_response(request, file_id, out);
+            lock.lock();
+        }),
     };
 
     constexpr auto equal_to = [](CommunicationStatus what) {

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <atomic>
 #include <freertos/mutex.hpp>
+#include <inplace_function.hpp>
 #include <otp/types.hpp>
 #include <span>
 #include <xbuddy_extension/modbus.hpp>
@@ -114,10 +115,16 @@ private:
 
     void close_flash_file();
 
+    using DigestComputeFn = stdext::inplace_function<
+        void(
+            xbuddy_extension::modbus::DigestRequest request,
+            xbuddy_extension::FileId file_id,
+            xbuddy_extension::modbus::Digest &out)>;
+
     CommunicationStatus refresh_holding(PuppyModbus &);
     CommunicationStatus refresh_input(PuppyModbus &, uint32_t max_age);
     CommunicationStatus write_chunk(PuppyModbus &);
-    CommunicationStatus write_digest(PuppyModbus &);
+    CommunicationStatus write_digest(PuppyModbus &, DigestComputeFn compute);
     CommunicationStatus refresh_log_message(PuppyModbus &);
 
     // Cyphal bridge
