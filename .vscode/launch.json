@@ -193,6 +193,96 @@
             "rtos": "FreeRTOS",
         },
         {
+            "name": "Launch INDX",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/build-vscode-buddy/indx_head-build/firmware",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "armToolchainPath": "${workspaceRoot}/.dependencies/gcc-arm-none-eabi-13.3.1/bin",
+            "gdbPath": "gdb-multiarch",
+            "configFiles": [
+                "${workspaceRoot}/utils/debug/anfc.cfg",
+            ],
+            "toolchainPrefix": "arm-none-eabi",
+            "device": "STM32C092RC",
+            "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-c0-ce4b873ae4a471cf28d7a7c9c69ded252d949672/STM32C092.svd",
+            "rtos": "FreeRTOS",
+            "presentation": {
+                "group": "XL Puppies",
+            },
+            "preLaunchTask": "Wait 1", // this is needed when starting all puppies at once, because there is some issue when all of them start at once
+            "rttConfig": {
+                "enabled": false,
+                "address": "auto",
+                "searchSize": 16,
+                "searchId": "SEGGER RTT",
+                "clearSearch": true,
+                "polling_interval": 10,
+                "decoders": [
+                    {
+                        "label": "Logging",
+                        "port": 0,
+                        "noprompt": true,
+                        "type": "console"
+                    }
+                ]
+            },
+            "postLaunchCommands": [
+                "monitor reset halt",
+                "set $sp = *0x08002000",
+                "set $pc = *0x08002004",
+                "tbreak main",
+                "continue"
+            ],
+            "postRestartCommands": [
+                "monitor reset halt",
+                "set $sp = *0x08002000",
+                "set $pc = *0x08002004",
+                "tbreak main",
+                "continue"
+            ]
+        },
+        {
+            "name": "Attach to INDX",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/build-vscode-buddy/indx_head-build/firmware",
+            "request": "attach",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "armToolchainPath": "${workspaceRoot}/.dependencies/gcc-arm-none-eabi-13.3.1/bin",
+            "configFiles": [
+                "${workspaceRoot}/utils/debug/anfc.cfg",
+            ],
+            "toolchainPrefix": "arm-none-eabi",
+            "device": "STM32C092RC",
+            "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-c0-ce4b873ae4a471cf28d7a7c9c69ded252d949672/STM32C092.svd",
+            "rtos": "FreeRTOS",
+            "rttConfig": {
+                "enabled": false,
+                "address": "auto",
+                "searchSize": 16,
+                "searchId": "SEGGER RTT",
+                "clearSearch": true,
+                "polling_interval": 10,
+                "decoders": [
+                    {
+                        "label": "Logging",
+                        "port": 0,
+                        "noprompt": true,
+                        "type": "console"
+                    }
+                ]
+            },
+            "postRestartCommands": [
+                "monitor reset halt",
+                "set $sp = *0x08002000",
+                "set $pc = *0x08002004",
+                "tbreak main",
+                "continue"
+            ]
+        },
+        {
             "name": "Launch Simulator",
             "type": "cortex-debug",
             "servertype": "qemu",
