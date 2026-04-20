@@ -6,6 +6,7 @@
 #include <Marlin/src/Marlin.h>
 #include <Marlin/src/module/motion.h>
 #include <Marlin/src/module/planner.h>
+#include <Marlin/src/module/temperature.h>
 #include <option/has_indx.h>
 
 namespace nozzle_cleaner {
@@ -282,6 +283,11 @@ bool execute() {
     auto loader_result = nozzle_cleaner_gcode_loader_instance().get_result();
     ScopeGuard resetLoader = [&] { // Ensure the loader is always reset (the exception is if we are buffering or not idle, which is handled above)
         reset();
+    };
+
+    const auto print_fan_speed = Temperature::fan_speed[0]; // Save print fan before executing the cleaner gcode, we allow the cleaner gcode to play with the print fan
+    ScopeGuard restoreFan = [&] {
+        thermalManager.set_fan_speed(0, print_fan_speed); // Restore print fan speed after
     };
 
     // this means the gcode was loaded successfully -> ready to execute it
