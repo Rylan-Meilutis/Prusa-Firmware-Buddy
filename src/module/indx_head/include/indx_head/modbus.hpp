@@ -62,6 +62,7 @@ struct Config {
     uint16_t loadcell_enabled = 0;
     uint16_t accelerometer_enabled = 0;
     uint16_t clear_fault_status = 0; ///< errors::FaultStatusMask to clear from Status::fault_status when written
+    uint16_t selftest_mode = 0; ///< When nonzero, heatbreak fan is forced to full speed for selftest
     static constexpr uint16_t loadcell_enabled_address() {
         return address + (offsetof(Config, loadcell_enabled) / sizeof(Config::loadcell_enabled));
     }

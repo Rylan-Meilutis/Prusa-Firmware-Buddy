@@ -24,4 +24,6 @@ uint8_t get_boardfan_pwm();
 
 bool is_printfan_rpm_ok();
 bool is_boardfan_rpm_ok();
+
+void set_selftest_mode(bool enabled);
 } // namespace app

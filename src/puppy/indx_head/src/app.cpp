@@ -197,4 +197,8 @@ bool is_printfan_rpm_ok() {
 bool is_boardfan_rpm_ok() {
     return boardfan_pwm == 0 || hal::tim::get_boardfan_rpm_counter() > 0 || freertos::millis() - boardfan_start_ms < fan_startup_duration_ms;
 }
+
+void set_selftest_mode(bool enabled) {
+    selftest_mode.store(enabled);
+}
 } // namespace app

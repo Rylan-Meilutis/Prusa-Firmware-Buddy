@@ -4,10 +4,16 @@
 
 void CFanCtlPuppy::enter_selftest_mode() {
     selftest_mode = true;
+#if HAS_INDX()
+    tool.set_selftest_mode(true);
+#endif
 }
 
 void CFanCtlPuppy::exit_selftest_mode() {
     selftest_mode = false;
+#if HAS_INDX()
+    tool.set_selftest_mode(false);
+#endif
 
     // upon exit selftestt, either switch fan back to AUTO mode, or turn it off and let marlin turn it on if needed
     reset_fan();

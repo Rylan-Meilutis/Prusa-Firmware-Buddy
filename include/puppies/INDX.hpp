@@ -119,6 +119,7 @@ public:
 
     void set_fan(uint8_t fan, uint16_t target);
     void set_fan_auto(uint8_t fan);
+    void set_selftest_mode(bool enabled);
 
     /**
      * @brief Set INDX_HEAD LEDs' color.
@@ -171,6 +172,7 @@ private:
     ModbusHoldingRegisterBlock<indx_head::modbus::Config::address, indx_head::modbus::Config> general_write;
     // Because they can be set from an interrupt.
     std::array<std::atomic<uint16_t>, NUM_FANS> fan_pwm_desired { 0, 0 };
+    std::atomic<bool> selftest_mode_ { false };
 
     MODBUS_REGISTER LoadcellEnabled {
         uint16_t loadcell_enabled = 0;

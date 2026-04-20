@@ -92,6 +92,12 @@ namespace {
         if (new_status.print_fan_pwm.value != state.config_regs.print_fan_pwm.value) {
             app::set_printfan_pwm(new_status.print_fan_pwm.value);
         }
+
+        // Set selftest mode - set heatbreak fan (autofan) pwm to 255
+        if (new_status.selftest_mode != state.config_regs.selftest_mode) {
+            app::set_selftest_mode(new_status.selftest_mode != 0);
+        }
+
         // Update LED color
         if (new_status.leds != state.config_regs.leds) {
             app::set_led_config(new_status.leds);

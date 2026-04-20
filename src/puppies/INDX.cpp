@@ -225,11 +225,15 @@ namespace fans {
 
 CommunicationStatus Indx::write_general(PuppyModbus &bus) {
     // Handle delayed writes from possibly an interrupt.
-    uint16_t pwm_desired = fan_pwm_desired[fans::PRINTFAN_INDEX].load();
-    if (pwm_desired != general_write.value.print_fan_pwm.value) {
-        general_write.value.print_fan_pwm.value = pwm_desired;
-        general_write.dirty = true;
-    }
+    const auto write = [&](auto &dst, const auto val) {
+        if (val != dst) {
+            dst = val;
+            general_write.dirty = true;
+        }
+    };
+    write(general_write.value.print_fan_pwm.value, fan_pwm_desired[fans::PRINTFAN_INDEX].load());
+    write(general_write.value.selftest_mode, selftest_mode_.load() ? 1 : 0);
+
     CommunicationStatus status = bus.write(unit, general_write);
     if (status == CommunicationStatus::ERROR) {
         return status;
@@ -382,6 +386,10 @@ void Indx::set_fan(uint8_t fan, uint16_t target) {
 void Indx::set_fan_auto(uint8_t fan) {
     assert(fan < NUM_FANS);
     fan_pwm_desired[fan].store(FAN_MODE_AUTO_PWM);
+}
+
+void Indx::set_selftest_mode(bool enabled) {
+    selftest_mode_.store(enabled);
 }
 
 uint16_t Indx::get_heatbreak_fan_pwr() {
