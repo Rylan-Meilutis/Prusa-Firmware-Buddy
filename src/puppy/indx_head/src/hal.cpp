@@ -4,6 +4,7 @@
 #include "hal_crc.hpp"
 #include "hal_spi.hpp"
 #include "heater.hpp"
+#include "spi_task.hpp"
 #include "watchdog.hpp"
 
 #include <stm32c0xx_hal.h>
@@ -946,6 +947,16 @@ extern "C" void EXTI0_1_IRQHandler(void) {
 
 extern "C" void EXTI4_15_IRQHandler(void) {
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+}
+
+extern "C" void HAL_GPIO_EXTI_Rising_Callback([[maybe_unused]] uint16_t gpio_pin) {
+    assert(gpio_pin == GPIO_PIN_0);
+    spi_task::notify_accel_data_ready();
+}
+
+extern "C" void HAL_GPIO_EXTI_Falling_Callback([[maybe_unused]] uint16_t gpio_pin) {
+    assert(gpio_pin == GPIO_PIN_4);
+    spi_task::notify_loadcell_data_ready();
 }
 
 extern "C" void DMA1_Channel1_IRQHandler(void) {

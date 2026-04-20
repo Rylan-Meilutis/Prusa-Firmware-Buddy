@@ -2,6 +2,7 @@
 #include "hal.hpp"
 #include "rtt.hpp"
 #include "app.hpp"
+#include "spi_task.hpp"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -16,6 +17,11 @@ namespace {
 constexpr const size_t app_task_stack_size = 2 * 512 / sizeof(StackType_t);
 alignas(32) StackType_t app_task_stack[app_task_stack_size];
 StaticTask_t app_task_control_block;
+
+// SPI task
+constexpr const size_t spi_task_stack_size = 2 * 512 / sizeof(StackType_t);
+alignas(32) StackType_t spi_task_stack[spi_task_stack_size];
+StaticTask_t spi_task_control_block;
 } // namespace
 
 extern "C" int main() {
@@ -32,6 +38,16 @@ extern "C" int main() {
             tskIDLE_PRIORITY + 1,
             app_task_stack,
             &app_task_control_block);
+    }
+    {
+        [[maybe_unused]] TaskHandle_t app_task_handle = xTaskCreateStatic(
+            [](void *) { spi_task::run(); },
+            "spi_task",
+            spi_task_stack_size,
+            nullptr,
+            tskIDLE_PRIORITY + 2, // This tasks processes SPI IRQs - needs higher pripority then app task, but should mostly be idle
+            spi_task_stack,
+            &spi_task_control_block);
     }
 
     // Start FreeRTOS scheduler and we are done.

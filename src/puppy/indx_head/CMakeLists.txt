@@ -34,6 +34,7 @@ target_sources(
           src/heater.cpp
           src/main.cpp
           src/rtt.cpp
+          src/spi_task.cpp
           src/startup.s
           src/stdlib.cpp
           src/system.c
@@ -50,8 +51,10 @@ target_link_libraries(
           bsod
           raii
           fpm
+          buddy_utils
           ADS131M02
           AIS2IH
+          fifo_encoder
           LP5817
           cortex-m0-atomic
   )
