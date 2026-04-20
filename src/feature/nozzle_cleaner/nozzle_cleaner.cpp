@@ -47,8 +47,8 @@ ConstexprString vblade_cut_sequence = "M106 S200\n" // fan on
                                       "M106 S0\n"; // fan off
 
 ConstexprString clean_filename
-    = "nozzle_cleaner_clean";
-ConstexprString vblade_cut_filename = "nozzle_cleaner_vblade_cut";
+    = "nozzle_cleaner/clean";
+ConstexprString vblade_cut_filename = "nozzle_cleaner/purge_clean";
 
 static GCodeLoader &nozzle_cleaner_gcode_loader_instance() {
     static GCodeLoader nozzle_cleaner_gcode_loader;
