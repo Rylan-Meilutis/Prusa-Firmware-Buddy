@@ -1,4 +1,5 @@
 #pragma GCC poison printf
+#include "modbus.hpp"
 #include "hal.hpp"
 #include "rtt.hpp"
 #include "app.hpp"
@@ -13,6 +14,11 @@
 [[maybe_unused]] __attribute__((section(".fw_descriptor"), used)) const std::byte fw_descriptor[48] {};
 
 namespace {
+// Modbus task
+constexpr const size_t modbus_task_stack_size = 2 * 512 / sizeof(StackType_t);
+alignas(32) StackType_t modbus_task_stack[modbus_task_stack_size];
+StaticTask_t modbus_task_control_block;
+
 // App task
 constexpr const size_t app_task_stack_size = 2 * 512 / sizeof(StackType_t);
 alignas(32) StackType_t app_task_stack[app_task_stack_size];
@@ -29,6 +35,16 @@ extern "C" int main() {
     rtt::init();
     rtt::print("indx_head started\n");
 
+    {
+        [[maybe_unused]] TaskHandle_t modbus_task_handle = xTaskCreateStatic(
+            [](void *) { modbus::run(); },
+            "modbus_task",
+            modbus_task_stack_size,
+            nullptr,
+            tskIDLE_PRIORITY + 2,
+            modbus_task_stack,
+            &modbus_task_control_block);
+    }
     {
         [[maybe_unused]] TaskHandle_t app_task_handle = xTaskCreateStatic(
             [](void *) { app::run(); },

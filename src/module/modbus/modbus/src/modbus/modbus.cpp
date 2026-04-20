@@ -8,6 +8,14 @@
 
 using Status = modbus::Callbacks::Status;
 
+static constexpr const std::byte read_coils { 0x01 };
+static constexpr const std::byte read_descrete_inputs { 0x02 };
+static constexpr const std::byte read_holding_registers { 0x03 };
+static constexpr const std::byte read_input_registers { 0x04 };
+static constexpr const std::byte write_coil { 0x05 };
+static constexpr const std::byte write_multiple_registers { 0x10 };
+static constexpr const std::byte write_coils { 0x0F };
+
 static constexpr std::byte modbus_byte_lo(uint16_t value) {
     return std::byte(value & 0xff);
 }

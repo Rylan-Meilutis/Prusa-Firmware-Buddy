@@ -34,6 +34,7 @@ target_sources(
           src/hal_watchdog.cpp
           src/heater.cpp
           src/main.cpp
+          src/modbus.cpp
           src/rtt.cpp
           src/spi_task.cpp
           src/startup.s
@@ -50,6 +51,7 @@ target_link_libraries(
           freertos
           indx_head
           bsod
+          modbus
           raii
           fpm
           buddy_utils

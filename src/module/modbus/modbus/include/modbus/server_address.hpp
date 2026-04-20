@@ -10,6 +10,7 @@ enum class ServerAddress : uint8_t {
     ac_controller = 219,
     anfc0 = 221,
     anfc1 = 222,
+    indx_head = 0x1a + 8,
     invalid = 255,
     mmu = 220,
     tool_offset_sensor = 223,
