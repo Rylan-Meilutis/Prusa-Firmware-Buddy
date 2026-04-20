@@ -85,12 +85,14 @@ public:
 
 public:
     /// Constructs the ref objecct from a MultiReadFieldRequest (stores a subset of references)
-    template <CField auto... src_fields>
+    template <auto... src_fields>
+        requires(CField<decltype(src_fields)> && ...)
     MultiReadFieldRequestRef(const MultiReadFieldRequestImpl<src_fields...> &req)
         : refs { req.template request<fields_>()... } {}
 
     /// Constructs the ref objecct from a potentially bigger MultiReadFieldRequestRef
-    template <CField auto... src_fields>
+    template <auto... src_fields>
+        requires(CField<decltype(src_fields)> && ...)
     MultiReadFieldRequestRef(const MultiReadFieldRequestRef<src_fields...> &req)
         : refs { req.template request<fields_>()... } {}
 

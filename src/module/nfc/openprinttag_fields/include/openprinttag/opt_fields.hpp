@@ -27,7 +27,7 @@ enum class MainField : Field;
 enum class AuxField : Field;
 
 template <typename T>
-concept CField = std::is_same_v<T, MetaField> || std::is_same_v<T, MainField> || std::is_same_v<T, AuxField>;
+concept CField = std::is_same<T, MetaField>::value || std::is_same<T, MainField>::value || std::is_same<T, AuxField>::value;
 
 template <CField auto field>
 struct FieldTraits;
