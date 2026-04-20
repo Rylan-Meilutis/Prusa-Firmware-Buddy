@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <numbers>
 
 namespace hal::adc {
 alignas(uint32_t) std::array<uint16_t, std::to_underlying(Channel::_cnt)> impl::buffer {};
@@ -23,48 +24,33 @@ int16_t get_mcu_temp() {
     return __LL_ADC_CALC_TEMPERATURE_TYP_PARAMS(2'530, ts_v_at_30, TEMPSENSOR_CAL1_TEMP, vref, get_raw(Channel::mcu_temp), LL_ADC_RESOLUTION_12B);
 }
 
-// Raw ADC values are 12-bit (0-4095)
-constexpr auto tt7_10kc3_11_conversion_table = std::to_array<std::pair<uint16_t, int16_t>>({
-    { 0, 700 }, // Boundary (open circuit / error)
-    { 310, 120 },
-    { 352, 115 },
-    { 400, 110 },
-    { 454, 105 },
-    { 516, 100 },
-    { 587, 95 },
-    { 668, 90 },
-    { 760, 85 },
-    { 863, 80 },
-    { 980, 75 },
-    { 1111, 70 },
-    { 1256, 65 },
-    { 1415, 60 },
-    { 1589, 55 },
-    { 1774, 50 },
-    { 1970, 45 },
-    { 2173, 40 },
-    { 2380, 35 },
-    { 2585, 30 },
-    { 2786, 25 },
-    { 2977, 20 },
-    { 3154, 15 },
-    { 3315, 10 },
-    { 3459, 5 },
-    { 3583, 0 },
-    { 3689, -5 },
-    { 3777, -10 },
-    { 3850, -15 },
-    { 3908, -20 },
-    { 3954, -25 },
-    { 3990, -30 },
-    { 4018, -35 },
-    { 4039, -40 },
-});
+template <int16_t from, int16_t to, int16_t step>
+consteval auto generate_ntc_conversion_table(uint32_t resistance_at_25, uint32_t betta_factor, uint32_t second_resistance, uint32_t adc_max = 4095) {
+    static_assert((to - from) % step == 0);
+    static constexpr size_t item_count = ((to - from) / step) + 1;
+    std::array<std::pair<uint16_t, int16_t>, item_count> conversion_table {};
+    for (size_t i = 0; i < conversion_table.size(); ++i) {
+        static constexpr double kelvin_25C = 298.15;
+        const int16_t celsius = from + static_cast<int16_t>(i) * step;
+        const double temp = static_cast<double>(celsius) + 273.15;
+        const double adjusted_beta_at_temp = static_cast<double>(betta_factor) * ((1 / temp) - (1 / kelvin_25C));
+        const double resistance_at_temp = resistance_at_25 * std::pow(std::numbers::e, adjusted_beta_at_temp);
+        const double adc_at_temp = adc_max * (resistance_at_temp / (resistance_at_temp + second_resistance));
+        conversion_table.at(i) = std::make_pair(static_cast<uint16_t>(adc_at_temp), celsius);
+    }
+    std::ranges::sort(conversion_table, std::less {}, [](const auto a) { return a.first; });
+    return conversion_table;
+}
+
+constexpr auto nka103c1b1 = generate_ntc_conversion_table<-40, 200, 5>(10'000, 3'977, 4'700);
 
 int16_t get_board_temp() {
     const auto raw_value = get_raw(Channel::board_temp);
-    const auto it = std::ranges::lower_bound(tt7_10kc3_11_conversion_table, raw_value, std::less<uint16_t> {}, [](const auto &val) { return val.first; });
-    if (it == std::end(tt7_10kc3_11_conversion_table)) {
+    const auto it = std::ranges::lower_bound(nka103c1b1, raw_value, std::less<uint16_t> {}, [](const auto &val) { return val.first; });
+    if (it == std::cbegin(nka103c1b1)) {
+        return std::numeric_limits<int16_t>::max();
+    }
+    if (it == std::cend(nka103c1b1)) {
         return std::numeric_limits<int16_t>::min();
     }
     const auto prev = it - 1;
@@ -77,7 +63,7 @@ int16_t get_board_temp() {
 }
 
 uint16_t get_input_voltage() {
-    static constexpr uint32_t r1 = 10; // kOhm
+    static constexpr auto r1 = 2 * fpm::fixed_24_8 { 4.7f }; // kOhm
     static constexpr uint32_t r2 = 1; // kOhm
     static constexpr fpm::fixed_24_8 vref_nominal { 3.3f };
 
