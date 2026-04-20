@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include "hal.hpp"
+#include "heater.hpp"
 #include "timing.hpp"
 #include <filters/debouncer.hpp>
 
@@ -17,6 +18,15 @@ std::atomic<int16_t> nozzle_temp = 25 * 100; // default 25*C stored in centiDeg 
 constexpr float max_nozzle_temp = 330.f;
 constexpr float min_nozzle_temp = 5.f;
 constexpr uint32_t invalid_nozzle_temp_timeout_ms = 1000 * 2;
+/// Target nozzle temperature in DegC
+std::atomic<uint16_t> target_temp = 0;
+constexpr uint16_t max_target_temp = 300;
+
+std::atomic<indx_head::NozzlePresence> nozzle_present = indx_head::NozzlePresence::unknown;
+std::atomic<uint16_t> nozzle_invalidation_ack = 0;
+std::atomic<uint16_t> last_nozzle_decay_x1000 = 0;
+
+Debouncer<bool> nozzle_debouncer { false, 3 }; // 3 consecutive identical readings to settle
 
 constexpr uint32_t control_frequency = 300 /*Hz*/;
 constexpr uint32_t control_delay_us = 1'000'000 / control_frequency;
@@ -69,7 +79,7 @@ void run() {
             int16_t nzl_temp = static_cast<int16_t>(nozzle_temp_reading.value * 100.f);
             nozzle_temp.store(nzl_temp);
 
-            // TODO: Update induction heating
+            inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nzl_temp);
         }
 
         // Fans and leds control loop

@@ -30,6 +30,7 @@ target_sources(
           src/hal_spi.cpp
           src/hal_tim.cpp
           src/hal_watchdog.cpp
+          src/heater.cpp
           src/main.cpp
           src/rtt.cpp
           src/startup.s
@@ -46,6 +47,7 @@ target_link_libraries(
           freertos
           indx_head
           bsod
+          raii
           fpm
           LP5817
           cortex-m0-atomic

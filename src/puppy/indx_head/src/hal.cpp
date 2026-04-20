@@ -3,6 +3,7 @@
 #include "critical_section.hpp"
 #include "hal_crc.hpp"
 #include "hal_spi.hpp"
+#include "heater.hpp"
 #include "watchdog.hpp"
 
 #include <stm32c0xx_hal.h>
@@ -980,4 +981,8 @@ extern "C" void DMAMUX1_DMA1_CH4_5_6_7_IRQHandler(void) {
 extern "C" void TIM3_IRQHandler(void) {
     using namespace hal::peripherals;
     HAL_TIM_IRQHandler(&htim3);
+}
+
+extern "C" void TIM16_IRQHandler(void) {
+    inductionHeater.ramp_isr();
 }
