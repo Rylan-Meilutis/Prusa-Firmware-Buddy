@@ -68,7 +68,14 @@ if(BOARD IN_LIST BUDDY_BOARDS)
 
   add_subdirectory(semihosting)
 
-  target_link_libraries(firmware PRIVATE FreeRTOS::CMSIS fifo_decoder)
+  target_link_libraries(firmware PRIVATE FreeRTOS::CMSIS)
+  if(HAS_DWARF OR HAS_INDX_HEAD)
+    target_link_libraries(firmware PRIVATE fifo_decoder)
+  endif()
+  if(HAS_INDX_HEAD)
+    target_link_libraries(firmware PRIVATE indx_head)
+    target_link_libraries(Marlin PRIVATE indx_head)
+  endif()
 elseif(BOARD STREQUAL "DWARF")
   target_include_directories(firmware PRIVATE .)
 
