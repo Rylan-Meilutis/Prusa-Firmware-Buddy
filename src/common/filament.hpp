@@ -37,6 +37,22 @@ constexpr size_t user_filament_type_count = 8;
 /// Should match virtual tool count (or be higher), one for each virtual tool
 constexpr size_t adhoc_filament_type_count = VirtualToolIndex::count;
 
+// !!! DO NOT REORDER, DO NOT CHANGE - this is used in config store
+enum class PresetFilamentType : uint8_t {
+    PLA = 0,
+    PETG = 1,
+    ASA = 2,
+    PC = 3,
+    PVB = 4,
+    ABS = 5,
+    HIPS = 6,
+    PP = 7,
+    FLEX = 8,
+    PA = 9,
+
+    _count
+};
+
 struct FilamentTypeParameters {
 
 public:
@@ -81,22 +97,6 @@ public:
 public:
     constexpr bool operator==(const FilamentTypeParameters &) const = default;
     constexpr bool operator!=(const FilamentTypeParameters &) const = default;
-};
-
-// !!! DO NOT REORDER, DO NOT CHANGE - this is used in config store
-enum class PresetFilamentType : uint8_t {
-    PLA = 0,
-    PETG = 1,
-    ASA = 2,
-    PC = 3,
-    PVB = 4,
-    ABS = 5,
-    HIPS = 6,
-    PP = 7,
-    FLEX = 8,
-    PA = 9,
-
-    _count
 };
 
 static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetFilamentType::_count);
