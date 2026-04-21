@@ -166,6 +166,9 @@ public:
     /// Parses a float
     StoreOptionResult store_option_if_present(char key, float &target, float min_value = -std::numeric_limits<float>::infinity(), float max_value = std::numeric_limits<float>::infinity()) const;
 
+    /// Note: the first argument of this function is actually the implicit \p this, so the 2, 3 in the \p __attribute__ are correct
+    void report_option_error(char key, const char *msg, ...) const __attribute__((format(printf, 3, 4)));
+
 protected:
     /// Parses an option value
     /// \param p is expected to be positioned on the option value position (see \p option_positions)
@@ -174,9 +177,6 @@ protected:
     /// - Quoted values are copied without the quotes and unescaped (\" -> ")
     /// - The accumulated string is null-terminated
     std::optional<std::string_view> parse_option_value(GCodeParserHelper &p, std::span<char> accumulator = {}) const;
-
-    /// Note: the first argument of this function is actually the implicit \p this, so the 2, 3 in the \p __attribute__ are correct
-    void report_option_error(char key, const char *msg, ...) const __attribute__((format(printf, 3, 4)));
 
 protected:
     /// Stores position of the first character after the option letter within the \p gcode, if the option is present.

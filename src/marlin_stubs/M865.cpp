@@ -39,6 +39,8 @@
  * - `E<val>` - Set maximum chamber temperature
  * - `F<val>` - Set requires filtration
  *
+ * - `J"<preset>"` - Set base preset
+ *
  * - `N"<name>"` - Set name
  *
  */
@@ -84,12 +86,26 @@ void PrusaGcodeSuite::M865() {
     p.store_option_if_present('H', params.heatbreak_temperature);
 #endif
 
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    FilamentTypeParameters::Name base_preset_name;
+    if (auto str = p.option<std::string_view>('J', base_preset_name)) {
+        const auto base_filament_type = FilamentType::from_name(*str);
+        if (const auto preset = std::get_if<PresetFilamentType>(&base_filament_type)) {
+            params.base_preset = *preset;
+        } else {
+            p.report_option_error('J', "Needs to be a preset filament type");
+        }
+    }
+#endif
+
 #if HAS_CHAMBER_API()
     p.store_option_if_present('C', params.chamber_target_temperature);
     p.store_option_if_present('D', params.chamber_min_temperature);
     p.store_option_if_present('E', params.chamber_max_temperature);
     p.store_option_if_present('F', params.requires_filtration);
 #endif
+
+    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise M865 parameters");
 
     std::array<char, filament_name_buffer_size - 1> name_buf;
     if (const auto opt = p.option<std::string_view>('N', name_buf)) {
