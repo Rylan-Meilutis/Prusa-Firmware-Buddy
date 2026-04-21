@@ -55,6 +55,7 @@ target_link_libraries(
           modbus
           tool_offset_sensor
           onewire_master
+          raii
   )
 
 if(HAS_MMU2)

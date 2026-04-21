@@ -9,6 +9,7 @@
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/mutex.hpp>
 #include <freertos/timing.hpp>
+#include <raii/lock_guard.hpp>
 #include <stm32c0xx_hal.h>
 
 #include <atomic>
@@ -25,11 +26,6 @@ namespace hal::i2c {
 namespace {
 
     freertos::Mutex i2c_mutex {};
-    // TODO: Find the non <mutex> implementation and use it istead of this.
-    struct I2CGuard {
-        I2CGuard() { i2c_mutex.lock(); }
-        ~I2CGuard() { i2c_mutex.unlock(); }
-    };
     freertos::BinarySemaphore i2c_it_semaphore {};
     std::atomic<bool> i2c_error_flag { false };
     std::atomic<bool> waiting_for_i2c { false }; // Track if we're waiting for I2C completion
@@ -62,7 +58,7 @@ namespace {
         static constexpr uint8_t address = 0b000'1100;
 
         bool do_general_call() {
-            I2CGuard lg;
+            LockGuard lg { i2c_mutex };
             // F*CK you HAL I want to make this const(expr)
             static std::array<uint8_t, 2> data = { 0x04, 0x00 }; // General Call Reload
             i2c_error_flag.store(false);
@@ -87,7 +83,7 @@ namespace {
         };
 
         bool set_eeprom_reading(EepromSetting setting) {
-            I2CGuard lg;
+            LockGuard lg { i2c_mutex };
             uint8_t data = static_cast<uint8_t>(setting);
             i2c_error_flag.store(false);
             waiting_for_i2c.store(true);
@@ -116,7 +112,7 @@ namespace {
         };
 
         SensorData read_sensor_data() {
-            I2CGuard lg;
+            LockGuard lg { i2c_mutex };
             SensorData sd {};
             std::array<std::byte, 4> raw_sensor_data {};
 
@@ -216,7 +212,7 @@ namespace {
         bool initialized = false;
 
         bool read_eeprom_calibration() {
-            I2CGuard lg;
+            LockGuard lg { i2c_mutex };
             std::array<std::byte, 32> raw {};
             static constexpr uint8_t start_addr = 32;
             i2c_error_flag.store(false);
@@ -341,7 +337,7 @@ namespace {
         Controller controller;
 
         void init() {
-            I2CGuard lg;
+            LockGuard lg { i2c_mutex };
 
             if (const auto res = controller.init(); !res.has_value()) {
                 rtt::print("i2c: leds init failed");
@@ -407,7 +403,7 @@ FloatReading read_tpis_object_temp() {
 }
 
 void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
-    I2CGuard lg;
+    LockGuard lg { i2c_mutex };
 
     if (const auto res = leds::controller.set_color(r, g, b); !res.has_value()) {
         rtt::print("i2c: leds set_color_failed\n");

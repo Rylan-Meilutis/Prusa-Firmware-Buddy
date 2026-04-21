@@ -2,13 +2,13 @@
 #include "cyphal_transport.hpp"
 
 #include "hal_pub.hpp"
-#include "lock_guard.hpp"
 #include <cstddef>
 #include <freertos/mutex.hpp>
 #include <freertos/queue.hpp>
 #include <freertos/timing.hpp>
 #include <canard.h>
 #include <o1heap/o1heap.h>
+#include <raii/lock_guard.hpp>
 
 alignas(O1HEAP_ALIGNMENT) static std::array<std::byte, 12 * 1024> memory;
 

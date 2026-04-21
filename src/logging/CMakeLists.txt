@@ -30,6 +30,7 @@ target_link_libraries(
           error_codes # config store 🤦
           buddy_utils # config store 🤦
           otp
+          raii
   PUBLIC log_interface
   )
 
