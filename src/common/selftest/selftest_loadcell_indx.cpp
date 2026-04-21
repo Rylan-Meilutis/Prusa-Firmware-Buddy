@@ -105,8 +105,7 @@ LoopResult CSelftestPart_Loadcell::stateCooldownInit() {
                                                          .only_if_needed = true, .z_raise = 3,
                                                          .precise = false, // We don't need precise position for parking
                                                      });
-        const auto &gcode = nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::enter_cleaner);
-        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
+        marlin_server::inject(nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::enter_cleaner));
 
         IPartHandler::SetFsmPhase(PhasesSelftest::Loadcell_cooldown);
         log_info(Selftest, "%s cooling needed, target: %d current: %f", rConfig.partname,
@@ -147,8 +146,7 @@ LoopResult CSelftestPart_Loadcell::stateCooldownDeinit() {
     }
     if (need_cooling) { // if cooling was needed, return control of fans
         // unpark from nozzle cleaner
-        const auto &gcode = nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::exit_cleaner);
-        marlin_server::inject({ GCodeFilename(gcode.filename, gcode.sequence) });
+        marlin_server::inject(nozzle_cleaner::get_sequence(nozzle_cleaner::Sequence::exit_cleaner));
 
         rConfig.print_fan_fnc(tool->to_raw()).exit_selftest_mode();
         rConfig.heatbreak_fan_fnc(tool->to_raw()).exit_selftest_mode();

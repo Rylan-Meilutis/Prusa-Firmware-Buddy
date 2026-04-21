@@ -3,9 +3,9 @@
 #include <variant>
 #include <str_utils.hpp>
 
-struct GCodeFilename {
-    ConstexprString name;
-    ConstexprString fallback { nullptr };
+struct GCodeFile {
+    const char *filename { nullptr };
+    ConstexprString default_gcode { nullptr };
 };
 
 /*
@@ -28,4 +28,4 @@ struct GCodeMacroButton {
     uint8_t button;
 };
 
-using InjectQueueRecord = std::variant<GCodeFilename, GCodeMacroButton, GCodeLiteral>;
+using InjectQueueRecord = std::variant<GCodeFile, GCodeMacroButton, GCodeLiteral>;

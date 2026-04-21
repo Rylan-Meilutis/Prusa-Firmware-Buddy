@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gcode/inject_queue_actions.hpp>
 #include <optional>
 #include <string_view>
 #include <str_utils.hpp>
@@ -27,14 +28,9 @@ enum class Sequence : uint16_t {
 #endif
 };
 
-struct SequenceGCode {
-    ConstexprString filename;
-    ConstexprString sequence;
-};
-
 std::optional<Sequence> parse_sequence(std::string_view name);
 bool is_valid_sequence(Sequence seq);
-const SequenceGCode &get_sequence(Sequence seq);
+const GCodeFile &get_sequence(Sequence seq);
 void load_sequence(Sequence seq);
 
 /// Load a sequence, wait for it to be ready, and execute it.

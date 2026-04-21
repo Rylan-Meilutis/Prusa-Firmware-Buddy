@@ -96,15 +96,15 @@ void GCodeLoader::load_gcode_callback(AsyncJobExecutionControl &control) {
     state = BufferState::ready;
 }
 
-void GCodeLoader::load_gcode(const char *filename, const char *fallback) {
+void GCodeLoader::load_gcode(const GCodeFile &gcode_file) {
     if (state != BufferState::idle) {
         bsod("GcodeLoader::load_gcode() while not idle");
     }
 
     // Abuse the buffer for building the file path before we load the gcode into it in the callback
     StringBuilder filepath(gcode_buffer);
-    filepath.append_printf("/usb/macros/%s.gcode", filename);
-    gcode_fallback = fallback;
+    filepath.append_printf("/usb/macros/%s.gcode", gcode_file.filename);
+    gcode_fallback = gcode_file.default_gcode;
 
     state = BufferState::buffering;
     worker_job.issue([&](AsyncJobExecutionControl &control) { this->load_gcode_callback(control); });

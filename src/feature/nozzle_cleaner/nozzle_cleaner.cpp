@@ -12,153 +12,153 @@
 namespace nozzle_cleaner {
 
 #if HAS_INDX()
-static const SequenceGCode clean_gcode = {
+static const GCodeFile clean_gcode = {
     .filename = "clean_sequence",
-    .sequence = "G750 Y98.5 F21000\n"
-                "G750 X-9 F21000\n"
-                "G750 X0.65 Y118.5 F18000\n"
-                "G750 X0.0 Y98.5 F18000\n"
-                "G750 X-0.5 Y118.5 F18000\n"
-                "G750 X-0.1 Y98.5 F18000\n"
-                "G750 X-1.5 Y118.5 F18000\n"
-                "G750 X-2 Y98.5 F18000\n"
-                "G750 X-2 Y118.5 F18000\n"
-                "G750 X0.65 Y96.5 F18000",
+    .default_gcode = "G750 Y98.5 F21000\n"
+                     "G750 X-9 F21000\n"
+                     "G750 X0.65 Y118.5 F18000\n"
+                     "G750 X0.0 Y98.5 F18000\n"
+                     "G750 X-0.5 Y118.5 F18000\n"
+                     "G750 X-0.1 Y98.5 F18000\n"
+                     "G750 X-1.5 Y118.5 F18000\n"
+                     "G750 X-2 Y98.5 F18000\n"
+                     "G750 X-2 Y118.5 F18000\n"
+                     "G750 X0.65 Y96.5 F18000",
 };
 
-static const SequenceGCode quick_clean_gcode = {
+static const GCodeFile quick_clean_gcode = {
     .filename = "quick_clean_sequence",
-    .sequence = "G1 F21000\n"
-                "G750 Y98.5 X0.65\n"
-                "G750 Y118.5 X-0.35\n"
-                "G750 Y98.5 X-1.35",
+    .default_gcode = "G1 F21000\n"
+                     "G750 Y98.5 X0.65\n"
+                     "G750 Y118.5 X-0.35\n"
+                     "G750 Y98.5 X-1.35",
 };
 
-static const SequenceGCode deep_clean_gcode = {
+static const GCodeFile deep_clean_gcode = {
     .filename = "deep_clean_sequence",
-    .sequence = "G750 Y98.5 F21000\n"
-                "G750 Y118.5 F21000\n"
-                "G750 Y98.5 F21000\n"
-                "G750 Y118.5 F21000\n"
-                "G750 Y98.5 F21000\n"
-                "G750 Y118.5 F21000\n"
-                "G750 Y92.0 F21000\n"
-                "G750 Y118.5 F21000\n"
-                "G750 Y98.5 X0.15 F21000\n"
-                "G750 Y118.5 X-0.35 F21000\n"
-                "G750 Y98.5 X-0.85 F21000\n"
-                "G750 Y118.5 X-1.35 F21000\n"
-                "G750 Y98.5 X-1.85 F21000\n"
-                "G750 Y118.5 X-2.35 F21000\n"
-                "G750 Y98.5 X-2.85 F21000\n"
-                "G750 Y118.5 X-3.35 F21000\n"
-                "G750 Y98.5 X-3.85 F21000\n"
-                "G750 Y118.5 X-4.35 F21000\n"
-                "G750 Y98.5 X-4.85 F21000\n"
-                "G750 Y118.5 X-5.35 F21000\n"
-                "G750 Y98.5 X-5.85 F21000\n"
-                "G750 Y118.5 X-6.35 F21000\n"
-                "G750 Y98.5 X-6.85 F21000\n"
-                "G750 Y118.5 X-7.35 F21000\n"
-                "G750 Y98.5 X-7.85\n"
-                "G750 X-9 F21000",
+    .default_gcode = "G750 Y98.5 F21000\n"
+                     "G750 Y118.5 F21000\n"
+                     "G750 Y98.5 F21000\n"
+                     "G750 Y118.5 F21000\n"
+                     "G750 Y98.5 F21000\n"
+                     "G750 Y118.5 F21000\n"
+                     "G750 Y92.0 F21000\n"
+                     "G750 Y118.5 F21000\n"
+                     "G750 Y98.5 X0.15 F21000\n"
+                     "G750 Y118.5 X-0.35 F21000\n"
+                     "G750 Y98.5 X-0.85 F21000\n"
+                     "G750 Y118.5 X-1.35 F21000\n"
+                     "G750 Y98.5 X-1.85 F21000\n"
+                     "G750 Y118.5 X-2.35 F21000\n"
+                     "G750 Y98.5 X-2.85 F21000\n"
+                     "G750 Y118.5 X-3.35 F21000\n"
+                     "G750 Y98.5 X-3.85 F21000\n"
+                     "G750 Y118.5 X-4.35 F21000\n"
+                     "G750 Y98.5 X-4.85 F21000\n"
+                     "G750 Y118.5 X-5.35 F21000\n"
+                     "G750 Y98.5 X-5.85 F21000\n"
+                     "G750 Y118.5 X-6.35 F21000\n"
+                     "G750 Y98.5 X-6.85 F21000\n"
+                     "G750 Y118.5 X-7.35 F21000\n"
+                     "G750 Y98.5 X-7.85\n"
+                     "G750 X-9 F21000",
 };
 
-static const SequenceGCode purge_clean_gcode = {
+static const GCodeFile purge_clean_gcode = {
     .filename = "purge_clean_sequence",
-    .sequence = "G750 Y87 F21000\n" // Eject poop and move back to purge position
-                "G750 Y91 F21000\n"
-                "G750 Y84 F21000\n"
-                "G750 Y91 F21000\n"
-                "G750 Y77 F21000\n"
-                "G750 Y91 F21000\n"
-                "G750 Y86.5 F21000\n"
-                "G1 E25 F250\n"
-                "M400\n" // planner.synchronize()
-                "G1 E8 F600\n"
-                "M400\n"
-                "G1 E-8 F6000\n"
-                "M400\n"
-                "G1 E1 F1440\n"
-                "M400\n"
-                "G1 E-1 F1440\n"
-                "M400\n"
-                "G750 Y98.5 F21000\n"
-                "G750 Y91.5 F21000",
+    .default_gcode = "G750 Y87 F21000\n" // Eject poop and move back to purge position
+                     "G750 Y91 F21000\n"
+                     "G750 Y84 F21000\n"
+                     "G750 Y91 F21000\n"
+                     "G750 Y77 F21000\n"
+                     "G750 Y91 F21000\n"
+                     "G750 Y86.5 F21000\n"
+                     "G1 E25 F250\n"
+                     "M400\n" // planner.synchronize()
+                     "G1 E8 F600\n"
+                     "M400\n"
+                     "G1 E-8 F6000\n"
+                     "M400\n"
+                     "G1 E1 F1440\n"
+                     "M400\n"
+                     "G1 E-1 F1440\n"
+                     "M400\n"
+                     "G750 Y98.5 F21000\n"
+                     "G750 Y91.5 F21000",
 };
 
-static const SequenceGCode eject_blob_gcode = {
+static const GCodeFile eject_blob_gcode = {
     .filename = "eject_blob_sequence",
-    .sequence = "M204 T5000\n"
-                "G750 X-9 F21000\n" // Entry point (first in X) (to avoid hitting the nozzle cleaner with the nozzle)
-                "G750 Y98.5 F21000\n" // Entry point
-                "G750 X0.65 F21000\n"
-                "G750 Y87 F21000\n"
-                "G750 Y91 F21000\n"
-                "G750 Y84 F21000\n"
-                "G750 Y91 F21000\n"
-                "G750 Y77 F21000\n"
-                "G750 Y91 F21000\n"
-                "G750 Y86.5 F21000\n",
+    .default_gcode = "M204 T5000\n"
+                     "G750 X-9 F21000\n" // Entry point (first in X) (to avoid hitting the nozzle cleaner with the nozzle)
+                     "G750 Y98.5 F21000\n" // Entry point
+                     "G750 X0.65 F21000\n"
+                     "G750 Y87 F21000\n"
+                     "G750 Y91 F21000\n"
+                     "G750 Y84 F21000\n"
+                     "G750 Y91 F21000\n"
+                     "G750 Y77 F21000\n"
+                     "G750 Y91 F21000\n"
+                     "G750 Y86.5 F21000\n",
 };
 
-static const SequenceGCode enter_cleaner_gcode = {
+static const GCodeFile enter_cleaner_gcode = {
     .filename = "enter_cleaner_sequence",
-    .sequence = "G750 Y98.5 F21000\n"
-                "G750 X0.65 F10000",
+    .default_gcode = "G750 Y98.5 F21000\n"
+                     "G750 X0.65 F10000",
 };
 
-static const SequenceGCode exit_cleaner_gcode = {
+static const GCodeFile exit_cleaner_gcode = {
     .filename = "exit_cleaner_sequence",
-    .sequence = "G750 Y98.5 F21000\n"
-                "G750 X-9 F10000",
+    .default_gcode = "G750 Y98.5 F21000\n"
+                     "G750 X-9 F10000",
 };
 
 #else
-static const SequenceGCode clean_gcode = {
+static const GCodeFile clean_gcode = {
     .filename = "nozzle_cleaner_clean",
-    .sequence = "M106 S80\n" // fan on
-                "G4 S2\n" // Wait for 2 seconds
-                "G1 X267.4 Y284.75 F3000\n"
-                "G1 X253.4 Y284.75 F3000\n"
-                "G1 X267.4 Y284.75 F3000\n"
-                "G1 X253.4 Y284.75 F3000\n"
-                "G1 X253.4 Y305.0 F3000\n"
-                "M106 S0\n" // fan off
-                "G1 X254 Y285 F5000\n"
-                "G1 X248 Y299 F5000\n"
-                "G1 X235 Y285 F5000\n"
-                "G1 X243 Y304 F5000\n"
-                "G1 X230 Y291 F5000\n"
-                "G1 X235 Y306 F5000\n"
-                "G1 X224 Y296 F5000\n"
-                "G1 X226 Y306 F3000\n"
-                "G1 X248 Y288 F3000\n"
-                "G1 X247 Y284 F3000\n"
-                "G1 X229 Y306 F3000\n"
-                "G1 X254 Y285 F5000\n"
-                "G1 X248 Y299 F5000\n"
-                "G1 X235 Y285 F5000\n"
-                "G1 X243 Y304 F5000\n"
-                "G1 X230 Y291 F5000\n"
-                "G1 X235 Y306 F5000\n"
-                "G1 X224 Y296 F5000\n"
-                "G1 X226 Y306 F3000\n"
-                "G1 X248 Y288 F3000\n"
-                "G1 X247 Y284 F3000\n"
-                "G1 X229 Y306 F3000",
+    .default_gcode = "M106 S80\n" // fan on
+                     "G4 S2\n" // Wait for 2 seconds
+                     "G1 X267.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y284.75 F3000\n"
+                     "G1 X267.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y305.0 F3000\n"
+                     "M106 S0\n" // fan off
+                     "G1 X254 Y285 F5000\n"
+                     "G1 X248 Y299 F5000\n"
+                     "G1 X235 Y285 F5000\n"
+                     "G1 X243 Y304 F5000\n"
+                     "G1 X230 Y291 F5000\n"
+                     "G1 X235 Y306 F5000\n"
+                     "G1 X224 Y296 F5000\n"
+                     "G1 X226 Y306 F3000\n"
+                     "G1 X248 Y288 F3000\n"
+                     "G1 X247 Y284 F3000\n"
+                     "G1 X229 Y306 F3000\n"
+                     "G1 X254 Y285 F5000\n"
+                     "G1 X248 Y299 F5000\n"
+                     "G1 X235 Y285 F5000\n"
+                     "G1 X243 Y304 F5000\n"
+                     "G1 X230 Y291 F5000\n"
+                     "G1 X235 Y306 F5000\n"
+                     "G1 X224 Y296 F5000\n"
+                     "G1 X226 Y306 F3000\n"
+                     "G1 X248 Y288 F3000\n"
+                     "G1 X247 Y284 F3000\n"
+                     "G1 X229 Y306 F3000",
 };
 
-static const SequenceGCode purge_clean_gcode = {
+static const GCodeFile purge_clean_gcode = {
     .filename = "nozzle_cleaner_purge_clean",
-    .sequence = "M106 S200\n" // fan on
-                "G4 S4\n" // Wait for 4 seconds
-                "G1 X267.4 Y284.75 F3000\n"
-                "G1 X253.4 Y284.75 F3000\n"
-                "G1 X267.4 Y284.75 F3000\n"
-                "G1 X253.4 Y284.75 F3000\n"
-                "G1 X253.4 Y305.0 F3000\n"
-                "M106 S0\n", // fan off
+    .default_gcode = "M106 S200\n" // fan on
+                     "G4 S4\n" // Wait for 4 seconds
+                     "G1 X267.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y284.75 F3000\n"
+                     "G1 X267.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y284.75 F3000\n"
+                     "G1 X253.4 Y305.0 F3000\n"
+                     "M106 S0\n", // fan off
 };
 
 #endif
@@ -210,7 +210,7 @@ bool is_valid_sequence(Sequence seq) {
     return false;
 }
 
-const SequenceGCode &get_sequence(Sequence seq) {
+const GCodeFile &get_sequence(Sequence seq) {
     switch (seq) {
     case Sequence::clean:
         return clean_gcode;
@@ -233,8 +233,7 @@ const SequenceGCode &get_sequence(Sequence seq) {
 }
 
 void load_sequence(Sequence seq) {
-    const auto &gcode = get_sequence(seq);
-    nozzle_cleaner_gcode_loader_instance().load_gcode(gcode.filename, gcode.sequence);
+    nozzle_cleaner_gcode_loader_instance().load_gcode(get_sequence(seq));
 }
 
 bool load_and_execute(Sequence seq) {

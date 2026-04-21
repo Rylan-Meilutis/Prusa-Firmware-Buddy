@@ -54,11 +54,11 @@ std::expected<const char *, InjectQueue::GetGCodeError> InjectQueue::get_gcode()
         if (!filepath.is_ok()) {
             return std::unexpected(GetGCodeError::loading_aborted);
         }
-        loader.load_gcode(filepath_buf);
+        loader.load_gcode({ .filename = filepath_buf });
     }
 
-    if (const auto file = std::get_if<GCodeFilename>(&item)) {
-        loader.load_gcode(file->name, file->fallback);
+    if (const auto file = std::get_if<GCodeFile>(&item)) {
+        loader.load_gcode(*file);
     }
 
     return std::unexpected(GetGCodeError::buffering);

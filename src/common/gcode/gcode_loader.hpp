@@ -1,9 +1,12 @@
 #pragma once
 
+#include "inject_queue_actions.hpp"
+
 #include <async_job/async_job.hpp>
 
 #include <atomic>
 #include <expected>
+#include <str_utils.hpp>
 
 class GCodeLoader {
 public:
@@ -20,7 +23,7 @@ public:
 
     bool is_buffering() const;
 
-    void load_gcode(const char *filename, const char *fallback = nullptr);
+    void load_gcode(const GCodeFile &gcode_file);
 
     std::expected<char *, BufferState> get_result();
 
