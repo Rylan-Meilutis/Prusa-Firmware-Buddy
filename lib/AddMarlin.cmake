@@ -234,7 +234,7 @@ if(BOARD_IS_MASTER_BOARD)
   if(HAS_TOOL_OFFSET_SENSOR)
     target_sources(
       Marlin
-      PRIVATE Marlin/Marlin/src/feature/contactless_offset/config.cpp
+      PRIVATE Marlin/Marlin/src/feature/contactless_offset/clo_config.cpp
               Marlin/Marlin/src/feature/contactless_offset/contactless_offset.cpp
               Marlin/Marlin/src/gcode/feature/tool_offset/G426.cpp
       )

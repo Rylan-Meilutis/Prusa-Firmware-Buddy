@@ -1,6 +1,6 @@
 #pragma once
 #include <contactless_offset/tool_sensor.hpp>
-#include "config.hpp"
+#include "clo_config.hpp"
 #include <expected>
 
 namespace tool_offset {
