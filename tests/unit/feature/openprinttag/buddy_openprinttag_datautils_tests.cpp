@@ -161,6 +161,7 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
         CHECK(info.parameters.name == "PETG");
         CHECK(info.parameters.nozzle_temperature == 240); // (230+250)/2
         CHECK(info.parameters.heatbed_temperature == 85); // (80+90)/2
+        CHECK(info.parameters.base_preset == PresetFilamentType::PETG);
         CHECK_FALSE(info.parameters.is_flexible);
         CHECK_FALSE(info.parameters.requires_filtration);
         CHECK_FALSE(info.is_missing<&FilamentTypeParameters::nozzle_temperature>());
@@ -220,6 +221,7 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
 
         CHECK(info.parameters.nozzle_preheat_temperature == 170);
         CHECK(info.parameters.nozzle_temperature == 215);
+        CHECK(info.parameters.base_preset == PresetFilamentType::PLA);
     }
 
     SECTION("Chamber") {
@@ -290,5 +292,6 @@ TEST_CASE("buddy::openprinttag::data_utils::FilamentParametersInfo") {
         CHECK_FALSE(info.parameters.requires_filtration);
         CHECK_FALSE(info.parameters.is_flexible);
         CHECK_FALSE(info.parameters.is_abrasive);
+        CHECK(info.parameters.base_preset == PresetFilamentType::PLA);
     }
 }
