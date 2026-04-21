@@ -49,7 +49,7 @@ public:
     constexpr CompactOptional(const CompactOptional &) = default;
     constexpr CompactOptional(CompactOptional &&) = default;
 
-    explicit constexpr CompactOptional(const T &value)
+    constexpr CompactOptional(const T &value)
         : value_(value) {
         enforce_has_value();
     }
