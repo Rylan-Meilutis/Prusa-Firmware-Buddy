@@ -73,8 +73,4 @@ uint16_t get_input_voltage() {
     return static_cast<uint16_t>(((v_adc_pin * (r1 + r2)) / r2) * 100);
 }
 
-uint16_t get_heater_current() {
-    // TODO: Dev board schema will be changed
-    return 42;
-}
 } // namespace hal::adc

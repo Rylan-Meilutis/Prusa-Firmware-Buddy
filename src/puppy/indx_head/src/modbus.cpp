@@ -45,7 +45,6 @@ namespace {
 
         // System monitoring
         state.status_regs.system_24V_mV = hal::adc::get_input_voltage();
-        state.status_regs.heater_current_mA = hal::adc::get_heater_current();
 
         // Print fan status
         const uint8_t print_pwm = app::get_printfan_pwm();

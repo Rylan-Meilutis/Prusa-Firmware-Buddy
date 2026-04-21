@@ -32,8 +32,6 @@ LOG_COMPONENT_DEF(INDX, logging::Severity::info);
 
 METRIC_DEF(metric_fast_refresh_delay, "dwarf_fast_refresh_delay", METRIC_VALUE_INTEGER, 0, METRIC_DISABLED);
 
-METRIC_DEF(metric_dwarf_heater_current, "dwarf_heat_curr", METRIC_VALUE_CUSTOM, 100, METRIC_DISABLED);
-
 Indx::Indx(uint8_t modbus_address)
     : ModbusDevice(modbus_address)
     , mutex(new freertos::Mutex)
@@ -88,9 +86,6 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
             general_write.value.clear_fault_status = std::to_underlying(fault);
             general_write.dirty = true;
         }
-
-        metric_record_custom(&metric_dwarf_heater_current, "v=%d", register_general_status.value.heater_current_mA);
-
         handle_nozzle_presence();
     }
     return status;
@@ -329,15 +324,6 @@ float Indx::get_24V() {
     // Lock guard(*mutex);
 
     return register_general_status.value.system_24V_mV / 1000.0f;
-}
-
-float Indx::get_heater_current() {
-    // FIXME:
-    // Called from interrupts, can't lock :-(
-    // BFW-6219.
-    // Lock guard(*mutex);
-
-    return register_general_status.value.heater_current_mA / 1000.0f;
 }
 
 uint16_t Indx::get_diag_uart_errors() {

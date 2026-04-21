@@ -33,7 +33,6 @@ struct Status {
     uint16_t heatbreak_fan_state = 0;
     uint16_t heatbreak_fan_is_rpm_ok = 0;
     uint16_t system_24V_mV = 0; // [mV]
-    uint16_t heater_current_mA = 0; // [mA]
     uint16_t time_sync_lo = 0;
     uint16_t time_sync_hi = 0;
     uint16_t nozzle_present = 0; // indx_head::NozzlePresence::unknown
