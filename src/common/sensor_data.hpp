@@ -51,8 +51,8 @@ public:
     RelaxedAtomic<float> mmuCurrent;
 #endif
 #if HAS_DWARF() || HAS_INDX()
-    RelaxedAtomic<float> HeadBoardTemperature;
-    RelaxedAtomic<float> HeadMCUTemperature;
+    static float head_pcb_temperature();
+    static float head_mcu_temperature();
 #endif
 
 #if HAS_DOOR_SENSOR()

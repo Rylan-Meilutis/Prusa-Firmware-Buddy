@@ -109,11 +109,6 @@ void SensorData::update() {
 
     #endif
 
-    #if HAS_INDX()
-    HeadBoardTemperature = buddy::puppies::indx.get_board_temperature();
-    HeadMCUTemperature = buddy::puppies::indx.get_mcu_temperature();
-    #endif
-
 #elif BOARD_IS_XLBUDDY()
 
     // Input voltage
@@ -127,14 +122,6 @@ void SensorData::update() {
 
     // XLBUDDY board 5V current
     buddy5VCurrent = advancedpower.GetXLBuddy5VCurrent();
-
-    buddy::puppies::Dwarf &dwarf = prusa_toolchanger.getActiveToolOrFirst();
-
-    // Dwarf board temperature
-    HeadBoardTemperature = dwarf.get_board_temperature();
-
-    // Dwarf MCU temperature
-    HeadMCUTemperature = dwarf.get_mcu_temperature();
 
 #endif
 #if HAS_BED_FAN()
@@ -154,3 +141,21 @@ void SensorData::update() {
     psu_fan_pwm = psu_fan::psu_fan().get_pwm().value_or(0);
 #endif
 }
+
+#if HAS_DWARF()
+float SensorData::head_pcb_temperature() {
+    return prusa_toolchanger.getActiveToolOrFirst().get_board_temperature();
+}
+float SensorData::head_mcu_temperature() {
+    return prusa_toolchanger.getActiveToolOrFirst().get_mcu_temperature();
+}
+#endif
+
+#if HAS_INDX()
+float SensorData::head_pcb_temperature() {
+    return buddy::puppies::indx.get_board_temperature();
+}
+float SensorData::head_mcu_temperature() {
+    return buddy::puppies::indx.get_mcu_temperature();
+}
+#endif

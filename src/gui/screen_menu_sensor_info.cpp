@@ -10,14 +10,14 @@ MI_INFO_HEAD_PCB_TEMPERATURE::MI_INFO_HEAD_PCB_TEMPERATURE()
     : MenuItemAutoUpdatingLabel {
         _("Head PCB Temperature"),
         standard_print_format::temp_c,
-        [](auto) { return sensor_data().HeadBoardTemperature.load(); },
+        [](auto) { return SensorData::head_pcb_temperature(); },
     } {}
 
 MI_INFO_HEAD_MCU_TEMPERATURE::MI_INFO_HEAD_MCU_TEMPERATURE()
     : MenuItemAutoUpdatingLabel {
         _("Head MCU Temperature"),
         standard_print_format::temp_c,
-        [](auto) { return sensor_data().HeadMCUTemperature.load(); },
+        [](auto) { return SensorData::head_mcu_temperature(); },
     } {}
 
 #endif
