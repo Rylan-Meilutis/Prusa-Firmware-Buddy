@@ -227,6 +227,12 @@ void do_snake(Action action, PhysicalToolIndex tool) {
         case Action::NozzleCleanerCalibration:
             marlin_client::gcode("M1983");
             break;
+        case Action::BeltTuning:
+            marlin_client::gcode("M961");
+            break;
+        case Action::InputShaper:
+            marlin_client::gcode("M1959");
+            break;
 #endif
         default:
             has_test_special_handling = false;

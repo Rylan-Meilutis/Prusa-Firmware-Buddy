@@ -12,6 +12,7 @@ enum class Action {
     DoorSensor,
     XCheck,
     YCheck,
+    BeltTuning,
 #if HAS_PRECISE_HOMING_COREXY()
     PreciseHoming,
 #endif
@@ -23,6 +24,8 @@ enum class Action {
     ZCheck,
     Fans,
     Heaters,
+    PhaseSteppingCalibration,
+    InputShaper,
     _count,
     _last = _count - 1,
     _first = DoorSensor,
@@ -84,6 +87,7 @@ inline constexpr MenuItemText blank_item_texts[] {
     { Action::DoorSensor, N_("%d Door Sensor") },
         { Action::XCheck, N_("%d X Axis Test") },
         { Action::YCheck, N_("%d Y Axis Test") },
+        { Action::BeltTuning, N_("%d Belt Tuning") },
 #if HAS_PRECISE_HOMING_COREXY()
         { Action::PreciseHoming, N_("%d Homing Calibration") },
 #endif
@@ -95,6 +99,8 @@ inline constexpr MenuItemText blank_item_texts[] {
         { Action::ZCheck, N_("%d Z Axis Test") },
         { Action::Fans, N_("%d Fan Test") },
         { Action::Heaters, N_("%d Heater Test") },
+        { Action::PhaseSteppingCalibration, N_("%d Phase Stepping Calibration") },
+        { Action::InputShaper, N_("%d Input Shaper Calibration") },
 };
 
 TestResult get_test_result(Action action, ToolMask tool);

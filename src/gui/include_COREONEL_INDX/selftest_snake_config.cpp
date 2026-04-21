@@ -88,9 +88,13 @@ TestResult get_test_result(Action action, [[maybe_unused]] ToolMask tool) {
     case Action::DockCalibration:
         return sr.get_dock_offset(PhysicalToolIndex::from_raw(0));
     case Action::NozzleCleanerCalibration:
-        return test_result::evaluate_results(config_store().selftest_result_nozzle_cleaner_calibration.get());
+        return config_store().selftest_result_nozzle_cleaner_calibration.get();
+    case Action::InputShaper:
+        return config_store().selftest_result_input_shaper_calibration.get();
     case Action::PhaseSteppingCalibration:
-        return test_result::evaluate_results(config_store().selftest_result_phase_stepping.get());
+        return config_store().selftest_result_phase_stepping.get();
+    case Action::BeltTuning:
+        return config_store().manual_belt_tuning_completed.get() ? TestResult::passed : TestResult::unknown;
     case Action::_count:
         break;
     }
@@ -104,10 +108,12 @@ uint64_t get_test_mask(Action action) {
     case Action::FilamentSensorCalibration:
     case Action::DockCalibration:
     case Action::NozzleCleanerCalibration:
+    case Action::InputShaper:
+    case Action::PhaseSteppingCalibration:
+    case Action::BeltTuning:
 #if HAS_PRECISE_HOMING_COREXY()
     case Action::PreciseHoming:
 #endif
-    case Action::PhaseSteppingCalibration:
         bsod("This should be gcode");
     case Action::YCheck:
         return stmYAxis;
