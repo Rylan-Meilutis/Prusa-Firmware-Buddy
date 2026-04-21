@@ -24,3 +24,11 @@ template <typename BinaryOperation, typename Arg1, typename... Args>
 constexpr auto accumulate_arguments(BinaryOperation op, Arg1 &&arg1, Args &&...args) {
     return (FoldHelper { .result = std::forward<Arg1>(arg1), .f = op } + ... + std::forward<Args>(args)).result;
 }
+
+/// A class that is implicitly castable to any other class using the class default constructor
+struct AnyDefaultConstructor {
+    template <typename T>
+    constexpr operator T() const {
+        return T {};
+    }
+};

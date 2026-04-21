@@ -11,9 +11,11 @@
 
 #include <utils/string/inplace_string.hpp>
 #include <utils/enum_array.hpp>
+#include <utils/compact_optional.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
+#include <option/has_filament_base_preset_param.h>
 #include <tool_index.hpp>
 
 class StringBuilder;
@@ -53,6 +55,9 @@ enum class PresetFilamentType : uint8_t {
     _count
 };
 
+// Used in config store, do not change
+static_assert(sizeof(PresetFilamentType) == 1);
+
 struct FilamentTypeParameters {
 
 public:
@@ -68,6 +73,19 @@ public:
 
     /// Bed temperature for the filament, in degrees Celsius
     int16_t heatbed_temperature = 60;
+
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;
+    static_assert(PresetFilamentType::_count < BasePreset::nullopt_value);
+
+    // Used in config store, do not change
+    static_assert(sizeof(BasePreset) == 1);
+
+    /// Base preset the filament is based on
+    /// This can be used to inherit non-standard filament parameters that are not worth exposing to the user,
+    /// such as INDX hotend temperature offset parameters
+    BasePreset base_preset = std::nullopt;
+#endif
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     /// Target heatbreak temperature for the filament

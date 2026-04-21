@@ -66,17 +66,23 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     /// If you want to set a parameter, use the @p set function that also clears missing_parameters
     [[maybe_unused]] const auto &parameters = parameters_unsafe;
 
-    static_assert(filament_type_parameter_count == 6 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_HEATBREAK_PARAM() * 1, "We probably need to implement something here");
+    static_assert(filament_type_parameter_count == 6 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "We probably need to implement something here");
 
     // Abbreviation
     {
         AbbreviationInfo abbreviation { req };
 
-        const auto preset_type = FilamentType::from_name(abbreviation.abbreviation);
+        auto base_type = FilamentType::from_name(abbreviation.abbreviation);
 
         // Use preset parameters as a basis to prefill/suggest missing data
-        if (preset_type != FilamentType::none) {
-            parameters_unsafe = preset_type.parameters();
+        if (base_type != FilamentType::none) {
+            parameters_unsafe = base_type.parameters();
+
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+            if (auto base_preset = std::get_if<PresetFilamentType>(&base_type)) {
+                set.operator()<&Params::base_preset>(*base_preset);
+            }
+#endif
         }
 
         // Check validity of the abbreviation

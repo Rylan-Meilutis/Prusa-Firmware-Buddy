@@ -62,6 +62,7 @@
 #include <feature/bed_fan/selftest_result.hpp>
 #include <print_fan_type.hpp>
 #include <tool_index.hpp>
+#include <utils/meta/meta_utils.hpp>
 
 #if HAS_SHEET_PROFILES()
     #include <common/sheet.hpp>
@@ -457,6 +458,9 @@ struct CurrentStore
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 3"), 32, user_filament_type_count> user_filament_parameters_3;
 #endif
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    StoreItemArray<FilamentTypeParameters_EEPROM4, AnyDefaultConstructor {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 4"), 32, user_filament_type_count> user_filament_parameters_4;
+#endif
 
     StoreItemArray<FilamentTypeParameters_EEPROM1, defaults::adhoc_filament_parameters, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters"), 16, adhoc_filament_type_count> adhoc_filament_parameters;
 #if HAS_CHAMBER_API()
@@ -464,6 +468,9 @@ struct CurrentStore
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 3"), 16, adhoc_filament_type_count> adhoc_filament_parameters_3;
+#endif
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    StoreItemArray<FilamentTypeParameters_EEPROM4, AnyDefaultConstructor {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 4"), 16, adhoc_filament_type_count> adhoc_filament_parameters_4;
 #endif
 
     StoreItem<EncodedBitset<max_user_filament_type_count>, defaults::visible_user_filament_types, ItemFlag::user_presets, journal::hash("Visible User Filament Types")> visible_user_filament_types;

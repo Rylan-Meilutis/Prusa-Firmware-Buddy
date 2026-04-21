@@ -27,7 +27,7 @@ public:
     static constexpr size_t data_size { sizeof(DataT) };
     static_assert(journal::BackendC<BackendT>); // BackendT type needs to fulfill this concept. Can be moved to signature with newer clangd, causes too many errors now (constrained auto)
     static_assert(data_size < BackendT::MAX_ITEM_SIZE, "Item is too large");
-    static_assert(std::is_same_v<DefaultVal, std::array<DataT, item_count>> || std::is_same_v<DefaultVal, DataT>);
+    static_assert(std::is_same_v<DefaultVal, std::array<DataT, item_count>> || std::is_convertible_v<DefaultVal, DataT>);
     static_assert(item_count > 0);
 
 protected:

@@ -5,6 +5,7 @@
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
+#include <option/has_filament_base_preset_param.h>
 
 // For historic reasons, the FilamentTypeParameters is split across multiple structures in the EEPROM
 
@@ -51,7 +52,6 @@ public:
     }
 
     constexpr bool operator==(const FilamentTypeParameters_EEPROM2 &) const = default;
-    constexpr bool operator!=(const FilamentTypeParameters_EEPROM2 &) const = default;
 };
 #endif
 
@@ -64,6 +64,22 @@ public:
 
 public:
     constexpr bool operator==(const FilamentTypeParameters_EEPROM3 &) const = default;
-    constexpr bool operator!=(const FilamentTypeParameters_EEPROM3 &) const = default;
+};
+#endif
+
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+// !!! DO NOT CHANGE - this is used in config store
+struct FilamentTypeParameters_EEPROM4 {
+
+public:
+    using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;
+    static_assert(PresetFilamentType::_count < BasePreset::nullopt_value);
+    static_assert(sizeof(BasePreset) == 1);
+    static_assert(std::is_same_v<BasePreset, FilamentTypeParameters::BasePreset>);
+
+    BasePreset base_preset = std::nullopt;
+
+public:
+    constexpr bool operator==(const FilamentTypeParameters_EEPROM4 &) const = default;
 };
 #endif
