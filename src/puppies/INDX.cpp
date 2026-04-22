@@ -126,29 +126,6 @@ void Indx::set_leds_enabled(bool set) {
     general_write.dirty = true;
 }
 
-bool Indx::dispatch_log_event() {
-    // Look for EOT byte - end of log entry
-    size_t eot_pos = 0;
-    while (eot_pos < log_line_pos && log_line_buffer[eot_pos] != BUFFLOG_TERMINATION_CHAR) {
-        eot_pos++;
-    }
-
-    if (eot_pos == log_line_pos) {
-        return false;
-    }
-
-    // Log event
-    if (eot_pos) {
-        log_info(INDX, "%.*s", eot_pos, log_line_buffer.data());
-    }
-
-    // Compact buffer
-    log_line_pos -= eot_pos + 1;
-    memmove(log_line_buffer.data(), &log_line_buffer[eot_pos + 1], log_line_pos);
-
-    return true;
-}
-
 CommunicationStatus Indx::fifo_refresh(PuppyModbus &bus, uint32_t cycle_ticks_ms) {
     Lock guard(*mutex);
     // pull fifo every 200 ms
@@ -390,22 +367,9 @@ uint16_t Indx::get_heatbreak_fan_pwr() {
 }
 
 void Indx::decode_log(const LogData &data) {
-    // If buffer cannot handle next read, clean it
-    if (log_line_pos + data.size() > log_line_buffer.size()) {
-        log_warning(INDX, "Out of log buffer, logging incomplete data");
-        log_info(INDX, "%.*s", log_line_pos, log_line_buffer.data());
-        log_line_pos = 0;
-    }
-
-    // Copy data skipping 0 padding
-    for (const char c : data) {
-        if (c == 0) {
-            break;
-        }
-        log_line_buffer[log_line_pos++] = c;
-    }
-    while (dispatch_log_event())
-        ;
+    // This function is mandated by the API, but head doesn't actually produce
+    // any logs and we intend to keep it that way.
+    (void)data;
 }
 
 void Indx::decode_loadcell(const LoadcellRecord &data) {

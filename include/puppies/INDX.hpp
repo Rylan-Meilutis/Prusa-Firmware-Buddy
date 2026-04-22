@@ -189,9 +189,6 @@ private:
     // freertos/mutex.hpp.
     std::unique_ptr<freertos::Mutex> mutex;
 
-    // Log transfer buffer and position
-    std::array<char, 256> log_line_buffer;
-    size_t log_line_pos = 0;
     buddy::puppies::TimeSync time_sync;
 
     struct LoadcellSamplerate {
