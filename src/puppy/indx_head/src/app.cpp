@@ -58,17 +58,20 @@ void run() {
     // Wait for the temperature data to be stable
     freertos::delay(300);
 
-    uint64_t last_induction_control = timing::get_timestamp_us();
-    uint64_t last_fan_update = timing::get_timestamp_us();
+    uint64_t last_induction_control_us = timing::get_timestamp_us();
+    uint64_t last_fan_update_us = timing::get_timestamp_us();
     uint32_t last_valid_nozzle_temp_ms = timing::get_timestamp_ms(); // Timestamp of last valid nozzle temp reading
+
     FOREVER_WITH_WATCHDOG(100) {
-        const auto now = timing::get_timestamp_us();
+        const uint64_t now_us = timing::get_timestamp_us();
+        const uint32_t now_ms = timing::get_timestamp_ms();
 
         // Induction heater control loop
-        if ((now - last_induction_control) >= control_delay_us) {
+        const uint64_t induction_control_dt_us = now_us - last_induction_control_us;
+        if (induction_control_dt_us >= control_delay_us) {
             hotend_temp_compensation::step();
 
-            last_induction_control = now;
+            last_induction_control_us = now_us;
             hal::FloatReading nozzle_temp_reading = hal::i2c::read_tpis_object_temp();
 
             if (nozzle_temp_reading.valid) {
@@ -77,8 +80,8 @@ void run() {
                 } else if (nozzle_temp_reading.value < min_nozzle_temp) {
                     hal::panic(indx_head::errors::FaultStatusMask::nozzle_min_temp);
                 }
-                last_valid_nozzle_temp_ms = timing::get_timestamp_ms();
-            } else if (timing::get_timestamp_ms() - last_valid_nozzle_temp_ms > invalid_nozzle_temp_timeout_ms) {
+                last_valid_nozzle_temp_ms = now_ms;
+            } else if (now_ms - last_valid_nozzle_temp_ms > invalid_nozzle_temp_timeout_ms) {
                 hal::panic(indx_head::errors::FaultStatusMask::tpis_invalid_timeout);
             }
 
@@ -92,8 +95,8 @@ void run() {
         }
 
         // Fans and leds control loop
-        if (now - last_fan_update >= fan_update_delay_us) {
-            last_fan_update = now;
+        if (now_us - last_fan_update_us >= fan_update_delay_us) {
+            last_fan_update_us = now_us;
 
             // Print fan - direct PWM control
             hal::tim::set_printfan_pwm(printfan_pwm.load());
