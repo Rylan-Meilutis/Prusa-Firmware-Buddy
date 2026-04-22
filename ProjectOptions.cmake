@@ -646,8 +646,9 @@ set_feature_for_printers_master_board(
   "UNITTESTS"
   )
 
-# Printers that support any form of backwards gcode compatibility modes
-set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREONEL")
+# Printers that support any form of backwards gcode compatibility modes XL: needed for XL-on-XLS
+# compat mode (xl_compatibility_mode in M106 fan scaling)
+set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREONEL" "XL")
 
 # Checks for bed evenness during G29 and if it's too uneven, offers Z alignment calibration.
 # Requires SELFTEST to work

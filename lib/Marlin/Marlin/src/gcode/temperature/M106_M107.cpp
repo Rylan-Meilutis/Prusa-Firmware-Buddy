@@ -226,6 +226,9 @@ void GcodeSuite::M106() {
             if (gcode.compatibility.mk4_compatibility_mode) {
                 s = (s * 7) / 10; // Converts speed to 70% of its values
             }
+            if (gcode.compatibility.xl_compatibility_mode) {
+                s = (s * 7) / 10; // XL gcode on XLS: LDO fan needs ~70% PWM for equivalent airflow
+            }
     #endif
 
             thermalManager.set_fan_speed(p, s);

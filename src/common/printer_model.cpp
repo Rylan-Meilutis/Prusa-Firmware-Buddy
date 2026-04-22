@@ -196,5 +196,12 @@ PrinterGCodeCompatibilityReport PrinterModelInfo::gcode_compatibility_report(con
     return gcode_compatibility_report_constexpr(*this, gcode_target_printer);
 }
 
-// HAS_GCODE_COMPATIBILITY() should coincide with the printer being able to run MK3 gcode
+// If printer HAS_EXTENDED_PRINTER_TYPE (i.e. XL -> XLP) it must have also HAS_GCODE_COMPATIBILITY
+// otherwise the gcode sliced for master printer would generate warning message on the extended printer and vice versa.
+#if HAS_EXTENDED_PRINTER_TYPE()
+static_assert(HAS_GCODE_COMPATIBILITY());
+#else
+// In case HAS_EXTENDED_PRINTER_TYPE() is not defined, HAS_GCODE_COMPATIBILITY() should coincide with the printer being able to run MK3 gcode
+// Only in case of legacy printers, for new printers the HAS_EXTENDED_PRINTER_TYPE should be used, no need to keep MK3 gcode compatibility for new printers.
 static_assert(HAS_GCODE_COMPATIBILITY() == gcode_compatibility_report_constexpr(firmware_base_constexpr, PrinterModelInfo::get_constexpr(PrinterModel::mk3)).is_compatible);
+#endif
