@@ -120,7 +120,11 @@
 #if HAS_MOTOR_CURRENT_PROFILES()
     #include <feature/motor_current_profile/motor_current_profile.hpp>
 #endif
+
 #include <option/has_indx.h>
+#if HAS_INDX()
+    #include <feature/indx_hotend_temp_compensation/buddy_indx_hotend_temp_compensation.hpp>
+#endif
 
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -868,6 +872,10 @@ static void cycle() {
 
 #if HAS_BED_FAN()
     bed_fan::controller().step();
+#endif
+
+#if HAS_INDX()
+    buddy::indx_hotend_temp_compensation::temp_compensator().step();
 #endif
 
     record_fanctl_metrics();

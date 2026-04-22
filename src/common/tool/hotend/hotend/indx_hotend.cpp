@@ -4,6 +4,7 @@
 #include <puppies/INDX.hpp>
 #include <common/aggregate_arity.hpp>
 #include <logging/log.hpp>
+#include <feature/indx_hotend_temp_compensation/buddy_indx_hotend_temp_compensation.hpp>
 
 LOG_COMPONENT_REF(Marlin);
 
@@ -16,10 +17,22 @@ void IndxHotend::set_nozzle_target_temp(TargetTemperature set) {
 }
 
 void IndxHotend::set_nozzle_target_temp_unchecked(TargetTemperature set) {
+    const auto old_target = nozzle_target_temp();
     BaseHotend::set_nozzle_target_temp(set);
 
     // !!! Do NOT use the set variable, the parent function can crop it
-    buddy::puppies::indx.set_hotend_target_temp(nozzle_target_temp());
+    const auto new_target = nozzle_target_temp();
+
+    // Set even if old_target == new_target, just to be sure
+    buddy::puppies::indx.set_hotend_target_temp(new_target);
+
+    if (new_target == old_target) {
+        return;
+    }
+
+    // Changing target temp indicates filament or tool change
+    // In both cases, we want the compensator to fetch the new filament parameters
+    buddy::indx_hotend_temp_compensation::temp_compensator().reset_state();
 }
 
 void IndxHotend::manage() {
