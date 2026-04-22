@@ -57,13 +57,13 @@ namespace {
         state.status_regs.print_fan_rpm = print_rpm;
         state.status_regs.print_fan_is_rpm_ok = app::is_printfan_rpm_ok();
 
-        // Board fan (heatbreak) status - PID controlled
-        const uint8_t board_pwm = app::get_boardfan_pwm();
-        const uint16_t board_rpm = hal::tim::get_boardfan_rpm_counter();
-        state.status_regs.heatbreak_fan_pwm = board_pwm;
-        state.status_regs.heatbreak_fan_state = (board_pwm > 0) ? 3 : 0; // 3=running, 0=idle
-        state.status_regs.heatbreak_fan_rpm = board_rpm;
-        state.status_regs.heatbreak_fan_is_rpm_ok = app::is_boardfan_rpm_ok();
+        // Heatbreak fan status - PID controlled
+        const uint8_t heatbreak_pwm = app::get_heatbreak_fan_pwm();
+        const uint16_t heatbreak_rpm = hal::tim::get_heatbreak_fan_rpm_counter();
+        state.status_regs.heatbreak_fan_pwm = heatbreak_pwm;
+        state.status_regs.heatbreak_fan_state = (heatbreak_pwm > 0) ? 3 : 0; // 3=running, 0=idle
+        state.status_regs.heatbreak_fan_rpm = heatbreak_rpm;
+        state.status_regs.heatbreak_fan_is_rpm_ok = app::is_heatbreak_fan_rpm_ok();
 
         uint32_t time_us = static_cast<uint32_t>(timing::get_timestamp_us());
         state.status_regs.time_sync_lo = time_us & 0xffff;

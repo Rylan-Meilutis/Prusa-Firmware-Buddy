@@ -24,10 +24,10 @@ void set_led_config(const indx_head::leds::LedConfig cfg);
 
 void set_printfan_pwm(uint8_t pwm);
 uint8_t get_printfan_pwm();
-uint8_t get_boardfan_pwm();
+uint8_t get_heatbreak_fan_pwm();
 
 bool is_printfan_rpm_ok();
-bool is_boardfan_rpm_ok();
+bool is_heatbreak_fan_rpm_ok();
 
 void set_selftest_mode(bool enabled);
 } // namespace app

@@ -55,9 +55,9 @@ namespace tim {
     void reset_printfan_rpm_counter();
     uint16_t get_printfan_rpm_counter();
 
-    void set_boardfan_pwm(uint8_t pwm);
-    void reset_boardfan_rpm_counter();
-    uint16_t get_boardfan_rpm_counter();
+    void set_heatbreak_fan_pwm(uint8_t pwm);
+    void reset_heatbreak_fan_rpm_counter();
+    uint16_t get_heatbreak_fan_rpm_counter();
 } // namespace tim
 
 namespace adc {

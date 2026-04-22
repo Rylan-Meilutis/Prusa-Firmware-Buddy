@@ -66,7 +66,7 @@ void hal::panic(FaultStatusMask fault) {
 void hal::set_safe_state() {
     set_ind_heater_pwr(false); // Disable induction heater for safety
     tim::set_printfan_pwm(255);
-    tim::set_boardfan_pwm(255);
+    tim::set_heatbreak_fan_pwm(255);
 }
 
 namespace hal::diag {
@@ -688,7 +688,7 @@ void hal::init_tim1() {
     __HAL_RCC_TIM1_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**TIM1 GPIO Configuration
-    PA8     ------> TIM1_CH1 - Board Fan PWM
+    PA8     ------> TIM1_CH1 - Heatbreak Fan PWM
     PA9     ------> TIM1_CH2 - Print Fan PWM
     */
     static constexpr GPIO_InitTypeDef GPIO_InitStruct {

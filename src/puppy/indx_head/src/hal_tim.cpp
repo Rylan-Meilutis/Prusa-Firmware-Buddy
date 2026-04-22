@@ -49,7 +49,7 @@ namespace {
     }
 
     ChannelState printfan_state;
-    ChannelState boardfan_state;
+    ChannelState heatbreak_fan_state;
 
     uint16_t period_to_rpm(uint16_t period, uint8_t timeout) {
         if (timeout >= timeout_periods || !is_period_valid(period)) {
@@ -73,18 +73,18 @@ uint16_t get_printfan_rpm_counter() {
     return period_to_rpm(printfan_state.period.load(), printfan_state.timeout_counter.load());
 }
 
-void set_boardfan_pwm(uint8_t pwm) {
+void set_heatbreak_fan_pwm(uint8_t pwm) {
     using namespace peripherals;
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pwm);
 }
 
-void reset_boardfan_rpm_counter() {
-    boardfan_state.period.store(0);
-    boardfan_state.timeout_counter.store(timeout_periods);
+void reset_heatbreak_fan_rpm_counter() {
+    heatbreak_fan_state.period.store(0);
+    heatbreak_fan_state.timeout_counter.store(timeout_periods);
 }
 
-uint16_t get_boardfan_rpm_counter() {
-    return period_to_rpm(boardfan_state.period.load(), boardfan_state.timeout_counter.load());
+uint16_t get_heatbreak_fan_rpm_counter() {
+    return period_to_rpm(heatbreak_fan_state.period.load(), heatbreak_fan_state.timeout_counter.load());
 }
 
 // Called from TIM3 update interrupt (timer overflow) to detect fan stopped
@@ -95,9 +95,9 @@ void handle_timer_overflow() {
         printfan_state.timeout_counter.store(pf_timeout + 1);
     }
 
-    uint8_t bf_timeout = boardfan_state.timeout_counter.load();
-    if (bf_timeout < timeout_periods) {
-        boardfan_state.timeout_counter.store(bf_timeout + 1);
+    uint8_t hbf_timeout = heatbreak_fan_state.timeout_counter.load();
+    if (hbf_timeout < timeout_periods) {
+        heatbreak_fan_state.timeout_counter.store(hbf_timeout + 1);
     }
 }
 
@@ -111,7 +111,7 @@ void handle_input_capture(uint32_t channel) {
         state = &printfan_state;
     } else if (channel == HAL_TIM_ACTIVE_CHANNEL_2) {
         current_capture = HAL_TIM_ReadCapturedValue(&peripherals::htim3, TIM_CHANNEL_2);
-        state = &boardfan_state;
+        state = &heatbreak_fan_state;
     } else {
         return;
     }
