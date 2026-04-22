@@ -265,9 +265,6 @@ class MI_INFO_FILAMENT_SENSOR : public MenuItemAutoUpdatingLabel<std::optional<F
 public:
     MI_INFO_FILAMENT_SENSOR(const string_view_utf8 &label, const GetterFunction &getter_function);
 
-protected:
-    void Loop() override;
-
     void print_val(const std::span<char> &buffer) const;
     static std::optional<FilamentSensorStateAndValue> get_value(IFSensor *fsensor);
 };

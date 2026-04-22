@@ -525,11 +525,6 @@ MI_INFO_FILAMENT_SENSOR::MI_INFO_FILAMENT_SENSOR(const string_view_utf8 &label, 
         label, [this](auto &buf) { print_val(buf); }, getter_function) {
 }
 
-void MI_INFO_FILAMENT_SENSOR::Loop() {
-    MenuItemAutoUpdatingLabel::Loop();
-    set_is_hidden(!value().has_value());
-}
-
 void MI_INFO_FILAMENT_SENSOR::print_val(const std::span<char> &buffer) const {
     static constexpr EnumArray<FilamentSensorState, const char *, 6> texts {
         { FilamentSensorState::NotInitialized, "ninit / %ld" },
@@ -540,14 +535,14 @@ void MI_INFO_FILAMENT_SENSOR::print_val(const std::span<char> &buffer) const {
         { FilamentSensorState::Disabled, "nena / %ld" },
     };
 
+    StringBuilder sb(buffer);
+
     const auto val = value();
     if (!val.has_value()) {
-        buffer[0] = '\0';
-        return;
+        sb.append_string("N/A");
+    } else {
+        sb.append_printf(texts.get_fallback(val->state, FilamentSensorState::NotInitialized), val->value);
     }
-
-    StringBuilder sb(buffer);
-    sb.append_printf(texts.get_fallback(val->state, FilamentSensorState::NotInitialized), val->value);
 }
 
 MI_INFO_FILAMENT_SENSOR::Value MI_INFO_FILAMENT_SENSOR::get_value(IFSensor *fsensor) {
