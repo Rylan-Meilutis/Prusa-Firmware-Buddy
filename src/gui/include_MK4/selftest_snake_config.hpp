@@ -67,23 +67,6 @@ consteval auto get_submenu_label(PhysicalToolIndex tool, Action action) -> const
     }
 }
 
-struct MenuItemText {
-    Action action;
-    const char *label;
-};
-
-// could have been done with an array of texts directly, but there would be an order dependancy
-inline constexpr MenuItemText blank_item_texts[] {
-    { Action::Fans, N_("%d Fan Test") },
-    { Action::ZAlign, N_("%d Z Alignment Calibration") },
-    { Action::XYCheck, N_("%d XY Axis Test") },
-    { Action::Loadcell, N_("%d Loadcell Test") },
-    { Action::ZCheck, N_("%d Z Axis Test") },
-    { Action::Heaters, N_("%d Heater Test") },
-    { Action::Gears, N_("%d Gearbox Alignment") },
-    { Action::FilamentSensorCalibration, N_("%d Filament Sensor Calibration") },
-};
-
 TestResult get_test_result(Action action, ToolMask tool);
 uint64_t get_test_mask(Action action);
 } // namespace SelftestSnake

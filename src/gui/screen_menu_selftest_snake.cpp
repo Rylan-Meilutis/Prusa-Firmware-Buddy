@@ -10,6 +10,11 @@
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #include <option/has_manual_belt_tuning.h>
+#include <option/has_loadcell.h>
+#include <option/has_nozzle_cleaner.h>
+#include <option/has_gearbox_alignment.h>
+#include <option/has_input_shaper_calibration.h>
+#include <printers.h>
 #include <bsod/bsod.h>
 #include <option/has_side_fsensor_remap.h>
 #include <window_msgbox_happy_printing.hpp>
@@ -75,6 +80,88 @@ Action get_previous_action(Action action) {
 bool is_completed(TestResult test_result) {
     // Skipped is also considered completed - it marks non-obligatory tests that have been explicitly skipped by the user
     return test_result == TestResult::passed || test_result == TestResult::skipped;
+}
+
+const char *get_action_label(Action action) {
+    switch (action) {
+    case Action::Fans:
+        return N_("Fan Test");
+    case Action::ZCheck:
+        return N_("Z Axis Test");
+    case Action::Heaters:
+        return N_("Heater Test");
+    case Action::FilamentSensorCalibration:
+        return N_("Filament Sensor Calibration");
+#if !PRINTER_IS_PRUSA_MINI()
+    case Action::ZAlign:
+        return N_("Z Alignment Calibration");
+#endif
+#if PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_MK4()
+    case Action::XYCheck:
+        return N_("XY Axis Test");
+#else
+    case Action::XCheck:
+        return N_("X Axis Test");
+    case Action::YCheck:
+        return N_("Y Axis Test");
+#endif
+#if PRINTER_IS_PRUSA_MINI() || PRINTER_IS_PRUSA_MK3_5()
+    case Action::FirstLayer:
+        return N_("First Layer Calibration");
+#endif
+#if HAS_PRECISE_HOMING_COREXY()
+    case Action::PreciseHoming:
+        return N_("Homing Calibration");
+#endif
+#if HAS_DOOR_SENSOR_CALIBRATION()
+    case Action::DoorSensor:
+        return N_("Door Sensor");
+#endif
+#if HAS_LOADCELL()
+    case Action::Loadcell:
+        return N_("Loadcell Test");
+#endif
+#if HAS_GEARBOX_ALIGNMENT()
+    case Action::Gears:
+        return N_("Gearbox Alignment");
+#endif
+#if HAS_PHASE_STEPPING_SELFTEST()
+    case Action::PhaseSteppingCalibration:
+        return N_("Phase Stepping Calibration");
+#endif
+#if HAS_INDX()
+    case Action::BeltTuning:
+        return N_("Belt Tuning");
+#endif
+#if HAS_INDX()
+    case Action::InputShaper:
+        return N_("Input Shaper Calibration");
+#endif
+#if HAS_TOOLCHANGER()
+    case Action::DockCalibration:
+    #if HAS_INDX()
+        return N_("Dock Calibration");
+    #else
+        return N_("Dock Position Calibration");
+    #endif
+#endif
+#if HAS_INDX()
+    case Action::NozzleCleanerCalibration:
+        return N_("Nozzle Cleaner Calibration");
+#endif
+#if PRINTER_IS_PRUSA_XL()
+    case Action::ToolOffsetsCalibration:
+        return N_("Tool Offset Calibration");
+    case Action::BedHeaters:
+        return N_("Bed Heater Test");
+    case Action::NozzleHeaters:
+        return N_("Nozzle Heaters Test");
+#endif
+    case Action::_count:
+        assert(false);
+        return "";
+    }
+    bsod_unreachable();
 }
 
 bool are_previous_completed(Action action) {
@@ -380,17 +467,9 @@ string_view_utf8 I_MI_STS::get_filled_menu_item_label(Action action) {
         }()
     };
 
-    if (auto it = std::ranges::find_if(blank_item_texts, [&](const auto &elem) {
-            return elem.action == action;
-        });
-        it != std::end(blank_item_texts)) {
-
-        char buffer[max_label_len];
-        _(it->label).copyToRAM(buffer, max_label_len);
-        snprintf(label_buffer, max_label_len, buffer, action_indices[std::to_underlying(action)]);
-    } else {
-        assert(false && "Unable to find a label for this combination");
-    }
+    char name[max_label_len];
+    _(get_action_label(action)).copyToRAM(name, max_label_len);
+    snprintf(label_buffer, max_label_len, "%d %s", (int)action_indices[std::to_underlying(action)], name);
 
     return string_view_utf8::MakeRAM(label_buffer);
 }
