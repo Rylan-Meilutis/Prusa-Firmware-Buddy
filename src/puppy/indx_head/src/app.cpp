@@ -20,6 +20,10 @@ namespace {
 std::atomic<int16_t> nozzle_temp_uncompensated_c100 = 25 * 100;
 std::atomic<int16_t> nozzle_temp_compensated_c100 = 25 * 100;
 
+/// See indx_head::modbus::Status::hotend_temp_raw_c100_dt_s
+std::atomic<int16_t> hotend_temp_raw_c100_dt_s = 0;
+bool can_calculate_nozzle_temp_slope = false;
+
 constexpr float max_nozzle_temp = 330.f;
 constexpr float min_nozzle_temp = 5.f;
 constexpr uint32_t invalid_nozzle_temp_timeout_ms = 1000 * 2;
@@ -80,16 +84,38 @@ void run() {
                 } else if (nozzle_temp_reading.value < min_nozzle_temp) {
                     hal::panic(indx_head::errors::FaultStatusMask::nozzle_min_temp);
                 }
+
                 last_valid_nozzle_temp_ms = now_ms;
+
             } else if (now_ms - last_valid_nozzle_temp_ms > invalid_nozzle_temp_timeout_ms) {
                 hal::panic(indx_head::errors::FaultStatusMask::tpis_invalid_timeout);
             }
 
+            // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading.value returns last valid value
+
             const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.value * 100.f);
             const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 + hotend_temp_compensation::get_current_compensation_c100();
 
+            // Calculate slope
+            if (can_calculate_nozzle_temp_slope) {
+                const int64_t uncompensated_raw_slope = int64_t(nozzle_temp_uncompensated_c100 - ::nozzle_temp_uncompensated_c100.load()) * 1000000 / int64_t(induction_control_dt_us);
+
+                // Clamp to sane values to prevent too big spikes
+                const int32_t clamped_raw_slope = int32_t(std::clamp<int64_t>(uncompensated_raw_slope, -100 * 100, 100 * 100));
+
+                // Apply exponential fadeout to average the values a bit
+                const int16_t filtered_slope = int16_t((int32_t(hotend_temp_raw_c100_dt_s.load()) * 7 + clamped_raw_slope * 1) / 8);
+
+                ::hotend_temp_raw_c100_dt_s.store(filtered_slope);
+            }
+
             ::nozzle_temp_uncompensated_c100.store(nozzle_temp_uncompensated_c100);
             ::nozzle_temp_compensated_c100.store(nozzle_temp_compensated_c100);
+
+            // Start calculating slope only after the nozzle_temps store actual readouts
+            // to prevent a slope spike on first valid readout
+            // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading.value returns last valid value
+            can_calculate_nozzle_temp_slope |= nozzle_temp_reading.valid;
 
             inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
         }
@@ -134,6 +160,10 @@ int16_t get_nozzle_temp_uncompensated_c100() {
 
 int16_t get_nozzle_temp_compensated_c100() {
     return nozzle_temp_compensated_c100.load();
+}
+
+int16_t get_hotend_temp_raw_c100_dt_s() {
+    return hotend_temp_raw_c100_dt_s.load();
 }
 
 void set_nozzle_present(indx_head::NozzlePresence state) {

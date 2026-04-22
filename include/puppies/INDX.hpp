@@ -98,6 +98,9 @@ public:
     [[nodiscard]] float get_hotend_temp_compensated() const;
     [[nodiscard]] float get_hotend_temp_uncompensated() const;
 
+    /// In °C/s
+    [[nodiscard]] float get_hotend_temp_raw_c_dt_s() const;
+
     [[nodiscard]] int16_t get_mcu_temperature(); ///< Get MCU temperature [°C]
     [[nodiscard]] int16_t get_board_temperature(); ///< Get board temperature [°C]
     [[nodiscard]] float get_24V(); ///< Get 24V power supply voltage [V]

@@ -208,6 +208,13 @@ float Indx::get_hotend_temp_uncompensated() const {
     return static_cast<float>(static_cast<int16_t>(register_general_status.value.hotend_measured_temperature_uncompensated_c100)) / 100.f;
 }
 
+float Indx::get_hotend_temp_raw_c_dt_s() const {
+    Lock guard(*mutex);
+
+    // Sent in centiDeg (deg * 100) for precision on 2 decimal places
+    return static_cast<float>(register_general_status.value.hotend_temp_raw_c100_dt_s) / 100.f;
+}
+
 CommunicationStatus Indx::set_hotend_target_temp(float target) {
     Lock guard(*mutex);
 

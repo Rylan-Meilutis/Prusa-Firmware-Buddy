@@ -23,6 +23,12 @@ struct Status {
     errors::FaultStatusMask fault_status = indx_head::errors::FaultStatusMask::no_fault;
     uint16_t hotend_measured_temperature_uncompensated_c100 = 25 * 100; // In 1/100 °C, init to temperature that won't immediately trigger mintemp
     uint16_t hotend_measured_temperature_compensated_c100 = 25 * 100; // In 1/100 °C, init to temperature that won't immediately trigger mintemp
+
+    /// In 1/100 °C/s. Derivation of the temperature measured by the hotend temp sensor
+    /// Evaluated before temperature compensation
+    /// !!! Does not correspond to the compensated readings
+    int16_t hotend_temp_raw_c100_dt_s = 0;
+
     int16_t board_temperature = 0; // [int16_t degree C]
     int16_t mcu_temperature = 0; // [int16_t degree C]
     uint16_t print_fan_rpm = 0;
