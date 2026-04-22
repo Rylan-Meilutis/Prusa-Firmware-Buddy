@@ -282,37 +282,26 @@ CommunicationStatus Indx::run_time_sync(PuppyModbus &bus) {
 
 bool Indx::set_accelerometer(PuppyModbus &bus, bool active) {
     Lock guard(*mutex);
-    accelerometer_enabled.value.accelerometer_enabled = active;
-    accelerometer_enabled.dirty = true;
     general_write.value.accelerometer_enabled = active;
-    return bus.write(unit, accelerometer_enabled) == CommunicationStatus::OK;
+    general_write.dirty = true;
+    return bus.write(unit, general_write) == CommunicationStatus::OK;
 }
 
 bool Indx::get_accelerometer_active() {
     Lock guard(*mutex);
-    return accelerometer_enabled.value.accelerometer_enabled;
+    return general_write.value.accelerometer_enabled;
 }
 
 bool Indx::set_loadcell(PuppyModbus &bus, bool active) {
     Lock guard(*mutex);
-
-    return set_loadcell_nolock(bus, active);
-}
-
-bool Indx::set_loadcell_nolock(PuppyModbus &bus, bool active) {
-    return raw_set_loadcell(bus, active);
-}
-
-bool Indx::raw_set_loadcell(PuppyModbus &bus, bool enable) {
-    loadcell_enabled.value.loadcell_enabled = enable;
-    loadcell_enabled.dirty = true;
-    general_write.value.loadcell_enabled = enable;
-    return bus.write(unit, loadcell_enabled) == CommunicationStatus::OK;
+    general_write.value.loadcell_enabled = active;
+    general_write.dirty = true;
+    return bus.write(unit, general_write) == CommunicationStatus::OK;
 }
 
 bool Indx::get_loadcell_active() {
     Lock guard(*mutex);
-    return loadcell_enabled.value.loadcell_enabled;
+    return general_write.value.loadcell_enabled;
 }
 
 int16_t Indx::get_mcu_temperature() {

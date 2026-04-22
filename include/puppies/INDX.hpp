@@ -75,28 +75,22 @@ public:
     CommunicationStatus pull_fifo(PuppyModbus &, bool &more);
 
     /**
-     * @brief Set loadcell
+     * @brief Enable/disable loadcell data in FIFO.
      *
-     * Can be enabled only on selected dwarf.
-     * Automatically disable accelerometer on loadcell activation.
-     *
-     * @param active Loadcell state bool
-     * @return True when successful, false otherwise (either communication error or Dwarf not selected)
+     * @param active Enable loadcell FIFO output
+     * @return True when successful, false on communication error
      */
     bool set_loadcell(PuppyModbus &, bool active);
 
     /**
      * @brief Get loadcell active state
      *
-     * @return True if loadcell is active, false otherwise
+     * @return True if loadcell output is enabled, false otherwise
      */
     bool get_loadcell_active();
 
     /**
      * @brief Enable/disable accelerometer data in FIFO.
-     *
-     * The head keeps sampling the accelerometer continuously,
-     * but only puts data into the modbus FIFO when enabled.
      *
      * @param active Enable accelerometer FIFO output
      * @return True when successful, false on communication error
@@ -188,16 +182,6 @@ private:
     std::array<std::atomic<uint16_t>, NUM_FANS> fan_pwm_desired { 0, 0 };
     std::atomic<bool> selftest_mode_ { false };
 
-    MODBUS_REGISTER LoadcellEnabled {
-        uint16_t loadcell_enabled = 0;
-    };
-    ModbusHoldingRegisterBlock<indx_head::modbus::Config::loadcell_enabled_address(), LoadcellEnabled> loadcell_enabled {};
-
-    MODBUS_REGISTER AccelerometerEnabled {
-        uint16_t accelerometer_enabled = 0;
-    };
-    ModbusHoldingRegisterBlock<indx_head::modbus::Config::accelerometer_enabled_address(), AccelerometerEnabled> accelerometer_enabled {};
-
 private:
     // FIXME: Need to be forward-declared, because this header file is included
     // from marlin and it seems virtually impossible to persuade the **** build
@@ -224,8 +208,6 @@ private:
     CommunicationStatus run_time_sync(PuppyModbus &);
     CommunicationStatus read_general_status(PuppyModbus &);
     void handle_nozzle_presence(); ///< Update cached_nozzle_state from latest modbus data
-    bool set_loadcell_nolock(PuppyModbus &, bool active);
-    bool raw_set_loadcell(PuppyModbus &, bool active); // Low level loadcell enable/disable, no dependencies
 
     // Register refresh control
     uint32_t last_update_ms = 0; ///< Last time we updated registers
