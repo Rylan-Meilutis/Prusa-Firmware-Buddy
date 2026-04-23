@@ -5,17 +5,10 @@
 
 namespace tool_offset {
 
-enum class ToolType {
-    STANDARD,
-    HARDENED
-};
-
 struct ToolOffset {
     float x = 0.0f;
     float y = 0.0f;
     float z = 0.0f;
-
-    ToolType type = ToolType::STANDARD;
 };
 
 // Measure the current tool's XYZ offset relative to the sensor reference position.
