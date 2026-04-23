@@ -237,6 +237,7 @@ void GcodeSuite::get_destination_from_command() {
 
 #if HAS_CANCEL_OBJECT()
   if (buddy::cancel_object().is_current_object_cancelled()) {
+    destination = current_position;
     return;
   }
 #endif
