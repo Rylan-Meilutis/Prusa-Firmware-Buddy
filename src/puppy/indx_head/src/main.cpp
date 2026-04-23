@@ -31,9 +31,10 @@ StaticTask_t spi_task_control_block;
 } // namespace
 
 extern "C" int main() {
-    hal::init();
     rtt::init();
     rtt::print("indx_head started\n");
+
+    hal::init();
 
     {
         [[maybe_unused]] TaskHandle_t modbus_task_handle = xTaskCreateStatic(
