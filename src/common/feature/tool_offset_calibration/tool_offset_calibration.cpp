@@ -184,16 +184,6 @@ PhysicalToolSet collect_all_enabled_tools() {
     return seen;
 }
 
-/// Find the lowest set bit in a ToolSet, return as PhysicalToolIndex
-PhysicalToolIndex first_tool(const PhysicalToolSet &set) {
-    for (uint8_t i = 0; i < PhysicalToolIndex::count; i++) {
-        if (set.test(i)) {
-            return PhysicalToolIndex::from_raw(i);
-        }
-    }
-    bsod_unreachable();
-}
-
 /// Reset Z tool offsets to zero (runtime + EEPROM) to avoid corruption from previous prints
 void reset_z_tool_offsets() {
     for (auto tool : PhysicalToolIndex::all()) {
@@ -311,7 +301,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
     log_info(ToolOffsetCalib, "Calibrating %u tool(s)", num_tools);
 
-    const PhysicalToolIndex first = first_tool(used_physical_tools);
+    const PhysicalToolIndex first = PhysicalToolIndex::from_raw(std::countr_zero(used_physical_tools.to_ulong()));
 
     struct ProbeResult {
         float z;
