@@ -18,9 +18,7 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
     { Sequence::clean, {
                            .filename = "clean",
                            .directory = directory,
-                           .default_gcode = "G750 Y98.5 F21000\n"
-                                            "G750 X-9 F21000\n"
-                                            "G750 X0.65 Y118.5 F18000\n"
+                           .default_gcode = "G750 X0.65 Y118.5 F18000\n"
                                             "G750 X0.0 Y98.5 F18000\n"
                                             "G750 X-0.5 Y118.5 F18000\n"
                                             "G750 X-0.1 Y98.5 F18000\n"
@@ -94,8 +92,6 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                     .filename = "eject_blob",
                                     .directory = directory,
                                     .default_gcode = "M204 T5000\n"
-                                                     "G750 X-9 F21000\n" // Entry point (first in X) (to avoid hitting the nozzle cleaner with the nozzle)
-                                                     "G750 Y98.5 F21000\n" // Entry point
                                                      "G750 X0.65 F21000\n"
                                                      "G750 Y87 F21000\n"
                                                      "G750 Y91 F21000\n"
