@@ -350,7 +350,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
     set_calib_status(status_guard, first.to_raw(), ++step, num_tools);
     tool_change(stdext::to_variant(first), tool_return_t::no_return);
 
-    std::optional<ProbeResult> ref_first = std::nullopt;
+    ProbeResult ref_first;
     ProbeResult ref_last;
     {
         const int16_t first_saved_temp = thermalManager.degTargetHotend(first);
@@ -364,12 +364,13 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         }
 
         // Probe at first position (index 0)
-        ref_first = probe_at(first, 0);
-        if (!ref_first) {
+        const auto ref_first_opt = probe_at(first, 0);
+        if (!ref_first_opt) {
             return false;
         }
+        ref_first = *ref_first_opt;
+        ref_last = ref_first;
 
-        ref_last = *ref_first;
         if (mapped_tools.count() > 1) {
             // Probe at last position (with the same first tool)
             const auto ref_last_opt = probe_at(first, num_tools - 1);
@@ -378,7 +379,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             }
             ref_last = *ref_last_opt;
             log_info(ToolOffsetCalib, "Reference line: Z_first=%.3f at (%.1f,%.1f) Z_last=%.3f at (%.1f,%.1f)",
-                static_cast<double>(ref_first->z), static_cast<double>(ref_first->pos.x), static_cast<double>(ref_first->pos.y),
+                static_cast<double>(ref_first.z), static_cast<double>(ref_first.pos.x), static_cast<double>(ref_first.pos.y),
                 static_cast<double>(ref_last.z), static_cast<double>(ref_last.pos.x), static_cast<double>(ref_last.pos.y));
         }
 
@@ -396,7 +397,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
     // The interpolation parameter t is computed from the actual probed X positions
     // to account for the random jitter applied to each probe point.
-    const float ref_x_span = ref_last.pos.x - ref_first->pos.x;
+    const float ref_x_span = ref_last.pos.x - ref_first.pos.x;
 
     // First tool offset is 0 by definition
     hotend_offset[first].z = 0.0f;
@@ -415,7 +416,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         set_calib_status(status_guard, tool.to_raw(), ++step, num_tools);
         tool_change(stdext::to_variant(tool), tool_return_t::no_return);
 
-        std::optional<ProbeResult> result = std::nullopt;
+        ProbeResult result;
         {
             const int16_t saved_temp = thermalManager.degTargetHotend(tool);
             ScopeGuard restore_temp([&] {
@@ -426,21 +427,22 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 return false;
             }
 
-            result = probe_at(tool, mapped_index - 1);
-            if (!result) {
+            const auto result_opt = probe_at(tool, mapped_index - 1);
+            if (!result_opt) {
                 return false;
             }
+            result = *result_opt;
 
             if (!calibrate_xy_offset(tool, probing_config)) {
                 return false;
             }
         }
         // Interpolate expected Z on the reference line at the actual probed X
-        const float t = result->pos.x - ref_first->pos.x;
-        const float z_expected = ref_first->z + (ref_last.z - ref_first->z) * (t / ref_x_span);
-        const float z_offset = z_expected - result->z; // Inverted, because +Z is down
+        const float t = result.pos.x - ref_first.pos.x;
+        const float z_expected = ref_first.z + (ref_last.z - ref_first.z) * (t / ref_x_span);
+        const float z_offset = z_expected - result.z; // Inverted, because +Z is down
         hotend_offset[tool].z = z_offset;
-        log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", i, static_cast<double>(z_offset), static_cast<double>(result->z), static_cast<double>(z_expected));
+        log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", i, static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
     }
 
     prusa_toolchanger.save_tool_offsets();
