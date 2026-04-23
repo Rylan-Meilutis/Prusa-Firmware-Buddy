@@ -45,16 +45,6 @@ public:
         return r;
     }
 
-    /// @returns an 'adjusted' iterator that skips tools that are not configurable.
-    ToolIndexIterator skip_all_unconfigurable() const
-        requires requires(Index i) { i.is_configurable(); }
-    {
-        ToolIndexIterator r = *this;
-        r.skip_unconfigurable_ = true;
-        r.ensure_valid();
-        return r;
-    }
-
 public:
     constexpr inline ToolIndexIterator begin() const {
         return *this;
@@ -110,10 +100,8 @@ protected:
     /// If pos_ is on an item that should be skipped/filtered out, increases it until it isn't
     constexpr void ensure_valid() {
         while (!at_end()) {
-            bool should_skip = skip_disabled_ && !index().is_enabled();
-            if constexpr (requires(Index i) { i.is_configurable(); }) {
-                should_skip = should_skip || (skip_unconfigurable_ && !index().is_configurable());
-            }
+            const bool should_skip = //
+                (skip_disabled_ && !index().is_enabled());
 
             if (!should_skip) {
                 return;
@@ -131,9 +119,6 @@ private:
 
     /// Iterate only over enabled tools
     bool skip_disabled_ : 1 = false;
-
-    /// Iterate only over tools that are configurable
-    bool skip_unconfigurable_ : 1 = false;
 
     /// Iterate over only single tool
     bool single_ : 1 = false;
