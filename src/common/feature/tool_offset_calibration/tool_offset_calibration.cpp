@@ -145,12 +145,12 @@ bool prepare_tool(PhysicalToolIndex tool) {
     return true;
 }
 
-using ToolSet = std::bitset<PhysicalToolIndex::count>;
+using PhysicalToolSet = std::bitset<PhysicalToolIndex::count>;
 
 /// Collect the unique set of physical tools needed for the current print,
 /// based on tool mapping and spool join configuration.
-ToolSet collect_used_physical_tools() {
-    ToolSet seen;
+PhysicalToolSet collect_used_physical_tools() {
+    PhysicalToolSet seen;
 
     // Walk each gcode tool that is used in the print
     auto &gcode_info = GCodeInfo::getInstance();
@@ -176,8 +176,8 @@ ToolSet collect_used_physical_tools() {
 }
 
 /// Collect all physically enabled tools.
-ToolSet collect_all_enabled_tools() {
-    ToolSet seen;
+PhysicalToolSet collect_all_enabled_tools() {
+    PhysicalToolSet seen;
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         seen.set(tool.to_raw());
     }
@@ -185,13 +185,13 @@ ToolSet collect_all_enabled_tools() {
 }
 
 /// Find the lowest set bit in a ToolSet, return as PhysicalToolIndex
-PhysicalToolIndex first_tool(const ToolSet &set) {
+PhysicalToolIndex first_tool(const PhysicalToolSet &set) {
     for (uint8_t i = 0; i < PhysicalToolIndex::count; i++) {
         if (set.test(i)) {
             return PhysicalToolIndex::from_raw(i);
         }
     }
-    bsod("empty tool set");
+    bsod_unreachable();
 }
 
 /// Reset Z tool offsets to zero (runtime + EEPROM) to avoid corruption from previous prints
@@ -298,12 +298,12 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
     // Collect the physical tools we need to calibrate from the active tool mapping.
     // Fall back to all enabled tools when no mapping is active (e.g. debug/standalone use).
-    ToolSet mapped_tools = collect_used_physical_tools();
-    if (mapped_tools.none()) {
-        mapped_tools = collect_all_enabled_tools();
+    PhysicalToolSet used_physical_tools = collect_used_physical_tools();
+    if (used_physical_tools.none()) {
+        used_physical_tools = collect_all_enabled_tools();
     }
 
-    const auto num_tools = static_cast<uint8_t>(mapped_tools.count());
+    const auto num_tools = static_cast<uint8_t>(used_physical_tools.count());
     if (num_tools == 0) {
         log_error(ToolOffsetCalib, "No tools found");
         return false;
@@ -311,7 +311,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
     log_info(ToolOffsetCalib, "Calibrating %u tool(s)", num_tools);
 
-    const PhysicalToolIndex first = first_tool(mapped_tools);
+    const PhysicalToolIndex first = first_tool(used_physical_tools);
 
     struct ProbeResult {
         float z;
@@ -376,7 +376,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         }
     } // End of temp scope guard
 
-    if (mapped_tools.count() == 1) {
+    if (used_physical_tools.count() == 1) {
         hotend_offset[first].z = 0.0f;
         prusa_toolchanger.save_tool_offsets();
         return true;
@@ -391,7 +391,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
     uint8_t mapped_index = 0; // first tool was index 0
     for (uint8_t i = 0; i < PhysicalToolIndex::count; i++) {
-        if (!mapped_tools.test(i)) {
+        if (!used_physical_tools.test(i)) {
             continue;
         }
         mapped_index++;
