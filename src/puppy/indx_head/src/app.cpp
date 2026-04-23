@@ -94,7 +94,7 @@ void run() {
             // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading.value returns last valid value
 
             const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.value * 100.f);
-            const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 + hotend_temp_compensation::get_current_compensation_c100();
+            const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 - hotend_temp_compensation::get_current_compensation_c100();
 
             // Calculate slope
             if (can_calculate_nozzle_temp_slope) {
