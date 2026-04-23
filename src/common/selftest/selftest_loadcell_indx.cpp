@@ -97,6 +97,17 @@ LoopResult CSelftestPart_Loadcell::stateCooldownInit() {
     }
     thermalManager.setTargetHotend(0, tool->to_raw()); // Disable heating for tested hotend
     const float temp = thermalManager.degHotend(tool->to_raw());
+#if HAS_INDX()
+    // This is a hack because xbuddy locally substitutes 15 °C
+    // whenever INDX hotend instance isn't the currently-selected tool
+    // (e.g. briefly after pick_any_tool() before puppy data propagates).
+    // A sensible logical value like -1 / NaN can't be used because it would
+    // trigger Marlin's mintemp protection
+    // We need to wait for correct values
+    if (temp == 15.f) {
+        return LoopResult::RunCurrent;
+    }
+#endif
     rResult.temperature = static_cast<int16_t>(temp);
     need_cooling = temp > rConfig.cool_temp; // Check if temperature is safe
     if (need_cooling) {

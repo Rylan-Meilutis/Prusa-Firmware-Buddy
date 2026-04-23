@@ -135,8 +135,20 @@ LoopResult CSelftestPart_Heater::stateSetup() {
     // m_TempDiffSum = 0;
     // m_TempDiffSum = 0;
     // m_TempCount = 0;
-    begin_temp = m_config.getTemp();
-    enable_cooldown = m_config.getTemp() >= m_config.start_temp;
+    const float temp = m_config.getTemp();
+#if HAS_INDX()
+    // This is a hack because xbuddy locally substitutes 15 °C
+    // whenever INDX hotend instance isn't the currently-selected tool
+    // (e.g. briefly after pick_any_tool() before puppy data propagates).
+    // A sensible logical value like -1 / NaN can't be used because it would
+    // trigger Marlin's mintemp protection
+    // We need to wait for correct values
+    if (temp == 15.f) { // INDX: wait for valid temperature data after pickup
+        return LoopResult::RunCurrent;
+    }
+#endif
+    begin_temp = temp;
+    enable_cooldown = temp >= m_config.start_temp;
     m_config.setTargetTemp(0);
     return LoopResult::RunNext;
 }
