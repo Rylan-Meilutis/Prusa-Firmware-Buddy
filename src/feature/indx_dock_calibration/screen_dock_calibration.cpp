@@ -7,9 +7,11 @@
 #include <guiconfig/GuiDefaults.hpp>
 #include <standard_frame/frame_prompt.hpp>
 #include <standard_frame/frame_text_prompt.hpp>
+#include <standard_frame/frame_title_text_image_prompt.hpp>
 #include <standard_frame/frame_wait.hpp>
 #include <common/fsm_base_types.hpp>
 #include <common/encoded_fsm_response.hpp>
+#include <img_resources.hpp>
 #include <marlin_client.hpp>
 #include <marlin_vars.hpp>
 #include <module/prusa/toolchanger.h>
@@ -30,6 +32,12 @@ constexpr auto txt_failed = N_("Dock %d calibration failed.\n\nMeasured: X=%.1f 
 constexpr auto txt_select_dock_count = N_("How many docks does your printer have?");
 constexpr auto txt_title_ask_position = N_("Calibrating Dock %d");
 constexpr auto txt_ask_position = N_("Please manually move the head precisely to dock %d. Make sure it is all the way to the front.\n\nWhile holding it there, press Continue. Don't worry, the printer will lock motors and ask before doing any moves.");
+
+constexpr auto txt_title_tighten_silver_screws = N_("Tighten Dock Screws");
+constexpr auto txt_tighten_silver_screws = N_("Tighten the silver screws on each dock.\n\nWhen done, press Continue.");
+
+constexpr auto txt_title_loosen_each_screw = N_("Loosen Dock Bolts");
+constexpr auto txt_loosen_each_screw = N_("Loosen each silver screw by exactly one turn.\n\nWhen done, press Continue.");
 
 /// Read dock_count from the current FSM PhaseData (set by the server when entering select_docks)
 static uint8_t get_dock_count_from_fsm() {
@@ -94,6 +102,17 @@ private:
     StringViewUtf8Parameters<48> params;
 };
 
+static constexpr const img::Resource *img_tighten_silver_screws = &img::indx_dock_calibration_tightening;
+static constexpr const img::Resource *img_loosen_each_screw = &img::indx_dock_calibration_loosening;
+
+class FrameScrewInstructions : public FrameTitleTextImagePrompt {
+public:
+    FrameScrewInstructions(window_frame_t *parent, FSMAndPhase fsm_phase, const string_view_utf8 &txt_title, const string_view_utf8 &txt_info, const img::Resource *img_res)
+        : FrameTitleTextImagePrompt(parent, fsm_phase, txt_title, txt_info, img_res) {
+        icon.SetAlignment(Align_t::CenterTop());
+    }
+};
+
 using Frames = FrameDefinitionList<ScreenDockCalibration::FrameStorage,
     FrameDefinition<PhaseDockCalibration::intro, FramePrompt, PhaseDockCalibration::intro, txt_title_intro, txt_intro>,
     FrameDefinition<PhaseDockCalibration::remove_tool, FrameTextPrompt, PhaseDockCalibration::remove_tool, txt_remove_tool>,
@@ -101,9 +120,11 @@ using Frames = FrameDefinitionList<ScreenDockCalibration::FrameStorage,
     FrameDefinition<PhaseDockCalibration::select_docks, FrameSelectDocks>,
     FrameDefinition<PhaseDockCalibration::homing, FrameWait, txt_homing>,
     FrameDefinition<PhaseDockCalibration::moving_away, FrameWait, txt_moving_away>,
+    FrameDefinition<PhaseDockCalibration::tighten_silver_screws, FrameScrewInstructions, PhaseDockCalibration::tighten_silver_screws, txt_title_tighten_silver_screws, txt_tighten_silver_screws, img_tighten_silver_screws>,
     FrameDefinition<PhaseDockCalibration::ask_position_dock, FrameDockPosition, PhaseDockCalibration::ask_position_dock, txt_intro /* unused, overridden by update */>,
     FrameDefinition<PhaseDockCalibration::lock_position, FrameTextPrompt, PhaseDockCalibration::lock_position, txt_lock_position>,
     FrameDefinition<PhaseDockCalibration::measuring, FrameWait, txt_measuring>,
+    FrameDefinition<PhaseDockCalibration::loosen_each_bolt, FrameScrewInstructions, PhaseDockCalibration::loosen_each_bolt, txt_title_loosen_each_screw, txt_loosen_each_screw, img_loosen_each_screw>,
     FrameDefinition<PhaseDockCalibration::calibration_success, FrameTextPrompt, PhaseDockCalibration::calibration_success, txt_success>,
     FrameDefinition<PhaseDockCalibration::calibration_failed, FrameCalibrationFailed, PhaseDockCalibration::calibration_failed, txt_failed>>;
 

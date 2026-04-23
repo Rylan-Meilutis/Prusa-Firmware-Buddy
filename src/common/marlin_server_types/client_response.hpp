@@ -470,9 +470,11 @@ enum class PhaseDockCalibration : PhaseUnderlyingType {
     select_docks,
     homing,
     moving_away,
+    tighten_silver_screws,
     ask_position_dock,
     lock_position,
     measuring,
+    loosen_each_bolt,
     calibration_success,
     calibration_failed,
     _last = calibration_failed,
@@ -778,9 +780,11 @@ inline constexpr EnumArray<PhaseDockCalibration, PhaseResponses, CountPhases<Pha
     { PhaseDockCalibration::select_docks, {} }, // selected docks passed through FSMResponseVariant as uint8_t bitmask
     { PhaseDockCalibration::homing, {} },
     { PhaseDockCalibration::moving_away, {} },
+    { PhaseDockCalibration::tighten_silver_screws, { Response::Continue, Response::Abort } },
     { PhaseDockCalibration::ask_position_dock, { Response::Continue, Response::Abort } },
     { PhaseDockCalibration::lock_position, { Response::Continue, Response::Back, Response::Abort } },
     { PhaseDockCalibration::measuring, {} },
+    { PhaseDockCalibration::loosen_each_bolt, { Response::Continue } },
     { PhaseDockCalibration::calibration_success, { Response::Continue } },
     { PhaseDockCalibration::calibration_failed, { Response::Retry, Response::Abort } },
 };

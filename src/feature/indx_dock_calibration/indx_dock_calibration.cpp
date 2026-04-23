@@ -164,6 +164,12 @@ private:
         // Ensure head locking mechanism is open (no tool present)
         prusa_toolchanger.ensure_head_open();
 
+        // Ask user to tighten the silver screws on each dock before measuring
+        fsm_change(PhaseDockCalibration::tighten_silver_screws);
+        if (wait_for_response(PhaseDockCalibration::tighten_silver_screws) == Response::Abort) {
+            return Result::aborted;
+        }
+
         // Calibrate selected docks
         for (auto tool : PhysicalToolIndex::all()) {
             if (!selected_docks.test(tool.to_raw())) {
@@ -174,6 +180,10 @@ private:
                 return r;
             }
         }
+
+        // Ask user to loosen each bolt by exactly one turn after calibration
+        fsm_change(PhaseDockCalibration::loosen_each_bolt);
+        wait_for_response(PhaseDockCalibration::loosen_each_bolt);
 
         return Result::success;
     }
