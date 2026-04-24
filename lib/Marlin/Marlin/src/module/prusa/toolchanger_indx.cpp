@@ -261,13 +261,7 @@ void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
         ResetOnReturn guard([this](bool state) { block_tool_check = state; });
 
         marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::prompt);
-        const auto prompt_response = marlin_server::wait_for_response(PhaseNozzleMismatch::prompt);
-
-        if (prompt_response == Response::Disable) {
-            log_info(PrusaToolChanger, "Nozzle mismatch check disabled by user for this session");
-            nozzle_check_disabled = true;
-            return;
-        }
+        [[maybe_unused]] const auto prompt_response = marlin_server::wait_for_response(PhaseNozzleMismatch::prompt);
 
         while (true) {
             marlin_server::fsm_change(PhaseNozzleMismatch::dock_selection);

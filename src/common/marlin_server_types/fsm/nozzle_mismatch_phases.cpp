@@ -1,7 +1,7 @@
 #include "nozzle_mismatch_phases.hpp"
 
 constinit const EnumArray<PhaseNozzleMismatch, PhaseResponses, PhaseNozzleMismatch::_cnt> ClientResponses::nozzle_mismatch_responses {
-    { PhaseNozzleMismatch::prompt, { Response::Continue, Response::Disable } },
+    { PhaseNozzleMismatch::prompt, { Response::Continue } },
     { PhaseNozzleMismatch::dock_selection, {} }, // Menu sends variant response, no radio buttons
     { PhaseNozzleMismatch::parking, {} },
     { PhaseNozzleMismatch::dock_not_empty, { Response::Retry } },
