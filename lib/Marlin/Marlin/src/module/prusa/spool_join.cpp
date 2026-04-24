@@ -11,6 +11,7 @@
 #include <limits>
 #include <optional>
 #include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 #include "module/temperature.h"
 #include "module/planner.h" // for get_axis_position_mm
 #include "marlin_vars.hpp"
@@ -226,7 +227,7 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
 
     xyze_pos_t return_pos = current_position;
 
-#if DISABLED(SIGNLENOZZLE) && PRINTER_IS_PRUSA_XL()
+#if DISABLED(SINGLENOZZLE) && HAS_TOOLCHANGER()
 
     // Park current tool, to get away from print
     tool_change(NoTool {}, tool_return_t::no_return);
@@ -249,7 +250,7 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
     }
     tool_mapper.set_enable(true);
 
-#if DISABLED(SINGLENOZZLE) && PRINTER_IS_PRUSA_XL()
+#if DISABLED(SINGLENOZZLE) && HAS_TOOLCHANGER()
     if (target_temp != 0) {
         thermalManager.wait_for_hotend(new_tool, false, true);
     }
