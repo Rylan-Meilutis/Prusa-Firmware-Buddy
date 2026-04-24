@@ -19,8 +19,12 @@ constexpr const char *txt_title_begin = N_("Let's calibrate your belt tension");
 constexpr const char *txt_desc_begin = N_("Before we begin, scan the QR code for the guide. You'll also need an Allen key.");
 // Checking if X-axis gantry is correctly lined up PHASE: check_x_gantry
 constexpr const char link_belt_calib_gantry[] = "prusa.io/core-belt-calibration-gantry";
-constexpr const char *txt_title_gantry = N_("Check X-axis gantry squareness");
-constexpr const char *txt_desc_gantry = N_("Move printhead to front. Check there's no gap between gantry and tensioner on both ends. If there is, follow the guide.");
+constexpr const char *txt_title_gantry = N_("Check the gantry squareness");
+#if HAS_INDX()
+constexpr const char *txt_desc_gantry = N_("Move printhead to the front. Check there's no gap between gantry and tensioner on both ends. If there is, follow the guide.");
+#else
+constexpr const char *txt_desc_gantry = N_("Move printhead to the back. Check there's no gap between gantry and tensioner on both ends. If there is, follow the guide.");
+#endif
 // Waiting for homing and moving to wizard position
 constexpr const char *txt_wait = N_("Printer is homing, please wait.");
 // Prepare for measuring actual frequencies, QR, prerequisites PHASE: intro_measure
@@ -47,7 +51,7 @@ constexpr const char *txt_desc_turn_screw = N_("Turn both screws:\n%s %s turns\n
 constexpr const char *txt_desc_no_turn = N_("No need to turn the tensioner screws.\n\nPress Continue to finish calibration or Adjust to repeat measuring.");
 // Finish screen
 constexpr const char *txt_title_finished = N_("Calibration complete");
-constexpr const char *txt_desc_finished = N_("Belt tension has been successfully calibrated.\nYou're all set and ready to print.\n\nPress Finish to exit.");
+constexpr const char *txt_desc_finished = N_("Belt tension has been successfully calibrated.\n\nPress Finish to exit.");
 
 constexpr uint8_t qr_size = 100;
 
