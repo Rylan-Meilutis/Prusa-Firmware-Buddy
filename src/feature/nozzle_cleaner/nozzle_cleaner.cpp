@@ -75,6 +75,7 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                       "G750 Y77 F21000\n"
                                                       "G750 Y91 F21000\n"
                                                       "G750 Y86.5 F21000\n"
+                                                      "M906 P1\n" // Increase E current for purge
                                                       "G1 E25 F250\n"
                                                       "M400\n" // planner.synchronize()
                                                       "G1 E8 F600\n"
@@ -85,6 +86,7 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                       "M400\n"
                                                       "G1 E-1 F1440\n"
                                                       "M400\n"
+                                                      "M906 P0\n" // Restore E current
                                                       "G750 Y98.5 F21000\n"
                                                       "G750 Y91.5 F21000",
                                  } },
@@ -104,7 +106,8 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
         { Sequence::enter_cleaner, {
                                        .filename = "enter_cleaner",
                                        .directory = directory,
-                                       .default_gcode = "G750 Y98.5 F21000\n"
+                                       .default_gcode = "G750 X-9 F21000\n"
+                                                        "G750 Y98.5 F21000\n"
                                                         "G750 X0.65 F10000",
                                    } },
         { Sequence::exit_cleaner, {
