@@ -269,6 +269,12 @@ class FinalOffset:
 
 
 @dataclass
+class AnalysisError:
+    label: str
+    error: str
+
+
+@dataclass
 class PassPreprocessed:
     label: str
     pass_num: int
@@ -440,6 +446,8 @@ _PARSERS = [
      lambda d: _from_json(PassRawChunk, d)),
     ("# rough_align_energy", "rough_align_energy", RoughAlignEnergy.from_json),
     ("# rough_align_score", "rough_align_score", RoughAlignScore.from_json),
+    ("# analysis_error", "analysis_error",
+     lambda d: _from_json(AnalysisError, d)),
 ]
 
 _NOISE_RE = re.compile(r'echo:busy: processing'
@@ -597,30 +605,80 @@ def build_g427(r_param=None, probe_count=None) -> str:
     return cmd
 
 
+def _scan_start_label(line: str) -> Optional[str]:
+    """Extract the label from a `# scan_start {...}` line, or None."""
+    if not line.startswith("# scan_start"):
+        return None
+    try:
+        return json.loads(line.split(" ", maxsplit=2)[2]).get("label", "")
+    except (IndexError, json.JSONDecodeError):
+        return ""
+
+
 def split_response_by_tool(response: List[str]) -> List[List[str]]:
     """Split a G427 multi-tool response into per-tool segments.
 
-    Each tool's calibration begins with a `# probed_z` debug line emitted at
-    the start of measure_current_tool_offset. Lines before the first probed_z
-    (homing, tool select, etc.) are kept in the first segment.
+    A new tool starts when an X-axis scan follows a non-X scan (a Y scan or
+    the initial preamble). X scans that follow other X scans are retries
+    and stay in the same segment. Works for any `*-x`/`*-y` label scheme
+    (e.g. ``center-detection-*`` or ``nozzle-offset-*``).
     """
-    BOUNDARY = '# probed_z '
     segments: List[List[str]] = []
     current: List[str] = []
-    found_first = False
+    prev_axis: Optional[str] = None
 
     for line in response:
-        if line.startswith(BOUNDARY):
-            if found_first and current:
+        label = _scan_start_label(line)
+        if label is not None:
+            axis = _axis_from_label(label)
+            if (axis == "X" and prev_axis is not None and prev_axis != "X"
+                    and current):
                 segments.append(current)
                 current = []
-            found_first = True
+            prev_axis = axis
         current.append(line)
 
     if current:
         segments.append(current)
 
     return segments if segments else [response]
+
+
+def split_tool_into_attempts(tool_response: List[str]) -> List[Dict[str, Any]]:
+    """Split one tool's lines into per-attempt blocks keyed by scan label.
+
+    Each block corresponds to one `# scan_start` marker. Lines before the
+    first scan_start are kept with the first attempt as preamble.
+
+    Returns a list of dicts with keys: label, attempt, lines.
+    """
+    attempts: List[Dict[str, Any]] = []
+    current_lines: List[str] = []
+    current_label: Optional[str] = None
+    counts: Dict[str, int] = {}
+
+    for line in tool_response:
+        label = _scan_start_label(line)
+        if label is not None:
+            if current_label is not None:
+                attempts.append({
+                    "label": current_label,
+                    "attempt": counts[current_label],
+                    "lines": current_lines,
+                })
+                current_lines = []
+            current_label = label
+            counts[label] = counts.get(label, 0) + 1
+        current_lines.append(line)
+
+    if current_label is not None and current_lines:
+        attempts.append({
+            "label": current_label,
+            "attempt": counts[current_label],
+            "lines": current_lines,
+        })
+
+    return attempts
 
 
 def print_axis_results(
@@ -1408,6 +1466,52 @@ def plot_sweep_analysis(
     return fig
 
 
+def plot_raw_only(
+    axis: str,
+    samples: Optional[LineSamples],
+    error: Optional[AnalysisError] = None,
+    tool_label: Optional[str] = None,
+) -> Optional[go.Figure]:
+    """Minimal plot for a scan attempt that aborted before full analysis.
+
+    Shows the raw sensor samples and any error message as a subtitle.
+    Used when the firmware emitted line_samples but no motion_profile or
+    peaks (e.g. analysis_error: Sensor samples overflow).
+    """
+    if not samples or not samples.samples:
+        return None
+
+    n = len(samples.samples)
+    freq = samples.sampling_freq_hz or 0.0
+    dt = 1.0 / freq if freq else 0.0
+    x_vals = [i * dt * 1000 for i in range(n)] if dt else list(range(n))
+    x_title = "Time (ms)" if dt else "Sample index"
+
+    fig = make_subplots(rows=1, cols=1)
+    fig.add_trace(
+        go.Scatter(
+            x=x_vals,
+            y=list(samples.samples),
+            name="Sensor (raw)",
+            mode="lines",
+            line=dict(color="gray", width=1),
+        ))
+    fig.update_xaxes(title_text=x_title)
+    fig.update_yaxes(title_text="Raw sensor value")
+
+    err_text = error.error if error else "analysis incomplete"
+    main_title = (f"{tool_label} — {axis}: Raw samples (no analysis)"
+                  if tool_label else f"{axis}: Raw samples (no analysis)")
+    subtitle = f"{err_text} — {n} samples @ {freq:.1f} Hz"
+    fig.update_layout(
+        title=dict(text=f"{main_title}<br><sup>{subtitle}</sup>"),
+        autosize=True,
+        height=400,
+        showlegend=True,
+    )
+    return fig
+
+
 LOW_CONF_THRESHOLD = 0.9
 LOW_CONF_COLOR = "red"
 
@@ -1737,6 +1841,7 @@ def _gather_scan_data(data: Dict[str, Any], label: str,
         "raw_chunks": nth_group("pass_raw_chunk"),
         "energy_data": nth("rough_align_energy"),
         "score_data": nth("rough_align_score"),
+        "analysis_error": nth("analysis_error"),
     }
 
 
@@ -1754,7 +1859,8 @@ def process_single(response: List[str],
           f"{len(data['pass_correlation'])} correlations, "
           f"{len(data['pass_trim_refine'])} trim_refines, "
           f"{len(data['rough_align_energy'])} energy, "
-          f"{len(data['rough_align_score'])} score")
+          f"{len(data['rough_align_score'])} score, "
+          f"{len(data['analysis_error'])} errors")
 
     for idx, total, label in _iter_scan_indices(data):
         sd = _gather_scan_data(data, label, idx)
@@ -1762,6 +1868,8 @@ def process_single(response: List[str],
         plot_label = f"{label} #{idx + 1}" if total > 1 else label
 
         print(f"\n--- {plot_label} ({axis}-Axis) ---")
+        if sd["analysis_error"]:
+            print(f"  ANALYSIS ERROR: {sd['analysis_error'].error}")
         print_axis_results(axis,
                            plot_label,
                            sd["peaks"],
@@ -1789,6 +1897,12 @@ def process_single(response: List[str],
                                   energy_data=sd["energy_data"],
                                   score_data=sd["score_data"],
                                   tool_label=tool_label)
+        if fig is None:
+            fig = plot_raw_only(axis,
+                                sd["samples"],
+                                error=sd["analysis_error"],
+                                tool_label=f"{tool_label} {plot_label}"
+                                if tool_label else plot_label)
         if fig:
             figures.append(fig)
 
@@ -2052,12 +2166,43 @@ def all_tools(port, r_param, probe_count, diameter, tool_index, save, load,
     tool_finals: List[tuple] = []
     for i, tool_resp in tool_responses:
         tool_label = f"Tool {i}"
+        attempts = split_tool_into_attempts(tool_resp)
+        totals: Dict[str, int] = {}
+        for att in attempts:
+            totals[att["label"]] = totals.get(att["label"], 0) + 1
+
         print(f"\n{'#' * 70}")
-        print(f"  {tool_label.upper()}")
+        print(f"  {tool_label.upper()} ({len(attempts)} attempt(s))")
         print(f"{'#' * 70}")
-        data, figures = process_single(tool_resp, d, tool_label=tool_label)
-        all_figures.extend(figures)
-        tool_finals.append((i, data["final"]))
+
+        # With only one attempt per axis (or no split detected), preserve
+        # the original single-call path so the happy case is unchanged.
+        if not attempts or all(t == 1 for t in totals.values()):
+            data, figures = process_single(tool_resp, d, tool_label=tool_label)
+            all_figures.extend(figures)
+            tool_finals.append((i, data["final"]))
+            continue
+
+        last_data: Optional[Dict[str, Any]] = None
+        for att in attempts:
+            total = totals[att["label"]]
+            axis = _axis_from_label(att["label"])
+            axis_name = axis if axis in ("X", "Y") else ""
+            if total > 1:
+                att_label = (f"{tool_label} ({axis_name} attempt "
+                             f"{att['attempt']}/{total})")
+            elif axis_name:
+                att_label = f"{tool_label} ({axis_name})"
+            else:
+                att_label = tool_label
+            print(f"\n--- {att_label} ---")
+            data, figures = process_single(att["lines"],
+                                           d,
+                                           tool_label=att_label)
+            all_figures.extend(figures)
+            last_data = data
+        if last_data is not None:
+            tool_finals.append((i, last_data["final"]))
 
     valid = [(i, f) for i, f in tool_finals
              if f.x_mm is not None and f.y_mm is not None]
