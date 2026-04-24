@@ -716,6 +716,13 @@ bool PrusaToolChanger::pickup(PhysicalToolIndex tool) {
         auto &hotend = IndxHotend::indx_tool(tool).hotend();
         hotend.set_nozzle_target_temp_unchecked(0); // turn off heater to prevent damage while we are trying to recover
 
+        // Outside of a print there is no toolchange recovery UX to run
+        // (the failure dialog assumes printing). Bail out
+        // and let the caller — typically selftest — decide how to handle it.
+        if (!marlin_server::is_printing()) {
+            return false;
+        }
+
         switch (apply_failure_action(handle_pickup_failure())) {
         case ToolchangeFailureAction::abort:
             return false;
