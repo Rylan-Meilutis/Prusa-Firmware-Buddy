@@ -63,7 +63,7 @@ public:
 
         } else {
             set_enabled(!is_processing);
-            SetLabel(_("Park All Tools"));
+            SetLabel(_("Park Current Tool"));
         }
 
         const img::Resource *icon = nullptr;
