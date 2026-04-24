@@ -59,19 +59,19 @@ public:
 
     // E-axis motor currents for lock/unlock
     static constexpr uint16_t E_WIGGLE_CURRENT_MA = 200; ///< Low current for safe tooth engagement [mA]
-    static constexpr uint16_t E_UNLOCK_CURRENT_MA = 500; ///< Higher current for actual unlock [mA]
+    static constexpr uint16_t E_UNLOCK_CURRENT_MA = 650; ///< Higher current for actual unlock [mA]
 
     // Park/pickup feedrates [mm/s]
     static constexpr float PARK_APPROACH_FEEDRATE = 250.0f; ///< Approach to unlock position
     static constexpr float DOCK_ENGAGE_FEEDRATE = 100.0f; ///< Deeper dock move during park
     static constexpr float PICKUP_APPROACH_FEEDRATE = 100.0f; ///< Pickup approach into dock
     static constexpr float E_WIGGLE_FEEDRATE = 13.3f; ///< Tooth alignment E moves
-    static constexpr float E_UNLOCK_FEEDRATE = 25.0f; ///< Partial unlock E move
-    static constexpr float E_FULL_OPEN_FEEDRATE = 25.0f; ///< Full open E move
-    static constexpr float E_LOCK_FEEDRATE = 25.0f; ///< Lock E move
+    static constexpr float E_UNLOCK_FEEDRATE = 35.0f; ///< Partial unlock E move
+    static constexpr float E_FULL_OPEN_FEEDRATE = 40.0f; ///< Full open E move
+    static constexpr float E_LOCK_FEEDRATE = 40.0f; ///< Lock E move
     static constexpr float FAST_EXIT_FEEDRATE = 250.0f; ///< Fast exit from dock
     static constexpr uint32_t DOCK_DWELL_MS = 100; ///< Dwell time after lock/unlock [ms]
-    static constexpr uint32_t NOZZLE_VERIFY_TIMEOUT_MS = 15000; ///< Max wait for nozzle presence data after pickup/park [ms]
+    static constexpr uint32_t NOZZLE_VERIFY_TIMEOUT_MS = 5000; ///< Max wait for nozzle presence data after pickup/park [ms]
     #else
     static constexpr uint8_t MARLIN_NO_TOOL_PICKED = EXTRUDERS - 1;
     static constexpr auto PARKING_CURRENT_MA = 950; ///< Higher motor current on the lock and unlock moves

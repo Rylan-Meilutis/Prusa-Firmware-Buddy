@@ -172,7 +172,7 @@
 #define TEMP_SENSOR_BOARD 2000
 
 #if HAS_INDX()
-    #define TEMP_RESIDENCY_TIME 2 // (seconds) Time to wait for hotend to "settle" in M109
+    #define TEMP_RESIDENCY_TIME 1 // (seconds) Time to wait for hotend to "settle" in M109
 #else
     #define TEMP_RESIDENCY_TIME 5 // (seconds) Time to wait for hotend to "settle" in M109
 #endif

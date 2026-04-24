@@ -442,6 +442,9 @@ void PrusaToolChanger::open_head(PhysicalToolIndex tool) {
 
     {
         EMotorGuard guard;
+        // Increase E current for actual unlock
+        stepperE0.rms_current(E_UNLOCK_CURRENT_MA);
+
         e_move(E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE); // Ensure fully closed to start with
         planner.synchronize();
 
@@ -675,16 +678,16 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
     auto &hotend = IndxHotend::indx_tool(tool).hotend();
     hotend.set_nozzle_target_temp_unchecked(hotend.stored_nozzle_target_temp_);
 
-    // Save E position — mechanism moves should not affect filament tracking
-    const auto orig_e_pos = current_position.e;
+    {
+        EMotorGuard guard;
 
-    // Lock nozzle in head
-    e_move(+E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE);
-    planner.synchronize();
+        // Increase E current for actual unlock
+        stepperE0.rms_current(E_UNLOCK_CURRENT_MA);
 
-    // Restore E position (service mechanism move, not filament)
-    current_position.e = orig_e_pos;
-    sync_plan_position_e(E0_AXIS);
+        // Lock nozzle in head
+        e_move(+E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE);
+        planner.synchronize();
+    }
 
     // Dwell for reliability
     (void)wait([]() { return false; }, DOCK_DWELL_MS);
