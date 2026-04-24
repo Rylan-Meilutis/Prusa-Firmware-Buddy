@@ -81,7 +81,8 @@ float random_jitter(uint8_t r_param) {
 /// @param index 0-based position among mapped tools
 /// @param total total number of mapped tools
 xy_pos_t probe_position(uint8_t index, uint8_t total, uint8_t r_param) {
-    const float t = (total <= 1) ? 0.0f : static_cast<float>(index) / static_cast<float>(total - 1);
+    // total without -1 is intentional - the last spot (index == count) is reserved for second reference measurement
+    const float t = (total <= 1) ? 0.0f : static_cast<float>(index) / static_cast<float>(total);
     return {
         std::clamp(POS_TOOL_0.x + (POS_TOOL_LAST.x - POS_TOOL_0.x) * t + random_jitter(r_param), static_cast<float>(X_MIN_POS), static_cast<float>(X_MAX_POS)),
         std::clamp(POS_TOOL_0.y + (POS_TOOL_LAST.y - POS_TOOL_0.y) * t + random_jitter(r_param), static_cast<float>(Y_MIN_POS), static_cast<float>(Y_MAX_POS)),
@@ -326,8 +327,8 @@ bool run(uint8_t r_param, uint8_t probe_count) {
     };
 
     // Helper: probe Z at the given mapped index position (with jitter)
-    auto probe_at = [&](PhysicalToolIndex tool, uint8_t mapped_index) -> std::optional<ProbeResult> {
-        const xy_pos_t pos = probe_position(mapped_index, num_tools, r_param);
+    auto probe_at = [&](PhysicalToolIndex tool, uint8_t probe_index) -> std::optional<ProbeResult> {
+        const xy_pos_t pos = probe_position(probe_index, num_tools, r_param);
         log_info(ToolOffsetCalib, "Probe count: %d", probe_count);
         const float z = probe_z_at(pos, probe_count);
         if (std::isnan(z)) {
@@ -391,7 +392,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             ref_first = result;
 
             // Probe at last position (with the same first tool)
-            const auto ref_last_opt = probe_at(tool, num_tools - 1);
+            const auto ref_last_opt = probe_at(tool, num_tools);
             if (!ref_last_opt) {
                 return false;
             }
