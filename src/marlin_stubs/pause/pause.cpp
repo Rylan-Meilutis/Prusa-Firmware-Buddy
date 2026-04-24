@@ -552,6 +552,10 @@ void Pause::await_filament_process([[maybe_unused]] Response response) {
 
 void Pause::runout_during_load_process([[maybe_unused]] Response response) {
     setPhase(PhasesLoadUnload::Ejecting_unstoppable);
+#if HAS_INDX() // We need to extrude a bit (at least 2mm) to lock the head locking mechanism (it is partialy unlocked after toolpick from the tool pick) before doing retracting moves.
+    std::ignore = do_e_move_notify_progress_coldextrude(3.0f, (FILAMENT_CHANGE_UNLOAD_FEEDRATE), StopConditions::Accomplished);
+#endif
+
     // unload immediately - we even cannot perform ramming as it would have consumed even more filament
     std::ignore = do_e_move_notify_progress_coldextrude(-std::abs(settings.unload_length), (FILAMENT_CHANGE_UNLOAD_FEEDRATE), StopConditions::Accomplished);
 
