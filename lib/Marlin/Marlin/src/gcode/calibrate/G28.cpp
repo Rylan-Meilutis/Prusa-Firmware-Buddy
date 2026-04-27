@@ -54,6 +54,7 @@
 
 #if HAS_PRECISE_HOMING_COREXY()
   #include "../../module/prusa/homing_corexy.hpp"
+  #include <mapi/parking.hpp>
 #endif
 
 #include "../../module/probe.h"
@@ -1041,12 +1042,14 @@ RefineResult corexy_calibrate_homing_during_G28(float xy_mm_s, const G28Flags &f
 }
 
 RefineResult corexy_refine_during_G28_once(float fr_mm_s, const G28Flags &flags) {
-  // Do a quick move to the home position. Refinement can now be done separately to the imprecise homing and the head can be anywhere
+  // Move to the home position via a parking move. Refinement can now be done separately to the imprecise homing and the head can be anywhere,
+  // so we need the collision avoidance of a parking move (e.g. to navigate around the nozzle cleaner / wastebin on INDX/iX).
   // The position taken from corexy_rehome_and_phase
-  do_blocking_move_to_xy(
-    (base_home_pos(X_AXIS) - XY_HOMING_ORIGIN_OFFSET * X_HOME_DIR),
-    (base_home_pos(Y_AXIS) - XY_HOMING_ORIGIN_OFFSET * Y_HOME_DIR)
-  );
+  mapi::park(mapi::ZAction::no_move, {
+    .x = base_home_pos(X_AXIS) - XY_HOMING_ORIGIN_OFFSET * X_HOME_DIR,
+    .y = base_home_pos(Y_AXIS) - XY_HOMING_ORIGIN_OFFSET * Y_HOME_DIR,
+    .z = mapi::ParkingPosition::unchanged,
+  });
 
   // Do not handle feedrate defaults again within precise homing: do it here
   fr_mm_s = fr_mm_s ?: homing_feedrate(A_AXIS);
