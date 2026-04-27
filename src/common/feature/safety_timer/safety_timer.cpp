@@ -1,6 +1,7 @@
 #include "safety_timer.hpp"
 
 #include <marlin_server.hpp>
+#include <option/has_human_interactions.h>
 #include <raii/auto_restore.hpp>
 #include <bsod/bsod.h>
 #include <feature/host_actions.h>
@@ -183,10 +184,14 @@ void SafetyTimer::trigger() {
 
             if (disable_all) {
                 Temperature::disable_all_heaters();
+#if HAS_HUMAN_INTERACTIONS()
                 marlin_server::set_warning(WarningType::HeatersTimeout);
+#endif
             } else {
                 Temperature::disable_hotend();
+#if HAS_HUMAN_INTERACTIONS()
                 marlin_server::set_warning(WarningType::NozzleTimeout);
+#endif
             }
             clear_temp_to_display();
         }
@@ -215,7 +220,9 @@ void SafetyTimer::trigger() {
 
     Temperature::disable_hotend();
     clear_temp_to_display();
+#if HAS_HUMAN_INTERACTIONS()
     marlin_server::set_warning(WarningType::NozzleTimeout);
+#endif
 }
 
 void SafetyTimer::step() {
