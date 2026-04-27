@@ -53,15 +53,16 @@ std::atomic<bool> leds_changed = true;
 
 std::atomic<bool> selftest_mode = false;
 
-void validate_board_temperature() {
-    constexpr int16_t min_board_temp_degC = 0;
-    constexpr int16_t max_board_temp_degC = 65;
+int16_t validate_board_temperature() {
+    constexpr int16_t min_board_temp_degC = 10;
+    constexpr int16_t max_board_temp_degC = 95;
     const int16_t board_temp_degC = hal::adc::get_board_temp();
     if (board_temp_degC < min_board_temp_degC) {
         hal::panic(indx_head::errors::FaultStatusMask::board_min_temp);
     } else if (board_temp_degC > max_board_temp_degC) {
         hal::panic(indx_head::errors::FaultStatusMask::board_max_temp);
     }
+    return board_temp_degC;
 }
 
 } // namespace
@@ -139,12 +140,14 @@ void run() {
             // Print fan - direct PWM control
             hal::tim::set_printfan_pwm(printfan_pwm.load());
 
+            const int16_t board_temp_degC = validate_board_temperature();
             // Heatbreak fan
             {
                 // Auto mode - thermal loop controls fan
                 const bool is_heating = target_temp.load() > 0;
                 const bool nozzle_temp_threshold_reached = get_nozzle_temp_compensated_c100() > 50 * 100; /*stored in centiDeg*/
-                const uint8_t pwm = (is_heating || nozzle_temp_threshold_reached || selftest_mode.load()) ? 255 : 0;
+                const bool board_temp_threshold_reached = board_temp_degC > 50; /*stored in Deg*/
+                const uint8_t pwm = (is_heating || nozzle_temp_threshold_reached || board_temp_threshold_reached || selftest_mode.load()) ? 255 : 0;
                 hal::tim::set_heatbreak_fan_pwm(pwm);
                 if (heatbreak_fan_pwm == 0) {
                     // MUST be before setting the PWM to avoid race conditions
@@ -160,8 +163,6 @@ void run() {
                 hal::i2c::set_led_pwm(cfg.r, cfg.g, cfg.b);
                 hal::i2c::set_led_mode(cfg.mode);
             }
-
-            validate_board_temperature();
         }
 
         freertos::delay(1);
