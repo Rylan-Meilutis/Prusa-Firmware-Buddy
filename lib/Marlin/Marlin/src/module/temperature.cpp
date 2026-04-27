@@ -1377,8 +1377,10 @@ void Temperature::isr() {
     void Temperature::wait_for_frame_heatup() {
         // Keep everything heated up when absorbing heat
         buddy::SafetyTimerBlocker safety_timer_blocker;
-      
-        if (fabs(temp_bed.target - bed_frame_est_celsius) < 0.5f) {
+
+        constexpr float finish_threshold = 0.5f;
+
+        if (fabs(temp_bed.target - bed_frame_est_celsius) < finish_threshold) {
             log_info(MarlinServer, "Absorbing heat: already stable, continuing");
             return;
         }
@@ -1403,9 +1405,10 @@ void Temperature::isr() {
         PrintStatusMessageGuard status_guard;
 
         float start_target = temp_bed.target;
-        float start_diff = fabs(start_target - bed_frame_est_celsius);
+        // potential negative start_diff is handled by the clamp on progress
+        float start_diff = fabs(start_target - bed_frame_est_celsius) - finish_threshold;
         float progress = 0.f;
-        while (fabs(temp_bed.target - bed_frame_est_celsius) > 0.5f && !skippable_operation.is_skip_requested()) {
+        while (fabs(temp_bed.target - bed_frame_est_celsius) > finish_threshold && !skippable_operation.is_skip_requested()) {
             // Check if we're aborting
             if (planner.draining()) {
                 break;
@@ -1413,12 +1416,12 @@ void Temperature::isr() {
             if (start_target != temp_bed.target) {
               //Target changed -> recalculate start_diff
               start_target = temp_bed.target;
-              start_diff = fabs(start_target - bed_frame_est_celsius);
+              start_diff = fabs(start_target - bed_frame_est_celsius) - finish_threshold;
             }
 
             idle(true);
 
-            progress = std::max(progress, std::clamp(100 - (fabs(temp_bed.target - bed_frame_est_celsius) / start_diff) * 100, 0.f, 100.f));
+            progress = std::max(progress, std::clamp(100 - ((fabs(temp_bed.target - bed_frame_est_celsius) - finish_threshold) / start_diff) * 100, 0.f, 100.f));
 
             status_guard.update<PrintStatusMessage::absorbing_heat>({ .current = progress, .target = 100 });
         }
