@@ -402,6 +402,16 @@ void resume_loop() {
         }
 #endif
 
+#if HAS_INDX()
+        // Outside the toolchange area: tool is physically still on the head, but
+        // active_extruder wasn't restored from EEPROM (the cache is invalidated
+        // mid-print). Apply the saved tool so subsequent E moves are valid.
+        if (state_buf.planner.active_tool != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
+            prusa_toolchanger.set_active_extruder(
+                PhysicalToolIndex::from_raw(state_buf.planner.active_tool));
+        }
+#endif
+
         if (state_buf.crash.recover_flags & Crash_s::RECOVER_AXIS_STATE) {
             // lift and rehome
             if (state_buf.crash.axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise) || state_buf.crash.axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise)) {
