@@ -38,7 +38,8 @@ FooterItemPrintFan::FooterItemPrintFan(window_t *parent)
 }
 
 int FooterItemPrintFan::static_readValue() {
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && !HAS_INDX()
+    // on INDX there's only one head with one print fan, so we can always show the value
     if (std::holds_alternative<NoTool>(marlin_vars().active_extruder.get())) {
         return no_tool_value;
     }
@@ -52,7 +53,8 @@ FooterItemHeatBreakFan::FooterItemHeatBreakFan(window_t *parent)
 }
 
 int FooterItemHeatBreakFan::static_readValue() {
-#if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER() && !HAS_INDX()
+    // on INDX there's only one head with one heatbreak fan, so we can always show the value
     if (std::holds_alternative<NoTool>(marlin_vars().active_extruder.get())) {
         return no_tool_value;
     }

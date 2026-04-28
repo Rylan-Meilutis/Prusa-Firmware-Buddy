@@ -3390,6 +3390,15 @@ static void _server_update_vars() {
         extruder.heatbreak_fan_rpm = Fans::heat_break(tool).get_actual_rpm();
     }
 
+#if HAS_INDX()
+    // INDX_TODO: Update NoTool on INDX - when NoTool is active we still want to
+    // update the RPMs of the print and heatbreak fan; A more conceptual
+    // solution is needed.
+    auto &no_tool_hotend = marlin_vars().hotend(NoTool());
+    no_tool_hotend.print_fan_rpm = Fans::print(PhysicalToolIndex::count).get_actual_rpm();
+    no_tool_hotend.heatbreak_fan_rpm = Fans::heat_break(PhysicalToolIndex::count).get_actual_rpm();
+#endif
+
     for (auto tool : VirtualToolIndex::all()) {
         auto &virtual_tool_data = marlin_vars().virtual_tools[tool];
         virtual_tool_data.flow_factor = planner.flow_percentage[tool];

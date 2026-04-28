@@ -410,6 +410,12 @@ public:
         return hotends[physical_tool];
     }
 
+    // INDX_TODO: Workaround for INDX having a single head with devices attached to it,
+    // which we need to work with even if NoTool is active
+    inline Hotend &hotend(NoTool) {
+        return hotends[PhysicalToolIndex::count];
+    }
+
     struct VirtualToolVars : public Uncopyable {
         MarlinVariable<uint16_t> flow_factor; // flow factor [%]
     };
