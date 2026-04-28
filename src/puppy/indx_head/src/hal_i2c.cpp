@@ -353,6 +353,7 @@ void init_comm() {
 
 FloatReading read_tpis_object_temp() {
     static float last_valid_object_temperature_celsius = 25.0f; // Default to room temperature
+    static float last_valid_ambient_temperature_celsius = last_valid_object_temperature_celsius;
 
     // A jump > 50°C between consecutive readings is physically impossible
     static constexpr int32_t max_plausible_jump = 50; // °C, integer compare
@@ -372,6 +373,7 @@ FloatReading read_tpis_object_temp() {
         }
         return {
             .object_temperature_celsius = last_valid_object_temperature_celsius,
+            .ambient_temperature_celsius = last_valid_ambient_temperature_celsius,
             .valid = false
         };
     }
@@ -382,6 +384,7 @@ FloatReading read_tpis_object_temp() {
         // Return last valid temperature on error
         return {
             .object_temperature_celsius = last_valid_object_temperature_celsius,
+            .ambient_temperature_celsius = last_valid_ambient_temperature_celsius,
             .valid = false,
         };
     }
@@ -389,6 +392,7 @@ FloatReading read_tpis_object_temp() {
     const auto val = static_cast<float>(static_cast<int32_t>(sensor_data.tp_object) - static_cast<int32_t>(thermometer::eeprom_data.u0)) * thermometer::eeprom_data.k_inv;
     const float t_obj_k = thermometer::F(val + thermometer::f_mapped(t_ambient_k));
     const float object_temperature_celsius = t_obj_k - thermometer::degC0asKf;
+    const float ambient_temperature_celsius = static_cast<float>(t_ambient_k - thermometer::degC0asK);
 
     const int32_t diff = static_cast<int32_t>(object_temperature_celsius) - static_cast<int32_t>(last_valid_object_temperature_celsius);
     const bool plausible = (diff > -max_plausible_jump) && (diff < max_plausible_jump);
@@ -396,16 +400,20 @@ FloatReading read_tpis_object_temp() {
 
     if (plausible) {
         last_valid_object_temperature_celsius = object_temperature_celsius;
+        last_valid_ambient_temperature_celsius = ambient_temperature_celsius;
         return {
             .object_temperature_celsius = last_valid_object_temperature_celsius,
+            .ambient_temperature_celsius = last_valid_ambient_temperature_celsius,
             .valid = true,
         };
     }
 
     if (temp_debouncer.is_stable() && !temp_debouncer.value()) {
         last_valid_object_temperature_celsius = object_temperature_celsius;
+        last_valid_ambient_temperature_celsius = ambient_temperature_celsius;
         return {
             .object_temperature_celsius = object_temperature_celsius,
+            .ambient_temperature_celsius = ambient_temperature_celsius,
             .valid = true,
         };
     }
@@ -413,6 +421,7 @@ FloatReading read_tpis_object_temp() {
     // Transient glitch — return last known good value
     return {
         .object_temperature_celsius = last_valid_object_temperature_celsius,
+        .ambient_temperature_celsius = last_valid_ambient_temperature_celsius,
         .valid = true,
     };
 }

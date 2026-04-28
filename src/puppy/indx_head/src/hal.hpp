@@ -38,6 +38,7 @@ namespace rs485 {
 
 struct FloatReading {
     float object_temperature_celsius;
+    float ambient_temperature_celsius;
     bool valid;
 };
 
