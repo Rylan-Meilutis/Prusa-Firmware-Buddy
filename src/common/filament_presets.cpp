@@ -1,5 +1,6 @@
 #include "filament.hpp"
 
+#include <option/has_indx.h>
 #include <option/has_loadcell.h>
 
 #include "../../include/printers.h"
@@ -73,7 +74,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
         FilamentTypeParameters {
             .name = "PC",
             .nozzle_temperature = 275,
-            .nozzle_preheat_temperature = HAS_LOADCELL() ? 275 - 25 : 170,
+            .nozzle_preheat_temperature = HAS_LOADCELL() ? (HAS_INDX() ? 230 : 275 - 25) : 170,
             .heatbed_temperature = 100,
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             .base_preset = PresetFilamentType::PC,
@@ -164,7 +165,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
         FilamentTypeParameters {
             .name = "FLEX",
             .nozzle_temperature = 240,
-            .nozzle_preheat_temperature = HAS_LOADCELL() ? 210 : 170,
+            .nozzle_preheat_temperature = HAS_LOADCELL() ? (HAS_INDX() ? 170 : 210) : 170,
             .heatbed_temperature = 50,
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             .base_preset = PresetFilamentType::FLEX,
