@@ -2,6 +2,10 @@
 
 #include <printers.h>
 #include <option/has_switched_fan_test.h>
+#include <option/has_cpu_fan.h>
+#if HAS_CPU_FAN()
+    #include <fanctl/CFanCtlCommonConsts.hpp>
+#endif
 
 namespace fan_selftest {
 
@@ -62,6 +66,13 @@ constexpr FanRPMRange heatbreak_fan_range = benevolent_fan_range;
 #if HAS_SWITCHED_FAN_TEST() && !PRINTER_IS_PRUSA_MK3_5()
 // MK3.5 has benevolent fan range - rendering switch fan test obsolete
 static_assert(print_fan_range.rpm_max < heatbreak_fan_range.rpm_min, "These cannot overlap for switched fan detection.");
+#endif
+
+#if HAS_CPU_FAN()
+/// CPU cooling fan on the XLS sandwich board. Range derives from
+/// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (LDO-D3007D04Y05X75FX
+/// nominal 7500 RPM ±15 %, with margin for part variance).
+constexpr FanRPMRange cpu_fan_range = { .rpm_min = FANCTLCPU_RPM_MIN, .rpm_max = FANCTLCPU_RPM_MAX };
 #endif
 
 } // namespace fan_selftest

@@ -59,6 +59,11 @@
     #include <common/printer_model.hpp>
 #endif
 
+#include <option/has_cpu_fan.h>
+#if HAS_CPU_FAN()
+    #include <common/printer_model.hpp>
+#endif
+
 LOG_COMPONENT_REF(Selftest);
 
 using namespace fan_selftest;
@@ -335,6 +340,9 @@ private:
 #if HAS_PSU_FAN()
         config_store().psu_fan_selftest_result.set(TestResult::unknown);
 #endif
+#if HAS_CPU_FAN()
+        config_store().cpu_fan_selftest_result.set(TestResult::unknown);
+#endif
     }
 
     void set_low_speed_fan_range() {
@@ -390,6 +398,11 @@ private:
 #if HAS_PSU_FAN()
             case FanType::psu:
                 config_store().psu_fan_selftest_result.set(fan->test_result());
+                break;
+#endif
+#if HAS_CPU_FAN()
+            case FanType::cpu:
+                config_store().cpu_fan_selftest_result.set(fan->test_result());
                 break;
 #endif
             case FanType::_count:
@@ -482,6 +495,15 @@ void M1978() {
 
 #if XL_ENCLOSURE_SUPPORT()
     CommonFanHandler xl_enclosure_fan(FanType::xl_enclosure, 0, benevolent_fan_range, &Fans::enclosure());
+#endif
+#if HAS_CPU_FAN()
+    // CPU cooling fan exists physically only on the XLS sandwich board; on plain XL the
+    // pin is unconnected and the controller never spins it. Construct unconditionally
+    // (HAS_CPU_FAN is master-board-level) but include in the test only on XLS.
+    CommonFanHandler cpu_fan(FanType::cpu, 0, cpu_fan_range, &Fans::cpu());
+    if (PrinterModelInfo::current().model == PrinterModel::xls) {
+        fan_container[container_index++] = &cpu_fan;
+    }
 #endif
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     std::array xbe_fans {

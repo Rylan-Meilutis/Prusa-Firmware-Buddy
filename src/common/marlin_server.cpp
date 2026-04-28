@@ -3966,8 +3966,15 @@ void onIdle() {
 #if BOARD_IS_XLBUDDY() && HAS_EXTENDED_PRINTER_TYPE() && HAS_CPU_FAN()
     // Update CPU fan speed based on temperature (XLS only). On plain XL
     // we never touch the fan; the CFanCtl3Wire instance stays at PWM=0,
-    // pin low, MOSFET off.
-    if (PrinterModelInfo::current().model == PrinterModel::xls) {
+    // pin low, MOSFET off. Suppressed during selftest so the M1978 fan
+    // test can drive the fan to 100 % without the temperature policy
+    // racing it back to 0.
+    #if HAS_SELFTEST()
+    const bool selftest_running = SelftestInstance().IsInProgress();
+    #else
+    constexpr bool selftest_running = false;
+    #endif
+    if (!selftest_running && PrinterModelInfo::current().model == PrinterModel::xls) {
         cpu_fan_controller::update(
             sensor_data().MCUTemp.load(),
             sensor_data().sandwichTemp.load());

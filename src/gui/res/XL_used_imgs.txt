@@ -16,6 +16,7 @@ cancel_60x60.png
 clear_60x60.png
 connect_16x16.png
 connect_orange_16x16.png
+cpu_16x16.png
 dash_18x18.png
 disconnect_80x80_disabled.png
 disconnect_80x80_focused.png

@@ -42,6 +42,7 @@
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_side_leds.h>
 #include <option/xl_enclosure_support.h>
+#include <option/has_cpu_fan.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
 #include <option/has_chamber_filtration_api.h>
@@ -815,6 +816,10 @@ struct CurrentStore
 #if XL_ENCLOSURE_SUPPORT()
     StoreItem<bool, false, ItemFlag::features, journal::hash("XL Enclosure Enabled")> xl_enclosure_enabled;
     StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("XL Enclosure Fan Selftest Result")> xl_enclosure_fan_selftest_result;
+#endif
+
+#if HAS_CPU_FAN()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("CPU Fan Selftest Result")> cpu_fan_selftest_result;
 #endif
 
 #if PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_MINI()

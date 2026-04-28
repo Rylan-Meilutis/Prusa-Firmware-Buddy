@@ -12,6 +12,7 @@
 #include <option/has_bed_fan.h>
 #include <option/has_psu_fan.h>
 #include <option/has_indx.h>
+#include <option/has_cpu_fan.h>
 
 #if HAS_BED_FAN()
     #include <feature/bed_fan/controller.hpp>
@@ -37,6 +38,9 @@ enum class FanType {
 #if HAS_PSU_FAN()
     psu,
 #endif
+#if HAS_CPU_FAN()
+    cpu,
+#endif
     _count,
 };
 
@@ -57,6 +61,9 @@ static constexpr EnumArray<FanType, const char *, FanType::_count> fan_type_name
 #endif
 #if HAS_PSU_FAN()
         { FanType::psu, "PSU" },
+#endif
+#if HAS_CPU_FAN()
+        { FanType::cpu, N_("CPU") },
 #endif
 };
 
