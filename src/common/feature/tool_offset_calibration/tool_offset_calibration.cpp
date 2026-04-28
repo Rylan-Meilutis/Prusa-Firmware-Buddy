@@ -376,11 +376,6 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             break;
         }
 
-        // First calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
-        if (!calibrate_xy_offset(tool, probing_config)) {
-            return false;
-        }
-
         const auto result_opt = probe_at(tool, step);
         if (!result_opt) {
             return false;
@@ -420,6 +415,12 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
         min_z_offset = std::min(min_z_offset, hotend_offset[tool].z);
         max_z_offset = std::max(max_z_offset, hotend_offset[tool].z);
+
+        // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
+        // but there is a trade off with filament oozing during calibration
+        if (!calibrate_xy_offset(tool, probing_config)) {
+            return false;
+        }
 
         step++;
     }
