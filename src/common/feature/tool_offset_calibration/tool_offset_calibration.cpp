@@ -291,6 +291,9 @@ bool run(uint8_t r_param, uint8_t probe_count) {
     const auto original_tool = PhysicalToolIndex::currently_selected();
     ScopeGuard restore_tool([&] {
         tool_change(stdext::to_variant(original_tool), tool_return_t::no_return);
+
+        // Do not allow RAM-EEPROM mismatch of tool offsets, save whatever is currently set, even if we fail
+        prusa_toolchanger.save_tool_offsets();
     });
 
     if (!GcodeSuite::G28_no_parser(true, true, true, G28Flags { .only_if_needed = true })) {
@@ -427,8 +430,6 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         marlin_server::print_abort();
         return false;
     }
-
-    prusa_toolchanger.save_tool_offsets();
 
     log_info(ToolOffsetCalib, "Tool offset calibration done");
     return true;
