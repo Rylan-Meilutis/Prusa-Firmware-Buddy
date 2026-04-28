@@ -47,6 +47,10 @@ constexpr xy_pos_t POS_TOOL_LAST = { 45.0f, 5.0f };
 // Safe Z height for travel moves between probes
 constexpr float SAFE_Z_HEIGHT = 3.0f;
 
+/// Maximum allowable Z offset difference between tools, in mm
+/// If exceeded, the print is not allowed to continue
+constexpr float MAX_Z_OFFSET_DIFFERENCE = 0.8f;
+
 // Fallback temperatures if no filament is loaded
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_PROBING_TEMP = 170;
@@ -336,6 +340,9 @@ bool run(uint8_t r_param, uint8_t probe_count) {
     ProbeResult ref_first;
     ProbeResult ref_last;
 
+    float min_z_offset = std::numeric_limits<float>::max();
+    float max_z_offset = std::numeric_limits<float>::lowest();
+
     uint8_t step = 0;
     for (uint8_t i = 0; i < PhysicalToolIndex::count; i++) {
         const auto tool = PhysicalToolIndex::from_raw(i);
@@ -408,7 +415,17 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         // Apply the newly computes offset
         hotend_currently_applied_offset = hotend_offset[tool];
 
+        min_z_offset = std::min(min_z_offset, hotend_offset[tool].z);
+        max_z_offset = std::max(max_z_offset, hotend_offset[tool].z);
+
         step++;
+    }
+
+    if (max_z_offset - min_z_offset > MAX_Z_OFFSET_DIFFERENCE) {
+        (void)marlin_server::prompt_warning(WarningType::HotendOffsetUnsafeZDeviation);
+        marlin_server::quick_stop();
+        marlin_server::print_abort();
+        return false;
     }
 
     prusa_toolchanger.save_tool_offsets();

@@ -81,6 +81,9 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
 #if HAS_TOOL_OFFSET_SENSOR()
     case WarningType::ToolOffsetXyCalibrationFailed:
         return PhasesWarning::ToolOffsetXyCalibrationFailed;
+
+    case WarningType::HotendOffsetUnsafeZDeviation:
+        return PhasesWarning::HotendOffsetUnsafeZDeviation;
 #endif
 
         //
