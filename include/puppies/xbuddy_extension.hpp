@@ -41,7 +41,7 @@ public:
 
     /// A convenience function returning a snapshot of all fans' RPMs at once.
     /// Primarily used in feeding the Connect interface with a set of telemetry readings
-    /// @returns known measured RPM of all fans at once (access mutex locked only once)
+    /// @returns known measured RPM of all fans at once.
     /// If an data is not valid, returned readings are zeroed - that's what the Connect interface expects
     /// -> no need to play with std::optional which only makes usage much harded.
     std::array<uint16_t, FAN_CNT> get_fans_rpm() const;
@@ -83,9 +83,49 @@ private:
     // The registers cached here are accessed from different tasks.
     mutable freertos::Mutex mutex;
 
-    // If reading/refresh failed, this'll be in invalid state and we'll return
-    // nullopt for queries.
-    bool valid = false;
+    // --- Cached read-side state, populated by refresh_input() ---
+
+    /// If reading/refresh failed, this'll be in invalid state and we'll return
+    /// nullopt for queries.
+    ///
+    /// Used in a lock-like fashion - set to true only after valid values are
+    /// published in cached_... variables.
+    ///
+    /// On setting to false, old values are preserved, so any stale check is
+    /// just the same as reading it before the valid was set to false.
+    std::atomic<bool> valid { false };
+
+    // Mirror of status.value.fan_rpm[].
+    std::array<std::atomic<uint16_t>, FAN_CNT> cached_fan_rpm {};
+
+    // Mirror of status.value.temperature (decidegree Celsius).
+    std::atomic<uint16_t> cached_chamber_temperature_dc { 0 };
+
+    // Mirror of status.value.gpio_filament_sensor.
+    std::atomic<uint16_t> cached_gpio_filament_sensor { 0 };
+
+    // Mirror of status.value.ext_filament_sensors.
+    std::atomic<uint16_t> cached_ext_filament_sensors { 0 };
+
+    // --- Desired write-side state, applied by refresh_holding() ---
+
+    std::array<std::atomic<uint8_t>, FAN_CNT> fan_pwm_desired {};
+    std::atomic<uint8_t> w_led_pwm_desired { 0 };
+    std::atomic<uint16_t> w_led_frequency_desired { 0 }; // 0 == default / none
+
+    // RGBW components are documented as 0-255 (one byte each) in
+    // xbuddy_extension::modbus::Config, so all four pack into one uint32_t.
+    // Makes it consistent for atomics. RGBW in order of bytes.
+    std::atomic<uint32_t> rgbw_led_desired { 0 };
+
+    std::atomic<bool> usb_power_desired { false };
+    std::atomic<bool> mmu_power_desired { false };
+    std::atomic<bool> mmu_nreset_desired { false };
+
+    static_assert(std::atomic<bool>::is_always_lock_free);
+    static_assert(std::atomic<uint8_t>::is_always_lock_free);
+    static_assert(std::atomic<uint16_t>::is_always_lock_free);
+    static_assert(std::atomic<uint32_t>::is_always_lock_free);
 
     OTP_v5 otp = {};
 
