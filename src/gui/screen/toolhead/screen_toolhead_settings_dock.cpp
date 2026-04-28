@@ -84,7 +84,7 @@ MI_DOCK_INVALIDATE_CALIBRATION::MI_DOCK_INVALIDATE_CALIBRATION(Toolhead toolhead
 }
 
 void MI_DOCK_INVALIDATE_CALIBRATION::click([[maybe_unused]] IWindowMenu &menu) {
-    if (MsgBoxWarning(_("This will invalidate calibration for this tool. The tool will not be available for printing until its dock is calibrated again via Calibrations. Proceed?"), { Response::Continue, Response::Back, Response::_none, Response::_none }) != Response::Continue) {
+    if (MsgBoxWarning(_("This will invalidate the calibration for this tool. The tool will not be available for printing until its dock is calibrated again. Proceed?"), { Response::Continue, Response::Back, Response::_none, Response::_none }) != Response::Continue) {
         return;
     }
 

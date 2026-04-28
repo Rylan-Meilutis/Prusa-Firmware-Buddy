@@ -17,19 +17,19 @@
 namespace {
 
 constexpr auto txt_title_intro = N_("Nozzle Cleaner Calibration");
-constexpr auto txt_intro = N_("You will need to manually position the head at the nozzle cleaner and adjust the height screw.");
+constexpr auto txt_intro = N_("Manually position the head at the nozzle cleaner and adjust the height screw");
 constexpr auto txt_wait_for_nozzle_cooldown = N_("Wait!\n\nThe nozzle is still cooling down.");
-constexpr auto txt_picking_tool = N_("Picking tool\n\nPlease wait...");
-constexpr auto txt_homing = N_("Homing XY axes\n\nPlease wait...");
-constexpr auto txt_moving_away = N_("Raising Z axis for clearance\n\nPlease wait...");
+constexpr auto txt_picking_tool = N_("Picking up tool...\n\nPlease wait.");
+constexpr auto txt_homing = N_("Homing XY axes...\n\nPlease wait.");
+constexpr auto txt_moving_away = N_("Raising Z axis for clearance...\n\nPlease wait.");
 constexpr auto txt_title_move_to_z_point = N_("Nozzle Z-Axis Alignment");
-constexpr auto txt_move_to_z_point = N_("Move the head above the nozzle cleaner as shown on the picture.\n\nRotate the adjustment screw until the nozzle is aligned with the cleaner in the Z axis.");
+constexpr auto txt_move_to_z_point = N_("Move the head precisely to the nozzle cleaner as shown on the picture.\n\nRotate the adjustment screw until the nozzle is aligned with the cleaner in the Z axis.");
 constexpr auto txt_title_ask_position_x = N_("Nozzle X-Axis Alignment");
 constexpr auto txt_title_ask_position_y = N_("Nozzle Y-Axis Alignment");
-constexpr auto txt_lock_position_x = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nCheck that the head is at the correct X position, then press Continue to start measuring.");
-constexpr auto txt_lock_position_y = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nCheck that the head is at the correct Y position, then press Continue to start measuring.");
-constexpr auto txt_ask_position_x = N_("Move the head precisely to the nozzle cleaner X-axis calibration indent in front of the bin.\n\nWhen in position, press Continue.");
-constexpr auto txt_ask_position_y = N_("Move the head precisely to the nozzle cleaner Y-axis calibration indent on the side of the bin.\n\nWhen in position, press Continue.");
+constexpr auto txt_lock_position_x = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nVerify the head is at the correct X position, then press Continue to start measuring.");
+constexpr auto txt_lock_position_y = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nVerify the head is at the correct Y position, then press Continue to start measuring.");
+constexpr auto txt_ask_position_x = N_("Move the nozzle precisely to the nozzle cleaner X-axis calibration indent in front of the bin.\n\nThen press Continue.");
+constexpr auto txt_ask_position_y = N_("Move the nozzle precisely to the nozzle cleaner Y-axis calibration indent on the side of the bin.\n\nThen press Continue.");
 constexpr auto txt_measuring_x = N_("Measuring X position\n\nDo not touch the printer.");
 constexpr auto txt_measuring_y = N_("Measuring Y position\n\nDo not touch the printer.");
 constexpr auto txt_success = N_("Nozzle cleaner position has been successfully calibrated and saved.");

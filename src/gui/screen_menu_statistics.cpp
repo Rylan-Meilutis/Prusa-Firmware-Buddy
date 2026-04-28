@@ -92,7 +92,7 @@ constexpr SubStats extruded_filament_substat {
 
 #if HAS_TOOLCHANGER()
 constexpr SubStats toolchanges_substat {
-    .title = N_("TOOLCHANGES"),
+    .title = N_("TOOL CHANGES"),
     .item_count = PhysicalToolIndex::count + 1, // +  MI_RETURN
     .item_fmt_f = [](StringBuilder &sb, uint8_t item_index) { sb.append_printf("%" PRIu32, Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(item_index))); },
     .item_title_f = physical_tool_item_title,
@@ -125,7 +125,7 @@ constexpr std::array stats {
 #endif
 #if HAS_TOOLCHANGER()
         Stat {
-            .title = N_("Toolchanges"),
+            .title = N_("Tool changes"),
             .fmt_f = [](StringBuilder &sb) { sb.append_printf("%" PRIu32, Odometer_s::instance().get_toolpick_all()); },
             .submenu = &substat_screen_config<extruded_filament_substat>,
         },

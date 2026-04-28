@@ -94,7 +94,7 @@ using Frames = FrameDefinitionList<ScreenNozzleMismatch::FrameStorage,
     FrameDefinition<Phase::confirm_abort, FramePrompt, nozzle_mismatch_phase_error_code_mapper>>;
 
 ScreenNozzleMismatch::ScreenNozzleMismatch()
-    : ScreenFSM(N_("NOZZLE MISMATCH")) {
+    : ScreenFSM(N_("TOOL MISMATCH")) {
     create_frame();
 }
 

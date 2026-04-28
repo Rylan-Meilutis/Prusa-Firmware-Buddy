@@ -179,7 +179,7 @@ using FrameOfferUnload = WithConstructorArgs<FrameSpoolAndText,
 #if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     N_("Please make sure there is no filament in the tool and side filament sensors.\n\nYou will need filament to finish this test later.")
 #elif HAS_SIDE_FSENSOR() || HAS_EXTRUDER_FSENSOR()
-    N_("Please make sure there is no filament in the filament sensor.\n\nYou will need filament to finish this test later.")
+    N_("Make sure there is no filament in the filament sensor.\n\nYou will need filament to complete this test later.")
 #else
     N_("We need to start without the filament in the extruder. Please make sure there is no filament in the filament sensor.")
 #endif

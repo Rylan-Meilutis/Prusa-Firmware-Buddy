@@ -54,7 +54,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_SPEED,
     MI_NOZZLE_TARGET_TEMP,
 #if HAS_PER_TOOL_TEMPERATURES()
-    MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
+    MenuItemVirtualSubmenu<N_("Tool Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
 #endif
     MI_HEATBED,
 #if HAS_CHAMBER_API()
