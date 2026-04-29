@@ -67,8 +67,7 @@ void INDXHotendTempModel::step() {
         }
 
         compensator_.reset_state();
-
-        compensator_.set_filament_parameters(::indx_hotend_temp_compensation::FilamentParameters::for_filament(current_filament.parameters()));
+        compensator_.set_filament_parameters(indx::FilamentParameters::for_filament(current_filament.parameters()));
 
         retracted_distance_mm_ = 0;
 

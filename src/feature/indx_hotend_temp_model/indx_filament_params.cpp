@@ -1,11 +1,11 @@
 /// @file
-#include "indx_hotend_temp_compensation.hpp"
+#include "indx_filament_params.hpp"
 
 #include <utils/enum_array.hpp>
 
 #include <filament.hpp>
 
-namespace indx_hotend_temp_compensation {
+namespace indx {
 
 namespace {
 
@@ -97,4 +97,4 @@ const FilamentParameters &FilamentParameters::for_filament(const FilamentTypePar
     }
 }
 
-} // namespace indx_hotend_temp_compensation
+} // namespace indx

@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdint>
 
-struct FilamentTypeParameters;
+#include "indx_filament_params.hpp"
 
 // The thermometer on the head is basically not close enough to the melt zone
 // and there is a significant difference between the measured temperature and what temp the filament is actually on.
@@ -13,18 +13,7 @@ struct FilamentTypeParameters;
 // BFW-8630
 namespace indx_hotend_temp_compensation {
 
-/// See table in BFW-8630 for the computation algo.
-struct FilamentParameters {
-    /// Something to do with heat transfer.
-    float heat_per_mm;
-
-    /// Thermal time constant of filament, in seconds.
-    /// Calculated as time to transfer (1-1/e) of heat into 2mm diameter cylinder. Inversely proportional to thermal diffusivity of the material.
-    float heat_time_constant;
-
-    /// Implemented in indx_filament_params.cpp
-    static const FilamentParameters &for_filament(const FilamentTypeParameters &filament_parameters);
-};
+using FilamentParameters = indx::FilamentParameters;
 
 struct FilamentPrecomputedParameters {
     /// Constant parameter for linear filament offset formula if feedrate > threshold
