@@ -119,9 +119,7 @@ static void get_fingerprint(
         (std::byte *)buddy_fingerprint.data(),
         buddy_fingerprint.size(),
     };
-    if (!buddy::compute_file_digest(firmware_info.fd, salt, digest)) {
-        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH);
-    }
+    buddy::compute_file_digest_with_retry(firmware_info.fd, salt, digest);
 
     BootloaderProtocol::fingerprint_t puppy_fingerprint;
     get_fingerprint(bootloader_protocol, puppy_fingerprint, fingerprint_wait_start);

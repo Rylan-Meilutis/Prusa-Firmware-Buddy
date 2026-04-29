@@ -1,9 +1,14 @@
 /// @file
 #include <buddy/digest.hpp>
 
+#include <bsod.h>
+#include <logging/log.hpp>
 #include <mbedtls/sha256.h>
+#include <timing.h>
 #include <unistd.h>
 #include <array>
+
+LOG_COMPONENT_REF(Buddy);
 
 bool buddy::compute_file_digest(const int fd, const uint32_t salt, Digest output) {
     if (lseek(fd, 0, SEEK_SET) == -1) {
@@ -27,6 +32,20 @@ bool buddy::compute_file_digest(const int fd, const uint32_t salt, Digest output
             return true;
         } else {
             mbedtls_sha256_update_ret(&ctx, buffer.data(), nread);
+        }
+    }
+}
+
+void buddy::compute_file_digest_with_retry(const int fd, const uint32_t salt, Digest output) {
+    const auto started = ticks_ms();
+    for (;;) {
+        if (buddy::compute_file_digest(fd, salt, output)) {
+            return;
+        }
+        if (ticks_diff(ticks_ms(), started) < 1'000) {
+            log_error(Buddy, "compute_file_digest() failed, retrying");
+        } else {
+            bsod("compute_file_digest");
         }
     }
 }

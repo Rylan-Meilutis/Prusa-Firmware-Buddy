@@ -562,9 +562,7 @@ void PuppyBootstrap::calculate_fingerprint(unique_file_ptr &file, fingerprint_t 
         (std::byte *)fingerprint.data(),
         fingerprint.size(),
     };
-    if (!buddy::compute_file_digest(fileno(file.get()), salt, digest)) {
-        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH);
-    }
+    buddy::compute_file_digest_with_retry(fileno(file.get()), salt, digest);
 }
 
 bool PuppyBootstrap::fingerprint_match(const fingerprint_t &fingerprint, Dock dock) {
