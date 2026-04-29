@@ -18,6 +18,8 @@ struct FilamentParameters {
     static const FilamentParameters &for_filament(const FilamentTypeParameters &filament_parameters);
 
     static const FilamentParameters &for_no_filament();
+
+    bool operator==(const FilamentParameters &) const = default;
 };
 
 } // namespace indx

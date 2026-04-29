@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "indx_hotend_temp_compensation.hpp"
+#include "indx_hotend_thermal_model.hpp"
 #include "indx_filament_params.hpp"
 
 #include <utils/timing/rate_limiter.hpp>
@@ -13,6 +14,9 @@
 // To compensate for this, we calculate a rudimentary filament model on the motherboard
 // and send a compensation parameter over the modbus to the head.
 // BFW-8630
+//
+// Also, we run a thermal model of the hotend to detect thermal runaway
+// BFW-8702
 namespace buddy {
 
 /// Wrapper over the platform-invariant compensator that wraps indx_hotend_temp_compensation::HotendTempCompensator
@@ -34,6 +38,7 @@ public:
 private:
     indx::FilamentParameters filament_params_;
     ::indx_hotend_temp_compensation::HotendTempCompensator compensator_;
+    indx::HotendThermalModel thermal_model_;
 
     RateLimiter<uint32_t> step_limiter_ms_ { 100 };
 

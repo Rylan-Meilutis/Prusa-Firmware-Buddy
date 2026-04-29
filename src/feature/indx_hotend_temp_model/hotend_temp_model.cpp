@@ -12,6 +12,9 @@
 #include <marlin_server.hpp>
 #include <module/stepper.h>
 
+// We have this constant on two places because of modules isolation, make sure they have the same value
+static_assert(indx::HotendThermalModel::hotend_induction_efficiency == buddy::puppies::Indx::hotend_induction_efficiency);
+
 namespace buddy {
 
 INDXHotendTempModel &hotend_temp_model() {
@@ -54,7 +57,13 @@ void INDXHotendTempModel::step() {
     // !!! MUST be read before the temperatures themselves to avoid race conditions
     const bool temps_valid = indx_head.get_temps_valid();
 
-    const auto hotend_temp_c = indx_head.get_hotend_temp_uncompensated();
+    const auto hotend_temp_uncompensated_c = indx_head.get_hotend_temp_uncompensated();
+    const auto hotend_temp_compensated_c = indx_head.get_hotend_temp_compensated();
+    const auto hotend_temp_raw_dt_c_s = indx_head.get_hotend_temp_raw_c_dt_s();
+    const auto hotend_energy_consumed_uJ = indx_head.get_hotend_energy_consumed_uJ();
+    const auto board_temperature_c = indx_head.get_board_temperature();
+    const auto print_fan_pwm = static_cast<uint8_t>(indx_head.get_fan_pwm(0));
+
     const auto e_steps = stepper.position_from_startup(e_axis);
     const auto current_filament = FilamentType::for_tool(*virtual_tool);
 
@@ -88,6 +97,7 @@ void INDXHotendTempModel::step() {
 
     if (!is_initialized_) {
         compensator_.reset_state();
+        thermal_model_.reset_state();
 
         retracted_distance_mm_ = 0;
 
@@ -105,15 +115,21 @@ void INDXHotendTempModel::step() {
 
     if (filament_data_update_pending_) {
         const auto heuristic_filament = FilamentType::for_tool_heuristic(*virtual_tool);
+        indx::FilamentParameters new_params;
 
         if (heuristic_filament == FilamentType::none) {
-            filament_params_ = indx::FilamentParameters::for_no_filament();
+            new_params = indx::FilamentParameters::for_no_filament();
         } else {
             // Do NOT use current_filament, use a smarter heuristic here
-            filament_params_ = indx::FilamentParameters::for_filament(heuristic_filament.parameters());
+            new_params = indx::FilamentParameters::for_filament(heuristic_filament.parameters());
         }
 
-        compensator_.set_filament_parameters(filament_params_);
+        if (new_params != filament_params_) {
+            // Filament changed, reset the models
+            filament_params_ = new_params;
+            compensator_.set_filament_parameters(new_params);
+            thermal_model_.reset_state();
+        }
 
         filament_data_update_pending_ = false;
     }
@@ -130,27 +146,63 @@ void INDXHotendTempModel::step() {
         // This logic somewhat duplicates what FilamentTracker is doing, but the problem is that FilamentTracker is before the Planner.
         // We need to work on live stepper data here.
         // !!! Needs to be computed before we update retracted_distance_mm_
-        extruder_feedrate_mm_s = std::max(e_delta_mm - retracted_distance_mm_, 0.f) / step_delta_s;
+        const float extruded_filament_mm = std::max(e_delta_mm - retracted_distance_mm_, 0.f);
 
         // Limit the feedrate to physical printer limits. We should never exceed this, but there might be some weird flukes if the time jumps weirdly
-        extruder_feedrate_mm_s = std::min<float>(extruder_feedrate_mm_s, planner.settings.max_feedrate_mm_s[e_axis]);
+        extruder_feedrate_mm_s = std::min<float>(extruded_filament_mm / step_delta_s, planner.settings.max_feedrate_mm_s[e_axis]);
 
         // Clamp the retraction tracking to extruder_to_nozzle_distance.
         // If we retract more, we're out of gears.
         retracted_distance_mm_ = std::clamp<float>(retracted_distance_mm_ - e_delta_mm, 0, buddy::FilamentTracker::extruder_to_nozzle_distance);
     }
 
-    const ::indx_hotend_temp_compensation::StepParams step_params {
-        .dt_s = step_delta_s,
-        .chamber_temperature_c = chamber().current_temperature().value_or(25), // Originally 21, corrected for global warming
-        .extruder_feedrate_mm_s = extruder_feedrate_mm_s,
-        .hotend_temp_readout_c = hotend_temp_c,
-        .hotend_temp_readout_dt_c_s = indx_head.get_hotend_temp_raw_c_dt_s(),
-        .print_fan_pwm = static_cast<uint8_t>(indx_head.get_fan_pwm(0)),
-    };
+    const auto chamber_temp_C = chamber().current_temperature().value_or(25); // Originally 21, corrected for global warming
 
-    // Will be applied by compensation_sg ScopeGuard
-    final_compensation_c = compensator_.step(step_params);
+    // Manage hotend temp compensation
+    {
+        const ::indx_hotend_temp_compensation::StepParams step_params {
+            .dt_s = step_delta_s,
+            .chamber_temperature_c = chamber_temp_C,
+            .extruder_feedrate_mm_s = extruder_feedrate_mm_s,
+            .hotend_temp_readout_c = hotend_temp_uncompensated_c,
+            .hotend_temp_readout_dt_c_s = hotend_temp_raw_dt_c_s,
+            .print_fan_pwm = print_fan_pwm,
+        };
+
+        // Will be applied by compensation_sg ScopeGuard
+        final_compensation_c = compensator_.step(step_params);
+    }
+
+    // Manage hotend thermal model
+    {
+        // hotend_temp_uncompensated_c is at TPIS, get_hotend_temp_compensated is at the nozzle tip
+        // Hotend thermal model needs an "average" temperature that is somewhere in the middle of the nozzle
+        constexpr float hotend_temp_compensation_weight = 0.5f;
+        const float model_ref_temp_c = hotend_temp_uncompensated_c * (1.f - hotend_temp_compensation_weight) + hotend_temp_compensated_c * hotend_temp_compensation_weight;
+
+        const indx::HotendThermalModel::StepParams step_params {
+            .dt_s = step_delta_s,
+            .hotend_energy_consumed_uJ = hotend_energy_consumed_uJ,
+            .nozzle_temp_C = model_ref_temp_c,
+            .board_temp_C = float(board_temperature_c),
+            .extruder_feedrate_mm_s = extruder_feedrate_mm_s,
+            .print_fan_pwm = print_fan_pwm,
+            .chamber_temp_C = chamber_temp_C,
+            .filament = filament_params_,
+        };
+
+        const bool model_updated = thermal_model_.step(step_params);
+
+        if (model_updated) {
+            constexpr float max_thermal_model_discrepancy_C = 60;
+
+            // Only check if the modelled temperature is higher than the measured one
+            // Colder model temperature does not pose a safety problem
+            if (thermal_model_.modelled_nozzle_temp_C() > hotend_temp_uncompensated_c + max_thermal_model_discrepancy_C) {
+                fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
+            }
+        }
+    }
 }
 
 void INDXHotendTempModel::reset_state() {
