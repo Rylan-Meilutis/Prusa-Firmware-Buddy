@@ -252,7 +252,6 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
         // to where we were parked from and re-run the inner loop. On Abort, stop the print
         // outright — continuing with stale offsets would crash the tool.
         constexpr float PARK_CLEAN_Z = 100.0f;
-        const xyze_pos_t pre_park_position = current_position;
         const mapi::ParkingPosition park_cleaning_position = mapi::ParkingPosition::from_xyz_pos({ { (X_MIN_POS + X_MAX_POS) / 2.0f, 10, PARK_CLEAN_Z } });
         mapi::park(mapi::ZAction::absolute_move, park_cleaning_position);
 
@@ -264,7 +263,6 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             hotend_offset[tool].z = current_ho.z;
             prusa_toolchanger.save_tool_offset(tool);
             hotend_currently_applied_offset = xyz_pos_t { current_ho.x, current_ho.y, current_ho.z };
-            // Abort print
             log_error(ToolOffsetCalib, "User aborted XY offset calibration for tool %u", tool.to_raw());
             marlin_server::quick_stop();
             marlin_server::print_abort();
@@ -272,10 +270,8 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
         }
         log_info(ToolOffsetCalib, "User requested XY offset retry for tool %u", tool.to_raw());
 
-        // Restore the pre-park position: lift/keep Z high, move XY, then drop Z.
-        do_blocking_move_to_z(std::max(current_position.z, pre_park_position.z));
-        do_blocking_move_to_xy(pre_park_position.x, pre_park_position.y);
-        do_blocking_move_to_z(pre_park_position.z);
+        do_blocking_move_to_xy(sensor_corrected_config.sensor_position.x, sensor_corrected_config.sensor_position.y);
+        do_blocking_move_to_z(sensor_corrected_config.sensor_position.z + sensor_corrected_config.safe_z_height);
     }
 }
 
@@ -415,7 +411,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", i, static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
         }
 
-        // Apply the newly computes offset
+        // Apply the newly computed offset
         hotend_currently_applied_offset = hotend_offset[tool];
 
         min_z_offset = std::min(min_z_offset, hotend_offset[tool].z);
