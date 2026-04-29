@@ -149,9 +149,10 @@ private:
     /**
      * @brief Check chunk of fingerprint from puppy.
      * @param fingerprint fingerprint to compare
+     * @param dock which dock is being checked
      * @return true if fingerprint matches
      */
-    bool fingerprint_match(const fingerprint_t &fingerprint);
+    bool fingerprint_match(const fingerprint_t &fingerprint, Dock dock);
 
     BootstrapResult run_address_assignment();
     void assign_address(BootloaderProtocol::Address current_address, BootloaderProtocol::Address new_address);

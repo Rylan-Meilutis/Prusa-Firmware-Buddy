@@ -187,7 +187,7 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
         // Get fingerprint from puppies to start the app
         BootloaderProtocol::status_t result = flasher.get_fingerprint(fingerprints.get_fingerprint(dock));
         if (result != BootloaderProtocol::COMMAND_OK) {
-            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH);
+            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_NOT_RESPONDING, to_string(dock));
         }
     #endif /* !PUPPY_FLASH_FW() */
     }
@@ -476,7 +476,7 @@ void PuppyBootstrap::flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, 
 
     bootstrap_state_set(percent_offset, check_fingerprint_stage(puppy_type));
 
-    bool match = fingerprint_match(fw_fingerprints.get_fingerprint(dock));
+    bool match = fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock);
     log_info(Puppies, "Puppy %d-%s fingerprint %s", static_cast<int>(dock), get_puppy_info(puppy_type).name, match ? "matched" : "didn't match");
 
     // if application firmware fingerprint doesn't match, flash it
@@ -531,7 +531,7 @@ void PuppyBootstrap::flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, 
         wait_for_fingerprint(fingerprint_wait_start);
 
         // check fingerprint after flashing, to make sure it went well
-        if (!fingerprint_match(fw_fingerprints.get_fingerprint(dock))) {
+        if (!fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock)) {
             fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH, get_puppy_info(puppy_type).name);
         }
     }
@@ -567,12 +567,12 @@ void PuppyBootstrap::calculate_fingerprint(unique_file_ptr &file, fingerprint_t 
     }
 }
 
-bool PuppyBootstrap::fingerprint_match(const fingerprint_t &fingerprint) {
+bool PuppyBootstrap::fingerprint_match(const fingerprint_t &fingerprint, Dock dock) {
     // read current firmware fingerprint
     fingerprint_t read_fingerprint = { 0 };
     BootloaderProtocol::status_t result = flasher.get_fingerprint(read_fingerprint);
     if (result != BootloaderProtocol::COMMAND_OK) {
-        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH);
+        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_NOT_RESPONDING, to_string(dock));
     }
 
     return read_fingerprint == fingerprint;
