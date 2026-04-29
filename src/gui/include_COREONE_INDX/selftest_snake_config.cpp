@@ -168,7 +168,9 @@ EnumBitset<Action, Action::_count> get_dependencies(Action action) {
         deps.set(Action::NozzleCleanerCalibration); // if nozzle is hot, it is parked above nozzle cleaner
         break;
     case Action::FilamentSensorCalibration:
-        deps.set(Action::NozzleCleanerCalibration); // if filament is loaded, we need to unload (above nozzle cleaner)
+        // if filament is loaded, we need to unload (above nozzle cleaner)
+        deps.set(Action::Heaters);
+        deps.set(Action::NozzleCleanerCalibration);
         break;
     case Action::ZCheck:
         deps.set(Action::Loadcell);
