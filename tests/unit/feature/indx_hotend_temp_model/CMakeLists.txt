@@ -5,4 +5,5 @@ add_executable(
   indx_hotend_temp_compensation_tests.cpp
   )
 target_include_directories(indx_hotend_temp_compensation_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(indx_hotend_temp_compensation_tests buddy_utils)
 add_catch_test(indx_hotend_temp_compensation_tests)

@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include <utils/math/ema.hpp>
+
 namespace indx_hotend_temp_compensation {
 
 namespace {
@@ -42,11 +44,6 @@ namespace {
     /// Base constant for calculating heat gradient from nozzle heating
     constexpr float heating_offset_weight = (heat_capacity_center_mm - temp_sensor_position_mm) * heat_capacity_j_k * nozzle_linear_thermal_resistance_k_w_mm;
 
-    // Actual expf is expensive. Use third order Taylor series approximation expanded through Horner's method
-    float expf_approx(float x) {
-        return 1.f + x * (1.f + x * (0.5f + x * (1.f / 6.f)));
-    }
-
 } // namespace
 
 FilamentPrecomputedParameters FilamentPrecomputedParameters::compute(const FilamentParameters &params) {
@@ -74,12 +71,8 @@ void HotendTempCompensator::set_filament_parameters(const FilamentPrecomputedPar
 float HotendTempCompensator::step(const StepParams &params) {
     const float hotend_ambient_temp_diff_c = params.hotend_temp_readout_c - params.chamber_temperature_c;
 
-    // Apply exponential moving average (ema) to filament feedrate
-    {
-        // The approx could get out of 0-1 bounds if the dt is too big
-        const float ema_alpha = std::clamp<float>(1.0f - expf_approx(-params.dt_s / filament_.heat_time_constant), 0, 1);
-        state_.feedrate_mm_s = ema_alpha * params.extruder_feedrate_mm_s + (1.0f - ema_alpha) * state_.feedrate_mm_s;
-    }
+    // Apply ema to filament feedrate
+    state_.feedrate_mm_s = exponential_moving_average(state_.feedrate_mm_s, params.extruder_feedrate_mm_s, params.dt_s, filament_.heat_time_constant);
 
     // Calculate filament offset
     float filament_offset_c;
