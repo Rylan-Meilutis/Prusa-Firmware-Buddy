@@ -181,14 +181,6 @@ class FirmwareBuildConfiguration(BuildConfiguration):
 
         # set preset's cache variables
         for name, value in self.preset.cache_variables.items():
-            ignore = [
-                'MODULARBED_BINARY_DIR',
-                'DWARF_BINARY_DIR',
-                'XBUDDY_EXTENSION_BINARY_DIR',
-                'TOOL_OFFSET_SENSOR_BINARY_DIR',
-            ]
-            if self.build_layout == BuildLayout.COMMON_BUILD_DIR and name in ignore:
-                continue
             if isinstance(value, bool):
                 entries.append((name, 'BOOL', 'YES' if value else 'NO'))
             elif isinstance(value, str):
@@ -519,7 +511,7 @@ class CMakePresetsGenerator:
                 return 'build-vscode-dwarf'
             elif 'modularbed' in configuration.preset.name:
                 return 'build-vscode-modularbed'
-            elif 'xbuddy-extension' in configuration.preset.name:
+            elif 'xbuddy_extension' in configuration.preset.name:
                 return 'build-vscode-xbuddy-extension'
             elif 'anfc' in configuration.preset.name:
                 return 'build-vscode-anfc'

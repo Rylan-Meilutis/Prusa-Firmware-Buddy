@@ -91,7 +91,7 @@
         {
             "name": "Launch Dwarf",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-dwarf/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/dwarf-build/firmware",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -127,7 +127,7 @@
         {
             "name": "Attach to Dwarf",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-dwarf/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/dwarf-build/firmware",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -159,7 +159,7 @@
         {
             "name": "Launch ModularBed",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-modularbed/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/modularbed-build/firmware",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -179,7 +179,7 @@
         {
             "name": "Attach to ModularBed",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-modularbed/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/modularbed-build/firmware",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -298,7 +298,7 @@
         {
             "name": "Launch XBuddyExtension",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-xbuddy-extension/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/xbuddy_extension-build/firmware",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -334,7 +334,7 @@
         {
             "name": "Attach to XBuddyExtension",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-xbuddy-extension/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/xbuddy_extension-build/firmware",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -372,7 +372,7 @@
             // see /util/debug/README_STM32C0.md
             "name": "Launch ANFC (C0)",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-anfc/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/anfc-build/firmware",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -407,7 +407,7 @@
         {
             "name": "Attach to ANFC (C0)",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-anfc/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/anfc-build/firmware",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -429,7 +429,7 @@
             // see /util/debug/README_STM32C0.md
             "name": "Launch TOOL_OFFSET_SENSOR",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-tool-offset-sensor/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/tool_offset_sensor-build/firmware",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -466,7 +466,7 @@
             // see /util/debug/README_STM32C0.md
             "name": "Attach TOOL_OFFSET_SENSOR",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build-vscode-tool-offset-sensor/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/tool_offset_sensor-build/firmware",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -517,7 +517,7 @@
             "name": "GDB - Dwarf (QEMU)",
             "type": "gdb",
             "request": "attach",
-            "executable": "${workspaceRoot}/build-vscode-dwarf/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/dwarf-build/firmware",
             "target": ":1234",
             "remote": true,
             "cwd": "${workspaceRoot}",
@@ -528,7 +528,7 @@
             "name": "GDB - ModularBed (QEMU)",
             "type": "gdb",
             "request": "attach",
-            "executable": "${workspaceRoot}/build-vscode-modularbed/firmware",
+            "executable": "${workspaceRoot}/build-vscode-buddy/modularbed-build/firmware",
             "target": ":1234",
             "remote": true,
             "cwd": "${workspaceRoot}",

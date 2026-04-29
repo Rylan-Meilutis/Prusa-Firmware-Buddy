@@ -1020,100 +1020,36 @@ if(ENABLE_PUPPY_BOOTLOAD)
       CACHE PATH
             "Where to get the Dwarf's binary from. If set, the project won't try to build anything."
       )
-  if(NOT DWARF_BINARY_PATH)
-    set(DWARF_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the dwarf firmware."
-        )
-    set(DWARF_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/dwarf-build"
-        CACHE PATH "Where to have build directory for the dwarf firmware."
-        )
-  endif()
-
   set(INDX_HEAD_BINARY_PATH
       ""
       CACHE
         PATH
         "Where to get the INDX head's binary from. If set, the project won't try to build anything."
       )
-  if(NOT INDX_HEAD_BINARY_PATH)
-    set(INDX_HEAD_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the INDX head firmware."
-        )
-    set(INDX_HEAD_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/indx_head-build"
-        CACHE PATH "Where to have build directory for the INDX head firmware."
-        )
-  endif()
-
   set(MODULARBED_BINARY_PATH
       ""
       CACHE
         PATH
         "Where to get the Modularbed's binary from. If set, the project won't try to build anything."
       )
-  if(NOT MODULARBED_BINARY_PATH)
-    set(MODULARBED_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the modular bed firmware."
-        )
-    set(MODULARBED_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/modularbed-build"
-        CACHE PATH "Where to have build directory for the modular bed firmware."
-        )
-  endif()
-
   set(XBUDDY_EXTENSION_BINARY_PATH
       ""
       CACHE
         PATH
         "Where to get the enclosure exention's binary from. If set, the project won't try to build anything."
       )
-  if(NOT XBUDDY_EXTENSION_BINARY_PATH)
-    set(XBUDDY_EXTENSION_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the enclosure extension firmware."
-        )
-    set(XBUDDY_EXTENSION_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/xbuddy_extension-build"
-        CACHE PATH "Where to have build directory for the enclosure extension firmware."
-        )
-  endif()
-
-  if(NOT ANFC_BINARY_PATH)
-    set(ANFC_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the active NFC reader firmware."
-        )
-    set(ANFC_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/anfc-build"
-        CACHE PATH "Where to have build directory for the active NFC reader firmware."
-        )
-  endif()
-
-  if(NOT TOOL_OFFSET_SENSOR_BINARY_PATH)
-    set(TOOL_OFFSET_SENSOR_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the tool offset sensor firmware."
-        )
-    set(TOOL_OFFSET_SENSOR_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/tool_offset_sensor-build"
-        CACHE PATH "Where to have build directory for the tool offset sensor firmware."
-        )
-  endif()
-
-  if(NOT INDX_HEAD_BINARY_PATH)
-    set(INDX_HEAD_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}"
-        CACHE PATH "From which source directory to build the active INDx head firmware."
-        )
-    set(INDX_HEAD_BINARY_DIR
-        "${CMAKE_BINARY_DIR}/indx-head-build"
-        CACHE PATH "Where to have build directory for the INDx head firmware."
-        )
-  endif()
+  set(ANFC_BINARY_PATH
+      ""
+      CACHE
+        PATH
+        "Where to get the active NFC reader's binary from. If set, the project won't try to build anything."
+      )
+  set(TOOL_OFFSET_SENSOR_BINARY_PATH
+      ""
+      CACHE
+        PATH
+        "Where to get the tool offset sensor's binary from. If set, the project won't try to build anything."
+      )
 endif()
 
 if(BOARD STREQUAL "XL_DEV_KIT_XLB")

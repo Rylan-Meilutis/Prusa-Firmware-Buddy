@@ -8,11 +8,7 @@
                 "PRINTER": "COREONE",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "STANDARD",
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-xbuddy-extension"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "STANDARD"
             }
         },
         {
@@ -22,15 +18,7 @@
                 "PRINTER": "COREONE",
                 "SIGNATURE_OAK": "ON",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "STANDARD",
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-anfc"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "STANDARD"
             }
         },
         {
@@ -40,11 +28,7 @@
                 "PRINTER": "COREONE_INDX",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "STANDARD",
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-xbuddy-extension"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "STANDARD"
             }
         },
         {
@@ -54,15 +38,7 @@
                 "PRINTER": "COREONEL",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "STANDARD",
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-anfc"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "STANDARD"
             }
         },
         {
@@ -72,19 +48,7 @@
                 "PRINTER": "COREONEL_INDX",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "STANDARD",
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-anfc"
-                },
-                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-tool-offset-sensor"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "STANDARD"
             }
         },
         {
@@ -192,7 +156,7 @@
                 "PRINTER": "MK4",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "ENABLE_BURST":true
+                "ENABLE_BURST": true
             }
         },
         {
@@ -211,11 +175,7 @@
                 "PRINTER": "iX",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XBUDDY",
-                "XBUDDY_EXTENSION_VARIANT": "iX",
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-modularbed"
-                }
+                "XBUDDY_EXTENSION_VARIANT": "iX"
             }
         },
         {
@@ -224,15 +184,7 @@
             "cacheVariables": {
                 "PRINTER": "XL",
                 "SIGNATURE_OAK": "OFF",
-                "BOARD": "XLBUDDY",
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-modularbed"
-                }
+                "BOARD": "XLBUDDY"
             }
         },
         {
@@ -242,15 +194,7 @@
                 "PRINTER": "XL",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XLBUDDY",
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-modularbed"
-                },
-                "ENABLE_BURST":true
+                "ENABLE_BURST": true
             }
         },
         {
@@ -260,22 +204,14 @@
                 "PRINTER": "XL",
                 "SIGNATURE_OAK": "OFF",
                 "BOARD": "XLBUDDY",
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "build-vscode-modularbed"
-                },
-                "CONNECT":false,
-                "MDNS":false,
-                "HAS_CANCEL_OBJECT":false,
-                "HAS_E2EE_SUPPORT":false,
-                "HAS_GEARBOX_ALIGNMENT":false,
-                "HAS_INPUT_SHAPER_CALIBRATION":false,
-                "HAS_PHASE_STEPPING_CALIBRATION":false,
-                "HAS_SELFTEST":false
+                "CONNECT": false,
+                "MDNS": false,
+                "HAS_CANCEL_OBJECT": false,
+                "HAS_E2EE_SUPPORT": false,
+                "HAS_GEARBOX_ALIGNMENT": false,
+                "HAS_INPUT_SHAPER_CALIBRATION": false,
+                "HAS_PHASE_STEPPING_CALIBRATION": false,
+                "HAS_SELFTEST": false
             }
         },
         {
@@ -315,7 +251,7 @@
             }
         },
         {
-            "name": "ix-xbuddy-extension",
+            "name": "ix-xbuddy_extension",
             "description": "Original Prusa iX Extension Board",
             "cacheVariables": {
                 "PRINTER": "iX",
@@ -324,7 +260,7 @@
             }
         },
         {
-            "name": "coreone-xbuddy-extension",
+            "name": "coreone-xbuddy_extension",
             "description": "Original Prusa CORE One Extension Board",
             "cacheVariables": {
                 "PRINTER": "COREONE",
@@ -333,7 +269,7 @@
             }
         },
         {
-            "name": "coreone_indx-xbuddy-extension",
+            "name": "coreone_indx-xbuddy_extension",
             "description": "Original Prusa CORE One INDX Extension Board",
             "cacheVariables": {
                 "PRINTER": "COREONE_INDX",
@@ -342,7 +278,7 @@
             }
         },
         {
-            "name": "coreonel-xbuddy-extension",
+            "name": "coreonel-xbuddy_extension",
             "description": "Original Prusa CORE One L Extension Board",
             "cacheVariables": {
                 "PRINTER": "COREONEL",
@@ -351,7 +287,7 @@
             }
         },
         {
-            "name": "coreonel_indx-xbuddy-extension",
+            "name": "coreonel_indx-xbuddy_extension",
             "description": "Original Prusa CORE One L INDX Extension Board",
             "cacheVariables": {
                 "PRINTER": "COREONEL_INDX",
@@ -436,7 +372,7 @@
             }
         },
         {
-            "name": "tool_offset_sensor",
+            "name": "coreone_indx-tool_offset_sensor",
             "description": "Firmware for tool_offset_sensor",
             "cacheVariables": {
                 "PRINTER": "NONE",
@@ -445,7 +381,7 @@
             }
         },
         {
-            "name": "coreone_indx_indx-head",
+            "name": "coreone_indx-indx_head",
             "description": "Firmware for INDX head",
             "cacheVariables": {
                 "PRINTER": "COREONE_INDX",
@@ -453,7 +389,7 @@
             }
         },
         {
-            "name": "coreonel_indx_indx-head",
+            "name": "coreonel_indx-indx_head",
             "description": "Firmware for INDX head",
             "cacheVariables": {
                 "PRINTER": "COREONEL_INDX",

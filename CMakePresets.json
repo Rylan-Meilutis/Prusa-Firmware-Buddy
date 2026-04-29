@@ -31,10 +31,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -89,10 +85,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -149,10 +141,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -207,10 +195,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -267,14 +251,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -329,14 +305,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -393,14 +361,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -455,14 +415,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -519,10 +471,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -577,10 +525,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -637,10 +581,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -695,10 +635,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -755,14 +691,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -817,14 +745,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -881,14 +801,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -943,14 +855,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -1007,18 +911,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
-                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-tool-offset-sensor"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -1073,18 +965,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
-                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-tool-offset-sensor"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -1141,18 +1021,6 @@
                     "type": "STRING",
                     "value": "STANDARD"
                 },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
-                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-tool-offset-sensor"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -1207,18 +1075,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "STANDARD"
-                },
-                "XBUDDY_EXTENSION_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-xbuddy-extension"
-                },
-                "ANFC_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-anfc"
-                },
-                "TOOL_OFFSET_SENSOR_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-tool-offset-sensor"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -3867,10 +3723,6 @@
                     "type": "STRING",
                     "value": "iX"
                 },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -3925,10 +3777,6 @@
                 "XBUDDY_EXTENSION_VARIANT": {
                     "type": "STRING",
                     "value": "iX"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -3985,10 +3833,6 @@
                     "type": "STRING",
                     "value": "iX"
                 },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -4044,10 +3888,6 @@
                     "type": "STRING",
                     "value": "iX"
                 },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "NO"
@@ -4098,14 +3938,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -4158,14 +3990,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "NO"
@@ -4216,14 +4040,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",
@@ -4276,14 +4092,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "NO"
@@ -4334,14 +4142,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "ENABLE_BURST": {
                     "type": "BOOL",
@@ -4398,14 +4198,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "ENABLE_BURST": {
                     "type": "BOOL",
                     "value": "YES"
@@ -4460,14 +4252,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "ENABLE_BURST": {
                     "type": "BOOL",
@@ -4524,14 +4308,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "ENABLE_BURST": {
                     "type": "BOOL",
                     "value": "YES"
@@ -4586,14 +4362,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "CONNECT": {
                     "type": "BOOL",
@@ -4678,14 +4446,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "CONNECT": {
                     "type": "BOOL",
                     "value": "NO"
@@ -4769,14 +4529,6 @@
                     "type": "STRING",
                     "value": "XLBUDDY"
                 },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
-                },
                 "CONNECT": {
                     "type": "BOOL",
                     "value": "NO"
@@ -4859,14 +4611,6 @@
                 "BOARD": {
                     "type": "STRING",
                     "value": "XLBUDDY"
-                },
-                "DWARF_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-dwarf"
-                },
-                "MODULARBED_BINARY_DIR": {
-                    "type": "FILEPATH",
-                    "value": "${sourceDir}/build-vscode-modularbed"
                 },
                 "CONNECT": {
                     "type": "BOOL",
@@ -5747,7 +5491,7 @@
             }
         },
         {
-            "name": "ix-xbuddy-extension_debug_boot",
+            "name": "ix-xbuddy_extension_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -5798,7 +5542,7 @@
             }
         },
         {
-            "name": "ix-xbuddy-extension_debug_noboot",
+            "name": "ix-xbuddy_extension_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -5849,7 +5593,7 @@
             }
         },
         {
-            "name": "ix-xbuddy-extension_release_boot",
+            "name": "ix-xbuddy_extension_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -5900,7 +5644,7 @@
             }
         },
         {
-            "name": "ix-xbuddy-extension_release_noboot",
+            "name": "ix-xbuddy_extension_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -5951,7 +5695,7 @@
             }
         },
         {
-            "name": "coreone-xbuddy-extension_debug_boot",
+            "name": "coreone-xbuddy_extension_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6002,7 +5746,7 @@
             }
         },
         {
-            "name": "coreone-xbuddy-extension_debug_noboot",
+            "name": "coreone-xbuddy_extension_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6053,7 +5797,7 @@
             }
         },
         {
-            "name": "coreone-xbuddy-extension_release_boot",
+            "name": "coreone-xbuddy_extension_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6104,7 +5848,7 @@
             }
         },
         {
-            "name": "coreone-xbuddy-extension_release_noboot",
+            "name": "coreone-xbuddy_extension_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6155,7 +5899,7 @@
             }
         },
         {
-            "name": "coreone_indx-xbuddy-extension_debug_boot",
+            "name": "coreone_indx-xbuddy_extension_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6206,7 +5950,7 @@
             }
         },
         {
-            "name": "coreone_indx-xbuddy-extension_debug_noboot",
+            "name": "coreone_indx-xbuddy_extension_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6257,7 +6001,7 @@
             }
         },
         {
-            "name": "coreone_indx-xbuddy-extension_release_boot",
+            "name": "coreone_indx-xbuddy_extension_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6308,7 +6052,7 @@
             }
         },
         {
-            "name": "coreone_indx-xbuddy-extension_release_noboot",
+            "name": "coreone_indx-xbuddy_extension_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6359,7 +6103,7 @@
             }
         },
         {
-            "name": "coreonel-xbuddy-extension_debug_boot",
+            "name": "coreonel-xbuddy_extension_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6410,7 +6154,7 @@
             }
         },
         {
-            "name": "coreonel-xbuddy-extension_debug_noboot",
+            "name": "coreonel-xbuddy_extension_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6461,7 +6205,7 @@
             }
         },
         {
-            "name": "coreonel-xbuddy-extension_release_boot",
+            "name": "coreonel-xbuddy_extension_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6512,7 +6256,7 @@
             }
         },
         {
-            "name": "coreonel-xbuddy-extension_release_noboot",
+            "name": "coreonel-xbuddy_extension_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6563,7 +6307,7 @@
             }
         },
         {
-            "name": "coreonel_indx-xbuddy-extension_debug_boot",
+            "name": "coreonel_indx-xbuddy_extension_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6614,7 +6358,7 @@
             }
         },
         {
-            "name": "coreonel_indx-xbuddy-extension_debug_noboot",
+            "name": "coreonel_indx-xbuddy_extension_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6665,7 +6409,7 @@
             }
         },
         {
-            "name": "coreonel_indx-xbuddy-extension_release_boot",
+            "name": "coreonel_indx-xbuddy_extension_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -6716,7 +6460,7 @@
             }
         },
         {
-            "name": "coreonel_indx-xbuddy-extension_release_noboot",
+            "name": "coreonel_indx-xbuddy_extension_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-xbuddy-extension",
             "cacheVariables": {
@@ -8403,7 +8147,7 @@
             }
         },
         {
-            "name": "tool_offset_sensor_debug_boot",
+            "name": "coreone_indx-tool_offset_sensor_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-tool-offset-sensor",
             "cacheVariables": {
@@ -8454,7 +8198,7 @@
             }
         },
         {
-            "name": "tool_offset_sensor_debug_noboot",
+            "name": "coreone_indx-tool_offset_sensor_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-tool-offset-sensor",
             "cacheVariables": {
@@ -8505,7 +8249,7 @@
             }
         },
         {
-            "name": "tool_offset_sensor_release_boot",
+            "name": "coreone_indx-tool_offset_sensor_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-tool-offset-sensor",
             "cacheVariables": {
@@ -8556,7 +8300,7 @@
             }
         },
         {
-            "name": "tool_offset_sensor_release_noboot",
+            "name": "coreone_indx-tool_offset_sensor_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-tool-offset-sensor",
             "cacheVariables": {
@@ -8607,7 +8351,7 @@
             }
         },
         {
-            "name": "coreone_indx_indx-head_debug_boot",
+            "name": "coreone_indx-indx_head_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8654,7 +8398,7 @@
             }
         },
         {
-            "name": "coreone_indx_indx-head_debug_noboot",
+            "name": "coreone_indx-indx_head_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8701,7 +8445,7 @@
             }
         },
         {
-            "name": "coreone_indx_indx-head_release_boot",
+            "name": "coreone_indx-indx_head_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8748,7 +8492,7 @@
             }
         },
         {
-            "name": "coreone_indx_indx-head_release_noboot",
+            "name": "coreone_indx-indx_head_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8795,7 +8539,7 @@
             }
         },
         {
-            "name": "coreonel_indx_indx-head_debug_boot",
+            "name": "coreonel_indx-indx_head_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8842,7 +8586,7 @@
             }
         },
         {
-            "name": "coreonel_indx_indx-head_debug_noboot",
+            "name": "coreonel_indx-indx_head_debug_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8889,7 +8633,7 @@
             }
         },
         {
-            "name": "coreonel_indx_indx-head_release_boot",
+            "name": "coreonel_indx-indx_head_release_boot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {
@@ -8936,7 +8680,7 @@
             }
         },
         {
-            "name": "coreonel_indx_indx-head_release_noboot",
+            "name": "coreonel_indx-indx_head_release_noboot",
             "generator": "Ninja",
             "binaryDir": "build-vscode-buddy",
             "cacheVariables": {

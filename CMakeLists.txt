@@ -6,6 +6,7 @@ include(cmake/ProjectVersion.cmake)
 include(cmake/Littlefs.cmake)
 include(cmake/Options.cmake)
 include(cmake/CCache.cmake)
+include(cmake/AddPuppyFirmware.cmake)
 
 # Needded for nunavut
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -357,156 +358,28 @@ list(APPEND POLITE_BOARDS "XBUDDY_EXTENSION")
 #
 
 if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
-  string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_lower)
-  string(TOLOWER "${PRINTER}" PRINTER_lower)
-
   if(NOT DWARF_BINARY_PATH AND HAS_DWARF)
-    get_filename_component(
-      DWARF_BINARY_DIR "${DWARF_BINARY_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(DWARF_BINARY_PATH "firmware.bin" REALPATH BASE_DIR "${DWARF_BINARY_DIR}")
-    ExternalProject_Add(
-      dwarf
-      SOURCE_DIR "${DWARF_SOURCE_DIR}"
-      BINARY_DIR "${DWARF_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset xl-dwarf_${CMAKE_BUILD_TYPE_lower}_boot -B "${DWARF_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${DWARF_BINARY_PATH}" "${DWARF_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME dwarf OUT_BINARY_PATH DWARF_BINARY_PATH)
   endif()
 
   if(NOT INDX_HEAD_BINARY_PATH AND HAS_INDX)
-    get_filename_component(
-      INDX_HEAD_BINARY_DIR "${INDX_HEAD_BINARY_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(
-      INDX_HEAD_BINARY_PATH "firmware.bin" REALPATH BASE_DIR "${INDX_HEAD_BINARY_DIR}"
-      )
-    ExternalProject_Add(
-      indx_head_firmware
-      SOURCE_DIR "${INDX_HEAD_SOURCE_DIR}"
-      BINARY_DIR "${INDX_HEAD_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset ${PRINTER_lower}_indx-head_${CMAKE_BUILD_TYPE_lower}_boot -B
-        "${INDX_HEAD_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${INDX_HEAD_BINARY_PATH}" "${INDX_HEAD_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME indx_head OUT_BINARY_PATH INDX_HEAD_BINARY_PATH)
   endif()
 
   if(NOT MODULARBED_BINARY_PATH AND HAS_PUPPY_MODULARBED)
-    get_filename_component(
-      MODULARBED_BINARY_DIR "${MODULARBED_BINARY_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(
-      MODULARBED_BINARY_PATH "firmware.bin" REALPATH BASE_DIR "${MODULARBED_BINARY_DIR}"
-      )
-    ExternalProject_Add(
-      modularbed
-      SOURCE_DIR "${MODULARBED_SOURCE_DIR}"
-      BINARY_DIR "${MODULARBED_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset ${PRINTER_lower}-modularbed_${CMAKE_BUILD_TYPE_lower}_boot -B
-        "${MODULARBED_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${MODULARBED_BINARY_PATH}" "${MODULARBED_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME modularbed OUT_BINARY_PATH MODULARBED_BINARY_PATH)
   endif()
 
   if(NOT XBUDDY_EXTENSION_BINARY_PATH AND HAS_XBUDDY_EXTENSION)
-    get_filename_component(
-      XBUDDY_EXTENSION_BINARY_DIR "${XBUDDY_EXTENSION_BINARY_DIR}" REALPATH BASE_DIR
-      "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(
-      XBUDDY_EXTENSION_BINARY_PATH "firmware.bin" REALPATH BASE_DIR
-      "${XBUDDY_EXTENSION_BINARY_DIR}"
-      )
-    ExternalProject_Add(
-      xbuddy_extension_firmware
-      SOURCE_DIR "${XBUDDY_EXTENSION_SOURCE_DIR}"
-      BINARY_DIR "${XBUDDY_EXTENSION_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset ${PRINTER_lower}-xbuddy-extension_${CMAKE_BUILD_TYPE_lower}_boot -B
-        "${XBUDDY_EXTENSION_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${XBUDDY_EXTENSION_BINARY_PATH}" "${XBUDDY_EXTENSION_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME xbuddy_extension OUT_BINARY_PATH XBUDDY_EXTENSION_BINARY_PATH)
   endif()
 
   if(NOT ANFC_BINARY_PATH AND HAS_ANFC)
-    get_filename_component(
-      ANFC_BINARY_DIR "${ANFC_BINARY_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(ANFC_BINARY_PATH "firmware.bin" REALPATH BASE_DIR "${ANFC_BINARY_DIR}")
-    ExternalProject_Add(
-      anfc_firmware
-      SOURCE_DIR "${ANFC_SOURCE_DIR}"
-      BINARY_DIR "${ANFC_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset ${PRINTER_lower}-anfc_${CMAKE_BUILD_TYPE_lower}_boot -B "${ANFC_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${ANFC_BINARY_PATH}" "${ANFC_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME anfc OUT_BINARY_PATH ANFC_BINARY_PATH)
   endif()
 
   if(NOT TOOL_OFFSET_SENSOR_BINARY_PATH AND HAS_TOOL_OFFSET_SENSOR)
-    get_filename_component(
-      TOOL_OFFSET_SENSOR_BINARY_DIR "${TOOL_OFFSET_SENSOR_BINARY_DIR}" REALPATH BASE_DIR
-      "${CMAKE_SOURCE_DIR}"
-      )
-    get_filename_component(
-      TOOL_OFFSET_SENSOR_BINARY_PATH "firmware.bin" REALPATH BASE_DIR
-      "${TOOL_OFFSET_SENSOR_BINARY_DIR}"
-      )
-    ExternalProject_Add(
-      tool_offset_sensor_firmware
-      SOURCE_DIR "${TOOL_OFFSET_SENSOR_SOURCE_DIR}"
-      BINARY_DIR "${TOOL_OFFSET_SENSOR_BINARY_DIR}"
-      CMAKE_ARGS
-        --preset tool_offset_sensor_${CMAKE_BUILD_TYPE_lower}_boot -B
-        "${TOOL_OFFSET_SENSOR_BINARY_DIR}"
-        $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
-      BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
-      BUILD_BYPRODUCTS "${TOOL_OFFSET_SENSOR_BINARY_PATH}"
-                       "${TOOL_OFFSET_SENSOR_BINARY_DIR}/firmware"
-      STEP_TARGETS build
-      USES_TERMINAL_BUILD TRUE
-      USES_TERMINAL_INSTALL FALSE
-      BUILD_ALWAYS TRUE
-      )
+    add_puppy_firmware(PUPPY_NAME tool_offset_sensor OUT_BINARY_PATH TOOL_OFFSET_SENSOR_BINARY_PATH)
   endif()
 endif()
 

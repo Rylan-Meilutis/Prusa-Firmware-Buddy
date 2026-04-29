@@ -71,26 +71,14 @@ With the XL, the situation gets a bit more complex. The firmware of XLBuddy cont
     - The Dwarf & ModularBed firmware will be built from this repo.
     - The puppies are going to be flashed on startup by the XLBuddy. The puppies have to be running the [Puppy Bootloader](http://github.com/prusa3d/Prusa-Bootloader-Puppy).
 
-2. Build Dwarf/Modularbed from a given source directory and flash it on startup by XLBuddy.
-    - Specify `DWARF_SOURCE_DIR`/`MODULARBED_SOURCE_DIR` CMake cache variable with the local repo you want to use.
-    - Example below would build modularbed's firmware from /Projects/Prusa-Firmware-Buddy-ModularBed and include it in the xlBuddy firmware.
-    ```
-    cmake .. --preset xl_release_boot -DMODULARBED_SOURCE_DIR=/Projects/Prusa-Firmware-Buddy-ModularBed
-    ```
-    - You can also specify the build directory you want to use:
-    ```
-    cmake .. --preset xl_release_boot \
-        -DMODULARBED_SOURCE_DIR=/Projects/Prusa-Firmware-Buddy-ModularBed  \
-        -DMODULARBED_BINARY_DIR=/Projects/Prusa-Firmware-Buddy-ModularBed/build
-    ```
-3. Use pre-built Dwarf/Modularbed firmware and flash it on startup by xlBuddy
+2. Use pre-built Dwarf/Modularbed firmware and flash it on startup by xlBuddy
     - Specify the location of the .bin file with `DWARF_BINARY_PATH`/`MODULARBED_BINARY_PATH`.
     - For example
     ```
     cmake .. --preset xl_release_boot -DDWARF_BINARY_PATH=/Downloads/dwarf-4.4.0-boot.bin
     ```
 
-4. Do not include any puppy firmware, and do not flash the puppies by XLBuddy.
+3. Do not include any puppy firmware, and do not flash the puppies by XLBuddy.
     ```
     -DENABLE_PUPPY_BOOTLOAD=NO
     ```
