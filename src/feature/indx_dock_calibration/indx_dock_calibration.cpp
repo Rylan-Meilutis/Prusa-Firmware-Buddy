@@ -38,6 +38,9 @@ static constexpr float DOCK_EXIT_Y_MM = 30.0f;
 /// How far to move in -X to clear the last dock before homing [mm]
 static constexpr float LAST_DOCK_EXIT_X_MM = 40.0f;
 
+/// Distance to bump into the docks before measurnig
+static constexpr float DOCK_BUMP_MM = 10;
+
 /// Serialize dock index into PhaseData (4 bytes)
 static fsm::PhaseData serialize_dock_data(PhysicalToolIndex tool) {
     fsm::PhaseData data {};
@@ -191,6 +194,9 @@ private:
     }
 
     Result calibrate_dock(PhysicalToolIndex tool) {
+        phase_stepping::EnsureSuitableForHoming phstep_guard;
+        TemporaryGlobalEndstopsState endstops_guard(true);
+
         for (;;) { // Retry loop for the entire dock calibration
             // Move in front of the dock so the user has a shorter distance to adjust
             current_position.x = PrusaToolChanger::DOCK_DEFAULT_X_MM[tool];
@@ -227,6 +233,22 @@ private:
 
             // Measuring
             fsm_change(PhaseDockCalibration::measuring, serialize_dock_data(tool));
+
+            // Bump further in the dock
+            // The dock unlocking magnet pushes the head out of the docks when the motors are off,
+            // so if the user stops pressing before the motors are engaged, we would get a wrong reading
+            const bool dock_bump_hit = do_homing_move(Y_AXIS, -DOCK_BUMP_MM, PrusaToolChanger::SLOW_MOVE_MM_S);
+
+            // Wait a bit after the bump, the sudden move-forth-then-back might scare the user
+            // Don't be afraid, users, we love you!
+            GcodeSuite::dwell(200);
+
+            if (!dock_bump_hit) {
+                // If the homing move didn't hit anything, it means that the head is completely at the wrong position
+                // Just move back and ask the user to position the head again
+                do_homing_move(Y_AXIS, DOCK_BUMP_MM, PrusaToolChanger::SLOW_MOVE_MM_S);
+                continue;
+            }
 
             // Reset current position to (0,0) as reference point for measurement
             planner.synchronize();
