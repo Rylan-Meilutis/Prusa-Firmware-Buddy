@@ -6,15 +6,29 @@
 #include <bitset>
 #include <inplace_function.hpp>
 #include <option/has_indx.h>
+#include <option/has_wastebin.h>
 
 namespace buddy {
+
+namespace auto_retract_detail {
+    using ProgressCallback = stdext::inplace_function<void(float progress_0_100)>;
+
+    struct RetractFromNozzleParams {
+        /// Callback for reporting progress of the retraction, called with values from 0 to 100. Optional.
+        ProgressCallback progress_callback = nullptr;
+#if HAS_WASTEBIN()
+        /// Whether to park over the wastebin for the ramming sequence
+        bool park_over_wastebin = true;
+#endif
+    };
+} // namespace auto_retract_detail
+
 /// Class for managing automatic retraction after print or load, so that the printer keeps the nozzle empty for MBL and non-printing to prevent oozing.
 /// Only to be managed from the marlin thread
 class AutoRetract {
     friend AutoRetract &auto_retract();
 
 public:
-    using ProgressCallback = stdext::inplace_function<void(float progress_0_100)>;
     using ToolVariant = std::variant<PhysicalToolIndex, NoTool>;
 
     static constexpr float minimum_auto_retract_distance = 20.f; ///< Minimum retract distance for the filament to be considered auto-retracted. Auto-retracted filaments can be unloaded without heating.
@@ -36,7 +50,7 @@ public:
     std::optional<float> retracted_distance(ToolVariant tool = PhysicalToolIndex::currently_selected()) const;
 
     /// If !is_safely_retracted_for_unload(), executes the retraction process and saves retracted distance
-    void maybe_retract_from_nozzle(const ProgressCallback &progress_callback = nullptr);
+    void maybe_retract_from_nozzle(const auto_retract_detail::RetractFromNozzleParams &params = {});
 
     /// If will_deretract(), executes the deretraction process and set retracted distance to unknown value (because it can be changed by printing moves without notice)
     void maybe_deretract_to_nozzle();

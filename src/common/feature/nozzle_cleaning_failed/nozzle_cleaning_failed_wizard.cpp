@@ -248,7 +248,7 @@ public:
             };
             fsm_change(Phase::autoretract, fsm::serialize_data(data));
         };
-        buddy::auto_retract().maybe_retract_from_nozzle(stdext::inplace_function<void(float)>(progress_callback));
+        buddy::auto_retract().maybe_retract_from_nozzle({ .progress_callback = stdext::inplace_function<void(float)>(progress_callback) });
         planner.synchronize();
     }
 

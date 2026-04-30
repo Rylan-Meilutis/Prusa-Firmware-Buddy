@@ -24,6 +24,7 @@
 LOG_COMPONENT_REF(MarlinServer);
 
 using namespace buddy;
+using namespace auto_retract_detail;
 
 AutoRetract &buddy::auto_retract() {
     static AutoRetract instance;
@@ -75,7 +76,7 @@ void AutoRetract::set_retracted_distance(PhysicalToolIndex tool, std::optional<f
     config_store().set_filament_retracted_distance(tool, dist);
 }
 
-void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_callback) {
+void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &params) {
     if (gcode_exceptions().is_unwinding()) {
         return;
     }
@@ -124,9 +125,10 @@ void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_cal
         M109_no_parser(physical_tool, flags);
     }
 
-#if HAS_NOZZLE_CLEANER()
-    // If we have nozzle cleaner, make sure we are parked over the bin to avoid pooping on the bed
-    mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_WASTEBIN_POINT } }));
+#if HAS_WASTEBIN()
+    if (params.park_over_wastebin) {
+        mapi::park(mapi::ZAction::no_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_WASTEBIN_POINT } }));
+    }
 #endif
 
     // Finish all pending movements so that the progress reporting is nice
@@ -149,7 +151,7 @@ void AutoRetract::maybe_retract_from_nozzle(const ProgressCallback &progress_cal
         } progress_data {
             ticks_ms(),
             100.0f / sequence.duration_estimate_ms(),
-            progress_callback
+            params.progress_callback
         };
 
         Subscriber subscriber(marlin_server::idle_publisher, [&] {
