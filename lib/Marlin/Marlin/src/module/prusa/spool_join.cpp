@@ -22,6 +22,11 @@
 #include <feature/print_status_message/print_status_message_guard.hpp>
 #include <tool_index.hpp>
 
+#include <option/has_nozzle_cleaner.h>
+#if HAS_NOZZLE_CLEANER()
+    #include "../../../feature/nozzle_cleaner/include/nozzle_cleaner.hpp"
+#endif
+
 SpoolJoin spool_join;
 
 LOG_COMPONENT_REF(Marlin);
@@ -251,9 +256,15 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
     // We intentinally keep loaded filament type in EEPROM. That makes it possible for user to click "Change Filament" and printer will know what temperature to preheat to.
     // Filament sensor should say that there is no filament, so it will not be possible to start print in this state.
 
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::enter_cleaner);
+
     if (target_temp != 0) {
         thermalManager.wait_for_hotend(new_tool, false, true);
     }
+
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean);
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean);
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::exit_cleaner);
 
     // return to original print position
     do_blocking_move_to(return_pos);
