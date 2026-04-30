@@ -34,7 +34,10 @@ static constexpr auto index_mapping_items = std::to_array<DynamicIndexMappingRec
 
 class SelectDocksMenu;
 
-static constexpr const char *dock_toggle_items[] = { N_("No"), N_("Yes") };
+static constexpr const char *dock_toggle_items[] {
+    N_("Skip"),
+    N_("Calibrate"),
+};
 
 class MI_DOCK_TOGGLE final : public MenuItemSwitch {
 
@@ -52,7 +55,7 @@ protected:
     void OnChange(size_t) override;
 
     void printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const override {
-        MenuItemSwitch::printExtension(extension_rect, current_item() ? COLOR_GREEN : COLOR_RED, color_back, raster_op);
+        MenuItemSwitch::printExtension(extension_rect, current_item() ? COLOR_ORANGE : COLOR_GRAY, color_back, raster_op);
     }
 
 private:
