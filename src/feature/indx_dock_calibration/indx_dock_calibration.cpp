@@ -198,11 +198,14 @@ private:
         TemporaryGlobalEndstopsState endstops_guard(true);
 
         for (;;) { // Retry loop for the entire dock calibration
-            // Move in front of the dock so the user has a shorter distance to adjust
-            current_position.x = PrusaToolChanger::DOCK_DEFAULT_X_MM[tool];
-            current_position.y = PrusaToolChanger::DOCK_DEFAULT_Y_MM + PrusaToolChanger::DOCK_SAFE_Y_OFFSET;
-            line_to_current_position(PrusaToolChanger::TRAVEL_MOVE_MM_S);
-            planner.synchronize();
+            if (axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
+                // Move in front of the dock so the user has a shorter distance to adjust
+                // We may not be homed after a retry
+                current_position.x = PrusaToolChanger::DOCK_DEFAULT_X_MM[tool];
+                current_position.y = PrusaToolChanger::DOCK_DEFAULT_Y_MM + PrusaToolChanger::DOCK_SAFE_Y_OFFSET;
+                line_to_current_position(PrusaToolChanger::TRAVEL_MOVE_MM_S);
+                planner.synchronize();
+            }
 
             // Position and confirm loop — user can go back to reposition
             for (;;) {
