@@ -225,23 +225,7 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
 
     planner.synchronize();
 
-    xyze_pos_t return_pos = current_position;
-
-#if DISABLED(SINGLENOZZLE) && HAS_TOOLCHANGER()
-
-    // Park current tool, to get away from print
-    tool_change(NoTool {}, tool_return_t::no_return);
-
-    // transfer target temperature from one tool to another
-    auto target_temp = thermalManager.degTargetHotend(current_tool);
-    thermalManager.setTargetHotend(target_temp, new_tool);
-
-    // cool down current tool
-    thermalManager.setTargetHotend(0, current_tool);
-
-    // We intentinally keep loaded filament type in EEPROM. That makes it possible for user to click "Change Filament" and printer will know what temperature to preheat to.
-    // Filament sensor should say that there is no filament, so it will not be possible to start print in this state.
-#endif
+    [[maybe_unused]] xyze_pos_t return_pos = current_position;
 
     // set up new tool mapping, so that next Tx will use spool we are joining to
     // but do mapping of logical->physical, so first convert current_tool to its logical tool
@@ -250,20 +234,57 @@ bool SpoolJoin::do_join(uint8_t current_tool) {
     }
     tool_mapper.set_enable(true);
 
-#if DISABLED(SINGLENOZZLE) && HAS_TOOLCHANGER()
+    [[maybe_unused]] auto target_temp = thermalManager.degTargetHotend(current_tool);
+
+    static_assert((HAS_INDX() + PRINTER_IS_PRUSA_XL() + HAS_MMU2()) == 1);
+
+#if HAS_INDX()
+    // cool down current tool
+    thermalManager.setTargetHotend(0, current_tool);
+
+    // change to new tool
+    tool_change(VirtualToolIndex::from_raw(new_tool), tool_return_t::no_return, tool_change_lift_t::full_lift, false);
+
+    // transfer target temperature from one tool to another
+    thermalManager.setTargetHotend(target_temp, new_tool);
+
+    // We intentinally keep loaded filament type in EEPROM. That makes it possible for user to click "Change Filament" and printer will know what temperature to preheat to.
+    // Filament sensor should say that there is no filament, so it will not be possible to start print in this state.
+
     if (target_temp != 0) {
         thermalManager.wait_for_hotend(new_tool, false, true);
     }
-#endif
+
+    // return to original print position
+    do_blocking_move_to(return_pos);
+
+#elif PRINTER_IS_PRUSA_XL()
+    // cool down current tool
+    thermalManager.setTargetHotend(0, current_tool);
+
+    // Park current tool, to get away from print
+    tool_change(NoTool {}, tool_return_t::no_return);
+
+    // transfer target temperature from one tool to another
+    thermalManager.setTargetHotend(target_temp, new_tool);
+
+    // We intentinally keep loaded filament type in EEPROM. That makes it possible for user to click "Change Filament" and printer will know what temperature to preheat to.
+    // Filament sensor should say that there is no filament, so it will not be possible to start print in this state.
+
+    if (target_temp != 0) {
+        thermalManager.wait_for_hotend(new_tool, false, true);
+    }
 
     // change to new tool
     destination = return_pos;
+    tool_change(VirtualToolIndex::from_raw(new_tool), tool_return_t::purge_and_to_destination /* For MMU unused */);
 
-#if HAS_MMU2()
+#elif HAS_MMU2()
     MMU2::mmu2.tool_change_full(new_tool);
 #else
-    tool_change(VirtualToolIndex::from_raw(new_tool), tool_return_t::purge_and_to_destination /* For MMU unused */);
+    #error "unknown printer"
 #endif
+
     print_status_message().show_temporary<PrintStatusMessage::spool_joined>({});
     return true;
 }
