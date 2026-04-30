@@ -817,8 +817,12 @@ void panic_loop() {
 #if ENABLED(COREXY)
                     if (std::min(current_position.x - print_rect.a.x, print_rect.b.x - current_position.x)
                         > std::min(current_position.y - print_rect.a.y, print_rect.b.y - current_position.y)) {
-                        // Move to Y edge of printer in direction of nearest Y end of print area
-                        current_position.y = (current_position.y < (print_rect.a.y + print_rect.b.y) / 2 ? Y_MIN_POS : Y_MAX_PRINT_POS);
+                        // Move to the print-area Y edge in the direction of the nearest end of the
+                        // print area. Both Y_MIN_PRINT_POS and Y_MAX_PRINT_POS exclude any toolchanger
+                        // dock zone (per-printer config), so this never crosses dock hardware.
+                        current_position.y = (current_position.y < (print_rect.a.y + print_rect.b.y) / 2
+                                ? Y_MIN_PRINT_POS
+                                : Y_MAX_PRINT_POS);
                     } else
 #endif /*ENABLED(COREXY)*/
                     {

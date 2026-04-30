@@ -795,6 +795,7 @@
 #define Y_MIN_POS -1
 #define Z_MIN_POS 0
 #define X_MAX_POS 274
+#define Y_MIN_PRINT_POS Y_MIN_POS
 #define Y_MAX_PRINT_POS (Y_BED_SIZE) // maximal print area Y position
 #define Y_MAX_POS 307
 #ifdef USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
