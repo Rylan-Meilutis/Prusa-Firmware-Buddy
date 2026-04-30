@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <utility>
 #include <option/has_dwarf.h>
@@ -192,7 +193,7 @@ inline constexpr PuppyInfo get_puppy_info(PuppyType puppy) {
 }
 
 /// Get path on filesystem associated with given dock.
-inline constexpr const char *get_crash_dump_path(Dock dock) {
+inline constexpr std::optional<const char *> get_crash_dump_path(Dock dock) {
     switch (dock) {
 #if HAS_PUPPY_MODULARBED()
     case Dock::MODULAR_BED:

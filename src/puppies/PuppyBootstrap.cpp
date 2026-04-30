@@ -86,12 +86,17 @@ static BootstrapStage check_fingerprint_stage(PuppyType puppy_type) {
 }
 
 bool PuppyBootstrap::attempt_crash_dump_download(Dock dock, BootloaderProtocol::Address address) {
+    const auto crash_dump_path = get_crash_dump_path(dock);
+    if (!crash_dump_path) {
+        return false;
+    }
+
     flasher.set_address(address);
     std::array<uint8_t, BootloaderProtocol::MAX_RESPONSE_DATA_LEN> buffer;
 
     return crash_dump::download_dump_into_file(buffer, flasher,
         get_puppy_info(to_puppy_type(dock)).name,
-        get_crash_dump_path(dock));
+        *crash_dump_path);
 }
 
 PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
