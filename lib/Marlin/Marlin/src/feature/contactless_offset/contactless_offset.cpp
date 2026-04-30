@@ -508,18 +508,18 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     float actual_offset_y = std::clamp(current_offset.y, static_cast<float>(peak_width_mm - config.sensing_diameter / 2.0f), static_cast<float>(peak_width_mm + config.sensing_diameter / 2.0f));
 
     // Pass 1: center detection — scans centered on sensor_position
-    auto cd_x = run_scan(config, sensor, "center-detection-x", true, sensor_x, sensor_y - actual_offset_y);
+    auto cd_x = run_scan(config, sensor, "center-detection-x", true, sensor_x - actual_offset_x, sensor_y - actual_offset_y);
     if (!cd_x.has_value()) {
         return std::unexpected(cd_x.error());
     }
-    auto cd_y = run_scan(config, sensor, "center-detection-y", false, sensor_y, sensor_x - actual_offset_x);
+    auto cd_y = run_scan(config, sensor, "center-detection-y", false, sensor_y - actual_offset_y, sensor_x - actual_offset_x);
     if (!cd_y.has_value()) {
         return std::unexpected(cd_y.error());
     }
     if (cd_x->confidence > confidence_threshold && cd_y->confidence > confidence_threshold && std::abs(actual_offset_x - cd_x->offset) < precision_mm_threshold && std::abs(actual_offset_y - cd_y->offset) < precision_mm_threshold) {
         // Excellent results, no need for second pass — return early with center detection result
-        result.x = cd_x->offset;
-        result.y = cd_y->offset;
+        result.x = cd_x->offset + actual_offset_x;
+        result.y = cd_y->offset + actual_offset_y;
         return result;
     }
 
@@ -529,7 +529,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     debug_report_pass1_center(actual_offset_x, actual_offset_y);
 
     // Pass 2: nozzle offset — cross-axis corrected by pass-1 result
-    auto no_x = run_scan(config, sensor, "nozzle-offset-x", true, sensor_x, sensor_y - actual_offset_y);
+    auto no_x = run_scan(config, sensor, "nozzle-offset-x", true, sensor_x - actual_offset_x, sensor_y - actual_offset_y);
     if (!no_x.has_value()) {
         return std::unexpected(no_x.error());
     }
@@ -538,7 +538,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         return std::unexpected("Low confidence in X offset measurement");
     }
 
-    auto no_y = run_scan(config, sensor, "nozzle-offset-y", false, sensor_y, sensor_x - actual_offset_x);
+    auto no_y = run_scan(config, sensor, "nozzle-offset-y", false, sensor_y - actual_offset_y, sensor_x - actual_offset_x);
     if (!no_y.has_value()) {
         return std::unexpected(no_y.error());
     }
@@ -547,8 +547,8 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         return std::unexpected("Low confidence in Y offset measurement");
     }
 
-    result.x = no_x->offset;
-    result.y = no_y->offset;
+    result.x = no_x->offset + actual_offset_x;
+    result.y = no_y->offset + actual_offset_y;
     return result;
 }
 
