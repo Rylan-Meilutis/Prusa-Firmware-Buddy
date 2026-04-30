@@ -1726,6 +1726,10 @@ def common_options(f):
                      type=float,
                      default=None,
                      help="Sensing Z height (mm)")(f)
+    f = click.option("--pick-tool",
+                     type=int,
+                     default=None,
+                     help="Pick tool N (sends T<N>) before probing")(f)
     return f
 
 
@@ -1796,7 +1800,8 @@ def cli():
 @cli.command()
 @common_options
 @output_options
-def single(port, speed1, speed2, diameter, zheight, save, load, show, plot):
+def single(port, speed1, speed2, diameter, zheight, pick_tool, save, load,
+           show, plot):
     """Single probe: detailed C++ results and plots."""
     d = diameter or 10.0
 
@@ -1806,6 +1811,9 @@ def single(port, speed1, speed2, diameter, zheight, save, load, show, plot):
     else:
         gcode = build_g426(speed1, speed2, diameter, zheight)
         with enabledMachineConnection(port) as machine:
+            if pick_tool is not None:
+                print(f"  Picking tool: T{pick_tool}")
+                machine.command(f"T{pick_tool}", timeout=120)
             response = run_single_probe(machine, gcode)
 
     if save:
@@ -1823,8 +1831,8 @@ def single(port, speed1, speed2, diameter, zheight, save, load, show, plot):
               type=int,
               default=None,
               help="Number of repetitions")
-def repeat(port, speed1, speed2, diameter, zheight, save, load, show, plot,
-           count):
+def repeat(port, speed1, speed2, diameter, zheight, pick_tool, save, load,
+           show, plot, count):
     """Repeatability: run N probes, show statistics and plots."""
     d = diameter or 10.0
     all_finals: List[FinalOffset] = []
@@ -1845,6 +1853,9 @@ def repeat(port, speed1, speed2, diameter, zheight, save, load, show, plot,
         gcode = build_g426(speed1, speed2, diameter, zheight)
         try:
             with enabledMachineConnection(port) as machine:
+                if pick_tool is not None:
+                    print(f"  Picking tool: T{pick_tool}")
+                    machine.command(f"T{pick_tool}", timeout=120)
                 for i in range(count):
                     print(f"\n--- Run {i + 1}/{count} ---")
                     response = run_single_probe(machine, gcode)
@@ -1907,8 +1918,15 @@ def repeat(port, speed1, speed2, diameter, zheight, save, load, show, plot,
               type=float,
               default=None,
               help="Scan diameter for analysis (mm)")
+@click.option("--tool",
+              "-T",
+              "tool_index",
+              type=int,
+              default=None,
+              help="Show only the nth tool (0-indexed)")
 @output_options
-def all_tools(port, r_param, probe_count, diameter, save, load, show, plot):
+def all_tools(port, r_param, probe_count, diameter, tool_index, save, load,
+              show, plot):
     """G427: Full tool offset calibration for all enabled tools."""
     d = diameter or 10.0
 
@@ -1927,8 +1945,17 @@ def all_tools(port, r_param, probe_count, diameter, save, load, show, plot):
     tool_responses = split_response_by_tool(response)
     print(f"\nDetected {len(tool_responses)} tool(s) in response")
 
+    if tool_index is not None:
+        if tool_index < 0 or tool_index >= len(tool_responses):
+            raise click.UsageError(
+                f"--tool {tool_index} out of range (0..{len(tool_responses) - 1})"
+            )
+        tool_responses = [(tool_index, tool_responses[tool_index])]
+    else:
+        tool_responses = list(enumerate(tool_responses))
+
     all_figures: List[go.Figure] = []
-    for i, tool_resp in enumerate(tool_responses):
+    for i, tool_resp in tool_responses:
         tool_label = f"Tool {i}"
         print(f"\n{'#' * 70}")
         print(f"  {tool_label.upper()}")
