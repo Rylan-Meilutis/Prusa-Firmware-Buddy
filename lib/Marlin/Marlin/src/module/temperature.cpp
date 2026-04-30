@@ -1378,7 +1378,7 @@ void Temperature::isr() {
         // Keep everything heated up when absorbing heat
         buddy::SafetyTimerBlocker safety_timer_blocker;
 
-        constexpr float finish_threshold = 0.5f;
+        constexpr float finish_threshold = 1.0f;
 
         if (fabs(temp_bed.target - bed_frame_est_celsius) < finish_threshold) {
             log_info(MarlinServer, "Absorbing heat: already stable, continuing");
