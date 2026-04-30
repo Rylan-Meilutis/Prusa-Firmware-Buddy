@@ -68,10 +68,8 @@ class MI_CONTINUE final : public IWindowMenuItem {
 
 public:
     MI_CONTINUE(SelectDocksMenu &menu)
-        : IWindowMenuItem(_(label))
+        : IWindowMenuItem(_("Continue"))
         , menu_(menu) {}
-
-    static constexpr const char *label = N_("Continue");
 
 protected:
     void click(IWindowMenu &) override;
@@ -91,11 +89,8 @@ public:
         , dock_count_(dock_count) {
 
         // Pre-select only uncalibrated docks
-        for (uint8_t i = 0; i < dock_count_; i++) {
-            if (!calibrated_docks.test(i)) {
-                selected_docks.set(i);
-            }
-        }
+        const auto all_docks_mask = (1 << dock_count_) - 1;
+        selected_docks = ~calibrated_docks.to_ulong() & all_docks_mask;
 
         index_mapping_.set_section_size<Item::dock>(dock_count_);
         setup_items();
