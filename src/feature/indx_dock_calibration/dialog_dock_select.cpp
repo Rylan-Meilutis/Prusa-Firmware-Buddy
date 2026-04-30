@@ -44,8 +44,7 @@ public:
         , menu_(menu)
         , dock_(tool) {
         set_behavior(Behavior::quick_cycle);
-        snprintf(label_buffer_, sizeof(label_buffer_), "Dock %d", tool.to_raw() + 1);
-        SetLabel(string_view_utf8::MakeRAM(reinterpret_cast<const uint8_t *>(label_buffer_)));
+        SetLabel(_("Dock %i").formatted(label_params_, tool.display_index()));
         SetIconId(already_calibrated ? &img::ok_color_16x16 : &img::nok_color_16x16);
     }
 
@@ -59,7 +58,7 @@ protected:
 private:
     SelectDocksMenu &menu_;
     const PhysicalToolIndex dock_;
-    char label_buffer_[16] {};
+    StringViewUtf8Parameters<4> label_params_;
 };
 
 class MI_CONTINUE final : public IWindowMenuItem {
