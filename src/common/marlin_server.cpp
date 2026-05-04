@@ -997,6 +997,13 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     }
 #endif
 
+#if HAS_INDX()
+    // Park the tool to its dock and persist the state to eeprom.
+    // Done here (still with axes homed) so tool_change's ensure_safe_move() doesn't trigger another G28.
+    tool_change(NoTool {}, tool_return_t::no_return);
+    prusa_toolchanger.persist_last_picked_tool(PhysicalToolIndex::currently_selected(), true);
+#endif
+
     disable_e_steppers();
     disable_xy_steppers();
 
@@ -1042,12 +1049,6 @@ void static finalize_print(bool finished) {
 #if HAS_MOTOR_CURRENT_PROFILES()
     buddy::set_active_motor_current_profile(buddy::StandardMotorCurrentProfile::fw_default);
 #endif
-#if HAS_INDX()
-    // Park the tool to its dock and persist the state to eeprom
-    tool_change(NoTool {}, tool_return_t::no_return);
-    prusa_toolchanger.persist_last_picked_tool(PhysicalToolIndex::currently_selected(), true);
-#endif
-
 #if !PRINTER_IS_PRUSA_iX()
     // On iX, we're not cooling down the bed after the print.
     // Resetting bounding rect would result in turning all bedlets on, which we don't want.
@@ -2573,8 +2574,9 @@ static void _server_print_loop(void) {
 #endif
             retract_and_lift();
 #if HAS_NOZZLE_CLEANER()
-            // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning
-            GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = false });
+            // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning.
+            // On INDX, home precisely so that finalize_print's tool_change(NoTool) docking can skip its own homing.
+            GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = HAS_INDX() });
 #endif
             park_head(false);
         }
@@ -2600,11 +2602,9 @@ static void _server_print_loop(void) {
         break;
     case State::Aborting_ParkHead:
         if (!is_processing()) {
-            disable_XY();
 #ifndef Z_ALWAYS_ON
             disable_Z();
 #endif // Z_ALWAYS_ON
-            disable_e_steppers();
             server.print_state = State::Aborted;
             finalize_print(false);
         }
