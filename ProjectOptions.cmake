@@ -756,6 +756,10 @@ set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL" "COREONEL_INDX")
 
 set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX")
 
+# XL-CAN puppy (XLS only). Off everywhere by default; XL is enabled in WP5.3 once the
+# master-side driver lands.
+set_feature_for_printers_master_board(HAS_XL_CAN)
+
 set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL") # TODO: Add INDX once HAS_FILAMENT_TRACKER
                                                         # is sorted out
 set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL" "COREONEL_INDX")
@@ -981,6 +985,7 @@ if(HAS_DWARF
    OR HAS_ANFC
    OR HAS_TOOL_OFFSET_SENSOR
    OR HAS_INDX_HEAD
+   OR HAS_XL_CAN
    )
   set(HAS_PUPPIES YES)
 else()
@@ -1065,6 +1070,12 @@ if(ENABLE_PUPPY_BOOTLOAD)
       CACHE
         PATH
         "Where to get the tool offset sensor's binary from. If set, the project won't try to build anything."
+      )
+  set(XL_CAN_BINARY_PATH
+      ""
+      CACHE
+        PATH
+        "Where to get the XLS XL-CAN's binary from. If set, the project won't try to build anything."
       )
 endif()
 
