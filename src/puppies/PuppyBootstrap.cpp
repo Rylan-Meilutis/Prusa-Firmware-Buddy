@@ -593,5 +593,6 @@ constexpr bool is_equal_address(Dock dock, modbus::ServerAddress server_address)
 }
 
 static_assert(is_equal_address(Dock::XBUDDY_EXTENSION, modbus::ServerAddress::xbuddy_extension));
+static_assert(is_equal_address(Dock::XL_CAN, modbus::ServerAddress::xl_can));
 
 } // namespace buddy::puppies

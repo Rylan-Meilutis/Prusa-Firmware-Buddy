@@ -338,7 +338,13 @@ public:
 
 class Logic final : public modbus::Callbacks {
 public:
-    modbus::ServerAddress server_address() const final { return modbus::ServerAddress::xbuddy_extension; }
+    modbus::ServerAddress server_address() const final {
+#if EXTENSION_IS_XL_CAN()
+        return modbus::ServerAddress::xl_can;
+#else
+        return modbus::ServerAddress::xbuddy_extension;
+#endif
+    }
 
     Status read_registers(const uint16_t address, std::span<uint16_t> out) final {
         return read_register_file<xbuddy_extension::modbus::Status, xbuddy_extension::modbus::LogMessage, xbuddy_extension::modbus::CyphalBridge>(address, out);

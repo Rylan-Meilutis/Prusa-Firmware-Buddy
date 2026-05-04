@@ -4903,6 +4903,210 @@
             }
         },
         {
+            "name": "xl-can_debug_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-can_debug_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "XBUDDY_EXTENSION"
+                },
+                "HAS_TOOL_OFFSET_SENSOR": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-can_debug_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-can_debug_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "XBUDDY_EXTENSION"
+                },
+                "HAS_TOOL_OFFSET_SENSOR": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-can_release_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-can_release_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "XBUDDY_EXTENSION"
+                },
+                "HAS_TOOL_OFFSET_SENSOR": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-can_release_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-can_release_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "XBUDDY_EXTENSION"
+                },
+                "HAS_TOOL_OFFSET_SENSOR": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
             "name": "ix-modularbed_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build/ix-modularbed_debug_boot",

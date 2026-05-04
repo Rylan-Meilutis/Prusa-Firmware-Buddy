@@ -81,6 +81,7 @@ target_include_directories(FreeRTOS_Config INTERFACE config)
 
 set(EXTENSION_STANDARD 1)
 set(EXTENSION_IX 2)
+set(EXTENSION_XL_CAN 3)
 
 if(${PRINTER} STREQUAL "iX")
   set(EXTENSION_VARIANT ${EXTENSION_IX})
@@ -91,11 +92,13 @@ elseif(
   OR ${PRINTER} STREQUAL "COREONEL_INDX"
   )
   set(EXTENSION_VARIANT ${EXTENSION_STANDARD})
+elseif(${PRINTER} STREQUAL "XL")
+  set(EXTENSION_VARIANT ${EXTENSION_XL_CAN})
 else()
   message(FATAL_ERROR "Building xBuddyExtension for an incompatible printer")
 endif()
 
 target_compile_definitions(
   firmware PRIVATE EXTENSION_STANDARD=${EXTENSION_STANDARD} EXTENSION_IX=${EXTENSION_IX}
-                   EXTENSION_VARIANT=${EXTENSION_VARIANT}
+                   EXTENSION_XL_CAN=${EXTENSION_XL_CAN} EXTENSION_VARIANT=${EXTENSION_VARIANT}
   )

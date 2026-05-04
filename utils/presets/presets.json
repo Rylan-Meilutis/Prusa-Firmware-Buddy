@@ -242,6 +242,16 @@
             }
         },
         {
+            "name": "xl-can",
+            "description": "Original Prusa XLS XL-CAN (xBuddy Extension variant; hosts tool offset sensor sub-puppy)",
+            "cacheVariables": {
+                "PRINTER": "XL",
+                "SIGNATURE_OAK": "OFF",
+                "BOARD": "XBUDDY_EXTENSION",
+                "HAS_TOOL_OFFSET_SENSOR": "YES"
+            }
+        },
+        {
             "name": "ix-modularbed",
             "description": "Original Prusa iX's Modular Bed",
             "cacheVariables": {
