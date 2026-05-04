@@ -133,7 +133,8 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
 CommunicationStatus Indx::ping(PuppyModbus &bus) {
     Lock guard(*mutex);
     // Need to check if puppy is responding on modbus, might as well read general status.
-    return bus.read(unit, register_general_status);
+    const uint32_t max_age_ms = 0;
+    return bus.read(unit, register_general_status, max_age_ms);
 }
 
 CommunicationStatus Indx::initial_scan(PuppyModbus &bus) {
