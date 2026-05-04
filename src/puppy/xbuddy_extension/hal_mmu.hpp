@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <utils/byte_utils.hpp>
 
+#include <option/has_mmu2.h>
+static_assert(HAS_MMU2());
+
 namespace hal::mmu {
 
 /// Initialize MMU UART and pins.
@@ -31,17 +34,5 @@ WritableBytes receive(WritableBytes);
 
 /// Flush the receive buffer, discarding its contents.
 void flush();
-
-/// Control the power pin of the MMU.
-void power_pin_set(bool);
-
-/// Control the nreset pin of the MMU.
-void nreset_pin_set(bool);
-
-/// Read the power pin of the MMU.
-bool power_pin_get();
-
-/// Read the nreset pin of the MMU.
-bool nreset_pin_get();
 
 } // namespace hal::mmu

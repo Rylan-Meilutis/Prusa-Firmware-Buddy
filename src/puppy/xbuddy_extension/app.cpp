@@ -2,9 +2,9 @@
 #include "app.hpp"
 
 #include "cyphal_application.hpp"
-#include "extension_variant.h"
+#include "option/extension_variant.h"
 #include "hal.hpp"
-#include "hal_mmu.hpp"
+#include "hal_mmu_port.hpp"
 #include "hal_rs485.hpp"
 #include "hal_usb.hpp"
 #include "master_activity.hpp"
@@ -26,6 +26,7 @@
 #endif
 
 #if HAS_MMU2()
+    #include "hal_mmu.hpp"
     #include "mmu.hpp"
 #endif
 
@@ -90,8 +91,10 @@ bool write_register_file_callback(const xbuddy_extension::modbus::Config &config
 #if !EXTENSION_IS_IX()
     hal::usb::power_pin_set(static_cast<bool>(config.usb_power));
 #endif
-    hal::mmu::power_pin_set(static_cast<bool>(config.mmu_power));
-    hal::mmu::nreset_pin_set(static_cast<bool>(config.mmu_nreset));
+#if HAS_MMU_POWER_PIN()
+    hal::mmu_port::power_pin_set(static_cast<bool>(config.mmu_power));
+#endif
+    hal::mmu_port::nreset_pin_set(static_cast<bool>(config.mmu_nreset));
     // Technically, this frequency is common also for some fans. But they seem to work fine.
     hal::w_led::set_frequency(config.w_led_frequency);
     // Master's activity. Value that should be changing regularly.

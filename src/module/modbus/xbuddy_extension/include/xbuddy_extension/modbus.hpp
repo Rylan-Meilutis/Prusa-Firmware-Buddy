@@ -61,7 +61,10 @@ struct Config {
     uint16_t rgbw_led_w_pwm; /// RGBW led strip, white component (0-255)
     uint16_t usb_power; /// enable power for usb port (boolean)
     uint16_t mmu_power; /// enable power for MMU port (boolean)
-    uint16_t mmu_nreset; /// MMU port inverted reset pin value (boolean)
+
+    /// MMU port inverted reset pin value (boolean)
+    /// !!! DISCLAIMER: Used for other devices than just MMU (XLCAN -> ModularBed, INDX -> INDX_HEAD)
+    uint16_t mmu_nreset;
 
     /// Frequency of the white led PWM.
     ///

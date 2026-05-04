@@ -1,11 +1,10 @@
 /// @file
 #include "hal.hpp"
 
-#include "extension_variant.h"
+#include "option/extension_variant.h"
 #include "hal_clock.hpp"
 #include "hal_ext_fs.hpp"
-#include "hal_gpio_expander.hpp"
-#include "hal_mmu.hpp"
+#include "hal_mmu_port.hpp"
 #include "hal_pub.hpp"
 #include "hal_rs485.hpp"
 #include "hal_rng.hpp"
@@ -18,13 +17,25 @@
 
 #include <utils/timing/timer_event_period_tracker.hpp>
 
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
+    #include "hal_mmu.hpp"
+#endif
+
+#include "option/has_gpio_expander.h"
+#if HAS_GPIO_EXPANDER()
+    #include "hal_gpio_expander.hpp"
+#endif
+
 // Default prescaler for our timers.
 // 6 MHz clock (30 MHz peripheral clock, *2 to timer, /10 prescaler)
 static constexpr uint32_t default_prescaler = 10;
 
 extern "C" void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     hal::rs485::msp_init(huart);
+#if HAS_MMU2()
     hal::mmu::msp_init(huart);
+#endif
 }
 
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
@@ -33,12 +44,16 @@ extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     hal::rs485::rx_callback(huart, size);
+#if HAS_MMU2()
     hal::mmu::rx_callback(huart, size);
+#endif
 }
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     hal::rs485::tx_callback(huart);
+#if HAS_MMU2()
     hal::mmu::tx_callback(huart);
+#endif
 }
 
 extern "C" void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
@@ -363,8 +378,13 @@ void hal::init() {
     tim3_postinit();
     MX_ADC1_Init();
     hal::rs485::init();
+    hal::mmu_port::init();
+#if HAS_MMU2()
     hal::mmu::init();
+#endif
+#if HAS_GPIO_EXPANDER()
     hal::gpio_expander::init();
+#endif
 
     hal::usb::init();
 #if EXTENSION_IS_IX()

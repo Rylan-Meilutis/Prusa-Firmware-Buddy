@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+#include "option/has_gpio_expander.h"
+static_assert(HAS_GPIO_EXPANDER());
+
 namespace hal::gpio_expander {
 
 /// GPIO expander pin definitions.
