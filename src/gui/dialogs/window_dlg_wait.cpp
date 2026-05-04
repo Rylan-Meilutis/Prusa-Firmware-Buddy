@@ -4,6 +4,9 @@
 #include <DialogHandler.hpp>
 #include <client_response.hpp>
 #include <marlin_vars.hpp>
+#include <feature/print_status_message/print_status_message_mgr.hpp>
+#include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
+#include <utils/string_builder.hpp>
 
 static constexpr EnumArray<PhaseWait, const char *, PhaseWait::_cnt> phase_texts {
     { PhaseWait::generic, nullptr },
@@ -17,10 +20,15 @@ window_dlg_wait_t::window_dlg_wait_t(Rect16 rect, const string_view_utf8 &text)
 }
 
 window_dlg_wait_t::window_dlg_wait_t(fsm::BaseData data)
-    : window_dlg_wait_t(_(phase_texts[data.GetPhase()])) {}
+    : window_dlg_wait_t(string_view_utf8 {}) {
+    Change(data);
+}
 
 void window_dlg_wait_t::Change(fsm::BaseData data) {
     frame.set_text(_(phase_texts[data.GetPhase()]));
+
+    // Reset/clear the message
+    print_status_message_[0] = '\0';
 }
 
 void window_dlg_wait_t::wait_for_gcodes_to_finish() {
@@ -47,4 +55,32 @@ void window_dlg_wait_t::wait_until(const string_view_utf8 &second_string, const 
             Screens::Access()->Close();
         }
     });
+}
+
+void window_dlg_wait_t::windowEvent(window_t *sender, GUI_event_t event, void *const param) {
+    switch (event) {
+
+    case GUI_event_t::LOOP:
+        if (phase_ == PhaseWait::generic) {
+            const auto msg = print_status_message().current_message();
+
+            decltype(print_status_message_) new_msg;
+            StringBuilder builder { new_msg };
+            PrintStatusMessageFormatterBuddy::format(builder, msg.message);
+
+            if (strcmp(print_status_message_.data(), new_msg.data())) {
+                print_status_message_ = new_msg;
+
+                // Force invalidation - we're recycling the same pointer, so the auto invalidate does not pick up
+                frame.set_text(string_view_utf8 {});
+                frame.set_text(string_view_utf8::MakeRAM(print_status_message_.data()));
+            }
+            break;
+        }
+
+    default:
+        break;
+    }
+
+    IDialogMarlin::windowEvent(sender, event, param);
 }

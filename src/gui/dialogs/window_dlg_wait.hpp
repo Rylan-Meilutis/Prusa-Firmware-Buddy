@@ -6,6 +6,7 @@
 #include "window_text.hpp"
 #include "window_icon.hpp"
 #include <inplace_function.hpp>
+#include <client_response.hpp>
 
 #include <gui/standard_frame/frame_wait.hpp>
 
@@ -28,4 +29,13 @@ public:
     static void wait_until(const string_view_utf8 &second_string, const stdext::inplace_function<bool()> &until_f);
 
     virtual void Change(fsm::BaseData) override;
+
+protected:
+    void windowEvent(window_t *sender, GUI_event_t event, void *const param) override;
+
+private:
+    PhaseWait phase_;
+
+    /// Buffer for PrintStatusMessage shown in PhaseWait::generic
+    std::array<char, 256> print_status_message_;
 };
