@@ -258,7 +258,8 @@ void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
         log_error(PrusaToolChanger, "Nozzle detected but EEPROM says no tool");
 
         // Prevent re-entry: wait_for_response() runs the idle loop, which calls loop() -> check_nozzle_presence_vs_eeprom() again
-        ResetOnReturn guard([this](bool state) { block_tool_check = state; });
+        block_tool_check = true;
+        ScopeGuard guard = [this] { block_tool_check = false; };
 
         marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::prompt);
         [[maybe_unused]] const auto prompt_response = marlin_server::wait_for_response(PhaseNozzleMismatch::prompt);
@@ -301,7 +302,8 @@ void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
         invalidate_xy_homing();
 
         // Inform user about lost tool, then rehome
-        ResetOnReturn guard([this](bool state) { block_tool_check = state; });
+        block_tool_check = true;
+        ScopeGuard guard = [this] { block_tool_check = false; };
         marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::tool_lost);
         marlin_server::wait_for_response(PhaseNozzleMismatch::tool_lost);
 
@@ -346,7 +348,8 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     log_error(PrusaToolChanger, "In-print nozzle missing for tool #%u — pausing print", tool_index.to_raw());
 
     // wait_for_response()/synchronize() run idle loops which call back into loop() → us; block re-entry.
-    ResetOnReturn guard([this](bool state) { block_tool_check = state; });
+    block_tool_check = true;
+    ScopeGuard guard = [this] { block_tool_check = false; };
 
     // Stop motion immediately so we don't keep printing without a nozzle while the dialog is up.
     planner.quick_stop();

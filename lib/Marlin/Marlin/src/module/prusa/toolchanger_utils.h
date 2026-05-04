@@ -254,18 +254,6 @@ public:
     void save_tool_offsets();
 
 protected:
-    /**
-     * @brief Structure that sets something in its constructor and resets when destroyed.
-     * Function set_state should be lambda and set something if state is true and reset if state is false.
-     * It is used to clean up something on a return from a function.
-     */
-    struct ResetOnReturn {
-        stdext::inplace_function<void(bool)> set_state;
-        [[nodiscard]] ResetOnReturn(stdext::inplace_function<void(bool)> set_state)
-            : set_state(set_state) { set_state(true); }
-        ~ResetOnReturn() { set_state(false); }
-    };
-
     #if !HAS_INDX()
     std::atomic<bool> force_toolchange_gcode = false; ///< after reset force toolchange to init marlin tool variables
     std::atomic<bool> request_toolchange = false; ///< when true, toolchange was requested and will be executed in puppytask

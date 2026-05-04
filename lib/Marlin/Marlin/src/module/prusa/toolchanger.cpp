@@ -18,6 +18,7 @@
     #include <pause_stubbed.hpp>
     #include "module/temperature.h" // for fan control
     #include <mapi/motion.hpp>
+    #include <raii/scope_guard.hpp>
 
     #if ENABLED(CRASH_RECOVERY)
         #include "../../feature/prusa/crash_recovery.hpp"
@@ -237,21 +238,22 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     // Set block_tool_check, toolchange_in_progress and remember feedrates
     //  and reset on return from this function
     const bool levelling_active = planner.leveling_active;
-    ResetOnReturn resetter([&](bool state) {
-        block_tool_check = state;
+    block_tool_check = true;
     #if ENABLED(CRASH_RECOVERY)
-        // Mark toolchange in progress first, to be consistent if ISR comes
-        crash_s.set_toolchange_in_progress(state, levelling_active);
+    // Mark toolchange in progress first, to be consistent if ISR comes
+    crash_s.set_toolchange_in_progress(true, levelling_active);
     #endif /*ENABLED(CRASH_RECOVERY)*/
-        if (state) {
-            conf_restorer.sample();
-            set_bed_leveling_enabled(false);
-        } else {
-            conf_restorer.restore_clear();
-            set_bed_leveling_enabled(levelling_active);
-            picked_update = false; // Wait for update before checking toolfall
-        }
-    });
+    conf_restorer.sample();
+    set_bed_leveling_enabled(false);
+    ScopeGuard resetter = [&] {
+        block_tool_check = false;
+    #if ENABLED(CRASH_RECOVERY)
+        crash_s.set_toolchange_in_progress(false, levelling_active);
+    #endif /*ENABLED(CRASH_RECOVERY)*/
+        conf_restorer.restore_clear();
+        set_bed_leveling_enabled(levelling_active);
+        picked_update = false; // Wait for update before checking toolfall
+    };
 
     // calculate the new tool offset difference before updating hotend_currently_applied_offset
     xyz_pos_t new_hotend_offset;
