@@ -10,10 +10,7 @@ enum class SelftestFSensorsResult {
     failed,
 
     /// The selftest wasn't able to finish, either is has been aborted by the user or by failing some preconditions
-    aborted,
-
-    /// User chose to skip this tool; the previous selftest result is preserved.
-    skipped,
+    aborted
 };
 
 SelftestFSensorsResult run_selftest_fsensors(const SelftestFSensorsParams &params);

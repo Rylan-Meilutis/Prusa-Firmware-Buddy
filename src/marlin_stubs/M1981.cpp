@@ -7,12 +7,6 @@
     #include <module/prusa/toolchanger.h>
 #endif
 
-#include <option/has_indx.h>
-#if HAS_INDX()
-    #include <feature/filament_sensor/filament_sensors_handler.hpp>
-    #include <feature/filament_sensor/filament_sensor_states.hpp>
-#endif
-
 namespace PrusaGcodeSuite {
 
 /** \addtogroup G-Codes
@@ -43,44 +37,23 @@ void M1981() {
         tools |= (1 << *tool);
     }
 
-#if HAS_INDX()
-    // 4-tool INDX has no secondary filament sensor board — skip tools 5-8.
-    // Partial / other errors fall through and fail loudly per-tool.
-    static_assert(PhysicalToolIndex::count == 8);
-    bool is_4tool = true;
-    for (uint8_t i = 4; i < PhysicalToolIndex::count; ++i) {
-        auto *fs = GetSideFSensorIgnoreEnabled(i);
-        if (!fs || fs->get_state() != FilamentSensorState::NotConnected) {
-            is_4tool = false;
-            break;
-        }
-    }
-    if (is_4tool) {
-        tools &= 0x0F;
-    }
-
-    for (auto tool : PhysicalToolIndex::all()) { // On INDX, check all sensors regardless enabled/disabled state
-#else
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-#endif
-
         if (!(tools & (1 << tool.to_raw()))) {
             continue;
         }
 
         using Result = SelftestFSensorsResult;
-        switch (run_selftest_fsensors({ .tool = tool.to_raw() })) {
+        const Result test_result = run_selftest_fsensors({ .tool = tool.to_raw() });
+        switch (test_result) {
+
         case Result::success:
-        case Result::skipped:
+            // Continue with the loop
             break;
 
         case Result::failed:
-#if HAS_INDX()
-            // On INDX, keep going so the user sees every broken tool in one run.
-            break;
-#else
+            // Here I am a bit unsure.
+            // Theoretically, we might want to end, but on the other side, the user requested selftest for all the tools, so I guess we should just execute it?
             return;
-#endif
 
         case Result::aborted:
             // Things are clear here - the test has been aborted, so stop right there

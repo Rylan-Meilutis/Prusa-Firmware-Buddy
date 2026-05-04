@@ -19,4 +19,6 @@ protected:
     void create_frame() override;
     void destroy_frame() override;
     void update_frame() override;
+
+    StringViewUtf8Parameters<3> title_params_;
 };
