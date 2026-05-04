@@ -92,7 +92,7 @@ bool save_dumps_to_usb() {
             return max_size;
         }() };
         // make sure buffer fits the longest path
-        static_assert(buffer_size + sizeof("/internal/") >= max_dump_path_length + sizeof("/usb/"));
+        static_assert(buffer_size + sizeof("/internal/") >= max_dump_path_length + sizeof("/usb/") + 1);
 
         char buffer[buffer_size] { "/usb/" };
         strcat(buffer, *crash_dump_path + strlen("/internal/")); // concatenate the path after /internal/
