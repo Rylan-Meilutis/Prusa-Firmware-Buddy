@@ -264,7 +264,7 @@ namespace puppies {
 
         static constexpr uint32_t MAX_FLASH_TOTAL_LENGTH = ((256 * 1024) - 8192);
 
-        static constexpr uint32_t READ_TIMEOUT_RESPONSE_DEFAULT = 100; // Default time to wait until response starts coming
+        static constexpr uint32_t READ_TIMEOUT_RESPONSE_DEFAULT = 10; // Default time to wait until response starts coming
         static constexpr uint32_t READ_TIMEOUT_PER_CHAR = 1; // Timeout for each byte that will be received
         static constexpr uint32_t READ_TIMEOUT_FINALIZE_FLASH = 500; // timeout for finalize flash command (sha256 fingerprint is calculated, so it takes longer)
     };

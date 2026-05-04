@@ -7,6 +7,7 @@
 #include <buddy/bootstrap_state.hpp>
 #include <buddy/digest.hpp>
 #include <buddy/main.h>
+#include <freertos/timing.hpp>
 #include "timing.h"
 #include <modbus/server_address.hpp>
 #include "otp.hpp"
@@ -553,7 +554,7 @@ void PuppyBootstrap::wait_for_fingerprint(uint32_t calculation_start) {
             fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_TIMEOUT);
         }
 
-        osDelay(50); // Wait between attempts
+        freertos::yield();
     }
 }
 

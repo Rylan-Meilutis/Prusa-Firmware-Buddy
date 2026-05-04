@@ -182,7 +182,7 @@ public:
         ~ErrorLogSupressor();
     };
 
-    static constexpr auto MODBUS_READ_TIMEOUT_MS = 30;
+    static constexpr auto MODBUS_READ_TIMEOUT_MS = 10;
 
 private:
     static constexpr uint16_t INVALID_REGISTER_VALUE = 0;
