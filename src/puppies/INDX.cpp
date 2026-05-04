@@ -154,6 +154,14 @@ CommunicationStatus Indx::initial_scan(PuppyModbus &bus) {
     general_write.value.loadcell_enabled = true;
     general_write.dirty = true;
 
+    register_general_status_last_read_ms = 0;
+    cached_temps_valid = false;
+
+    // !!! MUST be after resetting all the stuff to avoid race conditions
+    // The intention is that when someone detects a reset, we want to guarantee that the data is already marked as invalid
+    // and will become valid again only after it is properly fetched from the newly reset puppy.
+    reset_counter++;
+
     return bus.write(unit, general_write);
 }
 

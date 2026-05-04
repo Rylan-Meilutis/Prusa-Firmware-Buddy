@@ -161,6 +161,13 @@ public:
     void set_otp(const OTP_v5 &);
     OTP_v5 get_otp() const;
 
+    /// @returns a value that increments every time the puppy is reset
+    /// It is recommended to check for the reset counter against the previous one
+    /// AFTER reading out all the needed data from the puppy.
+    uint32_t get_reset_counter() const {
+        return reset_counter.load();
+    }
+
 private:
     OTP_v5 otp = {};
 
@@ -197,7 +204,11 @@ private:
 
     /// ticks_ms of the last successful read of register_general_status
     /// 0 = not read at all yet. 0 is guaranteed to never happen afterwards (-1 is used instead to avoid conflict)
+    /// Gets reset to 0 when the puppy is reset
     std::atomic<uint32_t> register_general_status_last_read_ms { 0 };
+
+    /// Gets incremented each time the puppy is reset
+    std::atomic<uint32_t> reset_counter { 0 };
 
 private:
     // FIXME: Need to be forward-declared, because this header file is included
