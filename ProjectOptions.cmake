@@ -756,9 +756,11 @@ set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL" "COREONEL_INDX")
 
 set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX")
 
-# XL-CAN puppy (XLS only). Off everywhere by default; XL is enabled in WP5.3 once the
-# master-side driver lands.
-set_feature_for_printers_master_board(HAS_XL_CAN)
+# XL-CAN puppy. Compiled in for the XL family (shared xlBuddy master image); discovered at bootstrap
+# and gated at runtime via XlCan::is_enabled(). Plain XL leaves it disabled (no bridge on the bus);
+# XLS enables it when bootstrap finds the bridge on dock 9. Per the XLS HW spec every XLS has the
+# bridge, so missing-bridge on XLS is a hardware fault rather than a normal config.
+set_feature_for_printers_master_board(HAS_XL_CAN "XL")
 
 set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL") # TODO: Add INDX once HAS_FILAMENT_TRACKER
                                                         # is sorted out

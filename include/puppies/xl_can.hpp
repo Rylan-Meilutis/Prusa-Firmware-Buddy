@@ -32,8 +32,16 @@ public:
     void set_otp(const OTP_v5 &);
     OTP_v5 get_otp() const;
 
+    /// Whether the bridge was discovered during bootstrap. The xlBuddy master
+    /// image is shared across plain XL and XLS; only XLS physically has the
+    /// bridge, so this flag distinguishes the two at runtime. Set by the
+    /// puppy task right after bootstrap completes.
+    bool is_enabled() const { return enabled.load(); }
+    void set_enabled(bool e) { enabled.store(e); }
+
 private:
     mutable freertos::Mutex mutex;
+    std::atomic<bool> enabled { false };
     OTP_v5 otp = {};
 
     using Status = xbuddy_extension::modbus::Status;

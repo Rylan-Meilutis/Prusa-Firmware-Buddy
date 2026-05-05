@@ -174,7 +174,7 @@ static void verify_puppies_running(PuppyModbus &bus) {
 
         bool xl_can_ok = true;
     #if HAS_XL_CAN()
-        xl_can_ok = buddy::puppies::xl_can.ping(bus) != CommunicationStatus::ERROR;
+        xl_can_ok = !buddy::puppies::xl_can.is_enabled() || (buddy::puppies::xl_can.ping(bus) != CommunicationStatus::ERROR);
     #endif
 
         if (num_dwarfs_dead == 0 && modular_bed_ok && indx_head_ok && xl_can_ok) {
@@ -312,7 +312,7 @@ static void puppy_task_loop(PuppyModbus &bus) {
             }
 #endif
 #if HAS_XL_CAN()
-            {
+            if (xl_can.is_enabled()) {
                 CommunicationStatus status = xl_can.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
                     log_error(Puppies, "Loop exit: xl_can.refresh() ERROR");
@@ -405,7 +405,7 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 #endif
 
 #if HAS_XL_CAN()
-    if (xl_can.initial_scan(bus) == CommunicationStatus::ERROR) {
+    if (xl_can.is_enabled() && xl_can.initial_scan(bus) == CommunicationStatus::ERROR) {
         return false;
     }
 #endif
