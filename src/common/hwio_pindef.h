@@ -51,6 +51,7 @@
 #include <option/has_phase_stepping.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_indx.h>
+#include <option/has_indx_head.h>
 
 #include <option/has_advanced_power.h>
 #if HAS_ADVANCED_POWER()
@@ -374,7 +375,14 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
             MACRO_FUNCTION(buddy::hw::OutputPin, extFlashCs, buddy::hw::IoPort::F COMMA buddy::hw::IoPin::p2, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::InputOutputPin, touch_sig, buddy::hw::IoPort::C COMMA buddy::hw::IoPin::p8, IMode::input COMMA Pull::none, buddy::hw::noHandler)
     #elif (BOARD_IS_XBUDDY())
+        #if HAS_INDX_HEAD()
+            #define PIN_TABLE_BOARD_SPECIFIC_INDX(MACRO_FUNCTION) \
+                MACRO_FUNCTION(buddy::hw::OutputPin, indx_head_reset, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p9, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler)
+        #else
+            #define PIN_TABLE_BOARD_SPECIFIC_INDX(MACRO_FUNCTION)
+        #endif
         #define PIN_TABLE_BOARD_SPECIFIC_COMMON(MACRO_FUNCTION) \
+            PIN_TABLE_BOARD_SPECIFIC_INDX(MACRO_FUNCTION) \
             MACRO_FUNCTION(buddy::hw::OutputPin, heaterEnable, BUDDY_PIN(HEATER_ENABLE), Pin::State::low COMMA OMode::pushPull COMMA OSpeed::low, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, displayCs, buddy::hw::IoPort::D COMMA buddy::hw::IoPin::p11, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
             MACRO_FUNCTION(buddy::hw::OutputPin, displayRs, buddy::hw::IoPort::D COMMA buddy::hw::IoPin::p15, Pin::State::high COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
@@ -481,6 +489,13 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
  *
  */
 // clang-format off
+    // PE9 carries fanHeatBreakPwm on non-INDX builds; on INDX it is reused as indx_head_reset (defined per-board above).
+    #if HAS_INDX_HEAD()
+        #define PIN_TABLE_FAN_HEATBREAK_PWM(MACRO_FUNCTION)
+    #else
+        #define PIN_TABLE_FAN_HEATBREAK_PWM(MACRO_FUNCTION) \
+            MACRO_FUNCTION(buddy::hw::OutputPin, fanHeatBreakPwm, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p9, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler)
+    #endif
     #define PIN_TABLE(MACRO_FUNCTION) \
         PIN_TABLE_BOARD_SPECIFIC(MACRO_FUNCTION) \
         MACRO_FUNCTION(buddy::hw::InterruptPin, xDiag, BUDDY_PIN(X_DIAG), IMode::IT_rising_falling COMMA Pull::none COMMA ISR_PRIORITY_ENDSTOP COMMA 0, endstop_ISR) \
@@ -499,7 +514,7 @@ inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
         MACRO_FUNCTION(buddy::hw::OutputPin, zDir, BUDDY_PIN(Z_DIR), Pin::State::low COMMA OMode::pushPull COMMA OSpeed::very_high, buddy::hw::noHandler) \
         MACRO_FUNCTION(buddy::hw::OutputPin, e0Dir, BUDDY_PIN(E0_DIR), Pin::State::low COMMA OMode::pushPull COMMA OSpeed::very_high, buddy::hw::noHandler) \
         MACRO_FUNCTION(buddy::hw::OutputPin, fanPrintPwm, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p11, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler) \
-        MACRO_FUNCTION(buddy::hw::OutputPin, fanHeatBreakPwm, buddy::hw::IoPort::E COMMA buddy::hw::IoPin::p9, Pin::State::low COMMA OMode::pushPull COMMA OSpeed::high, buddy::hw::noHandler)
+        PIN_TABLE_FAN_HEATBREAK_PWM(MACRO_FUNCTION)
 // clang-format on
 
     // This virtual pin is needed for Z_MIN to correctly propagate to zMinReadFn from Marlin. These virtual pins are hardcoded into Marlin.

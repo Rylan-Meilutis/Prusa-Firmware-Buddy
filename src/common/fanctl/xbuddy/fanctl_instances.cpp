@@ -7,6 +7,7 @@
 #include <option/has_love_board.h>
 #include <hw_configuration.hpp>
 #include <option/has_indx.h>
+#include <option/has_indx_head.h>
 
 #if HAS_INDX()
     #include <fanctl/xlbuddy/CFanCtlPuppy.hpp>
@@ -37,6 +38,7 @@ CFanCtlCommon &Fans::print([[maybe_unused]] size_t index) {
     return instance;
 };
 
+#if !HAS_INDX_HEAD()
 static auto write_heat_pwm = [](bool value) {
     buddy::hw::fanHeatBreakPwm.writeb(value);
 };
@@ -44,6 +46,7 @@ static auto write_heat_pwm = [](bool value) {
 static auto read_heat_tacho = []() {
     return buddy::hw::fanTach.readb();
 };
+#endif
 
 CFanCtlCommon &Fans::heat_break([[maybe_unused]] size_t index) {
 #if HAS_INDX()

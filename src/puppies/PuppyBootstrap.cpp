@@ -349,6 +349,9 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
 #endif
 #if HAS_INDX_HEAD()
     case Dock::INDX_HEAD:
+        // Newer cables wire the reset directly to a GPIO; older ones go through the xbuddy-extension MMU nreset.
+        // Toggle both so whichever path the connected cable uses takes effect.
+        indx_head_reset.write(state);
         xbuddy_extension.set_mmu_nreset(puppyModbus, state == Pin::State::low);
         break;
 #endif
