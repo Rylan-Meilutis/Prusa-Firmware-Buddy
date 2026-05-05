@@ -75,6 +75,7 @@ struct PrepareMoveHints {
 
 };
 
+bool is_xy_in_print_region(const xy_pos_t &xy);
 
 enum class AxisHomeLevel : uint8_t {
   /// The axis it not homed at all, we could be anywhere

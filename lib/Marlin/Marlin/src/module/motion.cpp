@@ -48,6 +48,8 @@
   #include "../feature/bedlevel/bedlevel.h"
 #endif
 
+#include "../feature/print_area.h"
+
 #if ENABLED(BLTOUCH)
   // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
@@ -193,6 +195,14 @@ float homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
   // The above two are combined to save on computes
   xyz_pos_t workspace_offset{0};
 #endif
+
+// Returns true if XY lies in the region where a printed model can exist:
+// inside both the heated bed rectangle and the slicer-declared print area (M555).
+bool is_xy_in_print_region(const xy_pos_t &xy) {
+    const bool on_bed = xy.x >= 0 && xy.x <= X_BED_SIZE
+                     && xy.y >= 0 && xy.y <= Y_BED_SIZE;
+    return on_bed && print_area.get_bounding_rect().contains(xy);
+}
 
 /**
  * Output the current position to serial

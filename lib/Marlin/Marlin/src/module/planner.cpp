@@ -2233,7 +2233,9 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
   }
   #endif
 
-  if(hints.move.is_printing_move && xyze.e > position_float.e) {
+  if (hints.move.is_printing_move
+      && xyze.e > position_float.e
+      && is_xy_in_print_region(xyze.xy())) {
     max_printed_z = std::max(max_printed_z, xyze.z);
   }
 
