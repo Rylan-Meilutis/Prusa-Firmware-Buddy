@@ -68,6 +68,8 @@ if(BOARD IN_LIST BUDDY_BOARDS)
 
   add_subdirectory(semihosting)
 
+  target_link_libraries(firmware PRIVATE base64)
+
   target_link_libraries(firmware PRIVATE FreeRTOS::CMSIS)
   if(HAS_DWARF OR HAS_INDX_HEAD)
     target_link_libraries(firmware PRIVATE fifo_decoder)

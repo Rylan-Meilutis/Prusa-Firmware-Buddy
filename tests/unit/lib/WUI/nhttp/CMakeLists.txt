@@ -44,7 +44,6 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/segmented_json.cpp
   ${CMAKE_SOURCE_DIR}/src/common/automata/core.cpp
   ${CMAKE_SOURCE_DIR}/src/common/filename_type.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/base64_stream_decoder.cpp
   ${CMAKE_SOURCE_DIR}/src/common/filepath_operation.cpp
   ${CMAKE_SOURCE_DIR}/src/common/http/url_decode.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_any.cpp
@@ -157,6 +156,7 @@ target_link_libraries(
   buddy_utils
   raii
   logging-mock
+  base64
   )
 
 add_catch_test(nhttp_tests)

@@ -13,7 +13,6 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/filepath_operation.cpp
   ${CMAKE_SOURCE_DIR}/src/common/filename_type.cpp
   ${CMAKE_SOURCE_DIR}/src/common/printer_model.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/base64_stream_decoder.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_any.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_binary.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_interface.cpp
@@ -135,6 +134,7 @@ target_link_libraries(
   otp
   random
   random_sw
+  base64
   )
 
 file(GLOB AUTOMATA_GENERATORS ${PROJECT_ROOT_DIR}/utils/gen-automata/*.py)

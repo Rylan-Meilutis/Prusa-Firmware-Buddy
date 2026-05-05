@@ -1,7 +1,8 @@
 #pragma once
 
-#include "base64_stream_decoder.h"
 #include "gcode_reader_interface.hpp"
+
+#include <base64/base64.hpp>
 
 /**
  * @brief Implementation of IGcodeReader for plaintext gcodes
@@ -60,7 +61,7 @@ private:
     struct ThumbnailReader final : public AbstractByteReader {
         PlainGcodeReader *gcode_reader = nullptr;
         uint32_t thumbnail_size = 0;
-        Base64StreamDecoder base64_decoder;
+        base64::Base64Decoder base64_decoder;
 
         std::span<std::byte> read(std::span<std::byte> buffer) final;
         Result_t getc(char &out);

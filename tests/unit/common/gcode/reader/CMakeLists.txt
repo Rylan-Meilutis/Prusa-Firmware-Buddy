@@ -1,6 +1,5 @@
 add_library(
   gcode_reader_test_base OBJECT
-  ${CMAKE_SOURCE_DIR}/src/common/base64_stream_decoder.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_buffer.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_any.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_reader_binary.cpp
@@ -51,6 +50,7 @@ target_link_libraries(
          freertos-mock
          random
          random_sw
+         base64
   )
 
 add_executable(gcode_reader_test gcode_reader.cpp)

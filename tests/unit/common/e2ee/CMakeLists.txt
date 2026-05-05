@@ -18,7 +18,6 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/crc32.cpp
   ${CMAKE_SOURCE_DIR}/src/common/stat_retry.cpp
   ${CMAKE_SOURCE_DIR}/src/common/gcode/gcode_buffer.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/base64_stream_decoder.cpp
   ${CMAKE_SOURCE_DIR}/src/common/crash_dump/secret.cpp
   ${CMAKE_SOURCE_DIR}/tests/stubs/async_job/async_job.cpp
   ${CMAKE_SOURCE_DIR}/tests/unit/mock/bsod.cpp
@@ -51,6 +50,7 @@ target_link_libraries(
   buddy_utils
   random
   random_sw
+  base64
   )
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/encrypted_text

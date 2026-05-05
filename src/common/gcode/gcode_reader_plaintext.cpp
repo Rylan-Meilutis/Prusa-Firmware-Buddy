@@ -45,7 +45,7 @@ AbstractByteReader *PlainGcodeReader::stream_thumbnail_start(uint16_t expected_w
             stream_mode_ = StreamMode::thumbnail;
             thumbnail_reader.gcode_reader = this;
             thumbnail_reader.thumbnail_size = num_bytes;
-            thumbnail_reader.base64_decoder.Reset();
+            thumbnail_reader.base64_decoder.reset();
             return &thumbnail_reader;
         }
     }
@@ -166,14 +166,18 @@ IGcodeReader::Result_t PlainGcodeReader::ThumbnailReader::getc(char &out) {
         }
         --thumbnail_size;
 
-        // c now contains valid base64 character - decode and return it
-        switch (base64_decoder.ConsumeChar(c, reinterpret_cast<uint8_t *>(&out))) {
-        case 1:
-            return Result_t::RESULT_OK;
-        case 0:
-            continue;
-        case -1:
+        using Result = base64::Base64Decoder::DecodeResult;
+        switch (base64_decoder.decode(c, reinterpret_cast<std::byte &>(out))) {
+
+        case Result::error:
             return Result_t::RESULT_ERROR;
+
+        case Result::new_output:
+            return Result_t::RESULT_OK;
+
+        case Result::no_output:
+            // Continue loop
+            break;
         }
     }
 }
