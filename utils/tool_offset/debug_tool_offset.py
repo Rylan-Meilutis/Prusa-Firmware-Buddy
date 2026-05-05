@@ -548,13 +548,6 @@ def parse_response(response: List[str]) -> Dict[str, Any]:
     return data
 
 
-def match_by_label(items: list, label_fragment: str):
-    for item in items:
-        if label_fragment in item.label:
-            return item
-    return None
-
-
 def save_raw(path: str, response: List[str]) -> None:
     with open(path, "w") as f:
         json.dump({"raw_response": response}, f, indent=2)
@@ -607,10 +600,11 @@ def build_g427(r_param=None, probe_count=None) -> str:
 def split_response_by_tool(response: List[str]) -> List[List[str]]:
     """Split a G427 multi-tool response into per-tool segments.
 
-    Each tool's XY calibration starts with a center-detection-x line_samples
-    entry. Non-debug lines before the first tool are kept in the first segment.
+    Each tool's calibration begins with a `# probed_z` debug line emitted at
+    the start of measure_current_tool_offset. Lines before the first probed_z
+    (homing, tool select, etc.) are kept in the first segment.
     """
-    BOUNDARY = '# line_samples {"label": "center-detection-x"'
+    BOUNDARY = '# probed_z '
     segments: List[List[str]] = []
     current: List[str] = []
     found_first = False
@@ -631,6 +625,7 @@ def split_response_by_tool(response: List[str]) -> List[List[str]]:
 
 def print_axis_results(
     axis: str,
+    label: str,
     peaks: Optional[CppPeaks],
     est: Optional[CppEstimates],
     deltas: Optional[CppDeltas],
@@ -642,7 +637,7 @@ def print_axis_results(
     trim_refines: Optional[List[PassTrimRefine]] = None,
 ):
     center = diameter / 2.0
-    title = _scan_title(axis, peaks)
+    title = _scan_title(axis, label)
     print(f"\n{'=' * 70}")
     print(f"  {title}")
     print(f"{'=' * 70}")
@@ -778,12 +773,19 @@ def _make_pass_labels(profile: Optional[MotionProfile]) -> List[str]:
     ]
 
 
-def _scan_title(axis: str, peaks: Optional[CppPeaks]) -> str:
-    """Build a plot title prefix including the scan name if available."""
-    name = peaks.name if peaks and peaks.name else ""
-    if name:
-        return f"{axis}-Axis [{name}]"
-    return f"{axis}-Axis"
+def _axis_from_label(label: str) -> str:
+    """Derive axis (X/Y) from a scan label like 'center-detection-x'."""
+    low = label.lower()
+    if low.endswith("-x") or low.endswith("_x"):
+        return "X"
+    if low.endswith("-y") or low.endswith("_y"):
+        return "Y"
+    return "?"
+
+
+def _scan_title(axis: str, label: str) -> str:
+    """Plot title prefix derived from the data label, with axis fallback."""
+    return label or f"{axis}-Axis"
 
 
 def _interp(x_data: List[float], y_data: List[float], x: float) -> float:
@@ -873,6 +875,7 @@ def _add_symmetry_overlay(fig, row, col, data, score_sets, sign, fwd_name,
 
 def plot_sweep_analysis(
     axis: str,
+    label: str,
     samples: Optional[LineSamples],
     profile: Optional[MotionProfile],
     peaks: Optional[CppPeaks],
@@ -906,7 +909,7 @@ def plot_sweep_analysis(
     profile_t_max = profile.time_s[-1] if profile.time_s else 0
     center = diameter / 2.0
     pass_labels = _make_pass_labels(profile)
-    title_prefix = _scan_title(axis, peaks)
+    title_prefix = _scan_title(axis, label)
     tau = est.all.tau if est else 0.0
 
     subtitle = ""
@@ -1689,61 +1692,51 @@ def run_single_probe(machine: Machine, gcode: str) -> List[str]:
     return machine.command(gcode, timeout=120)
 
 
-_TWO_PASS_SCANS = [
-    ("X", "center-detection-x", "Pass 1: Center Detection"),
-    ("Y", "center-detection-y", "Pass 1: Center Detection"),
-    ("X", "nozzle-offset-x", "Pass 2: Nozzle Offset"),
-    ("Y", "nozzle-offset-y", "Pass 2: Nozzle Offset"),
-]
+def _iter_scan_indices(data: Dict[str, Any]):
+    """Yield (idx, total, label) for each scan in line_samples order, where
+    `idx` is the 0-based occurrence of `label` so far and `total` is its
+    total occurrence count in this segment. Lets the caller distinguish FSM
+    retries that share a label."""
+    counts: Dict[str, int] = {}
+    for ls in data["line_samples"]:
+        counts[ls.label] = counts.get(ls.label, 0) + 1
 
-_LEGACY_SCANS = [
-    ("X", "scan_x", "Single Pass"),
-    ("Y", "scan_y", "Single Pass"),
-]
-
-
-def _get_scan_configs(data: Dict[str, Any]):
-    """Return two-pass configs if available, else legacy single-pass."""
-    if match_by_label(data["line_samples"], "center-detection"):
-        return _TWO_PASS_SCANS
-    return _LEGACY_SCANS
+    seen: Dict[str, int] = {}
+    for ls in data["line_samples"]:
+        idx = seen.get(ls.label, 0)
+        seen[ls.label] = idx + 1
+        yield (idx, counts[ls.label], ls.label)
 
 
-def _gather_scan_data(data: Dict[str, Any], frag: str) -> Dict[str, Any]:
-    """Extract all data matching a scan label fragment."""
+def _gather_scan_data(data: Dict[str, Any], label: str,
+                      idx: int) -> Dict[str, Any]:
+    """Extract all data for the idx-th scan with the given exact label.
+    Per-pass items (4 emitted per scan) are grouped accordingly."""
 
-    def _filter(key):
-        return [item for item in data[key] if frag in item.label]
+    def nth(key: str):
+        matches = [item for item in data[key] if item.label == label]
+        return matches[idx] if idx < len(matches) else None
+
+    def nth_group(key: str, group_size: int = 4):
+        matches = [item for item in data[key] if item.label == label]
+        start = idx * group_size
+        return matches[start:start + group_size]
 
     return {
-        "samples":
-        match_by_label(data["line_samples"], frag),
-        "profile":
-        match_by_label(data["motion_profile"], frag),
-        "timing":
-        match_by_label(data["motion_timing"], frag),
-        "peaks":
-        match_by_label(data["peaks"], frag),
-        "est":
-        match_by_label(data["estimates"], frag),
-        "deltas":
-        match_by_label(data["deltas"], frag),
-        "symmetry":
-        _filter("symmetry"),
-        "preprocessed":
-        _filter("pass_preprocessed"),
-        "derivatives":
-        _filter("pass_derivative"),
-        "correlations":
-        _filter("pass_correlation"),
-        "trim_refines":
-        _filter("pass_trim_refine"),
-        "raw_chunks":
-        _filter("pass_raw_chunk"),
-        "energy_data":
-        next((e for e in data["rough_align_energy"] if frag in e.label), None),
-        "score_data":
-        next((s for s in data["rough_align_score"] if frag in s.label), None),
+        "samples": nth("line_samples"),
+        "profile": nth("motion_profile"),
+        "timing": nth("motion_timing"),
+        "peaks": nth("peaks"),
+        "est": nth("estimates"),
+        "deltas": nth("deltas"),
+        "symmetry": nth_group("symmetry"),
+        "preprocessed": nth_group("pass_preprocessed"),
+        "derivatives": nth_group("pass_derivative"),
+        "correlations": nth_group("pass_correlation"),
+        "trim_refines": nth_group("pass_trim_refine"),
+        "raw_chunks": nth_group("pass_raw_chunk"),
+        "energy_data": nth("rough_align_energy"),
+        "score_data": nth("rough_align_score"),
     }
 
 
@@ -1763,11 +1756,14 @@ def process_single(response: List[str],
           f"{len(data['rough_align_energy'])} energy, "
           f"{len(data['rough_align_score'])} score")
 
-    for axis, frag, pass_name in _get_scan_configs(data):
-        sd = _gather_scan_data(data, frag)
+    for idx, total, label in _iter_scan_indices(data):
+        sd = _gather_scan_data(data, label, idx)
+        axis = _axis_from_label(label)
+        plot_label = f"{label} #{idx + 1}" if total > 1 else label
 
-        print(f"\n--- {pass_name} / {axis}-Axis [{frag}] ---")
+        print(f"\n--- {plot_label} ({axis}-Axis) ---")
         print_axis_results(axis,
+                           plot_label,
                            sd["peaks"],
                            sd["est"],
                            sd["deltas"],
@@ -1778,7 +1774,8 @@ def process_single(response: List[str],
                            diameter,
                            trim_refines=sd["trim_refines"])
 
-        fig = plot_sweep_analysis(f"{pass_name} / {axis}",
+        fig = plot_sweep_analysis(axis,
+                                  plot_label,
                                   sd["samples"],
                                   sd["profile"],
                                   sd["peaks"],
