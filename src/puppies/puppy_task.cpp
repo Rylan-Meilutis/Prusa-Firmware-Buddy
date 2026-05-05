@@ -48,6 +48,11 @@
     #include <puppies/xbuddy_extension.hpp>
 #endif
 
+#include <option/has_xl_can.h>
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
+#endif
+
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include <puppies/mmu.hpp>
@@ -167,12 +172,17 @@ static void verify_puppies_running(PuppyModbus &bus) {
         indx_head_ok = buddy::puppies::indx.ping(bus) != CommunicationStatus::ERROR;
     #endif
 
-        if (num_dwarfs_dead == 0 && modular_bed_ok && indx_head_ok) {
+        bool xl_can_ok = true;
+    #if HAS_XL_CAN()
+        xl_can_ok = buddy::puppies::xl_can.ping(bus) != CommunicationStatus::ERROR;
+    #endif
+
+        if (num_dwarfs_dead == 0 && modular_bed_ok && indx_head_ok && xl_can_ok) {
             log_info(Puppies, "All puppies are reacheable. Continuing");
             return;
         } else if (ticks_diff(reacheability_wait_start + WAIT_TIME, ticks_ms()) > 0) {
-            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i, indx: %i), waiting another 200 ms",
-                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok), static_cast<int>(indx_head_ok));
+            log_info(Puppies, "Puppies not ready (dwarfs_num: %d/%d, bed: %i, indx: %i, xl_can: %i), waiting another 200 ms",
+                num_dwarfs_ok, num_dwarfs_ok + num_dwarfs_dead, static_cast<int>(modular_bed_ok), static_cast<int>(indx_head_ok), static_cast<int>(xl_can_ok));
             osDelay(200);
             continue;
         } else {
@@ -301,6 +311,19 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 worked |= status == CommunicationStatus::OK;
             }
 #endif
+#if HAS_XL_CAN()
+            {
+                CommunicationStatus status = xl_can.refresh(bus);
+                if (status == CommunicationStatus::ERROR) {
+                    log_error(Puppies, "Loop exit: xl_can.refresh() ERROR");
+    #if !PUPPY_TASK_DEBUG()
+                    return;
+    #endif
+                }
+
+                worked |= status == CommunicationStatus::OK;
+            }
+#endif
 #if HAS_AC_CONTROLLER()
             {
                 CommunicationStatus status = ac_controller.refresh(bus);
@@ -379,6 +402,12 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         return false;
     }
 
+#endif
+
+#if HAS_XL_CAN()
+    if (xl_can.initial_scan(bus) == CommunicationStatus::ERROR) {
+        return false;
+    }
 #endif
 
 #if HAS_PUPPY_MODULARBED()

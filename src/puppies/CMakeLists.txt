@@ -28,6 +28,14 @@ if(HAS_XBUDDY_EXTENSION)
   target_sources(firmware PUBLIC xbuddy_extension.cpp xbuddy_extension_bootstrap.cpp)
 endif()
 
+if(HAS_XL_CAN)
+  target_sources(firmware PUBLIC xl_can.cpp)
+  # Bridge fw is the xl_can variant of xBuddy Extension, so its Modbus map (and shared headers) come
+  # from the xbuddy_extension lib; a bridge-specific reduced layout is a possible future
+  # optimization.
+  target_link_libraries(firmware PUBLIC xbuddy_extension)
+endif()
+
 if(HAS_AC_CONTROLLER)
   target_sources(firmware PUBLIC ac_controller.cpp)
   target_link_libraries(firmware PUBLIC ac_controller)
