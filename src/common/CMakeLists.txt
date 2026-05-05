@@ -210,6 +210,10 @@ if(HAS_HOTEND_TYPE_SUPPORT)
   target_sources(firmware PRIVATE hotend_type.cpp)
 endif()
 
+if(HAS_TOOL_MAPPING)
+  target_sources(firmware PRIVATE multi_filament_change.cpp)
+endif()
+
 add_subdirectory(fanctl)
 add_subdirectory(marlin_server_types)
 

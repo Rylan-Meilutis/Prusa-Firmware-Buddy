@@ -28,6 +28,10 @@ struct ConfigItem {
 
 using Config = StrongIndexArray<ConfigItem, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static>;
 
+/// Constructs a ChangeAll screen configuration based on current print setup - that is GCodeInfo, ToolMapping and SpoolJoin
+/// That is, it suggests changing filaments so that they would match the current configuration for the print
+Config config_from_current_print_setup();
+
 } // namespace multi_filament_change
 
 /// Configuration used in DialogChangeAllFilaments
