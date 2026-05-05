@@ -1056,12 +1056,16 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Z_SAFE_HOMING_X_POINT (270) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
 #endif
-    #if !HAS_INDX()
-        #define DETECT_PRINT_SHEET
-    #endif
+    #define DETECT_PRINT_SHEET
     #if ENABLED(DETECT_PRINT_SHEET)
-        #define DETECT_PRINT_SHEET_X_POINT (220)
-        #define DETECT_PRINT_SHEET_Y_POINT (-7)
+        #if HAS_INDX()
+            // INDX_TODO: Refine, measure proper place. Lower Y would crash into dock.
+            #define DETECT_PRINT_SHEET_X_POINT (0)
+            #define DETECT_PRINT_SHEET_Y_POINT (0)
+        #else
+            #define DETECT_PRINT_SHEET_X_POINT (220)
+            #define DETECT_PRINT_SHEET_Y_POINT (-7)
+        #endif
         #define DETECT_PRINT_SHEET_Z_POINT (-1)
         #define DETECT_PRINT_SHEET_Z_AFTER_FAILURE (100)
     #endif
