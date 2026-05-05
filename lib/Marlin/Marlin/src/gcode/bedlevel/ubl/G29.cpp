@@ -267,7 +267,7 @@
  *   features of all three systems combined.
  */
 void GcodeSuite::G29() {
-    marlin_server::FSM_Holder fsm_holder(PhaseWait::generic);
+    marlin_server::FSM_Holder fsm_holder(PhaseWait::print_status_message);
 
     BlockEStallDetection block_e_stall_detection;
 

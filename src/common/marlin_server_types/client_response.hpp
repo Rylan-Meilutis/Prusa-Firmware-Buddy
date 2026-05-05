@@ -113,8 +113,8 @@ public:
 };
 
 enum class PhaseWait : PhaseUnderlyingType {
-    /// PhaseWait::generic shows PrintStatusMessage if available, otherwise empty text
-    generic,
+    /// Shows PrintStatusMessage if available, otherwise empty text
+    print_status_message,
     _cnt,
     _last = _cnt - 1,
 };

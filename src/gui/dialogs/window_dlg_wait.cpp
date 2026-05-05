@@ -9,7 +9,7 @@
 #include <utils/string_builder.hpp>
 
 static constexpr EnumArray<PhaseWait, const char *, PhaseWait::_cnt> phase_texts {
-    { PhaseWait::generic, nullptr },
+    { PhaseWait::print_status_message, nullptr },
 };
 
 window_dlg_wait_t::window_dlg_wait_t(Rect16 rect, const string_view_utf8 &text)
@@ -27,7 +27,7 @@ void window_dlg_wait_t::Change(fsm::BaseData data) {
 
     frame.set_text(_(phase_texts[phase]));
 
-    show_print_status_message_ = (phase == PhaseWait::generic);
+    show_print_status_message_ = (phase == PhaseWait::print_status_message);
 
     // Reset/clear the message
     print_status_message_[0] = '\0';

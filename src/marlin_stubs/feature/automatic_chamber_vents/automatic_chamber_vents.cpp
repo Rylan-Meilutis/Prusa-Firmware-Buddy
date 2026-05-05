@@ -159,7 +159,7 @@ bool execute_control(VentState target_state) {
     } else {
         psm_guard.update<PrintStatusMessage::Type::closing_chamber_vents>({});
     }
-    marlin_server::FSM_Holder fsm_holder { PhaseWait::generic };
+    marlin_server::FSM_Holder fsm_holder { PhaseWait::print_status_message };
 
     if (!GcodeSuite::G28_no_parser(true, true, false, { .only_if_needed = true, .precise = false })) {
         return false;

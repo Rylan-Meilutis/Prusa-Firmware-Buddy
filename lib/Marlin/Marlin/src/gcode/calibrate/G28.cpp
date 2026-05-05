@@ -489,7 +489,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
 
   PrintStatusMessageGuard statusGuard;
   statusGuard.update<PrintStatusMessage::homing>({});
-  marlin_server::FSM_Holder fsm_holder{PhaseWait::generic};
+  marlin_server::FSM_Holder fsm_holder{PhaseWait::print_status_message};
 
   #if HAS_CEILING_CLEARANCE()
   buddy::CeilingClearanceCheckDisabler ccd;
