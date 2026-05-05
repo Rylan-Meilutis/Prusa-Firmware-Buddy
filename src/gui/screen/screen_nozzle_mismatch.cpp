@@ -11,6 +11,7 @@
 #include <i_window_menu_item.hpp>
 #include <marlin_client.hpp>
 #include <tool_index.hpp>
+#include <array>
 
 using Phase = PhaseNozzleMismatch;
 
@@ -43,19 +44,31 @@ public:
     DockMenu(window_frame_t *parent, Rect16 rect, Phase phase)
         : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no)
         , phase_(phase) {
+        auto it = PhysicalToolIndex::all().skip_all_disabled();
+        if (it.at_end()) {
+            // Fallback for the rare case (e.g. after a factory reset) where a
+            // tool is in the head but no dock is calibrated yet — at least
+            // offer all docks so the user can park it somewhere.
+            it = PhysicalToolIndex::all();
+        }
+        for (; !it.at_end(); ++it) {
+            enabled_indices_[count_++] = (*it).to_raw();
+        }
         setup_items();
     }
 
     int item_count() const final {
-        return PhysicalToolIndex::count;
+        return count_;
     }
 
     void setup_item(ItemVariant &variant, int index) final {
-        variant.emplace<MI_DOCK>(static_cast<uint8_t>(index), phase_);
+        variant.emplace<MI_DOCK>(enabled_indices_[index], phase_);
     }
 
 private:
     Phase phase_;
+    std::array<uint8_t, PhysicalToolIndex::count> enabled_indices_;
+    uint8_t count_ = 0;
 };
 
 class FrameDockSelection {
