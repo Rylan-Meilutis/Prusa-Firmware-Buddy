@@ -1,9 +1,17 @@
 #include "clo_config.hpp"
 
 namespace {
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 constexpr float y_shift_z_probe_offset_from_sensor = -3.2f; // See BFW-8747 geometric shift to move the probe point out of the coil area
 constexpr float sensing_distance_x = 6.f;
 constexpr float sensing_distance_y = 12.f;
+#elif PRINTER_IS_PRUSA_XL()
+constexpr float sensing_distance_x = 10.f;
+constexpr float sensing_distance_y = 10.f;
+constexpr float y_shift_z_probe_offset_from_sensor = 0.f;
+#else
+    #error "sensor parameters not defined for this printer"
+#endif
 } // namespace
 
 tool_offset::ProbingConfig tool_offset::get_default_probing_config() {

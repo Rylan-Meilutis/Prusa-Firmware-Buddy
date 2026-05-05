@@ -11,6 +11,12 @@ inline constexpr xy_pos_t default_sensor_position =
     { 257.f, Y_MAX_PRINT_POS - 197.5f };
 #elif PRINTER_IS_PRUSA_COREONEL()
     { 307.f, 5.f };
+#elif PRINTER_IS_PRUSA_XL()
+    // XLS-only — gated at the call site by extended_printer_type == xls (plan
+    // A6/A7); plain XL never reaches the contactless path. WP5.4 lands the real
+    // per-axis coil coordinates plus the bed-center -> XL frame translation; bed
+    // center is a compile-only in-bounds placeholder until then.
+    { X_BED_SIZE / 2.f, Y_BED_SIZE / 2.f };
 #else
     #error "No default probing config for this printer"
 #endif
