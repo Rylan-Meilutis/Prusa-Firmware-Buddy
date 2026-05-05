@@ -1405,7 +1405,23 @@ def plot_sweep_analysis(
     return fig
 
 
-def plot_repeat_scatter(x_vals: List[float], y_vals: List[float]) -> go.Figure:
+LOW_CONF_THRESHOLD = 0.9
+LOW_CONF_COLOR = "red"
+
+
+def _is_low_conf(c: Optional[float]) -> bool:
+    return c is not None and c < LOW_CONF_THRESHOLD
+
+
+def plot_repeat_scatter(
+    x_vals: List[float],
+    y_vals: List[float],
+    title: str = "Repeatability: X vs Y offset",
+    point_labels: Optional[List[str]] = None,
+    index_label: str = "Run #",
+    x_conf: Optional[List[Optional[float]]] = None,
+    y_conf: Optional[List[Optional[float]]] = None,
+) -> go.Figure:
     import numpy as np
 
     x_arr = np.array(x_vals)
@@ -1414,8 +1430,10 @@ def plot_repeat_scatter(x_vals: List[float], y_vals: List[float]) -> go.Figure:
     y_mean = float(np.mean(y_arr))
     x_centered = x_arr - x_mean
     y_centered = y_arr - y_mean
-    half_range = 0.025
-    neighborhood = 0.001
+    spread = float(
+        max(np.max(np.abs(x_centered)), np.max(np.abs(y_centered)), 1e-6))
+    half_range = max(0.025, spread * 1.15)
+    neighborhood = max(0.001, half_range / 25.0)
 
     n_eval = 400
     x_eval = np.linspace(-half_range, half_range, n_eval)
@@ -1465,18 +1483,37 @@ def plot_repeat_scatter(x_vals: List[float], y_vals: List[float]) -> go.Figure:
                   row=2,
                   col=2)
 
+    text_labels = (point_labels if point_labels is not None else
+                   [str(i + 1) for i in range(len(x_vals))])
+    n = len(x_vals)
+    xc = x_conf if x_conf is not None else [None] * n
+    yc = y_conf if y_conf is not None else [None] * n
+    low_mask = [_is_low_conf(a) or _is_low_conf(b) for a, b in zip(xc, yc)]
+    border_color = [
+        LOW_CONF_COLOR if low else "rgba(0,0,0,0.4)" for low in low_mask
+    ]
+    border_width = [2.5 if low else 0.8 for low in low_mask]
+    text_color = [LOW_CONF_COLOR if low else "black" for low in low_mask]
+    hover = [(f"{text_labels[i]}<br>X conf: "
+              f"{('%.2f' % xc[i]) if xc[i] is not None else 'n/a'}<br>"
+              f"Y conf: "
+              f"{('%.2f' % yc[i]) if yc[i] is not None else 'n/a'}")
+             for i in range(n)]
     fig.add_trace(go.Scatter(
         x=x_centered.tolist(),
         y=y_centered.tolist(),
         mode="markers+text",
-        text=[str(i + 1) for i in range(len(x_vals))],
+        text=text_labels,
         textposition="top center",
-        textfont=dict(size=8),
+        textfont=dict(size=8, color=text_color),
         marker=dict(size=8,
-                    color=list(range(len(x_vals))),
+                    color=list(range(n)),
                     colorscale="Viridis",
                     showscale=True,
-                    colorbar=dict(title="Run #")),
+                    colorbar=dict(title=index_label),
+                    line=dict(color=border_color, width=border_width)),
+        hovertext=hover,
+        hovertemplate="%{hovertext}<extra></extra>",
     ),
                   row=2,
                   col=1)
@@ -1498,7 +1535,7 @@ def plot_repeat_scatter(x_vals: List[float], y_vals: List[float]) -> go.Figure:
     # Lock aspect ratio to square
     side = 800
     fig.update_layout(
-        title="Repeatability: X vs Y offset",
+        title=title,
         width=side,
         height=side,
         showlegend=False,
@@ -1507,19 +1544,51 @@ def plot_repeat_scatter(x_vals: List[float], y_vals: List[float]) -> go.Figure:
     return fig
 
 
-def plot_repeat_histograms(x_vals: List[float],
-                           y_vals: List[float]) -> go.Figure:
+def plot_repeat_histograms(
+    x_vals: List[float],
+    y_vals: List[float],
+    title: str = "Repeatability: offset distributions",
+    x_conf: Optional[List[Optional[float]]] = None,
+    y_conf: Optional[List[Optional[float]]] = None,
+) -> go.Figure:
     fig = make_subplots(rows=1,
                         cols=2,
                         subplot_titles=("X offset (mm)", "Y offset (mm)"))
-    fig.add_trace(go.Histogram(x=x_vals, name="X", marker_color="steelblue"),
-                  row=1,
-                  col=1)
-    fig.add_trace(go.Histogram(x=y_vals, name="Y", marker_color="coral"),
-                  row=1,
-                  col=2)
-    fig.update_layout(title="Repeatability: offset distributions",
-                      showlegend=False,
+
+    def _split(vals, confs):
+        if confs is None:
+            return list(vals), []
+        confs = list(confs) + [None] * max(0, len(vals) - len(confs))
+        hi, lo = [], []
+        for v, c in zip(vals, confs):
+            (lo if _is_low_conf(c) else hi).append(v)
+        return hi, lo
+
+    has_low = False
+    for col, vals, confs, name, color in [
+        (1, x_vals, x_conf, "X", "steelblue"),
+        (2, y_vals, y_conf, "Y", "coral"),
+    ]:
+        hi, lo = _split(vals, confs)
+        fig.add_trace(go.Histogram(x=hi,
+                                   name=f"{name} (conf≥{LOW_CONF_THRESHOLD})",
+                                   marker_color=color,
+                                   showlegend=(col == 1)),
+                      row=1,
+                      col=col)
+        if lo:
+            has_low = True
+            fig.add_trace(go.Histogram(
+                x=lo,
+                name=f"{name} (conf<{LOW_CONF_THRESHOLD})",
+                marker_color=LOW_CONF_COLOR,
+                showlegend=(col == 1)),
+                          row=1,
+                          col=col)
+
+    fig.update_layout(title=title,
+                      barmode="stack",
+                      showlegend=has_low,
                       autosize=True)
     return fig
 
@@ -1529,12 +1598,16 @@ def plot_repeat_timeseries(
     y_vals: List[float],
     x_conf: List[Optional[float]],
     y_conf: List[Optional[float]],
+    title: str = "Repeatability: offset over time",
+    x_label: str = "Run #",
+    x_tick_labels: Optional[List[str]] = None,
+    subplot_titles: tuple = ("X offset vs run", "Y offset vs run"),
 ) -> go.Figure:
     runs = list(range(1, len(x_vals) + 1))
 
     fig = make_subplots(rows=2,
                         cols=1,
-                        subplot_titles=("X offset vs run", "Y offset vs run"),
+                        subplot_titles=subplot_titles,
                         vertical_spacing=0.12)
 
     for row, vals, confs, name, color in [
@@ -1580,10 +1653,34 @@ def plot_repeat_timeseries(
                           row=row,
                           col=1)
 
-    fig.update_xaxes(title_text="Run #", row=2, col=1)
+        low_runs = [r for r, c in zip(runs, confs) if _is_low_conf(c)]
+        low_vals = [v for v, c in zip(vals, confs) if _is_low_conf(c)]
+        if low_runs:
+            fig.add_trace(go.Scatter(x=low_runs,
+                                     y=low_vals,
+                                     name=f"{name} conf<{LOW_CONF_THRESHOLD}",
+                                     mode="markers",
+                                     showlegend=True,
+                                     marker=dict(symbol="x",
+                                                 size=14,
+                                                 color=LOW_CONF_COLOR,
+                                                 line=dict(
+                                                     color=LOW_CONF_COLOR,
+                                                     width=2))),
+                          row=row,
+                          col=1)
+
+    if x_tick_labels is not None:
+        for r in (1, 2):
+            fig.update_xaxes(tickmode="array",
+                             tickvals=runs,
+                             ticktext=x_tick_labels,
+                             row=r,
+                             col=1)
+    fig.update_xaxes(title_text=x_label, row=2, col=1)
     fig.update_yaxes(title_text="mm", row=1, col=1)
     fig.update_yaxes(title_text="mm", row=2, col=1)
-    fig.update_layout(title="Repeatability: offset over time", autosize=True)
+    fig.update_layout(title=title, autosize=True)
     return fig
 
 
@@ -1892,8 +1989,8 @@ def repeat(port, speed1, speed2, diameter, zheight, pick_tool, save, load,
     print()
 
     figures = [
-        plot_repeat_scatter(x_vals, y_vals),
-        plot_repeat_histograms(x_vals, y_vals),
+        plot_repeat_scatter(x_vals, y_vals, x_conf=x_conf, y_conf=y_conf),
+        plot_repeat_histograms(x_vals, y_vals, x_conf=x_conf, y_conf=y_conf),
         plot_repeat_timeseries(x_vals, y_vals, x_conf, y_conf),
     ]
     _emit_figures(figures, show, plot)
@@ -1955,6 +2052,7 @@ def all_tools(port, r_param, probe_count, diameter, tool_index, save, load,
         tool_responses = list(enumerate(tool_responses))
 
     all_figures: List[go.Figure] = []
+    tool_finals: List[tuple] = []
     for i, tool_resp in tool_responses:
         tool_label = f"Tool {i}"
         print(f"\n{'#' * 70}")
@@ -1962,6 +2060,53 @@ def all_tools(port, r_param, probe_count, diameter, tool_index, save, load,
         print(f"{'#' * 70}")
         data, figures = process_single(tool_resp, d, tool_label=tool_label)
         all_figures.extend(figures)
+        tool_finals.append((i, data["final"]))
+
+    valid = [(i, f) for i, f in tool_finals
+             if f.x_mm is not None and f.y_mm is not None]
+    if len(valid) >= 2:
+        indices = [i for i, _ in valid]
+        x_vals = [f.x_mm for _, f in valid]
+        y_vals = [f.y_mm for _, f in valid]
+        x_conf = [f.x_confidence for _, f in valid]
+        y_conf = [f.y_confidence for _, f in valid]
+        labels = [f"T{i}" for i in indices]
+
+        print(f"\n{'=' * 70}")
+        print(f"  PER-TOOL OFFSET SPREAD ({len(valid)} tools)")
+        print(f"{'=' * 70}")
+        for name, vals in [("X", x_vals), ("Y", y_vals)]:
+            mn = statistics.mean(vals)
+            sd = statistics.stdev(vals)
+            print(f"  {name}: mean={mn:+.4f}  std={sd:.4f}  "
+                  f"min={min(vals):+.4f}  max={max(vals):+.4f}  "
+                  f"range={max(vals) - min(vals):.4f} mm")
+        print()
+
+        all_figures.extend([
+            plot_repeat_scatter(x_vals,
+                                y_vals,
+                                title="Per-tool: X vs Y offset",
+                                point_labels=labels,
+                                index_label="Tool #",
+                                x_conf=x_conf,
+                                y_conf=y_conf),
+            plot_repeat_histograms(x_vals,
+                                   y_vals,
+                                   title="Per-tool: offset distributions",
+                                   x_conf=x_conf,
+                                   y_conf=y_conf),
+            plot_repeat_timeseries(
+                x_vals,
+                y_vals,
+                x_conf,
+                y_conf,
+                title="Per-tool: offset by tool index",
+                x_label="Tool #",
+                x_tick_labels=labels,
+                subplot_titles=("X offset vs tool", "Y offset vs tool"),
+            ),
+        ])
 
     _emit_figures(all_figures, show, plot)
 
