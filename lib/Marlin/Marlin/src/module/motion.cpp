@@ -760,7 +760,7 @@ void do_homing_move_axis_rel(const AxisEnum axis, const float distance, const fe
 
     // Funny thing, endstops can be disabled when homing Z at this moment
     // I wish I had the nerves to try to fix this...
-    if(!endstops.is_enabled()) {
+    if(!endstops.is_enabled() && !planner.draining()) {
       bsod("Homing w/o endstops");
     }
   }
