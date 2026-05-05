@@ -23,7 +23,11 @@ window_dlg_wait_t::window_dlg_wait_t(fsm::BaseData data)
 }
 
 void window_dlg_wait_t::Change(fsm::BaseData data) {
-    frame.set_text(_(phase_texts[data.GetPhase()]));
+    const auto phase = static_cast<PhaseWait>(data.GetPhase());
+
+    frame.set_text(_(phase_texts[phase]));
+
+    show_print_status_message_ = (phase == PhaseWait::generic);
 
     // Reset/clear the message
     print_status_message_[0] = '\0';
@@ -59,7 +63,7 @@ void window_dlg_wait_t::windowEvent(window_t *sender, GUI_event_t event, void *c
     switch (event) {
 
     case GUI_event_t::LOOP:
-        if (phase_ == PhaseWait::generic) {
+        if (show_print_status_message_) {
             const auto msg = print_status_message().current_message();
 
             decltype(print_status_message_) new_msg;

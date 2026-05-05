@@ -3,8 +3,6 @@
 
 #include "IDialogMarlin.hpp"
 #include "string_view_utf8.hpp"
-#include "window_text.hpp"
-#include "window_icon.hpp"
 #include <inplace_function.hpp>
 #include <client_response.hpp>
 
@@ -34,8 +32,9 @@ protected:
     void windowEvent(window_t *sender, GUI_event_t event, void *const param) override;
 
 private:
-    PhaseWait phase_;
-
     /// Buffer for PrintStatusMessage shown in PhaseWait::generic
     std::array<char, 256> print_status_message_;
+
+    /// Whether the frame text should show PrintStatusMessage
+    bool show_print_status_message_ = false;
 };
