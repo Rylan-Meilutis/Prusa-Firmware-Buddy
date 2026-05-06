@@ -16,7 +16,7 @@ namespace {
     constexpr float nozzle_tip_thermal_resistance_k_w = 120;
 
     /// K/W, thermal resistance between the nozzle and the heatsink
-    constexpr float heatbreak_thermal_resistance_k_w = 60;
+    constexpr float heatbreak_thermal_resistance_k_w = 80;
 
     /// K/W/mm, thermal resistance of the nozzle body per mm, used for calculating heat gradient
     constexpr float nozzle_linear_thermal_resistance_k_w_mm = 1.7f;
@@ -24,8 +24,8 @@ namespace {
     /// J/K, nozzle body thermal capacity
     constexpr float heat_capacity_j_k = 1.17f;
 
-    /// 40%, decides how much of temperature gradient is compensated
-    constexpr float compensation_factor = 0.4f;
+    /// Decides how much of temperature gradient is compensated [%]
+    constexpr float compensation_factor = 0.3f;
 
     // Positions of heat sources and sinks
     constexpr float heatbreak_position_mm = 0;
