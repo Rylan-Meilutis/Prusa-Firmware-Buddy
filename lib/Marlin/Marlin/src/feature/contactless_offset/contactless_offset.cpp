@@ -950,9 +950,11 @@ static std::optional<int> find_rough_time_alignment(
     constexpr int decimation = 4;
     // ...and we don't need to search for large shifts:
     constexpr float max_shift_s = 0.5f;
-    // We want to detect clear peaks above the noise floor, so require the score
-    // to be at least this factor above the baseline.
-    constexpr float min_score_over_baseline = 2.0f;
+    // The score `s_best / baseline` is bounded above by `n_dec / taps_total`
+    // (the case where all energy falls inside the windows), so a fixed absolute
+    // threshold cannot work across sweep lengths. Require the score to clear
+    // this fraction of the gap between baseline (1.0) and that ceiling.
+    constexpr float min_score_fraction = 0.5f;
 
     const size_t n = raw_samples.size();
     const float dt_dec = dt * decimation;
@@ -1027,6 +1029,13 @@ static std::optional<int> find_rough_time_alignment(
     const float taps_total = 4.0f * static_cast<float>(hw1 + hw2);
     const float baseline = energy_sum * (taps_total / static_cast<float>(n_dec));
     const float score_over_baseline = (baseline > 1e-10f) ? s_best / baseline : 0.0f;
+
+    // Calculate coverage-adapted threshold: scales between 1.0 (uniform noise) and the
+    // theoretical ceiling `n_dec / taps_total` (all energy concentrated in
+    // windows). For short sweeps the windows cover little of the signal and
+    // the ceiling is high; for long sweeps the ceiling drops toward 1.0.
+    const float max_score = static_cast<float>(n_dec) / taps_total;
+    const float min_score_over_baseline = 1.0f + min_score_fraction * (max_score - 1.0f);
 
     // Regions for debug plot — full pass duration around each tap.
     std::array<EnergyRegion, offset_template.size()> regions;
