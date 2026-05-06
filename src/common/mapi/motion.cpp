@@ -56,7 +56,9 @@ float extruder_schedule_turning(float feed_rate, float step) {
 void ensure_tool_with_accelerometer_picked() {
 #if HAS_REMOTE_ACCELEROMETER() && HAS_TOOLCHANGER()
     if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
-        tool_change(PhysicalToolIndex::from_raw(0), tool_return_t::no_return, tool_change_lift_t::no_lift, /*z_down=*/false);
+        if (!prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false)) {
+            fatal_error("No calibrated dock", "PrusaToolChanger");
+        }
     }
 #endif
 }
