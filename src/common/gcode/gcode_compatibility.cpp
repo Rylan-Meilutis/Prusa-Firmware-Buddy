@@ -350,7 +350,8 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
     const bool mmu_enabled = false;
 #endif
 
-    for (GcodeToolIndex gcode_tool : GcodeToolIndex::all().skip_all_disabled()) {
+    // Do NOT skip disabled GCodeTools - these need to fail on GCodeToolCheck::tool_assigned if they are used
+    for (GcodeToolIndex gcode_tool : GcodeToolIndex::all()) {
         auto &gcode_tool_fails = failed_gcode_tool_checks[gcode_tool];
 
         const auto &extruder_info = gcode_info.get_extruder_info(gcode_tool);
