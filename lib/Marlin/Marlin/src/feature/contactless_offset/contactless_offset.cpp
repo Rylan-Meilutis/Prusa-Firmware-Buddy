@@ -60,8 +60,11 @@
 #include <array>
 #include <cmath>
 #include <sfl/segmented_vector.hpp>
-#include <puppies/INDX.hpp>
-#include <puppies/PuppyModbus.hpp>
+#include <option/has_indx_head.h>
+#if HAS_INDX_HEAD()
+    #include <puppies/INDX.hpp>
+    #include <puppies/PuppyModbus.hpp>
+#endif
 #include <printers.h>
 #include <cstdint>
 #include <utils/uncopyable.hpp>
@@ -712,8 +715,13 @@ const char *dispatch_fsm(FsmContext &ctx) {
 class ScanState : public Uncopyable {
     Hotend &hotend_;
     const tool_offset::ProbingConfig &config_;
+#if HAS_INDX_HEAD()
+    // The loadcell + accelerometer streams live on the INDX head. On XL/XLS
+    // the equivalent sensors are on the active Dwarf (a different puppy bus
+    // from the tool-offset sensor's CAN bridge), so pausing them is a no-op.
     bool prev_loadcell_active_;
     bool prev_accelerometer_active_;
+#endif
     int16_t prev_hotend_target_;
     int16_t prev_bed_target_;
 
@@ -721,19 +729,25 @@ public:
     explicit ScanState(Hotend &hotend, const tool_offset::ProbingConfig &config)
         : hotend_(hotend)
         , config_(config)
+#if HAS_INDX_HEAD()
         , prev_loadcell_active_(buddy::puppies::indx.get_loadcell_active())
         , prev_accelerometer_active_(buddy::puppies::indx.get_accelerometer_active())
+#endif
         , prev_hotend_target_(hotend.nozzle_target_temp())
         , prev_bed_target_(thermalManager.degTargetBed()) {
+#if HAS_INDX_HEAD()
         buddy::puppies::indx.set_loadcell(false);
         buddy::puppies::indx.set_accelerometer(buddy::puppies::puppyModbus, false);
+#endif
         hotend_.set_nozzle_target_temp(0);
         thermalManager.setTargetBed(0);
     }
 
     ~ScanState() {
+#if HAS_INDX_HEAD()
         buddy::puppies::indx.set_loadcell(prev_loadcell_active_);
         buddy::puppies::indx.set_accelerometer(buddy::puppies::puppyModbus, prev_accelerometer_active_);
+#endif
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
         thermalManager.setTargetBed(prev_bed_target_);
         if (prev_loadcell_active_) {
