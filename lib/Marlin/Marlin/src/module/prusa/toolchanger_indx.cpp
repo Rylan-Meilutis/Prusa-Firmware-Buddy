@@ -65,7 +65,6 @@ bool PrusaToolChanger::ensure_safe_move() {
         if (!GcodeSuite::G28_no_parser(true, true, false,
                 {
                     .only_if_needed = true,
-                    .z_raise = 0,
                     .precise = true, // Toolchange requires precise homing, otherwise we might not hit the docks right
                 })) {
             return false;
