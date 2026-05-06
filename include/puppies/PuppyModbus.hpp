@@ -182,7 +182,8 @@ public:
         ~ErrorLogSupressor();
     };
 
-    static constexpr auto MODBUS_READ_TIMEOUT_MS = 10;
+    // timeout for complete communication turnaround until last byte is received
+    static constexpr auto MODBUS_READ_TIMEOUT_MS = 30;
 
 private:
     static constexpr uint16_t INVALID_REGISTER_VALUE = 0;
