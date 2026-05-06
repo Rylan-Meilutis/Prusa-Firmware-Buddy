@@ -9,7 +9,8 @@ struct ProbingConfig {
     xyz_pos_t sensor_position;
     float safe_z_height; // Height above the sensor to safely move in XY
     float sensing_z; // Height above the sensor to actually perform the measurement
-    float sensing_diameter; // Diameter of the sensing area
+    float sensing_distance_x; // Sensing area in X direction
+    float sensing_distance_y; // Sensing area in Y direction
     float sensing_speed_slow;
     float sensing_speed_fast;
     float sweep_rest_time; // Pause between sweep passes (seconds)

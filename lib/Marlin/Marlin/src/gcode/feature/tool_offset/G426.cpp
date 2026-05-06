@@ -29,9 +29,11 @@
  * - `F` - First speed (v1) in mm/s (default: 7)
  * - `R` - Second speed (v2) in mm/s (default: 15)
  * - `Z` - Sensing height in mm above the sensor (default: from config)
- * - `D` - Scan diameter in mm (default: from config)
  * - `X` - position of the sensor in X axis (default: from config)
  * - `Y` - position of the sensor in Y axis (default: from config)
+ * - `D` - Scan diameter in mm (default: from config), the same distance is used for both X and Y directions
+ * - `I` - Scan length in X axis in mm (default: from config) - overwrites `D` if set
+ * - `J` - Scan length in Y axis in mm (default: from config) - overwrites `D` if set
  */
 void GcodeSuite::G426() {
     TEMPORARY_AUTO_REPORT_OFF(suspend_auto_report);
@@ -42,7 +44,10 @@ void GcodeSuite::G426() {
     config.sensing_speed_slow = parser.floatval('F', config.sensing_speed_slow);
     config.sensing_speed_fast = parser.floatval('R', config.sensing_speed_fast);
     config.sensing_z = parser.floatval('Z', config.sensing_z);
-    config.sensing_diameter = parser.floatval('D', config.sensing_diameter);
+    config.sensing_distance_x = parser.floatval('D', config.sensing_distance_x);
+    config.sensing_distance_y = parser.floatval('D', config.sensing_distance_y);
+    config.sensing_distance_x = parser.floatval('I', config.sensing_distance_x);
+    config.sensing_distance_y = parser.floatval('J', config.sensing_distance_y);
     config.sensor_position.x = parser.floatval('X', config.sensor_position.x);
     config.sensor_position.y = parser.floatval('Y', config.sensor_position.y);
 

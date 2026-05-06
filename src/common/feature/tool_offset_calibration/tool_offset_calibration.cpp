@@ -234,11 +234,11 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
 
     // Check printer physical limits and shift the sensor position if needed to avoid crashes
     tool_offset::ProbingConfig sensor_corrected_config = config;
-    sensor_corrected_config.sensor_position.x = std::max(sensor_corrected_config.sensor_position.x, X_MIN_POS + config.sensing_diameter / 2.0f + X_MAX_OFFSET);
-    sensor_corrected_config.sensor_position.x = std::min(sensor_corrected_config.sensor_position.x, X_MAX_POS - config.sensing_diameter / 2.0f - X_MAX_OFFSET);
+    sensor_corrected_config.sensor_position.x = std::max(sensor_corrected_config.sensor_position.x, X_MIN_POS + config.sensing_distance_x / 2.0f + X_MAX_OFFSET);
+    sensor_corrected_config.sensor_position.x = std::min(sensor_corrected_config.sensor_position.x, X_MAX_POS - config.sensing_distance_x / 2.0f - X_MAX_OFFSET);
     offset_for_measurement.x += sensor_corrected_config.sensor_position.x - config.sensor_position.x;
-    sensor_corrected_config.sensor_position.y = std::max(sensor_corrected_config.sensor_position.y, Y_MIN_POS + config.sensing_diameter / 2.0f + Y_MAX_OFFSET);
-    sensor_corrected_config.sensor_position.y = std::min(sensor_corrected_config.sensor_position.y, Y_MAX_POS - config.sensing_diameter / 2.0f - Y_MAX_OFFSET);
+    sensor_corrected_config.sensor_position.y = std::max(sensor_corrected_config.sensor_position.y, Y_MIN_POS + config.sensing_distance_y / 2.0f + Y_MAX_OFFSET);
+    sensor_corrected_config.sensor_position.y = std::min(sensor_corrected_config.sensor_position.y, Y_MAX_POS - config.sensing_distance_y / 2.0f - Y_MAX_OFFSET);
     offset_for_measurement.y += sensor_corrected_config.sensor_position.y - config.sensor_position.y;
 
     while (true) {
