@@ -5,6 +5,7 @@
 #include <ac_controller/modbus.hpp>
 #include <ac_controller/faults.hpp>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <freertos/mutex.hpp>
 #include <option/has_ac_controller.h>
@@ -41,12 +42,48 @@ public:
     CommunicationStatus initial_scan(PuppyModbus &);
 
 private:
-    // The registers cached here are accessed from different tasks.
+    // Serializes the puppy task's modbus operations with the LED-handler task's
+    // led_config writes; cross-task access to mirrored fields is lock-free via atomics.
     mutable freertos::Mutex mutex;
 
-    // If reading/refresh failed, this'll be in invalid state and we'll return
-    // nullopt for queries.
-    bool valid = false;
+    // --- Cached read-side state, populated by refresh_input() ---
+
+    /// Set to true only after all cached_* mirrors are published, false on error.
+    /// SKIPPED leaves it unchanged. Read lock-free from Marlin.
+    std::atomic<bool> valid { false };
+
+    // Mirror of status.value.mcu_temp (decidegree Celsius).
+    std::atomic<int16_t> cached_mcu_temp_dc { 0 };
+
+    // Mirror of status.value.bed_temp (decidegree Celsius).
+    std::atomic<int16_t> cached_bed_temp_dc { 0 };
+
+    // Mirror of status.value.bed_voltage (deci Volt).
+    std::atomic<uint16_t> cached_bed_voltage_dv { 0 };
+
+    // Mirrors of status.value.bed_fan_rpm[].
+    std::array<std::atomic<uint16_t>, 2> cached_bed_fan_rpm {};
+
+    // Mirror of status.value.psu_fan_rpm.
+    std::atomic<uint16_t> cached_psu_fan_rpm { 0 };
+
+    // Mirror of status.value.faults_lo | (faults_hi << 16).
+    std::atomic<uint32_t> cached_faults { 0 };
+
+    // Mirror of status.value.node_state.
+    std::atomic<uint16_t> cached_node_state { 0 };
+
+    // --- Desired write-side state, applied to config.value.* in refresh() ---
+
+    std::atomic<uint16_t> bed_target_temp_desired { 0 };
+    std::atomic<uint8_t> bed_fan_pwm_desired { 0 };
+    std::atomic<uint8_t> psu_fan_pwm_desired { 0 };
+
+    static_assert(std::atomic<bool>::is_always_lock_free);
+    static_assert(std::atomic<int16_t>::is_always_lock_free);
+    static_assert(std::atomic<uint16_t>::is_always_lock_free);
+    static_assert(std::atomic<uint32_t>::is_always_lock_free);
+    static_assert(std::atomic<uint8_t>::is_always_lock_free);
 
     using Status = ac_controller::modbus::Status;
     using Config = ac_controller::modbus::Config;

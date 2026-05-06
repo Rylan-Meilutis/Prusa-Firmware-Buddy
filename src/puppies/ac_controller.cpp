@@ -12,114 +12,85 @@ static constexpr uint8_t unit = std::to_underlying(modbus::ServerAddress::ac_con
 namespace buddy::puppies {
 
 std::optional<float> AcController::get_mcu_temp() const {
-    Lock lock(mutex);
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return static_cast<float>(status.value.mcu_temp) / 10.0f;
+    return static_cast<float>(cached_mcu_temp_dc.load()) / 10.0f;
 }
 
 std::optional<float> AcController::get_bed_temp() const {
-    Lock lock(mutex);
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return static_cast<float>(status.value.bed_temp) / 10.0f;
+    return static_cast<float>(cached_bed_temp_dc.load()) / 10.0f;
 }
 
 std::optional<float> AcController::get_bed_voltage() const {
-    Lock lock(mutex);
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return static_cast<float>(status.value.bed_voltage) / 10.0f;
+    return static_cast<float>(cached_bed_voltage_dv.load()) / 10.0f;
 }
 
 std::optional<std::array<uint16_t, 2>> AcController::get_bed_fan_rpm() const {
-    Lock lock(mutex);
-
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return status.value.bed_fan_rpm;
+    return std::array<uint16_t, 2> { cached_bed_fan_rpm[0].load(), cached_bed_fan_rpm[1].load() };
 }
 
 std::optional<uint16_t> AcController::get_psu_fan_rpm() const {
-    Lock lock(mutex);
-
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return status.value.psu_fan_rpm;
+    return cached_psu_fan_rpm.load();
 }
 
 std::optional<uint8_t> AcController::get_bed_fan_pwm() const {
-    Lock lock(mutex);
-
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return static_cast<uint8_t>(config.value.bed_fan_pwm);
+    return bed_fan_pwm_desired.load();
 }
 
 std::optional<uint8_t> AcController::get_psu_fan_pwm() const {
-    Lock lock(mutex);
-
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    return static_cast<uint8_t>(config.value.psu_fan_pwm);
+    return psu_fan_pwm_desired.load();
 }
 
 std::optional<ac_controller::Faults> AcController::get_faults() const {
-    Lock lock(mutex);
     if (!all_valid()) {
         return std::nullopt;
     }
 
-    uint32_t faults = static_cast<uint32_t>(status.value.faults_lo) | (static_cast<uint32_t>(status.value.faults_hi) << 16);
-    return ac_controller::Faults { faults };
+    return ac_controller::Faults { cached_faults.load() };
 }
 
 NodeState AcController::get_node_state() const {
-    Lock lock(mutex);
-
-    // This is intentionally not using all_valid()
-    // because it would never return state other than ready.
-    return valid ? static_cast<NodeState>(status.value.node_state) : NodeState::unknown;
+    // Intentionally not using all_valid() — that would never return a state
+    // other than ready (chicken-and-egg with NodeState::ready).
+    return valid.load() ? static_cast<NodeState>(cached_node_state.load()) : NodeState::unknown;
 }
 
 void AcController::set_bed_target_temp(float target_temp) {
-    Lock lock(mutex);
-
-    uint16_t temp = static_cast<uint16_t>(target_temp * 10.0f);
-    if (temp != config.value.bed_target_temp) {
-        config.value.bed_target_temp = temp;
-        config.dirty = true;
-    }
+    bed_target_temp_desired.store(static_cast<uint16_t>(target_temp * 10.0f));
 }
 
 void AcController::set_bed_fan_pwm(uint8_t pwm) {
-    Lock lock(mutex);
-    if (config.value.bed_fan_pwm != pwm) {
-        config.value.bed_fan_pwm = pwm;
-        config.dirty = true;
-    }
+    bed_fan_pwm_desired.store(pwm);
 }
 
 void AcController::set_psu_fan_pwm(uint8_t pwm) {
-    Lock lock(mutex);
-    if (config.value.psu_fan_pwm != pwm) {
-        config.value.psu_fan_pwm = pwm;
-        config.dirty = true;
-    }
+    psu_fan_pwm_desired.store(pwm);
 }
 
 void AcController::turn_off_bed_leds() {
@@ -183,10 +154,20 @@ CommunicationStatus AcController::refresh_input(PuppyModbus &bus, uint32_t max_a
 
     switch (result) {
     case CommunicationStatus::OK:
-        valid = true;
+        cached_mcu_temp_dc.store(static_cast<int16_t>(status.value.mcu_temp));
+        cached_bed_temp_dc.store(static_cast<int16_t>(status.value.bed_temp));
+        cached_bed_voltage_dv.store(status.value.bed_voltage);
+        cached_bed_fan_rpm[0].store(status.value.bed_fan_rpm[0]);
+        cached_bed_fan_rpm[1].store(status.value.bed_fan_rpm[1]);
+        cached_psu_fan_rpm.store(status.value.psu_fan_rpm);
+        cached_faults.store(static_cast<uint32_t>(status.value.faults_lo) | (static_cast<uint32_t>(status.value.faults_hi) << 16));
+        cached_node_state.store(status.value.node_state);
+        // Only after all cached_* are published, so readers never see valid=true
+        // with stale cached values.
+        valid.store(true);
         break;
     case CommunicationStatus::ERROR:
-        valid = false;
+        valid.store(false);
         break;
     default:
         // SKIPPED doesn't change the validity.
@@ -198,6 +179,16 @@ CommunicationStatus AcController::refresh_input(PuppyModbus &bus, uint32_t max_a
 
 CommunicationStatus AcController::refresh(PuppyModbus &bus) {
     Lock lock(mutex);
+
+    const auto write = [&](uint16_t &dst, const uint16_t val) {
+        if (val != dst) {
+            dst = val;
+            config.dirty = true;
+        }
+    };
+    write(config.value.bed_target_temp, bed_target_temp_desired.load());
+    write(config.value.bed_fan_pwm, static_cast<uint16_t>(bed_fan_pwm_desired.load()));
+    write(config.value.psu_fan_pwm, static_cast<uint16_t>(psu_fan_pwm_desired.load()));
 
     const auto input = refresh_input(bus, 250);
     const auto holding_config = bus.write(unit, config);
@@ -221,7 +212,7 @@ CommunicationStatus AcController::initial_scan(PuppyModbus &bus) {
 }
 
 bool AcController::all_valid() const {
-    return valid && static_cast<NodeState>(status.value.node_state) == NodeState::ready;
+    return valid.load() && static_cast<NodeState>(cached_node_state.load()) == NodeState::ready;
 }
 
 AcController ac_controller;
