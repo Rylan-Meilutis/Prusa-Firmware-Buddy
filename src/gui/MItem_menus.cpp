@@ -198,8 +198,13 @@ void MI_TOOLHEAD_SETTINGS::click(IWindowMenu &) {
     ScreenFactory::Creator screen = ScreenFactory::Screen<ScreenToolheadDetail>;
 
 #if HAS_TOOLCHANGER()
-    if (prusa_toolchanger.is_toolchanger_enabled() && prusa_toolchanger.get_num_enabled_tools() > 1) {
-        screen = ScreenFactory::Screen<ScreenToolheadSettingsList>;
+    screen = ScreenFactory::Screen<ScreenToolheadSettingsList>;
+#endif
+
+#if PRINTER_IS_PRUSA_XL()
+    const bool is_singletool_xl = !prusa_toolchanger.is_toolchanger_enabled() && PhysicalToolIndex::single_enabled_tool().has_value();
+    if (is_singletool_xl) {
+        screen = ScreenFactory::Screen<ScreenToolheadDetail>;
     }
 #endif
 
