@@ -8,10 +8,16 @@ FooterItemFSValue::FooterItemFSValue(window_t *parent)
 }
 
 int FooterItemFSValue::static_readValue() {
-    if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::extruder)) {
-        return sensor->GetFilteredValue();
+    IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::extruder);
+    if (auto tool = physical_tool_override()) {
+        sensor = GetExtruderFSensor(*tool);
     }
-    return no_tool_value;
+
+    if (sensor) {
+        return sensor->GetFilteredValue();
+    } else {
+        return no_tool_value;
+    }
 }
 
 string_view_utf8 FooterItemFSValue::static_makeView(int value) {
@@ -31,10 +37,16 @@ FooterItemFSValueSide::FooterItemFSValueSide(window_t *parent)
 }
 
 int FooterItemFSValueSide::static_readValue() {
-    if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::side)) {
-        return sensor->GetFilteredValue();
+    IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::side);
+    if (auto tool = physical_tool_override()) {
+        sensor = GetSideFSensor(*tool);
     }
-    return no_tool_value;
+
+    if (sensor) {
+        return sensor->GetFilteredValue();
+    } else {
+        return no_tool_value;
+    }
 }
 
 string_view_utf8 FooterItemFSValueSide::static_makeView(int value) {

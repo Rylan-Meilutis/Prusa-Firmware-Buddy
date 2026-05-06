@@ -28,6 +28,16 @@ constexpr size_t top_of_changeable_area = WizardDefaults::row_1 + WizardDefaults
 constexpr size_t height_of_changeable_area = WizardDefaults::RectRadioButton(1).Top() - top_of_changeable_area;
 constexpr Rect16 ChangeableRect = { col_0, top_of_changeable_area, WizardDefaults::X_space, height_of_changeable_area };
 
+#if HAS_TOOLCHANGER()
+constexpr size_t tool_description_h = 24;
+constexpr Rect16 ToolDescriptionRect = { col_0, top_of_changeable_area, WizardDefaults::X_space, tool_description_h };
+constexpr size_t top_of_body_area = top_of_changeable_area + tool_description_h;
+constexpr size_t height_of_body_area = height_of_changeable_area - tool_description_h;
+#else
+constexpr size_t top_of_body_area = top_of_changeable_area;
+constexpr size_t height_of_body_area = height_of_changeable_area;
+#endif
+
 const char *selftest_title() {
 #if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     return N_("Filament sensors calibration");
@@ -41,8 +51,13 @@ using Phase = PhaseSelftestFSensors;
 class FrameBase {
 
 public:
-    FrameBase(window_frame_t *parent, Phase phase)
-        : radio(parent, WizardDefaults::RectRadioButton(1), phase)
+    FrameBase(window_frame_t *parent, Phase phase, [[maybe_unused]] PhysicalToolIndex tool)
+        :
+#if HAS_TOOLCHANGER()
+        tool_description(parent, ToolDescriptionRect, is_multiline::no)
+        ,
+#endif
+        radio(parent, WizardDefaults::RectRadioButton(1), phase)
         , footer(parent, 0
 #if HAS_EXTRUDER_FSENSOR()
               ,
@@ -53,11 +68,18 @@ public:
               footer::Item::f_s_value_side
 #endif
           ) {
-
+#if HAS_TOOLCHANGER()
+        tool_description.SetAlignment(Align_t::LeftCenter());
+        tool_description.SetText(tool.display_name(tool_description_params));
+#endif
         parent->CaptureNormalWindow(radio);
     }
 
 protected:
+#if HAS_TOOLCHANGER()
+    window_text_t tool_description;
+    PhysicalToolIndex::DisplayNameParams tool_description_params;
+#endif
     RadioButtonFSM radio;
     FooterLine footer;
 };
@@ -68,10 +90,10 @@ protected:
 class FrameTextAndImage : public FrameBase {
 
 public:
-    FrameTextAndImage(window_frame_t *parent, Phase phase, const string_view_utf8 &text, const img::Resource *image)
-        : FrameBase(parent, phase)
-        , text_left(parent, Rect16(col_0, top_of_changeable_area, text_left_width, height_of_changeable_area), is_multiline::yes)
-        , icon_right(parent, Rect16(col_0 + text_left_width + text_icon_space, top_of_changeable_area, icon_right_width, height_of_changeable_area), image)
+    FrameTextAndImage(window_frame_t *parent, Phase phase, PhysicalToolIndex tool, const string_view_utf8 &text, const img::Resource *image)
+        : FrameBase(parent, phase, tool)
+        , text_left(parent, Rect16(col_0, top_of_body_area, text_left_width, height_of_body_area), is_multiline::yes)
+        , icon_right(parent, Rect16(col_0 + text_left_width + text_icon_space, top_of_body_area, icon_right_width, height_of_body_area), image)
 
     {
         text_left.SetAlignment(Align_t::LeftCenter());
@@ -87,10 +109,10 @@ private:
 class FrameSpoolAndText : public FrameBase {
 
 public:
-    FrameSpoolAndText(window_frame_t *parent, Phase phase, const string_view_utf8 &text)
-        : FrameBase(parent, phase)
-        , text_right(parent, Rect16(col_0 + icon_left_width + text_icon_space, top_of_changeable_area, text_right_width, height_of_changeable_area), is_multiline::yes)
-        , icon_left(parent, Rect16(col_0, top_of_changeable_area, icon_left_width, height_of_changeable_area), &img::prusament_spool_white_100x100) {
+    FrameSpoolAndText(window_frame_t *parent, Phase phase, PhysicalToolIndex tool, const string_view_utf8 &text)
+        : FrameBase(parent, phase, tool)
+        , text_right(parent, Rect16(col_0 + icon_left_width + text_icon_space, top_of_body_area, text_right_width, height_of_body_area), is_multiline::yes)
+        , icon_left(parent, Rect16(col_0, top_of_body_area, icon_left_width, height_of_body_area), &img::prusament_spool_white_100x100) {
 
         text_right.SetAlignment(Align_t::LeftCenter());
         text_right.SetText(text);
@@ -108,8 +130,8 @@ private:
 class FrameTextAndImage : public FrameBase {
 
 public:
-    FrameTextAndImage(window_frame_t *parent, Phase phase, const string_view_utf8 &text, std::nullopt_t = std::nullopt)
-        : FrameBase(parent, phase)
+    FrameTextAndImage(window_frame_t *parent, Phase phase, PhysicalToolIndex tool, const string_view_utf8 &text, std::nullopt_t = std::nullopt)
+        : FrameBase(parent, phase, tool)
         , text_main(parent, Rect16::fromLTRB(8, parent->GetRect().Top(), parent->GetRect().Right() - 8, radio.GetRect().Top()), is_multiline::yes) {
         text_main.SetAlignment(Align_t::LeftCenter());
         text_main.SetText(text);
@@ -126,7 +148,7 @@ using FrameSpoolAndText = FrameTextAndImage;
 class FrameInit : public FrameWait {
 
 public:
-    FrameInit(window_frame_t *parent, Phase)
+    FrameInit(window_frame_t *parent, Phase, PhysicalToolIndex)
         : FrameWait(parent, N_("Preparing for filament sensor calibration")) {}
 };
 
@@ -155,7 +177,7 @@ using FrameAskFilament = WithConstructorArgs<FrameSpoolAndText,
 class FrameCalibrating : public FrameWait {
 
 public:
-    FrameCalibrating(window_frame_t *parent, Phase)
+    FrameCalibrating(window_frame_t *parent, Phase, PhysicalToolIndex)
         : FrameWait(parent, N_("Calibrating filament sensors")) {}
 };
 
@@ -259,7 +281,8 @@ ScreenSelftestFSensors::~ScreenSelftestFSensors() {
 
 void ScreenSelftestFSensors::create_frame() {
     const auto phase = get_phase();
-    Frames::create_frame(frame_storage, phase, &inner_frame, phase);
+    const auto tool = PhysicalToolIndex::from_raw(fsm_base_data.GetData()[0]);
+    Frames::create_frame(frame_storage, phase, &inner_frame, phase, tool);
 }
 
 void ScreenSelftestFSensors::destroy_frame() {
@@ -267,8 +290,7 @@ void ScreenSelftestFSensors::destroy_frame() {
 }
 
 void ScreenSelftestFSensors::update_frame() {
-    const uint8_t tool = fsm_base_data.GetData()[0];
-    header.SetText(_("FS calibration - Tool %d").formatted(title_params_, tool + 1));
+    const auto tool = PhysicalToolIndex::from_raw(fsm_base_data.GetData()[0]);
     Frames::update_frame(frame_storage, get_phase(), fsm_base_data.GetData());
-    IFooterItem::set_tool_override(PhysicalToolIndex::from_raw(tool));
+    IFooterItem::set_tool_override(tool);
 }
