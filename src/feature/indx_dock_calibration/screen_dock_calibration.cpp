@@ -39,17 +39,24 @@ constexpr auto txt_tighten_silver_screws = N_("Tighten the silver screws on each
 constexpr auto txt_title_loosen_each_screw = N_("Loosen Dock Bolts");
 constexpr auto txt_loosen_each_screw = N_("Loosen each silver screw by exactly one turn.\n\nWhen done, press Continue.");
 
-/// Read dock_count from the current FSM PhaseData (set by the server when entering select_docks)
-static uint8_t get_dock_count_from_fsm() {
-    return marlin_vars().peek_fsm_states([](const auto &states) -> uint8_t {
+/// Parameters for the select_docks dialog, extracted from FSM PhaseData
+struct DockSelectParams {
+    uint8_t dock_count;
+    bool preselect_all;
+};
+
+/// Read dock_count and preselect_all from the current FSM PhaseData
+/// (set by the server when entering select_docks: data[0]=dock_count, data[1]=preselect_all)
+static DockSelectParams get_dock_select_params_from_fsm() {
+    return marlin_vars().peek_fsm_states([](const auto &states) -> DockSelectParams {
         const auto &state = states[ClientFSM::DockCalibration];
         if (state.has_value()) {
             const auto data = state->GetData();
             if (data[0] > 0) {
-                return data[0];
+                return { .dock_count = data[0], .preselect_all = data[1] != 0 };
             }
         }
-        return PhysicalToolIndex::count;
+        return { .dock_count = PhysicalToolIndex::count, .preselect_all = false };
     });
 }
 
@@ -57,7 +64,8 @@ static uint8_t get_dock_count_from_fsm() {
 class FrameSelectDocks final {
 public:
     FrameSelectDocks(window_frame_t) {
-        const auto result = select_docks_dialog(get_dock_count_from_fsm());
+        const auto params = get_dock_select_params_from_fsm();
+        const auto result = select_docks_dialog(params.dock_count, params.preselect_all);
         if (result.has_value()) {
             marlin_client::FSM_response_variant(PhaseDockCalibration::select_docks, FSMResponseVariant::make<uint8_t>(*result));
         } else {

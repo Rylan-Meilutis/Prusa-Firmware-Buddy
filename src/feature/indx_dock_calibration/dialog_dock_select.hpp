@@ -6,5 +6,6 @@
 
 /// Shows a dialog that prompts the user to select which docks to calibrate
 /// @param dock_count number of docks to show (1-8)
+/// @param preselect_all if true, pre-select every dock; otherwise pre-select only uncalibrated docks
 /// @returns bitmask of selected docks, or std::nullopt if aborted
-std::optional<uint8_t> select_docks_dialog(uint8_t dock_count);
+std::optional<uint8_t> select_docks_dialog(uint8_t dock_count, bool preselect_all);

@@ -124,14 +124,22 @@ private:
 
         // Select how many docks the user has
         uint8_t dock_count = PhysicalToolIndex::count;
+        // When the user picks a known dock count (4 or 8), default to calibrating
+        // every dock; when they pick "Other", let them refine the default selection
+        // (only uncalibrated docks pre-selected).
+        bool preselect_all = false;
         fsm_change(PhaseDockCalibration::select_dock_count);
         {
             const auto response = wait_for_response(PhaseDockCalibration::select_dock_count);
             switch (response) {
             case Response::Docks4:
                 dock_count = 4;
+                preselect_all = true;
                 break;
             case Response::Docks8:
+                dock_count = 8;
+                preselect_all = true;
+                break;
             case Response::Other:
                 dock_count = 8;
                 break;
@@ -140,10 +148,11 @@ private:
             }
         }
 
-        // Select which docks to calibrate — pass dock_count via PhaseData
+        // Select which docks to calibrate — pass dock_count and preselect_all via PhaseData
         {
             fsm::PhaseData data {};
             data[0] = dock_count;
+            data[1] = preselect_all ? 1 : 0;
             fsm_change(PhaseDockCalibration::select_docks, data);
         }
         {

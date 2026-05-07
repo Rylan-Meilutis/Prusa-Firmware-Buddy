@@ -83,14 +83,19 @@ class SelectDocksMenu : public WindowMenuVirtual {
     friend class MI_CONTINUE;
 
 public:
-    SelectDocksMenu(window_frame_t *parent, Rect16 rect, uint8_t dock_count)
+    SelectDocksMenu(window_frame_t *parent, Rect16 rect, uint8_t dock_count, bool preselect_all)
         : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::yes)
         , calibrated_docks(config_store().indx_dock_calibrated_mask.get())
         , dock_count_(dock_count) {
 
-        // Pre-select only uncalibrated docks
         const auto all_docks_mask = (1 << dock_count_) - 1;
-        selected_docks = ~calibrated_docks.to_ulong() & all_docks_mask;
+        if (preselect_all) {
+            // Pre-select every dock — user explicitly asked for a known dock count
+            selected_docks = all_docks_mask;
+        } else {
+            // Pre-select only uncalibrated docks
+            selected_docks = ~calibrated_docks.to_ulong() & all_docks_mask;
+        }
 
         index_mapping_.set_section_size<Item::dock>(dock_count_);
         setup_items();
@@ -149,9 +154,9 @@ void MI_CONTINUE::click(IWindowMenu &) {
 class SelectDocksDialog final : public IDialog {
 
 public:
-    SelectDocksDialog(uint8_t dock_count)
+    SelectDocksDialog(uint8_t dock_count, bool preselect_all)
         : header_(this)
-        , menu_(this, GuiDefaults::RectScreenNoHeader, dock_count) {
+        , menu_(this, GuiDefaults::RectScreenNoHeader, dock_count, preselect_all) {
         header_.SetText(_("SELECT DOCKS"));
         CaptureNormalWindow(menu_);
     }
@@ -167,8 +172,8 @@ private:
 
 } // namespace
 
-std::optional<uint8_t> select_docks_dialog(uint8_t dock_count) {
-    SelectDocksDialog d(dock_count);
+std::optional<uint8_t> select_docks_dialog(uint8_t dock_count, bool preselect_all) {
+    SelectDocksDialog d(dock_count, preselect_all);
     Screens::Access()->gui_loop_until_dialog_closed();
     return d.result();
 }
