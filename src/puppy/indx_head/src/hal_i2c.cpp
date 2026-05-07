@@ -45,7 +45,7 @@ namespace {
     }
 
     namespace thermometer {
-        struct EepromData {
+        struct CalibrationParameters {
             uint16_t ptat25 = 0;
             fixed m { 0 };
             uint32_t u0 = 0;
@@ -53,7 +53,7 @@ namespace {
             uint8_t t_obj1 = 0;
             // Could be uint32_t, but to calcualte it we need floats and we would instantly convert it to float anyway
             float k_inv = 0;
-        } eeprom_data {};
+        } calibration {};
         static constexpr uint8_t address = 0b000'1100;
 
         bool do_general_call() {
@@ -169,7 +169,7 @@ namespace {
         }
 
         constexpr fixed calculate_ambient_kelvin(uint32_t tp_ambient) {
-            return degC25asK + fixed(static_cast<int32_t>(tp_ambient) - eeprom_data.ptat25) / eeprom_data.m;
+            return degC25asK + fixed(static_cast<int32_t>(tp_ambient) - calibration.ptat25) / calibration.m;
         }
 
         constexpr float f_exp_f = 4.2f;
@@ -242,18 +242,18 @@ namespace {
                 return false;
             }
 
-            eeprom_data.ptat25 = static_cast<uint16_t>(raw.at(10)) << 8 | static_cast<uint16_t>(raw.at(11));
+            calibration.ptat25 = static_cast<uint16_t>(raw.at(10)) << 8 | static_cast<uint16_t>(raw.at(11));
             const uint16_t raw_m_reg = static_cast<uint16_t>(raw.at(12)) << 8 | static_cast<uint16_t>(raw.at(13));
-            eeprom_data.m = fixed(raw_m_reg) / 100;
+            calibration.m = fixed(raw_m_reg) / 100;
             const auto raw_u0_reg = static_cast<uint16_t>(raw.at(14)) << 8 | static_cast<uint16_t>(raw.at(15));
-            eeprom_data.u0 = raw_u0_reg + 32768;
+            calibration.u0 = raw_u0_reg + 32768;
             const auto raw_uout1_reg = static_cast<uint16_t>(raw.at(16)) << 8 | static_cast<uint16_t>(raw.at(17));
-            eeprom_data.uout1 = raw_uout1_reg * 2;
-            eeprom_data.t_obj1 = static_cast<uint8_t>(raw.at(18));
+            calibration.uout1 = raw_uout1_reg * 2;
+            calibration.t_obj1 = static_cast<uint8_t>(raw.at(18));
 
-            const auto u_div = static_cast<int32_t>(eeprom_data.uout1) - static_cast<int32_t>(eeprom_data.u0);
+            const auto u_div = static_cast<int32_t>(calibration.uout1) - static_cast<int32_t>(calibration.u0);
             // NOTE: Expensive float op, but OK since it is ideally only done once at init (on failed comm it tries reinit every 2s)
-            eeprom_data.k_inv = (f(eeprom_data.t_obj1 + degC0asKf) - f(degC25asKf)) / static_cast<float>(u_div) * 1.96f; // Emisivity 0.51
+            calibration.k_inv = (f(calibration.t_obj1 + degC0asKf) - f(degC25asKf)) / static_cast<float>(u_div) * 1.96f; // Emisivity 0.51
             return true;
         }
 
@@ -388,7 +388,7 @@ TemperatureReading read_tpis_temperature() {
         };
     }
     const auto t_ambient_k = thermometer::calculate_ambient_kelvin(sensor_data.tp_ambient);
-    const auto val = static_cast<float>(static_cast<int32_t>(sensor_data.tp_object) - static_cast<int32_t>(thermometer::eeprom_data.u0)) * thermometer::eeprom_data.k_inv;
+    const auto val = static_cast<float>(static_cast<int32_t>(sensor_data.tp_object) - static_cast<int32_t>(thermometer::calibration.u0)) * thermometer::calibration.k_inv;
     const float t_obj_k = thermometer::F(val + thermometer::f_mapped(t_ambient_k));
     const float object_temperature_celsius = t_obj_k - thermometer::degC0asKf;
     const float ambient_temperature_celsius = static_cast<float>(t_ambient_k - thermometer::degC0asK);
