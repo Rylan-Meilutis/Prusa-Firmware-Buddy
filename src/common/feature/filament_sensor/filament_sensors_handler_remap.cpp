@@ -45,19 +45,22 @@ uint32_t ask_to_remap() {
     bool new_remap;
 
     // Ask user to remap
+    const char *subject;
     if (!prusa_toolchanger.is_toolchanger_enabled()) {
-        new_remap = MsgBoxQuestion(_("Side Filament Sensor can be remapped to the right side.\n(calibration will follow)\nRemap?"),
-                        { Response::Left, Response::Right, Response::_none, Response::_none }, current_remap)
-            == Response::Right;
+        subject = N_("Side Filament Sensor");
     } else if (!has_right_side_sensors()) {
-        new_remap = MsgBoxQuestion(_("Side Filament Sensors can be remapped to the right side.\n(calibration will follow)\nRemap?"),
-                        { Response::Left, Response::Right, Response::_none, Response::_none }, current_remap)
-            == Response::Right;
+        subject = N_("Side Filament Sensors");
     } else {
-        new_remap = MsgBoxQuestion(_("Third Side Filament Sensor can be remapped to the right side.\n(calibration will follow)\nRemap?"),
-                        { Response::Left, Response::Right, Response::_none, Response::_none }, current_remap)
-            == Response::Right;
+        subject = N_("Third Side Filament Sensor");
     }
+
+    char subject_buf[100];
+    _(subject).copyToRAM(subject_buf);
+
+    StringViewUtf8Parameters<sizeof(subject_buf)> params;
+    new_remap = MsgBoxQuestion(_("%s can be remapped to the right side.\n(calibration will follow)\nRemap?").formatted(params, subject_buf),
+                    { Response::Left, Response::Right, Response::_none, Response::_none }, current_remap)
+        == Response::Right;
 
     // Change
     if (new_remap != current_remap) {
