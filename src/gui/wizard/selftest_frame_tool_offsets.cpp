@@ -31,11 +31,7 @@ void SelftestFrameToolOffsets::change() {
         //  0:15 - Remove pin and install sheet
         // For 2 tool printer - at least 6 minutes
         // For 5 tool printer - at least 12:45
-        if (prusa_toolchanger.get_num_enabled_tools() <= 2) {
-            text_detail.SetText(_("The calibration should take a little over 7 minutes."));
-        } else {
-            text_detail.SetText(_("The calibration should take a little over 14 minutes."));
-        }
+        text_detail.SetText(_("The calibration should take a little over %d minutes.").formatted(text_detail_params, (prusa_toolchanger.get_num_enabled_tools() <= 2) ? 7 : 14));
         text_detail.Show();
         break;
 

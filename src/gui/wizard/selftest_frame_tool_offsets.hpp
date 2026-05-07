@@ -12,6 +12,7 @@ class SelftestFrameToolOffsets : public SelftestFrameNamedWithRadio {
     window_text_t text_phase;
     window_text_t text_detail; ///< Estimate (how long it will take) | calibration target temperature
     char target_temp_text[10];
+    StringViewUtf8Parameters<3> text_detail_params;
 
 protected:
     virtual void change() override;
