@@ -20,6 +20,7 @@
 #include <filament.hpp>
 #include <config_store/store_instance.hpp>
 #include <logging/log.hpp>
+#include <metric.h>
 #include <random/random.h>
 #include <mapi/parking.hpp>
 #include <raii/scope_guard.hpp>
@@ -38,6 +39,9 @@
 static_assert(HAS_TOOLCHANGER(), "Needs toolchanger");
 
 LOG_COMPONENT_DEF(ToolOffsetCalib, logging::Severity::info);
+
+// Per-tool hotend offset (result of tool offset calibration) [mm]
+METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
 namespace {
 // INDX_TODO: Set preferred reference line positions
@@ -456,6 +460,12 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             const auto tool = PhysicalToolIndex::from_raw(i);
             hotend_offset[tool].x -= avg_x_offset;
             hotend_offset[tool].y -= avg_y_offset;
+
+            metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",
+                i,
+                static_cast<double>(hotend_offset[tool].x),
+                static_cast<double>(hotend_offset[tool].y),
+                static_cast<double>(hotend_offset[tool].z));
         }
 
         // Spread is invariant under the midpoint subtraction, so we can use the pre-normalization extremes.
