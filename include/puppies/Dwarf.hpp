@@ -150,7 +150,7 @@ public:
      */
     [[nodiscard]] inline bool refresh_discrete_general_status() {
         // Preset very old value to timestamp so it passes any age check in refresh()
-        DiscreteGeneralStatus.last_read_timestamp_ms = last_ticks_ms() - (std::numeric_limits<uint32_t>::max() / 2);
+        discrete_general_status_last_read_ms = last_ticks_ms() - (std::numeric_limits<uint32_t>::max() / 2);
         return true;
     }
 
@@ -326,7 +326,6 @@ private:
         bool is_button_up_pressed {};
         bool is_button_down_pressed {};
     };
-    ModbusDiscreteInputBlock<GENERAL_DISCRETE_INPUTS_ADDR, DiscreteGeneralStatus_t> DiscreteGeneralStatus {};
 
     MODBUS_REGISTER FanReadRegisters {
         uint16_t rpm {};
@@ -349,8 +348,7 @@ private:
         uint16_t system_24V_mV {};
         uint16_t heater_current_mA {};
     };
-    ModbusInputRegisterBlock<FAULT_STATUS_ADDR, RegisterGeneralStatus_t> RegisterGeneralStatus {};
-    // Cached from RegisterGeneralStatus.ToolFilamentSensor, for use from an interrupt (where we can't lock).
+    // Cached tool filament sensor value, for use from an interrupt (where we can't lock).
     std::atomic<uint16_t> tool_filament_sensor = 0;
 
     MODBUS_REGISTER TimeSync_t {
@@ -379,43 +377,61 @@ private:
             float d {};
         } pid;
     };
-    ModbusHoldingRegisterBlock<GENERAL_WRITE_REQUEST, GeneralWrite_t> GeneralWrite;
 
-    // --- Cached read-side state, populated by read_general_status() / read_discrete_general_status() ---
+    // --- Read-side state, populated by read_general_status() / read_discrete_general_status() ---
 
-    // Mirrors of RegisterGeneralStatus.value.*, read lock-free from Marlin.
-    // Initial values match the constructor's pre-populated register values.
+    // General-status fields, read lock-free from Marlin.
     // HEATER_0_MINTEMP / HEATBREAK_MINTEMP are macros unavailable in this header;
     // the non-zero initial values are set in the constructor instead.
-    std::atomic<int16_t> cached_hotend_temp { 0 };
-    std::atomic<uint16_t> cached_heater_pwm { 0 };
-    std::atomic<int16_t> cached_heatbreak_temp { 0 };
-    std::array<std::atomic<uint16_t>, NUM_FANS> cached_fan_pwm {};
-    std::array<std::atomic<uint16_t>, NUM_FANS> cached_fan_rpm {};
-    std::atomic<uint8_t> cached_fan_rpm_ok { 0 }; // bitmask, one bit per fan
-    std::array<std::atomic<uint8_t>, NUM_FANS> cached_fan_state {};
-    std::atomic<int16_t> cached_mcu_temperature { 0 };
-    std::atomic<int16_t> cached_board_temperature { 0 };
-    std::atomic<uint16_t> cached_24V_mV { 0 };
-    std::atomic<uint16_t> cached_heater_current_mA { 0 };
+    std::atomic<int16_t> hotend_temp { 0 };
+    std::atomic<uint16_t> heater_pwm { 0 };
+    std::atomic<int16_t> heatbreak_temp { 0 };
+    std::array<std::atomic<uint16_t>, NUM_FANS> fan_pwm {};
+    std::array<std::atomic<uint16_t>, NUM_FANS> fan_rpm {};
+    std::atomic<uint8_t> fan_rpm_ok { 0 }; // bitmask, one bit per fan
+    std::array<std::atomic<uint8_t>, NUM_FANS> fan_state {};
+    std::atomic<int16_t> mcu_temperature { 0 };
+    std::atomic<int16_t> board_temperature { 0 };
+    std::atomic<uint16_t> v24_mV { 0 };
+    std::atomic<uint16_t> heater_current_mA { 0 };
 
-    // Mirrors of DiscreteGeneralStatus.value.*, packed into one byte, read lock-free from Marlin.
+    // Discrete-status flags, packed into one byte, read lock-free from Marlin.
     static constexpr uint8_t DISC_PICKED = 1 << 0;
     static constexpr uint8_t DISC_PARKED = 1 << 1;
     static constexpr uint8_t DISC_BTN_UP = 1 << 2;
     static constexpr uint8_t DISC_BTN_DN = 1 << 3;
-    std::atomic<uint8_t> cached_discrete_status { 0 };
+    std::atomic<uint8_t> discrete_status { 0 };
 
     // --- Desired write-side state, applied by write_general() ---
 
-    // Applied to GeneralWrite.value.HotendRequestedTemperature on next write_general().
+    // Desired hotend target, sent on next write_general().
     std::atomic<uint16_t> hotend_target_temp_desired { 0 };
-    // Applied to GeneralWrite.value.HeatbreakRequestedTemperature on next write_general().
+    // Desired heatbreak target, sent on next write_general().
     // DEFAULT_HEATBREAK_TEMPERATURE is a macro unavailable in this header;
     // the non-zero initial value is set in the constructor instead.
     std::atomic<uint16_t> heatbreak_target_temp_desired { 0 };
-    // Applied to GeneralWrite.value.fan_pwm[] on next write_general().
+    // Desired fan PWMs, sent on next write_general().
     std::array<std::atomic<uint16_t>, NUM_FANS> fan_pwm_desired { 0, 0 };
+
+    // Timestamps for max_age_ms skip logic (puppy task only).
+    uint32_t register_general_status_last_read_ms { 0 };
+    uint32_t discrete_general_status_last_read_ms { 0 };
+    // Atomic so lock-free setters can flip it without taking the mutex.
+    std::atomic<bool> general_write_dirty { false };
+
+    // Plain mutex-protected write state for multi-field writes.
+    struct __attribute__((packed)) {
+        uint8_t not_selected {};
+        uint8_t selected {};
+    } led_pwm {};
+
+    std::array<uint16_t, dwarf_shared::StatusLed::REG_SIZE> status_led {};
+
+    struct __attribute__((packed)) {
+        float p {};
+        float i {};
+        float d {};
+    } pid {};
 
     static_assert(std::atomic<bool>::is_always_lock_free);
     static_assert(std::atomic<uint8_t>::is_always_lock_free);
@@ -485,7 +501,7 @@ private:
     constexpr logging::Component &get_log_component(uint8_t dwarf_nr);
     CommunicationStatus read_discrete_general_status(PuppyModbus &);
     CommunicationStatus read_general_status(PuppyModbus &);
-    void handle_dwarf_fault(PuppyModbus &);
+    void handle_dwarf_fault(PuppyModbus &, dwarf_shared::errors::FaultStatusMask fault_status);
     bool set_loadcell_nolock(PuppyModbus &, bool active);
     bool set_accelerometer_nolock(PuppyModbus &, bool active);
     bool raw_set_loadcell(PuppyModbus &, bool active); // Low level loadcell enable/disable, no dependencies
