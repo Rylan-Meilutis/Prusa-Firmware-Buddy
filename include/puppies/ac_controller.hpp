@@ -4,6 +4,7 @@
 #include "PuppyModbus.hpp"
 #include <ac_controller/modbus.hpp>
 #include <ac_controller/faults.hpp>
+#include <ac_controller/types.hpp>
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -43,37 +44,37 @@ public:
 
 private:
     // Serializes the puppy task's modbus operations with the LED-handler task's
-    // led_config writes; cross-task access to mirrored fields is lock-free via atomics.
+    // led_config writes; cross-task access to status fields is lock-free via atomics.
     mutable freertos::Mutex mutex;
 
-    // --- Cached read-side state, populated by refresh_input() ---
+    // --- Read-side state, populated by refresh_input() ---
 
-    /// Set to true only after all cached_* mirrors are published, false on error.
+    /// Set to true only after all status fields are published, false on error.
     /// SKIPPED leaves it unchanged. Read lock-free from Marlin.
     std::atomic<bool> valid { false };
 
-    // Mirror of status.value.mcu_temp (decidegree Celsius).
-    std::atomic<int16_t> cached_mcu_temp_dc { 0 };
+    // MCU temperature (decidegree Celsius).
+    std::atomic<int16_t> mcu_temp_dc { 0 };
 
-    // Mirror of status.value.bed_temp (decidegree Celsius).
-    std::atomic<int16_t> cached_bed_temp_dc { 0 };
+    // Bed temperature (decidegree Celsius).
+    std::atomic<int16_t> bed_temp_dc { 0 };
 
-    // Mirror of status.value.bed_voltage (deci Volt).
-    std::atomic<uint16_t> cached_bed_voltage_dv { 0 };
+    // Bed voltage (deci Volt).
+    std::atomic<uint16_t> bed_voltage_dv { 0 };
 
-    // Mirrors of status.value.bed_fan_rpm[].
-    std::array<std::atomic<uint16_t>, 2> cached_bed_fan_rpm {};
+    // Bed fan RPMs.
+    std::array<std::atomic<uint16_t>, 2> bed_fan_rpm {};
 
-    // Mirror of status.value.psu_fan_rpm.
-    std::atomic<uint16_t> cached_psu_fan_rpm { 0 };
+    // PSU fan RPM.
+    std::atomic<uint16_t> psu_fan_rpm { 0 };
 
-    // Mirror of status.value.faults_lo | (faults_hi << 16).
-    std::atomic<uint32_t> cached_faults { 0 };
+    // Faults: faults_lo | (faults_hi << 16).
+    std::atomic<uint32_t> faults { 0 };
 
-    // Mirror of status.value.node_state.
-    std::atomic<uint16_t> cached_node_state { 0 };
+    // Node state.
+    std::atomic<uint16_t> node_state { 0 };
 
-    // --- Desired write-side state, applied to config.value.* in refresh() ---
+    // --- Desired write-side state, applied to config block in refresh() ---
 
     std::atomic<uint16_t> bed_target_temp_desired { 0 };
     std::atomic<uint8_t> bed_fan_pwm_desired { 0 };
@@ -85,12 +86,21 @@ private:
     static_assert(std::atomic<uint32_t>::is_always_lock_free);
     static_assert(std::atomic<uint8_t>::is_always_lock_free);
 
-    using Status = ac_controller::modbus::Status;
-    using Config = ac_controller::modbus::Config;
-    using LedConfig = ac_controller::modbus::LedConfig;
-    ModbusInputRegisterBlock<Status::address, Status> status;
-    ModbusHoldingRegisterBlock<Config::address, Config> config;
-    ModbusHoldingRegisterBlock<LedConfig::address, LedConfig> led_config;
+    // Type aliases — used as template parameters when stack-building modbus blocks.
+    using Status_t = ac_controller::modbus::Status;
+    using Config_t = ac_controller::modbus::Config;
+    using LedConfig_t = ac_controller::modbus::LedConfig;
+
+    // Timestamp for max_age_ms skip logic (puppy task only).
+    uint32_t status_last_read_ms { 0 };
+    // Atomic so lock-free setters can flip them without taking the mutex.
+    std::atomic<bool> config_dirty { false };
+    std::atomic<bool> led_config_dirty { false };
+
+    // Plain mutex-protected write state for multi-field LED writes.
+    ac_controller::AnimationType led_animation_type {};
+    std::array<uint8_t, 4> led_rgbw {};
+    uint8_t led_progress_percent { 0 };
 
     CommunicationStatus refresh_input(PuppyModbus &, uint32_t max_age);
 
