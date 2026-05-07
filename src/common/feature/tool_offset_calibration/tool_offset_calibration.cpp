@@ -40,6 +40,7 @@ static_assert(HAS_TOOLCHANGER(), "Needs toolchanger");
 
 LOG_COMPONENT_DEF(ToolOffsetCalib, logging::Severity::info);
 
+METRIC_DEF(metric_sensor_pos, "tool_off_sensor_pos", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 // Per-tool hotend offset (result of tool offset calibration) [mm]
 METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
@@ -497,6 +498,9 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 static_cast<double>(probing_config.sensor_position.x), static_cast<double>(probing_config.sensor_position.y),
                 static_cast<double>(new_sensor_position.x), static_cast<double>(new_sensor_position.y));
             config_store().tool_offset_sensor_position.set(new_sensor_position);
+            metric_record_custom(&metric_sensor_pos, " x=%.3f,y=%.3f",
+                static_cast<double>(new_sensor_position.x),
+                static_cast<double>(new_sensor_position.y));
 
             for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
                 // Note: we update offset for all enabled tools, even if they are not measured in this run
