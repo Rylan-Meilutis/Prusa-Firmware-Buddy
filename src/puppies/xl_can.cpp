@@ -42,6 +42,27 @@ OTP_v5 XlCan::get_otp() const {
     return otp;
 }
 
+CommunicationStatus XlCan::set_modular_bed_reset(PuppyModbus &bus, bool nreset) {
+    Lock lock(mutex);
+    mmu_nreset_desired.store(nreset);
+    config.dirty = true;
+
+    // Send immediately - needed for the modular bed boodstrap
+    return refresh_holding(bus);
+}
+
+CommunicationStatus XlCan::refresh_holding(PuppyModbus &bus) {
+    // Caller holds `mutex`.
+    const auto write = [&](uint16_t &dst, const uint16_t val) {
+        if (val != dst) {
+            dst = val;
+            config.dirty = true;
+        }
+    };
+    write(config.value.mmu_nreset, static_cast<uint16_t>(mmu_nreset_desired.load() ? 1 : 0));
+    return bus.write(unit, config);
+}
+
 XlCan xl_can;
 
 } // namespace buddy::puppies
