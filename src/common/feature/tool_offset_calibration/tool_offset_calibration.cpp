@@ -480,7 +480,12 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             return false;
         }
 
-        if (std::abs(avg_x_offset) > probing_config.sensor_position_update_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_update_threshold) {
+        if (std::abs(avg_x_offset) > probing_config.sensor_position_error_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_error_threshold) {
+            (void)marlin_server::prompt_warning(WarningType::HotendOffsetUnsafeSensorXY);
+            marlin_server::quick_stop();
+            marlin_server::print_abort();
+            return false;
+        } else if (std::abs(avg_x_offset) > probing_config.sensor_position_update_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_update_threshold) {
             // Detected sensor movement - update stored sensor position and apply correction to all tools.
             // `probing_config.sensor_position` is the position the scan was conducted at (either the
             // stored value or the default, depending on what apply_stored_sensor_position resolved to).

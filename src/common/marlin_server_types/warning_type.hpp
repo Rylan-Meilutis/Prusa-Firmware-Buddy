@@ -103,6 +103,7 @@ enum class WarningType : uint32_t {
     ToolOffsetXyCalibrationFailed,
     HotendOffsetUnsafeZDeviation,
     HotendOffsetUnsafeXyDeviation,
+    HotendOffsetUnsafeSensorXY,
 #endif
 #if HAS_ANFC()
     /// OpenPrintTag has been assigned to the specified tool, will do filament tracking

@@ -87,6 +87,9 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
 
     case WarningType::HotendOffsetUnsafeXyDeviation:
         return PhasesWarning::HotendOffsetUnsafeXyDeviation;
+
+    case WarningType::HotendOffsetUnsafeSensorXY:
+        return PhasesWarning::HotendOffsetUnsafeSensorXY;
 #endif
 
         //

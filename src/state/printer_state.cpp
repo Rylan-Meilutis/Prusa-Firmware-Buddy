@@ -734,6 +734,8 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 
     case WarningType::HotendOffsetUnsafeXyDeviation:
         return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_UNSAFE_XY;
+    case WarningType::HotendOffsetUnsafeSensorXY:
+        return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_UNSAFE_SENSOR_XY;
 #endif
 
 #if HAS_SELFTEST()

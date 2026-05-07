@@ -345,6 +345,7 @@ enum class PhasesWarning : PhaseUnderlyingType {
     ToolOffsetXyCalibrationFailed,
     HotendOffsetUnsafeZDeviation,
     HotendOffsetUnsafeXyDeviation,
+    HotendOffsetUnsafeSensorXY,
 #endif
 
     /// Shown when the M334 is attempting to change metrics configuration, prompting the user to confirm the change (security reasons)
@@ -690,6 +691,7 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
         { PhasesWarning::ToolOffsetXyCalibrationFailed, { Response::Retry, Response::Abort } },
         { PhasesWarning::HotendOffsetUnsafeZDeviation, { Response::Abort } },
         { PhasesWarning::HotendOffsetUnsafeXyDeviation, { Response::Abort } },
+        { PhasesWarning::HotendOffsetUnsafeSensorXY, { Response::Abort } },
 #endif
         { PhasesWarning::MetricsConfigChangePrompt, { Response::Yes, Response::No } },
 };
