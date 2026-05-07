@@ -170,10 +170,6 @@ namespace {
             return table;
         }
 
-        constexpr fixed calculate_ambient_kelvin(uint32_t tp_ambient) {
-            return degC25asK + fixed(static_cast<int32_t>(tp_ambient) - calibration.ptat25) / calibration.m;
-        }
-
         constexpr float f_exp_f = 4.2f;
         constexpr float f(float x) { return std::pow(x, f_exp_f); };
         // This function call is used to calculate f for ambient temp (according to datasheet the range is -25C - 80C, but the value is in Kelvin)
@@ -200,6 +196,19 @@ namespace {
 
         constexpr float F_exp_f = 1 / f_exp_f;
         constexpr float F(float x) { return std::pow(x, F_exp_f); };
+
+        TemperatureReading calculate_temps(SensorData measurement) {
+            const auto t_ambient_k = thermometer::degC25asK + fixed(static_cast<int32_t>(measurement.tp_ambient) - thermometer::calibration.ptat25) / thermometer::calibration.m;
+            const auto val = static_cast<float>(static_cast<int32_t>(measurement.tp_object) - static_cast<int32_t>(thermometer::calibration.u0)) * thermometer::calibration.k_inv;
+            const float t_obj_k = thermometer::F(val + thermometer::f_mapped(t_ambient_k));
+            const float object_c = t_obj_k - thermometer::degC0asKf;
+            const float ambient_c = static_cast<float>(t_ambient_k - thermometer::degC0asK);
+            return TemperatureReading {
+                .object_temperature_celsius = object_c,
+                .ambient_temperature_celsius = ambient_c,
+                .valid = true
+            };
+        }
 
         constexpr bool validate_checksum(std::span<const std::byte, 32> data) {
             auto checksum = static_cast<uint16_t>(data[0]);
@@ -401,8 +410,8 @@ TemperatureReading read_tpis_temperature() {
         };
     }
     // FIXME: Use scaled integers
-    const auto sensor_data = thermometer::read_sensor_data();
-    if (!sensor_data.has_value()) {
+    const auto measurement = thermometer::read_sensor_data();
+    if (!measurement.has_value()) {
         rtt::print("i2c: thermo read failed\n");
         // Return last valid temperature on error
         return {
@@ -411,19 +420,15 @@ TemperatureReading read_tpis_temperature() {
             .valid = false,
         };
     }
-    const auto t_ambient_k = thermometer::calculate_ambient_kelvin(sensor_data->tp_ambient);
-    const auto val = static_cast<float>(static_cast<int32_t>(sensor_data->tp_object) - static_cast<int32_t>(thermometer::calibration.u0)) * thermometer::calibration.k_inv;
-    const float t_obj_k = thermometer::F(val + thermometer::f_mapped(t_ambient_k));
-    const float object_temperature_celsius = t_obj_k - thermometer::degC0asKf;
-    const float ambient_temperature_celsius = static_cast<float>(t_ambient_k - thermometer::degC0asK);
 
-    const int32_t diff = static_cast<int32_t>(object_temperature_celsius) - static_cast<int32_t>(last_valid_object_temperature_celsius);
+    const auto temps = thermometer::calculate_temps(*measurement);
+    const int32_t diff = static_cast<int32_t>(temps.object_temperature_celsius) - static_cast<int32_t>(last_valid_object_temperature_celsius);
     const bool plausible = (diff > -max_plausible_jump) && (diff < max_plausible_jump);
     temp_debouncer.push(plausible);
 
     if (plausible) {
-        last_valid_object_temperature_celsius = object_temperature_celsius;
-        last_valid_ambient_temperature_celsius = ambient_temperature_celsius;
+        last_valid_object_temperature_celsius = temps.object_temperature_celsius;
+        last_valid_ambient_temperature_celsius = temps.ambient_temperature_celsius;
         return {
             .object_temperature_celsius = last_valid_object_temperature_celsius,
             .ambient_temperature_celsius = last_valid_ambient_temperature_celsius,
@@ -432,11 +437,11 @@ TemperatureReading read_tpis_temperature() {
     }
 
     if (temp_debouncer.is_stable() && !temp_debouncer.value()) {
-        last_valid_object_temperature_celsius = object_temperature_celsius;
-        last_valid_ambient_temperature_celsius = ambient_temperature_celsius;
+        last_valid_object_temperature_celsius = temps.object_temperature_celsius;
+        last_valid_ambient_temperature_celsius = temps.ambient_temperature_celsius;
         return {
-            .object_temperature_celsius = object_temperature_celsius,
-            .ambient_temperature_celsius = ambient_temperature_celsius,
+            .object_temperature_celsius = temps.object_temperature_celsius,
+            .ambient_temperature_celsius = temps.ambient_temperature_celsius,
             .valid = true,
         };
     }
