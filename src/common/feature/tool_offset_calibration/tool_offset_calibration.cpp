@@ -46,8 +46,8 @@ METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENA
 
 namespace {
 // INDX_TODO: Set preferred reference line positions
-constexpr xy_pos_t POS_TOOL_0 = { 25.0f, 5.0f };
-constexpr xy_pos_t POS_TOOL_LAST = { 65.0f, 5.0f };
+constexpr xy_pos_t POS_TOOL_0 = { 200.0f, 5.0f };
+constexpr xy_pos_t POS_TOOL_LAST = { 240.0f, 5.0f };
 
 // Safe Z height for travel moves between probes
 constexpr float SAFE_Z_HEIGHT = 3.0f;
