@@ -2298,6 +2298,16 @@ static void _server_print_loop(void) {
         }
 #endif // HAS_LOADCELL()
 
+#if HAS_TOOLCHANGER()
+        {
+            METRIC_DEF(metric_dock_position, "dock_pos", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
+            for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                const xy_float_t pos = prusa_toolchanger.get_tool_dock_position(tool);
+                metric_record_custom(&metric_dock_position, ",tool=%u x=%.3f,y=%.3f", static_cast<unsigned int>(tool.to_raw()), (double)pos.x, (double)pos.y);
+            }
+        }
+#endif
+
         print_job_timer.start();
         marlin_vars().print_start_time = time(nullptr);
 
