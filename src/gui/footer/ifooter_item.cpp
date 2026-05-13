@@ -73,11 +73,11 @@ Rect16::Width_t IFooterIconText::MeasureTextWidth(const string_view_utf8 &text) 
 
 FooterIconText_IntVal::FooterIconText_IntVal(window_t *parent, const img::Resource *icon,
     view_maker_cb view_maker, reader_cb value_reader)
-    : IFooterIconText(parent, icon, GetTotalWidth(icon ? icon->w : 0, view_maker(value_reader())))
+    : IFooterIconText(parent, icon, icon ? icon->w : 0)
     , makeView(view_maker)
     , readCurrentValue(value_reader)
     , value(value_reader()) {
-    text.SetText(makeView(value));
+    updateState();
 }
 
 Rect16::Width_t FooterIconText_IntVal::GetTotalWidth(Rect16::Width_t icon_w, const string_view_utf8 &view) {
@@ -110,11 +110,11 @@ resized_t FooterIconText_IntVal::updateState() {
 }
 FooterIconText_FloatVal::FooterIconText_FloatVal(window_t *parent, const img::Resource *icon,
     view_maker_cb view_maker, reader_cb value_reader)
-    : IFooterIconText(parent, icon, GetTotalWidth(icon ? icon->w : 0, view_maker(value_reader())))
+    : IFooterIconText(parent, icon, icon ? icon->w : 0)
     , makeView(view_maker)
     , readCurrentValue(value_reader)
     , value(value_reader()) {
-    text.SetText(makeView(value));
+    updateState();
 }
 
 Rect16::Width_t FooterIconText_FloatVal::GetTotalWidth(Rect16::Width_t icon_w, const string_view_utf8 &view) {
