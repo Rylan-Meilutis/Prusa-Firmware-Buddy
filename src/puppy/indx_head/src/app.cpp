@@ -47,6 +47,8 @@ constexpr uint32_t control_delay_us = 1'000'000 / control_frequency;
 constexpr uint32_t fan_update_frequency = 10 /*Hz*/;
 constexpr uint32_t fan_update_delay_us = 1'000'000 / fan_update_frequency;
 
+constexpr uint32_t heatbreak_fan_turn_off_delay_ms = 2 * 60 * 1000;
+
 std::atomic<uint8_t> printfan_pwm = 0;
 std::atomic<uint8_t> heatbreak_fan_pwm = 0;
 
@@ -84,9 +86,13 @@ void run() {
     // Wait for the temperature data to be stable
     freertos::delay(300);
 
-    uint64_t last_induction_control_us = timing::get_timestamp_us();
-    uint64_t last_fan_update_us = timing::get_timestamp_us();
-    uint32_t last_valid_nozzle_temp_ms = timing::get_timestamp_ms(); // Timestamp of last valid nozzle temp reading
+    uint64_t startup_timestamp_us = timing::get_timestamp_us();
+    uint32_t startup_timestamp_ms = timing::get_timestamp_ms();
+
+    uint64_t last_induction_control_us = startup_timestamp_us;
+    uint64_t last_fan_update_us = startup_timestamp_us;
+    uint32_t last_valid_nozzle_temp_ms = startup_timestamp_ms; // Timestamp of last valid nozzle temp reading
+    uint32_t heatbreak_fan_can_stop_ms = startup_timestamp_ms - heatbreak_fan_turn_off_delay_ms;
 
     FOREVER_WITH_WATCHDOG(100) {
         const uint64_t now_us = timing::get_timestamp_us();
@@ -170,7 +176,14 @@ void run() {
                 const bool is_heating = target_temp.load() > 0;
                 const bool nozzle_temp_threshold_reached = get_nozzle_temp_compensated_c100() > 50 * 100; /*stored in centiDeg*/
                 const bool board_temp_threshold_reached = board_temp_degC > 40; /*stored in Deg*/
-                const uint8_t pwm = (is_heating || nozzle_temp_threshold_reached || board_temp_threshold_reached || selftest_mode.load()) ? 255 : 0;
+                const bool should_run = is_heating || nozzle_temp_threshold_reached || board_temp_threshold_reached || selftest_mode.load();
+                if (should_run) {
+                    heatbreak_fan_can_stop_ms = now_ms;
+                }
+                uint8_t pwm = 0;
+                if (should_run || now_ms - heatbreak_fan_can_stop_ms < heatbreak_fan_turn_off_delay_ms) {
+                    pwm = 255;
+                }
                 hal::tim::set_heatbreak_fan_pwm(pwm);
                 if (heatbreak_fan_pwm == 0) {
                     // MUST be before setting the PWM to avoid race conditions
