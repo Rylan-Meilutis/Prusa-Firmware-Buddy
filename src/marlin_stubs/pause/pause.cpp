@@ -254,7 +254,6 @@ LoadUnloadMode Pause::get_load_unload_mode() {
 bool Pause::should_park() {
     auto virtual_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
     bool is_already_parked = !virtual_tool.has_value();
-    assert(!is_already_parked);
     if (is_already_parked) {
         return false;
     }
