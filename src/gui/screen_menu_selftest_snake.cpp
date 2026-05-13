@@ -335,18 +335,7 @@ void do_snake(Action action, PhysicalToolIndex tool) {
                 side_fsensor_remap::ask_to_remap();
             }
 #endif
-#if HAS_INDX()
-            // INDX has no submenu — calibrate all enabled tools in series
-            {
-                uint8_t mask = 0;
-                for (auto t : PhysicalToolIndex::all().skip_all_disabled()) {
-                    mask |= (1 << t.to_raw());
-                }
-                marlin_client::gcode_printf("M1981 F%d", mask);
-            }
-#else
             marlin_client::gcode_printf("M1981 T%d", tool.to_raw());
-#endif
             break;
 
 #if HAS_GEARBOX_ALIGNMENT()

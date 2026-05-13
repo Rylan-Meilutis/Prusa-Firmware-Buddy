@@ -23,7 +23,7 @@
 using namespace buddy;
 
 namespace SelftestSnake {
-TestResult get_test_result(Action action, [[maybe_unused]] ToolMask tool) {
+TestResult get_test_result(Action action, ToolMask tool) {
 
     SelftestResult sr = config_store().selftest_result.get();
 
@@ -81,8 +81,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] ToolMask tool) {
     case Action::DoorSensor:
         return test_result::evaluate_results(config_store().selftest_result_door_sensor.get());
     case Action::FilamentSensorCalibration:
-        // No submenu on INDX — always check all enabled tools
-        return merge_hotends_evaluations([](const PhysicalToolIndex e) {
+        return merge_hotends(tool, [](const PhysicalToolIndex e) {
             return get_fsensor_calibration_result(e);
         });
     case Action::DockCalibration:

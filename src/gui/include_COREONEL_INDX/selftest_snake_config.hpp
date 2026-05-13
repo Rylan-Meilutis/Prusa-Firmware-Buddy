@@ -34,6 +34,8 @@ enum class Action : uint8_t {
 
 constexpr bool has_submenu(Action action) {
     switch (action) {
+    case Action::FilamentSensorCalibration:
+        return true;
     default:
         return false;
     }
@@ -51,8 +53,15 @@ constexpr bool is_singletool_only_action([[maybe_unused]] Action action) {
     return false;
 }
 
-constexpr auto get_submenu_label_template([[maybe_unused]] Action action) -> const char * {
-    bsod_unreachable();
+constexpr const char *get_submenu_label_template(Action action) {
+    switch (action) {
+
+    case Action::FilamentSensorCalibration:
+        return N_("Tool %d Filament Sensor Calibration");
+
+    default:
+        bsod_unreachable();
+    }
 }
 
 constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
