@@ -21,6 +21,10 @@ public:
 
     void set_config(bool ch0_enabled, bool ch1_enabled);
 
+    /// Whether we can reach the sensor. On XLS the sensor is optional
+    /// and needs to be evaluated in runtime
+    bool is_enabled() const;
+
     // These are called from the puppy task.
     CommunicationStatus refresh(PuppyModbus &);
     CommunicationStatus initial_scan(PuppyModbus &);

@@ -350,7 +350,7 @@ static void puppy_task_loop(PuppyModbus &bus) {
             }
 #endif
 #if HAS_TOOL_OFFSET_SENSOR()
-            {
+            if (tool_offset_sensor.is_enabled()) {
                 CommunicationStatus status = tool_offset_sensor.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
                     return;
@@ -439,7 +439,7 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-    if (tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
+    if (tool_offset_sensor.is_enabled() && tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
         return false;
     }
 #endif

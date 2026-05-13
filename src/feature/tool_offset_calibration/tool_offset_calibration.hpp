@@ -53,4 +53,12 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
 /// error is logged).
 void apply_stored_sensor_position(tool_offset::ProbingConfig &config);
 
+/// True iff the contactless tool-offset hardware is reachable in this
+/// build/runtime configuration. The xlBuddy master image is shared between
+/// plain XL (no bridge, no sensor) and XLS (bridge + sensor on dock 9), so
+/// the compile-time HAS_TOOL_OFFSET_SENSOR() flag isn't sufficient on its
+/// own — the sensor driver discriminates at runtime via the bridge presence
+/// flag set by the puppy bootstrap.
+[[nodiscard]] bool is_hardware_available();
+
 } // namespace tool_offset_calibration

@@ -32,14 +32,10 @@
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #include <feature/gcode_exception/gcode_exception.hpp>
-#include <option/has_xl_can.h>
+#include <puppies/tool_offset_sensor.hpp>
 
 #if HAS_NOZZLE_CLEANER()
     #include <nozzle_cleaner.hpp>
-#endif
-
-#if HAS_XL_CAN()
-    #include <puppies/xl_can.hpp>
 #endif
 
 #include <option/has_spool_join.h>
@@ -75,22 +71,6 @@ constexpr float MAX_XY_OFFSET_DIFFERENCE = 0.4f;
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_Z_PROBING_TEMP = 170;
 constexpr int16_t DEFAULT_XY_PROBING_TEMP = 170;
-
-/// True iff the contactless tool-offset hardware is reachable in this
-/// build/runtime configuration. The xlBuddy master image is shared between
-/// plain XL (no bridge, no sensor) and XLS (bridge + sensor on dock 9), so
-/// the compile-time HAS_TOOL_OFFSET_SENSOR() flag isn't sufficient on its
-/// own — discriminate at runtime via the bridge presence flag set by the
-/// puppy bootstrap. INDX builds always have the sensor wired through xBE
-/// and need no runtime gate.
-[[nodiscard]] bool is_hardware_available() {
-#if HAS_XL_CAN()
-    return buddy::puppies::xl_can.is_enabled();
-#else
-    return true;
-#endif
-}
-
 struct ToolTemperatures {
     int16_t cleaning; // nozzle temp for purge/clean
     int16_t z_probing; // cooled-down temp for Z probing
@@ -720,6 +700,10 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
         log_info(ToolOffsetCalib, "Tool offset calibration done");
         return true;
     }
+}
+
+[[nodiscard]] bool is_hardware_available() {
+    return buddy::puppies::tool_offset_sensor.is_enabled();
 }
 
 } // namespace tool_offset_calibration

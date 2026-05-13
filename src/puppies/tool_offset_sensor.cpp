@@ -2,6 +2,11 @@
 #include <puppies/tool_offset_sensor.hpp>
 
 #include <modbus/server_address.hpp>
+#include <option/has_xl_can.h>
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
+#endif
+#include <option/has_indx.h>
 
 using Lock = std::unique_lock<freertos::Mutex>;
 using xbuddy_extension::NodeState;
@@ -9,6 +14,16 @@ using xbuddy_extension::NodeState;
 static constexpr uint8_t unit = std::to_underlying(modbus::ServerAddress::tool_offset_sensor);
 
 namespace buddy::puppies {
+
+bool ToolOffsetSensor::is_enabled() const {
+#if HAS_XL_CAN()
+    return xl_can.is_enabled();
+#elif HAS_INDX()
+    return true;
+#else
+    #error "Not defined behavior for this printer configuration"
+#endif
+}
 
 NodeState ToolOffsetSensor::get_node_state() const {
     Lock lock(mutex);
