@@ -132,16 +132,6 @@ void MenuMultiFilamentChange::carry_out_changes() {
         };
     }(std::make_index_sequence<VirtualToolIndex::count>());
 
-    // Validate the inputs
-    for (auto tool : VirtualToolIndex::all()) {
-        auto &config = tool_config[tool];
-
-        if (config.action == Action::unload && config_store().get_filament_type(tool) == FilamentType::none) {
-            config.action = Action::keep;
-            continue;
-        }
-    }
-
     ArrayStringBuilder<MAX_CMD_SIZE> sb;
     multi_filament_change::config_to_gcode(tool_config, sb);
     marlin_client::gcode(sb.str());
