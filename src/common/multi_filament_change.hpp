@@ -24,7 +24,7 @@ enum class Action : uint8_t {
 
 struct ConfigItem {
     Action action = Action::keep;
-    FilamentType new_filament = FilamentType::none;
+    EncodedFilamentType new_filament = FilamentType::none;
     CompactOptional<Color, COLOR_NONE> color;
 };
 

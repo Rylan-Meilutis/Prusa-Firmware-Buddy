@@ -154,7 +154,7 @@ void execute(const Config &tool_config) {
             continue;
         }
 
-        const uint16_t temperature = max(config.new_filament.parameters().nozzle_temperature, old_filaments[tool].parameters().nozzle_temperature);
+        const uint16_t temperature = max(FilamentType { config.new_filament }.parameters().nozzle_temperature, old_filaments[tool].parameters().nozzle_temperature);
         thermalManager.setTargetHotend(temperature, tool.to_physical());
     }
 #endif
@@ -201,7 +201,7 @@ void execute(const Config &tool_config) {
 
             // M1600 - filament change (doesn't ask for unload)
             // M701 - filament load
-            command_builder.append_printf((old_filaments[tool] != FilamentType::none) ? "M1600 S\"%s\" T%d R" : "M701 S\"%s\" T%d W2", config.new_filament.parameters().name.data(), tool.to_raw());
+            command_builder.append_printf((old_filaments[tool] != FilamentType::none) ? "M1600 S\"%s\" T%d R" : "M701 S\"%s\" T%d W2", FilamentType { config.new_filament }.parameters().name.data(), tool.to_raw());
 
             if (config.color.has_value()) {
                 command_builder.append_printf(" O%" PRIu32, config.color->raw);
