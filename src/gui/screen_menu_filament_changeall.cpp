@@ -136,11 +136,6 @@ void MenuMultiFilamentChange::carry_out_changes() {
     for (auto tool : VirtualToolIndex::all()) {
         auto &config = tool_config[tool];
 
-        if (!tool.is_enabled()) {
-            config.action = Action::keep;
-            continue;
-        }
-
         if (config.action == Action::unload && config_store().get_filament_type(tool) == FilamentType::none) {
             config.action = Action::keep;
             continue;

@@ -148,7 +148,7 @@ void execute(const Config &tool_config) {
 
 #if HAS_TOOLCHANGER()
     // Start preheating all nozzles
-    for (auto tool : VirtualToolIndex::all()) {
+    for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
         const auto &config = tool_config[tool];
         if (config.action == Action::keep) {
             continue;
@@ -171,7 +171,7 @@ void execute(const Config &tool_config) {
     */
 
     // Carry out the changes
-    for (auto tool : VirtualToolIndex::all()) {
+    for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
         const auto &config = tool_config[tool];
         switch (config.action) {
 
