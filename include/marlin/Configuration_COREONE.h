@@ -1063,8 +1063,10 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 
 #if ENABLED(Z_SAFE_HOMING)
     #if HAS_INDX()
-        #define Z_SAFE_HOMING_X_POINT (125) // X point for Z homing when homing all axes (G28).
-        #define Z_SAFE_HOMING_Y_POINT (15) // Y point for Z homing when homing all axes (G28).
+        // Close to the sheet-detect point at (0, 0) so bed non-flatness over the homing-to-detect
+        // distance doesn't shift the sheet-detect trigger threshold enough to misread.
+        #define Z_SAFE_HOMING_X_POINT (10) // X point for Z homing when homing all axes (G28).
+        #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
     #else
         #define Z_SAFE_HOMING_X_POINT (240) // X point for Z homing when homing all axes (G28).
         #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
