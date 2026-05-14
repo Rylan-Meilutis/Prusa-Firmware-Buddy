@@ -258,6 +258,7 @@ static PhasesInputShaperCalibration get_phase(const fsm::BaseData &fsm_base_data
 ScreenInputShaperCalibration::ScreenInputShaperCalibration()
     : ScreenFSM { text_header, rect_screen }
     , radio(this, rect_radio, PhasesInputShaperCalibration::finish) {
+    header.SetIcon(&img::selftest_16x16);
     CaptureNormalWindow(radio);
     create_frame();
     instance = this;

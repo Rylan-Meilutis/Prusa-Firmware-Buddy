@@ -140,6 +140,7 @@ using Frames = FrameDefinitionList<ScreenDockCalibration::FrameStorage,
 
 ScreenDockCalibration::ScreenDockCalibration()
     : ScreenFSM { N_("DOCK CALIBRATION"), GuiDefaults::RectScreenNoHeader } {
+    header.SetIcon(&img::selftest_16x16);
     CaptureNormalWindow(inner_frame);
     create_frame();
 }

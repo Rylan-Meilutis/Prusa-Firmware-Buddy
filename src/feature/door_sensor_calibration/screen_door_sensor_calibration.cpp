@@ -68,6 +68,7 @@ using Frames = FrameDefinitionList<ScreenDoorSensorCalibration::FrameStorage,
 
 ScreenDoorSensorCalibration::ScreenDoorSensorCalibration()
     : ScreenFSM { N_("DOOR SENSOR CALIBRATION"), GuiDefaults::RectScreenNoHeader } {
+    header.SetIcon(&img::selftest_16x16);
     CaptureNormalWindow(inner_frame);
     create_frame();
 }

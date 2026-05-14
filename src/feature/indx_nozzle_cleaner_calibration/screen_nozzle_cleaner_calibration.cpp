@@ -112,6 +112,7 @@ using Frames = FrameDefinitionList<ScreenNozzleCleanerCalibration::FrameStorage,
 
 ScreenNozzleCleanerCalibration::ScreenNozzleCleanerCalibration()
     : ScreenFSM { N_("NOZZLE CLEANER CALIBRATION"), GuiDefaults::RectScreenNoHeader } {
+    header.SetIcon(&img::selftest_16x16);
     CaptureNormalWindow(inner_frame);
     create_frame();
 }

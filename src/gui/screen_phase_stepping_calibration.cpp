@@ -311,6 +311,7 @@ using Frames = FrameDefinitionList<ScreenPhaseSteppingCalibration::FrameStorage,
 ScreenPhaseSteppingCalibration::ScreenPhaseSteppingCalibration()
     : ScreenFSM(txt_header, ScreenPhaseSteppingCalibration::get_inner_frame_rect())
     , radio { this, rect_radio, PhasesPhaseStepping::intro } {
+    header.SetIcon(&img::selftest_16x16);
     CaptureNormalWindow(radio);
     create_frame();
 }
