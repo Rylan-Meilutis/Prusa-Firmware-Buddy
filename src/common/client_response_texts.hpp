@@ -13,7 +13,7 @@ inline constexpr const char *get_response_text(Response response) {
     case Response::Abort_invalidate_test:
         return N_("ABORT");
     case Response::Adjust:
-        return N_("Adjust");
+        return N_("ADJUST");
     case Response::All:
         return N_("ALL");
     case Response::Always:
