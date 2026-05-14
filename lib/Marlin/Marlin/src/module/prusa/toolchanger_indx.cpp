@@ -359,6 +359,9 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::tool_lost);
     marlin_server::wait_for_response(PhaseNozzleMismatch::tool_lost);
 
+    marlin_server::fsm_change(PhaseNozzleMismatch::homing);
+    (void)ensure_safe_move();
+
     // Ask the user to verify the tool is in its dock before we attempt re-pickup.
     marlin_server::fsm_change(PhaseNozzleMismatch::pickup_failed_confirm_retry);
     marlin_server::wait_for_response(PhaseNozzleMismatch::pickup_failed_confirm_retry);
