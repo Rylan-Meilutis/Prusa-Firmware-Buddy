@@ -423,7 +423,7 @@ SelftestFSensors::EarlyFailCheckResult SelftestFSensors::check_early_fail([[mayb
         return EarlyFailCheckResult::abort;
     }
 
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && !FILAMENT_SENSOR_IS_NO()
     const uint8_t cnt_not_ready = std::ranges::count_if(calibrators_, [&](const auto *c) { return !c->is_ready_for_calibration(calib_phase); });
 
     if (cnt_failed > 0 || cnt_not_ready > 0) {
