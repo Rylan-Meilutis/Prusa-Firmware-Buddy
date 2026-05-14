@@ -1,9 +1,20 @@
 #pragma once
 
-#include <feature/filament_sensor/filament_sensor.hpp>
-#include <xbuddy_extension/shared_enums.hpp>
+#include <option/has_indx.h>
 
-class FSensorXBuddyExtension : public IFSensor {
+#include <feature/filament_sensor/filament_sensor.hpp>
+
+// INDX side fsensors can have the magnet inverted. This is not the case for the standard C1
+#define IS_XBE_FSENSOR_INVERTIBLE() HAS_INDX()
+
+#if IS_XBE_FSENSOR_INVERTIBLE()
+    #include <feature/filament_sensor/filament_sensor_invertible.hpp>
+using FSensorXBuddyExtensionParent = FSensorInvertible;
+#else
+using FSensorXBuddyExtensionParent = IFSensor;
+#endif
+
+class FSensorXBuddyExtension : public FSensorXBuddyExtensionParent {
 
 public:
     enum class Source {
@@ -18,13 +29,9 @@ public:
 
 protected:
     virtual void cycle() override;
-    virtual int32_t GetFilteredValue() const override;
 
 private:
     FilamentSensorState interpret_state() const;
 
     const Source source_;
-
-    /// Raw hardware state from XBuddy Extension, exposed via GetFilteredValue() for debugging
-    mutable xbuddy_extension::FilamentSensorState raw_state_ = xbuddy_extension::FilamentSensorState::uninitialized;
 };

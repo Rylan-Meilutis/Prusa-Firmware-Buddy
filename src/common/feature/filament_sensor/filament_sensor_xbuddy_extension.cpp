@@ -2,17 +2,19 @@
 #include "filament_sensor_xbuddy_extension.hpp"
 
 #include <feature/xbuddy_extension/xbuddy_extension.hpp>
+#include <option/has_side_fsensor_invertible.h>
 
 FSensorXBuddyExtension::FSensorXBuddyExtension(FilamentSensorID id, Source source)
-    : IFSensor(id)
+    : FSensorXBuddyExtensionParent(id)
     , source_(source) {}
 
 void FSensorXBuddyExtension::cycle() {
+#if IS_XBE_FSENSOR_INVERTIBLE()
+    raw_state_ = interpret_state();
+    FSensorInvertible::cycle();
+#else
     state = interpret_state();
-}
-
-int32_t FSensorXBuddyExtension::GetFilteredValue() const {
-    return static_cast<int32_t>(raw_state_);
+#endif
 }
 
 FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
@@ -41,9 +43,7 @@ FilamentSensorState FSensorXBuddyExtension::interpret_state() const {
         break;
     }
 
-    raw_state_ = hw_state.value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized);
-
-    switch (raw_state_) {
+    switch (hw_state.value_or(buddy::XBuddyExtension::FilamentSensorState::uninitialized)) {
 
     case buddy::XBuddyExtension::FilamentSensorState::disconnected:
         return FilamentSensorState::NotConnected;
