@@ -44,7 +44,7 @@ constexpr float f_mapped(fixed x) {
 constexpr float F_exp_f = 1 / f_exp_f;
 constexpr float F(float x) { return std::pow(x, F_exp_f); };
 
-SensorData decode_sensor_data(std::span<std::byte, 4> raw_data) {
+SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data) {
     uint32_t tp_object = (static_cast<uint32_t>(raw_data[0]) << 8 | static_cast<uint32_t>(raw_data[1])) << 1 | static_cast<uint32_t>(raw_data[2] >> 7);
     uint16_t tp_ambient = (static_cast<uint16_t>(raw_data[2] & std::byte { 0x7f }) << 8) | static_cast<uint16_t>(raw_data[3]);
     return SensorData { .tp_object = tp_object, .tp_ambient = tp_ambient };
@@ -59,7 +59,7 @@ bool validate_checksum(std::span<const std::byte, 32> data) {
     return checksum == expected_checksum;
 }
 
-std::optional<CalibrationParameters> decode_calibration_parameters(std::span<std::byte, 32> raw_data) {
+std::optional<CalibrationParameters> decode_calibration_parameters(std::span<const std::byte, 32> raw_data) {
     const uint8_t protocol = static_cast<uint8_t>(raw_data[0]);
     if (protocol != 0x3) {
         return std::nullopt;
@@ -85,7 +85,7 @@ std::optional<CalibrationParameters> decode_calibration_parameters(std::span<std
 
     const auto u_div = static_cast<int32_t>(uout1) - static_cast<int32_t>(u0);
     // NOTE: Expensive float op, but OK since it is ideally only done once at init (on failed comm it tries reinit every 2s)
-    const float k_inv = (f(t_obj1 + degC0asKf) - f(degC25asKf)) / static_cast<float>(u_div) * 1.96f; // Emisivity 0.51
+    const float k_inv = (f(t_obj1 + degC0asKf) - f(degC25asKf)) / (u_div * emissivity);
 
     return CalibrationParameters {
         .ptat25 = ptat25,
