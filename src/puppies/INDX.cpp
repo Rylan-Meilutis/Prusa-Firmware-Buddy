@@ -351,8 +351,6 @@ std::optional<bool> Indx::get_nozzle_present() {
 }
 
 void Indx::invalidate_nozzle_data() {
-    cached_nozzle_state.store(indx_head::NozzlePresence::unknown);
-
     // Generate a new token. The head will reset its debouncer and echo the
     // token back in nozzle_invalidation_ack. handle_nozzle_presence() won't
     // re-validate until the ack matches.
@@ -360,7 +358,11 @@ void Indx::invalidate_nozzle_data() {
     if (token == 0) {
         token = 1; // Avoid 0 — it's the head's initial ack value
     }
+    // Bump the token before clearing the cache: handle_nozzle_presence() running on
+    // the puppy task can race with this function and write back the previous (now stale)
+    // state if it observes the old token still matching the head's old ack.
     nozzle_invalidation_token.store(token);
+    cached_nozzle_state.store(indx_head::NozzlePresence::unknown);
 }
 
 std::optional<uint32_t> Indx::get_register_general_status_last_read_ms() const {
