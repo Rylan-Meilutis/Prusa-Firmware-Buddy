@@ -351,8 +351,9 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     ScopeGuard guard = [this] { block_tool_check = false; };
 
     // Stop motion immediately so we don't keep printing without a nozzle while the dialog is up.
-    planner.quick_stop();
-    planner.synchronize();
+    // Use the _and_resume variant so the planner doesn't stay in the is_unwinding state — otherwise
+    // every subsequent move (pause's park-head, pickup's homing) would be silently discarded.
+    planner.quick_stop_and_resume();
 
     marlin_server::print_pause();
 
