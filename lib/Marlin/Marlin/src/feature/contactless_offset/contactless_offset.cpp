@@ -227,7 +227,7 @@ struct MotionExecutionResult {
 
 // We place the debug reporters into a separate file so we do not clutter
 // the business logic with debug-only code.
-#include "debug_reporters.defs"
+#include "debug_reporters.ipp"
 
 static std::expected<TwoSpeedAnalysisResult, const char *> execute_and_analyze_sweep(
     const LineMotionConfig &config,
