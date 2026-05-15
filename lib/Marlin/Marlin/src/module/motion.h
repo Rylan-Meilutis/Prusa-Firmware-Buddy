@@ -412,13 +412,12 @@ inline float homeaxis_single_run(const AxisEnum axis, const int axis_home_dir, c
  * @param axis Axis to move
  * @param distance Distance relative to current position
  * @param fr_mm_s Move feedrate
- * @warning Trashes the current axis position!
  * @warning Does not set up the printer for the homing! (endstops enable, stallguards enable, ...) Use do_homing_move instead.
+ * @returns endstops.trigger_state()
  */
-void do_homing_move_axis_rel(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s);
+[[nodiscard]] uint8_t do_homing_move_axis_rel(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s);
 
 /// Perform a single homing move on a logical axis
-/// @warning Trashes the current axis position!
 uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s=0.0, bool can_move_back_before_homing = false, bool homing_z_with_probe = true);
 
 /// Prepares the move to the target. Can apply segmentation based on MBL and other mechanisms requirements.

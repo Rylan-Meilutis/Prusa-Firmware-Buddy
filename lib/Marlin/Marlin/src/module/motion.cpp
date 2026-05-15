@@ -723,7 +723,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
 
   #endif // SENSORLESS_HOMING
 
-void do_homing_move_axis_rel(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s) {
+uint8_t do_homing_move_axis_rel(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s) {
   assert(fr_mm_s != 0.f);
 
   // If you're seeing either of these BSODs,
@@ -752,14 +752,35 @@ void do_homing_move_axis_rel(const AxisEnum axis, const float distance, const fe
   // avoid trashing the position when aborted
   planner.synchronize();
   if (planner.draining())
-    return;
+    return 0;
 
-  axes_home_level[axis] = AxisHomeLevel::not_homed;
-  current_position[axis] = 0;
+  // Make sure steppers position is properly synced with current_position
   sync_plan_position();
-  current_position[axis] = distance;
-  planner.buffer_segment(current_position, fr_mm_s, PhysicalToolIndex::currently_selected());
-  planner.synchronize();
+
+  // Clear prior hit state
+  endstops.validate_homing_move();
+
+  // Execute the move.
+  // If endstops would be hit, the move will get interrupted.
+  {
+    MachinePosXYZE destination = planner.get_machine_position_mm();
+    destination[axis] += distance;
+
+    // Important: do not apply motion limits on this move
+    planner.buffer_segment(destination, fr_mm_s, PhysicalToolIndex::currently_selected());
+    planner.synchronize();
+  }
+
+  const auto hit_state = endstops.trigger_state();
+  endstops.validate_homing_move();
+  
+  // Update the actual current position from the motors
+  // Do this in both cases, if we hit something or not, to unify the code.
+  // If the homing move was set up properly, there should not be any skips, so we should be able to get the correct position
+  set_current_from_steppers_for_axis(axis);
+  sync_plan_position();
+
+  return hit_state;
 }
 
 /**
@@ -813,10 +834,12 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
 
   const feedRate_t real_fr_mm_s = fr_mm_s ?: homing_feedrate(axis);
 
+  uint8_t trigger_state = 0;
+
   #if ENABLED(MOVE_BACK_BEFORE_HOMING)
     if (can_move_back_before_homing && ((axis == X_AXIS) || (axis == Y_AXIS))) {
       float dist = (distance > 0) ? -MOVE_BACK_BEFORE_HOMING_DISTANCE : MOVE_BACK_BEFORE_HOMING_DISTANCE;
-      do_homing_move_axis_rel(axis, dist, real_fr_mm_s);
+      trigger_state |= do_homing_move_axis_rel(axis, dist, real_fr_mm_s);
   }
   #endif
 
@@ -837,7 +860,7 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
     }
   #endif
 
-  do_homing_move_axis_rel(axis, distance, real_fr_mm_s);
+  trigger_state |= do_homing_move_axis_rel(axis, distance, real_fr_mm_s);
 
   #if ENABLED(NOZZLE_LOAD_CELL) && HOMING_Z_WITH_PROBE
     if (moving_probe_toward_bed) {
@@ -851,9 +874,6 @@ uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate
       probing_pause(false);
     }
   #endif
-
-  uint8_t trigger_state = endstops.trigger_state();
-  endstops.validate_homing_move();
 
       // Re-enable stealthChop if used. Disable diag1 pin on driver.
       #if ENABLED(SENSORLESS_HOMING)
