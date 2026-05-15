@@ -70,7 +70,9 @@
 
 LOG_COMPONENT_DEF(ContactlessOffset, logging::Severity::debug);
 
-#define TOOL_OFFSET_DEBUG() 1
+// Debugging info is disabled by default
+// In order to use debug_tool_offset.py script, set TOOL_OFFSET_DEBUG() to 1
+#define TOOL_OFFSET_DEBUG() 0
 
 // Margin (in samples) added around each chunk to suppress filter edge artifacts.
 static constexpr size_t preprocess_edge_margin = 10;
