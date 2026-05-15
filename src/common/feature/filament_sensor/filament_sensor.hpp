@@ -48,7 +48,7 @@ public:
      * Useful for sensor info or debug.
      * @return dimensionless value specific to the inherited class
      */
-    virtual int32_t GetFilteredValue() const { return 0; };
+    virtual int32_t GetFilteredValue() const;
 
     /// Whether this sensor has valid calibration data.
     /// Non-ADC sensors don't store calibration data and are always calibrated.

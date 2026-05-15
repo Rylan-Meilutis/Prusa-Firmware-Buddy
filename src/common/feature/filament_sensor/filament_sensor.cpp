@@ -36,3 +36,7 @@ void IFSensor::check_for_events() {
 void IFSensor::force_set_enabled(bool set) {
     state = set ? FilamentSensorState::NotInitialized : FilamentSensorState::Disabled;
 }
+
+int32_t IFSensor::GetFilteredValue() const {
+    return static_cast<int32_t>(state.load());
+};
