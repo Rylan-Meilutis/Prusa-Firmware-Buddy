@@ -5,7 +5,11 @@
 #include "WindowMenuSpin.hpp"
 #include "img_resources.hpp"
 #include <numeric_input_config_common.hpp>
+#include <option/has_indx.h>
 #include <utils/string_builder.hpp>
+#if HAS_INDX()
+    #include <fanctl.hpp>
+#endif
 
 /*****************************************************************************/
 // MI_NOZZLE_TARGET_TEMP
@@ -120,6 +124,22 @@ MI_PRINTFAN::MI_PRINTFAN()
 void MI_PRINTFAN::OnClick() {
     marlin_client::set_fan_speed(val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
 }
+
+/*****************************************************************************/
+// MI_DOCKFAN
+#if HAS_INDX()
+MI_DOCKFAN::MI_DOCKFAN()
+    : WiSpin(val_mapping(false, Fans::dock_fan().get_pwm(), 255, 100),
+        printfan_spin_config, _(label), &img::fan_16x16, is_enabled_t::yes, is_hidden_t::no) {
+}
+void MI_DOCKFAN::OnClick() {
+    // Route through marlin_server (gcode queue) instead of touching the fan
+    // controller directly — set_pwm is called from the same thread as M106 P6
+    // and never races with the 1 kHz Fans::tick() ISR.
+    marlin_client::gcode_printf("M106 P6 S%u",
+        val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
+}
+#endif
 
 /*****************************************************************************/
 // MI_SPEED

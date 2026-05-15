@@ -4,6 +4,7 @@
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
 #include <guiconfig/guiconfig.h>
+#include <option/has_indx.h>
 #include <WindowItemFormatableLabel.hpp>
 
 /// Nozzle target temperature (adjustable spin)
@@ -76,6 +77,16 @@ public:
     MI_PRINTFAN();
     virtual void OnClick() override;
 };
+
+#if HAS_INDX()
+class MI_DOCKFAN : public WiSpin {
+    constexpr static const char *label = N_("Dock Fan");
+
+public:
+    MI_DOCKFAN();
+    virtual void OnClick() override;
+};
+#endif
 
 class MI_SPEED : public WiSpin {
     constexpr static const char *label = N_("Print Speed");

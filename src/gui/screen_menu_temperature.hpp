@@ -4,6 +4,7 @@
 #pragma once
 
 #include <option/has_chamber_api.h>
+#include <option/has_indx.h>
 #include <option/has_per_tool_temperatures.h>
 #include <option/has_toolchanger.h>
 #include <option/xbuddy_extension_variant.h>
@@ -41,6 +42,9 @@ using ScreenBase = ScreenMenu<
     MI_CHAMBER_TARGET_TEMP,
 #endif
     MI_PRINTFAN,
+#if HAS_INDX()
+    MI_DOCKFAN,
+#endif
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     MI_XBUDDY_EXTENSION_COOLING_FANS,
     MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
