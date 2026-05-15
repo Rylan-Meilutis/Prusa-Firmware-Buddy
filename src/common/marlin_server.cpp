@@ -290,7 +290,6 @@ namespace {
         /// length of axes measured after crash
         /// negative numbers represent undefined length
         xy_float_t axis_length = { -1, -1 };
-        Measure_axis *measure_axis = nullptr;
 #endif // ENABLED(AXIS_MEASURE)
 
         bool was_print_time_saved = false;
