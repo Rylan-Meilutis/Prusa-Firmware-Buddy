@@ -813,6 +813,7 @@ struct CurrentStore
     StoreItem<bool, true, ItemFlag::hw_config, journal::hash("XBE USB Host power")> xbe_usb_power;
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
     StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
+    StoreItem<bool, false, ItemFlag::features, journal::hash("XBE cooling fans with filter")> xbe_cooling_fans_with_filter;
 #endif
 
 #if HAS_DOOR_SENSOR_CALIBRATION()
