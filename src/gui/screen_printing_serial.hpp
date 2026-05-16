@@ -6,11 +6,11 @@
 #include "status_footer.hpp"
 #include "window_text.hpp"
 #include <array>
+#include "window.hpp"
+#include "window_term.hpp"
 
 class screen_printing_serial_data_t : public ScreenPrintingModel {
-    static constexpr const char *caption = N_("SERIAL PRINTING");
-
-    window_icon_t octo_icon;
+    static constexpr const char *caption = N_("SERIAL PRINTING  (MESSAGES)");
 
     int last_tick;
     enum class connection_state_t { connected,
@@ -19,8 +19,6 @@ class screen_printing_serial_data_t : public ScreenPrintingModel {
         disconnecting,
         disconnected };
     connection_state_t connection;
-
-    marlin_server::State last_state;
 
 public:
     screen_printing_serial_data_t();
@@ -32,4 +30,8 @@ private:
     virtual void stopAction() override;
     virtual void pauseAction() override;
     virtual void tuneAction() override;
+    term_buff_t<30, 8> term_buff;
+    window_term_t term;
+    uint32_t last_message_id = 0;
+    marlin_server::State last_state;
 };

@@ -87,7 +87,9 @@ constexpr Color COLOR_LIGHT_GREEN = Color::from_raw(0x40b040);
 constexpr Color COLOR_PURPLE = Color::from_raw(0x800080);
 constexpr Color COLOR_TEAL = Color::from_raw(0x008080);
 constexpr Color COLOR_NAVY = Color::from_raw(0x000080);
-constexpr Color COLOR_ORANGE = Color::from_raw(0xF8651B);
+constexpr Color COLOR_PRUSA_ORANGE = Color::from_raw(0xF8651B);
+constexpr Color COLOR_SP_INDIGO = Color::from_raw(0x4B2E83);
+constexpr Color COLOR_ORANGE = COLOR_SP_INDIGO;
 constexpr Color COLOR_BRASS = Color::from_rgb(184, 134, 11); // Dark goldenrod for Signature Oak
 
 // Brand color - switches based on build variant
