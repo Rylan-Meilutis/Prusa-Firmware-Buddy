@@ -1039,7 +1039,11 @@ void Temperature::isr() {
     #endif
     #if HAS_CHAMBER_API()
       auto current_chamber_temperature = buddy::chamber().current_temperature();
-      if (current_chamber_temperature.has_value()) SERIAL_ECHOPAIR(" C@:", current_chamber_temperature.value());
+      auto target_chamber_temperature = buddy::chamber().target_temperature();
+      if (current_chamber_temperature.has_value()) {
+        SERIAL_ECHOPAIR(" C:", current_chamber_temperature.value());
+        SERIAL_ECHOPAIR("/", target_chamber_temperature.has_value() ? target_chamber_temperature.value() : 0.0f);
+      }
     #endif
 
     #if HAS_TEMP_HEATBREAK
