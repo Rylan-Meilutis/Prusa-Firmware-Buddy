@@ -10,22 +10,28 @@
 #include "screen_menu_tune.hpp"
 #include "img_resources.hpp"
 #include <serial_printing.hpp>
-
+#include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
+#include <feature/print_status_message/print_status_message_mgr.hpp>
+#include <utils/string_builder.hpp>
 #if ENABLED(CRASH_RECOVERY)
     #include "../Marlin/src/feature/prusa/crash_recovery.hpp"
 #endif
 
+namespace {
+point_i16_t get_location() {
+    return GuiDefaults::RectScreenBody.TopLeft();
+}
+} // namespace
+
 screen_printing_serial_data_t::screen_printing_serial_data_t()
     : ScreenPrintingModel(_(caption))
-    , octo_icon(this, Rect16((GuiDefaults::ScreenWidth - img::serial_printing_172x138.w) / 2, GuiDefaults::RectScreenBody.Top(), img::serial_printing_172x138.w, img::serial_printing_172x138.h), &img::serial_printing_172x138)
     , last_tick(0)
     , connection(connection_state_t::connected)
+    , term_buff()
+    , term(this, get_location(), &term_buff)
     , last_state(marlin_server::State::Aborted) {
     ClrMenuTimeoutClose();
     SetOnSerialClose();
-
-    octo_icon.Disable();
-    octo_icon.Unshadow();
 
     SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
 }
@@ -54,6 +60,20 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         last_state = state;
     }
 
+    if (event == GUI_event_t::LOOP) {
+        print_status_message().walk_history([this](const PrintStatusMessageManager::Record &msg) {
+            if (msg.id <= last_message_id) {
+                return true;
+            }
+
+            ArrayStringBuilder<256> buf;
+            PrintStatusMessageFormatterBuddy::format(buf, msg.message);
+            term.Printf("%s\n", buf.str());
+            last_message_id = msg.id;
+            return true;
+        });
+    }
+
     ScreenPrintingModel::windowEvent(sender, event, param);
 }
 
@@ -62,7 +82,7 @@ void screen_printing_serial_data_t::tuneAction() {
 }
 
 void screen_printing_serial_data_t::pauseAction() {
-    // pause or resume button, depenging on what state we are in
+    // pause or resume button, depending on what state we are in
     marlin_server::State state = marlin_vars().print_state;
     switch (state) {
     case marlin_server::State::Paused:
