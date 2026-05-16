@@ -2,6 +2,7 @@
 
 #include <gui/menu_item/menu_item_select_menu.hpp>
 
+#include <option/has_xbuddy_extension.h>
 #include <option/xl_enclosure_support.h>
 #include <feature/chamber_filtration/chamber_filtration.hpp>
 
@@ -73,6 +74,17 @@ public:
 protected:
     void OnChange(size_t) override;
 };
+
+#if HAS_XBUDDY_EXTENSION()
+class MI_CHAMBER_FANS_WITH_FILTER : public WI_ICON_SWITCH_OFF_ON_t {
+public:
+    MI_CHAMBER_FANS_WITH_FILTER();
+
+protected:
+    void OnChange(size_t) override;
+    void Loop() override;
+};
+#endif
 
 class MI_CHAMBER_FILTER_TIME_USED : public WiSpin {
 public:

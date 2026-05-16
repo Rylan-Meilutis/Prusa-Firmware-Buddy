@@ -83,14 +83,21 @@ void XBuddyExtension::step() {
         last_fan_update_ms = now_ms;
 
         const auto max_auto_pwm = max_cooling_pwm();
+        const auto max_cooling_fans_auto_pwm = FanPWM { config_store().xbe_cooling_fan_max_auto_pwm.get() };
+        const auto max_filtration_fan_auto_pwm = FanPWM { config_store().xbe_filtration_fan_max_auto_pwm.get() };
 
         switch (filtration_backend) {
 
         case ChamberFiltrationBackend::xbe_official_filter:
-            // The filtration fan does both filtration and cooling
-            cooling_fans_actual_pwm_ = cooling_fans_target_pwm_.value_or(FanPWM { 0 });
-            filtration_fan_actual_pwm_ = std::max(chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_auto_pwm), filtration_pwm);
-            can_auto_cool_ = (filtration_fan_target_pwm_ == pwm_auto);
+            // The filtration fan always does filtration and cooling; optionally use the cooling fans too.
+            if (config_store().xbe_cooling_fans_with_filter.get()) {
+                cooling_fans_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, cooling_fans_target_pwm_, max_cooling_fans_auto_pwm);
+                can_auto_cool_ = (cooling_fans_target_pwm_ == pwm_auto || filtration_fan_target_pwm_ == pwm_auto);
+            } else {
+                cooling_fans_actual_pwm_ = cooling_fans_target_pwm_.value_or(FanPWM { 0 });
+                can_auto_cool_ = (filtration_fan_target_pwm_ == pwm_auto);
+            }
+            filtration_fan_actual_pwm_ = std::max(chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_filtration_fan_auto_pwm), filtration_pwm);
             break;
 
         case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:
@@ -241,7 +248,7 @@ XBuddyExtension::FanState XBuddyExtension::get_fan12_state() const {
 bool XBuddyExtension::using_filtration_fan_instead_of_cooling_fans() const {
     switch (chamber_filtration().backend()) {
     case ChamberFiltrationBackend::xbe_official_filter:
-        return true;
+        return !config_store().xbe_cooling_fans_with_filter.get();
 
     case ChamberFiltrationBackend::none:
     case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:
@@ -252,7 +259,7 @@ bool XBuddyExtension::using_filtration_fan_instead_of_cooling_fans() const {
 }
 
 PWM255 XBuddyExtension::max_cooling_pwm() const {
-    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter) {
+    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter && !config_store().xbe_cooling_fans_with_filter.get()) {
         return FanPWM { config_store().xbe_filtration_fan_max_auto_pwm.get() };
     } else {
         return FanPWM { config_store().xbe_cooling_fan_max_auto_pwm.get() };
@@ -260,7 +267,7 @@ PWM255 XBuddyExtension::max_cooling_pwm() const {
 }
 
 void XBuddyExtension::set_max_cooling_pwm(PWM255 set) {
-    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter) {
+    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter && !config_store().xbe_cooling_fans_with_filter.get()) {
         config_store().xbe_filtration_fan_max_auto_pwm.set(set.value);
     } else {
         config_store().xbe_cooling_fan_max_auto_pwm.set(set.value);
