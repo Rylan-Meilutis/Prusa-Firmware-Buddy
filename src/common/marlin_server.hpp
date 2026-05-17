@@ -105,6 +105,9 @@ void serial_print_start();
 /// Finalize serial print (exit print state and clean up)
 /// this is meant to be gracefull print finish, called when print finishes sucessfully.
 void serial_print_finalize();
+
+/// Return true when the current print session was started from serial G-code.
+bool serial_print_active();
 #endif
 
 /**

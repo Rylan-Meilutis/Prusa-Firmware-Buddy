@@ -2,6 +2,7 @@
 #include <state/printer_state.hpp>
 #include <option/developer_mode.h>
 #include <config_store/store_instance.hpp>
+#include <cstdlib>
 
 uint32_t SerialPrinting::last_serial_indicator_ms = 0;
 
@@ -42,6 +43,10 @@ bool SerialPrinting::has_serial_timeouted() {
 }
 
 void remove_N_prefix(const char *&command) {
+    while (*command == ' ') {
+        ++command;
+    }
+
     if (*command == 'N') {
         ++command;
         while (*command != ' ') {
@@ -53,27 +58,68 @@ void remove_N_prefix(const char *&command) {
         ++command;
     }
 }
-bool print_indicating_gcode(const char *command) {
+
+bool command_starts_with(const char *command, char letter, int code) {
+    while (*command == ' ') {
+        ++command;
+    }
+
     if (*command == '\0') {
         return false;
     }
-    if (*command == 'G') {
-        return true;
-    } else if (*command == 'M') {
-        int num = atoi(command + 1);
-        switch (num) {
-        case 73:
-        case 74:
-        case 109:
-        case 190:
-            return true;
-            break;
-        default:
-            return false;
-            break;
-        }
+
+    if (*command != letter) {
+        return false;
     }
+
+    char *end = nullptr;
+    const auto parsed_code = strtol(command + 1, &end, 10);
+    return end != command + 1 && parsed_code == code && (*end == '\0' || *end == ' ' || *end == ';' || *end == '*');
+}
+
+bool find_param_int(const char *command, char param, int &value) {
+    for (const char *p = command; *p != '\0' && *p != ';' && *p != '*'; ++p) {
+        if (*p != param) {
+            continue;
+        }
+
+        char *end = nullptr;
+        const auto parsed = strtol(p + 1, &end, 10);
+        if (end == p + 1) {
+            continue;
+        }
+
+        value = parsed;
+        return true;
+    }
+
     return false;
+}
+
+bool m73_progress_is(const char *command, int target_progress) {
+    if (!command_starts_with(command, 'M', 73)) {
+        return false;
+    }
+
+    int progress = 0;
+    return (find_param_int(command, 'P', progress) || find_param_int(command, 'Q', progress)) && progress == target_progress;
+}
+
+bool m73_finished(const char *command) {
+    if (!m73_progress_is(command, 100)) {
+        return false;
+    }
+
+    int remaining = 0;
+    return (find_param_int(command, 'R', remaining) || find_param_int(command, 'S', remaining)) && remaining == 0;
+}
+
+bool print_start_gcode(const char *command) {
+    return command_starts_with(command, 'M', 75) || m73_progress_is(command, 0);
+}
+
+bool print_end_gcode(const char *command) {
+    return command_starts_with(command, 'M', 77) || m73_finished(command);
 }
 
 void SerialPrinting::serial_command_hook(const char *command) {
@@ -82,18 +128,27 @@ void SerialPrinting::serial_command_hook(const char *command) {
         return;
     }
 
-    // if marlin server already printing, or is not able to start print, do not enter serial printing state
-    // command will be still queued for execution regardless of this.
-    if (!printer_state::remote_print_ready(true)) {
-        return;
-    }
-
     if (!config_store().serial_print_screen_enabled.get()) {
         return;
     }
 
     remove_N_prefix(command);
-    if (print_indicating_gcode(command)) {
+
+    if (marlin_server::serial_print_active()) {
+        last_serial_indicator_ms = ticks_ms();
+        if (print_end_gcode(command)) {
+            marlin_server::serial_print_finalize();
+        }
+        return;
+    }
+
+    // If marlin server is already printing, or is not able to start print, do not enter serial printing state.
+    // The command will still be queued for execution regardless of this.
+    if (!printer_state::remote_print_ready(true)) {
+        return;
+    }
+
+    if (print_start_gcode(command)) {
         last_serial_indicator_ms = ticks_ms();
         marlin_server::serial_print_start();
     }

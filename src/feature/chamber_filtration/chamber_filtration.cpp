@@ -105,11 +105,16 @@ void ChamberFiltration::step() {
         return;
     }
 
+    const auto print_state = marlin_vars().print_state.get();
+    const bool print_state_active = marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state) || marlin_server::is_abort_state(print_state);
     // Determine output PWM of the fans
     if (needs_filtration()) {
         // Filtration is currently needed
         output_pwm_ = config_store().chamber_print_filtration_enable.get() ? config_store().chamber_mid_print_filtration_pwm.get() : PWM255(0);
         last_filtration_need_s_ = now_s;
+
+    } else if (print_state_active) {
+        output_pwm_ = {};
 
     } else if (last_filtration_need_s_.has_value() && config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, *last_filtration_need_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
         // Filtration is not currently needed, running post print filtration
