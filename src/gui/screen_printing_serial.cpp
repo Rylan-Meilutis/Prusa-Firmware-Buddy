@@ -9,19 +9,109 @@
 #include "window_icon.hpp"
 #include "screen_menu_tune.hpp"
 #include "img_resources.hpp"
+#include "screen_printing_end_result.hpp"
 #include <serial_printing.hpp>
 #include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 #include <utils/string_builder.hpp>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <option/has_auto_retract.h>
+#include <option/has_chamber_api.h>
 #if ENABLED(CRASH_RECOVERY)
     #include "../Marlin/src/feature/prusa/crash_recovery.hpp"
 #endif
 
 namespace {
-point_i16_t get_location() {
+point_i16_t get_terminal_location() {
     constexpr int16_t term_width = width(GuiDefaults::DefaultFont) * screen_printing_serial_data_t::terminal_columns;
     constexpr auto x = GuiDefaults::RectScreenBody.Left() + (GuiDefaults::RectScreenBody.Width() - term_width) / 2;
     return point_i16_t { x, GuiDefaults::RectScreenBody.Top() };
+}
+
+constexpr Rect16 progress_rect { 30, 65, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
+constexpr size_t row_0 { 104 };
+constexpr size_t row_height { 20 };
+constexpr size_t get_row(size_t idx) {
+    return row_0 + idx * row_height;
+}
+const Rect16 progress_txt_rect { EndResultBody::get_progress_txt_rect(row_0) };
+constexpr Rect16 etime_label_rect { 30, get_row(0), 150, 20 };
+constexpr Rect16 etime_value_rect { 30, get_row(1), 200, 23 };
+constexpr Rect16 time_label_rect { 0, 0, 0, 0 };
+constexpr Rect16 time_value_rect { 0, 0, 0, 0 };
+constexpr Rect16 status_label_rect { 30, 74, 420, 24 };
+constexpr Rect16 status_value_rect { 30, 104, 420, 48 };
+constexpr Rect16 status_progress_rect { 30, 160, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
+constexpr Rect16 message_label_rect { 30, 74, 420, 24 };
+constexpr Rect16 message_value_rect { 30, 104, 420, 68 };
+constexpr Rect16 page_dots_rect { 30, 176, 35, 5 };
+constexpr int32_t page_rotation_s = 4;
+
+bool ascii_iequals(char a, char b) {
+    if (a >= 'A' && a <= 'Z') {
+        a = a - 'A' + 'a';
+    }
+    if (b >= 'A' && b <= 'Z') {
+        b = b - 'A' + 'a';
+    }
+    return a == b;
+}
+
+bool contains_case_insensitive(const char *haystack, const char *needle) {
+    if (*needle == '\0') {
+        return true;
+    }
+
+    for (const char *h = haystack; *h; ++h) {
+        const char *hp = h;
+        const char *np = needle;
+        while (*hp && *np && ascii_iequals(*hp, *np)) {
+            ++hp;
+            ++np;
+        }
+        if (*np == '\0') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool is_progress_or_eta_message(const char *message) {
+    return contains_case_insensitive(message, "eta")
+        || contains_case_insensitive(message, "remaining")
+        || contains_case_insensitive(message, "time left")
+        || contains_case_insensitive(message, "left:")
+        || contains_case_insensitive(message, "progress")
+        || contains_case_insensitive(message, "%");
+}
+
+float percent_from_progress(const PrintStatusMessageDataProgress &progress) {
+    if (progress.target <= 0) {
+        return 0;
+    }
+    return std::clamp((progress.current * 100.0f) / progress.target, 0.0f, 100.0f);
+}
+
+float percent_from_raw_value(float value) {
+    return std::clamp(value, 0.0f, 100.0f);
+}
+
+void copy_first_line(char *dst, size_t dst_size, const char *src) {
+    if (dst_size == 0) {
+        return;
+    }
+
+    const char *end = src;
+    while (*end != '\0' && *end != '\n') {
+        ++end;
+    }
+
+    const size_t copy_len = std::min<size_t>(dst_size - 1, end - src);
+    memcpy(dst, src, copy_len);
+    dst[copy_len] = '\0';
 }
 } // namespace
 
@@ -30,12 +120,69 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , last_tick(0)
     , connection(connection_state_t::connected)
     , term_buff()
-    , term(this, get_location(), &term_buff)
+    , term(this, get_terminal_location(), &term_buff)
+    , w_progress(this, progress_rect)
+    , w_progress_txt(this, progress_txt_rect)
+    , w_etime_label(this, etime_label_rect, is_multiline::no)
+    , w_etime_value(this, etime_value_rect, is_multiline::no)
+    , w_time_label(this, time_label_rect, is_multiline::no)
+    , w_time_value(this, time_value_rect, is_multiline::no)
+    , w_status_label(this, status_label_rect, is_multiline::no)
+    , w_status_value(this, status_value_rect, is_multiline::yes)
+    , w_status_progress(this, status_progress_rect, COLOR_BRAND, COLOR_GRAY)
+    , w_message_label(this, message_label_rect, is_multiline::no)
+    , w_message_value(this, message_value_rect, is_multiline::yes)
+    , page_dots(this, page_dots_rect, 2)
     , last_state(marlin_server::State::Aborted) {
     ClrMenuTimeoutClose();
     SetOnSerialClose();
 
     SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
+
+    term.Hide();
+
+    w_progress_txt.set_font(EndResultBody::progress_font);
+    w_progress_txt.SetAlignment(EndResultBody::progress_alignment);
+
+    w_etime_label.set_font(Font::small);
+    w_etime_label.SetTextColor(COLOR_SILVER);
+    w_etime_label.SetAlignment(Align_t::LeftBottom());
+    w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
+
+    w_etime_value.set_font(Font::normal);
+    w_etime_value.SetAlignment(Align_t::LeftBottom());
+    w_etime_value.SetPadding({ 0, 2, 0, 2 });
+
+    w_time_label.set_font(Font::small);
+    w_time_label.SetTextColor(COLOR_SILVER);
+    w_time_label.SetAlignment(Align_t::LeftBottom());
+    w_time_label.SetText(_(PrintTime::EN_STR_TIMESTAMP));
+
+    w_time_value.set_font(Font::normal);
+    w_time_value.SetAlignment(Align_t::LeftTop());
+    w_time_value.SetPadding({ 0, 0, 0, 2 });
+
+    w_status_label.set_font(Font::small);
+    w_status_label.SetTextColor(COLOR_SILVER);
+    w_status_label.SetText(_("Preparing print"));
+
+    w_status_value.set_font(Font::big);
+    w_status_value.SetAlignment(Align_t::Center());
+    w_status_value.SetPadding({ 0, 2, 0, 2 });
+
+    w_message_label.set_font(Font::small);
+    w_message_label.SetTextColor(COLOR_SILVER);
+    w_message_label.SetText(_("Message"));
+
+    w_message_value.set_font(Font::normal);
+    w_message_value.SetAlignment(Align_t::LeftTop());
+    w_message_value.SetPadding({ 0, 2, 0, 2 });
+
+    page_dots.set_one_circle_mode(true);
+    page_dots.Hide();
+
+    set_page(Page::progress);
+    update_progress();
 }
 
 void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t event, void *param) {
@@ -62,21 +209,213 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         last_state = state;
     }
 
-    if (event == GUI_event_t::LOOP) {
-        print_status_message().walk_history([this](const PrintStatusMessageManager::Record &msg) {
-            if (msg.id <= last_message_id) {
-                return true;
+    switch (event) {
+    case GUI_event_t::LOOP:
+        update_progress();
+        update_status();
+        update_messages();
+        if (status_page_available()) {
+            user_selected_page = false;
+            set_page(Page::status);
+        } else if (current_page == Page::status && !status_page_available()) {
+            set_page(Page::progress);
+        } else if (!user_selected_page && message_page_available()) {
+            const uint32_t now_s = ticks_s();
+            if (ticks_diff(now_s, last_page_switch_s) >= page_rotation_s) {
+                set_page(current_page == Page::progress ? Page::message : Page::progress);
             }
+        } else if (!message_page_available() && current_page == Page::message) {
+            set_page(Page::progress);
+        }
+        update_page_dots();
+        break;
 
-            ArrayStringBuilder<256> buf;
-            PrintStatusMessageFormatterBuddy::format(buf, msg.message);
-            term.Printf("%s\n", buf.str());
-            last_message_id = msg.id;
-            return true;
-        });
+    case GUI_event_t::HELD_RELEASED:
+    case GUI_event_t::TOUCH_SWIPE_LEFT:
+    case GUI_event_t::TOUCH_SWIPE_RIGHT:
+        toggle_page();
+        break;
+
+    default:
+        break;
     }
 
     ScreenPrintingModel::windowEvent(sender, event, param);
+}
+
+void screen_printing_serial_data_t::update_progress() {
+    const uint32_t time_to_end = marlin_vars().time_to_end.get();
+    if (time_to_end != marlin_server::TIME_TO_END_INVALID && time_to_end <= 60 * 60 * 24 * 365) {
+        w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
+        PrintTime::print_formatted_duration(time_to_end, w_etime_value_buffer);
+    } else {
+        w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
+        strlcpy(w_etime_value_buffer.data(), "--", w_etime_value_buffer.size());
+    }
+    w_etime_value.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
+
+    if (time_to_end != marlin_server::TIME_TO_END_INVALID && time_to_end <= 60 * 60 * 24 * 365) {
+        if (!PrintTime::print_end_time(time_to_end, w_time_value_buffer)) {
+            strlcpy(w_time_value_buffer.data(), "--", w_time_value_buffer.size());
+        }
+    } else {
+        strlcpy(w_time_value_buffer.data(), "--", w_time_value_buffer.size());
+    }
+    w_time_value.SetText(string_view_utf8::MakeRAM(w_time_value_buffer.data()));
+}
+
+void screen_printing_serial_data_t::update_status() {
+    const auto current = print_status_message().current_message();
+    if (!current || current.message.type == PrintStatusMessage::custom) {
+        status_text[0] = '\0';
+        status_progress_available = false;
+        return;
+    }
+
+    ArrayStringBuilder<256> label;
+    PrintStatusMessageFormatterBuddy::format(label, current.message);
+    copy_first_line(status_text.data(), status_text.size(), label.str());
+    w_status_label.SetText(string_view_utf8::MakeRAM(status_text.data()));
+    w_status_label.Invalidate();
+
+    bool has_progress = false;
+    float progress_percent = 0;
+    status_value_text[0] = '\0';
+
+    const auto set_progress = [&](const PrintStatusMessageDataProgress &progress, const char *format) {
+        has_progress = true;
+        progress_percent = percent_from_progress(progress);
+        snprintf(status_value_text.data(), status_value_text.size(), format, (int)std::round(progress.current), (int)std::round(progress.target));
+    };
+
+    if (const auto data = std::get_if<PrintStatusMessageDataProgress>(&current.message.data)) {
+        switch (current.message.type) {
+        case PrintStatusMessage::probing_bed:
+        case PrintStatusMessage::additional_probing:
+            set_progress(*data, "%i/%i");
+            break;
+        case PrintStatusMessage::dwelling: {
+            has_progress = true;
+            progress_percent = percent_from_progress(*data);
+            const int val = (int)std::round(data->current);
+            snprintf(status_value_text.data(), status_value_text.size(), "%i:%02i", val / 60, val % 60);
+            break;
+        }
+        case PrintStatusMessage::absorbing_heat:
+#if HAS_AUTO_RETRACT()
+        case PrintStatusMessage::auto_retracting:
+#endif
+            has_progress = true;
+            progress_percent = percent_from_raw_value(data->current);
+            snprintf(status_value_text.data(), status_value_text.size(), "%i%%", (int)std::round(progress_percent));
+            break;
+        case PrintStatusMessage::waiting_for_bed_temp:
+#if HAS_CHAMBER_API()
+        case PrintStatusMessage::waiting_for_chamber_temp:
+#endif
+            set_progress(*data, "%i/%i C");
+            break;
+        default:
+            break;
+        }
+    } else if (const auto data = std::get_if<PrintStatusMessageDataToolProgress>(&current.message.data)) {
+        has_progress = true;
+        progress_percent = percent_from_progress(data->progress);
+        snprintf(status_value_text.data(), status_value_text.size(), "%i/%i C", (int)std::round(data->progress.current), (int)std::round(data->progress.target));
+    } else if (const auto data = std::get_if<PrintStatusMessageDataAxisProgress>(&current.message.data)) {
+        has_progress = true;
+        progress_percent = percent_from_progress(data->progress);
+        snprintf(status_value_text.data(), status_value_text.size(), "%i%%", (int)std::round(progress_percent));
+    }
+
+    w_status_progress.set_progress_percent(progress_percent);
+    status_progress_available = has_progress;
+    w_status_progress.set_visible(current_page == Page::status && status_progress_available);
+
+    if (status_value_text[0] != '\0') {
+        w_status_value.SetText(string_view_utf8::MakeRAM(status_value_text.data()));
+        w_status_value.Invalidate();
+        w_status_value.set_visible(current_page == Page::status);
+    } else {
+        w_status_value.set_visible(false);
+    }
+}
+
+void screen_printing_serial_data_t::update_messages() {
+    print_status_message().walk_history([this](const PrintStatusMessageManager::Record &msg) {
+        if (msg.id <= last_message_id) {
+            return true;
+        }
+
+        ArrayStringBuilder<256> buf;
+        PrintStatusMessageFormatterBuddy::format(buf, msg.message);
+        if (!is_progress_or_eta_message(buf.str())) {
+            strlcpy(message_text.data(), buf.str(), message_text.size());
+            w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
+            w_message_value.Invalidate();
+        }
+        last_message_id = msg.id;
+        return true;
+    });
+}
+
+bool screen_printing_serial_data_t::message_page_available() const {
+    return message_text[0] != '\0';
+}
+
+bool screen_printing_serial_data_t::status_page_available() const {
+    return status_text[0] != '\0';
+}
+
+void screen_printing_serial_data_t::set_page(Page page) {
+    if (page == Page::status && !status_page_available()) {
+        page = Page::progress;
+    } else if (page == Page::message && !message_page_available()) {
+        page = Page::progress;
+    }
+
+    current_page = page;
+    last_page_switch_s = ticks_s();
+
+    const bool show_progress = current_page == Page::progress;
+    w_progress.set_visible(show_progress);
+    w_progress_txt.set_visible(show_progress);
+    w_etime_label.set_visible(show_progress);
+    w_etime_value.set_visible(show_progress);
+    w_time_label.set_visible(false);
+    w_time_value.set_visible(false);
+
+    const bool show_status = current_page == Page::status;
+    w_status_label.set_visible(show_status);
+    w_status_value.set_visible(show_status);
+    w_status_progress.set_visible(show_status && status_progress_available);
+
+    const bool show_message = current_page == Page::message;
+    w_message_label.set_visible(show_message);
+    w_message_value.set_visible(show_message);
+
+    update_page_dots();
+}
+
+void screen_printing_serial_data_t::toggle_page() {
+    if (!can_toggle_pages()) {
+        return;
+    }
+
+    user_selected_page = true;
+    set_page(current_page == Page::message ? Page::progress : Page::message);
+}
+
+bool screen_printing_serial_data_t::can_toggle_pages() const {
+    return !status_page_available() && message_page_available();
+}
+
+void screen_printing_serial_data_t::update_page_dots() {
+    const bool visible = can_toggle_pages();
+    page_dots.set_visible(visible);
+    if (visible) {
+        page_dots.set_index(current_page == Page::message ? 1 : 0);
+    }
 }
 
 void screen_printing_serial_data_t::tuneAction() {
