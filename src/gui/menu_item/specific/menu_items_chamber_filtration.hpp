@@ -85,6 +85,15 @@ protected:
     void OnChange(size_t) override;
     void Loop() override;
 };
+
+class MI_CHAMBER_FILTER_FAN_PRINT_OFFSET : public WiSpin {
+public:
+    MI_CHAMBER_FILTER_FAN_PRINT_OFFSET();
+
+protected:
+    void OnClick() override;
+    void Loop() override;
+};
 #endif
 
 class MI_CHAMBER_FILTER_TIME_USED : public WiSpin {

@@ -222,27 +222,50 @@ bool parse_percent(const char *message, uint8_t &percent) {
     return false;
 }
 
-bool parse_eta_minutes(const char *message, uint32_t &minutes) {
-    const char *eta = find_case_insensitive(message, "eta");
-    if (!eta) {
+bool parse_clock_seconds_after(const char *message, const char *marker, uint32_t &seconds_until) {
+    const char *clock = find_case_insensitive(message, marker);
+    if (!clock) {
         return false;
     }
 
-    eta += 3;
-    while (*eta == ' ' || *eta == ':' || *eta == '=') {
-        ++eta;
+    clock += strlen(marker);
+    while (*clock == ' ' || *clock == ':' || *clock == '=') {
+        ++clock;
     }
 
     char *end = nullptr;
-    const auto hour = strtol(eta, &end, 10);
-    if (end == eta || *end != ':') {
+    auto hour = strtol(clock, &end, 10);
+    if (end == clock || *end != ':') {
         return false;
     }
 
     const char *minute_start = end + 1;
-    const auto minute = strtol(minute_start, &end, 10);
+    auto minute = strtol(minute_start, &end, 10);
     if (end == minute_start || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
         return false;
+    }
+
+    long second = 0;
+    if (*end == ':') {
+        const char *second_start = end + 1;
+        second = strtol(second_start, &end, 10);
+        if (end == second_start || second < 0 || second > 59) {
+            return false;
+        }
+    }
+
+    while (*end == ' ') {
+        ++end;
+    }
+
+    if ((end[0] == 'P' || end[0] == 'p') && (end[1] == 'M' || end[1] == 'm')) {
+        if (hour >= 1 && hour < 12) {
+            hour += 12;
+        }
+    } else if ((end[0] == 'A' || end[0] == 'a') && (end[1] == 'M' || end[1] == 'm')) {
+        if (hour == 12) {
+            hour = 0;
+        }
     }
 
     const time_t now = time(nullptr);
@@ -251,14 +274,31 @@ bool parse_eta_minutes(const char *message, uint32_t &minutes) {
         return false;
     }
 
-    const int now_minutes = now_tm.tm_hour * 60 + now_tm.tm_min;
-    const int eta_minutes = hour * 60 + minute;
-    int delta = eta_minutes - now_minutes;
+    const int now_seconds = now_tm.tm_hour * 60 * 60 + now_tm.tm_min * 60 + now_tm.tm_sec;
+    const int target_seconds = hour * 60 * 60 + minute * 60 + second;
+    int delta = target_seconds - now_seconds;
     if (delta < 0) {
-        delta += 24 * 60;
+        delta += 24 * 60 * 60;
     }
 
-    minutes = std::max(delta, 1);
+    seconds_until = std::max(delta, 1);
+    return true;
+}
+
+bool parse_eta_seconds(const char *message, uint32_t &seconds) {
+    if (parse_clock_seconds_after(message, "ets", seconds)) {
+        return true;
+    }
+
+    return parse_clock_seconds_after(message, "eta", seconds);
+}
+
+bool parse_eta_minutes(const char *message, uint32_t &minutes) {
+    uint32_t seconds = 0;
+    if (!parse_eta_seconds(message, seconds)) {
+        return false;
+    }
+    minutes = std::max<uint32_t>(seconds / 60, 1);
     return true;
 }
 
@@ -327,9 +367,9 @@ void parse_octoprint_status_message(const char *command) {
     if (parse_etl_seconds(message, remaining_seconds)) {
         params.standard_mode.time_to_end = remaining_seconds;
     } else {
-        uint32_t eta_minutes = 0;
-        if (parse_eta_minutes(message, eta_minutes)) {
-            params.standard_mode.time_to_end = eta_minutes * 60;
+        uint32_t eta_seconds = 0;
+        if (parse_eta_seconds(message, eta_seconds)) {
+            params.standard_mode.time_to_end = eta_seconds;
         }
     }
 
