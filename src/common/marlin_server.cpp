@@ -871,6 +871,35 @@ void io_expander_read_loop() {
 }
 #endif // HAS_I2C_EXPANDER()
 
+static void flush_odometer_periodically() {
+    static constexpr int32_t min_flush_interval_ms = 60 * 1000;
+    static constexpr int32_t max_unflushed_age_ms = 5 * 60 * 1000;
+
+    static uint32_t first_change_ms = 0;
+    static uint32_t last_flush_ms = 0;
+
+    if (!Odometer_s::instance().changed()) {
+        first_change_ms = 0;
+        return;
+    }
+
+    const uint32_t now_ms = ticks_ms();
+    if (first_change_ms == 0) {
+        first_change_ms = now_ms;
+    }
+
+    const bool flush_not_recent = last_flush_ms == 0 || ticks_diff(now_ms, last_flush_ms) >= min_flush_interval_ms;
+    if (!flush_not_recent) {
+        return;
+    }
+
+    if (!is_processing() || ticks_diff(now_ms, first_change_ms) >= max_unflushed_age_ms) {
+        Odometer_s::instance().force_to_eeprom();
+        last_flush_ms = now_ms;
+        first_change_ms = 0;
+    }
+}
+
 static void cycle() {
     // Some things are somewhat time-sensitive and should be updated even in nested loops
 #if HAS_CHAMBER_API()
@@ -965,6 +994,8 @@ static void cycle() {
 #if HAS_I2C_EXPANDER()
     io_expander_read_loop();
 #endif // HAS_I2C_EXPANDER()
+
+    flush_odometer_periodically();
 
     process_request_flags();
 
@@ -1067,7 +1098,8 @@ void static finalize_print(bool finished) {
         Odometer_s::instance().add_time(marlin_vars().print_duration);
         server.was_print_time_saved = true;
     }
-    // print_maintenance();
+    Odometer_s::instance().force_to_eeprom();
+
 #if HAS_MMU2()
     if (!server.mmu_maintenance_checked) {
         if (auto reason = MMU2::check_maintenance(); reason.has_value()) {
@@ -1410,6 +1442,10 @@ void serial_print_start() {
     print_state = {};
 }
 #endif
+
+bool serial_print_active() {
+    return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state));
+}
 
 void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {
 #if HAS_SELFTEST()
