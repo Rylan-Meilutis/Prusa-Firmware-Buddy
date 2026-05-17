@@ -41,10 +41,9 @@ function(resolve_version_variables)
 
   # PROJECT_VERSION_SUFFIX
   if(PROJECT_VERSION_SUFFIX STREQUAL "<auto>")
-    # TODO: set to +<sha>.dirty?.debug?
-    set(PROJECT_VERSION_SUFFIX "+${BUILD_NUMBER}.LOCAL")
+    set(PROJECT_VERSION_SUFFIX "+RME")
     set(PROJECT_VERSION_SUFFIX
-        "+${BUILD_NUMBER}.LOCAL"
+        "+RME"
         PARENT_SCOPE
         )
   endif()
@@ -52,7 +51,7 @@ function(resolve_version_variables)
   # PROJECT_VERSION_SUFFIX_SHORT
   if(PROJECT_VERSION_SUFFIX_SHORT STREQUAL "<auto>")
     set(PROJECT_VERSION_SUFFIX_SHORT
-        "+${BUILD_NUMBER}"
+        "+RME"
         PARENT_SCOPE
         )
   endif()
