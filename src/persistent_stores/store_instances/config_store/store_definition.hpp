@@ -814,6 +814,7 @@ struct CurrentStore
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
     StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
     StoreItem<bool, false, ItemFlag::features, journal::hash("XBE cooling fans with filter")> xbe_cooling_fans_with_filter;
+    StoreItem<uint8_t, 30, ItemFlag::features, journal::hash("XBE filtration fan print offset")> xbe_filtration_fan_print_offset_pct;
 #endif
 
 #if HAS_DOOR_SENSOR_CALIBRATION()
