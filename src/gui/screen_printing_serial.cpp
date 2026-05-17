@@ -131,6 +131,22 @@ float percent_from_raw_value(float value) {
     return std::clamp(value, 0.0f, 100.0f);
 }
 
+PrintStatusMessageManager::Record current_non_custom_status_message() {
+    auto current = print_status_message().current_message();
+    if (current && current.message.type != PrintStatusMessage::custom) {
+        return current;
+    }
+
+    PrintStatusMessageManager::Record latest;
+    print_status_message().walk_history([&latest](const PrintStatusMessageManager::Record &msg) {
+        if (msg.message.type != PrintStatusMessage::custom) {
+            latest = msg;
+        }
+        return true;
+    });
+    return latest;
+}
+
 void copy_first_line(char *dst, size_t dst_size, const char *src) {
     if (dst_size == 0) {
         return;
@@ -389,8 +405,8 @@ void screen_printing_serial_data_t::update_time_dots(size_t index, size_t count)
 }
 
 void screen_printing_serial_data_t::update_status() {
-    const auto current = print_status_message().current_message();
-    if (!current || current.message.type == PrintStatusMessage::custom) {
+    const auto current = current_non_custom_status_message();
+    if (!current) {
         status_text[0] = '\0';
         status_progress_available = false;
         return;
