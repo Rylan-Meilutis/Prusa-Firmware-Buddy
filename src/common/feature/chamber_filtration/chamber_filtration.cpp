@@ -99,9 +99,12 @@ void ChamberFiltration::step() {
         return;
     }
 
+    const auto print_state = marlin_vars().print_state.get();
+    const bool print_state_active = marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state) || marlin_server::is_abort_state(print_state);
+
     // Only start filtering after we've extruded first filament
     // We don't want the filtering fans to slow down the chamber heatup
-    const bool is_printing = marlin_server::is_printing_state(marlin_vars().print_state.get()) && (planner.max_printed_z > 0);
+    const bool is_printing = print_state_active && (planner.max_printed_z > 0);
     const bool was_printing = is_printing_prev_;
     is_printing_prev_ = is_printing;
 
@@ -119,6 +122,9 @@ void ChamberFiltration::step() {
     } else if (is_printing) {
         output_pwm_ = config_store().chamber_print_filtration_enable.get() ? config_store().chamber_mid_print_filtration_pwm.get() : PWM255(0);
         last_print_s_ = now_s;
+
+    } else if (print_state_active) {
+        output_pwm_ = {};
 
     } else if (config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, last_print_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
         output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();

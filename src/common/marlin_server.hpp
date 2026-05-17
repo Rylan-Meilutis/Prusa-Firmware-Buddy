@@ -81,6 +81,9 @@ void settings_reset();
 // Start serial print (issue when gcodes start comming via serial line)
 void serial_print_start();
 
+/// Return true when the current print session was started from serial G-code.
+bool serial_print_active();
+
 /**
  * @brief Direct print file with SFN format.
  * @param filename file to print
