@@ -24,7 +24,7 @@ class screen_printing_serial_data_t : public ScreenPrintingModel {
     connection_state_t connection;
 
 public:
-    static constexpr size_t terminal_columns = 30;
+    static constexpr size_t terminal_columns = HAS_MINI_DISPLAY() ? 20 : 30;
     static constexpr size_t terminal_rows = 8;
 
     screen_printing_serial_data_t();
