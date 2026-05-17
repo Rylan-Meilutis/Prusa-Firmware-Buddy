@@ -22,7 +22,8 @@ public:
 
     /// Hook called when command is queued via serial line
     /// Used to detect activity of serial print
-    static void serial_command_hook(const char *command);
+    /// Returns false when the command should not be queued.
+    static bool serial_command_hook(const char *command);
 
 private:
     /// Check if serial printing had timeouted
@@ -30,7 +31,7 @@ private:
     static bool has_serial_timeouted();
 
     /// Timeout [ms], after which serial print will be considered as finished
-    static constexpr uint32_t serial_printing_screen_timeout = 5 * 1000;
+    static uint32_t serial_printing_screen_timeout_ms();
 
     /// Last time of activity of serial print
     static uint32_t last_serial_indicator_ms;

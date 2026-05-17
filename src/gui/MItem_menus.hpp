@@ -113,6 +113,14 @@ using MI_EXPERIMENTAL_SETTINGS
 
 using MI_USER_INTERFACE
     = MI_SCREEN<N_("User Interface"), class ScreenMenuUserInterface>;
+using MI_SERIAL_PRINTING_SETTINGS
+    = MI_SCREEN<N_("Serial Printing"), class ScreenMenuSerialPrinting>;
+using MI_LOCK_SETTINGS
+    = MI_SCREEN<N_("Printer Lock"), class ScreenMenuLockSettings>;
+using MI_UI_THEME_SETTINGS
+    = MI_SCREEN<N_("UI Theme"), class ScreenMenuUiThemeColors>;
+using MI_STATUS_LED_COLOR_SETTINGS
+    = MI_SCREEN<N_("Status LED Colors"), class ScreenMenuStatusLedColors>;
 using MI_LANG_AND_TIME
     = MI_SCREEN<N_("Language & Time"), class ScreenMenuLangAndTime>;
 

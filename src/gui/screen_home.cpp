@@ -27,6 +27,9 @@
 #include "DialogHandler.hpp"
 #include "img_resources.hpp"
 #include "tasks.hpp"
+#include <dialogs/dialog_text_input.hpp>
+#include <printer_lock.hpp>
+#include <array>
 
 #include "screen_printing.hpp"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
@@ -192,6 +195,37 @@ static void FilamentBtn_cb(window_t &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuFilament>);
 }
 
+static bool parse_unlock_pin(const std::array<char, 7> &buffer, uint32_t &pin, uint8_t &length) {
+    pin = 0;
+    length = 0;
+    for (char ch : buffer) {
+        if (ch == '\0') {
+            break;
+        }
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+        pin = pin * 10 + static_cast<uint32_t>(ch - '0');
+        ++length;
+    }
+    return length >= 4 && length <= 6;
+}
+
+static bool unlock_machine_dialog() {
+    std::array<char, 7> buffer {};
+    uint32_t pin = 0;
+    uint8_t length = 0;
+    if (DialogTextInput::exec(_("Unlock Code"), buffer, true) && parse_unlock_pin(buffer, pin, length) && printer_lock::check_pin(pin, length)) {
+        printer_lock::unlock();
+        return true;
+    }
+    return false;
+}
+
+static void UnlockBtn_cb(window_t &) {
+    unlock_machine_dialog();
+}
+
 #if HAS_MMU2()
 static void FilamentBtnMMU_cb(window_t &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuFilamentMMU>);
@@ -276,6 +310,21 @@ screen_home_data_t::screen_home_data_t()
         usbWasAlreadyInserted = true;
     }
     ever_been_opened = true;
+    if (printer_lock::locked()) {
+        for (size_t i = 0; i < button_count; ++i) {
+            if (i == 4) {
+                w_buttons[i].SetAction(UnlockBtn_cb);
+                w_buttons[i].Unshadow();
+                w_buttons[i].Enable();
+                w_labels[i].SetText(_("Unlock"));
+            } else {
+                w_buttons[i].Shadow();
+                w_buttons[i].Disable();
+                w_labels[i].SetText({});
+            }
+        }
+        lock_view_applied = true;
+    }
 }
 
 screen_home_data_t::~screen_home_data_t() {
@@ -444,6 +493,41 @@ void screen_home_data_t::handle_wifi_credentials() {
 }
 
 void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *param) {
+    if (event == GUI_event_t::LOOP) {
+        if (printer_lock::locked()) {
+            for (size_t i = 0; i < button_count; ++i) {
+                if (i == 4) {
+                    w_buttons[i].SetAction(UnlockBtn_cb);
+                    w_buttons[i].Unshadow();
+                    w_buttons[i].Enable();
+                    w_labels[i].SetText(_("Unlock"));
+                } else {
+                    w_buttons[i].Shadow();
+                    w_buttons[i].Disable();
+                    w_labels[i].SetText({});
+                }
+            }
+            lock_view_applied = true;
+        } else if (lock_view_applied) {
+            w_buttons[0].SetAction([](window_t&) { Screens::Access()->Open(ScreenFactory::Screen<screen_filebrowser_data_t>); });
+            w_buttons[1].SetAction([](window_t&) { marlin_client::gcode_printf("M1700 T-1"); });
+            w_buttons[2].SetAction(FilamentBtn_cb);
+            w_buttons[3].SetAction([](window_t&) { Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuControl>); });
+            w_buttons[4].SetAction([](window_t&) { Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuSettings>); });
+            w_buttons[5].SetAction([](window_t&) { Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuInfo>); });
+            for (size_t i = 0; i < button_count; ++i) {
+                w_buttons[i].Unshadow();
+                w_buttons[i].Enable();
+                w_labels[i].SetText(_(labels[i]));
+            }
+            if (!usbInserted) {
+                printBtnDis();
+            }
+            filamentBtnSetState();
+            lock_view_applied = false;
+        }
+    }
+
     // TODO: This easily freezes home screen when flash action fails to start.
     // There are several places in the code where executing a flash gcode can
     // result in no-op and home screen stays active with events disabled.
@@ -507,7 +591,7 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
     #if ENABLED(POWER_PANIC)
                 TaskDeps::check(TaskDeps::Dependency::autostart_done) && !power_panic::is_power_panic_resuming() &&
     #endif // ENABLED(POWER_PANIC)
-                GuiMediaEventsHandler::ConsumeOneClickPrinting() && !usbh_power_cycle::block_one_click_print()) {
+                !printer_lock::locked() && GuiMediaEventsHandler::ConsumeOneClickPrinting() && !usbh_power_cycle::block_one_click_print()) {
                 // TODO this should be done in main thread before Event::MediaInserted is generated
                 // if it is not the latest gcode might not be selected
 
