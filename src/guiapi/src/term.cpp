@@ -44,7 +44,7 @@ void term_clear(term_t *pt) {
             *(p++) = TERM_DEF_ATTR;
         }
     }
-    memset(pt->buff + pt->size, 0xff, 40 /*(pt->size + 15) >> 4*/);
+    memset(pt->buff + pt->size, 0xff, (pt->size + 15) >> 4);
     pt->col = 0;
     pt->row = 0;
     pt->flg |= TERM_FLG_CHANGED;
