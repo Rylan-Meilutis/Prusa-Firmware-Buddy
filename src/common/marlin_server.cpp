@@ -256,6 +256,7 @@ namespace {
 #endif // ENABLED(AXIS_MEASURE)
 
         bool was_print_time_saved = false;
+        uint32_t saved_print_duration = 0;
 #if HAS_MMU2()
         bool mmu_maintenance_checked = false;
 #endif
@@ -791,12 +792,25 @@ void io_expander_read_loop() {
 }
 #endif // HAS_I2C_EXPANDER()
 
+static void save_print_time_to_odometer(uint32_t print_duration) {
+    if (server.was_print_time_saved || print_duration <= server.saved_print_duration) {
+        return;
+    }
+
+    Odometer_s::instance().add_time(print_duration - server.saved_print_duration);
+    server.saved_print_duration = print_duration;
+}
+
 static void flush_odometer_periodically() {
     static constexpr int32_t min_flush_interval_ms = 60 * 1000;
-    static constexpr int32_t max_unflushed_age_ms = 5 * 60 * 1000;
+    static constexpr int32_t max_unflushed_age_ms = 60 * 1000;
 
     static uint32_t first_change_ms = 0;
     static uint32_t last_flush_ms = 0;
+
+    if (marlin_server::is_printing_state(server.print_state) || marlin_server::is_extended_paused_state(server.print_state)) {
+        save_print_time_to_odometer(print_job_timer.duration());
+    }
 
     if (!Odometer_s::instance().changed()) {
         first_change_ms = 0;
@@ -977,7 +991,7 @@ void static finalize_print(bool finished) {
     // Check if the stopwatch was NOT stopped to and add the current printime to the statistics.
     // finalize_print is being called multiple times and we don't want to add the time twice.
     if (!server.was_print_time_saved) {
-        Odometer_s::instance().add_time(marlin_vars().print_duration);
+        save_print_time_to_odometer(marlin_vars().print_duration);
         server.was_print_time_saved = true;
     }
     Odometer_s::instance().force_to_eeprom();
@@ -2176,6 +2190,7 @@ static void _server_print_loop(void) {
     case State::SerialPrintInit:
         server.print_is_serial = (server.print_state == State::SerialPrintInit);
         server.was_print_time_saved = false;
+        server.saved_print_duration = 0;
 #if HAS_MMU2()
         server.mmu_maintenance_checked = false;
 #endif

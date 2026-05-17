@@ -30,6 +30,23 @@ point_i16_t get_terminal_location() {
     return point_i16_t { x, GuiDefaults::RectScreenBody.Top() };
 }
 
+#if HAS_MINI_DISPLAY()
+constexpr auto etime_val_font { Font::small };
+constexpr Rect16 progress_rect { 10, 70, GuiDefaults::RectScreen.Width() - 2 * 10, 16 };
+constexpr Rect16 progress_txt_rect { 10, 86, GuiDefaults::RectScreen.Width() - 2 * 10, 30 };
+constexpr Rect16 etime_label_rect { 10, 128, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
+constexpr Rect16 etime_value_rect { 10, 148, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
+constexpr Rect16 time_label_rect { 0, 0, 0, 0 };
+constexpr Rect16 time_value_rect { 0, 0, 0, 0 };
+constexpr Rect16 status_label_rect { 10, 66, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
+constexpr Rect16 status_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2 * 10, 52 };
+constexpr Rect16 status_progress_rect { 10, 160, GuiDefaults::RectScreen.Width() - 2 * 10, 16 };
+constexpr Rect16 message_label_rect { 10, 66, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
+constexpr Rect16 message_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2 * 10, 72 };
+constexpr Rect16 time_dots_rect { 10, 171, 35, 5 };
+constexpr Rect16 page_dots_rect { 10, 176, 35, 5 };
+#elif HAS_LARGE_DISPLAY()
+constexpr auto etime_val_font { Font::normal };
 constexpr Rect16 progress_rect { 30, 65, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
 constexpr size_t row_0 { 104 };
 constexpr size_t row_height { 20 };
@@ -48,6 +65,7 @@ constexpr Rect16 message_label_rect { 30, 74, 420, 24 };
 constexpr Rect16 message_value_rect { 30, 104, 420, 68 };
 constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 35, 5 };
 constexpr Rect16 page_dots_rect { 30, 176, 35, 5 };
+#endif
 constexpr int32_t page_rotation_s = 4;
 constexpr int32_t time_rotation_s = 4;
 
@@ -154,14 +172,18 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     term.Hide();
 
     w_progress_txt.set_font(EndResultBody::progress_font);
+#if HAS_MINI_DISPLAY()
+    w_progress_txt.SetAlignment(Align_t::Center());
+#else
     w_progress_txt.SetAlignment(EndResultBody::progress_alignment);
+#endif
 
     w_etime_label.set_font(Font::small);
     w_etime_label.SetTextColor(COLOR_SILVER);
     w_etime_label.SetAlignment(Align_t::LeftBottom());
     w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
 
-    w_etime_value.set_font(Font::normal);
+    w_etime_value.set_font(etime_val_font);
     w_etime_value.SetAlignment(Align_t::LeftBottom());
     w_etime_value.SetPadding({ 0, 2, 0, 2 });
 
@@ -178,7 +200,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_status_label.SetTextColor(COLOR_SILVER);
     w_status_label.SetText(_("Preparing print"));
 
-    w_status_value.set_font(Font::big);
+    w_status_value.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
     w_status_value.SetAlignment(Align_t::Center());
     w_status_value.SetPadding({ 0, 2, 0, 2 });
 
