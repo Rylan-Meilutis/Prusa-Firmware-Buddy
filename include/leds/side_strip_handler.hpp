@@ -85,6 +85,8 @@ private:
 
     SideStripState state = SideStripState::off;
     uint32_t active_timestamp_ms = 0; // Timestamp of the last activity for idle dimming
+    bool print_or_filter_active_prev = false;
+    bool off_after_print_or_filter = false;
     std::optional<CustomColorState> custom_color;
 };
 
