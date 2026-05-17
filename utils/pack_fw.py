@@ -203,11 +203,14 @@ def main():
             bin_data += args.printer_version.to_bytes(1, 'little')
         bin_data += bytes(461)  # aligmnent to 512B (32B for SHA)
 
+    version_str = f"{version.major}.{version.minor}.{version.patch}"
     if version.prerelease:
-        fmt = "\tversion:  {v.major}.{v.minor}.{v.patch}-{v.prerelease}+{bn}"
+        version_str += f"-{version.prerelease}"
+    if version.buildmetadata:
+        version_str += "+" + ".".join(version.buildmetadata)
     else:
-        fmt = "\tversion:  {v.major}.{v.minor}.{v.patch}+{bn}"
-    print(fmt.format(v=version, bn=build_number))
+        version_str += f"+{build_number}"
+    print(f"\tversion:  {version_str}")
 
     printer_name = printer_type.name
     if args.printer_version > 1:
