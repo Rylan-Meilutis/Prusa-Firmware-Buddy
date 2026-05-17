@@ -427,7 +427,11 @@ void screen_printing_serial_data_t::update_status() {
 #if HAS_CHAMBER_API()
         case PrintStatusMessage::waiting_for_chamber_temp:
 #endif
-            set_progress(*data, "%i/%i C");
+            if (data->target <= 0) {
+                snprintf(status_value_text.data(), status_value_text.size(), "%i C", (int)std::round(data->current));
+            } else {
+                set_progress(*data, "%i/%i C");
+            }
             break;
         default:
             break;

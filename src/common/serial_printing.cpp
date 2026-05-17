@@ -10,11 +10,6 @@
 
 uint32_t SerialPrinting::last_serial_indicator_ms = 0;
 
-namespace {
-uint32_t last_serial_motor_lock_ms = 0;
-constexpr uint32_t serial_motor_lock_start_window_ms = 60 * 1000;
-} // namespace
-
 void SerialPrinting::print_loop() {
     if (has_serial_timeouted()) {
         marlin_server::serial_print_finalize();
@@ -114,6 +109,15 @@ bool m73_progress_is(const char *command, int target_progress) {
     return (find_param_int(command, 'P', progress) || find_param_int(command, 'Q', progress)) && progress == target_progress;
 }
 
+bool m73_print_start(const char *command) {
+    if (!m73_progress_is(command, 0)) {
+        return false;
+    }
+
+    int remaining = 0;
+    return find_param_int(command, 'R', remaining) || find_param_int(command, 'S', remaining);
+}
+
 bool m73_finished(const char *command) {
     if (!m73_progress_is(command, 100)) {
         return false;
@@ -124,26 +128,7 @@ bool m73_finished(const char *command) {
 }
 
 bool print_start_gcode(const char *command) {
-    return command_starts_with(command, 'M', 75) || m73_progress_is(command, 0);
-}
-
-bool motor_lock_gcode(const char *command) {
-    return command_starts_with(command, 'M', 17);
-}
-
-bool blocking_print_setup_gcode(const char *command) {
-    return command_starts_with(command, 'M', 109)
-        || command_starts_with(command, 'M', 190)
-        || command_starts_with(command, 'M', 191)
-        || command_starts_with(command, 'G', 28)
-        || command_starts_with(command, 'G', 29);
-}
-
-bool recent_motor_lock_before_setup() {
-    const uint32_t now = ticks_ms();
-    return last_serial_motor_lock_ms != 0
-        && ticks_diff(now, last_serial_motor_lock_ms) >= 0
-        && ticks_diff(now, last_serial_motor_lock_ms + serial_motor_lock_start_window_ms) <= 0;
+    return command_starts_with(command, 'M', 75) || m73_print_start(command);
 }
 
 bool print_end_gcode(const char *command) {
@@ -405,13 +390,7 @@ void SerialPrinting::serial_command_hook(const char *command) {
         return;
     }
 
-    if (motor_lock_gcode(command)) {
-        last_serial_motor_lock_ms = ticks_ms();
-        return;
-    }
-
-    if (print_start_gcode(command) || (blocking_print_setup_gcode(command) && recent_motor_lock_before_setup())) {
-        last_serial_motor_lock_ms = 0;
+    if (print_start_gcode(command)) {
         last_serial_indicator_ms = ticks_ms();
         marlin_server::serial_print_start();
     }
