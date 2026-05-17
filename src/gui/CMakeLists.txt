@@ -57,7 +57,10 @@ target_sources(
           screen_menu_network_settings.cpp
           screen_menu_network_status.cpp
           screen_menu_sensor_info.cpp
+          screen_menu_led_colors.cpp
+          screen_menu_lock_settings.cpp
           screen_menu_settings.cpp
+          screen_menu_serial_printing.cpp
           screen_menu_statistics.cpp
           screen_menu_system.cpp
           screen_menu_temperature.cpp

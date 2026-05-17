@@ -32,10 +32,10 @@ public:
      *
      * The buffer can get changed even if the user pressed cancel!
      */
-    static bool exec(const string_view_utf8 &prompt, std::span<char> buffer);
+    static bool exec(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input = false);
 
 protected:
-    DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer);
+    DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input = false);
 
 protected:
     void screenEvent(window_t *sender, GUI_event_t event, void *const param) final;
@@ -57,6 +57,8 @@ private:
 
 private:
     std::span<char> buffer_;
+    std::array<char, 64> hidden_buffer_ = {};
+    bool hidden_input_ = false;
 
     // edited char + terminating \0
     std::array<char, 2> edit_char_buffer_ = { 0, 0 };

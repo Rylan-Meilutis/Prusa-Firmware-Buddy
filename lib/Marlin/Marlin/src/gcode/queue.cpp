@@ -445,7 +445,9 @@ void GCodeQueue::get_serial_commands() {
 
 #if HAS_SERIAL_PRINT()
         // notify serial printing about command
-        SerialPrinting::serial_command_hook(command);
+        if (!SerialPrinting::serial_command_hook(command)) {
+          continue;
+        }
 #endif
 
         // Add the command to the queue

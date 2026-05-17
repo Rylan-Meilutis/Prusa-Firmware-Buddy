@@ -6,10 +6,12 @@
 #include "screen_menu.hpp"
 #include "MItem_tools.hpp"
 #include <option/has_toolchanger.h>
+#include "MItem_menus.hpp"
 
 using ScreenMenuLeds__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_LEDS()
     MI_LEDS_ENABLE,
+    MI_STATUS_LED_COLOR_SETTINGS,
 #endif
 #if HAS_TOOLCHANGER()
     MI_TOOL_LEDS_ENABLE,

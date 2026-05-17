@@ -208,7 +208,7 @@ def main():
         version_str += f"-{version.prerelease}"
     if version.buildmetadata:
         version_str += "+" + ".".join(version.buildmetadata)
-    else:
+    elif not version.prerelease:
         version_str += f"+{build_number}"
     print(f"\tversion:  {version_str}")
 

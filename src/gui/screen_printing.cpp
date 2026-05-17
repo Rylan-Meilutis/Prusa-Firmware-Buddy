@@ -24,6 +24,7 @@
 #include <bsod/bsod.h>
 #include <utils/string_builder.hpp>
 #include <gui/event/knob_event.hpp>
+#include <printer_lock.hpp>
 
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
@@ -62,6 +63,12 @@ static bool is_waiting_for_connect_set_ready() {
 }
 
 void screen_printing_data_t::tuneAction() {
+    if (printer_lock::locked()) {
+        if (unlock_machine()) {
+            change_print_state();
+        }
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Left)].IsShadowed()) {
         return;
     }
@@ -84,6 +91,9 @@ void screen_printing_data_t::tuneAction() {
 }
 
 void screen_printing_data_t::pauseAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Middle)].IsShadowed()) {
         return;
     }
@@ -111,6 +121,9 @@ void screen_printing_data_t::pauseAction() {
 }
 
 void screen_printing_data_t::stopAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Right)].IsShadowed()) {
         return;
     }
@@ -647,6 +660,11 @@ void screen_printing_data_t::screen_printing_reprint() {
 }
 
 void screen_printing_data_t::set_pause_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     switch (GetState()) {
     case printing_state_t::INITIAL:
     case printing_state_t::PRINTING:
@@ -709,6 +727,11 @@ void screen_printing_data_t::set_pause_icon_and_label() {
 }
 
 void screen_printing_data_t::set_tune_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
 
     switch (GetState()) {
@@ -735,6 +758,11 @@ void screen_printing_data_t::set_tune_icon_and_label() {
 }
 
 void screen_printing_data_t::set_stop_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     switch (GetState()) {
     case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:

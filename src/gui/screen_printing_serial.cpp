@@ -6,11 +6,14 @@
 #include "ScreenHandler.hpp"
 #include "odometer.hpp"
 #include "config_features.h"
+#include <config_store/store_instance.hpp>
+#include <printer_lock.hpp>
 #include "window_icon.hpp"
 #include "screen_menu_tune.hpp"
 #include "img_resources.hpp"
 #include "screen_printing_end_result.hpp"
 #include <serial_printing.hpp>
+#include <ui_theme.hpp>
 #include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 #include <utils/string_builder.hpp>
@@ -158,7 +161,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , w_time_value(this, time_value_rect, is_multiline::no)
     , w_status_label(this, status_label_rect, is_multiline::no)
     , w_status_value(this, status_value_rect, is_multiline::yes)
-    , w_status_progress(this, status_progress_rect, COLOR_BRAND, COLOR_GRAY)
+    , w_status_progress(this, status_progress_rect, ui_theme::progress(), COLOR_GRAY)
     , w_message_label(this, message_label_rect, is_multiline::no)
     , w_message_value(this, message_value_rect, is_multiline::yes)
     , time_dots(this, time_dots_rect, static_cast<uint8_t>(TimeItem::_count))
@@ -218,7 +221,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     page_dots.set_one_circle_mode(true);
     page_dots.Hide();
 
-    set_page(Page::progress);
+    set_page(config_store().serial_print_legacy_ui.get() ? Page::message : Page::progress);
     update_progress();
 }
 
@@ -226,6 +229,10 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     marlin_server::State state = marlin_vars().print_state;
 
     if (state != last_state) {
+        if (printer_lock::locked()) {
+            show_locked_buttons();
+            last_state = state;
+        } else {
         switch (state) {
         case marlin_server::State::Paused:
             // print is paused -> show resume button
@@ -244,6 +251,7 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         }
 
         last_state = state;
+        }
     }
 
     switch (event) {
@@ -251,7 +259,9 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         update_progress();
         update_status();
         update_messages();
-        if (status_page_available()) {
+        if (config_store().serial_print_legacy_ui.get()) {
+            set_page(Page::message);
+        } else if (status_page_available()) {
             user_selected_page = false;
             set_page(Page::status);
         } else if (current_page == Page::status && !status_page_available()) {
@@ -467,7 +477,7 @@ void screen_printing_serial_data_t::update_messages() {
 
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
-        if (!is_progress_or_eta_message(buf.str()) && !is_unimportant_host_message(buf.str())) {
+        if (config_store().serial_print_legacy_ui.get() || (!is_progress_or_eta_message(buf.str()) && !is_unimportant_host_message(buf.str()))) {
             strlcpy(message_text.data(), buf.str(), message_text.size());
             w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
             w_message_value.Invalidate();
@@ -486,6 +496,10 @@ bool screen_printing_serial_data_t::status_page_available() const {
 }
 
 void screen_printing_serial_data_t::set_page(Page page) {
+    if (config_store().serial_print_legacy_ui.get()) {
+        page = Page::message;
+    }
+
     if (page == Page::status && !status_page_available()) {
         page = Page::progress;
     } else if (page == Page::message && !message_page_available()) {
@@ -532,7 +546,7 @@ void screen_printing_serial_data_t::toggle_page() {
 }
 
 bool screen_printing_serial_data_t::can_toggle_pages() const {
-    return !status_page_available() && message_page_available();
+    return !config_store().serial_print_legacy_ui.get() && !status_page_available() && message_page_available();
 }
 
 void screen_printing_serial_data_t::update_page_dots() {
@@ -544,10 +558,19 @@ void screen_printing_serial_data_t::update_page_dots() {
 }
 
 void screen_printing_serial_data_t::tuneAction() {
+    if (printer_lock::locked()) {
+        if (unlock_machine()) {
+            last_state = marlin_server::State::Aborted;
+        }
+        return;
+    }
     Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuTune>);
 }
 
 void screen_printing_serial_data_t::pauseAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     // pause or resume button, depending on what state we are in
     marlin_server::State state = marlin_vars().print_state;
     switch (state) {
@@ -563,6 +586,9 @@ void screen_printing_serial_data_t::pauseAction() {
 }
 
 void screen_printing_serial_data_t::stopAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     if (MsgBoxWarning(_("Are you sure to stop this printing?"), Responses_YesNo, 1)
         != Response::Yes) {
         return;

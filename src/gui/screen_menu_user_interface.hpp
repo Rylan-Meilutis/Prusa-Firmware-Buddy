@@ -28,6 +28,7 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if not PRINTER_IS_PRUSA_MINI()
     MI_PRINT_PROGRESS_TIME,
 #endif
+    MI_UI_THEME_SETTINGS,
     MI_TIMEOUT, MI_SOUND_MODE, MI_FILAMENT_CHANGE_PREHEAT_ALL,
 #if HAS_ST7789_DISPLAY()
     // We could potentionally have MINI display without buzzer.
