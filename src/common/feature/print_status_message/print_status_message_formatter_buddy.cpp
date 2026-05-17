@@ -121,7 +121,11 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
 #endif
     {
         const auto d = std::get<PrintStatusMessageDataProgress>(msg.data);
-        target.append_printf("\n%i/%i °C", (int)std::round(d.current), (int)std::round(d.target));
+        if (d.target <= 0) {
+            target.append_printf("\n%i °C", (int)std::round(d.current));
+        } else {
+            target.append_printf("\n%i/%i °C", (int)std::round(d.current), (int)std::round(d.target));
+        }
         break;
     }
 
