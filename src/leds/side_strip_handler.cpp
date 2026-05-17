@@ -1,6 +1,11 @@
 #include "leds/side_strip_handler.hpp"
 #include <led_animation_controller/simple_transition_controller.hpp>
 #include "marlin_server.hpp"
+#include <option/has_chamber_filtration_api.h>
+
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 namespace leds {
 
@@ -21,6 +26,7 @@ SideStripHandler::SideStripHandler() {
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
     active_timestamp_ms = ticks_ms();
+    off_after_print_or_filter = false;
 }
 
 void SideStripHandler::set_custom_color(ColorRGBW color, uint32_t duration_ms, uint32_t transition_ms) {
@@ -35,12 +41,32 @@ void SideStripHandler::update() {
     const uint32_t time_ms = ticks_ms();
 
     auto &controller = controller_instance();
-    if (custom_color && time_ms - custom_color->start_ms < custom_color->duration_ms) {
+    if (custom_color && (custom_color->duration_ms == 0 || time_ms - custom_color->start_ms < custom_color->duration_ms)) {
         change_state(SideStripState::custom_color);
     } else {
         custom_color.reset();
-        const bool dont_dim = dimming_enabled == DimmingEnabled::never || (dimming_enabled == DimmingEnabled::not_printing && marlin_server::is_printing());
-        if (dont_dim || (active_timestamp_ms != 0 && time_ms - active_timestamp_ms < active_timeout_ms)) {
+
+        const bool print_or_filter_active = marlin_server::is_printing()
+#if HAS_CHAMBER_FILTRATION_API()
+            || buddy::chamber_filtration().output_pwm().value > 0
+#endif
+            ;
+
+        if (print_or_filter_active) {
+            print_or_filter_active_prev = true;
+            off_after_print_or_filter = false;
+            change_state(SideStripState::active);
+
+        } else if (print_or_filter_active_prev) {
+            print_or_filter_active_prev = false;
+            off_after_print_or_filter = true;
+            active_timestamp_ms = 0;
+            change_state(SideStripState::off);
+
+        } else if (off_after_print_or_filter) {
+            change_state(SideStripState::off);
+
+        } else if (dimming_enabled == DimmingEnabled::never || (active_timestamp_ms != 0 && time_ms - active_timestamp_ms < active_timeout_ms)) {
             change_state(SideStripState::active);
         } else {
             // Clear to prevent overflow bugs
