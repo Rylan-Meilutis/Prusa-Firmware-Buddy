@@ -39,10 +39,21 @@ private:
         message,
     };
 
+    enum class TimeItem {
+        remaining_time,
+        end_time,
+        time_to_change,
+        time_since_start,
+        _count,
+    };
+
     virtual void stopAction() override;
     virtual void pauseAction() override;
     virtual void tuneAction() override;
     void update_progress();
+    void update_time_dots(size_t index, size_t count);
+    bool time_item_available(TimeItem item) const;
+    TimeItem next_time_item(TimeItem item) const;
     void update_status();
     void update_messages();
     void set_page(Page page);
@@ -64,6 +75,7 @@ private:
     WindowProgressBar w_status_progress;
     window_text_t w_message_label;
     window_text_t w_message_value;
+    WindowProgressCircles time_dots;
     WindowProgressCircles page_dots;
     std::array<char, 32> w_etime_value_buffer {};
     std::array<char, 32> w_time_value_buffer {};
@@ -71,7 +83,9 @@ private:
     std::array<char, 64> status_value_text {};
     std::array<char, 256> message_text {};
     Page current_page = Page::progress;
+    TimeItem current_time_item = TimeItem::remaining_time;
     uint32_t last_page_switch_s = 0;
+    uint32_t last_time_switch_s = 0;
     bool user_selected_page = false;
     bool status_progress_available = false;
     uint32_t last_message_id = 0;

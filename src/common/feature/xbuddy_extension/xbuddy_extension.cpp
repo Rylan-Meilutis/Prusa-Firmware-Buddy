@@ -19,6 +19,11 @@ namespace {
 // This is a bit below 15%.
 constexpr uint8_t strobe_pwm = 35;
 
+PWM255 add_pwm_offset(PWM255 pwm, uint8_t offset_pct) {
+    const auto offset = PWM255::from_percent(offset_pct);
+    return PWM255 { static_cast<PWM255::Value>(std::min<int>(PWM255::max, pwm.value + offset.value)) };
+}
+
 } // namespace
 
 namespace buddy {
@@ -93,13 +98,21 @@ void XBuddyExtension::step() {
         case ChamberFiltrationBackend::xbe_official_filter:
             // The filtration fan always does filtration and cooling; optionally use the cooling fans too.
             if (config_store().xbe_cooling_fans_with_filter.get()) {
-                cooling_fans_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, cooling_fans_target_pwm_, max_cooling_fans_auto_pwm);
+                if (filtration_pwm.value > 0 && !marlin_server::is_printing()) {
+                    cooling_fans_actual_pwm_ = FanPWM { 0 };
+                } else {
+                    cooling_fans_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, cooling_fans_target_pwm_, max_cooling_fans_auto_pwm);
+                }
                 can_auto_cool_ = (cooling_fans_target_pwm_ == pwm_auto || filtration_fan_target_pwm_ == pwm_auto);
             } else {
                 cooling_fans_actual_pwm_ = cooling_fans_target_pwm_.value_or(FanPWM { 0 });
                 can_auto_cool_ = (filtration_fan_target_pwm_ == pwm_auto);
             }
-            filtration_fan_actual_pwm_ = std::max(chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_filtration_fan_auto_pwm), filtration_pwm);
+            filtration_fan_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_filtration_fan_auto_pwm);
+            if (config_store().xbe_cooling_fans_with_filter.get() && filtration_pwm.value > 0 && marlin_server::is_printing()) {
+                filtration_fan_actual_pwm_ = std::max(filtration_fan_actual_pwm_, add_pwm_offset(cooling_fans_actual_pwm_, config_store().xbe_filtration_fan_print_offset_pct.get()));
+            }
+            filtration_fan_actual_pwm_ = std::max(filtration_fan_actual_pwm_, filtration_pwm);
             break;
 
         case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:

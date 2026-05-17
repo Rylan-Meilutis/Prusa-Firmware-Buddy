@@ -46,8 +46,10 @@ constexpr Rect16 status_value_rect { 30, 104, 420, 48 };
 constexpr Rect16 status_progress_rect { 30, 160, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
 constexpr Rect16 message_label_rect { 30, 74, 420, 24 };
 constexpr Rect16 message_value_rect { 30, 104, 420, 68 };
+constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 35, 5 };
 constexpr Rect16 page_dots_rect { 30, 176, 35, 5 };
 constexpr int32_t page_rotation_s = 4;
+constexpr int32_t time_rotation_s = 4;
 
 bool ascii_iequals(char a, char b) {
     if (a >= 'A' && a <= 'Z') {
@@ -81,11 +83,20 @@ bool contains_case_insensitive(const char *haystack, const char *needle) {
 
 bool is_progress_or_eta_message(const char *message) {
     return contains_case_insensitive(message, "eta")
+        || contains_case_insensitive(message, "ets")
+        || contains_case_insensitive(message, "etl")
+        || contains_case_insensitive(message, "estimated")
+        || contains_case_insensitive(message, "finish")
         || contains_case_insensitive(message, "remaining")
         || contains_case_insensitive(message, "time left")
         || contains_case_insensitive(message, "left:")
         || contains_case_insensitive(message, "progress")
         || contains_case_insensitive(message, "%");
+}
+
+bool is_unimportant_host_message(const char *message) {
+    return contains_case_insensitive(message, "good")
+        && contains_case_insensitive(message, "accuracy");
 }
 
 float percent_from_progress(const PrintStatusMessageDataProgress &progress) {
@@ -132,6 +143,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , w_status_progress(this, status_progress_rect, COLOR_BRAND, COLOR_GRAY)
     , w_message_label(this, message_label_rect, is_multiline::no)
     , w_message_value(this, message_value_rect, is_multiline::yes)
+    , time_dots(this, time_dots_rect, static_cast<uint8_t>(TimeItem::_count))
     , page_dots(this, page_dots_rect, 2)
     , last_state(marlin_server::State::Aborted) {
     ClrMenuTimeoutClose();
@@ -177,6 +189,9 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_message_value.set_font(Font::normal);
     w_message_value.SetAlignment(Align_t::LeftTop());
     w_message_value.SetPadding({ 0, 2, 0, 2 });
+
+    time_dots.set_one_circle_mode(true);
+    time_dots.Hide();
 
     page_dots.set_one_circle_mode(true);
     page_dots.Hide();
@@ -245,23 +260,100 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
 
 void screen_printing_serial_data_t::update_progress() {
     const uint32_t time_to_end = marlin_vars().time_to_end.get();
-    if (time_to_end != marlin_server::TIME_TO_END_INVALID && time_to_end <= 60 * 60 * 24 * 365) {
+    const uint32_t time_to_change = marlin_vars().time_to_pause.get();
+
+    if (!time_item_available(current_time_item)) {
+        current_time_item = next_time_item(current_time_item);
+    }
+
+    const uint32_t now_s = ticks_s();
+    if (current_page == Page::progress && ticks_diff(now_s, last_time_switch_s) >= time_rotation_s) {
+        current_time_item = next_time_item(current_time_item);
+        last_time_switch_s = now_s;
+    }
+
+    switch (current_time_item) {
+    case TimeItem::end_time:
+        w_etime_label.SetText(_(PrintTime::EN_STR_TIMESTAMP));
+        if (!PrintTime::print_end_time(time_to_end, w_etime_value_buffer)) {
+            strlcpy(w_etime_value_buffer.data(), "--", w_etime_value_buffer.size());
+        }
+        break;
+    case TimeItem::remaining_time:
         w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
         PrintTime::print_formatted_duration(time_to_end, w_etime_value_buffer);
-    } else {
-        w_etime_label.SetText(_(PrintTime::EN_STR_COUNTDOWN));
-        strlcpy(w_etime_value_buffer.data(), "--", w_etime_value_buffer.size());
+        break;
+    case TimeItem::time_to_change:
+        w_etime_label.SetText(_("Next change in"));
+        PrintTime::print_formatted_duration(time_to_change, w_etime_value_buffer);
+        break;
+    case TimeItem::time_since_start:
+        w_etime_label.SetText(_(EndResultBody::txt_printing_time));
+        PrintTime::print_formatted_duration(marlin_vars().print_duration.get(), w_etime_value_buffer, true);
+        break;
+    case TimeItem::_count:
+        current_time_item = TimeItem::time_since_start;
+        break;
     }
-    w_etime_value.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
 
-    if (time_to_end != marlin_server::TIME_TO_END_INVALID && time_to_end <= 60 * 60 * 24 * 365) {
-        if (!PrintTime::print_end_time(time_to_end, w_time_value_buffer)) {
-            strlcpy(w_time_value_buffer.data(), "--", w_time_value_buffer.size());
-        }
-    } else {
-        strlcpy(w_time_value_buffer.data(), "--", w_time_value_buffer.size());
+    if (marlin_vars().print_speed != 100 && current_time_item != TimeItem::time_since_start) {
+        strlcat(w_etime_value_buffer.data(), "?", w_etime_value_buffer.size());
     }
-    w_time_value.SetText(string_view_utf8::MakeRAM(w_time_value_buffer.data()));
+
+    w_etime_value.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
+    w_etime_value.Invalidate();
+
+    size_t visible_count = 0;
+    size_t visible_index = 0;
+    for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
+        const auto item = static_cast<TimeItem>(i);
+        if (!time_item_available(item)) {
+            continue;
+        }
+        if (item == current_time_item) {
+            visible_index = visible_count;
+        }
+        ++visible_count;
+    }
+    update_time_dots(visible_index, visible_count);
+}
+
+bool screen_printing_serial_data_t::time_item_available(TimeItem item) const {
+    const uint32_t time_to_end = marlin_vars().time_to_end.get();
+    const uint32_t time_to_change = marlin_vars().time_to_pause.get();
+    const bool end_time_valid = time_to_end != marlin_server::TIME_TO_END_INVALID && time_to_end <= 60 * 60 * 24 * 365;
+
+    switch (item) {
+    case TimeItem::remaining_time:
+    case TimeItem::end_time:
+        return end_time_valid;
+    case TimeItem::time_to_change:
+        return time_to_change != marlin_server::TIME_TO_END_INVALID;
+    case TimeItem::time_since_start:
+        return true;
+    case TimeItem::_count:
+        return false;
+    }
+    return false;
+}
+
+screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::next_time_item(TimeItem item) const {
+    auto next = item;
+    do {
+        next = static_cast<TimeItem>((static_cast<size_t>(next) + 1) % static_cast<size_t>(TimeItem::_count));
+    } while (!time_item_available(next));
+    return next;
+}
+
+void screen_printing_serial_data_t::update_time_dots(size_t index, size_t count) {
+    const bool visible = current_page == Page::progress && count > 1;
+    time_dots.set_visible(visible);
+    if (!visible) {
+        return;
+    }
+
+    time_dots.set_max_circles(static_cast<uint8_t>(count));
+    time_dots.set_index(static_cast<uint8_t>(index));
 }
 
 void screen_printing_serial_data_t::update_status() {
@@ -349,7 +441,7 @@ void screen_printing_serial_data_t::update_messages() {
 
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
-        if (!is_progress_or_eta_message(buf.str())) {
+        if (!is_progress_or_eta_message(buf.str()) && !is_unimportant_host_message(buf.str())) {
             strlcpy(message_text.data(), buf.str(), message_text.size());
             w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
             w_message_value.Invalidate();
@@ -384,15 +476,22 @@ void screen_printing_serial_data_t::set_page(Page page) {
     w_etime_value.set_visible(show_progress);
     w_time_label.set_visible(false);
     w_time_value.set_visible(false);
+    time_dots.set_visible(show_progress && time_dots.get_max_circles() > 1);
 
     const bool show_status = current_page == Page::status;
     w_status_label.set_visible(show_status);
     w_status_value.set_visible(show_status);
     w_status_progress.set_visible(show_status && status_progress_available);
+    if (show_status) {
+        time_dots.Hide();
+    }
 
     const bool show_message = current_page == Page::message;
     w_message_label.set_visible(show_message);
     w_message_value.set_visible(show_message);
+    if (show_message) {
+        time_dots.Hide();
+    }
 
     update_page_dots();
 }
