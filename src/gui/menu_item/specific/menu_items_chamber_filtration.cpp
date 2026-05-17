@@ -134,6 +134,26 @@ void MI_CHAMBER_FANS_WITH_FILTER::OnChange(size_t) {
 void MI_CHAMBER_FANS_WITH_FILTER::Loop() {
     set_enabled(config_store().chamber_filtration_backend.get() == ChamberFiltrationBackend::xbe_official_filter);
 }
+
+// MI_CHAMBER_FILTER_FAN_PRINT_OFFSET
+// ============================================
+static constexpr NumericInputConfig filter_fan_print_offset_numeric_config {
+    .min_value = 0,
+    .max_value = 100,
+    .step = 5,
+    .unit = Unit::percent,
+};
+
+MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::MI_CHAMBER_FILTER_FAN_PRINT_OFFSET()
+    : WiSpin(config_store().xbe_filtration_fan_print_offset_pct.get(), filter_fan_print_offset_numeric_config, _("Filter Fan Offset")) {}
+
+void MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::OnClick() {
+    config_store().xbe_filtration_fan_print_offset_pct.set(value());
+}
+
+void MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::Loop() {
+    set_enabled(config_store().chamber_filtration_backend.get() == ChamberFiltrationBackend::xbe_official_filter && config_store().xbe_cooling_fans_with_filter.get());
+}
 #endif
 
 // MI_CHAMBER_FILTER_TIME_USED
