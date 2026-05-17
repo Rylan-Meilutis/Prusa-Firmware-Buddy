@@ -3,15 +3,29 @@
 #include <led_animation_controller/animation_controller.hpp>
 #include <led_animation_controller/frame_animation.hpp>
 #include "marlin_vars.hpp"
+#include "client_response.hpp"
 #include <fsm/filament_change_phases.hpp>
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_mmu2.h>
 #include <option/has_tool_mapping.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_tool_crash_recovery.h>
 
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
+
 namespace leds {
 
 using namespace marlin_server;
+
+static bool post_filter_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return buddy::chamber_filtration().output_pwm().value > 0;
+#else
+    return false;
+#endif
+}
 
 static StateAnimation marlin_to_anim_state() {
     fsm::States::State load_unload_state;
@@ -119,9 +133,8 @@ static StateAnimation marlin_to_anim_state() {
     case State::PrintInit:
     case State::SerialPrintInit:
     case State::Finishing_WaitIdle:
-    case State::Finishing_ParkHead:
-    case State::Finishing_UnloadFilament:
     case State::Pausing_Begin:
+    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
     case State::Resuming_BufferData:
@@ -148,8 +161,12 @@ static StateAnimation marlin_to_anim_state() {
     case State::Aborted:
         return StateAnimation::Aborted;
 
+    case State::Finishing_ParkHead:
+    case State::Finishing_UnloadFilament:
+        return StateAnimation::Finishing;
+
     case State::Finished:
-        return StateAnimation::Finished;
+        return post_filter_active() ? StateAnimation::Finishing : StateAnimation::Idle;
 
     case State::CrashRecovery_Begin:
     case State::CrashRecovery_Retracting:
