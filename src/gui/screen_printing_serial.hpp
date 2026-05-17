@@ -21,6 +21,9 @@ class screen_printing_serial_data_t : public ScreenPrintingModel {
     connection_state_t connection;
 
 public:
+    static constexpr size_t terminal_columns = 30;
+    static constexpr size_t terminal_rows = 8;
+
     screen_printing_serial_data_t();
 
 protected:
@@ -30,7 +33,7 @@ private:
     virtual void stopAction() override;
     virtual void pauseAction() override;
     virtual void tuneAction() override;
-    term_buff_t<30, 8> term_buff;
+    term_buff_t<terminal_columns, terminal_rows> term_buff;
     window_term_t term;
     uint32_t last_message_id = 0;
     marlin_server::State last_state;

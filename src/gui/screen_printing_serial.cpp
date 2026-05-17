@@ -19,7 +19,9 @@
 
 namespace {
 point_i16_t get_location() {
-    return GuiDefaults::RectScreenBody.TopLeft();
+    constexpr int16_t term_width = width(GuiDefaults::DefaultFont) * screen_printing_serial_data_t::terminal_columns;
+    constexpr auto x = GuiDefaults::RectScreenBody.Left() + (GuiDefaults::RectScreenBody.Width() - term_width) / 2;
+    return point_i16_t { x, GuiDefaults::RectScreenBody.Top() };
 }
 } // namespace
 
