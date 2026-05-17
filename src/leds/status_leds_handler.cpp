@@ -4,11 +4,24 @@
 #include <led_animation_controller/frame_animation.hpp>
 #include "marlin_vars.hpp"
 #include "client_response.hpp"
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_side_fsensor.h>
+
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 namespace leds {
 
 using namespace marlin_server;
+
+static bool post_filter_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return buddy::chamber_filtration().output_pwm().value > 0;
+#else
+    return false;
+#endif
+}
 
 static StateAnimation marlin_to_anim_state() {
     fsm::States::State load_unload_state;
@@ -145,8 +158,12 @@ static StateAnimation marlin_to_anim_state() {
     case State::Aborted:
         return StateAnimation::Aborted;
 
+    case State::Finishing_ParkHead:
+    case State::Finishing_UnloadFilament:
+        return StateAnimation::Finishing;
+
     case State::Finished:
-        return StateAnimation::Finished;
+        return post_filter_active() ? StateAnimation::Finishing : StateAnimation::Idle;
 
     case State::CrashRecovery_Begin:
     case State::CrashRecovery_Retracting:

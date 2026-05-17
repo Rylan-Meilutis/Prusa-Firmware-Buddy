@@ -14,13 +14,19 @@ std::optional<leds::ColorRGBW> parse_color() {
         uint8_t R = parser.byteval('R');
         uint8_t G = parser.byteval('G');
         uint8_t B = parser.byteval('B');
-        return leds::ColorRGBW { R, G, B };
+        uint8_t W = parser.byteval('W', 0);
+        return leds::ColorRGBW { R, G, B, W };
 
     } else if (parser.seen('S') && parser.seen('H') && parser.seen('V')) {
         float H = parser.floatval('H');
         float S = parser.floatval('S');
         float V = parser.floatval('V');
-        return leds::ColorRGBW::from_hsv({ H, S, V });
+        auto color = leds::ColorRGBW::from_hsv({ H, S, V });
+        color.w = parser.byteval('W', 0);
+        return color;
+    } else if (parser.seen('W')) {
+        uint8_t W = parser.byteval('W');
+        return leds::ColorRGBW { 0, 0, 0, W };
     }
     return std::nullopt;
 }
@@ -97,7 +103,7 @@ void PrusaGcodeSuite::M150() {
  *
  *#### Usage
  *
- *    M151 [ R | B | G | H | S | V | D | T ]
+ *    M151 [ R | B | G | W | H | S | V | D | T ]
  *
  *#### Parameters
  *
@@ -105,6 +111,7 @@ void PrusaGcodeSuite::M150() {
  * - `R` - Red intensity from 0 to 255
  * - `G` - Green intensity from 0 to 255
  * - `B` - Blue intensity from 0 to 255
+ * - `W` - White intensity from 0 to 255
  *
  * HSV color space
  * - `H` - Hue from 0 to 360
@@ -112,7 +119,7 @@ void PrusaGcodeSuite::M150() {
  * - `V` - Saturation form 0 to 100
  *
  * Effect
- * - `D` - duration in milliseconds, iX only: set to 0 for infinite duration
+ * - `D` - duration in milliseconds, set to 0 for infinite duration
  * - `T` - transition in milliseconds (fade in / fade out)
  *
  * Fade in is counted toward duration,
