@@ -19,6 +19,9 @@
 #include "screen_menu_network.hpp"
 #include "screen_menu_fail_stat.hpp"
 #include "screen_menu_user_interface.hpp"
+#include "screen_menu_serial_printing.hpp"
+#include "screen_menu_lock_settings.hpp"
+#include "screen_menu_led_colors.hpp"
 #include "screen_menu_lang_and_time.hpp"
 #include "screen_menu_hardware.hpp"
 #include "screen_menu_hardware_tune.hpp"
@@ -117,6 +120,10 @@ template struct MI_SCREEN_CTOR<ScreenMenuFooterSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuFooterSettingsAdv>;
 template struct MI_SCREEN_CTOR<ScreenMenuExperimentalSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuUserInterface>;
+template struct MI_SCREEN_CTOR<ScreenMenuSerialPrinting>;
+template struct MI_SCREEN_CTOR<ScreenMenuLockSettings>;
+template struct MI_SCREEN_CTOR<ScreenMenuUiThemeColors>;
+template struct MI_SCREEN_CTOR<ScreenMenuStatusLedColors>;
 template struct MI_SCREEN_CTOR<ScreenMenuLangAndTime>;
 template struct MI_SCREEN_CTOR<ScreenMenuNetwork>;
 template struct MI_SCREEN_CTOR<ScreenMenuNetworkStatus>;

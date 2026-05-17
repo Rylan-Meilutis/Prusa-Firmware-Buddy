@@ -57,6 +57,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             print_utils.cpp
             printer_model.cpp
             probe_analysis.cpp
+            printer_lock.cpp
             random_common.cpp
             random_hw.cpp
             ring_allocator.cpp
@@ -79,6 +80,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             sys_time.cpp
             tasks.cpp
             tools_mapping.cpp
+            ui_theme.cpp
             w25x.cpp
             w25x_communication.cpp
             wdt.cpp

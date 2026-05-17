@@ -5,6 +5,9 @@
 #include "i18n.h"
 #include "ScreenHandler.hpp"
 #include "screen_printing_layout.hpp"
+#include <dialogs/dialog_text_input.hpp>
+#include <printer_lock.hpp>
+#include <array>
 
 namespace {
 constexpr uint16_t btn_size = GuiDefaults::ButtonIconSize;
@@ -25,7 +28,24 @@ constexpr const char *label_resources[] = {
     N_("Skip"),
     N_("Disconnect"),
     N_("Set Ready"),
+    N_("Unlock"),
 };
+
+bool parse_unlock_pin(const std::array<char, 7> &buffer, uint32_t &pin, uint8_t &length) {
+    pin = 0;
+    length = 0;
+    for (char ch : buffer) {
+        if (ch == '\0') {
+            break;
+        }
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+        pin = pin * 10 + static_cast<uint32_t>(ch - '0');
+        ++length;
+    }
+    return length >= 4 && length <= 6;
+}
 } // namespace
 
 ScreenPrintingModel::ScreenPrintingModel(const string_view_utf8 &caption)
@@ -48,6 +68,24 @@ ScreenPrintingModel::ScreenPrintingModel(const string_view_utf8 &caption)
 
     static_assert(std::size(label_resources) == std::to_underlying(LabelRes::_count), "Size mismatch");
     static_assert(std::size(icon_resources) == std::to_underlying(BtnRes::_count), "Size mismatch");
+}
+
+bool ScreenPrintingModel::unlock_machine() {
+    std::array<char, 7> buffer {};
+    uint32_t pin = 0;
+    uint8_t length = 0;
+    if (DialogTextInput::exec(_("Unlock Code"), buffer, true) && parse_unlock_pin(buffer, pin, length) && printer_lock::check_pin(pin, length)) {
+        printer_lock::unlock();
+        return true;
+    }
+    return false;
+}
+
+void ScreenPrintingModel::show_locked_buttons() {
+    EnableButton(BtnSocket::Left);
+    SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Unlock);
+    DisableButton(BtnSocket::Middle);
+    DisableButton(BtnSocket::Right);
 }
 
 Rect16 ScreenPrintingModel::GetButtonRect(uint8_t idx) {

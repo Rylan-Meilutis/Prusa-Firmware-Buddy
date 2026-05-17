@@ -465,6 +465,26 @@ struct CurrentStore
 #endif
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Serial Printing Screen")> serial_print_screen_enabled;
+    StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Serial Printing Legacy UI")> serial_print_legacy_ui;
+    StoreItem<uint16_t, 5, ItemFlag::user_interface, journal::hash("Serial Printing Timeout Sec")> serial_print_timeout_s;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Serial Printing Auto Start")> serial_print_auto_start;
+
+    StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Printer Lock Enabled")> printer_lock_enabled;
+    StoreItem<uint32_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN")> printer_lock_pin;
+    StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN Length")> printer_lock_pin_length;
+    StoreItem<uint16_t, 60, ItemFlag::user_interface, journal::hash("Printer Lock Timeout Sec")> printer_lock_timeout_s;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Printer Lock Accept Serial")> printer_lock_accept_serial;
+
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Primary Color")> ui_theme_primary_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Progress Color")> ui_theme_progress_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("UI Theme Warning Color")> ui_theme_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("UI Theme Error Color")> ui_theme_error_color;
+
+    StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("Status LED Idle Color")> status_led_idle_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
+    StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("Status LED Finished Color")> status_led_finished_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color")> status_led_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("Status LED Error Color")> status_led_error_color;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Tool LEDs")> tool_leds_enabled;
 

@@ -135,7 +135,7 @@ void MenuItemSelectMenu::printExtension(Rect16 extension_rect, Color color_text,
         extension_rect = Rect16::fromLTRB(extension_rect.Left() + font_w, extension_rect.Top(), extension_rect.EndPoint().x - font_w, extension_rect.EndPoint().y);
     }
 
-    const auto text_color = (IsFocused() && IsEnabled()) ? GuiDefaults::ColorSelected : color_text;
+    const auto text_color = (IsFocused() && IsEnabled()) ? COLOR_WHITE : color_text;
     render_text_align(extension_rect, string_view_utf8::MakeRAM(value_text_.data()), value_font, color_back, text_color, {}, Align_t::Center(), false);
 }
 

@@ -10,6 +10,7 @@
 #include <gui/event/focus_event.hpp>
 #include <gui/event/touch_event.hpp>
 #include <option/development_items.h>
+#include <ui_theme.hpp>
 
 namespace window_menu_item_private {
 
@@ -282,7 +283,7 @@ Color IWindowMenuItem::GetTextColor() const {
     } else if (hidden == (uint8_t)is_hidden_t::dev) {
         ret = GuiDefaults::MenuColorDevelopmentDisabled;
     } else if (IsFocused()) {
-        ret = GuiDefaults::MenuColorBack;
+        ret = COLOR_WHITE;
     } else if (IsEnabled()) {
         ret = GuiDefaults::MenuColorText;
     } else {
@@ -303,7 +304,7 @@ Color IWindowMenuItem::GetBackColor() const {
 
     Color ret = GuiDefaults::MenuColorBack;
     if (IsFocused()) {
-        ret = IsEnabled() ? GuiDefaults::MenuColorFocusedBack : GuiDefaults::MenuColorDisabled;
+        ret = IsEnabled() ? ui_theme::primary() : GuiDefaults::MenuColorDisabled;
     }
     return ret;
 }

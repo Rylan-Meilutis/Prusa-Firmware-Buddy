@@ -41,9 +41,9 @@ function(resolve_version_variables)
 
   # PROJECT_VERSION_SUFFIX
   if(PROJECT_VERSION_SUFFIX STREQUAL "<auto>")
-    set(PROJECT_VERSION_SUFFIX "+RME")
+    set(PROJECT_VERSION_SUFFIX "-RME")
     set(PROJECT_VERSION_SUFFIX
-        "+RME"
+        "-RME"
         PARENT_SCOPE
         )
   endif()
@@ -51,7 +51,7 @@ function(resolve_version_variables)
   # PROJECT_VERSION_SUFFIX_SHORT
   if(PROJECT_VERSION_SUFFIX_SHORT STREQUAL "<auto>")
     set(PROJECT_VERSION_SUFFIX_SHORT
-        "+RME"
+        "-RME"
         PARENT_SCOPE
         )
   endif()
