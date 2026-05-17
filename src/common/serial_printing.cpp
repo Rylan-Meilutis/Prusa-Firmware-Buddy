@@ -335,6 +335,22 @@ bool parse_etl_seconds(const char *message, uint32_t &seconds) {
         || parse_duration_seconds_after(message, "remaining", seconds);
 }
 
+bool octoprint_status_print_start(const char *command) {
+    if (!command_starts_with(command, 'M', 117)) {
+        return false;
+    }
+
+    const char *message = command_arg(command);
+
+    uint8_t percent = 0;
+    if (!parse_percent(message, percent) || percent != 0) {
+        return false;
+    }
+
+    uint32_t seconds = 0;
+    return parse_etl_seconds(message, seconds) || parse_eta_seconds(message, seconds);
+}
+
 void parse_octoprint_status_message(const char *command) {
     if (!command_starts_with(command, 'M', 117)) {
         return;
@@ -390,7 +406,7 @@ void SerialPrinting::serial_command_hook(const char *command) {
         return;
     }
 
-    if (print_start_gcode(command)) {
+    if (print_start_gcode(command) || octoprint_status_print_start(command)) {
         last_serial_indicator_ms = ticks_ms();
         marlin_server::serial_print_start();
     }

@@ -472,7 +472,7 @@ if(GENERATE_BBF)
   message(STATUS "Signing Key: ${SIGNING_KEY}")
 
   if(PROJECT_VERSION_SUFFIX)
-    if(NOT "${PROJECT_VERSION_SUFFIX}" MATCHES "\\+${BUILD_NUMBER}")
+    if(NOT "${PROJECT_VERSION_SUFFIX}" MATCHES "\\+${BUILD_NUMBER}" AND NOT "${PROJECT_VERSION_SUFFIX}" STREQUAL "+RME")
       message(WARNING "The generated .bbf is configured to use the build number ${BUILD_NUMBER},
       but the version suffix (${PROJECT_VERSION_SUFFIX}) does not contain +${BUILD_NUMBER}.
       Are you sure you know what you are doing?"
