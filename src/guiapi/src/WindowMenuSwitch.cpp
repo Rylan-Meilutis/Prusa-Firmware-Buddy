@@ -58,7 +58,7 @@ Rect16 MenuItemSwitch::getRightBracketRect(Rect16 extension_rect) const {
 void MenuItemSwitch::printExtension(Rect16 extension_rect, Color color_text, Color color_back, [[maybe_unused]] ropfn raster_op) const {
     // draw switch
     render_text_align(getSwitchRect(extension_rect), current_item_text(), GuiDefaults::FontMenuItems, color_back,
-        (IsFocused() && IsEnabled()) ? GuiDefaults::ColorSelected : color_text,
+        (IsFocused() && IsEnabled()) ? COLOR_WHITE : color_text,
         padding_ui8(0, 4, 0, 0), Align_t::Center(), false);
 
     // draw brackets

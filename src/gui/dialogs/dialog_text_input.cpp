@@ -58,8 +58,9 @@ constexpr EnumArray<SpecialButton, std::variant<const char *, const img::Resourc
 
 } // namespace
 
-DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer)
-    : buffer_(buffer) {
+DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input)
+    : buffer_(buffer)
+    , hidden_input_(hidden_input) {
     ui.txt_prompt.SetText(prompt);
     setup_ui();
     set_keyboard_layout(layout_text_lowercase);
@@ -73,8 +74,8 @@ DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char>
     ui.btn_matrix[0].SetFocus();
 }
 
-bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer) {
-    DialogTextInput dlg(prompt, buffer);
+bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input) {
+    DialogTextInput dlg(prompt, buffer, hidden_input);
     Screens::Access()->gui_loop_until_dialog_closed();
     return !dlg.cancelled_;
 }
@@ -347,7 +348,14 @@ void dialog_text_input::DialogTextInput::update_result() {
     const auto max_visible_characters = ui.txt_result.Width() / resource_font(ui.txt_result.get_font())->w;
 
     const size_t text_len = strlen(buffer_.data());
-    ui.txt_result.SetText(string_view_utf8::MakeRAM(buffer_.data() + text_len - std::min<size_t>(text_len, max_visible_characters)));
+    if (hidden_input_) {
+        const size_t shown_len = std::min({ text_len, static_cast<size_t>(max_visible_characters), hidden_buffer_.size() - 1 });
+        std::fill(hidden_buffer_.begin(), hidden_buffer_.end(), '\0');
+        std::fill_n(hidden_buffer_.begin(), shown_len, '*');
+        ui.txt_result.SetText(string_view_utf8::MakeRAM(hidden_buffer_.data()));
+    } else {
+        ui.txt_result.SetText(string_view_utf8::MakeRAM(buffer_.data() + text_len - std::min<size_t>(text_len, max_visible_characters)));
+    }
     ui.txt_result.Invalidate();
 
     update_ui_enabled();

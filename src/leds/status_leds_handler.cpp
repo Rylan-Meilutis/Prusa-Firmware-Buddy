@@ -240,6 +240,28 @@ namespace {
             { AnimationType::Pulsing, pulsing },
     };
 
+    ColorRGBW configured_color(StateAnimation state, ColorRGBW fallback) {
+        const auto raw_to_color = [](uint32_t raw) {
+            return ColorRGBW(static_cast<uint8_t>((raw >> 16) & 0xff), static_cast<uint8_t>((raw >> 8) & 0xff), static_cast<uint8_t>(raw & 0xff));
+        };
+
+        switch (state) {
+        case StateAnimation::Idle:
+            return raw_to_color(config_store().status_led_idle_color.get());
+        case StateAnimation::Printing:
+            return raw_to_color(config_store().status_led_printing_color.get());
+        case StateAnimation::Finishing:
+            return raw_to_color(config_store().status_led_finished_color.get());
+        case StateAnimation::Warning:
+        case StateAnimation::PowerPanic:
+            return raw_to_color(config_store().status_led_warning_color.get());
+        case StateAnimation::Error:
+            return raw_to_color(config_store().status_led_error_color.get());
+        default:
+            return fallback;
+        }
+    }
+
 } // namespace
 
 StateAnimationController &controller_instance() {
@@ -264,6 +286,12 @@ void StatusLedsHandler::set_animation(StateAnimation state) {
 
 ColorRGBW StatusLedsHandler::get_color() const {
     return color;
+}
+
+void StatusLedsHandler::reload_colors() {
+    std::lock_guard lock(mutex);
+    old_color = {};
+    old_state = StateAnimation::_last;
 }
 
 bool StatusLedsHandler::get_active() {
@@ -310,10 +338,12 @@ void StatusLedsHandler::update() {
         state = marlin_to_anim_state();
     }
 
-    const auto &animation = animations[state];
+    auto animation = animations[state];
+    animation.color = configured_color(state, animation.color);
     color = animation.color;
-    if (state != old_state) {
+    if (state != old_state || color != old_color) {
         old_state = state;
+        old_color = color;
         controller_instance().set(animation);
     }
 

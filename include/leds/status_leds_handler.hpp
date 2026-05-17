@@ -63,6 +63,7 @@ public:
     void set_custom_animation(const ColorRGBW &color, AnimationType type, uint16_t period_ms);
 
     ColorRGBW get_color() const;
+    void reload_colors();
 
     bool get_active();
     void set_active(bool val);
@@ -76,6 +77,7 @@ private:
     bool active { config_store().run_leds.get() };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };
+    ColorRGBW old_color {};
 
     std::array<FrameAnimation<3>::Params, 2> custom_params_banks;
     uint8_t custom_params_bank_index { 0 };

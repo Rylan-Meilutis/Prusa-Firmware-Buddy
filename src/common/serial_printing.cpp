@@ -2,6 +2,7 @@
 #include <state/printer_state.hpp>
 #include <option/developer_mode.h>
 #include <config_store/store_instance.hpp>
+#include <printer_lock.hpp>
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <algorithm>
 #include <cstdlib>
@@ -39,11 +40,15 @@ bool SerialPrinting::has_serial_timeouted() {
         return false;
     }
 
-    if (last_serial_indicator_ms != 0 && last_serial_indicator_ms <= curr_time && curr_time <= last_serial_indicator_ms + serial_printing_screen_timeout) {
+    if (last_serial_indicator_ms != 0 && last_serial_indicator_ms <= curr_time && curr_time <= last_serial_indicator_ms + serial_printing_screen_timeout_ms()) {
         return false;
     } else {
         return true;
     }
+}
+
+uint32_t SerialPrinting::serial_printing_screen_timeout_ms() {
+    return static_cast<uint32_t>(std::max<uint16_t>(1, config_store().serial_print_timeout_s.get())) * 1000;
 }
 
 void remove_N_prefix(const char *&command) {
@@ -128,7 +133,7 @@ bool m73_finished(const char *command) {
 }
 
 bool print_start_gcode(const char *command) {
-    return command_starts_with(command, 'M', 75) || m73_print_start(command);
+    return command_starts_with(command, 'M', 75) || (config_store().serial_print_auto_start.get() && m73_print_start(command));
 }
 
 bool print_end_gcode(const char *command) {
@@ -379,14 +384,14 @@ void parse_octoprint_status_message(const char *command) {
     }
 }
 
-void SerialPrinting::serial_command_hook(const char *command) {
+bool SerialPrinting::serial_command_hook(const char *command) {
     // never enter serial printing in developer mode as it breaks live debugging
     if (option::developer_mode) {
-        return;
+        return true;
     }
 
     if (!config_store().serial_print_screen_enabled.get()) {
-        return;
+        return true;
     }
 
     remove_N_prefix(command);
@@ -397,17 +402,22 @@ void SerialPrinting::serial_command_hook(const char *command) {
         if (print_end_gcode(command)) {
             marlin_server::serial_print_finalize();
         }
-        return;
+        return true;
     }
 
     // If marlin server is already printing, or is not able to start print, do not enter serial printing state.
     // The command will still be queued for execution regardless of this.
     if (!printer_state::remote_print_ready(true)) {
-        return;
+        return true;
     }
 
     if (print_start_gcode(command) || octoprint_status_print_start(command)) {
+        if (!printer_lock::serial_print_start_allowed()) {
+            return false;
+        }
         last_serial_indicator_ms = ticks_ms();
         marlin_server::serial_print_start();
     }
+
+    return true;
 }
