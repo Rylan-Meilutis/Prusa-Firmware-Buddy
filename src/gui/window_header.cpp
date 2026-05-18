@@ -320,7 +320,9 @@ window_header_t::window_header_t(window_t *parent, const string_view_utf8 &txt)
 
 {
     label.set_font(GuiDefaults::HeaderTextFont);
+    label.SetTextColor(COLOR_WHITE);
     label.SetAlignment(Align_t::LeftCenter());
+    transfer_val.SetTextColor(COLOR_WHITE);
     transfer_val.SetAlignment(Align_t::LeftCenter());
     transfer_val.set_font(GuiDefaults::HeaderTextFont);
     icon_base.SetAlignment(Align_t::LeftCenter());
@@ -329,6 +331,7 @@ window_header_t::window_header_t(window_t *parent, const string_view_utf8 &txt)
     icon_transfer.SetAlignment(Align_t::LeftCenter());
 
     bed_text.set_font(GuiDefaults::HeaderTextFont);
+    bed_text.SetTextColor(COLOR_WHITE);
     bed_icon.SetAlignment(Align_t::LeftCenter());
 
     icon_network.Hide();
@@ -337,6 +340,7 @@ window_header_t::window_header_t(window_t *parent, const string_view_utf8 &txt)
 
 #if !HAS_MINI_DISPLAY() // Time is not shown on ST7789
     time_val.set_font(GuiDefaults::HeaderTextFont);
+    time_val.SetTextColor(COLOR_WHITE);
     time_val.SetAlignment(Align_t::RightCenter());
     time_tools::update_time();
     time_val.SetText(string_view_utf8::MakeRAM(time_tools::get_time()));

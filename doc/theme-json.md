@@ -20,7 +20,7 @@ Required `ui` colors:
 - `progress`
 - `warning`
 - `error`
-- `image`
+- `image`: runtime tint color for theme-colored artwork. Only pixels matching the firmware's indigo theme marker are recolored; other image colors are preserved.
 
 Required `led` colors:
 

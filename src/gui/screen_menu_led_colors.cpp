@@ -98,6 +98,37 @@ constexpr ThemeColors theme_forest {
     .led_error = 0xd94343,
 };
 
+constexpr std::array<const char *, 7> theme_preset_names {
+    N_("Prusa"),
+    N_("Indigo"),
+    N_("Blue"),
+    N_("Graphite"),
+    N_("Forest"),
+    N_("Imported"),
+    N_("Custom"),
+};
+
+constexpr std::array<const ThemeColors *, 5> built_in_themes {
+    &theme_prusa,
+    &theme_default,
+    &theme_blue,
+    &theme_graphite,
+    &theme_forest,
+};
+
+bool same_theme(const ThemeColors &lhs, const ThemeColors &rhs) {
+    return lhs.primary == rhs.primary
+        && lhs.progress == rhs.progress
+        && lhs.warning == rhs.warning
+        && lhs.error == rhs.error
+        && lhs.image == rhs.image
+        && lhs.led_idle == rhs.led_idle
+        && lhs.led_printing == rhs.led_printing
+        && lhs.led_finished == rhs.led_finished
+        && lhs.led_warning == rhs.led_warning
+        && lhs.led_error == rhs.led_error;
+}
+
 bool edit_color(const string_view_utf8 &prompt, auto &store_item) {
     std::array<char, 8> buffer {};
     StringBuilder sb(buffer);
@@ -135,12 +166,6 @@ void apply_theme(const ThemeColors &theme) {
     config_store().ui_theme_warning_color.set(theme.warning);
     config_store().ui_theme_error_color.set(theme.error);
     config_store().ui_theme_image_color.set(theme.image);
-    config_store().status_led_idle_color.set(theme.led_idle);
-    config_store().status_led_printing_color.set(theme.led_printing);
-    config_store().status_led_finished_color.set(theme.led_finished);
-    config_store().status_led_warning_color.set(theme.led_warning);
-    config_store().status_led_error_color.set(theme.led_error);
-    reload_status_led_colors();
 }
 
 void save_imported_theme(const ThemeColors &theme) {
@@ -169,6 +194,34 @@ ThemeColors imported_theme() {
         .led_warning = config_store().usb_status_led_warning_color.get(),
         .led_error = config_store().usb_status_led_error_color.get(),
     };
+}
+
+ThemeColors current_theme() {
+    return {
+        .primary = config_store().ui_theme_primary_color.get(),
+        .progress = config_store().ui_theme_progress_color.get(),
+        .warning = config_store().ui_theme_warning_color.get(),
+        .error = config_store().ui_theme_error_color.get(),
+        .image = config_store().ui_theme_image_color.get(),
+        .led_idle = config_store().status_led_idle_color.get(),
+        .led_printing = config_store().status_led_printing_color.get(),
+        .led_finished = config_store().status_led_finished_color.get(),
+        .led_warning = config_store().status_led_warning_color.get(),
+        .led_error = config_store().status_led_error_color.get(),
+    };
+}
+
+int current_theme_preset_index() {
+    const ThemeColors current = current_theme();
+    for (size_t i = 0; i < built_in_themes.size(); ++i) {
+        if (same_theme(current, *built_in_themes[i])) {
+            return static_cast<int>(i);
+        }
+    }
+    if (same_theme(current, imported_theme())) {
+        return static_cast<int>(built_in_themes.size());
+    }
+    return static_cast<int>(built_in_themes.size() + 1);
 }
 
 bool parse_hex_color_token(const char *json, const jsmntok_t &token, uint32_t &out) {
@@ -409,12 +462,42 @@ bool ui_theme_menu::load_usb_theme_file(const char *path) {
     return true;
 }
 
+MI_UI_THEME_PRESET_SELECT::MI_UI_THEME_PRESET_SELECT()
+    : MenuItemSelectMenu(_("Theme")) {
+    set_current_item(current_theme_preset_index());
+}
+
+int MI_UI_THEME_PRESET_SELECT::item_count() const {
+    return theme_preset_names.size();
+}
+
+void MI_UI_THEME_PRESET_SELECT::build_item_text(int index, const std::span<char> &buffer) const {
+    if (index < 0 || index >= item_count()) {
+        return;
+    }
+    _(theme_preset_names[index]).copyToRAM(buffer);
+}
+
+bool MI_UI_THEME_PRESET_SELECT::on_item_selected([[maybe_unused]] int old_index, int new_index) {
+    if (new_index < 0 || new_index >= item_count()) {
+        return false;
+    }
+    if (new_index < static_cast<int>(built_in_themes.size())) {
+        apply_theme(*built_in_themes[new_index]);
+    } else if (new_index == static_cast<int>(built_in_themes.size())) {
+        apply_theme(imported_theme());
+    } else {
+        Screens::Access()->Open<ScreenMenuUiThemeCustom>();
+    }
+    return true;
+}
+
 MI_UI_THEME_PRESET_PRUSA::MI_UI_THEME_PRESET_PRUSA()
     : IWindowMenuItem(_("Prusa"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 void MI_UI_THEME_PRESET_PRUSA::click(IWindowMenu &) { apply_theme(theme_prusa); }
 
 MI_UI_THEME_PRESET_DEFAULT::MI_UI_THEME_PRESET_DEFAULT()
-    : IWindowMenuItem(_("Default"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+    : IWindowMenuItem(_("Indigo"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 void MI_UI_THEME_PRESET_DEFAULT::click(IWindowMenu &) { apply_theme(theme_default); }
 
 MI_UI_THEME_PRESET_BLUE::MI_UI_THEME_PRESET_BLUE()
