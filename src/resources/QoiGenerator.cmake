@@ -1,15 +1,15 @@
 set(qoi_generator_py "${CMAKE_SOURCE_DIR}/utils/qoi_packer.py")
 set(qoi_data_file "${CMAKE_CURRENT_BINARY_DIR}/qoi.data")
 set(qoi_resources_file "${CMAKE_BINARY_DIR}/src/gui/res/qoi_resources.gen")
+set(png_standard_dir "${CMAKE_SOURCE_DIR}/src/gui/res/png")
+file(GLOB standard_pngs "${png_standard_dir}/*.png")
 
 # Icon source directory - overlay brass icons for Signature Oak
 if(SIGNATURE_OAK)
   set(qoi_source_dir "${CMAKE_BINARY_DIR}/png_merged")
-  set(png_standard_dir "${CMAKE_SOURCE_DIR}/src/gui/res/png")
   set(png_brass_dir "${CMAKE_SOURCE_DIR}/src/gui/res/png_brass")
   message(STATUS "Signature Oak: Overlaying brass icons")
 
-  file(GLOB standard_pngs "${png_standard_dir}/*.png")
   file(GLOB brass_pngs "${png_brass_dir}/*.png")
 
   add_custom_command(
@@ -24,7 +24,7 @@ if(SIGNATURE_OAK)
   set(qoi_icon_deps "${qoi_source_dir}/.stamp")
 else()
   set(qoi_source_dir "${CMAKE_SOURCE_DIR}/src/gui/res/png")
-  set(qoi_icon_deps "")
+  set(qoi_icon_deps ${standard_pngs})
 endif()
 
 if(PRINTER STREQUAL "MINI")

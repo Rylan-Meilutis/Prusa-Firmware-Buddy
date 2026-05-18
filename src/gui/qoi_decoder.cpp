@@ -1,6 +1,8 @@
 #include "qoi_decoder.hpp"
 #include <raster_opfn_c.h>
 #include <display_math_helper.h>
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 
 // Loosely based on qoi_decode() by Dominic Szablewski licensed under MIT license
@@ -156,11 +158,41 @@ namespace transform {
         return pixel;
     }
 
+    bool is_theme_marker_indigo(Pixel pixel) {
+        static constexpr uint8_t marker_r = 0x4b;
+        static constexpr uint8_t marker_g = 0x2e;
+        static constexpr uint8_t marker_b = 0x83;
+        static constexpr uint8_t marker_max = marker_b;
+        static constexpr uint8_t channel_tolerance = 35;
+
+        const uint8_t max_channel = std::max({ pixel.r, pixel.g, pixel.b });
+        if (pixel.a == 0 || max_channel < 16 || pixel.b < pixel.r || pixel.r < pixel.g) {
+            return false;
+        }
+
+        const uint8_t normalized_r = static_cast<uint16_t>(pixel.r) * 255 / max_channel;
+        const uint8_t normalized_g = static_cast<uint16_t>(pixel.g) * 255 / max_channel;
+        const uint8_t normalized_b = static_cast<uint16_t>(pixel.b) * 255 / max_channel;
+        const uint8_t expected_r = static_cast<uint16_t>(marker_r) * 255 / marker_max;
+        const uint8_t expected_g = static_cast<uint16_t>(marker_g) * 255 / marker_max;
+        const uint8_t expected_b = 255;
+
+        return std::abs(normalized_r - expected_r) <= channel_tolerance
+            && std::abs(normalized_g - expected_g) <= channel_tolerance
+            && std::abs(normalized_b - expected_b) <= channel_tolerance;
+    }
+
     Pixel tint(Pixel pixel, Color tint_color) {
-        const uint8_t luminance = Color::from_rgb(pixel.r, pixel.g, pixel.b).to_grayscale();
-        pixel.r = static_cast<uint16_t>(tint_color.r) * luminance / 255;
-        pixel.g = static_cast<uint16_t>(tint_color.g) * luminance / 255;
-        pixel.b = static_cast<uint16_t>(tint_color.b) * luminance / 255;
+        if (!is_theme_marker_indigo(pixel)) {
+            return pixel;
+        }
+
+        static constexpr uint8_t marker_max = 0x83;
+        const uint8_t max_channel = std::max({ pixel.r, pixel.g, pixel.b });
+        const uint16_t shade = std::min<uint16_t>(255, static_cast<uint16_t>(max_channel) * 255 / marker_max);
+        pixel.r = static_cast<uint16_t>(tint_color.r) * shade / 255;
+        pixel.g = static_cast<uint16_t>(tint_color.g) * shade / 255;
+        pixel.b = static_cast<uint16_t>(tint_color.b) * shade / 255;
         return pixel;
     }
 
