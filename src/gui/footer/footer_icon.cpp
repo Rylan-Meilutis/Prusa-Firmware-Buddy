@@ -34,3 +34,15 @@ FooterIcon::FooterIcon(window_t *parent, const img::Resource *icon)
         }(),
         icon) {
 }
+
+void FooterIcon::unconditionalDraw() {
+    if (!resource()) {
+        return;
+    }
+
+    if (resource()->w < Width() || resource()->h < Height()) {
+        window_aligned_t::unconditionalDraw();
+    }
+
+    window_icon_t::unconditional_draw_original(this, resource());
+}

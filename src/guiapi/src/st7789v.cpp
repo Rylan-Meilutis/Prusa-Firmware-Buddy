@@ -613,7 +613,7 @@ void st7789v_ctrl_set(uint8_t ctrl) {
     st7789v_cmd(CMD_WRCTRLD, &st7789v_config.control, sizeof(st7789v_config.control));
 }
 
-void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+static void st7789v_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color, bool tinted) {
     assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     // Current pixel position starts top-left where the image is placed
@@ -691,6 +691,9 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
 
                 // Transform pixel data
                 pixel = qoi::transform::apply_rop(pixel, rop);
+                if (tinted) {
+                    pixel = qoi::transform::tint(pixel, tint_color);
+                }
 
                 // Store to output buffer
                 const Color c = Color::mix(back_color, Color::from_rgb(pixel.r, pixel.g, pixel.b), pixel.a);
@@ -710,6 +713,14 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     // Write remaining pixels to display and close SPI transaction
     st7789v_wr(p_buf.data(), o_data - p_buf.begin());
     st7789v_set_cs();
+}
+
+void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+    st7789v_draw_qoi_ex_impl(pt, reader, back_color, rop, COLOR_WHITE, false);
+}
+
+void st7789v_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color) {
+    st7789v_draw_qoi_ex_impl(pt, reader, back_color, rop, tint_color, true);
 }
 
 // measured delay from low to hi in reset cycle

@@ -43,6 +43,10 @@ static inline void draw_qoi_ex_C(point_ui16_t pt, AbstractByteReader &reader, Co
     st7789v_draw_qoi_ex(pt, reader, back_color, rop.ConvertToC());
 }
 
+static inline void draw_qoi_ex_tinted_C(point_ui16_t pt, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color) {
+    st7789v_draw_qoi_ex_tinted(pt, reader, back_color, rop.ConvertToC(), tint_color);
+}
+
 static inline void set_pixel_colorFormatNative(uint16_t point_x, uint16_t point_y, uint32_t nativeclr) {
     st7789v_set_pixel(point_x, point_y, nativeclr);
 }
@@ -86,6 +90,10 @@ void clear(const Color clr) {
 
 static inline void draw_qoi_ex_C(point_ui16_t pt, AbstractByteReader &reader, Color back_color, ropfn rop) {
     ili9488_draw_qoi_ex(pt, reader, back_color, rop.ConvertToC());
+}
+
+static inline void draw_qoi_ex_tinted_C(point_ui16_t pt, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color) {
+    ili9488_draw_qoi_ex_tinted(pt, reader, back_color, rop.ConvertToC(), tint_color);
 }
 
 static inline void set_pixel_colorFormatNative(uint16_t point_x, uint16_t point_y, uint32_t nativeclr) {
@@ -503,6 +511,19 @@ void draw_img(point_ui16_t pt, const img::Resource &qoi, Color back_color, ropfn
     ::lseek(resource_fd, qoi.offset, SEEK_SET);
     ResourceFileReader reader;
     draw_qoi_ex_C(pt, reader, back_color, rop);
+}
+
+void draw_img_tinted(point_ui16_t pt, const img::Resource &qoi, Color back_color, ropfn rop, Color tint_color) {
+    if (resource_fd == -1 && enabled) {
+        resource_fd = ::open("/internal/res/qoi.data", 0);
+    }
+    if (resource_fd == -1) {
+        return;
+    }
+
+    ::lseek(resource_fd, qoi.offset, SEEK_SET);
+    ResourceFileReader reader;
+    draw_qoi_ex_tinted_C(pt, reader, back_color, rop, tint_color);
 }
 
 void draw_img(point_ui16_t pt, AbstractByteReader &reader) {
