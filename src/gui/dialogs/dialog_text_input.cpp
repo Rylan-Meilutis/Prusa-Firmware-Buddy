@@ -58,11 +58,17 @@ constexpr EnumArray<SpecialButton, std::variant<const char *, const img::Resourc
 
 } // namespace
 
-DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input)
+DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input, bool start_with_numbers)
     : buffer_(buffer)
-    , hidden_input_(hidden_input) {
+    , hidden_input_(hidden_input)
+    , start_with_numbers_(start_with_numbers) {
     ui.txt_prompt.SetText(prompt);
     setup_ui();
+#if HAS_NUMBERS_LAYOUT()
+    if (start_with_numbers_) {
+        set_keyboard_layout(layout_numbers);
+    } else
+#endif
     set_keyboard_layout(layout_text_lowercase);
 
     update_result();
@@ -71,11 +77,21 @@ DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char>
     CaptureNormalWindow(*this);
 
     // We need to set focus to something, otherwise touch wouldn't work
-    ui.btn_matrix[0].SetFocus();
+    int focus_button = 0;
+    if (start_with_numbers_) {
+        for (int i = 0; i < button_count; ++i) {
+            const ButtonRec &rec = (*current_layout_)[i / button_cols][i % button_cols];
+            if (!rec.is_special() && rec[0] >= '0' && rec[0] <= '9') {
+                focus_button = i;
+                break;
+            }
+        }
+    }
+    ui.btn_matrix[focus_button].SetFocus();
 }
 
-bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input) {
-    DialogTextInput dlg(prompt, buffer, hidden_input);
+bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input, bool start_with_numbers) {
+    DialogTextInput dlg(prompt, buffer, hidden_input, start_with_numbers);
     Screens::Access()->gui_loop_until_dialog_closed();
     return !dlg.cancelled_;
 }
@@ -155,6 +171,9 @@ void DialogTextInput::setup_ui() {
             wnd.set_enabled(false);
 
             RegisterSubWin(wnd);
+            if (hidden_input_) {
+                wnd.Hide();
+            }
         }
     }
 

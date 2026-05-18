@@ -56,6 +56,7 @@ private:
     TimeItem first_time_item() const;
     void update_status();
     void update_messages();
+    void update_action_buttons(marlin_server::State state);
     void set_page(Page page);
     void toggle_page();
     void advance_page();
@@ -92,4 +93,5 @@ private:
     bool status_progress_available = false;
     uint32_t last_message_id = 0;
     marlin_server::State last_state;
+    bool lock_buttons_applied = false;
 };

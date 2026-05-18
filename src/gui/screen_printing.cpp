@@ -300,6 +300,18 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
 
         change_print_state();
 
+        if (printer_lock::locked()) {
+            if (!lock_buttons_applied) {
+                show_locked_buttons();
+                lock_buttons_applied = true;
+            }
+        } else if (lock_buttons_applied) {
+            lock_buttons_applied = false;
+            set_pause_icon_and_label();
+            set_tune_icon_and_label();
+            set_stop_icon_and_label();
+        }
+
         /// -- Print time update loop
         updateTimes();
 
