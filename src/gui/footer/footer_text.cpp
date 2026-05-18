@@ -24,4 +24,5 @@ FooterText::FooterText(window_t *parent, Rect16::Left_t left, const string_view_
         }(),
         txt) {
     set_font(GuiDefaults::FooterFont);
+    SetTextColor(COLOR_WHITE);
 }

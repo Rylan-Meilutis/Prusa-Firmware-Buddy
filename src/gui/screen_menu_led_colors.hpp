@@ -1,11 +1,23 @@
 #pragma once
 
+#include <gui/menu_item/menu_item_select_menu.hpp>
 #include "screen_menu.hpp"
 #include "WindowMenuItems.hpp"
 
 namespace ui_theme_menu {
 bool load_usb_theme_file(const char *path);
 }
+
+class MI_UI_THEME_PRESET_SELECT : public MenuItemSelectMenu {
+public:
+    MI_UI_THEME_PRESET_SELECT();
+
+    int item_count() const final;
+    void build_item_text(int index, const std::span<char> &buffer) const final;
+
+protected:
+    bool on_item_selected(int old_index, int new_index) override;
+};
 
 class MI_UI_THEME_PRESET_PRUSA : public IWindowMenuItem {
 public:
@@ -127,7 +139,7 @@ public:
     void click(IWindowMenu &) override;
 };
 
-using ScreenMenuUiThemeColors__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_UI_THEME_PRESET_PRUSA, MI_UI_THEME_PRESET_DEFAULT, MI_UI_THEME_PRESET_BLUE, MI_UI_THEME_PRESET_GRAPHITE, MI_UI_THEME_PRESET_FOREST, MI_UI_THEME_CUSTOM_COLORS, MI_UI_THEME_IMPORTED_COLORS, MI_UI_THEME_LOAD_USB, MI_UI_THEME_JSON_HELP>;
+using ScreenMenuUiThemeColors__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_UI_THEME_PRESET_SELECT, MI_UI_THEME_CUSTOM_COLORS, MI_UI_THEME_IMPORTED_COLORS, MI_UI_THEME_LOAD_USB, MI_UI_THEME_JSON_HELP>;
 
 class ScreenMenuUiThemeColors final : public ScreenMenuUiThemeColors__ {
 public:
