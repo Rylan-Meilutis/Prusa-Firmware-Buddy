@@ -3,7 +3,7 @@
 #include <hwio.h>
 #include <array>
 #include <device/peripherals.h>
-#include "otp.hpp"
+#include "hw_configuration.hpp"
 
 using namespace phase_stepping;
 using namespace phase_stepping::opts;
@@ -103,12 +103,7 @@ void burst_stepping::init() {
 #if BOARD_IS_XBUDDY()
     setup_xbuddy_pinout();
 #elif BOARD_IS_XLBUDDY()
-    auto otp_bom_id = otp_get_bom_id();
-    if (!otp_bom_id.has_value()) {
-        bsod("Unable to determine board BOM ID");
-    }
-    auto board_bom_id = *otp_bom_id;
-    if (board_bom_id >= 9 || board_bom_id == 4) {
+    if (buddy::hw::Configuration::Instance().has_alternative_board_pinout()) {
         setup_xl_pinout_2();
     } else {
         setup_xl_pinout_1();
