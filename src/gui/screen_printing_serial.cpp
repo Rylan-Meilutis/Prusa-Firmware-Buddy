@@ -46,8 +46,8 @@ constexpr Rect16 status_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2
 constexpr Rect16 status_progress_rect { 10, 160, GuiDefaults::RectScreen.Width() - 2 * 10, 16 };
 constexpr Rect16 message_label_rect { 10, 66, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
 constexpr Rect16 message_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2 * 10, 72 };
-constexpr Rect16 time_dots_rect { 10, 171, 35, 5 };
-constexpr Rect16 page_dots_rect { 10, 176, 35, 5 };
+constexpr Rect16 time_dots_rect { 10, 171, 44, 6 };
+constexpr Rect16 page_dots_rect { 10, 174, 44, 6 };
 #elif HAS_LARGE_DISPLAY()
 constexpr auto etime_val_font { Font::normal };
 constexpr Rect16 progress_rect { 30, 65, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
@@ -66,8 +66,8 @@ constexpr Rect16 status_value_rect { 30, 104, 420, 48 };
 constexpr Rect16 status_progress_rect { 30, 160, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
 constexpr Rect16 message_label_rect { 30, 74, 420, 24 };
 constexpr Rect16 message_value_rect { 30, 104, 420, 68 };
-constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 35, 5 };
-constexpr Rect16 page_dots_rect { 30, 176, 35, 5 };
+constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 44, 6 };
+constexpr Rect16 page_dots_rect { 30, 174, 44, 6 };
 #endif
 constexpr int32_t page_rotation_s = 4;
 
@@ -292,8 +292,27 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
 
     case GUI_event_t::HELD_RELEASED:
     case GUI_event_t::TOUCH_SWIPE_LEFT:
-    case GUI_event_t::TOUCH_SWIPE_RIGHT:
         toggle_page();
+        break;
+
+    case GUI_event_t::TOUCH_SWIPE_RIGHT:
+        if (!can_toggle_pages()) {
+            break;
+        }
+        user_selected_page = true;
+        retreat_page();
+        break;
+
+    case GUI_event_t::TOUCH_SWIPE_UP:
+        toggle_page();
+        break;
+
+    case GUI_event_t::TOUCH_SWIPE_DOWN:
+        if (!can_toggle_pages()) {
+            break;
+        }
+        user_selected_page = true;
+        retreat_page();
         break;
 
     default:
@@ -391,9 +410,28 @@ screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::next_time
     return next;
 }
 
+screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::previous_time_item(TimeItem item) const {
+    auto previous = item;
+    do {
+        previous = static_cast<TimeItem>(
+            (static_cast<size_t>(previous) + static_cast<size_t>(TimeItem::_count) - 1) % static_cast<size_t>(TimeItem::_count));
+    } while (!time_item_available(previous));
+    return previous;
+}
+
 screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::first_time_item() const {
     for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
         const auto item = static_cast<TimeItem>(i);
+        if (time_item_available(item)) {
+            return item;
+        }
+    }
+    return TimeItem::time_since_start;
+}
+
+screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::last_time_item() const {
+    for (size_t i = static_cast<size_t>(TimeItem::_count); i > 0; --i) {
+        const auto item = static_cast<TimeItem>(i - 1);
         if (time_item_available(item)) {
             return item;
         }
@@ -576,6 +614,22 @@ void screen_printing_serial_data_t::advance_page() {
     }
 
     current_time_item = next;
+    set_page(Page::progress);
+}
+
+void screen_printing_serial_data_t::retreat_page() {
+    if (current_page == Page::message) {
+        current_time_item = last_time_item();
+        set_page(Page::progress);
+        return;
+    }
+
+    if (message_page_available() && current_time_item == first_time_item()) {
+        set_page(Page::message);
+        return;
+    }
+
+    current_time_item = previous_time_item(current_time_item);
     set_page(Page::progress);
 }
 

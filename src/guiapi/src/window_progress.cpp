@@ -133,6 +133,9 @@ void WindowProgressCircles::set_one_circle_mode(bool new_mode) {
 
 void WindowProgressCircles::set_max_circles(uint8_t new_max_circles) {
     assert(new_max_circles > 0);
+    if (max_circles == new_max_circles) {
+        return;
+    }
     max_circles = new_max_circles;
     Invalidate();
 }
