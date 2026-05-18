@@ -35,6 +35,7 @@ extern void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, u
  * @param rop raster operations as defined in display_math_helper.h and qoi_decoder.h
  */
 void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop);
+void st7789v_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color);
 
 inline void st7789v_set_backlight([[maybe_unused]] uint8_t bck) {}
 

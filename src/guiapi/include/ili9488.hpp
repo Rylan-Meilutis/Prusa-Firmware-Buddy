@@ -30,6 +30,7 @@ extern void ili9488_fill_rect_colorFormat666(uint16_t rect_x, uint16_t rect_y, u
  * @param rop raster operations as defined in display_math_helper.h and qoi_decoder.h
  */
 void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop);
+void ili9488_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color);
 
 extern void ili9488_inversion_on(void);
 extern void ili9488_inversion_off(void);

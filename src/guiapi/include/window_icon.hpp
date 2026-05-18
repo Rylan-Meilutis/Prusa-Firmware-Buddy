@@ -51,10 +51,19 @@ public:
 public:
     /// Expose of icon rendering procedure for other windows that might wanna do this
     static void unconditional_draw(window_aligned_t *window, const img::Resource *image);
+    static void unconditional_draw_original(window_aligned_t *window, const img::Resource *image);
 
 protected:
     virtual void unconditionalDraw() override;
     virtual void set_layout(ColorLayout lt) override;
+};
+
+class window_icon_original_t : public window_icon_t {
+public:
+    using window_icon_t::window_icon_t;
+
+protected:
+    void unconditionalDraw() override;
 };
 
 class window_icon_button_t : public window_icon_t {

@@ -64,6 +64,7 @@ target_sources(
           screen_menu_statistics.cpp
           screen_menu_system.cpp
           screen_menu_temperature.cpp
+          screen_theme_filebrowser.cpp
           screen_menu_tune.cpp
           screen_menu_user_interface.cpp
           screen_messages.cpp
