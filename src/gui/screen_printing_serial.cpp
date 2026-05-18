@@ -70,7 +70,6 @@ constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 35,
 constexpr Rect16 page_dots_rect { 30, 176, 35, 5 };
 #endif
 constexpr int32_t page_rotation_s = 4;
-constexpr int32_t time_rotation_s = 4;
 
 bool ascii_iequals(char a, char b) {
     if (a >= 'A' && a <= 'Z') {
@@ -108,6 +107,9 @@ bool is_progress_or_eta_message(const char *message) {
         || contains_case_insensitive(message, "etl")
         || contains_case_insensitive(message, "estimated")
         || contains_case_insensitive(message, "finish")
+        || contains_case_insensitive(message, "complete at")
+        || contains_case_insensitive(message, "done at")
+        || contains_case_insensitive(message, "will end")
         || contains_case_insensitive(message, "remaining")
         || contains_case_insensitive(message, "time left")
         || contains_case_insensitive(message, "left:")
@@ -282,10 +284,10 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             set_page(Page::status);
         } else if (current_page == Page::status && !status_page_available()) {
             set_page(Page::progress);
-        } else if (!user_selected_page && message_page_available()) {
+        } else if (!user_selected_page && can_toggle_pages()) {
             const uint32_t now_s = ticks_s();
             if (ticks_diff(now_s, last_page_switch_s) >= page_rotation_s) {
-                set_page(current_page == Page::progress ? Page::message : Page::progress);
+                advance_page();
             }
         } else if (!message_page_available() && current_page == Page::message) {
             set_page(Page::progress);
@@ -311,13 +313,7 @@ void screen_printing_serial_data_t::update_progress() {
     const uint32_t time_to_change = marlin_vars().time_to_pause.get();
 
     if (!time_item_available(current_time_item)) {
-        current_time_item = next_time_item(current_time_item);
-    }
-
-    const uint32_t now_s = ticks_s();
-    if (current_page == Page::progress && ticks_diff(now_s, last_time_switch_s) >= time_rotation_s) {
-        current_time_item = next_time_item(current_time_item);
-        last_time_switch_s = now_s;
+        current_time_item = first_time_item();
     }
 
     switch (current_time_item) {
@@ -351,19 +347,6 @@ void screen_printing_serial_data_t::update_progress() {
     w_etime_value.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
     w_etime_value.Invalidate();
 
-    size_t visible_count = 0;
-    size_t visible_index = 0;
-    for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
-        const auto item = static_cast<TimeItem>(i);
-        if (!time_item_available(item)) {
-            continue;
-        }
-        if (item == current_time_item) {
-            visible_index = visible_count;
-        }
-        ++visible_count;
-    }
-    update_time_dots(visible_index, visible_count);
 }
 
 bool screen_printing_serial_data_t::time_item_available(TimeItem item) const {
@@ -393,15 +376,14 @@ screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::next_time
     return next;
 }
 
-void screen_printing_serial_data_t::update_time_dots(size_t index, size_t count) {
-    const bool visible = current_page == Page::progress && count > 1;
-    time_dots.set_visible(visible);
-    if (!visible) {
-        return;
+screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::first_time_item() const {
+    for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
+        const auto item = static_cast<TimeItem>(i);
+        if (time_item_available(item)) {
+            return item;
+        }
     }
-
-    time_dots.set_max_circles(static_cast<uint8_t>(count));
-    time_dots.set_index(static_cast<uint8_t>(index));
+    return TimeItem::time_since_start;
 }
 
 void screen_printing_serial_data_t::update_status() {
@@ -532,7 +514,7 @@ void screen_printing_serial_data_t::set_page(Page page) {
     w_etime_value.set_visible(show_progress);
     w_time_label.set_visible(false);
     w_time_value.set_visible(false);
-    time_dots.set_visible(show_progress && time_dots.get_max_circles() > 1);
+    time_dots.Hide();
 
     const bool show_status = current_page == Page::status;
     w_status_label.set_visible(show_status);
@@ -558,18 +540,64 @@ void screen_printing_serial_data_t::toggle_page() {
     }
 
     user_selected_page = true;
-    set_page(current_page == Page::message ? Page::progress : Page::message);
+    advance_page();
 }
 
 bool screen_printing_serial_data_t::can_toggle_pages() const {
-    return !config_store().serial_print_legacy_ui.get() && !status_page_available() && message_page_available();
+    return !config_store().serial_print_legacy_ui.get() && !status_page_available() && page_count() > 1;
+}
+
+void screen_printing_serial_data_t::advance_page() {
+    if (current_page == Page::message) {
+        current_time_item = first_time_item();
+        set_page(Page::progress);
+        return;
+    }
+
+    const auto next = next_time_item(current_time_item);
+    if (message_page_available() && static_cast<size_t>(next) <= static_cast<size_t>(current_time_item)) {
+        set_page(Page::message);
+        return;
+    }
+
+    current_time_item = next;
+    set_page(Page::progress);
+}
+
+size_t screen_printing_serial_data_t::page_count() const {
+    size_t count = 0;
+    for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
+        if (time_item_available(static_cast<TimeItem>(i))) {
+            ++count;
+        }
+    }
+    if (message_page_available()) {
+        ++count;
+    }
+    return count;
+}
+
+size_t screen_printing_serial_data_t::current_page_index() const {
+    size_t index = 0;
+    for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
+        const auto item = static_cast<TimeItem>(i);
+        if (!time_item_available(item)) {
+            continue;
+        }
+        if (current_page == Page::progress && item == current_time_item) {
+            return index;
+        }
+        ++index;
+    }
+    return index;
 }
 
 void screen_printing_serial_data_t::update_page_dots() {
     const bool visible = can_toggle_pages();
     page_dots.set_visible(visible);
     if (visible) {
-        page_dots.set_index(current_page == Page::message ? 1 : 0);
+        page_dots.set_max_circles(static_cast<uint8_t>(page_count()));
+        page_dots.set_index(static_cast<uint8_t>(current_page_index()));
     }
 }
 
