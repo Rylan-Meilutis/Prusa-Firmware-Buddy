@@ -51,15 +51,18 @@ private:
     virtual void pauseAction() override;
     virtual void tuneAction() override;
     void update_progress();
-    void update_time_dots(size_t index, size_t count);
     bool time_item_available(TimeItem item) const;
     TimeItem next_time_item(TimeItem item) const;
+    TimeItem first_time_item() const;
     void update_status();
     void update_messages();
     void set_page(Page page);
     void toggle_page();
+    void advance_page();
     void update_page_dots();
     bool can_toggle_pages() const;
+    size_t page_count() const;
+    size_t current_page_index() const;
     bool status_page_available() const;
     bool message_page_available() const;
     term_buff_t<terminal_columns, terminal_rows> term_buff;
@@ -85,7 +88,6 @@ private:
     Page current_page = Page::progress;
     TimeItem current_time_item = TimeItem::remaining_time;
     uint32_t last_page_switch_s = 0;
-    uint32_t last_time_switch_s = 0;
     bool user_selected_page = false;
     bool status_progress_available = false;
     uint32_t last_message_id = 0;
