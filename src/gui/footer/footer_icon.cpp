@@ -44,5 +44,5 @@ void FooterIcon::unconditionalDraw() {
         window_aligned_t::unconditionalDraw();
     }
 
-    window_icon_t::unconditional_draw_original(this, resource());
+    window_icon_t::unconditional_draw(this, resource());
 }
