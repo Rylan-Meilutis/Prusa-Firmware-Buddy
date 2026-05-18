@@ -1,0 +1,18 @@
+{
+  "name": "RME Indigo",
+  "schema_version": 1,
+  "ui": {
+    "primary": "#4B2E83",
+    "progress": "#4B2E83",
+    "warning": "#FFCC00",
+    "error": "#FF2F2F",
+    "image": "#4B2E83"
+  },
+  "led": {
+    "idle": "#000000",
+    "printing": "#0096FF",
+    "finished": "#00FF00",
+    "warning": "#FFCC00",
+    "error": "#FF0000"
+  }
+}
