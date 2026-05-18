@@ -8,5 +8,6 @@ Color primary();
 Color progress();
 Color warning();
 Color error();
+Color image();
 
 } // namespace ui_theme

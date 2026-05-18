@@ -584,7 +584,7 @@ void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     ili9488_set_cs();
 }
 
-void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color, bool tinted) {
     assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
@@ -666,6 +666,9 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
 
                 // Transform pixel data
                 pixel = qoi::transform::apply_rop(pixel, rop);
+                if (tinted) {
+                    pixel = qoi::transform::tint(pixel, tint_color);
+                }
 
                 const Color c = Color::mix(back_color, Color::from_rgb(pixel.r, pixel.g, pixel.b), pixel.a);
 
@@ -686,6 +689,14 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     // Write remaining pixels to display and close SPI transaction
     ili9488_wr(p_buf.data(), o_data - p_buf.begin());
     ili9488_set_cs();
+}
+
+void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, COLOR_WHITE, false);
+}
+
+void ili9488_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color) {
+    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, tint_color, true);
 }
 
 void ili9488_inversion_on(void) {

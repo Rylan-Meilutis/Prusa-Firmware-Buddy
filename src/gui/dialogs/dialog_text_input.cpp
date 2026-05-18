@@ -4,6 +4,7 @@
 #include <ScreenHandler.hpp>
 #include <sound.hpp>
 #include <img_resources.hpp>
+#include <ui_theme.hpp>
 #include "timing.h"
 
 using namespace dialog_text_input;
@@ -159,7 +160,7 @@ void DialogTextInput::setup_ui() {
             auto &wnd = ui.txt_result;
             wnd.SetRect(Rect16::fromLTRB(buttons_rect.Left() + button_padding, y, r, b));
             wnd.set_font(Font::big);
-            wnd.SetTextColor(COLOR_BRAND);
+            wnd.SetTextColor(ui_theme::image());
             wnd.SetAlignment(Align_t::RightCenter());
             wnd.set_enabled(false);
 

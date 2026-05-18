@@ -10,6 +10,7 @@
 #include "img_resources.hpp"
 #include "gui_invalidate.hpp"
 #include "timing.h"
+#include <ui_theme.hpp>
 
 window_icon_t::window_icon_t(window_t *parent, Rect16 rect, const img::Resource *res, is_closed_on_click_t close)
     : window_aligned_t(parent, rect, win_type_t::normal, close)
@@ -60,7 +61,7 @@ window_icon_t::window_icon_t(window_t *parent, const img::Resource *res, point_i
         res, close) {
 }
 
-void window_icon_t::unconditional_draw(window_aligned_t *window, const img::Resource *image) {
+static void draw_icon(window_aligned_t *window, const img::Resource *image, bool tinted) {
     ropfn raster_op;
     raster_op.shadow = window->IsShadowed() ? is_shadowed::yes : is_shadowed::no;
     raster_op.swap_bw = window->IsFocused() ? has_swapped_bw::yes : has_swapped_bw::no;
@@ -68,7 +69,19 @@ void window_icon_t::unconditional_draw(window_aligned_t *window, const img::Reso
     Rect16 rc_ico = Rect16(0, 0, image->w, image->h);
     rc_ico.Align(window->GetRect(), window->GetAlignment());
     rc_ico = rc_ico.Intersection(window->GetRect());
-    display::draw_img(point_ui16(rc_ico.Left(), rc_ico.Top()), *image, window->GetBackColor(), raster_op);
+    if (tinted) {
+        display::draw_img_tinted(point_ui16(rc_ico.Left(), rc_ico.Top()), *image, window->GetBackColor(), raster_op, ui_theme::image());
+    } else {
+        display::draw_img(point_ui16(rc_ico.Left(), rc_ico.Top()), *image, window->GetBackColor(), raster_op);
+    }
+}
+
+void window_icon_t::unconditional_draw(window_aligned_t *window, const img::Resource *image) {
+    draw_icon(window, image, true);
+}
+
+void window_icon_t::unconditional_draw_original(window_aligned_t *window, const img::Resource *image) {
+    draw_icon(window, image, false);
 }
 
 void window_icon_t::unconditionalDraw() {
@@ -81,7 +94,19 @@ void window_icon_t::unconditionalDraw() {
         window_aligned_t::unconditionalDraw(); // draw background
     }
 
-    unconditional_draw(this, pRes);
+    draw_icon(this, pRes, true);
+}
+
+void window_icon_original_t::unconditionalDraw() {
+    if (!resource()) {
+        return;
+    }
+
+    if (resource()->w < Width() || resource()->h < Height()) {
+        window_aligned_t::unconditionalDraw();
+    }
+
+    unconditional_draw_original(this, resource());
 }
 
 void window_icon_t::set_layout(ColorLayout lt) {
@@ -152,7 +177,7 @@ void WindowMultiIconButton::unconditionalDraw() {
         pImg = &pRes->disabled;
     }
 
-    display::draw_img(point_ui16(Left(), Top()), *pImg, GetBackColor(), ropfn {});
+    display::draw_img_tinted(point_ui16(Left(), Top()), *pImg, GetBackColor(), ropfn {}, ui_theme::image());
 }
 
 void WindowMultiIconButton::windowEvent(window_t *sender, GUI_event_t event, void *param) {
@@ -197,10 +222,10 @@ struct LineColored : public Line {
 
 void window_icon_hourglass_t::unconditionalDraw() {
 
-    static constexpr Color animation_color = COLOR_BRAND;
     static constexpr Color back_color = COLOR_BLACK;
 
-    static constexpr LineColored lines[] = {
+    const Color animation_color = ui_theme::image();
+    const LineColored lines[] = {
         { 13, 24, 13, 28, animation_color },
         { 11, 33, 14, 33, animation_color },
         { 9, 13, 17, 13, back_color },

@@ -607,12 +607,24 @@ struct CurrentStore
     StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Progress Color")> ui_theme_progress_color;
     StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("UI Theme Warning Color")> ui_theme_warning_color;
     StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("UI Theme Error Color")> ui_theme_error_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Image Color")> ui_theme_image_color;
+
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Primary Color")> usb_theme_primary_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Progress Color")> usb_theme_progress_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("USB Theme Warning Color")> usb_theme_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("USB Theme Error Color")> usb_theme_error_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Image Color")> usb_theme_image_color;
 
     StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("Status LED Idle Color")> status_led_idle_color;
     StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
     StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("Status LED Finished Color")> status_led_finished_color;
     StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color")> status_led_warning_color;
     StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("Status LED Error Color")> status_led_error_color;
+    StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("USB Status LED Idle Color")> usb_status_led_idle_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("USB Status LED Printing Color")> usb_status_led_printing_color;
+    StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("USB Status LED Finished Color")> usb_status_led_finished_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("USB Status LED Warning Color")> usb_status_led_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("USB Status LED Error Color")> usb_status_led_error_color;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Tool LEDs")> tool_leds_enabled;
 

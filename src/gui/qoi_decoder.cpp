@@ -156,6 +156,14 @@ namespace transform {
         return pixel;
     }
 
+    Pixel tint(Pixel pixel, Color tint_color) {
+        const uint8_t luminance = Color::from_rgb(pixel.r, pixel.g, pixel.b).to_grayscale();
+        pixel.r = static_cast<uint16_t>(tint_color.r) * luminance / 255;
+        pixel.g = static_cast<uint16_t>(tint_color.g) * luminance / 255;
+        pixel.b = static_cast<uint16_t>(tint_color.b) * luminance / 255;
+        return pixel;
+    }
+
     Pixel apply_rop(Pixel pixel, uint8_t rop) {
         if (rop & ROPFN_INVERT) {
             pixel = invert(pixel);
