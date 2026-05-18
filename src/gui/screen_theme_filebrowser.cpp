@@ -71,7 +71,7 @@ void ScreenThemeFileBrowser::load_selected_file() {
         MsgBoxInfo(_("Theme loaded."), Responses_Ok);
         Screens::Access()->Close();
     } else {
-        MsgBoxError(_("Failed to load theme file."), Responses_Ok);
+        MsgBoxError(_("Invalid theme JSON."), Responses_Ok);
     }
 }
 
