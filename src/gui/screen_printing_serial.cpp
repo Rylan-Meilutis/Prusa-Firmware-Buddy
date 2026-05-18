@@ -249,31 +249,26 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     if (state != last_state) {
         if (printer_lock::locked()) {
             show_locked_buttons();
+            lock_buttons_applied = true;
             last_state = state;
         } else {
-        switch (state) {
-        case marlin_server::State::Paused:
-            // print is paused -> show resume button
-            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
-            EnableButton(BtnSocket::Middle);
-            break;
-        case marlin_server::State::Printing:
-            // print is running -> show pause button
-            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Pause, LabelRes::Pause);
-            EnableButton(BtnSocket::Middle);
-            break;
-        default:
-            // Any other state means printer pausing or resuming, so just wait for this to finish
-            DisableButton(BtnSocket::Middle);
-            break;
-        }
-
-        last_state = state;
+            update_action_buttons(state);
+            last_state = state;
         }
     }
 
     switch (event) {
     case GUI_event_t::LOOP:
+        if (printer_lock::locked()) {
+            if (!lock_buttons_applied) {
+                show_locked_buttons();
+                lock_buttons_applied = true;
+            }
+        } else if (lock_buttons_applied) {
+            lock_buttons_applied = false;
+            update_action_buttons(state);
+        }
+
         update_progress();
         update_status();
         update_messages();
@@ -306,6 +301,26 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     }
 
     ScreenPrintingModel::windowEvent(sender, event, param);
+}
+
+void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
+    SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
+    EnableButton(BtnSocket::Left);
+    EnableButton(BtnSocket::Right);
+
+    switch (state) {
+    case marlin_server::State::Paused:
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
+        EnableButton(BtnSocket::Middle);
+        break;
+    case marlin_server::State::Printing:
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Pause, LabelRes::Pause);
+        EnableButton(BtnSocket::Middle);
+        break;
+    default:
+        DisableButton(BtnSocket::Middle);
+        break;
+    }
 }
 
 void screen_printing_serial_data_t::update_progress() {

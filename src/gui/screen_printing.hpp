@@ -93,6 +93,7 @@ class screen_printing_data_t : public ScreenPrintingModel {
     bool stop_pressed;
     bool waiting_for_abort; /// flag specific for stop pressed when MBL is performed
     printing_state_t state__readonly__use_change_print_state;
+    bool lock_buttons_applied { false };
 
     float last_e_axis_position;
 
