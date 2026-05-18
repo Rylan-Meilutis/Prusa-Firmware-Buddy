@@ -25,4 +25,8 @@ Color error() {
     return color_from_store(config_store().ui_theme_error_color.get());
 }
 
+Color image() {
+    return color_from_store(config_store().ui_theme_image_color.get());
+}
+
 } // namespace ui_theme

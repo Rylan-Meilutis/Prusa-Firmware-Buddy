@@ -49,6 +49,7 @@ void render_text_align(Rect16 rc, StringReaderUtf8 &text, const Font font, Color
 void render_text_align(Rect16 rc, const string_view_utf8 &text, const Font font, Color clr_bg, Color clr_fg, padding_ui8_t padding = padding_ui8_t(), text_flags flags = text_flags(Align_t::Left()), bool fill_rect = true);
 
 void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags);
+void render_icon_align_original(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags);
 
 void render_rect(Rect16 rc, Color clr); // to prevent direct access to display
 
