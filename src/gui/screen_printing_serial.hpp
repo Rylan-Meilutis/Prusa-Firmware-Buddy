@@ -53,13 +53,16 @@ private:
     void update_progress();
     bool time_item_available(TimeItem item) const;
     TimeItem next_time_item(TimeItem item) const;
+    TimeItem previous_time_item(TimeItem item) const;
     TimeItem first_time_item() const;
+    TimeItem last_time_item() const;
     void update_status();
     void update_messages();
     void update_action_buttons(marlin_server::State state);
     void set_page(Page page);
     void toggle_page();
     void advance_page();
+    void retreat_page();
     void update_page_dots();
     bool can_toggle_pages() const;
     size_t page_count() const;
