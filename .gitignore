@@ -12,7 +12,7 @@ CMakeUserPresets.json
 .idea
 compile_commands.json
 /.vscode/*.peripherals.state.json
-/.vscode/*.registers.state.json
+/.vscode/*.registers.stat   e.json
 Makefile
 /doc/html/
 __pycache__
