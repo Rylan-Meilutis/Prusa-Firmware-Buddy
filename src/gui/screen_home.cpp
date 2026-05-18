@@ -215,7 +215,7 @@ static bool unlock_machine_dialog() {
     std::array<char, 7> buffer {};
     uint32_t pin = 0;
     uint8_t length = 0;
-    if (DialogTextInput::exec(_("Unlock Code"), buffer, true) && parse_unlock_pin(buffer, pin, length) && printer_lock::check_pin(pin, length)) {
+    if (DialogTextInput::exec(_("Unlock Code"), buffer, true, true) && parse_unlock_pin(buffer, pin, length) && printer_lock::check_pin(pin, length)) {
         printer_lock::unlock();
         return true;
     }
