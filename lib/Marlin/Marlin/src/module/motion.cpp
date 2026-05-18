@@ -383,7 +383,6 @@ void do_blocking_move_to_xy(const xy_pos_t &raw, const feedRate_t &fr_mm_s/*=0.0
       endstops.enable(true);
 
       const auto distance = zdest - current_position.z;
-      current_position.z = zdest;
       const auto trigger_state = do_homing_move(Z_AXIS, distance); // Move as a homing move to stop if we reach endstop
       if (planner.draining()) {
         return 0;
