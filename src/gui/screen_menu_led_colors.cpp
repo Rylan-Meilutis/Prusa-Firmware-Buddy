@@ -7,8 +7,11 @@
 #include <option/has_leds.h>
 #include <utils/string_builder.hpp>
 #include <window_msgbox.hpp>
+#define JSMN_HEADER
+#include <jsmn.h>
 #include <array>
 #include <charconv>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -168,51 +171,219 @@ ThemeColors imported_theme() {
     };
 }
 
-bool parse_hex_color(const char *begin, uint32_t &out) {
-    while (*begin == ' ' || *begin == '\t' || *begin == '"' || *begin == '#') {
+bool parse_hex_color_token(const char *json, const jsmntok_t &token, uint32_t &out) {
+    if (token.type != JSMN_STRING || token.start < 0 || token.end < token.start) {
+        return false;
+    }
+
+    const char *begin = json + token.start;
+    size_t len = static_cast<size_t>(token.end - token.start);
+    if (len == 7 && *begin == '#') {
         ++begin;
+        --len;
     }
-    const char *end = begin;
-    while ((*end >= '0' && *end <= '9') || (*end >= 'a' && *end <= 'f') || (*end >= 'A' && *end <= 'F')) {
-        ++end;
+    if (len != 6) {
+        return false;
     }
+    for (size_t i = 0; i < len; ++i) {
+        if (!std::isxdigit(static_cast<unsigned char>(begin[i]))) {
+            return false;
+        }
+    }
+
     uint32_t raw = 0;
-    if (end == begin || std::from_chars(begin, end, raw, 16).ec != std::errc {} || raw > 0xffffff) {
+    const char *end = begin + len;
+    const auto result = std::from_chars(begin, end, raw, 16);
+    if (result.ec != std::errc {} || result.ptr != end || raw > 0xffffff) {
         return false;
     }
     out = raw;
     return true;
 }
 
-bool find_json_color(const char *json, const char *key, uint32_t &out) {
-    std::array<char, 40> quoted {};
-    snprintf(quoted.data(), quoted.size(), "\"%s\"", key);
-    const char *hit = strstr(json, quoted.data());
-    if (!hit) {
+bool token_equals(const char *json, const jsmntok_t &token, const char *text) {
+    if (token.type != JSMN_STRING || token.start < 0 || token.end < token.start) {
         return false;
     }
-    const char *colon = strchr(hit + strlen(quoted.data()), ':');
-    return colon && parse_hex_color(colon + 1, out);
+    const size_t token_len = static_cast<size_t>(token.end - token.start);
+    const size_t text_len = strlen(text);
+    return token_len == text_len && strncmp(json + token.start, text, text_len) == 0;
 }
 
-bool parse_theme_json(const char *json, ThemeColors &theme) {
-    bool found = false;
-    found |= find_json_color(json, "primary", theme.primary);
-    found |= find_json_color(json, "progress", theme.progress);
-    found |= find_json_color(json, "warning", theme.warning);
-    found |= find_json_color(json, "error", theme.error);
-    found |= find_json_color(json, "image", theme.image);
-    found |= find_json_color(json, "ui_primary", theme.primary);
-    found |= find_json_color(json, "ui_progress", theme.progress);
-    found |= find_json_color(json, "ui_warning", theme.warning);
-    found |= find_json_color(json, "ui_error", theme.error);
-    found |= find_json_color(json, "ui_image", theme.image);
-    found |= find_json_color(json, "led_idle", theme.led_idle);
-    found |= find_json_color(json, "led_printing", theme.led_printing);
-    found |= find_json_color(json, "led_finished", theme.led_finished);
-    found |= find_json_color(json, "led_warning", theme.led_warning);
-    found |= find_json_color(json, "led_error", theme.led_error);
-    return found;
+bool token_is_unsigned_number(const char *json, const jsmntok_t &token) {
+    if (token.type != JSMN_PRIMITIVE || token.start < 0 || token.end <= token.start) {
+        return false;
+    }
+    for (int i = token.start; i < token.end; ++i) {
+        if (!std::isdigit(static_cast<unsigned char>(json[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+const jsmntok_t *skip_token(const jsmntok_t *token, const jsmntok_t *end) {
+    if (token >= end) {
+        return nullptr;
+    }
+
+    const jsmntok_t *pos = token + 1;
+    if (token->type == JSMN_OBJECT) {
+        for (int i = 0; i < token->size; ++i) {
+            pos = skip_token(pos, end);
+            if (!pos) {
+                return nullptr;
+            }
+            pos = skip_token(pos, end);
+            if (!pos) {
+                return nullptr;
+            }
+        }
+    } else if (token->type == JSMN_ARRAY) {
+        for (int i = 0; i < token->size; ++i) {
+            pos = skip_token(pos, end);
+            if (!pos) {
+                return nullptr;
+            }
+        }
+    }
+    return pos <= end ? pos : nullptr;
+}
+
+struct ColorField {
+    const char *key;
+    uint32_t ThemeColors::*value;
+};
+
+constexpr std::array<ColorField, 5> ui_theme_fields {
+    ColorField { "primary", &ThemeColors::primary },
+    ColorField { "progress", &ThemeColors::progress },
+    ColorField { "warning", &ThemeColors::warning },
+    ColorField { "error", &ThemeColors::error },
+    ColorField { "image", &ThemeColors::image },
+};
+
+constexpr std::array<ColorField, 5> led_theme_fields {
+    ColorField { "idle", &ThemeColors::led_idle },
+    ColorField { "printing", &ThemeColors::led_printing },
+    ColorField { "finished", &ThemeColors::led_finished },
+    ColorField { "warning", &ThemeColors::led_warning },
+    ColorField { "error", &ThemeColors::led_error },
+};
+
+template <size_t N>
+bool parse_color_object(const char *json, const jsmntok_t *object, const jsmntok_t *tokens_end, const std::array<ColorField, N> &fields, ThemeColors &theme) {
+    if (object >= tokens_end || object->type != JSMN_OBJECT || N >= 32) {
+        return false;
+    }
+
+    uint32_t seen = 0;
+    const jsmntok_t *pos = object + 1;
+    for (int i = 0; i < object->size; ++i) {
+        if (pos >= tokens_end || pos->type != JSMN_STRING) {
+            return false;
+        }
+        const jsmntok_t *value = pos + 1;
+        if (value >= tokens_end) {
+            return false;
+        }
+
+        bool matched = false;
+        for (size_t field_index = 0; field_index < N; ++field_index) {
+            if (!token_equals(json, *pos, fields[field_index].key)) {
+                continue;
+            }
+
+            const uint32_t bit = 1u << field_index;
+            if ((seen & bit) != 0) {
+                return false;
+            }
+            if (!parse_hex_color_token(json, *value, theme.*fields[field_index].value)) {
+                return false;
+            }
+            seen |= bit;
+            matched = true;
+            break;
+        }
+        if (!matched) {
+            return false;
+        }
+
+        pos = skip_token(value, tokens_end);
+        if (!pos) {
+            return false;
+        }
+    }
+
+    return seen == ((1u << N) - 1u);
+}
+
+bool parse_theme_json(const char *json, size_t len, ThemeColors &theme) {
+    std::array<jsmntok_t, 64> tokens {};
+    jsmn_parser parser;
+    jsmn_init(&parser);
+    const int parsed = jsmn_parse(&parser, json, len, tokens.data(), tokens.size());
+    if (parsed <= 0) {
+        return false;
+    }
+
+    const jsmntok_t *tokens_begin = tokens.data();
+    const jsmntok_t *tokens_end = tokens_begin + parsed;
+    const jsmntok_t *root = tokens_begin;
+    if (root->type != JSMN_OBJECT) {
+        return false;
+    }
+    for (size_t i = static_cast<size_t>(root->end); i < len; ++i) {
+        if (!std::isspace(static_cast<unsigned char>(json[i]))) {
+            return false;
+        }
+    }
+
+    bool has_ui = false;
+    bool has_led = false;
+    bool has_name = false;
+    bool has_schema_version = false;
+    const jsmntok_t *pos = root + 1;
+    for (int i = 0; i < root->size; ++i) {
+        if (pos >= tokens_end || pos->type != JSMN_STRING) {
+            return false;
+        }
+        const jsmntok_t *value = pos + 1;
+        if (value >= tokens_end) {
+            return false;
+        }
+
+        if (token_equals(json, *pos, "name")) {
+            if (has_name || value->type != JSMN_STRING) {
+                return false;
+            }
+            has_name = true;
+        } else if (token_equals(json, *pos, "schema_version")) {
+            if (has_schema_version || !token_is_unsigned_number(json, *value)) {
+                return false;
+            }
+            has_schema_version = true;
+        } else if (token_equals(json, *pos, "ui")) {
+            if (has_ui || !parse_color_object(json, value, tokens_end, ui_theme_fields, theme)) {
+                return false;
+            }
+            has_ui = true;
+        } else if (token_equals(json, *pos, "led")) {
+            if (has_led || !parse_color_object(json, value, tokens_end, led_theme_fields, theme)) {
+                return false;
+            }
+            has_led = true;
+        } else {
+            return false;
+        }
+
+        pos = skip_token(value, tokens_end);
+        if (!pos) {
+            return false;
+        }
+    }
+
+    return has_ui && has_led;
 }
 } // namespace
 
@@ -230,7 +401,7 @@ bool ui_theme_menu::load_usb_theme_file(const char *path) {
     }
 
     ThemeColors theme = theme_default;
-    if (!parse_theme_json(json.data(), theme)) {
+    if (!parse_theme_json(json.data(), read, theme)) {
         return false;
     }
     save_imported_theme(theme);
@@ -269,6 +440,12 @@ void MI_UI_THEME_IMPORTED_COLORS::click(IWindowMenu &) { Screens::Access()->Open
 MI_UI_THEME_LOAD_USB::MI_UI_THEME_LOAD_USB()
     : IWindowMenuItem(_("Load from USB"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 void MI_UI_THEME_LOAD_USB::click(IWindowMenu &) { Screens::Access()->Open<ScreenThemeFileBrowser>(); }
+
+MI_UI_THEME_JSON_HELP::MI_UI_THEME_JSON_HELP()
+    : IWindowMenuItem(_("Theme JSON Help"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+void MI_UI_THEME_JSON_HELP::click(IWindowMenu &) {
+    MsgBoxInfo(_("Theme JSON needs ui and led color objects. Use #RRGGBB strings. Required ui: primary, progress, warning, error, image. Required led: idle, printing, finished, warning, error."), Responses_Ok);
+}
 
 MI_UI_THEME_APPLY_IMPORTED::MI_UI_THEME_APPLY_IMPORTED()
     : IWindowMenuItem(_("Apply Imported"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}

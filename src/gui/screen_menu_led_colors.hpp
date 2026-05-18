@@ -55,6 +55,12 @@ public:
     void click(IWindowMenu &) override;
 };
 
+class MI_UI_THEME_JSON_HELP : public IWindowMenuItem {
+public:
+    MI_UI_THEME_JSON_HELP();
+    void click(IWindowMenu &) override;
+};
+
 class MI_UI_THEME_APPLY_IMPORTED : public IWindowMenuItem {
 public:
     MI_UI_THEME_APPLY_IMPORTED();
@@ -121,7 +127,7 @@ public:
     void click(IWindowMenu &) override;
 };
 
-using ScreenMenuUiThemeColors__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_UI_THEME_PRESET_PRUSA, MI_UI_THEME_PRESET_DEFAULT, MI_UI_THEME_PRESET_BLUE, MI_UI_THEME_PRESET_GRAPHITE, MI_UI_THEME_PRESET_FOREST, MI_UI_THEME_CUSTOM_COLORS, MI_UI_THEME_IMPORTED_COLORS, MI_UI_THEME_LOAD_USB>;
+using ScreenMenuUiThemeColors__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_UI_THEME_PRESET_PRUSA, MI_UI_THEME_PRESET_DEFAULT, MI_UI_THEME_PRESET_BLUE, MI_UI_THEME_PRESET_GRAPHITE, MI_UI_THEME_PRESET_FOREST, MI_UI_THEME_CUSTOM_COLORS, MI_UI_THEME_IMPORTED_COLORS, MI_UI_THEME_LOAD_USB, MI_UI_THEME_JSON_HELP>;
 
 class ScreenMenuUiThemeColors final : public ScreenMenuUiThemeColors__ {
 public:
