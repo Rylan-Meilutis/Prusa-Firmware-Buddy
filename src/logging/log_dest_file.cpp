@@ -128,10 +128,6 @@ void file_log_event(FormattedEvent *event) {
 bool file_log_enable(const char *filepath) {
     // Do outside of mutex to minimize locking
     auto d = std::make_unique<Data>();
-    if (!d) {
-        return false;
-    }
-
     d->file.reset(fopen(filepath, "a"));
     if (!d->file) {
         return false;
