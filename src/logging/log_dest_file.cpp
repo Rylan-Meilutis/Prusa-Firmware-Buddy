@@ -9,6 +9,8 @@
 #include <utils/atomic_circular_queue.hpp>
 #include <unique_file_ptr.hpp>
 #include <async_job/async_job.hpp>
+#include <sys/unistd.h>
+#include <freertos/timing.hpp>
 
 LOG_COMPONENT_REF(FileSystem);
 
@@ -26,6 +28,7 @@ namespace file {
         AtomicCircularQueue<BufferChunk, uint8_t, 32> buffer;
         AsyncJob write_job;
         unique_file_ptr file;
+        uint32_t last_flush_time_ms = 0;
 
         BufferChunk wip_chunk;
 
@@ -61,6 +64,7 @@ static void file_log_write(AsyncJobExecutionControl &) {
         return;
     }
 
+    FILE *file = data->file.get();
     const bool was_overflow = data->buffer.isFull();
 
     data->write_buffer();
@@ -68,7 +72,17 @@ static void file_log_write(AsyncJobExecutionControl &) {
     if (was_overflow) {
         // Write a newline on overflow - it was likely chopped
         // You know what, write two to visually separate the sections
-        fwrite("\n\n", 1, 2, data->file.get());
+        fwrite("\n\n", 1, 2, file);
+    }
+
+    uint32_t now = freertos::millis();
+    constexpr uint32_t auto_flush_period_ms = 60'000;
+    if (now - data->last_flush_time_ms > auto_flush_period_ms) {
+        if (fflush(file) == 0 && fsync(fileno(file)) == 0) {
+            // flush and sync was successfull
+            data->last_flush_time_ms = now;
+        }
+        clearerr(file);
     }
 
     // If we fail writing, disable the logger
