@@ -32,8 +32,8 @@ float PrusaToolChangerUtils::limit_stealth_feedrate(float feedrate) {
 }
 
 void PrusaToolChangerUtils::set_active_extruder(std::variant<PhysicalToolIndex, NoTool> maybe_tool) {
-    // thermally_managed mostly tracks active_extruder, but pickup/park flip it earlier for finer
-    // timing. Boot and PP resume skip pickup_procedure, so handle that case here.
+    // Pickup/park flip heating earlier for finer timing.
+    // Boot, PP resume, and dropped-nozzle recovery skip pickup/park, we have to handle the heating transition here too.
     match(
         maybe_tool,
         [&](PhysicalToolIndex tool) {
@@ -44,7 +44,16 @@ void PrusaToolChangerUtils::set_active_extruder(std::variant<PhysicalToolIndex, 
                 to_be_active_hotend.start_heating();
             }
         },
-        [&](NoTool) { active_extruder = MARLIN_NO_TOOL_PICKED; });
+        [&](NoTool) {
+            // order is important here: currently_selected() reads active_extruder
+            if (auto curr = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected())) {
+                auto &h = IndxHotend::indx_tool(*curr).hotend();
+                if (h.is_thermally_managed()) {
+                    h.stop_heating();
+                }
+            }
+            active_extruder = MARLIN_NO_TOOL_PICKED;
+        });
 
     IndxHotend::assert_thermally_managed_invariant(maybe_tool);
 }

@@ -343,6 +343,7 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     }
 
     // Tool selected but nozzle missing — likely tool fell off mid-print.
+    set_active_extruder(NoTool {});
     const auto tool_index = std::get<PhysicalToolIndex>(selected);
     log_error(PrusaToolChanger, "In-print nozzle missing for tool #%u — pausing print", tool_index.to_raw());
 
