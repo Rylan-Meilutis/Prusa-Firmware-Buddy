@@ -3,6 +3,11 @@
 #include <bsod/bsod.h>
 #include <config_store/store_instance.hpp>
 
+#include <option/has_auto_retract.h>
+#if HAS_AUTO_RETRACT()
+    #include <feature/auto_retract/auto_retract.hpp>
+#endif
+
 using namespace buddy;
 
 const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence seq, VirtualToolIndex virtual_tool) {
@@ -20,6 +25,7 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
             { 1, 1440 },
             { -1, 1440 },
         });
+        static_assert(seq.retracted_distance() >= AutoRetract::minimum_auto_retract_distance);
         return seq;
     }
 #endif
