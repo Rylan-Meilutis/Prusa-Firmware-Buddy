@@ -9,6 +9,31 @@ def set_reg(reg, value):
     gdb.execute('set ${} = {}'.format(reg, value))
 
 
+# EXC_RETURN magic values for ARMv7-M (CM4 — the BUDDY target). CM33/CM7-S
+# have additional bits and would need different constants.
+EXC_RETURN_THREAD_PSP = 0xFFFFFFFD
+EXC_RETURN_THREAD_PSP_FPU = 0xFFFFFFED
+
+
+def in_handler_mode():
+    return (value_to_int(gdb.parse_and_eval('$xpsr')) & 0x1FF) != 0
+
+
+def setup_exception_return(fpu_stacked):
+    notice = ('(reconstructing preempted task state from PSP HW exception '
+              'frame; R4-R11 are the ISR\'s, so deep unwinding may be '
+              'inaccurate.')
+    if not fpu_stacked:
+        notice += ' If the backtrace looks wrong below the top frame, retry with --fpu.'
+    notice += ')'
+    print(notice)
+    # GDB's arm_m_exception_cache reads LR (not PC) to decode EXC_RETURN bits
+    # (PSP vs MSP, FPU stacking, ...). The sniffer fires on PC. Set both.
+    exc_return = EXC_RETURN_THREAD_PSP_FPU if fpu_stacked else EXC_RETURN_THREAD_PSP
+    set_reg('r14', exc_return)
+    set_reg('pc', exc_return)
+
+
 class Stack(object):
 
     def __init__(self, pointer):
@@ -157,14 +182,19 @@ class FreeRTOS(gdb.Command):
     freertos info threads
         - print information about all FreeRTOS tasks
 
-    freertos thread
-        - report current FreeRTOS task
+    freertos thread [--fpu] [id]
+        - without id: report current FreeRTOS task
+        - with id: switch to given FreeRTOS task
+        - --fpu: pass when the preempted task had active FP state at preemption
+          (only relevant for the running task in handler-mode dumps)
 
-    freertos thread [id]
-        - switch to given FreeRTOS task
-
-    freertos thread apply all [command...]
+    freertos thread apply all [--fpu] [command...]
         - for each FreeRTOS task, switch to it and run given command
+        - --fpu: see above; position is before the command, not after
+
+    Note: --fpu must appear before the subcommand argument (thread id or
+    command), e.g. "freertos thread --fpu 10" or
+    "freertos thread apply all --fpu bt".
     '''
 
     def __init__(self):
@@ -199,16 +229,40 @@ class FreeRTOS(gdb.Command):
             print('  {} {} {} {}'.format(task_id, task_name, task_status,
                                          task_priority))
 
+    @staticmethod
+    def _extract_fpu_flag(args, position_hint):
+        # Returns (fpu_stacked, remaining_args, ok). On misplaced --fpu prints
+        # an error mentioning position_hint and returns ok=False.
+        fpu_stacked = False
+        if args and args[0] == '--fpu':
+            fpu_stacked = True
+            args = args[1:]
+        if '--fpu' in args:
+            print('Error: --fpu must appear before the {}.'.format(
+                position_hint))
+            return False, args, False
+        return fpu_stacked, args, True
+
     def _thread_apply_all(self, args):
         if not args:
             return
 
+        fpu_stacked, args, ok = self._extract_fpu_flag(
+            args, 'command, e.g. "freertos thread apply all --fpu bt"')
+        if not ok or not args:
+            return
+
         for task in sorted(collect_all_tasks(), key=lambda t: t.number()):
             print('\nThread {}:'.format(task.gdb_name()))
-            self._switch_to_task(task)
+            self._switch_to_task(task, fpu_stacked=fpu_stacked)
             gdb.execute(' '.join(args))
 
     def _thread(self, args):
+        fpu_stacked, args, ok = self._extract_fpu_flag(
+            args, 'thread id, e.g. "freertos thread --fpu 10"')
+        if not ok:
+            return
+
         if not args:
             task = Task(gdb.parse_and_eval('pxCurrentTCB'), status='running')
             print('[Current thread is {}]'.format(task.gdb_name()))
@@ -217,15 +271,18 @@ class FreeRTOS(gdb.Command):
         for task in collect_all_tasks():
             if str(task.number()) == args[0]:
                 print('[Switching to thread {}]'.format(task.gdb_name()))
-                self._switch_to_task(task)
+                self._switch_to_task(task, fpu_stacked=fpu_stacked)
                 gdb.execute('frame')
                 return
 
         print('Unknown thread {}.'.format(args[0]))
 
-    def _switch_to_task(self, task):
+    def _switch_to_task(self, task, fpu_stacked=False):
         if task.is_running():
-            self._restore_state()
+            if in_handler_mode():
+                setup_exception_return(fpu_stacked)
+            else:
+                self._restore_state()
         else:
             switch_to_task(task)
 
