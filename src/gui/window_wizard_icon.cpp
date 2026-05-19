@@ -38,7 +38,7 @@ void WindowIconOkNgArray::SetState(const SelftestSubtestState_t state, const siz
 }
 
 void WindowIconOkNgArray::SetIconCount(const size_t new_icon_cnt) {
-    assert(icon_cnt <= max_icon_cnt);
+    assert(new_icon_cnt <= max_icon_cnt);
     if (icon_cnt == new_icon_cnt) {
         return;
     }
