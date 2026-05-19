@@ -29,6 +29,7 @@ namespace file {
         AsyncJob write_job;
         unique_file_ptr file;
         uint32_t last_flush_time_ms = 0;
+        uint8_t file_errors = 0;
 
         BufferChunk wip_chunk;
 
@@ -82,14 +83,24 @@ static void file_log_write(AsyncJobExecutionControl &) {
             // flush and sync was successfull
             data->last_flush_time_ms = now;
         }
-        clearerr(file);
     }
 
-    // If we fail writing, disable the logger
-    if (ferror(data->file.get())) {
-        _gd.unlock();
-        file_log_disable();
+    if (ferror(file)) {
+        // message cannot be logged, sus
+        clearerr(file);
+        data->file_errors++;
+        constexpr uint8_t max_tries = 10;
+        if (data->file_errors >= max_tries) {
+            // too much errors, flash drive was probably removed
+            _gd.unlock();
+            file_log_disable();
+        }
         return;
+    }
+    if (data->file_errors != 0) {
+        // logging works again
+        log_warning(FileSystem, "Last %d messages cannot be logged", data->file_errors);
+        data->file_errors = 0;
     }
 
     // Log AFTER draining the buffer - we want this record to be stored in the file as well
