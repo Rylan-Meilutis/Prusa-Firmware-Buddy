@@ -21,7 +21,12 @@ enum class ZAction : uint16_t {
 
 enum class ParkPosition : uint8_t {
     park,
+
+    /// Position where it's safe to purge
+    /// If the printer has a wastebin, it will be over the wastebin
+    /// Otherwise some generic location one can poop from
     purge,
+
     load,
     loadcell_selftest,
     _cnt,

@@ -306,7 +306,7 @@ void GcodeSuite::G29() {
             if (nozzle_cleaning_retries < max_nozzle_cleaning_retries) {
                 nozzle_cleaning_retries++;
                 // Park over the bin
-                mapi::park(mapi::ZAction::absolute_move, mapi::ParkingPosition::from_xyz_pos({ { XYZ_WASTEBIN_POINT } }));
+                mapi::park(mapi::ZAction::absolute_move, mapi::get_parking_position(mapi::ParkPosition::purge));
 
                 #if HAS_AUTO_RETRACT()
                 // Extrude a bit and retract quickly (skip ramming)
