@@ -308,9 +308,9 @@ void sync_e_position_to(float e);
 
 /// Plans a move to the specified machine coordinates
 /// Updates current_position to match the machine position
-void line_to_machine_pos(const MachinePosXYZE &target, feedRate_t fr_mm_s);
+void line_to_machine_pos(const MachinePosXYZE &target, feedRate_t fr_mm_s, const MoveHints &hints = {});
 
-void line_to_machine_pos(const MachinePosXYZ &target, feedRate_t fr_mm_s);
+void line_to_machine_pos(const MachinePosXYZ &target, feedRate_t fr_mm_s, const MoveHints &hints = {});
 
 enum class Segmented {
     yes,
