@@ -404,6 +404,10 @@ StateWithDialog get_state_with_dialog(bool ready) {
         is_printing = states.is_active(ClientFSM::Printing);
     });
 
+    if (!top) {
+        return state;
+    }
+
     const auto &data = top->data;
     switch (top->fsm_type) {
     case ClientFSM::Load_unload:
