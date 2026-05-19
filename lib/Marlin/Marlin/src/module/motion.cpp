@@ -299,16 +299,10 @@ void line_to_machine_pos(const MachinePosXYZ &target, feedRate_t fr_mm_s) {
 }
 
 void prepare_internal_move_to_destination(const feedRate_t &fr_mm_s/*=0.0f*/, const PrepareMoveHints & hints) {
-  const uint16_t old_pct = feedrate_percentage;
-  feedrate_percentage = 100;
-  // Override e_factor for the current virtual tool (not active_extruder, which
-  // is always 0 on MMU). When NoTool, skip — planner also defaults to 1.0.
-  const std::optional<AutoRestore<float>> _ef = VirtualToolIndex::currently_selected_opt()
-      .transform([](VirtualToolIndex t) { return AutoRestore<float>(planner.e_factor[t], 1.0f); });
-
-  prepare_move_to(destination, fr_mm_s ?: feedrate_mm_s, hints);
-
-  feedrate_percentage = old_pct;
+  PrepareMoveHints hints_ = hints;
+  hints_.move.ignore_e_factor = true;
+  hints_.scale_feedrate = false;
+  prepare_move_to(destination, fr_mm_s ?: feedrate_mm_s, hints_);
 }
 
 /**

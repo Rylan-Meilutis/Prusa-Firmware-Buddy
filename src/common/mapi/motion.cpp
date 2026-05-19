@@ -24,13 +24,6 @@ bool extruder_move(float distance, float feed_rate, bool ignore_flow_factor) {
         return true;
     }
 
-    // Override e_factor for the current virtual tool (not active_extruder, which
-    // is always 0 on MMU). Only create the restore when actually ignoring flow.
-    const std::optional<AutoRestore<float>> _ef = ignore_flow_factor
-        ? VirtualToolIndex::currently_selected_opt()
-              .transform([](VirtualToolIndex t) { return AutoRestore<float>(planner.e_factor[t], 1.0f); })
-        : std::nullopt;
-
     // We cannot work with current_position, because current_position might or might not have MBL applied on the Z axis.
     // So we gotta use planner.position_float, which should always be matching.
     auto pos = planner.position_float;
@@ -41,7 +34,7 @@ bool extruder_move(float distance, float feed_rate, bool ignore_flow_factor) {
     current_position.e = pos.e;
 
     // ! Imporant - do not use buffer_line, it would reapply modifiers on top of the position_float
-    return planner.buffer_segment(pos, feed_rate, PhysicalToolIndex::currently_selected());
+    return planner.buffer_segment(pos, feed_rate, PhysicalToolIndex::currently_selected(), PlannerHints { .move { .ignore_e_factor = ignore_flow_factor } });
 }
 
 float extruder_schedule_turning(float feed_rate, float step) {
