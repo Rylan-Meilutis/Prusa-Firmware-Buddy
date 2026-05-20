@@ -2,6 +2,7 @@
 #include <buddy/door_sensor.hpp>
 #include <config_store/store_c_api.h>
 #include <common/power_panic.hpp>
+#include <module/motion.h>
 #include <module/planner.h>
 #include <module/stepper.h>
 #include <module/endstops.h>
@@ -134,6 +135,7 @@ void EmergencyStop::maybe_block() {
     }
 
     // Don't park:
+    const MachinePosXYZE pos = planner.get_machine_position_mm();
     const bool do_move =
         // If parking would mean we have to home first (which'll look bad, but also move in Z, which'd do Bad Things).
         all_axes_homed()
@@ -148,7 +150,10 @@ void EmergencyStop::maybe_block() {
         // mean an XY traverse through an already-printed object during sequential
         // printing (with luck we could avoid it in XY, but above is fine and
         // that's when we allow it).
-        && (current_position.z >= planner.max_printed_z);
+        && (current_position.z >= planner.max_printed_z)
+
+        // If we are outside the print region, where parking could disrupt a toolchange or cross the wastebin boundary.
+        && is_xy_in_print_region(pos.xy());
 
     // We are manipulating the moves "under the hands" of other stuff, and "in
     // the middle" of other stuff.
