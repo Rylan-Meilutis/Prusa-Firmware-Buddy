@@ -157,30 +157,11 @@ void Crash_s::set_state(state_t new_state) {
     // Prevent race condition here
     static std::atomic_flag reentrant_flag;
     if (reentrant_flag.test_and_set()) {
-        bsod("reentrant Crash_s::set_state()");
+        bsod_unreachable();
     }
 
     if (state == new_state) {
-        switch (state) {
-        case IDLE:
-            bsod("crash idle");
-        case RECOVERY:
-            bsod("crash recovery");
-        case REPLAY:
-            bsod("crash replay");
-        case TRIGGERED_ISR:
-        case TRIGGERED_AC_FAULT:
-        case TRIGGERED_TOOLFALL:
-        case TRIGGERED_TOOLCRASH:
-        case TRIGGERED_HOMEFAIL:
-            bsod("crash double trigger");
-        case REPEAT_WAIT:
-            bsod("toolcrash or homing fail repeat");
-        case PRINTING:
-            bsod("crash printing");
-        case SELFTEST:
-            bsod("double selftest");
-        }
+        bsod("crash reentry %i", state);
     }
 
     switch (new_state) {
@@ -191,7 +172,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case TRIGGERED_ISR:
         if (state != PRINTING || !is_active() || !is_enabled()) {
-            bsod("isr, not active");
+            bsod_unreachable();
         }
         // FALLTHRU
     case TRIGGERED_AC_FAULT:
@@ -202,7 +183,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case TRIGGERED_TOOLFALL:
         if (state != PRINTING || !is_active()) { // Allow toolfall recovery even if user disables crash recovery
-            bsod("toolfall, not active");
+            bsod_unreachable();
         }
 
         toolchange_event = true;
@@ -211,7 +192,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case TRIGGERED_TOOLCRASH:
         if (state != PRINTING || !is_active()) {
-            bsod("toolcrash, not active");
+            bsod_unreachable();
         }
 
         toolchange_event = true;
@@ -221,7 +202,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case TRIGGERED_HOMEFAIL:
         if (state != PRINTING || !is_active()) {
-            bsod("home, not active");
+            bsod_unreachable();
         }
 
         toolchange_event = false;
@@ -231,7 +212,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case REPEAT_WAIT:
         if (state != PRINTING && state != TRIGGERED_TOOLCRASH && state != TRIGGERED_HOMEFAIL) {
-            bsod("invalid wait transition");
+            bsod_unreachable();
         }
 
         // Just wait for user to pick up tools or to rehome
@@ -240,14 +221,14 @@ void Crash_s::set_state(state_t new_state) {
     case RECOVERY:
         // TODO: the following checks are too broad (should check for existing state)
         if (state != PRINTING && state != TRIGGERED_ISR && state != TRIGGERED_TOOLFALL && state != TRIGGERED_AC_FAULT) {
-            bsod("invalid recovery transition");
+            bsod_unreachable();
         }
         resume_movement();
         break;
 
     case REPLAY:
         if (state != RECOVERY) {
-            bsod("invalid replay transition");
+            bsod_unreachable();
         }
         activate();
         restore_state();
@@ -255,7 +236,7 @@ void Crash_s::set_state(state_t new_state) {
 
     case PRINTING:
         if (state != RECOVERY && state != REPEAT_WAIT && state != IDLE && state != REPLAY) {
-            bsod("invalid printing transition");
+            bsod_unreachable();
         }
         homefail_z = false;
         reset_repeated_crash();
