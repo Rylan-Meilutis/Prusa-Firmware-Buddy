@@ -38,18 +38,14 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
             return seq;
         }
         static constexpr RammingSequenceArray seq({
-            { 2, 1800 },
-            { 12, 1500 },
-            { 4, 900 },
-            { -24, 4800 },
-            { 2, 120 },
-            { -2, 120 },
-            { 23, 4800 }, // G-code specifies E23.5, truncated to int16
-            { 1, 1200 },
-            { -18, 4800 },
-            { -4, 120 },
-            { 2, 120 },
-            { -30, 3000 },
+            { 16, 1500 },
+            { -22, 2400 },
+            { 2, 60 },
+            { 20, 2400 },
+            { 1, 900 },
+            { -20, 2400 },
+            { -4, 240 },
+            { -30, 900 },
         });
         return seq;
     }
@@ -62,18 +58,14 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
             return seq;
         }
         static constexpr RammingSequenceArray seq({
-            { 2, 1800 },
-            { 12, 1500 },
-            { 4, 900 },
-            { -24, 4800 },
-            { 2, 120 },
-            { -2, 120 },
-            { 23, 4800 }, // G-code specifies E23.5, truncated to int16
-            { 1, 1200 },
-            { -18, 4800 },
-            { -4, 120 },
-            { 2, 120 },
-            { -30, 3000 },
+            { 16, 1500 },
+            { -22, 2400 },
+            { 2, 60 },
+            { 20, 2400 },
+            { 1, 900 },
+            { -20, 2400 },
+            { -4, 240 },
+            { -30, 900 },
         });
         return seq;
     }
