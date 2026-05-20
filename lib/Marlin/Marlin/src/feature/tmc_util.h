@@ -342,9 +342,6 @@ void init_tmc();
 void tmc_get_sgt();
 void tmc_get_TPWMTHRS();
 void tmc_get_tstep();
-#if HAS_PLANNER()
-  uint16_t tmc_sg_result(uint8_t axis);
-#endif
 
 #ifdef HAS_TMC_WAVETABLE
   void tmc_enable_wavetable(bool X, bool Y, bool Z);

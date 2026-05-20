@@ -1488,30 +1488,6 @@ void tmc_register_read_hook(uint8_t slave_addr, uint8_t reg_addr, uint32_t val) 
 }
 #endif
 
-#if HAS_PLANNER()
-// this function performs stallguard sample for single axis
-// return value contain bitmask of sampled axis, in case of nonzero return value this call take 5ms
-//  Now we are using stepper.axis_is_moving and value is set to zero for stopped motor,
-//  right way is reading tstep and comparing it to TCOOLTHRS, but it takes time (read register).
-//  Using stepper.axis_is_moving is simple but in some cases we get bad samples (tstep > TCOOLTHRS).
-//  Maybe we can improve this by calculating tstep from stepper variables.
-extern uint16_t tmc_sg_result(uint8_t axis) {
-    return 0;
-    if (stepper.axis_is_moving((AxisEnum)axis)) {
-  #if HAS_DRIVER(TMC2130)
-        return pStep[axis]->sg_result();
-  #elif HAS_DRIVER(TMC2209)
-        return pStep[axis]->SG_RESULT();
-  #else
-    // #error dead code found by automatic analyses (see BFW-5461)
-        return 0;
-  #endif
-    } else {
-        return 0;
-    }
-}
-#endif // HAS_PLANNER()
-
 bool tmc_check_coils(uint8_t axis) {
     if (!pStep[axis]) {
         return false;
