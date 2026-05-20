@@ -104,7 +104,7 @@ enum class WarningType : uint32_t {
 #endif
     AccelerometerCommunicationFailed,
 #if HAS_TOOL_OFFSET_SENSOR()
-    ToolOffsetXyCalibrationFailed,
+    ToolOffsetCalibrationFailed,
     HotendOffsetUnsafeZDeviation,
     HotendOffsetUnsafeXyDeviation,
     HotendOffsetUnsafeSensorXY,

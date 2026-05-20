@@ -731,7 +731,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-    case WarningType::ToolOffsetXyCalibrationFailed:
+    case WarningType::ToolOffsetCalibrationFailed:
         return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_CALIBRATION_FAILED;
 
     case WarningType::HotendOffsetUnsafeZDeviation:

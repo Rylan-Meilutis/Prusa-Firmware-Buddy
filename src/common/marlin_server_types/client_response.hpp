@@ -342,8 +342,8 @@ enum class PhasesWarning : PhaseUnderlyingType {
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-    /// Blocking dialog shown when XY tool offset calibration fails. Lets the user abort or retry.
-    ToolOffsetXyCalibrationFailed,
+    /// Blocking dialog shown when tool offset calibration fails. Lets the user abort or retry.
+    ToolOffsetCalibrationFailed,
     HotendOffsetUnsafeZDeviation,
     HotendOffsetUnsafeXyDeviation,
     HotendOffsetUnsafeSensorXY,
@@ -690,10 +690,10 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
         { PhasesWarning::DisplayProblemDetected, { Response::Yes, Response::No } },
 #endif
 #if HAS_TOOL_OFFSET_SENSOR()
-        { PhasesWarning::ToolOffsetXyCalibrationFailed, { Response::Retry, Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeZDeviation, { Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeXyDeviation, { Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeSensorXY, { Response::Abort } },
+        { PhasesWarning::ToolOffsetCalibrationFailed, { Response::Retry, Response::Abort } },
+        { PhasesWarning::HotendOffsetUnsafeZDeviation, { Response::Retry, Response::Abort } },
+        { PhasesWarning::HotendOffsetUnsafeXyDeviation, { Response::Retry, Response::Abort } },
+        { PhasesWarning::HotendOffsetUnsafeSensorXY, { Response::Retry, Response::Abort } },
 #endif
         { PhasesWarning::MetricsConfigChangePrompt, { Response::Yes, Response::No } },
 };

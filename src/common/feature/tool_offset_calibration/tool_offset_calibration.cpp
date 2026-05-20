@@ -144,6 +144,37 @@ bool prepare_tool(PhysicalToolIndex tool) {
     return true;
 }
 
+/// Park the head with low Z at the front so the user can inspect/clean the nozzle
+/// and prompt with Retry/Abort.
+/// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
+Response prompt_retry(WarningType warning) {
+    constexpr float park_clean_z = 100.0f;
+    const mapi::ParkingPosition park_cleaning_position = mapi::ParkingPosition::from_xyz_pos({ { { (X_MIN_POS + X_MAX_POS) / 2.0f, 10.0f, park_clean_z } } });
+    mapi::park(mapi::ZAction::absolute_move, park_cleaning_position);
+
+    if (marlin_server::prompt_warning(warning) != Response::Retry) {
+        marlin_server::quick_stop();
+        marlin_server::print_abort();
+        return Response::Abort;
+    }
+
+    return Response::Retry;
+}
+
+/// Park the head with low Z at the front so the user can inspect/clean the nozzle
+/// and prompt with Retry/Abort.
+/// On retry performs nozzle cleaning
+/// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
+Response prompt_retry_with_cleaning(PhysicalToolIndex tool, WarningType warning) {
+    auto response = prompt_retry(warning);
+
+    while (response == Response::Retry && !prepare_tool(tool)) {
+        log_error(ToolOffsetCalib, "Nozzle cleaning failed");
+        response = prompt_retry(warning);
+    }
+    return response;
+}
+
 using PhysicalToolSet = std::bitset<PhysicalToolIndex::count>;
 
 /// Collect the unique set of physical tools needed for the current print,
@@ -251,16 +282,7 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
         }
 
-        // If all retries failed, park to front-middle with Z raised so the user has
-        // room to clean the nozzle, then block and ask for Retry/Abort. On Retry, move back
-        // to where we were parked from and re-run the inner loop. On Abort, stop the print
-        // outright — continuing with stale offsets would crash the tool.
-        constexpr float park_clean_z = 100.0f;
-        const mapi::ParkingPosition park_cleaning_position = mapi::ParkingPosition::from_xyz_pos({ { (X_MIN_POS + X_MAX_POS) / 2.0f, 10, park_clean_z } });
-        mapi::park(mapi::ZAction::absolute_move, park_cleaning_position);
-
-        const auto response = marlin_server::prompt_warning(WarningType::ToolOffsetXyCalibrationFailed);
-        if (response == Response::Abort) {
+        if (prompt_retry_with_cleaning(tool, WarningType::ToolOffsetCalibrationFailed) != Response::Retry) {
             // Restore the original offsets
             hotend_offset[tool].x = current_ho.x;
             hotend_offset[tool].y = current_ho.y;
@@ -268,14 +290,12 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             prusa_toolchanger.save_tool_offset(tool);
             hotend_currently_applied_offset = xyz_pos_t { current_ho.x, current_ho.y, current_ho.z };
             log_error(ToolOffsetCalib, "User aborted XY offset calibration for tool %u", tool.to_raw());
-            marlin_server::quick_stop();
-            marlin_server::print_abort();
             return false;
         }
         log_info(ToolOffsetCalib, "User requested XY offset retry for tool %u", tool.to_raw());
 
-        do_blocking_move_to_xy(config.sensor_position.x, config.sensor_position.y);
         do_blocking_move_to_z(config.sensor_position.z + config.safe_z_height);
+        do_blocking_move_to_xy(config.sensor_position.x, config.sensor_position.y);
     }
 }
 
@@ -301,7 +321,6 @@ void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
 bool run(uint8_t r_param, uint8_t probe_count) {
     PrintStatusMessageGuard status_guard;
     auto probing_config = tool_offset::get_default_probing_config();
-    apply_stored_sensor_position(probing_config);
 
     reset_z_tool_offsets(); // Clear old Z offsets to avoid interference with calibration
 
@@ -341,178 +360,228 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         xy_pos_t pos;
     };
 
-    // Helper: probe Z at the given mapped index position (with jitter)
-    auto probe_at = [&](PhysicalToolIndex tool, uint8_t probe_index) -> std::optional<ProbeResult> {
-        // total without -1 is intentional - the last spot (probe_index == num_tools) is reserved for second reference measurement
-        const float t = static_cast<float>(probe_index) / static_cast<float>(num_tools);
-        const xy_pos_t pos {
-            std::clamp(POS_TOOL_0.x + (POS_TOOL_LAST.x - POS_TOOL_0.x) * t + random_jitter(r_param), static_cast<float>(X_MIN_POS), static_cast<float>(X_MAX_POS)),
-            std::clamp(POS_TOOL_0.y + (POS_TOOL_LAST.y - POS_TOOL_0.y) * t + random_jitter(r_param), static_cast<float>(Y_MIN_POS), static_cast<float>(Y_MAX_POS)),
+    // Each pass runs the per-tool measurement loop followed by the deviation
+    // sanity checks. If any deviation check fails and the user chooses Retry,
+    // prompt_retry allows to re-clean the nozzle and we restart the whole
+    // pass with offsets reset.
+    while (true) {
+        apply_stored_sensor_position(probing_config);
+
+        for (auto t : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (!used_physical_tools.test(t.to_raw())) {
+                continue;
+            }
+            reset_hotend_offset(t);
+        }
+        hotend_currently_applied_offset = xyz_pos_t {};
+
+        // Helper: probe Z at the given mapped index position (with jitter)
+        auto probe_at = [&](PhysicalToolIndex tool, uint8_t probe_index) -> std::optional<ProbeResult> {
+            // total without -1 is intentional - the last spot (probe_index == num_tools) is reserved for second reference measurement
+            const float t = static_cast<float>(probe_index) / static_cast<float>(num_tools);
+            const xy_pos_t pos {
+                std::clamp(POS_TOOL_0.x + (POS_TOOL_LAST.x - POS_TOOL_0.x) * t + random_jitter(r_param), static_cast<float>(X_MIN_POS), static_cast<float>(X_MAX_POS)),
+                std::clamp(POS_TOOL_0.y + (POS_TOOL_LAST.y - POS_TOOL_0.y) * t + random_jitter(r_param), static_cast<float>(Y_MIN_POS), static_cast<float>(Y_MAX_POS)),
+            };
+
+            log_info(ToolOffsetCalib, "Probe count: %d", probe_count);
+            const float z = probe_z_at(pos, probe_count);
+            if (std::isnan(z)) {
+                return std::nullopt;
+            }
+            log_info(ToolOffsetCalib, "Tool %u Z=%.3f at (%.1f, %.1f)", tool.to_raw(), static_cast<double>(z), static_cast<double>(pos.x), static_cast<double>(pos.y));
+            do_blocking_move_to_z(SAFE_Z_HEIGHT);
+            return ProbeResult { z, pos };
         };
 
-        log_info(ToolOffsetCalib, "Probe count: %d", probe_count);
-        const float z = probe_z_at(pos, probe_count);
-        if (std::isnan(z)) {
-            return std::nullopt;
+        bool need_pass_retry = false;
+        // Helper: Prompt the user to Retry/Abort if any check fails. Returns true if the caller should retry the whole pass, false to continue.
+        auto handle_tool_failure = [&]() -> bool {
+            if (prompt_retry(WarningType::ToolOffsetCalibrationFailed) == Response::Retry) {
+                need_pass_retry = true;
+                return true;
+            }
+            return false;
+        };
+
+        ProbeResult ref_first;
+        ProbeResult ref_last;
+
+        float min_z_offset = std::numeric_limits<float>::max();
+        float max_z_offset = std::numeric_limits<float>::lowest();
+
+        float min_x_offset = std::numeric_limits<float>::max();
+        float max_x_offset = std::numeric_limits<float>::lowest();
+        float min_y_offset = std::numeric_limits<float>::max();
+        float max_y_offset = std::numeric_limits<float>::lowest();
+
+        uint8_t step = 0;
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (!used_physical_tools.test(tool.to_raw())) {
+                continue;
+            }
+
+            status_guard.update<PrintStatusMessage::Type::tool_offset_calibrating>({
+                .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
+                .tool = tool.to_raw(),
+            });
+
+            tool_change(stdext::to_variant(tool), tool_return_t::no_return);
+
+            const int16_t saved_temp = thermalManager.degTargetHotend(tool);
+            ScopeGuard restore_temp([&] {
+                thermalManager.setTargetHotend(saved_temp, tool);
+            });
+
+            if (!prepare_tool(tool)) {
+                log_error(ToolOffsetCalib, "Tool %u cleaning failed (step %u)", tool.to_raw(), step);
+                if (handle_tool_failure()) {
+                    break;
+                }
+                marlin_server::quick_stop();
+                marlin_server::print_abort();
+                return false;
+            }
+
+            if (num_tools == 1) {
+                // With one-tool print, we still need to do prepare_tool which runs the nozzle cleaner
+                // But we don't need to do any offset calibrations, so we can just quit now
+                // We don't need to be that precise for the nozzle cleaner
+                break;
+            }
+
+            const auto result_opt = probe_at(tool, step);
+            if (!result_opt) {
+                log_error(ToolOffsetCalib, "Z probe failed for tool %u (step %u)", tool.to_raw(), step);
+                if (handle_tool_failure()) {
+                    break;
+                }
+                marlin_server::quick_stop();
+                marlin_server::print_abort();
+                return false;
+            }
+            const auto result = *result_opt;
+
+            if (step == 0) {
+                // Keep offset at zero as set by the reset at the beginning of the function
+
+                // If we're measuring more than one tool, we will be measuring all tools on a single X line.
+                // Use the first tool to probe both start and end of the line to interpolate from
+                // This is basically a ghetto MBL
+                ref_first = result;
+
+                // Probe at last position (with the same first tool)
+                const auto ref_last_opt = probe_at(tool, num_tools);
+                if (!ref_last_opt) {
+                    log_error(ToolOffsetCalib, "Z probe failed at reference-line end for tool %u", tool.to_raw());
+                    if (handle_tool_failure()) {
+                        break;
+                    }
+                    marlin_server::quick_stop();
+                    marlin_server::print_abort();
+                    return false;
+                }
+                ref_last = *ref_last_opt;
+
+                log_info(ToolOffsetCalib, "Reference line: Z_first=%.3f at (%.1f,%.1f) Z_last=%.3f at (%.1f,%.1f)",
+                    static_cast<double>(ref_first.z), static_cast<double>(ref_first.pos.x), static_cast<double>(ref_first.pos.y),
+                    static_cast<double>(ref_last.z), static_cast<double>(ref_last.pos.x), static_cast<double>(ref_last.pos.y));
+
+            } else {
+                // Interpolate expected Z on the reference line at the actual probed X
+                const float t = result.pos.x - ref_first.pos.x;
+                const float z_expected = ref_first.z + (ref_last.z - ref_first.z) * (t / (ref_last.pos.x - ref_first.pos.x));
+                const float z_offset = z_expected - result.z; // Inverted, because +Z is down
+                hotend_offset[tool].z = z_offset;
+                log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", tool.to_raw(), static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
+            }
+
+            min_z_offset = std::min(min_z_offset, hotend_offset[tool].z);
+            max_z_offset = std::max(max_z_offset, hotend_offset[tool].z);
+
+            // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
+            // but there is a trade off with filament oozing during calibration
+            if (!calibrate_xy_offset(tool, probing_config)) {
+                // calibrate_xy_offset has already prompted the user and aborted the print on its own
+                // path; just return false here. Its inner retry loop handles successful retries.
+                return false;
+            }
+
+            min_x_offset = std::min(min_x_offset, hotend_offset[tool].x);
+            max_x_offset = std::max(max_x_offset, hotend_offset[tool].x);
+            min_y_offset = std::min(min_y_offset, hotend_offset[tool].y);
+            max_y_offset = std::max(max_y_offset, hotend_offset[tool].y);
+
+            step++;
         }
-        log_info(ToolOffsetCalib, "Tool %u Z=%.3f at (%.1f, %.1f)", tool.to_raw(), static_cast<double>(z), static_cast<double>(pos.x), static_cast<double>(pos.y));
-        do_blocking_move_to_z(SAFE_Z_HEIGHT);
-        return ProbeResult { z, pos };
-    };
 
-    ProbeResult ref_first;
-    ProbeResult ref_last;
-
-    float min_z_offset = std::numeric_limits<float>::max();
-    float max_z_offset = std::numeric_limits<float>::lowest();
-
-    float min_x_offset = std::numeric_limits<float>::max();
-    float max_x_offset = std::numeric_limits<float>::lowest();
-    float min_y_offset = std::numeric_limits<float>::max();
-    float max_y_offset = std::numeric_limits<float>::lowest();
-
-    uint8_t step = 0;
-    for (uint8_t i = 0; i < PhysicalToolIndex::count; i++) {
-        const auto tool = PhysicalToolIndex::from_raw(i);
-        if (!used_physical_tools.test(i)) {
+        if (need_pass_retry) {
+            log_info(ToolOffsetCalib, "Restarting tool offset calibration pass (user requested retry)");
             continue;
         }
 
-        status_guard.update<PrintStatusMessage::Type::tool_offset_calibrating>({
-            .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
-            .tool = i,
-        });
+        // Normalize XY offsets so the midpoint between min and max sits at zero.
+        // The ScopeGuard at function exit persists hotend_offset to EEPROM.
+        if (num_tools > 1) {
+            const float avg_x_offset = (min_x_offset + max_x_offset) / 2.0f;
+            const float avg_y_offset = (min_y_offset + max_y_offset) / 2.0f;
+            // Spread is invariant under the midpoint subtraction, so we can use the pre-normalization extremes.
+            const float x_spread = max_x_offset - min_x_offset;
+            const float y_spread = max_y_offset - min_y_offset;
 
-        tool_change(stdext::to_variant(tool), tool_return_t::no_return);
-
-        const int16_t saved_temp = thermalManager.degTargetHotend(tool);
-        ScopeGuard restore_temp([&] {
-            thermalManager.setTargetHotend(saved_temp, tool);
-        });
-
-        if (!prepare_tool(tool)) {
-            return false;
-        }
-
-        if (num_tools == 1) {
-            // With one-tool print, we still need to do prepare_tool which runs the nozzle cleaner
-            // But we don't need to do any offset calibrations, so we can just quit now
-            // We don't need to be that precise for the nozzle cleaner
-            break;
-        }
-
-        const auto result_opt = probe_at(tool, step);
-        if (!result_opt) {
-            return false;
-        }
-        const auto result = *result_opt;
-
-        if (step == 0) {
-            // Keep offset at zero as set by the reset at the beginning of the function
-
-            // If we're measuring more than one tool, we will be measuring all tools on a single X line.
-            // Use the first tool to probe both start and end of the line to interpolate from
-            // This is basically a ghetto MBL
-            ref_first = result;
-
-            // Probe at last position (with the same first tool)
-            const auto ref_last_opt = probe_at(tool, num_tools);
-            if (!ref_last_opt) {
+            if (x_spread > MAX_XY_OFFSET_DIFFERENCE || y_spread > MAX_XY_OFFSET_DIFFERENCE) {
+                log_error(ToolOffsetCalib, "XY offset spread too large: X=%.3f Y=%.3f (limit %.3f)",
+                    static_cast<double>(x_spread), static_cast<double>(y_spread), static_cast<double>(MAX_XY_OFFSET_DIFFERENCE));
+                if (prompt_retry(WarningType::HotendOffsetUnsafeXyDeviation) == Response::Retry) {
+                    continue;
+                }
                 return false;
             }
-            ref_last = *ref_last_opt;
 
-            log_info(ToolOffsetCalib, "Reference line: Z_first=%.3f at (%.1f,%.1f) Z_last=%.3f at (%.1f,%.1f)",
-                static_cast<double>(ref_first.z), static_cast<double>(ref_first.pos.x), static_cast<double>(ref_first.pos.y),
-                static_cast<double>(ref_last.z), static_cast<double>(ref_last.pos.x), static_cast<double>(ref_last.pos.y));
+            if (std::abs(avg_x_offset) > probing_config.sensor_position_error_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_error_threshold) {
+                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY) == Response::Retry) {
+                    continue;
+                }
+                return false;
+            } else if (std::abs(avg_x_offset) > probing_config.sensor_position_update_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_update_threshold) {
+                // Detected sensor movement - update stored sensor position and apply correction to all tools.
+                // `probing_config.sensor_position` is the position the scan was conducted at (either the
+                // stored value or the default, depending on what apply_stored_sensor_position resolved to).
+                const MachinePosXY new_sensor_position { { {
+                    probing_config.sensor_position.x - avg_x_offset,
+                    probing_config.sensor_position.y - avg_y_offset,
+                } } };
+                log_info(ToolOffsetCalib, "Updating stored sensor position: (%.3f, %.3f) -> (%.3f, %.3f)",
+                    static_cast<double>(probing_config.sensor_position.x), static_cast<double>(probing_config.sensor_position.y),
+                    static_cast<double>(new_sensor_position.x), static_cast<double>(new_sensor_position.y));
+                config_store().tool_offset_sensor_position.set(new_sensor_position);
+                metric_record_custom(&metric_sensor_pos, " x=%.3f,y=%.3f",
+                    static_cast<double>(new_sensor_position.x),
+                    static_cast<double>(new_sensor_position.y));
 
-        } else {
-            // Interpolate expected Z on the reference line at the actual probed X
-            const float t = result.pos.x - ref_first.pos.x;
-            const float z_expected = ref_first.z + (ref_last.z - ref_first.z) * (t / (ref_last.pos.x - ref_first.pos.x));
-            const float z_offset = z_expected - result.z; // Inverted, because +Z is down
-            hotend_offset[tool].z = z_offset;
-            log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", i, static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
-        }
-
-        min_z_offset = std::min(min_z_offset, hotend_offset[tool].z);
-        max_z_offset = std::max(max_z_offset, hotend_offset[tool].z);
-
-        // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
-        // but there is a trade off with filament oozing during calibration
-        if (!calibrate_xy_offset(tool, probing_config)) {
-            return false;
-        }
-
-        min_x_offset = std::min(min_x_offset, hotend_offset[tool].x);
-        max_x_offset = std::max(max_x_offset, hotend_offset[tool].x);
-        min_y_offset = std::min(min_y_offset, hotend_offset[tool].y);
-        max_y_offset = std::max(max_y_offset, hotend_offset[tool].y);
-
-        step++;
-    }
-
-    // Normalize XY offsets so the midpoint between min and max sits at zero.
-    // The ScopeGuard at function exit persists hotend_offset to EEPROM.
-    if (num_tools > 1) {
-        const float avg_x_offset = (min_x_offset + max_x_offset) / 2.0f;
-        const float avg_y_offset = (min_y_offset + max_y_offset) / 2.0f;
-        // Spread is invariant under the midpoint subtraction, so we can use the pre-normalization extremes.
-        const float x_spread = max_x_offset - min_x_offset;
-        const float y_spread = max_y_offset - min_y_offset;
-
-        if (x_spread > MAX_XY_OFFSET_DIFFERENCE || y_spread > MAX_XY_OFFSET_DIFFERENCE) {
-            log_error(ToolOffsetCalib, "XY offset spread too large: X=%.3f Y=%.3f (limit %.3f)",
-                static_cast<double>(x_spread), static_cast<double>(y_spread), static_cast<double>(MAX_XY_OFFSET_DIFFERENCE));
-            (void)marlin_server::prompt_warning(WarningType::HotendOffsetUnsafeXyDeviation);
-            marlin_server::quick_stop();
-            marlin_server::print_abort();
-            return false;
-        }
-
-        if (std::abs(avg_x_offset) > probing_config.sensor_position_error_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_error_threshold) {
-            (void)marlin_server::prompt_warning(WarningType::HotendOffsetUnsafeSensorXY);
-            marlin_server::quick_stop();
-            marlin_server::print_abort();
-            return false;
-        } else if (std::abs(avg_x_offset) > probing_config.sensor_position_update_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_update_threshold) {
-            // Detected sensor movement - update stored sensor position and apply correction to all tools.
-            // `probing_config.sensor_position` is the position the scan was conducted at (either the
-            // stored value or the default, depending on what apply_stored_sensor_position resolved to).
-            const MachinePosXY new_sensor_position { { {
-                probing_config.sensor_position.x - avg_x_offset,
-                probing_config.sensor_position.y - avg_y_offset,
-            } } };
-            log_info(ToolOffsetCalib, "Updating stored sensor position: (%.3f, %.3f) -> (%.3f, %.3f)",
-                static_cast<double>(probing_config.sensor_position.x), static_cast<double>(probing_config.sensor_position.y),
-                static_cast<double>(new_sensor_position.x), static_cast<double>(new_sensor_position.y));
-            config_store().tool_offset_sensor_position.set(new_sensor_position);
-            metric_record_custom(&metric_sensor_pos, " x=%.3f,y=%.3f",
-                static_cast<double>(new_sensor_position.x),
-                static_cast<double>(new_sensor_position.y));
-
-            for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-                // Note: we update offset for all enabled tools, even if they are not measured in this run
-                hotend_offset[tool].x -= avg_x_offset;
-                hotend_offset[tool].y -= avg_y_offset;
-                metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",
-                    tool.to_raw(),
-                    static_cast<double>(hotend_offset[tool].x),
-                    static_cast<double>(hotend_offset[tool].y),
-                    static_cast<double>(hotend_offset[tool].z));
+                for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                    // Note: we update offset for all enabled tools, even if they are not measured in this run
+                    hotend_offset[tool].x -= avg_x_offset;
+                    hotend_offset[tool].y -= avg_y_offset;
+                    metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",
+                        tool.to_raw(),
+                        static_cast<double>(hotend_offset[tool].x),
+                        static_cast<double>(hotend_offset[tool].y),
+                        static_cast<double>(hotend_offset[tool].z));
+                }
             }
         }
-    }
 
-    if (max_z_offset - min_z_offset > MAX_Z_OFFSET_DIFFERENCE) {
-        (void)marlin_server::prompt_warning(WarningType::HotendOffsetUnsafeZDeviation);
-        marlin_server::quick_stop();
-        marlin_server::print_abort();
-        return false;
-    }
+        if (max_z_offset - min_z_offset > MAX_Z_OFFSET_DIFFERENCE) {
+            if (prompt_retry(WarningType::HotendOffsetUnsafeZDeviation) == Response::Retry) {
+                continue;
+            }
+            return false;
+        }
 
-    log_info(ToolOffsetCalib, "Tool offset calibration done");
-    return true;
+        log_info(ToolOffsetCalib, "Tool offset calibration done");
+        return true;
+    }
 }
 
 } // namespace tool_offset_calibration
