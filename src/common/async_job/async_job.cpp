@@ -65,10 +65,11 @@ void AsyncJobBase::discard() {
             // The job is finished -> no need to do anything
             break;
 
-        default:
+        case State::idle:
+        case State::cancelled:
             // All other cases should have been handled in the early check before locking the mutex
-            assert(false);
-            break;
+            // If we got here, that means a race condition
+            bsod_unreachable();
         }
     }
 
