@@ -65,6 +65,18 @@ void XBuddyExtension::step() {
     const auto rpm1 = puppies::xbuddy_extension.get_fan_rpm(1);
     const auto rpm2 = puppies::xbuddy_extension.get_fan_rpm(2);
 
+    // if we dont have data, suppose fan is not running and reset timer
+    const auto now = ticks_ms();
+    if (!rpm0.has_value()) {
+        fan_start_timestamp[0] = now;
+    }
+    if (!rpm1.has_value()) {
+        fan_start_timestamp[1] = now;
+    }
+    if (!rpm2.has_value()) {
+        fan_start_timestamp[2] = now;
+    }
+
     // Trigger fatal error due to chamber temperature only if we get valid values, that are not reasonable
     if (temp.has_value()) {
         static constexpr Temperature chamber_mintemp = 0.0f;
