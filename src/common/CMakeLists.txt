@@ -171,10 +171,6 @@ if(HAS_POWER_PANIC)
   endif()
 endif()
 
-if(FILAMENT_SENSOR)
-  target_sources(firmware PRIVATE thread_measurement.cpp)
-endif()
-
 if(HAS_LOADCELL)
   target_sources(firmware PRIVATE loadcell.cpp position_lookback.cpp)
 endif()

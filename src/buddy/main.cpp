@@ -22,7 +22,6 @@
 #include <find_error.hpp>
 #include "timer_defaults.h"
 #include "tick_timer_api.h"
-#include "thread_measurement.h"
 #include <logging/log_dest_syslog.hpp>
 #include "metric_handlers.h"
 #include "hwio_pindef.h"
@@ -160,7 +159,6 @@ struct TaskControlBlock {
 #if BUDDY_ENABLE_CONNECT()
     StaticTask_t connect;
 #endif
-    StaticTask_t measure;
 };
 static TaskControlBlock task_control_block;
 
@@ -182,7 +180,6 @@ struct TaskStack {
 #if BUDDY_ENABLE_CONNECT()
     uint32_t connect[2336];
 #endif
-    uint32_t measure[620];
 };
 static TaskStack __attribute__((section(".ccmram"))) task_stack;
 
@@ -555,8 +552,6 @@ extern "C" void main_cpp(void) {
     TaskDeps::wait(TaskDeps::Tasks::syslog);
     logging::syslog_reconfigure();
     metrics_reconfigure();
-
-    create_task("measure", StartMeasurementTask, TASK_PRIORITY_MEASUREMENT_TASK, task_stack.measure, task_control_block.measure);
 }
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
