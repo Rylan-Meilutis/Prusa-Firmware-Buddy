@@ -35,6 +35,10 @@
     #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
+#if ENABLED(CRASH_RECOVERY)
+    #include <feature/prusa/crash_recovery.hpp>
+#endif
+
 LOG_COMPONENT_DEF(FSensor, logging::Severity::info);
 
 using namespace MMU2;
@@ -218,6 +222,13 @@ void FilamentSensors::process_events() {
         if (m600_sent || event != IFSensor::Event::filament_removed) {
             return false;
         }
+
+#if ENABLED(CRASH_RECOVERY)
+        if (crash_s.get_state() != Crash_s::PRINTING) {
+            // Only allow runouts in print and outside of crash recovery
+            return false;
+        }
+#endif
 
         m600_sent = true;
 

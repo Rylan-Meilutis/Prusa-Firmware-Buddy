@@ -202,12 +202,6 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
 
     auto physical_target_tool = target_tool.to_physical();
 
-#if ENABLED(CRASH_RECOVERY)
-    if (crash_s.get_state() != Crash_s::PRINTING && crash_s.get_state() != Crash_s::IDLE) {
-        return; // Ignore M600 if crash recovery is in progress
-    }
-#endif /*ENABLED(CRASH_RECOVERY)*/
-
 #if HAS_TOOLCHANGER()
     struct ToolChangeData {
         XYZEval<float, LogicalPosTag> original_resume_point;
