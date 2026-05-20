@@ -7,9 +7,7 @@
 #include <freertos/timing.hpp>
 
 void StartMeasurementTask() {
-    FSensors_instance().task_init();
     for (;;) {
-        FSensors_instance().task_cycle();
         freertos::delay(50);
     }
 }

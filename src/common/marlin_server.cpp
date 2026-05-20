@@ -42,6 +42,7 @@
 #include <feature/safety_timer/safety_timer.hpp>
 #include <feature/stepper_timeout/stepper_timeout.hpp>
 #include <mapi/motion.hpp>
+#include <feature/filament_sensor/filament_sensors_handler.hpp>
 
 #include "../Marlin/src/lcd/extensible_ui/ui_api.h"
 #include "../Marlin/src/gcode/queue.h"
@@ -888,6 +889,8 @@ static void cycle() {
 #if HAS_INDX()
     buddy::hotend_temp_model().step();
 #endif
+
+    FSensors_instance().step();
 
     record_fanctl_metrics();
 

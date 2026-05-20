@@ -29,8 +29,7 @@ public:
 
     /// Sends a request to the fsensor task
     /// to update the sensors enable/disable state based on EEPROM settings
-    /// \param check_fs [in] check if FS is enabled and turn off MMU if it is not
-    void request_enable_state_update(bool check_fs = true);
+    void request_enable_state_update();
 
     /// Returns whether fsensors enable state update was requested and is not yet fully processed
     inline bool is_enable_state_update_processing() const {
@@ -95,18 +94,11 @@ public:
         return extruder_fs_independent;
     }
 
-protected:
-    /// For some historical reason, filament sensor runs in the context of measurement task
-    friend void StartMeasurementTask();
-
-    /// Called from measurement task once
-    void task_init();
-
-    /// Periodically called from the measurement task
-    void task_cycle();
+public:
+    /// Periodically called from the marlin task
+    void step();
 
 private:
-    // Non-public members can only be written to from the cycle() function (called from the Measurement task)
     // The variables are made atomic so that one can read them from different threads and get somewhat valid values.
 
     void reconfigure_sensors_if_needed(bool force);

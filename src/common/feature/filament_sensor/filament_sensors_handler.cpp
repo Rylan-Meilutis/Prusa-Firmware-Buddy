@@ -6,9 +6,9 @@
  */
 
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
-#include "bsod.h"
 #include <tasks.hpp>
 #include <logging/log.hpp>
+#include <marlin_server.hpp>
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 
@@ -20,7 +20,6 @@
 #include <stdio.h>
 
 #include "str_utils.hpp"
-#include "marlin_client.hpp"
 
 #include <option/has_gui.h>
 #if HAS_GUI()
@@ -56,14 +55,7 @@ void FilamentSensors::set_enabled_global(bool set) {
     request_enable_state_update();
 }
 
-void FilamentSensors::request_enable_state_update([[maybe_unused]] bool check_fs) {
-#if HAS_MMU2()
-    // MMU requires enabled filament sensor to work, it makes sense for XL to behave the same
-    if (check_fs && config_store().mmu2_enabled.get() && !config_store().fsensor_enabled.get()) {
-        marlin_client::gcode("M709 S0");
-    }
-#endif
-
+void FilamentSensors::request_enable_state_update() {
     enable_state_update_pending = true;
 }
 
@@ -122,13 +114,7 @@ void FilamentSensors::for_all_sensors(const stdext::inplace_function<void(IFSens
     }
 }
 
-void FilamentSensors::task_init() {
-    marlin_client::init();
-}
-
-void FilamentSensors::task_cycle() {
-    marlin_client::loop();
-
+void FilamentSensors::step() {
     static bool old_state = false;
     const bool new_state = marlin_vars().peek_fsm_states([](const auto &states) { return states.is_active(ClientFSM::Load_unload); });
 
@@ -235,7 +221,7 @@ void FilamentSensors::process_events() {
 
         m600_sent = true;
 
-        marlin_client::inject("M600 A"); // change filament
+        marlin_server::inject(GCodeLiteral { .gcode = "M600 A" }); // change filament
 
         log_info(FSensor, "Injected runout");
         return true;
@@ -261,7 +247,7 @@ void FilamentSensors::process_events() {
             || isAutoloadLocked()
             || !config_store().fs_autoload_enabled.get()
 #if HAS_SELFTEST() && HAS_GUI()
-            // We're accessing screens from the filamentsensors thread here. This looks quite unsafe.
+            // FIXME: We're accessing screens from the the marlin thread here. Terrible hack.
             || Screens::Access()->IsScreenOnStack<ScreenMenuSTSWizard>()
             || Screens::Access()->IsScreenOnStack<ScreenMenuSTSCalibrations>()
 #endif
@@ -270,18 +256,16 @@ void FilamentSensors::process_events() {
         }
 
         autoload_sent = true;
-        static char buffer[sizeof("M1701 ZXXXXX")];
-        snprintf(buffer, sizeof(buffer), "M1701 Z%.2f", static_cast<double>(Z_AXIS_LOAD_POS));
+
         // autoload with return option and minimal Z value of 40mm
-        // This is a hack, but there is currently no nice way to do snprintf at compile  time
-        // We're always writing the same string to the buffer, so there is no race condition
-        marlin_client::inject(ConstexprString::from_str_unsafe(buffer));
+        marlin_server::inject(GCodeLiteral { .gcode = "M1701 Z%.2f", .parameter = Z_AXIS_LOAD_POS });
+
         log_info(FSensor, "Injected autoload");
 
         return true;
     };
 
-    if (marlin_client::is_printing()) {
+    if (marlin_server::is_printing()) {
         if (check_runout(LogicalFilamentSensor::primary_runout)) {
             return;
         }
@@ -319,6 +303,13 @@ void FilamentSensors::process_enable_state_update() {
             s->set_enabled(should_enable(s->id()));
         }
     }
+
+#if HAS_MMU2()
+    if (config_store().mmu2_enabled.get() && !config_store().fsensor_enabled.get()) {
+        // MMU requires enabled filament sensor to work, turn it off if the fsensors got disabled
+        marlin_server::enqueue_gcode("M709 S0");
+    }
+#endif
 
     enable_state_update_processing = false;
 }
