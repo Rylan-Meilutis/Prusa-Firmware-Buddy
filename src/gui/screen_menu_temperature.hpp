@@ -37,7 +37,7 @@ using ScreenBase = ScreenMenu<
     MI_NOZZLE_TARGET_TEMP,
 #if HAS_TOOLCHANGER()
     // Multi-tool: additional submenu to set target temp for all tools, not just the active one.
-    WithIcon<MenuItemVirtualSubmenu<N_("Tool Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
+    WithIcon<MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
         &img::nozzle_16x16>,
 #endif
     MI_HEATBED,
