@@ -88,7 +88,7 @@ void hw_init_spi_side_leds();
     #if PRINTER_IS_PRUSA_iX()
         #include <device/peripherals.hpp>
 inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
-    return &SPI_HANDLE_FOR(led);
+    return spi_handle_led;
 }
     #endif
 

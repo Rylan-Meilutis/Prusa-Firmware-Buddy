@@ -9,9 +9,6 @@
 
 LOG_COMPONENT_REF(Touch);
 
-#define CONCAT_IMPL(a, b) a /**/##/**/ b
-#define CONCAT(a, b)      CONCAT_IMPL(a, b)
-
 Touchscreen_GT911::Touchscreen_GT911() {
     touch_sig_read_state_ = buddy::hw::Configuration::Instance().has_inverted_touch_interrupt() ? buddy::hw::Pin::State::low : buddy::hw::Pin::State::high;
 }
@@ -183,7 +180,7 @@ bool Touchscreen_GT911::read_data(uint16_t address, void *dest, uint8_t bytes, u
     }
 
     for (uint8_t attempt = 0; attempt < attempts; attempt++) {
-        if (HAL_I2C_Mem_Read(&I2C_HANDLE_FOR(touch), i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(dest), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
+        if (HAL_I2C_Mem_Read(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(dest), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
             return true;
         }
 
@@ -201,7 +198,7 @@ bool Touchscreen_GT911::write_data(uint16_t address, const void *data, uint8_t b
     }
 
     for (uint8_t attempt = 0; attempt < attempts; attempt++) {
-        if (HAL_I2C_Mem_Write(&I2C_HANDLE_FOR(touch), i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(const_cast<void *>(data)), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
+        if (HAL_I2C_Mem_Write(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(const_cast<void *>(data)), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
             return true;
         }
 
@@ -350,9 +347,9 @@ bool Touchscreen_GT911::handle_read_error() {
     else {
         log_warning(Touch, "Touch error, restarting I2C");
         metric_record_string(metric_touch_event(), "restart_i2c");
-        i2c::ChannelMutex _anym(I2C_HANDLE_FOR(touch));
-        HAL_I2C_DeInit(&CONCAT(hi2c, i2c_touch));
-        I2C_INIT(touch);
+        i2c::ChannelMutex _anym(*i2c_handle_touch);
+        HAL_I2C_DeInit(i2c_handle_touch);
+        i2c_init_touch();
     }
 
     return true;

@@ -34,37 +34,37 @@ void FUSB302B::InitChip() {
 
     // wake up circuit
     uint8_t _power_reg[2] = { FUSB302B_POWER_REG_ADDR, 0x0F };
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _power_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _power_reg, 2, 100);
 
     // mask all interrupts except VBUSOK
     uint8_t _mask_reg[2] = { FUSB302B_MASK_REG_ADDR, 0x7F & ~FUSB302B_MASK_VBUSOK_POS };
     uint8_t _maska_reg[2] = { FUSB302B_MASKA_REG_ADDR, 0x7F };
     uint8_t _maskb_reg[2] = { FUSB302B_MASKB_REG_ADDR, 0x7F };
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _mask_reg, 2, 100);
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _maska_reg, 2, 100);
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _maskb_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _mask_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _maska_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _maskb_reg, 2, 100);
 
     // setup default USB power
     uint8_t _control0_reg[2] = { FUSB302B_CONTROL0_REG_ADDR, 1 << FUSB302B_CONTROL0_HOST_CUR_POS };
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _control0_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _control0_reg, 2, 100);
 }
 
 bool FUSB302B::ReadVBUSState() {
     uint8_t _status0_reg[2] = { FUSB302B_STATUS0_REG_ADDR, 0x0 };
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, &_status0_reg[0], 1, 100);
-    (void)i2c::Receive(I2C_HANDLE_FOR(usbc), address, &_status0_reg[1], 1, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, &_status0_reg[0], 1, 100);
+    (void)i2c::Receive(*i2c_handle_usbc, address, &_status0_reg[1], 1, 100);
     return (_status0_reg[1] & FUSB302B_STATUS0_VBUSOK_MASK);
 }
 
 void FUSB302B::ClearVBUSIntFlag() {
     // read current state
     uint8_t _interrupt_reg[2] = { FUSB302B_INTERRUPT_REG_ADDR, 0 };
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, &_interrupt_reg[0], 1, 100);
-    (void)i2c::Receive(I2C_HANDLE_FOR(usbc), address, &_interrupt_reg[1], 1, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, &_interrupt_reg[0], 1, 100);
+    (void)i2c::Receive(*i2c_handle_usbc, address, &_interrupt_reg[1], 1, 100);
 
     // clear I_VBUSOK and update
     _interrupt_reg[1] &= ~FUSB302B_INTERRUPT_VBUSOK_MASK;
-    (void)i2c::Transmit(I2C_HANDLE_FOR(usbc), address | WRITE_FLAG, _interrupt_reg, 2, 100);
+    (void)i2c::Transmit(*i2c_handle_usbc, address | WRITE_FLAG, _interrupt_reg, 2, 100);
 }
 
 void FUSB302B::DetectAddress() {
@@ -73,7 +73,7 @@ void FUSB302B::DetectAddress() {
     for (auto tryAddress : address_options) {
         // reset chip, if chip has this address, it will confirm the transaction
         uint8_t _sw_reset[2] = { 0x0C, 0x03 };
-        auto res = i2c::Transmit(I2C_HANDLE_FOR(usbc), tryAddress | WRITE_FLAG, _sw_reset, 2, 150);
+        auto res = i2c::Transmit(*i2c_handle_usbc, tryAddress | WRITE_FLAG, _sw_reset, 2, 150);
         if (res == i2c::Result::ok) {
             FUSB302B::address = tryAddress;
             return;

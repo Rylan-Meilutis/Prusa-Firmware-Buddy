@@ -22,9 +22,9 @@ PrusaAccelerometer::PrusaAccelerometer()
         bsod("Multiple access to local accelerometer");
     }
 #if PRINTER_IS_PRUSA_MK3_5()
-    g_local_accelerometer_poller.emplace(&SPI_HANDLE_FOR(accelerometer), output_pin, &htim9);
+    g_local_accelerometer_poller.emplace(spi_handle_accelerometer, output_pin, &htim9);
 #else
-    g_local_accelerometer_poller.emplace(&SPI_HANDLE_FOR(accelerometer), buddy::hw::acellCs, &htim9);
+    g_local_accelerometer_poller.emplace(spi_handle_accelerometer, buddy::hw::acellCs, &htim9);
 #endif
 
     constexpr int RETRIES = 5;

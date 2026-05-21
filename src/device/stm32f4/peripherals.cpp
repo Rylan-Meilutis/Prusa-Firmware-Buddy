@@ -75,10 +75,10 @@ RNG_HandleTypeDef hrng;
 
 namespace buddy::hw {
 #if HAS_I2C_EXPANDER() // HAS_I2C_EXPANDER corresponds to FDM-MK4-GPIO, not io_expander1 which connects DWARFs
-TCA6408A io_expander2(I2C_HANDLE_FOR(io_expander2));
+TCA6408A io_expander2(*i2c_handle_io_expander2);
 #endif // HAS_I2C_EXPANDER()
 #if BOARD_IS_XLBUDDY()
-PCA9557 io_expander1(I2C_HANDLE_FOR(io_expander1), 0x1);
+PCA9557 io_expander1(*i2c_handle_io_expander1, 0x1);
 #endif // BOARD_IS_XLBUDDY()
 } // namespace buddy::hw
 
@@ -486,7 +486,7 @@ static void i2c_free_bus_in_case_of_slave_deadlock(uint32_t clk, hw_pin sda, hw_
     delay_us_precise(i2c_get_edge_us(clk)); // wait half period
 }
 
-#if HAS_I2CN(1)
+#if HAS_I2C1()
 
 static constexpr uint32_t i2c1_speed = 400'000;
 
@@ -535,9 +535,9 @@ void hw_i2c1_init() {
     }
     #endif
 }
-#endif // HAS_I2CN(1)
+#endif // HAS_I2C1()
 
-#if HAS_I2CN(2)
+#if HAS_I2C2()
 
 // speed must be 400k, maybe, for reasons lost in time
 static constexpr uint32_t i2c2_speed = 400'000;
@@ -587,9 +587,9 @@ void hw_i2c2_init() {
     }
     #endif
 }
-#endif // HAS_I2CN(2)
+#endif // HAS_I2C2()
 
-#if HAS_I2CN(3)
+#if HAS_I2C3()
 
 static constexpr uint32_t i2c3_speed = 100'000;
 
@@ -642,7 +642,7 @@ void hw_i2c3_init() {
     }
     #endif
 }
-#endif // HAS_I2CN(3)
+#endif // HAS_I2C3()
 
 void hw_spi2_init() {
     hspi2.Instance = SPI2;
@@ -650,15 +650,15 @@ void hw_spi2_init() {
     hspi2.Init.Direction = SPI_DIRECTION_2LINES;
     hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
     hspi2.Init.NSS = SPI_NSS_SOFT;
-#if spi_accelerometer == 2
-    hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
-    hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
-    hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
-#elif spi_lcd == 2
-    hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-    hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-    hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-#endif
+    if constexpr (spi_handle_accelerometer == &hspi2) {
+        hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
+        hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
+        hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+    } else if constexpr (spi_handle_lcd == &hspi2) {
+        hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+        hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+        hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+    }
     hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
     hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
     hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

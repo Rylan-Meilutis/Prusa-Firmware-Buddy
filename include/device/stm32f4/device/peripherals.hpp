@@ -199,58 +199,97 @@ extern TIM_HandleTypeDef htim14;
 
 //
 // External Peripherals Assignment
-// -1 == don't have, currently i2c only
 //
 
 #if BOARD_IS_BUDDY()
-    #define i2c_eeprom       1
-    #define i2c_usbc         -1
-    #define i2c_touch        -1
-    #define i2c_gcode        1
-    #define i2c_io_expander1 -1
-    #define i2c_io_expander2 -1
-    #define spi_flash        3
-    #define spi_lcd          2
+
+constexpr I2C_HandleTypeDef *i2c_handle_eeprom = &hi2c1;
+constexpr I2C_HandleTypeDef *i2c_handle_gcode = &hi2c1;
+    #define i2c_init_eeprom hw_i2c1_init
+    #define i2c_init_gcode  hw_i2c1_init
+    #define HAS_I2C1()      1
+    #define HAS_I2C2()      0
+    #define HAS_I2C3()      0
+
+constexpr SPI_HandleTypeDef *spi_handle_lcd = &hspi2;
+constexpr SPI_HandleTypeDef *spi_handle_flash = &hspi3;
+constexpr SPI_HandleTypeDef *spi_handle_accelerometer = nullptr;
+    #define spi_init_lcd   hw_spi2_init
+    #define spi_init_flash hw_spi3_init
+
 #elif BOARD_IS_XBUDDY()
-    #define i2c_eeprom         2
-    #define i2c_usbc           2
-    #define i2c_gcode          2
-    #define i2c_io_expander1   -1
-    #define i2c_io_expander2   2
-    #define spi_flash          5
-    #define spi_lcd            6
-    #define spi_tmc            3
-    #define spi_accelerometer  2
-    #define tim_burst_stepping 8
-    #define tim_phase_stepping 13
+
+constexpr I2C_HandleTypeDef *i2c_handle_eeprom = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_usbc = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_gcode = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_io_expander2 = &hi2c2;
+    #define i2c_init_eeprom        hw_i2c2_init
+    #define i2c_init_usbc          hw_i2c2_init
+    #define i2c_init_gcode         hw_i2c2_init
+    #define i2c_init_io_expander2  hw_i2c2_init
+    #define HAS_I2C1()             0
+    #define HAS_I2C2()             1
+
+constexpr SPI_HandleTypeDef *spi_handle_accelerometer = &hspi2;
+constexpr SPI_HandleTypeDef *spi_handle_tmc = &hspi3;
+constexpr SPI_HandleTypeDef *spi_handle_flash = &hspi5;
+constexpr SPI_HandleTypeDef *spi_handle_lcd = &hspi6;
+    #define spi_init_accelerometer hw_spi2_init
+    #define spi_init_tmc           hw_spi3_init
+    #define spi_init_flash         hw_spi5_init
+    #define spi_init_lcd           hw_spi6_init
+
+constexpr TIM_HandleTypeDef *tim_handle_burst_stepping = &htim8;
+constexpr TIM_HandleTypeDef *tim_handle_phase_stepping = &htim13;
+
     #if PRINTER_IS_PRUSA_iX()
-        /// iX uses the I2C3 pins for back door filament sensor - BFW-4746
-        #define i2c_touch -1
-        #define spi_led   4
+        #define HAS_I2C3()   0
+
+constexpr SPI_HandleTypeDef *spi_handle_led = &hspi4;
+        #define spi_init_led hw_spi4_init
     #else
-        #define i2c_touch 3
-        #define spi_led   -1
+constexpr I2C_HandleTypeDef *i2c_handle_touch = &hi2c3;
+        #define i2c_init_touch hw_i2c3_init
+        #define HAS_I2C3()     1
     #endif
+
 #elif BOARD_IS_XLBUDDY()
-    #define i2c_eeprom         2
-    #define i2c_usbc           1
-    #define i2c_touch          3
-    #define i2c_gcode          2
-    #define i2c_io_expander1   2
-    #define i2c_io_expander2   -1
-    #define spi_flash          5
-    #define spi_lcd            6
-    #define spi_tmc            3
-    #define spi_accelerometer  2
-    // Side LEDs use either SPI4 or share SPI with LCD, depending on HW revision
-    #define spi_led            4
-    #define tim_burst_stepping 8
-    #define tim_phase_stepping 13
+
+constexpr I2C_HandleTypeDef *i2c_handle_usbc = &hi2c1;
+constexpr I2C_HandleTypeDef *i2c_handle_eeprom = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_gcode = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_io_expander1 = &hi2c2;
+constexpr I2C_HandleTypeDef *i2c_handle_touch = &hi2c3;
+    #define i2c_init_usbc          hw_i2c1_init
+    #define i2c_init_eeprom        hw_i2c2_init
+    #define i2c_init_gcode         hw_i2c2_init
+    #define i2c_init_io_expander1  hw_i2c2_init
+    #define i2c_init_touch         hw_i2c3_init
+    #define HAS_I2C1()             1
+    #define HAS_I2C2()             1
+    #define HAS_I2C3()             1
+
+constexpr SPI_HandleTypeDef *spi_handle_accelerometer = &hspi2;
+constexpr SPI_HandleTypeDef *spi_handle_tmc = &hspi3;
+// Side LEDs use either SPI4 or share SPI with LCD, depending on HW revision
+constexpr SPI_HandleTypeDef *spi_handle_led = &hspi4;
+constexpr SPI_HandleTypeDef *spi_handle_flash = &hspi5;
+constexpr SPI_HandleTypeDef *spi_handle_lcd = &hspi6;
+    #define spi_init_accelerometer hw_spi2_init
+    #define spi_init_tmc           hw_spi3_init
+    #define spi_init_led           hw_spi4_init
+    #define spi_init_flash         hw_spi5_init
+    #define spi_init_lcd           hw_spi6_init
+
+constexpr TIM_HandleTypeDef *tim_handle_burst_stepping = &htim8;
+constexpr TIM_HandleTypeDef *tim_handle_phase_stepping = &htim13;
+
 #else
+    #define HAS_I2C1() 0
+    #define HAS_I2C2() 0
+    #define HAS_I2C3() 0
     #error Unknown board
 #endif
-
-#define HAS_I2CN(n) ((n == i2c_eeprom) || (n == i2c_touch) || (n == i2c_usbc) || (n == i2c_gcode) || (n == i2c_io_expander1) || (n == i2c_io_expander2))
 
 //
 // Other
@@ -278,15 +317,17 @@ void hw_adc_irq_init();
 // i2c init is also used to clear BUSY flag
 //
 
-#if HAS_I2CN(1)
+#if HAS_I2C1()
 void hw_i2c1_init();
 void hw_i2c1_pins_init();
 #endif
-#if HAS_I2CN(2)
+
+#if HAS_I2C2()
 void hw_i2c2_init();
 void hw_i2c2_pins_init();
 #endif
-#if HAS_I2CN(3)
+
+#if HAS_I2C3()
 void hw_i2c3_init();
 void hw_i2c3_pins_init();
 #endif
@@ -305,31 +346,3 @@ void hw_tim8_init();
 void hw_tim9_init();
 void hw_tim13_init();
 void hw_tim14_init();
-
-//
-// Getters
-//
-
-#define __JOIN(prefix, number, suffix) prefix##number##suffix
-#define _JOIN(...)                     __JOIN(__VA_ARGS__)
-
-/// Get handle for given peripheral: I2C_HANDLE_FOR(touch) -> hi2c3
-#define I2C_HANDLE_FOR(peripheral) _JOIN(hi2c, i2c_##peripheral, )
-
-/// Get handle for given peripheral: SPI_HANDLE_FOR(lcd) -> hspi3
-#define SPI_HANDLE_FOR(peripheral) _JOIN(hspi, spi_##peripheral, )
-
-/// Get handle for given peripheral: TIM_HANDLE_FOR(phase_stepping) -> htim12
-#define TIM_HANDLE_FOR(peripheral) _JOIN(htim, tim_##peripheral, )
-
-/// Call initialization function for given peripheral
-/// Example: I2C_INIT(touch)
-#define I2C_INIT(peripheral)               \
-    _JOIN(hw_i2c, i2c_##peripheral, _init) \
-    ()
-
-/// Call initialization function for given peripheral
-/// Example: SPI_INIT(lcd)
-#define SPI_INIT(peripheral)               \
-    _JOIN(hw_spi, spi_##peripheral, _init) \
-    ()

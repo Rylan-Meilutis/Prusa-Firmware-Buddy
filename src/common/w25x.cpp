@@ -407,10 +407,10 @@ bool w25x_reinit_before_crash_dump() {
 
     if (w25x_was_initialized) {
         // abort ongoing transactions if there were any, ignoring errors
-        (void)HAL_SPI_Abort(&SPI_HANDLE_FOR(flash));
+        (void)HAL_SPI_Abort(spi_handle_flash);
         (void)w25x_fetch_error();
     } else {
-        SPI_INIT(flash);
+        spi_init_flash();
     }
     return w25x_init_internal();
 }
@@ -430,7 +430,7 @@ void w25x_init() {
         bsod_unreachable();
     }
 
-    SPI_INIT(flash);
+    spi_init_flash();
     if (w25x_init_internal()) {
         w25x_was_initialized = true;
         return;

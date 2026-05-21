@@ -26,7 +26,7 @@ void startup_task_run() {
     hw_dma_init();
     hw_adc1_init();
     adcDma1.init();
-    SPI_INIT(accelerometer);
+    spi_init_accelerometer();
 
     hal::MultiWatchdog::init(); // Configure hardware watchdog
     osSetIdleTaskWatchdog(idle_task_watchdog_callback); // Add watchdog to idle task

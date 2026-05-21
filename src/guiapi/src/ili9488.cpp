@@ -186,7 +186,7 @@ void ili9488_delay_ms(uint32_t ms) {
 }
 
 void ili9488_spi_wr_byte(uint8_t b) {
-    HAL_SPI_Transmit(&SPI_HANDLE_FOR(lcd), &b, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle_lcd, &b, 1, HAL_MAX_DELAY);
 }
 
 void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
@@ -194,23 +194,23 @@ void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
         osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_TX);
         osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
         assert(can_be_used_by_dma(pb));
-        HAL_SPI_Transmit_DMA(&SPI_HANDLE_FOR(lcd), const_cast<uint8_t *>(pb), size);
+        HAL_SPI_Transmit_DMA(spi_handle_lcd, const_cast<uint8_t *>(pb), size);
         osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
     } else {
-        HAL_SPI_Transmit(&SPI_HANDLE_FOR(lcd), const_cast<uint8_t *>(pb), size, HAL_MAX_DELAY);
+        HAL_SPI_Transmit(spi_handle_lcd, const_cast<uint8_t *>(pb), size, HAL_MAX_DELAY);
     }
 }
 
 void ili9488_spi_rd_bytes(uint8_t *pb, uint16_t size) {
     // reading is more reliable at 20MHz
-    SPIBaudRatePrescalerGuard guard { &SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4 };
+    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_4 };
 
-    HAL_SPI_Receive(&SPI_HANDLE_FOR(lcd), pb, size, HAL_MAX_DELAY);
+    HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
 }
 
 void ili9488_cmd(uint8_t cmd, const uint8_t *pdata, uint16_t size) {
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
-    SPIBaudRatePrescalerGuard _g(&SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     ili9488_clr_cs(); // CS = L
     ili9488_clr_rs(); // RS = L
@@ -237,14 +237,14 @@ void ili9488_cmd_1_data(uint8_t cmd, uint8_t data) {
 
 void ili9488_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     // reading is even more reliable at 10MHz
-    SPIBaudRatePrescalerGuard guard { &SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_8 };
+    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_8 };
 
     ili9488_clr_cs(); // CS = L
     ili9488_clr_rs(); // RS = L
     uint8_t data_to_write[ILI9488_MAX_COMMAND_READ_LENGHT] = { 0x00 };
     data_to_write[0] = cmd;
     data_to_write[1] = 0x00;
-    HAL_SPI_TransmitReceive(&SPI_HANDLE_FOR(lcd), data_to_write, pdata, ILI9488_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
+    HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ILI9488_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
     ili9488_set_cs();
 }
 
@@ -254,7 +254,7 @@ void ili9488_wr(uint8_t *pdata, uint16_t size) {
     }
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
-    SPIBaudRatePrescalerGuard _g(&SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     ili9488_clr_cs(); // CS = L
     ili9488_set_rs(); // RS = H
@@ -538,7 +538,7 @@ static void ili9488_fill_rect_color_fast(uint16_t rect_x, uint16_t rect_y, uint1
 
 void ili9488_fill_rect_colorFormat666(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint32_t clr666) {
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
-    SPIBaudRatePrescalerGuard _g(&SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
@@ -587,7 +587,7 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
-    SPIBaudRatePrescalerGuard _g(&SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     // Current pixel position starts top-left where the image is placed
     point_i16_t pos = { static_cast<int16_t>(pt.x), static_cast<int16_t>(pt.y) };

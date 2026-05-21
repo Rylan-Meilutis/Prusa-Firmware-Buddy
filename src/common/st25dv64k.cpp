@@ -59,7 +59,7 @@ void try_fix_if_needed(const i2c::Result &result) {
     switch (result) {
     case i2c::Result::busy_after_retries:
     case i2c::Result::error:
-        I2C_INIT(eeprom);
+        i2c_init_eeprom();
         [[fallthrough]];
     case i2c::Result::timeout:
     case i2c::Result::ok:
@@ -68,7 +68,7 @@ void try_fix_if_needed(const i2c::Result &result) {
 }
 
 [[nodiscard]] i2c::Result eeprom_transmit(EepromCommandWrite cmd, uint8_t *pData, uint16_t size) {
-    return i2c::Transmit(I2C_HANDLE_FOR(eeprom), std::to_underlying(cmd), pData, size, HAL_MAX_DELAY);
+    return i2c::Transmit(*i2c_handle_eeprom, std::to_underlying(cmd), pData, size, HAL_MAX_DELAY);
 }
 
 [[nodiscard]] i2c::Result user_write_address_without_lock(EepromCommandWrite cmd, uint16_t address) {
@@ -119,7 +119,7 @@ void try_fix_if_needed(const i2c::Result &result) {
 
     i2c::Result result = user_write_address_without_lock(eeprom_get_write_address(cmd), address);
     if (result == i2c::Result::ok) {
-        result = i2c::Receive(I2C_HANDLE_FOR(eeprom), std::to_underlying(eeprom_get_read_address(cmd)), static_cast<uint8_t *>(pdata), size, HAL_MAX_DELAY);
+        result = i2c::Receive(*i2c_handle_eeprom, std::to_underlying(eeprom_get_read_address(cmd)), static_cast<uint8_t *>(pdata), size, HAL_MAX_DELAY);
     }
 
     return result;

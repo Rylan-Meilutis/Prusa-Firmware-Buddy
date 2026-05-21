@@ -80,7 +80,7 @@ stmdev_ctx_t dev_ctx {
     .write_reg = write_reg,
     .read_reg = read_reg,
     .mdelay = nullptr,
-    .handle = &SPI_HANDLE_FOR(accelerometer),
+    .handle = spi_handle_accelerometer,
 };
 
 void check_device_id() {

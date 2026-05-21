@@ -191,7 +191,7 @@ void LEDManager::enter_power_panic() {
     hw_init_spi_side_leds();
 #endif
 
-    SPI_INIT(lcd);
+    spi_init_lcd();
     auto &status_leds = get_status_leds();
     status_leds.set_all(0x0);
     status_leds.update();

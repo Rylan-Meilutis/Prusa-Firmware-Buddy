@@ -313,7 +313,7 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_GUI()
-    SPI_INIT(lcd);
+    spi_init_lcd();
 #endif
 
 #if BOARD_IS_XLBUDDY()
@@ -321,7 +321,7 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if PRINTER_IS_PRUSA_iX()
-    SPI_INIT(led);
+    spi_init_led();
 #endif
 
 #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -405,19 +405,19 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if BOARD_IS_XBUDDY() || BOARD_IS_XLBUDDY()
-    I2C_INIT(usbc);
+    i2c_init_usbc();
 #endif
 
 #if HAS_TOUCH()
-    I2C_INIT(touch);
+    i2c_init_touch();
 #endif
 
 #if (BOARD_IS_XBUDDY())
-    SPI_INIT(accelerometer);
+    spi_init_accelerometer();
 #endif
 
-#if defined(spi_tmc)
-    SPI_INIT(tmc);
+#if defined(spi_init_tmc)
+    spi_init_tmc();
 #elif HAS_TMC_UART()
     uart_init_tmc();
 #else
@@ -557,12 +557,12 @@ extern "C" void main_cpp(void) {
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 
 #if HAS_GUI()
-    if (hspi == &SPI_HANDLE_FOR(lcd)) {
+    if (hspi == spi_handle_lcd) {
         display::spi_tx_complete();
     }
 #endif
 
-    if (hspi == &SPI_HANDLE_FOR(flash)) {
+    if (hspi == spi_handle_flash) {
         w25x_spi_transfer_complete_callback();
     }
 }
@@ -570,25 +570,25 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
 
 #if HAS_GUI()
-    if (hspi == &SPI_HANDLE_FOR(lcd)) {
+    if (hspi == spi_handle_lcd) {
         display::spi_rx_complete();
     }
 #endif
 
-    if (hspi == &SPI_HANDLE_FOR(flash)) {
+    if (hspi == spi_handle_flash) {
         w25x_spi_receive_complete_callback();
     }
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi == &SPI_HANDLE_FOR(flash)) {
+    if (hspi == spi_handle_flash) {
         w25x_spi_error_callback();
     }
 }
 
 void HAL_SPI_TxRxCpltCallback([[maybe_unused]] SPI_HandleTypeDef *hspi) {
 #if HAS_LOCAL_ACCELEROMETER()
-    if (hspi == &SPI_HANDLE_FOR(accelerometer)) {
+    if (hspi == spi_handle_accelerometer) {
         prusa_accelerometer_handle_spi_finish();
         return;
     }
@@ -672,10 +672,6 @@ static void enable_segger_sysview() {
     SEGGER_SYSVIEW_Conf();
 }
 
-static void eeprom_init_i2c() {
-    I2C_INIT(eeprom);
-}
-
 extern "C" void __libc_init_array(void);
 
 namespace {
@@ -693,7 +689,7 @@ extern "C" void startup_task(void const *) {
     i2c::ChannelMutex::static_init();
 
     // init communication with eeprom
-    eeprom_init_i2c();
+    i2c_init_eeprom();
 
     // init eeprom module itself
     {

@@ -12,13 +12,13 @@
 namespace i2c {
 namespace {
     constinit const std::array i2c_handles = {
-#if HAS_I2CN(1)
+#if HAS_I2C1()
         &hi2c1,
 #endif
-#if HAS_I2CN(2)
+#if HAS_I2C2()
         &hi2c2,
 #endif
-#if HAS_I2CN(3)
+#if HAS_I2C3()
         &hi2c3,
 #endif
     };

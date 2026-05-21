@@ -110,29 +110,5 @@ void hw_spi2_init(void);
 // External Peripherals Assignment
 //
 
-#define spi_accelerometer 2
-
-//
-// Getters
-//
-
-#define __JOIN(prefix, number, suffix) prefix##number##suffix
-#define _JOIN(...)                     __JOIN(__VA_ARGS__)
-
-/// Get handle for given peripheral: I2C_HANDLE_FOR(touch) -> hi2c3
-#define I2C_HANDLE_FOR(peripheral) _JOIN(hi2c, i2c_##peripheral, )
-
-/// Get handle for given peripheral: SPI_HANDLE_FOR(lcd) -> hspi3
-#define SPI_HANDLE_FOR(peripheral) _JOIN(hspi, spi_##peripheral, )
-
-/// Call initialization function for given peripheral
-/// Example: I2C_INIT(touch)
-#define I2C_INIT(peripheral)               \
-    _JOIN(hw_i2c, i2c_##peripheral, _init) \
-    ()
-
-/// Call initialization function for given peripheral
-/// Example: SPI_INIT(lcd)
-#define SPI_INIT(peripheral)               \
-    _JOIN(hw_spi, spi_##peripheral, _init) \
-    ()
+constexpr SPI_HandleTypeDef *spi_handle_accelerometer = &hspi2;
+#define spi_init_accelerometer hw_spi2_init

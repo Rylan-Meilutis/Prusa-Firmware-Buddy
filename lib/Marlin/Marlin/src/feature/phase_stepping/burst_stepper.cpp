@@ -137,8 +137,8 @@ void burst_stepping::init() {
         axis_direction[axis] = (dir_signals[axis].read() == Pin::State::high);
     }
 
-    HAL_TIM_Base_Start(&TIM_HANDLE_FOR(burst_stepping));
-    __HAL_TIM_ENABLE_DMA(&TIM_HANDLE_FOR(burst_stepping), TIM_DMA_UPDATE);
+    HAL_TIM_Base_Start(tim_handle_burst_stepping);
+    __HAL_TIM_ENABLE_DMA(tim_handle_burst_stepping, TIM_DMA_UPDATE);
 }
 
 FORCE_OFAST void burst_stepping::set_phase_diff(AxisEnum axis, int diff) {
@@ -197,7 +197,7 @@ FORCE_OFAST static void setup_and_fire_dma() {
     BURST_DMA->PAR = reinterpret_cast<uint32_t>(&step_gpio_port->BSRR);
     BURST_DMA->M0AR = reinterpret_cast<uint32_t>(fire_buffer->dma_buffer());
     BURST_DMA_REGS->IFCR = 0b111111 << BURST_DMA_REGS_OFFSET;
-    __HAL_TIM_SET_COUNTER(&TIM_HANDLE_FOR(burst_stepping), 0);
+    __HAL_TIM_SET_COUNTER(tim_handle_burst_stepping, 0);
     BURST_DMA->CR = (BURST_DMA->CR
                         & ~(DMA_SxCR_DBM_Msk | DMA_SxCR_DMEIE_Msk | DMA_SxCR_TEIE_Msk | DMA_SxCR_HTIE_Msk | DMA_SxCR_TCIE_Msk))
         | DMA_SxCR_EN_Msk;

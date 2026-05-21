@@ -19,13 +19,13 @@ void uart_for_tmc_idle_isr() {
 TRACED_ISR(ADC_IRQHandler, HAL_ADC_IRQHandler, &hadc1);
 
 // SPI for flash memory
-TRACED_ISR(SPI3_IRQHandler, HAL_SPI_IRQHandler, &SPI_HANDLE_FOR(flash));
-TRACED_ISR(DMA1_Stream0_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(flash).hdmarx);
-TRACED_ISR(DMA1_Stream7_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(flash).hdmatx);
+TRACED_ISR(SPI3_IRQHandler, HAL_SPI_IRQHandler, spi_handle_flash);
+TRACED_ISR(DMA1_Stream0_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmarx);
+TRACED_ISR(DMA1_Stream7_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmatx);
 
 // SPI for LCD
-TRACED_ISR(DMA1_Stream3_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(lcd).hdmarx);
-TRACED_ISR(DMA1_Stream4_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(lcd).hdmatx);
+TRACED_ISR(DMA1_Stream3_IRQHandler, HAL_DMA_IRQHandler, spi_handle_lcd->hdmarx);
+TRACED_ISR(DMA1_Stream4_IRQHandler, HAL_DMA_IRQHandler, spi_handle_lcd->hdmatx);
 
 // UART for Trinamic driver
 TRACED_ISR(USART2_IRQHandler, HAL_UART_IRQHandler_with_idle, &uart_handle_for_tmc, uart_for_tmc_idle_isr);

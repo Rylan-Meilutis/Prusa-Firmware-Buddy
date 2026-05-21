@@ -438,13 +438,13 @@ void buddy::hw::hwio_configure_board_revision_changed_pins() {
 
 void hw_init_spi_side_leds() {
     if (!buddy::hw::Configuration::Instance().has_shared_side_led_spi()) {
-        SPI_INIT(led);
+        spi_init_led();
     }
 }
 SPI_HandleTypeDef *hw_get_spi_side_strip() {
     if (buddy::hw::Configuration::Instance().has_shared_side_led_spi()) {
-        return &SPI_HANDLE_FOR(lcd);
+        return spi_handle_lcd;
     } else {
-        return &SPI_HANDLE_FOR(led);
+        return spi_handle_led;
     }
 }

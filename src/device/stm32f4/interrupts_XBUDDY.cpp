@@ -25,29 +25,29 @@ extern "C" void ADC_IRQHandler() {
 }
 
 // SPI for trinamic driver
-TRACED_ISR(SPI3_IRQHandler, HAL_SPI_IRQHandler, &SPI_HANDLE_FOR(tmc));
-TRACED_ISR(DMA1_Stream5_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(tmc).hdmatx);
+TRACED_ISR(SPI3_IRQHandler, HAL_SPI_IRQHandler, spi_handle_tmc);
+TRACED_ISR(DMA1_Stream5_IRQHandler, HAL_DMA_IRQHandler, spi_handle_tmc->hdmatx);
 
 #if PRINTER_IS_PRUSA_iX()
 
 // SPI for side leds on iX
-TRACED_ISR(DMA2_Stream1_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(led).hdmatx);
+TRACED_ISR(DMA2_Stream1_IRQHandler, HAL_DMA_IRQHandler, spi_handle_led->hdmatx);
 
 #endif
 
 // SPI for flash memory
-TRACED_ISR(DMA2_Stream3_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(flash).hdmarx);
-TRACED_ISR(DMA2_Stream6_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(flash).hdmatx);
+TRACED_ISR(DMA2_Stream3_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmarx);
+TRACED_ISR(DMA2_Stream6_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmatx);
 
 // SPI for LCD
-TRACED_ISR(DMA2_Stream5_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(lcd).hdmatx);
+TRACED_ISR(DMA2_Stream5_IRQHandler, HAL_DMA_IRQHandler, spi_handle_lcd->hdmatx);
 
 // TIM for accelerometer polling
 TRACED_ISR(TIM1_BRK_TIM9_IRQHandler, HAL_TIM_IRQHandler, &htim9);
 
 // DMA for accelerometer
-TRACED_ISR(DMA1_Stream3_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(accelerometer).hdmarx);
-TRACED_ISR(DMA1_Stream4_IRQHandler, HAL_DMA_IRQHandler, SPI_HANDLE_FOR(accelerometer).hdmatx);
+TRACED_ISR(DMA1_Stream3_IRQHandler, HAL_DMA_IRQHandler, spi_handle_accelerometer->hdmarx);
+TRACED_ISR(DMA1_Stream4_IRQHandler, HAL_DMA_IRQHandler, spi_handle_accelerometer->hdmatx);
 
 #if HAS_PUPPIES()
 

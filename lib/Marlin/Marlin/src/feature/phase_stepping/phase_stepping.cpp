@@ -519,7 +519,7 @@ static void enable_phase_stepping(AxisEnum axis_num) {
     auto enable_mask = PHASE_STEPPING_GENERATOR_X << axis_num;
     PreciseStepping::physical_axis_step_generator_types |= enable_mask;
 
-    HAL_TIM_Base_Start_IT(&TIM_HANDLE_FOR(phase_stepping));
+    HAL_TIM_Base_Start_IT(tim_handle_phase_stepping);
 }
 
 #if !HAS_BURST_STEPPING()
@@ -619,7 +619,7 @@ static void disable_phase_stepping(AxisEnum axis_num) {
     // Disable and shutdown timer if we're the last axis
     axis_state.enabled = false;
     if (!any_axis_enabled()) {
-        HAL_TIM_Base_Stop_IT(&TIM_HANDLE_FOR(phase_stepping));
+        HAL_TIM_Base_Stop_IT(tim_handle_phase_stepping);
     }
 }
 

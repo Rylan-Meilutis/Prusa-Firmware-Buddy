@@ -34,7 +34,7 @@ extern void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size);
 extern void ili9488_cmd_nop(void);
 
 void GuiLedsWriter::write(uint8_t *pb, uint16_t size) {
-    SPI_HandleTypeDef *hspi = &SPI_HANDLE_FOR(lcd);
+    SPI_HandleTypeDef *hspi = spi_handle_lcd;
 
     // LEDs use MHz10_5, reconfigure prescaler accordingly
     SPIBaudRatePrescalerGuard guard { hspi, SPI_BAUDRATEPRESCALER_8 };
@@ -55,7 +55,7 @@ void SideStripWriter::write(uint8_t *pb, uint16_t size) {
     SPI_HandleTypeDef *hspi = hw_get_spi_side_strip();
 
     /// true when SPI to control LEDs is shared with LCD
-    const bool spi_shared_with_lcd = (hspi == &SPI_HANDLE_FOR(lcd));
+    const bool spi_shared_with_lcd = (hspi == spi_handle_lcd);
 
     if (spi_shared_with_lcd) {
         // LEDs use MHz10_5, reconfigure prescaler accordingly

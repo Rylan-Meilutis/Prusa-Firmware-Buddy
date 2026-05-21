@@ -256,17 +256,17 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) {
  * @retval None
  */
 void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c) {
-#if HAS_I2CN(1)
+#if HAS_I2C1()
     if (hi2c->Instance == I2C1) {
         hw_i2c1_pins_init();
     }
 #endif
-#if HAS_I2CN(2)
+#if HAS_I2C2()
     if (hi2c->Instance == I2C2) {
         hw_i2c2_pins_init();
     }
 #endif
-#if HAS_I2CN(3)
+#if HAS_I2C3()
     if (hi2c->Instance == I2C3) {
         hw_i2c3_pins_init();
     }
@@ -297,7 +297,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c) {
 
     }
 
-    #if HAS_I2CN(3)
+    #if HAS_I2C3()
     else if (hi2c->Instance == I2C3) {
         /* Peripheral clock disable */
         __HAL_RCC_I2C3_CLK_DISABLE();
@@ -403,17 +403,16 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
 
         GPIO_InitStruct.Pin = GPIO_PIN_10;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    #if spi_accelerometer == 2
-        // Accelerometer CLK: Pullup. The SPI clock on the MCU is high Z when
-        // not transmitting. The accelerometer requires clock idle to be high,
-        // and on the accelerometer (rev. 06) there's a 100k pulldown. Set the
-        // pullup on the MCU to force the clock high for the start of the
-        // communication.
-        GPIO_InitStruct.Pull = GPIO_PULLUP;
-    #else
-        // #error dead code found by automatic analyses (see BFW-5461)
-        GPIO_InitStruct.Pull = GPIO_NOPULL;
-    #endif
+        if constexpr (spi_handle_accelerometer == &hspi2) {
+            // Accelerometer CLK: Pullup. The SPI clock on the MCU is high Z when
+            // not transmitting. The accelerometer requires clock idle to be high,
+            // and on the accelerometer (rev. 06) there's a 100k pulldown. Set the
+            // pullup on the MCU to force the clock high for the start of the
+            // communication.
+            GPIO_InitStruct.Pull = GPIO_PULLUP;
+        } else {
+            GPIO_InitStruct.Pull = GPIO_NOPULL;
+        }
     #if BOARD_IS_XBUDDY()
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     #else

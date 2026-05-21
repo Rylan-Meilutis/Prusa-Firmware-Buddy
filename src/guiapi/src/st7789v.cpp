@@ -202,7 +202,7 @@ static void st7789v_delay_ms(uint32_t ms) {
 }
 
 void st7789v_spi_wr_byte(uint8_t b) {
-    HAL_SPI_Transmit(&SPI_HANDLE_FOR(lcd), &b, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle_lcd, &b, 1, HAL_MAX_DELAY);
 }
 
 void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
@@ -210,10 +210,10 @@ void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
         osSignalSet(st7789v_task_handle, ST7789V_SIG_SPI_TX);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
         assert(can_be_used_by_dma(pb));
-        HAL_SPI_Transmit_DMA(&SPI_HANDLE_FOR(lcd), pb, size);
+        HAL_SPI_Transmit_DMA(spi_handle_lcd, pb, size);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
     } else {
-        HAL_SPI_Transmit(&SPI_HANDLE_FOR(lcd), pb, size, HAL_MAX_DELAY);
+        HAL_SPI_Transmit(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
     }
 }
 
@@ -222,17 +222,17 @@ void st7789v_spi_rd_bytes(uint8_t *pb, uint16_t size) {
     // #error dead code found by automatic analyses (see BFW-5461)
 //#ifdef ST7789V_DMA
     if (size <= 4)
-        HAL_SPI_Receive(&SPI_HANDLE_FOR(lcd), pb, size, HAL_MAX_DELAY);
+        HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
     else
     {
         osSignalSet(0, ST7789V_SIG_SPI_TX);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
         assert(can_be_used_by_dma(pb));
-        HAL_SPI_Receive_DMA(&SPI_HANDLE_FOR(lcd), pb, size);
+        HAL_SPI_Receive_DMA(spi_handle_lcd, pb, size);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
     }
 #else // ST7789V_DMA
-    HAL_SPI_Receive(&SPI_HANDLE_FOR(lcd), pb, size, HAL_MAX_DELAY);
+    HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
 #endif // ST7789V_DMA
 }
 
@@ -267,7 +267,7 @@ void st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     uint8_t data_to_write[ST7789V_MAX_COMMAND_READ_LENGHT] = { 0x00 };
     data_to_write[0] = cmd;
     data_to_write[1] = 0x00;
-    HAL_SPI_TransmitReceive(&SPI_HANDLE_FOR(lcd), data_to_write, pdata, ST7789V_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
+    HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ST7789V_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
     if (tmp_flg & FLG_CS) {
         st7789v_set_cs();
     }

@@ -51,7 +51,7 @@ static void release_dma_from_isr(HAL_StatusTypeDef status) {
 /// Receive data over DMA
 static HAL_StatusTypeDef receive_dma(uint8_t *buffer, uint32_t len) {
     assert(can_be_used_by_dma(buffer));
-    const HAL_StatusTypeDef status = HAL_SPI_Receive_DMA(&SPI_HANDLE_FOR(flash), buffer, len);
+    const HAL_StatusTypeDef status = HAL_SPI_Receive_DMA(spi_handle_flash, buffer, len);
     if (status == HAL_OK) {
         dma_semaphore.acquire();
         return dma_status;
@@ -63,7 +63,7 @@ static HAL_StatusTypeDef receive_dma(uint8_t *buffer, uint32_t len) {
 /// Send data over DMA
 static HAL_StatusTypeDef send_dma(const uint8_t *buffer, uint32_t len) {
     assert(can_be_used_by_dma(buffer));
-    const HAL_StatusTypeDef status = HAL_SPI_Transmit_DMA(&SPI_HANDLE_FOR(flash), (uint8_t *)buffer, len);
+    const HAL_StatusTypeDef status = HAL_SPI_Transmit_DMA(spi_handle_flash, (uint8_t *)buffer, len);
     if (status == HAL_OK) {
         dma_semaphore.acquire();
         return dma_status;
@@ -120,7 +120,7 @@ void w25x_receive(uint8_t *buffer, uint32_t len) {
         }
     } else {
         Measure _ { "w25x_recv dma-none %u %u", len };
-        HAL_StatusTypeDef status = HAL_SPI_Receive(&SPI_HANDLE_FOR(flash), buffer, len, TIMEOUT_MS);
+        HAL_StatusTypeDef status = HAL_SPI_Receive(spi_handle_flash, buffer, len, TIMEOUT_MS);
         set_error(status);
     }
 }
@@ -148,7 +148,7 @@ void w25x_send(const uint8_t *buffer, uint32_t len) {
         }
     } else {
         Measure _ { "w25x_send dma-none %u %u", len };
-        HAL_StatusTypeDef status = HAL_SPI_Transmit(&SPI_HANDLE_FOR(flash), (uint8_t *)buffer, len, TIMEOUT_MS);
+        HAL_StatusTypeDef status = HAL_SPI_Transmit(spi_handle_flash, (uint8_t *)buffer, len, TIMEOUT_MS);
         set_error(status);
     }
 }
