@@ -8,6 +8,7 @@
 #include "radio_button.hpp"
 #include <option/has_toolchanger.h>
 #include <option/has_tool_crash_recovery.h>
+#include <gui/standard_frame/frame_wait.hpp>
 
 class ScreenCrashRecovery;
 
@@ -90,6 +91,15 @@ struct WinsHomeFail {
     WinsHomeFail(ScreenCrashRecovery &screen);
 };
 
+class WinsGCodeInterrupt : public window_frame_t {
+
+public:
+    WinsGCodeInterrupt(ScreenCrashRecovery &screen);
+
+private:
+    FrameWait frame_;
+};
+
 #if HAS_TOOL_CRASH_RECOVERY()
 struct WinsToolRecovery {
     window_text_t text_long;
@@ -108,7 +118,7 @@ using WinVariant = std::variant<
 #if HAS_TOOL_CRASH_RECOVERY()
     WinsToolRecovery,
 #endif
-    WinsCheckAxis, WinsHome, WinsAxisNok, WinsRepeatedCrash, WinsHomeFail>;
+    WinsCheckAxis, WinsHome, WinsAxisNok, WinsRepeatedCrash, WinsHomeFail, WinsGCodeInterrupt>;
 
 } // namespace crash_recovery
 
@@ -117,8 +127,6 @@ protected:
     window_header_t header;
     StatusFooter footer;
     crash_recovery::WinVariant window;
-
-    static ScreenCrashRecovery *ths; // to be accessible in dialog handler
 
     virtual void windowEvent(window_t * /*sender*/, GUI_event_t event, void *param) override;
 

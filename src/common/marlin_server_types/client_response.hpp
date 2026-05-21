@@ -267,6 +267,7 @@ enum class PhasesCrashRecovery : PhaseUnderlyingType {
     check_X,
     check_Y,
     home,
+    home_gcode_interrupt, //< Rehoming during gcode interrupt
     axis_NOK, //< just for unification of the two below
     axis_short,
     axis_long,
@@ -634,6 +635,7 @@ inline constexpr PhaseResponses CrashRecoveryResponses[] = {
     {}, // check X
     {}, // check Y
     {}, // home
+    {}, // home_gcode_interrupt
     { Response::Retry, Response::Pause, Response::Resume }, // axis NOK
     {}, // axis short
     {}, // axis long
