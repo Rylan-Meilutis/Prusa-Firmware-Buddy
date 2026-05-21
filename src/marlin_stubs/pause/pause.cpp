@@ -1132,7 +1132,7 @@ void Pause::ram_sequence_process([[maybe_unused]] Response response) {
 #if HAS_AUTO_RETRACT()
     if (auto_retract().can_cold_unload(settings.physical_tool())) {
         // The filament is already retracted from the nozzle -> no ramming needed, we don't even need to heat up the nozzle
-        ram_retracted_distance = auto_retract().retracted_distance(settings.physical_tool()).value(); // We are sure value is not std::nullopt because of is_auto_retracted()
+        ram_retracted_distance = auto_retract().retracted_distance(settings.physical_tool()).value(); // We are sure value is not std::nullopt because of can_cold_unload()
         set(LoadState::unload);
         return;
     }

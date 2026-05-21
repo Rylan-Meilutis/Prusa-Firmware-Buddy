@@ -34,12 +34,12 @@ public:
 
 #if HAS_NEXTRUDER()
     /// Minimum retract distance for the filament to be considered auto-retracted. Auto-retracted filaments can be unloaded without heating.
-    static constexpr float minimum_auto_retract_distance = 20.f; // mm
+    static constexpr float full_retract_distance = 20.f; // mm
     static constexpr bool supports_cold_unload = true;
 
 #elif HAS_INDX_HEAD()
     /// Retraction distance for a standard auto retract sequence
-    static constexpr float minimum_auto_retract_distance = 8.f; // mm
+    static constexpr float full_retract_distance = 8.f; // mm
 
     /// In parked tools, the only thing holding the filament is the nozzle
     /// Thus we cannot auto-retract to the level that would allow cold unload
@@ -51,8 +51,8 @@ public:
     /// @returns whether the specified \param hotend is retracted (some amount > 0.0f) and is a known value -> will deretract on positive Z move
     bool will_deretract(ToolVariant tool = PhysicalToolIndex::currently_selected()) const;
 
-    /// @returns true if the filament retracted from the \param hotend's nozzle for at least minimum_auto_retract_distance
-    bool is_auto_retracted(ToolVariant tool = PhysicalToolIndex::currently_selected()) const;
+    /// @returns true if the filament retracted from the \param hotend's nozzle for at least full_retract_distance
+    bool is_fully_retracted(ToolVariant tool = PhysicalToolIndex::currently_selected()) const;
 
     /// @returns true if the filament is retracted enough for a cold unload (unloading without heating up the nozzle)
     bool can_cold_unload(PhysicalToolIndex physical_tool) const;
@@ -60,7 +60,7 @@ public:
     /// How much is the filament retracted from the nozzle (mm), std::nullopt if retracted distance not a known value
     std::optional<float> retracted_distance(ToolVariant tool = PhysicalToolIndex::currently_selected()) const;
 
-    /// If !is_auto_retracted(), executes the retraction process and saves retracted distance
+    /// If !is_fully_retracted(), executes the retraction process and saves retracted distance
     void maybe_retract_from_nozzle(const auto_retract_detail::RetractFromNozzleParams &params = {});
 
     /// If will_deretract(), executes the deretraction process and set retracted distance to unknown value (because it can be changed by printing moves without notice)

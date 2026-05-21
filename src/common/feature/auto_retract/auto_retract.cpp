@@ -46,9 +46,9 @@ bool AutoRetract::will_deretract(ToolVariant tool) const {
     );
 }
 
-bool AutoRetract::is_auto_retracted(ToolVariant tool) const {
+bool AutoRetract::is_fully_retracted(ToolVariant tool) const {
     const auto dist = retracted_distance(tool);
-    return dist.has_value() && dist.value() >= minimum_auto_retract_distance;
+    return dist.has_value() && dist.value() >= full_retract_distance;
 }
 
 std::optional<float> AutoRetract::retracted_distance(ToolVariant tool) const {
@@ -60,7 +60,7 @@ std::optional<float> AutoRetract::retracted_distance(ToolVariant tool) const {
 }
 bool AutoRetract::can_cold_unload([[maybe_unused]] PhysicalToolIndex physical_tool) const {
     if constexpr (supports_cold_unload) {
-        return is_auto_retracted(physical_tool);
+        return is_fully_retracted(physical_tool);
     } else {
         return false;
     }
@@ -89,7 +89,7 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
     const auto physical_tool = virtual_tool.to_physical();
 
     // Is already retracted -> exit
-    if (is_auto_retracted(physical_tool)) {
+    if (is_fully_retracted(physical_tool)) {
         return;
     }
 
@@ -164,7 +164,7 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
         sequence.execute();
     }
 
-    assert(!supports_cold_unload || sequence.retracted_distance() >= minimum_auto_retract_distance);
+    assert(!supports_cold_unload || sequence.retracted_distance() >= full_retract_distance);
     set_retracted_distance(physical_tool, sequence.retracted_distance());
 }
 
@@ -223,7 +223,7 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
     const auto physical_tool = virtual_tool.to_physical();
 
     assert(purge_length >= 0.0f); // no sense having negative purge length
-    if (this->retracted_distance(physical_tool) >= minimum_auto_retract_distance) {
+    if (this->retracted_distance(physical_tool) >= full_retract_distance) {
         return; // should not do anything when already retracted more than standard distance
     }
 
@@ -249,10 +249,10 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
         // where we want (and we then set the new total auto-retracted distance after doing this).
         set_retracted_distance(physical_tool, std::nullopt);
 
-        const float retract_amount = minimum_auto_retract_distance - retracted_distance;
+        const float retract_amount = full_retract_distance - retracted_distance;
         mapi::extruder_move(-retract_amount, FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
         planner.synchronize();
-        set_retracted_distance(physical_tool, minimum_auto_retract_distance);
+        set_retracted_distance(physical_tool, full_retract_distance);
     }
 
     // Reach back to original temp

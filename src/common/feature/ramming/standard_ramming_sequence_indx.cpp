@@ -25,7 +25,7 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
             { 1, 1440 },
             { -1, 1440 },
         });
-        static_assert(seq.retracted_distance() >= AutoRetract::minimum_auto_retract_distance);
+        static_assert(seq.retracted_distance() >= AutoRetract::full_retract_distance);
         return seq;
     }
 #endif
