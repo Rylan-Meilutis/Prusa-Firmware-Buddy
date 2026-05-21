@@ -411,6 +411,33 @@ static auto create_motion_signal(
 }
 
 namespace {
+// Wait until INDX is actually streaming fresh loadcell samples again, retrying
+// the off/on toggle if not.
+bool indx_wait_for_loadcell_alive(uint32_t per_attempt_timeout_us = 500'000, uint8_t retries = 3) {
+    constexpr int32_t max_fresh_age_us = 100'000;
+    for (uint8_t attempt = 0; attempt <= retries; ++attempt) {
+        const uint32_t start = ticks_us();
+        while (true) {
+            const int32_t age = ticks_diff(ticks_us(), loadcell.GetLastSampleTimeUs());
+            if (age >= 0 && age <= max_fresh_age_us) {
+                return true;
+            }
+            if (ticks_diff(ticks_us(), start) > static_cast<int32_t>(per_attempt_timeout_us)) {
+                break;
+            }
+            idle(true);
+        }
+        if (attempt < retries) {
+            log_warning(ContactlessOffset, "INDX loadcell silent after enable, re-arming (attempt %u/%u)",
+                static_cast<unsigned>(attempt + 1), static_cast<unsigned>(retries));
+            buddy::puppies::indx.set_loadcell(buddy::puppies::puppyModbus, false);
+            buddy::puppies::indx.set_loadcell(buddy::puppies::puppyModbus, true);
+        }
+    }
+    log_error(ContactlessOffset, "INDX loadcell did not resume streaming after %u retries",
+        static_cast<unsigned>(retries));
+    return false;
+}
 
 // Measurement orchestration is structured as a small finite state machine.
 // Each scan can produce one of three outcomes (Event), and the next_state
@@ -728,6 +755,9 @@ public:
         buddy::puppies::indx.set_accelerometer(buddy::puppies::puppyModbus, prev_accelerometer_active_);
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
         thermalManager.setTargetBed(prev_bed_target_);
+        if (prev_loadcell_active_) {
+            (void)indx_wait_for_loadcell_alive();
+        }
         do_blocking_move_to_z(config_.sensor_position.z + config_.safe_z_height);
     }
 
