@@ -453,7 +453,7 @@ void Temperature::manage_heater() {
     #endif
 
     #if WATCH_BED
-      watch_bed.check(degBed(), degTargetBed());
+      watch_bed.update(degBed());
     #endif // WATCH_BED
 
     do {
@@ -1255,7 +1255,7 @@ void Temperature::isr() {
     #endif
 
     #if WATCH_BED
-        watch_bed.reset(degBed(), temp_bed.target);
+        watch_bed.arm(temp_bed.target);
     #endif
     }
 

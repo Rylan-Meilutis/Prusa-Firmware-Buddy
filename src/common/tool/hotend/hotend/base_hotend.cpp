@@ -58,7 +58,7 @@ void BaseHotend::handle_nozzle_target_change() {
     }
 #endif
 #if WATCH_HOTENDS
-    heater_watch_.reset(heater_watch_config, nozzle_temp(), nozzle_target_temp_);
+    heater_watch_.arm(nozzle_target_temp_);
 #endif
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
     thermal_runaway_.reset(nozzle_target_temp_);
@@ -98,7 +98,7 @@ void BaseHotend::manage() {
 #endif
 
 #if WATCH_HOTENDS
-    heater_watch_.check(heater_watch_config, nozzle_temp(), nozzle_target_temp());
+    heater_watch_.update(heater_watch_config, nozzle_temp());
 #endif
 }
 

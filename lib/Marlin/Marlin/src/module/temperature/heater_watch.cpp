@@ -4,30 +4,39 @@
 #include <module/temperature.h>
 #include <bsod.h>
 
-void HeaterWatchBase::reset(const Config &config, float current_temp, int16_t target_temp) {
-    if ((target_temp > 0)
-        // Invert the comparison logic if check_for_cooling_instead
-        // Note: current_temp is float, so equality case probably doesn't matter
-        && ((target_temp - current_temp) > config.min_temp_diff) ^ config.watch_cooling_instead //
-    ) {
-        target = static_cast<int16_t>(current_temp) + config.temp_increase;
-        next_ms = millis() + config.period_s * 1000UL;
-
-    } else {
-        next_ms = 0;
-    }
-}
-
-void HeaterWatchBase::check(const Config &config, float current_temp, int16_t target_temp) {
-    if (!next_ms || !ELAPSED(millis(), next_ms)) {
+void HeaterWatchBase::arm(int16_t target_temp) {
+    if (target_temp <= 0) {
+        state_ = State::disarmed;
         return;
     }
+    target_temp_ = target_temp;
+    state_ = State::pending;
+}
 
-    // Invert the comparison logic if check_for_cooling_instead
-    // Note: current_temp is float, so equality case probably doesn't matter
-    if ((current_temp < target) ^ config.watch_cooling_instead) {
-        fatal_error(config.error_code);
+void HeaterWatchBase::update(const Config &config, float current_temp) {
+    switch (state_) {
+    case State::disarmed:
+        return;
+
+    case State::watching:
+        if (!ELAPSED(millis(), next_check_ms_)) {
+            return;
+        }
+        if ((current_temp < baseline_threshold_) ^ config.watch_cooling_instead) {
+            fatal_error(config.error_code);
+        }
+        // Period ended successfully — re-evaluate engage condition for the next one
+        state_ = State::pending;
+        [[fallthrough]];
+
+    case State::pending:
+        if (!(((target_temp_ - current_temp) > config.min_temp_diff) ^ config.watch_cooling_instead)) {
+            state_ = State::disarmed;
+            return;
+        }
+        baseline_threshold_ = static_cast<int16_t>(current_temp) + config.temp_increase;
+        next_check_ms_ = millis() + config.period_s * 1000UL;
+        state_ = State::watching;
+        return;
     }
-
-    reset(config, current_temp, target_temp);
 }

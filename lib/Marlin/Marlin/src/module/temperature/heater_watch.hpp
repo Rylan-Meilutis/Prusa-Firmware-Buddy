@@ -8,7 +8,12 @@
 #include <module/temperature/temp_defines.hpp>
 #include <error_codes.hpp>
 
-/// Class for sanity-checking the heaters (that they heat up in a required time)
+/// Sanity-checks that a heater makes progress toward its target temperature.
+///
+/// arm() records the target as intent; the baseline is captured on the
+/// next update() call. This decouples target arming from baseline data,
+/// so arming can happen synchronously (e.g. from start_heating()) before
+/// the next manage tick refreshes the current temperature.
 class HeaterWatchBase {
 
 public:
@@ -32,56 +37,45 @@ public:
         bool watch_cooling_instead = false;
     };
 
-    /**
-     * Checks if the next_ms has elapsed since the last call.
-     * @retval true if ${next_ms} has elapsed and the watch is active. (next_ms != 0)
-     * @retval false if ${next_ms} has not elapsed or the watch is inactive. (next_ms == 0)
-     */
-    inline bool elapsed(const millis_t &ms) {
-        return (next_ms != 0) && ELAPSED(ms, next_ms);
-    }
-    inline bool elapsed() {
-        return elapsed(millis());
-    }
-
-    inline bool is_running() const {
-        return next_ms != 0;
+    /// @returns true when armed (Pending or Watching).
+    bool is_running() const {
+        return state_ != State::Disarmed;
     }
 
 protected:
-    void reset(const Config &config, float current_temp, int16_t target_temp);
-    void check(const Config &config, float current_temp, int16_t target_temp);
+    /// Set the watch target. Baseline is captured by the next update().
+    /// target_temp <= 0 disarms.
+    void arm(int16_t target_temp);
+
+    /// Tick: captures baseline when pending, fires fatal_error if the period
+    /// elapses without sufficient progress.
+    void update(const Config &config, float current_temp);
 
 private:
-    /**
-     * The target temperature that should be reached by the next check.
-     * @warning: This value is not the same as temp_heatbreak.target
-     */
-    int16_t target = 0;
+    enum class State : uint8_t {
+        disarmed,
+        pending,
+        watching,
+    };
 
-    /**
-     * The time in milliseconds to wait for the temperature to rise.
-     * @note: The value 0 means no watch.
-     */
-    millis_t next_ms = 0;
+    State state_ = State::disarmed;
+    int16_t target_temp_ = 0;
+    int16_t baseline_threshold_ = 0;
+    millis_t next_check_ms_ = 0;
 };
 
 class HeaterWatch final : public HeaterWatchBase {
-
 public:
-    using HeaterWatchBase::check;
-    using HeaterWatchBase::reset;
+    using HeaterWatchBase::arm;
+    using HeaterWatchBase::update;
 };
 
 template <HeaterWatchBase::Config config>
 class HeaterWatchWithConfig final : public HeaterWatchBase {
-
 public:
-    void reset(float current_temp, int16_t target_temp) {
-        HeaterWatchBase::reset(config, current_temp, target_temp);
-    }
+    using HeaterWatchBase::arm;
 
-    void check(float current_temp, int16_t target_temp) {
-        HeaterWatchBase::check(config, current_temp, target_temp);
+    void update(float current_temp) {
+        HeaterWatchBase::update(config, current_temp);
     }
 };

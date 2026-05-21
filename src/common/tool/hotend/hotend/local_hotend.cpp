@@ -62,7 +62,7 @@ void LocalHotend::set_heatbreak_target_temp(TargetTemperature set) {
     BaseHotend::set_heatbreak_target_temp(set);
 
     #if WATCH_HEATBREAK
-    heatbreak_watch_.reset(heatbreak_watch_config, heatbreak_temp(), heatbreak_target_temp());
+    heatbreak_watch_.arm(heatbreak_target_temp());
     #endif
 }
 #endif
@@ -217,7 +217,7 @@ void LocalHotend::manage_heatbreak() {
     next_heatbreak_check_ms_ = ms + 1000;
 
     #if WATCH_HEATBREAK
-    heatbreak_watch_.check(heatbreak_watch_config, heatbreak_temp(), heatbreak_target_temp());
+    heatbreak_watch_.update(heatbreak_watch_config, heatbreak_temp());
     #endif
 
     // iX has a non-constant maxtemp for the heatbreak, so we need to explicitly set it
