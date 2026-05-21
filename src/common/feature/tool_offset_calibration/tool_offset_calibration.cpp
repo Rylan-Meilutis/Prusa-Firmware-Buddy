@@ -480,8 +480,8 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             // `probing_config.sensor_position` is the position the scan was conducted at (either the
             // stored value or the default, depending on what apply_stored_sensor_position resolved to).
             const MachinePosXY new_sensor_position { { {
-                probing_config.sensor_position.x + avg_x_offset,
-                probing_config.sensor_position.y + avg_y_offset,
+                probing_config.sensor_position.x - avg_x_offset,
+                probing_config.sensor_position.y - avg_y_offset,
             } } };
             log_info(ToolOffsetCalib, "Updating stored sensor position: (%.3f, %.3f) -> (%.3f, %.3f)",
                 static_cast<double>(probing_config.sensor_position.x), static_cast<double>(probing_config.sensor_position.y),
