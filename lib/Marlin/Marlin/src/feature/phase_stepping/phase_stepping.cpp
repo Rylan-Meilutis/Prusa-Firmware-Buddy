@@ -751,7 +751,7 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
     uint32_t move_epoch = ticks_diff(now, axis_state.initial_time);
     float move_position = axis_state.last_position;
 
-    while (!axis_state.has_current_target || move_epoch >= axis_state.current_target.duration) {
+    if (!axis_state.has_current_target || move_epoch >= axis_state.current_target.duration) {
         if (axis_state.has_current_target) {
             axis_state.initial_time += axis_state.current_target.duration;
             move_position = axis_state.current_target.target_pos;
@@ -807,7 +807,8 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             axis_state.stalled_for = 0;
 
             move_position = current_target->initial_pos;
-            move_epoch = ticks_diff(now, axis_state.initial_time);
+            // In case the new target is already past, pretend we got only so far as to its end.
+            move_epoch = std::min(ticks_diff(now, axis_state.initial_time), static_cast<int32_t>(axis_state.current_target.duration));
 
             calibration_new_move(axis_state);
         } else {
@@ -820,8 +821,6 @@ static FORCE_INLINE FORCE_OFAST void refresh_axis(
             if (!axis_state.is_slowed_down) {
                 ++axis_state.stalled_for;
             }
-
-            break;
         }
     }
 
