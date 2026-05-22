@@ -281,24 +281,8 @@ void GcodeSuite::dwell(millis_t time) {
   while (!planner.draining() && PENDING(millis(), time)) idle(true);
 }
 
-/**
- * Process the parsed command and dispatch it to its handler
- */
-void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
-  KEEPALIVE_STATE(IN_HANDLER);
-
-  #if ENABLED(CRASH_RECOVERY)
-    // this is done one step down from process_next_command in order to handle subcommands
-    // and injected commands correctly: the state needs to reset at each logical move
-    crash_s.start_new_gcode(queue.get_current_sdpos());
-  #endif
-
-  #if ENABLED(PROCESS_CUSTOM_GCODE)
-    if (process_parsed_command_custom(/*no_ok=*/no_ok))
-      return;
-  #endif
-
-  // Handle a known G, M, or T
+[[gnu::noinline]]
+void GcodeSuite::process_parsed_command_standard() {
   switch (parser.command_letter) {
     case 'G': switch (parser.codenum) {
 
@@ -769,6 +753,27 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
     default:
       parser.unknown_command_error();
   }
+}
+
+/**
+ * Process the parsed command and dispatch it to its handler
+ */
+void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
+  KEEPALIVE_STATE(IN_HANDLER);
+
+  #if ENABLED(CRASH_RECOVERY)
+    // this is done one step down from process_next_command in order to handle subcommands
+    // and injected commands correctly: the state needs to reset at each logical move
+    crash_s.start_new_gcode(queue.get_current_sdpos());
+  #endif
+
+  #if ENABLED(PROCESS_CUSTOM_GCODE)
+    if (process_parsed_command_custom(/*no_ok=*/no_ok))
+      return;
+  #endif
+
+  // Handle a known G, M, or T
+  process_parsed_command_standard();
 
   if (!no_ok) queue.ok_to_send();
 }

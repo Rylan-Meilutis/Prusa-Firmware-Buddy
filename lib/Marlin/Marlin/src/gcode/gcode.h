@@ -347,6 +347,7 @@ public:
   static void get_destination_from_command();
 
   static void process_parsed_command(const bool no_ok=false);
+  static void process_parsed_command_standard();
   static void process_next_command();
 
   #if ENABLED(PROCESS_CUSTOM_GCODE)
