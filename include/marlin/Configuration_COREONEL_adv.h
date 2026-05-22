@@ -79,12 +79,14 @@
    * and/or decrease WATCH_TEMP_INCREASE. WATCH_TEMP_INCREASE should not be set
    * below 2.
    */
-   #if HAS_INDX()
-    #define WATCH_TEMP_PERIOD 30 // Seconds
+    #if HAS_INDX()
+    // Caution: these values are not not gathered from rigorous analysis, they are defined based on educated guess
+    #define WATCH_TEMP_PERIOD 10 // Seconds
+    #define WATCH_TEMP_INCREASE 20 // Degrees Celsius
     #else
     #define WATCH_TEMP_PERIOD 20 // Seconds
-    #endif
     #define WATCH_TEMP_INCREASE 2 // Degrees Celsius
+    #endif
 #endif
 
 /**
