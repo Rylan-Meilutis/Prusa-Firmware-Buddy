@@ -1815,8 +1815,8 @@ static bool has_impact(const CalibrationResult &r) {
     return r.params.mag >= threshold;
 }
 
-void phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks, CalibrateAxisResult &result) {
-    mapi::ensure_tool_with_accelerometer_picked();
+[[gnu::noinline]]
+static void calibrate_axis_body(AxisEnum axis, CalibrateAxisHooks &hooks, CalibrateAxisResult &result) {
     reset_compensation(axis);
     phase_stepping::EnsureEnabled _;
 
@@ -1887,6 +1887,11 @@ void phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks, Ca
     }
 
     hooks.on_termination();
+}
+
+void phase_stepping::calibrate_axis(AxisEnum axis, CalibrateAxisHooks &hooks, CalibrateAxisResult &result) {
+    mapi::ensure_tool_with_accelerometer_picked();
+    calibrate_axis_body(axis, hooks, result); // body extracted to delay stack allocation
 }
 
 const char *phase_stepping::to_string(CalibrateAxisError err) {
