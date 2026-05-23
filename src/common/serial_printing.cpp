@@ -224,23 +224,57 @@ bool parse_percent(const char *message, uint8_t &percent) {
             continue;
         }
 
-        const char *start = p;
-        while (start > message && start[-1] >= '0' && start[-1] <= '9') {
+        const char *number_end = p;
+        while (number_end > message && number_end[-1] == ' ') {
+            --number_end;
+        }
+
+        const char *start = number_end;
+        while (start > message && ((start[-1] >= '0' && start[-1] <= '9') || start[-1] == '.')) {
             --start;
         }
-        if (start == p) {
+        if (start == number_end) {
             continue;
         }
 
         char *end = nullptr;
-        const auto parsed = strtol(start, &end, 10);
-        if (end == p && parsed >= 0 && parsed <= 100) {
-            percent = parsed;
+        const auto parsed = strtof(start, &end);
+        if (end == number_end && parsed >= 0.0f && parsed <= 100.0f) {
+            percent = static_cast<uint8_t>(parsed);
             return true;
         }
     }
 
     return false;
+}
+
+bool parse_m73_host_progress(const char *command, uint8_t &percent) {
+    if (!command_starts_with(command, 'M', 73)) {
+        return false;
+    }
+
+    int progress = 0;
+    if (!find_param_int(command, 'P', progress) && !find_param_int(command, 'Q', progress)) {
+        return false;
+    }
+
+    if (progress < 0 || progress > 100) {
+        return false;
+    }
+
+    percent = static_cast<uint8_t>(progress);
+    return true;
+}
+
+void parse_octoprint_status_message(const char *command);
+
+void parse_serial_host_progress(const char *command) {
+    uint8_t percent = 0;
+    if (parse_m73_host_progress(command, percent)) {
+        SerialPrinting::set_host_progress_percent(percent);
+    }
+
+    parse_octoprint_status_message(command);
 }
 
 bool parse_clock_seconds_after(const char *message, const char *marker, uint32_t &seconds_until) {
@@ -447,7 +481,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
 
     if (marlin_server::serial_print_active()) {
         last_serial_indicator_ms = ticks_ms();
-        parse_octoprint_status_message(command);
+        parse_serial_host_progress(command);
         if (print_end_gcode(command)) {
 #if HAS_SIDE_LEDS()
             leds::SideStripHandler::instance().print_finished_ping();
@@ -475,6 +509,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
         pending_start = false;
         reset_host_progress();
         marlin_server::serial_print_start();
+        parse_serial_host_progress(command);
     }
 
     return true;
