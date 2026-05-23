@@ -240,7 +240,7 @@ bool parse_percent(const char *message, uint8_t &percent) {
         char *end = nullptr;
         const auto parsed = strtof(start, &end);
         if (end == number_end && parsed >= 0.0f && parsed <= 100.0f) {
-            percent = static_cast<uint8_t>(parsed);
+            percent = static_cast<uint8_t>(std::min<float>(std::round(parsed), 100.0f));
             return true;
         }
     }
