@@ -34,10 +34,10 @@ public:
     };
 
     FrameAnimation(const Params &default_params)
-        : params(&default_params) {}
+        : params(default_params) {}
 
     void start(const Params &p) {
-        params = &p;
+        params = p;
         start_time = freertos::millis();
     }
 
@@ -45,40 +45,40 @@ public:
         std::array<ColorRGBW, count> data;
 
         // single frame optimization - nothing to animate
-        if (params->frames.size() == 1) {
+        if (params.frames.size() == 1) {
             for (size_t i = 0; i < count; ++i) {
-                data[i] = params->color.fade(params->frames[0][i]);
+                data[i] = params.color.fade(params.frames[0][i]);
             }
             return data;
         }
 
         uint32_t progress_time = freertos::millis() - start_time;
-        uint32_t frame_cycle_time = params->frame_length + params->frame_delay;
-        uint32_t time_in_cycle = progress_time % (frame_cycle_time * params->frames.size());
+        uint32_t frame_cycle_time = params.frame_length + params.frame_delay;
+        uint32_t time_in_cycle = progress_time % (frame_cycle_time * params.frames.size());
 
         uint32_t frame_time = time_in_cycle % frame_cycle_time;
         size_t current_frame_i = time_in_cycle / frame_cycle_time;
-        size_t last_frame_i = (current_frame_i > 0 ? current_frame_i : params->frames.size()) - 1;
+        size_t last_frame_i = (current_frame_i > 0 ? current_frame_i : params.frames.size()) - 1;
 
-        const uint8_t *frame = params->frames[current_frame_i].data();
+        const uint8_t *frame = params.frames[current_frame_i].data();
         const uint8_t *last_frame;
         if (progress_time > frame_cycle_time) {
-            last_frame = params->frames[last_frame_i].data();
+            last_frame = params.frames[last_frame_i].data();
         } else {
             last_frame = black_frame;
         }
 
         float blend_factor = 0;
-        if (frame_time <= params->frame_length) {
-            blend_factor = std::clamp(static_cast<float>(frame_time) / params->blend_time, 0.0f, 1.0f);
+        if (frame_time <= params.frame_length) {
+            blend_factor = std::clamp(static_cast<float>(frame_time) / params.blend_time, 0.0f, 1.0f);
         } else {
-            blend_factor = 1.0f - std::clamp(static_cast<float>(frame_time - params->frame_length) / params->blend_time, 0.0f, 1.0f);
+            blend_factor = 1.0f - std::clamp(static_cast<float>(frame_time - params.frame_length) / params.blend_time, 0.0f, 1.0f);
         }
 
-        float old_blend_factor = 1.0f - std::clamp(static_cast<float>(frame_time + params->frame_delay) / params->blend_time, 0.0f, 1.0f);
+        float old_blend_factor = 1.0f - std::clamp(static_cast<float>(frame_time + params.frame_delay) / params.blend_time, 0.0f, 1.0f);
         for (size_t i = 0; i < count; ++i) {
             float blended_brightness = (frame[i] * blend_factor + last_frame[i] * old_blend_factor) / 100.0f;
-            data[i] = params->color.fade(blended_brightness);
+            data[i] = params.color.fade(blended_brightness);
         }
 
         return data;
@@ -93,7 +93,7 @@ private:
     static constexpr uint8_t solid_frame[count] = { 100 };
 
     uint32_t start_time { 0 };
-    const Params *params;
+    Params params;
 };
 
 } // namespace leds

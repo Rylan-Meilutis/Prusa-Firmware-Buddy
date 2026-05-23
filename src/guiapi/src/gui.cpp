@@ -21,6 +21,10 @@
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
 #endif
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
 
 #include <option/has_touch.h>
 
@@ -81,6 +85,9 @@ void gui_handle_jogwheel() {
     int32_t encoder_diff = jogwheel.ConsumeEncoderDiff();
 
     if (encoder_diff != 0 || is_btn) {
+#if HAS_SIDE_LEDS() && PRINTER_IS_PRUSA_XL()
+        leds::SideStripHandler::instance().activity_ping();
+#endif
         gui::knob::EventEncoder(encoder_diff);
 
         if (is_btn) {
@@ -105,6 +112,9 @@ void gui_handle_touch() {
     // we clicked on something, does not really matter on what we clicked
     // we must notify serve to so it knows user is doing something and resets menu timeout, heater timeout ...
     Screens::Access()->ResetTimeout();
+#if HAS_SIDE_LEDS() && PRINTER_IS_PRUSA_XL()
+    leds::SideStripHandler::instance().activity_ping();
+#endif
 
     if (touch_event.type == GUI_event_t::TOUCH_CLICK) {
         sound::play(SoundType::button_echo);

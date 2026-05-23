@@ -18,6 +18,7 @@
 #include <option/has_coldpull.h>
 #include <option/has_leds.h>
 #include <option/has_side_leds.h>
+#include <option/has_i2c_expander.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_auto_retract.h>
 #include <option/has_toolchanger.h>
@@ -566,6 +567,19 @@ public:
     virtual void Loop() override;
 };
 
+class MI_SIDE_LEDS_PRINT_BRIGTHNESS : public WiSpin {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Print Lights");
+    #else
+        N_("RGB Side Strip Print");
+    #endif
+
+public:
+    MI_SIDE_LEDS_PRINT_BRIGTHNESS();
+    virtual void OnClick() override;
+};
+
 class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -576,6 +590,56 @@ class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
 
 public:
     MI_SIDE_LEDS_DIMMING_ENABLE();
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_SIDE_LEDS_ACTIVITY_TIMEOUT : public WiSpin {
+    static constexpr const char *const label = N_("Time Until Dimmed");
+
+public:
+    MI_SIDE_LEDS_ACTIVITY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_SIDE_LEDS_EVENT_TIMEOUT : public WiSpin {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Event Time");
+    #else
+        N_("Side Strip Event Time");
+    #endif
+
+public:
+    MI_SIDE_LEDS_EVENT_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_SIDE_LEDS_OFF_TIMEOUT : public WiSpin {
+    static constexpr const char *const label = N_("Time Until Off");
+
+public:
+    MI_SIDE_LEDS_OFF_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_POST_PRINT_LED_HOLD : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("After Print Lights");
+
+public:
+    MI_POST_PRINT_LED_HOLD();
+    virtual void OnChange(size_t old_index) override;
+};
+#endif
+
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+class MI_EXTERNAL_LIGHT_BAR_PIN_MODE : public MenuItemSwitch {
+    const uint8_t pin;
+
+public:
+    MI_EXTERNAL_LIGHT_BAR_PIN_MODE(uint8_t pin);
     virtual void OnChange(size_t old_index) override;
 };
 #endif
