@@ -78,6 +78,9 @@
 #if HAS_LEDS_MENU()
     #include <screen/screen_menu_leds.hpp>
 #endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <screen/screen_menu_external_light_bar.hpp>
+#endif
 
 #include <config_store/store_instance.hpp>
 
@@ -166,6 +169,9 @@ template struct MI_SCREEN_CTOR<ScreenMenuBedLevelCorrection>;
 
 #if HAS_LEDS_MENU()
 template struct MI_SCREEN_CTOR<ScreenMenuLeds>;
+#endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+template struct MI_SCREEN_CTOR<ScreenMenuExternalLightBar>;
 #endif
 
 /**********************************************************************************************/

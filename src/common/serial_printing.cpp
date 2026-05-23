@@ -4,12 +4,19 @@
 #include <config_store/store_instance.hpp>
 #include <printer_lock.hpp>
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
 uint32_t SerialPrinting::last_serial_indicator_ms = 0;
+uint8_t SerialPrinting::last_host_progress_percent = 0;
+uint32_t SerialPrinting::last_host_progress_ms = 0;
+bool SerialPrinting::pending_start = false;
 
 void SerialPrinting::print_loop() {
     if (has_serial_timeouted()) {
@@ -49,6 +56,30 @@ bool SerialPrinting::has_serial_timeouted() {
 
 uint32_t SerialPrinting::serial_printing_screen_timeout_ms() {
     return static_cast<uint32_t>(std::max<uint16_t>(1, config_store().serial_print_timeout_s.get())) * 1000;
+}
+
+void SerialPrinting::reset_host_progress() {
+    last_host_progress_ms = 0;
+    last_host_progress_percent = 0;
+}
+
+void SerialPrinting::set_host_progress_percent(uint8_t percent) {
+    last_host_progress_percent = percent;
+    last_host_progress_ms = ticks_ms();
+}
+
+bool SerialPrinting::host_progress_percent(uint8_t &percent, uint32_t now_ms) {
+    if (last_host_progress_ms == 0) {
+        return false;
+    }
+
+    const uint32_t validity_ms = std::max<uint32_t>(serial_printing_screen_timeout_ms(), 60 * 1000);
+    if (ticks_diff(now_ms, last_host_progress_ms + validity_ms) > 0) {
+        return false;
+    }
+
+    percent = last_host_progress_percent;
+    return true;
 }
 
 void remove_N_prefix(const char *&command) {
@@ -367,6 +398,7 @@ void parse_octoprint_status_message(const char *command) {
     uint8_t percent = 0;
     if (parse_percent(message, percent)) {
         params.standard_mode.percentage = percent;
+        SerialPrinting::set_host_progress_percent(percent);
     }
 
     uint32_t remaining_seconds = 0;
@@ -390,32 +422,58 @@ bool SerialPrinting::serial_command_hook(const char *command) {
         return true;
     }
 
+    remove_N_prefix(command);
+
+#if HAS_SIDE_LEDS()
+    // Host polling/progress updates can arrive continuously while the printer is idle.
+    // Treat real serial commands as activity, but don't let passive status traffic keep
+    // the LEDs awake forever.
+    if (command[0] != '\0'
+        && command[0] != ';'
+        && !command_starts_with(command, 'M', 27)
+        && !command_starts_with(command, 'M', 73)
+        && !command_starts_with(command, 'M', 105)
+        && !command_starts_with(command, 'M', 114)
+        && !command_starts_with(command, 'M', 115)
+        && !command_starts_with(command, 'M', 117)
+        && !command_starts_with(command, 'M', 155)) {
+        leds::SideStripHandler::instance().activity_ping();
+    }
+#endif
+
     if (!config_store().serial_print_screen_enabled.get()) {
         return true;
     }
-
-    remove_N_prefix(command);
 
     if (marlin_server::serial_print_active()) {
         last_serial_indicator_ms = ticks_ms();
         parse_octoprint_status_message(command);
         if (print_end_gcode(command)) {
+#if HAS_SIDE_LEDS()
+            leds::SideStripHandler::instance().print_finished_ping();
+#endif
             marlin_server::serial_print_finalize();
+        } else if (print_start_gcode(command) || octoprint_status_print_start(command)) {
+            pending_start = true;
         }
         return true;
     }
 
-    // If marlin server is already printing, or is not able to start print, do not enter serial printing state.
-    // The command will still be queued for execution regardless of this.
-    if (!printer_state::remote_print_ready(true)) {
-        return true;
-    }
+    if (pending_start || print_start_gcode(command) || octoprint_status_print_start(command)) {
+        // When a host streams startup G-code, blocking commands such as M109, G28 or G29 can be in progress
+        // before M75/M73 arrives. That is still a serial print start, not an unrelated busy state.
+        if (!printer_state::remote_print_ready(true)) {
+            if (printer_state::get_state(false) != printer_state::DeviceState::Busy || marlin_server::is_printing()) {
+                return true;
+            }
+        }
 
-    if (print_start_gcode(command) || octoprint_status_print_start(command)) {
         if (!printer_lock::serial_print_start_allowed()) {
             return false;
         }
         last_serial_indicator_ms = ticks_ms();
+        pending_start = false;
+        reset_host_progress();
         marlin_server::serial_print_start();
     }
 

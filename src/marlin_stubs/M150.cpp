@@ -7,6 +7,11 @@
 #if HAS_SIDE_LEDS()
     #include "leds/side_strip_handler.hpp"
 #endif
+#include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+    #include "hwio_pindef.h"
+#endif
 #include <optional>
 
 std::optional<leds::ColorRGBW> parse_color() {
@@ -119,8 +124,12 @@ void PrusaGcodeSuite::M150() {
  * - `V` - Saturation form 0 to 100
  *
  * Effect
+ * - `W` - print/minimum white brightness. User activity can raise the effective brightness above this.
  * - `D` - duration in milliseconds, set to 0 for infinite duration
  * - `T` - transition in milliseconds (fade in / fade out)
+ * - `I` - time until dimmed in seconds after user / door / print activity, 0 to dim immediately
+ * - `E` - compatibility alias for `I`
+ * - `O` - off timeout in seconds after last user / door / print activity, 0 to stay dimmed
  *
  * Fade in is counted toward duration,
  * so if duration is greater than 0 and less than transition,
@@ -129,9 +138,23 @@ void PrusaGcodeSuite::M150() {
  */
 #if HAS_SIDE_LEDS()
 void PrusaGcodeSuite::M151() {
-    auto color = parse_color();
-    if (color) {
-        auto color_val = color.value();
+    const bool has_rgb = parser.seen('R') && parser.seen('G') && parser.seen('B');
+    const bool has_hsv = parser.seen('H') && parser.seen('S') && parser.seen('V');
+    if (parser.seenval('W') && !has_rgb && !has_hsv) {
+        leds::SideStripHandler::instance().set_print_brightness(parser.value_byte());
+    }
+    if (parser.seenval('I')) {
+        leds::SideStripHandler::instance().set_activity_timeout_s(parser.value_ushort());
+    }
+    if (parser.seenval('E')) {
+        leds::SideStripHandler::instance().set_activity_timeout_s(parser.value_ushort());
+    }
+    if (parser.seenval('O')) {
+        leds::SideStripHandler::instance().set_off_timeout_s(parser.value_ushort());
+    }
+
+    if (has_rgb || has_hsv) {
+        auto color_val = parse_color().value();
         uint32_t duration = parser.ulongval('D', 400);
         uint32_t transition = parser.ulongval('T', 100);
         leds::SideStripHandler::instance().set_custom_color(color_val, duration, transition);
@@ -140,4 +163,52 @@ void PrusaGcodeSuite::M151() {
 
 /** @}*/
 
+#endif
+
+/**
+ *### M152: Set external GPIO light bar
+ *
+ * Only xBuddy boards with the GPIO breakout IO expander.
+ *
+ *#### Usage
+ *
+ *    M152 [ P | S ]
+ *
+ *#### Parameters
+ *
+ * - `P` - IO expander pin <0;7>. Required.
+ * - `S` - Light bar control, 0 = not used for light bar, 1 = used for light bar.
+ * - `A` - Output mode, 1 = active high, 0 = pull down / active low. Pins 0-3 only allow pull down.
+ */
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+void PrusaGcodeSuite::M152() {
+    if (!parser.seenval('P')) {
+        SERIAL_ECHOLNPGM("M152 Bad request: P is required");
+        return;
+    }
+
+    const auto pin = parser.value_byte();
+    if (pin >= buddy::hw::TCA6408A::pin_count || !leds::external_light_bar::pin_supports_output(pin)) {
+        SERIAL_ECHOLNPGM("M152 Bad request: P out of range <0,7>");
+        return;
+    }
+
+    auto mode = leds::external_light_bar::pin_mode(pin);
+    if (parser.seenval('A')) {
+        mode = parser.value_bool() ? leds::external_light_bar::OutputMode::active_high : leds::external_light_bar::OutputMode::pull_down;
+    }
+    if (parser.seenval('S')) {
+        mode = parser.value_bool() ? (mode == leds::external_light_bar::OutputMode::off ? leds::external_light_bar::OutputMode::pull_down : mode) : leds::external_light_bar::OutputMode::off;
+    }
+
+    if (!leds::external_light_bar::set_pin_mode(pin, mode)) {
+        SERIAL_ECHOLNPGM("M152 Bad request: selected pin does not support requested output mode");
+        return;
+    }
+
+    leds::external_light_bar::apply(true);
+
+    SERIAL_ECHO_START();
+    SERIAL_ECHOLNPAIR(" External light bar pin: ", pin, " mode: ", mode == leds::external_light_bar::OutputMode::off ? "off" : (mode == leds::external_light_bar::OutputMode::active_high ? "active high" : "pull down"));
+}
 #endif

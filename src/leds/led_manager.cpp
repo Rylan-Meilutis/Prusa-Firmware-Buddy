@@ -23,6 +23,10 @@
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 #include <option/xbuddy_extension_variant.h>
+#include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_iX()
     #include "leds/afs_design_strip_handler.hpp"
@@ -31,6 +35,31 @@
 #include <option/has_ac_controller.h>
 #if HAS_AC_CONTROLLER()
     #include <leds/ac_controller_leds_handler.hpp>
+#endif
+
+#if HAS_SIDE_LEDS()
+namespace {
+
+struct ChamberDoorLedState {
+    bool open;
+    uint16_t raw_data;
+};
+
+ChamberDoorLedState chamber_door_state_for_leds() {
+#if HAS_DOOR_SENSOR()
+    // Deliberately read the raw door sensor state here, independent from the UI
+    // safety toggle that controls whether an open door pauses/stops printing.
+    const auto detailed_state = buddy::door_sensor().detailed_state();
+    return {
+        detailed_state.state == buddy::DoorSensor::State::door_open,
+        detailed_state.raw_data,
+    };
+#else
+    return { false, 0 };
+#endif
+}
+
+} // namespace
 #endif
 
 #include <option/xl_enclosure_support.h>
@@ -100,7 +129,25 @@ void LEDManager::update() {
         return;
     }
 
+#if HAS_SIDE_LEDS()
+    const auto chamber_door_state = chamber_door_state_for_leds();
+#endif
+
     auto &status_leds_handler = leds::StatusLedsHandler::instance();
+
+#if HAS_SIDE_LEDS()
+    auto &side_strip_handler = SideStripHandler::instance();
+    side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
+
+    side_strip_handler.update();
+    const bool side_strip_deep_idle = side_strip_handler.deep_idle();
+    status_leds_handler.set_deep_idle(side_strip_deep_idle);
+    status_leds_handler.set_finished_hold_active(side_strip_handler.post_print_hold_active());
+    if (side_strip_handler.post_print_status_dismissed()) {
+        status_leds_handler.acknowledge_finished();
+    }
+#endif
+
     status_leds_handler.update();
     auto data = status_leds_handler.led_data();
 
@@ -131,14 +178,20 @@ void LEDManager::update() {
     status_leds.update();
 
 #if HAS_SIDE_LEDS()
-    auto &side_strip_handler = SideStripHandler::instance();
-    #if HAS_DOOR_SENSOR()
-    if (buddy::door_sensor().state() == buddy::DoorSensor::State::door_open) {
-        side_strip_handler.activity_ping();
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    {
+        static bool last_light_bar_output = false;
+        static uint8_t last_light_bar_mask = 0;
+        const bool output = leds::external_light_bar::protected_pin_mask() != 0 && !side_strip_deep_idle;
+        const uint8_t mask = leds::external_light_bar::protected_pin_mask();
+
+        if (last_light_bar_output != output || last_light_bar_mask != mask) {
+            leds::external_light_bar::apply(output);
+            last_light_bar_output = output;
+            last_light_bar_mask = mask;
+        }
     }
     #endif
-
-    side_strip_handler.update();
 
     #if HAS_SIDE_LED_DRIVER()
     auto color = side_strip_handler.color();

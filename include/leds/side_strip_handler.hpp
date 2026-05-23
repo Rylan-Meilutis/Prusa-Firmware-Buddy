@@ -11,9 +11,12 @@
 namespace leds {
 
 enum class SideStripState {
+    unknown,
     off,
     dimmed,
     active,
+    printing,
+    idle,
     custom_color,
     _last = custom_color,
 };
@@ -41,6 +44,9 @@ public:
     SideStripHandler();
 
     void activity_ping();
+    void event_ping();
+    void print_finished_ping();
+    void set_door_open(bool open, uint16_t raw_data);
 
     void set_custom_color(ColorRGBW color, uint32_t duration_ms, uint32_t transition_ms);
 
@@ -60,11 +66,26 @@ public:
     DimmingEnabled get_dimming_enabled() const;
     void set_dimming_enabled(DimmingEnabled value);
 
+    uint16_t get_activity_timeout_s() const;
+    void set_activity_timeout_s(uint16_t value);
+    uint16_t get_event_timeout_s() const;
+    void set_event_timeout_s(uint16_t value);
+    uint16_t get_off_timeout_s() const;
+    void set_off_timeout_s(uint16_t value);
+
+    bool get_post_print_hold_enabled() const;
+    void set_post_print_hold_enabled(bool value);
+    bool post_print_hold_active() const;
+    bool post_print_status_dismissed() const;
+
+    uint8_t get_print_brightness() const;
+    void set_print_brightness(uint8_t value);
+
+    bool deep_idle() const;
+
     leds::ColorRGBW color() const;
 
 private:
-    static constexpr uint32_t active_timeout_ms = 120 * 1000;
-
     void change_state(SideStripState state);
 
     ColorRGBW get_color_for_state(SideStripState state);
@@ -82,11 +103,20 @@ private:
     DimmingEnabled dimming_enabled;
     uint8_t max_brightness;
     uint8_t dimmed_brightness;
+    uint8_t print_brightness;
+    uint16_t activity_timeout_s;
+    uint16_t event_timeout_s;
+    uint16_t off_timeout_s;
+    bool post_print_hold_enabled;
 
-    SideStripState state = SideStripState::off;
+    SideStripState state = SideStripState::unknown;
     uint32_t active_timestamp_ms = 0; // Timestamp of the last activity for idle dimming
+    bool door_open_for_leds = false;
+    uint16_t door_raw_data = 0;
     bool print_or_filter_active_prev = false;
-    bool off_after_print_or_filter = false;
+    bool post_print_hold = false;
+    bool post_print_hold_dismissed = false;
+    bool post_print_hold_seen_door_open = false;
     std::optional<CustomColorState> custom_color;
 };
 

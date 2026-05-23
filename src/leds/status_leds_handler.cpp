@@ -326,16 +326,42 @@ void StatusLedsHandler::set_active(bool val) {
     config_store().run_leds.set(val);
 }
 
+void StatusLedsHandler::set_deep_idle(bool val) {
+    std::lock_guard lock(mutex);
+    deep_idle = val;
+}
+
+void StatusLedsHandler::acknowledge_finished() {
+    std::lock_guard lock(mutex);
+    finished_acknowledged = true;
+}
+
+void StatusLedsHandler::set_finished_hold_active(bool val) {
+    std::lock_guard lock(mutex);
+    finished_hold_active = val;
+    if (val) {
+        finished_acknowledged = false;
+    }
+}
+
 void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
     StateAnimation state;
-    if (!active) {
+    if (!active || deep_idle) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
     } else if (is_error_state) {
         state = StateAnimation::Error;
+    } else if (finished_hold_active) {
+        state = StateAnimation::Finishing;
     } else {
         state = marlin_to_anim_state();
+    }
+
+    if (state == StateAnimation::Printing) {
+        finished_acknowledged = false;
+    } else if (finished_acknowledged && state == StateAnimation::Finishing) {
+        state = StateAnimation::Idle;
     }
 
     auto animation = animations[state];
