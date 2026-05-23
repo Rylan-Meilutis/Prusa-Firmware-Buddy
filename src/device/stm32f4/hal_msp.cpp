@@ -177,8 +177,18 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
          */
         /*Initialize GPIOF pins as analog input*/
     #if BOARD_IS_XBUDDY()
-        // Note: when PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() this also initializes door sensor (THERM3_Pin == GPIO_PIN_5)
+        // On Core One/Core One L, THERM3/PF5 is a binary door switch, not an ADC input.
+        #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        analog_gpio_init(GPIOF, HEATER_CURRENT_Pin | INPUT_CURRENT_Pin | MMU_CURRENT_Pin | THERM_2_Pin);
+
+        GPIO_InitTypeDef GPIO_InitStruct = {};
+        GPIO_InitStruct.Pin = THERM3_Pin;
+        GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+        GPIO_InitStruct.Pull = GPIO_PULLUP;
+        HAL_GPIO_Init(THERM3_GPIO_Port, &GPIO_InitStruct);
+        #else
         analog_gpio_init(GPIOF, HEATER_CURRENT_Pin | INPUT_CURRENT_Pin | THERM3_Pin | MMU_CURRENT_Pin | THERM_2_Pin);
+        #endif
     #elif BOARD_IS_XLBUDDY()
         analog_gpio_init(GPIOF, GPIO_PIN_10);
         analog_gpio_init(GPIOC, GPIO_PIN_0);

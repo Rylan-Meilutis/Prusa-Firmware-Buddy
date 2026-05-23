@@ -25,6 +25,11 @@ public:
     /// Returns false when the command should not be queued.
     static bool serial_command_hook(const char *command);
 
+    /// Serial hosts can report progress outside of the printed G-code stream
+    /// (for example in M117 status text). Prefer that over queued M73 values.
+    static bool host_progress_percent(uint8_t &percent, uint32_t now_ms);
+    static void set_host_progress_percent(uint8_t percent);
+
 private:
     /// Check if serial printing had timeouted
     /// ie no command was queued for a while
@@ -33,6 +38,12 @@ private:
     /// Timeout [ms], after which serial print will be considered as finished
     static uint32_t serial_printing_screen_timeout_ms();
 
+    static void reset_host_progress();
+
     /// Last time of activity of serial print
     static uint32_t last_serial_indicator_ms;
+
+    static uint8_t last_host_progress_percent;
+    static uint32_t last_host_progress_ms;
+    static bool pending_start;
 };

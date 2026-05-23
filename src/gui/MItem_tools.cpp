@@ -886,6 +886,28 @@ void MI_LEDS_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
 #if HAS_SIDE_LEDS()
 /**********************************************************************************************/
 // MI_SIDE_LEDS_MAX_BRIGTHNESS
+namespace {
+
+void apply_side_led_max_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_max_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.activity_ping();
+}
+
+void apply_side_led_dimmed_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_dimmed_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.activity_ping();
+}
+
+void apply_side_led_print_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_print_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.activity_ping();
+}
+
+} // namespace
+
 MI_SIDE_LEDS_MAX_BRIGTHNESS::MI_SIDE_LEDS_MAX_BRIGTHNESS()
     : WiSpin(
         static_cast<float>(leds::SideStripHandler::instance().get_max_brightness()) * 100 / 255,
@@ -894,8 +916,9 @@ MI_SIDE_LEDS_MAX_BRIGTHNESS::MI_SIDE_LEDS_MAX_BRIGTHNESS()
 }
 
 void MI_SIDE_LEDS_MAX_BRIGTHNESS::OnClick() {
-    leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(value()) * 255 / 100);
+    apply_side_led_max_brightness(value());
 }
+
 #endif
 
 #if HAS_SIDE_LEDS()
@@ -910,11 +933,11 @@ MI_SIDE_LEDS_DIMMED_BRIGTHNESS::MI_SIDE_LEDS_DIMMED_BRIGTHNESS()
 }
 
 void MI_SIDE_LEDS_DIMMED_BRIGTHNESS::OnClick() {
-    leds::SideStripHandler::instance().set_dimmed_brightness(static_cast<uint8_t>(value()) * 255 / 100);
+    apply_side_led_dimmed_brightness(value());
 }
 
 void MI_SIDE_LEDS_DIMMED_BRIGTHNESS::Loop() {
-    set_enabled(leds::SideStripHandler::instance().get_dimming_enabled() != leds::DimmingEnabled::never);
+    set_enabled(true);
 }
 #endif
 
@@ -932,6 +955,151 @@ MI_SIDE_LEDS_DIMMING_ENABLE::MI_SIDE_LEDS_DIMMING_ENABLE()
 }
 void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
     leds::SideStripHandler::instance().set_dimming_enabled(static_cast<leds::DimmingEnabled>(get_index()));
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_PRINT_BRIGTHNESS
+MI_SIDE_LEDS_PRINT_BRIGTHNESS::MI_SIDE_LEDS_PRINT_BRIGTHNESS()
+    : WiSpin(
+        static_cast<float>(leds::SideStripHandler::instance().get_print_brightness()) * 100 / 255,
+        numeric_input_config::percent_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_PRINT_BRIGTHNESS::OnClick() {
+    apply_side_led_print_brightness(value());
+}
+
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_ACTIVITY_TIMEOUT
+
+MI_SIDE_LEDS_ACTIVITY_TIMEOUT::MI_SIDE_LEDS_ACTIVITY_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_activity_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_activity_timeout_s(value());
+}
+
+void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_EVENT_TIMEOUT
+
+MI_SIDE_LEDS_EVENT_TIMEOUT::MI_SIDE_LEDS_EVENT_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_event_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_EVENT_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_event_timeout_s(value());
+}
+
+void MI_SIDE_LEDS_EVENT_TIMEOUT::Loop() {
+    set_enabled(leds::SideStripHandler::instance().get_dimming_enabled() != leds::DimmingEnabled::never);
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_OFF_TIMEOUT
+
+MI_SIDE_LEDS_OFF_TIMEOUT::MI_SIDE_LEDS_OFF_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_off_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_OFF_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_off_timeout_s(value());
+}
+
+void MI_SIDE_LEDS_OFF_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+
+/**********************************************************************************************/
+// MI_POST_PRINT_LED_HOLD
+
+MI_POST_PRINT_LED_HOLD::MI_POST_PRINT_LED_HOLD()
+    : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_post_print_hold_enabled(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+}
+
+void MI_POST_PRINT_LED_HOLD::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_post_print_hold_enabled(!old_index);
+}
+#endif
+
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+#include <leds/external_light_bar.hpp>
+namespace {
+static constexpr const char *external_light_bar_pin_labels[] = {
+    N_("GPIO 0"),
+    N_("GPIO 1"),
+    N_("GPIO 2"),
+    N_("GPIO 3"),
+    N_("GPIO 4"),
+    N_("GPIO 5"),
+    N_("GPIO 6"),
+    N_("GPIO 7"),
+};
+
+static constexpr const char *external_light_bar_low_side_items[] = {
+    N_("Off"),
+    N_("Pull Down"),
+};
+
+static constexpr const char *external_light_bar_logic_items[] = {
+    N_("Off"),
+    N_("Pull Down"),
+    N_("Active High"),
+};
+
+static size_t mode_to_index(uint8_t pin) {
+    const auto mode = leds::external_light_bar::pin_mode(pin);
+    if (mode == leds::external_light_bar::OutputMode::active_high && !leds::external_light_bar::pin_supports_active_high(pin)) {
+        return std::to_underlying(leds::external_light_bar::OutputMode::off);
+    }
+    return std::to_underlying(mode);
+}
+
+std::span<const char *const> mode_items(uint8_t pin) {
+    if (leds::external_light_bar::pin_supports_active_high(pin)) {
+        return external_light_bar_logic_items;
+    }
+    return external_light_bar_low_side_items;
+}
+} // namespace
+
+/**********************************************************************************************/
+// MI_EXTERNAL_LIGHT_BAR_PIN_MODE
+
+MI_EXTERNAL_LIGHT_BAR_PIN_MODE::MI_EXTERNAL_LIGHT_BAR_PIN_MODE(uint8_t pin)
+    : MenuItemSwitch(_(external_light_bar_pin_labels[pin]), mode_items(pin), mode_to_index(pin))
+    , pin(pin) {
+}
+
+void MI_EXTERNAL_LIGHT_BAR_PIN_MODE::OnChange([[maybe_unused]] size_t old_index) {
+    if (!leds::external_light_bar::set_pin_mode(pin, static_cast<leds::external_light_bar::OutputMode>(get_index()))) {
+        set_current_item(mode_to_index(pin));
+        return;
+    }
+    leds::external_light_bar::apply(true);
 }
 #endif
 
