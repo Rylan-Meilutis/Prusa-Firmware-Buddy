@@ -3339,6 +3339,11 @@ static void _server_update_vars() {
 
     marlin_vars().print_duration = print_job_timer.duration();
     marlin_vars().sd_percent_done = [&]() -> uint8_t {
+        uint8_t host_progress = 0;
+        if (server.print_is_serial && SerialPrinting::host_progress_percent(host_progress, ticks_ms())) {
+            return host_progress;
+        }
+
         if (progress_data.percent_done.mIsActual(marlin_vars().print_duration)) {
             return static_cast<uint8_t>(progress_data.percent_done.mGetValue());
         } else if (prefetch_metrics.stream_size_estimate > 0) {

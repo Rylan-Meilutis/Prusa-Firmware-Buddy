@@ -105,6 +105,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M151();
             break;
 #endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+        case 152:
+            PrusaGcodeSuite::M152();
+            break;
+#endif
 
 #if HAS_CHAMBER_API()
         case 191:

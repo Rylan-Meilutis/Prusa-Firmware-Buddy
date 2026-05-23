@@ -14,6 +14,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_e2ee_support.h>
 #include <option/has_leds_menu.h>
+#include <option/has_i2c_expander.h>
 #include <img_resources.hpp>
 #include <ScreenFactory.hpp>
 
@@ -119,6 +120,10 @@ using MI_UI_THEME_SETTINGS
     = MI_SCREEN<N_("UI Theme"), class ScreenMenuUiThemeColors>;
 using MI_STATUS_LED_COLOR_SETTINGS
     = MI_SCREEN<N_("Status LED Colors"), class ScreenMenuStatusLedColors>;
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+using MI_EXTERNAL_LIGHT_BAR_SETTINGS
+    = MI_SCREEN<N_("External Light Bar"), class ScreenMenuExternalLightBar>;
+#endif
 using MI_LANG_AND_TIME
     = MI_SCREEN<N_("Language & Time"), class ScreenMenuLangAndTime>;
 

@@ -60,6 +60,10 @@ void M150();
 void M151();
 #endif
 
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+void M152(); //< External light bar on the GPIO breakout
+#endif
+
 #if HAS_CHAMBER_API()
 void M191(); ///< Wait for chamber temperature
 #endif

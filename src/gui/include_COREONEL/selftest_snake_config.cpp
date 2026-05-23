@@ -23,6 +23,27 @@
 using namespace buddy;
 
 namespace SelftestSnake {
+
+#if HAS_CHAMBER_API() && HAS_XBUDDY_EXTENSION()
+namespace {
+TestResult evaluate_xbe_chamber_fans(const XBEFanTestResults &chamber_results) {
+    const TestResult cooling_fans_result = evaluate_results(chamber_results.fans[0], chamber_results.fans[1]);
+    const TestResult filtration_fan_result = chamber_results.fans[2];
+
+    if (cooling_fans_result == TestResult_Failed || filtration_fan_result == TestResult_Failed) {
+        return TestResult_Failed;
+    }
+    if (cooling_fans_result == TestResult_Passed || filtration_fan_result == TestResult_Passed) {
+        return TestResult_Passed;
+    }
+    if (cooling_fans_result == TestResult_Skipped || filtration_fan_result == TestResult_Skipped) {
+        return TestResult_Skipped;
+    }
+    return TestResult_Unknown;
+}
+} // namespace
+#endif
+
 TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
 
     SelftestResult sr = config_store().selftest_result.get();
@@ -38,13 +59,7 @@ TestResult get_test_result(Action action, [[maybe_unused]] Tool tool) {
     #if HAS_XBUDDY_EXTENSION()
         case Chamber::Backend::xbuddy_extension: {
             const auto chamber_results = config_store().xbe_fan_test_results.get();
-            static_assert(HAS_CHAMBER_FILTRATION_API());
-            if (buddy::xbuddy_extension().using_filtration_fan_instead_of_cooling_fans()) {
-                res = evaluate_results(res, chamber_results.fans[2]);
-            } else {
-                res = evaluate_results(res, chamber_results.fans[0]);
-                res = evaluate_results(res, chamber_results.fans[1]);
-            }
+            res = evaluate_results(res, evaluate_xbe_chamber_fans(chamber_results));
             break;
         }
     #endif /* HAS_XBUDDY_EXTENSION() */
