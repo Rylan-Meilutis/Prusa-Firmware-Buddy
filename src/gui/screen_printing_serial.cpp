@@ -17,6 +17,7 @@
 #include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 #include <utils/string_builder.hpp>
+#include <leds/led_manager.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -775,6 +776,9 @@ void screen_printing_serial_data_t::stopAction() {
     }
     const marlin_server::State state = marlin_vars().print_state;
     if (state == marlin_server::State::Finished || state == marlin_server::State::Aborted) {
+        if (state == marlin_server::State::Finished) {
+            leds::LEDManager::instance().acknowledge_finished();
+        }
         marlin_client::print_exit();
         return;
     }
