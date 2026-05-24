@@ -19,6 +19,8 @@ public:
 
     void update();
 
+    void acknowledge_finished();
+
     /**
      * @brief Called from the power panic module to quickly turn off leds from the AC fault task.
      */
