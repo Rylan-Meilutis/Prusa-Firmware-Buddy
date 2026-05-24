@@ -39,10 +39,21 @@ void SideStripHandler::event_ping() {
     active_timestamp_ms = ticks_ms();
 }
 
+void SideStripHandler::idle_ping() {
+    std::lock_guard lock(mutex);
+    if (!door_open_for_leds && !print_active_for_leds()) {
+        post_print_hold = false;
+        post_print_hold_dismissed = true;
+        post_print_hold_seen_door_open = false;
+        active_timestamp_ms = 0;
+        state = SideStripState::unknown;
+    }
+}
+
 void SideStripHandler::print_finished_ping() {
     std::lock_guard lock(mutex);
     print_or_filter_active_prev = false;
-    post_print_hold_seen_door_open = false;
+    post_print_hold_seen_door_open = door_open_for_leds;
     post_print_hold_dismissed = false;
     if (post_print_hold_enabled) {
         post_print_hold = true;
@@ -73,7 +84,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
             post_print_hold = false;
             post_print_hold_dismissed = true;
             post_print_hold_seen_door_open = false;
-            active_timestamp_ms = ticks_ms();
+            active_timestamp_ms = 0;
             state = SideStripState::unknown;
         }
     }
@@ -116,7 +127,7 @@ void SideStripHandler::update() {
                 print_or_filter_active_prev = false;
                 post_print_hold = true;
                 post_print_hold_dismissed = false;
-                post_print_hold_seen_door_open = false;
+                post_print_hold_seen_door_open = door_open_for_leds;
                 active_timestamp_ms = time_ms;
             } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished()) {
                 print_or_filter_active_prev = false;

@@ -110,6 +110,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M152();
             break;
 #endif
+#if HAS_SIDE_LEDS()
+        case 153:
+            PrusaGcodeSuite::M153();
+            break;
+#endif
 
 #if HAS_CHAMBER_API()
         case 191:
