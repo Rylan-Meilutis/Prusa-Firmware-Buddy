@@ -47,6 +47,7 @@ protected:
         Disconnect,
         SetReady,
         Unlock,
+        Continue,
         _count,
         _last = _count - 1,
     };

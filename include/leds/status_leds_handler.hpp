@@ -11,6 +11,7 @@ enum class StateAnimation : uint8_t {
     Idle,
     Printing,
     Finishing,
+    Filtering,
     Aborting,
     Warning,
     PowerPanic,

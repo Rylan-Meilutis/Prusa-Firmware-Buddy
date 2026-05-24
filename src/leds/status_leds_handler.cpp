@@ -155,7 +155,7 @@ static StateAnimation marlin_to_anim_state() {
         return StateAnimation::Finishing;
 
     case State::Finished:
-        return post_filter_active() ? StateAnimation::Finishing : StateAnimation::Idle;
+        return post_filter_active() ? StateAnimation::Filtering : StateAnimation::Idle;
 
     case State::CrashRecovery_Begin:
     case State::CrashRecovery_Retracting:
@@ -208,6 +208,7 @@ namespace {
             { StateAnimation::Printing, { { 0, 150, 255 }, 1000, 0, 400, solid } },
             { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
 #endif
+            { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 800, pulsing } },
             { StateAnimation::Aborting, { { 0, 0, 0 }, 1000, 0, 400, solid } },
 #if PRINTER_IS_PRUSA_iX()
             { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
@@ -251,6 +252,7 @@ namespace {
         case StateAnimation::Printing:
             return raw_to_color(config_store().status_led_printing_color.get());
         case StateAnimation::Finishing:
+        case StateAnimation::Filtering:
             return raw_to_color(config_store().status_led_finished_color.get());
         case StateAnimation::Warning:
         case StateAnimation::PowerPanic:
@@ -348,14 +350,18 @@ void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
     StateAnimation state;
-    if (!active || deep_idle) {
+    if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
     } else if (is_error_state) {
         state = StateAnimation::Error;
     } else if (finished_hold_active) {
-        state = StateAnimation::Finishing;
+        state = post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
     } else {
         state = marlin_to_anim_state();
+    }
+
+    if (deep_idle && state != StateAnimation::Filtering) {
+        state = StateAnimation::Idle;
     }
 
     if (state == StateAnimation::Printing) {

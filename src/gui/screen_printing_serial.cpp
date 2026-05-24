@@ -44,8 +44,8 @@ constexpr Rect16 time_value_rect { 0, 0, 0, 0 };
 constexpr Rect16 status_label_rect { 10, 66, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
 constexpr Rect16 status_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2 * 10, 52 };
 constexpr Rect16 status_progress_rect { 10, 160, GuiDefaults::RectScreen.Width() - 2 * 10, 16 };
-constexpr Rect16 message_label_rect { 10, 66, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
-constexpr Rect16 message_value_rect { 10, 92, GuiDefaults::RectScreen.Width() - 2 * 10, 72 };
+constexpr Rect16 message_label_rect { 10, 94, GuiDefaults::RectScreen.Width() - 2 * 10, 20 };
+constexpr Rect16 message_value_rect { 10, 116, GuiDefaults::RectScreen.Width() - 2 * 10, 54 };
 constexpr Rect16 time_dots_rect { 10, 171, 44, 6 };
 constexpr Rect16 page_dots_rect { 10, 174, 44, 6 };
 #elif HAS_LARGE_DISPLAY()
@@ -64,8 +64,8 @@ constexpr Rect16 time_value_rect { 0, 0, 0, 0 };
 constexpr Rect16 status_label_rect { 30, 74, 420, 24 };
 constexpr Rect16 status_value_rect { 30, 104, 420, 48 };
 constexpr Rect16 status_progress_rect { 30, 160, GuiDefaults::RectScreen.Width() - 2 * 30, 16 };
-constexpr Rect16 message_label_rect { 30, 74, 420, 24 };
-constexpr Rect16 message_value_rect { 30, 104, 420, 68 };
+constexpr Rect16 message_label_rect { 30, 90, 420, 24 };
+constexpr Rect16 message_value_rect { 30, 116, 420, 56 };
 constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 44, 6 };
 constexpr Rect16 page_dots_rect { 30, 174, 44, 6 };
 #endif
@@ -120,6 +120,67 @@ bool is_progress_or_eta_message(const char *message) {
 bool is_unimportant_host_message(const char *message) {
     return contains_case_insensitive(message, "good")
         && contains_case_insensitive(message, "accuracy");
+}
+
+bool is_clock_message(const char *message) {
+    char *end = nullptr;
+    const auto hour = strtol(message, &end, 10);
+    if (end == message || hour < 0 || hour > 23 || *end != ':') {
+        return false;
+    }
+
+    const char *minute_start = end + 1;
+    const auto minute = strtol(minute_start, &end, 10);
+    if (end == minute_start || minute < 0 || minute > 59) {
+        return false;
+    }
+
+    if (*end == ':') {
+        const auto second = strtol(end + 1, &end, 10);
+        if (second < 0 || second > 59) {
+            return false;
+        }
+    }
+
+    while (*end == ' ') {
+        ++end;
+    }
+
+    if (*end == '\0') {
+        return true;
+    }
+
+    if ((end[0] == 'A' || end[0] == 'a' || end[0] == 'P' || end[0] == 'p') && (end[1] == 'M' || end[1] == 'm')) {
+        end += 2;
+        while (*end == ' ') {
+            ++end;
+        }
+        return *end == '\0';
+    }
+
+    return false;
+}
+
+bool should_show_host_message(const char *message) {
+    return !is_progress_or_eta_message(message)
+        && !is_unimportant_host_message(message)
+        && !is_clock_message(message);
+}
+
+void append_message_line(std::array<char, 256> &target, const char *message) {
+    if (target[0] == '\0') {
+        strlcpy(target.data(), message, target.size());
+        return;
+    }
+
+    const size_t needed = strlen(target.data()) + 1 + strlen(message) + 1;
+    if (needed > target.size()) {
+        strlcpy(target.data(), message, target.size());
+        return;
+    }
+
+    strlcat(target.data(), "\n", target.size());
+    strlcat(target.data(), message, target.size());
 }
 
 float percent_from_progress(const PrintStatusMessageDataProgress &progress) {
@@ -186,7 +247,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , page_dots(this, page_dots_rect, 2)
     , last_state(marlin_server::State::Aborted) {
     ClrMenuTimeoutClose();
-    SetOnSerialClose();
+    ClrOnSerialClose();
 
     SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
 
@@ -217,7 +278,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_time_value.SetAlignment(Align_t::LeftTop());
     w_time_value.SetPadding({ 0, 0, 0, 2 });
 
-    w_status_label.set_font(Font::small);
+    w_status_label.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
     w_status_label.SetTextColor(COLOR_SILVER);
     w_status_label.SetText(_("Preparing print"));
 
@@ -272,7 +333,12 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         update_progress();
         update_status();
         update_messages();
-        if (config_store().serial_print_legacy_ui.get()) {
+        if (state == marlin_server::State::Finished) {
+            strlcpy(message_text.data(), "Print finished", message_text.size());
+            w_message_label.SetText(_("Status"));
+            w_message_value.SetText(_("Print finished"));
+            set_page(Page::message);
+        } else if (config_store().serial_print_legacy_ui.get()) {
             set_page(Page::message);
         } else if (status_page_available()) {
             user_selected_page = false;
@@ -328,6 +394,11 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
     EnableButton(BtnSocket::Right);
 
     switch (state) {
+    case marlin_server::State::Finished:
+    case marlin_server::State::Aborted:
+        DisableButton(BtnSocket::Middle);
+        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
+        break;
     case marlin_server::State::Paused:
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
         EnableButton(BtnSocket::Middle);
@@ -528,8 +599,8 @@ void screen_printing_serial_data_t::update_messages() {
 
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
-        if (config_store().serial_print_legacy_ui.get() || (!is_progress_or_eta_message(buf.str()) && !is_unimportant_host_message(buf.str()))) {
-            strlcpy(message_text.data(), buf.str(), message_text.size());
+        if (config_store().serial_print_legacy_ui.get() || should_show_host_message(buf.str())) {
+            append_message_line(message_text, buf.str());
             w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
             w_message_value.Invalidate();
         }
@@ -560,8 +631,9 @@ void screen_printing_serial_data_t::set_page(Page page) {
     current_page = page;
     last_page_switch_s = ticks_s();
 
+    const bool show_message = current_page == Page::message;
     const bool show_progress = current_page == Page::progress;
-    w_progress.set_visible(show_progress);
+    w_progress.set_visible(show_progress || show_message);
     w_progress_txt.set_visible(show_progress);
     w_etime_label.set_visible(show_progress);
     w_etime_value.set_visible(show_progress);
@@ -577,7 +649,6 @@ void screen_printing_serial_data_t::set_page(Page page) {
         time_dots.Hide();
     }
 
-    const bool show_message = current_page == Page::message;
     w_message_label.set_visible(show_message);
     w_message_value.set_visible(show_message);
     if (show_message) {
@@ -700,6 +771,11 @@ void screen_printing_serial_data_t::pauseAction() {
 
 void screen_printing_serial_data_t::stopAction() {
     if (printer_lock::locked()) {
+        return;
+    }
+    const marlin_server::State state = marlin_vars().print_state;
+    if (state == marlin_server::State::Finished || state == marlin_server::State::Aborted) {
+        marlin_client::print_exit();
         return;
     }
     if (MsgBoxWarning(_("Are you sure to stop this printing?"), Responses_YesNo, 1)

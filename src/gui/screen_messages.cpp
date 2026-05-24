@@ -6,6 +6,56 @@
 #include "i18n.h"
 #include <sound.hpp>
 #include <utils/string_builder.hpp>
+#include <cctype>
+#include <cstring>
+
+namespace {
+bool contains_case_insensitive(const char *haystack, const char *needle) {
+    for (const char *h = haystack; *h; ++h) {
+        const char *hp = h;
+        const char *np = needle;
+        while (*hp && *np && tolower(*hp) == tolower(*np)) {
+            ++hp;
+            ++np;
+        }
+        if (*np == '\0') {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_progress_or_time_message(const char *message) {
+    char *end = nullptr;
+    const auto hour = strtol(message, &end, 10);
+    if (end != message && hour >= 0 && hour <= 23 && *end == ':') {
+        const char *minute_start = end + 1;
+        const auto minute = strtol(minute_start, &end, 10);
+        if (end != minute_start && minute >= 0 && minute <= 59) {
+            if (*end == ':') {
+                const char *second_start = end + 1;
+                const auto second = strtol(second_start, &end, 10);
+                if (end == second_start || second < 0 || second > 59) {
+                    return false;
+                }
+            }
+            while (*end == ' ') {
+                ++end;
+            }
+            if (*end == '\0' || contains_case_insensitive(end, "am") || contains_case_insensitive(end, "pm")) {
+                return true;
+            }
+        }
+    }
+
+    return strchr(message, '%')
+        || contains_case_insensitive(message, "eta")
+        || contains_case_insensitive(message, "etl")
+        || contains_case_insensitive(message, "estimated")
+        || contains_case_insensitive(message, "remaining")
+        || contains_case_insensitive(message, "time left");
+}
+} // namespace
 
 screen_messages_data_t::screen_messages_data_t()
     : screen_t()
@@ -35,6 +85,10 @@ void screen_messages_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
 
             ArrayStringBuilder<256> buf;
             PrintStatusMessageFormatterBuddy::format(buf, msg.message);
+            if (is_progress_or_time_message(buf.str())) {
+                last_message_id = msg.id;
+                return true;
+            }
             term.Printf("%s\n", buf.str());
             last_message_id = msg.id;
             return true;
