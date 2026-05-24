@@ -22,7 +22,11 @@
 #include <buddy/unreachable.hpp>
 #include <utils/string_builder.hpp>
 #include <printer_lock.hpp>
-#include <leds/led_manager.hpp>
+#include <option/has_leds.h>
+
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
+#endif
 
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
@@ -127,7 +131,9 @@ void screen_printing_data_t::stopAction() {
     switch (GetState()) {
     case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+#if HAS_LEDS()
         leds::LEDManager::instance().acknowledge_finished();
+#endif
         marlin_client::print_exit();
         return;
     case printing_state_t::PAUSING:
