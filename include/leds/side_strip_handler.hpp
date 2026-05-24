@@ -45,6 +45,7 @@ public:
 
     void activity_ping();
     void event_ping();
+    void idle_ping();
     void print_finished_ping();
     void set_door_open(bool open, uint16_t raw_data);
 

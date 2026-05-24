@@ -221,6 +221,7 @@ screen_printing_data_t::screen_printing_data_t()
 
     // Hide popup, only show it when we have a message to show
     message_popup.set_visible(false);
+    message_popup.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
     message_popup.SetAlignment(Align_t::LeftTop());
     message_popup.SetPadding({ 0, 2, 0, 2 });
 

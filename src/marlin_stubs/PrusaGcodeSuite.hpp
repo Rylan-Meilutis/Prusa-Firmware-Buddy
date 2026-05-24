@@ -71,6 +71,10 @@ void M151();
 void M152(); //< External light bar on the GPIO breakout
 #endif
 
+#if HAS_SIDE_LEDS()
+void M153(); //< Mark serial host idle for side LED timeouts
+#endif
+
 #if HAS_CHAMBER_API()
 void M191(); ///< Wait for chamber temperature
 #endif

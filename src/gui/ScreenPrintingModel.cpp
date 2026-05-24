@@ -61,6 +61,7 @@ constexpr const char *label_resources[] = {
     N_("Disconnect"),
     N_("Set Ready"),
     N_("Unlock"),
+    N_("Continue"),
 };
 
 bool parse_unlock_pin(const std::array<char, 7> &buffer, uint32_t &pin, uint8_t &length) {
