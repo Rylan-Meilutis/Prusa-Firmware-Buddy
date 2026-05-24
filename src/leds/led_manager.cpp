@@ -110,6 +110,14 @@ LEDManager &LEDManager::instance() {
     return instance;
 }
 
+void LEDManager::acknowledge_finished() {
+    StatusLedsHandler::instance().acknowledge_finished();
+
+#if HAS_SIDE_LEDS() && !HAS_DOOR_SENSOR()
+    SideStripHandler::instance().idle_ping();
+#endif
+}
+
 void LEDManager::init() {
     // update the LEDs in init to turn them off (in case they were set to a color before a reset)
     // except the LCD backlight, set that to 100% brightness
@@ -148,6 +156,8 @@ void LEDManager::update() {
     if (side_strip_handler.post_print_status_dismissed()) {
         status_leds_handler.acknowledge_finished();
     }
+#else
+    status_leds_handler.set_finished_hold_active(marlin_vars().print_state == marlin_server::State::Finished);
 #endif
 
     status_leds_handler.update();
