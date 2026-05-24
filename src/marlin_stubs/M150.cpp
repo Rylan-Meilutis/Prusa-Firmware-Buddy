@@ -124,7 +124,9 @@ void PrusaGcodeSuite::M150() {
  * - `V` - Saturation form 0 to 100
  *
  * Effect
- * - `W` - print/minimum white brightness. User activity can raise the effective brightness above this.
+ * - `A` - active white brightness. User interaction and door activity use this brightness.
+ * - `P` - print/minimum white brightness. User activity can raise the effective brightness above this.
+ * - `L` - idle/dimmed white brightness.
  * - `D` - duration in milliseconds, set to 0 for infinite duration
  * - `T` - transition in milliseconds (fade in / fade out)
  * - `I` - time until dimmed in seconds after user / door / print activity, 0 to dim immediately
@@ -140,8 +142,14 @@ void PrusaGcodeSuite::M150() {
 void PrusaGcodeSuite::M151() {
     const bool has_rgb = parser.seen('R') && parser.seen('G') && parser.seen('B');
     const bool has_hsv = parser.seen('H') && parser.seen('S') && parser.seen('V');
-    if (parser.seenval('W') && !has_rgb && !has_hsv) {
+    if (parser.seenval('A') && !has_rgb && !has_hsv) {
+        leds::SideStripHandler::instance().set_max_brightness(parser.value_byte());
+    }
+    if (parser.seenval('P') && !has_rgb && !has_hsv) {
         leds::SideStripHandler::instance().set_print_brightness(parser.value_byte());
+    }
+    if (parser.seenval('L') && !has_rgb && !has_hsv) {
+        leds::SideStripHandler::instance().set_dimmed_brightness(parser.value_byte());
     }
     if (parser.seenval('I')) {
         leds::SideStripHandler::instance().set_activity_timeout_s(parser.value_ushort());
@@ -163,6 +171,18 @@ void PrusaGcodeSuite::M151() {
 
 /** @}*/
 
+#endif
+
+/**
+ *### M153: Mark serial host idle
+ *
+ * Clears side LED activity for hosts that know they are no longer actively streaming
+ * useful work, without ending the serial print state.
+ */
+#if HAS_SIDE_LEDS()
+void PrusaGcodeSuite::M153() {
+    leds::SideStripHandler::instance().idle_ping();
+}
 #endif
 
 /**

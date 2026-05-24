@@ -470,6 +470,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
         && !command_starts_with(command, 'M', 114)
         && !command_starts_with(command, 'M', 115)
         && !command_starts_with(command, 'M', 117)
+        && !command_starts_with(command, 'M', 153)
         && !command_starts_with(command, 'M', 155)) {
         leds::SideStripHandler::instance().activity_ping();
     }
