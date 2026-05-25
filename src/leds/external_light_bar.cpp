@@ -18,11 +18,6 @@ static uint8_t pin_mask(uint8_t pin) {
     return static_cast<uint8_t>(0x1 << pin);
 }
 
-static void reset_persistent_pin_state(uint8_t mask) {
-    config_store().io_expander_output_register.set(config_store().io_expander_output_register.get() | mask);
-    config_store().io_expander_config_register.set(config_store().io_expander_config_register.get() | mask);
-}
-
 bool pin_supports_output(uint8_t pin) {
     return pin < buddy::hw::TCA6408A::pin_count && (all_output_pins_mask & pin_mask(pin));
 }
@@ -52,6 +47,37 @@ OutputMode pin_mode(uint8_t pin) {
         return OutputMode::active_high;
     }
     return OutputMode::pull_down;
+}
+
+void reset_persistent_state() {
+    const uint8_t mask = protected_pin_mask();
+    if (!mask) {
+        return;
+    }
+
+    uint8_t output = config_store().io_expander_output_register.get();
+    uint8_t config = config_store().io_expander_config_register.get();
+    const uint8_t active_high = active_high_pin_mask() & mask;
+
+    const uint8_t low_side = mask & low_side_pins_mask;
+    const uint8_t logic_active_high = active_high;
+    const uint8_t logic_active_sink = (mask & logic_pins_mask) & ~active_high;
+
+    // Pins 0-3 use the low-side GPIO breakout path. The proven off state is
+    // output mode with output latch low, matching M262 Pn B0 + M264 Pn B0.
+    config &= ~low_side;
+    output &= ~low_side;
+
+    // Logic active-high pins are off when driven low.
+    config &= ~logic_active_high;
+    output &= ~logic_active_high;
+
+    // Logic active-sink pins are off when floating.
+    config |= logic_active_sink;
+    output |= logic_active_sink;
+
+    config_store().io_expander_output_register.set(output);
+    config_store().io_expander_config_register.set(config);
 }
 
 static bool apply_pin(uint8_t pin, OutputMode mode, bool on) {
@@ -108,7 +134,7 @@ bool set_pin_mode(uint8_t pin, OutputMode mode) {
 
     config_store().external_light_bar_enabled_pins.set(enabled);
     config_store().external_light_bar_active_high_pins.set(active_high);
-    reset_persistent_pin_state(mask);
+    reset_persistent_state();
     log_info(Buddy, "External light pin %u mode %u enabled 0x%02x active_high 0x%02x", pin, static_cast<unsigned>(mode), enabled, active_high);
     return true;
 }
