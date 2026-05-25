@@ -11,6 +11,9 @@ public:
     /// Notifies print host about print being paused
     static void pause();
 
+    /// Notifies print host about a firmware-side pause reason.
+    static void paused(const char *reason);
+
     /// periodically called when in state "printing"
     static void print_loop();
 
@@ -19,6 +22,9 @@ public:
 
     /// Notify host about print resume
     static void resume();
+
+    /// Notify host that firmware-side pause/error condition has cleared.
+    static void resumed();
 
     /// Hook called when command is queued via serial line
     /// Used to detect activity of serial print
@@ -31,6 +37,8 @@ public:
     static void set_host_progress_percent(uint8_t percent);
 
 private:
+    static void host_action(const char *action, const char *reason = nullptr);
+
     /// Check if serial printing had timeouted
     /// ie no command was queued for a while
     static bool has_serial_timeouted();
