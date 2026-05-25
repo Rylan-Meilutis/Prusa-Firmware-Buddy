@@ -47,6 +47,12 @@ public:
 
     void set_interval(Time set);
 
+    inline Time bed_interval() const {
+        return bed_timer_enabled_ ? bed_activity_timer_.interval() : 0;
+    }
+
+    void set_bed_interval(Time set);
+
 public:
     inline State state() const {
         return state_;
@@ -81,7 +87,8 @@ public:
     void step();
 
 private:
-    SafetyTimer() = default;
+    SafetyTimer();
+    void load_config();
 
 private:
     State state_ = State::idle;
@@ -93,7 +100,13 @@ private:
     uint8_t non_blocking_guard_count_ = 0;
 
     /// Timestamp of the last activity
-    utils::Timer<Time> activity_timer_ { default_interval };
+    utils::Timer<Time> activity_timer_;
+
+    /// Timestamp of the last activity that allows the bed to stay hot
+    utils::Timer<Time> bed_activity_timer_;
+
+    bool bed_timer_enabled_ = true;
+    bool config_loaded_ = false;
 
     /// Target nozzle temperatures to restore
     NozzleTargetTemperatures nozzle_temperatures_to_restore_;
