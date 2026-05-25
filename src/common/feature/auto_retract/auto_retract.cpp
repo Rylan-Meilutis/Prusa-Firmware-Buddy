@@ -26,6 +26,10 @@ LOG_COMPONENT_REF(MarlinServer);
 using namespace buddy;
 using namespace auto_retract_detail;
 
+// If the PAUSE_PARK_RETRACT_LENGTH would get over full_retract_distance, it would start being considered rammed for cold unload
+// We don't want that to happen, for cold unload, a proper ramming should be done
+static_assert(!AutoRetract::supports_cold_unload || PAUSE_PARK_RETRACT_LENGTH < AutoRetract::full_retract_distance);
+
 AutoRetract &buddy::auto_retract() {
     static AutoRetract instance;
     return instance;
