@@ -83,13 +83,14 @@ public:
     void set_print_brightness(uint8_t value);
 
     bool deep_idle() const;
+    bool chamber_light_on() const;
 
     leds::ColorRGBW color() const;
 
 private:
     void change_state(SideStripState state);
 
-    ColorRGBW get_color_for_state(SideStripState state);
+    ColorRGBW get_color_for_state(SideStripState state) const;
 
     struct CustomColorState {
         ColorRGBW color;

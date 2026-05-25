@@ -1061,12 +1061,12 @@ static constexpr const char *external_light_bar_pin_labels[] = {
 
 static constexpr const char *external_light_bar_low_side_items[] = {
     N_("Off"),
-    N_("Pull Down"),
+    N_("Active Sink"),
 };
 
 static constexpr const char *external_light_bar_logic_items[] = {
     N_("Off"),
-    N_("Pull Down"),
+    N_("Active Sink"),
     N_("Active High"),
 };
 
@@ -1099,7 +1099,6 @@ void MI_EXTERNAL_LIGHT_BAR_PIN_MODE::OnChange([[maybe_unused]] size_t old_index)
         set_current_item(mode_to_index(pin));
         return;
     }
-    leds::external_light_bar::apply(true);
 }
 #endif
 

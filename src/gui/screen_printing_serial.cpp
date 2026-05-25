@@ -283,10 +283,11 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_time_value.SetPadding({ 0, 0, 0, 2 });
 
     w_status_label.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
-    w_status_label.SetTextColor(COLOR_SILVER);
+    w_status_label.SetTextColor(COLOR_WHITE);
     w_status_label.SetText(_("Preparing print"));
 
     w_status_value.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
+    w_status_value.SetTextColor(COLOR_WHITE);
     w_status_value.SetAlignment(Align_t::Center());
     w_status_value.SetPadding({ 0, 2, 0, 2 });
 
@@ -295,6 +296,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_message_label.SetText(_("Message"));
 
     w_message_value.set_font(Font::normal);
+    w_message_value.SetTextColor(COLOR_WHITE);
     w_message_value.SetAlignment(Align_t::LeftTop());
     w_message_value.SetPadding({ 0, 2, 0, 2 });
 
