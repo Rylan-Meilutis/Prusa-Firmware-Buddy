@@ -37,6 +37,7 @@
 #include <option/has_xbuddy_extension.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_side_leds.h>
+#include <option/has_human_interactions.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
@@ -477,6 +478,14 @@ struct CurrentStore
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Serial Printing Legacy UI")> serial_print_legacy_ui;
     StoreItem<uint16_t, 5, ItemFlag::user_interface, journal::hash("Serial Printing Timeout Sec")> serial_print_timeout_s;
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Serial Printing Auto Start")> serial_print_auto_start;
+
+    static constexpr uint16_t bed_heater_safety_timeout_default_s =
+    #if !HAS_HUMAN_INTERACTIONS()
+        600;
+    #else
+        1800;
+    #endif
+    StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Bed Safety Timeout Config")> bed_heater_safety_timeout_s;
 
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Printer Lock Enabled")> printer_lock_enabled;
     StoreItem<uint32_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN")> printer_lock_pin;

@@ -15,6 +15,7 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "liveadjust_z.hpp"
 #include <feature/filament_sensor/filament_sensor.hpp>
+#include <feature/safety_timer/safety_timer.hpp>
 #include <buddy/main.h>
 #include "Pin.hpp"
 #include "hwio_pindef.h"
@@ -321,6 +322,23 @@ void MI_TIMEOUT::OnChange(size_t old_index) {
         Screens::Access()->DisableMenuTimeout();
     }
     config_store().menu_timeout.set(static_cast<uint8_t>(Screens::Access()->GetMenuTimeout()));
+}
+
+/*****************************************************************************/
+// MI_BED_HEATER_SAFETY_TIMEOUT
+MI_BED_HEATER_SAFETY_TIMEOUT::MI_BED_HEATER_SAFETY_TIMEOUT()
+    : WiSpin(
+        config_store().bed_heater_safety_timeout_s.get(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_BED_HEATER_SAFETY_TIMEOUT::OnClick() {
+    buddy::safety_timer().set_bed_interval(static_cast<buddy::SafetyTimer::Time>(value()) * 1000);
+}
+
+void MI_BED_HEATER_SAFETY_TIMEOUT::Loop() {
+    set_enabled(true);
 }
 
 /*****************************************************************************/

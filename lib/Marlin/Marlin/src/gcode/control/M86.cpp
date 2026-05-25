@@ -32,16 +32,19 @@
  *
  *#### Usage
  *
- *     M86 [ S ]
+ *     M86 [ S | B ]
  *
  *#### Parameters
  *
  *  - `S` - Safety timer interval [seconds]
+ *  - `B` - Bed heater safety timeout [seconds], 0 disables bed timeout
  *
  */
 void GcodeSuite::M86() {
   if (parser.seen('S'))
     buddy::safety_timer().set_interval(parser.value_millis_from_seconds());
+  if (parser.seen('B'))
+    buddy::safety_timer().set_bed_interval(parser.value_millis_from_seconds());
 }
 
 /** @}*/
