@@ -1660,6 +1660,10 @@ void print_pause(void) {
     switch (server.print_state) {
     case State::Printing:
     case State::Finishing_WaitIdle:
+        if (server.print_is_serial) {
+            // Stop accepting more streamed moves so Pausing_WaitIdle can drain and park.
+            GCodeQueue::pause_serial_commands = true;
+        }
         server.print_state = State::Pausing_Begin;
         break;
 
@@ -2477,6 +2481,14 @@ static void _server_print_loop(void) {
         }
         break;
     case State::Paused:
+        if (server.print_is_serial) {
+            if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
+                fsm_create(PhasesSerialPrinting::active);
+            }
+        } else if (!fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_create(PhasesPrinting::active);
+        }
+
         // resume queuing serial commands (to be able to resume)
         GCodeQueue::pause_serial_commands = false;
 
