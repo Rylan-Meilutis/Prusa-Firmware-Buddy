@@ -116,6 +116,7 @@ private:
     bool door_open_for_leds = false;
     uint16_t door_raw_data = 0;
     bool print_or_filter_active_prev = false;
+    bool host_idle_override = false;
     bool post_print_hold = false;
     bool post_print_hold_dismissed = false;
     bool post_print_hold_seen_door_open = false;
