@@ -144,6 +144,15 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
 
+class MI_BED_HEATER_SAFETY_TIMEOUT : public WiSpin {
+    constexpr static const char *const label = N_("Bed Heater Timeout");
+
+public:
+    MI_BED_HEATER_SAFETY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
 #ifdef _DEBUG
 inline constexpr size_t MI_SOUND_MODE_COUNT = 5;
 #else
