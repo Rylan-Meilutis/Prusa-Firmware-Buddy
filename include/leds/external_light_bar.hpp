@@ -18,6 +18,7 @@ uint8_t active_high_pin_mask();
 
 bool set_pin_mode(uint8_t pin, OutputMode mode);
 void apply(bool on);
+void reset_persistent_state();
 void set_diagnostic_override(bool enabled, bool on);
 bool diagnostic_override_active();
 bool diagnostic_override_on();
