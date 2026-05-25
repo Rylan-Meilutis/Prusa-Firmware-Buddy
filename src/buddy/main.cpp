@@ -33,6 +33,7 @@
 #include "MarlinPin.h"
 #include "crc32.h"
 #include <common/sys.hpp>
+#include <common/spi_flash_bus.hpp>
 #include <common/w25x.hpp>
 #include "timing.h"
 #include <buddy/filesystem.h>
@@ -560,7 +561,7 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 #endif
 
     if (hspi == spi_handle_flash) {
-        w25x_spi_transfer_complete_callback();
+        SpiFlashBus::instance().on_tx_complete();
     }
 }
 
@@ -573,13 +574,13 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
 #endif
 
     if (hspi == spi_handle_flash) {
-        w25x_spi_receive_complete_callback();
+        SpiFlashBus::instance().on_rx_complete();
     }
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
     if (hspi == spi_handle_flash) {
-        w25x_spi_error_callback();
+        SpiFlashBus::instance().on_error();
     }
 }
 

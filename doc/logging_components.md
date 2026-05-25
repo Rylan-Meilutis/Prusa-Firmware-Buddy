@@ -20,6 +20,7 @@ This file is generated automatically so don't edit it directly
 - EmergencyStop: logging::Severity::debug, src/feature/emergency_stop/emergency_stop.cpp
 - FSensor: logging::Severity::info, src/feature/filament_sensor/filament_sensors_handler.cpp
 - FileSystem: logging::Severity::info, src/buddy/filesystem.cpp
+- FlashBus: logging::Severity::info, src/common/spi_flash_bus.cpp
 - Fsm: logging::Severity::debug, src/common/fsm_states.cpp
 - GUI: logging::Severity::debug, src/gui/logger.cpp
 - INDX: logging::Severity::info, src/puppies/INDX.cpp

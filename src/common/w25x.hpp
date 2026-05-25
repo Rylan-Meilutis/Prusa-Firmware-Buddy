@@ -3,9 +3,8 @@
 ///
 /// Driver for the W25xxx family of SPI flash memories.
 ///
-/// The driver is split into two parts.
-/// The `w25x_communication.hpp/cpp` handles communication with the chip and this part is considered private to the w25x module.
-/// The `w25x.hpp/cpp` handles the high-level operations with the chip (read, erase, write, etc)
+/// SPI bus communication is handled by SpiFlashBus (spi_flash_bus.hpp).
+/// This module handles the high-level operations with the chip (read, erase, write, etc).
 ///
 #pragma once
 
@@ -91,12 +90,3 @@ void w25x_block64_erase(uint32_t addr);
 /// Fetch and clear error of a previous operation.
 /// Returns 0 if there hasn't been any error
 int w25x_fetch_error();
-
-/// This should be called when the underlying SPI's DMA finishes DMA transfer (send)
-void w25x_spi_transfer_complete_callback();
-
-/// This should be called when the underlying SPI's DMA finishes DMA transfer (receive)
-void w25x_spi_receive_complete_callback();
-
-/// This should be called when the underlying SPI's DMA encounters error
-void w25x_spi_error_callback();

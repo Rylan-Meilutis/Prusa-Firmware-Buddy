@@ -1,15 +1,16 @@
 #include <common/w25x.hpp>
 
-#include <common/w25x_communication.hpp>
+#include <common/spi_flash_bus.hpp>
 #include "timing_precise.hpp"
 #include <logging/log.hpp>
 #include "cmsis_os.h"
 #include <bsod.h>
-#include <device/peripherals.hpp>
 #include <hwio_pindef.h>
 #include <stdlib.h>
 
 LOG_COMPONENT_DEF(W25X, logging::Severity::debug);
+
+static auto &bus = SpiFlashBus::instance();
 
 namespace {
 
@@ -105,8 +106,6 @@ constexpr uint8_t MFRID = 0xEF;
 constexpr uint8_t DEVID = 0x13;
 constexpr uint8_t DEVID_NEW = 0x16;
 
-constexpr uint32_t cs_deselect_time_ns = 50;
-constexpr uint32_t cs_active_setup_time_relative_to_clk_ns = 5;
 constexpr uint32_t tSUS_ns = 20000;
 
 /**
@@ -190,41 +189,38 @@ constexpr uint32_t max_wait_loops() {
     constexpr uint32_t bits_per_status_read = 16;
     constexpr uint64_t nanoseconds_per_second = 1000000000ull;
     constexpr uint32_t transfer_duration_ns = bits_per_status_read * nanoseconds_per_second / max_bitrate_hz;
-    constexpr uint32_t cs_duration_ns = cs_deselect_time_ns + cs_active_setup_time_relative_to_clk_ns;
+    constexpr uint32_t cs_duration_ns = SpiFlashBus::cs_deselect_delay_ns + SpiFlashBus::cs_select_delay_ns;
 
     constexpr uint32_t max_operation_duration_s = 100; // W25Q64JV Chip erase
     return (nanoseconds_per_second / (transfer_duration_ns + cs_duration_ns) * max_operation_duration_s);
 }
 
 void w25x_select() {
-    buddy::hw::extFlashCs.write(buddy::hw::Pin::State::low);
-    // Currently less than 1 CPU cycle, so no delay is done
-    delay_ns_precise<cs_active_setup_time_relative_to_clk_ns>();
+    bus.select(buddy::hw::extFlashCs);
 }
 
 void w25x_deselect() {
-    buddy::hw::extFlashCs.write(buddy::hw::Pin::State::high);
-    delay_ns_precise<cs_deselect_time_ns>();
+    bus.deselect(buddy::hw::extFlashCs);
 }
 
 void write_enable(void) {
     w25x_select();
-    w25x_send_byte(CMD_ENABLE_WR); // send command 0x06
+    bus.send_byte(CMD_ENABLE_WR); // send command 0x06
     w25x_deselect();
 }
 
 w25x_status1_t read_status1_reg() {
     w25x_select();
-    w25x_send_byte(CMD_RD_STATUS1_REG);
-    w25x_status1_t status = static_cast<w25x_status1_t>(w25x_receive_byte());
+    bus.send_byte(CMD_RD_STATUS1_REG);
+    w25x_status1_t status = static_cast<w25x_status1_t>(bus.receive_byte());
     w25x_deselect();
     return status;
 }
 
 w25x_status2_t read_status2_reg() {
     w25x_select();
-    w25x_send_byte(CMD_RD_STATUS2_REG);
-    w25x_status2_t status = static_cast<w25x_status2_t>(w25x_receive_byte());
+    bus.send_byte(CMD_RD_STATUS2_REG);
+    w25x_status2_t status = static_cast<w25x_status2_t>(bus.receive_byte());
     w25x_deselect();
     return status;
 }
@@ -287,11 +283,11 @@ void program_page(uint32_t addr, const uint8_t *data, uint16_t cnt, bool high_pr
     write_enable();
     w25x_select();
     CmdWithAddress cmdWithAddress = cmd_with_address(CMD_PAGE_PROGRAM, addr);
-    w25x_send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
-    w25x_send(data, cnt);
+    bus.send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
+    bus.send(data, cnt);
     w25x_deselect();
     if (!w25x_wait_busy()) {
-        w25x_set_error(HAL_TIMEOUT);
+        bus.set_error(HAL_TIMEOUT);
     }
 }
 
@@ -326,7 +322,7 @@ void split_page_program(uint32_t addr, const uint8_t *data, uint32_t cnt, bool h
 
 void suspend_erase() {
     w25x_select();
-    w25x_send_byte(CMD_ERASE_PROGRAM_SUSPEND);
+    bus.send_byte(CMD_ERASE_PROGRAM_SUSPEND);
     w25x_deselect();
     // W25Q guarantees to be available in tSUS
     // alternatively busy status can be polled
@@ -335,7 +331,7 @@ void suspend_erase() {
 
 void resume_erase() {
     w25x_select();
-    w25x_send_byte(CMD_ERASE_PROGRAM_RESUME);
+    bus.send_byte(CMD_ERASE_PROGRAM_RESUME);
     w25x_deselect();
     // Assure that suspend is not called earlier than in tSUS
     // after resume
@@ -350,20 +346,20 @@ void w25x_erase(uint8_t cmd, uint32_t addr) {
         write_enable();
         w25x_select();
         CmdWithAddress cmdWithAddress = cmd_with_address(cmd, addr);
-        w25x_send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
+        bus.send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
         w25x_deselect();
     }
     if (!w25x_wait_erase()) {
-        w25x_set_error(HAL_TIMEOUT);
+        bus.set_error(HAL_TIMEOUT);
     }
 }
 
 int mfrid_devid(uint8_t *devid) {
     w25x_select();
     CmdWithAddress cmdWithAddress = cmd_with_address(CMD_MFRID_DEVID, 0ul);
-    w25x_send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
-    uint8_t w25x_mfrid = w25x_receive_byte(); // receive mfrid
-    uint8_t w25x_devid = w25x_receive_byte(); // receive devid
+    bus.send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
+    uint8_t w25x_mfrid = bus.receive_byte(); // receive mfrid
+    uint8_t w25x_devid = bus.receive_byte(); // receive devid
     w25x_deselect();
     if (devid) {
         *devid = w25x_devid;
@@ -407,8 +403,7 @@ bool w25x_reinit_before_crash_dump() {
 
     if (w25x_was_initialized) {
         // abort ongoing transactions if there were any, ignoring errors
-        (void)HAL_SPI_Abort(spi_handle_flash);
-        (void)w25x_fetch_error();
+        bus.reinit_for_crash_dump();
     } else {
         spi_init_flash();
     }
@@ -459,8 +454,8 @@ void w25x_rd_data(uint32_t addr, uint8_t *data, uint16_t cnt) {
 
     w25x_select();
     CmdWithAddress cmdWithAddress = cmd_with_address(CMD_RD_DATA, addr);
-    w25x_send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
-    w25x_receive(data, cnt);
+    bus.send(cmdWithAddress.buffer, sizeof(cmdWithAddress.buffer));
+    bus.receive(data, cnt);
     w25x_deselect();
 }
 
@@ -499,6 +494,10 @@ void w25x_block64_erase(uint32_t addr) {
     w25x_erase(CMD_BLOCK64_ERASE, addr);
 }
 
+int w25x_fetch_error() {
+    return bus.fetch_error();
+}
+
 #if 0 // unused
     // #error dead code found by automatic analyses (see BFW-5461)
 void w25x_rd_uid(uint8_t *uid) {
@@ -506,13 +505,13 @@ void w25x_rd_uid(uint8_t *uid) {
     {
         OptionalMutex communicationMutex(communication_mutex);
         w25x_select();
-        w25x_send_byte(CMD_RD_UID); // send command 0x4b
+        bus.send_byte(CMD_RD_UID); // send command 0x4b
         uint8_t cnt = 4;            // 4 dummy bytes
         while (cnt--)               // receive dummy bytes
-            w25x_receive_byte();
+            bus.receive_byte();
         cnt = 8;      // 8 bytes UID
         while (cnt--) // receive UID
-            uid[7 - cnt] = w25x_receive_byte();
+            uid[7 - cnt] = bus.receive_byte();
         w25x_deselect();
     }
 }

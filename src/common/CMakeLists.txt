@@ -66,6 +66,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             segmented_json.cpp
             sensor_data.cpp
             sound.cpp
+            spi_flash_bus.cpp
             st25dv64k.cpp
             stat_retry.cpp
             static_storage.cpp
@@ -79,7 +80,6 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             tool_index.cpp
             tools_mapping.cpp
             w25x.cpp
-            w25x_communication.cpp
             wdt.cpp
     )
   add_subdirectory(async_job)
