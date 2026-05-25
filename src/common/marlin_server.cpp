@@ -2471,6 +2471,9 @@ static void _server_print_loop(void) {
             tool_change(NoTool {}, tool_return_t::no_return);
 #endif
             server.print_state = State::Paused;
+            if (server.print_is_serial) {
+                SerialPrinting::paused("firmware_pause");
+            }
         }
         break;
     case State::Paused:
@@ -2622,6 +2625,9 @@ static void _server_print_loop(void) {
         SerialPrinting::resume();
 #endif
         server.print_state = State::Printing;
+        if (server.print_is_serial) {
+            SerialPrinting::resumed();
+        }
         break;
 
     case State::Aborting_Begin:
