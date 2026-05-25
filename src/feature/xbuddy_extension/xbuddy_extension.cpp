@@ -12,6 +12,13 @@
 #include <bsod/bsod.h>
 #include <fanctl/CFanCtl3Wire.hpp> // for FANCTL_START_TIMEOUT
 #include <utils/timing/rate_limiter.hpp>
+#include <logging/log.hpp>
+#include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
+
+LOG_COMPONENT_REF(Buddy);
 
 namespace {
 
@@ -67,6 +74,22 @@ void XBuddyExtension::step() {
 
     puppies::xbuddy_extension.set_rgbw_led({ bed_leds_color_.r, bed_leds_color_.g, bed_leds_color_.b, bed_leds_color_.w });
     puppies::xbuddy_extension.set_white_led(chamber_leds_pwm);
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    const bool chamber_light_target_on = leds::SideStripHandler::instance().chamber_light_on();
+    const bool external_light_on = chamber_leds_pwm > 0 || chamber_light_target_on;
+    static bool last_external_light_on = false;
+    static uint8_t last_chamber_leds_pwm = 0;
+    static bool last_chamber_light_target_on = false;
+    static bool last_external_light_valid = false;
+    if (!last_external_light_valid || last_external_light_on != external_light_on || last_chamber_leds_pwm != chamber_leds_pwm || last_chamber_light_target_on != chamber_light_target_on) {
+        log_info(Buddy, "External light mirror %s pwm %u target %u", external_light_on ? "on" : "off", chamber_leds_pwm, chamber_light_target_on);
+        last_external_light_on = external_light_on;
+        last_chamber_leds_pwm = chamber_leds_pwm;
+        last_chamber_light_target_on = chamber_light_target_on;
+        last_external_light_valid = true;
+    }
+    leds::external_light_bar::apply(external_light_on);
+#endif
     puppies::xbuddy_extension.set_white_strobe_frequency(strobe_freq_);
     puppies::xbuddy_extension.set_usb_power(config_store().xbe_usb_power.get());
 
