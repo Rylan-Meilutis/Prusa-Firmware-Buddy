@@ -78,7 +78,8 @@ void CurrentStore::perform_config_check() {
     // Therefore, we always set it to FwAutoUpdate::off on newer versions.
     // We should update the bootloader to stop reading this byte altogether,
     // then we can finally stop writing this and rely entirely on dataexchange.
-    EEPROMInstance().write_byte(0x040B, 0x00);
+    uint8_t null_byte = 0x00;
+    EEPROMInstance().write_bytes(0x040B, std::span<uint8_t> { &null_byte, 1 });
 
     // First run -> the config store is empty -> we don't need to do any migrations from older versions
     if (!is_first_run && config_version.get() != newest_config_version) {

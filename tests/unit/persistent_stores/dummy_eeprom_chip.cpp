@@ -53,14 +53,8 @@ std::span<uint8_t> DummyEepromChip::get(uint16_t address, std::size_t size) {
     REQUIRE(address + size <= data.size());
     return { data.data() + address, size };
 }
-uint8_t DummyEepromChip::read_byte(uint16_t address) {
-    return get(address);
-}
 void DummyEepromChip::read_bytes(uint16_t address, std::span<uint8_t> buffer) {
     get(address, buffer.data(), buffer.size());
-}
-void DummyEepromChip::write_byte(uint16_t address, uint8_t data) {
-    set(address, data);
 }
 void DummyEepromChip::write_bytes(uint16_t address, std::span<const uint8_t> data) {
     set(address, data.data(), data.size());
@@ -72,11 +66,4 @@ void st25dv64k_user_read_bytes(uint16_t address, void *pdata, uint16_t size) {
 
 void st25dv64k_user_write_bytes(uint16_t address, void const *pdata, uint16_t size) {
     eeprom_chip.set(address, static_cast<const uint8_t *>(pdata), size);
-}
-uint8_t st25dv64k_user_read(uint16_t address) {
-    return eeprom_chip.get(address);
-}
-
-void st25dv64k_user_write(uint16_t address, uint8_t data) {
-    eeprom_chip.set(address, data);
 }
