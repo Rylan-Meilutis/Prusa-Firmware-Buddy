@@ -56,6 +56,9 @@
 #include <option/has_touch.h>
 #include <option/has_nfc.h>
 #include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
 #include <option/has_local_accelerometer.h>
 #include "tasks.hpp"
 #include <appmain.hpp>
@@ -487,6 +490,9 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_I2C_EXPANDER()
+    #if BOARD_IS_XBUDDY()
+        leds::external_light_bar::reset_persistent_state();
+    #endif
     // I2C IO Expander have to be initialized after Configuration Store
     buddy::hw::io_expander2.initialize();
 #endif
