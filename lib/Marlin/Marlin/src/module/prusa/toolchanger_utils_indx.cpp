@@ -140,7 +140,7 @@ bool PrusaToolChangerUtils::is_tool_info_valid(PhysicalToolIndex tool, const Pru
     const PrusaToolInfo synthetic = create_default_tool_info(tool);
     const auto dx = std::abs(info.dock_x - synthetic.dock_x);
     const auto dy = std::abs(info.dock_y - synthetic.dock_y);
-    return dx < DOCK_INVALID_OFFSET_X_MM && dy < DOCK_INVALID_OFFSET_Y_MM;
+    return dx <= (DOCK_INVALID_OFFSET_X_MM + EPSILON_MM) && dy <= (DOCK_INVALID_OFFSET_Y_MM + EPSILON_MM);
 }
 
 void PrusaToolChangerUtils::set_tool_info(PhysicalToolIndex tool, const PrusaToolInfo &info) {
