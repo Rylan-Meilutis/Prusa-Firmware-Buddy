@@ -72,6 +72,9 @@ extern osThreadId displayTaskHandle;
 
 using StatusLeds = neopixel::LedsSPI10M5Hz<4, GuiLedsWriter::write>;
 
+static constexpr bool screen_status_bar_disabled =
+    PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL();
+
 static StatusLeds &get_status_leds() {
     static StatusLeds ret;
     return ret;
@@ -121,6 +124,9 @@ void LEDManager::init() {
     // except the LCD backlight, set that to 100% brightness
     set_lcd_brightness(100);
     get_status_leds().update();
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    leds::external_light_bar::apply(false);
+#endif
 #if HAS_SIDE_LED_DRIVER()
     get_side_leds().update();
 #endif
@@ -163,7 +169,7 @@ void LEDManager::update() {
 
     auto &status_leds = get_status_leds();
     for (uint8_t i = 0; i < data.size(); ++i) {
-        status_leds.set(data[i].data, i);
+        status_leds.set(screen_status_bar_disabled ? 0 : data[i].data, i);
     }
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
@@ -188,19 +194,8 @@ void LEDManager::update() {
     status_leds.update();
 
 #if HAS_SIDE_LEDS()
-    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    {
-        static bool last_light_bar_output = false;
-        static uint8_t last_light_bar_mask = 0;
-        const bool output = leds::external_light_bar::protected_pin_mask() != 0 && !side_strip_deep_idle;
-        const uint8_t mask = leds::external_light_bar::protected_pin_mask();
-
-        if (last_light_bar_output != output || last_light_bar_mask != mask) {
-            leds::external_light_bar::apply(output);
-            last_light_bar_output = output;
-            last_light_bar_mask = mask;
-        }
-    }
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY() && !XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    leds::external_light_bar::apply(side_strip_handler.chamber_light_on());
     #endif
 
     #if HAS_SIDE_LED_DRIVER()

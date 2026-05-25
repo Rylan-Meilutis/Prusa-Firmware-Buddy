@@ -302,6 +302,11 @@ bool SideStripHandler::deep_idle() const {
     return state == SideStripState::off;
 }
 
+bool SideStripHandler::chamber_light_on() const {
+    std::lock_guard lock(mutex);
+    return get_color_for_state(state).w > 0;
+}
+
 leds::ColorRGBW SideStripHandler::color() const {
     std::lock_guard lock(mutex);
     return controller_instance().color();
@@ -323,7 +328,7 @@ void SideStripHandler::change_state(SideStripState state) {
     }
 }
 
-ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) {
+ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
 
     switch (state) {
