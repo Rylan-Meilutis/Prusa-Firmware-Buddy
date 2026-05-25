@@ -4,6 +4,7 @@
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.cpp"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/buttons.h"
 #include "../common/marlin_server.hpp"
+#include "../common/serial_printing.hpp"
 #include "../common/sound.hpp"
 #include "mmu2_error_converter.h"
 #include "mmu2_fsm.hpp"
@@ -18,6 +19,8 @@
 LOG_COMPONENT_REF(MMU2);
 
 namespace MMU2 {
+
+static bool serial_host_mmu_error_reported = false;
 
 void CheckErrorScreenUserInput() {
     // A "temporary" workaround:
@@ -47,6 +50,11 @@ void ReportErrorHook(ErrorData d) {
         return;
     }
 
+    if (marlin_server::serial_print_active() && !serial_host_mmu_error_reported) {
+        SerialPrinting::paused("mmu_error");
+        serial_host_mmu_error_reported = true;
+    }
+
     // An error always causes one specific screen to occur
     // Its content is given by the error code translated into Prusa-Error-Codes MMU
     // That needs to be coded into the context data passed to the screen
@@ -60,6 +68,8 @@ void ReportErrorHook(ErrorData d) {
 }
 
 void ReportProgressHook(ProgressData d) {
+    serial_host_mmu_error_reported = false;
+
     if (Fsm::Instance().IsActive()) { // prevent accidental FSM change reports if there is no MMU progress/error dialog shown
         log_debug(MMU2, "Report: CIP=%" PRIu8 " pc=%" PRIu8, d.rawCommandInProgress, d.rawProgressCode);
         Fsm::Instance().reporter.SetReport(d);
@@ -73,6 +83,7 @@ void BeginReport([[maybe_unused]] ProgressData d) {
 }
 
 void EndReport([[maybe_unused]] ProgressData d) {
+    serial_host_mmu_error_reported = false;
     Fsm::Instance().Deactivate();
 }
 

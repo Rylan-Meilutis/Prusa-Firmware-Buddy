@@ -17,7 +17,7 @@ static SimpleTransitionController &controller_instance() {
 }
 
 static bool print_active_for_leds() {
-    return marlin_server::is_printing_state(marlin_vars().print_state.get());
+    return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
 }
 
 SideStripHandler &SideStripHandler::instance() {
@@ -31,17 +31,20 @@ SideStripHandler::SideStripHandler() {
 
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    host_idle_override = false;
     active_timestamp_ms = ticks_ms();
 }
 
 void SideStripHandler::event_ping() {
     std::lock_guard lock(mutex);
+    host_idle_override = false;
     active_timestamp_ms = ticks_ms();
 }
 
 void SideStripHandler::idle_ping() {
     std::lock_guard lock(mutex);
-    if (!door_open_for_leds && !print_active_for_leds()) {
+    host_idle_override = true;
+    if (!door_open_for_leds) {
         post_print_hold = false;
         post_print_hold_dismissed = true;
         post_print_hold_seen_door_open = false;
@@ -52,6 +55,7 @@ void SideStripHandler::idle_ping() {
 
 void SideStripHandler::print_finished_ping() {
     std::lock_guard lock(mutex);
+    host_idle_override = false;
     print_or_filter_active_prev = false;
     post_print_hold_seen_door_open = door_open_for_leds;
     post_print_hold_dismissed = false;
@@ -90,6 +94,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     }
 
     if (open || was_open) {
+        host_idle_override = false;
         active_timestamp_ms = ticks_ms();
     }
 }
@@ -111,7 +116,7 @@ void SideStripHandler::update() {
     } else {
         custom_color.reset();
 
-        const bool print_active = print_active_for_leds();
+        const bool print_active = print_active_for_leds() && !host_idle_override;
 
         if (print_active) {
             print_or_filter_active_prev = true;

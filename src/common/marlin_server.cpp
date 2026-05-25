@@ -2318,6 +2318,9 @@ static void _server_print_loop(void) {
     case State::Pausing_ParkHead:
         if (!planner.processing()) {
             server.print_state = State::Paused;
+            if (server.print_is_serial) {
+                SerialPrinting::paused("firmware_pause");
+            }
         }
         break;
     case State::Paused:
@@ -2450,6 +2453,9 @@ static void _server_print_loop(void) {
         feedrate_percentage = server.resume.print_speed;
         SerialPrinting::resume();
         server.print_state = State::Printing;
+        if (server.print_is_serial) {
+            SerialPrinting::resumed();
+        }
         break;
 
     case State::Aborting_Begin:

@@ -3,6 +3,7 @@
 #include <option/developer_mode.h>
 #include <config_store/store_instance.hpp>
 #include <printer_lock.hpp>
+#include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
@@ -18,6 +19,16 @@ uint8_t SerialPrinting::last_host_progress_percent = 0;
 uint32_t SerialPrinting::last_host_progress_ms = 0;
 bool SerialPrinting::pending_start = false;
 
+void SerialPrinting::host_action(const char *action, const char *reason) {
+    SERIAL_ECHOPGM("//action:");
+    SERIAL_ECHO(action);
+    if (reason != nullptr && reason[0] != '\0') {
+        SERIAL_CHAR(' ');
+        SERIAL_ECHO(reason);
+    }
+    SERIAL_EOL();
+}
+
 void SerialPrinting::print_loop() {
     if (has_serial_timeouted()) {
         marlin_server::serial_print_finalize();
@@ -25,18 +36,26 @@ void SerialPrinting::print_loop() {
 }
 
 void SerialPrinting::abort() {
-    marlin_server::enqueue_gcode("M118 A1 action:cancel");
+    host_action("cancel");
 }
 
 void SerialPrinting::resume() {
     last_serial_indicator_ms = ticks_ms();
     GCodeQueue::pause_serial_commands = false;
-    marlin_server::enqueue_gcode("M118 A1 action:resume");
+    host_action("resume");
 }
 
 void SerialPrinting::pause() {
     GCodeQueue::pause_serial_commands = false;
-    marlin_server::enqueue_gcode("M118 A1 action:pause");
+    host_action("pause");
+}
+
+void SerialPrinting::paused(const char *reason) {
+    host_action("paused", reason);
+}
+
+void SerialPrinting::resumed() {
+    host_action("resumed");
 }
 
 bool SerialPrinting::has_serial_timeouted() {
