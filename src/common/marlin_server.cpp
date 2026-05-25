@@ -1452,6 +1452,18 @@ bool printer_paused_extended() {
 
 #if HAS_SERIAL_PRINT()
 void serial_print_start() {
+    switch (server.print_state) {
+    case State::Finished:
+    case State::Aborted:
+        finalize_print(server.print_state == State::Finished);
+        if (fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_destroy(ClientFSM::Printing);
+        }
+        break;
+    default:
+        break;
+    }
+
     server.print_state = State::SerialPrintInit;
     print_state = {};
 }

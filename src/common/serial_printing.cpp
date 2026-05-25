@@ -182,8 +182,17 @@ bool m73_finished(const char *command) {
     return (find_param_int(command, 'R', remaining) || find_param_int(command, 'S', remaining)) && remaining == 0;
 }
 
+bool blocking_startup_gcode(const char *command) {
+    return command_starts_with(command, 'M', 109) // wait for hotend
+        || command_starts_with(command, 'M', 190) // wait for bed
+        || command_starts_with(command, 'M', 191) // wait for chamber
+        || command_starts_with(command, 'G', 28) // home
+        || command_starts_with(command, 'G', 29) // mesh bed leveling
+        || command_starts_with(command, 'G', 80); // Prusa mesh bed leveling
+}
+
 bool print_start_gcode(const char *command) {
-    return command_starts_with(command, 'M', 75) || (config_store().serial_print_auto_start.get() && m73_print_start(command));
+    return command_starts_with(command, 'M', 75) || (config_store().serial_print_auto_start.get() && (m73_print_start(command) || blocking_startup_gcode(command)));
 }
 
 bool print_end_gcode(const char *command) {
