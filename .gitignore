@@ -19,6 +19,7 @@ __pycache__
 .benchmarks
 /doc/inline_umlgraph_cache_all.pu
 .venv
+.local/
 *.egg-info/
 *.egg
 /heap_instrumentation.txt
