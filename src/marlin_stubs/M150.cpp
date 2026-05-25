@@ -198,7 +198,8 @@ void PrusaGcodeSuite::M153() {
  *
  * - `P` - IO expander pin <0;7>. Required.
  * - `S` - Light bar control, 0 = not used for light bar, 1 = used for light bar.
- * - `A` - Output mode, 1 = active high, 0 = pull down / active low. Pins 0-3 only allow pull down.
+ * - `A` - Output mode, 1 = active high, 0 = active sink / active low. Pins 0-3 only allow active sink.
+ * - `F` - Hold external light output for diagnostics, 1 = on, 0 = off. Use `F2` to clear.
  */
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
 void PrusaGcodeSuite::M152() {
@@ -207,13 +208,14 @@ void PrusaGcodeSuite::M152() {
         return;
     }
 
-    const auto pin = parser.value_byte();
+    const auto pin = parser.byteval('P');
     if (pin >= buddy::hw::TCA6408A::pin_count || !leds::external_light_bar::pin_supports_output(pin)) {
         SERIAL_ECHOLNPGM("M152 Bad request: P out of range <0,7>");
         return;
     }
 
     auto mode = leds::external_light_bar::pin_mode(pin);
+    const bool configure = parser.seenval('A') || parser.seenval('S');
     if (parser.seenval('A')) {
         mode = parser.value_bool() ? leds::external_light_bar::OutputMode::active_high : leds::external_light_bar::OutputMode::pull_down;
     }
@@ -221,14 +223,31 @@ void PrusaGcodeSuite::M152() {
         mode = parser.value_bool() ? (mode == leds::external_light_bar::OutputMode::off ? leds::external_light_bar::OutputMode::pull_down : mode) : leds::external_light_bar::OutputMode::off;
     }
 
-    if (!leds::external_light_bar::set_pin_mode(pin, mode)) {
+    if (configure && !leds::external_light_bar::set_pin_mode(pin, mode)) {
         SERIAL_ECHOLNPGM("M152 Bad request: selected pin does not support requested output mode");
         return;
     }
 
-    leds::external_light_bar::apply(true);
+    if (parser.seenval('F')) {
+        const auto force = parser.value_byte();
+        if (force <= 1) {
+            leds::external_light_bar::set_diagnostic_override(true, force != 0);
+        } else {
+            leds::external_light_bar::set_diagnostic_override(false, false);
+        }
+    }
+
+    uint8_t config_register = 0;
+    uint8_t output_register = 0;
+    uint8_t input_register = 0;
+    buddy::hw::io_expander2.read_reg(buddy::hw::TCA6408A::Register::Config, config_register);
+    buddy::hw::io_expander2.read_reg(buddy::hw::TCA6408A::Register::Output, output_register);
+    buddy::hw::io_expander2.read_reg(buddy::hw::TCA6408A::Register::Input, input_register);
 
     SERIAL_ECHO_START();
-    SERIAL_ECHOLNPAIR(" External light bar pin: ", pin, " mode: ", mode == leds::external_light_bar::OutputMode::off ? "off" : (mode == leds::external_light_bar::OutputMode::active_high ? "active high" : "pull down"));
+    SERIAL_ECHOLNPAIR(" External light bar pin: ", pin, " mode: ", mode == leds::external_light_bar::OutputMode::off ? "off" : (mode == leds::external_light_bar::OutputMode::active_high ? "active high" : "active sink"));
+    SERIAL_ECHOLNPAIR(" External light bar mask: ", leds::external_light_bar::protected_pin_mask(), " active high mask: ", leds::external_light_bar::active_high_pin_mask());
+    SERIAL_ECHOLNPAIR(" External light diagnostic override: ", leds::external_light_bar::diagnostic_override_active() ? (leds::external_light_bar::diagnostic_override_on() ? "on" : "off") : "none");
+    SERIAL_ECHOLNPAIR(" IO expander config: ", config_register, " output: ", output_register, " input: ", input_register);
 }
 #endif
