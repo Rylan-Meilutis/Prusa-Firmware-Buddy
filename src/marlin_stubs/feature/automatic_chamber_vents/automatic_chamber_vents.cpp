@@ -36,6 +36,7 @@ namespace {
 #else
     #error
 #endif
+    static constexpr auto X_LEVER_OVERTRAVEL = 1.5f; ///< Small extra travel to overcome vent slide resistance.
 
     enum class VentState {
         open,
@@ -82,7 +83,10 @@ namespace {
         // Move into the lever's Y-axis line.
         plan_to_y(Y_LEVER);
         // Move horizontally to engage the lever and switch it.
-        plan_to_x(wanted_state == VentState::open ? X_OPEN_END_POS : X_CLOSE_END_POS, lever_move_feedrate);
+        const auto lever_end_pos = wanted_state == VentState::open ? X_OPEN_END_POS : X_CLOSE_END_POS;
+        const auto start_pos = wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS;
+        const auto overtravel = start_pos < lever_end_pos ? X_LEVER_OVERTRAVEL : -X_LEVER_OVERTRAVEL;
+        plan_to_x(lever_end_pos + overtravel, lever_move_feedrate);
         // Move horizontally to release the lever tension
         plan_to_x(wanted_state == VentState::open ? X_OPEN_END_POS + X_LEVER_MOVE_AWAY : X_CLOSE_END_POS - X_LEVER_MOVE_AWAY, lever_move_feedrate);
         // Back out to the safe Y-axis position to avoid a collision on future moves.
