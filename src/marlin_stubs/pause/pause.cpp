@@ -639,15 +639,24 @@ void Pause::move_to_purge_process([[maybe_unused]] Response response) {
 }
 
 void Pause::load_wait_temp_process([[maybe_unused]] Response response) {
-    if (ensureSafeTemperatureNotifyProgress()) { // blocking -> checks for user stop
-        // We preheated to the higher temeperature of the filament currently
-        // being loaded and the previously loaded filament. Drop the target to
-        // the temperature of the filament currently being loaded just before
-        // loading it into the nozzle (this will drop the nozzle temperature by
-        // itself, overheating the new filament a bit less).
-        thermalManager.setTargetHotend(
-            filament::get_type_to_load().parameters().nozzle_temperature,
-            settings.virtual_tool().to_physical());
+    if (ensureSafeTemperatureNotifyProgress()) {
+        // blocking -> checks for user stop
+
+        const auto filament_to_load = filament::get_type_to_load();
+        if (filament_to_load != NoFilamentType {}) {
+            // We preheated to the higher temeperature of the filament currently
+            // being loaded and the previously loaded filament. Drop the target to
+            // the temperature of the filament currently being loaded just before
+            // loading it into the nozzle (this will drop the nozzle temperature by
+            // itself, overheating the new filament a bit less).
+            thermalManager.setTargetHotend(
+                filament_to_load.parameters().nozzle_temperature,
+                settings.physical_tool());
+
+        } else {
+            // If we don't know the new material (can happen in M600 during print),
+            // keep the original temperature instead of turning the nozzle off :3
+        }
 
         if (load_type == LoadType::load_purge) {
             set(LoadState::purge);
