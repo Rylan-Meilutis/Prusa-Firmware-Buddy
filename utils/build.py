@@ -195,6 +195,7 @@ class FirmwareBuildConfiguration(BuildConfiguration):
             ('BOOTLOADER', 'STRING', self.bootloader.value.upper()),
             ('GENERATE_DFU', 'BOOL', 'ON' if self.generate_dfu else 'OFF'),
             ('SIGNING_KEY', 'FILEPATH', str(signing_key_flg)),
+            ('Python3_EXECUTABLE', 'FILEPATH', sys.executable),
             ('CMAKE_TOOLCHAIN_FILE', 'FILEPATH', str(self.toolchain)),
             ('CMAKE_BUILD_TYPE', 'STRING', self.build_type.value.title()),
             ('PROJECT_VERSION_SUFFIX', 'STRING', self.version_suffix or ''),
@@ -249,6 +250,7 @@ class HostToolBuildConfiguration(BuildConfiguration):
         if self.generator.lower() == 'ninja':
             entries.append(('CMAKE_MAKE_PROGRAM', 'FILEPATH',
                             str(get_dependency('ninja'))))
+        entries.append(('Python3_EXECUTABLE', 'FILEPATH', sys.executable))
         entries.extend((tool.value.upper() + '_ENABLE', 'BOOL',
                         'YES' if tool == self.tool else 'NO')
                        for tool in HostTool)
