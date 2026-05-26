@@ -991,23 +991,6 @@ void MI_SIDE_LEDS_PRINT_BRIGTHNESS::OnClick() {
 }
 
 /**********************************************************************************************/
-// MI_SIDE_LEDS_SEQUENCE_MODE
-static constexpr EnumArray<leds::SideLightMode, const char *, leds::SideLightMode::_cnt> side_light_mode_values {
-    { leds::SideLightMode::off, N_("Off") },
-        { leds::SideLightMode::active_and_printing, N_("Active+Print") },
-        { leds::SideLightMode::idle_only, N_("Idle") },
-        { leds::SideLightMode::awake, N_("Awake") },
-};
-
-MI_SIDE_LEDS_SEQUENCE_MODE::MI_SIDE_LEDS_SEQUENCE_MODE()
-    : MenuItemSwitch(_(label), side_light_mode_values, std::to_underlying(leds::SideStripHandler::instance().get_light_mode())) {
-}
-
-void MI_SIDE_LEDS_SEQUENCE_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    leds::SideStripHandler::instance().set_light_mode(static_cast<leds::SideLightMode>(get_index()));
-}
-
-/**********************************************************************************************/
 // MI_LIGHT_STATE_MAIN_ENABLE
 MI_LIGHT_STATE_MAIN_ENABLE::MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state)
     : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_main_light_enabled(state), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no)
@@ -1207,15 +1190,6 @@ static constexpr const char *external_light_bar_logic_items[] = {
     N_("Active High"),
 };
 
-static constexpr EnumArray<leds::ExternalLightMode, const char *, leds::ExternalLightMode::_cnt> external_light_bar_mode_values {
-    { leds::ExternalLightMode::off, N_("Off") },
-        { leds::ExternalLightMode::mirror_chamber, N_("Mirror Main") },
-        { leds::ExternalLightMode::active_and_printing, N_("Active+Print") },
-        { leds::ExternalLightMode::printing_only, N_("Print Only") },
-        { leds::ExternalLightMode::idle_only, N_("Idle") },
-        { leds::ExternalLightMode::awake, N_("Awake") },
-};
-
 static size_t mode_to_index(uint8_t pin) {
     const auto mode = leds::external_light_bar::pin_mode(pin);
     if (mode == leds::external_light_bar::OutputMode::active_high && !leds::external_light_bar::pin_supports_active_high(pin)) {
@@ -1231,17 +1205,6 @@ std::span<const char *const> mode_items(uint8_t pin) {
     return external_light_bar_low_side_items;
 }
 } // namespace
-
-/**********************************************************************************************/
-// MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE
-
-MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE::MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE()
-    : MenuItemSwitch(_(label), external_light_bar_mode_values, std::to_underlying(leds::external_light_bar::mode())) {
-}
-
-void MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    leds::external_light_bar::set_mode(static_cast<leds::ExternalLightMode>(get_index()));
-}
 
 /**********************************************************************************************/
 // MI_LIGHT_STATE_EXTERNAL_ENABLE

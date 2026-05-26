@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <leds/external_light_mode.hpp>
 #include <leds/light_state.hpp>
 
 namespace leds::external_light_bar {
@@ -17,8 +16,6 @@ bool pin_supports_active_high(uint8_t pin);
 OutputMode pin_mode(uint8_t pin);
 uint8_t enabled_pin_mask();
 uint8_t active_high_pin_mask();
-leds::ExternalLightMode mode();
-void set_mode(leds::ExternalLightMode mode);
 bool state_enabled(leds::LightState state);
 void set_state_enabled(leds::LightState state, bool enabled);
 
