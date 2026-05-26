@@ -179,12 +179,7 @@ public:
      */
     buddy::puppies::Dwarf *get_marlin_picked_tool();
 
-    [[deprecated("Use the ToolIndex overload")]]
-    buddy::puppies::Dwarf &getTool(uint8_t tool_index);
-
-    inline buddy::puppies::Dwarf &getTool(PhysicalToolIndex tool) {
-        return getTool(tool.to_raw());
-    }
+    buddy::puppies::Dwarf &getTool(PhysicalToolIndex tool);
 
     const PrusaToolInfo &get_tool_info(const buddy::puppies::Dwarf &dwarf, bool check_calibrated = false) const;
     bool is_tool_info_valid(const buddy::puppies::Dwarf &dwarf, const PrusaToolInfo &info) const;

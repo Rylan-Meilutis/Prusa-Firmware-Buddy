@@ -12,7 +12,7 @@ namespace side_fsensor_remap {
 
 bool has_right_side_sensors() {
     return prusa_toolchanger.is_toolchanger_enabled()
-        && (prusa_toolchanger.getTool(3).is_enabled() || prusa_toolchanger.getTool(4).is_enabled());
+        && (PhysicalToolIndex::from_raw(3).is_enabled() || PhysicalToolIndex::from_raw(4).is_enabled());
 }
 
 bool is_remapped() {

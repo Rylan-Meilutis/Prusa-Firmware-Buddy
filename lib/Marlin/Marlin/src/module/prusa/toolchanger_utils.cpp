@@ -251,8 +251,7 @@ buddy::puppies::Dwarf &PrusaToolChangerUtils::getActiveToolOrFirst() {
     return active ? *active : dwarfs[PhysicalToolIndex::from_raw(0)];
 }
 
-buddy::puppies::Dwarf &PrusaToolChangerUtils::getTool(uint8_t tool_index) {
-    assert(tool_index < dwarfs.size());
+buddy::puppies::Dwarf &PrusaToolChangerUtils::getTool(PhysicalToolIndex tool_index) {
     return buddy::puppies::dwarfs[tool_index];
 }
 
