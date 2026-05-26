@@ -589,6 +589,20 @@ public:
     virtual void OnClick() override;
 };
 
+class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Print Chamber Lights");
+    #else
+        N_("Print Side Strip");
+    #endif
+
+public:
+    MI_PRINT_CHAMBER_LIGHTS_ENABLE();
+    virtual void OnChange(size_t old_index) override;
+    virtual void Loop() override;
+};
+
 class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -640,6 +654,17 @@ class MI_POST_PRINT_LED_HOLD : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_POST_PRINT_LED_HOLD();
     virtual void OnChange(size_t old_index) override;
+};
+#endif
+
+#if HAS_LEDS()
+class MI_PRINT_STATUS_LEDS_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Print Status LED");
+
+public:
+    MI_PRINT_STATUS_LEDS_ENABLE();
+    virtual void OnChange(size_t old_index) override;
+    virtual void Loop() override;
 };
 #endif
 

@@ -990,6 +990,50 @@ void MI_SIDE_LEDS_PRINT_BRIGTHNESS::OnClick() {
     apply_side_led_print_brightness(value());
 }
 
+/**********************************************************************************************/
+// MI_PRINT_CHAMBER_LIGHTS_ENABLE
+MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
+    : WI_ICON_SWITCH_OFF_ON_t(
+        leds::SideStripHandler::instance().get_print_light_enabled(),
+        _(label),
+        nullptr,
+        leds::SideStripHandler::instance().get_max_brightness() > 0 && leds::SideStripHandler::instance().get_print_brightness() > 0 ? is_enabled_t::yes : is_enabled_t::no,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_print_light_enabled(!old_index);
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
+    const bool enabled = leds::SideStripHandler::instance().get_max_brightness() > 0 && leds::SideStripHandler::instance().get_print_brightness() > 0;
+    set_enabled(enabled);
+    set_value(enabled && leds::SideStripHandler::instance().get_print_light_enabled());
+}
+
+#endif
+
+#if HAS_LEDS()
+/**********************************************************************************************/
+// MI_PRINT_STATUS_LEDS_ENABLE
+MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
+    : WI_ICON_SWITCH_OFF_ON_t(
+        leds::StatusLedsHandler::instance().get_print_status_enabled(),
+        _(label),
+        nullptr,
+        leds::StatusLedsHandler::instance().get_active() ? is_enabled_t::yes : is_enabled_t::no,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::OnChange(size_t old_index) {
+    leds::StatusLedsHandler::instance().set_print_status_enabled(!old_index);
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
+    const bool enabled = leds::StatusLedsHandler::instance().get_active();
+    set_enabled(enabled);
+    set_value(enabled && leds::StatusLedsHandler::instance().get_print_status_enabled());
+}
 #endif
 
 #if HAS_SIDE_LEDS()
