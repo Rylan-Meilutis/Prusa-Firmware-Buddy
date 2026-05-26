@@ -41,6 +41,10 @@ if(NOT DEFINED DISABLE_LTO
    AND CMAKE_CROSSCOMPILING # This will not force LTO for natively built unittests
    )
   set(COMPILE_WITH_LTO ON)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_COMPILE_OPTIONS_IPO "-flto=1" "-fno-fat-lto-objects")
+    set(CMAKE_CXX_COMPILE_OPTIONS_IPO "-flto=1" "-fno-fat-lto-objects")
+  endif()
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
   message(STATUS "LTO: Enabled")
 else()
