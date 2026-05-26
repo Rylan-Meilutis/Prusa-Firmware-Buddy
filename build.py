@@ -164,10 +164,50 @@ def repo_python_candidates() -> list[list[str]]:
             [["py", "-3.12"], ["py", "-3.11"], ["py", "-3.10"], ["py", "-3.9"], ["py", "-3.8"]]
         )
 
+    for python in pyenv_python_candidates():
+        candidate = [str(python)]
+        if candidate not in candidates:
+            candidates.append(candidate)
+
     current = [sys.executable]
     if current not in candidates:
         candidates.append(current)
     return candidates
+
+
+def pyenv_python_candidates() -> list[Path]:
+    roots: list[Path] = []
+    env_root = os.environ.get("PYENV_ROOT")
+    if env_root:
+        roots.append(Path(env_root))
+
+    pyenv = shutil.which("pyenv")
+    if pyenv:
+        result = subprocess.run(
+            [pyenv, "root"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding="utf-8",
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            roots.append(Path(result.stdout.strip()))
+
+    default_root = Path.home() / ".pyenv"
+    if default_root not in roots:
+        roots.append(default_root)
+
+    pythons: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        versions = root / "versions"
+        if not versions.exists():
+            continue
+        for python in versions.glob("*/bin/python"):
+            if python not in seen:
+                pythons.append(python)
+                seen.add(python)
+    return pythons
 
 
 def find_repo_python() -> list[str]:
