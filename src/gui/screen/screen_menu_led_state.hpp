@@ -14,7 +14,6 @@ using ScreenMenuLedDeepIdle__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::deep_idle>,
 #endif
     WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::deep_idle>,
-    WithConstructorArgs<MI_LIGHT_STATE_DURATION, leds::LightState::deep_idle>,
     MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuLedDeepIdle : public ScreenMenuLedDeepIdle__ {
@@ -28,7 +27,6 @@ using ScreenMenuLedIdle__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::idle>,
 #endif
     WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::idle>,
-    WithConstructorArgs<MI_LIGHT_STATE_DURATION, leds::LightState::idle>,
     MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuLedIdle : public ScreenMenuLedIdle__ {
@@ -42,7 +40,6 @@ using ScreenMenuLedActive__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::active>,
 #endif
     WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::active>,
-    WithConstructorArgs<MI_LIGHT_STATE_DURATION, leds::LightState::active>,
     MI_LIGHT_STATE_DOOR_ACTIVE,
     MI_ALWAYS_HIDDEN>;
 
@@ -57,7 +54,6 @@ using ScreenMenuLedPrinting__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::printing>,
 #endif
     WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::printing>,
-    WithConstructorArgs<MI_LIGHT_STATE_DURATION, leds::LightState::printing>,
     MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuLedPrinting : public ScreenMenuLedPrinting__ {
