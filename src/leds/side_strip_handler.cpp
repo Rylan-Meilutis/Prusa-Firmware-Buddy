@@ -324,52 +324,6 @@ void SideStripHandler::set_brightness(LightState state, uint8_t value) {
     this->state = SideStripState::unknown;
 }
 
-uint16_t SideStripHandler::get_duration_s(LightState state) const {
-    std::lock_guard lock(mutex);
-    switch (state) {
-    case LightState::active:
-        return activity_timeout_s;
-    case LightState::idle:
-        return off_timeout_s;
-    case LightState::printing:
-        return event_timeout_s;
-    case LightState::deep_idle:
-        return 0;
-    }
-    return 0;
-}
-
-void SideStripHandler::set_duration_s(LightState state, uint16_t value) {
-    switch (state) {
-    case LightState::active:
-        config_store().side_leds_activity_timeout_s.set(value);
-        break;
-    case LightState::idle:
-        config_store().side_leds_off_timeout_s.set(value);
-        break;
-    case LightState::printing:
-        config_store().side_leds_event_timeout_s.set(value);
-        break;
-    case LightState::deep_idle:
-        return;
-    }
-
-    std::lock_guard lock(mutex);
-    switch (state) {
-    case LightState::active:
-        activity_timeout_s = value;
-        break;
-    case LightState::idle:
-        off_timeout_s = value;
-        break;
-    case LightState::printing:
-        event_timeout_s = value;
-        break;
-    case LightState::deep_idle:
-        break;
-    }
-}
-
 bool SideStripHandler::get_door_holds_active() const {
     std::lock_guard lock(mutex);
     return door_holds_active;

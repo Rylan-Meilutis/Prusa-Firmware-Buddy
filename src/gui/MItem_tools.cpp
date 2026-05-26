@@ -942,24 +942,6 @@ void MI_LIGHT_STATE_BRIGHTNESS::OnClick() {
 }
 
 /**********************************************************************************************/
-// MI_LIGHT_STATE_DURATION
-MI_LIGHT_STATE_DURATION::MI_LIGHT_STATE_DURATION(leds::LightState state)
-    : WiSpin(
-        leds::SideStripHandler::instance().get_duration_s(state),
-        numeric_input_config::timeout_seconds_with_off,
-        _(label))
-    , state(state) {
-}
-
-void MI_LIGHT_STATE_DURATION::OnClick() {
-    leds::SideStripHandler::instance().set_duration_s(state, value());
-}
-
-void MI_LIGHT_STATE_DURATION::Loop() {
-    set_enabled(state != leds::LightState::deep_idle);
-}
-
-/**********************************************************************************************/
 // MI_LIGHT_STATE_DOOR_ACTIVE
 MI_LIGHT_STATE_DOOR_ACTIVE::MI_LIGHT_STATE_DOOR_ACTIVE()
     : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_door_holds_active(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
