@@ -16,6 +16,14 @@ FIRMWARE_SIGNING_KEY=/path/to/private.key ./build.py
 
 If `FIRMWARE_SIGNING_KEY` is not set, `build.py` automatically uses the machine-local default key at `.local/firmware-signing-key.pem` when that file exists.
 
+To set up a new machine with a local signing key:
+
+```sh
+./build.py --setup-signing
+```
+
+This creates `.local/firmware-signing-key.pem` and `.local/firmware-signing-key-public.pem`. The setup command works on macOS, Linux, and Windows. It uses the Python `ecdsa` package when available, falls back to OpenSSL, and can bootstrap the repo Python environment if needed.
+
 If no explicit or default key is available, the build still produces `.bbf` files, but they are packed with an all-zero signature.
 
 ## Bootloader Trust
