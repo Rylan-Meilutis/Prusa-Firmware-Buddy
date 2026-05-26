@@ -24,6 +24,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
 DEFAULT_SIGNING_KEY = PROJECT_ROOT / ".local" / "firmware-signing-key.pem"
+MIN_REPO_PYTHON = (3, 8)
+MAX_REPO_PYTHON_EXCLUSIVE = (3, 13)
 
 MINI_LANGUAGE_PRESETS = [
     "mini-en-cs",
@@ -108,6 +110,82 @@ def load_preset_names() -> set[str]:
     with (PROJECT_ROOT / "utils" / "presets" / "presets.json").open() as f:
         data = json.load(f)
     return {preset["name"] for preset in data["presets"]}
+
+
+def python_version_text(version: tuple[int, int]) -> str:
+    return f"{version[0]}.{version[1]}"
+
+
+def repo_python_range_text() -> str:
+    max_minor = MAX_REPO_PYTHON_EXCLUSIVE[1] - 1
+    return f"{MIN_REPO_PYTHON[0]}.{MIN_REPO_PYTHON[1]}-{MAX_REPO_PYTHON_EXCLUSIVE[0]}.{max_minor}"
+
+
+def repo_python_is_supported(version: tuple[int, int]) -> bool:
+    return MIN_REPO_PYTHON <= version < MAX_REPO_PYTHON_EXCLUSIVE
+
+
+def python_command_version(command: list[str]) -> tuple[int, int] | None:
+    try:
+        result = subprocess.run(
+            [
+                *command,
+                "-c",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding="utf-8",
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    match = re.fullmatch(r"\s*(\d+)\.(\d+)\s*", result.stdout)
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def repo_python_candidates() -> list[list[str]]:
+    candidates: list[list[str]] = []
+    env_python = os.environ.get("BUDDY_PYTHON")
+    if env_python:
+        candidates.append([env_python])
+
+    for name in ("python3.12", "python3.11", "python3.10", "python3.9", "python3.8"):
+        python = shutil.which(name)
+        if python:
+            candidates.append([python])
+
+    if os.name == "nt" and shutil.which("py"):
+        candidates.extend(
+            [["py", "-3.12"], ["py", "-3.11"], ["py", "-3.10"], ["py", "-3.9"], ["py", "-3.8"]]
+        )
+
+    current = [sys.executable]
+    if current not in candidates:
+        candidates.append(current)
+    return candidates
+
+
+def find_repo_python() -> list[str]:
+    current_version = sys.version_info[:2]
+    if repo_python_is_supported(current_version):
+        return [sys.executable]
+
+    for candidate in repo_python_candidates():
+        version = python_command_version(candidate)
+        if version and repo_python_is_supported(version):
+            return candidate
+
+    current_text = python_version_text(current_version)
+    raise SystemExit(
+        f"Python {repo_python_range_text()} is required for this repo's pinned dependencies. "
+        f"The current interpreter is Python {current_text}, which cannot build Pillow/numpy pins reliably. "
+        "Install python3.12 or set BUDDY_PYTHON=/path/to/python3.12 and rerun ./build.py."
+    )
 
 
 def split_csv(values: list[str]) -> list[str]:
@@ -336,12 +414,13 @@ def venv_python() -> Path:
 
 
 def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> bool:
-    bootstrap = subprocess.run([sys.executable, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+    python = find_repo_python()
+    bootstrap = subprocess.run([*python, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
     if bootstrap.returncode != 0:
         return False
 
-    python = venv_python()
-    if not python.exists():
+    venv = venv_python()
+    if not venv.exists():
         return False
 
     script = (
@@ -353,7 +432,7 @@ def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> 
         "private_key.write_bytes(key.to_pem())\n"
         "public_key.write_bytes(key.verifying_key.to_pem())\n"
     ) % (str(private_key), str(public_key))
-    result = subprocess.run([str(python), "-c", script], cwd=PROJECT_ROOT, check=False)
+    result = subprocess.run([str(venv), "-c", script], cwd=PROJECT_ROOT, check=False)
     return result.returncode == 0
 
 
@@ -448,6 +527,7 @@ def main() -> int:
 
     selected_presets = unique_presets(split_csv(args.preset or ["all"]), known_presets)
     output_dir = args.output_dir.resolve()
+    repo_python = find_repo_python()
 
     if args.store_output and args.no_store_output:
         raise SystemExit("--store-output and --no-store-output are mutually exclusive")
@@ -469,7 +549,7 @@ def main() -> int:
     for preset in selected_presets:
         products_dir = product_root / preset
         command = [
-            sys.executable,
+            *repo_python,
             str(PROJECT_ROOT / "utils" / "build.py"),
             "--preset",
             preset,
@@ -513,7 +593,7 @@ def main() -> int:
 
     if not args.skip_bootstrap:
         print("Bootstrapping once before parallel builds...")
-        bootstrap = subprocess.run([sys.executable, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+        bootstrap = subprocess.run([*repo_python, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
         if bootstrap.returncode != 0:
             return bootstrap.returncode
 
