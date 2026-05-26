@@ -22,7 +22,7 @@ To set up a new machine with a local signing key:
 ./build.py --setup-signing
 ```
 
-This creates `.local/firmware-signing-key.pem` and `.local/firmware-signing-key-public.pem`. The setup command works on macOS, Linux, and Windows. It uses the Python `ecdsa` package when available, falls back to OpenSSL, and can bootstrap the repo Python environment if needed.
+This creates `.local/firmware-signing-key.pem` and `.local/firmware-signing-key-public.pem`. The setup command works on macOS, Linux, and Windows. It uses the Python `ecdsa` package when available, falls back to OpenSSL, and can bootstrap the repo Python environment with a compatible Python 3.8-3.12 interpreter if needed. If your default Python is newer, install Python 3.12 or set `BUDDY_PYTHON` to the compatible interpreter.
 
 If no explicit or default key is available, the build still produces `.bbf` files, but they are packed with an all-zero signature.
 
