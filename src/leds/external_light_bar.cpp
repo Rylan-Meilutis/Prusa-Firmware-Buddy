@@ -67,14 +67,6 @@ uint8_t active_high_pin_mask() {
     return config_store().external_light_bar_active_high_pins.get();
 }
 
-leds::ExternalLightMode mode() {
-    return config_store().external_light_bar_mode.get();
-}
-
-void set_mode(leds::ExternalLightMode mode) {
-    config_store().external_light_bar_mode.set(mode);
-}
-
 bool state_enabled(leds::LightState state) {
     return config_store().external_light_bar_state_mask.get() & light_state_bit(state);
 }

@@ -4,7 +4,6 @@
 #include "printers.h"
 #include "dimming_enabled.hpp"
 #include "light_state.hpp"
-#include "side_light_mode.hpp"
 
 #include <freertos/mutex.hpp>
 #include <optional>
@@ -68,8 +67,6 @@ public:
 
     DimmingEnabled get_dimming_enabled() const;
     void set_dimming_enabled(DimmingEnabled value);
-    SideLightMode get_light_mode() const;
-    void set_light_mode(SideLightMode value);
     bool get_main_light_enabled(LightState state) const;
     void set_main_light_enabled(LightState state, bool value);
     uint8_t get_brightness(LightState state) const;
@@ -122,7 +119,6 @@ private:
     uint8_t dimmed_brightness;
     uint8_t print_brightness;
     uint8_t deep_idle_brightness;
-    SideLightMode light_mode;
     uint8_t main_light_state_mask;
     uint16_t activity_timeout_s;
     uint16_t event_timeout_s;
