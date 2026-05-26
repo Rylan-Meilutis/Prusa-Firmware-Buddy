@@ -84,6 +84,9 @@
 #if HAS_LEDS_MENU()
     #include <screen/screen_menu_leds.hpp>
 #endif
+#if HAS_SIDE_LEDS()
+    #include <screen/screen_menu_led_state.hpp>
+#endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     #include <screen/screen_menu_external_light_bar.hpp>
 #endif
@@ -182,6 +185,12 @@ template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 
 #if HAS_LEDS_MENU()
 template struct MI_SCREEN_CTOR<ScreenMenuLeds>;
+#endif
+#if HAS_SIDE_LEDS()
+template struct MI_SCREEN_CTOR<ScreenMenuLedDeepIdle>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedIdle>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedActive>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedPrinting>;
 #endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
 template struct MI_SCREEN_CTOR<ScreenMenuExternalLightBar>;

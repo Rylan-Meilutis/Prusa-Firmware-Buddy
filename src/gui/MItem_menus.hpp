@@ -126,6 +126,16 @@ using MI_STATUS_LED_COLOR_SETTINGS
 using MI_EXTERNAL_LIGHT_BAR_SETTINGS
     = MI_SCREEN<N_("External Light Bar"), class ScreenMenuExternalLightBar>;
 #endif
+#if HAS_SIDE_LEDS()
+using MI_LED_DEEP_IDLE_SETTINGS
+    = MI_SCREEN<N_("Deep Idle"), class ScreenMenuLedDeepIdle>;
+using MI_LED_IDLE_SETTINGS
+    = MI_SCREEN<N_("Idle"), class ScreenMenuLedIdle>;
+using MI_LED_ACTIVE_SETTINGS
+    = MI_SCREEN<N_("Active"), class ScreenMenuLedActive>;
+using MI_LED_PRINTING_SETTINGS
+    = MI_SCREEN<N_("Printing"), class ScreenMenuLedPrinting>;
+#endif
 using MI_LANG_AND_TIME
     = MI_SCREEN<N_("Language & Time"), class ScreenMenuLangAndTime>;
 
