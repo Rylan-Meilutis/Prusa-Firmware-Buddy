@@ -71,8 +71,6 @@ public:
     void set_main_light_enabled(LightState state, bool value);
     uint8_t get_brightness(LightState state) const;
     void set_brightness(LightState state, uint8_t value);
-    uint16_t get_duration_s(LightState state) const;
-    void set_duration_s(LightState state, uint16_t value);
     bool get_door_holds_active() const;
     void set_door_holds_active(bool value);
 
