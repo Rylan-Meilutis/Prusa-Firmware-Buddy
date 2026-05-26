@@ -72,7 +72,7 @@ void XBuddyExtension::step() {
     puppies::xbuddy_extension.set_white_led(chamber_leds_pwm);
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     const bool chamber_light_target_on = leds::SideStripHandler::instance().chamber_light_on();
-    const bool external_light_on = chamber_leds_pwm > 0 || chamber_light_target_on;
+    const bool external_light_on = leds::external_light_bar::target_on(chamber_leds_pwm > 0 || chamber_light_target_on);
     static bool last_external_light_on = false;
     static uint8_t last_chamber_leds_pwm = 0;
     static bool last_chamber_light_target_on = false;

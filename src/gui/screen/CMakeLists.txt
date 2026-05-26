@@ -23,7 +23,7 @@ if(HAS_MMU2)
 endif()
 
 if(HAS_LEDS_MENU)
-  target_sources(firmware PRIVATE screen_menu_leds.cpp)
+  target_sources(firmware PRIVATE screen_menu_leds.cpp screen_menu_led_state.cpp)
 endif()
 
 if(HAS_SELFTEST)

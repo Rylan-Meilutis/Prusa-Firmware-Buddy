@@ -195,7 +195,7 @@ void LEDManager::update() {
 
 #if HAS_SIDE_LEDS()
     #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY() && !XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
-    leds::external_light_bar::apply(side_strip_handler.chamber_light_on());
+    leds::external_light_bar::apply(leds::external_light_bar::target_on(side_strip_handler.chamber_light_on()));
     #endif
 
     #if HAS_SIDE_LED_DRIVER()

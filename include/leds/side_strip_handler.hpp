@@ -3,6 +3,8 @@
 #include <utils/led_color.hpp>
 #include "printers.h"
 #include "dimming_enabled.hpp"
+#include "light_state.hpp"
+#include "side_light_mode.hpp"
 
 #include <freertos/mutex.hpp>
 #include <optional>
@@ -66,6 +68,16 @@ public:
 
     DimmingEnabled get_dimming_enabled() const;
     void set_dimming_enabled(DimmingEnabled value);
+    SideLightMode get_light_mode() const;
+    void set_light_mode(SideLightMode value);
+    bool get_main_light_enabled(LightState state) const;
+    void set_main_light_enabled(LightState state, bool value);
+    uint8_t get_brightness(LightState state) const;
+    void set_brightness(LightState state, uint8_t value);
+    uint16_t get_duration_s(LightState state) const;
+    void set_duration_s(LightState state, uint16_t value);
+    bool get_door_holds_active() const;
+    void set_door_holds_active(bool value);
 
     uint16_t get_activity_timeout_s() const;
     void set_activity_timeout_s(uint16_t value);
@@ -86,6 +98,7 @@ public:
 
     bool deep_idle() const;
     bool chamber_light_on() const;
+    SideStripState current_state() const;
 
     leds::ColorRGBW color() const;
 
@@ -108,9 +121,13 @@ private:
     uint8_t max_brightness;
     uint8_t dimmed_brightness;
     uint8_t print_brightness;
+    uint8_t deep_idle_brightness;
+    SideLightMode light_mode;
+    uint8_t main_light_state_mask;
     uint16_t activity_timeout_s;
     uint16_t event_timeout_s;
     uint16_t off_timeout_s;
+    bool door_holds_active;
     bool post_print_hold_enabled;
 
     SideStripState state = SideStripState::unknown;
