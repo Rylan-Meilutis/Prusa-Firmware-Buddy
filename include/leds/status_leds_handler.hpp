@@ -68,6 +68,8 @@ public:
 
     bool get_active();
     void set_active(bool val);
+    bool get_print_status_enabled();
+    void set_print_status_enabled(bool val);
     void set_deep_idle(bool val);
     void acknowledge_finished();
     void set_finished_hold_active(bool val);
@@ -79,6 +81,7 @@ public:
 private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
+    bool print_status_disabled { false };
     bool deep_idle { false };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };

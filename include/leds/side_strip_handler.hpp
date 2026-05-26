@@ -81,6 +81,8 @@ public:
 
     uint8_t get_print_brightness() const;
     void set_print_brightness(uint8_t value);
+    bool get_print_light_enabled() const;
+    void set_print_light_enabled(bool value);
 
     bool deep_idle() const;
     bool chamber_light_on() const;
@@ -120,6 +122,7 @@ private:
     bool post_print_hold = false;
     bool post_print_hold_dismissed = false;
     bool post_print_hold_seen_door_open = false;
+    bool print_light_disabled = false;
     std::optional<CustomColorState> custom_color;
 };
 
