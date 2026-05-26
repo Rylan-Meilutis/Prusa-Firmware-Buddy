@@ -228,6 +228,13 @@ def find_repo_python() -> list[str]:
     )
 
 
+def repo_python_env(repo_python: list[str]) -> dict[str, str]:
+    env = os.environ.copy()
+    if len(repo_python) == 1:
+        env["BUDDY_PYTHON"] = repo_python[0]
+    return env
+
+
 def split_csv(values: list[str]) -> list[str]:
     tokens: list[str] = []
     for value in values:
@@ -568,6 +575,7 @@ def main() -> int:
     selected_presets = unique_presets(split_csv(args.preset or ["all"]), known_presets)
     output_dir = args.output_dir.resolve()
     repo_python = find_repo_python()
+    child_env = repo_python_env(repo_python)
 
     if args.store_output and args.no_store_output:
         raise SystemExit("--store-output and --no-store-output are mutually exclusive")
@@ -633,7 +641,12 @@ def main() -> int:
 
     if not args.skip_bootstrap:
         print("Bootstrapping once before parallel builds...")
-        bootstrap = subprocess.run([*repo_python, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+        bootstrap = subprocess.run(
+            [*repo_python, str(PROJECT_ROOT / "utils" / "bootstrap.py")],
+            cwd=PROJECT_ROOT,
+            env=child_env,
+            check=False,
+        )
         if bootstrap.returncode != 0:
             return bootstrap.returncode
 
@@ -657,6 +670,7 @@ def main() -> int:
                 process = subprocess.Popen(
                     job.command,
                     cwd=PROJECT_ROOT,
+                    env=child_env,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,

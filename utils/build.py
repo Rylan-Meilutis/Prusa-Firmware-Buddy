@@ -312,6 +312,8 @@ def build(configuration: BuildConfiguration,
     """Build a project with a single configuration."""
     flags = configuration.get_cmake_flags(build_dir=build_dir)
 
+    remove_build_dir_with_wrong_python(build_dir)
+
     # create the build directory
     build_dir.mkdir(parents=True, exist_ok=True)
     products = []
@@ -586,6 +588,34 @@ def store_products(products: List[Path], build_config: BuildConfiguration,
             name = base_name
         destination = products_dir / (name + product.suffix)
         shutil.copy(product, destination)
+
+
+def cached_cmake_python(build_dir: Path) -> Optional[Path]:
+    cache_path = build_dir / 'CMakeCache.txt'
+    if not cache_path.exists():
+        return None
+    for line in cache_path.read_text(errors='ignore').splitlines():
+        if line.startswith('Python3_EXECUTABLE:'):
+            _, value = line.split('=', 1)
+            return Path(value)
+    return None
+
+
+def remove_build_dir_with_wrong_python(build_dir: Path):
+    cached_python = cached_cmake_python(build_dir)
+    if cached_python is None:
+        return
+    try:
+        cached_resolved = cached_python.resolve()
+        current_resolved = Path(sys.executable).resolve()
+    except OSError:
+        cached_resolved = cached_python
+        current_resolved = Path(sys.executable)
+    if cached_resolved != current_resolved:
+        print(
+            f'Removing {build_dir}: cached CMake Python is {cached_python}, current Python is {sys.executable}.',
+            file=sys.stderr)
+        shutil.rmtree(build_dir)
 
 
 def load_presets() -> List[Preset]:
