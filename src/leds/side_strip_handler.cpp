@@ -123,9 +123,16 @@ void SideStripHandler::update() {
             post_print_hold = false;
             post_print_hold_dismissed = false;
             post_print_hold_seen_door_open = false;
-            change_state(SideStripState::printing);
+            if (print_light_disabled) {
+                change_state(SideStripState::off);
+                controller.update();
+                return;
+            } else {
+                change_state(SideStripState::printing);
+            }
 
         } else {
+            print_light_disabled = false;
             if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finishing_WaitIdle) {
                 active_timestamp_ms = time_ms;
             } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished() && post_print_hold_enabled) {
@@ -299,6 +306,22 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
     config_store().side_leds_print_brightness.set(value);
     std::lock_guard lock(mutex);
     print_brightness = value;
+    state = SideStripState::unknown;
+}
+
+bool SideStripHandler::get_print_light_enabled() const {
+    std::lock_guard lock(mutex);
+    return max_brightness > 0 && print_brightness > 0 && !print_light_disabled;
+}
+
+void SideStripHandler::set_print_light_enabled(bool value) {
+    std::lock_guard lock(mutex);
+    if (max_brightness == 0 || print_brightness == 0) {
+        print_light_disabled = false;
+        return;
+    }
+    print_light_disabled = !value;
+    host_idle_override = false;
     state = SideStripState::unknown;
 }
 

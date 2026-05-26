@@ -2,6 +2,7 @@
 
 #include <led_animation_controller/animation_controller.hpp>
 #include <led_animation_controller/frame_animation.hpp>
+#include "marlin_server.hpp"
 #include "marlin_vars.hpp"
 #include "client_response.hpp"
 #include <option/has_chamber_filtration_api.h>
@@ -21,6 +22,10 @@ static bool post_filter_active() {
 #else
     return false;
 #endif
+}
+
+static bool print_active_for_status_override() {
+    return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
 }
 
 static StateAnimation marlin_to_anim_state() {
@@ -328,6 +333,21 @@ void StatusLedsHandler::set_active(bool val) {
     config_store().run_leds.set(val);
 }
 
+bool StatusLedsHandler::get_print_status_enabled() {
+    std::lock_guard lock(mutex);
+    return active && !print_status_disabled;
+}
+
+void StatusLedsHandler::set_print_status_enabled(bool val) {
+    std::lock_guard lock(mutex);
+    if (!active) {
+        print_status_disabled = false;
+        return;
+    }
+    print_status_disabled = !val;
+    old_state = StateAnimation::_last;
+}
+
 void StatusLedsHandler::set_deep_idle(bool val) {
     std::lock_guard lock(mutex);
     deep_idle = val;
@@ -349,9 +369,16 @@ void StatusLedsHandler::set_finished_hold_active(bool val) {
 void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
+    const bool print_active = print_active_for_status_override();
+    if (!print_active) {
+        print_status_disabled = false;
+    }
+
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
+    } else if (print_status_disabled && print_active) {
+        state = StateAnimation::Idle;
     } else if (is_error_state) {
         state = StateAnimation::Error;
     } else if (finished_hold_active) {
