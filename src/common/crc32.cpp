@@ -1,3 +1,6 @@
+/// @file
+#include "crc32.hpp"
+
 #include <inttypes.h>
 #include "crc32.h"
 #include <config.h>
@@ -116,4 +119,8 @@ extern uint32_t crc32_calc_ex(uint32_t crc, const uint8_t *data, uint32_t count)
 
 uint32_t crc32_calc(const uint8_t *data, uint32_t count) {
     return crc32_calc_ex(0, data, count);
+}
+
+uint32_t crc32(uint32_t crc, Bytes data) {
+    return crc32_calc_ex(crc, reinterpret_cast<const uint8_t *>(data.data()), data.size());
 }
