@@ -13,7 +13,7 @@ The currently supported models are:
 
 ### Requirements
 
-- Python 3.8 or newer
+- Python 3.8 through 3.12. If your default `python3` is newer, run `./build.py` so it can select a compatible interpreter, or set `BUDDY_PYTHON` to a Python 3.8-3.12 executable.
 - system installation of Python's `requests` package (use either pip or your system package manager)
 
 ### Cloning this repository

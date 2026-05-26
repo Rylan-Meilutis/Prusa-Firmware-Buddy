@@ -23,13 +23,63 @@ from argparse import ArgumentParser
 from pathlib import Path
 from urllib.parse import urlparse
 
-assert sys.version_info >= (3, 8), 'Python 3.8+ is required.'
+MIN_PYTHON = (3, 8)
+MAX_PYTHON_EXCLUSIVE = (3, 13)
+
+
+def _python_version_text(version):
+    return f'{version[0]}.{version[1]}'
+
+
+def _supported_python_range_text():
+    return f'{MIN_PYTHON[0]}.{MIN_PYTHON[1]}-{MAX_PYTHON_EXCLUSIVE[0]}.{MAX_PYTHON_EXCLUSIVE[1] - 1}'
+
+
+def _check_python_version():
+    version = sys.version_info[:2]
+    if MIN_PYTHON <= version < MAX_PYTHON_EXCLUSIVE:
+        return
+    raise SystemExit(
+        f'Python {_supported_python_range_text()} is required by the pinned Python dependencies. '
+        f'Python {_python_version_text(version)} is not supported. '
+        'Run ./build.py so it can select a compatible interpreter, or set BUDDY_PYTHON to python3.12.'
+    )
+
+
+_check_python_version()
 is_windows = platform.system() == 'Windows'
 project_root_dir = Path(__file__).resolve().parent.parent
 dependencies_dir = project_root_dir / '.dependencies'
 venv_dir = project_root_dir / '.venv'
 venv_bin_dir = venv_dir / 'bin' if not is_windows else venv_dir / 'Scripts'
 running_in_venv = Path(sys.prefix).resolve() == venv_dir.resolve()
+
+
+def _venv_python():
+    return venv_bin_dir / ('python.exe' if is_windows else 'python')
+
+
+def _python_version(python):
+    try:
+        result = subprocess.run(
+            [str(python), '-c', "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding='utf-8',
+            check=False)
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        major, minor = result.stdout.strip().split('.', 1)
+        return int(major), int(minor)
+    except ValueError:
+        return None
+
+
+def _python_version_is_supported(version):
+    return version is not None and MIN_PYTHON <= version < MAX_PYTHON_EXCLUSIVE
 
 # All dependencies of this project.
 #
@@ -287,20 +337,25 @@ def switch_to_venv_if_nedded():
         print(
             'You can disable this by setting the BUDDY_NO_VIRTUALENV=1 env. variable.',
             file=sys.stderr)
-        os.execv(str(venv_bin_dir / 'python'),
-                 [str(venv_bin_dir / 'python')] + sys.argv)
+        os.execv(str(_venv_python()), [str(_venv_python())] + sys.argv)
 
 
 def prepare_venv_if_needed():
     if venv_dir.exists():
-        return
+        version = _python_version(_venv_python())
+        if _python_version_is_supported(version):
+            return
+        print(
+            f'Removing incompatible Buddy virtual environment at {venv_dir}.',
+            file=sys.stderr)
+        shutil.rmtree(venv_dir)
     venv.create(venv_dir, with_pip=True, prompt='buddy')
     install_pip_packages()
 
 
 def pip_install(*args):
     command = [
-        str(venv_bin_dir / 'python'), '-m', 'pip', 'install',
+        str(_venv_python()), '-m', 'pip', 'install',
         '--disable-pip-version-check', '--no-input', *args
     ]
     process = subprocess.Popen(command,
