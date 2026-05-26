@@ -8,13 +8,13 @@ For one-off builds, pass the key directly to the build wrapper:
 python3 utils/build.py --preset coreone --bootloader yes --signing-key /path/to/private.key
 ```
 
-For release builds through `build_all.sh`, set `FIRMWARE_SIGNING_KEY`:
+For release builds through `build.py`, set `FIRMWARE_SIGNING_KEY`:
 
 ```sh
-FIRMWARE_SIGNING_KEY=/path/to/private.key ./build_all.sh
+FIRMWARE_SIGNING_KEY=/path/to/private.key ./build.py
 ```
 
-If `FIRMWARE_SIGNING_KEY` is not set, `build_all.sh` automatically uses the machine-local default key at `.local/firmware-signing-key.pem` when that file exists.
+If `FIRMWARE_SIGNING_KEY` is not set, `build.py` automatically uses the machine-local default key at `.local/firmware-signing-key.pem` when that file exists.
 
 If no explicit or default key is available, the build still produces `.bbf` files, but they are packed with an all-zero signature.
 

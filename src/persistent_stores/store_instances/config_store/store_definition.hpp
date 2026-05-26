@@ -88,10 +88,8 @@
 #if HAS_SIDE_LEDS()
     #include "leds/dimming_enabled.hpp"
     #include "leds/light_state.hpp"
-    #include "leds/side_light_mode.hpp"
 #endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    #include "leds/external_light_mode.hpp"
     #include "leds/light_state.hpp"
 #endif
 
@@ -470,7 +468,6 @@ struct CurrentStore
     StoreItem<uint8_t, PWM255::from_percent(40).value, ItemFlag::user_interface, journal::hash("XBuddy Extension Chamber LEDs dimmed PWM")> side_leds_dimmed_brightness;
     StoreItem<uint8_t, 255, ItemFlag::user_interface, journal::hash("XBuddy Extension Chamber LEDs print PWM")> side_leds_print_brightness;
     StoreItem<uint8_t, leds::light_state_bit(leds::LightState::idle) | leds::light_state_bit(leds::LightState::active) | leds::light_state_bit(leds::LightState::printing), ItemFlag::user_interface, journal::hash("Side LEDs State Mask")> side_leds_state_mask;
-    StoreItem<leds::SideLightMode, leds::SideLightMode::awake, ItemFlag::user_interface, journal::hash("Side LEDs Sequence Mode")> side_leds_sequence_mode;
     /// Whether the side leds should dim down a bit when user is not interacting with the printer or stay on full power the whole time
     StoreItem<leds::DimmingEnabled, leds::DimmingEnabled::not_printing, ItemFlag::user_interface, journal::hash("Enable Side LEDs dimming")> side_leds_dimming_enabled;
     StoreItem<uint16_t, 120, ItemFlag::user_interface, journal::hash("Side LEDs activity timeout seconds")> side_leds_activity_timeout_s;
@@ -483,7 +480,6 @@ struct CurrentStore
     StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("External Light Bar Enabled Pins")> external_light_bar_enabled_pins;
     StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("External Light Bar Active High Pins")> external_light_bar_active_high_pins;
     StoreItem<uint8_t, leds::light_state_bit(leds::LightState::idle) | leds::light_state_bit(leds::LightState::active) | leds::light_state_bit(leds::LightState::printing), ItemFlag::user_interface, journal::hash("External Light Bar State Mask")> external_light_bar_state_mask;
-    StoreItem<leds::ExternalLightMode, leds::ExternalLightMode::mirror_chamber, ItemFlag::user_interface, journal::hash("External Light Bar Mode")> external_light_bar_mode;
 #endif
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Serial Printing Screen")> serial_print_screen_enabled;

@@ -571,19 +571,6 @@ public:
     virtual void OnClick() override;
 };
 
-class MI_SIDE_LEDS_SEQUENCE_MODE : public MenuItemSwitch {
-    static constexpr const char *const label =
-    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-        N_("Chamber Sequence");
-    #else
-        N_("Side Strip Sequence");
-    #endif
-
-public:
-    MI_SIDE_LEDS_SEQUENCE_MODE();
-    virtual void OnChange(size_t old_index) override;
-};
-
 class MI_LIGHT_STATE_MAIN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -712,14 +699,6 @@ public:
 #endif
 
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-class MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE : public MenuItemSwitch {
-    static constexpr const char *const label = N_("External Sequence");
-
-public:
-    MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE();
-    virtual void OnChange(size_t old_index) override;
-};
-
 class MI_LIGHT_STATE_EXTERNAL_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("External Light Bar");
     leds::LightState state;
