@@ -615,16 +615,6 @@ public:
     virtual void OnClick() override;
 };
 
-class MI_LIGHT_STATE_DURATION : public WiSpin {
-    static constexpr const char *const label = N_("Duration");
-    leds::LightState state;
-
-public:
-    MI_LIGHT_STATE_DURATION(leds::LightState state);
-    virtual void OnClick() override;
-    virtual void Loop() override;
-};
-
 class MI_LIGHT_STATE_DOOR_ACTIVE : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("Door Holds Active");
 
@@ -661,7 +651,7 @@ public:
 };
 
 class MI_SIDE_LEDS_ACTIVITY_TIMEOUT : public WiSpin {
-    static constexpr const char *const label = N_("Time Until Dimmed");
+    static constexpr const char *const label = N_("Active to Idle");
 
 public:
     MI_SIDE_LEDS_ACTIVITY_TIMEOUT();
@@ -684,7 +674,7 @@ public:
 };
 
 class MI_SIDE_LEDS_OFF_TIMEOUT : public WiSpin {
-    static constexpr const char *const label = N_("Time Until Off");
+    static constexpr const char *const label = N_("Idle to Deep Idle");
 
 public:
     MI_SIDE_LEDS_OFF_TIMEOUT();
