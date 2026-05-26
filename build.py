@@ -10,9 +10,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
+import re
 import shutil
 import subprocess
 import sys
+import threading
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -47,6 +52,56 @@ PRESET_ALIASES = {
     "mini-lang": MINI_LANGUAGE_PRESETS,
     "mini-all": ["mini", *MINI_LANGUAGE_PRESETS],
 }
+
+PROGRESS_RE = re.compile(r"\[(\d+)/(\d+)\]")
+STATUS_LABELS = {
+    "queued": "queued",
+    "running": "running",
+    "success": "done",
+    "failed": "failed",
+}
+STATUS_COLORS = {
+    "queued": "\033[90m",
+    "running": "\033[36m",
+    "success": "\033[32m",
+    "failed": "\033[31m",
+}
+RESET = "\033[0m"
+
+
+@dataclass
+class BuildJob:
+    preset: str
+    command: list[str]
+    products_dir: Path
+    status: str = "queued"
+    progress: str = "-"
+    started_at: float | None = None
+    finished_at: float | None = None
+    returncode: int | None = None
+    last_line: str = ""
+    log: list[str] = field(default_factory=list)
+
+    @property
+    def elapsed_s(self) -> int:
+        end = self.finished_at or time.monotonic()
+        if self.started_at is None:
+            return 0
+        return int(end - self.started_at)
+
+    @property
+    def progress_percent(self) -> int | None:
+        if "/" not in self.progress:
+            return None
+        done, total = self.progress.split("/", 1)
+        try:
+            done_i = int(done)
+            total_i = int(total)
+        except ValueError:
+            return None
+        if total_i <= 0:
+            return None
+        return min(100, int(done_i * 100 / total_i))
 
 
 def load_preset_names() -> set[str]:
@@ -89,11 +144,7 @@ def default_signing_key() -> Path | None:
 
 def normalize_bbf_names(output_dir: Path) -> None:
     for bbf in output_dir.glob("*.bbf"):
-        name = bbf.name
-        for marker in ("_release_boot", "_release_noboot", "_release_emptyboot"):
-            name = name.replace(marker, "")
-
-        destination = bbf.with_name(name)
+        destination = bbf.with_name(normalized_bbf_name(bbf.name))
         if destination == bbf:
             continue
         if destination.exists():
@@ -101,10 +152,242 @@ def normalize_bbf_names(output_dir: Path) -> None:
         bbf.rename(destination)
 
 
+def normalized_bbf_name(name: str) -> str:
+    for marker in ("_release_boot", "_release_noboot", "_release_emptyboot"):
+        name = name.replace(marker, "")
+    return name
+
+
 def keep_only_bbf_files(output_dir: Path) -> None:
     for product in output_dir.iterdir():
         if product.is_file() and product.suffix != ".bbf":
             product.unlink()
+
+
+def is_selected_bbf(path: Path, selected_presets: list[str]) -> bool:
+    stem = path.stem
+    return any(stem == preset or stem.startswith(f"{preset}_") for preset in selected_presets)
+
+
+def prune_unselected_bbfs(output_dir: Path, selected_presets: list[str]) -> None:
+    for bbf in output_dir.glob("*.bbf"):
+        if not is_selected_bbf(bbf, selected_presets):
+            bbf.unlink()
+
+
+def copy_finished_bbfs(job: BuildJob, output_dir: Path, selected_presets: list[str]) -> None:
+    for bbf in job.products_dir.glob("*.bbf"):
+        destination = output_dir / normalized_bbf_name(bbf.name)
+        if destination.exists():
+            destination.unlink()
+        shutil.copy2(bbf, destination)
+    prune_unselected_bbfs(output_dir, selected_presets)
+    keep_only_bbf_files(output_dir)
+
+
+def collect_finished_bbfs(jobs: list[BuildJob], output_dir: Path, selected_presets: list[str]) -> None:
+    for job in jobs:
+        if job.returncode == 0:
+            copy_finished_bbfs(job, output_dir, selected_presets)
+
+
+def format_elapsed(seconds: int) -> str:
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours:d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:d}:{seconds:02d}"
+
+
+def progress_bar(percent: int | None, width: int = 18) -> str:
+    if percent is None:
+        return "[" + "." * width + "]"
+    filled = min(width, max(0, int(width * percent / 100)))
+    return "[" + "#" * filled + "." * (width - filled) + "]"
+
+
+def strip_ansi(value: str) -> str:
+    return re.sub(r"\033\[[0-9;]*m", "", value)
+
+
+class TerminalUI:
+    def __init__(self, enabled: bool):
+        self.enabled = enabled
+        self.started = False
+        self.line_count = 0
+
+    def start(self) -> None:
+        if not self.enabled or self.started:
+            return
+        print("\033[?25l", end="", flush=True)
+        self.started = True
+
+    def stop(self) -> None:
+        if not self.enabled or not self.started:
+            return
+        print("\033[?25h", end="", flush=True)
+        self.started = False
+
+    def render(self, jobs: list[BuildJob]) -> None:
+        if not self.enabled:
+            return
+        self.start()
+        lines = build_progress_lines(jobs, color=True)
+        if self.line_count:
+            print(f"\033[{self.line_count}F", end="")
+        for index, line in enumerate(lines):
+            print("\033[2K" + line)
+            if index == len(lines) - 1 and self.line_count > len(lines):
+                for _ in range(self.line_count - len(lines)):
+                    print("\033[2K")
+        self.line_count = len(lines)
+
+
+def build_progress_lines(jobs: list[BuildJob], *, color: bool = False) -> list[str]:
+    completed = sum(1 for job in jobs if job.status in {"success", "failed"})
+    failed = sum(1 for job in jobs if job.status == "failed")
+
+    lines = [
+        f"Firmware build progress  {completed}/{len(jobs)} done  {failed} failed",
+        "MODEL              STATUS     PROGRESS              TIME     CURRENT STEP",
+        "-" * 92,
+    ]
+    for job in jobs:
+        percent = job.progress_percent
+        progress = job.progress if percent is None else f"{job.progress} {percent:3d}%"
+        status_text = STATUS_LABELS.get(job.status, job.status)
+        if color:
+            status = f"{STATUS_COLORS.get(job.status, '')}{status_text:<10}{RESET}"
+        else:
+            status = f"{status_text:<10}"
+        current = strip_ansi(job.last_line)[-34:] if job.last_line else ""
+        lines.append(
+            f"{job.preset:<18} {status} {progress_bar(percent)} "
+            f"{progress:<12} {format_elapsed(job.elapsed_s):<8} {current}"
+        )
+    return lines
+
+
+def print_summary(jobs: list[BuildJob], output_dir: Path) -> None:
+    total_time = max((job.finished_at or time.monotonic()) for job in jobs) - min((job.started_at or time.monotonic()) for job in jobs)
+    success = [job for job in jobs if job.returncode == 0]
+    failed = [job for job in jobs if job.returncode != 0]
+
+    print()
+    print("Build summary")
+    print("-" * 72)
+    print(f"Result: {len(success)} succeeded, {len(failed)} failed")
+    print(f"Elapsed: {format_elapsed(int(total_time))}")
+    print()
+    print("MODEL              RESULT     TIME     BBF")
+    print("-" * 72)
+    for job in jobs:
+        result = "SUCCESS" if job.returncode == 0 else "FAILED"
+        bbf_names = [bbf.name for bbf in sorted(output_dir.glob("*.bbf")) if is_selected_bbf(bbf, [job.preset])]
+        bbf_name = ", ".join(bbf_names) if bbf_names else "-"
+        print(f"{job.preset:<18} {result:<10} {format_elapsed(job.elapsed_s):<8} {bbf_name}")
+
+    staged = sorted(output_dir.glob("*.bbf"))
+    if staged:
+        print()
+        print(f"BBFs staged in {output_dir}:")
+        for bbf in staged:
+            print(f"  {bbf.name}")
+
+
+def read_process_output(job: BuildJob, process: subprocess.Popen[str], output_queue: queue.Queue[tuple[BuildJob, str]]) -> None:
+    assert process.stdout is not None
+    for line in process.stdout:
+        output_queue.put((job, line.rstrip()))
+
+
+def generate_signing_key_with_ecdsa(private_key: Path, public_key: Path) -> bool:
+    try:
+        from ecdsa import NIST256p, SigningKey
+    except ImportError:
+        return False
+
+    key = SigningKey.generate(curve=NIST256p)
+    private_key.write_bytes(key.to_pem())
+    public_key.write_bytes(key.verifying_key.to_pem())
+    return True
+
+
+def generate_signing_key_with_openssl(private_key: Path, public_key: Path) -> bool:
+    openssl = shutil.which("openssl")
+    if not openssl:
+        return False
+
+    subprocess.run(
+        [openssl, "ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", str(private_key)],
+        check=True,
+    )
+    subprocess.run(
+        [openssl, "ec", "-in", str(private_key), "-pubout", "-out", str(public_key)],
+        check=True,
+    )
+    return True
+
+
+def venv_python() -> Path:
+    if os.name == "nt":
+        return PROJECT_ROOT / ".venv" / "Scripts" / "python.exe"
+    return PROJECT_ROOT / ".venv" / "bin" / "python"
+
+
+def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> bool:
+    bootstrap = subprocess.run([sys.executable, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+    if bootstrap.returncode != 0:
+        return False
+
+    python = venv_python()
+    if not python.exists():
+        return False
+
+    script = (
+        "from ecdsa import NIST256p, SigningKey\n"
+        "from pathlib import Path\n"
+        "private_key = Path(r'''%s''')\n"
+        "public_key = Path(r'''%s''')\n"
+        "key = SigningKey.generate(curve=NIST256p)\n"
+        "private_key.write_bytes(key.to_pem())\n"
+        "public_key.write_bytes(key.verifying_key.to_pem())\n"
+    ) % (str(private_key), str(public_key))
+    result = subprocess.run([str(python), "-c", script], cwd=PROJECT_ROOT, check=False)
+    return result.returncode == 0
+
+
+def setup_signing_key(private_key: Path, *, force: bool = False) -> int:
+    public_key = private_key.with_name(f"{private_key.stem}-public.pem")
+    if private_key.exists() and not force:
+        print(f"Signing key already exists: {private_key}")
+        print("Use --force-signing-key to replace it.")
+        return 0
+
+    private_key.parent.mkdir(parents=True, exist_ok=True)
+    if private_key.exists():
+        private_key.unlink()
+    if public_key.exists():
+        public_key.unlink()
+
+    generated = generate_signing_key_with_ecdsa(private_key, public_key)
+    if not generated:
+        generated = generate_signing_key_with_openssl(private_key, public_key)
+    if not generated:
+        generated = generate_signing_key_with_bootstrap(private_key, public_key)
+    if not generated:
+        print("Could not generate a signing key.")
+        print("Install Python package 'ecdsa' or OpenSSL, then rerun --setup-signing.")
+        return 1
+
+    if os.name == "posix":
+        private_key.chmod(0o600)
+        public_key.chmod(0o644)
+
+    print(f"Created signing key: {private_key}")
+    print(f"Created public key:  {public_key}")
+    print("Set FIRMWARE_SIGNING_KEY to the private key path or leave it at the default location.")
+    return 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -126,6 +409,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Where BBFs are staged. Default: ./bbf.")
     parser.add_argument("--build-dir", type=Path, help="Build directory passed to utils/build.py.")
     parser.add_argument("--signing-key", type=Path, help="PEM signing key. Defaults to FIRMWARE_SIGNING_KEY or .local/firmware-signing-key.pem if present.")
+    parser.add_argument("--setup-signing", action="store_true", help="Create a local ECDSA signing key and exit.")
+    parser.add_argument("--force-signing-key", action="store_true", help="Replace the signing key when used with --setup-signing.")
     parser.add_argument("--no-signing-key", action="store_true", help="Do not pass a signing key, even if the default key exists.")
     parser.add_argument("--skip-bootstrap", action="store_true", help="Pass --skip-bootstrap to utils/build.py.")
     parser.add_argument("--store-output", action="store_true", help="Ask utils/build.py to store build logs in files.")
@@ -135,6 +420,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--version-suffix", help="Pass --version-suffix to utils/build.py.")
     parser.add_argument("--version-suffix-short", help="Pass --version-suffix-short to utils/build.py.")
     parser.add_argument("--no-clean-output", action="store_true", help="Do not clear the output folder before building.")
+    parser.add_argument("--jobs", type=int, help="Number of presets to build at once. Default: all selected presets.")
+    parser.add_argument("--verbose", action="store_true", help="Print each child build's output while it runs.")
     parser.add_argument("--dry-run", action="store_true", help="Print the build command without running it.")
     parser.add_argument(
         "-D",
@@ -150,6 +437,10 @@ def main() -> int:
     args = parse_args()
     known_presets = load_preset_names()
 
+    if args.setup_signing:
+        key_path = args.signing_key or DEFAULT_SIGNING_KEY
+        return setup_signing_key(key_path, force=args.force_signing_key)
+
     if args.list_presets:
         for preset in RELEASE_PRESETS:
             print(preset)
@@ -160,64 +451,147 @@ def main() -> int:
 
     if args.store_output and args.no_store_output:
         raise SystemExit("--store-output and --no-store-output are mutually exclusive")
+    if args.jobs is not None and args.jobs < 1:
+        raise SystemExit("--jobs must be at least 1")
 
     if not args.dry_run and not args.no_clean_output and output_dir.exists():
         shutil.rmtree(output_dir)
     if not args.dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    command = [
-        sys.executable,
-        str(PROJECT_ROOT / "utils" / "build.py"),
-        "--preset",
-        ",".join(selected_presets),
-        "--build-type",
-        args.build_type,
-        "--bootloader",
-        args.bootloader,
-        "--products-dir",
-        str(output_dir),
-    ]
-
-    if args.build_dir:
-        command.extend(["--build-dir", str(args.build_dir)])
-    if args.skip_bootstrap:
-        command.append("--skip-bootstrap")
-    if args.store_output:
-        command.append("--store-output")
-    if args.no_store_output:
-        command.append("--no-store-output")
-    if args.generate_dfu:
-        command.append("--generate-dfu")
-    if args.final:
-        command.append("--final")
-    if args.version_suffix is not None:
-        command.extend(["--version-suffix", args.version_suffix])
-    if args.version_suffix_short is not None:
-        command.extend(["--version-suffix-short", args.version_suffix_short])
-
     signing_key = None if args.no_signing_key else (args.signing_key or default_signing_key())
     if signing_key:
         if not signing_key.exists():
             raise SystemExit(f"Signing key not found: {signing_key}")
-        command.extend(["--signing-key", str(signing_key)])
 
-    for definition in args.cmake_def:
-        command.extend(["-D", definition])
+    product_root = output_dir / ".products"
+    jobs: list[BuildJob] = []
+    for preset in selected_presets:
+        products_dir = product_root / preset
+        command = [
+            sys.executable,
+            str(PROJECT_ROOT / "utils" / "build.py"),
+            "--preset",
+            preset,
+            "--build-type",
+            args.build_type,
+            "--bootloader",
+            args.bootloader,
+            "--products-dir",
+            str(products_dir),
+            "--skip-bootstrap",
+            "--no-store-output",
+        ]
 
+        if args.build_dir:
+            command.extend(["--build-dir", str(args.build_dir)])
+        if args.store_output:
+            command.remove("--no-store-output")
+            command.append("--store-output")
+        if args.generate_dfu:
+            command.append("--generate-dfu")
+        if args.final:
+            command.append("--final")
+        if args.version_suffix is not None:
+            command.extend(["--version-suffix", args.version_suffix])
+        if args.version_suffix_short is not None:
+            command.extend(["--version-suffix-short", args.version_suffix_short])
+        if signing_key:
+            command.extend(["--signing-key", str(signing_key)])
+        for definition in args.cmake_def:
+            command.extend(["-D", definition])
+        jobs.append(BuildJob(preset=preset, command=command, products_dir=products_dir))
+
+    max_parallel = args.jobs or len(jobs)
     print("Building presets:", ",".join(selected_presets))
     print("BBF output:", output_dir)
+    print("Parallel jobs:", max_parallel)
     if args.dry_run:
-        print(" ".join(str(part) for part in command))
+        for job in jobs:
+            print(" ".join(str(part) for part in job.command))
         return 0
 
-    result = subprocess.run(command, cwd=PROJECT_ROOT, check=False)
-    if result.returncode != 0:
-        return result.returncode
+    if not args.skip_bootstrap:
+        print("Bootstrapping once before parallel builds...")
+        bootstrap = subprocess.run([sys.executable, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+        if bootstrap.returncode != 0:
+            return bootstrap.returncode
 
-    normalize_bbf_names(output_dir)
+    if product_root.exists():
+        shutil.rmtree(product_root)
+    product_root.mkdir(parents=True, exist_ok=True)
+
+    running: dict[subprocess.Popen[str], BuildJob] = {}
+    pending = list(jobs)
+    output_queue: queue.Queue[tuple[BuildJob, str]] = queue.Queue()
+    last_render = 0.0
+    ui = TerminalUI(enabled=sys.stdout.isatty() and not args.verbose)
+
+    try:
+        while pending or running:
+            while pending and len(running) < max_parallel:
+                job = pending.pop(0)
+                job.products_dir.mkdir(parents=True, exist_ok=True)
+                job.started_at = time.monotonic()
+                job.status = "running"
+                process = subprocess.Popen(
+                    job.command,
+                    cwd=PROJECT_ROOT,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                )
+                running[process] = job
+                threading.Thread(target=read_process_output, args=(job, process, output_queue), daemon=True).start()
+
+            while True:
+                try:
+                    job, line = output_queue.get_nowait()
+                except queue.Empty:
+                    break
+                job.log.append(line)
+                job.last_line = line
+                if args.verbose:
+                    print(f"[{job.preset}] {line}")
+                match = PROGRESS_RE.search(line)
+                if match:
+                    job.progress = f"{match.group(1)}/{match.group(2)}"
+
+            for process, job in list(running.items()):
+                returncode = process.poll()
+                if returncode is None:
+                    continue
+                job.returncode = returncode
+                job.finished_at = time.monotonic()
+                job.status = "success" if returncode == 0 else "failed"
+                running.pop(process)
+
+            now = time.monotonic()
+            if now - last_render >= 0.2:
+                ui.render(jobs)
+                last_render = now
+            if running:
+                time.sleep(0.1)
+    finally:
+        ui.stop()
+
+    collect_finished_bbfs(jobs, output_dir, selected_presets)
     keep_only_bbf_files(output_dir)
-    print(f"BBFs staged in {output_dir}")
+    prune_unselected_bbfs(output_dir, selected_presets)
+    if product_root.exists():
+        shutil.rmtree(product_root)
+
+    failed = [job for job in jobs if job.returncode != 0]
+    print_summary(jobs, output_dir)
+    if failed:
+        print()
+        print("Failed builds:")
+        for job in failed:
+            print(f" {job.preset}")
+            for line in job.log[-20:]:
+                print(f"   {line}")
+        return 1
     return 0
 
 
