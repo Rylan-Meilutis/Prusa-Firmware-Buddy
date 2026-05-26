@@ -14,14 +14,9 @@
 #if PRINTER_IS_PRUSA_XL()
     #define HAS_SELFTEST_POWER_CHECK()        1
     #define HAS_SELFTEST_POWER_CHECK_SINGLE() 1
-    #define HAS_SELFTEST_POWER_CHECK_BOTH()   0
-
 #else
-    // POWER_CHECK_BOTH calculation produces nonsense values and is disabled.
-    // BFW-6195
     #define HAS_SELFTEST_POWER_CHECK()        0
     #define HAS_SELFTEST_POWER_CHECK_SINGLE() 0
-    #define HAS_SELFTEST_POWER_CHECK_BOTH()   0
 #endif
 
 namespace selftest {
