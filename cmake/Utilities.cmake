@@ -6,6 +6,13 @@ set(BUDDY_NO_VIRTUALENV
     $<BOOL:$ENV{BUDDY_NO_VIRTUALENV}>
     CACHE BOOL "Disable python virtualenv management"
     )
+if(NOT Python3_EXECUTABLE AND NOT "$ENV{BUDDY_PYTHON}" STREQUAL "")
+  set(Python3_EXECUTABLE
+      "$ENV{BUDDY_PYTHON}"
+      CACHE FILEPATH "Python interpreter selected by the Buddy build wrapper"
+      )
+endif()
+
 if(NOT Python3_EXECUTABLE)
   if(NOT ${BUDDY_NO_VIRTUALENV})
     set(Python3_ROOT_DIR "${CMAKE_SOURCE_DIR}/.venv")
@@ -24,12 +31,14 @@ function(get_recommended_gcc_version var)
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT_DIR}/utils/bootstrap.py"
             "--print-dependency-version" "gcc-arm-none-eabi"
     OUTPUT_VARIABLE RECOMMENDED_VERSION
+    ERROR_VARIABLE RECOMMENDED_ERROR
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE RETVAL
     )
 
   if(NOT "${RETVAL}" STREQUAL "0")
-    message(FATAL_ERROR "Failed to obtain recommended gcc version from utils/bootstrap.py")
+    message(FATAL_ERROR "Failed to obtain recommended gcc version from utils/bootstrap.py using ${Python3_EXECUTABLE}: ${RECOMMENDED_ERROR}")
   endif()
 
   set(${var}
@@ -43,12 +52,14 @@ function(get_dependency_directory dependency var)
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT_DIR}/utils/bootstrap.py"
             "--print-dependency-directory" "${dependency}"
     OUTPUT_VARIABLE DEPENDENCY_DIRECTORY
+    ERROR_VARIABLE DEPENDENCY_ERROR
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE RETVAL
     )
 
   if(NOT "${RETVAL}" STREQUAL "0")
-    message(FATAL_ERROR "Failed to find directory with ${dependency}")
+    message(FATAL_ERROR "Failed to find directory with ${dependency} using ${Python3_EXECUTABLE}: ${DEPENDENCY_ERROR}")
   endif()
 
   set(${var}
@@ -62,12 +73,14 @@ function(get_dependency_version dependency var)
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT_DIR}/utils/bootstrap.py"
             "--print-dependency-version" "${dependency}"
     OUTPUT_VARIABLE DEPENDENCY_VERSION
+    ERROR_VARIABLE DEPENDENCY_ERROR
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE RETVAL
     )
 
   if(NOT "${RETVAL}" STREQUAL "0")
-    message(FATAL_ERROR "Failed to find directory with ${dependency}")
+    message(FATAL_ERROR "Failed to find version for ${dependency} using ${Python3_EXECUTABLE}: ${DEPENDENCY_ERROR}")
   endif()
 
   set(${var}
