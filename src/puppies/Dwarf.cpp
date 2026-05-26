@@ -48,13 +48,13 @@ METRIC_DEF(metric_dwarf_parked_raw, "dwarf_parked_raw", METRIC_VALUE_CUSTOM, 100
 METRIC_DEF(metric_dwarf_heater_current, "dwarf_heat_curr", METRIC_VALUE_CUSTOM, 100, METRIC_DISABLED);
 METRIC_DEF(metric_dwarf_heater_pwm, "dwarf_heat_pwm", METRIC_VALUE_CUSTOM, 100, METRIC_DISABLED);
 
-Dwarf::Dwarf(const uint8_t dwarf_nr, uint8_t modbus_address)
+Dwarf::Dwarf(const uint8_t dwarf_number, uint8_t modbus_address)
     : ModbusDevice(modbus_address)
     , mutex(new freertos::Mutex)
-    , dwarf_nr(dwarf_nr)
-    , log_component(get_log_component(dwarf_nr))
+    , dwarf_number(dwarf_number)
+    , log_component(get_log_component(dwarf_number))
     , selected(false)
-    , time_sync(this->dwarf_nr)
+    , time_sync(dwarf_number + 1)
     , loadcell_samplerate {} {
 
     // Atomic mirrors initial values — must not trigger min-temp faults.
@@ -144,10 +144,10 @@ CommunicationStatus Dwarf::read_general_status(PuppyModbus &bus) {
         v24_mV.store(block.value.system_24V_mV);
         heater_current_mA.store(block.value.heater_current_mA);
 
-        metric_record_custom(&metric_dwarf_parked_raw, ",n=%u v=%ii", dwarf_nr, block.value.IsParkedRaw);
-        metric_record_custom(&metric_dwarf_picked_raw, ",n=%u v=%ii", dwarf_nr, block.value.IsPickedRaw);
-        metric_record_custom(&metric_dwarf_heater_current, ",n=%u v=%d", dwarf_nr, block.value.heater_current_mA);
-        metric_record_custom(&metric_dwarf_heater_pwm, ",n=%u v=%d", dwarf_nr, block.value.HotendPWMState);
+        metric_record_custom(&metric_dwarf_parked_raw, ",n=%u v=%ii", dwarf_number + 1, block.value.IsParkedRaw);
+        metric_record_custom(&metric_dwarf_picked_raw, ",n=%u v=%ii", dwarf_number + 1, block.value.IsPickedRaw);
+        metric_record_custom(&metric_dwarf_heater_current, ",n=%u v=%d", dwarf_number + 1, block.value.heater_current_mA);
+        metric_record_custom(&metric_dwarf_heater_pwm, ",n=%u v=%d", dwarf_number + 1, block.value.HotendPWMState);
     }
     return status;
 }
@@ -516,19 +516,19 @@ bool Dwarf::raw_set_accelerometer(PuppyModbus &bus, bool enable) {
     return bus.write(unit, AccelerometerEnableCoil) == CommunicationStatus::OK;
 }
 
-constexpr logging::Component &Dwarf::get_log_component(uint8_t dwarf_nr) {
-    switch (dwarf_nr) {
-    case 1:
+constexpr logging::Component &Dwarf::get_log_component(uint8_t dwarf_number) {
+    switch (dwarf_number) {
+    case 0:
         return __log_component_Dwarf_1;
-    case 2:
+    case 1:
         return __log_component_Dwarf_2;
-    case 3:
+    case 2:
         return __log_component_Dwarf_3;
-    case 4:
+    case 3:
         return __log_component_Dwarf_4;
-    case 5:
+    case 4:
         return __log_component_Dwarf_5;
-    case 6:
+    case 5:
         return __log_component_Dwarf_6;
     default:
         bsod("Unknown");
@@ -635,11 +635,11 @@ void Dwarf::handle_dwarf_fault(PuppyModbus &bus, dwarf_shared::errors::FaultStat
         // make sure strings are zero-terminated
         title_span.back() = 0;
         message_span.back() = 0;
-        DWARF_LOG(logging::Severity::error, "Dwarf %d fault %s: %s", dwarf_nr, title_span.data(), message_span.data());
+        DWARF_LOG(logging::Severity::error, "Dwarf %d fault %s: %s", dwarf_number + 1, title_span.data(), message_span.data());
 
         // Prepare module string (insert dwarf number)
         char module[31] = { 0 };
-        snprintf(module, sizeof(module), "Dwarf %d: %s", dwarf_nr, title_span.data());
+        snprintf(module, sizeof(module), "Dwarf %d: %s", dwarf_number + 1, title_span.data());
 
         if (int error_code; sscanf(message_span.data(), "ERRC%i", &error_code) == 1) {
             fatal_error(static_cast<ErrCode>(error_code));
@@ -650,9 +650,9 @@ void Dwarf::handle_dwarf_fault(PuppyModbus &bus, dwarf_shared::errors::FaultStat
         }
 
     } else if (fault_int & std::to_underlying(dwarf_shared::errors::FaultStatusMask::TMC_FAULT)) {
-        fatal_error(ErrCode::ERR_SYSTEM_DWARF_TMC, dwarf_nr);
+        fatal_error(ErrCode::ERR_SYSTEM_DWARF_TMC, dwarf_number + 1);
     } else {
-        fatal_error(ErrCode::ERR_SYSTEM_DWARF_UNKNOWN_ERR, dwarf_nr);
+        fatal_error(ErrCode::ERR_SYSTEM_DWARF_UNKNOWN_ERR, dwarf_number + 1);
     }
 }
 
@@ -732,12 +732,12 @@ uint16_t Dwarf::get_fan_state(uint8_t fan_nr) const {
 }
 
 StrongIndexArray<Dwarf, DWARF_MAX_COUNT, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfs {
-    Dwarf { 1, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_1) },
-    Dwarf { 2, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_2) },
-    Dwarf { 3, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_3) },
-    Dwarf { 4, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_4) },
-    Dwarf { 5, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_5) },
-    Dwarf { 6, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_6) },
+    Dwarf { 0, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_1) },
+    Dwarf { 1, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_2) },
+    Dwarf { 2, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_3) },
+    Dwarf { 3, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_4) },
+    Dwarf { 4, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_5) },
+    Dwarf { 5, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_6) },
 };
 
 } // namespace buddy::puppies

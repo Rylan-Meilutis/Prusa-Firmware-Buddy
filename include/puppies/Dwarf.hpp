@@ -62,7 +62,7 @@ public:
     static constexpr uint16_t FAN_MODE_AUTO_PWM = std::numeric_limits<uint16_t>::max();
 
 public:
-    Dwarf(const uint8_t dwarf_nr, uint8_t modbus_address);
+    Dwarf(const uint8_t dwarf_number, uint8_t modbus_address);
     Dwarf(const Dwarf &) = delete;
 
     CommunicationStatus ping(PuppyModbus &);
@@ -304,7 +304,7 @@ void ToolsMappingBody::windowEvent([[maybe_unused]] window_t *sender, GUI_event_
     uint16_t get_heatbreak_fan_pwr();
 
     inline uint8_t dwarf_index() const {
-        return dwarf_nr - 1;
+        return dwarf_number;
     }
 
     uint16_t get_fan_pwm(uint8_t fan_nr) const;
@@ -472,8 +472,8 @@ private:
     // freertos/mutex.hpp.
     std::unique_ptr<freertos::Mutex> mutex;
 
-    /// @brief Dwarf number (1-5)
-    uint8_t dwarf_nr;
+    /// @brief Dwarf number (0-4)
+    uint8_t dwarf_number;
 
     /// @brief Log component asociated with this dwarf
     logging::Component &log_component;
@@ -498,7 +498,7 @@ private:
     CommunicationStatus pull_fifo_nolock(PuppyModbus &, bool &more);
     bool dispatch_log_event();
     CommunicationStatus run_time_sync(PuppyModbus &);
-    constexpr logging::Component &get_log_component(uint8_t dwarf_nr);
+    constexpr logging::Component &get_log_component(uint8_t dwarf_number);
     CommunicationStatus read_discrete_general_status(PuppyModbus &);
     CommunicationStatus read_general_status(PuppyModbus &);
     void handle_dwarf_fault(PuppyModbus &, dwarf_shared::errors::FaultStatusMask fault_status);
