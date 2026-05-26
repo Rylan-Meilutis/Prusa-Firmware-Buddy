@@ -318,6 +318,7 @@ class Temperature {
       [[deprecated("Use the ToolIndex overload")]]
       static void setTargetHotend(const int16_t celsius, const uint8_t E_NAME);
 
+      [[deprecated("Use the Hotend functions directly")]]
       static inline void setTargetHotend(const int16_t celsius, PhysicalToolIndex tool) {
         setTargetHotend(celsius, tool.to_raw());
       }
