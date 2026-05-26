@@ -20,6 +20,23 @@ static bool print_active_for_leds() {
     return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
 }
 
+static LightState light_state_for_strip_state(SideStripState state) {
+    switch (state) {
+    case SideStripState::printing:
+        return LightState::printing;
+    case SideStripState::active:
+    case SideStripState::custom_color:
+        return LightState::active;
+    case SideStripState::dimmed:
+    case SideStripState::idle:
+        return LightState::idle;
+    case SideStripState::off:
+    case SideStripState::unknown:
+        return LightState::deep_idle;
+    }
+    return LightState::deep_idle;
+}
+
 SideStripHandler &SideStripHandler::instance() {
     static SideStripHandler instance;
     return instance;
@@ -149,7 +166,7 @@ void SideStripHandler::update() {
                 active_timestamp_ms = time_ms;
             }
 
-            if (door_open_for_leds) {
+            if (door_open_for_leds && door_holds_active) {
                 change_state(SideStripState::active);
             } else if (active_timestamp_ms == 0) {
                 change_state(SideStripState::off);
@@ -184,10 +201,14 @@ void SideStripHandler::load_config() {
     dimmed_brightness = config_store().side_leds_dimmed_brightness.get();
     print_brightness = config_store().side_leds_print_brightness.get();
     max_brightness = config_store().side_leds_max_brightness.get();
+    deep_idle_brightness = config_store().side_leds_deep_idle_brightness.get();
     dimming_enabled = config_store().side_leds_dimming_enabled.get();
+    light_mode = config_store().side_leds_sequence_mode.get();
+    main_light_state_mask = config_store().side_leds_state_mask.get();
     activity_timeout_s = config_store().side_leds_activity_timeout_s.get();
     event_timeout_s = config_store().side_leds_event_timeout_s.get();
     off_timeout_s = config_store().side_leds_off_timeout_s.get();
+    door_holds_active = config_store().side_leds_door_holds_active.get();
     post_print_hold_enabled = config_store().post_print_led_hold_enabled.get();
     // Set state to off to force a change of state that will transition to the new brightness
     state = SideStripState::unknown;
@@ -236,6 +257,147 @@ void SideStripHandler::set_dimming_enabled(DimmingEnabled value) {
     config_store().side_leds_dimming_enabled.set(value);
     std::lock_guard lock(mutex);
     dimming_enabled = value;
+}
+
+SideLightMode SideStripHandler::get_light_mode() const {
+    std::lock_guard lock(mutex);
+    return light_mode;
+}
+
+void SideStripHandler::set_light_mode(SideLightMode value) {
+    config_store().side_leds_sequence_mode.set(value);
+    std::lock_guard lock(mutex);
+    light_mode = value;
+    if (light_mode == SideLightMode::off) {
+        print_light_disabled = false;
+    }
+    state = SideStripState::unknown;
+}
+
+bool SideStripHandler::get_main_light_enabled(LightState state) const {
+    std::lock_guard lock(mutex);
+    return main_light_state_mask & light_state_bit(state);
+}
+
+void SideStripHandler::set_main_light_enabled(LightState state, bool value) {
+    std::lock_guard lock(mutex);
+    const uint8_t bit = light_state_bit(state);
+    if (value) {
+        main_light_state_mask |= bit;
+    } else {
+        main_light_state_mask &= ~bit;
+    }
+    config_store().side_leds_state_mask.set(main_light_state_mask);
+    this->state = SideStripState::unknown;
+}
+
+uint8_t SideStripHandler::get_brightness(LightState state) const {
+    std::lock_guard lock(mutex);
+    switch (state) {
+    case LightState::deep_idle:
+        return deep_idle_brightness;
+    case LightState::idle:
+        return dimmed_brightness;
+    case LightState::active:
+        return max_brightness;
+    case LightState::printing:
+        return print_brightness;
+    }
+    return 0;
+}
+
+void SideStripHandler::set_brightness(LightState state, uint8_t value) {
+    switch (state) {
+    case LightState::deep_idle:
+        config_store().side_leds_deep_idle_brightness.set(value);
+        break;
+    case LightState::idle:
+        config_store().side_leds_dimmed_brightness.set(value);
+        break;
+    case LightState::active:
+        config_store().side_leds_max_brightness.set(value);
+        break;
+    case LightState::printing:
+        config_store().side_leds_print_brightness.set(value);
+        break;
+    }
+
+    std::lock_guard lock(mutex);
+    switch (state) {
+    case LightState::deep_idle:
+        deep_idle_brightness = value;
+        break;
+    case LightState::idle:
+        dimmed_brightness = value;
+        break;
+    case LightState::active:
+        max_brightness = value;
+        break;
+    case LightState::printing:
+        print_brightness = value;
+        break;
+    }
+    this->state = SideStripState::unknown;
+}
+
+uint16_t SideStripHandler::get_duration_s(LightState state) const {
+    std::lock_guard lock(mutex);
+    switch (state) {
+    case LightState::active:
+        return activity_timeout_s;
+    case LightState::idle:
+        return off_timeout_s;
+    case LightState::printing:
+        return event_timeout_s;
+    case LightState::deep_idle:
+        return 0;
+    }
+    return 0;
+}
+
+void SideStripHandler::set_duration_s(LightState state, uint16_t value) {
+    switch (state) {
+    case LightState::active:
+        config_store().side_leds_activity_timeout_s.set(value);
+        break;
+    case LightState::idle:
+        config_store().side_leds_off_timeout_s.set(value);
+        break;
+    case LightState::printing:
+        config_store().side_leds_event_timeout_s.set(value);
+        break;
+    case LightState::deep_idle:
+        return;
+    }
+
+    std::lock_guard lock(mutex);
+    switch (state) {
+    case LightState::active:
+        activity_timeout_s = value;
+        break;
+    case LightState::idle:
+        off_timeout_s = value;
+        break;
+    case LightState::printing:
+        event_timeout_s = value;
+        break;
+    case LightState::deep_idle:
+        break;
+    }
+}
+
+bool SideStripHandler::get_door_holds_active() const {
+    std::lock_guard lock(mutex);
+    return door_holds_active;
+}
+
+void SideStripHandler::set_door_holds_active(bool value) {
+    config_store().side_leds_door_holds_active.set(value);
+    std::lock_guard lock(mutex);
+    door_holds_active = value;
+    if (!door_holds_active && door_open_for_leds) {
+        active_timestamp_ms = ticks_ms();
+    }
 }
 
 uint16_t SideStripHandler::get_activity_timeout_s() const {
@@ -311,12 +473,12 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
 
 bool SideStripHandler::get_print_light_enabled() const {
     std::lock_guard lock(mutex);
-    return max_brightness > 0 && print_brightness > 0 && !print_light_disabled;
+    return (main_light_state_mask & light_state_bit(LightState::printing)) && light_mode != SideLightMode::off && max_brightness > 0 && print_brightness > 0 && !print_light_disabled;
 }
 
 void SideStripHandler::set_print_light_enabled(bool value) {
     std::lock_guard lock(mutex);
-    if (max_brightness == 0 || print_brightness == 0) {
+    if (!(main_light_state_mask & light_state_bit(LightState::printing)) || light_mode == SideLightMode::off || max_brightness == 0 || print_brightness == 0) {
         print_light_disabled = false;
         return;
     }
@@ -333,6 +495,11 @@ bool SideStripHandler::deep_idle() const {
 bool SideStripHandler::chamber_light_on() const {
     std::lock_guard lock(mutex);
     return get_color_for_state(state).w > 0;
+}
+
+SideStripState SideStripHandler::current_state() const {
+    std::lock_guard lock(mutex);
+    return state;
 }
 
 leds::ColorRGBW SideStripHandler::color() const {
@@ -359,10 +526,20 @@ void SideStripHandler::change_state(SideStripState state) {
 ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
 
+    if (light_mode == SideLightMode::off) {
+        return ColorRGBW();
+    }
+
+    const LightState light_state = light_state_for_strip_state(state);
+    if (!(main_light_state_mask & light_state_bit(light_state))) {
+        return ColorRGBW();
+    }
+
     switch (state) {
-    case SideStripState::off:
     case SideStripState::unknown:
         return ColorRGBW();
+    case SideStripState::off:
+        return base_color.clamp(deep_idle_brightness);
     case SideStripState::dimmed:
         return base_color.clamp(dimmed_brightness);
     case SideStripState::printing:

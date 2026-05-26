@@ -26,6 +26,7 @@
 #include <option/has_wastebin_fill_tracking.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
+#include <leds/light_state.hpp>
 
 /// Checks if there is space in the gcode queue for inserting further commands.
 /// If there's not, \returns false and shows a message box
@@ -589,6 +590,62 @@ public:
     virtual void OnClick() override;
 };
 
+class MI_SIDE_LEDS_SEQUENCE_MODE : public MenuItemSwitch {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Sequence");
+    #else
+        N_("Side Strip Sequence");
+    #endif
+
+public:
+    MI_SIDE_LEDS_SEQUENCE_MODE();
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_LIGHT_STATE_MAIN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Lights");
+    #else
+        N_("Side Strip");
+    #endif
+
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state);
+    virtual void OnChange(size_t old_index) override;
+    virtual void Loop() override;
+};
+
+class MI_LIGHT_STATE_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Brightness");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
+class MI_LIGHT_STATE_DURATION : public WiSpin {
+    static constexpr const char *const label = N_("Duration");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_DURATION(leds::LightState state);
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_LIGHT_STATE_DOOR_ACTIVE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Door Holds Active");
+
+public:
+    MI_LIGHT_STATE_DOOR_ACTIVE();
+    virtual void OnChange(size_t old_index) override;
+};
+
 class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -649,7 +706,12 @@ public:
 };
 
 class MI_POST_PRINT_LED_HOLD : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("After Print Lights");
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Door Finish Ack");
+    #else
+        N_("After Print Lights");
+    #endif
 
 public:
     MI_POST_PRINT_LED_HOLD();
@@ -669,6 +731,23 @@ public:
 #endif
 
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+class MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE : public MenuItemSwitch {
+    static constexpr const char *const label = N_("External Sequence");
+
+public:
+    MI_EXTERNAL_LIGHT_BAR_SEQUENCE_MODE();
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_LIGHT_STATE_EXTERNAL_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("External Light Bar");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_EXTERNAL_ENABLE(leds::LightState state);
+    virtual void OnChange(size_t old_index) override;
+};
+
 class MI_EXTERNAL_LIGHT_BAR_PIN_MODE : public MenuItemSwitch {
     const uint8_t pin;
 

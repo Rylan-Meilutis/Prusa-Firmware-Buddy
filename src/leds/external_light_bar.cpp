@@ -1,8 +1,12 @@
 #include <leds/external_light_bar.hpp>
 
 #include <config_store/store_instance.hpp>
+#include <leds/side_strip_handler.hpp>
 #include <logging/log.hpp>
+#include <marlin_vars.hpp>
+#include "client_response.hpp"
 #include "hwio_pindef.h"
+#include <option/has_manual_belt_tuning.h>
 
 LOG_COMPONENT_REF(Buddy);
 
@@ -16,6 +20,35 @@ static bool diagnostic_on = false;
 
 static uint8_t pin_mask(uint8_t pin) {
     return static_cast<uint8_t>(0x1 << pin);
+}
+
+static bool belt_tuning_active() {
+#if HAS_MANUAL_BELT_TUNING()
+    bool active = false;
+    marlin_vars().peek_fsm_states([&](const auto &states) {
+        active = states.is_active(ClientFSM::ManualBeltTuning);
+    });
+    return active;
+#else
+    return false;
+#endif
+}
+
+static LightState light_state_for_strip_state(SideStripState state) {
+    switch (state) {
+    case SideStripState::printing:
+        return LightState::printing;
+    case SideStripState::active:
+    case SideStripState::custom_color:
+        return LightState::active;
+    case SideStripState::dimmed:
+    case SideStripState::idle:
+        return LightState::idle;
+    case SideStripState::off:
+    case SideStripState::unknown:
+        return LightState::deep_idle;
+    }
+    return LightState::deep_idle;
 }
 
 bool pin_supports_output(uint8_t pin) {
@@ -32,6 +65,29 @@ uint8_t enabled_pin_mask() {
 
 uint8_t active_high_pin_mask() {
     return config_store().external_light_bar_active_high_pins.get();
+}
+
+leds::ExternalLightMode mode() {
+    return config_store().external_light_bar_mode.get();
+}
+
+void set_mode(leds::ExternalLightMode mode) {
+    config_store().external_light_bar_mode.set(mode);
+}
+
+bool state_enabled(leds::LightState state) {
+    return config_store().external_light_bar_state_mask.get() & light_state_bit(state);
+}
+
+void set_state_enabled(leds::LightState state, bool enabled) {
+    uint8_t mask = config_store().external_light_bar_state_mask.get();
+    const uint8_t bit = light_state_bit(state);
+    if (enabled) {
+        mask |= bit;
+    } else {
+        mask &= ~bit;
+    }
+    config_store().external_light_bar_state_mask.set(mask);
 }
 
 OutputMode pin_mode(uint8_t pin) {
@@ -137,6 +193,15 @@ bool set_pin_mode(uint8_t pin, OutputMode mode) {
     reset_persistent_state();
     log_info(Buddy, "External light pin %u mode %u enabled 0x%02x active_high 0x%02x", pin, static_cast<unsigned>(mode), enabled, active_high);
     return true;
+}
+
+bool target_on([[maybe_unused]] bool chamber_light_on) {
+    if (belt_tuning_active()) {
+        return false;
+    }
+
+    const auto state = leds::SideStripHandler::instance().current_state();
+    return state_enabled(light_state_for_strip_state(state));
 }
 
 void apply(bool on) {
