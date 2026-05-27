@@ -1042,6 +1042,7 @@ void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
 /**********************************************************************************************/
 // MI_PRINT_CHAMBER_LIGHTS_ENABLE
 MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     : WiSpin(
         brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()),
         numeric_input_config::percent_with_off,
@@ -1060,12 +1061,32 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
     set_enabled(enabled);
     set_value(enabled ? std::optional<float>(brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness())) : std::nullopt);
 }
+#else
+    : WI_ICON_SWITCH_OFF_ON_t(
+        leds::SideStripHandler::instance().get_print_light_enabled(),
+        _(label),
+        nullptr,
+        leds::SideStripHandler::instance().get_print_brightness() > 0 ? is_enabled_t::yes : is_enabled_t::no,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_print_light_enabled(!old_index);
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
+    const bool enabled = leds::SideStripHandler::instance().get_print_brightness() > 0;
+    set_enabled(enabled);
+    set_value(enabled && leds::SideStripHandler::instance().get_print_light_enabled());
+}
+#endif
 
 #endif
 
 #if HAS_LEDS()
 /**********************************************************************************************/
 // MI_PRINT_STATUS_LEDS_ENABLE
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
     : WiSpin(
         leds::StatusLedsHandler::instance().get_print_status_brightness(),
@@ -1085,6 +1106,26 @@ void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
     set_enabled(enabled);
     set_value(enabled ? std::optional<float>(leds::StatusLedsHandler::instance().get_print_status_brightness()) : std::nullopt);
 }
+#else
+MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
+    : WI_ICON_SWITCH_OFF_ON_t(
+        leds::StatusLedsHandler::instance().get_print_status_enabled(),
+        _(label),
+        nullptr,
+        leds::StatusLedsHandler::instance().get_active() ? is_enabled_t::yes : is_enabled_t::no,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::OnChange(size_t old_index) {
+    leds::StatusLedsHandler::instance().set_print_status_enabled(!old_index);
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
+    const bool enabled = leds::StatusLedsHandler::instance().get_active();
+    set_enabled(enabled);
+    set_value(enabled && leds::StatusLedsHandler::instance().get_print_status_enabled());
+}
+#endif
 #endif
 
 #if HAS_SIDE_LEDS()
