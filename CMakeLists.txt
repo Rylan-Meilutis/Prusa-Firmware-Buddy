@@ -294,6 +294,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   endif()
 else()
   add_compile_options(-Os)
+  add_link_options(-Os)
 endif()
 
 if(CMAKE_CROSSCOMPILING)
