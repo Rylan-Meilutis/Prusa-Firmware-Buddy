@@ -222,6 +222,8 @@ Per-state pages expose Deep Idle, Idle, Active, Printing.
 Timing settings live one level above per-state settings where users compare state entry and exit timing.
 GPIO light bar state control remains independent of chamber/side LEDs.
 External GPIO pins reserved for the light bar are protected from generic GPIO reconfiguration.
+External light output is latched and off-debounced so transient firmware state gaps do not command off/on flicker at print start or finish.
+Active-sink external light pins float before their output latch changes when turning off, avoiding visible pulses.
 M150 compatibility and M151/M152/M153 behavior remain consistent across Core One, XL, MK, and MINI feature flags.
 ```
 
@@ -456,6 +458,7 @@ src/marlin_stubs/feature/automatic_chamber_vents/*
 src/marlin_stubs/M150.cpp
 src/marlin_stubs/M262-M268.cpp
 src/marlin_stubs/gcode.cpp
+src/leds/external_light_bar.cpp
 lib/Marlin/Marlin/src/gcode/control/M86.cpp
 lib/Marlin/Marlin/src/gcode/queue.cpp
 lib/Marlin/Marlin/src/module/temperature.cpp
@@ -477,6 +480,8 @@ Door/filter acknowledgement is Core One-specific unless explicitly handled for a
 ```
 
 When upstream changes resources, rerun or verify the resource generation path before accepting binary conflicts. The RME range intentionally changes normal, brass, and source PNG assets plus QOI generation support.
+
+When adding shared code to external-light or LED paths, build MK3.5 as well as Core One and XL. MK3.5 has different include paths and can catch missing direct includes, such as `timing.h` for `ticks_ms()`, even when Core One and XL compile.
 
 ## Flash And Size Budget
 
@@ -503,6 +508,7 @@ Core One / Core One Plus:
   Chamber LEDs off while status LEDs still work.
   Per-print chamber/status brightness at 0%, low value, and 100%.
   Door open/close acknowledgement after finished, aborted, and filtering states.
+  External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
   Theme import, lock settings, and text/PIN input.
   External GPIO light bar configuration on supported hardware.
@@ -529,6 +535,7 @@ MK4 / MK3.5:
   Abort indication does not look like finished indication.
   Status LEDs acknowledge finished/aborted states correctly on non-door platforms.
   Serial printing and theme changes compile under MK feature flags.
+  Shared external-light code compiles under MK3.5 include paths even if the feature is not user-facing there.
 ```
 
 ## Release Notes Checklist
