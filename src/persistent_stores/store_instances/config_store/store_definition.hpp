@@ -58,6 +58,7 @@
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
 #include <feature/bed_fan/selftest_result.hpp>
 #include <print_fan_type.hpp>
+#include <serial_printing_ui_mode.hpp>
 
 #if HAS_SHEET_PROFILES()
     #include <common/sheet.hpp>
@@ -484,6 +485,7 @@ struct CurrentStore
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Serial Printing Screen")> serial_print_screen_enabled;
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Serial Printing Legacy UI")> serial_print_legacy_ui;
+    StoreItem<SerialPrintingUiMode, SerialPrintingUiMode::progress, ItemFlag::user_interface, journal::hash("Serial Printing UI Mode")> serial_print_ui_mode;
     StoreItem<uint16_t, 5, ItemFlag::user_interface, journal::hash("Serial Printing Timeout Sec")> serial_print_timeout_s;
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Serial Printing Auto Start")> serial_print_auto_start;
 
