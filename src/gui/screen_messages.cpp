@@ -25,6 +25,27 @@ bool contains_case_insensitive(const char *haystack, const char *needle) {
     return false;
 }
 
+const char *skip_spaces(const char *text) {
+    while (*text == ' ') {
+        ++text;
+    }
+    return text;
+}
+
+bool consume_word_case_insensitive(const char *&text, const char *word) {
+    const char *tp = text;
+    const char *wp = word;
+    while (*tp && *wp && tolower(*tp) == tolower(*wp)) {
+        ++tp;
+        ++wp;
+    }
+    if (*wp != '\0') {
+        return false;
+    }
+    text = tp;
+    return true;
+}
+
 bool is_progress_or_time_message(const char *message) {
     char *end = nullptr;
     const auto hour = strtol(message, &end, 10);
@@ -39,12 +60,18 @@ bool is_progress_or_time_message(const char *message) {
                     return false;
                 }
             }
-            while (*end == ' ') {
-                ++end;
+            const char *suffix = skip_spaces(end);
+
+            if ((suffix[0] == 'A' || suffix[0] == 'a' || suffix[0] == 'P' || suffix[0] == 'p') && (suffix[1] == 'M' || suffix[1] == 'm')) {
+                suffix += 2;
+                suffix = skip_spaces(suffix);
             }
-            if (*end == '\0' || contains_case_insensitive(end, "am") || contains_case_insensitive(end, "pm")) {
-                return true;
+
+            if (consume_word_case_insensitive(suffix, "today") || consume_word_case_insensitive(suffix, "tomorrow")) {
+                suffix = skip_spaces(suffix);
             }
+
+            return *suffix == '\0';
         }
     }
 
