@@ -14,7 +14,7 @@ constexpr NumericInputConfig timeout_config {
 
 static constexpr const char *serial_print_ui_mode_items[] {
     N_("Legacy"),
-    N_("Messages"),
+    N_("Messages Only"),
     N_("Progress"),
 };
 } // namespace

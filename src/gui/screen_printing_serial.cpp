@@ -7,8 +7,8 @@
 #include "odometer.hpp"
 #include "config_features.h"
 #include <config_store/store_instance.hpp>
+#include <display.hpp>
 #include <printer_lock.hpp>
-#include "window_icon.hpp"
 #include "screen_menu_tune.hpp"
 #include "img_resources.hpp"
 #include "screen_printing_end_result.hpp"
@@ -255,7 +255,6 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , w_status_progress(this, status_progress_rect, ui_theme::progress(), COLOR_GRAY)
     , w_message_label(this, message_label_rect, is_multiline::no)
     , w_message_value(this, message_value_rect, is_multiline::yes)
-    , legacy_logo(this, get_legacy_logo_rect(), &img::serial_printing_172x138)
     , time_dots(this, time_dots_rect, static_cast<uint8_t>(TimeItem::_count))
     , page_dots(this, page_dots_rect, 2)
     , last_state(marlin_server::State::Aborted) {
@@ -401,6 +400,20 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     }
 
     ScreenPrintingModel::windowEvent(sender, event, param);
+}
+
+void screen_printing_serial_data_t::unconditionalDraw() {
+    ScreenPrintingModel::unconditionalDraw();
+
+    if (current_page != Page::legacy) {
+        return;
+    }
+
+    ropfn raster_op;
+    raster_op.shadow = is_shadowed::no;
+    raster_op.swap_bw = has_swapped_bw::no;
+    const auto rect = get_legacy_logo_rect();
+    display::draw_img(point_ui16(rect.Left(), rect.Top()), img::serial_printing_172x138, GetBackColor(), raster_op);
 }
 
 void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
@@ -643,13 +656,12 @@ void screen_printing_serial_data_t::set_page(Page page) {
         page = Page::progress;
     }
 
+    const bool page_changed = current_page != page;
     current_page = page;
     last_page_switch_s = ticks_s();
 
     const bool show_message = current_page == Page::message;
     const bool show_progress = current_page == Page::progress;
-    const bool show_legacy = current_page == Page::legacy;
-    legacy_logo.set_visible(show_legacy);
     w_progress.set_visible(show_progress || show_message);
     w_progress_txt.set_visible(show_progress);
     w_etime_label.set_visible(show_progress);
@@ -673,6 +685,9 @@ void screen_printing_serial_data_t::set_page(Page page) {
     }
 
     update_page_dots();
+    if (page_changed) {
+        Invalidate();
+    }
 }
 
 void screen_printing_serial_data_t::toggle_page() {
