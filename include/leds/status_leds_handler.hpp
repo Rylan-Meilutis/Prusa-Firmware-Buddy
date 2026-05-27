@@ -70,11 +70,15 @@ public:
     void set_active(bool val);
     bool get_print_status_enabled();
     void set_print_status_enabled(bool val);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t get_print_status_brightness();
     void set_print_status_brightness(uint8_t val);
+#endif
     void set_deep_idle(bool val);
     void acknowledge_finished();
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
+#endif
     void set_finished_hold_active(bool val);
 
     void update();
@@ -85,15 +89,21 @@ private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t print_status_brightness { 100 };
+#endif
     bool deep_idle { false };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };
     bool finished_acknowledged { false };
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool aborted_acknowledged { false };
+#endif
     bool finished_hold_active { false };
     ColorRGBW old_color {};
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     std::array<ColorRGBW, 3> adjusted_data {};
+#endif
 
     std::array<FrameAnimation<3>::Params, 2> custom_params_banks;
     uint8_t custom_params_bank_index { 0 };

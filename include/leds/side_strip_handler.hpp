@@ -136,7 +136,8 @@ private:
     bool post_print_hold_dismissed = false;
     bool post_print_hold_seen_door_open = false;
     bool print_light_disabled = false;
-    std::optional<uint8_t> print_brightness_override;
+    uint8_t print_brightness_override = 0;
+    bool print_brightness_overridden = false;
     std::optional<CustomColorState> custom_color;
 };
 
