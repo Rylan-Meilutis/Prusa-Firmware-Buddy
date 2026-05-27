@@ -88,6 +88,8 @@ public:
 
     uint8_t get_print_brightness() const;
     void set_print_brightness(uint8_t value);
+    uint8_t get_print_light_brightness() const;
+    void set_print_light_brightness(uint8_t value);
     bool get_print_light_enabled() const;
     void set_print_light_enabled(bool value);
 
@@ -134,6 +136,7 @@ private:
     bool post_print_hold_dismissed = false;
     bool post_print_hold_seen_door_open = false;
     bool print_light_disabled = false;
+    std::optional<uint8_t> print_brightness_override;
     std::optional<CustomColorState> custom_color;
 };
 

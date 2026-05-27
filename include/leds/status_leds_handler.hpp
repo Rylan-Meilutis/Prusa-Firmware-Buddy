@@ -70,8 +70,11 @@ public:
     void set_active(bool val);
     bool get_print_status_enabled();
     void set_print_status_enabled(bool val);
+    uint8_t get_print_status_brightness();
+    void set_print_status_brightness(uint8_t val);
     void set_deep_idle(bool val);
     void acknowledge_finished();
+    void acknowledge_aborted();
     void set_finished_hold_active(bool val);
 
     void update();
@@ -82,12 +85,15 @@ private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
+    uint8_t print_status_brightness { 100 };
     bool deep_idle { false };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };
     bool finished_acknowledged { false };
+    bool aborted_acknowledged { false };
     bool finished_hold_active { false };
     ColorRGBW old_color {};
+    std::array<ColorRGBW, 3> adjusted_data {};
 
     std::array<FrameAnimation<3>::Params, 2> custom_params_banks;
     uint8_t custom_params_bank_index { 0 };
