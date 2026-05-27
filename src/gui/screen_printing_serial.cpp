@@ -816,7 +816,7 @@ void screen_printing_serial_data_t::stopAction() {
         marlin_client::print_exit();
         return;
     }
-    if (MsgBoxWarning(_("Are you sure to stop this printing?"), Responses_YesNo, 1)
+    if (MsgBoxWarning(_("Cancel this print?"), Responses_YesNo, 1)
         != Response::Yes) {
         return;
     }

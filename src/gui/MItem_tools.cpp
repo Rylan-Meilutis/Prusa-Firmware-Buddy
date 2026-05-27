@@ -49,6 +49,7 @@
 #include <logging/log_dest_file.hpp>
 #include <numeric_input_config_common.hpp>
 
+#include <algorithm>
 #include <type_traits>
 
 #if ENABLED(PRUSA_TOOLCHANGER)
@@ -827,21 +828,29 @@ void MI_LEDS_ENABLE::OnChange(size_t old_index) {
 // MI_SIDE_LEDS_MAX_BRIGTHNESS
 namespace {
 
+uint8_t brightness_percent_to_pwm(float value) {
+    return static_cast<uint8_t>(std::clamp(value, 0.0f, 100.0f) * 255.0f / 100.0f);
+}
+
+float brightness_pwm_to_percent(uint8_t value) {
+    return static_cast<float>(value) * 100.0f / 255.0f;
+}
+
 void apply_side_led_max_brightness(float value) {
     auto &side_strip = leds::SideStripHandler::instance();
-    side_strip.set_max_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.set_max_brightness(brightness_percent_to_pwm(value));
     side_strip.activity_ping();
 }
 
 void apply_side_led_dimmed_brightness(float value) {
     auto &side_strip = leds::SideStripHandler::instance();
-    side_strip.set_dimmed_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.set_dimmed_brightness(brightness_percent_to_pwm(value));
     side_strip.activity_ping();
 }
 
 void apply_side_led_print_brightness(float value) {
     auto &side_strip = leds::SideStripHandler::instance();
-    side_strip.set_print_brightness(static_cast<uint8_t>(value) * 255 / 100);
+    side_strip.set_print_brightness(brightness_percent_to_pwm(value));
     side_strip.activity_ping();
 }
 
@@ -849,7 +858,7 @@ void apply_side_led_print_brightness(float value) {
 
 MI_SIDE_LEDS_MAX_BRIGTHNESS::MI_SIDE_LEDS_MAX_BRIGTHNESS()
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_max_brightness()) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_max_brightness()),
         numeric_input_config::percent_with_off,
         _(label)) {
 }
@@ -866,7 +875,7 @@ void MI_SIDE_LEDS_MAX_BRIGTHNESS::OnClick() {
 
 MI_SIDE_LEDS_DIMMED_BRIGTHNESS::MI_SIDE_LEDS_DIMMED_BRIGTHNESS()
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_dimmed_brightness()) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_dimmed_brightness()),
         numeric_input_config::percent_with_off,
         _(label)) {
 }
@@ -902,7 +911,7 @@ void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
 // MI_SIDE_LEDS_PRINT_BRIGTHNESS
 MI_SIDE_LEDS_PRINT_BRIGTHNESS::MI_SIDE_LEDS_PRINT_BRIGTHNESS()
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_print_brightness()) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_brightness()),
         numeric_input_config::percent_with_off,
         _(label)) {
 }
@@ -930,14 +939,14 @@ void MI_LIGHT_STATE_MAIN_ENABLE::Loop() {
 // MI_LIGHT_STATE_BRIGHTNESS
 MI_LIGHT_STATE_BRIGHTNESS::MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state)
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_brightness(state)) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_brightness(state)),
         numeric_input_config::percent_with_off,
         _(label))
     , state(state) {
 }
 
 void MI_LIGHT_STATE_BRIGHTNESS::OnClick() {
-    leds::SideStripHandler::instance().set_brightness(state, static_cast<uint8_t>(value()) * 255 / 100);
+    leds::SideStripHandler::instance().set_brightness(state, brightness_percent_to_pwm(value()));
     leds::SideStripHandler::instance().activity_ping();
 }
 
@@ -954,22 +963,23 @@ void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
 /**********************************************************************************************/
 // MI_PRINT_CHAMBER_LIGHTS_ENABLE
 MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
-    : WI_ICON_SWITCH_OFF_ON_t(
-        leds::SideStripHandler::instance().get_print_light_enabled(),
+    : WiSpin(
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()),
+        numeric_input_config::percent_with_off,
         _(label),
         nullptr,
-        leds::SideStripHandler::instance().get_max_brightness() > 0 && leds::SideStripHandler::instance().get_print_brightness() > 0 ? is_enabled_t::yes : is_enabled_t::no,
+        leds::SideStripHandler::instance().get_print_brightness() > 0 ? is_enabled_t::yes : is_enabled_t::no,
         is_hidden_t::no) {
 }
 
-void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnChange(size_t old_index) {
-    leds::SideStripHandler::instance().set_print_light_enabled(!old_index);
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnClick() {
+    leds::SideStripHandler::instance().set_print_light_brightness(brightness_percent_to_pwm(value()));
 }
 
 void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
-    const bool enabled = leds::SideStripHandler::instance().get_max_brightness() > 0 && leds::SideStripHandler::instance().get_print_brightness() > 0;
+    const bool enabled = leds::SideStripHandler::instance().get_print_brightness() > 0;
     set_enabled(enabled);
-    set_value(enabled && leds::SideStripHandler::instance().get_print_light_enabled());
+    set_value(enabled ? std::optional<float>(brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness())) : std::nullopt);
 }
 
 #endif
@@ -978,22 +988,23 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
 /**********************************************************************************************/
 // MI_PRINT_STATUS_LEDS_ENABLE
 MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
-    : WI_ICON_SWITCH_OFF_ON_t(
-        leds::StatusLedsHandler::instance().get_print_status_enabled(),
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_print_status_brightness(),
+        numeric_input_config::percent_with_off,
         _(label),
         nullptr,
         leds::StatusLedsHandler::instance().get_active() ? is_enabled_t::yes : is_enabled_t::no,
         is_hidden_t::no) {
 }
 
-void MI_PRINT_STATUS_LEDS_ENABLE::OnChange(size_t old_index) {
-    leds::StatusLedsHandler::instance().set_print_status_enabled(!old_index);
+void MI_PRINT_STATUS_LEDS_ENABLE::OnClick() {
+    leds::StatusLedsHandler::instance().set_print_status_brightness(static_cast<uint8_t>(std::clamp(value(), 0.0f, 100.0f)));
 }
 
 void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
     const bool enabled = leds::StatusLedsHandler::instance().get_active();
     set_enabled(enabled);
-    set_value(enabled && leds::StatusLedsHandler::instance().get_print_status_enabled());
+    set_value(enabled ? std::optional<float>(leds::StatusLedsHandler::instance().get_print_status_brightness()) : std::nullopt);
 }
 #endif
 

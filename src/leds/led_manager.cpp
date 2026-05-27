@@ -59,6 +59,22 @@ ChamberDoorLedState chamber_door_state_for_leds() {
 #endif
 }
 
+void acknowledge_aborted_after_door_cycle(bool door_open) {
+    static bool aborted_seen_door_open = false;
+
+    if (marlin_vars().print_state != marlin_server::State::Aborted) {
+        aborted_seen_door_open = false;
+        return;
+    }
+
+    if (door_open) {
+        aborted_seen_door_open = true;
+    } else if (aborted_seen_door_open) {
+        leds::StatusLedsHandler::instance().acknowledge_aborted();
+        aborted_seen_door_open = false;
+    }
+}
+
 } // namespace
 #endif
 
@@ -152,10 +168,15 @@ void LEDManager::update() {
 #if HAS_SIDE_LEDS()
     auto &side_strip_handler = SideStripHandler::instance();
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
+    acknowledge_aborted_after_door_cycle(chamber_door_state.open);
 
     side_strip_handler.update();
     const bool side_strip_deep_idle = side_strip_handler.deep_idle();
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    status_leds_handler.set_deep_idle(false);
+#else
     status_leds_handler.set_deep_idle(side_strip_deep_idle);
+#endif
     status_leds_handler.set_finished_hold_active(side_strip_handler.post_print_hold_active());
     if (side_strip_handler.post_print_status_dismissed()) {
         status_leds_handler.acknowledge_finished();
