@@ -418,6 +418,7 @@ void screen_printing_serial_data_t::unconditionalDraw() {
 
 void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
+    SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
     EnableButton(BtnSocket::Left);
     EnableButton(BtnSocket::Right);
 
