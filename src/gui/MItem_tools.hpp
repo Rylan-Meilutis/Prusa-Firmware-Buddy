@@ -623,13 +623,7 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
 
-class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-                                       WiSpin
-#else
-                                       WI_ICON_SWITCH_OFF_ON_t
-#endif
-{
+class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         N_("Print Chamber Lights");
@@ -639,11 +633,7 @@ class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public
 
 public:
     MI_PRINT_CHAMBER_LIGHTS_ENABLE();
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     virtual void OnClick() override;
-#else
-    virtual void OnChange(size_t old_index) override;
-#endif
     virtual void Loop() override;
 };
 

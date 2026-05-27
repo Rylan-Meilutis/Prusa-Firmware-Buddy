@@ -303,6 +303,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-Og -ggdb3)
 else()
   add_compile_options(-Os)
+  add_link_options(-Os)
 endif()
 
 if(CMAKE_CROSSCOMPILING)
