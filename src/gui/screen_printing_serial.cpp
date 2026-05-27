@@ -13,9 +13,20 @@
 #include "img_resources.hpp"
 #include "screen_printing_end_result.hpp"
 #include <serial_printing.hpp>
+#include <fsm_loadunload_type.hpp>
+#include <marlin_server_types/client_response.hpp>
+#include <fsm/safety_timer_phases.hpp>
 #include <ui_theme.hpp>
 #include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
 #include <feature/print_status_message/print_status_message_mgr.hpp>
+#include <option/has_coldpull.h>
+#include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+    #include <fsm/nozzle_cleaning_failed_phases.hpp>
+#endif
+#if HAS_COLDPULL()
+    #include <common/cold_pull.hpp>
+#endif
 #include <utils/string_builder.hpp>
 #include <algorithm>
 #include <cmath>
@@ -113,6 +124,27 @@ bool contains_case_insensitive(const char *haystack, const char *needle) {
     return false;
 }
 
+const char *skip_spaces(const char *text) {
+    while (*text == ' ') {
+        ++text;
+    }
+    return text;
+}
+
+bool consume_word_case_insensitive(const char *&text, const char *word) {
+    const char *tp = text;
+    const char *wp = word;
+    while (*tp && *wp && ascii_iequals(*tp, *wp)) {
+        ++tp;
+        ++wp;
+    }
+    if (*wp != '\0') {
+        return false;
+    }
+    text = tp;
+    return true;
+}
+
 bool is_progress_or_eta_message(const char *message) {
     return contains_case_insensitive(message, "eta")
         || contains_case_insensitive(message, "ets")
@@ -148,29 +180,25 @@ bool is_clock_message(const char *message) {
     }
 
     if (*end == ':') {
-        const auto second = strtol(end + 1, &end, 10);
-        if (second < 0 || second > 59) {
+        const char *second_start = end + 1;
+        const auto second = strtol(second_start, &end, 10);
+        if (end == second_start || second < 0 || second > 59) {
             return false;
         }
     }
 
-    while (*end == ' ') {
-        ++end;
+    const char *suffix = skip_spaces(end);
+
+    if ((suffix[0] == 'A' || suffix[0] == 'a' || suffix[0] == 'P' || suffix[0] == 'p') && (suffix[1] == 'M' || suffix[1] == 'm')) {
+        suffix += 2;
+        suffix = skip_spaces(suffix);
     }
 
-    if (*end == '\0') {
-        return true;
+    if (consume_word_case_insensitive(suffix, "today") || consume_word_case_insensitive(suffix, "tomorrow")) {
+        suffix = skip_spaces(suffix);
     }
 
-    if ((end[0] == 'A' || end[0] == 'a' || end[0] == 'P' || end[0] == 'p') && (end[1] == 'M' || end[1] == 'm')) {
-        end += 2;
-        while (*end == ' ') {
-            ++end;
-        }
-        return *end == '\0';
-    }
-
-    return false;
+    return *suffix == '\0';
 }
 
 bool should_show_host_message(const char *message) {
@@ -179,20 +207,32 @@ bool should_show_host_message(const char *message) {
         && !is_clock_message(message);
 }
 
-void append_message_line(std::array<char, 256> &target, const char *message) {
+template <size_t N>
+void append_message_line(std::array<char, N> &target, const char *message) {
+    if (*message == '\0') {
+        return;
+    }
+
     if (target[0] == '\0') {
         strlcpy(target.data(), message, target.size());
         return;
     }
 
-    const size_t needed = strlen(target.data()) + 1 + strlen(message) + 1;
-    if (needed > target.size()) {
-        strlcpy(target.data(), message, target.size());
-        return;
+    while (strlen(target.data()) + 1 + strlen(message) + 1 > target.size()) {
+        char *next_line = strchr(target.data(), '\n');
+        if (next_line == nullptr) {
+            target[0] = '\0';
+            break;
+        }
+        memmove(target.data(), next_line + 1, strlen(next_line + 1) + 1);
     }
 
-    strlcat(target.data(), "\n", target.size());
-    strlcat(target.data(), message, target.size());
+    if (target[0] == '\0') {
+        strlcpy(target.data(), message, target.size());
+    } else {
+        strlcat(target.data(), "\n", target.size());
+        strlcat(target.data(), message, target.size());
+    }
 }
 
 float percent_from_progress(const PrintStatusMessageDataProgress &progress) {
@@ -236,6 +276,92 @@ void copy_first_line(char *dst, size_t dst_size, const char *src) {
     memcpy(dst, src, copy_len);
     dst[copy_len] = '\0';
 }
+
+const char *load_unload_status_label(PhasesLoadUnload phase, LoadUnloadMode mode) {
+    switch (phase) {
+    case PhasesLoadUnload::Purging_stoppable:
+    case PhasesLoadUnload::Purging_unstoppable:
+    case PhasesLoadUnload::IsColorPurge:
+        return N_("Purging");
+    case PhasesLoadUnload::Unloading_stoppable:
+    case PhasesLoadUnload::Unloading_unstoppable:
+    case PhasesLoadUnload::Ejecting_stoppable:
+    case PhasesLoadUnload::Ejecting_unstoppable:
+#if HAS_NOZZLE_CLEANER()
+    case PhasesLoadUnload::UnloadNozzleCleaning:
+#endif
+#if HAS_MMU2()
+    case PhasesLoadUnload::MMU_UnloadingFilament:
+    case PhasesLoadUnload::MMU_UnloadingToFinda:
+    case PhasesLoadUnload::MMU_UnloadingToPulley:
+    case PhasesLoadUnload::MMU_EjectingFilament:
+    case PhasesLoadUnload::MMU_RetractingFromFinda:
+#endif
+        return N_("Unloading");
+    case PhasesLoadUnload::ChangingTool:
+        return N_("Changing filament");
+    default:
+        break;
+    }
+
+    switch (mode) {
+    case LoadUnloadMode::Change:
+        return N_("Changing filament");
+    case LoadUnloadMode::Unload:
+    case LoadUnloadMode::Eject:
+        return N_("Unloading");
+    case LoadUnloadMode::Purge:
+        return N_("Purging");
+    default:
+        return N_("Loading");
+    }
+}
+
+bool load_unload_phase_has_progress_data(PhasesLoadUnload phase) {
+    switch (phase) {
+    case PhasesLoadUnload::initial:
+#if HAS_MMU2()
+    case PhasesLoadUnload::MMUDummyStartNoAttention:
+    case PhasesLoadUnload::MMU_ERRWaitingForUser:
+#endif
+    case PhasesLoadUnload::_cnt:
+        return false;
+    default:
+        return true;
+    }
+}
+
+#if HAS_LOADCELL()
+bool nozzle_cleaning_phase_has_progress_data(PhaseNozzleCleaningFailed phase) {
+    switch (phase) {
+#if HAS_NOZZLE_CLEANING_FAILED_PURGING()
+    case PhaseNozzleCleaningFailed::wait_temp:
+    case PhaseNozzleCleaningFailed::purge:
+    case PhaseNozzleCleaningFailed::autoretract:
+        return true;
+#endif
+    default:
+        return false;
+    }
+}
+#endif
+
+#if HAS_COLDPULL()
+const char *cold_pull_status_label(PhasesColdPull phase) {
+    switch (phase) {
+#if HAS_AUTO_RETRACT()
+    case PhasesColdPull::deretract:
+        return N_("Heating up");
+#endif
+    case PhasesColdPull::cool_down:
+        return N_("Cooling down");
+    case PhasesColdPull::heat_up:
+        return N_("Heating up");
+    default:
+        return nullptr;
+    }
+}
+#endif
 } // namespace
 
 screen_printing_serial_data_t::screen_printing_serial_data_t()
@@ -303,7 +429,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     w_message_label.SetTextColor(COLOR_SILVER);
     w_message_label.SetText(_("Message"));
 
-    w_message_value.set_font(Font::normal);
+    w_message_value.set_font(Font::small);
     w_message_value.SetTextColor(COLOR_WHITE);
     w_message_value.SetAlignment(Align_t::LeftTop());
     w_message_value.SetPadding({ 0, 2, 0, 2 });
@@ -481,6 +607,28 @@ void screen_printing_serial_data_t::update_progress() {
     w_etime_value.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
     w_etime_value.Invalidate();
 
+    update_message_label();
+}
+
+void screen_printing_serial_data_t::update_message_label(bool force) {
+    if (current_page != Page::message) {
+        return;
+    }
+
+    const marlin_server::State state = marlin_vars().print_state;
+    if (state == marlin_server::State::Finished || state == marlin_server::State::Aborted) {
+        return;
+    }
+
+    const uint8_t percent = marlin_vars().sd_percent_done;
+    if (!force && percent == last_message_progress_percent) {
+        return;
+    }
+
+    last_message_progress_percent = percent;
+    snprintf(w_etime_value_buffer.data(), w_etime_value_buffer.size(), "Messages %u%%", static_cast<unsigned>(percent));
+    w_message_label.SetText(string_view_utf8::MakeRAM(w_etime_value_buffer.data()));
+    w_message_label.Invalidate();
 }
 
 bool screen_printing_serial_data_t::time_item_available(TimeItem item) const {
@@ -540,6 +688,75 @@ screen_printing_serial_data_t::TimeItem screen_printing_serial_data_t::last_time
 }
 
 void screen_printing_serial_data_t::update_status() {
+    const auto active_fsm_state = [](ClientFSM client_fsm) -> std::optional<fsm::BaseData> {
+        return marlin_vars().peek_fsm_states([client_fsm](const fsm::States &states) -> std::optional<fsm::BaseData> {
+            const auto &state = states[client_fsm];
+            if (state.has_value()) {
+                return *state;
+            }
+            return std::nullopt;
+        });
+    };
+
+    const auto set_progress_status = [&](const char *label, float progress_percent) {
+        strlcpy(status_text.data(), label, status_text.size());
+        w_status_label.SetText(_(label));
+        w_status_label.Invalidate();
+
+        const int rounded_progress = static_cast<int>(std::round(std::clamp(progress_percent, 0.0f, 100.0f)));
+        snprintf(status_value_text.data(), status_value_text.size(), "%i%%", rounded_progress);
+        w_status_value.SetText(string_view_utf8::MakeRAM(status_value_text.data()));
+        w_status_value.Invalidate();
+        w_status_value.set_visible(current_page == Page::status);
+
+        w_status_progress.set_progress_percent(rounded_progress);
+        status_progress_available = true;
+        w_status_progress.set_visible(current_page == Page::status);
+    };
+
+    const auto load_unload = active_fsm_state(ClientFSM::Load_unload);
+    if (load_unload.has_value()) {
+        const auto phase = GetEnumFromPhaseIndex<PhasesLoadUnload>(load_unload->GetPhase());
+        if (load_unload_phase_has_progress_data(phase)) {
+            const auto data = fsm::deserialize_data<FSMLoadUnloadData>(load_unload->GetData());
+            set_progress_status(load_unload_status_label(phase, data.mode), data.progress);
+            return;
+        }
+    }
+
+#if HAS_LOADCELL()
+    const auto nozzle_cleaning = active_fsm_state(ClientFSM::NozzleCleaningFailed);
+    if (nozzle_cleaning.has_value()) {
+        const auto phase = GetEnumFromPhaseIndex<PhaseNozzleCleaningFailed>(nozzle_cleaning->GetPhase());
+        if (nozzle_cleaning_phase_has_progress_data(phase)) {
+            const auto data = fsm::deserialize_data<NozzleCleaningFailedProgressData>(nozzle_cleaning->GetData());
+            set_progress_status(N_("Nozzle cleaning"), static_cast<float>(data.progress_0_255) / 255.0f * 100.0f);
+            return;
+        }
+    }
+#endif
+
+    const auto safety_timer = active_fsm_state(ClientFSM::SafetyTimer);
+    if (safety_timer.has_value()) {
+        const auto phase = GetEnumFromPhaseIndex<PhaseSafetyTimer>(safety_timer->GetPhase());
+        if (phase == PhaseSafetyTimer::resuming) {
+            set_progress_status(N_("Resuming temperatures"), fsm::deserialize_data<float>(safety_timer->GetData()));
+            return;
+        }
+    }
+
+#if HAS_COLDPULL()
+    const auto cold_pull = active_fsm_state(ClientFSM::ColdPull);
+    if (cold_pull.has_value()) {
+        const auto phase = GetEnumFromPhaseIndex<PhasesColdPull>(cold_pull->GetPhase());
+        if (const char *label = cold_pull_status_label(phase)) {
+            const cold_pull::TemperatureProgressData data { cold_pull->GetData() };
+            set_progress_status(label, data.percent);
+            return;
+        }
+    }
+#endif
+
     const auto current = current_non_custom_status_message();
     if (!current) {
         status_text[0] = '\0';
@@ -683,6 +900,7 @@ void screen_printing_serial_data_t::set_page(Page page) {
     w_message_value.set_visible(show_message);
     if (show_message) {
         time_dots.Hide();
+        update_message_label(true);
     }
 
     update_page_dots();
