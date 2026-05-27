@@ -150,6 +150,7 @@ void SideStripHandler::update() {
 
         } else {
             print_light_disabled = false;
+            print_brightness_override.reset();
             if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finishing_WaitIdle) {
                 active_timestamp_ms = time_ms;
             } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished() && post_print_hold_enabled) {
@@ -409,17 +410,37 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
     state = SideStripState::unknown;
 }
 
+uint8_t SideStripHandler::get_print_light_brightness() const {
+    std::lock_guard lock(mutex);
+    return print_brightness_override.value_or(print_brightness);
+}
+
+void SideStripHandler::set_print_light_brightness(uint8_t value) {
+    std::lock_guard lock(mutex);
+    if (!(main_light_state_mask & light_state_bit(LightState::printing))) {
+        print_light_disabled = false;
+        print_brightness_override.reset();
+        return;
+    }
+    print_brightness_override = value;
+    print_light_disabled = value == 0;
+    host_idle_override = false;
+    state = SideStripState::unknown;
+}
+
 bool SideStripHandler::get_print_light_enabled() const {
     std::lock_guard lock(mutex);
-    return (main_light_state_mask & light_state_bit(LightState::printing)) && max_brightness > 0 && print_brightness > 0 && !print_light_disabled;
+    return (main_light_state_mask & light_state_bit(LightState::printing)) && print_brightness_override.value_or(print_brightness) > 0 && !print_light_disabled;
 }
 
 void SideStripHandler::set_print_light_enabled(bool value) {
     std::lock_guard lock(mutex);
-    if (!(main_light_state_mask & light_state_bit(LightState::printing)) || max_brightness == 0 || print_brightness == 0) {
+    if (!(main_light_state_mask & light_state_bit(LightState::printing)) || print_brightness == 0) {
         print_light_disabled = false;
+        print_brightness_override.reset();
         return;
     }
+    print_brightness_override = value ? print_brightness : 0;
     print_light_disabled = !value;
     host_idle_override = false;
     state = SideStripState::unknown;
@@ -477,7 +498,7 @@ ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     case SideStripState::dimmed:
         return base_color.clamp(dimmed_brightness);
     case SideStripState::printing:
-        return base_color.clamp(std::max(print_brightness, max_brightness));
+        return base_color.clamp(print_brightness_override.value_or(print_brightness));
     case SideStripState::active:
         return base_color.clamp(max_brightness);
     case SideStripState::idle:
