@@ -21,7 +21,6 @@ using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_RESET_STEPS_PER_UNIT,
     MI_DIRECTION_E,
     MI_RESET_DIRECTION,
-    MI_SERIAL_PRINTING_SCREEN_ENABLE,
     MI_FAST_DRAW_ENABLE>;
 
 struct ExperimentalSettingsValues {

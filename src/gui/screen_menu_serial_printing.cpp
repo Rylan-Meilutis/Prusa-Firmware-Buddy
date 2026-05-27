@@ -2,6 +2,7 @@
 
 #include <config_store/store_instance.hpp>
 #include <numeric_input_config.hpp>
+#include <serial_printing.hpp>
 
 namespace {
 constexpr NumericInputConfig timeout_config {
@@ -10,20 +11,21 @@ constexpr NumericInputConfig timeout_config {
     .step = 1,
     .unit = Unit::second,
 };
+
+static constexpr const char *serial_print_ui_mode_items[] {
+    N_("Legacy"),
+    N_("Messages"),
+    N_("Progress"),
+};
 } // namespace
 
-MI_SERIAL_PRINT_SCREEN_ENABLE::MI_SERIAL_PRINT_SCREEN_ENABLE()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().serial_print_screen_enabled.get(), _("Serial Printing Screen")) {}
+MI_SERIAL_PRINT_UI_MODE::MI_SERIAL_PRINT_UI_MODE()
+    : MenuItemSwitch(_("Serial Printing UI"), serial_print_ui_mode_items, static_cast<size_t>(SerialPrinting::ui_mode())) {}
 
-void MI_SERIAL_PRINT_SCREEN_ENABLE::OnChange(size_t old_index) {
-    config_store().serial_print_screen_enabled.set(!old_index);
-}
-
-MI_SERIAL_PRINT_LEGACY_UI::MI_SERIAL_PRINT_LEGACY_UI()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().serial_print_legacy_ui.get(), _("Legacy Serial UI")) {}
-
-void MI_SERIAL_PRINT_LEGACY_UI::OnChange(size_t old_index) {
-    config_store().serial_print_legacy_ui.set(!old_index);
+void MI_SERIAL_PRINT_UI_MODE::OnChange([[maybe_unused]] size_t old_index) {
+    const auto mode = static_cast<SerialPrintingUiMode>(get_index());
+    config_store().serial_print_ui_mode.set(mode);
+    config_store().serial_print_legacy_ui.set(mode == SerialPrintingUiMode::legacy);
 }
 
 MI_SERIAL_PRINT_AUTO_START::MI_SERIAL_PRINT_AUTO_START()

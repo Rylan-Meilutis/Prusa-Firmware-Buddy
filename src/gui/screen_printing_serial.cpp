@@ -37,6 +37,14 @@ point_i16_t get_terminal_location() {
     return point_i16_t { x, GuiDefaults::RectScreenBody.Top() };
 }
 
+Rect16 get_legacy_logo_rect() {
+    return Rect16(
+        (GuiDefaults::RectScreen.Width() - img::serial_printing_172x138.w) / 2,
+        GuiDefaults::RectScreenBody.Top() + (GuiDefaults::RectScreenBody.Height() - img::serial_printing_172x138.h) / 2,
+        img::serial_printing_172x138.w,
+        img::serial_printing_172x138.h);
+}
+
 #if HAS_MINI_DISPLAY()
 constexpr auto etime_val_font { Font::small };
 constexpr Rect16 progress_rect { 10, 70, GuiDefaults::RectScreen.Width() - 2 * 10, 16 };
@@ -247,6 +255,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , w_status_progress(this, status_progress_rect, ui_theme::progress(), COLOR_GRAY)
     , w_message_label(this, message_label_rect, is_multiline::no)
     , w_message_value(this, message_value_rect, is_multiline::yes)
+    , legacy_logo(this, get_legacy_logo_rect(), &img::serial_printing_172x138)
     , time_dots(this, time_dots_rect, static_cast<uint8_t>(TimeItem::_count))
     , page_dots(this, page_dots_rect, 2)
     , last_state(marlin_server::State::Aborted) {
@@ -306,7 +315,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     page_dots.set_one_circle_mode(true);
     page_dots.Hide();
 
-    set_page(config_store().serial_print_legacy_ui.get() ? Page::message : Page::progress);
+    set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::progress);
     update_progress();
 }
 
@@ -344,8 +353,8 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             w_message_label.SetText(_("Status"));
             w_message_value.SetText(_("Print finished"));
             set_page(Page::message);
-        } else if (config_store().serial_print_legacy_ui.get()) {
-            set_page(Page::message);
+        } else if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
+            set_page(Page::legacy);
         } else if (status_page_available()) {
             user_selected_page = false;
             set_page(Page::status);
@@ -605,7 +614,7 @@ void screen_printing_serial_data_t::update_messages() {
 
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
-        if (config_store().serial_print_legacy_ui.get() || should_show_host_message(buf.str())) {
+        if (should_show_host_message(buf.str())) {
             append_message_line(message_text, buf.str());
             w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
             w_message_value.Invalidate();
@@ -624,8 +633,8 @@ bool screen_printing_serial_data_t::status_page_available() const {
 }
 
 void screen_printing_serial_data_t::set_page(Page page) {
-    if (config_store().serial_print_legacy_ui.get()) {
-        page = Page::message;
+    if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
+        page = Page::legacy;
     }
 
     if (page == Page::status && !status_page_available()) {
@@ -639,6 +648,8 @@ void screen_printing_serial_data_t::set_page(Page page) {
 
     const bool show_message = current_page == Page::message;
     const bool show_progress = current_page == Page::progress;
+    const bool show_legacy = current_page == Page::legacy;
+    legacy_logo.set_visible(show_legacy);
     w_progress.set_visible(show_progress || show_message);
     w_progress_txt.set_visible(show_progress);
     w_etime_label.set_visible(show_progress);
@@ -674,7 +685,7 @@ void screen_printing_serial_data_t::toggle_page() {
 }
 
 bool screen_printing_serial_data_t::can_toggle_pages() const {
-    return !config_store().serial_print_legacy_ui.get() && !status_page_available() && page_count() > 1;
+    return SerialPrinting::ui_mode() == SerialPrintingUiMode::progress && !status_page_available() && page_count() > 1;
 }
 
 void screen_printing_serial_data_t::advance_page() {
