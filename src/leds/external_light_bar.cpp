@@ -15,8 +15,18 @@ namespace leds::external_light_bar {
 static constexpr uint8_t low_side_pins_mask = 0x0F;
 static constexpr uint8_t logic_pins_mask = 0xF0;
 static constexpr uint8_t all_output_pins_mask = low_side_pins_mask | logic_pins_mask;
+static constexpr uint32_t off_debounce_ms = 750;
 static bool diagnostic_forced = false;
 static bool diagnostic_on = false;
+
+struct AppliedState {
+    bool valid = false;
+    bool on = false;
+    uint8_t mask = 0;
+    uint8_t active_high = 0;
+};
+
+static AppliedState applied_state;
 
 static uint8_t pin_mask(uint8_t pin) {
     return static_cast<uint8_t>(0x1 << pin);
@@ -126,6 +136,28 @@ void reset_persistent_state() {
 
     config_store().io_expander_output_register.set(output);
     config_store().io_expander_config_register.set(config);
+    applied_state.valid = false;
+}
+
+static bool apply_mask(uint8_t mask, uint8_t active_high, bool on) {
+    const uint8_t low_side = mask & low_side_pins_mask;
+    const uint8_t logic_active_high = active_high & mask;
+    const uint8_t logic_active_sink = (mask & logic_pins_mask) & ~active_high;
+
+    if (on) {
+        const uint8_t output_on = low_side | logic_active_high;
+        return buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register::Output, output_on, mask)
+            && buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register::Config, 0, mask);
+    }
+
+    const uint8_t output_off = logic_active_sink;
+    const uint8_t driven_off = low_side | logic_active_high;
+
+    // Active-sink logic pins turn off by floating the pin. Float them before
+    // setting their output latch high so the light never sees a driven pulse.
+    return buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register::Config, 0xFF, logic_active_sink)
+        && buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register::Output, output_off, mask)
+        && buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register::Config, 0, driven_off);
 }
 
 static bool apply_pin(uint8_t pin, OutputMode mode, bool on) {
@@ -193,7 +225,34 @@ bool target_on([[maybe_unused]] bool chamber_light_on) {
     }
 
     const auto state = leds::SideStripHandler::instance().current_state();
-    return state_enabled(light_state_for_strip_state(state));
+    const bool target = state_enabled(light_state_for_strip_state(state));
+
+    static bool off_pending = false;
+    static uint32_t off_pending_since_ms = 0;
+
+    if (target) {
+        off_pending = false;
+        return true;
+    }
+
+    if (!applied_state.valid || !applied_state.on) {
+        off_pending = false;
+        return false;
+    }
+
+    const uint32_t now = ticks_ms();
+    if (!off_pending) {
+        off_pending = true;
+        off_pending_since_ms = now;
+        return true;
+    }
+
+    if (now - off_pending_since_ms < off_debounce_ms) {
+        return true;
+    }
+
+    off_pending = false;
+    return false;
 }
 
 void apply(bool on) {
@@ -203,21 +262,27 @@ void apply(bool on) {
 
     const uint8_t mask = protected_pin_mask();
     if (!mask) {
+        applied_state.valid = false;
         return;
     }
 
-    bool success = true;
-    for (uint8_t pin = 0; pin < buddy::hw::TCA6408A::pin_count; ++pin) {
-        if (mask & pin_mask(pin)) {
-            success = apply_pin(pin, pin_mode(pin), on) && success;
-        }
+    const uint8_t active_high = active_high_pin_mask() & mask;
+    if (applied_state.valid
+        && applied_state.on == on
+        && applied_state.mask == mask
+        && applied_state.active_high == active_high) {
+        return;
     }
+
+    const bool success = apply_mask(mask, active_high, on);
 
     static bool last_logged_on = false;
     static uint8_t last_logged_mask = 0;
     static uint8_t last_logged_active_high = 0;
     static bool last_logged_valid = false;
-    const uint8_t active_high = active_high_pin_mask() & mask;
+    if (success) {
+        applied_state = { true, on, mask, active_high };
+    }
     if (success && (!last_logged_valid || last_logged_on != on || last_logged_mask != mask || last_logged_active_high != active_high)) {
         uint8_t config_register = 0;
         uint8_t output_register = 0;
