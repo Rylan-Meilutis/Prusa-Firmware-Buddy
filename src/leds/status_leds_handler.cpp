@@ -348,21 +348,30 @@ void StatusLedsHandler::set_active(bool val) {
 
 bool StatusLedsHandler::get_print_status_enabled() {
     std::lock_guard lock(mutex);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     return active && !print_status_disabled && print_status_brightness > 0;
+#else
+    return active && !print_status_disabled;
+#endif
 }
 
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
     if (!active) {
         print_status_disabled = false;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         print_status_brightness = 100;
+#endif
         return;
     }
     print_status_disabled = !val;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     print_status_brightness = val ? 100 : 0;
+#endif
     old_state = StateAnimation::_last;
 }
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 uint8_t StatusLedsHandler::get_print_status_brightness() {
     std::lock_guard lock(mutex);
     return print_status_brightness;
@@ -374,6 +383,7 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
     print_status_disabled = print_status_brightness == 0;
     old_state = StateAnimation::_last;
 }
+#endif
 
 void StatusLedsHandler::set_deep_idle(bool val) {
     std::lock_guard lock(mutex);
@@ -385,10 +395,12 @@ void StatusLedsHandler::acknowledge_finished() {
     finished_acknowledged = true;
 }
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 void StatusLedsHandler::acknowledge_aborted() {
     std::lock_guard lock(mutex);
     aborted_acknowledged = true;
 }
+#endif
 
 void StatusLedsHandler::set_finished_hold_active(bool val) {
     std::lock_guard lock(mutex);
@@ -405,20 +417,29 @@ void StatusLedsHandler::update() {
     const auto printer_state = marlin_vars().print_state.get();
     if (!print_active) {
         print_status_disabled = false;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         print_status_brightness = 100;
     } else {
         aborted_acknowledged = false;
+#endif
     }
 
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
         state = StateAnimation::Idle;
+#else
+    } else if (print_status_disabled && print_active) {
+        state = StateAnimation::Idle;
+#endif
     } else if (is_error_state) {
         state = StateAnimation::Error;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     } else if (printer_state == State::Aborted && !aborted_acknowledged) {
         state = StateAnimation::Aborting;
+#endif
     } else if (finished_hold_active) {
         state = post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
     } else {
@@ -449,6 +470,7 @@ void StatusLedsHandler::update() {
 
 std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     std::lock_guard lock(mutex);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     const auto data = controller_instance().data();
     const bool dim_print_status = print_active_for_status_override() && print_status_brightness < 100;
     if (!dim_print_status) {
@@ -463,6 +485,9 @@ std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
             static_cast<uint8_t>(static_cast<uint16_t>(data[i].w) * print_status_brightness / 100));
     }
     return adjusted_data;
+#else
+    return controller_instance().data();
+#endif
 }
 
 } // namespace leds

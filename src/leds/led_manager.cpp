@@ -59,6 +59,7 @@ ChamberDoorLedState chamber_door_state_for_leds() {
 #endif
 }
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 void acknowledge_aborted_after_door_cycle(bool door_open) {
     static bool aborted_seen_door_open = false;
 
@@ -74,6 +75,7 @@ void acknowledge_aborted_after_door_cycle(bool door_open) {
         aborted_seen_door_open = false;
     }
 }
+#endif
 
 } // namespace
 #endif
@@ -168,7 +170,9 @@ void LEDManager::update() {
 #if HAS_SIDE_LEDS()
     auto &side_strip_handler = SideStripHandler::instance();
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     acknowledge_aborted_after_door_cycle(chamber_door_state.open);
+#endif
 
     side_strip_handler.update();
     const bool side_strip_deep_idle = side_strip_handler.deep_idle();

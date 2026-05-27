@@ -604,7 +604,13 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
 
-class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
+class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+                                       WiSpin
+#else
+                                       WI_ICON_SWITCH_OFF_ON_t
+#endif
+{
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         N_("Print Chamber Lights");
@@ -614,7 +620,11 @@ class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
 
 public:
     MI_PRINT_CHAMBER_LIGHTS_ENABLE();
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     virtual void OnClick() override;
+#else
+    virtual void OnChange(size_t old_index) override;
+#endif
     virtual void Loop() override;
 };
 
@@ -678,6 +688,7 @@ public:
 #endif
 
 #if HAS_LEDS()
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 class MI_PRINT_STATUS_LEDS_ENABLE : public WiSpin {
     static constexpr const char *const label = N_("Print Status LED");
 
@@ -686,6 +697,16 @@ public:
     virtual void OnClick() override;
     virtual void Loop() override;
 };
+#else
+class MI_PRINT_STATUS_LEDS_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Print Status LED");
+
+public:
+    MI_PRINT_STATUS_LEDS_ENABLE();
+    virtual void OnChange(size_t old_index) override;
+    virtual void Loop() override;
+};
+#endif
 #endif
 
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
