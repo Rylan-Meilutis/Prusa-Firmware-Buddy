@@ -48,11 +48,13 @@ private:
         time_since_start,
         _count,
     };
+    static constexpr size_t message_text_size = HAS_MINI_DISPLAY() ? 256 : 512;
 
     virtual void stopAction() override;
     virtual void pauseAction() override;
     virtual void tuneAction() override;
     void update_progress();
+    void update_message_label(bool force = false);
     bool time_item_available(TimeItem item) const;
     TimeItem next_time_item(TimeItem item) const;
     TimeItem previous_time_item(TimeItem item) const;
@@ -87,16 +89,16 @@ private:
     WindowProgressCircles time_dots;
     WindowProgressCircles page_dots;
     std::array<char, 32> w_etime_value_buffer {};
-    std::array<char, 32> w_time_value_buffer {};
     std::array<char, 256> status_text {};
     std::array<char, 64> status_value_text {};
-    std::array<char, 256> message_text {};
+    std::array<char, message_text_size> message_text {};
     Page current_page = Page::progress;
     TimeItem current_time_item = TimeItem::remaining_time;
     uint32_t last_page_switch_s = 0;
     bool user_selected_page = false;
     bool status_progress_available = false;
     uint32_t last_message_id = 0;
+    uint8_t last_message_progress_percent = 255;
     marlin_server::State last_state;
     bool lock_buttons_applied = false;
 };
