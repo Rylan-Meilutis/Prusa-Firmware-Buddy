@@ -4,6 +4,7 @@
 #include <leds/side_strip_handler.hpp>
 #include <logging/log.hpp>
 #include <marlin_vars.hpp>
+#include <timing.h>
 #include "client_response.hpp"
 #include "hwio_pindef.h"
 #include <option/has_manual_belt_tuning.h>
