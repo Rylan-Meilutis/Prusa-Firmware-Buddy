@@ -223,14 +223,6 @@ using MI_LEDS_SETTINGS
     = MI_SCREEN<N_("Lights Settings"), class ScreenMenuLeds>;
 #endif
 
-class MI_SERIAL_PRINTING_SCREEN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("Serial Printing Screen");
-
-public:
-    MI_SERIAL_PRINTING_SCREEN_ENABLE();
-    virtual void OnChange(size_t old_index) override;
-};
-
 /// Opens toolhead 0 settings on single toolhead machines or submenu to select a toolhead on multi-toolhead machines
 class MI_TOOLHEAD_SETTINGS final : public IWindowMenuItem {
 public:
