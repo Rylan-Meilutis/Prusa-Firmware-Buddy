@@ -90,8 +90,6 @@ public:
     void set_print_brightness(uint8_t value);
     uint8_t get_print_light_brightness() const;
     void set_print_light_brightness(uint8_t value);
-    bool get_print_light_enabled() const;
-    void set_print_light_enabled(bool value);
 
     bool deep_idle() const;
     bool chamber_light_on() const;

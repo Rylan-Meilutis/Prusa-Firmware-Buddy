@@ -429,25 +429,6 @@ void SideStripHandler::set_print_light_brightness(uint8_t value) {
     state = SideStripState::unknown;
 }
 
-bool SideStripHandler::get_print_light_enabled() const {
-    std::lock_guard lock(mutex);
-    return (main_light_state_mask & light_state_bit(LightState::printing)) && (print_brightness_overridden ? print_brightness_override : print_brightness) > 0 && !print_light_disabled;
-}
-
-void SideStripHandler::set_print_light_enabled(bool value) {
-    std::lock_guard lock(mutex);
-    if (!(main_light_state_mask & light_state_bit(LightState::printing)) || print_brightness == 0) {
-        print_light_disabled = false;
-        print_brightness_overridden = false;
-        return;
-    }
-    print_brightness_override = value ? print_brightness : 0;
-    print_brightness_overridden = true;
-    print_light_disabled = !value;
-    host_idle_override = false;
-    state = SideStripState::unknown;
-}
-
 bool SideStripHandler::deep_idle() const {
     std::lock_guard lock(mutex);
     return state == SideStripState::off;
