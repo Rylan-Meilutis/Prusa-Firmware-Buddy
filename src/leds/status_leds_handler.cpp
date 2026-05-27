@@ -7,6 +7,7 @@
 #include "client_response.hpp"
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_side_fsensor.h>
+#include <algorithm>
 
 #if HAS_CHAMBER_FILTRATION_API()
     #include <feature/chamber_filtration/chamber_filtration.hpp>
@@ -347,16 +348,30 @@ void StatusLedsHandler::set_active(bool val) {
 
 bool StatusLedsHandler::get_print_status_enabled() {
     std::lock_guard lock(mutex);
-    return active && !print_status_disabled;
+    return active && !print_status_disabled && print_status_brightness > 0;
 }
 
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
     if (!active) {
         print_status_disabled = false;
+        print_status_brightness = 100;
         return;
     }
     print_status_disabled = !val;
+    print_status_brightness = val ? 100 : 0;
+    old_state = StateAnimation::_last;
+}
+
+uint8_t StatusLedsHandler::get_print_status_brightness() {
+    std::lock_guard lock(mutex);
+    return print_status_brightness;
+}
+
+void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
+    std::lock_guard lock(mutex);
+    print_status_brightness = std::min<uint8_t>(val, 100);
+    print_status_disabled = print_status_brightness == 0;
     old_state = StateAnimation::_last;
 }
 
@@ -368,6 +383,11 @@ void StatusLedsHandler::set_deep_idle(bool val) {
 void StatusLedsHandler::acknowledge_finished() {
     std::lock_guard lock(mutex);
     finished_acknowledged = true;
+}
+
+void StatusLedsHandler::acknowledge_aborted() {
+    std::lock_guard lock(mutex);
+    aborted_acknowledged = true;
 }
 
 void StatusLedsHandler::set_finished_hold_active(bool val) {
@@ -382,24 +402,30 @@ void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
     const bool print_active = print_active_for_status_override();
+    const auto printer_state = marlin_vars().print_state.get();
     if (!print_active) {
         print_status_disabled = false;
+        print_status_brightness = 100;
+    } else {
+        aborted_acknowledged = false;
     }
 
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
-    } else if (print_status_disabled && print_active) {
+    } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
         state = StateAnimation::Idle;
     } else if (is_error_state) {
         state = StateAnimation::Error;
+    } else if (printer_state == State::Aborted && !aborted_acknowledged) {
+        state = StateAnimation::Aborting;
     } else if (finished_hold_active) {
         state = post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
     } else {
         state = marlin_to_anim_state();
     }
 
-    if (deep_idle && state != StateAnimation::Filtering) {
+    if (deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Aborting) {
         state = StateAnimation::Idle;
     }
 
@@ -423,7 +449,20 @@ void StatusLedsHandler::update() {
 
 std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     std::lock_guard lock(mutex);
-    return controller_instance().data();
+    const auto data = controller_instance().data();
+    const bool dim_print_status = print_active_for_status_override() && print_status_brightness < 100;
+    if (!dim_print_status) {
+        return data;
+    }
+
+    for (size_t i = 0; i < adjusted_data.size(); ++i) {
+        adjusted_data[i] = ColorRGBW(
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].r) * print_status_brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].g) * print_status_brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].b) * print_status_brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].w) * print_status_brightness / 100));
+    }
+    return adjusted_data;
 }
 
 } // namespace leds
