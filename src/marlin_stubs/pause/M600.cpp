@@ -42,6 +42,7 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
+#include <serial_printing.hpp>
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "filament.hpp"
@@ -201,6 +202,8 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
     }
 #endif /*ENABLED(CRASH_RECOVERY)*/
 
+    const bool notify_serial_host_resume = marlin_server::serial_print_active();
+
 #if HAS_TOOLCHANGER()
     struct ToolChangeData {
         xyze_float_t original_resume_point;
@@ -282,6 +285,10 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
         report_current_position();
     }
 #endif
+
+    if (notify_serial_host_resume) {
+        SerialPrinting::resume();
+    }
 }
 
 /**

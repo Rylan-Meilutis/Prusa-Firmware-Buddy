@@ -77,7 +77,20 @@ int MI_EXTENDED_PRINTER_TYPE::item_count() const {
 }
 
 void MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, const std::span<char> &buffer) const {
-    strlcpy(buffer.data(), PrinterModelInfo::get(extended_printer_type_model[index]).id_str, buffer.size());
+    const auto model = extended_printer_type_model[index];
+
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    if (model == PrinterModel::coreone) {
+        strlcpy(buffer.data(), "CORE One", buffer.size());
+        return;
+    }
+    if (model == PrinterModel::coreonel) {
+        strlcpy(buffer.data(), "CORE One Plus", buffer.size());
+        return;
+    }
+    #endif
+
+    strlcpy(buffer.data(), PrinterModelInfo::get(model).id_str, buffer.size());
 }
 
 bool MI_EXTENDED_PRINTER_TYPE::on_item_selected([[maybe_unused]] int old_index, int new_index) {
