@@ -5,7 +5,6 @@
 #include "window_header.hpp"
 #include "status_footer.hpp"
 #include "window_text.hpp"
-#include "window_icon.hpp"
 #include <array>
 #include "window.hpp"
 #include "window_term.hpp"
@@ -32,6 +31,7 @@ public:
 
 protected:
     virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
+    virtual void unconditionalDraw() override;
 
 private:
     enum class Page {
@@ -84,7 +84,6 @@ private:
     WindowProgressBar w_status_progress;
     window_text_t w_message_label;
     window_text_t w_message_value;
-    window_icon_t legacy_logo;
     WindowProgressCircles time_dots;
     WindowProgressCircles page_dots;
     std::array<char, 32> w_etime_value_buffer {};
