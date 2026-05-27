@@ -140,7 +140,7 @@ void screen_printing_data_t::stopAction() {
     case printing_state_t::RESUMING:
         return;
     default: {
-        if (MsgBoxWarning(_("Are you sure to stop this printing?"), Responses_YesNo, 1)
+        if (MsgBoxWarning(_("Cancel this print?"), Responses_YesNo, 1)
             == Response::Yes) {
             stop_pressed = true;
             waiting_for_abort = true;
