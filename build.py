@@ -93,6 +93,8 @@ class BuildJob:
 
     @property
     def progress_percent(self) -> int | None:
+        if self.status == "success":
+            return 100
         if "/" not in self.progress:
             return None
         done, total = self.progress.split("/", 1)
@@ -104,6 +106,14 @@ class BuildJob:
         if total_i <= 0:
             return None
         return min(100, int(done_i * 100 / total_i))
+
+    def finish(self, returncode: int) -> None:
+        self.returncode = returncode
+        self.finished_at = time.monotonic()
+        self.status = "success" if returncode == 0 else "failed"
+        if self.status == "success" and "/" in self.progress:
+            _, total = self.progress.split("/", 1)
+            self.progress = f"{total}/{total}"
 
 
 def load_preset_names() -> set[str]:
@@ -379,7 +389,12 @@ def build_progress_lines(jobs: list[BuildJob], *, color: bool = False) -> list[s
     ]
     for job in jobs:
         percent = job.progress_percent
-        progress = job.progress if percent is None else f"{job.progress} {percent:3d}%"
+        if percent is None:
+            progress = job.progress
+        elif "/" in job.progress:
+            progress = f"{job.progress} {percent:3d}%"
+        else:
+            progress = f"{percent:3d}%"
         status_text = STATUS_LABELS.get(job.status, job.status)
         if color:
             status = f"{STATUS_COLORS.get(job.status, '')}{status_text:<10}{RESET}"
@@ -696,9 +711,7 @@ def main() -> int:
                 returncode = process.poll()
                 if returncode is None:
                     continue
-                job.returncode = returncode
-                job.finished_at = time.monotonic()
-                job.status = "success" if returncode == 0 else "failed"
+                job.finish(returncode)
                 running.pop(process)
 
             now = time.monotonic()
@@ -707,6 +720,7 @@ def main() -> int:
                 last_render = now
             if running:
                 time.sleep(0.1)
+        ui.render(jobs)
     finally:
         ui.stop()
 
