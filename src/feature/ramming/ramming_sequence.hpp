@@ -58,6 +58,11 @@ protected:
         for (const Step &step : steps) {
             retracted_distance_ -= step.e;
 
+            if (step.fr_mm_min <= 0) {
+                // Feedrates should always be positive
+                std::abort();
+            }
+
             // If we ever get below zero, that means that we have extruded out of the nozzle.
             // The retracted distance should reset at this point
             if (retracted_distance_ < 0) {

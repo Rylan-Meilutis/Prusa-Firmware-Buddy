@@ -10,8 +10,12 @@ bool RammingSequence::execute(const InterruptCallback &callback) const {
     // Use default motion parameters for the ramming sequence
     Temporary_Reset_Motion_Parameters mp_guard;
 
-    // Undo any retractions before starting the ramming
-    mapi::fully_deretract();
+    const auto &first_step = steps_.front();
+
+    if (first_step.e > 0) {
+        // Undo any retractions before starting the ramming, if the ramming is not a pure retract
+        mapi::fully_deretract(MMM_TO_MMS(first_step.fr_mm_min));
+    }
 
     for (const auto &step : steps()) {
         mapi::extruder_move(step.e, MMM_TO_MMS(step.fr_mm_min));

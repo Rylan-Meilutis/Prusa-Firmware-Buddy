@@ -29,7 +29,7 @@ float extruder_schedule_turning(float feed_rate, float step = 0.6f);
 /// Deretracts any retraction of the filament known to the printer
 /// Considers auto_retract and filament_tracker
 /// Blocks until the deretraction is done
-void fully_deretract();
+void fully_deretract(float fr_mm_s);
 
 /// Ensures the filament is retracted to the specified distance
 /// Considers auto_retract and filament_tracker

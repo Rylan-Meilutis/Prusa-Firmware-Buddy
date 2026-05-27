@@ -56,7 +56,7 @@ float extruder_schedule_turning(float feed_rate, float step) {
     return 0;
 }
 
-void fully_deretract() {
+void fully_deretract([[maybe_unused]] float fr_mm_s) {
     [[maybe_unused]] const auto tool = PhysicalToolIndex::currently_selected_opt();
     if (!tool.has_value()) {
         return;
@@ -73,7 +73,7 @@ void fully_deretract() {
 #endif
 
 #if HAS_FILAMENT_TRACKER()
-    mapi::extruder_move(buddy::filament_tracker().get_retracted_distance(*tool).value_or(0), FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
+    mapi::extruder_move(buddy::filament_tracker().get_retracted_distance(*tool).value_or(0), fr_mm_s);
 #endif
 
     planner.synchronize();
