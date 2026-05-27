@@ -5,6 +5,7 @@
 #include "window_header.hpp"
 #include "status_footer.hpp"
 #include "window_text.hpp"
+#include "window_icon.hpp"
 #include <array>
 #include "window.hpp"
 #include "window_term.hpp"
@@ -34,6 +35,7 @@ protected:
 
 private:
     enum class Page {
+        legacy,
         progress,
         status,
         message,
@@ -82,6 +84,7 @@ private:
     WindowProgressBar w_status_progress;
     window_text_t w_message_label;
     window_text_t w_message_value;
+    window_icon_t legacy_logo;
     WindowProgressCircles time_dots;
     WindowProgressCircles page_dots;
     std::array<char, 32> w_etime_value_buffer {};

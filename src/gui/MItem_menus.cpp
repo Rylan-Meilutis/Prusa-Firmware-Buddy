@@ -196,16 +196,6 @@ template struct MI_SCREEN_CTOR<ScreenMenuLedPrinting>;
 template struct MI_SCREEN_CTOR<ScreenMenuExternalLightBar>;
 #endif
 
-/**********************************************************************************************/
-// MI_SERIAL_PRINTING_SCREEN_ENABLE
-MI_SERIAL_PRINTING_SCREEN_ENABLE::MI_SERIAL_PRINTING_SCREEN_ENABLE()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().serial_print_screen_enabled.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
-void MI_SERIAL_PRINTING_SCREEN_ENABLE::OnChange(size_t old_index) {
-    config_store().serial_print_screen_enabled.set(!old_index);
-}
-
-// TODO: this would be better to split into separate menu items between singletool printers and the toolchanger ones.
 // * MI_TOOLHEAD_SETTINGS
 MI_TOOLHEAD_SETTINGS::MI_TOOLHEAD_SETTINGS()
     : IWindowMenuItem(

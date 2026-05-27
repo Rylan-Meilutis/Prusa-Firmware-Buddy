@@ -4,6 +4,7 @@
 #include "timing.h"
 #include "gcode/queue.h"
 #include "module/planner.h"
+#include <serial_printing_ui_mode.hpp>
 
 /// Helper class to better support serial printing
 class SerialPrinting {
@@ -35,6 +36,8 @@ public:
     /// (for example in M117 status text). Prefer that over queued M73 values.
     static bool host_progress_percent(uint8_t &percent, uint32_t now_ms);
     static void set_host_progress_percent(uint8_t percent);
+
+    static SerialPrintingUiMode ui_mode();
 
 private:
     static void host_action(const char *action, const char *reason = nullptr);

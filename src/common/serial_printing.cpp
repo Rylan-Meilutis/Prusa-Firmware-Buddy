@@ -101,6 +101,14 @@ bool SerialPrinting::host_progress_percent(uint8_t &percent, uint32_t now_ms) {
     return true;
 }
 
+SerialPrintingUiMode SerialPrinting::ui_mode() {
+    const auto mode = config_store().serial_print_ui_mode.get();
+    if (static_cast<uint8_t>(mode) > static_cast<uint8_t>(SerialPrintingUiMode::_last)) {
+        return SerialPrintingUiMode::progress;
+    }
+    return mode;
+}
+
 void remove_N_prefix(const char *&command) {
     while (*command == ' ') {
         ++command;
@@ -503,10 +511,6 @@ bool SerialPrinting::serial_command_hook(const char *command) {
         leds::SideStripHandler::instance().activity_ping();
     }
 #endif
-
-    if (!config_store().serial_print_screen_enabled.get()) {
-        return true;
-    }
 
     if (marlin_server::serial_print_active()) {
         last_serial_indicator_ms = ticks_ms();

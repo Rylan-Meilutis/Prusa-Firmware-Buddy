@@ -51,7 +51,9 @@
 
 #include <option/has_serial_print.h>
 #if HAS_SERIAL_PRINT()
+    #include <serial_printing.hpp>
     #include "screen_printing_serial.hpp"
+    #include "screen_messages.hpp"
 #endif
 
 #if HAS_PHASE_STEPPING_CALIBRATION()
@@ -199,7 +201,9 @@ struct FSMPrintDef {
 
 #if HAS_SERIAL_PRINT()
         if constexpr (fsm == ClientFSM::Serial_printing) {
-            screen = ScreenFactory::Screen<screen_printing_serial_data_t>;
+            screen = SerialPrinting::ui_mode() == SerialPrintingUiMode::messages
+                ? ScreenFactory::Screen<screen_messages_data_t>
+                : ScreenFactory::Screen<screen_printing_serial_data_t>;
             if (Screens::Access()->IsScreenOpened(screen)) {
                 // Already opened, no need to do anything
                 return true;
