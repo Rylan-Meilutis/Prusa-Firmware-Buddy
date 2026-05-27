@@ -79,7 +79,18 @@ int MI_EXTENDED_PRINTER_TYPE::item_count() const {
 }
 
 string_view_utf8 MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
-    return string_view_utf8::MakeCPUFLASH(PrinterModelInfo::get(extended_printer_type_model[index]).id_str);
+    const auto model = extended_printer_type_model[index];
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    if (model == PrinterModel::coreone) {
+        return string_view_utf8::MakeCPUFLASH("CORE One");
+    }
+    if (model == PrinterModel::coreonel) {
+        return string_view_utf8::MakeCPUFLASH("CORE One Plus");
+    }
+#endif
+
+    return string_view_utf8::MakeCPUFLASH(PrinterModelInfo::get(model).id_str);
 }
 
 bool MI_EXTENDED_PRINTER_TYPE::on_item_selected(const OnItemSelectedArgs &args) {

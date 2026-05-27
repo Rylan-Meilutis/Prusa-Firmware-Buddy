@@ -2394,7 +2394,7 @@ static void _server_print_loop(void) {
                     max_chamber_target_temp = target;
                 }
             });
-            buddy::chamber().manage_ventilation_state(max_chamber_target_temp);
+            buddy::chamber().manage_ventilation_state(max_chamber_target_temp, server.print_is_serial);
         }
 #endif
 #if HAS_CHAMBER_FILTRATION_API()

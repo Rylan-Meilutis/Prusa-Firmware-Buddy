@@ -411,7 +411,7 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         finished_acknowledged = false;
-    } else if (finished_acknowledged && state == StateAnimation::Finishing) {
+    } else if (finished_acknowledged && (state == StateAnimation::Finishing || state == StateAnimation::Filtering)) {
         state = StateAnimation::Idle;
     }
 
