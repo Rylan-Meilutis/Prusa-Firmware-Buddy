@@ -351,6 +351,10 @@ public:
      */
     TransactionGuard transaction_guard();
 
+    /// Forces a migration of the current bank to the next one.
+    /// This should be used by debug code only.
+    void trigger_bank_migration();
+
     Backend(uint16_t offset, uint16_t size, configuration_store::Storage &storage);
     Backend(const Backend &other) = delete;
     Backend(Backend &&other) = delete;

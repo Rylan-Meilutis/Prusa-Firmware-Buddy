@@ -496,6 +496,11 @@ auto Backend::transaction_guard() -> TransactionGuard {
     return TransactionGuard(*this);
 }
 
+void Backend::trigger_bank_migration() {
+    auto lock_guard = lock();
+    migrate_bank();
+}
+
 void Backend::version_migration_start() {
     if (transaction.has_value()) {
         bsod("Starting transaction while transaction is running");

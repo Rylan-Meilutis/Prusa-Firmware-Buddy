@@ -99,6 +99,10 @@ if(HAS_XLCD_TOUCH_DRIVER)
   target_sources(firmware PRIVATE MItem_touch.cpp screen_touch_playground.cpp)
 endif()
 
+if(DEVELOPMENT_ITEMS_ENABLED)
+  target_sources(firmware PRIVATE MItem_development.cpp)
+endif()
+
 if(HAS_TOOLCHANGER)
   target_sources(firmware PRIVATE screen_menu_filament_changeall.cpp)
 endif()

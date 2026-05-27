@@ -10,8 +10,16 @@
 #include "MItem_menus.hpp"
 
 #include <option/has_e2ee_support.h>
+#include <option/development_items.h>
+
+#if DEVELOPMENT_ITEMS()
+    #include "MItem_development.hpp"
+#endif
 
 using ScreenMenuSystem__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_SAVE_DUMP, MI_LOG_TO_TXT, MI_DEVHASH_IN_QR, MI_LOAD_SETTINGS,
+#if DEVELOPMENT_ITEMS()
+    MI_TRIGGER_BANK_MIGRATION,
+#endif
 #if HAS_E2EE_SUPPORT()
     MI_E2EE,
 #endif
