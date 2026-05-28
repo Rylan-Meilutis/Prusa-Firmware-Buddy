@@ -22,8 +22,14 @@ inline uint16_t color_to_565(Color clr) {
 }
 
 extern void st7789v_init(void);
+extern void st7789v_delay_ms(uint32_t ms);
+extern void st7789v_cmd_slpout(void);
+extern void st7789v_cmd_slpin(void);
+extern void st7789v_cmd_dispon(void);
+extern void st7789v_cmd_dispoff(void);
 extern void st7789v_done(void);
 extern void st7789v_clear(uint16_t clr565);
+extern void st7789v_suppress_display_writes(bool suppress);
 extern void st7789v_wr(uint8_t *pdata, uint16_t size);
 extern void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint16_t clr565);
 

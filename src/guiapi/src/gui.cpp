@@ -76,6 +76,34 @@ static constexpr uint32_t screen_brightness_wake_ms = 30000;
 #if !HAS_LEDS() && HAS_ST7789_DISPLAY()
 static uint32_t screen_brightness_wake_since_ms = 0;
 
+static void set_st7789_brightness(uint8_t brightness) {
+    static bool lcd_output_enabled = true;
+
+    if (brightness == 0) {
+        st7789v_suppress_display_writes(false);
+        st7789v_brightness_set(0);
+        st7789v_clear(0x0000);
+        st7789v_suppress_display_writes(true);
+        st7789v_brightness_disable();
+        if (lcd_output_enabled) {
+            st7789v_cmd_dispoff();
+            st7789v_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        st7789v_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            st7789v_brightness_enable();
+            st7789v_cmd_slpout();
+            st7789v_delay_ms(120);
+            st7789v_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        st7789v_brightness_enable();
+        st7789v_brightness_set(brightness);
+    }
+}
+
 static leds::LightState screen_brightness_state() {
     if (screen_brightness_wake_since_ms && ticks_ms() - screen_brightness_wake_since_ms < screen_brightness_wake_ms) {
         return leds::LightState::active;
@@ -84,9 +112,24 @@ static leds::LightState screen_brightness_state() {
 
     const marlin_server::State printer_state = marlin_vars().print_state;
     const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool guided_activity = marlin_vars().peek_fsm_states([](const fsm::States &states) {
+        return states.get_top().has_value();
+    });
     return print_active
         ? leds::LightState::printing
-        : (printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit ? leds::LightState::idle : leds::LightState::active);
+        : (guided_activity
+                ? leds::LightState::active
+            : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                ? leds::LightState::idle
+                : leds::LightState::active);
+}
+
+static bool update_st7789_screen_brightness() {
+    const leds::LightState state = screen_brightness_state();
+    const uint8_t stored_brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    const uint8_t brightness = leds::clamp_screen_brightness(state, stored_brightness);
+    set_st7789_brightness((brightness * 255) / 100);
+    return brightness == 0;
 }
 
 static bool wake_st7789_from_dim_idle() {
@@ -96,8 +139,7 @@ static bool wake_st7789_from_dim_idle() {
         return false;
     }
     screen_brightness_wake_since_ms = ticks_ms();
-    st7789v_brightness_enable();
-    st7789v_brightness_set((leds::minimum_screen_brightness(leds::LightState::active) * 255) / 100);
+    set_st7789_brightness((leds::minimum_screen_brightness(leds::LightState::active) * 255) / 100);
     return true;
 }
 #endif
@@ -112,6 +154,28 @@ static bool wake_screen_from_dim_idle() {
 #else
     return false;
 #endif
+}
+
+static bool update_screen_brightness_and_is_off() {
+#if HAS_LEDS()
+    leds::LEDManager::instance().update();
+    return leds::LEDManager::instance().lcd_brightness_is_off();
+#elif HAS_ST7789_DISPLAY()
+    return update_st7789_screen_brightness();
+#else
+    return false;
+#endif
+}
+
+static void invalidate_after_screen_wake(bool screen_brightness_off) {
+    static bool was_screen_brightness_off = false;
+    if (was_screen_brightness_off && !screen_brightness_off) {
+        if (auto *screen = Screens::Access()->Get()) {
+            screen->Invalidate();
+        }
+        gui_invalidate();
+    }
+    was_screen_brightness_off = screen_brightness_off;
 }
 
 void gui_init(void) {
@@ -245,26 +309,28 @@ void gui_bare_loop() {
     ++guiloop_nesting;
 
     gui_handle_jogwheel();
+    const bool screen_brightness_off = update_screen_brightness_and_is_off();
+    invalidate_after_screen_wake(screen_brightness_off);
 
-    gui_redraw();
+    if (!screen_brightness_off) {
+        gui_redraw();
+    } else {
+        osDelay(GUI_DELAY_MIN);
+    }
 
     --guiloop_nesting;
 }
 
 void gui_loop(void) {
     ++guiloop_nesting;
-    lcd::communication_check();
     gui_handle_jogwheel();
 
-#if HAS_LEDS()
-    leds::LEDManager::instance().update();
-#elif HAS_ST7789_DISPLAY()
-    const leds::LightState state = screen_brightness_state();
-    const uint8_t stored_brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    const uint8_t brightness = leds::clamp_screen_brightness(state, stored_brightness);
-    st7789v_brightness_enable();
-    st7789v_brightness_set((brightness * 255) / 100);
-#endif
+    const bool screen_brightness_off = update_screen_brightness_and_is_off();
+    invalidate_after_screen_wake(screen_brightness_off);
+
+    if (!screen_brightness_off) {
+        lcd::communication_check();
+    }
 
 #if HAS_TOUCH()
     gui_handle_touch();
@@ -283,7 +349,11 @@ void gui_loop(void) {
         }
     }
 
-    gui_redraw();
+    if (!screen_brightness_off) {
+        gui_redraw();
+    } else {
+        osDelay(GUI_DELAY_MIN);
+    }
     marlin_client::loop();
     GuiMediaEventsHandler::Tick();
 #if HAS_SELFTEST()
