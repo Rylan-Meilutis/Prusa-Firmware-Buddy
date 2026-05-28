@@ -117,7 +117,7 @@ Every non-resource source directory in that inventory should map to one of the f
 ./build.py --preset mini --bootloader yes --jobs 13
 ```
 
-XL is the flash headroom gate. MINI is the layout and small-display gate. Core One is the chamber/door/LED behavior gate.
+XL is the flash headroom gate. MINI is the layout and small-display/screen-only brightness gate. Core One is the chamber/door/LED behavior gate. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
 
 6. Run the full release build after focused targets pass.
 
@@ -199,6 +199,7 @@ src/gui/screen/screen_menu_external_light_bar.hpp
 src/gui/screen/screen_chamber_filtration.hpp
 src/gui/MItem_tools.*
 src/gui/MItem_menus.*
+src/guiapi/src/gui.cpp
 src/gui/MItem_hardware.cpp
 src/marlin_stubs/M151*
 src/marlin_stubs/M152*
@@ -221,6 +222,9 @@ Core One chamber LED off does not turn off status LEDs/status bar.
 Core One/Core One Plus chamber and status temporary print brightness values are percent-based and independent.
 XL side-strip temporary print brightness is percent-based.
 Temporary print lighting overrides reset after the print.
+Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
+Active-state screen brightness is clamped to at least 15%.
+If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
 Finished state acknowledgement still follows platform rules.
 Opening and closing the door during filtering turns status LEDs off.
@@ -232,6 +236,7 @@ External light output is latched and off-debounced so transient firmware state g
 Active-sink external light pins float before their output latch changes when turning off, avoiding visible pulses.
 M150 compatibility and M151/M152/M153 behavior remain consistent across Core One, XL, MK, and MINI feature flags.
 Machine-specific LED/UI code stays behind feature flags: do not instantiate status LED color screens on targets without `HAS_LEDS`, do not compile side-strip driver code where `HAS_SIDE_LEDS` is disabled, and keep XL-only enclosure second-driver handling under XL-only preprocessor guards.
+Per-state LED settings pages share one runtime menu container instead of four duplicated template menu instantiations. Preserve this shape unless a replacement is proven to fit XL flash.
 ```
 
 ### Core One Plus And Chamber Vents
@@ -486,6 +491,9 @@ When upstream changes LED APIs, re-check these separation rules:
 ```text
 Status LEDs are independent from chamber/side LED enable state.
 Temporary print brightness is independent from persistent settings.
+Screen brightness is independent from chamber/side/status LED brightness.
+Active screen brightness cannot be configured or applied below 15%.
+Dim idle/deep-idle wake input is consumed before normal UI action dispatch.
 Abort indication is not treated as finished indication.
 Door/filter acknowledgement is Core One-specific unless explicitly handled for another platform.
 Machine-specific paths are compile-time-pruned where possible: Core One status-bar-off path, XL side-strip/enclosure second LED driver, and status LED color UI on targets without status LEDs.
@@ -511,6 +519,8 @@ Build at least XL, Core One, MINI, and MK3.5 after pruning. MINI catches disable
 
 Do not trade away serial-print recovery, lighting safety, or post-print acknowledgement behavior just to save a small amount of flash. First look for duplicate code, strings, and upstream replacements.
 
+For per-state LED/screen settings, prefer the shared runtime-backed state menu container in `src/gui/screen/screen_menu_led_state.*`. Reintroducing separate `ScreenMenu<...>` template instantiations for each light state has previously pushed XL over boot flash.
+
 ## Manual Smoke Test Matrix
 
 Minimum hardware or simulator checks before publishing:
@@ -521,6 +531,7 @@ Core One / Core One Plus:
   Manual open-vent prompt suppression for serial print and Core One Plus.
   Chamber LEDs off while status LEDs still work.
   Per-print chamber/status brightness at 0%, low value, and 100%.
+  Per-state screen brightness: active below 15% is clamped, idle/deep-idle below 15% consumes first input as wake-only.
   Door open/close acknowledgement after finished, aborted, and filtering states.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
@@ -532,6 +543,8 @@ XL:
   MMU/runout recovery sends serial host resume.
   MMU extra purge shows status progress instead of staying at 0%.
   Per-print side-strip brightness at 0%, low value, and 100%.
+  Per-state screen, status, and side-strip brightness settings remain visible and independent.
+  Idle/deep-idle screen brightness below 15% wakes without activating the touched/focused UI control.
   Chamber fan/filter controls and filtering LED indication.
   Theme assets and brass/dark/light icon rendering.
   Release boot image fits flash.
@@ -544,6 +557,8 @@ MINI:
   Progress screen layout.
   Host message filtering and numeric percentage on the message page.
   Screen memory remains within `ScreenFactory` storage.
+  Only screen brightness settings are shown in Lights Settings; no status/chamber/side LED controls are instantiated.
+  Idle screen brightness below 15% consumes first encoder input as wake-only.
   Theme resources render correctly on the small display.
   Status LED color settings and other status-LED-only code are not instantiated when `HAS_LEDS` is disabled.
 
@@ -551,6 +566,8 @@ MK4 / MK3.5:
   Serial print screen and post-print Continue acknowledgement.
   Abort indication does not look like finished indication.
   Status LEDs acknowledge finished/aborted states correctly on non-door platforms.
+  Screen and status LED brightness controls are visible, but side/chamber controls are hidden unless the target actually supports them.
+  LED manager builds and runs the non-side-LED wake path.
   Serial printing and theme changes compile under MK feature flags.
   Shared external-light code compiles under MK3.5 include paths even if the feature is not user-facing there.
   LED manager builds the non-side-LED path without pulling in Core One or XL side-strip-only code.
@@ -580,7 +597,7 @@ Core One Plus and vent behavior.
 Build/signing notes.
 Known limitations.
 Focused build results for XL/Core One/MINI.
-Focused build results for MK3.5 when shared LED, GUI, or platform guards change.
+Focused build results for MK4 or MK3.5 when shared LED, GUI, display brightness, or platform guards change.
 Full build summary and BBF list.
 ```
 
@@ -595,6 +612,7 @@ git diff --check
 ./build.py --preset xl --bootloader yes --jobs 13
 ./build.py --preset coreone --bootloader yes --jobs 13
 ./build.py --preset mini --bootloader yes --jobs 13
+./build.py --preset mk4 --bootloader yes --jobs 13
 ./build.py --preset coreone,mini,mini-en-cs,mini-en-de,mini-en-es,mini-en-fr,mini-en-it,mini-en-pl,mini-en-ja,mini-en-uk,xl,mk4,mk3.5 --bootloader yes --jobs 13
 ```
 
