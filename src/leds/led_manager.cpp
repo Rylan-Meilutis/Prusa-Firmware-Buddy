@@ -8,11 +8,14 @@
 #include "neopixel.hpp"
 #include <option/has_leds.h>
 #include <option/has_side_leds.h>
+#include <leds/light_state.hpp>
 #include <guiconfig/guiconfig.h>
 #if HAS_ST7789_DISPLAY()
     #include <st7789v.hpp>
 #endif
-
+#if HAS_ILI9488_DISPLAY()
+    #include <ili9488.hpp>
+#endif
 #include <config_store/store_instance.hpp>
 
 #if HAS_SIDE_LEDS()
@@ -128,6 +131,14 @@ static SideLeds &get_side_leds() {
 #endif // HAS_SIDE_LEDS
 
 namespace leds {
+
+#if !HAS_SIDE_LEDS()
+static bool guided_activity_active() {
+    return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+        return states.get_top().has_value();
+    });
+}
+#endif
 
 LEDManager &LEDManager::instance() {
     static LEDManager instance;
@@ -267,9 +278,12 @@ void LEDManager::update_lcd_brightness() {
 #else
     const marlin_server::State printer_state = marlin_vars().print_state;
     const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool guided_activity = guided_activity_active();
     leds::LightState state = print_active
         ? leds::LightState::printing
-        : (printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+        : (guided_activity
+                ? leds::LightState::active
+            : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     if (lcd_brightness_wake_until_ms) {
@@ -280,18 +294,30 @@ void LEDManager::update_lcd_brightness() {
             lcd_brightness_wake_until_ms = 0;
         }
     }
-    const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    if (!print_active) {
+        print_screen_brightness_overridden = false;
+    }
+    const uint8_t brightness = print_active && print_screen_brightness_overridden
+        ? print_screen_brightness_override
+        : (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
     set_lcd_brightness(leds::clamp_screen_brightness(state, brightness));
 #endif
+}
+
+bool LEDManager::lcd_brightness_is_off() const {
+    return lcd_brightness_off;
 }
 
 #if !HAS_SIDE_LEDS()
 bool LEDManager::wake_lcd_from_dim_idle() {
     const marlin_server::State printer_state = marlin_vars().print_state;
     const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool guided_activity = guided_activity_active();
     const leds::LightState state = print_active
         ? leds::LightState::printing
-        : (printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+        : (guided_activity
+                ? leds::LightState::active
+            : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
@@ -301,6 +327,23 @@ bool LEDManager::wake_lcd_from_dim_idle() {
     lcd_brightness_wake_until_ms = ticks_ms();
     set_lcd_brightness(leds::clamp_screen_brightness(leds::LightState::active, brightness));
     return true;
+}
+#endif
+
+#if !HAS_SIDE_LEDS()
+uint8_t LEDManager::get_print_screen_brightness() const {
+    if (print_screen_brightness_overridden) {
+        return print_screen_brightness_override;
+    }
+    return leds::clamp_screen_brightness(
+        leds::LightState::printing,
+        (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(leds::LightState::printing)) & 0xff);
+}
+
+void LEDManager::set_print_screen_brightness(uint8_t brightness) {
+    print_screen_brightness_override = leds::clamp_screen_brightness(leds::LightState::printing, brightness);
+    print_screen_brightness_overridden = true;
+    set_lcd_brightness(print_screen_brightness_override);
 }
 #endif
 
@@ -344,12 +387,73 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
     if (brightness > 100) {
         brightness = 100;
     }
+    lcd_brightness_off = brightness == 0;
+
+    static bool lcd_output_enabled = true;
+
 #if HAS_ST7789_DISPLAY()
-    st7789v_brightness_enable();
-    st7789v_brightness_set((brightness * 255) / 100);
+    if (brightness == 0) {
+        st7789v_suppress_display_writes(false);
+        st7789v_brightness_set(0);
+        st7789v_clear(0x0000);
+        st7789v_suppress_display_writes(true);
+        st7789v_brightness_disable();
+        if (lcd_output_enabled) {
+            st7789v_cmd_dispoff();
+            st7789v_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        st7789v_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            st7789v_brightness_enable();
+            st7789v_cmd_slpout();
+            st7789v_delay_ms(120);
+            st7789v_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        st7789v_brightness_enable();
+        st7789v_brightness_set((brightness * 255) / 100);
+    }
 #else
     // LCD backlight is connected to the green channel of the fourth LED (index 3) on the status strip
-    get_status_leds().set(ColorRGBW(0, (brightness * 255) / 100, 0).data, 3);
+    auto &status_leds = get_status_leds();
+    #if HAS_ILI9488_DISPLAY()
+    if (brightness == 0) {
+        ili9488_suppress_display_writes(false);
+        ili9488_clear_full_black();
+        ili9488_suppress_display_writes(true);
+        if (lcd_output_enabled) {
+            ili9488_brightness_set(0);
+            ili9488_brightness_disable();
+            ili9488_cmd_dispoff();
+            ili9488_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        ili9488_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            ili9488_cmd_slpout();
+            osDelay(120);
+            ili9488_brightness_enable();
+            ili9488_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        ili9488_brightness_enable();
+        ili9488_brightness_set((brightness * 255) / 100);
+    }
+    #endif
+    if (brightness == 0) {
+        // Some XLCD revisions keep the visible backlight/status illumination on
+        // a different front-strip channel than the documented index 3 green
+        // channel. When the screen is explicitly Off, force the whole front
+        // strip dark after the LCD has been written black.
+        status_leds.set_all(0);
+        status_leds.force_refresh(4);
+    } else {
+        status_leds.set(ColorRGBW(0, (brightness * 255) / 100, 0).data, 3);
+    }
+    status_leds.update();
 #endif
 }
 

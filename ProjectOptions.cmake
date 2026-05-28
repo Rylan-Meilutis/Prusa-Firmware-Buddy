@@ -429,7 +429,7 @@ set_feature_for_printers(
 set_feature_for_printers(HAS_EMBEDDED_ESP32 "XL")
 set(PRINTERS_WITH_SIDE_LEDS "XL" "COREONE" "COREONEL")
 set(PRINTERS_WITH_TRANSLATIONS "COREONE" "COREONEL" "MK4" "MK3.5" "XL" "MINI")
-set(PRINTERS_WITH_EXTFLASH_TRANSLATIONS "MINI")
+set(PRINTERS_WITH_EXTFLASH_TRANSLATIONS "MINI" "XL")
 set_feature_for_printers(HAS_LOVE_BOARD "MK4" "iX" "COREONE" "COREONEL")
 set_feature_for_printers(HAS_TMC_UART "MINI")
 set_feature_for_printers(

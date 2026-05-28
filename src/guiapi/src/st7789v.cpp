@@ -107,6 +107,7 @@ static constexpr uint8_t ST7789V_MAX_COMMAND_READ_LENGHT = 4;
 
 uint8_t st7789v_buff[ST7789V_BUFFER_SIZE]; // display buffer
 bool st7789v_buff_borrowed = false; ///< True if buffer is borrowed by someone else
+static bool display_writes_suppressed = false;
 
 uint8_t *st7789v_borrow_buffer() {
     assert(!st7789v_buff_borrowed && "Already lent");
@@ -128,7 +129,6 @@ size_t st7789v_buffer_size() {
 void st7789v_gamma_set_direct(uint8_t gamma_enu);
 uint8_t st7789v_read_ctrl(void);
 void st7789v_ctrl_set(uint8_t ctrl);
-static void st7789v_delay_ms(uint32_t ms);
 
 using buddy::hw::displayCs;
 using buddy::hw::displayRs;
@@ -188,7 +188,7 @@ static inline void st7789v_fill_ui16(uint16_t *p, uint16_t v, uint16_t c) {
     }
 }
 
-static void st7789v_delay_ms(uint32_t ms) {
+void st7789v_delay_ms(uint32_t ms) {
     if (sys_is_interrupt() || (st7789v_flg & (uint8_t)ST7789V_FLG_SAFE)) {
         volatile uint32_t temp;
         while (ms--) {
@@ -277,6 +277,9 @@ void st7789v_wr(uint8_t *pdata, uint16_t size) {
     if (!(pdata && size)) {
         return; // null or empty data - return
     }
+    if (display_writes_suppressed) {
+        return;
+    }
     uint16_t tmp_flg = st7789v_flg; // save flags
     if (st7789v_flg & FLG_CS) {
         st7789v_clr_cs(); // CS = L
@@ -311,6 +314,10 @@ void st7789v_cmd_slpout(void) {
     st7789v_cmd(CMD_SLPOUT, 0, 0);
 }
 
+void st7789v_cmd_slpin(void) {
+    st7789v_cmd(CMD_SLPIN, 0, 0);
+}
+
 void st7789v_cmd_madctl(uint8_t madctl) {
     st7789v_cmd(CMD_MADCTL, &madctl, 1);
 }
@@ -321,6 +328,10 @@ void st7789v_cmd_colmod(uint8_t colmod) {
 
 void st7789v_cmd_dispon(void) {
     st7789v_cmd(CMD_DISPON, 0, 0);
+}
+
+void st7789v_cmd_dispoff(void) {
+    st7789v_cmd(CMD_DISPOFF, 0, 0);
 }
 
 void st7789v_cmd_caset(uint16_t x, uint16_t cx) {
@@ -334,6 +345,9 @@ void st7789v_cmd_raset(uint16_t y, uint16_t cy) {
 }
 
 void st7789v_cmd_ramwr(uint8_t *pdata, uint16_t size) {
+    if (display_writes_suppressed && pdata && size) {
+        return;
+    }
     st7789v_cmd(CMD_RAMWR, pdata, size);
 }
 
@@ -498,6 +512,9 @@ uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, u
 void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint16_t clr565) {
     assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
+    const bool previous_suppression = display_writes_suppressed;
+    display_writes_suppressed = false;
+
     uint32_t size = (uint32_t)rect_w * rect_h * 2; // area of rectangle
 
     st7789v_fill_ui16((uint16_t *)st7789v_buff, clr565, MIN(size, sizeof(st7789v_buff) / 2));
@@ -512,6 +529,12 @@ void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, uint16_t
 
     st7789v_wr(st7789v_buff, size % sizeof(st7789v_buff)); // write the remainder data
     st7789v_set_cs();
+
+    display_writes_suppressed = previous_suppression;
+}
+
+void st7789v_suppress_display_writes(bool suppress) {
+    display_writes_suppressed = suppress;
 }
 
 void st7789v_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {

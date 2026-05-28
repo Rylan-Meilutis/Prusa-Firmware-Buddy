@@ -5,6 +5,7 @@ target_sources(
           gcode.cpp
           M104_1.cpp
           M123.cpp
+          M154.cpp
           M1702.cpp
           M300.cpp
           M330.cpp

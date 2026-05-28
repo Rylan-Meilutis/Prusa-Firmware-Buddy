@@ -771,6 +771,10 @@ def main():
     if args.final:
         args.version_suffix = ''
         args.version_suffix_short = ''
+        args.cmake_def = args.cmake_def or []
+        if not any(entry[0] == 'DEVELOPMENT_ITEMS_ENABLED'
+                   for entry in args.cmake_def):
+            args.cmake_def.append(('DEVELOPMENT_ITEMS_ENABLED', 'BOOL', 'NO'))
 
     if args.generate_cproject or args.generate_cmake_presets:
         args.build_type = list(BuildType)
