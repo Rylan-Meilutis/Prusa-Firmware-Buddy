@@ -218,6 +218,7 @@ src/gui/MItem_hardware.cpp
 src/marlin_stubs/M151*
 src/marlin_stubs/M152*
 src/marlin_stubs/M153*
+src/marlin_stubs/M154.cpp
 src/marlin_stubs/M150.cpp
 src/marlin_stubs/M262-M268.cpp
 src/marlin_stubs/PrusaGcodeSuite.hpp
@@ -239,6 +240,7 @@ Temporary print lighting overrides reset after the print.
 Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
 Active and Printing screen brightness settings are clamped to at least 15% in both the UI range and stored value.
 Idle and Deep Idle screen brightness can be set to Off/0%.
+Off/0% screen brightness should write zero brightness, write all black pixels to the panel, then use the no-brightness-control/backlight-disable command before display-off. ST7789/MINI should also enter sleep-in, then sleep-out and display-on when waking. ILI9488/XLCD should also force the front/status LED strip dark. Non-zero brightness must re-enable brightness control before setting the brightness value.
 If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
 `Active to Idle` is measured from last activity to idle entry.
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
@@ -508,10 +510,14 @@ When upstream changes LED APIs, re-check these separation rules:
 ```text
 Status LEDs are independent from chamber/side LED enable state.
 Temporary print brightness is independent from persistent settings.
+Temporary print screen brightness is independent from persistent screen brightness settings and resets after the print.
 Screen brightness is independent from chamber/side/status LED brightness.
 Active and Printing screen brightness cannot be configured below 15%; the UI range must not expose Off/0% for those states.
 Idle and Deep Idle screen brightness can be configured to 0%.
+Zero screen brightness should write all black pixels before disabling/no-brightness-control on every supported display. ST7789/MINI should enter sleep-in. ILI9488/XLCD should force the front/status LED strip dark, then use the no-brightness-control command and display-off.
+Non-zero screen brightness should explicitly re-enable brightness control and send display-on before setting brightness.
 Dim idle/deep-idle wake input is consumed before normal UI action dispatch.
+OOB setup, calibration, self-tests, MMU tests/actions, and other visible FSM-guided flows are active use and should hold active screen/lighting behavior.
 Abort indication is not treated as finished indication.
 Door/filter acknowledgement is Core One-specific unless explicitly handled for another platform.
 Machine-specific paths are compile-time-pruned where possible: Core One status-bar-off path, XL side-strip/enclosure second LED driver, and status LED color UI on targets without status LEDs.
@@ -538,6 +544,36 @@ Build at least XL, Core One, MINI, and MK3.5 after pruning. MINI catches disable
 Do not trade away serial-print recovery, lighting safety, or post-print acknowledgement behavior just to save a small amount of flash. First look for duplicate code, strings, and upstream replacements.
 
 For per-state LED/screen settings, prefer the shared runtime-backed state menu container in `src/gui/screen/screen_menu_led_state.*`. Reintroducing separate `ScreenMenu<...>` template instantiations for each light state has previously pushed XL over boot flash.
+
+Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it.
+
+XL stores translations in the resource image to preserve boot flash headroom. Keep `XL` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`, and keep the XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the XL resource image size rather than moving translations back into CPU flash.
+
+The latest checked focused final builds used:
+
+```text
+python3 utils/build.py --preset xl --bootloader yes --final
+FLASH: 1286280 B / 1919 KB, 65.46%
+
+python3 utils/build.py --preset mini --bootloader yes --final
+FLASH: 888384 B / 895 KB, 96.93%
+
+python3 utils/build.py --preset coreone --bootloader yes --final
+FLASH: 1963652 B / 1919 KB, 99.93%
+```
+
+RME fleet configuration must remain available by G-code and by export:
+
+```text
+M154.0 screen brightness by state
+M154.1 chamber/side brightness by state
+M154.2 status LED brightness by state
+M154.3 lighting timeouts and door/post-print flags
+M154.4 serial printing UI settings
+M154.5 external light-bar state enables
+M154.6 Core One / Core One Plus extended printer type
+Settings -> Export RME Settings writes /usb/rme_settings.gcode
+```
 
 ## Manual Smoke Test Matrix
 

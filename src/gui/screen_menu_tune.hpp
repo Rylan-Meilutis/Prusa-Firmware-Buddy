@@ -69,6 +69,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #if HAS_SIDE_LEDS()
     MI_PRINT_CHAMBER_LIGHTS_ENABLE,
 #endif
+    MI_PRINT_SCREEN_BRIGHTNESS,
 #if HAS_LEDS()
     MI_PRINT_STATUS_LEDS_ENABLE,
 #endif

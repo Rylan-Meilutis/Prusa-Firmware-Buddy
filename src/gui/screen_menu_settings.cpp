@@ -6,11 +6,16 @@
 #include "screen_menu_experimental_settings.hpp"
 #include "screen_help_fw_update.hpp"
 #include "ScreenHandler.hpp"
+#include "rme_settings_gcode.hpp"
 #include "netdev.h"
 #include "wui.h"
 
 #include "knob_event.hpp"
 #include "img_resources.hpp"
+#include <guiconfig/GuiDefaults.hpp>
+#include <window_msgbox.hpp>
+
+#include <cstdio>
 
 using namespace buddy;
 
@@ -22,6 +27,29 @@ MI_HELP_FW_UPDATE::MI_HELP_FW_UPDATE()
 
 void MI_HELP_FW_UPDATE::click(IWindowMenu & /*window_menu*/) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenHelpFWUpdate>);
+}
+
+/*****************************************************************************/
+// MI_EXPORT_RME_SETTINGS
+MI_EXPORT_RME_SETTINGS::MI_EXPORT_RME_SETTINGS()
+    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
+}
+
+void MI_EXPORT_RME_SETTINGS::click(IWindowMenu & /*window_menu*/) {
+    static constexpr const char *path = "/usb/rme_settings.gcode";
+    FILE *file = fopen(path, "w");
+    if (!file) {
+        MsgBoxError(_("Insert USB drive."), Responses_Ok);
+        return;
+    }
+
+    const bool ok = rme_settings_gcode::write(file);
+    const bool close_ok = fclose(file) == 0;
+    if (ok && close_ok) {
+        MsgBoxInfo(_("Exported to USB."), Responses_Ok);
+    } else {
+        MsgBoxError(_("Export failed."), Responses_Ok);
+    }
 }
 
 ScreenMenuSettings::ScreenMenuSettings()

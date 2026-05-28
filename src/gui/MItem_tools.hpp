@@ -687,6 +687,14 @@ public:
     virtual void OnClick() override;
 };
 
+class MI_PRINT_SCREEN_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Print Screen");
+
+public:
+    MI_PRINT_SCREEN_BRIGHTNESS();
+    virtual void OnClick() override;
+};
+
 #if HAS_LEDS()
 class MI_LIGHT_STATE_STATUS_BRIGHTNESS : public WiSpin {
     static constexpr const char *const label = N_("Status LED");

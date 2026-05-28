@@ -20,6 +20,12 @@ static bool print_active_for_leds() {
     return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
 }
 
+static bool guided_activity_active() {
+    return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+        return states.get_top().has_value();
+    });
+}
+
 static LightState light_state_for_strip_state(SideStripState state) {
     switch (state) {
     case SideStripState::printing:
@@ -138,6 +144,7 @@ void SideStripHandler::update() {
         custom_color.reset();
 
         const bool print_active = print_active_for_leds() && !host_idle_override;
+        const bool guided_activity = guided_activity_active() && !host_idle_override;
 
         if (print_active) {
             print_or_filter_active_prev = true;
@@ -155,6 +162,7 @@ void SideStripHandler::update() {
         } else {
             print_light_disabled = false;
             print_brightness_overridden = false;
+            print_screen_brightness_overridden = false;
             if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finishing_WaitIdle) {
                 active_timestamp_ms = time_ms;
             } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished() && post_print_hold_enabled) {
@@ -171,7 +179,10 @@ void SideStripHandler::update() {
                 active_timestamp_ms = time_ms;
             }
 
-            if (door_open_for_leds && door_holds_active) {
+            if (guided_activity) {
+                active_timestamp_ms = time_ms;
+                change_state(SideStripState::active);
+            } else if (door_open_for_leds && door_holds_active) {
                 change_state(SideStripState::active);
             } else if (active_timestamp_ms == 0) {
                 change_state(SideStripState::off);
@@ -329,7 +340,11 @@ void SideStripHandler::set_screen_brightness(LightState state, uint8_t value) {
 
 uint8_t SideStripHandler::current_screen_brightness() const {
     std::lock_guard lock(mutex);
-    return packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state_for_strip_state(state));
+    const LightState light_state = light_state_for_strip_state(state);
+    if (light_state == LightState::printing && print_screen_brightness_overridden) {
+        return print_screen_brightness_override;
+    }
+    return packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state);
 }
 
 bool SideStripHandler::wake_screen_from_dim_idle() {
@@ -444,6 +459,22 @@ void SideStripHandler::set_print_light_brightness(uint8_t value) {
     print_brightness_override = value;
     print_brightness_overridden = true;
     print_light_disabled = value == 0;
+    host_idle_override = false;
+    state = SideStripState::unknown;
+}
+
+uint8_t SideStripHandler::get_print_screen_brightness() const {
+    std::lock_guard lock(mutex);
+    if (print_screen_brightness_overridden) {
+        return print_screen_brightness_override;
+    }
+    return packed_screen_brightness(config_store().screen_brightness_by_state.get(), LightState::printing);
+}
+
+void SideStripHandler::set_print_screen_brightness(uint8_t value) {
+    std::lock_guard lock(mutex);
+    print_screen_brightness_override = clamp_screen_brightness(LightState::printing, value);
+    print_screen_brightness_overridden = true;
     host_idle_override = false;
     state = SideStripState::unknown;
 }

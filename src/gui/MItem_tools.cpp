@@ -60,6 +60,7 @@
 
 #if HAS_LEDS()
     #include <leds/status_leds_handler.hpp>
+    #include <leds/led_manager.hpp>
 #endif
 
 #if HAS_SIDE_LEDS()
@@ -842,6 +843,37 @@ uint8_t screen_brightness_for_state(leds::LightState state, uint8_t value) {
     return leds::clamp_screen_brightness(state, value);
 }
 
+#if HAS_ST7789_DISPLAY()
+void set_st7789_screen_brightness(uint8_t brightness_percent) {
+    static bool lcd_output_enabled = true;
+    const uint8_t brightness = (brightness_percent * 255) / 100;
+
+    if (brightness == 0) {
+        st7789v_suppress_display_writes(false);
+        st7789v_brightness_set(0);
+        st7789v_clear(0x0000);
+        st7789v_suppress_display_writes(true);
+        st7789v_brightness_disable();
+        if (lcd_output_enabled) {
+            st7789v_cmd_dispoff();
+            st7789v_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        st7789v_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            st7789v_brightness_enable();
+            st7789v_cmd_slpout();
+            st7789v_delay_ms(120);
+            st7789v_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        st7789v_brightness_enable();
+        st7789v_brightness_set(brightness);
+    }
+}
+#endif
+
 const NumericInputConfig &screen_brightness_config_for_state(leds::LightState state) {
     static constexpr NumericInputConfig percent_min_15 = {
         .min_value = 15,
@@ -1046,8 +1078,37 @@ void MI_LIGHT_STATE_SCREEN_BRIGHTNESS::OnClick() {
     const auto clamped_brightness = screen_brightness_for_state(state, brightness);
     store_screen_brightness(state, clamped_brightness);
     #if HAS_ST7789_DISPLAY()
-    st7789v_brightness_enable();
-    st7789v_brightness_set((clamped_brightness * 255) / 100);
+    set_st7789_screen_brightness(clamped_brightness);
+    #endif
+#endif
+}
+
+/**********************************************************************************************/
+// MI_PRINT_SCREEN_BRIGHTNESS
+MI_PRINT_SCREEN_BRIGHTNESS::MI_PRINT_SCREEN_BRIGHTNESS()
+    : WiSpin(
+#if HAS_SIDE_LEDS()
+        leds::SideStripHandler::instance().get_print_screen_brightness(),
+#elif HAS_LEDS()
+        leds::LEDManager::instance().get_print_screen_brightness(),
+#else
+        stored_screen_brightness(leds::LightState::printing),
+#endif
+        screen_brightness_config_for_state(leds::LightState::printing),
+        _(label)) {
+}
+
+void MI_PRINT_SCREEN_BRIGHTNESS::OnClick() {
+    const uint8_t brightness = screen_brightness_for_state(leds::LightState::printing, percent_to_uint8(value()));
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().set_print_screen_brightness(brightness);
+    leds::SideStripHandler::instance().activity_ping();
+#elif HAS_LEDS()
+    leds::LEDManager::instance().set_print_screen_brightness(brightness);
+#else
+    store_screen_brightness(leds::LightState::printing, brightness);
+    #if HAS_ST7789_DISPLAY()
+    set_st7789_screen_brightness(brightness);
     #endif
 #endif
 }
