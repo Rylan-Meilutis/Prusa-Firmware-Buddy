@@ -15,10 +15,16 @@ inline uint32_t color_to_666(uint32_t clr) {
 }
 
 extern void ili9488_init(void);
+extern void ili9488_cmd_slpout(void);
+extern void ili9488_cmd_slpin(void);
 extern void ili9488_cmd_dispon(void);
 extern void ili9488_cmd_dispoff(void);
+extern void ili9488_power_down(void);
+extern void ili9488_set_complete_lcd_reinit(void);
 extern void ili9488_done(void);
 extern void ili9488_clear(uint32_t clr666);
+extern void ili9488_clear_full_black(void);
+extern void ili9488_suppress_display_writes(bool suppress);
 extern void ili9488_wr(uint8_t *pdata, uint16_t size);
 extern void ili9488_fill_rect_colorFormat666(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint32_t clr666);
 
@@ -78,6 +84,3 @@ extern void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_
 extern void ili9488_spi_tx_complete(void);
 extern void ili9488_spi_rx_complete(void);
 extern bool ili9488_is_reset_required();
-extern void ili9488_set_complete_lcd_reinit();
-
-extern void ili9488_power_down();

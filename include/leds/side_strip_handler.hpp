@@ -94,6 +94,8 @@ public:
     void set_print_brightness(uint8_t value);
     uint8_t get_print_light_brightness() const;
     void set_print_light_brightness(uint8_t value);
+    uint8_t get_print_screen_brightness() const;
+    void set_print_screen_brightness(uint8_t value);
 
     bool deep_idle() const;
     bool chamber_light_on() const;
@@ -140,6 +142,8 @@ private:
     bool print_light_disabled = false;
     uint8_t print_brightness_override = 0;
     bool print_brightness_overridden = false;
+    uint8_t print_screen_brightness_override = 100;
+    bool print_screen_brightness_overridden = false;
     std::optional<CustomColorState> custom_color;
 };
 

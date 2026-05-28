@@ -55,6 +55,16 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+class MI_EXPORT_RME_SETTINGS : public IWindowMenuItem {
+    static constexpr const char *const label = N_("Export RME Settings");
+
+public:
+    MI_EXPORT_RME_SETTINGS();
+
+protected:
+    virtual void click(IWindowMenu &window_menu) override;
+};
+
 /*****************************************************************************/
 
 using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
@@ -105,7 +115,9 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     // #error dead code found by automatic analyses (see BFW-5461)
     MI_ERROR_TEST,
 #endif
-    MI_USER_INTERFACE, MI_SERIAL_PRINTING_SETTINGS, MI_LOCK_SETTINGS, MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
+    MI_USER_INTERFACE, MI_SERIAL_PRINTING_SETTINGS, MI_LOCK_SETTINGS,
+    MI_EXPORT_RME_SETTINGS,
+    MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
     MI_MANUAL_BELT_TUNING,
 #endif

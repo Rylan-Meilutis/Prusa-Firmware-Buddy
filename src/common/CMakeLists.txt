@@ -63,6 +63,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             random_common.cpp
             random_hw.cpp
             ring_allocator.cpp
+            rme_settings_gcode.cpp
             rw_mutex.cpp
             safe_state.cpp
             segmented_json.cpp
