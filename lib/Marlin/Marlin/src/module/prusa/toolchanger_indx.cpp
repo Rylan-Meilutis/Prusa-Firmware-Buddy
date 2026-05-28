@@ -880,13 +880,10 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
     planner.synchronize();
     move(info.dock_x, safe_y, target_fr);
     planner.synchronize();
-    bool hit = false;
-    {
-        TemporaryGlobalEndstopsState tg(true);
-        phase_stepping::EnsureSuitableForHoming phstep_disabler;
-        // INDX_TODO: test with real hardware and make sure we dont break anything (possible to reduce currents and speeds)
-        hit = do_homing_move(Y_AXIS, move_distance, homing_feedrate(Y_AXIS)); // move down to the dock
-    }
+
+    // INDX_TODO: test with real hardware and make sure we dont break anything (possible to reduce currents and speeds)
+    const bool hit = do_homing_move(Y_AXIS, move_distance, homing_feedrate(Y_AXIS)); // move down to the dock
+
     // We've hit endstops so back off a bit and warn user probably
     if (hit) {
         do_blocking_move_to_xy(info.dock_x, safe_y + 25.f, target_fr);

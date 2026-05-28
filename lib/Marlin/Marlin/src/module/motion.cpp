@@ -371,24 +371,19 @@ void do_blocking_move_to_xy(const xy_pos_t &raw, const feedRate_t &fr_mm_s/*=0.0
     if (axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)) {
       // axis position is known: perform a regular move
       do_blocking_move_to_z(zdest);
+      
     } else if (zdest != current_position.z) {
       // axis position is unknown: perform a homing move to detect the endstop
-      planner.synchronize(); // Wait for planner moves to finish!
-
-      remember_feedrate_scaling_off();
-      bool endstop_enabled = endstops.is_enabled();
-      endstops.enable(true);
 
       const auto distance = zdest - current_position.z;
-      const auto trigger_state = do_homing_move(Z_AXIS, distance); // Move as a homing move to stop if we reach endstop
+
+      // Move as a homing move to stop if we reach endstop
+      // Use HOMING_FEEDRATE_INVERTED_Z - the default homing feedrate is for loadcell probing
+      const auto trigger_state = do_homing_move(Z_AXIS, distance, HOMING_FEEDRATE_INVERTED_Z);
+
       if (planner.draining()) {
         return 0;
       }
-
-      if (!endstop_enabled) {
-        endstops.not_homing(); // Reset endstops only if they weren't enabled before
-      }
-      restore_feedrate_and_scaling();
 
       return trigger_state;
     }
@@ -786,6 +781,9 @@ uint8_t do_homing_move_axis_rel(const AxisEnum axis, const float distance, const
  */
 uint8_t do_homing_move(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s, [[maybe_unused]] bool can_move_back_before_homing, [[maybe_unused]] bool homing_z_with_probe) {
   planner.synchronize();
+
+  TemporaryGlobalEndstopsState _es(true);
+  phase_stepping::EnsureSuitableForHoming phstep_disabler;
 
   #if HAS_CEILING_CLEARANCE()
     // The homing move is doing all sorts of voodoo with the positions and was triggering false ceiling clearance events

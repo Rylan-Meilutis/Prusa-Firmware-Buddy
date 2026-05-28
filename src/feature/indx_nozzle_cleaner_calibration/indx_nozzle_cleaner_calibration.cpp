@@ -126,10 +126,7 @@ private:
 
         // Lower Z all the way down (stops at endstop) — always first, before any homing or tool picking
         fsm_change(PhaseNozzleCleanerCalibration::moving_away);
-        {
-            TemporaryGlobalEndstopsState endstops_guard(true);
-            do_homing_move(AxisEnum::Z_AXIS, Z_MAX_POS, z_lower_feedrate);
-        }
+        do_homing_move(AxisEnum::Z_AXIS, Z_MAX_POS, z_lower_feedrate);
 
         // Pick any available tool (Z is already safe at the bottom, skip Z lift)
         if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {

@@ -170,10 +170,7 @@ private:
 
         // Lower Z all the way down (stops at endstop)
         fsm_change(PhaseDockCalibration::moving_away);
-        {
-            TemporaryGlobalEndstopsState endstops_guard(true);
-            do_homing_move(AxisEnum::Z_AXIS, Z_MAX_POS, Z_LOWER_FEEDRATE);
-        }
+        do_homing_move(AxisEnum::Z_AXIS, Z_MAX_POS, Z_LOWER_FEEDRATE);
 
         // Home XY (z_raise=0: Z is already safely at the bottom from the homing move above)
         fsm_change(PhaseDockCalibration::homing);

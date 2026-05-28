@@ -95,8 +95,6 @@ static void safe_move_down() {
     // Move to AFTER_Z_CALIB_Z_POS with Z endstop enabled
     float target_Z = AFTER_Z_CALIB_Z_POS - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
 
-    AutoRestore _se(soft_endstops_enabled, false);
-    TemporaryGlobalEndstopsState _ess(true);
     Subscriber cb { marlin_server::idle_publisher,
         [&]() {
             // FSMAndPhase(ClientFSM::Load_unload, pause.getPhaseIndex())

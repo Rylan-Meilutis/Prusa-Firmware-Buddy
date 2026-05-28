@@ -174,7 +174,6 @@ void do_pause_e_move(const float &length, const feedRate_t &fr_mm_s) {
 
 void unhomed_z_lift(float amount_mm) {
     if (amount_mm > current_position.z) {
-        TemporaryGlobalEndstopsState park_move_endstops(true);
         do_homing_move((AxisEnum)(Z_AXIS), amount_mm - current_position.z, HOMING_FEEDRATE_INVERTED_Z, false); // warning: the speed must probably be exactly this, otherwise endstops don't work
     }
 }

@@ -3197,9 +3197,6 @@ static void lift_head() {
         planner.synchronize();
 
     } else {
-        // If the Z is not homed, do a "homing" move with quickstops that will stop as soon as we hit the limits
-        TemporaryGlobalEndstopsState _es(true);
-
         // have to use HOMING_FEEDRATE, otherwise the stallguards might not trigger
         do_homing_move(Z_AXIS, distance, HOMING_FEEDRATE_INVERTED_Z);
     }
