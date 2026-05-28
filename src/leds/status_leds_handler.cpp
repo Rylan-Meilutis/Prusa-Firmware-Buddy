@@ -414,7 +414,9 @@ void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
     const bool print_active = print_active_for_status_override();
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     const auto printer_state = marlin_vars().print_state.get();
+#endif
     if (!print_active) {
         print_status_disabled = false;
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()

@@ -90,9 +90,6 @@ extern osThreadId displayTaskHandle;
 
 using StatusLeds = neopixel::LedsSPI10M5Hz<4, GuiLedsWriter::write>;
 
-static constexpr bool screen_status_bar_disabled =
-    PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL();
-
 static StatusLeds &get_status_leds() {
     static StatusLeds ret;
     return ret;
@@ -175,10 +172,10 @@ void LEDManager::update() {
 #endif
 
     side_strip_handler.update();
-    const bool side_strip_deep_idle = side_strip_handler.deep_idle();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     status_leds_handler.set_deep_idle(false);
 #else
+    const bool side_strip_deep_idle = side_strip_handler.deep_idle();
     status_leds_handler.set_deep_idle(side_strip_deep_idle);
 #endif
     status_leds_handler.set_finished_hold_active(side_strip_handler.post_print_hold_active());
@@ -194,7 +191,11 @@ void LEDManager::update() {
 
     auto &status_leds = get_status_leds();
     for (uint8_t i = 0; i < data.size(); ++i) {
-        status_leds.set(screen_status_bar_disabled ? 0 : data[i].data, i);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        status_leds.set(uint32_t { 0 }, i);
+#else
+        status_leds.set(data[i].data, i);
+#endif
     }
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
@@ -226,26 +227,23 @@ void LEDManager::update() {
     #if HAS_SIDE_LED_DRIVER()
     auto color = side_strip_handler.color();
     auto &side_leds = get_side_leds();
-    if constexpr (SideStripHandler::has_white_led_and_enclosure_on_second_driver()) {
-        uint8_t second_led_green = 0;
-        #if XL_ENCLOSURE_SUPPORT()
-        second_led_green = static_cast<CFanCtlEnclosure &>(Fans::enclosure()).output_pwm();
-        #endif
+#if PRINTER_IS_PRUSA_XL()
+    const uint8_t second_led_green = static_cast<CFanCtlEnclosure &>(Fans::enclosure()).output_pwm();
 
-        // On XL, there are two neopixel drivers, the first one controls RGB of
-        // the RGBW LED strip. The second one controls the white color of the
-        // RGBW LED strip on its Green channel and the XL enclosure fan on its
-        // Red channel.
-        //
-        // The channels on these strips are also apparently being GRB, not RGB,
-        // as the Neopixel driver expects.
-        side_leds.set(ColorRGBW(color.g, color.r, color.b).data, 0);
-        side_leds.set(ColorRGBW(second_led_green, color.w, 0).data, 1);
-    } else {
-        for (uint8_t i = 0; i < side_led_driver_count; ++i) {
-            side_leds.set(color.data, i);
-        }
+    // On XL, there are two neopixel drivers, the first one controls RGB of
+    // the RGBW LED strip. The second one controls the white color of the
+    // RGBW LED strip on its Green channel and the XL enclosure fan on its
+    // Red channel.
+    //
+    // The channels on these strips are also apparently being GRB, not RGB,
+    // as the Neopixel driver expects.
+    side_leds.set(ColorRGBW(color.g, color.r, color.b).data, 0);
+    side_leds.set(ColorRGBW(second_led_green, color.w, 0).data, 1);
+#else
+    for (uint8_t i = 0; i < side_led_driver_count; ++i) {
+        side_leds.set(color.data, i);
     }
+#endif
 
     side_leds.update();
     #endif // HAS_SIDE_LED_DRIVER

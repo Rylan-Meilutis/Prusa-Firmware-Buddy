@@ -154,11 +154,11 @@ bool edit_color(const string_view_utf8 &prompt, auto &store_item) {
     return true;
 }
 
-void reload_status_led_colors() {
 #if HAS_LEDS()
+void reload_status_led_colors() {
     leds::StatusLedsHandler::instance().reload_colors();
-#endif
 }
+#endif
 
 void apply_theme(const ThemeColors &theme) {
     config_store().ui_theme_primary_color.set(theme.primary);
@@ -583,6 +583,7 @@ void MI_USB_THEME_IMAGE_COLOR::click(IWindowMenu &) { edit_color(GetLabel(), con
 ScreenMenuUiThemeImported::ScreenMenuUiThemeImported()
     : ScreenMenuUiThemeImported__(_("IMPORTED THEME")) {}
 
+#if HAS_LEDS()
 MI_STATUS_LED_IDLE_COLOR::MI_STATUS_LED_IDLE_COLOR()
     : IWindowMenuItem(_("Idle Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 void MI_STATUS_LED_IDLE_COLOR::click(IWindowMenu &) {
@@ -625,3 +626,4 @@ void MI_STATUS_LED_ERROR_COLOR::click(IWindowMenu &) {
 
 ScreenMenuStatusLedColors::ScreenMenuStatusLedColors()
     : ScreenMenuStatusLedColors__(_("STATUS LED COLORS")) {}
+#endif
