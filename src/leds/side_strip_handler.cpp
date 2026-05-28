@@ -180,13 +180,9 @@ void SideStripHandler::update() {
             } else {
                 const uint32_t elapsed_ms = time_ms - active_timestamp_ms;
                 const uint32_t off_timeout_ms = static_cast<uint32_t>(off_timeout_s) * 1000;
-                uint32_t dim_timeout_ms = static_cast<uint32_t>(activity_timeout_s) * 1000;
+                const uint32_t dim_timeout_ms = static_cast<uint32_t>(activity_timeout_s) * 1000;
 
-                if (off_timeout_ms > 0 && dim_timeout_ms > off_timeout_ms) {
-                    dim_timeout_ms = off_timeout_ms;
-                }
-
-                if (off_timeout_ms > 0 && elapsed_ms >= off_timeout_ms) {
+                if (off_timeout_ms > 0 && elapsed_ms >= dim_timeout_ms && elapsed_ms - dim_timeout_ms >= off_timeout_ms) {
                     active_timestamp_ms = 0;
                     change_state(SideStripState::off);
                 } else if (elapsed_ms >= dim_timeout_ms) {

@@ -917,13 +917,18 @@ uint8_t percent_to_uint8(float value) {
     return static_cast<uint8_t>(value);
 }
 
-uint8_t screen_brightness_percent(float value) {
-    const auto percent = percent_to_uint8(value);
-    return percent == 0 ? 1 : percent;
-}
-
 uint8_t screen_brightness_for_state(leds::LightState state, uint8_t value) {
     return leds::clamp_screen_brightness(state, value);
+}
+
+const NumericInputConfig &screen_brightness_config_for_state(leds::LightState state) {
+    static constexpr NumericInputConfig percent_min_15 = {
+        .min_value = 15,
+        .max_value = 100,
+        .unit = Unit::percent,
+    };
+
+    return leds::minimum_screen_brightness(state) > 0 ? percent_min_15 : numeric_input_config::percent_with_off;
 }
 
 [[maybe_unused]] uint8_t brightness_percent_to_pwm(float value) {
@@ -1102,17 +1107,17 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
 MI_LIGHT_STATE_SCREEN_BRIGHTNESS::MI_LIGHT_STATE_SCREEN_BRIGHTNESS(leds::LightState state)
     : WiSpin(
 #if HAS_SIDE_LEDS()
-        leds::SideStripHandler::instance().get_screen_brightness(state),
+        screen_brightness_for_state(state, leds::SideStripHandler::instance().get_screen_brightness(state)),
 #else
         stored_screen_brightness(state),
 #endif
-        numeric_input_config::percent_with_off,
+        screen_brightness_config_for_state(state),
         _(label))
     , state(state) {
 }
 
 void MI_LIGHT_STATE_SCREEN_BRIGHTNESS::OnClick() {
-    const auto brightness = screen_brightness_percent(value());
+    const auto brightness = percent_to_uint8(value());
 #if HAS_SIDE_LEDS()
     leds::SideStripHandler::instance().set_screen_brightness(state, brightness);
     leds::SideStripHandler::instance().activity_ping();
@@ -1138,7 +1143,7 @@ MI_LIGHT_STATE_STATUS_BRIGHTNESS::MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightSt
 }
 
 void MI_LIGHT_STATE_STATUS_BRIGHTNESS::OnClick() {
-    leds::StatusLedsHandler::instance().set_brightness(state, screen_brightness_percent(value()));
+    leds::StatusLedsHandler::instance().set_brightness(state, percent_to_uint8(value()));
 }
 
 /**********************************************************************************************/
