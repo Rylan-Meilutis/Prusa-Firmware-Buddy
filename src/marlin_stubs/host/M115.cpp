@@ -87,6 +87,11 @@ void GcodeSuite::M115() {
     // BINARY_FILE_TRANSFER (M28 B1)
     cap_line(PSTR("BINARY_FILE_TRANSFER"));
 
+    // Printer-host storage access (M20-M30, M32)
+    cap_line(PSTR("SDCARD"), true);
+    cap_line(PSTR("EXTENDED_M20"), true);
+    cap_line(PSTR("LFN_WRITE"), true);
+
     // EEPROM (M500, M501)
     cap_line(PSTR("EEPROM"));
 

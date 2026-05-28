@@ -37,6 +37,9 @@ GCodeQueue queue;
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
 
+extern "C" bool buddy_sdcard_upload_active();
+extern "C" void buddy_sdcard_upload_handle_line(const char *command);
+
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
  * sending commands to Marlin, and lines will be checked for sequentiality.
@@ -446,6 +449,12 @@ void GCodeQueue::get_serial_commands() {
         #if defined(NO_TIMEOUTS) && NO_TIMEOUTS > 0
           last_command_time = ms;
         #endif
+
+        if (buddy_sdcard_upload_active() && !is_M29(command)) {
+          buddy_sdcard_upload_handle_line(command);
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
 
         // notify serial printing about command
         if (!SerialPrinting::serial_command_hook(command)) {
