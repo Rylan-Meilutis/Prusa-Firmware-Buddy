@@ -72,6 +72,7 @@ public:
     MenuMultiFilamentChange(window_t *parent, const Rect16 &rect);
 
 public:
+    MultiFilamentChangeConfig configuration() const;
     void set_configuration(const MultiFilamentChangeConfig &set);
 
 protected:

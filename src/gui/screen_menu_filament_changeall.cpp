@@ -90,6 +90,14 @@ MenuMultiFilamentChange::MenuMultiFilamentChange(window_t *parent, const Rect16 
     BindContainer(container);
 }
 
+MultiFilamentChangeConfig MenuMultiFilamentChange::configuration() const {
+    return [&]<size_t... ix>(std::index_sequence<ix...>) {
+        return MultiFilamentChangeConfig {
+            ConfigItem { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config() }...
+        };
+    }(std::make_index_sequence<VirtualToolIndex::count>());
+}
+
 void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig &set) {
     // Set the correct indexes for the actions
     stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
@@ -126,14 +134,8 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
 }
 
 void MenuMultiFilamentChange::carry_out_changes() {
-    auto tool_config = [&]<size_t... ix>(std::index_sequence<ix...>) {
-        return MultiFilamentChangeConfig {
-            ConfigItem { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config() }...
-        };
-    }(std::make_index_sequence<VirtualToolIndex::count>());
-
     ArrayStringBuilder<MAX_CMD_SIZE> sb;
-    multi_filament_change::config_to_gcode(tool_config, sb);
+    multi_filament_change::config_to_gcode(configuration(), sb);
     marlin_client::gcode(sb.str());
 }
 
