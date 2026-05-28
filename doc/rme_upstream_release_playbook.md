@@ -231,6 +231,7 @@ External GPIO pins reserved for the light bar are protected from generic GPIO re
 External light output is latched and off-debounced so transient firmware state gaps do not command off/on flicker at print start or finish.
 Active-sink external light pins float before their output latch changes when turning off, avoiding visible pulses.
 M150 compatibility and M151/M152/M153 behavior remain consistent across Core One, XL, MK, and MINI feature flags.
+Machine-specific LED/UI code stays behind feature flags: do not instantiate status LED color screens on targets without `HAS_LEDS`, do not compile side-strip driver code where `HAS_SIDE_LEDS` is disabled, and keep XL-only enclosure second-driver handling under XL-only preprocessor guards.
 ```
 
 ### Core One Plus And Chamber Vents
@@ -432,6 +433,7 @@ XL still fits boot flash.
 Version metadata is correct in generated firmware.
 Packaging still handles signed and unsigned BBFs.
 Ignored local build/signing artifacts stay ignored.
+Unused machine-specific UI and LED driver code is pruned at compile time, especially for MINI, MK3.5, Core One/Core One Plus, and XL.
 ```
 
 ## Conflict Hotspots
@@ -457,6 +459,9 @@ src/gui/res/*
 src/guiapi/*
 src/gui/screen_menu_tune*
 src/gui/screen_menu_lights*
+src/gui/screen_menu_led_colors.*
+src/gui/screen/screen_menu_leds.*
+src/gui/screen/screen_menu_led_state.*
 src/leds/*
 include/leds/*
 src/marlin_stubs/pause/*
@@ -483,6 +488,7 @@ Status LEDs are independent from chamber/side LED enable state.
 Temporary print brightness is independent from persistent settings.
 Abort indication is not treated as finished indication.
 Door/filter acknowledgement is Core One-specific unless explicitly handled for another platform.
+Machine-specific paths are compile-time-pruned where possible: Core One status-bar-off path, XL side-strip/enclosure second LED driver, and status LED color UI on targets without status LEDs.
 ```
 
 When upstream changes resources, rerun or verify the resource generation path before accepting binary conflicts. The RME range intentionally changes normal, brass, and source PNG assets plus QOI generation support.
@@ -499,6 +505,8 @@ Avoid adding new large GUI assets.
 Prefer shared helper functions only when they reduce generated code.
 Check whether new upstream code already implements an RME behavior before keeping duplicate compatibility code.
 Remove obsolete compatibility shims after verifying behavior.
+Move target-specific UI, LED, chamber, enclosure, and GPIO behavior behind existing `HAS_*`, `PRINTER_IS_*`, and board feature flags before removing features.
+Build at least XL, Core One, MINI, and MK3.5 after pruning. MINI catches disabled-feature UI leakage; MK3.5 catches non-side-LED status LED paths; Core One and XL catch the chamber/side LED paths.
 ```
 
 Do not trade away serial-print recovery, lighting safety, or post-print acknowledgement behavior just to save a small amount of flash. First look for duplicate code, strings, and upstream replacements.
@@ -537,6 +545,7 @@ MINI:
   Host message filtering and numeric percentage on the message page.
   Screen memory remains within `ScreenFactory` storage.
   Theme resources render correctly on the small display.
+  Status LED color settings and other status-LED-only code are not instantiated when `HAS_LEDS` is disabled.
 
 MK4 / MK3.5:
   Serial print screen and post-print Continue acknowledgement.
@@ -544,6 +553,7 @@ MK4 / MK3.5:
   Status LEDs acknowledge finished/aborted states correctly on non-door platforms.
   Serial printing and theme changes compile under MK feature flags.
   Shared external-light code compiles under MK3.5 include paths even if the feature is not user-facing there.
+  LED manager builds the non-side-LED path without pulling in Core One or XL side-strip-only code.
 ```
 
 ## Release Notes Checklist
@@ -570,6 +580,7 @@ Core One Plus and vent behavior.
 Build/signing notes.
 Known limitations.
 Focused build results for XL/Core One/MINI.
+Focused build results for MK3.5 when shared LED, GUI, or platform guards change.
 Full build summary and BBF list.
 ```
 
