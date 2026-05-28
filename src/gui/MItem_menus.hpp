@@ -15,10 +15,15 @@
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_leds_menu.h>
 #include <option/has_i2c_expander.h>
+#include <guiconfig/guiconfig.h>
 #include <img_resources.hpp>
 #include <ScreenFactory.hpp>
 
 #include <option/has_esp.h>
+
+#ifndef HAS_SCREEN_BRIGHTNESS_SETTINGS
+    #define HAS_SCREEN_BRIGHTNESS_SETTINGS() (HAS_ILI9488_DISPLAY() || HAS_ST7789_DISPLAY())
+#endif
 
 class MI_SCREEN_BASE : public IWindowMenuItem {
 protected:
@@ -128,7 +133,7 @@ using MI_STATUS_LED_COLOR_SETTINGS
 using MI_EXTERNAL_LIGHT_BAR_SETTINGS
     = MI_SCREEN<N_("External Light Bar"), class ScreenMenuExternalLightBar>;
 #endif
-#if HAS_SIDE_LEDS()
+#if HAS_SIDE_LEDS() || HAS_LEDS() || HAS_SCREEN_BRIGHTNESS_SETTINGS() || (HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY())
 using MI_LED_DEEP_IDLE_SETTINGS
     = MI_SCREEN<N_("Deep Idle"), class ScreenMenuLedDeepIdle>;
 using MI_LED_IDLE_SETTINGS
@@ -220,7 +225,7 @@ using MI_BED_LEVEL_CORRECTION
     = MI_SCREEN<N_("Bed Level Correction"), class ScreenMenuBedLevelCorrection>;
 #endif
 
-#if HAS_LEDS_MENU()
+#if HAS_LEDS_MENU() || HAS_SCREEN_BRIGHTNESS_SETTINGS()
 using MI_LEDS_SETTINGS
     = MI_SCREEN<N_("Lights Settings"), class ScreenMenuLeds>;
 #endif

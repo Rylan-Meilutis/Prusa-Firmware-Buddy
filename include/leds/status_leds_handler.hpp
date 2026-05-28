@@ -2,6 +2,7 @@
 
 #include <utils/led_color.hpp>
 #include <led_animation_controller/frame_animation.hpp>
+#include <leds/light_state.hpp>
 
 #include <freertos/mutex.hpp>
 
@@ -70,6 +71,8 @@ public:
     void set_active(bool val);
     bool get_print_status_enabled();
     void set_print_status_enabled(bool val);
+    uint8_t get_brightness(LightState state);
+    void set_brightness(LightState state, uint8_t val);
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t get_print_status_brightness();
     void set_print_status_brightness(uint8_t val);
@@ -89,6 +92,8 @@ private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
+    uint32_t brightness_by_state { config_store().status_led_brightness_by_state.get() };
+    LightState current_light_state { LightState::active };
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t print_status_brightness { 100 };
 #endif
@@ -101,9 +106,7 @@ private:
 #endif
     bool finished_hold_active { false };
     ColorRGBW old_color {};
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     std::array<ColorRGBW, 3> adjusted_data {};
-#endif
 
     std::array<FrameAnimation<3>::Params, 2> custom_params_banks;
     uint8_t custom_params_bank_index { 0 };
