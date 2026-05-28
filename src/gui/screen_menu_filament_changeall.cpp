@@ -186,3 +186,16 @@ ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupForPrint)
     menu.menu.set_configuration(multi_filament_change::config_from_current_print_setup());
     menu.menu.close_screen_on_media_disconnect_ = true;
 }
+
+ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupUnloadAll)
+    : ScreenChangeAllFilaments {} {
+
+    multi_filament_change::Config config;
+    for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
+        config[tool].action = multi_filament_change::Action::unload;
+    }
+    menu.menu.set_configuration(config);
+
+    // Preselect apply-changes, all should be clear
+    menu.menu.move_focus_to_index(menu.menu.container.GetVisibleIndex(menu.menu.container.Item<MI_ApplyChanges>()));
+}

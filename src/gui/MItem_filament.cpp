@@ -9,6 +9,7 @@
 #include <window_msgbox.hpp>
 #include <option/has_toolchanger.h>
 #include <window_dlg_wait.hpp>
+#include <window_menu_callback_item.hpp>
 
 #if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
@@ -98,9 +99,17 @@ MI_UNLOAD::MI_UNLOAD()
 
 void MI_UNLOAD::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (!show_tool_selector_dialog({
-            .allow_return = true,
-        })) {
+    if (!show_tool_selector_dialog({ .allow_return = true,
+            .prefix_section_size = 1,
+            .prefix_section_ctor = [](WindowMenuVirtual::ItemVariant &variant, int) {
+                variant.emplace<WindowMenuCallbackItem>(_("Unload All"), [] {
+                    // Close the select dialog
+                    Screens::Access()->Close();
+
+                    // Open the ChangeAll dialog set up for unloading everything
+                    Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenChangeAllFilaments>(ScreenChangeAllFilaments::SetupUnloadAll {}));
+                });
+            } })) {
         return;
     }
 #endif

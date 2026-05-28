@@ -107,4 +107,7 @@ public:
 
     struct SetupForPrint {};
     ScreenChangeAllFilaments(SetupForPrint);
+
+    struct SetupUnloadAll {};
+    ScreenChangeAllFilaments(SetupUnloadAll);
 };
