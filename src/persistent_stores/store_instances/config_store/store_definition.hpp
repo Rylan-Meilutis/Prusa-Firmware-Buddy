@@ -460,6 +460,10 @@ struct CurrentStore
     StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("External Light Bar Active High Pins")> external_light_bar_active_high_pins;
     StoreItem<uint8_t, leds::light_state_bit(leds::LightState::idle) | leds::light_state_bit(leds::LightState::active) | leds::light_state_bit(leds::LightState::printing), ItemFlag::user_interface, journal::hash("External Light Bar State Mask")> external_light_bar_state_mask;
 #endif
+    /// Packed 0-100% screen brightness values: deep idle, idle, active, printing.
+    StoreItem<uint32_t, 0x64646464, ItemFlag::user_interface, journal::hash("Screen brightness by LED state")> screen_brightness_by_state;
+    /// Packed 0-100% status LED brightness values: deep idle, idle, active, printing.
+    StoreItem<uint32_t, 0x64646464, ItemFlag::user_interface, journal::hash("Status LED brightness by state")> status_led_brightness_by_state;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Serial Printing Screen")> serial_print_screen_enabled;
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Serial Printing Legacy UI")> serial_print_legacy_ui;
