@@ -129,6 +129,20 @@ XL is the flash headroom gate. MINI is the layout and small-display/screen-only 
 
 8. Stage BBFs from `bbf/` and verify every expected preset produced a matching `.bbf`.
 
+## Bootloader And Signing Boundary
+
+The RME firmware targets the stock Prusa bootloader, but the bootloader itself is not part of the open-source firmware patch surface and is not built from this repository.
+
+Keep these release rules intact:
+
+```text
+Build firmware images with the normal `--bootloader yes` packaging path when release BBFs need to target printers using the stock bootloader.
+Do not attempt to port or modify Prusa bootloader behavior as part of the RME feature stack.
+Do not claim custom signatures make RME builds genuine to the unchanged stock bootloader.
+Document any signing key as a custom/private trust-chain aid only.
+Expect the official non-genuine firmware warning on stock bootloaders.
+```
+
 ## Feature Groups To Preserve
 
 ### Serial Printing
@@ -599,6 +613,7 @@ Theme, asset, and UI lock changes.
 Safety timer and chamber fan/filtering changes.
 Core One Plus and vent behavior.
 Build/signing notes.
+Stock Prusa bootloader limitation and expected non-genuine firmware warning.
 Known limitations.
 Focused build results for XL/Core One/MINI.
 Focused build results for MK4 or MK3.5 when shared LED, GUI, display brightness, or platform guards change.
