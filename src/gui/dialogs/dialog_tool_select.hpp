@@ -5,6 +5,7 @@
 static_assert(HAS_TOOLCHANGER());
 
 #include <tool_index.hpp>
+#include <window_menu_virtual.hpp>
 
 struct SelectToolDialogArgs {
     /// Whether to show the return button or not
@@ -16,6 +17,13 @@ struct SelectToolDialogArgs {
 
     /// Additional filter that can disable more tools by returning false
     ToolFilter tool_filter = default_tool_filter;
+
+    /// Number of items in the custom section that is above the individual tool items
+    int prefix_section_size = 0;
+
+    /// Constructor for the prefix section.
+    /// @param index is the item index within the section
+    stdext::inplace_function<void(WindowMenuVirtual::ItemVariant &item, int index)> prefix_section_ctor {};
 };
 
 /// Shows a dialog that prompts the user to select a tool

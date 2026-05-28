@@ -19,11 +19,13 @@ namespace {
 
 enum class Item {
     return_,
+    prefix_section,
     tool
 };
 
 static constexpr auto index_mapping_items = std::to_array<DynamicIndexMappingRecord<Item>>({
     { Item::return_, DynamicIndexMappingType::optional_item },
+    { Item::prefix_section, DynamicIndexMappingType::dynamic_section },
     { Item::tool, DynamicIndexMappingType::dynamic_section },
 });
 
@@ -67,6 +69,7 @@ public:
 
         index_mapping_.set_item_enabled<Item::return_>(args.allow_return);
         index_mapping_.set_section_size<Item::tool>(VirtualToolIndex::enabled_range_size());
+        index_mapping_.set_section_size<Item::prefix_section>(args.prefix_section_size);
 
         setup_items();
     }
@@ -82,6 +85,10 @@ public:
 
         case Item::return_:
             variant.emplace<MI_RETURN>();
+            break;
+
+        case Item::prefix_section:
+            args_.prefix_section_ctor(variant, m.pos_in_section);
             break;
 
         case Item::tool: {
