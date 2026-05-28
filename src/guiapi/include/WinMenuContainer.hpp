@@ -14,9 +14,18 @@ public:
     decltype(auto) Item() {
         return std::get<I>(menu_items);
     }
+    template <std::size_t I>
+    decltype(auto) Item() const {
+        return std::get<I>(menu_items);
+    }
+
     // compiletime access by type
     template <class TYPE>
     decltype(auto) Item() {
+        return std::get<TYPE>(menu_items);
+    }
+    template <class TYPE>
+    decltype(auto) Item() const {
         return std::get<TYPE>(menu_items);
     }
 
