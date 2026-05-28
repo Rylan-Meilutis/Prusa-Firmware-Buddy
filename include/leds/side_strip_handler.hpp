@@ -71,6 +71,10 @@ public:
     void set_main_light_enabled(LightState state, bool value);
     uint8_t get_brightness(LightState state) const;
     void set_brightness(LightState state, uint8_t value);
+    uint8_t get_screen_brightness(LightState state) const;
+    void set_screen_brightness(LightState state, uint8_t value);
+    uint8_t current_screen_brightness() const;
+    bool wake_screen_from_dim_idle();
     bool get_door_holds_active() const;
     void set_door_holds_active(bool value);
 

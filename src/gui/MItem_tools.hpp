@@ -603,7 +603,6 @@ class MI_LIGHT_STATE_MAIN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state);
     virtual void OnChange(size_t old_index) override;
-    virtual void Loop() override;
 };
 
 class MI_LIGHT_STATE_BRIGHTNESS : public WiSpin {
@@ -615,6 +614,7 @@ public:
     virtual void OnClick() override;
 };
 
+#if HAS_DOOR_SENSOR()
 class MI_LIGHT_STATE_DOOR_ACTIVE : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("Door Holds Active");
 
@@ -622,6 +622,7 @@ public:
     MI_LIGHT_STATE_DOOR_ACTIVE();
     virtual void OnChange(size_t old_index) override;
 };
+#endif
 
 class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
     static constexpr const char *const label =
@@ -696,7 +697,25 @@ public:
 };
 #endif
 
+class MI_LIGHT_STATE_SCREEN_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Screen");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_SCREEN_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
 #if HAS_LEDS()
+class MI_LIGHT_STATE_STATUS_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Status LED");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 class MI_PRINT_STATUS_LEDS_ENABLE : public WiSpin {
     static constexpr const char *const label = N_("Print Status LED");

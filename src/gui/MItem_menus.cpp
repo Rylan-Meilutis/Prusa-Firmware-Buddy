@@ -81,10 +81,10 @@
     #include "ScreenHandler.hpp"
 #endif
 
-#if HAS_LEDS_MENU()
+#if HAS_LEDS_MENU() || HAS_SCREEN_BRIGHTNESS_SETTINGS()
     #include <screen/screen_menu_leds.hpp>
 #endif
-#if HAS_SIDE_LEDS()
+#if HAS_SIDE_LEDS() || HAS_LEDS() || HAS_SCREEN_BRIGHTNESS_SETTINGS() || (HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY())
     #include <screen/screen_menu_led_state.hpp>
 #endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
@@ -185,10 +185,10 @@ template struct MI_SCREEN_CTOR<ScreenMenuBedLevelCorrection>;
 
 template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 
-#if HAS_LEDS_MENU()
+#if HAS_LEDS_MENU() || HAS_SCREEN_BRIGHTNESS_SETTINGS()
 template struct MI_SCREEN_CTOR<ScreenMenuLeds>;
 #endif
-#if HAS_SIDE_LEDS()
+#if HAS_SIDE_LEDS() || HAS_LEDS() || HAS_SCREEN_BRIGHTNESS_SETTINGS() || (HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY())
 template struct MI_SCREEN_CTOR<ScreenMenuLedDeepIdle>;
 template struct MI_SCREEN_CTOR<ScreenMenuLedIdle>;
 template struct MI_SCREEN_CTOR<ScreenMenuLedActive>;

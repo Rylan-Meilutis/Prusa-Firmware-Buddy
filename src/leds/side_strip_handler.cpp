@@ -37,6 +37,10 @@ static LightState light_state_for_strip_state(SideStripState state) {
     return LightState::deep_idle;
 }
 
+static uint8_t packed_screen_brightness(uint32_t values, LightState state) {
+    return clamp_screen_brightness(state, (values >> light_state_shift(state)) & 0xff);
+}
+
 SideStripHandler &SideStripHandler::instance() {
     static SideStripHandler instance;
     return instance;
@@ -178,8 +182,8 @@ void SideStripHandler::update() {
                 const uint32_t off_timeout_ms = static_cast<uint32_t>(off_timeout_s) * 1000;
                 uint32_t dim_timeout_ms = static_cast<uint32_t>(activity_timeout_s) * 1000;
 
-                if (off_timeout_ms > 0) {
-                    dim_timeout_ms = std::min(dim_timeout_ms, off_timeout_ms);
+                if (off_timeout_ms > 0 && dim_timeout_ms > off_timeout_ms) {
+                    dim_timeout_ms = off_timeout_ms;
                 }
 
                 if (off_timeout_ms > 0 && elapsed_ms >= off_timeout_ms) {
@@ -292,37 +296,56 @@ uint8_t SideStripHandler::get_brightness(LightState state) const {
 }
 
 void SideStripHandler::set_brightness(LightState state, uint8_t value) {
+    std::lock_guard lock(mutex);
+
     switch (state) {
     case LightState::deep_idle:
         config_store().side_leds_deep_idle_brightness.set(value);
-        break;
-    case LightState::idle:
-        config_store().side_leds_dimmed_brightness.set(value);
-        break;
-    case LightState::active:
-        config_store().side_leds_max_brightness.set(value);
-        break;
-    case LightState::printing:
-        config_store().side_leds_print_brightness.set(value);
-        break;
-    }
-
-    std::lock_guard lock(mutex);
-    switch (state) {
-    case LightState::deep_idle:
         deep_idle_brightness = value;
         break;
     case LightState::idle:
+        config_store().side_leds_dimmed_brightness.set(value);
         dimmed_brightness = value;
         break;
     case LightState::active:
+        config_store().side_leds_max_brightness.set(value);
         max_brightness = value;
         break;
     case LightState::printing:
+        config_store().side_leds_print_brightness.set(value);
         print_brightness = value;
         break;
     }
     this->state = SideStripState::unknown;
+}
+
+uint8_t SideStripHandler::get_screen_brightness(LightState state) const {
+    return packed_screen_brightness(config_store().screen_brightness_by_state.get(), state);
+}
+
+void SideStripHandler::set_screen_brightness(LightState state, uint8_t value) {
+    value = clamp_screen_brightness(state, value);
+
+    const uint8_t shift = light_state_shift(state);
+    const uint32_t stored = config_store().screen_brightness_by_state.get();
+    config_store().screen_brightness_by_state.set((stored & ~(0xffu << shift)) | (static_cast<uint32_t>(value) << shift));
+}
+
+uint8_t SideStripHandler::current_screen_brightness() const {
+    std::lock_guard lock(mutex);
+    return packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state_for_strip_state(state));
+}
+
+bool SideStripHandler::wake_screen_from_dim_idle() {
+    std::lock_guard lock(mutex);
+    const LightState light_state = light_state_for_strip_state(state);
+    const bool dim_idle = (light_state == LightState::idle || light_state == LightState::deep_idle)
+        && packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state) < 15;
+    if (dim_idle) {
+        host_idle_override = false;
+        active_timestamp_ms = ticks_ms();
+    }
+    return dim_idle;
 }
 
 bool SideStripHandler::get_door_holds_active() const {
