@@ -149,6 +149,8 @@ src/common/feature/print_status_message/
 src/gui/dialogs/DialogHandler.cpp
 src/marlin_stubs/pause/M600.cpp
 src/marlin_stubs/pause/pause.cpp
+src/marlin_stubs/sdcard/M20-M30_M32-M34.cpp
+src/marlin_stubs/host/M115.cpp
 lib/Marlin/Marlin/src/gcode/queue.cpp
 src/mmu2/mmu2_reporting.cpp
 ```
@@ -170,6 +172,10 @@ Clock-only messages with today/tomorrow suffixes are filtered.
 The message page shows a numeric print percentage.
 Load/unload, MMU purge, nozzle-cleaning recovery, safety-timer resume, and cold-pull progress can drive the serial status progress page when active.
 Message-screen time suppression is also present in the general Messages screen, not only the serial print screen.
+M115 advertises printer storage support for OctoPrint (`SDCARD`, `EXTENDED_M20`, `LFN_WRITE`).
+M20/M21/M23-M30/M32 support OctoPrint printer-storage workflows: list, upload, select, print-from-SD, pause/resume, progress status, seek, and delete.
+M28/M29 upload lines are written to USB media and are not passed through the serial print detector as live print commands.
+Host paths normalize onto `/usb/`, reject parent-directory traversal, and create upload directories as needed.
 ```
 
 ### LEDs, Chamber Lights, Side Strips, And GPIO Light Bar
@@ -521,6 +527,8 @@ XL:
   Chamber fan/filter controls and filtering LED indication.
   Theme assets and brass/dark/light icon rendering.
   Release boot image fits flash.
+  XL retains the same OctoPrint SD/USB storage and per-print lighting features as the other supported printers.
+  Release builds use size-oriented compile/link flags; re-check `CMakeLists.txt` before dropping `-Oz` or constant merging.
 
 MINI:
   Serial print UI mode dropdown.

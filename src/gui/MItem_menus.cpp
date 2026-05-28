@@ -137,7 +137,9 @@ template struct MI_SCREEN_CTOR<ScreenMenuUserInterface>;
 template struct MI_SCREEN_CTOR<ScreenMenuSerialPrinting>;
 template struct MI_SCREEN_CTOR<ScreenMenuLockSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuUiThemeColors>;
+#if HAS_LEDS()
 template struct MI_SCREEN_CTOR<ScreenMenuStatusLedColors>;
+#endif
 template struct MI_SCREEN_CTOR<ScreenMenuLangAndTime>;
 template struct MI_SCREEN_CTOR<ScreenMenuNetwork>;
 template struct MI_SCREEN_CTOR<ScreenMenuNetworkStatus>;

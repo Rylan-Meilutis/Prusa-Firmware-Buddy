@@ -51,6 +51,7 @@ constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
     #error
 #endif
 
+#if HAS_CHAMBER_VENTS()
 namespace {
 bool selected_core_one_plus() {
 #if PRINTER_IS_PRUSA_COREONEL()
@@ -63,6 +64,7 @@ bool selected_core_one_plus() {
 #endif
 }
 } // namespace
+#endif
 
 namespace buddy {
 

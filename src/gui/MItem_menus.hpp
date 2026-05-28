@@ -120,8 +120,10 @@ using MI_LOCK_SETTINGS
     = MI_SCREEN<N_("Printer Lock"), class ScreenMenuLockSettings>;
 using MI_UI_THEME_SETTINGS
     = MI_SCREEN<N_("UI Theme"), class ScreenMenuUiThemeColors>;
+#if HAS_LEDS()
 using MI_STATUS_LED_COLOR_SETTINGS
     = MI_SCREEN<N_("Status LED Colors"), class ScreenMenuStatusLedColors>;
+#endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
 using MI_EXTERNAL_LIGHT_BAR_SETTINGS
     = MI_SCREEN<N_("External Light Bar"), class ScreenMenuExternalLightBar>;

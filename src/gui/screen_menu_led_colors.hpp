@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gui/menu_item/menu_item_select_menu.hpp>
+#include <option/has_leds.h>
 #include "screen_menu.hpp"
 #include "WindowMenuItems.hpp"
 
@@ -160,6 +161,7 @@ public:
     ScreenMenuUiThemeImported();
 };
 
+#if HAS_LEDS()
 class MI_STATUS_LED_IDLE_COLOR : public IWindowMenuItem {
 public:
     MI_STATUS_LED_IDLE_COLOR();
@@ -196,3 +198,4 @@ class ScreenMenuStatusLedColors final : public ScreenMenuStatusLedColors__ {
 public:
     ScreenMenuStatusLedColors();
 };
+#endif
