@@ -223,8 +223,11 @@ Core One/Core One Plus chamber and status temporary print brightness values are 
 XL side-strip temporary print brightness is percent-based.
 Temporary print lighting overrides reset after the print.
 Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
-Active-state screen brightness is clamped to at least 15%.
+Active and Printing screen brightness settings are clamped to at least 15% in both the UI range and stored value.
+Idle and Deep Idle screen brightness can be set to Off/0%.
 If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
+`Active to Idle` is measured from last activity to idle entry.
+`Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
 Finished state acknowledgement still follows platform rules.
 Opening and closing the door during filtering turns status LEDs off.
@@ -492,7 +495,8 @@ When upstream changes LED APIs, re-check these separation rules:
 Status LEDs are independent from chamber/side LED enable state.
 Temporary print brightness is independent from persistent settings.
 Screen brightness is independent from chamber/side/status LED brightness.
-Active screen brightness cannot be configured or applied below 15%.
+Active and Printing screen brightness cannot be configured below 15%; the UI range must not expose Off/0% for those states.
+Idle and Deep Idle screen brightness can be configured to 0%.
 Dim idle/deep-idle wake input is consumed before normal UI action dispatch.
 Abort indication is not treated as finished indication.
 Door/filter acknowledgement is Core One-specific unless explicitly handled for another platform.
@@ -531,7 +535,7 @@ Core One / Core One Plus:
   Manual open-vent prompt suppression for serial print and Core One Plus.
   Chamber LEDs off while status LEDs still work.
   Per-print chamber/status brightness at 0%, low value, and 100%.
-  Per-state screen brightness: active below 15% is clamped, idle/deep-idle below 15% consumes first input as wake-only.
+  Per-state screen brightness: Active/Printing below 15% is clamped, Idle/Deep Idle can be Off, and idle/deep-idle below 15% consumes first input as wake-only.
   Door open/close acknowledgement after finished, aborted, and filtering states.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
@@ -544,7 +548,7 @@ XL:
   MMU extra purge shows status progress instead of staying at 0%.
   Per-print side-strip brightness at 0%, low value, and 100%.
   Per-state screen, status, and side-strip brightness settings remain visible and independent.
-  Idle/deep-idle screen brightness below 15% wakes without activating the touched/focused UI control.
+  Idle/deep-idle screen brightness can be Off and wakes without activating the touched/focused UI control.
   Chamber fan/filter controls and filtering LED indication.
   Theme assets and brass/dark/light icon rendering.
   Release boot image fits flash.
@@ -558,7 +562,7 @@ MINI:
   Host message filtering and numeric percentage on the message page.
   Screen memory remains within `ScreenFactory` storage.
   Only screen brightness settings are shown in Lights Settings; no status/chamber/side LED controls are instantiated.
-  Idle screen brightness below 15% consumes first encoder input as wake-only.
+  Idle screen brightness can be Off and consumes first encoder input as wake-only.
   Theme resources render correctly on the small display.
   Status LED color settings and other status-LED-only code are not instantiated when `HAS_LEDS` is disabled.
 

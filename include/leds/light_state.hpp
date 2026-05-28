@@ -20,7 +20,7 @@ constexpr uint8_t light_state_shift(LightState state) {
 }
 
 constexpr uint8_t minimum_screen_brightness(LightState state) {
-    return state == LightState::active ? 15 : 1;
+    return state == LightState::active || state == LightState::printing ? 15 : 0;
 }
 
 constexpr uint8_t clamp_screen_brightness(LightState state, uint8_t value) {
