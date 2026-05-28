@@ -48,6 +48,7 @@
 #include <power_panic.hpp>
 #include <logging/log_dest_file.hpp>
 #include <numeric_input_config_common.hpp>
+#include <guiconfig/guiconfig.h>
 
 #include <type_traits>
 
@@ -63,6 +64,9 @@
 
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
+#endif
+#if HAS_ST7789_DISPLAY()
+    #include <st7789v.hpp>
 #endif
 
 #if BUDDY_ENABLE_CONNECT()
@@ -822,9 +826,6 @@ void MI_LEDS_ENABLE::OnChange(size_t old_index) {
 }
 #endif
 
-#if HAS_SIDE_LEDS()
-/**********************************************************************************************/
-// MI_SIDE_LEDS_MAX_BRIGTHNESS
 namespace {
 
 uint8_t percent_to_uint8(float value) {
@@ -837,15 +838,36 @@ uint8_t percent_to_uint8(float value) {
     return static_cast<uint8_t>(value);
 }
 
-uint8_t brightness_percent_to_pwm(float value) {
+uint8_t screen_brightness_percent(float value) {
+    const auto percent = percent_to_uint8(value);
+    return percent == 0 ? 1 : percent;
+}
+
+uint8_t screen_brightness_for_state(leds::LightState state, uint8_t value) {
+    return leds::clamp_screen_brightness(state, value);
+}
+
+[[maybe_unused]] uint8_t brightness_percent_to_pwm(float value) {
     const auto percent = percent_to_uint8(value);
     return percent == 100 ? 255 : static_cast<uint8_t>(static_cast<uint16_t>(percent) * 255 / 100);
 }
 
-float brightness_pwm_to_percent(uint8_t value) {
+[[maybe_unused]] float brightness_pwm_to_percent(uint8_t value) {
     return static_cast<float>(value) * 100.0f / 255.0f;
 }
 
+[[maybe_unused]] uint8_t stored_screen_brightness(leds::LightState state) {
+    return screen_brightness_for_state(state, (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff);
+}
+
+[[maybe_unused]] void store_screen_brightness(leds::LightState state, uint8_t value) {
+    value = screen_brightness_for_state(state, value);
+    const uint8_t shift = leds::light_state_shift(state);
+    const uint32_t stored = config_store().screen_brightness_by_state.get();
+    config_store().screen_brightness_by_state.set((stored & ~(0xffu << shift)) | (static_cast<uint32_t>(value) << shift));
+}
+
+#if HAS_SIDE_LEDS()
 void apply_side_led_max_brightness(float value) {
     auto &side_strip = leds::SideStripHandler::instance();
     side_strip.set_max_brightness(brightness_percent_to_pwm(value));
@@ -863,9 +885,13 @@ void apply_side_led_print_brightness(float value) {
     side_strip.set_print_brightness(brightness_percent_to_pwm(value));
     side_strip.activity_ping();
 }
+#endif
 
 } // namespace
 
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_MAX_BRIGTHNESS
 MI_SIDE_LEDS_MAX_BRIGTHNESS::MI_SIDE_LEDS_MAX_BRIGTHNESS()
     : WiSpin(
         brightness_pwm_to_percent(leds::SideStripHandler::instance().get_max_brightness()),
@@ -941,10 +967,6 @@ void MI_LIGHT_STATE_MAIN_ENABLE::OnChange(size_t old_index) {
     leds::SideStripHandler::instance().set_main_light_enabled(state, !old_index);
 }
 
-void MI_LIGHT_STATE_MAIN_ENABLE::Loop() {
-    set_value(leds::SideStripHandler::instance().get_main_light_enabled(state));
-}
-
 /**********************************************************************************************/
 // MI_LIGHT_STATE_BRIGHTNESS
 MI_LIGHT_STATE_BRIGHTNESS::MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state)
@@ -962,6 +984,7 @@ void MI_LIGHT_STATE_BRIGHTNESS::OnClick() {
 
 /**********************************************************************************************/
 // MI_LIGHT_STATE_DOOR_ACTIVE
+#if HAS_DOOR_SENSOR()
 MI_LIGHT_STATE_DOOR_ACTIVE::MI_LIGHT_STATE_DOOR_ACTIVE()
     : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_door_holds_active(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
@@ -969,6 +992,7 @@ MI_LIGHT_STATE_DOOR_ACTIVE::MI_LIGHT_STATE_DOOR_ACTIVE()
 void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
     leds::SideStripHandler::instance().set_door_holds_active(!old_index);
 }
+#endif
 
 /**********************************************************************************************/
 // MI_PRINT_CHAMBER_LIGHTS_ENABLE
@@ -994,7 +1018,50 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
 
 #endif
 
+/**********************************************************************************************/
+// MI_LIGHT_STATE_SCREEN_BRIGHTNESS
+MI_LIGHT_STATE_SCREEN_BRIGHTNESS::MI_LIGHT_STATE_SCREEN_BRIGHTNESS(leds::LightState state)
+    : WiSpin(
+#if HAS_SIDE_LEDS()
+        leds::SideStripHandler::instance().get_screen_brightness(state),
+#else
+        stored_screen_brightness(state),
+#endif
+        numeric_input_config::percent_with_off,
+        _(label))
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_SCREEN_BRIGHTNESS::OnClick() {
+    const auto brightness = screen_brightness_percent(value());
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().set_screen_brightness(state, brightness);
+    leds::SideStripHandler::instance().activity_ping();
+#else
+    const auto clamped_brightness = screen_brightness_for_state(state, brightness);
+    store_screen_brightness(state, clamped_brightness);
+    #if HAS_ST7789_DISPLAY()
+    st7789v_brightness_enable();
+    st7789v_brightness_set((clamped_brightness * 255) / 100);
+    #endif
+#endif
+}
+
 #if HAS_LEDS()
+/**********************************************************************************************/
+// MI_LIGHT_STATE_STATUS_BRIGHTNESS
+MI_LIGHT_STATE_STATUS_BRIGHTNESS::MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightState state)
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_brightness(state),
+        numeric_input_config::percent_with_off,
+        _(label))
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_STATUS_BRIGHTNESS::OnClick() {
+    leds::StatusLedsHandler::instance().set_brightness(state, screen_brightness_percent(value()));
+}
+
 /**********************************************************************************************/
 // MI_PRINT_STATUS_LEDS_ENABLE
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -1155,7 +1222,7 @@ std::span<const char *const> mode_items(uint8_t pin) {
 // MI_LIGHT_STATE_EXTERNAL_ENABLE
 
 MI_LIGHT_STATE_EXTERNAL_ENABLE::MI_LIGHT_STATE_EXTERNAL_ENABLE(leds::LightState state)
-    : WI_ICON_SWITCH_OFF_ON_t(leds::external_light_bar::state_enabled(state), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no)
+    : WI_ICON_SWITCH_OFF_ON_t(leds::external_light_bar::state_enabled(state), _(label), nullptr, is_enabled_t::yes, leds::external_light_bar::enabled_pin_mask() ? is_hidden_t::no : is_hidden_t::yes)
     , state(state) {
 }
 

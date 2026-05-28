@@ -3,9 +3,15 @@
 #include "led_lcd_cs_selector.hpp"
 
 #include <leds/status_leds_handler.hpp>
+#include <marlin_server.hpp>
 #include <marlin_vars.hpp>
 #include "neopixel.hpp"
+#include <option/has_leds.h>
 #include <option/has_side_leds.h>
+#include <guiconfig/guiconfig.h>
+#if HAS_ST7789_DISPLAY()
+    #include <st7789v.hpp>
+#endif
 
 #include <config_store/store_instance.hpp>
 
@@ -88,6 +94,8 @@ void acknowledge_aborted_after_door_cycle(bool door_open) {
 
 extern osThreadId displayTaskHandle;
 
+static constexpr uint32_t screen_brightness_wake_ms = 30000;
+
 using StatusLeds = neopixel::LedsSPI10M5Hz<4, GuiLedsWriter::write>;
 
 static StatusLeds &get_status_leds() {
@@ -138,7 +146,9 @@ void LEDManager::init() {
     // update the LEDs in init to turn them off (in case they were set to a color before a reset)
     // except the LCD backlight, set that to 100% brightness
     set_lcd_brightness(100);
+#if HAS_LEDS()
     get_status_leds().update();
+#endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     leds::external_light_bar::apply(false);
 #endif
@@ -197,6 +207,7 @@ void LEDManager::update() {
         status_leds.set(data[i].data, i);
 #endif
     }
+    update_lcd_brightness();
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     // Bed LEDs copy LCD status bar strip
@@ -250,6 +261,49 @@ void LEDManager::update() {
 #endif // HAS_SIDE_LEDS
 }
 
+void LEDManager::update_lcd_brightness() {
+#if HAS_SIDE_LEDS()
+    set_lcd_brightness(SideStripHandler::instance().current_screen_brightness());
+#else
+    const marlin_server::State printer_state = marlin_vars().print_state;
+    const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    leds::LightState state = print_active
+        ? leds::LightState::printing
+        : (printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                ? leds::LightState::idle
+                : leds::LightState::active);
+    if (lcd_brightness_wake_until_ms) {
+        const uint32_t now = ticks_ms();
+        if (now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms) {
+            state = leds::LightState::active;
+        } else {
+            lcd_brightness_wake_until_ms = 0;
+        }
+    }
+    const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    set_lcd_brightness(leds::clamp_screen_brightness(state, brightness));
+#endif
+}
+
+#if !HAS_SIDE_LEDS()
+bool LEDManager::wake_lcd_from_dim_idle() {
+    const marlin_server::State printer_state = marlin_vars().print_state;
+    const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const leds::LightState state = print_active
+        ? leds::LightState::printing
+        : (printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                ? leds::LightState::idle
+                : leds::LightState::active);
+    const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    if (state != leds::LightState::idle || brightness >= 15) {
+        return false;
+    }
+    lcd_brightness_wake_until_ms = ticks_ms();
+    set_lcd_brightness(leds::clamp_screen_brightness(leds::LightState::active, brightness));
+    return true;
+}
+#endif
+
 void LEDManager::enter_power_panic() {
     {
         std::lock_guard lock(power_panic_mutex);
@@ -287,8 +341,16 @@ void LEDManager::enter_power_panic() {
 }
 
 void LEDManager::set_lcd_brightness(uint8_t brightness) {
+    if (brightness > 100) {
+        brightness = 100;
+    }
+#if HAS_ST7789_DISPLAY()
+    st7789v_brightness_enable();
+    st7789v_brightness_set((brightness * 255) / 100);
+#else
     // LCD backlight is connected to the green channel of the fourth LED (index 3) on the status strip
-    get_status_leds().set(ColorRGBW(0, (std::min<uint8_t>(brightness, 100) * 255) / 100, 0).data, 3);
+    get_status_leds().set(ColorRGBW(0, (brightness * 255) / 100, 0).data, 3);
+#endif
 }
 
 } // namespace leds

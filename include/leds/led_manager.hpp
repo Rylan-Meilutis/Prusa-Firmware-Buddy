@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utils/timing/rate_limiter.hpp>
+#include <option/has_side_leds.h>
 
 namespace leds {
 
@@ -18,6 +19,10 @@ public:
     void init();
 
     void update();
+    void update_lcd_brightness();
+#if !HAS_SIDE_LEDS()
+    bool wake_lcd_from_dim_idle();
+#endif
 
     void acknowledge_finished();
 
@@ -35,6 +40,9 @@ private:
     static constexpr uint32_t gui_delay_redraw = 40; // 40 ms => 25 fps
     RateLimiter<uint32_t> rate_limiter { gui_delay_redraw };
     freertos::Mutex power_panic_mutex;
+#if !HAS_SIDE_LEDS()
+    uint32_t lcd_brightness_wake_until_ms { 0 };
+#endif
     bool power_panic { false };
 };
 

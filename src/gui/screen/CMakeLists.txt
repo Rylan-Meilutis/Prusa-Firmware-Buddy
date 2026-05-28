@@ -22,9 +22,7 @@ if(HAS_MMU2)
   target_sources(firmware PRIVATE screen_hw_mmu.cpp screen_menu_mmu_preload_all.cpp)
 endif()
 
-if(HAS_LEDS_MENU)
-  target_sources(firmware PRIVATE screen_menu_leds.cpp screen_menu_led_state.cpp)
-endif()
+target_sources(firmware PRIVATE screen_menu_leds.cpp screen_menu_led_state.cpp)
 
 if(HAS_SELFTEST)
   add_subdirectory(selftest)

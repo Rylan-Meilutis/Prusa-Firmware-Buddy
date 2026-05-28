@@ -5,58 +5,70 @@
 
 #include "screen_menu.hpp"
 #include "MItem_tools.hpp"
+#include <guiconfig/guiconfig.h>
+#include <option/has_door_sensor.h>
 
-#if HAS_SIDE_LEDS()
-
-using ScreenMenuLedDeepIdle__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    WithConstructorArgs<MI_LIGHT_STATE_MAIN_ENABLE, leds::LightState::deep_idle>,
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::deep_idle>,
+#ifndef HAS_SCREEN_BRIGHTNESS_SETTINGS
+    #define HAS_SCREEN_BRIGHTNESS_SETTINGS() (HAS_ILI9488_DISPLAY() || HAS_ST7789_DISPLAY())
 #endif
-    WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::deep_idle>,
-    MI_ALWAYS_HIDDEN>;
 
-class ScreenMenuLedDeepIdle : public ScreenMenuLedDeepIdle__ {
+#if HAS_SIDE_LEDS() || HAS_LEDS() || HAS_SCREEN_BRIGHTNESS_SETTINGS() || (HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY())
+
+class ScreenMenuLedStateContainer : public IWinMenuContainer {
+public:
+    ScreenMenuLedStateContainer(leds::LightState state);
+
+    virtual int GetRawCount() const override;
+    virtual IWindowMenuItem *GetItemByRawIndex(int pos) const override;
+    virtual int GetRawIndex(IWindowMenuItem &item) const override;
+
+private:
+    mutable MI_RETURN item_return;
+#if HAS_SIDE_LEDS()
+    mutable MI_LIGHT_STATE_MAIN_ENABLE item_main;
+#endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    mutable MI_LIGHT_STATE_EXTERNAL_ENABLE item_external;
+#endif
+#if HAS_SIDE_LEDS()
+    mutable MI_LIGHT_STATE_BRIGHTNESS item_brightness;
+#endif
+#if HAS_LEDS()
+    mutable MI_LIGHT_STATE_STATUS_BRIGHTNESS item_status_brightness;
+#endif
+#if HAS_SCREEN_BRIGHTNESS_SETTINGS()
+    mutable MI_LIGHT_STATE_SCREEN_BRIGHTNESS item_screen_brightness;
+#endif
+#if HAS_SIDE_LEDS() && HAS_DOOR_SENSOR()
+    mutable MI_LIGHT_STATE_DOOR_ACTIVE item_door_active;
+#endif
+    mutable MI_ALWAYS_HIDDEN item_hidden;
+};
+
+class ScreenMenuLedState : public ScreenMenuBase<WindowMenu> {
+protected:
+    ScreenMenuLedState(const string_view_utf8 &label, leds::LightState state);
+
+private:
+    ScreenMenuLedStateContainer container;
+};
+
+class ScreenMenuLedDeepIdle : public ScreenMenuLedState {
 public:
     ScreenMenuLedDeepIdle();
 };
 
-using ScreenMenuLedIdle__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    WithConstructorArgs<MI_LIGHT_STATE_MAIN_ENABLE, leds::LightState::idle>,
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::idle>,
-#endif
-    WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::idle>,
-    MI_ALWAYS_HIDDEN>;
-
-class ScreenMenuLedIdle : public ScreenMenuLedIdle__ {
+class ScreenMenuLedIdle : public ScreenMenuLedState {
 public:
     ScreenMenuLedIdle();
 };
 
-using ScreenMenuLedActive__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    WithConstructorArgs<MI_LIGHT_STATE_MAIN_ENABLE, leds::LightState::active>,
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::active>,
-#endif
-    WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::active>,
-    MI_LIGHT_STATE_DOOR_ACTIVE,
-    MI_ALWAYS_HIDDEN>;
-
-class ScreenMenuLedActive : public ScreenMenuLedActive__ {
+class ScreenMenuLedActive : public ScreenMenuLedState {
 public:
     ScreenMenuLedActive();
 };
 
-using ScreenMenuLedPrinting__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    WithConstructorArgs<MI_LIGHT_STATE_MAIN_ENABLE, leds::LightState::printing>,
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
-    WithConstructorArgs<MI_LIGHT_STATE_EXTERNAL_ENABLE, leds::LightState::printing>,
-#endif
-    WithConstructorArgs<MI_LIGHT_STATE_BRIGHTNESS, leds::LightState::printing>,
-    MI_ALWAYS_HIDDEN>;
-
-class ScreenMenuLedPrinting : public ScreenMenuLedPrinting__ {
+class ScreenMenuLedPrinting : public ScreenMenuLedState {
 public:
     ScreenMenuLedPrinting();
 };

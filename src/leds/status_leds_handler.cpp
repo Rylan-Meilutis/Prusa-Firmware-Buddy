@@ -29,6 +29,10 @@ static bool print_active_for_status_override() {
     return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
 }
 
+static uint8_t packed_brightness(uint32_t values, LightState state) {
+    return (values >> light_state_shift(state)) & 0xff;
+}
+
 static StateAnimation marlin_to_anim_state() {
     fsm::States::State load_unload_state;
     bool is_preheating;
@@ -355,6 +359,21 @@ bool StatusLedsHandler::get_print_status_enabled() {
 #endif
 }
 
+uint8_t StatusLedsHandler::get_brightness(LightState state) {
+    std::lock_guard lock(mutex);
+    return packed_brightness(brightness_by_state, state);
+}
+
+void StatusLedsHandler::set_brightness(LightState state, uint8_t val) {
+    if (val > 100) {
+        val = 100;
+    }
+    std::lock_guard lock(mutex);
+    const uint8_t shift = light_state_shift(state);
+    brightness_by_state = (brightness_by_state & ~(0xffu << shift)) | (static_cast<uint32_t>(val) << shift);
+    config_store().status_led_brightness_by_state.set(brightness_by_state);
+}
+
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
     if (!active) {
@@ -378,8 +397,11 @@ uint8_t StatusLedsHandler::get_print_status_brightness() {
 }
 
 void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
+    if (val > 100) {
+        val = 100;
+    }
     std::lock_guard lock(mutex);
-    print_status_brightness = std::min<uint8_t>(val, 100);
+    print_status_brightness = val;
     print_status_disabled = print_status_brightness == 0;
     old_state = StateAnimation::_last;
 }
@@ -452,6 +474,16 @@ void StatusLedsHandler::update() {
         state = StateAnimation::Idle;
     }
 
+    if (deep_idle) {
+        current_light_state = LightState::deep_idle;
+    } else if (state == StateAnimation::Printing) {
+        current_light_state = LightState::printing;
+    } else if (state == StateAnimation::Idle) {
+        current_light_state = LightState::idle;
+    } else {
+        current_light_state = LightState::active;
+    }
+
     if (state == StateAnimation::Printing) {
         finished_acknowledged = false;
     } else if (finished_acknowledged && (state == StateAnimation::Finishing || state == StateAnimation::Filtering)) {
@@ -472,24 +504,25 @@ void StatusLedsHandler::update() {
 
 std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     std::lock_guard lock(mutex);
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     const auto data = controller_instance().data();
-    const bool dim_print_status = print_active_for_status_override() && print_status_brightness < 100;
-    if (!dim_print_status) {
+    uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    if (print_active_for_status_override()) {
+        brightness = static_cast<uint8_t>(static_cast<uint16_t>(brightness) * print_status_brightness / 100);
+    }
+#endif
+    if (brightness >= 100) {
         return data;
     }
 
     for (size_t i = 0; i < adjusted_data.size(); ++i) {
         adjusted_data[i] = ColorRGBW(
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].r) * print_status_brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].g) * print_status_brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].b) * print_status_brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].w) * print_status_brightness / 100));
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].r) * brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].g) * brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].b) * brightness / 100),
+            static_cast<uint8_t>(static_cast<uint16_t>(data[i].w) * brightness / 100));
     }
     return adjusted_data;
-#else
-    return controller_instance().data();
-#endif
 }
 
 } // namespace leds

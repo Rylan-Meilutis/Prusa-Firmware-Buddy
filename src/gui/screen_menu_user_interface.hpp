@@ -36,7 +36,7 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     // So we only allow sound control for ST7789
     MI_SOUND_VOLUME,
 #endif
-#if HAS_LEDS_MENU()
+#if HAS_LEDS_MENU() || HAS_SCREEN_BRIGHTNESS_SETTINGS()
     MI_LEDS_SETTINGS,
 #endif
 #if HAS_TOUCH()
