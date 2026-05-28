@@ -32,6 +32,11 @@
     #include "../../feature/prusa/crash_recovery.hpp"
 #endif /*ENABLED(CRASH_RECOVERY)*/
 
+#if ENABLED(POWER_PANIC)
+    #include <power_panic.hpp>
+    #include <tasks.hpp>
+#endif /*ENABLED(POWER_PANIC)*/
+
 #if DISABLED(ARC_SUPPORT)
     #error "toolchanger requires ARC_SUPPORT"
 #endif
@@ -234,6 +239,15 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
 }
 
 void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
+#if ENABLED(POWER_PANIC)
+    // Stored panic data + autostart not yet done = resume decision pending.
+    // EEPROM is intentionally stale during prints, so this check would false-fire here.
+    if (!TaskDeps::check(TaskDeps::Dependency::autostart_done)
+        && power_panic::state_stored()) {
+        return;
+    }
+#endif
+
     const auto maybe_nozzle = buddy::puppies::indx.get_nozzle_present();
     if (!maybe_nozzle.has_value()) {
         return; // No debounced value yet (boot or after invalidation)
