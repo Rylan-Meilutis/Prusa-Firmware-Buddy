@@ -148,6 +148,11 @@ bool prepare_tool(PhysicalToolIndex tool) {
 /// and prompt with Retry/Abort.
 /// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
 Response prompt_retry(WarningType warning) {
+    // If the user already stopped the print, skip the dialog (and the parking move)
+    if (marlin_server::aborting_or_aborted()) {
+        return Response::Abort;
+    }
+
     constexpr float park_clean_z = 100.0f;
     const mapi::ParkingPosition park_cleaning_position = mapi::ParkingPosition::from_xyz_pos({ { { (X_MIN_POS + X_MAX_POS) / 2.0f, 10.0f, park_clean_z } } });
     mapi::park(mapi::ZAction::absolute_move, park_cleaning_position);
