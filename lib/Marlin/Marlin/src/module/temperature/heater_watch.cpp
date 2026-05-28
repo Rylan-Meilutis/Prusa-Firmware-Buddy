@@ -9,7 +9,7 @@ void HeaterWatch::arm(int16_t target_temp) {
         state_ = State::disarmed;
         return;
     }
-    target_temp_ = target_temp;
+    target_temp_celsius_ = target_temp;
     state_ = State::pending;
 }
 
@@ -20,9 +20,8 @@ void HeaterWatch::update(float current_temp) {
 
     case State::watching:
         if (!ELAPSED(millis(), next_check_ms_)) {
-            return;
         }
-        if ((current_temp < baseline_threshold_) ^ config_.watch_cooling_instead) {
+        if ((current_temp < baseline_threshold_celsius_) ^ config_.watch_cooling_instead) {
             fatal_error(config_.error_code);
         }
         // Period ended successfully — re-evaluate engage condition for the next one
@@ -30,11 +29,11 @@ void HeaterWatch::update(float current_temp) {
         [[fallthrough]];
 
     case State::pending:
-        if (!(((target_temp_ - current_temp) > config_.min_temp_diff) ^ config_.watch_cooling_instead)) {
+        if (!(((target_temp_celsius_ - current_temp) > config_.min_temp_diff) ^ config_.watch_cooling_instead)) {
             state_ = State::disarmed;
             return;
         }
-        baseline_threshold_ = static_cast<int16_t>(current_temp) + config_.temp_increase;
+        baseline_threshold_celsius_ = static_cast<int16_t>(current_temp) + config_.temp_increase;
         next_check_ms_ = millis() + config_.period_s * 1000UL;
         state_ = State::watching;
         return;

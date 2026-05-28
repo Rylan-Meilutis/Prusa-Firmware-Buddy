@@ -61,7 +61,7 @@ private:
 
     const Config config_;
     State state_ = State::disarmed;
-    int16_t target_temp_ = 0;
-    int16_t baseline_threshold_ = 0;
-    millis_t next_check_ms_ = 0;
+    int16_t target_temp_celsius_;
+    int16_t baseline_threshold_celsius_;
+    millis_t next_check_ms_;
 };
