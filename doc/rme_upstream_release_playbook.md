@@ -240,7 +240,7 @@ Temporary print lighting overrides reset after the print.
 Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
 Active and Printing screen brightness settings are clamped to at least 15% in both the UI range and stored value.
 Idle and Deep Idle screen brightness can be set to Off/0%.
-Off/0% screen brightness should write zero brightness, write all black pixels to the panel, then use the no-brightness-control/backlight-disable command before display-off. ST7789/MINI should also enter sleep-in, then sleep-out and display-on when waking. ILI9488/XLCD should also force the front/status LED strip dark. Non-zero brightness must re-enable brightness control before setting the brightness value.
+Off/0% screen brightness should write a full black frame to the panel before using the no-brightness-control/backlight-disable command and display-off. ST7789/MINI should also enter sleep-in, then sleep-out and display-on when waking. ILI9488/XLCD should also force the front/status LED strip dark. Display-driver pixel writes must be suppressed while the screen is intentionally off so delayed UI draws cannot repaint the old UI. Non-zero brightness must re-enable display writes and brightness control before setting the brightness value, and the off-to-on transition must force a full-screen redraw.
 If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
 `Active to Idle` is measured from last activity to idle entry.
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
@@ -515,7 +515,8 @@ Screen brightness is independent from chamber/side/status LED brightness.
 Active and Printing screen brightness cannot be configured below 15%; the UI range must not expose Off/0% for those states.
 Idle and Deep Idle screen brightness can be configured to 0%.
 Zero screen brightness should write all black pixels before disabling/no-brightness-control on every supported display. ST7789/MINI should enter sleep-in. ILI9488/XLCD should force the front/status LED strip dark, then use the no-brightness-control command and display-off.
-Non-zero screen brightness should explicitly re-enable brightness control and send display-on before setting brightness.
+Display-driver pixel writes should be suppressed while screen brightness is zero, and non-zero screen brightness should explicitly re-enable display writes, brightness control, and display-on before setting brightness.
+The transition from zero to non-zero screen brightness should invalidate the full current screen so wake redraws immediately.
 Dim idle/deep-idle wake input is consumed before normal UI action dispatch.
 OOB setup, calibration, self-tests, MMU tests/actions, and other visible FSM-guided flows are active use and should hold active screen/lighting behavior.
 Abort indication is not treated as finished indication.
