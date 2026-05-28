@@ -405,14 +405,10 @@ static FILE *open_bbf_over_debugger(Path &path_buffer, const buddy::resources::R
 
     FILE *bbf = nullptr;
     {
-        // open the bbf file
-        // we have to keep this within the critical section, as
-        // setDefaultDevice does not work per-task and we need to make
-        // sure someone else does not set it to something different before
-        // we open the file
-        freertos::CriticalSection critical_section;
-        setDefaultDevice(FindDevice("/semihosting"));
-        bbf = fopen(filepath, "rb");
+        MutablePath path;
+        path.push("semihosting");
+        path.push(filepath);
+        bbf = fopen(path.get(), "rb");
     }
     if (bbf == nullptr) {
         return nullptr;
