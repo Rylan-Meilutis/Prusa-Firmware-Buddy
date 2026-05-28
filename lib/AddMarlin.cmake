@@ -192,14 +192,17 @@ if(BOARD_IS_MASTER_BOARD)
         )
     else()
       target_sources(
-        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger.cpp
-                       Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
+        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
+                       Marlin/Marlin/src/module/prusa/toolchanger_xl.cpp
         )
     endif()
+
     target_sources(
       Marlin
-      PRIVATE Marlin/Marlin/src/gcode/control/T.cpp Marlin/Marlin/src/module/prusa/spool_join.cpp
+      PRIVATE Marlin/Marlin/src/gcode/control/T.cpp
+              Marlin/Marlin/src/module/prusa/spool_join.cpp
               Marlin/Marlin/src/module/prusa/tool_mapper.cpp
+              Marlin/Marlin/src/module/prusa/toolchanger_common.cpp
               Marlin/Marlin/src/module/tool_change.cpp
       )
   endif()

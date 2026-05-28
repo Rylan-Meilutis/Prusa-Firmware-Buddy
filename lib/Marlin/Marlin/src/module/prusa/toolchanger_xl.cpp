@@ -727,12 +727,6 @@ bool PrusaToolChanger::park(Dwarf &dwarf) {
     return true;
 }
 
-void PrusaToolChanger::z_shift(const float diff) {
-    current_position.z += diff;
-    line_to_current_position(Z_HOP_FEEDRATE_MM_S);
-    planner.synchronize();
-}
-
 bool PrusaToolChanger::align_locks() {
     if (picked_dwarf.load() != nullptr) {
         return true; // It would catapult picked dwarf

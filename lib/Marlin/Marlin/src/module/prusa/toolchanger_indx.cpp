@@ -663,12 +663,6 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
     return true;
 }
 
-void PrusaToolChanger::z_shift(const float diff) {
-    current_position.z += diff;
-    line_to_current_position(Z_HOP_FEEDRATE_MM_S);
-    planner.synchronize();
-}
-
 bool PrusaToolChanger::verify_nozzle_state(PhysicalToolIndex prev_tool, bool expect_present) {
     // Wait until nozzle presence confirms the expected post-pickup/park state.
     // This avoids failing on an early stale-but-valid sample from before the mechanical transition settled.
