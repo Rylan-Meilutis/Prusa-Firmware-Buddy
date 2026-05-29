@@ -42,7 +42,7 @@ All the source code in this repository is automatically formatted:
 - Python files using [yapf](https://github.com/google/yapf),
 - and CMake files using [cmake-format](https://github.com/cheshirekow/cmake_format).
 
-If you want to contribute, make sure to install [pre-commit](https://pre-commit.com) and then run `pre-commit install` within the repository. This makes sure that all your future commits will be formatted appropriately. Our build server automatically rejects improperly formatted pull requests.
+Running `./utils/bootstrap.py` installs the [prek](https://github.com/j178/prek) Git hooks for you, so all your future commits will be formatted appropriately. Our build server automatically rejects improperly formatted pull requests. To run the checks manually, use `prek run -c .pre-commit-config.yaml`. The `-c .pre-commit-config.yaml` flag pins prek to the root config so it does not descend into the nested configs of vendored libraries under `lib/`; bootstrap bakes the same flag into the installed hook.
 
 ### Files: Include Guards
 Use the `#pragma once` as a file guard.
