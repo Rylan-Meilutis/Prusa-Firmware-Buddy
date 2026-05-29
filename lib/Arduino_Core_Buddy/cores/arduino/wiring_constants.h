@@ -69,26 +69,6 @@ enum BitOrder {
 #define LOW  0x0
 #define HIGH 0x1
 
-// #define DEFAULT  1
-// #define EXTERNAL 0
-
-#define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
-
-#define radians(deg) ((deg)*DEG_TO_RAD)
-#define degrees(rad) ((rad)*RAD_TO_DEG)
-#define sq(x)        ((x) * (x))
-
-#define interrupts()   __enable_irq()
-#define noInterrupts() __disable_irq()
-
-#define lowByte(w)  ((uint8_t)((w)&0xff))
-#define highByte(w) ((uint8_t)((w) >> 8))
-
-#define bitRead(value, bit)            (((value) >> (bit)) & 0x01)
-#define bitSet(value, bit)             ((value) |= (1UL << (bit)))
-#define bitClear(value, bit)           ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
-
 #define bit(b) (1UL << (b))
 // macro added for compatibility
 #ifndef _BV

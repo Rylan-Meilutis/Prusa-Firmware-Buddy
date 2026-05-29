@@ -140,7 +140,7 @@ class unified_bed_leveling {
       // to extrapolate off of this point even further out. Probably
       // that is OK because something else should be keeping that from
       // happening and should not be worried about at this level.
-      return constrain(x, 0, (GRID_MAX_POINTS_X) - 1);
+      return std::clamp<int8_t>(x, 0, (GRID_MAX_POINTS_X) - 1);
     }
 
     static int8_t cap_cell_index_y(int8_t y) {
@@ -149,7 +149,7 @@ class unified_bed_leveling {
       // to extrapolate off of this point even further out. Probably
       // that is OK because something else should be keeping that from
       // happening and should not be worried about at this level.
-      return constrain(y, 0, (GRID_MAX_POINTS_Y) - 1);
+      return std::clamp<int8_t>(y, 0, (GRID_MAX_POINTS_Y) - 1);
     }
 
     static inline xy_int8_t cell_indexes(const float &x, const float &y) {
@@ -239,8 +239,8 @@ class unified_bed_leveling {
       const float rx0 = pos.x;
       const float ry0 = pos.y;
       // Avoid working with off-mesh points, clamp to mesh area - consider non-meshed area is flat
-      float irx0 = constrain(rx0, MESH_MIN_X, MESH_MAX_X);
-      float iry0 = constrain(ry0, MESH_MIN_Y, MESH_MAX_Y);
+      float irx0 = std::clamp<float>(rx0, MESH_MIN_X, MESH_MAX_X);
+      float iry0 = std::clamp<float>(ry0, MESH_MIN_Y, MESH_MAX_Y);
 
       const int8_t cx = cell_index_x(irx0), cy = cell_index_y(iry0); // return values are clamped
 

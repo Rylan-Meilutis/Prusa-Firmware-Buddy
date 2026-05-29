@@ -118,7 +118,7 @@ void Servo::detach() {
 
 void Servo::write(int value) {
   if (value < MIN_PULSE_WIDTH)    // treat values less than 544 as angles in degrees (valid values in microseconds are handled as microseconds)
-    value = map(constrain(value, 0, 180), 0, 180, SERVO_MIN(min), SERVO_MAX(max));
+    value = map(std::clamp(value, 0, 180), 0, 180, SERVO_MIN(min), SERVO_MAX(max));
   writeMicroseconds(value);
 }
 

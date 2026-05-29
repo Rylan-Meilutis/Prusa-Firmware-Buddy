@@ -46,12 +46,12 @@ float HeatbreakRegulator::step(const Args &args) {
     temp_dState = pid_error;
 
     if (args.current_hotend_temp > HEATBREAK_FAN_ALWAYS_ON_NOZZLE_TEMPERATURE) {
-        pid_output = constrain(pid_output, MIN_STOP_HEATBREAK_POWER, MAX_HEATBREAK_POWER);
+        pid_output = std::clamp<float>(pid_output, MIN_STOP_HEATBREAK_POWER, MAX_HEATBREAK_POWER);
         if (work_pid.Ki < MIN_STOP_HEATBREAK_POWER) {
             temp_iState = MIN_STOP_HEATBREAK_POWER / pid.Ki;
         }
     } else {
-        pid_output = constrain(pid_output, 0, MAX_HEATBREAK_POWER);
+        pid_output = std::clamp<float>(pid_output, 0, MAX_HEATBREAK_POWER);
     }
 
     if (pid_output < MIN_STOP_HEATBREAK_POWER) {
@@ -82,7 +82,7 @@ float HeatbreakRegulator::step(const Args &args) {
     #else // PID_OPENLOOP
     // #error dead code found by automatic analyses (see BFW-5461)
 
-    const float pid_output = constrain(args.target_temp, 0, MAX_HEATBREAK_POWER);
+    const float pid_output = std::clamp<float>(args.target_temp, 0, MAX_HEATBREAK_POWER);
 
     #endif // PID_OPENLOOP
 

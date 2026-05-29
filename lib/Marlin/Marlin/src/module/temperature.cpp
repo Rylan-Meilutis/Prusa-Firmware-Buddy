@@ -370,13 +370,13 @@ void Temperature::min_temp_error(const heater_ind_t heater) {
         pid_output += work_pid.Ki;
         temp_dState = pid_error;
 
-        pid_output = constrain(pid_output, 0, MAX_BED_POWER); //TODO shouldn't be low limit MIN_BED_POWER?
+        pid_output = std::clamp<float>(pid_output, 0, MAX_BED_POWER); //TODO shouldn't be low limit MIN_BED_POWER?
       }
 
     #else // PID_OPENLOOP
       // #error dead code found by automatic analyses (see BFW-5461)
 
-      const float pid_output = constrain(temp_bed.target, 0, MAX_BED_POWER);
+      const float pid_output = std::clamp<float>(temp_bed.target, 0, MAX_BED_POWER);
 
     #endif // PID_OPENLOOP
 

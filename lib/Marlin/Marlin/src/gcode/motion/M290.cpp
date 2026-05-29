@@ -54,12 +54,12 @@ void GcodeSuite::M290() {
     // #error dead code found by automatic analyses (see BFW-5461)
     LOOP_NUM_AXES(a)
       if (parser.seenval(AXIS_CHAR(a)) || (a == Z_AXIS && parser.seenval('S'))) {
-        const float offs = constrain(parser.value_axis_units((AxisEnum)a), -2, 2);
+        const float offs = std::clamp<float>(parser.value_axis_units((AxisEnum)a), -2, 2);
         babystep.add_mm((AxisEnum)a, offs);
       }
   #else
     if (parser.seenval('Z') || parser.seenval('S')) {
-      const float offs = constrain(parser.value_axis_units(Z_AXIS), -2, 2);
+      const float offs = std::clamp<float>(parser.value_axis_units(Z_AXIS), -2, 2);
       babystep.add_mm(Z_AXIS, offs);
     }
   #endif
