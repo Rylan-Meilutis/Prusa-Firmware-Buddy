@@ -187,6 +187,7 @@ Blocking startup commands do not hide the serial print screen.
 M77 and complete M73 end serial print state.
 M601 parks and keeps the serial print screen active.
 MMU/runout recovery sends the host resume action.
+Fresh host status progress/ETA, such as OctoPrint M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward.
 Serial UI mode is a dropdown: Legacy, Messages Only, Progress.
 Legacy mode shows the OctoPrint-style logo.
 Messages Only shows the fullscreen message view.

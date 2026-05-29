@@ -36,6 +36,8 @@ public:
     /// (for example in M117 status text). Prefer that over queued M73 values.
     static bool host_progress_percent(uint8_t &percent, uint32_t now_ms);
     static void set_host_progress_percent(uint8_t percent);
+    static bool host_time_to_end(uint32_t &seconds, uint32_t now_ms);
+    static void set_host_time_to_end(uint32_t seconds);
 
     static SerialPrintingUiMode ui_mode();
 
@@ -56,5 +58,7 @@ private:
 
     static uint8_t last_host_progress_percent;
     static uint32_t last_host_progress_ms;
+    static uint32_t last_host_time_to_end_s;
+    static uint32_t last_host_time_to_end_ms;
     static bool pending_start;
 };
