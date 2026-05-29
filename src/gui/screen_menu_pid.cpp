@@ -321,9 +321,9 @@ void ScreenPidAutotune::prompt_apply(const pid_autotune_status::Snapshot &status
 #endif
         break;
     }
-    marlin_client::gcode("M500");
-    snprintf(status_text_, sizeof(status_text_), "%s", "PID values saved.");
-    snprintf(temperature_text_, sizeof(temperature_text_), "%s", "Autotune succeeded.");
+    const bool save_submitted = marlin_client::gcode_try("M500") == marlin_client::GcodeTryResult::Submitted;
+    snprintf(status_text_, sizeof(status_text_), "%s", save_submitted ? "PID values saved." : "PID save failed.");
+    snprintf(temperature_text_, sizeof(temperature_text_), "%s", save_submitted ? "Autotune succeeded." : "Try saving again.");
     snprintf(cycle_text_, sizeof(cycle_text_), "P %.2f  I %.2f  D %.2f", static_cast<double>(status.p), static_cast<double>(status.i), static_cast<double>(status.d));
     status_.SetText(string_view_utf8::MakeRAM(status_text_));
     temperature_.SetText(string_view_utf8::MakeRAM(temperature_text_));

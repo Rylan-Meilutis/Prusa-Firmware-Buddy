@@ -336,7 +336,10 @@ Important areas:
 src/gui/screen_menu_pid.*
 src/gui/screen_menu_settings.*
 src/gui/CMakeLists.txt
+src/common/pid_autotune_status.*
+src/common/CMakeLists.txt
 lib/Marlin/Marlin/src/module/configuration_store.*
+lib/Marlin/Marlin/src/module/temperature.cpp
 src/persistent_stores/store_instances/config_store/store_c_api.*
 src/common/config_store/
 src/persistent_stores/store_instances/config_store/
@@ -354,6 +357,10 @@ Heatbed PID P/I/D values are visible only where PIDTEMPBED is enabled.
 Hotend PID can be reset independently to DEFAULT_Kp/DEFAULT_Ki/DEFAULT_Kd.
 Heatbed PID can be reset independently to DEFAULT_bedKp/DEFAULT_bedKi/DEFAULT_bedKd.
 XL applies edited hotend PID values to all hotends and calls thermalManager.updatePID() so Dwarves receive updated PID values.
+PID Settings exposes heater-specific autotune actions where supported.
+The PID autotune screen shows heating/cooling state, temperature, cycle progress, and the new P/I/D values.
+Completed UI autotunes prompt the user to save or discard the new values; save applies and persists them, discard leaves existing PID settings unchanged.
+Failed UI autotunes show failure and do not offer to save incomplete values.
 M303 ... U1 applies autotuned values to the live heater PID settings.
 M500 persists the live PID values into Buddy config-store.
 Boot settings load and M501 restore persisted PID values and call the normal PID postprocess/update path.
@@ -649,7 +656,7 @@ Core One / Core One Plus:
   Door open/close acknowledgement after finished, aborted, and filtering states.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
-  PID Settings screen: edit hotend/heatbed values, reset each heater to defaults, reboot and confirm persistence.
+  PID Settings screen: edit hotend/heatbed values, reset each heater to defaults, run autotune, confirm progress/new-value prompt, save/discard behavior, and reboot persistence after save.
   M303 autotune with U1 followed by M500 persists after reboot.
   Theme import, lock settings, and text/PIN input.
   External GPIO light bar configuration on supported hardware.
@@ -662,7 +669,8 @@ XL:
   Per-state screen, status, and side-strip brightness settings remain visible and independent.
   Idle/deep-idle screen brightness can be Off and wakes without activating the touched/focused UI control.
   Chamber fan/filter controls and filtering LED indication.
-  PID Settings screen: hotend values are visible/editable, heatbed PID is hidden if PIDTEMPBED is not enabled, edited values propagate to Dwarves.
+  PID Settings screen: hotend values are visible/editable, heatbed PID is hidden if PIDTEMPBED is not enabled, edited/autotuned values propagate to Dwarves.
+  PID autotune screen shows progress/new values and prompts save/discard before persistence.
   M303 autotune with U1 followed by M500 persists after reboot.
   Theme assets and brass/dark/light icon rendering.
   Release boot image fits flash.
@@ -678,7 +686,7 @@ MINI:
   Only screen brightness settings are shown in Lights Settings; no status/chamber/side LED controls are instantiated.
   Idle screen brightness can be Off and consumes first encoder input as wake-only.
   Theme resources render correctly on the small display.
-  PID Settings screen compiles and shows only heater PID controls supported by the target.
+  PID Settings screen compiles and shows only heater PID controls and autotune actions supported by the target.
   Status LED color settings and other status-LED-only code are not instantiated when `HAS_LEDS` is disabled.
 
 MK4 / MK3.5:
@@ -688,7 +696,7 @@ MK4 / MK3.5:
   Screen and status LED brightness controls are visible, but side/chamber controls are hidden unless the target actually supports them.
   LED manager builds and runs the non-side-LED wake path.
   Serial printing and theme changes compile under MK feature flags.
-  PID Settings screen shows supported heater PID controls and reset actions.
+  PID Settings screen shows supported heater PID controls, autotune actions, and reset actions.
   External GPIO light bar configuration is visible and usable on supported xBuddy GPIO breakout / IO expander hardware.
   Shared external-light code compiles under MK3.5 include paths.
   LED manager builds the non-side-LED path without pulling in Core One or XL side-strip-only code.
