@@ -16,6 +16,9 @@
 #include <version/version.hpp>
 #include <gcode/gcode.h>
 
+// Enable phase stepping calibration result dump to USB for debugging purposes
+#define PHSTEP_ENABLE_USB_DUMP() 0
+
 namespace {
 
 enum class State {
@@ -129,9 +132,7 @@ static PhasesPhaseStepping intro_helper() {
 #endif
 }
 
-#if DEVELOPER_MODE()
-// #error dead code found by automatic analyses (see BFW-5461)
-
+#if PHSTEP_ENABLE_USB_DUMP()
 __attribute__((format(printf, 2, 3))) static void fdprintf(int fd, const char *fmt, ...) {
     std::array<char, 64> buffer;
 
@@ -194,8 +195,7 @@ std::optional<uint8_t> evaluate_calibration_result(const CalibrationResult &cali
 }
 
 PhasesPhaseStepping evaluate_result(Context &context) {
-#if DEVELOPER_MODE()
-    // #error dead code found by automatic analyses (see BFW-5461)
+#if PHSTEP_ENABLE_USB_DUMP()
     dump_calibration_result(context);
 #endif
     const auto reduction_x = evaluate_calibration_result(context.calibration_result_x);
