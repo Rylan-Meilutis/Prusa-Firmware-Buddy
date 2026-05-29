@@ -55,6 +55,9 @@ namespace {
 struct PhaseGridTag {};
 using ab_grid_t = XYval<int32_t, PhaseGridTag>;
 
+// Electrical phase alignment position: set to 45' for maximum two-phase current holding torque
+static constexpr int16_t ZERO_PHASE_MSCNT_ANGLE = 1024 / 8;
+
 namespace internal {
     bool home_unstable = false; ///< Last homing stability state
     uint8_t probe_id = 0; ///< Probe id for metric cross-referencing
@@ -149,15 +152,17 @@ static int16_t phase_backoff_steps(const AxisEnum axis) {
     }
 
     const int16_t phaseCurrent = axis_mscnt(axis); // The TMC µsteps(phase) count of the current position
-    const int16_t phaseDelta = ((stepperCountDir < 0) == (effectorBackoutDir < 0) ? phaseCurrent : 1024 - phaseCurrent);
+    const int16_t phaseZero = (phaseCurrent + ZERO_PHASE_MSCNT_ANGLE) % 1024; // zero phase
+    const int16_t phaseDelta = ((stepperCountDir < 0) == (effectorBackoutDir < 0) ? phaseZero : 1024 - phaseZero);
     const int16_t phasePerStep = phase_per_ustep(axis);
     return int16_t((phaseDelta + phasePerStep / 2) / phasePerStep) * effectorBackoutDir;
 }
 
 static bool phase_aligned(AxisEnum axis) {
     const int16_t phase_cur = axis_mscnt(axis);
+    const int16_t phase_zero = (phase_cur + ZERO_PHASE_MSCNT_ANGLE) % 1024;
     const int16_t ustep_max = phase_per_ustep(axis) / 2;
-    return (phase_cur <= ustep_max || phase_cur >= (1024 - ustep_max));
+    return (phase_zero <= ustep_max || phase_zero >= (1024 - ustep_max));
 }
 
 /**
