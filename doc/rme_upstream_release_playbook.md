@@ -686,7 +686,8 @@ MK4 / MK3.5:
   LED manager builds and runs the non-side-LED wake path.
   Serial printing and theme changes compile under MK feature flags.
   PID Settings screen shows supported heater PID controls and reset actions.
-  Shared external-light code compiles under MK3.5 include paths even if the feature is not user-facing there.
+  External GPIO light bar configuration is visible and usable on supported xBuddy GPIO breakout / IO expander hardware.
+  Shared external-light code compiles under MK3.5 include paths.
   LED manager builds the non-side-LED path without pulling in Core One or XL side-strip-only code.
 ```
 
