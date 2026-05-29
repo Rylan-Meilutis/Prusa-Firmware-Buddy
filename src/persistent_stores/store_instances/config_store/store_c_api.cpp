@@ -405,3 +405,39 @@ extern "C" void set_rms_current_ma_e(uint16_t current) {
         log_error(EEPROM, "%s: current must be greater than 0", __PRETTY_FUNCTION__);
     }
 }
+
+extern "C" float get_pid_nozzle_p() {
+    return config_store().pid_nozzle_p.get();
+}
+
+extern "C" float get_pid_nozzle_i() {
+    return config_store().pid_nozzle_i.get();
+}
+
+extern "C" float get_pid_nozzle_d() {
+    return config_store().pid_nozzle_d.get();
+}
+
+extern "C" float get_pid_bed_p() {
+    return config_store().pid_bed_p.get();
+}
+
+extern "C" float get_pid_bed_i() {
+    return config_store().pid_bed_i.get();
+}
+
+extern "C" float get_pid_bed_d() {
+    return config_store().pid_bed_d.get();
+}
+
+extern "C" void set_pid_nozzle(float p, float i, float d) {
+    config_store().pid_nozzle_p.set(p);
+    config_store().pid_nozzle_i.set(i);
+    config_store().pid_nozzle_d.set(d);
+}
+
+extern "C" void set_pid_bed(float p, float i, float d) {
+    config_store().pid_bed_p.set(p);
+    config_store().pid_bed_i.set(i);
+    config_store().pid_bed_d.set(d);
+}

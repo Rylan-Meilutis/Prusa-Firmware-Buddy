@@ -992,7 +992,10 @@ void static finalize_print(bool finished) {
     power_panic::reset();
 #endif
 
-    fsm_destroy(ClientFSM::Serial_printing);
+    const bool keep_serial_finished_screen = finished && server.print_is_serial;
+    if (!keep_serial_finished_screen) {
+        fsm_destroy(ClientFSM::Serial_printing);
+    }
 
     print_job_timer.stop();
     _server_update_vars();
@@ -1340,6 +1343,9 @@ void serial_print_start() {
         finalize_print(server.print_state == State::Finished);
         if (fsm_states.is_active(ClientFSM::Printing)) {
             fsm_destroy(ClientFSM::Printing);
+        }
+        if (fsm_states.is_active(ClientFSM::Serial_printing)) {
+            fsm_destroy(ClientFSM::Serial_printing);
         }
         break;
     default:
