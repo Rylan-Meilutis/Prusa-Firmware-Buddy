@@ -3650,10 +3650,14 @@ static void _server_update_vars() {
 
     const auto duration = marlin_vars().print_duration.get();
     const auto print_speed = marlin_vars().print_speed.get();
+    const uint32_t progress_update_ms = ticks_ms();
 
-    const auto update_time_to = [&](const ClValidityValueSec &progress_data_value, MarlinVariable<uint32_t> &marlin_var) {
+    const auto update_time_to = [&](const ClValidityValueSec &progress_data_value, MarlinVariable<uint32_t> &marlin_var, bool allow_serial_host_time) {
         uint32_t v = TIME_TO_END_INVALID;
-        if (progress_data.percent_done.mIsActual(duration) && progress_data_value.mIsActual(duration)) {
+        uint32_t host_time_to_end = 0;
+        if (allow_serial_host_time && server.print_is_serial && SerialPrinting::host_time_to_end(host_time_to_end, progress_update_ms)) {
+            v = host_time_to_end;
+        } else if (progress_data.percent_done.mIsActual(duration) && progress_data_value.mIsActual(duration)) {
             v = progress_data_value.mGetValue();
         }
 
@@ -3664,8 +3668,8 @@ static void _server_update_vars() {
             marlin_var = (v * 100) / print_speed;
         }
     };
-    update_time_to(progress_data.time_to_end, marlin_vars().time_to_end);
-    update_time_to(progress_data.time_to_pause, marlin_vars().time_to_pause);
+    update_time_to(progress_data.time_to_end, marlin_vars().time_to_end, true);
+    update_time_to(progress_data.time_to_pause, marlin_vars().time_to_pause, false);
 
     if (server.print_state == State::Printing) {
         marlin_vars().time_to_end.execute_with([&](const uint32_t &time_to_end) {
