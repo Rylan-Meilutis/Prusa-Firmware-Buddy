@@ -51,6 +51,7 @@
 #include <signal_processing/filters.hpp>
 #include "loadcell.hpp"
 
+#include <bsod/bsod.h>
 #include <logging/log.hpp>
 #include <raii/scope_guard.hpp>
 #include <raii/auto_restore.hpp>
@@ -244,12 +245,15 @@ static std::expected<TwoSpeedAnalysisResult, const char *> execute_and_analyze_s
 static constexpr float position_tolerance = 0.01f;
 static constexpr uint8_t sensor_probe_attempts = 3;
 
-static float measure_sensor_true_z(const tool_offset::ProbingConfig &config) {
+static float measure_sensor_true_z(const xyz_pos_t &probe_pos) {
+    debug_assert(std::abs(current_position.x - probe_pos.x) < position_tolerance);
+    debug_assert(std::abs(current_position.y - probe_pos.y) < position_tolerance);
+
     // Both are needed to run `probe_here`
     pressure_advance::PressureAdvanceDisabler pa_disabler;
     Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
 
-    const float probed_z = probe_here(config.sensor_position.z, sensor_probe_attempts);
+    const float probed_z = probe_here(probe_pos.z, sensor_probe_attempts);
     return probed_z;
 }
 
@@ -764,21 +768,21 @@ public:
     }
 };
 
-// Move above the sensor and probe down to find its true Z. Leaves the
-// carriage at the probed Z (loadcell remains active so the caller can
-// reposition before disabling it).
-std::expected<float, const char *> probe_sensor_z(const tool_offset::ProbingConfig &config) {
+// Move above the given coil position and probe down to find its true Z. Leaves
+// the carriage at the probed Z. `y_shift` offsets the actual probe point out
+// of the coil area (the inductive coil mustn't be touched).
+std::expected<float, const char *> probe_sensor_z(const tool_offset::ProbingConfig &config, const xyz_pos_t &coil_pos, float y_shift) {
     // Travel to the sensor at travel_z_height; only descend to safe_z_height right above it.
-    do_z_clearance(config.sensor_position.z + config.travel_z_height);
+    do_z_clearance(coil_pos.z + config.travel_z_height);
 
     // Z-probing over TOS must be done out of the coil area to avoid destruction of the coil
-    auto z_probing_position = config.sensor_position;
-    z_probing_position.y += config.y_shift_z_probe_offset_from_sensor;
+    auto z_probing_position = coil_pos;
+    z_probing_position.y += y_shift;
     do_blocking_move_to_xy(z_probing_position);
 
-    do_blocking_move_to_z(config.sensor_position.z + config.safe_z_height);
+    do_blocking_move_to_z(coil_pos.z + config.safe_z_height);
 
-    const float sensor_z = measure_sensor_true_z(config);
+    const float sensor_z = measure_sensor_true_z(z_probing_position);
     if (std::isnan(sensor_z)) {
         return std::unexpected("Initial probing failed, sensor Z is NaN");
     }
@@ -869,7 +873,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     // Sensor may be below soft endstop limits — disable them for the whole measurement
     AutoRestore restore_soft_endstops(soft_endstops_enabled, false);
 
-    const auto sensor_z = probe_sensor_z(config);
+    const auto sensor_z = probe_sensor_z(config, config.sensor_position, config.y_shift_z_probe_offset_from_sensor);
     if (!sensor_z) {
         return std::unexpected(sensor_z.error());
     }
