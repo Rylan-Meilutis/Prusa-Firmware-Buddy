@@ -2,8 +2,12 @@
 
 #include "ScreenHandler.hpp"
 #include "config_store/store_instance.hpp"
+#include "marlin_client.hpp"
 #include "module/temperature.h"
+#include <pid_autotune_status.hpp>
 #include <numeric_input_config.hpp>
+#include <window_msgbox.hpp>
+#include <cstdio>
 
 namespace {
 
@@ -13,6 +17,42 @@ static constexpr NumericInputConfig pid_value_config {
     .step = 0.1f,
     .max_decimal_places = 2,
 };
+
+static constexpr int8_t pid_autotune_cycles = 5;
+static constexpr int16_t hotend_autotune_temp = 215;
+static constexpr int16_t bed_autotune_temp = 60;
+
+constexpr Rect16 status_rect() {
+    return Rect16(20, GuiDefaults::HeaderHeight + 28, GuiDefaults::ScreenWidth - 40, 34);
+}
+
+constexpr Rect16 temperature_rect() {
+    return Rect16(20, status_rect().Bottom() + 14, GuiDefaults::ScreenWidth - 40, 24);
+}
+
+constexpr Rect16 cycle_rect() {
+    return Rect16(20, temperature_rect().Bottom() + 8, GuiDefaults::ScreenWidth - 40, 24);
+}
+
+constexpr Rect16 progress_rect() {
+    return Rect16(40, cycle_rect().Bottom() + 18, GuiDefaults::ScreenWidth - 80, 14);
+}
+
+pid_autotune_status::Heater status_heater(PidHeater heater) {
+    return heater == PidHeater::bed ? pid_autotune_status::Heater::bed : pid_autotune_status::Heater::hotend;
+}
+
+const char *heater_title(PidHeater heater) {
+    return heater == PidHeater::bed ? N_("HEATBED PID") : N_("HOTEND PID");
+}
+
+int16_t autotune_target(PidHeater heater) {
+    return heater == PidHeater::bed ? bed_autotune_temp : hotend_autotune_temp;
+}
+
+int8_t autotune_extruder(PidHeater heater) {
+    return heater == PidHeater::bed ? -1 : 0;
+}
 
 float persisted_pid_value(PidHeater heater, PidTerm term) {
     switch (heater) {
@@ -143,6 +183,13 @@ void MI_PID_RESET_HOTEND::click(IWindowMenu & /*window_menu*/) {
     Screens::Access()->WindowEvent(GUI_event_t::CHILD_CLICK, this);
 }
 
+MI_PID_AUTOTUNE_HOTEND::MI_PID_AUTOTUNE_HOTEND()
+    : IWindowMenuItem(_(N_("Tune Hotend PID")), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_PID_AUTOTUNE_HOTEND::click(IWindowMenu & /*window_menu*/) {
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenPidAutotuneHotend>);
+}
+
 #if ENABLED(PIDTEMPBED)
 MI_PID_BED_P::MI_PID_BED_P()
     : MI_PID_VALUE(PidHeater::bed, PidTerm::p, N_("Heatbed P")) {}
@@ -159,7 +206,163 @@ MI_PID_RESET_BED::MI_PID_RESET_BED()
 void MI_PID_RESET_BED::click(IWindowMenu & /*window_menu*/) {
     Screens::Access()->WindowEvent(GUI_event_t::CHILD_CLICK, this);
 }
+
+MI_PID_AUTOTUNE_BED::MI_PID_AUTOTUNE_BED()
+    : IWindowMenuItem(_(N_("Tune Heatbed PID")), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_PID_AUTOTUNE_BED::click(IWindowMenu & /*window_menu*/) {
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenPidAutotuneBed>);
+}
 #endif
+
+ScreenPidAutotune::ScreenPidAutotune(PidHeater heater)
+    : screen_t()
+    , heater_(heater)
+    , header_(this)
+    , status_(this, status_rect(), is_multiline::yes)
+    , temperature_(this, temperature_rect(), is_multiline::no)
+    , cycle_(this, cycle_rect(), is_multiline::no)
+    , progress_(this, progress_rect(), COLOR_BRAND, COLOR_GRAY)
+    , radio_(this, GuiDefaults::GetButtonRect(GetRect()), PhaseResponses { Response::Abort, Response::_none, Response::_none, Response::_none }) {
+    CaptureNormalWindow(radio_);
+
+    header_.SetText(_(heater_title(heater_)));
+    status_.SetAlignment(Align_t::Center());
+    temperature_.SetAlignment(Align_t::Center());
+    cycle_.SetAlignment(Align_t::Center());
+
+    snprintf(status_text_, sizeof(status_text_), "%s", "Waiting to start");
+    status_.SetText(string_view_utf8::MakeRAM(status_text_));
+    temperature_.SetText(string_view_utf8::MakeRAM(temperature_text_));
+    cycle_.SetText(string_view_utf8::MakeRAM(cycle_text_));
+    progress_.set_progress_percent(0);
+
+    start_autotune();
+}
+
+void ScreenPidAutotune::start_autotune() {
+    if (command_sent_) {
+        return;
+    }
+
+    command_sent_ = true;
+    pid_autotune_status::clear();
+    marlin_client::gcode_printf(
+        "M303 E%i S%i C%i",
+        static_cast<int>(autotune_extruder(heater_)),
+        static_cast<int>(autotune_target(heater_)),
+        static_cast<int>(pid_autotune_cycles));
+}
+
+void ScreenPidAutotune::update_status() {
+    const auto status = pid_autotune_status::snapshot();
+
+    if (status.heater != status_heater(heater_) && !status.finished) {
+        snprintf(status_text_, sizeof(status_text_), "%s", "Waiting to start");
+        snprintf(temperature_text_, sizeof(temperature_text_), "Target: %i C", static_cast<int>(autotune_target(heater_)));
+        snprintf(cycle_text_, sizeof(cycle_text_), "Cycles: 0/%i", static_cast<int>(pid_autotune_cycles));
+        progress_.set_progress_percent(0);
+    } else if (status.active) {
+        snprintf(status_text_, sizeof(status_text_), "%s", status.heating ? "Heating" : "Cooling");
+        snprintf(
+            temperature_text_,
+            sizeof(temperature_text_),
+            "Temp: %.1f / %.0f C",
+            static_cast<double>(status.current),
+            static_cast<double>(status.target));
+        snprintf(cycle_text_, sizeof(cycle_text_), "Cycles: %i/%i", static_cast<int>(status.cycle), static_cast<int>(status.total_cycles));
+        progress_.set_progress_percent(status.progress);
+    } else if (status.finished) {
+        finished_ = true;
+        snprintf(status_text_, sizeof(status_text_), "%s", status.failed ? "Autotune failed" : "Autotune complete.");
+        snprintf(temperature_text_, sizeof(temperature_text_), "Temp: %.1f C", static_cast<double>(status.current));
+        snprintf(cycle_text_, sizeof(cycle_text_), "%s", status.failed ? "Check heater and retry." : "New PID values are ready.");
+        progress_.set_progress_percent(status.progress);
+        radio_.Change(PhaseResponses { Response::Done, Response::_none, Response::_none, Response::_none });
+        prompt_apply(status);
+    }
+
+    status_.SetText(string_view_utf8::MakeRAM(status_text_));
+    temperature_.SetText(string_view_utf8::MakeRAM(temperature_text_));
+    cycle_.SetText(string_view_utf8::MakeRAM(cycle_text_));
+}
+
+void ScreenPidAutotune::prompt_apply(const pid_autotune_status::Snapshot &status) {
+    if (prompted_ || status.failed) {
+        return;
+    }
+
+    prompted_ = true;
+    char prompt[160] = {};
+    snprintf(
+        prompt,
+        sizeof(prompt),
+        "New PID values:\nP %.2f\nI %.2f\nD %.2f\n\nSave these values?",
+        static_cast<double>(status.p),
+        static_cast<double>(status.i),
+        static_cast<double>(status.d));
+    if (MsgBoxQuestion(string_view_utf8::MakeRAM(prompt), Responses_YesNo) != Response::Yes) {
+        snprintf(status_text_, sizeof(status_text_), "%s", "New PID values discarded.");
+        snprintf(temperature_text_, sizeof(temperature_text_), "%s", "Existing values kept.");
+        snprintf(cycle_text_, sizeof(cycle_text_), "P %.2f  I %.2f  D %.2f", static_cast<double>(status.p), static_cast<double>(status.i), static_cast<double>(status.d));
+        status_.SetText(string_view_utf8::MakeRAM(status_text_));
+        temperature_.SetText(string_view_utf8::MakeRAM(temperature_text_));
+        cycle_.SetText(string_view_utf8::MakeRAM(cycle_text_));
+        return;
+    }
+
+    switch (heater_) {
+    case PidHeater::hotend:
+        apply_hotend_pid(status.p, status.i, status.d);
+        break;
+    case PidHeater::bed:
+#if ENABLED(PIDTEMPBED)
+        apply_bed_pid(status.p, status.i, status.d);
+#endif
+        break;
+    }
+    marlin_client::gcode("M500");
+    snprintf(status_text_, sizeof(status_text_), "%s", "PID values saved.");
+    snprintf(temperature_text_, sizeof(temperature_text_), "%s", "Autotune succeeded.");
+    snprintf(cycle_text_, sizeof(cycle_text_), "P %.2f  I %.2f  D %.2f", static_cast<double>(status.p), static_cast<double>(status.i), static_cast<double>(status.d));
+    status_.SetText(string_view_utf8::MakeRAM(status_text_));
+    temperature_.SetText(string_view_utf8::MakeRAM(temperature_text_));
+    cycle_.SetText(string_view_utf8::MakeRAM(cycle_text_));
+}
+
+void ScreenPidAutotune::windowEvent(window_t *sender, GUI_event_t event, void *param) {
+    switch (event) {
+    case GUI_event_t::LOOP:
+        update_status();
+        break;
+    case GUI_event_t::CHILD_CLICK:
+        switch (event_conversion_union { .pvoid = param }.response) {
+        case Response::Abort:
+            marlin_client::gcode("M108");
+            Screens::Access()->Close();
+            return;
+        case Response::Done:
+            if (finished_) {
+                Screens::Access()->Close();
+                return;
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+
+    screen_t::windowEvent(sender, event, param);
+}
+
+ScreenPidAutotuneHotend::ScreenPidAutotuneHotend()
+    : ScreenPidAutotune(PidHeater::hotend) {}
+
+ScreenPidAutotuneBed::ScreenPidAutotuneBed()
+    : ScreenPidAutotune(PidHeater::bed) {}
 
 ScreenMenuPid::ScreenMenuPid()
     : screen_menu_pid::ScreenBase(_("PID SETTINGS")) {}
@@ -178,6 +381,11 @@ void ScreenMenuPid::reload_items() {
 }
 
 void ScreenMenuPid::windowEvent(window_t *sender, GUI_event_t event, void *param) {
+    if (event == GUI_event_t::LOOP && pid_autotune_status::snapshot().finished) {
+        reload_items();
+        pid_autotune_status::clear();
+    }
+
     if (event == GUI_event_t::CHILD_CLICK) {
 #if ENABLED(PIDTEMP)
         if (param == &Item<MI_PID_RESET_HOTEND>()) {
