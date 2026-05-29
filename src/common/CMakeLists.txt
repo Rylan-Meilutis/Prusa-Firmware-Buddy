@@ -2,6 +2,8 @@ target_include_directories(firmware PRIVATE . include)
 
 target_link_libraries(firmware PRIVATE buddy_utils bsod random random_sw fanctl)
 
+target_sources(firmware PRIVATE pid_autotune_status.cpp)
+
 if(BOARD IN_LIST BUDDY_BOARDS)
   target_sources(
     firmware
