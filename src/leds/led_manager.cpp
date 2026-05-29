@@ -18,6 +18,7 @@
     #include <ili9488.hpp>
 #endif
 #include <config_store/store_instance.hpp>
+#include <tasks.hpp>
 
 #if HAS_SIDE_LEDS()
     #include "leds/side_strip_handler.hpp"
@@ -275,6 +276,11 @@ void LEDManager::update() {
 }
 
 void LEDManager::update_lcd_brightness() {
+    if (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
+        set_lcd_brightness(100);
+        return;
+    }
+
 #if HAS_SIDE_LEDS()
     set_lcd_brightness(SideStripHandler::instance().current_screen_brightness());
 #else

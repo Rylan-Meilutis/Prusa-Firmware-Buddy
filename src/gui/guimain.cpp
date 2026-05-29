@@ -87,6 +87,7 @@ void gui_run(void) {
     }
 
     Screens::Access()->Loop();
+    Screens::Access()->Draw();
 #if HAS_LEDS()
     leds::LEDManager::instance().init();
 #endif
@@ -107,10 +108,6 @@ void gui_run(void) {
 
     sound::play(SoundType::start);
 
-#if HAS_SIDE_LEDS()
-    leds::SideStripHandler::instance().activity_ping();
-#endif
-
     TaskDeps::provide(TaskDeps::Dependency::gui_ready);
 
     // Do one initial screen loop to close the screen_splash_t and open the screen_home_t
@@ -118,6 +115,11 @@ void gui_run(void) {
     // and then be immediately closed.
     // BFW-6193
     Screens::Access()->Loop();
+    Screens::Access()->Draw();
+
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().activity_ping();
+#endif
 
     // TODO make some kind of registration
     while (1) {
