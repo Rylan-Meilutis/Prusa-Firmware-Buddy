@@ -51,6 +51,7 @@ Build these presets for a full release:
 
 ```sh
 coreone
+coreonel
 mini
 mini-en-cs
 mini-en-de
@@ -60,9 +61,9 @@ mini-en-it
 mini-en-pl
 mini-en-ja
 mini-en-uk
-xl
 mk4
 mk3.5
+xl
 ```
 
 Expected BBF output directory:
@@ -114,16 +115,25 @@ Every non-resource source directory in that inventory should map to one of the f
 ```sh
 ./build.py --preset xl --bootloader yes --jobs 13
 ./build.py --preset coreone --bootloader yes --jobs 13
+./build.py --preset coreonel --bootloader yes --jobs 13
 ./build.py --preset mini --bootloader yes --jobs 13
 ```
 
-XL is the flash headroom gate. MINI is the layout and small-display/screen-only brightness gate. Core One is the chamber/door/LED behavior gate. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
+XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-only brightness gate. Core One and Core One L are the chamber/door/LED/resource-image gates. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
 
 6. Run the full release build after focused targets pass.
 
 ```sh
-./build.py --preset coreone,mini,mini-en-cs,mini-en-de,mini-en-es,mini-en-fr,mini-en-it,mini-en-pl,mini-en-ja,mini-en-uk,xl,mk4,mk3.5 --bootloader yes --jobs 13
+./build.py --jobs 13
 ```
+
+For broad compatibility after touching shared CMake, resources, build options, or feature flags, also run the default Buddy preset matrix from `utils/build.py` on at least one clean machine:
+
+```sh
+python3 utils/build.py --bootloader yes
+```
+
+The default matrix includes additional Buddy-enabled targets and sub-board firmware beyond the focused BBF release list. Use it as a compile-compatibility gate, then stage only the BBFs intended for the release.
 
 7. Update the release notes with the new upstream version, upstream tag/commit, RME feature list, known limitations, and build results.
 
@@ -584,7 +594,7 @@ For per-state LED/screen settings, prefer the shared runtime-backed state menu c
 
 Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it.
 
-XL stores translations in the resource image to preserve boot flash headroom. Keep `XL` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`, and keep the XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the XL resource image size rather than moving translations back into CPU flash.
+Core One, Core One L, XL, and MINI store translations in the resource image to preserve boot flash headroom. Keep `COREONE`, `COREONEL`, `XL`, and `MINI` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`. Keep the Core One/Core One L/XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the resource image size rather than moving translations back into CPU flash.
 
 The latest checked focused final builds used:
 
@@ -595,8 +605,11 @@ FLASH: 1287120 B / 1919 KB, 65.50%
 python3 utils/build.py --preset mini --bootloader yes --final
 FLASH: 889656 B / 895 KB, 97.07%
 
-python3 utils/build.py --preset coreone --bootloader yes --final
-FLASH: 1964852 B / 1919 KB, 99.99%
+python3 utils/build.py --preset coreone --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
+FLASH: 1285124 B / 1919 KB, 65.40%
+
+python3 utils/build.py --preset coreonel --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
+FLASH: 1286276 B / 1919 KB, 65.46%
 
 python3 utils/build.py --preset mk3.5 --bootloader yes --final
 FLASH: 1844692 B / 1919 KB, 93.87%
@@ -717,9 +730,11 @@ git diff --stat
 git diff --check
 ./build.py --preset xl --bootloader yes --jobs 13
 ./build.py --preset coreone --bootloader yes --jobs 13
+./build.py --preset coreonel --bootloader yes --jobs 13
 ./build.py --preset mini --bootloader yes --jobs 13
 ./build.py --preset mk4 --bootloader yes --jobs 13
-./build.py --preset coreone,mini,mini-en-cs,mini-en-de,mini-en-es,mini-en-fr,mini-en-it,mini-en-pl,mini-en-ja,mini-en-uk,xl,mk4,mk3.5 --bootloader yes --jobs 13
+./build.py --jobs 13
+python3 utils/build.py --bootloader yes
 ```
 
 Confirm `bbf/` contains all expected BBFs and that the build summary reports zero failures.
