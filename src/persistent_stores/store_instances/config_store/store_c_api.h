@@ -37,6 +37,12 @@ uint16_t get_default_rms_current_ma_x();
 uint16_t get_default_rms_current_ma_y();
 uint16_t get_default_rms_current_ma_z();
 uint16_t get_default_rms_current_ma_e();
+float get_pid_nozzle_p();
+float get_pid_nozzle_i();
+float get_pid_nozzle_d();
+float get_pid_bed_p();
+float get_pid_bed_i();
+float get_pid_bed_d();
 bool has_inverted_x();
 bool has_inverted_y();
 bool has_inverted_z();
@@ -79,6 +85,8 @@ void set_rms_current_ma_x(uint16_t current);
 void set_rms_current_ma_y(uint16_t current);
 void set_rms_current_ma_z(uint16_t current);
 void set_rms_current_ma_e(uint16_t current);
+void set_pid_nozzle(float p, float i, float d);
+void set_pid_bed(float p, float i, float d);
 
 #ifdef __cplusplus
 }

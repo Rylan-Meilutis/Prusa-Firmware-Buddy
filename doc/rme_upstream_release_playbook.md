@@ -313,6 +313,40 @@ Chamber fan/filter settings display and reset correctly.
 Waiting-for-chamber and waiting-for-bed status messages still report progress.
 ```
 
+### PID Settings And Autotune Persistence
+
+Keep the user-facing PID management screen and the Marlin settings-store bridge for PID save/load.
+
+Important areas:
+
+```text
+src/gui/screen_menu_pid.*
+src/gui/screen_menu_settings.*
+src/gui/CMakeLists.txt
+lib/Marlin/Marlin/src/module/configuration_store.*
+src/persistent_stores/store_instances/config_store/store_c_api.*
+src/common/config_store/
+src/persistent_stores/store_instances/config_store/
+lib/Marlin/Marlin/src/gcode/temp/M303.cpp
+lib/Marlin/Marlin/src/gcode/config/M301.cpp
+lib/Marlin/Marlin/src/gcode/config/M500-M504.cpp
+```
+
+Behavior to verify:
+
+```text
+Settings contains PID Settings.
+Hotend PID P/I/D values are visible, editable, applied live, and stored persistently.
+Heatbed PID P/I/D values are visible only where PIDTEMPBED is enabled.
+Hotend PID can be reset independently to DEFAULT_Kp/DEFAULT_Ki/DEFAULT_Kd.
+Heatbed PID can be reset independently to DEFAULT_bedKp/DEFAULT_bedKi/DEFAULT_bedKd.
+XL applies edited hotend PID values to all hotends and calls thermalManager.updatePID() so Dwarves receive updated PID values.
+M303 ... U1 applies autotuned values to the live heater PID settings.
+M500 persists the live PID values into Buddy config-store.
+Boot settings load and M501 restore persisted PID values and call the normal PID postprocess/update path.
+Final builds must keep M503 reporting available. Save flash by compacting release-only human-readable M503 headings/comments and bulky diagnostic dumps, while keeping replayable persistent settings reportable.
+```
+
 ### UI Theme, Assets, And Display Framework
 
 The RME patch range includes a broad theme/resource refresh. Treat this as a first-class feature, not incidental churn.
@@ -484,6 +518,7 @@ src/guiapi/*
 src/gui/screen_menu_tune*
 src/gui/screen_menu_lights*
 src/gui/screen_menu_led_colors.*
+src/gui/screen_menu_pid.*
 src/gui/screen/screen_menu_leds.*
 src/gui/screen/screen_menu_led_state.*
 src/leds/*
@@ -497,6 +532,7 @@ src/leds/external_light_bar.cpp
 lib/Marlin/Marlin/src/gcode/control/M86.cpp
 lib/Marlin/Marlin/src/gcode/queue.cpp
 lib/Marlin/Marlin/src/module/temperature.cpp
+lib/Marlin/Marlin/src/module/configuration_store.*
 CMakeLists.txt
 build.py
 utils/bootstrap.py
@@ -554,14 +590,21 @@ The latest checked focused final builds used:
 
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
-FLASH: 1286280 B / 1919 KB, 65.46%
+FLASH: 1287120 B / 1919 KB, 65.50%
 
 python3 utils/build.py --preset mini --bootloader yes --final
-FLASH: 888384 B / 895 KB, 96.93%
+FLASH: 889656 B / 895 KB, 97.07%
 
 python3 utils/build.py --preset coreone --bootloader yes --final
-FLASH: 1963652 B / 1919 KB, 99.93%
+FLASH: 1964852 B / 1919 KB, 99.99%
+
+python3 utils/build.py --preset mk3.5 --bootloader yes --final
+FLASH: 1844692 B / 1919 KB, 93.87%
 ```
+
+Final/non-development builds intentionally keep the `M503` settings report command enabled. To keep flash usage under control, release `M503` output omits human-only headings/comments and the TMC state dump, but preserves replayable persistent settings. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, shared UI containers, and compact release-only diagnostics.
+
+PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`.
 
 RME fleet configuration must remain available by G-code and by export:
 
@@ -590,6 +633,8 @@ Core One / Core One Plus:
   Door open/close acknowledgement after finished, aborted, and filtering states.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
+  PID Settings screen: edit hotend/heatbed values, reset each heater to defaults, reboot and confirm persistence.
+  M303 autotune with U1 followed by M500 persists after reboot.
   Theme import, lock settings, and text/PIN input.
   External GPIO light bar configuration on supported hardware.
 
@@ -601,6 +646,8 @@ XL:
   Per-state screen, status, and side-strip brightness settings remain visible and independent.
   Idle/deep-idle screen brightness can be Off and wakes without activating the touched/focused UI control.
   Chamber fan/filter controls and filtering LED indication.
+  PID Settings screen: hotend values are visible/editable, heatbed PID is hidden if PIDTEMPBED is not enabled, edited values propagate to Dwarves.
+  M303 autotune with U1 followed by M500 persists after reboot.
   Theme assets and brass/dark/light icon rendering.
   Release boot image fits flash.
   XL retains the same OctoPrint SD/USB storage and per-print lighting features as the other supported printers.
@@ -615,6 +662,7 @@ MINI:
   Only screen brightness settings are shown in Lights Settings; no status/chamber/side LED controls are instantiated.
   Idle screen brightness can be Off and consumes first encoder input as wake-only.
   Theme resources render correctly on the small display.
+  PID Settings screen compiles and shows only heater PID controls supported by the target.
   Status LED color settings and other status-LED-only code are not instantiated when `HAS_LEDS` is disabled.
 
 MK4 / MK3.5:
@@ -624,6 +672,7 @@ MK4 / MK3.5:
   Screen and status LED brightness controls are visible, but side/chamber controls are hidden unless the target actually supports them.
   LED manager builds and runs the non-side-LED wake path.
   Serial printing and theme changes compile under MK feature flags.
+  PID Settings screen shows supported heater PID controls and reset actions.
   Shared external-light code compiles under MK3.5 include paths even if the feature is not user-facing there.
   LED manager builds the non-side-LED path without pulling in Core One or XL side-strip-only code.
 ```
@@ -648,6 +697,7 @@ Serial printing changes.
 LED/chamber/GPIO changes.
 Theme, asset, and UI lock changes.
 Safety timer and chamber fan/filtering changes.
+PID settings UI and PID autotune persistence behavior.
 Core One Plus and vent behavior.
 Build/signing notes.
 Stock Prusa bootloader limitation and expected non-genuine firmware warning.
