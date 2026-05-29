@@ -58,7 +58,7 @@ target_include_directories(firmware PUBLIC "${resources_include_dir}")
 if(PRINTER STREQUAL "MINI")
   # Some revisions of mini has 1MB flash, so limit resource size to remaining size
   add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 205)
-elseif(PRINTER STREQUAL "XL")
+elseif(PRINTER STREQUAL "XL" OR PRINTER STREQUAL "COREONE" OR PRINTER STREQUAL "COREONEL")
   add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 1024)
 else()
   add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 512)

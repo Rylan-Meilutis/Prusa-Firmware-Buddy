@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Release build wrapper.
 
-Defaults to building the common physical-printer release set and stages BBFs in
-./bbf for easy copying.
+Defaults to building the RME release machine firmware presets and stages BBFs
+in ./bbf for easy copying.
 """
 
 from __future__ import annotations
@@ -40,16 +40,19 @@ MINI_LANGUAGE_PRESETS = [
 
 RELEASE_PRESETS = [
     "coreone",
+    "coreonel",
     "mini",
     *MINI_LANGUAGE_PRESETS,
-    "xl",
     "mk4",
     "mk3.5",
+    "xl",
 ]
 
 PRESET_ALIASES = {
     "all": RELEASE_PRESETS,
     "release": RELEASE_PRESETS,
+    "machines": RELEASE_PRESETS,
+    "physical": RELEASE_PRESETS,
     "mini-languages": MINI_LANGUAGE_PRESETS,
     "mini-lang": MINI_LANGUAGE_PRESETS,
     "mini-all": ["mini", *MINI_LANGUAGE_PRESETS],
