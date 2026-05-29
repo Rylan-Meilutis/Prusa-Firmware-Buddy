@@ -6,6 +6,12 @@
 
 namespace tool_offset {
 
+static_assert(sensor_data_port_ch0 == prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH0);
+static_assert(sensor_data_port_ch1 == prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1);
+
+CanRemoteSensor::CanRemoteSensor(uint16_t accepted_port)
+    : accepted_port_(accepted_port) {}
+
 CanRemoteSensor::~CanRemoteSensor() {
     if (running) {
         stop();
@@ -66,10 +72,6 @@ void CanRemoteSensor::set_lifecycle_callbacks(
 void CanRemoteSensor::set_error_check_callback(ErrorCheckCallback cb, void *ctx) {
     error_check_ = cb;
     error_check_ctx_ = ctx;
-}
-
-bool CanRemoteSensor::accepts_port(uint16_t port_id) {
-    return port_id == prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1;
 }
 
 void CanRemoteSensor::handle_data_frame(Bytes payload) {
