@@ -335,6 +335,7 @@ volatile bool Temperature::temp_meas_ready = false;
 // public:
 
 #if HAS_PID_HEATING
+  #include <pid_autotune_status.hpp>
 
   inline void say_default_() { SERIAL_ECHOPGM("#define DEFAULT_"); }
 
@@ -362,6 +363,7 @@ volatile bool Temperature::temp_meas_ready = false;
     float maxT = 0, minT = 10000;
 
     const bool isbed = (heater == H_BED);
+    bool tune_success = false;
 
     #if HAS_PID_FOR_BOTH
       #define GHV(B,H) (isbed ? (B) : (H))
@@ -433,6 +435,12 @@ volatile bool Temperature::temp_meas_ready = false;
       return;
     }
 
+    pid_autotune_status::start(
+      isbed ? pid_autotune_status::Heater::bed : pid_autotune_status::Heater::hotend,
+      target,
+      ncycles
+    );
+
     SERIAL_ECHOLNPGM(MSG_PID_AUTOTUNE_START);
 
     disable_all_heaters();
@@ -456,6 +464,7 @@ volatile bool Temperature::temp_meas_ready = false;
 
         // Get the current temperature and constrain it
         current_temp = GHV(temp_bed.celsius, temp_hotend[heater].celsius);
+        pid_autotune_status::update(current_temp, cycles, heating);
         NOLESS(maxT, current_temp);
         NOMORE(minT, current_temp);
 
@@ -595,6 +604,7 @@ volatile bool Temperature::temp_meas_ready = false;
 
       if (cycles > ncycles && cycles > 2) {
         SERIAL_ECHOLNPGM(MSG_PID_AUTOTUNE_FINISHED);
+        tune_success = true;
 
         #if HAS_PID_FOR_BOTH
           const char * const estring = GHV(PSTR("bed"), PSTR(""));
@@ -642,6 +652,7 @@ volatile bool Temperature::temp_meas_ready = false;
     disable_all_heaters();
 
     EXIT_M303:
+      pid_autotune_status::finish(tune_success, current_temp, tune_pid.Kp, tune_pid.Ki, tune_pid.Kd);
       #if ENABLED(NO_FAN_SLOWING_IN_PID_TUNING)
         adaptive_fan_slowing = true;
       #endif
