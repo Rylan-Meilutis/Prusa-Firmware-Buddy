@@ -6,6 +6,7 @@
 
 #include <feature/contactless_offset/contactless_offset.hpp>
 #include <tool_index.hpp>
+#include <option/tool_offset_sensor_geometry.h>
 
 namespace tool_offset_calibration {
 
@@ -47,11 +48,16 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context = Context::Print,
 /// @return true if calibration was successful
 bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config, Context context = Context::Print);
 
+#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
 /// Overwrite the sensor position in `config` with the calibrated value from the
 /// config store, unless that value differs from the default by more than
 /// `sensor_position_error_threshold` (in which case the default is kept and an
 /// error is logged).
+///
+/// Single-coil only: the store holds one sensor position, while dual-coil has a
+/// separate coil per axis (TODO WP5.4: per-coil storage + migration).
 void apply_stored_sensor_position(tool_offset::ProbingConfig &config);
+#endif
 
 /// True iff the contactless tool-offset hardware is reachable in this
 /// build/runtime configuration. The xlBuddy master image is shared between

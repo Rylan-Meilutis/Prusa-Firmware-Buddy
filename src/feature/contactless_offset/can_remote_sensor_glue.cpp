@@ -32,15 +32,11 @@ static bool check_hw_error(void *) {
     return buddy::puppies::tool_offset_sensor.has_errors();
 }
 
-std::unique_ptr<Sensor> get_sensor(uint16_t accepted_port) {
+std::unique_ptr<Sensor> make_sensor(uint16_t accepted_port) {
     auto sensor = std::make_unique<CanRemoteSensor>(accepted_port);
     sensor->set_lifecycle_callbacks(on_start, sensor.get(), on_stop, sensor.get());
     sensor->set_error_check_callback(check_hw_error, nullptr);
     return sensor;
-}
-
-std::unique_ptr<Sensor> get_default_sensor() {
-    return get_sensor(sensor_data_port_ch1);
 }
 
 } // namespace tool_offset

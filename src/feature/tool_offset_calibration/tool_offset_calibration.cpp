@@ -323,8 +323,9 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
     // Disable PA to reduce filter delay during probe analysis
     pressure_advance::PressureAdvanceDisabler pa_disabler;
 
-    // Perform the measurement for picked tool
-    auto sensor = tool_offset::get_default_sensor();
+    // Perform the measurement for picked tool. The orchestrator creates the
+    // sensor(s) it needs via the factory (one CH1 for single-coil, CH0+CH1 for
+    // the two XLS coils).
     tool_offset::ToolOffset current_ho = {
         .x = hotend_offset[tool].x,
         .y = hotend_offset[tool].y,
@@ -345,7 +346,7 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
         set_temp_and_wait_reached(tool, temps.xy_probing, /*fan_cooling=*/true);
 
         log_info(ToolOffsetCalib, "XY offset measurement");
-        auto result = tool_offset::measure_current_tool_offset(config, *sensor, offset_for_measurement);
+        auto result = tool_offset::measure_current_tool_offset(config, offset_for_measurement);
         if (result.has_value()) {
             log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
             // Store newly measured offsets only for XY, keep actual for Z
@@ -370,27 +371,37 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             return false;
         }
         log_info(ToolOffsetCalib, "User requested XY offset retry for tool %u", tool.to_raw());
+
+#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
+        // Re-park over the sensor before re-entering the loop. Single-coil only:
+        // the dual-coil flow has a coil per axis and repositions itself per coil
+        // at measurement entry.
+        do_blocking_move_to_z(config.coil_x.position.z + config.safe_z_height);
+        do_blocking_move_to_xy(config.coil_x.position.x, config.coil_x.position.y);
+#endif
     }
 }
 
+#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
 void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
+    const xy_pos_t configured { config.coil_x.position.x, config.coil_x.position.y };
     const auto stored = config_store().tool_offset_sensor_position.get();
-    if (std::abs(stored.x - config.sensor_position.x) > config.sensor_position_error_threshold || std::abs(stored.y - config.sensor_position.y) > config.sensor_position_error_threshold) {
+    if (std::abs(stored.x - configured.x) > config.sensor_position_error_threshold || std::abs(stored.y - configured.y) > config.sensor_position_error_threshold) {
         log_error(ToolOffsetCalib, "Stored sensor position (X=%.1f Y=%.1f) is too far from default (X=%.1f Y=%.1f), fallback to default values",
             static_cast<double>(stored.x),
             static_cast<double>(stored.y),
-            static_cast<double>(config.sensor_position.x),
-            static_cast<double>(config.sensor_position.y));
-        config_store().tool_offset_sensor_position.set(xy_pos_t { config.sensor_position.x, config.sensor_position.y });
+            static_cast<double>(configured.x),
+            static_cast<double>(configured.y));
+        config_store().tool_offset_sensor_position.set(configured);
         metric_record_custom(&metric_sensor_pos, " x=%.3f,y=%.3f",
-            static_cast<double>(config.sensor_position.x),
-            static_cast<double>(config.sensor_position.y));
+            static_cast<double>(configured.x),
+            static_cast<double>(configured.y));
         return;
     }
     // Stored position is more accurate than the default
-    config.sensor_position.x = stored.x;
-    config.sensor_position.y = stored.y;
+    tool_offset::set_single_coil_position(config, stored);
 }
+#endif
 
 bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
     if (!is_hardware_available()) {
@@ -471,7 +482,11 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     // prompt_retry allows to re-clean the nozzle and we restart the whole
     // pass with offsets reset.
     while (true) {
+#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
+        // The stored sensor position tracks a single coil; dual-coil (XLS) would
+        // need two stored positions (TODO WP5.4: per-coil storage + migration).
         apply_stored_sensor_position(probing_config);
+#endif
         reset_hotend_offsets();
         hotend_currently_applied_offset = xyz_pos_t {};
 
@@ -644,8 +659,6 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
         // The ScopeGuard at function exit persists hotend_offset to EEPROM.
         const xyz_pos_t spread = aabb.size();
         if (num_tools > 1) {
-            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
-
             if (spread.x > MAX_XY_OFFSET_DIFFERENCE || spread.y > MAX_XY_OFFSET_DIFFERENCE) {
                 log_error(ToolOffsetCalib, "XY offset spread too large: X=%.3f Y=%.3f (limit %.3f)",
                     static_cast<double>(spread.x), static_cast<double>(spread.y), static_cast<double>(MAX_XY_OFFSET_DIFFERENCE));
@@ -655,6 +668,13 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 return false;
             }
 
+#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
+            // Sensor-position drift correction is single-coil only: it rewrites the single
+            // stored sensor position and corrects all tools by the midpoint offset. Dual-coil
+            // (XLS) measures X and Y over two separate coils, so a single correction is
+            // geometrically wrong; dual-coil offsets are stored as measured.
+            // TODO WP5.4: per-coil stored positions + the config-store migration.
+            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
             if (std::abs(average_offset.x) > probing_config.sensor_position_error_threshold || std::abs(average_offset.y) > probing_config.sensor_position_error_threshold) {
                 if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
                     continue;
@@ -662,11 +682,12 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 return false;
             } else if (std::abs(average_offset.x) > probing_config.sensor_position_update_threshold || std::abs(average_offset.y) > probing_config.sensor_position_update_threshold) {
                 // Detected sensor movement - update stored sensor position and apply correction to all tools.
-                // `probing_config.sensor_position` is the position the scan was conducted at (either the
-                // stored value or the default, depending on what apply_stored_sensor_position resolved to).
-                const MachinePosXY new_sensor_position { (probing_config.sensor_position - average_offset).xy() };
+                // The coil position is where the scan was conducted (either the stored value or the
+                // default, depending on what apply_stored_sensor_position resolved to).
+                const xyz_pos_t &scanned_at = probing_config.coil_x.position;
+                const MachinePosXY new_sensor_position { (scanned_at - average_offset).xy() };
                 log_info(ToolOffsetCalib, "Updating stored sensor position: (%.3f, %.3f) -> (%.3f, %.3f)",
-                    static_cast<double>(probing_config.sensor_position.x), static_cast<double>(probing_config.sensor_position.y),
+                    static_cast<double>(scanned_at.x), static_cast<double>(scanned_at.y),
                     static_cast<double>(new_sensor_position.x), static_cast<double>(new_sensor_position.y));
                 config_store().tool_offset_sensor_position.set(new_sensor_position);
                 metric_record_custom(&metric_sensor_pos, " x=%.3f,y=%.3f",
@@ -688,6 +709,16 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                         static_cast<double>(hotend_offset[tool].z));
                 }
             }
+#else
+            for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                // Record metrics for all tools
+                metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",
+                    tool.to_raw(),
+                    static_cast<double>(hotend_offset[tool].x),
+                    static_cast<double>(hotend_offset[tool].y),
+                    static_cast<double>(hotend_offset[tool].z));
+            }
+#endif
         }
 
         if (measure_z && spread.z > MAX_Z_OFFSET_DIFFERENCE) {

@@ -762,6 +762,21 @@ set_feature_for_printers(HAS_AC_CONTROLLER "COREONEL" "COREONEL_INDX")
 
 set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX" "XL")
 
+# Coil layout of the contactless tool-offset sensor: single-coil sweeps both axes over one coil,
+# dual-coil (XLS) sweeps each axis over its own coil. An image only ever uses one of them, so only
+# the matching measurement flow is compiled in.
+if(NOT HAS_TOOL_OFFSET_SENSOR)
+  set(TOOL_OFFSET_SENSOR_GEOMETRY "NONE")
+elseif(PRINTER STREQUAL "XL")
+  set(TOOL_OFFSET_SENSOR_GEOMETRY "DUAL_COIL")
+else()
+  set(TOOL_OFFSET_SENSOR_GEOMETRY "SINGLE_COIL")
+endif()
+define_enum_option(
+  NAME TOOL_OFFSET_SENSOR_GEOMETRY VALUE "${TOOL_OFFSET_SENSOR_GEOMETRY}" ALL_VALUES
+  "NONE;SINGLE_COIL;DUAL_COIL"
+  )
+
 # XL-CAN puppy. Compiled in for the XL family (shared xlBuddy master image); discovered at bootstrap
 # and gated at runtime via XlCan::is_enabled(). Plain XL leaves it disabled (no bridge on the bus);
 # XLS enables it when bootstrap finds the bridge on dock 9. Per the XLS HW spec every XLS has the
