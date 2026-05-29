@@ -252,6 +252,8 @@ Active and Printing screen brightness settings are clamped to at least 15% in bo
 Idle and Deep Idle screen brightness can be set to Off/0%.
 Off/0% screen brightness should write a full black frame to the panel before using the no-brightness-control/backlight-disable command and display-off. ST7789/MINI should also enter sleep-in, then sleep-out and display-on when waking. ILI9488/XLCD should also force the front/status LED strip dark. Display-driver pixel writes must be suppressed while the screen is intentionally off so delayed UI draws cannot repaint the old UI. Non-zero brightness must re-enable display writes and brightness control before setting the brightness value, and the off-to-on transition must force a full-screen redraw.
 If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
+Bootstrap/install screens must hold screen brightness at 100% until `TaskDeps::Tasks::bootstrap_done` is satisfied.
+The splash screen must be painted before `gui_display_ready` is provided, and the initial idle/activity timer must be seeded only after the first home-screen paint.
 `Active to Idle` is measured from last activity to idle entry.
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.

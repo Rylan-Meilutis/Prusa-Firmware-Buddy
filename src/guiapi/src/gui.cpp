@@ -40,6 +40,7 @@
 #endif
 
 #include <config_store/store_instance.hpp>
+#include <tasks.hpp>
 
 #if HAS_MINI_DISPLAY()
     #include "st7789v.hpp"
@@ -124,6 +125,11 @@ static leds::LightState screen_brightness_state() {
 }
 
 static bool update_st7789_screen_brightness() {
+    if (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
+        set_st7789_brightness(255);
+        return false;
+    }
+
     const leds::LightState state = screen_brightness_state();
     const uint8_t stored_brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
     const uint8_t brightness = leds::clamp_screen_brightness(state, stored_brightness);
