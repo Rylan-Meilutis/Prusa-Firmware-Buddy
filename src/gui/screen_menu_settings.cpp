@@ -52,6 +52,16 @@ void MI_EXPORT_RME_SETTINGS::click(IWindowMenu & /*window_menu*/) {
     }
 }
 
+/*****************************************************************************/
+// MI_PID_SETTINGS
+MI_PID_SETTINGS::MI_PID_SETTINGS()
+    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
+}
+
+void MI_PID_SETTINGS::click(IWindowMenu & /*window_menu*/) {
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuPid>);
+}
+
 ScreenMenuSettings::ScreenMenuSettings()
     : ScreenMenuSettings__(_("SETTINGS"))
     , old_action(gui::knob::GetLongPressScreenAction()) { // backup hold action
