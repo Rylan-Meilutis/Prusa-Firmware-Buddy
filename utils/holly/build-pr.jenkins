@@ -117,10 +117,8 @@ pipeline {
                         ln -fs /work/.venv
                         . .venv/bin/activate
 
-                        export XDG_CACHE_HOME=\$PWD/.precommit
-                        git config --unset-all core.hooksPath
-                        pre-commit install
-                        pre-commit run \
+                        export XDG_CACHE_HOME=\$PWD/.cache
+                        prek run -c .pre-commit-config.yaml \
                             --source remotes/origin/${env.CHANGE_TARGET} \
                             --origin HEAD \
                             --show-diff-on-failure \
