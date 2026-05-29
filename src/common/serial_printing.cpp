@@ -17,6 +17,8 @@
 uint32_t SerialPrinting::last_serial_indicator_ms = 0;
 uint8_t SerialPrinting::last_host_progress_percent = 0;
 uint32_t SerialPrinting::last_host_progress_ms = 0;
+uint32_t SerialPrinting::last_host_time_to_end_s = 0;
+uint32_t SerialPrinting::last_host_time_to_end_ms = 0;
 bool SerialPrinting::pending_start = false;
 
 void SerialPrinting::host_action(const char *action, const char *reason) {
@@ -80,6 +82,8 @@ uint32_t SerialPrinting::serial_printing_screen_timeout_ms() {
 void SerialPrinting::reset_host_progress() {
     last_host_progress_ms = 0;
     last_host_progress_percent = 0;
+    last_host_time_to_end_ms = 0;
+    last_host_time_to_end_s = 0;
 }
 
 void SerialPrinting::set_host_progress_percent(uint8_t percent) {
@@ -98,6 +102,25 @@ bool SerialPrinting::host_progress_percent(uint8_t &percent, uint32_t now_ms) {
     }
 
     percent = last_host_progress_percent;
+    return true;
+}
+
+void SerialPrinting::set_host_time_to_end(uint32_t seconds) {
+    last_host_time_to_end_s = seconds;
+    last_host_time_to_end_ms = ticks_ms();
+}
+
+bool SerialPrinting::host_time_to_end(uint32_t &seconds, uint32_t now_ms) {
+    if (last_host_time_to_end_ms == 0) {
+        return false;
+    }
+
+    const uint32_t validity_ms = std::max<uint32_t>(serial_printing_screen_timeout_ms(), 60 * 1000);
+    if (ticks_diff(now_ms, last_host_time_to_end_ms + validity_ms) > 0) {
+        return false;
+    }
+
+    seconds = last_host_time_to_end_s;
     return true;
 }
 
@@ -284,32 +307,9 @@ bool parse_percent(const char *message, uint8_t &percent) {
     return false;
 }
 
-bool parse_m73_host_progress(const char *command, uint8_t &percent) {
-    if (!command_starts_with(command, 'M', 73)) {
-        return false;
-    }
-
-    int progress = 0;
-    if (!find_param_int(command, 'P', progress) && !find_param_int(command, 'Q', progress)) {
-        return false;
-    }
-
-    if (progress < 0 || progress > 100) {
-        return false;
-    }
-
-    percent = static_cast<uint8_t>(progress);
-    return true;
-}
-
 void parse_octoprint_status_message(const char *command);
 
 void parse_serial_host_progress(const char *command) {
-    uint8_t percent = 0;
-    if (parse_m73_host_progress(command, percent)) {
-        SerialPrinting::set_host_progress_percent(percent);
-    }
-
     parse_octoprint_status_message(command);
 }
 
@@ -474,10 +474,12 @@ void parse_octoprint_status_message(const char *command) {
     uint32_t remaining_seconds = 0;
     if (parse_etl_seconds(message, remaining_seconds)) {
         params.standard_mode.time_to_end = remaining_seconds;
+        SerialPrinting::set_host_time_to_end(remaining_seconds);
     } else {
         uint32_t eta_seconds = 0;
         if (parse_eta_seconds(message, eta_seconds)) {
             params.standard_mode.time_to_end = eta_seconds;
+            SerialPrinting::set_host_time_to_end(eta_seconds);
         }
     }
 
