@@ -7,6 +7,7 @@
 #include "WindowMenuItems.hpp"
 #include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
+#include "screen_menu_pid.hpp"
 #include "knob_event.hpp"
 #include "MItem_crash.hpp"
 #include "Configuration_adv.h"
@@ -65,6 +66,16 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+class MI_PID_SETTINGS : public IWindowMenuItem {
+    static constexpr const char *const label = N_("PID Settings");
+
+public:
+    MI_PID_SETTINGS();
+
+protected:
+    virtual void click(IWindowMenu &window_menu) override;
+};
+
 /*****************************************************************************/
 
 using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
@@ -116,6 +127,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_ERROR_TEST,
 #endif
     MI_USER_INTERFACE, MI_SERIAL_PRINTING_SETTINGS, MI_LOCK_SETTINGS,
+    MI_PID_SETTINGS,
     MI_EXPORT_RME_SETTINGS,
     MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
