@@ -582,13 +582,6 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     // Dwell for reliability
     (void)wait([]() { return false; }, DOCK_DWELL_MS);
 
-    // INDX_TODO: This is temporary (fixes heatcreep)
-    move(info.dock_x, info.dock_y + 9, DOCK_ENGAGE_FEEDRATE);
-    planner.synchronize();
-
-    (void)wait([]() { return false; }, 5000);
-    // INDX_TODO: END
-
     // Fast move to safe position
     move(info.dock_x, safe_y, FAST_EXIT_FEEDRATE);
     planner.synchronize();
