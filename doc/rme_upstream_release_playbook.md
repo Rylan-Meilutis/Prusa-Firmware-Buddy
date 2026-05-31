@@ -31,7 +31,7 @@ git diff --name-status "$base"
 git diff --dirstat=files,0 "$base"
 ```
 
-At the time this playbook was written, that range covered 485 files with roughly 7k insertions. The largest categories were GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, and GUI framework polish.
+At the time this playbook was last audited, the current working tree covered 504 files with 10,274 insertions and 380 deletions relative to upstream `v6.5.3`. The committed RME stack contains 70 commits through `4d7ad3f61`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, and GUI framework polish.
 
 Primary RME branch:
 
@@ -187,7 +187,7 @@ Blocking startup commands do not hide the serial print screen.
 M77 and complete M73 end serial print state.
 M601 parks and keeps the serial print screen active.
 MMU/runout recovery sends the host resume action.
-Fresh host status progress/ETA, such as OctoPrint M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward.
+Fresh, useful host status progress/ETA, such as OctoPrint-plugin M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward. Host ETA snapshots count down locally between messages. Repeated startup-style 0% messages and unrecognized ETA text leave streamed M73 P/R fallback data in control.
 Serial UI mode is a dropdown: Legacy, Messages Only, Progress.
 Legacy mode shows the OctoPrint-style logo.
 Messages Only shows the fullscreen message view.
@@ -205,7 +205,7 @@ Host paths normalize onto `/usb/`, reject parent-directory traversal, and create
 
 ### LEDs, Chamber Lights, Side Strips, And GPIO Light Bar
 
-Keep per-state lighting, temporary per-print percent overrides, status LED separation, and post-print acknowledgement behavior.
+Keep per-state lighting, temporary per-print percent overrides, status LED separation, chamber-light acknowledgement behavior, and the timed status-LED finished hold.
 
 Important areas:
 
@@ -258,8 +258,12 @@ The splash screen must be painted before `gui_display_ready` is provided, and th
 `Active to Idle` is measured from last activity to idle entry.
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
-Finished state acknowledgement still follows platform rules.
-Opening and closing the door during filtering turns status LEDs off.
+Status LEDs blink green for the entire post-print filtration run unless the completed print is acknowledged by a Core One chamber-door open/close cycle.
+A Core One chamber-door acknowledgement during filtration suppresses both the remaining filtering blink and the later solid-green status hold until the next print starts.
+The acknowledged-filter path must force the status LED output fully black while filtration remains active; selecting the idle animation alone is insufficient because idle brightness and color may be configured non-zero.
+After filtering ends, or immediately after a print that does not need filtering, unacknowledged status LEDs hold solid green for the configurable status-finished-hold duration before entering the normal idle sequence.
+The status-finished-hold duration defaults to 300 seconds, is exposed in Lights Settings, exports through `M154.7 H<seconds>`, and accepts `H0` to disable the solid-green hold.
+The persistent print-finished screen does not count as guided activity during post-print filtering; chamber/side lighting and the LCD resume their normal idle and deep-idle timeouts.
 Per-state pages expose Deep Idle, Idle, Active, Printing.
 Timing settings live one level above per-state settings where users compare state entry and exit timing.
 GPIO light bar state control remains independent of chamber/side LEDs.
@@ -577,6 +581,7 @@ Dim idle/deep-idle wake input is consumed before normal UI action dispatch.
 OOB setup, calibration, self-tests, MMU tests/actions, and other visible FSM-guided flows are active use and should hold active screen/lighting behavior.
 Abort indication is not treated as finished indication.
 Door/filter acknowledgement is Core One-specific unless explicitly handled for another platform.
+Acknowledged Core One filtration forces status LED output fully black until filtering ends, even when idle status LEDs are configured non-zero.
 Machine-specific paths are compile-time-pruned where possible: Core One status-bar-off path, XL side-strip/enclosure second LED driver, and status LED color UI on targets without status LEDs.
 ```
 
@@ -639,6 +644,7 @@ M154.3 lighting timeouts and door/post-print flags
 M154.4 serial printing UI settings
 M154.5 external light-bar state enables
 M154.6 Core One / Core One Plus extended printer type
+M154.7 status LED finished-hold seconds
 Settings -> Export RME Settings writes /usb/rme_settings.gcode
 ```
 
@@ -654,6 +660,7 @@ Core One / Core One Plus:
   Per-print chamber/status brightness at 0%, low value, and 100%.
   Per-state screen brightness: Active/Printing below 15% is clamped, Idle/Deep Idle can be Off, and idle/deep-idle below 15% consumes first input as wake-only.
   Door open/close acknowledgement after finished, aborted, and filtering states.
+  After door acknowledgement during filtering, status LEDs remain fully off even when idle status brightness/color is configured non-zero.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
   PID Settings screen: edit hotend/heatbed values, reset each heater to defaults, run autotune, confirm progress/new-value prompt, save/discard behavior, and reboot persistence after save.

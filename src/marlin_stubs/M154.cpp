@@ -122,6 +122,12 @@ void set_status_brightness_group() {
         set_status_brightness_from_parser(state_codes[i], states[i]);
     }
 }
+
+void set_status_timeout_group() {
+    if (parser.seenval('H')) {
+        leds::StatusLedsHandler::instance().set_finished_hold_s(parser.ushortval('H'));
+    }
+}
 #endif
 
 void set_serial_group() {
@@ -178,6 +184,7 @@ void set_extended_printer_type_group() {
  * - `M154.4 U T A S` serial UI mode, timeout, auto-start, screen enable
  * - `M154.5 D I A P` external light bar state enables
  * - `M154.6 E` extended printer type index
+ * - `M154.7 H` status LED finished hold seconds
  */
 void PrusaGcodeSuite::M154() {
     switch (parser.subcode) {
@@ -210,6 +217,11 @@ void PrusaGcodeSuite::M154() {
 #if HAS_EXTENDED_PRINTER_TYPE()
     case 6:
         set_extended_printer_type_group();
+        break;
+#endif
+#if HAS_LEDS()
+    case 7:
+        set_status_timeout_group();
         break;
 #endif
     default:

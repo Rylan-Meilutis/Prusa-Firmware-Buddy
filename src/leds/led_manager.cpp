@@ -28,6 +28,10 @@
 #if HAS_DOOR_SENSOR()
     #include <buddy/door_sensor.hpp>
 #endif
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 #include <option/has_xbuddy_extension.h>
 #if HAS_XBUDDY_EXTENSION()
@@ -85,6 +89,26 @@ void acknowledge_aborted_after_door_cycle(bool door_open) {
         leds::StatusLedsHandler::instance().acknowledge_aborted();
         aborted_seen_door_open = false;
     }
+}
+
+void acknowledge_filtering_after_door_cycle(bool door_open) {
+#if HAS_CHAMBER_FILTRATION_API()
+    static bool filtering_seen_door_open = false;
+
+    if (buddy::chamber_filtration().output_pwm().value == 0) {
+        filtering_seen_door_open = false;
+        return;
+    }
+
+    if (door_open) {
+        filtering_seen_door_open = true;
+    } else if (filtering_seen_door_open) {
+        leds::StatusLedsHandler::instance().acknowledge_finished();
+        filtering_seen_door_open = false;
+    }
+#else
+    static_cast<void>(door_open);
+#endif
 }
 #endif
 
@@ -193,21 +217,15 @@ void LEDManager::update() {
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     acknowledge_aborted_after_door_cycle(chamber_door_state.open);
+    acknowledge_filtering_after_door_cycle(chamber_door_state.open);
 #endif
 
     side_strip_handler.update();
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-    status_leds_handler.set_deep_idle(false);
-#else
     const bool side_strip_deep_idle = side_strip_handler.deep_idle();
     status_leds_handler.set_deep_idle(side_strip_deep_idle);
-#endif
-    status_leds_handler.set_finished_hold_active(side_strip_handler.post_print_hold_active());
     if (side_strip_handler.post_print_status_dismissed()) {
         status_leds_handler.acknowledge_finished();
     }
-#else
-    status_leds_handler.set_finished_hold_active(marlin_vars().print_state == marlin_server::State::Finished);
 #endif
 
     status_leds_handler.update();
