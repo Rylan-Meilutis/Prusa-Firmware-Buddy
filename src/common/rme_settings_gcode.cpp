@@ -68,6 +68,7 @@ bool write(FILE *file) {
         packed_percent(status, leds::LightState::idle),
         packed_percent(status, leds::LightState::active),
         packed_percent(status, leds::LightState::printing)) >= 0;
+    ok &= fprintf(file, "M154.7 H%u\n", config_store().status_led_finished_hold_s.get()) >= 0;
 #endif
 
     ok &= fprintf(file, "M154.4 U%u T%u A%u S%u\n",
