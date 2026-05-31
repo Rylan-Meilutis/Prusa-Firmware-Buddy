@@ -73,6 +73,8 @@ public:
     void set_print_status_enabled(bool val);
     uint8_t get_brightness(LightState state);
     void set_brightness(LightState state, uint8_t val);
+    uint16_t get_finished_hold_s();
+    void set_finished_hold_s(uint16_t val);
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t get_print_status_brightness();
     void set_print_status_brightness(uint8_t val);
@@ -82,8 +84,6 @@ public:
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
 #endif
-    void set_finished_hold_active(bool val);
-
     void update();
 
     std::span<const ColorRGBW, 3> led_data();
@@ -104,7 +104,9 @@ private:
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool aborted_acknowledged { false };
 #endif
-    bool finished_hold_active { false };
+    bool filtering_prev { false };
+    bool finished_prev { false };
+    uint32_t finished_hold_until_ms { 0 };
     ColorRGBW old_color {};
     std::array<ColorRGBW, 3> adjusted_data {};
 

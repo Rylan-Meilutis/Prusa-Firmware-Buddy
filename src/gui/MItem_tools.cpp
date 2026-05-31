@@ -1322,6 +1322,22 @@ void MI_POST_PRINT_LED_HOLD::OnChange(size_t old_index) {
 }
 #endif
 
+#if HAS_LEDS()
+/**********************************************************************************************/
+// MI_STATUS_LED_FINISHED_HOLD
+
+MI_STATUS_LED_FINISHED_HOLD::MI_STATUS_LED_FINISHED_HOLD()
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_finished_hold_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_STATUS_LED_FINISHED_HOLD::OnClick() {
+    leds::StatusLedsHandler::instance().set_finished_hold_s(value());
+}
+#endif
+
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
 #include <leds/external_light_bar.hpp>
 namespace {
