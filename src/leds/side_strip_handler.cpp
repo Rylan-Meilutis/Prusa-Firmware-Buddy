@@ -144,7 +144,9 @@ void SideStripHandler::update() {
         custom_color.reset();
 
         const bool print_active = print_active_for_leds() && !host_idle_override;
-        const bool guided_activity = guided_activity_active() && !host_idle_override;
+        // A finished-print screen may remain open while post-print filtration runs.
+        // It must not keep the chamber lights and LCD awake indefinitely.
+        const bool guided_activity = guided_activity_active() && !host_idle_override && !marlin_server::finishing_or_finished();
 
         if (print_active) {
             print_or_filter_active_prev = true;

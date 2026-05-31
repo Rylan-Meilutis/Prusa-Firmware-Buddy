@@ -120,7 +120,9 @@ bool SerialPrinting::host_time_to_end(uint32_t &seconds, uint32_t now_ms) {
         return false;
     }
 
-    seconds = last_host_time_to_end_s;
+    const auto elapsed_ms = ticks_diff(now_ms, last_host_time_to_end_ms);
+    const uint32_t elapsed_s = elapsed_ms > 0 ? elapsed_ms / 1000 : 0;
+    seconds = elapsed_s < last_host_time_to_end_s ? last_host_time_to_end_s - elapsed_s : 0;
     return true;
 }
 
@@ -404,6 +406,47 @@ bool parse_duration_seconds_after(const char *message, const char *marker, uint3
         ++duration;
     }
 
+    {
+        const char *p = duration;
+        uint32_t parsed_seconds = 0;
+        bool found_unit = false;
+        while (*p != '\0') {
+            while (*p == ' ') {
+                ++p;
+            }
+
+            char *end = nullptr;
+            const auto value = strtol(p, &end, 10);
+            if (end == p || value < 0) {
+                break;
+            }
+
+            while (*end == ' ') {
+                ++end;
+            }
+
+            uint32_t multiplier = 0;
+            if (*end == 'h' || *end == 'H') {
+                multiplier = 60 * 60;
+            } else if (*end == 'm' || *end == 'M') {
+                multiplier = 60;
+            } else if (*end == 's' || *end == 'S') {
+                multiplier = 1;
+            } else {
+                break;
+            }
+
+            parsed_seconds += static_cast<uint32_t>(value) * multiplier;
+            found_unit = true;
+            p = end + 1;
+        }
+
+        if (found_unit) {
+            seconds = parsed_seconds;
+            return true;
+        }
+    }
+
     long values[3] = {};
     size_t value_count = 0;
     const char *p = duration;
@@ -466,7 +509,9 @@ void parse_octoprint_status_message(const char *command) {
     M73_Params params;
 
     uint8_t percent = 0;
-    if (parse_percent(message, percent)) {
+    // A repeated startup-style "0%" host message is not useful progress data.
+    // Leave streamed M73 P/R values in control until the host reports progress.
+    if (parse_percent(message, percent) && percent > 0) {
         params.standard_mode.percentage = percent;
         SerialPrinting::set_host_progress_percent(percent);
     }

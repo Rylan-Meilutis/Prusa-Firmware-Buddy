@@ -678,6 +678,16 @@ public:
 };
 #endif
 
+#if HAS_LEDS()
+class MI_STATUS_LED_FINISHED_HOLD : public WiSpin {
+    static constexpr const char *const label = N_("Status Finish Hold");
+
+public:
+    MI_STATUS_LED_FINISHED_HOLD();
+    virtual void OnClick() override;
+};
+#endif
+
 class MI_LIGHT_STATE_SCREEN_BRIGHTNESS : public WiSpin {
     static constexpr const char *const label = N_("Screen");
     leds::LightState state;

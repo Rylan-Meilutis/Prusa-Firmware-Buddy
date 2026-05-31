@@ -5,6 +5,7 @@
 #include "marlin_server.hpp"
 #include "marlin_vars.hpp"
 #include "client_response.hpp"
+#include "timing.h"
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_side_fsensor.h>
 #include <algorithm>
@@ -362,6 +363,14 @@ void StatusLedsHandler::set_brightness(LightState state, uint8_t val) {
     config_store().status_led_brightness_by_state.set(brightness_by_state);
 }
 
+uint16_t StatusLedsHandler::get_finished_hold_s() {
+    return config_store().status_led_finished_hold_s.get();
+}
+
+void StatusLedsHandler::set_finished_hold_s(uint16_t val) {
+    config_store().status_led_finished_hold_s.set(val);
+}
+
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
     if (!active) {
@@ -403,6 +412,7 @@ void StatusLedsHandler::set_deep_idle(bool val) {
 void StatusLedsHandler::acknowledge_finished() {
     std::lock_guard lock(mutex);
     finished_acknowledged = true;
+    finished_hold_until_ms = 0;
 }
 
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -412,21 +422,29 @@ void StatusLedsHandler::acknowledge_aborted() {
 }
 #endif
 
-void StatusLedsHandler::set_finished_hold_active(bool val) {
-    std::lock_guard lock(mutex);
-    finished_hold_active = val;
-    if (val) {
-        finished_acknowledged = false;
-    }
-}
-
 void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
 
     const bool print_active = print_active_for_status_override();
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     const auto printer_state = marlin_vars().print_state.get();
-#endif
+    const bool filtering = post_filter_active();
+    const bool finished = printer_state == State::Finished;
+    const uint32_t now_ms = ticks_ms();
+    const auto start_finished_hold = [&] {
+        const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
+        finished_hold_until_ms = hold_s > 0 ? now_ms + hold_s * 1000 : 0;
+    };
+
+    if (print_active) {
+        finished_hold_until_ms = 0;
+        finished_acknowledged = false;
+    } else if (!finished_acknowledged && ((filtering_prev && !filtering) || (finished && !finished_prev && !filtering))) {
+        start_finished_hold();
+    }
+    filtering_prev = filtering;
+    finished_prev = finished;
+    const bool timed_finished_hold_active = finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) < 0;
+
     if (!print_active) {
         print_status_disabled = false;
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -452,13 +470,17 @@ void StatusLedsHandler::update() {
     } else if (printer_state == State::Aborted && !aborted_acknowledged) {
         state = StateAnimation::Aborting;
 #endif
-    } else if (finished_hold_active) {
-        state = post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
+    } else if (finished_acknowledged && (filtering || finished)) {
+        state = StateAnimation::Idle;
+    } else if (filtering && !finished_acknowledged) {
+        state = StateAnimation::Filtering;
+    } else if (timed_finished_hold_active && !finished_acknowledged) {
+        state = StateAnimation::Finishing;
     } else {
         state = marlin_to_anim_state();
     }
 
-    if (deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Aborting) {
+    if (deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Finishing && state != StateAnimation::Aborting) {
         state = StateAnimation::Idle;
     }
 
@@ -474,8 +496,6 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         finished_acknowledged = false;
-    } else if (finished_acknowledged && (state == StateAnimation::Finishing || state == StateAnimation::Filtering)) {
-        state = StateAnimation::Idle;
     }
 
     auto animation = animations[state];
@@ -492,6 +512,11 @@ void StatusLedsHandler::update() {
 
 std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     std::lock_guard lock(mutex);
+    if (finished_acknowledged && post_filter_active()) {
+        adjusted_data.fill({});
+        return adjusted_data;
+    }
+
     const auto data = controller_instance().data();
     uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()

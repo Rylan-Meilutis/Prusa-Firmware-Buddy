@@ -26,6 +26,9 @@ using ScreenMenuLeds__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_SIDE_LEDS_OFF_TIMEOUT,
     MI_POST_PRINT_LED_HOLD,
 #endif
+#if HAS_LEDS()
+    MI_STATUS_LED_FINISHED_HOLD,
+#endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     MI_EXTERNAL_LIGHT_BAR_SETTINGS,
 #endif
