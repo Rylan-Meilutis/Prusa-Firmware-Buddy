@@ -221,8 +221,7 @@ void LEDManager::update() {
 #endif
 
     side_strip_handler.update();
-    const bool side_strip_deep_idle = side_strip_handler.deep_idle();
-    status_leds_handler.set_deep_idle(side_strip_deep_idle);
+    status_leds_handler.set_idle_light_state(side_strip_handler.current_light_state());
     if (side_strip_handler.post_print_status_dismissed()) {
         status_leds_handler.acknowledge_finished();
     }

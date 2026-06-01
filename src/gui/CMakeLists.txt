@@ -98,6 +98,10 @@ if(HAS_SERIAL_PRINT)
   target_sources(firmware PRIVATE screen_printing_serial.cpp)
 endif()
 
+if(PRINTER STREQUAL "COREONE" OR PRINTER STREQUAL "COREONEL")
+  target_sources(firmware PRIVATE screen_end_filtration.cpp)
+endif()
+
 if(TRANSLATIONS_ENABLED)
   target_sources(firmware PRIVATE screen_menu_languages.cpp)
 endif()

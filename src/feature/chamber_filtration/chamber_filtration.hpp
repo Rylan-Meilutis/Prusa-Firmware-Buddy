@@ -54,6 +54,12 @@ public:
     /// \returns rated lifetime of the HEPA filter in seconds. 0 if not unknown/not specified
     uint32_t filter_lifetime_s() const;
 
+    /// \returns remaining post-print filtration time in seconds, or 0 when inactive
+    uint32_t post_print_remaining_s() const;
+
+    /// Stops an active post-print filtration sequence without affecting the next print.
+    void stop_post_print_filtration();
+
     /// Check HEPA filter expiration and possibly show warning
     void check_filter_expiration();
 

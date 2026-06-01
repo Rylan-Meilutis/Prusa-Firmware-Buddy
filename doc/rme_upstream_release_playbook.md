@@ -183,7 +183,8 @@ Behavior to verify:
 
 ```text
 M75 or eligible M73 starts serial print state.
-Blocking startup commands do not hide the serial print screen.
+Blocking heater waits such as M109, M190, and M191 can start serial print state when automatic detection is enabled.
+Homing, mesh-leveling, and ordinary toolhead movement commands do not start serial print state by themselves.
 M77 and complete M73 end serial print state.
 M601 parks and keeps the serial print screen active.
 MMU/runout recovery sends the host resume action.
@@ -200,6 +201,7 @@ Message-screen time suppression is also present in the general Messages screen, 
 M115 advertises printer storage support for OctoPrint (`SDCARD`, `EXTENDED_M20`, `LFN_WRITE`).
 M20/M21/M23-M30/M32 support OctoPrint printer-storage workflows: list, upload, select, print-from-SD, pause/resume, progress status, seek, and delete.
 M28/M29 upload lines are written to USB media and are not passed through the serial print detector as live print commands.
+Finished serial-print summaries persist until acknowledgement or the next print and rotate duration, completion time, and remaining filtration time when active.
 Host paths normalize onto `/usb/`, reject parent-directory traversal, and create upload directories as needed.
 ```
 
@@ -260,8 +262,11 @@ The splash screen must be painted before `gui_display_ready` is provided, and th
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
 Status LEDs blink green for the entire post-print filtration run unless the completed print is acknowledged by a Core One chamber-door open/close cycle.
 A Core One chamber-door acknowledgement during filtration suppresses both the remaining filtering blink and the later solid-green status hold until the next print starts.
+Opening the Core One chamber door during post-print filtration opens an end-filtration prompt. The prompt closes automatically if filtration finishes naturally while it is open and returns to the persistent print-finished screen.
+The persistent print-finished screen exposes `Stop Filter` while filtration remains active. That action ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains independent.
 The acknowledged-filter path must force the status LED output fully black while filtration remains active; selecting the idle animation alone is insufficient because idle brightness and color may be configured non-zero.
 After filtering ends, or immediately after a print that does not need filtering, unacknowledged status LEDs hold solid green for the configurable status-finished-hold duration before entering the normal idle sequence.
+After the finished hold, status LEDs follow the side-light active, idle, and deep-idle state again so screen interaction and Core One door activity wake them normally.
 The status-finished-hold duration defaults to 300 seconds, is exposed in Lights Settings, exports through `M154.7 H<seconds>`, and accepts `H0` to disable the solid-green hold.
 The persistent print-finished screen does not count as guided activity during post-print filtering; chamber/side lighting and the LCD resume their normal idle and deep-idle timeouts.
 Per-state pages expose Deep Idle, Idle, Active, Printing.
@@ -295,6 +300,8 @@ Behavior to verify:
 
 ```text
 Printer type setting offers Core One and Core One Plus.
+Core One Plus is a distinct logical model that reports COREONE+ while sharing the Core One firmware compatibility group.
+Core One L builds report COREONEL and do not expose the Core One / Core One Plus selector.
 Core One Plus disables manual open-vent prompts.
 Serial prints disable manual open-vent prompts.
 Automatic close-vent behavior remains available where upstream supports it.
@@ -615,19 +622,22 @@ The latest checked focused final builds used:
 
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
-FLASH: 1287120 B / 1919 KB, 65.50%
+FLASH: 1291388 B / 1919 KB, 65.72%
 
 python3 utils/build.py --preset mini --bootloader yes --final
-FLASH: 889656 B / 895 KB, 97.07%
+FLASH: 893296 B / 895 KB, 97.47%
 
 python3 utils/build.py --preset coreone --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
-FLASH: 1285124 B / 1919 KB, 65.40%
+FLASH: 1290848 B / 1919 KB, 65.69%
 
 python3 utils/build.py --preset coreonel --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
-FLASH: 1286276 B / 1919 KB, 65.46%
+FLASH: 1290960 B / 1919 KB, 65.70%
 
 python3 utils/build.py --preset mk3.5 --bootloader yes --final
-FLASH: 1844692 B / 1919 KB, 93.87%
+FLASH: 1850136 B / 1919 KB, 94.15%
+
+python3 utils/build.py --preset mk4 --bootloader yes --final
+FLASH: 1919320 B / 1919 KB, 97.67%
 ```
 
 Final/non-development builds intentionally keep the `M503` settings report command enabled. To keep flash usage under control, release `M503` output omits human-only headings/comments and the TMC state dump, but preserves replayable persistent settings. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, shared UI containers, and compact release-only diagnostics.
@@ -660,6 +670,8 @@ Core One / Core One Plus:
   Per-print chamber/status brightness at 0%, low value, and 100%.
   Per-state screen brightness: Active/Printing below 15% is clamped, Idle/Deep Idle can be Off, and idle/deep-idle below 15% consumes first input as wake-only.
   Door open/close acknowledgement after finished, aborted, and filtering states.
+  Door-open prompt during filtering: No continues filtration, Yes ends it early, and natural filter completion closes the prompt back to the finished screen.
+  Finished-screen `Stop Filter` action ends filtration early, leaves the finished summary open, and disappears when filtration ends.
   After door acknowledgement during filtering, status LEDs remain fully off even when idle status brightness/color is configured non-zero.
   External chamber light does not flicker off/on at print start or print finish.
   Bed-heater safety timer UI and M86 B behavior.
@@ -733,6 +745,7 @@ PID settings UI and PID autotune persistence behavior.
 Core One Plus and vent behavior.
 Build/signing notes.
 Stock Prusa bootloader limitation and expected non-genuine firmware warning.
+Stock bootloader firmware-selection menus derive their displayed version from the mandatory BBF header build number; removing that numeric suffix requires a bootloader change.
 Known limitations.
 Focused build results for XL/Core One/MINI.
 Focused build results for MK4 or MK3.5 when shared LED, GUI, display brightness, or platform guards change.

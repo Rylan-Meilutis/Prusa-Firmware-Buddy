@@ -48,6 +48,12 @@ private:
         time_since_start,
         _count,
     };
+    enum class FinishedStat {
+        duration,
+        filtering,
+        finished_at,
+        _count,
+    };
     static constexpr size_t message_text_size = HAS_MINI_DISPLAY() ? 256 : 512;
 
     virtual void stopAction() override;
@@ -62,6 +68,7 @@ private:
     TimeItem last_time_item() const;
     void update_status();
     void update_messages();
+    void update_finished_summary();
     void update_action_buttons(marlin_server::State state);
     void set_page(Page page);
     void toggle_page();
@@ -95,6 +102,8 @@ private:
     Page current_page = Page::progress;
     TimeItem current_time_item = TimeItem::remaining_time;
     uint32_t last_page_switch_s = 0;
+    uint32_t last_finished_stat_switch_s = 0;
+    FinishedStat finished_stat = FinishedStat::duration;
     bool user_selected_page = false;
     bool status_progress_available = false;
     uint32_t last_message_id = 0;

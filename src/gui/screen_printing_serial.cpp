@@ -34,6 +34,10 @@
 #include <option/has_leds.h>
 #include <option/has_auto_retract.h>
 #include <option/has_chamber_api.h>
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
 #endif
@@ -362,6 +366,20 @@ const char *cold_pull_status_label(PhasesColdPull phase) {
     }
 }
 #endif
+
+bool post_print_filtration_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return buddy::chamber_filtration().post_print_remaining_s() > 0;
+#else
+    return false;
+#endif
+}
+
+void stop_post_print_filtration() {
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().stop_post_print_filtration();
+#endif
+}
 } // namespace
 
 screen_printing_serial_data_t::screen_printing_serial_data_t()
@@ -469,29 +487,34 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             lock_buttons_applied = false;
             update_action_buttons(state);
         }
+        if (!printer_lock::locked() && state == marlin_server::State::Finished) {
+            update_action_buttons(state);
+        }
 
         update_progress();
         update_status();
         update_messages();
         if (state == marlin_server::State::Finished) {
-            strlcpy(message_text.data(), "Print finished", message_text.size());
-            w_message_label.SetText(_("Status"));
-            w_message_value.SetText(_("Print finished"));
+            header.SetText(_("PRINT FINISHED"));
+            update_finished_summary();
             set_page(Page::message);
-        } else if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
-            set_page(Page::legacy);
-        } else if (status_page_available()) {
-            user_selected_page = false;
-            set_page(Page::status);
-        } else if (current_page == Page::status && !status_page_available()) {
-            set_page(Page::progress);
-        } else if (!user_selected_page && can_toggle_pages()) {
-            const uint32_t now_s = ticks_s();
-            if (ticks_diff(now_s, last_page_switch_s) >= page_rotation_s) {
-                advance_page();
+        } else {
+            header.SetText(_(caption));
+            if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
+                set_page(Page::legacy);
+            } else if (status_page_available()) {
+                user_selected_page = false;
+                set_page(Page::status);
+            } else if (current_page == Page::status && !status_page_available()) {
+                set_page(Page::progress);
+            } else if (!user_selected_page && can_toggle_pages()) {
+                const uint32_t now_s = ticks_s();
+                if (ticks_diff(now_s, last_page_switch_s) >= page_rotation_s) {
+                    advance_page();
+                }
+            } else if (!message_page_available() && current_page == Page::message) {
+                set_page(Page::progress);
             }
-        } else if (!message_page_available() && current_page == Page::message) {
-            set_page(Page::progress);
         }
         update_page_dots();
         break;
@@ -528,6 +551,42 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     ScreenPrintingModel::windowEvent(sender, event, param);
 }
 
+void screen_printing_serial_data_t::update_finished_summary() {
+    const uint32_t now_s = ticks_s();
+    if (ticks_diff(now_s, last_finished_stat_switch_s) >= page_rotation_s) {
+        last_finished_stat_switch_s = now_s;
+        do {
+            finished_stat = static_cast<FinishedStat>((static_cast<size_t>(finished_stat) + 1) % static_cast<size_t>(FinishedStat::_count));
+#if HAS_CHAMBER_FILTRATION_API()
+        } while (finished_stat == FinishedStat::filtering && buddy::chamber_filtration().post_print_remaining_s() == 0);
+#else
+        } while (finished_stat == FinishedStat::filtering);
+#endif
+    }
+
+    switch (finished_stat) {
+    case FinishedStat::duration:
+        w_message_label.SetText(_(EndResultBody::txt_printing_time));
+        PrintTime::print_formatted_duration(marlin_vars().print_duration.get(), message_text, true);
+        break;
+    case FinishedStat::filtering:
+#if HAS_CHAMBER_FILTRATION_API()
+        w_message_label.SetText(_("Filtering left"));
+        PrintTime::print_formatted_duration(buddy::chamber_filtration().post_print_remaining_s(), message_text, true);
+#endif
+        break;
+    case FinishedStat::finished_at:
+        w_message_label.SetText(_("Print ended"));
+        EndResultBody::format_timestamp(marlin_vars().print_end_time, message_text);
+        break;
+    case FinishedStat::_count:
+        break;
+    }
+    w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
+    w_message_label.Invalidate();
+    w_message_value.Invalidate();
+}
+
 void screen_printing_serial_data_t::unconditionalDraw() {
     ScreenPrintingModel::unconditionalDraw();
 
@@ -550,6 +609,14 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
 
     switch (state) {
     case marlin_server::State::Finished:
+        if (post_print_filtration_active()) {
+            EnableButton(BtnSocket::Middle);
+            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Stop, LabelRes::StopFilter);
+        } else {
+            DisableButton(BtnSocket::Middle);
+        }
+        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
+        break;
     case marlin_server::State::Aborted:
         DisableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
@@ -864,7 +931,7 @@ bool screen_printing_serial_data_t::status_page_available() const {
 }
 
 void screen_printing_serial_data_t::set_page(Page page) {
-    if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
+    if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy && marlin_vars().print_state != marlin_server::State::Finished) {
         page = Page::legacy;
     }
 
@@ -1009,6 +1076,10 @@ void screen_printing_serial_data_t::pauseAction() {
     // pause or resume button, depending on what state we are in
     marlin_server::State state = marlin_vars().print_state;
     switch (state) {
+    case marlin_server::State::Finished:
+        stop_post_print_filtration();
+        update_action_buttons(state);
+        break;
     case marlin_server::State::Paused:
         marlin_client::print_resume();
         break;

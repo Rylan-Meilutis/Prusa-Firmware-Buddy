@@ -218,10 +218,7 @@ bool m73_finished(const char *command) {
 bool blocking_startup_gcode(const char *command) {
     return command_starts_with(command, 'M', 109) // wait for hotend
         || command_starts_with(command, 'M', 190) // wait for bed
-        || command_starts_with(command, 'M', 191) // wait for chamber
-        || command_starts_with(command, 'G', 28) // home
-        || command_starts_with(command, 'G', 29) // mesh bed leveling
-        || command_starts_with(command, 'G', 80); // Prusa mesh bed leveling
+        || command_starts_with(command, 'M', 191); // wait for chamber
 }
 
 bool print_start_gcode(const char *command) {
@@ -574,7 +571,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     }
 
     if (pending_start || print_start_gcode(command) || octoprint_status_print_start(command)) {
-        // When a host streams startup G-code, blocking commands such as M109, G28 or G29 can be in progress
+        // When a host streams startup G-code, blocking heater waits such as M109 or M190 can be in progress
         // before M75/M73 arrives. That is still a serial print start, not an unrelated busy state.
         if (!printer_state::remote_print_ready(true)) {
             if (printer_state::get_state(false) != printer_state::DeviceState::Busy || marlin_server::is_printing()) {
