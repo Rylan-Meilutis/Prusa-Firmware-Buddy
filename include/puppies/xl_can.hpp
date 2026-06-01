@@ -7,6 +7,7 @@
 #include <freertos/mutex.hpp>
 #include <optional>
 #include <otp/types.hpp>
+#include <puppies/cyphal_flash_host.hpp>
 #include <xbuddy_extension/modbus.hpp>
 
 namespace buddy::puppies {
@@ -28,6 +29,11 @@ public:
     /// Periodic refresh from the puppy task: reads the Status block and
     /// flushes the desired Config state to the bridge.
     CommunicationStatus refresh(PuppyModbus &);
+
+    /// Current tool-offset-sensor flashing progress (0-100 percent, 0 when not
+    /// flashing). Queried by the bootstrap wait to drive the progress UI; same
+    /// role as XBuddyExtension::get_flash_progress_percent.
+    [[nodiscard]] uint8_t get_flash_progress_percent() const;
 
     void set_otp(const OTP_v5 &);
     OTP_v5 get_otp() const;
@@ -98,14 +104,23 @@ private:
     /// Fault-transition logging memory (refresh). Puppy-task-only, mutex-protected.
     bool last_fan_power_fault = false;
 
-    /// Read the Status block and latch `valid` on the outcome. Caller must hold `mutex`.
-    CommunicationStatus read_status(PuppyModbus &);
+    /// Last successful activity-heartbeat write (ticks_ms). Puppy-task-only,
+    /// mutex-protected; drives the heartbeat cadence in refresh_holding.
+    uint32_t last_activity_update = 0;
+
+    CommunicationStatus refresh_input(PuppyModbus &, uint32_t max_age);
 
     /// Pack the desired-state atomics into the Config block and flush to the
     /// bridge. Mirrors XBuddyExtension::refresh_holding minus the fields
     /// whose desired-state shadow we don't yet maintain. Caller must hold
     /// `mutex`.
     CommunicationStatus refresh_holding(PuppyModbus &);
+
+    /// Firmware-flashing host for the tool offset sensor, driven from
+    /// refresh(). The bridge fw is an xBE variant listening on the same Chunk /
+    /// Digest holding blocks, so this is the same streaming as on INDX.
+    /// Guarded by `mutex`.
+    CyphalBridgeFlashHost flash;
 };
 
 extern XlCan xl_can;
