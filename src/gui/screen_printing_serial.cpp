@@ -466,6 +466,16 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     marlin_server::State state = marlin_vars().print_state;
 
     if (state != last_state) {
+        if (state == marlin_server::State::Finished) {
+            header.SetText(_("PRINT FINISHED"));
+            finished_stat = FinishedStat::duration;
+            last_finished_stat_switch_s = ticks_s();
+            update_finished_summary();
+            set_page(Page::message);
+        } else if (last_state == marlin_server::State::Finished) {
+            header.SetText(_(caption));
+        }
+
         if (printer_lock::locked()) {
             show_locked_buttons();
             lock_buttons_applied = true;
@@ -495,11 +505,8 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         update_status();
         update_messages();
         if (state == marlin_server::State::Finished) {
-            header.SetText(_("PRINT FINISHED"));
             update_finished_summary();
-            set_page(Page::message);
         } else {
-            header.SetText(_(caption));
             if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
                 set_page(Page::legacy);
             } else if (status_page_available()) {
@@ -554,14 +561,7 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
 void screen_printing_serial_data_t::update_finished_summary() {
     const uint32_t now_s = ticks_s();
     if (ticks_diff(now_s, last_finished_stat_switch_s) >= page_rotation_s) {
-        last_finished_stat_switch_s = now_s;
-        do {
-            finished_stat = static_cast<FinishedStat>((static_cast<size_t>(finished_stat) + 1) % static_cast<size_t>(FinishedStat::_count));
-#if HAS_CHAMBER_FILTRATION_API()
-        } while (finished_stat == FinishedStat::filtering && buddy::chamber_filtration().post_print_remaining_s() == 0);
-#else
-        } while (finished_stat == FinishedStat::filtering);
-#endif
+        advance_finished_stat(true);
     }
 
     switch (finished_stat) {
@@ -585,6 +585,56 @@ void screen_printing_serial_data_t::update_finished_summary() {
     w_message_value.SetText(string_view_utf8::MakeRAM(message_text.data()));
     w_message_label.Invalidate();
     w_message_value.Invalidate();
+    update_page_dots();
+}
+
+void screen_printing_serial_data_t::advance_finished_stat(bool forward) {
+    do {
+        const size_t index = static_cast<size_t>(finished_stat);
+        const size_t count = static_cast<size_t>(FinishedStat::_count);
+        finished_stat = static_cast<FinishedStat>((index + (forward ? 1 : count - 1)) % count);
+    } while (!finished_stat_available(finished_stat));
+    last_finished_stat_switch_s = ticks_s();
+}
+
+bool screen_printing_serial_data_t::finished_stat_available(FinishedStat stat) const {
+    switch (stat) {
+    case FinishedStat::duration:
+    case FinishedStat::finished_at:
+        return true;
+    case FinishedStat::filtering:
+#if HAS_CHAMBER_FILTRATION_API()
+        return buddy::chamber_filtration().post_print_remaining_s() > 0;
+#else
+        return false;
+#endif
+    case FinishedStat::_count:
+        return false;
+    }
+    return false;
+}
+
+size_t screen_printing_serial_data_t::finished_stat_count() const {
+    size_t count = 0;
+    for (size_t i = 0; i < static_cast<size_t>(FinishedStat::_count); ++i) {
+        count += finished_stat_available(static_cast<FinishedStat>(i));
+    }
+    return count;
+}
+
+size_t screen_printing_serial_data_t::finished_stat_index() const {
+    size_t index = 0;
+    for (size_t i = 0; i < static_cast<size_t>(FinishedStat::_count); ++i) {
+        const auto stat = static_cast<FinishedStat>(i);
+        if (!finished_stat_available(stat)) {
+            continue;
+        }
+        if (stat == finished_stat) {
+            return index;
+        }
+        ++index;
+    }
+    return 0;
 }
 
 void screen_printing_serial_data_t::unconditionalDraw() {
@@ -982,10 +1032,18 @@ void screen_printing_serial_data_t::toggle_page() {
     }
 
     user_selected_page = true;
+    if (marlin_vars().print_state == marlin_server::State::Finished) {
+        advance_finished_stat(true);
+        update_finished_summary();
+        return;
+    }
     advance_page();
 }
 
 bool screen_printing_serial_data_t::can_toggle_pages() const {
+    if (marlin_vars().print_state == marlin_server::State::Finished) {
+        return finished_stat_count() > 1;
+    }
     return SerialPrinting::ui_mode() == SerialPrintingUiMode::progress && !status_page_available() && page_count() > 1;
 }
 
@@ -1007,6 +1065,12 @@ void screen_printing_serial_data_t::advance_page() {
 }
 
 void screen_printing_serial_data_t::retreat_page() {
+    if (marlin_vars().print_state == marlin_server::State::Finished) {
+        advance_finished_stat(false);
+        update_finished_summary();
+        return;
+    }
+
     if (current_page == Page::message) {
         current_time_item = last_time_item();
         set_page(Page::progress);
@@ -1023,6 +1087,10 @@ void screen_printing_serial_data_t::retreat_page() {
 }
 
 size_t screen_printing_serial_data_t::page_count() const {
+    if (marlin_vars().print_state == marlin_server::State::Finished) {
+        return finished_stat_count();
+    }
+
     size_t count = 0;
     for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
         if (time_item_available(static_cast<TimeItem>(i))) {
@@ -1036,6 +1104,10 @@ size_t screen_printing_serial_data_t::page_count() const {
 }
 
 size_t screen_printing_serial_data_t::current_page_index() const {
+    if (marlin_vars().print_state == marlin_server::State::Finished) {
+        return finished_stat_index();
+    }
+
     size_t index = 0;
     for (size_t i = 0; i < static_cast<size_t>(TimeItem::_count); ++i) {
         const auto item = static_cast<TimeItem>(i);
