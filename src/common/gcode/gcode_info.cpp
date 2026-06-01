@@ -467,6 +467,12 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
         parse_m555(cmd);
     }
 
+#if HAS_CHAMBER_VENTS()
+    else if (cmd.skip_gcode(gcode_info::m870_chamber_vents)) {
+        info_.has_chamber_vent_gcode = true;
+    }
+#endif
+
     else if ((cmd.skip_gcode(gcode_info::m140_set_bed_temp) || cmd.skip_gcode(gcode_info::m190_wait_bed_temp)) && cmd.skip_to_param('S')) {
         info_.bed_preheat_temp = cmd.get_uint();
     }
