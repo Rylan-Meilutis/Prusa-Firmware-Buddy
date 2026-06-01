@@ -19,24 +19,22 @@ namespace {
 
 bool enqueued = false; // Used to avoid multiple M600 enqueue
 
-inline bool filament_change_dialog(uint8_t extruder) {
+bool inject(VirtualToolIndex tool) {
     StringViewUtf8Parameters<8> params;
-    return MsgBoxQuestion(_("Change filament now?\n"
-                            "Use same filament type as currently loaded.\n"
-                            "Current filament type: %s")
-                              .formatted(params, config_store().get_filament_type(extruder).parameters().name.data()),
-               Responses_YesNo)
-        == Response::Yes;
-}
+    const auto msg_answer = MsgBoxQuestion(
+        _("Change filament now?\n"
+          "Use same filament type as currently loaded.\n"
+          "Current filament type: %s")
+            .formatted(params, config_store().get_filament_type(tool).parameters().name.data()),
+        Responses_YesNo);
 
-bool inject(const uint8_t tool) {
-    if (!filament_change_dialog(tool)) {
+    if (msg_answer != Response::Yes) {
         return false;
     }
-    marlin_client::inject(GCodeLiteral("M600 P T%.0f", static_cast<float>(tool)));
+    marlin_client::inject(GCodeLiteral("M600 P T%.0f", static_cast<float>(tool.to_raw())));
     enqueued = true;
     return true;
-};
+}
 
 } // namespace
 
@@ -55,7 +53,7 @@ void MI_M600::click([[maybe_unused]] IWindowMenu &window_menu) {
         const auto tool = select_tool_dialog({
             .allow_return = true,
         });
-        if (tool.has_value() && inject(tool->to_raw())) {
+        if (tool.has_value() && inject(*tool)) {
             Screens::Access()->Close();
         }
         return;
@@ -63,7 +61,7 @@ void MI_M600::click([[maybe_unused]] IWindowMenu &window_menu) {
 #endif
     match(
         marlin_vars().active_extruder.get(),
-        [](VirtualToolIndex virtual_tool) { inject(virtual_tool.to_raw()); },
+        [](VirtualToolIndex virtual_tool) { inject(virtual_tool); },
         [](NoTool) { assert(false); /* theoretically reachable edge case - do nothing */ });
 }
 
