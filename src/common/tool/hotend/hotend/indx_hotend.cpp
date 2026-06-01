@@ -37,8 +37,20 @@ void IndxHotend::assert_thermally_managed_invariant(std::variant<PhysicalToolInd
 }
 
 void IndxHotend::manage() {
+    const auto reset_count = buddy::puppies::indx.get_reset_counter();
+    const bool head_got_reset = (reset_count != last_head_reset_count_);
+    last_head_reset_count_ = reset_count;
+
     if (is_thermally_managed_) {
         nozzle_temp_ = buddy::puppies::indx.get_hotend_temp_compensated();
+
+        if (head_got_reset) {
+            // Act as if nozzle target temp changed
+            // This resets all the safety guards (heater watch, thermal runaway, ...)
+            // to prevent them from semi-falsely triggering when the indx head reset (which caused a temporary heating dropout)
+            handle_nozzle_target_change();
+        }
+
     } else {
         nozzle_temp_ = 15; // INDX_TODO: Fix mintemp so that here can be temperature_invalid
         nozzle_heater_pwm_ = 0;

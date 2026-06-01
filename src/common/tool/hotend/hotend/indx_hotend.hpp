@@ -40,4 +40,8 @@ private:
     /// Stop heating physically. Logical target is preserved so a future pickup can resume.
     /// !!! Toolchanger-only: use at park, open_head, recovery — not as a way to set target=0. !!!
     void stop_heating();
+
+private:
+    /// Last checked value of indx_head.get_reset_counter(), for tracking indx head resets
+    uint32_t last_head_reset_count_ = 0;
 };
