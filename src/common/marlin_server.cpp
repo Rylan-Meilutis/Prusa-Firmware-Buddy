@@ -257,6 +257,7 @@ namespace {
 
         bool was_print_time_saved = false;
         uint32_t saved_print_duration = 0;
+        uint32_t frozen_print_duration = 0;
 #if HAS_MMU2()
         bool mmu_maintenance_checked = false;
 #endif
@@ -2186,6 +2187,7 @@ static void _server_print_loop(void) {
         server.print_is_serial = (server.print_state == State::SerialPrintInit);
         server.was_print_time_saved = false;
         server.saved_print_duration = 0;
+        server.frozen_print_duration = 0;
 #if HAS_MMU2()
         server.mmu_maintenance_checked = false;
 #endif
@@ -2472,6 +2474,7 @@ static void _server_print_loop(void) {
         media_prefetch.stop();
         queue.clear();
 
+        server.frozen_print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
         print_job_timer.stop();
         planner.quick_stop();
         wait_for_heatup = false; // This is necessary because M109/wait_for_hotend can be in progress, we need to abort it
@@ -3341,7 +3344,7 @@ static void _server_update_vars() {
         progress_data = oProgressData.standard_mode;
     }
 
-    marlin_vars().print_duration = print_job_timer.duration();
+    marlin_vars().print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
     marlin_vars().sd_percent_done = [&]() -> uint8_t {
         uint8_t host_progress = 0;
         if (server.print_is_serial && SerialPrinting::host_progress_percent(host_progress, ticks_ms())) {
