@@ -41,6 +41,10 @@ if(HAS_XL_CAN)
   target_link_libraries(firmware PUBLIC xbuddy_extension)
 endif()
 
+if(HAS_XBUDDY_EXTENSION OR HAS_XL_CAN)
+  target_sources(firmware PUBLIC cyphal_flash_files.cpp cyphal_flash_host.cpp)
+endif()
+
 if(HAS_AC_CONTROLLER)
   target_sources(firmware PUBLIC ac_controller.cpp)
   target_link_libraries(firmware PUBLIC ac_controller)
