@@ -464,13 +464,15 @@ def hydrate_memory_from_artifact(job: BuildJob) -> None:
             match = SIZE_SECTION_RE.match(line)
             if not match:
                 continue
-            _, size, address = match.groups()
+            section_name, size, address = match.groups()
             section_size = int(size)
             section_address = int(address)
             for name, (origin, length) in capacities.items():
                 if origin <= section_address < origin + length:
                     used[name] += section_size
                     break
+            if section_name == ".data" and "FLASH" in used:
+                used["FLASH"] += section_size
         for name, (_, total_bytes) in capacities.items():
             used_bytes = used[name]
             percent = used_bytes * 100 / total_bytes if total_bytes else 0
