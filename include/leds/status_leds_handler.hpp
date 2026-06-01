@@ -75,10 +75,8 @@ public:
     void set_brightness(LightState state, uint8_t val);
     uint16_t get_finished_hold_s();
     void set_finished_hold_s(uint16_t val);
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t get_print_status_brightness();
     void set_print_status_brightness(uint8_t val);
-#endif
     void set_idle_light_state(LightState state);
     void acknowledge_finished();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -94,9 +92,7 @@ private:
     bool print_status_disabled { false };
     uint32_t brightness_by_state { config_store().status_led_brightness_by_state.get() };
     LightState current_light_state { LightState::active };
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t print_status_brightness { 100 };
-#endif
     LightState idle_light_state { LightState::active };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };
