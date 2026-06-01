@@ -1,6 +1,7 @@
 #pragma once
 #include <contactless_offset/tool_sensor.hpp>
 #include "clo_config.hpp"
+#include <cstdint>
 #include <expected>
 
 namespace tool_offset {
@@ -17,5 +18,11 @@ std::expected<ToolOffset, const char *> measure_current_tool_offset(
     const ProbingConfig &config,
     Sensor &sensor,
     const ToolOffset &actual_offset);
+
+// Block until the INDX loadcell stream produces a fresh sample.
+// if no sample arrives within the timeout, the function performs a loadcell rearm (toggle off -> on)
+// the first samples can be stale or missing entirely
+// Returns true on success, false if the stream never resumed.
+bool wait_for_loadcell_alive(uint32_t per_attempt_timeout_us = 500'000, uint8_t retries = 3);
 
 } // namespace tool_offset

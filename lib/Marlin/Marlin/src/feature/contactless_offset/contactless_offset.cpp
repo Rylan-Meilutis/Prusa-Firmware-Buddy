@@ -410,10 +410,9 @@ static auto create_motion_signal(
         | signal2step::cartesian_to_printer_kinematics();
 }
 
-namespace {
 // Wait until INDX is actually streaming fresh loadcell samples again, retrying
 // the off/on toggle if not.
-bool indx_wait_for_loadcell_alive(uint32_t per_attempt_timeout_us = 500'000, uint8_t retries = 3) {
+bool tool_offset::wait_for_loadcell_alive(uint32_t per_attempt_timeout_us, uint8_t retries) {
     constexpr int32_t max_fresh_age_us = 100'000;
     for (uint8_t attempt = 0; attempt <= retries; ++attempt) {
         const uint32_t start = ticks_us();
@@ -438,6 +437,8 @@ bool indx_wait_for_loadcell_alive(uint32_t per_attempt_timeout_us = 500'000, uin
         static_cast<unsigned>(retries));
     return false;
 }
+
+namespace {
 
 // Measurement orchestration is structured as a small finite state machine.
 // Each scan can produce one of three outcomes (Event), and the next_state
@@ -756,7 +757,7 @@ public:
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
         thermalManager.setTargetBed(prev_bed_target_);
         if (prev_loadcell_active_) {
-            (void)indx_wait_for_loadcell_alive();
+            (void)tool_offset::wait_for_loadcell_alive();
         }
         do_blocking_move_to_z(config_.sensor_position.z + config_.safe_z_height);
     }
