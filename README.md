@@ -21,7 +21,7 @@ Feature availability depends on printer hardware. The branch targets Original Pr
 
 ## Building RME Firmware with `build.py`
 
-Use the top-level `./build.py` wrapper to build release firmware for installation. It builds the intended physical-printer presets in parallel, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
+Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
 
 Build all RME release images:
 
@@ -38,7 +38,7 @@ Build only selected printers:
 Useful options:
 
 - `--list-presets` lists the available release presets and aliases.
-- `--jobs 4` limits the number of parallel printer builds.
+- `--jobs N` adjusts the number of parallel printer builds. The default is `--jobs 4` to avoid saturating the build machine.
 - `--skip-bootstrap` skips dependency bootstrap when the local build environment is already prepared.
 - `--output-dir PATH` changes the BBF staging directory.
 - `--setup-signing` creates a machine-local ECDSA signing key at `.local/firmware-signing-key.pem`.
