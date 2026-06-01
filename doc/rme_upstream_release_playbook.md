@@ -326,6 +326,8 @@ When extending `MarlinSettings::load()`, preserve the upstream startup sequence:
 
 Keep the chamber fan/filtering behavior and bed-heater safety timer changes.
 
+Preserve filtration lifetime accounting on every stop path. Active filter usage is journaled periodically while the fan runs, and the remaining whole-second interval must be committed before a manual early stop or backend disable clears the output state.
+
 Important areas:
 
 ```text

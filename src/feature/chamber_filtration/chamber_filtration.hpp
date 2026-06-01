@@ -71,6 +71,7 @@ public:
 
 private:
     bool needs_filtration() const;
+    void commit_unaccounted_filter_usage(uint32_t now_s, uint32_t min_s = 1);
 
 private:
     mutable freertos::Mutex mutex_;
