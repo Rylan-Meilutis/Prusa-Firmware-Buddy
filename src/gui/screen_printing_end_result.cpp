@@ -4,8 +4,13 @@
 #include <gcode_info.hpp>
 #include <format_print_will_end.hpp>
 #include <img_resources.hpp>
+#include <timing.h>
 #include "mmu2_toolchanger_common.hpp"
 #include "print_time_module.hpp"
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 namespace {
 constexpr const char *txt_print_started { N_("Print started") };
@@ -54,7 +59,7 @@ constexpr size_t middle_of_buttons { 185 + 40 };
 constexpr auto arrow_right_res { &img::arrow_right_10x16 };
 constexpr Rect16 arrow_right_rect { column_right + column_width, middle_of_buttons - arrow_right_res->h / 2, arrow_right_res->w, arrow_right_res->h };
 
-void handle_timestamp_text_item(MarlinVariableLocked<time_t> &time_holder, EndResultBody::DateBufferT &buffer, window_text_t &text_value) {
+void format_timestamp_impl(MarlinVariableLocked<time_t> &time_holder, std::span<char> buffer) {
     const auto time_format = time_tools::get_time_format();
     struct tm print_tm;
     time_holder.execute_with([&](const time_t &print_time) {
@@ -67,12 +72,13 @@ void handle_timestamp_text_item(MarlinVariableLocked<time_t> &time_holder, EndRe
     localtime_r(&adjusted_print_time, &print_tm);
 
     FormatMsgPrintWillEnd::Date(buffer.data(), buffer.size(), &print_tm, time_format == time_tools::TimeFormat::_24h, FormatMsgPrintWillEnd::ISO);
-
-    text_value.SetText(string_view_utf8::MakeRAM(buffer.data()));
-    text_value.Show();
 }
 
 } // namespace
+
+void EndResultBody::format_timestamp(MarlinVariableLocked<time_t> &time_holder, std::span<char> buffer) {
+    format_timestamp_impl(time_holder, buffer);
+}
 
 EndResultBody::EndResultBody(window_t *parent, Rect16 rect)
     : window_frame_t(parent, rect)
@@ -139,14 +145,46 @@ void EndResultBody::Show() {
     print_started_label.Show();
     print_ended_label.Show();
 
-    handle_timestamp_text_item(marlin_vars().print_start_time, print_started_value_buffer, print_started_value);
-    handle_timestamp_text_item(marlin_vars().print_end_time, print_ended_value_buffer, print_ended_value);
+    format_timestamp(marlin_vars().print_start_time, print_started_value_buffer);
+    print_started_value.SetText(string_view_utf8::MakeRAM(print_started_value_buffer.data()));
+    print_started_value.Show();
+    showing_filter_remaining = false;
+    update_print_ended_stat(false);
 
     handle_consumed_material_showing(gcode);
 
     arrow_right.Show();
 
     window_t::Show();
+}
+
+void EndResultBody::update_print_ended_stat(bool rotate) {
+#if HAS_CHAMBER_FILTRATION_API()
+    const uint32_t remaining_s = buddy::chamber_filtration().post_print_remaining_s();
+    if (rotate && remaining_s > 0) {
+        showing_filter_remaining = !showing_filter_remaining;
+    } else if (remaining_s == 0) {
+        showing_filter_remaining = false;
+    }
+
+    if (showing_filter_remaining) {
+        print_ended_label.SetText(_("Filtering left"));
+        PrintTime::print_formatted_duration(remaining_s, print_ended_value_buffer, true);
+    } else
+#endif
+    {
+#if !HAS_CHAMBER_FILTRATION_API()
+        static_cast<void>(rotate);
+#endif
+        print_ended_label.SetText(_(txt_print_ended));
+        format_timestamp(marlin_vars().print_end_time, print_ended_value_buffer);
+    }
+
+    print_ended_value.SetText(string_view_utf8::MakeRAM(print_ended_value_buffer.data()));
+    print_ended_label.Show();
+    print_ended_value.Show();
+    print_ended_label.Invalidate();
+    print_ended_value.Invalidate();
 }
 
 void EndResultBody::handle_consumed_material_showing(const GCodeInfo &gcode) {
@@ -319,6 +357,13 @@ void EndResultBody::Hide() {
 }
 
 void EndResultBody::windowEvent(window_t *, GUI_event_t event, void *param) {
+    if (event == GUI_event_t::LOOP) {
+        const uint32_t now_s = ticks_s();
+        if (ticks_diff(now_s, last_ended_stat_switch_s) >= 4) {
+            last_ended_stat_switch_s = now_s;
+            update_print_ended_stat(true);
+        }
+    }
     if (event == GUI_event_t::ENC_UP || event == GUI_event_t::CLICK || event == GUI_event_t::TOUCH_CLICK) {
         if (GetParent()) {
             GetParent()->WindowEvent(this, GUI_event_t::CHILD_CHANGED, param);

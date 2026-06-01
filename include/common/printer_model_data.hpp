@@ -126,6 +126,16 @@ inline constexpr std::array printer_model_info {
         .id_str = "COREONE",
     },
     PrinterModelInfo {
+        // CORE One Plus shares the CORE One firmware and compatibility group.
+        .model = PrinterModel::coreoneplus,
+        .compatibility_group = PrinterModelCompatibilityGroup::coreone,
+        .version = { 7, 1, 0 },
+        .help_url = "core-one",
+        .usb_pid = 31,
+        .gcode_check_code = 310,
+        .id_str = "COREONE+",
+    },
+    PrinterModelInfo {
         .model = PrinterModel::coreonel,
         .compatibility_group = PrinterModelCompatibilityGroup::coreonel,
         .version = { 8, 1, 0 },
@@ -190,6 +200,11 @@ inline constexpr std::array printer_model_mmu_variant {
         .model = PrinterModel::coreone,
         .gcode_check_code = 30310,
         .id_str = "COREONEMMU3",
+    },
+    PrinterModelMMUVariant {
+        .model = PrinterModel::coreoneplus,
+        .gcode_check_code = 30310,
+        .id_str = "COREONE+MMU3",
     },
     PrinterModelMMUVariant {
         .model = PrinterModel::coreonel,

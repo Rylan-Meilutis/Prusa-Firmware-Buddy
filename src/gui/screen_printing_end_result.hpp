@@ -41,6 +41,7 @@ public:
     static constexpr int16_t extra_top_space { 6 }; // required extra top space to properly offset progress_txt, otherwise if just setting progress txt rect top to be 'above' what this frame holds, it will just not draw at all
 
     static Rect16 get_progress_txt_rect(int16_t row_0);
+    static void format_timestamp(MarlinVariableLocked<time_t> &time_holder, std::span<char> buffer);
 
 protected:
     void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
@@ -70,6 +71,8 @@ private:
     window_text_t print_ended_label;
     window_text_t print_ended_value;
     DateBufferT print_ended_value_buffer;
+    uint32_t last_ended_stat_switch_s { 0 };
+    bool showing_filter_remaining { false };
 
     window_text_t consumed_material_label;
     std::array<window_text_t, EXTRUDERS> consumed_material_values;
@@ -80,4 +83,6 @@ private:
 
     window_icon_t arrow_right;
     WindowNumbPrintProgress progress_txt;
+
+    void update_print_ended_stat(bool rotate);
 };

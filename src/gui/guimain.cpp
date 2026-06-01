@@ -19,6 +19,14 @@
 #include <screen_splash.hpp>
 #include <wdt.hpp>
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #include <buddy/door_sensor.hpp>
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+    #include <marlin_server.hpp>
+    #include <marlin_vars.hpp>
+    #include <screen_end_filtration.hpp>
+#endif
+
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -30,6 +38,24 @@
 #endif
 
 Jogwheel jogwheel;
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+namespace {
+void open_end_filtration_prompt_on_door_open() {
+    static bool door_open_prev = false;
+    const bool door_open = buddy::door_sensor().detailed_state().state == buddy::DoorSensor::State::door_open;
+    const bool door_just_opened = door_open && !door_open_prev;
+    door_open_prev = door_open;
+
+    if (door_just_opened
+        && marlin_vars().print_state == marlin_server::State::Finished
+        && buddy::chamber_filtration().post_print_remaining_s() > 0
+        && !Screens::Access()->IsScreenOnStack<ScreenEndFiltration>()) {
+        Screens::Access()->Open(ScreenFactory::Screen<ScreenEndFiltration>);
+    }
+}
+} // namespace
+#endif
 
 void gui_error_run(void) {
     gui_init();
@@ -121,6 +147,10 @@ void gui_run(void) {
 
         Screens::Access()->Loop();
         DialogHandler::Access().Loop();
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        open_end_filtration_prompt_on_door_open();
+#endif
 
         gui_loop();
         gui::EndLoop();

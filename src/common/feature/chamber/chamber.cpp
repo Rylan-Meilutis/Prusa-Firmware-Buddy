@@ -54,7 +54,7 @@ bool selected_core_one_plus() {
     return true;
 #elif PRINTER_IS_PRUSA_COREONE() && HAS_EXTENDED_PRINTER_TYPE()
     const auto index = config_store().extended_printer_type.get();
-    return index < extended_printer_type_model.size() && extended_printer_type_model[index] == PrinterModel::coreonel;
+    return index < extended_printer_type_model.size() && extended_printer_type_model[index] == PrinterModel::coreoneplus;
 #else
     return false;
 #endif
