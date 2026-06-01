@@ -29,7 +29,21 @@ ChamberFiltrationBackend ChamberFiltration::backend() const {
 }
 
 void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
-    config_store().chamber_filtration_backend.set(backend);
+    {
+        std::lock_guard _lg(mutex_);
+        const auto now_s = ticks_s();
+        commit_unaccounted_filter_usage(now_s);
+        config_store().chamber_filtration_backend.set(backend);
+
+        if (backend == Backend::none) {
+            output_pwm_ = {};
+            is_printing_prev_ = false;
+            needs_filtration_ = false;
+            unaccounted_filter_time_used_start_s_ = 0;
+        } else {
+            unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
+        }
+    }
 
 #if XL_ENCLOSURE_SUPPORT()
     xl_enclosure.setEnabled(backend == ChamberFiltrationBackend::xl_enclosure);
@@ -93,6 +107,8 @@ void ChamberFiltration::step() {
     std::lock_guard _lg(mutex_);
 
     if (!is_enabled()) {
+        commit_unaccounted_filter_usage(ticks_s());
+        unaccounted_filter_time_used_start_s_ = 0;
         output_pwm_ = {};
         is_printing_prev_ = false;
         needs_filtration_ = false;
@@ -134,21 +150,11 @@ void ChamberFiltration::step() {
         needs_filtration_ = std::nullopt; // Reset the flag after the print is done so that it doesn't affect the next print
     }
 
-    const auto commit_unaccounted_filter_usage = [&](int min_s = 1) {
-        const auto unnacounted_usage_s = ticks_diff(now_s, unaccounted_filter_time_used_start_s_);
-        if (unnacounted_usage_s < min_s) {
-            return;
-        }
-
-        config_store().chamber_filter_time_used_s.apply([&](auto &val) { val += unnacounted_usage_s; });
-        unaccounted_filter_time_used_start_s_ = now_s;
-    };
-
     // If output_pwm > 0, track filter usage
     if (output_pwm_.value == 0) {
         if (unaccounted_filter_time_used_start_s_) {
             // Commit any remaining unaccounted time
-            commit_unaccounted_filter_usage();
+            commit_unaccounted_filter_usage(now_s);
             unaccounted_filter_time_used_start_s_ = 0;
         }
 
@@ -157,8 +163,22 @@ void ChamberFiltration::step() {
 
     } else {
         // Reduce eeprom writes - update filter usage in certain intervals
-        commit_unaccounted_filter_usage(60);
+        commit_unaccounted_filter_usage(now_s, 60);
     }
+}
+
+void ChamberFiltration::commit_unaccounted_filter_usage(uint32_t now_s, uint32_t min_s) {
+    if (!unaccounted_filter_time_used_start_s_) {
+        return;
+    }
+
+    const auto unaccounted_usage_s = ticks_diff(now_s, unaccounted_filter_time_used_start_s_);
+    if (unaccounted_usage_s < min_s) {
+        return;
+    }
+
+    config_store().chamber_filter_time_used_s.apply([&](auto &val) { val += unaccounted_usage_s; });
+    unaccounted_filter_time_used_start_s_ = now_s;
 }
 
 uint32_t ChamberFiltration::filter_lifetime_s() const {
@@ -196,6 +216,8 @@ uint32_t ChamberFiltration::post_print_remaining_s() const {
 
 void ChamberFiltration::stop_post_print_filtration() {
     std::lock_guard _lg(mutex_);
+    commit_unaccounted_filter_usage(ticks_s());
+    unaccounted_filter_time_used_start_s_ = 0;
     output_pwm_ = {};
     needs_filtration_ = std::nullopt;
 }

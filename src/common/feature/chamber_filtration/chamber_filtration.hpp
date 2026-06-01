@@ -68,6 +68,7 @@ public:
     void handle_filter_expiration_warning(Response response);
 
 private:
+    void commit_unaccounted_filter_usage(uint32_t now_s, uint32_t min_s = 1);
     void update_needs_filtration();
 
 private:
