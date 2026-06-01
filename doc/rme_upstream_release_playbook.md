@@ -315,7 +315,9 @@ Core One and Core One Plus selftest/setup labels remain correct.
 
 ### Odometer Persistence And Manual Motion
 
-Periodic odometer persistence must wait until Marlin and the planner are idle. `cycle()` also runs from nested `idle()` calls while blocking G-codes such as `G123` are planning manual movement, so EEPROM journal writes must not use a maximum-age escape hatch that can fire during active motion. Print finalization may still force an immediate save.
+Keep odometer persistence out of the nested server `cycle()` path. `cycle()` also runs from nested `idle()` calls while blocking G-codes such as `G123` are planning manual movement. Print finalization may still force an immediate save.
+
+When extending `MarlinSettings::load()`, preserve the upstream startup sequence: call `reset()` before overlaying values loaded from Buddy config-store. `reset()` initializes motion defaults, planner positioning, global endstop defaults, and stepper drivers. Skipping it caused cold-boot manual Z movement to drive incorrectly and reboot the printer when Z was the first moved axis.
 
 ### Chamber Fan, Filtration, And Safety Timer
 
@@ -383,7 +385,7 @@ Completed UI autotunes prompt the user to save or discard the new values; save a
 Failed UI autotunes show failure and do not offer to save incomplete values.
 M303 ... U1 applies autotuned values to the live heater PID settings.
 M500 persists the live PID values into Buddy config-store.
-Boot settings load and M501 restore persisted PID values and call the normal PID postprocess/update path.
+Boot settings load and M501 first run the upstream `reset()` initialization path, then restore persisted PID values and call the normal PID postprocess/update path.
 Final builds must keep full M503 reporting available, including human-readable headings/comments and TMC settings. Keep this independent from `DEVELOPMENT_ITEMS` so release builds can retain the complete report without enabling development-only UI and commands.
 ```
 
