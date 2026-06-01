@@ -13,6 +13,7 @@ import os
 import queue
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -72,6 +73,20 @@ STATUS_COLORS = {
     "failed": "\033[31m",
 }
 RESET = "\033[0m"
+
+
+def terminate_build_process(process: subprocess.Popen[str], *, force: bool = False) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    elif force:
+        process.kill()
+    else:
+        process.terminate()
 
 
 @dataclass
@@ -564,7 +579,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--version-suffix", help="Pass --version-suffix to utils/build.py.")
     parser.add_argument("--version-suffix-short", help="Pass --version-suffix-short to utils/build.py.")
     parser.add_argument("--no-clean-output", action="store_true", help="Do not clear the output folder before building.")
-    parser.add_argument("--jobs", type=int, help="Number of presets to build at once. Default: all selected presets.")
+    parser.add_argument("--jobs", type=int, default=4, help="Number of presets to build at once. Default: 4.")
     parser.add_argument("--verbose", action="store_true", help="Print each child build's output while it runs.")
     parser.add_argument("--dry-run", action="store_true", help="Print the build command without running it.")
     parser.add_argument(
@@ -648,7 +663,7 @@ def main() -> int:
             command.extend(["-D", definition])
         jobs.append(BuildJob(preset=preset, command=command, products_dir=products_dir))
 
-    max_parallel = args.jobs or len(jobs)
+    max_parallel = args.jobs
     print("Building presets:", ",".join(selected_presets))
     print("BBF output:", output_dir)
     print("Parallel jobs:", max_parallel)
@@ -658,7 +673,7 @@ def main() -> int:
         return 0
 
     if not args.skip_bootstrap:
-        print("Bootstrapping once before parallel builds...")
+        print("Bootstrapping once before builds...")
         bootstrap = subprocess.run(
             [*repo_python, str(PROJECT_ROOT / "utils" / "bootstrap.py")],
             cwd=PROJECT_ROOT,
@@ -689,6 +704,7 @@ def main() -> int:
                     job.command,
                     cwd=PROJECT_ROOT,
                     env=child_env,
+                    start_new_session=os.name == "posix",
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
@@ -724,6 +740,16 @@ def main() -> int:
             if running:
                 time.sleep(0.1)
         ui.render(jobs)
+    except KeyboardInterrupt:
+        print("\nStopping active builds...")
+        for process in running:
+            terminate_build_process(process)
+        for process in running:
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                terminate_build_process(process, force=True)
+        return 130
     finally:
         ui.stop()
 

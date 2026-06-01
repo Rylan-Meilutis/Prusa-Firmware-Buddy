@@ -113,10 +113,10 @@ Every non-resource source directory in that inventory should map to one of the f
 5. Run the narrow compile checks early.
 
 ```sh
-./build.py --preset xl --bootloader yes --jobs 13
-./build.py --preset coreone --bootloader yes --jobs 13
-./build.py --preset coreonel --bootloader yes --jobs 13
-./build.py --preset mini --bootloader yes --jobs 13
+./build.py --preset xl --bootloader yes
+./build.py --preset coreone --bootloader yes
+./build.py --preset coreonel --bootloader yes
+./build.py --preset mini --bootloader yes
 ```
 
 XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-only brightness gate. Core One and Core One L are the chamber/door/LED/resource-image gates. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
@@ -124,8 +124,10 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 6. Run the full release build after focused targets pass.
 
 ```sh
-./build.py --jobs 13
+./build.py
 ```
+
+The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned.
 
 For broad compatibility after touching shared CMake, resources, build options, or feature flags, also run the default Buddy preset matrix from `utils/build.py` on at least one clean machine:
 
@@ -376,7 +378,7 @@ Failed UI autotunes show failure and do not offer to save incomplete values.
 M303 ... U1 applies autotuned values to the live heater PID settings.
 M500 persists the live PID values into Buddy config-store.
 Boot settings load and M501 restore persisted PID values and call the normal PID postprocess/update path.
-Final builds must keep M503 reporting available. Save flash by compacting release-only human-readable M503 headings/comments and bulky diagnostic dumps, while keeping replayable persistent settings reportable.
+Final builds must keep full M503 reporting available, including human-readable headings/comments and TMC settings. Keep this independent from `DEVELOPMENT_ITEMS` so release builds can retain the complete report without enabling development-only UI and commands.
 ```
 
 ### UI Theme, Assets, And Display Framework
@@ -641,7 +643,7 @@ python3 utils/build.py --preset mk4 --bootloader yes --final
 FLASH: 1919312 B / 1919 KB, 97.67%
 ```
 
-Final/non-development builds intentionally keep the `M503` settings report command enabled. To keep flash usage under control, release `M503` output omits human-only headings/comments and the TMC state dump, but preserves replayable persistent settings. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, shared UI containers, and compact release-only diagnostics.
+Final/non-development builds intentionally keep the full `M503` settings report command enabled. `FULL_M503_REPORT_ENABLED` remains enabled independently from `DEVELOPMENT_ITEMS_ENABLED`, preserving human-readable headings/comments and TMC settings without enabling development-only UI and commands. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, and shared UI containers.
 
 PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`.
 
@@ -761,12 +763,12 @@ Before publishing BBFs:
 git status --short
 git diff --stat
 git diff --check
-./build.py --preset xl --bootloader yes --jobs 13
-./build.py --preset coreone --bootloader yes --jobs 13
-./build.py --preset coreonel --bootloader yes --jobs 13
-./build.py --preset mini --bootloader yes --jobs 13
-./build.py --preset mk4 --bootloader yes --jobs 13
-./build.py --jobs 13
+./build.py --preset xl --bootloader yes
+./build.py --preset coreone --bootloader yes
+./build.py --preset coreonel --bootloader yes
+./build.py --preset mini --bootloader yes
+./build.py --preset mk4 --bootloader yes
+./build.py
 python3 utils/build.py --bootloader yes
 ```
 
