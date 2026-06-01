@@ -51,6 +51,7 @@
 
 #include "temperature.h"
 #include <option/development_items.h>
+#include <option/full_m503_report.h>
 #include "../lcd/ultralcd.h"
 #include "../core/language.h"
 #include "../libs/vector_3.h"   // for matrix_3x3
@@ -528,7 +529,7 @@ void MarlinSettings::reset() {
 
   #define CONFIG_ECHO_START()       do{ if (!forReplay) SERIAL_ECHO_START(); }while(0)
   #define CONFIG_ECHO_MSG(STR)      do{ CONFIG_ECHO_START(); SERIAL_ECHOLNPGM(STR); }while(0)
-  #if DEVELOPMENT_ITEMS()
+  #if FULL_M503_REPORT()
     #define CONFIG_ECHO_HEADING(STR)  do{ if (!forReplay) { CONFIG_ECHO_START(); SERIAL_ECHOLNPGM(STR); } }while(0)
   #else
     #define CONFIG_ECHO_HEADING(STR)  do{}while(0)
@@ -578,7 +579,7 @@ void MarlinSettings::reset() {
      * Announce current units, in case inches are being displayed
      */
     CONFIG_ECHO_START();
-      #if DEVELOPMENT_ITEMS()
+      #if FULL_M503_REPORT()
         SERIAL_ECHOPGM("  G21    ; Units in mm");
         say_units(false);
       #else
@@ -591,7 +592,7 @@ void MarlinSettings::reset() {
       /**
        * Volumetric extrusion M200
        */
-      #if DEVELOPMENT_ITEMS()
+      #if FULL_M503_REPORT()
         if (!forReplay) {
           CONFIG_ECHO_START();
           SERIAL_ECHOPGM("Filament settings:");
@@ -681,7 +682,7 @@ void MarlinSettings::reset() {
         , " T", LINEAR_UNIT(planner.settings.travel_acceleration)
       );
 
-      #if DEVELOPMENT_ITEMS()
+      #if FULL_M503_REPORT()
         if (!forReplay) {
           CONFIG_ECHO_START();
           SERIAL_ECHOPGM("Advanced: B<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate>");
@@ -745,7 +746,7 @@ void MarlinSettings::reset() {
 
       #if ENABLED(AUTO_BED_LEVELING_UBL)
 
-        #if DEVELOPMENT_ITEMS()
+        #if FULL_M503_REPORT()
           if (!forReplay) {
             CONFIG_ECHO_START();
             ubl.echo_name();
@@ -765,7 +766,7 @@ void MarlinSettings::reset() {
 
       #if ENABLED(AUTO_BED_LEVELING_UBL)
 
-        #if DEVELOPMENT_ITEMS()
+        #if FULL_M503_REPORT()
           if (!forReplay) {
             SERIAL_EOL();
             ubl.report_state();
@@ -853,7 +854,7 @@ void MarlinSettings::reset() {
      * Probe Offset
      */
     #if HAS_BED_PROBE
-      #if DEVELOPMENT_ITEMS()
+      #if FULL_M503_REPORT()
         if (!forReplay) {
           CONFIG_ECHO_START();
           SERIAL_ECHOPGM("Z-Probe Offset");
@@ -881,7 +882,7 @@ void MarlinSettings::reset() {
       #endif
     #endif
 
-    #if HAS_TRINAMIC && DEVELOPMENT_ITEMS()
+    #if HAS_TRINAMIC && FULL_M503_REPORT()
 
       /**
        * TMC stepper driver current
