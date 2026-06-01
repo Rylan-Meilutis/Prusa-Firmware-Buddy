@@ -69,6 +69,10 @@ private:
     void update_status();
     void update_messages();
     void update_finished_summary();
+    void advance_finished_stat(bool forward);
+    bool finished_stat_available(FinishedStat stat) const;
+    size_t finished_stat_count() const;
+    size_t finished_stat_index() const;
     void update_action_buttons(marlin_server::State state);
     void set_page(Page page);
     void toggle_page();
