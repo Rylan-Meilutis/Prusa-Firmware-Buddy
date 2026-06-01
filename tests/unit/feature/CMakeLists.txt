@@ -1,3 +1,8 @@
 add_subdirectory(openprinttag)
 add_subdirectory(filament_tracker)
 add_subdirectory(indx_hotend_temp_model)
+add_subdirectory(xbuddy_extension)
+add_subdirectory(ramming)
+add_subdirectory(cork)
+add_subdirectory(gcode_exception)
+add_subdirectory(tool_index)

@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "bsod.h"
+
 void _bsod(const char *fmt, const char *file_name, int line_number, ...) {
     throw std::runtime_error(fmt);
 }

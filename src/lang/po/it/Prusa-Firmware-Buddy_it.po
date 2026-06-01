@@ -46,7 +46,7 @@ msgstr ""
 "%s Controllare che il riscaldatore dell'hotend e l'elettronica di controllo "
 "non siano danneggiati"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
 #, c-format
 msgid ""
 "%s can be remapped to the right side.\n"
@@ -272,7 +272,7 @@ msgstr "Annullare la stampa?"
 msgid "Aborted."
 msgstr "Annullato."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
 msgid "Absorbing heat"
 msgstr "Assorbimento calore"
 
@@ -303,7 +303,7 @@ msgstr "Frequenze reali cinghie"
 msgid "Add Printer to Connect"
 msgstr "Aggiungi Stampante a Connect"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
 msgid "Additional probing"
 msgstr "Sondaggio aggiuntivo"
 
@@ -334,7 +334,7 @@ msgstr ""
 "\n"
 "Ripeti l'ultimo passaggio."
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:51
+#: src/feature/chamber_filtration/chamber_filtration.cpp:51
 msgid "Adv. filtration"
 msgstr "Filtraz. avanz."
 
@@ -471,7 +471,7 @@ msgstr ""
 "pulizia ugello fallita.\n"
 "Vuoi davvero disattivarla?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
 msgid "Auto-retracting"
 msgstr "Auto-retrazione"
 
@@ -816,7 +816,7 @@ msgstr "Calibrazione motore Y"
 msgid "Calibrating accelerometer..."
 msgstr "Calibrazione accelerometro..."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
 msgid "Calibrating axis"
 msgstr "Calibrazione assi"
 
@@ -824,7 +824,7 @@ msgstr "Calibrazione assi"
 msgid "Calibrating filament sensors"
 msgstr "Calibrazione sensori filamento"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
 msgid "Calibrating tool offsets"
 msgstr "Calibrazione offset strumenti"
 
@@ -880,7 +880,7 @@ msgstr ""
 "Il perno di calibrazione non è stato raggiunto. Controlla l'installazione "
 "del perno."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:41
+#: src/feature/factory_reset/factory_reset.hpp:41
 msgid "Calibrations"
 msgstr "Calibrazioni"
 
@@ -1189,7 +1189,7 @@ msgstr ""
 "Chiudi lo sportello idler e bloccalo con con la clip di chiusura. La "
 "calibrazione è completa!"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
 msgid "Closing chamber vents"
 msgstr "Chiusura ventilazione camera"
 
@@ -1220,7 +1220,7 @@ msgstr ""
 msgid "Comm err"
 msgstr "Err. comunicazione"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:42
+#: src/feature/factory_reset/factory_reset.hpp:42
 msgid "Common Misconfigurations"
 msgstr "Configurazioni errate comuni"
 
@@ -1451,7 +1451,7 @@ msgstr "Elimina il file INI"
 msgid "Delete credentials INI file? (Recommended)"
 msgstr "Cancellare il file INI delle credenziali? (Consigliato)"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
 msgid "Detecting steel sheet"
 msgstr "Rilevamento lamiera acciaio"
 
@@ -1731,7 +1731,7 @@ msgstr ""
 "La scheda Dwarf ha riscontrato il seguente problema: \n"
 "%s"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
 msgid "Dwelling"
 msgstr "Sosta"
 
@@ -1856,7 +1856,7 @@ msgstr "Abilita filamenti"
 msgid "Enabled"
 msgstr "Abilitato"
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:46
+#: src/feature/chamber_filtration/chamber_filtration.cpp:46
 #: src/gui/MItem_enclosure.hpp:16
 msgid "Enclosure"
 msgstr "Enclosure"
@@ -2498,11 +2498,11 @@ msgstr ""
 "Sensore di filamento non attivato durante il caricamento del filamento. "
 "Assicurati che il sensore sia calibrato e che il filamento lo raggiunga."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:96
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:96
 msgid "Filament sensor not connected, check wiring."
 msgstr "Sensore di filamento non collegato, controllare il cablaggio."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:106
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:106
 msgid "Filament sensor not ready: perform calibration first."
 msgstr "Sensore di filamento non pronto: eseguire prima la calibrazione."
 
@@ -3108,7 +3108,7 @@ msgid "HAL detected an I2C undefined error when sending data via I2C."
 msgstr ""
 "HAL ha rilevato un errore I2C indefinito durante l'invio di dati via I2C."
 
-#: src/common/feature/factory_reset/factory_reset.cpp:112
+#: src/feature/factory_reset/factory_reset.cpp:112
 msgid "HARD RESET"
 msgstr "HARD RESET"
 
@@ -3171,7 +3171,7 @@ msgstr "ERRORE HOMING Z"
 msgid "HOTEND HEATER OVERCURRENT"
 msgstr "SOVRACORRENTE RISCALDATORE HOTEND"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:46
+#: src/feature/factory_reset/factory_reset.hpp:46
 msgid "HW Configuration"
 msgstr "Configurazione HW"
 
@@ -3494,7 +3494,7 @@ msgstr "Home"
 
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
 #: src/gui/screen_phase_stepping_calibration.cpp:41
 #: src/gui/dialogs/DialogLoadUnload.cpp:75 src/gui/screen_crash_recovery.cpp:93
 msgid "Homing"
@@ -3880,11 +3880,11 @@ msgstr "C'è del filamento nello strumento o nei sensori di filamento laterali?"
 msgid "Item %i"
 msgstr "Elemento %i"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
 msgid "Joining spool"
 msgstr "Unione bobina"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
 msgstr "Mantieni"
@@ -4812,7 +4812,7 @@ msgstr "Errore Rete"
 msgid "Network"
 msgstr "Rete"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:43
+#: src/feature/factory_reset/factory_reset.hpp:43
 msgid "Network Settings"
 msgstr "Impostazioni rete"
 
@@ -4910,7 +4910,7 @@ msgid "Nominal Chamber Temperature"
 msgstr "Temperatura nominale camera"
 
 #: src/common/footer_def.cpp:10
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:42
+#: src/feature/chamber_filtration/chamber_filtration.cpp:42
 #: src/gui/screen/filament/screen_filament_detail.cpp:87
 #: src/gui/MItem_hardware.cpp:24 src/gui/numeric_input_config_common.cpp:71
 msgid "None"
@@ -5039,8 +5039,8 @@ msgstr "Pulitore ugello non calibrato"
 msgid "Nozzle cleaner position has been successfully calibrated and saved."
 msgstr "Posizione pulitore ugello calibrata e salvata."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
 msgid "Nozzle cleaning"
 msgstr "Pulizia ugello"
 
@@ -5239,7 +5239,7 @@ msgstr ""
 msgid "OpenPrintTag reassigned for tool %i"
 msgstr "OpenPrintTag riassegnato a strumento %i"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
 msgid "Opening chamber vents"
 msgstr "Apertura ventilazione camera"
 
@@ -5449,7 +5449,7 @@ msgstr "Calibrare i sensori filamento? Sostituisce la precedente."
 msgid "Performing cut"
 msgstr "Eseguo taglio"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:92
+#: src/feature/factory_reset/factory_reset.cpp:92
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -5774,7 +5774,7 @@ msgstr "La stampa terminerà"
 msgid "Printed circuit board of %s is overheating."
 msgstr "Il PCB di %s si surriscalda."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:47
+#: src/feature/factory_reset/factory_reset.hpp:47
 msgid "Printer Functions"
 msgstr "Funzioni stampante"
 
@@ -5786,7 +5786,7 @@ msgstr "Modello stampante"
 msgid "Printer Setup"
 msgstr "Configurazione stampante"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:48
+#: src/feature/factory_reset/factory_reset.hpp:48
 msgid "Printer State"
 msgstr "Stato stampante"
 
@@ -5865,7 +5865,7 @@ msgstr ""
 "La posizione XY rilevata è di %.3f mm rispetto a quella prevista. Si tratta "
 "di una differenza superiore a quella consentita di %.3f mm."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
 msgid "Probing bed"
 msgstr "Sondaggio piano"
 
@@ -6089,7 +6089,7 @@ msgstr "Lato Posteriore [um]"
 msgid "Reassign the currently detected tag to the filament?"
 msgstr "Riassegnare il tag rilevato al filamento?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
 msgid "Recalibrating home. This may take some time."
 msgstr "Ricalibrazione homing. Può richiedere tempo."
 
@@ -6216,7 +6216,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Richiede filtrazione"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/MItem_tools.hpp:402 src/gui/screen/screen_factory_reset.cpp:61
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6471,7 +6471,7 @@ msgstr "Scansione reti..."
 msgid "Scanning..."
 msgstr "Scansione..."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:51
+#: src/feature/factory_reset/factory_reset.hpp:51
 msgid "Security"
 msgstr "Sicurezza"
 
@@ -6598,12 +6598,12 @@ msgstr "Mostra tutto"
 msgid "Side FSensor Remap"
 msgstr "Rimappa FSensor laterale"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
 #: src/gui/screen_menu_filament_sensors.hpp:60
 msgid "Side Filament Sensor"
 msgstr "Sensore filamento laterale"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
 #: src/gui/screen_menu_sensor_info.hpp:119
 msgid "Side Filament Sensors"
 msgstr "Sensori filamento laterali"
@@ -6613,7 +6613,7 @@ msgid "Side Filament sensor"
 msgstr "Sensore filamento laterale"
 
 #. Only side sensors are not connected, not that tragic, show message but keep on going
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:101
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:101
 msgid "Side filament sensor not connected, check wiring."
 msgstr "Sensore di filamento laterale non collegato, controllare il cablaggio."
 
@@ -6691,7 +6691,7 @@ msgstr "Movimento speed sweep fallito."
 msgid "Spool join sensor not ready"
 msgstr "Sensore spool join non pronto"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
 msgid "Spool joined"
 msgstr "Bobine unite"
 
@@ -6711,7 +6711,7 @@ msgstr "Statico"
 msgid "Static-left"
 msgstr "Statico-sinistra"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:45
+#: src/feature/factory_reset/factory_reset.hpp:45
 msgid "Statistics"
 msgstr "Statistiche"
 
@@ -7356,7 +7356,7 @@ msgstr ""
 msgid "There was an error connecting to the Wi-Fi."
 msgstr "Si è verificato un errore di connessione al Wi-Fi."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
 msgid "Third Side Filament Sensor"
 msgstr "Terzo sensore di filamento laterale"
 
@@ -7762,7 +7762,7 @@ msgstr ""
 "Disattiva il logging prima di rimuovere l'USB per evitare danni al "
 "filesystem!"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:44
+#: src/feature/factory_reset/factory_reset.hpp:44
 msgid "UI Settings"
 msgstr "Impostazioni UI"
 
@@ -8020,7 +8020,7 @@ msgstr "Utente"
 msgid "User Interface"
 msgstr "Interfaccia utente"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:49
+#: src/feature/factory_reset/factory_reset.hpp:49
 msgid "User Presets"
 msgstr "Preset utente"
 
@@ -8076,11 +8076,11 @@ msgstr ""
 "\n"
 "L'ugello si sta ancora raffreddando."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
 msgid "Waiting for bed"
 msgstr "Attesa piano"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
 msgid "Waiting for chamber"
 msgstr "Attesa camera"
 
@@ -8088,7 +8088,7 @@ msgstr "Attesa camera"
 msgid "Waiting for fingerprint timed out"
 msgstr "Timeout attesa fingerprint"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
 msgid "Waiting for hotend"
 msgstr "Attesa hotend"
 

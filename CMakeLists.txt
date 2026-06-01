@@ -129,6 +129,7 @@ target_include_directories(
             src/guiconfig
             src/lang
             src/common/utils
+            src
             ${OPTIONS_INCLUDE_DIR}
   )
 

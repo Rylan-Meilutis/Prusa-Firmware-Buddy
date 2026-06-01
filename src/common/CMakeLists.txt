@@ -218,7 +218,6 @@ if(BOARD IN_LIST BUDDY_BOARDS)
 endif()
 if(BOARD_IS_MASTER_BOARD)
   add_subdirectory(gcode)
-  add_subdirectory(feature)
   add_subdirectory(mapi)
 endif()
 

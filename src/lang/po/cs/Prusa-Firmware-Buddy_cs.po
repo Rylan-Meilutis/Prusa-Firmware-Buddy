@@ -48,7 +48,7 @@ msgstr ""
 "%s Zkontrolujte výhřev hotendu a ovládací elektroniku - mohlo dojít k "
 "poškození."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
 #, c-format
 msgid ""
 "%s can be remapped to the right side.\n"
@@ -272,7 +272,7 @@ msgstr "Zrušit tisk?"
 msgid "Aborted."
 msgstr "Zrušeno."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
 msgid "Absorbing heat"
 msgstr "Absorpce tepla"
 
@@ -303,7 +303,7 @@ msgstr "Skutečné frekvence řemenů"
 msgid "Add Printer to Connect"
 msgstr "Přidat tiskárnu do Connectu"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
 msgid "Additional probing"
 msgstr "Další sondování"
 
@@ -334,7 +334,7 @@ msgstr ""
 "\n"
 "Zopakujte poslední krok."
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:51
+#: src/feature/chamber_filtration/chamber_filtration.cpp:51
 msgid "Adv. filtration"
 msgstr "Pokr. filtrace"
 
@@ -471,7 +471,7 @@ msgstr ""
 "čištění trysky.\n"
 "Opravdu ji chcete vypnout?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
 msgid "Auto-retracting"
 msgstr "Auto retrakce"
 
@@ -806,7 +806,7 @@ msgstr "Kalibruji motor Y"
 msgid "Calibrating accelerometer..."
 msgstr "Kalibruji akcelerometr..."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
 msgid "Calibrating axis"
 msgstr "Kalibrace os"
 
@@ -814,7 +814,7 @@ msgstr "Kalibrace os"
 msgid "Calibrating filament sensors"
 msgstr "Kalibrace senzorů filamentu"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
 msgid "Calibrating tool offsets"
 msgstr "Kalibrace offsetů nástrojů"
 
@@ -867,7 +867,7 @@ msgid ""
 "Calibration pin has not been reached. Please check the pin installation."
 msgstr "Kalibrační pin nenalezen. Zkontrolujte jeho instalaci."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:41
+#: src/feature/factory_reset/factory_reset.hpp:41
 msgid "Calibrations"
 msgstr "Kalibrace"
 
@@ -1166,7 +1166,7 @@ msgid ""
 "Close the idler door and secure it with the swivel. The calibration is done!"
 msgstr "Zavřete dvířka idleru a zajistěte je sponou. Kalibrace je hotová!"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
 msgid "Closing chamber vents"
 msgstr "Zavírání ventilace komory"
 
@@ -1196,7 +1196,7 @@ msgstr ""
 msgid "Comm err"
 msgstr "Chyba komunikace"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:42
+#: src/feature/factory_reset/factory_reset.hpp:42
 msgid "Common Misconfigurations"
 msgstr "Běžné chybné konfigurace"
 
@@ -1427,7 +1427,7 @@ msgstr "Smazat INI soubor"
 msgid "Delete credentials INI file? (Recommended)"
 msgstr "Smazat INI soubor s údaji? (Doporučeno)"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
 msgid "Detecting steel sheet"
 msgstr "Detekce ocelového plátu"
 
@@ -1702,7 +1702,7 @@ msgstr ""
 "Deska Dwarf má následující problém:\n"
 "%s"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
 msgid "Dwelling"
 msgstr "Prodleva"
 
@@ -1827,7 +1827,7 @@ msgstr "Povolit filamenty"
 msgid "Enabled"
 msgstr "Zapnuto"
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:46
+#: src/feature/chamber_filtration/chamber_filtration.cpp:46
 #: src/gui/MItem_enclosure.hpp:16
 msgid "Enclosure"
 msgstr "Box na tiskárnu"
@@ -2454,11 +2454,11 @@ msgstr ""
 "Senzor filamentu nesepnul při zavádění filamentu. Zkontrolujte, zda je "
 "senzor zkalibrovaný a filament se k němu může dostat."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:96
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:96
 msgid "Filament sensor not connected, check wiring."
 msgstr "Filament senzor není připojen. Zkontrolujte zapojení."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:106
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:106
 msgid "Filament sensor not ready: perform calibration first."
 msgstr "Senzor filamentu nepřipraven: nejprve jej zkalibrujte."
 
@@ -3054,7 +3054,7 @@ msgstr "HAL detekoval nedefinovanou chybu I2C při přijímání dat přes I2C."
 msgid "HAL detected an I2C undefined error when sending data via I2C."
 msgstr "HAL detekoval nedefinovanou chybu I2C při posílání dat přes I2C."
 
-#: src/common/feature/factory_reset/factory_reset.cpp:112
+#: src/feature/factory_reset/factory_reset.cpp:112
 msgid "HARD RESET"
 msgstr "TVRDÝ RESET"
 
@@ -3117,7 +3117,7 @@ msgstr "CHYBA HOMINGU Z"
 msgid "HOTEND HEATER OVERCURRENT"
 msgstr "NADPROUD VÝHŘEVU HOTENDU"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:46
+#: src/feature/factory_reset/factory_reset.hpp:46
 msgid "HW Configuration"
 msgstr "Konfigurace HW"
 
@@ -3439,7 +3439,7 @@ msgstr "Domů"
 
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
 #: src/gui/screen_phase_stepping_calibration.cpp:41
 #: src/gui/dialogs/DialogLoadUnload.cpp:75 src/gui/screen_crash_recovery.cpp:93
 msgid "Homing"
@@ -3819,11 +3819,11 @@ msgstr "Je v extruderu nebo bočních senzorech filament?"
 msgid "Item %i"
 msgstr "Položka %i"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
 msgid "Joining spool"
 msgstr "Spojování cívek"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
 msgstr "Ponechat"
@@ -4751,7 +4751,7 @@ msgstr "Selhání sítě"
 msgid "Network"
 msgstr "Síť"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:43
+#: src/feature/factory_reset/factory_reset.hpp:43
 msgid "Network Settings"
 msgstr "Nastavení sítě"
 
@@ -4849,7 +4849,7 @@ msgid "Nominal Chamber Temperature"
 msgstr "Nominální teplota komory"
 
 #: src/common/footer_def.cpp:10
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:42
+#: src/feature/chamber_filtration/chamber_filtration.cpp:42
 #: src/gui/screen/filament/screen_filament_detail.cpp:87
 #: src/gui/MItem_hardware.cpp:24 src/gui/numeric_input_config_common.cpp:71
 msgid "None"
@@ -4977,8 +4977,8 @@ msgstr "Čistič trysky není zkalibrován"
 msgid "Nozzle cleaner position has been successfully calibrated and saved."
 msgstr "Pozice čističe trysky byla úspěšně zkalibrována a uložena."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
 msgid "Nozzle cleaning"
 msgstr "Čištění trysky"
 
@@ -5175,7 +5175,7 @@ msgstr ""
 msgid "OpenPrintTag reassigned for tool %i"
 msgstr "OpenPrintTag přiřazen pro nástroj %i"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
 msgid "Opening chamber vents"
 msgstr "Otevírání ventilace komory"
 
@@ -5383,7 +5383,7 @@ msgstr "Provést kalibraci senzorů filamentu? Tím se zruší předchozí kalib
 msgid "Performing cut"
 msgstr "Provádím řez"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:92
+#: src/feature/factory_reset/factory_reset.cpp:92
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -5705,7 +5705,7 @@ msgstr "Konec tisku:"
 msgid "Printed circuit board of %s is overheating."
 msgstr "Deska plošných spojů %s se přehřívá."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:47
+#: src/feature/factory_reset/factory_reset.hpp:47
 msgid "Printer Functions"
 msgstr "Funkce tiskárny"
 
@@ -5717,7 +5717,7 @@ msgstr "Model tiskárny"
 msgid "Printer Setup"
 msgstr "Nastavení tiskárny"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:48
+#: src/feature/factory_reset/factory_reset.hpp:48
 msgid "Printer State"
 msgstr "Stav tiskárny"
 
@@ -5797,7 +5797,7 @@ msgstr ""
 "Testovaná pozice XY je o %.3f mm od očekávané pozice. To je více než "
 "povolená tolerance %.3f mm."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
 msgid "Probing bed"
 msgstr "Sondování podložky"
 
@@ -6016,7 +6016,7 @@ msgstr "Zadní strana [um]"
 msgid "Reassign the currently detected tag to the filament?"
 msgstr "Přeřadit aktuálně detekovaný tag k filamentu?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
 msgid "Recalibrating home. This may take some time."
 msgstr "Rekalibrace homingu. Může to chvíli trvat."
 
@@ -6143,7 +6143,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Vyžaduje filtraci"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/MItem_tools.hpp:402 src/gui/screen/screen_factory_reset.cpp:61
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6397,7 +6397,7 @@ msgstr "Skenování sítí..."
 msgid "Scanning..."
 msgstr "Skenování..."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:51
+#: src/feature/factory_reset/factory_reset.hpp:51
 msgid "Security"
 msgstr "Zabezpečení"
 
@@ -6523,12 +6523,12 @@ msgstr "Zobrazit vše"
 msgid "Side FSensor Remap"
 msgstr "Přesunutí bočního Fsenzoru"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
 #: src/gui/screen_menu_filament_sensors.hpp:60
 msgid "Side Filament Sensor"
 msgstr "Boční senzor filamentu"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
 #: src/gui/screen_menu_sensor_info.hpp:119
 msgid "Side Filament Sensors"
 msgstr "Boční senzory filamentu"
@@ -6538,7 +6538,7 @@ msgid "Side Filament sensor"
 msgstr "Boční senzor filamentu"
 
 #. Only side sensors are not connected, not that tragic, show message but keep on going
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:101
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:101
 msgid "Side filament sensor not connected, check wiring."
 msgstr "Boční senzor filamentu není připojen, zkontrolujte zapojení."
 
@@ -6616,7 +6616,7 @@ msgstr "Pohyb speed sweep selhal."
 msgid "Spool join sensor not ready"
 msgstr "Senzor spojení cívek není připraven"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
 msgid "Spool joined"
 msgstr "Cívky spojeny"
 
@@ -6636,7 +6636,7 @@ msgstr "Statický"
 msgid "Static-left"
 msgstr "Statický-vlevo"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:45
+#: src/feature/factory_reset/factory_reset.hpp:45
 msgid "Statistics"
 msgstr "Statistiky"
 
@@ -7280,7 +7280,7 @@ msgstr "Při čekání na vzorek měření vypršel časový limit, opakujte akc
 msgid "There was an error connecting to the Wi-Fi."
 msgstr "Při připojování k Wi-Fi došlo k potížím."
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
 msgid "Third Side Filament Sensor"
 msgstr "Třetí boční senzor filamentu"
 
@@ -7682,7 +7682,7 @@ msgstr ""
 "Před odpojením USB disku vypněte logování, jinak hrozí poškození souborového "
 "systému!"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:44
+#: src/feature/factory_reset/factory_reset.hpp:44
 msgid "UI Settings"
 msgstr "Nastavení UI"
 
@@ -7937,7 +7937,7 @@ msgstr "Uživatel"
 msgid "User Interface"
 msgstr "Uživatelské rozhraní"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:49
+#: src/feature/factory_reset/factory_reset.hpp:49
 msgid "User Presets"
 msgstr "Uživatelské presety"
 
@@ -7993,11 +7993,11 @@ msgstr ""
 "\n"
 "Tryska se stále chladí."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
 msgid "Waiting for bed"
 msgstr "Čekání na podložku"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
 msgid "Waiting for chamber"
 msgstr "Čekání na komoru"
 
@@ -8005,7 +8005,7 @@ msgstr "Čekání na komoru"
 msgid "Waiting for fingerprint timed out"
 msgstr "Vypršela doba čekání na identifikátor"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
 msgid "Waiting for hotend"
 msgstr "Čekání na hotend"
 

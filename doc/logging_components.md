@@ -17,8 +17,8 @@ This file is generated automatically so don't edit it directly
 - Dwarf_6: logging::Severity::info, src/puppies/Dwarf.cpp
 - EEPROM: logging::Severity::info, src/persistent_stores/store_instances/config_store/store_c_api.cpp
 - ESPIF: logging::Severity::info, lib/WUI/espif.cpp
-- EmergencyStop: logging::Severity::debug, src/common/feature/emergency_stop/emergency_stop.cpp
-- FSensor: logging::Severity::info, src/common/feature/filament_sensor/filament_sensors_handler.cpp
+- EmergencyStop: logging::Severity::debug, src/feature/emergency_stop/emergency_stop.cpp
+- FSensor: logging::Severity::info, src/feature/filament_sensor/filament_sensors_handler.cpp
 - FileSystem: logging::Severity::info, src/buddy/filesystem.cpp
 - Fsm: logging::Severity::debug, src/common/fsm_states.cpp
 - GUI: logging::Severity::debug, src/gui/logger.cpp
@@ -38,7 +38,7 @@ This file is generated automatically so don't edit it directly
 - Network: logging::Severity::info, lib/WUI/wui.cpp
 - Node: logging::Severity::info, src/puppy/honeybee_shared/cyphal_node.cpp
 - NozzleCleanerCalibration: logging::Severity::info, src/feature/indx_nozzle_cleaner_calibration/indx_nozzle_cleaner_calibration.cpp
-- OpenPrintTag: logging::Severity::info, src/common/feature/openprinttag/detail/requests_base.cpp
+- OpenPrintTag: logging::Severity::info, src/feature/openprinttag/detail/requests_base.cpp
 - PRUSA_GCODE: logging::Severity::info, src/marlin_stubs/gcode.cpp
 - PRUSA_PACK_READER: logging::Severity::info, src/common/gcode/gcode_reader_binary.cpp
 - PhaseStepping: logging::Severity::debug, lib/Marlin/Marlin/src/feature/phase_stepping/phase_stepping.cpp
@@ -51,7 +51,7 @@ This file is generated automatically so don't edit it directly
 - Resources: logging::Severity::debug, src/resources/bootstrap.cpp
 - RingAllocator: logging::Severity::info, src/common/ring_allocator.cpp
 - Selftest: logging::Severity::debug, src/common/selftest/i_selftest.cpp
-- ToolOffsetCalib: logging::Severity::info, src/common/feature/tool_offset_calibration/tool_offset_calibration.cpp
+- ToolOffsetCalib: logging::Severity::info, src/feature/tool_offset_calibration/tool_offset_calibration.cpp
 - Touch: logging::Severity::info, src/hw/touchscreen/touchscreen_common.cpp
 - USBDevice: logging::Severity::info, src/buddy/usb_device.cpp
 - USBHost: logging::Severity::info, src/buddy/usbh_conf.cpp

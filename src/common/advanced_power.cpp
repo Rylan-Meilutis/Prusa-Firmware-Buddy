@@ -15,7 +15,7 @@
 
 #include <option/has_remote_bed.h>
 #if HAS_REMOTE_BED()
-    #include <common/feature/remote_bed/remote_bed.hpp>
+    #include <feature/remote_bed/remote_bed.hpp>
 #endif
 
 using namespace buddy::hw;

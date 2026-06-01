@@ -93,7 +93,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/memp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/netif.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/netif/ethernet.c
-  ${CMAKE_SOURCE_DIR}/src/common/feature/cork/tracker.cpp
+  ${CMAKE_SOURCE_DIR}/src/feature/cork/tracker.cpp
   )
 target_include_directories(
   connect_tests
@@ -223,7 +223,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/memp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/netif.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/netif/ethernet.c
-  ${CMAKE_SOURCE_DIR}/src/common/feature/cork/tracker.cpp
+  ${CMAKE_SOURCE_DIR}/src/feature/cork/tracker.cpp
   )
 target_include_directories(
   connect_planner_tests
@@ -317,7 +317,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/memp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/netif.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/netif/ethernet.c
-  ${CMAKE_SOURCE_DIR}/src/common/feature/cork/tracker.cpp
+  ${CMAKE_SOURCE_DIR}/src/feature/cork/tracker.cpp
   registrator.cpp
   time_mock.cpp
   partial_file_mock.cpp

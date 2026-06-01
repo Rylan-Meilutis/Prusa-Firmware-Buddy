@@ -46,7 +46,7 @@ msgstr ""
 "%s ホットエンドヒータート コントロールボードニ ソンショウノ カノウセイガアリ"
 "マス。テンケンシテクダサイ。"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:61
 #, c-format
 msgid ""
 "%s can be remapped to the right side.\n"
@@ -275,7 +275,7 @@ msgstr "インサツ ヲ チュウシ シマスカ?"
 msgid "Aborted."
 msgstr "チュウシ サレマシタ。"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:29
 msgid "Absorbing heat"
 msgstr "ネツ ヲ キュウシュウ チュウ"
 
@@ -307,7 +307,7 @@ msgstr "ジッサイ ノ ベルト シュウハスウ"
 msgid "Add Printer to Connect"
 msgstr "プリンタヲ プルサコネクトニ ツイカ"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:27
 msgid "Additional probing"
 msgstr "ツイカ プロービング"
 
@@ -338,7 +338,7 @@ msgstr ""
 "\n"
 "サイゴ ノ ステップ ヲ クリカエシテ クダサイ。"
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:51
+#: src/feature/chamber_filtration/chamber_filtration.cpp:51
 msgid "Adv. filtration"
 msgstr "コウキュウ フィルター"
 
@@ -477,7 +477,7 @@ msgstr ""
 "グ ノ シッパイ ニ ヤクダチマス。\n"
 "ムコウ ニ シマスカ?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:47
 msgid "Auto-retracting"
 msgstr "オート リトラクト チュウ"
 
@@ -822,7 +822,7 @@ msgstr "Yモーター キャリブレーション"
 msgid "Calibrating accelerometer..."
 msgstr "カソクド キャリブレーションチュウ..."
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:25
 msgid "Calibrating axis"
 msgstr "ジク ヲ キャリブレーション チュウ"
 
@@ -830,7 +830,7 @@ msgstr "ジク ヲ キャリブレーション チュウ"
 msgid "Calibrating filament sensors"
 msgstr "フィラメント センサー キャリブレーション チュウ"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:54
 msgid "Calibrating tool offsets"
 msgstr "ツール オフセット キャリブレーション チュウ"
 
@@ -888,7 +888,7 @@ msgstr ""
 "キャリブレーションピンガ トドキマセン。ピンノ ソウチャクジョウタイヲ カクニン"
 "シテクダサイ。"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:41
+#: src/feature/factory_reset/factory_reset.hpp:41
 msgid "Calibrations"
 msgstr "キャリブレーション"
 
@@ -1213,7 +1213,7 @@ msgstr ""
 "アイドラードアヲ トジテ、スイベルデ コテイシマス。キャリブレーションガ カン"
 "リョウシマシタ!"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:51
 msgid "Closing chamber vents"
 msgstr "チャンバー カンキ ヲ トジテ イマス"
 
@@ -1244,7 +1244,7 @@ msgstr ""
 msgid "Comm err"
 msgstr "コミュニケーション エラー"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:42
+#: src/feature/factory_reset/factory_reset.hpp:42
 msgid "Common Misconfigurations"
 msgstr "イッパンテキ ナ ゴセッテイ"
 
@@ -1478,7 +1478,7 @@ msgstr "INIファイル ショウキョ"
 msgid "Delete credentials INI file? (Recommended)"
 msgstr "ニンショウジョウホウファイル ヲ サクジョ シマスカ?(スイショウ)"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:37
 msgid "Detecting steel sheet"
 msgstr "テッパン ノ ケンシュツ"
 
@@ -1758,7 +1758,7 @@ msgstr ""
 "Dwarfボードガ モンダイニ ソウグウシマシタ: \n"
 "%s"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:28
 msgid "Dwelling"
 msgstr "テイシ チュウ"
 
@@ -1883,7 +1883,7 @@ msgstr "フィラメント ヲ ユウコウ"
 msgid "Enabled"
 msgstr "ユウコウ"
 
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:46
+#: src/feature/chamber_filtration/chamber_filtration.cpp:46
 #: src/gui/MItem_enclosure.hpp:16
 msgid "Enclosure"
 msgstr "エンクロージャー"
@@ -2532,13 +2532,13 @@ msgstr ""
 "サーガ キャリブレーションサレ、フィラメントガ センサーニ トドイテイルコトヲ "
 "カクニンシテクダサイ。"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:96
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:96
 msgid "Filament sensor not connected, check wiring."
 msgstr ""
 "フィラメントセンサーガ セツゾクサレテイマセン、ハイセンヲ チェックシテクダサ"
 "イ。"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:106
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:106
 msgid "Filament sensor not ready: perform calibration first."
 msgstr ""
 "フィラメントセンサーガ ジュンビデキテイマセン:マズ キャリブレーション シテク"
@@ -3174,7 +3174,7 @@ msgstr ""
 "HALハ、I2Cケイユデ データヲ ソウシンスルトキニ フメイナエラーヲ ケンシュツシ"
 "マシタ。"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:112
+#: src/feature/factory_reset/factory_reset.cpp:112
 msgid "HARD RESET"
 msgstr "ハード リセット"
 
@@ -3237,7 +3237,7 @@ msgstr "Zホーミングエラー"
 msgid "HOTEND HEATER OVERCURRENT"
 msgstr "ホットエンドヒーターヘノ カデンリュウ"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:46
+#: src/feature/factory_reset/factory_reset.hpp:46
 msgid "HW Configuration"
 msgstr "HW セッテイ"
 
@@ -3561,7 +3561,7 @@ msgstr "ホーム"
 
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:21
 #: src/gui/screen_phase_stepping_calibration.cpp:41
 #: src/gui/dialogs/DialogLoadUnload.cpp:75 src/gui/screen_crash_recovery.cpp:93
 msgid "Homing"
@@ -3956,11 +3956,11 @@ msgstr ""
 msgid "Item %i"
 msgstr "アイテム %i"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:41
 msgid "Joining spool"
 msgstr "スプール ヲ ジョイン"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
 msgstr "ホジ"
@@ -4913,7 +4913,7 @@ msgstr "ネットショウガイ"
 msgid "Network"
 msgstr "ネットワーク"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:43
+#: src/feature/factory_reset/factory_reset.hpp:43
 msgid "Network Settings"
 msgstr "ネットワーク セッテイ"
 
@@ -5011,7 +5011,7 @@ msgid "Nominal Chamber Temperature"
 msgstr "コウショウ チャンバー オンド"
 
 #: src/common/footer_def.cpp:10
-#: src/common/feature/chamber_filtration/chamber_filtration.cpp:42
+#: src/feature/chamber_filtration/chamber_filtration.cpp:42
 #: src/gui/screen/filament/screen_filament_detail.cpp:87
 #: src/gui/MItem_hardware.cpp:24 src/gui/numeric_input_config_common.cpp:71
 msgid "None"
@@ -5146,8 +5146,8 @@ msgstr ""
 "ノズル クリーナー ノ イチ ガ セイコウ ニ キャリブレーション サレ ホゾン サレ"
 "マシタ。"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:34
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:57
 msgid "Nozzle cleaning"
 msgstr "ノズル クリーニング"
 
@@ -5346,7 +5346,7 @@ msgstr ""
 msgid "OpenPrintTag reassigned for tool %i"
 msgstr "ツール %i ニ OpenPrintTag ヲ サイ ワリアテ"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:50
 msgid "Opening chamber vents"
 msgstr "チャンバー カンキ ヲ アケテ イマス"
 
@@ -5562,7 +5562,7 @@ msgstr ""
 msgid "Performing cut"
 msgstr "カットジッコウ"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:92
+#: src/feature/factory_reset/factory_reset.cpp:92
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -5896,7 +5896,7 @@ msgstr "プリント ノ カンリョウ ジコク"
 msgid "Printed circuit board of %s is overheating."
 msgstr "%s ノ プリント キバン ガ カネツ シテ イマス。"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:47
+#: src/feature/factory_reset/factory_reset.hpp:47
 msgid "Printer Functions"
 msgstr "プリンター キノウ"
 
@@ -5908,7 +5908,7 @@ msgstr "プリンター モデル"
 msgid "Printer Setup"
 msgstr "プリンター セットアップ"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:48
+#: src/feature/factory_reset/factory_reset.hpp:48
 msgid "Printer State"
 msgstr "プリンター ジョウタイ"
 
@@ -5989,7 +5989,7 @@ msgstr ""
 "プローブサレタXYポジションガ キタイチヨリ %.3f mm ズレテイマス。コレハ キョヨ"
 "ウゴサ %.3f mm ヲ コエテイマス。"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:26
 msgid "Probing bed"
 msgstr "ベッド プロービング"
 
@@ -6219,7 +6219,7 @@ msgid "Reassign the currently detected tag to the filament?"
 msgstr ""
 "ゲンザイ ケンシュツ サレタ タグ ヲ フィラメント ニ サイ ワリアテ シマスカ?"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:24
 msgid "Recalibrating home. This may take some time."
 msgstr "ホーミング ヲ サイ キャリブレーション チュウ。シバラク カカリマス。"
 
@@ -6351,7 +6351,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "フィルター ヒツヨウ"
 
-#: src/common/feature/factory_reset/factory_reset.cpp:123
+#: src/feature/factory_reset/factory_reset.cpp:123
 #: src/gui/MItem_tools.hpp:402 src/gui/screen/screen_factory_reset.cpp:61
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6610,7 +6610,7 @@ msgstr "ネットワーク ノ スキャンチュウ..."
 msgid "Scanning..."
 msgstr "スキャンチュウ..."
 
-#: src/common/feature/factory_reset/factory_reset.hpp:51
+#: src/feature/factory_reset/factory_reset.hpp:51
 msgid "Security"
 msgstr "セキュリティ"
 
@@ -6742,12 +6742,12 @@ msgstr "スベテ ヒョウジ"
 msgid "Side FSensor Remap"
 msgstr "フィラメントセンサー リマップ"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
 #: src/gui/screen_menu_filament_sensors.hpp:60
 msgid "Side Filament Sensor"
 msgstr "サイドフィラメントセンサー"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
 #: src/gui/screen_menu_sensor_info.hpp:119
 msgid "Side Filament Sensors"
 msgstr "サイド フィラメント センサー"
@@ -6757,7 +6757,7 @@ msgid "Side Filament sensor"
 msgstr "サイド フィラメント センサー"
 
 #. Only side sensors are not connected, not that tragic, show message but keep on going
-#: src/common/feature/filament_sensor/filament_sensors_handler.cpp:101
+#: src/feature/filament_sensor/filament_sensors_handler.cpp:101
 msgid "Side filament sensor not connected, check wiring."
 msgstr ""
 "サイドフィラメントセンサ ーガ セツゾクサレテイマセン。ハイセンヲ チェックシマ"
@@ -6837,7 +6837,7 @@ msgstr "スピード スイープ ノ ウゴキ ガ シッパイ シマシタ。
 msgid "Spool join sensor not ready"
 msgstr "スプール ジョイン センサー ジュンビ デ デキテ イマセン"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:40
 msgid "Spool joined"
 msgstr "スプール ジョイン サレマシタ"
 
@@ -6857,7 +6857,7 @@ msgstr "セイテキ"
 msgid "Static-left"
 msgstr "セイテキ ヒダリ"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:45
+#: src/feature/factory_reset/factory_reset.hpp:45
 msgid "Statistics"
 msgstr "トウケイジョウホウ"
 
@@ -7528,7 +7528,7 @@ msgstr ""
 msgid "There was an error connecting to the Wi-Fi."
 msgstr "Wi-Fi セツゾクチュウ ニ エラーガ ハッセイ"
 
-#: src/common/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
+#: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:54
 msgid "Third Side Filament Sensor"
 msgstr "サード サイド フィラメント センサー"
 
@@ -7943,7 +7943,7 @@ msgstr ""
 "USB ドライブ ヲ トリハズス マエ ニ ログ ヲ オフ ニ シナイ ト ファイル システ"
 "ム ガ ハソン スル オソレ ガ アリマス!"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:44
+#: src/feature/factory_reset/factory_reset.hpp:44
 msgid "UI Settings"
 msgstr "UI セッテイ"
 
@@ -8204,7 +8204,7 @@ msgstr "ユーザー"
 msgid "User Interface"
 msgstr "ユーザーインターフェース"
 
-#: src/common/feature/factory_reset/factory_reset.hpp:49
+#: src/feature/factory_reset/factory_reset.hpp:49
 msgid "User Presets"
 msgstr "ユーザー プリセット"
 
@@ -8260,11 +8260,11 @@ msgstr ""
 "\n"
 "ノズル ハ マダ レイキャク チュウ デス。"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:31
 msgid "Waiting for bed"
 msgstr "ベッド ヲ マチマス"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:44
 msgid "Waiting for chamber"
 msgstr "チャンバー ヲ マチマス"
 
@@ -8272,7 +8272,7 @@ msgstr "チャンバー ヲ マチマス"
 msgid "Waiting for fingerprint timed out"
 msgstr "ボードニンショウタイキ タイムアウト"
 
-#: src/common/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
+#: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:30
 msgid "Waiting for hotend"
 msgstr "ホットエンド ヲ マチマス"
 

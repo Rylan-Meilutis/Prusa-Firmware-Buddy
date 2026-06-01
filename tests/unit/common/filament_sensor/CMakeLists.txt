@@ -1,10 +1,10 @@
 add_executable(
   filament_sensor_adc_tests
-  ${CMAKE_SOURCE_DIR}/src/common/feature/filament_sensor/filament_sensor_adc_eval.cpp
+  ${CMAKE_SOURCE_DIR}/src/feature/filament_sensor/filament_sensor_adc_eval.cpp
   filament_sensor_adc_tests.cpp
   )
 target_include_directories(
-  filament_sensor_adc_tests PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs ${CMAKE_SOURCE_DIR}/src/common
+  filament_sensor_adc_tests PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs ${CMAKE_SOURCE_DIR}/src
   )
 target_link_libraries(filament_sensor_adc_tests buddy_utils)
 
