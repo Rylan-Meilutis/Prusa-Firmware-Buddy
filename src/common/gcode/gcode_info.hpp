@@ -10,6 +10,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_mmu2.h>
 #include <option/has_gcode_compatibility.h>
+#include <option/has_chamber_vents.h>
 #include <common/filament.hpp>
 #include <common/hw_check.hpp>
 #include <config_store/store_instance.hpp>
@@ -37,6 +38,9 @@ inline constexpr const char *m140_set_bed_temp = "M140";
 inline constexpr const char *m190_wait_bed_temp = "M190";
 inline constexpr const char *m104_set_hotend_temp = "M104";
 inline constexpr const char *m109_wait_hotend_temp = "M109";
+#if HAS_CHAMBER_VENTS()
+inline constexpr const char *m870_chamber_vents = "M870";
+#endif
 }; // namespace gcode_info
 
 /// When initializing the heavy work is done in start_load, load and end_load functions,
@@ -152,6 +156,9 @@ private:
     bool has_preview_thumbnail_; ///< True if gcode has preview thumbnail
     bool has_progress_thumbnail_; ///< True if gcode has progress thumbnail
     bool filament_described; ///< Filament info was found in gcode's comments
+#if HAS_CHAMBER_VENTS()
+    bool has_chamber_vent_gcode_ = false; ///< An explicit vent command was found in the scanned start G-code
+#endif
     ValidPrinterSettings valid_printer_settings; ///< Info about matching hardware
     GCodePerExtruderInfo per_extruder_info; ///< Info about G-code for each extruder
     std::optional<uint16_t> bed_preheat_temp { std::nullopt }; ///< Holds bed preheat temperature
@@ -194,6 +201,9 @@ public:
     bool has_preview_thumbnail() const { return has_preview_thumbnail_; } ///< Check if file has preview thumbnail
     bool has_progress_thumbnail() const { return has_progress_thumbnail_; } ///< Check if file has progress thumbnail
     bool has_filament_described() const { return filament_described; } ///< Check if file has filament described
+#if HAS_CHAMBER_VENTS()
+    bool has_chamber_vent_gcode() const { return has_chamber_vent_gcode_; }
+#endif
     const ValidPrinterSettings &get_valid_printer_settings() const { return valid_printer_settings; } ///< Get info about matching hardware
     const GCodePerExtruderInfo &get_per_extruder_info() const { return per_extruder_info; } ///< Get info about G-code for each extruder
     const std::optional<uint16_t> &get_bed_preheat_temp() const { return bed_preheat_temp; } ///< Get info about bed preheat temperature

@@ -109,6 +109,9 @@ void GCodeInfo::load(IGcodeReader &reader) {
     valid_printer_settings = ValidPrinterSettings(); // reset to valid state
     per_extruder_info = {}; // Reset extruder info
     sliced_with_input_shaper_ = false; // Reset input shaper flag
+#if HAS_CHAMBER_VENTS()
+    has_chamber_vent_gcode_ = false;
+#endif
 #if EXTRUDERS > 1
     filament_wipe_tower_g = std::nullopt;
 #endif
@@ -174,6 +177,9 @@ void GCodeInfo::reset_info() {
     filament_described = false;
     valid_printer_settings = ValidPrinterSettings();
     sliced_with_input_shaper_ = false;
+#if HAS_CHAMBER_VENTS()
+    has_chamber_vent_gcode_ = false;
+#endif
     per_extruder_info.fill({});
     printing_time[0] = 0;
     error_str_ = {};
@@ -566,6 +572,12 @@ void GCodeInfo::parse_gcode(GcodeBuffer::String cmd, uint32_t &gcode_counter) {
     else if (cmd.skip_gcode(gcode_info::m555)) {
         parse_m555(cmd);
     }
+
+#if HAS_CHAMBER_VENTS()
+    else if (cmd.skip_gcode(gcode_info::m870_chamber_vents)) {
+        has_chamber_vent_gcode_ = true;
+    }
+#endif
 
     else if ((cmd.skip_gcode(gcode_info::m140_set_bed_temp) || cmd.skip_gcode(gcode_info::m190_wait_bed_temp)) && cmd.skip_to_param('S')) {
         bed_preheat_temp = cmd.get_uint();
