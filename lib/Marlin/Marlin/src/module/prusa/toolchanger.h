@@ -368,6 +368,9 @@ private:
      */
     bool park_procedure(PhysicalToolIndex tool);
 
+    /// Commit parked state (NoTool active, persisted, head open, loadcell reset).
+    void commit_park(PhysicalToolIndex previous_tool);
+
     /// Commit successful pickup: clear head_open, log, update odometer and active extruder state.
     void commit_pickup(PhysicalToolIndex tool, bool count_in_odometer, bool force_persist);
 

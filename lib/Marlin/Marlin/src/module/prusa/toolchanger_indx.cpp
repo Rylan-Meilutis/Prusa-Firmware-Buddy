@@ -603,6 +603,14 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     return true;
 }
 
+void PrusaToolChanger::commit_park(PhysicalToolIndex previous_tool) {
+    head_open = true;
+    loadcell.Clear();
+    log_info(PrusaToolChanger, "INDX Tool #%u parked successfully", previous_tool.to_raw());
+    set_active_extruder(NoTool {});
+    persist_last_picked_tool(NoTool {});
+}
+
 bool PrusaToolChanger::park(PhysicalToolIndex tool) {
     uint8_t max_retry_cnt = 2;
 
@@ -614,6 +622,7 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
             commit_park(tool);
         }
     };
+
     for (;;) {
         if (!ensure_safe_move()) {
             return false; // We cannot even home, abort the print
@@ -651,15 +660,8 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
         break;
     }
 
-    // Commit parked state
-    head_open = true;
-    loadcell.Clear();
-
-    log_info(PrusaToolChanger, "INDX Tool #%u parked successfully", tool.to_raw());
-
-    set_active_extruder(NoTool {});
-    persist_last_picked_tool(NoTool {});
-
+    committer.disarm();
+    commit_park(tool);
     return true;
 }
 
