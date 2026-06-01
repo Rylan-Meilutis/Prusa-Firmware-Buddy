@@ -1,4 +1,54 @@
 # Buddy
+
+## RME Firmware Features
+
+This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.5.3. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
+
+The main additions over the base firmware are:
+
+- **Improved OctoPrint and serial printing:** Dedicated serial-print screens with `Legacy`, `Messages Only`, and `Progress` modes; more reliable print start, pause, resume, cancel, and finish handling; host-preferred progress and ETA reporting with streamed `M73` fallback; filtered host messages; and visible progress during MMU purge and other print-adjacent operations.
+- **OctoPrint SD/USB storage support:** Host-facing `M20` through `M32` commands allow compatible serial hosts to list files, upload G-code to USB media, select files, start print-from-SD workflows, report progress, seek, and delete files.
+- **Per-state lighting and screen brightness:** Configure `Deep Idle`, `Idle`, `Active`, and `Printing` brightness independently. Supported printers expose only the controls their hardware can use. Active and Printing screen brightness cannot be set below `15%`, while Idle and Deep Idle can turn the screen fully off.
+- **Temporary per-print dimming:** Tune-menu percentage overrides can temporarily dim or disable the screen and supported printer lighting without overwriting persistent defaults.
+- **Post-print lighting behavior:** Status LEDs indicate filtering and print completion separately from chamber lighting. Core One door acknowledgement can hide the remaining filtering indication after the completed print has been checked.
+- **External GPIO light bar control:** Supported xBuddy printers can configure an external chamber light bar through GPIO breakout / IO expander hardware, including independent per-state enable settings and flicker-resistant output handling.
+- **Chamber and filtration improvements:** Expanded chamber fan controls, configurable filtration behavior, Core One / Core One Plus selection, automatic vent refinements, and suppression of manual vent prompts for serial prints and Core One Plus.
+- **PID management:** View, edit, reset, and autotune supported hotend and heatbed PID values from the printer UI. Autotune displays progress and lets the user save or discard the resulting values.
+- **Fleet configuration export:** RME settings can be exported to `/usb/rme_settings.gcode` and replayed as G-code when configuring multiple printers.
+- **Safety, UI, and maintenance refinements:** Configurable bed-heater timeout, improved paused-print safety behavior, theme updates and theme import, lock settings, screen wake protection, and active lighting during setup, calibration, self-test, and MMU workflows.
+
+Feature availability depends on printer hardware. The branch targets Original Prusa MINI/MINI+, MK3.5, MK3.9, MK4, XL, CORE One, and CORE One L / CORE One Plus configurations. See the detailed notes attached to each RME release for model-specific behavior, G-code commands, flashing notes, and build validation.
+
+## Building RME Firmware with `build.py`
+
+Use the top-level `./build.py` wrapper to build release firmware for installation. It builds the intended physical-printer presets in parallel, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
+
+Build all RME release images:
+
+```bash
+./build.py --final
+```
+
+Build only selected printers:
+
+```bash
+./build.py --preset coreone,xl,mk4 --final
+```
+
+Useful options:
+
+- `--list-presets` lists the available release presets and aliases.
+- `--jobs 4` limits the number of parallel printer builds.
+- `--skip-bootstrap` skips dependency bootstrap when the local build environment is already prepared.
+- `--output-dir PATH` changes the BBF staging directory.
+- `--setup-signing` creates a machine-local ECDSA signing key at `.local/firmware-signing-key.pem`.
+- `--no-signing-key` explicitly builds unsigned BBFs.
+- `--dry-run` prints the commands without starting a build.
+
+The wrapper automatically looks for a supported Python 3.8-3.12 interpreter when the current interpreter is too new for the repository's pinned dependencies. Set `BUDDY_PYTHON=/path/to/python3.12` to select one explicitly.
+
+The lower-level `python3 utils/build.py` command remains available for development, compatibility checks, and specialized presets. Use `./build.py` for normal RME release builds and BBF staging.
+
 This repository includes source code and firmware releases for the Original Prusa 3D printers based on the 32-bit ARM microcontrollers.
 
 The currently supported models are:
@@ -7,7 +57,8 @@ The currently supported models are:
 - Original Prusa MK3.9
 - Original Prusa MK4
 - Original Prusa XL
-- Prusa CORE One
+- Prusa CORE One/CORE One +
+- Prusa CORE One L
 
 ## Getting Started
 
