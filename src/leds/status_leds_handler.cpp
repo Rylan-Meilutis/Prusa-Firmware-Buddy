@@ -353,11 +353,7 @@ void StatusLedsHandler::set_active(bool val) {
 
 bool StatusLedsHandler::get_print_status_enabled() {
     std::lock_guard lock(mutex);
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     return active && !print_status_disabled && print_status_brightness > 0;
-#else
-    return active && !print_status_disabled;
-#endif
 }
 
 uint8_t StatusLedsHandler::get_brightness(LightState state) {
@@ -387,19 +383,14 @@ void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
     if (!active) {
         print_status_disabled = false;
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         print_status_brightness = 100;
-#endif
         return;
     }
     print_status_disabled = !val;
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     print_status_brightness = val ? 100 : 0;
-#endif
     old_state = StateAnimation::_last;
 }
 
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 uint8_t StatusLedsHandler::get_print_status_brightness() {
     std::lock_guard lock(mutex);
     return print_status_brightness;
@@ -414,7 +405,6 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
     print_status_disabled = print_status_brightness == 0;
     old_state = StateAnimation::_last;
 }
-#endif
 
 void StatusLedsHandler::set_idle_light_state(LightState state) {
     std::lock_guard lock(mutex);
@@ -459,8 +449,8 @@ void StatusLedsHandler::update() {
 
     if (!print_active) {
         print_status_disabled = false;
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         print_status_brightness = 100;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     } else {
         aborted_acknowledged = false;
 #endif
@@ -469,13 +459,8 @@ void StatusLedsHandler::update() {
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
         state = StateAnimation::Idle;
-#else
-    } else if (print_status_disabled && print_active) {
-        state = StateAnimation::Idle;
-#endif
     } else if (is_error_state) {
         state = StateAnimation::Error;
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -529,11 +514,9 @@ std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
 
     const auto data = controller_instance().data();
     uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     if (print_active_for_status_override()) {
         brightness = static_cast<uint8_t>(static_cast<uint16_t>(brightness) * print_status_brightness / 100);
     }
-#endif
     if (brightness >= 100) {
         return data;
     }
