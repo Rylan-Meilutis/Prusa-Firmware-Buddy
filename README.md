@@ -31,6 +31,8 @@ Build all RME release images:
 ./build.py --final
 ```
 
+`--final` keeps the `-RME` firmware badge while removing development build-number suffixes from the running firmware version.
+
 Build only selected printers:
 
 ```bash

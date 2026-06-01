@@ -617,7 +617,7 @@ Do not trade away serial-print recovery, lighting safety, or post-print acknowle
 
 For per-state LED/screen settings, prefer the shared runtime-backed state menu container in `src/gui/screen/screen_menu_led_state.*`. Reintroducing separate `ScreenMenu<...>` template instantiations for each light state has previously pushed XL over boot flash.
 
-Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it.
+Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the flash screen and home-screen badge both report `<version>-RME`.
 
 Core One, Core One L, XL, and MINI store translations in the resource image to preserve boot flash headroom. Keep `COREONE`, `COREONEL`, `XL`, and `MINI` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`. Keep the Core One/Core One L/XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the resource image size rather than moving translations back into CPU flash.
 
