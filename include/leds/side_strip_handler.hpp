@@ -98,6 +98,7 @@ public:
     void set_print_screen_brightness(uint8_t value);
 
     bool deep_idle() const;
+    LightState current_light_state() const;
     bool chamber_light_on() const;
     SideStripState current_state() const;
 

@@ -23,9 +23,13 @@
 #include <utils/string_builder.hpp>
 #include <printer_lock.hpp>
 #include <option/has_leds.h>
+#include <option/has_chamber_filtration_api.h>
 
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
 #if HAS_MMU2()
@@ -60,6 +64,20 @@ static bool is_waiting_for_connect_set_ready() {
     return connect_client::is_connect_registered() && !connect_client::MarlinPrinter::is_printer_ready();
 #else
     return false;
+#endif
+}
+
+static bool post_print_filtration_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return buddy::chamber_filtration().post_print_remaining_s() > 0;
+#else
+    return false;
+#endif
+}
+
+static void stop_post_print_filtration() {
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().stop_post_print_filtration();
 #endif
 }
 
@@ -111,8 +129,14 @@ void screen_printing_data_t::pauseAction() {
         marlin_client::print_resume();
         change_print_state();
         break;
-    case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+        if (post_print_filtration_active()) {
+            stop_post_print_filtration();
+            set_pause_icon_and_label();
+            break;
+        }
+        [[fallthrough]];
+    case printing_state_t::STOPPED:
         screen_printing_reprint();
         change_print_state();
         break;
@@ -309,6 +333,9 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
         }
 
         change_print_state();
+        if (GetState() == printing_state_t::PRINTED) {
+            set_pause_icon_and_label();
+        }
 
         if (printer_lock::locked()) {
             if (!lock_buttons_applied) {
@@ -344,7 +371,7 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
                 last_e_axis_position = vars.logical_curr_pos[MARLIN_VAR_INDEX_E];
             }
 
-        } else if (p_state == printing_state_t::PRINTED && !shown_end_result) {
+        } else if (p_state == printing_state_t::PRINTED && !shown_end_result && !post_print_filtration_active()) {
             start_showing_end_result();
         }
 #endif
@@ -371,7 +398,14 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
         set_remaining_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
 #if HAS_MINI_DISPLAY()
         // Hide time information when popup is visible [BFW-6677]
-        set_print_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
+        if (p_state == printing_state_t::PRINTED && !message_popup.IsVisible()) {
+            update_finished_summary();
+            set_print_time_visible(true);
+            w_etime_label.Show();
+            w_etime_value.Show();
+        } else {
+            set_print_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
+        }
 #elif HAS_LARGE_DISPLAY()
         rotating_circles.set_visible(!stoppedOrPrinted);
         [&] {
@@ -663,6 +697,38 @@ void screen_printing_data_t::updateTimes() {
 #endif
 }
 
+#if HAS_MINI_DISPLAY()
+void screen_printing_data_t::update_finished_summary() {
+    PrintTime::print_formatted_duration(marlin_vars().print_duration.get(), finished_stat_buffer, true);
+    w_time_label.SetText(_(EndResultBody::txt_printing_time));
+    w_time_value.SetText(string_view_utf8::MakeRAM(finished_stat_buffer.data()));
+
+#if HAS_CHAMBER_FILTRATION_API()
+    const uint32_t remaining_s = buddy::chamber_filtration().post_print_remaining_s();
+    const uint32_t now_s = ticks_s();
+    if (ticks_diff(now_s, last_finished_stat_switch_s) >= 4) {
+        last_finished_stat_switch_s = now_s;
+        showing_filter_remaining = remaining_s > 0 && !showing_filter_remaining;
+    } else if (remaining_s == 0) {
+        showing_filter_remaining = false;
+    }
+    if (showing_filter_remaining) {
+        w_etime_label.SetText(_("Filtering left"));
+        PrintTime::print_formatted_duration(remaining_s, finished_stat_buffer, true);
+    } else
+#endif
+    {
+        w_etime_label.SetText(_("Print ended"));
+        EndResultBody::format_timestamp(marlin_vars().print_end_time, finished_stat_buffer);
+    }
+    w_etime_value.SetText(string_view_utf8::MakeRAM(finished_stat_buffer.data()));
+    w_time_label.Invalidate();
+    w_time_value.Invalidate();
+    w_etime_label.Invalidate();
+    w_etime_value.Invalidate();
+}
+#endif
+
 void screen_printing_data_t::screen_printing_reprint() {
     print_begin(GCodeInfo::getInstance().GetGcodeFilepath(), marlin_server::PreviewSkipIfAble::preview);
     screen_printing_data_t::updateTimes(); // reinit, but should be already set correctly
@@ -705,8 +771,15 @@ void screen_printing_data_t::set_pause_icon_and_label() {
         DisableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Reheating);
         break;
-    case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+        EnableButton(BtnSocket::Middle);
+        if (post_print_filtration_active()) {
+            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Stop, LabelRes::StopFilter);
+        } else {
+            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
+        }
+        break;
+    case printing_state_t::STOPPED:
         EnableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
         break;
@@ -729,7 +802,7 @@ void screen_printing_data_t::set_pause_icon_and_label() {
         header.SetText(_("STOPPED"));
         break;
     case printing_state_t::PRINTED:
-        header.SetText(_("FINISHED"));
+        header.SetText(_("PRINT FINISHED"));
         break;
     default: // else printing
         header.SetText(_(caption));

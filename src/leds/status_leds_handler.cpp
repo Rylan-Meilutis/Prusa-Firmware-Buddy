@@ -416,9 +416,9 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
 }
 #endif
 
-void StatusLedsHandler::set_deep_idle(bool val) {
+void StatusLedsHandler::set_idle_light_state(LightState state) {
     std::lock_guard lock(mutex);
-    deep_idle = val;
+    idle_light_state = state;
 }
 
 void StatusLedsHandler::acknowledge_finished() {
@@ -492,16 +492,14 @@ void StatusLedsHandler::update() {
         state = marlin_to_anim_state();
     }
 
-    if (deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Finishing && state != StateAnimation::Aborting) {
+    if (idle_light_state == LightState::deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Finishing && state != StateAnimation::Aborting) {
         state = StateAnimation::Idle;
     }
 
-    if (deep_idle) {
-        current_light_state = LightState::deep_idle;
-    } else if (state == StateAnimation::Printing) {
+    if (state == StateAnimation::Printing) {
         current_light_state = LightState::printing;
     } else if (state == StateAnimation::Idle) {
-        current_light_state = LightState::idle;
+        current_light_state = idle_light_state;
     } else {
         current_light_state = LightState::active;
     }

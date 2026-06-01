@@ -79,7 +79,7 @@ public:
     uint8_t get_print_status_brightness();
     void set_print_status_brightness(uint8_t val);
 #endif
-    void set_deep_idle(bool val);
+    void set_idle_light_state(LightState state);
     void acknowledge_finished();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
@@ -97,7 +97,7 @@ private:
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     uint8_t print_status_brightness { 100 };
 #endif
-    bool deep_idle { false };
+    LightState idle_light_state { LightState::active };
     StateAnimation old_state { StateAnimation::Idle };
     bool is_error_state { false };
     bool finished_acknowledged { false };

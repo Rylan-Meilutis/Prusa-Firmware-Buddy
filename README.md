@@ -6,13 +6,13 @@ This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.5.3
 
 The main additions over the base firmware are:
 
-- **Improved OctoPrint and serial printing:** Dedicated serial-print screens with `Legacy`, `Messages Only`, and `Progress` modes; more reliable print start, pause, resume, cancel, and finish handling; host-preferred progress and ETA reporting with streamed `M73` fallback; filtered host messages; and visible progress during MMU purge and other print-adjacent operations.
+- **Improved OctoPrint and serial printing:** Dedicated serial-print screens with `Legacy`, `Messages Only`, and `Progress` modes; more reliable print start, pause, resume, cancel, and finish handling; persistent finished summaries with duration, completion time, and remaining filtration time; host-preferred progress and ETA reporting with streamed `M73` fallback; filtered host messages; and visible progress during MMU purge and other print-adjacent operations.
 - **OctoPrint SD/USB storage support:** Host-facing `M20` through `M32` commands allow compatible serial hosts to list files, upload G-code to USB media, select files, start print-from-SD workflows, report progress, seek, and delete files.
 - **Per-state lighting and screen brightness:** Configure `Deep Idle`, `Idle`, `Active`, and `Printing` brightness independently. Supported printers expose only the controls their hardware can use. Active and Printing screen brightness cannot be set below `15%`, while Idle and Deep Idle can turn the screen fully off.
 - **Temporary per-print dimming:** Tune-menu percentage overrides can temporarily dim or disable the screen and supported printer lighting without overwriting persistent defaults.
-- **Post-print lighting behavior:** Status LEDs indicate filtering and print completion separately from chamber lighting. Core One door acknowledgement can hide the remaining filtering indication after the completed print has been checked.
+- **Post-print lighting behavior:** Status LEDs indicate filtering and print completion separately from chamber lighting, then return to the normal active/idle/deep-idle brightness sequence after the finished hold. Screen interaction and Core One door activity wake the status strip again. The finished screen can end filtration early without being dismissed, and opening the Core One door during filtration offers the same choice.
 - **External GPIO light bar control:** Supported xBuddy printers can configure an external chamber light bar through GPIO breakout / IO expander hardware, including independent per-state enable settings and flicker-resistant output handling.
-- **Chamber and filtration improvements:** Expanded chamber fan controls, configurable filtration behavior, Core One / Core One Plus selection, automatic vent refinements, and suppression of manual vent prompts for serial prints and Core One Plus.
+- **Chamber and filtration improvements:** Expanded chamber fan controls, configurable filtration behavior, Core One / Core One Plus selection with distinct `COREONE+` reporting, automatic vent refinements, and suppression of manual vent prompts for serial prints and Core One Plus.
 - **PID management:** View, edit, reset, and autotune supported hotend and heatbed PID values from the printer UI. Autotune displays progress and lets the user save or discard the resulting values.
 - **Fleet configuration export:** RME settings can be exported to `/usb/rme_settings.gcode` and replayed as G-code when configuring multiple printers.
 - **Safety, UI, and maintenance refinements:** Configurable bed-heater timeout, improved paused-print safety behavior, theme updates and theme import, lock settings, screen wake protection, and active lighting during setup, calibration, self-test, and MMU workflows.
@@ -48,6 +48,8 @@ Useful options:
 The wrapper automatically looks for a supported Python 3.8-3.12 interpreter when the current interpreter is too new for the repository's pinned dependencies. Set `BUDDY_PYTHON=/path/to/python3.12` to select one explicitly.
 
 The lower-level `python3 utils/build.py` command remains available for development, compatibility checks, and specialized presets. Use `./build.py` for normal RME release builds and BBF staging.
+
+The running firmware reports the short RME version. The stock Prusa bootloader may append the mandatory BBF build number in its pre-install firmware list; changing that display requires a bootloader change.
 
 This repository includes source code and firmware releases for the Original Prusa 3D printers based on the 32-bit ARM microcontrollers.
 

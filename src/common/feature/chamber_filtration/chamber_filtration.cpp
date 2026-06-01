@@ -183,6 +183,23 @@ uint32_t ChamberFiltration::filter_lifetime_s() const {
     BUDDY_UNREACHABLE();
 }
 
+uint32_t ChamberFiltration::post_print_remaining_s() const {
+    std::lock_guard _lg(mutex_);
+    if (output_pwm_.value == 0 || !config_store().chamber_post_print_filtration_enable.get()) {
+        return 0;
+    }
+
+    const uint32_t duration_s = config_store().chamber_post_print_filtration_duration_min.get() * 60;
+    const uint32_t elapsed_s = ticks_diff(ticks_s(), last_print_s_);
+    return elapsed_s < duration_s ? duration_s - elapsed_s : 0;
+}
+
+void ChamberFiltration::stop_post_print_filtration() {
+    std::lock_guard _lg(mutex_);
+    output_pwm_ = {};
+    needs_filtration_ = std::nullopt;
+}
+
 void ChamberFiltration::check_filter_expiration() {
     /// How much in advance (in filter time usage seconds) we should warn that the filter is about to expire
     static constexpr auto expiration_early_warning_s = 100 * 3600;

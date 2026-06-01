@@ -79,12 +79,12 @@ int MI_EXTENDED_PRINTER_TYPE::item_count() const {
 void MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, const std::span<char> &buffer) const {
     const auto model = extended_printer_type_model[index];
 
-    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #if PRINTER_IS_PRUSA_COREONE()
     if (model == PrinterModel::coreone) {
         strlcpy(buffer.data(), "CORE One", buffer.size());
         return;
     }
-    if (model == PrinterModel::coreonel) {
+    if (model == PrinterModel::coreoneplus) {
         strlcpy(buffer.data(), "CORE One Plus", buffer.size());
         return;
     }

@@ -59,10 +59,6 @@ void CurrentStore::perform_config_check() {
         static_assert(extended_printer_type_model[1] == PrinterModel::mk3_5s);
         extended_printer_type.set(1);
 
-#elif PRINTER_IS_PRUSA_COREONEL()
-        static_assert(extended_printer_type_model[1] == PrinterModel::coreonel);
-        extended_printer_type.set(1);
-
 #endif
     }
 

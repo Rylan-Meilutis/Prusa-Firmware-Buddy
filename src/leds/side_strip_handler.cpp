@@ -486,6 +486,11 @@ bool SideStripHandler::deep_idle() const {
     return state == SideStripState::off;
 }
 
+LightState SideStripHandler::current_light_state() const {
+    std::lock_guard lock(mutex);
+    return light_state_for_strip_state(state);
+}
+
 bool SideStripHandler::chamber_light_on() const {
     std::lock_guard lock(mutex);
     return get_color_for_state(state).w > 0;
