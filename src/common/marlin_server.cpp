@@ -801,34 +801,6 @@ static void save_print_time_to_odometer(uint32_t print_duration) {
     server.saved_print_duration = print_duration;
 }
 
-static void flush_odometer_periodically() {
-    static constexpr int32_t min_flush_interval_ms = 60 * 1000;
-
-    static uint32_t last_flush_ms = 0;
-
-    if (marlin_server::is_printing_state(server.print_state) || marlin_server::is_extended_paused_state(server.print_state)) {
-        save_print_time_to_odometer(print_job_timer.duration());
-    }
-
-    if (!Odometer_s::instance().changed()) {
-        return;
-    }
-
-    const uint32_t now_ms = ticks_ms();
-    const bool flush_not_recent = last_flush_ms == 0 || ticks_diff(now_ms, last_flush_ms) >= min_flush_interval_ms;
-    if (!flush_not_recent) {
-        return;
-    }
-
-    // cycle() also runs from nested idle() calls while blocking G-codes such as
-    // G123 are planning motion. EEPROM journal writes must wait until Marlin
-    // and the planner are idle; print finalization still forces a save.
-    if (!is_processing() && !planner.processing()) {
-        Odometer_s::instance().force_to_eeprom();
-        last_flush_ms = now_ms;
-    }
-}
-
 static void cycle() {
     // Some things are somewhat time-sensitive and should be updated even in nested loops
 #if HAS_CHAMBER_API()
@@ -906,8 +878,6 @@ static void cycle() {
 #if HAS_I2C_EXPANDER()
     io_expander_read_loop();
 #endif // HAS_I2C_EXPANDER()
-
-    flush_odometer_periodically();
 
     process_request_flags();
 
