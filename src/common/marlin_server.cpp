@@ -867,6 +867,12 @@ static void cycle() {
 
 #if HAS_EMERGENCY_STOP()
     buddy::emergency_stop().step();
+
+    // During printing, possibly block anytime, with exception of Load Unload sequence
+    // In case there would be planned unsafe moves, there is another buddy::emergency_stop().maybe_block() directly in planner
+    if (is_printing_state(server.print_state) && !fsm_states.is_active(ClientFSM::Load_unload)) {
+        buddy::emergency_stop().maybe_block();
+    }
 #endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
@@ -1175,13 +1181,6 @@ void loop() {
 
     cycle();
 
-#if HAS_EMERGENCY_STOP()
-    // During printing, possibly block anytime
-    if (is_printing_state(server.print_state)) {
-        buddy::emergency_stop().maybe_block();
-    }
-#endif
-
 #if HAS_NFC()
     if (printer_idle() && !fsm_states.get_top().has_value()) {
         handle_nfc();
@@ -1195,22 +1194,7 @@ static bool idle_running = false;
 
 static void idle(void) {
     AutoRestore idle_running_guard(idle_running, true);
-
     cycle();
-
-    // cycle -> loop -> idle -> MarlinUI::update() -> ExtUI::onIdle -> idle -> cycle
-    // This is only a work-around: this should be avoided at a higher level
-    if (idle_running_guard.original_value()) {
-        return;
-    }
-
-#if HAS_EMERGENCY_STOP()
-    // During printing, possibly block anytime, with exception of Load Unload sequence
-    // In case there would be planned unsafe moves, there is another buddy::emergency_stop().maybe_block() directly in planner
-    if (is_printing_state(server.print_state) && !fsm_states.is_active(ClientFSM::Load_unload)) {
-        buddy::emergency_stop().maybe_block();
-    }
-#endif
 }
 
 void do_babystep_Z(float offs) {
