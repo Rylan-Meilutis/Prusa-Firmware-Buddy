@@ -36,6 +36,8 @@ public:
      */
     [[nodiscard]] bool tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift = tool_change_lift_t::full_lift, bool z_return = true);
 
+    float calc_z_raise(tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool levelling_active) const;
+
     #if HAS_TOOL_CRASH_RECOVERY() || HAS_INDX()
 
     /// Data captured at toolchange start; used by tool-fall crash recovery and

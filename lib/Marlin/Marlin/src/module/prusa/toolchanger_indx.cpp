@@ -157,34 +157,12 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
         }
 
         // Raise Z before move
-        float z_raise = 0; ///< Raise Z before toolchange by this amount
-        if (z_lift > tool_change_lift_t::no_lift) {
-            if (return_type > tool_return_t::no_return) {
-                float min_z = current_position.z;
-
-                // also immediately account for clearance in the return move
-                min_z = std::max(min_z, return_position.z);
-
-                // Always raise above the printed model
-                min_z = std::max(min_z, planner.max_printed_z);
-
-                z_raise += (min_z - current_position.z);
-            }
-
-            if (z_lift >= tool_change_lift_t::full_lift) {
-                // Do a small lift to avoid the workpiece for parking
-                z_raise += toolchange_settings.z_raise;
-            }
-            if (levelling_active) {
-                z_raise += get_mbl_z_lift_height();
-            }
-        }
+        float z_raise = calc_z_raise(return_type, return_position, z_lift, levelling_active);
         // if new_tool has positive offset that means Z needs to move away from print, we'll do it together with other raises to speed things up
         // (negative offset is applied later after parking current tool)
         if (tool_offset_diff.z > 0) {
             z_raise += tool_offset_diff.z;
         }
-
         if (z_raise > 0) {
             z_shift(z_raise);
         }
