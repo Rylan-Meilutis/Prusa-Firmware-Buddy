@@ -8,10 +8,11 @@ size_t EEPROMStorage::read_bytes(size_t address, WritableBytes buffer) {
 }
 
 size_t EEPROMStorage::write_bytes(size_t address, Bytes data) {
-    st25dv64k_user_write_bytes(address, data.data(), data.size());
+    st25dv64k_user_write_bytes_buffered(address, data.data(), data.size());
     bytes_written_.fetch_add(data.size(), std::memory_order_relaxed);
     return data.size();
 }
 
 void EEPROMStorage::flush() {
+    st25dv64k_user_write_bytes_flush();
 }

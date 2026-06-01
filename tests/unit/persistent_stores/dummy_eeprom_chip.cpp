@@ -67,5 +67,13 @@ void st25dv64k_user_read_bytes(uint16_t address, void *pdata, uint16_t size) {
 }
 
 void st25dv64k_user_write_bytes(uint16_t address, void const *pdata, uint16_t size) {
+    st25dv64k_user_write_bytes_buffered(address, pdata, size);
+    st25dv64k_user_write_bytes_flush();
+}
+
+void st25dv64k_user_write_bytes_buffered(uint16_t address, void const *pdata, uint16_t size) {
     eeprom_chip.set(address, static_cast<const uint8_t *>(pdata), size);
+}
+
+void st25dv64k_user_write_bytes_flush() {
 }
