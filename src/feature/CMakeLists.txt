@@ -20,6 +20,7 @@ if(HAS_INDX)
   add_subdirectory(indx_dock_calibration)
   add_subdirectory(indx_nozzle_cleaner_calibration)
   add_subdirectory(indx_hotend_temp_model)
+  add_subdirectory(indx_tool_lock_hack)
 endif()
 
 if(HAS_CANCEL_OBJECT)

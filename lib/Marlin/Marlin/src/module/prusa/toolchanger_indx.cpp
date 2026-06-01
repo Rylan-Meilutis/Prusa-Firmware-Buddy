@@ -27,6 +27,7 @@
 #include <tool/hotend/hotend/indx_hotend.hpp>
 #include <raii/auto_restore.hpp>
 #include <mapi/parking.hpp>
+#include <feature/indx_tool_lock_hack/indx_tool_lock_hack.hpp>
 
 #if ENABLED(CRASH_RECOVERY)
     #include "../../feature/prusa/crash_recovery.hpp"
@@ -767,6 +768,9 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
         // Lock nozzle in head
         e_move(+E_FULL_CLOSE_DISTANCE, E_LOCK_FEEDRATE);
         planner.synchronize();
+
+        // Engage the extruder hack - make sure that we don't retract before the head is fully locked
+        buddy::indx_tool_lock_hack().rearm(Badge<PrusaToolChanger> {});
     }
 
     // Dwell for reliability

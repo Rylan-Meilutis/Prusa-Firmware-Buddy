@@ -124,6 +124,11 @@
 #endif
 
 #include <option/has_indx.h>
+#if HAS_INDX()
+  #include <feature/indx_tool_lock_hack/indx_tool_lock_hack.hpp>
+#endif
+
+#include <option/has_indx.h>
 
 #include <feature/safety_timer/safety_timer.hpp>
 #include <freertos/critical_section.hpp>
@@ -2172,12 +2177,18 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
       bsod("E move without tool");
     }
 
+    [[maybe_unused]] const float delta_e_mm = (xyze.e - position_float.e) * get_move_e_factor(tools, hints.move);
+
+#if HAS_INDX()
+    buddy::indx_tool_lock_hack().track_extruder_move(delta_e_mm, Badge<Planner>{});
+#endif
+
 #if HAS_FILAMENT_TRACKER()
     if(tools.virtual_tool.has_value()) {
       // Note: This is not >>ideal<<, because although the moves get planned, they might get discarded through (gcode_exceptions/quick_stop)
       // Most notably, this will track some extra filament usage if user intterupts purging
       // Tying this directly to the immediate motor positions might be better, but one would also need to also handle the origin resets
-      buddy::filament_tracker().track_extruder_move(*tools.virtual_tool, (xyze.e - position_float.e) * get_move_e_factor(tools, hints.move));
+      buddy::filament_tracker().track_extruder_move(*tools.virtual_tool, delta_e_mm);
     }
 #endif
   }
