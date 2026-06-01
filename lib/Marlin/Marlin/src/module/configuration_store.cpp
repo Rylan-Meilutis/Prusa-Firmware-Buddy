@@ -207,6 +207,11 @@ bool MarlinSettings::save() {
 
 bool MarlinSettings::load() {
 #if BUDDY_HAS_CONFIG_STORE_PID_EEPROM
+  // Preserve the upstream startup initialization before overlaying the
+  // persisted PID values. Motion defaults and stepper drivers are initialized
+  // by reset(), not by planner.init().
+  reset();
+
   #if ENABLED(PIDTEMP)
     for (int8_t e = 0; e < HOTENDS; e++) {
       PID_PARAM(Kp, e) = get_pid_nozzle_p();
