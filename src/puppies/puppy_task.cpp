@@ -57,6 +57,10 @@
     #include <config_store/store_instance.hpp>
 #endif
 
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <puppies/cyphal_bridge_host.hpp>
+#endif
+
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include <puppies/mmu.hpp>
@@ -483,21 +487,22 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 }
 #endif
 
-#if HAS_TOOL_OFFSET_SENSOR() && HAS_XBUDDY_EXTENSION()
-// INDX path: sensor sits behind xBE, which also drives bridge-led firmware
-// flashing. The function pumps xBE refresh + sensor refresh and reports
-// flash progress until the sensor reaches ready.
+#if HAS_TOOL_OFFSET_SENSOR()
+// The sensor sits behind whichever puppy hosts the Cyphal bridge (xBE on INDX,
+// the XL-CAN bridge on XLS); both drive bridge-led firmware flashing. The
+// function pumps the bridge host's refresh + sensor refresh and reports flash
+// progress until the sensor reaches ready.
 [[nodiscard]] static bool wait_for_tool_offset_sensor(PuppyModbus &bus) {
     // Tool offset sensor is vital part of the printer, there is no upper limit
     // on how long we are willing to wait for the bootstrap.
     for (;;) {
         // At this point, puppy_task_loop() is not yet running, so we must
-        // manually call refresh() on puppies. Without this, XBE can't make
+        // manually call refresh() on puppies. Without this, the bridge can't make
         // progress while flashing/veryfing TOOL_OFFSET_SENSOR. It would also stop sending
         // healthy heartbeats which would in turn put TOOL_OFFSET_SENSOR into safe state.
         // We should run this as often as possible to minimize time when
-        // XBE is waiting for firmware chunk.
-        if (xbuddy_extension.refresh(bus) == CommunicationStatus::ERROR) {
+        // the bridge is waiting for firmware chunk.
+        if (cyphal_bridge_host().refresh(bus) == CommunicationStatus::ERROR) {
             return false;
         }
         if (tool_offset_sensor.refresh(bus) == CommunicationStatus::ERROR) {
@@ -513,7 +518,7 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_verify);
             break;
         case NodeState::flash:
-            bootstrap_state_set(xbuddy_extension.get_flash_progress_percent(), BootstrapStage::tool_offset_sensor_flash);
+            bootstrap_state_set(cyphal_bridge_host().get_flash_progress_percent(), BootstrapStage::tool_offset_sensor_flash);
             break;
         case NodeState::ready:
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_ready);
@@ -695,8 +700,8 @@ void run() {
             }
 #endif
 
-#if HAS_TOOL_OFFSET_SENSOR() && HAS_XBUDDY_EXTENSION()
-            if (!wait_for_tool_offset_sensor(bus)) {
+#if HAS_TOOL_OFFSET_SENSOR()
+            if (tool_offset_sensor.is_enabled() && !wait_for_tool_offset_sensor(bus)) {
                 break; // go to puppy recovery
             }
 #endif
