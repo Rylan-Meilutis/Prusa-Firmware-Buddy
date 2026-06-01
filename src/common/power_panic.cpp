@@ -448,6 +448,8 @@ void resume_loop() {
         }
 
 #if HAS_NOZZLE_CLEANER()
+    // Keep the printer list below in sync with the unretract guard in
+    // ResumeState::Unpark — G12 S21 pressurizes the nozzle on its own.
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         marlin_server::enqueue_gcode("G12 S90"); // enter cleaner
         marlin_server::enqueue_gcode("G12 S21"); // purge (no retract) and brush wipe
@@ -480,8 +482,11 @@ void resume_loop() {
             plan_park_move_to_xyz(state_buf.crash.crash_current_position.xyz(), NOZZLE_PARK_XY_FEEDRATE, NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
         }
 
-        // always unretract
+        // Unretract paired with the retract in PPState::Prepared.
+        // Skipped where G12 S21 already pressurizes the nozzle (see WaitForHeaters).
+#if !(HAS_NOZZLE_CLEANER() && (PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()))
         mapi::extruder_move(PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+#endif
 
         resume_state = ResumeState::Finish;
         break;
