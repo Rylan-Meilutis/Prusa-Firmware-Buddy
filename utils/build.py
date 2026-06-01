@@ -691,7 +691,7 @@ def main():
     parser.add_argument(
         '--final',
         action='store_true',
-        help='Set\'s --version-suffix and --version-suffix-short to empty string.')
+        help='Set --version-suffix and --version-suffix-short to "-RME".')
     parser.add_argument(
         '--build-dir',
         type=Path,
@@ -769,8 +769,8 @@ def main():
     products_dir_root = args.products_dir or (build_dir_root / 'products')
 
     if args.final:
-        args.version_suffix = ''
-        args.version_suffix_short = ''
+        args.version_suffix = '-RME'
+        args.version_suffix_short = '-RME'
         args.cmake_def = args.cmake_def or []
         if not any(entry[0] == 'DEVELOPMENT_ITEMS_ENABLED'
                    for entry in args.cmake_def):
