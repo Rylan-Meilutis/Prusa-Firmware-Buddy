@@ -453,11 +453,6 @@ uint8_t SideStripHandler::get_print_light_brightness() const {
 
 void SideStripHandler::set_print_light_brightness(uint8_t value) {
     std::lock_guard lock(mutex);
-    if (!(main_light_state_mask & light_state_bit(LightState::printing))) {
-        print_light_disabled = false;
-        print_brightness_overridden = false;
-        return;
-    }
     print_brightness_override = value;
     print_brightness_overridden = true;
     print_light_disabled = value == 0;
@@ -526,7 +521,8 @@ ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
 
     const LightState light_state = light_state_for_strip_state(state);
-    if (!(main_light_state_mask & light_state_bit(light_state))) {
+    const bool print_override_active = light_state == LightState::printing && print_brightness_overridden;
+    if (!(main_light_state_mask & light_state_bit(light_state)) && !print_override_active) {
         return ColorRGBW();
     }
 

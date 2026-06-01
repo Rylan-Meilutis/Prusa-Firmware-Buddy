@@ -247,8 +247,9 @@ Behavior to verify:
 
 ```text
 Core One chamber LED off does not turn off status LEDs/status bar.
-Core One/Core One Plus chamber and status temporary print brightness values are percent-based and independent.
-XL side-strip temporary print brightness is percent-based.
+Temporary chamber/side brightness is percent-based on every printer with `HAS_SIDE_LEDS`.
+Temporary status-strip brightness is percent-based on every printer with `HAS_LEDS`, including Core One variants, XL, MK4, and MK3.5.
+Persistent LED enable and brightness values are independent between Deep Idle, Idle, Active, and Printing. Do not add cross-state ordering clamps: Printing exterior LEDs may be dimmer than Idle LEDs or fully off while Idle remains enabled. The only state brightness floor is the 15% LCD minimum for Active and Printing screen brightness. Preserve `M153` for incidental non-print host activity, but ignore it while a print is active or paused.
 Temporary print lighting overrides reset after the print.
 Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
 Active and Printing screen brightness settings are clamped to at least 15% in both the UI range and stored value.
@@ -622,22 +623,22 @@ The latest checked focused final builds used:
 
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
-FLASH: 1291388 B / 1919 KB, 65.72%
+FLASH: 1291244 B / 1919 KB, 65.71%
 
 python3 utils/build.py --preset mini --bootloader yes --final
 FLASH: 893296 B / 895 KB, 97.47%
 
 python3 utils/build.py --preset coreone --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
-FLASH: 1290848 B / 1919 KB, 65.69%
+FLASH: 1290800 B / 1919 KB, 65.69%
 
 python3 utils/build.py --preset coreonel --bootloader yes --version-suffix=-RME --version-suffix-short=-RME -DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO
-FLASH: 1290960 B / 1919 KB, 65.70%
+FLASH: 1290944 B / 1919 KB, 65.69%
 
 python3 utils/build.py --preset mk3.5 --bootloader yes --final
 FLASH: 1850136 B / 1919 KB, 94.15%
 
 python3 utils/build.py --preset mk4 --bootloader yes --final
-FLASH: 1919320 B / 1919 KB, 97.67%
+FLASH: 1919312 B / 1919 KB, 97.67%
 ```
 
 Final/non-development builds intentionally keep the `M503` settings report command enabled. To keep flash usage under control, release `M503` output omits human-only headings/comments and the TMC state dump, but preserves replayable persistent settings. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, shared UI containers, and compact release-only diagnostics.

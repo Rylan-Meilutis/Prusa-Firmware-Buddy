@@ -3,6 +3,8 @@
  */
 #include "PrusaGcodeSuite.hpp"
 #include "../../lib/Marlin/Marlin/src/gcode/parser.h"
+#include <marlin_server.hpp>
+#include <marlin_vars.hpp>
 #include "leds/status_leds_handler.hpp"
 #if HAS_SIDE_LEDS()
     #include "leds/side_strip_handler.hpp"
@@ -177,10 +179,14 @@ void PrusaGcodeSuite::M151() {
  *### M153: Mark serial host idle
  *
  * Clears side LED activity for hosts that know they are no longer actively streaming
- * useful work, without ending the serial print state.
+ * useful work. Ignored while a print is active or paused.
  */
 #if HAS_SIDE_LEDS()
 void PrusaGcodeSuite::M153() {
+    const auto print_state = marlin_vars().print_state.get();
+    if (marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state)) {
+        return;
+    }
     leds::SideStripHandler::instance().idle_ping();
 }
 #endif

@@ -715,7 +715,6 @@ public:
     virtual void OnClick() override;
 };
 
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 class MI_PRINT_STATUS_LEDS_ENABLE : public WiSpin {
     static constexpr const char *const label = N_("Print Status LED");
 
@@ -724,16 +723,6 @@ public:
     virtual void OnClick() override;
     virtual void Loop() override;
 };
-#else
-class MI_PRINT_STATUS_LEDS_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("Print Status LED");
-
-public:
-    MI_PRINT_STATUS_LEDS_ENABLE();
-    virtual void OnChange(size_t old_index) override;
-    virtual void Loop() override;
-};
-#endif
 #endif
 
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
