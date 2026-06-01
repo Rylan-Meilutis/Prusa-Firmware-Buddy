@@ -23,6 +23,8 @@ Feature availability depends on printer hardware. The branch targets Original Pr
 
 Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
 
+After the build finishes, the wrapper prints each machine's result, build time, flash usage, aggregate RAM usage, individual memory-region usage, and the absolute path of every staged `.bbf` artifact.
+
 Build all RME release images:
 
 ```bash

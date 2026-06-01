@@ -60,6 +60,12 @@ PRESET_ALIASES = {
 }
 
 PROGRESS_RE = re.compile(r"\[(\d+)/(\d+)\]")
+MEMORY_REGION_RE = re.compile(
+    r"^\s*([A-Z_]+):\s+(\d+(?:\.\d+)?)\s+([KMG]?B)\s+"
+    r"(\d+(?:\.\d+)?)\s+([KMG]?B)\s+(\d+(?:\.\d+)?)%"
+)
+MAP_MEMORY_REGION_RE = re.compile(r"^([A-Z_]+)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+\S+")
+SIZE_SECTION_RE = re.compile(r"^(\S+)\s+(\d+)\s+(\d+)$")
 STATUS_LABELS = {
     "queued": "queued",
     "running": "running",
@@ -73,6 +79,19 @@ STATUS_COLORS = {
     "failed": "\033[31m",
 }
 RESET = "\033[0m"
+MEMORY_UNIT_BYTES = {
+    "B": 1,
+    "KB": 1024,
+    "MB": 1024 * 1024,
+    "GB": 1024 * 1024 * 1024,
+}
+
+
+@dataclass(frozen=True)
+class MemoryRegion:
+    used_bytes: int
+    total_bytes: int
+    percent: float
 
 
 def terminate_build_process(process: subprocess.Popen[str], *, force: bool = False) -> None:
@@ -94,6 +113,7 @@ class BuildJob:
     preset: str
     command: list[str]
     products_dir: Path
+    firmware_paths: list[Path]
     status: str = "queued"
     progress: str = "-"
     started_at: float | None = None
@@ -101,6 +121,8 @@ class BuildJob:
     returncode: int | None = None
     last_line: str = ""
     log: list[str] = field(default_factory=list)
+    memory_regions: dict[str, MemoryRegion] = field(default_factory=dict)
+    staged_bbfs: list[Path] = field(default_factory=list)
 
     @property
     def elapsed_s(self) -> int:
@@ -132,6 +154,21 @@ class BuildJob:
         if self.status == "success" and "/" in self.progress:
             _, total = self.progress.split("/", 1)
             self.progress = f"{total}/{total}"
+
+    def capture_output(self, line: str) -> None:
+        self.log.append(line)
+        self.last_line = line
+        progress_match = PROGRESS_RE.search(line)
+        if progress_match:
+            self.progress = f"{progress_match.group(1)}/{progress_match.group(2)}"
+        memory_match = MEMORY_REGION_RE.match(line)
+        if memory_match:
+            name, used, used_unit, total, total_unit, percent = memory_match.groups()
+            self.memory_regions[name] = MemoryRegion(
+                used_bytes=int(float(used) * MEMORY_UNIT_BYTES[used_unit]),
+                total_bytes=int(float(total) * MEMORY_UNIT_BYTES[total_unit]),
+                percent=float(percent),
+            )
 
 
 def load_preset_names() -> set[str]:
@@ -334,6 +371,7 @@ def copy_finished_bbfs(job: BuildJob, output_dir: Path, selected_presets: list[s
         if destination.exists():
             destination.unlink()
         shutil.copy2(bbf, destination)
+        job.staged_bbfs.append(destination.resolve())
     prune_unselected_bbfs(output_dir, selected_presets)
     keep_only_bbf_files(output_dir)
 
@@ -350,6 +388,94 @@ def format_elapsed(seconds: int) -> str:
     if hours:
         return f"{hours:d}:{minutes:02d}:{seconds:02d}"
     return f"{minutes:d}:{seconds:02d}"
+
+
+def format_bytes(value: int) -> str:
+    if value >= 1024 * 1024:
+        return f"{value / (1024 * 1024):.2f} MiB"
+    if value >= 1024:
+        return f"{value / 1024:.1f} KiB"
+    return f"{value} B"
+
+
+def format_region(region: MemoryRegion | None) -> str:
+    if region is None:
+        return "-"
+    return f"{format_bytes(region.used_bytes)} / {format_bytes(region.total_bytes)} ({region.percent:.2f}%)"
+
+
+def aggregate_ram(job: BuildJob) -> MemoryRegion | None:
+    ram_regions = [region for name, region in job.memory_regions.items() if name != "FLASH"]
+    if not ram_regions:
+        return None
+    used_bytes = sum(region.used_bytes for region in ram_regions)
+    total_bytes = sum(region.total_bytes for region in ram_regions)
+    percent = used_bytes * 100 / total_bytes if total_bytes else 0
+    return MemoryRegion(used_bytes=used_bytes, total_bytes=total_bytes, percent=percent)
+
+
+def find_arm_size() -> Path | None:
+    candidates = sorted((PROJECT_ROOT / ".dependencies").glob("gcc-arm-none-eabi-*/bin/arm-none-eabi-size"))
+    return candidates[-1] if candidates else None
+
+
+def read_map_regions(map_path: Path) -> dict[str, tuple[int, int]]:
+    regions: dict[str, tuple[int, int]] = {}
+    in_memory_configuration = False
+    for line in map_path.read_text(errors="replace").splitlines():
+        if line == "Memory Configuration":
+            in_memory_configuration = True
+            continue
+        if not in_memory_configuration:
+            continue
+        match = MAP_MEMORY_REGION_RE.match(line)
+        if match:
+            name, origin, length = match.groups()
+            regions[name] = (int(origin, 16), int(length, 16))
+        elif regions and line.strip():
+            break
+    return regions
+
+
+def hydrate_memory_from_artifact(job: BuildJob) -> None:
+    if job.memory_regions:
+        return
+    arm_size = find_arm_size()
+    if arm_size is None:
+        return
+    for firmware in job.firmware_paths:
+        map_path = firmware.with_suffix(".map")
+        if not firmware.exists() or not map_path.exists():
+            continue
+        capacities = read_map_regions(map_path)
+        if not capacities:
+            continue
+        result = subprocess.run(
+            [str(arm_size), "-A", str(firmware)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding="utf-8",
+            check=False,
+        )
+        if result.returncode != 0:
+            continue
+        used = {name: 0 for name in capacities}
+        for line in result.stdout.splitlines():
+            match = SIZE_SECTION_RE.match(line)
+            if not match:
+                continue
+            _, size, address = match.groups()
+            section_size = int(size)
+            section_address = int(address)
+            for name, (origin, length) in capacities.items():
+                if origin <= section_address < origin + length:
+                    used[name] += section_size
+                    break
+        for name, (_, total_bytes) in capacities.items():
+            used_bytes = used[name]
+            percent = used_bytes * 100 / total_bytes if total_bytes else 0
+            job.memory_regions[name] = MemoryRegion(used_bytes, total_bytes, percent)
+        return
 
 
 def progress_bar(percent: int | None, width: int = 18) -> str:
@@ -430,6 +556,8 @@ def print_summary(jobs: list[BuildJob], output_dir: Path) -> None:
     total_time = max((job.finished_at or time.monotonic()) for job in jobs) - min((job.started_at or time.monotonic()) for job in jobs)
     success = [job for job in jobs if job.returncode == 0]
     failed = [job for job in jobs if job.returncode != 0]
+    for job in jobs:
+        hydrate_memory_from_artifact(job)
 
     print()
     print("Build summary")
@@ -437,26 +565,37 @@ def print_summary(jobs: list[BuildJob], output_dir: Path) -> None:
     print(f"Result: {len(success)} succeeded, {len(failed)} failed")
     print(f"Elapsed: {format_elapsed(int(total_time))}")
     print()
-    print("MODEL              RESULT     TIME     BBF")
-    print("-" * 72)
+    print("MACHINE / PRESET   RESULT     TIME     FLASH                         RAM")
+    print("-" * 104)
     for job in jobs:
         result = "SUCCESS" if job.returncode == 0 else "FAILED"
-        bbf_names = [bbf.name for bbf in sorted(output_dir.glob("*.bbf")) if is_selected_bbf(bbf, [job.preset])]
-        bbf_name = ", ".join(bbf_names) if bbf_names else "-"
-        print(f"{job.preset:<18} {result:<10} {format_elapsed(job.elapsed_s):<8} {bbf_name}")
+        print(
+            f"{job.preset:<18} {result:<10} {format_elapsed(job.elapsed_s):<8} "
+            f"{format_region(job.memory_regions.get('FLASH')):<29} {format_region(aggregate_ram(job))}"
+        )
+
+    print()
+    print("Memory regions")
+    print("-" * 104)
+    for job in jobs:
+        regions = ", ".join(f"{name}: {format_region(region)}" for name, region in job.memory_regions.items())
+        print(f"{job.preset:<18} {regions or '-'}")
 
     staged = sorted(output_dir.glob("*.bbf"))
     if staged:
         print()
-        print(f"BBFs staged in {output_dir}:")
+        print("Staged BBF artifacts")
+        print("-" * 104)
         for bbf in staged:
-            print(f"  {bbf.name}")
+            print(f"{bbf.name:<32} {bbf.resolve()}")
 
 
 def read_process_output(job: BuildJob, process: subprocess.Popen[str], output_queue: queue.Queue[tuple[BuildJob, str]]) -> None:
     assert process.stdout is not None
     for line in process.stdout:
-        output_queue.put((job, line.rstrip()))
+        line = line.rstrip()
+        job.capture_output(line)
+        output_queue.put((job, line))
 
 
 def generate_signing_key_with_ecdsa(private_key: Path, public_key: Path) -> bool:
@@ -661,7 +800,19 @@ def main() -> int:
             command.extend(["--signing-key", str(signing_key)])
         for definition in args.cmake_def:
             command.extend(["-D", definition])
-        jobs.append(BuildJob(preset=preset, command=command, products_dir=products_dir))
+        bootloader_components = {
+            "yes": "boot",
+            "no": "noboot",
+            "empty": "emptyboot",
+        }
+        firmware_paths = [
+            (args.build_dir or PROJECT_ROOT / "build")
+            / f"{preset}_{args.build_type}_{bootloader_components[bootloader.strip().lower()]}"
+            / "firmware"
+            for bootloader in args.bootloader.split(",")
+            if bootloader.strip().lower() in bootloader_components
+        ]
+        jobs.append(BuildJob(preset=preset, command=command, products_dir=products_dir, firmware_paths=firmware_paths))
 
     max_parallel = args.jobs
     print("Building presets:", ",".join(selected_presets))
@@ -718,13 +869,8 @@ def main() -> int:
                     job, line = output_queue.get_nowait()
                 except queue.Empty:
                     break
-                job.log.append(line)
-                job.last_line = line
                 if args.verbose:
                     print(f"[{job.preset}] {line}")
-                match = PROGRESS_RE.search(line)
-                if match:
-                    job.progress = f"{match.group(1)}/{match.group(2)}"
 
             for process, job in list(running.items()):
                 returncode = process.poll()
