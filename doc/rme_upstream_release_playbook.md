@@ -264,7 +264,9 @@ The splash screen must be painted before `gui_display_ready` is provided, and th
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
 Status LEDs blink green for the entire post-print filtration run unless the completed print is acknowledged by a Core One chamber-door open/close cycle.
+A running filtration fan must not select the green filtering animation during an active print. Keep the normal blue printing animation until the printer reaches `Finished`.
 A Core One chamber-door acknowledgement during filtration suppresses both the remaining filtering blink and the later solid-green status hold until the next print starts.
+Do not accept chamber-door acknowledgement before the printer reaches `Finished`, including during finishing park and unload phases.
 Opening the Core One chamber door during post-print filtration opens an end-filtration prompt. The prompt closes automatically if filtration finishes naturally while it is open and returns to the persistent print-finished screen.
 The persistent print-finished screen exposes `Stop Filter` while filtration remains active. That action ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains independent.
 Serial print-finished summaries expose page dots and swipe navigation for elapsed duration, completion time, and remaining filtration time when available.

@@ -108,7 +108,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     door_open_for_leds = open;
     door_raw_data = raw_data;
 
-    if (post_print_hold) {
+    if (post_print_hold && marlin_vars().print_state == marlin_server::State::Finished) {
         if (open) {
             post_print_hold_seen_door_open = true;
         } else if (was_open && post_print_hold_seen_door_open) {
@@ -167,15 +167,17 @@ void SideStripHandler::update() {
             print_screen_brightness_overridden = false;
             if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finishing_WaitIdle) {
                 active_timestamp_ms = time_ms;
-            } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished() && post_print_hold_enabled) {
+            } else if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finished && post_print_hold_enabled) {
                 print_or_filter_active_prev = false;
                 post_print_hold = true;
                 post_print_hold_dismissed = false;
                 post_print_hold_seen_door_open = door_open_for_leds;
                 active_timestamp_ms = time_ms;
-            } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished()) {
+            } else if (print_or_filter_active_prev && marlin_vars().print_state == marlin_server::State::Finished) {
                 print_or_filter_active_prev = false;
                 active_timestamp_ms = 0;
+            } else if (print_or_filter_active_prev && marlin_server::finishing_or_finished()) {
+                active_timestamp_ms = time_ms;
             } else if (print_or_filter_active_prev && !marlin_server::finishing_or_finished()) {
                 print_or_filter_active_prev = false;
                 active_timestamp_ms = time_ms;

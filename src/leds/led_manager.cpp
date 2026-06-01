@@ -94,7 +94,8 @@ void acknowledge_filtering_after_door_cycle(bool door_open) {
 #if HAS_CHAMBER_FILTRATION_API()
     static bool filtering_seen_door_open = false;
 
-    if (buddy::chamber_filtration().output_pwm().value == 0) {
+    if (marlin_vars().print_state != marlin_server::State::Finished
+        || buddy::chamber_filtration().output_pwm().value == 0) {
         filtering_seen_door_open = false;
         return;
     }

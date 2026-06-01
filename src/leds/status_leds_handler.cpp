@@ -20,7 +20,8 @@ using namespace marlin_server;
 
 static bool post_filter_active() {
 #if HAS_CHAMBER_FILTRATION_API()
-    return buddy::chamber_filtration().output_pwm().value > 0;
+    return marlin_vars().print_state.get() == marlin_server::State::Finished
+        && buddy::chamber_filtration().output_pwm().value > 0;
 #else
     return false;
 #endif
