@@ -9,6 +9,7 @@
 #include <utils/color.hpp>
 #include <option/has_mmu2.h>
 #include <option/has_gcode_compatibility.h>
+#include <option/has_chamber_vents.h>
 #include <common/filament.hpp>
 #include <common/hw_check.hpp>
 #include <config_store/store_instance.hpp>
@@ -43,6 +44,9 @@ inline constexpr const char *m104_set_hotend_temp = "M104";
 inline constexpr const char *m109_wait_hotend_temp = "M109";
 #if EXTRUDERS > 1
 inline constexpr const char *total_toolchanges = "total toolchanges";
+#endif
+#if HAS_CHAMBER_VENTS()
+inline constexpr const char *m870_chamber_vents = "M870";
 #endif
 }; // namespace gcode_info
 
@@ -126,6 +130,9 @@ private:
 #if EXTRUDERS > 1
         std::optional<uint16_t> total_toolchanges { std::nullopt }; ///< Total number of toolchanges over the whole print (INDX nozzle-cleaner wastebin fill estimation)
 #endif
+#if HAS_CHAMBER_VENTS()
+        bool has_chamber_vent_gcode = false; ///< An explicit vent command was found in the scanned start G-code
+#endif
     };
     GenericInfo info_;
 
@@ -169,6 +176,9 @@ public:
     bool has_preview_thumbnail() const { return info_.has_preview_thumbnail_; } ///< Check if file has preview thumbnail
     bool has_progress_thumbnail() const { return info_.has_progress_thumbnail_; } ///< Check if file has progress thumbnail
     bool has_filament_described() const { return info_.filament_described; } ///< Check if file has filament described
+#if HAS_CHAMBER_VENTS()
+    bool has_chamber_vent_gcode() const { return info_.has_chamber_vent_gcode; }
+#endif
     const GCodePerExtruderInfo &get_per_extruder_info() const { return per_extruder_info; } ///< Get info about G-code for each extruder
     const std::optional<uint16_t> &get_bed_preheat_temp() const { return info_.bed_preheat_temp; } ///< Get info about bed preheat temperature
     const std::optional<PrintArea::rect_t> &get_bed_preheat_area() const { return info_.bed_preheat_area; } ///< Get info about G-preheat area
