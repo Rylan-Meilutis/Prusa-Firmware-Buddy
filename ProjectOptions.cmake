@@ -130,6 +130,11 @@ set(DEVELOPMENT_ITEMS_ENABLED
     CACHE BOOL "Show development (green) items in menus and enable other devel features"
     )
 define_boolean_option(DEVELOPMENT_ITEMS ${DEVELOPMENT_ITEMS_ENABLED})
+set(FULL_M503_REPORT_ENABLED
+    "YES"
+    CACHE BOOL "Include verbose M503 headings and TMC settings in all builds"
+    )
+define_boolean_option(FULL_M503_REPORT ${FULL_M503_REPORT_ENABLED})
 
 set(ENABLE_BURST
     "NO"
