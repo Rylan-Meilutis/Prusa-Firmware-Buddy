@@ -808,9 +808,7 @@ static void save_print_time_to_odometer(uint32_t print_duration) {
 
 static void flush_odometer_periodically() {
     static constexpr int32_t min_flush_interval_ms = 60 * 1000;
-    static constexpr int32_t max_unflushed_age_ms = 60 * 1000;
 
-    static uint32_t first_change_ms = 0;
     static uint32_t last_flush_ms = 0;
 
     if (marlin_server::is_printing_state(server.print_state) || marlin_server::is_extended_paused_state(server.print_state)) {
@@ -818,24 +816,21 @@ static void flush_odometer_periodically() {
     }
 
     if (!Odometer_s::instance().changed()) {
-        first_change_ms = 0;
         return;
     }
 
     const uint32_t now_ms = ticks_ms();
-    if (first_change_ms == 0) {
-        first_change_ms = now_ms;
-    }
-
     const bool flush_not_recent = last_flush_ms == 0 || ticks_diff(now_ms, last_flush_ms) >= min_flush_interval_ms;
     if (!flush_not_recent) {
         return;
     }
 
-    if (!is_processing() || ticks_diff(now_ms, first_change_ms) >= max_unflushed_age_ms) {
+    // cycle() also runs from nested idle() calls while blocking G-codes such as
+    // G123 are planning motion. EEPROM journal writes must wait until Marlin
+    // and the planner are idle; print finalization still forces a save.
+    if (!is_processing() && !planner.processing()) {
         Odometer_s::instance().force_to_eeprom();
         last_flush_ms = now_ms;
-        first_change_ms = 0;
     }
 }
 
@@ -2303,7 +2298,10 @@ static void _server_print_loop(void) {
             }
         }
 #if HAS_CHAMBER_VENTS()
-        buddy::chamber().manage_ventilation_state(config_store().get_filament_type(0).parameters().chamber_target_temperature, server.print_is_serial);
+        buddy::chamber().manage_ventilation_state(
+            config_store().get_filament_type(0).parameters().chamber_target_temperature,
+            server.print_is_serial,
+            !server.print_is_serial && GCodeInfo::getInstance().has_chamber_vent_gcode());
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
         buddy::chamber_filtration().check_filter_expiration();

@@ -305,11 +305,17 @@ Behavior to verify:
 Printer type setting offers Core One and Core One Plus.
 Core One Plus is a distinct logical model that reports COREONE+ while sharing the Core One firmware compatibility group.
 Core One L builds report COREONEL and do not expose the Core One / Core One Plus selector.
-Core One Plus disables manual open-vent prompts.
-Serial prints disable manual open-vent prompts.
-Automatic close-vent behavior remains available where upstream supports it.
+Core One normal file prints keep user-facing open/close vent prompts.
+Core One serial prints assume the vent is already positioned correctly and do not show filament-derived prompts.
+Core One Plus normal file prints use automatic vent movement unless the scanned start G-code contains an explicit M870 vent command.
+Core One Plus serial prints do not infer vent position from filament; streamed M870 commands are authoritative.
+Explicit M870 commands remain usable regardless of the automatic decision policy.
 Core One and Core One Plus selftest/setup labels remain correct.
 ```
+
+### Odometer Persistence And Manual Motion
+
+Periodic odometer persistence must wait until Marlin and the planner are idle. `cycle()` also runs from nested `idle()` calls while blocking G-codes such as `G123` are planning manual movement, so EEPROM journal writes must not use a maximum-age escape hatch that can fire during active motion. Print finalization may still force an immediate save.
 
 ### Chamber Fan, Filtration, And Safety Timer
 
@@ -617,7 +623,7 @@ Do not trade away serial-print recovery, lighting safety, or post-print acknowle
 
 For per-state LED/screen settings, prefer the shared runtime-backed state menu container in `src/gui/screen/screen_menu_led_state.*`. Reintroducing separate `ScreenMenu<...>` template instantiations for each light state has previously pushed XL over boot flash.
 
-Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the flash screen and home-screen badge both report `<version>-RME`.
+Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the installed firmware home-screen badge reports `<version>-RME`. The stock bootloader firmware-selection screen is expected to append the mandatory BBF header build number after the `RME` tag.
 
 Core One, Core One L, XL, and MINI store translations in the resource image to preserve boot flash headroom. Keep `COREONE`, `COREONEL`, `XL`, and `MINI` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`. Keep the Core One/Core One L/XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the resource image size rather than moving translations back into CPU flash.
 

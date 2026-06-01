@@ -204,19 +204,29 @@ void Chamber::reset() {
 }
 
 #if HAS_CHAMBER_VENTS()
-void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target, bool suppress_open_warning) {
+void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target, bool serial_print, bool has_explicit_vent_gcode) {
 
     const auto control_state = config_store().get_vent_control();
     if (control_state == VentControl::off) {
         return;
     }
 
+    const bool core_one_plus = selected_core_one_plus();
+
+    // A serial host is responsible for issuing explicit vent commands because
+    // the streamed print does not provide a reliable filament selection here.
+    // For file prints, an explicit command in the scanned start G-code takes
+    // precedence over Core One Plus filament-derived automatic movement.
+    if (serial_print || (core_one_plus && control_state == VentControl::automatic && has_explicit_vent_gcode)) {
+        return;
+    }
+
     constexpr uint8_t temp_limit = 45; // Limit for closed grills is chamber max temperature of PETG
 
     auto open = [&]() {
-        if (control_state == VentControl::automatic) {
+        if (core_one_plus && control_state == VentControl::automatic) {
             automatic_chamber_vents::open();
-        } else if (suppress_open_warning || selected_core_one_plus()) {
+        } else if (core_one_plus) {
             vent_state_ = Chamber::VentState::open;
         } else {
             marlin_server::set_warning(WarningType::OpenChamberVents);
@@ -225,7 +235,7 @@ void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target, bo
     };
 
     auto close = [&]() {
-        if (control_state == VentControl::automatic) {
+        if (core_one_plus && control_state == VentControl::automatic) {
             automatic_chamber_vents::close();
         } else {
             marlin_server::set_warning(WarningType::CloseChamberVents);
