@@ -45,7 +45,7 @@ Example:
   },
   "led": {
     "idle": "#000000",
-    "printing": "#4B2E83",
+    "printing": "#1A0040",
     "finished": "#00FF00",
     "warning": "#FFCC00",
     "error": "#FF0000"
