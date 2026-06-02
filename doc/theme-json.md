@@ -25,7 +25,7 @@ Required `ui` colors:
 Required `led` colors:
 
 - `idle`
-- `printing`
+- `printing`: in-progress print color for the status strip / light bar on supported printers.
 - `finished`
 - `warning`
 - `error`
@@ -45,7 +45,7 @@ Example:
   },
   "led": {
     "idle": "#000000",
-    "printing": "#0096FF",
+    "printing": "#4B2E83",
     "finished": "#00FF00",
     "warning": "#FFCC00",
     "error": "#FF0000"
