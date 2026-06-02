@@ -519,6 +519,18 @@ enum class PhaseNozzleCleanerCalibration : PhaseUnderlyingType {
     _last = calibration_success,
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhaseNozzleCleanerCalibration) { return ClientFSM::NozzleCleanerCalibration; }
+
+enum class PhaseToolOffsetsCalibration : PhaseUnderlyingType {
+    intro,
+    ensure_nozzles_clean,
+    picking_tool,
+    homing,
+    calibrating,
+    calibration_success,
+    calibration_failed,
+    _last = calibration_failed,
+};
+constexpr inline ClientFSM client_fsm_from_phase(PhaseToolOffsetsCalibration) { return ClientFSM::ToolOffsetsCalibration; }
 #endif
 
 namespace ClientResponses {
@@ -836,6 +848,16 @@ inline constexpr EnumArray<PhaseNozzleCleanerCalibration, PhaseResponses, CountP
     { PhaseNozzleCleanerCalibration::measuring_y, {} },
     { PhaseNozzleCleanerCalibration::evaluating_y, { Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::calibration_success, { Response::Continue } },
+};
+
+inline constexpr EnumArray<PhaseToolOffsetsCalibration, PhaseResponses, CountPhases<PhaseToolOffsetsCalibration>()> tool_offsets_calibration_responses {
+    { PhaseToolOffsetsCalibration::intro, { Response::Continue, Response::Abort } },
+    { PhaseToolOffsetsCalibration::ensure_nozzles_clean, { Response::Continue, Response::Abort } },
+    { PhaseToolOffsetsCalibration::picking_tool, {} },
+    { PhaseToolOffsetsCalibration::homing, {} },
+    { PhaseToolOffsetsCalibration::calibrating, { Response::Abort } },
+    { PhaseToolOffsetsCalibration::calibration_success, { Response::Continue } },
+    { PhaseToolOffsetsCalibration::calibration_failed, { Response::Continue } },
 };
 #endif
 

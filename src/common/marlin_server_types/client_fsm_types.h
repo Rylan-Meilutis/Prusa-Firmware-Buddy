@@ -73,6 +73,7 @@ enum class ClientFSM : uint8_t {
     #if HAS_INDX()
     NozzleMismatch,
     DockCalibration,
+    ToolOffsetsCalibration,
     NozzleCleanerCalibration,
     #endif
     SafetyTimer,
