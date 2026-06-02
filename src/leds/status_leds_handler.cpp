@@ -175,7 +175,7 @@ static StateAnimation marlin_to_anim_state() {
         return StateAnimation::Finishing;
 
     case State::Finished:
-        return post_filter_active() ? StateAnimation::Filtering : StateAnimation::Idle;
+        return post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
 
     case State::CrashRecovery_Begin:
     case State::CrashRecovery_Retracting:
@@ -484,7 +484,7 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         current_light_state = LightState::printing;
-    } else if (state == StateAnimation::Idle) {
+    } else if (state == StateAnimation::Idle || (state == StateAnimation::Finishing && finished && !timed_finished_hold_active)) {
         current_light_state = idle_light_state;
     } else {
         current_light_state = LightState::active;
