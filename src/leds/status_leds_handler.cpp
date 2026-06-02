@@ -349,7 +349,11 @@ void StatusLedsHandler::set_custom_animation(const ColorRGBW &color, AnimationTy
         custom_params.blend_time = 300;
     }
 
-    controller.set(custom_params);
+    if (type == AnimationType::Solid) {
+        controller.set_immediate(custom_params);
+    } else {
+        controller.set(custom_params);
+    }
     custom_params_bank_index = custom_params_bank_index > 0 ? 0 : 1;
 }
 
