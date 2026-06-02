@@ -39,6 +39,19 @@ static uint8_t packed_brightness(uint32_t values, LightState state) {
     return (values >> light_state_shift(state)) & 0xff;
 }
 
+static ColorRGBW raw_to_color(uint32_t raw) {
+    return ColorRGBW(static_cast<uint8_t>((raw >> 16) & 0xff), static_cast<uint8_t>((raw >> 8) & 0xff), static_cast<uint8_t>(raw & 0xff));
+}
+
+#if HAS_CHAMBER_FILTRATION_API()
+static ColorRGBW filtration_tint() {
+    const uint32_t duration_s = config_store().chamber_post_print_filtration_duration_min.get() * 60;
+    const uint32_t remaining_s = std::min(buddy::chamber_filtration().post_print_remaining_s(), duration_s);
+    const float progress = duration_s > 0 ? static_cast<float>(duration_s - remaining_s) / duration_s : 1.0f;
+    return raw_to_color(config_store().status_led_warning_color.get()).blend({ 255, 255, 255 }, progress);
+}
+#endif
+
 static StateAnimation marlin_to_anim_state() {
     fsm::States::State load_unload_state;
     bool is_preheating;
@@ -272,10 +285,6 @@ namespace {
     };
 
     ColorRGBW configured_color(StateAnimation state, ColorRGBW fallback) {
-        const auto raw_to_color = [](uint32_t raw) {
-            return ColorRGBW(static_cast<uint8_t>((raw >> 16) & 0xff), static_cast<uint8_t>((raw >> 8) & 0xff), static_cast<uint8_t>(raw & 0xff));
-        };
-
         switch (state) {
         case StateAnimation::Idle:
             return raw_to_color(config_store().status_led_idle_color.get());
@@ -284,7 +293,7 @@ namespace {
         case StateAnimation::Finishing:
             return raw_to_color(config_store().status_led_finished_color.get());
         case StateAnimation::Filtering:
-            return raw_to_color(config_store().status_led_warning_color.get());
+            return { 255, 255, 255 };
         case StateAnimation::Warning:
         case StateAnimation::PowerPanic:
             return raw_to_color(config_store().status_led_warning_color.get());
@@ -539,16 +548,22 @@ std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     if (print_active_for_status_override()) {
         brightness = static_cast<uint8_t>(static_cast<uint16_t>(brightness) * print_status_brightness / 100);
     }
-    if (brightness >= 100) {
+    const bool filtering = post_filter_active();
+    if (brightness >= 100 && !filtering) {
         return data;
     }
 
+#if HAS_CHAMBER_FILTRATION_API()
+    const ColorRGBW tint = filtering ? filtration_tint() : ColorRGBW { 255, 255, 255, 255 };
+#else
+    const ColorRGBW tint { 255, 255, 255, 255 };
+#endif
     for (size_t i = 0; i < adjusted_data.size(); ++i) {
         adjusted_data[i] = ColorRGBW(
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].r) * brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].g) * brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].b) * brightness / 100),
-            static_cast<uint8_t>(static_cast<uint16_t>(data[i].w) * brightness / 100));
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].r) * tint.r * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].g) * tint.g * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].b) * tint.b * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].w) * tint.w * brightness / 255 / 100));
     }
     return adjusted_data;
 }
