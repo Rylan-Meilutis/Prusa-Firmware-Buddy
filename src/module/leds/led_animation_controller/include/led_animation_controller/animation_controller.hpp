@@ -35,6 +35,11 @@ public:
         current_animation.start(params);
     }
 
+    void set_immediate(const AnimationParams &params) {
+        current_animation.start(params);
+        prev_animation = current_animation;
+    }
+
     std::span<const ColorRGBW, count> data() const {
         return data_;
     }
