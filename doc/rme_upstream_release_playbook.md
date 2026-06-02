@@ -263,7 +263,7 @@ The splash screen must be painted before `gui_display_ready` is provided, and th
 `Active to Idle` is measured from last activity to idle entry.
 `Idle to Deep Idle` is measured from idle entry to deep-idle/off entry, not from the original activity timestamp.
 Canceled/aborted prints show abort indication until door open/close acknowledgement or new print.
-Status LEDs blink green for the entire post-print filtration run unless the completed print is acknowledged by a Core One chamber-door open/close cycle.
+Status LEDs smoothly pulse using the configured warning color for the entire post-print filtration run unless the completed print is acknowledged by a Core One chamber-door open/close cycle. Keep this visually distinct from the solid-green finished hold, and do not add a fully-off dwell between the fade-down and fade-up portions of the pulse.
 A running filtration fan must not select the green filtering animation during an active print. Keep the normal blue printing animation until the printer reaches `Finished`.
 A Core One chamber-door acknowledgement during filtration suppresses both the remaining filtering blink and the later solid-green status hold until the next print starts.
 Do not accept chamber-door acknowledgement before the printer reaches `Finished`, including during finishing park and unload phases.
@@ -272,8 +272,10 @@ The persistent print-finished screen exposes `Stop Filter` while filtration rema
 Serial print-finished summaries expose page dots and swipe navigation for elapsed duration, completion time, and remaining filtration time when available.
 Capture elapsed print duration before abort cleanup begins. Cleanup G-code may restart and reset the stopwatch; canceled prints must retain the pre-cleanup duration.
 Continuously preserve the maximum elapsed print duration while a print is active. Serial hosts may issue timer stop commands before firmware finalization, and both serial and file-print finished summaries must render the preserved duration rather than a reset stopwatch value.
+Print duration includes startup heating. Keep timer startup in `PrintInit` and `SerialPrintInit` before blocking heater waits continue, and keep `_server_print_loop()` running from nested `cycle()` calls during `M109`, `M190`, and `M191`.
 Update serial-print header captions only when the print state changes. Reapplying an unchanged caption during each GUI loop invalidates the full header and causes visible flicker.
 The acknowledged-filter path must force the status LED output fully black while filtration remains active; selecting the idle animation alone is insufficient because idle brightness and color may be configured non-zero.
+Built-in UI theme selection applies the matching status LED palette immediately. Keep Indigo printing status LEDs indigo rather than falling back to the generic blue printing color.
 After filtering ends, or immediately after a print that does not need filtering, unacknowledged status LEDs hold solid green for the configurable status-finished-hold duration before entering the normal idle sequence.
 After the finished hold, status LED animation remains controlled by print state while brightness follows the side-light active, idle, and deep-idle state again. Screen interaction and Core One door activity wake brightness normally; an open Core One door holds active brightness until it closes.
 The status-finished-hold duration defaults to 300 seconds, is exposed in Lights Settings, exports through `M154.7 H<seconds>`, and accepts `H0` to disable the solid-green hold.

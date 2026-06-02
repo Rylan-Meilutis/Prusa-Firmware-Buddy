@@ -234,7 +234,7 @@ namespace {
             { StateAnimation::Printing, { { 0, 150, 255 }, 1000, 0, 400, solid } },
             { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
 #endif
-            { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 800, pulsing } },
+            { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 2000, pulsing } },
             { StateAnimation::Aborting, { { 0, 0, 0 }, 1000, 0, 400, solid } },
 #if PRINTER_IS_PRUSA_iX()
             { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
@@ -282,8 +282,9 @@ namespace {
         case StateAnimation::Printing:
             return raw_to_color(config_store().status_led_printing_color.get());
         case StateAnimation::Finishing:
-        case StateAnimation::Filtering:
             return raw_to_color(config_store().status_led_finished_color.get());
+        case StateAnimation::Filtering:
+            return raw_to_color(config_store().status_led_warning_color.get());
         case StateAnimation::Warning:
         case StateAnimation::PowerPanic:
             return raw_to_color(config_store().status_led_warning_color.get());

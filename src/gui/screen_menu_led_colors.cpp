@@ -53,7 +53,7 @@ constexpr ThemeColors theme_default {
     .error = 0xff0000,
     .image = 0x4b2e83,
     .led_idle = 0x000000,
-    .led_printing = 0x0096ff,
+    .led_printing = 0x4b2e83,
     .led_finished = 0x00ff00,
     .led_warning = 0xffff00,
     .led_error = 0xff0000,
@@ -166,6 +166,14 @@ void apply_theme(const ThemeColors &theme) {
     config_store().ui_theme_warning_color.set(theme.warning);
     config_store().ui_theme_error_color.set(theme.error);
     config_store().ui_theme_image_color.set(theme.image);
+    config_store().status_led_idle_color.set(theme.led_idle);
+    config_store().status_led_printing_color.set(theme.led_printing);
+    config_store().status_led_finished_color.set(theme.led_finished);
+    config_store().status_led_warning_color.set(theme.led_warning);
+    config_store().status_led_error_color.set(theme.led_error);
+#if HAS_LEDS()
+    reload_status_led_colors();
+#endif
 }
 
 void save_imported_theme(const ThemeColors &theme) {
