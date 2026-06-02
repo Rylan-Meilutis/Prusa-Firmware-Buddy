@@ -95,6 +95,7 @@ private:
     uint8_t print_status_brightness { 100 };
     LightState idle_light_state { LightState::active };
     StateAnimation old_state { StateAnimation::Idle };
+    bool custom_animation_active { false };
     bool is_error_state { false };
     bool finished_acknowledged { false };
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
