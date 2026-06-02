@@ -184,6 +184,15 @@ public:
 
     static std::optional<FilamentType> from_gcode_param(const std::string_view &value);
 
+    /// @return filament loaded to the specified tool according to the config store
+    static FilamentType for_tool(std::variant<VirtualToolIndex, NoTool> tool);
+
+    /// Tries really hard to guess a filament that is loaded in the tool.
+    /// Can do various heuristics (for example checking GCodeInfo during print)
+    /// Does not necessarily have to coincide with the config store.
+    /// Returning NoFilament is a last resort.
+    static FilamentType for_tool_heuristic(std::variant<VirtualToolIndex, NoTool> tool);
+
     /// \returns whether the filament type is of the specified name.
     /// !!! Prefer using "loaded_filament.matches(b_name)" over "loaded_filament == FilamentType::from_name(b_name)" where it makes sense.
     /// !!! This is because "loaded_filament" could be an ad-hoc filament, which is never returned from FilamentType::from_name.

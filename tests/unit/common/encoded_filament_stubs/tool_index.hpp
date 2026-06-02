@@ -14,3 +14,6 @@ struct VirtualToolIndex {
     auto to_raw() const { return val; }
     PhysicalToolIndex to_physical() const { return PhysicalToolIndex { val }; }
 };
+
+struct NoTool {
+};

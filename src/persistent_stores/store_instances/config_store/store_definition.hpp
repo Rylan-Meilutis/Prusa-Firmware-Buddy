@@ -497,6 +497,7 @@ struct CurrentStore
     [[deprecated("Use the overload with VirtualToolIndex")]]
     FilamentType get_filament_type(uint8_t index);
 
+    [[deprecated("Use FilamentType::for_tool")]]
     inline FilamentType get_filament_type(VirtualToolIndex tool) {
         return get_filament_type(tool.to_raw());
     }

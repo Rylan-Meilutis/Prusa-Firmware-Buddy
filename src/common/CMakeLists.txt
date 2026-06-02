@@ -21,6 +21,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             filament_list.cpp
             filament_presets.cpp
             filament_to_load.cpp
+            filament_tools.cpp
             filename_type.cpp
             filepath_operation.cpp
             footer_def.cpp
