@@ -14,7 +14,7 @@ public:
     explicit IndxHotend(PhysicalToolIndex tool, const Config *config)
         : BaseHotend(tool, config) {
         is_thermally_managed_ = false; // INDX starts inactive
-        nozzle_temp_ = 15; // parked sentinel until first pickup; kept in sync with stop_heating()
+        nozzle_temp_ = std::nullopt; // parked sentinel until first pickup; kept in sync with stop_heating()
     }
 
     static StandardFFFPhysicalTool<IndxHotend> &indx_tool(PhysicalToolIndex tool);

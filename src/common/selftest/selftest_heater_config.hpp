@@ -10,6 +10,7 @@
 #include "fanctl.hpp"
 #include "client_response.hpp"
 #include "selftest_heaters_type.hpp"
+#include <tool/hotend/hotend.hpp>
 
 #if PRINTER_IS_PRUSA_XL()
     #define HAS_SELFTEST_POWER_CHECK()        1
@@ -30,7 +31,7 @@ struct HeaterConfig_t {
     using type_evaluation = SelftestHeater_t;
     using FanCtlFnc = CFanCtlCommon &(*)(size_t);
     static constexpr SelftestParts part_type = SelftestParts::Heaters;
-    using temp_getter = float (*)();
+    using temp_getter = Hotend::OptionalTemperature (*)();
     using temp_setter = void (*)(int);
     const char *partname;
     heater_type_t type;

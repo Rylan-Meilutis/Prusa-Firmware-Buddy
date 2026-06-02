@@ -111,7 +111,7 @@ void SafetyTimer::reset_restore_blocking() {
     // Prevent the timer from timing out during the heatup
     SafetyTimerBlocker timer_blocker;
 
-    StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> start_temperatures;
+    StrongIndexArray<Hotend::OptionalTemperature, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> start_temperatures;
     for (auto tool : PhysicalToolIndex::all()) {
         start_temperatures[tool] = Hotend::for_tool(tool).nozzle_temp();
     }
@@ -120,7 +120,12 @@ void SafetyTimer::reset_restore_blocking() {
         float min_progress = 1;
         for (auto tool : PhysicalToolIndex::all()) {
             const auto &hotend = Hotend::for_tool(tool);
-            const float hotend_progress = to_normalized_progress(start_temperatures[tool], hotend.nozzle_target_temp(), hotend.nozzle_temp());
+            const auto current = hotend.nozzle_temp();
+            if (!current.has_value() || !start_temperatures[tool].has_value()) {
+                // inactive tool with no current reading shouldn't participate in the resuming progress.
+                continue;
+            }
+            const float hotend_progress = to_normalized_progress(*start_temperatures[tool], hotend.nozzle_target_temp(), *current);
             min_progress = std::min(min_progress, hotend_progress);
         }
         marlin_server::fsm_change(PhaseSafetyTimer::resuming, fsm::serialize_data<float>(min_progress * 100));

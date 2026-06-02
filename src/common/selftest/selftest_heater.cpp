@@ -43,7 +43,7 @@ CSelftestPart_Heater::~CSelftestPart_Heater() {
         return;
     }
     log_info(Selftest, "%s finish, target: %d current: %f", m_config.partname,
-        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp().value_or(NAN)));
     m_config.setTargetTemp(0);
     m_config.set_pid(original_pid);
     log_info(Selftest, "%s heater PID regulator restored", m_config.partname);
@@ -153,7 +153,7 @@ LoopResult CSelftestPart_Heater::stateSetup() {
 
     log_info(Selftest, "%s Started", m_config.partname);
     log_info(Selftest, "%s target: %d current: %f", m_config.partname,
-        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp().value_or(NAN)));
     log_info(Selftest, "%s heater PID regulator changed to P regulator", m_config.partname);
 
     m_StartTime = SelftestInstance().GetTime();
@@ -161,18 +161,12 @@ LoopResult CSelftestPart_Heater::stateSetup() {
     // m_TempDiffSum = 0;
     // m_TempDiffSum = 0;
     // m_TempCount = 0;
-    const float temp = m_config.getTemp();
-#if HAS_INDX()
-    // This is a hack because xbuddy locally substitutes 15 °C
-    // whenever INDX hotend instance isn't the currently-selected tool
-    // (e.g. briefly after pick_any_tool() before puppy data propagates).
-    // A sensible logical value like -1 / NaN can't be used because it would
-    // trigger Marlin's mintemp protection
-    // We need to wait for correct values
-    if (temp == 15.f) { // INDX: wait for valid temperature data after pickup
+    const auto temp_opt = m_config.getTemp();
+    if (!temp_opt.has_value()) {
+        // No valid reading yet, wait until we get a valid temperature
         return LoopResult::RunCurrent;
     }
-#endif
+    const float temp = temp_opt.value();
     begin_temp = temp;
     enable_cooldown = temp >= m_config.start_temp;
     m_config.setTargetTemp(0);
@@ -205,19 +199,26 @@ LoopResult CSelftestPart_Heater::stateCooldownInit() {
 }
 
 LoopResult CSelftestPart_Heater::stateCooldown() {
+    const auto temp_opt = m_config.getTemp();
+    if (!temp_opt.has_value()) {
+        // No reading right now — wait for the next manage tick.
+        return LoopResult::RunCurrent;
+    }
+    const float temp = temp_opt.value();
+
     if (!enable_cooldown) {
         log_info(Selftest, "%s cooldown not needed, target: %d current: %f", m_config.partname,
-            static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+            static_cast<int>(m_config.target_temp), static_cast<double>(temp));
         return LoopResult::RunNext;
     }
 
     LogInfoTimed(log, "%s cooling down, target: %d current: %f", m_config.partname,
-        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+        static_cast<int>(m_config.target_temp), static_cast<double>(temp));
 
-    if (m_config.getTemp() > m_config.undercool_temp) {
+    if (temp > m_config.undercool_temp) {
         // m_config.undercool_temp .. 100%
         // begin_temp              ..   0%
-        actualizeProgress(m_config.getTemp(), begin_temp, m_config.undercool_temp);
+        actualizeProgress(temp, begin_temp, m_config.undercool_temp);
         return LoopResult::RunCurrent;
     }
     return LoopResult::RunNext;
@@ -233,14 +234,19 @@ LoopResult CSelftestPart_Heater::stateFansDeactivate() {
 
 LoopResult CSelftestPart_Heater::stateTargetTemp() {
     log_info(Selftest, "%s set target, target: %d current: %f", m_config.partname,
-        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp().value_or(NAN)));
     rResult.prep_state = SelftestSubtestState_t::running; // waiting for preheat temperature
     m_config.setTargetTemp(m_config.target_temp);
     return LoopResult::RunNext;
 }
 
 LoopResult CSelftestPart_Heater::stateWait() {
-    float current_temp = m_config.getTemp();
+    const auto temp_opt = m_config.getTemp();
+    if (!temp_opt.has_value()) {
+        // No reading right now — wait for the next manage tick.
+        return LoopResult::RunCurrent;
+    }
+    const float current_temp = temp_opt.value();
     if (current_temp >= m_config.start_temp) {
         rResult.prep_state = SelftestSubtestState_t::ok; // preheat temperature ok
         rResult.heat_state = SelftestSubtestState_t::running; // waiting final heat
@@ -249,7 +255,7 @@ LoopResult CSelftestPart_Heater::stateWait() {
         m_EndTime = m_StartTime + estimate(m_config);
         rResult.progress = 0;
         log_info(Selftest, "%s wait start temp reached: target: %d current: %f", m_config.partname,
-            static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+            static_cast<int>(m_config.target_temp), static_cast<double>(current_temp));
         return LoopResult::RunNext;
     }
     LogInfoTimed(log, "%s wait, run: target: %d current: %f", m_config.partname,
@@ -332,13 +338,20 @@ LoopResult CSelftestPart_Heater::stateMeasure() {
     // target_temp must be big enough to keep PID at full power
     assert(m_config.target_temp > m_config.heat_max_temp + 10);
 
-    if ((m_config.getTemp() < m_config.heat_min_temp + hw_diff) || (m_config.getTemp() > m_config.heat_max_temp + hw_diff)) {
-        log_error(Selftest, "%s %d out of range (%d - %d)\n", m_config.partname, static_cast<int>(m_config.getTemp()),
+    const auto temp_opt = m_config.getTemp();
+    if (!temp_opt.has_value()) {
+        // Can't evaluate the range without a reading — wait for the next manage tick.
+        // Persistent nullopt means the tool is no longer selected; user must Abort.
+        return LoopResult::RunCurrent;
+    }
+    const float temp = temp_opt.value();
+    if ((temp < m_config.heat_min_temp + hw_diff) || (temp > m_config.heat_max_temp + hw_diff)) {
+        log_error(Selftest, "%s %d out of range (%d - %d)\n", m_config.partname, static_cast<int>(temp),
             static_cast<int>(m_config.heat_min_temp + hw_diff), static_cast<int>(m_config.heat_max_temp + hw_diff));
         return LoopResult::Fail;
     }
     log_info(Selftest, "%s measure, target: %d current: %f", m_config.partname,
-        static_cast<int>(m_config.target_temp), static_cast<double>(m_config.getTemp()));
+        static_cast<int>(m_config.target_temp), static_cast<double>(temp));
     return LoopResult::RunNext;
 }
 

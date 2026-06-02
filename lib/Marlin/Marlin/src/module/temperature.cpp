@@ -1136,7 +1136,7 @@ void Temperature::isr() {
       // wait_temp can't block forever.
       const auto target_reached = [&]() {
         const auto current = hotend.nozzle_temp();
-        if (params.wait_temp.has_value() && current >= *params.wait_temp) {
+        if (params.wait_temp.has_value() && current.has_value() && current.value() >= *params.wait_temp) {
           return true;
         }
         return hotend.is_nozzle_temp_reached();
@@ -1175,16 +1175,20 @@ void Temperature::isr() {
 
         // Target temperature might be changed during the loop
         if (target_temp != degTargetHotend(target_extruder)) {
-          wants_to_cool = hotend.nozzle_target_temp() < hotend.nozzle_temp();
-          target_temp = degTargetHotend(target_extruder);
+          if (const auto current = hotend.nozzle_temp(); current.has_value()) {
+            wants_to_cool = hotend.nozzle_target_temp() < current.value();
+            target_temp = degTargetHotend(target_extruder);
+            
+            // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
+            if (params.no_wait_for_cooling && wants_to_cool) break;
 
-          // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
-          if (params.no_wait_for_cooling && wants_to_cool) break;
-
-          // If fan_cooling is enabled, assist the cooling/heating with the print fan
-          // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
-          if (params.fan_cooling && active_extruder == target_extruder)
-            thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
+            // If fan_cooling is enabled, assist the cooling/heating with the print fan
+            // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
+            if (params.fan_cooling && active_extruder == target_extruder)
+              thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
+          }
+          // If current reading is missing, leave target_temp stale so the
+          // next iteration re-enters this branch and retries with fresh data.
         }
 
         now = millis();
