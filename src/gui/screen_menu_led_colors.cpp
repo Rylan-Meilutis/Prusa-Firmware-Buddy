@@ -53,7 +53,7 @@ constexpr ThemeColors theme_default {
     .error = 0xff0000,
     .image = 0x4b2e83,
     .led_idle = 0x000000,
-    .led_printing = 0x4b2e83,
+    .led_printing = 0x1a0040,
     .led_finished = 0x00ff00,
     .led_warning = 0xffff00,
     .led_error = 0xff0000,

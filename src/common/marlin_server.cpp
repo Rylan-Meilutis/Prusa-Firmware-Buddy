@@ -2520,12 +2520,26 @@ static void _server_print_loop(void) {
 #else
         {
 #endif
-            retract_and_lift();
+            const bool needs_homing = axes_need_homing();
+            if (needs_homing
+#if ENABLED(CRASH_RECOVERY)
+                || server.aborting_did_crash_trigger
+#endif /*ENABLED(CRASH_RECOVERY)*/
+            ) {
+                // Before the initial home there is no printed object to clear. Avoid an
+                // unhomed Z move while aborting startup; it can drive the steppers into
+                // their limits before the machine has established a safe coordinate.
+                if (axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise) || planner.max_printed_z > 0) {
+                    lift_head(); // It would be dangerous to move XY
+                }
+            } else {
+                retract_and_lift();
 #if HAS_NOZZLE_CLEANER()
-            // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning
-            GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = false });
+                // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning
+                GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = false });
 #endif
-            park_head(false);
+                park_head(false);
+            }
         }
 
         thermalManager.disable_all_heaters();
