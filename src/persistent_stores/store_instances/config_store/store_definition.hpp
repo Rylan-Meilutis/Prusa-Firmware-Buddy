@@ -499,12 +499,12 @@ struct CurrentStore
     StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Image Color")> usb_theme_image_color;
 
     StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("Status LED Idle Color")> status_led_idle_color;
-    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
     StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("Status LED Finished Color")> status_led_finished_color;
     StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color")> status_led_warning_color;
     StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("Status LED Error Color")> status_led_error_color;
     StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("USB Status LED Idle Color")> usb_status_led_idle_color;
-    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Status LED Printing Color")> usb_status_led_printing_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("USB Status LED Printing Color")> usb_status_led_printing_color;
     StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("USB Status LED Finished Color")> usb_status_led_finished_color;
     StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("USB Status LED Warning Color")> usb_status_led_warning_color;
     StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("USB Status LED Error Color")> usb_status_led_error_color;
