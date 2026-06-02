@@ -802,6 +802,10 @@ static void save_print_time_to_odometer(uint32_t print_duration) {
     server.saved_print_duration = print_duration;
 }
 
+static void capture_print_duration() {
+    server.frozen_print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
+}
+
 static void cycle() {
     // Some things are somewhat time-sensitive and should be updated even in nested loops
 #if HAS_CHAMBER_API()
@@ -955,6 +959,7 @@ void static finalize_print(bool finished) {
         fsm_destroy(ClientFSM::Serial_printing);
     }
 
+    capture_print_duration();
     print_job_timer.stop();
     _server_update_vars();
     // Check if the stopwatch was NOT stopped to and add the current printime to the statistics.
@@ -1445,6 +1450,7 @@ void serial_print_finalize(void) {
 #if HAS_TOOLCHANGER()
     case State::CrashRecovery_Tool_Pickup:
 #endif
+        capture_print_duration();
         server.print_state = State::Finishing_WaitIdle;
         break;
     default:
@@ -2464,7 +2470,7 @@ static void _server_print_loop(void) {
         media_prefetch.stop();
         queue.clear();
 
-        server.frozen_print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
+        capture_print_duration();
         print_job_timer.stop();
         planner.quick_stop();
         wait_for_heatup = false; // This is necessary because M109/wait_for_hotend can be in progress, we need to abort it
@@ -3327,7 +3333,8 @@ static void _server_update_vars() {
         progress_data = oProgressData.standard_mode;
     }
 
-    marlin_vars().print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
+    capture_print_duration();
+    marlin_vars().print_duration = server.frozen_print_duration;
     marlin_vars().sd_percent_done = [&]() -> uint8_t {
         uint8_t host_progress = 0;
         if (server.print_is_serial && SerialPrinting::host_progress_percent(host_progress, ticks_ms())) {
