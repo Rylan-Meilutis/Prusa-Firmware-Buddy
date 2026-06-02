@@ -1,15 +1,14 @@
+/// @file
 #include <common/st25dv64k.h>
 
-#include <common/st25dv64k_internal.h>
-#include <freertos/mutex.hpp>
-
-#include "i2c.hpp"
-#include "cmsis_os.h"
-#include "bsod.h"
-#include "utility_extensions.hpp"
-
-#include <string.h>
 #include <algorithm>
+#include <common/bsod.h>
+#include <common/i2c.hpp>
+#include <common/st25dv64k_internal.h>
+#include <cstring>
+#include <error_codes.hpp>
+#include <freertos/mutex.hpp>
+#include <utility>
 
 namespace {
 constexpr const uint8_t BLOCK_DELAY = 5; // block delay [ms]
