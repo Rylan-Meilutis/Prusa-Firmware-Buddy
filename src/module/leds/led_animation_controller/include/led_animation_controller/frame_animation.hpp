@@ -2,6 +2,9 @@
 
 #include <freertos/timing.hpp>
 #include <utils/led_color.hpp>
+#include <algorithm>
+#include <array>
+#include <span>
 
 namespace leds {
 
@@ -47,7 +50,7 @@ public:
         // single frame optimization - nothing to animate
         if (params.frames.size() == 1) {
             for (size_t i = 0; i < count; ++i) {
-                data[i] = params.color.fade(params.frames[0][i]);
+                data[i] = params.color.fade(params.frames[0][i] / 100.0f);
             }
             return data;
         }
