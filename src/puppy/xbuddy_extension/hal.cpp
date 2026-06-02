@@ -33,6 +33,11 @@ static freertos::BinarySemaphore tx_semaphore_mmu;
 // 6 MHz clock (30 MHz peripheral clock, *2 to timer, /10 prescaler)
 static constexpr uint32_t default_prescaler = 10;
 
+// Keep RGBW LED PWM slow enough for downstream strip electronics to preserve
+// predictable 0-255 dimming. Higher carrier frequencies produced irregular
+// low-duty response, including isolated values appearing fully off.
+static constexpr uint32_t rgbw_led_prescaler = 240;
+
 extern "C" void USART3_IRQHandler(void) {
     HAL_UART_IRQHandler(&huart_rs485);
 }
@@ -360,12 +365,11 @@ static void tim2_init() {
     // enable output of channels
     TIM2->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
 
-    // 6 MHz clock (30 MHz peripheral clock, *2 to timer, /10 prescaler)
-    TIM2->PSC = default_prescaler - 1;
+    // 250 kHz clock (30 MHz peripheral clock, *2 to timer, /240 prescaler)
+    TIM2->PSC = rgbw_led_prescaler - 1;
 
     // auto-reload value
-    // 6 MHz / 255 gives ~25 kHz for PWM which is super good enough.
-    // It also simplifies set_pwm() functions a lot.
+    // 250 kHz / 256 gives ~977 Hz for stable RGBW LED dimming.
     TIM2->ARR = 255;
 
     // enable counter
