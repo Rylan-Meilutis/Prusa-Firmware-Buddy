@@ -33,11 +33,6 @@ static freertos::BinarySemaphore tx_semaphore_mmu;
 // 6 MHz clock (30 MHz peripheral clock, *2 to timer, /10 prescaler)
 static constexpr uint32_t default_prescaler = 10;
 
-// Keep RGBW LED PWM slow enough for downstream strip electronics to preserve
-// predictable 0-255 dimming. Higher carrier frequencies produced irregular
-// low-duty response, including isolated values appearing fully off.
-static constexpr uint32_t rgbw_led_prescaler = 240;
-
 extern "C" void USART3_IRQHandler(void) {
     HAL_UART_IRQHandler(&huart_rs485);
 }
@@ -365,11 +360,11 @@ static void tim2_init() {
     // enable output of channels
     TIM2->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
 
-    // 250 kHz clock (30 MHz peripheral clock, *2 to timer, /240 prescaler)
-    TIM2->PSC = rgbw_led_prescaler - 1;
+    // 6 MHz clock (30 MHz peripheral clock, *2 to timer, /10 prescaler)
+    TIM2->PSC = default_prescaler - 1;
 
     // auto-reload value
-    // 250 kHz / 256 gives ~977 Hz for stable RGBW LED dimming.
+    // 6 MHz / 256 gives ~23.4 kHz for RGBW LED PWM.
     TIM2->ARR = 255;
 
     // enable counter
@@ -827,28 +822,20 @@ void hal::w_led::set_frequency(uint16_t freq) {
     TIM3->PSC = prescaler - 1;
 }
 
-static constexpr hal::DutyCycle rgbw_led_pwm(hal::DutyCycle intensity) {
-    // Stored RGB values follow the perceptual sRGB convention used by the UI,
-    // while the analog strip expects linear PWM duty cycles. This compact
-    // gamma-2 approximation keeps mixed strip colors close to their display
-    // counterparts without adding a lookup table.
-    return static_cast<hal::DutyCycle>((static_cast<uint32_t>(intensity) * (intensity + 1) + 255) >> 8);
-}
-
 void hal::rgbw_led::set_r_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR4 = rgbw_led_pwm(duty_cycle);
+    TIM2->CCR4 = duty_cycle;
 }
 
 void hal::rgbw_led::set_g_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR3 = rgbw_led_pwm(duty_cycle);
+    TIM2->CCR3 = duty_cycle;
 }
 
 void hal::rgbw_led::set_b_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR2 = rgbw_led_pwm(duty_cycle);
+    TIM2->CCR2 = duty_cycle;
 }
 
 void hal::rgbw_led::set_w_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR1 = rgbw_led_pwm(duty_cycle);
+    TIM2->CCR1 = duty_cycle;
 }
 
 uint32_t hal::temperature::get_raw() {
