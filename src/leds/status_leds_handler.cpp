@@ -296,6 +296,7 @@ void StatusLedsHandler::set_error() {
 
 void StatusLedsHandler::set_animation(StateAnimation state) {
     std::lock_guard lock(mutex);
+    custom_animation_active = false;
     controller_instance().set(animations[state]);
 }
 
@@ -336,6 +337,7 @@ void StatusLedsHandler::set_custom_animation(const ColorRGBW &color, AnimationTy
     } else {
         controller.set(custom_params);
     }
+    custom_animation_active = true;
     custom_params_bank_index = custom_params_bank_index > 0 ? 0 : 1;
 }
 
@@ -485,6 +487,14 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         finished_acknowledged = false;
+    }
+
+    if (custom_animation_active) {
+        if (state == old_state) {
+            controller_instance().update();
+            return;
+        }
+        custom_animation_active = false;
     }
 
     auto animation = animations[state];
