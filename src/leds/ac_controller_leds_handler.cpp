@@ -86,7 +86,7 @@ void AcControllerLedsHandler::update(ColorRGBW &color, uint8_t progress_percent)
         buddy::puppies::ac_controller.set_rgbw_led({ color.r, color.g, color.b, color.w });
         break;
     case ac_controller::AnimationType::PROGRESS_PERCENT:
-        buddy::puppies::ac_controller.set_progress_percent(progress_percent);
+        buddy::puppies::ac_controller.set_progress_percent(progress_percent, { color.r, color.g, color.b, color.w });
         break;
     }
 }
