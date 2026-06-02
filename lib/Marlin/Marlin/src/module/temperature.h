@@ -54,18 +54,6 @@
   #define HEATBREAK_PID_K2 (1-float(HEATBREAK_PID_K1))
 #endif
 
-// A temperature sensor
-typedef struct TempInfo {
-  static constexpr float celsius_uninitialized = -1.0f;
-
-  uint16_t acc;
-  int16_t raw;
-  float celsius = celsius_uninitialized;
-  inline void reset() { acc = 0; }
-  inline void sample(const uint16_t s) { acc += s; }
-  inline void update() { raw = acc; }
-} temp_info_t;
-
 // A PWM heater with temperature sensor
 typedef struct HeaterInfo : public TempInfo {
   int16_t target;

@@ -10,6 +10,7 @@
 #include <config_store/store_instance.hpp>
 #include <utils/string_builder.hpp>
 #include <common/nozzle_diameter.hpp>
+#include <module/temperature/temp_defines.hpp>
 #include <option/has_modular_bed.h>
 #include <sensor_data.hpp>
 #include <marlin_vars.hpp>
