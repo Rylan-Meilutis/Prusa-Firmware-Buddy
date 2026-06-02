@@ -233,15 +233,13 @@ private:
             marlin_server::fsm_change(PhaseNozzleCleanerCalibration::wait_for_nozzle_cooldown, data);
         });
 
-        if (current_temp > cooldown_safe_temperature_c) {
-            const M109Flags flags {
-                .target_temp = cooldown_safe_temperature_c,
-                .wait_heat_or_cool = true,
-                .autotemp = true,
-            };
-            M109_no_parser(*tool, flags); // This is the temp we want to reach
-            Hotend::for_tool(*tool).set_nozzle_target_temp(0); // This is so that we dont accidentally re-heat to 50
-        }
+        const M109Flags flags {
+            .target_temp = cooldown_safe_temperature_c,
+            .wait_heat_or_cool = true,
+            .autotemp = true,
+        };
+        M109_no_parser(*tool, flags); // This is the temp we want to reach
+        Hotend::for_tool(*tool).set_nozzle_target_temp(0); // This is so that we dont accidentally re-heat to 50
 
         return gcode_exceptions().is_unwinding() ? Result::aborted : Result::success;
     }
