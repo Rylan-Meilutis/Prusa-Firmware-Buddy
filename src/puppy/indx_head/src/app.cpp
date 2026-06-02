@@ -8,6 +8,7 @@
 #include "critical_section.hpp"
 #include "watchdog.hpp"
 #include "hotend_temp_compensation.hpp"
+#include <tpis/tpis.hpp>
 
 #include <freertos/timing.hpp>
 
@@ -27,10 +28,10 @@ std::atomic<uint8_t> temps_valid = false;
 /// See indx_head::modbus::Status::hotend_temp_raw_c100_dt_s
 std::atomic<int16_t> hotend_temp_raw_c100_dt_s = 0;
 
-constexpr float max_nozzle_temp = 330.f;
-constexpr float min_nozzle_temp = 5.f;
-constexpr float max_tpis_ambient_temp = 100.f;
-constexpr float min_tpis_ambient_temp = 10.f;
+constexpr tpis::fixed max_nozzle_temp = tpis::fixed(330);
+constexpr tpis::fixed min_nozzle_temp = tpis::fixed(5);
+constexpr tpis::fixed max_tpis_ambient_temp = tpis::fixed(100);
+constexpr tpis::fixed min_tpis_ambient_temp = tpis::fixed(10);
 constexpr uint32_t invalid_nozzle_temp_timeout_ms = 1000 * 2;
 /// Target nozzle temperature in DegC
 std::atomic<uint16_t> target_temp = 0;
@@ -136,7 +137,7 @@ void step_hotend() {
 
     // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading contains last valid value
 
-    const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.temps.object_temperature_celsius * 100.f);
+    const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.temps.object_temperature_celsius * tpis::fixed(100));
     const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 - hotend_temp_compensation::get_current_compensation_c100();
 
     // Calculate slope
@@ -154,7 +155,7 @@ void step_hotend() {
 
     ::nozzle_temp_uncompensated_c100.store(nozzle_temp_uncompensated_c100);
     ::nozzle_temp_compensated_c100.store(nozzle_temp_compensated_c100);
-    ::tpis_ambient_temp_c100.store(static_cast<int16_t>(nozzle_temp_reading.temps.ambient_temperature_celsius * 100.f));
+    ::tpis_ambient_temp_c100.store(static_cast<int16_t>(nozzle_temp_reading.temps.ambient_temperature_celsius * tpis::fixed(100)));
 
     // Start calculating slope only after the nozzle_temps store actual readouts
     // to prevent a slope spike on first valid readout

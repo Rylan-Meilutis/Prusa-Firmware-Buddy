@@ -265,8 +265,8 @@ void init_comm() {
 
 CheckedTemperatureReading read_tpis_temperature() {
     static tpis::TemperatureReading last_reading {
-        .object_temperature_celsius = 25.f,
-        .ambient_temperature_celsius = 25.f,
+        .object_temperature_celsius = tpis::fixed(25),
+        .ambient_temperature_celsius = tpis::fixed(25),
     };
 
     // A jump > 50°C between consecutive readings is physically impossible

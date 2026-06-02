@@ -43,8 +43,8 @@ tpis::TemperatureReading calculate_temperature_reference(tpis::SensorData measur
     const auto F = [](double x) { return std::pow(x, 1.0 / 4.2); };
     double t_obj_k = F((tp_object - u0) / k + f(t_ambient_k));
     return tpis::TemperatureReading {
-        .object_temperature_celsius = static_cast<float>(t_obj_k - 273.15),
-        .ambient_temperature_celsius = static_cast<float>(t_ambient_k - 273.15),
+        .object_temperature_celsius = tpis::fixed(t_obj_k - 273.15),
+        .ambient_temperature_celsius = tpis::fixed(t_ambient_k - 273.15),
     };
 }
 
@@ -78,11 +78,11 @@ TEST_CASE("calculating temerature", "[tpis]") {
             const auto measurement = get_measurement_for_temps(t_obj_c, t_ambient_c, calibration);
             const auto temps_ref = calculate_temperature_reference(measurement, calibration);
             // small error is expected since tp_object and tp_ambient are integers
-            CHECK(std::abs(temps_ref.object_temperature_celsius - t_obj_c) < 0.2);
-            CHECK(std::abs(temps_ref.ambient_temperature_celsius - t_ambient_c) < 0.2);
+            CHECK(std::abs(static_cast<double>(temps_ref.object_temperature_celsius) - t_obj_c) < 0.2);
+            CHECK(std::abs(static_cast<double>(temps_ref.ambient_temperature_celsius) - t_ambient_c) < 0.2);
             const auto temps = tpis::calculate_temps(measurement, calibration);
-            CHECK(std::abs(temps.object_temperature_celsius - temps_ref.object_temperature_celsius) < 0.02);
-            CHECK(std::abs(temps.ambient_temperature_celsius - temps_ref.ambient_temperature_celsius) < 0.02);
+            CHECK(std::abs(static_cast<double>(temps.object_temperature_celsius - temps_ref.object_temperature_celsius)) < 0.02);
+            CHECK(std::abs(static_cast<double>(temps.ambient_temperature_celsius - temps_ref.ambient_temperature_celsius)) < 0.02);
         }
     }
 }

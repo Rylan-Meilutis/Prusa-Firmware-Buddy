@@ -27,8 +27,8 @@ struct CalibrationParameters {
 };
 
 struct TemperatureReading {
-    float object_temperature_celsius;
-    float ambient_temperature_celsius;
+    fixed object_temperature_celsius;
+    fixed ambient_temperature_celsius;
 };
 
 SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data);

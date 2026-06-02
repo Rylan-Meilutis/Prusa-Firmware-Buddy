@@ -104,8 +104,8 @@ TemperatureReading calculate_temps(SensorData measurement, const CalibrationPara
     const float object_c = t_obj_k - degC0asKf;
     const float ambient_c = static_cast<float>(t_ambient_k - degC0asK);
     return TemperatureReading {
-        .object_temperature_celsius = object_c,
-        .ambient_temperature_celsius = ambient_c,
+        .object_temperature_celsius = tpis::fixed(object_c),
+        .ambient_temperature_celsius = tpis::fixed(ambient_c),
     };
 }
 
