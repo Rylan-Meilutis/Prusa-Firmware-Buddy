@@ -991,7 +991,6 @@ void screen_printing_serial_data_t::set_page(Page page) {
         page = Page::progress;
     }
 
-    const bool page_changed = current_page != page;
     current_page = page;
     last_page_switch_s = ticks_s();
 
@@ -1021,9 +1020,6 @@ void screen_printing_serial_data_t::set_page(Page page) {
     }
 
     update_page_dots();
-    if (page_changed) {
-        Invalidate();
-    }
 }
 
 void screen_printing_serial_data_t::toggle_page() {

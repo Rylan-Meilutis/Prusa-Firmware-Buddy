@@ -60,5 +60,4 @@ private:
     static uint32_t last_host_progress_ms;
     static uint32_t last_host_time_to_end_s;
     static uint32_t last_host_time_to_end_ms;
-    static bool pending_start;
 };
