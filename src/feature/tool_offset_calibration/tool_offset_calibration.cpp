@@ -4,6 +4,7 @@
 #include "tool_offset_calibration.hpp"
 
 #include <bitset>
+#include <optional>
 
 #include <Marlin/src/gcode/gcode.h>
 #include <Marlin/src/module/motion.h>
@@ -113,47 +114,55 @@ float probe_z_at(const xy_pos_t &pos, uint8_t probe_count) {
 }
 
 /// Park at nozzle cleaner and run the cleaning sequence.
+/// In `Calibration` context the nozzle cleaner is not yet calibrated (chicken-and-egg) so the
+/// auto-clean sequence is skipped; the caller has already prompted the user to clean manually.
 /// @return true if cleaning succeeded, false on failure or abort
-bool prepare_tool(PhysicalToolIndex tool) {
+bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context context) {
     const ToolTemperatures temps = get_tool_temperatures(tool);
 
-    mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT, SAFE_Z_HEIGHT } }));
+    if (context == tool_offset_calibration::Context::Print) {
+        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT, SAFE_Z_HEIGHT } }));
 
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
-        return false;
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+            return false;
+        }
+
+        thermalManager.setTargetHotend(temps.cleaning, tool);
+
+        // Purge and clean at cleaning temperature
+        thermalManager.wait_for_hotend(tool, false);
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
+            return false;
+        }
+
+        // Cool down to probing temperature with print fan on to speed it up
+        thermalManager.setTargetHotend(temps.z_probing, tool);
+        const uint16_t saved_fan_speed = thermalManager.get_fan_speed(0);
+        thermalManager.set_fan_speed(0, 255);
+        ScopeGuard restore_fan([&] {
+            thermalManager.set_fan_speed(0, saved_fan_speed);
+        });
+
+        // Deep clean at probing temperature
+        thermalManager.wait_for_hotend(tool, false);
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::deep_clean)) {
+            return false;
+        }
+
+        // park out of cleaner area
+        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_WASTEBIN_SAFE_POINT, SAFE_Z_HEIGHT } }));
+    } else {
+        // Calibration context: nozzle was cleaned by the user. Heat directly to probing temperature.
+        thermalManager.setTargetHotend(temps.z_probing, tool);
+        thermalManager.wait_for_hotend(tool, false);
     }
-
-    thermalManager.setTargetHotend(temps.cleaning, tool);
-
-    // Purge and clean at cleaning temperature
-    thermalManager.wait_for_hotend(tool, false);
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
-        return false;
-    }
-
-    // Cool down to probing temperature with print fan on to speed it up
-    thermalManager.setTargetHotend(temps.z_probing, tool);
-    const uint16_t saved_fan_speed = thermalManager.get_fan_speed(0);
-    thermalManager.set_fan_speed(0, 255);
-    ScopeGuard restore_fan([&] {
-        thermalManager.set_fan_speed(0, saved_fan_speed);
-    });
-
-    // Deep clean at probing temperature
-    thermalManager.wait_for_hotend(tool, false);
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::deep_clean)) {
-        return false;
-    }
-
-    // park out of cleaner area
-    mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_WASTEBIN_SAFE_POINT, SAFE_Z_HEIGHT } }));
     return true;
 }
 
 /// Park the head with low Z at the front so the user can inspect/clean the nozzle
 /// and prompt with Retry/Abort.
 /// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
-Response prompt_retry(WarningType warning) {
+Response prompt_retry(WarningType warning, tool_offset_calibration::Context context) {
     // If the user already stopped the print, skip the dialog (and the parking move)
     if (marlin_server::aborting_or_aborted()) {
         return Response::Abort;
@@ -164,8 +173,10 @@ Response prompt_retry(WarningType warning) {
     mapi::park(park_cleaning_position);
 
     if (marlin_server::prompt_warning(warning) != Response::Retry) {
-        marlin_server::quick_stop();
-        marlin_server::print_abort();
+        if (context == tool_offset_calibration::Context::Print) {
+            marlin_server::quick_stop();
+            marlin_server::print_abort();
+        }
         return Response::Abort;
     }
 
@@ -176,12 +187,12 @@ Response prompt_retry(WarningType warning) {
 /// and prompt with Retry/Abort.
 /// On retry performs nozzle cleaning
 /// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
-Response prompt_retry_with_cleaning(PhysicalToolIndex tool, WarningType warning) {
-    auto response = prompt_retry(warning);
+Response prompt_retry_with_cleaning(PhysicalToolIndex tool, WarningType warning, tool_offset_calibration::Context context) {
+    auto response = prompt_retry(warning, context);
 
-    while (response == Response::Retry && !prepare_tool(tool)) {
+    while (response == Response::Retry && !prepare_tool(tool, context)) {
         log_error(ToolOffsetCalib, "Nozzle cleaning failed");
-        response = prompt_retry(warning);
+        response = prompt_retry(warning, context);
     }
     return response;
 }
@@ -238,7 +249,7 @@ void reset_z_tool_offsets() {
 
 namespace tool_offset_calibration {
 
-bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config) {
+bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config, Context context) {
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     if (!selected_tool.has_value()) {
         log_error(ToolOffsetCalib, "failed: no tool selected");
@@ -293,7 +304,7 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
         }
 
-        if (prompt_retry_with_cleaning(tool, WarningType::ToolOffsetCalibrationFailed) != Response::Retry) {
+        if (prompt_retry_with_cleaning(tool, WarningType::ToolOffsetCalibrationFailed, context) != Response::Retry) {
             // Restore the original offsets
             hotend_offset[tool].x = current_ho.x;
             hotend_offset[tool].y = current_ho.y;
@@ -329,8 +340,13 @@ void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
     config.sensor_position.y = stored.y;
 }
 
-bool run(uint8_t r_param, uint8_t probe_count) {
-    PrintStatusMessageGuard status_guard;
+bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
+    // PrintStatusMessageGuard is only meaningful while a print is running; in Calibration context
+    // a wizard FSM drives the UI, so leave the status bar alone.
+    std::optional<PrintStatusMessageGuard> status_guard;
+    if (context == Context::Print) {
+        status_guard.emplace();
+    }
     auto probing_config = tool_offset::get_default_probing_config();
 
     reset_z_tool_offsets(); // Clear old Z offsets to avoid interference with calibration
@@ -402,11 +418,20 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         bool need_pass_retry = false;
         // Helper: Prompt the user to Retry/Abort if any check fails. Returns true if the caller should retry the whole pass, false to continue.
         auto handle_tool_failure = [&]() -> bool {
-            if (prompt_retry(WarningType::ToolOffsetCalibrationFailed) == Response::Retry) {
+            if (prompt_retry(WarningType::ToolOffsetCalibrationFailed, context) == Response::Retry) {
                 need_pass_retry = true;
                 return true;
             }
             return false;
+        };
+
+        // Issue quick_stop + print_abort only if running from a print. In a calibration wizard the
+        // caller handles wizard teardown itself.
+        auto abort_print_if_needed = [&] {
+            if (context == Context::Print) {
+                marlin_server::quick_stop();
+                marlin_server::print_abort();
+            }
         };
 
         ProbeResult ref_first;
@@ -426,10 +451,22 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 continue;
             }
 
-            status_guard.update<PrintStatusMessage::Type::tool_offset_calibrating>({
-                .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
-                .tool = tool.to_raw(),
-            });
+            if (status_guard) {
+                status_guard->update<PrintStatusMessage::Type::tool_offset_calibrating>({
+                    .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
+                    .tool = tool.to_raw(),
+                });
+            }
+            if (progress_cb) {
+                if (!progress_cb({
+                        .step = static_cast<uint8_t>(step + 1),
+                        .total_steps = num_tools,
+                        .tool = tool,
+                    })) {
+                    log_info(ToolOffsetCalib, "Tool offset calibration aborted by progress callback");
+                    return false;
+                }
+            }
 
             tool_change(stdext::to_variant(tool), tool_return_t::no_return);
 
@@ -438,13 +475,12 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 thermalManager.setTargetHotend(saved_temp, tool);
             });
 
-            if (!prepare_tool(tool)) {
+            if (!prepare_tool(tool, context)) {
                 log_error(ToolOffsetCalib, "Tool %u cleaning failed (step %u)", tool.to_raw(), step);
                 if (handle_tool_failure()) {
                     break;
                 }
-                marlin_server::quick_stop();
-                marlin_server::print_abort();
+                abort_print_if_needed();
                 return false;
             }
 
@@ -461,8 +497,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                 if (handle_tool_failure()) {
                     break;
                 }
-                marlin_server::quick_stop();
-                marlin_server::print_abort();
+                abort_print_if_needed();
                 return false;
             }
             const auto result = *result_opt;
@@ -482,8 +517,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
                     if (handle_tool_failure()) {
                         break;
                     }
-                    marlin_server::quick_stop();
-                    marlin_server::print_abort();
+                    abort_print_if_needed();
                     return false;
                 }
                 ref_last = *ref_last_opt;
@@ -506,7 +540,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
 
             // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
             // but there is a trade off with filament oozing during calibration
-            if (!calibrate_xy_offset(tool, probing_config)) {
+            if (!calibrate_xy_offset(tool, probing_config, context)) {
                 // calibrate_xy_offset has already prompted the user and aborted the print on its own
                 // path; just return false here. Its inner retry loop handles successful retries.
                 return false;
@@ -537,14 +571,14 @@ bool run(uint8_t r_param, uint8_t probe_count) {
             if (x_spread > MAX_XY_OFFSET_DIFFERENCE || y_spread > MAX_XY_OFFSET_DIFFERENCE) {
                 log_error(ToolOffsetCalib, "XY offset spread too large: X=%.3f Y=%.3f (limit %.3f)",
                     static_cast<double>(x_spread), static_cast<double>(y_spread), static_cast<double>(MAX_XY_OFFSET_DIFFERENCE));
-                if (prompt_retry(WarningType::HotendOffsetUnsafeXyDeviation) == Response::Retry) {
+                if (prompt_retry(WarningType::HotendOffsetUnsafeXyDeviation, context) == Response::Retry) {
                     continue;
                 }
                 return false;
             }
 
             if (std::abs(avg_x_offset) > probing_config.sensor_position_error_threshold || std::abs(avg_y_offset) > probing_config.sensor_position_error_threshold) {
-                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY) == Response::Retry) {
+                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
                     continue;
                 }
                 return false;
@@ -578,7 +612,7 @@ bool run(uint8_t r_param, uint8_t probe_count) {
         }
 
         if (max_z_offset - min_z_offset > MAX_Z_OFFSET_DIFFERENCE) {
-            if (prompt_retry(WarningType::HotendOffsetUnsafeZDeviation) == Response::Retry) {
+            if (prompt_retry(WarningType::HotendOffsetUnsafeZDeviation, context) == Response::Retry) {
                 continue;
             }
             return false;
