@@ -19,7 +19,6 @@ uint8_t SerialPrinting::last_host_progress_percent = 0;
 uint32_t SerialPrinting::last_host_progress_ms = 0;
 uint32_t SerialPrinting::last_host_time_to_end_s = 0;
 uint32_t SerialPrinting::last_host_time_to_end_ms = 0;
-bool SerialPrinting::pending_start = false;
 
 void SerialPrinting::host_action(const char *action, const char *reason) {
     SERIAL_ECHOPGM("//action:");
@@ -564,13 +563,11 @@ bool SerialPrinting::serial_command_hook(const char *command) {
             leds::SideStripHandler::instance().print_finished_ping();
 #endif
             marlin_server::serial_print_finalize();
-        } else if (print_start_gcode(command) || octoprint_status_print_start(command)) {
-            pending_start = true;
         }
         return true;
     }
 
-    if (pending_start || print_start_gcode(command) || octoprint_status_print_start(command)) {
+    if (print_start_gcode(command) || octoprint_status_print_start(command)) {
         // When a host streams startup G-code, blocking heater waits such as M109 or M190 can be in progress
         // before M75/M73 arrives. That is still a serial print start, not an unrelated busy state.
         if (!printer_state::remote_print_ready(true)) {
@@ -583,7 +580,6 @@ bool SerialPrinting::serial_command_hook(const char *command) {
             return false;
         }
         last_serial_indicator_ms = ticks_ms();
-        pending_start = false;
         reset_host_progress();
         marlin_server::serial_print_start();
         parse_serial_host_progress(command);
