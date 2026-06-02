@@ -836,7 +836,11 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     auto &hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
 
     // Check nozzle temperature before probing
-    if (hotend.nozzle_temp() > config.max_safe_temp) {
+    const auto current_temp = hotend.nozzle_temp();
+    if (!current_temp.has_value()) {
+        return std::unexpected("Nozzle has no valid temperature");
+    }
+    if (current_temp.value() > config.max_safe_temp) {
         return std::unexpected("Nozzle too hot for probing");
     }
 

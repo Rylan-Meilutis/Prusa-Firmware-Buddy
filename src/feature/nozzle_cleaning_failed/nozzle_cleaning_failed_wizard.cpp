@@ -174,8 +174,7 @@ public:
             return false;
         }
 
-        const float start_temp = Hotend::for_tool(*tool).nozzle_temp();
-
+        Hotend::OptionalTemperature start_temp = std::nullopt;
         // takes care of progress reporing and also handles abort correctly
         LambdaSubscriber subscriber(marlin_server::idle_publisher, [&] {
             if (marlin_server::get_response_from_phase(Phase::wait_temp) == Response::Abort) {
@@ -184,9 +183,19 @@ public:
                     planner.quick_stop();
                 }
             }
+
+            const Hotend::OptionalTemperature current_temp = Hotend::for_tool(*tool).nozzle_temp();
+            if (!current_temp.has_value()) {
+                return; // need a reading before doing anything
+            }
+
+            if (!start_temp.has_value()) {
+                start_temp = current_temp.value(); // snapshot the first valid reading
+            }
+
             if (!warn_active) {
                 struct NozzleCleaningFailedProgressData data {
-                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(Hotend::for_tool(*tool).nozzle_temp() - start_temp) / static_cast<float>(target_temp - start_temp)) * 255))
+                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(current_temp.value() - start_temp.value()) / static_cast<float>(target_temp - start_temp.value())) * 255))
                 };
                 fsm_change(Phase::wait_temp, fsm::serialize_data(data));
             }

@@ -4,6 +4,7 @@
 #include <tool_index.hpp>
 #include <utils/uncopyable.hpp>
 #include <utils/variant_utils.hpp>
+#include <utils/compact_optional.hpp>
 #include <module/temperature/hotend_regulator/hotend_regulator.hpp>
 #include <module/temperature/temp_defines.hpp>
 #include <pwm_utils.hpp>
@@ -20,6 +21,7 @@ class Hotend : public Uncopyable {
 public:
     /// in °C
     using Temperature = float;
+    using OptionalTemperature = CompactOptional<Temperature, NAN>;
 
     /// in °C
     /// <= 0 = no target temperature/invalid value
@@ -39,7 +41,7 @@ public:
     virtual bool supports_filament(const FilamentTypeParameters &filament) const = 0;
 
     /// Current temperature of the nozzle
-    Temperature nozzle_temp() const {
+    OptionalTemperature nozzle_temp() const {
         return nozzle_temp_;
     }
 
@@ -121,7 +123,7 @@ protected:
 
 protected:
     HotendPIDConfig nozzle_pid_config_;
-    Temperature nozzle_temp_ = TempInfo::celsius_uninitialized;
+    OptionalTemperature nozzle_temp_ = std::nullopt; // temp uninitialized
 
 #if HAS_TEMP_HEATBREAK
     Temperature heatbreak_temp_ = TempInfo::celsius_uninitialized;

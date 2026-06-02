@@ -74,7 +74,8 @@ void LocalHotend::manage() {
     nozzle_low_temp_filter_.Put(nozzle_raw_temp_);
 
     // Increase oversampling for values lower than 50 degrees Celsius to reduce noise
-    if (nozzle_temp_ <= 50) {
+    const float curr_nozzle_temp = nozzle_temp().value();
+    if (curr_nozzle_temp <= 50) {
         const auto filtered_raw_temp = nozzle_low_temp_filter_.GetSum() / nozzle_low_temp_filter_.GetCount();
         nozzle_temp_ = marlin_temptable_lookup(local_config_.nozzle_temp_table, filtered_raw_temp);
     }
@@ -108,13 +109,13 @@ void LocalHotend::manage() {
             .feed_forward = 0,
         };
 
-        if (nozzle_temp() > base_config_.min_nozzle_temp && nozzle_temp() < base_config_.max_nozzle_temp) {
+        if (curr_nozzle_temp > base_config_.min_nozzle_temp && curr_nozzle_temp < base_config_.max_nozzle_temp) {
             static_assert(PhysicalToolIndex::count == 1);
             regulation_result = nozzle_regulator_.get_pid_output_hotend(HotendRegulatorArgs {
                 .pid = nozzle_pid_config(),
                 .hotend_index = tool_.to_raw(),
                 .fan_speed = t.fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
-                    .current_temp = nozzle_temp(),
+                    .current_temp = curr_nozzle_temp,
                 .target_temp = nozzle_target_temp(),
 #if ENABLED(PID_EXTRUSION_SCALING)
                 .e_volume_delta = (thermalManager.extrusion_scaling_enabled && is_current_tool) ? e_volume_delta : 0,
@@ -135,9 +136,9 @@ void LocalHotend::manage() {
     }
 
 #if ENABLED(HAS_HOTEND_AUTO_FAN)
-    auto_fan_out_ = (nozzle_temp() >= EXTRUDER_AUTO_FAN_TEMPERATURE)
+    auto_fan_out_ = (curr_nozzle_temp >= EXTRUDER_AUTO_FAN_TEMPERATURE)
         // Give the auto fan a bit of hysteresis
-        || (auto_fan_out_ && nozzle_temp() >= EXTRUDER_AUTO_FAN_TEMPERATURE - 5);
+        || (auto_fan_out_ && curr_nozzle_temp >= EXTRUDER_AUTO_FAN_TEMPERATURE - 5);
 
     const auto auto_fan_pwm =
     #if PRINTER_IS_PRUSA_MK3_5()
@@ -229,11 +230,13 @@ void LocalHotend::manage_heatbreak() {
     int16_t heatbreak_maxtemp = HEATBREAK_MAXTEMP;
     #endif
 
+    const float curr_nozzle_temp = nozzle_temp().value();
+
     if (WITHIN(heatbreak_temp(), HEATBREAK_MINTEMP, heatbreak_maxtemp)) {
         const auto regulator_out = heatbreak_fan_regulator_.step(HeatbreakRegulator::Args {
             .current_temp = heatbreak_temp(),
             .target_temp = heatbreak_target_temp(),
-            .current_hotend_temp = nozzle_temp(),
+            .current_hotend_temp = curr_nozzle_temp,
         });
         heatbreak_fan_pwm_ = PWM255((uint8_t)std::clamp<float>(std::round(regulator_out), 0, 255));
 

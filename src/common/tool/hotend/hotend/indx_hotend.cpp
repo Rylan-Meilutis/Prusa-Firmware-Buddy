@@ -29,7 +29,7 @@ void IndxHotend::stop_heating() {
     // tool is still physically on head, but it is no longer thermally managed
     is_thermally_managed_ = false;
 
-    nozzle_temp_ = 15; // INDX_TODO: Fix mintemp so that here can be temperature_invalid
+    nozzle_temp_ = std::nullopt;
     nozzle_heater_pwm_ = 0;
 
     // No longer thermally managed: unbind the thermal model, zeroing its head compensation.

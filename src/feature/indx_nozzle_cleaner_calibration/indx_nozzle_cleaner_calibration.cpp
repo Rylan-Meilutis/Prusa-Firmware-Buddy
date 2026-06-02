@@ -205,8 +205,7 @@ private:
             bsod_unreachable();
         }
 
-        const auto current_temp = Hotend::for_tool(*tool).nozzle_temp();
-        if (current_temp <= cooldown_safe_temperature_c) {
+        if (auto t = Hotend::for_tool(*tool).nozzle_temp(); t.has_value() && t.value() <= cooldown_safe_temperature_c) {
             return Result::success;
         }
 
@@ -223,7 +222,11 @@ private:
                 return;
             }
             // Read the live temperature each tick so the GUI reflects the actual cooldown progress
-            const uint16_t t = static_cast<uint16_t>(Hotend::for_tool(*tool).nozzle_temp());
+            auto curr_temp = Hotend::for_tool(*tool).nozzle_temp();
+            if (!curr_temp.has_value()) {
+                return;
+            }
+            const uint16_t t = static_cast<uint16_t>(curr_temp.value());
             const fsm::PhaseData data = {
                 static_cast<uint8_t>((t >> 8) & 0xff),
                 static_cast<uint8_t>(t & 0xff),

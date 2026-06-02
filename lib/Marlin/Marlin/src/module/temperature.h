@@ -275,12 +275,12 @@ class Temperature {
 
     [[deprecated("Use the Hotend functions directly")]]
     FORCE_INLINE static float degHotend(const uint8_t E_NAME) {
-      return Hotend::for_tool(HOTEND_INDEX).nozzle_temp();
+      return Hotend::for_tool(HOTEND_INDEX).nozzle_temp().value_or(TempInfo::celsius_uninitialized);
     }
 
     [[deprecated("Use the Hotend functions directly")]]
     inline static float degHotend(PhysicalToolIndex tool) {
-      return Hotend::for_tool(tool).nozzle_temp();
+      return Hotend::for_tool(tool).nozzle_temp().value_or(TempInfo::celsius_uninitialized);
     }
 
     [[deprecated("Use the Hotend functions directly")]]

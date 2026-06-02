@@ -82,29 +82,36 @@ void BaseHotend::set_heatbreak_target_temp(TargetTemperature set) {
 void BaseHotend::manage() {
     // Note: Checks in BaseHotend means that we're checking them twice on remote hotends if the remote hotend also uses this API (once on the master board, once on the remote tool board)
     // But better safe than sorry
+    const OptionalTemperature maybe_nozzle_temp = nozzle_temp();
 
-    if (nozzle_temp() > base_config_.max_nozzle_temp) {
+    if (!maybe_nozzle_temp.has_value()) {
+        return;
+    }
+
+    const float curr_nozzle_temp = maybe_nozzle_temp.value();
+
+    if (curr_nozzle_temp > base_config_.max_nozzle_temp) {
         thermalManager.max_temp_error((heater_ind_t)tool_.to_raw());
     }
 
-    if ((nozzle_target_temp() > 0) && (nozzle_temp() < base_config_.min_nozzle_temp)) {
+    if ((nozzle_target_temp() > 0) && (curr_nozzle_temp < base_config_.min_nozzle_temp)) {
         thermalManager.min_temp_error((heater_ind_t)tool_.to_raw());
     }
 
     manage_temp_residency();
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
-    thermal_runaway_.step(nozzle_temp(), nozzle_target_temp(), (heater_ind_t)tool_.to_raw(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS);
+    thermal_runaway_.step(curr_nozzle_temp, nozzle_target_temp(), (heater_ind_t)tool_.to_raw(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS);
 #endif
 
 #if WATCH_HOTENDS
-    heater_watch_.update(nozzle_temp());
+    heater_watch_.update(curr_nozzle_temp);
 #endif
 }
 
 void BaseHotend::manage_temp_residency() {
     const auto now = millis();
-    const auto temp_diff = std::abs(nozzle_target_temp() - nozzle_temp());
+    const auto temp_diff = std::abs(nozzle_target_temp() - nozzle_temp().value());
 
     if (!nozzle_temp_residency_start_ms_ && temp_diff < TEMP_WINDOW) {
         nozzle_temp_residency_start_ms_ = now;

@@ -3485,7 +3485,9 @@ static void _server_update_vars() {
         auto &extruder = marlin_vars().hotend(tool);
         const auto &hotend = Hotend::for_tool(tool);
 
-        extruder.temp_nozzle = hotend.nozzle_temp();
+        // Downstream consumers (GUI, Connect, chamber_filtration)
+        // get's exposed the marlin approach to uninitialized temp
+        extruder.temp_nozzle = hotend.nozzle_temp().value_or(TempInfo::celsius_uninitialized);
         extruder.target_nozzle = hotend.nozzle_target_temp();
         extruder.pwm_nozzle = hotend.nozzle_heater_pwm().value;
 
