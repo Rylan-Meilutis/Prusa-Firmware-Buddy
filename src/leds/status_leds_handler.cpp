@@ -231,7 +231,7 @@ namespace {
             { StateAnimation::Finishing, { { 0, 0, 255 }, 500, 0, 250, pulsing } },
 #else
         { StateAnimation::Idle, { { 0, 0, 0 }, 1000, 0, 400, solid } },
-            { StateAnimation::Printing, { { 0, 150, 255 }, 1000, 0, 400, solid } },
+            { StateAnimation::Printing, { { 75, 46, 131 }, 1000, 0, 400, solid } },
             { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
 #endif
             { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 2000, pulsing } },

@@ -120,9 +120,7 @@ void AcController::set_rgbw_led(std::array<uint8_t, 4> rgbw) {
     }
 }
 
-void AcController::set_progress_percent(uint8_t percent) {
-    constexpr auto progress_color = leds::ColorRGBW { 0, 150, 255, 0 };
-
+void AcController::set_progress_percent(uint8_t percent, std::array<uint8_t, 4> rgbw) {
     Lock lock(mutex);
     if (led_animation_type != ac_controller::AnimationType::PROGRESS_PERCENT) {
         led_animation_type = ac_controller::AnimationType::PROGRESS_PERCENT;
@@ -132,9 +130,8 @@ void AcController::set_progress_percent(uint8_t percent) {
         led_progress_percent = percent;
         led_config_dirty.store(true);
     }
-    const std::array<uint8_t, 4> progress_rgbw { progress_color.r, progress_color.g, progress_color.b, progress_color.w };
-    if (led_rgbw != progress_rgbw) {
-        led_rgbw = progress_rgbw;
+    if (led_rgbw != rgbw) {
+        led_rgbw = rgbw;
         led_config_dirty.store(true);
     }
 }
