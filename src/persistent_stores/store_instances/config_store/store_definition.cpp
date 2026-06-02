@@ -148,20 +148,6 @@ void CurrentStore::perform_config_migrations() {
         auto_chamber_vent_enabled.set(false);
     }
 #endif
-    if (should_migrate<6>()) {
-        // Replace the former Indigo preset's cyan LED default without changing
-        // user-selected LED colors or the other built-in themes.
-        if (ui_theme_primary_color.get() == 0x4b2e83
-            && ui_theme_progress_color.get() == 0x4b2e83
-            && status_led_printing_color.get() == 0x0096ff) {
-            status_led_printing_color.set(0x4b2e83);
-        }
-        if (usb_theme_primary_color.get() == 0x4b2e83
-            && usb_theme_progress_color.get() == 0x4b2e83
-            && usb_status_led_printing_color.get() == 0x0096ff) {
-            usb_status_led_printing_color.set(0x4b2e83);
-        }
-    }
 
     // To add a migration:
     // - increment newest_config_version
