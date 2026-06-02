@@ -827,20 +827,28 @@ void hal::w_led::set_frequency(uint16_t freq) {
     TIM3->PSC = prescaler - 1;
 }
 
+static constexpr hal::DutyCycle rgbw_led_pwm(hal::DutyCycle intensity) {
+    // Stored RGB values follow the perceptual sRGB convention used by the UI,
+    // while the analog strip expects linear PWM duty cycles. This compact
+    // gamma-2 approximation keeps mixed strip colors close to their display
+    // counterparts without adding a lookup table.
+    return static_cast<hal::DutyCycle>((static_cast<uint32_t>(intensity) * (intensity + 1) + 255) >> 8);
+}
+
 void hal::rgbw_led::set_r_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR4 = duty_cycle;
+    TIM2->CCR4 = rgbw_led_pwm(duty_cycle);
 }
 
 void hal::rgbw_led::set_g_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR3 = duty_cycle;
+    TIM2->CCR3 = rgbw_led_pwm(duty_cycle);
 }
 
 void hal::rgbw_led::set_b_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR2 = duty_cycle;
+    TIM2->CCR2 = rgbw_led_pwm(duty_cycle);
 }
 
 void hal::rgbw_led::set_w_pwm(DutyCycle duty_cycle) {
-    TIM2->CCR1 = duty_cycle;
+    TIM2->CCR1 = rgbw_led_pwm(duty_cycle);
 }
 
 uint32_t hal::temperature::get_raw() {
