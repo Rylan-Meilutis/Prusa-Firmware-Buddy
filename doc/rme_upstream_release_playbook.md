@@ -271,10 +271,11 @@ Opening the Core One chamber door during post-print filtration opens an end-filt
 The persistent print-finished screen exposes `Stop Filter` while filtration remains active. That action ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains independent.
 Serial print-finished summaries expose page dots and swipe navigation for elapsed duration, completion time, and remaining filtration time when available.
 Capture elapsed print duration before abort cleanup begins. Cleanup G-code may restart and reset the stopwatch; canceled prints must retain the pre-cleanup duration.
+Continuously preserve the maximum elapsed print duration while a print is active. Serial hosts may issue timer stop commands before firmware finalization, and both serial and file-print finished summaries must render the preserved duration rather than a reset stopwatch value.
 Update serial-print header captions only when the print state changes. Reapplying an unchanged caption during each GUI loop invalidates the full header and causes visible flicker.
 The acknowledged-filter path must force the status LED output fully black while filtration remains active; selecting the idle animation alone is insufficient because idle brightness and color may be configured non-zero.
 After filtering ends, or immediately after a print that does not need filtering, unacknowledged status LEDs hold solid green for the configurable status-finished-hold duration before entering the normal idle sequence.
-After the finished hold, status LEDs follow the side-light active, idle, and deep-idle state again so screen interaction and Core One door activity wake them normally.
+After the finished hold, status LED animation remains controlled by print state while brightness follows the side-light active, idle, and deep-idle state again. Screen interaction and Core One door activity wake brightness normally; an open Core One door holds active brightness until it closes.
 The status-finished-hold duration defaults to 300 seconds, is exposed in Lights Settings, exports through `M154.7 H<seconds>`, and accepts `H0` to disable the solid-green hold.
 The persistent print-finished screen does not count as guided activity during post-print filtering; chamber/side lighting and the LCD resume their normal idle and deep-idle timeouts.
 Per-state pages expose Deep Idle, Idle, Active, Printing.
