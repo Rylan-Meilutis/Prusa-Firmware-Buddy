@@ -5,6 +5,7 @@
 #include <utils/uncopyable.hpp>
 #include <utils/variant_utils.hpp>
 #include <module/temperature/hotend_regulator/hotend_regulator.hpp>
+#include <module/temperature/temp_defines.hpp>
 #include <pwm_utils.hpp>
 #include <atomic>
 #include <option/has_indx.h>
@@ -19,7 +20,6 @@ class Hotend : public Uncopyable {
 public:
     /// in °C
     using Temperature = float;
-    static constexpr Temperature temperature_uninitialized = -1;
 
     /// in °C
     /// <= 0 = no target temperature/invalid value
@@ -121,10 +121,10 @@ protected:
 
 protected:
     HotendPIDConfig nozzle_pid_config_;
-    Temperature nozzle_temp_ = temperature_uninitialized;
+    Temperature nozzle_temp_ = TempInfo::celsius_uninitialized;
 
 #if HAS_TEMP_HEATBREAK
-    Temperature heatbreak_temp_ = temperature_uninitialized;
+    Temperature heatbreak_temp_ = TempInfo::celsius_uninitialized;
 #endif
 
     TargetTemperature nozzle_target_temp_ = 0;
