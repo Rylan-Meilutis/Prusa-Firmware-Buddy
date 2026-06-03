@@ -729,6 +729,9 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
         return false;
     }
 
+    // explicitly plan a return to zero to leave origin unchanged as required by the rest of homing
+    plan_corexy_abgrid_move(origin_steps, { 0, 0 }, fr_mm_s);
+
     SERIAL_ECHOLNPAIR("home grid origin A:", origin[A_AXIS], " B:", origin[B_AXIS]);
     return true;
 }
