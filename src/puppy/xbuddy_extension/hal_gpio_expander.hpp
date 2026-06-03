@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "option/has_gpio_expander.h"
+#include "option/extension_variant.h"
 static_assert(HAS_GPIO_EXPANDER());
 
 namespace hal::gpio_expander {

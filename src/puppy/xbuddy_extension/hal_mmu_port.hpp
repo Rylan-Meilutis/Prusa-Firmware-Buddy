@@ -1,7 +1,7 @@
 /// @file
 #pragma once
 
-#include "option/has_gpio_expander.h"
+#include "option/extension_variant.h"
 
 #define HAS_MMU_POWER_PIN() HAS_GPIO_EXPANDER()
 
