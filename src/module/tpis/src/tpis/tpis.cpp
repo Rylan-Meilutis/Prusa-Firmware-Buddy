@@ -12,41 +12,6 @@ constexpr fixed f_exp = fixed(f_exp_f);
 constexpr float F_exp_f = 1 / f_exp_f;
 constexpr fixed F_exp = fixed(F_exp_f);
 
-template <typename T, T min, T max, T step>
-consteval auto generate_lookup_table(T (*func)(T)) {
-    constexpr size_t size = static_cast<size_t>((max - min) / step) + 1;
-    std::array<T, size> table {};
-    for (size_t i = 0; i < size; ++i) {
-        table[i] = func(min + static_cast<T>(i) * step);
-    }
-    return table;
-}
-
-constexpr float f(float x) { return std::pow(x, f_exp_f); };
-// This function call is used to calculate f for ambient temp (according to datasheet the range is -25C - 80C, but the value is in Kelvin)
-// But we might go up to 105C in reality - I don't know if it is possible (if the ADC range won't overflow), but let's be safe
-// So let's make the range from -30C to 110C
-constexpr float f_mapped(fixed x) {
-    static constexpr float min = degC0asKf - 30.f;
-    static constexpr fixed min_fixed = degC0asK - 30;
-    static constexpr float max = degC0asKf + 110.f;
-    static constexpr fixed max_fixed = degC0asK + 110;
-    static constexpr size_t step = 2;
-    static constexpr auto lookup_table = generate_lookup_table<float, min, max, float(step)>(f);
-    if (x < min_fixed || x > max_fixed) {
-        return f(float(x));
-    } else {
-        const size_t index = static_cast<size_t>((x - min_fixed) / step);
-        assert(index + 1 < lookup_table.size()); // Should be always true
-        const fixed offset = x - (min_fixed + index * step);
-        const float ratio = float(offset) / step;
-        const float next_diff = lookup_table.at(index + 1) - lookup_table.at(index);
-        return lookup_table.at(index) + next_diff * ratio;
-    }
-}
-
-constexpr float F(float x) { return std::pow(x, F_exp_f); };
-
 SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data) {
     uint32_t tp_object = (static_cast<uint32_t>(raw_data[0]) << 8 | static_cast<uint32_t>(raw_data[1])) << 1 | static_cast<uint32_t>(raw_data[2] >> 7);
     uint16_t tp_ambient = (static_cast<uint16_t>(raw_data[2] & std::byte { 0x7f }) << 8) | static_cast<uint16_t>(raw_data[3]);
@@ -88,6 +53,7 @@ std::optional<CalibrationParameters> decode_calibration_parameters(std::span<con
 
     const auto u_div = static_cast<int32_t>(uout1) - static_cast<int32_t>(u0);
     // NOTE: Expensive float op, but OK since it is ideally only done once at init (on failed comm it tries reinit every 2s)
+    const auto f = [](float x) { return std::pow(x, f_exp_f); };
     const float k_f = static_cast<float>(u_div) / (f(t_obj1 + degC0asKf) - f(degC25asKf));
     const float log2_k_f = std::log2(k_f * tpis::emissivity);
     const fixed log2_k = fixed(log2_k_f);
