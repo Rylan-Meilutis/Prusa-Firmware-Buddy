@@ -65,9 +65,7 @@ static constexpr AxisCalibConfig y_axis_config {
 };
 
 static constexpr AxisCalibConfig x_axis_config {
-    // V-groove placement also serves as the Z alignment step — user seats the nozzle in the groove and
-    // adjusts the cleaner's eccentric screw so the silicone touches the nozzle.
-    .phase_ask_position = PhaseNozzleCleanerCalibration::move_to_z_point,
+    .phase_ask_position = PhaseNozzleCleanerCalibration::ask_position_x,
     .phase_lock_position = PhaseNozzleCleanerCalibration::lock_position_x,
     .phase_measuring = PhaseNozzleCleanerCalibration::measuring_x,
     .phase_evaluating = PhaseNozzleCleanerCalibration::evaluating_x,
@@ -146,8 +144,15 @@ private:
             return result;
         }
 
-        // Calibrate X first (V-groove also doubles as the Z reference, set mechanically via the cleaner's
-        // eccentric adjustment screw), then Y.
+        // One-time mechanical Z screw adjustment
+        mapi::park({ .x = x_axis_config.park_pos.x, .y = x_axis_config.park_pos.y });
+        disable_XY();
+        fsm_change(PhaseNozzleCleanerCalibration::move_to_z_point);
+        if (wait_for_response(PhaseNozzleCleanerCalibration::move_to_z_point) == Response::Abort) {
+            return Result::aborted;
+        }
+
+        // Calibrate X first, then Y.
         {
             const auto result = calibrate_axis(x_axis_config);
             if (result != Result::success) {
