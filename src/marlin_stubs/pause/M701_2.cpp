@@ -49,17 +49,8 @@ static bool load_unload(Pause::LoadType load_type, pause::Settings &rSettings) {
         thermalManager.setTargetHotend(static_cast<int16_t>(disp_temp), rSettings.GetExtruder());
     }
 
-    bool res;
-    {
-#if ENABLED(PREVENT_COLD_EXTRUSION) && HAS_AUTO_RETRACT()
-        const bool is_unload = load_type == Pause::LoadType::unload || load_type == Pause::LoadType::unload_confirm || load_type == Pause::LoadType::unload_from_gears;
-        const bool allow_cold = is_unload && buddy::auto_retract().can_cold_unload(rSettings.physical_tool());
-        AutoRestore ar_ce(thermalManager.allow_cold_extrude, true, allow_cold);
-#endif
-
-        // Load/Unload filament
-        res = Pause::Instance().perform(load_type, rSettings);
-    }
+    // Load/Unload filament
+    const bool res = Pause::Instance().perform(load_type, rSettings);
 
     if (marlin_server::printer_idle() && !res) { // Failed when printer is not printing
         // Disable nozzle heater

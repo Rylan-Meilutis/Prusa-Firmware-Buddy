@@ -1334,6 +1334,9 @@ bool Pause::invoke_loop() {
     // Prevent the "waiting for temperature restore" from triggering - the Pause manages temperature safety for extrusion internally
     buddy::SafetyTimerNonBlockingGuard non_blocking_guard;
 
+    // Trust that the filament change knows what it's doing
+    AutoRestore ar_ce(thermalManager.allow_cold_extrude, true);
+
     set(LoadState::start);
 
     while (!finished()) {
