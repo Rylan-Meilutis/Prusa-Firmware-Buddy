@@ -21,6 +21,9 @@
 #include <tool_index.hpp>
 #include <mapi/parking.hpp>
 #include <mapi/motion.hpp>
+#include <pause_stubbed.hpp>
+#include <include/fs_event_autolock.hpp>
+#include <feature/prusa/e-stall_detector.h>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -277,14 +280,33 @@ bool SpoolJoin::do_join(VirtualToolIndex current_virtual_tool) {
 
     const float target_retracted_distance = buddy::filament_tracker().get_retracted_distance(current_physical_tool).value_or(0);
 
-    // transfer target temperature from one tool to another
-    thermalManager.setTargetHotend(0, current_physical_tool);
+    // Start preheating the new tool
     thermalManager.setTargetHotend(nozzle_temp, new_physical_tool);
 
     if (should_park) {
         // Z raise
         mapi::park(mapi::ParkingPosition { .z = mapi::ParkingPosition::Minimum { .above_print = TOOLCHANGE_ZRAISE } });
     }
+
+    // Unload the old filament (hopefully not requiring user interaction)
+    {
+        FS_EventAutolock fs_lock;
+        BlockEStallDetection estall_lock;
+
+        pause::Settings settings;
+        settings.SetExtruder(current_virtual_tool);
+
+        // We've already retracted
+        settings.SetRetractLength(0.f);
+
+        settings.SetParkPoint(mapi::get_parking_position(mapi::ParkPosition::unload));
+
+        // Pick the right tool
+        Pause::Instance().perform(Pause::LoadType::unload, settings);
+    }
+
+    // Cool down the old tool
+    thermalManager.setTargetHotend(0, current_physical_tool);
 
     const auto wait_for_temp = [&] {
         if (nozzle_temp != 0) {
