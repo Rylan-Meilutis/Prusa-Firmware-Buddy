@@ -61,6 +61,10 @@ static constexpr int16_t ZERO_PHASE_MSCNT_ANGLE = 1024 / 8;
 // Number of measurement probes to average
 static constexpr int16_t MEASURE_PROBE_N = 2;
 
+// Instability phase threshold: total width of the invalid period close to the roundoff threshold
+// when calculating the resulting grid value.
+static constexpr float UNSTABLE_PHASE_THRESHOLD = 1. / 4;
+
 namespace internal {
     bool home_unstable = false; ///< Last homing stability state
     uint8_t probe_id = 0; ///< Probe id for metric cross-referencing
@@ -570,9 +574,9 @@ static bool measure_phase_cycles(const AxisEnum axis, const ab_grid_t &ab_off,
 
 /// Return true if the point is too close to the phase grid halfway point
 static bool point_is_unstable(const xy_pos_t &c_dist, const xy_pos_t &origin) {
-    static constexpr float threshold = 1. / 4;
     LOOP_XY(axis) {
-        if (abs(fmod(c_dist[axis] - origin[axis], 1.f) - 0.5f) < threshold) {
+        // The threshold is a total width, but we're comparing against one-sided distances here
+        if (abs(fmod(abs(c_dist[axis] - origin[axis]), 1.f) - 0.5f) < UNSTABLE_PHASE_THRESHOLD / 2) {
             return true;
         }
     }
