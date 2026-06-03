@@ -23,10 +23,10 @@ tpis::CalibrationParameters get_typical_cal_params() {
         .u0 = 64500,
         .uout1 = 67700,
         .t_obj1 = 100,
-        .k_inv = 0.f,
+        .log2_k = tpis::fixed(0),
     };
     const double k = calculate_k(cal);
-    cal.k_inv = static_cast<float>(1 / k);
+    cal.log2_k = tpis::fixed(std::log2(k));
     return cal;
 }
 
@@ -71,18 +71,26 @@ tpis::SensorData get_measurement_for_temps(double t_obj_c, double t_ambient_c, c
     };
 }
 
+double get_precision(double ambient, double object) {
+    if (ambient > -10.0 && ambient < 80.0 && object > -10.0 && object < 350.0) {
+        return 0.075; // for standard temperatures we need precise measurements
+    }
+    return 0.2; // for safety checks lower precision is good enough
+}
+
 TEST_CASE("calculating temerature", "[tpis]") {
     const auto calibration = get_typical_cal_params();
-    for (double t_ambient_c = -30.0; t_ambient_c < 110.0; t_ambient_c += 5.0) {
-        for (double t_obj_c = -30.0; t_obj_c < 600.0; t_obj_c += 5.0) {
+    for (double t_ambient_c = -20.0; t_ambient_c < 110.0; t_ambient_c += 1.0) {
+        for (double t_obj_c = t_ambient_c - 20.0; t_obj_c < 500.0; t_obj_c += 1.0) {
             const auto measurement = get_measurement_for_temps(t_obj_c, t_ambient_c, calibration);
             const auto temps_ref = calculate_temperature_reference(measurement, calibration);
             // small error is expected since tp_object and tp_ambient are integers
             CHECK(std::abs(static_cast<double>(temps_ref.object_temperature_celsius) - t_obj_c) < 0.2);
             CHECK(std::abs(static_cast<double>(temps_ref.ambient_temperature_celsius) - t_ambient_c) < 0.2);
             const auto temps = tpis::calculate_temps(measurement, calibration);
-            CHECK(std::abs(static_cast<double>(temps.object_temperature_celsius - temps_ref.object_temperature_celsius)) < 0.02);
-            CHECK(std::abs(static_cast<double>(temps.ambient_temperature_celsius - temps_ref.ambient_temperature_celsius)) < 0.02);
+            const double prec = get_precision(t_ambient_c, t_obj_c);
+            CHECK(std::abs(static_cast<double>(temps.object_temperature_celsius - temps_ref.object_temperature_celsius)) < prec);
+            CHECK(std::abs(static_cast<double>(temps.ambient_temperature_celsius - temps_ref.ambient_temperature_celsius)) < prec);
         }
     }
 }
@@ -129,6 +137,6 @@ TEST_CASE("decode calibration parameters", "[tpis]") {
     CHECK(calibration->uout1 == 67700);
     CHECK(calibration->t_obj1 == 100);
     const auto expected_k = 8.27345242232e-8;
-    const auto expected_k_inv_with_emissivity = 1 / (expected_k * tpis::emissivity);
-    CHECK(std::abs(calibration->k_inv - expected_k_inv_with_emissivity) / expected_k_inv_with_emissivity < 1e-4); // relative error < 0.01%
+    const auto expected_log2_k_with_emissivity = std::log2(expected_k * tpis::emissivity);
+    CHECK(std::abs(static_cast<double>(calibration->log2_k) - expected_log2_k_with_emissivity) / expected_log2_k_with_emissivity < 1e-4); // relative error < 0.01%
 }

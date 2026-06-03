@@ -7,7 +7,9 @@
 
 namespace tpis {
 
-using fixed = fpm::fixed<int32_t, int64_t, 7>;
+constexpr size_t fraction_bits = 15;
+using fixed = fpm::fixed<int32_t, int64_t, fraction_bits>;
+constexpr size_t integral_bits = sizeof(fixed) * 8 - fraction_bits;
 
 constexpr float emissivity = 0.48f;
 
@@ -22,8 +24,7 @@ struct CalibrationParameters {
     uint32_t u0 = 0;
     uint32_t uout1 = 0;
     uint8_t t_obj1 = 0;
-    // Could be uint32_t, but to calcualte it we need floats and we would instantly convert it to float anyway
-    float k_inv = 0;
+    fixed log2_k = fixed(0);
 };
 
 struct TemperatureReading {

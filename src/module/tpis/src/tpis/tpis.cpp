@@ -1,4 +1,5 @@
 #include <tpis/tpis.hpp>
+#include <fpm/math.hpp>
 
 namespace tpis {
 
@@ -6,6 +7,10 @@ constexpr float degC0asKf = 273.15f;
 constexpr fixed degC0asK = fixed(degC0asKf);
 constexpr float degC25asKf = 25.f + degC0asKf;
 constexpr fixed degC25asK = fixed(degC25asKf);
+constexpr float f_exp_f = 4.2f;
+constexpr fixed f_exp = fixed(f_exp_f);
+constexpr float F_exp_f = 1 / f_exp_f;
+constexpr fixed F_exp = fixed(F_exp_f);
 
 template <typename T, T min, T max, T step>
 consteval auto generate_lookup_table(T (*func)(T)) {
@@ -17,7 +22,6 @@ consteval auto generate_lookup_table(T (*func)(T)) {
     return table;
 }
 
-constexpr float f_exp_f = 4.2f;
 constexpr float f(float x) { return std::pow(x, f_exp_f); };
 // This function call is used to calculate f for ambient temp (according to datasheet the range is -25C - 80C, but the value is in Kelvin)
 // But we might go up to 105C in reality - I don't know if it is possible (if the ADC range won't overflow), but let's be safe
@@ -41,7 +45,6 @@ constexpr float f_mapped(fixed x) {
     }
 }
 
-constexpr float F_exp_f = 1 / f_exp_f;
 constexpr float F(float x) { return std::pow(x, F_exp_f); };
 
 SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data) {
@@ -85,7 +88,9 @@ std::optional<CalibrationParameters> decode_calibration_parameters(std::span<con
 
     const auto u_div = static_cast<int32_t>(uout1) - static_cast<int32_t>(u0);
     // NOTE: Expensive float op, but OK since it is ideally only done once at init (on failed comm it tries reinit every 2s)
-    const float k_inv = (f(t_obj1 + degC0asKf) - f(degC25asKf)) / (u_div * emissivity);
+    const float k_f = static_cast<float>(u_div) / (f(t_obj1 + degC0asKf) - f(degC25asKf));
+    const float log2_k_f = std::log2(k_f * tpis::emissivity);
+    const fixed log2_k = fixed(log2_k_f);
 
     return CalibrationParameters {
         .ptat25 = ptat25,
@@ -93,20 +98,33 @@ std::optional<CalibrationParameters> decode_calibration_parameters(std::span<con
         .u0 = u0,
         .uout1 = uout1,
         .t_obj1 = t_obj1,
-        .k_inv = k_inv
+        .log2_k = log2_k
     };
 }
 
 TemperatureReading calculate_temps(SensorData measurement, const CalibrationParameters &calibration) {
-    const auto t_ambient_k = degC25asK + fixed(static_cast<int32_t>(measurement.tp_ambient) - calibration.ptat25) / calibration.m;
-    const auto val = static_cast<float>(static_cast<int32_t>(measurement.tp_object) - static_cast<int32_t>(calibration.u0)) * calibration.k_inv;
-    const float t_obj_k = F(val + f_mapped(t_ambient_k));
-    const float object_c = t_obj_k - degC0asKf;
-    const float ambient_c = static_cast<float>(t_ambient_k - degC0asK);
-    return TemperatureReading {
-        .object_temperature_celsius = tpis::fixed(object_c),
-        .ambient_temperature_celsius = tpis::fixed(ambient_c),
+    static_assert(fraction_bits >= 15);
+    static_assert(integral_bits >= 17);
+    const fixed t_ambient_k = degC25asK + fixed(static_cast<int32_t>(measurement.tp_ambient) - static_cast<int32_t>(calibration.ptat25)) / calibration.m;
+    const fixed tp_relative = fixed(static_cast<int32_t>(measurement.tp_object) - static_cast<int32_t>(calibration.u0));
+    constexpr fixed eps = fixed(1) / 1000;
+    // https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations
+    const fixed lse_x = fpm::log2(fpm::abs(tp_relative) + eps) - calibration.log2_k;
+    const fixed lse_y = f_exp * fpm::log2(t_ambient_k);
+    const auto fixed_max = [](fixed x, fixed y) { return x > y ? x : y; };
+    const auto checked_exp2 = [](fixed x) {
+        return x < fixed(1 - fraction_bits) ? fixed(0) : fpm::exp2(x); // fpm::exp2 is broken on underflow
     };
+    const fixed lse_exp = checked_exp2(-fpm::abs(lse_x - lse_y));
+    const fixed lse_sum = tp_relative >= fixed(0) ? 1 + lse_exp : 1 - lse_exp;
+    if (lse_sum <= fixed(0)) [[unlikely]] {
+        std::abort();
+    }
+    const fixed lse = fixed_max(lse_x, lse_y) + fpm::log2(lse_sum);
+    const fixed t_obj_k = fpm::exp2(F_exp * lse);
+    const fixed object_temperature_celsius = t_obj_k - degC0asK;
+    const fixed ambient_temperature_celsius = t_ambient_k - degC0asK;
+    return TemperatureReading { object_temperature_celsius, ambient_temperature_celsius };
 }
 
 } // namespace tpis
