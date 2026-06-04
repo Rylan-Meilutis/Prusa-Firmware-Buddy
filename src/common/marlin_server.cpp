@@ -2379,6 +2379,11 @@ static void _server_print_loop(void) {
         break;
 
     case State::Pausing_Begin:
+        if (idle_running) {
+            // Do not change state in the middle of a gcode, only in the outer loop
+            break;
+        }
+
         process_pausing_begin_state();
         server.print_state = State::Pausing_WaitIdle;
         break;
@@ -2706,6 +2711,11 @@ static void _server_print_loop(void) {
         }
         break;
     case State::Exit:
+        if (idle_running) {
+            // Do not change state in the middle of a gcode, only in the outer loop
+            break;
+        }
+
         // make the State::Exit state more resilient to repeated calls (e.g. USB drive pulled out prematurely at the end-of-print screen)
         if (fsm_states.is_active(ClientFSM::Printing)) {
             finalize_print(false);
