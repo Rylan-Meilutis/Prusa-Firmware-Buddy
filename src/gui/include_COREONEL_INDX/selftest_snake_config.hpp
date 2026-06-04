@@ -49,10 +49,6 @@ constexpr bool requires_toolchanger([[maybe_unused]] Action action) {
     return false;
 }
 
-constexpr bool is_singletool_only_action([[maybe_unused]] Action action) {
-    return false;
-}
-
 constexpr const char *get_submenu_label_template(Action action) {
     switch (action) {
 
