@@ -65,6 +65,9 @@ static constexpr int16_t MEASURE_PROBE_N = 2;
 // when calculating the resulting grid value.
 static constexpr float UNSTABLE_PHASE_THRESHOLD = 1. / 4;
 
+// Origin estimate sweep resolution: grid-offset samples per axis
+static constexpr int ORIGIN_SWEEP_RES = 128;
+
 namespace internal {
     bool home_unstable = false; ///< Last homing stability state
     uint8_t probe_id = 0; ///< Probe id for metric cross-referencing
@@ -611,6 +614,64 @@ static ab_steps_t plan_corexy_abgrid_move(const ab_steps_t &origin_steps, const 
     return point_steps;
 }
 
+// Per-grid-point measurement
+struct point_data {
+    xy_pos_t c_dist; ///< absolute AB cycle coordinate of the probed cell
+    xy_pos_t m_dist; ///< measured AB distance from the endstop (mm)
+    bool revalidate; ///< re-probe this point on the next pass
+};
+
+/**
+ * @brief Estimate the grid origin by chamfer distance under translation.
+ * @param points measured grid points
+ * @param anchor_ab AB offset of points[0]
+ * @return absolute origin
+ *
+ * The fractional cycle coordinate is modular (the phase grid repeats every cycle). Sweep the grid
+ * offset at 1/ORIGIN_SWEEP_RES and keep the offset minimizing the summed squared 2D distance from
+ * each point to its nearest node in order to penalize outliers.
+ **/
+template <size_t N>
+static xy_pos_t estimate_origin(const point_data (&points)[N], const ab_grid_t &anchor_ab) {
+    const xy_pos_t origin = {
+        points[0].c_dist[A_AXIS] - float(anchor_ab[A_AXIS]),
+        points[0].c_dist[B_AXIS] - float(anchor_ab[B_AXIS]),
+    };
+
+    // calculate per-point fractional distance
+    xy_pos_t points_frac[N];
+    for (size_t i = 0; i != N; ++i) {
+        points_frac[i][A_AXIS] = points[i].c_dist[A_AXIS] - floorf(points[i].c_dist[A_AXIS]);
+        points_frac[i][B_AXIS] = points[i].c_dist[B_AXIS] - floorf(points[i].c_dist[B_AXIS]);
+    }
+
+    float best_cost = INFINITY;
+    xy_pos_t best_delta = { 0.f, 0.f };
+    for (int ia = 0; ia != ORIGIN_SWEEP_RES; ++ia) {
+        const float da = float(ia) / ORIGIN_SWEEP_RES;
+        for (int ib = 0; ib != ORIGIN_SWEEP_RES; ++ib) {
+            const float db = float(ib) / ORIGIN_SWEEP_RES;
+            float cost = 0.f;
+            for (size_t i = 0; i != N; ++i) {
+                // squared distance to the nearest node, per axis in range [0, 0.5]
+                const float ra = fabsf(points_frac[i][A_AXIS] - da);
+                const float rb = fabsf(points_frac[i][B_AXIS] - db);
+                cost += SQR(fminf(ra, 1.f - ra)) + SQR(fminf(rb, 1.f - rb));
+            }
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_delta[A_AXIS] = da;
+                best_delta[B_AXIS] = db;
+            }
+        }
+    }
+
+    return {
+        roundf(origin[A_AXIS] - best_delta[A_AXIS]) + best_delta[A_AXIS],
+        roundf(origin[B_AXIS] - best_delta[B_AXIS]) + best_delta[B_AXIS],
+    };
+}
+
 static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_steps,
     xy_pos_t &origin, xy_pos_t &distance, const float fr_mm_s) {
     // scramble probing sequence to improve belt redistribution when estimating the centroid
@@ -627,12 +688,6 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
         { 0, 0 },
     };
 
-    struct point_data {
-        xy_pos_t c_dist;
-        xy_pos_t m_dist;
-        bool revalidate;
-    };
-
     point_data points[std::size(point_sequence)];
 
     // allow single-point revalidation on instability to speed-up retries
@@ -644,8 +699,6 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
     // keep track of points to revalidate
     size_t rev_cnt = std::size(point_sequence);
     for (size_t revcount = 0; revcount < std::size(point_sequence) / 2; ++revcount) {
-        xy_pos_t c_acc = { 0, 0 };
-        xy_pos_t m_acc = { 0, 0 };
         size_t new_rev_cnt = 0;
 
         // cycle through grid points and calculate centroid
@@ -663,19 +716,13 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
                     return false;
                 }
             }
-
-            c_acc += data.c_dist;
-            m_acc += data.m_dist;
         }
-        origin = c_acc / float(std::size(point_sequence));
-        distance = m_acc / float(std::size(point_sequence));
+        origin = estimate_origin(points, point_sequence[0]);
 
         metric_record_custom(&metric_phxy_orig, ",a=%u,t=\"s\" c=%u,p=%u,i=%u,r=%u",
             axis, internal::cal_id, internal::probe_id, revcount, (unsigned)rev_cnt);
         metric_record_custom(&metric_phxy_orig, ",a=%u,t=\"o\" c=%u,o0=%.3f,o1=%.3f",
             axis, internal::cal_id, (double)origin[0], (double)origin[1]);
-        metric_record_custom(&metric_phxy_orig, ",a=%u,t=\"d\" c=%u,d0=%.3f,d1=%.3f",
-            axis, internal::cal_id, (double)distance[0], (double)distance[1]);
 
         // verify each probed point with the current centroid
         ab_grid_t o_int = { int32_t(roundf(origin[A_AXIS])), int32_t(roundf(origin[B_AXIS])) };
@@ -731,6 +778,17 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
 
     // explicitly plan a return to zero to leave origin unchanged as required by the rest of homing
     plan_corexy_abgrid_move(origin_steps, { 0, 0 }, fr_mm_s);
+
+    // recompute the diagonal distance in mm from the computed origin cycles to the endstop
+    const AxisEnum other_axis = (axis == B_AXIS ? A_AXIS : B_AXIS);
+    const float a = origin[A_AXIS] * phase_cycle_steps(other_axis);
+    const float b = origin[B_AXIS] * phase_cycle_steps(axis);
+    const float step_to_mm = planner.mm_per_step[axis] / std::numbers::sqrt2_v<float>;
+    distance[A_AXIS] = (a + b) * step_to_mm;
+    distance[B_AXIS] = CORESIGN(a - b) * step_to_mm;
+
+    metric_record_custom(&metric_phxy_orig, ",a=%u,t=\"d\" c=%u,d0=%.3f,d1=%.3f",
+        axis, internal::cal_id, (double)distance[0], (double)distance[1]);
 
     SERIAL_ECHOLNPAIR("home grid origin A:", origin[A_AXIS], " B:", origin[B_AXIS]);
     return true;
