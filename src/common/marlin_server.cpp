@@ -2378,10 +2378,9 @@ static void _server_print_loop(void) {
 
     case State::Pausing_Begin:
         pause_print();
-        [[fallthrough]];
-    case State::Pausing_Failed_Code:
         server.print_state = State::Pausing_WaitIdle;
         break;
+
     case State::Pausing_WaitIdle:
         if (!is_processing()) {
             server.resume.pos = current_position;

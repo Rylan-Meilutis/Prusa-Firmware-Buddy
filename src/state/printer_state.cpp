@@ -374,7 +374,6 @@ DeviceState get_print_state(State state, bool ready) {
     case State::MediaErrorRecovery_BufferData:
     case State::Resuming_Begin:
     case State::Resuming_Reheating:
-    case State::Pausing_Failed_Code:
     case State::Resuming_ExecutingGCodeInterrupt:
     case State::Resuming_UnparkHead_XY:
     case State::Resuming_UnparkHead_ZE:

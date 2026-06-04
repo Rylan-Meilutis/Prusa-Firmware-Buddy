@@ -78,7 +78,6 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
         break;
     case State::PowerPanic_AwaitingResume:
     case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
         printing = pausing = paused = busy = true;
@@ -292,7 +291,6 @@ JsonResult get_job_octoprint(size_t resume_point, JsonOutput &output) {
         state = "CrashRecovery";
         break;
     case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
         has_job = true;

@@ -20,7 +20,6 @@ enum class State {
     SerialPrintInit,
     Printing,
     Pausing_Begin,
-    Pausing_Failed_Code,
     Pausing_WaitIdle,
     Pausing_ParkHead,
     Paused,
@@ -75,7 +74,7 @@ inline bool is_abort_state(State st) {
 }
 
 inline bool is_pausing_state(State state) {
-    return (state == State::Pausing_Begin) || (state == State::Pausing_Failed_Code) || (state == State::Pausing_WaitIdle) || (state == State::Pausing_ParkHead);
+    return (state == State::Pausing_Begin) || (state == State::Pausing_WaitIdle) || (state == State::Pausing_ParkHead);
 }
 
 inline bool is_resuming_state(State state) {
@@ -86,7 +85,6 @@ inline bool is_extended_paused_state(State state) {
     switch (state) {
     case State::Paused:
     case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
     case State::Resuming_BufferData:

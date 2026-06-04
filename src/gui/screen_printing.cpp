@@ -781,7 +781,6 @@ void screen_printing_data_t::change_print_state() {
             // stop_pressed = false;
             return printing_state_t::PAUSED;
         case State::Pausing_Begin:
-        case State::Pausing_Failed_Code:
         case State::Pausing_WaitIdle:
         case State::Pausing_ParkHead:
 // When print is paused, progress screen needs to reinit it's thumbnail file handler

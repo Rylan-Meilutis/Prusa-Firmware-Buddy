@@ -20,7 +20,6 @@ static ac_controller::AnimationType marlin_to_anim_state() {
     case State::SerialPrintInit:
     case State::Finishing_WaitIdle:
     case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
     case State::Resuming_BufferData:

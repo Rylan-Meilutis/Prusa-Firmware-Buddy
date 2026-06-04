@@ -122,7 +122,6 @@ static StateAnimation marlin_to_anim_state() {
     case State::Finishing_ParkHead:
     case State::Finishing_UnloadFilament:
     case State::Pausing_Begin:
-    case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
     case State::Resuming_BufferData:

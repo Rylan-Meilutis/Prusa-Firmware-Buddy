@@ -42,7 +42,6 @@ namespace {
         case State::Pausing_Begin:
         case State::Pausing_WaitIdle:
         case State::Pausing_ParkHead:
-        case State::Pausing_Failed_Code:
         case State::CrashRecovery_Begin:
         case State::CrashRecovery_Axis_NOK:
         case State::CrashRecovery_Retracting:

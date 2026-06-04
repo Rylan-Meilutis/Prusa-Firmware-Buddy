@@ -4,7 +4,6 @@ enum class State {
     Idle,
     Printing,
     Pausing_Begin,
-    Pausing_Failed_Code,
     Pausing_WaitIdle,
     Pausing_ParkHead,
     Paused,
