@@ -48,12 +48,9 @@ void window_file_list_t::set_scroll_offset(int set) {
         return;
     }
 
-    // -1 because ldv counts ".." as index -1 :/
-    [[maybe_unused]] const auto new_window_offset = ldv.set_window_offset(set - 1);
-    assert(new_window_offset == set - 1);
-
+    const int actual = ldv.set_window_offset(set - 1) + 1;
     // This must be called AFTER ldv.set_window_offset, as it updates the texts based on the newly shifted window
-    WindowMenuVirtualBase::set_scroll_offset(set);
+    WindowMenuVirtualBase::set_scroll_offset(actual);
 }
 
 bool window_file_list_t::IsPathRoot(const char *path) {
