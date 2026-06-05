@@ -9,6 +9,7 @@
 #include <option/bootloader.h>
 #include <gui.hpp>
 #include <display_helper.h>
+#include <utils/progress_mapper.hpp>
 
 #include <option/has_phase_stepping.h>
 #if HAS_PHASE_STEPPING()
@@ -127,11 +128,45 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
         }
     }
 
-    const auto indicate_progress = [&](int progress_pct) {
-        render_rect(Rect16::fromLTWH(progress_rect.Left(), progress_rect.Top(), progress_rect.Width() * progress_pct / 100, progress_rect.Height()), COLOR_BRAND);
+    int last_progress_width = 0;
+    const auto render_progress = [&](ProgressPercent progress_pct) {
+        const int width = progress_rect.Width() * progress_pct / 100;
+        if (width == last_progress_width) {
+            return;
+        }
+        last_progress_width = width;
+        render_rect(Rect16::fromLTWH(progress_rect.Left(), progress_rect.Top(), width, progress_rect.Height()), COLOR_BRAND);
     };
 
-    if (!hard_reset) {
+    enum class FactoryResetStep : uint8_t {
+        wipe_specific_xflash_files,
+        wipe_eeprom,
+        wipe_xflash,
+        finalize,
+    };
+
+    constexpr bool wipe_eeprom = true;
+    const bool wipe_xflash = hard_reset;
+    const bool wipe_specific_xflash_files = !hard_reset;
+
+    // Scales are relative phase durations (in seconds) measured on HW.
+    using Scale = ProgressMapperWorkflowStep<FactoryResetStep>::Scale;
+    const ProgressMapperWorkflowArray factory_reset_workflow {
+        ProgressMapperWorkflow<FactoryResetStep>::Runtime {},
+        std::to_array<ProgressMapperWorkflowStep<FactoryResetStep>>({
+            { FactoryResetStep::wipe_specific_xflash_files, 1 },
+            { FactoryResetStep::wipe_eeprom, 25 },
+            { FactoryResetStep::wipe_xflash, wipe_xflash ? Scale(30) : Scale(0) },
+            { FactoryResetStep::finalize, 1 },
+        }),
+    };
+    ProgressMapper<FactoryResetStep> progress_mapper(factory_reset_workflow);
+
+    const auto indicate_progress = [&](FactoryResetStep step, float normalized_progress) {
+        render_progress(progress_mapper.update_progress(step, normalized_progress));
+    };
+
+    if (wipe_specific_xflash_files) {
 #if HAS_PHASE_STEPPING()
         // Phase stepping is a calibration that is stored on xFlash, not in the config store -> it needs special handling
         // On hard reset, we're clearing the whole xFlash anyway, no point in doing this separately
@@ -154,8 +189,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
 
         // Configurations that are out of config store should be wiped here
     }
-
-    indicate_progress(33);
+    indicate_progress(FactoryResetStep::wipe_specific_xflash_files, 1.f);
 
     {
         // freertos::CriticalSection is a bit too restrictive and wouldn't allow us to udpate the display properly
@@ -179,18 +213,26 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
         }
     }
 
-    // Wipe EEPROM
-    for (uint16_t address = 0; address <= (8192 - 4); address += 4) {
-        static constexpr uint32_t empty = ~0;
-        st25dv64k_user_write_bytes(address, &empty, 4);
+    if (wipe_eeprom) {
+        constexpr uint16_t eeprom_size = 8192;
+        for (uint16_t address = 0; address < eeprom_size; address += 4) {
+            static constexpr uint32_t empty = ~0;
+            st25dv64k_user_write_bytes(address, &empty, 4);
+            indicate_progress(FactoryResetStep::wipe_eeprom, float(address) / eeprom_size);
+        }
     }
+    indicate_progress(FactoryResetStep::wipe_eeprom, 1.f);
 
-    indicate_progress(66);
+    if (wipe_xflash) {
+        const uint32_t xflash_size = w25x_get_sector_count() * w25x_block_size;
+        for (uint32_t address = 0; address < xflash_size; address += w25x_block64_size) {
+            w25x_block64_erase(address);
+            indicate_progress(FactoryResetStep::wipe_xflash, float(address) / xflash_size);
+        }
+    }
+    indicate_progress(FactoryResetStep::wipe_xflash, 1.f);
 
     if (hard_reset) {
-        // Wipe xFlash
-        w25x_chip_erase();
-
 #if BOOTLOADER()
         // Invalidate firmware by erasing part of it
         if (!buddy::bootloader::fw_invalidate()) {
@@ -225,8 +267,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
         config_store().config_version.set(config_store_ns::CurrentStore::newest_config_version);
     }
 
-    // Indicate that we have finished by a rect of a different color
-    indicate_progress(100);
+    indicate_progress(FactoryResetStep::finalize, 1.f);
 
     // Wait a few seconds so that the user can visually verify that the factory reset is complete
     HAL_Delay(3000);
