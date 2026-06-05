@@ -19,6 +19,7 @@ enum class ParkPosition : uint8_t {
     purge,
 
     load,
+    unload,
     loadcell_selftest,
     _cnt,
 };

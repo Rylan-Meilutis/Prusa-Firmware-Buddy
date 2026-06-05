@@ -385,8 +385,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     xyze_pos_t current_position_tmp = current_position;
 
     pause::Settings settings;
-    mapi::ParkingPosition park_position = { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, std::max(current_position.z + Z_NOZZLE_PARK_RISE, (float)Z_AXIS_LOAD_POS) };
-    settings.SetParkPoint(park_position);
+    settings.SetParkPoint(mapi::get_parking_position(mapi::ParkPosition::unload));
     settings.SetExtruder(virtual_tool.to_raw());
     settings.SetRetractLength(0.f);
 
@@ -422,7 +421,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     filament::set_color_to_load(color_to_be_loaded);
 
     // Update park position for load phase (move to front/load position instead of staying at unload/waste bin position)
-    settings.SetParkPoint({ X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, park_position.z });
+    settings.SetParkPoint(mapi::get_parking_position(mapi::ParkPosition::load));
 
 #ifndef DO_NOT_RESTORE_Z_AXIS
     // Has to be set before last Pause operation, otherwise it unparks and parks again inbetween operations

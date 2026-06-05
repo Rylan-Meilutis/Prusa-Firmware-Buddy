@@ -17,7 +17,7 @@ ParkingPosition get_parking_position(ParkPosition position) {
     switch (position) {
     case ParkPosition::park:
 #if HAS_INDX()
-        return apply_nozzle_cleaner_offset({ X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, Z_NOZZLE_PARK_POINT });
+        return apply_nozzle_cleaner_offset({ X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_POINT } });
 #else
         return ParkingPosition(XYZ_NOZZLE_PARK_POINT);
 #endif
@@ -25,25 +25,30 @@ ParkingPosition get_parking_position(ParkPosition position) {
 #if HAS_WASTEBIN()
     #if HAS_INDX()
         // Wastebin is fixed to the CoreXY gantry, Z does not matter
-        static constexpr ParkingPosition base_pos { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Unchanged {} };
+        static constexpr ParkingPosition base_pos { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Minimum { .above_print = 2 } };
         return apply_nozzle_cleaner_offset(base_pos);
 
     #elif PRINTER_IS_PRUSA_iX()
         // Wastebin is fixed to the CoreXY gantry, Z does not matter
-        return ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Unchanged {} };
+        return ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Minimum { .above_print = 2 } };
 
     #else
         #error Need to define wastebin parking position
     #endif
 #else
-        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS };
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
 #endif
     }
 
     case ParkPosition::load:
-        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, Z_AXIS_LOAD_POS };
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
+
+    case ParkPosition::unload:
+        return ParkingPosition { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_UNLOAD_POS } };
+
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
+
     case ParkPosition::_cnt:
         bsod_unreachable();
     }
