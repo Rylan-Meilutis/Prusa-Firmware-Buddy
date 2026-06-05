@@ -4,6 +4,7 @@
 #include <array>
 #include <inplace_function.hpp>
 #include <cstdint>
+#include <cstdlib>
 
 namespace buddy {
 
