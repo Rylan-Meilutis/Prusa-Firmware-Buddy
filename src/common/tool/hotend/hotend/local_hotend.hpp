@@ -59,14 +59,14 @@ public:
     /// !!! Careful, the config pointer is stored, so make sure the config is persistent!
     explicit LocalHotend(PhysicalToolIndex tool, const Config *config);
 
-    void set_nozzle_target_temp(TargetTemperature set) override;
-
 #if HAS_TEMP_HEATBREAK_CONTROL
     void set_heatbreak_target_temp(TargetTemperature set) override;
 #endif
 
 protected:
     virtual void manage() override;
+
+    void handle_nozzle_target_change() override;
 
     virtual void isr_on_readings_ready() override;
 

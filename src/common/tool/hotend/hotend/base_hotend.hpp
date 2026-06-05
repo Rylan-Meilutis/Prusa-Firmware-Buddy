@@ -24,7 +24,7 @@ public:
 public:
     bool supports_filament(const FilamentTypeParameters &filament) const override;
 
-    void set_nozzle_target_temp(TargetTemperature set) override;
+    void set_nozzle_target_temp(TargetTemperature set) final override;
 
 #if HAS_TEMP_HEATBREAK_CONTROL
     void set_heatbreak_target_temp(TargetTemperature set) override;

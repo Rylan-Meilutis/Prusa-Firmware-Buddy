@@ -4,13 +4,6 @@
 #include <module/prusa/toolchanger.h>
 #include <common/aggregate_arity.hpp>
 
-void DwarfHotend::set_nozzle_target_temp(TargetTemperature set) {
-    BaseHotend::set_nozzle_target_temp(set);
-
-    // !!! Do NOT use the set variable, the parent function can crop it
-    prusa_toolchanger.getTool(tool_).set_hotend_target_temp(nozzle_target_temp());
-}
-
 #if HAS_TEMP_HEATBREAK_CONTROL
 void DwarfHotend::set_heatbreak_target_temp(TargetTemperature set) {
     BaseHotend::set_heatbreak_target_temp(set);
@@ -18,6 +11,11 @@ void DwarfHotend::set_heatbreak_target_temp(TargetTemperature set) {
     prusa_toolchanger.getTool(tool_).set_heatbreak_target_temp(heatbreak_target_temp());
 }
 #endif
+
+void DwarfHotend::handle_nozzle_target_change() {
+    BaseHotend::handle_nozzle_target_change();
+    prusa_toolchanger.getTool(tool_).set_hotend_target_temp(nozzle_target_temp());
+}
 
 void DwarfHotend::set_nozzle_pid_config(const HotendPIDConfig &set) {
     BaseHotend::set_nozzle_pid_config(set);

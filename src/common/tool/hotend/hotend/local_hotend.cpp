@@ -49,12 +49,11 @@ LocalHotend::LocalHotend(PhysicalToolIndex tool, const Config *config)
     // Same with autofan
 }
 
-void LocalHotend::set_nozzle_target_temp(TargetTemperature set) {
-    BaseHotend::set_nozzle_target_temp(set);
-
+void LocalHotend::handle_nozzle_target_change() {
+    BaseHotend::handle_nozzle_target_change();
     // If turning off the hotend, set the hotend off immediately
     // This shortcut was originally in Temperature::disable_heaters
-    if (set <= 0) {
+    if (nozzle_target_temp_ <= 0) {
         nozzle_heater_pwm_ = 0;
         digitalWrite(local_config_.nozzle_heater_marlin_pin, false);
     }

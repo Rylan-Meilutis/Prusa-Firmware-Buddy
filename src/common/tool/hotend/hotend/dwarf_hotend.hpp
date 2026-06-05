@@ -12,8 +12,6 @@ public:
         : BaseHotend(tool, config) {}
 
 public:
-    void set_nozzle_target_temp(TargetTemperature set) override;
-
 #if HAS_TEMP_HEATBREAK_CONTROL
     void set_heatbreak_target_temp(TargetTemperature set) override;
 #endif
@@ -22,4 +20,6 @@ public:
 
 protected:
     virtual void manage() override;
+
+    void handle_nozzle_target_change() override;
 };
