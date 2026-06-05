@@ -126,13 +126,13 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                        .filename = "enter_cleaner",
                                        .directory = directory,
                                        .default_gcode = "G750 X-9 F21000\n"
-                                                        "G750 Y98.5 F21000\n"
+                                                        "G750 Y101.5 F21000\n"
                                                         "G750 X0.65 F10000",
                                    } },
         { Sequence::exit_cleaner, {
                                       .filename = "exit_cleaner",
                                       .directory = directory,
-                                      .default_gcode = "G750 Y98.5 F21000\n"
+                                      .default_gcode = "G750 Y101.5 F21000\n"
                                                        "G750 X-9 F10000",
                                   } },
         { Sequence::enter_cleaner_from_inside, {
