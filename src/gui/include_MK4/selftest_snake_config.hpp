@@ -28,10 +28,6 @@ constexpr bool has_submenu(Action action) {
     }
 }
 
-constexpr bool requires_toolchanger([[maybe_unused]] Action action) {
-    return false;
-}
-
 constexpr auto get_submenu_label_template([[maybe_unused]] Action action) -> const char * {
     bsod_unreachable();
 }

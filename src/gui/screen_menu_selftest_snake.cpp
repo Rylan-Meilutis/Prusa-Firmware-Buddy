@@ -478,6 +478,14 @@ void continue_snake() {
     }
 }
 
+constexpr bool requires_toolchanger([[maybe_unused]] Action action) {
+#if PRINTER_IS_PRUSA_XL()
+    return action == Action::DockCalibration || action == Action::ToolOffsetsCalibration;
+#else
+    return false;
+#endif
+}
+
 is_hidden_t get_mainitem_hidden_state(Action action) {
     if constexpr (!option::has_toolchanger) {
         if (requires_toolchanger(action)) {

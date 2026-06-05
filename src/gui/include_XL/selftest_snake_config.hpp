@@ -42,10 +42,6 @@ constexpr bool has_submenu(Action action) {
     }
 }
 
-constexpr bool requires_toolchanger(Action action) {
-    return action == Action::DockCalibration || action == Action::ToolOffsetsCalibration;
-}
-
 // Returns a printf-style format string with a single %d for the 1-based tool/dock index.
 constexpr auto get_submenu_label_template(Action action) -> const char * {
     switch (action) {

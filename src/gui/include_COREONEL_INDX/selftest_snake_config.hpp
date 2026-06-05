@@ -41,10 +41,6 @@ constexpr bool has_submenu(Action action) {
     }
 }
 
-constexpr bool requires_toolchanger([[maybe_unused]] Action action) {
-    return false;
-}
-
 constexpr const char *get_submenu_label_template(Action action) {
     switch (action) {
 
