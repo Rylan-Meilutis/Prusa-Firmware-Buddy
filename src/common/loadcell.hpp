@@ -75,6 +75,8 @@ public:
 
     float GetScale() const;
 
+    void SetScale(float new_scale);
+
     void set_xy_endstop(const bool enabled);
 
     inline float GetThreshold(TareMode tareMode = TareMode::Static) const {
@@ -263,9 +265,9 @@ private:
     };
 
 #if HAS_INDX()
-    static constexpr float scale = 0.0128f;
+    static constexpr float scale_default = 0.0128f;
 #else
-    static constexpr float scale = 0.0192f;
+    static constexpr float scale_default = 0.0192f;
 #endif
     static constexpr float thresholdStatic = -125.f;
 #if HAS_INDX()
@@ -274,6 +276,9 @@ private:
     static constexpr float thresholdContinuous = -40.f;
 #endif
     static constexpr float hysteresis = 80.f;
+
+    float scale;
+
     float failsOnLoadAbove;
     float failsOnLoadBelow;
 

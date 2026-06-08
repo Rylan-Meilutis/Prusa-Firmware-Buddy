@@ -23,6 +23,9 @@ void ScreenMenuExperimentalSettings::clicked_return() {
         Item<MI_Z_AXIS_LEN>().Store();
         Item<MI_STEPS_PER_UNIT_E>().Store();
         Item<MI_DIRECTION_E>().Store();
+#if HAS_LOADCELL()
+        Item<MI_LOADCELL_SCALE>().Store();
+#endif // HAS_LOADCELL()
 
         sys_reset();
     case Response::No:

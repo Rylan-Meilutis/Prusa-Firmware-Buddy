@@ -7,10 +7,12 @@ ScreenMenuHardware::ScreenMenuHardware()
 }
 
 void ScreenMenuHardware::windowEvent(window_t *sender, GUI_event_t event, void *param) {
-    if (event == GUI_event_t::HELD_RELEASED) {
+
+    switch (event) {
+    case GUI_event_t::HELD_RELEASED:
         Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuExperimentalSettings>);
         return;
+    default:
+        ScreenMenu::windowEvent(sender, event, param);
     }
-
-    ScreenMenu::windowEvent(sender, event, param);
 }

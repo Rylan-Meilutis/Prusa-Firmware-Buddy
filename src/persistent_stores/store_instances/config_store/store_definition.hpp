@@ -950,6 +950,10 @@ struct CurrentStore
 
 #endif
 
+#if HAS_LOADCELL()
+    StoreItem<float, defaults::loadcell_scale, ItemFlag::hw_config, journal::hash("Loadcell Scale V2")> loadcell_scale;
+#endif // HAS_LOADCELL()
+
 private:
     void perform_config_migrations();
 };

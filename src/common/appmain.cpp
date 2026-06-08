@@ -193,6 +193,10 @@ static void app_setup(void) {
         EMotorStallDetector::Instance().SetEnabled();
     } // else keep it disabled (which is the default)
 
+    if (config_store().loadcell_scale.get() != config_store_ns::defaults::loadcell_scale) {
+        loadcell.SetScale(config_store().loadcell_scale.get());
+    }
+
     #if HAS_LOADCELL_HX717()
     buddy::hw::hx717mux.init();
     #endif

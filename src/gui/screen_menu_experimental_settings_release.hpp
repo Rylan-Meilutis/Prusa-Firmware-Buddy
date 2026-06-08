@@ -9,6 +9,10 @@
 #include "MItem_menus.hpp"
 #include "MItem_experimental_tools.hpp"
 
+#if HAS_LOADCELL()
+    #include "MItem_loadcell.hpp"
+#endif
+
 // parent alias
 using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_SAVE_AND_RETURN,
@@ -22,7 +26,12 @@ using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_DIRECTION_E,
     MI_RESET_DIRECTION,
     MI_SERIAL_PRINTING_SCREEN_ENABLE,
-    MI_FAST_DRAW_ENABLE>;
+    MI_FAST_DRAW_ENABLE
+#if HAS_LOADCELL()
+    ,
+    MI_LOADCELL_SCALE
+#endif
+    >;
 
 struct ExperimentalSettingsValues {
     ExperimentalSettingsValues(ScreenMenuExperimentalSettings__ &parent);

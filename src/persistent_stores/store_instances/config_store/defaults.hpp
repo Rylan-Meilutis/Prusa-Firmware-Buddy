@@ -316,6 +316,10 @@ namespace defaults {
     inline constexpr float nozzle_cleaner_x_origin_offset { 0.0f };
     inline constexpr float nozzle_cleaner_y_origin_offset { 0.0f };
 #endif
+
+#if HAS_LOADCELL()
+    inline constexpr float loadcell_scale { 0.0f };
+#endif // HAS_LOADCELL()
 } // namespace defaults
 
 } // namespace config_store_ns

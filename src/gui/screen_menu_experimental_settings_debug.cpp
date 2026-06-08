@@ -38,6 +38,10 @@ void ScreenMenuExperimentalSettings::clicked_return() {
         Item<MI_CURRENT_Z>().Store();
         Item<MI_CURRENT_E>().Store();
 
+#if HAS_LOADCELL()
+        Item<MI_LOADCELL_SCALE>().Store();
+#endif // HAS_LOADCELL()
+
         sys_reset();
     case Response::No:
         Screens::Access()->Close();

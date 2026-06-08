@@ -90,7 +90,8 @@ void report_loadcell_metrics(tmrTimerControl *) {
 Loadcell loadcell;
 
 Loadcell::Loadcell()
-    : failsOnLoadAbove(INFINITY)
+    : scale(scale_default)
+    , failsOnLoadAbove(INFINITY)
     , failsOnLoadBelow(-INFINITY)
     , highPrecision(false)
     , tareMode(TareMode::Static)
@@ -203,6 +204,10 @@ bool Loadcell::GetXYEndstop() const {
 
 float Loadcell::GetScale() const {
     return scale;
+}
+
+void Loadcell::SetScale(float new_scale) {
+    scale = new_scale;
 }
 
 float Loadcell::GetHysteresis() const {
