@@ -6,7 +6,6 @@
 #include <raii/auto_restore.hpp>
 #include <option/has_phase_stepping_selftest.h>
 #include <option/has_door_sensor_calibration.h>
-#include <option/has_indx.h>
 #include <string_builder.hpp>
 #include <option/has_toolchanger.h>
 #include <option/has_manual_belt_tuning.h>
@@ -60,19 +59,6 @@ constexpr bool is_multitool_only_action([[maybe_unused]] Action action) {
         || action == Action::ToolOffsetsCalibration
         || action == Action::NozzleHeaters
         || action == Action::BedHeaters;
-#else
-    return false;
-#endif
-}
-
-constexpr bool has_submenu([[maybe_unused]] Action action) {
-#if PRINTER_IS_PRUSA_XL()
-    return action == Action::DockCalibration
-        || action == Action::Loadcell
-        || action == Action::FilamentSensorCalibration
-        || action == Action::Gears;
-#elif HAS_INDX()
-    return action == Action::FilamentSensorCalibration;
 #else
     return false;
 #endif
