@@ -180,7 +180,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
     }
 
     // Wipe EEPROM
-    for (uint16_t address = 0; address <= (8096 - 4); address += 4) {
+    for (uint16_t address = 0; address <= (8192 - 4); address += 4) {
         static constexpr uint32_t empty = ~0;
         st25dv64k_user_write_bytes(address, &empty, 4);
     }
