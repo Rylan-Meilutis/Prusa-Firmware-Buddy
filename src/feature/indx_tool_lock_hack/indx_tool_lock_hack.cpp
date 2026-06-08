@@ -17,7 +17,7 @@ INDXToolLockHack::INDXToolLockHack() {
 }
 
 void INDXToolLockHack::rearm() {
-    extrusion_needed_mm_ = 2;
+    extrusion_needed_mm_ = 3;
 }
 
 void INDXToolLockHack::track_extruder_move(float delta_e, Badge<Planner>) {

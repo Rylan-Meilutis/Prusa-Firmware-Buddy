@@ -8,7 +8,7 @@ class Planner;
 
 namespace buddy {
 
-/// INDX head has this annoying feature that it needs to extrude 2 mm to fully finish docking
+/// INDX head has this annoying feature that it needs to extrude a few mm to fully finish docking
 /// If one would try to retract after picking a tool without extruding first, the tool would fall off
 /// This class exists to handle this situation - it will insert a small extrude-deretract
 /// To be only called from the marlin thread
