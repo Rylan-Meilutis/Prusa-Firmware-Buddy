@@ -54,6 +54,9 @@ public:
 
         /// Automatically forget tags on TagLost event
         bool auto_forget_tag : 1 = false;
+
+        /// Whether the radio is enabled. If false, any physical IO operations return radio_disabled
+        bool enable_radio : 1 = false;
     };
 
     struct TagInfo {
@@ -79,6 +82,9 @@ public:
 
         /// Data is too big and doesn't fit somewhere (tag itself, internal buffers, ...)
         data_too_big,
+
+        /// Radio is disabled. Cannot do physical I/O.
+        radio_disabled,
 
         /// The operation is not implemented (possibly because of the prameter combination)
         not_implemented,

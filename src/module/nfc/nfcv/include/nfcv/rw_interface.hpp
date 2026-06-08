@@ -90,27 +90,4 @@ public: //* Utility wrappers for nfcv commands
     Result<void> set_password(const UID &uid, Register reg, uint32_t value);
 };
 
-class FieldGuard : Uncopyable {
-
-public:
-    FieldGuard(ReaderWriterInterface &reader, ReaderWriterInterface::AntennaID antenna)
-        : reader(reader)
-        , result(reader.field_up(antenna)) {
-    }
-
-    ~FieldGuard() {
-        // Do NOT put the field down.
-        // Constant field switching introduces problems and RF noise.
-        // Instead, we keep it on and lazily switch it in field_up
-        // BFW-8285
-
-        // if (result) {
-        //    reader.field_down();
-        // }
-    }
-
-    ReaderWriterInterface &reader;
-    const Result<void> result;
-};
-
 } // namespace nfcv

@@ -38,6 +38,9 @@ OPTReader::Error OPTReader::to_reader_error(OPTBackend::IOError error) {
     case OPTBackend::IOError::other:
     case OPTBackend::IOError::invalid_id:
         return Error::other;
+
+    case OPTBackend::IOError::radio_disabled:
+        return Error::radio_disabled;
     }
 
     // Unreachable
@@ -119,6 +122,9 @@ OPTReader::IOResult<const OPTReader::TagMetadata *> OPTReader::read_metadata(Tag
             // Retrying won't help, the chip needs to be reformatted.
             // data.is_valid is false by default, so the chip is marked as invalid in the cache
             return tag_invalid_error;
+
+        case Error::radio_disabled:
+            return std::unexpected(Error::radio_disabled);
 
         case Error::other:
             // We failed reading something. Invalidate the metadata, so that it is re-read later if requested.

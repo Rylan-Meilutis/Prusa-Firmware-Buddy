@@ -62,6 +62,23 @@ private:
         TagType tag_type : 2;
     };
 
+    class FieldGuard : public Uncopyable {
+
+    public:
+        FieldGuard(OPTBackend_NFCV &backend, ReaderAntenna antenna);
+        ~FieldGuard();
+
+        explicit operator bool() const {
+            return result.has_value();
+        }
+
+        auto error() const {
+            return result.error();
+        }
+
+        const IOResult<void> result;
+    };
+
     nfcv::ReaderWriterInterface &reader;
     std::array<TagData, MAX_KNOWN_TAGS> tags {};
 

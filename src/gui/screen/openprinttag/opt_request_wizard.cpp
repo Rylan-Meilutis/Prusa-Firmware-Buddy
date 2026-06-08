@@ -67,6 +67,7 @@ bool multirequest_with_troubleshooting(buddy::openprinttag::MultiRequestBase &mu
                 return false;
 
             case Error::not_implemented:
+            case Error::radio_disabled:
             case Error::_cnt:
                 bsod_unreachable();
             }

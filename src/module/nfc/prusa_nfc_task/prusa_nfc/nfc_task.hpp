@@ -37,7 +37,7 @@ public:
     void task();
 
 public:
-    constexpr bool is_radio_enabled() const { return radio_enabled_; }
+    bool is_radio_enabled() const { return reader_.backend().config().enable_radio; }
 
 private:
     /// Enqueues the job to be executed on the NFC task
@@ -76,6 +76,4 @@ private:
     openprinttag::OPTReader reader_;
 
     std::array<char, 64> mime_type_buffer_;
-
-    std::atomic<bool> radio_enabled_ = false;
 };

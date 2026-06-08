@@ -38,11 +38,22 @@ OPTBackend::IOError to_backend_error(nfcv::Error error) {
     std::unreachable();
 }
 
-std::unexpected<OPTBackend::IOError> to_backend_unexpected(nfcv::Error error) {
-    return std::unexpected(to_backend_error(error));
+} // namespace
+
+OPTBackend_NFCV::FieldGuard::FieldGuard(OPTBackend_NFCV &backend, ReaderAntenna antenna)
+    : result(backend.config_.enable_radio ? backend.reader.field_up(antenna).transform_error(to_backend_error) : std::unexpected(IOError::radio_disabled)) {
 }
 
-} // namespace
+OPTBackend_NFCV::FieldGuard::~FieldGuard() {
+    // Do NOT put the field down.
+    // Constant field switching introduces problems and RF noise.
+    // Instead, we keep it on and lazily switch it in field_up
+    // BFW-8285
+
+    // if (result) {
+    //    reader.field_down();
+    // }
+}
 
 OPTBackend_NFCV::OPTBackend_NFCV(nfcv::ReaderWriterInterface &reader, const Config &initial_config)
     : reader(reader)
@@ -67,9 +78,9 @@ OPTBackend::IOResult<void> OPTBackend_NFCV::io_op(TagID tag, PayloadPos start, s
         return std::unexpected(IOError::outside_of_bounds);
     }
 
-    nfcv::FieldGuard field_guard { reader, tag_data.antenna };
-    if (!field_guard.result) {
-        return to_backend_unexpected(field_guard.result.error());
+    FieldGuard field_guard { *this, tag_data.antenna };
+    if (!field_guard) {
+        return std::unexpected(field_guard.error());
     }
 
     if (const auto r = impl(tag_data); !r.has_value()) {
@@ -285,9 +296,9 @@ OPTBackend::IOResult<void> OPTBackend_NFCV::initialize_tag(TagID tag, const Init
         }
     };
 
-    nfcv::FieldGuard field_guard(reader, tag_data.antenna);
-    if (!field_guard.result) {
-        return to_backend_unexpected(field_guard.result.error());
+    FieldGuard field_guard { *this, tag_data.antenna };
+    if (!field_guard) {
+        return std::unexpected(field_guard.error());
     }
 
     // Set up various registers
@@ -420,9 +431,9 @@ OPTBackend::IOResult<void> OPTBackend_NFCV::unlock_tag(TagID tag, uint32_t passw
         return std::unexpected(IOError::not_implemented);
     }
 
-    nfcv::FieldGuard field_guard(reader, tag_data.antenna);
-    if (!field_guard.result) {
-        return to_backend_unexpected(field_guard.result.error());
+    FieldGuard field_guard { *this, tag_data.antenna };
+    if (!field_guard) {
+        return std::unexpected(field_guard.error());
     }
 
     for (const auto reg : { nfcv::ReaderWriterInterface::Register::read_password, nfcv::ReaderWriterInterface::Register::write_password }) {
@@ -464,8 +475,8 @@ void OPTBackend_NFCV::run_next_discovery() {
     /// Force reset the field. If the current field was already active, some tags might be still quieted from the previous discovery.
     reader.field_down();
 
-    nfcv::FieldGuard field_guard { reader, discovery_antenna };
-    if (!field_guard.result) {
+    FieldGuard field_guard { *this, discovery_antenna };
+    if (!field_guard) {
         return;
     }
 

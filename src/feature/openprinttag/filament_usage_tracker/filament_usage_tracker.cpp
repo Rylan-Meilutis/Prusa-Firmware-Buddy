@@ -212,6 +212,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_asy
 
         case Error::not_implemented:
         case Error::write_protected:
+        case Error::radio_disabled:
         case Error::_cnt:
             bsod_unreachable();
         }
@@ -272,6 +273,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
 
             case Error::write_protected:
             case Error::not_implemented:
+            case Error::radio_disabled:
             case Error::_cnt:
                 // These do not make sense for the request
                 bsod_unreachable();
@@ -312,6 +314,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
             case Error::not_implemented:
             case Error::wrong_field_type:
             case Error::field_not_present:
+            case Error::radio_disabled:
             case Error::_cnt:
                 // These do not make sense for the request
                 bsod_unreachable();

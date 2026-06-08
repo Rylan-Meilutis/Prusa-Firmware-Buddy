@@ -149,10 +149,14 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
             handle_set_config_request(rreq.set_config);
 
         } else if (prusa3d_nfc_request_RequestData_1_0_is_enable_radio_(&rreq)) {
-            radio_enabled_ = true;
+            auto config = reader_.backend().config();
+            config.enable_radio = true;
+            reader_.backend().set_config(config);
 
         } else if (prusa3d_nfc_request_RequestData_1_0_is_disable_radio_(&rreq)) {
-            radio_enabled_ = false;
+            auto config = reader_.backend().config();
+            config.enable_radio = false;
+            reader_.backend().set_config(config);
         }
 
         else if (prusa3d_nfc_request_RequestData_1_0_is_get_tag_uid_(&rreq)) {
@@ -175,7 +179,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 void NFCTask::task() {
     while (true) {
         // Process a reader event
-        if (OPTReader::Event e; radio_enabled_ && reader_.get_event(e, freertos::millis())) {
+        if (OPTReader::Event e; reader_.get_event(e, freertos::millis())) {
             handle_event(e);
 
             // We've done something -> skip the delay
@@ -192,7 +196,7 @@ void NFCTask::task() {
         }
 
         // When radio is disabled, there's not much stuff to do, so let's be a bit lazy
-        freertos::delay(radio_enabled_ ? 1 : 10);
+        freertos::delay(is_radio_enabled() ? 1 : 10);
     }
 }
 
@@ -235,12 +239,6 @@ void NFCTask::handle_event(const OPTReader::Event &event) {
 }
 
 void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 &request, prusa3d_nfc_util_ValueOrError_1_0 &result) {
-    if (!radio_enabled_) {
-        prusa3d_nfc_util_ValueOrError_1_0_select_error_(&result);
-        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     using Error = OPTReader::Error;
 
     const auto set_error_result = [&](Error error) {
@@ -346,11 +344,6 @@ void NFCTask::handle_read_field_request(const prusa3d_nfc_request_ReadField_1_0 
 
 void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
     auto &error = result._error;
-    if (!radio_enabled_) {
-        error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     const auto field_opt = parse_request_field(request.field);
     if (!field_opt) {
         error = prusa3d_nfc_util_ReaderError_1_0_OTHER;
@@ -393,12 +386,6 @@ void NFCTask::handle_write_field_request(const prusa3d_nfc_request_WriteField_1_
 }
 
 void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_EnumerateFields_1_0 &request, prusa3d_nfc_request_EnumerateFieldsResult_1_0 &result) {
-    if (!radio_enabled_) {
-        prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
-        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     if (!is_valid_section(request.section.value)) {
         prusa3d_nfc_request_EnumerateFieldsResult_1_0_select_error_(&result);
         result._error._error = prusa3d_nfc_util_ReaderError_1_0_OTHER;
@@ -417,12 +404,6 @@ void NFCTask::handle_enumerate_fields_request(const prusa3d_nfc_request_Enumerat
 }
 
 void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &request, prusa3d_nfc_request_RawReadResult_1_0 &result) {
-    if (!radio_enabled_) {
-        prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
-        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     if (request.num_bytes > std::size(result.data.elements)) {
         prusa3d_nfc_request_RawReadResult_1_0_select_error_(&result);
         result._error._error = prusa3d_nfc_util_ReaderError_1_0_DATA_TOO_BIG;
@@ -440,11 +421,6 @@ void NFCTask::handle_raw_read_request(const prusa3d_nfc_request_RawRead_1_0 &req
 }
 
 void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
-    if (!radio_enabled_) {
-        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     // Who knows what we are writing to the tag - invalidate higher-level reader cache
     reader_.invalidate_cache(request.tag.value);
 
@@ -453,11 +429,6 @@ void NFCTask::handle_raw_write_request(const prusa3d_nfc_request_RawWrite_1_0 &r
 }
 
 void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_InitializeTag_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
-    if (!radio_enabled_) {
-        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     // We're circumventing the high-level reader here, so invalidate its caches, things might have changed
     reader_.invalidate_cache(request.tag.value);
 
@@ -472,11 +443,6 @@ void NFCTask::handle_initialize_tag_request(const prusa3d_nfc_request_Initialize
 }
 
 void NFCTask::handle_unlock_tag_request(const prusa3d_nfc_request_UnlockTag_1_0 &request, prusa3d_nfc_util_ReaderError_1_0 &result) {
-    if (!radio_enabled_) {
-        result._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     const auto io_result = reader_.backend().unlock_tag(request.tag.value, std::bit_cast<uint32_t>(request.password));
     result._error = io_result_to_error(io_result);
 }
@@ -505,13 +471,6 @@ void NFCTask::handle_set_config_request(const prusa3d_nfc_request_SetConfig_1_0 
 }
 
 void NFCTask::handle_get_tag_uid_request(const prusa3d_nfc_request_GetTagUID_1_0 &request, prusa3d_nfc_request_GetTagUIDResult_1_0 &result) {
-    // Note: Current implementation doesn't require radio for obtaining the UID, but some might in the future
-    if (!radio_enabled_) {
-        prusa3d_nfc_request_GetTagUIDResult_1_0_select_error_(&result);
-        result._error._error = prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED;
-        return;
-    }
-
     prusa3d_nfc_request_GetTagUIDResult_1_0_select_uid_(&result);
     const auto uid_span = std::as_writable_bytes(std::span { result.uid });
     const auto io_result = reader_.backend().get_tag_uid(request.tag.value, uid_span);

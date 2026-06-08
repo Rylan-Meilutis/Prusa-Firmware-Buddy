@@ -15,7 +15,8 @@ static_assert(prusa3d_nfc_util_ReaderError_1_0_TAG_INVALID == std::to_underlying
 static_assert(prusa3d_nfc_util_ReaderError_1_0_DATA_TOO_BIG == std::to_underlying(OPTReader::Error::data_too_big));
 static_assert(prusa3d_nfc_util_ReaderError_1_0_OTHER == std::to_underlying(OPTReader::Error::other));
 static_assert(prusa3d_nfc_util_ReaderError_1_0_NOT_IMPLEMENTED == std::to_underlying(OPTReader::Error::not_implemented));
-static_assert(std::to_underlying(OPTReader::Error::_cnt) == 8);
+static_assert(prusa3d_nfc_util_ReaderError_1_0_RADIO_DISABLED == std::to_underlying(OPTReader::Error::radio_disabled));
+static_assert(std::to_underlying(OPTReader::Error::_cnt) == 9);
 
 static_assert(prusa3d_nfc_request_InitializeTag_1_0_PROTECTION_POLICY_NONE == std::to_underlying(OPTBackend::InitializeTagParams::ProtectionPolicy::none));
 static_assert(prusa3d_nfc_request_InitializeTag_1_0_PROTECTION_POLICY_LOCK == std::to_underlying(OPTBackend::InitializeTagParams::ProtectionPolicy::lock));

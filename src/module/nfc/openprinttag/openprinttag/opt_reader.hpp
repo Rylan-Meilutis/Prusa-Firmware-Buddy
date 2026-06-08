@@ -63,6 +63,9 @@ public:
         /// The operation is not implemented (possibly because of the prameter combination)
         not_implemented = 7,
 
+        /// The radio is disabled - cannot do physical IO operation
+        radio_disabled = 8,
+
         _cnt,
     };
 
@@ -121,6 +124,9 @@ public:
     // If used for writing operations, calling invalidate_cache is recommended.
     /// !!! Use at your own risk.
     OPTBackend &backend() {
+        return backend_;
+    }
+    const OPTBackend &backend() const {
         return backend_;
     }
 
