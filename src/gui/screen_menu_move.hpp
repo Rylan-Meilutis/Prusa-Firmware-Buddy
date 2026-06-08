@@ -47,8 +47,10 @@ protected:
 private:
     void loop();
     void plan_moves();
+    bool try_init();
 
 private:
     xyze_float_t queued_pos { { NAN, NAN, NAN, NAN } };
     float e_axis_offset = 0;
+    bool initialized = false;
 };

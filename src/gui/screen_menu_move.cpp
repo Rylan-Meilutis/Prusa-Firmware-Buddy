@@ -80,9 +80,12 @@ ScreenMenuMove::ScreenMenuMove()
         marlin_client::set_target_bed(0);
     };
 
-    marlin_client::gcode("G90"); // Set to Absolute Positioning
-    marlin_client::gcode("M82"); // Set extruder to absolute mode
-    marlin_client::gcode("G92 E0"); // Reset position before change
+    Item<MI_AXIS_X>().set_enabled(false);
+    Item<MI_AXIS_Y>().set_enabled(false);
+    Item<MI_AXIS_Z>().set_enabled(false);
+    Item<MI_AXIS_E>().set_enabled(false);
+
+    try_init();
 }
 
 void ScreenMenuMove::windowEvent(window_t *sender, GUI_event_t event, void *param) {
@@ -93,7 +96,41 @@ void ScreenMenuMove::windowEvent(window_t *sender, GUI_event_t event, void *para
     ScreenMenu::windowEvent(sender, event, param);
 }
 
+bool ScreenMenuMove::try_init() {
+    if (initialized) {
+        return true;
+    }
+    if (marlin_vars().is_processing.get() || IWindowMenuItem::edited_item() != nullptr) {
+        return false;
+    }
+    const float nx = marlin_vars().native_pos[X_AXIS].get();
+    const float ny = marlin_vars().native_pos[Y_AXIS].get();
+    const float nz = marlin_vars().native_pos[Z_AXIS].get();
+
+    Item<MI_AXIS_X>().set_value(nx);
+    Item<MI_AXIS_Y>().set_value(ny);
+    Item<MI_AXIS_Z>().set_value(nz);
+    Item<MI_AXIS_E>().set_value(0);
+    Item<MI_AXIS_X>().set_enabled(true);
+    Item<MI_AXIS_Y>().set_enabled(true);
+    Item<MI_AXIS_Z>().set_enabled(true);
+    Item<MI_AXIS_E>().set_enabled(true);
+
+    marlin_client::gcode("G90");
+    marlin_client::gcode("M82");
+    marlin_client::gcode("G92 E0");
+
+    e_axis_offset = 0;
+    queued_pos = { { nx, ny, nz, 0 } };
+    initialized = true;
+    return true;
+}
+
 void ScreenMenuMove::loop() {
+    if (!try_init()) {
+        return;
+    }
+
     const bool is_temp_set = (marlin_vars().active_hotend().target_nozzle > 0);
 
     // Update whether we can move the extruder or not
