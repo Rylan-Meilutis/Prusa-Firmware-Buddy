@@ -205,7 +205,7 @@ static void pre_park_move_pattern(const feedRate_t &feedrate, const xy_pos_t &de
             if (start_in_side_area) { // Start in no-waste land, end in print area
                 do_blocking_move_to_x(X_WASTEBIN_SAFE_POINT, feedrate);
             } else { // Start in print area, end in no-waste land
-                do_blocking_move_to_y(destination.y, feedrate);
+                do_blocking_move_to_xy(X_WASTEBIN_SAFE_POINT, destination.y, feedrate);
             }
         }
     } else if (start_in_side_area) { // Both in the side area

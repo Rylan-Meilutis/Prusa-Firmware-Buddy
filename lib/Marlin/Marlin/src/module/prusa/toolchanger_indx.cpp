@@ -555,8 +555,7 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     const float unlock_y = info.dock_y + DOCK_UNLOCK_Y_OFFSET;
 
     // Move to dock X, then to safe Y in front of dock
-    mapi::park({ .y = safe_y });
-    mapi::park({ .x = info.dock_x });
+    mapi::park({ .x = info.dock_x, .y = safe_y });
     planner.synchronize();
 
     // Approach unlock position
@@ -750,8 +749,7 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
     const float safe_y = info.dock_y + DOCK_SAFE_Y_OFFSET;
 
     // Move to dock X, then to safe Y in front of dock
-    mapi::park({ .y = safe_y });
-    mapi::park({ .x = info.dock_x });
+    mapi::park({ .x = info.dock_x, .y = safe_y });
     planner.synchronize();
 
     // Move into dock — nozzle enters head
