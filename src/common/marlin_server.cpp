@@ -1049,6 +1049,13 @@ void static finalize_print(bool finished) {
 #endif
 
     print_job_timer.stop();
+
+#if HAS_INDX()
+    // Stop the dock fan at the end of every print - the slicer is not
+    // guaranteed to emit M107 P6, so it could otherwise keep spinning.
+    Fans::dock_fan().set_pwm(0);
+#endif
+
     _server_update_vars();
     // Check if the stopwatch was NOT stopped to and add the current printime to the statistics.
     // finalize_print is being called multiple times and we don't want to add the time twice.
