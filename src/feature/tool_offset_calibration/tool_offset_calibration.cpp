@@ -63,7 +63,7 @@ constexpr float MAX_XY_OFFSET_DIFFERENCE = 0.8f;
 // Fallback temperatures if no filament is loaded
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_Z_PROBING_TEMP = 170;
-constexpr int16_t DEFAULT_XY_PROBING_TEMP = 100;
+constexpr int16_t DEFAULT_XY_PROBING_TEMP = 170;
 
 struct ToolTemperatures {
     int16_t cleaning; // nozzle temp for purge/clean
