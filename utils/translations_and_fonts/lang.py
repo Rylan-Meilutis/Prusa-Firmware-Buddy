@@ -1,7 +1,6 @@
 import sys
 import argparse
 from pathlib import Path
-from dataclasses import dataclass
 import polib
 import logging
 
@@ -48,183 +47,6 @@ def load_translations(directory: Path):
             continue
         translations[langcode] = pofile
     return translations
-
-
-def hash_djb2(s):
-    hsh = 5381
-    for x in s.encode('utf-8'):
-        hsh = ((hsh << 5) + hsh) + x
-    return hsh & 0xFFFFFFFF
-
-
-@dataclass
-class HashTable:
-    string_rec: list
-    buckets: list
-
-
-@dataclass
-class BucketItem:
-    leading_bytes: bytes
-    table_index: int
-
-
-@dataclass
-class HashTableEntry:
-    table_index: int
-    key: str
-    value: str
-
-
-class UnsolvableCollisionError(Exception):
-    pass
-
-
-def generate_hash_table(entries,
-                        buckets_cnt,
-                        leading_bytes_len=2,
-                        hash_fn=hash_djb2) -> HashTable:
-    """
-    Generate hash table data for given entries.
-
-    :raises: UnsolvableCollisionError if a hash_table with given parameters can't be composed.
-    """
-
-    def reduced_hash(data):
-        return hash_fn(data) % buckets_cnt
-
-    def get_leading_bytes(entry):
-        return entry.key.encode('utf-8')[:leading_bytes_len]
-
-    # stable sort the entries lexicographically
-    entries = sorted(entries, key=lambda e: e.key)
-    # stable sort the entries by their reduced hash value
-    entries = sorted(entries, key=lambda e: reduced_hash(e.key))
-
-    # generate string rec array
-    string_rec = [
-        BucketItem(leading_bytes=get_leading_bytes(entry),
-                   table_index=entry.table_index) for entry in entries
-    ]
-
-    # generate hash table
-    buckets = [(None, None)] * buckets_cnt
-    idx = 0
-    while idx < len(entries):
-        current_hash = reduced_hash(entries[idx].key)
-        # find entries belonging to the bucket
-        bucket_end_idx = idx + 1
-        while bucket_end_idx < len(entries) and current_hash == reduced_hash(
-                entries[bucket_end_idx].key):
-            bucket_end_idx += 1
-        # check there are no unsolvable collisions
-        distinct_leading_bytes = set(
-            get_leading_bytes(entries[i]) for i in range(idx, bucket_end_idx))
-        bucket_size = bucket_end_idx - idx
-        if len(distinct_leading_bytes) != bucket_size:
-            raise UnsolvableCollisionError()
-        # add the bucket info
-        buckets[current_hash] = (idx, bucket_end_idx)
-        idx = bucket_end_idx
-
-    return HashTable(buckets=buckets, string_rec=string_rec)
-
-
-def format_c_array(items, indent=4):
-    """Create a C array literal with given items."""
-    lines = ['{']
-    lines += [' ' * indent + str(item) + ',' for item in items]
-    lines += ['};\n']
-    return '\n'.join(lines)
-
-
-def dump_hpp_array(path: Path, decl, items):
-    """Write down a file with array definition."""
-    with open(path, 'w') as f:
-        f.write(decl + ' = ' + format_c_array(items, indent=4))
-
-
-def dump_ipp_array(path: Path, items):
-    """Write down a file with array definition (no decl, to be used inlined)"""
-    with open(path, 'w') as f:
-        f.write(format_c_array(items, indent=0))
-
-
-def dump_buckets_count(path: Path, buckets_count):
-    """Write down a file composed of constexpr size_t buckets_count = xxxx;"""
-    with open(path, 'w') as f:
-        f.write('constexpr size_t buckets_count = ' + str(buckets_count) +
-                ';\n')
-
-
-def dump_hash_table(langcode, entries, hash_table: HashTable,
-                    output_dir: Path):
-    """Generate all the required C++ files for given hash table."""
-    # concatenate all the values and remember all the indicies
-    utf8_raw = b''
-    indicies = []
-    for entry in entries:
-        indicies.append(len(utf8_raw))
-        utf8_raw += entry.value.encode('utf-8') + b'\x00'
-    # dump the values itself
-    decl = f'const uint8_t StringTable{langcode.upper()}::utf8Raw[]'
-    dump_hpp_array(output_dir / f'utf8Raw.{langcode}.hpp', decl,
-                   ['0x%02x' % (byte, ) for byte in utf8_raw])
-    # dump indicies of the values
-    decl = f'const uint32_t StringTable{langcode.upper()}::stringBegins[]'
-    dump_hpp_array(output_dir / f'stringBegins.{langcode}.hpp', decl,
-                   ['0x%x' % (index, ) for index in indicies])
-    # dump hash table's buckets
-    dump_ipp_array(output_dir / f'hash_table_buckets.ipp', [
-        '{ 0x%xU, 0x%xU }' %
-        (start if start is not None else 0xffff, end or 0xffff)
-        for start, end in hash_table.buckets
-    ])
-    # dump string indicies
-    dump_ipp_array(output_dir / f'hash_table_string_indices.ipp', [
-        '{ 0x%xU, 0x%xU }' %
-        (int.from_bytes(item.leading_bytes, 'little'), item.table_index)
-        for item in hash_table.string_rec
-    ])
-    dump_buckets_count(output_dir / f'hash_table_buckets_count.ipp',
-                       len(hash_table.buckets))
-
-
-def cmd_generate_hash_tables(args):
-    """Entrypoint of the generate-hash-tables subcommand."""
-    translations = load_translations(args.input_dir)
-    if not translations:
-        logger.error('no translations found')
-        return 1
-    buckets_count = 128
-
-    for langcode, translation in translations.items():
-        # entries we wanna store in the hash table
-        entries = [
-            HashTableEntry(table_index=idx,
-                           key=entry.msgid,
-                           value=entry.msgstr)
-            for idx, entry in enumerate(translation)
-        ]
-
-        # generate the hash table (loop until we find a number of buckets without unsolvable collisions)
-        while True:
-            try:
-                hash_table = generate_hash_table(entries,
-                                                 buckets_cnt=buckets_count)
-                logger.info(f'hash table %s: using %d buckets', langcode,
-                            buckets_count)
-                break
-            except UnsolvableCollisionError:
-                buckets_count += 1
-        else:
-            logger.error(
-                'failed to find number of buckets free of unsolvable collisions; exiting'
-            )
-            return 1
-
-        # create all the required .hpp and .ipp files with data of the hashtable
-        dump_hash_table(langcode, entries, hash_table, args.output_dir)
 
 
 # Usage in a condition
@@ -455,16 +277,6 @@ def main():
     dump_pofiles.add_argument('input_dir', metavar='input-dir', type=Path)
     dump_pofiles.add_argument('output_dir', metavar='output-dir', type=Path)
     dump_pofiles.set_defaults(func=cmd_dump_pofiles)
-
-    # prepare generate-hash-tables subparser
-    generate_hash_tables = subparsers.add_parser('generate-hash-tables')
-    generate_hash_tables.add_argument('input_dir',
-                                      metavar='input-dir',
-                                      type=Path)
-    generate_hash_tables.add_argument('output_dir',
-                                      metavar='output-dir',
-                                      type=Path)
-    generate_hash_tables.set_defaults(func=cmd_generate_hash_tables)
 
     # generate required-chars
     generate_required_chars = subparsers.add_parser('generate-required-chars')

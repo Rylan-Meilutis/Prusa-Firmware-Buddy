@@ -15,11 +15,9 @@ add_executable(
   translator_tests
   ${CMAKE_SOURCE_DIR}/src/lang/string_view_utf8.cpp
   ${CMAKE_SOURCE_DIR}/src/lang/translator.cpp
-  ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_CPUFLASH.cpp
   ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_FILE.cpp
   ${CMAKE_SOURCE_DIR}/tests/unit/test_main.cpp
   ${CMAKE_SOURCE_DIR}/src/lang/gettext_string_hash.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/providerCPUFLASH.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp
   # we need to add mo file generation to test files
   ${CMAKE_CURRENT_SOURCE_DIR}/providerFILE.cpp
@@ -65,9 +63,6 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/MOfilesTesting/bigEnd.mo ${CMAKE_CURRENT_BINARY_DIR}/MO/bigEnd.mo
   COPYONLY
   )
-
-# define custom macros
-target_compile_definitions(translator_tests PUBLIC TRANSLATIONS_UNITTEST)
 
 # tell build system about the test case
 add_catch_test(translator_tests)

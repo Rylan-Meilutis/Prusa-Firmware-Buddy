@@ -22,21 +22,30 @@ add_custom_command(
 
 add_custom_target(error_texts_extraction DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/errors.hpp)
 
-# Generate hash tables
-file(GLOB_RECURSE POFILES ${CMAKE_SOURCE_DIR}/src/lang/po/*/*.po)
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hash_table_buckets.ipp"
-         "${CMAKE_CURRENT_BINARY_DIR}/hash_table_buckets_count.ipp"
-  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT_DIR}/utils/translations_and_fonts/lang.py"
-          "generate-hash-tables" "${CMAKE_SOURCE_DIR}/src/lang/po" "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS "${PROJECT_ROOT_DIR}/utils/translations_and_fonts/lang.py" ${POFILES}
-  COMMENT "Generating C++ files out of .po files."
-  VERBATIM
+# Generate MO files read by the FILE translation provider at test runtime
+add_custom_target(text_fit_mo_files)
+foreach(
+  LANG
+  cs
+  de
+  es
+  fr
+  it
+  ja
+  pl
   )
-
-add_custom_target(
-  translation_hashtables DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/hash_table_buckets.ipp"
-  )
+  set(PO_FILE "${CMAKE_SOURCE_DIR}/src/lang/po/${LANG}/Prusa-Firmware-Buddy_${LANG}.po")
+  set(MO_FILE "${CMAKE_CURRENT_BINARY_DIR}/MO/${LANG}.mo")
+  add_custom_command(
+    OUTPUT ${MO_FILE}
+    COMMAND msgfmt ${PO_FILE} -o ${MO_FILE}
+    DEPENDS ${PO_FILE}
+    COMMENT "Generating ${MO_FILE} from ${PO_FILE}"
+    VERBATIM
+    )
+  add_custom_target(text_fit_generate_mo_${LANG} DEPENDS ${MO_FILE})
+  add_dependencies(text_fit_mo_files text_fit_generate_mo_${LANG})
+endforeach()
 
 # Mini display text fit test
 add_executable(
@@ -49,7 +58,8 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/gui/fonts.cpp
   ${CMAKE_SOURCE_DIR}/src/guiapi/src/Rect16.cpp
   ${CMAKE_SOURCE_DIR}/src/lang/translator.cpp
-  ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_CPUFLASH.cpp
+  ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_FILE.cpp
+  ${CMAKE_SOURCE_DIR}/src/lang/gettext_string_hash.cpp
   )
 
 target_include_directories(
@@ -74,7 +84,7 @@ target_include_directories(
 
 target_compile_definitions(text_fit_tests_mini PUBLIC BOARD=BOARD_BUDDY)
 
-add_dependencies(text_fit_tests_mini translation_hashtables)
+add_dependencies(text_fit_tests_mini text_fit_mo_files)
 add_dependencies(text_fit_tests_mini error_texts_extraction)
 
 add_catch_test(text_fit_tests_mini)
@@ -90,7 +100,8 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/gui/fonts.cpp
   ${CMAKE_SOURCE_DIR}/src/guiapi/src/Rect16.cpp
   ${CMAKE_SOURCE_DIR}/src/lang/translator.cpp
-  ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_CPUFLASH.cpp
+  ${CMAKE_SOURCE_DIR}/src/lang/translation_provider_FILE.cpp
+  ${CMAKE_SOURCE_DIR}/src/lang/gettext_string_hash.cpp
   )
 
 target_include_directories(
@@ -115,7 +126,7 @@ target_include_directories(
 
 target_compile_definitions(text_fit_tests_large PUBLIC BOARD=BOARD_XBUDDY)
 
-add_dependencies(text_fit_tests_large translation_hashtables)
+add_dependencies(text_fit_tests_large text_fit_mo_files)
 add_dependencies(text_fit_tests_large error_texts_extraction)
 
 add_catch_test(text_fit_tests_large)

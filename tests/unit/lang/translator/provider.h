@@ -1,14 +1,12 @@
 #pragma once
 
 #include "translator.hpp"
-#include "translation_provider_CPUFLASH.hpp"
 #include "hash.hpp"
 #include <cstdio>
 #include <deque>
 #include <set>
 #include <map>
 #include "translation_provider_FILE.hpp"
-#include "translator.hpp"
 
 using namespace std;
 

@@ -547,7 +547,6 @@ set(PRINTERS_WITH_TRANSLATIONS
     "XL"
     "MINI"
     )
-set(PRINTERS_WITH_EXTFLASH_TRANSLATIONS ${PRINTERS_WITH_TRANSLATIONS})
 set_feature_for_printers(HAS_LOVE_BOARD "MK4" "iX" "COREONE" "COREONEL")
 set_feature_for_printers(HAS_TMC_UART "MINI")
 set_feature_for_printers(
@@ -793,12 +792,6 @@ set(BOARDS_WITH_USB_DEVICE "BUDDY" "XBUDDY" "XLBUDDY")
 if(${TRANSLATIONS_ENABLED} STREQUAL "<default>")
   if(${PRINTER} IN_LIST PRINTERS_WITH_TRANSLATIONS)
     set(TRANSLATIONS_ENABLED YES)
-    if(${PRINTER} IN_LIST PRINTERS_WITH_EXTFLASH_TRANSLATIONS)
-      set(TRANSLATIONS_IN_EXTFLASH YES)
-    else()
-      set(TRANSLATIONS_IN_EXTFLASH NO)
-    endif()
-    define_boolean_option(TRANSLATIONS_IN_EXTFLASH ${TRANSLATIONS_IN_EXTFLASH})
   else()
     set(TRANSLATIONS_ENABLED NO)
   endif()
@@ -818,12 +811,8 @@ set(LANGUAGES_AVAILABLE
     UK
     )
 if("${TRANSLATIONS_LIST}" STREQUAL "<default>")
-  if(PRINTER STREQUAL "MINI"
-     OR (CMAKE_BUILD_TYPE STREQUAL "Debug" AND (NOT ${TRANSLATIONS_IN_EXTFLASH}))
-     )
-    # Do not include translations to some build - Mini has explicitly listed translations - Debug
-    # builds has translations disabled (due to FLASH space reasons), unless translations are in
-    # extflash than its fine
+  if(PRINTER STREQUAL "MINI")
+    # Do not include translations to some build - Mini has explicitly listed translations
   else()
     # include all translations
     foreach(LANG ${LANGUAGES_AVAILABLE})

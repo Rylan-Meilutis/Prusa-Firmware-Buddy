@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <lang/string_view_utf8.hpp>
 #include "translator.hpp"
-#include <translation_provider_CPUFLASH.hpp>
+#include <translation_provider_FILE.hpp>
 #include <Rect16.h>
 #include <guiconfig/GuiDefaults.hpp>
 #include <fonts.hpp>
@@ -33,6 +33,23 @@ static constexpr EnumArray<GuiLayout, TextLayout, 3> layouts {
     { GuiLayout::warning_dialog, TextLayout { GuiDefaults::RedscreenTitleRect, GuiDefaults::WarningDlgTextRect, GuiDefaults::DefaultFont, GuiDefaults::DefaultFont } },
     { GuiLayout::mmu_dialog, TextLayout { GuiDefaults::MMUNoticeTitleRect, GuiDefaults::MMUNoticeTextRect, GuiDefaults::FontBig, GuiDefaults::DefaultFont } },
 };
+
+namespace {
+const FILETranslationProvider cs("MO/cs.mo");
+ProviderRegistrator csReg("cs", &cs);
+const FILETranslationProvider de("MO/de.mo");
+ProviderRegistrator deReg("de", &de);
+const FILETranslationProvider es("MO/es.mo");
+ProviderRegistrator esReg("es", &es);
+const FILETranslationProvider fr("MO/fr.mo");
+ProviderRegistrator frReg("fr", &fr);
+const FILETranslationProvider it("MO/it.mo");
+ProviderRegistrator itReg("it", &it);
+const FILETranslationProvider ja("MO/ja.mo");
+ProviderRegistrator jaReg("ja", &ja);
+const FILETranslationProvider pl("MO/pl.mo");
+ProviderRegistrator plReg("pl", &pl);
+} // namespace
 
 void test_error(const ErrorEntry &error) {
     auto *layout = &layouts[error.layout];

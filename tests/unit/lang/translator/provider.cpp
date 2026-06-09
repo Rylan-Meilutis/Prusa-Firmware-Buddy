@@ -79,9 +79,6 @@ bool CheckAllTheStrings(const deque<string> &rawStringKeys, const deque<string> 
         UNSCOPED_INFO("fin is " << v.second);
         UNSCOPED_INFO("res is " << outString);
         // now compare - that means iterating over both string views and making sure both return the same utf8 characters
-        // If it fails at this spot with garbage in the outString - one of the reasons may be that
-        // we need to increase CPUFLASH memory dedicated to the raw texts in
-        // tests/unit/lang/translator/providerCPUFLASH.cpp: constexpr size_t maxUtf8Raw = 100000;
         CHECK(CompareStringViews(s, s2, langCode));
     });
 
