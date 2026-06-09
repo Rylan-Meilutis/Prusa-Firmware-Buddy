@@ -59,7 +59,7 @@ if(PRINTER STREQUAL "MINI")
   # Some revisions of mini has 1MB flash, so limit resource size to remaining size
   add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 205)
 else()
-  add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 512)
+  add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 768)
 endif()
 
 if(HAS_ESP)

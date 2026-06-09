@@ -8,7 +8,7 @@ utils/unpack_bbf.py --input-file firmware.bbf
 
 To unpack littlefs image, use
 ```
-littlefs-python unpack --block-size 4096 --block-count 512 --image resources-image.lfs resources-image.lfs.unpacked
+littlefs-python unpack --block-size 4096 --block-count 768 --image resources-image.lfs resources-image.lfs.unpacked
 ```
 
 Make sure you are using correct version of littlefs-python.
