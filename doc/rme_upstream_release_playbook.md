@@ -31,7 +31,7 @@ git diff --name-status "$base"
 git diff --dirstat=files,0 "$base"
 ```
 
-At the time this playbook was last audited, the committed RME stack covered 529 files with 11,224 insertions and 435 deletions relative to upstream `v6.5.3`. The stack contains 101 commits through the current documentation refresh. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the committed RME stack covered 528 files with 11,296 insertions and 434 deletions relative to upstream `v6.5.3`. The stack contains 104 commits through the current documentation refresh. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 Primary RME branch:
 
