@@ -103,14 +103,18 @@ public:
     int32_t get_raw_value() const;
 
     /// @brief Request highest precision available from loadcell
-    inline void EnableHighPrecision() {
+    inline void EnableHighPrecision(bool arm_probe_safety = true) {
         assert(!highPrecision); // ensure HP is not recursively enabled
         reset_filters(); // reset filters before we turn on HP
+        tare_generation.store(last_source_generation.load()); // no spurious reset before first tare
+        probe_safety_tripped.store(false);
+        probe_safety_armed.store(arm_probe_safety);
         highPrecision = true;
     }
     inline void DisableHighPrecision() {
         assert(highPrecision); // ensure HP is not recursively disabled
         highPrecision = false;
+        probe_safety_armed.store(false);
         reset_endstops();
     }
     inline bool IsHighPrecisionEnabled() const { return highPrecision; }
@@ -121,8 +125,13 @@ public:
     void SetFailsOnLoadBelow(float failsOnLoadBelow);
     float GetFailsOnLoadBelow() const;
 
-    /// @brief To be called during homing, will raise redsceen when samples stop comming during homing
-    void HomingSafetyCheck() const;
+    /// Checks loadcell sample freshness during a probe/homing session; stops Z (failed probe) if samples stop arriving.
+    void HomingSafetyCheck();
+
+    /// True when an in-progress probe/homing wait must abort: motion is being
+    /// cancelled (planner draining or a quick-stop in flight) or the loadcell
+    /// safety stop has tripped. @see WaitBarrier(), run_z_probe().
+    bool probe_should_abort() const;
 
     class FailureOnLoadAboveEnforcer {
     public:
@@ -137,7 +146,7 @@ public:
 
     class HighPrecisionEnabler {
     public:
-        HighPrecisionEnabler(Loadcell &lcell, bool enable = true);
+        HighPrecisionEnabler(Loadcell &lcell, bool enable = true, bool arm_probe_safety = true);
         HighPrecisionEnabler(HighPrecisionEnabler &&) = default;
         ~HighPrecisionEnabler();
 
@@ -149,6 +158,9 @@ public:
     FailureOnLoadAboveEnforcer CreateLoadAboveErrEnforcer(bool enable = true, float grams = 3000);
 
 private:
+    /// Stop Z immediately and fail the probe (no-op unless a probe session is armed).
+    void probe_safety_stop();
+
 #if PRINTER_IS_PRUSA_XL()
     // Tweaked butter(2, [0.07 0.11])
     struct ZFilterParams {
@@ -313,6 +325,21 @@ private:
     /// Generation of the data source (puppy reset counter); 0 for sources that cannot reset (direct HX717).
     std::atomic<uint32_t> last_source_generation { 0 };
     static_assert(std::atomic<decltype(last_source_generation)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
+
+    /// Source generation the current tare is valid for; a sample whose generation differs
+    /// means the head reset since the tare, so the tare is stale.
+    std::atomic<uint32_t> tare_generation { 0 };
+    static_assert(std::atomic<decltype(tare_generation)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
+
+    /// True only during a probe/homing session: gates the immediate safety stop.
+    std::atomic<bool> probe_safety_armed { false };
+    static_assert(std::atomic<decltype(probe_safety_armed)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
+
+    /// Set when a probe-safety stop fired; sticky (unlike PreciseStepping's stop flag,
+    /// which idle() clears) so probe_should_abort() keeps returning true once tripped.
+    /// Cleared at the start of each tare / probe session.
+    std::atomic<bool> probe_safety_tripped { false };
+    static_assert(std::atomic<decltype(probe_safety_tripped)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
 };
 
 extern Loadcell loadcell;

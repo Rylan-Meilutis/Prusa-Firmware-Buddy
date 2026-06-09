@@ -20,9 +20,9 @@
 #endif // POWER_PANIC
 #include "../Marlin/src/module/planner.h"
 #include "../Marlin/src/module/endstops.h"
+#include "../Marlin/src/feature/precise_stepping/precise_stepping.hpp"
 #include "feature/prusa/e-stall_detector.h"
 #include <metric_handlers.h>
-#include <option/has_indx.h>
 
 LOG_COMPONENT_DEF(Loadcell, logging::Severity::info);
 
@@ -105,12 +105,12 @@ Loadcell::Loadcell()
 
 void Loadcell::WaitBarrier(uint32_t ticks_us) {
     // the first sample we're waiting for needs to be valid
-    while (!planner.draining() && undefinedCnt) {
+    while (!probe_should_abort() && undefinedCnt) {
         idle(true);
     }
 
     // now wait until the requested timestamp
-    while (!planner.draining() && ticks_diff(loadcell.GetLastSampleTimeUs(), ticks_us) < 0) {
+    while (!probe_should_abort() && ticks_diff(loadcell.GetLastSampleTimeUs(), ticks_us) < 0) {
         idle(true);
     }
 }
@@ -131,6 +131,12 @@ float Loadcell::Tare(TareMode mode) {
 
     tareMode = mode;
 
+    // Fresh attempt: clear any earlier trip and tare against the current source generation.
+    // A reset during the collection below then makes the samples mismatch this generation,
+    // which trips the safety stop and aborts the tare.
+    probe_safety_tripped.store(false);
+    tare_generation.store(last_source_generation.load());
+
     // request tare from ISR routine
     int requestedTareCount = tareMode == TareMode::Continuous
         ? 1 // Just to initialize the XY and Z bandpass filters
@@ -139,16 +145,16 @@ float Loadcell::Tare(TareMode mode) {
     tareCount = requestedTareCount;
 
     // wait until we have all the samples that were requested
-    while (!planner.draining() && tareCount != 0) {
+    while (!probe_should_abort() && tareCount != 0) {
         idle(true);
     }
 
-    // We might have exited the loop prematurely because of planner.draining()
+    // We might have exited the loop prematurely because probe_should_abort() became true.
     // In that case, reset tare count to 0.
     // This is safe - the tareCount is consumed from the ISR, which has a higher priority
     tareCount = 0;
 
-    if (!planner.draining()) {
+    if (!probe_should_abort()) {
         if (tareMode == TareMode::Continuous) {
             // double-check filters are ready after the tare
             assert(z_filter.initialized());
@@ -171,6 +177,7 @@ void Loadcell::Clear() {
     loadcellRaw = undefined_value;
     undefinedCnt = -UNDEFINED_INIT_MAX_CNT;
     offset = 0;
+    tare_generation.store(last_source_generation.load());
     reset_filters();
     reset_endstops();
 }
@@ -244,7 +251,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
 
             // undefined value, use forward-fill only for short bursts
             if (++this->undefinedCnt > UNDEFINED_SAMPLE_MAX_CNT) {
-                fatal_error(ErrCode::ERR_SYSTEM_LOADCELL_TIMEOUT);
+                probe_safety_stop();
             }
         }
     }
@@ -259,7 +266,10 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
         filtered_z_load = z_filter.filter(this->loadcellRaw) * scale;
         filtered_xy_load = xy_filter.filter(this->loadcellRaw) * scale;
 
-        if (tareCount != 0) {
+        if (source_generation != tare_generation.load()) {
+            // Head/tool reset since the tare: stale tare, do not trust this sample.
+            probe_safety_stop();
+        } else if (tareCount != 0) {
             // Undergoing tare process, only use valid samples
             if (loadcellRaw != undefined_value) {
                 tareSum += loadcellRaw;
@@ -362,16 +372,28 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
     EMotorStallDetector::Instance().ProcessSample(this->loadcellRaw, time_us);
 }
 
-void Loadcell::HomingSafetyCheck() const {
-// We need signed int because the last sample can be slightly in the future, caused by time sync with dwarves.
-#if HAS_INDX()
-    static constexpr int32_t MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US = 200000;
-#else
+bool Loadcell::probe_should_abort() const {
+    return planner.draining() || PreciseStepping::stopping() || probe_safety_tripped.load();
+}
+
+void Loadcell::probe_safety_stop() {
+    if (probe_safety_armed.load()) {
+        probe_safety_tripped.store(true);
+        // Same immediate stop the touch uses (Stepper::endstop_triggered); but since we
+        // don't set the endstop, the probe is reported as failed and will be retried.
+        PreciseStepping::quick_stop();
+    }
+}
+
+void Loadcell::HomingSafetyCheck() {
+    if (!probe_safety_armed.load()) {
+        return;
+    }
     static constexpr int32_t MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US = 100000;
-#endif
+    // Signed: the last sample can be slightly in the future due to time sync with the dwarves.
     int32_t since_last = ticks_diff(ticks_us(), last_sample_time_us.load());
     if (since_last > MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US) {
-        fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);
+        probe_safety_stop();
     }
 }
 
@@ -417,13 +439,17 @@ Loadcell::FailureOnLoadAboveEnforcer::~FailureOnLoadAboveEnforcer() {
  *              limit its scope.
  *   @arg @c true Normal operation
  *   @arg @c false Do not enable high precision mode and tare when created.
+ * @param arm_probe_safety Whether to arm the probe-safety stop for this session.
+ *   @arg @c true Normal operation (Z/XY probe sessions).
+ *   @arg @c false High-precision use that is not a probe (e.g. MMU2 E-stall detection).
  */
 Loadcell::HighPrecisionEnabler::HighPrecisionEnabler(Loadcell &lcell,
-    bool enable)
+    bool enable,
+    bool arm_probe_safety)
     : m_lcell(lcell)
     , m_enable(enable) {
     if (m_enable) {
-        m_lcell.EnableHighPrecision();
+        m_lcell.EnableHighPrecision(arm_probe_safety);
     }
 }
 

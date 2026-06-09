@@ -40,6 +40,7 @@
 #include "endstops.h"
 #include <module/planner.h>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
+#include <feature/precise_stepping/precise_stepping.hpp>
 #include <option/has_toolchanger.h>
 
 #include "../gcode/gcode.h"
@@ -589,6 +590,8 @@ float run_z_probe(const RunZProbeParams& params) {
     auto H = loadcell.CreateLoadAboveErrEnforcer();
     auto reference_tare = loadcell_retare_for_analysis(Z_FIRST_PROBE_DELAY); ///< Use this value as reference for following tares
     const auto max_tare_offset = std::abs(loadcell.GetThreshold()); ///< Maximal valid offset from reference_tare
+    if (loadcell.probe_should_abort())
+      return NAN;
   #endif
 
   // Double-probing does a fast probe followed by a slow probe
@@ -599,7 +602,7 @@ float run_z_probe(const RunZProbeParams& params) {
     if (do_probe_move(z_probe_low_point, MMM_TO_MMS(Z_PROBE_SPEED_FAST))) {
       if(params.endstop_triggered)
         *params.endstop_triggered = false;
-      if (planner.draining())
+      if (planner.draining() || PreciseStepping::stopping())
         return NAN;
 
       #if ENABLED(HALT_ON_PROBING_ERROR)
@@ -673,13 +676,17 @@ float run_z_probe(const RunZProbeParams& params) {
         // Sync enough samples before moving downwards to ensure the pre-compression line can be fit
         // when the Z move is very short
         loadcell.WaitBarrier(static_cast<uint32_t>(ticks_us() + loadcell.analysis.analysisLookback * 1e6f));
+
+        // A re-tare or the sync above tripped the safety stop: fail before descending.
+        if (loadcell.probe_should_abort())
+          return NAN;
       #endif
 
       // Probe downward slowly to find the bed
       if (do_probe_move(z_probe_low_point, MMM_TO_MMS(Z_PROBE_SPEED_SLOW))) {
         if(params.endstop_triggered)
           *params.endstop_triggered = false;
-        if (planner.draining())
+        if (planner.draining() || PreciseStepping::stopping())
           return NAN;
 
         #if ENABLED(HALT_ON_PROBING_ERROR)
@@ -709,7 +716,7 @@ float run_z_probe(const RunZProbeParams& params) {
         set_current_position(to_native_pos(target));
 
         planner.synchronize();
-        if (planner.draining())
+        if (loadcell.probe_should_abort())
           return NAN;
         uint32_t move_back_end = PreciseStepping::get_time_of_last_block_us();
       #endif
@@ -737,6 +744,9 @@ float run_z_probe(const RunZProbeParams& params) {
         // wait until the analysis' window fully includes the move-back period
         uint32_t window_end = move_back_end + static_cast<uint32_t>((loadcell.analysis.analysisLookahead + loadcell.analysis.loadDelay) * 1000000.f);
         loadcell.WaitBarrier(window_end);
+
+        if (loadcell.probe_should_abort())
+          return NAN;
 
         METRIC_DEF(analysis_result, "probe_analysis", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
         auto result = loadcell.analysis.Analyse(params.is_nozzle_clean);

@@ -261,15 +261,9 @@ void Endstops::poll() {
     update();
   #endif
 
-  // Call Loadcell::HomingSafetyCheck when homing (safeguard to stop homing when loadcell samples stop comming)
+  // Stop the probe if loadcell samples stop arriving (self-gates to probe sessions).
   #if HAS_LOADCELL()
-  bool is_homing = z_probe_enabled;
-  #if HAS_TOOLCHANGER()
-  is_homing = is_homing || xy_probe_enabled;
-  #endif
-  if (is_homing) {
     loadcell.HomingSafetyCheck();
-  }
   #endif
 }
 
