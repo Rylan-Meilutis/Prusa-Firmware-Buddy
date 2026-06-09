@@ -81,23 +81,17 @@ CFanCtlCommon &Fans::dock_fan() {
     // the C1 print fan; the actual print fan lives on the INDX head, freeing
     // that pin here.
     //
-    // The dock fan is therefore the only consumer of the xBuddy print-fan tach
-    // line on INDX, so park the tach mux on that input here, in main-thread
-    // context (doing it from Fans::tick(), called from TIM14 ISR, would trip
-    // the __cxa_guard_acquire assert in cxa_guard.cpp). A future INDX board
-    // variant that repurposes the mux would need to revisit this.
-    static auto instance = [] {
-        buddy::hw::tachoSelectPrintFan.write(buddy::hw::Pin::State::low);
-        return CFanCtl3WireDynamic(
-            buddy::hw::fanPrintPwm,
-            buddy::hw::fanTach,
-            FANCTLPRINT_PWM_MIN, FANCTLPRINT_PWM_MAX,
-            FANCTLPRINT_RPM_MIN, FANCTLPRINT_RPM_MAX,
-            FANCTLPRINT_PWM_THR,
-            is_autofan_t::no,
-            skip_tacho_t::no,
-            FANCTLPRINT_MIN_PWM_TO_MEASURE_RPM);
-    }();
+    // The dock fan is the only consumer of the xBuddy print-fan tach line on
+    // INDX; init_hw() parks the tach mux on that input.
+    static CFanCtl3WireDynamic instance(
+        buddy::hw::fanPrintPwm,
+        buddy::hw::fanTach,
+        FANCTLPRINT_PWM_MIN, FANCTLPRINT_PWM_MAX,
+        FANCTLPRINT_RPM_MIN, FANCTLPRINT_RPM_MAX,
+        FANCTLPRINT_PWM_THR,
+        is_autofan_t::no,
+        skip_tacho_t::no,
+        FANCTLPRINT_MIN_PWM_TO_MEASURE_RPM);
     return instance;
 }
 #endif
@@ -123,4 +117,10 @@ void Fans::tick() {
 #endif
 }
 
-void Fans::init_hw() {}
+void Fans::init_hw() {
+#if HAS_INDX()
+    // Park the print-fan tach mux on the dock-fan input (its only consumer on
+    // INDX). Must run after hw_gpio_init() configures the pin as output.
+    buddy::hw::tachoSelectPrintFan.write(buddy::hw::Pin::State::low);
+#endif
+}
