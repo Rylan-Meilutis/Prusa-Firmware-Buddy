@@ -396,6 +396,8 @@ TEST_CASE("Test NFC-V tag discovery and tag lost detection", "[nfcv][openprintta
 
             // Forget tags immediately - max_missed_discoveries has a dedicated test
             .tag_max_missed_discoveries = 0,
+
+            .enable_radio = true,
         });
 
     const auto discovery_interval = reader.config().discovery_interval_ms;
@@ -704,7 +706,7 @@ TEST_CASE("Test NFC-V tag read ops", "[nfcv][openprinttag]") {
         .antennas = { 0 },
     };
 
-    OPTBackend_NFCV reader { logger };
+    OPTBackend_NFCV reader { logger, OPTBackend::Config { .enable_radio = true } };
 
     OPTBackend::Event event;
     auto res = reader.get_event(event, 0);
@@ -826,7 +828,7 @@ TEST_CASE("Test NFC-V tags write ops", "[nfcv][openprinttag]") {
         .antennas = { 0 },
     };
 
-    OPTBackend_NFCV reader { logger };
+    OPTBackend_NFCV reader { logger, OPTBackend::Config { .enable_radio = true } };
 
     OPTBackend::Event event;
     auto res = reader.get_event(event, 0);
@@ -1073,7 +1075,7 @@ TEST_CASE("Test NFC-V tag initialization", "[nfcv][openprinttag]") {
         .antennas = { 0 },
     };
 
-    OPTBackend_NFCV reader(logger);
+    OPTBackend_NFCV reader { logger, OPTBackend::Config { .enable_radio = true } };
     OPTBackend::Event event;
 
     auto &tag = logger.tags[tag_uid];
@@ -1217,8 +1219,9 @@ TEST_CASE("Test NFC debug mode", "[nfcv][openprinttag]") {
     OPTBackend::Config config {
         // Forget tags immediately, not testing that functionality here
         .tag_max_missed_discoveries = 0,
+        .enable_radio = true,
     };
-    OPTBackend_NFCV reader(logger, config);
+    OPTBackend_NFCV reader { logger, config };
     const auto discovery_interval = reader.config().discovery_interval_ms;
 
     OPTBackend::Event event;
@@ -1322,7 +1325,7 @@ TEST_CASE("Test NFC get_tag_uid", "[nfcv][openprinttag]") {
         .antennas = { 0 },
     };
 
-    OPTBackend_NFCV reader(logger);
+    OPTBackend_NFCV reader { logger, OPTBackend::Config { .enable_radio = true } };
     OPTBackend::Event event;
 
     CHECK(reader.get_event(event, 0));
@@ -1345,8 +1348,9 @@ TEST_CASE("NFCV::max_known_tags_per_antenna", "[nfcv][openprinttag]") {
         .max_known_tags_per_antenna = 2,
         // Not testing that here
         .tag_max_missed_discoveries = 0,
+        .enable_radio = true,
     };
-    OPTBackend_NFCV reader(logger, config);
+    OPTBackend_NFCV reader { logger, config };
     OPTBackend::Event event;
 
     REQUIRE(config.max_known_tags_per_antenna <= OPTBackend_NFCV::MAX_KNOWN_TAGS / 2);
