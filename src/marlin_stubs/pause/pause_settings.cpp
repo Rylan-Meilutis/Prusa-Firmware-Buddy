@@ -73,9 +73,13 @@ void Settings::SetRetractLength(const std::optional<float> &len) {
 }
 
 void Settings::SetParkPoint(const mapi::ParkingPosition &park_point) {
-    // Currently parking handles it's NaN values internally.
-    // TODO: Refactor parking to use ParkingPosition instead of xyz_pos_t
-    park_pos = park_point.to_nan_xyz_pos();
+    this->park_point = park_point;
+}
+
+void Settings::resolve_park_point() {
+    // Resolve Z against the live position. Unchanged X/Y map to NaN (not the
+    // current position), as the parking code uses NaN to mean "don't move".
+    park_pos = park_point.to_nan_xyz_pos({ NAN, NAN, current_position.z });
     park_pos.z = std::min(park_pos.z, get_z_max_pos_mm());
 }
 

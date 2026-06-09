@@ -1335,8 +1335,8 @@ bool Pause::tool_change([[maybe_unused]] VirtualToolIndex target_tool, [[maybe_u
         load_type = load_type_;
 
         // Remove XY park position before toolchange, it will park in next operation
-        settings.park_pos.x = std::numeric_limits<float>::quiet_NaN();
-        settings.park_pos.y = std::numeric_limits<float>::quiet_NaN();
+        settings.park_point.x = mapi::ParkingPosition::unchanged;
+        settings.park_point.y = mapi::ParkingPosition::unchanged;
 
         // Park Z and show toolchange screen
         FSM_HolderLoadUnload holder(*this);
@@ -1478,6 +1478,7 @@ bool Pause::parkMoveXGreaterThanY(const xyz_pos_t &pos0, const xyz_pos_t &pos1) 
 
 void Pause::park_nozzle_and_notify() {
     setPhase(is_unstoppable() ? PhasesLoadUnload::Parking_unstoppable : PhasesLoadUnload::Parking_stoppable);
+    settings.resolve_park_point();
 
     // Initial retract before move to filament change position
     if (!thermalManager.tooColdToExtrude(active_extruder)) {
