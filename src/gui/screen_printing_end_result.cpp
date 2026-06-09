@@ -152,11 +152,12 @@ void EndResultBody::Show() {
     print_started_label.Show();
     print_ended_label.Show();
 
-    format_timestamp(marlin_vars().print_start_time, print_started_value_buffer);
-    print_started_value.SetText(string_view_utf8::MakeRAM(print_started_value_buffer.data()));
-    print_started_value.Show();
     showing_filter_remaining = false;
-    update_print_ended_stat(false);
+    update_started_stat(false);
+
+    format_timestamp(marlin_vars().print_end_time, print_ended_value_buffer);
+    print_ended_value.SetText(string_view_utf8::MakeRAM(print_ended_value_buffer.data()));
+    print_ended_value.Show();
 
     handle_consumed_material_showing(gcode);
 
@@ -165,7 +166,7 @@ void EndResultBody::Show() {
     window_t::Show();
 }
 
-void EndResultBody::update_print_ended_stat(bool rotate) {
+void EndResultBody::update_started_stat(bool rotate) {
 #if HAS_CHAMBER_FILTRATION_API()
     const uint32_t remaining_s = buddy::chamber_filtration().post_print_remaining_s();
     if (rotate && remaining_s > 0) {
@@ -175,23 +176,23 @@ void EndResultBody::update_print_ended_stat(bool rotate) {
     }
 
     if (showing_filter_remaining) {
-        print_ended_label.SetText(_("Filtering left"));
-        PrintTime::print_formatted_duration(remaining_s, print_ended_value_buffer, true);
+        print_started_label.SetText(_("Filtering left"));
+        PrintTime::print_formatted_duration(remaining_s, print_started_value_buffer, true);
     } else
 #endif
     {
 #if !HAS_CHAMBER_FILTRATION_API()
         static_cast<void>(rotate);
 #endif
-        print_ended_label.SetText(_(txt_print_ended));
-        format_timestamp(marlin_vars().print_end_time, print_ended_value_buffer);
+        print_started_label.SetText(_(txt_print_started));
+        format_timestamp(marlin_vars().print_start_time, print_started_value_buffer);
     }
 
-    print_ended_value.SetText(string_view_utf8::MakeRAM(print_ended_value_buffer.data()));
-    print_ended_label.Show();
-    print_ended_value.Show();
-    print_ended_label.Invalidate();
-    print_ended_value.Invalidate();
+    print_started_value.SetText(string_view_utf8::MakeRAM(print_started_value_buffer.data()));
+    print_started_label.Show();
+    print_started_value.Show();
+    print_started_label.Invalidate();
+    print_started_value.Invalidate();
 }
 
 void EndResultBody::handle_consumed_material_showing(const GCodeInfo &gcode) {
@@ -367,9 +368,9 @@ void EndResultBody::Hide() {
 void EndResultBody::windowEvent(window_t *, GUI_event_t event, void *param) {
     if (event == GUI_event_t::LOOP) {
         const uint32_t now_s = ticks_s();
-        if (ticks_diff(now_s, last_ended_stat_switch_s) >= 4) {
-            last_ended_stat_switch_s = now_s;
-            update_print_ended_stat(true);
+        if (ticks_diff(now_s, last_started_stat_switch_s) >= 4) {
+            last_started_stat_switch_s = now_s;
+            update_started_stat(true);
         }
     }
     if (event == GUI_event_t::KNOB || event == GUI_event_t::ENC_UP || event == GUI_event_t::CLICK || event == GUI_event_t::TOUCH_CLICK) {
