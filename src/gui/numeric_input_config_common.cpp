@@ -58,6 +58,12 @@ const NumericInputConfig numeric_input_config::timeout_seconds_with_off = {
     .unit = Unit::second,
 };
 
+const NumericInputConfig numeric_input_config::timeout_seconds_60min = {
+    .min_value = 1,
+    .max_value = 3600,
+    .unit = Unit::second,
+};
+
 #if HAS_CHAMBER_API()
 const NumericInputConfig &numeric_input_config::chamber_temp_with_off() {
     // Using static is intended here and okay - we need to be returing a persistent reference, and this function is only used from the GUI thread

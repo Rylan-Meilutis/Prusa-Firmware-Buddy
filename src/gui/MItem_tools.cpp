@@ -347,6 +347,23 @@ void MI_BED_HEATER_SAFETY_TIMEOUT::Loop() {
 }
 
 /*****************************************************************************/
+// MI_HOTEND_HEATER_SAFETY_TIMEOUT
+MI_HOTEND_HEATER_SAFETY_TIMEOUT::MI_HOTEND_HEATER_SAFETY_TIMEOUT()
+    : WiSpin(
+        config_store().hotend_heater_safety_timeout_s.get(),
+        numeric_input_config::timeout_seconds_60min,
+        _(label)) {
+}
+
+void MI_HOTEND_HEATER_SAFETY_TIMEOUT::OnClick() {
+    buddy::safety_timer().set_interval(static_cast<buddy::SafetyTimer::Time>(value()) * 1000);
+}
+
+void MI_HOTEND_HEATER_SAFETY_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+
+/*****************************************************************************/
 // MI_SOUND_MODE
 static constexpr EnumArray<eSOUND_MODE, const char *, eSOUND_MODE::_count> sound_mode_values {
     { eSOUND_MODE::ONCE, N_("Once") },

@@ -25,9 +25,11 @@
 #include "screen_menu_lang_and_time.hpp"
 #include "screen_menu_hardware.hpp"
 #include "screen_menu_hardware_tune.hpp"
+#include "screen_menu_heater_safety.hpp"
 #include "screen_menu_system.hpp"
 #include "screen_menu_statistics.hpp"
 #include "screen_menu_error_test.hpp"
+#include "screen_menu_pid.hpp"
 #include "screen_menu_input_shaper.hpp"
 #include <screen_menu_languages.hpp>
 #include <screen_menu_info.hpp>
@@ -128,7 +130,9 @@ template struct MI_SCREEN_CTOR<ScreenMenuExperimentalSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuUserInterface>;
 template struct MI_SCREEN_CTOR<ScreenMenuSerialPrinting>;
 template struct MI_SCREEN_CTOR<ScreenMenuLockSettings>;
+template struct MI_SCREEN_CTOR<ScreenMenuHeaterSafety>;
 template struct MI_SCREEN_CTOR<ScreenMenuUiThemeColors>;
+template struct MI_SCREEN_CTOR<ScreenMenuPid>;
 #if HAS_LEDS()
 template struct MI_SCREEN_CTOR<ScreenMenuStatusLedColors>;
 #endif

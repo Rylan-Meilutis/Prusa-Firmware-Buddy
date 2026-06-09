@@ -140,6 +140,10 @@ const char *Request::connection() const {
     return "keep-alive";
 }
 
+const char *Request::user_agent_version() const {
+    return version::project_version_full;
+}
+
 variant<size_t, Error> Request::write_body_chunk(char *, size_t) {
     return static_cast<size_t>(0);
 }
@@ -216,7 +220,7 @@ optional<Error> HttpClient::send_request(const char *host, Connection *conn, Req
     CHECKED(buffer.header("Host", host, nullopt));
     CHECKED(buffer.header("Connection", request.connection(), nullopt));
     CHECKED(buffer.header("User-Agent-Printer", PrinterModelInfo::current().id_str, std::nullopt));
-    CHECKED(buffer.header("User-Agent-Version", version::project_version_full, std::nullopt));
+    CHECKED(buffer.header("User-Agent-Version", request.user_agent_version(), std::nullopt));
     if (has_body(method)) {
         CHECKED(buffer.header("Transfer-Encoding", "chunked", nullopt));
         CHECKED(buffer.header("Content-Type", to_str(request.content_type()), nullopt));
