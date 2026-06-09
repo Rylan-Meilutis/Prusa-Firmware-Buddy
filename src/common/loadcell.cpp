@@ -230,7 +230,9 @@ void Loadcell::set_xy_endstop(const bool enabled) {
     xy_endstop_enabled = enabled;
 }
 
-void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us) {
+void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t source_generation) {
+    last_source_generation.store(source_generation);
+
     if (loadcellRaw != undefined_value) {
         this->loadcellRaw = loadcellRaw;
         this->undefinedCnt = 0;

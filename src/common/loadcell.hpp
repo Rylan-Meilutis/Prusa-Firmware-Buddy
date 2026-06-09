@@ -91,7 +91,7 @@ public:
 
     float GetHysteresis() const;
 
-    void ProcessSample(int32_t loadcellRaw, uint32_t time_us);
+    void ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t source_generation);
     inline uint32_t GetLastSampleTimeUs() const { return last_sample_time_us; }
 
     bool GetMinZEndstop() const;
@@ -309,6 +309,10 @@ private:
     // atomic because its set in interrupt/puppytask, read in default task
     std::atomic<uint32_t> last_sample_time_us;
     static_assert(std::atomic<decltype(last_sample_time_us)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
+
+    /// Generation of the data source (puppy reset counter); 0 for sources that cannot reset (direct HX717).
+    std::atomic<uint32_t> last_source_generation { 0 };
+    static_assert(std::atomic<decltype(last_source_generation)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
 };
 
 extern Loadcell loadcell;

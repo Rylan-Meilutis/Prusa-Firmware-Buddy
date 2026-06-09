@@ -700,7 +700,7 @@ void Dwarf::decode_loadcell(const LoadcellRecord &data) {
     loadcell_samplerate.count++;
 
     // Process sample
-    loadcell.ProcessSample(data.loadcell_raw_value, loadcell_samplerate.last_timestamp);
+    loadcell.ProcessSample(data.loadcell_raw_value, loadcell_samplerate.last_timestamp, reset_counter.load());
 }
 
 void Dwarf::decode_accelerometer_fast(const AccelerometerFastData &data) {

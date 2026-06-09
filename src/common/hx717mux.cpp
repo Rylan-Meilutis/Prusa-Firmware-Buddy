@@ -91,7 +91,7 @@ void HX717Mux::handler() {
         if (!std::isnan(sample_interval)) {
             loadcell.analysis.SetSamplingIntervalMs(sample_interval);
         }
-        loadcell.ProcessSample(raw_value, sample_timestamp);
+        loadcell.ProcessSample(raw_value, sample_timestamp, 0); // HX717 is local; generation is always 0
     } else {
         fs_process_sample(raw_value, 0);
     }

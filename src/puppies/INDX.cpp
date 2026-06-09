@@ -432,7 +432,7 @@ void Indx::decode_loadcell(const LoadcellRecord &data) {
     loadcell_samplerate.last_timestamp = this->time_sync.buddy_time_us(data.timestamp);
     loadcell_samplerate.count++;
 
-    loadcell.ProcessSample(data.loadcell_raw_value, loadcell_samplerate.last_timestamp);
+    loadcell.ProcessSample(data.loadcell_raw_value, loadcell_samplerate.last_timestamp, reset_counter.load());
 }
 
 void Indx::decode_accelerometer_fast(const AccelerometerFastData &data) {
