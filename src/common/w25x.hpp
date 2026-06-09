@@ -153,9 +153,11 @@ private:
     bool is_erasing = false;
 
     uint8_t device_id = 0;
+    int current_error = 0;
 
     W25xFlash(SpiFlashBus &bus, const buddy::hw::OutputPin &cs);
 
+    void unlock_bus();
     void lock_erase();
     void unlock_erase();
     bool try_lock_erase();
@@ -176,4 +178,7 @@ private:
     void split_page_program(uint32_t addr, const uint8_t *data, uint32_t cnt, bool high_priority);
     void suspend_erase();
     void resume_erase();
+
+    /// Set error (sticky — only stores the first error until cleared).
+    void set_error(int error);
 };

@@ -175,7 +175,7 @@ bool W25xFlash::wait_erase() {
         if (!(status & status1_busy)) {
             is_erasing = false;
         }
-        bus.unlock();
+        unlock_bus();
         if (loop_counter > max_wait_loops()) {
             return false;
         }
@@ -229,10 +229,10 @@ void W25xFlash::program_page(uint32_t addr, const uint8_t *data, uint16_t cnt, b
     bus.send(data, cnt);
     deselect();
     if (!wait_busy()) {
-        bus.set_error(HAL_TIMEOUT);
+        set_error(HAL_TIMEOUT);
     }
     if (!high_priority) {
-        bus.unlock();
+        unlock_bus();
         unlock_erase();
     }
 }
@@ -276,9 +276,9 @@ void W25xFlash::erase(uint8_t cmd, uint32_t addr) {
     CmdWithAddress cmdwa = cmd_with_address(cmd, addr);
     bus.send(cmdwa.buffer, sizeof(cmdwa.buffer));
     deselect();
-    bus.unlock();
+    unlock_bus();
     if (!wait_erase()) {
-        bus.set_error(HAL_TIMEOUT);
+        set_error(HAL_TIMEOUT);
     }
     unlock_erase();
 }
@@ -354,7 +354,7 @@ void W25xFlash::read(uint32_t addr, uint8_t *data, uint32_t len) {
     bus.send(cmdwa.buffer, sizeof(cmdwa.buffer));
     bus.receive(data, len);
     deselect();
-    bus.unlock();
+    unlock_bus();
     unlock_erase();
 }
 
@@ -380,7 +380,7 @@ void W25xFlash::program(uint32_t addr, const uint8_t *data, uint32_t len) {
         if (is_erasing) {
             resume_erase();
         }
-        bus.unlock();
+        unlock_bus();
         unlock_erase();
     }
 }
@@ -398,5 +398,21 @@ void W25xFlash::block64_erase(uint32_t addr) {
 }
 
 int W25xFlash::fetch_error() {
-    return bus.fetch_error();
+    int err = current_error;
+    current_error = 0;
+    return err;
+}
+
+/// Propagate any SPI bus error to per-instance error and release the bus.
+void W25xFlash::unlock_bus() {
+    if (int err = bus.fetch_error()) {
+        set_error(err);
+    }
+    bus.unlock();
+}
+
+void W25xFlash::set_error(int error) {
+    if (!current_error) {
+        current_error = error;
+    }
 }
