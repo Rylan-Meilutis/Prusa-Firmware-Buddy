@@ -1,0 +1,3 @@
+add_executable(modular_bed_fan_tests modular_bed_fan_tests.cpp)
+target_include_directories(modular_bed_fan_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/hw/xl)
+add_catch_test(modular_bed_fan_tests)

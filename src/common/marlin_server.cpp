@@ -111,6 +111,7 @@
 #include <option/has_selftest.h>
 #include <option/has_dwarf.h>
 #include <option/has_remote_bed.h>
+#include <option/has_xl_can.h>
 #include <option/has_modular_bed.h>
 #include <option/has_loadcell.h>
 #include <option/has_nfc.h>
@@ -145,6 +146,11 @@
 
 #if HAS_REMOTE_BED()
     #include <feature/remote_bed/remote_bed.hpp>
+#endif
+
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
+    #include <hw/xl/modular_bed_fan.hpp>
 #endif
 
 #if HAS_SELFTEST()
@@ -987,6 +993,15 @@ static void cycle() {
     #endif
 
     xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp);
+#endif
+
+#if HAS_XL_CAN() && HAS_REMOTE_BED()
+    // is_enabled() latches at bootstrap and never clears, so the controller's
+    // running state stays coherent across calls.
+    if (buddy::puppies::xl_can.is_enabled()) {
+        static buddy::ModularBedFanControl modular_bed_fan;
+        buddy::puppies::xl_can.set_fan_pwm(modular_bed_fan.update(remote_bed::get_mcu_temperature()));
+    }
 #endif
 
 #if HAS_SELFTEST()
