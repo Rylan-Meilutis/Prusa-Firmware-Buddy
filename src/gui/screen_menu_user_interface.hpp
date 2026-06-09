@@ -30,7 +30,7 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_PRINT_PROGRESS_TIME,
 #endif
     MI_UI_THEME_SETTINGS,
-    MI_TIMEOUT, MI_BED_HEATER_SAFETY_TIMEOUT, MI_SOUND_MODE, MI_FILAMENT_CHANGE_PREHEAT_ALL,
+    MI_TIMEOUT, MI_SOUND_MODE, MI_FILAMENT_CHANGE_PREHEAT_ALL,
 #if HAS_ST7789_DISPLAY()
     // We could potentionally have MINI display without buzzer.
     // So we only allow sound control for ST7789

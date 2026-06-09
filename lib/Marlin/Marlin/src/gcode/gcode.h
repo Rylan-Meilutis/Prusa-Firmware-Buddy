@@ -108,7 +108,7 @@
  * M83  - Set E codes relative while in Absolute (G90) mode.
  * M84  - Disable steppers until next move, or use S<seconds> to specify an idle
  *        duration after which steppers should turn off. S0 disables the timeout.
- * M86  - Set Safety Timer expiration time (S<seconds>). Set to zero to disable the timer.
+ * M86  - Set hotend/bed safety timer expiration time (S/B<seconds>).
  * M92  - Set planner.settings.axis_steps_per_mm for one or more axes.
  * M104 - Set extruder target temp.
  * M105 - Report current temperatures.

@@ -38,6 +38,7 @@ public:
 #else
     static constexpr Time default_interval = 30 * 60 * 1000;
 #endif
+    static constexpr Time max_configurable_interval = 60 * 60 * 1000;
 
 public:
     inline Time interval() const {

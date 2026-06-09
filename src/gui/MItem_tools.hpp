@@ -154,6 +154,15 @@ public:
     virtual void Loop() override;
 };
 
+class MI_HOTEND_HEATER_SAFETY_TIMEOUT : public WiSpin {
+    constexpr static const char *const label = N_("Hotend Timeout");
+
+public:
+    MI_HOTEND_HEATER_SAFETY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
 #ifdef _DEBUG
 inline constexpr size_t MI_SOUND_MODE_COUNT = 5;
 #else

@@ -36,6 +36,10 @@ void handle_resuming_abort() {
     marlin_server::print_abort();
     marlin_server::quick_stop();
 }
+
+buddy::SafetyTimer::Time clamp_timeout_ms(buddy::SafetyTimer::Time set) {
+    return std::min(set, buddy::SafetyTimer::max_configurable_interval);
+}
 } // namespace
 
 namespace buddy {
@@ -56,20 +60,25 @@ void SafetyTimer::load_config() {
     }
 
     config_loaded_ = true;
+    const Time hotend_interval = static_cast<Time>(config_store().hotend_heater_safety_timeout_s.get()) * 1000;
+    activity_timer_.set_interval(std::max<Time>(clamp_timeout_ms(hotend_interval), 3000));
+
     const Time bed_interval = static_cast<Time>(config_store().bed_heater_safety_timeout_s.get()) * 1000;
     if (bed_interval == 0) {
         bed_timer_enabled_ = false;
         bed_activity_timer_.stop();
     } else {
         bed_timer_enabled_ = true;
-        bed_activity_timer_.set_interval(std::max<Time>(bed_interval, 3000));
+        bed_activity_timer_.set_interval(std::max<Time>(clamp_timeout_ms(bed_interval), 3000));
         bed_activity_timer_.restart(ticks_ms());
     }
 }
 
 void SafetyTimer::set_interval(Time set) {
     config_loaded_ = true;
-    activity_timer_.set_interval(std::max<Time>(set, 3000));
+    const Time interval = std::max<Time>(clamp_timeout_ms(set), 3000);
+    activity_timer_.set_interval(interval);
+    config_store().hotend_heater_safety_timeout_s.set(static_cast<uint16_t>(interval / 1000));
 }
 
 void SafetyTimer::set_bed_interval(Time set) {
@@ -79,7 +88,8 @@ void SafetyTimer::set_bed_interval(Time set) {
         bed_activity_timer_.stop();
     } else {
         bed_timer_enabled_ = true;
-        bed_activity_timer_.set_interval(std::max<Time>(set, 3000));
+        set = std::max<Time>(clamp_timeout_ms(set), 3000);
+        bed_activity_timer_.set_interval(set);
         bed_activity_timer_.restart(ticks_ms());
     }
     config_store().bed_heater_safety_timeout_s.set(static_cast<uint16_t>(set / 1000));

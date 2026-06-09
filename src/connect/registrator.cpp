@@ -10,6 +10,7 @@
 #include <http/types.h>
 #include <segmented_json.h>
 #include <segmented_json_macros.h>
+#include <version/version.hpp>
 
 #include <cstdint>
 #include <cstring>
@@ -87,6 +88,9 @@ namespace {
         virtual const HeaderOut *extra_headers() const override {
             return nullptr;
         }
+        virtual const char *user_agent_version() const override {
+            return version::project_version;
+        }
         PostRequest(const Printer::PrinterInfo &info)
             : renderer_impl(info) {}
     };
@@ -107,6 +111,9 @@ namespace {
         }
         virtual const HeaderOut *extra_headers() const override {
             return headers.begin();
+        }
+        virtual const char *user_agent_version() const override {
+            return version::project_version;
         }
         virtual ContentType content_type() const override {
             // Note: We send no body, so this is not really used.

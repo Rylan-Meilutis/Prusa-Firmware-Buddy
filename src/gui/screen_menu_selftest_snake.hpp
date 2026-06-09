@@ -1,6 +1,7 @@
 #pragma once
 
 #include "screen_menu.hpp"
+#include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
 #include "MItem_basic_selftest.hpp"
 #include <utility_extensions.hpp>
@@ -67,7 +68,8 @@ namespace detail {
     template <EFooter FOOTER, std::size_t... I>
     struct menu_builder<FOOTER, MenuType::Calibrations, std::index_sequence<I...>> {
         using type = ScreenMenu<FOOTER, MI_RETURN,
-            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...>;
+            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
+            MI_PID_SETTINGS>;
     };
 
     // Partial specialization for when building Wizard menu

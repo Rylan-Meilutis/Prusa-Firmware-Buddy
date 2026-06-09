@@ -121,8 +121,12 @@ using MI_SERIAL_PRINTING_SETTINGS
     = MI_SCREEN<N_("Serial Printing"), class ScreenMenuSerialPrinting>;
 using MI_LOCK_SETTINGS
     = MI_SCREEN<N_("Printer Lock"), class ScreenMenuLockSettings>;
+using MI_HEATER_SAFETY_SETTINGS
+    = MI_SCREEN<N_("Heater Safety"), class ScreenMenuHeaterSafety>;
 using MI_UI_THEME_SETTINGS
     = MI_SCREEN<N_("UI Theme"), class ScreenMenuUiThemeColors>;
+using MI_PID_SETTINGS
+    = MI_SCREEN<N_("PID Settings"), class ScreenMenuPid>;
 #if HAS_LEDS()
 using MI_STATUS_LED_COLOR_SETTINGS
     = MI_SCREEN<N_("Status LED Colors"), class ScreenMenuStatusLedColors>;
