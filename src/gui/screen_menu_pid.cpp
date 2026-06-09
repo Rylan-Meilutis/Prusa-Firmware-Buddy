@@ -215,6 +215,20 @@ void MI_PID_AUTOTUNE_BED::click(IWindowMenu & /*window_menu*/) {
 }
 #endif
 
+MI_PID_HOTEND_MENU::MI_PID_HOTEND_MENU()
+    : IWindowMenuItem(_(N_("Hotend")), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+
+void MI_PID_HOTEND_MENU::click(IWindowMenu & /*window_menu*/) {
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuPidHotend>);
+}
+
+MI_PID_BED_MENU::MI_PID_BED_MENU()
+    : IWindowMenuItem(_(N_("Heatbed")), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+
+void MI_PID_BED_MENU::click(IWindowMenu & /*window_menu*/) {
+    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuPidBed>);
+}
+
 ScreenPidAutotune::ScreenPidAutotune(PidHeater heater)
     : screen_t()
     , heater_(heater)
@@ -364,23 +378,18 @@ ScreenPidAutotuneHotend::ScreenPidAutotuneHotend()
 ScreenPidAutotuneBed::ScreenPidAutotuneBed()
     : ScreenPidAutotune(PidHeater::bed) {}
 
-ScreenMenuPid::ScreenMenuPid()
-    : screen_menu_pid::ScreenBase(_("PID SETTINGS")) {}
+ScreenMenuPidHotend::ScreenMenuPidHotend()
+    : screen_menu_pid::HotendScreenBase(_("HOTEND PID")) {}
 
-void ScreenMenuPid::reload_items() {
+void ScreenMenuPidHotend::reload_items() {
 #if ENABLED(PIDTEMP)
     Item<MI_PID_HOTEND_P>().reload();
     Item<MI_PID_HOTEND_I>().reload();
     Item<MI_PID_HOTEND_D>().reload();
 #endif
-#if ENABLED(PIDTEMPBED)
-    Item<MI_PID_BED_P>().reload();
-    Item<MI_PID_BED_I>().reload();
-    Item<MI_PID_BED_D>().reload();
-#endif
 }
 
-void ScreenMenuPid::windowEvent(window_t *sender, GUI_event_t event, void *param) {
+void ScreenMenuPidHotend::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     if (event == GUI_event_t::LOOP && pid_autotune_status::snapshot().finished) {
         reload_items();
         pid_autotune_status::clear();
@@ -394,6 +403,29 @@ void ScreenMenuPid::windowEvent(window_t *sender, GUI_event_t event, void *param
             return;
         }
 #endif
+    }
+
+    screen_menu_pid::HotendScreenBase::windowEvent(sender, event, param);
+}
+
+ScreenMenuPidBed::ScreenMenuPidBed()
+    : screen_menu_pid::BedScreenBase(_("HEATBED PID")) {}
+
+void ScreenMenuPidBed::reload_items() {
+#if ENABLED(PIDTEMPBED)
+    Item<MI_PID_BED_P>().reload();
+    Item<MI_PID_BED_I>().reload();
+    Item<MI_PID_BED_D>().reload();
+#endif
+}
+
+void ScreenMenuPidBed::windowEvent(window_t *sender, GUI_event_t event, void *param) {
+    if (event == GUI_event_t::LOOP && pid_autotune_status::snapshot().finished) {
+        reload_items();
+        pid_autotune_status::clear();
+    }
+
+    if (event == GUI_event_t::CHILD_CLICK) {
 #if ENABLED(PIDTEMPBED)
         if (param == &Item<MI_PID_RESET_BED>()) {
             reset_bed_pid();
@@ -403,5 +435,9 @@ void ScreenMenuPid::windowEvent(window_t *sender, GUI_event_t event, void *param
 #endif
     }
 
-    screen_menu_pid::ScreenBase::windowEvent(sender, event, param);
+    screen_menu_pid::BedScreenBase::windowEvent(sender, event, param);
+}
+
+ScreenMenuPid::ScreenMenuPid()
+    : screen_menu_pid::ScreenBase(_("PID SETTINGS")) {
 }

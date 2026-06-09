@@ -422,9 +422,10 @@ lib/Marlin/Marlin/src/gcode/config/M500-M504.cpp
 Behavior to verify:
 
 ```text
-Calibrations & Tests contains PID Settings.
-Hotend PID P/I/D values are visible, editable, applied live, and stored persistently.
-Heatbed PID P/I/D values are visible only where PIDTEMPBED is enabled.
+Settings contains PID Settings next to Input Shaper and Phase Stepping.
+PID Settings contains separate Hotend and Heatbed submenus.
+Hotend PID P/I/D values are visible, editable, applied live, and stored persistently in the Hotend submenu.
+Heatbed PID P/I/D values are visible in the Heatbed submenu only where PIDTEMPBED is enabled.
 Hotend PID can be reset independently to DEFAULT_Kp/DEFAULT_Ki/DEFAULT_Kd.
 Heatbed PID can be reset independently to DEFAULT_bedKp/DEFAULT_bedKi/DEFAULT_bedKd.
 XL applies edited hotend PID values to all hotends and calls thermalManager.updatePID() so Dwarves receive updated PID values.
@@ -702,7 +703,7 @@ FLASH: 1919312 B / 1919 KB, 97.67%
 
 Final/non-development builds intentionally keep the full `M503` settings report command enabled. `FULL_M503_REPORT_ENABLED` remains enabled independently from `DEVELOPMENT_ITEMS_ENABLED`, preserving human-readable headings/comments and TMC settings without enabling development-only UI and commands. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, and shared UI containers.
 
-PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`. Keep the PID Settings entry under Calibrations & Tests with input shaper, phase stepping, and other calibration tools rather than as a top-level Settings item.
+PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`. Keep the PID Settings entry next to Input Shaper and Phase Stepping in Settings. The PID parent screen must stay split into Hotend and Heatbed submenus so reset/autotune actions are heater-specific.
 
 RME fleet configuration must remain available by G-code and by export:
 

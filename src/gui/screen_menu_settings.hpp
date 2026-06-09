@@ -94,6 +94,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_PHASE_STEPPING()
     MI_PHASE_STEPPING_SCREEN,
 #endif
+    MI_PID_SETTINGS,
 #if DEVELOPER_MODE()
     MI_ERROR_TEST,
 #endif
