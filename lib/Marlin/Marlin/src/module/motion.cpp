@@ -1111,6 +1111,9 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
   #if ENABLED(NOZZLE_LOAD_CELL) && HOMING_Z_WITH_PROBE
     // Enable loadcell high precision across the entire axis homing to prime the noise filters
     auto loadcellPrecisionEnabler = Loadcell::HighPrecisionEnabler(loadcell, axis == Z_AXIS);
+    if (axis == Z_AXIS && !loadcell_wait_streaming()) {
+      return false;
+    }
   #endif
 
   float (*min_diff)(uint8_t) = invert_home_dir ? axis_home_invert_min_diff : axis_home_min_diff;

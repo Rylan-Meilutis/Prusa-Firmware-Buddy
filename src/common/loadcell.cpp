@@ -389,11 +389,27 @@ void Loadcell::HomingSafetyCheck() {
     if (!probe_safety_armed.load()) {
         return;
     }
-    static constexpr int32_t MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US = 100000;
     // Signed: the last sample can be slightly in the future due to time sync with the dwarves.
     int32_t since_last = ticks_diff(ticks_us(), last_sample_time_us.load());
-    if (since_last > MAX_LOADCELL_DATA_AGE_WHEN_HOMING_US) {
+    if (since_last > MAX_LOADCELL_DATA_AGE_US) {
         probe_safety_stop();
+    }
+}
+
+bool Loadcell::wait_for_fresh_sample(uint32_t timeout_us, uint32_t max_age_us) {
+    const uint32_t start = ticks_us();
+    while (true) {
+        if (probe_should_abort()) {
+            return false;
+        }
+        const int32_t age = ticks_diff(ticks_us(), last_sample_time_us.load());
+        if (age >= 0 && age <= static_cast<int32_t>(max_age_us)) {
+            return true;
+        }
+        if (ticks_diff(ticks_us(), start) > static_cast<int32_t>(timeout_us)) {
+            return false;
+        }
+        idle(true);
     }
 }
 

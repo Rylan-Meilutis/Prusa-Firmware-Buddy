@@ -58,6 +58,12 @@
   #if ENABLED(NOZZLE_LOAD_CELL) && ENABLED(PROBE_CLEANUP_SUPPORT)
     bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max);
   #endif
+
+  #if ENABLED(NOZZLE_LOAD_CELL)
+    /// Ensure the loadcell is streaming fresh data. Waits; on timeout,
+    /// re-arms the active loadcell source and retries. @return false if the stream never resumed.
+    bool loadcell_wait_streaming(uint32_t per_attempt_timeout_us = 500'000, uint8_t retries = 3);
+  #endif
   #define DEPLOY_PROBE() set_probe_deployed(true)
   #define STOW_PROBE() set_probe_deployed(false)
 

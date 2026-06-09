@@ -42,6 +42,7 @@
 #include <feature/pressure_advance/pressure_advance_config.hpp>
 #include <feature/precise_stepping/precise_stepping.hpp>
 #include <option/has_toolchanger.h>
+#include <logging/log.hpp>
 
 #include "../gcode/gcode.h"
 #include "../lcd/ultralcd.h"
@@ -59,6 +60,8 @@
 
 xyz_pos_t probe_offset; // Initialized by settings.load()
 
+LOG_COMPONENT_DEF(Probe, logging::Severity::info);
+
 #if ENABLED(BLTOUCH)
   // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/bltouch.h"
@@ -66,6 +69,9 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
+#endif
+#if HAS_INDX()
+  #include <puppies/INDX.hpp>
 #endif
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -97,6 +103,7 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 
 #include <option/has_auto_retract.h>
 #include <option/has_indx.h>
+#include <option/has_dwarf.h>
 #include <mapi/motion.hpp>
 #include <gcode/temperature/M104_M109.hpp>
 #include <config_store/store_instance.hpp>
@@ -547,6 +554,40 @@ static xy_pos_t offset_for_probe_try(int try_idx) {
 #endif
 
 #if ENABLED(NOZZLE_LOAD_CELL)
+
+// After a tool change the loadcell stream may be momentarily absent or stale;
+// don't start a probe move until fresh samples are arriving.
+bool loadcell_wait_streaming(uint32_t per_attempt_timeout_us, uint8_t retries) {
+    for (uint8_t attempt = 0; attempt <= retries; ++attempt) {
+        if (loadcell.wait_for_fresh_sample(per_attempt_timeout_us)) {
+            return true;
+        }
+        if (attempt < retries) {
+            log_warning(Probe, "loadcell silent, re-arming (attempt %u/%u)",
+                static_cast<unsigned>(attempt + 1), static_cast<unsigned>(retries));
+  #if HAS_INDX()
+            // Toggle the INDX loadcell enable through the puppy task.
+            // Wait (bounded) for the "off" write to flush so the head sees a real off->on transition.
+            buddy::puppies::indx.set_loadcell(false);
+            const uint32_t rearm_start = ticks_us();
+            while (buddy::puppies::indx.is_write_pending()
+                   && ticks_diff(ticks_us(), rearm_start) <= static_cast<int32_t>(per_attempt_timeout_us)) {
+                idle(true);
+            }
+            buddy::puppies::indx.set_loadcell(true);
+  #elif HAS_TOOLCHANGER() && HAS_DWARF()
+            // TODO: Dwarf loadcell-enable is a coil not flushed in the periodic refresh;
+            // a proper re-arm needs extra plumbing — out of scope for now.
+  #else
+            // HX717 (local): always streaming, no enable gate — nothing to re-arm.
+  #endif
+        }
+    }
+    log_error(Probe, "loadcell did not resume streaming after %u retries",
+        static_cast<unsigned>(retries));
+    return false;
+}
+
   static float loadcell_retare_for_analysis(millis_t tare_delay) {
     safe_delay(tare_delay);
     loadcell.WaitBarrier(); // Sync samples before tare
@@ -587,6 +628,9 @@ float run_z_probe(const RunZProbeParams& params) {
   assert(pressure_advance::PressureAdvanceDisabler::is_active());
 
   #if ENABLED(NOZZLE_LOAD_CELL)
+    if (!loadcell_wait_streaming()) {
+      return NAN;
+    }
     auto H = loadcell.CreateLoadAboveErrEnforcer();
     auto reference_tare = loadcell_retare_for_analysis(Z_FIRST_PROBE_DELAY); ///< Use this value as reference for following tares
     const auto max_tare_offset = std::abs(loadcell.GetThreshold()); ///< Maximal valid offset from reference_tare

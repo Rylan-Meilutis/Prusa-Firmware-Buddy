@@ -407,41 +407,6 @@ static auto create_motion_signal(
         | signal2step::cartesian_to_printer_kinematics();
 }
 
-// Wait until INDX is actually streaming fresh loadcell samples again, retrying
-// the off/on toggle if not.
-bool tool_offset::wait_for_loadcell_alive(uint32_t per_attempt_timeout_us, uint8_t retries) {
-    constexpr int32_t max_fresh_age_us = 100'000;
-    for (uint8_t attempt = 0; attempt <= retries; ++attempt) {
-        const uint32_t start = ticks_us();
-        while (true) {
-            const int32_t age = ticks_diff(ticks_us(), loadcell.GetLastSampleTimeUs());
-            if (age >= 0 && age <= max_fresh_age_us) {
-                return true;
-            }
-            if (ticks_diff(ticks_us(), start) > static_cast<int32_t>(per_attempt_timeout_us)) {
-                break;
-            }
-            idle(true);
-        }
-        if (attempt < retries) {
-            log_warning(ContactlessOffset, "INDX loadcell silent after enable, re-arming (attempt %u/%u)",
-                static_cast<unsigned>(attempt + 1), static_cast<unsigned>(retries));
-            buddy::puppies::indx.set_loadcell(false);
-            // Wait (bounded) for the puppy task to flush the "off" write so the head
-            // sees a real off->on transition rather than having it coalesced to a no-op.
-            const uint32_t rearm_start = ticks_us();
-            while (buddy::puppies::indx.is_general_write_pending()
-                && ticks_diff(ticks_us(), rearm_start) <= static_cast<int32_t>(per_attempt_timeout_us)) {
-                idle(true);
-            }
-            buddy::puppies::indx.set_loadcell(true);
-        }
-    }
-    log_error(ContactlessOffset, "INDX loadcell did not resume streaming after %u retries",
-        static_cast<unsigned>(retries));
-    return false;
-}
-
 namespace {
 
 // Measurement orchestration is structured as a small finite state machine.
@@ -772,7 +737,7 @@ public:
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
         thermalManager.setTargetBed(prev_bed_target_);
         if (prev_loadcell_active_) {
-            (void)tool_offset::wait_for_loadcell_alive();
+            (void)loadcell_wait_streaming();
         }
         do_blocking_move_to_z(config_.sensor_position.z + config_.safe_z_height);
     }

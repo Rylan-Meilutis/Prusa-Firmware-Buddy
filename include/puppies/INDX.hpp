@@ -79,7 +79,7 @@ public:
     bool get_loadcell_active();
 
     /// True while a general write has been requested but not yet flushed by the puppy task.
-    bool is_general_write_pending() const { return general_write_dirty.load(); }
+    bool is_write_pending() const { return general_write_dirty.load(); }
 
     /**
      * @brief Enable/disable accelerometer data in FIFO.

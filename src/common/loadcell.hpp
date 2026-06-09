@@ -26,6 +26,7 @@ public:
     static constexpr int UNDEFINED_SAMPLE_MAX_CNT = 2; // About 6ms of stale data @ 320Hz, 78ms over a channel switch
     static constexpr unsigned int STATIC_TARE_SAMPLE_CNT = 48; // 150ms of data @ 320Hz
     static constexpr unsigned int TOUCHDOWN_DELAY_MS = 150; // Milliseconds of pause required after trigger for the analysis model
+    static constexpr int32_t MAX_LOADCELL_DATA_AGE_US = 100'000; // Older sample means the stream stalled
 
     static constexpr float XY_PROBE_THRESHOLD { 40 };
     static constexpr float XY_PROBE_HYSTERESIS { 20 };
@@ -127,6 +128,11 @@ public:
 
     /// Checks loadcell sample freshness during a probe/homing session; stops Z (failed probe) if samples stop arriving.
     void HomingSafetyCheck();
+
+    /// Wait until a sample no older than max_age_us has arrived, or timeout_us elapses.
+    /// Bails early on planner draining / stepper stopping / a tripped probe-safety (@see probe_should_abort()).
+    /// @return true iff a fresh sample is currently streaming.
+    bool wait_for_fresh_sample(uint32_t timeout_us, uint32_t max_age_us = MAX_LOADCELL_DATA_AGE_US);
 
     /// True when an in-progress probe/homing wait must abort: motion is being
     /// cancelled (planner draining or a quick-stop in flight) or the loadcell
