@@ -31,7 +31,7 @@ git diff --name-status "$base"
 git diff --dirstat=files,0 "$base"
 ```
 
-At the time this playbook was last audited, the current working tree covered 504 files with 10,274 insertions and 380 deletions relative to upstream `v6.5.3`. The committed RME stack contains 70 commits through `4d7ad3f61`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, and GUI framework polish.
+At the time this playbook was last audited, the committed RME stack covered 529 files with 11,224 insertions and 435 deletions relative to upstream `v6.5.3`. The stack contains 101 commits through the current documentation refresh. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 Primary RME branch:
 
@@ -209,6 +209,33 @@ Finished serial-print summaries persist until acknowledgement or the next print 
 Host paths normalize onto `/usb/`, reject parent-directory traversal, and create upload directories as needed.
 ```
 
+### Prusa Connect Compatibility
+
+Keep the Connect-facing version compatible with the upstream release while preserving RME branding everywhere else.
+
+Important areas:
+
+```text
+src/connect/printer_common.cpp
+src/connect/connect.cpp
+src/connect/registrator.cpp
+src/common/http/httpc.*
+src/connect/render.cpp
+src/connect/marlin_printer.cpp
+src/connect/planner.cpp
+```
+
+Behavior to verify:
+
+```text
+Connect registration, telemetry/events, and websocket upgrade requests report the base upstream firmware version through the Connect JSON `firmware` field and `User-Agent-Version` header.
+The printer UI, M115, local PrusaLink `/api/version`, BBF packaging, crash-dump build identification, transfer recovery, metrics, and splash/version screens continue to use the full RME version where they already did.
+Connect info events advertise writable storage only when USB media is inserted and mounted. The `storages` array must include `/usb`, `read_only: false`, and free-space data before Connect can upload files.
+Connect download commands remain accepted through `START_INLINE_DOWNLOAD`, `START_CONNECT_DOWNLOAD`, and `START_ENCRYPTED_DOWNLOAD`.
+Connect downloads stay constrained to `/usb` and transferable file types.
+Do not remove the RME suffix globally as a workaround for Connect; keep the compatibility version scoped to Connect-facing reporting.
+```
+
 ### LEDs, Chamber Lights, Side Strips, And GPIO Light Bar
 
 Keep per-state lighting, temporary per-print percent overrides, status LED separation, chamber-light acknowledgement behavior, and the timed status-LED finished hold.
@@ -334,7 +361,7 @@ When extending `MarlinSettings::load()`, preserve the upstream startup sequence:
 
 ### Chamber Fan, Filtration, And Safety Timer
 
-Keep the chamber fan/filtering behavior and bed-heater safety timer changes.
+Keep the chamber fan/filtering behavior and heater safety timer changes.
 
 Preserve filtration lifetime accounting on every stop path. Active filter usage is journaled periodically while the fan runs, and the remaining whole-second interval must be committed before a manual early stop or backend disable clears the output state.
 
@@ -354,7 +381,10 @@ src/common/feature/print_status_message/
 Behavior to verify:
 
 ```text
+Hotend and bed-heater timeouts are grouped under Settings -> Heater Safety.
+Hotend timeout is independently configurable through UI and M86 S.
 Bed-heater timeout is independently configurable through UI and M86 B.
+Both timeouts are capped to 3600 seconds / 60 minutes.
 M86 B0 disables the bed-heater timeout.
 Paused/active prints keep bed safety timer reset.
 Filtering can continue after print finish.
@@ -371,7 +401,11 @@ Important areas:
 
 ```text
 src/gui/screen_menu_pid.*
+src/gui/screen_menu_selftest_snake.*
+src/gui/screen_menu_heater_safety.*
 src/gui/screen_menu_settings.*
+src/gui/MItem_menus.*
+src/gui/MItem_tools.*
 src/gui/CMakeLists.txt
 src/common/pid_autotune_status.*
 src/common/CMakeLists.txt
@@ -388,7 +422,7 @@ lib/Marlin/Marlin/src/gcode/config/M500-M504.cpp
 Behavior to verify:
 
 ```text
-Settings contains PID Settings.
+Calibrations & Tests contains PID Settings.
 Hotend PID P/I/D values are visible, editable, applied live, and stored persistently.
 Heatbed PID P/I/D values are visible only where PIDTEMPBED is enabled.
 Hotend PID can be reset independently to DEFAULT_Kp/DEFAULT_Ki/DEFAULT_Kd.
@@ -640,7 +674,7 @@ Do not trade away serial-print recovery, lighting safety, or post-print acknowle
 
 For per-state LED/screen settings, prefer the shared runtime-backed state menu container in `src/gui/screen/screen_menu_led_state.*`. Reintroducing separate `ScreenMenu<...>` template instantiations for each light state has previously pushed XL over boot flash.
 
-Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the installed firmware home-screen badge reports `<version>-RME`. The stock bootloader firmware-selection screen is expected to append the mandatory BBF header build number after the `RME` tag.
+Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the installed firmware home-screen badge reports `<version>-RME`. Verify Prusa Connect reports the base upstream version, without the `-RME` suffix, for cloud compatibility. The stock bootloader firmware-selection screen is expected to append the mandatory BBF header build number after the `RME` tag.
 
 Core One, Core One L, XL, and MINI store translations in the resource image to preserve boot flash headroom. Keep `COREONE`, `COREONEL`, `XL`, and `MINI` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`. Keep the Core One/Core One L/XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the resource image size rather than moving translations back into CPU flash.
 
@@ -668,7 +702,7 @@ FLASH: 1919312 B / 1919 KB, 97.67%
 
 Final/non-development builds intentionally keep the full `M503` settings report command enabled. `FULL_M503_REPORT_ENABLED` remains enabled independently from `DEVELOPMENT_ITEMS_ENABLED`, preserving human-readable headings/comments and TMC settings without enabling development-only UI and commands. Do not use `-fno-threadsafe-statics` as a flash fix; this firmware runs multiple tasks, and removing thread-safe function-local static initialization can race if two tasks first-touch the same local static. Prefer target-specific feature flags, duplicate-string reductions, and shared UI containers.
 
-PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`.
+PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`. Keep the PID Settings entry under Calibrations & Tests with input shaper, phase stepping, and other calibration tools rather than as a top-level Settings item.
 
 RME fleet configuration must remain available by G-code and by export:
 
@@ -676,6 +710,7 @@ RME fleet configuration must remain available by G-code and by export:
 M154.0 screen brightness by state
 M154.1 chamber/side brightness by state
 M154.2 status LED brightness by state
+M86 S/B hotend and bed-heater safety timeouts
 M154.3 lighting timeouts and door/post-print flags
 M154.4 serial printing UI settings
 M154.5 external light-bar state enables
@@ -700,7 +735,7 @@ Core One / Core One Plus:
   Finished-screen `Stop Filter` action ends filtration early, leaves the finished summary open, and disappears when filtration ends.
   After door acknowledgement during filtering, status LEDs remain fully off even when idle status brightness/color is configured non-zero.
   External chamber light does not flicker off/on at print start or print finish.
-  Bed-heater safety timer UI and M86 B behavior.
+  Heater Safety menu: hotend timeout UI/M86 S, bed timeout UI/M86 B, and 60-minute upper clamp.
   PID Settings screen: edit hotend/heatbed values, reset each heater to defaults, run autotune, confirm progress/new-value prompt, save/discard behavior, and reboot persistence after save.
   M303 autotune with U1 followed by M500 persists after reboot.
   Theme import, lock settings, and text/PIN input.
