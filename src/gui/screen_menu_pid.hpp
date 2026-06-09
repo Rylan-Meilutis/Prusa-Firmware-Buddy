@@ -86,13 +86,35 @@ public:
     void click(IWindowMenu &window_menu) override;
 };
 
+class MI_PID_HOTEND_MENU : public IWindowMenuItem {
+public:
+    MI_PID_HOTEND_MENU();
+    void click(IWindowMenu &window_menu) override;
+};
+
+class MI_PID_BED_MENU : public IWindowMenuItem {
+public:
+    MI_PID_BED_MENU();
+    void click(IWindowMenu &window_menu) override;
+};
+
 namespace screen_menu_pid {
-using ScreenBase = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN
+using HotendScreenBase = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN
 #if ENABLED(PIDTEMP)
     , MI_PID_HOTEND_P, MI_PID_HOTEND_I, MI_PID_HOTEND_D, MI_PID_AUTOTUNE_HOTEND, MI_PID_RESET_HOTEND
 #endif
+    >;
+
+using BedScreenBase = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN
 #if ENABLED(PIDTEMPBED)
     , MI_PID_BED_P, MI_PID_BED_I, MI_PID_BED_D, MI_PID_AUTOTUNE_BED, MI_PID_RESET_BED
+#endif
+    >;
+
+using ScreenBase = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+    MI_PID_HOTEND_MENU
+#if ENABLED(PIDTEMPBED)
+    , MI_PID_BED_MENU
 #endif
     >;
 } // namespace screen_menu_pid
@@ -132,11 +154,25 @@ public:
     ScreenPidAutotuneBed();
 };
 
-class ScreenMenuPid : public screen_menu_pid::ScreenBase {
+class ScreenMenuPidHotend : public screen_menu_pid::HotendScreenBase {
 public:
-    ScreenMenuPid();
+    ScreenMenuPidHotend();
 
 private:
     void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
     void reload_items();
+};
+
+class ScreenMenuPidBed : public screen_menu_pid::BedScreenBase {
+public:
+    ScreenMenuPidBed();
+
+private:
+    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
+    void reload_items();
+};
+
+class ScreenMenuPid : public screen_menu_pid::ScreenBase {
+public:
+    ScreenMenuPid();
 };
