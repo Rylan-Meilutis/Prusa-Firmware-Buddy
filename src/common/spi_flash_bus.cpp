@@ -156,7 +156,20 @@ int SpiFlashBus::fetch_error() {
     return error;
 }
 
+void SpiFlashBus::lock() {
+    if (!scheduler_stopped) {
+        bus_mutex.lock();
+    }
+}
+
+void SpiFlashBus::unlock() {
+    if (!scheduler_stopped) {
+        bus_mutex.unlock();
+    }
+}
+
 void SpiFlashBus::reinit_for_crash_dump() {
+    scheduler_stopped = true;
     (void)HAL_SPI_Abort(spi_handle);
     current_error = 0;
 }

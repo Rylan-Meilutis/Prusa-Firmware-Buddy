@@ -9,6 +9,7 @@
 #include <common/Pin.hpp>
 #include <device/hal.h>
 #include <freertos/binary_semaphore.hpp>
+#include <freertos/mutex.hpp>
 
 class SpiFlashBus {
 public:
@@ -36,10 +37,17 @@ public:
     void set_error(int error);
     int fetch_error();
 
-    /// Prepare for crash dump: abort DMA, disable mutex.
+    /// Acquire/release the bus mutex. Must be held for any SPI transaction.
+    /// Becomes a no-op after reinit_for_crash_dump() (scheduler stopped).
+    void lock();
+    void unlock();
+
+    /// Prepare for crash dump: abort DMA, disable bus mutex.
+    /// After this call, lock/unlock become no-ops.
     void reinit_for_crash_dump();
 
     SPI_HandleTypeDef *handle() { return spi_handle; }
+    bool is_scheduler_stopped() const { return scheduler_stopped; }
 
     /// DMA ISR callbacks -- call from HAL SPI callbacks.
     void on_tx_complete();
@@ -48,6 +56,11 @@ public:
 
 private:
     SPI_HandleTypeDef *spi_handle;
+
+    /// Bus mutex protects the physical SPI bus from concurrent access
+    /// by multiple flash drivers.
+    freertos::Mutex bus_mutex;
+    bool scheduler_stopped = false;
 
     /// We use the same semaphore for both receive and transmit,
     /// there must only be one operation in flight anyway.

@@ -3,7 +3,6 @@
 #include <common/spi_flash_bus.hpp>
 #include "timing_precise.hpp"
 #include <logging/log.hpp>
-#include "cmsis_os.h"
 #include <bsod.h>
 #include <stdlib.h>
 
@@ -64,39 +63,6 @@ struct CmdWithAddress {
     uint8_t buffer[4];
 };
 
-class OptionalMutex {
-public:
-    bool acquired() { return m_acquired; }
-
-    OptionalMutex(osMutexId mutex_id, bool wait = true)
-        : m_mutex_id(mutex_id) {
-        if (mutex_id) {
-            auto result = osMutexWait(m_mutex_id, wait ? osWaitForever : 0);
-            m_acquired = result == osOK;
-            if (wait && !m_acquired) {
-                bsod("osMutexWait forever failed.");
-            }
-        } else {
-            m_acquired = true;
-        }
-    }
-
-    ~OptionalMutex() {
-        if (m_mutex_id && m_acquired) {
-            if (osOK != osMutexRelease(m_mutex_id)) {
-                bsod("osMutexRelease failed.");
-            }
-        }
-    }
-
-    OptionalMutex(const OptionalMutex &other) = delete;
-    OptionalMutex &operator=(const OptionalMutex &other) = delete;
-
-private:
-    const osMutexId m_mutex_id;
-    bool m_acquired;
-};
-
 constexpr uint16_t page_size = 256;
 
 constexpr uint8_t mfrid = 0xEF;
@@ -133,6 +99,25 @@ W25xFlash &W25xFlash::instance() {
 W25xFlash::W25xFlash(SpiFlashBus &bus, const buddy::hw::OutputPin &cs)
     : bus(bus)
     , cs(cs) {}
+
+void W25xFlash::lock_erase() {
+    if (!bus.is_scheduler_stopped()) {
+        erase_mutex.lock();
+    }
+}
+
+void W25xFlash::unlock_erase() {
+    if (!bus.is_scheduler_stopped()) {
+        erase_mutex.unlock();
+    }
+}
+
+bool W25xFlash::try_lock_erase() {
+    if (bus.is_scheduler_stopped()) {
+        return true;
+    }
+    return erase_mutex.try_lock();
+}
 
 void W25xFlash::select() {
     bus.select(cs);
@@ -184,12 +169,13 @@ bool W25xFlash::wait_erase() {
     uint8_t status;
 
     do {
-        OptionalMutex lock(communication_mutex);
+        bus.lock();
         ++loop_counter;
         status = read_status1();
         if (!(status & status1_busy)) {
             is_erasing = false;
         }
+        bus.unlock();
         if (loop_counter > max_wait_loops()) {
             return false;
         }
@@ -229,15 +215,13 @@ void W25xFlash::resume_erase() {
     delay_ns_precise<t_sus_ns>();
 }
 
-/**
- * @param high_priority
- *  @n true Do not lock mutexes (already done by program())
- *  @n false Lock mutexes when accessing the chip
- */
+/// Program a single page. If !high_priority, acquires/releases locks per call
+/// so higher-priority callers can interleave between pages.
 void W25xFlash::program_page(uint32_t addr, const uint8_t *data, uint16_t cnt, bool high_priority) {
-    OptionalMutex erase_lock(high_priority ? NULL : erase_mutex);
-    OptionalMutex comm_lock(high_priority ? NULL : communication_mutex);
-
+    if (!high_priority) {
+        lock_erase();
+        bus.lock();
+    }
     write_enable();
     select();
     CmdWithAddress cmdwa = cmd_with_address(cmd_page_program, addr);
@@ -247,8 +231,13 @@ void W25xFlash::program_page(uint32_t addr, const uint8_t *data, uint16_t cnt, b
     if (!wait_busy()) {
         bus.set_error(HAL_TIMEOUT);
     }
+    if (!high_priority) {
+        bus.unlock();
+        unlock_erase();
+    }
 }
 
+/// Split a write into page-aligned chunks.
 void W25xFlash::split_page_program(uint32_t addr, const uint8_t *data, uint32_t cnt, bool high_priority) {
     // Write unaligned part first
     uint32_t addr_align = addr % page_size;
@@ -279,19 +268,19 @@ void W25xFlash::split_page_program(uint32_t addr, const uint8_t *data, uint32_t 
 }
 
 void W25xFlash::erase(uint8_t cmd, uint32_t addr) {
-    OptionalMutex erase_lock(erase_mutex);
-    {
-        OptionalMutex comm_lock(communication_mutex);
-        is_erasing = true;
-        write_enable();
-        select();
-        CmdWithAddress cmdwa = cmd_with_address(cmd, addr);
-        bus.send(cmdwa.buffer, sizeof(cmdwa.buffer));
-        deselect();
-    }
+    lock_erase();
+    bus.lock();
+    is_erasing = true;
+    write_enable();
+    select();
+    CmdWithAddress cmdwa = cmd_with_address(cmd, addr);
+    bus.send(cmdwa.buffer, sizeof(cmdwa.buffer));
+    deselect();
+    bus.unlock();
     if (!wait_erase()) {
         bus.set_error(HAL_TIMEOUT);
     }
+    unlock_erase();
 }
 
 bool W25xFlash::init_internal() {
@@ -323,21 +312,6 @@ void W25xFlash::init() {
         bsod_unreachable();
     }
 
-    // BFW-6813
-    // Using CMSIS osMutexDef_t with per-instance osStaticMutexDef_t control
-    // blocks for static allocation. We can't use freertos::Mutex here because
-    // reinit_before_crash_dump() relies on NULLing the mutex IDs to disable
-    // locking when the scheduler is stopped. Replace with freertos::Mutex
-    // once the power panic / crash dump mutex handling is resolved.
-    erase_mutex_def.controlblock = &erase_mutex_cb;
-    erase_mutex = osMutexCreate(&erase_mutex_def);
-    communication_mutex_def.controlblock = &communication_mutex_cb;
-    communication_mutex = osMutexCreate(&communication_mutex_def);
-    if (!(erase_mutex && communication_mutex)) {
-        // if resource allocation fails, we are severely screwed anyway
-        bsod_unreachable();
-    }
-
     spi_init_flash();
     if (init_internal()) {
         was_initialized = true;
@@ -351,16 +325,12 @@ void W25xFlash::init() {
 }
 
 bool W25xFlash::reinit_before_crash_dump() {
-    // BFW-6813
-    // This may potentially leak everything but we are about to reset the MCU anyway
-    // and NULL checks are necessary for other functions in this module to perform
-    // correctly; assigning NULL to mutex means OptionalMutex turns into nop.
-    erase_mutex = NULL;
-    communication_mutex = NULL;
+    // Sets scheduler_stopped flag on the bus, making all lock/unlock
+    // calls no-ops. Safe because after this point only one thread of
+    // execution exists.
+    bus.reinit_for_crash_dump();
 
-    if (was_initialized) {
-        bus.reinit_for_crash_dump();
-    } else {
+    if (!was_initialized) {
         spi_init_flash();
     }
     return init_internal();
@@ -377,36 +347,41 @@ uint32_t W25xFlash::block_count() const {
 }
 
 void W25xFlash::read(uint32_t addr, uint8_t *data, uint32_t len) {
-    OptionalMutex erase_lock(erase_mutex);
-    OptionalMutex comm_lock(communication_mutex);
-
+    lock_erase();
+    bus.lock();
     select();
     CmdWithAddress cmdwa = cmd_with_address(cmd_rd_data, addr);
     bus.send(cmdwa.buffer, sizeof(cmdwa.buffer));
     bus.receive(data, len);
     deselect();
+    bus.unlock();
+    unlock_erase();
 }
 
 void W25xFlash::program(uint32_t addr, const uint8_t *data, uint32_t len) {
-    // For high priority address range block erase can be suspended
-    // and the chip is locked until all pages are written at once and then
-    // suspended erase operation is resumed.
-    // For low priority address range the chip is locked only on per page basis
-    // so higher priority task can write / erase in between lower priority task
-    // program call is split into single page write.
+    // For high priority address range (power panic) block erase can be
+    // suspended and the bus is locked until all pages are written at once,
+    // then the suspended erase operation is resumed.
+    // For low priority address range the bus is locked only per page
+    // so higher priority tasks can write / erase in between.
     const bool high_priority = (addr >= pp_start_address) && (addr < fs_start_address);
-    const bool wait = !high_priority;
 
-    OptionalMutex erase_lock(high_priority ? erase_mutex : NULL, wait);
-    OptionalMutex comm_lock(high_priority ? communication_mutex : NULL);
-
-    if (is_erasing) {
-        suspend_erase();
+    if (high_priority) {
+        try_lock_erase();
+        bus.lock();
+        if (is_erasing) {
+            suspend_erase();
+        }
     }
+
     split_page_program(addr, data, len, high_priority);
 
-    if (is_erasing) {
-        resume_erase();
+    if (high_priority) {
+        if (is_erasing) {
+            resume_erase();
+        }
+        bus.unlock();
+        unlock_erase();
     }
 }
 

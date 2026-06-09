@@ -7,6 +7,7 @@
 #include <common/Pin.hpp>
 #include <cstdint>
 #include <device/board.h>
+#include <freertos/mutex.hpp>
 
 class SpiFlashBus;
 
@@ -106,64 +107,58 @@ private:
     SpiFlashBus &bus;
     const buddy::hw::OutputPin &cs;
 
-    /// To avoid deadlock erase_mutex must be always acquired
-    /// earlier than communication_mutex and communication_mutex
-    /// must be always released earlier than erase_mutex.
+    /// Lock ordering: erase_mutex must be acquired before bus.lock().
     ///
-    /// Chip erase operation:
-    ///   erase_mutex acquired, then communication_mutex acquired.
-    ///   Do whole chip erase (can not be suspended).
-    ///   communication_mutex released first, then erase_mutex.
-    ///
-    /// Block erase operation:
-    ///   erase_mutex acquired, then communication_mutex acquired.
-    ///   is_erasing set to true, start erase.
-    ///   communication_mutex released (bus free while chip erases).
-    ///   communication_mutex re-acquired to poll status.
+    /// Erase operations:
+    ///   erase_mutex acquired, then bus locked.
+    ///   is_erasing set to true, start erase command.
+    ///   Bus unlocked (bus free while chip erases internally).
+    ///   Bus re-locked per status poll iteration.
     ///   When done, is_erasing set to false.
-    ///   communication_mutex released first, then erase_mutex.
+    ///   Bus unlocked, then erase_mutex released.
     ///
-    /// Read/write standard priority:
-    ///   erase_mutex acquired, then communication_mutex acquired.
+    /// Read/write (standard priority):
+    ///   erase_mutex acquired, then bus locked.
     ///   Do read/write operation.
-    ///   communication_mutex released first, then erase_mutex.
+    ///   Bus unlocked, then erase_mutex released.
     ///
-    /// Write high priority (multiple blocks at once):
-    ///   Try to acquire erase_mutex.
-    ///   Acquire communication_mutex and check is_erasing.
-    ///   If is_erasing, pause erase operation.
-    ///   Do read/write operation.
-    ///   If is_erasing, resume erase operation.
-    ///   communication_mutex released first.
-    ///   erase_mutex (if acquired) released after.
-    osStaticMutexDef_t erase_mutex_cb;
-    osMutexDef_t erase_mutex_def;
-    osMutexId erase_mutex = nullptr;
-    osStaticMutexDef_t communication_mutex_cb;
-    osMutexDef_t communication_mutex_def;
-    osMutexId communication_mutex = nullptr;
+    /// Write (high priority, power panic address range):
+    ///   Try to acquire erase_mutex (non-blocking).
+    ///   Lock bus, check is_erasing.
+    ///   If is_erasing, suspend erase.
+    ///   Do write operation.
+    ///   If is_erasing, resume erase.
+    ///   Unlock bus, then release erase_mutex (if acquired).
+    ///
+    /// All locking becomes no-op when bus.is_scheduler_stopped() is true
+    /// (crash dump mode).
+    freertos::Mutex erase_mutex;
     bool was_initialized = false;
 
     /// Block erase operation is in progress.
     ///
-    /// Can be modified only when both erase_mutex and communication_mutex
-    /// are acquired. Can be read only when communication_mutex is acquired.
+    /// Can be modified only when both erase_mutex and bus mutex are held.
+    /// Can be read only when bus mutex is held.
     ///
-    /// Needs to be checked only when erase_mutex was not acquired
-    /// successfully, otherwise holding erase_mutex is sufficient to be
-    /// sure erasing is not in progress.
+    /// Only needs to be checked when erase_mutex was not acquired
+    /// successfully; holding erase_mutex is sufficient to know erasing
+    /// is not in progress.
     ///
     /// This exists because both mutexes must be held to start an erase.
     /// The erase implementation sets this to true once it acquires both.
-    /// This ensures a high priority read/write doesn't assume erase is
-    /// already ongoing if it fails to acquire erase_mutex and acquires
-    /// communication_mutex in the moment erase acquired erase_mutex but
-    /// didn't acquire communication_mutex yet.
+    /// This ensures a high priority write doesn't assume erase is already
+    /// ongoing if it fails to acquire erase_mutex and acquires the bus
+    /// mutex in the moment erase acquired erase_mutex but didn't acquire
+    /// the bus mutex yet.
     bool is_erasing = false;
 
     uint8_t device_id = 0;
 
     W25xFlash(SpiFlashBus &bus, const buddy::hw::OutputPin &cs);
+
+    void lock_erase();
+    void unlock_erase();
+    bool try_lock_erase();
 
     void select();
     void deselect();
