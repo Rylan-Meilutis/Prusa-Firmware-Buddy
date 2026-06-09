@@ -1,6 +1,9 @@
 #pragma once
 
 #include "screen_menu.hpp"
+#include "MItem_menus.hpp"
+#include "MItem_tools.hpp"
+#include "MItem_basic_selftest.hpp"
 #include <WindowMenuItems.hpp>
 #include <utility_extensions.hpp>
 #include <selftest_snake_config.hpp>
@@ -68,7 +71,8 @@ namespace detail {
     struct menu_builder<FOOTER, MenuType::Calibrations, std::index_sequence<I...>> {
         using type = ScreenMenu<FOOTER, MI_RETURN,
             MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
-            MI_BYPASS_DEPENDENCIES>;
+            MI_BYPASS_DEPENDENCIES,
+            MI_PID_SETTINGS>;
     };
 
     // Partial specialization for when building Wizard menu

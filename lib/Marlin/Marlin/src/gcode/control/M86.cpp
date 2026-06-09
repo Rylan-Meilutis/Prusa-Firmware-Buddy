@@ -36,8 +36,8 @@
  *
  *#### Parameters
  *
- *  - `S` - Safety timer interval [seconds]
- *  - `B` - Bed heater safety timeout [seconds], 0 disables bed timeout
+ *  - `S` - Hotend safety timeout [seconds], clamped to 60 minutes
+ *  - `B` - Bed heater safety timeout [seconds], 0 disables bed timeout, non-zero values are clamped to 60 minutes
  *
  */
 void GcodeSuite::M86() {

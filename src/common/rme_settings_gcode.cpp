@@ -40,6 +40,10 @@ bool write(FILE *file) {
     }
 
     bool ok = true;
+    ok &= fprintf(file, "M86 S%u B%u\n",
+        config_store().hotend_heater_safety_timeout_s.get(),
+        config_store().bed_heater_safety_timeout_s.get()) >= 0;
+
     const uint32_t screen = config_store().screen_brightness_by_state.get();
     ok &= fprintf(file, "M154.0 D%u I%u A%u P%u\n",
         packed_screen_percent(screen, leds::LightState::deep_idle),

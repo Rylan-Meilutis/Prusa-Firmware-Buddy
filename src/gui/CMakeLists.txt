@@ -48,6 +48,7 @@ target_sources(
           screen_menu_footer_settings.cpp
           screen_menu_hardware.cpp
           screen_menu_hardware_tune.cpp
+          screen_menu_heater_safety.cpp
           screen_menu_info.cpp
           screen_menu_input_shaper.cpp
           screen_menu_lang_and_time.cpp
