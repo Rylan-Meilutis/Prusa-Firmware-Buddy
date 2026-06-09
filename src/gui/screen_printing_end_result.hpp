@@ -71,7 +71,7 @@ private:
     window_text_t print_ended_label;
     window_text_t print_ended_value;
     DateBufferT print_ended_value_buffer;
-    uint32_t last_ended_stat_switch_s { 0 };
+    uint32_t last_started_stat_switch_s { 0 };
     bool showing_filter_remaining { false };
 
     window_text_t consumed_material_label;
@@ -84,5 +84,5 @@ private:
     window_icon_t arrow_right;
     WindowNumbPrintProgress progress_txt;
 
-    void update_print_ended_stat(bool rotate);
+    void update_started_stat(bool rotate);
 };
