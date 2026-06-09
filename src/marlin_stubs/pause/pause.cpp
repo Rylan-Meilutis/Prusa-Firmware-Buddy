@@ -1559,7 +1559,7 @@ void Pause::unpark_nozzle_and_notify() {
     }
 #endif
 
-    if (settings.resume_pos.x == NAN || settings.resume_pos.y == NAN || settings.resume_pos.z == NAN) {
+    if (isnan(settings.resume_pos.x) || isnan(settings.resume_pos.y) || isnan(settings.resume_pos.z)) {
         return;
     }
 
@@ -1901,7 +1901,7 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
 
     const float min_layer_h = 0.05f;
     // do not unpark and wait for temp if not homed or z park len is 0
-    if (!axes_need_homing() && pause.settings.resume_pos.z != NAN && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
+    if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
         if (!pause.ensureSafeTemperatureNotifyProgress()) {
             return;
         }
