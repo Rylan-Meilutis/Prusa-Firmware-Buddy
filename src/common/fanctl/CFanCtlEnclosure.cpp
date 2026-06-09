@@ -9,7 +9,6 @@ CFanCtlEnclosure::CFanCtlEnclosure(const buddy::hw::InputPin &pin_tach,
     uint16_t min_rpm, uint16_t max_rpm)
     : CFanCtlCommon(min_rpm, max_rpm)
     , tachometer(pin_tach) {
-    buddy::hw::fanPowerSwitch.set();
     set_pwm(0);
 }
 

@@ -38,4 +38,6 @@ public:
 #endif
 
     static void tick();
+    // Board-specific fan hardware init touching GPIO / I2C-expander pins; must run after hw_gpio_init().
+    static void init_hw();
 };

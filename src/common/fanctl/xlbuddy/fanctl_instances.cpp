@@ -4,6 +4,7 @@
 #include <array>
 #include "CFanCtlEnclosure.hpp"
 #include "CFanCtlPuppy.hpp"
+#include "hwio_pindef.h"
 
 CFanCtlCommon &Fans::print(size_t index) {
     static std::array<CFanCtlPuppy, HOTENDS> instances = {
@@ -46,4 +47,8 @@ CFanCtlCommon &Fans::enclosure() {
 
 void Fans::tick() {
     Fans::enclosure().tick();
+}
+
+void Fans::init_hw() {
+    buddy::hw::fanPowerSwitch.set();
 }

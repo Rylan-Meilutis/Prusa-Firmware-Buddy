@@ -122,3 +122,5 @@ void Fans::tick() {
     Fans::heat_break(PhysicalToolIndex::from_raw(0)).tick();
 #endif
 }
+
+void Fans::init_hw() {}

@@ -265,6 +265,7 @@ extern "C" void main_cpp(void) {
     __HAL_RCC_CLEAR_RESET_FLAGS();
 
     hw_gpio_init();
+    Fans::init_hw();
     hw_dma_init();
 
     w25x_init();
