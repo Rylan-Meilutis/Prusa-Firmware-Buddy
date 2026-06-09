@@ -628,6 +628,7 @@ struct CurrentStore
         1800;
     #endif
     StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Bed Safety Timeout Config")> bed_heater_safety_timeout_s;
+    StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Hotend Safety Timeout Config")> hotend_heater_safety_timeout_s;
 
     StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Printer Lock Enabled")> printer_lock_enabled;
     StoreItem<uint32_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN")> printer_lock_pin;
