@@ -3,42 +3,36 @@
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_reporting.h"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.cpp"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/buttons.h"
-#include "../../lib/Marlin/Marlin/src/feature/pause.h"
-#include "../common/marlin_server.hpp"
-#include "../common/serial_printing.hpp"
 #include "../common/sound.hpp"
-#include <feature/safety_timer/safety_timer.hpp>
 #include "mmu2_error_converter.h"
 #include "mmu2_fsm.hpp"
 #include "mmu2_reporter.hpp"
+#include "mmu2_reporting.hpp"
 #include "fail_bucket.hpp"
 #include "pause_stubbed.hpp"
 #include <logging/log.hpp>
 #include <config_store/store_instance.hpp>
 #include <odometer.hpp>
 #include <filament_to_load.hpp>
+#include <atomic>
 
 LOG_COMPONENT_REF(MMU2);
 
 namespace MMU2 {
 
 static bool serial_host_mmu_error_reported = false;
+static std::atomic<uint8_t> pending_serial_host_mmu_events = 0;
 
-static void resume_serial_host_after_mmu_error() {
-    if (!serial_host_mmu_error_reported) {
-        return;
-    }
+void defer_serial_host_mmu_paused() {
+    pending_serial_host_mmu_events.fetch_or(static_cast<uint8_t>(SerialHostMmuEvent::paused), std::memory_order_relaxed);
+}
 
-    if (marlin_server::serial_print_active() && did_pause_print == 0) {
-        buddy::safety_timer().reset_restore_blocking();
-        if (!marlin_server::serial_print_active()) {
-            serial_host_mmu_error_reported = false;
-            return;
-        }
-        SerialPrinting::resume();
-        SerialPrinting::resumed();
-    }
-    serial_host_mmu_error_reported = false;
+void defer_serial_host_mmu_resume() {
+    pending_serial_host_mmu_events.fetch_or(static_cast<uint8_t>(SerialHostMmuEvent::resume), std::memory_order_relaxed);
+}
+
+SerialHostMmuEvent consume_serial_host_mmu_events() {
+    return static_cast<SerialHostMmuEvent>(pending_serial_host_mmu_events.exchange(0, std::memory_order_acq_rel));
 }
 
 void CheckErrorScreenUserInput() {
@@ -69,8 +63,8 @@ void ReportErrorHook(ErrorData d) {
         return;
     }
 
-    if (marlin_server::serial_print_active() && !serial_host_mmu_error_reported) {
-        SerialPrinting::paused("mmu_error");
+    if (!serial_host_mmu_error_reported) {
+        defer_serial_host_mmu_paused();
         serial_host_mmu_error_reported = true;
     }
 
@@ -100,7 +94,10 @@ void BeginReport([[maybe_unused]] ProgressData d) {
 }
 
 void EndReport([[maybe_unused]] ProgressData d) {
-    resume_serial_host_after_mmu_error();
+    if (serial_host_mmu_error_reported) {
+        defer_serial_host_mmu_resume();
+        serial_host_mmu_error_reported = false;
+    }
     Fsm::Instance().Deactivate();
 }
 
