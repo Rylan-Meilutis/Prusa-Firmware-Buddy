@@ -213,6 +213,25 @@ void ChamberFiltration::stop_post_print_filtration() {
     needs_filtration_ = std::nullopt;
 }
 
+void ChamberFiltration::start_post_print_filtration() {
+    std::lock_guard _lg(mutex_);
+
+    const auto now_s = ticks_s();
+    commit_unaccounted_filter_usage(now_s);
+
+    needs_filtration_ = true;
+    is_printing_prev_ = false;
+    last_print_s_ = now_s;
+
+    if (is_enabled() && config_store().chamber_post_print_filtration_enable.get()) {
+        output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
+        unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
+    } else {
+        output_pwm_ = {};
+        unaccounted_filter_time_used_start_s_ = 0;
+    }
+}
+
 ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
     std::lock_guard _lg(mutex_);
     return {

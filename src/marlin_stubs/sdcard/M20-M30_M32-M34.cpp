@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <array>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "../../lib/Marlin/Marlin/src/gcode/gcode.h"
@@ -152,6 +153,73 @@ void upload_write_line(const char *command) {
     fputc('\n', upload_file);
 }
 
+const char *arg_after_command(const char *command, uint16_t code) {
+    const char *cursor = command;
+    while (*cursor == ' ') {
+        ++cursor;
+    }
+    if (*cursor == 'N') {
+        ++cursor;
+        while (*cursor == '-' || (*cursor >= '0' && *cursor <= '9')) {
+            ++cursor;
+        }
+        while (*cursor == ' ') {
+            ++cursor;
+        }
+    }
+
+    if (*cursor != 'M') {
+        return nullptr;
+    }
+    ++cursor;
+
+    char *end = nullptr;
+    const long parsed = strtol(cursor, &end, 10);
+    if (end == cursor || parsed != code || (*end != '\0' && *end != ' ' && *end != '*')) {
+        return nullptr;
+    }
+
+    while (*end == ' ') {
+        ++end;
+    }
+
+    static char arg_buffer[FILE_PATH_BUFFER_LEN] = {};
+    size_t i = 0;
+    while (*end && *end != '*' && i + 1 < sizeof(arg_buffer)) {
+        arg_buffer[i++] = *end++;
+    }
+    arg_buffer[i] = '\0';
+    return arg_buffer;
+}
+
+bool open_upload_path(const char *path_arg) {
+    if (!media_ready()) {
+        SERIAL_ECHOLNPGM(MSG_SD_CARD_FAIL);
+        return false;
+    }
+
+    std::array<char, FILE_PATH_BUFFER_LEN> filepath {};
+    if (!build_media_path(path_arg, filepath.data(), filepath.size()) || !make_dirs(filepath.data())) {
+        SERIAL_ECHOLNPGM(MSG_SD_OPEN_FILE_FAIL);
+        return false;
+    }
+
+    if (upload_file) {
+        fclose(upload_file);
+        upload_file = nullptr;
+    }
+
+    upload_file = fopen(filepath.data(), "wb");
+    if (!upload_file) {
+        SERIAL_ECHOLNPGM(MSG_SD_OPEN_FILE_FAIL);
+        return false;
+    }
+
+    SERIAL_ECHOPGM(MSG_SD_WRITE_TO_FILE);
+    SERIAL_ECHOLN(media_relative_path(filepath.data()));
+    return true;
+}
+
 void close_upload() {
     if (upload_file) {
         fclose(upload_file);
@@ -168,6 +236,15 @@ extern "C" bool buddy_sdcard_upload_active() {
 
 extern "C" void buddy_sdcard_upload_handle_line(const char *command) {
     upload_write_line(command);
+}
+
+extern "C" bool buddy_sdcard_upload_start_command(const char *command) {
+    const char *path_arg = arg_after_command(command, 28);
+    return path_arg != nullptr && open_upload_path(path_arg);
+}
+
+extern "C" void buddy_sdcard_upload_finish_command() {
+    close_upload();
 }
 
 /** \addtogroup G-Codes
@@ -344,30 +421,7 @@ void GcodeSuite::M32() {
  *   M28 []
  */
 void GcodeSuite::M28() {
-    if (!media_ready()) {
-        SERIAL_ECHOLNPGM(MSG_SD_CARD_FAIL);
-        return;
-    }
-
-    std::array<char, FILE_PATH_BUFFER_LEN> filepath {};
-    if (!build_media_path(parser.string_arg, filepath.data(), filepath.size()) || !make_dirs(filepath.data())) {
-        SERIAL_ECHOLNPGM(MSG_SD_OPEN_FILE_FAIL);
-        return;
-    }
-
-    if (upload_file) {
-        fclose(upload_file);
-        upload_file = nullptr;
-    }
-
-    upload_file = fopen(filepath.data(), "wb");
-    if (!upload_file) {
-        SERIAL_ECHOLNPGM(MSG_SD_OPEN_FILE_FAIL);
-        return;
-    }
-
-    SERIAL_ECHOPGM(MSG_SD_WRITE_TO_FILE);
-    SERIAL_ECHOLN(media_relative_path(filepath.data()));
+    open_upload_path(parser.string_arg);
 }
 
 /**

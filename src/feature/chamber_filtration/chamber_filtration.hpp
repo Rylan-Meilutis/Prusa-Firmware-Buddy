@@ -69,6 +69,9 @@ public:
     /// Stops an active post-print filtration sequence without affecting the next print.
     void stop_post_print_filtration();
 
+    /// Starts a post-print filtration sequence using the configured post-print duration and PWM.
+    void start_post_print_filtration();
+
     Snapshot snapshot() const;
     void restore_snapshot(const Snapshot &snapshot);
 

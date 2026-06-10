@@ -9,6 +9,7 @@
 #include <config_store/store_instance.hpp>
 #include <common/extended_printer_type.hpp>
 #include <leds/light_state.hpp>
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_leds.h>
 #include <option/has_side_leds.h>
@@ -23,6 +24,9 @@
 #endif
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     #include <leds/external_light_bar.hpp>
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 namespace {
 
@@ -130,6 +134,16 @@ void set_status_timeout_group() {
 }
 #endif
 
+#if HAS_CHAMBER_FILTRATION_API()
+void set_filtration_cycle_group() {
+    if (parser.seenval('S') && !parser.boolval('S')) {
+        buddy::chamber_filtration().stop_post_print_filtration();
+    } else {
+        buddy::chamber_filtration().start_post_print_filtration();
+    }
+}
+#endif
+
 void set_serial_group() {
     if (parser.seenval('U')) {
         const uint8_t mode = parser.byteval('U');
@@ -185,6 +199,7 @@ void set_extended_printer_type_group() {
  * - `M154.5 D I A P` external light bar state enables
  * - `M154.6 E` extended printer type index
  * - `M154.7 H` status LED finished hold seconds
+ * - `M154.8 [S]` trigger/stop configured post-print filtration; `S0` stops
  */
 void PrusaGcodeSuite::M154() {
     switch (parser.subcode) {
@@ -222,6 +237,11 @@ void PrusaGcodeSuite::M154() {
 #if HAS_LEDS()
     case 7:
         set_status_timeout_group();
+        break;
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    case 8:
+        set_filtration_cycle_group();
         break;
 #endif
     default:
