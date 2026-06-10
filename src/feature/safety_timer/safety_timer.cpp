@@ -8,6 +8,7 @@
 #include <feature/host_actions.h>
 #include <utils/progress.hpp>
 #include <fsm/safety_timer_phases.hpp>
+#include <module/printcounter.h>
 
 namespace {
 void clear_temp_to_display() {
@@ -40,6 +41,14 @@ void handle_resuming_abort() {
 
 buddy::SafetyTimer::Time clamp_timeout_ms(buddy::SafetyTimer::Time set) {
     return std::min(set, buddy::SafetyTimer::max_configurable_interval);
+}
+
+bool print_or_print_pause_active() {
+    return marlin_server::is_printing()
+        || marlin_server::printer_paused_extended()
+        || marlin_server::serial_print_active()
+        || print_job_timer.isRunning()
+        || print_job_timer.isPaused();
 }
 } // namespace
 
@@ -295,8 +304,8 @@ void SafetyTimer::step() {
         }
     }
 
-    // Never let a normal print or paused print time out the bed heater.
-    if (bed_timer_enabled_ && marlin_server::is_printing()) {
+    // Never let an active print or manual-intervention print pause time out the bed heater.
+    if (bed_timer_enabled_ && print_or_print_pause_active()) {
         bed_activity_timer_.restart(now);
     }
 

@@ -563,6 +563,8 @@ bool SerialPrinting::serial_command_hook(const char *command) {
             leds::SideStripHandler::instance().print_finished_ping();
 #endif
             marlin_server::serial_print_finalize();
+            SERIAL_ECHOLNPGM("ok");
+            return false;
         }
         return true;
     }
