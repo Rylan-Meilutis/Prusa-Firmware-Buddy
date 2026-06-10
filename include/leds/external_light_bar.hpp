@@ -20,7 +20,7 @@ bool state_enabled(leds::LightState state);
 void set_state_enabled(leds::LightState state, bool enabled);
 
 bool set_pin_mode(uint8_t pin, OutputMode mode);
-bool target_on(bool chamber_light_on);
+bool target_on([[maybe_unused]] bool chamber_light_on);
 void apply(bool on);
 void reset_persistent_state();
 void set_diagnostic_override(bool enabled, bool on);

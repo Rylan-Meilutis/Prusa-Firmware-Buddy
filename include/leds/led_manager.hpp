@@ -46,8 +46,11 @@ private:
     freertos::Mutex power_panic_mutex;
 #if !HAS_SIDE_LEDS()
     uint32_t lcd_brightness_wake_until_ms { 0 };
+    uint8_t lcd_brightness_wake_percent { 15 };
+    bool lcd_brightness_wake_from_print_override { false };
     uint8_t print_screen_brightness_override { 100 };
     bool print_screen_brightness_overridden { false };
+    bool print_override_session_active { false };
 #endif
     bool power_panic { false };
     bool lcd_brightness_off { false };

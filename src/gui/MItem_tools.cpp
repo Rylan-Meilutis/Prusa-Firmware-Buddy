@@ -1066,7 +1066,6 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnClick() {
 
 void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
     set_enabled(true);
-    set_value(brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()));
 }
 
 #endif
@@ -1163,7 +1162,6 @@ void MI_PRINT_STATUS_LEDS_ENABLE::OnClick() {
 void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
     const bool enabled = leds::StatusLedsHandler::instance().get_active();
     set_enabled(enabled);
-    set_value(enabled ? std::optional<float>(leds::StatusLedsHandler::instance().get_print_status_brightness()) : std::nullopt);
 }
 #endif
 

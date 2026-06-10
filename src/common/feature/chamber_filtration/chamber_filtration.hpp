@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include <pwm_utils.hpp>
 #include <freertos/mutex.hpp>
@@ -20,6 +21,14 @@ public:
 
     using Backend = ChamberFiltrationBackend;
     using BackendArray = std::array<Backend, max_backend_count>;
+
+    struct Snapshot {
+        PWM255 output_pwm;
+        bool is_printing_prev = false;
+        std::optional<bool> needs_filtration;
+        uint32_t last_print_s = 0;
+        uint32_t unaccounted_filter_time_used_start_s = 0;
+    };
 
     /// \returns translatable name of the provided filtration backend
     static const char *backend_name(Backend backend);
@@ -57,6 +66,9 @@ public:
 
     /// Stops an active post-print filtration sequence without affecting the next print.
     void stop_post_print_filtration();
+
+    Snapshot snapshot() const;
+    void restore_snapshot(const Snapshot &snapshot);
 
     /// Check HEPA filter expiration and possibly show warning
     void check_filter_expiration();
