@@ -37,6 +37,7 @@
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
     * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
     * Fixed MMU error handling crash by deferring serial host pause/resume actions to the Marlin server loop instead of running them directly from the MMU reporting callback
+    * Added host unit-test coverage for deferred MMU serial host pause/resume events
     * Fixed OctoPrint SD/USB uploads completing without data being written by entering upload mode immediately when serial `M28` is received
     * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
     * Fixed cancel confirmation wording on print screens
@@ -417,7 +418,7 @@ python3 utils/build.py --preset mk4 --bootloader yes --final
 python3 utils/build.py --preset mk3.5 --bootloader yes --final
 ```
 
-The latest XL, MINI, Core One, Core One L, MK3.5, and MK4 release boot builds completed successfully after the serial ETA, print-finished, and post-print LED changes. A focused Core One release boot build also completed after the serial finish/intervention fixes, using `1295772 B / 1919 KB` flash and `117860 B / 196508 B` aggregate RAM. The signing path was validated with a temporary ECDSA key:
+The latest XL, MINI, Core One, Core One L, MK3.5, and MK4 release boot builds completed successfully after the serial ETA, print-finished, and post-print LED changes. A focused Core One release boot build also completed after the serial finish/intervention fixes, using `1295772 B / 1919 KB` flash and `117860 B / 196508 B` aggregate RAM. After the MMU event unit-test split and OctoPrint upload fix, Core One release boot built with `1296188 B / 1919 KB` flash and `117948 B / 196508 B` aggregate RAM. The host `mmu_tests` unit-test target passed with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
 
 ```sh
 python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-store-output --signing-key /path/to/private.key
@@ -431,7 +432,7 @@ Comparison base: upstream `v6.5.3` (`3fc7b43a3`)
 
 Current branch: `coreone-v6.5.3-patches`
 
-Current commit: `dd881123c`
+Current commit: `1aa6c13fb`
 
 ## Full changelog
 
@@ -551,4 +552,6 @@ d3fba2240  2026-06-10  Update release notes for lighting override fixes
 9e81b0a7c  2026-06-10  Defer MMU serial host actions to server loop
 901c40595  2026-06-10  Document MMU serial host crash fix
 dd881123c  2026-06-10  Fix OctoPrint uploads and add filtration trigger G-code
+6b894cda9  2026-06-10  Document filtration trigger and upload fix
+1aa6c13fb  2026-06-10  Add MMU serial host event unit coverage
 ```
