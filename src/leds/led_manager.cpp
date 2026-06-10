@@ -19,6 +19,7 @@
 #endif
 #include <config_store/store_instance.hpp>
 #include <tasks.hpp>
+#include <algorithm>
 
 #if HAS_SIDE_LEDS()
     #include "leds/side_strip_handler.hpp"
@@ -303,7 +304,11 @@ void LEDManager::update_lcd_brightness() {
     set_lcd_brightness(SideStripHandler::instance().current_screen_brightness());
 #else
     const marlin_server::State printer_state = marlin_vars().print_state;
-    const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool print_active = printer_state == marlin_server::State::PrintInit
+        || printer_state == marlin_server::State::SerialPrintInit
+        || marlin_server::is_printing_state(printer_state)
+        || marlin_server::is_extended_paused_state(printer_state)
+        || marlin_server::serial_print_active();
     const bool guided_activity = guided_activity_active();
     leds::LightState state = print_active
         ? leds::LightState::printing
@@ -326,7 +331,9 @@ void LEDManager::update_lcd_brightness() {
     const uint8_t brightness = print_active && print_screen_brightness_overridden
         ? print_screen_brightness_override
         : (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    set_lcd_brightness(leds::clamp_screen_brightness(state, brightness));
+    set_lcd_brightness(print_active && print_screen_brightness_overridden
+            ? std::min<uint8_t>(brightness, 100)
+            : leds::clamp_screen_brightness(state, brightness));
 #endif
 }
 
@@ -337,7 +344,11 @@ bool LEDManager::lcd_brightness_is_off() const {
 #if !HAS_SIDE_LEDS()
 bool LEDManager::wake_lcd_from_dim_idle() {
     const marlin_server::State printer_state = marlin_vars().print_state;
-    const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool print_active = printer_state == marlin_server::State::PrintInit
+        || printer_state == marlin_server::State::SerialPrintInit
+        || marlin_server::is_printing_state(printer_state)
+        || marlin_server::is_extended_paused_state(printer_state)
+        || marlin_server::serial_print_active();
     const bool guided_activity = guided_activity_active();
     const leds::LightState state = print_active
         ? leds::LightState::printing
@@ -367,7 +378,7 @@ uint8_t LEDManager::get_print_screen_brightness() const {
 }
 
 void LEDManager::set_print_screen_brightness(uint8_t brightness) {
-    print_screen_brightness_override = leds::clamp_screen_brightness(leds::LightState::printing, brightness);
+    print_screen_brightness_override = std::min<uint8_t>(brightness, 100);
     print_screen_brightness_overridden = true;
     set_lcd_brightness(print_screen_brightness_override);
 }
