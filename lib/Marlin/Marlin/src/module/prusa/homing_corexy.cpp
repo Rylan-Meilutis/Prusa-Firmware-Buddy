@@ -518,11 +518,8 @@ static bool measure_phase_cycles(const AxisEnum axis, const ab_grid_t &ab_off, x
                 // calculated travel ends within deceleration, wrong position or short travel
                 SERIAL_ECHOLNPAIR("endstop ", (dir == 0 ? '-' : '+'), ": planned travel too short",
                     p_steps[slot][dir], ">", exp_dir_steps_max);
-#if 0 // Temporarily ignore until more data is collected
-    // #error dead code found by automatic analyses (see BFW-5461)
                 ui.status_printf_P(0, "Endstop not reached");
                 return false;
-#endif
             }
 
             if (p_steps[slot][dir] < exp_dir_steps_min) {
