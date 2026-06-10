@@ -57,6 +57,10 @@ public:
     /// at pwm == 0 ("fully disable" semantics), so 0 really stops the fan.
     void set_fan_pwm(uint8_t pwm);
 
+    /// Desired MB cooling fan duty (0-255) last set via set_fan_pwm; not a
+    /// measured value.
+    [[nodiscard]] uint8_t get_fan_pwm() const { return fan_pwm_desired.load(); }
+
     /// Last fan RPM reported by the bridge; nullopt until the bridge has
     /// answered a Status read, and again after one fails. Note is_enabled()
     /// is *not* sufficient for this: it is latched from the bootloader-level
