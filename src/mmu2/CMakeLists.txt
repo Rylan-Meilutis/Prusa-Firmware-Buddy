@@ -14,6 +14,7 @@ target_sources(
           mmu2_progress_converter.cpp
           mmu2_reporter.cpp
           mmu2_reporting.cpp
+          mmu2_serial_host_events.cpp
           mmu2_serial.cpp
           tmp_error_converter.cpp
           tmp_progress_converter.cpp
