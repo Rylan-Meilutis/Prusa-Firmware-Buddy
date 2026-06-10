@@ -176,12 +176,13 @@ void ScreenMenuMove::plan_moves() {
     }
 
     ArrayStringBuilder<MARLIN_MAX_REQUEST> gcode;
-    gcode.append_printf("G123 X%f Y%f Z%f E%f",
+    gcode.append_printf("G123 X%f Y%f Z%f",
         (double)target_pos.x,
         (double)target_pos.y,
-        (double)target_pos.z,
-        (double)target_pos.e //
-    );
+        (double)target_pos.z);
+    if (PhysicalToolIndex::currently_selected_opt().has_value()) {
+        gcode.append_printf(" E%f", (double)target_pos.e);
+    }
     if (marlin_client::gcode_try(gcode.str()) != marlin_client::GcodeTryResult::Submitted) {
         return;
     }
