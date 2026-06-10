@@ -47,11 +47,18 @@ void open_end_filtration_prompt_on_door_open() {
     const bool door_open = buddy::door_sensor().detailed_state().state == buddy::DoorSensor::State::door_open;
     const bool door_just_opened = door_open && !door_open_prev;
     door_open_prev = door_open;
+    const bool prompt_open = Screens::Access()->IsScreenOnStack<ScreenEndFiltration>();
+    const bool filtering = buddy::chamber_filtration().post_print_remaining_s() > 0;
+
+    if (prompt_open && (!door_open || !filtering)) {
+        Screens::Access()->Close<ScreenEndFiltration>();
+        return;
+    }
 
     if (door_just_opened
         && marlin_vars().print_state == marlin_server::State::Finished
-        && buddy::chamber_filtration().post_print_remaining_s() > 0
-        && !Screens::Access()->IsScreenOnStack<ScreenEndFiltration>()) {
+        && filtering
+        && !prompt_open) {
         Screens::Access()->Open(ScreenFactory::Screen<ScreenEndFiltration>);
     }
 }

@@ -91,6 +91,7 @@ private:
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
     bool print_status_overridden { false };
+    bool print_override_session_active { false };
     uint32_t brightness_by_state { config_store().status_led_brightness_by_state.get() };
     LightState current_light_state { LightState::active };
     uint8_t print_status_brightness { 100 };
