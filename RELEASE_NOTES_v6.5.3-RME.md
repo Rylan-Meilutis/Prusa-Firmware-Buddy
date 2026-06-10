@@ -35,6 +35,7 @@
     * Fixed paused serial prints dropping out of the print screen
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
     * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
+    * Fixed MMU error handling crash by deferring serial host pause/resume actions to the Marlin server loop instead of running them directly from the MMU reporting callback
     * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
     * Fixed cancel confirmation wording on print screens
     * Fixed bed heating being disabled by the safety timer while a print is paused
@@ -425,7 +426,7 @@ Comparison base: upstream `v6.5.3` (`3fc7b43a3`)
 
 Current branch: `coreone-v6.5.3-patches`
 
-Current commit: `66af21165`
+Current commit: `9e81b0a7c`
 
 ## Full changelog
 
@@ -541,4 +542,6 @@ a3b6f9a0e  2026-06-10  Fix print lighting brightness overrides
 001e27e64  2026-06-10  Document print lighting override behavior
 d3fba2240  2026-06-10  Update release notes for lighting override fixes
 66af21165  2026-06-10  Fix serial print finish and intervention handling
+5ce5452e2  2026-06-10  Document serial finish and intervention fixes
+9e81b0a7c  2026-06-10  Defer MMU serial host actions to server loop
 ```
