@@ -1189,12 +1189,12 @@ MI_PRINT_SCREEN_BRIGHTNESS::MI_PRINT_SCREEN_BRIGHTNESS()
 #else
         stored_screen_brightness(leds::LightState::printing),
 #endif
-        screen_brightness_config_for_state(leds::LightState::printing),
+        numeric_input_config::percent_with_off,
         _(label)) {
 }
 
 void MI_PRINT_SCREEN_BRIGHTNESS::OnClick() {
-    const uint8_t brightness = screen_brightness_for_state(leds::LightState::printing, percent_to_uint8(value()));
+    const uint8_t brightness = percent_to_uint8(value());
 #if HAS_SIDE_LEDS()
     leds::SideStripHandler::instance().set_print_screen_brightness(brightness);
     leds::SideStripHandler::instance().activity_ping();

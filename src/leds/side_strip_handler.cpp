@@ -17,7 +17,12 @@ static SimpleTransitionController &controller_instance() {
 }
 
 static bool print_active_for_leds() {
-    return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
+    const auto state = marlin_vars().print_state.get();
+    return state == marlin_server::State::PrintInit
+        || state == marlin_server::State::SerialPrintInit
+        || marlin_server::is_printing_state(state)
+        || marlin_server::is_extended_paused_state(state)
+        || marlin_server::serial_print_active();
 }
 
 static bool guided_activity_active() {
@@ -288,6 +293,10 @@ void SideStripHandler::set_main_light_enabled(LightState state, bool value) {
         main_light_state_mask &= ~bit;
     }
     config_store().side_leds_state_mask.set(main_light_state_mask);
+    if (state == LightState::printing) {
+        print_brightness_overridden = false;
+        print_light_disabled = false;
+    }
     this->state = SideStripState::unknown;
 }
 
@@ -325,6 +334,8 @@ void SideStripHandler::set_brightness(LightState state, uint8_t value) {
     case LightState::printing:
         config_store().side_leds_print_brightness.set(value);
         print_brightness = value;
+        print_brightness_overridden = false;
+        print_light_disabled = false;
         break;
     }
     this->state = SideStripState::unknown;
@@ -472,7 +483,7 @@ uint8_t SideStripHandler::get_print_screen_brightness() const {
 
 void SideStripHandler::set_print_screen_brightness(uint8_t value) {
     std::lock_guard lock(mutex);
-    print_screen_brightness_override = clamp_screen_brightness(LightState::printing, value);
+    print_screen_brightness_override = std::min<uint8_t>(value, 100);
     print_screen_brightness_overridden = true;
     host_idle_override = false;
     state = SideStripState::unknown;
@@ -523,8 +534,7 @@ ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
 
     const LightState light_state = light_state_for_strip_state(state);
-    const bool print_override_active = light_state == LightState::printing && print_brightness_overridden;
-    if (!(main_light_state_mask & light_state_bit(light_state)) && !print_override_active) {
+    if (!(main_light_state_mask & light_state_bit(light_state))) {
         return ColorRGBW();
     }
 
