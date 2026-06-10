@@ -31,7 +31,7 @@ git diff --name-status "$base"
 git diff --dirstat=files,0 "$base"
 ```
 
-At the time this playbook was last audited, the committed RME stack covered 528 files with 11,296 insertions and 434 deletions relative to upstream `v6.5.3`. The stack contains 104 commits through the current documentation refresh. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the committed RME stack covered 528 files with 11,563 insertions and 434 deletions relative to upstream `v6.5.3`. The stack contains 106 commits through `66849fee7`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 Primary RME branch:
 
@@ -281,12 +281,13 @@ Core One chamber LED off does not turn off status LEDs/status bar.
 Temporary chamber/side brightness is percent-based on every printer with `HAS_SIDE_LEDS`.
 Temporary status-strip brightness is percent-based on every printer with `HAS_LEDS`, including Core One variants, XL, MK4, and MK3.5.
 Persistent LED enable and brightness values are independent between Deep Idle, Idle, Active, and Printing. Do not add cross-state ordering clamps: Printing exterior LEDs may be dimmer than Idle LEDs or fully off while Idle remains enabled. The only state brightness floor is the 15% LCD minimum for Active and Printing screen brightness. Preserve `M153` for incidental non-print host activity, but ignore it while a print is active or paused.
-Temporary print lighting overrides reset after the print.
+Temporary print lighting overrides reset after the print. A chamber/side LED override of 0% must not change the logical side-strip state to off or affect LCD brightness. Keep the logical print state active and render only the LED output at 0% brightness.
 Per-state screen brightness is available on supported displays for Deep Idle, Idle, Active, and Printing.
 Active and Printing screen brightness settings are clamped to at least 15% in both the UI range and stored value.
 Idle and Deep Idle screen brightness can be set to Off/0%.
 Off/0% screen brightness should write a full black frame to the panel before using the no-brightness-control/backlight-disable command and display-off. ST7789/MINI should also enter sleep-in, then sleep-out and display-on when waking. ILI9488/XLCD should also force the front/status LED strip dark. Display-driver pixel writes must be suppressed while the screen is intentionally off so delayed UI draws cannot repaint the old UI. Non-zero brightness must re-enable display writes and brightness control before setting the brightness value, and the off-to-on transition must force a full-screen redraw.
 If idle/deep-idle screen brightness is below 15%, the first touch or encoder input only wakes/brightens the screen and must not trigger the focused action.
+If temporary print screen brightness is below 15%, the first touch, encoder input, or Core One door wake raises the screen to 15% and consumes only that wake input. Subsequent input must remain responsive while the print override is still below 15%, and the wake floor must clear when the print ends or the override changes.
 Bootstrap/install screens must hold screen brightness at 100% until `TaskDeps::Tasks::bootstrap_done` is satisfied.
 The splash screen must be painted before `gui_display_ready` is provided, and the initial idle/activity timer must be seeded only after the first home-screen paint.
 `Active to Idle` is measured from last activity to idle entry.
@@ -315,6 +316,7 @@ The persistent print-finished screen does not count as guided activity during po
 Per-state pages expose Deep Idle, Idle, Active, Printing.
 Timing settings live one level above per-state settings where users compare state entry and exit timing.
 GPIO light bar state control remains independent of chamber/side LEDs.
+During an active print, the temporary chamber/side light override is the only intentional coupling between chamber/side LEDs and the external GPIO light bar: override 0% forces the external light off for that print, while any non-zero override lets the external light follow its print-state enable setting.
 External GPIO pins reserved for the light bar are protected from generic GPIO reconfiguration.
 External light output is latched and off-debounced so transient firmware state gaps do not command off/on flicker at print start or finish.
 Active-sink external light pins float before their output latch changes when turning off, avoiding visible pulses.
