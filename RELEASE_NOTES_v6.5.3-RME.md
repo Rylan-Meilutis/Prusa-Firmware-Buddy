@@ -6,6 +6,7 @@
     * Serial printing screen for OctoPrint and other serial hosts
     * Persistent print-finished summaries with duration, completion time, and remaining filtration time
     * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete
+    * G-code command to trigger or stop a configured filtration cycle
     * Prusa Connect compatibility reporting so Connect sees the stock upstream firmware version while local RME branding remains visible
     * Improved serial print start and finish detection
     * Host-preferred serial print progress reporting
@@ -36,6 +37,7 @@
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
     * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
     * Fixed MMU error handling crash by deferring serial host pause/resume actions to the Marlin server loop instead of running them directly from the MMU reporting callback
+    * Fixed OctoPrint SD/USB uploads completing without data being written by entering upload mode immediately when serial `M28` is received
     * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
     * Fixed cancel confirmation wording on print screens
     * Fixed bed heating being disabled by the safety timer while a print is paused
@@ -143,7 +145,7 @@ The firmware now advertises SD-card support through `M115` capabilities and impl
   * `M30` deletes files from USB media.
   * `M32` selects and starts a file in one command.
 
-The command handlers normalize host paths onto `/usb/`, reject parent-directory traversal, create upload directories as needed, and keep uploaded file contents out of the live serial print stream until the host selects and starts the uploaded file.
+The command handlers normalize host paths onto `/usb/`, reject parent-directory traversal, create upload directories as needed, and keep uploaded file contents out of the live serial print stream until the host selects and starts the uploaded file. Serial `M28` starts upload mode immediately as it is received, so fast OctoPrint streams cannot outrun the queued command handler and have their file lines acknowledged without being written.
 
 ## Prusa Connect compatibility
 
@@ -326,6 +328,7 @@ RME settings can be applied from G-code so a shared settings file can configure 
   * `M154.4 U<0|1|2> T<seconds> A<0|1> S<0|1>` sets serial printing UI mode, timeout, auto-start, and screen enable.
   * `M154.5 D<0|1> I<0|1> A<0|1> P<0|1>` sets external GPIO light-bar state enables where supported.
   * `M154.6 E<index>` sets Core One / Core One Plus extended printer type where supported.
+  * `M154.8` starts a configured post-print filtration cycle where chamber filtration is supported; `M154.8 S0` stops the active cycle.
 
 The Settings menu includes `Export RME Settings`, which writes the current persistent RME settings to `/usb/rme_settings.gcode` for easy cloning to another printer.
 
@@ -346,6 +349,8 @@ Chamber fan and filtration controls have been expanded with additional menu inte
 Filtering-specific LED behavior has been added so filtration can continue after a print while the chamber/side LEDs follow their normal timeout behavior.
 
 Filter lifetime usage is committed when filtration stops or is disabled, including manual early-stop actions, so the final partial accounting interval is not discarded.
+
+`M154.8` starts the configured post-print filtration cycle from G-code, using the same duration and power settings as the normal post-print path. `M154.8 S0` stops the active cycle.
 
 ## Automatic chamber vents [C1, C1L]
 
@@ -426,7 +431,7 @@ Comparison base: upstream `v6.5.3` (`3fc7b43a3`)
 
 Current branch: `coreone-v6.5.3-patches`
 
-Current commit: `9e81b0a7c`
+Current commit: `dd881123c`
 
 ## Full changelog
 
@@ -544,4 +549,6 @@ d3fba2240  2026-06-10  Update release notes for lighting override fixes
 66af21165  2026-06-10  Fix serial print finish and intervention handling
 5ce5452e2  2026-06-10  Document serial finish and intervention fixes
 9e81b0a7c  2026-06-10  Defer MMU serial host actions to server loop
+901c40595  2026-06-10  Document MMU serial host crash fix
+dd881123c  2026-06-10  Fix OctoPrint uploads and add filtration trigger G-code
 ```
