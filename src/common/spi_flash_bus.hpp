@@ -19,6 +19,10 @@ public:
 
     static SpiFlashBus &instance();
 
+    /// Initialize the SPI peripheral. Safe to call multiple times,
+    /// only the first call performs the actual init.
+    void init();
+
     /// Assert chip select (drive LOW), with setup time delay.
     void select(const buddy::hw::OutputPin &cs);
 
@@ -73,6 +77,8 @@ private:
     /// It is used when the caller gives us a buffer located in core-coupled
     /// RAM, which we can't pass to the DMA.
     uint8_t block_buffer[128];
+
+    bool initialized = false;
 
     /// Pending error from last operation(s).
     int current_error = 0;

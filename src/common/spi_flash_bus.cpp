@@ -27,6 +27,14 @@ static bool dma_is_available() {
 SpiFlashBus::SpiFlashBus(SPI_HandleTypeDef *spi_handle)
     : spi_handle(spi_handle) {}
 
+void SpiFlashBus::init() {
+    if (initialized) {
+        return;
+    }
+    spi_init_flash();
+    initialized = true;
+}
+
 void SpiFlashBus::select(const buddy::hw::OutputPin &cs) {
     cs.write(buddy::hw::Pin::State::low);
     delay_ns_precise<cs_select_delay_ns>();

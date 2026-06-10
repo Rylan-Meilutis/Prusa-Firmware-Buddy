@@ -307,14 +307,8 @@ bool W25xFlash::init_internal() {
 }
 
 void W25xFlash::init() {
-    if (was_initialized) {
-        // must only be called once
-        bsod_unreachable();
-    }
-
-    spi_init_flash();
+    bus.init();
     if (init_internal()) {
-        was_initialized = true;
         return;
     }
 
@@ -325,14 +319,13 @@ void W25xFlash::init() {
 }
 
 bool W25xFlash::reinit_before_crash_dump() {
+    bus.init();
+
     // Sets scheduler_stopped flag on the bus, making all lock/unlock
     // calls no-ops. Safe because after this point only one thread of
     // execution exists.
     bus.reinit_for_crash_dump();
 
-    if (!was_initialized) {
-        spi_init_flash();
-    }
     return init_internal();
 }
 

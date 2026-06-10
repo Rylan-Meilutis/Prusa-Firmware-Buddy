@@ -133,7 +133,6 @@ private:
     /// All locking becomes no-op when bus.is_scheduler_stopped() is true
     /// (crash dump mode).
     freertos::Mutex erase_mutex;
-    bool was_initialized = false;
 
     /// Block erase operation is in progress.
     ///
