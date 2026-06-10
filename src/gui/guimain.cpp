@@ -46,10 +46,11 @@ void open_end_filtration_prompt_on_door_open() {
     const bool door_open = buddy::door_sensor().detailed_state().state == buddy::DoorSensor::State::door_open;
     const bool door_just_opened = door_open && !door_open_prev;
     door_open_prev = door_open;
-    const bool prompt_open = Screens::Access()->IsScreenOnStack<ScreenEndFiltration>();
+    const bool prompt_current = Screens::Access()->IsScreenOpened<ScreenEndFiltration>();
+    const bool prompt_open = prompt_current || Screens::Access()->IsScreenClosed<ScreenEndFiltration>();
     const bool filtering = buddy::chamber_filtration().post_print_remaining_s() > 0;
 
-    if (prompt_open && (!door_open || !filtering)) {
+    if (prompt_current && (!door_open || !filtering)) {
         Screens::Access()->Close<ScreenEndFiltration>();
         return;
     }
