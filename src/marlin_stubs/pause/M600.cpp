@@ -296,6 +296,7 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
 
     if (notify_serial_host_resume) {
         SerialPrinting::resume();
+        SerialPrinting::resumed();
     }
 }
 
