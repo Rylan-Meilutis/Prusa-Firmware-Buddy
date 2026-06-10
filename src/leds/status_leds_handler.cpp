@@ -466,10 +466,23 @@ void StatusLedsHandler::update() {
     const bool filtering = post_filter_active();
     const bool finished = printer_state == State::Finished;
     const uint32_t now_ms = ticks_ms();
+    const bool terminal_print_state = printer_state == State::Finished || printer_state == State::Aborted || printer_state == State::Idle || printer_state == State::Exit;
     const auto start_finished_hold = [&] {
         const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
         finished_hold_until_ms = hold_s > 0 ? now_ms + hold_s * 1000 : 0;
     };
+
+    if (print_active && !print_override_session_active) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+        print_status_brightness = 100;
+        print_override_session_active = true;
+    } else if (!print_active && terminal_print_state) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+        print_status_brightness = 100;
+        print_override_session_active = false;
+    }
 
     if (print_active) {
         finished_hold_until_ms = 0;
@@ -481,12 +494,8 @@ void StatusLedsHandler::update() {
     finished_prev = finished;
     const bool timed_finished_hold_active = finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) < 0;
 
-    if (!print_active) {
-        print_status_overridden = false;
-        print_status_disabled = false;
-        print_status_brightness = 100;
+    if (print_active) {
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-    } else {
         aborted_acknowledged = false;
 #endif
     }
@@ -558,7 +567,7 @@ std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     const auto data = controller_instance().data();
     uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
     if (print_active_for_status_override() && print_status_overridden) {
-        brightness = static_cast<uint8_t>(static_cast<uint16_t>(brightness) * print_status_brightness / 100);
+        brightness = print_status_brightness;
     }
     const bool filtering = post_filter_active();
     if (brightness >= 100 && !filtering) {

@@ -76,6 +76,7 @@ static constexpr uint32_t screen_brightness_wake_ms = 30000;
 
 #if !HAS_LEDS() && HAS_ST7789_DISPLAY()
 static uint32_t screen_brightness_wake_since_ms = 0;
+static uint8_t screen_brightness_wake_percent = 15;
 
 static void set_st7789_brightness(uint8_t brightness) {
     static bool lcd_output_enabled = true;
@@ -132,8 +133,9 @@ static bool update_st7789_screen_brightness() {
     }
 
     const leds::LightState state = screen_brightness_state();
-    const uint8_t stored_brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    const uint8_t brightness = leds::clamp_screen_brightness(state, stored_brightness);
+    const uint8_t brightness = screen_brightness_wake_since_ms
+        ? screen_brightness_wake_percent
+        : leds::clamp_screen_brightness(state, (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff);
     set_st7789_brightness((brightness * 255) / 100);
     return brightness == 0;
 }
@@ -141,11 +143,16 @@ static bool update_st7789_screen_brightness() {
 static bool wake_st7789_from_dim_idle() {
     const auto state = screen_brightness_state();
     const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    if (state != leds::LightState::idle || brightness >= 15) {
+    if ((state != leds::LightState::idle && state != leds::LightState::deep_idle && state != leds::LightState::printing) || brightness >= 15) {
         return false;
     }
     screen_brightness_wake_since_ms = ticks_ms();
-    set_st7789_brightness((leds::minimum_screen_brightness(leds::LightState::active) * 255) / 100);
+    screen_brightness_wake_percent = state == leds::LightState::printing
+        ? leds::minimum_screen_brightness(leds::LightState::active)
+        : leds::clamp_screen_brightness(
+            leds::LightState::active,
+            (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(leds::LightState::active)) & 0xff);
+    set_st7789_brightness((screen_brightness_wake_percent * 255) / 100);
     return true;
 }
 #endif

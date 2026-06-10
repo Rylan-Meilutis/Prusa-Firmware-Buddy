@@ -213,6 +213,26 @@ void ChamberFiltration::stop_post_print_filtration() {
     needs_filtration_ = std::nullopt;
 }
 
+ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
+    std::lock_guard _lg(mutex_);
+    return {
+        .output_pwm = output_pwm_,
+        .is_printing_prev = is_printing_prev_,
+        .needs_filtration = needs_filtration_,
+        .last_print_s = last_print_s_,
+        .unaccounted_filter_time_used_start_s = unaccounted_filter_time_used_start_s_,
+    };
+}
+
+void ChamberFiltration::restore_snapshot(const Snapshot &snapshot) {
+    std::lock_guard _lg(mutex_);
+    output_pwm_ = snapshot.output_pwm;
+    is_printing_prev_ = snapshot.is_printing_prev;
+    needs_filtration_ = snapshot.needs_filtration;
+    last_print_s_ = snapshot.last_print_s;
+    unaccounted_filter_time_used_start_s_ = snapshot.unaccounted_filter_time_used_start_s;
+}
+
 void ChamberFiltration::check_filter_expiration() {
     /// How much in advance (in filter time usage seconds) we should warn that the filter is about to expire
     static constexpr auto expiration_early_warning_s = 100 * 3600;
