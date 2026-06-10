@@ -94,6 +94,8 @@ public:
     void set_print_brightness(uint8_t value);
     uint8_t get_print_light_brightness() const;
     void set_print_light_brightness(uint8_t value);
+    bool print_light_override_active() const;
+    uint8_t print_light_override_brightness() const;
     uint8_t get_print_screen_brightness() const;
     void set_print_screen_brightness(uint8_t value);
 
@@ -133,6 +135,9 @@ private:
 
     SideStripState state = SideStripState::unknown;
     uint32_t active_timestamp_ms = 0; // Timestamp of the last activity for idle dimming
+    uint32_t screen_brightness_wake_until_ms = 0;
+    uint8_t screen_brightness_wake_percent = 15;
+    bool screen_brightness_wake_from_print_override = false;
     bool door_open_for_leds = false;
     uint16_t door_raw_data = 0;
     bool print_or_filter_active_prev = false;
@@ -140,11 +145,11 @@ private:
     bool post_print_hold = false;
     bool post_print_hold_dismissed = false;
     bool post_print_hold_seen_door_open = false;
-    bool print_light_disabled = false;
     uint8_t print_brightness_override = 0;
     bool print_brightness_overridden = false;
     uint8_t print_screen_brightness_override = 100;
     bool print_screen_brightness_overridden = false;
+    bool print_override_session_active = false;
     std::optional<CustomColorState> custom_color;
 };
 

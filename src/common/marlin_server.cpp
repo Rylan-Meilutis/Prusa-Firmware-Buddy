@@ -235,6 +235,18 @@ static MutexAtomic<EncodedFSMResponse, freertos::Mutex> fsm_response = empty_enc
 
 namespace {
 
+    constexpr uint32_t ignored_serial_macro_print_max_s = 10;
+
+    struct SerialPrintSnapshot {
+        bool valid = false;
+        uint32_t print_duration = 0;
+        time_t print_start_time = TIMESTAMP_INVALID;
+        time_t print_end_time = TIMESTAMP_INVALID;
+#if HAS_CHAMBER_FILTRATION_API()
+        buddy::ChamberFiltration::Snapshot chamber_filtration;
+#endif
+    };
+
     struct server_t {
         EventMask notify_events[MARLIN_MAX_CLIENTS]; // event notification mask - message filter
         EventMask notify_changes[MARLIN_MAX_CLIENTS]; // variable change notification mask - message filter
@@ -258,6 +270,9 @@ namespace {
         bool was_print_time_saved = false;
         uint32_t saved_print_duration = 0;
         uint32_t frozen_print_duration = 0;
+        uint32_t print_start_ticks_s = 0;
+        bool print_elapsed_timer_active = false;
+        SerialPrintSnapshot serial_print_snapshot;
 #if HAS_MMU2()
         bool mmu_maintenance_checked = false;
 #endif
@@ -808,7 +823,48 @@ static void save_print_time_to_odometer(uint32_t print_duration) {
 }
 
 static void capture_print_duration() {
-    server.frozen_print_duration = std::max(server.frozen_print_duration, print_job_timer.duration());
+    uint32_t duration = print_job_timer.duration();
+
+    if (server.print_elapsed_timer_active) {
+        duration = std::max(duration, ticks_s() - server.print_start_ticks_s);
+    }
+
+    server.frozen_print_duration = std::max(server.frozen_print_duration, duration);
+}
+
+static void capture_serial_print_snapshot() {
+    server.serial_print_snapshot = {
+        .valid = true,
+        .print_duration = marlin_vars().print_duration.get(),
+        .print_start_time = marlin_vars().print_start_time.get(),
+        .print_end_time = marlin_vars().print_end_time.get(),
+#if HAS_CHAMBER_FILTRATION_API()
+        .chamber_filtration = buddy::chamber_filtration().snapshot(),
+#endif
+    };
+}
+
+static bool is_ignored_serial_macro_print(bool finished) {
+    return finished
+        && server.print_is_serial
+        && server.serial_print_snapshot.valid
+        && server.frozen_print_duration <= ignored_serial_macro_print_max_s
+        && planner.max_printed_z <= 0;
+}
+
+static void restore_serial_print_snapshot() {
+    if (!server.serial_print_snapshot.valid) {
+        return;
+    }
+
+    marlin_vars().print_duration = server.serial_print_snapshot.print_duration;
+    marlin_vars().print_start_time = server.serial_print_snapshot.print_start_time;
+    marlin_vars().print_end_time = server.serial_print_snapshot.print_end_time;
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().restore_snapshot(server.serial_print_snapshot.chamber_filtration);
+#endif
+    server.frozen_print_duration = server.serial_print_snapshot.print_duration;
+    server.serial_print_snapshot.valid = false;
 }
 
 static void cycle() {
@@ -969,7 +1025,16 @@ void static finalize_print(bool finished) {
 
     capture_print_duration();
     print_job_timer.stop();
+    server.print_elapsed_timer_active = false;
+    if (is_ignored_serial_macro_print(finished)) {
+        fsm_destroy(ClientFSM::Serial_printing);
+        server.print_is_serial = false;
+        _server_update_vars();
+        restore_serial_print_snapshot();
+        return;
+    }
     _server_update_vars();
+    marlin_vars().print_duration = server.frozen_print_duration;
     // Check if the stopwatch was NOT stopped to and add the current printime to the statistics.
     // finalize_print is being called multiple times and we don't want to add the time twice.
     if (!server.was_print_time_saved) {
@@ -1020,6 +1085,7 @@ void static finalize_print(bool finished) {
     media_prefetch.stop();
 
     server.print_is_serial = false; // reset flag about serial print
+    server.serial_print_snapshot.valid = false;
 
     marlin_vars().print_end_time = time(nullptr);
     marlin_vars().add_job_result(job_id, finished ? marlin_vars_t::JobInfo::JobResult::finished : marlin_vars_t::JobInfo::JobResult::aborted);
@@ -1323,6 +1389,7 @@ void serial_print_start() {
         break;
     }
 
+    capture_serial_print_snapshot();
     server.print_state = State::SerialPrintInit;
     print_state = {};
 }
@@ -2191,9 +2258,14 @@ static void _server_print_loop(void) {
     case State::PrintInit:
     case State::SerialPrintInit:
         server.print_is_serial = (server.print_state == State::SerialPrintInit);
+        if (!server.print_is_serial) {
+            server.serial_print_snapshot.valid = false;
+        }
         server.was_print_time_saved = false;
         server.saved_print_duration = 0;
         server.frozen_print_duration = 0;
+        server.print_start_ticks_s = ticks_s();
+        server.print_elapsed_timer_active = true;
 #if HAS_MMU2()
         server.mmu_maintenance_checked = false;
 #endif

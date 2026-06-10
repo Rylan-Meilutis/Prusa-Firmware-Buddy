@@ -126,6 +126,14 @@ extern osThreadId displayTaskHandle;
 
 static constexpr uint32_t screen_brightness_wake_ms = 30000;
 
+#if !HAS_SIDE_LEDS()
+static uint8_t active_screen_brightness() {
+    return leds::clamp_screen_brightness(
+        leds::LightState::active,
+        (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(leds::LightState::active)) & 0xff);
+}
+#endif
+
 using StatusLeds = neopixel::LedsSPI10M5Hz<4, GuiLedsWriter::write>;
 
 static StatusLeds &get_status_leds() {
@@ -315,21 +323,40 @@ void LEDManager::update_lcd_brightness() {
             : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
-    if (lcd_brightness_wake_until_ms) {
+    const bool terminal_print_state = printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Exit;
+    if (print_active && !print_override_session_active) {
+        print_screen_brightness_overridden = false;
+        lcd_brightness_wake_until_ms = 0;
+        lcd_brightness_wake_from_print_override = false;
+        print_override_session_active = true;
+    } else if (!print_active && terminal_print_state) {
+        print_screen_brightness_overridden = false;
+        lcd_brightness_wake_until_ms = 0;
+        lcd_brightness_wake_from_print_override = false;
+        print_override_session_active = false;
+    }
+    bool screen_wake_active = false;
+    if (lcd_brightness_wake_from_print_override && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15) {
+        state = leds::LightState::active;
+        screen_wake_active = true;
+    } else if (lcd_brightness_wake_until_ms) {
         const uint32_t now = ticks_ms();
         if (now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms) {
             state = leds::LightState::active;
+            screen_wake_active = true;
         } else {
             lcd_brightness_wake_until_ms = 0;
+            lcd_brightness_wake_from_print_override = false;
         }
     }
-    if (!print_active) {
-        print_screen_brightness_overridden = false;
-    }
-    const uint8_t brightness = print_active && print_screen_brightness_overridden
+    const uint8_t brightness = screen_wake_active
+        ? lcd_brightness_wake_percent
+        : print_active && print_screen_brightness_overridden
         ? print_screen_brightness_override
         : (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    set_lcd_brightness(print_active && print_screen_brightness_overridden
+    set_lcd_brightness(screen_wake_active
+            ? brightness
+        : print_active && print_screen_brightness_overridden
             ? std::min<uint8_t>(brightness, 100)
             : leds::clamp_screen_brightness(state, brightness));
 #endif
@@ -347,6 +374,11 @@ bool LEDManager::wake_lcd_from_dim_idle() {
         || marlin_server::is_printing_state(printer_state)
         || marlin_server::is_extended_paused_state(printer_state)
         || marlin_server::serial_print_active();
+    if ((lcd_brightness_wake_from_print_override && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15)
+        || (lcd_brightness_wake_until_ms && ticks_ms() - lcd_brightness_wake_until_ms < screen_brightness_wake_ms)) {
+        return false;
+    }
+
     const bool guided_activity = guided_activity_active();
     const leds::LightState state = print_active
         ? leds::LightState::printing
@@ -355,12 +387,17 @@ bool LEDManager::wake_lcd_from_dim_idle() {
             : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
-    const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
-    if (state != leds::LightState::idle || brightness >= 15) {
+    const uint8_t brightness = print_active && print_screen_brightness_overridden
+        ? print_screen_brightness_override
+        : (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    if ((state != leds::LightState::idle && state != leds::LightState::deep_idle && state != leds::LightState::printing) || brightness >= 15) {
         return false;
     }
-    lcd_brightness_wake_until_ms = ticks_ms();
-    set_lcd_brightness(leds::clamp_screen_brightness(leds::LightState::active, brightness));
+    lcd_brightness_wake_from_print_override = state == leds::LightState::printing;
+    lcd_brightness_wake_until_ms = lcd_brightness_wake_from_print_override ? 0 : ticks_ms();
+    lcd_brightness_wake_percent = lcd_brightness_wake_from_print_override ? leds::minimum_screen_brightness(leds::LightState::active)
+                                                                           : active_screen_brightness();
+    set_lcd_brightness(lcd_brightness_wake_percent);
     return true;
 }
 #endif
@@ -378,6 +415,8 @@ uint8_t LEDManager::get_print_screen_brightness() const {
 void LEDManager::set_print_screen_brightness(uint8_t brightness) {
     print_screen_brightness_override = std::min<uint8_t>(brightness, 100);
     print_screen_brightness_overridden = true;
+    lcd_brightness_wake_until_ms = 0;
+    lcd_brightness_wake_from_print_override = false;
     set_lcd_brightness(print_screen_brightness_override);
 }
 #endif
