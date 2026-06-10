@@ -210,6 +210,7 @@ Message-screen time suppression is also present in the general Messages screen, 
 M115 advertises printer storage support for OctoPrint (`SDCARD`, `EXTENDED_M20`, `LFN_WRITE`).
 M20/M21/M23-M30/M32 support OctoPrint printer-storage workflows: list, upload, select, print-from-SD, pause/resume, progress status, seek, and delete.
 M28/M29 upload lines are written to USB media and are not passed through the serial print detector as live print commands.
+Serial M28 must enter upload mode immediately from the serial receive loop. Do not leave it queued behind incoming file lines, because fast OctoPrint uploads can otherwise be acknowledged without being written to USB.
 Finished serial-print summaries persist until acknowledgement or the next print and rotate duration, completion time, and remaining filtration time when active.
 Host paths normalize onto `/usb/`, reject parent-directory traversal, and create upload directories as needed.
 ```
@@ -373,6 +374,7 @@ When extending `MarlinSettings::load()`, preserve the upstream startup sequence:
 Keep the chamber fan/filtering behavior and heater safety timer changes.
 
 Preserve filtration lifetime accounting on every stop path. Active filter usage is journaled periodically while the fan runs, and the remaining whole-second interval must be committed before a manual early stop or backend disable clears the output state.
+Keep `M154.8` as the G-code trigger for the configured post-print filtration cycle and `M154.8 S0` as the stop command.
 
 Important areas:
 
@@ -726,6 +728,7 @@ M154.4 serial printing UI settings
 M154.5 external light-bar state enables
 M154.6 Core One / Core One Plus extended printer type
 M154.7 status LED finished-hold seconds
+M154.8 filtration cycle start/stop
 Settings -> Export RME Settings writes /usb/rme_settings.gcode
 ```
 
