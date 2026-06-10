@@ -28,7 +28,12 @@ static bool post_filter_active() {
 }
 
 static bool print_active_for_status_override() {
-    return marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active();
+    const auto state = marlin_vars().print_state.get();
+    return state == State::PrintInit
+        || state == State::SerialPrintInit
+        || marlin_server::is_printing_state(state)
+        || marlin_server::is_extended_paused_state(state)
+        || marlin_server::serial_print_active();
 }
 
 static uint8_t packed_brightness(uint32_t values, LightState state) {
@@ -386,6 +391,10 @@ void StatusLedsHandler::set_brightness(LightState state, uint8_t val) {
     const uint8_t shift = light_state_shift(state);
     brightness_by_state = (brightness_by_state & ~(0xffu << shift)) | (static_cast<uint32_t>(val) << shift);
     config_store().status_led_brightness_by_state.set(brightness_by_state);
+    if (state == LightState::printing) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+    }
 }
 
 uint16_t StatusLedsHandler::get_finished_hold_s() {
@@ -398,6 +407,7 @@ void StatusLedsHandler::set_finished_hold_s(uint16_t val) {
 
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
+    print_status_overridden = false;
     if (!active) {
         print_status_disabled = false;
         print_status_brightness = 100;
@@ -418,6 +428,7 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
         val = 100;
     }
     std::lock_guard lock(mutex);
+    print_status_overridden = true;
     print_status_brightness = val;
     print_status_disabled = print_status_brightness == 0;
     old_state = StateAnimation::_last;
@@ -465,6 +476,7 @@ void StatusLedsHandler::update() {
     const bool timed_finished_hold_active = finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) < 0;
 
     if (!print_active) {
+        print_status_overridden = false;
         print_status_disabled = false;
         print_status_brightness = 100;
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -539,7 +551,7 @@ std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
 
     const auto data = controller_instance().data();
     uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
-    if (print_active_for_status_override()) {
+    if (print_active_for_status_override() && print_status_overridden) {
         brightness = static_cast<uint8_t>(static_cast<uint16_t>(brightness) * print_status_brightness / 100);
     }
     const bool filtering = post_filter_active();
