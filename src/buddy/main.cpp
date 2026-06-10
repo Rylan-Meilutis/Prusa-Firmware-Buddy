@@ -269,7 +269,11 @@ extern "C" void main_cpp(void) {
     Fans::init_hw();
     hw_dma_init();
 
-    W25xFlash::instance().init();
+    if (!W25xFlash::instance().init()) {
+        // Actually, there is no point in calling bsod() here since it writes the message
+        // to the external FLASH to show after the reboot
+        bsod("failed to initialize ext flash");
+    }
 
     // ADC/DMA
     hw_adc1_init();

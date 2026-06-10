@@ -51,7 +51,7 @@ public:
     ///
     /// When initialized using this function, all interface functions
     /// must be called in task context only.
-    void init();
+    bool init();
 
     /// (Re)initialize after the scheduler has been stopped.
     ///

@@ -306,16 +306,9 @@ bool W25xFlash::init_internal() {
     return true;
 }
 
-void W25xFlash::init() {
+bool W25xFlash::init() {
     bus.init();
-    if (init_internal()) {
-        return;
-    }
-
-    // BFW-6813
-    // Actually, there is no point in calling bsod() here since it writes the message
-    // to the external FLASH to show after the reboot
-    bsod("failed to initialize ext flash");
+    return init_internal();
 }
 
 bool W25xFlash::reinit_before_crash_dump() {
