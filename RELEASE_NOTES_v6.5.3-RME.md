@@ -1,0 +1,536 @@
+# 6.5.3-RME Firmware for Prusa CORE One, XL, MK4, MK3.9, MK3.5 and MINI
+
+## Summary
+
+  * New features and improvements
+    * Serial printing screen for OctoPrint and other serial hosts
+    * Persistent print-finished summaries with duration, completion time, and remaining filtration time
+    * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete
+    * Prusa Connect compatibility reporting so Connect sees the stock upstream firmware version while local RME branding remains visible
+    * Improved serial print start and finish detection
+    * Host-preferred serial print progress reporting
+    * Improved serial host message filtering
+    * Post-print status LED filtering indication and configurable finished hold [C1, XL, MK]
+    * Slow green filtering status LED indication [C1, XL]
+    * Per-state chamber/side LED brightness, timeout, and sequence behavior [C1, XL]
+    * Per-state screen brightness controls for active, idle, deep idle, and printing states
+    * Per-print Tune menu percent controls for chamber/side lighting, status LED brightness, and screen brightness
+    * Temporary lighting overrides isolated from LCD brightness with readable wake behavior for screen-off print overrides
+    * Core One / Core One Plus printer type selection [C1]
+    * Serial printing UI mode selection for legacy, messages-only, and progress views
+    * Per-state external GPIO light bar control for supported xBuddy GPIO breakout hardware [C1, MK]
+    * Improved chamber fan and filtration controls [C1, XL]
+    * Configurable hotend and bed-heater safety timeouts capped at 60 minutes
+    * PID settings screen for viewing, editing, autotuning, and resetting hotend/heatbed PID values
+    * Optional BBF firmware signing for release builds with a local default signing key
+    * Clarified stock Prusa bootloader limitations for custom firmware signing and release builds
+    * Size-optimized release LTO linking to reduce flash usage, especially on XL
+    * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
+    * UI theme updates and theme import support
+  * Fixes
+    * Fixed serial print starts being missed while the printer is blocked by heater waits
+    * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
+    * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
+    * Fixed `M601` from serial hosts pausing motion without reliably parking the print head
+    * Fixed paused serial prints dropping out of the print screen
+    * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
+    * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
+    * Fixed cancel confirmation wording on print screens
+    * Fixed bed heating being disabled by the safety timer while a print is paused
+    * Fixed serial progress jumping backwards when host and G-code progress disagreed
+    * Fixed decimal `M117` progress parsing, for example `4.89% complete` now reports `5%`
+    * Fixed host-reported serial print ETA snapshots staying frozen instead of counting down between updates
+    * Added conservative host ETL parsing with streamed `M73 P/R` fallback when useful host percentage or ETA data is unavailable
+    * Fixed time-only host messages such as `1:04 am` appearing on message screens
+    * Fixed time-only host messages followed by `today` or `tomorrow` appearing on serial message screens
+    * Fixed serial message pages hiding the numeric print percentage and retaining too few useful host messages
+    * Fixed MMU load/unload and purge progress being hidden by the serial print screen during serial prints
+    * Bridged additional print-adjacent FSM progress to the serial print screen, including safety-timer resume, nozzle-cleaning recovery, and cold-pull temperature progress
+    * Added an upstream release playbook for quickly rebasing and rebuilding the RME firmware on new upstream Buddy releases
+    * Added a configurable solid-green status LED hold after post-print filtering completes
+    * Fixed post-print door acknowledgement when a Core One print finishes while the door is already open
+    * Fixed chamber LEDs staying on through filtering when they should be allowed to time out
+    * Fixed disabling chamber lights also disabling the status LEDs/status bar on Core One
+    * Fixed canceled/aborted prints showing the finished green blink instead of the abort indication
+    * Added Core One door-cycle acknowledgement to hide the remaining filtering status blink and finished hold
+    * Added a Core One door-open prompt to end post-print filtration early; it closes automatically if filtering finishes while the prompt is open
+    * Added a finished-screen `Stop Filter` action that ends post-print filtration early without dismissing the finished screen
+    * Added swipeable page-dot navigation for serial print-finished duration, completion-time, and remaining-filtration summaries
+    * Fixed canceled prints losing their elapsed print duration during abort cleanup
+    * Fixed active-print startup markers such as `M75` arming a second serial print start after `M77`, which reset completed serial-print duration to zero
+    * Fixed the serial-print header flickering because its unchanged caption was redrawn on every GUI loop
+    * Reduced serial message-page switching redraws by invalidating only widgets whose visibility changes instead of repainting the entire screen
+    * Fixed canceling a detected serial print before its initial home from issuing an unnecessary unhomed Z clearance move
+    * Fixed status LEDs remaining off after the finished hold instead of following normal active, idle, and deep-idle brightness after screen or door activity
+    * Fixed the persistent print-finished screen keeping chamber lighting and the LCD awake throughout post-print filtration
+    * Fixed external GPIO light bar active-sink output handling and per-state sequence behavior
+    * Fixed external chamber light flicker caused by transient off/on commands during print start and finish transitions
+    * Fixed active-state screen brightness being configurable too low to safely read the display
+    * Fixed dim idle/deep-idle screens accepting accidental first input before the printer has visibly woken
+    * Changed `Off` screen brightness to disable the LCD controller backlight path instead of only writing minimum brightness
+    * Kept OOB/setup, calibration, self-test, MMU, and other guided FSM flows in the active lighting/screen state
+    * Fixed all-build progress display leaving a completed job shown as running at 100%
+    * Fixed XL release boot overflow while keeping the same RME feature set enabled as the other supported printers
+    * Added `M154` RME fleet-configuration G-code and Settings export to `/usb/rme_settings.gcode`
+    * Fixed PID autotune save/load behavior so `M303 ... U1` followed by `M500` persists tuned PID values for future boots
+    * Increased chamber vent open/close lever travel slightly to help overcome slide resistance [C1, C1L]
+    * Suppressed manual open-vent prompts during serial prints and on Core One Plus
+    * Made Core One Plus automatic vent handling defer to explicit `M870` commands and made serial prints rely on streamed vent commands instead of inferred filament state
+    * Fixed Core One Plus selection reporting as Core One L; Plus now reports `COREONE+`, while Core One L builds no longer expose the Core One / Plus selector
+    * Fixed cold-boot manual Z jogging crashing when PID persistence skipped the upstream Marlin motion and stepper initialization path
+    * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
+    * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
+
+This is a custom firmware release based on upstream Prusa Firmware Buddy 6.5.3. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.
+
+The release is based on upstream tag `v6.5.3` (`3fc7b43a3`) with the RME changes from branch `coreone-v6.5.3-patches`.
+
+The running firmware UI uses the short `6.5.3-RME` version. Prusa Connect intentionally receives the stock upstream `6.5.3` version string for compatibility and feature gating, while local UI/API surfaces and release artifacts keep the RME identity. The stock Prusa bootloader firmware-selection menu still appends the BBF header build number; removing that numeric suffix requires a bootloader change because the build number is mandatory update-order metadata.
+
+## Serial printing screen
+
+A dedicated serial printing screen has been added for OctoPrint and other serial hosts. The screen shows print progress, printer status, filtered host messages, and a print-finished state with a `Continue` acknowledgement button.
+
+Serial print start detection handles `M75`, eligible `M73 P0/Q0`, OctoPrint-style startup/status messages, and blocking heater waits such as `M109`, `M190`, and `M191`. Homing, mesh leveling, and ordinary toolhead movement no longer enter serial-print mode by themselves.
+
+Starting a second serial print immediately after a previous print finishes now clears the previous finished/aborted state before entering the new serial print state.
+
+Serial print completion is detected from `M77` and completed `M73 P100/Q100 R0/S0` messages.
+
+Serial pause handling has been improved. `M601` from OctoPrint or another serial host now stops accepting additional streamed commands while the existing queue drains, then runs the normal print-head parking sequence. Serial commands are accepted again after the printer reaches the paused state so `M602` or host resume can be received.
+
+Firmware pause states, MMU errors, and runout-style pauses keep the print treated as active for the print screen and chamber lighting. The printer also reports pause/resume style host actions back to serial hosts where applicable.
+
+MMU filament runout recovery on serial prints now sends the serial-host resume action after the printer resumes, so hosts such as OctoPrint do not remain paused after the printer has recovered.
+
+The serial print screen now has selectable UI modes:
+
+  * `Legacy` shows the OctoPrint-style logo screen.
+  * `Messages Only` shows the full-screen serial messages view.
+  * `Progress` is the default new serial print UI with progress, status, and messages.
+
+The UI mode is selected from a dropdown, not multiple independent toggles.
+
+When a serial print finishes, the screen remains on `PRINT FINISHED` until the user acknowledges it or another print starts. The summary rotates through print duration, completion time, and remaining post-print filtration time when filtering is active. The page-dot indicator shows the available summaries and the user can swipe through them manually. Normal-print finished screens expose the same timing information.
+
+Elapsed print duration is preserved continuously while a print is active. Serial-host end commands and cleanup G-code cannot reset the displayed duration to zero before either serial or normal print-finished summaries are rendered.
+
+Startup markers such as `M75`, startup `M73`, and OctoPrint startup text received while a serial print is already active no longer arm a pending second serial print start. This prevents trailing end G-code after `M77` from restarting serial-print state and clearing the completed duration before the persistent finished screen renders it.
+
+Elapsed duration includes startup heating time. File and serial print timers start before startup G-code continues through blocking hotend, bed, or chamber heating waits.
+
+Canceled prints preserve the elapsed print duration captured before abort cleanup begins. Serial-print header captions are now updated only when the print state changes, preventing redraw flicker during normal GUI loops.
+
+## OctoPrint SD/USB storage support
+
+OctoPrint can now use the printer storage path for print-from-SD style workflows against the printer's USB media.
+
+The firmware now advertises SD-card support through `M115` capabilities and implements the host-facing SD command set needed by OctoPrint and similar serial hosts:
+
+  * `M20` lists printable files recursively from `/usb/`, including file sizes and long-name output with `M20 L`.
+  * `M21` reports media availability.
+  * `M23` selects a file from USB media.
+  * `M24` starts the selected file or resumes a paused print.
+  * `M25`, `M26`, and `M27` pause, set byte position, and report byte-position progress.
+  * `M28`/`M29` write uploaded G-code lines to USB media without feeding those lines into the serial-print detector.
+  * `M30` deletes files from USB media.
+  * `M32` selects and starts a file in one command.
+
+The command handlers normalize host paths onto `/usb/`, reject parent-directory traversal, create upload directories as needed, and keep uploaded file contents out of the live serial print stream until the host selects and starts the uploaded file.
+
+## Prusa Connect compatibility
+
+Prusa Connect registration, telemetry/events, and websocket upgrade requests now report the base upstream firmware version instead of the custom `-RME` suffix. This keeps Connect's cloud-side compatibility checks and feature gates aligned with the upstream firmware base while preserving RME branding on the printer UI, local PrusaLink version endpoint, M115 output, crash dumps, BBF metadata, and release artifacts.
+
+Connect file uploads still depend on writable USB media. The printer advertises `/usb` storage to Connect only when media is inserted and mounted, and Connect downloads remain constrained to `/usb` paths and transferable file types.
+
+## Host progress reporting
+
+Serial print progress now prefers progress reported by the serial host over firmware fallback progress. This avoids the display jumping backwards when the host and the G-code stream disagree. Trusted host progress comes from host status messages such as OctoPrint `M117` status text; streamed `M73` remains available for print start/end detection and fallback progress, but no longer overrides fresh host-reported percent or ETA.
+
+Decimal host progress messages are parsed correctly. For example, `M117 4.89% complete` now reports `5%` instead of being interpreted as `89%`.
+
+## Serial host message filtering
+
+Progress, ETA, and time-only messages are filtered from the message screen so useful host messages remain visible. This includes bare clock messages such as `1:04 am` and host clock messages followed by `today` or `tomorrow`.
+
+The serial message page keeps the progress bar visible, shows the current print percentage in the message header, uses a denser message font, and retains more useful host messages instead of dropping back to only the newest message when the buffer fills.
+
+During MMU load/unload and purge steps, including extra purge during serial prints, the serial status page now shows the firmware FSM progress percentage so the on-printer progress bar is not left at `0%` while the filament action is running.
+
+The serial status page also bridges other print-adjacent FSM progress sources where they are active while the print screen is visible: safety-timer temperature resume, nozzle-cleaning recovery progress, and cold-pull heating/cooling progress.
+
+## Post-print LED indication [C1, XL, MK]
+
+Status LEDs smoothly pulse from the configured warning color toward RGB white as the post-print filtration timer expires unless the completed print is acknowledged by a Core One chamber-door open/close cycle. With the default palette, the pulse starts yellow and becomes progressively whiter as an approximate at-a-glance indication of chamber air cleanup progress. The pulse reverses immediately at its minimum rather than dwelling fully off. When filtration ends, or immediately after a print that does not need filtration, unacknowledged status LEDs hold solid green for the configurable `Status Finish Hold` duration. The default is five minutes. The distinct colors make active filtering and completed filtering recognizable without relying on the animation alone. After the hold expires, status LEDs return to their normal idle sequence.
+
+Mid-print filtration fan operation does not activate the green filtering indication. The status LEDs remain in their normal blue printing state until the print has finished, and chamber-door acknowledgement is ignored until then.
+
+Chamber/side lights remain independent from that status indication. On Core One and Core One L, the chamber door can still wake chamber lighting and acknowledge its held chamber-light state. A door open/close cycle during filtration also acknowledges the status indication. Chamber/side lighting and the LCD resume normal idle timing while post-print filtration continues.
+
+The persistent print-finished screen exposes a `Stop Filter` action while post-print filtration remains active. It ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains a separate acknowledgement action. Opening the Core One or Core One L door during filtration prompts whether to end the sequence early. If filtering naturally completes while that prompt is open, the prompt closes automatically and returns to the persistent print-finished screen.
+
+`Status Finish Hold` is available in Lights Settings. Fleet configuration can set the same value with `M154.7 H<seconds>`, where `H0` disables the solid-green hold.
+
+After that hold, the finished animation remains selected by the print state while its brightness follows the normal active, idle, and deep-idle sequence. Screen interaction and Core One door activity wake the strip again. An open Core One door holds active brightness until the door closes, then the normal timeout sequence resumes.
+
+## Chamber and side LED timeouts [C1, XL]
+
+The chamber/side LED timeout behavior has been simplified around two user-facing timings:
+
+  * Time until dimmed
+  * Time until off
+
+The off time is measured from the last activity until the LEDs turn off. The dim time is measured from the last activity until the LEDs dim, capped by the off time.
+
+Door-open activity on Core One keeps the active timer reset while the door is open. After the door closes, the active countdown begins again.
+
+Serial movement or non-print serial activity counts like screen activity for the LED timers. `M153` can be sent by a serial host to mark incidental non-print work idle. It is ignored while a print is active or paused, so it cannot suppress chamber/side lighting during a print.
+
+During an active print, the Tune menu includes a temporary percent control for screen brightness. Printers with chamber/side LEDs include a temporary percent control for those lights, and printers with a status strip include a temporary percent control for the status LEDs. `0%`/`Off` disables the corresponding lighting for the current print, while non-zero values dim it independently. Chamber/side LED overrides do not change the LCD state or screen brightness. These per-print overrides reset after the print and do not overwrite the persistent lighting defaults.
+
+The chamber/side lighting control is available on printers with `HAS_SIDE_LEDS`, and the status LED brightness control is available on printers with `HAS_LEDS`.
+
+LED brightness and enable values are independent between `Deep Idle`, `Idle`, `Active`, and `Printing`. There are no cross-state ordering limits: for example, Printing exterior lights may be dimmer than Idle lights or fully disabled while Idle lights remain enabled. The only state brightness minimum is the `15%` LCD safety floor for Active and Printing screen brightness. `M153` is limited to non-print host activity.
+
+Screen brightness is also configurable per state on printers with supported display backlight control. Active and Printing screen brightness settings are clamped to at least `15%` so the printer cannot become effectively unreadable while active or printing. Idle and Deep Idle can be set to `Off`. If the idle or deep-idle screen brightness is below `15%`, the first touch or encoder input only wakes and brightens the screen; that input is consumed and does not activate the focused UI action. If a temporary print screen override is below `15%`, the first interaction raises the screen to the readable `15%` print wake floor and subsequent interactions remain responsive until the print ends or the override changes.
+
+When screen brightness is `Off`, supported display paths write a full black frame to the panel before disabling brightness/backlight control and display output. ST7789/MINI also enters sleep-in. ILI9488/XLCD also forces the front/status LED strip dark while the screen is off so XLCD revisions with a different backlight channel cannot remain lit. While the screen is intentionally off, display-driver pixel writes are suppressed so delayed UI draws cannot repaint the old UI over the black frame. Displays re-enable write access and brightness control before setting a non-zero brightness, and the first wake from `Off` invalidates the full current screen so MINI/Core One/XL redraw immediately instead of remaining black until the next UI event.
+
+During first boot after flashing, bootstrap/install screens hold screen brightness at 100% until resource, bootloader, ESP, and puppy setup is complete. The firmware now paints the splash screen before starting those install steps, and the post-boot idle timer is seeded only after the first home-screen paint so the printer cannot dim immediately based on pre-display boot time.
+
+OOB setup, calibration, self-tests, MMU tests/actions, and other guided FSM screens are treated as active use. Those flows hold the active lighting and screen brightness state so the printer does not dim or turn the screen off during setup or maintenance workflows.
+
+The Lights Settings menu now exposes state-specific LED pages:
+
+  * `Deep Idle`
+  * `Idle`
+  * `Active`
+  * `Printing`
+
+Each state page can enable or disable the chamber/side LEDs for that state and set the chamber/side LED brightness used by that state. On supported xBuddy GPIO breakout hardware, each state page can also enable or disable the external light bar independently from the chamber/side LEDs.
+
+This makes sequences such as chamber/side LEDs on for idle, active, and printing while the external light bar is enabled only during printing configurable from the UI.
+
+The main Lights Settings page controls the timeout sequence. `Active to Idle` controls how long the printer remains in the active light state after user or serial activity before entering the idle lighting state. `Idle to Deep Idle` controls how long the printer remains idle before entering deep idle/off. The active page also includes a `Door Holds Active` setting so Core One users can decide whether an open chamber door keeps the printer in the active lighting state.
+
+The main Lights Settings page includes `Door Finish Ack` on Core One and Core One L. This controls whether the chamber door is used to acknowledge the post-print finished-light hold.
+
+## Build size and flash headroom
+
+Release builds now use `-Oz` for release compile and final LTO link optimization, plus `-fmerge-all-constants` to merge duplicate constants and strings. This reduces final firmware flash usage across platforms and gives XL enough room to keep the same RME features enabled as the other supported printers.
+
+With XL per-print side-strip percent brightness, per-print screen brightness, per-state screen/status brightness, and OctoPrint SD/USB storage support enabled, the local XL release boot image now builds successfully with substantial boot flash headroom by moving XL translations to the resource image.
+
+Additional machine-specific compile-time pruning keeps unused code out of targets that cannot use it. MINI no longer instantiates the status LED color settings screen when `HAS_LEDS` is disabled. Core One/Core One Plus compile the status-bar-off LED path directly instead of carrying a runtime branch, and XL compiles the side-strip/enclosure second-driver path only for XL.
+
+Built-in UI themes now apply their status LED palette immediately. Indigo uses the calibrated `#1A0040` deep-indigo printing status bar while the other built-in profiles explicitly retain the standard cyan status bar. Imported JSON themes can set the in-progress status-strip / light-bar color through `led.printing`.
+AC-controller progress animations now use the configured printing status LED color instead of overriding it with a hardcoded cyan value.
+Core One xBuddy-extension RGBW PWM preserves raw `0-255` duty values on its dedicated timer. Custom `M150` status-bar animations remain active until the printer state changes, matching upstream behavior. Solid `M150 A0` calibration commands apply immediately without passing through the normal animation cross-fade. Solid-frame animation percentages are normalized before RGBW fading so intermediate channel values no longer wrap modulo 256; the analog light bar can now use the colors supported by the hardware instead of collapsing intermediate values into unrelated colors.
+
+The per-state LED settings pages now share one runtime menu container instead of four separately instantiated template menus. This preserves Deep Idle, Idle, Active, and Printing controls while reducing generated GUI code enough for XL to keep the full feature set.
+
+Focused release boot builds after the latest pruning:
+
+  * XL: `1291244 B / 1919 KB` flash, `65.71%`
+  * MINI: `893296 B / 895 KB` flash, `97.47%`
+  * Core One: `1290800 B / 1919 KB` flash, `65.69%`
+  * Core One L: `1290944 B / 1919 KB` flash, `65.69%`
+  * MK3.5: `1850136 B / 1919 KB` flash, `94.15%`
+  * MK4: `1919312 B / 1919 KB` flash, `97.67%`
+
+`--final` builds retain the `-RME` full and short version suffixes while removing numeric development suffixes from the running application firmware version. The installed firmware UI identifies the custom firmware as `6.5.3-RME`. The stock Prusa bootloader firmware-selection screen still appends the mandatory BBF header build number after the `RME` tag; removing that bootloader-rendered number requires a bootloader change. Final builds disable `DEVELOPMENT_ITEMS` by default unless explicitly overridden. Final/non-development builds keep the full `M503` report command enabled, including human-readable headings/comments and TMC settings. Replayable persistent settings remain reportable, including PID, motion, probe, and other saved configuration values. PID editing, autotune, save, and load commands remain available through `M301`, `M303`, `M500`, and `M501`. Core One, Core One L, XL, and MINI store translations in the external resource image. The Core One/Core One L/XL resource image size is large enough to fit the web assets, puppy firmware, QOI assets, MMU firmware where applicable, and translation files.
+
+An upstream release playbook has been added at `doc/rme_upstream_release_playbook.md`. It documents the RME feature groups, conflict hotspots, build commands, smoke-test matrix, flash budget checks, release-note requirements, and BBF publishing checklist for quickly rebuilding the RME firmware on top of future upstream Buddy releases.
+
+## Safety timer and paused prints
+
+Hotend and bed-heater safety timeouts are now grouped under `Settings -> Heater Safety`. The hotend timeout is persistent and configurable from the UI or with `M86 S<seconds>`. The bed timeout remains independently configurable from the UI or with `M86 B<seconds>`.
+
+Both settings are capped at 3600 seconds / 60 minutes. Hotend timeout values are clamped to a non-zero safety value. `M86 B0` still disables the bed-heater safety timeout; non-zero bed values are clamped to the same 60-minute maximum and a minimum of 3 seconds.
+
+While a print is active, paused, pausing, or otherwise still in a print state, the bed-heater safety timer is held reset. This prevents the bed from being turned off during a long paused print. The nozzle safety timeout behavior remains separate.
+
+## PID settings and autotune persistence
+
+`Settings -> PID Settings` now sits next to Input Shaper and Phase Stepping. PID Settings opens separate Hotend and Heatbed submenus. Each submenu shows that heater's PID values, where supported, and each value can be edited directly from the printer UI. The hotend and heatbed can each be reset independently to their firmware defaults.
+
+PID values changed from the UI are applied immediately and stored persistently.
+
+Supported heaters can also be autotuned directly from the PID Settings screen. The autotune screen shows heating/cooling state, temperature, cycle progress, and the resulting P/I/D values. When autotune completes, the user is prompted to save or discard the new values; saving applies them and persists them, while discarding leaves the existing PID settings unchanged. Failed autotunes report failure instead of offering to save incomplete values.
+
+PID autotune remains available through Marlin G-code. Use `M303 ... U1` to apply the autotuned values to the live heater PID settings, then `M500` to save them to persistent storage. Saved values are loaded again on future boots through the normal settings-load path, and `M501` can reload them manually.
+
+## Filtering LED indication [C1, XL]
+
+When chamber filtration is active, the status LEDs use a slow warning-color brightness pulse. This is intentionally distinct from the solid green finished hold and is shared by printers with `HAS_CHAMBER_FILTRATION_API`, including Core One and XL.
+
+The chamber/side LEDs are allowed to dim or turn off during the filtering step. Status LEDs remain in the filtering indication unless a Core One chamber-door open/close cycle acknowledges the completed print. Deep idle does not suppress an unacknowledged filtering status blink.
+
+The filtering indication is strictly post-print. Running filtration fans during an active print does not replace the normal blue printing animation, and door acknowledgement cannot dismiss any finished or filtering indication before the printer reaches `Finished`.
+
+Opening and closing the Core One chamber door during filtration acknowledges the completed print. It forces the status LED output fully off for the rest of filtration, even if idle status LEDs are configured with a non-zero brightness or color, and suppresses the later solid-green status hold until the next print starts. The chamber-light hold is acknowledged at the same time.
+
+## External GPIO light bar control [C1, MK]
+
+External GPIO light bar support has been added for supported xBuddy boards with the GPIO breakout / IO expander, including Core One / Core One Plus and MK-series xBuddy printers.
+
+The light bar can be configured from the UI, including selectable GPIO pins and per-pin output mode. Pin capabilities are respected so only valid output modes are selectable for each pin.
+
+GPIO pins assigned to the external light bar are protected from generic GPIO configuration commands.
+
+External light bar pins intentionally ignore PWM brightness. When enabled for the current state, configured external light pins are fully on; when disabled for the current state, they are off.
+
+The external light bar is configured per lighting state from the Lights Settings state pages. This allows the chamber/side LEDs and external GPIO light bar to be used together or independently. For example, chamber/side LEDs can be on during idle, active, and printing, while the external light bar is only enabled during printing.
+
+During an active print, the temporary chamber/side light override is the only control that intentionally pairs chamber/side LEDs with the external GPIO light bar: `0%` turns both off for that print, and any non-zero override allows the external light bar to follow its print-state enable setting. Persistent per-state chamber/side LED settings and external GPIO enable settings remain independent.
+
+The external light output is latched and off-debounced so short firmware state gaps during print start or print finish do not command the external chamber lighting off and immediately back on. Sustained off states still turn the external light off normally.
+
+The external light bar is forced off during manual belt tuning because GPIO external lighting does not support PWM and can interfere with the belt-tuning light behavior. The force-off is not latched; when belt tuning exits or is aborted, the external light bar is recomputed on the next LED update and returns to the state configured for the printer's current lighting mode.
+
+Active-sink pins are driven low when the external light is on. Pins that only support pull-down/floating output cannot be configured as active-high outputs. IO expander outputs are returned to their factory-safe state during shutdown/reset handling.
+
+## LED G-codes
+
+The chamber/side LED G-code behavior has been updated:
+
+  * `M151 A<0-255>` sets active/user/door side LED brightness.
+  * `M151 P<0-255>` sets print/minimum side LED brightness.
+  * `M151 L<0-255>` sets dimmed/idle side LED brightness.
+  * `M151 I<seconds>` sets time until dimmed.
+  * `M151 O<seconds>` sets time until off.
+  * `M153` marks incidental non-print host activity idle. It is ignored while a print is active or paused.
+  * `M152 P<pin> S<0|1> A<0|1>` configures external GPIO light bar pins on supported xBuddy boards.
+  * `M152 P<pin> F<0|1|2>` applies an external-light diagnostic override: `F1` forces on, `F0` forces off, and `F2` clears the override.
+  * `M86 S<seconds>` sets the hotend safety timeout.
+  * `M86 B<seconds>` sets the bed-heater safety timeout. `B0` disables the bed-heater safety timeout.
+
+## RME fleet configuration G-code
+
+RME settings can be applied from G-code so a shared settings file can configure a fleet of printers:
+
+  * `M86 S<seconds> B<seconds>` sets exported hotend and bed-heater safety timeouts.
+  * `M154.0 D<0-100> I<0-100> A<15-100> P<15-100>` sets screen brightness for Deep Idle, Idle, Active, and Printing.
+  * `M154.1 D<0-100> I<0-100> A<0-100> P<0-100>` sets chamber/side brightness where `HAS_SIDE_LEDS` is available.
+  * `M154.2 D<0-100> I<0-100> A<0-100> P<0-100>` sets status LED brightness where `HAS_LEDS` is available.
+  * `M154.3 A<seconds> E<seconds> O<seconds> H<0|1> F<0|1>` sets lighting timeouts and door/post-print behavior where side LEDs are available.
+  * `M154.7 H<seconds>` sets the status LED solid-green finished-hold duration where status LEDs are available.
+  * `M154.4 U<0|1|2> T<seconds> A<0|1> S<0|1>` sets serial printing UI mode, timeout, auto-start, and screen enable.
+  * `M154.5 D<0|1> I<0|1> A<0|1> P<0|1>` sets external GPIO light-bar state enables where supported.
+  * `M154.6 E<index>` sets Core One / Core One Plus extended printer type where supported.
+
+The Settings menu includes `Export RME Settings`, which writes the current persistent RME settings to `/usb/rme_settings.gcode` for easy cloning to another printer.
+
+Compatibility note: `M151 W...` is no longer used as the chamber/strip brightness setter. Use `A`, `P`, or `L` depending on the intended brightness state.
+
+## UI and themes
+
+This release includes a broader UI theme refresh, updated icons and image assets, theme JSON support, and theme import/validation support.
+
+It also adds status LED color settings, serial printing settings, external light bar settings, lock settings, grouped heater safety timeout settings, and improved PIN/text input behavior.
+
+Waiting and heating status text on print screens has been made more visible.
+
+## Chamber fan and filtration controls [C1, XL]
+
+Chamber fan and filtration controls have been expanded with additional menu integration and clearer state handling.
+
+Filtering-specific LED behavior has been added so filtration can continue after a print while the chamber/side LEDs follow their normal timeout behavior.
+
+Filter lifetime usage is committed when filtration stops or is disabled, including manual early-stop actions, so the final partial accounting interval is not discarded.
+
+## Automatic chamber vents [C1, C1L]
+
+The automatic chamber vent open and close moves now travel 1.5 mm past the previous lever endpoint before releasing tension. This small overtravel is intended to help overcome resistance in the vent slide mechanism without making the move aggressive.
+
+Regular Core One file prints keep the manual open/close vent prompts. Serial prints assume the vent is already positioned correctly and do not derive a vent action from the stored filament selection.
+
+Core One firmware now exposes a printer type setting for `CORE One` and `CORE One Plus`. On Core One Plus file prints, automatic vent movement is used unless the scanned start G-code contains an explicit `M870` vent command. For serial Core One Plus prints, streamed `M870` commands are authoritative because the printer cannot reliably infer filament state from the host stream.
+
+## Manual motion stability
+
+Persistent PID loading now extends the upstream Marlin settings initialization path instead of replacing it. Boot and `M501` first restore the normal motion defaults, planner positioning state, global endstop defaults, and stepper-driver configuration, then overlay the persisted hotend and heatbed PID values. This fixes the cold-boot failure where moving Z before any other axis could drive the motors incorrectly and reboot the printer.
+
+Periodic odometer writes were also removed from the nested server `cycle()` path. Print finalization remains the explicit persistence point, keeping EEPROM journal writes out of blocking manual-movement loops such as `G123`.
+
+
+## Firmware signing
+
+Release builds can optionally sign generated `.bbf` files by setting `FIRMWARE_SIGNING_KEY` when running the top-level release wrapper:
+
+```sh
+FIRMWARE_SIGNING_KEY=/path/to/private.key ./build.py
+```
+
+If `FIRMWARE_SIGNING_KEY` is not set, `./build.py` uses the machine-local default key at `.local/firmware-signing-key.pem` when it exists.
+
+The underlying build wrapper also supports `--signing-key /path/to/private.key`.
+
+The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, and absolute staged BBF path.
+
+Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
+
+The RME firmware builds target the stock Prusa bootloader, but the bootloader itself is not built or modified as part of this open firmware tree. Prusa publishes the Buddy firmware source, while the stock bootloader is distributed as a closed binary and the trusted private key is not available.
+
+Because of that, these RME builds cannot be signed in a way that passes the official bootloader genuine-firmware check. The local signing key only produces internally consistent custom signatures.
+
+## Supported hardware notes
+
+  * Serial printing improvements are available where `HAS_SERIAL_PRINT` is enabled.
+  * Side/chamber LED behavior is available where `HAS_SIDE_LEDS` is enabled.
+  * Per-print chamber/side light disabling is available where `HAS_SIDE_LEDS` is enabled.
+  * Per-print chamber/side light brightness overrides are available where `HAS_SIDE_LEDS` is enabled.
+  * Per-print status LED brightness overrides are available where `HAS_LEDS` is enabled.
+  * Per-print screen brightness overrides are available from Tune during active prints.
+  * Per-state screen brightness settings are available where the display supports firmware backlight brightness control.
+  * Active and Printing screen brightness settings are clamped to at least `15%`; Idle and Deep Idle can be set to `Off`.
+  * `Off` screen brightness requests disable the display-controller backlight path where supported by the hardware.
+  * Idle/deep-idle values below `15%` require one wake-only input before normal UI actions resume.
+  * Filtering status LED behavior is available where `HAS_CHAMBER_FILTRATION_API` is enabled.
+  * External light bar support and external sequence settings are intended for supported xBuddy boards with the GPIO breakout / IO expander.
+  * Core One and Core One L use the chamber-door post-print acknowledgement flow for chamber lighting.
+  * Status LEDs blink throughout filtering unless the completed print is acknowledged by a Core One chamber-door open/close cycle. Unacknowledged prints use the configurable timed solid-green finished hold before normal idle behavior resumes.
+
+## Build validation
+
+Recent local validation used the firmware build wrapper:
+
+```sh
+python3 utils/build.py --preset xl --bootloader yes --final
+python3 utils/build.py --preset mini --bootloader yes --final
+python3 utils/build.py --preset coreone --bootloader yes --final
+python3 utils/build.py --preset coreonel --bootloader yes --final
+python3 utils/build.py --preset mk4 --bootloader yes --final
+python3 utils/build.py --preset mk3.5 --bootloader yes --final
+```
+
+The latest XL, MINI, Core One, Core One L, MK3.5, and MK4 release boot builds completed successfully after the current working-tree serial ETA, print-finished, and post-print LED changes. The signing path was validated with a temporary ECDSA key:
+
+```sh
+python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-store-output --signing-key /path/to/private.key
+```
+
+That build produced a non-zero BBF signature.
+
+## Changelog base
+
+Comparison base: upstream `v6.5.3` (`3fc7b43a3`)
+
+Current branch: `coreone-v6.5.3-patches`
+
+Current commit: `001e27e64`
+
+## Full changelog
+
+Commits included on top of upstream `v6.5.3`:
+
+```text
+706eb6ea5  2026-05-16  new octoprint screen and better color scheme
+8bbaec010  2026-05-16  transfer features for previous patch set (not company specific)
+913b0f0d8  2026-05-16  Ignore crckill build output
+ba6cdc894  2026-05-16  Fix terminal dirty flag buffer clearing
+d958f86e8  2026-05-16  screen fixes
+def64c15d  2026-05-16  octoprint usability improvements
+b9e9a3d65  2026-05-17  add better led control to the printer
+4c06b2584  2026-05-17  serial print overhaul
+13ed9e5c5  2026-05-17  fix possible bug
+5aa3a4dae  2026-05-17  better chamber fan controls.
+d788fa8ba  2026-05-17  support other machines to
+119d40bdb  2026-05-17  fix print start and temp readings
+4b33c2a92  2026-05-17  version fixes
+ba201b15d  2026-05-17  massive ui overhaul
+41622e014  2026-05-17  better detection
+8c34d04d8  2026-05-17  better serial print screen
+21532e2a0  2026-05-17  better reliability
+207b89816  2026-05-17  massive theme overhaul
+101016579  2026-05-17  added theme validation for file import
+e05e3f72b  2026-05-17  add build alias
+0e1d3282b  2026-05-18  theme fixes
+26139d733  2026-05-18  fix some serial print issues
+e69e7afa6  2026-05-18  better build script
+f673de476  2026-05-23  better led control
+48a18fa68  2026-05-23  fix serial percent parsing
+c531fcbe4  2026-05-23  round up to the nearest percentage
+c30caca41  2026-05-24  more changes to les statuses and other features
+2121b81a6  2026-05-24  led fixes for non core one printers
+b978c1b6b  2026-05-24  fix mini builds
+381ae1080  2026-05-25  external led fixes for core one variants and for mk variants
+c7727c62e  2026-05-25  attempt to reduce first boot flicker
+b966a5701  2026-05-25  some other misc fixes for led and print state
+89a2f5616  2026-05-25  some other misc fixes
+d1a64544c  2026-05-25  even more misc fixes
+4878d19b6  2026-05-25  even more misc fixes
+9bad55e66  2026-05-25  led config overhaul
+38df1e6d3  2026-05-26  code cleanup
+56463069a  2026-05-26  code cleanup
+5de46afbf  2026-05-26  some fixes
+e3e35f9bd  2026-05-26  more fixes
+0fb5dbe73  2026-05-26  more fixes
+3b7eb835d  2026-05-26  more fixes
+6ae16b2c5  2026-05-26  more fixes
+c4593a034  2026-05-26  more fixes
+0ea937ad5  2026-05-26  better ui
+861c81bad  2026-05-26  mini build fixes
+412a6c626  2026-05-26  mini build fixes
+47ffb5314  2026-05-26  lots of bug fixes
+80e247a55  2026-05-26  more fixes and renaming
+ee012d3b7  2026-05-26  xl fixes
+c9c452a77  2026-05-27  size improvments and other fixes
+24d1aaf99  2026-05-27  more fixes and added a playbook for future use
+2088e0b1b  2026-05-27  external lighting fixes
+f6768b1f8  2026-05-27  build fix for mk3.5
+4c368a64e  2026-05-27  playbook update
+42031dfcc  2026-05-27  lower flash usage
+b94b8bf8d  2026-05-27  update playbook
+20b6cc1f6  2026-05-28  updates for better leds and screen brightness control
+7d48097cb  2026-05-28  update playbook
+0d50b419e  2026-05-28  better screen brightness controls
+bfd1237b6  2026-05-28  update the playbook
+eb389aebf  2026-05-28  massive screen fixes
+89653129a  2026-05-28  more fixes
+7f66f9c0d  2026-05-28  fxi print screen and added support for saving custom pid c=values / changing them in the ui and restoring the factory defaults.
+587e17690  2026-05-28  better flash managments and build script fizes
+c5646c1c3  2026-05-28  playbook update
+4c87e7a1f  2026-05-28  fix layout stuff
+f103ebae8  2026-05-28  fix print progress display
+4277f7d74  2026-05-28  add auto pid process
+4d7ad3f61  2026-05-28  add auto pid process
+4c627524d  2026-05-30  fixed print screen issues
+8be8f9bd6  2026-05-31  updated readme
+c72ac603d  2026-06-01  updated a lot of stuff for better filter control and more
+e91781062  2026-06-01  led fixes for all systems
+56b670733  2026-06-01  better m503 for release builds
+f88e52eaa  2026-06-01  build script overhaul
+b160d4c86  2026-06-01  build script overhaul
+7d9ae4c46  2026-06-01  fxi the rme suffix
+751859a89  2026-06-01  fix issues and core one vent behaviour as well as fixed the z move crash
+098d789bd  2026-06-01  fix issues and core one vent behaviour as well as fixed the z move crash
+623fac7b5  2026-06-01  fixes for the printing screen
+2ef805243  2026-06-01  fix filter usage tracking
+f374d0127  2026-06-01  Gate filtration lighting until print completion
+656d7f10e  2026-06-01  Preserve print duration and restore status brightness cycling
+b6b994143  2026-06-01  Apply theme status colors and smooth filtration pulse
+a6f258bd2  2026-06-01  Migrate Indigo status LEDs away from cyan
+482c2e139  2026-06-01  Keep Indigo LED color profile driven
+2945e6614  2026-06-01  Keep non-Indigo printing LEDs cyan
+c0a934f97  2026-06-01  Use saturated Indigo for status LEDs
+49f20cac3  2026-06-01  Darken Indigo status LED profile
+9eb6c2378  2026-06-01  Restore stable Indigo LED calibration
+97afe9a3e  2026-06-01  Stabilize Core One RGBW LED PWM
+5bb2b871c  2026-06-01  Linearize Core One RGBW strip PWM
+c4b24015e  2026-06-01  Make solid LED calibration overrides immediate
+5500334d5  2026-06-01  Preserve M150 overrides until state changes
+d0de36c05  2026-06-01  Restore reliable cyan printing status bar
+0de2bd44e  2026-06-02  Fix RGBW lightbar color scaling and restore Indigo profile
+42cee3196  2026-06-02  Fix serial print completion and refine status lighting
+d23f43043  2026-06-02  Document serial completion and filtration lighting updates
+654c39baa  2026-06-09  Add Connect compatibility reporting and heater safety menu
+081ea0070  2026-06-09  Document Connect and heater safety updates
+61863f5ad  2026-06-09  Split PID settings by heater
+6bae8c7e9  2026-06-09  Show filtration time in print finished stats
+690bc9d1b  2026-06-09  Refresh release playbook audit numbers
+a3b6f9a0e  2026-06-10  Fix print lighting brightness overrides
+66849fee7  2026-06-10  Fix print lighting overrides and completion state
+001e27e64  2026-06-10  Document print lighting override behavior
+```
