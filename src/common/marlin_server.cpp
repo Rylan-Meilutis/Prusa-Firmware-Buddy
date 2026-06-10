@@ -172,6 +172,7 @@
 #if HAS_MMU2()
     #include <mmu2/mmu2_fsm.hpp>
     #include <mmu2/maintenance.hpp>
+    #include <mmu2/mmu2_reporting.hpp>
 #endif
 
 #include <config_store/store_instance.hpp>
@@ -950,6 +951,52 @@ static void restore_serial_print_snapshot() {
     server.serial_print_snapshot.valid = false;
 }
 
+#if HAS_MMU2()
+static void handle_serial_host_mmu_events() {
+    static bool resume_pending = false;
+    static bool restore_requested = false;
+
+    const auto events = static_cast<uint8_t>(MMU2::consume_serial_host_mmu_events());
+
+    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::paused)) != 0 && serial_print_active()) {
+        SerialPrinting::paused("mmu_error");
+    }
+
+    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::resume)) != 0) {
+        resume_pending = true;
+        restore_requested = false;
+    }
+
+    if (!resume_pending) {
+        return;
+    }
+
+    if (!serial_print_active()) {
+        resume_pending = false;
+        restore_requested = false;
+        return;
+    }
+
+    if (did_pause_print != 0) {
+        return;
+    }
+
+    if (!restore_requested) {
+        buddy::safety_timer().reset_restore_nonblocking();
+        restore_requested = true;
+    }
+
+    if (buddy::safety_timer().state() == buddy::SafetyTimer::State::restoring) {
+        return;
+    }
+
+    SerialPrinting::resume();
+    SerialPrinting::resumed();
+    resume_pending = false;
+    restore_requested = false;
+}
+#endif
+
 static void cycle() {
     // Some things are somewhat time-sensitive and should be updated even in nested loops
 #if HAS_CHAMBER_API()
@@ -1005,6 +1052,7 @@ static void cycle() {
 
 #if HAS_MMU2()
     MMU2::Fsm::Instance().Loop();
+    handle_serial_host_mmu_events();
 #endif
 
     handle_warnings();
