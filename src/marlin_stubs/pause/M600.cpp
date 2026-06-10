@@ -288,6 +288,7 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
 
     if (notify_serial_host_resume) {
         SerialPrinting::resume();
+        SerialPrinting::resumed();
     }
 }
 

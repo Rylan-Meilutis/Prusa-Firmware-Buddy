@@ -34,6 +34,7 @@ GCodeQueue queue;
 #include "../module/temperature.h"
 #include "../Marlin.h"
 #include "serial_printing.hpp"
+#include "marlin_server.hpp"
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
 
@@ -333,6 +334,25 @@ FORCE_INLINE bool is_M29(const char * const cmd) {  // matches "M29" & "M29 ", b
   return m29 && !NUMERIC(m29[3]);
 }
 
+static bool command_code_is(const char *cmd, const char letter, const long code) {
+  while (*cmd == ' ') cmd++;
+  if (*cmd == 'N') {
+    cmd++;
+    while (*cmd == '-' || NUMERIC(*cmd)) cmd++;
+    while (*cmd == ' ') cmd++;
+  }
+
+  if (*cmd != letter) return false;
+
+  char *end = nullptr;
+  const long parsed = strtol(cmd + 1, &end, 10);
+  return end != cmd + 1 && parsed == code && (*end == '\0' || *end == ' ' || *end == '*');
+}
+
+static bool is_print_abort_command(const char *cmd) {
+  return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
+}
+
 /**
  * Get all commands waiting on the serial port and queue them.
  * Exit when the buffer is full or when no more characters are
@@ -439,11 +459,17 @@ void GCodeQueue::get_serial_commands() {
 
         #if DISABLED(EMERGENCY_PARSER)
           // Process critical commands early
-          if (strcmp(command, "M108") == 0) {
+          if (command_code_is(command, 'M', 108)) {
             wait_for_heatup = false;
           }
-          if (strcmp(command, "M112") == 0) kill(PSTR("Emergency stop (M112)"), nullptr, true);
-          if (strcmp(command, "M410") == 0) quickstop_stepper();
+          if (command_code_is(command, 'M', 112)) kill(PSTR("Emergency stop (M112)"), nullptr, true);
+          if (command_code_is(command, 'M', 410)) quickstop_stepper();
+          if (is_print_abort_command(command)) {
+            wait_for_heatup = false;
+            marlin_server::print_abort();
+            SERIAL_ECHOLNPGM(MSG_OK);
+            continue;
+          }
         #endif
 
         #if defined(NO_TIMEOUTS) && NO_TIMEOUTS > 0

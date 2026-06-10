@@ -43,6 +43,11 @@
 #include <feature/safety_timer/safety_timer.hpp>
 #include <feature/stepper_timeout/stepper_timeout.hpp>
 
+#include <option/has_leds.h>
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
+#endif
+
 #include "../Marlin/src/lcd/extensible_ui/ui_api.h"
 #include "../Marlin/src/gcode/queue.h"
 #include "../Marlin/src/gcode/parser.h"
@@ -239,6 +244,7 @@ namespace {
 
     struct SerialPrintSnapshot {
         bool valid = false;
+        State print_state = State::Idle;
         uint32_t print_duration = 0;
         time_t print_start_time = TIMESTAMP_INVALID;
         time_t print_end_time = TIMESTAMP_INVALID;
@@ -835,6 +841,7 @@ static void capture_print_duration() {
 static void capture_serial_print_snapshot() {
     server.serial_print_snapshot = {
         .valid = true,
+        .print_state = server.print_state,
         .print_duration = marlin_vars().print_duration.get(),
         .print_start_time = marlin_vars().print_start_time.get(),
         .print_end_time = marlin_vars().print_end_time.get(),
@@ -857,6 +864,7 @@ static void restore_serial_print_snapshot() {
         return;
     }
 
+    server.print_state = server.serial_print_snapshot.print_state;
     marlin_vars().print_duration = server.serial_print_snapshot.print_duration;
     marlin_vars().print_start_time = server.serial_print_snapshot.print_start_time;
     marlin_vars().print_end_time = server.serial_print_snapshot.print_end_time;
@@ -1026,11 +1034,12 @@ void static finalize_print(bool finished) {
     capture_print_duration();
     print_job_timer.stop();
     server.print_elapsed_timer_active = false;
+    GCodeQueue::pause_serial_commands = false;
     if (is_ignored_serial_macro_print(finished)) {
         fsm_destroy(ClientFSM::Serial_printing);
         server.print_is_serial = false;
-        _server_update_vars();
         restore_serial_print_snapshot();
+        _server_update_vars();
         return;
     }
     _server_update_vars();
@@ -1580,6 +1589,13 @@ void print_exit(void) {
     case State::Resuming_Reheating:
     case State::Finishing_WaitIdle:
         // do nothing
+        break;
+
+    case State::Finished:
+#if HAS_LEDS()
+        leds::LEDManager::instance().acknowledge_finished();
+#endif
+        server.print_state = State::Exit;
         break;
 
     default:

@@ -3,9 +3,11 @@
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_reporting.h"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.cpp"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/buttons.h"
+#include "../../lib/Marlin/Marlin/src/feature/pause.h"
 #include "../common/marlin_server.hpp"
 #include "../common/serial_printing.hpp"
 #include "../common/sound.hpp"
+#include <feature/safety_timer/safety_timer.hpp>
 #include "mmu2_error_converter.h"
 #include "mmu2_fsm.hpp"
 #include "mmu2_reporter.hpp"
@@ -21,6 +23,23 @@ LOG_COMPONENT_REF(MMU2);
 namespace MMU2 {
 
 static bool serial_host_mmu_error_reported = false;
+
+static void resume_serial_host_after_mmu_error() {
+    if (!serial_host_mmu_error_reported) {
+        return;
+    }
+
+    if (marlin_server::serial_print_active() && did_pause_print == 0) {
+        buddy::safety_timer().reset_restore_blocking();
+        if (!marlin_server::serial_print_active()) {
+            serial_host_mmu_error_reported = false;
+            return;
+        }
+        SerialPrinting::resume();
+        SerialPrinting::resumed();
+    }
+    serial_host_mmu_error_reported = false;
+}
 
 void CheckErrorScreenUserInput() {
     // A "temporary" workaround:
@@ -68,8 +87,6 @@ void ReportErrorHook(ErrorData d) {
 }
 
 void ReportProgressHook(ProgressData d) {
-    serial_host_mmu_error_reported = false;
-
     if (Fsm::Instance().IsActive()) { // prevent accidental FSM change reports if there is no MMU progress/error dialog shown
         log_debug(MMU2, "Report: CIP=%" PRIu8 " pc=%" PRIu8, d.rawCommandInProgress, d.rawProgressCode);
         Fsm::Instance().reporter.SetReport(d);
@@ -83,7 +100,7 @@ void BeginReport([[maybe_unused]] ProgressData d) {
 }
 
 void EndReport([[maybe_unused]] ProgressData d) {
-    serial_host_mmu_error_reported = false;
+    resume_serial_host_after_mmu_error();
     Fsm::Instance().Deactivate();
 }
 
