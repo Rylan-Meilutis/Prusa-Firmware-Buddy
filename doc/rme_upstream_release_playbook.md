@@ -196,6 +196,7 @@ Canceling a detected serial print before its initial home must not issue an unho
 M601 parks and keeps the serial print screen active.
 MMU/runout and other manual-intervention recovery sends the host resume action and then reports resumed after the printer is actually continuing.
 Firmware/manual-intervention pause states during serial prints should report paused to the host, keep bed heat protected from the bed safety timer, allow nozzle safety handling where appropriate, restore the nozzle target before resume when needed, then send host resume/resumed actions so OctoPrint and similar hosts do not remain paused.
+MMU reporting hooks must only defer host pause/resume events. Do not call `SerialPrinting::*` or `buddy::safety_timer()` directly from the MMU reporting callback; consume the deferred events from the Marlin server loop where the safety timer and serial host actions are safe to run.
 Fresh, useful host status progress/ETA, such as OctoPrint-plugin M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward. Host ETA snapshots count down locally between messages. Repeated startup-style 0% messages and unrecognized ETA text leave streamed M73 P/R fallback data in control.
 Serial UI mode is a dropdown: Legacy, Messages Only, Progress.
 Legacy mode shows the OctoPrint-style logo.
