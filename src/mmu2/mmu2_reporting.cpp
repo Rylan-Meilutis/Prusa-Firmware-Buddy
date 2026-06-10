@@ -15,26 +15,12 @@
 #include <odometer.hpp>
 #include <filament_to_load.hpp>
 #include <M70X.hpp>
-#include <atomic>
 
 LOG_COMPONENT_REF(MMU2);
 
 namespace MMU2 {
 
 static bool serial_host_mmu_error_reported = false;
-static std::atomic<uint8_t> pending_serial_host_mmu_events = 0;
-
-void defer_serial_host_mmu_paused() {
-    pending_serial_host_mmu_events.fetch_or(static_cast<uint8_t>(SerialHostMmuEvent::paused), std::memory_order_relaxed);
-}
-
-void defer_serial_host_mmu_resume() {
-    pending_serial_host_mmu_events.fetch_or(static_cast<uint8_t>(SerialHostMmuEvent::resume), std::memory_order_relaxed);
-}
-
-SerialHostMmuEvent consume_serial_host_mmu_events() {
-    return static_cast<SerialHostMmuEvent>(pending_serial_host_mmu_events.exchange(0, std::memory_order_acq_rel));
-}
 
 void CheckErrorScreenUserInput() {
     // A "temporary" workaround:
