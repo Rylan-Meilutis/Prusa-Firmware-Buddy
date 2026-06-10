@@ -31,7 +31,7 @@ git diff --name-status "$base"
 git diff --dirstat=files,0 "$base"
 ```
 
-At the time this playbook was last audited, the committed RME stack covered 528 files with 11,563 insertions and 434 deletions relative to upstream `v6.5.3`. The stack contains 106 commits through `66849fee7`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the committed RME stack covered 529 files with 12,176 insertions and 437 deletions relative to upstream `v6.5.3`. The stack contains 109 commits through `66af21165`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 Primary RME branch:
 
@@ -188,10 +188,14 @@ M75 or eligible M73 starts serial print state.
 Blocking heater waits such as M109, M190, and M191 can start serial print state when automatic detection is enabled.
 Homing, mesh-leveling, and ordinary toolhead movement commands do not start serial print state by themselves.
 M77 and complete M73 end serial print state.
+M77 received from serial must finalize the serial print before it enters the normal G-code queue, return `ok`, keep the persistent print-finished screen active, and leave later serial commands accepted.
+Serial print finalization must clear `GCodeQueue::pause_serial_commands`; otherwise a following M75 or host command after print completion can be ignored.
 M75, startup M73, and OctoPrint startup messages received while a serial print is already active must not arm a pending second print start. End G-code sent after M77 must not restart serial print state or clear the frozen completed-print duration.
+Ignored short serial macro prints, such as a quick M75/M77 pair with no printed Z height and less than the minimum useful duration, must restore the previous Marlin print state and LED state. If the previous state was the persistent finished screen, keep the green finished indication; if the previous state was idle/home, return to idle/off behavior.
 Canceling a detected serial print before its initial home must not issue an unhomed Z clearance move when no printed Z height exists. Shut down heaters and continue abort cleanup without moving the steppers.
 M601 parks and keeps the serial print screen active.
-MMU/runout recovery sends the host resume action.
+MMU/runout and other manual-intervention recovery sends the host resume action and then reports resumed after the printer is actually continuing.
+Firmware/manual-intervention pause states during serial prints should report paused to the host, keep bed heat protected from the bed safety timer, allow nozzle safety handling where appropriate, restore the nozzle target before resume when needed, then send host resume/resumed actions so OctoPrint and similar hosts do not remain paused.
 Fresh, useful host status progress/ETA, such as OctoPrint-plugin M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward. Host ETA snapshots count down locally between messages. Repeated startup-style 0% messages and unrecognized ETA text leave streamed M73 P/R fallback data in control.
 Serial UI mode is a dropdown: Legacy, Messages Only, Progress.
 Legacy mode shows the OctoPrint-style logo.
@@ -298,7 +302,9 @@ A running filtration fan must not select the green filtering animation during an
 A Core One chamber-door acknowledgement during filtration suppresses both the remaining filtering blink and the later solid-green status hold until the next print starts.
 Do not accept chamber-door acknowledgement before the printer reaches `Finished`, including during finishing park and unload phases.
 Opening the Core One chamber door during post-print filtration opens an end-filtration prompt. The prompt closes automatically if filtration finishes naturally while it is open and returns to the persistent print-finished screen.
+Closing the Core One chamber door while the end-filtration prompt is open must dismiss only that prompt. It must not acknowledge or close the underlying persistent print-finished screen.
 The persistent print-finished screen exposes `Stop Filter` while filtration remains active. That action ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains independent.
+Acknowledging the persistent print-finished screen through `Continue`, `Home`, or `print_exit()` must reset the status LED finished/filter indication centrally so the next idle/active state is not left latched.
 Serial print-finished summaries expose page dots and swipe navigation for elapsed duration, completion time, and remaining filtration time when available.
 Capture elapsed print duration before abort cleanup begins. Cleanup G-code may restart and reset the stopwatch; canceled prints must retain the pre-cleanup duration.
 Continuously preserve the maximum elapsed print duration while a print is active. Serial hosts may issue timer stop commands before firmware finalization, and both serial and file-print finished summaries must render the preserved duration rather than a reset stopwatch value.

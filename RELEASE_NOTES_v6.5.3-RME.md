@@ -34,6 +34,7 @@
     * Fixed `M601` from serial hosts pausing motion without reliably parking the print head
     * Fixed paused serial prints dropping out of the print screen
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
+    * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
     * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
     * Fixed cancel confirmation wording on print screens
     * Fixed bed heating being disabled by the safety timer while a print is paused
@@ -54,10 +55,13 @@
     * Fixed canceled/aborted prints showing the finished green blink instead of the abort indication
     * Added Core One door-cycle acknowledgement to hide the remaining filtering status blink and finished hold
     * Added a Core One door-open prompt to end post-print filtration early; it closes automatically if filtering finishes while the prompt is open
+    * Fixed closing the Core One door while the early-filtration prompt is open from also dismissing the underlying persistent print-finished screen
     * Added a finished-screen `Stop Filter` action that ends post-print filtration early without dismissing the finished screen
     * Added swipeable page-dot navigation for serial print-finished duration, completion-time, and remaining-filtration summaries
     * Fixed canceled prints losing their elapsed print duration during abort cleanup
     * Fixed active-print startup markers such as `M75` arming a second serial print start after `M77`, which reset completed serial-print duration to zero
+    * Fixed serial `M77` completion returning to the home screen or leaving later serial commands ignored; completion now finalizes before queueing, returns `ok`, and clears the serial command pause gate
+    * Fixed short ignored serial macros leaving the status LED in the wrong post-print state
     * Fixed the serial-print header flickering because its unchanged caption was redrawn on every GUI loop
     * Reduced serial message-page switching redraws by invalidating only widgets whose visibility changes instead of repainting the entire screen
     * Fixed canceling a detected serial print before its initial home from issuing an unnecessary unhomed Z clearance move
@@ -95,13 +99,13 @@ Serial print start detection handles `M75`, eligible `M73 P0/Q0`, OctoPrint-styl
 
 Starting a second serial print immediately after a previous print finishes now clears the previous finished/aborted state before entering the new serial print state.
 
-Serial print completion is detected from `M77` and completed `M73 P100/Q100 R0/S0` messages.
+Serial print completion is detected from `M77` and completed `M73 P100/Q100 R0/S0` messages. Serial `M77` is handled before it enters the normal G-code queue, returns `ok` to the host, keeps the persistent finished screen active, and clears the serial command pause gate so later host commands and the next `M75` are accepted.
 
 Serial pause handling has been improved. `M601` from OctoPrint or another serial host now stops accepting additional streamed commands while the existing queue drains, then runs the normal print-head parking sequence. Serial commands are accepted again after the printer reaches the paused state so `M602` or host resume can be received.
 
-Firmware pause states, MMU errors, and runout-style pauses keep the print treated as active for the print screen and chamber lighting. The printer also reports pause/resume style host actions back to serial hosts where applicable.
+Firmware pause states, MMU errors, and runout-style pauses keep the print treated as active for the print screen and chamber lighting. They also hold the bed-heater safety timer reset so the bed does not cool during a recoverable paused print. The printer reports pause/resume style host actions back to serial hosts where applicable.
 
-MMU filament runout recovery on serial prints now sends the serial-host resume action after the printer resumes, so hosts such as OctoPrint do not remain paused after the printer has recovered.
+MMU filament runout and other manual-intervention recovery on serial prints can restore the nozzle target before resume when needed and now send the serial-host resume action after the printer resumes, so hosts such as OctoPrint do not remain paused after the printer has recovered.
 
 The serial print screen now has selectable UI modes:
 
@@ -116,6 +120,8 @@ When a serial print finishes, the screen remains on `PRINT FINISHED` until the u
 Elapsed print duration is preserved continuously while a print is active. Serial-host end commands and cleanup G-code cannot reset the displayed duration to zero before either serial or normal print-finished summaries are rendered.
 
 Startup markers such as `M75`, startup `M73`, and OctoPrint startup text received while a serial print is already active no longer arm a pending second serial print start. This prevents trailing end G-code after `M77` from restarting serial-print state and clearing the completed duration before the persistent finished screen renders it.
+
+Very short serial macro prints, such as a quick `M75`/`M77` pair that never produced a useful printed-Z height, are ignored as non-print activity and restore the printer's previous print and status LED state. If the previous state was an unacknowledged finished print, the finished indication remains; if the printer was idle, the LEDs return to idle behavior.
 
 Elapsed duration includes startup heating time. File and serial print timers start before startup G-code continues through blocking hotend, bed, or chamber heating waits.
 
@@ -168,7 +174,7 @@ Mid-print filtration fan operation does not activate the green filtering indicat
 
 Chamber/side lights remain independent from that status indication. On Core One and Core One L, the chamber door can still wake chamber lighting and acknowledge its held chamber-light state. A door open/close cycle during filtration also acknowledges the status indication. Chamber/side lighting and the LCD resume normal idle timing while post-print filtration continues.
 
-The persistent print-finished screen exposes a `Stop Filter` action while post-print filtration remains active. It ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains a separate acknowledgement action. Opening the Core One or Core One L door during filtration prompts whether to end the sequence early. If filtering naturally completes while that prompt is open, the prompt closes automatically and returns to the persistent print-finished screen.
+The persistent print-finished screen exposes a `Stop Filter` action while post-print filtration remains active. It ends filtration without dismissing the completed-print summary; `Continue` or `Home` remains a separate acknowledgement action and resets the status LED finished/filter indication centrally. Opening the Core One or Core One L door during filtration prompts whether to end the sequence early. If filtering naturally completes while that prompt is open, the prompt closes automatically and returns to the persistent print-finished screen. Closing the door while the prompt is open dismisses only that prompt and does not close the underlying print-finished screen.
 
 `Status Finish Hold` is available in Lights Settings. Fleet configuration can set the same value with `M154.7 H<seconds>`, where `H0` disables the solid-green hold.
 
@@ -249,7 +255,7 @@ Hotend and bed-heater safety timeouts are now grouped under `Settings -> Heater 
 
 Both settings are capped at 3600 seconds / 60 minutes. Hotend timeout values are clamped to a non-zero safety value. `M86 B0` still disables the bed-heater safety timeout; non-zero bed values are clamped to the same 60-minute maximum and a minimum of 3 seconds.
 
-While a print is active, paused, pausing, or otherwise still in a print state, the bed-heater safety timer is held reset. This prevents the bed from being turned off during a long paused print. The nozzle safety timeout behavior remains separate.
+While a print is active, paused, pausing, or otherwise still in a print state, the bed-heater safety timer is held reset. This prevents the bed from being turned off during a long paused print. The nozzle safety timeout behavior remains separate, and serial pause recovery can restore the nozzle target before sending host resume/resumed actions.
 
 ## PID settings and autotune persistence
 
@@ -405,7 +411,7 @@ python3 utils/build.py --preset mk4 --bootloader yes --final
 python3 utils/build.py --preset mk3.5 --bootloader yes --final
 ```
 
-The latest XL, MINI, Core One, Core One L, MK3.5, and MK4 release boot builds completed successfully after the current working-tree serial ETA, print-finished, and post-print LED changes. The signing path was validated with a temporary ECDSA key:
+The latest XL, MINI, Core One, Core One L, MK3.5, and MK4 release boot builds completed successfully after the serial ETA, print-finished, and post-print LED changes. A focused Core One release boot build also completed after the serial finish/intervention fixes, using `1295772 B / 1919 KB` flash and `117860 B / 196508 B` aggregate RAM. The signing path was validated with a temporary ECDSA key:
 
 ```sh
 python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-store-output --signing-key /path/to/private.key
@@ -419,7 +425,7 @@ Comparison base: upstream `v6.5.3` (`3fc7b43a3`)
 
 Current branch: `coreone-v6.5.3-patches`
 
-Current commit: `001e27e64`
+Current commit: `66af21165`
 
 ## Full changelog
 
@@ -533,4 +539,6 @@ d23f43043  2026-06-02  Document serial completion and filtration lighting update
 a3b6f9a0e  2026-06-10  Fix print lighting brightness overrides
 66849fee7  2026-06-10  Fix print lighting overrides and completion state
 001e27e64  2026-06-10  Document print lighting override behavior
+d3fba2240  2026-06-10  Update release notes for lighting override fixes
+66af21165  2026-06-10  Fix serial print finish and intervention handling
 ```
