@@ -61,6 +61,16 @@ static constexpr int16_t ZERO_PHASE_MSCNT_ANGLE = 1024 / 8;
 // Number of measurement probes to average
 static constexpr int16_t MEASURE_PROBE_N = 2;
 
+// Scramble the calibration probing sequence to improve belt redistribution when estimating the
+// centroid: units are full AB cycles away from homing corner as given to plan_corexy_abgrid_move()
+static constexpr ab_grid_t MEASURE_POINT_SEQUENCE[] = {
+    { 1, -3 },
+    { -3, -1 },
+    { 3, 1 },
+    { -1, 3 },
+    { 0, 0 },
+};
+
 // Instability phase threshold: total width of the invalid period close to the roundoff threshold
 // when calculating the resulting grid value.
 static constexpr float UNSTABLE_PHASE_THRESHOLD = 1. / 4;
@@ -773,23 +783,9 @@ static xy_pos_t estimate_origin(const measure_data (&points)[N], size_t count, c
 
 static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_steps,
     xy_pos_t &origin, xy_pos_t &distance, const float fr_mm_s) {
-    // scramble probing sequence to improve belt redistribution when estimating the centroid
-    // unit is full AB cycles away from homing corner as given to plan_corexy_abgrid_move()
-    static constexpr ab_grid_t point_sequence[] = {
-        { 1, -1 },
-        { -1, 1 },
-        { 1, 1 },
-        { -1, -1 },
-        { 1, -3 },
-        { -1, 3 },
-        { 3, 1 },
-        { -3, -1 },
-        { 0, 0 },
-    };
-
     // to conserve stack space, store all measured points in a flat array and recompute derived
     // values on the fly at each pass (those are cheap to compute)
-    constexpr size_t N = std::size(point_sequence);
+    constexpr size_t N = std::size(MEASURE_POINT_SEQUENCE);
     measure_data measure[N * ORIGIN_MAX_PASSES];
 
     // Re-measure the whole grid until every point is known to be within ORIGIN_MIN_CYCLE_CI.
@@ -799,7 +795,7 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
     while (!converged && passes < ORIGIN_MAX_PASSES) {
         // cycle through grid points and measure one sample per point
         for (size_t i = 0; i != N; ++i) {
-            const auto &seq = point_sequence[i];
+            const auto &seq = MEASURE_POINT_SEQUENCE[i];
             auto &data = measure[passes * N + i];
 
             plan_corexy_abgrid_move(origin_steps, seq, fr_mm_s);
@@ -818,7 +814,7 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
             // verify if we did converge on all points
             converged = true;
             for (size_t i = 0; i != N; ++i) {
-                const auto &seq = point_sequence[i];
+                const auto &seq = MEASURE_POINT_SEQUENCE[i];
 
                 const xy_pos_t c_range = point_cycle_range<N>(measure, passes, i);
                 if (c_range[A_AXIS] >= 1 || c_range[B_AXIS] >= 1) {
@@ -846,7 +842,7 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
     }
 
     const size_t count = passes * N;
-    origin = estimate_origin(measure, count, point_sequence[0]);
+    origin = estimate_origin(measure, count, MEASURE_POINT_SEQUENCE[0]);
 
     metric_record_custom(&metric_phxy_orig, ",a=%u,t=\"o\" c=%u,o0=%.3f,o1=%.3f,p=%u",
         axis, internal::cal_id, (double)origin[0], (double)origin[1], passes);
@@ -854,7 +850,7 @@ static bool measure_origin_multipoint(AxisEnum axis, const ab_steps_t &origin_st
     // verify every individual sample against the computed centroid
     const ab_grid_t o_int = { int32_t(roundf(origin[A_AXIS])), int32_t(roundf(origin[B_AXIS])) };
     for (size_t k = 0; k != count; ++k) {
-        const auto &seq = point_sequence[k % N];
+        const auto &seq = MEASURE_POINT_SEQUENCE[k % N];
         auto &data = measure[k];
 
         const ab_grid_t c_ab = cdist_translate(data.c_dist, origin);
