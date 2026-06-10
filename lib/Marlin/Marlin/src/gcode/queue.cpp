@@ -40,6 +40,8 @@ GCodeQueue queue;
 
 extern "C" bool buddy_sdcard_upload_active();
 extern "C" void buddy_sdcard_upload_handle_line(const char *command);
+extern "C" bool buddy_sdcard_upload_start_command(const char *command);
+extern "C" void buddy_sdcard_upload_finish_command();
 
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
@@ -476,8 +478,19 @@ void GCodeQueue::get_serial_commands() {
           last_command_time = ms;
         #endif
 
-        if (buddy_sdcard_upload_active() && !is_M29(command)) {
-          buddy_sdcard_upload_handle_line(command);
+        if (buddy_sdcard_upload_active()) {
+          if (is_M29(command)) {
+            buddy_sdcard_upload_finish_command();
+          }
+          else {
+            buddy_sdcard_upload_handle_line(command);
+          }
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
+
+        if (command_code_is(command, 'M', 28)) {
+          buddy_sdcard_upload_start_command(command);
           SERIAL_ECHOLNPGM(MSG_OK);
           continue;
         }
