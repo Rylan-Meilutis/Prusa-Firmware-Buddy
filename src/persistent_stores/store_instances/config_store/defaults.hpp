@@ -174,6 +174,7 @@ namespace defaults {
 
 #if HAS_TOOL_OFFSET_SENSOR()
     inline constexpr xy_pos_t tool_offset_sensor_position = tool_offset::default_sensor_position;
+    inline constexpr xy_pos_t tool_offset_sensor_displacement = { { { 0.f, 0.f } } };
 #endif
 
     inline constexpr float nozzle_diameter {

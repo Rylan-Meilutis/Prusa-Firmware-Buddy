@@ -3,7 +3,9 @@
 
 #include "tool_offset_calibration.hpp"
 
+#include <algorithm>
 #include <bitset>
+#include <cmath>
 #include <optional>
 
 #include <Marlin/src/gcode/gcode.h>
@@ -48,6 +50,7 @@ static_assert(HAS_TOOLCHANGER(), "Needs toolchanger");
 LOG_COMPONENT_DEF(ToolOffsetCalib, logging::Severity::info);
 
 METRIC_DEF(metric_sensor_pos, "tool_off_sensor_pos", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
+METRIC_DEF(metric_sensor_displacement, "tos_displacement", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 // Per-tool hotend offset (result of tool offset calibration) [mm]
 METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
@@ -414,6 +417,53 @@ void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
     // Stored position is more accurate than the default
     tool_offset::set_single_coil_position(config, stored);
 }
+#else
+xy_pos_t apply_stored_sensor_displacement(tool_offset::ProbingConfig &config) {
+    const xy_pos_t stored = config_store().tool_offset_sensor_displacement.get();
+    if (std::abs(stored.x) > config.sensor_displacement_error_threshold || std::abs(stored.y) > config.sensor_displacement_error_threshold) {
+        log_error(ToolOffsetCalib, "Stored sensor displacement (X=%.1f Y=%.1f) too large, resetting to zero",
+            static_cast<double>(stored.x),
+            static_cast<double>(stored.y));
+        const xy_pos_t zero { { { 0.f, 0.f } } };
+        config_store().tool_offset_sensor_displacement.set(zero);
+        metric_record_custom(&metric_sensor_displacement, " x=%.3f,y=%.3f",
+            static_cast<double>(zero.x),
+            static_cast<double>(zero.y));
+        return zero;
+    }
+
+    // Compute the tightest per-axis displacement bounds so all shifted geometry stays in travel.
+    const float half_x = config.coil_x.sensing_distance / 2.f;
+    const float half_y = config.coil_y.sensing_distance / 2.f;
+    const float dx_lo = std::max({ static_cast<float>(X_MIN_POS) - config.coil_x.position.x + half_x,
+        static_cast<float>(X_MIN_POS) - config.coil_y.position.x,
+        static_cast<float>(X_MIN_POS) - config.z_probe_position.x });
+    const float dx_hi = std::min({ static_cast<float>(X_MAX_POS) - config.coil_x.position.x - half_x,
+        static_cast<float>(X_MAX_POS) - config.coil_y.position.x,
+        static_cast<float>(X_MAX_POS) - config.z_probe_position.x });
+    const float dy_lo = std::max({ static_cast<float>(Y_MIN_POS) - config.coil_y.position.y + half_y,
+        static_cast<float>(Y_MIN_POS) - config.coil_x.position.y,
+        static_cast<float>(Y_MIN_POS) - config.z_probe_position.y });
+    const float dy_hi = std::min({ static_cast<float>(Y_MAX_POS) - config.coil_y.position.y - half_y,
+        static_cast<float>(Y_MAX_POS) - config.coil_x.position.y,
+        static_cast<float>(Y_MAX_POS) - config.z_probe_position.y });
+
+    const xy_pos_t displacement { { { std::clamp(stored.x, dx_lo, dx_hi), std::clamp(stored.y, dy_lo, dy_hi) } } };
+    if (displacement.x != stored.x || displacement.y != stored.y) {
+        log_warning(ToolOffsetCalib, "Sensor displacement clamped from (%.3f, %.3f) to (%.3f, %.3f) to stay within travel",
+            static_cast<double>(stored.x), static_cast<double>(stored.y),
+            static_cast<double>(displacement.x), static_cast<double>(displacement.y));
+    }
+
+    config.coil_x.position.x += displacement.x;
+    config.coil_x.position.y += displacement.y;
+    config.coil_y.position.x += displacement.x;
+    config.coil_y.position.y += displacement.y;
+    config.z_probe_position.x += displacement.x;
+    config.z_probe_position.y += displacement.y;
+
+    return displacement;
+}
 #endif
 
 bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
@@ -427,8 +477,6 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     if (context == Context::Print) {
         status_guard.emplace();
     }
-    auto probing_config = tool_offset::get_default_probing_config();
-
     reset_z_tool_offsets(); // Clear old Z offsets to avoid interference with calibration
 
     log_info(ToolOffsetCalib, "Starting tool offset calibration");
@@ -495,10 +543,16 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     // prompt_retry allows to re-clean the nozzle and we restart the whole
     // pass with offsets reset.
     while (true) {
+        // Re-derive the probing config from defaults each pass: a previous pass's
+        // drift correction may have updated the stored values, and the dual-coil
+        // displacement application shifts the config additively.
+        auto probing_config = tool_offset::get_default_probing_config();
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
         // The stored sensor position tracks a single coil; dual-coil (XLS) would
         // need two stored positions (TODO WP5.4: per-coil storage + migration).
         apply_stored_sensor_position(probing_config);
+#else
+        const xy_pos_t applied_sensor_displacement = apply_stored_sensor_displacement(probing_config);
 #endif
         reset_hotend_offsets();
         hotend_currently_applied_offset = xyz_pos_t {};
@@ -723,6 +777,40 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 }
             }
 #else
+            // Dual-coil (XLS): the midpoint of the measured offsets encodes the
+            // whole-sensor displacement (offset ~ e - (d_true - d_applied); the
+            // tool errors e average out, so d_true = d_applied - avg). Once found
+            // by the search FSM, the displacement is persisted and applied to the
+            // geometry on subsequent passes, so the hunt normally runs at most
+            // once per machine. The update threshold is shared with the
+            // single-coil path.
+            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
+            if (std::abs(average_offset.x) > probing_config.sensor_displacement_error_threshold || std::abs(average_offset.y) > probing_config.sensor_displacement_error_threshold) {
+                // in actual configuration this code is dead
+                // TODO: reanalyze the need for this once calibration sequence is finalized for BFW-8420
+                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
+                    continue;
+                }
+                return false;
+            } else if (std::abs(average_offset.x) > probing_config.sensor_position_update_threshold || std::abs(average_offset.y) > probing_config.sensor_position_update_threshold) {
+                const xy_pos_t new_displacement { { { applied_sensor_displacement.x - average_offset.x, applied_sensor_displacement.y - average_offset.y } } };
+                log_info(ToolOffsetCalib, "Updating stored sensor displacement: (%.3f, %.3f) -> (%.3f, %.3f)",
+                    static_cast<double>(applied_sensor_displacement.x), static_cast<double>(applied_sensor_displacement.y),
+                    static_cast<double>(new_displacement.x), static_cast<double>(new_displacement.y));
+                config_store().tool_offset_sensor_displacement.set(new_displacement);
+                metric_record_custom(&metric_sensor_displacement, " x=%.3f,y=%.3f",
+                    static_cast<double>(new_displacement.x),
+                    static_cast<double>(new_displacement.y));
+
+                // Correct all measured tools by the midpoint, as in the single-coil path.
+                for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                    if (!used_physical_tools.test(tool.to_raw())) {
+                        continue;
+                    }
+                    hotend_offset[tool] -= average_offset.xy();
+                }
+            }
+
             for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
                 // Record metrics for all tools
                 metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",

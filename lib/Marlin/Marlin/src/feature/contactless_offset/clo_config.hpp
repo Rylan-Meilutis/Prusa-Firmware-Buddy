@@ -66,6 +66,10 @@ struct ProbingConfig {
 
     static constexpr float sensor_position_update_threshold = 0.2f;
     static constexpr float sensor_position_error_threshold = 3.0f;
+
+    /// Dual-coil (XLS): error threshold for the whole-sensor displacement.
+    /// Sensor maybe moved by 30mm for silicon head calibration, plus some margin
+    static constexpr float sensor_displacement_error_threshold = 35.0f;
 };
 
 ProbingConfig get_default_probing_config();

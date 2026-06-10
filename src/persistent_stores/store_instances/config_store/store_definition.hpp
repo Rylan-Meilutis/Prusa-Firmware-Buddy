@@ -468,6 +468,9 @@ struct CurrentStore
     /// Default is the per-printer geometry from clo_config; updated by tool offset
     /// calibration when normalized values differs too much from the stored ones.
     StoreItem<xy_pos_t, defaults::tool_offset_sensor_position, ItemFlag::calibrations, journal::hash("Tool Offset Sensor Position")> tool_offset_sensor_position;
+    /// Machine-frame displacement of the whole dual-coil (XLS) sensor from its nominal clo_config
+    /// position; one value shifts both coils and the Z-probe spot.
+    StoreItem<xy_pos_t, defaults::tool_offset_sensor_displacement, ItemFlag::calibrations, journal::hash("Tool Offset Sensor Displacement")> tool_offset_sensor_displacement;
 #endif
 
     /// In case the loaded_filament_is_previous flag (for the given tool) is
