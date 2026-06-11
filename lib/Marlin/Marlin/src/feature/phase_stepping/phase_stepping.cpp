@@ -616,6 +616,9 @@ static void disable_phase_stepping(AxisEnum axis_num) {
         break;
     }
 
+    // Resync count_direction with last_direction_bits
+    Stepper::set_count_direction(axis_num, Stepper::motor_direction(axis_num) ? -1 : 1);
+
     // Disable and shutdown timer if we're the last axis
     axis_state.enabled = false;
     if (!any_axis_enabled()) {
