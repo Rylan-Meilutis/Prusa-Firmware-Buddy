@@ -313,23 +313,6 @@ static SnakeConfig snake_config {};
 namespace {
 
 void do_snake(Action action, PhysicalToolIndex tool) {
-    if (!snake_config.in_progress) {
-#if HAS_SELFTEST_DEPENDENCIES()
-        if (!are_dependencies_met(action)) {
-            show_unmet_dependencies_warning(action);
-            snake_config.reset();
-            return;
-        }
-#else
-        if (!are_previous_completed(action)) {
-            if (MsgBoxQuestion(_("Previous Calibrations & Tests are not all done. Continue anyway?"), Responses_YesNo, 1) == Response::No) {
-                snake_config.reset();
-                return;
-            }
-        }
-#endif
-    }
-
     // Reset invocation state so continue_snake sees aborts only from THIS test, not a previous one.
     selftest_invocation::begin();
 
@@ -560,7 +543,29 @@ I_MI_STS::I_MI_STS(Action action)
     }
 }
 
+static bool check_prerequisites_or_warn(Action action) {
+#if HAS_SELFTEST_DEPENDENCIES()
+    if (!are_dependencies_met(action)) {
+        show_unmet_dependencies_warning(action);
+        snake_config.reset();
+        return false;
+    }
+#else
+    if (!are_previous_completed(action)) {
+        if (MsgBoxQuestion(_("Previous Calibrations & Tests are not all done. Continue anyway?"), Responses_YesNo, 1) == Response::No) {
+            snake_config.reset();
+            return false;
+        }
+    }
+#endif
+    return true;
+}
+
 void I_MI_STS::click(IWindowMenu &) {
+    const bool can_run = check_prerequisites_or_warn(action);
+    if (!can_run) {
+        return;
+    }
     if (!has_submenu(action) || !is_multitool()) {
         do_snake(action, PhysicalToolIndex::from_raw(0));
     } else {
