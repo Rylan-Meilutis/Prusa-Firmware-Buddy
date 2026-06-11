@@ -20,6 +20,7 @@
 #if PRINTER_IS_PRUSA_MK4()
     #define HAS_EXTENDED_PRINTER_TYPE()                    1
     #define EXTENDED_PRINTER_TYPE_DETERMINES_MOTOR_STEPS() 1
+    #define IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE()        1
 
 /// !!! Never change order, never remove items - this is used in config store
 static constexpr std::array extended_printer_type_model {
@@ -39,6 +40,7 @@ static constexpr std::array<bool, extended_printer_type_model.size()> extended_p
 #elif PRINTER_IS_PRUSA_MK3_5()
     #define HAS_EXTENDED_PRINTER_TYPE()                    1
     #define EXTENDED_PRINTER_TYPE_DETERMINES_MOTOR_STEPS() 0
+    #define IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE()        1
 
 /// !!! Never change order, never remove items - this is used in config store
 static constexpr std::array extended_printer_type_model {
@@ -49,6 +51,7 @@ static constexpr std::array extended_printer_type_model {
 #elif PRINTER_IS_PRUSA_XL()
     #define HAS_EXTENDED_PRINTER_TYPE()                    1
     #define EXTENDED_PRINTER_TYPE_DETERMINES_MOTOR_STEPS() 0
+    #define IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE()        0 // Auto-detected based on XLCAN presence
 
 /// !!! Never change order, never remove items - this is used in config store
 static constexpr std::array extended_printer_type_model {
@@ -67,7 +70,8 @@ enum class XLTypeDetectionResult : uint8_t {
 inline std::atomic<XLTypeDetectionResult> xl_type_detection_result = XLTypeDetectionResult::ok;
 
 #else
-    #define HAS_EXTENDED_PRINTER_TYPE() 0
+    #define HAS_EXTENDED_PRINTER_TYPE()             0
+    #define IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE() 0
 
 #endif
 

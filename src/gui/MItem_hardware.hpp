@@ -16,7 +16,6 @@
 #include <common/printer_variant/printer_variant.hpp>
 #include <dynamic_index_mapping.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
-#include <option/has_side_fsensor_remap.h>
 
 class MI_HARDWARE_CHECK : public MenuItemSwitch {
 public:
@@ -41,7 +40,7 @@ protected:
 };
 #endif
 
-#if HAS_EXTENDED_PRINTER_TYPE()
+#if IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE()
 class MI_EXTENDED_PRINTER_TYPE : public MenuItemSelectMenu {
 public:
     MI_EXTENDED_PRINTER_TYPE();
@@ -54,6 +53,8 @@ protected:
 };
 
 #else
+// Display-only: either there is just a single model variant, or, on XL, the
+// type is auto-detected at boot (XL-CAN probe).
 class MI_EXTENDED_PRINTER_TYPE : public IWiInfo {
 public:
     MI_EXTENDED_PRINTER_TYPE()

@@ -61,7 +61,7 @@ void MI_SIDE_FSENSOR_REMAP::OnChange([[maybe_unused]] size_t old_index) {
 }
 #endif
 
-#if HAS_EXTENDED_PRINTER_TYPE()
+#if IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE()
 MI_EXTENDED_PRINTER_TYPE::MI_EXTENDED_PRINTER_TYPE()
     : MenuItemSelectMenu(_("Printer Type")) //
 {

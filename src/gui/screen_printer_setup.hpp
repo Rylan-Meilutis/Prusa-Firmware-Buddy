@@ -37,7 +37,7 @@ using MI_PRINTER_SETUP_HARDWARE = MI_SCREEN<N_("Hardware"), ScreenMenuPrinterSet
 
 using ScreenBase
     = ScreenMenu<EFooter::Off,
-        MI_EXTENDED_PRINTER_TYPE, //< Show always, for non-extended models, there is a non-changeable WiInfo
+        MI_EXTENDED_PRINTER_TYPE, //< Show always; non-changeable WiInfo if !IS_EXTENDED_PRINTER_TYPE_CONFIGURABLE
 #if HAS_PRINTER_VARIANT()
         MI_PRINTER_VARIANT,
 #endif
