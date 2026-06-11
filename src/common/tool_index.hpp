@@ -73,6 +73,22 @@ struct GcodeToolIndexExtension;
 /// (spool join kind of extends this to surjection, but at any single moment, a GCodeTool is always mapped to a single VirtualTool)
 using GcodeToolIndex = ToolIndex<tool_index_private::virtual_tool_index_count, GcodeToolIndexExtension>;
 
+/// Converting between tool index types
+/// ===================================
+/// The mapping between gcode, virtual and physical tools is NOT a plain
+/// reinterpretation of the raw number - it depends on the printer and on the
+/// runtime configuration (MMU multiplexing, tool mapping, spool join, ...).
+/// Reinterpreting the raw value (`PhysicalToolIndex::from_raw(virtual.to_raw())`)
+/// silently produces wrong/non-existent tools wherever the mapping isn't 1:1
+/// (e.g. physical tool 4 on an MK4 with MMU). Always convert through:
+///   - GcodeToolIndex   -> VirtualToolIndex  : GcodeToolIndex::to_virtual()
+///   - GcodeToolIndex   -> PhysicalToolIndex : GcodeToolIndex::to_physical()
+///   - VirtualToolIndex -> PhysicalToolIndex : VirtualToolIndex::to_physical()
+///   - PhysicalToolIndex -> VirtualToolIndex : PhysicalToolIndex::currently_selected_virtual_tool()
+///   - whole variants                        : to_physical_tool_index<...>(variant)
+/// from_raw()/to_raw() only bridge to/from serialized data (gcode, EEPROM, ...)
+/// and must stay within a single index type.
+
 /// Strong type for representing no tool using `std::variant<SomeToolIndex, NoTool>`
 /// This type means a VALID situation where the toolchanger has no tool picked
 struct NoTool {
@@ -115,12 +131,19 @@ public:
     /// Use `from_raw_notool` instead, if you are not sure that raw index represent only valid tool
     /// @param index must be less than ToolIndex::count
     /// @note Try to replace raw index with ToolIndex for better safety
+    /// @warning Do NOT build one index type from another's to_raw() (e.g.
+    ///   `PhysicalToolIndex::from_raw(virtual.to_raw())`). That reinterprets the
+    ///   number without the proper mapping. Use the conversion routines documented
+    ///   above the type definitions instead.
     static inline constexpr ToolIndex from_raw(uint8_t index) {
         return ToolIndex(index);
     }
 
     /// @returns raw index as uint8_t
     /// @note Try to replace raw index with ToolIndex for better safety
+    /// @warning The raw value is meaningful only together with its index type.
+    ///   Do not feed it into another type's from_raw() to convert - see the
+    ///   conversion routines documented above the type definitions.
     inline constexpr uint8_t to_raw() const { return this->value; }
 
     /// @returns Index of the tool, starting from 1, for display purposes
