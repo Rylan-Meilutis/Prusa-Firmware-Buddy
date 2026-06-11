@@ -34,7 +34,7 @@ constexpr auto txt_title_ask_position = N_("Calibrating Dock %d");
 constexpr auto txt_ask_position = N_("Please manually move the head precisely to dock %d. Make sure it is all the way to the front.\n\nWhile holding it there, press Continue. Don't worry, the printer will lock motors and ask before doing any moves.");
 
 constexpr auto txt_title_tighten_silver_screws = N_("Tighten Dock Screws");
-constexpr auto txt_tighten_silver_screws = N_("Tighten the silver screws on each dock.\n\nWhen done, press Continue.");
+constexpr auto txt_tighten_silver_screws = N_("Tighten the silver screws on each selected dock for calibration. When finished, press Continue.");
 
 constexpr auto txt_title_loosen_each_screw = N_("Loosen Dock Bolts");
 constexpr auto txt_loosen_each_screw = N_("Loosen each silver screw by exactly one turn.\n\nWhen done, press Continue.");
