@@ -23,11 +23,7 @@ function(add_gzip_resource source_path install_path)
   add_resource("${gzip_file_path}" "${install_path}" ${ARGN})
 endfunction()
 
-function(add_header_with_revision revision_name image_name)
-  # generate hash (to a file)
-  set(binary_hash_file "${CMAKE_CURRENT_BINARY_DIR}/resources_${revision_name}_hash.bin")
-  lfs_image_generate_hash_bin_file(${image_name} "${binary_hash_file}")
-
+function(add_header_with_revision revision_name binary_hash_file)
   # generate header with the hash
   set(header_hash_file "${resources_include_dir}/resources/revision_${revision_name}.hpp")
   add_custom_command(
@@ -51,7 +47,7 @@ endfunction()
 # General
 #
 
-target_sources(firmware PUBLIC bootstrap.cpp hash.cpp revision.cpp)
+target_sources(firmware PUBLIC bootstrap.cpp hash.cpp revision.cpp tarball.cpp)
 target_include_directories(firmware PUBLIC "${resources_include_dir}")
 
 #
@@ -181,9 +177,6 @@ endif()
 # Quite OK images
 add_resource("${qoi_data_file}" "/qoi.data")
 
-# generate header with hash
-add_header_with_revision(standard resources-image)
-
 #
 # Bootloader Resources Image
 #
@@ -198,15 +191,13 @@ if(BOOTLOADER_UPDATE)
   # add the bootloader.bin to the image
   add_resource("${bootloader_bin}" "/bootloader.bin" IMAGE_NAME resources-bootloader-image)
 
-  # generate header with hash
-  add_header_with_revision(bootloader resources-bootloader-image)
-
   add_tar_image(bootloader-tarball)
   tar_image_add_file(bootloader-tarball "${bootloader_bin}" "/bootloader.bin")
   tar_image_build(bootloader-tarball)
   get_target_property(bootloader_tar bootloader-tarball TAR_IMAGE_LOCATION)
   set(bootloader_tar_digest "${bootloader_tar}.sha256")
   sha256_file("${bootloader_tar}" "${bootloader_tar_digest}")
+  add_header_with_revision(bootloader "${bootloader_tar_digest}")
 
   # parse bootloader version
   string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" result "${bootloader_version_str}")
@@ -274,3 +265,4 @@ tar_image_build(resources-tarball)
 get_target_property(resources_tar resources-tarball TAR_IMAGE_LOCATION)
 set(resources_tar_digest "${resources_tar}.sha256")
 sha256_file("${resources_tar}" "${resources_tar_digest}")
+add_header_with_revision(standard "${resources_tar_digest}")
