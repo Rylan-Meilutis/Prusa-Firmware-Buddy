@@ -35,6 +35,9 @@ enum class Action : uint8_t {
 constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
     auto deps = EnumBitset<Action, Action::_count> {};
 
+    // WARN: Dependencies are transitive
+    // - set only direct dependencies; do not repeat what is already implied by another dependency
+    // - when removing a dependency, dont forget to add back anything it was pulling in transitively
     switch (action) {
     case Action::DoorSensor:
     case Action::Fans:
@@ -62,20 +65,20 @@ constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
         deps.set(Action::DockCalibration);
         break;
     case Action::ToolOffsetsCalibration:
-        deps.set(Action::DockCalibration);
         deps.set(Action::Heaters);
+        deps.set(Action::Loadcell);
         break;
     case Action::NozzleCleanerCalibration:
         deps.set(Action::ToolOffsetsCalibration);
         break;
     case Action::Loadcell:
+        deps.set(Action::DockCalibration);
         // NozzleCleanerCalibration now runs later — fall back to the uncalibrated cleaner origin
         // for parking. The default position lands inside the bin (calibration only refines within
         // a few mm), so any drips still go where intended.
         break;
     case Action::FilamentSensorCalibration:
         // if filament is loaded, we need to unload (above nozzle cleaner)
-        deps.set(Action::Heaters);
         deps.set(Action::NozzleCleanerCalibration);
         break;
     case Action::ZCheck:
