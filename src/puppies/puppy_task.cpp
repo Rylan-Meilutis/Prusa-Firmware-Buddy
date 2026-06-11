@@ -104,15 +104,6 @@ namespace {
 
 static std::atomic<bool> stop_request = false; // when this is set to true, puppy task will gracefully stop its execution
 
-#if HAS_PUPPY_BOOTSTRAP()
-static PuppyBootstrap::BootstrapResult bootstrap_puppies(PuppyBootstrap::BootstrapResult minimal_config, [[maybe_unused]] PuppyModbus &bus) {
-    // boostrap first
-    log_info(Puppies, "Starting bootstrap");
-    PuppyBootstrap puppy_bootstrap { PuppyModbus::share_buffer() };
-    return puppy_bootstrap.run(minimal_config);
-}
-#endif
-
 static void puppy_run_timeout() {
 #if PUPPY_TASK_DEBUG()
     // #error dead code found by automatic analyses (see BFW-5461)
@@ -555,6 +546,7 @@ void run() {
 #if HAS_PUPPY_BOOTSTRAP()
     // by default, we want one modular bed and one dwarf
     PuppyBootstrap::BootstrapResult minimal_puppy_config = PuppyBootstrap::MINIMAL_PUPPY_CONFIG;
+    PuppyBootstrap puppy_bootstrap { PuppyModbus::share_buffer() };
 #endif
 
     do {
@@ -597,16 +589,37 @@ void run() {
             }
             xl_can_verify_running(bus);
             // Bridge enters app with PC13 LOW (hal::mmu::init) = MB reset
-            // edge network disarmed. Arming happens inside bootstrap_puppies:
+            // edge network disarmed. Arming happens inside puppy bootstrap:
             // write_dock_reset_pin() holds the MODULAR_BED H write for
             // mb_reset_arm_hold_ms before the reset edge, on every round.
             xl_can_requires_reset = false;
         }
 #endif
 
+#if HAS_XL_CAN() && HAS_PUPPY_BOOTSTRAP() && HAS_PUPPY_MODULARBED()
+        // Bridge absent on first run: check if the master GPIO controls the MB
+        // reset line to distinguish plain XL from XLS with a dead/unplugged bridge.
+        if (first_run && !xl_can.is_enabled()) {
+            const PuppyBootstrap::MbResetCheck check = puppy_bootstrap.check_mb_reset_controllable();
+            switch (check) {
+            case PuppyBootstrap::MbResetCheck::controlled:
+                log_info(Puppies, "MB reset controllability: controlled (genuine XL)");
+                break;
+            case PuppyBootstrap::MbResetCheck::uncontrolled:
+                log_info(Puppies, "MB reset controllability: uncontrolled (reset line not under master control — check XL-CAN cabling)");
+                break;
+            case PuppyBootstrap::MbResetCheck::no_mb:
+                log_info(Puppies, "MB reset controllability: no MB found");
+                break;
+            }
+        }
+#endif
+
 #if HAS_PUPPY_BOOTSTRAP()
         // reset and flash the puppies
-        auto bootstrap_result = bootstrap_puppies(minimal_puppy_config, bus);
+        log_info(Puppies, "Starting bootstrap");
+        const auto bootstrap_result = puppy_bootstrap.run(minimal_puppy_config);
+
         // once some puppies are detected, consider this minimal puppy config (do no allow disconnection of puppy while running)
         minimal_puppy_config = bootstrap_result;
 
@@ -622,7 +635,7 @@ void run() {
     #endif
         // No set_enabled() for the bridge here: it is deliberately absent
         // from DOCKS, so is_dock_occupied(Dock::XL_CAN) is always false and
-        // would clobber the flag the probe set before bootstrap_puppies.
+        // would clobber the flag the probe set before puppy bootstrap.
 
         // wait for puppies to boot up, ensure they are running
         verify_puppies_running(bus);

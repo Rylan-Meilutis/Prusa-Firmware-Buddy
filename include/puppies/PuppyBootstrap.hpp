@@ -79,6 +79,42 @@ public:
 
     [[nodiscard]] static bool any_dock_supports_crash_dump();
 
+#if HAS_PUPPY_MODULARBED()
+    /// Result of check_mb_reset_controllable().
+    enum class MbResetCheck {
+        /// The master GPIO controls the MB reset — genuine XL.
+        controlled,
+        /// MB kept answering after the toggle — reset line not under master control.
+        uncontrolled,
+        /// MODULAR_BED was not discovered at all.
+        no_mb,
+    };
+
+    /**
+     * @brief Probe whether the master GPIO actually controls the MB reset line.
+     *
+     * Assigns the MB to its bootloader address, then toggles the master reset
+     * line via reset_puppies_range() over the MODULAR_BED dock (H→10 ms→L).
+     * Checks the previously-assigned address for any answer:
+     *  - NO_RESPONSE throughout → controlled (MB was disturbed — genuine XL)
+     *  - still answering → uncontrolled (line never reached the MB)
+     *
+     * Polarity-agnostic — works for both level and edge MB reset wiring (see
+     * the implementation for details).
+     *
+     * Known benign imprecision: a stray dwarf that adopted the MB address
+     * answers after the toggle and yields a false `uncontrolled` (spurious
+     * wiring warning, not a boot abort; rare due to contested-discovery retry).
+     * An MB with an incompatible bootloader version fatal_errors inside
+     * discover() rather than returning `no_mb`, same as the normal bootstrap.
+     *
+     * The caller must run PuppyBootstrap::run() afterwards; run() starts with
+     * reset_all_puppies() and a fresh address assignment, so this check leaves
+     * no persistent state behind.
+     */
+    MbResetCheck check_mb_reset_controllable();
+#endif
+
 private:
     using fingerprint_t = BootloaderProtocol::fingerprint_t;
 

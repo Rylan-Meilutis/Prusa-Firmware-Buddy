@@ -679,6 +679,59 @@ void PuppyBootstrap::start_fingerprint_computation(BootloaderProtocol::Address a
     flasher.compute_fingerprint(salt);
 }
 
+#if HAS_PUPPY_MODULARBED()
+PuppyBootstrap::MbResetCheck PuppyBootstrap::check_mb_reset_controllable() {
+    // Reset all puppies, then assign+evict+discover only MODULAR_BED to bring
+    // it to its known bootloader address without the rest of the docks.
+    reset_all_puppies();
+
+    constexpr BootloaderProtocol::Address mb_address = get_boot_address_for_dock(Dock::MODULAR_BED);
+
+    constexpr auto mb_dock_it = std::ranges::find(DOCKS, Dock::MODULAR_BED);
+
+    // Wait for MB to enter bootloader after reset.
+    osDelay(5);
+
+    // Assign address to everyone at DEFAULT_ADDRESS
+    assign_address(BootloaderProtocol::Address::DEFAULT_ADDRESS, mb_address);
+    osDelay(10);
+
+    // Then evict everything except the puppy at the ModularBed dock
+    reset_puppies_range(std::next(mb_dock_it), DOCKS.end());
+    static_assert(mb_dock_it == DOCKS.begin(), "Need to reset puppies before mb_dock_it as well");
+
+    // Discover whether MB is actually there.
+    const DiscoverResult outcome = discover(MODULARBED, mb_address);
+    if (outcome != DiscoverResult::found) {
+        log_info(Puppies, "MB reset check: MODULAR_BED not found (outcome=%d)", static_cast<int>(outcome));
+        return MbResetCheck::no_mb;
+    }
+
+    log_info(Puppies, "MB reset check: MB found at addr 0x%02x, toggling reset line", std::to_underlying(mb_address));
+
+    // Now evict the discovered puppy as well
+    reset_puppies_range(mb_dock_it, std::next(mb_dock_it));
+
+    // Probe the previously-assigned address for ~150 ms.  The MB should be
+    // gone: NO_RESPONSE throughout → controlled; any answer → uncontrolled.
+    constexpr auto probe_window_ms = 150;
+    const auto probe_start_ms = ticks_ms();
+    flasher.set_address(mb_address);
+    uint16_t protocol_version;
+    do {
+        const auto rc = flasher.get_protocolversion(protocol_version);
+        if (rc != BootloaderProtocol::status_t::NO_RESPONSE) {
+            log_info(Puppies, "MB reset check: MB still answering at addr 0x%02x after toggle (rc=%d) -> uncontrolled",
+                std::to_underlying(mb_address), static_cast<int>(rc));
+            return MbResetCheck::uncontrolled;
+        }
+    } while (ticks_diff(ticks_ms(), probe_start_ms) < probe_window_ms);
+
+    log_info(Puppies, "MB reset check: MB silent after toggle -> controlled");
+    return MbResetCheck::controlled;
+}
+#endif
+
 constexpr bool is_equal_address(Dock dock, modbus::ServerAddress server_address) {
     return std::to_underlying(PuppyBootstrap::get_modbus_address_for_dock(dock)) == std::to_underlying(server_address);
 }
