@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <atomic>
+#include <cstdint>
 
 #include <printers.h>
 #include <common/printer_model.hpp>
@@ -54,7 +56,31 @@ static constexpr std::array extended_printer_type_model {
     PrinterModel::xls,
 };
 
+enum class XLTypeDetectionResult : uint8_t {
+    ok,
+    detected_as_xls,
+    detected_as_xl,
+    wiring_suspected,
+};
+
+/// Set by the puppy bootstrap, to be read by the marlin server during init
+inline std::atomic<XLTypeDetectionResult> xl_type_detection_result = XLTypeDetectionResult::ok;
+
 #else
     #define HAS_EXTENDED_PRINTER_TYPE() 0
 
+#endif
+
+#if HAS_EXTENDED_PRINTER_TYPE()
+
+enum class ChangeExtendedPrinterTypeMode {
+    /// Accesses a marlin_client and puppies
+    standard_with_marlin_client_and_puppies,
+
+    /// Config-store changes only, assumes everything else is handled later
+    config_store_init,
+};
+
+/// Apply a new extended printer type: write config store and update per-type side effects
+void change_extended_printer_type(PrinterModel new_model, ChangeExtendedPrinterTypeMode mode);
 #endif

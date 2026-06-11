@@ -40,6 +40,7 @@
 #include <option/has_tool_crash_recovery.h>
 #include <option/has_extruder_fsensor.h>
 #include <option/has_tool_offset_sensor.h>
+#include <printers.h>
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_anfc.h>
 #include <option/has_ceiling_clearance.h>
@@ -118,6 +119,13 @@ bool is_warning_attention(const fsm::BaseData &data) {
 #if HAS_ILI9488_DISPLAY() && HAS_HUMAN_INTERACTIONS()
         // Local issue, do not report to connect
     case ErrCode::ERR_ELECTRO_DISPLAY_PROBLEM_DETECTED:
+#endif
+#if PRINTER_IS_PRUSA_XL()
+        // Boot-time variant detection messages (incl. the suspected-wiring
+        // one — the printer still boots and works); do not raise attention
+    case ErrCode::ERR_MECHANICAL_PRINTER_DETECTED_AS_XLS:
+    case ErrCode::ERR_MECHANICAL_PRINTER_DETECTED_AS_XL:
+    case ErrCode::ERR_MECHANICAL_XL_CAN_WIRING_SUSPECTED:
 #endif
         return false;
     default:
@@ -795,6 +803,17 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 
     case WarningType::OpenPrintTagUsageWriteFailed:
         return ErrCode::ERR_CONNECT_OPENPRINTTAG_USAGE_WRITE_FAILED;
+#endif
+
+#if PRINTER_IS_PRUSA_XL()
+    case WarningType::PrinterDetectedAsXLS:
+        return ErrCode::ERR_MECHANICAL_PRINTER_DETECTED_AS_XLS;
+
+    case WarningType::PrinterDetectedAsXL:
+        return ErrCode::ERR_MECHANICAL_PRINTER_DETECTED_AS_XL;
+
+    case WarningType::XlCanWiringSuspected:
+        return ErrCode::ERR_MECHANICAL_XL_CAN_WIRING_SUSPECTED;
 #endif
 
     case WarningType::_cnt:

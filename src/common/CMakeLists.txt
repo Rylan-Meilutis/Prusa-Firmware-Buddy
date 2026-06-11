@@ -19,6 +19,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             data_exchange.cpp
             directory.cpp
             error_code_mangle.cpp
+            extended_printer_type.cpp
             ExtInterruptHandler.cpp
             filament.cpp
             filament_common.cpp

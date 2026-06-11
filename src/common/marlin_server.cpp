@@ -94,6 +94,7 @@
 #include "app_metrics.h"
 #include "media_prefetch_instance.hpp"
 #include <common/sensor_data.hpp>
+#include <utils/algorithm_extensions.hpp>
 
 #include <option/has_leds.h>
 
@@ -772,6 +773,34 @@ void init(void) {
             buddy::filament_tracker().assume_retracted_distance(tool, retracted_dist);
         }
     }
+#endif
+
+#if PRINTER_IS_PRUSA_XL()
+    // Raise any pending variant-detection warnings set by the puppy task at boot
+    switch (xl_type_detection_result.load()) {
+
+    case XLTypeDetectionResult::ok:
+        break;
+
+    case XLTypeDetectionResult::detected_as_xls: {
+        // Note: marlin_client not needed for the XLS change, so it's safe
+        change_extended_printer_type(PrinterModel::xls, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
+        set_warning(WarningType::PrinterDetectedAsXLS);
+        break;
+    }
+
+    case XLTypeDetectionResult::detected_as_xl: {
+        // Note: marlin_client not needed for the XLS change, so it's safe
+        change_extended_printer_type(PrinterModel::xl, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
+        set_warning(WarningType::PrinterDetectedAsXL);
+        break;
+    }
+
+    case XLTypeDetectionResult::wiring_suspected:
+        set_warning(WarningType::XlCanWiringSuspected);
+        break;
+    }
+
 #endif
 }
 

@@ -10,19 +10,11 @@
 #include <option/has_nozzle_cleaner_lite.h>
 #include <common/nozzle_diameter.hpp>
 #include <common/printer_model_data.hpp>
+#include <common/extended_printer_type.hpp>
 #include <option/has_print_fan_type.h>
-#if HAS_PRINT_FAN_TYPE()
-    #include <print_fan_type.hpp>
-    #include <tool_index.hpp>
-#endif
 
 #if HAS_CHAMBER_VENTS()
     #include <feature/chamber/chamber_enums.hpp>
-#endif
-
-#if HAS_TOOLCHANGER()
-    #include <module/prusa/toolchanger.h>
-    #include <puppies/Dwarf.hpp>
 #endif
 
 #include <option/has_side_fsensor_remap.h>
@@ -85,56 +77,7 @@ string_view_utf8 MI_EXTENDED_PRINTER_TYPE::build_item_text(int index, [[maybe_un
 }
 
 bool MI_EXTENDED_PRINTER_TYPE::on_item_selected(const OnItemSelectedArgs &args) {
-    config_store().extended_printer_type.set(args.new_index);
-
-    #if HAS_PRINT_FAN_TYPE() && PRINTER_IS_PRUSA_XL()
-    // Auto-set print fan type based on variant: XLS uses LDO, XL uses Delta (default)
-    {
-        auto model = extended_printer_type_model[args.new_index];
-        auto fan_type = (model == PrinterModel::xls) ? PrintFanType::LDO_D5015G08B05X71 : PrintFanType::DELTA_BFB0505HHA_CWCD;
-        for (auto tool : PhysicalToolIndex::all()) {
-            set_print_fan_type(tool.to_raw(), fan_type);
-        }
-    }
-    #endif
-
-    #if HAS_TOOLCHANGER() && PRINTER_IS_PRUSA_XL()
-    {
-        buddy::puppies::Dwarf::FanMode fan_mode = (extended_printer_type_model[args.new_index] == PrinterModel::xls) ? buddy::puppies::Dwarf::FanMode::XLS_NATIVE : buddy::puppies::Dwarf::FanMode::XL_LEGACY;
-        for (auto &dwarf : buddy::puppies::dwarfs) {
-            dwarf.set_fan_mode(fan_mode);
-        }
-    }
-    #endif
-
-    #if EXTENDED_PRINTER_TYPE_DETERMINES_MOTOR_STEPS()
-    // Reset motor configuration if the printer types have different motors
-    if (extended_printer_type_has_400step_motors[args.old_index] != extended_printer_type_has_400step_motors[args.new_index]) {
-        {
-            auto &store = config_store();
-            auto transaction = store.get_backend().transaction_guard();
-            store.homing_sens_x.set_to_default();
-            store.homing_sens_y.set_to_default();
-            store.homing_bump_divisor_x.set_to_default();
-            store.homing_bump_divisor_y.set_to_default();
-
-        #if HAS_PRECISE_HOMING()
-            store.precise_homing_sample_history.set_all_to_default();
-            store.precise_homing_sample_history_index.set_all_to_default();
-        #endif
-        }
-
-        // Reset XY homing sensitivity
-        marlin_client::gcode("M914 X Y");
-
-        // XY motor currents
-        marlin_client::gcode_printf("M906 X%u Y%u", get_rms_current_ma_x(), get_rms_current_ma_y());
-
-        // XY motor microsteps
-        marlin_client::gcode_printf("M350 X%u Y%u", get_microsteps_x(), get_microsteps_y());
-    }
-    #endif
-
+    change_extended_printer_type(extended_printer_type_model[args.new_index], ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
     return true;
 }
 #endif

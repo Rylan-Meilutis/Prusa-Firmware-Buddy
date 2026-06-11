@@ -2,6 +2,7 @@
 
 #include "Marlin/src/module/prusa/toolchanger.h"
 #include "Marlin/src/module/stepper.h"
+#include <utils/algorithm_extensions.hpp>
 #include <buddy/bootstrap_state.hpp>
 #include <cmsis_os.h>
 #include <common/bsod.h>
@@ -52,6 +53,8 @@
 #if HAS_XL_CAN()
     #include <puppies/xl_can.hpp>
     #include <puppies/xl_can_bootstrap.hpp>
+    #include <common/extended_printer_type.hpp>
+    #include <config_store/store_instance.hpp>
 #endif
 
 #include <option/has_mmu2.h>
@@ -581,6 +584,7 @@ void run() {
         if (first_run) {
             BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
             xl_can.set_enabled(xl_can_probe(bootloader_protocol));
+            xl_type_detection_result = XLTypeDetectionResult::ok;
         }
         if (xl_can.is_enabled() && (first_run || xl_can_requires_reset)) {
             {
@@ -593,24 +597,51 @@ void run() {
             // write_dock_reset_pin() holds the MODULAR_BED H write for
             // mb_reset_arm_hold_ms before the reset edge, on every round.
             xl_can_requires_reset = false;
+
+    #if HAS_PUPPY_BOOTSTRAP()
+            if (first_run) {
+                constexpr auto xls_index = stdext::index_of(extended_printer_type_model, PrinterModel::xls);
+                if (config_store().extended_printer_type.get() != xls_index) {
+                    // Do NOT set the printer type here - we're in a bootstrap retry loop, wait for the final result
+                    // Setting the printer type handled by the reader
+                    xl_type_detection_result = XLTypeDetectionResult::detected_as_xls;
+                }
+            }
+    #endif
         }
 #endif
 
 #if HAS_XL_CAN() && HAS_PUPPY_BOOTSTRAP() && HAS_PUPPY_MODULARBED()
-        // Bridge absent on first run: check if the master GPIO controls the MB
-        // reset line to distinguish plain XL from XLS with a dead/unplugged bridge.
+        // Bridge absent on first run: determine variant via MB reset controllability check,
+        // or trust the stored type when it already says XL.
         if (first_run && !xl_can.is_enabled()) {
-            const PuppyBootstrap::MbResetCheck check = puppy_bootstrap.check_mb_reset_controllable();
-            switch (check) {
-            case PuppyBootstrap::MbResetCheck::controlled:
-                log_info(Puppies, "MB reset controllability: controlled (genuine XL)");
-                break;
-            case PuppyBootstrap::MbResetCheck::uncontrolled:
-                log_info(Puppies, "MB reset controllability: uncontrolled (reset line not under master control — check XL-CAN cabling)");
-                break;
-            case PuppyBootstrap::MbResetCheck::no_mb:
-                log_info(Puppies, "MB reset controllability: no MB found");
-                break;
+            constexpr auto xl_index = stdext::index_of(extended_printer_type_model, PrinterModel::xl);
+            if (config_store().extended_printer_type.get() == xl_index) {
+                // Steady-state plain XL boot: trust the stored type, skip the check.
+                log_info(Puppies, "Bridge absent, stored type is XL — no controllability check");
+            } else {
+                // Stored type is XLS (or unknown default): need to verify the reset line.
+                const PuppyBootstrap::MbResetCheck check = puppy_bootstrap.check_mb_reset_controllable();
+                switch (check) {
+                case PuppyBootstrap::MbResetCheck::controlled:
+                    // Master GPIO controls MB reset → genuine plain XL.
+                    log_info(Puppies, "MB reset controllability: controlled — setting printer type to XL");
+
+                    // Do NOT set the printer type here - we're in a bootstrap retry loop, wait for the final result
+                    // Setting the printer type handled by the reader
+                    xl_type_detection_result = XLTypeDetectionResult::detected_as_xl;
+                    break;
+                case PuppyBootstrap::MbResetCheck::uncontrolled:
+                    // Reset line not reaching MB → XLS with dead/unplugged bridge.
+                    log_info(Puppies, "MB reset controllability: uncontrolled — check XL-CAN cabling");
+                    xl_type_detection_result = XLTypeDetectionResult::wiring_suspected;
+                    // Keep stored type; boot continues without bridge.
+                    break;
+                case PuppyBootstrap::MbResetCheck::no_mb:
+                    // No MB found; normal bootstrap will fatal with PUPPY_NOT_RESPONDING.
+                    log_info(Puppies, "MB reset controllability: no MB found");
+                    break;
+                }
             }
         }
 #endif

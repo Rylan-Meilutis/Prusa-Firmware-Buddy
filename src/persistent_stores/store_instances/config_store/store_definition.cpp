@@ -51,14 +51,12 @@ void CurrentStore::perform_config_check() {
         force_default_hw_config.set(false);
 
 #if PRINTER_IS_PRUSA_MK4()
-        static_assert(extended_printer_type_model[1] == PrinterModel::mk4s);
-        extended_printer_type.set(1);
+        change_extended_printer_type(PrinterModel::mk4s, ChangeExtendedPrinterTypeMode::config_store_init);
         hotend_type.set(0, HotendType::stock_with_sock);
         nozzle_is_high_flow.set(1 << 0); // Bitset -> first and only nozzle
 
 #elif PRINTER_IS_PRUSA_XL()
-        static_assert(extended_printer_type_model[1] == PrinterModel::xls);
-        extended_printer_type.set(1); // Default to XLS
+        change_extended_printer_type(PrinterModel::xls, ChangeExtendedPrinterTypeMode::config_store_init);
 
         // New XL printers have .4mm nozzles: BFW-5638
         for (auto tool : PhysicalToolIndex::all()) {
@@ -66,8 +64,7 @@ void CurrentStore::perform_config_check() {
         }
 
 #elif PRINTER_IS_PRUSA_MK3_5()
-        static_assert(extended_printer_type_model[1] == PrinterModel::mk3_5s);
-        extended_printer_type.set(1);
+        change_extended_printer_type(PrinterModel::mk3_5s, ChangeExtendedPrinterTypeMode::config_store_init);
 
 #endif
 

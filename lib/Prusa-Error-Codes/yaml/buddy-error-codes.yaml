@@ -396,6 +396,33 @@ Errors:
     gui_layout: "warning_dialog"
     approved: true
 
+  - code: "XX141"
+    printers: [XL]
+    title: "Printer Type Set to XL+"
+    text: "XL-CAN bridge detected. Printer type has been set to Original Prusa XL+. Settings have been updated."
+    id: "PRINTER_DETECTED_AS_XLS"
+    type: WARNING
+    gui_layout: "warning_dialog"
+    approved: true
+
+  - code: "XX142"
+    printers: [XL]
+    title: "Printer Type Set to XL"
+    text: "No XL-CAN bridge found. Printer type has been set to Original Prusa XL. Settings have been updated."
+    id: "PRINTER_DETECTED_AS_XL"
+    type: WARNING
+    gui_layout: "warning_dialog"
+    approved: true
+
+  - code: "XX143"
+    printers: [XL]
+    title: "Check XL-CAN Connection"
+    text: "XL-CAN bridge is not responding and the Modular Bed reset is not under printer control. Cabling or board failure."
+    id: "XL_CAN_WIRING_SUSPECTED"
+    type: WARNING
+    gui_layout: "warning_dialog"
+    approved: true
+
   # TEMPERATURE    xx2xx
 
   - code: "XX201"

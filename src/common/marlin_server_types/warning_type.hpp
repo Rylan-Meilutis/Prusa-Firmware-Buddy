@@ -150,6 +150,14 @@ enum class WarningType : uint32_t {
     NozzleCleanerManualEmpty,
 #endif
 
+#if PRINTER_IS_PRUSA_XL()
+    /// XL-CAN bridge detected at boot; printer type set to XLS.
+    PrinterDetectedAsXLS,
+    /// No XL-CAN bridge found at boot; printer type set to XL.
+    PrinterDetectedAsXL,
+    /// XL-CAN bridge not responding and MB reset not under master control; check cabling.
+    XlCanWiringSuspected,
+#endif
 #if HAS_ILI9488_DISPLAY() && HAS_HUMAN_INTERACTIONS()
     DisplayProblemDetected,
 #endif
