@@ -57,6 +57,10 @@ public:
 #if HAS_INDX()
     static float head_ambient_temperature();
     static float nozzle_temp_uncompensated();
+
+    float nozzle_power_W() const {
+        return nozzle_power_W_.load(std::memory_order_relaxed);
+    }
 #endif
 
 #if HAS_DOOR_SENSOR()
@@ -80,6 +84,14 @@ public:
 #endif
 
     void update();
+
+private:
+    uint32_t last_update_ms_ = 0;
+
+#if HAS_INDX()
+    std::atomic<float> nozzle_power_W_ = 0;
+    uint32_t last_nozzle_energy_uJ_ = 0;
+#endif
 };
 
 SensorData &sensor_data();

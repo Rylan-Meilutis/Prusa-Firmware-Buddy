@@ -13,6 +13,8 @@
 #include <adc.hpp>
 #include "../Marlin/src/module/temperature.h"
 #include <timing.h>
+#include <raii/scope_guard.hpp>
+#include <utils/math/ema.hpp>
 
 #if HAS_AC_CONTROLLER()
     #include <puppies/ac_controller.hpp>
@@ -68,6 +70,11 @@ void SensorData::update_MCU_temp() {
 }
 
 void SensorData::update() {
+    const auto now_ms = ticks_ms();
+    [[maybe_unused]] const uint32_t delta_time_ms = now_ms - last_update_ms_;
+
+    ScopeGuard _sg = [&] { last_update_ms_ = now_ms; };
+
     // Board temperature
     boardTemp = thermalManager.degBoard();
 
@@ -139,6 +146,20 @@ void SensorData::update() {
     static_assert(HAS_AC_CONTROLLER());
     psu_fan_rpm = psu_fan::psu_fan().get_rpm().value_or(0);
     psu_fan_pwm = psu_fan::psu_fan().get_pwm().value_or(0);
+#endif
+
+#if HAS_INDX()
+    // Calculate nozzle power
+    if (delta_time_ms > 0) {
+        const auto current_energy_uJ_ = buddy::puppies::indx.get_hotend_energy_consumed_uJ();
+
+        const float spot_power_W = (current_energy_uJ_ - last_nozzle_energy_uJ_) / (float(delta_time_ms) * 1000) * buddy::puppies::Indx::hotend_induction_efficiency;
+
+        // The current_energy_uJ_ gets updated from the indx_head in discrete steps, apply EMA to smoothen it out a bit
+        nozzle_power_W_ = exponential_moving_average(nozzle_power_W_, spot_power_W, delta_time_ms, 400);
+
+        last_nozzle_energy_uJ_ = current_energy_uJ_;
+    }
 #endif
 }
 
