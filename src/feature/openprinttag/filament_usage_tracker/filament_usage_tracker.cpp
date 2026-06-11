@@ -1,5 +1,7 @@
 #include "filament_usage_tracker.hpp"
 
+#include <mutex>
+
 #include <feature/filament_tracker/filament_tracker.hpp>
 #include <feature/openprinttag/requests_read_multi.hpp>
 #include <feature/openprinttag/requests_write.hpp>
