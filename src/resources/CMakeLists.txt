@@ -7,6 +7,7 @@ set(resources_include_dir "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 function(add_resource source_path install_path)
   lfs_image_add_file(resources-image "${source_path}" "${install_path}")
+  tar_image_add_file(resources-tarball "${source_path}" "${install_path}")
 endfunction()
 
 function(add_gzip_resource source_path install_path)
@@ -49,6 +50,8 @@ target_include_directories(firmware PUBLIC "${resources_include_dir}")
 #
 # Standard Resources Image
 #
+
+add_tar_image(resources-tarball)
 
 if(PRINTER STREQUAL "MINI")
   # Some revisions of mini has 1MB flash, so limit resource size to remaining size
@@ -172,6 +175,13 @@ if(BOOTLOADER_UPDATE)
   # generate header with hash
   add_header_with_revision(bootloader resources-bootloader-image)
 
+  add_tar_image(bootloader-tarball)
+  tar_image_add_file(bootloader-tarball "${bootloader_bin}" "/bootloader.bin")
+  tar_image_build(bootloader-tarball)
+  get_target_property(bootloader_tar bootloader-tarball TAR_IMAGE_LOCATION)
+  set(bootloader_tar_digest "${bootloader_tar}.sha256")
+  sha256_file("${bootloader_tar}" "${bootloader_tar_digest}")
+
   # parse bootloader version
   string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" result "${bootloader_version_str}")
   if(NOT result)
@@ -233,3 +243,8 @@ if(HAS_MMU2)
 
   add_resource("${mmu_fw_bin_file}" "/mmu/fw.bin")
 endif()
+
+tar_image_build(resources-tarball)
+get_target_property(resources_tar resources-tarball TAR_IMAGE_LOCATION)
+set(resources_tar_digest "${resources_tar}.sha256")
+sha256_file("${resources_tar}" "${resources_tar_digest}")

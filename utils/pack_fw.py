@@ -51,6 +51,12 @@ class TLVType(Enum):
     RESOURCES_BOOTLOADER_IMAGE_BLOCK_COUNT = 7  # Block count used by the image in RESOURCES_BOOTLOADER_IMAGE (uint32_t, little endian)
     RESOURCES_BOOTLOADER_IMAGE_HASH = 8  # SHA256 of the RESOURCES_BOOTLOADER_IMAGE content
 
+    RESOURCES_TARBALL = 9  # tarball with the resources
+    RESOURCES_TARBALL_DIGEST = 10  # SHA256 of the RESOURCES_TARBALL bytes
+
+    BOOTLOADER_TARBALL = 11  # tarball with the bootloader
+    BOOTLOADER_TARBALL_DIGEST = 12  # SHA256 of the BOOTLOADER_TARBALL bytes
+
     @staticmethod
     def from_user_spec(spec: str) -> int:
         try:
