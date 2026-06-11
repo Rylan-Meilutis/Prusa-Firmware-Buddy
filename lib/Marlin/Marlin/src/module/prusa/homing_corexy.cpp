@@ -1212,6 +1212,39 @@ bool corexy_home_refine(float fr_mm_s, CoreXYCalibrationMode mode) {
             return false;
         }
 
+        // origin hysteresis: when the origin phase itself falls within the unstable region, anchor
+        // the phase to the previous calibration, keeping the stored origin/distance consistent.
+        if (!calibrated_origin.uninitialized()) {
+            bool valid = true;
+            LOOP_XY(axis) {
+                const float diff = origin[axis] - calibrated_origin.origin[axis];
+                if (fabsf(diff - roundf(diff)) >= UNSTABLE_PHASE_THRESHOLD) {
+                    // phase moved too much on either axis: ignore previous calibration entirely
+                    valid = false;
+                    break;
+                }
+            }
+            if (valid) {
+                ab_grid_t o_shift = { 0, 0 };
+                bool anchor = false;
+                LOOP_XY(axis) {
+                    const float frac = origin[axis] - floorf(origin[axis]);
+                    if (fabsf(frac - 0.5f) < UNSTABLE_PHASE_THRESHOLD / 2) {
+                        // reuse the previous phase, keep the newly measured integer cycle
+                        const float diff = roundf(origin[axis] - calibrated_origin.origin[axis]);
+                        o_shift[axis] = static_cast<int32_t>(diff);
+                        origin[axis] = calibrated_origin.origin[axis] + diff;
+                        anchor = true;
+                    }
+                }
+                if (anchor) {
+                    // report the shift and update to the new distance
+                    SERIAL_ECHOLNPAIR("home origin hysteresis shift A:", o_shift[A_AXIS], " B:", o_shift[B_AXIS]);
+                    distance = origin_to_distance(measured_axis, origin);
+                }
+            }
+        }
+
         LOOP_XY(axis) {
             calibrated_origin.origin[axis] = origin[axis];
             calibrated_origin.distance[axis] = distance[axis];
