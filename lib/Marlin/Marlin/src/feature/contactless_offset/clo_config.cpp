@@ -18,6 +18,7 @@ tool_offset::ProbingConfig tool_offset::get_default_probing_config() {
     return ProbingConfig {
         .sensor_position = { { { default_sensor_position.x, default_sensor_position.y, 0.f } } }, // mm
         .safe_z_height = 4.f,
+        .travel_z_height = 10.f,
         .sensing_z = 0.2f,
         .sensing_distance_x = sensing_distance_x,
         .sensing_distance_y = sensing_distance_y,

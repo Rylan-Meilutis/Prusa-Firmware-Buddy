@@ -331,9 +331,6 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
             return false;
         }
         log_info(ToolOffsetCalib, "User requested XY offset retry for tool %u", tool.to_raw());
-
-        do_blocking_move_to_z(config.sensor_position.z + config.safe_z_height);
-        do_blocking_move_to_xy(config.sensor_position.x, config.sensor_position.y);
     }
 }
 

@@ -778,12 +778,15 @@ public:
 // carriage at the probed Z (loadcell remains active so the caller can
 // reposition before disabling it).
 std::expected<float, const char *> probe_sensor_z(const tool_offset::ProbingConfig &config) {
-    do_blocking_move_to_z(config.sensor_position.z + config.safe_z_height);
+    // Travel to the sensor at travel_z_height; only descend to safe_z_height right above it.
+    do_z_clearance(config.sensor_position.z + config.travel_z_height);
 
     // Z-probing over TOS must be done out of the coil area to avoid destruction of the coil
     auto z_probing_position = config.sensor_position;
     z_probing_position.y += config.y_shift_z_probe_offset_from_sensor;
     do_blocking_move_to_xy(z_probing_position);
+
+    do_blocking_move_to_z(config.sensor_position.z + config.safe_z_height);
 
     const float sensor_z = measure_sensor_true_z(config);
     if (std::isnan(sensor_z)) {

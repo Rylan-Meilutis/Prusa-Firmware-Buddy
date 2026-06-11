@@ -26,7 +26,8 @@ inline constexpr xy_pos_t default_sensor_position {
 
 struct ProbingConfig {
     xyz_pos_t sensor_position;
-    float safe_z_height; // Height above the sensor to safely move in XY
+    float safe_z_height; // Height above the sensor for the descent before probing and the post-scan lift
+    float travel_z_height; // Clearance height for XY travel to the sensor
     float sensing_z; // Height above the sensor to actually perform the measurement
     float sensing_distance_x; // Sensing area in X direction
     float sensing_distance_y; // Sensing area in Y direction
