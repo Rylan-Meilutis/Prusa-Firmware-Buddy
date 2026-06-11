@@ -75,6 +75,9 @@ def main():
 
     write_bytes_to_file('firmware.bin', firmware_code)
     write_bytes_to_file('resources-image.lfs', tlv.get(1, bytes()))
+    write_bytes_to_file('bootloader-image.lfs', tlv.get(5, bytes()))
+    write_bytes_to_file('resources.tar', tlv.get(9, bytes()))
+    write_bytes_to_file('bootloader.tar', tlv.get(11, bytes()))
 
     return 0
 

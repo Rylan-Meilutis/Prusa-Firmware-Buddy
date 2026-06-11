@@ -173,6 +173,28 @@ function(pack_firmware target)
     endforeach()
   endif()
 
+  if(RESOURCES)
+    get_target_property(resources_tar resources-tarball TAR_IMAGE_LOCATION)
+    set(resources_digest "${resources_tar}.sha256")
+    list(APPEND resources_opts "--tlv" "RESOURCES_TARBALL:${resources_tar}"
+         "RESOURCES_TARBALL_DIGEST:${resources_digest}"
+         )
+    add_custom_target(bbf-resources-dependencies DEPENDS "${resources_tar}" "${resources_digest}")
+    add_dependencies(${target} bbf-resources-dependencies)
+  endif()
+
+  if(BOOTLOADER_UPDATE)
+    get_target_property(bootloader_tar bootloader-tarball TAR_IMAGE_LOCATION)
+    set(bootloader_digest "${bootloader_tar}.sha256")
+    list(APPEND resources_opts "--tlv" "BOOTLOADER_TARBALL:${bootloader_tar}"
+         "BOOTLOADER_TARBALL_DIGEST:${bootloader_digest}"
+         )
+    add_custom_target(
+      bbf-bootloader-dependencies DEPENDS "${bootloader_tar}" "${bootloader_digest}"
+      )
+    add_dependencies(${target} bbf-bootloader-dependencies)
+  endif()
+
   add_custom_command(
     TARGET ${target}
     POST_BUILD
