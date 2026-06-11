@@ -77,6 +77,7 @@ enum class Item : uint8_t { // stored in eeprom, must fit to footer::eeprom::val
     chamber_temp = 24,
     f_s_value_side = 25,
     wastebin_pellets = 26,
+    nozzle_power = 27,
     _count,
 };
 
@@ -94,6 +95,9 @@ inline constexpr std::array item_list {
         // Temps
         Item::nozzle,
         Item::nozzle_pwm,
+#if HAS_INDX()
+        Item::nozzle_power,
+#endif
 #if HAS_PER_TOOL_TEMPERATURES()
         Item::all_nozzles,
 #endif

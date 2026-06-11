@@ -70,6 +70,7 @@ const char *footer::to_string(Item item) {
             nullptr
 #endif
         },
+        { Item::nozzle_power, HAS_INDX() ? (const char *)N_("Nozzle Power") : nullptr },
     };
 
     return texts.get_fallback(item, Item::none);

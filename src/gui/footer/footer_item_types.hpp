@@ -18,6 +18,7 @@
 #include <option/has_sheet_profiles.h>
 #include <option/has_chamber_api.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_indx.h>
 #include <meta_utils.hpp>
 
 #if HAS_WASTEBIN_FILL_TRACKING()
@@ -89,6 +90,9 @@ using FooterItemMappings = TypeList< //
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
     FooterItemMappingRec<FooterItemWastebin, Item::wastebin_pellets>,
+#endif
+#if HAS_INDX()
+    FooterItemMappingRec<FooterItemNozzlePower, Item::nozzle_power>,
 #endif
     FooterItemMappingRec<FooterItemNozzle, Item::nozzle>
     //

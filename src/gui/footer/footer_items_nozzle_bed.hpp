@@ -5,10 +5,10 @@
 
 #pragma once
 #include "footer_items_heaters.hpp"
-#include "config_features.h"
 #include <option/has_modular_bed.h>
 #include <option/has_per_tool_temperatures.h>
 #include <option/has_toolchanger.h>
+#include <option/has_indx.h>
 
 class FooterItemNozzle final : public FooterItemHeater {
     static string_view_utf8 static_makeView(int value);
@@ -33,6 +33,16 @@ class FooterItemNozzlePWM final : public FooterIconText_IntVal {
 public:
     FooterItemNozzlePWM(window_t *parent);
 };
+
+#if HAS_INDX()
+class FooterItemNozzlePower final : public FooterIconText_IntVal {
+    static string_view_utf8 static_makeView(int value);
+    static int static_readValue();
+
+public:
+    FooterItemNozzlePower(window_t *parent);
+};
+#endif
 
 class FooterItemBed final : public FooterItemHeater {
     static string_view_utf8 static_makeView(int value);

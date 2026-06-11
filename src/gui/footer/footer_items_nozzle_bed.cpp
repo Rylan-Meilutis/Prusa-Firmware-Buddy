@@ -1,19 +1,19 @@
 #include "footer_items_nozzle_bed.hpp"
 
-#include "display.hpp"
-#include "marlin_client.hpp"
 #include "filament.hpp"
-#include "img_resources.hpp"
-#include "i18n.h"
-#include "config_features.h"
-#include "printers.h"
+#include <img_resources.hpp>
 #include "footer_eeprom.hpp"
+#include <cmath>
+#include <option/has_indx.h>
 #include <option/has_per_tool_temperatures.h>
 #include <option/has_toolchanger.h>
 #include <config_store/store_instance.hpp>
 #include <utils/string_builder.hpp>
 #include <common/nozzle_diameter.hpp>
 #include <option/has_modular_bed.h>
+#include <sensor_data.hpp>
+#include <marlin_vars.hpp>
+#include <display.hpp>
 
 #if HAS_MODULAR_BED()
     #include <module/modular_heatbed.h>
@@ -294,3 +294,19 @@ string_view_utf8 FooterItemBed::static_makeView(int value) {
     static buffer_t buff;
     return static_makeViewIntoBuff(value, buff);
 }
+
+#if HAS_INDX()
+FooterItemNozzlePower::FooterItemNozzlePower(window_t *parent)
+    : FooterIconText_IntVal(parent, &img::nozzle_16x16, static_makeView, static_readValue) {
+}
+
+int FooterItemNozzlePower::static_readValue() {
+    return static_cast<int>(std::round(sensor_data().nozzle_power_W()));
+}
+
+string_view_utf8 FooterItemNozzlePower::static_makeView(int value) {
+    static std::array<char, 7> buff;
+    snprintf(buff.data(), buff.size(), "%dW", value);
+    return string_view_utf8::MakeRAM(buff.data());
+}
+#endif
