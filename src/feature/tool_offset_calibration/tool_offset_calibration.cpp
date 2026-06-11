@@ -385,9 +385,13 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
         return false;
     }
 
-    // Collect the physical tools we need to calibrate from the active tool mapping.
-    // Fall back to all enabled tools when no mapping is active (e.g. debug/standalone use).
-    PhysicalToolSet used_physical_tools = collect_used_physical_tools();
+    // In Print context, calibrate only the tools the print needs to save time.
+    // GCodeInfo retains the last print's data, so it must not be consulted
+    // outside of Context::Print.
+    PhysicalToolSet used_physical_tools;
+    if (context == Context::Print) {
+        used_physical_tools = collect_used_physical_tools();
+    }
     if (used_physical_tools.none()) {
         used_physical_tools = collect_all_enabled_tools();
     }

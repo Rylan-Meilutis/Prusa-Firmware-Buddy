@@ -13,8 +13,8 @@ namespace tool_offset_calibration {
 /// In `Calibration` mode (e.g. selftest / cleaner-calibration wizard) the caller has prompted the
 /// user to clean nozzles manually and there is no active print to abort on failure.
 enum class Context {
-    Print, ///< Invoked from a running print (G427). Auto-cleans via nozzle cleaner; aborts print on failure.
-    Calibration, ///< Invoked from a calibration wizard. Skips auto-clean; failure just returns false.
+    Print, ///< Invoked from a running print (G427). Auto-cleans via nozzle cleaner; aborts print on failure. Calibrates only the tools the print uses.
+    Calibration, ///< Invoked from a calibration wizard. Skips auto-clean; failure just returns false. Calibrates all enabled tools.
 };
 
 /// Snapshot of where the calibration is in its per-tool loop.
