@@ -94,7 +94,7 @@ public:
         if (const auto res = write_register(Register::RESET, 0xCC); !res.has_value()) {
             return res;
         }
-        this->delay_ms(5); // Wait for internal reboot
+        this->delay_us(5'000); // Wait for internal reboot
         // --- STEP 1: Enable Chip ---
         // (Write 01h to register 00h)
         if (const auto res = write_register(Register::CHIP_EN, 0x01); !res.has_value()) {
@@ -102,7 +102,7 @@ public:
         }
 
         // Datasheet requirement: Wait >1ms after enable before analog config [cite: 1138]
-        this->delay_ms(2);
+        this->delay_us(1'000);
 
         state = State::initializing;
 
@@ -148,7 +148,7 @@ public:
         }
 
         // Wait for analog circuit to stabilize before checking faults
-        this->delay_ms(5);
+        this->delay_us(5'000);
 
         // --- STEP 7: Fault Verification ---
         if (const auto res = check_for_faults(); !res.has_value()) {

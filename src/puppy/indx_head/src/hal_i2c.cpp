@@ -248,8 +248,10 @@ namespace {
                 bsod_unreachable();
             }
 
-            static void delay_ms(uint32_t ms) {
-                freertos::delay(ms);
+            void delay_us(uint32_t us) {
+                uint32_t ms = us / 1'000;
+                ms += (us - ms * 1'000) > 0;
+                freertos::delay(ms + 1); // ensures at least 'ms' miliseconds wait
             }
         };
 
