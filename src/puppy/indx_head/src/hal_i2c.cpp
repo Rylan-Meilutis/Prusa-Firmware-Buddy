@@ -241,10 +241,10 @@ namespace {
                 return true;
             }
 
-            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] Bytes tx_buf) {
+            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] Bytes tx_buf) {
                 bsod_unreachable();
             }
-            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] WritableBytes rx_buf) {
+            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] WritableBytes rx_buf) {
                 bsod_unreachable();
             }
 
