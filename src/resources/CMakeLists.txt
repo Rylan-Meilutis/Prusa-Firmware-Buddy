@@ -6,18 +6,13 @@ set(generate_hash_file_py "${CMAKE_SOURCE_DIR}/utils/resources/generate_hash_fil
 set(resources_include_dir "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 function(add_resource source_path install_path)
-  set(one_value_args IMAGE_NAME)
-  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
-  if(NOT ARG_IMAGE_NAME)
-    set(ARG_IMAGE_NAME resources-image)
-  endif()
-  lfs_image_add_file(${ARG_IMAGE_NAME} "${source_path}" "${install_path}")
+  lfs_image_add_file(resources-image "${source_path}" "${install_path}")
 endfunction()
 
 function(add_gzip_resource source_path install_path)
   set(gzip_file_path "${CMAKE_CURRENT_BINARY_DIR}/gzipped${install_path}")
   gzip_file("${source_path}" "${gzip_file_path}")
-  add_resource("${gzip_file_path}" "${install_path}" ${ARGN})
+  add_resource("${gzip_file_path}" "${install_path}")
 endfunction()
 
 function(add_header_with_revision revision_name image_name)
@@ -172,7 +167,7 @@ if(BOOTLOADER_UPDATE)
   set(bootloader_bin "${bootloader_dir}/bootloader.bin")
 
   # add the bootloader.bin to the image
-  add_resource("${bootloader_bin}" "/bootloader.bin" IMAGE_NAME resources-bootloader-image)
+  lfs_image_add_file(resources-bootloader-image "${bootloader_bin}" "/bootloader.bin")
 
   # generate header with hash
   add_header_with_revision(bootloader resources-bootloader-image)
