@@ -779,6 +779,9 @@ static xy_pos_t estimate_origin(const measure_data (&points)[N], size_t count, c
                 best_delta[B_AXIS] = db;
             }
         }
+
+        // the fit can take a while depending on the pass count
+        idle(true);
     }
 
     return {
