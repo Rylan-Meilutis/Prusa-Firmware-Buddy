@@ -28,13 +28,6 @@ extern "C" void ADC_IRQHandler() {
 TRACED_ISR(SPI3_IRQHandler, HAL_SPI_IRQHandler, spi_handle_tmc);
 TRACED_ISR(DMA1_Stream5_IRQHandler, HAL_DMA_IRQHandler, spi_handle_tmc->hdmatx);
 
-#if PRINTER_IS_PRUSA_iX()
-
-// SPI for side leds on iX
-TRACED_ISR(DMA2_Stream1_IRQHandler, HAL_DMA_IRQHandler, spi_handle_led->hdmatx);
-
-#endif
-
 // SPI for flash memory
 TRACED_ISR(DMA2_Stream3_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmarx);
 TRACED_ISR(DMA2_Stream6_IRQHandler, HAL_DMA_IRQHandler, spi_handle_flash->hdmatx);

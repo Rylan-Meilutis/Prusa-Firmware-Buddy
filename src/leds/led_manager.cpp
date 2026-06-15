@@ -6,6 +6,7 @@
 #include <marlin_vars.hpp>
 #include "neopixel.hpp"
 #include <option/has_side_leds.h>
+#include <device/peripherals.hpp>
 
 #include <config_store/store_instance.hpp>
 

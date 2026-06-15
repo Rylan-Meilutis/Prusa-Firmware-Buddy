@@ -321,10 +321,6 @@ extern "C" void main_cpp(void) {
     hw_init_spi_side_leds();
 #endif
 
-#if PRINTER_IS_PRUSA_iX()
-    spi_init_led();
-#endif
-
 #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     /*
      * MK3.5 HW detected on MK4 firmware or vice versa

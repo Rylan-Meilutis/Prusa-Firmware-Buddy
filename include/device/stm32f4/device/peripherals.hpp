@@ -243,10 +243,7 @@ constexpr TIM_HandleTypeDef *tim_handle_burst_stepping = &htim8;
 constexpr TIM_HandleTypeDef *tim_handle_phase_stepping = &htim13;
 
     #if PRINTER_IS_PRUSA_iX()
-        #define HAS_I2C3()   0
-
-constexpr SPI_HandleTypeDef *spi_handle_led = &hspi4;
-        #define spi_init_led hw_spi4_init
+        #define HAS_I2C3() 0
     #else
 constexpr I2C_HandleTypeDef *i2c_handle_touch = &hi2c3;
         #define i2c_init_touch hw_i2c3_init

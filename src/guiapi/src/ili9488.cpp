@@ -3,6 +3,7 @@
 #include <common/sys.hpp>
 #include <device/board.h>
 #include <device/hal.h>
+#include <device/peripherals.hpp>
 #include <span>
 #include <string.h>
 #include <stdlib.h>

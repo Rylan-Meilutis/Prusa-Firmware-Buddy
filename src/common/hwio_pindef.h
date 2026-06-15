@@ -85,13 +85,6 @@ void hw_init_spi_side_leds();
     #include "hwio_pindef_XL.h"
 #else // Not special board with separate pin definition file.
 
-    #if PRINTER_IS_PRUSA_iX()
-        #include <device/peripherals.hpp>
-inline constexpr SPI_HandleTypeDef *hw_get_spi_side_strip() {
-    return spi_handle_led;
-}
-    #endif
-
     /**
      * @name Define pins to be accessed from Marlin
      *

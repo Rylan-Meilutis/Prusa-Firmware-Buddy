@@ -6,6 +6,7 @@
 
 #include "led_lcd_cs_selector.hpp"
 #include <buddy/main.h>
+#include <device/peripherals.hpp>
 #include "hwio_pindef.h"
 #include "gui_time.hpp" //gui::GetTick()
 #include <buddy/ccm_thread.hpp>
@@ -34,10 +35,8 @@ extern void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size);
 extern void ili9488_cmd_nop(void);
 
 void GuiLedsWriter::write(uint8_t *pb, uint16_t size) {
-    SPI_HandleTypeDef *hspi = spi_handle_lcd;
-
     // LEDs use MHz10_5, reconfigure prescaler accordingly
-    SPIBaudRatePrescalerGuard guard { hspi, SPI_BAUDRATEPRESCALER_8 };
+    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_8 };
 
     ili9488_cmd_nop();
 
@@ -50,7 +49,7 @@ void GuiLedsWriter::write(uint8_t *pb, uint16_t size) {
     displayCs.reset();
 }
 
-#if BOARD_IS_XLBUDDY() || PRINTER_IS_PRUSA_iX()
+#if BOARD_IS_XLBUDDY()
 void SideStripWriter::write(uint8_t *pb, uint16_t size) {
     SPI_HandleTypeDef *hspi = hw_get_spi_side_strip();
 
