@@ -63,6 +63,9 @@ std::atomic<bool> selftest_mode = false;
 std::atomic<uint32_t> hotend_duty_cycle_sq_integral_us { 0 };
 std::atomic<uint32_t> hotend_energy_consumed_uJ { 0 };
 
+/// Internally used by step_hotend_energy
+uint32_t hotend_energy_nJ_accum = 0;
+
 int16_t validate_board_temperature() {
     constexpr int16_t min_board_temp_degC = 10;
     constexpr int16_t max_board_temp_degC = 95;
@@ -73,6 +76,97 @@ int16_t validate_board_temperature() {
         hal::panic(indx_head::errors::FaultStatusMask::board_max_temp);
     }
     return board_temp_degC;
+}
+
+void step_hotend_energy(uint32_t dt_us) {
+    // Integrate V × I power [mW × ms]
+    // All integer arithmetic, no 64-bit division (expensive on Cortex-M0)
+    const uint32_t voltage_mV = hal::adc::get_input_voltage_mV();
+    const uint32_t current_mA = hal::adc::get_heater_current_mA();
+
+    // max ~75000, fits uint32_t
+    const uint32_t power_mW = voltage_mV * current_mA / 1000;
+
+    // To avoid truncation of dt_us/1000 (3333→3), accumulate sub-ms remainder
+    hotend_energy_nJ_accum += power_mW * dt_us;
+    hotend_energy_consumed_uJ += uint32_t { hotend_energy_nJ_accum / 1000 };
+    hotend_energy_nJ_accum %= 1000;
+}
+
+void step_hotend() {
+    const uint64_t now_us = timing::get_timestamp_us();
+    const uint32_t now_ms = timing::get_timestamp_ms();
+
+    static uint64_t last_induction_control_us = now_us;
+
+    /// Timestamp of last valid nozzle temp reading
+    static uint32_t last_valid_nozzle_temp_ms = now_ms;
+
+    const uint32_t dt_us = uint32_t(now_us - last_induction_control_us);
+    if (dt_us < control_delay_us) {
+        return;
+    }
+    // Just to give scope what numbers we're dealing with
+    // Duty cycle is 0-1, control_delay_us is in thousands - so when we cast to uint32_t after the duty cycle multiplication, we should get reasonably precise values
+    static_assert(control_delay_us >= 1000 && control_delay_us <= 10000);
+
+    hotend_temp_compensation::step();
+
+    last_induction_control_us = now_us;
+    hal::CheckedTemperatureReading nozzle_temp_reading = hal::i2c::read_tpis_temperature();
+
+    if (nozzle_temp_reading.valid) {
+        if (nozzle_temp_reading.temps.object_temperature_celsius > max_nozzle_temp) {
+            hal::panic(indx_head::errors::FaultStatusMask::nozzle_max_temp);
+        } else if (nozzle_temp_reading.temps.object_temperature_celsius < min_nozzle_temp) {
+            hal::panic(indx_head::errors::FaultStatusMask::nozzle_min_temp);
+        }
+
+        if (nozzle_temp_reading.temps.ambient_temperature_celsius > max_tpis_ambient_temp) {
+            hal::panic(indx_head::errors::FaultStatusMask::tpis_ambient_max_temp);
+        } else if (nozzle_temp_reading.temps.ambient_temperature_celsius < min_tpis_ambient_temp) {
+            hal::panic(indx_head::errors::FaultStatusMask::tpis_ambient_min_temp);
+        }
+
+        last_valid_nozzle_temp_ms = now_ms;
+
+    } else if (now_ms - last_valid_nozzle_temp_ms > invalid_nozzle_temp_timeout_ms) {
+        hal::panic(indx_head::errors::FaultStatusMask::tpis_invalid_timeout);
+    }
+
+    // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading contains last valid value
+
+    const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.temps.object_temperature_celsius * 100.f);
+    const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 - hotend_temp_compensation::get_current_compensation_c100();
+
+    // Calculate slope
+    if (temps_valid) {
+        const int64_t uncompensated_raw_slope = int64_t(nozzle_temp_uncompensated_c100 - ::nozzle_temp_uncompensated_c100.load()) * 1000000 / int64_t(dt_us);
+
+        // Clamp to sane values to prevent too big spikes
+        const int32_t clamped_raw_slope = int32_t(std::clamp<int64_t>(uncompensated_raw_slope, -100 * 100, 100 * 100));
+
+        // Apply exponential fadeout to average the values a bit
+        const int16_t filtered_slope = int16_t((int32_t(hotend_temp_raw_c100_dt_s.load()) * 7 + clamped_raw_slope * 1) / 8);
+
+        ::hotend_temp_raw_c100_dt_s.store(filtered_slope);
+    }
+
+    ::nozzle_temp_uncompensated_c100.store(nozzle_temp_uncompensated_c100);
+    ::nozzle_temp_compensated_c100.store(nozzle_temp_compensated_c100);
+    ::tpis_ambient_temp_c100.store(static_cast<int16_t>(nozzle_temp_reading.temps.ambient_temperature_celsius * 100.f));
+
+    // Start calculating slope only after the nozzle_temps store actual readouts
+    // to prevent a slope spike on first valid readout
+    // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading contains last valid value
+    temps_valid |= nozzle_temp_reading.valid;
+
+    inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
+
+    // Integrate duty cycle
+    hotend_duty_cycle_sq_integral_us += uint32_t(inductionHeater.current_duty_cycle_sq() * dt_us);
+
+    step_hotend_energy(dt_us);
 }
 
 } // namespace
@@ -122,11 +216,8 @@ void run() {
     freertos::delay(300);
 
     uint64_t startup_timestamp_us = timing::get_timestamp_us();
-    uint32_t startup_timestamp_ms = timing::get_timestamp_ms();
 
-    uint64_t last_induction_control_us = startup_timestamp_us;
     uint64_t last_fan_update_us = startup_timestamp_us;
-    uint32_t last_valid_nozzle_temp_ms = startup_timestamp_ms; // Timestamp of last valid nozzle temp reading
 
     HeatbreakController heatbreak_ctl;
 
@@ -134,85 +225,7 @@ void run() {
         const uint64_t now_us = timing::get_timestamp_us();
         const uint32_t now_ms = timing::get_timestamp_ms();
 
-        // Induction heater control loop
-        const uint64_t induction_control_dt_us = now_us - last_induction_control_us;
-        if (induction_control_dt_us >= control_delay_us) {
-            hotend_temp_compensation::step();
-
-            last_induction_control_us = now_us;
-            hal::CheckedTemperatureReading nozzle_temp_reading = hal::i2c::read_tpis_temperature();
-
-            if (nozzle_temp_reading.valid) {
-                if (nozzle_temp_reading.temps.object_temperature_celsius > max_nozzle_temp) {
-                    hal::panic(indx_head::errors::FaultStatusMask::nozzle_max_temp);
-                } else if (nozzle_temp_reading.temps.object_temperature_celsius < min_nozzle_temp) {
-                    hal::panic(indx_head::errors::FaultStatusMask::nozzle_min_temp);
-                }
-
-                if (nozzle_temp_reading.temps.ambient_temperature_celsius > max_tpis_ambient_temp) {
-                    hal::panic(indx_head::errors::FaultStatusMask::tpis_ambient_max_temp);
-                } else if (nozzle_temp_reading.temps.ambient_temperature_celsius < min_tpis_ambient_temp) {
-                    hal::panic(indx_head::errors::FaultStatusMask::tpis_ambient_min_temp);
-                }
-
-                last_valid_nozzle_temp_ms = now_ms;
-
-            } else if (now_ms - last_valid_nozzle_temp_ms > invalid_nozzle_temp_timeout_ms) {
-                hal::panic(indx_head::errors::FaultStatusMask::tpis_invalid_timeout);
-            }
-
-            // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading contains last valid value
-
-            const int16_t nozzle_temp_uncompensated_c100 = static_cast<int16_t>(nozzle_temp_reading.temps.object_temperature_celsius * 100.f);
-            const int16_t nozzle_temp_compensated_c100 = nozzle_temp_uncompensated_c100 - hotend_temp_compensation::get_current_compensation_c100();
-
-            // Calculate slope
-            if (temps_valid) {
-                const int64_t uncompensated_raw_slope = int64_t(nozzle_temp_uncompensated_c100 - ::nozzle_temp_uncompensated_c100.load()) * 1000000 / int64_t(induction_control_dt_us);
-
-                // Clamp to sane values to prevent too big spikes
-                const int32_t clamped_raw_slope = int32_t(std::clamp<int64_t>(uncompensated_raw_slope, -100 * 100, 100 * 100));
-
-                // Apply exponential fadeout to average the values a bit
-                const int16_t filtered_slope = int16_t((int32_t(hotend_temp_raw_c100_dt_s.load()) * 7 + clamped_raw_slope * 1) / 8);
-
-                ::hotend_temp_raw_c100_dt_s.store(filtered_slope);
-            }
-
-            ::nozzle_temp_uncompensated_c100.store(nozzle_temp_uncompensated_c100);
-            ::nozzle_temp_compensated_c100.store(nozzle_temp_compensated_c100);
-            ::tpis_ambient_temp_c100.store(static_cast<int16_t>(nozzle_temp_reading.temps.ambient_temperature_celsius * 100.f));
-
-            // Start calculating slope only after the nozzle_temps store actual readouts
-            // to prevent a slope spike on first valid readout
-            // Note: If !nozzle_temp_reading.valid, nozzle_temp_reading contains last valid value
-            temps_valid |= nozzle_temp_reading.valid;
-
-            inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
-
-            // Integrate duty cycle
-            hotend_duty_cycle_sq_integral_us += uint32_t(inductionHeater.current_duty_cycle_sq() * induction_control_dt_us);
-
-            // Integrate V × I power [mW × ms]
-            // All integer arithmetic, no 64-bit division (expensive on Cortex-M0)
-            {
-                const uint32_t voltage_mV = hal::adc::get_input_voltage_mV();
-                const uint32_t current_mA = hal::adc::get_heater_current_mA();
-
-                // max ~75000, fits uint32_t
-                const uint32_t power_mW = voltage_mV * current_mA / 1000;
-
-                // To avoid truncation of dt_us/1000 (3333→3), accumulate sub-ms remainder
-                static uint32_t power_mW_us_accum = 0;
-                power_mW_us_accum += power_mW * static_cast<uint32_t>(induction_control_dt_us);
-                hotend_energy_consumed_uJ += power_mW_us_accum / 1000;
-                power_mW_us_accum %= 1000;
-            }
-
-            // Just to give scope what numbers we're dealing with
-            // Duty cycle is 0-1, control_delay_us is in thousands - so when we cast to uint32_t after the duty cycle multiplication, we should get reasonably precise values
-            static_assert(control_delay_us >= 1000 && control_delay_us <= 10000);
-        }
+        step_hotend();
 
         // Fans and leds control loop
         if (now_us - last_fan_update_us >= fan_update_delay_us) {
