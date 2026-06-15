@@ -832,7 +832,11 @@
     #endif
 
     #if AXIS_IS_TMC(E0)
+    #if HAS_INDX()
+        #define E0_CURRENT 550
+    #else
         #define E0_CURRENT 450
+    #endif
         #define E0_MICROSTEPS 16
         #define E0_RSENSE 0.22f
         #define E0_CHAIN_POS 0
