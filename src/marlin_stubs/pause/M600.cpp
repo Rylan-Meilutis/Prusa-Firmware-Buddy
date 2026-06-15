@@ -256,6 +256,9 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
         Temperature::setTargetHotend(static_cast<int16_t>(disp_temp), physical_target_tool);
     }
 
+    // Loading drops the target to the new filament's default; restore the print temperature on resume.
+    settings.SetResumeNozzleTemperature(static_cast<int16_t>(targ_temp));
+
     if (filament_type.has_value()) {
         config_store().set_filament_type(target_tool, filament_type.value());
     } else {
@@ -265,10 +268,6 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
     filament::set_type_to_load(*filament_type);
     filament::set_color_to_load(filament_colour);
     Pause::Instance().filament_change(settings, is_filament_stuck);
-
-    if (disp_temp > targ_temp) {
-        Temperature::setTargetHotend(static_cast<int16_t>(targ_temp), physical_target_tool);
-    }
 
 #if HAS_TOOLCHANGER()
     if (tool_change_data.has_value()) {

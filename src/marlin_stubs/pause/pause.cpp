@@ -1936,6 +1936,11 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
     const float min_layer_h = 0.05f;
     // do not unpark and wait for temp if not homed or z park len is 0
     if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
+        // Restore the print temperature before the heatup wait, so we resume fully heated
+        // instead of at the filament default that loading dropped the target to.
+        if (pause.settings.resume_nozzle_temperature.has_value()) {
+            thermalManager.setTargetHotend(*pause.settings.resume_nozzle_temperature, pause.settings.physical_tool());
+        }
         if (!pause.ensureSafeTemperatureNotifyProgress()) {
             return;
         }

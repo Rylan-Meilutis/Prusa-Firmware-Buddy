@@ -81,6 +81,10 @@ void Settings::SetMmuFilamentToLoad(uint8_t index) {
     mmu_filament_to_load = index;
 }
 
+void Settings::SetResumeNozzleTemperature(int16_t temperature) {
+    resume_nozzle_temperature = temperature;
+}
+
 float pause::Settings::purge_length() const {
     return std::max<float>(std::abs(purge_length_.value_or(GetDefaultPurgeLength(ENABLED(SINGLENOZZLE) ? 0 : target_extruder))), minimal_purge);
 }

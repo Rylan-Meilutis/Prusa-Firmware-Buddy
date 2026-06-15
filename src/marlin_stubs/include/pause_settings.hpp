@@ -34,6 +34,7 @@ public:
     void SetParkPoint(const mapi::ParkingPosition &park_point);
     void SetResumePoint(const xyze_pos_t &resume_point);
     void SetMmuFilamentToLoad(uint8_t index);
+    void SetResumeNozzleTemperature(int16_t temperature);
 
     [[deprecated("Use the ToolIndex overload")]]
     void SetExtruder(uint8_t target) { target_extruder = target; }
@@ -66,6 +67,9 @@ private:
 
     uint8_t mmu_filament_to_load = 0;
     uint8_t target_extruder;
+
+    // Target to restore after loading drops it to the new filament's default; empty = leave as-is.
+    std::optional<int16_t> resume_nozzle_temperature;
 };
 
 } // namespace pause
