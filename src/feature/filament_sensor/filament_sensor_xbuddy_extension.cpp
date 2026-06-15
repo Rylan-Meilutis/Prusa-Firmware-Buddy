@@ -3,6 +3,9 @@
 
 #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #include <option/has_side_fsensor_invertible.h>
+#include <metric.h>
+
+METRIC_DEF(metric_side, "side_fsensor", METRIC_VALUE_CUSTOM, 49, METRIC_DISABLED);
 
 FSensorXBuddyExtension::FSensorXBuddyExtension(FilamentSensorID id, Source source)
     : FSensorXBuddyExtensionParent(id)
@@ -15,6 +18,10 @@ void FSensorXBuddyExtension::cycle() {
 #else
     state = interpret_state();
 #endif
+}
+
+void FSensorXBuddyExtension::record_state() {
+    metric_record_custom(&metric_side, ",n=%u st=%ui", id_.index, static_cast<unsigned>(get_state()));
 }
 
 FilamentSensorState FSensorXBuddyExtension::interpret_state() const {

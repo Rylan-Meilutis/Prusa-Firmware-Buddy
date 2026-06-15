@@ -29,6 +29,7 @@ public:
 
 protected:
     virtual void cycle() override;
+    virtual void record_state() override;
 
 private:
     FilamentSensorState interpret_state() const;

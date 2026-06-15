@@ -23,7 +23,9 @@ LOG_COMPONENT_REF(FSensor);
 // min_interval_ms is 0, that is intended here.
 // Rate limiting is done per-sensor inside FSensorADC through limit_record(_raw)
 METRIC_DEF(metric_extruder, "fsensor", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED);
+#if HAS_ADC_SIDE_FSENSOR()
 METRIC_DEF(metric_side, "side_fsensor", METRIC_VALUE_CUSTOM, 0, METRIC_DISABLED);
+#endif
 
 void FSensorADC::cycle() {
     if (!is_enabled()) {
@@ -75,9 +77,15 @@ void FSensorADC::record_state() {
     }
 
     const uint8_t tool_index = id_.index;
-    const bool is_side = (id_.position == FilamentSensorID::Position::side);
 
-    metric_record_custom(is_side ? &metric_side : &metric_extruder, ",n=%u st=%ui,f=%" PRId32 "i,r=%" PRId32 "i,ri=%" PRId32 "i",
+    metric_t *metric = &metric_extruder;
+#if HAS_ADC_SIDE_FSENSOR()
+    if (id_.position == FilamentSensorID::Position::side) {
+        metric = &metric_side;
+    }
+#endif
+
+    metric_record_custom(metric, ",n=%u st=%ui,f=%" PRId32 "i,r=%" PRId32 "i,ri=%" PRId32 "i",
         tool_index, static_cast<unsigned>(get_state()), fs_filtered_value.load(), fs_ref_nins_value, fs_ref_ins_value);
 }
 
