@@ -144,8 +144,10 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
 
     #if BOARD_IS_XBUDDY()
     MI_INFO_BED_VOLTAGE,
+        #if !HAS_INDX() // INDX head circumvents this
     MI_INFO_HEATER_VOLTAGE,
     MI_INFO_HEATER_CURRENT,
+        #endif
     MI_INFO_INPUT_CURRENT,
     #endif
     #if BOARD_IS_XLBUDDY()

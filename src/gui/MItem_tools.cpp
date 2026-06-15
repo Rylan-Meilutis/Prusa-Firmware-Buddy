@@ -662,6 +662,7 @@ MI_INFO_BED_VOLTAGE::MI_INFO_BED_VOLTAGE()
         [](auto) { return sensor_data().bed_voltage.load(); } //
     ) {}
 
+    #if !HAS_INDX() // INDX head circumvents this
 MI_INFO_HEATER_VOLTAGE::MI_INFO_HEATER_VOLTAGE()
     : MenuItemAutoUpdatingLabel(_("Heater Voltage"), "%.1f V",
         [](auto) { return sensor_data().heater_voltage.load(); } //
@@ -671,6 +672,7 @@ MI_INFO_HEATER_CURRENT::MI_INFO_HEATER_CURRENT()
     : MenuItemAutoUpdatingLabel(_("Heater Current"), "%.1f A",
         [](auto) { return sensor_data().heater_current.load(); } //
     ) {}
+    #endif
 
 MI_INFO_INPUT_CURRENT::MI_INFO_INPUT_CURRENT()
     : MenuItemAutoUpdatingLabel(_("Input Current"), "%.1f A",

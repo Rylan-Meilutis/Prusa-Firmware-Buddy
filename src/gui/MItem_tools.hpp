@@ -366,6 +366,7 @@ public:
     MI_INFO_BED_VOLTAGE();
 };
 
+    #if !HAS_INDX() // INDX head circumvents this
 class MI_INFO_HEATER_VOLTAGE : public MenuItemAutoUpdatingLabel<float> {
 public:
     MI_INFO_HEATER_VOLTAGE();
@@ -375,6 +376,7 @@ class MI_INFO_HEATER_CURRENT : public MenuItemAutoUpdatingLabel<float> {
 public:
     MI_INFO_HEATER_CURRENT();
 };
+    #endif
 
 class MI_INFO_INPUT_CURRENT : public MenuItemAutoUpdatingLabel<float> {
 public:
