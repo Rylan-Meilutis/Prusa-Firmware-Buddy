@@ -5,6 +5,7 @@
 
 #include <client_response.hpp>
 #include <common/fsm_base_types.hpp>
+#include <footer_line.hpp>
 #include <radio_button_fsm.hpp>
 #include <window_frame.hpp>
 #include <window_text.hpp>
@@ -32,6 +33,9 @@ public:
     void set_temperature(int temperature);
 
     void update(fsm::PhaseData data);
+
+    /// Used by WithFooter<>
+    void add_footer(FooterLine &footer);
 
 protected:
     window_text_t text_custom;

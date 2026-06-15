@@ -10,6 +10,10 @@ static constexpr std::array layout {
     StackLayoutItem { .height = StackLayoutItem::stretch, .margin_side = 16 },
     standard_stack_layout::for_radio,
 };
+static constexpr std::array layout_only_footer {
+    standard_stack_layout::for_footer,
+};
+static constexpr std::array layout_with_footer = stdext::array_concat(layout, layout_only_footer);
 } // namespace
 
 FrameWaitTemp::FrameWaitTemp(window_frame_t *parent, FSMAndPhase fsm_phase, const string_view_utf8 &text)
@@ -37,4 +41,9 @@ void FrameWaitTemp::set_temperature(int temperature) {
 
 void FrameWaitTemp::update(fsm::PhaseData data) {
     set_temperature(((data[0] << 8) | data[1]) % 1000);
+}
+
+void FrameWaitTemp::add_footer(FooterLine &footer) {
+    std::array<window_t *, layout_with_footer.size()> windows { &text_custom, &text_temp, &radio, &footer };
+    layout_vertical_stack(text_custom.GetParent()->GetRect(), windows, layout_with_footer);
 }
