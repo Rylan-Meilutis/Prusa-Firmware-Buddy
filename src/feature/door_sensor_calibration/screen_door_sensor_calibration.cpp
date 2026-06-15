@@ -31,7 +31,7 @@ constexpr auto txt_caution = N_("Caution!");
 constexpr auto txt_warn_door_sensor = N_("Disabling the door sensor may lead to injury or printer damage.\nProceeding means you accept full responsibility.\nWe are not liable for any harm or damages.");
 constexpr auto txt_done = N_("The door sensor is successfully calibrated now.");
 
-constexpr auto qr_suffix = "core-door-sensor-calibration"_tstr;
+constexpr auto qr_suffix = "core-door-sensor-cal"_tstr;
 
 class FrameFingerTest final : FrameTextWithImage {
 public:
