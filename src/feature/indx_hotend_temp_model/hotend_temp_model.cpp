@@ -60,22 +60,19 @@ void INDXHotendTempModel::step() {
         last_filament_ = current_filament;
     };
 
+    if (current_filament != last_filament_) {
+        // This is not perfect, something can still change filament parameters without changing the actual filament.
+        // But we don't want to compute FilamentParameters together each step, it's too expensive.
+        filament_data_update_pending_ = true;
+    }
+
     if (!is_initialized_) {
-        const auto heuristic_filament = FilamentType::for_tool_heuristic(*virtual_tool);
-
-        if (heuristic_filament == FilamentType::none) {
-            // No filament loaded, we don't want to compensate at all
-            return;
-        }
-
         compensator_.reset_state();
-
-        // Do NOT use current_filament, use a smarter heuristic here
-        compensator_.set_filament_parameters(indx::FilamentParameters::for_filament(heuristic_filament.parameters()));
 
         retracted_distance_mm_ = 0;
 
         is_initialized_ = true;
+        filament_data_update_pending_ = true;
 
         // Keep the previous temperature compensation,
         // better to keep the previous value for one step than to potentially sharp jump to zero and then back to some value
@@ -86,13 +83,19 @@ void INDXHotendTempModel::step() {
         return;
     }
 
-    if (current_filament != last_filament_) {
-        // This is not perfect, something can still change filament parameters without changing the actual filament.
-        // But we don't want to compose FilamentParameters together each step, it's too expensive.
-        // If filament parameters change, we rely on the set_target_temperature being called, which then also calls reset_state.
+    if (filament_data_update_pending_) {
+        const auto heuristic_filament = FilamentType::for_tool_heuristic(*virtual_tool);
 
-        // Work normally this step, reinitialize on the next one
-        reset_state();
+        if (heuristic_filament == FilamentType::none) {
+            filament_params_ = indx::FilamentParameters::for_no_filament();
+        } else {
+            // Do NOT use current_filament, use a smarter heuristic here
+            filament_params_ = indx::FilamentParameters::for_filament(heuristic_filament.parameters());
+        }
+
+        compensator_.set_filament_parameters(filament_params_);
+
+        filament_data_update_pending_ = false;
     }
 
     // Note: Division by zero is guaranteed not to happen thanks to the step limiter
@@ -134,4 +137,7 @@ void INDXHotendTempModel::reset_state() {
     is_initialized_ = false;
 }
 
+void INDXHotendTempModel::update_filament_params() {
+    filament_data_update_pending_ = true;
+}
 } // namespace buddy

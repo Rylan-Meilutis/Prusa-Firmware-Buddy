@@ -28,6 +28,8 @@ struct FilamentPrecomputedParameters {
     float heat_time_constant;
 
     static FilamentPrecomputedParameters compute(const FilamentParameters &params);
+
+    inline bool operator==(const FilamentPrecomputedParameters &) const = default;
 };
 
 struct StepParams {

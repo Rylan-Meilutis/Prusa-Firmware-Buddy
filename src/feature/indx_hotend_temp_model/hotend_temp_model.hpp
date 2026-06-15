@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "indx_hotend_temp_compensation.hpp"
+#include "indx_filament_params.hpp"
 
 #include <utils/timing/rate_limiter.hpp>
 
@@ -27,7 +28,11 @@ public:
     /// To be called on toolchanges or when filament parameters change in general
     void reset_state();
 
+    /// To be called when filament parameters might have changed
+    void update_filament_params();
+
 private:
+    indx::FilamentParameters filament_params_;
     ::indx_hotend_temp_compensation::HotendTempCompensator compensator_;
 
     RateLimiter<uint32_t> step_limiter_ms_ { 100 };
@@ -38,6 +43,7 @@ private:
     FilamentType last_filament_;
 
     bool is_initialized_ : 1 = false;
+    bool filament_data_update_pending_ : 1 = false;
 };
 
 /// Singleton

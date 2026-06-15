@@ -64,6 +64,10 @@ void HotendTempCompensator::set_filament_parameters(const FilamentParameters &se
 }
 
 void HotendTempCompensator::set_filament_parameters(const FilamentPrecomputedParameters &set) {
+    if (filament_ == set) {
+        return;
+    }
+
     filament_ = set;
     reset_state();
 }

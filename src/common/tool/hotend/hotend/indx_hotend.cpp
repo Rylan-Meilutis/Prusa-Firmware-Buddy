@@ -8,7 +8,9 @@
 void IndxHotend::handle_nozzle_target_change() {
     BaseHotend::handle_nozzle_target_change();
     buddy::puppies::indx.set_hotend_target_temp(nozzle_target_temp());
-    buddy::hotend_temp_model().reset_state();
+
+    // Temp change indicates possible filament parameters change, recompute
+    buddy::hotend_temp_model().update_filament_params();
 }
 
 void IndxHotend::start_heating() {
