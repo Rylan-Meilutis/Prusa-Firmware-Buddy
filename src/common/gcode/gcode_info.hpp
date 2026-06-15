@@ -41,6 +41,9 @@ inline constexpr const char *m140_set_bed_temp = "M140";
 inline constexpr const char *m190_wait_bed_temp = "M190";
 inline constexpr const char *m104_set_hotend_temp = "M104";
 inline constexpr const char *m109_wait_hotend_temp = "M109";
+#if EXTRUDERS > 1
+inline constexpr const char *total_toolchanges = "total toolchanges";
+#endif
 }; // namespace gcode_info
 
 /// When initializing the heavy work is done in start_load, load and end_load functions,
@@ -120,6 +123,9 @@ private:
         std::optional<uint16_t> bed_preheat_temp { std::nullopt }; ///< Holds bed preheat temperature
         std::optional<PrintArea::rect_t> bed_preheat_area { std::nullopt }; ///< Holds bed preheat area
         std::optional<uint16_t> hotend_preheat_temp { std::nullopt }; ///< Holds hotend preheat temperatureF
+#if EXTRUDERS > 1
+        std::optional<uint16_t> total_toolchanges { std::nullopt }; ///< Total number of toolchanges over the whole print (INDX nozzle-cleaner wastebin fill estimation)
+#endif
     };
     GenericInfo info_;
 
@@ -168,6 +174,7 @@ public:
     const std::optional<PrintArea::rect_t> &get_bed_preheat_area() const { return info_.bed_preheat_area; } ///< Get info about G-preheat area
     inline const std::optional<uint16_t> &get_hotend_preheat_temp() const { return info_.hotend_preheat_temp; }
 #if EXTRUDERS > 1
+    std::optional<uint16_t> get_total_toolchanges() const { return info_.total_toolchanges; } ///< Total toolchanges parsed from gcode metadata (std::nullopt if absent)
     std::optional<float> get_filament_wipe_tower_g() const { return info_.filament_wipe_tower_g; } ///< filament used for wipe tower
 #endif
 

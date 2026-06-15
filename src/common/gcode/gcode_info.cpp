@@ -558,6 +558,12 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
             float temp;
             sscanf(val.c_str(), "%f", &temp);
             info_.filament_wipe_tower_g = temp;
+        } else if (name == gcode_info::total_toolchanges) {
+            // Number of toolchanges over the whole print; used to estimate INDX nozzle-cleaner wastebin fill.
+            uint16_t tmp = 0;
+            if (sscanf(val.c_str(), "%hu", &tmp) == 1) {
+                info_.total_toolchanges = tmp;
+            }
         }
 #endif
     }

@@ -74,6 +74,7 @@ add_catch_test(gcode_info_test)
 
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_plain.gcode
+       ${CMAKE_CURRENT_SOURCE_DIR}/test_total_toolchanges.gcode
        ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_no_compression.bgcode
        ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_meatpack.bgcode
        ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_heatshrink.bgcode

@@ -3,7 +3,11 @@
 #include <gcode_reader_any.hpp>
 #include <gcode_reader_binary.hpp>
 #include <gcode_info.hpp>
+#include <gcode_buffer.hpp>
 #include <catch2/catch_test_macros.hpp>
+
+#include <algorithm>
+#include <cstring>
 
 namespace {
 
@@ -65,6 +69,21 @@ TEST_CASE("GCodeInfo") {
             }
         }
     }
+}
+
+TEST_CASE("GCodeInfo::total_toolchanges") {
+    auto load = [](const char *filename) {
+        AnyGcodeFormatReader reader(filename);
+        REQUIRE(reader.is_open());
+        GCodeInfo info;
+        info.load(*reader.get());
+        return info.get_total_toolchanges();
+    };
+
+    // Present in the metadata -> parsed.
+    CHECK(load(TOTAL_TOOLCHANGES) == 868);
+    // Absent (single-tool gcode) -> unset.
+    CHECK(load(NEW_PLAIN) == std::nullopt);
 }
 
 TEST_CASE("GCodeInfo::is_valid_for_print", "[slow]") {
