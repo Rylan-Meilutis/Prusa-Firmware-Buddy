@@ -53,6 +53,12 @@ void Task::run() {
 }
 
 void Task::send(Event *event) {
+    if (__get_PRIMASK() != 0) {
+        // Note: When interrupts are globally disabled, the scheduler can never
+        //       switch to the logging task to release our semaphore => deadlock.
+        // FIXME: But perhaps we can at least log via RTT in such case.
+        return;
+    }
     if (xPortIsInsideInterrupt()) {
         // Note: We do not support logging from the interrupt handler.
         //       It is usually a bad idea anyway.
