@@ -46,6 +46,7 @@ enum class tool_return_t {
   no_return, // lift and/or retract as needed, but don't return to any position after toolchange
   to_current, // return to the current position
   to_destination, // return to destination
+  dock_backoff, // INDX only: like no_return, but after docking (NoTool) backs off from the dock in +Y to clear it for access
 };
 
 /// Enum that configures what kind of Z lift will be done during toolchange

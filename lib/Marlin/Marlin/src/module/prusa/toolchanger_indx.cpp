@@ -864,7 +864,12 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
     apply_motion_limits(return_position);
 
     // Move back in XY direction
-    if (args.return_type > tool_return_t::no_return) {
+    if (args.return_type == tool_return_t::dock_backoff) {
+        // After docking, back off in +Y to clear the dock area (e.g. for manual filament removal)
+        xy_pos_t backoff_pos = current_position.xy();
+        backoff_pos.y += DOCK_BACKOFF_Y_OFFSET;
+        unpark_to(backoff_pos);
+    } else if (args.return_type > tool_return_t::no_return) {
         // Move back to the original (or adjusted) position
         unpark_to(return_position.xy()); // schedule a smooth XY transition to return_position
     }

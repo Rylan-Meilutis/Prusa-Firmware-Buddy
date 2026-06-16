@@ -211,6 +211,11 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
         return_type = tool_return_t::no_return;
     }
 
+    // XL has no dock back-off; treat it as a plain dock
+    if (return_type == tool_return_t::dock_backoff) {
+        return_type = tool_return_t::no_return;
+    }
+
     quick_stopped = false;
 
     // Prevent recursion

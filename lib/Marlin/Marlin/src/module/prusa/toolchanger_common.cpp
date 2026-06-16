@@ -39,8 +39,8 @@ float PrusaToolChanger::calc_z_raise(tool_return_t return_type, xyz_pos_t return
         min_z += toolchange_settings.z_raise;
     }
 
-    // account for clearance in the return move
-    if (return_type != tool_return_t::no_return) {
+    // account for clearance in the return move (dock_backoff has no Z return, like no_return)
+    if (return_type != tool_return_t::no_return && return_type != tool_return_t::dock_backoff) {
         min_z = std::max(min_z, return_position.z);
     }
 

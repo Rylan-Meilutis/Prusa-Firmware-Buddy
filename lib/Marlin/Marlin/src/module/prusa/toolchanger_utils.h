@@ -57,6 +57,7 @@ public:
     // Absolute safe Y positions (computed from default dock Y, used by external code for boundary checks)
     static constexpr auto SAFE_Y_WITH_TOOL = DOCK_DEFAULT_Y_MM + DOCK_SAFE_Y_OFFSET;
     static constexpr float DOCK_UNLOCK_Y_OFFSET = 10.6f; ///< Y offset for the unlock position [mm]
+    static constexpr float DOCK_BACKOFF_Y_OFFSET = 50.0f; ///< Y back-off in front of the dock after parking, to clear it for manual access (tool_return_t::dock_backoff) [mm]
 
     // E-axis lock/unlock mechanism
     static constexpr float E_WIGGLE_DISTANCE = 0.27f; ///< Tooth alignment wiggle distance [mm]
