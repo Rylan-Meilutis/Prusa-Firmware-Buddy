@@ -72,6 +72,9 @@ TestResult get_test_result(Action action, ToolMask tool) {
     case Action::DoorSensor:
         return test_result::evaluate_results(config_store().selftest_result_door_sensor.get());
     case Action::FilamentSensorCalibration:
+        if (!are_dependencies_met(Action::FilamentSensorCalibration)) {
+            return TestResult::unknown;
+        }
         return merge_hotends(tool, [](const PhysicalToolIndex e) {
             return get_fsensor_calibration_result(e);
         });
