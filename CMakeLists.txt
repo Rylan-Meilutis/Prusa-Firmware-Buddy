@@ -6,6 +6,7 @@ include(cmake/ProjectVersion.cmake)
 include(cmake/Littlefs.cmake)
 include(cmake/Options.cmake)
 include(cmake/Sha256.cmake)
+include(cmake/Tar.cmake)
 
 # Needded for nunavut
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
