@@ -54,7 +54,7 @@ public:
     void run() {
         const auto result = run_inner();
 
-        // Store calibration result (abort leaves it unchanged)
+        // Store calibration result
         auto sr = config_store().selftest_result.get();
         switch (result) {
         case Result::success:
@@ -64,7 +64,13 @@ public:
             sr.set_dock_offset(PhysicalToolIndex::from_raw(0), TestResult::failed);
             break;
         case Result::aborted:
-            selftest_invocation::mark_aborted();
+            // Aborting still counts as a pass if at least one dock is already calibrated
+            // (the calibration is usable); otherwise leave the result unchanged.
+            if (config_store().indx_dock_calibrated_mask.get().any()) {
+                sr.set_dock_offset(PhysicalToolIndex::from_raw(0), TestResult::passed);
+            } else {
+                selftest_invocation::mark_aborted();
+            }
             break;
         }
         config_store().selftest_result.set(sr);
