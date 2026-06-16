@@ -6,7 +6,7 @@
 
 #include "accelerometer.h"
 #include <fifo_coder/fifo_coder.hpp>
-#include <accelerometer_record/types.hpp>
+#include <accelerometer/record.hpp>
 #include <accelerometer/common_structs.hpp>
 #include <stdint.h>
 #include <option/has_remote_accelerometer.h>

@@ -4,7 +4,7 @@
 #include <fifo_coder/fifo_encoder.hpp>
 #include "../loadcell.hpp"
 #include "accelerometer.hpp"
-#include <accelerometer_record/types.hpp>
+#include <accelerometer/record.hpp>
 #include "Marlin/src/module/prusa/accelerometer_utils.h"
 #include "bsod.h"
 
