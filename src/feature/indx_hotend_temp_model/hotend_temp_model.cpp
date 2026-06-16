@@ -188,12 +188,12 @@ void INDXHotendTempModel::step() {
         // hotend_temp_uncompensated_c is at TPIS, get_hotend_temp_compensated is at the nozzle tip
         // Hotend thermal model needs an "average" temperature that is somewhere in the middle of the nozzle
         constexpr float hotend_temp_compensation_weight = 0.5f;
-        const float model_ref_temp_c = hotend_temp_uncompensated_c * (1.f - hotend_temp_compensation_weight) + hotend_temp_compensated_c * hotend_temp_compensation_weight;
+        const float ref_temp_C = hotend_temp_uncompensated_c * (1.f - hotend_temp_compensation_weight) + hotend_temp_compensated_c * hotend_temp_compensation_weight;
 
         const indx::HotendThermalModel::StepParams step_params {
             .dt_s = step_delta_s,
             .hotend_energy_consumed_uJ = hotend_energy_consumed_uJ,
-            .nozzle_temp_C = model_ref_temp_c,
+            .nozzle_temp_C = ref_temp_C,
             .board_temp_C = float(board_temperature_c),
             .extruder_feedrate_mm_s = extruder_feedrate_mm_s,
             .print_fan_pwm = print_fan_pwm,
@@ -204,11 +204,12 @@ void INDXHotendTempModel::step() {
         const bool model_updated = thermal_model_.step(step_params);
 
         if (model_updated) {
-            constexpr float max_thermal_model_discrepancy_C = 60;
+            const float model_temp_C = thermal_model_.modelled_nozzle_temp_C();
 
             // Only check if the modelled temperature is higher than the measured one
             // Colder model temperature does not pose a safety problem
-            if (thermal_model_.modelled_nozzle_temp_C() > hotend_temp_uncompensated_c + max_thermal_model_discrepancy_C) {
+            // Colder absolute temperatures also do not pose a safety problem
+            if (model_temp_C > 200 && model_temp_C > ref_temp_C + 60) {
                 fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
             }
         }
