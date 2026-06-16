@@ -1133,6 +1133,20 @@ set(HEAP_INSTRUMENTATION_ENABLED
     )
 define_boolean_option(HEAP_INSTRUMENTATION_ENABLED ${HEAP_INSTRUMENTATION_ENABLED})
 
+if(BOARD IN_LIST BUDDY_BOARDS)
+  set(RTT_METRICS_ENABLED
+      ${DEBUG}
+      CACHE BOOL "Enable metrics over rtt"
+      )
+  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
+else()
+  set(RTT_METRICS_ENABLED
+      "OFF"
+      CACHE BOOL "Enable metrics over rtt"
+      )
+  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
+endif()
+
 set(DEVELOPER_MODE
     "OFF"
     CACHE BOOL "Disable wizards, prompts and user-friendliness. Developers like it rough!"
