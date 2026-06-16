@@ -56,7 +56,7 @@ namespace {
             static std::array<uint8_t, 2> data = { 0x04, 0x00 }; // General Call Reload
             i2c_error_flag.store(false);
             waiting_for_i2c.store(true);
-            if (HAL_I2C_Master_Transmit_IT(&peripherals::hi2c1, 0x00 /* General Call Address */, data.data(), data.size()) != HAL_OK) {
+            if (HAL_I2C_Master_Transmit_DMA(&peripherals::hi2c1, 0x00 /* General Call Address */, data.data(), data.size()) != HAL_OK) {
                 waiting_for_i2c.store(false);
                 i2c_recover();
                 return false;
@@ -80,7 +80,7 @@ namespace {
             uint8_t data = static_cast<uint8_t>(setting);
             i2c_error_flag.store(false);
             waiting_for_i2c.store(true);
-            if (HAL_I2C_Mem_Write_IT(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), 0x1f /* eeprom settings */, I2C_MEMADD_SIZE_8BIT, &data, sizeof(data)) != HAL_OK) {
+            if (HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), 0x1f /* eeprom settings */, I2C_MEMADD_SIZE_8BIT, &data, sizeof(data)) != HAL_OK) {
                 waiting_for_i2c.store(false);
                 i2c_recover();
                 return false;
@@ -105,7 +105,7 @@ namespace {
             i2c_error_flag.store(false);
             waiting_for_i2c.store(true);
 
-            HAL_StatusTypeDef status = HAL_I2C_Mem_Read_IT(
+            HAL_StatusTypeDef status = HAL_I2C_Mem_Read_DMA(
                 &peripherals::hi2c1,
                 static_cast<uint16_t>(address << 1),
                 0x1,
@@ -144,7 +144,7 @@ namespace {
             i2c_error_flag.store(false);
             waiting_for_i2c.store(true);
 
-            if (HAL_I2C_Mem_Read_IT(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), start_addr, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(raw.data()), raw.size()) != HAL_OK) {
+            if (HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), start_addr, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(raw.data()), raw.size()) != HAL_OK) {
                 waiting_for_i2c.store(false);
                 i2c_recover();
                 return false;
@@ -192,7 +192,7 @@ namespace {
             [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, std::span<const std::byte> tx_buff) {
                 i2c_error_flag.store(false);
                 waiting_for_i2c.store(true);
-                const auto ret = HAL_I2C_Mem_Write_IT(&peripherals::hi2c1, address << 1, offset, I2C_MEMADD_SIZE_8BIT, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buff.data())), tx_buff.size());
+                const auto ret = HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, address << 1, offset, I2C_MEMADD_SIZE_8BIT, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buff.data())), tx_buff.size());
                 if (ret != HAL_OK) {
                     waiting_for_i2c.store(false);
                     i2c_recover();
@@ -214,7 +214,7 @@ namespace {
             [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, std::span<std::byte> rx_buff) {
                 i2c_error_flag.store(false);
                 waiting_for_i2c.store(true);
-                const auto ret = HAL_I2C_Mem_Read_IT(&peripherals::hi2c1, (address << 1), offset, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(rx_buff.data()), rx_buff.size());
+                const auto ret = HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, (address << 1), offset, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(rx_buff.data()), rx_buff.size());
                 if (ret != HAL_OK) {
                     waiting_for_i2c.store(false);
                     i2c_recover();
@@ -337,14 +337,6 @@ extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef 
     }
 }
 
-extern "C" void HAL_I2C_MasterRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
-    if (hal::i2c::waiting_for_i2c.exchange(false)) {
-        hal::i2c::i2c_it_semaphore.release_from_isr();
-    }
-}
-
 extern "C" void HAL_I2C_MemTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
     assert(hi2c == &hi2c1);
@@ -368,10 +360,4 @@ extern "C" void HAL_I2C_ErrorCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) 
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();
     }
-}
-
-extern "C" void HAL_I2C_AbortCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
-    // Abort completed - semaphore already released by error callback or will be by recover
 }
