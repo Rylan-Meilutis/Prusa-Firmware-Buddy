@@ -452,7 +452,7 @@ static bool find_suitable_bbf_file(const buddy::resources::Revision &revision, P
         bbf.push(entry->d_name);
         // open the bbf
         unique_file_ptr bbf_file(fopen(bbf.get(), "rb"));
-        if (bbf.get() == nullptr) {
+        if (bbf_file.get() == nullptr) {
             log_error(Resources, "Failed to open %s", bbf.get());
             continue;
         }
