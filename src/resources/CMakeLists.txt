@@ -6,15 +6,7 @@ set(generate_hash_file_py "${CMAKE_SOURCE_DIR}/utils/resources/generate_hash_fil
 set(resources_include_dir "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 function(add_resource source_path install_path)
-  set(one_value_args IMAGE_NAME)
-  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
-  if(NOT ARG_IMAGE_NAME)
-    set(ARG_IMAGE_NAME resources-image)
-  endif()
-  lfs_image_add_file(${ARG_IMAGE_NAME} "${source_path}" "${install_path}")
-  if(ARG_IMAGE_NAME STREQUAL "resources-image")
-    tar_image_add_file(resources-tarball "${source_path}" "${install_path}")
-  endif()
+  tar_image_add_file(resources-tarball "${source_path}" "${install_path}")
 endfunction()
 
 function(add_gzip_resource source_path install_path)
@@ -55,15 +47,6 @@ target_include_directories(firmware PUBLIC "${resources_include_dir}")
 #
 
 add_tar_image(resources-tarball)
-
-if(PRINTER STREQUAL "MINI")
-  # Some revisions of mini has 1MB flash, so limit resource size to remaining size
-  add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 205)
-elseif(PRINTER STREQUAL "XL" OR PRINTER STREQUAL "COREONE" OR PRINTER STREQUAL "COREONEL")
-  add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 1024)
-else()
-  add_lfs_image(resources-image BLOCK_SIZE 4096 BLOCK_COUNT 512)
-endif()
 
 if(HAS_ESP)
   set(ESP_PARTS ${CMAKE_CURRENT_BINARY_DIR}/include/esp_parts.gen)
@@ -182,14 +165,9 @@ add_resource("${qoi_data_file}" "/qoi.data")
 #
 if(BOOTLOADER_UPDATE)
 
-  add_lfs_image(resources-bootloader-image BLOCK_SIZE 4096 BLOCK_COUNT 64)
-
   get_dependency_directory("bootloader-${BOOTLOADER_VARIANT}" bootloader_dir)
   get_dependency_version("bootloader-${BOOTLOADER_VARIANT}" bootloader_version_str)
   set(bootloader_bin "${bootloader_dir}/bootloader.bin")
-
-  # add the bootloader.bin to the image
-  add_resource("${bootloader_bin}" "/bootloader.bin" IMAGE_NAME resources-bootloader-image)
 
   add_tar_image(bootloader-tarball)
   tar_image_add_file(bootloader-tarball "${bootloader_bin}" "/bootloader.bin")

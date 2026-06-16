@@ -2,7 +2,8 @@ aiohttp~=3.8
 click~=8.1.3
 easyocr~=1.7
 ecdsa~=0.18
-littlefs-python==0.8
+gcovr~=7.2
+ndeflib~=0.3.3
 numpy==1.26.4
 nunavut~=2.3
 pillow~=10.4
