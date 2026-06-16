@@ -102,8 +102,7 @@ function(pack_firmware target)
   set(one_value_args FW_VERSION BUILD_NUMBER PRINTER_TYPE PRINTER_VERSION PRINTER_SUBVERSION
                      SIGNING_KEY
       )
-  set(multi_value_args RESOURCE_IMAGES RESOURCE_IMAGE_NAMES)
-  cmake_parse_arguments(ARG "" "${one_value_args}" "${multi_value_args}" ${ARGN})
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
 
   # calculate path for binary image of the firmware
   set(bin_firmware_path "${CMAKE_CURRENT_BINARY_DIR}/${target}.bin")
@@ -115,50 +114,7 @@ function(pack_firmware target)
     set(sign_opts "--no-sign")
   endif()
 
-  list(LENGTH ARG_RESOURCE_IMAGES resource_images_len)
-  list(LENGTH ARG_RESOURCE_IMAGE_NAMES resource_image_names_len)
-  if(NOT resource_images_len EQUAL resource_image_names_len)
-    message(FATAL_ERROR "RESOURCE_IMAGE and RESOURCE_IMAGE_NAMES must have the same length!")
-  endif()
-
   set(resources_opts)
-  if(resource_images_len GREATER "0")
-    math(EXPR resource_images_max_idx "${resource_images_len} - 1")
-    foreach(resource_image_idx RANGE "${resource_images_max_idx}")
-      list(GET ARG_RESOURCE_IMAGES ${resource_image_idx} resources_image)
-      list(GET ARG_RESOURCE_IMAGE_NAMES ${resource_image_idx} resources_image_name)
-
-      # write block size to a binary file
-      set(block_size_file "${CMAKE_CURRENT_BINARY_DIR}/bbf_${resources_image}_block_size.bin")
-      get_target_property(block_size ${resources_image} LFS_IMAGE_BLOCK_SIZE)
-      create_file_with_value("${block_size_file}" "<I" "${block_size}")
-
-      # write block count to a binary file
-      set(block_count_file "${CMAKE_CURRENT_BINARY_DIR}/bbf_${resources_image}_block_count.bin")
-      get_target_property(block_count ${resources_image} LFS_IMAGE_BLOCK_COUNT)
-      create_file_with_value("${block_count_file}" "<I" "${block_count}")
-
-      # write hash to a binary file
-      set(content_hash_file "${CMAKE_CURRENT_BINARY_DIR}/bbf_${resources_image}_hash.bin")
-      lfs_image_generate_hash_bin_file(${resources_image} "${content_hash_file}")
-
-      list(
-        APPEND
-        resources_opts
-        "--tlv"
-        "${resources_image_name}:$<TARGET_PROPERTY:${resources_image},LFS_IMAGE_LOCATION>"
-        "${resources_image_name}_BLOCK_SIZE:${block_size_file}"
-        "${resources_image_name}_BLOCK_COUNT:${block_count_file}"
-        "${resources_image_name}_HASH:${content_hash_file}"
-        )
-
-      add_custom_target(
-        bbf-dependencies-${resources_image} DEPENDS "${block_size_file}" "${block_count_file}"
-                                                    "${content_hash_file}"
-        )
-      add_dependencies(${target} bbf-dependencies-${resources_image})
-    endforeach()
-  endif()
 
   if(RESOURCES)
     get_target_property(resources_tar resources-tarball TAR_IMAGE_LOCATION)

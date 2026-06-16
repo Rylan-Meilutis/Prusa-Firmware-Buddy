@@ -3,7 +3,6 @@ include(ExternalProject)
 include(cmake/Utilities.cmake)
 include(cmake/GetGitRevisionDescription.cmake)
 include(cmake/ProjectVersion.cmake)
-include(cmake/Littlefs.cmake)
 include(cmake/Options.cmake)
 include(cmake/CCache.cmake)
 include(cmake/AddPuppyFirmware.cmake)
@@ -481,19 +480,6 @@ if(GENERATE_BBF)
     endif()
   endif()
 
-  set(resource_images)
-  set(resource_image_names)
-
-  if(RESOURCES)
-    list(APPEND resource_images resources-image)
-    list(APPEND resource_image_names "RESOURCES_IMAGE")
-  endif()
-
-  if(BOOTLOADER_UPDATE)
-    list(APPEND resource_images resources-bootloader-image)
-    list(APPEND resource_image_names "RESOURCES_BOOTLOADER_IMAGE")
-  endif()
-
   pack_firmware(
     firmware
     FW_VERSION
@@ -508,10 +494,6 @@ if(GENERATE_BBF)
     "${PRINTER_SUBVERSION}"
     SIGNING_KEY
     "${SIGNING_KEY}"
-    RESOURCE_IMAGES
-    ${resource_images}
-    RESOURCE_IMAGE_NAMES
-    ${resource_image_names}
     )
 
 elseif(SIGNING_KEY)
