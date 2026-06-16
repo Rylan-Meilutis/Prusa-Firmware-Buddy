@@ -634,7 +634,12 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                     static_cast<double>(new_sensor_position.y));
 
                 for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-                    // Note: we update offset for all enabled tools, even if they are not measured in this run
+                    // Note: we don't update unused tools, these are reset to zero at the beggining of the function
+                    // it is eaiser to recognize then that they were not measured
+                    if (!used_physical_tools.test(tool.to_raw())) {
+                        continue;
+                    }
+
                     hotend_offset[tool] -= average_offset.xy();
                     metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",
                         tool.to_raw(),
