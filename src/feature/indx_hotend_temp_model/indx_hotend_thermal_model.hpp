@@ -74,6 +74,9 @@ private:
 
     bool is_initialized_ : 1 = false;
 
+    /// If true, a singular model reset when reaching hotter temperatures is permitted
+    bool low_temp_recalibration_armed_ : 1 = true;
+
 private: // Slow updating variables updated in ACCUM_INTERVAL
     // =============================================================
 

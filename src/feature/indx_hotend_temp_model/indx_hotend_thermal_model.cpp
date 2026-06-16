@@ -13,14 +13,18 @@ namespace {
     constexpr float ambient_thermal_resistance_C_W = 30.0f;
 
     /// [°C/W]
-    constexpr float fan_thermal_resistance_C_W = 120.0f;
+    constexpr float fan_thermal_resistance_C_W = 145.0f;
 
     // [J/°C], including silicone sock and average thermal capacity of filament in the nozzle
-    constexpr float nozzle_heat_capacity_J_C = 1.75f;
+    constexpr float nozzle_heat_capacity_J_C = 1.68f;
+
+    constexpr float low_temp_recalibration_threshold_C = 30;
 
 } // namespace
 
 bool HotendThermalModel::step(const StepParams &args) {
+    const float nozzle_above_board_temp_C = args.nozzle_temp_C - args.board_temp_C;
+
     const bool should_initialize = !is_initialized_;
     if (should_initialize) {
         dt_s_accum_ = 0;
@@ -29,8 +33,21 @@ bool HotendThermalModel::step(const StepParams &args) {
         print_fan_pwm_ema_ = args.print_fan_pwm;
         modelled_nozzle_temp_C_ = args.nozzle_temp_C;
         last_hotend_energy_consumed_uJ_ = args.hotend_energy_consumed_uJ;
+        low_temp_recalibration_armed_ = false; // Will rearm if the conditions are met
 
         is_initialized_ = true;
+    }
+
+    // !!! Do NOT reset continuously when in the low temp region.
+    // If the TPIS gets stuck on the low temps, we still want the model to trigger.
+    if (low_temp_recalibration_armed_ && nozzle_above_board_temp_C > low_temp_recalibration_threshold_C) {
+        // The TPIS readings are unreliable when the object temperature is close to ambient temperature.
+        // When we start heating and the nozzle gets significantly heated,
+        // do a one-shot model reset to sync the modelled temperature to the reference one
+        // (because the accumulated error can be big on the low temperatures)
+
+        modelled_nozzle_temp_C_ = args.nozzle_temp_C;
+        low_temp_recalibration_armed_ = false;
     }
 
     // Print fan PWM EMA — runs every step for smooth convergence
@@ -64,7 +81,7 @@ bool HotendThermalModel::step(const StepParams &args) {
         // Re-referencing ambient thermal conductivity to coil fixture temperature
         float ambient_thermal_conductivity_W_C = 1.f / ambient_thermal_resistance_C_W;
         if (nozzle_ambient_temp_diff_C > 50) {
-            ambient_thermal_conductivity_W_C *= std::max<float>(args.nozzle_temp_C - args.board_temp_C, 0) / nozzle_ambient_temp_diff_C;
+            ambient_thermal_conductivity_W_C *= std::max<float>(nozzle_above_board_temp_C, 0) / nozzle_ambient_temp_diff_C;
         }
 
         const float filament_flow_thermal_conductivity_W_C = args.filament.linear_heat_capacity_J_C_m * filament_feedrate_mm_s_ * 0.001f;
@@ -79,6 +96,13 @@ bool HotendThermalModel::step(const StepParams &args) {
         // dT/dt = (P_in - P_out) / C, where P_out = conductivity × (T_nozzle - T_chamber)
         const float power_balance_W = modelled_nozzle_power_W_ - total_thermal_conductivity_W_C * (modelled_nozzle_temp_C_ - args.chamber_temp_C);
         modelled_nozzle_temp_C_ += (power_balance_W / nozzle_heat_capacity_J_C) * dt_s_accum_;
+    }
+
+    // Rearm the low temp recalibration if we get below the threshold again (hysteresis)
+    // Also tie the rearm to the modelled temperature, don't trust the nozzle_temp_C too much
+    if (nozzle_above_board_temp_C < low_temp_recalibration_threshold_C - 10 && modelled_nozzle_temp_C_ < 100) {
+        static_assert(low_temp_recalibration_threshold_C > 15);
+        low_temp_recalibration_armed_ = true;
     }
 
     // !!! Update at the end of the accum interval code, not before

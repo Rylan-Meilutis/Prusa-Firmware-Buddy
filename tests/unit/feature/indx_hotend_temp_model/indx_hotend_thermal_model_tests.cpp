@@ -14,6 +14,8 @@ using StepParams = HotendThermalModel::StepParams;
 struct MetaParams {
     float heater_power_W = 0.f;
 
+    bool update_nozzle_temp = true;
+
     void step(HotendThermalModel::StepParams &target) const {
         target.hotend_energy_consumed_uJ += uint32_t(heater_power_W * target.dt_s * 1000000.0f);
     }
@@ -33,7 +35,10 @@ float converge(HotendThermalModel &model, StepParams &params, const MetaParams &
         const bool model_updated = model.step(params);
         meta_params.step(params);
         const float modelled_temp = model.modelled_nozzle_temp_C();
-        params.nozzle_temp_C = modelled_temp;
+
+        if (meta_params.update_nozzle_temp) {
+            params.nozzle_temp_C = modelled_temp;
+        }
 
         REQUIRE(model_updated);
 
@@ -176,4 +181,21 @@ TEST_CASE("indx_hotend_thermal_model") {
     // With filament extruding, we should also converge on a lower temperature
     CHECK(slow_heat_temp_with_filament < slow_heat_temp);
     CHECK(slow_heat_temp_with_filament > base_temp);
+}
+
+TEST_CASE("indx_hotend_thermal_model::stuck_TPIS") {
+    // Simulate a stuck TPIS - do not update nozzle_temp_C while heating
+    // The model should still reach high temperatures that would trigger the protections in a reasonable time
+
+    HotendThermalModel model;
+    auto params = base_params;
+    MetaParams meta_params {
+        .heater_power_W = 20,
+    };
+
+    for (float time = 0; time < 20; time += params.dt_s) {
+        model.step(params);
+        meta_params.step(params);
+    }
+    CHECK(model.modelled_nozzle_temp_C() > 200);
 }
