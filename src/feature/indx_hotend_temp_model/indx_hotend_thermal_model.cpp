@@ -37,7 +37,7 @@ bool HotendThermalModel::step(const StepParams &args) {
     print_fan_pwm_ema_ = exponential_moving_average(print_fan_pwm_ema_, args.print_fan_pwm, args.dt_s, 0.7f);
 
     // Filament feedrate EMA — runs every step for smooth convergence
-    filament_feedrate_mm_s_ = exponential_moving_average(filament_feedrate_mm_s_, args.extruder_feedrate_mm_s, args.dt_s, args.filament.heat_time_constant);
+    filament_feedrate_mm_s_ = exponential_moving_average(filament_feedrate_mm_s_, args.extruder_feedrate_mm_s, args.dt_s, 1);
 
     // ACCUM INTERVAL
     // Do this less often, we want enough extruder and duty cycle delta to accumulate for the computation to be precise
