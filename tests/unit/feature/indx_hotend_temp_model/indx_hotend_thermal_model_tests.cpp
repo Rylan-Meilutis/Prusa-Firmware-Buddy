@@ -27,7 +27,6 @@ float converge(HotendThermalModel &model, StepParams &params, const MetaParams &
     INFO("converge");
 
     float prev_modelled_temp = NAN;
-    float prev_modelled_temp_diff = NAN;
 
     for (size_t step = 0;; step++) {
         CAPTURE(step);
@@ -52,14 +51,14 @@ float converge(HotendThermalModel &model, StepParams &params, const MetaParams &
                 return model.modelled_nozzle_temp_C();
             }
 
+            // Does NOT apply - the model is not monotonous thanks to ambient_thermal_conductivity_W_C
             // Given stable parameters, the model should converge to a single number
-            REQUIRE(temp_diff < prev_modelled_temp_diff);
+            // REQUIRE(temp_diff < prev_modelled_temp_diff);
         }
 
         // The model should converge in a finite amount of time
         REQUIRE(step < 1000);
 
-        prev_modelled_temp_diff = temp_diff;
         prev_modelled_temp = modelled_temp;
     }
 }
@@ -198,4 +197,20 @@ TEST_CASE("indx_hotend_thermal_model::stuck_TPIS") {
         meta_params.step(params);
     }
     CHECK(model.modelled_nozzle_temp_C() > 200);
+}
+
+TEST_CASE("indx_hotend_thermal_model::convergence") {
+    // Check that the model converges on a variety of inputs
+
+    HotendThermalModel model;
+    auto params = base_params;
+    params.board_temp_C = GENERATE(25.f, 50.f, 80.f);
+    params.extruder_feedrate_mm_s = GENERATE(0.f, 10.f, 20.f, 30.f);
+    params.print_fan_pwm = GENERATE(0, 30, 128, 255);
+    params.chamber_temp_C = GENERATE(25.f, 47.f);
+
+    MetaParams meta_params {
+        .heater_power_W = GENERATE(0.f, 10.f, 20.f, 40.f),
+    };
+    converge(model, params, meta_params);
 }
