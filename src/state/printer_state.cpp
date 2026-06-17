@@ -668,8 +668,9 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #if HAS_WASTEBIN_FILL_TRACKING()
     case WarningType::NozzleCleanerFull:
     case WarningType::NozzleCleanerFullInfo:
-    case WarningType::NozzleCleanerManualEmpty:
         return ErrCode::CONNECT_NOZZLE_CLEANER_FULL;
+    case WarningType::NozzleCleanerManualEmpty:
+        return ErrCode::CONNECT_NOZZLE_CLEANER_EMPTY;
 #endif
 
 #if ENABLED(DETECT_PRINT_SHEET)
