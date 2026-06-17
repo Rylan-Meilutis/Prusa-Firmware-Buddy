@@ -232,9 +232,9 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
         Temperature::setTargetHotend(filament_data.nozzle_temperature, physical_target_tool);
     }
 #endif
-    // X/Y are taken as-is from park_point; only Z becomes a Minimum (never-go-down).
+    // X/Y are taken as-is from park_point; only Z becomes an AtLeast (never-go-down).
     mapi::ParkingPosition park_position = mapi::ParkingPosition::from_xyz_pos(park_point);
-    park_position.z = mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = park_point.z };
+    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = park_point.z };
     pause::Settings settings;
     settings.SetParkPoint(park_position);
     settings.SetResumePoint(resume_point);

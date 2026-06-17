@@ -94,7 +94,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
     settings.SetMmuFilamentToLoad(mmu_slot);
 
     mapi::ParkingPosition park_position = mapi::get_parking_position(do_purge_only ? mapi::ParkPosition::purge : mapi::ParkPosition::load);
-    park_position.z = mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
+    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
 
     settings.SetParkPoint(park_position);
     const xyze_pos_t current_position_tmp = current_position;
@@ -160,7 +160,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
     mapi::ParkingPosition park_position = {
         .x = X_AXIS_UNLOAD_POS,
         .y = Y_AXIS_UNLOAD_POS,
-        .z = mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
+        .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
     };
     settings.SetParkPoint(park_position);
     xyze_pos_t current_position_tmp = current_position;
@@ -259,7 +259,7 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
     mapi::ParkingPosition pos = {
         .x = X_AXIS_LOAD_POS,
         .y = Y_AXIS_LOAD_POS,
-        .z = mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
+        .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
     };
     settings.SetParkPoint(pos);
 
@@ -313,7 +313,7 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
         filament::set_type_to_load(filament);
         filament::set_color_to_load(std::nullopt);
 
-        mapi::ParkingPosition park_position = { .z = mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos } };
+        mapi::ParkingPosition park_position = { .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos } };
         // Returning to previous position is unwanted outside of printing (M1701 should be used only outside of printing)
         settings.SetParkPoint(park_position);
 

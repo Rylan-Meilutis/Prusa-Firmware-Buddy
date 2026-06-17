@@ -12,13 +12,13 @@
 namespace mapi {
 
 // Make sure our little [[no_unique_address]] trick works
-static_assert(sizeof(ParkingPosition::Minimum) == 8);
+static_assert(sizeof(ParkingPosition::AtLeast) == 8);
 
 ParkingPosition get_parking_position(ParkPosition position) {
     switch (position) {
     case ParkPosition::park:
 #if HAS_INDX()
-        return apply_nozzle_cleaner_offset({ X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, mapi::ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_POINT } });
+        return apply_nozzle_cleaner_offset({ X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_POINT } });
 #else
         return ParkingPosition(XYZ_NOZZLE_PARK_POINT);
 #endif
@@ -26,26 +26,26 @@ ParkingPosition get_parking_position(ParkPosition position) {
 #if HAS_WASTEBIN()
     #if HAS_INDX()
         // Wastebin is fixed to the CoreXY gantry, Z does not matter
-        static constexpr ParkingPosition base_pos { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Minimum { .above_print = 2 } };
+        static constexpr ParkingPosition base_pos { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::AtLeast { .above_print = 2 } };
         return apply_nozzle_cleaner_offset(base_pos);
 
     #elif PRINTER_IS_PRUSA_iX()
         // Wastebin is fixed to the CoreXY gantry, Z does not matter
-        return ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::Minimum { .above_print = 2 } };
+        return ParkingPosition { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::AtLeast { .above_print = 2 } };
 
     #else
         #error Need to define wastebin parking position
     #endif
 #else
-        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
 #endif
     }
 
     case ParkPosition::load:
-        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
+        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
 
     case ParkPosition::unload:
-        return ParkingPosition { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, ParkingPosition::Minimum { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_UNLOAD_POS } };
+        return ParkingPosition { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_UNLOAD_POS } };
 
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
@@ -54,7 +54,7 @@ ParkingPosition get_parking_position(ParkPosition position) {
     case ParkPosition::empty_wastebin:
         // Head clear of the cleaner (which sits at high X) with Y forward, and Z lifted high (at
         // least 80, more above tall prints) so the cleaner can be slid out without hitting the head.
-        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::Minimum { .above_print = 5, .absolute = 80 } };
+        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 5, .absolute = 80 } };
 #endif
 
     case ParkPosition::_cnt:
@@ -89,7 +89,7 @@ float ParkingPosition::resolve_z(float reference_z) const {
         [&](Relative arg) {
             return std::clamp<float>(reference_z + arg.delta, Z_MIN_POS, Z_MAX_POS);
         }, //
-        [&](Minimum arg) {
+        [&](AtLeast arg) {
             float min_z = arg.absolute;
 
             if (!std::isnan(arg.above_print)) {

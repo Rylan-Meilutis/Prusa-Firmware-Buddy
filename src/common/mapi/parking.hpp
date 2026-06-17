@@ -45,9 +45,9 @@ struct ParkingPosition {
     };
 
     /// Parks the Z axis at the specified minimum distance
-    struct Minimum {
-        /// A little trick to prevent users from doing Minimum { 5.5f }
-        /// Encourages using aggregate initializer Minimum { .above_print = ... }
+    struct AtLeast {
+        /// A little trick to prevent users from doing AtLeast { 5.5f }
+        /// Encourages using aggregate initializer AtLeast { .above_print = ... }
         [[no_unique_address]] std::monostate _use_aggregatee_initizalizer {};
 
         /// Don't park lower than this distance above print (planner.max_printed_z) if specified
@@ -56,14 +56,14 @@ struct ParkingPosition {
         /// Don't park lower than this absolute position if specified
         float absolute = 0;
 
-        constexpr bool operator==(const Minimum &) const = default;
+        constexpr bool operator==(const AtLeast &) const = default;
     };
 
     static constexpr Unchanged unchanged {};
 
     using X = std::variant<Unchanged, float>;
     using Y = std::variant<Unchanged, float>;
-    using Z = std::variant<Unchanged, float, Relative, Minimum>;
+    using Z = std::variant<Unchanged, float, Relative, AtLeast>;
 
     // float = absolute coordinate
     X x = unchanged;
@@ -77,7 +77,7 @@ struct ParkingPosition {
 
     /// Resolves the Z component against reference_z (the current Z): Unchanged yields
     /// reference_z, an absolute value yields itself, Relative offsets reference_z and
-    /// Minimum raises it to a floor; Relative/Minimum are clamped to Z_MAX_POS.
+    /// AtLeast raises it to a floor; Relative/AtLeast are clamped to Z_MAX_POS.
     float resolve_z(float reference_z) const;
 
     // Synchronizes this provided position and provides appropriate xyz_pos_t

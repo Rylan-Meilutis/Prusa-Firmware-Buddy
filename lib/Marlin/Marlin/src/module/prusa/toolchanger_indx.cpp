@@ -458,7 +458,7 @@ bool PrusaToolChanger::manual_tool_park(std::optional<PhysicalToolIndex> tool) {
 
     // Z clearance to allow user to manually adjust the docks
     static constexpr float UNKNOWN_TOOL_Z_LIFT_MM = 100.f;
-    mapi::park({ .z = mapi::ParkingPosition::Minimum { .above_print = 15, .absolute = UNKNOWN_TOOL_Z_LIFT_MM } });
+    mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 15, .absolute = UNKNOWN_TOOL_Z_LIFT_MM } });
 
     // Interactive path — drive the nozzle-mismatch FSM so the user picks a dock
     marlin_server::fsm_change(PhaseNozzleMismatch::prompt);
@@ -901,7 +901,7 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
     }
     planner.synchronize();
 
-    mapi::park({ .z = mapi::ParkingPosition::Minimum { .above_print = 2.0f } });
+    mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 2.0f } });
 
     // Get dock info
     const PrusaToolInfo &info = get_tool_info(tool, /*check_calibrated=*/false);
