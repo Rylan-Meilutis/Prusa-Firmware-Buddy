@@ -97,6 +97,10 @@ public:
     bool get_accelerometer_active();
 
     CommunicationStatus set_hotend_target_temp(float target);
+
+    /// Nozzle target temp [°C] last sent to the head; 0 while parked / no tool (nonzero => actively heating).
+    [[nodiscard]] uint16_t get_hotend_target_temp() const { return nozzle_target_temperature_desired.load(); }
+
     CommunicationStatus set_hotend_temp_compensation(float offset);
     [[nodiscard]] float get_hotend_temp_compensated() const;
     [[nodiscard]] float get_hotend_temp_uncompensated() const;
@@ -145,18 +149,16 @@ public:
      * @param color
      * @param mode set up led pwm mode
      */
-    void set_leds_color(Color color, indx_head::leds::Mode mode);
+    void set_leds_solid_color(Color color, uint16_t delay_ms = 0);
+
+    void set_leds_blinking(Color primary, Color secondary, uint16_t delay_ms);
+    void set_leds_pulsing(Color primary, Color secondary, uint16_t delay_ms);
+    void set_leds_to_follow_nozle_temp();
 
     /**
      * @brief Power INDX_HEAD LED on/off.
      */
     void set_leds_enabled(bool set);
-
-    /**
-     * @brief Set dwarf status LED to pulse.
-     * @param mode select solid, flashing or pulsing
-     */
-    void set_leds_mode(indx_head::leds::Mode mode);
 
     uint16_t get_heatbreak_fan_pwr();
 
@@ -230,12 +232,11 @@ private:
     std::atomic<bool> general_write_dirty { false };
 
     // Plain mutex-protected write state for multi-field writes.
-    struct {
-        uint8_t r {};
-        uint8_t g {};
-        uint8_t b {};
-        indx_head::leds::Mode mode {};
-    } leds {};
+    indx_head::leds::LedConfig leds {};
+    indx_head::leds::Mode desired_led_mode = indx_head::leds::Mode::solid;
+
+    void set_leds_config(indx_head::leds::Mode mode, Color primary = Color::from_rgb(0, 0, 0), Color secondary = Color::from_rgb(0, 0, 0), uint16_t delay_ms = 0);
+
     bool loadcell_enabled { false };
     bool accelerometer_enabled { false };
     /// One-shot fault acknowledgment: set to fault mask, flushed by write_general(), reset to 0 after success.

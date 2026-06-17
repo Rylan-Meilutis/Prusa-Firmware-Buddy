@@ -36,11 +36,7 @@ Indx::Indx(uint8_t modbus_address)
     , time_sync(1) // Just magic number for metric (unnecessary with single head)
     , loadcell_samplerate {} {
 
-    if (config_store().tool_leds_enabled.get()) {
-        set_leds_color(COLOR_ORANGE, indx_head::leds::Mode::solid);
-    } else {
-        set_leds_color(COLOR_BLACK, indx_head::leds::Mode::off);
-    }
+    set_leds_config(config_store().tool_leds_enabled.get() ? desired_led_mode : indx_head::leds::Mode::off, COLOR_ORANGE);
     loadcell_enabled = true;
 }
 
@@ -186,18 +182,50 @@ CommunicationStatus Indx::initial_scan(PuppyModbus &bus) {
     return write_general(bus);
 }
 
-void Indx::set_leds_color(Color color, indx_head::leds::Mode mode) {
+void Indx::set_leds_config(indx_head::leds::Mode mode, Color primary, Color secondary, uint16_t delay_ms) {
     Lock guard(*mutex);
-    leds.r = color.r;
-    leds.g = color.g;
-    leds.b = color.b;
-    leds.mode = mode;
+    // WARNING: This switch is itentional to keep as much data if user decides to disable the leds (off mode) and then enable them again.
+    switch (mode) {
+    case indx_head::leds::Mode::blinking:
+    case indx_head::leds::Mode::pulsing:
+        leds.secondary.r = secondary.r;
+        leds.secondary.g = secondary.g;
+        leds.secondary.b = secondary.b;
+        [[fallthrough]];
+    case indx_head::leds::Mode::solid:
+        leds.primary.r = primary.r;
+        leds.primary.g = primary.g;
+        leds.primary.b = primary.b;
+        leds.delay_ms = delay_ms;
+        [[fallthrough]];
+    case indx_head::leds::Mode::match_nozzle_temp:
+        desired_led_mode = mode;
+        [[fallthrough]];
+    case indx_head::leds::Mode::off:
+        leds.mode = mode;
+    }
     general_write_dirty.store(true);
+}
+
+void Indx::set_leds_solid_color(Color color, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::solid, color, Color::from_rgb(0, 0, 0), delay_ms);
+}
+
+void Indx::set_leds_blinking(Color primary, Color secondary, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::blinking, primary, secondary, delay_ms);
+}
+
+void Indx::set_leds_pulsing(Color primary, Color secondary, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::pulsing, primary, secondary, delay_ms);
+}
+
+void Indx::set_leds_to_follow_nozle_temp() {
+    set_leds_config(indx_head::leds::Mode::match_nozzle_temp);
 }
 
 void Indx::set_leds_enabled(bool set) {
     Lock guard(*mutex);
-    leds.mode = set ? indx_head::leds::Mode::solid : indx_head::leds::Mode::off;
+    leds.mode = set ? desired_led_mode : indx_head::leds::Mode::off;
     general_write_dirty.store(true);
 }
 
@@ -248,10 +276,7 @@ CommunicationStatus Indx::write_general(PuppyModbus &bus) {
     block.value.hotend_temperature_compensation_c100 = hotend_temperature_compensation_c100_desired.load();
     block.value.invalidate_nozzle_presence = nozzle_invalidation_token.load();
     block.value.print_fan_pwm.value = static_cast<uint8_t>(fan_pwm_desired[fans::PRINTFAN_INDEX].load());
-    block.value.leds.r = leds.r;
-    block.value.leds.g = leds.g;
-    block.value.leds.b = leds.b;
-    block.value.leds.mode = leds.mode;
+    block.value.leds = leds;
     block.value.loadcell_enabled = loadcell_enabled ? 1u : 0u;
     block.value.accelerometer_enabled = accelerometer_enabled ? 1u : 0u;
     block.value.clear_fault_status = clear_fault_status_pending;

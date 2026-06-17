@@ -921,13 +921,8 @@ void MI_TOOL_LEDS_ENABLE::OnChange(size_t old_index) {
     for (auto tool : PhysicalToolIndex::all()) {
         prusa_toolchanger.getTool(tool).set_cheese_led(!old_index ? 0xff : 0x00, 0x00);
     }
-    #elif HAS_INDX()
-    if (!old_index) {
-        buddy::puppies::indx.set_leds_color(COLOR_ORANGE, indx_head::leds::Mode::solid);
-    } else {
-        buddy::puppies::indx.set_leds_color(COLOR_BLACK, indx_head::leds::Mode::off);
-    }
     #endif
+    // On INDX the head LEDs follow this via indx_head_leds::update() on its next tick.
     config_store().tool_leds_enabled.set(!old_index);
 }
 #endif

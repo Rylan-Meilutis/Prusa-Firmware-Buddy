@@ -30,11 +30,6 @@ extern I2C_HandleTypeDef hi2c1;
 namespace hal::i2c {
 namespace {
 
-    struct SetLEDDelayed {
-        uint8_t r, g, b;
-    };
-    std::optional<SetLEDDelayed> set_led_delayed { std::nullopt };
-
     freertos::Mutex i2c_mutex {};
     freertos::BinarySemaphore i2c_it_semaphore {};
     std::atomic<bool> i2c_error_flag { false };
@@ -195,6 +190,12 @@ namespace {
 
     namespace leds {
 
+        struct SetLEDDelayed {
+            uint8_t r, g, b;
+        };
+        std::optional<SetLEDDelayed> set_pwm_delayed { std::nullopt };
+        std::optional<uint16_t> set_fade_delayed { std::nullopt };
+
         class Impl {
         public:
             [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, std::span<const std::byte> tx_buff) {
@@ -341,15 +342,13 @@ CheckedTemperatureReading read_tpis_temperature() {
 void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
     LockGuard lg { i2c_mutex };
 
-    if (const auto res = leds::controller.set_color(leds::gamma_int_lut.at(r), leds::gamma_int_lut.at(g), leds::gamma_int_lut.at(b)); !res.has_value()) {
-        rtt::print("i2c: leds set_color_failed\n");
-    }
+    leds::set_pwm_delayed = { .r = leds::gamma_int_lut.at(r), .g = leds::gamma_int_lut.at(g), .b = leds::gamma_int_lut.at(b) };
 }
 
-void set_led_pwm_delayed(uint8_t r, uint8_t g, uint8_t b) {
+void set_led_fade(uint16_t interval_ms) {
     LockGuard lg { i2c_mutex };
 
-    set_led_delayed = { .r = leds::gamma_int_lut.at(r), .g = leds::gamma_int_lut.at(g), .b = leds::gamma_int_lut.at(b) };
+    leds::set_fade_delayed = interval_ms;
 }
 
 void trigger_delayed_request() {
@@ -357,13 +356,27 @@ void trigger_delayed_request() {
         return;
     }
     ScopeGuard unlock_mtx([]() { i2c_mutex.unlock(); });
-    // NOTE: Do a round robin if more then one delayed request are needed
-    if (set_led_delayed.has_value()) {
-        if (const auto res = leds::controller.set_color(set_led_delayed->r, set_led_delayed->g, set_led_delayed->b); !res.has_value()) {
+    if (leds::set_fade_delayed.has_value()) {
+        using leds::set_fade_delayed;
+        const auto fade_time = leds::Controller::nearest_fade_time(*set_fade_delayed);
+        const auto enable_fade = (*set_fade_delayed != 0);
+
+        if (const auto res = leds::controller.set_fade_time(fade_time, enable_fade, enable_fade, enable_fade); !res.has_value()) {
+            rtt::print("i2c: delayed leds fade failed");
+        }
+
+        set_fade_delayed = std::nullopt;
+        return; // One request at a time
+    }
+
+    if (leds::set_pwm_delayed.has_value()) {
+        using leds::set_pwm_delayed;
+        if (const auto res = leds::controller.set_color(set_pwm_delayed->r, set_pwm_delayed->g, set_pwm_delayed->b); !res.has_value()) {
             rtt::print("i2c: delayed leds failed");
         }
 
-        set_led_delayed = std::nullopt;
+        set_pwm_delayed = std::nullopt;
+        return; // One request at a time
     }
 }
 
