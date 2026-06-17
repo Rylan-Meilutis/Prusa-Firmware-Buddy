@@ -113,9 +113,8 @@ extern "C" void USART2_IRQHandler(void) {
     }
     if (LL_USART_IsEnabledIT_RXNE(USART2) && LL_USART_IsActiveFlag_ORE(USART2)) {
         LL_USART_ClearFlag_ORE(USART2);
-
-        state.data = state.buffer;
-        state.size = sizeof(state.buffer);
+        // overrun error - we are too slow to process data, no need to do anything special here
+        // CRC check will fail
     }
     if (LL_USART_IsEnabledIT_IDLE(USART2) && LL_USART_IsActiveFlag_IDLE(USART2)) {
         if (state.size < sizeof(state.buffer)) {
