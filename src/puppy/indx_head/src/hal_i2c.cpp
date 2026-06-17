@@ -263,7 +263,23 @@ namespace {
                 rtt::print("i2c: leds init failed");
             }
         }
+
+        static constexpr uint8_t gamma_float(uint8_t in) {
+            static constexpr float gamma = 2.2f; // Use 2.6 or 2.8 for richer colors
+            static constexpr float rgb_max = 255.f;
+            static constexpr float pwm_max = 255.f;
+            return static_cast<uint8_t>(pwm_max * std::pow(float(in) / rgb_max, gamma));
+        }
+
+        static auto gamma_int_lut = []() consteval {
+            std::array<uint8_t, 256> res {};
+            const auto src = std::views::iota(0) | std::views::transform(gamma_float);
+            std::ranges::copy_n(src.begin(), res.size(), res.begin());
+            return res;
+        }();
+
     } // namespace leds
+
 } // namespace
 
 void init_comm() {
@@ -325,7 +341,7 @@ CheckedTemperatureReading read_tpis_temperature() {
 void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
     LockGuard lg { i2c_mutex };
 
-    if (const auto res = leds::controller.set_color(r, g, b); !res.has_value()) {
+    if (const auto res = leds::controller.set_color(leds::gamma_int_lut.at(r), leds::gamma_int_lut.at(g), leds::gamma_int_lut.at(b)); !res.has_value()) {
         rtt::print("i2c: leds set_color_failed\n");
     }
 }
@@ -333,7 +349,7 @@ void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
 void set_led_pwm_delayed(uint8_t r, uint8_t g, uint8_t b) {
     LockGuard lg { i2c_mutex };
 
-    set_led_delayed = { .r = r, .g = g, .b = b };
+    set_led_delayed = { .r = leds::gamma_int_lut.at(r), .g = leds::gamma_int_lut.at(g), .b = leds::gamma_int_lut.at(b) };
 }
 
 void trigger_delayed_request() {

@@ -187,13 +187,6 @@ CommunicationStatus Indx::initial_scan(PuppyModbus &bus) {
 }
 
 void Indx::set_leds_color(Color color, indx_head::leds::Mode mode) {
-    // FIXME: Calculate this on the head so we set correct colors from inside of the head, but needs to be rewritten into fixed point arythmetic
-    static constexpr float gamma = 2.2f; // Use 2.6 or 2.8 for richer colors
-    static constexpr float rgb_max = 255.f;
-    static constexpr float pwm_max = 255.f;
-    color.r = static_cast<uint8_t>(pwm_max * std::pow(float(color.r) / rgb_max, gamma));
-    color.g = static_cast<uint8_t>(pwm_max * std::pow(float(color.g) / rgb_max, gamma));
-    color.b = static_cast<uint8_t>(pwm_max * std::pow(float(color.b) / rgb_max, gamma));
     Lock guard(*mutex);
     leds.r = color.r;
     leds.g = color.g;
