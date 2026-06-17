@@ -214,8 +214,19 @@ void tud_cdc_n_read_flush(uint8_t itf) {
 //--------------------------------------------------------------------+
 uint32_t tud_cdc_n_write(uint8_t itf, const void* buffer, uint32_t bufsize) {
   TU_VERIFY(itf < CFG_TUD_CDC, 0);
+  TU_VERIFY(bufsize > 0, 0);
   cdcd_interface_t *p_cdc = &_cdcd_itf[itf];
-  return tu_edpt_stream_write(&p_cdc->tx_stream, buffer, bufsize);
+  tu_edpt_stream_t *s = &p_cdc->tx_stream;
+
+  // Write to FIFO, then mirror tu_edpt_stream_write's auto-flush threshold — but skip
+  // the flush while the FIFO is in overwrite mode. That mode tracks effective host
+  // connectivity (toggled on XFER activity / line-state) and prevents the first bulk
+  // transfer from being dropped before the host is ready.
+  const uint16_t ret = tu_fifo_write_n(&s->ff, buffer, (uint16_t) bufsize);
+  if (!s->ff.overwritable && ((tu_fifo_count(&s->ff) >= s->mps) || (tu_fifo_depth(&s->ff) < s->mps))) {
+    tu_edpt_stream_write_xfer(s);
+  }
+  return ret;
 }
 
 uint32_t tud_cdc_n_write_flush(uint8_t itf) {
