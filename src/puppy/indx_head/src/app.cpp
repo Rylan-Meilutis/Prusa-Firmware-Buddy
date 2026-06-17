@@ -239,11 +239,12 @@ void run() {
             heatbreak_ctl.update_loop(now_ms);
 
             // LEDs control loop
-            if (target_temp.load() == 0 && leds_changed) {
-                leds_changed = false;
-                auto cfg = leds_config.load();
-                hal::i2c::set_led_pwm(cfg.r, cfg.g, cfg.b);
-                hal::i2c::set_led_mode(cfg.mode);
+            if (leds_changed.exchange(false)) {
+                if (target_temp.load() > 0) {
+                    hal::i2c::set_led_pwm_delayed(cfg.r, cfg.g, cfg.b);
+                } else {
+                    hal::i2c::set_led_pwm(cfg.r, cfg.g, cfg.b);
+                }
             }
         }
 

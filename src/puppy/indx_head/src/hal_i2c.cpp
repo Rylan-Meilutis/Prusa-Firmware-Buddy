@@ -10,15 +10,18 @@
 #include <freertos/mutex.hpp>
 #include <freertos/timing.hpp>
 #include <raii/lock_guard.hpp>
+#include <raii/scope_guard.hpp>
 #include <stm32c0xx_hal.h>
 #include <tpis/tpis.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <span>
 #include <optional>
+#include <ranges>
+#include <span>
 
 namespace hal::peripherals {
 extern I2C_HandleTypeDef hi2c1;
@@ -26,6 +29,11 @@ extern I2C_HandleTypeDef hi2c1;
 
 namespace hal::i2c {
 namespace {
+
+    struct SetLEDDelayed {
+        uint8_t r, g, b;
+    };
+    std::optional<SetLEDDelayed> set_led_delayed { std::nullopt };
 
     freertos::Mutex i2c_mutex {};
     freertos::BinarySemaphore i2c_it_semaphore {};
@@ -322,8 +330,25 @@ void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
     }
 }
 
-void set_led_mode([[maybe_unused]] indx_head::leds::Mode mode) {
-    // INDX_HEAD_TODO
+void set_led_pwm_delayed(uint8_t r, uint8_t g, uint8_t b) {
+    LockGuard lg { i2c_mutex };
+
+    set_led_delayed = { .r = r, .g = g, .b = b };
+}
+
+void trigger_delayed_request() {
+    if (!i2c_mutex.try_lock()) {
+        return;
+    }
+    ScopeGuard unlock_mtx([]() { i2c_mutex.unlock(); });
+    // NOTE: Do a round robin if more then one delayed request are needed
+    if (set_led_delayed.has_value()) {
+        if (const auto res = leds::controller.set_color(set_led_delayed->r, set_led_delayed->g, set_led_delayed->b); !res.has_value()) {
+            rtt::print("i2c: delayed leds failed");
+        }
+
+        set_led_delayed = std::nullopt;
+    }
 }
 
 } // namespace hal::i2c
