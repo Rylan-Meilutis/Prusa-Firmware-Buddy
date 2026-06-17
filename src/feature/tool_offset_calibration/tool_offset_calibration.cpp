@@ -32,6 +32,7 @@
 #include <utils/variant_utils.hpp>
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
+#include <feature/gcode_exception/gcode_exception.hpp>
 
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
@@ -195,8 +196,9 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
 /// and prompt with Retry/Abort.
 /// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
 Response prompt_retry(WarningType warning, tool_offset_calibration::Context context) {
-    // If the user already stopped the print, skip the dialog (and the parking move)
-    if (marlin_server::aborting_or_aborted()) {
+    // If the user already aborted, skip the dialog and the parking move. This covers a stopped
+    // print as well as a calibration-wizard Abort, which quick-stops the planner (-> draining()).
+    if (marlin_server::aborting_or_aborted() || planner.draining()) {
         return Response::Abort;
     }
 
@@ -517,6 +519,12 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                     break;
                 }
                 abort_print_if_needed();
+                return false;
+            }
+
+            // The Abort button quick-stops the planner (sets draining()), which is what broke the
+            // heat-up wait above. Exit now - the probe/scan below can't run while draining anyway.
+            if (gcode_exceptions().is_unwinding()) {
                 return false;
             }
 
