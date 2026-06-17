@@ -48,8 +48,8 @@ namespace i2c {
     /// Returns ambient and object temperatures
     CheckedTemperatureReading read_tpis_temperature();
     void set_led_pwm(uint8_t r, uint8_t g, uint8_t b);
+    void set_led_fade(uint16_t interval_ms);
 
-    void set_led_pwm_delayed(uint8_t r, uint8_t g, uint8_t b);
     void trigger_delayed_request();
 } // namespace i2c
 
