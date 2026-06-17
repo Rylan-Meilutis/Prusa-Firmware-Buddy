@@ -174,7 +174,7 @@ if(PRINTER STREQUAL "MINI")
 endif()
 
 # Quite OK images
-add_resource("${qoi_data_file}" "qoi.data")
+add_resource("${qoi_data_file}" "/qoi.data")
 
 # generate header with hash
 add_header_with_revision(standard resources-image)
