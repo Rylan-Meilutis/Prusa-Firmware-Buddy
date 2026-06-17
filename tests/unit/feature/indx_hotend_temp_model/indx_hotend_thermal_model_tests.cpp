@@ -8,6 +8,7 @@
 #include <cmath>
 
 using namespace indx;
+using namespace Catch::Matchers;
 
 using StepParams = HotendThermalModel::StepParams;
 
@@ -89,7 +90,7 @@ TEST_CASE("indx_hotend_thermal_model") {
         MetaParams meta_params {};
         return converge(model, params, meta_params);
     }();
-    CHECK_THAT(base_temp, Catch::Matchers::WithinAbs(base_params.chamber_temp_C, 5));
+    CHECK_THAT(base_temp, WithinAbs(base_params.chamber_temp_C, 5));
 
     const float slow_heat_temp = [&] {
         INFO("slow_heat_temp");
@@ -213,4 +214,46 @@ TEST_CASE("indx_hotend_thermal_model::convergence") {
         .heater_power_W = GENERATE(0.f, 10.f, 20.f, 40.f),
     };
     converge(model, params, meta_params);
+}
+
+TEST_CASE("indx_hotend_thermal_model::nozzle_temp_effect") {
+    // nozzle_temp_C is what the thermal model is testing against for thermal runaway
+    // it shouldn't affect the model too much, just for gardual fine tuning
+
+    constexpr MetaParams base_meta_params {
+        .heater_power_W = 20,
+    };
+    constexpr auto test_params = [] {
+        auto params = base_params;
+        params.board_temp_C = 60;
+        return params;
+    }();
+    static_assert(base_meta_params.update_nozzle_temp == true);
+
+    const float base_temp = [&] {
+        INFO("base_temp");
+
+        HotendThermalModel model;
+        auto params = test_params;
+        return converge(model, params, base_meta_params);
+    }();
+
+    const float stuck_temp = [&] {
+        INFO("stuck_temp");
+
+        HotendThermalModel model;
+        auto params = test_params;
+        MetaParams meta_params = base_meta_params;
+        meta_params.update_nozzle_temp = false;
+        return converge(model, params, meta_params);
+    }();
+
+    const float diff = base_temp - stuck_temp;
+    CAPTURE(base_temp, stuck_temp, diff);
+
+    // The values should differ
+    CHECK_THAT(diff, !WithinAbs(0, 2));
+
+    // ... but not too much
+    CHECK_THAT(diff, WithinAbs(0, 40));
 }
