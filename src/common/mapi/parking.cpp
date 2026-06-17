@@ -52,9 +52,10 @@ ParkingPosition get_parking_position(ParkPosition position) {
 
 #if HAS_WASTEBIN_FILL_TRACKING()
     case ParkPosition::empty_wastebin:
-        // Head clear of the cleaner (which sits at high X) with Y forward, and Z lifted high (at
-        // least 80, more above tall prints) so the cleaner can be slid out without hitting the head.
-        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 5, .absolute = 80 } };
+        // Park at the INDX home corner (X to the min endstop, Y all the way back), clear of the
+        // cleaner which sits at high X, and drop the bed low (Z at least 160, or 20 above tall
+        // prints) so there is room to reach in and empty the cleaner.
+        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = 160 } };
 #endif
 
     case ParkPosition::_cnt:
