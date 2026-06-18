@@ -1,6 +1,7 @@
 #pragma once
 
 #include "screen_menu.hpp"
+#include <WindowMenuItems.hpp>
 #include <utility_extensions.hpp>
 #include <selftest_snake_config.hpp>
 #include <meta_utils.hpp>
@@ -36,6 +37,16 @@ private:
     StringViewUtf8Parameters<3> label_params_;
 };
 
+class MI_BYPASS_DEPENDENCIES : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *label = N_("Bypass Dependency Checks");
+
+public:
+    MI_BYPASS_DEPENDENCIES();
+
+protected:
+    void OnChange(size_t old_index) override;
+};
+
 bool is_menu_draw_enabled(window_t *window);
 void do_menu_event(window_t *receiver, window_t *sender, GUI_event_t event, void *param, Action action, bool is_submenu);
 
@@ -56,7 +67,8 @@ namespace detail {
     template <EFooter FOOTER, std::size_t... I>
     struct menu_builder<FOOTER, MenuType::Calibrations, std::index_sequence<I...>> {
         using type = ScreenMenu<FOOTER, MI_RETURN,
-            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...>;
+            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
+            MI_BYPASS_DEPENDENCIES>;
     };
 
     // Partial specialization for when building Wizard menu

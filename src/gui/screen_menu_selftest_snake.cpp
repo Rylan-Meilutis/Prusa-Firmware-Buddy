@@ -99,6 +99,7 @@ struct SnakeConfig {
 } // namespace SelftestSnake
 
 static SnakeConfig snake_config {};
+static bool bypass_dependencies { false };
 
 namespace {
 
@@ -331,6 +332,9 @@ I_MI_STS::I_MI_STS(Action action)
 }
 
 static bool check_prerequisites_or_warn(Action action) {
+    if (bypass_dependencies) {
+        return true;
+    }
 #if HAS_SELFTEST_DEPENDENCIES()
     if (!are_dependencies_met(action)) {
         show_unmet_dependencies_warning(action);
@@ -379,6 +383,13 @@ void I_MI_STS_SUBMENU::click(IWindowMenu &) {
 
 void I_MI_STS_SUBMENU::Loop() {
     SetIconId(get_icon(action, tool));
+}
+
+MI_BYPASS_DEPENDENCIES::MI_BYPASS_DEPENDENCIES()
+    : WI_ICON_SWITCH_OFF_ON_t(bypass_dependencies, _(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {}
+
+void MI_BYPASS_DEPENDENCIES::OnChange(size_t) {
+    bypass_dependencies = value();
 }
 
 namespace SelftestSnake {
