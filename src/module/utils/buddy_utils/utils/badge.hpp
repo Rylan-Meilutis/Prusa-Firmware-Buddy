@@ -9,7 +9,7 @@ class Badge {
     friend T;
 
 private:
-    Badge() {
+    consteval Badge() {
         // must not use `= default` here to prevent construction by anybody via
         // aggregate initialization
     }
