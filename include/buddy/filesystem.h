@@ -29,8 +29,11 @@ static inline const char *process_path(const char *path, const char *dev_name) {
             // Device name is the whole path, return root
             return "/";
         }
-        // Skip device name
-        return device_path + dev_name_len;
+        if (device_path[dev_name_len] == '/') {
+            // Return full path without device name
+            return device_path + dev_name_len;
+        }
+        // Device name only matched a prefix of a longer component: not a real match
     }
     // Device name not in the path, don't do any change
     return path;
