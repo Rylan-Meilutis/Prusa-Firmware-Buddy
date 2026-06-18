@@ -418,6 +418,19 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
 
     log_info(ToolOffsetCalib, "Calibrating %u tool(s)", num_tools);
 
+#if HAS_INDX()
+    // A single-physical-tool print can't change tools: pin the last-picked tool to it so a
+    // mid-print reset recovers it (via the nozzle sensor) without writing EEPROM during the print.
+    if (context == Context::Print) {
+        std::optional<PhysicalToolIndex> single_tool;
+        if (num_tools == 1) {
+            auto mask = used_physical_tools.to_ullong();
+            single_tool = PhysicalToolIndex::from_raw(std::countr_zero(mask));
+        }
+        prusa_toolchanger.set_single_print_tool(single_tool);
+    }
+#endif
+
     // Z probing is only done from a running print — selftest skips it to save time. Z offsets
     // are then left at zero until the next G427 call from a print start.
     const bool measure_z = (context == Context::Print);

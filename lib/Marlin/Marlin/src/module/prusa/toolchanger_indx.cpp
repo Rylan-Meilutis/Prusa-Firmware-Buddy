@@ -953,6 +953,10 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
 }
 
 void PrusaToolChanger::persist_last_picked_tool(std::variant<PhysicalToolIndex, NoTool> tool, bool override_always) {
+    // Single-tool print: the tool can't change, so leave EEPROM frozen at the value set at print start.
+    if (!override_always && freeze_last_picked_tool_ && marlin_server::is_printing()) {
+        return;
+    }
     // If we are not printing, we need to save the no tool picked to eeprom
     if (override_always || !marlin_server::is_printing()) {
         config_store().set_indx_last_picked_tool(tool);

@@ -219,6 +219,15 @@ public:
      */
     void persist_last_picked_tool(std::variant<PhysicalToolIndex, NoTool> tool, bool override_always = false);
 
+    /// Mark the current print as using a single physical tool (or not): persist that tool once,
+    /// then leave the EEPROM last-picked tool frozen for the rest of the print. nullopt = multi-tool.
+    void set_single_print_tool(std::optional<PhysicalToolIndex> tool) {
+        if (tool) {
+            persist_last_picked_tool(*tool, /*override_always=*/true);
+        }
+        freeze_last_picked_tool_ = tool.has_value();
+    }
+
     /**
      * @brief Check nozzle presence against EEPROM last picked tool.
      *
@@ -288,6 +297,8 @@ private:
 
     static constexpr uint32_t PRINT_NOZZLE_CHECK_PERIOD_MS = 5000; ///< Period of in-print nozzle presence check
     uint32_t last_print_nozzle_check_ms = 0; ///< Tick of last in-print nozzle presence check
+
+    bool freeze_last_picked_tool_ = false; ///< Single-tool print: don't invalidate the pinned last-picked tool mid-print
 
     /**
      * @brief Invalidate XY homing state, forcing a rehome before next toolchange.
