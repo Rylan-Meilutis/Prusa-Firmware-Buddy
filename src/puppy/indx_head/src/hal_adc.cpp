@@ -85,14 +85,10 @@ uint16_t get_heater_current_mA() {
     // Voltage at ADC pin [mV] = current in mA (sensor gain: 1 V/A)
     const uint16_t raw_mA = __LL_ADC_CALC_DATA_TO_VOLTAGE(v_ref_mv, get_raw(Channel::heater_current), LL_ADC_RESOLUTION_12B);
 
-    if (raw_mA < 200) {
-        // The current sensing circuitry is a bit noisy.
-        // When the nozzle is off, the "negative noise" gets clamped at 0, so it manifests as a positive current on average.
-        // The lowest nozzle power should be ~500 mA, so just clamp to zero.
-        return 0;
-    } else {
-        return raw_mA;
-    }
+    // There is a 100 mA offset in the current measurement of unknown origin
+    constexpr uint16_t offset_mA = 100;
+
+    return (raw_mA > offset_mA) ? (raw_mA - offset_mA) : 0;
 }
 
 } // namespace hal::adc
