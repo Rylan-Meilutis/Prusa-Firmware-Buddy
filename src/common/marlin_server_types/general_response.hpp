@@ -62,6 +62,7 @@ enum class Response : uint8_t {
     Docks4,
     Docks8,
     Other,
+    Empty,
 
     _count,
     _last = _count - 1,

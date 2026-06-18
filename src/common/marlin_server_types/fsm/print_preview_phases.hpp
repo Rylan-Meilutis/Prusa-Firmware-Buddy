@@ -95,7 +95,7 @@ inline constexpr EnumArray<PhasesPrintPreview, PhaseResponses, CountPhases<Phase
         { PhasesPrintPreview::wastebin_overfill_warning, {
                                                              Response::Print,
                                                              Response::Ignore,
-                                                             Response::Done,
+                                                             Response::Empty,
                                                          } },
 #endif
         { PhasesPrintPreview::file_error, {

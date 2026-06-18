@@ -42,7 +42,8 @@ public:
         gcode_invalid_wait_user_abort,
 
 #if HAS_WASTEBIN_FILL_TRACKING()
-        wastebin_overfill_wait_user,
+        wastebin_overfill_wait_user, ///< bin projected to overfill
+        wastebin_emptying, ///< waiting for M1986 to finish
 #endif
 
         filament_not_inserted_wait_user,

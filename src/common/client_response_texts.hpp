@@ -36,6 +36,8 @@ inline constexpr const char *get_response_text(Response response) {
         return N_("DISABLE");
     case Response::Done:
         return N_("DONE");
+    case Response::Empty:
+        return N_("EMPTY");
     case Response::Filament:
         return N_("FILAMENT");
     case Response::Filament_removed:

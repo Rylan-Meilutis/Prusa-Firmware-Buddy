@@ -117,7 +117,7 @@ public:
     FrameWastebinOverfill(window_frame_t *parent)
         : FramePrompt(parent, Phase::wastebin_overfill_warning,
             _("Nozzle cleaner may overflow"),
-            _("This print may overfill the nozzle cleaner.\nNozzle cleaner: %u / %u pellets.\nThis print: %u tool changes.\n\nPrint: start the print anyway.\nIgnore: print without nozzle cleaner checks this print.\nDone: nozzle cleaner emptied, reset the counter.")) {
+            _("This print may overfill the nozzle cleaner.\nNozzle cleaner: %u / %u pellets.\nThis print: %u tool changes.\n\nPrint: start the print anyway.\nIgnore: print without nozzle cleaner checks this print.\nEmpty: empty the nozzle cleaner now.")) {
         info.SetText(info.GetText().formatted(params_,
             WastebinWatcher::instance().fill_level(),
             WastebinWatcher::instance().capacity(),

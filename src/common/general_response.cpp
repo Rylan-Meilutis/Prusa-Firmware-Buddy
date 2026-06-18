@@ -58,6 +58,7 @@ static constexpr EnumArray<Response, const char *, Response::_count> response_st
     R(Docks4),
     R(Docks8),
     R(Other),
+    R(Empty),
 };
 
 #undef R

@@ -91,6 +91,8 @@ std::optional<PhasesPrintPreview> IPrintPreview::getCorrespondingPhase(IPrintPre
 #if HAS_WASTEBIN_FILL_TRACKING()
     case State::wastebin_overfill_wait_user:
         return PhasesPrintPreview::wastebin_overfill_warning;
+    case State::wastebin_emptying:
+        return std::nullopt; // silent wait for M1986
 #endif
 
     case State::filament_not_inserted_wait_user:
@@ -536,21 +538,20 @@ PrintPreview::Result PrintPreview::Loop() {
     case State::wastebin_overfill_wait_user:
         switch (response) {
 
-        case Response::Done:
-            // User emptied the bin -> reset the counter, then continue (monitoring stays on).
-            WastebinWatcher::instance().mark_emptied();
+        case Response::Print:
+            // Print anyway and keep mid-print monitoring on.
             ChangeState(stateFromFilamentPresence());
             break;
 
         case Response::Ignore:
-            // Turn off wastebin monitoring for the whole upcoming print, then continue.
+            // Print anyway and stop monitoring for this print (e.g. remote user who will empty later).
             WastebinWatcher::instance().set_ignored_for_print(true);
             ChangeState(stateFromFilamentPresence());
             break;
 
-        case Response::Print:
-            // Continue the normal check chain (monitoring stays on for plain Print).
-            ChangeState(stateFromFilamentPresence());
+        case Response::Empty:
+            marlin_server::enqueue_gcode("M1986");
+            ChangeState(State::wastebin_emptying);
             break;
 
         case Response::_none:
@@ -559,6 +560,14 @@ PrintPreview::Result PrintPreview::Loop() {
         default:
             bsod_unreachable();
         }
+        break;
+
+    case State::wastebin_emptying:
+        // M1986 runs as a gcode; wait for the gcode queue to drain before continuing.
+        if (marlin_server::is_processing()) {
+            break;
+        }
+        ChangeState(stateFromFilamentPresence());
         break;
 #endif
 
@@ -745,6 +754,7 @@ PrintPreview::Result PrintPreview::stateToResult() const {
     case State::gcode_invalid_wait_user_abort:
 #if HAS_WASTEBIN_FILL_TRACKING()
     case State::wastebin_overfill_wait_user:
+    case State::wastebin_emptying:
 #endif
     case State::wrong_filament_change:
     case State::wrong_filament_wait_user:
