@@ -64,6 +64,12 @@ void CurrentStore::perform_config_check() {
             set_nozzle_diameter(tool, 0.4f);
         }
 
+    #if HAS_15GT_BELTS() // not on XL_DEV_KIT, which shares this branch
+        // New XL printers ship with the 1.5GT belts.
+        // The restart-required result can be ignored: this runs at boot, before the planner reads steps/mm.
+        (void)set_belts_15gt(true);
+    #endif
+
 #elif PRINTER_IS_PRUSA_MK3_5()
         change_extended_printer_type(PrinterModel::mk3_5s, ChangeExtendedPrinterTypeMode::config_store_init);
 

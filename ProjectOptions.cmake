@@ -593,7 +593,7 @@ set_feature_for_printers_master_board(
   "XL"
   )
 set_feature_for_printers(HAS_EMERGENCY_STOP "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
-set_feature_for_printers(HAS_15GT_BELTS "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(HAS_15GT_BELTS "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "XL")
 set_feature_for_printers(HAS_HT_HOTEND "COREONE" "COREONEL")
 set_feature_for_printers(HAS_EXPANSION_JOINTS_GEN_2 "COREONE" "COREONE_INDX")
 set_feature_for_printers(HAS_CEILING_CLEARANCE "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")

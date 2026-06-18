@@ -443,8 +443,11 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4[, E5]]]]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT_X 80
-#define DEFAULT_AXIS_STEPS_PER_UNIT_Y 80
+// These only seed the config-store default
+// X/Y steps/mm depend on the belt, so there is no single default
+// 2GT belts/transmission wheels move 40 mm per motor revolution, 1.5GT ones 40.5 mm
+#define AXIS_STEPS_PER_UNIT_2GT_XY 80.0f
+#define AXIS_STEPS_PER_UNIT_15GT_XY (80.f * 40.f / 40.5f)
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Z 800
 #define DEFAULT_AXIS_STEPS_PER_UNIT_E0 380
 
