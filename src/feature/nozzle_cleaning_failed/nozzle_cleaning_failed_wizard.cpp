@@ -174,20 +174,10 @@ public:
             return false;
         }
 
-        float start_temp = Hotend::for_tool(*tool).nozzle_temp();
-
-        struct {
-            float start_temp;
-            int16_t target_temp;
-            PhysicalToolIndex tool;
-        } temps {
-            start_temp,
-            target_temp,
-            *tool
-        };
+        const float start_temp = Hotend::for_tool(*tool).nozzle_temp();
 
         // takes care of progress reporing and also handles abort correctly
-        Subscriber subscriber(marlin_server::idle_publisher, [&temps, this] {
+        LambdaSubscriber subscriber(marlin_server::idle_publisher, [&] {
             if (marlin_server::get_response_from_phase(Phase::wait_temp) == Response::Abort) {
                 if (confirm_abort(Phase::wait_temp)) {
                     // Interrupt the M109
@@ -196,7 +186,7 @@ public:
             }
             if (!warn_active) {
                 struct NozzleCleaningFailedProgressData data {
-                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(Hotend::for_tool(temps.tool).nozzle_temp() - temps.start_temp) / static_cast<float>(temps.target_temp - temps.start_temp)) * 255))
+                    .progress_0_255 = static_cast<uint8_t>(std::min(255.f, fabs(static_cast<float>(Hotend::for_tool(*tool).nozzle_temp() - start_temp) / static_cast<float>(target_temp - start_temp)) * 255))
                 };
                 fsm_change(Phase::wait_temp, fsm::serialize_data(data));
             }
