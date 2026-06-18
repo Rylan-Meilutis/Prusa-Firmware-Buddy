@@ -16,6 +16,8 @@ void IndxHotend::handle_nozzle_target_change() {
 void IndxHotend::start_heating() {
     assert_thermally_managed_invariant(NoTool {});
     is_thermally_managed_ = true;
+    // Bind the thermal model to this tool's managed session.
+    buddy::hotend_temp_model().set_tool(tool_.currently_selected_virtual_tool());
     // Sync now (manage() didn't run while parked) so the first manage() won't re-fire on a park-time reset.
     last_head_reset_count_ = buddy::puppies::indx.get_reset_counter();
     handle_nozzle_target_change();
@@ -29,6 +31,10 @@ void IndxHotend::stop_heating() {
 
     nozzle_temp_ = 15; // INDX_TODO: Fix mintemp so that here can be temperature_invalid
     nozzle_heater_pwm_ = 0;
+
+    // No longer thermally managed: unbind the thermal model, zeroing its head compensation.
+    buddy::hotend_temp_model().set_tool(NoTool {});
+
     assert_thermally_managed_invariant(NoTool {});
 }
 
@@ -45,6 +51,10 @@ void IndxHotend::assert_thermally_managed_invariant(std::variant<PhysicalToolInd
 
 void IndxHotend::manage() {
     assert(is_thermally_managed());
+
+    // self-paced internally, so calling it each manage() tick is fine.
+    buddy::hotend_temp_model().step();
+
     const auto reset_count = buddy::puppies::indx.get_reset_counter();
     const bool head_got_reset = (reset_count != last_head_reset_count_);
     last_head_reset_count_ = reset_count;
