@@ -16,6 +16,8 @@ void IndxHotend::handle_nozzle_target_change() {
 void IndxHotend::start_heating() {
     assert_thermally_managed_invariant(NoTool {});
     is_thermally_managed_ = true;
+    // Sync now (manage() didn't run while parked) so the first manage() won't re-fire on a park-time reset.
+    last_head_reset_count_ = buddy::puppies::indx.get_reset_counter();
     handle_nozzle_target_change();
 }
 
@@ -24,6 +26,9 @@ void IndxHotend::stop_heating() {
     buddy::puppies::indx.set_hotend_target_temp(0);
     // tool is still physically on head, but it is no longer thermally managed
     is_thermally_managed_ = false;
+
+    nozzle_temp_ = 15; // INDX_TODO: Fix mintemp so that here can be temperature_invalid
+    nozzle_heater_pwm_ = 0;
     assert_thermally_managed_invariant(NoTool {});
 }
 
@@ -39,23 +44,19 @@ void IndxHotend::assert_thermally_managed_invariant(std::variant<PhysicalToolInd
 }
 
 void IndxHotend::manage() {
+    assert(is_thermally_managed());
     const auto reset_count = buddy::puppies::indx.get_reset_counter();
     const bool head_got_reset = (reset_count != last_head_reset_count_);
     last_head_reset_count_ = reset_count;
 
-    if (is_thermally_managed_) {
-        nozzle_temp_ = buddy::puppies::indx.get_hotend_temp_compensated();
+    nozzle_temp_ = buddy::puppies::indx.get_hotend_temp_compensated();
 
-        if (head_got_reset) {
-            // Act as if nozzle target temp changed
-            // This resets all the safety guards (heater watch, thermal runaway, ...)
-            // to prevent them from semi-falsely triggering when the indx head reset (which caused a temporary heating dropout)
-            handle_nozzle_target_change();
-        }
-
-    } else {
-        nozzle_temp_ = 15; // INDX_TODO: Fix mintemp so that here can be temperature_invalid
-        nozzle_heater_pwm_ = 0;
+    if (head_got_reset) {
+        // Act as if nozzle target temp changed
+        // This resets all the safety guards (heater watch, thermal runaway, ...)
+        // to prevent them from semi-falsely triggering when the indx head reset (which caused a temporary heating dropout)
+        handle_nozzle_target_change();
     }
+
     BaseHotend::manage();
 }

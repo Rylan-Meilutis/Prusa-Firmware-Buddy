@@ -41,6 +41,8 @@ protected:
     // !!! MUST be called after temps are set properly
     // Note: the = 0; is here to enforce overriding.
     // !!! The function is actually implemented and MUST be called from the overriding function.
+    // Precondition: only called for thermally-managed hotends
+    // Running this on a non-managed hotend would false-trigger min_temp_error (parked temp < mintemp with a stale target).
     virtual void manage() override = 0;
 
     void manage_temp_residency();

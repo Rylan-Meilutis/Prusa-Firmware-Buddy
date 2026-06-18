@@ -441,8 +441,13 @@ void Temperature::manage_heater() {
 
   millis_t ms = millis();
 
+  // non-managed hotends are skipped here, so BaseHotend::manage() and the protections it runs don't each re-check it. 
+  // On non-INDX printers is_thermally_managed() is always true, so this is the full loop.
   for (auto tool : PhysicalToolIndex::all()) {
-    Hotend::for_tool(tool).manage();
+    auto &hotend = Hotend::for_tool(tool);
+    if (hotend.is_thermally_managed()) {
+      hotend.manage();
+    }
   }
 
   #if HAS_HEATED_BED
