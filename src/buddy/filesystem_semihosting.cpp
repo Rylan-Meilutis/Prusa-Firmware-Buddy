@@ -71,6 +71,14 @@ static int open_r(struct _reent *r, void *fileStruct, const char *path, [[maybe_
     }
 
     path = process_path(path, devoptab_semihosting.name);
+
+    // Unlike the on-device filesystems, semihosting paths are interpreted by the debugger relative
+    // to its working directory, unless an explicit leading slash is prepended
+    // (`/semihosting//abs-path`). process_path() preserves the extra leading slash during push.
+    if (path[0] == '/') {
+        path++;
+    }
+
     int result = semihosting::sys_open(path, semihosting::open_mode_t::OPEN_MODE_RB, strlen(path));
     if (result > 0) {
         f->pos = 0;
