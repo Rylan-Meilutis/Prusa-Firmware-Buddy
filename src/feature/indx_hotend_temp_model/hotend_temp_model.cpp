@@ -12,9 +12,13 @@
 #include <fanctl/fanctl.hpp>
 #include <marlin_server.hpp>
 #include <module/stepper.h>
+#include <metric.h>
 
 // We have this constant on two places because of modules isolation, make sure they have the same value
 static_assert(indx::HotendThermalModel::hotend_induction_efficiency == buddy::puppies::Indx::hotend_induction_efficiency);
+
+// Thermal model diagnostics: modelled / compensated / uncompensated / reference temperatures + feedrate
+METRIC_DEF(metric_indx_thermal_model, "indx_tm", METRIC_VALUE_CUSTOM, 500, METRIC_ENABLED);
 
 namespace buddy {
 
@@ -205,6 +209,9 @@ void INDXHotendTempModel::step() {
 
         if (model_updated) {
             const float model_temp_C = thermal_model_.modelled_nozzle_temp_C();
+
+            metric_record_custom(&metric_indx_thermal_model, " m=%.1f,c=%.1f,u=%.1f,r=%.1f,fr=%.1f",
+                (double)model_temp_C, (double)hotend_temp_compensated_c, (double)hotend_temp_uncompensated_c, (double)ref_temp_C, (double)extruder_feedrate_mm_s);
 
             // Only check if the modelled temperature is higher than the measured one
             // Colder model temperature does not pose a safety problem
