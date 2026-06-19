@@ -859,12 +859,6 @@ if(${RESOURCES} STREQUAL "<auto>")
 endif()
 define_boolean_option(RESOURCES ${RESOURCES})
 
-if(RESOURCES)
-  set(GENERATE_BBF "YES")
-else()
-  set(GENERATE_BBF "NO")
-endif()
-
 if(${PRINTER} IN_LIST PRINTERS_WITH_GUI AND BOARD_IS_MASTER_BOARD)
   set(GUI YES)
 

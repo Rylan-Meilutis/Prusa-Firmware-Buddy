@@ -466,8 +466,7 @@ target_link_options(firmware PUBLIC -Wl,-Map=firmware.map,--print-memory-usage)
 # inform about the firmware's size in terminal
 report_size(firmware)
 
-# generate bbf if needed
-if(GENERATE_BBF)
+if(RESOURCES)
   message(STATUS "Configured to generate .bbf version of the firmware.")
   message(STATUS "Signing Key: ${SIGNING_KEY}")
 
