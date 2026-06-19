@@ -1993,7 +1993,7 @@ enum class Axis_length_t {
 
 static Axis_length_t axis_length_ok(AxisEnum axis) {
     #if HAS_SELFTEST()
-    const float len = server.axis_length.pos[axis];
+    const float len = server.axis_length[axis];
 
     switch (axis) {
     case X_AXIS:
@@ -2030,8 +2030,8 @@ static SelftestSubtestState_t axis_length_check(AxisEnum axis) {
 
 /// Sets lengths of axes to "by-pass" xy_axes_length_ok()
 static void axes_length_set_ok() {
-    server.axis_length.pos[X_AXIS] = (selftest::Config_XAxis.length_min + selftest::Config_XAxis.length_max) / 2;
-    server.axis_length.pos[Y_AXIS] = (selftest::Config_YAxis.length_min + selftest::Config_YAxis.length_max) / 2;
+    server.axis_length[X_AXIS] = (selftest::Config_XAxis.length_min + selftest::Config_XAxis.length_max) / 2;
+    server.axis_length[Y_AXIS] = (selftest::Config_YAxis.length_min + selftest::Config_YAxis.length_max) / 2;
 }
 
 void set_axes_length(xy_float_t xy) {

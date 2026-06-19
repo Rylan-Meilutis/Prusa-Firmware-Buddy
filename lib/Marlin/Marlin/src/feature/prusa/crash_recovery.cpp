@@ -334,7 +334,7 @@ void Crash_s::send_reports() {
 
     METRIC_DEF(crash_metric, "crash", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
     metric_record_custom(&crash_metric, ",axis=%c sens=%ldi,period=%ldi,speed=%.3f",
-        axis_codes[axis_hit], sensitivity.pos[axis_hit], max_period.pos[axis_hit],
+        axis_codes[axis_hit], sensitivity[axis_hit], max_period[axis_hit],
         static_cast<double>(speed));
     #endif
 }

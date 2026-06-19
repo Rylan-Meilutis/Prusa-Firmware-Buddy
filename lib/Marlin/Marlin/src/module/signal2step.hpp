@@ -139,7 +139,7 @@ abce_pos_t convert(
         abce_pos_t s = signal.next();
         std::array<float, STEPPER_AXES> sample;
         for (int i = 0; i < STEPPER_AXES; i++) {
-            sample[i] = s.pos[i];
+            sample[i] = s[i];
         }
 
         // The first sample is the starting position; no steps are generated.
@@ -199,7 +199,7 @@ abce_pos_t convert(
 
     abce_pos_t result;
     for (int i = 0; i < STEPPER_AXES; i++) {
-        result.pos[i] = step_position[i] * mm_per_step.pos[i];
+        result[i] = step_position[i] * mm_per_step[i];
     }
     return result;
 }
@@ -266,10 +266,10 @@ inline auto fuse(Gen0&& g0, Gen1&& g1, Gen2&& g2, Gen3&& g3) {
         std::forward<Gen3>(g3)
     ) | sp::pipe::transform([](const auto &t) {
         OutType r;
-        r.pos[0] = std::get<0>(t);
-        r.pos[1] = std::get<1>(t);
-        r.pos[2] = std::get<2>(t);
-        r.pos[3] = std::get<3>(t);
+        r[0] = std::get<0>(t);
+        r[1] = std::get<1>(t);
+        r[2] = std::get<2>(t);
+        r[3] = std::get<3>(t);
         return r;
     });
 }

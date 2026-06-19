@@ -1484,7 +1484,7 @@ uint32_t Pause::parkMoveXYPercent(float z_move_len, float xy_move_len) const {
 bool Pause::parkMoveXGreaterThanY(const xyz_pos_t &pos0, const xyz_pos_t &pos1) const {
     xy_bool_t pos_nan;
     LOOP_XY(axis) {
-        pos_nan.pos[axis] = isnan(pos0.pos[axis]) || isnan(pos1.pos[axis]);
+        pos_nan[axis] = isnan(pos0[axis]) || isnan(pos1[axis]);
     }
 
     if (pos_nan.y) {
@@ -1563,7 +1563,7 @@ void Pause::park_nozzle_and_notify() {
         const xyz_bool_t is_park_axis = park.axes_needing_homing();
         LOOP_XY(axis) {
             // TODO: make homeaxis non-blocking to allow quick_stop
-            if (is_park_axis.pos[axis]) {
+            if (is_park_axis[axis]) {
                 GcodeSuite::G28_no_parser(axis == X_AXIS, axis == Y_AXIS, false,
                     {
                         .only_if_needed = true,

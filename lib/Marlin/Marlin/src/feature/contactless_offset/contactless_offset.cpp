@@ -282,10 +282,10 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
         }
     }
     abce_pos_t mm_per_step;
-    mm_per_step.pos[0] = 1.0f / planner.settings.axis_steps_per_mm[X_AXIS];
-    mm_per_step.pos[1] = 1.0f / planner.settings.axis_steps_per_mm[Y_AXIS];
-    mm_per_step.pos[2] = 1.0f / planner.settings.axis_steps_per_mm[Z_AXIS];
-    mm_per_step.pos[3] = 1.0f / planner.settings.axis_steps_per_mm[E_AXIS];
+    mm_per_step[0] = 1.0f / planner.settings.axis_steps_per_mm[X_AXIS];
+    mm_per_step[1] = 1.0f / planner.settings.axis_steps_per_mm[Y_AXIS];
+    mm_per_step[2] = 1.0f / planner.settings.axis_steps_per_mm[Z_AXIS];
+    mm_per_step[3] = 1.0f / planner.settings.axis_steps_per_mm[E_AXIS];
 
     LineSamplesDebugReporter samples_reporter(label);
     samples_reporter.start();
