@@ -500,30 +500,6 @@ elseif(SIGNING_KEY)
   message(WARNING "SIGNING_KEY specified but BBF generation is not enabled.")
 endif()
 
-# generate .dfu version if requested
-if(GENERATE_DFU)
-  if(BOOTLOADER)
-    set(firmware_addr "0x08020000")
-    if(BOOTLOADER STREQUAL "YES")
-      get_dependency_directory("bootloader-${BOOTLOADER_VARIANT}" bootloader_dir)
-      set(bootloader_input "0x08000000:${bootloader_dir}/bootloader.bin")
-    endif()
-    set(firmware_input "0x08020000:${CMAKE_BINARY_DIR}/firmware.bbf")
-  else()
-    set(firmware_input "0x08000000:${CMAKE_BINARY_DIR}/firmware.bin")
-  endif()
-
-  create_dfu(
-    TARGET
-    firmware
-    INPUT
-    "${bootloader_input}"
-    "${firmware_input}"
-    OUTPUT
-    "${CMAKE_CURRENT_BINARY_DIR}/firmware.dfu"
-    )
-endif()
-
 # Library that does some magic to save resources. Link everywhere.
 target_link_libraries(firmware PRIVATE magic_optimizations)
 

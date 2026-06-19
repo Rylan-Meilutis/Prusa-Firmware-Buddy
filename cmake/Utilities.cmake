@@ -154,20 +154,6 @@ function(pack_firmware target)
     )
 endfunction()
 
-function(create_dfu)
-  set(options)
-  set(one_value_args OUTPUT TARGET)
-  set(multi_value_args INPUT)
-  cmake_parse_arguments(CREATE_DFU "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
-
-  add_custom_command(
-    TARGET "${CREATE_DFU_TARGET}"
-    POST_BUILD
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/dfu.py" create ${CREATE_DFU_INPUT}
-            "${CREATE_DFU_OUTPUT}"
-    )
-endfunction()
-
 function(add_link_dependency target file_path)
   get_target_property(link_deps ${target} LINK_DEPENDS)
   if(link_deps STREQUAL "link_deps-NOTFOUND")

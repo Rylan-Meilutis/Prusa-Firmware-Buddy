@@ -69,10 +69,6 @@ set(MCU
       STRING
       "Select the MCU for which you want to compile the project (valid values are ${MCU_VALID_OPTS})."
     )
-set(GENERATE_DFU
-    "NO"
-    CACHE BOOL "Whether a .dfu file should be generated."
-    )
 set(SIGNING_KEY
     ""
     CACHE FILEPATH "Path to a PEM EC private key to be used to sign the firmware."
@@ -863,8 +859,7 @@ if(${RESOURCES} STREQUAL "<auto>")
 endif()
 define_boolean_option(RESOURCES ${RESOURCES})
 
-# A DFU file with bootloader always requires a BBF
-if(RESOURCES OR (GENERATE_DFU AND BOOTLOADER))
+if(RESOURCES)
   set(GENERATE_BBF "YES")
 else()
   set(GENERATE_BBF "NO")
