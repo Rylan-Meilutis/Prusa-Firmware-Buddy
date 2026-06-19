@@ -228,11 +228,12 @@ public:
     /// pre-compression line after accounting for raise time, plus some margin.
     static constexpr float analysisLookahead = analysisBaselineTime + analysisDecompressionGap + analysisExpectedRaiseTime;
 
-    /// A gap between two consecutive samples larger than this many sampling
-    /// intervals (e.g. a puppy reset dropping samples) corrupts the index-based
-    /// time axis; such a probe is failed and retried. Small gaps (1-2 dropped
-    /// samples) are tolerated.
-    static constexpr float maxSampleGapFactor = 4.0f;
+    /// A gap larger than this many sampling intervals corrupts the index-based
+    /// time axis, so such a probe is failed and retried. Sized to tolerate the
+    /// dwarf deglitch filter's worst-case reverting-glitch gap (loadcell_deglitcher.hpp,
+    /// MAX_SKIPPED) plus jitter, while still catching real transport holes
+    /// (e.g. puppy reset), which lose far more samples.
+    static constexpr float maxSampleGapFactor = 5.0f;
 
     /// Currently recorded samples (moving window).
     CircleBufferBaseT<Record> &window;
