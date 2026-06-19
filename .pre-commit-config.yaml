@@ -56,6 +56,7 @@ exclude: |
     lib/Marlin/Marlin/Version.h|
     lib/Marlin/Marlin/src/(?!
        # FILES TO BE FORMATTED
+       core/vector\.hpp$|
        (gcode/)?feature/prusa/|
        (gcode/)?feature/input_shaper/|
        (gcode/)?feature/pressure_advance/|

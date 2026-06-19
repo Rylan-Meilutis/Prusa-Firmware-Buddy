@@ -15,4 +15,5 @@ add_executable(
 target_include_directories(
   machine_pos_conv_tests PRIVATE stub_include_pos_conv ${CMAKE_SOURCE_DIR}/lib/Marlin/Marlin/src
   )
+target_link_libraries(machine_pos_conv_tests buddy_utils)
 add_catch_test(machine_pos_conv_tests)
