@@ -87,16 +87,6 @@ function(objcopy target format suffix)
     )
 endfunction()
 
-function(report_size target)
-  add_custom_command(
-    TARGET ${target}
-    POST_BUILD
-    COMMAND echo "" # visually separate the output
-    COMMAND "${CMAKE_SIZE_UTIL}" -B "$<TARGET_FILE:${target}>"
-    USES_TERMINAL
-    )
-endfunction()
-
 function(pack_firmware target)
   # parse arguments
   set(one_value_args FW_VERSION BUILD_NUMBER PRINTER_TYPE PRINTER_VERSION PRINTER_SUBVERSION
