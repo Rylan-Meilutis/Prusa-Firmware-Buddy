@@ -11,5 +11,5 @@
 #define SINGLENOZZLE
 
 #define LOGICAL_AXES 4
-#define NUM_AXES     4
+#define NUM_AXES     3
 #define E_STEPPERS   6

@@ -456,13 +456,13 @@ inline xyz_pos_t native_logical_offset() {
   return result;
 }
 
-template<template <typename T, typename Tag> typename V, typename T>
-[[nodiscard]] V<T, LogicalPosTag> toLogical(const V<T, NativePosTag> &v) {
+template<size_t s>
+[[nodiscard]] auto toLogical(const Vector<float, NativePosTag, s> &v) {
   return (v + native_logical_offset()).template to_tag<LogicalPosTag>();
 }
 
-template<template <typename T, typename Tag> typename V, typename T>
-[[nodiscard]] V<T, NativePosTag> toNative(const V<T, LogicalPosTag> &v) {
+template<size_t s>
+[[nodiscard]] auto toNative(const Vector<float, LogicalPosTag, s> &v) {
   return v.template to_tag<NativePosTag>() - native_logical_offset();
 }
 
