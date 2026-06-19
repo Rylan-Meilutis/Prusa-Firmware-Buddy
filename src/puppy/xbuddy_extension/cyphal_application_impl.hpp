@@ -319,6 +319,10 @@ private:
                     case NodeName::cz_prusa3d_honeybee_nfc:
                         return application->allocate_nfc_device();
                     case NodeName::cz_prusa3d_honeybee_tool_offset_sensor:
+                        // Activation is also executed when TOS board was reset
+                        // This will ensure the actual configuration is re-applied after reset, if needed
+                        application->tool_offset_sensor.active = tool_offset_sensor::Config {};
+
                         return ToolOffsetSensorAlive {
                             .tool_offset_sensor = &application->tool_offset_sensor,
                         };
@@ -373,6 +377,7 @@ private:
                     .info_request_sent = false,
                 };
                 last_command_valid = false;
+                start_app_sent = false;
                 presentation.transmit_diagnostic_record(Severity::warning, "lost heartbeat");
                 return true;
             }
@@ -562,6 +567,15 @@ private:
         }
 
         bool step(Presentation &presentation, const TimePoint, ApplicationImpl *, NodeId node_id, ToolOffsetSensorAlive &alive) {
+            if (heartbeat_data.mode == Mode::software_update) {
+                // The node has been reset back into its bootloader - go to Verify state
+                heartbeat_valid = false;
+                state = Verify {};
+                last_command_valid = false;
+                start_app_sent = false;
+                presentation.transmit_diagnostic_record(Severity::warning, "TOS reset, restarting app");
+                return true;
+            }
             if (alive.tool_offset_sensor->active != alive.tool_offset_sensor->desired) {
                 alive.tool_offset_sensor->active = alive.tool_offset_sensor->desired;
                 presentation.transmit_tool_offset_sensor_config_request(node_id, alive.tool_offset_sensor->active);
