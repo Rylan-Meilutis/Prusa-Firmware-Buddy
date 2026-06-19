@@ -1019,7 +1019,7 @@
     return farthest;
   }
 
-  mesh_index_pair unified_bed_leveling::find_closest_mesh_point_of_type(const MeshPointType type, const xy_pos_t &pos, const bool probe_relative/*=false*/, MeshFlags *done_flags/*=nullptr*/) {
+  mesh_index_pair unified_bed_leveling::find_closest_mesh_point_of_type(const MeshPointType type, const xy_pos_t &pos, const bool probe_relative/*=false*/) {
     mesh_index_pair closest;
     closest.invalidate();
     closest.distance = -99999.9f;
@@ -1031,9 +1031,7 @@
 
     for (int8_t i = 0; i < GRID_MAX_POINTS_X; i++) {
       for (int8_t j = 0; j < GRID_MAX_POINTS_Y; j++) {
-        if ( (type == (isnan(z_values[i][j]) ? INVALID : REAL))
-          || (type == SET_IN_BITMAP && !done_flags->marked(i, j))
-        ) {
+        if (type == (isnan(z_values[i][j]) ? INVALID : REAL)) {
           // Found a Mesh Point of the specified type!
           const xy_pos_t mpos = { mesh_index_to_xpos(i), mesh_index_to_ypos(j) };
 

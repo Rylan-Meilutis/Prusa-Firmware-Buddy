@@ -28,15 +28,6 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-//
-// Conditional type assignment magic. For example...
-//
-// typename IF<(MYOPT==12), int, float>::type myvar;
-//
-template <bool, class L, class R>
-struct IF { typedef R type; };
-template <class L, class R>
-struct IF<true, L, R> { typedef L type; };
 
 #define NUM_AXIS_GANG(V...) GANG_N(NUM_AXES, V)
 #define NUM_AXIS_CODE(V...) CODE_N(NUM_AXES, V)
@@ -129,8 +120,6 @@ enum AxisEnum : uint8_t {
   // To refer to all or none
   , ALL_AXES_ENUM = 0xFE, NO_AXIS_ENUM = 0xFF
 };
-
-typedef IF<(NUM_AXIS_ENUMS > 8), uint16_t, uint8_t>::type axis_bits_t;
 
 //
 // Loop over axes

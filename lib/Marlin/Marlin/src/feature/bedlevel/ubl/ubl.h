@@ -30,7 +30,7 @@
 #define UBL_OK false
 #define UBL_ERR true
 
-enum MeshPointType : char { INVALID, REAL, SET_IN_BITMAP };
+enum MeshPointType : char { INVALID, REAL };
 
 // External references
 
@@ -93,7 +93,7 @@ class unified_bed_leveling {
     static void save_ubl_active_state_and_disable();
     static void restore_ubl_active_state_and_leave();
     static void display_map(const int) __O0;
-    static mesh_index_pair find_closest_mesh_point_of_type(const MeshPointType, const xy_pos_t&, const bool=false, MeshFlags *done_flags=nullptr) __O0;
+    static mesh_index_pair find_closest_mesh_point_of_type(const MeshPointType, const xy_pos_t&, const bool=false) __O0;
     static mesh_index_pair find_furthest_invalid_mesh_point() __O0;
     static void reset();
     static void invalidate();
