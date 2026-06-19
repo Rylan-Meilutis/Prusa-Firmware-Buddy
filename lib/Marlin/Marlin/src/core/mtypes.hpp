@@ -10,40 +10,40 @@ struct MStepsCartTag {};
 
 #if ENABLED(COREXY)
 struct CoordCoreXYTag {};
-typedef CoordCoreXYTag CoordTypeTag;
+using CoordTypeTag = CoordCoreXYTag;
 
 struct StepsCoreXYTag {};
-typedef StepsCoreXYTag StepsTypeTag;
+using StepsTypeTag = StepsCoreXYTag;
 
 struct MStepsCoreXYTag {};
-typedef MStepsCoreXYTag MStepsTypeTag;
+using MStepsTypeTag = MStepsCoreXYTag;
 #else // CARTESIAN
-typedef CoordCartTag CoordTypeTag;
-typedef StepsCartTag StepsTypeTag;
-typedef MStepsCartTag MStepsTypeTag;
+using CoordTypeTag = CoordCartTag;
+using StepsTypeTag = StepsCartTag;
+using MStepsTypeTag = MStepsCartTag;
 #endif
 
 // AB logical positions
-typedef struct XYval<float, CoordTypeTag> ab_pos_t;
-typedef struct XYZval<float, CoordTypeTag> abc_pos_t;
-typedef struct XYZEval<float, CoordTypeTag> abce_pos_t;
+using ab_pos_t = XYval<float, CoordTypeTag>;
+using abc_pos_t = XYZval<float, CoordTypeTag>;
+using abce_pos_t = XYZEval<float, CoordTypeTag>;
 
 // AB positions in steps
-typedef struct XYval<int32_t, StepsTypeTag> ab_steps_t;
-typedef struct XYZval<int32_t, StepsTypeTag> abc_steps_t;
-typedef struct XYZEval<int32_t, StepsTypeTag> abce_steps_t;
+using ab_steps_t = XYval<int32_t, StepsTypeTag>;
+using abc_steps_t = XYZval<int32_t, StepsTypeTag>;
+using abce_steps_t = XYZEval<int32_t, StepsTypeTag>;
 
 // AB positions in mini-steps
-typedef struct XYval<int32_t, MStepsTypeTag> ab_msteps_t;
-typedef struct XYZval<int32_t, MStepsTypeTag> abc_msteps_t;
-typedef struct XYZEval<int32_t, MStepsTypeTag> abce_msteps_t;
+using ab_msteps_t = XYval<int32_t, MStepsTypeTag>;
+using abc_msteps_t = XYZval<int32_t, MStepsTypeTag>;
+using abce_msteps_t = XYZEval<int32_t, MStepsTypeTag>;
 
 // XYZE positions in steps
-typedef struct XYval<int32_t, StepsCartTag> xy_steps_t;
-typedef struct XYZval<int32_t, StepsCartTag> xyz_steps_t;
-typedef struct XYZEval<int32_t, StepsCartTag> xyze_steps_t;
+using xy_steps_t = XYval<int32_t, StepsCartTag>;
+using xyz_steps_t = XYZval<int32_t, StepsCartTag>;
+using xyze_steps_t = XYZEval<int32_t, StepsCartTag>;
 
 // XYZE positions in mini-steps
-typedef struct XYval<int32_t, MStepsCartTag> xy_msteps_t;
-typedef struct XYZval<int32_t, MStepsCartTag> xyz_msteps_t;
-typedef struct XYZEval<int32_t, MStepsCartTag> xyze_msteps_t;
+using xy_msteps_t = XYval<int32_t, MStepsCartTag>;
+using xyz_msteps_t = XYZval<int32_t, MStepsCartTag>;
+using xyze_msteps_t = XYZEval<int32_t, MStepsCartTag>;

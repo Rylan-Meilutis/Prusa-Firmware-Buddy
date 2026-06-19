@@ -132,15 +132,15 @@ enum AxisEnum : uint8_t {
 //
 // feedRate_t is just a humble float
 //
-typedef float feedRate_t;
+using feedRate_t = float;
 
 //
 // celsius_t is the native unit of temperature. Signed to handle a disconnected thermistor value (-14).
 // For more resolition (e.g., for a chocolate printer) this may later be changed to Celsius x 100
 //
-typedef uint16_t raw_adc_t;
-typedef int16_t celsius_t;
-typedef float celsius_float_t;
+using raw_adc_t = uint16_t;
+using celsius_t = int16_t;
+using celsius_float_t = float;
 
 // Conversion macros
 #define MMM_TO_MMS(MM_M) feedRate_t(static_cast<float>(MM_M) / 60.0f)
@@ -173,63 +173,63 @@ template<typename T, typename Tag = NativePosTag> struct XYval;
 template<typename T, typename Tag = NativePosTag> struct XYZval;
 template<typename T, typename Tag = NativePosTag> struct XYZEval;
 
-typedef struct XYval<bool>          xy_bool_t;
-typedef struct XYZval<bool>        xyz_bool_t;
-typedef struct XYZEval<bool>      xyze_bool_t;
+using xy_bool_t = XYval<bool>;
+using xyz_bool_t = XYZval<bool>;
+using xyze_bool_t = XYZEval<bool>;
 
-typedef struct XYval<char>          xy_char_t;
-typedef struct XYZval<char>        xyz_char_t;
-typedef struct XYZEval<char>      xyze_char_t;
+using xy_char_t = XYval<char>;
+using xyz_char_t = XYZval<char>;
+using xyze_char_t = XYZEval<char>;
 
-typedef struct XYval<unsigned char>     xy_uchar_t;
-typedef struct XYZval<unsigned char>   xyz_uchar_t;
-typedef struct XYZEval<unsigned char> xyze_uchar_t;
+using xy_uchar_t = XYval<unsigned char>;
+using xyz_uchar_t = XYZval<unsigned char>;
+using xyze_uchar_t = XYZEval<unsigned char>;
 
-typedef struct XYval<int8_t>        xy_int8_t;
-typedef struct XYZval<int8_t>      xyz_int8_t;
-typedef struct XYZEval<int8_t>    xyze_int8_t;
+using xy_int8_t = XYval<int8_t>;
+using xyz_int8_t = XYZval<int8_t>;
+using xyze_int8_t = XYZEval<int8_t>;
 
-typedef struct XYval<uint8_t>      xy_uint8_t;
-typedef struct XYZval<uint8_t>    xyz_uint8_t;
-typedef struct XYZEval<uint8_t>  xyze_uint8_t;
+using xy_uint8_t = XYval<uint8_t>;
+using xyz_uint8_t = XYZval<uint8_t>;
+using xyze_uint8_t = XYZEval<uint8_t>;
 
-typedef struct XYval<int16_t>        xy_int_t;
-typedef struct XYZval<int16_t>      xyz_int_t;
-typedef struct XYZEval<int16_t>    xyze_int_t;
+using xy_int_t = XYval<int16_t>;
+using xyz_int_t = XYZval<int16_t>;
+using xyze_int_t = XYZEval<int16_t>;
 
-typedef struct XYval<uint16_t>      xy_uint_t;
-typedef struct XYZval<uint16_t>    xyz_uint_t;
-typedef struct XYZEval<uint16_t>  xyze_uint_t;
+using xy_uint_t = XYval<uint16_t>;
+using xyz_uint_t = XYZval<uint16_t>;
+using xyze_uint_t = XYZEval<uint16_t>;
 
-typedef struct XYval<int32_t>       xy_long_t;
-typedef struct XYZval<int32_t>     xyz_long_t;
-typedef struct XYZEval<int32_t>   xyze_long_t;
+using xy_long_t = XYval<int32_t>;
+using xyz_long_t = XYZval<int32_t>;
+using xyze_long_t = XYZEval<int32_t>;
 
-typedef struct XYval<uint32_t>     xy_ulong_t;
-typedef struct XYZval<uint32_t>   xyz_ulong_t;
-typedef struct XYZEval<uint32_t> xyze_ulong_t;
+using xy_ulong_t = XYval<uint32_t>;
+using xyz_ulong_t = XYZval<uint32_t>;
+using xyze_ulong_t = XYZEval<uint32_t>;
 
-typedef struct XYZval<volatile int32_t>   xyz_vlong_t;
-typedef struct XYZEval<volatile int32_t> xyze_vlong_t;
+using xyz_vlong_t = XYZval<volatile int32_t>;
+using xyze_vlong_t = XYZEval<volatile int32_t>;
 
-typedef struct XYval<float>        xy_float_t;
-typedef struct XYZval<float>      xyz_float_t;
-typedef struct XYZEval<float>    xyze_float_t;
+using xy_float_t = XYval<float>;
+using xyz_float_t = XYZval<float>;
+using xyze_float_t = XYZEval<float>;
 
-typedef struct XYZval<double>    xyz_double_t;
-typedef struct XYZEval<double>    xyze_double_t;
+using xyz_double_t = XYZval<double>;
+using xyze_double_t = XYZEval<double>;
 
-typedef struct XYval<feedRate_t>     xy_feedrate_t;
-typedef struct XYZval<feedRate_t>   xyz_feedrate_t;
-typedef struct XYZEval<feedRate_t> xyze_feedrate_t;
+using xy_feedrate_t = XYval<feedRate_t>;
+using xyz_feedrate_t = XYZval<feedRate_t>;
+using xyze_feedrate_t = XYZEval<feedRate_t>;
 
-typedef xy_uint8_t xy_byte_t;
-typedef xyz_uint8_t xyz_byte_t;
-typedef xyze_uint8_t xyze_byte_t;
+using xy_byte_t = xy_uint8_t;
+using xyz_byte_t = xyz_uint8_t;
+using xyze_byte_t = xyze_uint8_t;
 
-typedef xy_float_t xy_pos_t;
-typedef xyz_float_t xyz_pos_t;
-typedef xyze_float_t xyze_pos_t;
+using xy_pos_t = xy_float_t;
+using xyz_pos_t = xyz_float_t;
+using xyze_pos_t = xyze_float_t;
 
 using MachinePosXY = XYval<float, MachinePosTag>;
 using MachinePosXYZ = XYZval<float, MachinePosTag>;
