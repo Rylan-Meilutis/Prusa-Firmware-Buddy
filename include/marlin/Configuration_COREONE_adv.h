@@ -645,56 +645,40 @@
             { -50, 1500 / 60.F}, \
         }
 
-    #define PAUSE_PARK_RETRACT_FEEDRATE 40 // (mm/s) Initial retract feedrate.
+    #define PARK_PAUSE_PRIME_FEEDRATE 10 // (mm/s) Feedrate for priming after filament change.
+    #define PARK_PAUSE_PRIME_LENGTH 4 // (mm) Length of a priming "poop".
+
+    #define STANDARD_RETRACT_FEEDRATE 40 // (mm/s) Initial retract feedrate.
     /**
      * (mm) Initial retract.
      * This retract is done immediately, before parking the nozzle.
      */
-    #define PAUSE_PARK_RETRACT_LENGTH 8
+    #define STANDARD_RETRACT_LENGTH 8
 #if HAS_INDX()
-    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 15 // (mm/s) Unload filament feedrate. Needs to be slower for INDX.
-#else
-    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 25 // (mm/s) Unload filament feedrate. This can be pretty fast.
-#endif
-    #define FILAMENT_CHANGE_UNLOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
-    /**
-     * (mm) The length of filament for a complete unload.
-     * For Bowden, the full length of the tube and nozzle.
-     * For direct drive, the full length of the nozzle.
-     * Set to 0 for manual unloading.
-     */
-#if HAS_INDX()
-    #define FILAMENT_CHANGE_UNLOAD_LENGTH 55
-#else
-    #define FILAMENT_CHANGE_UNLOAD_LENGTH 105
-#endif
-#if HAS_INDX()
+    #define STANDARD_DERETRACT_FEEDRATE 15 // (mm/s) Feedrate of inserting filament back into a nozzle after pause/park.
+    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 15 // // (mm/s) Unload filament feedrate. Needs to be slower for INDX
+    #define FILAMENT_CHANGE_UNLOAD_LENGTH 55 // (mm) Total lenght for filament unload (For Bowden: full length of the tube + nozzle).
     #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 10 // (mm/s) Slow move when starting load.
+    #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 15 // (mm) length of slow inser, set to 0 to skip slow load.
+    #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 15 // (mm/s) Load filament feedrate. Needs to be slower for INDX.
+    #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 25 // (mm) from extruder gear to nozzle (For Bowden: full length of the tube + nozzle).
 #else
+
+    #define STANDARD_DERETRACT_FEEDRATE 25 // (mm/s) Feedrate of inserting filament back into a nozzle after pause/park.
+    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 25 // (mm/s) Unload filament feedrate. This can be pretty fast.
+    #define FILAMENT_CHANGE_UNLOAD_LENGTH 105 // (mm) Total lenght for filament unload (For Bowden: full length of the tube + nozzle).
     #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 6 // (mm/s) Slow move when starting load.
+    #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 40 // (mm) length of slow inser, set to 0 to skip slow load.
+    #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 25 // (mm/s) Load filament feedrate. This can be pretty fast.
+    #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 20 // (mm) from extruder gear to nozzle (For Bowden: full length of the tube + nozzle).
 #endif
-    /**
-     * (mm) Slow length, to allow time to insert material.
-     * 0 to disable start loading and skip to fast load only
-     */
-#if HAS_INDX()
-        #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 15
-        #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 15 // (mm/s) Load filament feedrate. Needs to be slower for INDX.
-#else
-        #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 40
-        #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 25 // (mm/s) Load filament feedrate. This can be pretty fast.
-#endif
-     #define FILAMENT_CHANGE_FAST_LOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
-    /**
-     * (mm) Load length of filament, from extruder gear to nozzle.
-     * For Bowden, the full length of the tube and nozzle.
-     * For direct drive, the full length of the nozzle.
-     */
-#if HAS_INDX()
-        #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 25
-#else
-        #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 20
-#endif
+
+    #define FILAMENT_CHANGE_UNLOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
+    #define FILAMENT_CHANGE_FAST_LOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
+
+
+    #define FILAMENT_ASSISTED_FEEDRATE 3 // (mm/s) Feedrate to assist with filament insertion/removal/sample acquisition
+
     #define ADVANCED_PAUSE_PURGE_FEEDRATE 3 // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
     #define ADVANCED_PAUSE_PURGE_LENGTH 40 // (mm) Length to extrude after loading.
 #endif

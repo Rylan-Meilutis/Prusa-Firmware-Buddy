@@ -505,7 +505,7 @@ void resume_loop() {
         // Unretract paired with the retract in PPState::Prepared.
         // Skipped where G12 S21 already pressurizes the nozzle (see WaitForHeaters).
 #if !(HAS_NOZZLE_CLEANER() && (PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()))
-        mapi::extruder_move(PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+        mapi::extruder_move(STANDARD_RETRACT_LENGTH, STANDARD_DERETRACT_FEEDRATE);
 #endif
 
         resume_state = ResumeState::Finish;
@@ -716,7 +716,7 @@ void panic_loop() {
         if (!runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed && all_axes_homed()) {
 #if !HAS_DWARF()
             // retract if we were printing
-            mapi::extruder_move(-PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+            mapi::extruder_move(-STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
             planner.start_moving();
 #endif
 

@@ -123,9 +123,9 @@
 #elif defined(PAUSE_PARK_Z_FEEDRATE)
   #error "PAUSE_PARK_Z_FEEDRATE is now NOZZLE_PARK_Z_FEEDRATE. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_RETRACT_FEEDRATE)
-  #error "FILAMENT_CHANGE_RETRACT_FEEDRATE is now PAUSE_PARK_RETRACT_FEEDRATE. Please update your configuration."
+  #error "FILAMENT_CHANGE_RETRACT_FEEDRATE is now STANDARD_RETRACT_FEEDRATE. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_RETRACT_LENGTH)
-  #error "FILAMENT_CHANGE_RETRACT_LENGTH is now PAUSE_PARK_RETRACT_LENGTH. Please update your configuration."
+  #error "FILAMENT_CHANGE_RETRACT_LENGTH is now STANDARD_RETRACT_LENGTH. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_EXTRUDE_FEEDRATE)
   #error "FILAMENT_CHANGE_EXTRUDE_FEEDRATE is now ADVANCED_PAUSE_PURGE_FEEDRATE. Please update your configuration."
 #elif defined(ADVANCED_PAUSE_EXTRUDE_FEEDRATE)
@@ -134,6 +134,10 @@
   #error "FILAMENT_CHANGE_EXTRUDE_LENGTH is now ADVANCED_PAUSE_PURGE_LENGTH. Please update your configuration."
 #elif defined(ADVANCED_PAUSE_EXTRUDE_LENGTH)
   #error "ADVANCED_PAUSE_EXTRUDE_LENGTH is now ADVANCED_PAUSE_PURGE_LENGTH. Please update your configuration."
+#elif defined(PAUSE_PARK_RETRACT_FEEDRATE)
+  #error "PAUSE_PARK_RETRACT_FEEDRATE is now STANDARD_RETRACT_FEEDRATE. Please update your configuration."
+#elif defined(PAUSE_PARK_RETRACT_LENGTH)
+  #error "PAUSE_PARK_RETRACT_LENGTH is now STANDARD_RETRACT_LENGTH. Please update your configuration."
 #elif defined(PLA_PREHEAT_HOTEND_TEMP)
   #error "PLA_PREHEAT_HOTEND_TEMP is now PREHEAT_1_TEMP_HOTEND. Please update your configuration."
 #elif defined(PLA_PREHEAT_HPB_TEMP)

@@ -506,10 +506,10 @@ bool PrusaToolChanger::purge_tool(PhysicalToolIndex tool) {
     // Only retract if HAS_AUTO_RETRACT — otherwise the retract would
     // leave a permanent gap (the planner has no record of the retract due to
     // the sync_e_position_to below).
-    mapi::extruder_move(-PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+    mapi::extruder_move(-STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
 
     // The retraction must be deretracted though, otherwise we would have a hole in the print
-    buddy::auto_retract().set_retracted_distance(tool, PAUSE_PARK_RETRACT_LENGTH);
+    buddy::auto_retract().set_retracted_distance(tool, STANDARD_RETRACT_LENGTH);
     #endif
 
     planner.synchronize();

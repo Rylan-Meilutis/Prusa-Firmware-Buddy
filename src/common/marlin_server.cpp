@@ -3232,7 +3232,7 @@ void set_media_position(uint32_t set) {
 }
 
 static void retract() {
-    mapi::retract_to(PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+    mapi::retract_to(STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
 }
 
 static void lift_head() {
@@ -3322,7 +3322,7 @@ void unpark_head_ZE(void) {
 
 #if HAS_PAUSE()
     // Undo E retract
-    mapi::extruder_move(server.resume.pos.e - current_position.e, PAUSE_PARK_RETRACT_FEEDRATE);
+    mapi::extruder_move(server.resume.pos.e - current_position.e, STANDARD_DERETRACT_FEEDRATE);
 #endif
 }
 

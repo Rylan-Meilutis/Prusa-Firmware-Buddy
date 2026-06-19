@@ -132,7 +132,7 @@ struct ParkArgs {
     float retract_distance_mm = 0;
 
     /// Feedrate of the retraction
-    float retract_fr_mm_s = PAUSE_PARK_RETRACT_FEEDRATE;
+    float retract_fr_mm_s = STANDARD_RETRACT_FEEDRATE;
 
     /// If > 0, the Z moves are done in parallel to the XY moves
     /// with an angle `z_ramp_slope = tan(angle)` (1 → 45°) respective to the XY moves

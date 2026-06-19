@@ -26,9 +26,9 @@ LOG_COMPONENT_REF(MarlinServer);
 using namespace buddy;
 using namespace auto_retract_detail;
 
-// If the PAUSE_PARK_RETRACT_LENGTH would get over full_retract_distance, it would start being considered rammed for cold unload
+// If the STANDARD_RETRACT_LENGTH would get over full_retract_distance, it would start being considered rammed for cold unload
 // We don't want that to happen, for cold unload, a proper ramming should be done
-static_assert(!AutoRetract::supports_cold_unload || PAUSE_PARK_RETRACT_LENGTH < AutoRetract::full_retract_distance);
+static_assert(!AutoRetract::supports_cold_unload || STANDARD_RETRACT_LENGTH < AutoRetract::full_retract_distance);
 
 AutoRetract &buddy::auto_retract() {
     static AutoRetract instance;
@@ -206,7 +206,7 @@ void AutoRetract::maybe_deretract_to_nozzle() {
         // to the point where the motor skips, but we don't care, as it doesn't
         // damage the print.
         BlockEStallDetection estall_blocker;
-        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
+        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), STANDARD_DERETRACT_FEEDRATE);
         planner.synchronize();
     }
 
@@ -248,7 +248,7 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
         // Retract
         const float retracted_distance = this->retracted_distance(physical_tool).value_or(0.f);
         const float retract_amount = full_retract_distance - retracted_distance;
-        mapi::extruder_move(-retract_amount, FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
+        mapi::extruder_move(-retract_amount, STANDARD_RETRACT_FEEDRATE);
         planner.synchronize();
         set_retracted_distance(physical_tool, full_retract_distance);
     }

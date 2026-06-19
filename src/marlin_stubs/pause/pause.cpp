@@ -537,7 +537,7 @@ void Pause::filament_push_ask_process(Response response) {
 #if ENABLED(PREVENT_COLD_EXTRUSION)
             mapi::ColdExtrudeGuard cold_extrude_guard;
 #endif
-            mapi::extruder_schedule_turning(adjust_feedrate_for_filament(3, filament::get_type_to_load()));
+            mapi::extruder_schedule_turning(adjust_feedrate_for_filament(FILAMENT_ASSISTED_FEEDRATE, filament::get_type_to_load()));
         }
 
     } else {
@@ -736,14 +736,6 @@ void Pause::long_load_process([[maybe_unused]] Response response) {
     handle_filament_removal(LoadState::filament_push_ask);
 }
 
-// Retract just a tiny bit to prevent oozing for a while.
-// Note: current slicer default printer settings for ramming:
-// MINI 2.5mm @ 70mm/s
-// MK3 0.8mm @ 35mm/s
-// MK4* 0.7mm @ 35mm/s
-static constexpr float retract_distance = -4.f; // mm
-static constexpr feedRate_t retract_feedrate = 35; // mm/s
-
 void Pause::purge_process([[maybe_unused]] Response response) {
     // Extrude filament to get into hotend
     setPhase(is_unstoppable() ? PhasesLoadUnload::Purging_unstoppable : PhasesLoadUnload::Purging_stoppable);
@@ -783,7 +775,7 @@ bool Pause::standard_purge_sequence() {
     }
     // Skip retraction if Failed
     if (purge_result != StopConditions::Failed) {
-        std::ignore = do_e_move_notify_progress_hotextrude(retract_distance, adjust_feedrate_for_filament(retract_feedrate, filament::get_type_to_load()), StopConditions::UserStopped);
+        std::ignore = do_e_move_notify_progress_hotextrude(-STANDARD_RETRACT_LENGTH, adjust_feedrate_for_filament(STANDARD_RETRACT_FEEDRATE, filament::get_type_to_load()), StopConditions::UserStopped);
     }
 
     return true;
@@ -1023,11 +1015,11 @@ void Pause::load_finalize_process(Response) {
         // Feed a little bit of filament to stabilize pressure in nozzle
 
         // Last poop after user clicked color - yes
-        plan_e_move(std::abs(retract_distance), 10);
+        plan_e_move(PARK_PAUSE_PRIME_LENGTH, PARK_PAUSE_PRIME_FEEDRATE);
 
         // Retract again, it will be unretracted at the end of unpark
         if (settings.retract) {
-            plan_e_move(settings.retract, PAUSE_PARK_RETRACT_FEEDRATE);
+            plan_e_move(settings.retract, STANDARD_RETRACT_FEEDRATE);
         }
 
         planner.synchronize();
@@ -1531,7 +1523,7 @@ void Pause::park_nozzle_and_notify() {
 
     // Initial retract before move to filament change position
     if (!thermalManager.tooColdToExtrude(active_extruder)) {
-        mapi::retract_to(-settings.retract, PAUSE_PARK_RETRACT_FEEDRATE);
+        mapi::retract_to(-settings.retract, STANDARD_RETRACT_FEEDRATE);
     }
 
     // Z lift
@@ -1642,7 +1634,7 @@ void Pause::unpark_nozzle_and_notify() {
 
     // Unretract
     if (std::abs(settings.retract) > 1e-6f) {
-        plan_e_move(-settings.retract, PAUSE_PARK_RETRACT_FEEDRATE);
+        plan_e_move(-settings.retract, STANDARD_DERETRACT_FEEDRATE);
     }
 }
 

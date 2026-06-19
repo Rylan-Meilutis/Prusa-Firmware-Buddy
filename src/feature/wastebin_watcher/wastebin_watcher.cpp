@@ -57,7 +57,7 @@ void WastebinWatcher::pause_to_empty(bool full) {
         // over-retract (pull the filament out of the gears) if the print already had it retracted.
         // We block the gcode stream here (= effective pause); print_pause() + wait would deadlock
         // this gcode processor (BFW-8821).
-        mapi::retract_to(PAUSE_PARK_RETRACT_LENGTH, PAUSE_PARK_RETRACT_FEEDRATE);
+        mapi::retract_to(STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
     } else {
         // Idle: axes may be unhomed, so home as needed before parking. No retract (cold nozzle) and
@@ -88,7 +88,7 @@ void WastebinWatcher::pause_to_empty(bool full) {
     resume_target.z = resume_machine_z;
     line_to_machine_pos(resume_target, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
     planner.synchronize();
-    mapi::extruder_move(resume_e - current_position.e, PAUSE_PARK_RETRACT_FEEDRATE);
+    mapi::extruder_move(resume_e - current_position.e, STANDARD_DERETRACT_FEEDRATE);
 }
 
 bool WastebinWatcher::print_will_overfill() const {
