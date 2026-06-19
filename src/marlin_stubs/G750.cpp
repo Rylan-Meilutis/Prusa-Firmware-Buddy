@@ -26,5 +26,9 @@ void PrusaGcodeSuite::G750() {
 
     // Use machine coordinates - wastebin is outside of MBL area, applying MBL would do funny stuff.
     line_to_machine_pos(target, p.option<float>('F').value_or(PrusaToolChangerUtils::TRAVEL_MOVE_MM_S), { .ignore_e_factor = true });
-    planner.synchronize();
+
+    // A = asynchronous - do not wait for the planner to finish the move
+    if (!p.has_option('A')) {
+        planner.synchronize();
+    }
 }
