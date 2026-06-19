@@ -559,26 +559,18 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
 
     const PrusaToolInfo &info = get_tool_info(tool, /*check_calibrated=*/false);
     const float safe_y = info.dock_y + DOCK_SAFE_Y_OFFSET;
-    const float unlock_y = info.dock_y + DOCK_UNLOCK_Y_OFFSET;
 
     // Move to dock X, then to safe Y in front of dock
     mapi::park({ .x = info.dock_x, .y = safe_y });
     planner.synchronize();
 
     // Approach unlock position
-    move(info.dock_x, unlock_y, PARK_APPROACH_FEEDRATE);
+    move(info.dock_x, info.dock_y, DOCK_ENGAGE_FEEDRATE);
     planner.synchronize();
-
-    // Dwell for reliability
-    (void)wait([]() { return false; }, DOCK_DWELL_MS);
 
     {
         EMotorGuard guard;
         wiggle_and_partial_unlock();
-
-        // Move deeper into dock
-        move(info.dock_x, info.dock_y, DOCK_ENGAGE_FEEDRATE);
-        planner.synchronize();
 
         // Full open — nozzle is released
         e_move(-E_FULL_OPEN_DISTANCE, E_FULL_OPEN_FEEDRATE);
@@ -589,7 +581,7 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     (void)wait([]() { return false; }, DOCK_DWELL_MS);
 
     // Fast move to safe position
-    move(info.dock_x, safe_y, FAST_EXIT_FEEDRATE);
+    move(info.dock_x, safe_y, SLOW_EXIT_FEEDRATE);
     planner.synchronize();
 
     buddy::puppies::indx.invalidate_nozzle_data();
@@ -784,7 +776,7 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
     phase_.store(ToolchangePhase::after_lock, std::memory_order_release);
 
     // Full exit to safe position
-    move(info.dock_x, safe_y, FAST_EXIT_FEEDRATE);
+    move(info.dock_x, safe_y, SLOW_EXIT_FEEDRATE);
     planner.synchronize();
 
     buddy::puppies::indx.invalidate_nozzle_data();

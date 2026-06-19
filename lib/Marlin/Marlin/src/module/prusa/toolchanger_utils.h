@@ -78,6 +78,7 @@ public:
     static constexpr float E_FULL_OPEN_FEEDRATE = 40.0f; ///< Full open E move
     static constexpr float E_LOCK_FEEDRATE = 40.0f; ///< Lock E move
     static constexpr float FAST_EXIT_FEEDRATE = 250.0f; ///< Fast exit from dock
+    static constexpr float SLOW_EXIT_FEEDRATE = 100.0f; ///< slow exit from dock
     static constexpr uint32_t DOCK_DWELL_MS = 150; ///< Dwell time after lock/unlock [ms]
     static constexpr uint32_t NOZZLE_VERIFY_TIMEOUT_MS = 5000; ///< Max wait for nozzle presence data after pickup/park [ms]
     #else
