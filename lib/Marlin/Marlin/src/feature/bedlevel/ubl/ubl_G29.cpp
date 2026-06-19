@@ -966,7 +966,7 @@
 
     bool found_a_NAN = false, found_a_real = false;
 
-    mesh_index_pair farthest { -1, -1, -99999.99f };
+    mesh_index_pair farthest { .pos { -1, -1 }, .distance = -99999.99f };
 
     for (int8_t i = 0; i < GRID_MAX_POINTS_X; i++) {
       for (int8_t j = 0; j < GRID_MAX_POINTS_Y; j++) {
@@ -1025,7 +1025,7 @@
     closest.distance = -99999.9f;
 
     // Get the reference position, either nozzle or probe
-    const xy_pos_t ref = probe_relative ? pos + probe_offset : pos;
+    const xy_pos_t ref = probe_relative ? pos + probe_offset.xy() : pos;
 
     float best_so_far = 99999.99f;
 

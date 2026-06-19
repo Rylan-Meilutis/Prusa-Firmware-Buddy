@@ -204,7 +204,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
     constexpr xy_float_t safe_homing_xy = { Z_SAFE_HOMING_X_POINT, Z_SAFE_HOMING_Y_POINT };
     #if HAS_HOME_OFFSET
       xy_float_t okay_homing_xy = safe_homing_xy;
-      okay_homing_xy -= home_offset;
+      okay_homing_xy -= home_offset.xy();
     #else
       // #error dead code found by automatic analyses (see BFW-5461)
       constexpr xy_float_t okay_homing_xy = safe_homing_xy;
@@ -264,7 +264,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
       constexpr xy_float_t sheet_detect_xy = { DETECT_PRINT_SHEET_X_POINT, DETECT_PRINT_SHEET_Y_POINT };
       #if HAS_HOME_OFFSET
         xy_float_t okay_homing_xy = sheet_detect_xy;
-        okay_homing_xy -= home_offset;
+        okay_homing_xy -= home_offset.xy();
       #else
         // #error dead code found by automatic analyses (see BFW-5461)
         constexpr xy_float_t okay_homing_xy = safe_homing_xy;

@@ -1129,7 +1129,7 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
       if (STOW_PROBE()) measured_z = NAN;
   }
 
-  const auto logical = pos.asLogical();
+  const auto logical = xyz_pos_t(pos).asLogical();
 
   if (verbose_level > 2) {
     SERIAL_ECHOPAIR_F("Bed X: ", logical.x, 3);
