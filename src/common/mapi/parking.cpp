@@ -5,6 +5,7 @@
 #include <config_store/store_instance.hpp>
 #include <utils/overloaded_visitor.hpp>
 #include <module/planner.h>
+#include <mapi/motion.hpp>
 
 #include <option/has_wastebin.h>
 #include <option/has_wastebin_fill_tracking.h>
@@ -152,9 +153,46 @@ namespace {
         static constexpr feedRate_t fr_xy = NOZZLE_PARK_XY_FEEDRATE;
         static constexpr feedRate_t fr_z = NOZZLE_PARK_Z_FEEDRATE;
 
+        ParkingExecutor(const ParkArgs &args)
+            : args_(args) {
+            remaining_distance_to_retract_mm_ = args.retract_distance_mm;
+            assert(remaining_distance_to_retract_mm_ >= 0);
+        }
+
+    public:
         void move(const xyz_pos_t &target, feedRate_t fr_mm_s) {
-            static constexpr PrepareMoveHints hints { .scale_feedrate = false };
+            static constexpr PrepareMoveHints hints {
+                .scale_feedrate = false,
+                .move {
+                    .ignore_e_factor = true,
+                }
+            };
+
+            const xyz_pos_t delta_xyz = target - current_position.xyz();
+            const float delta_distance_mm = delta_xyz.magnitude();
+
             xyze_pos_t target_xyze = current_position;
+
+            // Note: This is disregarding accelerations. Considering that would be too complicated.
+            if (remaining_distance_to_retract_mm_ > 0 && delta_distance_mm > 0) {
+
+                /// Distance we would be able to retract during the full move considering the feedrates
+                const float maximum_move_retraction_mm = delta_distance_mm / fr_mm_s * args_.retract_fr_mm_s;
+
+                const float distance_to_retract_mm = std::min(maximum_move_retraction_mm, remaining_distance_to_retract_mm_);
+                remaining_distance_to_retract_mm_ -= distance_to_retract_mm;
+
+                // Split the move into two segments:
+                // - First segment with retraction
+                target_xyze.set(current_position.xyz() + delta_xyz * (distance_to_retract_mm / maximum_move_retraction_mm));
+                target_xyze.e -= distance_to_retract_mm;
+                prepare_move_to(target_xyze, fr_mm_s, hints);
+
+                // - Second segment after we've got remaining_distance_to_retract_mm_ to 0
+                // (will be a nop if remaining_distance_to_retract_mm_ does not get to zero during this move)
+                // Implemented outside the if
+            }
+
             target_xyze.set(target);
             prepare_move_to(target_xyze, fr_mm_s, hints);
         }
@@ -179,10 +217,23 @@ namespace {
             move(target_pos, fr_z);
         }
 
+        /// Retracts the remaining distance, in case the retraction was not fully done during the standard moves
+        void finalize_retraction() {
+            if (remaining_distance_to_retract_mm_ > 0) {
+                mapi::extruder_move(-remaining_distance_to_retract_mm_, args_.retract_fr_mm_s);
+            }
+        }
+
     public:
 #if HAS_NOZZLE_CLEANER()
         void pre_park_move_pattern(const xy_pos_t &destination);
 #endif
+
+    private:
+        const ParkArgs &args_;
+
+        /// Distance to retract over the whole parking procedure
+        float remaining_distance_to_retract_mm_;
     };
 
 } // namespace
@@ -300,7 +351,8 @@ void ParkingExecutor::pre_park_move_pattern(const xy_pos_t &destination) {
 }
 
 void move_out_of_nozzle_cleaner_area() {
-    ParkingExecutor p;
+    static constexpr ParkArgs args {};
+    ParkingExecutor p(args);
 
     #if PRINTER_IS_PRUSA_iX()
     p.pre_park_move_pattern(xy_pos_t { X_WASTEBIN_POINT, Y_WASTEBIN_SAFE_POINT });
@@ -310,11 +362,11 @@ void move_out_of_nozzle_cleaner_area() {
 }
 #endif
 
-bool park(const ParkingPosition &parking_position) {
+bool park(const ParkingPosition &parking_position, const ParkArgs &args) {
     const auto park_destination = parking_position.to_xyz_pos(current_position.xyz());
     const auto needs_homed = parking_position.axes_needing_homing();
 
-    ParkingExecutor p;
+    ParkingExecutor p(args);
 
     // @returns false if the move cannot be performed safely (the caller aborts)
     const auto move_z = [&]() -> bool {
@@ -372,12 +424,14 @@ bool park(const ParkingPosition &parking_position) {
         }
     }
 
+    p.finalize_retraction();
+
     planner.synchronize();
     report_current_position();
     return !planner.draining();
 }
 
-void home_if_needed_and_park(const ParkingPosition &parking_position) {
+void home_if_needed_and_park(const ParkingPosition &parking_position, const ParkArgs &args) {
     // We only need homing if we move to absolute coordinates
     // For relative moves we can use do_homing_move
     const xyz_bool_t do_axis = parking_position.axes_needing_homing();
@@ -388,7 +442,7 @@ void home_if_needed_and_park(const ParkingPosition &parking_position) {
             .precise = false, // We don't need precise position for parking
         });
 
-    park(parking_position);
+    park(parking_position, args);
 }
 
 } // namespace mapi
