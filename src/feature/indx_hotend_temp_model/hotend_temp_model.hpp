@@ -35,6 +35,9 @@ public:
     /// To be called in regular intervals from marlin thread while the hotend is thermally managed
     void step();
 
+    /// Forces re-initialization on the next step(). Call when the indx head resets.
+    void reset();
+
     /// To be called when filament parameters might have changed
     void update_filament_params();
 
@@ -51,7 +54,6 @@ private:
     int32_t last_e_steps_;
     float retracted_distance_mm_;
     FilamentType last_filament_;
-    uint32_t last_puppy_reset_count_ = 0;
 
     bool is_initialized_ : 1 = false;
     bool filament_data_update_pending_ : 1 = false;

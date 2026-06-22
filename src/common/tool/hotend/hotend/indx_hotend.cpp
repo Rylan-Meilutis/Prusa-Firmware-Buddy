@@ -66,6 +66,8 @@ void IndxHotend::manage() {
         // This resets all the safety guards (heater watch, thermal runaway, ...)
         // to prevent them from semi-falsely triggering when the indx head reset (which caused a temporary heating dropout)
         handle_nozzle_target_change();
+        // Re-init the thermal model so it doesn't run against the reset discontinuity
+        buddy::hotend_temp_model().reset();
     }
 
     BaseHotend::manage();

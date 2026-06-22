@@ -66,25 +66,14 @@ void INDXHotendTempModel::step() {
     const auto e_steps = stepper.position_from_startup(e_axis);
     const auto current_filament = FilamentType::for_tool(managed_tool_);
 
-    // !!! MUST be read after everything else from the puppy to avoid race conditions
-    // This being the last thing is intended to catch indx head resets mid read
-    const auto puppy_reset_count = indx_head.get_reset_counter();
-
     ScopeGuard last_sg = [&] {
         last_e_steps_ = e_steps;
         last_filament_ = current_filament;
-        last_puppy_reset_count_ = puppy_reset_count;
     };
 
-    if (!temps_valid || (puppy_reset_count != last_puppy_reset_count_)) {
-        // Either the puppy has been reset (which invalidates readings)
-        // or the readings have not yet become valid after indx heat boot
-        // We can't continue, wait till everything is valid
-
-        // Reset all models
+    if (!temps_valid) {
+        // Readings not yet valid after indx head boot — wait. (Head resets re-init via reset().)
         is_initialized_ = false;
-
-        // Some of the readings are invalid - reinitialize the model when they become valid
         return;
     }
 
@@ -215,6 +204,10 @@ void INDXHotendTempModel::set_tool(std::variant<VirtualToolIndex, NoTool> tool) 
     // Model re-initializes lazily on the next step()
     is_initialized_ = false;
     buddy::puppies::indx.set_hotend_temp_compensation(0);
+}
+
+void INDXHotendTempModel::reset() {
+    is_initialized_ = false;
 }
 
 void INDXHotendTempModel::update_filament_params() {
