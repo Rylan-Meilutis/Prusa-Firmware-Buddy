@@ -40,4 +40,12 @@ ScreenPrinterSetup::ScreenPrinterSetup()
     : ScreenMenu(_("PRINTER SETUP")) //
 {
     ClrMenuTimeoutClose(); // don't close on menu timeout
+
+#if HAS_INDX()
+    // If INDX Nozzles were not calibrated yet, it doesn't make sense to display them.
+    // They can not be enabled in this menu, so if the the item is disabled, hide it.
+    if (!Item<MI_TOOLHEAD_SETTINGS>().IsEnabled()) {
+        Item<MI_TOOLHEAD_SETTINGS>().hide();
+    }
+#endif // HAS_INDX()
 }
