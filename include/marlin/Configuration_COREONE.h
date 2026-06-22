@@ -549,9 +549,9 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
  * value set here, it may happen instantaneously.
  */
 #if ENABLED(CLASSIC_JERK)
-    #define DEFAULT_XJERK 8.0
-    #define DEFAULT_YJERK 8.0
-    #define DEFAULT_ZJERK 2.0
+    #define DEFAULT_XJERK 8.0f
+    #define DEFAULT_YJERK 8.0f
+    #define DEFAULT_ZJERK 2.0f
 #endif
 
 #define DEFAULT_EJERK 5 // May be used by Linear Advance
