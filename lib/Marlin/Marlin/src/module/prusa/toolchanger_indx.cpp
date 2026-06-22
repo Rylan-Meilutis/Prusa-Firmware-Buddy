@@ -89,7 +89,7 @@ bool PrusaToolChanger::pick_any_tool(tool_return_t return_type, xyz_pos_t return
     return false;
 }
 
-bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool z_return) {
+bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool z_return, const ToolChangeArgs &args) {
     // WARNING: called from default(marlin) task
 
     quick_stopped = false;
@@ -174,7 +174,11 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
 
         // Park old tool
         if (std::holds_alternative<PhysicalToolIndex>(old_tool)) {
-            if (!park(std::get<PhysicalToolIndex>(old_tool))) {
+            const mapi::ParkArgs park_args {
+                .retract_distance_mm = args.retraction_distance_mm,
+                .retract_fr_mm_s = args.retraction_fr_mm_s,
+            };
+            if (!park(std::get<PhysicalToolIndex>(old_tool), park_args)) {
                 return false;
             }
         }
@@ -578,7 +582,7 @@ void PrusaToolChanger::open_head(PhysicalToolIndex tool) {
     log_info(PrusaToolChanger, "Head locking mechanism opened");
 }
 
-bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
+bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool, const mapi::ParkArgs &park_args) {
     // Invalidate nozzle presence data during park — the physical state is changing,
     // so the last reported result is stale until a fresh modbus read arrives.
     buddy::puppies::indx.invalidate_nozzle_data();
@@ -589,7 +593,7 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     const float safe_y = info.dock_y + DOCK_SAFE_Y_OFFSET;
 
     // Move to dock X, then to safe Y in front of dock
-    mapi::park({ .x = info.dock_x, .y = safe_y });
+    mapi::park({ .x = info.dock_x, .y = safe_y }, park_args);
     planner.synchronize();
 
     // Approach unlock position
@@ -630,8 +634,9 @@ void PrusaToolChanger::commit_park(PhysicalToolIndex previous_tool) {
     persist_last_picked_tool(NoTool {});
 }
 
-bool PrusaToolChanger::park(PhysicalToolIndex tool) {
+bool PrusaToolChanger::park(PhysicalToolIndex tool, const mapi::ParkArgs &park_args_) {
     uint8_t max_retry_cnt = 2;
+    auto park_args = park_args_;
 
     // On bail-out, reconcile active_extruder with what the sensor sees.
     ScopeGuard committer = [&] {
@@ -646,7 +651,7 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
         if (!ensure_safe_move()) {
             return false; // We cannot even home, abort the print
         }
-        if (park_procedure(tool)) {
+        if (park_procedure(tool, park_args)) {
             break; // Successful park, nozzle verified gone
         }
         head_open = false;
@@ -654,6 +659,9 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
         invalidate_xy_homing();
 
         ++park_fail_count;
+
+        // Prevent overretracting
+        park_args.retract_distance_mm = 0;
 
         // Outside of a print there is no toolchange recovery UX to run
         // (the failure dialog assumes printing). Bail out
