@@ -5,6 +5,7 @@
 #include <string_view>
 #include <str_utils.hpp>
 
+#include <filament.hpp>
 #include <option/has_indx.h>
 
 namespace nozzle_cleaner {
@@ -25,6 +26,8 @@ enum class Sequence : uint16_t {
     // Internal-only sequences below; not invocable via G12.
     _cnt_external,
     enter_cleaner_from_inside = _cnt_external,
+    purge_clean_flex,
+    power_panic_purge_flex,
 #endif
     _cnt,
 };
@@ -40,9 +43,14 @@ std::optional<Sequence> parse_sequence(std::string_view name);
 const GCodeFile &get_sequence(Sequence seq);
 void load_sequence(Sequence seq);
 
-/// Load a sequence, wait for it to be ready, and execute it.
+/// Load a sequence, wait for it to be ready, and execute it. Picks the flexible-filament
+/// variant of @p seq automatically based on the currently selected tool's filament.
 /// @return true on success, false if aborted (planner draining)
 bool load_and_execute(Sequence seq);
+
+/// Overload for callers that know the relevant filament better than currently_selected() —
+/// e.g. mid-load, before config_store is updated.
+bool load_and_execute(Sequence seq, FilamentType filament_for_variant_selection);
 
 bool is_loader_idle();
 bool is_loader_buffering();

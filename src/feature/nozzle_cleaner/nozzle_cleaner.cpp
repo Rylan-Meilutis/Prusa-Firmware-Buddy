@@ -9,6 +9,7 @@
 #include <Marlin/src/module/temperature.h>
 #include <option/has_indx.h>
 #include <feature/print_status_message/print_status_message_guard.hpp>
+#include <tool_index.hpp>
 
 namespace nozzle_cleaner {
 
@@ -141,6 +142,48 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                    .default_gcode = "G750 Y98.5 F21000 A\n"
                                                                     "G750 X0.65 F21000 A",
                                                } },
+        { Sequence::purge_clean_flex, {
+                                          .filename = "purge_clean_flex",
+                                          .directory = directory,
+                                          .default_gcode = "G750 Y87 F21000\n" // Eject poop and move back to purge position
+                                                           "G750 Y91 F21000\n"
+                                                           "G750 Y84 F21000\n"
+                                                           "G750 Y91 F21000\n"
+                                                           "G750 Y77 F21000\n"
+                                                           "G750 Y91 F21000\n"
+                                                           "G750 Y86.5 F21000\n"
+                                                           "M906 P1\n" // Increase E current for purge
+                                                           "G750 E25 F0.67\n" // Slower (1/6th) purge for flex
+                                                           "M400\n" // planner.synchronize()
+                                                           "M1705 N\n" // Autoretract sequence
+                                                           "M400\n"
+                                                           "M906 P0\n" // Restore E current
+                                                           "G750 Y98.5 F21000\n"
+                                                           "G750 Y91.5 F21000",
+                                      } },
+        { Sequence::power_panic_purge_flex, {
+                                                .filename = "power_panic_purge_flex",
+                                                .directory = directory,
+                                                .default_gcode = "G750 Y87 F21000\n" // Eject poop and move back to purge position
+                                                                 "G750 Y91 F21000\n"
+                                                                 "G750 Y84 F21000\n"
+                                                                 "G750 Y91 F21000\n"
+                                                                 "G750 Y77 F21000\n"
+                                                                 "G750 Y91 F21000\n"
+                                                                 "G750 Y86.5 F21000\n"
+                                                                 "M906 P1\n" // Increase E current for purge
+                                                                 "G750 E25 F0.67\n" // Slower (1/6th) purge for flex
+                                                                 "M400\n" // planner.synchronize()
+                                                                 "M906 P0\n" // Restore E current
+                                                                 "G750 X0.65 Y118.5 F18000\n"
+                                                                 "G750 X0.0 Y98.5 F18000\n"
+                                                                 "G750 X-0.5 Y118.5 F18000\n"
+                                                                 "G750 X-0.1 Y98.5 F18000\n"
+                                                                 "G750 X-1.5 Y118.5 F18000\n"
+                                                                 "G750 X-2 Y98.5 F18000\n"
+                                                                 "G750 X-2 Y118.5 F18000\n"
+                                                                 "G750 X0.65 Y96.5 F18000",
+                                            } },
 #else
     { Sequence::clean, {
                            .filename = "clean",
@@ -225,11 +268,32 @@ const GCodeFile &get_sequence(Sequence seq) {
     return sequences[seq];
 }
 
+static Sequence flex_variant(Sequence seq, [[maybe_unused]] FilamentType filament) {
+#if HAS_INDX()
+    if (filament.parameters().is_flexible) {
+        switch (seq) {
+        case Sequence::purge_clean:
+            return Sequence::purge_clean_flex;
+        case Sequence::power_panic_purge:
+            return Sequence::power_panic_purge_flex;
+        default:
+            break;
+        }
+    }
+#endif
+    return seq;
+}
+
 void load_sequence(Sequence seq) {
     nozzle_cleaner_gcode_loader_instance().load_gcode(get_sequence(seq));
 }
 
 bool load_and_execute(Sequence seq) {
+    return load_and_execute(seq, FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()));
+}
+
+bool load_and_execute(Sequence seq, FilamentType filament_for_variant_selection) {
+    seq = flex_variant(seq, filament_for_variant_selection);
 #if HAS_INDX()
     switch (seq) {
     case Sequence::enter_cleaner:
