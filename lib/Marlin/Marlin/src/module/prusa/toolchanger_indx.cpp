@@ -184,8 +184,6 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     update_software_endstops(Y_AXIS);
     update_software_endstops(Z_AXIS);
 
-    hotend_currently_applied_offset = new_hotend_offset;
-
     if (new_tool != old_tool) {
         if (std::holds_alternative<PhysicalToolIndex>(new_tool)) {
             if (tool_offset_diff.z < 0) {
@@ -351,8 +349,9 @@ void PrusaToolChanger::loop(bool printing, bool paused) {
         }
     }
 
-    // Update the currently applied offset when idling (so that a manual swap is reflected), but
-    // _not_ during print where toolchange() is in charge to do the heavy lifting
+    // set_active_extruder() owns the applied offset on every tool change. While idle, also re-derive it
+    // here so a table edit to the active tool's offset (e.g. M218) takes effect without a tool change.
+    // Skipped during print, where the applied offset must change only in lockstep with toolchange moves.
     if (!printing) {
         hotend_currently_applied_offset = match(
             PhysicalToolIndex::currently_selected(),

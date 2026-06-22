@@ -7,6 +7,7 @@
 #include <option/has_toolchanger.h>
 
 #include "Marlin/src/module/stepper.h"
+#include "Marlin/src/module/motion.h"
 #include "Marlin/src/feature/bedlevel/bedlevel.h"
 #include "Marlin.h"
 #include <logging/log.hpp>
@@ -39,6 +40,8 @@ void PrusaToolChangerUtils::set_active_extruder(std::variant<PhysicalToolIndex, 
         maybe_tool,
         [&](PhysicalToolIndex tool) {
             active_extruder = tool.to_raw();
+            // any active-tool change reapplies the matching offset
+            hotend_currently_applied_offset = hotend_offset[tool];
 
             IndxHotend &to_be_active_hotend = IndxHotend::indx_tool(tool).hotend();
             if (!to_be_active_hotend.is_thermally_managed()) {
@@ -54,6 +57,7 @@ void PrusaToolChangerUtils::set_active_extruder(std::variant<PhysicalToolIndex, 
                 }
             }
             active_extruder = MARLIN_NO_TOOL_PICKED;
+            hotend_currently_applied_offset = xyz_pos_t {};
         });
 
     IndxHotend::assert_thermally_managed_invariant(maybe_tool);
