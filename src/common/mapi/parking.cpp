@@ -144,6 +144,49 @@ ParkingPosition apply_nozzle_cleaner_offset(const ParkingPosition &position) {
 }
 #endif
 
+namespace {
+
+    class ParkingExecutor {
+
+    public:
+        static constexpr feedRate_t fr_xy = NOZZLE_PARK_XY_FEEDRATE;
+        static constexpr feedRate_t fr_z = NOZZLE_PARK_Z_FEEDRATE;
+
+        void move(const xyz_pos_t &target, feedRate_t fr_mm_s) {
+            static constexpr PrepareMoveHints hints { .scale_feedrate = false };
+            xyze_pos_t target_xyze = current_position;
+            target_xyze.set(target);
+            prepare_move_to(target_xyze, fr_mm_s, hints);
+        }
+
+        void move_x(float target) {
+            auto target_pos = current_position.xyz();
+            target_pos.x = target;
+            move(target_pos, fr_xy);
+        }
+        void move_y(float target) {
+            auto target_pos = current_position.xyz();
+            target_pos.y = target;
+            move(target_pos, fr_xy);
+        }
+        void move_xy(const xy_pos_t &target) {
+            move(xyz_pos_t { target.x, target.y, current_position.z }, fr_xy);
+        }
+
+        void move_z(float target) {
+            auto target_pos = current_position.xyz();
+            target_pos.z = target;
+            move(target_pos, fr_z);
+        }
+
+    public:
+#if HAS_NOZZLE_CLEANER()
+        void pre_park_move_pattern(const xy_pos_t &destination);
+#endif
+    };
+
+} // namespace
+
 #if HAS_NOZZLE_CLEANER()
 /**
  * Does the extra parking moves except the last one to move in the correct
@@ -171,7 +214,7 @@ ParkingPosition apply_nozzle_cleaner_offset(const ParkingPosition &position) {
  * │                                                                          │        |      X
  * └──────────────────────────────────────────────────────────────────────────┘        O ──────►
  */
-static void pre_park_move_pattern(const feedRate_t &feedrate, const xy_pos_t &destination) {
+void ParkingExecutor::pre_park_move_pattern(const xy_pos_t &destination) {
     #if PRINTER_IS_PRUSA_iX()
     static constexpr float x_border_point = X_NOZZLE_PARK_POINT + 1;
     static constexpr float X_BRUSH_POINT = 242.f; // X point before which we can go directly from (no need to avoid v-blade)
@@ -188,36 +231,36 @@ static void pre_park_move_pattern(const feedRate_t &feedrate, const xy_pos_t &de
     if (start_in_rear_area != destination_in_rear_area) { // One in the rear, other in print area
         if (start_in_wastebin_area || destination_in_wastebin_area) { // One in waste area, other in print area
             if (!start_in_brush_area && !destination_in_brush_area) { // If neither is in brush area, go around vblade
-                do_blocking_move_to_x(X_WASTEBIN_POINT, feedrate);
+                move_x(X_WASTEBIN_POINT);
             } // If we are in brush area, we can go directly
-            do_blocking_move_to_y(destination.y, feedrate);
+            move_y(destination.y);
         } else { // One in no-waste land, other in print area
             if (start_in_rear_area) { // Start in no-waste land, end in print area
-                do_blocking_move_to_y(destination.y, feedrate);
+                move_y(destination.y);
             } else { // Start in print area, end in no-waste land
-                do_blocking_move_to_x(destination.x, feedrate);
+                move_x(destination.x);
             }
         }
     } else if (start_in_rear_area) { // Both in the rear area
         if (start_in_wastebin_area != destination_in_wastebin_area) { // One in waste area, other in no-waste land
             if (start_in_wastebin_area) { // Start in waste area, end in no-waste land
                 if (!start_in_brush_area) { // If we don't start in brush, avoid v-blade
-                    do_blocking_move_to_x(X_WASTEBIN_POINT, feedrate);
+                    move_x(X_WASTEBIN_POINT);
                 }
-                do_blocking_move_to_y(Y_WASTEBIN_SAFE_POINT, feedrate);
-                do_blocking_move_to_x(destination.x, feedrate);
+                move_y(Y_WASTEBIN_SAFE_POINT);
+                move_x(destination.x);
             } else { // Start in no-waste land, end in waste area
                 if (!destination_in_brush_area) { // If we don't end in brush, avoid v-blade
-                    do_blocking_move_to_x(X_WASTEBIN_POINT, feedrate);
+                    move_x(X_WASTEBIN_POINT);
                 }
-                do_blocking_move_to_x(X_WASTEBIN_POINT, feedrate);
-                do_blocking_move_to_y(destination.y, feedrate);
+                move_x(X_WASTEBIN_POINT);
+                move_y(destination.y);
             }
         } else if (start_in_wastebin_area) { // Both in waste area (here no need to worry about brush)
-            do_blocking_move_to_x(destination.x, feedrate);
+            move_x(destination.x);
         } else { // Both in no-waste land
-            do_blocking_move_to_y(Y_WASTEBIN_SAFE_POINT, feedrate);
-            do_blocking_move_to_x(destination.x, feedrate);
+            move_y(Y_WASTEBIN_SAFE_POINT);
+            move_x(destination.x);
         }
     } // Both in print area, no need to pre-park move
     #elif HAS_INDX()
@@ -229,25 +272,25 @@ static void pre_park_move_pattern(const feedRate_t &feedrate, const xy_pos_t &de
 
     if (start_in_side_area != destination_in_side_area) { // One in the side, other in print area
         if (start_in_wastebin_area || destination_in_wastebin_area) { // One in waste area, other in print area
-            do_blocking_move_to_y(Y_BRUSH_AVOID_POINT, feedrate);
-            do_blocking_move_to_x(destination.x, feedrate);
+            move_y(Y_BRUSH_AVOID_POINT);
+            move_x(destination.x);
         } else { // One in no-waste land, other in print area
             if (start_in_side_area) { // Start in no-waste land, end in print area
-                do_blocking_move_to_x(X_WASTEBIN_SAFE_POINT, feedrate);
+                move_x(X_WASTEBIN_SAFE_POINT);
             } else { // Start in print area, end in no-waste land
-                do_blocking_move_to_xy(X_WASTEBIN_SAFE_POINT, destination.y, feedrate);
+                move_xy(xy_pos_t { .x = X_WASTEBIN_SAFE_POINT, .y = destination.y });
             }
         }
     } else if (start_in_side_area) { // Both in the side area
         if (start_in_wastebin_area != destination_in_wastebin_area) { // One in waste area, other in no-waste land
             if (start_in_wastebin_area) { // Start in waste area, end in no-waste land
-                do_blocking_move_to_y(Y_BRUSH_AVOID_POINT, feedrate);
-                do_blocking_move_to_x(X_WASTEBIN_SAFE_POINT, feedrate);
-                do_blocking_move_to_y(destination.y, feedrate);
+                move_y(Y_BRUSH_AVOID_POINT);
+                move_x(X_WASTEBIN_SAFE_POINT);
+                move_y(destination.y);
             } else { // Start in no-waste land, end in waste area
-                do_blocking_move_to_x(X_WASTEBIN_SAFE_POINT, feedrate);
-                do_blocking_move_to_y(Y_BRUSH_AVOID_POINT, feedrate);
-                do_blocking_move_to_x(destination.x, feedrate);
+                move_x(X_WASTEBIN_SAFE_POINT);
+                move_y(Y_BRUSH_AVOID_POINT);
+                move_x(destination.x);
             }
         }
     } // Both in print area, no need to pre-park move
@@ -257,28 +300,29 @@ static void pre_park_move_pattern(const feedRate_t &feedrate, const xy_pos_t &de
 }
 
 void move_out_of_nozzle_cleaner_area() {
+    ParkingExecutor p;
+
     #if PRINTER_IS_PRUSA_iX()
-    pre_park_move_pattern(NOZZLE_PARK_XY_FEEDRATE, { X_WASTEBIN_POINT, Y_WASTEBIN_SAFE_POINT });
+    p.pre_park_move_pattern(xy_pos_t { X_WASTEBIN_POINT, Y_WASTEBIN_SAFE_POINT });
     #else
-    pre_park_move_pattern(NOZZLE_PARK_XY_FEEDRATE, { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT });
+    p.pre_park_move_pattern(xy_pos_t { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT });
     #endif
 }
 #endif
 
 bool park(const ParkingPosition &parking_position) {
-    static constexpr feedRate_t fr_xy = NOZZLE_PARK_XY_FEEDRATE, fr_z = NOZZLE_PARK_Z_FEEDRATE;
-
-    const auto curr_pos = current_position.xyz();
-    const auto park_destination = parking_position.to_xyz_pos(curr_pos);
+    const auto park_destination = parking_position.to_xyz_pos(current_position.xyz());
     const auto needs_homed = parking_position.axes_needing_homing();
+
+    ParkingExecutor p;
 
     // @returns false if the move cannot be performed safely (the caller aborts)
     const auto move_z = [&]() -> bool {
-        if (park_destination.z == curr_pos.z) {
+        if (park_destination.z == current_position.z) {
             return true;
         }
         if (axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)) {
-            do_blocking_move_to_z(park_destination.z, fr_z);
+            p.move_z(park_destination.z);
 
         } else if (needs_homed.z) {
             // The move requires homed Z axis, which we don't have
@@ -286,13 +330,13 @@ bool park(const ParkingPosition &parking_position) {
             return false;
 
         } else {
-            do_homing_move(Z_AXIS, park_destination.z - curr_pos.z, HOMING_FEEDRATE_INVERTED_Z);
+            do_homing_move(Z_AXIS, park_destination.z - current_position.z, HOMING_FEEDRATE_INVERTED_Z);
         }
         return true;
     };
 
     const auto move_xy = [&]() -> bool {
-        if (park_destination.xy() == curr_pos.xy()) {
+        if (park_destination.xy() == current_position.xy()) {
             return true;
         }
         if (!axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
@@ -302,15 +346,15 @@ bool park(const ParkingPosition &parking_position) {
 
 #if HAS_INDX()
         // move out of dock area perpendicularly before parking
-        if (curr_pos.y < Y_DOCK_PARKING_MIN_SAFE_POS) {
-            do_blocking_move_to_y(Y_DOCK_PARKING_MIN_SAFE_POS, feedrate_mm_s);
+        if (current_position.y < Y_DOCK_PARKING_MIN_SAFE_POS) {
+            p.move_y(Y_DOCK_PARKING_MIN_SAFE_POS);
         }
 #endif
 
 #if HAS_NOZZLE_CLEANER()
-        pre_park_move_pattern(fr_xy, park_destination.xy());
+        p.pre_park_move_pattern(park_destination.xy());
 #endif
-        do_blocking_move_to_xy(park_destination, fr_xy);
+        p.move_xy(park_destination.xy());
         return true;
     };
 
@@ -318,7 +362,7 @@ bool park(const ParkingPosition &parking_position) {
     // happens at the higher of the current/destination Z. Going up: lift first, then traverse.
     // Going down: traverse first (at the current, higher Z), then descend. Each move handles its own
     // homing requirements internally (and bails out if unsatisfied).
-    if (park_destination.z < curr_pos.z) {
+    if (park_destination.z < current_position.z) {
         if (!move_xy() || !move_z()) {
             return false;
         }
