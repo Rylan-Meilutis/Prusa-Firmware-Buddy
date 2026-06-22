@@ -457,8 +457,9 @@ if(BOARD STREQUAL "DWARF"
     )
 endif()
 
-# generate firmware.bin file
-objcopy(firmware "binary" ".bin")
+if(NOT RESOURCES)
+  objcopy(firmware "binary" ".bin")
+endif()
 
 # generate linker map file
 target_link_options(firmware PUBLIC -Wl,-Map=firmware.map,--print-memory-usage)

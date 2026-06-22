@@ -85,7 +85,7 @@
 #endif
 #if ENABLED(RESOURCES())
     #include "resources/bootstrap.hpp"
-    #include "resources/revision_standard.hpp"
+    #include "resources/revision.hpp"
 #endif
 
 #if HAS_POWER_PANIC()

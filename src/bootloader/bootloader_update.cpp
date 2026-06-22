@@ -17,7 +17,7 @@
 
 #include "data_exchange.hpp"
 #include "resources/bootstrap.hpp"
-#include "resources/revision_bootloader.hpp"
+#include "resources/revision.hpp"
 #include "bootloader/bootloader.hpp"
 #include "bootloader/required_version.hpp"
 
