@@ -408,6 +408,19 @@ endif()
 #
 
 add_executable(firmware)
+
+if(RESOURCES)
+  set(firmware_without_digest_bin "${CMAKE_BINARY_DIR}/firmware_without_digest.bin")
+  add_custom_command(
+    TARGET firmware
+    POST_BUILD
+    COMMAND "${CMAKE_OBJCOPY}" -O binary -S "$<TARGET_FILE:firmware>"
+            "${firmware_without_digest_bin}"
+    BYPRODUCTS "${firmware_without_digest_bin}"
+    VERBATIM
+    )
+endif()
+
 add_subdirectory(src)
 
 target_compile_options(

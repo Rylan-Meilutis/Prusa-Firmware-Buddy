@@ -100,6 +100,7 @@ add_gzip_resource("web/main.b41402ed4d6d019ca007.js" "/web/main.b41402ed4d6d019c
 add_gzip_resource("web/main.71c989a4a290e5c10892.css" "/web/main.71c989a4a290e5c10892.css")
 
 # add languages
+set(compile_mo_py "${CMAKE_SOURCE_DIR}/utils/translations_and_fonts/compile_mo.py")
 if(${TRANSLATIONS_ENABLED})
   foreach(LANG ${LANGUAGES_AVAILABLE})
     if(${ENABLE_TRANSLATION_${LANG}})
@@ -108,9 +109,9 @@ if(${TRANSLATIONS_ENABLED})
       set(MO_FILE "${CMAKE_CURRENT_BINARY_DIR}/${LANG}.mo")
       add_custom_command(
         OUTPUT ${MO_FILE}
-        COMMAND msgfmt ${PO_FILE} -o ${MO_FILE}
-        DEPENDS ${PO_FILE}
-        COMMENT "Generating ${MO_FILE} from ${PO_FILE}"
+        COMMAND "${Python3_EXECUTABLE}" "${compile_mo_py}" --input ${PO_FILE} --output ${MO_FILE}
+                --binary "${firmware_without_digest_bin}"
+        DEPENDS ${PO_FILE} "${compile_mo_py}" "${firmware_without_digest_bin}"
         VERBATIM
         )
       add_custom_target(generate_mo_${LANG} ALL DEPENDS ${MO_FILE})
