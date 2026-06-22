@@ -341,6 +341,9 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     // Pretend we've extruded what was planned
     sync_e_position_to(resume_position.e);
 
+    // Tool cooled while detached; bring it back to temperature before resuming the print.
+    thermalManager.wait_for_hotend(tool_index);
+
     // Return to the original position
     // Yes, we've possibly skipped over some moves that we trashed with the quick stop
     // Doing proper crash recovery would address this
