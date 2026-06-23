@@ -48,7 +48,7 @@
  *   - `0` - (Default) Raise to at least Z before XY parking
  *   - `1` - Absolute move to Z before XY parking. This may move the nozzle down, so use with caution!
  *   - `2` - Relative move by Z before XY parking.
- * - `W` - Use pre-defined park position. Usable only if X, Y and Z are not present as they override pre-defined behaviour.
+ * - `W` - Use pre-defined park position (components can be overriden by X, Y and Z)
  *   - `0` - Park
  *   - `1` - Purge
  *   - `2` - Load
@@ -63,37 +63,36 @@ void GcodeSuite::G27() {
 
     if (auto where_to_park = parser.option<mapi::ParkPosition>('W', mapi::ParkPosition::_cnt)) {
         parking_position = mapi::get_parking_position(*where_to_park);
+    }
 
-    } else {
-        if (auto x = parser.option<float>('X')) {
-            parking_position.x = *x;
+    if (auto x = parser.option<float>('X')) {
+        parking_position.x = *x;
+    }
+
+    if (auto y = parser.option<float>('Y')) {
+        parking_position.y = *y;
+    }
+
+    if (auto z = parser.option<float>('Z')) {
+        switch (parser.option<int>('P').value_or(0)) {
+
+        case 0:
+            parking_position.z = mapi::ParkingPosition::AtLeast { .above_print = *z };
+            break;
+
+        case 1:
+            parking_position.z = *z;
+            break;
+
+        case 2:
+            parking_position.z = mapi::ParkingPosition::Relative { *z };
+            break;
         }
+    }
 
-        if (auto y = parser.option<float>('Y')) {
-            parking_position.y = *y;
-        }
-
-        if (auto z = parser.option<float>('Z')) {
-            switch (parser.option<int>('P').value_or(0)) {
-
-            case 0:
-                parking_position.z = mapi::ParkingPosition::AtLeast { .above_print = *z };
-                break;
-
-            case 1:
-                parking_position.z = *z;
-                break;
-
-            case 2:
-                parking_position.z = mapi::ParkingPosition::Relative { *z };
-                break;
-            }
-        }
-
-        // If no axis has been specified (comparing against a position with all axes unchanged)
-        if (parking_position == mapi::ParkingPosition {}) {
-            parking_position = mapi::get_parking_position(mapi::ParkPosition::park);
-        }
+    // If no axis has been specified (comparing against a position with all axes unchanged)
+    if (parking_position == mapi::ParkingPosition {}) {
+        parking_position = mapi::get_parking_position(mapi::ParkPosition::park);
     }
 
     mapi::home_if_needed_and_park(parking_position);
