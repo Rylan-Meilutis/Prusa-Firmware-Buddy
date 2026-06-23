@@ -5,7 +5,6 @@
 #include "../gcode.h"
 #include "PrusaGcodeSuite.hpp"
 #include <module/tool_change.h>
-#include <mapi/motion.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -25,7 +24,6 @@
  *#### Parameters
  *
  * - `S` - Don't move the tool in XY after change
- *
  * - `L` - Z Lift settings
  *   - `0` - no lift
  *   - `1` - lift by max MBL diff
@@ -33,9 +31,6 @@
  * - `D` - Z lift return settings
  *   - `0` - Do not return in Z after lift
  *   - `1` - Normal return
- *
- * - `R[mm]` - Distance to retract during the parking moves
- * - `V[mm/s]` - Retraction feedrate (independent on the move feedrate)
  */
 void PrusaGcodeSuite::P0() {
 
@@ -51,12 +46,6 @@ void PrusaGcodeSuite::P0() {
         z_lift = tool_change_lift_t::full_lift; // invalid input, use full_lift
     }
     bool z_down = parser.byteval('D', 1);
-
-    // TODO: Make retraction in parallel with the parking (BFW-8942)
-    if (const float retract_mm = parser.floatval('R', 0); retract_mm != 0 && PhysicalToolIndex::currently_selected_opt().has_value()) {
-        mapi::extruder_move(-retract_mm, parser.floatval('V', 40));
-    }
-
     tool_change(NoTool {}, return_type, z_lift, z_down);
 }
 /** @}*/

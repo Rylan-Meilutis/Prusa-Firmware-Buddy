@@ -25,7 +25,6 @@
 #include "bsod.h"
 #include <utils/variant_utils.hpp>
 #include <tool_index.hpp>
-#include <mapi/motion.hpp>
 
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
@@ -72,9 +71,6 @@
  *   - `0` - Do not return in Z after lift
  *   - `1` - Normal return
  *
- * - `R[mm]` - Distance to retract during the parking moves
- * - `V[mm/s]` - Retraction feedrate (independent on the move feedrate)
- *
  * For printers with MMU unit:
  * - `T[n]` - Gcode to extrude at least 38.10 mm at feedrate 19.02 mm/s must follow immediately to load to extruder wheels.
  * - `T?` - Gcode to extrude shouldn't have to follow. Load to extruder wheels is done automatically.
@@ -116,11 +112,6 @@ void GcodeSuite::T() {
   auto z_lift = static_cast<tool_change_lift_t>(parser.byteval('L', static_cast<uint8_t>(tool_change_lift_t::full_lift)));
   if (z_lift > tool_change_lift_t::_last_item) z_lift = tool_change_lift_t::full_lift; // invalid input, use full_lift
   bool z_down = parser.byteval('D', 1);
-
-  // TODO: Make retraction in parallel with the parking (BFW-8942)
-  if (const float retract_mm = parser.floatval('R', 0); retract_mm != 0 && PhysicalToolIndex::currently_selected_opt().has_value()) {
-      mapi::extruder_move(-retract_mm, parser.floatval('V', 40));
-  }
 
   tool_change(stdext::to_variant(virtual_tool), return_type, z_lift, z_down);
 }
