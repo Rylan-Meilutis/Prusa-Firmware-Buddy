@@ -105,7 +105,7 @@ static void plan_arc2(const xy_pos_t &dest, const xy_pos_t &center, const feedRa
         feedRate_t orig_feedrate = feedrate_mm_s;
         feedrate_mm_s = fr;
 
-        xy_float_t offset = center - current_position;
+        xy_float_t offset = center - current_position.xy();
         plan_arc(xyze_dest, offset, (current_position.x > xyze_dest.x), 0);
 
         feedrate_mm_s = orig_feedrate;
