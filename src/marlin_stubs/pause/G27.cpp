@@ -37,7 +37,7 @@
  *
  *#### Usage
  *
- * G27 [ X | Y | Z | P ]
+ * G27 [ X | Y | Z | P | R | V ]
  *
  *#### Parameters
  *
@@ -53,6 +53,9 @@
  *   - `1` - Purge
  *   - `2` - Load
  *   - `3` - Tool park (toolchangers only)
+ *
+ * - `R[mm]` - Distance to retract during the parking moves
+ * - `V[mm/s]` - Retraction feedrate (independent on the move feedrate)
  */
 void GcodeSuite::G27() {
     GCodeParser2 parser;
@@ -61,6 +64,7 @@ void GcodeSuite::G27() {
     }
 
     mapi::ParkingPosition parking_position;
+    mapi::ParkArgs args;
 
     static constexpr mapi::ParkPosition where_to_park_list[] {
         [0] = mapi::ParkPosition::park,
@@ -106,7 +110,10 @@ void GcodeSuite::G27() {
         parking_position = mapi::get_parking_position(mapi::ParkPosition::park);
     }
 
-    mapi::home_if_needed_and_park(parking_position);
+    parser.store_option_if_present('R', args.retract_distance_mm);
+    parser.store_option_if_present('V', args.retract_fr_mm_s);
+
+    mapi::home_if_needed_and_park(parking_position, args);
 }
 
 /** @}*/
