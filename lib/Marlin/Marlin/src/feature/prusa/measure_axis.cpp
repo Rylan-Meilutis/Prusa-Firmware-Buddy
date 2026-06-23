@@ -53,7 +53,7 @@ Measure_axis::Measure_axis(bool measure_x, bool measure_y, xy_bool_t invert_dir,
 void Measure_axis::quick_home_start() {
     #if ENABLED(QUICK_HOME)
     // Pretend the current position is 0,0
-    current_position.set(0.0, 0.0);
+    current_position.set(0.0f, 0.0f);
     sync_plan_position();
 
     int axis_home_dir[2];
@@ -91,7 +91,7 @@ void Measure_axis::quick_home_start() {
 void Measure_axis::quick_home_finish() {
     #if ENABLED(QUICK_HOME)
     endstops.validate_homing_move();
-    current_position.set(0.0, 0.0);
+    current_position.set(0.0f, 0.0f);
     sync_plan_position();
         #if ENABLED(SENSORLESS_HOMING)
     LOOP_XY(axis)
