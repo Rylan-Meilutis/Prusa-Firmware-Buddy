@@ -133,6 +133,12 @@ struct ParkArgs {
 
     /// Feedrate of the retraction
     float retract_fr_mm_s = PAUSE_PARK_RETRACT_FEEDRATE;
+
+    /// If > 0, the Z moves are done in parallel to the XY moves
+    /// with an angle `z_ramp_slope = tan(angle)` (1 → 45°) respective to the XY moves
+    /// until the target Z position is reached (then only the XY move continues).
+    /// !!! Warning - this bypasses the Z move prevention when Z is unhomed
+    float z_ramp_slope = 0;
 };
 
 /**

@@ -22,6 +22,8 @@
 
 #include "config_features.h"
 
+#include <cmath>
+
 #include <Marlin/src/gcode/gcode.h>
 #include <Marlin/src/module/motion.h>
 #include <common/gcode/gcode_parser.hpp>
@@ -37,17 +39,17 @@
  *
  *#### Usage
  *
- * G27 [ X | Y | Z | P | R | V ]
+ * G27 [ X | Y | Z | P | R | V | A ]
  *
  *#### Parameters
  *
  * - `X` - X park position
  * - `Y` - Y park position
  * - `Z` - Z park position
- * - `P` - Z action
- *   - `0` - (Default) Raise to at least Z before XY parking
- *   - `1` - Absolute move to Z before XY parking. This may move the nozzle down, so use with caution!
- *   - `2` - Relative move by Z before XY parking.
+ * - `P` - Z action. By default, done before the XY move when lifting Z and after the XY move when lowering Z.
+ *   - `0` - (Default) Raise to at least Z above print
+ *   - `1` - Absolute move to Z. This may move the nozzle down, so use with caution!
+ *   - `2` - Relative move by Z.
  * - `W` - Use pre-defined park position (components can be overriden by X, Y and Z)
  *   - `0` - Park
  *   - `1` - Purge
@@ -56,6 +58,10 @@
  *
  * - `R[mm]` - Distance to retract during the parking moves
  * - `V[mm/s]` - Retraction feedrate (independent on the move feedrate)
+ *
+ * - A[°] - When provided, the Z move is done in parallel to the XY moves.
+ *            The Z is moved with an angle A respective to the XY moves
+ *            until the target Z position is reached (then only the XY move continues).
  */
 void GcodeSuite::G27() {
     GCodeParser2 parser;
@@ -112,6 +118,10 @@ void GcodeSuite::G27() {
 
     parser.store_option_if_present('R', args.retract_distance_mm);
     parser.store_option_if_present('V', args.retract_fr_mm_s);
+
+    if (auto a = parser.option<float>('A'); a > 0 && a < 90) {
+        args.z_ramp_slope = tanf(*a * float(M_PI / 180));
+    }
 
     mapi::home_if_needed_and_park(parking_position, args);
 }

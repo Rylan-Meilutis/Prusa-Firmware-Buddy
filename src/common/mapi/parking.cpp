@@ -172,8 +172,9 @@ namespace {
         static constexpr feedRate_t fr_xy = NOZZLE_PARK_XY_FEEDRATE;
         static constexpr feedRate_t fr_z = NOZZLE_PARK_Z_FEEDRATE;
 
-        ParkingExecutor(const ParkArgs &args)
-            : args_(args) {
+        ParkingExecutor(const ParkArgs &args, const float destination_z)
+            : args_(args)
+            , destination_z_(destination_z) {
             remaining_distance_to_retract_mm_ = args.retract_distance_mm;
             assert(remaining_distance_to_retract_mm_ >= 0);
         }
@@ -217,16 +218,30 @@ namespace {
         }
 
         void move_x(float target) {
-            auto target_pos = current_position.xyz();
-            target_pos.x = target;
-            move(target_pos, fr_xy);
+            move_xy({ target, current_position.y });
         }
         void move_y(float target) {
-            auto target_pos = current_position.xyz();
-            target_pos.y = target;
-            move(target_pos, fr_xy);
+            move_xy({ current_position.x, target });
         }
         void move_xy(const xy_pos_t &target) {
+            if (args_.z_ramp_slope > 0) {
+                // Do a parallel Z move with the XY move
+                const float dest_delta_z = destination_z_ - current_position.z;
+                const xy_pos_t full_delta_xy = target - current_position.xy();
+                const float full_delta_z = std::copysignf(full_delta_xy.magnitude() * args_.z_ramp_slope, dest_delta_z);
+
+                if (full_delta_z != 0) {
+                    // Split the move into two segments:
+                    // - First segment with the Z move
+                    const float segment_coef = std::min<float>(std::abs(dest_delta_z / full_delta_z), 1);
+                    const xyz_pos_t full_delta_xyz { full_delta_xy.x, full_delta_xy.y, full_delta_z };
+                    move(current_position.xyz() + full_delta_xyz * segment_coef, fr_xy);
+
+                    // - Second XY-only segment if we've already reached the Z destination
+                    // Implemented outside the if
+                }
+            }
+
             move(xyz_pos_t { target.x, target.y, current_position.z }, fr_xy);
         }
 
@@ -250,6 +265,7 @@ namespace {
 
     private:
         const ParkArgs &args_;
+        const float destination_z_;
 
         /// Distance to retract over the whole parking procedure
         float remaining_distance_to_retract_mm_;
@@ -371,7 +387,7 @@ void ParkingExecutor::pre_park_move_pattern(const xy_pos_t &destination) {
 
 void move_out_of_nozzle_cleaner_area() {
     static constexpr ParkArgs args {};
-    ParkingExecutor p(args);
+    ParkingExecutor p(args, current_position.z);
 
     #if PRINTER_IS_PRUSA_iX()
     p.pre_park_move_pattern(xy_pos_t { X_WASTEBIN_POINT, Y_WASTEBIN_SAFE_POINT });
@@ -385,7 +401,7 @@ bool park(const ParkingPosition &parking_position, const ParkArgs &args) {
     const auto park_destination = parking_position.to_xyz_pos(current_position.xyz());
     const auto needs_homed = parking_position.axes_needing_homing();
 
-    ParkingExecutor p(args);
+    ParkingExecutor p(args, park_destination.z);
 
     // @returns false if the move cannot be performed safely (the caller aborts)
     const auto move_z = [&]() -> bool {
@@ -429,18 +445,26 @@ bool park(const ParkingPosition &parking_position, const ParkArgs &args) {
         return true;
     };
 
-    // Order the two moves so the nozzle is never dragged across the print: the XY traverse always
-    // happens at the higher of the current/destination Z. Going up: lift first, then traverse.
-    // Going down: traverse first (at the current, higher Z), then descend. Each move handles its own
-    // homing requirements internally (and bails out if unsatisfied).
-    if (park_destination.z < current_position.z) {
-        if (!move_xy() || !move_z()) {
-            return false;
-        }
-    } else {
-        if (!move_z() || !move_xy()) {
-            return false;
-        }
+    const bool move_xy_first =
+        // Order the two moves so the nozzle is never dragged across the print: the XY traverse always
+        // happens at the higher of the current/destination Z. Going up: lift first, then traverse.
+        // Going down: traverse first (at the current, higher Z), then descend. Each move handles its own
+        // homing requirements internally (and bails out if unsatisfied).
+        (park_destination.z < current_position.z)
+
+        // Specifying parallel_z_move_angle_tan makes the Z moves done in parallel to the XY moves - handled in the move machinery
+        || (args.z_ramp_slope > 0);
+
+    if (move_xy_first && !move_xy()) {
+        return false;
+    }
+
+    if (!move_z()) {
+        return false;
+    }
+
+    if (!move_xy_first && !move_xy()) {
+        return false;
     }
 
     p.finalize_retraction();
