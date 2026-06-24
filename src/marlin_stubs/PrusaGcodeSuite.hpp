@@ -99,6 +99,7 @@ void M709(); //< MMU turn on/off/reset
 
 #if HAS_TOOL_OFFSET_SENSOR()
 void G427(); ///< Tool offset calibration (Z-probe + XY tool offset board calib)
+void M1985(); //< INDX tool offsets calibration
 #endif
 
 #if HAS_INDX()
@@ -179,7 +180,6 @@ void M1981(); //< Filament sensors selftest
 void M1982(); //< INDX dock calibration
 void M1983(); //< INDX nozzle cleaner calibration
 void M1984(); //< Manually park a stuck nozzle into a dock
-void M1985(); //< INDX tool offsets calibration
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
 void M1986(); //< Empty the INDX nozzle-cleaner wastebin (pause, move aside, reset fill counter)

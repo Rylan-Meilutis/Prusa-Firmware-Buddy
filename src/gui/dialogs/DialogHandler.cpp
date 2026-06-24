@@ -19,6 +19,7 @@
 #include <option/has_loadcell.h>
 #include <option/has_indx.h>
 #include <option/has_heaters_selftest_gcode.h>
+#include <option/has_tool_offset_sensor.h>
 #include <gui/screen/screen_preheat.hpp>
 #include <gui/screen/dialog_safety_timer.hpp>
 
@@ -30,6 +31,9 @@
     #include <gui/screen/screen_nozzle_mismatch.hpp>
     #include <feature/indx_dock_calibration/screen_dock_calibration.hpp>
     #include <feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.hpp>
+#endif
+
+#if HAS_TOOL_OFFSET_SENSOR()
     #include <feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.hpp>
 #endif
 
@@ -315,8 +319,10 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
 #if HAS_INDX()
     FSMScreenDef<ClientFSM::NozzleMismatch, ScreenNozzleMismatch>,
     FSMScreenDef<ClientFSM::DockCalibration, ScreenDockCalibration>,
-    FSMScreenDef<ClientFSM::ToolOffsetsCalibration, ScreenToolOffsetsCalibration>,
     FSMScreenDef<ClientFSM::NozzleCleanerCalibration, ScreenNozzleCleanerCalibration>,
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    FSMScreenDef<ClientFSM::ToolOffsetsCalibration, ScreenToolOffsetsCalibration>,
 #endif
     // This is here so that we can worry-free write commas at the end of each argument
     FSMEndDef>;

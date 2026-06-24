@@ -566,7 +566,8 @@ enum class PhaseNozzleCleanerCalibration : PhaseUnderlyingType {
     _last = calibration_success,
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhaseNozzleCleanerCalibration) { return ClientFSM::NozzleCleanerCalibration; }
-
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
 enum class PhaseToolOffsetsCalibration : PhaseUnderlyingType {
     intro,
     ensure_nozzles_clean,
@@ -926,7 +927,8 @@ inline constexpr EnumArray<PhaseNozzleCleanerCalibration, PhaseResponses, CountP
     { PhaseNozzleCleanerCalibration::evaluating_y, { Response::Yes, Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::calibration_success, { Response::Continue } },
 };
-
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
 inline constexpr EnumArray<PhaseToolOffsetsCalibration, PhaseResponses, CountPhases<PhaseToolOffsetsCalibration>()> tool_offsets_calibration_responses {
     { PhaseToolOffsetsCalibration::intro, { Response::Continue, Response::Abort } },
     { PhaseToolOffsetsCalibration::ensure_nozzles_clean, { Response::Continue, Response::Abort } },

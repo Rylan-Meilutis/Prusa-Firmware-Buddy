@@ -880,8 +880,11 @@ struct CurrentStore
 
 #if HAS_INDX()
     StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Nozzle Cleaner Calibration")> selftest_result_nozzle_cleaner_calibration;
-    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Tool Offsets Calibration")> selftest_result_tool_offsets_calibration;
     StoreItem<std::bitset<PhysicalToolIndex::count>, 0, ItemFlag::calibrations, journal::hash("INDX dock calibrated mask")> indx_dock_calibrated_mask;
+#endif
+
+#if HAS_TOOL_OFFSET_SENSOR()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Tool Offsets Calibration")> selftest_result_tool_offsets_calibration;
 #endif
 
 #if HAS_EMERGENCY_STOP()

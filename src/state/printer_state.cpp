@@ -285,8 +285,10 @@ DeviceState get_state(bool ready) {
 #endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
-    case ClientFSM::ToolOffsetsCalibration:
     case ClientFSM::NozzleCleanerCalibration:
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
 #endif
 #if HAS_SERIAL_PRINT()
     case ClientFSM::Serial_printing:
@@ -533,8 +535,10 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
-    case ClientFSM::ToolOffsetsCalibration:
     case ClientFSM::NozzleCleanerCalibration:
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
 #endif
     case ClientFSM::Preheat:
     case ClientFSM::SafetyTimer:

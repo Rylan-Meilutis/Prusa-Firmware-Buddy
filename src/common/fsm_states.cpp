@@ -43,8 +43,10 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
 #endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
-    case ClientFSM::ToolOffsetsCalibration:
     case ClientFSM::NozzleCleanerCalibration:
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
 #endif
         return 1;
 

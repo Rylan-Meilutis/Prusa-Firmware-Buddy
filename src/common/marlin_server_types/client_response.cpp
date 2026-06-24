@@ -2,6 +2,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_serial_print.h>
 #include <option/has_manual_belt_tuning.h>
+#include <option/has_tool_offset_sensor.h>
 #include <fsm/safety_timer_phases.hpp>
 #include <fsm/print_preview_phases.hpp>
 
@@ -74,8 +75,10 @@ constinit const EnumArray<ClientFSM, std::span<const PhaseResponses>, ClientFSM:
 #if HAS_INDX()
         { ClientFSM::NozzleMismatch, nozzle_mismatch_responses },
         { ClientFSM::DockCalibration, dock_calibration_responses },
-        { ClientFSM::ToolOffsetsCalibration, tool_offsets_calibration_responses },
         { ClientFSM::NozzleCleanerCalibration, nozzle_cleaner_calibration_responses },
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+        { ClientFSM::ToolOffsetsCalibration, tool_offsets_calibration_responses },
 #endif
         { ClientFSM::SafetyTimer, safety_timer_responses },
         { ClientFSM::Wait, {} },
