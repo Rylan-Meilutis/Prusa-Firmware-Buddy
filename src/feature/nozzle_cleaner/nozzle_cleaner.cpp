@@ -69,11 +69,11 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
         { Sequence::purge_clean, {
                                      .filename = "purge_clean",
                                      .directory = directory,
-                                     .default_gcode = "G750 Y85 F21000 A\n" // Eject poop and move back to purge position
+                                     .default_gcode = "G750 Y86 F21000 A\n" // Eject poop and move back to purge position
                                                       "G750 Y93 F21000 A\n"
-                                                      "G750 Y82 F21000 A\n"
-                                                      "G750 Y98.5 F21000 A\n"
-                                                      "G750 Y75 F21000 A\n"
+                                                      "G750 Y83 F21000 A\n"
+                                                      "G750 Y93 F21000 A\n"
+                                                      "G750 Y76 F21000 A\n"
                                                       "G750 Y93 F21000 A\n"
                                                       "G750 Y86.5 F21000\n"
                                                       "M906 P1\n" // Increase E current for purge
@@ -89,11 +89,11 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
         { Sequence::power_panic_purge, {
                                            .filename = "power_panic_purge",
                                            .directory = directory,
-                                           .default_gcode = "G750 Y85 F21000 A\n" // Eject poop and move back to purge position
+                                           .default_gcode = "G750 Y86 F21000 A\n" // Eject poop and move back to purge position
                                                             "G750 Y93 F21000 A\n"
-                                                            "G750 Y82 F21000 A\n"
-                                                            "G750 Y98.5 F21000 A\n"
-                                                            "G750 Y75 F21000 A\n"
+                                                            "G750 Y83 F21000 A\n"
+                                                            "G750 Y93 F21000 A\n"
+                                                            "G750 Y76 F21000 A\n"
                                                             "G750 Y93 F21000 A\n"
                                                             "G750 Y86.5 F21000\n"
                                                             "M906 P1\n" // Increase E current for purge
@@ -114,11 +114,11 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                     .directory = directory,
                                     .default_gcode = "M204 T5000\n"
                                                      "G750 X0.65 F21000 A\n"
-                                                     "G750 Y85 F21000 A\n"
+                                                     "G750 Y86 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
-                                                     "G750 Y82 F21000 A\n"
-                                                     "G750 Y98.5 F21000 A\n"
-                                                     "G750 Y75 F21000 A\n"
+                                                     "G750 Y83 F21000 A\n"
+                                                     "G750 Y93 F21000 A\n"
+                                                     "G750 Y76 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
                                                      "G750 Y86.5 F21000",
                                 } },
