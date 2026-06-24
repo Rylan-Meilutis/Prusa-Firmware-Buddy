@@ -5,6 +5,8 @@
 #include <module/prusa/toolchanger_utils.h>
 #include <raii/scope_guard.hpp>
 #include <module/planner.h>
+#include <filament.hpp>
+#include <tool_index.hpp>
 
 void PrusaGcodeSuite::G750() {
     GCodeParser2 p;
@@ -24,8 +26,15 @@ void PrusaGcodeSuite::G750() {
         target.e += *e;
     }
 
+    float feedrate = p.option<float>('F').value_or(PrusaToolChangerUtils::TRAVEL_MOVE_MM_S);
+
+    // L = adjust the feedrate based on the loaded filament's properties.
+    if (p.has_option('L')) {
+        feedrate = adjust_feedrate_for_filament(feedrate, FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()));
+    }
+
     // Use machine coordinates - wastebin is outside of MBL area, applying MBL would do funny stuff.
-    line_to_machine_pos(target, p.option<float>('F').value_or(PrusaToolChangerUtils::TRAVEL_MOVE_MM_S), { .ignore_e_factor = true });
+    line_to_machine_pos(target, feedrate, { .ignore_e_factor = true });
 
     // A = asynchronous - do not wait for the planner to finish the move
     if (!p.has_option('A')) {

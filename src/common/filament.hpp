@@ -256,3 +256,11 @@ public:
 
 constexpr FilamentType FilamentType::none = NoFilamentType {};
 constexpr FilamentType FilamentType::pending_adhoc = PendingAdHocFilamentType {};
+
+/// Scales an extruder-move feedrate for the loaded filament's properties. Currently only slows
+/// flexible filaments down (they buckle/grind in the extruder if pushed too fast); this is the
+/// single place to add any future filament-dependent feedrate rule.
+inline float adjust_feedrate_for_filament(float base, FilamentType filament) {
+    constexpr float flex_feedrate_factor = 1.f / 6.f;
+    return filament.parameters().is_flexible ? base * flex_feedrate_factor : base;
+}
