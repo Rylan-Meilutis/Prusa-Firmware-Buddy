@@ -29,5 +29,32 @@ _bsod(const char *fmt, const char *file_name, int line_number, ...);
 #define bsod_system() bsod("system error")
 
 #ifdef __cplusplus
+    #define CHECK_SYNTAX_ASSERT(expr) static_assert(requires { static_cast<bool>(expr); })
+#else
+    #define CHECK_SYNTAX_ASSERT(expr) _Static_assert(sizeof(!(expr)), #expr)
+#endif
+
+#define ASSERT_IMPL(expr) ((expr) ? (void)0 : bsod("ASSERT %s", #expr))
+
+#ifdef NDEBUG
+    #define debug_assert(expr) CHECK_SYNTAX_ASSERT(expr)
+#else
+    #define debug_assert(expr) ASSERT_IMPL(expr)
+#endif
+
+#define release_assert(expr) ASSERT_IMPL(expr)
+
+#if defined(__cpp_contracts) && __cpp_contracts >= 202502L
+// contract_assert is a language keyword
+#else
+    #define contract_assert(expr)                                     \
+        do {                                                          \
+            if (!(expr)) {                                            \
+                _bsod("CONTRACT %s", __FILE_NAME__, __LINE__, #expr); \
+            }                                                         \
+        } while (0)
+#endif
+
+#ifdef __cplusplus
 }
 #endif
