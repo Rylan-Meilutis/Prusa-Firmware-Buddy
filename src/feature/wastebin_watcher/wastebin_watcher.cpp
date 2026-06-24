@@ -11,6 +11,7 @@
 #include <mapi/parking.hpp>
 #include <mapi/motion.hpp>
 #include <Marlin/src/module/motion.h>
+#include <module/planner.h>
 
 WastebinWatcher &WastebinWatcher::instance() {
     static WastebinWatcher watcher;
@@ -47,6 +48,8 @@ void WastebinWatcher::pause_to_empty(bool full) {
     const bool printing = marlin_server::is_printing();
     const xyz_pos_t resume_pos = current_position.xyz();
     const float resume_e = current_position.e;
+    // Cleaner is outside the MBL mesh; save/restore Z in the machine frame (like G750), not native.
+    const float resume_machine_z = to_machine_pos(current_position).z;
 
     if (printing) {
         // Retract to the standard pre-park distance so the nozzle does not ooze while parked, then
@@ -78,10 +81,13 @@ void WastebinWatcher::pause_to_empty(bool full) {
         return; // idle: nothing to return to
     }
 
-    // Return to where we paused (park lowers Z only after the XY traverse, so the nozzle is never
-    // dragged across the print), then restore the extruder to its exact pre-pause position - as if
-    // this never happened, regardless of how much retract_to() actually moved.
-    mapi::park(mapi::ParkingPosition { .x = resume_pos.x, .y = resume_pos.y, .z = resume_pos.z });
+    // Traverse XY back at the high park Z (avoiding the cleaner) so we never drag over the print,
+    // then drop to the saved machine Z and restore E.
+    mapi::park(mapi::ParkingPosition { .x = resume_pos.x, .y = resume_pos.y });
+    MachinePosXYZE resume_target = current_machine_position();
+    resume_target.z = resume_machine_z;
+    line_to_machine_pos(resume_target, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
+    planner.synchronize();
     mapi::extruder_move(resume_e - current_position.e, PAUSE_PARK_RETRACT_FEEDRATE);
 }
 
