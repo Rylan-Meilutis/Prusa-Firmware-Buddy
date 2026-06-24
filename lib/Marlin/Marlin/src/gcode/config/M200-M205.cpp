@@ -24,6 +24,7 @@
 #include "../../Marlin.h"
 #include "../../module/planner.h"
 #include <utils/variant_utils.hpp>
+#include <option/has_indx.h>
 
 #if DISABLED(NO_VOLUMETRICS)
 
@@ -99,6 +100,15 @@ void GcodeSuite::M201() {
   // it conflates the values for different tools/slots nevertheless (which
   // should be solved as part of the aforementioned proper fix).
 
+#if HAS_INDX()
+  // INDX has passive tools (single E stepper), so apply even with no tool selected.
+  static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
+  LOOP_XYZE(i) {
+    if (parser.seen(axis_codes[i])) {
+      planner.set_max_acceleration(i, parser.value_axis_units((AxisEnum)i));
+    }
+  }
+#else
   const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
   if (!tool.has_value()) return;
 
@@ -108,6 +118,7 @@ void GcodeSuite::M201() {
       planner.set_max_acceleration(a, parser.value_axis_units((AxisEnum)a));
     }
   }
+#endif
 }
 
 /**
@@ -141,6 +152,14 @@ void GcodeSuite::M203() {
   // it conflates the values for different tools/slots nevertheless (which
   // should be solved as part of the aforementioned proper fix).
 
+#if HAS_INDX()
+  // INDX has passive tools (single E stepper), so apply even with no tool selected.
+  static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
+  LOOP_XYZE(i)
+    if (parser.seen(axis_codes[i])) {
+      planner.set_max_feedrate(i, parser.value_axis_units((AxisEnum)i));
+    }
+#else
   const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
   if (!tool.has_value()) return;
 
@@ -149,6 +168,7 @@ void GcodeSuite::M203() {
       const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(tool->to_raw())) : i);
       planner.set_max_feedrate(a, parser.value_axis_units((AxisEnum)a));
     }
+#endif
 }
 
 /**
