@@ -8,6 +8,34 @@
 #include <filament.hpp>
 #include <tool_index.hpp>
 
+/** \addtogroup G-Codes
+ * @{
+ */
+
+/**
+ * ### G750: Nozzle cleaner move
+ *
+ * Linear move used by the nozzle cleaner sequences. X/Y are taken relative to the nozzle cleaner
+ * origin (plus the calibrated origin offset) and the move is executed in machine coordinates,
+ * bypassing mesh bed leveling (the wastebin lies outside the MBL area).
+ *
+ * INDX only.
+ *
+ * #### Usage
+ *
+ *     G750 [ X ] [ Y ] [ E ] [ F ] [ L ] [ A ]
+ *
+ * #### Parameters
+ *
+ * - `X` - Target X position, relative to the nozzle cleaner origin
+ * - `Y` - Target Y position, relative to the nozzle cleaner origin
+ * - `E` - Relative extrusion amount (added to the current E position)
+ * - `F` - Feedrate [mm/s] (defaults to the travel feedrate)
+ * - `L` - Adjust the feedrate based on the loaded filament's properties (currently slows down
+ *         flexible filaments)
+ * - `A` - Asynchronous; do not wait for the planner to finish the move
+ *
+ */
 void PrusaGcodeSuite::G750() {
     GCodeParser2 p;
     if (!p.parse_marlin_command()) {
@@ -41,3 +69,5 @@ void PrusaGcodeSuite::G750() {
         planner.synchronize();
     }
 }
+
+/** @}*/
