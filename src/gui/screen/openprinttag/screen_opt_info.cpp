@@ -20,7 +20,7 @@ constinit const std::array<const char *, 2> MenuItemFilamentTracking::values {
 };
 
 MenuItemFilamentTracking::MenuItemFilamentTracking(VirtualToolIndex tool)
-    : IWindowMenuItem(_("Filament tracking"))
+    : IWindowMenuItem(_("Filament Tracking"))
     , tool_(tool) {
     extension_width = std::max(_(values[0]).computeNumUtf8Chars(), _(values[1]).computeNumUtf8Chars()) * resource_font(font)->w + w_for_icon;
 }
