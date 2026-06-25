@@ -25,6 +25,11 @@
     #include <feature/filament_sensor/filament_sensors_handler_remap.hpp>
 #endif
 
+#include <option/has_tool_offset_sensor.h>
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
+#endif
+
 using namespace SelftestSnake;
 
 namespace SelftestSnake {
@@ -167,11 +172,17 @@ void do_snake(Action action, PhysicalToolIndex tool) {
         case Action::NozzleCleanerCalibration:
             marlin_client::gcode("M1983");
             break;
-        case Action::ToolOffsetsCalibration:
-            marlin_client::gcode("M1985");
-            break;
         case Action::InputShaper:
             marlin_client::gcode("M1959");
+            break;
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+        case Action::ToolOffsetsCalibration:
+            if (tool_offset_calibration::is_hardware_available()) { // XLS: CAN bridge + sensor present
+                marlin_client::gcode("M1985");
+                break; // handled as a gcode test
+            }
+            has_test_special_handling = false; // plain XL: fall through to pin-based selftest mask
             break;
 #endif
         default:

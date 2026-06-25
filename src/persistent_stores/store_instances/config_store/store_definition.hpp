@@ -884,6 +884,8 @@ struct CurrentStore
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
+    // WARNING: This is a temporary solution to store the selftest result of the tool offsets calibration independently from previous Tool Offset Calibration implementation using pin
+    // TODO: BFW-9196
     StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Tool Offsets Calibration")> selftest_result_tool_offsets_calibration;
 #endif
 
