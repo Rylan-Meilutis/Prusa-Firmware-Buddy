@@ -203,6 +203,11 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     return true;
 }
 
+/// Lower the bed (print-end height) so the user can pick up a failed print and reach the docks.
+static void lower_bed_for_pickup() {
+    mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_NOZZLE_PARK_POINT_MIN } });
+}
+
 void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
 #if ENABLED(POWER_PANIC)
     // Stored panic data + autostart not yet done = resume decision pending.
@@ -249,6 +254,10 @@ void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
         block_tool_check = true;
         ScopeGuard guard = [this] { block_tool_check = false; };
         marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::tool_lost);
+
+        // Lower the bed so the user can pick up the failed print while the dialog is shown.
+        lower_bed_for_pickup();
+
         marlin_server::wait_for_response(PhaseNozzleMismatch::tool_lost);
 
         marlin_server::fsm_change(PhaseNozzleMismatch::homing);
@@ -484,9 +493,8 @@ bool PrusaToolChanger::manual_tool_park(std::optional<PhysicalToolIndex> tool) {
     // Open on the buttonless homing screen so the prompt isn't shown while the head moves.
     marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::homing);
 
-    // Z clearance to allow user to manually adjust the docks
-    static constexpr float UNKNOWN_TOOL_Z_LIFT_MM = 100.f;
-    mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 15, .absolute = UNKNOWN_TOOL_Z_LIFT_MM } });
+    // Lower the bed so the user can pick up a failed print and reach the docks.
+    lower_bed_for_pickup();
 
     // Interactive path — drive the nozzle-mismatch FSM so the user picks a dock
     marlin_server::fsm_change(PhaseNozzleMismatch::prompt);
