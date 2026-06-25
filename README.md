@@ -2,7 +2,7 @@
 
 ## RME Firmware Features
 
-This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.5.3. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
+This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.5.7. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
 
 The main additions over the base firmware are:
 

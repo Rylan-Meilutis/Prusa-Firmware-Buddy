@@ -189,7 +189,7 @@ static StateAnimation marlin_to_anim_state() {
     case State::Aborting_Preview:
     case State::Aborting_UnloadFilament:
     case State::Aborted:
-        return StateAnimation::Aborted;
+        return StateAnimation::Aborting;
 
     case State::Finishing_ParkHead:
     case State::Finishing_UnloadFilament:
