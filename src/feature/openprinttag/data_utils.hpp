@@ -86,9 +86,14 @@ struct FilamentParametersInfo {
 
     FilamentTypeParameters parameters;
 
-    /// Bitset of parameters that the utility failed to deduce
+    /// Bitset of parameters that were not present on the OPT data
+    /// This does not necessarily mean failure though - the params could have been "suggested" from the base type instead
+    /// For a full failure, rather check @p deduction_failed
     /// Indexes correspond with @p filament_type_parameter_index of each member
     MissingParameters missing_parameters;
+
+    /// Denotes whether the data is complete/reliable enough to be used for operations
+    bool data_safe_to_use : 1 = false;
 };
 
 } // namespace buddy::openprinttag

@@ -74,7 +74,7 @@ bool ScreenOPTFilamentDetail::scan() {
         }
     });
 
-    if (params.missing_parameters.any()) {
+    if (!params.data_safe_to_use) {
         MsgBoxWarning(_("Some of the parameters on the OpenPrintTag were missing or invalid. Please revise the highlighted fields."), Responses_Ok);
 
     } else if (preheat_mode_) {

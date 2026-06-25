@@ -142,7 +142,7 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
 
             opt::FilamentParametersInfo params { req };
 
-            if (params.missing_parameters.none()) {
+            if (params.data_safe_to_use) {
                 // Everything derived perfectly from the tag -> apply the parameters and be happy
                 const FilamentType ft = PendingAdHocFilamentType {};
                 ft.set_parameters(params.parameters);

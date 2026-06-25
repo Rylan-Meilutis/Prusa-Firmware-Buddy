@@ -86,6 +86,9 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
         if (base_type != FilamentType::none) {
             parameters_unsafe = base_type.parameters();
 
+            // We have a base dataset that we can use, consider it safe
+            data_safe_to_use = true;
+
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             if (auto base_preset = std::get_if<PresetFilamentType>(&base_type)) {
                 set.operator()<&Params::base_preset>(*base_preset);
@@ -100,6 +103,9 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
         } else {
             // Set the name, but do not clear the missing flag
             parameters_unsafe.name = abbreviation.abbreviation;
+
+            // Also we cannot use the dataset
+            data_safe_to_use = false;
         }
     }
 
@@ -212,6 +218,8 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     unset_missing.operator()<&FilamentTypeParameters::chamber_min_temperature>();
     unset_missing.operator()<&FilamentTypeParameters::chamber_max_temperature>();
 #endif
+
+    data_safe_to_use |= missing_parameters.none();
 }
 
 } // namespace buddy::openprinttag
