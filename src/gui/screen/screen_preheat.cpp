@@ -121,7 +121,7 @@ void MI_FILAMENT::click(IWindowMenu &) {
 #if HAS_ANFC()
 // * MI_FROM_OPENPRINTTAG
 MI_FROM_OPENPRINTTAG::MI_FROM_OPENPRINTTAG(VirtualToolIndex tool)
-    : IWindowMenuItem(_("Scan OpenPrintTag"))
+    : IWindowMenuItem(_("Data From OpenPrintTag"), &img::openprinttag_white_16x16)
     , tool_(tool) {
 }
 
