@@ -43,157 +43,159 @@ LOG_COMPONENT_REF(Marlin);
 METRIC_DEF(metric_excite_freq, "excite_freq", METRIC_VALUE_FLOAT, 100, METRIC_DISABLED);
 METRIC_DEF(metric_freq_gain, "freq_gain", METRIC_VALUE_CUSTOM, 100, METRIC_ENABLED);
 
+namespace vibrate_measure {
+
 namespace {
-class HarmonicGenerator {
+    class HarmonicGenerator {
 
-public:
-    /**
-     * @brief Displacement amplitude
-     *
-     * double integral of acceleration over time results in position amplitude
-     *
-     * @param acceleration in m/s-2
-     * @param frequency in Hz
-     * @return amplitude in meters
-     */
-    static float amplitudeNotRounded(float frequency, float acceleration) {
-        return acceleration / (4 * std::numbers::pi_v<float> * std::numbers::pi_v<float> * frequency * frequency);
-    }
-
-    HarmonicGenerator(float frequency, float amplitude, float step_len)
-        : m_amplitude_steps(amplitudeRoundToSteps(amplitude, step_len))
-        , m_step(step_len)
-        , m_freq2pi_inv(1.f / (frequency * 2 * std::numbers::pi_v<float>))
-        , m_last_time(1.f / (frequency * 4.f))
-        , m_last_step(m_amplitude_steps - 1)
-        , m_dir_forward(false) {}
-
-    float nextDelayDir() {
-        float new_time = asinf(static_cast<float>(m_last_step) / m_amplitude_steps) * m_freq2pi_inv;
-
-        if (m_dir_forward) {
-            if (m_last_step < m_amplitude_steps) {
-                ++m_last_step;
-            } else {
-                --m_last_step;
-                m_dir_forward = false;
-            }
-        } else {
-            if (m_last_step > -m_amplitude_steps) {
-                --m_last_step;
-            } else {
-                ++m_last_step;
-                m_dir_forward = true;
-            }
+    public:
+        /**
+         * @brief Displacement amplitude
+         *
+         * double integral of acceleration over time results in position amplitude
+         *
+         * @param acceleration in m/s-2
+         * @param frequency in Hz
+         * @return amplitude in meters
+         */
+        static float amplitudeNotRounded(float frequency, float acceleration) {
+            return acceleration / (4 * std::numbers::pi_v<float> * std::numbers::pi_v<float> * frequency * frequency);
         }
 
-        float next_delay = new_time - m_last_time;
-        m_last_time = new_time;
-        return next_delay;
-    }
+        HarmonicGenerator(float frequency, float amplitude, float step_len)
+            : m_amplitude_steps(amplitudeRoundToSteps(amplitude, step_len))
+            , m_step(step_len)
+            , m_freq2pi_inv(1.f / (frequency * 2 * std::numbers::pi_v<float>))
+            , m_last_time(1.f / (frequency * 4.f))
+            , m_last_step(m_amplitude_steps - 1)
+            , m_dir_forward(false) {}
 
-    int getStepsPerPeriod() {
-        return (m_amplitude_steps * 4);
-    }
+        float nextDelayDir() {
+            float new_time = asinf(static_cast<float>(m_last_step) / m_amplitude_steps) * m_freq2pi_inv;
 
-    float getFrequency() {
-        float period = .0f;
-        for (int i = 0; i < getStepsPerPeriod(); ++i) {
-            period += abs(nextDelayDir());
+            if (m_dir_forward) {
+                if (m_last_step < m_amplitude_steps) {
+                    ++m_last_step;
+                } else {
+                    --m_last_step;
+                    m_dir_forward = false;
+                }
+            } else {
+                if (m_last_step > -m_amplitude_steps) {
+                    --m_last_step;
+                } else {
+                    ++m_last_step;
+                    m_dir_forward = true;
+                }
+            }
+
+            float next_delay = new_time - m_last_time;
+            m_last_time = new_time;
+            return next_delay;
         }
-        return 1.f / period;
-    }
 
-    float getAcceleration(float frequency) {
-        return m_amplitude_steps * m_step * 4.f * std::numbers::pi_v<float> * std::numbers::pi_v<float> * frequency * frequency;
-    }
+        int getStepsPerPeriod() {
+            return (m_amplitude_steps * 4);
+        }
 
-private:
-    static int amplitudeRoundToSteps(float amplitude_not_rounded, float step_len) {
-        return static_cast<int>(std::ceil(amplitude_not_rounded / step_len));
-    }
+        float getFrequency() {
+            float period = .0f;
+            for (int i = 0; i < getStepsPerPeriod(); ++i) {
+                period += abs(nextDelayDir());
+            }
+            return 1.f / period;
+        }
 
-    const int m_amplitude_steps; ///< amplitude rounded to steps
-    const float m_step;
-    const float m_freq2pi_inv;
-    float m_last_time;
-    int m_last_step;
-    bool m_dir_forward;
-};
+        float getAcceleration(float frequency) {
+            return m_amplitude_steps * m_step * 4.f * std::numbers::pi_v<float> * std::numbers::pi_v<float> * frequency * frequency;
+        }
 
-using namespace accelerometer;
-class StepDir {
-public:
-    static constexpr float m_ticks_per_second = STEPPER_TIMER_RATE;
-    struct RetVal {
-        int step_us;
-        bool dir;
+    private:
+        static int amplitudeRoundToSteps(float amplitude_not_rounded, float step_len) {
+            return static_cast<int>(std::ceil(amplitude_not_rounded / step_len));
+        }
+
+        const int m_amplitude_steps; ///< amplitude rounded to steps
+        const float m_step;
+        const float m_freq2pi_inv;
+        float m_last_time;
+        int m_last_step;
+        bool m_dir_forward;
     };
-    StepDir(HarmonicGenerator &generator)
-        : m_generator(generator)
-        , m_step_us_fraction(.0f) {}
-    RetVal get() {
-        RetVal retval(0);
-        const float next_delay_dir = m_generator.nextDelayDir();
-        retval.dir = signbit(next_delay_dir);
 
-        const float next_delay = abs(next_delay_dir);
-        const float next_delay_us = next_delay * m_ticks_per_second + m_step_us_fraction;
-        retval.step_us = static_cast<int>(next_delay_us);
-        m_step_us_fraction = next_delay_us - retval.step_us;
+    using namespace accelerometer;
+    class StepDir {
+    public:
+        static constexpr float m_ticks_per_second = STEPPER_TIMER_RATE;
+        struct RetVal {
+            int step_us;
+            bool dir;
+        };
+        StepDir(HarmonicGenerator &generator)
+            : m_generator(generator)
+            , m_step_us_fraction(.0f) {}
+        RetVal get() {
+            RetVal retval(0);
+            const float next_delay_dir = m_generator.nextDelayDir();
+            retval.dir = signbit(next_delay_dir);
 
-        return retval;
-    }
+            const float next_delay = abs(next_delay_dir);
+            const float next_delay_us = next_delay * m_ticks_per_second + m_step_us_fraction;
+            retval.step_us = static_cast<int>(next_delay_us);
+            m_step_us_fraction = next_delay_us - retval.step_us;
 
-private:
-    HarmonicGenerator &m_generator;
-    float m_step_us_fraction;
-};
-
-template <size_t max_samples>
-class FixedLengthSpectrum final : public Spectrum {
-public:
-    FixedLengthSpectrum(float start_frequency, float frequency_step)
-        : m_gain()
-        , m_start_frequency(start_frequency)
-        , m_frequency_step(frequency_step)
-        , m_size(0) {}
-
-    constexpr size_t max_size() const { return max_samples; }
-
-    size_t size() const final { return m_size; }
-
-    void put(float gain) {
-        if (m_size >= max_samples) {
-            return;
+            return retval;
         }
-        m_gain[m_size] = gain;
-        ++m_size;
-    }
-    FrequencyGain get(size_t index) const final {
-        FrequencyGain retval = { 0.f, 0.f };
-        if (index < m_size) {
-            retval.frequency = m_start_frequency + index * m_frequency_step;
-            retval.gain = m_gain[index];
-        }
-        return retval;
-    }
-    float max() const final {
-        float maximum = std::numeric_limits<float>::min();
-        for (size_t i = 0; i < m_size; ++i) {
-            if (m_gain[i] > maximum) {
-                maximum = m_gain[i];
+
+    private:
+        HarmonicGenerator &m_generator;
+        float m_step_us_fraction;
+    };
+
+    template <size_t max_samples>
+    class FixedLengthSpectrum final : public Spectrum {
+    public:
+        FixedLengthSpectrum(float start_frequency, float frequency_step)
+            : m_gain()
+            , m_start_frequency(start_frequency)
+            , m_frequency_step(frequency_step)
+            , m_size(0) {}
+
+        constexpr size_t max_size() const { return max_samples; }
+
+        size_t size() const final { return m_size; }
+
+        void put(float gain) {
+            if (m_size >= max_samples) {
+                return;
             }
+            m_gain[m_size] = gain;
+            ++m_size;
         }
-        return maximum;
-    }
+        FrequencyGain get(size_t index) const final {
+            FrequencyGain retval = { 0.f, 0.f };
+            if (index < m_size) {
+                retval.frequency = m_start_frequency + index * m_frequency_step;
+                retval.gain = m_gain[index];
+            }
+            return retval;
+        }
+        float max() const final {
+            float maximum = std::numeric_limits<float>::min();
+            for (size_t i = 0; i < m_size; ++i) {
+                if (m_gain[i] > maximum) {
+                    maximum = m_gain[i];
+                }
+            }
+            return maximum;
+        }
 
-private:
-    float m_gain[max_samples];
-    float m_start_frequency;
-    float m_frequency_step;
-    size_t m_size;
-};
+    private:
+        float m_gain[max_samples];
+        float m_start_frequency;
+        float m_frequency_step;
+        size_t m_size;
+    };
 } // anonymous namespace
 
 static void print_accelerometer_error(const char *error) {
@@ -853,6 +855,8 @@ static bool idle_progress_hook(const VibrateMeasureProgressHookParams &) {
     return true;
 };
 
+} // namespace vibrate_measure
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -884,6 +888,8 @@ static bool idle_progress_hook(const VibrateMeasureProgressHookParams &) {
  * - `I` - Which harmonic frequency to measure
  */
 void GcodeSuite::M958() {
+    using namespace vibrate_measure;
+
     // phstep needs to be off _before_ getting the current ustep resolution
     phase_stepping::EnsureDisabled phaseSteppingDisabler;
     MicrostepRestorer microstepRestorer;
@@ -919,6 +925,8 @@ void GcodeSuite::M958() {
 }
 
 /** @}*/
+
+namespace vibrate_measure {
 
 static constexpr float epsilon = 0.01f;
 
@@ -1075,20 +1083,20 @@ static float smoothing(const input_shaper::Shaper &shaper) {
 }
 
 namespace {
-enum class Action {
-    first,
-    /// Find lowest vibrs, reverse order, return when maximum smoothing exceeded
-    find_best_result = first,
-    /// Try to find an 'optimal' shapper configuration: the one that is not
-    /// much worse than the 'best' one, but gives much less smoothing
-    select,
-    last = select,
-};
-Action &operator++(Action &action) {
-    using IntType = typename std::underlying_type<Action>::type;
-    action = static_cast<Action>(static_cast<IntType>(action) + 1);
-    return action;
-}
+    enum class Action {
+        first,
+        /// Find lowest vibrs, reverse order, return when maximum smoothing exceeded
+        find_best_result = first,
+        /// Try to find an 'optimal' shapper configuration: the one that is not
+        /// much worse than the 'best' one, but gives much less smoothing
+        select,
+        last = select,
+    };
+    Action &operator++(Action &action) {
+        using IntType = typename std::underlying_type<Action>::type;
+        action = static_cast<Action>(static_cast<IntType>(action) + 1);
+        return action;
+    }
 } // anonymous namespace
 
 struct Shaper_result {
@@ -1289,6 +1297,8 @@ MicrostepRestorer::~MicrostepRestorer() {
     }
 }
 
+} // namespace vibrate_measure
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -1320,6 +1330,8 @@ MicrostepRestorer::~MicrostepRestorer() {
  * - `I` - Which harmonic frequency to measure
  */
 void GcodeSuite::M959() {
+    using namespace vibrate_measure;
+
     SERIAL_ECHO_START();
     SERIAL_ECHOLNPAIR("Running: ", parser.get_command());
 

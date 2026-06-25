@@ -15,6 +15,8 @@
 
 static_assert(HAS_LOCAL_ACCELEROMETER() || HAS_REMOTE_ACCELEROMETER());
 
+namespace vibrate_measure {
+
 struct FrequencyGain {
     float frequency;
     float gain;
@@ -157,3 +159,5 @@ struct Vibrate {
     /// Parameters can be changed in between.
     void step();
 };
+
+} // namespace vibrate_measure

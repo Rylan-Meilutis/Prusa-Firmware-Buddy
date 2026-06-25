@@ -61,7 +61,7 @@ static constexpr size_t sample_count(FrequencyRange frequency_range) {
     return (frequency_range.end - frequency_range.start) / frequency_range.increment;
 }
 
-class FrequencyRangeSpectrum final : public Spectrum {
+class FrequencyRangeSpectrum final : public vibrate_measure::Spectrum {
 public:
     float max() const final {
         return *std::max_element(samples.begin(), samples.end());
@@ -69,7 +69,7 @@ public:
     size_t size() const final {
         return samples.size();
     }
-    FrequencyGain get(size_t index) const final {
+    vibrate_measure::FrequencyGain get(size_t index) const final {
         return {
             .frequency = static_cast<float>(frequency_range.start + index * frequency_range.increment),
             .gain = samples[index],
@@ -98,7 +98,7 @@ public:
         if (f) {
             std::array<char, 32> buffer;
             for (size_t i = 0; i < size(); ++i) {
-                FrequencyGain fg = get(i);
+                vibrate_measure::FrequencyGain fg = get(i);
                 size_t n = snprintf(buffer.data(), buffer.size(), "%f\t%f\n", (double)fg.frequency, (double)fg.gain);
                 fwrite(buffer.data(), n, 1, f);
             }
@@ -269,6 +269,7 @@ static PhasesInputShaperCalibration measuring_axis(
     const AxisEnum logicalAxis,
     const StepEventFlag_t axis_flag,
     FrequencyRangeSpectrum &spectrum) {
+    using namespace vibrate_measure;
 
     fsm::PhaseData data {
         static_cast<uint8_t>(frequency_range.start),

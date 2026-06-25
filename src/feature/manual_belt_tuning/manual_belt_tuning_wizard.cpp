@@ -24,6 +24,7 @@
 
 using namespace marlin_server;
 using namespace manual_belt_tuning;
+using namespace vibrate_measure;
 
 namespace {
 
