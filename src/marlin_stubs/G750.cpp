@@ -3,6 +3,7 @@
 #include <config_store/store_instance.hpp>
 #include <gcode/gcode_parser.hpp>
 #include <module/prusa/toolchanger_utils.h>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include <raii/scope_guard.hpp>
 #include <module/planner.h>
 #include <filament.hpp>
@@ -58,7 +59,7 @@ void PrusaGcodeSuite::G750() {
 
     // L = adjust the feedrate based on the loaded filament's properties.
     if (p.has_option('L')) {
-        feedrate = adjust_feedrate_for_filament(feedrate, FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()));
+        feedrate = buddy::adjust_feedrate_for_filament(feedrate, FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()));
     }
 
     // Use machine coordinates - wastebin is outside of MBL area, applying MBL would do funny stuff.

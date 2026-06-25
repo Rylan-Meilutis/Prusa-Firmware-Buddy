@@ -58,6 +58,7 @@ static_assert(HAS_PAUSE());
 #include <sound.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
 #include <mapi/cold_extrude.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
 
 #include <option/has_human_interactions.h>
