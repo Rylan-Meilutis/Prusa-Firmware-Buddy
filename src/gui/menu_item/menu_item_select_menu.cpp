@@ -142,6 +142,10 @@ void MenuItemSelectMenu::force_set_current_item(int set) {
     InValidateExtension();
 }
 
+Color MenuItemSelectMenu::resolved_value_text_color(Color base_color) const {
+    return (is_focused() && IsEnabled()) ? GuiDefaults::ColorSelected : base_color;
+}
+
 void MenuItemSelectMenu::printExtension(Rect16 extension_rect, Color color_text, Color color_back, [[maybe_unused]] ropfn raster_op) const {
     if (behavior_ == Behavior::select_only) {
         // Handles drawing "expands" icon
@@ -177,8 +181,7 @@ void MenuItemSelectMenu::printExtension(Rect16 extension_rect, Color color_text,
         extension_rect = Rect16::fromLTRB(extension_rect.Left() + font_w, extension_rect.Top(), extension_rect.EndPoint().x - font_w, extension_rect.EndPoint().y);
     }
 
-    const auto text_color = (IsFocused() && IsEnabled()) ? GuiDefaults::ColorSelected : color_text;
-    render_text_align(extension_rect, value_, value_font, color_back, text_color, {}, Align_t::Center(), false);
+    render_text_align(extension_rect, value_, value_font, color_back, resolved_value_text_color(color_text), {}, Align_t::Center(), false);
 }
 
 void MenuItemSelectMenu::click(IWindowMenu &menu) {
