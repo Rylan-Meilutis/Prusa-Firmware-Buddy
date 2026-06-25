@@ -353,7 +353,7 @@ AxisEnum get_logical_axis(const uint16_t axis_flag) {
     return NO_AXIS_ENUM;
 }
 
-bool VibrateMeasureParams::setup(const MicrostepRestorer &microstep_restorer) {
+bool MeasureParams::setup(const MicrostepRestorer &microstep_restorer) {
     step_len = get_step_len(axis_flag, microstep_restorer.saved_mres());
     if (isnan(step_len)) {
         return false;
@@ -433,14 +433,14 @@ void Vibrate::step() {
  * for half of the measurement duration with amplitude going to zero and then half of the measurement duration in phase with
  * increasing amplitude - when such response is correlated with excitation signal there is zero correlation.
  *
- * @param args see VibrateMeasureParams
+ * @param args see MeasureParams
  * @param requested_frequency Requested excitation frequency.
  * 		  Rounding error may cause it not to be reached exactly. Excitation frequency reached is returned in result.
  * @param progress_hook
- * @retval VibrateMeasureResult on success
+ * @retval ResponseSample on success
  * @retval std::nullopt on failure
  */
-std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &args, float requested_frequency, const VibrateMeasureProgressHook &progress_hook) {
+std::optional<ResponseSample> measure(const MeasureParams &args, float requested_frequency, const ProgressHook &progress_hook) {
     if (args.klipper_mode && args.measured_harmonic != 1) {
         SERIAL_ERROR_MSG("vibrate measure: klipper mode does not support measuring higher harmonics");
         return std::nullopt;
@@ -476,8 +476,8 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
     FourierSeries3d fourier(measurement_frequency);
 
     const auto calib_progress_hook = [&progress_hook](float progress) {
-        return progress_hook(VibrateMeasureProgressHookParams {
-            .phase = VibrateMeasureProgressHookParams::Phase::calibrating,
+        return progress_hook(ProgressHookParams {
+            .phase = ProgressHookParams::Phase::calibrating,
             .progress = progress,
         });
     };
@@ -498,8 +498,8 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
 #endif
 
     const auto get_progress_measuring = [&]() {
-        VibrateMeasureProgressHookParams progress_hook_params {
-            .phase = VibrateMeasureProgressHookParams::Phase::measuring,
+        ProgressHookParams progress_hook_params {
+            .phase = ProgressHookParams::Phase::measuring,
             .progress = std::min<float>(static_cast<float>(fourier.get_samples_num()) / samples_to_collect, 1),
         };
         return progress_hook_params;
@@ -637,7 +637,7 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
         }
     }
 
-    VibrateMeasureResult result {
+    ResponseSample result {
         .excitation_frequency = excitation_frequency,
     };
 
@@ -701,18 +701,18 @@ std::optional<VibrateMeasureResult> vibrate_measure(const VibrateMeasureParams &
  * @param calibrate_accelerometer
  * @return Frequency and gain measured on each axis if there is accelerometer
  */
-std::optional<VibrateMeasureResult> vibrate_measure_repeat(const VibrateMeasureParams &args, float frequency, const VibrateMeasureProgressHook &progress_hook) {
+std::optional<ResponseSample> measure_repeat(const MeasureParams &args, float frequency, const ProgressHook &progress_hook) {
     constexpr int max_attempts = 3;
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
-        const auto result = vibrate_measure(args, frequency, progress_hook);
+        const auto result = measure(args, frequency, progress_hook);
         if (result.has_value()) {
             return result;
         }
 
-        log_info(Marlin, "vibrate_measure: Attempt %i failed", attempt);
+        log_info(Marlin, "measure: Attempt %i failed", attempt);
     }
 
-    SERIAL_ERROR_MSG("vibrate_measure_repeat: maximum attempts exhausted");
+    SERIAL_ERROR_MSG("measure_repeat: maximum attempts exhausted");
     marlin_server::set_warning(WarningType::AccelerometerCommunicationFailed);
     return std::nullopt;
 }
@@ -850,7 +850,7 @@ float get_step_len(StepEventFlag_t axis_flag, const uint16_t orig_mres[]) {
     return NAN;
 }
 
-static bool idle_progress_hook(const VibrateMeasureProgressHookParams &) {
+static bool idle_progress_hook(const ProgressHookParams &) {
     idle(true);
     return true;
 };
@@ -894,7 +894,7 @@ void GcodeSuite::M958() {
     phase_stepping::EnsureDisabled phaseSteppingDisabler;
     MicrostepRestorer microstepRestorer;
 
-    VibrateMeasureParams args {
+    MeasureParams args {
         .excitation_acceleration = 2.5f,
         .excitation_cycles = 50,
         .klipper_mode = parser.seen('K'),
@@ -921,7 +921,7 @@ void GcodeSuite::M958() {
     }
 
     serial_echo_header(args.klipper_mode);
-    vibrate_measure_repeat(args, frequency, idle_progress_hook);
+    measure_repeat(args, frequency, idle_progress_hook);
 }
 
 /** @}*/
@@ -938,7 +938,7 @@ static constexpr float epsilon = 0.01f;
  * But in reality we are exciting the system by sine wave displacement. We for sure can not tell, if the force is still sine wave
  * and what is the force - the force depends on motor load angle and belt stiffness and we don't know it.
  */
-static void naive_zv_tune(VibrateMeasureParams &args, const VibrateMeasureRange &range) {
+static void naive_zv_tune(MeasureParams &args, const MeasureRange &range) {
     FrequencyGain maxFrequencyGain = { 0.f, 0.f };
     const AxisEnum logicalAxis = get_logical_axis(args.axis_flag);
     if (logicalAxis == NO_AXIS_ENUM) {
@@ -949,7 +949,7 @@ static void naive_zv_tune(VibrateMeasureParams &args, const VibrateMeasureRange 
     serial_echo_header(args.klipper_mode);
 
     for (float frequency = range.start_frequency; frequency <= range.end_frequency + epsilon; frequency += range.frequency_increment) {
-        const auto result = vibrate_measure_repeat(args, frequency, idle_progress_hook);
+        const auto result = measure_repeat(args, frequency, idle_progress_hook);
         args.calibrate_accelerometer = false;
         if (!result.has_value()) {
             return;
@@ -1240,9 +1240,9 @@ input_shaper::AxisConfig find_best_shaper(const FindBestShaperProgressHook &prog
 /**
  * @brief
  *
- * To save memory we assume reached frequency was equal to requested, so frequency returned by vibrate_measure() is discarded.
+ * To save memory we assume reached frequency was equal to requested, so frequency returned by vibrate_measure::measure() is discarded.
  */
-static void klipper_tune(VibrateMeasureParams &args, VibrateMeasureRange range, bool subtract_excitation) {
+static void klipper_tune(MeasureParams &args, MeasureRange range, bool subtract_excitation) {
     // Power spectrum density
     FixedLengthSpectrum<146> psd(range.start_frequency, range.frequency_increment);
     range.end_frequency = limit_end_frequency(range.start_frequency, range.end_frequency, range.frequency_increment, psd.max_size());
@@ -1255,7 +1255,7 @@ static void klipper_tune(VibrateMeasureParams &args, VibrateMeasureRange range, 
     serial_echo_header(args.klipper_mode);
 
     for (float frequency = range.start_frequency; frequency <= range.end_frequency + epsilon; frequency += range.frequency_increment) {
-        auto result = vibrate_measure_repeat(args, frequency, idle_progress_hook);
+        auto result = measure_repeat(args, frequency, idle_progress_hook);
         args.calibrate_accelerometer = false;
         if (!result.has_value()) {
             return;
@@ -1353,14 +1353,14 @@ void GcodeSuite::M959() {
     phase_stepping::EnsureDisabled phaseSteppingDisabler;
     MicrostepRestorer microstep_restorer;
 
-    VibrateMeasureParams args {
+    MeasureParams args {
         .excitation_acceleration = 2.5f,
         .excitation_cycles = 50,
         .klipper_mode = parser.seen('K'),
         .calibrate_accelerometer = true,
         .axis_flag = setup_axis(), // modifies mres as a side-effect
     };
-    VibrateMeasureRange range {
+    MeasureRange range {
         .start_frequency = 5,
         .end_frequency = 150,
         .frequency_increment = 1,

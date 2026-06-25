@@ -284,7 +284,7 @@ static PhasesInputShaperCalibration measuring_axis(
     MicrostepRestorer microstepRestorer;
     enable_all_steppers(); // enable all axes to have the same state as printing
 
-    VibrateMeasureParams args {
+    MeasureParams args {
         .excitation_acceleration = acceleration_requested,
         .excitation_cycles = cycles,
         .klipper_mode = klipper_mode,
@@ -305,14 +305,14 @@ static PhasesInputShaperCalibration measuring_axis(
     } progress_hook_data {
         .phase = phase
     };
-    const auto progress_hook = [&progress_hook_data](const VibrateMeasureProgressHookParams &params) {
+    const auto progress_hook = [&progress_hook_data](const ProgressHookParams &params) {
         progress_hook_data.aborted |= was_abort_requested(progress_hook_data.phase);
         if (progress_hook_data.aborted) {
             return false;
         }
 
         // data[3] == 1 calibrating
-        if (params.phase == VibrateMeasureProgressHookParams::Phase::calibrating && abs(params.progress - progress_hook_data.prev_progress) >= 0.01f) {
+        if (params.phase == ProgressHookParams::Phase::calibrating && abs(params.progress - progress_hook_data.prev_progress) >= 0.01f) {
             fsm::PhaseData calibrating_data = { 0, 0, static_cast<uint8_t>(255 * params.progress), 1 };
             marlin_server::fsm_change(progress_hook_data.phase, calibrating_data);
             progress_hook_data.prev_progress = params.progress;
@@ -334,7 +334,7 @@ static PhasesInputShaperCalibration measuring_axis(
 
         marlin_server::fsm_change(phase, data);
 
-        auto result = vibrate_measure_repeat(args, frequency, progress_hook);
+        auto result = measure_repeat(args, frequency, progress_hook);
         args.calibrate_accelerometer = false;
         if (!result.has_value()) {
             return PhasesInputShaperCalibration::measurement_failed;
