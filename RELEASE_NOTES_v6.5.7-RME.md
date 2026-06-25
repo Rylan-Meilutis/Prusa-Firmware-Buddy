@@ -158,6 +158,8 @@ Prusa Connect registration, telemetry/events, and websocket upgrade requests now
 
 Connect file uploads still depend on writable USB media. The printer advertises `/usb` storage to Connect only when media is inserted and mounted, and Connect downloads remain constrained to `/usb` paths and transferable file types.
 
+Serial-printing UI screens no longer mask the underlying print lifecycle from Prusa Connect. While a serial print is active, Connect telemetry and state events report the same `PRINTING`, `PAUSED`, `ATTENTION`, `FINISHED`, or `STOPPED` stages that normal file prints use instead of collapsing the printer to generic `BUSY`.
+
 ## Host progress reporting
 
 Serial print progress now prefers progress reported by the serial host over firmware fallback progress. This avoids the display jumping backwards when the host and the G-code stream disagree. Trusted host progress comes from host status messages such as OctoPrint `M117` status text; streamed `M73` remains available for print start/end detection and fallback progress, but no longer overrides fresh host-reported percent or ETA.
