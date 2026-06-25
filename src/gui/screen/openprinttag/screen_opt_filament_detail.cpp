@@ -70,8 +70,7 @@ bool ScreenOPTFilamentDetail::scan() {
         if constexpr (is_utility_button || std::is_same_v<T, screen_filament_detail::MI_FILAMENT_VISIBLE>) {
             // pass
         } else {
-            const bool is_parameter_missing = params.missing_parameters.test(filament_type_parameter_index<T::parameter_ptr>);
-            item.set_color_scheme(is_parameter_missing ? &missing_item_color_scheme : nullptr);
+            item.set_color_scheme(params.is_missing<T::parameter_ptr>() ? &missing_item_color_scheme : nullptr);
         }
     });
 
