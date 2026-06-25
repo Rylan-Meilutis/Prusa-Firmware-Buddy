@@ -244,6 +244,7 @@ The printer UI, M115, local PrusaLink `/api/version`, BBF packaging, crash-dump 
 Connect info events advertise writable storage only when USB media is inserted and mounted. The `storages` array must include `/usb`, `read_only: false`, and free-space data before Connect can upload files.
 Connect download commands remain accepted through `START_INLINE_DOWNLOAD`, `START_CONNECT_DOWNLOAD`, and `START_ENCRYPTED_DOWNLOAD`.
 Connect downloads stay constrained to `/usb` and transferable file types.
+Serial-printing UI FSM state must not mask the underlying Marlin print lifecycle from Connect. During serial prints, Connect should see normal `PRINTING`, `PAUSED`, `ATTENTION`, `FINISHED`, and `STOPPED` states rather than generic `BUSY`.
 Do not remove the RME suffix globally as a workaround for Connect; keep the compatibility version scoped to Connect-facing reporting.
 ```
 
