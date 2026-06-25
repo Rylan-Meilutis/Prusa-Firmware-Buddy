@@ -245,9 +245,8 @@ static constexpr float expected_accelerometer_sample_period = 1.f / 1344.f;
 /**
  * @param accelerometer
  * @return accelerometer sample period in seconds
- * @retval NAN error
  */
-float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_hook, PrusaAccelerometer &accelerometer) {
+Result<float> get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_hook, PrusaAccelerometer &accelerometer) {
     for (int i = 0; i < 96; ++i) {
         // Note: this is fast enough, it does not need to call progress_hook
         idle(true);
@@ -258,8 +257,8 @@ float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_h
     const uint32_t start_time = millis();
     uint32_t duration_ms = 0;
 
-    if (!progress_hook(0)) {
-        return NAN;
+    if (auto r = progress_hook(0); !r.has_value()) {
+        return std::unexpected(r.error());
     }
 
     for (int i = 0; i < request_samples_num;) {
@@ -272,8 +271,8 @@ float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_h
             break;
 
         case GetSampleResult::buffer_empty: {
-            if (!progress_hook(static_cast<float>(i) / request_samples_num)) {
-                return NAN;
+            if (auto r = progress_hook(static_cast<float>(i) / request_samples_num); !r.has_value()) {
+                return std::unexpected(r.error());
             }
 
             const uint32_t now = millis();
@@ -282,14 +281,14 @@ float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_h
             if (duration_ms > max_duration_ms) {
                 SERIAL_ERROR_MSG("sample period: getting accelerometer samples timed out");
                 accelerometer.report_error(print_accelerometer_error);
-                return NAN;
+                return std::unexpected(Error::failed);
             }
             break;
         }
 
         case GetSampleResult::error:
             accelerometer.report_error(print_accelerometer_error);
-            return NAN;
+            return std::unexpected(Error::failed);
         }
     }
 
@@ -299,12 +298,16 @@ float get_accelerometer_sample_period(const SamplePeriodProgressHook &progress_h
     return duration_ms / 1000.f / static_cast<float>(request_samples_num);
 }
 
-float maybe_calibrate_and_get_accelerometer_sample_period(PrusaAccelerometer &accelerometer, bool calibrate_accelerometer, const SamplePeriodProgressHook &progress_hook) {
+Result<float> maybe_calibrate_and_get_accelerometer_sample_period(PrusaAccelerometer &accelerometer, bool calibrate_accelerometer, const SamplePeriodProgressHook &progress_hook) {
     // TODO: Perhaps we should always calibrate accelerometer and not use this global variable...
     //       Then again, maybe we should not have M958 in the first place...
     static float sample_period = expected_accelerometer_sample_period;
-    if (calibrate_accelerometer || isnan(sample_period)) {
-        sample_period = get_accelerometer_sample_period(progress_hook, accelerometer);
+    if (calibrate_accelerometer) {
+        const auto result = get_accelerometer_sample_period(progress_hook, accelerometer);
+        if (!result.has_value()) {
+            return result;
+        }
+        sample_period = result.value();
         SERIAL_ECHOLNPAIR_F("Sample freq: ", 1.f / sample_period);
     }
     return sample_period;
@@ -437,13 +440,12 @@ void Vibrate::step() {
  * @param requested_frequency Requested excitation frequency.
  * 		  Rounding error may cause it not to be reached exactly. Excitation frequency reached is returned in result.
  * @param progress_hook
- * @retval ResponseSample on success
- * @retval std::nullopt on failure
+ * @retval ResponseSample
  */
-std::optional<ResponseSample> measure(const MeasureParams &args, float requested_frequency, const ProgressHook &progress_hook) {
+Result<ResponseSample> measure(const MeasureParams &args, float requested_frequency, const ProgressHook &progress_hook) {
     if (args.klipper_mode && args.measured_harmonic != 1) {
         SERIAL_ERROR_MSG("vibrate measure: klipper mode does not support measuring higher harmonics");
-        return std::nullopt;
+        return std::unexpected(Error::failed);
     }
 
     // As we push steps directly, phase stepping needs to be off
@@ -470,7 +472,7 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
     const float acceleration = generator.getAcceleration(excitation_frequency);
     PrusaAccelerometer accelerometer;
     if (accelerometer.report_error(print_accelerometer_error)) {
-        return std::nullopt;
+        return std::unexpected(Error::failed);
     }
 
     FourierSeries3d fourier(measurement_frequency);
@@ -481,10 +483,11 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
             .progress = progress,
         });
     };
-    const float accelerometer_sample_period = maybe_calibrate_and_get_accelerometer_sample_period(accelerometer, args.calibrate_accelerometer, calib_progress_hook);
-    if (isnan(accelerometer_sample_period)) {
-        return std::nullopt;
+    const auto accelerometer_sample_result = maybe_calibrate_and_get_accelerometer_sample_period(accelerometer, args.calibrate_accelerometer, calib_progress_hook);
+    if (!accelerometer_sample_result.has_value()) {
+        return std::unexpected(accelerometer_sample_result.error());
     }
+    const float accelerometer_sample_period = accelerometer_sample_result.value();
 
     const bool do_delayed_measurement = (args.measurement_cycles != 0);
     const auto measurement_cycles = do_delayed_measurement ? args.measurement_cycles : args.excitation_cycles;
@@ -539,7 +542,7 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
 
             if (get_sample_result == GetSampleResult::error) {
                 accelerometer.report_error(print_accelerometer_error);
-                return std::nullopt;
+                return std::unexpected(Error::failed);
 
             } else if (do_delayed_measurement) {
                 // If the measurement is delayed, just clear the accelerometer buffer
@@ -561,8 +564,8 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
             metric_record_float(&metric_excite_freq, excitation_frequency);
 
             if (get_sample_result != GetSampleResult::ok) {
-                if (!progress_hook(get_progress_measuring())) {
-                    return std::nullopt;
+                if (auto r = progress_hook(get_progress_measuring()); !r.has_value()) {
+                    return std::unexpected(r.error());
                 }
 
                 idle(true);
@@ -575,7 +578,7 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
         if (step_nr > steps_to_do_max) {
             SERIAL_ERROR_MSG("vibrate measure: getting accelerometer samples timed out");
             accelerometer.report_error(print_accelerometer_error);
-            return std::nullopt;
+            return std::unexpected(Error::failed);
         }
     }
 
@@ -614,8 +617,8 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
                 break;
 
             case GetSampleResult::buffer_empty:
-                if (!progress_hook(get_progress_measuring())) {
-                    return std::nullopt;
+                if (auto r = progress_hook(get_progress_measuring()); !r.has_value()) {
+                    return std::unexpected(r.error());
                 }
 
                 idle(true);
@@ -623,7 +626,7 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
 
             case GetSampleResult::error:
                 accelerometer.report_error(print_accelerometer_error);
-                return std::nullopt;
+                return std::unexpected(Error::failed);
             }
 
             const uint32_t now = millis();
@@ -632,17 +635,17 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
             if (duration_ms > max_duration_ms) {
                 SERIAL_ERROR_MSG("vibrate measure: getting accelerometer samples timed out");
                 accelerometer.report_error(print_accelerometer_error);
-                return std::nullopt;
+                return std::unexpected(Error::failed);
             }
         }
     }
 
-    ResponseSample result {
+    ResponseSample sample {
         .excitation_frequency = excitation_frequency,
     };
 
-    result.amplitude = fourier.get_magnitude();
-    result.gain = result.amplitude / acceleration;
+    sample.amplitude = fourier.get_magnitude();
+    sample.gain = sample.amplitude / acceleration;
 
 #ifdef M958_VERBOSE
     // #error dead code found by automatic analyses (see BFW-5461)
@@ -655,33 +658,33 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
     SERIAL_ECHOPAIR_F(" Ycos ", accumulator.val[1][1], 5);
     SERIAL_ECHOPAIR_F(" Zsin ", accumulator.val[2][0], 5);
     SERIAL_ECHOPAIR_F(" Zcos ", accumulator.val[2][1], 5);
-    SERIAL_ECHOPAIR_F(" X ", result.amplitude.x, 5);
-    SERIAL_ECHOPAIR_F(" Y ", result.amplitude.y, 5);
-    SERIAL_ECHOLNPAIR_F(" Z ", result.amplitude.z, 5);
+    SERIAL_ECHOPAIR_F(" X ", sample.amplitude.x, 5);
+    SERIAL_ECHOPAIR_F(" Y ", sample.amplitude.y, 5);
+    SERIAL_ECHOLNPAIR_F(" Z ", sample.amplitude.z, 5);
 #else
     SERIAL_ECHO(excitation_frequency);
     if (args.klipper_mode) {
-        SERIAL_ECHOPAIR_F(",", sq(result.gain.x), 5);
-        SERIAL_ECHOPAIR_F(",", sq(result.gain.y), 5);
-        SERIAL_ECHOPAIR_F(",", sq(result.gain.z), 5);
-        SERIAL_ECHOLNPAIR_F(",", result.gain_square(), 5);
+        SERIAL_ECHOPAIR_F(",", sq(sample.gain.x), 5);
+        SERIAL_ECHOPAIR_F(",", sq(sample.gain.y), 5);
+        SERIAL_ECHOPAIR_F(",", sq(sample.gain.z), 5);
+        SERIAL_ECHOLNPAIR_F(",", sample.gain_square(), 5);
     } else {
         SERIAL_ECHOPAIR_F(" ", measurement_frequency);
         SERIAL_ECHOPAIR_F(" ", acceleration);
-        SERIAL_ECHOPAIR_F(" ", result.amplitude.x, 5);
-        SERIAL_ECHOPAIR_F(" ", result.amplitude.y, 5);
-        SERIAL_ECHOPAIR_F(" ", result.amplitude.z, 5);
-        SERIAL_ECHOPAIR_F(" ", result.gain.x, 5);
-        SERIAL_ECHOPAIR_F(" ", result.gain.y, 5);
-        SERIAL_ECHOLNPAIR_F(" ", result.gain.z, 5);
+        SERIAL_ECHOPAIR_F(" ", sample.amplitude.x, 5);
+        SERIAL_ECHOPAIR_F(" ", sample.amplitude.y, 5);
+        SERIAL_ECHOPAIR_F(" ", sample.amplitude.z, 5);
+        SERIAL_ECHOPAIR_F(" ", sample.gain.x, 5);
+        SERIAL_ECHOPAIR_F(" ", sample.gain.y, 5);
+        SERIAL_ECHOLNPAIR_F(" ", sample.gain.z, 5);
     }
 #endif
 
     AxisEnum logical_axis = get_logical_axis(args.axis_flag);
     metric_record_custom(&metric_freq_gain, " a=%d,f=%.1f,x=%.4f,y=%.4f,z=%.4f",
-        logical_axis, excitation_frequency, result.gain[0], result.gain[1], result.gain[2]);
+        logical_axis, excitation_frequency, sample.gain[0], sample.gain[1], sample.gain[2]);
 
-    return result;
+    return sample;
 }
 
 /**
@@ -701,7 +704,7 @@ std::optional<ResponseSample> measure(const MeasureParams &args, float requested
  * @param calibrate_accelerometer
  * @return Frequency and gain measured on each axis if there is accelerometer
  */
-std::optional<ResponseSample> measure_repeat(const MeasureParams &args, float frequency, const ProgressHook &progress_hook) {
+Result<ResponseSample> measure_repeat(const MeasureParams &args, float frequency, const ProgressHook &progress_hook) {
     constexpr int max_attempts = 3;
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
         const auto result = measure(args, frequency, progress_hook);
@@ -714,7 +717,7 @@ std::optional<ResponseSample> measure_repeat(const MeasureParams &args, float fr
 
     SERIAL_ERROR_MSG("measure_repeat: maximum attempts exhausted");
     marlin_server::set_warning(WarningType::AccelerometerCommunicationFailed);
-    return std::nullopt;
+    return std::unexpected(Error::failed);
 }
 
 /**
@@ -850,9 +853,9 @@ float get_step_len(StepEventFlag_t axis_flag, const uint16_t orig_mres[]) {
     return NAN;
 }
 
-static bool idle_progress_hook(const ProgressHookParams &) {
+static Result<void> idle_progress_hook(const ProgressHookParams &) {
     idle(true);
-    return true;
+    return {};
 };
 
 } // namespace vibrate_measure
@@ -921,7 +924,7 @@ void GcodeSuite::M958() {
     }
 
     serial_echo_header(args.klipper_mode);
-    measure_repeat(args, frequency, idle_progress_hook);
+    auto _ = measure_repeat(args, frequency, idle_progress_hook);
 }
 
 /** @}*/
@@ -1126,7 +1129,7 @@ static Shaper_result fit_shaper(const FindBestShaperProgressHook &progress_hook,
     for (Action action = Action::first; action <= final_action; ++action) {
         for (float frequency = end_frequency; frequency >= start_frequency - epsilon; frequency -= frequency_step) {
             const float progress_ratio = (end_frequency - frequency) / (end_frequency - start_frequency);
-            if (!progress_hook(type, progress_ratio)) {
+            if (!progress_hook(type, progress_ratio).has_value()) {
                 return {};
             }
             input_shaper::Shaper shaper = input_shaper::get(default_damping_ratio, frequency, default_vibration_reduction, type);
@@ -1143,7 +1146,7 @@ static Shaper_result fit_shaper(const FindBestShaperProgressHook &progress_hook,
                 if (vibrations > shaper_vibrations) {
                     shaper_vibrations = vibrations;
                 }
-                if (!progress_hook(type, progress_ratio)) {
+                if (!progress_hook(type, progress_ratio).has_value()) {
                     return {};
                 }
             }
@@ -1199,7 +1202,7 @@ static input_shaper::AxisConfig find_best_shaper(const FindBestShaperProgressHoo
             continue;
         }
 
-        if (!progress_hook(shaper_type, 0.0f)) {
+        if (!progress_hook(shaper_type, 0.0f).has_value()) {
             break;
         }
 
@@ -1226,9 +1229,9 @@ static input_shaper::AxisConfig find_best_shaper(const FindBestShaperProgressHoo
 }
 
 static input_shaper::AxisConfig find_best_shaper(const Spectrum &psd, const Action final_action, input_shaper::AxisConfig default_config) {
-    const auto progress_hook = [](input_shaper::Type, float) {
+    const auto progress_hook = [](input_shaper::Type, float) -> Result<void> {
         idle(true);
-        return true;
+        return {};
     };
     return find_best_shaper(progress_hook, psd, final_action, default_config);
 }

@@ -305,10 +305,10 @@ static PhasesInputShaperCalibration measuring_axis(
     } progress_hook_data {
         .phase = phase
     };
-    const auto progress_hook = [&progress_hook_data](const ProgressHookParams &params) {
+    const auto progress_hook = [&progress_hook_data](const ProgressHookParams &params) -> Result<void> {
         progress_hook_data.aborted |= was_abort_requested(progress_hook_data.phase);
         if (progress_hook_data.aborted) {
-            return false;
+            return std::unexpected(Error::aborted);
         }
 
         // data[3] == 1 calibrating
@@ -319,7 +319,7 @@ static PhasesInputShaperCalibration measuring_axis(
         }
 
         idle(true);
-        return true;
+        return {};
     };
 
     for (size_t i = 0; i < spectrum.size(); ++i) {
@@ -414,10 +414,10 @@ static PhasesInputShaperCalibration check_result(Context &context) {
 static PhasesInputShaperCalibration computing(Context &context) {
     AxisEnum logicalAxis;
     bool aborted = false;
-    const auto progress_hook = [&](input_shaper::Type type, float progress) {
+    const auto progress_hook = [&](input_shaper::Type type, float progress) -> vibrate_measure::Result<void> {
         aborted |= was_abort_requested(PhasesInputShaperCalibration::computing);
         if (aborted) {
-            return false;
+            return std::unexpected(vibrate_measure::Error::aborted);
         }
 
         fsm::PhaseData data {
@@ -428,7 +428,7 @@ static PhasesInputShaperCalibration computing(Context &context) {
         };
         marlin_server::fsm_change(PhasesInputShaperCalibration::computing, data);
         idle(true);
-        return true;
+        return {};
     };
 
     {
