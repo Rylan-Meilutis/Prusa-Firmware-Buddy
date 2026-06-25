@@ -188,12 +188,12 @@ bool ScreenOPTInfo::scan() {
 
     menu.data_items_.clear();
 
-    if (auto val = req.result<MainField::brand_name>()) {
-        add_string_item(N_("Brand"), *val, brand_name_buffer_);
-    }
-
     if (auto val = req.result<MainField::material_name>()) {
         add_string_item(N_("Material Name"), *val, material_name_buffer_);
+    }
+
+    if (auto val = req.result<MainField::brand_name>()) {
+        add_string_item(N_("Brand"), *val, brand_name_buffer_);
     }
 
     if (!type.abbreviation.empty()) {
