@@ -159,8 +159,6 @@ static StateAnimation marlin_to_anim_state() {
     case State::PrintInit:
     case State::SerialPrintInit:
     case State::Finishing_WaitIdle:
-    case State::Finishing_ParkHead:
-    case State::Finishing_UnloadFilament:
     case State::Pausing_Begin:
     case State::Pausing_Failed_Code:
     case State::Pausing_WaitIdle:
@@ -186,7 +184,7 @@ static StateAnimation marlin_to_anim_state() {
     case State::Aborting_Preview:
     case State::Aborting_UnloadFilament:
     case State::Aborted:
-        return StateAnimation::Aborted;
+        return StateAnimation::Aborting;
 
     case State::Finishing_ParkHead:
     case State::Finishing_UnloadFilament:
