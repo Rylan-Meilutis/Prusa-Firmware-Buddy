@@ -182,6 +182,17 @@ bool state_is_active(DeviceState state) {
         return false;
     }
 }
+
+bool state_has_print_job(DeviceState state) {
+    switch (state) {
+    case DeviceState::Printing:
+    case DeviceState::Paused:
+    case DeviceState::Attention:
+        return true;
+    default:
+        return false;
+    }
+}
 } // namespace
 
 namespace printer_state {
@@ -196,12 +207,14 @@ DeviceState get_state(bool ready) {
         is_preheating = states.is_active(ClientFSM::Preheat);
     });
 
-    const DeviceState busy_state = is_printing ? DeviceState::Printing : DeviceState::Busy;
-
     State state = marlin_vars().print_state;
+    const DeviceState print_state = get_print_state(state, ready);
+    const bool print_job_active = is_printing || state_has_print_job(print_state);
+    const DeviceState busy_state = print_job_active ? print_state : DeviceState::Busy;
+
     if (!top) {
         // No FSM present...
-        return get_print_state(state, ready);
+        return print_state;
     }
 
     const fsm::BaseData &data = top->data;
@@ -217,11 +230,11 @@ DeviceState get_state(bool ready) {
         // NOTE: handled in get_print_state, it can be Printing, Paused or Stopped
         break;
     case ClientFSM::Load_unload:
-        if (is_printing) {
+        if (print_job_active) {
             if (load_unload_attention_while_printing(top->data)) {
                 return DeviceState::Attention;
             } else {
-                return DeviceState::Printing;
+                return print_state == DeviceState::Paused ? DeviceState::Paused : DeviceState::Printing;
             }
         } else {
             return DeviceState::Busy;
@@ -269,13 +282,18 @@ DeviceState get_state(bool ready) {
     case ClientFSM::DoorSensorCalibration:
 #endif
     case ClientFSM::Serial_printing:
+        // The serial-printing FSM is a UI surface, not the print lifecycle.
+        // Preserve the underlying Marlin print state so Connect sees PRINTING,
+        // PAUSED, ATTENTION, FINISHED, or STOPPED instead of generic BUSY.
+        return print_state;
+
+    case ClientFSM::Preheat:
         // FIXME: BFW-3893 Sadly there is no way (without saving state in this function)
         //  to distinguish between preheat from main screen,
         // which would be Idle, and preheat in the middle of filament load/unload,
         // so it is probably better to take it as busy, given we want to decide
         // to allow or not allow remote printing based on this, but this will cause
         // preheat menu to be the only menu screen to not be Idle... :-(
-    case ClientFSM::Preheat:
     case ClientFSM::Wait:
         return busy_state;
 
@@ -398,17 +416,22 @@ StateWithDialog get_state_with_dialog(bool ready) {
 
     std::optional<fsm::States::Top> top;
     fsm::StateId fsm_gen;
-    bool is_printing;
+    bool is_printing = false;
     marlin_vars().peek_fsm_states([&](const fsm::States &states) {
         top = states.get_top();
         fsm_gen = states.get_state_id();
         is_printing = states.is_active(ClientFSM::Printing);
     });
 
+    if (!top) {
+        return state;
+    }
+
+    const bool print_job_active = is_printing || state_has_print_job(state);
     const auto &data = top->data;
     switch (top->fsm_type) {
     case ClientFSM::Load_unload:
-        if (is_printing) {
+        if (print_job_active) {
             if (auto attention_code = load_unload_attention_while_printing(top->data); attention_code.has_value()) {
                 const Response *buttons = ClientResponses::get_available_responses(GetEnumFromPhaseIndex<PhasesLoadUnload>(data.GetPhase())).data();
                 return { state, attention_code, fsm_gen, buttons };
@@ -527,7 +550,8 @@ bool has_job() {
         return true;
     case DeviceState::Attention: {
         // Attention while printing or one of these questions before print(eg. wrong filament)
-        return marlin_vars().peek_fsm_states([](const auto &states) { return states[ClientFSM::Printing] || states[ClientFSM::PrintPreview]; });
+        const bool active_print_state = state_has_print_job(get_print_state(marlin_vars().print_state, false));
+        return active_print_state || marlin_vars().peek_fsm_states([](const auto &states) { return states[ClientFSM::Printing] || states[ClientFSM::PrintPreview]; });
     }
     default:
         return false;
