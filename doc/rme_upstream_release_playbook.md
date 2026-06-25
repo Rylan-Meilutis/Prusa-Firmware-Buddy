@@ -8,9 +8,21 @@ Bring the RME feature set onto the new upstream release with the smallest practi
 
 ## Current Baseline
 
-RME 6.5.3 is based on upstream tag `v6.5.3` at `3fc7b43a3`.
+RME 6.5.7 is based on upstream tag `v6.5.7` at `7119a302d6`.
 
-The first current-branch commit by Rylan Meilutis is:
+The active release branch is:
+
+```sh
+rme-v6.5.7
+```
+
+The release notes for the active release are:
+
+```sh
+RELEASE_NOTES_v6.5.7-RME.md
+```
+
+The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
 
 ```text
 706eb6ea5d25403a8924b82e29f3a23786fe594c new octoprint screen and better color scheme
@@ -22,27 +34,21 @@ The audit baseline for this playbook is the parent of that commit:
 3fc7b43a3b9bd77e9267647af5d96fe1ee7cb1c2
 ```
 
-To re-audit the full RME patch surface:
+To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-base=$(git rev-parse $(git rev-list --reverse --author='Rylan Meilutis' HEAD | head -1)^)
-git diff --stat "$base"
-git diff --name-status "$base"
-git diff --dirstat=files,0 "$base"
+git diff --stat v6.5.7..rme-v6.5.7
+git diff --name-status v6.5.7..rme-v6.5.7
+git diff --dirstat=files,0 v6.5.7..rme-v6.5.7
 ```
 
-At the time this playbook was last audited, the committed RME stack covered 529 files with 12,176 insertions and 437 deletions relative to upstream `v6.5.3`. The stack contains 109 commits through `66af21165`. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.5.7 release port covered 535 files with 13,284 insertions and 1,220 deletions relative to upstream `v6.5.7`. The stack contains 116 replayed RME commits through `f3c3ec13e`, plus the `Finalize 6.5.7 RME release port` commit for the status LED state merge, release documentation, and generated 256-field config-store visitor support. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
-Primary RME branch:
+The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
 ```sh
 coreone-v6.5.3-patches
-```
-
-Primary release notes:
-
-```sh
-RELEASE_NOTES_v6.5.3-RME.md
+git diff 3fc7b43a3b9bd77e9267647af5d96fe1ee7cb1c2..coreone-v6.5.3-patches
 ```
 
 ## Supported Release Targets
@@ -92,7 +98,7 @@ git remote -v
 Prefer a linear cherry-pick of the existing RME commits from the last release branch. Keep upstream changes intact unless they directly replace an RME patch.
 
 ```sh
-git log --oneline v6.5.3..coreone-v6.5.3-patches
+git log --oneline v6.5.7..rme-v6.5.7
 git cherry-pick <first-rme-commit>^..<last-rme-commit>
 ```
 
@@ -101,9 +107,8 @@ If the old branch has extra experimental commits, cherry-pick the feature groups
 3. Before resolving conflicts, regenerate the changed-file inventory from the old release branch and compare it to this playbook.
 
 ```sh
-base=$(git rev-parse $(git rev-list --reverse --author='Rylan Meilutis' coreone-v6.5.3-patches | head -1)^)
-git diff --name-status "$base"..coreone-v6.5.3-patches > /tmp/rme-files.txt
-git diff --dirstat=files,0 "$base"..coreone-v6.5.3-patches
+git diff --name-status v6.5.7..rme-v6.5.7 > /tmp/rme-files.txt
+git diff --dirstat=files,0 v6.5.7..rme-v6.5.7
 ```
 
 Every non-resource source directory in that inventory should map to one of the feature groups below. If a file does not fit, add a new playbook item before finishing the rebase.
