@@ -52,13 +52,27 @@ METRIC_DEF(metric_sensor_pos, "tool_off_sensor_pos", METRIC_VALUE_CUSTOM, 0, MET
 METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
 namespace {
-// C1_INDX - this position is proved to be the best in terms of the lowest warping
 constexpr xy_pos_t POS_TOOL_0 = { 25.0f, 5.0f };
 constexpr xy_pos_t POS_TOOL_LAST = { 65.0f, 5.0f };
 
 // Safe Z height for travel moves between probes
 constexpr float SAFE_Z_HEIGHT = 3.0f;
 
+#if PRINTER_IS_PRUSA_XL()
+/// Maximum allowable Z offset difference between tools, in mm
+/// If exceeded, the print is not allowed to continue
+constexpr float MAX_Z_OFFSET_DIFFERENCE = 4.0f;
+
+/// Maximum allowable XY offset spread (max - min) per axis after normalization, in mm
+/// If exceeded, the print is not allowed to continue
+constexpr float MAX_XY_OFFSET_DIFFERENCE = 4.0f;
+
+// Fallback temperatures if no filament is loaded
+constexpr int16_t DEFAULT_CLEANING_TEMP = 180;
+constexpr int16_t DEFAULT_Z_PROBING_TEMP = 150;
+constexpr int16_t DEFAULT_XY_PROBING_TEMP = 150;
+
+#elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 /// Maximum allowable Z offset difference between tools, in mm
 /// If exceeded, the print is not allowed to continue
 constexpr float MAX_Z_OFFSET_DIFFERENCE = 0.4f;
@@ -71,6 +85,10 @@ constexpr float MAX_XY_OFFSET_DIFFERENCE = 0.4f;
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_Z_PROBING_TEMP = 170;
 constexpr int16_t DEFAULT_XY_PROBING_TEMP = 170;
+#else
+    #error "No tool offset calibration config for this printer"
+#endif
+
 struct ToolTemperatures {
     int16_t cleaning; // nozzle temp for purge/clean
     int16_t z_probing; // cooled-down temp for Z probing
