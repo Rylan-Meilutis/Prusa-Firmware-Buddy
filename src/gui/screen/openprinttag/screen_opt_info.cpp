@@ -181,7 +181,7 @@ bool ScreenOPTInfo::scan() {
         return false;
     }
 
-    AmountsInfo weights { req };
+    AmountsInfo amounts { req };
     AbbreviationInfo type { req };
 
     auto &menu = this->menu.menu;
@@ -209,10 +209,16 @@ bool ScreenOPTInfo::scan() {
         add_string_item(N_("Abbreviation"), sb.str(), abbreviation_buffer_);
     }
 
-    if (weights.full_weight_g.has_value() && weights.remaining_weight_g.has_value() && weights.full_weight_g != weights.remaining_weight_g) {
-        add_fmt_item<N_("Remaining Weight"), "%.0f/%.0f g"_tstr, float, float>(*weights.remaining_weight_g, *weights.full_weight_g);
-    } else if (weights.full_weight_g.has_value()) {
-        add_fmt_item<N_("Full Weight"), "%.0f g"_tstr, float>(*weights.full_weight_g);
+    if (amounts.full_weight_g.has_value() && amounts.remaining_weight_g.has_value() && amounts.full_weight_g != amounts.remaining_weight_g) {
+        add_fmt_item<N_("Remaining Weight"), "%.0f/%.0f g"_tstr, float, float>(*amounts.remaining_weight_g, *amounts.full_weight_g);
+    } else if (amounts.full_weight_g.has_value()) {
+        add_fmt_item<N_("Full Weight"), "%.0f g"_tstr, float>(*amounts.full_weight_g);
+    }
+
+    if (amounts.full_length_mm.has_value() && amounts.remaining_length_mm.has_value() && std::abs(*amounts.full_length_mm - *amounts.remaining_length_mm) > 5) {
+        add_fmt_item<N_("Remaining Length"), "%.0f/%.0f m"_tstr, float, float>(*amounts.remaining_length_mm / 1000, *amounts.full_length_mm / 1000);
+    } else if (amounts.full_length_mm.has_value()) {
+        add_fmt_item<N_("Full Length"), "%.0f m"_tstr, float>(*amounts.full_length_mm / 1000);
     }
 
     // !!! When adding new add_fmt_item calls, make sure that there's enough capacity in data_items_ to accomodate them all
