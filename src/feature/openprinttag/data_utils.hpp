@@ -9,6 +9,7 @@
 #include <filament.hpp>
 #include <filament_meta.hpp>
 #include <option/has_chamber_api.h>
+#include <utils/compact_optional.hpp>
 
 namespace buddy::openprinttag {
 
@@ -18,6 +19,8 @@ struct AmountsInfo {
     using Requirements = ValuePack<
         MainField::nominal_netto_full_weight,
         MainField::actual_netto_full_weight,
+        MainField::nominal_full_length,
+        MainField::actual_full_length,
         AuxField::consumed_weight>;
 
     using RequestRef = Requirements::ApplyOn<MultiReadFieldRequestRef>;
@@ -25,12 +28,16 @@ struct AmountsInfo {
     explicit AmountsInfo(const RequestRef &req);
 
     /// Remaining amount of material, in grams
-    /// NAN if unknown
-    std::optional<float> remaining_weight_g;
+    CompactOptional<float, NAN> remaining_weight_g;
 
     /// Netto weight of the full spool, in grams
-    /// NAN if unknown
-    std::optional<float> full_weight_g;
+    CompactOptional<float, NAN> full_weight_g;
+
+    /// Remaining amount of material, in millimetres
+    CompactOptional<float, NAN> remaining_length_mm;
+
+    /// Netto length of the full spool, in millimetres
+    CompactOptional<float, NAN> full_length_mm;
 };
 
 /// Utilify for determining material type and its abbreviation

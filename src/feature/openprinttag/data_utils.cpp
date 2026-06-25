@@ -17,8 +17,31 @@ AmountsInfo::AmountsInfo(const RequestRef &req) {
         full_weight_g = *val;
     }
 
-    if (auto val = req.result<AuxField::consumed_weight>(); full_weight_g.has_value()) {
-        remaining_weight_g = *full_weight_g - val.value_or(0);
+    // Protect against division by zero on malicious data
+    if (full_weight_g.has_value() && full_weight_g.value() <= 0) {
+        full_weight_g = std::nullopt;
+    }
+
+    if (auto val = req.result<MainField::actual_full_length>()) {
+        full_length_mm = *val;
+
+    } else if (auto val = req.result<MainField::nominal_full_length>()) {
+        full_length_mm = *val;
+    }
+
+    // Protect against division by zero on malicious data
+    if (full_length_mm.has_value() && full_length_mm.value() <= 0) {
+        full_length_mm = std::nullopt;
+    }
+
+    if (full_weight_g.has_value()) {
+        const auto consumed_weight = req.result<AuxField::consumed_weight>();
+
+        remaining_weight_g = std::max<float>(*full_weight_g - consumed_weight.value_or(0), 0);
+
+        if (full_length_mm.has_value()) {
+            remaining_length_mm = *full_length_mm / *full_weight_g * *remaining_weight_g;
+        }
     }
 }
 

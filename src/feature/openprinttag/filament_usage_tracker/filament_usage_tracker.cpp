@@ -5,6 +5,7 @@
 #include <feature/filament_tracker/filament_tracker.hpp>
 #include <feature/openprinttag/requests_read_multi.hpp>
 #include <feature/openprinttag/requests_write.hpp>
+#include <feature/openprinttag/data_utils.hpp>
 #include <freertos/timing.hpp>
 #include <logging/log.hpp>
 #include <marlin_server.hpp>
@@ -183,13 +184,15 @@ void FilamentUsageTracker::retry_finish_cb(const AsyncJobFinishCallbackArgs &arg
 }
 
 FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_async([[maybe_unused]] AsyncJobExecutionControl &ctrl, ToolTag tag) {
-    MultiReadFieldRequest<MainField::nominal_full_length, MainField::actual_full_length, MainField::nominal_netto_full_weight, MainField::actual_netto_full_weight, AuxField::consumed_weight> req { tag };
+    MultiReadFieldRequest<AmountsInfo::Requirements {}> req { tag };
     req.issue();
 
     // Wait for the request to be finished
     while (!req.finished()) {
         freertos::delay(10);
     }
+
+    AmountsInfo amounts(req);
 
     // Check possible errors
     for (Request *req : req.requests()) {
@@ -225,15 +228,12 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_asy
         }
     }
 
-    const float full_length = req.result<MainField::actual_full_length>().value_or(req.result<MainField::nominal_full_length>().value_or(NAN));
-    const float full_weight = req.result<MainField::actual_netto_full_weight>().value_or(req.result<MainField::nominal_netto_full_weight>().value_or(NAN));
-    const float g_per_mm = full_weight / full_length;
-
-    if (std::isnan(g_per_mm)) {
+    if (!amounts.full_length_mm.has_value() || !amounts.full_weight_g.has_value() || !amounts.remaining_weight_g.has_value()) {
         return cannot_track_finish_cb;
     }
 
-    const float remaining_g = full_weight - req.result<AuxField::consumed_weight>().value_or(0);
+    const float g_per_mm = *amounts.full_weight_g / *amounts.full_length_mm;
+    const float remaining_g = *amounts.remaining_weight_g;
 
     return [g_per_mm, remaining_g](const AsyncJobFinishCallbackArgs &args) {
         auto &tool_data = args.tool_data;
