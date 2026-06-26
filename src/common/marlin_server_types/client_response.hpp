@@ -834,7 +834,7 @@ inline constexpr EnumArray<PhaseDockCalibration, PhaseResponses, CountPhases<Pha
     { PhaseDockCalibration::intro, { Response::Continue, Response::Abort } },
     { PhaseDockCalibration::remove_tool, { Response::Abort } },
     { PhaseDockCalibration::select_dock_count, { Response::Docks4, Response::Docks8, Response::Other } },
-    { PhaseDockCalibration::select_docks, {} }, // selected docks passed through FSMResponseVariant as uint8_t bitmask
+    { PhaseDockCalibration::select_docks, {} }, // per-dock actions passed through FSMResponseVariant as a DockSelection
     { PhaseDockCalibration::homing, {} },
     { PhaseDockCalibration::moving_away, {} },
     { PhaseDockCalibration::parking_tool, {} },
