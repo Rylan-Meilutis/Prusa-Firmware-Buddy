@@ -63,6 +63,23 @@ public:
 protected:
     void OnChange(size_t) override;
 
+    virtual Color resolved_value_text_color([[maybe_unused]] Color base_color) const override {
+        Color action_color = COLOR_GRAY;
+        switch (static_cast<DockAction>(current_item())) {
+        case DockAction::keep:
+            action_color = COLOR_GRAY;
+            break;
+        case DockAction::calibrate:
+            action_color = COLOR_LIGHT_GREEN;
+            break;
+        case DockAction::invalidate:
+            action_color = COLOR_ORANGE;
+            break;
+        }
+
+        return action_color;
+    }
+
 private:
     SelectDocksMenu &menu_;
     const PhysicalToolIndex dock_;
