@@ -100,7 +100,7 @@ private:
 
     /// Bitmask of docks selected for calibration
     std::bitset<PhysicalToolIndex::count> selected_docks;
-    static_assert(PhysicalToolIndex::count <= 8, "selected_docks is transferred as uint8_t via FSMResponseVariant");
+    static_assert(PhysicalToolIndex::count <= 8, "dock actions are transferred as a DockSelection via FSMResponseVariant");
 
     Result run_inner() {
         // Intro
@@ -157,12 +157,23 @@ private:
         }
         {
             const auto response = marlin_server::wait_for_response_variant(PhaseDockCalibration::select_docks);
-            if (const auto *raw_mask = response.value_maybe<uint8_t>()) {
-                selected_docks = std::bitset<PhysicalToolIndex::count>(*raw_mask);
-            } else {
+            const auto *sel = response.value_maybe<DockSelection>();
+            if (!sel) {
                 return Result::aborted;
             }
 
+            // Invalidate selected docks
+            if (sel->invalidate) {
+                auto calibrated_mask = config_store().indx_dock_calibrated_mask.get();
+                for (auto tool : PhysicalToolIndex::all()) {
+                    if (sel->invalidate & (1 << tool.to_raw())) {
+                        calibrated_mask.reset(tool.to_raw());
+                    }
+                }
+                config_store().indx_dock_calibrated_mask.set(calibrated_mask);
+            }
+
+            selected_docks = std::bitset<PhysicalToolIndex::count>(sel->calibrate);
             if (selected_docks.none()) {
                 return Result::aborted;
             }
