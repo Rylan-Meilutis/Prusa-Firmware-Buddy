@@ -42,7 +42,7 @@ git diff --name-status v6.6.0..rme-v6.6.0
 git diff --dirstat=files,0 v6.6.0..rme-v6.6.0
 ```
 
-At the time this playbook was last audited, the RME 6.6.0 release port covered 533 files with 13,717 insertions and 1,239 deletions relative to upstream `v6.6.0`. The stack contains 118 replayed RME commits through `b75fe7a8e`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, and the serial MMU print-completion unload fix. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.6.0 release port covered 538 files with 13,933 insertions and 1,251 deletions relative to upstream `v6.6.0`. The stack contains 119 replayed and port-refresh RME commits through `2ed2b31fe`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, the serial MMU print-completion unload fix, and the Buddy 6.6.0 API/resource port. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
