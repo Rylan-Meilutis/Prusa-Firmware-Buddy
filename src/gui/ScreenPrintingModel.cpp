@@ -7,7 +7,6 @@
 #include <guiconfig/guiconfig.h>
 #include "img_resources.hpp"
 #include "window_icon.hpp"
-#include "screen_printing_layout.hpp"
 #include <dialogs/dialog_text_input.hpp>
 #include <printer_lock.hpp>
 #include <array>

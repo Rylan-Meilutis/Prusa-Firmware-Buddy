@@ -1,4 +1,4 @@
-# 6.5.7-RME Firmware for Prusa CORE One, XL, MK4, MK3.9, MK3.5 and MINI
+# 6.6.0-RME Firmware for Prusa CORE One, XL, MK4, MK3.9, MK3.5 and MINI
 
 ## Summary
 
@@ -90,15 +90,15 @@
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
 
-This is a custom firmware release based on upstream Prusa Firmware Buddy 6.5.7. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.
+This is a custom firmware release based on upstream Prusa Firmware Buddy 6.6.0. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.
 
-The release is based on upstream tag `v6.5.7` (`7119a302d6`) with the RME changes replayed on branch `rme-v6.5.7`.
+The release is based on upstream tag `v6.6.0` (`e96ce2b92a`) with the RME changes replayed on branch `rme-v6.6.0`.
 
-The running firmware UI uses the short `6.5.7-RME` version. Prusa Connect intentionally receives the stock upstream `6.5.7` version string for compatibility and feature gating, while local UI/API surfaces and release artifacts keep the RME identity. The stock Prusa bootloader firmware-selection menu still appends the BBF header build number; removing that numeric suffix requires a bootloader change because the build number is mandatory update-order metadata.
+The running firmware UI uses the short `6.6.0-RME` version. Prusa Connect intentionally receives the stock upstream `6.6.0` version string for compatibility and feature gating, while local UI/API surfaces and release artifacts keep the RME identity. The stock Prusa bootloader firmware-selection menu still appends the BBF header build number; removing that numeric suffix requires a bootloader change because the build number is mandatory update-order metadata.
 
-## Upstream 6.5.7 base
+## Upstream 6.6.0 base
 
-This RME release includes the upstream Buddy changes from `v6.5.3` through `v6.5.7`, including the xBuddy early-BOM boot-crash fix, logging deadlock prevention, Connect certificate handling, status LED finishing/aborting state updates, nozzle-cleaner and parking changes, input-shaper calibration fixes for CoreXY printers, modular-bed preheat fixes, and heater-timeout dialog guards for builds without human interaction support.
+This RME release includes the upstream Buddy changes from `v6.5.3` through `v6.6.0`, including the xBuddy early-BOM boot-crash fix, logging deadlock prevention, Connect certificate handling, status LED finishing/aborting state updates, nozzle-cleaner and parking changes, input-shaper calibration fixes for CoreXY printers, modular-bed preheat fixes, and heater-timeout dialog guards for builds without human interaction support.
 
 ## Serial printing screen
 
@@ -258,7 +258,7 @@ Focused release boot builds after the latest pruning:
   * MK3.5: `1850136 B / 1919 KB` flash, `94.15%`
   * MK4: `1919312 B / 1919 KB` flash, `97.67%`
 
-`--final` builds retain the `-RME` full and short version suffixes while removing numeric development suffixes from the running application firmware version. The installed firmware UI identifies the custom firmware as `6.5.7-RME`. The stock Prusa bootloader firmware-selection screen still appends the mandatory BBF header build number after the `RME` tag; removing that bootloader-rendered number requires a bootloader change. Final builds disable `DEVELOPMENT_ITEMS` by default unless explicitly overridden. Final/non-development builds keep the full `M503` report command enabled, including human-readable headings/comments and TMC settings. Replayable persistent settings remain reportable, including PID, motion, probe, and other saved configuration values. PID editing, autotune, save, and load commands remain available through `M301`, `M303`, `M500`, and `M501`. Core One, Core One L, XL, and MINI store translations in the external resource image. The Core One/Core One L/XL resource image size is large enough to fit the web assets, puppy firmware, QOI assets, MMU firmware where applicable, and translation files.
+`--final` builds retain the `-RME` full and short version suffixes while removing numeric development suffixes from the running application firmware version. The installed firmware UI identifies the custom firmware as `6.6.0-RME`. The stock Prusa bootloader firmware-selection screen still appends the mandatory BBF header build number after the `RME` tag; removing that bootloader-rendered number requires a bootloader change. Final builds disable `DEVELOPMENT_ITEMS` by default unless explicitly overridden. Final/non-development builds keep the full `M503` report command enabled, including human-readable headings/comments and TMC settings. Replayable persistent settings remain reportable, including PID, motion, probe, and other saved configuration values. PID editing, autotune, save, and load commands remain available through `M301`, `M303`, `M500`, and `M501`. Core One, Core One L, XL, and MINI store translations in the external resource image. The Core One/Core One L/XL resource image size is large enough to fit the web assets, puppy firmware, QOI assets, MMU firmware where applicable, and translation files.
 
 An upstream release playbook has been added at `doc/rme_upstream_release_playbook.md`. It documents the RME feature groups, conflict hotspots, build commands, smoke-test matrix, flash budget checks, release-note requirements, and BBF publishing checklist for quickly rebuilding the RME firmware on top of future upstream Buddy releases.
 
@@ -416,14 +416,22 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-Recent local validation used the firmware build wrapper:
+The RME patch stack has been replayed on upstream `v6.6.0` and conflict-resolved on branch `rme-v6.6.0`.
+
+Focused Core One final-package validation passed with:
+
+```sh
+PATH=.venv/bin:$PATH .dependencies/cmake-3.28.3/bin/cmake --build build/coreone_release_boot -- -j 4
+```
+
+The validated Core One package reported version `6.6.0-RME`, printer `COREONE`, and flash usage of `1,317,748 B / 1919 KB` (`67.06%`). Full BBF validation before publishing should still use the firmware build wrapper:
 
 ```sh
 ./build.py --final --jobs 4 --no-clean-output
 ./build.py --preset xl --final --jobs 1 --no-clean-output --skip-bootstrap
 ```
 
-The 6.5.7-RME release port was validated against all default release targets:
+The expected 6.6.0-RME release target set is:
 
 ```text
 coreone
@@ -442,167 +450,148 @@ mk3.5
 xl
 ```
 
-The warm release wrapper completed and staged the non-XL targets. XL initially exposed a generated config-store visitor limit after the RME settings stack reached 256 stored fields; regenerating `include/common/visit_all_struct_fields.hpp` with 256-field support fixed the XL build. The focused XL wrapper pass then completed successfully with `1.24 MiB / 1.87 MiB (65.98%)` flash and `188.2 KiB / 260.0 KiB (72.37%)` aggregate RAM.
-
-The final staged BBF set is:
-
-```text
-coreone_6.5.7-RME.bbf
-coreonel_6.5.7-RME.bbf
-mini_6.5.7-RME.bbf
-mini-en-cs_6.5.7-RME.bbf
-mini-en-de_6.5.7-RME.bbf
-mini-en-es_6.5.7-RME.bbf
-mini-en-fr_6.5.7-RME.bbf
-mini-en-it_6.5.7-RME.bbf
-mini-en-pl_6.5.7-RME.bbf
-mini-en-ja_6.5.7-RME.bbf
-mini-en-uk_6.5.7-RME.bbf
-mk4_6.5.7-RME.bbf
-mk3.5_6.5.7-RME.bbf
-xl_6.5.7-RME.bbf
-```
-
-Earlier focused validation for this patch stack also covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
+Earlier focused validation for this patch stack on the prior upstream base covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
 
 ```sh
 python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-store-output --signing-key /path/to/private.key
 ```
 
-That build produced a non-zero BBF signature.
+That build produced a non-zero BBF signature. Re-run XL, MINI, and MK-family release targets on `rme-v6.6.0` before publishing BBFs.
 
 ## Changelog base
 
-Comparison base: upstream `v6.5.7` (`7119a302d6`)
+Comparison base: upstream `v6.6.0` (`e96ce2b92a`)
 
-Current branch: `rme-v6.5.7`
+Current branch: `rme-v6.6.0`
 
-Latest replayed RME commit: `f3c3ec13e`
+Latest replayed RME commit: `b75fe7a8e`
 
-Port-completion commit: `Finalize 6.5.7 RME release port`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, and `Fix serial MMU print completion unload`
 
-The port-completion commit covers the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, and the release documentation refresh.
+The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, and the release documentation refresh.
 
 ## Full changelog
 
-Commits included on top of upstream `v6.5.7`:
+Commits included on top of upstream `v6.6.0`:
 
 ```text
-ac390cbcf  2026-06-24  new octoprint screen and better color scheme
-ee9d8e698  2026-06-24  transfer features for previous patch set (not company specific)
-3d77d5f28  2026-06-24  Ignore crckill build output
-1fc4e1d60  2026-06-24  Fix terminal dirty flag buffer clearing
-46f9f2b5e  2026-06-24  screen fixes
-0db6f3bb3  2026-06-24  octoprint usability improvements
-81ac96c3d  2026-06-24  add better led control to the printer
-d72563729  2026-06-24  serial print overhaul
-dc6168521  2026-06-24  fix possible bug
-1d9295bf8  2026-06-24  better chamber fan controls.
-1a2d3fe8b  2026-06-24  support other machines to
-747385342  2026-06-24  fix print start and temp readings
-88afee899  2026-06-24  version fixes
-eb79f06fd  2026-06-24  massive ui overhaul
-92fc56f72  2026-06-24  better detection
-71a683db1  2026-06-24  better serial print screen
-4a7de3554  2026-06-24  better reliability
-7d8c3958d  2026-06-24  massive theme overhaul
-747a0642e  2026-06-24  added theme validation for file import
-a08f7dd22  2026-06-24  add build alias
-47a62eb7c  2026-06-24  theme fixes
-1f1b1fa7d  2026-06-24  fix some serial print issues
-ad46fac18  2026-06-24  better build script
-c653ac627  2026-06-24  better led control
-985e322f5  2026-06-24  fix serial percent parsing
-a566e60c1  2026-06-24  round up to the nearest percentage
-08b425ebd  2026-06-24  more changes to les statuses and other features
-17228c317  2026-06-24  led fixes for non core one printers
-6a2bb8f09  2026-06-24  fix mini builds
-1572dcbbc  2026-06-24  external led fixes for core one variants and for mk variants
-8dd09b86c  2026-06-24  attempt to reduce first boot flicker
-dbe2b711a  2026-06-24  some other misc fixes for led and print state
-b5f8df5a2  2026-06-24  some other misc fixes
-387d8a4b8  2026-06-24  even more misc fixes
-071c55ac4  2026-06-24  even more misc fixes
-35f6fea63  2026-06-24  led config overhaul
-948fbff95  2026-06-24  code cleanup
-d12ad9165  2026-06-24  code cleanup
-96a0ce7d2  2026-06-24  some fixes
-cbb810bbf  2026-06-24  more fixes
-e3d31e7d1  2026-06-24  more fixes
-32ba6f6ea  2026-06-24  more fixes
-d0fea798d  2026-06-24  more fixes
-a85100955  2026-06-24  more fixes
-3c1cf0069  2026-06-24  better ui
-f5626d2b9  2026-06-24  mini build fixes
-4cea2e48b  2026-06-24  mini build fixes
-41de8b123  2026-06-24  lots of bug fixes
-421a03d7d  2026-06-24  more fixes and renaming
-5a75b39b8  2026-06-24  xl fixes
-0be2e8168  2026-06-24  size improvments and other fixes
-dc2c0c839  2026-06-24  more fixes and added a playbook for future use
-0a7df4aa5  2026-06-24  external lighting fixes
-93d5414d0  2026-06-24  build fix for mk3.5
-34109eac8  2026-06-24  playbook update
-0d9248398  2026-06-24  lower flash usage
-0a89d0d37  2026-06-24  update playbook
-45a443abf  2026-06-24  updates for better leds and screen brightness control
-866a551f0  2026-06-24  update playbook
-3ec9f352a  2026-06-24  better screen brightness controls
-b16d726c0  2026-06-24  update the playbook
-68f76d144  2026-06-24  massive screen fixes
-89931d0cc  2026-06-24  more fixes
-f9bdb39e5  2026-06-24  fxi print screen and added support for saving custom pid c=values / changing them in the ui and restoring the factory defaults.
-f4a96d025  2026-06-24  better flash managments and build script fizes
-9c8b4618d  2026-06-24  playbook update
-452e03370  2026-06-24  fix layout stuff
-821c7530e  2026-06-24  fix print progress display
-afdbcaf7b  2026-06-24  add auto pid process
-d5a4e7128  2026-06-24  add auto pid process
-ed31d20cb  2026-06-24  fixed print screen issues
-147b8112e  2026-06-24  updated readme
-c88052edc  2026-06-24  updated a lot of stuff for better filter control and more
-56d1211f2  2026-06-24  led fixes for all systems
-a73587e94  2026-06-24  better m503 for release builds
-f1d3ac07f  2026-06-24  build script overhaul
-ccce00e8b  2026-06-24  build script overhaul
-3c87d88fe  2026-06-24  fxi the rme suffix
-02c628fd8  2026-06-24  fix issues and core one vent behaviour as well as fixed the z move crash
-90b5ddf31  2026-06-24  fix issues and core one vent behaviour as well as fixed the z move crash
-12cd460b2  2026-06-24  fixes for the printing screen
-013a08232  2026-06-24  fix filter usage tracking
-57d41e030  2026-06-24  Gate filtration lighting until print completion
-1cc0dd9ef  2026-06-24  Preserve print duration and restore status brightness cycling
-8f20fb13c  2026-06-24  Apply theme status colors and smooth filtration pulse
-93a9f71bb  2026-06-24  Migrate Indigo status LEDs away from cyan
-e193ea2f5  2026-06-24  Keep Indigo LED color profile driven
-5207758fb  2026-06-24  Keep non-Indigo printing LEDs cyan
-ef8b9bb66  2026-06-24  Use saturated Indigo for status LEDs
-6d8702f1d  2026-06-24  Darken Indigo status LED profile
-58b670a0a  2026-06-24  Restore stable Indigo LED calibration
-0e64b2576  2026-06-24  Stabilize Core One RGBW LED PWM
-7c4d61ce7  2026-06-24  Linearize Core One RGBW strip PWM
-c74bfa909  2026-06-24  Make solid LED calibration overrides immediate
-f45bd71e3  2026-06-24  Preserve M150 overrides until state changes
-1e68b4f73  2026-06-24  Restore reliable cyan printing status bar
-a04fc57c1  2026-06-24  Fix RGBW lightbar color scaling and restore Indigo profile
-331e6619b  2026-06-24  Fix serial print completion and refine status lighting
-5fc693207  2026-06-24  Document serial completion and filtration lighting updates
-497a4edb2  2026-06-24  Add Connect compatibility reporting and heater safety menu
-4c76d6ce1  2026-06-24  Document Connect and heater safety updates
-da061e385  2026-06-24  Split PID settings by heater
-157d6a2e6  2026-06-24  Show filtration time in print finished stats
-1aa060a7e  2026-06-24  Refresh release playbook audit numbers
-4cda3ddcf  2026-06-24  Fix print lighting brightness overrides
-2eef7d353  2026-06-24  Fix print lighting overrides and completion state
-ff4c3c7fe  2026-06-24  Document print lighting override behavior
-828ff0baa  2026-06-24  Update release notes for lighting override fixes
-6ae1931e6  2026-06-24  Fix serial print finish and intervention handling
-b59ac396e  2026-06-24  Document serial finish and intervention fixes
-10877bfde  2026-06-24  Defer MMU serial host actions to server loop
-0a9973211  2026-06-24  Document MMU serial host crash fix
-fa6d213f9  2026-06-24  Fix OctoPrint uploads and add filtration trigger G-code
-92f097066  2026-06-24  Document filtration trigger and upload fix
-4513f700b  2026-06-24  Add MMU serial host event unit coverage
-f3c3ec13e  2026-06-24  Document MMU unit coverage validation
+aab5c9630  2026-06-25  new octoprint screen and better color scheme
+e441720a2  2026-06-25  transfer features for previous patch set (not company specific)
+2927d24cf  2026-06-25  Ignore crckill build output
+89cf85d7a  2026-06-25  Fix terminal dirty flag buffer clearing
+9a396331b  2026-06-25  screen fixes
+5524416c4  2026-06-25  octoprint usability improvements
+95fb5f06a  2026-06-25  add better led control to the printer
+3507625cf  2026-06-25  serial print overhaul
+4eb6c3f3d  2026-06-25  fix possible bug
+59d823e27  2026-06-25  better chamber fan controls.
+29885e49a  2026-06-25  support other machines to
+6d4677b2c  2026-06-25  fix print start and temp readings
+886d10f58  2026-06-25  version fixes
+a81f101ee  2026-06-25  massive ui overhaul
+a8682bcfa  2026-06-25  better detection
+83f1395ba  2026-06-25  better serial print screen
+a385dfe42  2026-06-25  better reliability
+5e920683b  2026-06-25  massive theme overhaul
+f0c43afc8  2026-06-25  added theme validation for file import
+9b944330f  2026-06-25  add build alias
+318c2efdc  2026-06-25  theme fixes
+a5c709515  2026-06-25  fix some serial print issues
+a525fe04a  2026-06-25  better build script
+08589aaef  2026-06-25  better led control
+ae263a46f  2026-06-25  fix serial percent parsing
+b5e67847a  2026-06-25  round up to the nearest percentage
+95d6ddabb  2026-06-25  more changes to les statuses and other features
+a9979564f  2026-06-25  led fixes for non core one printers
+98eb64478  2026-06-25  fix mini builds
+b9307bc23  2026-06-25  external led fixes for core one variants and for mk variants
+e32299006  2026-06-25  attempt to reduce first boot flicker
+7e273ec70  2026-06-25  some other misc fixes for led and print state
+d69734d8d  2026-06-25  some other misc fixes
+3f0bc07c0  2026-06-25  even more misc fixes
+5acd96c84  2026-06-25  even more misc fixes
+1bdd1d261  2026-06-25  led config overhaul
+f55d5dd4e  2026-06-25  code cleanup
+405071c88  2026-06-25  code cleanup
+6458c58f3  2026-06-25  some fixes
+c2701f7d2  2026-06-25  more fixes
+be32366c3  2026-06-25  more fixes
+9171886cb  2026-06-25  more fixes
+081b77e70  2026-06-25  more fixes
+74dca6603  2026-06-25  better ui
+5c0a66d87  2026-06-25  mini build fixes
+33c91c4f1  2026-06-25  mini build fixes
+4578f5c86  2026-06-25  lots of bug fixes
+cad578fac  2026-06-25  more fixes and renaming
+4c0b4ee74  2026-06-25  xl fixes
+09bc9bceb  2026-06-25  size improvments and other fixes
+cd788ed5e  2026-06-25  more fixes and added a playbook for future use
+bccb38bc4  2026-06-25  external lighting fixes
+c2d0ac36e  2026-06-25  build fix for mk3.5
+48bc9764d  2026-06-25  playbook update
+51259c5b1  2026-06-25  lower flash usage
+fa5e652cd  2026-06-25  update playbook
+6e61a8c5a  2026-06-25  updates for better leds and screen brightness control
+c04db08c0  2026-06-25  update playbook
+1f97f2592  2026-06-25  better screen brightness controls
+36f41a31c  2026-06-25  update the playbook
+04abb84be  2026-06-25  massive screen fixes
+cebeeaa4e  2026-06-25  more fixes
+735aed435  2026-06-25  fxi print screen and added support for saving custom pid c=values / changing them in the ui and restoring the factory defaults.
+2dbf37709  2026-06-25  better flash managments and build script fizes
+5aa2f605f  2026-06-25  playbook update
+fc5bbf948  2026-06-25  fix layout stuff
+3a28ffefc  2026-06-25  fix print progress display
+92a609147  2026-06-25  add auto pid process
+16b9028fc  2026-06-25  add auto pid process
+5cc7f833e  2026-06-25  fixed print screen issues
+ae81d36ff  2026-06-25  updated readme
+df2975b94  2026-06-25  updated a lot of stuff for better filter control and more
+30116d408  2026-06-25  led fixes for all systems
+bec4c4006  2026-06-25  better m503 for release builds
+9e5b692cb  2026-06-25  build script overhaul
+a308e3ffe  2026-06-25  build script overhaul
+d295c884c  2026-06-25  fxi the rme suffix
+ad77fcc48  2026-06-25  fix issues and core one vent behaviour as well as fixed the z move crash
+62d02b0ec  2026-06-25  fix issues and core one vent behaviour as well as fixed the z move crash
+da014f4c3  2026-06-25  fixes for the printing screen
+f3006c204  2026-06-25  fix filter usage tracking
+981a728ec  2026-06-25  Gate filtration lighting until print completion
+ce7d0f6ce  2026-06-25  Preserve print duration and restore status brightness cycling
+1d92ea014  2026-06-25  Apply theme status colors and smooth filtration pulse
+c06cab3bd  2026-06-25  Migrate Indigo status LEDs away from cyan
+5ad20c5a0  2026-06-25  Keep Indigo LED color profile driven
+01c3b41ec  2026-06-25  Keep non-Indigo printing LEDs cyan
+3ee2d7ef8  2026-06-25  Use saturated Indigo for status LEDs
+db2361df6  2026-06-25  Darken Indigo status LED profile
+6528ba72a  2026-06-25  Restore stable Indigo LED calibration
+58073e0d7  2026-06-25  Stabilize Core One RGBW LED PWM
+a4ee5e0ea  2026-06-25  Linearize Core One RGBW strip PWM
+fbf8e27cd  2026-06-25  Make solid LED calibration overrides immediate
+26c303581  2026-06-25  Preserve M150 overrides until state changes
+85a8eda90  2026-06-25  Restore reliable cyan printing status bar
+9e5977909  2026-06-25  Fix RGBW lightbar color scaling and restore Indigo profile
+37c344842  2026-06-25  Fix serial print completion and refine status lighting
+e57b182bf  2026-06-25  Document serial completion and filtration lighting updates
+853f449ec  2026-06-25  Add Connect compatibility reporting and heater safety menu
+b45ecab27  2026-06-25  Document Connect and heater safety updates
+eb1ef3799  2026-06-25  Split PID settings by heater
+77a435f92  2026-06-25  Show filtration time in print finished stats
+2f5b657c9  2026-06-25  Refresh release playbook audit numbers
+e90135cb1  2026-06-25  Fix print lighting brightness overrides
+dc9fa0921  2026-06-25  Fix print lighting overrides and completion state
+06e4a58f5  2026-06-25  Document print lighting override behavior
+d60676128  2026-06-25  Update release notes for lighting override fixes
+18127efe8  2026-06-25  Fix serial print finish and intervention handling
+c6e0714e7  2026-06-25  Document serial finish and intervention fixes
+35735eaf1  2026-06-25  Defer MMU serial host actions to server loop
+91a17087a  2026-06-25  Document MMU serial host crash fix
+2f9534db0  2026-06-25  Fix OctoPrint uploads and add filtration trigger G-code
+5bea899b5  2026-06-25  Document filtration trigger and upload fix
+66dff46d0  2026-06-25  Add MMU serial host event unit coverage
+88609d42a  2026-06-25  Document MMU unit coverage validation
+619015b00  2026-06-25  Finalize 6.5.7 RME release port
+ed7c3984f  2026-06-25  Fix Prusa Connect serial print state reporting
+b75fe7a8e  2026-06-25  Fix serial MMU print completion unload
 
 ```

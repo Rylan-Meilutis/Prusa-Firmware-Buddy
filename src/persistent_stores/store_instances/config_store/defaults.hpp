@@ -50,6 +50,13 @@ namespace defaults {
     // default values for variables that have distinct requirements
     inline constexpr TestResult test_result_unknown { TestResult::unknown };
 
+    inline constexpr float pid_nozzle_p { DEFAULT_Kp };
+    inline constexpr float pid_nozzle_i { scalePID_i(DEFAULT_Ki) };
+    inline constexpr float pid_nozzle_d { scalePID_d(DEFAULT_Kd) };
+    inline constexpr float pid_bed_p { DEFAULT_bedKp };
+    inline constexpr float pid_bed_i { scalePID_i(DEFAULT_bedKi) };
+    inline constexpr float pid_bed_d { scalePID_d(DEFAULT_bedKd) };
+
     inline constexpr std::array<char, lan_hostname_max_len + 1> net_hostname { LAN_HOSTNAME_DEF };
     inline constexpr int8_t lan_timezone { 1 };
     inline constexpr time_tools::TimezoneOffsetMinutes timezone_minutes { time_tools::TimezoneOffsetMinutes::no_offset };

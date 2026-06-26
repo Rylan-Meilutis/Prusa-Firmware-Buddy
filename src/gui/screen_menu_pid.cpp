@@ -89,12 +89,15 @@ void apply_hotend_pid(float p, float i, float d) {
     config_store().pid_nozzle_i.set(scalePID_i(i));
     config_store().pid_nozzle_d.set(scalePID_d(d));
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        PID_PARAM(Kp, e) = p;
-        PID_PARAM(Ki, e) = scalePID_i(i);
-        PID_PARAM(Kd, e) = scalePID_d(d);
+    const HotendPIDConfig pid {
+        .Kp = p,
+        .Ki = scalePID_i(i),
+        .Kd = scalePID_d(d),
+    };
+
+    for (int8_t e = 0; e < HOTENDS; ++e) {
+        Hotend::for_tool(PhysicalToolIndex::from_raw(e)).set_nozzle_pid_config(pid);
     }
-    thermalManager.updatePID();
 #endif
 }
 

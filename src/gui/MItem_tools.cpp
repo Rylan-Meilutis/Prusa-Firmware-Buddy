@@ -604,6 +604,56 @@ void MI_PRINT_PROGRESS_TIME::OnClick() {
     config_store().print_progress_time.set(static_cast<uint16_t>(GetVal()));
 }
 
+MI_ODOMETER_DIST::MI_ODOMETER_DIST(const string_view_utf8 &label, const img::Resource *icon, is_enabled_t enabled, is_hidden_t hidden, float initVal)
+    : WI_FORMATABLE_LABEL_t<float>(label, icon, enabled, hidden, initVal, [&](const std::span<char> &buffer) {
+        float value_m = value() / 1000;
+        if (value_m > 999) {
+            snprintf(buffer.data(), buffer.size(), "%.1f km", static_cast<double>(value_m / 1000));
+        } else {
+            snprintf(buffer.data(), buffer.size(), "%.1f m", static_cast<double>(value_m));
+        }
+    }) {
+}
+
+MI_ODOMETER_DIST_X::MI_ODOMETER_DIST_X()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_Y::MI_ODOMETER_DIST_Y()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_Z::MI_ODOMETER_DIST_Z()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_E::MI_ODOMETER_DIST_E(const char *const label, [[maybe_unused]] int index)
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_E::MI_ODOMETER_DIST_E()
+    : MI_ODOMETER_DIST(_(generic_label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_TOOL::MI_ODOMETER_TOOL(const char *const label, [[maybe_unused]] int index)
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), "%lu", {}) {
+}
+
+MI_ODOMETER_TOOL::MI_ODOMETER_TOOL()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(generic_label), "%lu", {}) {
+}
+
+MI_ODOMETER_MMU_CHANGES::MI_ODOMETER_MMU_CHANGES()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), "%lu", {}) {
+}
+
+MI_ODOMETER_TIME::MI_ODOMETER_TIME()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, 0, [&](const std::span<char> &buffer) {
+        StringBuilder sb(buffer);
+        format_duration(sb, value());
+    }) {
+}
+
 /*****************************************************************************/
 // MI_INFO_BED_TEMP
 MI_INFO_BED_TEMP::MI_INFO_BED_TEMP()

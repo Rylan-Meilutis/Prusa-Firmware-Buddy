@@ -191,7 +191,8 @@ void MarlinSettings::postprocess() {
 bool MarlinSettings::save() {
 #if BUDDY_HAS_CONFIG_STORE_PID_EEPROM
   #if ENABLED(PIDTEMP)
-    set_pid_nozzle(PID_PARAM(Kp, 0), PID_PARAM(Ki, 0), PID_PARAM(Kd, 0));
+    const auto &pid = Hotend::for_tool(PhysicalToolIndex::from_raw(0)).nozzle_pid_config();
+    set_pid_nozzle(pid.Kp, pid.Ki, pid.Kd);
   #endif
 
   #if ENABLED(PIDTEMPBED)
@@ -213,10 +214,13 @@ bool MarlinSettings::load() {
   reset();
 
   #if ENABLED(PIDTEMP)
+    const HotendPIDConfig pid {
+      .Kp = get_pid_nozzle_p(),
+      .Ki = get_pid_nozzle_i(),
+      .Kd = get_pid_nozzle_d(),
+    };
     for (int8_t e = 0; e < HOTENDS; e++) {
-      PID_PARAM(Kp, e) = get_pid_nozzle_p();
-      PID_PARAM(Ki, e) = get_pid_nozzle_i();
-      PID_PARAM(Kd, e) = get_pid_nozzle_d();
+      Hotend::for_tool(PhysicalToolIndex::from_raw(e)).set_nozzle_pid_config(pid);
     }
   #endif
 

@@ -137,6 +137,7 @@ namespace {
     }
 #endif
 
+#if HAS_INDX()
     /// @brief Run the full INDX vent-lever actuation: tool prep, reduced accel, move sequence.
     /// @return true on success.
     bool execute_indx_vent_lever(bool open) {

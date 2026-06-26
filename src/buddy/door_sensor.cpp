@@ -2,7 +2,7 @@
 #include <buddy/door_sensor.hpp>
 
 #include <common/adc.hpp>
-#include <device/peripherals.h>
+#include <device/peripherals.hpp>
 #include <option/has_door_sensor.h>
 #include <printers.h>
 

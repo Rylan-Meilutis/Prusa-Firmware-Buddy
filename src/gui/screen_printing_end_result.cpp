@@ -373,7 +373,7 @@ void EndResultBody::windowEvent(window_t *, GUI_event_t event, void *param) {
             update_started_stat(true);
         }
     }
-    if (event == GUI_event_t::KNOB || event == GUI_event_t::ENC_UP || event == GUI_event_t::CLICK || event == GUI_event_t::TOUCH_CLICK) {
+    if (event == GUI_event_t::KNOB || event == GUI_event_t::CLICK || event == GUI_event_t::TOUCH_CLICK) {
         if (GetParent()) {
             GetParent()->WindowEvent(this, GUI_event_t::CHILD_CHANGED, param);
         }

@@ -8,18 +8,18 @@ Bring the RME feature set onto the new upstream release with the smallest practi
 
 ## Current Baseline
 
-RME 6.5.7 is based on upstream tag `v6.5.7` at `7119a302d6`.
+RME 6.6.0 is based on upstream tag `v6.6.0` at `e96ce2b92a`.
 
 The active release branch is:
 
 ```sh
-rme-v6.5.7
+rme-v6.6.0
 ```
 
 The release notes for the active release are:
 
 ```sh
-RELEASE_NOTES_v6.5.7-RME.md
+RELEASE_NOTES_v6.6.0-RME.md
 ```
 
 The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
@@ -37,12 +37,12 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git diff --stat v6.5.7..rme-v6.5.7
-git diff --name-status v6.5.7..rme-v6.5.7
-git diff --dirstat=files,0 v6.5.7..rme-v6.5.7
+git diff --stat v6.6.0..rme-v6.6.0
+git diff --name-status v6.6.0..rme-v6.6.0
+git diff --dirstat=files,0 v6.6.0..rme-v6.6.0
 ```
 
-At the time this playbook was last audited, the RME 6.5.7 release port covered 535 files with 13,284 insertions and 1,220 deletions relative to upstream `v6.5.7`. The stack contains 116 replayed RME commits through `f3c3ec13e`, plus the `Finalize 6.5.7 RME release port` commit for the status LED state merge, release documentation, and generated 256-field config-store visitor support. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.6.0 release port covered 533 files with 13,717 insertions and 1,239 deletions relative to upstream `v6.6.0`. The stack contains 118 replayed RME commits through `b75fe7a8e`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, and the serial MMU print-completion unload fix. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
@@ -98,7 +98,7 @@ git remote -v
 Prefer a linear cherry-pick of the existing RME commits from the last release branch. Keep upstream changes intact unless they directly replace an RME patch.
 
 ```sh
-git log --oneline v6.5.7..rme-v6.5.7
+git log --oneline v6.6.0..rme-v6.6.0
 git cherry-pick <first-rme-commit>^..<last-rme-commit>
 ```
 
@@ -107,8 +107,8 @@ If the old branch has extra experimental commits, cherry-pick the feature groups
 3. Before resolving conflicts, regenerate the changed-file inventory from the old release branch and compare it to this playbook.
 
 ```sh
-git diff --name-status v6.5.7..rme-v6.5.7 > /tmp/rme-files.txt
-git diff --dirstat=files,0 v6.5.7..rme-v6.5.7
+git diff --name-status v6.6.0..rme-v6.6.0 > /tmp/rme-files.txt
+git diff --dirstat=files,0 v6.6.0..rme-v6.6.0
 ```
 
 Every non-resource source directory in that inventory should map to one of the feature groups below. If a file does not fit, add a new playbook item before finishing the rebase.

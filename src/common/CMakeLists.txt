@@ -62,7 +62,6 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             printer_model.cpp
             probe_analysis.cpp
             printer_lock.cpp
-            random_common.cpp
             random_hw.cpp
             ring_allocator.cpp
             rme_settings_gcode.cpp

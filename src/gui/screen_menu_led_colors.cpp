@@ -479,14 +479,15 @@ int MI_UI_THEME_PRESET_SELECT::item_count() const {
     return theme_preset_names.size();
 }
 
-void MI_UI_THEME_PRESET_SELECT::build_item_text(int index, const std::span<char> &buffer) const {
+string_view_utf8 MI_UI_THEME_PRESET_SELECT::build_item_text(int index, [[maybe_unused]] ItemTextParams &params) const {
     if (index < 0 || index >= item_count()) {
-        return;
+        return string_view_utf8::MakeCPUFLASH("");
     }
-    _(theme_preset_names[index]).copyToRAM(buffer);
+    return _(theme_preset_names[index]);
 }
 
-bool MI_UI_THEME_PRESET_SELECT::on_item_selected([[maybe_unused]] int old_index, int new_index) {
+bool MI_UI_THEME_PRESET_SELECT::on_item_selected(const OnItemSelectedArgs &args) {
+    const int new_index = args.new_index;
     if (new_index < 0 || new_index >= item_count()) {
         return false;
     }
