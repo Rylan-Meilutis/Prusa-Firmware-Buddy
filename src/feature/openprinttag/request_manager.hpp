@@ -51,9 +51,19 @@ public:
     /// Return TagUID detected on given tool, if any.
     std::optional<TagUID> get_tag_uid_for_tool(VirtualToolIndex);
 
+    struct TagDeviceInfo {
+        anfc::Device device;
+        TagID tag_id;
+    };
+
+    /// @returns Device-specific TagID for the given tag, if the device is currently tracking the tag
+    std::optional<TagDeviceInfo> get_tag_device_info(ToolTag tool_tag);
+
+    std::optional<TagDeviceInfo> get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag);
+
 private:
     /// Mutex guarding all the member variables of this Manager.
-    /// Every public method of the Manager is required to obtain the lock.
+    /// Every public method of the Manager is required to obtain the lock or pass the ManagerNoLockBadge.
     /// No other method is allowed to obtain the lock.
     /// No method of Manager is allowed to call public method.
     freertos::Mutex mutex;
@@ -133,8 +143,6 @@ private:
 
     void on_request_done(RequestID, std::span<const std::byte>);
     void handle_pending_request(anfc::modbus::Client &);
-    void handle_pending_request(anfc::modbus::Client &, Request &, anfc::Device, TagID);
-    void handle_pending_request(anfc::modbus::Client &, Request &, anfc::Device, TagID, ActiveRequestEntry &);
     void check_timeouts();
     RequestID make_request_id();
     void remove_request_nolock(Request &);

@@ -85,6 +85,10 @@ void WriteFloatFieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &
 void ReadFloatFieldRequest::complete(std::span<const std::byte>) {}
 void WriteFloatFieldRequest::complete(std::span<const std::byte>) {}
 
+Request::SerializeResult TagRequest::serialize(ManagerNoLockBadge badge, RequestID request_id, anfc::modbus::Request &request) {
+    return std::nullopt;
+}
+
 std::optional<ToolTag> ToolTag::for_tool_assigned(VirtualToolIndex tool) {
     auto it = assigned_tags.find(tool.to_raw());
     if (it != assigned_tags.end()) {

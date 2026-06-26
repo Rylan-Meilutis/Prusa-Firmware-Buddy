@@ -10,11 +10,11 @@
 
 namespace buddy::openprinttag {
 
-class ReadFieldRequestBase : public Request {
+class ReadFieldRequestBase : public TagRequest {
 
 public:
     explicit ReadFieldRequestBase(ToolTagField tag_field)
-        : Request(tag_field.section, tag_field.tag)
+        : TagRequest(tag_field.section, tag_field.tag)
         , field_(tag_field.field) {}
 
     ToolTagField tag_field() const;

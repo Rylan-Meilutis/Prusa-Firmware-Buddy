@@ -30,6 +30,10 @@ void ReadFloatFieldRequest::complete(std::span<const std::byte> event_data) {}
 void ReadInt32FieldRequest::complete(std::span<const std::byte> event_data) {}
 void ReadStringRequestBase::complete(std::span<const std::byte> event_data) {}
 
+Request::SerializeResult TagRequest::serialize(ManagerNoLockBadge badge, RequestID request_id, anfc::modbus::Request &request) {
+    return std::nullopt;
+}
+
 void ReadEnumArrayRequestBase::serialize(RequestID, TagID, anfc::modbus::Request &) {}
 void ReadEnumFieldRequestBase::serialize(RequestID, TagID, anfc::modbus::Request &) {}
 void ReadFloatFieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &) {}

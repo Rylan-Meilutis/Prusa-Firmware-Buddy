@@ -161,43 +161,42 @@ void Manager::handle_pending_request(anfc::modbus::Client &client) {
     if (pending_requests.empty()) {
         return;
     }
-
     buddy::openprinttag::Request &pending_request = pending_requests.back();
-    const ToolTag &tool_tag = pending_request.tool_tag();
-    const DeviceState &device = devices[tool_tag.tool()];
-    if (auto *d = std::get_if<TagDetected>(&device.tag); d && d->tag_uid.hash() == tool_tag.uid_hash() && device.device) {
-        return handle_pending_request(client, pending_request, *device.device, d->tag_id);
+
+    // The request could have failed during the last serialize() or could have been failed externally
+    // Discard the request in that case
+    if (pending_request.finished()) {
+        pending_requests.remove(pending_request);
+        return;
     }
 
-    log_warning(OpenPrintTag, "tag not found for request");
-    pending_requests.remove(pending_request);
-    pending_request.set_finished(std::unexpected(Request::Error::other));
-}
-
-void Manager::handle_pending_request(anfc::modbus::Client &client, Request &pending_request, anfc::Device device, TagID tag_id) {
-    for (ActiveRequestEntry &entry : active_requests) {
-        if (entry.request == nullptr) {
-            return handle_pending_request(client, pending_request, device, tag_id, entry);
-        }
+    const auto active_entry = std::ranges::find_if(active_requests, [](const auto &e) { return e.request == nullptr; });
+    if (active_entry == active_requests.end()) {
+        // No free slot, try again later
+        return;
     }
-    // no free slot, try again later
-}
 
-void Manager::handle_pending_request(anfc::modbus::Client &client, Request &pending_request, anfc::Device device, TagID tag_id, ActiveRequestEntry &entry) {
     const RequestID request_id = make_request_id();
     anfc::modbus::Request modbus_request = {};
-    pending_request.serialize(request_id, tag_id, modbus_request);
-    if (client.write(device, modbus_request)) {
-        pending_requests.remove(pending_request);
-        entry = ActiveRequestEntry {
-            .request = &pending_request,
-            .request_id = request_id,
-            .sent_at = ticks_ms(),
-        };
-    } else {
+
+    const auto target_device = pending_request.serialize(ManagerNoLockBadge {}, request_id, modbus_request);
+
+    if (!target_device.has_value()) {
+        return;
+    }
+
+    if (!client.write(*target_device, modbus_request)) {
         log_warning(OpenPrintTag, "failed to write request");
         // keep pending request at its position in queue and try later
+        return;
     }
+
+    pending_requests.remove(pending_request);
+    *active_entry = ActiveRequestEntry {
+        .request = &pending_request,
+        .request_id = request_id,
+        .sent_at = ticks_ms(),
+    };
 }
 
 bool Manager::DeviceState::step(anfc::modbus::Client &client) {
@@ -344,9 +343,21 @@ std::optional<Manager::TagUID> Manager::get_tag_uid_for_tool(VirtualToolIndex to
     return std::nullopt;
 }
 
+std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info(ToolTag tool_tag) {
+    const DeviceState &device = devices[tool_tag.tool()];
+    auto *d = std::get_if<TagDetected>(&device.tag);
+    if (d && d->tag_uid.hash() == tool_tag.uid_hash() && device.device) {
+        return TagDeviceInfo {
+            .device = *device.device,
+            .tag_id = d->tag_id,
+        };
+    } else {
+        return std::nullopt;
+    }
+}
+
 Manager &manager() {
     static Manager instance;
     return instance;
 }
-
 } // namespace buddy::openprinttag

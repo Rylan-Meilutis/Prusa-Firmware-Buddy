@@ -30,6 +30,10 @@ void ReadInt32FieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &)
 void ReadFloatFieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &) {}
 void ReadStringRequestBase::serialize(RequestID, TagID, anfc::modbus::Request &) {}
 
+Request::SerializeResult TagRequest::serialize(ManagerNoLockBadge badge, RequestID request_id, anfc::modbus::Request &request) {
+    return std::nullopt;
+}
+
 std::optional<ToolTag> ToolTag::for_tool_ephemeral(VirtualToolIndex tool) {
     return std::nullopt;
 }

@@ -9,11 +9,11 @@
 
 namespace buddy::openprinttag {
 
-class WriteFieldRequestBase : public Request {
+class WriteFieldRequestBase : public TagRequest {
 
 public:
     explicit WriteFieldRequestBase(ToolTagField tag_field)
-        : Request(tag_field.section, tag_field.tag)
+        : TagRequest(tag_field.section, tag_field.tag)
         , tag_field_(tag_field) {}
 
 protected:
