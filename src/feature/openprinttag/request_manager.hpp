@@ -6,6 +6,7 @@
 #include <array>
 #include <compact_pointer.hpp>
 #include <feature/openprinttag/detail/requests_base.hpp>
+#include <feature/openprinttag/detail/requests_util.hpp>
 #include <feature/openprinttag/tool_tag.hpp>
 #include <freertos/mutex.hpp>
 #include <openprinttag/opt_reader.hpp>
@@ -26,6 +27,7 @@ namespace buddy::openprinttag {
 class Manager final : public Uncopyable {
 public:
     Manager();
+    ~Manager();
 
     /// Step internal state machine.
     /// This may attempt communication on modbus, using provided client.
@@ -93,8 +95,12 @@ private:
         Manager *manager;
         TagState tag;
         std::optional<anfc::Device> device;
-        bool radio_enabled = false;
-        std::optional<RequestID> enable_radio_request_id;
+
+        /// nullopt - enable radio has not been issued yet
+        /// finished without error - radio is enabled
+        std::optional<EnableRadioRequest> enable_radio_request;
+
+        bool radio_enabled : 1 = false;
 
         [[nodiscard]] bool step(anfc::modbus::Client &);
 
@@ -145,6 +151,7 @@ private:
     void handle_pending_request(anfc::modbus::Client &);
     void check_timeouts();
     RequestID make_request_id();
+    void add_request_nolock(Request &);
     void remove_request_nolock(Request &);
 };
 

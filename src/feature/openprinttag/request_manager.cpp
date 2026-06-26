@@ -17,21 +17,6 @@ LOG_COMPONENT_REF(OpenPrintTag);
 
 static constexpr int32_t request_timeout_ms = 5000;
 
-static void serialize_enable_radio(uint16_t request_id, anfc::modbus::Request &request) {
-    prusa3d_nfc_command_Request_Request_1_0 object;
-    memset(&object, 0, sizeof(object));
-    object.request_id.value = request_id;
-    prusa3d_nfc_request_RequestData_1_0_select_enable_radio_(&object.request);
-    request.data = {};
-    auto buffer = std::as_writable_bytes(std::span { request.data });
-    size_t size = buffer.size();
-    if (prusa3d_nfc_command_Request_Request_1_0_serialize_(&object, reinterpret_cast<uint8_t *>(buffer.data()), &size) == 0) {
-        request.size = static_cast<uint16_t>(size);
-    } else {
-        bsod_unreachable();
-    }
-}
-
 static void serialize_forget_tag(uint16_t request_id, buddy::openprinttag::TagID tag_id, anfc::modbus::Request &request) {
     prusa3d_nfc_command_Request_Request_1_0 object;
     memset(&object, 0, sizeof(object));
@@ -81,6 +66,13 @@ Manager::Manager() {
     devices[VirtualToolIndex::from_raw(0)].device = anfc::Device::anfc0;
 }
 
+Manager::~Manager() {
+    // Destroy the requests first, otherwise ugly race conditions
+    for (auto &device : devices) {
+        device.enable_radio_request.reset();
+    }
+}
+
 bool Manager::step(anfc::modbus::Client &client) {
     std::lock_guard lock { mutex };
 
@@ -104,13 +96,6 @@ void Manager::on_request_done(RequestID request_id, std::span<const std::byte> r
 }
 
 void Manager::DeviceState::on_request_done(RequestID request_id, std::span<const std::byte> raw_event_data) {
-    // handle enable_radio completion
-    if (enable_radio_request_id == request_id) {
-        enable_radio_request_id = std::nullopt;
-        radio_enabled = true;
-        return;
-    }
-
     // handle forget_tag completion
     if (auto *f = std::get_if<TagForgetting>(&tag); f && f->request_id == request_id) {
         tag = TagUnused {};
@@ -204,27 +189,32 @@ bool Manager::DeviceState::step(anfc::modbus::Client &client) {
         return true;
     }
 
+    if (!radio_enabled) {
+        if (!enable_radio_request.has_value()) {
+            // Enable radio request has not been issued yed - issue
+            enable_radio_request.emplace(*device, true);
+            manager->add_request_nolock(*enable_radio_request);
+
+        } else if (!enable_radio_request->finished()) {
+            // Wait for the request to finish
+
+        } else if (enable_radio_request->has_error()) {
+            // Error - reset the request, re-issue
+            manager->add_request_nolock(*enable_radio_request);
+
+        } else {
+            // Done!
+            radio_enabled = true;
+        }
+    }
+
     anfc::modbus::Event modbus_event;
     if (!client.read(*device, modbus_event)) {
         return false;
     }
 
-    if (!radio_enabled && !enable_radio_request_id) {
-        enable_radio_request_id = manager->make_request_id();
-        anfc::modbus::Request request;
-        serialize_enable_radio(enable_radio_request_id->to_underlying(), request);
-        if (!client.write(*device, request)) {
-            enable_radio_request_id = std::nullopt;
-            return false;
-        }
-        // Continue to process events (to receive the ack)
-    }
-
-    // Only process other requests after radio is enabled
-    if (radio_enabled) {
-        manager->handle_pending_request(client);
-        forget_lost_tag(client);
-    }
+    manager->handle_pending_request(client);
+    forget_lost_tag(client);
 
     return handle_event(client, modbus_event);
 }
@@ -298,6 +288,10 @@ RequestID Manager::make_request_id() {
 void Manager::add_request(Badge<Request>, Request &request) {
     std::lock_guard lock { mutex };
 
+    add_request_nolock(request);
+}
+
+void Manager::add_request_nolock(Request &request) {
     remove_request_nolock(request);
     pending_requests.push_front(request);
 
@@ -344,6 +338,11 @@ std::optional<Manager::TagUID> Manager::get_tag_uid_for_tool(VirtualToolIndex to
 }
 
 std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info(ToolTag tool_tag) {
+    std::lock_guard lock { mutex };
+    return get_tag_device_info_nolock({}, tool_tag);
+}
+
+std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag) {
     const DeviceState &device = devices[tool_tag.tool()];
     auto *d = std::get_if<TagDetected>(&device.tag);
     if (d && d->tag_uid.hash() == tool_tag.uid_hash() && device.device) {
