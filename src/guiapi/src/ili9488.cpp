@@ -499,7 +499,7 @@ void ili9488_clear(uint32_t clr666) {
 void ili9488_clear_full_black(void) {
     // Screen-off must reliably write every pixel black before the backlight is
     // disabled. Bypass the optional reduced-color fast path used by clear().
-    SPIBaudRatePrescalerGuard _g(&SPI_HANDLE_FOR(lcd), SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 

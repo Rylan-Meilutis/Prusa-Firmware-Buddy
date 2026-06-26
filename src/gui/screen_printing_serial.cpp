@@ -14,6 +14,7 @@
 #include "screen_printing_end_result.hpp"
 #include <serial_printing.hpp>
 #include <fsm_loadunload_type.hpp>
+#include <fsm/filament_change_phases.hpp>
 #include <marlin_server_types/client_response.hpp>
 #include <fsm/safety_timer_phases.hpp>
 #include <ui_theme.hpp>

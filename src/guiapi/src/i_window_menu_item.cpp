@@ -10,7 +10,6 @@
 #include <gui/event/focus_event.hpp>
 #include <gui/event/touch_event.hpp>
 #include <option/development_items.h>
-#include <ui_theme.hpp>
 
 namespace window_menu_item_private {
 
@@ -317,50 +316,6 @@ void IWindowMenuItem::Print(Rect16 rect) {
     }
 
     Validate();
-}
-
-/*  color               options: |enabled|focused|dev_only|
- *   MenuColorDevelopment         | 101 or 111
- *   MenuColorDevelopmentDisabled | 001 or 011
- *   MenuColorBack                | 110 or 010
- *   MenuColorText                | 100
- *   MenuColorDisabled            | 000
- */
-Color IWindowMenuItem::GetTextColor() const {
-    if (clr_scheme) {
-        return IsFocused() ? clr_scheme->text.focused : clr_scheme->text.unfocused;
-    }
-
-    Color ret;
-    if (IsEnabled() && hidden == (uint8_t)is_hidden_t::dev) {
-        ret = GuiDefaults::MenuColorDevelopment;
-    } else if (hidden == (uint8_t)is_hidden_t::dev) {
-        ret = GuiDefaults::MenuColorDevelopmentDisabled;
-    } else if (IsFocused()) {
-        ret = COLOR_WHITE;
-    } else if (IsEnabled()) {
-        ret = GuiDefaults::MenuColorText;
-    } else {
-        ret = GuiDefaults::MenuColorDisabled;
-    }
-    return ret;
-}
-
-/*  color               options: |enabled|focused|
- *   MenuColorBack                | 10 or 00
- *   MenuColorFocusedBack         | 11
- *   MenuColorDisabled            | 01
- */
-Color IWindowMenuItem::GetBackColor() const {
-    if (clr_scheme) {
-        return IsFocused() ? clr_scheme->back.focused : clr_scheme->back.unfocused;
-    }
-
-    Color ret = GuiDefaults::MenuColorBack;
-    if (IsFocused()) {
-        ret = IsEnabled() ? ui_theme::primary() : GuiDefaults::MenuColorDisabled;
-    }
-    return ret;
 }
 
 void IWindowMenuItem::printIcon(Rect16 icon_rect, ropfn raster_op, Color color_back) const {

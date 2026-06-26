@@ -99,6 +99,15 @@ private:
     /// ticks_s() of the time where we last needed the filtration (were printing)
     std::optional<uint32_t> last_filtration_need_s_ = std::nullopt;
 
+    /// Previous print-state tracking for post-print filtration handoff.
+    bool is_printing_prev_ = false;
+
+    /// Current post-print filtration requirement, if explicitly captured.
+    std::optional<bool> needs_filtration_ = std::nullopt;
+
+    /// ticks_s() of the print completion that started the post-print filtration cycle.
+    uint32_t last_print_s_ = 0;
+
     /// ticks_s() of the start of filter usage (output_pwm > 0) that has not yet been emitted in the config_store
     uint32_t unaccounted_filter_time_used_start_s_ = 0;
 

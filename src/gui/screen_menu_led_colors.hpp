@@ -14,10 +14,10 @@ public:
     MI_UI_THEME_PRESET_SELECT();
 
     int item_count() const final;
-    void build_item_text(int index, const std::span<char> &buffer) const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
 
 protected:
-    bool on_item_selected(int old_index, int new_index) override;
+    bool on_item_selected(const OnItemSelectedArgs &args) override;
 };
 
 class MI_UI_THEME_PRESET_PRUSA : public IWindowMenuItem {

@@ -13,7 +13,7 @@
 namespace {
 void clear_temp_to_display() {
     for (auto tool : PhysicalToolIndex::all()) {
-        marlin_server::set_temp_to_display(0, tool);
+        marlin_server::call_manually::set_temp_to_display(0, tool);
     }
 }
 

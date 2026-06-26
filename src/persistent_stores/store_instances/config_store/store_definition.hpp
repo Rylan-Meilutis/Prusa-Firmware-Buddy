@@ -651,7 +651,7 @@ struct CurrentStore
     StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("Status LED Idle Color")> status_led_idle_color;
     StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
     StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("Status LED Finished Color")> status_led_finished_color;
-    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color")> status_led_warning_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color v2")> status_led_warning_color;
     StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("Status LED Error Color")> status_led_error_color;
     StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("USB Status LED Idle Color")> usb_status_led_idle_color;
     StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("USB Status LED Printing Color")> usb_status_led_printing_color;
@@ -1032,6 +1032,15 @@ struct CurrentStore
     StoreItem<float, defaults::loadcell_scale, ItemFlag::hw_config, journal::hash("Loadcell Scale V2")> loadcell_scale;
 #endif // HAS_LOADCELL()
 
+    // PID variables persisted outside Marlin's legacy EEPROM blob.
+    StoreItem<float, defaults::pid_nozzle_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle P")> pid_nozzle_p;
+    StoreItem<float, defaults::pid_nozzle_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle I")> pid_nozzle_i;
+    StoreItem<float, defaults::pid_nozzle_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle D")> pid_nozzle_d;
+
+    StoreItem<float, defaults::pid_bed_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed P")> pid_bed_p;
+    StoreItem<float, defaults::pid_bed_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed I")> pid_bed_i;
+    StoreItem<float, defaults::pid_bed_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed D")> pid_bed_d;
+
 private:
     void perform_config_migrations();
 };
@@ -1190,15 +1199,6 @@ struct DeprecatedStore
         StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, HOTENDS> side_fs_ref_nins_values;
         StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS INS Values v16"), 16, HOTENDS> side_fs_ref_ins_values;
 
-        // nozzle PID variables
-        StoreItem<float, defaults::pid_nozzle_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle P")> pid_nozzle_p;
-        StoreItem<float, defaults::pid_nozzle_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle I")> pid_nozzle_i;
-        StoreItem<float, defaults::pid_nozzle_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle D")> pid_nozzle_d;
-
-        // bed PID variables
-        StoreItem<float, defaults::pid_bed_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed P")> pid_bed_p;
-        StoreItem<float, defaults::pid_bed_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed I")> pid_bed_i;
-        StoreItem<float, defaults::pid_bed_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed D")> pid_bed_d;
         */
 };
 
