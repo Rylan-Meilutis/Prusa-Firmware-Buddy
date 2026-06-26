@@ -977,6 +977,25 @@ extern "C" void HAL_ADC_ConvCpltCallback([[maybe_unused]] ADC_HandleTypeDef *had
     }
 }
 
+extern "C" void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
+    // Root cause of the random "INDX stops answering Modbus" hang:
+    // The induction-heater ADC mode switching (config_adc_*, repeated
+    // HAL_ADC_Start_DMA/Stop_DMA in InductionHeater::measure) can occasionally
+    // leave the ADC converting while DMA is not draining -> overrun (OVR). The HAL
+    // clears the OVR flag and calls this callback but does NOT stop the
+    // conversions, so OVR is set again immediately and ADC1_IRQ re-fires forever.
+    // That ISR storm (priority 2) starves the lowest-priority SysTick and PendSV,
+    // freezing the FreeRTOS scheduler: the modbus task never runs again and the
+    // head stays mute until XBuddy hard-resets it.
+    //
+    // Break the storm at the source: disable the overrun interrupt. It is
+    // re-enabled cleanly by the next HAL_ADC_Start_DMA (config_adc_* runs every
+    // heater cycle), so the ADC self-recovers without a reset.
+    if (hadc == &hal::peripherals::hadc1 && (hadc->ErrorCode & HAL_ADC_ERROR_OVR) != 0U) {
+        __HAL_ADC_DISABLE_IT(hadc, ADC_IT_OVR);
+    }
+}
+
 extern "C" void I2C1_IRQHandler(void) {
     using namespace hal::peripherals;
     if (hi2c1.Instance->ISR & (I2C_FLAG_BERR | I2C_FLAG_ARLO | I2C_FLAG_OVR)) {
