@@ -1043,7 +1043,8 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     if (MMU2::mmu2.Enabled()) {
         // Unloading from nozzle is handled by Slicer, do not use auto_retract (frequent filament changes cause retract_tracker cannot properly hold valid value)
         // When we are running single-filament gcode with MMU, we should unload current filament.
-        if (!finished || GCodeInfo::getInstance().is_singletool_gcode()) {
+        // Serial prints do not have reliable file metadata for is_singletool_gcode(), so unload if the MMU still reports filament present.
+        if (!finished || server.print_is_serial || GCodeInfo::getInstance().is_singletool_gcode()) {
             safely_unload_filament_from_nozzle_to_mmu();
         }
     } else

@@ -37,6 +37,7 @@
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
     * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
     * Fixed MMU error handling crash by deferring serial host pause/resume actions to the Marlin server loop instead of running them directly from the MMU reporting callback
+    * Fixed serial MMU print completion leaving filament in the extruder by running the firmware final unload when streamed jobs lack reliable file metadata and by no longer treating progress-only `M73 P100 R0` reports as a hard end-of-print marker
     * Added host unit-test coverage for deferred MMU serial host pause/resume events
     * Fixed OctoPrint SD/USB uploads completing without data being written by entering upload mode immediately when serial `M28` is received
     * Fixed the serial print screen showing `Continue` instead of `Stop` during an active print
@@ -107,13 +108,15 @@ Serial print start detection handles `M75`, eligible `M73 P0/Q0`, OctoPrint-styl
 
 Starting a second serial print immediately after a previous print finishes now clears the previous finished/aborted state before entering the new serial print state.
 
-Serial print completion is detected from `M77` and completed `M73 P100/Q100 R0/S0` messages. Serial `M77` is handled before it enters the normal G-code queue, returns `ok` to the host, keeps the persistent finished screen active, and clears the serial command pause gate so later host commands and the next `M75` are accepted.
+Serial print completion is detected from explicit `M77`. Serial `M77` is handled before it enters the normal G-code queue, returns `ok` to the host, keeps the persistent finished screen active, and clears the serial command pause gate so later host commands and the next `M75` are accepted. Progress-only `M73 P100/Q100 R0/S0` reports are not treated as a hard end marker because they can arrive before streamed end G-code, including MMU unload commands, has finished.
 
 Serial pause handling has been improved. `M601` from OctoPrint or another serial host now stops accepting additional streamed commands while the existing queue drains, then runs the normal print-head parking sequence. Serial commands are accepted again after the printer reaches the paused state so `M602` or host resume can be received.
 
 Firmware pause states, MMU errors, and runout-style pauses keep the print treated as active for the print screen and chamber lighting. They also hold the bed-heater safety timer reset so the bed does not cool during a recoverable paused print. The printer reports pause/resume style host actions back to serial hosts where applicable.
 
 MMU filament runout and other manual-intervention recovery on serial prints can restore the nozzle target before resume when needed and now send the serial-host resume action after the printer resumes, so hosts such as OctoPrint do not remain paused after the printer has recovered.
+
+At serial print finish, MMU-enabled printers run the firmware final unload when the MMU still reports filament present even if the streamed job did not provide scanned file metadata. This prevents OctoPrint-style serial jobs from leaving filament in the extruder when slicer metadata is unavailable or host progress reports reach 100% before the final end-gcode unload sequence is complete.
 
 The serial print screen now has selectable UI modes:
 
