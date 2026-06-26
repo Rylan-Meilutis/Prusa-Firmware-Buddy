@@ -464,11 +464,11 @@ Comparison base: upstream `v6.6.0` (`e96ce2b92a`)
 
 Current branch: `rme-v6.6.0`
 
-Latest replayed RME commit: `b75fe7a8e`
+Latest replayed RME commit: `2ed2b31fe`
 
-Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, and `Fix serial MMU print completion unload`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, and `Port RME firmware to Buddy 6.6.0`
 
-The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, and the release documentation refresh.
+The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, and the release documentation refresh.
 
 ## Full changelog
 
@@ -593,5 +593,6 @@ c6e0714e7  2026-06-25  Document serial finish and intervention fixes
 619015b00  2026-06-25  Finalize 6.5.7 RME release port
 ed7c3984f  2026-06-25  Fix Prusa Connect serial print state reporting
 b75fe7a8e  2026-06-25  Fix serial MMU print completion unload
+2ed2b31fe  2026-06-25  Port RME firmware to Buddy 6.6.0
 
 ```
