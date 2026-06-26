@@ -78,8 +78,8 @@ private:
         bitset_->set(std::to_underlying(item_), get_index());
     }
 
-    virtual void printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const override {
-        MenuItemSwitch::printExtension(extension_rect, get_index() ? COLOR_GREEN : COLOR_RED, color_back, raster_op);
+    Color resolved_value_text_color(Color) const override {
+        return current_item() ? COLOR_GREEN : COLOR_RED;
     }
 };
 
