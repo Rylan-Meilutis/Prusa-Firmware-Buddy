@@ -11,8 +11,11 @@
 #include <span>
 #include <tool_index.hpp>
 #include <utils/uncopyable.hpp>
+#include <utils/compact_optional.hpp>
 
 namespace buddy::openprinttag {
+
+using OptionalRegion = CompactOptional<Region, Region::_cnt>;
 
 /// Represents a type-safe request ID.
 class RequestID {
@@ -77,13 +80,13 @@ public:
 
     /// @returns Region associated with the request, if there is any
     /// This is to help diagnose/recover from the region_corrupt error.
-    inline std::optional<Region> region() const {
-        return (region_ != Region::_cnt) ? std::make_optional(region_) : std::nullopt;
+    inline OptionalRegion region() const {
+        return region_ != Region::_cnt ? OptionalRegion { region_ } : std::nullopt;
     }
 
 protected:
     /// This is an kinda-interface base class, cannot be constructed on its own
-    Request(std::optional<Region> region, const ToolTag &tool_tag)
+    Request(OptionalRegion region, const ToolTag &tool_tag)
         : region_(region.value_or(Region::_cnt))
         , tool_tag_(tool_tag) {}
 
