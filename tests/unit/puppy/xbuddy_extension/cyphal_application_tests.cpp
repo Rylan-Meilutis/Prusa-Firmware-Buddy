@@ -142,8 +142,15 @@ public:
         abort();
     }
 
-    void transmit_tool_offset_sensor_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const tool_offset_sensor::Config &) {
-        abort();
+    struct ToolOffsetSensorConfigRequest {
+        NodeId node_id;
+        tool_offset_sensor::Config config;
+        constexpr auto operator<=>(const ToolOffsetSensorConfigRequest &) const = default;
+    };
+    std::vector<ToolOffsetSensorConfigRequest> tool_offset_sensor_config_requests;
+
+    void transmit_tool_offset_sensor_config_request(NodeId node_id, const tool_offset_sensor::Config &config) {
+        tool_offset_sensor_config_requests.push_back({ node_id, config });
     }
 
     struct NfcCommand {
@@ -241,6 +248,11 @@ const auto unknown_node_name = [] {
     return as_bytes(std::span { name.data(), name.size() });
 }();
 
+const auto tool_offset_sensor_node_name = [] {
+    std::string_view name { "cz.prusa3d.honeybee.tool_offset_sensor" };
+    return as_bytes(std::span { name.data(), name.size() });
+}();
+
 void setup_nfc_node(Application &app, MockPresentation &mock, NodeId node_id, uint32_t unique_id, uint32_t &time) {
     // node asks for PNP allocation, it is given a node id
     {
@@ -273,6 +285,44 @@ void setup_nfc_node(Application &app, MockPresentation &mock, NodeId node_id, ui
         app.receive_node_execute_command_response(node_id, 0, digest);
         const auto mock_before = run(app, mock, make_timepoint(time++));
         REQUIRE(mock == mock_before);
+    }
+}
+
+// Drive a tool offset sensor node from anonymous through full firmware
+// verification into the ToolOffsetSensorAlive state.
+void setup_tool_offset_sensor_node(Application &app, MockPresentation &mock, NodeId node_id, uint32_t unique_id, uint32_t &time) {
+    const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
+
+    // node asks for PNP allocation, it is given a node id
+    {
+        app.receive_pnp_allocation(make_unique_id(unique_id));
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.pnp_allocation.size() == mock_before.pnp_allocation.size() + 1);
+        REQUIRE(mock.pnp_allocation.back().node_id == node_id);
+    }
+    // node sends a heartbeat from its firmware, it receives a node info request
+    {
+        app.receive_node_heartbeat(node_id, make_timepoint(time), healthy_firmware);
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.node_get_info_request.size() == mock_before.node_get_info_request.size() + 1);
+        REQUIRE(mock.node_get_info_request.back() == node_id);
+    }
+    // node responds with node info, it receives a hash request (verification is required on first boot)
+    {
+        app.receive_node_get_info_response(node_id, tool_offset_sensor_node_name);
+        const auto mock_before = run(app, mock, make_timepoint(time++));
+        REQUIRE(mock.node_execute_command_request.size() == mock_before.node_execute_command_request.size() + 1);
+        REQUIRE(mock.node_execute_command_request.back().command == Command::get_app_salted_hash);
+        REQUIRE(app.request().hash_request == cyphal::FirmwareFile::firmware_tool_offset_sensor);
+    }
+    // node and motherboard respond with a matching hash, the node becomes alive
+    {
+        const auto digest = generate_random_digest();
+        const auto received = app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest);
+        REQUIRE(received);
+        app.receive_node_execute_command_response(node_id, 0, digest);
+        run(app, mock, make_timepoint(time++));
+        REQUIRE(app.request().hash_request == cyphal::FirmwareFile::none);
     }
 }
 
@@ -984,4 +1034,100 @@ SCENARIO("NFC node event routing") {
             }
         }
     }
+}
+
+SCENARIO("tool offset sensor verifies its firmware on first boot") {
+    const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
+    const auto node_id = NodeId { 1 };
+
+    GIVEN("a freshly allocated tool offset sensor reporting from its firmware") {
+        MockPresentation mock;
+        Application app;
+        uint32_t time = 0;
+
+        app.receive_pnp_allocation(make_unique_id(0x705));
+        run(app, mock, make_timepoint(time++));
+        app.receive_node_heartbeat(node_id, make_timepoint(time), healthy_firmware);
+        run(app, mock, make_timepoint(time++));
+
+        WHEN("it identifies itself as a tool offset sensor") {
+            app.receive_node_get_info_response(node_id, tool_offset_sensor_node_name);
+            const auto mock_before = run(app, mock, make_timepoint(time++));
+
+            THEN("its firmware hash is requested from both the node and the motherboard") {
+                // A node that has never been verified must go through the full
+                // hash verification. The fast reset-recovery path must NOT be
+                // taken on first boot - this guards against the verification
+                // ever being skipped for a node we haven't checked yet.
+                REQUIRE(mock.node_execute_command_request.size() == mock_before.node_execute_command_request.size() + 1);
+                CHECK(mock.node_execute_command_request.back().command == Command::get_app_salted_hash);
+                CHECK(app.request().hash_request == cyphal::FirmwareFile::firmware_tool_offset_sensor);
+            }
+        }
+    }
+}
+
+TEST_CASE("tool offset sensor recovers from a board reset") {
+    const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
+    const auto bootloader = Heartbeat { Health::advisory, Mode::software_update, 0 };
+    const auto node_id = NodeId { 1 };
+
+    // The non-default configuration we will apply to the node before it resets, and expect to be re-sent after it comes back up.
+    const auto enabled_config = tool_offset_sensor::Config { .ch0_enabled = true, .ch1_enabled = false };
+
+    MockPresentation mock;
+    Application app;
+    uint32_t time = 0;
+    setup_tool_offset_sensor_node(app, mock, node_id, 0xdeadbeef, time);
+
+    app.receive(enabled_config);
+    run(app, mock, make_timepoint(time++));
+    REQUIRE(mock.tool_offset_sensor_config_requests.back().config == enabled_config);
+
+    const auto commands_before = mock.node_execute_command_request.size();
+    const auto info_requests_before = mock.node_get_info_request.size();
+    const auto config_requests_before = mock.tool_offset_sensor_config_requests.size();
+
+    // The reset is observed as a software_update-mode heartbeat
+    app.receive_node_heartbeat(node_id, make_timepoint(time), bootloader);
+    run(app, mock, make_timepoint(time++));
+
+    // The second heartbeat triggers step function again and performs start app command
+    app.receive_node_heartbeat(node_id, make_timepoint(time), bootloader);
+    run(app, mock, make_timepoint(time++));
+
+    // The XBE issues start_app once the bootloader reports BootCancelled
+    const auto start_app = ExecuteCommandRequest { node_id, Command::start_app };
+    REQUIRE(mock.node_execute_command_request.size() == commands_before + 1);
+    CHECK(mock.node_execute_command_request.back() == start_app);
+
+    // The node acknowledges start_app and boots its application.
+    app.receive_node_execute_command_response(node_id, 0, {});
+
+    // Now the app boots and reports heartbeat from healthy firmware
+    app.receive_node_heartbeat(node_id, make_timepoint(time), healthy_firmware);
+    run(app, mock, make_timepoint(time++));
+
+    // The firmware is fully re-verified after the reset: the XBE requests a
+    // fresh salted hash both from the node and from the motherboard. No fresh
+    // GetInfo is issued though - the node identity is remembered across the
+    // reset, so start_app and get_app_salted_hash are the only two commands.
+    CHECK(mock.node_get_info_request.size() == info_requests_before);
+    REQUIRE(mock.node_execute_command_request.size() == commands_before + 2);
+    CHECK(mock.node_execute_command_request.back().command == Command::get_app_salted_hash);
+    REQUIRE(app.request().hash_request == cyphal::FirmwareFile::firmware_tool_offset_sensor);
+
+    const auto digest = generate_random_digest();
+    const auto received = app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest);
+    REQUIRE(received);
+    app.receive_node_execute_command_response(node_id, 0, digest);
+    run(app, mock, make_timepoint(time++));
+
+    // Verification succeeded, the request slot is released again.
+    CHECK(app.request().hash_request == cyphal::FirmwareFile::none);
+
+    // Once the node is alive again its configuration is re-applied.
+    REQUIRE(mock.tool_offset_sensor_config_requests.size() == config_requests_before + 1);
+    CHECK(mock.tool_offset_sensor_config_requests.back().node_id == node_id);
+    CHECK(mock.tool_offset_sensor_config_requests.back().config == enabled_config);
 }
