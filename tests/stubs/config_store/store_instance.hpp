@@ -71,14 +71,13 @@ struct ConfigStore {
         return 0.4f;
     }
 
-    struct ManyFalse {
-        std::array<bool, 5> get() const {
-            return { false, false, false, false, false };
-        }
-    };
+    bool get_nozzle_is_hardened(uint8_t) {
+        return false;
+    }
 
-    ManyFalse nozzle_is_hardened;
-    ManyFalse nozzle_is_high_flow;
+    bool get_nozzle_is_high_flow(uint8_t) {
+        return false;
+    }
 };
 
 inline ConfigStore &config_store() {

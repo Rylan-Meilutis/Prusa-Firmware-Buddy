@@ -203,7 +203,7 @@ CommunicationStatus PuppyModbus::make_request(RequestTiming *const timing, size_
             [[fallthrough]];
         case SingleRequestResult::retry:
             metric_record_event(&modbus_reqfail);
-            freertos::delay(10);
+            freertos::delay(20);
             continue;
         }
         bsod_unreachable();
