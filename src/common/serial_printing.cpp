@@ -225,7 +225,10 @@ bool print_start_gcode(const char *command) {
 }
 
 bool print_end_gcode(const char *command) {
-    return command_starts_with(command, 'M', 77) || m73_finished(command);
+    // M73 P100 R0 is progress telemetry and can arrive before all streamed end
+    // gcode has been sent. Treat only M77 as an explicit print-end marker; hosts
+    // without M77 still finish through the serial inactivity timeout.
+    return command_starts_with(command, 'M', 77);
 }
 
 const char *command_arg(const char *command) {

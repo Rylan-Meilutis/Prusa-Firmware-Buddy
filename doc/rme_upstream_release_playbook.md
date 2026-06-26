@@ -192,7 +192,7 @@ Behavior to verify:
 M75 or eligible M73 starts serial print state.
 Blocking heater waits such as M109, M190, and M191 can start serial print state when automatic detection is enabled.
 Homing, mesh-leveling, and ordinary toolhead movement commands do not start serial print state by themselves.
-M77 and complete M73 end serial print state.
+M77 ends serial print state. Do not treat progress-only M73 P100/Q100 R0/S0 as a hard end marker; it can arrive before streamed end G-code has completed.
 M77 received from serial must finalize the serial print before it enters the normal G-code queue, return `ok`, keep the persistent print-finished screen active, and leave later serial commands accepted.
 Serial print finalization must clear `GCodeQueue::pause_serial_commands`; otherwise a following M75 or host command after print completion can be ignored.
 M75, startup M73, and OctoPrint startup messages received while a serial print is already active must not arm a pending second print start. End G-code sent after M77 must not restart serial print state or clear the frozen completed-print duration.
@@ -200,6 +200,7 @@ Ignored short serial macro prints, such as a quick M75/M77 pair with no printed 
 Canceling a detected serial print before its initial home must not issue an unhomed Z clearance move when no printed Z height exists. Shut down heaters and continue abort cleanup without moving the steppers.
 M601 parks and keeps the serial print screen active.
 MMU/runout and other manual-intervention recovery sends the host resume action and then reports resumed after the printer is actually continuing.
+Serial MMU print finalization must not rely on GCodeInfo single-tool metadata, because streamed jobs often do not have scanned file comments. If the MMU still reports filament present, firmware finalization must attempt the MMU unload so OctoPrint-style jobs do not leave filament in the extruder.
 Firmware/manual-intervention pause states during serial prints should report paused to the host, keep bed heat protected from the bed safety timer, allow nozzle safety handling where appropriate, restore the nozzle target before resume when needed, then send host resume/resumed actions so OctoPrint and similar hosts do not remain paused.
 MMU reporting hooks must only defer host pause/resume events. Do not call `SerialPrinting::*` or `buddy::safety_timer()` directly from the MMU reporting callback; consume the deferred events from the Marlin server loop where the safety timer and serial host actions are safe to run.
 Fresh, useful host status progress/ETA, such as OctoPrint-plugin M117 status text, takes precedence over streamed G-code M73 progress so percent/ETA do not jump backward. Host ETA snapshots count down locally between messages. Repeated startup-style 0% messages and unrecognized ETA text leave streamed M73 P/R fallback data in control.
