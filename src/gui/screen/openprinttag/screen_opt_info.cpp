@@ -11,6 +11,7 @@
 #include <screen/openprinttag/opt_request_wizard.hpp>
 #include <screen/openprinttag/screen_opt_filament_detail.hpp>
 #include <img_resources.hpp>
+#include <feature/openprinttag/utils.hpp>
 
 namespace buddy::openprinttag {
 
@@ -26,9 +27,7 @@ MenuItemFilamentTracking::MenuItemFilamentTracking(VirtualToolIndex tool)
 }
 
 void MenuItemFilamentTracking::Loop() {
-    const auto assigned_tag = ToolTag::for_tool_assigned(tool_);
-    const auto ephemeral_tag = ToolTag::for_tool_ephemeral(tool_);
-    const auto new_is_tracking = assigned_tag && (assigned_tag == ephemeral_tag) && buddy::openprinttag::filament_usage_tracker().is_tracking(tool_);
+    const auto new_is_tracking = (tool_tag_status(tool_) == ToolTagStatus::ok);
 
     if (is_tracking_ != new_is_tracking) {
         is_tracking_ = new_is_tracking;
@@ -47,41 +46,51 @@ void MenuItemFilamentTracking::printExtension(Rect16 extension_rect, [[maybe_unu
 }
 
 void MenuItemFilamentTracking::click(IWindowMenu &) {
-    const auto assigned_tag = ToolTag::for_tool_assigned(tool_);
-    const auto ephemeral_tag = ToolTag::for_tool_ephemeral(tool_);
-
     const char *msg = nullptr;
     PhaseResponses responses = Responses_Ok;
 
-    if (!ephemeral_tag) {
-        msg = N_("No OpenPrintTag detected for the tool/slot.");
+    switch (tool_tag_status(tool_)) {
 
-    } else if (!assigned_tag) {
-        msg = N_("The filament has no OpenPrintTag assigned. To assign a tag, it must be detected during the filament load.");
-        responses = { Response::Ok, Response::Replace };
+    case ToolTagStatus::ok:
+        return;
 
-    } else if (ephemeral_tag != assigned_tag) {
+    case ToolTagStatus::no_filament:
+        // Shouldn't happen, ignore
+        return;
+
+    case ToolTagStatus::tag_missing:
+    case ToolTagStatus::not_assigned:
+        msg = N_("The OpenPrintTag is not detected at the tool/slot.");
+        break;
+
+    case ToolTagStatus::different_tag_present:
+    case ToolTagStatus::not_assigned_but_present:
         msg = N_("Currently detected OpenPrintTag is different to the assigned one present during filament load.");
         responses = { Response::Ok, Response::Replace };
+        break;
 
-    } else if (!buddy::openprinttag::filament_usage_tracker().is_tracking(tool_)) {
-        msg = N_("The tag is corrupt, locked, missing lenght/weight data or otherwise unsuitable.");
+    case ToolTagStatus::tag_problem:
+        msg = N_("The tag is corrupt, locked, missing length/weight data or otherwise unsuitable.");
+        break;
     }
 
-    assert((msg == nullptr) == is_tracking_);
-    if (!msg) {
-        return;
-    }
-
-    const auto response = MsgBoxError(_(msg), responses);
-    switch (response) {
+    const auto status_response = MsgBoxError(_(msg), responses);
+    switch (status_response) {
 
     case Response::Ok:
         break;
 
     case Response::Replace: {
-        if (MsgBoxQuestion(_("Reassign the currently detected tag to the filament?"), Responses_YesNo) == Response::Yes) {
-            config_store().opt_tool_assigned_tag.set(tool_.to_raw(), ephemeral_tag->uid_hash());
+        const auto replace_response = MsgBoxQuestion(_("Reassign the currently detected tag to the filament?"), Responses_YesNo);
+        if (replace_response == Response::Yes) {
+            const auto ephemeral = ToolTag::for_tool_ephemeral(tool_);
+            if (!ephemeral) {
+                // Could have gotten to null after the tool_tag_status call theoretically,
+                // but improbable enough so it's not worth handling
+                return;
+            }
+
+            config_store().opt_tool_assigned_tag.set(tool_.to_raw(), ephemeral->uid_hash());
 
             StringViewUtf8Parameters<4> msg_params;
             MsgBoxInfo(_("OpenPrintTag reassigned for tool %i").formatted(msg_params, tool_.display_index()), Responses_Ok);
