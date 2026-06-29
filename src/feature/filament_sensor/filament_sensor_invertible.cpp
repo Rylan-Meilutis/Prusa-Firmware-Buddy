@@ -52,7 +52,10 @@ void FSensorInvertible::load_settings() {
 }
 
 void FSensorInvertible::cycle() {
-    if (!is_calibrated_) {
+    if (raw_state_.load() == FilamentSensorState::NotConnected) {
+        // A disconnected sensor cannot be calibrated nor read; not-connected takes priority over not-calibrated.
+        state = FilamentSensorState::NotConnected;
+    } else if (!is_calibrated_) {
         state = FilamentSensorState::NotCalibrated;
     } else {
         state = inverted_state(raw_state_, is_inverted_);
