@@ -523,6 +523,11 @@ bool PrusaToolChanger::purge_tool(PhysicalToolIndex tool) {
     // restore fan speed
     Fans::print(tool).set_pwm(prev_pwm);
 
+    // park() and pickup() restore the planner jerk and acceleration from conf_restorer
+    // so it must be sampled before calling them, and restored after
+    conf_restorer.sample();
+    ScopeGuard conf_resetter = [&] { conf_restorer.restore_clear(); };
+
     if (!park(dwarf)) {
         return false;
     }
