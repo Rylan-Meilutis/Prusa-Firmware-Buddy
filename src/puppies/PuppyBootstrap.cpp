@@ -482,64 +482,64 @@ void PuppyBootstrap::flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, 
 
     bootstrap_state_set(percent_offset, check_fingerprint_stage(puppy_type));
 
-    bool match = fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock);
-    log_info(Puppies, "Puppy %d-%s fingerprint %s", static_cast<int>(dock), get_puppy_info(puppy_type).name, match ? "matched" : "didn't match");
+    // application firmware already up to date — nothing to flash
+    if (fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock)) {
+        log_info(Puppies, "Puppy %d-%s fingerprint matched", static_cast<int>(dock), get_puppy_info(puppy_type).name);
+        return;
+    }
+    log_info(Puppies, "Puppy %d-%s fingerprint didn't match, flashing", static_cast<int>(dock), get_puppy_info(puppy_type).name);
 
-    // if application firmware fingerprint doesn't match, flash it
-    if (!match) {
+    const struct {
+        unique_file_ptr &fw_file;
+        off_t fw_size;
+        int percent_offset;
+        int percent_span;
+        BootstrapStage flashing_stage;
+    } params {
+        .fw_file = fw_file,
+        .fw_size = fw_size,
+        .percent_offset = percent_offset,
+        .percent_span = percent_span,
+        .flashing_stage = flashing_stage(puppy_type),
+    };
 
-        const struct {
-            unique_file_ptr &fw_file;
-            off_t fw_size;
-            int percent_offset;
-            int percent_span;
-            BootstrapStage flashing_stage;
-        } params {
-            .fw_file = fw_file,
-            .fw_size = fw_size,
-            .percent_offset = percent_offset,
-            .percent_span = percent_span,
-            .flashing_stage = flashing_stage(puppy_type),
-        };
+    BootloaderProtocol::status_t result = flasher.write_flash(fw_size, [&params](uint32_t offset, size_t size, uint8_t *out_data) -> bool {
+        const uint8_t percent = static_cast<uint8_t>(params.percent_offset + offset * params.percent_span / params.fw_size);
+        bootstrap_state_set(percent, params.flashing_stage);
 
-        BootloaderProtocol::status_t result = flasher.write_flash(fw_size, [&params](uint32_t offset, size_t size, uint8_t *out_data) -> bool {
-            const uint8_t percent = static_cast<uint8_t>(params.percent_offset + offset * params.percent_span / params.fw_size);
-            bootstrap_state_set(percent, params.flashing_stage);
-
-            // get data
-            assert(offset + size <= static_cast<size_t>(params.fw_size));
-            const int sret = fseek(params.fw_file.get(), offset, SEEK_SET);
-            if (sret != 0) {
-                return false;
-            }
-            const size_t ret = fread(out_data, sizeof(uint8_t), size, params.fw_file.get());
-            if (ret != size) {
-                return false;
-            }
-            return true;
-        });
-
-        if (result != BootloaderProtocol::COMMAND_OK) {
-            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_WRITE_FLASH_ERR, get_puppy_info(puppy_type).name);
+        // get data
+        assert(offset + size <= static_cast<size_t>(params.fw_size));
+        const int sret = fseek(params.fw_file.get(), offset, SEEK_SET);
+        if (sret != 0) {
+            return false;
         }
-
-        bootstrap_state_set(percent_offset + percent_span, check_fingerprint_stage(puppy_type));
-
-        // Calculate new fingerprint, salt needs to be changed so the flashing cannot be faked
-        fw_fingerprints.get_salt(dock) = rand_u();
-        start_fingerprint_computation(get_boot_address_for_dock(dock), fw_fingerprints.get_salt(dock));
-
-        auto fingerprint_wait_start = ticks_ms();
-
-        calculate_fingerprint(fw_file, fw_fingerprints.get_fingerprint(dock), fw_fingerprints.get_salt(dock));
-
-        // Check puppy if it finished fingerprint calculation
-        wait_for_fingerprint(fingerprint_wait_start);
-
-        // check fingerprint after flashing, to make sure it went well
-        if (!fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock)) {
-            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH, get_puppy_info(puppy_type).name);
+        const size_t ret = fread(out_data, sizeof(uint8_t), size, params.fw_file.get());
+        if (ret != size) {
+            return false;
         }
+        return true;
+    });
+
+    if (result != BootloaderProtocol::COMMAND_OK) {
+        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_WRITE_FLASH_ERR, get_puppy_info(puppy_type).name);
+    }
+
+    bootstrap_state_set(percent_offset + percent_span, check_fingerprint_stage(puppy_type));
+
+    // Calculate new fingerprint, salt needs to be changed so the flashing cannot be faked
+    fw_fingerprints.get_salt(dock) = rand_u();
+    start_fingerprint_computation(get_boot_address_for_dock(dock), fw_fingerprints.get_salt(dock));
+
+    auto fingerprint_wait_start = ticks_ms();
+
+    calculate_fingerprint(fw_file, fw_fingerprints.get_fingerprint(dock), fw_fingerprints.get_salt(dock));
+
+    // Check puppy if it finished fingerprint calculation
+    wait_for_fingerprint(fingerprint_wait_start);
+
+    // check fingerprint after flashing, to make sure it went well
+    if (!fingerprint_match(fw_fingerprints.get_fingerprint(dock), dock)) {
+        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_FINGERPRINT_MISMATCH, get_puppy_info(puppy_type).name);
     }
 }
 
