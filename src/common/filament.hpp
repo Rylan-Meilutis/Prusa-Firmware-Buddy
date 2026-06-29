@@ -214,6 +214,10 @@ public:
     /// Returning NoFilament is a last resort.
     static FilamentType for_tool_heuristic(std::variant<VirtualToolIndex, NoTool> tool);
 
+    /// Guesses FilamentType for current tool
+    /// @return for_current_tool_heuristic for current tool
+    static FilamentType for_current_tool_heuristic();
+
     /// \returns whether the filament type is of the specified name.
     /// !!! Prefer using "loaded_filament.matches(b_name)" over "loaded_filament == FilamentType::from_name(b_name)" where it makes sense.
     /// !!! This is because "loaded_filament" could be an ad-hoc filament, which is never returned from FilamentType::from_name.
