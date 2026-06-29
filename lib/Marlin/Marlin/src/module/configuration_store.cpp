@@ -242,7 +242,7 @@ void MarlinSettings::reset() {
   #endif
 
   #if HAS_HOME_OFFSET
-    home_offset.reset();
+    home_offset = {};
   #endif
 
   #if HAS_HOTEND_OFFSET

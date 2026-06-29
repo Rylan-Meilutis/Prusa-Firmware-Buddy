@@ -144,12 +144,12 @@ xyze_pos_t destination; // {0}
   StrongIndexArray<xyz_pos_t, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotend_offset;  // Initialized by settings.load()
   xyz_pos_t hotend_currently_applied_offset;
   void reset_hotend_offset(PhysicalToolIndex tool_index) {
-    hotend_offset[tool_index].reset();
+    hotend_offset[tool_index] = {};
   }
 
   void reset_hotend_offsets() {
     for (auto &offset : hotend_offset) {
-      offset.reset();
+      offset = {};
     }
   }
 #endif

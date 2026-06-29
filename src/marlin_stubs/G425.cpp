@@ -216,7 +216,7 @@ inline void normalize_hotend_offsets() {
     }
     [[maybe_unused]] const auto zero_offset = hotend_offset[PhysicalToolIndex::from_raw(0)];
     assert(zero_offset.x == 0 && zero_offset.y == 0 && zero_offset.z == 0);
-    hotend_offset[PrusaToolChanger::MARLIN_NO_TOOL_PICKED].reset(); // Avoid offset on no tool
+    hotend_offset[PrusaToolChanger::MARLIN_NO_TOOL_PICKED] = {}; // Avoid offset on no tool
 }
 #endif
 
@@ -353,7 +353,7 @@ MachinePosXY probe_xy(const MachinePosXYZ &center, const float angle, const uint
 
     // Discard result if not moved enough to reach the pin (probe triggered too early?)
     if ((hit_mm - initial_mm).magnitude() < MIN_TRAVELED_DISTANCE_MM) {
-        hit_mm.reset();
+        hit_mm = {};
     }
 
     // Return to initial
@@ -777,7 +777,7 @@ inline bool calibrate_all_simple() {
     // Check offsets
     for (auto tool : PhysicalToolIndex::all()) {
         if (!tool.is_enabled()) {
-            hotend_offset[tool].reset();
+            hotend_offset[tool] = {};
             continue;
         }
 

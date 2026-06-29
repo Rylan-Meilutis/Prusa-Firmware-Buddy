@@ -147,7 +147,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     match(
         new_tool,
         [&](PhysicalToolIndex physical_tool) { new_hotend_offset = hotend_offset[physical_tool]; },
-        [&](NoTool) { new_hotend_offset.reset(); });
+        [&](NoTool) { new_hotend_offset = {}; });
     const xyz_pos_t tool_offset_diff = hotend_currently_applied_offset - new_hotend_offset; ///< Difference between offset of new and old tools
 
     if (new_tool != old_tool) {

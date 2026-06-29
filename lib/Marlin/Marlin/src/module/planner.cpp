@@ -346,9 +346,9 @@ static float get_move_e_factor(const PlannerMoveTools &tools, const MoveHints &h
  */
 
 void Planner::init() {
-  position.reset();
-  position_float.reset();
-  previous_speed.reset();
+  position = {};
+  position_float = {};
+  previous_speed = {};
   previous_nominal_speed = 0;
   clear_block_buffer();
   delay_before_delivering = 0;

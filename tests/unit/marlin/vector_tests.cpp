@@ -93,7 +93,7 @@ TEST_CASE("Vector compound assignment", "[vector]") {
     CHECK(&(v += Vec4 {}) == &v); // returns a reference to *this
 }
 
-TEST_CASE("Vector set & reset", "[vector]") {
+TEST_CASE("Vector set", "[vector]") {
     Vec4 v { 1, 2, 3, 4 };
 
     v.set(5, 6); // only the first N components change
@@ -101,9 +101,6 @@ TEST_CASE("Vector set & reset", "[vector]") {
 
     v.set(Vec2 { 7, 8 }, 9); // vector prefix followed by scalars
     CHECK(v == Vec4 { 7, 8, 9, 4 });
-
-    v.reset();
-    CHECK(v == Vec4 {});
 }
 
 TEST_CASE("Vector casts", "[vector]") {

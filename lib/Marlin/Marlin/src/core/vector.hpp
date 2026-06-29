@@ -142,12 +142,8 @@ public:
     constexpr Vector &operator=(const Vector &) = default;
 
     // Don't use these, they are dangerous. Always retype explicitly.
-    constexpr Vector &operator=(const T v) = delete;
-
-    /// Resets all components to 0
-    constexpr void reset() {
-        *this = Vector {};
-    }
+    // Note: the concept + auto is required for the operator=(Vector) to take precedence
+    constexpr Vector &operator=(std::convertible_to<T> auto &v) = delete;
 
     /// Was present in previous implementation. Explicitly deleting it to make sure it would not get resolved.
     template <size_t size2>

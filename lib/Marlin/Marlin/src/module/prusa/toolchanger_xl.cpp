@@ -280,7 +280,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     if (new_dwarf != nullptr) {
         new_hotend_offset = hotend_offset[new_dwarf->dwarf_index()];
     } else {
-        new_hotend_offset.reset();
+        new_hotend_offset = {};
     }
     const xyz_pos_t tool_offset_diff = hotend_currently_applied_offset - new_hotend_offset; ///< Difference between offset of new and old tools
 
