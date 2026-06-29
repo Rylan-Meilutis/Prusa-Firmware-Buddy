@@ -46,6 +46,10 @@ const img::Resource *tool_tag_status_icon(VirtualToolIndex tool) {
     case ToolTagStatus::tag_problem:
     case ToolTagStatus::tag_missing:
         return &img::openprinttag_orange_16x16;
+
+    case ToolTagStatus::_cnt:
+        // Fallback to bsod_unrechable()
+        break;
     }
 
     bsod_unreachable();

@@ -31,6 +31,8 @@ enum class ToolTagStatus : uint8_t {
 
     /// The tag is
     tag_problem,
+
+    _cnt,
 };
 
 /// @returns Status of filament usage tracking for the provided tool

@@ -12,6 +12,7 @@
 
 #include <feature/openprinttag/detail/defines.hpp>
 #include <feature/openprinttag/tool_tag.hpp>
+#include <feature/openprinttag/utils.hpp>
 
 namespace buddy::openprinttag {
 
@@ -22,25 +23,21 @@ namespace {
     enum class Item {
         return_,
         data_section,
-        filament_tracking,
+        opt_tag_status,
         print_parameters,
     };
 
     static constexpr auto index_mapping_items = std::to_array<DynamicIndexMappingRecord<Item>>({
         Item::return_,
         { Item::data_section, DynamicIndexMappingType::dynamic_section, 0 },
-        Item::filament_tracking,
+        Item::opt_tag_status,
         Item::print_parameters,
     });
 
-    class MenuItemFilamentTracking final : public IWindowMenuItem {
-        static constexpr auto font = GuiDefaults::FontMenuSpecial;
-        static constexpr auto w_for_icon = 16;
-
-        static constinit const std::array<const char *, 2> values;
+    class MI_OPT_TAG_STATUS final : public IWindowMenuItem {
 
     public:
-        MenuItemFilamentTracking(ScreenOPTInfo &screen);
+        MI_OPT_TAG_STATUS(ScreenOPTInfo &screen);
 
     protected:
         void Loop() final;
@@ -49,7 +46,7 @@ namespace {
 
     private:
         ScreenOPTInfo &screen_;
-        bool is_tracking_ = false;
+        ToolTagStatus tag_status_ = ToolTagStatus::_cnt;
     };
 
     /// A bit longer than standard WI_Info_t - it was awkward that "PLA Prusa Galaxy Blac" was cropped
@@ -79,7 +76,7 @@ namespace {
     /// Screen that scans an OpenPrintTag and displays information present on the tag
     class ScreenOPTInfo final : public ScreenMenuBase<WindowMenuOPTInfo> {
         friend class WindowMenuOPTInfo;
-        friend class MenuItemFilamentTracking;
+        friend class MI_OPT_TAG_STATUS;
         using ItemVariant = WindowMenuOPTInfo::ItemVariant;
 
     public:

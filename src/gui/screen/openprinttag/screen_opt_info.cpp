@@ -1,6 +1,8 @@
 #include "screen_opt_info.hpp"
 #include "screen_opt_info_private.hpp"
 
+#include <utils/enum_array.hpp>
+
 #include <window_menu_callback_item.hpp>
 #include <window_msgbox.hpp>
 #include <ScreenHandler.hpp>
@@ -17,64 +19,108 @@
 
 namespace buddy::openprinttag {
 
-constinit const std::array<const char *, 2> MenuItemFilamentTracking::values {
-    N_("No"),
-    N_("Yes"),
-};
+namespace {
 
-MenuItemFilamentTracking::MenuItemFilamentTracking(ScreenOPTInfo &screen)
-    : IWindowMenuItem(_("Filament Tracking"))
+    struct ToolTagStatusData {
+        const char *short_text;
+        const char *long_text;
+        Color color;
+    };
+
+    static constexpr EnumArray<ToolTagStatus, ToolTagStatusData, ToolTagStatus::_cnt> status_texts {
+        {
+            ToolTagStatus::ok,
+            ToolTagStatusData {
+                .short_text = N_("OK"),
+                .long_text = N_("The OpenPrintTag is assigned and present."),
+                .color = COLOR_GREEN,
+            },
+        },
+        {
+            ToolTagStatus::no_filament,
+            ToolTagStatusData {
+                .short_text = N_("-"),
+                .long_text = nullptr,
+                .color = COLOR_LIGHT_GRAY,
+            },
+        },
+        {
+            ToolTagStatus::not_assigned,
+            ToolTagStatusData {
+                .short_text = N_("NOT ASSIGNED"),
+                .long_text = N_("The OpenPrintTag is not detected at the tool/slot."),
+                .color = COLOR_LIGHT_GRAY,
+            },
+        },
+        {
+            ToolTagStatus::not_assigned_but_present,
+            ToolTagStatusData {
+                .short_text = N_("NOT ASSIGNED"),
+                .long_text = N_("The tool/slot does not have an OpenPrintTag assigned, but there is a tag detected. OpenPrintTag must be linked during filament load."),
+                .color = COLOR_ORANGE,
+            },
+        },
+        {
+            ToolTagStatus::different_tag_present,
+            ToolTagStatusData {
+                .short_text = N_("WRONG TAG"),
+                .long_text = N_("Currently detected OpenPrintTag is different to the assigned one present during filament load."),
+                .color = COLOR_RED,
+            },
+        },
+        {
+            ToolTagStatus::tag_missing,
+            ToolTagStatusData {
+                .short_text = N_("TAG MISSING"),
+                .long_text = N_("The OpenPrintTag is not detected at the tool/slot."),
+                .color = COLOR_ORANGE,
+            },
+        },
+        {
+            ToolTagStatus::tag_problem,
+            ToolTagStatusData {
+                .short_text = N_("TAG PROBLEM"),
+                .long_text = N_("The tag is corrupt, locked, missing length/weight data or otherwise unsuitable."),
+                .color = COLOR_RED,
+            },
+        },
+    };
+
+} // namespace
+
+MI_OPT_TAG_STATUS::MI_OPT_TAG_STATUS(ScreenOPTInfo &screen)
+    : IWindowMenuItem(_("OpenPrintTag Status"))
     , screen_(screen) {
-    extension_width = std::max(_(values[0]).computeNumUtf8Chars(), _(values[1]).computeNumUtf8Chars()) * resource_font(font)->w + w_for_icon;
+    extension_width = 128;
 }
 
-void MenuItemFilamentTracking::Loop() {
-    const auto new_is_tracking = (tool_tag_status(screen_.tool_) == ToolTagStatus::ok);
-
-    if (is_tracking_ != new_is_tracking) {
-        is_tracking_ = new_is_tracking;
+void MI_OPT_TAG_STATUS::Loop() {
+    const auto new_status = tool_tag_status(screen_.tool_);
+    if (tag_status_ != new_status) {
+        tag_status_ = new_status;
         InValidateExtension();
     }
 }
 
-void MenuItemFilamentTracking::printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const {
-    if (is_tracking_) {
-        render_text_align(extension_rect, _(values[1]), font, color_back, COLOR_GREEN, GuiDefaults::MenuPaddingSpecial, Align_t::RightCenter());
+void MI_OPT_TAG_STATUS::printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const {
+    const auto &status = status_texts[tag_status_];
 
-    } else {
-        render_icon_align(extension_rect, &img::arrow_right_10x16, color_back, icon_flags(Align_t::RightCenter(), raster_op));
-        render_text_align(extension_rect - Rect16::W_t(w_for_icon), _(values[0]), font, color_back, COLOR_RED, GuiDefaults::MenuPaddingSpecial, Align_t::RightCenter());
-    }
+    const auto arrow_left = extension_rect.Right() - img::arrow_right_10x16.w;
+
+    render_text_align(Rect16::fromLTRB(extension_rect.Left(), extension_rect.Top(), arrow_left - 8, extension_rect.Bottom()), _(status.short_text), Font::small, color_back, status.color, {}, Align_t::RightCenter());
+
+    // Render extension arrow - indicate that clicking shows a dialog
+    render_icon_align(Rect16::fromLTRB(arrow_left, extension_rect.Top(), extension_rect.Right(), extension_rect.Bottom()), &img::arrow_right_10x16, color_back, icon_flags(Align_t::Center(), raster_op));
 }
 
-void MenuItemFilamentTracking::click(IWindowMenu &) {
-    const char *msg = nullptr;
-    PhaseResponses responses = Responses_Ok;
-
-    switch (tool_tag_status(screen_.tool_)) {
-
-    case ToolTagStatus::ok:
+void MI_OPT_TAG_STATUS::click(IWindowMenu &) {
+    const char *const msg = status_texts[tool_tag_status(screen_.tool_)].long_text;
+    if (msg == nullptr) {
         return;
-
-    case ToolTagStatus::no_filament:
-        // Shouldn't happen, ignore
-        return;
-
-    case ToolTagStatus::tag_missing:
-    case ToolTagStatus::not_assigned:
-        msg = N_("The OpenPrintTag is not detected at the tool/slot.");
-        break;
-
-    case ToolTagStatus::different_tag_present:
-    case ToolTagStatus::not_assigned_but_present:
-        msg = N_("Currently detected OpenPrintTag is different to the assigned one present during filament load.");
-        responses = { Response::Ok, Response::Replace };
-        break;
-
-    case ToolTagStatus::tag_problem:
-        msg = N_("The tag is corrupt, locked, missing length/weight data or otherwise unsuitable.");
-        break;
     }
+
+    const auto assigned_tag = ToolTag::for_tool_assigned(screen_.tool_);
+    PhaseResponses responses = { Response::Ok, assigned_tag.has_value() ? Response::Disable : Response::_none };
 
     const auto status_response = MsgBoxError(_(msg), responses);
     switch (status_response) {
@@ -82,22 +128,15 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
     case Response::Ok:
         break;
 
-    case Response::Replace: {
-        const auto replace_response = MsgBoxQuestion(_("Reassign the currently detected tag to the filament?"), Responses_YesNo);
-        if (replace_response == Response::Yes) {
-            const auto ephemeral = ToolTag::for_tool_ephemeral(screen_.tool_);
-            if (!ephemeral) {
-                // Could have gotten to null after the tool_tag_status call theoretically,
-                // but improbable enough so it's not worth handling
-                return;
-            }
+    case Response::Disable: {
+        StringViewUtf8Parameters<4> params;
+        const auto prompt = _("Unbind the OpenPrintTag from tool %i?").formatted(params, screen_.tool_.display_index());
+        const auto unbind_response = MsgBoxQuestion(prompt, Responses_YesNo);
 
-            config_store().adhoc_filament_assigned_openprinttag.set(screen_.tool_.to_raw(), ephemeral->uid_hash());
+        if (unbind_response == Response::Yes) {
+            config_store().adhoc_filament_assigned_openprinttag.set_to_default(screen_.tool_.to_raw());
 
-            StringViewUtf8Parameters<4> msg_params;
-            MsgBoxInfo(_("OpenPrintTag reassigned for tool %i").formatted(msg_params, screen_.tool_.display_index()), Responses_Ok);
-
-            // Rescan, reassigning OPT can extend/change the displayed info
+            // Rescan, unbdinding the OPT can change the displayed info
             screen_.scan_pending_ = true;
         }
         break;
@@ -129,8 +168,8 @@ void WindowMenuOPTInfo::setup_item(ItemVariant &variant, int index) {
         data_items_[item.pos_in_section](variant);
         break;
 
-    case Item::filament_tracking: {
-        variant.emplace<MenuItemFilamentTracking>(*screen_);
+    case Item::opt_tag_status: {
+        variant.emplace<MI_OPT_TAG_STATUS>(*screen_);
         break;
     }
 
