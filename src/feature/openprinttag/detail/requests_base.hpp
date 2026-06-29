@@ -54,6 +54,10 @@ public:
     /// If the request is already issued, the issuement is cancelled and it gets reissued again
     void issue();
 
+    /// Mark the request as failed (Error::other)
+    /// Alternative to calling issue
+    void fail();
+
     /// Returns either the device the request is supposed to be send to, or nullopt if the serialization failed for some reason
     using SerializeResult = std::optional<anfc::Device>;
 

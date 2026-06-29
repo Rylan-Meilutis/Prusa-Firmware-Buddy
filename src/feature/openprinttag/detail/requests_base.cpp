@@ -20,6 +20,11 @@ void Request::issue() {
     manager().add_request({}, *this);
 }
 
+void Request::fail() {
+    manager().remove_request({}, *this);
+    set_finished(std::unexpected { Error::other });
+}
+
 void Request::set_finished(std::expected<std::monostate, Error> result) {
     assert(!finished_);
     finished_ = true;
