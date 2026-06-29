@@ -215,7 +215,11 @@ using Phase = PhasesLoadUnload;
 class FrameBase {
 public:
     FrameBase(window_t *parent)
-        : footer(parent, 0, footer::Item::nozzle, footer::Item::bed, footer::Item::f_sensor
+        : footer(parent, 0, footer::Item::nozzle, footer::Item::bed
+#if HAS_EXTRUDER_FSENSOR()
+            ,
+            footer::Item::f_sensor
+#endif
 #if HAS_SIDE_FSENSOR()
             ,
             footer::Item::f_sensor_side
