@@ -10,6 +10,7 @@
 #include <string_builder.hpp>
 #include <screen/openprinttag/opt_request_wizard.hpp>
 #include <screen/openprinttag/screen_opt_filament_detail.hpp>
+#include <gui/screen/filament/screen_filament_detail.hpp>
 #include <img_resources.hpp>
 #include <feature/openprinttag/utils.hpp>
 #include <bsod/bsod.h>
@@ -21,14 +22,14 @@ constinit const std::array<const char *, 2> MenuItemFilamentTracking::values {
     N_("Yes"),
 };
 
-MenuItemFilamentTracking::MenuItemFilamentTracking(VirtualToolIndex tool)
+MenuItemFilamentTracking::MenuItemFilamentTracking(ScreenOPTInfo &screen)
     : IWindowMenuItem(_("Filament Tracking"))
-    , tool_(tool) {
+    , screen_(screen) {
     extension_width = std::max(_(values[0]).computeNumUtf8Chars(), _(values[1]).computeNumUtf8Chars()) * resource_font(font)->w + w_for_icon;
 }
 
 void MenuItemFilamentTracking::Loop() {
-    const auto new_is_tracking = (tool_tag_status(tool_) == ToolTagStatus::ok);
+    const auto new_is_tracking = (tool_tag_status(screen_.tool_) == ToolTagStatus::ok);
 
     if (is_tracking_ != new_is_tracking) {
         is_tracking_ = new_is_tracking;
@@ -50,7 +51,7 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
     const char *msg = nullptr;
     PhaseResponses responses = Responses_Ok;
 
-    switch (tool_tag_status(tool_)) {
+    switch (tool_tag_status(screen_.tool_)) {
 
     case ToolTagStatus::ok:
         return;
@@ -84,17 +85,20 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
     case Response::Replace: {
         const auto replace_response = MsgBoxQuestion(_("Reassign the currently detected tag to the filament?"), Responses_YesNo);
         if (replace_response == Response::Yes) {
-            const auto ephemeral = ToolTag::for_tool_ephemeral(tool_);
+            const auto ephemeral = ToolTag::for_tool_ephemeral(screen_.tool_);
             if (!ephemeral) {
                 // Could have gotten to null after the tool_tag_status call theoretically,
                 // but improbable enough so it's not worth handling
                 return;
             }
 
-            config_store().adhoc_filament_assigned_openprinttag.set(tool_.to_raw(), ephemeral->uid_hash());
+            config_store().adhoc_filament_assigned_openprinttag.set(screen_.tool_.to_raw(), ephemeral->uid_hash());
 
             StringViewUtf8Parameters<4> msg_params;
-            MsgBoxInfo(_("OpenPrintTag reassigned for tool %i").formatted(msg_params, tool_.display_index()), Responses_Ok);
+            MsgBoxInfo(_("OpenPrintTag reassigned for tool %i").formatted(msg_params, screen_.tool_.display_index()), Responses_Ok);
+
+            // Rescan, reassigning OPT can extend/change the displayed info
+            screen_.scan_pending_ = true;
         }
         break;
     }
@@ -126,22 +130,38 @@ void WindowMenuOPTInfo::setup_item(ItemVariant &variant, int index) {
         break;
 
     case Item::filament_tracking: {
-        variant.emplace<MenuItemFilamentTracking>(screen_->tool_);
+        variant.emplace<MenuItemFilamentTracking>(*screen_);
         break;
     }
 
     case Item::print_parameters:
         const auto callback = [this] {
-            Screens::Access()->Open(screen_openprinttag_filament_detail_creator(*screen_->tag_));
+            using Mode = ScreenOPTInfo::Mode;
+
+            ScreenFactory::Creator creator = nullptr;
+
+            switch (screen_->mode_) {
+
+            case Mode::ephemeral:
+                creator = screen_openprinttag_filament_detail_creator(*screen_->tag_);
+                break;
+
+            case Mode::loaded:
+                creator = ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(FilamentType::for_tool(screen_->tool_));
+                break;
+            }
+
+            Screens::Access()->Open(creator);
         };
         variant.emplace<WindowMenuCallbackItem>(_("Printing Parameters"), callback, nullptr, expands_t::yes);
         break;
     }
 }
 
-ScreenOPTInfo::ScreenOPTInfo(VirtualToolIndex tool)
-    : ScreenMenuBase(nullptr, _("OPENPRINTTAG INFO"), EFooter::Off)
-    , tool_(tool) {
+ScreenOPTInfo::ScreenOPTInfo(CtorArgs args)
+    : ScreenMenuBase(nullptr, _(args.mode == Mode::loaded ? N_("LOADED FILAMENT") : N_("OPENPRINTTAG INFO")), EFooter::Off)
+    , mode_(args.mode)
+    , tool_(args.tool) {
 
     menu.menu.screen_ = this;
     menu.menu.setup_items();
@@ -168,31 +188,58 @@ void ScreenOPTInfo::screenEvent([[maybe_unused]] window_t *sender, GUI_event_t e
 }
 
 bool ScreenOPTInfo::scan() {
-    tag_ = ToolTag::for_tool_ephemeral(tool_);
-    if (!tag_) {
-        StringViewUtf8Parameters<4> fmt;
-        MsgBoxError(_("No OpenPrintTag detected for slot %i").formatted(fmt, tool_.to_raw() + 1), Responses_Ok);
-        close_screen();
-        return false;
-    }
-
-    const auto tag = *tag_;
-
     using MultiRequest = MultiReadFieldRequest<
         MainField::material_name,
         MainField::brand_name,
         AmountsInfo::Requirements {},
         AbbreviationInfo::Requirements {}>;
 
-    MultiRequest req { tag };
+    const auto ephemeral_tag = ToolTag::for_tool_ephemeral(tool_);
 
-    if (!multirequest_with_troubleshooting(req)) {
-        close_screen();
-        return false;
+    switch (mode_) {
+
+    case Mode::ephemeral:
+        tag_ = ephemeral_tag;
+        if (!tag_) {
+            StringViewUtf8Parameters<4> fmt;
+            MsgBoxError(_("No OpenPrintTag detected for slot %i").formatted(fmt, tool_.display_index()), Responses_Ok);
+            close_screen();
+            return false;
+        }
+        break;
+
+    case Mode::loaded:
+        // Can be null - in that case, some info will be hidden
+        tag_ = ToolTag::for_tool_assigned(tool_);
+        break;
+    }
+
+    // value_or can provide any value whatsoever, we will not be issuing the request anyway
+    MultiRequest req { ephemeral_tag.value_or(ToolTag { tool_, 1 }) };
+
+    if (ephemeral_tag.has_value() && ephemeral_tag == tag_) {
+        if (!multirequest_with_troubleshooting(req)) {
+            close_screen();
+            return false;
+        }
+    } else {
+        // Mark the request as failed to prevent assert(finished) in .result()
+        req.fail();
     }
 
     AmountsInfo amounts { req };
     AbbreviationInfo type { req };
+
+    // In the loaded mode, data in memory have precedence over what's in the tag
+    if (mode_ == Mode::loaded) {
+        const auto params = FilamentType::for_tool(tool_).parameters();
+
+        // "Fake" abbreviation from filament parameters
+        type.abbreviation = std::string_view {
+            type.abbreviation_buffer.begin(),
+            std::string_view { params.name }.copy(type.abbreviation_buffer.data(), type.abbreviation_buffer.size())
+        };
+    }
 
     auto &menu = this->menu.menu;
 
@@ -258,8 +305,12 @@ void ScreenOPTInfo::add_fmt_item(std::type_identity_t<Args>... args) {
     });
 }
 
-ScreenFactory::Creator screen_opt_info_creator(VirtualToolIndex for_tool) {
-    return ScreenFactory::ScreenWithArg<ScreenOPTInfo>(for_tool);
+ScreenFactory::Creator screen_opt_info_ephemeral_creator(VirtualToolIndex for_tool) {
+    return ScreenFactory::ScreenWithArg<ScreenOPTInfo>(ScreenOPTInfo::CtorArgs { .tool = for_tool, .mode = ScreenOPTInfo::Mode::ephemeral });
+}
+
+ScreenFactory::Creator screen_opt_info_loaded_creator(VirtualToolIndex for_tool) {
+    return ScreenFactory::ScreenWithArg<ScreenOPTInfo>(ScreenOPTInfo::CtorArgs { .tool = for_tool, .mode = ScreenOPTInfo::Mode::loaded });
 }
 
 } // namespace buddy::openprinttag

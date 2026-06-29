@@ -17,6 +17,8 @@ namespace buddy::openprinttag {
 
 namespace {
 
+    class ScreenOPTInfo;
+
     enum class Item {
         return_,
         data_section,
@@ -38,7 +40,7 @@ namespace {
         static constinit const std::array<const char *, 2> values;
 
     public:
-        MenuItemFilamentTracking(VirtualToolIndex tool);
+        MenuItemFilamentTracking(ScreenOPTInfo &screen);
 
     protected:
         void Loop() final;
@@ -46,11 +48,9 @@ namespace {
         void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const final;
 
     private:
-        const VirtualToolIndex tool_;
+        ScreenOPTInfo &screen_;
         bool is_tracking_ = false;
     };
-
-    class ScreenOPTInfo;
 
     /// A bit longer than standard WI_Info_t - it was awkward that "PLA Prusa Galaxy Blac" was cropped
     using MenuItemInfo = WiInfo<32>;
@@ -79,11 +79,22 @@ namespace {
     /// Screen that scans an OpenPrintTag and displays information present on the tag
     class ScreenOPTInfo final : public ScreenMenuBase<WindowMenuOPTInfo> {
         friend class WindowMenuOPTInfo;
+        friend class MenuItemFilamentTracking;
         using ItemVariant = WindowMenuOPTInfo::ItemVariant;
 
     public:
+        enum class Mode : uint8_t {
+            ephemeral,
+            loaded,
+        };
+
+        struct CtorArgs {
+            VirtualToolIndex tool;
+            Mode mode;
+        };
+
         /// @param tool what antenna/reader to use for scanning
-        ScreenOPTInfo(VirtualToolIndex tool);
+        ScreenOPTInfo(CtorArgs args);
 
         /// Pops up a wait dialog and scans the tag for data.
         /// Then updates the data on the screen.
@@ -111,6 +122,8 @@ namespace {
     private:
         /// If true, scan() will be called on the next loop event
         bool scan_pending_ = false;
+
+        const Mode mode_;
 
         VirtualToolIndex tool_;
         std::optional<buddy::openprinttag::ToolTag> tag_;

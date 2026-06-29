@@ -63,7 +63,7 @@ void MI_OPT_READ_TAG::click(IWindowMenu &) {
     if (auto *tool = std::get_if<VirtualToolIndex>(&tool_)) {
         // Open the screen even if the slot is "disabled"
         // The screen will show an error and close if there is no tag detected
-        Screens::Access()->Open(screen_opt_info_creator(*tool));
+        Screens::Access()->Open(screen_opt_info_ephemeral_creator(*tool));
 
     } else {
 #if EXTRUDERS > 1
