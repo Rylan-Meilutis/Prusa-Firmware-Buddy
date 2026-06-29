@@ -92,6 +92,11 @@ namespace {
         /// @returns whether the scan was successful or not
         bool scan();
 
+        virtual void InitState(screen_init_variant) override {
+            // Do not restore state. The number of items dynamically changes from 0 after the first scan()
+            // So trying to select menu items right after construction would only trigger asserts
+        }
+
     protected:
         void screenEvent(window_t *sender, GUI_event_t event, void *param) override;
 
