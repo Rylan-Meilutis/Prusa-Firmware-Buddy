@@ -237,7 +237,7 @@ bool Pause::is_unstoppable() const {
 #endif
     }
 
-    bsod("Unhandled LoadType");
+    bsod_unreachable();
 }
 
 LoadUnloadMode Pause::get_load_unload_mode() {
@@ -265,7 +265,7 @@ LoadUnloadMode Pause::get_load_unload_mode() {
         return LoadUnloadMode::FilamentStuck;
     }
 
-    bsod("Unhandled LoadType");
+    bsod_unreachable();
 }
 
 bool Pause::should_park() {

@@ -102,7 +102,7 @@ namespace {
             return PhasesColdPull::prepare_filament;
     #endif
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
     }
 
@@ -148,7 +148,7 @@ namespace {
             case Response::_none:
                 break;
             default:
-                bsod("Invalid phase encountered.");
+                bsod_unreachable();
             }
 
             idle(true); // Still do one event-loop in case the MMU stop took too long.
@@ -185,7 +185,7 @@ namespace {
         case Response::Abort:
             return PhasesColdPull::cleanup;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
     }
 
@@ -206,7 +206,7 @@ namespace {
         case Response::Abort:
             return PhasesColdPull::cleanup;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
     }
 
@@ -225,7 +225,7 @@ namespace {
         case Response::Abort:
             return PhasesColdPull::cleanup;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
     }
 
@@ -326,7 +326,7 @@ namespace {
         case Response::_none:
             break;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
         thermalManager.set_fan_speed(0, fan_speed_stored);
         return PhasesColdPull::heat_up;
@@ -357,7 +357,7 @@ namespace {
         case Response::_none:
             break;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
 
         return true;
@@ -414,7 +414,7 @@ namespace {
         case Response::Continue:
             break;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
 
         return PhasesColdPull::cleanup;
@@ -425,7 +425,7 @@ namespace {
         case Response::Finish:
             break;
         default:
-            bsod("Invalid phase encountered.");
+            bsod_unreachable();
         }
 
         return PhasesColdPull::finish;
@@ -480,7 +480,7 @@ namespace {
         case PhasesColdPull::finish:
             break;
         }
-        bsod("Invalid phase encountered.");
+        bsod_unreachable();
     }
 
 } // namespace
