@@ -66,7 +66,8 @@ if(HAS_REMOTE_BED)
   add_subdirectory(remote_bed)
 endif()
 
-if(FILAMENT_SENSOR)
+# Build the filament sensor subsystem if there is any filament sensor
+if(NOT FILAMENT_SENSOR STREQUAL "NO" OR HAS_SIDE_FSENSOR)
   add_subdirectory(filament_sensor)
 endif()
 

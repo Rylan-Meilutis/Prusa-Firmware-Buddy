@@ -12,6 +12,7 @@
 #include <mapi/motion.hpp>
 #include <raii/auto_restore.hpp>
 #include <option/has_side_fsensor.h>
+#include <option/has_extruder_fsensor.h>
 #include <option/has_adc_side_fsensor.h>
 #include <option/has_nextruder.h>
 #include <mapi/cold_extrude.hpp>
@@ -110,7 +111,7 @@ private:
 private:
     const SelftestFSensorsParams params_;
 
-    static constexpr size_t max_fsensor_count = HAS_SIDE_FSENSOR() ? 2 : 1;
+    static constexpr size_t max_fsensor_count = HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR() ? 2 : 1;
 
     std::array<FilamentSensorCalibrator::Storage, max_fsensor_count> calibrators_storage_;
     stdext::inplace_vector<FilamentSensorCalibrator *, max_fsensor_count> calibrators_ {};
@@ -423,7 +424,7 @@ SelftestFSensors::EarlyFailCheckResult SelftestFSensors::check_early_fail([[mayb
         return EarlyFailCheckResult::abort;
     }
 
-#if HAS_SIDE_FSENSOR() && !FILAMENT_SENSOR_IS_NO()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     const uint8_t cnt_not_ready = std::ranges::count_if(calibrators_, [&](const auto *c) { return !c->is_ready_for_calibration(calib_phase); });
 
     if (cnt_failed > 0 || cnt_not_ready > 0) {

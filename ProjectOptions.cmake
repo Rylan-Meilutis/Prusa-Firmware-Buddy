@@ -287,7 +287,7 @@ function(set_feature_for_printers_master_board FEATURE_NAME)
   define_boolean_option(${FEATURE_NAME} ${FEATURE_VALUE})
 endfunction()
 
-set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5" "COREONE_INDX" "COREONEL_INDX")
+set(PRINTERS_WITH_FILAMENT_SENSOR_BINARY "MINI" "MK3.5")
 set(PRINTERS_WITH_FILAMENT_SENSOR_ADC "MK4" "XL" "iX" "XL_DEV_KIT" "COREONE" "COREONEL")
 
 set_feature_for_printers(

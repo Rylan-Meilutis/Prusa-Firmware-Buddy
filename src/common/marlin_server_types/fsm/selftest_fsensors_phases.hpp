@@ -3,6 +3,7 @@
 
 #include <marlin_server_types/client_response.hpp>
 #include <option/has_side_fsensor.h>
+#include <option/has_extruder_fsensor.h>
 
 enum class PhaseSelftestFSensors : PhaseUnderlyingType {
     /// Parking, toolpicking, ... - wait state
@@ -34,7 +35,7 @@ enum class PhaseSelftestFSensors : PhaseUnderlyingType {
     /// Asks the user to insert the filament and allows to continue
     remove_filament_ready,
 
-#if HAS_SIDE_FSENSOR() && !FILAMENT_SENSOR_IS_NO()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
     /// The user is allowed to continue the selftest even if one of the sensors is not ready
     /// This is to allow him to callibrate at least some of the sensors
     /// This phase informs the user about the situation and asks him if he wants to continue in the selftest
@@ -80,7 +81,7 @@ inline constexpr EnumArray<PhaseSelftestFSensors, PhaseResponses, PhaseSelftestF
             },
         },
         { PhaseSelftestFSensors::remove_filament_ready, { Response::Continue, Response::Abort } },
-#if HAS_SIDE_FSENSOR() && !FILAMENT_SENSOR_IS_NO()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
         { PhaseSelftestFSensors::not_ready_confirm_continue, { Response::Retry, Response::Continue, Response::Abort } },
 #endif
         { PhaseSelftestFSensors::success, { Response::Done } },

@@ -237,7 +237,7 @@ using FrameRemoveFilamentReady = WithConstructorArgs<FrameTextAndImage,
 #endif
     >;
 
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
 using FrameNotReadyConfirmContinue = WithConstructorArgs<FrameSpoolAndText, N_("There is a problem with some of the sensors. You may calibrate the rest, but the selftest will fail.")>;
 #endif
 
@@ -258,7 +258,7 @@ using Frames
         FrameDefinition<Phase::insert_filament_ready, FrameInsertFilamentReady>,
         FrameDefinition<Phase::remove_filament_not_ready, FrameRemoveFilamentNotReady>,
         FrameDefinition<Phase::remove_filament_ready, FrameRemoveFilamentReady>,
-#if HAS_SIDE_FSENSOR()
+#if HAS_SIDE_FSENSOR() && HAS_EXTRUDER_FSENSOR()
         FrameDefinition<Phase::not_ready_confirm_continue, FrameNotReadyConfirmContinue>,
 #endif
         FrameDefinition<Phase::success, FrameSuccess>,
