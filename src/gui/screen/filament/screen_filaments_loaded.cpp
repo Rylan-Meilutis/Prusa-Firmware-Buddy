@@ -9,6 +9,7 @@
 #include <option/has_anfc.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/utils.hpp>
+    #include <gui/screen/openprinttag/screen_opt_info.hpp>
 #endif
 
 MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t tool)
@@ -50,7 +51,11 @@ void MI_LOADED_FILAMENT::click(IWindowMenu &) {
     if (should_open_submenu_) {
         Screens::Access()->Open<ScreenLoadedFilaments>();
     } else {
+#if HAS_ANFC()
+        Screens::Access()->Open(buddy::openprinttag::screen_opt_info_loaded_creator(tool_));
+#else
         Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(EncodedFilamentType(filament_type_)));
+#endif
     }
 }
 
