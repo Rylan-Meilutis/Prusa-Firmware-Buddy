@@ -98,6 +98,10 @@ std::optional<ToolTag> ToolTag::for_tool_assigned(VirtualToolIndex tool) {
     }
 }
 
+std::optional<ToolTag> ToolTag::for_tool_ephemeral(VirtualToolIndex tool) {
+    return for_tool_assigned(tool);
+}
+
 /// Does one step for all tools
 void step_tracker() {
     const auto old_jobs = executed_job_count;

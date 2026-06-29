@@ -116,7 +116,7 @@ void FilamentUsageTracker::step() {
 
     auto &tool_data = tool_data_[current_tool_];
 
-    const ToolTag::UIDHash new_assigned_tag = ToolTag::for_tool_assigned(current_tool_).transform([](const ToolTag &t) { return t.uid_hash(); }).value_or(ToolTag::no_tag_hash);
+    const ToolTag::UIDHash new_assigned_tag = ToolTag::for_tool_assigned(current_tool_).transform(&ToolTag::uid_hash).value_or(ToolTag::no_tag_hash);
     if (tool_data.assigned_tag != new_assigned_tag) {
         tool_data = ToolData {
             .base_extruded_distance_mm = filament_tracker().get_extruded_distance(current_tool_),
@@ -131,6 +131,11 @@ void FilamentUsageTracker::step() {
     }
 
     const ToolTag tool_tag { current_tool_, tool_data.assigned_tag };
+
+    if (ToolTag::for_tool_ephemeral(current_tool_) != tool_tag) {
+        // Tag is not present, no point in trying to read/write anything
+        return;
+    }
 
     if (tool_data.init_pending) {
         // We need to first some data from the tag to be able to track
