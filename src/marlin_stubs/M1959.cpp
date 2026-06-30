@@ -298,7 +298,6 @@ static PhasesInputShaperCalibration measuring_axis(
     float frequency = frequency_range.start;
 
     struct {
-        bool aborted = false;
         float prev_progress = -1;
         PhasesInputShaperCalibration phase;
 
@@ -306,8 +305,7 @@ static PhasesInputShaperCalibration measuring_axis(
         .phase = phase
     };
     const auto progress_hook = [&progress_hook_data](const ProgressHookParams &params) -> Result<void> {
-        progress_hook_data.aborted |= was_abort_requested(progress_hook_data.phase);
-        if (progress_hook_data.aborted) {
+        if (was_abort_requested(progress_hook_data.phase)) {
             return std::unexpected(Error::aborted);
         }
 
@@ -323,7 +321,7 @@ static PhasesInputShaperCalibration measuring_axis(
     };
 
     for (size_t i = 0; i < spectrum.size(); ++i) {
-        if (was_abort_requested(phase) || progress_hook_data.aborted) {
+        if (was_abort_requested(phase)) {
             return PhasesInputShaperCalibration::abort;
         }
 
@@ -337,7 +335,13 @@ static PhasesInputShaperCalibration measuring_axis(
         auto result = measure_repeat(args, frequency, progress_hook);
         args.calibrate_accelerometer = false;
         if (!result.has_value()) {
-            return PhasesInputShaperCalibration::measurement_failed;
+            switch (result.error()) {
+            case Error::aborted:
+                return PhasesInputShaperCalibration::abort;
+            case Error::failed:
+                return PhasesInputShaperCalibration::measurement_failed;
+            }
+            bsod_unreachable();
         }
 
         result->gain[logicalAxis] = max(result->gain[logicalAxis] - 1.f, 0.f);

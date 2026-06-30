@@ -708,7 +708,7 @@ Result<ResponseSample> measure_repeat(const MeasureParams &args, float frequency
     constexpr int max_attempts = 3;
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
         const auto result = measure(args, frequency, progress_hook);
-        if (result.has_value()) {
+        if (result.has_value() || result.error() == Error::aborted) {
             return result;
         }
 
