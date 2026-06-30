@@ -268,7 +268,6 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 for (int active_fifo_attempts = 5; more && active_fifo_attempts > 0; active_fifo_attempts--) {
                     if (buddy::puppies::indx.pull_fifo(bus, more) == CommunicationStatus::ERROR) {
                         log_error(Puppies, "Loop exit: indx.pull_fifo() ERROR");
-                        ++buddy::puppies::indx.fifo_error_count;
     #if !PUPPY_TASK_DEBUG()
                         return;
     #endif
@@ -279,7 +278,6 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 CommunicationStatus status = indx.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
                     log_error(Puppies, "Loop exit: indx.refresh() ERROR");
-                    ++buddy::puppies::indx.refresh_error_count;
     #if !PUPPY_TASK_DEBUG()
                     return;
     #endif
@@ -294,7 +292,6 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 CommunicationStatus status = xbuddy_extension.refresh(bus);
                 if (status == CommunicationStatus::ERROR) {
                     log_error(Puppies, "Loop exit: xbuddy_extension.refresh() ERROR");
-                    ++xbuddy_extension.refresh_error_count;
     #if !PUPPY_TASK_DEBUG()
                     xbe_requires_reset = true;
                     return;

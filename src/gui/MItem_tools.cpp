@@ -78,11 +78,6 @@
     #include <connect/marlin_printer.hpp>
 #endif
 
-#include <option/has_xbuddy_extension.h>
-#if HAS_XBUDDY_EXTENSION()
-    #include <puppies/xbuddy_extension.hpp>
-#endif
-
 #ifdef HAS_TMC_WAVETABLE
     #include <feature/tmc_util.h>
 #endif
@@ -745,18 +740,6 @@ MI_INFO_INDX_PARK_FAIL::MI_INFO_INDX_PARK_FAIL()
     : MenuItemAutoUpdatingLabel(
         _("Park Fails"), "%u",
         [](auto) { return prusa_toolchanger.get_park_fail_count(); }) {}
-MI_INFO_INDX_FIFO_ERR::MI_INFO_INDX_FIFO_ERR()
-    : MenuItemAutoUpdatingLabel(
-        _("INDX FIFO Err"), "%u",
-        [](auto) { return buddy::puppies::indx.fifo_error_count.load(); }) {}
-MI_INFO_INDX_REFRESH_ERR::MI_INFO_INDX_REFRESH_ERR()
-    : MenuItemAutoUpdatingLabel(
-        _("INDX Refresh Err"), "%u",
-        [](auto) { return buddy::puppies::indx.refresh_error_count.load(); }) {}
-MI_INFO_XEXT_REFRESH_ERR::MI_INFO_XEXT_REFRESH_ERR()
-    : MenuItemAutoUpdatingLabel(
-        _("XBE Refresh Err"), "%u",
-        [](auto) { return buddy::puppies::xbuddy_extension.refresh_error_count.load(); }) {}
 #endif
 
 MI_FOOTER_RESET::MI_FOOTER_RESET()

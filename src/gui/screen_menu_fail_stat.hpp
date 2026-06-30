@@ -13,22 +13,6 @@
 
 #if HAS_INDX()
     #include "MItem_tools.hpp"
-
-using ScreenMenuIndxDiag__ = ScreenMenu<EFooter::On, MI_RETURN,
-    MI_INFO_INDX_FIFO_ERR, MI_INFO_INDX_REFRESH_ERR,
-    MI_INFO_XEXT_REFRESH_ERR>;
-
-class ScreenMenuIndxDiag : public ScreenMenuIndxDiag__ {
-    static constexpr const char *label = N_("INDX DIAGNOSTICS");
-
-public:
-    ScreenMenuIndxDiag();
-};
-
-class MI_INDX_DIAG : public MI_SCREEN_BASE {
-public:
-    MI_INDX_DIAG();
-};
 #endif
 
 using ScreenMenuFailStat__ = ScreenMenu<EFooter::On, MI_RETURN
@@ -46,8 +30,7 @@ using ScreenMenuFailStat__ = ScreenMenu<EFooter::On, MI_RETURN
 #endif
 #if HAS_INDX()
     ,
-    MI_INFO_INDX_PICKUP_FAIL, MI_INFO_INDX_PARK_FAIL,
-    MI_INDX_DIAG
+    MI_INFO_INDX_PICKUP_FAIL, MI_INFO_INDX_PARK_FAIL
 #endif
     >;
 

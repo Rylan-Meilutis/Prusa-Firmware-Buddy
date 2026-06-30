@@ -435,18 +435,6 @@ class MI_INFO_INDX_PARK_FAIL : public MenuItemAutoUpdatingLabel<uint16_t> {
 public:
     MI_INFO_INDX_PARK_FAIL();
 };
-class MI_INFO_INDX_FIFO_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
-public:
-    MI_INFO_INDX_FIFO_ERR();
-};
-class MI_INFO_INDX_REFRESH_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
-public:
-    MI_INFO_INDX_REFRESH_ERR();
-};
-class MI_INFO_XEXT_REFRESH_ERR : public MenuItemAutoUpdatingLabel<uint16_t> {
-public:
-    MI_INFO_XEXT_REFRESH_ERR();
-};
 #endif
 
 class MI_FOOTER_RESET : public IWindowMenuItem {

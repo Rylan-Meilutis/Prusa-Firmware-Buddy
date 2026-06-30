@@ -61,9 +61,6 @@ public:
 
     bool get_usb_power() const;
 
-    // Buddy-side communication error counter (since boot)
-    std::atomic<uint16_t> refresh_error_count = 0;
-
     // Cyphal bridge stream callback -- called from puppy task for each
     // message drained from the XBE CyphalBridgeQueue.
     using StreamCallback = void (*)(uint16_t port_id, std::span<const std::byte> payload, void *ctx);

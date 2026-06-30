@@ -136,10 +136,6 @@ public:
     /// @returns ticks_ms of the last successful read of register_general_status
     std::optional<uint32_t> get_register_general_status_last_read_ms() const;
 
-    // Buddy-side communication error counters (since boot)
-    std::atomic<uint16_t> fifo_error_count = 0;
-    std::atomic<uint16_t> refresh_error_count = 0;
-
     void set_fan(uint8_t fan, uint16_t target);
     void set_fan_auto(uint8_t fan);
     void set_selftest_mode(bool enabled);
