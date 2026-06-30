@@ -18,6 +18,10 @@ window_text_t::window_text_t(window_t *parent, Rect16 rect, is_multiline multili
     flags.multiline = bool(multiline);
 }
 
+window_text_t::window_text_t(window_t *parent, Rect16 rect, const string_view_utf8 &txt, is_multiline multiline)
+    : window_text_t(parent, rect, multiline, is_closed_on_click_t::no, txt) {
+}
+
 namespace {
 
 void do_draw(Rect16 rect, const string_view_utf8 &text, Font font, Color parent_background, Color clr_text_background, Color clr_text_foreground, padding_ui8_t padding, text_flags text_flags, uint8_t rounding_rad, uint8_t rounding_flag, bool has_round_corners) {

@@ -10,6 +10,7 @@ class window_text_t : public IWindowText {
 
 public:
     window_text_t() = default;
+    window_text_t(window_t *parent, Rect16 rect, const string_view_utf8 &txt, is_multiline multiline);
     window_text_t(window_t *parent, Rect16 rect, is_multiline multiline, is_closed_on_click_t close = is_closed_on_click_t::no, const string_view_utf8 &txt = string_view_utf8::MakeNULLSTR());
 
 public:
