@@ -625,18 +625,13 @@
  * Requires an LCD display.
  */
 #if HAS_PAUSE()
-
-    #define PARK_PAUSE_PRIME_FEEDRATE 10 // (mm/s) Feedrate for priming after filament change.
     #define PARK_PAUSE_PRIME_LENGTH 4 // (mm) Length of a priming "poop".
 
-    #define STANDARD_RETRACT_FEEDRATE 40 // (mm/s) Initial retract feedrate.
-    #define STANDARD_DERETRACT_FEEDRATE 25 // (mm/s) Feedrate of inserting filament back into a nozzle after pause/park.
     /**
      * (mm) Initial retract.
      * This retract is done immediately, before parking the nozzle.
      */
     #define STANDARD_RETRACT_LENGTH 8
-    #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 25 // (mm/s) Unload filament feedrate. This can be pretty fast.
     #define FILAMENT_CHANGE_UNLOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
     /**
      * (mm) The length of filament for a complete unload.
@@ -645,13 +640,11 @@
      * Set to 0 for manual unloading.
      */
     #define FILAMENT_CHANGE_UNLOAD_LENGTH 110
-    #define FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE 6 // (mm/s) Slow move when starting load.
     /**
      * (mm) Slow length, to allow time to insert material.
      * 0 to disable start loading and skip to fast load only
      */
     #define FILAMENT_CHANGE_SLOW_LOAD_LENGTH 40
-    #define FILAMENT_CHANGE_FAST_LOAD_FEEDRATE 25 // (mm/s) Load filament feedrate. This can be pretty fast.
     #define FILAMENT_CHANGE_FAST_LOAD_ACCEL 25 // (mm/s^2) Lower acceleration may allow a faster feedrate.
     /**
      * (mm) Load length of filament, from extruder gear to nozzle.
@@ -660,9 +653,6 @@
      */
     #define FILAMENT_CHANGE_FAST_LOAD_LENGTH 45
 
-    #define FILAMENT_ASSISTED_FEEDRATE 3 // (mm/s) Feedrate to assist with filament sample acquisition during insertion/removal
-
-    #define ADVANCED_PAUSE_PURGE_FEEDRATE 3 // (mm/s) Extrude feedrate (after loading). Should be slower than load feedrate.
     #define ADVANCED_PAUSE_PURGE_LENGTH 40 // (mm) Length to extrude after loading.
 #endif
 
