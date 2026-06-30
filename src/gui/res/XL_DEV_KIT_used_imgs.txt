@@ -155,7 +155,6 @@ print_80x80_disabled.png
 print_80x80_focused.png
 print_80x80.png
 printer_is_moving.png
-prusament_spool_100x100.png
 prusament_spool_white_100x100.png
 prusa_mini_logo_153x40.png
 question_16x16.png
