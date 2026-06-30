@@ -114,6 +114,9 @@ private:
 };
 
 SelftestFSensorsResult SelftestFSensors::run() {
+    // Block autoload/runout/...
+    FS_EventAutolock fs_lock;
+
 #if PRINTER_IS_PRUSA_MINI()
     if (!ask_mini_has_fsensor()) {
         marlin_server::fsm_destroy(ClientFSM::SelftestFSensors);
