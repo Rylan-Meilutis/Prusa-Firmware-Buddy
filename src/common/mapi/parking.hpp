@@ -10,6 +10,8 @@
 #include <option/has_indx.h>
 #include <bsod/bsod.h>
 #include <tool_index.hpp>
+#include <utils/compact_optional.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 
 namespace mapi {
 
@@ -153,7 +155,7 @@ struct ParkArgs {
     float retract_distance_mm = 0;
 
     /// Feedrate of the retraction
-    float retract_fr_mm_s = STANDARD_RETRACT_FEEDRATE;
+    CompactOptional<float, NAN> retract_fr_mm_s = {};
 
     /// If > 0, the Z moves are done in parallel to the XY moves
     /// with an angle `z_ramp_slope = tan(angle)` (1 → 45°) respective to the XY moves
@@ -162,6 +164,12 @@ struct ParkArgs {
     /// a final Z-only move is done at the end.
     /// !!! Warning - this bypasses the Z move prevention when Z is unhomed
     float z_ramp_slope = 0;
+
+    /// @brief Gives retract feedrate, handles if stored feedrate is NAN
+    /// @return (mm/s) stored feedrate or standard feedrate adjusted for current filament
+    inline float evaluate_feedrate() const {
+        return retract_fr_mm_s.has_value() ? retract_fr_mm_s.value() : buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::retract);
+    }
 };
 
 /**

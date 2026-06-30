@@ -260,7 +260,7 @@ namespace {
             if (remaining_distance_to_retract_mm_ > 0 && delta_distance_mm > 0) {
 
                 /// Distance we would be able to retract during the full move considering the feedrates
-                const float maximum_move_retraction_mm = delta_distance_mm / fr_mm_s * args_.retract_fr_mm_s;
+                const float maximum_move_retraction_mm = delta_distance_mm / fr_mm_s * args_.evaluate_feedrate();
 
                 const float distance_to_retract_mm = std::min(maximum_move_retraction_mm, remaining_distance_to_retract_mm_);
                 remaining_distance_to_retract_mm_ -= distance_to_retract_mm;
@@ -335,7 +335,7 @@ namespace {
         /// Retracts the remaining distance, in case the retraction was not fully done during the standard moves
         void finalize_retraction() {
             if (remaining_distance_to_retract_mm_ > 0) {
-                mapi::extruder_move(-remaining_distance_to_retract_mm_, args_.retract_fr_mm_s);
+                mapi::extruder_move(-remaining_distance_to_retract_mm_, args_.evaluate_feedrate());
             }
         }
 

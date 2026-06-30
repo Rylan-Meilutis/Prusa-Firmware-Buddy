@@ -117,7 +117,11 @@ void GcodeSuite::G27() {
     }
 
     parser.store_option_if_present('R', args.retract_distance_mm);
-    parser.store_option_if_present('V', args.retract_fr_mm_s);
+
+    float arg_feedrate;
+    if (parser.store_option_if_present('V', arg_feedrate)) {
+        args.retract_fr_mm_s = arg_feedrate;
+    }
 
     if (auto a = parser.option<float>('A'); a > 0 && a < 90) {
         args.z_ramp_slope = tanf(*a * float(M_PI / 180));
