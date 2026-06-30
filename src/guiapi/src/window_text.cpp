@@ -92,12 +92,15 @@ void window_text_t::auto_select_font(Font largest, Font smallest) {
     };
 
     const Font *fnt = font_list.begin();
+
+    // Skip larger fonts than largest
     while (*fnt != largest) {
         fnt++;
     }
+
     do {
         set_font(*fnt);
-    } while (!check_text_overflow() && *fnt++ != smallest);
+    } while (check_text_overflow() && *fnt++ != smallest);
 }
 
 void WindowButton::unconditionalDraw() {
