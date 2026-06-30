@@ -10,6 +10,7 @@
 #include <inc/MarlinConfig.h>
 #include <mapi/parking.hpp>
 #include <mapi/motion.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include <Marlin/src/module/motion.h>
 #include <module/planner.h>
 
@@ -51,13 +52,15 @@ void WastebinWatcher::pause_to_empty(bool full) {
     // Cleaner is outside the MBL mesh; save/restore Z in the machine frame (like G750), not native.
     const float resume_machine_z = to_machine_pos(current_position).z;
 
+    const auto filament = FilamentType::for_current_tool_heuristic();
+
     if (printing) {
         // Retract to the standard pre-park distance so the nozzle does not ooze while parked, then
         // park clear of the cleaner. retract_to() only moves the delta to the target, so it won't
         // over-retract (pull the filament out of the gears) if the print already had it retracted.
         // We block the gcode stream here (= effective pause); print_pause() + wait would deadlock
         // this gcode processor (BFW-8821).
-        mapi::retract_to(STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
+        mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, filament));
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
     } else {
         // Idle: axes may be unhomed, so home as needed before parking. No retract (cold nozzle) and
@@ -88,7 +91,7 @@ void WastebinWatcher::pause_to_empty(bool full) {
     resume_target.z = resume_machine_z;
     line_to_machine_pos(resume_target, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
     planner.synchronize();
-    mapi::extruder_move(resume_e - current_position.e, STANDARD_DERETRACT_FEEDRATE);
+    mapi::extruder_move(resume_e - current_position.e, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, filament));
 }
 
 bool WastebinWatcher::print_will_overfill() const {

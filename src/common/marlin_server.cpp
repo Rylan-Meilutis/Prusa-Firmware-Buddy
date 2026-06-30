@@ -7,6 +7,7 @@
 #include <freertos/critical_section.hpp>
 #include <marlin_stubs/skippable_gcode.hpp>
 #include <mapi/parking.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include "marlin_client_queue.hpp"
 #include "marlin_server_request.hpp"
 #include <inttypes.h>
@@ -3315,7 +3316,7 @@ void set_media_position(uint32_t set) {
 }
 
 static void retract() {
-    mapi::retract_to(STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
+    mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, FilamentType::for_current_tool_heuristic()));
 }
 
 static void lift_head() {
@@ -3405,7 +3406,7 @@ void unpark_head_ZE(void) {
 
 #if HAS_PAUSE()
     // Undo E retract
-    mapi::extruder_move(server.resume.pos.e - current_position.e, STANDARD_DERETRACT_FEEDRATE);
+    mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, FilamentType::for_current_tool_heuristic()));
 #endif
 }
 

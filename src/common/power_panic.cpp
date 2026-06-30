@@ -76,6 +76,7 @@
 #include "odometer.hpp"
 #include "marlin_vars.hpp"
 #include <mapi/motion.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 
 // print progress
 #include "M73_PE.h"
@@ -504,7 +505,7 @@ void resume_loop() {
         // Unretract paired with the retract in PPState::Prepared.
         // Skipped where G12 S21 already pressurizes the nozzle (see WaitForHeaters).
 #if !(HAS_NOZZLE_CLEANER() && (PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()))
-        mapi::extruder_move(STANDARD_RETRACT_LENGTH, STANDARD_DERETRACT_FEEDRATE);
+        mapi::extruder_move(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, FilamentType::for_current_tool_heuristic()));
 #endif
 
         resume_state = ResumeState::Finish;
@@ -715,7 +716,7 @@ void panic_loop() {
         if (!runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed && all_axes_homed()) {
 #if !HAS_DWARF()
             // retract if we were printing
-            mapi::extruder_move(-STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
+            mapi::extruder_move(-STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, FilamentType::for_current_tool_heuristic()));
             planner.start_moving();
 #endif
 

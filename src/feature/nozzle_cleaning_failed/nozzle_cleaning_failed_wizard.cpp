@@ -2,6 +2,7 @@
 #include <feature/auto_retract/auto_retract.hpp>
 #include <gcode/temperature/M104_M109.hpp>
 #include <mapi/motion.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include <fsm/nozzle_cleaning_failed_phases.hpp>
 
 #include <Marlin/src/Marlin.h>
@@ -233,7 +234,8 @@ public:
                 fsm_change(Phase::purge, fsm::serialize_data(data));
             }
         });
-        mapi::extruder_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
+        mapi::extruder_move(
+            purge_length, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::advanced_pause_purge, FilamentType::for_current_tool_heuristic()));
         planner.synchronize();
         return !planner.draining();
     }

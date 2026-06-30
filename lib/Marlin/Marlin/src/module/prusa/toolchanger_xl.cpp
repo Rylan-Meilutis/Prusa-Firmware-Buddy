@@ -20,6 +20,7 @@
     #include <pause_stubbed.hpp>
     #include "module/temperature.h" // for fan control
     #include <mapi/motion.hpp>
+    #include <mapi/feedrates/standard_feedrates.hpp>
     #include <raii/scope_guard.hpp>
 
     #if HAS_CRASH_DETECTION()
@@ -503,14 +504,17 @@ bool PrusaToolChanger::purge_tool(PhysicalToolIndex tool) {
     // extrude some filament, park&pick it again, to wipe it
     auto orig_e_pos = current_position.e;
 
+    // current filament type
+    const auto filament = FilamentType::for_current_tool_heuristic();
+
     // extrude
-    mapi::extruder_move(ADVANCED_PAUSE_PURGE_LENGTH, ADVANCED_PAUSE_PURGE_FEEDRATE);
+    mapi::extruder_move(ADVANCED_PAUSE_PURGE_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::advanced_pause_purge, filament));
 
     #if HAS_AUTO_RETRACT()
     // Only retract if HAS_AUTO_RETRACT — otherwise the retract would
     // leave a permanent gap (the planner has no record of the retract due to
     // the sync_e_position_to below).
-    mapi::extruder_move(-STANDARD_RETRACT_LENGTH, STANDARD_RETRACT_FEEDRATE);
+    mapi::extruder_move(-STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, filament));
 
     // The retraction must be deretracted though, otherwise we would have a hole in the print
     buddy::auto_retract().set_retracted_distance(tool, STANDARD_RETRACT_LENGTH);

@@ -13,6 +13,7 @@
 #include <feature/prusa/e-stall_detector.h>
 #include <mapi/motion.hpp>
 #include <mapi/parking.hpp>
+#include <mapi/feedrates/standard_feedrates.hpp>
 #include <gcode/temperature/M104_M109.hpp>
 #include <module/raii/include/raii/scope_guard.hpp>
 
@@ -207,7 +208,7 @@ void AutoRetract::maybe_deretract_to_nozzle() {
         // to the point where the motor skips, but we don't care, as it doesn't
         // damage the print.
         BlockEStallDetection estall_blocker;
-        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), STANDARD_DERETRACT_FEEDRATE);
+        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), standard_feedrates::extruder(standard_feedrates::Extruder::deretract, FilamentType::for_current_tool_heuristic()));
         planner.synchronize();
     }
 
@@ -240,16 +241,18 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
     M109_no_parser(physical_tool, flags_pre);
 
     {
+        const auto filament = FilamentType::for_current_tool_heuristic();
+
         BlockEStallDetection estall_blocker;
         // Purge a little
         if (purge_length > 0.f) {
-            mapi::extruder_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
+            mapi::extruder_move(purge_length, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::advanced_pause_purge, filament));
             planner.synchronize();
         }
         // Retract
         const float retracted_distance = this->retracted_distance(physical_tool).value_or(0.f);
         const float retract_amount = full_retract_distance - retracted_distance;
-        mapi::extruder_move(-retract_amount, STANDARD_RETRACT_FEEDRATE);
+        mapi::extruder_move(-retract_amount, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, filament));
         planner.synchronize();
         set_retracted_distance(physical_tool, full_retract_distance);
     }
