@@ -344,13 +344,11 @@ private:
      * @brief Show toolchange failure dialog and get user decision.
      * @param main_phase the primary Ignore/Retry/Abort prompt
      * @param confirm_abort_phase the abort confirmation prompt
-     * @param confirm_retry_phase the retry confirmation prompt
      * @return user's chosen action
      */
     [[nodiscard]] ToolchangeFailureAction handle_toolchange_failure(
         PhaseNozzleMismatch main_phase,
-        PhaseNozzleMismatch confirm_abort_phase,
-        PhaseNozzleMismatch confirm_retry_phase);
+        PhaseNozzleMismatch confirm_abort_phase);
 
     [[nodiscard]] ToolchangeFailureAction handle_pickup_failure();
     [[nodiscard]] ToolchangeFailureAction handle_park_failure();

@@ -326,16 +326,13 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     // Lift clear of the printed model (incl. sequential prints) before re-homing/pickup.
     mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 10 } });
 
+    disable_xy_steppers();
     marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::tool_lost);
     marlin_server::wait_for_response(PhaseNozzleMismatch::tool_lost);
 
-    // Not sure why we are homing here when pickup() does its own home
+    // Homing is explicitly called to give feedback to the user
     marlin_server::fsm_change(PhaseNozzleMismatch::homing);
     (void)ensure_safe_move();
-
-    // Ask the user to verify the tool is in its dock before we attempt re-pickup.
-    marlin_server::fsm_change(PhaseNozzleMismatch::pickup_failed_confirm_retry);
-    marlin_server::wait_for_response(PhaseNozzleMismatch::pickup_failed_confirm_retry);
 
     // Try to re-pick the expected tool. pickup() does its own homing, dock approach,
     // nozzle verification, and on failure opens its own pickup_failed retry/abort dialog.
@@ -723,13 +720,13 @@ bool PrusaToolChanger::verify_nozzle_state(PhysicalToolIndex prev_tool, bool exp
 
 PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_toolchange_failure(
     PhaseNozzleMismatch main_phase,
-    PhaseNozzleMismatch confirm_abort_phase,
-    PhaseNozzleMismatch confirm_retry_phase) {
+    PhaseNozzleMismatch confirm_abort_phase) {
 
     if (gcode_exceptions().is_unwinding()) {
         return ToolchangeFailureAction::abort;
     }
 
+    disable_xy_steppers();
     marlin_server::FSM_Holder fsm(main_phase);
 
     for (;;) {
@@ -748,14 +745,12 @@ PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_toolchange_fa
             return ToolchangeFailureAction::abort;
         }
 
-        // Response::Retry — home XY, prompt user
+        // Response::Retry — home XY
         marlin_server::fsm_change(PhaseNozzleMismatch::homing);
         if (!ensure_safe_move()) {
             return ToolchangeFailureAction::abort;
         }
 
-        marlin_server::fsm_change(confirm_retry_phase);
-        marlin_server::wait_for_response(confirm_retry_phase);
         return ToolchangeFailureAction::retry;
     }
 }
@@ -763,15 +758,13 @@ PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_toolchange_fa
 PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_park_failure() {
     return handle_toolchange_failure(
         PhaseNozzleMismatch::park_failed,
-        PhaseNozzleMismatch::confirm_abort,
-        PhaseNozzleMismatch::park_failed_confirm_retry);
+        PhaseNozzleMismatch::confirm_abort);
 }
 
 PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_pickup_failure() {
     return handle_toolchange_failure(
         PhaseNozzleMismatch::pickup_failed,
-        PhaseNozzleMismatch::confirm_abort,
-        PhaseNozzleMismatch::pickup_failed_confirm_retry);
+        PhaseNozzleMismatch::confirm_abort);
 }
 
 PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::apply_failure_action(ToolchangeFailureAction action) {
