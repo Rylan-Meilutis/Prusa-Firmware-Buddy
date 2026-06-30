@@ -10,6 +10,7 @@
 #include <filament_meta.hpp>
 #include <option/has_chamber_api.h>
 #include <utils/compact_optional.hpp>
+#include <utils/string_builder.hpp>
 
 namespace buddy::openprinttag {
 
@@ -38,6 +39,15 @@ struct AmountsInfo {
 
     /// Netto length of the full spool, in millimetres
     CompactOptional<float, NAN> full_length_mm;
+
+    using WeightStrBuffer = std::array<char, 32>;
+    using LengthStrBuffer = std::array<char, 32>;
+
+    /// Builds "remaining/full g" string
+    void build_weight_str(StringBuilder &sb) const;
+
+    /// Builds "remaining/full m" string
+    void build_length_str(StringBuilder &sb) const;
 };
 
 /// Utilify for determining material type and its abbreviation

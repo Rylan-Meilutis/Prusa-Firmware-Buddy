@@ -45,6 +45,22 @@ AmountsInfo::AmountsInfo(const RequestRef &req) {
     }
 }
 
+void AmountsInfo::build_weight_str(StringBuilder &sb) const {
+    if (full_weight_g.has_value() && remaining_weight_g.has_value()) {
+        sb.append_printf("%.0f/%.0f g", (double)std::roundf(*remaining_weight_g), (double)std::roundf(*full_weight_g));
+    }
+    // If full_weight_g has value, then remaining_weight_g always has value, too
+}
+
+void AmountsInfo::build_length_str(StringBuilder &sb) const {
+    if (full_length_mm.has_value() && remaining_length_mm.has_value()) {
+        sb.append_printf("%.0f/%.0f m", (double)std::roundf(*remaining_length_mm / 1000), (double)std::roundf(*full_length_mm / 1000));
+
+    } else if (full_length_mm.has_value()) {
+        sb.append_printf("%.0f m", (double)std::roundf(*full_length_mm / 1000));
+    }
+}
+
 AbbreviationInfo::AbbreviationInfo(const RequestRef &req) {
     if (!req.are_results_valid()) {
         // Cannot reliably process data - failing to read a specific fields might yield unwanted results
