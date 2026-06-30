@@ -114,7 +114,7 @@ public:
 };
 #endif
 
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
 class MI_FILAMENT_REQUIRES_FILTRATION final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     static constexpr auto parameter_ptr = &FilamentTypeParameters::requires_filtration;
@@ -169,7 +169,7 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
 #endif
     MI_FILAMENT_IS_ABRASIVE,
     MI_FILAMENT_IS_FLEXIBLE,
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
     MI_FILAMENT_REQUIRES_FILTRATION,
 #endif
     MI_CONFIRM //

@@ -107,10 +107,12 @@ void PrusaGcodeSuite::M865() {
     p.store_option_if_present('C', params.chamber_target_temperature);
     p.store_option_if_present('D', params.chamber_min_temperature);
     p.store_option_if_present('E', params.chamber_max_temperature);
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
     p.store_option_if_present('F', params.requires_filtration);
 #endif
 
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise M865 parameters");
+    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise M865 parameters");
 
     std::array<char, filament_name_buffer_size - 1> name_buf;
     if (const auto opt = p.option<std::string_view>('N', name_buf)) {
@@ -135,7 +137,7 @@ void PrusaGcodeSuite::M865() {
         SERIAL_ECHOLNPAIR("nozzle_temperature:", params.nozzle_temperature);
         SERIAL_ECHOLNPAIR("heatbed_temperature:", params.heatbed_temperature);
         SERIAL_ECHOLNPAIR("is_abrasive:", params.is_abrasive);
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
         SERIAL_ECHOLNPAIR("requires_filtration:", params.requires_filtration);
 #endif
     }

@@ -137,12 +137,14 @@ FilamentTypeParameters FilamentType::parameters() const {
             .chamber_min_temperature = e2.decode_chamber_temp(e2.chamber_min_temperature),
             .chamber_max_temperature = e2.decode_chamber_temp(e2.chamber_max_temperature),
             .chamber_target_temperature = e2.decode_chamber_temp(e2.chamber_target_temperature),
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = e1.requires_filtration,
 #endif
             .is_abrasive = e1.is_abrasive,
             .is_flexible = e1.is_flexible,
         };
-        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise the initializer");
+        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise the initializer");
     };
 
     return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
@@ -189,20 +191,20 @@ FilamentTypeParameters FilamentType::parameters() const {
 
 void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     assert(can_be_renamed_to(set.name));
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise FilamentType::set_parameters");
+    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise FilamentType::set_parameters");
 
     const FilamentTypeParameters_EEPROM1 e1 {
         .name = set.name,
         .nozzle_temperature = static_cast<uint16_t>(set.nozzle_temperature),
         .nozzle_preheat_temperature = static_cast<uint16_t>(set.nozzle_preheat_temperature),
         .heatbed_temperature = static_cast<uint8_t>(set.heatbed_temperature),
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
         .requires_filtration = set.requires_filtration,
 #endif
         .is_abrasive = set.is_abrasive,
         .is_flexible = set.is_flexible,
     };
-    // Note - even though we're not setting requires_filtration without HAS_CHAMBER_API, it is still in the EEPROM struct to provide binary compatibility
+    // Note - even though we're not setting requires_filtration without HAS_CHAMBER_FILTRATION_API, it is still in the EEPROM struct to provide binary compatibility
     static_assert(aggregate_arity<FilamentTypeParameters_EEPROM1>() == 7 + 1 /* _unused */, "Revise the initializer");
     static_assert(requires { FilamentTypeParameters_EEPROM1::_unused; });
 

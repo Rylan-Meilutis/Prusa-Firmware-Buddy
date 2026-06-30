@@ -14,6 +14,7 @@
 #include <utils/compact_optional.hpp>
 
 #include <option/has_chamber_api.h>
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
 #include <tool_index.hpp>
@@ -101,7 +102,9 @@ public:
 
     /// Ideal chamber temperature we would like to keep during printing
     std::optional<uint8_t> chamber_target_temperature = std::nullopt;
+#endif
 
+#if HAS_CHAMBER_FILTRATION_API()
     /// Whether the filament requires filtration (used in XL enclosure)
     bool requires_filtration = false;
 #endif

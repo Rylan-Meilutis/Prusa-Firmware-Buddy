@@ -65,6 +65,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 75,
             .chamber_target_temperature = 70,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
         },
@@ -86,6 +88,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 80,
             .chamber_target_temperature = 75,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
         },
@@ -122,6 +126,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 75,
             .chamber_target_temperature = 70,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
         },
@@ -139,6 +145,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 40,
             .chamber_max_temperature = 75,
             .chamber_target_temperature = 70,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
         },
@@ -156,6 +164,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 30,
             .chamber_max_temperature = 70,
             .chamber_target_temperature = 60,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
         },
@@ -174,6 +184,8 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .chamber_min_temperature = 15,
             .chamber_max_temperature = 40,
             .chamber_target_temperature = 25,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
             .requires_filtration = true,
 #endif
             .is_flexible = true,

@@ -275,7 +275,7 @@ namespace defaults {
                 .nozzle_temperature = 215,
                 .nozzle_preheat_temperature = 170,
                 .heatbed_temperature = 0,
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
                 .requires_filtration = false,
 #endif
             };

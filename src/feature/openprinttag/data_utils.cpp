@@ -161,7 +161,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
             set.operator()<&Params::is_abrasive>(true);
             break;
 
-#if HAS_CHAMBER_API()
+#if HAS_CHAMBER_FILTRATION_API()
         case Tag::filtration_recommended:
             set.operator()<&Params::requires_filtration>(true);
             break;
