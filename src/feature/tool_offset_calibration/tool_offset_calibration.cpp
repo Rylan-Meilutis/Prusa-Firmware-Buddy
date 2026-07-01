@@ -161,7 +161,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
         thermalManager.setTargetHotend(temps.cleaning, tool);
 
         // Purge and clean at cleaning temperature
-        thermalManager.wait_for_hotend(tool, false);
+        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
             return false;
         }
@@ -175,7 +175,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
         });
 
         // Deep clean at probing temperature
-        thermalManager.wait_for_hotend(tool, false);
+        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::deep_clean)) {
             return false;
         }
@@ -187,7 +187,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
         // straight to the XY-probing temperature (lower than the Z-probing temperature, so no
         // cool-down needed afterwards).
         thermalManager.setTargetHotend(temps.xy_probing, tool);
-        thermalManager.wait_for_hotend(tool, false);
+        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
     }
     return true;
 }
@@ -320,7 +320,7 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
         // Restore temp is one level above in run()
         const ToolTemperatures temps = get_tool_temperatures(tool);
         thermalManager.setTargetHotend(temps.xy_probing, tool);
-        thermalManager.wait_for_hotend(tool, false, true);
+        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false, .fan_cooling = true });
 
         log_info(ToolOffsetCalib, "XY offset measurement");
         auto result = tool_offset::measure_current_tool_offset(config, *sensor, offset_for_measurement);

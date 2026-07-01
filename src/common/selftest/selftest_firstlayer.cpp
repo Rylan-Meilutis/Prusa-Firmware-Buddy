@@ -299,7 +299,7 @@ LoopResult CSelftestPart_FirstLayer::statePrintInit() {
 }
 
 LoopResult CSelftestPart_FirstLayer::stateWaitNozzle() {
-    (void)thermalManager.wait_for_hotend(active_extruder, true, false);
+    (void)thermalManager.wait_for_hotend(active_extruder, { .no_wait_for_cooling = true, .fan_cooling = false });
     return LoopResult::RunNext;
 }
 
