@@ -6,9 +6,10 @@
 #include "screen_menu.hpp"
 #include "WindowMenuItems.hpp"
 #include "MItem_menus.hpp"
+#include <guiconfig/GuiDefaults.hpp>
 #include <screen_menu_statistics.hpp>
 
-using ScreenMenuInfo__ = ScreenMenu<EFooter::On, MI_RETURN,
+using ScreenMenuInfo__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_NETWORK_STATUS,
     MI_SENSOR_INFO,
     MI_VERSION_INFO,
