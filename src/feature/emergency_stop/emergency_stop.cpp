@@ -29,9 +29,16 @@ namespace {
     // a bit more.
     constexpr float allowed_mm = 2.0f;
 
+    // ISR power-panic-escalation threshold: the loop-driven stop clearly didn't
+    // act in time. Kept below extra_emergency_mm with room for the power panic's
+    // own Z-lift (POWER_PANIC_Z_LIFT_CYCLES, ~0.64 mm) to settle first.
+    constexpr float escalate_mm = 3.0f;
+
     // If we travel even more before any of the above measures had a chance to
     // stop it, we do a BSOD as a last resort.
     constexpr float extra_emergency_mm = 4.0f;
+
+    static_assert(allowed_mm < escalate_mm && escalate_mm < extra_emergency_mm);
 
     // Don't park below this position.
     constexpr float min_park_z = 0.6f;
@@ -199,13 +206,21 @@ void EmergencyStop::maybe_block() {
 
 void EmergencyStop::check_z_limits() {
     const int32_t emergency_start_z = start_z.load();
-    if (emergency_start_z != no_emergency) {
-        const int32_t difference = std::abs(emergency_start_z - current_z());
+    if (emergency_start_z == no_emergency) {
+        return;
+    }
+    const int32_t difference = std::abs(emergency_start_z - current_z());
+
+#if ENABLED(POWER_PANIC)
+    // Loop-driven stop didn't act in time (stalled loop). Escalate from the ISR
+    // - unlike the BSOD this can still recover the print.
+    if (difference > escalate_steps && !power_panic::ac_fault_triggered) {
+        power_panic::should_beep = false; // BFW-6472
+        buddy::hw::acFault.triggerIT();
+    } else
+#endif
         if (difference > extra_emergency_steps) {
-            // Didn't work the first time around? What??
-            // (see check_z_limits_soft)
-            bsod("Emergency stop failed, last-resort stop");
-        }
+        bsod("Emergency stop failed, last-resort stop");
     }
 }
 
@@ -228,6 +243,7 @@ void EmergencyStop::step() {
         log_info(EmergencyStop, "Emergency start");
         const auto steps = get_steps_per_unit_z();
         allowed_steps = static_cast<int32_t>(allowed_mm * steps);
+        escalate_steps = static_cast<int32_t>(escalate_mm * steps);
         extra_emergency_steps = static_cast<int32_t>(extra_emergency_mm * steps);
         start_z = current_z();
     } else if (!want_emergency && in_emergency()) {
