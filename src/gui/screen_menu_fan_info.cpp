@@ -1,6 +1,8 @@
 /// @file
 #include "screen_menu_fan_info.hpp"
 
+#include <img_resources.hpp>
+
 MI_INFO_PRINT_FAN::MI_INFO_PRINT_FAN()
     : WI_FAN_LABEL_t(_("Print Fan"),
         [](auto) { return FanPWMAndRPM {
@@ -60,4 +62,5 @@ ScreenMenuFanInfo::ScreenMenuFanInfo()
     : ScreenMenuFanInfo_ {
         // translation: Header text of the screen showing information about fans.
         _("FAN INFO"),
+        &img::info_16x16,
     } {}
