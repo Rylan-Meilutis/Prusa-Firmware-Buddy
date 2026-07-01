@@ -1,21 +1,17 @@
-/**
- * @file screen_menu_info.hpp
- */
+/// @file
 #pragma once
 
-#include "screen_menu.hpp"
-#include "WindowMenuItems.hpp"
+#include <basic_screen_menu.hpp>
 #include "MItem_menus.hpp"
-#include <guiconfig/GuiDefaults.hpp>
 #include <screen_menu_statistics.hpp>
 
-using ScreenMenuInfo__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+using ScreenMenuInfo__ = BasicScreenMenu<
     MI_NETWORK_STATUS,
     MI_SENSOR_INFO,
     MI_VERSION_INFO,
     MI_STATISTICS>;
 
-class ScreenMenuInfo : public ScreenMenuInfo__ {
+class ScreenMenuInfo final : public ScreenMenuInfo__ {
 public:
     ScreenMenuInfo();
 };
