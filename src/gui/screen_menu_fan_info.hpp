@@ -1,14 +1,12 @@
 /// @file
 #pragma once
 
-#include <guiconfig/GuiDefaults.hpp>
+#include <basic_screen_menu.hpp>
 #include <MItem_tools.hpp>
 #include <option/has_bed_fan.h>
 #include <option/has_psu_fan.h>
 #include <option/xbuddy_extension_variant.h>
-#include <screen_menu.hpp>
 #include <WindowItemFanLabel.hpp>
-#include <WindowMenuItems.hpp>
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <gui/menu_item/specific/menu_items_xbuddy_extension.hpp>
@@ -49,7 +47,7 @@ public:
 };
 #endif
 
-using ScreenMenuFanInfo_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+using ScreenMenuFanInfo_ = BasicScreenMenu<
     MI_INFO_PRINT_FAN,
     MI_INFO_HBR_FAN,
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
