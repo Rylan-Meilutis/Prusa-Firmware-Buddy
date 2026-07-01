@@ -107,6 +107,10 @@ void ReadFloatFieldRequest::complete(std::span<const std::byte> event_data) {
         return set_finished(std::unexpected(value_or_error.error()));
     }
     result_ = value_or_error.value()->float_;
+    if (!std::isfinite(result_)) {
+        // Only accept "real" float numbers
+        return set_finished(std::unexpected(Error::wrong_field_type));
+    }
     set_finished({});
 }
 
