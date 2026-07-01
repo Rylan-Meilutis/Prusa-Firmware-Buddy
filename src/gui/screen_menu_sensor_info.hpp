@@ -121,16 +121,18 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
     #if HAS_DOOR_SENSOR()
     MI_INFO_DOOR_SENSOR,
     #endif
+    #if HAS_EXTRUDER_FSENSOR
     MI_INFO_EXTRUDER_FILAMENT_SENSOR,
-    #if HOTENDS > 1
+        #if HOTENDS > 1
     MenuItemVirtualSubmenu<N_("Extruder Filament Sensors"), MI_INFO_EXTRUDER_FILAMENT_SENSOR, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
-    #endif
+        #endif
+    #endif // HAS_EXTRUDER_FSENSOR
     #if HAS_SIDE_FSENSOR()
     MI_INFO_SIDE_FILAMENT_SENSOR,
         #if HOTENDS > 1
     MenuItemVirtualSubmenu<N_("Side Filament Sensors"), MI_INFO_SIDE_FILAMENT_SENSOR, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
         #endif
-    #endif
+    #endif // HAS_SIDE_FSENSOR()
     #if PRINTER_IS_PRUSA_MK3_5()
     MI_PINDA,
     #endif
