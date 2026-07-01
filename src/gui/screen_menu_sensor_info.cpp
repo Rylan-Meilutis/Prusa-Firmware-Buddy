@@ -48,8 +48,9 @@ MI_INFO_NOZZLE_POWER::MI_INFO_NOZZLE_POWER()
 #endif
 
 ScreenMenuSensorInfo::ScreenMenuSensorInfo()
-    : ScreenMenuSensorInfo_(_("SENSOR INFO")) //
-{
+    : ScreenMenuSensorInfo_ {
+        _("SENSOR INFO"),
+    } {
     EnableLongHoldScreenAction();
     ClrMenuTimeoutClose();
 }

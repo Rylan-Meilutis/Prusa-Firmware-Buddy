@@ -14,7 +14,7 @@
 #include <fs_autoload_autolock.hpp>
 #include <gui/menu_item/menu_item_virtual_submenu.hpp>
 
-#include <screen_menu.hpp>
+#include <basic_screen_menu.hpp>
 #include <MItem_tools.hpp>
 
 #include <MItem_menus.hpp>
@@ -73,9 +73,7 @@ public:
 
 #endif
 
-using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
-    MI_RETURN,
-
+using ScreenMenuSensorInfo_ = BasicScreenMenu<
 #if PRINTER_IS_PRUSA_MINI()
     // Take very minimalist approach for the Mini, we're low on FLASH right now :(
     // TODO: Remove this
@@ -165,7 +163,7 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
 #endif
     >;
 
-class ScreenMenuSensorInfo : public ScreenMenuSensorInfo_ {
+class ScreenMenuSensorInfo final : public ScreenMenuSensorInfo_ {
     FS_AutoloadAutolock lock;
 
 public:
