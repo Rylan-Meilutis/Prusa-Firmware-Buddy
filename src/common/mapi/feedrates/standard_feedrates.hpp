@@ -46,6 +46,13 @@ namespace standard_feedrates {
     inline feedRate_t extruder(Extruder use_case, FilamentType filament) {
         return extruder(use_case, filament.parameters());
     };
+
+    /// @brief Standard feedrate for filament currently loaded in a nozzle
+    /// @param use_case
+    /// @return Positive feedrate in mm/s
+    inline feedRate_t current_extruder(Extruder use_case) {
+        return extruder(use_case, FilamentType::for_current_tool_heuristic().parameters());
+    };
 }; // namespace standard_feedrates
 
 } // namespace buddy

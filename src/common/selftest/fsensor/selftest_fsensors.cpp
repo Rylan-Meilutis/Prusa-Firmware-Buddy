@@ -36,6 +36,8 @@ namespace {
 
 using Phase = PhaseSelftestFSensors;
 
+using namespace buddy::standard_feedrates;
+
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
 
     #if HAS_NEXTRUDER()
@@ -181,7 +183,7 @@ SelftestFSensorsResult SelftestFSensors::run() {
     /// We should not leave the filament in the gears. Move back in the last round.
     mapi::ColdExtrudeGuard cold_extrude_guard;
     mapi::extruder_move(
-        -assisted_insertion_safe_distance_mm, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_fast_load, FilamentType::for_current_tool_heuristic()));
+        -assisted_insertion_safe_distance_mm, current_extruder(Extruder::filament_fast_load));
 #endif
 
     fail_guard.disarm();
@@ -353,7 +355,7 @@ void SelftestFSensors::calibrate(FilamentSensorCalibrator::CalibrationPhase phas
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
     mapi::ColdExtrudeGuard cold_extrude_guard;
     float extruded_distance = 0;
-    const auto extruder_feedrate = buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_fast_load, FilamentType::for_current_tool_heuristic());
+    const auto extruder_feedrate = current_extruder(Extruder::filament_fast_load);
 #endif
 
     const auto start_time = ticks_ms();
@@ -474,7 +476,7 @@ bool SelftestFSensors::ask_insert_filament() {
 
     // On failure, revert to the original extruder position
     ScopeGuard reset_extruder_guard = [&] {
-        mapi::extruder_move(-inserted_distance, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_unload, filament));
+        mapi::extruder_move(-inserted_distance, extruder(Extruder::filament_unload, filament));
         planner.synchronize();
     };
 #endif
@@ -498,11 +500,11 @@ bool SelftestFSensors::ask_insert_filament() {
         }
 
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
-        inserted_distance += mapi::extruder_schedule_turning(buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_assisted, filament));
+        inserted_distance += mapi::extruder_schedule_turning(extruder(Extruder::filament_assisted, filament));
 
         // If we've inserted too much, quickly unload to make sure we don't try to force the filament into a cold nozzle
         if (inserted_distance >= assisted_insertion_safe_distance_mm - assisted_insertion_extra_load_distance_mm - calibration_wiggle_distance_mm) {
-            mapi::extruder_move(-inserted_distance, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_unload, filament));
+            mapi::extruder_move(-inserted_distance, extruder(Extruder::filament_unload, filament));
             planner.synchronize();
             inserted_distance = 0;
 
@@ -516,7 +518,7 @@ bool SelftestFSensors::ask_insert_filament() {
 
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
     reset_extruder_guard.disarm();
-    mapi::extruder_move(assisted_insertion_extra_load_distance_mm, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_fast_load, filament));
+    mapi::extruder_move(assisted_insertion_extra_load_distance_mm, extruder(Extruder::filament_fast_load, filament));
     planner.synchronize();
 #endif
 
@@ -542,7 +544,7 @@ bool SelftestFSensors::ask_remove_filament() {
         }
 
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()
-        mapi::extruder_schedule_turning(-buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::filament_unload, FilamentType::for_current_tool_heuristic()));
+        mapi::extruder_schedule_turning(-current_extruder(Extruder::filament_unload));
 #endif
         idle(true);
     }

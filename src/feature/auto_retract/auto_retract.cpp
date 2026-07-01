@@ -208,7 +208,7 @@ void AutoRetract::maybe_deretract_to_nozzle() {
         // to the point where the motor skips, but we don't care, as it doesn't
         // damage the print.
         BlockEStallDetection estall_blocker;
-        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), standard_feedrates::extruder(standard_feedrates::Extruder::deretract, FilamentType::for_current_tool_heuristic()));
+        mapi::extruder_move(retracted_distance(physical_tool).value_or(0.0f), standard_feedrates::current_extruder(standard_feedrates::Extruder::deretract));
         planner.synchronize();
     }
 

@@ -235,7 +235,7 @@ public:
             }
         });
         mapi::extruder_move(
-            purge_length, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::advanced_pause_purge, FilamentType::for_current_tool_heuristic()));
+            purge_length, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::advanced_pause_purge));
         planner.synchronize();
         return !planner.draining();
     }

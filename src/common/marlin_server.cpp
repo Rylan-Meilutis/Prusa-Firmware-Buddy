@@ -3316,7 +3316,7 @@ void set_media_position(uint32_t set) {
 }
 
 static void retract() {
-    mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, FilamentType::for_current_tool_heuristic()));
+    mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::retract));
 }
 
 static void lift_head() {
@@ -3406,7 +3406,7 @@ void unpark_head_ZE(void) {
 
 #if HAS_PAUSE()
     // Undo E retract
-    mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, FilamentType::for_current_tool_heuristic()));
+    mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
 #endif
 }
 
