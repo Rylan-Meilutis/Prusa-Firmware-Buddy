@@ -4,12 +4,13 @@
 #include "marlin_client.hpp"
 #include "stdlib.h"
 #include "i18n.h"
-#include <utils/variant_utils.hpp>
 #include <filament_gui.hpp>
 #include <utils/string_builder.hpp>
+#include <utils/variant_utils.hpp>
 #include <gui/screen/filament/screen_filament_detail.hpp>
 #include <ScreenHandler.hpp>
 #include <gui/standard_frame/frame_prompt.hpp>
+#include <tool/physical_tool.hpp>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -20,6 +21,19 @@
 namespace {
 
 using PreheatToolIndex = PreheatData::ToolIndex;
+
+/// Check if a filament is compatible with the tool(s) represented by PreheatToolIndex.
+/// For AllTools, the filament must be compatible with every enabled physical tool.
+/// (Pre-print check + visual incompat marking; the list-generator path uses
+/// GenerateFilamentListConfig::compatible_with_tool, which carries the same logic.)
+bool is_filament_compatible(PreheatToolIndex tool, const FilamentTypeParameters &params) {
+    for (VirtualToolIndex vti : tool_index_iterator(tool).skip_all_disabled()) {
+        if (!PhysicalTool::for_index(vti.to_physical()).supports_filament(params)) {
+            return false;
+        }
+    }
+    return true;
+}
 
 class WindowMenuPreheat;
 
@@ -107,7 +121,9 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
     const auto filament_params = filament_type.parameters();
     filament_name = filament_params.name;
 
-    FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this);
+    const bool compatible = is_filament_compatible(tool, filament_params);
+
+    FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this, compatible);
 
     ArrayStringBuilder<GetInfoLen()> sb;
     sb.append_printf("%3u/%-3u", filament_params.nozzle_temperature, filament_params.heatbed_temperature);
@@ -173,11 +189,18 @@ void WindowMenuPreheat::set_show_all_filaments(bool set) {
 }
 
 void WindowMenuPreheat::update_list() {
-    const GenerateFilamentListConfig config {
+    // In default view, filter out filaments incompatible with the installed hotend.
+    // In "Show All" view, keep them but they'll be visually marked as incompatible.
+    GenerateFilamentListConfig config {
         .visible_only = !show_all_filaments_,
         .visible_first = true,
+        // compatible_with_tool defaults to NoTool (no filter) — used for the "Show All" view.
     };
+    if (!show_all_filaments_) {
+        config.compatible_with_tool = stdext::to_variant(tool);
+    }
     generate_filament_list(filament_list, config);
+
     index_mapping.set_section_size<Item::filament_section>(filament_list.size());
     index_mapping.set_item_enabled<Item::show_all>(!show_all_filaments_);
     setup_items();
@@ -391,6 +414,14 @@ ScreenPreheat::~ScreenPreheat() {
 
 bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool) {
     const auto filament = filament_type.parameters();
+
+    // Check hotend compatibility (HT-only filaments on a standard hotend exceed its max temp).
+    if (!is_filament_compatible(tool, filament)) {
+        StringViewUtf8Parameters<filament_name_buffer_size> params;
+        if (MsgBoxWarning(_("Filament '%s' is not compatible with the installed hotend. Do you really want to continue?").formatted(params, filament.name.data()), Responses_YesNo) != Response::Yes) {
+            return false;
+        }
+    }
 
     if (filament.is_abrasive && std::holds_alternative<VirtualToolIndex>(tool) && !config_store().get_nozzle_is_hardened(std::get<VirtualToolIndex>(tool).to_physical())) {
         StringViewUtf8Parameters<filament_name_buffer_size + 1> params;

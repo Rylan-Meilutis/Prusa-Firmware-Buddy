@@ -13,5 +13,6 @@ public:
     /// * Possibly changes color scheme
     /// * Possibly sets up icon
     /// \param name_buf must be alive for the whole lifespan of the \p item !
-    static void setup_menu_item(FilamentType ft, const FilamentTypeParameters::Name &name_buf, IWindowMenuItem &item);
+    /// \param is_compatible If false, applies incompatible color scheme (overrides hidden scheme)
+    static void setup_menu_item(FilamentType ft, const FilamentTypeParameters::Name &name_buf, IWindowMenuItem &item, bool is_compatible = true);
 };
