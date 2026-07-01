@@ -1,6 +1,6 @@
-/// \file
-
+/// @file
 #include "screen_menu_version_info.hpp"
+
 #include "config.h"
 #include <version/version.hpp>
 #include "img_resources.hpp"
@@ -16,8 +16,10 @@
 #endif
 
 ScreenMenuVersionInfo::ScreenMenuVersionInfo()
-    : ScreenMenuVersionInfo__(_(label)) {
-    header.SetIcon(&img::info_16x16);
+    : ScreenMenuVersionInfo__ {
+        _("VERSION INFO"),
+        &img::info_16x16,
+    } {
 
     Item<MI_INFO_FW>().ChangeInformation(version::project_version_full);
 
