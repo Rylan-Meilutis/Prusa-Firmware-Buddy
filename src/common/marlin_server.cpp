@@ -312,6 +312,18 @@ namespace {
         /// This does that
         bool skip_gcode = false;
 
+        /// False when a serial host already requested the pause and should not
+        /// receive a fresh action:pause request back from the firmware.
+        bool notify_serial_host_on_pause = true;
+
+        /// Pause command received while print setup is still transitioning to
+        /// State::Printing. Apply it immediately after print init completes.
+        bool pause_after_print_init = false;
+
+        /// False when a serial host already requested the resume and should not
+        /// receive a fresh action:resume request back from the firmware.
+        bool notify_serial_host_on_resume = true;
+
         /// Whether file open was reported on the serial line.
         /// We cannot do this directly when calling media_prefecth start, we need to wait till we have file size estimate
         bool file_open_reported = false;
@@ -330,7 +342,7 @@ namespace {
      * @param type pause type used for different media_print pause
      * @param resume_pos position to resume from, used only in Pause_Type::Crash
      */
-    void pause_print(Pause_Type type = Pause_Type::Pause);
+    void pause_print(Pause_Type type = Pause_Type::Pause, bool notify_serial_host = true);
 
     fsm::States fsm_states;
 
@@ -469,7 +481,7 @@ namespace {
     constinit MCUTempErrorChecker modbedMaxTempErrorChecker; ///< Check ModularBed MCU temperature
 #endif
 
-    void pause_print(Pause_Type type) {
+    void pause_print(Pause_Type type, bool notify_serial_host) {
         if (!server.print_is_serial) {
             switch (type) {
 
@@ -487,7 +499,7 @@ namespace {
             log_debug(MarlinServer, "Paused at %" PRIu32 ", skip %i", media_position(), print_state.skip_gcode);
         }
 
-        SerialPrinting::pause();
+        SerialPrinting::pause(notify_serial_host);
 
         print_job_timer.pause();
         server.resume.nozzle_temp = buddy::safety_timer().original_hotend_targets();
@@ -1653,7 +1665,7 @@ void print_exit(void) {
     }
 }
 
-void print_pause(void) {
+void print_pause(bool notify_serial_host) {
     print_state.resume_pending = false;
 
     switch (server.print_state) {
@@ -1664,6 +1676,16 @@ void print_pause(void) {
             GCodeQueue::pause_serial_commands = true;
         }
         server.print_state = State::Pausing_Begin;
+        print_state.notify_serial_host_on_pause = notify_serial_host;
+        break;
+
+    case State::PrintInit:
+    case State::SerialPrintInit:
+        print_state.pause_after_print_init = true;
+        print_state.notify_serial_host_on_pause = notify_serial_host;
+        if (server.print_state == State::SerialPrintInit) {
+            GCodeQueue::pause_serial_commands = true;
+        }
         break;
 
     default:
@@ -1966,9 +1988,10 @@ void update_sfn() {
     GCodeInfo::getInstance().set_gcode_file(d.filepath_sfn.get(), d.lfn);
 }
 
-void print_resume(void) {
+void print_resume(bool notify_serial_host) {
     if (server.print_state == State::Paused) {
         update_sfn();
+        print_state.notify_serial_host_on_resume = notify_serial_host;
 
         if (server.print_is_serial) {
             server.print_state = State::Resuming_Begin;
@@ -1985,6 +2008,7 @@ void print_resume(void) {
 
     } else if (is_pausing_state(server.print_state)) {
         print_state.resume_pending = true;
+        print_state.notify_serial_host_on_resume = notify_serial_host;
 
 #if ENABLED(POWER_PANIC)
     } else if (server.print_state == State::PowerPanic_AwaitingResume) {
@@ -2397,7 +2421,8 @@ static void _server_print_loop(void) {
             marlin_vars().time_to_pause = TIME_TO_END_INVALID;
         }
 
-        server.print_state = State::Printing;
+        server.print_state = print_state.pause_after_print_init ? State::Pausing_Begin : State::Printing;
+        print_state.pause_after_print_init = false;
 
         if (server.print_is_serial) {
             fsm_create(PhasesSerialPrinting::active);
@@ -2437,7 +2462,8 @@ static void _server_print_loop(void) {
         break;
 
     case State::Pausing_Begin:
-        pause_print();
+        pause_print(Pause_Type::Pause, print_state.notify_serial_host_on_pause);
+        print_state.notify_serial_host_on_pause = true;
         [[fallthrough]];
     case State::Pausing_Failed_Code:
         server.print_state = State::Pausing_WaitIdle;
@@ -2472,7 +2498,8 @@ static void _server_print_loop(void) {
 
         if (print_state.resume_pending) {
             print_state.resume_pending = false;
-            print_resume();
+            print_resume(print_state.notify_serial_host_on_resume);
+            print_state.notify_serial_host_on_resume = true;
         } else if (print_state.recover_media_error_at.has_value() && ticks_diff(*print_state.recover_media_error_at, ticks_s()) <= 0) {
             log_info(MarlinServer, "Try recover from media error");
             print_state.recover_media_error_at.reset();
@@ -2594,7 +2621,8 @@ static void _server_print_loop(void) {
         thermalManager.set_fan_speed(0, server.resume.fan_speed); // restore fan speed
 #endif
         feedrate_percentage = server.resume.print_speed;
-        SerialPrinting::resume();
+        SerialPrinting::resume(print_state.notify_serial_host_on_resume);
+        print_state.notify_serial_host_on_resume = true;
         server.print_state = State::Printing;
         if (server.print_is_serial) {
             SerialPrinting::resumed();

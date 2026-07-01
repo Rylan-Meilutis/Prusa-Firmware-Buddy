@@ -69,6 +69,7 @@ uint32_t GCodeQueue::sdpos = GCodeQueue::SDPOS_INVALID;
 uint32_t GCodeQueue::last_executed_sdpos = GCodeQueue::SDPOS_INVALID;
 uint32_t GCodeQueue::executed_commmand_count = 0;
 uint32_t GCodeQueue::sdpos_buffer[BUFSIZE];
+bool GCodeQueue::current_command_serial = false;
 bool GCodeQueue::pause_serial_commands = false;
 
 /*
@@ -104,6 +105,10 @@ GCodeQueue::GCodeQueue() {
  */
 bool GCodeQueue::has_commands_queued() {
   return queue.length || injected_commands_P;
+}
+
+bool GCodeQueue::current_command_from_serial() {
+  return current_command_serial;
 }
 
 /**
@@ -567,7 +572,9 @@ void GCodeQueue::advance() {
   }
 
   last_executed_sdpos = queue.get_current_sdpos();
+  current_command_serial = last_executed_sdpos == SDPOS_INVALID;
   gcode.process_next_command();
+  current_command_serial = false;
   executed_commmand_count++;
 
   // The queue may be reset by a command handler or by code invoked by idle() within a handler

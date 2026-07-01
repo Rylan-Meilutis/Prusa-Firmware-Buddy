@@ -61,6 +61,7 @@ public:
   static uint32_t last_executed_sdpos;      // (replay) Position of the last executed gcode
   static uint32_t executed_commmand_count; ///< Increased every time a command is executed
   static uint32_t sdpos_buffer[BUFSIZE]; // Ring buffer of (replay) positions (synced with command_buffer)
+  static bool current_command_serial;
 
   /// True pauses processing of serial commands.
   static bool pause_serial_commands;
@@ -113,6 +114,10 @@ public:
    * !!! Consider using marlin_server::is_processing() instead, it's usually the right choice
    */
   static bool has_commands_queued();
+
+  /// True when the command currently being dispatched came from a serial host,
+  /// rather than from a media-backed print stream.
+  static bool current_command_from_serial();
 
   /**
    * Get the next command in the queue, optionally log it to SD, then dispatch it

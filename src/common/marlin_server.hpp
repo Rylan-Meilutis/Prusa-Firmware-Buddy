@@ -103,7 +103,7 @@ void set_command(uint32_t command);
 void print_abort();
 
 //
-void print_resume();
+void print_resume(bool notify_serial_host = true);
 
 // Quick stop to avoid harm to the user
 void quick_stop();
@@ -134,7 +134,7 @@ struct resume_state_t {
 };
 
 //
-void print_pause();
+void print_pause(bool notify_serial_host = true);
 
 // return true if the printer is currently aborting or already aborted the print
 bool aborting_or_aborted();

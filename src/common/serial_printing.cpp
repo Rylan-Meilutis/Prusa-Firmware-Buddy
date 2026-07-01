@@ -40,15 +40,18 @@ void SerialPrinting::abort() {
     host_action("cancel");
 }
 
-void SerialPrinting::resume() {
+void SerialPrinting::resume(bool notify_host) {
     last_serial_indicator_ms = ticks_ms();
     GCodeQueue::pause_serial_commands = false;
-    host_action("resume");
+    if (notify_host) {
+        host_action("resume");
+    }
 }
 
-void SerialPrinting::pause() {
-    GCodeQueue::pause_serial_commands = false;
-    host_action("pause");
+void SerialPrinting::pause(bool notify_host) {
+    if (notify_host) {
+        host_action("pause");
+    }
 }
 
 void SerialPrinting::paused(const char *reason) {
