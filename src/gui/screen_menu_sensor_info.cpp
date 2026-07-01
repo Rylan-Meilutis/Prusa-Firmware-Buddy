@@ -1,6 +1,7 @@
 /// @file
 #include "screen_menu_sensor_info.hpp"
 
+#include <img_resources.hpp>
 #include <common/sensor_data.hpp>
 #include <option/has_indx.h>
 
@@ -50,6 +51,7 @@ MI_INFO_NOZZLE_POWER::MI_INFO_NOZZLE_POWER()
 ScreenMenuSensorInfo::ScreenMenuSensorInfo()
     : ScreenMenuSensorInfo_ {
         _("SENSOR INFO"),
+        &img::info_16x16,
     } {
     EnableLongHoldScreenAction();
     ClrMenuTimeoutClose();
