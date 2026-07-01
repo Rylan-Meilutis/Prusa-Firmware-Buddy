@@ -175,7 +175,16 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
     MI_CONFIRM //
     >;
 
-static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise ScreenFilamentDetail");
+static_assert(
+    aggregate_arity<FilamentTypeParameters>()
+        == 6
+            + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+            + HAS_CHAMBER_API() * 4
+            + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+            + HAS_ANFC() * 1 // TODO NEXT COMMIT
+    //
+    ,
+    "Revise ScreenFilamentDetail");
 
 /// Management of a specified filament type
 class ScreenFilamentDetail : public ScreenFilamentDetail_ {

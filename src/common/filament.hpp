@@ -12,12 +12,13 @@
 #include <utils/string/inplace_string.hpp>
 #include <utils/enum_array.hpp>
 #include <utils/compact_optional.hpp>
+#include <tool_index.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
-#include <tool_index.hpp>
+#include <option/has_anfc.h>
 
 class StringBuilder;
 
@@ -74,6 +75,12 @@ public:
 
     /// Bed temperature for the filament, in degrees Celsius
     int16_t heatbed_temperature = 60;
+
+#if HAS_ANFC()
+    /// OpenPrintTag linked to the filament
+    /// Note: not using ToolTag::UIDHash here to avoid dependency hell, static_asserted match in the cpp
+    uint16_t openprinttag_uid_hash = 0;
+#endif
 
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
     using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;

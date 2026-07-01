@@ -112,7 +112,17 @@ void PrusaGcodeSuite::M865() {
     p.store_option_if_present('F', params.requires_filtration);
 #endif
 
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise M865 parameters");
+    static_assert(
+        aggregate_arity<FilamentTypeParameters>()
+            == 6
+                + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+                + HAS_CHAMBER_API() * 3
+                + HAS_CHAMBER_FILTRATION_API() * 1
+                + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+                + HAS_ANFC() * 1 // OpenPrintTag Hash ID not configurable from the gcode, it's an internal thing
+        //
+        ,
+        "Revise M865 parameters");
 
     std::array<char, filament_name_buffer_size - 1> name_buf;
     if (const auto opt = p.option<std::string_view>('N', name_buf)) {

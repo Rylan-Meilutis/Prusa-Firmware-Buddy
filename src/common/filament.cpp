@@ -17,6 +17,10 @@
 #include <freertos/mutex.hpp>
 #include <inc/MarlinConfig.h>
 
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
+#endif
+
 // !!! If these value change, you need to inspect usages and possibly write up some config store migrations
 static_assert(filament_name_buffer_size == 8);
 static_assert(max_preset_filament_type_count == 32);
@@ -30,6 +34,11 @@ static_assert(sizeof(FilamentTypeParameters_EEPROM2) == 3);
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
 static_assert(sizeof(FilamentTypeParameters_EEPROM3) == 1);
+#endif
+
+#if HAS_ANFC()
+static_assert(std::is_same_v<decltype(FilamentTypeParameters::openprinttag_uid_hash), buddy::openprinttag::ToolTag::UIDHash>);
+static_assert(FilamentTypeParameters().openprinttag_uid_hash == buddy::openprinttag::ToolTag::no_tag_hash);
 #endif
 
 static_assert(preset_filament_type_count <= max_preset_filament_type_count);
@@ -121,12 +130,18 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
                                          const FilamentTypeParameters_EEPROM4 &e4,
 #endif
+#if HAS_ANFC()
+                                         buddy::openprinttag::ToolTag::UIDHash openprinttag_uid_hash,
+#endif
                                          std::monostate) {
         return FilamentTypeParameters {
             .name = e1.name,
             .nozzle_temperature = static_cast<int16_t>(e1.nozzle_temperature),
             .nozzle_preheat_temperature = static_cast<int16_t>(e1.nozzle_preheat_temperature),
             .heatbed_temperature = e1.heatbed_temperature,
+#if HAS_ANFC()
+            .openprinttag_uid_hash = openprinttag_uid_hash,
+#endif
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             .base_preset = e4.decode_base_preset(),
 #endif
@@ -144,7 +159,17 @@ FilamentTypeParameters FilamentType::parameters() const {
             .is_abrasive = e1.is_abrasive,
             .is_flexible = e1.is_flexible,
         };
-        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise the initializer");
+        static_assert(
+            aggregate_arity<FilamentTypeParameters>()
+                == 6
+                    + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+                    + HAS_CHAMBER_API() * 3
+                    + HAS_CHAMBER_FILTRATION_API() * 1
+                    + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+                    + HAS_ANFC() * 1
+            //
+            ,
+            "Revise the initializer");
     };
 
     return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
@@ -163,6 +188,10 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
                 config_store().user_filament_parameters_4.get(v.index),
 #endif
+#if HAS_ANFC()
+                // It should only be possible to link OPT with AdHoc filaments
+                buddy::openprinttag::ToolTag::no_tag_hash,
+#endif
                 std::monostate());
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
@@ -176,6 +205,9 @@ FilamentTypeParameters FilamentType::parameters() const {
 #endif
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
                 config_store().adhoc_filament_parameters_4.get(v.tool),
+#endif
+#if HAS_ANFC()
+                config_store().adhoc_filament_assigned_openprinttag.get(v.tool),
 #endif
                 std::monostate());
 
@@ -191,7 +223,17 @@ FilamentTypeParameters FilamentType::parameters() const {
 
 void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     assert(can_be_renamed_to(set.name));
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 3 + HAS_CHAMBER_FILTRATION_API() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise FilamentType::set_parameters");
+    static_assert(
+        aggregate_arity<FilamentTypeParameters>()
+            == 6
+                + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+                + HAS_CHAMBER_API() * 3
+                + HAS_CHAMBER_FILTRATION_API() * 1
+                + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+                + HAS_ANFC() * 1
+        //
+        ,
+        "Revise FilamentType::set_parameters");
 
     const FilamentTypeParameters_EEPROM1 e1 {
         .name = set.name,
@@ -246,6 +288,10 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             config_store().user_filament_parameters_4.set(v.index, e4);
 #endif
+#if HAS_ANFC()
+            // It should only be possible to link OPT with AdHoc filaments
+            assert(set.openprinttag_uid_hash == buddy::openprinttag::ToolTag::no_tag_hash);
+#endif
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
             config_store().adhoc_filament_parameters.set(v.tool, e1);
@@ -257,6 +303,9 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #endif
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
             config_store().adhoc_filament_parameters_4.set(v.tool, e4);
+#endif
+#if HAS_ANFC()
+            config_store().adhoc_filament_assigned_openprinttag.set(v.tool, set.openprinttag_uid_hash);
 #endif
 
         } else if constexpr (std::is_same_v<T, PendingAdHocFilamentType>) {

@@ -91,9 +91,17 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     /// If you want to set a parameter, use the @p set function that also clears missing_parameters
     [[maybe_unused]] const auto &parameters = parameters_unsafe;
 
-    static_assert(filament_type_parameter_count == 6 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "We probably need to implement something here");
+    static_assert(
+        filament_type_parameter_count
+            == 7
+                + HAS_CHAMBER_API() * 4
+                + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+                + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+        //
+        ,
+        "We probably need to implement something here");
 
-    // Abbreviation
+    // Abbreviation & inherit from base type
     {
         AbbreviationInfo abbreviation { req };
 
@@ -131,6 +139,9 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
             data_safe_to_use = false;
         }
     }
+
+    // Grab tag UID from any request
+    set.operator()<&Params::openprinttag_uid_hash>(req.request<MainField::material_type>().tool_tag().uid_hash());
 
     // Nozzle temp
     {

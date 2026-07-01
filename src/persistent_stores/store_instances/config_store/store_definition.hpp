@@ -492,6 +492,11 @@ struct CurrentStore
 #if HAS_FILAMENT_BASE_PRESET_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM4, FilamentTypeParameters_EEPROM4 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 4"), 16, adhoc_filament_type_count> adhoc_filament_parameters_4;
 #endif
+#if HAS_ANFC()
+    /// Tags assigned to specific tools. See ToolTag::for_tool_assigned
+    /// Not using ToolTag::UIDHash here to avoid dependency hell. static_asserted inside tool_tag.cpp
+    StoreItemArray<uint16_t, uint16_t(0), ItemFlag::printer_state, journal::hash("TODO NEXT COMMIT"), 16, VirtualToolIndex::count> adhoc_filament_assigned_openprinttag;
+#endif
 
     StoreItem<EncodedBitset<max_user_filament_type_count>, defaults::visible_user_filament_types, ItemFlag::user_presets, journal::hash("Visible User Filament Types")> visible_user_filament_types;
 
