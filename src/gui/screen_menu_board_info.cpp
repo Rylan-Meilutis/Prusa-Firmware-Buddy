@@ -109,7 +109,7 @@ MI_OTP_INDX_HEAD::MI_OTP_INDX_HEAD()
 ScreenMenuBoardInfo::ScreenMenuBoardInfo()
     : ScreenMenuBoardInfo__ {
         _("BOARD INFO"),
+        &img::info_16x16,
     } {
-    header.SetIcon(&img::info_16x16);
     EnableLongHoldScreenAction();
 }
