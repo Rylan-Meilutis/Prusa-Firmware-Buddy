@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-06-24 13:30+0200\n"
+"POT-Creation-Date: 2026-07-01 14:20+0200\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -833,7 +833,7 @@ msgstr "ショウトツケンチ"
 msgid "CUSTOM PARAMETERS"
 msgstr "カスタム パラメーター"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:39
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:46
 msgid "Calibrate"
 msgstr "コウセイ"
 
@@ -1345,7 +1345,7 @@ msgstr "セツゾクチュウ"
 msgid "Consumed material"
 msgstr "ショウヒシタ ザイリョウ"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:71
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:93
 #: src/gui/dialogs/resolution_480x320/radio_button_preview.cpp:59
 msgid "Continue"
 msgstr "ツヅケル"
@@ -1733,7 +1733,7 @@ msgstr ""
 msgid "Dock %d position differs too much from expected values."
 msgstr "ドック %d ポジショント キタイチトノ チガイガ オオキイデス。"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:50
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:59
 #, c-format
 msgid "Dock %i"
 msgstr "ドック %i"
@@ -2113,7 +2113,7 @@ msgstr "オシダシ フィラメント"
 msgid "Extruder"
 msgstr "エクストルーダー"
 
-#: src/gui/screen_menu_sensor_info.hpp:126
+#: src/gui/screen_menu_sensor_info.hpp:127
 msgid "Extruder Filament Sensors"
 msgstr "エクストルーダー フィラメント センサー"
 
@@ -2550,7 +2550,7 @@ msgstr ""
 msgid "Filament Autoloading"
 msgstr "フィラメントオートロード"
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Filament Calibration Failed"
 msgstr "フィラメント キャリブレーション シッパイ"
 
@@ -4069,6 +4069,10 @@ msgstr ""
 msgid "Invalid BGCODE file header"
 msgstr "バイナリGコードファイルヘッダ ムコウ"
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:47
+msgid "Invalidate"
+msgstr "ムコウカ"
+
 #: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
 msgid "Invalidate Calibration"
 msgstr "キャリブレーション ヲ ムコウカ"
@@ -4126,6 +4130,7 @@ msgstr "アイテム %i"
 msgid "Joining spool"
 msgstr "スプール ヲ ジョイン"
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
 #: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
@@ -4730,7 +4735,7 @@ msgid "Make sure the filament is inserted through the sensor."
 msgstr ""
 "フィラメントガ センサーニ ロードサレテイルコトヲ カクニンシテクダサイ。"
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Make sure the filament is properly inserted."
 msgstr ""
 "フィラメントガ タダシク ソウニュウサレテイルコトヲ カクニンシテクダサイ。"
@@ -5582,7 +5587,7 @@ msgstr ""
 "ドア ヲ アケ チョウセイ ネジ ヲ ヤク ハン カイテン シメテ クダサイ。ソノゴ ド"
 "ア ヲ シメテ カクニン シテ クダサイ。"
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid "OpenPrintTag Pending Write"
 msgstr "OpenPrintTag カキコミ マチ"
 
@@ -6765,7 +6770,7 @@ msgstr ""
 msgid "SCAN OPENPRINTTAG"
 msgstr "OPENPRINTTAG ヲ スキャン"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:160
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:196
 msgid "SELECT DOCKS"
 msgstr "ドック ヲ センタク"
 
@@ -7071,7 +7076,7 @@ msgid "Side Filament Sensor"
 msgstr "サイドフィラメントセンサー"
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
-#: src/gui/screen_menu_sensor_info.hpp:131
+#: src/gui/screen_menu_sensor_info.hpp:133
 msgid "Side Filament Sensors"
 msgstr "サイド フィラメント センサー"
 
@@ -7098,7 +7103,6 @@ msgstr "サイレント"
 msgid "Silver"
 msgstr "ギン イロ"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:38
 #: src/gui/ScreenPrintingModel.cpp:56
 msgid "Skip"
 msgstr "スキップ"
@@ -7943,7 +7947,7 @@ msgstr ""
 "イチブ ノ センサー ニ モンダイ ガ アリマス。ノコリ ヲ キャリブレーション デキ"
 "マス ガ セルフ テスト ハ シッパイ シマス。"
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid ""
 "There is filament usage to be written to the OpenPrintTag. Make sure the "
 "spool is close to the NFC reader."

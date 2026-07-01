@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-06-24 13:30+0200\n"
+"POT-Creation-Date: 2026-07-01 14:20+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -832,7 +832,7 @@ msgstr "CRASH DÉTECTÉ"
 msgid "CUSTOM PARAMETERS"
 msgstr "PARAMÈTRES PERSONNALISÉS"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:39
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:46
 msgid "Calibrate"
 msgstr "Calibrer"
 
@@ -1334,7 +1334,7 @@ msgstr "Connexion"
 msgid "Consumed material"
 msgstr "Matériau consommé"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:71
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:93
 #: src/gui/dialogs/resolution_480x320/radio_button_preview.cpp:59
 msgid "Continue"
 msgstr "Continuer"
@@ -1725,7 +1725,7 @@ msgstr ""
 msgid "Dock %d position differs too much from expected values."
 msgstr "La position du dock %d diffère trop des valeurs attendues."
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:50
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:59
 #, c-format
 msgid "Dock %i"
 msgstr "Dock %i"
@@ -2100,7 +2100,7 @@ msgstr "Filament extrudé"
 msgid "Extruder"
 msgstr "Extrudeur"
 
-#: src/gui/screen_menu_sensor_info.hpp:126
+#: src/gui/screen_menu_sensor_info.hpp:127
 msgid "Extruder Filament Sensors"
 msgstr "Capteurs filament de l'extrudeur"
 
@@ -2533,7 +2533,7 @@ msgstr ""
 msgid "Filament Autoloading"
 msgstr "Chargement Automatique du Filament"
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Filament Calibration Failed"
 msgstr "Échec de la calibration du filament"
 
@@ -3971,6 +3971,10 @@ msgstr ""
 msgid "Invalid BGCODE file header"
 msgstr "En-tête de fichier BGCODE invalide"
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:47
+msgid "Invalidate"
+msgstr "Invalider"
+
 #: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
 msgid "Invalidate Calibration"
 msgstr "Invalider la calibration"
@@ -4027,6 +4031,7 @@ msgstr "Élément %i"
 msgid "Joining spool"
 msgstr "Jonction de bobine"
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
 #: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
@@ -4616,7 +4621,7 @@ msgstr ""
 msgid "Make sure the filament is inserted through the sensor."
 msgstr "Vérifiez que le filament est bien inséré dans le capteur."
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Make sure the filament is properly inserted."
 msgstr "Vérifiez que le filament est bien inséré."
 
@@ -5452,7 +5457,7 @@ msgstr ""
 "Ouvrez la porte et serrez la vis de tension d'un demi-tour. Fermez et "
 "confirmez."
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid "OpenPrintTag Pending Write"
 msgstr "OpenPrintTag attente écriture"
 
@@ -6605,7 +6610,7 @@ msgstr ""
 msgid "SCAN OPENPRINTTAG"
 msgstr "SCANNER OPENPRINTTAG"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:160
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:196
 msgid "SELECT DOCKS"
 msgstr "SÉLECTIONNER DOCKS"
 
@@ -6906,7 +6911,7 @@ msgid "Side Filament Sensor"
 msgstr "Capteur de Filament Latéral"
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
-#: src/gui/screen_menu_sensor_info.hpp:131
+#: src/gui/screen_menu_sensor_info.hpp:133
 msgid "Side Filament Sensors"
 msgstr "Capteurs filament latéraux"
 
@@ -6931,7 +6936,6 @@ msgstr "Silencieux"
 msgid "Silver"
 msgstr "Argent"
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:38
 #: src/gui/ScreenPrintingModel.cpp:56
 msgid "Skip"
 msgstr "Sauter"
@@ -7751,7 +7755,7 @@ msgstr ""
 "Problème avec certains capteurs. Vous pouvez calibrer le reste, mais "
 "l'autotest échouera."
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid ""
 "There is filament usage to be written to the OpenPrintTag. Make sure the "
 "spool is close to the NFC reader."

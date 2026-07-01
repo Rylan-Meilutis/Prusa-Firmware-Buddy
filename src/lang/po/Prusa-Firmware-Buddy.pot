@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Prusa-Firmware-Buddy 4.1\n"
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-06-24 13:30+0200\n"
+"POT-Creation-Date: 2026-07-01 14:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -737,7 +737,7 @@ msgstr ""
 msgid "CUSTOM PARAMETERS"
 msgstr ""
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:39
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:46
 msgid "Calibrate"
 msgstr ""
 
@@ -1180,7 +1180,7 @@ msgstr ""
 msgid "Consumed material"
 msgstr ""
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:71
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:93
 #: src/gui/dialogs/resolution_480x320/radio_button_preview.cpp:59
 msgid "Continue"
 msgstr ""
@@ -1533,7 +1533,7 @@ msgstr ""
 msgid "Dock %d position differs too much from expected values."
 msgstr ""
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:50
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:59
 #, c-format
 msgid "Dock %i"
 msgstr ""
@@ -1890,7 +1890,7 @@ msgstr ""
 msgid "Extruder"
 msgstr ""
 
-#: src/gui/screen_menu_sensor_info.hpp:126
+#: src/gui/screen_menu_sensor_info.hpp:127
 msgid "Extruder Filament Sensors"
 msgstr ""
 
@@ -2289,7 +2289,7 @@ msgstr ""
 msgid "Filament Autoloading"
 msgstr ""
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Filament Calibration Failed"
 msgstr ""
 
@@ -3579,6 +3579,10 @@ msgstr ""
 msgid "Invalid BGCODE file header"
 msgstr ""
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:47
+msgid "Invalidate"
+msgstr ""
+
 #: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
 msgid "Invalidate Calibration"
 msgstr ""
@@ -3631,6 +3635,7 @@ msgstr ""
 msgid "Joining spool"
 msgstr ""
 
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
 #: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:62
 msgid "Keep"
@@ -4180,7 +4185,7 @@ msgstr ""
 msgid "Make sure the filament is inserted through the sensor."
 msgstr ""
 
-#: src/gui/screen/screen_filament_change.cpp:481
+#: src/gui/screen/screen_filament_change.cpp:485
 msgid "Make sure the filament is properly inserted."
 msgstr ""
 
@@ -4948,7 +4953,7 @@ msgid ""
 "close the door and confirm."
 msgstr ""
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid "OpenPrintTag Pending Write"
 msgstr ""
 
@@ -6030,7 +6035,7 @@ msgstr ""
 msgid "SCAN OPENPRINTTAG"
 msgstr ""
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:160
+#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:196
 msgid "SELECT DOCKS"
 msgstr ""
 
@@ -6314,7 +6319,7 @@ msgid "Side Filament Sensor"
 msgstr ""
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
-#: src/gui/screen_menu_sensor_info.hpp:131
+#: src/gui/screen_menu_sensor_info.hpp:133
 msgid "Side Filament Sensors"
 msgstr ""
 
@@ -6339,7 +6344,6 @@ msgstr ""
 msgid "Silver"
 msgstr ""
 
-#: src/feature/indx_dock_calibration/dialog_dock_select.cpp:38
 #: src/gui/ScreenPrintingModel.cpp:56
 msgid "Skip"
 msgstr ""
@@ -7048,7 +7052,7 @@ msgid ""
 "the selftest will fail."
 msgstr ""
 
-#: src/gui/screen/screen_filament_change.cpp:478
+#: src/gui/screen/screen_filament_change.cpp:482
 msgid ""
 "There is filament usage to be written to the OpenPrintTag. Make sure the "
 "spool is close to the NFC reader."
