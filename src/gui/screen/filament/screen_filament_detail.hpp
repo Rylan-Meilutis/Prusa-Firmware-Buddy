@@ -13,6 +13,11 @@
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
 
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
+#endif
+
 namespace screen_filament_detail {
 
 class MI_FILAMENT_NAME final : public WiInfo<32> {
@@ -123,6 +128,30 @@ public:
 };
 #endif
 
+#if HAS_ANFC()
+class MI_FILAMENT_ASSIGNED_OPENPRINTTAG final : public WI_ICON_SWITCH_OFF_ON_t {
+public:
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::openprinttag_uid_hash;
+
+    MI_FILAMENT_ASSIGNED_OPENPRINTTAG();
+
+    using Value = buddy::openprinttag::ToolTag::UIDHash;
+    static constexpr Value no_tag_hash = buddy::openprinttag::ToolTag::no_tag_hash;
+
+    Value value() const {
+        return WI_ICON_SWITCH_OFF_ON_t::value() ? original_uid_hash_ : no_tag_hash;
+    }
+
+    void set_value(Value set);
+
+protected:
+    void OnChange(size_t) override;
+
+private:
+    Value original_uid_hash_ = no_tag_hash;
+};
+#endif
+
 class MI_FILAMENT_IS_ABRASIVE final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     static constexpr auto parameter_ptr = &FilamentTypeParameters::is_abrasive;
@@ -172,6 +201,9 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
 #if HAS_CHAMBER_FILTRATION_API()
     MI_FILAMENT_REQUIRES_FILTRATION,
 #endif
+#if HAS_ANFC()
+    MI_FILAMENT_ASSIGNED_OPENPRINTTAG,
+#endif
     MI_CONFIRM //
     >;
 
@@ -181,7 +213,7 @@ static_assert(
             + HAS_FILAMENT_HEATBREAK_PARAM() * 1
             + HAS_CHAMBER_API() * 4
             + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
-            + HAS_ANFC() * 1 // TODO NEXT COMMIT
+            + HAS_ANFC() * 1
     //
     ,
     "Revise ScreenFilamentDetail");

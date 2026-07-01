@@ -133,6 +133,38 @@ MI_FILAMENT_REQUIRES_FILTRATION::MI_FILAMENT_REQUIRES_FILTRATION()
 
 #endif
 
+// * MI_FILAMENT_ASSIGNED_OPENPRINTTAG
+#if HAS_ANFC()
+MI_FILAMENT_ASSIGNED_OPENPRINTTAG::MI_FILAMENT_ASSIGNED_OPENPRINTTAG()
+    : WI_ICON_SWITCH_OFF_ON_t(false, _("OpenPrintTag Linked"), &img::openprinttag_white_16x16) {}
+
+void MI_FILAMENT_ASSIGNED_OPENPRINTTAG::set_value(Value set) {
+    original_uid_hash_ = set;
+    WI_ICON_SWITCH_OFF_ON_t::set_value(set != no_tag_hash);
+}
+
+void MI_FILAMENT_ASSIGNED_OPENPRINTTAG::OnChange(size_t) {
+    if (WI_ICON_SWITCH_OFF_ON_t::value()) {
+        if (original_uid_hash_ == no_tag_hash) {
+            MsgBoxError(_("OpenPrintTag must be assigned during filament load."), Responses_Ok);
+
+            // Set the switch value to false,
+            // but keep the original_uid_hash_, so that the user can reenable the assign while we still remember the hash value
+            WI_ICON_SWITCH_OFF_ON_t::set_value(false);
+
+        } else {
+            // We still remember the original_uid_hash_, allow re-enabling
+        }
+
+    } else {
+        const auto r = MsgBoxWarning(_("Unlink OpenPrintTag from the filament? Filament usage tracking will be disabled."), Responses_YesNo);
+        if (r != Response::Yes) {
+            WI_ICON_SWITCH_OFF_ON_t::set_value(true);
+        }
+    }
+}
+#endif
+
 // * MI_FILAMENT_IS_ABRASIVE
 MI_FILAMENT_IS_ABRASIVE::MI_FILAMENT_IS_ABRASIVE()
     : WI_ICON_SWITCH_OFF_ON_t(false, _("Is Abrasive")) {}
