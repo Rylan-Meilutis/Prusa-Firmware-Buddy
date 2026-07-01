@@ -34,7 +34,7 @@ public:
     using TempTable = std::span<const short[2]>;
 
     struct Config {
-        BaseHotend::Config base_config;
+        Hotend::Config base_config;
 
         /// Temperature table for mapping raw temperature readouts
         TempTable nozzle_temp_table;

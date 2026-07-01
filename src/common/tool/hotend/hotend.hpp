@@ -27,6 +27,20 @@ public:
     /// <= 0 = no target temperature/invalid value
     using TargetTemperature = int16_t;
 
+    /// Static, per-hotend configuration common to all Hotend implementations.
+    /// The owning tool factory keeps the instance alive; Hotend stores a reference to it.
+    struct Config {
+        /// Minimum acceptable temperature for the hotend
+        /// Exceeding this limit results in a RSOD
+        /// Formerly done by the HEATER_0_MINTEMP macro
+        TargetTemperature min_nozzle_temp;
+
+        /// Maximum acceptable temperature for the hotend
+        /// Exceeding this limit results in a RSOD
+        /// Formerly done by the HEATER_0_MAXTEMP macro
+        TargetTemperature max_nozzle_temp;
+    };
+
 public:
     /// @returns Hotend of the tool
     /// !!! To be accessed only from the marlin task
@@ -39,6 +53,10 @@ public:
 
 public:
     virtual bool supports_filament(const FilamentTypeParameters &filament) const = 0;
+
+    /// Maximum nozzle temperature (from the hotend config).
+    /// DummyHotend (NoTool) is constructed with a zero config, so this returns 0.
+    TargetTemperature max_nozzle_temp() const { return base_config_.max_nozzle_temp; }
 
     /// Current temperature of the nozzle
     OptionalTemperature nozzle_temp() const {
@@ -105,7 +123,8 @@ public:
 #endif
 
 protected:
-    explicit Hotend() = default;
+    explicit Hotend(const Config &config)
+        : base_config_(config) {}
 
 protected:
     /// This function is called from the DefaultTask at regular intervals (from temperature.manage_heater())
@@ -130,6 +149,9 @@ protected:
 #endif
 
     TargetTemperature nozzle_target_temp_ = 0;
+
+    /// Static per-hotend configuration; owned by the tool factory, referenced here.
+    const Config &base_config_;
 
 #if HAS_TEMP_HEATBREAK_CONTROL
     TargetTemperature heatbreak_target_temp_ = 0;

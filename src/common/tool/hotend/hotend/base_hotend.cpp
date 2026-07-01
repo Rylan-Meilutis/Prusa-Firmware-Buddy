@@ -20,7 +20,7 @@ static constexpr HeaterWatch::Config heater_watch_config {
 #endif
 
 BaseHotend::BaseHotend(PhysicalToolIndex tool, const Config *config)
-    : base_config_(*config)
+    : Hotend(*config)
     , tool_(tool)
 #if WATCH_HOTENDS
     , heater_watch_(heater_watch_config)

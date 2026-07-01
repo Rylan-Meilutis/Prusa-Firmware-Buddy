@@ -9,19 +9,6 @@
 class BaseHotend : public Hotend {
 
 public:
-    struct Config {
-        /// Minimum acceptable temperature for the hotend
-        /// Exceeding this limit results in a RSOD
-        /// Formerly done by the HEATER_0_MINTEMP macro
-        TargetTemperature min_nozzle_temp;
-
-        /// Maximum acceptable temperature for the hotend
-        /// Exceeding this limit results in a RSOD
-        /// Formerly done by the HEATER_0_MAXTEMP macro
-        TargetTemperature max_nozzle_temp;
-    };
-
-public:
     bool supports_filament(const FilamentTypeParameters &filament) const override;
 
     void set_nozzle_target_temp(TargetTemperature set) final override;
@@ -48,7 +35,6 @@ protected:
     void manage_temp_residency();
 
 protected:
-    const Config &base_config_;
     const PhysicalToolIndex tool_;
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
