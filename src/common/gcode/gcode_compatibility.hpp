@@ -118,6 +118,10 @@ enum class VirtualToolCheck : uint8_t {
     /// Filament type in gcodeinfo matches the filamenttype loaded to the tool
     filament_type,
 
+    /// Fails if the G-code filament is incompatible with the installed hotend
+    /// (e.g., PPS or PPA on standard hotend — HT hotend accepts all filament types)
+    filament_hotend_compatible,
+
 #if HAS_SPOOL_JOIN()
     /// Fails if the spool join is not possible
     can_spool_join,

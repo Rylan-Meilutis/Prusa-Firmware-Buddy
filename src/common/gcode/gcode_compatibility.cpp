@@ -2,9 +2,11 @@
 
 #include <config_store/store_instance.hpp>
 #include <gcode_info.hpp>
+#include <filament.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <print_utils.hpp>
 #include <test_result.hpp>
+#include <tool/physical_tool.hpp>
 #include <window_msgbox.hpp>
 
 #include <option/has_mmu2.h>
@@ -169,6 +171,14 @@ constinit const ChecksTraits<VirtualToolCheck>::Metadata ChecksTraits<VirtualToo
                 .severity = HWCheckSeverity::Warning,
                 .title = N_("Wrong filament type"),
                 .description = N_("G-Code is sliced for a different filament type than what is currently loaded in the assigned tool."),
+            },
+        },
+        {
+            VirtualToolCheck::filament_hotend_compatible,
+            CheckMetadata {
+                .severity = HWCheckSeverity::Warning,
+                .title = N_("Filament incompatible with hotend"),
+                .description = N_("G-Code is sliced for a filament that is not compatible with the installed hotend. Printing may damage the hotend or produce poor results."),
             },
         },
 #if HAS_SPOOL_JOIN()
@@ -423,10 +433,19 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
             const FilamentType loaded_filament_type = config_store().get_filament_type(virtual_tool);
             const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
 
-            // Check filament type
+            // Check filament type and hotend compatibility
             // Don't report errors if the gcode did not provide the filament type
-            if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---" && fn != loaded_filament_params.name) {
-                virtual_tool_fails.set(VirtualToolCheck::filament_type);
+            if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---") {
+                if (fn != loaded_filament_params.name) {
+                    virtual_tool_fails.set(VirtualToolCheck::filament_type);
+                }
+
+                const auto gcode_filament = FilamentType::from_name(std::string_view(fn.data()));
+                if (gcode_filament != FilamentType::none) {
+                    if (!PhysicalTool::for_index(physical_tool).supports_filament(gcode_filament.parameters())) {
+                        virtual_tool_fails.set(VirtualToolCheck::filament_hotend_compatible);
+                    }
+                }
             }
 
             // With MMU, the filaments are intentionally unloaded at the start of the print
