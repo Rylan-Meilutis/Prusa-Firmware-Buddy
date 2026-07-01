@@ -6,10 +6,10 @@
 #include <screen_menu_statistics.hpp>
 
 using ScreenMenuInfo__ = BasicScreenMenu<
+    MI_STATISTICS,
     MI_NETWORK_STATUS,
     MI_SENSOR_INFO,
-    MI_VERSION_INFO,
-    MI_STATISTICS>;
+    MI_VERSION_INFO>;
 
 class ScreenMenuInfo final : public ScreenMenuInfo__ {
 public:
