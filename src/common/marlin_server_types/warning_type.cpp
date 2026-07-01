@@ -119,11 +119,6 @@ constexpr uint32_t warning_lifespan_sec_constexpr(WarningType type) {
         return 60;
 #endif
 
-#if HAS_ANFC()
-    case WarningType::OpenPrintTagAssigned:
-        return 5;
-#endif
-
     default:
         return uint32_t(-1); // Unlimited
     }

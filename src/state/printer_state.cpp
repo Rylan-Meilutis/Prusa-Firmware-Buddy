@@ -102,10 +102,6 @@ bool is_warning_attention(const fsm::BaseData &data) {
         // Local issue, do not report to connect
     case ErrCode::ERR_ELECTRO_DISPLAY_PROBLEM_DETECTED:
 #endif
-#if HAS_ANFC()
-        // This is an info screen, do not raise alarms
-    case ErrCode::ERR_CONNECT_OPENPRINTTAG_ASSIGNED:
-#endif
         return false;
     default:
         return true;
@@ -762,9 +758,6 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 #endif
 
 #if HAS_ANFC()
-    case WarningType::OpenPrintTagAssigned:
-        return ErrCode::ERR_CONNECT_OPENPRINTTAG_ASSIGNED;
-
     case WarningType::OpenPrintTagCannotTrack:
         return ErrCode::ERR_CONNECT_OPENPRINTTAG_CANNOT_TRACK;
 

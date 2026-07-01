@@ -111,10 +111,6 @@ enum class WarningType : uint32_t {
     HotendOffsetUnsafeSensorXY,
 #endif
 #if HAS_ANFC()
-    /// OpenPrintTag has been assigned to the specified tool, will do filament tracking
-    /// This is an info, not a warning
-    OpenPrintTagAssigned,
-
     /// Filament tracking unrecoverably failed for any reason
     OpenPrintTagCannotTrack,
 
