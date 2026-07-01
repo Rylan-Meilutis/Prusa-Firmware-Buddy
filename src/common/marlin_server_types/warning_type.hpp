@@ -16,10 +16,17 @@
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_ht_hotend.h>
 
 enum class WarningType : uint32_t {
 #if HAS_EMERGENCY_STOP()
     DoorOpen,
+#endif
+#if HAS_HT_HOTEND()
+    /// Burn risk warning: door is open and nozzle is above burn_warning_temp.
+    /// Independent of emergency stop (a single-Z printer with a door + HT hotend still
+    /// needs it); every HT printer has a door sensor, so HAS_HT_HOTEND() is the right gate.
+    HotendBurnRisk,
 #endif
     HotendFanError,
     PrintFanError,

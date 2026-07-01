@@ -53,6 +53,10 @@ if(HAS_EMERGENCY_STOP)
   add_subdirectory(emergency_stop)
 endif()
 
+if(HAS_HT_HOTEND)
+  target_sources(firmware PRIVATE hotend_burn_risk.cpp)
+endif()
+
 if(HAS_CEILING_CLEARANCE)
   add_subdirectory(ceiling_clearance)
 endif()

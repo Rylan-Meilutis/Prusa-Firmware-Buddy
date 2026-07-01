@@ -113,6 +113,7 @@
 #include <option/has_chamber_api.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_emergency_stop.h>
+#include <option/has_ht_hotend.h>
 #include <option/has_uneven_bed_prompt.h>
 #include <option/has_nextruder.h>
 #include <option/has_human_interactions.h>
@@ -194,6 +195,9 @@
 #endif
 #if HAS_EMERGENCY_STOP()
     #include <feature/emergency_stop/emergency_stop.hpp>
+#endif
+#if HAS_HT_HOTEND()
+    #include <feature/hotend_burn_risk.hpp>
 #endif
 
 #include <option/has_ceiling_clearance.h>
@@ -886,6 +890,10 @@ static void cycle() {
     if (is_printing_state(server.print_state) && !fsm_states.is_active(ClientFSM::Load_unload)) {
         buddy::emergency_stop().maybe_block();
     }
+#endif
+
+#if HAS_HT_HOTEND()
+    buddy::check_hotend_burn_risk();
 #endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()

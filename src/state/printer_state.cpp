@@ -690,6 +690,10 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
     case WarningType::DoorOpen:
         return ErrCode::ERR_MECHANICAL_DOOR_OPEN;
 #endif
+#if HAS_HT_HOTEND()
+    case WarningType::HotendBurnRisk:
+        return ErrCode::ERR_MECHANICAL_HOTEND_BURN_RISK;
+#endif
 #if HAS_CHAMBER_API()
     case WarningType::FailedToReachChamberTemperature:
         return ErrCode::ERR_TEMPERATURE_CHAMBER_FAILED_TO_REACH_TEMP;

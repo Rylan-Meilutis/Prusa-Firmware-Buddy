@@ -69,6 +69,11 @@ public:
     /// The static per-hotend config (temperature limits, print-fan PWM mapping, ...).
     const Config &config() const { return base_config_; }
 
+    /// Nozzle temperature above which a burn risk warning is shown when the door opens.
+    /// A burn is a burn regardless of hotend model, so this is a fixed constant rather
+    /// than per-hotend data — barely reachable by the standard hotend, relevant for HT.
+    static constexpr TargetTemperature burn_warning_temp = 290;
+
     /// Current temperature of the nozzle
     OptionalTemperature nozzle_temp() const {
         return nozzle_temp_;

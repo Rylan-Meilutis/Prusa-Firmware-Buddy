@@ -48,6 +48,11 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
         return PhasesWarning::DoorOpen;
 #endif
 
+#if HAS_HT_HOTEND()
+    case WarningType::HotendBurnRisk:
+        return PhasesWarning::HotendBurnRisk;
+#endif
+
 #if HAS_CHAMBER_API()
     case WarningType::FailedToReachChamberTemperature:
         return PhasesWarning::FailedToReachChamberTemperature;

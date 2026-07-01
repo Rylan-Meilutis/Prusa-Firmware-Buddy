@@ -24,6 +24,7 @@
 #include <option/has_coldpull.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_esp.h>
+#include <option/has_ht_hotend.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_loadcell.h>
@@ -293,6 +294,10 @@ constexpr inline ClientFSM client_fsm_from_phase(PhasesQuickPause) { return Clie
 enum class PhasesWarning : PhaseUnderlyingType {
 #if HAS_EMERGENCY_STOP()
     DoorOpen,
+#endif
+#if HAS_HT_HOTEND()
+    // Like DoorOpen: no buttons, firmware-driven dismissal.
+    HotendBurnRisk,
 #endif
     // Generic warning with a Continue button, just for dismissing it.
     Warning,
@@ -679,6 +684,9 @@ static_assert(std::size(ClientResponses::QuickPauseResponses) == CountPhases<Pha
 inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarning>()> WarningResponses {
 #if HAS_EMERGENCY_STOP()
     { PhasesWarning::DoorOpen, {} },
+#endif
+#if HAS_HT_HOTEND()
+        { PhasesWarning::HotendBurnRisk, {} },
 #endif
         { PhasesWarning::Warning, { Response::Ok } },
 #if XL_ENCLOSURE_SUPPORT() || HAS_CHAMBER_FILTRATION_API()
