@@ -7,6 +7,7 @@
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_api.h>
 #include <option/has_per_tool_temperatures.h>
+#include <option/has_extruder_fsensor.h>
 #include <option/has_side_fsensor.h>
 
 #include <Configuration_adv.h>
@@ -121,12 +122,12 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
     #if HAS_DOOR_SENSOR()
     MI_INFO_DOOR_SENSOR,
     #endif
-    #if HAS_EXTRUDER_FSENSOR
+    #if HAS_EXTRUDER_FSENSOR()
     MI_INFO_EXTRUDER_FILAMENT_SENSOR,
         #if HOTENDS > 1
     MenuItemVirtualSubmenu<N_("Extruder Filament Sensors"), MI_INFO_EXTRUDER_FILAMENT_SENSOR, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
         #endif
-    #endif // HAS_EXTRUDER_FSENSOR
+    #endif // HAS_EXTRUDER_FSENSOR()
     #if HAS_SIDE_FSENSOR()
     MI_INFO_SIDE_FILAMENT_SENSOR,
         #if HOTENDS > 1
