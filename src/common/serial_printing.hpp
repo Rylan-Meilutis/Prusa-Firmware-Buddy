@@ -10,7 +10,7 @@
 class SerialPrinting {
 public:
     /// Notifies print host about print being paused
-    static void pause();
+    static void pause(bool notify_host = true);
 
     /// Notifies print host about a firmware-side pause reason.
     static void paused(const char *reason);
@@ -22,7 +22,7 @@ public:
     static void abort();
 
     /// Notify host about print resume
-    static void resume();
+    static void resume(bool notify_host = true);
 
     /// Notify host that firmware-side pause/error condition has cleared.
     static void resumed();

@@ -33,6 +33,7 @@
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
     * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
     * Fixed `M601` from serial hosts pausing motion without reliably parking the print head
+    * Fixed serial-host `M601`/`M602` action handling so OctoPrint receives final `paused`/`resumed` confirmations without recursively triggering host pause/resume scripts
     * Fixed paused serial prints dropping out of the print screen
     * Fixed MMU filament runout recovery on serial prints leaving OctoPrint paused after the printer resumes
     * Fixed firmware/MMU/manual-intervention pauses during serial prints so bed heat remains protected, nozzle recovery can reheat before resume, and the host receives matching pause/resume actions
@@ -111,6 +112,10 @@ Starting a second serial print immediately after a previous print finishes now c
 Serial print completion is detected from explicit `M77`. Serial `M77` is handled before it enters the normal G-code queue, returns `ok` to the host, keeps the persistent finished screen active, and clears the serial command pause gate so later host commands and the next `M75` are accepted. Progress-only `M73 P100/Q100 R0/S0` reports are not treated as a hard end marker because they can arrive before streamed end G-code, including MMU unload commands, has finished.
 
 Serial pause handling has been improved. `M601` from OctoPrint or another serial host now stops accepting additional streamed commands while the existing queue drains, then runs the normal print-head parking sequence. Serial commands are accepted again after the printer reaches the paused state so `M602` or host resume can be received.
+
+For serial-host initiated `M601` and `M602`, the firmware no longer echoes new `//action:pause` or `//action:resume` requests back to the host that sent the command. It still reports `//action:paused firmware_pause` after the head is actually parked and `//action:resumed` after reheating/unparking has returned the printer to the printing state. This keeps OctoPrint state synchronized without recursively invoking OctoPrint pause/resume scripts or host-side heater-off actions.
+
+For screen- or firmware-initiated pause/resume during a serial print, the firmware still sends the matching `//action:pause` or `//action:resume` request before the transition and the final `//action:paused` or `//action:resumed` confirmation after the printer completes the transition, so OctoPrint can run its after-pause and after-resume scripts.
 
 Firmware pause states, MMU errors, and runout-style pauses keep the print treated as active for the print screen and chamber lighting. They also hold the bed-heater safety timer reset so the bed does not cool during a recoverable paused print. The printer reports pause/resume style host actions back to serial hosts where applicable.
 
