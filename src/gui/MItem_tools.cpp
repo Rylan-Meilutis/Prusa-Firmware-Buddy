@@ -609,6 +609,7 @@ MI_INFO_FILAMENT_SENSOR::Value MI_INFO_FILAMENT_SENSOR::get_value(IFSensor *fsen
     };
 }
 
+#if HAS_EXTRUDER_FSENSOR()
 /*****************************************************************************/
 // MI_INFO_EXTRUDER_FILAMENT_SENSOR
 MI_INFO_EXTRUDER_FILAMENT_SENSOR::MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool)
@@ -620,11 +621,11 @@ MI_INFO_EXTRUDER_FILAMENT_SENSOR::MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<
         tool_,
         [&](PhysicalToolIndex t) { return t.display_name(label_params_); },
         [](CurrentlySelectedTool) {
-#if PRINTER_IS_PRUSA_XL()
+    #if PRINTER_IS_PRUSA_XL()
             return _("Tool Filament sensor");
-#else
+    #else
             return _("Filament Sensor");
-#endif
+    #endif
         }));
 }
 
@@ -635,6 +636,7 @@ std::optional<FilamentSensorStateAndValue> MI_INFO_EXTRUDER_FILAMENT_SENSOR::val
     }
     return get_value(GetExtruderFSensor(*tool));
 }
+#endif // HAS_EXTRUDER_FSENSOR()
 
 /*****************************************************************************/
 // MI_INFO_SIDE_FILAMENT_SENSOR
