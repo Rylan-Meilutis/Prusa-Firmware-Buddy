@@ -14,6 +14,11 @@
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
 
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
+#endif
+
 namespace config_store_ns {
 #if not HAS_CONFIG_STORE_WO_BACKEND()
 static_assert((sizeof(CurrentStore) + aggregate_arity<CurrentStore>() * sizeof(journal::Backend::ItemHeader)) < (BANK_SIZE / 100) * 75, "EEPROM bank is almost full");
@@ -207,15 +212,18 @@ void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType
     if (value == PendingAdHocFilamentType {}) {
         const FilamentType new_value = AdHocFilamentType { .tool = virtual_tool.to_raw() };
         new_value.set_parameters(value.parameters());
+
+#if HAS_ANFC()
+        value.modify_parameters([](FilamentTypeParameters &p) {
+            // Clear OPT link so that it's not accidentally reused
+            p.openprinttag_uid_hash = buddy::openprinttag::ToolTag::no_tag_hash;
+        });
+#endif
+
         value = new_value;
     }
 
     if (value == FilamentType::none) {
-#if HAS_ANFC()
-        // Unassign OpenPrintTag on filament removal
-        opt_tool_assigned_tag.set_to_default(virtual_tool.to_raw());
-#endif
-
 #if HAS_AUTO_RETRACT()
         // On filament removal, it invalidates retracted distance
         buddy::auto_retract().set_retracted_distance(virtual_tool.to_physical(), std::nullopt);

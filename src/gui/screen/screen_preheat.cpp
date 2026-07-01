@@ -232,6 +232,13 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
 
     case Item::adhoc_filament: {
         const auto callback = [this] {
+#if HAS_ANFC()
+            FilamentType { PendingAdHocFilamentType {} }.modify_parameters([](FilamentTypeParameters &p) {
+                // Clear OPT link that might have been left over in the data
+                p.openprinttag_uid_hash = buddy::openprinttag::ToolTag::no_tag_hash;
+            });
+#endif
+
             const ScreenFilamentDetail::PreheatModeParams params {
                 .tool = tool,
             };

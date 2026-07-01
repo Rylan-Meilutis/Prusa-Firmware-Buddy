@@ -979,19 +979,6 @@ void Pause::eject_process([[maybe_unused]] Response response) {
 }
 
 void Pause::load_finalize_process(Response) {
-#if HAS_ANFC()
-    // If tag is detected, assign it to the tool
-    if (auto tag = buddy::openprinttag::ToolTag::for_tool_ephemeral(settings.virtual_tool())) {
-        config_store().opt_tool_assigned_tag.set(settings.virtual_tool().to_raw(), tag->uid_hash());
-
-        // Pop up a "warning" saying that the OpenPrintTag has been assigned
-        // We're using the warning mechanism here because it alows us to pop up the screen asynchronously
-        // and keep autoretracting/cleaning on the background.
-        // The screen will timeout after a few seconds.
-        marlin_server::set_warning(WarningType::OpenPrintTagAssigned);
-    }
-#endif
-
 #if HAS_AUTO_RETRACT()
     // Only retract from nozzle outside printing
     if (!marlin_server::is_printing()) {

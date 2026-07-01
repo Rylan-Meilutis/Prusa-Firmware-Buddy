@@ -90,7 +90,7 @@ void MenuItemFilamentTracking::click(IWindowMenu &) {
                 return;
             }
 
-            config_store().opt_tool_assigned_tag.set(tool_.to_raw(), ephemeral->uid_hash());
+            config_store().adhoc_filament_assigned_openprinttag.set(tool_.to_raw(), ephemeral->uid_hash());
 
             StringViewUtf8Parameters<4> msg_params;
             MsgBoxInfo(_("OpenPrintTag reassigned for tool %i").formatted(msg_params, tool_.display_index()), Responses_Ok);
