@@ -43,7 +43,6 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuUserInterface : public ScreenMenuUserInterface__ {
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
     int last_touch_error_count = 0;
 
 public:

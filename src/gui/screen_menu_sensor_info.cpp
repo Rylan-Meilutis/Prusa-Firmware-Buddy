@@ -3,7 +3,6 @@
 
 #include <common/sensor_data.hpp>
 #include <option/has_indx.h>
-#include <screen_move_z.hpp>
 
 #if HAS_DWARF() || HAS_INDX()
 
@@ -53,13 +52,4 @@ ScreenMenuSensorInfo::ScreenMenuSensorInfo()
 {
     EnableLongHoldScreenAction();
     ClrMenuTimeoutClose();
-}
-
-void ScreenMenuSensorInfo::windowEvent(window_t *sender, GUI_event_t event, void *param) {
-    if (event == GUI_event_t::HELD_RELEASED) {
-        open_move_z_screen();
-        return;
-    }
-
-    ScreenMenu::windowEvent(sender, event, param);
 }

@@ -168,9 +168,6 @@ using ScreenMenuSensorInfo_ = ScreenMenu<GuiDefaults::MenuFooter,
 class ScreenMenuSensorInfo : public ScreenMenuSensorInfo_ {
     FS_AutoloadAutolock lock;
 
-protected:
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
-
 public:
     ScreenMenuSensorInfo();
 };

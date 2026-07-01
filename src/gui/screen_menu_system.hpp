@@ -26,8 +26,6 @@ using ScreenMenuSystem__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_SAV
     MI_OPEN_FACTORY_RESET>;
 
 class ScreenMenuSystem : public ScreenMenuSystem__ {
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
-
 public:
     constexpr static const char *label = N_("SYSTEM");
     ScreenMenuSystem();

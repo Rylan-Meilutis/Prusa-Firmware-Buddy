@@ -79,8 +79,6 @@ using ScreenMenuFooterSettings__ = ScreenMenu<EFooter::On, MI_RETURN, MI_FOOTER<
     MI_FOOTER_SETTINGS_ADV, MI_FOOTER_RESET>;
 
 class ScreenMenuFooterSettings : public ScreenMenuFooterSettings__ {
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
-
 public:
     constexpr static const char *label = N_("FOOTER");
     ScreenMenuFooterSettings();
