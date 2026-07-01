@@ -43,8 +43,6 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuUserInterface : public ScreenMenuUserInterface__ {
-    int last_touch_error_count = 0;
-
 public:
     constexpr static const char *label = N_("USER INTERFACE");
     ScreenMenuUserInterface();
