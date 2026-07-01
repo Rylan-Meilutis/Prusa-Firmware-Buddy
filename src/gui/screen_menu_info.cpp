@@ -6,7 +6,9 @@
 #include "img_resources.hpp"
 
 ScreenMenuInfo::ScreenMenuInfo()
-    : ScreenMenuInfo__(_(label)) {
+    : ScreenMenuInfo__ {
+        _("INFO"),
+    } {
     EnableLongHoldScreenAction();
     header.SetIcon(&img::info_16x16);
 }

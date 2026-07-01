@@ -17,6 +17,5 @@ using ScreenMenuInfo__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 
 class ScreenMenuInfo : public ScreenMenuInfo__ {
 public:
-    constexpr static const char *label = N_("INFO");
     ScreenMenuInfo();
 };
