@@ -73,9 +73,9 @@ void LocalHotend::manage() {
     nozzle_temp_ = marlin_temptable_lookup(local_config_.nozzle_temp_table, nozzle_raw_temp_);
     nozzle_low_temp_filter_.Put(nozzle_raw_temp_);
 
-    // Increase oversampling for values lower than 50 degrees Celsius to reduce noise
+    // Extra averaging filter for noise reduction.
     const float curr_nozzle_temp = nozzle_temp().value();
-    if (curr_nozzle_temp <= 50) {
+    if (curr_nozzle_temp <= local_config_.nozzle_filter_max_temp) {
         const auto filtered_raw_temp = nozzle_low_temp_filter_.GetSum() / nozzle_low_temp_filter_.GetCount();
         nozzle_temp_ = marlin_temptable_lookup(local_config_.nozzle_temp_table, filtered_raw_temp);
     }
