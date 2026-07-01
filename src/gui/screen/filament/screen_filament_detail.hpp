@@ -59,14 +59,14 @@ public:
 };
 #endif
 
-class MI_FILAMENT_NOZZLE_TEMPERATURE final : public WiSpin {
+class MI_FILAMENT_NOZZLE_TEMPERATURE final : private NumericInputConfigHolder, public WiSpin {
 public:
     static constexpr auto parameter_ptr = &FilamentTypeParameters::nozzle_temperature;
 
     MI_FILAMENT_NOZZLE_TEMPERATURE();
 };
 
-class MI_FILAMENT_NOZZLE_PREHEAT_TEMPERATURE final : public WiSpin {
+class MI_FILAMENT_NOZZLE_PREHEAT_TEMPERATURE final : private NumericInputConfigHolder, public WiSpin {
 public:
     static constexpr auto parameter_ptr = &FilamentTypeParameters::nozzle_preheat_temperature;
 

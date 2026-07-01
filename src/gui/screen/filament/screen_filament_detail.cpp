@@ -93,12 +93,15 @@ string_view_utf8 MI_FILAMENT_BASE_PRESET::build_item_text(int index, ItemTextPar
 #endif
 
 // * MI_FILAMENT_NOZZLE_TEMPERATURE
+// A filament preset is not tool-specific, so allow the range of any installed hotend (AllTools).
 MI_FILAMENT_NOZZLE_TEMPERATURE::MI_FILAMENT_NOZZLE_TEMPERATURE()
-    : WiSpin(0, numeric_input_config::filament_nozzle_temperature, HAS_MINI_DISPLAY() ? _("Nozzle Temp") : _("Nozzle Temperature")) {}
+    : NumericInputConfigHolder { numeric_input_config::filament_nozzle_temperature(AllTools {}) }
+    , WiSpin(0, NumericInputConfigHolder::owned_config, HAS_MINI_DISPLAY() ? _("Nozzle Temp") : _("Nozzle Temperature")) {}
 
 // * MI_FILAMENT_NOZZLE_PREHEAT_TEMPERATURE
 MI_FILAMENT_NOZZLE_PREHEAT_TEMPERATURE::MI_FILAMENT_NOZZLE_PREHEAT_TEMPERATURE()
-    : WiSpin(0, numeric_input_config::nozzle_temperature, HAS_MINI_DISPLAY() ? _("Preheat Temp") : _("Nozzle Preheat Temperature")) {}
+    : NumericInputConfigHolder { numeric_input_config::nozzle_temperature(AllTools {}) }
+    , WiSpin(0, NumericInputConfigHolder::owned_config, HAS_MINI_DISPLAY() ? _("Preheat Temp") : _("Nozzle Preheat Temperature")) {}
 
 // * MI_FILAMENT_BED_TEMPERATURE
 MI_FILAMENT_BED_TEMPERATURE::MI_FILAMENT_BED_TEMPERATURE()
