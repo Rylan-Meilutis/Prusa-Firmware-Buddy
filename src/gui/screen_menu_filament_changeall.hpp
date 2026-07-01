@@ -50,6 +50,10 @@ private:
     DynamicIndexMapping<items> index_mapping;
     FilamentList filament_list;
 
+    /// Tool(s) the filament list is filtered for (hotend compatibility):
+    /// AllTools for the "Set All To" item, a specific tool otherwise.
+    GenerateFilamentListConfig::ToolFilter tool_filter_ { AllTools {} };
+
     bool has_filament_loaded : 1 = false;
     bool set_all_to_mode : 1 = false;
 };

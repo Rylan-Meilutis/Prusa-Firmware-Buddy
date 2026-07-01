@@ -1,6 +1,11 @@
 #include "filament_list.hpp"
 #include "encoded_filament.hpp"
 
+#ifndef UNITTESTS
+    // Used by generate_filament_list() below, which is itself UNITTESTS-excluded.
+    #include <tool/physical_tool.hpp>
+#endif
+
 constinit const FilamentList all_filament_types = [] {
     FilamentList r;
 
@@ -56,11 +61,18 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
 
     std::bitset<256> is_filament_in_list_bitset;
 
-    /// Appends filament to the list, if it is not already there
+    /// Appends filament to the list, if it is not already there and it is compatible with the target tool(s).
+    /// NoTool (the default filter) accepts everything; a single virtual tool must support it;
+    /// AllTools requires every enabled virtual tool's hotend to support it.
     const auto append_filament = [&](FilamentType ft) {
         const uint8_t ix = EncodedFilamentType(ft).data;
         if (is_filament_in_list_bitset.test(ix)) {
             return;
+        }
+        for (VirtualToolIndex vti : tool_index_iterator(config.compatible_with_tool).skip_all_disabled()) {
+            if (!PhysicalTool::for_index(vti.to_physical()).supports_filament(ft.parameters())) {
+                return;
+            }
         }
 
         list.push_back(ft);
@@ -85,7 +97,9 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
     };
 
     if (config.enforce_first_item) {
-        append_filament(config.enforce_first_item);
+        // Kept at position 0 regardless of compatibility, so it bypasses append_filament's filter.
+        list.push_back(config.enforce_first_item);
+        is_filament_in_list_bitset.set(EncodedFilamentType(config.enforce_first_item).data);
     }
 
     // Append visible first, if requested
@@ -104,7 +118,7 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         }
     });
 
-    // Unless we're listing only visible filaments, we should always end up returning all the filaments
-    assert(list.size() == all_filament_types.size() || config.visible_only);
+    // Unless we're filtering, we should always end up returning all the filaments
+    assert(list.size() == all_filament_types.size() || config.visible_only || !std::holds_alternative<NoTool>(config.compatible_with_tool));
 }
 #endif

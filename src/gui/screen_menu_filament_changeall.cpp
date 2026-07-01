@@ -18,6 +18,7 @@ using namespace multi_filament_change;
 MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
     : MenuItemSelectMenu({}) {
     const auto tool = VirtualToolIndex::from_raw(tool_ix);
+    tool_filter_ = tool;
     has_filament_loaded = (config_store().get_filament_type(tool) != FilamentType::none);
     set_is_hidden(!tool.is_enabled());
     SetLabel(tool.display_name(label_params));
@@ -33,8 +34,15 @@ MI_ActionSelect::MI_ActionSelect(SetAllToMode)
 }
 
 void MI_ActionSelect::set_config(const ConfigItem &set) {
-    // By using enforce_first_item, we make sure the target filament is in the list (it might be hidden otherwise) and that it's on the first place (which is a welcome bonus)
-    generate_filament_list(filament_list, { .enforce_first_item = set.new_filament });
+    // enforce_first_item: target filament is always present at position 0, even if hidden
+    //                     or incompatible — removing the previously-selected value would
+    //                     silently change the menu's current selection.
+    // compatible_with_tool: hide filaments the tool's hotend cannot reach (e.g. PPS on standard hotend).
+    generate_filament_list(filament_list, {
+                                              .enforce_first_item = set.new_filament,
+                                              .compatible_with_tool = tool_filter_,
+                                          });
+
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
     color = set.color;
