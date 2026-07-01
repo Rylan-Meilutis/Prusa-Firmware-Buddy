@@ -19,6 +19,7 @@
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
 #include <option/has_anfc.h>
+#include <option/has_ht_hotend.h>
 
 class StringBuilder;
 
@@ -53,6 +54,10 @@ enum class PresetFilamentType : uint8_t {
     PP = 7,
     FLEX = 8,
     PA = 9,
+#if HAS_HT_HOTEND()
+    PPS = 10,
+    PPA = 11,
+#endif
 
     _count
 };
