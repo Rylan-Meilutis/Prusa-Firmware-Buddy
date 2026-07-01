@@ -112,6 +112,7 @@ struct TemperatureADCAccumulator {
 struct WaitForHotendParams {
   bool no_wait_for_cooling = true;  // Return instead of waiting when the hotend needs to cool down
   bool fan_cooling = false;         // Assist heating/cooling with the print fan while waiting
+  bool skip_residency = false;      // Stop as soon as the target is reached, skipping the residency settle (M109 `C`)
 };
 
 class Temperature {

@@ -87,12 +87,15 @@ void GcodeSuite::M104() {
  *
  *#### Usage
  *
- *    M109 [ S | R | D | F | T ]
+ *    M109 [ S | R | C | D | F | T ]
  *
  * #### Parameters
  *
  * - `S` - Wait for extruder(s) to reach temperature. Waits only when heating.
  * - `R` - Wait for extruder(s) to reach temperature. Waits when heating and cooling.
+ * - `C` - Skip the temperature residency (settle) wait. Returns as soon as the target temperature
+ *         is reached, without waiting for it to settle. When omitted, the compiled-in
+ *         TEMP_RESIDENCY_TIME settle is applied as usual.
  * - `D` - Display temperature (otherwise actual temp will be displayed)
  * - `F` - Autotemp flag.
  * - `T` - Tool
@@ -108,7 +111,8 @@ void GcodeSuite::M109() {
     .wait_heat = parser.seenval('S'),
     .wait_heat_or_cool = parser.seenval('R'),
     .autotemp = parser.boolval('F'),
-    .display_temp = parser.seenval('D') ? std::optional<float>(parser.value_celsius()) : std::nullopt
+    .display_temp = parser.seenval('D') ? std::optional<float>(parser.value_celsius()) : std::nullopt,
+    .skip_residency = parser.boolval('C'),
   };
   M109_no_parser(*tool, flags);
 }
@@ -134,7 +138,7 @@ void M109_no_parser(PhysicalToolIndex tool, const M109Flags& flags) {
   }
 
   if (set_temp) {
-    (void)thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = no_wait_for_cooling, .fan_cooling = flags.autotemp });
+    (void)thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = no_wait_for_cooling, .fan_cooling = flags.autotemp, .skip_residency = flags.skip_residency });
   }
 
   return;

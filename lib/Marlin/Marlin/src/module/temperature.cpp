@@ -1126,6 +1126,18 @@ void Temperature::isr() {
 
       Hotend &hotend = Hotend::for_tool(target_tool);
 
+      // When skip_residency is set (M109 `C`), the target counts as reached the
+      // moment the nozzle enters the temperature window, without waiting for the
+      // residency settle. Evaluated here so the Hotend keeps no extra state.
+      const auto target_reached = [&]() {
+        if (!params.skip_residency) {
+          return hotend.is_nozzle_temp_reached();
+        }
+        const auto current = hotend.nozzle_temp();
+        return hotend.nozzle_target_temp() <= 0
+            || std::abs(hotend.nozzle_target_temp() - current) < TEMP_WINDOW;
+      };
+
       #if BOARD_IS_MASTER_BOARD()
         // Keep all heaters on while we're waiting for temperatures
         buddy::SafetyTimerBlocker safety_timer_blocker;
@@ -1197,7 +1209,7 @@ void Temperature::isr() {
             old_temp = temp;
           }
         }
-      } while (wait_for_heatup && !hotend.is_nozzle_temp_reached());
+      } while (wait_for_heatup && !target_reached());
 
       return wait_for_heatup;
     }
