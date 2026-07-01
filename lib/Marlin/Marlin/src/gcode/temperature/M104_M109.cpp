@@ -134,7 +134,7 @@ void M109_no_parser(PhysicalToolIndex tool, const M109Flags& flags) {
   }
 
   if (set_temp) {
-    (void)thermalManager.wait_for_hotend(tool, no_wait_for_cooling, flags.autotemp);
+    (void)thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = no_wait_for_cooling, .fan_cooling = flags.autotemp });
   }
 
   return;

@@ -108,6 +108,12 @@ struct TemperatureADCAccumulator {
 #define THERMISTOR_ABS_ZERO_C           -273.15f       // bbbbrrrrr cold !
 #define THERMISTOR_RESISTANCE_NOMINAL_C 25.0f          // mmmmm comfortable
 
+// Options for Temperature::wait_for_hotend().
+struct WaitForHotendParams {
+  bool no_wait_for_cooling = true;  // Return instead of waiting when the hotend needs to cool down
+  bool fan_cooling = false;         // Assist heating/cooling with the print fan while waiting
+};
+
 class Temperature {
   friend class MarlinTemptableRawMinMax;
   friend class BaseHotend;
@@ -325,12 +331,12 @@ class Temperature {
 
       static bool are_hotend_temperatures_reached();
 
-      static bool wait_for_hotend(PhysicalToolIndex target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false) {
-        return wait_for_hotend(target_extruder.to_raw(), no_wait_for_cooling, fan_cooling);
+      static bool wait_for_hotend(PhysicalToolIndex target_extruder, WaitForHotendParams params = {}) {
+        return wait_for_hotend(target_extruder.to_raw(), params);
       }
 
       [[deprecated]]
-      static bool wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling=true, bool fan_cooling=false);
+      static bool wait_for_hotend(const uint8_t target_extruder, WaitForHotendParams params = {});
     #endif
 
     #if HAS_HEATED_BED

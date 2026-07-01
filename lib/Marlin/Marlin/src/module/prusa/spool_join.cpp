@@ -310,7 +310,7 @@ bool SpoolJoin::do_join(VirtualToolIndex current_virtual_tool) {
 
     const auto wait_for_temp = [&] {
         if (nozzle_temp != 0) {
-            thermalManager.wait_for_hotend(new_physical_tool, false, true);
+            thermalManager.wait_for_hotend(new_physical_tool, { .no_wait_for_cooling = false, .fan_cooling = true });
         }
     };
 

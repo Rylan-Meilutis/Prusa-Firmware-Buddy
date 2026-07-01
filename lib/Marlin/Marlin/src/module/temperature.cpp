@@ -1113,7 +1113,7 @@ void Temperature::isr() {
       Hotend::for_tool(tool).set_nozzle_target_temp(celsius);
     }
 
-    bool Temperature::wait_for_hotend(const uint8_t target_extruder, const bool no_wait_for_cooling/*=true*/, bool fan_cooling/*=false*/) {      
+    bool Temperature::wait_for_hotend(const uint8_t target_extruder, WaitForHotendParams params) {      
       const auto target_tool = PhysicalToolIndex::from_raw_notool(target_extruder);
 #if HAS_INDX()
       // The INDX is unable to read temperature of a tool that isn't picked.
@@ -1163,11 +1163,11 @@ void Temperature::isr() {
           target_temp = degTargetHotend(target_extruder);
 
           // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
-          if (no_wait_for_cooling && wants_to_cool) break;
+          if (params.no_wait_for_cooling && wants_to_cool) break;
 
           // If fan_cooling is enabled, assist the cooling/heating with the print fan
           // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
-          if (fan_cooling && active_extruder == target_extruder)
+          if (params.fan_cooling && active_extruder == target_extruder)
             thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
         }
 
