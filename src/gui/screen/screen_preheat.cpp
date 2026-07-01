@@ -15,6 +15,7 @@
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
     #include <screen/openprinttag/screen_opt_filament_detail.hpp>
+    #include <gui/standard_frame/frame_opt_prompt.hpp>
     #include <feature/openprinttag/requests_read_multi.hpp>
 #endif
 
@@ -310,12 +311,15 @@ static_assert(common_frames::is_update_callable<FrameFilamentSelection>);
 
 #if HAS_ANFC()
 // Note: we need the window_t so that we can hook to the loop event
-class FrameAskLoadOpenPrintTag : public FramePrompt {
+class FrameAskLoadOpenPrintTag : public buddy::openprinttag::FrameOPTPrompt {
 
 public:
     FrameAskLoadOpenPrintTag(window_frame_t *parent)
-        : FramePrompt(parent, PhasesPreheat::ask_load_openprinttag, _("Load from OpenPrintTag?"), string_view_utf8 {}) {
-        update_info_text();
+        : FrameOPTPrompt(parent, _("Load from OpenPrintTag?")) {
+
+        setup_radio(ClientResponses::get_available_responses(PhasesPreheat::ask_load_openprinttag), [](Response r) {
+            marlin_client::FSM_response(PhasesPreheat::ask_load_openprinttag, r);
+        });
     }
 
     void update(const fsm::PhaseData &data) {
@@ -327,49 +331,8 @@ public:
         }
 
         const auto tag = buddy::openprinttag::ToolTag::for_tool_ephemeral(*tool);
-
-        if (!tag) {
-            return;
-        }
-
-        opt_req_.emplace(*tag);
-        opt_req_->issue();
-        info_updated_ = false;
+        setup_tag(tag, [] {});
     }
-
-    void loop() {
-        if (!info_updated_ && opt_req_.has_value() && opt_req_->finished()) {
-            update_info_text();
-            info_updated_ = true;
-        }
-    }
-
-private:
-    void update_info_text() {
-        std::string_view brand = "...";
-        std::string_view material;
-
-        if (opt_req_.has_value() && opt_req_->finished()) {
-            brand = {};
-
-            if (auto r = opt_req_->result<openprinttag::MainField::brand_name>()) {
-                brand = *r;
-            }
-            if (auto r = opt_req_->result<openprinttag::MainField::material_name>()) {
-                material = *r;
-            }
-        }
-
-        info.SetText(_("Load parameters from OpenPrintTag?\n\nMaterial: %.*s %.*s").formatted(text_params_, brand, material));
-
-        // Force invalidation, because the ref is the same
-        info.Invalidate();
-    }
-
-private:
-    std::optional<buddy::openprinttag::MultiReadFieldRequest<openprinttag::MainField::material_name, openprinttag::MainField::brand_name>> opt_req_;
-    StringViewUtf8Parameters<64> text_params_;
-    bool info_updated_ = false;
 };
 static_assert(common_frames::is_update_callable<FrameAskLoadOpenPrintTag>);
 
@@ -435,12 +398,6 @@ bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, Prehea
 }
 
 void ScreenPreheat::screenEvent(window_t *sender, GUI_event_t event, void *param) {
-#if HAS_ANFC()
-    if (event == GUI_event_t::LOOP && get_phase() == PhasesPreheat::ask_load_openprinttag) {
-        frame_storage.as<FrameAskLoadOpenPrintTag>()->loop();
-    }
-#endif
-
     ScreenFSM::screenEvent(sender, event, param);
 }
 
