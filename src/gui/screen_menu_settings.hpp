@@ -12,6 +12,7 @@
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
+#include <option/has_lights_menu.h>
 #include <option/has_wastebin_fill_tracking.h>
 
 #if HAS_MMU2()
@@ -51,6 +52,9 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #endif
 #if HAS_AUTO_RETRACT()
     MI_AUTO_RETRACT_ENABLE,
+#endif
+#if HAS_LIGHTS_MENU()
+    MI_LIGHTS,
 #endif
 #if HAS_ANFC()
     buddy::openprinttag::MI_OPT_SETTINGS,

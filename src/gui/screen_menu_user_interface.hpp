@@ -4,7 +4,6 @@
 #include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
 #include <basic_screen_menu.hpp>
-#include <option/has_lights_menu.h>
 
 #include <option/has_touch.h>
 #if HAS_TOUCH()
@@ -22,9 +21,6 @@ using ScreenMenuUserInterface__ = BasicScreenMenu<
     // We could potentionally have MINI display without buzzer.
     // So we only allow sound control for ST7789
     MI_SOUND_VOLUME,
-#endif
-#if HAS_LIGHTS_MENU()
-    MI_LIGHTS,
 #endif
 #if HAS_ILI9488_DISPLAY()
     MI_DISPLAY_BAUDRATE,
