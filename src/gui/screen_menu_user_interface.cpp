@@ -1,11 +1,9 @@
-/**
- * @file screen_menu_user_interface.cpp
- */
-
+/// @file
 #include "screen_menu_user_interface.hpp"
-#include "gcode_info.hpp"
 
 ScreenMenuUserInterface::ScreenMenuUserInterface()
-    : ScreenMenuUserInterface__(_(label)) {
+    : ScreenMenuUserInterface__ {
+        _("USER INTERFACE"),
+    } {
     EnableLongHoldScreenAction();
 }
