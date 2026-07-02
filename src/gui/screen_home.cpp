@@ -13,6 +13,7 @@
 #include "filename_type.hpp"
 #include "settings_ini.hpp"
 #include <utils/string_builder.hpp>
+#include <buddy/filename_defs.hpp>
 #include <sys/unistd.h>
 #include <wui_api.h>
 #include <version/version.hpp>
@@ -511,7 +512,7 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
                 // TODO this should be done in main thread before Event::MediaInserted is generated
                 // if it is not the latest gcode might not be selected
 
-                std::array<char, FILE_PATH_BUFFER_LEN> filepath;
+                std::array<char, filename_defs::path_buffer_size> filepath;
                 if (find_latest_gcode(filepath.data(), filepath.size())) {
                     print_begin(filepath.data());
                 }

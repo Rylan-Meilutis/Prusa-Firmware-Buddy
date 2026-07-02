@@ -3,6 +3,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 #include <common/directory.hpp>
+#include <buddy/filename_defs.hpp>
 #include <freertos/critical_section.hpp>
 #include <marlin_stubs/skippable_gcode.hpp>
 #include <mapi/parking.hpp>
@@ -1481,10 +1482,10 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
         //   the scan.
         gcode_info_scan::cancel_scan();
         // We need a copy of the sfn as well because get_LFN needs the address mutable :/
-        std::array<char, FILE_PATH_BUFFER_LEN> filepath_sfn;
+        std::array<char, filename_defs::path_buffer_size> filepath_sfn;
         strlcpy(filepath_sfn.data(), filename, filepath_sfn.size());
 
-        std::array<char, FILE_NAME_BUFFER_LEN> filename_lfn;
+        std::array<char, filename_defs::filename_buffer_size> filename_lfn;
 
         // Do this in the async job thread to prevent blocking Marlin on I/O and possibly causing a watchdog reset
         AsyncJob async_job;

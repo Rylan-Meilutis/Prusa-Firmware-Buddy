@@ -1,6 +1,7 @@
 #pragma once
 #include "file_sort.hpp"
 #include "mutable_path.hpp"
+#include <buddy/filename_defs.hpp>
 
 class LazyDirViewBase : public FileSort {
 
@@ -80,7 +81,7 @@ protected:
     int totalFiles = 0; ///< total number of entries in the directory
     int windowStartingFrom = 0; ///< from which entry index the window starts (e.g. from the 3rd file in dir).
                                 ///< intentionally int, because -1 means ".."
-    char sfnPath[FILE_PATH_BUFFER_LEN]; ///< current directory path - @@TODO this may not be enough - needs checking
+    char sfnPath[filename_defs::path_buffer_size]; ///< current directory path - @@TODO this may not be enough - needs checking
 
     SortPolicy sortPolicy; ///< sort policy set in ChangeDirectory
 

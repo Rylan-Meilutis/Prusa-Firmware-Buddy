@@ -5,6 +5,7 @@
 
 #include <ini.h>
 #include <otp.hpp>
+#include <buddy/filename_defs.hpp>
 #include <odometer.hpp>
 #include <netdev.h>
 #include <print_utils.hpp>
@@ -195,12 +196,12 @@ MarlinPrinter::MarlinPrinter() {
 
 void MarlinPrinter::renew(std::optional<SharedBuffer::Borrow> new_borrow) {
     if (new_borrow.has_value()) {
-        static_assert(SharedBuffer::SIZE >= FILE_NAME_BUFFER_LEN + FILE_PATH_BUFFER_LEN);
+        static_assert(SharedBuffer::SIZE >= filename_defs::filename_buffer_size + filename_defs::path_buffer_size);
         borrow = BorrowPaths(move(*new_borrow));
         // update variables from marlin server, sample LFN+SFN atomically
         auto lock = MarlinVarsLockGuard();
-        marlin_vars().media_SFN_path.copy_to(borrow->path(), FILE_PATH_BUFFER_LEN, lock);
-        marlin_vars().media_LFN.copy_to(borrow->name(), FILE_NAME_BUFFER_LEN, lock);
+        marlin_vars().media_SFN_path.copy_to(borrow->path(), filename_defs::path_buffer_size, lock);
+        marlin_vars().media_LFN.copy_to(borrow->name(), filename_defs::filename_buffer_size, lock);
     } else {
         borrow.reset();
     }

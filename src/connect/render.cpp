@@ -5,6 +5,7 @@
 #include <segmented_json_macros.h>
 #include <lfn.h>
 #include <filename_type.hpp>
+#include <buddy/filename_defs.hpp>
 #include <filepath_operation.h>
 #include <timing.h>
 #include <state/printer_state.hpp>
@@ -694,10 +695,10 @@ namespace {
     }
 
     std::optional<off_t> child_size(const char *base_path, const char *child_name) {
-        char path_buf[FILE_PATH_BUFFER_LEN];
+        char path_buf[filename_defs::path_buffer_size];
         int formatted = snprintf(path_buf, sizeof(path_buf), "%s/%s", base_path, child_name);
         // Name didn't fit. That, in theory, should not happen, but better safe than sorry...
-        if (formatted >= FILE_NAME_BUFFER_LEN) {
+        if (formatted >= static_cast<int>(filename_defs::filename_buffer_size)) {
             return {};
         }
         struct stat st = {};
@@ -1132,7 +1133,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             //   event needs to be resent), it results into the same values
             //   there.
             get_SFN_path(spath.path());
-            get_LFN(spath.name(), FILE_NAME_BUFFER_LEN, spath.path());
+            get_LFN(spath.name(), filename_defs::filename_buffer_size, spath.path());
             break;
         }
         case EventType::FileChanged: {
@@ -1141,7 +1142,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             path = spath.path();
 
             get_SFN_path(spath.path());
-            get_LFN(spath.name(), FILE_NAME_BUFFER_LEN, spath.path());
+            get_LFN(spath.name(), filename_defs::filename_buffer_size, spath.path());
         }
         default:;
         }

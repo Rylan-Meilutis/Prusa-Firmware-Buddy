@@ -16,7 +16,7 @@
 #include <common/filename_type.hpp>
 #include <common/directory.hpp>
 #include <strings.h>
-#include "../../src/gui/file_list_defs.h"
+#include <buddy/filename_defs.hpp>
 #include "mutable_path.hpp"
 #include "common/utils/utility_extensions.hpp"
 #include <bsod/bsod.h>
@@ -71,7 +71,7 @@ public:
     public:
         uint64_t time = 0;
         EntryType type = EntryType::INVALID;
-        char lfn[FF_MAX_LFN] = { 0 };
+        char lfn[filename_defs::max_filename_length] = { 0 };
         char sfn[FileSort::MAX_SFN] = { 0 }; // cache the short filenames too, since they will be used in communication with Marlin
     };
 

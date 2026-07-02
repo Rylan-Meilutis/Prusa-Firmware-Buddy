@@ -16,6 +16,7 @@
 #include "marlin_client.hpp"
 
 #include <lfn.h>
+#include <buddy/filename_defs.hpp>
 #include <state/printer_state.hpp>
 
 #include <ctime>
@@ -317,7 +318,7 @@ bool wui_is_file_being_printed(const char *filename) {
         return false;
     }
 
-    char sfn[FILE_PATH_BUFFER_LEN];
+    char sfn[filename_defs::path_buffer_size];
     strlcpy(sfn, filename, sizeof(sfn));
     get_SFN_path(sfn);
     return marlin_vars().media_SFN_path.equals(sfn);

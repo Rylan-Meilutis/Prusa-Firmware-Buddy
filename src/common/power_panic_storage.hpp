@@ -46,6 +46,7 @@
 #include <logging/log.hpp>
 
 #include <common/sys.hpp>
+#include <buddy/filename_defs.hpp>
 
 #include <option/has_gui.h>
 
@@ -187,7 +188,7 @@ struct fixed_t {
     xy_pos_t bounding_rect_a;
     xy_pos_t bounding_rect_b;
     bed_mesh_t z_values;
-    char media_SFN_path[FILE_PATH_MAX_LEN];
+    char media_SFN_path[filename_defs::max_path_length];
 
     static void load();
     static void save();
@@ -243,7 +244,7 @@ extern state_t &state_buf;
 struct runtime_state_t {
     bool nested_fault;
     PPState orig_state; // state that was active when power panic was triggered
-    char media_SFN_path[FILE_PATH_MAX_LEN]; // temporary buffer
+    char media_SFN_path[filename_defs::max_path_length]; // temporary buffer
     AxesHomeLevel orig_axes_home_level;
     uint32_t fault_stamp; // time since acFault trigger
 };

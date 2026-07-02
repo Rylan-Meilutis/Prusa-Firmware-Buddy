@@ -424,7 +424,7 @@ void Transfer::notify_created() {
     if (HAS_HUMAN_INTERACTIONS() && filename_is_printable(slot.destination()) && printer_state::remote_print_ready(/*preview_only=*/true)) {
         // While it looks a counter-intuitive, this print_begin only shows the
         // print preview / one click print, doesn't really start the print.
-        char sfn_path[FILE_PATH_BUFFER_LEN];
+        char sfn_path[filename_defs::path_buffer_size];
         get_SFN_path_copy(slot.destination(), sfn_path, sizeof(sfn_path));
         print_begin(sfn_path);
     }
@@ -564,7 +564,7 @@ bool Transfer::cleanup_finalize(Path &transfer_path) {
     const char *temporary_filename = "/usb/prusa-temporary-file.gcode";
     remove(temporary_filename); // remove the file if there is some leftover already
 
-    char SFN[FILE_PATH_BUFFER_LEN];
+    char SFN[filename_defs::path_buffer_size];
     strlcpy(SFN, transfer_path.as_destination(), sizeof(SFN));
     get_SFN_path(SFN);
     uint32_t old_SFN_crc = crc32_calc((const uint8_t *)SFN, sizeof(SFN));

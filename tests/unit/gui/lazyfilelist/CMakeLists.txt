@@ -13,8 +13,9 @@ add_executable(
 
 # define required search paths
 target_include_directories(
-  lazyfilelist_tests PUBLIC . ${CMAKE_SOURCE_DIR}/src/gui ${CMAKE_SOURCE_DIR}/src/guiapi/include
-                            ${CMAKE_SOURCE_DIR}/src/common ${CMAKE_SOURCE_DIR}/src
+  lazyfilelist_tests
+  PUBLIC . ${CMAKE_SOURCE_DIR}/src/gui ${CMAKE_SOURCE_DIR}/src/guiapi/include
+         ${CMAKE_SOURCE_DIR}/src/common ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
   )
 
 # define custom macros

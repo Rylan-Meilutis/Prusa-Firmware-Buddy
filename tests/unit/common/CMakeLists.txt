@@ -103,7 +103,9 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/path_utils.cpp ${CMAKE_SOURCE_DIR}/tests/stubs/strlcpy.c
   ${CMAKE_CURRENT_SOURCE_DIR}/path_utils.cpp
   )
-target_include_directories(path_utils_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)
+target_include_directories(
+  path_utils_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common ${CMAKE_SOURCE_DIR}/include
+  )
 
 add_executable(exponential_backoff_tests ${CMAKE_CURRENT_SOURCE_DIR}/exponential_backoff_tests.cpp)
 target_include_directories(exponential_backoff_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)

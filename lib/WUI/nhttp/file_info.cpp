@@ -233,7 +233,7 @@ JsonResult FileInfo::FileRenderer::renderStateV1(size_t resume_point, JsonOutput
     char *filename = state.owner->filepath;
     get_SFN_path(filename);
     JSONIFY_STR(filename);
-    char long_name[FILE_NAME_BUFFER_LEN];
+    char long_name[filename_defs::filename_buffer_size];
     get_LFN(long_name, sizeof long_name, filename);
     const char *type = file_type_by_ext(long_name);
     // Keep the indentation of the JSON in here!
@@ -266,7 +266,7 @@ JsonResult FileInfo::FileRenderer::renderStateV1(size_t resume_point, JsonOutput
 JsonResult FileInfo::FileRenderer::renderStateOctoprint(size_t resume_point, JsonOutput &output, FileInfo::FileState &state) const {
     char *filename = state.owner->filepath;
     JSONIFY_STR(filename);
-    char long_name[FILE_NAME_BUFFER_LEN];
+    char long_name[filename_defs::filename_buffer_size];
     get_LFN(long_name, sizeof long_name, filename);
     // Keep the indentation of the JSON in here!
     // clang-format off

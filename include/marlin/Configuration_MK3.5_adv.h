@@ -23,7 +23,6 @@
 
 // clang-format off
 
-#include <buddy/filename_defs.h>
 #include <option/has_precise_homing.h>
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>

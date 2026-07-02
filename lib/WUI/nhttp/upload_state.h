@@ -21,7 +21,7 @@
 #include <memory>
 #include <tuple>
 
-#include "../../src/gui/file_list_defs.h"
+#include <buddy/filename_defs.hpp>
 #include <http/types.h>
 
 struct multipart_parser;

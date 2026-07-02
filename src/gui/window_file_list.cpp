@@ -147,7 +147,7 @@ window_file_list_t::window_file_list_t(window_t *parent, Rect16 rc)
 
     DisableLongHoldScreenAction();
     Enable();
-    strlcpy(sfn_path, root, FILE_PATH_BUFFER_LEN);
+    strlcpy(sfn_path, root, filename_defs::path_buffer_size);
 }
 
 void window_file_list_t::setup_item(ItemVariant &variant, int index) {

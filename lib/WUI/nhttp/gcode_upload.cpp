@@ -201,7 +201,7 @@ namespace {
 
     template <class F>
     UploadHooks::Result try_rename(const char *src, const char *dest_fname, bool overwrite, F f) {
-        char fn[FILE_NAME_BUFFER_LEN];
+        char fn[filename_defs::filename_buffer_size];
 
         auto error = prepend_usb_path(dest_fname, fn, sizeof(fn));
         if (std::get<0>(error) != Status::Ok) {
@@ -255,7 +255,7 @@ namespace {
     public:
         GcodeUpload::UploadedNotify *uploaded_notify = nullptr;
         PartialFile::Ptr f;
-        array<char, FILE_PATH_BUFFER_LEN> filepath;
+        array<char, filename_defs::path_buffer_size> filepath;
         bool print_after_upload;
         bool overwrite;
         size_t file_idx;
@@ -360,7 +360,7 @@ UploadHooks::Result GcodeUpload::check_filename(const char *filename) const {
     }
 
     if (upload.overwrite) {
-        char filepath[FILE_NAME_BUFFER_LEN];
+        char filepath[filename_defs::filename_buffer_size];
         auto error = prepend_usb_path(filename, filepath, sizeof(filepath));
         if (std::get<0>(error) != Status::Ok) {
             return error;

@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../src/gui/file_list_defs.h"
+#include <buddy/filename_defs.hpp>
 #include <string.h>
 #include <string>
 #include <vector>

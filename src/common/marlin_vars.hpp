@@ -5,7 +5,7 @@
 #include "cmsis_os.h"
 #include "bsod.h"
 #include <atomic>
-#include "file_list_defs.h"
+#include <buddy/filename_defs.hpp>
 #include "fsm_states.hpp"
 #include <freertos/mutex.hpp>
 #include <cstring>
@@ -326,8 +326,8 @@ public:
     MarlinVariableLocked<time_t> print_start_time { marlin_server::TIMESTAMP_INVALID }; // Print start timestamp [s] since epoch
     MarlinVariableLocked<time_t> print_end_time { marlin_server::TIMESTAMP_INVALID }; // Estimated print end timestamp [s] since epoch
 
-    MarlinVariableString<FILE_PATH_BUFFER_LEN> media_SFN_path;
-    MarlinVariableString<FILE_NAME_BUFFER_LEN> media_LFN;
+    MarlinVariableString<filename_defs::path_buffer_size> media_SFN_path;
+    MarlinVariableString<filename_defs::filename_buffer_size> media_LFN;
 
     /// Position in the media (arbitrary IGcodeReader units)
     MarlinVariable<uint32_t> media_position;

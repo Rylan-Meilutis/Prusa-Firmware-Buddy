@@ -12,6 +12,7 @@
 #include <http/types.h>
 #include <transfers/monitor.hpp>
 #include <transfers/partial_file.hpp>
+#include <buddy/filename_defs.hpp>
 
 #include <memory>
 #include <optional>
@@ -34,7 +35,7 @@ namespace printer {
         typedef bool UploadedNotify(char *name, bool start_print);
 
         struct PutParams {
-            std::array<char, FILE_PATH_BUFFER_LEN> filepath;
+            std::array<char, filename_defs::path_buffer_size> filepath;
             bool print_after_upload;
             bool overwrite;
         };

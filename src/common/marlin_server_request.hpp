@@ -8,6 +8,7 @@
 #include <option/has_selftest.h>
 #include <option/has_cancel_object.h>
 #include <selftest/selftest_data.hpp>
+#include <buddy/filename_defs.hpp>
 
 namespace marlin_server {
 
@@ -49,7 +50,7 @@ struct Request {
         float babystep; // Type::Babystep
         struct {
             marlin_server::PreviewSkipIfAble skip_preview;
-            char filename[FILE_PATH_BUFFER_LEN];
+            char filename[filename_defs::path_buffer_size];
         } print_start; // Type::PrintStart
         WarningType warning_type;
     };

@@ -12,6 +12,7 @@
 #include "i18n.h"
 #include "ScreenHandler.hpp"
 #include "bsod.h"
+#include <buddy/filename_defs.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "liveadjust_z.hpp"
 #include <feature/filament_sensor/filament_sensor.hpp>
@@ -961,11 +962,11 @@ void MI_LOG_TO_TXT::OnChange(size_t) {
     static constexpr const char *location = "/usb/";
     static constexpr const char *filename = "log.txt";
 
-    ArrayStringBuilder<FILE_PATH_BUFFER_LEN> filepath;
+    ArrayStringBuilder<filename_defs::path_buffer_size> filepath;
     filepath.append_string(location);
     filepath.append_string(filename);
 
-    StringViewUtf8Parameters<FILE_NAME_BUFFER_LEN> fmt_buf;
+    StringViewUtf8Parameters<filename_defs::filename_buffer_size> fmt_buf;
 
     if (!logging::file_log_enable(filepath.str())) {
         MsgBoxError(_("Failed to open file '%s' for writing.").formatted(fmt_buf, filename), Responses_Ok);

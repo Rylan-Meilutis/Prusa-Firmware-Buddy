@@ -8,6 +8,7 @@
 #include "../nhttp/send_json.h"
 #include "../wui_api.h"
 
+#include <buddy/filename_defs.hpp>
 #include <common/path_utils.h>
 #include <transfers/monitor.hpp>
 #include <transfers/changed_path.hpp>
@@ -187,7 +188,7 @@ optional<ConnectionState> PrusaLinkApi::accept(const RequestParser &parser) cons
         } else if (remove_prefix(v1_suffix, "files").has_value()) {
             static const auto prefix = "/api/v1/files";
             static const size_t prefix_len = strlen(prefix);
-            char filename[FILE_PATH_BUFFER_LEN + prefix_len];
+            char filename[filename_defs::path_buffer_size + prefix_len];
             auto error = parse_file_url(parser, prefix_len, filename, sizeof(filename), RemapPolicy::NoRemap);
             if (error.has_value()) {
                 return error;
@@ -251,7 +252,7 @@ optional<ConnectionState> PrusaLinkApi::accept(const RequestParser &parser) cons
         } else {
             static const auto prefix = "/api/files";
             static const size_t prefix_len = strlen(prefix);
-            char filename[FILE_PATH_BUFFER_LEN + prefix_len];
+            char filename[filename_defs::path_buffer_size + prefix_len];
             auto error = parse_file_url(parser, prefix_len, filename, sizeof(filename), RemapPolicy::Octoprint);
             if (error.has_value()) {
                 return error;

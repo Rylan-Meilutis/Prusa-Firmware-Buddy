@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <bitset>
 
-#include <buddy/filename_defs.h>
+#include <buddy/filename_defs.hpp>
 #include "window.hpp"
 #include "display_helper.h"
 #include "lazyfilelist.hpp"
@@ -59,7 +59,7 @@ public:
 
 public:
     // TODO private
-    char sfn_path[FILE_PATH_BUFFER_LEN]; // this is a Short-File-Name path where we start the file dialog
+    char sfn_path[filename_defs::path_buffer_size]; // this is a Short-File-Name path where we start the file dialog
 
 public:
     window_file_list_t(window_t *parent, Rect16 rc); // height is calculated from LazyDirViewSize

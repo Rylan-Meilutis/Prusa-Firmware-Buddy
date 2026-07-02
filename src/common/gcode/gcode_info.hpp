@@ -23,6 +23,7 @@
 #include <utils/storage/strong_index_array.hpp>
 #include <tool_index.hpp>
 #include <bsod/bsod.h>
+#include <buddy/filename_defs.hpp>
 
 // these strings are meant NOT to be translated
 namespace gcode_info {
@@ -269,11 +270,11 @@ private:
 
     /// stores current gcode file path
     /// SFN filepath (used for referencing the file)
-    std::array<char, FILE_PATH_BUFFER_LEN> gcode_file_path = { '\0' };
+    std::array<char, filename_defs::path_buffer_size> gcode_file_path = { '\0' };
 
     /// stores current gcode file name
     /// LFN filename (used for display)
-    std::array<char, FILE_NAME_BUFFER_LEN> gcode_file_name = { '\0' };
+    std::array<char, filename_defs::filename_buffer_size> gcode_file_name = { '\0' };
 
 #ifdef UNITTESTS
 public:
