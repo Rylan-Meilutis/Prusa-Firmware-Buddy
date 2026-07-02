@@ -80,8 +80,8 @@
     #include "ScreenHandler.hpp"
 #endif
 
-#if HAS_LEDS_MENU()
-    #include <screen/screen_menu_leds.hpp>
+#if HAS_LIGHTS_MENU()
+    #include <screen/screen_menu_lights.hpp>
 #endif
 
 #if HAS_PHASE_STEPPING()
@@ -178,8 +178,8 @@ template struct MI_SCREEN_CTOR<ScreenMenuBedLevelCorrection>;
 
 template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 
-#if HAS_LEDS_MENU()
-template struct MI_SCREEN_CTOR<ScreenMenuLeds>;
+#if HAS_LIGHTS_MENU()
+template struct MI_SCREEN_CTOR<ScreenMenuLights>;
 #endif
 
 /**********************************************************************************************/

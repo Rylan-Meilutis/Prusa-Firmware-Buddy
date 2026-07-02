@@ -13,7 +13,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_e2ee_support.h>
 #include <option/has_wastebin_fill_tracking.h>
-#include <option/has_leds_menu.h>
+#include <option/has_lights_menu.h>
 #include <img_resources.hpp>
 #include <ScreenFactory.hpp>
 
@@ -201,9 +201,9 @@ using MI_BED_LEVEL_CORRECTION
     = MI_SCREEN<N_("Bed Level Correction"), class ScreenMenuBedLevelCorrection>;
 #endif
 
-#if HAS_LEDS_MENU()
-using MI_LEDS_SETTINGS
-    = MI_SCREEN<N_("Lights Settings"), class ScreenMenuLeds>;
+#if HAS_LIGHTS_MENU()
+using MI_LIGHTS
+    = MI_SCREEN<N_("Lights"), class ScreenMenuLights>;
 #endif
 
 class MI_SERIAL_PRINTING_SCREEN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {

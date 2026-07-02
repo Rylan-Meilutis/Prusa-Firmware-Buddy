@@ -1082,11 +1082,11 @@ if(HAS_LEDS
    OR HAS_SIDE_LEDS
    OR HAS_TOOLCHANGER
    )
-  set(HAS_LEDS_MENU YES)
+  set(HAS_LIGHTS_MENU YES)
 else()
-  set(HAS_LEDS_MENU NO)
+  set(HAS_LIGHTS_MENU NO)
 endif()
-define_boolean_option(HAS_LEDS_MENU ${HAS_LEDS_MENU})
+define_boolean_option(HAS_LIGHTS_MENU ${HAS_LIGHTS_MENU})
 
 # define enabled features
 

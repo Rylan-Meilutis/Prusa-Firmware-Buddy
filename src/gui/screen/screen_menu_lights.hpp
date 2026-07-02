@@ -7,7 +7,7 @@
 #include <option/has_side_leds.h>
 #include <option/has_toolchanger.h>
 
-using ScreenMenuLeds__ = BasicScreenMenu<
+using ScreenMenuLightsBase = BasicScreenMenu<
 #if HAS_LEDS()
     MI_LEDS_ENABLE,
 #endif
@@ -21,7 +21,7 @@ using ScreenMenuLeds__ = BasicScreenMenu<
 #endif
     MI_ALWAYS_HIDDEN>;
 
-class ScreenMenuLeds final : public ScreenMenuLeds__ {
+class ScreenMenuLights final : public ScreenMenuLightsBase {
 public:
-    ScreenMenuLeds();
+    ScreenMenuLights();
 };
