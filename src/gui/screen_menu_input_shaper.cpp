@@ -1,12 +1,13 @@
+/// @file
 #include "screen_menu_input_shaper.hpp"
 
 #include <bit>
-
 #include <raii/auto_restore.hpp>
 
 ScreenMenuInputShaper::ScreenMenuInputShaper()
-    : detail::ScreenMenuInputShaper(_(label)) {
-
+    : ScreenMenuInputShaperBase {
+        _("INPUT SHAPER"),
+    } {
     update_gui();
 }
 
