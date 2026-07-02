@@ -91,8 +91,6 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if ENABLED(CRASH_RECOVERY)
     MI_CRASH_DETECTION,
 #endif // ENABLED(CRASH_RECOVERY)
-
-    MI_INPUT_SHAPER,
 #if DEVELOPER_MODE()
     // #error dead code found by automatic analyses (see BFW-5461)
     MI_ERROR_TEST,

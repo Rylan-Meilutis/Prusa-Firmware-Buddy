@@ -88,6 +88,7 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 #if HAS_ILI9488_DISPLAY()
     MI_DISPLAY_BAUDRATE,
 #endif
+    MI_INPUT_SHAPER,
 #if HAS_PHASE_STEPPING()
     MI_PHASE_STEPPING_SCREEN,
 #endif
