@@ -229,6 +229,9 @@ namespace leds {
         co_return;
     }
 
+    /// Linearly interpolate a color channel value based on the current temperature.
+    ///
+    /// Naive implementation that works for ourc case - will not work generally - test before you copy it somewhere else.
     constexpr uint8_t lerp_color_channel(uint8_t color_min, uint8_t color_max, uint16_t temp_min, uint16_t temp_max, uint16_t curr_temp) {
         if (curr_temp <= temp_min) {
             return color_min;
