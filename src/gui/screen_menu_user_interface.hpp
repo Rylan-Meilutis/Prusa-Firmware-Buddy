@@ -37,6 +37,9 @@ using ScreenMenuUserInterface__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_LEDS_MENU()
     MI_LEDS_SETTINGS,
 #endif
+#if HAS_ILI9488_DISPLAY()
+    MI_DISPLAY_BAUDRATE,
+#endif
 #if HAS_TOUCH()
     MI_ENABLE_TOUCH, TOUCH_SIG_WORKAROUND, MI_TOUCH_PLAYGROUND,
 #endif
