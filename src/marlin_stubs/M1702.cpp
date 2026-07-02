@@ -262,19 +262,12 @@ namespace {
             bsod("no virtual tool to load");
         }
 
-        filament_gcodes::M701_load(
-            PresetFilamentType::PLA,
-            std::nullopt,
-            Z_AXIS_LOAD_POS,
-            RetAndCool_t::Return,
-            *active_tool,
-    #if HAS_MMU2()
-            MMU2::FILAMENT_UNKNOWN,
-    #else
-            -1,
-    #endif
-            std::nullopt,
-            filament_gcodes::ResumePrint_t::No);
+        filament_gcodes::M701_load(filament_gcodes::M701LoadArgs {
+            .filament_to_be_loaded = PresetFilamentType::PLA,
+            .z_min_pos = Z_AXIS_LOAD_POS,
+            .op_preheat = RetAndCool_t::Return,
+            .virtual_tool = *active_tool,
+        });
         planner.resume_queuing(); // HACK for planner.quick_stop(); in Pause::check_user_stop()
 
         switch (PreheatStatus::ConsumeResult()) {

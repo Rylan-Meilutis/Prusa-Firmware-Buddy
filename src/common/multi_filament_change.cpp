@@ -212,15 +212,13 @@ void execute(const Config &tool_config) {
                     filament_gcodes::AskFilament_t::Never,
                     config.color);
             } else {
-                filament_gcodes::M701_load(
-                    new_filament,
-                    std::nullopt,
-                    Z_AXIS_LOAD_POS,
-                    RetAndCool_t::Return,
-                    tool,
-                    -1,
-                    config.color,
-                    filament_gcodes::ResumePrint_t::No);
+                filament_gcodes::M701_load(filament_gcodes::M701LoadArgs {
+                    .filament_to_be_loaded = new_filament,
+                    .z_min_pos = Z_AXIS_LOAD_POS,
+                    .op_preheat = RetAndCool_t::Return,
+                    .virtual_tool = tool,
+                    .color_to_be_loaded = config.color,
+                });
             }
 #endif
             break;

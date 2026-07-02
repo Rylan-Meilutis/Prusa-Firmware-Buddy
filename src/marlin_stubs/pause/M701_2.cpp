@@ -64,14 +64,16 @@ static bool load_unload(Pause::LoadType load_type, pause::Settings &rSettings) {
     return res;
 }
 
-void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::optional<float> &fast_load_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, VirtualToolIndex virtual_tool, int8_t mmu_slot, std::optional<Color> color_to_be_loaded, ResumePrint_t resume_print_request) {
+void filament_gcodes::M701_load(const M701LoadArgs &args) {
     InProgress progress;
 
-    const bool do_purge_only = fast_load_length.has_value() && fast_load_length <= 0.0f;
+    FilamentType filament_to_be_loaded = args.filament_to_be_loaded;
+    const VirtualToolIndex virtual_tool = args.virtual_tool;
+    const bool do_purge_only = args.fast_load_length.has_value() && *args.fast_load_length <= 0.0f;
 
-    if (op_preheat) {
+    if (args.op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
-            PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::purge : PreheatMode::standard_load, virtual_tool, *op_preheat);
+            PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::purge : PreheatMode::standard_load, virtual_tool, *args.op_preheat);
             auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
             if (preheat_ret.first) {
                 // canceled
@@ -85,16 +87,16 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
         }
     }
     filament::set_type_to_load(filament_to_be_loaded);
-    filament::set_color_to_load(color_to_be_loaded);
+    filament::set_color_to_load(args.color_to_be_loaded);
 
     pause::Settings settings;
     settings.SetExtruder(virtual_tool);
-    settings.SetFastLoadLength(fast_load_length);
+    settings.SetFastLoadLength(args.fast_load_length);
     settings.SetRetractLength(0.f);
-    settings.SetMmuFilamentToLoad(mmu_slot);
+    settings.SetMmuFilamentToLoad(args.mmu_slot.value_or(-1));
 
     mapi::ParkingPosition park_position = mapi::get_parking_position(do_purge_only ? mapi::ParkPosition::purge : mapi::ParkPosition::load);
-    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
+    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = args.z_min_pos };
 
     settings.SetParkPoint(park_position);
     const xyze_pos_t current_position_tmp = current_position;
@@ -109,7 +111,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
     settings.SetResumePoint(current_position_tmp);
 #endif
 
-    const bool do_resume_print = static_cast<bool>(resume_print_request) && marlin_server::printer_paused();
+    const bool do_resume_print = args.resume_print_request && marlin_server::printer_paused();
     // Load
     if (load_unload(do_purge_only ? Pause::LoadType::load_purge : Pause::LoadType::load, settings)) {
         if (!do_resume_print) {
@@ -240,7 +242,13 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
 
     if constexpr (option::has_bowden) {
         config_store().set_filament_type(virtual_tool, FilamentType::none);
-        M701_load(FilamentType::none, fast_load_length, z_min_pos, RetAndCool_t::Return, virtual_tool, 0, std::nullopt, ResumePrint_t::No);
+        M701_load(M701LoadArgs {
+            .fast_load_length = fast_load_length,
+            .z_min_pos = z_min_pos,
+            .op_preheat = RetAndCool_t::Return,
+            .virtual_tool = virtual_tool,
+            .mmu_slot = 0,
+        });
         return;
     }
 

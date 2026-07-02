@@ -51,13 +51,7 @@ void GcodeSuite::M701() {
         return;
     }
 
-    const FilamentType filament_to_be_loaded = p.option<FilamentType>('S').value_or(NoFilamentType());
-    std::optional<Color> color_to_be_loaded = p.option<Color>('O');
-    const std::optional<float> fast_load_length = p.option<float>('L').transform(fabsf);
-    const float min_Z_pos = p.option<float>('Z').value_or(Z_AXIS_LOAD_POS);
-    const auto op_preheat = p.option<RetAndCool_t>('W', std::to_underlying(RetAndCool_t::last_) + 1);
-
-    const std::optional<uint8_t> mmu_slot = p.option<uint8_t>('P');
+    const std::optional<int8_t> mmu_slot = p.option<int8_t>('P', int8_t(0), int8_t(VirtualToolIndex::count - 1));
 
 #if HAS_MMU2()
     // HACK: The MMU case is _little bit_ wrong.
@@ -78,7 +72,7 @@ void GcodeSuite::M701() {
 
     std::optional<VirtualToolIndex> virtual_tool;
     if (mmu_enabled) {
-        if (mmu_slot.has_value() && *mmu_slot < VirtualToolIndex::count) {
+        if (mmu_slot.has_value()) {
             virtual_tool = VirtualToolIndex::from_raw(*mmu_slot);
         }
     } else {
@@ -88,10 +82,19 @@ void GcodeSuite::M701() {
     if (!virtual_tool.has_value()) {
         return;
     }
-    const VirtualToolIndex target_tool = *virtual_tool;
-    const ResumePrint_t resume_print = static_cast<ResumePrint_t>(p.option<bool>('R').value_or(false));
 
-    M701_load(filament_to_be_loaded, fast_load_length, min_Z_pos, op_preheat, target_tool, mmu_slot.has_value() ? static_cast<int8_t>(*mmu_slot) : static_cast<int8_t>(-1), color_to_be_loaded, resume_print);
+    M701LoadArgs args {
+        .filament_to_be_loaded = p.option<FilamentType>('S').value_or(NoFilamentType()),
+        .fast_load_length = p.option<float>('L').transform(fabsf),
+        .z_min_pos = p.option<float>('Z').value_or(Z_AXIS_LOAD_POS),
+        .op_preheat = p.option<RetAndCool_t>('W', std::to_underlying(RetAndCool_t::last_) + 1),
+        .virtual_tool = *virtual_tool,
+        .mmu_slot = mmu_slot,
+        .color_to_be_loaded = p.option<Color>('O'),
+        .resume_print_request = p.option<bool>('R').value_or(false),
+    };
+
+    M701_load(args);
 }
 
 /**

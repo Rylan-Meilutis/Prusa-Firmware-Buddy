@@ -22,6 +22,7 @@
 #include "pause_stubbed.hpp"
 #include <color.hpp>
 #include <option/has_chamber_api.h>
+#include <utils/compact_optional.hpp>
 #include <utils/overloaded_visitor.hpp>
 
 namespace filament_gcodes {
@@ -31,11 +32,6 @@ enum class AskFilament_t {
     Never,
     IfUnknown,
     Always
-};
-
-enum class ResumePrint_t : bool {
-    No = false,
-    Yes,
 };
 
 class InProgress {
@@ -51,7 +47,33 @@ private:
     BlockEStallDetection estall_lock;
 };
 
-void M701_load(FilamentType filament_to_be_loaded, const std::optional<float> &fast_load_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, VirtualToolIndex virtual_tool, int8_t mmu_slot, std::optional<Color> color_to_be_loaded, ResumePrint_t resume_print_request);
+struct M701LoadArgs {
+    /// filament type to load; FilamentType::none to ask the user
+    FilamentType filament_to_be_loaded = FilamentType::none;
+
+    /// length of the fast load segment; <= 0 means purge only
+    CompactOptional<float, NAN> fast_load_length = std::nullopt;
+
+    /// minimal Z parking position
+    float z_min_pos;
+
+    /// preheat mode; nullopt to skip preheating
+    std::optional<RetAndCool_t> op_preheat = std::nullopt;
+
+    /// tool to load into
+    VirtualToolIndex virtual_tool;
+
+    /// MMU slot to load; -1 if not applicable
+    CompactOptional<int8_t, -1> mmu_slot = std::nullopt;
+
+    /// color to load; nullopt if unknown
+    CompactOptional<Color, COLOR_NONE> color_to_be_loaded = std::nullopt;
+
+    /// resume print if paused after the load
+    bool resume_print_request = false;
+};
+
+void M701_load(const M701LoadArgs &args);
 void M702_unload(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, VirtualToolIndex virtual_tool, bool ask_unloaded);
 void M70X_process_user_response(PreheatStatus::Result res, VirtualToolIndex target_extruder);
 
