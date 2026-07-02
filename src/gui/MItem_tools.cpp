@@ -336,16 +336,6 @@ void MI_SAVE_DUMP::click(IWindowMenu & /*window_menu*/) {
 }
 
 /*****************************************************************************/
-// MI_XFLASH_RESET
-MI_XFLASH_RESET::MI_XFLASH_RESET()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
-}
-
-void MI_XFLASH_RESET::click(IWindowMenu & /*window_menu*/) {
-    crash_dump::dump_reset();
-}
-
-/*****************************************************************************/
 // MI_DRYRUN
 MI_DRYRUN::MI_DRYRUN()
     : WI_ICON_SWITCH_OFF_ON_t((marlin_debug_flags & MARLIN_DEBUG_DRYRUN) ? 1 : 0, _(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {

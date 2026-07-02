@@ -170,16 +170,6 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
-class MI_XFLASH_RESET : public IWindowMenuItem {
-    static constexpr const char *const label = "Delete Crash Dump"; // intentionally not translated, only for debugging
-
-public:
-    MI_XFLASH_RESET();
-
-protected:
-    virtual void click(IWindowMenu &window_menu) override;
-};
-
 class MI_DRYRUN : public WI_ICON_SWITCH_OFF_ON_t {
     constexpr static const char *const label = N_("Dry run (no extrusion)");
 
