@@ -85,6 +85,7 @@ set_ready_16x16.png
 set_ready_64x64_disabled.png
 set_ready_64x64_focused.png
 set_ready_64x64.png
+settings_16x16.png
 settings_64x64_disabled.png
 settings_64x64_focused.png
 settings_64x64.png
