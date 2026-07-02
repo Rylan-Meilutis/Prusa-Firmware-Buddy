@@ -3,7 +3,6 @@
 
 #include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
-#include "printers.h"
 #include <basic_screen_menu.hpp>
 #include <option/has_leds_menu.h>
 
@@ -15,9 +14,7 @@
 using ScreenMenuUserInterface__ = BasicScreenMenu<
     MI_FOOTER_SETTINGS,
     MI_SORT_FILES,
-#if not PRINTER_IS_PRUSA_MINI()
     MI_PRINT_PROGRESS_TIME,
-#endif
     MI_TIMEOUT,
     MI_SOUND_MODE,
     MI_FILAMENT_CHANGE_PREHEAT_ALL,
