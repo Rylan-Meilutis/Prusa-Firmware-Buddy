@@ -245,6 +245,8 @@ namespace {
 
     struct SerialPrintSnapshot {
         bool valid = false;
+        bool printing_fsm_active = false;
+        bool serial_printing_fsm_active = false;
         State print_state = State::Idle;
         uint32_t print_duration = 0;
         time_t print_start_time = TIMESTAMP_INVALID;
@@ -854,6 +856,8 @@ static void capture_print_duration() {
 static void capture_serial_print_snapshot() {
     server.serial_print_snapshot = {
         .valid = true,
+        .printing_fsm_active = fsm_states.is_active(ClientFSM::Printing),
+        .serial_printing_fsm_active = fsm_states.is_active(ClientFSM::Serial_printing),
         .print_state = server.print_state,
         .print_duration = marlin_vars().print_duration.get(),
         .print_start_time = marlin_vars().print_start_time.get(),
@@ -877,7 +881,10 @@ static void restore_serial_print_snapshot() {
         return;
     }
 
-    server.print_state = server.serial_print_snapshot.print_state;
+    const bool print_fsm_active = server.serial_print_snapshot.printing_fsm_active || server.serial_print_snapshot.serial_printing_fsm_active;
+    const bool terminal_print_state = server.serial_print_snapshot.print_state == State::Finished || server.serial_print_snapshot.print_state == State::Aborted;
+
+    server.print_state = terminal_print_state && !print_fsm_active ? State::Idle : server.serial_print_snapshot.print_state;
     marlin_vars().print_duration = server.serial_print_snapshot.print_duration;
     marlin_vars().print_start_time = server.serial_print_snapshot.print_start_time;
     marlin_vars().print_end_time = server.serial_print_snapshot.print_end_time;
@@ -885,6 +892,11 @@ static void restore_serial_print_snapshot() {
     buddy::chamber_filtration().restore_snapshot(server.serial_print_snapshot.chamber_filtration);
 #endif
     server.frozen_print_duration = server.serial_print_snapshot.print_duration;
+    if (server.serial_print_snapshot.serial_printing_fsm_active && !fsm_states.is_active(ClientFSM::Serial_printing)) {
+        fsm_create(PhasesSerialPrinting::active);
+    } else if (server.serial_print_snapshot.printing_fsm_active && !fsm_states.is_active(ClientFSM::Printing)) {
+        fsm_create(PhasesPrinting::active);
+    }
     server.serial_print_snapshot.valid = false;
 }
 
@@ -1444,10 +1456,11 @@ bool printer_paused_extended() {
 }
 
 void serial_print_start() {
+    capture_serial_print_snapshot();
+
     switch (server.print_state) {
     case State::Finished:
     case State::Aborted:
-        finalize_print(server.print_state == State::Finished);
         if (fsm_states.is_active(ClientFSM::Printing)) {
             fsm_destroy(ClientFSM::Printing);
         }
@@ -1459,7 +1472,6 @@ void serial_print_start() {
         break;
     }
 
-    capture_serial_print_snapshot();
     server.print_state = State::SerialPrintInit;
     print_state = {};
 }
