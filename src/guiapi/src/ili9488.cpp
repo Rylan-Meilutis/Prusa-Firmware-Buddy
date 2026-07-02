@@ -617,7 +617,7 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     if (header.size() != qoi::Decoder::HEADER_SIZE) {
         return; // Header couldn't be read
     }
-    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<uint8_t, qoi::Decoder::HEADER_SIZE>(i_buf)));
+    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<uint8_t, qoi::Decoder::HEADER_SIZE>(header)));
     subrect.Intersection(Rect16(0, 0, ILI9488_COLS, ILI9488_ROWS)); // Clip drawn subrect to display size
 
     // Prepare output
