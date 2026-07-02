@@ -67,7 +67,7 @@
     * Fixed canceled prints losing their elapsed print duration during abort cleanup
     * Fixed active-print startup markers such as `M75` arming a second serial print start after `M77`, which reset completed serial-print duration to zero
     * Fixed serial `M77` completion returning to the home screen or leaving later serial commands ignored; completion now finalizes before queueing, returns `ok`, and clears the serial command pause gate
-    * Fixed short ignored serial macros leaving the status LED in the wrong post-print state
+    * Fixed short ignored serial macros leaving the persistent finished screen or status LED in the wrong post-print state
     * Fixed the serial-print header flickering because its unchanged caption was redrawn on every GUI loop
     * Reduced serial message-page switching redraws by invalidating only widgets whose visibility changes instead of repainting the entire screen
     * Fixed canceling a detected serial print before its initial home from issuing an unnecessary unhomed Z clearance move
@@ -137,7 +137,7 @@ Elapsed print duration is preserved continuously while a print is active. Serial
 
 Startup markers such as `M75`, startup `M73`, and OctoPrint startup text received while a serial print is already active no longer arm a pending second serial print start. This prevents trailing end G-code after `M77` from restarting serial-print state and clearing the completed duration before the persistent finished screen renders it.
 
-Very short serial macro prints, such as a quick `M75`/`M77` pair that never produced a useful printed-Z height, are ignored as non-print activity and restore the printer's previous print and status LED state. If the previous state was an unacknowledged finished print, the finished indication remains; if the printer was idle, the LEDs return to idle behavior.
+Very short serial macro prints, such as a quick `M75`/`M77` pair that never produced a useful printed-Z height, are ignored as non-print activity and restore the printer's previous print screen and status LED state. If the previous state was an unacknowledged finished print with a visible print screen, the finished screen and indication remain; if no print screen was visible, the printer returns to the home/idle state.
 
 Elapsed duration includes startup heating time. File and serial print timers start before startup G-code continues through blocking hotend, bed, or chamber heating waits.
 
