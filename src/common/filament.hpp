@@ -127,6 +127,12 @@ public:
     /// Whether the filament is flexible - might require special care in some cases
     bool is_flexible = false;
 
+#if HAS_HT_HOTEND()
+    /// Whether the filament requires the high-temperature Nextruder idler door.
+    /// Preset-only (not persisted to EEPROM for user/adhoc filaments).
+    bool requires_ht_idler_door = false;
+#endif
+
 public:
     constexpr bool operator==(const FilamentTypeParameters &) const = default;
     constexpr bool operator!=(const FilamentTypeParameters &) const = default;

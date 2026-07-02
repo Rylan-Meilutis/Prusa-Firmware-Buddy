@@ -167,6 +167,7 @@ FilamentTypeParameters FilamentType::parameters() const {
                     + HAS_CHAMBER_FILTRATION_API() * 1
                     + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
                     + HAS_ANFC() * 1
+                    + HAS_HT_HOTEND() * 1
             //
             ,
             "Revise the initializer");
@@ -231,6 +232,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
                 + HAS_CHAMBER_FILTRATION_API() * 1
                 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
                 + HAS_ANFC() * 1
+                + HAS_HT_HOTEND() * 1
         //
         ,
         "Revise FilamentType::set_parameters");

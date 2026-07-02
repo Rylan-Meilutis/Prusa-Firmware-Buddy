@@ -21,6 +21,11 @@
     #include <feature/chamber/chamber.hpp>
 #endif
 
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+    #include <marlin_server.hpp>
+#endif
+
 #include <option/has_anfc.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -367,6 +372,12 @@ void filament_gcodes::M1700_preheat(const M1700Args &args) {
     #if HAS_CHAMBER_VENTS()
         buddy::chamber().manage_ventilation_state(fil_cnf.chamber_target_temperature);
     #endif
+    }
+#endif
+
+#if HAS_HT_HOTEND()
+    if (filament != FilamentType::none && fil_cnf.requires_ht_idler_door) {
+        marlin_server::set_warning(WarningType::IdlerDoorRequired);
     }
 #endif
 

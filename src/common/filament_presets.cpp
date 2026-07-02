@@ -223,6 +223,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
                 .chamber_target_temperature = PRINTER_IS_PRUSA_COREONEL() ? 60 : 55,
     #endif
                 .is_abrasive = true,
+                .requires_ht_idler_door = true,
             },
         },
         {
@@ -237,6 +238,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
                 .chamber_target_temperature = PRINTER_IS_PRUSA_COREONEL() ? 60 : 55,
     #endif
                 .is_abrasive = true,
+                .requires_ht_idler_door = true,
             },
         },
 #endif

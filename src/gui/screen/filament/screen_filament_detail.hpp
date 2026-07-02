@@ -207,6 +207,8 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
     MI_CONFIRM //
     >;
 
+// The +HAS_HT_HOTEND() term accounts for requires_ht_idler_door, a preset-only flag with no
+// detail-screen row; the term just keeps this arity check in sync when the field is present.
 static_assert(
     aggregate_arity<FilamentTypeParameters>()
         == 6
@@ -214,6 +216,7 @@ static_assert(
             + HAS_CHAMBER_API() * 4
             + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
             + HAS_ANFC() * 1
+            + HAS_HT_HOTEND() * 1
     //
     ,
     "Revise ScreenFilamentDetail");

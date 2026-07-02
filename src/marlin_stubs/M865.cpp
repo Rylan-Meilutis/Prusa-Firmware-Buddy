@@ -120,6 +120,7 @@ void PrusaGcodeSuite::M865() {
                 + HAS_CHAMBER_FILTRATION_API() * 1
                 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
                 + HAS_ANFC() * 1 // OpenPrintTag Hash ID not configurable from the gcode, it's an internal thing
+                + HAS_HT_HOTEND() * 1 // requires_ht_idler_door is preset-only, not a gcode parameter
         //
         ,
         "Revise M865 parameters");

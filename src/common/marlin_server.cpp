@@ -108,6 +108,7 @@
 #include <option/has_modular_bed.h>
 #include <option/has_loadcell.h>
 #include <option/has_nfc.h>
+#include <option/has_ht_hotend.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_chamber_api.h>
@@ -2329,6 +2330,20 @@ static void _server_print_loop(void) {
                 }
             });
             buddy::chamber().manage_ventilation_state(max_chamber_target_temp);
+        }
+#endif
+#if HAS_HT_HOTEND()
+        {
+            // Re-emit every print start; no persistent acknowledgement.
+            bool needs_ht_idler_door = false;
+            GCodeInfo::getInstance().for_each_used_extruder([&](GcodeToolIndex, VirtualToolIndex virtual_tool, const GCodeInfo::ExtruderInfo &) {
+                if (config_store().get_filament_type(virtual_tool).parameters().requires_ht_idler_door) {
+                    needs_ht_idler_door = true;
+                }
+            });
+            if (needs_ht_idler_door) {
+                set_warning(WarningType::IdlerDoorRequired);
+            }
         }
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
