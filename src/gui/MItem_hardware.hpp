@@ -21,16 +21,6 @@ private:
     const HWCheckType check_type;
 };
 
-class MI_HARDWARE_G_CODE_CHECKS : public IWindowMenuItem {
-    static constexpr const char *const label = N_("G-Code Checks");
-
-public:
-    MI_HARDWARE_G_CODE_CHECKS();
-
-protected:
-    virtual void click(IWindowMenu &windowMenu) override;
-};
-
 #if HAS_SIDE_FSENSOR_REMAP()
 class MI_SIDE_FSENSOR_REMAP : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("Side FSensor Remap");

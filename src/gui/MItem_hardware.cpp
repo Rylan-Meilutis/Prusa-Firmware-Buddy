@@ -1,10 +1,11 @@
 #include "MItem_hardware.hpp"
 #include "ScreenHandler.hpp"
 #include "WindowMenuSpin.hpp"
+#include "window_msgbox.hpp"
+#include "marlin_client.hpp"
 #include <option/has_toolchanger.h>
 #include <option/has_side_fsensor_remap.h>
 #include <common/nozzle_diameter.hpp>
-#include <screen_menu_hardware_checks.hpp>
 #include <common/printer_model_data.hpp>
 
 #if HAS_CHAMBER_VENTS()
@@ -33,14 +34,6 @@ MI_HARDWARE_CHECK::MI_HARDWARE_CHECK(HWCheckType check_type)
 
 void MI_HARDWARE_CHECK::OnChange([[maybe_unused]] size_t old_index) {
     config_store().visit_hw_check(check_type, [set = static_cast<HWCheckSeverity>(this->get_index())](auto &item) { item.set(set); });
-}
-
-MI_HARDWARE_G_CODE_CHECKS::MI_HARDWARE_G_CODE_CHECKS()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
-}
-
-void MI_HARDWARE_G_CODE_CHECKS::click(IWindowMenu &) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuHardwareChecks>);
 }
 
 #if HAS_SIDE_FSENSOR_REMAP()

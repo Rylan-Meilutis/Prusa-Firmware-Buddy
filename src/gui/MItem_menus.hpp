@@ -125,6 +125,9 @@ using MI_NETWORK_STATUS
 using MI_HARDWARE
     = MI_SCREEN<N_("Hardware"), class ScreenMenuHardware>;
 
+using MI_HARDWARE_G_CODE_CHECKS
+    = MI_SCREEN<N_("G-Code Checks"), class ScreenMenuHardwareChecks>;
+
 #if HAS_WASTEBIN_FILL_TRACKING()
 using MI_WASTEBIN
     = MI_SCREEN<N_("Nozzle Cleaner"), class ScreenMenuWastebin>;
