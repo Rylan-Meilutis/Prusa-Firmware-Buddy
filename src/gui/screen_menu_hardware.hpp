@@ -19,6 +19,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_auto_retract.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_phase_stepping.h>
 #include <common/extended_printer_type.hpp>
 #include "printers.h"
 
@@ -86,6 +87,9 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 #endif
 #if HAS_ILI9488_DISPLAY()
     MI_DISPLAY_BAUDRATE,
+#endif
+#if HAS_PHASE_STEPPING()
+    MI_PHASE_STEPPING_SCREEN,
 #endif
 
     // ================================

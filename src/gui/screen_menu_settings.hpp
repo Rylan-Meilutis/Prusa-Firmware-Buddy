@@ -13,7 +13,6 @@
 #include <option/has_mmu2.h>
 #include <option/developer_mode.h>
 #include <option/xbuddy_extension_variant.h>
-#include <option/has_phase_stepping.h>
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
@@ -24,10 +23,6 @@
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <gui/menu_item/specific/menu_items_xbuddy_extension.hpp>
-#endif
-
-#if HAS_PHASE_STEPPING()
-    #include "screen_menu_phase_stepping.hpp"
 #endif
 
 #include <option/has_chamber_filtration_api.h>
@@ -98,9 +93,6 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #endif // ENABLED(CRASH_RECOVERY)
 
     MI_INPUT_SHAPER,
-#if HAS_PHASE_STEPPING()
-    MI_PHASE_STEPPING_SCREEN,
-#endif
 #if DEVELOPER_MODE()
     // #error dead code found by automatic analyses (see BFW-5461)
     MI_ERROR_TEST,

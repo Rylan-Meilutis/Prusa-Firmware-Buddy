@@ -82,6 +82,10 @@
     #include <screen/screen_menu_leds.hpp>
 #endif
 
+#if HAS_PHASE_STEPPING()
+    #include "screen_menu_phase_stepping.hpp"
+#endif
+
 #include <config_store/store_instance.hpp>
 
 MI_SCREEN_BASE::MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const char *label)
