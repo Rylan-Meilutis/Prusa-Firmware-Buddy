@@ -13,10 +13,10 @@
 
 using ScreenMenuUserInterface__ = BasicScreenMenu<
     MI_FOOTER_SETTINGS,
+    MI_SOUND_MODE,
     MI_SORT_FILES,
     MI_PRINT_PROGRESS_TIME,
     MI_TIMEOUT,
-    MI_SOUND_MODE,
     MI_FILAMENT_CHANGE_PREHEAT_ALL,
 #if HAS_ST7789_DISPLAY()
     // We could potentionally have MINI display without buzzer.
