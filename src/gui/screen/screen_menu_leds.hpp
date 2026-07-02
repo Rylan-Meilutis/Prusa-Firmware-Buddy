@@ -1,13 +1,13 @@
-/**
- * @file screen_menu_leds.hpp
- */
+/// @file
 #pragma once
 
-#include "screen_menu.hpp"
 #include "MItem_tools.hpp"
+#include <basic_screen_menu.hpp>
+#include <option/has_leds.h>
+#include <option/has_side_leds.h>
 #include <option/has_toolchanger.h>
 
-using ScreenMenuLeds__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+using ScreenMenuLeds__ = BasicScreenMenu<
 #if HAS_LEDS()
     MI_LEDS_ENABLE,
 #endif
@@ -21,7 +21,7 @@ using ScreenMenuLeds__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #endif
     MI_ALWAYS_HIDDEN>;
 
-class ScreenMenuLeds : public ScreenMenuLeds__ {
+class ScreenMenuLeds final : public ScreenMenuLeds__ {
 public:
     ScreenMenuLeds();
 };

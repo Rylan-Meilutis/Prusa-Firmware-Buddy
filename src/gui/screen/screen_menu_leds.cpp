@@ -1,10 +1,9 @@
-/**
- * @file screen_menu_leds.cpp
- */
-
+/// @file
 #include "screen_menu_leds.hpp"
 
 ScreenMenuLeds::ScreenMenuLeds()
-    : ScreenMenuLeds__(_("LIGHTS SETTINGS")) {
+    : ScreenMenuLeds__ {
+        _("LIGHTS SETTINGS"),
+    } {
     EnableLongHoldScreenAction();
 }
