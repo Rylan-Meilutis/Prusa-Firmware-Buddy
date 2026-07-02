@@ -90,22 +90,22 @@ struct M1700Args {
     std::variant<VirtualToolIndex, AllTools> tool;
 
     /// save selected filament settings to EEPROM
-    bool save;
+    bool save : 1;
 
     /// true to enforce target temp, false to use preheat temp
-    bool enforce_target_temp;
+    bool enforce_target_temp : 1;
 
     /// true to also heat up bed
-    bool preheat_bed;
+    bool preheat_bed : 1;
 
 #if HAS_CHAMBER_API()
     /// Whether to set target chamber temperature
-    bool preheat_chamber;
+    bool preheat_chamber : 1;
 #endif
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     /// Whether to set target heatbreak temperature
-    bool set_heatbreak;
+    bool set_heatbreak : 1;
 #endif
 };
 
