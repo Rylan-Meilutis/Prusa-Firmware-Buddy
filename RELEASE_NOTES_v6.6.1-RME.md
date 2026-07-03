@@ -91,6 +91,7 @@
     * Fixed Core One L release builds with bed PID disabled by using zero persisted bed-PID defaults when `PIDTEMPBED` is unavailable
     * Fixed XL release builds after the 6.6.1 typed-tool-index update by passing `PhysicalToolIndex` values to odometer APIs
     * Fixed XL dwarf release builds by using the Marlin serial error macro in the disabled-EEPROM path
+    * Fixed the top-level release wrapper so managed `.venv` tools, including Nunavut `nnvg`, are automatically visible to CMake child builds
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
 
@@ -397,7 +398,7 @@ If `FIRMWARE_SIGNING_KEY` is not set, `./build.py` uses the machine-local defaul
 
 The underlying build wrapper also supports `--signing-key /path/to/private.key`.
 
-The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, and absolute staged BBF path.
+The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF path. The wrapper also prepends `.venv/bin` to child build `PATH` and passes `Python3_ROOT_DIR` by default so managed virtualenv tools such as Nunavut `nnvg` are available during CMake configuration.
 
 Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
 
@@ -424,10 +425,10 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-The RME patch stack has been replayed on upstream `v6.6.1`, conflict-resolved on branch `rme-v6.6.1`, and validated with the release wrapper. The local build environment required `.venv/bin` on `PATH` plus `Python3_ROOT_DIR` so nested CMake projects could find Nunavut `nnvg`.
+The RME patch stack has been replayed on upstream `v6.6.1`, conflict-resolved on branch `rme-v6.6.1`, and validated with the release wrapper. The wrapper now supplies the managed `.venv` path and `Python3_ROOT_DIR` automatically so nested CMake projects can find Nunavut `nnvg`.
 
 ```sh
-PATH=.venv/bin:$PATH ./build.py --final --jobs 4 --skip-bootstrap --no-clean-output -D Python3_ROOT_DIR:PATH=$PWD/.venv
+./build.py --final --jobs 4 --skip-bootstrap --no-clean-output
 ```
 
 Final validation result:
@@ -462,6 +463,14 @@ python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-s
 ```
 
 That build produced a non-zero BBF signature.
+
+After fixing the managed `nnvg` environment, focused wrapper validation passed with:
+
+```sh
+./build.py --preset mini-en-it --final --jobs 1 --skip-bootstrap --no-clean-output --verbose
+```
+
+That focused build found `.venv/bin/nnvg`, produced `mini-en-it_6.6.1-RME.bbf`, and reported `Total elapsed: 10:26`.
 
 ## Changelog base
 

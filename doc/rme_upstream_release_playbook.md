@@ -132,12 +132,12 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 ./build.py
 ```
 
-The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, and absolute staged BBF paths.
+The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF paths.
 
-If CMake cannot find Nunavut `nnvg` even though the bootstrap virtualenv has it installed, put the virtualenv bin directory on `PATH` and pass the Python root through to nested CMake projects:
+The wrapper prepends the managed virtualenv bin directory to child build `PATH` and passes `Python3_ROOT_DIR` by default so nested CMake projects can find Nunavut `nnvg`. If a custom Python root is required, override it explicitly:
 
 ```sh
-PATH=.venv/bin:$PATH ./build.py --final --jobs 4 -D Python3_ROOT_DIR:PATH=$PWD/.venv
+./build.py --final --jobs 4 -D Python3_ROOT_DIR:PATH=/path/to/venv
 ```
 
 For broad compatibility after touching shared CMake, resources, build options, or feature flags, also run the default Buddy preset matrix from `utils/build.py` on at least one clean machine:
