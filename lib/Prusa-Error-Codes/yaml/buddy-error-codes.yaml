@@ -387,6 +387,15 @@ Errors:
     gui_layout: "warning_dialog"
     approved: true
 
+  - code: "XX140"
+    printers: [COREONE, COREONEL]
+    title: "HOTEND BURN RISK"
+    text: "The nozzle is very hot. Close the door to prevent burns."
+    action: []
+    id: "HOTEND_BURN_RISK"
+    gui_layout: "warning_dialog"
+    approved: true
+
   # TEMPERATURE    xx2xx
 
   - code: "XX201"
