@@ -1,10 +1,7 @@
-/**
- * @file screen_menu_settings.hpp
- */
+/// @file
 #pragma once
 
-#include "screen_menu.hpp"
-#include "WindowMenuItems.hpp"
+#include <basic_screen_menu.hpp>
 #include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
 #include "knob_event.hpp"
@@ -52,7 +49,7 @@ protected:
 
 /*****************************************************************************/
 
-using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+using ScreenMenuSettingsBase = BasicScreenMenu<
 #if HAS_TOOLCHANGER()
     MI_TOOLHEAD_SETTINGS,
 #endif
@@ -102,7 +99,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     // MI_SYSTEM needs to be last to ensure we can safely hit factory reset even in presence of unknown languages
     MI_SYSTEM>;
 
-class ScreenMenuSettings : public ScreenMenuSettings__ {
+class ScreenMenuSettings final : public ScreenMenuSettingsBase {
     gui::knob::screen_action_cb old_action;
 
 public:

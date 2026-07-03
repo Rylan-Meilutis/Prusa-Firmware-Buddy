@@ -1,14 +1,9 @@
-/**
- * @file screen_menu_settings.cpp
- */
-
+/// @file
 #include "screen_menu_settings.hpp"
+
 #include "screen_menu_experimental_settings.hpp"
 #include "screen_help_fw_update.hpp"
 #include "ScreenHandler.hpp"
-#include "netdev.h"
-#include "wui.h"
-
 #include "knob_event.hpp"
 #include "img_resources.hpp"
 
@@ -25,13 +20,11 @@ void MI_HELP_FW_UPDATE::click(IWindowMenu & /*window_menu*/) {
 }
 
 ScreenMenuSettings::ScreenMenuSettings()
-    : ScreenMenuSettings__(_("SETTINGS"))
+    : ScreenMenuSettingsBase {
+        _("SETTINGS"),
+        &img::settings_16x16,
+    }
     , old_action(gui::knob::GetLongPressScreenAction()) { // backup hold action
-
-    EnableLongHoldScreenAction();
-
-    header.SetIcon(&img::settings_16x16);
-
     gui::knob::RegisterLongPressScreenAction([]() { Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuExperimentalSettings>); }); // new hold action
     EnableLongHoldScreenAction();
 }
