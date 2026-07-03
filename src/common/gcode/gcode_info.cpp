@@ -571,7 +571,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
 
 std::optional<std::string_view> GCodeInfo::iterate_items(std::span<char> &buffer, char separator) {
     // skip leading spaces
-    while (buffer[0] && isspace(*buffer.data())) {
+    while (buffer.size() > 0 && buffer[0] && isspace(*buffer.data())) {
         buffer = buffer.subspan(1);
     }
 
@@ -582,7 +582,7 @@ std::optional<std::string_view> GCodeInfo::iterate_items(std::span<char> &buffer
             break;
         }
     }
-    std::span<char> next_buffer = buffer.subspan(buffer[item_length] == separator ? item_length + 1 : item_length);
+    std::span<char> next_buffer = buffer.subspan((item_length < buffer.size() && buffer[item_length] == separator) ? item_length + 1 : item_length);
 
     // strip trailing whitespaces
     while (item_length && isspace(buffer[item_length - 1])) {
