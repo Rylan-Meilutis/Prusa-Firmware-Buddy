@@ -1,10 +1,11 @@
-#include "radio_button.hpp"
-#include "ScreenHandler.hpp"
+#include "i_radio_button.hpp"
+
 #include "sound.hpp"
 #include "fonts.hpp"
 #include "gui.hpp"
 #include "display.hpp"
 #include <gui/event/knob_event.hpp>
+#include <client_response_texts.hpp>
 
 #include <algorithm> //find
 
@@ -26,12 +27,25 @@ size_t IRadioButton::cnt_responses(Responses_t resp) {
 /*****************************************************************************/
 // nonstatic variables and methods
 
-IRadioButton::IRadioButton(window_t *parent, Rect16 rect, size_t count)
+IRadioButton::IRadioButton(window_t *parent, Rect16 rect)
     : window_t(parent, rect) {
     SetBackColor(COLOR_BRAND);
-    SetBtnCount(count);
+    SetBtnCount(0);
     SetBtnIndex(0);
     Enable();
+}
+
+// TODO: REMOVEME completely BFW-6028
+#if MAX_RESPONSES != 4
+IRadioButton::IRadioButton(window_t *parent, Rect16 rect, const PhaseResponses &resp)
+    : IRadioButton(parent, rect) {
+    Change(resp);
+}
+#endif
+
+IRadioButton::IRadioButton(window_t *parent, Rect16 rect, Responses_t resp)
+    : IRadioButton(parent, rect) {
+    Change(resp);
 }
 
 void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param) {
@@ -365,3 +379,43 @@ IRadioButton::Responses_t IRadioButton::generateResponses(const PhaseResponses &
     }
     return newResponses;
 };
+
+std::optional<size_t> IRadioButton::IndexFromResponse(Response btn) const {
+    for (size_t i = 0; i < maxSize(); ++i) {
+        if (btn == responses[i]) {
+            return i;
+        }
+    }
+    return std::nullopt;
+}
+
+Response IRadioButton::responseFromIndex(size_t index) const {
+    if (index >= maxSize()) {
+        return Response::_none;
+    }
+    return responses[index];
+}
+
+void IRadioButton::Change(Responses_t resp) {
+    if (responses == resp) {
+        return;
+    }
+    responses = resp;
+    SetBtnCount(fixed_width_buttons_count > 0 ? fixed_width_buttons_count : cnt_responses(responses));
+
+    // in iconned layout index will stay
+    if (fixed_width_buttons_count == 0) {
+        SetBtnIndex(0);
+    }
+
+    validateBtnIndex();
+
+    invalidateWhatIsNeeded();
+}
+
+// TODO: REMOVEME completely BFW-6028
+#if MAX_RESPONSES != 4
+void IRadioButton::Change(const PhaseResponses &resp) {
+    Change(generateResponses(resp));
+}
+#endif
