@@ -58,6 +58,16 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
 
+    case ParkPosition::nozzle_cleaning_failed: {
+        static constexpr xyz_pos_t cleaning_failed_point { { XYZ_NOZZLE_CLEANINIG_FAILED_POINT } };
+        static constexpr ParkingPosition base_pos { cleaning_failed_point.x, cleaning_failed_point.y, cleaning_failed_point.z };
+#if HAS_INDX()
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
+
 #if HAS_WASTEBIN_FILL_TRACKING()
     case ParkPosition::empty_wastebin:
         // Park at the INDX home corner (X to the min endstop, Y all the way back), clear of the
