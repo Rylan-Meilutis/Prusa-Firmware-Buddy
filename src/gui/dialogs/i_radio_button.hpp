@@ -4,6 +4,7 @@
 #include <array>
 #include <client_response.hpp>
 #include <window.hpp>
+#include <inplace_function.hpp>
 
 class IRadioButton : public window_t {
 public:
@@ -13,6 +14,8 @@ public:
     static constexpr size_t max_buttons = 4;
 
     using Responses_t = std::array<Response, max_buttons>; // maximum is 4 responses (4B), better to pass by value
+
+    using ClickCallback = stdext::inplace_function<void(Response)>;
 
 public:
     /**
@@ -44,12 +47,32 @@ public:
      */
     IRadioButton(window_t *parent, Rect16 rect, Responses_t resp);
 
+    /// Constructs the radio button and binds it to the specified FSM
+    /// Clicking will send the response to the FSM
+    IRadioButton(window_t *parent, Rect16 rect, FSMAndPhase fsm_phase);
+
 // TODO: REMOVEME completely BFW-6028
 #if MAX_RESPONSES != 4
     void Change(const PhaseResponses &resp); // nullptr generates texts automatically, only first four responses are used, rest is discarded
 #endif
 
     void Change(Responses_t resp); // nullptr generates texts automatically
+
+    // TODO: Removeme
+    // Ugly, for backwards compatibility reasons
+    [[deprecated]] inline void Change(FSMAndPhase target) {
+        set_fsm_and_phase(target);
+    }
+
+    /// Binds the button to a FSM - clicking will send a response to the FSM
+    void set_fsm_and_phase(FSMAndPhase target);
+
+    /// Binds the button to a FSM - clicking will send a response to the FSM
+    void set_fsm_and_phase(FSMAndPhase target, PhaseResponses responses);
+
+    void set_callback(const ClickCallback &set) {
+        click_callback_ = set;
+    }
 
 private:
     bool disabled_drawing_selected { false }; ///< used for when radio button is not the only scrollable window on the screen to allow no button drawn
@@ -118,4 +141,7 @@ private:
 
 private:
     Responses_t responses {};
+
+    /// Callback that is called when a button is pressed
+    ClickCallback click_callback_;
 };

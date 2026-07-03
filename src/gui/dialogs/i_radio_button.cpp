@@ -6,6 +6,7 @@
 #include "display.hpp"
 #include <gui/event/knob_event.hpp>
 #include <client_response_texts.hpp>
+#include <marlin_client.hpp>
 
 #include <algorithm> //find
 
@@ -33,6 +34,12 @@ IRadioButton::IRadioButton(window_t *parent, Rect16 rect)
     SetBtnCount(0);
     SetBtnIndex(0);
     Enable();
+
+    click_callback_ = [this](Response r) {
+        if (GetParent()) {
+            GetParent()->WindowEvent(this, GUI_event_t::CHILD_CLICK, event_conversion_union { .response = r }.pvoid);
+        }
+    };
 }
 
 // TODO: REMOVEME completely BFW-6028
@@ -48,6 +55,11 @@ IRadioButton::IRadioButton(window_t *parent, Rect16 rect, Responses_t resp)
     Change(resp);
 }
 
+IRadioButton::IRadioButton(window_t *parent, Rect16 rect, FSMAndPhase fsm_phase)
+    : RadioButton(parent, rect) {
+    set_fsm_and_phase(fsm_phase);
+}
+
 void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     if (!GetParent()) {
         return;
@@ -55,15 +67,9 @@ void IRadioButton::windowEvent(window_t *sender, GUI_event_t event, void *param)
 
     switch (event) {
 
-    case GUI_event_t::CLICK: {
-        // send response to parent via GUI_event_t::CHILD_CLICK
-        Response response = Click();
-        event_conversion_union un;
-        un.response = response;
-        if (GetParent()) {
-            GetParent()->WindowEvent(this, GUI_event_t::CHILD_CLICK, un.pvoid);
-        }
-    } break;
+    case GUI_event_t::CLICK:
+        click_callback_(Click());
+        break;
 
     case GUI_event_t::KNOB: {
         auto &ctx = *static_cast<GuiEventContext *>(param);
@@ -419,3 +425,14 @@ void IRadioButton::Change(const PhaseResponses &resp) {
     Change(generateResponses(resp));
 }
 #endif
+
+void IRadioButton::set_fsm_and_phase(FSMAndPhase target) {
+    set_fsm_and_phase(target, ClientResponses::get_fsm_responses(target.fsm, target.phase));
+}
+
+void IRadioButton::set_fsm_and_phase(FSMAndPhase target, PhaseResponses responses) {
+    RadioButton::Change(responses);
+    click_callback_ = [target](Response r) {
+        marlin_client::FSM_response(target, r);
+    };
+}
