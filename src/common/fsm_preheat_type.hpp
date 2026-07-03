@@ -24,15 +24,6 @@ struct PreheatData {
     bool has_return_option : 1;
     bool has_cooldown_option : 1;
 
-    static constexpr PreheatData make(PreheatMode mode, ToolIndex tool, RetAndCool_t ret_cool = RetAndCool_t::Neither) {
-        return PreheatData {
-            .tool = tool,
-            .mode = mode,
-            .has_return_option = bool(std::to_underlying(ret_cool) & std::to_underlying(RetAndCool_t::Return)),
-            .has_cooldown_option = bool(std::to_underlying(ret_cool) & std::to_underlying(RetAndCool_t::Cooldown)),
-        };
-    }
-
     static constexpr PreheatData deserialize(fsm::PhaseData data) {
         return fsm::deserialize_data<PreheatData>(data);
     }

@@ -136,6 +136,16 @@ void mmu_reset(uint8_t level);
 void mmu_on();
 void mmu_off();
 
+struct FilamentSelectionArgs {
+    using ToolIndex = PreheatData::ToolIndex;
+
+    PreheatMode mode;
+    ToolIndex tool;
+    RetAndCool_t ret_cool;
+
+    PreheatData fsm_data() const;
+};
+
 /// This set of flags controls the behavior of preheating.
 struct PreheatBehavior {
     bool force_temp : 1; ///< If false, the hotend and bed temperatures will not be decreased if the new target temperatures are lower than the current ones.
@@ -146,6 +156,7 @@ struct PreheatBehavior {
 
     /// If true, preheats to max(selected_filament_type, previous_filament_type)
     bool consider_previous_filament : 1;
+
     /// @returns preheat behavior for loads during filament change
     static PreheatBehavior for_filament_load(bool force_temp = true);
 
@@ -153,7 +164,7 @@ struct PreheatBehavior {
     static PreheatBehavior for_filament_unload(bool force_temp = true);
 };
 
-std::pair<std::optional<PreheatStatus::Result>, FilamentType> preheat(PreheatData preheat_data, PreheatBehavior preheat_arg);
+std::pair<std::optional<PreheatStatus::Result>, FilamentType> preheat(const FilamentSelectionArgs &selection_args, PreheatBehavior preheat_arg);
 void preheat_to(FilamentType filament, std::variant<PhysicalToolIndex, AllTools> tools, PreheatBehavior preheat_arg);
 
 } // namespace filament_gcodes

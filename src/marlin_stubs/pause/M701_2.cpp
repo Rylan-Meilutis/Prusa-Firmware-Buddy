@@ -74,7 +74,11 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
 
     if (args.op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
-            PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::purge : PreheatMode::standard_load, virtual_tool, *args.op_preheat);
+            const FilamentSelectionArgs data {
+                .mode = do_purge_only ? PreheatMode::purge : PreheatMode::standard_load,
+                .tool = virtual_tool,
+                .ret_cool = *args.op_preheat,
+            };
             auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
             if (preheat_ret.first) {
                 // canceled
@@ -147,7 +151,11 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
 #endif
 
     if (do_preheat) {
-        PreheatData data = PreheatData::make(PreheatMode::unload, virtual_tool, *op_preheat);
+        const FilamentSelectionArgs data {
+            .mode = PreheatMode::unload,
+            .tool = virtual_tool,
+            .ret_cool = *op_preheat,
+        };
         auto preheat_ret = preheat(data, PreheatBehavior::for_filament_unload());
         if (preheat_ret.first) {
             // canceled
@@ -309,7 +317,11 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
     }
 
     if constexpr (option::has_human_interactions) {
-        PreheatData data = PreheatData::make(PreheatMode::autoload, virtual_tool, RetAndCool_t::Return);
+        const FilamentSelectionArgs data {
+            .mode = PreheatMode::autoload,
+            .tool = virtual_tool,
+            .ret_cool = RetAndCool_t::Return,
+        };
         auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
 
         if (preheat_ret.first) {
@@ -405,7 +417,11 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     // LOAD
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
-        PreheatData data = PreheatData::make(PreheatMode::change_load, virtual_tool, preheat);
+        const FilamentSelectionArgs data {
+            .mode = PreheatMode::change_load,
+            .tool = virtual_tool,
+            .ret_cool = preheat,
+        };
         auto preheat_ret = ::preheat(data, PreheatBehavior::for_filament_load());
         if (preheat_ret.first) {
             // canceled

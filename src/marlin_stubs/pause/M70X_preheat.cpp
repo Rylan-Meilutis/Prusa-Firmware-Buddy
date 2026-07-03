@@ -63,8 +63,17 @@ static bool can_use_openprinttag(PreheatMode preheat_mode) {
 }
 #endif
 
-static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
-    const auto serialized_data = preheat_data.serialize();
+PreheatData filament_gcodes::FilamentSelectionArgs::fsm_data() const {
+    return PreheatData {
+        .tool = tool,
+        .mode = mode,
+        .has_return_option = bool(std::to_underlying(ret_cool) & std::to_underlying(RetAndCool_t::Return)),
+        .has_cooldown_option = bool(std::to_underlying(ret_cool) & std::to_underlying(RetAndCool_t::Cooldown)),
+    };
+}
+
+static FSMResponseVariant preheatTempUnKnown(const filament_gcodes::FilamentSelectionArgs &preheat_data) {
+    const auto serialized_data = preheat_data.fsm_data().serialize();
 
     marlin_server::FSM_Holder fsm { ClientFSM::Preheat };
 
@@ -204,7 +213,7 @@ static FSMResponseVariant preheatTempUnKnown(PreheatData preheat_data) {
     }
 }
 
-static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data) {
+static FSMResponseVariant evaluate_preheat_conditions(const filament_gcodes::FilamentSelectionArgs &preheat_data) {
     const auto filament_type = [&] {
         if ((preheat_data.mode != PreheatMode::unload) && (preheat_data.mode != PreheatMode::purge)) {
             // We cannot know the temperature, and thus must ask the user
@@ -227,7 +236,7 @@ static FSMResponseVariant evaluate_preheat_conditions(PreheatData preheat_data) 
     }
 }
 
-std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::preheat(PreheatData preheat_data, PreheatBehavior preheat_arg) {
+std::pair<std::optional<PreheatStatus::Result>, FilamentType> filament_gcodes::preheat(const filament_gcodes::FilamentSelectionArgs &preheat_data, PreheatBehavior preheat_arg) {
     const FSMResponseVariant response = evaluate_preheat_conditions(preheat_data);
 
     const auto physical_tool = to_physical_tool_index<AllTools>(preheat_data.tool);
@@ -330,7 +339,11 @@ void filament_gcodes::preheat_to(FilamentType filament, std::variant<PhysicalToo
 
 void filament_gcodes::M1700_preheat(const M1700Args &args) {
     InProgress progress;
-    const FSMResponseVariant response_variant = preheatTempUnKnown(PreheatData::make(args.mode, args.tool, args.preheat));
+    const FSMResponseVariant response_variant = preheatTempUnKnown(FilamentSelectionArgs {
+        .mode = args.mode,
+        .tool = args.tool,
+        .ret_cool = args.preheat,
+    });
 
     // autoload ocurred
     if (!response_variant) {
