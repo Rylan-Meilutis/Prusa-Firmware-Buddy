@@ -2,22 +2,9 @@
 #include "screen_menu_settings.hpp"
 
 #include "screen_menu_experimental_settings.hpp"
-#include "screen_help_fw_update.hpp"
 #include "ScreenHandler.hpp"
 #include "knob_event.hpp"
 #include "img_resources.hpp"
-
-using namespace buddy;
-
-/*****************************************************************************/
-// MI_HELP_FW_UPDATE
-MI_HELP_FW_UPDATE::MI_HELP_FW_UPDATE()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
-}
-
-void MI_HELP_FW_UPDATE::click(IWindowMenu & /*window_menu*/) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenHelpFWUpdate>);
-}
 
 ScreenMenuSettings::ScreenMenuSettings()
     : ScreenMenuSettingsBase {

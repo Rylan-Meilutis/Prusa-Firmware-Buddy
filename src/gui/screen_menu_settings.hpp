@@ -37,18 +37,6 @@
     #include <screen/openprinttag/screen_opt_settings.hpp>
 #endif
 
-class MI_HELP_FW_UPDATE : public IWindowMenuItem {
-    static constexpr const char *const label = N_("FW update");
-
-public:
-    MI_HELP_FW_UPDATE();
-
-protected:
-    virtual void click(IWindowMenu &window_menu) override;
-};
-
-/*****************************************************************************/
-
 using ScreenMenuSettingsBase = BasicScreenMenu<
 #if HAS_TOOLCHANGER()
     MI_TOOLHEAD_SETTINGS,

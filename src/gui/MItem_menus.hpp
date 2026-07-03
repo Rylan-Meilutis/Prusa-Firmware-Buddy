@@ -128,6 +128,9 @@ using MI_HARDWARE
 using MI_HARDWARE_G_CODE_CHECKS
     = MI_SCREEN<N_("G-Code Checks"), class ScreenMenuHardwareChecks>;
 
+using MI_HELP_FW_UPDATE
+    = MI_SCREEN<N_("FW update"), class ScreenHelpFWUpdate>;
+
 #if HAS_WASTEBIN_FILL_TRACKING()
 using MI_WASTEBIN
     = MI_SCREEN<N_("Nozzle Cleaner"), class ScreenMenuWastebin>;
