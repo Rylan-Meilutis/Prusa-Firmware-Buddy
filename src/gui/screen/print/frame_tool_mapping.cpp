@@ -37,7 +37,7 @@ namespace {
     };
 
     Response show_msg_box(const string_view_utf8 &msg, PhaseResponses responses, size_t default_button = 0) {
-        MsgBoxBase msgbox(GuiDefaults::DialogFrameRect, responses, default_button, nullptr, msg, is_multiline::yes);
+        MsgBoxBase msgbox(GuiDefaults::DialogFrameRect, responses, default_button, msg, is_multiline::yes);
         msgbox.set_text_alignment(Align_t::Center());
         Screens::Access()->gui_loop_until_dialog_closed();
         return msgbox.GetResult();

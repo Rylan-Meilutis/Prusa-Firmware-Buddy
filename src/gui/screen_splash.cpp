@@ -181,7 +181,6 @@ ScreenSplash::ScreenSplash()
                 icon_point,
                 Responses_Ok,
                 0,
-                nullptr,
                 _("Before using the 3D printer, it is necessary to remove all 3 screws, that secure the heated bed during transport.\n\nThe screws are marked with a sticker."),
                 is_multiline::yes,
                 &img::ac_heatbed_screw_80x246,

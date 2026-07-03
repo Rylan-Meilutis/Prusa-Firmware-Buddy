@@ -343,7 +343,7 @@ void screen_home_data_t::handle_crash_dump() {
                         " Send it to: reports@prusa3d.com"),
             Responses_YesNo)
         == Response::Yes) {
-        MsgBoxIconned box { GuiDefaults::DialogFrameRect, Responses_NONE, 0, nullptr, _("Saving to USB"), is_multiline::yes, &img::info_58x58 };
+        MsgBoxIconned box { GuiDefaults::DialogFrameRect, Responses_NONE, 0, _("Saving to USB"), is_multiline::yes, &img::info_58x58 };
         box.Show();
         draw();
         for (const auto &dump_handler : present_dumps) {

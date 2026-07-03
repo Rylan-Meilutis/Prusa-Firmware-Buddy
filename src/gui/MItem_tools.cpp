@@ -87,7 +87,7 @@
 namespace {
 void MsgBoxNonBlockInfo(const string_view_utf8 &txt) {
     constexpr static const char *title = N_("Information");
-    MsgBoxTitled mbt(GuiDefaults::DialogFrameRect, Responses_NONE, 0, nullptr, txt, is_multiline::yes, _(title), &img::info_16x16);
+    MsgBoxTitled mbt(GuiDefaults::DialogFrameRect, Responses_NONE, 0, txt, is_multiline::yes, _(title), &img::info_16x16);
     gui::TickLoop();
     gui_loop();
 }

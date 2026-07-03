@@ -48,7 +48,7 @@ protected:
     Response result = Response::_none; // return value
 
 public:
-    MsgBoxBase(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxBase(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline = is_multiline::yes, is_closed_on_click_t close = is_closed_on_click_t::yes);
 
     [[nodiscard]] inline Response GetResult() const {
@@ -75,14 +75,14 @@ protected:
 class MsgBoxIconned : public MsgBoxBase {
 
 public:
-    MsgBoxIconned(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxIconned(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const img::Resource *icon_res,
         is_closed_on_click_t close = is_closed_on_click_t::yes);
 
     /**
      * @brief ctor for specified icon position (left of the text on LARGE display and above the text on MINI display)
      */
-    MsgBoxIconned(Rect16 rect, const point_ui16_t icon_point, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxIconned(Rect16 rect, const point_ui16_t icon_point, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const img::Resource *icon_res,
         is_closed_on_click_t close = is_closed_on_click_t::yes);
 
@@ -98,7 +98,7 @@ protected:
 // MsgBoxTitled
 class MsgBoxTitled : public MsgBoxIconned {
 public:
-    MsgBoxTitled(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxTitled(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const string_view_utf8 &tit, const img::Resource *title_icon_res,
         is_closed_on_click_t close = is_closed_on_click_t::yes, dense_t dense = dense_t::no);
 
@@ -126,7 +126,7 @@ protected:
 // MsgBoxPepaCentered
 class MsgBoxIconPepaCentered : public MsgBoxIconned {
 public:
-    MsgBoxIconPepaCentered(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxIconPepaCentered(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const img::Resource *icon);
 
 protected:
@@ -138,14 +138,14 @@ protected:
 // MsgBoxError
 class MsgBoxIconnedError : public MsgBoxIconned {
 public:
-    MsgBoxIconnedError(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxIconnedError(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const img::Resource *icon);
 };
 
 // MsgBoxWait
 class MsgBoxIconnedWait : public MsgBoxIconned {
 public:
-    MsgBoxIconnedWait(Rect16 rect, const PhaseResponses &resp, size_t def_btn, const PhaseTexts *labels,
+    MsgBoxIconnedWait(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline);
 };
 
