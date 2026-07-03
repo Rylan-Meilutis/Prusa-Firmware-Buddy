@@ -30,7 +30,7 @@ public:
     };
 
     /// Called when a radio button is pressed
-    using RadioCallback = stdext::inplace_function<void(Response)>;
+    using RadioCallback = RadioButton::ClickCallback;
 
     /// Called when OpenPrintTag loading fails
     using ErrorCallback = stdext::inplace_function<void()>;
@@ -44,7 +44,6 @@ public:
 protected:
     void scan();
 
-    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
     void screenEvent(window_t *sender, GUI_event_t event, void *param) override;
 
 private:
@@ -64,7 +63,6 @@ private:
     AmountsInfo::WeightStrBuffer weight_buffer_;
 
 private:
-    RadioCallback radio_callback_;
     ErrorCallback error_callback_;
     std::optional<ToolTag> tag_;
     bool scan_pending_ = true;

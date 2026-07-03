@@ -113,7 +113,7 @@ FrameOPTPrompt::FrameOPTPrompt(window_frame_t *parent, const string_view_utf8 &t
 void FrameOPTPrompt::setup_radio(PhaseResponses responses, const RadioCallback &callback) {
     radio_.Change(responses);
     radio_.SetBtnIndex(0);
-    radio_callback_ = callback;
+    radio_.set_callback(callback);
 }
 
 void FrameOPTPrompt::setup_tag(std::optional<ToolTag> tag, const ErrorCallback &error_callback) {
@@ -166,21 +166,6 @@ void FrameOPTPrompt::scan() {
     }
 
     // TODO something with status text
-}
-
-void FrameOPTPrompt::windowEvent(window_t *sender, GUI_event_t event, void *param) {
-    switch (event) {
-
-    case GUI_event_t::CHILD_CLICK:
-        // Ye olde way of the RadioButton letting us know about a click
-        radio_callback_(event_conversion_union { .pvoid = param }.response);
-        break;
-
-    default:
-        break;
-    }
-
-    window_frame_t::windowEvent(sender, event, param);
 }
 
 void FrameOPTPrompt::screenEvent(window_t *sender, GUI_event_t event, void *param) {
