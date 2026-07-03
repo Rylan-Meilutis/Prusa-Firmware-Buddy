@@ -70,6 +70,7 @@ static_assert(HAS_PAUSE());
 
 static void M600_manual(const GCodeParser2 &);
 
+#include <common/mapi/parking.hpp>
 #include <config_store/store_instance.hpp>
 
 /** \addtogroup G-Codes
@@ -167,9 +168,9 @@ void M600_manual(const GCodeParser2 &p) {
 
     auto park_point = logical_park_point.asNative();
 
+    const xyz_pos_t default_park_point = mapi::get_parking_position(mapi::ParkPosition::filament_change).to_xyz_pos(current_position.xyz());
     LOOP_XYZ(i) {
         if (std::isnan(park_point[i])) {
-            static constexpr xyz_pos_t default_park_point = XYZ_NOZZLE_PARK_POINT_M600;
             park_point[i] = default_park_point[i];
         }
     }
@@ -312,7 +313,7 @@ void PrusaGcodeSuite::M1601() {
         bsod_unreachable();
     }
     M600_execute(
-        XYZ_NOZZLE_PARK_POINT_M600,
+        mapi::get_parking_position(mapi::ParkPosition::filament_change).to_xyz_pos(current_position.xyz()),
         *active_tool,
         current_position,
         std::nullopt, std::nullopt, std::nullopt,

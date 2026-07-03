@@ -1558,12 +1558,12 @@ void Pause::park_nozzle_and_notify() {
                 });
 
             // We have moved both axes, go to park position if not requested otherwise
-            static constexpr xyz_pos_t park = XYZ_NOZZLE_PARK_POINT_M600;
+            const mapi::ParkingPosition default_park = mapi::get_parking_position(mapi::ParkPosition::filament_change);
             if (std::holds_alternative<mapi::ParkingPosition::Unchanged>(xy_target.x)) {
-                xy_target.x = park.x;
+                xy_target.x = default_park.x;
             }
             if (std::holds_alternative<mapi::ParkingPosition::Unchanged>(xy_target.y)) {
-                xy_target.y = park.y;
+                xy_target.y = default_park.y;
             }
         }
 #else /*CORE_IS_XY*/
