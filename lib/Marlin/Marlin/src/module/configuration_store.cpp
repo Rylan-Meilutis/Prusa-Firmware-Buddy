@@ -201,7 +201,7 @@ bool MarlinSettings::save() {
 
   return true;
 #else
-  DEBUG_ERROR_MSG("EEPROM disabled");
+  SERIAL_ERROR_MSG("EEPROM disabled");
   return false;
 #endif
 }

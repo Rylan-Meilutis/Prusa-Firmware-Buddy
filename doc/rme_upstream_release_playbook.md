@@ -8,18 +8,18 @@ Bring the RME feature set onto the new upstream release with the smallest practi
 
 ## Current Baseline
 
-RME 6.6.0 is based on upstream tag `v6.6.0` at `e96ce2b92a`.
+RME 6.6.1 is based on upstream tag `v6.6.1` at `8d187d189e`.
 
 The active release branch is:
 
 ```sh
-rme-v6.6.0
+rme-v6.6.1
 ```
 
 The release notes for the active release are:
 
 ```sh
-RELEASE_NOTES_v6.6.0-RME.md
+RELEASE_NOTES_v6.6.1-RME.md
 ```
 
 The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
@@ -37,12 +37,12 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git diff --stat v6.6.0..rme-v6.6.0
-git diff --name-status v6.6.0..rme-v6.6.0
-git diff --dirstat=files,0 v6.6.0..rme-v6.6.0
+git diff --stat v6.6.1..rme-v6.6.1
+git diff --name-status v6.6.1..rme-v6.6.1
+git diff --dirstat=files,0 v6.6.1..rme-v6.6.1
 ```
 
-At the time this playbook was last audited, the RME 6.6.0 release port covered 538 files with 13,933 insertions and 1,251 deletions relative to upstream `v6.6.0`. The stack contains 119 replayed and port-refresh RME commits through `2ed2b31fe`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, the serial MMU print-completion unload fix, and the Buddy 6.6.0 API/resource port. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.6.1 release port covered 544 files with 14,038 insertions and 1,277 deletions relative to upstream `v6.6.1`. The stack contains 123 replayed and port-refresh RME commits through `4e44c70d`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, the serial MMU print-completion unload fix, the Buddy 6.6.0 API/resource port, the serial M601/M602 host-action fix, and the ignored short serial macro finished-screen restore fix. Upstream 6.6.1 adds the translation refresh over the 6.6.0 base. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
 
 The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
@@ -98,7 +98,7 @@ git remote -v
 Prefer a linear cherry-pick of the existing RME commits from the last release branch. Keep upstream changes intact unless they directly replace an RME patch.
 
 ```sh
-git log --oneline v6.6.0..rme-v6.6.0
+git log --oneline v6.6.1..rme-v6.6.1
 git cherry-pick <first-rme-commit>^..<last-rme-commit>
 ```
 
@@ -107,8 +107,8 @@ If the old branch has extra experimental commits, cherry-pick the feature groups
 3. Before resolving conflicts, regenerate the changed-file inventory from the old release branch and compare it to this playbook.
 
 ```sh
-git diff --name-status v6.6.0..rme-v6.6.0 > /tmp/rme-files.txt
-git diff --dirstat=files,0 v6.6.0..rme-v6.6.0
+git diff --name-status v6.6.1..rme-v6.6.1 > /tmp/rme-files.txt
+git diff --dirstat=files,0 v6.6.1..rme-v6.6.1
 ```
 
 Every non-resource source directory in that inventory should map to one of the feature groups below. If a file does not fit, add a new playbook item before finishing the rebase.
@@ -133,6 +133,12 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 ```
 
 The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, and absolute staged BBF paths.
+
+If CMake cannot find Nunavut `nnvg` even though the bootstrap virtualenv has it installed, put the virtualenv bin directory on `PATH` and pass the Python root through to nested CMake projects:
+
+```sh
+PATH=.venv/bin:$PATH ./build.py --final --jobs 4 -D Python3_ROOT_DIR:PATH=$PWD/.venv
+```
 
 For broad compatibility after touching shared CMake, resources, build options, or feature flags, also run the default Buddy preset matrix from `utils/build.py` on at least one clean machine:
 

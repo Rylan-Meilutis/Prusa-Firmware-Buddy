@@ -53,9 +53,15 @@ namespace defaults {
     inline constexpr float pid_nozzle_p { DEFAULT_Kp };
     inline constexpr float pid_nozzle_i { scalePID_i(DEFAULT_Ki) };
     inline constexpr float pid_nozzle_d { scalePID_d(DEFAULT_Kd) };
+#if ENABLED(PIDTEMPBED)
     inline constexpr float pid_bed_p { DEFAULT_bedKp };
     inline constexpr float pid_bed_i { scalePID_i(DEFAULT_bedKi) };
     inline constexpr float pid_bed_d { scalePID_d(DEFAULT_bedKd) };
+#else
+    inline constexpr float pid_bed_p { 0.0f };
+    inline constexpr float pid_bed_i { 0.0f };
+    inline constexpr float pid_bed_d { 0.0f };
+#endif
 
     inline constexpr std::array<char, lan_hostname_max_len + 1> net_hostname { LAN_HOSTNAME_DEF };
     inline constexpr int8_t lan_timezone { 1 };

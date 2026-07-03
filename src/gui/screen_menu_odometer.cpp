@@ -28,17 +28,17 @@ ScreenMenuOdometer::ScreenMenuOdometer()
     Item<MI_ODOMETER_DIST_Z>().UpdateValue(Odometer_s::instance().get_axis(Odometer_s::axis_t::Z));
     Item<MI_ODOMETER_DIST_E>().UpdateValue(Odometer_s::instance().get_extruded_all());
 #if HAS_TOOLCHANGER()
-    Item<MI_ODOMETER_DIST_E_N<0>>().UpdateValue(Odometer_s::instance().get_extruded(0));
-    Item<MI_ODOMETER_DIST_E_N<1>>().UpdateValue(Odometer_s::instance().get_extruded(1));
-    Item<MI_ODOMETER_DIST_E_N<2>>().UpdateValue(Odometer_s::instance().get_extruded(2));
-    Item<MI_ODOMETER_DIST_E_N<3>>().UpdateValue(Odometer_s::instance().get_extruded(3));
-    Item<MI_ODOMETER_DIST_E_N<4>>().UpdateValue(Odometer_s::instance().get_extruded(4));
+    Item<MI_ODOMETER_DIST_E_N<0>>().UpdateValue(Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(0)));
+    Item<MI_ODOMETER_DIST_E_N<1>>().UpdateValue(Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(1)));
+    Item<MI_ODOMETER_DIST_E_N<2>>().UpdateValue(Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(2)));
+    Item<MI_ODOMETER_DIST_E_N<3>>().UpdateValue(Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(3)));
+    Item<MI_ODOMETER_DIST_E_N<4>>().UpdateValue(Odometer_s::instance().get_extruded(PhysicalToolIndex::from_raw(4)));
     Item<MI_ODOMETER_TOOL>().UpdateValue(Odometer_s::instance().get_toolpick_all());
-    Item<MI_ODOMETER_TOOL_N<0>>().UpdateValue(Odometer_s::instance().get_toolpick(0));
-    Item<MI_ODOMETER_TOOL_N<1>>().UpdateValue(Odometer_s::instance().get_toolpick(1));
-    Item<MI_ODOMETER_TOOL_N<2>>().UpdateValue(Odometer_s::instance().get_toolpick(2));
-    Item<MI_ODOMETER_TOOL_N<3>>().UpdateValue(Odometer_s::instance().get_toolpick(3));
-    Item<MI_ODOMETER_TOOL_N<4>>().UpdateValue(Odometer_s::instance().get_toolpick(4));
+    Item<MI_ODOMETER_TOOL_N<0>>().UpdateValue(Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(0)));
+    Item<MI_ODOMETER_TOOL_N<1>>().UpdateValue(Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(1)));
+    Item<MI_ODOMETER_TOOL_N<2>>().UpdateValue(Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(2)));
+    Item<MI_ODOMETER_TOOL_N<3>>().UpdateValue(Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(3)));
+    Item<MI_ODOMETER_TOOL_N<4>>().UpdateValue(Odometer_s::instance().get_toolpick(PhysicalToolIndex::from_raw(4)));
 #endif
 #if HAS_MMU2()
     Item<MI_ODOMETER_MMU_CHANGES>().UpdateValue(Odometer_s::instance().get_mmu_changes());
