@@ -143,6 +143,9 @@ struct FilamentSelectionArgs {
     ToolIndex tool;
     RetAndCool_t ret_cool;
 
+    /// Ask the user for filament selection even if it could be deduced from the currently loaded filament
+    bool disregard_loaded_filament : 1 = false;
+
     PreheatData fsm_data() const;
 };
 
