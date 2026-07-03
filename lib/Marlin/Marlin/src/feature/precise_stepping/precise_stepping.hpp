@@ -140,10 +140,10 @@ public:
     // event beyond the flush time. Because for the same state of the move segment queue, some step
     // event generator could generate step events far away from others, which could let to incorrect
     // ordering of step events.
-    static double max_lookback_time;
+    static TimeTicks max_lookback_time;
 
     static xyze_double_t initial_start_pos; // Initial absolute position (mm, cartesian)
-    static double total_print_time; // Cumulative time since beginning of motion (s)
+    static TimeTicks total_print_time; // Cumulative time since beginning of motion
     static xyze_double_t total_start_pos; // Current absolute position (mm, cartesian)
     static xyze_msteps_t total_start_pos_msteps; // Current absolute position in mini-steps (msteps, cartesian)
 
@@ -388,9 +388,9 @@ public:
 
     static void update_maximum_lookback_time();
 
-    static double get_first_move_delay();
+    static TimeTicks get_first_move_delay();
     static uint32_t get_first_move_delay_us() {
-        return static_cast<uint32_t>(get_first_move_delay() * 1e6);
+        return static_cast<uint32_t>(get_first_move_delay().to_us_floor());
     }
 
     // This function must be called after the whole actual move segment is processed or the artificially
