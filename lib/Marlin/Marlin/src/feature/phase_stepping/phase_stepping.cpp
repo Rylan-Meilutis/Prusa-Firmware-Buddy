@@ -108,8 +108,7 @@ FORCE_INLINE TimeTicks calc_move_segment_end_time(const move_t &move) {
 }
 
 FORCE_INLINE TimeTicks calc_move_segment_end_time(const input_shaper_state_t &is_state) {
-    // IS state keeps double seconds; bounded by real move end times, safe for from_seconds.
-    return TimeTicks::from_seconds(is_state.nearest_next_change);
+    return is_state.nearest_next_change;
 }
 
 template <typename T>
@@ -191,8 +190,7 @@ void phase_stepping::init_step_generator_input_shaping(
     // Inherit input shaper initialization...
     input_shaper_step_generator_init(move, step_generator, step_generator_state);
 
-    // IS state keeps double seconds; convert at the boundary.
-    axis_state.current_print_time_us = static_cast<uint64_t>(TimeTicks::from_seconds(step_generator.is_state->print_time).to_us_floor());
+    axis_state.current_print_time_us = static_cast<uint64_t>(step_generator.is_state->print_time.to_us_floor());
 
     axis_state.next_target_end_time = calc_move_segment_end_time(*step_generator.is_state);
     const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());
@@ -279,8 +277,7 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
         next_step_event.time = axis_state.next_target_end_time;
         next_step_event.status = StepEventInfoStatus::STEP_EVENT_INFO_STATUS_GENERATED_PENDING;
     } else {
-        // IS state keeps double seconds; convert at the boundary.
-        next_step_event.time = TimeTicks::from_seconds(step_generator.is_state->nearest_next_change);
+        next_step_event.time = step_generator.is_state->nearest_next_change;
 
         if (input_shaper_state_update(*step_generator.is_state, step_generator.axis)) {
             uint8_t axis = axis_state.axis_index;
@@ -294,7 +291,7 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
             }
 
             // buffer the next
-            if (step_generator.is_state->nearest_next_change < MAX_PRINT_TIME) {
+            if (step_generator.is_state->nearest_next_change < MAX_PRINT_TIME_TICKS) {
                 axis_state.next_target_end_time = calc_move_segment_end_time(*step_generator.is_state);
                 // floor endpoints first, then difference (preserves Σ(durations)==floor(absolute) invariant)
                 const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());

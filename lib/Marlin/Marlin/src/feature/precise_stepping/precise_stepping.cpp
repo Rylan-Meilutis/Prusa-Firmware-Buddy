@@ -1525,18 +1525,18 @@ void PreciseStepping::update_maximum_lookback_time() {
         if (physical_axis_step_generator_types & (INPUT_SHAPER_STEP_GENERATOR_X << i)) {
     #ifdef COREXY
             if ((physical_axis_step_generator_types & INPUT_SHAPER_STEP_GENERATOR_X) || (physical_axis_step_generator_types & INPUT_SHAPER_STEP_GENERATOR_Y)) {
-                max_lookback_time = std::max(max_lookback_time, std::max(TimeTicks::from_seconds(-InputShaper::logical_axis_pulses[X_AXIS].pulses[0].t), TimeTicks::from_seconds(-InputShaper::logical_axis_pulses[Y_AXIS].pulses[0].t)));
+                max_lookback_time = std::max(max_lookback_time, std::max(-InputShaper::logical_axis_pulses[X_AXIS].pulses[0].t, -InputShaper::logical_axis_pulses[Y_AXIS].pulses[0].t));
             } else {
-                max_lookback_time = std::max(max_lookback_time, TimeTicks::from_seconds(-InputShaper::logical_axis_pulses[i].pulses[0].t));
+                max_lookback_time = std::max(max_lookback_time, -InputShaper::logical_axis_pulses[i].pulses[0].t);
             }
     #else
-            max_lookback_time = std::max(max_lookback_time, TimeTicks::from_seconds(-InputShaper::logical_axis_pulses[i].pulses[0].t));
+            max_lookback_time = std::max(max_lookback_time, -InputShaper::logical_axis_pulses[i].pulses[0].t);
     #endif
         }
     }
     if (physical_axis_step_generator_types & PRESSURE_ADVANCE_STEP_GENERATOR_E) {
         const pressure_advance_params_t &pa_params = PressureAdvance::pressure_advance_params;
-        max_lookback_time = std::max(max_lookback_time, TimeTicks::from_seconds(pa_params.filter_total_time));
+        max_lookback_time = std::max(max_lookback_time, pa_params.filter_total_time);
     }
 #endif
 }

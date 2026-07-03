@@ -33,12 +33,10 @@
     #define STEPPING_INLINE __attribute__((always_inline)) inline
 #endif
 
-constexpr const double EPSILON = 0.000000001;
 constexpr const float EPSILON_FLOAT = 0.0000001f;
 /// ≈1 ns slack for segment-boundary compares, same magnitude as the old double EPSILON.
 inline const TimeTicks EPSILON_TICKS = TimeTicks::from_seconds(1e-9);
 
-constexpr const double MAX_PRINT_TIME = 10000000.;
 /// Maximum print time sentinel (10^7 s ≈ 116 days); motion halts and resets above this.
 inline const TimeTicks MAX_PRINT_TIME_TICKS = TimeTicks::from_seconds(1e7);
 
