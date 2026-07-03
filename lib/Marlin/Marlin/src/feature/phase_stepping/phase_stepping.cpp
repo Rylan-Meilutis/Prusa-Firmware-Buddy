@@ -103,16 +103,13 @@ void phase_stepping::init() {
     initialized = true;
 }
 
-FORCE_INLINE uint64_t convert_absolute_time_to_ticks(const double time) {
-    return uint64_t(time * TICK_FREQ);
-}
-
-FORCE_INLINE double calc_move_segment_end_time(const move_t &move) {
+FORCE_INLINE TimeTicks calc_move_segment_end_time(const move_t &move) {
     return move.print_time + move.move_time;
 }
 
-FORCE_INLINE double calc_move_segment_end_time(const input_shaper_state_t &is_state) {
-    return is_state.nearest_next_change;
+FORCE_INLINE TimeTicks calc_move_segment_end_time(const input_shaper_state_t &is_state) {
+    // IS state keeps double seconds; bounded by real move end times, safe for from_seconds.
+    return TimeTicks::from_seconds(is_state.nearest_next_change);
 }
 
 template <typename T>
@@ -143,7 +140,7 @@ static void init_step_generator_internal(
     axis_state.last_position = axis_state.next_target.peek().initial_pos;
     axis_state.current_target = MoveTarget(axis_state.last_position);
     axis_state.has_current_target = true;
-    axis_state.next_target_end_time = MAX_PRINT_TIME;
+    axis_state.next_target_end_time = MAX_PRINT_TIME_TICKS;
 
     int32_t initial_steps_made = pos_to_steps(AxisEnum(axis), axis_state.next_target.peek().initial_pos);
     axis_state.initial_count_position = Stepper::get_axis_steps(AxisEnum(axis)) - initial_steps_made;
@@ -162,14 +159,14 @@ void phase_stepping::init_step_generator_classic(
     axis_state.active.store(false, std::memory_order_seq_cst);
 
     const uint8_t axis = step_generator.axis;
-    axis_state.current_print_time_ticks = convert_absolute_time_to_ticks(move.print_time);
+    axis_state.current_print_time_us = static_cast<uint64_t>(move.print_time.to_us_floor());
 
     axis_state.next_target_end_time = calc_move_segment_end_time(move);
-    const uint64_t next_print_time_ticks = convert_absolute_time_to_ticks(axis_state.next_target_end_time);
-    const uint64_t move_duration_ticks = next_print_time_ticks - axis_state.current_print_time_ticks;
+    const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());
+    const uint64_t move_duration_ticks = next_print_time_us - axis_state.current_print_time_us;
     const float move_start_pos = extract_physical_position(AxisEnum(axis), move.start_pos);
     axis_state.next_target.set(MoveTarget(move_start_pos, move, axis, move_duration_ticks));
-    axis_state.current_print_time_ticks = next_print_time_ticks;
+    axis_state.current_print_time_us = next_print_time_us;
 
     step_generator_state.step_generator[axis] = &step_generator;
     step_generator_state.next_step_func[axis] = (generator_next_step_f)next_step_event_classic;
@@ -194,13 +191,14 @@ void phase_stepping::init_step_generator_input_shaping(
     // Inherit input shaper initialization...
     input_shaper_step_generator_init(move, step_generator, step_generator_state);
 
-    axis_state.current_print_time_ticks = convert_absolute_time_to_ticks(step_generator.is_state->print_time);
+    // IS state keeps double seconds; convert at the boundary.
+    axis_state.current_print_time_us = static_cast<uint64_t>(TimeTicks::from_seconds(step_generator.is_state->print_time).to_us_floor());
 
     axis_state.next_target_end_time = calc_move_segment_end_time(*step_generator.is_state);
-    const uint64_t next_print_time_ticks = convert_absolute_time_to_ticks(axis_state.next_target_end_time);
-    const uint64_t move_duration_ticks = next_print_time_ticks - axis_state.current_print_time_ticks;
+    const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());
+    const uint64_t move_duration_ticks = next_print_time_us - axis_state.current_print_time_us;
     axis_state.next_target.set(MoveTarget(step_generator.is_state->start_pos, *step_generator.is_state, move_duration_ticks));
-    axis_state.current_print_time_ticks = next_print_time_ticks;
+    axis_state.current_print_time_us = next_print_time_us;
 
     // ...and then override next_step_func with phase stepping one
     const uint8_t axis = step_generator.axis;
@@ -223,10 +221,10 @@ step_event_info_t phase_stepping::next_step_event_classic(
 
     step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
     if (axis_state.pending_targets.isFull()) {
-        next_step_event.time = TimeTicks::from_seconds(axis_state.next_target_end_time);
+        next_step_event.time = axis_state.next_target_end_time;
         next_step_event.status = StepEventInfoStatus::STEP_EVENT_INFO_STATUS_GENERATED_PENDING;
     } else if (const move_t *next_move = PreciseStepping::move_segment_queue_next_move(*axis_state.last_processed_move); next_move != nullptr) {
-        next_step_event.time = TimeTicks::from_seconds(next_move->print_time);
+        next_step_event.time = next_move->print_time;
 
         const uint8_t axis = axis_state.axis_index;
         const float move_start_pos = extract_physical_position(AxisEnum(axis), next_move->start_pos);
@@ -241,11 +239,12 @@ step_event_info_t phase_stepping::next_step_event_classic(
         // buffer the next
         if (!is_ending_empty_move(*next_move)) {
             axis_state.next_target_end_time = calc_move_segment_end_time(*next_move);
-            const uint64_t next_print_time_ticks = convert_absolute_time_to_ticks(axis_state.next_target_end_time);
-            const uint64_t move_duration_ticks = next_print_time_ticks - axis_state.current_print_time_ticks;
+            // floor endpoints first, then difference (preserves Σ(durations)==floor(absolute) invariant)
+            const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());
+            const uint64_t move_duration_ticks = next_print_time_us - axis_state.current_print_time_us;
             MoveTarget next(move_start_pos, *next_move, axis, move_duration_ticks);
             axis_state.next_target.set(next);
-            axis_state.current_print_time_ticks = next_print_time_ticks;
+            axis_state.current_print_time_us = next_print_time_us;
 
             const int32_t target_steps = pos_to_steps(AxisEnum(axis), next.target_pos);
             step_generator_state.current_distance[axis] = target_steps;
@@ -262,7 +261,7 @@ step_event_info_t phase_stepping::next_step_event_classic(
 
         PreciseStepping::move_segment_processed_handler();
     } else {
-        next_step_event.time = TimeTicks::from_seconds(axis_state.last_processed_move->print_time + axis_state.last_processed_move->move_time);
+        next_step_event.time = axis_state.last_processed_move->print_time + axis_state.last_processed_move->move_time;
     }
 
     return next_step_event;
@@ -277,9 +276,10 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
 
     step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
     if (axis_state.pending_targets.isFull()) {
-        next_step_event.time = TimeTicks::from_seconds(axis_state.next_target_end_time);
+        next_step_event.time = axis_state.next_target_end_time;
         next_step_event.status = StepEventInfoStatus::STEP_EVENT_INFO_STATUS_GENERATED_PENDING;
     } else {
+        // IS state keeps double seconds; convert at the boundary.
         next_step_event.time = TimeTicks::from_seconds(step_generator.is_state->nearest_next_change);
 
         if (input_shaper_state_update(*step_generator.is_state, step_generator.axis)) {
@@ -296,11 +296,12 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
             // buffer the next
             if (step_generator.is_state->nearest_next_change < MAX_PRINT_TIME) {
                 axis_state.next_target_end_time = calc_move_segment_end_time(*step_generator.is_state);
-                const uint64_t next_print_time_ticks = convert_absolute_time_to_ticks(axis_state.next_target_end_time);
-                const uint64_t move_duration_ticks = next_print_time_ticks - axis_state.current_print_time_ticks;
+                // floor endpoints first, then difference (preserves Σ(durations)==floor(absolute) invariant)
+                const uint64_t next_print_time_us = static_cast<uint64_t>(axis_state.next_target_end_time.to_us_floor());
+                const uint64_t move_duration_ticks = next_print_time_us - axis_state.current_print_time_us;
                 MoveTarget next(move_start_pos, *step_generator.is_state, move_duration_ticks);
                 axis_state.next_target.set(next);
-                axis_state.current_print_time_ticks = next_print_time_ticks;
+                axis_state.current_print_time_us = next_print_time_us;
 
                 const int32_t target_steps = pos_to_steps(AxisEnum(axis), next.target_pos);
                 step_generator_state.current_distance[axis] = target_steps;

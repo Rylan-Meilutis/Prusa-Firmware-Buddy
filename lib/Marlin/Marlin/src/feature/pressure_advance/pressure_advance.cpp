@@ -46,7 +46,7 @@ FORCE_INLINE void pressure_advance_precalculate_parameters(pressure_advance_step
     }
 
     if (!is_ending_empty_move(current_move)) {
-        const double current_move_end_time = current_move.print_time + current_move.move_time;
+        const double current_move_end_time = (current_move.print_time + current_move.move_time).to_seconds();
         state.current_move_last_total_sample_idx = uint32_t(current_move_end_time / params.sampling_rate);
     } else {
         state.current_move_last_total_sample_idx = std::numeric_limits<uint32_t>::max();
@@ -216,7 +216,8 @@ FORCE_INLINE bool pressure_advance_sample_next(pressure_advance_state_t &state, 
         for (; state.total_sample_idx < state.buffer.length && state.total_sample_idx <= state.current_move_last_total_sample_idx; ++state.total_sample_idx, ++state.local_sample_idx) {
             const float next_local_sample_time = state.local_sample_time_left + state.local_sample_idx * params.sampling_rate_float;
 
-            assert(next_local_sample_time + EPSILON >= state.current_move->print_time);
+            // Reachable only during the beginning empty move where print_time==0; simpler form.
+            assert(next_local_sample_time + EPSILON_FLOAT >= 0.f);
             const float extruder_position = state.start_pos + calc_distance_for_time_with_pressure_advance_move(state, next_local_sample_time);
             state.buffer.data[state.total_sample_idx] = extruder_position;
             pressure_advance_update_same_samples_count(state);
@@ -287,7 +288,7 @@ double calc_time_for_distance_pressure_advance(const float distance, pressure_ad
     pressure_advance_state_t &state = *step_generator.pa_state;
     // We need to ensure that when the filter is applied for the first time, then the value will be 0.
     // Because of that, we need the beginning empty move segment with duration at least equal to sampling_rate * filter.length.
-    assert(!is_beginning_empty_move(*state.current_move) || state.current_move->move_time >= (params.sampling_rate * params.filter.length));
+    assert(!is_beginning_empty_move(*state.current_move) || state.current_move->move_time.to_seconds() >= (params.sampling_rate * params.filter.length));
 
 #ifndef NDEBUG
     {
@@ -408,8 +409,8 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
     const double elapsed_time = step_time;
     if (step_time >= MAX_PRINT_TIME) {
         if (is_pressure_advance_reached_end(*step_generator.pa_state)) {
-            assert(step_generator.pa_state->current_move->move_time == MAX_PRINT_TIME);
-            next_step_event.time = TimeTicks::from_seconds(step_generator.pa_state->current_move->print_time + step_generator.pa_state->current_move->move_time);
+            assert(step_generator.pa_state->current_move->move_time == MAX_PRINT_TIME_TICKS);
+            next_step_event.time = step_generator.pa_state->current_move->print_time + step_generator.pa_state->current_move->move_time;
         } else {
             next_step_event.time = TimeTicks::from_seconds(pressure_advance_step_time_of_next_sample(*step_generator.pa_state, PressureAdvance::pressure_advance_params));
         }
@@ -440,7 +441,7 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
             ++step_generator.pa_state->current_move->reference_cnt;
 
             step_generator.pa_state->local_sample_idx = 0;
-            step_generator.pa_state->local_sample_time_left = std::max(float((step_generator.pa_state->total_sample_idx * PressureAdvance::pressure_advance_params.sampling_rate) - step_generator.pa_state->current_move->print_time), 0.f);
+            step_generator.pa_state->local_sample_time_left = std::max(float((step_generator.pa_state->total_sample_idx * PressureAdvance::pressure_advance_params.sampling_rate) - step_generator.pa_state->current_move->print_time.to_seconds()), 0.f);
 
             pressure_advance_precalculate_parameters(step_generator, PressureAdvance::pressure_advance_params);
 

@@ -295,7 +295,7 @@ void input_shaper_step_generator_init(const move_t &move, input_shaper_step_gene
 
 void input_shaper_state_init(input_shaper_state_t &is_state, const move_t &move, const uint8_t physical_axis) {
     assert(is_beginning_empty_move(move));
-    assert(move.print_time == 0.);
+    assert(move.print_time == TimeTicks::zero());
     assert(is_state.m_logical_axis_pulses_cnt == 1 || is_state.m_logical_axis_pulses_cnt == 2);
     assert(is_state.m_logical_axis_pulses[0]->num_pulses > 0);
     assert(is_state.m_logical_axis_pulses_cnt != 2 || is_state.m_logical_axis_pulses[0]->num_pulses == is_state.m_logical_axis_pulses[1]->num_pulses);
@@ -304,7 +304,7 @@ void input_shaper_state_init(input_shaper_state_t &is_state, const move_t &move,
     const input_shaper_pulses_t &logical_axis_pulses = *is_state.m_logical_axis_pulses[0];
     for (uint8_t pulse_idx = 0; pulse_idx < logical_axis_pulses.num_pulses; ++pulse_idx) {
         assert(is_state.m_logical_axis_pulses_cnt != 2 || logical_axis_pulses.pulses[pulse_idx].t == is_state.m_logical_axis_pulses[1]->pulses[pulse_idx].t);
-        is_state.m_next_change[pulse_idx] = move.print_time + move.move_time - logical_axis_pulses.pulses[pulse_idx].t;
+        is_state.m_next_change[pulse_idx] = (move.print_time + move.move_time).to_seconds() - logical_axis_pulses.pulses[pulse_idx].t;
         is_state.m_move[pulse_idx] = &move;
     }
 
@@ -334,7 +334,7 @@ void input_shaper_state_init(input_shaper_state_t &is_state, const move_t &move,
     is_state.m_is_crossing_zero_velocity = false;
     is_state.m_nearest_next_change_idx = is_state.calc_nearest_next_change_idx();
 
-    is_state.print_time = move.print_time;
+    is_state.print_time = move.print_time.to_seconds();
     is_state.nearest_next_change = is_state.get_nearest_next_change();
 }
 
@@ -365,7 +365,7 @@ micro_move_segment_t input_shaper_pulses_t::calc_micro_move_segment(const std::a
             const float half_accel = float(get_move_half_accel(move, logical_axis));
 
             // Elapsed time is relative time within the current move segment, so its values are relatively small.
-            const float move_elapsed_time = float(nearest_next_change - (move.print_time - pulse.t));
+            const float move_elapsed_time = float(nearest_next_change - (move.print_time.to_seconds() - pulse.t));
 
             const float half_velocity_diff = half_accel * move_elapsed_time; // (1/2) * a * t
             segment.start_v += (2.f * half_velocity_diff + start_v) * pulse.a; // v0 + a * t
@@ -397,7 +397,7 @@ bool input_shaper_state_update(input_shaper_state_t &is_state, const uint8_t phy
     const double nearest_next_change = is_state.m_next_change[current_move_idx];
 
     const input_shaper_pulses_t &first_pulses = *is_state.m_logical_axis_pulses[0];
-    is_state.m_next_change[current_move_idx] = current_move.print_time + current_move.move_time - first_pulses.pulses[current_move_idx].t;
+    is_state.m_next_change[current_move_idx] = (current_move.print_time + current_move.move_time).to_seconds() - first_pulses.pulses[current_move_idx].t;
 
     if (is_state.m_logical_axis_pulses_cnt == 2) {
 #ifdef COREXY
