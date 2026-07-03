@@ -44,6 +44,11 @@
 #include "MarlinPin.h"
 #include <module/motion.h>
 #include "../../../../src/common/adc.hpp"
+#include <option/has_expansion_joints_gen_2.h>
+#include <option/board_is_master_board.h>
+#if BOARD_IS_MASTER_BOARD()
+#include <config_store/store_instance.hpp>
+#endif
 #include "../marlin_stubs/skippable_gcode.hpp"
 #include <module/temperature/steady_state_hotend.hpp>
 #include <module/temperature/temp_defines.hpp>
@@ -128,6 +133,12 @@ LOG_COMPONENT_REF(MarlinServer);
 
 // Rough estimate of room temperature
 static constexpr float room_temperature = 25.0f;
+
+#if HAS_EXPANSION_JOINTS_GEN_2()
+// Expansion Joints Gen 2 allow faster heat absorption time
+static constexpr float ejg2_frame_soak_min_target = 85.0f;
+static constexpr float ejg2_frame_heatup_speedup = 2.0f;
+#endif
 
 Temperature thermalManager;
 
@@ -694,6 +705,11 @@ void Temperature::updateTemperaturesFromRawValues() {
         // cold bed. With a bed already partially warmed, the time is
         // proportionally shorter.
         float step = (0.06f + (100.0f - temp_bed.celsius) * 0.0015f) * dt;
+#if HAS_EXPANSION_JOINTS_GEN_2()
+        if (config_store().ejg2_installed.get()) {
+          step *= ejg2_frame_heatup_speedup;
+        }
+#endif
         bed_frame_est_celsius += std::clamp(temp_bed.celsius - bed_frame_est_celsius, -step, step);
       }
     }
@@ -1428,8 +1444,14 @@ void Temperature::isr() {
           return;
         }
 
-        if (temp_bed.target <= room_temperature) {
-          log_info(MarlinServer, "Absorbing heat: target lower than room temp, continuing");
+        float soak_min_target = room_temperature;
+#if HAS_EXPANSION_JOINTS_GEN_2()
+        if (config_store().ejg2_installed.get()) {
+          soak_min_target = ejg2_frame_soak_min_target;
+        }
+#endif
+        if (temp_bed.target <= soak_min_target) {
+          log_info(MarlinServer, "Absorbing heat: target below soak threshold %.0f, continuing", (double)soak_min_target);
           return;
         }
 
