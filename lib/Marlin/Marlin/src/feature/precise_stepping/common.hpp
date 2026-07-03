@@ -10,6 +10,7 @@
 
 #include "../../inc/MarlinConfig.h"
 #include "../../core/mtypes.hpp"
+#include "../../core/time_ticks.hpp"
 
 #include <option/has_phase_stepping.h>
 
@@ -210,7 +211,7 @@ enum StepEventInfoStatus : uint8_t {
 };
 
 typedef struct step_event_info_t {
-    double time;
+    TimeTicks time;
     StepEventFlag_t flags;
     StepEventInfoStatus status;
 } step_event_info_t;
@@ -254,8 +255,7 @@ struct step_generator_state_t {
     // Step events
     step_event_info_t step_events[PS_AXIS_COUNT]; // Per-axis next step events
     std::array<step_index_t, PS_AXIS_COUNT> step_event_index; // Time-sorted indexes into step_events
-    double previous_step_time;
-    uint64_t previous_step_time_ticks;
+    uint64_t previous_step_time_us; // absolute time of the last emitted step event (whole us)
 
     uint64_t initial_time; // initialization timestamp (us)
     uint16_t initial_counter; // step timer counter during initialization

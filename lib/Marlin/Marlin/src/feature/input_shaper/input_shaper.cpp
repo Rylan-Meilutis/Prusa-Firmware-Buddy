@@ -493,7 +493,7 @@ FORCE_INLINE void input_shaper_step_generator_update(input_shaper_step_generator
 
 step_event_info_t input_shaper_step_generator_next_step_event(input_shaper_step_generator_t &step_generator, step_generator_state_t &step_generator_state) {
     assert(step_generator.is_state != nullptr);
-    step_event_info_t next_step_event = { std::numeric_limits<double>::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
+    step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
 
     const float half_step_dist = Planner::mm_per_half_step[step_generator.axis];
     const float next_target = float(step_generator_state.current_distance[step_generator.axis] + (step_generator.step_dir ? 0 : -1)) * Planner::mm_per_step[step_generator.axis] + half_step_dist;
@@ -505,7 +505,7 @@ step_event_info_t input_shaper_step_generator_next_step_event(input_shaper_step_
     // This happens when next_target exceeds end_position, and deceleration decelerates velocity to zero or negative value.
     // Also, we need to stop when step_time exceeds local_end.
     if (const double elapsed_time = double(step_time) + step_generator.is_state->print_time; elapsed_time > (step_generator.is_state->nearest_next_change + EPSILON)) {
-        next_step_event.time = step_generator.is_state->nearest_next_change;
+        next_step_event.time = TimeTicks::from_seconds(step_generator.is_state->nearest_next_change);
 
         if (input_shaper_state_update(*step_generator.is_state, step_generator.axis) && step_generator.is_state->nearest_next_change < MAX_PRINT_TIME) {
             next_step_event.flags |= STEP_EVENT_FLAG_KEEP_ALIVE;
@@ -514,7 +514,7 @@ step_event_info_t input_shaper_step_generator_next_step_event(input_shaper_step_
             // We reached the ending move segment, so we will never produce any valid step event from this micro move segment.
             // When we return GENERATED_INVALID, we always have to return the value of nearest_next_change for this new micro
             // move segment and not for the previous one.
-            next_step_event.time = step_generator.is_state->nearest_next_change;
+            next_step_event.time = TimeTicks::from_seconds(step_generator.is_state->nearest_next_change);
         }
 
         input_shaper_step_generator_update(step_generator);
@@ -526,7 +526,7 @@ step_event_info_t input_shaper_step_generator_next_step_event(input_shaper_step_
 
         PreciseStepping::move_segment_processed_handler();
     } else {
-        next_step_event.time = elapsed_time;
+        next_step_event.time = TimeTicks::from_seconds(elapsed_time);
         next_step_event.flags = STEP_EVENT_FLAG_STEP_X << step_generator.axis;
         next_step_event.status = STEP_EVENT_INFO_STATUS_GENERATED_VALID;
         step_generator_state.current_distance[step_generator.axis] += (step_generator.step_dir ? 1 : -1);

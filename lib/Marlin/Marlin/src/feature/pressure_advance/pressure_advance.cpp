@@ -389,7 +389,7 @@ void pressure_advance_reset_position(pressure_advance_step_generator_t &step_gen
 
 step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advance_step_generator_t &step_generator, step_generator_state_t &step_generator_state) {
     assert(step_generator.pa_state != nullptr);
-    step_event_info_t next_step_event = { std::numeric_limits<double>::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
+    step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
 
     const bool prev_step_dir = step_generator.pa_state->step_dir;
     const float half_step_dist = Planner::mm_per_half_step[step_generator.axis];
@@ -409,9 +409,9 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
     if (step_time >= MAX_PRINT_TIME) {
         if (is_pressure_advance_reached_end(*step_generator.pa_state)) {
             assert(step_generator.pa_state->current_move->move_time == MAX_PRINT_TIME);
-            next_step_event.time = step_generator.pa_state->current_move->print_time + step_generator.pa_state->current_move->move_time;
+            next_step_event.time = TimeTicks::from_seconds(step_generator.pa_state->current_move->print_time + step_generator.pa_state->current_move->move_time);
         } else {
-            next_step_event.time = pressure_advance_step_time_of_next_sample(*step_generator.pa_state, PressureAdvance::pressure_advance_params);
+            next_step_event.time = TimeTicks::from_seconds(pressure_advance_step_time_of_next_sample(*step_generator.pa_state, PressureAdvance::pressure_advance_params));
         }
 
         if (const move_t *next_move = PreciseStepping::move_segment_queue_next_move(*step_generator.pa_state->current_move); next_move != nullptr) {
@@ -455,7 +455,7 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
         // And because we always set the bit to a high value, we don't need to clear it.
         step_generator.move_step_flags |= (STEP_EVENT_FLAG_X_ACTIVE << step_generator.axis);
 
-        next_step_event.time = elapsed_time;
+        next_step_event.time = TimeTicks::from_seconds(elapsed_time);
         next_step_event.flags = STEP_EVENT_FLAG_STEP_X << step_generator.axis;
         next_step_event.status = STEP_EVENT_INFO_STATUS_GENERATED_VALID;
         step_generator_state.current_distance[step_generator.axis] += (step_generator.pa_state->step_dir ? 1 : -1);
