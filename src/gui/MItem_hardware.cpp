@@ -170,6 +170,15 @@ void MI_AUTO_PRECISE_HOMING_CALIBRATION::OnChange(size_t) {
     config_store().auto_recalibrate_precise_homing.set(static_cast<Tristate::Value>(get_index()));
 }
 #endif
+#if HAS_EXPANSION_JOINTS_GEN_2()
+MI_EXPANSION_JOINTS_GEN_2::MI_EXPANSION_JOINTS_GEN_2()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().ejg2_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_EXPANSION_JOINTS_GEN_2::OnChange([[maybe_unused]] size_t old_index) {
+    config_store().ejg2_installed.set(value());
+}
+#endif
+
 #if HAS_NOZZLE_CLEANER_LITE()
 MI_NOZZLE_CLEANER_LITE::MI_NOZZLE_CLEANER_LITE()
     : WI_ICON_SWITCH_OFF_ON_t(config_store().nozzle_cleaner_lite_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};

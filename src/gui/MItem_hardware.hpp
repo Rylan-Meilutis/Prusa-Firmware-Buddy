@@ -2,10 +2,12 @@
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
 #include <config_store/store_instance.hpp>
+#include "printers.h"
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_toolchanger.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
 #include <common/extended_printer_type.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
@@ -85,6 +87,19 @@ public:
 
 protected:
     virtual void OnChange(size_t) override;
+};
+#endif
+
+#if HAS_EXPANSION_JOINTS_GEN_2()
+/// Whether the Expansion Joints Gen 2 (frame expansion joints) is installed. Affects bed-frame heat absorption.
+class MI_EXPANSION_JOINTS_GEN_2 : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Expansion Joints Gen 2");
+
+public:
+    MI_EXPANSION_JOINTS_GEN_2();
+
+protected:
+    virtual void OnChange(size_t old_index) override;
 };
 #endif
 

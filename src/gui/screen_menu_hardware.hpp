@@ -16,6 +16,7 @@
 #include <option/has_sheet_profiles.h>
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_toolchanger.h>
+#include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
 
 #include <option/has_modular_bed.h>
@@ -62,6 +63,9 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 #endif
 #if HAS_SHEET_PROFILES()
     MI_STEEL_SHEETS,
+#endif
+#if HAS_EXPANSION_JOINTS_GEN_2()
+    MI_EXPANSION_JOINTS_GEN_2,
 #endif
 
 // ================================
