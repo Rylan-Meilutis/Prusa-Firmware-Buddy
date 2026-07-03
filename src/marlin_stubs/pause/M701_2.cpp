@@ -78,6 +78,9 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
                 .mode = do_purge_only ? PreheatMode::purge : PreheatMode::standard_load,
                 .tool = virtual_tool,
                 .ret_cool = *args.op_preheat,
+#if HAS_ANFC()
+                .openprinttag_uid_hash = args.openprinttag_uid_hash,
+#endif
             };
             auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
             if (preheat_ret.first) {

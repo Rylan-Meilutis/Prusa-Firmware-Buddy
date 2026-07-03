@@ -24,7 +24,7 @@ using namespace filament_gcodes;
  *
  *#### Usage
  *
- *    M701 [ T | Z | L | S | P | W | O | R ]
+ *    M701 [ T | Z | L | S | P | W | O | R | G ]
  *
  *#### Parameters
  *
@@ -32,7 +32,10 @@ using namespace filament_gcodes;
  * - `Z` - Minimal Z parking position
  * - `L` - Extrude distance for insertion (positive value)
  *   - `0` - PURGE
+ *
  * - `S"Filament"` - save filament by name, for example S"PLA". RepRap compatible.
+ * - `G` - Use filament data from an OpenPrintTag with the specific UID hash
+ *
  * - `P<mmu>` - MMU index of slot (zero based)
  * - `W<value>` - Preheat
  *   - `W255` - default without preheat
@@ -92,6 +95,9 @@ void GcodeSuite::M701() {
         .mmu_slot = mmu_slot,
         .color_to_be_loaded = p.option<Color>('O'),
         .resume_print_request = p.option<bool>('R').value_or(false),
+#if HAS_ANFC()
+        .openprinttag_uid_hash = p.option<uint16_t>('G'),
+#endif
     };
 
     M701_load(args);

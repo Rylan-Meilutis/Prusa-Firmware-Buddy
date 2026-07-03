@@ -124,6 +124,10 @@ static FSMResponseVariant determine_filament_for_operation(const filament_gcodes
 
         Tristate load_tag = config_store().opt_auto_read_on_load.get();
 
+        if (preheat_data.openprinttag_uid_hash == tag->uid_hash()) {
+            load_tag = Tristate::yes;
+        }
+
         if (load_tag == Tristate::other) {
             // Ask the user if they want to load the data
             fsm.change(PhasesPreheat::ask_load_openprinttag, serialized_data);

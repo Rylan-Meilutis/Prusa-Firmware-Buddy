@@ -6,6 +6,7 @@
 
 #include <tool_index.hpp>
 #include <bsod/bsod.h>
+#include <utils/compact_optional.hpp>
 
 #include <feature/openprinttag/detail/defines.hpp>
 
@@ -27,6 +28,8 @@ public:
 
     /// Used in config store
     static constexpr UIDHash no_tag_hash = 0;
+
+    using UIDHashOptional = CompactOptional<UIDHash, no_tag_hash>;
 
 public:
     /// @returns tag that is currently detected at the specified tool spool slot

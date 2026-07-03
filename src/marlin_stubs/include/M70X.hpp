@@ -13,6 +13,11 @@
 
 #include <option/has_chamber_api.h>
 
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
+#endif
+
 #include "config_features.h"
 #include <fs_event_autolock.hpp>
 #include <feature/prusa/e-stall_detector.h>
@@ -71,6 +76,11 @@ struct M701LoadArgs {
 
     /// resume print if paused after the load
     bool resume_print_request = false;
+
+#if HAS_ANFC()
+    /// If provided, tries to load data from the specified OpenPrintTag
+    buddy::openprinttag::ToolTag::UIDHashOptional openprinttag_uid_hash = std::nullopt;
+#endif
 };
 
 void M701_load(const M701LoadArgs &args);
@@ -142,6 +152,11 @@ struct FilamentSelectionArgs {
     PreheatMode mode;
     ToolIndex tool;
     RetAndCool_t ret_cool;
+
+#if HAS_ANFC()
+    /// If provided, try to load data from the specified tag
+    buddy::openprinttag::ToolTag::UIDHashOptional openprinttag_uid_hash = std::nullopt;
+#endif
 
     /// Ask the user for filament selection even if it could be deduced from the currently loaded filament
     bool disregard_loaded_filament : 1 = false;
