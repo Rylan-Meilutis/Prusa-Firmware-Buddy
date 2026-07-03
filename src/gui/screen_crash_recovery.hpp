@@ -61,7 +61,6 @@ struct WinsAxisNok {
     window_text_t text_y_axis;
     WindowIcon_OkNg icon_y_axis;
     RadioButton radio;
-    static constexpr PhaseTexts texts = { { "Retry", "Pause", "Resume" } };
     RepeatedBeep beep;
 
     WinsAxisNok(ScreenCrashRecovery &screen);
@@ -73,7 +72,6 @@ struct WinsRepeatedCrash {
     window_icon_t icon_nozzle;
     window_text_t text_info;
     RadioButton radio;
-    static constexpr PhaseTexts texts = { { "Resume", "Pause" } };
     RepeatedBeep beep;
 
     WinsRepeatedCrash(ScreenCrashRecovery &screen);
@@ -85,7 +83,6 @@ struct WinsHomeFail {
     window_icon_t icon_nozzle;
     window_text_t text_info;
     RadioButton radio;
-    static constexpr PhaseTexts texts = { { "Retry" } };
     RepeatedBeep beep;
 
     WinsHomeFail(ScreenCrashRecovery &screen);
@@ -107,7 +104,6 @@ struct WinsToolRecovery {
     window_text_t text_tool[EXTRUDERS];
     WindowIcon_OkNg icon_tool[EXTRUDERS];
     RadioButton radio;
-    static constexpr PhaseTexts texts = { { "Continue" } };
     RepeatedBeep beep;
 
     WinsToolRecovery(ScreenCrashRecovery &screen);
