@@ -10,8 +10,6 @@
 #include "window.hpp"
 #include "../../lang/string_view_utf8.hpp"
 
-using PhaseTexts = std::array<const char *, MAX_RESPONSES>;
-
 class IRadioButton : public window_t {
 public:
     // if greater than 0, we're drawing a fixed amount of buttons
@@ -28,7 +26,6 @@ private:
     void draw_n_btns(size_t btn_count);
 
     struct Layout {
-        PhaseTexts txts_to_print;
         Rect16 splits[GuiDefaults::MAX_DIALOG_BUTTON_COUNT];
         Rect16 spaces[GuiDefaults::MAX_DIALOG_BUTTON_COUNT - 1];
         uint8_t text_widths[GuiDefaults::MAX_DIALOG_BUTTON_COUNT];
@@ -74,7 +71,6 @@ protected:
 
     virtual void unconditionalDraw() override;
     virtual Response responseFromIndex(size_t index) const = 0;
-    virtual const PhaseTexts *getAlternativeTexts() const { return nullptr; }
 
     void invalidateWhatIsNeeded();
     void validateBtnIndex(); // needed for iconned layout
@@ -84,9 +80,7 @@ protected:
     // TODO: REMOVEME BFW-6028
     static Responses_t generateResponses(const PhaseResponses &resp);
 
-    static size_t cnt_labels(const PhaseTexts *labels);
     static size_t cnt_responses(Responses_t resp);
-    static size_t cnt_buttons(const PhaseTexts *labels, Responses_t resp);
 
     // radio buttons currently do not support layout change
     // it is done by having multiple radio buttons and show/hide them

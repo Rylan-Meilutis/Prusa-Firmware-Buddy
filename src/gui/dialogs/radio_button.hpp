@@ -15,7 +15,6 @@
 
 class RadioButton : public IRadioButton {
     Responses_t responses;
-    const PhaseTexts *texts; // nullptr == autoset texts with default strings
 
 public:
     /**
@@ -34,9 +33,8 @@ public:
      * @param parent window containing this object
      * @param rect   rectangle enclosing all buttons
      * @param resp   array of responses bound to buttons, has response == buttons enabled, only first four are used, rest is discarded
-     * @param labels array of button labels, if is set to nullptr, strings are assigned as default ones from given responses
      */
-    RadioButton(window_t *parent, Rect16 rect, const PhaseResponses &resp, const PhaseTexts *labels = nullptr);
+    RadioButton(window_t *parent, Rect16 rect, const PhaseResponses &resp);
 #endif
 
     /**
@@ -45,20 +43,18 @@ public:
      * @param parent window containing this object
      * @param rect   rectangle enclosing all buttons
      * @param resp   array of responses bound to buttons, has response == buttons enabled
-     * @param labels array of button labels, if is set to nullptr, strings are assigned as default ones from given responses
      */
-    RadioButton(window_t *parent, Rect16 rect, Responses_t resp, const PhaseTexts *labels = nullptr);
+    RadioButton(window_t *parent, Rect16 rect, Responses_t resp);
 
     virtual std::optional<size_t> IndexFromResponse(Response btn) const override;
 
 // TODO: REMOVEME completely BFW-6028
 #if MAX_RESPONSES != 4
-    void Change(const PhaseResponses &resp, const PhaseTexts *txts = nullptr); // nullptr generates texts automatically, only first four responses are used, rest is discarded
+    void Change(const PhaseResponses &resp); // nullptr generates texts automatically, only first four responses are used, rest is discarded
 #endif
 
-    void Change(Responses_t resp, const PhaseTexts *txts = nullptr); // nullptr generates texts automatically
+    void Change(Responses_t resp); // nullptr generates texts automatically
 
 protected:
     virtual Response responseFromIndex(size_t index) const override;
-    virtual const PhaseTexts *getAlternativeTexts() const override { return texts; }
 };

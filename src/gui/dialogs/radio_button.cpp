@@ -16,13 +16,12 @@ Response RadioButton::responseFromIndex(size_t index) const {
     return (responses)[index];
 }
 
-void RadioButton::Change(Responses_t resp, const PhaseTexts *txts) {
-    if ((responses == resp) && (txts == texts)) {
+void RadioButton::Change(Responses_t resp) {
+    if (responses == resp) {
         return;
     }
     responses = resp;
-    texts = txts;
-    SetBtnCount(fixed_width_buttons_count > 0 ? fixed_width_buttons_count : cnt_buttons(texts, responses));
+    SetBtnCount(fixed_width_buttons_count > 0 ? fixed_width_buttons_count : cnt_responses(responses));
 
     // in iconned layout index will stay
     if (fixed_width_buttons_count == 0) {
@@ -36,8 +35,8 @@ void RadioButton::Change(Responses_t resp, const PhaseTexts *txts) {
 
 // TODO: REMOVEME completely BFW-6028
 #if MAX_RESPONSES != 4
-void RadioButton::Change(const PhaseResponses &resp, const PhaseTexts *txts) {
-    Change(generateResponses(resp), txts);
+void RadioButton::Change(const PhaseResponses &resp) {
+    Change(generateResponses(resp));
 }
 #endif
 
@@ -47,13 +46,12 @@ RadioButton::RadioButton(window_t *parent, Rect16 rect)
 
 // TODO: REMOVEME completely BFW-6028
 #if MAX_RESPONSES != 4
-RadioButton::RadioButton(window_t *parent, Rect16 rect, const PhaseResponses &resp, const PhaseTexts *labels)
-    : RadioButton(parent, rect, generateResponses(resp), labels) {
+RadioButton::RadioButton(window_t *parent, Rect16 rect, const PhaseResponses &resp)
+    : RadioButton(parent, rect, generateResponses(resp)) {
 }
 #endif
 
-RadioButton::RadioButton(window_t *parent, Rect16 rect, Responses_t resp, const PhaseTexts *labels)
-    : IRadioButton(parent, rect, cnt_buttons(labels, resp))
-    , responses(resp)
-    , texts(labels) {
+RadioButton::RadioButton(window_t *parent, Rect16 rect, Responses_t resp)
+    : IRadioButton(parent, rect, cnt_responses(resp))
+    , responses(resp) {
 }

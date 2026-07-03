@@ -19,21 +19,8 @@ static constexpr uint8_t icon_label_delim = 5;
 // static variables and methods
 static const IRadioButton::Responses_t no_responses = { Response::_none, Response::_none, Response::_none, Response::_none }; // used in constructor
 
-size_t IRadioButton::cnt_labels(const PhaseTexts *labels) {
-    if (!labels) {
-        return 0;
-    }
-    return (std::find_if(labels->begin(), labels->end(), [](const char *s) { return s[0] == '\0'; })) - labels->begin();
-}
-
 size_t IRadioButton::cnt_responses(Responses_t resp) {
     return cnt_filled_responses(resp);
-}
-
-size_t IRadioButton::cnt_buttons(const PhaseTexts *labels, Responses_t resp) {
-    size_t lbls = std::min(cnt_labels(labels), max_buttons);
-    size_t cmds = std::min(cnt_responses(resp), max_buttons);
-    return std::max(lbls, cmds);
 }
 
 /*****************************************************************************/
@@ -212,7 +199,7 @@ static void button_draw(Rect16 rc_btn, Color back_color, Color parent_color, con
 
 // called internally, responses must exist
 void IRadioButton::draw_1_btn() {
-    const char *txt_to_print = getAlternativeTexts() ? (*getAlternativeTexts())[0] : get_response_text(responseFromIndex(0));
+    const char *txt_to_print = get_response_text(responseFromIndex(0));
     button_draw(GetRect(), GetBackColor(), GetParent() ? GetParent()->GetBackColor() : GetBackColor(), _(txt_to_print),
         IsEnabled(0) && !disabled_drawing_selected);
 }
@@ -223,7 +210,7 @@ void IRadioButton::draw_n_btns(size_t btn_count) {
     Layout layout = getNormalBtnRects(btn_count);
 
     for (size_t i = 0; i < btn_count; ++i) {
-        string_view_utf8 drawn = _(layout.txts_to_print[i]);
+        string_view_utf8 drawn = _(get_response_text(responseFromIndex(i)));
         char buffer[MAX_TEXT_BUFFER] = { 0 };
         if (layout.text_widths[i] > layout.splits[i].Width()) {
             uint32_t max_btn_label_text = layout.splits[i].Width() / width(ButtonFont);
@@ -245,18 +232,10 @@ void IRadioButton::draw_n_btns(size_t btn_count) {
 
 IRadioButton::Layout IRadioButton::getNormalBtnRects(size_t btn_count) const {
     Layout ret;
-    if (getAlternativeTexts()) {
-        ret.txts_to_print = *getAlternativeTexts();
-    } else {
-        for (size_t i = 0; i < max_buttons; ++i) {
-            ret.txts_to_print[i] = get_response_text(responseFromIndex(i));
-        }
-    }
-
     static_assert(sizeof(btn_count) <= GuiDefaults::MAX_DIALOG_BUTTON_COUNT, "Too many IRadioButtons to draw.");
 
     for (size_t index = 0; index < btn_count; index++) {
-        string_view_utf8 txt = _(ret.txts_to_print[index]);
+        string_view_utf8 txt = _(get_response_text(responseFromIndex(index)));
         ret.text_widths[index] = width(ButtonFont) * static_cast<uint8_t>(txt.computeNumUtf8Chars());
     }
     GetRect().HorizontalSplit(
