@@ -24,6 +24,9 @@ enum class ParkPosition : uint8_t {
     unload,
     loadcell_selftest,
 
+    /// Default position for filament change (M600, M1601, MMU errors)
+    filament_change,
+
     /// User-accessible position for manual nozzle cleaning after the automatic
     /// nozzle cleaning failed. Uses the M600 position - while we are not changing
     /// filament, the nozzle parks at an accessible place to have it cleaned.

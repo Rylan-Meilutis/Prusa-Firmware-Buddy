@@ -68,6 +68,17 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
 
+    case ParkPosition::filament_change: {
+        static constexpr xyz_pos_t filament_change_point { { XYZ_NOZZLE_PARK_POINT_M600 } };
+        static constexpr ParkingPosition base_pos { filament_change_point.x, filament_change_point.y, filament_change_point.z };
+#if HAS_INDX()
+        static_assert(is_in_wastebin_area(filament_change_point.x, filament_change_point.y));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
+
     case ParkPosition::nozzle_cleaning_failed: {
         static constexpr xyz_pos_t cleaning_failed_point { { XYZ_NOZZLE_CLEANINIG_FAILED_POINT } };
         static constexpr ParkingPosition base_pos { cleaning_failed_point.x, cleaning_failed_point.y, cleaning_failed_point.z };
