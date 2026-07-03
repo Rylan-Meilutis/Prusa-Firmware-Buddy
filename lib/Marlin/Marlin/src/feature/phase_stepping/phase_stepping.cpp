@@ -221,12 +221,12 @@ step_event_info_t phase_stepping::next_step_event_classic(
     assert(axis_state.last_processed_move != nullptr);
     assert(axis_state.last_processed_move->reference_cnt != 0);
 
-    step_event_info_t next_step_event = { std::numeric_limits<double>::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
+    step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
     if (axis_state.pending_targets.isFull()) {
-        next_step_event.time = axis_state.next_target_end_time;
+        next_step_event.time = TimeTicks::from_seconds(axis_state.next_target_end_time);
         next_step_event.status = StepEventInfoStatus::STEP_EVENT_INFO_STATUS_GENERATED_PENDING;
     } else if (const move_t *next_move = PreciseStepping::move_segment_queue_next_move(*axis_state.last_processed_move); next_move != nullptr) {
-        next_step_event.time = next_move->print_time;
+        next_step_event.time = TimeTicks::from_seconds(next_move->print_time);
 
         const uint8_t axis = axis_state.axis_index;
         const float move_start_pos = extract_physical_position(AxisEnum(axis), next_move->start_pos);
@@ -262,7 +262,7 @@ step_event_info_t phase_stepping::next_step_event_classic(
 
         PreciseStepping::move_segment_processed_handler();
     } else {
-        next_step_event.time = axis_state.last_processed_move->print_time + axis_state.last_processed_move->move_time;
+        next_step_event.time = TimeTicks::from_seconds(axis_state.last_processed_move->print_time + axis_state.last_processed_move->move_time);
     }
 
     return next_step_event;
@@ -275,12 +275,12 @@ step_event_info_t phase_stepping::next_step_event_input_shaping(
 
     assert(step_generator.is_state != nullptr);
 
-    step_event_info_t next_step_event = { std::numeric_limits<double>::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
+    step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
     if (axis_state.pending_targets.isFull()) {
-        next_step_event.time = axis_state.next_target_end_time;
+        next_step_event.time = TimeTicks::from_seconds(axis_state.next_target_end_time);
         next_step_event.status = StepEventInfoStatus::STEP_EVENT_INFO_STATUS_GENERATED_PENDING;
     } else {
-        next_step_event.time = step_generator.is_state->nearest_next_change;
+        next_step_event.time = TimeTicks::from_seconds(step_generator.is_state->nearest_next_change);
 
         if (input_shaper_state_update(*step_generator.is_state, step_generator.axis)) {
             uint8_t axis = axis_state.axis_index;
