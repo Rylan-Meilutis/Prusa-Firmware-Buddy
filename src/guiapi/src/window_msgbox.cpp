@@ -25,12 +25,23 @@ MsgBoxBase::MsgBoxBase(Rect16 rect, const PhaseResponses &resp, size_t def_btn, 
     is_multiline multiline, is_closed_on_click_t close)
     : IDialog(rect)
     , text(this, getTextRect(), multiline, is_closed_on_click_t::no, txt)
+    , radio_(this, GuiDefaults::GetButtonRect(rect), resp)
     , result(Response::_none) {
+
     flags.close_on_click = close;
-    static_assert(sizeof(RadioButton) <= std::tuple_size_v<RadioMemSpace>);
-    pButtons = make_static_unique_ptr<RadioButton>(radio_mem_space, this, GuiDefaults::GetButtonRect(rect), resp);
-    pButtons->SetBtnIndex(def_btn);
-    CaptureNormalWindow(*pButtons);
+
+    radio_.SetBtnIndex(def_btn);
+    radio_.set_callback([this](Response r) {
+        result = r;
+
+        if (flags.close_on_click == is_closed_on_click_t::yes) {
+            Screens::Access()->Close();
+        } else if (GetParent()) {
+            GetParent()->WindowEvent(this, GUI_event_t::CHILD_CLICK, event_conversion_union { .response = r }.pvoid);
+        }
+    });
+
+    CaptureNormalWindow(radio_);
 }
 
 Rect16 MsgBoxBase::getTextRect() {
@@ -38,42 +49,6 @@ Rect16 MsgBoxBase::getTextRect() {
         return GuiDefaults::MsgBoxLayoutRect;
     } else {
         return GetRect() - GuiDefaults::GetButtonRect(GetRect()).Height();
-    }
-}
-
-void MsgBoxBase::BindToFSM(FSMAndPhase phase) {
-    using T = RadioButtonFSM;
-    static_assert(sizeof(T) <= mem_space_size, "RadioMemSpace is too small");
-
-    if (!pButtons) { // pButtons can never be null
-        debug_assert("unassigned msgbox");
-        return;
-    }
-
-    Rect16 rc = pButtons->GetRect();
-    bool has_icon = pButtons->HasIcon();
-    Color back = pButtons->GetBackColor();
-
-    ReleaseCaptureOfNormalWindow();
-
-    // First reset, then create new class; we cannot afford constructing and then destructing because it's the same memory
-    pButtons.reset();
-    static_assert(sizeof(T) <= std::tuple_size_v<RadioMemSpace>);
-    pButtons = make_static_unique_ptr<T>(radio_mem_space, this, rc, phase);
-
-    has_icon ? pButtons->SetHasIcon() : pButtons->ClrHasIcon();
-    pButtons->SetBackColor(back);
-
-    CaptureNormalWindow(*pButtons);
-}
-
-void MsgBoxBase::generate_response(Response r) {
-    result = r;
-
-    if (flags.close_on_click == is_closed_on_click_t::yes) {
-        Screens::Access()->Close();
-    } else if (GetParent()) {
-        GetParent()->WindowEvent(this, GUI_event_t::CHILD_CLICK, event_conversion_union { .response = r }.pvoid);
     }
 }
 
@@ -88,14 +63,9 @@ void MsgBoxBase::set_text_font(Font font) {
 void MsgBoxBase::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     switch (event) {
 
-    case GUI_event_t::CHILD_CLICK: {
-        generate_response(event_conversion_union { .pvoid = param }.response);
-        return;
-    }
-
     case GUI_event_t::TOUCH_SWIPE_LEFT:
     case GUI_event_t::TOUCH_SWIPE_RIGHT:
-        if (flags.close_on_click == is_closed_on_click_t::yes && pButtons->GetBtnCount() == 0) {
+        if (flags.close_on_click == is_closed_on_click_t::yes && radio_.GetBtnCount() == 0) {
             Screens::Access()->Close();
             return;
         }
@@ -262,13 +232,7 @@ MsgBoxIconnedError::MsgBoxIconnedError(Rect16 rect, const PhaseResponses &resp, 
     SetBackColor(COLOR_BRAND);
     text.SetBackColor(COLOR_BRAND);
     icon.SetBackColor(COLOR_BRAND);
-
-    if (!pButtons) { // pButtons can never be null
-        debug_assert("unassigned msgbox");
-        return;
-    }
-
-    pButtons->SetBackColor(COLOR_WHITE);
+    radio_.SetBackColor(COLOR_WHITE);
 }
 
 /*****************************************************************************/

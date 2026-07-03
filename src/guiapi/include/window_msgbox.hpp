@@ -37,14 +37,7 @@ class MsgBoxBase : public IDialog {
 protected:
     window_text_t text;
 
-    // memory space to store radio buttons
-    // template parameter <PhasesPrintPreview> is irrelevant - same size
-    // in case it changes swap <PhasesPrintPreview> with the biggest type
-    // it is checked in BindToFSM method
-    static constexpr size_t mem_space_size = std::max({ sizeof(RadioButtonFSM), sizeof(RadioButton) });
-    using RadioMemSpace = std::array<uint8_t, mem_space_size>;
-    alignas(std::max_align_t) RadioMemSpace radio_mem_space;
-    static_unique_ptr<IRadioButton> pButtons;
+    IRadioButton radio_;
     Response result = Response::_none; // return value
 
 public:
@@ -54,12 +47,6 @@ public:
     [[nodiscard]] inline Response GetResult() const {
         return result;
     }
-
-    // TODO: Get rid of this madness
-    void BindToFSM(FSMAndPhase phase);
-
-    /// Sets response and generates appropriate events as if a button was pressed
-    void generate_response(Response r);
 
     void set_text_alignment(Align_t alignment);
     void set_text_font(Font font);
