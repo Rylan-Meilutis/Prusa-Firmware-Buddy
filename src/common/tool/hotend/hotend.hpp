@@ -27,6 +27,11 @@ public:
     /// <= 0 = no target temperature/invalid value
     using TargetTemperature = int16_t;
 
+    /// Maps a requested print-fan PWM to the PWM actually applied, given the hotend's live state
+    /// (e.g. nozzle temperature). Default: identity. A hotend that must protect the print fan at
+    /// high nozzle temperatures installs a clamping mapping alongside its config (see tools_xbuddy).
+    using PrintFanPWMMapping = PWM255 (*)(const Hotend &hotend, PWM255 requested_pwm);
+
     /// Static, per-hotend configuration common to all Hotend implementations.
     /// The owning tool factory keeps the instance alive; Hotend stores a reference to it.
     struct Config {
@@ -39,6 +44,9 @@ public:
         /// Exceeding this limit results in a RSOD
         /// Formerly done by the HEATER_0_MAXTEMP macro
         TargetTemperature max_nozzle_temp;
+
+        /// Print-fan PWM mapping (e.g. high-temperature clamp). Default: identity, no limiting.
+        PrintFanPWMMapping print_fan_pwm_mapping = +[](const Hotend &, PWM255 pwm) { return pwm; };
     };
 
 public:
@@ -57,6 +65,9 @@ public:
     /// Maximum nozzle temperature (from the hotend config).
     /// DummyHotend (NoTool) is constructed with a zero config, so this returns 0.
     TargetTemperature max_nozzle_temp() const { return base_config_.max_nozzle_temp; }
+
+    /// The static per-hotend config (temperature limits, print-fan PWM mapping, ...).
+    const Config &config() const { return base_config_; }
 
     /// Current temperature of the nozzle
     OptionalTemperature nozzle_temp() const {

@@ -508,7 +508,16 @@ void Temperature::manage_fans() {
   #endif
 
   #if HAS_FAN0
-    analogWrite(FAN0_PIN, applied_fan_speed[0]);
+    // Apply the active tool's print-fan PWM mapping (e.g. the HT hotend's high-temperature clamp)
+    // at the fan-drive point, re-evaluated continuously as the nozzle heats (not only at M106).
+    // manage_fans() runs on every Marlin instance: on local-fan boards (COREONE/COREONEL, the only
+    // HT targets) analogWrite() drives the physical pin here. On boards whose print fan lives on a
+    // Dwarf puppy (XL/iX) this maps the value the master sends over ModBus; the puppy's own
+    // manage_fans() then applies its mapping at its pin, so a mapping installed on exactly one side
+    // takes effect once, end-to-end. Default is identity; NoTool -> DummyHotend -> identity, so this
+    // is a no-op until a hotend installs a mapping.
+    const Hotend &print_hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
+    analogWrite(FAN0_PIN, print_hotend.config().print_fan_pwm_mapping(print_hotend, PWM255 { applied_fan_speed[0] }).value);
   #endif
   #if HAS_FAN1
     analogWrite(FAN1_PIN, applied_fan_speed[1]);
