@@ -214,6 +214,9 @@ std::optional<IGcodeReader::ThumbnailDetails> PlainGcodeReader::thumbnail_detail
 
 bool PlainGcodeReader::IsBeginThumbnail(GcodeBuffer &buffer, uint16_t expected_width, uint16_t expected_height, ImgType expected_type, bool allow_larder, unsigned long &num_bytes) const {
     const auto details = thumbnail_details(buffer.line);
+    if (!details.has_value()) {
+        return false;
+    }
 
     if (expected_type != details->type) {
         return false;
