@@ -300,6 +300,27 @@ def repo_python_env(repo_python: list[str]) -> dict[str, str]:
     return env
 
 
+def venv_root() -> Path:
+    return PROJECT_ROOT / ".venv"
+
+
+def venv_bin_dir() -> Path:
+    if os.name == "nt":
+        return venv_root() / "Scripts"
+    return venv_root() / "bin"
+
+
+def configure_managed_python_env(env: dict[str, str]) -> None:
+    bin_dir = venv_bin_dir()
+    path = env.get("PATH", "")
+    env["PATH"] = str(bin_dir) + (os.pathsep + path if path else "")
+    env.setdefault("Python3_ROOT_DIR", str(venv_root()))
+
+
+def has_cmake_definition(definitions: list[str], name: str) -> bool:
+    return any(definition.split(":", 1)[0].split("=", 1)[0] == name for definition in definitions)
+
+
 def split_csv(values: list[str]) -> list[str]:
     tokens: list[str] = []
     for value in values:
@@ -509,11 +530,11 @@ class TerminalUI:
         print("\033[?25h", end="", flush=True)
         self.started = False
 
-    def render(self, jobs: list[BuildJob]) -> None:
+    def render(self, jobs: list[BuildJob], *, total_elapsed_s: int | None = None) -> None:
         if not self.enabled:
             return
         self.start()
-        lines = build_progress_lines(jobs, color=True)
+        lines = build_progress_lines(jobs, total_elapsed_s=total_elapsed_s, color=True)
         if self.line_count:
             print(f"\033[{self.line_count}F", end="")
         for index, line in enumerate(lines):
@@ -524,12 +545,13 @@ class TerminalUI:
         self.line_count = len(lines)
 
 
-def build_progress_lines(jobs: list[BuildJob], *, color: bool = False) -> list[str]:
+def build_progress_lines(jobs: list[BuildJob], *, total_elapsed_s: int | None = None, color: bool = False) -> list[str]:
     completed = sum(1 for job in jobs if job.status in {"success", "failed"})
     failed = sum(1 for job in jobs if job.status == "failed")
+    elapsed = f"  elapsed {format_elapsed(total_elapsed_s)}" if total_elapsed_s is not None else ""
 
     lines = [
-        f"Firmware build progress  {completed}/{len(jobs)} done  {failed} failed",
+        f"Firmware build progress  {completed}/{len(jobs)} done  {failed} failed{elapsed}",
         "MODEL              STATUS     PROGRESS              TIME     CURRENT STEP",
         "-" * 92,
     ]
@@ -554,8 +576,7 @@ def build_progress_lines(jobs: list[BuildJob], *, color: bool = False) -> list[s
     return lines
 
 
-def print_summary(jobs: list[BuildJob], output_dir: Path) -> None:
-    total_time = max((job.finished_at or time.monotonic()) for job in jobs) - min((job.started_at or time.monotonic()) for job in jobs)
+def print_summary(jobs: list[BuildJob], output_dir: Path, *, total_elapsed_s: int) -> None:
     success = [job for job in jobs if job.returncode == 0]
     failed = [job for job in jobs if job.returncode != 0]
     for job in jobs:
@@ -565,7 +586,7 @@ def print_summary(jobs: list[BuildJob], output_dir: Path) -> None:
     print("Build summary")
     print("-" * 72)
     print(f"Result: {len(success)} succeeded, {len(failed)} failed")
-    print(f"Elapsed: {format_elapsed(int(total_time))}")
+    print(f"Total elapsed: {format_elapsed(total_elapsed_s)}")
     print()
     print("MACHINE / PRESET   RESULT     TIME     FLASH                         RAM")
     print("-" * 104)
@@ -630,8 +651,8 @@ def generate_signing_key_with_openssl(private_key: Path, public_key: Path) -> bo
 
 def venv_python() -> Path:
     if os.name == "nt":
-        return PROJECT_ROOT / ".venv" / "Scripts" / "python.exe"
-    return PROJECT_ROOT / ".venv" / "bin" / "python"
+        return venv_bin_dir() / "python.exe"
+    return venv_bin_dir() / "python"
 
 
 def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> bool:
@@ -734,6 +755,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    wrapper_started_at = time.monotonic()
     args = parse_args()
     known_presets = load_preset_names()
 
@@ -750,6 +772,10 @@ def main() -> int:
     output_dir = args.output_dir.resolve()
     repo_python = find_repo_python()
     child_env = repo_python_env(repo_python)
+    configure_managed_python_env(child_env)
+    cmake_defs = list(args.cmake_def)
+    if not has_cmake_definition(cmake_defs, "Python3_ROOT_DIR"):
+        cmake_defs.append(f"Python3_ROOT_DIR:PATH={venv_root()}")
 
     if args.store_output and args.no_store_output:
         raise SystemExit("--store-output and --no-store-output are mutually exclusive")
@@ -800,7 +826,7 @@ def main() -> int:
             command.extend(["--version-suffix-short", args.version_suffix_short])
         if signing_key:
             command.extend(["--signing-key", str(signing_key)])
-        for definition in args.cmake_def:
+        for definition in cmake_defs:
             command.extend(["-D", definition])
         bootloader_components = {
             "yes": "boot",
@@ -820,6 +846,7 @@ def main() -> int:
     print("Building presets:", ",".join(selected_presets))
     print("BBF output:", output_dir)
     print("Parallel jobs:", max_parallel)
+    print("Total elapsed:", format_elapsed(int(time.monotonic() - wrapper_started_at)))
     if args.dry_run:
         for job in jobs:
             print(" ".join(str(part) for part in job.command))
@@ -835,6 +862,12 @@ def main() -> int:
         )
         if bootstrap.returncode != 0:
             return bootstrap.returncode
+
+    nnvg = venv_bin_dir() / ("nnvg.exe" if os.name == "nt" else "nnvg")
+    if not nnvg.exists():
+        print(f"Missing managed Nunavut tool: {nnvg}", file=sys.stderr)
+        print("Run utils/bootstrap.py or rerun ./build.py without --skip-bootstrap.", file=sys.stderr)
+        return 1
 
     if product_root.exists():
         shutil.rmtree(product_root)
@@ -883,11 +916,11 @@ def main() -> int:
 
             now = time.monotonic()
             if now - last_render >= 0.2:
-                ui.render(jobs)
+                ui.render(jobs, total_elapsed_s=int(now - wrapper_started_at))
                 last_render = now
             if running:
                 time.sleep(0.1)
-        ui.render(jobs)
+        ui.render(jobs, total_elapsed_s=int(time.monotonic() - wrapper_started_at))
     except KeyboardInterrupt:
         print("\nStopping active builds...")
         for process in running:
@@ -908,7 +941,7 @@ def main() -> int:
         shutil.rmtree(product_root)
 
     failed = [job for job in jobs if job.returncode != 0]
-    print_summary(jobs, output_dir)
+    print_summary(jobs, output_dir, total_elapsed_s=int(time.monotonic() - wrapper_started_at))
     if failed:
         print()
         print("Failed builds:")

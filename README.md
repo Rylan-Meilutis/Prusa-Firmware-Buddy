@@ -25,7 +25,7 @@ Feature availability depends on printer hardware. The branch targets Original Pr
 
 Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
 
-After the build finishes, the wrapper prints each machine's result, build time, flash usage, aggregate RAM usage, individual memory-region usage, and the absolute path of every staged `.bbf` artifact.
+After the build finishes, the wrapper prints each machine's result, build time, flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and the absolute path of every staged `.bbf` artifact.
 
 Build all RME release images:
 
@@ -52,6 +52,8 @@ Useful options:
 - `--dry-run` prints the commands without starting a build.
 
 The wrapper automatically looks for a supported Python 3.8-3.12 interpreter when the current interpreter is too new for the repository's pinned dependencies. Set `BUDDY_PYTHON=/path/to/python3.12` to select one explicitly.
+
+The wrapper also exposes the managed `.venv` tools to CMake, including Nunavut `nnvg`, by prepending `.venv/bin` to child build `PATH` and passing `Python3_ROOT_DIR` unless the caller overrides it with `-D Python3_ROOT_DIR:PATH=...`.
 
 The lower-level `python3 utils/build.py` command remains available for development, compatibility checks, and specialized presets. Use `./build.py` for normal RME release builds and BBF staging.
 

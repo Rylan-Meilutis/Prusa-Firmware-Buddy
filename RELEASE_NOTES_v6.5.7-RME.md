@@ -88,6 +88,7 @@
     * Made Core One Plus automatic vent handling defer to explicit `M870` commands and made serial prints rely on streamed vent commands instead of inferred filament state
     * Fixed Core One Plus selection reporting as Core One L; Plus now reports `COREONE+`, while Core One L builds no longer expose the Core One / Plus selector
     * Fixed cold-boot manual Z jogging crashing when PID persistence skipped the upstream Marlin motion and stepper initialization path
+    * Fixed the top-level release wrapper so managed `.venv` tools, including Nunavut `nnvg`, are automatically visible to CMake child builds
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
 
@@ -392,7 +393,7 @@ If `FIRMWARE_SIGNING_KEY` is not set, `./build.py` uses the machine-local defaul
 
 The underlying build wrapper also supports `--signing-key /path/to/private.key`.
 
-The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, and absolute staged BBF path.
+The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF path. The wrapper also prepends `.venv/bin` to child build `PATH` and passes `Python3_ROOT_DIR` by default so managed virtualenv tools such as Nunavut `nnvg` are available during CMake configuration.
 
 Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
 
@@ -419,7 +420,7 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-Recent local validation used the firmware build wrapper:
+Recent local validation used the firmware build wrapper. The wrapper supplies the managed `.venv` path and `Python3_ROOT_DIR` automatically so nested CMake projects can find Nunavut `nnvg`.
 
 ```sh
 ./build.py --final --jobs 4 --no-clean-output
@@ -473,6 +474,14 @@ python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-s
 ```
 
 That build produced a non-zero BBF signature.
+
+After fixing the managed `nnvg` environment, focused wrapper validation passed with:
+
+```sh
+./build.py --preset mini-en-it --final --jobs 1 --skip-bootstrap --no-clean-output --verbose
+```
+
+That focused build found `.venv/bin/nnvg`, produced `mini-en-it_6.6.1-RME.bbf`, and reported `Total elapsed: 10:26`.
 
 ## Changelog base
 
