@@ -1049,7 +1049,7 @@ void Pause::load_finalize_process(Response) {
 
         if (!marlin_server::is_printing()) {
             // If not printing, park on the nozzle cleaner planchette
-            mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }).without_z_move());
+            mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
         }
     }
 #endif

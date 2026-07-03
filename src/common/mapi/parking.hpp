@@ -28,6 +28,8 @@ enum class ParkPosition : uint8_t {
     /// nozzle cleaning failed. Uses the M600 position - while we are not changing
     /// filament, the nozzle parks at an accessible place to have it cleaned.
     nozzle_cleaning_failed,
+    /// Position to park the head at when the print finishes
+    print_end,
 
 #if HAS_WASTEBIN_FILL_TRACKING()
     /// Head clear of the nozzle cleaner so the wastebin can be pulled out, lifted above the print.

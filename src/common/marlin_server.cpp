@@ -1026,7 +1026,7 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)) {
             return false;
         }
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }).without_z_move());
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
     }
 #endif
 
@@ -3298,11 +3298,11 @@ static void park_head([[maybe_unused]] bool is_pause) {
 
 #if PRINTER_IS_PRUSA_iX()
     if (is_pause) {
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }).without_z_move());
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
     } else
 #endif
     {
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT_ON_PRINT_END } }).without_z_move());
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::print_end).without_z_move());
     }
 }
 
