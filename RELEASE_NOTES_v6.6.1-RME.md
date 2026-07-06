@@ -125,6 +125,10 @@ Firmware pause states, MMU errors, and runout-style pauses keep the print treate
 
 MMU filament runout and other manual-intervention recovery on serial prints can restore the nozzle target before resume when needed and now send the serial-host resume action after the printer resumes, so hosts such as OctoPrint do not remain paused after the printer has recovered.
 
+Print-time runout now also watches the toolhead filament sensor when an MMU, side, or external filament sensor is the primary runout source. This lets filament breaks or jams between the upstream sensor and the extruder trigger the normal M600 pause instead of relying only on the upstream sensor.
+
+Loadcell stuck-filament detection remains configurable from `Stuck Filament Detection` and `M591`, including `M591 I/F` debounce tuning for skipped extrusion detection.
+
 At serial print finish, MMU-enabled printers run the firmware final unload when the MMU still reports filament present even if the streamed job did not provide scanned file metadata. This prevents OctoPrint-style serial jobs from leaving filament in the extruder when slicer metadata is unavailable or host progress reports reach 100% before the final end-gcode unload sequence is complete.
 
 The serial print screen now has selectable UI modes:
