@@ -111,10 +111,17 @@ private:
 
         // A picked tool gets parked automatically during the preamble; when that's not
         // possible (unknown tool or uncalibrated dock), ask the user to remove it manually
-        const auto picked_tool = PhysicalToolIndex::currently_selected_opt();
-        const bool nozzle_present = buddy::puppies::indx.get_nozzle_present().value_or(false);
+        auto picked_tool = PhysicalToolIndex::currently_selected_opt();
+        const auto nozzle_present = buddy::puppies::indx.get_nozzle_present();
+        if (picked_tool && nozzle_present == std::optional(false)) {
+            // The sensor definitively says the head is empty — the picked-tool state is stale
+            log_warning(DockCalibration, "Tool #%u believed picked but no nozzle detected, correcting to no tool", picked_tool->to_raw());
+            prusa_toolchanger.set_active_extruder(NoTool {});
+            prusa_toolchanger.persist_last_picked_tool(NoTool {}, /*override_always=*/true);
+            picked_tool.reset();
+        }
         const bool can_auto_park = picked_tool.has_value() && picked_tool->is_enabled();
-        if ((picked_tool.has_value() || nozzle_present) && !can_auto_park) {
+        if ((picked_tool.has_value() || nozzle_present.value_or(false)) && !can_auto_park) {
             fsm_change(PhaseDockCalibration::remove_tool);
             if (wait_for_response(PhaseDockCalibration::remove_tool) == Response::Abort) {
                 return Result::aborted;
