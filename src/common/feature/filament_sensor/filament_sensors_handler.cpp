@@ -275,8 +275,9 @@ void FilamentSensors::process_events() {
             return;
         }
 
-        // With an MMU, don't check for runout on the secondary sensor
-        if (!has_mmu && check_runout(LogicalFilamentSensor::secondary_runout)) {
+        // When an upstream side/MMU/external sensor is primary, still watch the
+        // toolhead sensor for breaks or jams between that sensor and the extruder.
+        if (check_runout(LogicalFilamentSensor::secondary_runout)) {
             return;
         }
     } else {
