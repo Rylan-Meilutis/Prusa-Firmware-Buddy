@@ -23,7 +23,6 @@
 #include "time_tools.hpp"
 #include "footer_eeprom.hpp"
 #include <version/version.hpp>
-#include <common/sys.hpp>
 #include <bootloader/bootloader.hpp>
 #include "config_features.h"
 #include <config_store/store_instance.hpp>
@@ -300,19 +299,6 @@ void MI_DISABLE_STEP::click(IWindowMenu & /*window_menu*/) {
     marlin_client::gcode("M18");
 #endif
 }
-
-/*****************************************************************************/
-// MI_ENTER_DFU
-#ifdef BUDDY_ENABLE_DFU_ENTRY
-// #error dead code found by automatic analyses (see BFW-5461)
-MI_ENTER_DFU::MI_ENTER_DFU()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
-}
-
-void MI_ENTER_DFU::click(IWindowMenu &) {
-    sys_dfu_request_and_reset();
-}
-#endif
 
 /*****************************************************************************/
 // MI_SAVE_DUMP
