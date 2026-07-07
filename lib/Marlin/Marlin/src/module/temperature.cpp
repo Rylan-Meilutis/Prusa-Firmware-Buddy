@@ -210,7 +210,6 @@ Temperature thermalManager;
     .temp_increase = WATCH_BED_TEMP_INCREASE,
     .period_s = WATCH_BED_TEMP_PERIOD,
     .min_temp_diff = WATCH_BED_TEMP_INCREASE + TEMP_BED_HYSTERESIS + 1,
-    .error_code = ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR,
   };
 
   HeaterWatch watch_bed { watch_bed_config };
@@ -459,7 +458,7 @@ void Temperature::manage_heater() {
 
     #if WATCH_BED
       if (watch_bed.update(degBed())) {
-        fatal_error(watch_bed_config.error_code);
+        fatal_error(ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR);
       }
     #endif // WATCH_BED
 

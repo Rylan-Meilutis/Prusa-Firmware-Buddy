@@ -129,6 +129,9 @@
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
 #endif
+#if HAS_INDX()
+    #include <tool/hotend/hotend/indx_hotend.hpp>
+#endif
 
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -913,6 +916,10 @@ static void cycle() {
 
 #if HAS_BED_FAN()
     bed_fan::controller().step();
+#endif
+
+#if HAS_INDX()
+    IndxHotend::process_pending_thermal_runaway();
 #endif
 
     FSensors_instance().step();

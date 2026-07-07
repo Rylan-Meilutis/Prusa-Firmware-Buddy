@@ -4,6 +4,7 @@
 #include <tool/hotend/hotend.hpp>
 #include <module/temperature/thermal_runaway.hpp>
 #include <module/temperature/heater_watch.hpp>
+#include <error_codes.hpp>
 
 /// Represents a base for all non-dummy hotends
 class BaseHotend : public Hotend {
@@ -18,6 +19,10 @@ public:
 #endif
 
 protected:
+    /// Called by the thermal protection detectors instead of raising directly.
+    /// Base raises immediately; IndxHotend overrides to re-verify nozzle presence first.
+    virtual void invoke_thermal_runaway(ErrCode error_code);
+
     /// Re-arms protection state machines on heating-change events: nozzle target
     /// temperature change while managed, or transition into managed state.
     virtual void handle_nozzle_target_change();

@@ -25,7 +25,6 @@ static constexpr HeaterWatch::Config heatbreak_watch_config {
     .temp_increase = -WATCH_HEATBREAK_TEMP_DECREASE,
     .period_s = WATCH_HEATBREAK_TEMP_PERIOD,
     .min_temp_diff = -HEATBREAK_MAXTEMP_OFFSET,
-    .error_code = ErrCode::ERR_TEMPERATURE_HEATBREAK_COOLING_TOO_SLOW,
     .watch_cooling_instead = true,
 };
 #endif
@@ -228,7 +227,7 @@ void LocalHotend::manage_heatbreak() {
 
     #if WATCH_HEATBREAK
     if (heatbreak_watch_.update(heatbreak_temp())) {
-        fatal_error(heatbreak_watch_config.error_code);
+        fatal_error(ErrCode::ERR_TEMPERATURE_HEATBREAK_COOLING_TOO_SLOW);
     }
     #endif
 

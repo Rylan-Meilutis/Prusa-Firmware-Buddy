@@ -27,7 +27,7 @@ INDXHotendTempModel &hotend_temp_model() {
     return instance;
 }
 
-void INDXHotendTempModel::step() {
+bool INDXHotendTempModel::step() {
     // step should never be called with invalid tool
     assert(!std::holds_alternative<NoTool>(managed_tool_));
     auto &indx_head = buddy::puppies::indx;
@@ -38,7 +38,7 @@ void INDXHotendTempModel::step() {
 
     if (!step_limiter_ms_.check(now_ms)) {
         // Limit the step interval
-        return;
+        return false;
     }
 
     float final_compensation_c = 0;
@@ -74,7 +74,7 @@ void INDXHotendTempModel::step() {
     if (!temps_valid) {
         // Readings not yet valid after indx head boot — wait. (Head resets re-init via reset().)
         is_initialized_ = false;
-        return;
+        return false;
     }
 
     if (current_filament != last_filament_) {
@@ -98,7 +98,7 @@ void INDXHotendTempModel::step() {
 
         // Wait one more step so that we can get a step proper step delta
         // last_sg ensures the last_XX members are properly initialized next round
-        return;
+        return false;
     }
 
     if (filament_data_update_pending_) {
@@ -192,10 +192,12 @@ void INDXHotendTempModel::step() {
             // Colder model temperature does not pose a safety problem
             // Colder absolute temperatures also do not pose a safety problem
             if (model_temp_C > 200 && model_temp_C > ref_temp_C + 60) {
-                fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
+                return true;
             }
         }
     }
+
+    return false;
 }
 
 void INDXHotendTempModel::set_tool(std::variant<VirtualToolIndex, NoTool> tool) {
