@@ -220,7 +220,9 @@ void LocalHotend::manage_heatbreak() {
     next_heatbreak_check_ms_ = ms + 1000;
 
     #if WATCH_HEATBREAK
-    heatbreak_watch_.update(heatbreak_temp());
+    if (heatbreak_watch_.update(heatbreak_temp())) {
+        fatal_error(heatbreak_watch_config.error_code);
+    }
     #endif
 
     // iX has a non-constant maxtemp for the heatbreak, so we need to explicitly set it

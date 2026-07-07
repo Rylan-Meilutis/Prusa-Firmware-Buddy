@@ -1,6 +1,7 @@
 /// @file
 #include "base_hotend.hpp"
 
+#include <bsod.h>
 #include <module/temperature.h>
 #include <filament.hpp>
 
@@ -101,11 +102,15 @@ void BaseHotend::manage() {
     manage_temp_residency();
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
-    thermal_runaway_.step(curr_nozzle_temp, nozzle_target_temp(), (heater_ind_t)tool_.to_raw(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS);
+    if (thermal_runaway_.step(curr_nozzle_temp, nozzle_target_temp(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS)) {
+        fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
+    }
 #endif
 
 #if WATCH_HOTENDS
-    heater_watch_.update(curr_nozzle_temp);
+    if (heater_watch_.update(curr_nozzle_temp)) {
+        fatal_error(heater_watch_config.error_code);
+    }
 #endif
 }
 
