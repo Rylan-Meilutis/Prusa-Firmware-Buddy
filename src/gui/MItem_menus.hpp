@@ -142,6 +142,9 @@ using MI_HARDWARE_TUNE
 using MI_SYSTEM
     = MI_SCREEN<N_("System"), class ScreenMenuSystem>;
 
+using MI_DEVELOPMENT
+    = MI_SCREEN<N_("Development"), class ScreenMenuDevelopment, nullptr, is_hidden_t::dev>;
+
 using MI_INFO
     = MI_SCREEN<N_("Info"), class ScreenMenuInfo>;
 

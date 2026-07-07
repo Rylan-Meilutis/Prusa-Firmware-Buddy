@@ -88,6 +88,11 @@
     #include "screen_menu_phase_stepping.hpp"
 #endif
 
+#include <option/development_items.h>
+#if DEVELOPMENT_ITEMS()
+    #include "screen_menu_development.hpp"
+#endif
+
 #include <config_store/store_instance.hpp>
 
 MI_SCREEN_BASE::MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const char *label)
@@ -146,6 +151,10 @@ template struct MI_SCREEN_CTOR<ScreenMenuInfo>;
 template struct MI_SCREEN_CTOR<ScreenFactoryReset>;
 template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
 template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
+
+#if DEVELOPMENT_ITEMS()
+template struct MI_SCREEN_CTOR<ScreenMenuDevelopment>;
+#endif
 
 #if DEVELOPER_MODE()
 // #error dead code found by automatic analyses (see BFW-5461)

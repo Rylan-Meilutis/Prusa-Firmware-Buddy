@@ -14,6 +14,7 @@
 #include <option/has_indx.h>
 #include <option/has_lights_menu.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/development_items.h>
 
 #if HAS_MMU2()
     #include "MItem_mmu.hpp"
@@ -87,6 +88,9 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_USER_INTERFACE, MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
     MI_MANUAL_BELT_TUNING,
+#endif
+#if DEVELOPMENT_ITEMS()
+    MI_DEVELOPMENT,
 #endif
     // MI_SYSTEM needs to be last to ensure we can safely hit factory reset even in presence of unknown languages
     MI_SYSTEM>;

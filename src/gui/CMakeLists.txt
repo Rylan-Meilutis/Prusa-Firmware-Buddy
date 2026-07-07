@@ -100,7 +100,7 @@ if(HAS_XLCD_TOUCH_DRIVER)
 endif()
 
 if(DEVELOPMENT_ITEMS_ENABLED)
-  target_sources(firmware PRIVATE MItem_development.cpp)
+  target_sources(firmware PRIVATE MItem_development.cpp screen_menu_development.cpp)
 endif()
 
 if(HAS_TOOLCHANGER)
