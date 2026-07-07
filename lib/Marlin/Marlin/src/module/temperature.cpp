@@ -458,7 +458,9 @@ void Temperature::manage_heater() {
     #endif
 
     #if WATCH_BED
-      watch_bed.update(degBed());
+      if (watch_bed.update(degBed())) {
+        fatal_error(watch_bed_config.error_code);
+      }
     #endif // WATCH_BED
 
     do {
@@ -470,7 +472,9 @@ void Temperature::manage_heater() {
       #endif
 
       #if HAS_THERMALLY_PROTECTED_BED
-        thermal_runaway_bed.step(temp_bed.celsius, temp_bed.target, H_BED, THERMAL_PROTECTION_BED_PERIOD, THERMAL_PROTECTION_BED_HYSTERESIS);
+        if (thermal_runaway_bed.step(temp_bed.celsius, temp_bed.target, THERMAL_PROTECTION_BED_PERIOD, THERMAL_PROTECTION_BED_HYSTERESIS)) {
+          _temp_error(H_BED, PSTR(MSG_T_THERMAL_RUNAWAY), GET_TEXT(MSG_THERMAL_RUNAWAY_BED));
+        }
       #endif
 
       {
