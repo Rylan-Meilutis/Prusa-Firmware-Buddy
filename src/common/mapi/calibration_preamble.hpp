@@ -18,7 +18,7 @@ enum class CalibrationPreambleStep {
 enum class CalibrationPreambleToolPolicy {
     keep_as_is, ///< only home XY
     ensure_picked, ///< pick any tool when none is picked
-    ensure_parked, ///< park the picked tool (e.g. dock calibration works with an empty head)
+    ensure_parked, ///< park the picked tool (e.g. dock calibration works with an empty head); a tool with an uncalibrated dock parks to the default dock position
 };
 
 /// Makes subsequent XY moves safe regardless of a possibly unhomed/stale Z:
