@@ -8,7 +8,6 @@
 #include "MItem_crash.hpp"
 #include "Configuration_adv.h"
 #include <option/has_mmu2.h>
-#include <option/developer_mode.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
@@ -80,10 +79,6 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #if ENABLED(CRASH_RECOVERY)
     MI_CRASH_DETECTION,
 #endif // ENABLED(CRASH_RECOVERY)
-#if DEVELOPER_MODE()
-    // #error dead code found by automatic analyses (see BFW-5461)
-    MI_ERROR_TEST,
-#endif
     MI_USER_INTERFACE, MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
     MI_MANUAL_BELT_TUNING,

@@ -29,7 +29,6 @@
     #include "screen_menu_wastebin.hpp"
 #endif
 #include "screen_menu_system.hpp"
-#include "screen_menu_error_test.hpp"
 #include "screen_menu_input_shaper.hpp"
 #include <screen_menu_languages.hpp>
 #include <screen_menu_info.hpp>
@@ -91,6 +90,7 @@
 #include <option/development_items.h>
 #if DEVELOPMENT_ITEMS()
     #include "screen_menu_development.hpp"
+    #include "screen_menu_error_test.hpp"
 #endif
 
 #include <config_store/store_instance.hpp>
@@ -154,10 +154,6 @@ template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
 
 #if DEVELOPMENT_ITEMS()
 template struct MI_SCREEN_CTOR<ScreenMenuDevelopment>;
-#endif
-
-#if DEVELOPER_MODE()
-// #error dead code found by automatic analyses (see BFW-5461)
 template struct MI_SCREEN_CTOR<ScreenMenuErrorTest>;
 #endif
 

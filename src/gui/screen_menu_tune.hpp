@@ -18,7 +18,6 @@
 #include <option/has_chamber_api.h>
 #include <option/has_loadcell.h>
 #include <option/has_toolchanger.h>
-#include <option/developer_mode.h>
 #include <option/has_mmu2.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_chamber_filtration_api.h>
@@ -126,12 +125,6 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_TIMEZONE, MI_TIMEZONE_MIN, MI_TIMEZONE_SUMMER, MI_INFO,
 #if ENABLED(POWER_PANIC)
     MI_TRIGGER_POWER_PANIC,
-#endif
-
-/* MI_FOOTER_SETTINGS,*/ // currently experimental, but we want it in future
-#if DEVELOPER_MODE()
-    // #error dead code found by automatic analyses (see BFW-5461)
-    MI_ERROR_TEST,
 #endif
     MI_MESSAGES>;
 

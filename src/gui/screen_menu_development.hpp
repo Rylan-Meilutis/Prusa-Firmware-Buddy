@@ -16,6 +16,7 @@ using ScreenMenuDevelopmentBase = BasicScreenMenu<
 #endif
     MI_PRINTER_SETUP,
     MI_EXPERIMENTAL_SETTINGS,
+    MI_ERROR_TEST,
     MI_TRIGGER_BANK_MIGRATION>;
 
 class ScreenMenuDevelopment final : public ScreenMenuDevelopmentBase {

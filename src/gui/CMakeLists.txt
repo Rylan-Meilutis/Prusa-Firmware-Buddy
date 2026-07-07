@@ -40,7 +40,6 @@ target_sources(
           screen_menu.cpp
           screen_menu_control.cpp
           screen_menu_enclosure.cpp
-          screen_menu_error_test.cpp
           screen_menu_fail_stat.cpp
           screen_menu_fan_info.cpp
           screen_menu_filament.cpp
@@ -100,7 +99,9 @@ if(HAS_XLCD_TOUCH_DRIVER)
 endif()
 
 if(DEVELOPMENT_ITEMS_ENABLED)
-  target_sources(firmware PRIVATE MItem_development.cpp screen_menu_development.cpp)
+  target_sources(
+    firmware PRIVATE MItem_development.cpp screen_menu_development.cpp screen_menu_error_test.cpp
+    )
 endif()
 
 if(HAS_TOOLCHANGER)

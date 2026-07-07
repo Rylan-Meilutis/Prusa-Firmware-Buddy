@@ -7,7 +7,7 @@
 #include <option/has_leds.h>
 #include <option/has_phase_stepping.h>
 #include <option/has_sheet_profiles.h>
-#include <option/developer_mode.h>
+#include <option/development_items.h>
 #include <option/has_translations.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_mmu2.h>
@@ -108,11 +108,9 @@ using MI_FOOTER_SETTINGS
 using MI_FOOTER_SETTINGS_ADV
     = MI_SCREEN<N_("Advanced"), class ScreenMenuFooterSettingsAdv, nullptr, is_hidden_t::dev>;
 
-using MI_EXPERIMENTAL_SETTINGS
-    = MI_SCREEN<N_("Experimental Settings"), class ScreenMenuExperimentalSettings, nullptr, is_hidden_t::dev>;
-
 using MI_USER_INTERFACE
     = MI_SCREEN<N_("User Interface"), class ScreenMenuUserInterface>;
+
 using MI_LANG_AND_TIME
     = MI_SCREEN<N_("Language & Time"), class ScreenMenuLangAndTime>;
 
@@ -142,9 +140,6 @@ using MI_HARDWARE_TUNE
 using MI_SYSTEM
     = MI_SCREEN<N_("System"), class ScreenMenuSystem>;
 
-using MI_DEVELOPMENT
-    = MI_SCREEN<N_("Development"), class ScreenMenuDevelopment, nullptr, is_hidden_t::dev>;
-
 using MI_INFO
     = MI_SCREEN<N_("Info"), class ScreenMenuInfo>;
 
@@ -154,17 +149,23 @@ using MI_OPEN_FACTORY_RESET
 using MI_INPUT_SHAPER
     = MI_SCREEN<N_("Input Shaper"), class ScreenMenuInputShaper>;
 
+#if DEVELOPMENT_ITEMS()
+
 namespace screen_printer_setup_private {
 class ScreenPrinterSetup;
 }
 using MI_PRINTER_SETUP
     = MI_SCREEN<N_("Printer Setup"), screen_printer_setup_private::ScreenPrinterSetup, nullptr, is_hidden_t::dev>;
 
-#if DEVELOPER_MODE()
-// #error dead code found by automatic analyses (see BFW-5461)
+using MI_DEVELOPMENT
+    = MI_SCREEN<N_("Development"), class ScreenMenuDevelopment, nullptr, is_hidden_t::dev>;
+
+using MI_EXPERIMENTAL_SETTINGS
+    = MI_SCREEN<N_("Experimental Settings"), class ScreenMenuExperimentalSettings, nullptr, is_hidden_t::dev>;
 
 using MI_ERROR_TEST
     = MI_SCREEN<N_("Test Errors"), class ScreenMenuErrorTest, nullptr, is_hidden_t::dev>;
+
 #endif
 
 #if HAS_TRANSLATIONS()
