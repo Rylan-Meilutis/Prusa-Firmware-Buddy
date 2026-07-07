@@ -25,7 +25,7 @@ constexpr void visit_all_struct_fields(T &t, Visitor visitor, Args&&... args) {{
 	static constexpr auto arity = aggregate_arity<T>();
     static_assert(arity < {num_of_cases}, "visit_all_struct_fields_generator needs to be called with with larger arity");
 
- 	""")
+	""")
 
         for i in range(1, num_of_cases):
             params = ", ".join([f"p{j}" for j in range(i)])
@@ -35,8 +35,7 @@ constexpr void visit_all_struct_fields(T &t, Visitor visitor, Args&&... args) {{
             file.write(f""" if constexpr(arity == {i}) {{
 		auto &[{params}] = t;
 		""")
-            for j in range(i):
-                file.write(f"f(p{j}) ")
+            file.write(" ".join([f"f(p{j})" for j in range(i)]))
 
             file.write("\n\n	}")
 

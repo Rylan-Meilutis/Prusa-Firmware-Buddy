@@ -382,6 +382,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
       CMAKE_ARGS
         --preset xl-dwarf_${CMAKE_BUILD_TYPE_lower}_boot -B "${DWARF_BINARY_DIR}"
         "-DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}"
+        "-DPython3_ROOT_DIR:PATH=${Python3_ROOT_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
       BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
@@ -408,6 +409,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
         --preset ${PRINTER_lower}-modularbed_${CMAKE_BUILD_TYPE_lower}_boot -B
         "${MODULARBED_BINARY_DIR}"
         "-DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}"
+        "-DPython3_ROOT_DIR:PATH=${Python3_ROOT_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
       BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
@@ -436,6 +438,7 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
         --preset ${PRINTER_lower}-xbuddy-extension_${CMAKE_BUILD_TYPE_lower}_boot -B
         "${XBUDDY_EXTENSION_BINARY_DIR}"
         "-DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}"
+        "-DPython3_ROOT_DIR:PATH=${Python3_ROOT_DIR}"
         $<$<BOOL:${CUSTOM_COMPILE_OPTIONS}>:-DCUSTOM_COMPILE_OPTIONS=${CUSTOM_COMPILE_OPTIONS}>
       BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target firmware
       INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step"
