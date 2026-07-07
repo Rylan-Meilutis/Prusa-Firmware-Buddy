@@ -8,6 +8,7 @@
 static_assert(DEVELOPMENT_ITEMS());
 
 using ScreenMenuDevelopmentBase = BasicScreenMenu<
+    MI_DRY_RUN,
     MI_TRIGGER_BANK_MIGRATION>;
 
 class ScreenMenuDevelopment final : public ScreenMenuDevelopmentBase {

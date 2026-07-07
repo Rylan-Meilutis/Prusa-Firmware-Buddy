@@ -71,7 +71,6 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_STEALTH_MODE,
     MI_FAN_CHECK,
     MI_GCODE_VERIFY,
-    MI_DRYRUN,
 #if HAS_WASTEBIN_FILL_TRACKING()
     MI_WASTEBIN,
 #endif
