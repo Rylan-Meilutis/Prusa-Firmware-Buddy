@@ -53,6 +53,7 @@
 #include <option/has_phase_stepping.h>
 #include <option/has_burst_stepping.h>
 #include <option/has_indx.h>
+#include <option/has_indx_head.h>
 #include <option/has_internal_storage_flash.h>
 #include <option/has_xbuddy_extension.h>
 #include <option/buddy_enable_wui.h>
@@ -365,6 +366,11 @@ extern "C" void main_cpp(void) {
     #else
     buddy::hw::ext_pwr_enable.set();
     #endif
+#endif
+
+#if HAS_INDX_HEAD()
+    // The indx_head_reset pin table init state holds the head in reset only on BOM >= 37, re-assert so older boards do too
+    buddy::hw::Configuration::Instance().write_indx_head_reset(buddy::hw::Pin::State::high);
 #endif
 
     /*
