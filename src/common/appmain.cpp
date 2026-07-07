@@ -185,7 +185,7 @@ static void app_setup(void) {
     metric_record_event(&metric_app_start);
 
 #if HAS_LOADCELL()
-    if (config_store().stuck_filament_detection.get()) {
+    if (config_store().stuck_filament_detection.get() || config_store().filament_movement_detection.get()) {
         EMotorStallDetector::Instance().SetEnabled();
     } // else keep it disabled (which is the default)
 

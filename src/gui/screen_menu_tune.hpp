@@ -87,6 +87,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #endif
 #if HAS_LOADCELL()
     MI_STUCK_FILAMENT_DETECTION,
+    MI_FILAMENT_MOVEMENT_DETECTION,
 #endif
 #if XL_ENCLOSURE_SUPPORT()
     MI_ENCLOSURE_ENABLE,

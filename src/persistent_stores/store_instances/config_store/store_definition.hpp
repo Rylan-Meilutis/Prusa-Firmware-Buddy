@@ -658,6 +658,7 @@ struct CurrentStore
     StoreItem<int16_t, defaults::homing_sens_y, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens Y")> homing_sens_y; // Y axis homing sensitivity
 
     StoreItem<bool, true, ItemFlag::features, journal::hash("Stuck filament detection V2")> stuck_filament_detection;
+    StoreItem<bool, true, ItemFlag::features, journal::hash("Filament movement detection V2")> filament_movement_detection;
 
     StoreItem<bool, false, ItemFlag::features, journal::hash("Stealth mode")> stealth_mode;
 
