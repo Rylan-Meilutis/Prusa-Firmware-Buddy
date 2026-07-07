@@ -321,15 +321,7 @@ string_view_utf8 I_MI_STS::get_filled_menu_item_label(Action action) {
 
 I_MI_STS::I_MI_STS(Action action)
     : IWindowMenuItem(get_filled_menu_item_label(action), nullptr, is_enabled_t::yes, get_mainitem_hidden_state(action), get_expands(action))
-    , action(action) {
-#if HAS_SELFTEST_DEPENDENCIES()
-    if (!are_dependencies_met(action)) {
-#else
-    if (!are_previous_completed(action)) {
-#endif
-        set_color_scheme(&not_yet_ready_scheme);
-    }
-}
+    , action(action) {}
 
 static bool check_prerequisites_or_warn(Action action) {
     if (bypass_dependencies) {
@@ -367,6 +359,14 @@ void I_MI_STS::click(IWindowMenu &) {
 void I_MI_STS::Loop() {
     SetIconId(get_icon(action, AllTools {}));
     set_icon_position(IconPosition::before_extension);
+
+    // NOTE: setting color scheme in ctor is not reliable because some selftests dont rebuild the menu, so the ctor would not re-run
+#if HAS_SELFTEST_DEPENDENCIES()
+    const bool ready = are_dependencies_met(action);
+#else
+    const bool ready = are_previous_completed(action);
+#endif
+    set_color_scheme(ready ? nullptr : &not_yet_ready_scheme);
 }
 
 I_MI_STS_SUBMENU::I_MI_STS_SUBMENU(const char *label_template, Action action, PhysicalToolIndex tool)
