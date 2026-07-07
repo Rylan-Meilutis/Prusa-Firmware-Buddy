@@ -432,7 +432,7 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 The RME patch stack has been replayed on upstream `v6.6.1`, conflict-resolved on branch `rme-v6.6.1`, and validated with the release wrapper. The wrapper now supplies the managed `.venv` path and `Python3_ROOT_DIR` automatically so nested CMake projects can find Nunavut `nnvg`.
 
 ```sh
-./build.py --final --jobs 4 --skip-bootstrap --no-clean-output
+python3 build.py --final --jobs 4 --no-store-output
 ```
 
 Final validation result:
@@ -444,20 +444,20 @@ Final validation result:
 Validated release target set and package sizes:
 
 ```text
-coreone     1.26 MiB / 1.87 MiB flash (67.07%), 178.6 KiB / 260.0 KiB RAM (68.71%)
-coreonel    1.26 MiB / 1.87 MiB flash (67.09%), 179.8 KiB / 260.0 KiB RAM (69.17%)
+coreone     1.26 MiB / 1.87 MiB flash (67.07%), 179.8 KiB / 309.1 KiB RAM (58.15%)
+coreonel    1.26 MiB / 1.87 MiB flash (67.10%), 181.0 KiB / 309.1 KiB RAM (58.54%)
 mini        882.6 KiB / 895.0 KiB flash (98.61%), 146.4 KiB / 196.0 KiB RAM (74.72%)
-mini-en-cs  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-de  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-es  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-fr  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-it  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-pl  883.2 KiB / 895.0 KiB flash (98.68%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-cs  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-de  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-es  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-fr  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-it  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-pl  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
 mini-en-ja  890.1 KiB / 895.0 KiB flash (99.45%), 146.5 KiB / 196.0 KiB RAM (74.76%)
-mini-en-uk  883.2 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
+mini-en-uk  883.3 KiB / 895.0 KiB flash (98.69%), 146.5 KiB / 196.0 KiB RAM (74.76%)
 mk4         1.18 MiB / 1.87 MiB flash (63.13%), 171.5 KiB / 260.0 KiB RAM (65.97%)
 mk3.5       1.12 MiB / 1.87 MiB flash (59.52%), 160.0 KiB / 260.0 KiB RAM (61.55%)
-xl          1.23 MiB / 1.87 MiB flash (65.41%), 186.5 KiB / 260.0 KiB RAM (71.74%)
+xl          1.23 MiB / 1.87 MiB flash (65.41%), 186.6 KiB / 268.1 KiB RAM (69.61%)
 ```
 
 Earlier focused validation for this patch stack on the prior upstream base covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
@@ -482,11 +482,11 @@ Comparison base: upstream `v6.6.1` (`8d187d189e`)
 
 Current branch: `rme-v6.6.1`
 
-Latest replayed RME commit: `4e44c70d`
+Latest replayed RME commit: `899a4eaa`
 
-Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, and `Restore previous screen after ignored serial macro`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, and `Keep toolhead runout active with upstream sensors`
 
-The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.1 translation refresh, and the release documentation refresh.
+The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.1 translation refresh, release build environment fixes, and the secondary toolhead runout path for MMU/side/external filament sensor setups.
 
 ## Full changelog
 
@@ -616,4 +616,7 @@ ce7f68409a  2026-06-25  Port RME firmware to Buddy 6.6.0
 d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 2834ddc48b  2026-06-30  Fix serial M601 M602 host actions
 4e44c70d40  2026-07-02  Restore previous screen after ignored serial macro
+79618c56c6  2026-07-02  Release RME firmware 6.6.1
+6be03b005a  2026-07-03  Fix RME release build environment
+899a4eaa03  2026-07-06  Keep toolhead runout active with upstream sensors
 ```
