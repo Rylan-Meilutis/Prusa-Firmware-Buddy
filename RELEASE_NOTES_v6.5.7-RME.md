@@ -427,30 +427,33 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 Recent local validation used the firmware build wrapper. The wrapper supplies the managed `.venv` path and `Python3_ROOT_DIR` automatically so nested CMake projects can find Nunavut `nnvg`.
 
 ```sh
-./build.py --final --jobs 4 --no-clean-output
-./build.py --preset xl --final --jobs 1 --no-clean-output --skip-bootstrap
+python3 build.py --final --jobs 4 --no-store-output
 ```
 
-The 6.5.7-RME release port was validated against all default release targets:
+Final validation result:
 
 ```text
-coreone
-coreonel
-mini
-mini-en-cs
-mini-en-de
-mini-en-es
-mini-en-fr
-mini-en-it
-mini-en-pl
-mini-en-ja
-mini-en-uk
-mk4
-mk3.5
-xl
+14 succeeded, 0 failed
 ```
 
-The warm release wrapper completed and staged the non-XL targets. XL initially exposed a generated config-store visitor limit after the RME settings stack reached 256 stored fields; regenerating `include/common/visit_all_struct_fields.hpp` with 256-field support fixed the XL build. The focused XL wrapper pass then completed successfully with `1.24 MiB / 1.87 MiB (65.98%)` flash and `188.2 KiB / 260.0 KiB (72.37%)` aggregate RAM.
+Validated release target set and package sizes:
+
+```text
+coreone     1.24 MiB / 1.87 MiB flash (66.01%), 179.8 KiB / 269.1 KiB RAM (66.82%)
+coreonel    1.24 MiB / 1.87 MiB flash (66.00%), 181.1 KiB / 269.1 KiB RAM (67.28%)
+mini        876.7 KiB / 895.0 KiB flash (97.96%), 148.2 KiB / 192.0 KiB RAM (77.18%)
+mini-en-cs  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-de  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-es  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-fr  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-it  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-pl  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-ja  885.0 KiB / 895.0 KiB flash (98.88%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mini-en-uk  877.5 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
+mk4         1.83 MiB / 1.87 MiB flash (97.89%), 172.3 KiB / 260.0 KiB RAM (66.29%)
+mk3.5       1.77 MiB / 1.87 MiB flash (94.42%), 161.8 KiB / 260.0 KiB RAM (62.24%)
+xl          1.24 MiB / 1.87 MiB flash (66.00%), 188.3 KiB / 268.1 KiB RAM (70.23%)
+```
 
 The final staged BBF set is:
 
@@ -479,25 +482,17 @@ python3 utils/build.py --preset coreone --bootloader yes --skip-bootstrap --no-s
 
 That build produced a non-zero BBF signature.
 
-After fixing the managed `nnvg` environment, focused wrapper validation passed with:
-
-```sh
-./build.py --preset mini-en-it --final --jobs 1 --skip-bootstrap --no-clean-output --verbose
-```
-
-That focused build found `.venv/bin/nnvg`, produced `mini-en-it_6.6.1-RME.bbf`, and reported `Total elapsed: 10:26`.
-
 ## Changelog base
 
 Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest replayed RME commit: `f3c3ec13e`
+Latest replayed RME commit: `c0f0a2ef`
 
-Port-completion commit: `Finalize 6.5.7 RME release port`
+Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, and `Keep toolhead runout active with upstream sensors`
 
-The port-completion commit covers the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, and the release documentation refresh.
+The port-completion commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, release build environment fixes, and the secondary toolhead runout path for MMU/side/external filament sensor setups.
 
 ## Full changelog
 
@@ -620,5 +615,12 @@ fa6d213f9  2026-06-24  Fix OctoPrint uploads and add filtration trigger G-code
 92f097066  2026-06-24  Document filtration trigger and upload fix
 4513f700b  2026-06-24  Add MMU serial host event unit coverage
 f3c3ec13e  2026-06-24  Document MMU unit coverage validation
+a27af6d95  2026-06-24  Finalize 6.5.7 RME release port
+a55f1f9ae  2026-06-24  Fix Prusa Connect serial print state reporting
+5b32c93cf  2026-06-25  Fix serial MMU print completion unload
+8301c1936  2026-06-30  Fix serial M601 M602 host actions
+9b5d1361e  2026-07-02  Restore previous screen after ignored serial macro
+b4ffeb2e5  2026-07-03  Fix RME release build environment
+c0f0a2ef4  2026-07-06  Keep toolhead runout active with upstream sensors
 
 ```
