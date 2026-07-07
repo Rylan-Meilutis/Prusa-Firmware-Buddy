@@ -24,8 +24,14 @@ public:
     /// that no tool is managed at all.
     static void assert_thermally_managed_invariant(std::variant<PhysicalToolIndex, NoTool> expected_managed);
 
+    /// Resolves an in-flight recheck; call every cycle() (also while no tool is managed).
+    static void process_pending_thermal_runaway();
+
 protected:
     virtual void manage() override;
+
+    /// Re-verifies nozzle presence before raising; a fallen nozzle looks like a runaway.
+    void invoke_thermal_runaway(ErrCode error_code) override;
 
     /// Pushes the current target to the puppy and resets the hotend temp compensator.
     /// Engages other heating side effects common to all hotend implementations.

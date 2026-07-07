@@ -16,7 +16,6 @@ static constexpr HeaterWatch::Config heater_watch_config {
     .temp_increase = WATCH_TEMP_INCREASE,
     .period_s = WATCH_TEMP_PERIOD,
     .min_temp_diff = WATCH_TEMP_INCREASE + TEMP_HYSTERESIS + 1,
-    .error_code = ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR,
 };
 #endif
 
@@ -80,6 +79,10 @@ void BaseHotend::set_heatbreak_target_temp(TargetTemperature set) {
 }
 #endif
 
+void BaseHotend::invoke_thermal_runaway(ErrCode error_code) {
+    fatal_error(error_code);
+}
+
 void BaseHotend::manage() {
     // Note: Checks in BaseHotend means that we're checking them twice on remote hotends if the remote hotend also uses this API (once on the master board, once on the remote tool board)
     // But better safe than sorry
@@ -103,13 +106,13 @@ void BaseHotend::manage() {
 
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
     if (thermal_runaway_.step(curr_nozzle_temp, nozzle_target_temp(), THERMAL_PROTECTION_PERIOD, THERMAL_PROTECTION_HYSTERESIS)) {
-        fatal_error(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
+        invoke_thermal_runaway(ErrCode::ERR_TEMPERATURE_HOTEND_THERMAL_RUNAWAY);
     }
 #endif
 
 #if WATCH_HOTENDS
     if (heater_watch_.update(curr_nozzle_temp)) {
-        fatal_error(heater_watch_config.error_code);
+        invoke_thermal_runaway(ErrCode::ERR_TEMPERATURE_HOTEND_PREHEAT_ERROR);
     }
 #endif
 }

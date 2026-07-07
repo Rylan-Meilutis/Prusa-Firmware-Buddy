@@ -32,8 +32,9 @@ public:
     /// step() and clears the head temp compensation. Call on pickup (tool) and park (NoTool).
     void set_tool(std::variant<VirtualToolIndex, NoTool> tool);
 
-    /// To be called in regular intervals from marlin thread while the hotend is thermally managed
-    void step();
+    /// To be called in regular intervals from marlin thread while the hotend is thermally managed.
+    /// @returns true when a thermal runaway is detected; the caller is expected to raise the error.
+    [[nodiscard]] bool step();
 
     /// Forces re-initialization on the next step(). Call when the indx head resets.
     void reset();
