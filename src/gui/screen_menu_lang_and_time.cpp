@@ -1,11 +1,10 @@
-/**
- * @file screen_menu_lang_and_time.cpp
- */
-
+/// @file
 #include "screen_menu_lang_and_time.hpp"
 
 ScreenMenuLangAndTime::ScreenMenuLangAndTime()
-    : ScreenMenuLangAndTime__(_(label)) {
+    : ScreenMenuLangAndTimeBase {
+        _("LANGUAGE & TIME"),
+    } {
     EnableLongHoldScreenAction();
 }
 
