@@ -499,18 +499,6 @@ void MI_FAN_CHECK::OnChange(size_t old_index) {
     config_store().fan_check_enabled.set(static_cast<bool>(marlin_vars().fan_check_enabled));
 }
 
-MI_INFO_FW::MI_INFO_FW()
-    : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
-
-MI_INFO_BOOTLOADER::MI_INFO_BOOTLOADER()
-    : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
-
-MI_INFO_MMU::MI_INFO_MMU()
-    : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::yes) {
-}
-
 /*****************************************************************************/
 // MI_FS_AUTOLOAD
 static is_hidden_t get_autoload_hide_state() {

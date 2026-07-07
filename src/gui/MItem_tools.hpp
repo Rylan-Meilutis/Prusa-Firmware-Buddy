@@ -265,29 +265,6 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
 
-/******************************************************************/
-// WI_INFO_t
-class MI_INFO_FW : public WI_INFO_t {
-    static constexpr const char *const label = N_("Firmware Version");
-
-public:
-    MI_INFO_FW();
-};
-
-class MI_INFO_BOOTLOADER : public WI_INFO_t {
-    static constexpr const char *const label = N_("Bootloader Version");
-
-public:
-    MI_INFO_BOOTLOADER();
-};
-
-class MI_INFO_MMU : public WI_INFO_t {
-    static constexpr const char *const label = N_("MMU Version");
-
-public:
-    MI_INFO_MMU();
-};
-
 class MI_FS_AUTOLOAD : public WI_ICON_SWITCH_OFF_ON_t {
     constexpr static const char *const label = N_("Filament Autoloading");
 
