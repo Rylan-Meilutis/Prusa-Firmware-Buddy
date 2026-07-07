@@ -78,10 +78,6 @@
     #include <connect/marlin_printer.hpp>
 #endif
 
-#ifdef HAS_TMC_WAVETABLE
-    #include <feature/tmc_util.h>
-#endif
-
 #include <option/has_e2ee_support.h>
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/e2ee.hpp>
@@ -769,16 +765,6 @@ MI_DEVHASH_IN_QR::MI_DEVHASH_IN_QR()
 void MI_DEVHASH_IN_QR::OnChange(size_t old_index) {
     config_store().devhash_in_qr.set(!old_index);
 }
-
-#ifdef HAS_TMC_WAVETABLE
-MI_WAVETABLE_XYZ::MI_WAVETABLE_XYZ()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().tmc_wavetable_enabled.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {}
-void MI_WAVETABLE_XYZ::OnChange(size_t old_index) {
-    /// enable
-    old_index ? tmc_disable_wavetable(true, true, true) : tmc_enable_wavetable(true, true, true);
-    config_store().tmc_wavetable_enabled.set(!old_index);
-}
-#endif
 
 /**********************************************************************************************/
 // MI_LOAD_SETTINGS

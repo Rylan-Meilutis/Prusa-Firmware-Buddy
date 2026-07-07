@@ -6,6 +6,9 @@
 #include <logging/log.hpp>
 #include <window_msgbox.hpp>
 #include <Marlin/src/core/serial.h>
+#ifdef HAS_TMC_WAVETABLE
+    #include <feature/tmc_util.h>
+#endif
 
 #include <cinttypes>
 #include <cstdio>
@@ -56,3 +59,20 @@ void MI_TRIGGER_BANK_MIGRATION::click(IWindowMenu &) {
     /// dev item intentionally not translated
     MsgBoxInfo(string_view_utf8::MakeRAM(buffer), Responses_Ok);
 }
+
+#ifdef HAS_TMC_WAVETABLE
+MI_WAVETABLE_XYZ::MI_WAVETABLE_XYZ()
+    : WI_ICON_SWITCH_OFF_ON_t {
+        config_store().tmc_wavetable_enabled.get(),
+        /// dev item intentionally not translated
+        string_view_utf8::MakeCPUFLASH("Change Wave Table XYZ"),
+        nullptr,
+        is_enabled_t::yes,
+        is_hidden_t::dev,
+    } {}
+
+void MI_WAVETABLE_XYZ::OnChange(size_t old_index) {
+    old_index ? tmc_disable_wavetable(true, true, true) : tmc_enable_wavetable(true, true, true);
+    config_store().tmc_wavetable_enabled.set(!old_index);
+}
+#endif

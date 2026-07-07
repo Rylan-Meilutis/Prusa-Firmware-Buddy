@@ -89,17 +89,7 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 #if HAS_PHASE_STEPPING()
     MI_PHASE_STEPPING_SCREEN,
 #endif
-
-    // ================================
-    // Dev-only items
-    // ================================
-    MI_PRINTER_SETUP,
-    MI_EXPERIMENTAL_SETTINGS
-#ifdef HAS_TMC_WAVETABLE
-    ,
-    MI_WAVETABLE_XYZ
-#endif
-    >;
+    MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuHardware : public ScreenMenuHardware__ {
 public:

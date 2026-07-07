@@ -21,3 +21,11 @@ public:
 protected:
     void click(IWindowMenu &) override;
 };
+
+class MI_WAVETABLE_XYZ final : public WI_ICON_SWITCH_OFF_ON_t {
+public:
+    MI_WAVETABLE_XYZ();
+
+protected:
+    virtual void OnChange(size_t) override;
+};

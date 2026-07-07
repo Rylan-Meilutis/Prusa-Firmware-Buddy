@@ -457,14 +457,6 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
 
-class MI_WAVETABLE_XYZ : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("Change Wave Table XYZ");
-
-public:
-    MI_WAVETABLE_XYZ();
-    virtual void OnChange(size_t old_index) override;
-};
-
 class MI_LOAD_SETTINGS : public IWindowMenuItem {
     constexpr static const char *const label = N_("Load Settings from File");
 
