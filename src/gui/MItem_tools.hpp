@@ -65,6 +65,18 @@ protected:
 };
 #endif
 
+class MI_FILAMENT_MOVEMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
+    constexpr static const char *const label = N_("Filament Movement Detection");
+    bool init_index() const;
+
+public:
+    MI_FILAMENT_MOVEMENT_DETECTION()
+        : WI_ICON_SWITCH_OFF_ON_t(init_index(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+protected:
+    virtual void OnChange(size_t old_index) override;
+};
+
 class MI_STEALTH_MODE : public WI_ICON_SWITCH_OFF_ON_t {
     constexpr static const char *const label = N_("Stealth Mode");
 

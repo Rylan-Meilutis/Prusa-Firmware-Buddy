@@ -76,6 +76,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #endif
 #if HAS_LOADCELL() && !HAS_INDX()
     MI_STUCK_FILAMENT_DETECTION,
+    MI_FILAMENT_MOVEMENT_DETECTION,
 #endif
 #if HAS_AUTO_RETRACT()
     MI_AUTO_RETRACT_ENABLE,

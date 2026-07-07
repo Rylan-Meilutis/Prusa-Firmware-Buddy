@@ -184,6 +184,19 @@ void MI_STUCK_FILAMENT_DETECTION::OnChange(size_t old_index) {
 #endif
 
 /*****************************************************************************/
+// MI_FILAMENT_MOVEMENT_DETECTION
+/*****************************************************************************/
+bool MI_FILAMENT_MOVEMENT_DETECTION::init_index() const {
+    return config_store().filament_movement_detection.get();
+}
+
+void MI_FILAMENT_MOVEMENT_DETECTION::OnChange(size_t old_index) {
+    if (!gui_try_gcode_with_msg(value() ? "M591 U1 P" : "M591 U0 P")) {
+        set_value(old_index > 0);
+    }
+}
+
+/*****************************************************************************/
 // MI_STEALTH_MODE
 /*****************************************************************************/
 MI_STEALTH_MODE::MI_STEALTH_MODE()

@@ -307,7 +307,8 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
  *
  * Enabled for LoadCell equipped printers
  *
- * Only MK3.9/S, MK4/S and XL
+ * Used by loadcell-equipped printers to pause on nozzle clogs/jams or
+ * upstream filament restraint that stalls forward extrusion.
  *#### Usage
  *
  *    M1601

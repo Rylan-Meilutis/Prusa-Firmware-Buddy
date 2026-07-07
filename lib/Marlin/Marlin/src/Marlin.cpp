@@ -386,18 +386,11 @@ void idle(bool waiting) {
 
   #if ENABLED(NOZZLE_LOAD_CELL)
     if( EMotorStallDetector::Instance().Evaluate(stepper.axis_is_moving(E_AXIS), ! stepper.motor_direction(E_AXIS))){
-        // E-motor stall has been detected, issue a modified M600
+        // E-motor stall has been detected, issue a modified M600. This covers
+        // nozzle clogs/jams and upstream filament restraint before the extruder
+        // can keep grinding the filament.
         SERIAL_ECHOLNPGM("E-motor stall detected");
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-        // Do not issue M1601 for now. Clear the report after 1s to allow future reports.
-        static uint32_t last_report_ms = 0;
-        if( ticks_diff(ticks_ms(), last_report_ms) > 1000 ){
-            EMotorStallDetector::Instance().ClearReported();
-            last_report_ms = ticks_ms();
-        }
-#else
         queue.inject_P(PSTR("M1601"));
-#endif
     }
   #endif
 
