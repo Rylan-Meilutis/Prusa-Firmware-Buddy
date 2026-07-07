@@ -1,37 +1,27 @@
-/**
- * @file screen_menu_hardware.hpp
- */
-
+/// @file
 #pragma once
 
-#include "screen_menu.hpp"
-#include "WindowMenuItems.hpp"
-#include "MItem_tools.hpp"
-#include "MItem_menus.hpp"
-#include "MItem_crash.hpp"
 #include "MItem_hardware.hpp"
-#include "printers.h"
-#include <option/has_loadcell.h>
-#include <option/has_sheet_profiles.h>
-#include <option/has_toolchanger.h>
-#include <option/has_side_fsensor_remap.h>
-#include <option/has_modular_bed.h>
-#include <option/has_mmu2.h>
-#include <option/has_auto_retract.h>
-#include <option/has_chamber_vents.h>
-#include <option/has_phase_stepping.h>
+#include "MItem_menus.hpp"
+#include "MItem_tools.hpp"
+#include "MItem_crash.hpp"
+#include <basic_screen_menu.hpp>
 #include <common/extended_printer_type.hpp>
-#include "printers.h"
+#include <option/has_auto_retract.h>
+#include <option/has_emergency_stop.h>
+#include <option/has_chamber_vents.h>
+#include <option/has_mmu2.h>
+#include <option/has_phase_stepping.h>
+#include <option/has_sheet_profiles.h>
+#include <option/has_side_fsensor_remap.h>
+#include <option/has_toolchanger.h>
 
+#include <option/has_modular_bed.h>
 #if HAS_MODULAR_BED()
     #include "screen_menu_modular_bed.hpp"
 #endif
-#if HAS_MMU2()
-    #include "MItem_mmu.hpp"
-#endif
 
-using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
-    MI_RETURN,
+using ScreenMenuHardwareBase = BasicScreenMenu<
 #if HAS_EXTENDED_PRINTER_TYPE()
     MI_EXTENDED_PRINTER_TYPE,
 #endif
@@ -91,9 +81,8 @@ using ScreenMenuHardware__ = ScreenMenu<GuiDefaults::MenuFooter,
 #endif
     MI_ALWAYS_HIDDEN>;
 
-class ScreenMenuHardware : public ScreenMenuHardware__ {
+class ScreenMenuHardware final : public ScreenMenuHardwareBase {
 public:
-    constexpr static const char *label = N_("HARDWARE");
     ScreenMenuHardware();
 
 private:
