@@ -120,6 +120,11 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                      "G750 Y93 F21000 A\n"
                                                      "G750 Y76 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
+                                                     "G750 Y86.5 F21000 A\n"
+                                                     "G750 Y101.5 F21000 A\n"
+                                                     "G750 Y79.5 F21000 A\n"
+                                                     "G750 Y93.5 F21000 A\n"
+                                                     "G750 Y83.5 F21000 A\n"
                                                      "G750 Y86.5 F21000",
                                 } },
         { Sequence::enter_cleaner, {
