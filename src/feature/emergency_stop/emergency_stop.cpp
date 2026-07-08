@@ -168,11 +168,6 @@ void EmergencyStop::maybe_block() {
     const auto old_destination = destination;
     if (do_move) {
         AutoRestore _ar(allow_planning_movements, true);
-        // All the do-move things expect the current position to be up to date.
-        // It is _not_ (because we might have interrupted another move in the
-        // middle). This is the best estimation we have for it (might be wrong
-        // by MBL :-( ). Should we un-apply it somehow?
-        current_position = old_pos_motion;
         auto park_position = mapi::get_parking_position(mapi::ParkPosition::park);
         // Stay at the current Z instead of the standard lift above the print,
         // just don't park too low so we don't scratch the bed.
@@ -181,7 +176,7 @@ void EmergencyStop::maybe_block() {
     }
     auto unpark = [this, old_pos_motion, old_destination] {
         AutoRestore _ar(allow_planning_movements, true);
-        do_blocking_move_to(old_pos_motion, feedRate_t(NOZZLE_PARK_XY_FEEDRATE));
+        mapi::park(mapi::ParkingPosition { old_pos_motion.x, old_pos_motion.y, old_pos_motion.z });
         current_position = old_pos_motion;
         destination = old_destination;
     };
