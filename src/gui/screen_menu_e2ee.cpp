@@ -1,15 +1,9 @@
+/// @file
 #include "screen_menu_e2ee.hpp"
-#include "ScreenHandler.hpp"
 
+#include "ScreenHandler.hpp"
 #include <common/e2ee/e2ee.hpp>
 #include <common/e2ee/key.hpp>
-#include <common/stat_retry.hpp>
-
-#include <sys/stat.h>
-
-using e2ee::KeyGen;
-
-namespace detail_e2ee {
 
 MI_KEY::MI_KEY()
     : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
@@ -72,12 +66,7 @@ void MI_IDENTITY_CHECKING::OnChange(size_t /*old_index*/) {
 }
 #endif
 
-} // namespace detail_e2ee
-
 ScreenMenuE2ee::ScreenMenuE2ee()
-    : detail_e2ee::Menu(_(label)) {
-}
-
-ScreenMenuE2ee::~ScreenMenuE2ee() {
-    // Intentionally left blank;
-}
+    : ScreenMenuE2eeBase {
+        _("Encryption"),
+    } {}

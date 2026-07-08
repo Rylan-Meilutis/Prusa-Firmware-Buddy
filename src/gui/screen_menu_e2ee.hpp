@@ -1,16 +1,10 @@
+/// @file
 #pragma once
 
-#include "screen_menu.hpp"
 #include <async_job/async_job.hpp>
+#include <basic_screen_menu.hpp>
 #include <e2ee/identity_check_levels.hpp>
-
-namespace e2ee {
-class KeyGen;
-}
-
-class ScreenMenuE2ee;
-
-namespace detail_e2ee {
+#include <WindowMenuInfo.hpp>
 
 class MI_KEY final : public WI_INFO_t {
     constexpr static const char *const label = N_("Key status");
@@ -60,15 +54,12 @@ public:
 };
 #endif
 
-// TODO:
-// * Delete key? Do we need it?
-using Menu = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_KEY, MI_KEYGEN, MI_EXPORT>;
-} // namespace detail_e2ee
+using ScreenMenuE2eeBase = BasicScreenMenu<
+    MI_KEY,
+    MI_KEYGEN,
+    MI_EXPORT>;
 
-class ScreenMenuE2ee final : public detail_e2ee::Menu {
+class ScreenMenuE2ee final : public ScreenMenuE2eeBase {
 public:
-    constexpr static const char *label = N_("Encryption");
     ScreenMenuE2ee();
-    // Because of the unique_ptr and forward-declared class, we need a destructor elsewhere.
-    ~ScreenMenuE2ee();
 };
