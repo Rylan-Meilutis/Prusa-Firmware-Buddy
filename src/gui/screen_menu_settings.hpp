@@ -39,6 +39,7 @@
 #endif
 
 using ScreenMenuSettingsBase = BasicScreenMenu<
+    MI_USER_INTERFACE,
 #if HAS_TOOLCHANGER()
     MI_TOOLHEAD_SETTINGS,
 #endif
@@ -47,14 +48,15 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #else
     MI_FILAMENT_SENSOR,
 #endif
+#if HAS_LIGHTS_MENU()
+    MI_LIGHTS,
+#endif
+    MI_NETWORK,
 #if HAS_LOADCELL() && !HAS_INDX()
     MI_STUCK_FILAMENT_DETECTION,
 #endif
 #if HAS_AUTO_RETRACT()
     MI_AUTO_RETRACT_ENABLE,
-#endif
-#if HAS_LIGHTS_MENU()
-    MI_LIGHTS,
 #endif
 #if HAS_ANFC()
     buddy::openprinttag::MI_OPT_SETTINGS,
@@ -79,7 +81,9 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #if ENABLED(CRASH_RECOVERY)
     MI_CRASH_DETECTION,
 #endif // ENABLED(CRASH_RECOVERY)
-    MI_USER_INTERFACE, MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
+    MI_LANG_AND_TIME,
+    MI_HARDWARE,
+    MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
     MI_MANUAL_BELT_TUNING,
 #endif
