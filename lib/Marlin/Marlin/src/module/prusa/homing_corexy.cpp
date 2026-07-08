@@ -488,7 +488,8 @@ static bool measure_phase_cycles(const AxisEnum axis, const ab_grid_t &ab_off, x
         + phase_cycle_steps(axis) + measure_bump_max_err_steps);
     // Long gantries (e.g. XL) flex away from the endstop when the carriage is pushed out before
     // measuring, lengthening the measured travel by a small, roughly constant amount. Absorb this
-    // on the outward direction only, keeping the early-trigger (min) bound tight. 0 on rigid frames.
+    // in the late-trigger (max) bound of both directions, keeping the early-trigger (min) bound
+    // tight. 0 on rigid frames.
     const int32_t measure_eps_steps_max = measure_eps_steps
         + static_cast<int32_t>(XY_HOMING_GANTRY_FLEX_CYCLES * phase_cycle_steps(axis));
     const int32_t measure_acc_steps = static_cast<int32_t>(travel_accel_distance(fr_mm_s)
@@ -508,8 +509,7 @@ static bool measure_phase_cycles(const AxisEnum axis, const ab_grid_t &ab_off, x
             const int32_t dist_steps = (exp_dist_steps[dir] + measure_eps_steps_max + measure_acc_steps) * (dir ? measure_dir : -measure_dir);
             const bool hit = measure_axis_distance(axis, origin_steps, dist_steps, p_steps[slot][dir], p_dist[slot][dir], fr_mm_s);
             const int32_t exp_dir_steps_min = exp_dist_steps[dir] - measure_eps_steps;
-            // outward push (dir 0) carries the gantry-flex slack; the return (dir 1) stays tight
-            const int32_t exp_dir_steps_max = exp_dist_steps[dir] + (dir ? measure_eps_steps : measure_eps_steps_max);
+            const int32_t exp_dir_steps_max = exp_dist_steps[dir] + measure_eps_steps_max;
 
             // record all probe metric data, split due to maximum size requirements
             const uint32_t ts = ticks_us();
