@@ -159,8 +159,8 @@ public:
         : MI_SCREEN_BASE { MI_SCREEN_CTOR<Screen_>::get(), string_view_utf8::MakeCPUFLASH(label_), is_hidden_t::dev } {}
 };
 
-using MI_FOOTER_SETTINGS_ADV
-    = MI_SCREEN_DEV<"Advanced"_tstr, class ScreenMenuFooterSettingsAdv>;
+using MI_ADVANCED_FOOTER
+    = MI_SCREEN_DEV<"Advanced Footer"_tstr, class ScreenMenuAdvancedFooterSettings>;
 
 using MI_HARDWARE_TUNE
     = MI_SCREEN_DEV<"Hardware"_tstr, class ScreenMenuHardwareTune>;

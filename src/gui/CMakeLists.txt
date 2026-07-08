@@ -100,7 +100,8 @@ endif()
 
 if(DEVELOPMENT_ITEMS_ENABLED)
   target_sources(
-    firmware PRIVATE MItem_development.cpp screen_menu_development.cpp screen_menu_error_test.cpp
+    firmware PRIVATE MItem_development.cpp screen_menu_advanced_footer_settings.cpp
+                     screen_menu_development.cpp screen_menu_error_test.cpp
     )
 endif()
 

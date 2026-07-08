@@ -94,6 +94,7 @@
 #endif
 
 #if DEVELOPMENT_ITEMS()
+    #include "screen_menu_advanced_footer_settings.hpp"
     #include "screen_menu_development.hpp"
     #include "screen_menu_error_test.hpp"
 #endif
@@ -144,7 +145,6 @@ template struct MI_SCREEN_CTOR<screen_messages_data_t>;
 template struct MI_SCREEN_CTOR<ScreenMenuConnect>;
 template struct MI_SCREEN_CTOR<ScreenMenuPrusaLink>;
 template struct MI_SCREEN_CTOR<ScreenMenuFooterSettings>;
-template struct MI_SCREEN_CTOR<ScreenMenuFooterSettingsAdv>;
 template struct MI_SCREEN_CTOR<ScreenMenuExperimentalSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuUserInterface>;
 template struct MI_SCREEN_CTOR<ScreenMenuLangAndTime>;
@@ -164,6 +164,7 @@ template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
 template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
 
 #if DEVELOPMENT_ITEMS()
+template struct MI_SCREEN_CTOR<ScreenMenuAdvancedFooterSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuDevelopment>;
 template struct MI_SCREEN_CTOR<ScreenMenuErrorTest>;
 #endif

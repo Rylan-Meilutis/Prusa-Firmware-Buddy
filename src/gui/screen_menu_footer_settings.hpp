@@ -1,14 +1,9 @@
-/**
- * @file screen_menu_footer_settings.hpp
- * @brief settings of menu footer items
- */
-
+/// @file
 #pragma once
 
 #include "screen_menu.hpp"
 #include "WindowMenuItems.hpp"
 #include "MItem_tools.hpp"
-#include "MItem_menus.hpp"
 #include <gui/menu_item/menu_item_select_menu.hpp>
 
 /**
@@ -32,28 +27,6 @@ private:
 
 template <size_t N>
 using MI_FOOTER = WithConstructorArgs<I_MI_FOOTER, N>;
-
-class MI_LEFT_ALIGN_TEMP : public MenuItemSwitch {
-public:
-    MI_LEFT_ALIGN_TEMP();
-    virtual void OnChange(size_t /*old_index*/) override;
-};
-
-class MI_SHOW_ZERO_TEMP_TARGET : public WI_ICON_SWITCH_OFF_ON_t {
-    constexpr static const char *const label = N_("Temp. show zero");
-
-public:
-    MI_SHOW_ZERO_TEMP_TARGET();
-    virtual void OnChange(size_t old_index) override;
-};
-
-class MI_FOOTER_CENTER_N : public WiSpin {
-    constexpr static const char *const label = N_("Center N and Fewer Items");
-
-public:
-    MI_FOOTER_CENTER_N();
-    virtual void OnClick() override;
-};
 
 using ScreenMenuFooterSettings__ = ScreenMenu<EFooter::On, MI_RETURN, MI_FOOTER<0>
 #if FOOTER_ITEMS_PER_LINE__ > 1
@@ -82,12 +55,4 @@ class ScreenMenuFooterSettings : public ScreenMenuFooterSettings__ {
 public:
     constexpr static const char *label = N_("FOOTER");
     ScreenMenuFooterSettings();
-};
-
-using ScreenMenuFooterSettingsAdv__ = ScreenMenu<EFooter::On, MI_RETURN, MI_FOOTER_CENTER_N, MI_LEFT_ALIGN_TEMP, MI_SHOW_ZERO_TEMP_TARGET>;
-
-class ScreenMenuFooterSettingsAdv : public ScreenMenuFooterSettingsAdv__ {
-public:
-    constexpr static const char *label = N_("FOOTER ADVANCED");
-    ScreenMenuFooterSettingsAdv();
 };

@@ -17,7 +17,7 @@ using ScreenMenuDevelopmentBase = BasicScreenMenu<
 #endif
     MI_PRINTER_SETUP,
     MI_EXPERIMENTAL_SETTINGS,
-    MI_FOOTER_SETTINGS_ADV,
+    MI_ADVANCED_FOOTER,
     MI_ERROR_TEST,
 #if HAS_TOUCH()
     MI_TOUCH_PLAYGROUND,
