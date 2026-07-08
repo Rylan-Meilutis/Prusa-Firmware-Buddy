@@ -8,7 +8,7 @@
 
 MI_KEY::MI_KEY()
     : WI_INFO_t {
-        _("Key status"),
+        _("Key Status"),
     } {
     Loop();
 }
@@ -19,7 +19,7 @@ void MI_KEY::Loop() {
 
 MI_KEYGEN::MI_KEYGEN()
     : IWindowMenuItem {
-        _("Generate new key"),
+        _("Generate Private Key"),
     } {}
 
 void MI_KEYGEN::click(IWindowMenu &) {
@@ -49,7 +49,7 @@ void MI_KEYGEN::click(IWindowMenu &) {
 
 MI_EXPORT::MI_EXPORT()
     : IWindowMenuItem {
-        _("Export public key"),
+        _("Export Public Key"),
     } {}
 
 void MI_EXPORT::click(IWindowMenu &) {
@@ -68,7 +68,7 @@ static constexpr const char *identity_check_items[] = {
 
 MI_IDENTITY_CHECKING::MI_IDENTITY_CHECKING()
     : MenuItemSwitch {
-        _("Identity checking"),
+        _("Identity Checking"),
         identity_check_items,
         static_cast<size_t>(config_store().identity_check.get())
     } {
@@ -83,5 +83,5 @@ bool MI_IDENTITY_CHECKING::on_item_selected(const OnItemSelectedArgs &args) {
 
 ScreenMenuE2ee::ScreenMenuE2ee()
     : ScreenMenuE2eeBase {
-        _("Encryption"),
+        _("ENCRYPTION"),
     } {}
