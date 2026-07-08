@@ -14,6 +14,7 @@
 #include <option/has_e2ee_support.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_lights_menu.h>
+#include <option/has_touch.h>
 #include <img_resources.hpp>
 #include <ScreenFactory.hpp>
 
@@ -208,6 +209,11 @@ using MI_BED_LEVEL_CORRECTION
 #if HAS_LIGHTS_MENU()
 using MI_LIGHTS
     = MI_SCREEN<N_("Lights"), class ScreenMenuLights>;
+#endif
+
+#if HAS_TOUCH()
+using MI_TOUCH_PLAYGROUND
+    = MI_SCREEN<N_("Touch Playground"), class ScreenTouchPlayground, nullptr, is_hidden_t::dev>;
 #endif
 
 class MI_SERIAL_PRINTING_SCREEN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {

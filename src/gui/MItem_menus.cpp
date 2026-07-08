@@ -87,6 +87,11 @@
     #include "screen_menu_phase_stepping.hpp"
 #endif
 
+#include <option/has_touch.h>
+#if HAS_TOUCH()
+    #include "screen_touch_playground.hpp"
+#endif
+
 #include <option/development_items.h>
 #if DEVELOPMENT_ITEMS()
     #include "screen_menu_development.hpp"
@@ -185,6 +190,10 @@ template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 
 #if HAS_LIGHTS_MENU()
 template struct MI_SCREEN_CTOR<ScreenMenuLights>;
+#endif
+
+#if HAS_TOUCH()
+template struct MI_SCREEN_CTOR<ScreenTouchPlayground>;
 #endif
 
 /**********************************************************************************************/
