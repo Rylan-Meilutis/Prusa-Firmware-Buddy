@@ -1148,7 +1148,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
  */
     // Specify a park position as { X, Y, Z }
 #if HAS_INDX()
-    #define X_NOZZLE_CLEANER_ORIGIN 259.7f
+    #define X_NOZZLE_CLEANER_ORIGIN 260.35f
     #define Y_NOZZLE_CLEANER_ORIGIN 63.5f
 
     // Y calibration indent positions [mm] for the two wastebin variants. Both bins share the same cleaner
@@ -1163,7 +1163,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Y_WASTEBIN_SAFE_POINT 55.5f //INDX_TODO: Refine
     #define Y_BRUSH_AVOID_POINT 164.5f //INDX_TODO: Refine
 
-    #define X_WASTEBIN_POINT (X_NOZZLE_CLEANER_ORIGIN + 0.65f)
+    #define X_WASTEBIN_POINT X_NOZZLE_CLEANER_ORIGIN
     #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_ORIGIN + 86.f)
 
     #define X_NOZZLE_PARK_POINT X_WASTEBIN_POINT
