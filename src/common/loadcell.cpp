@@ -453,14 +453,24 @@ Loadcell::FailureOnLoadAboveEnforcer::~FailureOnLoadAboveEnforcer() {
 
 Loadcell::HighPrecisionEnabler::HighPrecisionEnabler(Loadcell &lcell, bool enable)
     : m_lcell(lcell)
-    , m_enable(enable) {
-    if (m_enable) {
-        m_lcell.EnableHighPrecision();
+    , m_owns_high_precision(false) {
+    if (!enable) {
+        return;
     }
+    // Only take ownership (and thus only turn it back off later) if HP wasn't already
+    // on -- otherwise we'd steal it out from under whichever scope enabled it first.
+    if (m_lcell.IsHighPrecisionEnabled()) {
+        // This is undesired state and we should avoid nesting if possible
+        // May cause unwanted state of loadcell enabled after return from the nested scope
+        log_warning(Loadcell, "HighPrecisionEnabler: already enabled, not taking ownership");
+        return;
+    }
+    m_lcell.EnableHighPrecision();
+    m_owns_high_precision = true;
 }
 
 Loadcell::HighPrecisionEnabler::~HighPrecisionEnabler() {
-    if (m_enable) {
+    if (m_owns_high_precision) {
         m_lcell.DisableHighPrecision();
     }
 }

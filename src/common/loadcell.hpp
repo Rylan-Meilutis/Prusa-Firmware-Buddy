@@ -167,15 +167,20 @@ public:
 
     /// RAII guard: enables high precision on construction, disables on destruction.
     /// The `enable` flag allows conditional use without scoping the guard inside an if block.
+    /// Safe to nest.
     class HighPrecisionEnabler {
     public:
         HighPrecisionEnabler(Loadcell &lcell, bool enable = true);
-        HighPrecisionEnabler(HighPrecisionEnabler &&) = default;
         ~HighPrecisionEnabler();
+
+        HighPrecisionEnabler(const HighPrecisionEnabler &) = delete;
+        HighPrecisionEnabler &operator=(const HighPrecisionEnabler &) = delete;
+        HighPrecisionEnabler(HighPrecisionEnabler &&) = delete;
+        HighPrecisionEnabler &operator=(HighPrecisionEnabler &&) = delete;
 
     private:
         Loadcell &m_lcell;
-        bool m_enable;
+        bool m_owns_high_precision;
     };
 
     /// RAII guard: arms probe-safety on construction, disarms on destruction.
