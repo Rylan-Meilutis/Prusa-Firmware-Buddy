@@ -92,6 +92,7 @@
     * Fixed XL release builds after the 6.6.1 typed-tool-index update by passing `PhysicalToolIndex` values to odometer APIs
     * Fixed XL dwarf release builds by using the Marlin serial error macro in the disabled-EEPROM path
     * Fixed the top-level release wrapper so managed `.venv` tools, including Nunavut `nnvg`, are automatically visible to CMake child builds
+    * Fixed cached multi-version release rebuilds so stale nested CMake caches are rebuilt cleanly instead of leaving broken ExternalProject stamp state
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
 
@@ -402,7 +403,15 @@ If `FIRMWARE_SIGNING_KEY` is not set, `./build.py` uses the machine-local defaul
 
 The underlying build wrapper also supports `--signing-key /path/to/private.key`.
 
-The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF path. The wrapper also prepends `.venv/bin` to child build `PATH` and passes `Python3_ROOT_DIR` by default so managed virtualenv tools such as Nunavut `nnvg` are available during CMake configuration.
+The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF path. The wrapper also prepends `.venv/bin` to child build `PATH`, sets `BUDDY_PYTHON`, and passes `Python3_ROOT_DIR` and `Python3_EXECUTABLE` by default so managed virtualenv tools such as Nunavut `nnvg` are available during CMake configuration and nested puppy-firmware builds.
+
+The wrapper can also build multiple maintained RME release branches in one command:
+
+```sh
+./build.py --final --jobs 14 --versions 6.5.7 6.6.1
+```
+
+This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under a sibling `.Prusa-Firmware-Buddy-rme-version-builds/` directory, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. Keeping the version worktrees outside the source checkout avoids accidental relative include leakage while still allowing each cached worktree to retain its `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold. If a nested ExternalProject cache was configured with the wrong Python, or if an old nested cache was partially removed while CMake stamp files remained, the wrapper removes the affected preset build directory so the next rebuild starts from a coherent CMake state.
 
 Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
 
@@ -429,11 +438,19 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-The RME patch stack has been replayed on upstream `v6.6.1`, conflict-resolved on branch `rme-v6.6.1`, and validated with the release wrapper. The wrapper now supplies the managed `.venv` path and `Python3_ROOT_DIR` automatically so nested CMake projects can find Nunavut `nnvg`.
+The RME patch stack has been replayed on upstream `v6.6.1`, conflict-resolved on branch `rme-v6.6.1`, and validated with the release wrapper. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
 
 ```sh
 python3 build.py --final --jobs 4 --no-store-output
 ```
+
+The clean cached-worktree XL path was revalidated after replacing the brittle relative toolchanger include and adding cached multi-version builds:
+
+```sh
+./build.py --versions 6.6.1 --preset xl --final --jobs 14 --store-output
+```
+
+This command stages the XL BBF under `bbf/6.6.1/` and reuses the shared `.venv` and `.dependencies` caches in the generated version worktree.
 
 Final validation result:
 
