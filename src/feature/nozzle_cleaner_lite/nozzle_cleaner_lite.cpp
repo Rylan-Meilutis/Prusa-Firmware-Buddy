@@ -156,12 +156,6 @@ namespace {
     constexpr uint8_t rub_cycles_slow = 2;
     constexpr float rub_acceleration = 5000.0f;
 
-    // Touchpoint cool-down temperature sits this much below the cleaning
-    // temperature: no active ooze, yet as hot as possible so the nozzle
-    // thermal expansion stays close to printing conditions. The probing tool
-    // keeps it for the MBL that follows.
-    constexpr int16_t cooldown_temp_diff = 20;
-
     constexpr int16_t no_filament_cleaning_temperature = 170;
 
     int16_t cleaning_temperature_for(PhysicalToolIndex tool, CleanType clean_type) {

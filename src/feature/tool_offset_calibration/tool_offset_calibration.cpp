@@ -3,6 +3,7 @@
 
 #include "tool_offset_calibration.hpp"
 
+#include <array>
 #include <algorithm>
 #include <bitset>
 #include <cmath>
@@ -37,10 +38,14 @@
 #include <feature/gcode_exception/gcode_exception.hpp>
 #include <puppies/tool_offset_sensor.hpp>
 
+#include <option/has_nozzle_cleaner.h>
 #if HAS_NOZZLE_CLEANER()
     #include <nozzle_cleaner.hpp>
 #endif
-
+#include <option/has_nozzle_cleaner_lite.h>
+#if HAS_NOZZLE_CLEANER_LITE()
+    #include <nozzle_cleaner_lite.hpp>
+#endif
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
     #include <module/prusa/spool_join.hpp>
@@ -130,7 +135,18 @@ ToolTemperatures get_tool_temperatures(PhysicalToolIndex physical_tool) {
 
     if (filament != FilamentType::none) {
         const auto params = filament.parameters();
+#if HAS_NOZZLE_CLEANER()
         return { params.nozzle_temperature, params.nozzle_preheat_temperature, DEFAULT_XY_PROBING_TEMP };
+#elif HAS_NOZZLE_CLEANER_LITE()
+        // The lite cleaner cleans at the preheat temperature and rests on the
+        // touchpoint until the cool-down temperature; Z probing then runs at
+        // that temperature (as hot as possible without ooze, so the nozzle
+        // thermal expansion stays close to printing conditions).
+        const int16_t cleaning_temp = params.nozzle_preheat_temperature;
+        return { cleaning_temp, static_cast<int16_t>(cleaning_temp - nozzle_cleaner_lite::cooldown_temp_diff), DEFAULT_XY_PROBING_TEMP };
+#else
+    #error "No nozzle cleaner available, no cleaning temperature defined for this printer"
+#endif
     } else {
         return { DEFAULT_CLEANING_TEMP, DEFAULT_Z_PROBING_TEMP, DEFAULT_XY_PROBING_TEMP };
     }
@@ -220,9 +236,20 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         // cool-down needed afterwards).
         set_temp_and_wait_reached(tool, temps.xy_probing);
     }
-#elif PRINTER_IS_PRUSA_XL()
-    // Nozzle cleaner not available, just heat to the XY-probing temperature
-    set_temp_and_wait_reached(tool, temps.xy_probing);
+#elif HAS_NOZZLE_CLEANER_LITE()
+    // The lite cleaner self-locates (homes and probes its own Z reference) and handles
+    // nozzle heating internally, so it can run in both contexts. As probing_tool it
+    // rests on the touchpoint until the cool-down temperature and keeps that target
+    // for the Z probing that follows.
+    if (nozzle_cleaner_lite::is_available()) {
+        if (!nozzle_cleaner_lite::clean(nozzle_cleaner_lite::CleanType::probing_tool)) {
+            return false;
+        }
+    }
+
+    // Already reached after a successful clean; establishes the Z-probing
+    // temperature when the cleaner is not installed.
+    set_temp_and_wait_reached(tool, temps.z_probing);
 #else
     #error "Not defined behavior for this printer configuration"
 #endif
@@ -542,6 +569,25 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     #error "Not defined behavior for this printer configuration"
 #endif
 
+#if HAS_NOZZLE_CLEANER_LITE() && PRINTER_IS_PRUSA_XL()
+    // Start heating all used tools to the cleaning temperature in parallel to save time;
+    std::array<int16_t, PhysicalToolIndex::count> saved_nozzle_targets {};
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        if (!used_physical_tools.test(tool.to_raw())) {
+            continue;
+        }
+        saved_nozzle_targets[tool.to_raw()] = thermalManager.degTargetHotend(tool);
+        thermalManager.setTargetHotend(get_tool_temperatures(tool).cleaning, tool);
+    }
+    ScopeGuard restore_nozzle_targets([&] {
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (used_physical_tools.test(tool.to_raw())) {
+                thermalManager.setTargetHotend(saved_nozzle_targets[tool.to_raw()], tool);
+            }
+        }
+    });
+#endif
+
     struct ProbeResult {
         float z;
         xy_pos_t pos;
@@ -638,7 +684,14 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 return false;
             }
 
+#if HAS_NOZZLE_CLEANER_LITE() && PRINTER_IS_PRUSA_XL()
+            // The pre-heat above already overwrote the target, so restore the genuinely
+            // previous temperature captured before it. This also lets a finished tool cool
+            // down while the remaining tools are being calibrated.
+            const int16_t saved_temp = saved_nozzle_targets[tool.to_raw()];
+#else
             const int16_t saved_temp = thermalManager.degTargetHotend(tool);
+#endif
             ScopeGuard restore_temp([&] {
                 thermalManager.setTargetHotend(saved_temp, tool);
             });

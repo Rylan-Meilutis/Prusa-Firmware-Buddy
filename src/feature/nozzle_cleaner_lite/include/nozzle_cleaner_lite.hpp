@@ -18,6 +18,12 @@ namespace nozzle_cleaner_lite {
 /// True when the running unit actually has a nozzle cleaner lite version enabled.
 bool is_available();
 
+/// Touchpoint cool-down temperature sits this much below the cleaning
+/// temperature: no active ooze, yet as hot as possible so the nozzle
+/// thermal expansion stays close to printing conditions. The probing tool
+/// keeps it for the probing that follows.
+constexpr int16_t cooldown_temp_diff = 20;
+
 /// What the clean is part of, which decides where the cleaning temperature
 /// comes from and what happens to the nozzle temperature target afterwards
 enum class CleanType : uint8_t {
