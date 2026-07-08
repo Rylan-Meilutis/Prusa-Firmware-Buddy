@@ -601,21 +601,52 @@ def cached_cmake_python(build_dir: Path) -> Optional[Path]:
     return None
 
 
-def remove_build_dir_with_wrong_python(build_dir: Path):
-    cached_python = cached_cmake_python(build_dir)
-    if cached_python is None:
-        return
+def is_current_python(path: Path) -> bool:
     try:
-        cached_resolved = cached_python.resolve()
+        cached_resolved = path.resolve()
         current_resolved = Path(sys.executable).resolve()
     except OSError:
-        cached_resolved = cached_python
+        cached_resolved = path
         current_resolved = Path(sys.executable)
-    if cached_resolved != current_resolved:
+    return cached_resolved == current_resolved
+
+
+def external_project_has_stamp(build_dir: Path, nested_build_dir: Path) -> bool:
+    name = nested_build_dir.name
+    if not name.endswith('-build'):
+        return False
+    base = name[:-len('-build')]
+    prefixes = [build_dir / f'{base}_firmware-prefix', build_dir / f'{base}-prefix']
+    return any(prefix.exists() for prefix in prefixes)
+
+
+def remove_build_dir_with_wrong_python(build_dir: Path):
+    cached_python = cached_cmake_python(build_dir)
+    if cached_python is not None and not is_current_python(cached_python):
         print(
             f'Removing {build_dir}: cached CMake Python is {cached_python}, current Python is {sys.executable}.',
             file=sys.stderr)
         shutil.rmtree(build_dir)
+        return
+
+    for nested_cache in build_dir.glob('*/CMakeCache.txt'):
+        nested_build_dir = nested_cache.parent
+        cached_python = cached_cmake_python(nested_build_dir)
+        if cached_python is not None and not is_current_python(cached_python):
+            print(
+                f'Removing {build_dir}: nested CMake Python in {nested_build_dir} is {cached_python}, current Python is {sys.executable}.',
+                file=sys.stderr)
+            shutil.rmtree(build_dir)
+            return
+
+    for nested_build_dir in build_dir.glob('*-build'):
+        if (not (nested_build_dir / 'CMakeCache.txt').exists()
+                and external_project_has_stamp(build_dir, nested_build_dir)):
+            print(
+                f'Removing {build_dir}: nested CMake build directory {nested_build_dir} is missing CMakeCache.txt.',
+                file=sys.stderr)
+            shutil.rmtree(build_dir)
+            return
 
 
 def load_presets() -> List[Preset]:

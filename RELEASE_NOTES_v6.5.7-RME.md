@@ -399,6 +399,14 @@ The underlying build wrapper also supports `--signing-key /path/to/private.key`.
 
 The top-level `./build.py` wrapper defaults to at most four concurrent printer builds to avoid overwhelming the build machine. Use `--jobs N` to override the cap when appropriate. Interrupted wrapper builds terminate active child processes instead of leaving orphaned Ninja/LTO jobs running. Completed builds report each machine's flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF path. The wrapper also prepends `.venv/bin` to child build `PATH` and passes `Python3_ROOT_DIR` by default so managed virtualenv tools such as Nunavut `nnvg` are available during CMake configuration.
 
+The wrapper can also build multiple maintained RME release branches in one command:
+
+```sh
+./build.py --final --jobs 14 --versions 6.5.7 6.6.1
+```
+
+This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under `.rme-version-builds/`, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. The cached worktrees retain their `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold.
+
 Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
 
 The RME firmware builds target the stock Prusa bootloader, but the bootloader itself is not built or modified as part of this open firmware tree. Prusa publishes the Buddy firmware source, while the stock bootloader is distributed as a closed binary and the trusted private key is not available.
@@ -428,6 +436,19 @@ Recent local validation used the firmware build wrapper. The wrapper supplies th
 
 ```sh
 python3 build.py --final --jobs 4 --no-store-output
+```
+
+The XL release path was revalidated after the nested puppy-firmware Python propagation fix and the expanded config-store visitor generation:
+
+```sh
+./build.py --preset xl --jobs 14 --final --store-output
+```
+
+Result:
+
+```text
+1 succeeded, 0 failed
+xl_6.5.7-RME.bbf -> bbf/xl_6.5.7-RME.bbf
 ```
 
 Final validation result:
