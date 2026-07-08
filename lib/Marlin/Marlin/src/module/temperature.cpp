@@ -1126,16 +1126,15 @@ void Temperature::isr() {
 
       Hotend &hotend = Hotend::for_tool(target_tool);
 
-      // When skip_residency is set (M109 `C`), the target counts as reached the
-      // moment the nozzle enters the temperature window, without waiting for the
-      // residency settle. Evaluated here so the Hotend keeps no extra state.
+      // M109 C<temp> waits for a temperature threshold without changing the
+      // hotend target. Capped by the regular target wait so an unreachable
+      // wait_temp can't block forever.
       const auto target_reached = [&]() {
-        if (!params.skip_residency) {
-          return hotend.is_nozzle_temp_reached();
-        }
         const auto current = hotend.nozzle_temp();
-        return hotend.nozzle_target_temp() <= 0
-            || std::abs(hotend.nozzle_target_temp() - current) < TEMP_WINDOW;
+        if (params.wait_temp.has_value() && current >= *params.wait_temp) {
+          return true;
+        }
+        return hotend.is_nozzle_temp_reached();
       };
 
       #if BOARD_IS_MASTER_BOARD()
@@ -1197,7 +1196,7 @@ void Temperature::isr() {
         idle(true);
 
         const float temp = degHotend(target_extruder);
-        statusGuard.update<PrintStatusMessage::waiting_for_hotend_temp>({.progress{ .current = temp, .target = target_temp }, .tool=target_extruder});
+        statusGuard.update<PrintStatusMessage::waiting_for_hotend_temp>({.progress{ .current = temp, .target = params.wait_temp.value_or(target_temp) }, .tool=target_extruder});
 
         // Prevent a wait-forever situation if R is misused i.e. M109 R0
         if (wants_to_cool) {
