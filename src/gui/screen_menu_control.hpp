@@ -32,7 +32,7 @@ using ScreenMenuControlSpec = ScreenMenu<EFooter::On,
     MI_PICK_PARK_TOOL,
 #endif
     MI_MOVE_AXIS,
-    MI_TEMPERATURE,
+    MI_TEMPERATURE_AND_FANS,
     MI_AUTO_HOME,
 #if BUDDY_ENABLE_CONNECT()
     MI_SET_READY,

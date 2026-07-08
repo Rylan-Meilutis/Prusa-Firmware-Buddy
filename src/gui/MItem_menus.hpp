@@ -82,8 +82,8 @@ using MI_SENSOR_INFO
 using MI_FAIL_STAT
     = MI_SCREEN<N_("Fail Stats"), class ScreenMenuFailStat>;
 
-using MI_TEMPERATURE
-    = MI_SCREEN<N_("Temperature"), class ScreenMenuTemperature, &img::temperature_16x16>;
+using MI_TEMPERATURE_AND_FANS
+    = MI_SCREEN<N_("Temperature & Fans"), class ScreenMenuTemperatureAndFans, &img::temperature_16x16>;
 
 using MI_MOVE_AXIS
     = MI_SCREEN<N_("Move Axis"), class ScreenMenuMove, &img::move_16x16>;

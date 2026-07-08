@@ -5,7 +5,7 @@
 #include "translator.hpp"
 #include "screen_menu_fan_info.hpp"
 #include "screen_menu_board_info.hpp"
-#include "screen_menu_temperature.hpp"
+#include "screen_menu_temperature_and_fans.hpp"
 #include "screen_menu_move.hpp"
 #include "screen_menu_sensor_info.hpp"
 #include "screen_menu_version_info.hpp"
@@ -134,7 +134,7 @@ template struct MI_SCREEN_CTOR<ScreenMenuFanInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuVersionInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuSensorInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuFailStat>;
-template struct MI_SCREEN_CTOR<ScreenMenuTemperature>;
+template struct MI_SCREEN_CTOR<ScreenMenuTemperatureAndFans>;
 template struct MI_SCREEN_CTOR<ScreenMenuMove>;
 template struct MI_SCREEN_CTOR<ScreenMenuMetricsSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuEthernetSettings>;

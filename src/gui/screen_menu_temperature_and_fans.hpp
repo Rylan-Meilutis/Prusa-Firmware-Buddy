@@ -1,6 +1,4 @@
-/**
- * @file screen_menu_temperature.hpp
- */
+/// @file
 #pragma once
 
 #include <option/has_chamber_api.h>
@@ -11,7 +9,6 @@
 #include "screen_menu.hpp"
 #include "WindowMenuItems.hpp"
 #include "MItem_print.hpp"
-#include "MItem_filament.hpp"
 #include <gui/menu_item/menu_item_virtual_submenu.hpp>
 #include <gui/menu_item/menu_item_extensions/with_icon.hpp>
 #include <window_menu_callback_item.hpp>
@@ -23,17 +20,10 @@
     #include <gui/menu_item/specific/menu_items_xbuddy_extension.hpp>
 #endif
 
-/*****************************************************************************/
-// parent alias
-namespace screen_menu_temperature {
-#if HAS_CHAMBER_API()
-using MI_CHAMBER_TARGET_TEMP = WithConstructorArgs<::MI_CHAMBER_TARGET_TEMP, HAS_MINI_DISPLAY() ? N_("Chamber") : N_("Chamber Temperature")>;
-#endif
+using MI_TEMPERATURE_AND_FANS_COOLDOWN = WithConstructorArgs<WindowMenuCallbackItem, N_("Cooldown"), nullptr>;
 
-using MI_COOLDOWN = WithConstructorArgs<WindowMenuCallbackItem, N_("Cooldown"), nullptr>;
-
-using ScreenBase = ScreenMenu<
-    EFooter::On, MI_RETURN,
+using ScreenMenuTemperatureAndFansBase = ScreenMenu<EFooter::On,
+    MI_RETURN,
     MI_NOZZLE_TARGET_TEMP,
 #if HAS_TOOLCHANGER()
     // Multi-tool: additional submenu to set target temp for all tools, not just the active one.
@@ -53,11 +43,9 @@ using ScreenBase = ScreenMenu<
     MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
     MI_XBE_FILTRATION_FAN,
 #endif
-    MI_COOLDOWN>;
+    MI_TEMPERATURE_AND_FANS_COOLDOWN>;
 
-} // namespace screen_menu_temperature
-
-class ScreenMenuTemperature : public screen_menu_temperature::ScreenBase {
+class ScreenMenuTemperatureAndFans : public ScreenMenuTemperatureAndFansBase {
 public:
-    ScreenMenuTemperature();
+    ScreenMenuTemperatureAndFans();
 };
