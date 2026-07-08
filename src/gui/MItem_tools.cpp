@@ -305,12 +305,13 @@ void MI_MESH_BED::click(IWindowMenu & /*window_menu*/) {
 }
 
 /*****************************************************************************/
-// MI_DISABLE_STEP
-MI_DISABLE_STEP::MI_DISABLE_STEP()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
-}
+// MI_DISABLE_MOTORS
+MI_DISABLE_MOTORS::MI_DISABLE_MOTORS()
+    : IWindowMenuItem {
+        _("Disable Motors"),
+    } {}
 
-void MI_DISABLE_STEP::click(IWindowMenu & /*window_menu*/) {
+void MI_DISABLE_MOTORS::click(IWindowMenu & /*window_menu*/) {
 #if (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_MK3_5())
     marlin_client::gcode("M18 X Y E");
 #else

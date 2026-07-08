@@ -163,11 +163,9 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
-class MI_DISABLE_STEP : public IWindowMenuItem {
-    static constexpr const char *const label = N_("Disable Motors");
-
+class MI_DISABLE_MOTORS : public IWindowMenuItem {
 public:
-    MI_DISABLE_STEP();
+    MI_DISABLE_MOTORS();
 
 protected:
     virtual void click(IWindowMenu &window_menu) override;

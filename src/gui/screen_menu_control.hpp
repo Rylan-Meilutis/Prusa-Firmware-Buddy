@@ -37,7 +37,7 @@ using ScreenMenuControlSpec = ScreenMenu<EFooter::On,
     MI_PICK_PARK_TOOL,
 #endif
     MI_MOVE_AXIS,
-    MI_DISABLE_STEP,
+    MI_DISABLE_MOTORS,
 #if HAS_SHEET_PROFILES()
     MI_CURRENT_SHEET_PROFILE,
 #endif
