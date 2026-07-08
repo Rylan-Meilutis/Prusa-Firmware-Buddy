@@ -95,7 +95,10 @@ if(TRANSLATIONS_ENABLED)
 endif()
 
 if(HAS_XLCD_TOUCH_DRIVER)
-  target_sources(firmware PRIVATE MItem_touch.cpp screen_touch_playground.cpp)
+  target_sources(firmware PRIVATE MItem_touch.cpp)
+  if(DEVELOPMENT_ITEMS_ENABLED)
+    target_sources(firmware PRIVATE screen_touch_playground.cpp)
+  endif()
 endif()
 
 if(DEVELOPMENT_ITEMS_ENABLED)
