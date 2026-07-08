@@ -110,6 +110,12 @@ MI_SCREEN_BASE::MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const char *l
     : IWindowMenuItem(_(label), icon, is_enabled_t::yes, is_hidden, expands_t::yes)
     , screen_ctor_(screen_ctor) {}
 
+#if DEVELOPMENT_ITEMS()
+MI_SCREEN_BASE::MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const string_view_utf8 &label, is_hidden_t is_hidden)
+    : IWindowMenuItem(label, nullptr, is_enabled_t::yes, is_hidden, expands_t::yes)
+    , screen_ctor_(screen_ctor) {}
+#endif
+
 void MI_SCREEN_BASE::click(IWindowMenu &) {
     Screens::Access()->Open(screen_ctor_);
 }

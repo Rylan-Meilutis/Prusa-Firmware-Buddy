@@ -2,6 +2,7 @@
 
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
+#include <str_utils.hpp>
 #include <option/has_side_leds.h>
 #include <option/has_filament_sensors_menu.h>
 #include <option/has_leds.h>
@@ -14,7 +15,6 @@
 #include <option/has_e2ee_support.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_lights_menu.h>
-#include <option/has_touch.h>
 #include <img_resources.hpp>
 #include <ScreenFactory.hpp>
 
@@ -23,6 +23,11 @@
 class MI_SCREEN_BASE : public IWindowMenuItem {
 protected:
     MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const char *label, const img::Resource *icon, is_hidden_t is_hidden = is_hidden_t::no);
+
+#if DEVELOPMENT_ITEMS()
+    // used by MI_SCREEN_DEV
+    MI_SCREEN_BASE(ScreenFactory::Creator screen_ctor, const string_view_utf8 &label, is_hidden_t is_hidden);
+#endif
 
     // This saves flash (so that we don't need to pass that many parameters)
     MI_SCREEN_BASE(ScreenFactory::Creator::Func screen_ctor, const char *label);
@@ -106,9 +111,6 @@ using MI_PRUSALINK
 using MI_FOOTER_SETTINGS
     = MI_SCREEN<N_("Footer"), class ScreenMenuFooterSettings>;
 
-using MI_FOOTER_SETTINGS_ADV
-    = MI_SCREEN<N_("Advanced"), class ScreenMenuFooterSettingsAdv, nullptr, is_hidden_t::dev>;
-
 using MI_USER_INTERFACE
     = MI_SCREEN<N_("User Interface"), class ScreenMenuUserInterface>;
 
@@ -135,9 +137,6 @@ using MI_WASTEBIN
     = MI_SCREEN<N_("Nozzle Cleaner"), class ScreenMenuWastebin>;
 #endif
 
-using MI_HARDWARE_TUNE
-    = MI_SCREEN<N_("Hardware"), class ScreenMenuHardwareTune, nullptr, is_hidden_t::dev>;
-
 using MI_SYSTEM
     = MI_SCREEN<N_("System"), class ScreenMenuSystem>;
 
@@ -152,20 +151,37 @@ using MI_INPUT_SHAPER
 
 #if DEVELOPMENT_ITEMS()
 
+/// Like MI_SCREEN, but for development-only screens
+template <TemplateString label_, class Screen_>
+class MI_SCREEN_DEV final : public MI_SCREEN_BASE {
+public:
+    MI_SCREEN_DEV()
+        : MI_SCREEN_BASE { MI_SCREEN_CTOR<Screen_>::get(), string_view_utf8::MakeCPUFLASH(label_), is_hidden_t::dev } {}
+};
+
+using MI_FOOTER_SETTINGS_ADV
+    = MI_SCREEN_DEV<"Advanced"_tstr, class ScreenMenuFooterSettingsAdv>;
+
+using MI_HARDWARE_TUNE
+    = MI_SCREEN_DEV<"Hardware"_tstr, class ScreenMenuHardwareTune>;
+
 namespace screen_printer_setup_private {
 class ScreenPrinterSetup;
 }
 using MI_PRINTER_SETUP
-    = MI_SCREEN<N_("Printer Setup"), screen_printer_setup_private::ScreenPrinterSetup, nullptr, is_hidden_t::dev>;
+    = MI_SCREEN_DEV<"Printer Setup"_tstr, screen_printer_setup_private::ScreenPrinterSetup>;
 
 using MI_DEVELOPMENT
-    = MI_SCREEN<N_("Development"), class ScreenMenuDevelopment, nullptr, is_hidden_t::dev>;
+    = MI_SCREEN_DEV<"Development"_tstr, class ScreenMenuDevelopment>;
 
 using MI_EXPERIMENTAL_SETTINGS
-    = MI_SCREEN<N_("Experimental Settings"), class ScreenMenuExperimentalSettings, nullptr, is_hidden_t::dev>;
+    = MI_SCREEN_DEV<"Experimental Settings"_tstr, class ScreenMenuExperimentalSettings>;
 
 using MI_ERROR_TEST
-    = MI_SCREEN<N_("Test Errors"), class ScreenMenuErrorTest, nullptr, is_hidden_t::dev>;
+    = MI_SCREEN_DEV<"Test Errors"_tstr, class ScreenMenuErrorTest>;
+
+using MI_TOUCH_PLAYGROUND
+    = MI_SCREEN_DEV<"Touch Playground"_tstr, class ScreenTouchPlayground>;
 
 #endif
 
@@ -209,11 +225,6 @@ using MI_BED_LEVEL_CORRECTION
 #if HAS_LIGHTS_MENU()
 using MI_LIGHTS
     = MI_SCREEN<N_("Lights"), class ScreenMenuLights>;
-#endif
-
-#if HAS_TOUCH() && DEVELOPMENT_ITEMS()
-using MI_TOUCH_PLAYGROUND
-    = MI_SCREEN<N_("Touch Playground"), class ScreenTouchPlayground, nullptr, is_hidden_t::dev>;
 #endif
 
 class MI_SERIAL_PRINTING_SCREEN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
