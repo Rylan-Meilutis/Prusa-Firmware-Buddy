@@ -83,6 +83,7 @@ ok_color_18x18.png
 openprinttag_48x16.png
 openprinttag_orange_16x16.png
 openprinttag_white_16x16.png
+padlock_16x16.png
 pause_80x80_disabled.png
 pause_80x80_focused.png
 pause_80x80.png

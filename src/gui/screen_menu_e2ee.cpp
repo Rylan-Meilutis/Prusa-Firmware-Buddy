@@ -5,6 +5,7 @@
 #include <common/e2ee/e2ee.hpp>
 #include <common/e2ee/identity_check_levels.hpp>
 #include <common/e2ee/key.hpp>
+#include <img_resources.hpp>
 
 MI_KEY::MI_KEY()
     : WI_INFO_t {
@@ -84,4 +85,5 @@ bool MI_IDENTITY_CHECKING::on_item_selected(const OnItemSelectedArgs &args) {
 ScreenMenuE2ee::ScreenMenuE2ee()
     : ScreenMenuE2eeBase {
         _("ENCRYPTION"),
+        &img::padlock_16x16,
     } {}

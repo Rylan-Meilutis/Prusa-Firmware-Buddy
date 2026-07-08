@@ -246,5 +246,5 @@ public:
 
 #if HAS_E2EE_SUPPORT()
 using MI_E2EE
-    = MI_SCREEN<N_("Encryption"), class ScreenMenuE2ee>;
+    = MI_SCREEN<N_("Encryption"), class ScreenMenuE2ee, &img::padlock_16x16>;
 #endif
