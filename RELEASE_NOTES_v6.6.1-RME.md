@@ -413,6 +413,14 @@ The wrapper can also build multiple maintained RME release branches in one comma
 
 This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under a sibling `.Prusa-Firmware-Buddy-rme-version-builds/` directory, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. Keeping the version worktrees outside the source checkout avoids accidental relative include leakage while still allowing each cached worktree to retain its `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold. If a nested ExternalProject cache was configured with the wrong Python, or if an old nested cache was partially removed while CMake stamp files remained, the wrapper removes the affected preset build directory so the next rebuild starts from a coherent CMake state.
 
+The wrapper can also build multiple maintained RME release branches in one command:
+
+```sh
+./build.py --final --jobs 14 --versions 6.5.7 6.6.1
+```
+
+This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under `.rme-version-builds/`, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. The cached worktrees retain their `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold.
+
 Signing with a custom key does not bypass the official Prusa bootloader non-genuine firmware warning. The stock bootloader only trusts its built-in public key; a custom signature is useful for future private trust chains or custom bootloaders, but not for making a custom build appear genuine to an unchanged official bootloader.
 
 The RME firmware builds target the stock Prusa bootloader, but the bootloader itself is not built or modified as part of this open firmware tree. Prusa publishes the Buddy firmware source, while the stock bootloader is distributed as a closed binary and the trusted private key is not available.
