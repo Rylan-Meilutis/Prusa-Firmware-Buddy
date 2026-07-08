@@ -30,8 +30,6 @@ class MI_CHANGE : public IWindowMenuItem {
 public:
     MI_CHANGE();
     virtual void click(IWindowMenu &) override;
-
-    void Loop() final;
 };
 
 class MI_CHANGEALL : public IWindowMenuItem {
@@ -50,6 +48,4 @@ class MI_PURGE : public IWindowMenuItem {
 public:
     MI_PURGE();
     virtual void click(IWindowMenu &) override;
-
-    void Loop() final;
 };

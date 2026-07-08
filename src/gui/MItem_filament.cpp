@@ -24,14 +24,16 @@ bool tool_has_filament(VirtualToolIndex tool) {
 }
 
 bool any_tool_has_filament() {
-    return std::ranges::any_of(VirtualToolIndex::all(), tool_has_filament);
+    return std::ranges::any_of(VirtualToolIndex::all().skip_all_disabled(), tool_has_filament);
 }
 
-void setup_item(IWindowMenuItem &item) {
-    if (!PhysicalToolIndex::single_enabled_tool().has_value()) {
-        // More tools are enabled, show expand icon
-        item.set_show_expand_icon();
-    }
+bool any_tool_configured() {
+    return !PhysicalToolIndex::all().skip_all_disabled().at_end();
+}
+
+/// @brief If multiple tools have been configured, show expand icon
+expands_t multi_tool_expands() {
+    return (any_tool_configured() && !PhysicalToolIndex::single_enabled_tool().has_value()) ? expands_t::yes : expands_t::no;
 }
 
 } // namespace
@@ -67,8 +69,7 @@ void setup_item(IWindowMenuItem &item) {
 /*****************************************************************************/
 // MI_LOAD
 MI_LOAD::MI_LOAD()
-    : IWindowMenuItem(_(label)) {
-    setup_item(*this);
+    : IWindowMenuItem(_(label), nullptr, any_tool_configured() ? is_enabled_t::yes : is_enabled_t::no, is_hidden_t::no, multi_tool_expands()) {
 }
 
 void MI_LOAD::click(IWindowMenu &) {
@@ -92,8 +93,7 @@ void MI_LOAD::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_UNLOAD
 MI_UNLOAD::MI_UNLOAD()
-    : IWindowMenuItem(_(label)) {
-    setup_item(*this);
+    : IWindowMenuItem(_(label), nullptr, any_tool_configured() ? is_enabled_t::yes : is_enabled_t::no, is_hidden_t::no, multi_tool_expands()) {
 }
 
 void MI_UNLOAD::click(IWindowMenu &) {
@@ -118,12 +118,7 @@ void MI_UNLOAD::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_CHANGE
 MI_CHANGE::MI_CHANGE()
-    : IWindowMenuItem(_(label)) {
-    setup_item(*this);
-}
-
-void MI_CHANGE::Loop() {
-    set_enabled(any_tool_has_filament());
+    : IWindowMenuItem(_(label), nullptr, static_cast<is_enabled_t>(any_tool_has_filament()), is_hidden_t::no, multi_tool_expands()) {
 }
 
 void MI_CHANGE::click(IWindowMenu &) {
@@ -142,7 +137,7 @@ void MI_CHANGE::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_CHANGEALL
 MI_CHANGEALL::MI_CHANGEALL()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {}
+    : IWindowMenuItem(_(label), nullptr, any_tool_configured() ? is_enabled_t::yes : is_enabled_t::no, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {}
 
 void MI_CHANGEALL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeAllFilaments>);
@@ -152,8 +147,7 @@ void MI_CHANGEALL::click(IWindowMenu &) {
 /*****************************************************************************/
 // MI_PURGE
 MI_PURGE::MI_PURGE()
-    : IWindowMenuItem(_(label)) {
-    setup_item(*this);
+    : IWindowMenuItem(_(label), nullptr, static_cast<is_enabled_t>(any_tool_has_filament()), is_hidden_t::no, multi_tool_expands()) {
 }
 
 void MI_PURGE::click(IWindowMenu &) {
@@ -166,8 +160,4 @@ void MI_PURGE::click(IWindowMenu &) {
     }
 #endif
     marlin_client::gcode("M701 L0 W2"); // load with distance 0 and return option
-}
-
-void MI_PURGE::Loop() {
-    set_enabled(any_tool_has_filament());
 }
