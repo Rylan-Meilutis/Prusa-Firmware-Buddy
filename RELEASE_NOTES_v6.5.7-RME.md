@@ -518,11 +518,11 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest replayed RME commit: `c0f0a2ef`
+Latest release-maintenance commit: `8e78b41f7`
 
-Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, and `Keep toolhead runout active with upstream sensors`
+Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, and `Add cached multi-version RME release builds`
 
-The port-completion commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, release build environment fixes, and the secondary toolhead runout path for MMU/side/external filament sensor setups.
+The port-completion commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, the 6.5.7 XL final-build fix, and cached multi-version RME release builds.
 
 ## Full changelog
 
@@ -652,5 +652,9 @@ a55f1f9ae  2026-06-24  Fix Prusa Connect serial print state reporting
 9b5d1361e  2026-07-02  Restore previous screen after ignored serial macro
 b4ffeb2e5  2026-07-03  Fix RME release build environment
 c0f0a2ef4  2026-07-06  Keep toolhead runout active with upstream sensors
+00bc360db  2026-07-06  Update 6.5.7 RME release notes
+59ccb4a5b  2026-07-06  Split filament movement detection control
+e292cd72a  2026-07-07  Fix XL final build on RME 6.5.7
+8e78b41f7  2026-07-07  Add cached multi-version RME release builds
 
 ```
