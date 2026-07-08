@@ -260,9 +260,10 @@ static void resources_update() {
 }
 
 // Initializes static variables of singletons which are accessed from ISRs (requires locking a mutex)
+// Note: Hotend/Tool initialization is NOT done here — it is deferred to after ADC init
+// to allow hotend model detection from ADC readings.
 static void init_isr_statics() {
     EMotorStallDetector::Instance();
-    Hotend::for_tool(PhysicalToolIndex::from_raw(0));
     Fans::print(PhysicalToolIndex::from_raw(0));
     Fans::heat_break(PhysicalToolIndex::from_raw(0));
 #if XL_ENCLOSURE_SUPPORT()
@@ -308,6 +309,14 @@ extern "C" void main_cpp(void) {
     // After initializing the adc we need to wait some time before the internal MCU temp channel is stable.
     // Required time is at least 6us. We use 2ms to force pause of at least 1ms
     freertos::delay(2);
+
+    // Initialize tool/hotend AFTER the ADC is ready — on HT-capable builds the
+    // LocalHotend ctor reads the ADC to detect the NTC vs PT1000 hotend.
+    // ISR ordering (BFW-8126): Hotend is accessed from the Marlin temperature ISR, so
+    // it must be constructed before that ISR is armed — it is, the temperature timer is
+    // started in Temperature::init() on the marlin task (created below). The ADC IRQ
+    // enabled just above never touches Hotend (it only fills the DMA buffer the ISR reads).
+    Hotend::for_tool(PhysicalToolIndex::from_raw(0));
 
 #if PRINTER_IS_PRUSA_XL()
     // Read Sandwich hw revision

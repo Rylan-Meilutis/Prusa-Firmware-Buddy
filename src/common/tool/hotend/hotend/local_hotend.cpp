@@ -5,6 +5,9 @@
 #include <module/temperature.h>
 #include <module/temperature/temp_defines.hpp>
 #include <fanctl.hpp>
+#include <freertos/task.hpp>
+
+#include <cassert>
 
 #include <option/has_planner.h>
 #if HAS_PLANNER()
@@ -38,10 +41,14 @@ LocalHotend::LocalHotend(PhysicalToolIndex tool, const Config *config)
     , heatbreak_watch_(heatbreak_watch_config)
 #endif
 {
+    // Must be eager-constructed in task context, never lazily from an ISR (BFW-8126):
+    // the temperature ISR touches this singleton and would trip the C++ init-guard assert.
+    assert(!freertos::is_inside_interrupt());
+
     // Do not call pinMode - it does nothing
     // pinMode(local_config_.nozzle_heater_marlin_pin, OUTPUT);
 
-    // Do NOT call digitalWrite. We're in init_isr_statics where digitalWrite is not yet initialized
+    // Do NOT call digitalWrite here — it is unnecessary at construction:
     // - Safe state should be off anyway
     // - Should get off anyway in the first manage() call from within Temperature::init()
     // digitalWrite(local_config_.nozzle_heater_marlin_pin, false);

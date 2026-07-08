@@ -85,6 +85,8 @@
     #include <feature/chamber/chamber_enums.hpp>
 #endif
 
+#include <option/has_ht_hotend.h>
+
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
     #include <hotend_type.hpp>
@@ -742,6 +744,19 @@ struct CurrentStore
 #if HAS_HOTEND_TYPE_SUPPORT()
     // Nozzle Sock has is here for backwards compatibility (should be binary compatible)
     StoreItemArray<HotendType, defaults::hotend_type, ItemFlag::hw_config, journal::hash("Hotend Type Per Tool"), 16, HOTENDS> hotend_type;
+
+    #if HAS_HT_HOTEND()
+    /// Persist an auto-detected hotend type and invalidate the nozzle-heater selftest
+    /// together (the NTC and PT1000 heaters have different selftest parameters). Used by boot
+    /// detection and the confirm dialog on a hotend-class change; the sock menu toggle writes
+    /// hotend_type directly and deliberately does not invalidate.
+    inline void set_hotend_type_detected(PhysicalToolIndex tool, HotendType value) {
+        hotend_type.set(tool.to_raw(), value);
+        selftest_result.apply([&](auto &sr) {
+            sr.set_nozzle_heater(tool, TestResult::unknown);
+        });
+    }
+    #endif
 #endif
 
     StoreItem<int16_t, defaults::homing_sens_x, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens X")> homing_sens_x; // X axis homing sensitivity
