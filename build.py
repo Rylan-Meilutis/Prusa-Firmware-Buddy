@@ -25,6 +25,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
 DEFAULT_SIGNING_KEY = PROJECT_ROOT / ".local" / "firmware-signing-key.pem"
+DEFAULT_VERSION_WORKTREE_ROOT = PROJECT_ROOT.parent / f".{PROJECT_ROOT.name}-rme-version-builds"
 MIN_REPO_PYTHON = (3, 8)
 MAX_REPO_PYTHON_EXCLUSIVE = (3, 13)
 
@@ -310,15 +311,33 @@ def venv_bin_dir() -> Path:
     return venv_root() / "bin"
 
 
+def venv_python_path(root: Path | None = None) -> Path:
+    venv = root or venv_root()
+    if os.name == "nt":
+        return venv / "Scripts" / "python.exe"
+    return venv / "bin" / "python"
+
+
 def configure_managed_python_env(env: dict[str, str]) -> None:
     bin_dir = venv_bin_dir()
     path = env.get("PATH", "")
     env["PATH"] = str(bin_dir) + (os.pathsep + path if path else "")
+    env["BUDDY_PYTHON"] = str(venv_python_path())
     env.setdefault("Python3_ROOT_DIR", str(venv_root()))
+    env.setdefault("Python3_EXECUTABLE", str(venv_python_path()))
 
 
 def has_cmake_definition(definitions: list[str], name: str) -> bool:
     return any(definition.split(":", 1)[0].split("=", 1)[0] == name for definition in definitions)
+
+
+def managed_python_cmake_defs(definitions: list[str], venv: Path) -> list[str]:
+    cmake_defs = list(definitions)
+    if not has_cmake_definition(cmake_defs, "Python3_ROOT_DIR"):
+        cmake_defs.append(f"Python3_ROOT_DIR:PATH={venv}")
+    if not has_cmake_definition(cmake_defs, "Python3_EXECUTABLE"):
+        cmake_defs.append(f"Python3_EXECUTABLE:FILEPATH={venv_python_path(venv)}")
+    return cmake_defs
 
 
 def split_csv(values: list[str]) -> list[str]:
@@ -351,6 +370,249 @@ def default_signing_key() -> Path | None:
     if DEFAULT_SIGNING_KEY.exists():
         return DEFAULT_SIGNING_KEY
     return None
+
+
+def current_git_branch() -> str | None:
+    result = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=PROJECT_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        encoding="utf-8",
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    branch = result.stdout.strip()
+    return branch or None
+
+
+def git_ref_exists(ref: str) -> bool:
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", ref],
+        cwd=PROJECT_ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def normalize_version(value: str) -> str:
+    version = value.strip()
+    if version.startswith("rme-v"):
+        version = version.removeprefix("rme-v")
+    elif version.startswith("v"):
+        version = version.removeprefix("v")
+    version = version.removesuffix("-RME")
+    if not re.fullmatch(r"\d+(?:\.\d+)+", version):
+        raise SystemExit(f"Invalid version: {value}")
+    return version
+
+
+def version_branch(version: str) -> str:
+    return f"rme-v{version}"
+
+
+def version_ref(version: str) -> str:
+    branch = version_branch(version)
+    if git_ref_exists(branch):
+        return branch
+    remote_branch = f"origin/{branch}"
+    if git_ref_exists(remote_branch):
+        return remote_branch
+    raise SystemExit(f"Could not find branch {branch} or {remote_branch}")
+
+
+def version_worktree(version: str) -> Path:
+    return DEFAULT_VERSION_WORKTREE_ROOT / version_branch(version)
+
+
+def prune_stale_worktrees() -> None:
+    result = subprocess.run(
+        ["git", "worktree", "prune"],
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
+
+
+def add_version_worktree(worktree: Path, ref: str) -> None:
+    result = subprocess.run(
+        ["git", "worktree", "add", "--detach", str(worktree), ref],
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
+    if result.returncode == 0:
+        return
+
+    prune_stale_worktrees()
+    result = subprocess.run(
+        ["git", "worktree", "add", "--force", "--detach", str(worktree), ref],
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
+
+
+def link_shared_cache(worktree: Path, name: str) -> None:
+    source = PROJECT_ROOT / name
+    destination = worktree / name
+    if not source.exists() or destination.is_symlink():
+        return
+    if destination.exists():
+        if destination.is_dir() and not any(destination.iterdir()):
+            destination.rmdir()
+        else:
+            return
+    try:
+        destination.symlink_to(source, target_is_directory=source.is_dir())
+    except OSError:
+        if source.is_dir():
+            shutil.copytree(source, destination, symlinks=True)
+        else:
+            shutil.copy2(source, destination)
+
+
+def link_shared_version_caches(worktree: Path) -> None:
+    if worktree == PROJECT_ROOT:
+        return
+    for name in (".dependencies", ".venv", ".local"):
+        link_shared_cache(worktree, name)
+
+
+def ensure_version_worktree(version: str, *, dry_run: bool = False, use_current: bool = True) -> Path:
+    branch = version_branch(version)
+    if use_current and current_git_branch() == branch:
+        return PROJECT_ROOT
+
+    ref = version_ref(version)
+    worktree = version_worktree(version)
+    if dry_run:
+        return worktree
+
+    DEFAULT_VERSION_WORKTREE_ROOT.mkdir(parents=True, exist_ok=True)
+    if not worktree.exists():
+        prune_stale_worktrees()
+        add_version_worktree(worktree, ref)
+    else:
+        result = subprocess.run(
+            ["git", "-C", str(worktree), "switch", "--detach", ref],
+            cwd=PROJECT_ROOT,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise SystemExit(result.returncode)
+    link_shared_version_caches(worktree)
+    return worktree
+
+
+def version_build_dir(args: argparse.Namespace, version: str, worktree: Path) -> Path:
+    build_root = args.build_dir.resolve() if args.build_dir else worktree / "build"
+    return build_root / version
+
+
+def make_version_build_command(args: argparse.Namespace, version: str, worktree: Path, output_dir: Path) -> list[str]:
+    command = [
+        *find_repo_python(),
+        str(worktree / "build.py"),
+        "--output-dir",
+        str(output_dir / version),
+        "--jobs",
+        str(args.jobs),
+        "--build-dir",
+        str(version_build_dir(args, version, worktree)),
+    ]
+    for preset in args.preset or []:
+        command.extend(["--preset", preset])
+    command.extend(["--build-type", args.build_type])
+    command.extend(["--bootloader", args.bootloader])
+    signing_key = None if args.no_signing_key else (args.signing_key or default_signing_key())
+    if signing_key:
+        command.extend(["--signing-key", str(signing_key.resolve())])
+    if args.no_signing_key:
+        command.append("--no-signing-key")
+    if args.skip_bootstrap:
+        command.append("--skip-bootstrap")
+    if args.store_output:
+        command.append("--store-output")
+    if args.no_store_output:
+        command.append("--no-store-output")
+    if args.generate_dfu:
+        command.append("--generate-dfu")
+    if args.final:
+        command.append("--final")
+    if args.version_suffix is not None:
+        command.extend(["--version-suffix", args.version_suffix])
+    if args.version_suffix_short is not None:
+        command.extend(["--version-suffix-short", args.version_suffix_short])
+    if args.no_clean_output:
+        command.append("--no-clean-output")
+    for definition in managed_python_cmake_defs(args.cmake_def, worktree / ".venv"):
+        command.extend(["-D", definition])
+    return command
+
+
+def build_versions(args: argparse.Namespace) -> int:
+    started_at = time.monotonic()
+    versions = [normalize_version(version) for version in args.versions]
+    output_dir = args.output_dir.resolve()
+    if args.jobs is not None and args.jobs < 1:
+        raise SystemExit("--jobs must be at least 1")
+    if args.store_output and args.no_store_output:
+        raise SystemExit("--store-output and --no-store-output are mutually exclusive")
+
+    print("Building versions:", ",".join(versions))
+    print("BBF output:", output_dir)
+    print("Version worktree cache:", DEFAULT_VERSION_WORKTREE_ROOT)
+    print("Parallel jobs per version:", args.jobs)
+    print("Total elapsed:", format_elapsed(int(time.monotonic() - started_at)))
+
+    commands: list[tuple[str, Path, list[str]]] = []
+    for version in versions:
+        worktree = ensure_version_worktree(version, dry_run=args.dry_run, use_current=False)
+        version_output = output_dir / version
+        if args.dry_run:
+            command = make_version_build_command(args, version, worktree, output_dir)
+            commands.append((version, worktree, command))
+            continue
+        if not args.no_clean_output and version_output.exists():
+            shutil.rmtree(version_output)
+        version_output.mkdir(parents=True, exist_ok=True)
+        command = make_version_build_command(args, version, worktree, output_dir)
+        commands.append((version, worktree, command))
+
+    if args.dry_run:
+        for version, worktree, command in commands:
+            print(f"# {version} ({worktree})")
+            print(" ".join(str(part) for part in command))
+        return 0
+
+    failed: list[str] = []
+    for version, worktree, command in commands:
+        print()
+        print(f"Building RME {version} in {worktree}")
+        result = subprocess.run(command, cwd=worktree, check=False)
+        if result.returncode != 0:
+            failed.append(version)
+
+    print()
+    print("Multi-version build summary")
+    print("-" * 72)
+    print(f"Result: {len(commands) - len(failed)} succeeded, {len(failed)} failed")
+    print(f"Total elapsed: {format_elapsed(int(time.monotonic() - started_at))}")
+    print()
+    print("Staged version folders")
+    print("-" * 72)
+    for version, _, _ in commands:
+        print(f"{version:<12} {(output_dir / version).resolve()}")
+    if failed:
+        print()
+        print("Failed versions:", ", ".join(failed))
+        return 1
+    return 0
 
 
 def normalize_bbf_names(output_dir: Path) -> None:
@@ -729,6 +991,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bootloader", default="yes", help="Bootloader mode passed to utils/build.py. Default: yes.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Where BBFs are staged. Default: ./bbf.")
     parser.add_argument("--build-dir", type=Path, help="Build directory passed to utils/build.py.")
+    parser.add_argument(
+        "--versions",
+        nargs="+",
+        default=None,
+        help=(
+            "Build multiple RME release branches into per-version output folders, "
+            "for example: --versions 6.5.7 6.6.1."
+        ),
+    )
     parser.add_argument("--signing-key", type=Path, help="PEM signing key. Defaults to FIRMWARE_SIGNING_KEY or .local/firmware-signing-key.pem if present.")
     parser.add_argument("--setup-signing", action="store_true", help="Create a local ECDSA signing key and exit.")
     parser.add_argument("--force-signing-key", action="store_true", help="Replace the signing key when used with --setup-signing.")
@@ -768,14 +1039,15 @@ def main() -> int:
             print(preset)
         return 0
 
+    if args.versions:
+        return build_versions(args)
+
     selected_presets = unique_presets(split_csv(args.preset or ["all"]), known_presets)
     output_dir = args.output_dir.resolve()
     repo_python = find_repo_python()
     child_env = repo_python_env(repo_python)
     configure_managed_python_env(child_env)
-    cmake_defs = list(args.cmake_def)
-    if not has_cmake_definition(cmake_defs, "Python3_ROOT_DIR"):
-        cmake_defs.append(f"Python3_ROOT_DIR:PATH={venv_root()}")
+    cmake_defs = managed_python_cmake_defs(args.cmake_def, venv_root())
 
     if args.store_output and args.no_store_output:
         raise SystemExit("--store-output and --no-store-output are mutually exclusive")
