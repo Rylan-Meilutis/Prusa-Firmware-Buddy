@@ -3,6 +3,7 @@
 
 #include "ScreenHandler.hpp"
 #include <common/e2ee/e2ee.hpp>
+#include <common/e2ee/identity_check_levels.hpp>
 #include <common/e2ee/key.hpp>
 
 MI_KEY::MI_KEY()
@@ -55,16 +56,26 @@ void MI_EXPORT::click(IWindowMenu &) {
     }
 }
 
-#if 0
-    // #error dead code found by automatic analyses (see BFW-5461)
-MI_IDENTITY_CHECKING::MI_IDENTITY_CHECKING()
-    : WI_SWITCH_t<3>(static_cast<size_t>(config_store().identity_check.get()), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no,
-        _(str_Known), _(str_Ask), _(str_All)) {}
+static constexpr const char *identity_check_items[] = {
+    N_("Known only"),
+    N_("Ask"),
+    N_("Accept all"),
+};
 
-void MI_IDENTITY_CHECKING::OnChange(size_t /*old_index*/) {
-    config_store().identity_check.set(static_cast<e2ee::IdentityCheckLevel>(index));
+MI_IDENTITY_CHECKING::MI_IDENTITY_CHECKING()
+    : MenuItemSwitch {
+        _("Identity checking"),
+        identity_check_items,
+        static_cast<size_t>(config_store().identity_check.get())
+    } {
+    // The identity checking is not complete yet, so hide it from users for now.
+    showDevOnly();
 }
-#endif
+
+bool MI_IDENTITY_CHECKING::on_item_selected(const OnItemSelectedArgs &args) {
+    config_store().identity_check.set(static_cast<e2ee::IdentityCheckLevel>(args.new_index));
+    return true;
+}
 
 ScreenMenuE2ee::ScreenMenuE2ee()
     : ScreenMenuE2eeBase {
