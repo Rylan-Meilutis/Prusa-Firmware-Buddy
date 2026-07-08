@@ -279,6 +279,24 @@ MI_NOZZLE_CLEANER_FILL::MI_NOZZLE_CLEANER_FILL()
 
 #endif
 
+#if HAS_INDX()
+// Range matches the calibration tolerance (offset_tolerance_mm)
+static constexpr NumericInputConfig nozzle_cleaner_x_offset_spin_config = {
+    .min_value = -3,
+    .max_value = 3,
+    .step = 0.05f,
+    .max_decimal_places = 2,
+    .unit = Unit::millimeter,
+};
+
+MI_NOZZLE_CLEANER_X_OFFSET::MI_NOZZLE_CLEANER_X_OFFSET()
+    : WiSpin(config_store().nozzle_cleaner_x_origin_offset.get(), nozzle_cleaner_x_offset_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_NOZZLE_CLEANER_X_OFFSET::OnClick() {
+    config_store().nozzle_cleaner_x_origin_offset.set(value());
+}
+#endif
+
 /*****************************************************************************/
 // MI_MESH_BED
 MI_MESH_BED::MI_MESH_BED()

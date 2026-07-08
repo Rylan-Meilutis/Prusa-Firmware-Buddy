@@ -140,6 +140,19 @@ public:
 
 #endif
 
+#if HAS_INDX()
+/// Tune menu: fine-tune of the calibrated nozzle cleaner X position
+class MI_NOZZLE_CLEANER_X_OFFSET : public WiSpin {
+    static constexpr const char *const label = N_("Nozzle Cleaner X Offset");
+
+public:
+    MI_NOZZLE_CLEANER_X_OFFSET();
+
+protected:
+    virtual void OnClick() override;
+};
+#endif
+
 class MI_MESH_BED : public IWindowMenuItem {
     static constexpr const char *const label = N_("Mesh Bed Leveling");
 
