@@ -697,8 +697,8 @@ namespace {
     std::optional<off_t> child_size(const char *base_path, const char *child_name) {
         char path_buf[filename_defs::path_buffer_size];
         int formatted = snprintf(path_buf, sizeof(path_buf), "%s/%s", base_path, child_name);
-        // Name didn't fit. That, in theory, should not happen, but better safe than sorry...
-        if (formatted >= static_cast<int>(filename_defs::filename_buffer_size)) {
+        // Path didn't fit. That, in theory, should not happen, but better safe than sorry...
+        if (formatted >= static_cast<int>(filename_defs::path_buffer_size)) {
             return {};
         }
         struct stat st = {};
