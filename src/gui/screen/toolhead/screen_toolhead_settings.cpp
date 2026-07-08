@@ -10,6 +10,7 @@
 #include <utils/variant_utils.hpp>
 #include <option/has_toolchanger.h>
 #include <option/has_tool_offset_sensor.h>
+#include <option/has_ht_hotend.h>
 
 #include "screen_toolhead_settings_fs.hpp"
 #include "screen_toolhead_settings_dock.hpp"
@@ -342,6 +343,16 @@ ScreenToolheadDetail::ScreenToolheadDetail(Toolhead toolhead)
     if (!prusa_toolchanger.is_toolchanger_enabled()) {
         container.Item<MI_PICK_PARK>().set_is_hidden();
         container.Item<MI_DOCK>().set_is_hidden();
+    }
+#endif
+
+#if HAS_HT_HOTEND()
+    // The HT hotend has no silicone sock and cannot take one (its heat emission is set by the
+    // nickel-plated surface), so the sock toggle is meaningless for it — high_temp is an
+    // auto-detected HotendType that never appears in the user-selectable list.
+    static_assert(PhysicalToolIndex::count == 1);
+    if (config_store().hotend_type.get(0) == HotendType::high_temp) {
+        container.Item<MI_HOTEND_SOCK_OR_TYPE>().set_is_hidden();
     }
 #endif
 }

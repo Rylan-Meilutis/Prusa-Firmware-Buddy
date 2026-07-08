@@ -26,6 +26,11 @@
 #include <gui/screen_printer_setup.hpp>
 #include <option/has_emergency_stop.h>
 #include <option/has_heatbed_screws_during_transport.h>
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+    #include <hotend_detect.hpp>
+    #include <sys.hpp>
+#endif
 #include <option/has_indx_head.h>
 #include <option/has_indx.h>
 
@@ -114,6 +119,38 @@ ScreenSplash::ScreenSplash()
             }
         };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
+    }
+#endif
+
+#if HAS_HT_HOTEND()
+    // Boot-time hotend detection was inconclusive (a hot NTC and a cold-to-hot PT1000
+    // read alike on the nozzle ADC) — ask the user which hotend is installed before
+    // running with a possibly-wrong temperature config. See detect_impl() and
+    // hotend_detect_dialog_pending in tools_xbuddy.cpp for when this is raised.
+    static_assert(PhysicalToolIndex::count == 1, "Hotend dialog assumes a single tool");
+    if (hotend_detect_dialog_pending) {
+        // Unary + decays the captureless lambda to a plain function pointer, which the
+        // PseudoScreenCallback screen-factory template below requires.
+        constexpr auto hotend_dialog_callback = +[] {
+            // hotend_type is read from EEPROM: treat any non-HT value as the standard hotend
+            // (the safe, lower-temperature one) — a future-FW value or storage corruption
+            // must not soft-brick the printer (config-store enum policy).
+            const bool is_high_temp = config_store().hotend_type.get(0) == HotendType::high_temp;
+
+            const char *msg = is_high_temp
+                ? N_("Hotend change detected\n\nSelected hotend: High-temp\n\nIs this correct?")
+                : N_("Hotend change detected\n\nSelected hotend: Standard\n\nIs this correct?");
+
+            // No = switch to the other hotend and reboot. A standard hotend gets stock_with_sock
+            // (its sock is mandatory); HT clears it.
+            if (MsgBoxWarning(_(msg), Responses_YesNo) == Response::No) {
+                config_store().set_hotend_type_detected(PhysicalToolIndex::from_raw(0),
+                    is_high_temp ? HotendType::stock_with_sock : HotendType::high_temp);
+                sys_reset(); // Reboot with the new hotend config
+            }
+            // User confirmed the current hotend — continue booting
+        };
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, hotend_dialog_callback>);
     }
 #endif
 
