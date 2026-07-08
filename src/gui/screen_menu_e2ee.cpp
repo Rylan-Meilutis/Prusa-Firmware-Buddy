@@ -7,18 +7,20 @@
 #include <common/e2ee/key.hpp>
 
 MI_KEY::MI_KEY()
-    : WI_INFO_t(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+    : WI_INFO_t {
+        _("Key status"),
+    } {
     Loop();
 }
 
 void MI_KEY::Loop() {
-    // TODO: Shall we show some kind of fingerprint?
-    // What _is_ even a fingerprint for a raw RSA key?
-    ChangeInformation(_(e2ee::is_private_key_present() ? N_("Initialized") : N_("Uninitialized")));
+    ChangeInformation(e2ee::is_private_key_present() ? _("Initialized") : _("Uninitialized"));
 }
 
 MI_KEYGEN::MI_KEYGEN()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : IWindowMenuItem {
+        _("Generate new key"),
+    } {}
 
 void MI_KEYGEN::click(IWindowMenu &) {
     const auto closing_callback = [this] {
@@ -46,7 +48,9 @@ void MI_KEYGEN::click(IWindowMenu &) {
 }
 
 MI_EXPORT::MI_EXPORT()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : IWindowMenuItem {
+        _("Export public key"),
+    } {}
 
 void MI_EXPORT::click(IWindowMenu &) {
     if (e2ee::export_key()) {

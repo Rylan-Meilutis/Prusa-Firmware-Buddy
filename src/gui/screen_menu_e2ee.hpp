@@ -7,16 +7,12 @@
 #include <WindowMenuSwitch.hpp>
 
 class MI_KEY final : public WI_INFO_t {
-    constexpr static const char *const label = N_("Key status");
-
 public:
     MI_KEY();
     virtual void Loop() override;
 };
 
 class MI_KEYGEN final : public IWindowMenuItem {
-    constexpr static const char *const label = N_("Generate new key");
-
     AsyncJobWithResult<bool> key_generation;
 
 public:
@@ -27,8 +23,6 @@ protected:
 };
 
 class MI_EXPORT final : public IWindowMenuItem {
-    constexpr static const char *const label = N_("Export public key");
-
 public:
     MI_EXPORT();
 
