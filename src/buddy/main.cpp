@@ -77,6 +77,11 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <sensor_data.hpp>
 
+#include <option/rtt_metrics_enabled.h>
+#if RTT_METRICS_ENABLED()
+    #include <rtt_metrics_task/rtt_metrics_task.hpp>
+#endif
+
 #if BUDDY_ENABLE_CONNECT()
     #include "connect/run.hpp"
 #endif
@@ -166,6 +171,9 @@ struct TaskControlBlock {
 #if BUDDY_ENABLE_CONNECT()
     StaticTask_t connect;
 #endif
+#if RTT_METRICS_ENABLED()
+    StaticTask_t rtt_metrics;
+#endif
 };
 static TaskControlBlock task_control_block;
 
@@ -186,6 +194,9 @@ struct TaskStack {
 #endif
 #if BUDDY_ENABLE_CONNECT()
     uint32_t connect[2336];
+#endif
+#if RTT_METRICS_ENABLED()
+    uint32_t rtt_metrics[100];
 #endif
 };
 static TaskStack __attribute__((section(".ccmram"))) task_stack;
@@ -568,6 +579,10 @@ extern "C" void main_cpp(void) {
     TaskDeps::wait(TaskDeps::Tasks::syslog);
     logging::syslog_reconfigure();
     metrics_reconfigure();
+
+#if RTT_METRICS_ENABLED()
+    create_task("rtt_metrics", start_rtt_metrics_task, TASK_PRIORITY_RTT_METRICS_TASK, task_stack.rtt_metrics, task_control_block.rtt_metrics);
+#endif
 }
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
