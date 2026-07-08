@@ -211,7 +211,7 @@ using MI_LIGHTS
     = MI_SCREEN<N_("Lights"), class ScreenMenuLights>;
 #endif
 
-#if HAS_TOUCH()
+#if HAS_TOUCH() && DEVELOPMENT_ITEMS()
 using MI_TOUCH_PLAYGROUND
     = MI_SCREEN<N_("Touch Playground"), class ScreenTouchPlayground, nullptr, is_hidden_t::dev>;
 #endif

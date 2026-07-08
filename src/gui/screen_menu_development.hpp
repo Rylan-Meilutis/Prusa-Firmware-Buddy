@@ -6,6 +6,7 @@
 #include "MItem_menus.hpp"
 #include <basic_screen_menu.hpp>
 #include <option/development_items.h>
+#include <option/has_touch.h>
 
 static_assert(DEVELOPMENT_ITEMS());
 
@@ -17,6 +18,9 @@ using ScreenMenuDevelopmentBase = BasicScreenMenu<
     MI_PRINTER_SETUP,
     MI_EXPERIMENTAL_SETTINGS,
     MI_ERROR_TEST,
+#if HAS_TOUCH()
+    MI_TOUCH_PLAYGROUND,
+#endif
     MI_TRIGGER_BANK_MIGRATION>;
 
 class ScreenMenuDevelopment final : public ScreenMenuDevelopmentBase {

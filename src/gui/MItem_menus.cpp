@@ -88,11 +88,11 @@
 #endif
 
 #include <option/has_touch.h>
-#if HAS_TOUCH()
+#include <option/development_items.h>
+#if HAS_TOUCH() && DEVELOPMENT_ITEMS()
     #include "screen_touch_playground.hpp"
 #endif
 
-#include <option/development_items.h>
 #if DEVELOPMENT_ITEMS()
     #include "screen_menu_development.hpp"
     #include "screen_menu_error_test.hpp"
@@ -192,7 +192,7 @@ template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 template struct MI_SCREEN_CTOR<ScreenMenuLights>;
 #endif
 
-#if HAS_TOUCH()
+#if HAS_TOUCH() && DEVELOPMENT_ITEMS()
 template struct MI_SCREEN_CTOR<ScreenTouchPlayground>;
 #endif
 

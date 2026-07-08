@@ -28,7 +28,6 @@ using ScreenMenuUserInterface__ = BasicScreenMenu<
 #if HAS_TOUCH()
     MI_ENABLE_TOUCH,
     TOUCH_SIG_WORKAROUND,
-    MI_TOUCH_PLAYGROUND,
 #endif
     MI_ALWAYS_HIDDEN>;
 
