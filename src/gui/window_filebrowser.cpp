@@ -5,6 +5,8 @@
 #include "window_filebrowser.hpp"
 #include <logging/log.hpp>
 #include "sound.hpp"
+#include <window_msgbox.hpp>
+#include "i18n.h"
 #include <transfers/transfer.hpp>
 #include <buddy/filename_defs.hpp>
 #include <algorithm>
@@ -92,8 +94,9 @@ void WindowFileBrowser::handle_click() {
     log_debug(GUI, "Clicked on item: %s", currentSFN);
 
     size_t sfn_path_len = strlen(sfn_path);
-    if ((sfn_path_len + strlen(currentSFN) + 1) >= filename_defs::max_path_name_length) {
+    if ((sfn_path_len + strlen(currentSFN) + 1) >= filename_defs::path_buffer_size) {
         log_error(GUI, "Path too long");
+        MsgBoxError(_("The path is too long."), Responses_Ok);
         return;
     }
 

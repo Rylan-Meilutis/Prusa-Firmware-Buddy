@@ -26,11 +26,6 @@ inline constexpr size_t filename_buffer_size = max_filename_length + 1;
 inline constexpr size_t max_path_length = 103;
 inline constexpr size_t path_buffer_size = max_path_length + 1;
 
-/// Directory nesting limits (from Marlin), bounding a full long-name path.
-inline constexpr size_t max_dir_depth = 10;
-inline constexpr size_t max_dir_name_length = max_filename_length + 1;
-inline constexpr size_t max_path_name_length = 1 + (max_dir_name_length + 1) * max_dir_depth + 1 + max_filename_length;
-
 } // namespace filename_defs
 
 #endif // __cplusplus
