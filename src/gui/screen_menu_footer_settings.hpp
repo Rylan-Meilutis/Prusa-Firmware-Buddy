@@ -76,7 +76,7 @@ using ScreenMenuFooterSettings__ = ScreenMenu<EFooter::On, MI_RETURN, MI_FOOTER<
     #error "Add more MI_FOOTER<>"
 #endif
     ,
-    MI_FOOTER_SETTINGS_ADV, MI_FOOTER_RESET>;
+    MI_FOOTER_RESET>;
 
 class ScreenMenuFooterSettings : public ScreenMenuFooterSettings__ {
 public:
