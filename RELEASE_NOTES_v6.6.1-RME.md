@@ -507,11 +507,11 @@ Comparison base: upstream `v6.6.1` (`8d187d189e`)
 
 Current branch: `rme-v6.6.1`
 
-Latest replayed RME commit: `899a4eaa`
+Latest release-maintenance commit: `25eb605d3`
 
-Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, and `Keep toolhead runout active with upstream sensors`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, and `Add cached multi-version RME release builds`
 
-The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.1 translation refresh, release build environment fixes, and the secondary toolhead runout path for MMU/side/external filament sensor setups.
+The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.1 translation refresh, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, and cached multi-version RME release builds.
 
 ## Full changelog
 
@@ -644,4 +644,7 @@ d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 79618c56c6  2026-07-02  Release RME firmware 6.6.1
 6be03b005a  2026-07-03  Fix RME release build environment
 899a4eaa03  2026-07-06  Keep toolhead runout active with upstream sensors
+368b614d2  2026-07-06  Update 6.6.1 RME release notes
+718c3c493  2026-07-06  Split filament movement detection control
+25eb605d3  2026-07-07  Add cached multi-version RME release builds
 ```
