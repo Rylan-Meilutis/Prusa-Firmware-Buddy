@@ -46,7 +46,7 @@ void MI_NOZZLE_OFFSET_COMPONENT::store_value_impl(PhysicalToolIndex ix, float se
 
 // * ScreenToolheadDetailNozzleOffset
 ScreenToolheadDetailNozzleOffset::ScreenToolheadDetailNozzleOffset(Toolhead toolhead)
-    : ScreenMenu(_("NOZZLE_OFFSET"))
+    : ScreenMenu(_("NOZZLE OFFSET"))
     , toolhead(toolhead) //
 {
     menu_set_toolhead(container, toolhead);
