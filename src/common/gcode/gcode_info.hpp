@@ -7,6 +7,7 @@
 #pragma once
 
 #include <utils/color.hpp>
+#include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <option/has_gcode_compatibility.h>
 #include <common/filament.hpp>
@@ -110,6 +111,9 @@ private:
         std::optional<float> filament_wipe_tower_g = { std::nullopt }; ///< Grams of filament used for wipe tower
 #endif
         bool sliced_with_input_shaper_ = false; ///< True if gcode was sliced with input shaper
+#if HAS_INDX()
+        bool sliced_with_indx_lock_ = false; ///< True if gcode was sliced with INDX lock support
+#endif
         bool has_preview_thumbnail_ = false; ///< True if gcode has preview thumbnail
         bool has_progress_thumbnail_ = false; ///< True if gcode has progress thumbnail
         bool filament_described = false; ///< Filament info was found in gcode's comments
