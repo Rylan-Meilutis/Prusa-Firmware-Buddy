@@ -198,7 +198,7 @@ public:
 
         // Single button finish screen
         wait_for_response(PhaseManualBeltTuning::finished);
-        config_store().manual_belt_tuning_completed.set(true); // TODO: Unused, for the moment manual belt tuning is hardcoded in settings
+        config_store().manual_belt_tuning_completed.set(true);
     }
 
     void adjust_vibrator(Vibrate &vibrator) {
