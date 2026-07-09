@@ -183,6 +183,9 @@ using MI_ERROR_TEST
 using MI_TOUCH_PLAYGROUND
     = MI_SCREEN_DEV<"Touch Playground"_tstr, class ScreenTouchPlayground>;
 
+using MI_PRINTER_TYPE_CHANGED
+    = MI_SCREEN_DEV<"Printer Type Changed"_tstr, class ScreenPrinterTypeChanged>;
+
 #endif
 
 #if HAS_TRANSLATIONS()

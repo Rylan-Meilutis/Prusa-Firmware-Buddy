@@ -11,6 +11,7 @@ target_sources(
           screen_menu_virtual.cpp
           screen_preheat.cpp
           screen_print_preview.cpp
+          screen_printer_type_changed.cpp
   )
 
 if(HAS_ANFC)

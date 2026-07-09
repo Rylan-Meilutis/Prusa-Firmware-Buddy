@@ -97,6 +97,7 @@
     #include "screen_menu_advanced_footer_settings.hpp"
     #include "screen_menu_development.hpp"
     #include "screen_menu_error_test.hpp"
+    #include <gui/screen/screen_printer_type_changed.hpp>
 #endif
 
 #include <config_store/store_instance.hpp>
@@ -167,6 +168,7 @@ template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
 template struct MI_SCREEN_CTOR<ScreenMenuAdvancedFooterSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuDevelopment>;
 template struct MI_SCREEN_CTOR<ScreenMenuErrorTest>;
+template struct MI_SCREEN_CTOR<ScreenPrinterTypeChanged>;
 #endif
 
 #if HAS_TRANSLATIONS()

@@ -22,6 +22,7 @@ using ScreenMenuDevelopmentBase = BasicScreenMenu<
 #if HAS_TOUCH()
     MI_TOUCH_PLAYGROUND,
 #endif
+    MI_PRINTER_TYPE_CHANGED,
     MI_TRIGGER_BANK_MIGRATION>;
 
 class ScreenMenuDevelopment final : public ScreenMenuDevelopmentBase {
