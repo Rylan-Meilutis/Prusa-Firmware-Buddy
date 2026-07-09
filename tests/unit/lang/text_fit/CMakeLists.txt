@@ -39,6 +39,7 @@ foreach(
   set(MO_FILE "${CMAKE_CURRENT_BINARY_DIR}/MO/${LANG}.mo")
   add_custom_command(
     OUTPUT ${MO_FILE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/MO
     COMMAND msgfmt ${PO_FILE} -o ${MO_FILE}
     DEPENDS ${PO_FILE}
     COMMENT "Generating ${MO_FILE} from ${PO_FILE}"
