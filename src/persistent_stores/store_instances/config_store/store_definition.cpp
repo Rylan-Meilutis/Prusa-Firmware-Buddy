@@ -9,6 +9,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <common/sys.hpp>
 
+#include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
@@ -74,6 +75,10 @@ void CurrentStore::perform_config_check() {
         chamber_mid_print_filtration_pwm.set_to_default();
         chamber_print_filtration_enable.set(false);
     }
+#endif
+
+#if HAS_NOZZLE_CLEANER_LITE()
+    nozzle_cleaner_lite_installed.set(true);
 #endif
 
     // BFW-5486

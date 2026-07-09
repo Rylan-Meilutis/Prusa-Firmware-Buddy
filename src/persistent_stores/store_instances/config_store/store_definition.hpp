@@ -59,6 +59,7 @@
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_side_fsensor_invertible.h>
+#include <option/has_nozzle_cleaner_lite.h>
 #include <common/extended_printer_type.hpp>
 #include <common/hw_check.hpp>
 #include <pwm_utils.hpp>
@@ -724,6 +725,10 @@ struct CurrentStore
 
     Sheet get_sheet(uint8_t index);
     void set_sheet(uint8_t index, Sheet value);
+#endif
+
+#if HAS_NOZZLE_CLEANER_LITE()
+    StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Nozzle Cleaner Lite installed")> nozzle_cleaner_lite_installed;
 #endif
 
     // axis microsteps and rms current have a capital axis + '_' at the end in name because of trinamic.cpp. Can be removed once the macro there is removed
