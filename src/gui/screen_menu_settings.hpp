@@ -84,9 +84,6 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_LANG_AND_TIME,
     MI_HARDWARE,
     MI_HELP_FW_UPDATE,
-#if HAS_MANUAL_BELT_TUNING()
-    MI_MANUAL_BELT_TUNING,
-#endif
 #if DEVELOPMENT_ITEMS()
     MI_DEVELOPMENT,
 #endif

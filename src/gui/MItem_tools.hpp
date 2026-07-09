@@ -565,10 +565,6 @@ protected:
 };
 #endif
 
-#if HAS_MANUAL_BELT_TUNING()
-using MI_MANUAL_BELT_TUNING = WithConstructorArgs<MenuItemGcodeAction, N_("Manual Belt Tuning"), "M961"_tstr>;
-#endif
-
 #if HAS_INDX()
 using MI_FIX_STUCK_NOZZLE = WithConstructorArgs<MenuItemGcodeAction, N_("Release Stuck Nozzle"), "M1984"_tstr>;
 #endif
