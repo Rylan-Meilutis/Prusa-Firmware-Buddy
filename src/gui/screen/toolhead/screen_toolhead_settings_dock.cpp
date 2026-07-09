@@ -113,7 +113,7 @@ void MI_DOCK_INVALIDATE_CALIBRATION::click([[maybe_unused]] IWindowMenu &menu) {
 
 // * ScreenToolheadDetailDock
 ScreenToolheadDetailDock::ScreenToolheadDetailDock(Toolhead toolhead)
-    : ScreenMenu(_("DOCK CONFIGURATION"))
+    : ScreenMenu(_("DOCK POSITION"))
     , toolhead(toolhead) //
 {
     menu_set_toolhead(container, toolhead);
