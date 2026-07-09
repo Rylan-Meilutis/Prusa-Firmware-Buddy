@@ -22,7 +22,6 @@
 #include <option/bootloader.h>
 #include <option/developer_mode.h>
 #include <option/has_translations.h>
-#include <option/has_e2ee_support.h>
 #include <gui/screen_printer_setup.hpp>
 #include <option/has_emergency_stop.h>
 #include <option/has_heatbed_screws_during_transport.h>
@@ -271,13 +270,7 @@ ScreenSplash::ScreenSplash()
                         .formatted(params, PrinterModelInfo::get(config_store().last_boot_base_printer_model.get()).id_str, PrinterModelInfo::firmware_base().id_str),
                     { Response::Continue });
 
-                FactoryReset::perform(false, FactoryReset::item_bitset({
-                    FactoryReset::Item::network, FactoryReset::Item::stats, FactoryReset::Item::user_interface, FactoryReset::Item::user_profiles
-#if HAS_E2EE_SUPPORT()
-                        ,
-                        FactoryReset::Item::security
-#endif
-                }));
+                FactoryReset::perform(false, FactoryReset::printer_type_change);
             };
             Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
         }

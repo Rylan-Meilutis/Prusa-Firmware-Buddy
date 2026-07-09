@@ -23,20 +23,11 @@ struct PresetConfig {
 };
 
 constexpr std::array presets {
-    /// Remove all personal configuration, keep HW config, stats, calibrations
-    PresetConfig { N_("Ownership Transfer"), FactoryReset::item_bitset({ Item::hw_config, Item::printer_state, Item::stats, Item::calibrations, Item::common_misconfigurations }) },
-
-    /// Keep most things, reset only possible trouble makers (experimental settings, tweaks, ...)
-    PresetConfig { N_("Fix Common Misconfigurations"), FactoryReset::item_bitset_exclude({ Item::common_misconfigurations }) },
-
-    /// Reset everything, keep just HW configuration
-    PresetConfig { N_("Keep HW Config"), FactoryReset::item_bitset({ Item::hw_config }) },
-
-    /// For the factory guys to run after the printer is assembled and tested
-    PresetConfig { N_("Shipping Reset"), FactoryReset::item_bitset({ Item::hw_config, Item::calibrations }) },
-
-    /// Full wipe with firmware clear is a special case handlded a slightly different way
-    PresetConfig { N_("Full Reset"), {} },
+    PresetConfig { N_("Ownership Transfer"), FactoryReset::ownership_transfer },
+    PresetConfig { N_("Fix Common Misconfigurations"), FactoryReset::fix_common_misconfigurations },
+    PresetConfig { N_("Keep HW Config"), FactoryReset::keep_hw_config },
+    PresetConfig { N_("Shipping Reset"), FactoryReset::shipping_reset },
+    PresetConfig { N_("Full Reset"), FactoryReset::full_reset },
 };
 
 enum class MenuItem {
