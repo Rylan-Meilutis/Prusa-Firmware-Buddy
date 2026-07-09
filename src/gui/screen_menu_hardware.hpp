@@ -16,6 +16,7 @@
 #include <option/has_sheet_profiles.h>
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_toolchanger.h>
+#include <option/has_nozzle_cleaner_lite.h>
 
 #include <option/has_modular_bed.h>
 #if HAS_MODULAR_BED()
@@ -86,6 +87,9 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
     MI_INPUT_SHAPER,
 #if HAS_PHASE_STEPPING()
     MI_PHASE_STEPPING_SCREEN,
+#endif
+#if HAS_NOZZLE_CLEANER_LITE()
+    MI_NOZZLE_CLEANER_LITE,
 #endif
     MI_ALWAYS_HIDDEN>;
 
