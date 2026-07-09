@@ -68,6 +68,11 @@ enum class GeneralCheck : uint8_t {
     /// Fails if the gcode was not sliced with input shaper support
     input_shaper,
 
+#if HAS_INDX()
+    /// Fails if the gcode was not sliced with INDX lock support
+    indx_lock,
+#endif
+
 #if HAS_MMU2()
     /// Fails if the gcode requires MMU and we don't have it
     mmu,

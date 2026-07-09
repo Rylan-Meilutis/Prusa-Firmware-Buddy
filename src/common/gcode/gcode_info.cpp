@@ -10,6 +10,7 @@
 #include <tools_mapping.hpp>
 #include "mutable_path.hpp"
 #include <logging/log.hpp>
+#include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <version/version.hpp>
 #include "common/printer_model.hpp"
@@ -357,6 +358,12 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                     info_.sliced_with_input_shaper_ = true;
                     break;
                 }
+#if HAS_INDX()
+                if (compare(feature, "INDX lock")) {
+                    info_.sliced_with_indx_lock_ = true;
+                    break;
+                }
+#endif
 
                 log_error(Buddy, "Unsupported feature: %s", feature.c_str());
                 info_.failed_gcode_checks.set(Check::unsupported_features);
