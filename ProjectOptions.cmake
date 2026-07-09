@@ -730,6 +730,7 @@ set_feature_for_printers(
   )
 
 set_feature_for_printers(HAS_NOZZLE_CLEANER "iX" "COREONE_INDX" "COREONEL_INDX")
+set_feature_for_printers(HAS_NOZZLE_CLEANER_LITE "XL" "COREONE" "COREONEL")
 set_feature_for_printers(
   HAS_MANUAL_BELT_TUNING "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "iX"
   )
