@@ -6,6 +6,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_nozzle_cleaner_lite.h>
 #include <common/extended_printer_type.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
 #include <option/has_side_fsensor_remap.h>
@@ -81,6 +82,18 @@ protected:
 class MI_AUTO_PRECISE_HOMING_CALIBRATION : public MenuItemSwitch {
 public:
     MI_AUTO_PRECISE_HOMING_CALIBRATION();
+
+protected:
+    virtual void OnChange(size_t) override;
+};
+#endif
+
+#if HAS_NOZZLE_CLEANER_LITE()
+class MI_NOZZLE_CLEANER_LITE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Nozzle Cleaner Lite");
+
+public:
+    MI_NOZZLE_CLEANER_LITE();
 
 protected:
     virtual void OnChange(size_t) override;

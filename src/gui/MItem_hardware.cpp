@@ -5,6 +5,7 @@
 #include "marlin_client.hpp"
 #include <option/has_toolchanger.h>
 #include <option/has_side_fsensor_remap.h>
+#include <option/has_nozzle_cleaner_lite.h>
 #include <common/nozzle_diameter.hpp>
 #include <common/printer_model_data.hpp>
 
@@ -167,5 +168,21 @@ MI_AUTO_PRECISE_HOMING_CALIBRATION::MI_AUTO_PRECISE_HOMING_CALIBRATION()
 
 void MI_AUTO_PRECISE_HOMING_CALIBRATION::OnChange(size_t) {
     config_store().auto_recalibrate_precise_homing.set(static_cast<Tristate::Value>(get_index()));
+}
+#endif
+#if HAS_NOZZLE_CLEANER_LITE()
+MI_NOZZLE_CLEANER_LITE::MI_NOZZLE_CLEANER_LITE()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().nozzle_cleaner_lite_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};
+
+void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
+    bool nozzle_cleaner_lite_present = value();
+    if (MsgBoxWarning(_("Enabling/disabling nozzle cleaner lite will result in different moves in some sequences. Continue?"), { Response::Yes, Response::No }, 1) != Response::Yes) {
+        set_value(!nozzle_cleaner_lite_present);
+        return;
+    }
+
+    {
+        config_store().nozzle_cleaner_lite_installed.set(nozzle_cleaner_lite_present);
+    }
 }
 #endif
