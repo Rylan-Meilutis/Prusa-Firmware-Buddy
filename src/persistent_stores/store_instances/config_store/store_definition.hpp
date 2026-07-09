@@ -39,6 +39,7 @@
 #include <option/has_i2c_expander.h>
 #include <option/has_xbuddy_extension.h>
 #include <option/has_emergency_stop.h>
+#include <option/has_expansion_joints_gen_2.h>
 #include <option/has_side_leds.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_precise_homing_corexy.h>
@@ -184,6 +185,11 @@ struct CurrentStore
     /// If false, a ScreenPrinterSetup will appear on printer boot
     StoreItem<bool, !HAS_ESP(), ItemFlag::network, journal::hash("Printer network done")> printer_network_setup_done;
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Printer hw-config done")> printer_hw_config_done;
+
+#if HAS_EXPANSION_JOINTS_GEN_2()
+    /// expansions joints affect bed-frame heat absorption
+    StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Expansion Joints Gen 2 installed")> ejg2_installed;
+#endif
 
     /// Global filament sensor enable
     StoreItem<bool, true, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("FSensor Enabled")> fsensor_enabled;

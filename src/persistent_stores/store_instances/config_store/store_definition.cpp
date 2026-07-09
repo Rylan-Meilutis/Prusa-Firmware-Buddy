@@ -11,6 +11,7 @@
 
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_auto_retract.h>
+#include <option/has_expansion_joints_gen_2.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
@@ -65,6 +66,11 @@ void CurrentStore::perform_config_check() {
         static_assert(extended_printer_type_model[1] == PrinterModel::mk3_5s);
         extended_printer_type.set(1);
 
+#endif
+
+#if HAS_EXPANSION_JOINTS_GEN_2()
+        // New printers ship with the Expansion Joints Gen 2; upgraded printers keep the false default.
+        ejg2_installed.set(true);
 #endif
     }
 
