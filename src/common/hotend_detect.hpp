@@ -4,6 +4,10 @@
 #include <atomic>
 #include <stdint.h>
 
+/// HT (PT1000) hotend nozzle-temperature ceiling. A compile-time constant (not the runtime
+/// Hotend::max_nozzle_temp()) so it can gate a static_assert on the HT filament presets.
+inline constexpr int16_t ht_hotend_max_nozzle_temp = 415;
+
 /// Boot-time hotend detection may request a user confirmation dialog.
 ///
 /// Thread sync: written from the main thread by PhysicalTool::for_index() during early

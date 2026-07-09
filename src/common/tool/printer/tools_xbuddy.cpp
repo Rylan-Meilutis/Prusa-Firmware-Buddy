@@ -84,10 +84,6 @@ PhysicalTool &PhysicalTool::for_index(PhysicalToolIndex) {
         .nozzle_heater_soft_pwm = false,
     };
 
-    // HT (PT1000) nozzle-temperature ceiling (the standard NTC max is HEATER_0_MAXTEMP).
-    // Local by design — other code reads the active hotend's limit via Hotend::max_nozzle_temp().
-    constexpr int16_t ht_hotend_max_nozzle_temp = 415;
-
     // HT hotend config (PT1000)
     static const LocalHotend::Config pt1000_config {
         .base_config {
