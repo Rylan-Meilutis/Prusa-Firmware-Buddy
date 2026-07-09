@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-08 18:54+0200\n"
+"POT-Creation-Date: 2026-07-09 13:42+0200\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -954,7 +954,7 @@ msgstr "オブジェクトノ キャンセル"
 msgid "Canceled"
 msgstr "キャンセルサレマシタ"
 
-#: src/common/gcode/gcode_compatibility.cpp:510
+#: src/common/gcode/gcode_compatibility.cpp:526
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -2616,7 +2616,7 @@ msgstr ""
 msgid "Filament inserted, press continue."
 msgstr "フィラメントガ ソウニュウサレマシタ、ツヅケテクダサイ"
 
-#: src/common/gcode/gcode_compatibility.cpp:190
+#: src/common/gcode/gcode_compatibility.cpp:200
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2636,7 +2636,7 @@ msgstr "フィラメント ロード ノ タイムアウト。"
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "フィラメント ヲ カネツ シ ノズル ニ オシモドス ヒツヨウ ガ アリマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:189
+#: src/common/gcode/gcode_compatibility.cpp:199
 msgid "Filament not calibrated"
 msgstr "フィラメント ガ キャリブレーション サレテ イマセン"
 
@@ -2652,7 +2652,7 @@ msgstr ""
 "フィラメントセンサーヲ ムコウニシテ プリントヲ ゾッコウスルニハ、フィラメント"
 "センサーノムコウ ヲセンタクシマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:162
+#: src/common/gcode/gcode_compatibility.cpp:172
 msgid "Filament not loaded"
 msgstr "フィラメント ガ ロード サレテ イマセン"
 
@@ -2694,7 +2694,7 @@ msgstr ""
 "フィラメントセンサーガ ジュンビデキテイマセン:マズ キャリブレーション シテク"
 "ダサイ"
 
-#: src/common/gcode/gcode_compatibility.cpp:180
+#: src/common/gcode/gcode_compatibility.cpp:190
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2763,7 +2763,7 @@ msgstr "ファイルエラー"
 msgid "File read error"
 msgstr "ファイルリードエラー"
 
-#: src/common/gcode/gcode_info.cpp:59
+#: src/common/gcode/gcode_info.cpp:60
 msgid "File removed or transfer aborted"
 msgstr "ファイルガ イドウサレタカ ソンザイシマセン"
 
@@ -3094,13 +3094,21 @@ msgstr ""
 
 #: src/common/gcode/gcode_compatibility.cpp:84
 msgid ""
+"G-Code is not sliced with newest INDX profiles. There will be some issues "
+"with the print."
+msgstr ""
+"G-Code ハ サイシン INDX プロファイル デ スライス サレテ イマセン。プリント "
+"ニ イクツカ モンダイ ガ ハッセイ シマス。"
+
+#: src/common/gcode/gcode_compatibility.cpp:94
+msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
 msgstr ""
 "G-Code ハ MMU ヨウ ニ スライス サレテ イマス ガ プリンター デ MMU ガ ユウコ"
 "ウ デ ハ アリマセン。インサツ デキマセン。"
 
-#: src/common/gcode/gcode_compatibility.cpp:171
+#: src/common/gcode/gcode_compatibility.cpp:181
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3114,7 +3122,7 @@ msgstr ""
 "G-Code ハ ベツ ノ プリンター ヨウ ニ スライス サレテ オリ ゴカン セイ ガ アリ"
 "マセン。"
 
-#: src/common/gcode/gcode_compatibility.cpp:131
+#: src/common/gcode/gcode_compatibility.cpp:141
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "G-Code ハ コトナル ツール チョッケイ ヨウ ニ スライス サレテ イマス。"
 
@@ -3124,7 +3132,7 @@ msgstr ""
 "G-Code ハ コトナル ガ ゴカン セイ ノ アル プリンター モデル ヨウ ニ スライス "
 "サレテ イマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:139
+#: src/common/gcode/gcode_compatibility.cpp:149
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3132,7 +3140,7 @@ msgstr ""
 "G-Code ハ コウカ ノズル ヨウ デス。コウカ シテ イナイ ノズル ハ ザイリョウ "
 "ノ ケンマ セイ デ ハソン スル オソレ ガ アリマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:147
+#: src/common/gcode/gcode_compatibility.cpp:157
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3141,7 +3149,7 @@ msgstr ""
 "ト アンダー エクストルージョン ヤ ステップ ヌケ ガ オコル オソレ ガ アリマ"
 "ス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:155
+#: src/common/gcode/gcode_compatibility.cpp:165
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3158,12 +3166,12 @@ msgstr ""
 "G-Code ハ セイジョウ ニ ドウサ スル タメ ニ アタラシイ ファームウェア バー"
 "ジョン ノ キノウ ヲ ヒツヨウ ト シマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:101
+#: src/common/gcode/gcode_compatibility.cpp:111
 msgid "G-Code requires more tools than are currently enabled."
 msgstr ""
 "G-Code ハ ゲンザイ ユウコウ ノ ツール ヨリ オオク ヲ ヒツヨウ ト シマス。"
 
-#: src/common/gcode/gcode_compatibility.cpp:93
+#: src/common/gcode/gcode_compatibility.cpp:103
 msgid "G-Code requires some features the printer does not have."
 msgstr "G-Code ハ プリンター ニ ナイ キノウ ヲ ヒツヨウ ト シマス。"
 
@@ -3182,7 +3190,7 @@ msgstr ""
 "ID メイ: %s\n"
 "ID キー ハッシュ: %s"
 
-#: src/common/gcode/gcode_compatibility.cpp:203
+#: src/common/gcode/gcode_compatibility.cpp:213
 msgid "G-Code tool is not mapped."
 msgstr "G-Code ノ ツール ガ マッピング サレテ イマセン。"
 
@@ -5249,11 +5257,11 @@ msgstr ""
 "サイ。"
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/common/gcode/gcode_compatibility.cpp:211
+#: src/common/gcode/gcode_compatibility.cpp:221
 msgid "Not enough filament"
 msgstr "フィラメント フソク"
 
-#: src/common/gcode/gcode_compatibility.cpp:100
+#: src/common/gcode/gcode_compatibility.cpp:110
 msgid "Not enough tools"
 msgstr "ツール フソク"
 
@@ -5391,7 +5399,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "ノズル クリーナー ガ アフレル オソレ ガ アリマス"
 
-#: src/common/gcode/gcode_compatibility.cpp:109
+#: src/common/gcode/gcode_compatibility.cpp:119
 msgid "Nozzle cleaner not calibrated"
 msgstr "ノズル クリーナー ガ ミ キャリブレーション"
 
@@ -5443,15 +5451,15 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "ノズルヒーター カクニン"
 
-#: src/common/gcode/gcode_compatibility.cpp:154
+#: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
 msgstr "ハイ フロー ノズル ノ フイッチ"
 
-#: src/common/gcode/gcode_compatibility.cpp:138
+#: src/common/gcode/gcode_compatibility.cpp:148
 msgid "Nozzle not hardened"
 msgstr "コウカ ナシ ノズル"
 
-#: src/common/gcode/gcode_compatibility.cpp:146
+#: src/common/gcode/gcode_compatibility.cpp:156
 msgid "Nozzle not high-flow"
 msgstr "ハイ フロー デハナイ ノズル"
 
@@ -5551,7 +5559,7 @@ msgstr ""
 "プリンタガ フィラメントニ オシダシハジメタラ、フィラメントガ プリントシート"
 "ニ セッスルヨウニ ノブヲマワシ、ノズルノタカサヲ チョウセイシテクダサイ。"
 
-#: src/common/gcode/gcode_compatibility.cpp:163
+#: src/common/gcode/gcode_compatibility.cpp:173
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5904,7 +5912,7 @@ msgstr ""
 msgid "Please calibrate the docks first."
 msgstr "サキ ニ ドック ヲ キャリブレーション シテ クダサイ。"
 
-#: src/common/gcode/gcode_compatibility.cpp:110
+#: src/common/gcode/gcode_compatibility.cpp:120
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "サキ ニ ノズル クリーナー ヲ キャリブレーション シテ クダサイ。"
 
@@ -7115,9 +7123,13 @@ msgstr "スキップ"
 msgid "Skip network setup"
 msgstr "ネットワーク セットアップ ヲ スキップ"
 
-#: src/common/gcode/gcode_compatibility.cpp:83
+#: src/common/gcode/gcode_compatibility.cpp:93
 msgid "Sliced for MMU"
 msgstr "MMU ヨウ ニ スライス"
+
+#: src/common/gcode/gcode_compatibility.cpp:83
+msgid "Sliced with old INDX profiles"
+msgstr "フルイ INDX プロファイル デ スライス サレテ イマス"
 
 #. info text without a dialog is for >1 tool ToolChanger
 #: src/gui/wizard/selftest_frame_temp.cpp:69
@@ -7164,7 +7176,7 @@ msgstr "スピード"
 msgid "Speed sweep movement failed."
 msgstr "スピード スイープ ノ ウゴキ ガ シッパイ シマシタ。"
 
-#: src/common/gcode/gcode_compatibility.cpp:179
+#: src/common/gcode/gcode_compatibility.cpp:189
 msgid "Spool join sensor not ready"
 msgstr "スプール ジョイン センサー ジュンビ デ デキテ イマセン"
 
@@ -7959,7 +7971,7 @@ msgstr ""
 "OpenPrintTag ニ カキコム シヨウ データ ガ アリマス。スプール ヲ NFC リーダー "
 "ニ チカヅケテ クダサイ。"
 
-#: src/common/gcode/gcode_compatibility.cpp:212
+#: src/common/gcode/gcode_compatibility.cpp:222
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr ""
@@ -8264,7 +8276,7 @@ msgstr "ツールオフセット キャリブレーション"
 msgid "Tool changes"
 msgstr "ツール チェンジ"
 
-#: src/common/gcode/gcode_compatibility.cpp:123
+#: src/common/gcode/gcode_compatibility.cpp:133
 msgid "Tool is disabled or of a different type."
 msgstr "ツール ガ ムコウ マタハ コトナル シュルイ デス。"
 
@@ -8613,7 +8625,7 @@ msgstr "FINDAヘノ アンロード"
 msgid "Unloading to pulley"
 msgstr "プーリーヘノ アンロード"
 
-#: src/common/gcode/gcode_compatibility.cpp:202
+#: src/common/gcode/gcode_compatibility.cpp:212
 msgid "Unmapped tool"
 msgstr "ミ マッピング ツール"
 
@@ -8633,7 +8645,7 @@ msgstr "アンゼンデナイ XY ツール オフセット"
 msgid "Unsafe Z Tool Offset"
 msgstr "アンゼンデナイ Z ツール オフセット"
 
-#: src/common/gcode/gcode_compatibility.cpp:92
+#: src/common/gcode/gcode_compatibility.cpp:102
 msgid "Unsupported features"
 msgstr "ミ サポート ノ キノウ"
 
@@ -8961,15 +8973,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "マチガイ"
 
-#: src/common/gcode/gcode_compatibility.cpp:170
+#: src/common/gcode/gcode_compatibility.cpp:180
 msgid "Wrong filament type"
 msgstr "マチガッタ フィラメント シュルイ"
 
-#: src/common/gcode/gcode_compatibility.cpp:130
+#: src/common/gcode/gcode_compatibility.cpp:140
 msgid "Wrong nozzle diameter"
 msgstr "マチガッタ ノズル チョッケイ"
 
-#: src/common/gcode/gcode_compatibility.cpp:122
+#: src/common/gcode/gcode_compatibility.cpp:132
 msgid "Wrong tool"
 msgstr "マチガッタ ツール"
 

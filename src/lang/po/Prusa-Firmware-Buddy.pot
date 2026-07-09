@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Prusa-Firmware-Buddy 4.1\n"
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-08 18:54+0200\n"
+"POT-Creation-Date: 2026-07-09 13:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -844,7 +844,7 @@ msgstr ""
 msgid "Canceled"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:510
+#: src/common/gcode/gcode_compatibility.cpp:526
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -2349,7 +2349,7 @@ msgstr ""
 msgid "Filament inserted, press continue."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:190
+#: src/common/gcode/gcode_compatibility.cpp:200
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2367,7 +2367,7 @@ msgstr ""
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:189
+#: src/common/gcode/gcode_compatibility.cpp:199
 msgid "Filament not calibrated"
 msgstr ""
 
@@ -2378,7 +2378,7 @@ msgid ""
 "Select DISABLE FS to disable the filament sensor and continue print."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:162
+#: src/common/gcode/gcode_compatibility.cpp:172
 msgid "Filament not loaded"
 msgstr ""
 
@@ -2410,7 +2410,7 @@ msgstr ""
 msgid "Filament sensor not ready: perform calibration first."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:180
+#: src/common/gcode/gcode_compatibility.cpp:190
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2470,7 +2470,7 @@ msgstr ""
 msgid "File read error"
 msgstr ""
 
-#: src/common/gcode/gcode_info.cpp:59
+#: src/common/gcode/gcode_info.cpp:60
 msgid "File removed or transfer aborted"
 msgstr ""
 
@@ -2741,11 +2741,17 @@ msgstr ""
 
 #: src/common/gcode/gcode_compatibility.cpp:84
 msgid ""
+"G-Code is not sliced with newest INDX profiles. There will be some issues "
+"with the print."
+msgstr ""
+
+#: src/common/gcode/gcode_compatibility.cpp:94
+msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:171
+#: src/common/gcode/gcode_compatibility.cpp:181
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -2755,7 +2761,7 @@ msgstr ""
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:131
+#: src/common/gcode/gcode_compatibility.cpp:141
 msgid "G-Code is sliced for a different tool diameter."
 msgstr ""
 
@@ -2763,19 +2769,19 @@ msgstr ""
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:139
+#: src/common/gcode/gcode_compatibility.cpp:149
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:147
+#: src/common/gcode/gcode_compatibility.cpp:157
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:155
+#: src/common/gcode/gcode_compatibility.cpp:165
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -2787,11 +2793,11 @@ msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:101
+#: src/common/gcode/gcode_compatibility.cpp:111
 msgid "G-Code requires more tools than are currently enabled."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:93
+#: src/common/gcode/gcode_compatibility.cpp:103
 msgid "G-Code requires some features the printer does not have."
 msgstr ""
 
@@ -2805,7 +2811,7 @@ msgid ""
 "Identity key hash: %s"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:203
+#: src/common/gcode/gcode_compatibility.cpp:213
 msgid "G-Code tool is not mapped."
 msgstr ""
 
@@ -4642,11 +4648,11 @@ msgid ""
 msgstr ""
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/common/gcode/gcode_compatibility.cpp:211
+#: src/common/gcode/gcode_compatibility.cpp:221
 msgid "Not enough filament"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:100
+#: src/common/gcode/gcode_compatibility.cpp:110
 msgid "Not enough tools"
 msgstr ""
 
@@ -4776,7 +4782,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:109
+#: src/common/gcode/gcode_compatibility.cpp:119
 msgid "Nozzle cleaner not calibrated"
 msgstr ""
 
@@ -4819,15 +4825,15 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:154
+#: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:138
+#: src/common/gcode/gcode_compatibility.cpp:148
 msgid "Nozzle not hardened"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:146
+#: src/common/gcode/gcode_compatibility.cpp:156
 msgid "Nozzle not high-flow"
 msgstr ""
 
@@ -4925,7 +4931,7 @@ msgid ""
 "turning the knob until the filament sticks to the print sheet."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:163
+#: src/common/gcode/gcode_compatibility.cpp:173
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5252,7 +5258,7 @@ msgstr ""
 msgid "Please calibrate the docks first."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:110
+#: src/common/gcode/gcode_compatibility.cpp:120
 msgid "Please calibrate the nozzle cleaner first."
 msgstr ""
 
@@ -6356,8 +6362,12 @@ msgstr ""
 msgid "Skip network setup"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:83
+#: src/common/gcode/gcode_compatibility.cpp:93
 msgid "Sliced for MMU"
+msgstr ""
+
+#: src/common/gcode/gcode_compatibility.cpp:83
+msgid "Sliced with old INDX profiles"
 msgstr ""
 
 #. info text without a dialog is for >1 tool ToolChanger
@@ -6399,7 +6409,7 @@ msgstr ""
 msgid "Speed sweep movement failed."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:179
+#: src/common/gcode/gcode_compatibility.cpp:189
 msgid "Spool join sensor not ready"
 msgstr ""
 
@@ -7062,7 +7072,7 @@ msgid ""
 "spool is close to the NFC reader."
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:212
+#: src/common/gcode/gcode_compatibility.cpp:222
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr ""
@@ -7312,7 +7322,7 @@ msgstr ""
 msgid "Tool changes"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:123
+#: src/common/gcode/gcode_compatibility.cpp:133
 msgid "Tool is disabled or of a different type."
 msgstr ""
 
@@ -7626,7 +7636,7 @@ msgstr ""
 msgid "Unloading to pulley"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:202
+#: src/common/gcode/gcode_compatibility.cpp:212
 msgid "Unmapped tool"
 msgstr ""
 
@@ -7646,7 +7656,7 @@ msgstr ""
 msgid "Unsafe Z Tool Offset"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:92
+#: src/common/gcode/gcode_compatibility.cpp:102
 msgid "Unsupported features"
 msgstr ""
 
@@ -7934,15 +7944,15 @@ msgstr ""
 msgid "Wrong"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:170
+#: src/common/gcode/gcode_compatibility.cpp:180
 msgid "Wrong filament type"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:130
+#: src/common/gcode/gcode_compatibility.cpp:140
 msgid "Wrong nozzle diameter"
 msgstr ""
 
-#: src/common/gcode/gcode_compatibility.cpp:122
+#: src/common/gcode/gcode_compatibility.cpp:132
 msgid "Wrong tool"
 msgstr ""
 

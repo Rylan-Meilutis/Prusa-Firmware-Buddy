@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-08 18:54+0200\n"
+"POT-Creation-Date: 2026-07-09 13:42+0200\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -927,7 +927,7 @@ msgstr "Zrušit tisk objektu"
 msgid "Canceled"
 msgstr "Zrušeno"
 
-#: src/common/gcode/gcode_compatibility.cpp:510
+#: src/common/gcode/gcode_compatibility.cpp:526
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -2533,7 +2533,7 @@ msgstr ""
 msgid "Filament inserted, press continue."
 msgstr "Filament vložen, vyberte Pokračovat."
 
-#: src/common/gcode/gcode_compatibility.cpp:190
+#: src/common/gcode/gcode_compatibility.cpp:200
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2553,7 +2553,7 @@ msgstr "Zavádění filamentu vypršelo."
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "Filament musí být zahřát a zatlačen zpět do trysky."
 
-#: src/common/gcode/gcode_compatibility.cpp:189
+#: src/common/gcode/gcode_compatibility.cpp:199
 msgid "Filament not calibrated"
 msgstr "Filament není zkalibrován"
 
@@ -2567,7 +2567,7 @@ msgstr ""
 "Vyberte NE pro ukončení tisku.\n"
 "Vyberte VYPNOUT FS pro vypnutí senzoru a pokračování tisku."
 
-#: src/common/gcode/gcode_compatibility.cpp:162
+#: src/common/gcode/gcode_compatibility.cpp:172
 msgid "Filament not loaded"
 msgstr "Filament nezaveden"
 
@@ -2603,7 +2603,7 @@ msgstr "Filament senzor není připojen. Zkontrolujte zapojení."
 msgid "Filament sensor not ready: perform calibration first."
 msgstr "Senzor filamentu nepřipraven: nejprve jej zkalibrujte."
 
-#: src/common/gcode/gcode_compatibility.cpp:180
+#: src/common/gcode/gcode_compatibility.cpp:190
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2668,7 +2668,7 @@ msgstr "Chyba souboru"
 msgid "File read error"
 msgstr "Chyba čtení souboru"
 
-#: src/common/gcode/gcode_info.cpp:59
+#: src/common/gcode/gcode_info.cpp:60
 msgid "File removed or transfer aborted"
 msgstr "Soubor odstraněn nebo přenos zrušen"
 
@@ -2993,13 +2993,21 @@ msgstr ""
 
 #: src/common/gcode/gcode_compatibility.cpp:84
 msgid ""
+"G-Code is not sliced with newest INDX profiles. There will be some issues "
+"with the print."
+msgstr ""
+"G-Code není připraven s nejnovějšími profily INDX. Při tisku se mohou "
+"vyskytnout problémy."
+
+#: src/common/gcode/gcode_compatibility.cpp:94
+msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
 msgstr ""
 "G-Code je připraven pro MMU, ale MMU není na tiskárně povoleno. Nelze "
 "tisknout."
 
-#: src/common/gcode/gcode_compatibility.cpp:171
+#: src/common/gcode/gcode_compatibility.cpp:181
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3011,7 +3019,7 @@ msgstr ""
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr "G-Code je připraven pro jinou tiskárnu a není kompatibilní."
 
-#: src/common/gcode/gcode_compatibility.cpp:131
+#: src/common/gcode/gcode_compatibility.cpp:141
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "G-Code je připraven pro jiný průměr nástroje."
 
@@ -3019,7 +3027,7 @@ msgstr "G-Code je připraven pro jiný průměr nástroje."
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr "G-Code je připraven pro jiný, ale kompatibilní model tiskárny."
 
-#: src/common/gcode/gcode_compatibility.cpp:139
+#: src/common/gcode/gcode_compatibility.cpp:149
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3027,7 +3035,7 @@ msgstr ""
 "G-Code je připraven pro kalenou trysku. Nekalená tryska může být poškozena "
 "abrazivním materiálem."
 
-#: src/common/gcode/gcode_compatibility.cpp:147
+#: src/common/gcode/gcode_compatibility.cpp:157
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3035,7 +3043,7 @@ msgstr ""
 "G-Code je připraven pro vysokoprůtokovou trysku. Tisk se standardní tryskou "
 "může vést k nedostatečné extruzi a přeskakování extruderu."
 
-#: src/common/gcode/gcode_compatibility.cpp:155
+#: src/common/gcode/gcode_compatibility.cpp:165
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3050,11 +3058,11 @@ msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr "G-Code vyžaduje funkce z novější verze firmwaru, aby fungoval správně."
 
-#: src/common/gcode/gcode_compatibility.cpp:101
+#: src/common/gcode/gcode_compatibility.cpp:111
 msgid "G-Code requires more tools than are currently enabled."
 msgstr "G-Code vyžaduje více nástrojů, než je aktuálně povoleno."
 
-#: src/common/gcode/gcode_compatibility.cpp:93
+#: src/common/gcode/gcode_compatibility.cpp:103
 msgid "G-Code requires some features the printer does not have."
 msgstr "G-Code vyžaduje některé funkce, které tiskárna nemá."
 
@@ -3073,7 +3081,7 @@ msgstr ""
 "Název identity: %s\n"
 "Hash klíče identity: %s"
 
-#: src/common/gcode/gcode_compatibility.cpp:203
+#: src/common/gcode/gcode_compatibility.cpp:213
 msgid "G-Code tool is not mapped."
 msgstr "Nástroj G-Code není namapován."
 
@@ -5074,11 +5082,11 @@ msgstr ""
 "elektroniky. Důkladně zkontrolujte zapojení."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/common/gcode/gcode_compatibility.cpp:211
+#: src/common/gcode/gcode_compatibility.cpp:221
 msgid "Not enough filament"
 msgstr "Nedostatek filamentu"
 
-#: src/common/gcode/gcode_compatibility.cpp:100
+#: src/common/gcode/gcode_compatibility.cpp:110
 msgid "Not enough tools"
 msgstr "Nedostatek nástrojů"
 
@@ -5214,7 +5222,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "Čistič trysky může přetéct"
 
-#: src/common/gcode/gcode_compatibility.cpp:109
+#: src/common/gcode/gcode_compatibility.cpp:119
 msgid "Nozzle cleaner not calibrated"
 msgstr "Čistič trysky není zkalibrován"
 
@@ -5263,15 +5271,15 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Výhřev trysky"
 
-#: src/common/gcode/gcode_compatibility.cpp:154
+#: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
 msgstr "Neshoda high-flow trysky"
 
-#: src/common/gcode/gcode_compatibility.cpp:138
+#: src/common/gcode/gcode_compatibility.cpp:148
 msgid "Nozzle not hardened"
 msgstr "Tryska není kalená"
 
-#: src/common/gcode/gcode_compatibility.cpp:146
+#: src/common/gcode/gcode_compatibility.cpp:156
 msgid "Nozzle not high-flow"
 msgstr "Tryska není high-flow"
 
@@ -5371,7 +5379,7 @@ msgstr ""
 "Až začne tiskárna vytlačovat plast, nastav výšku trysky otáčením ovládacího "
 "tlačítka. Filament musí být správně přitlačen k podložce."
 
-#: src/common/gcode/gcode_compatibility.cpp:163
+#: src/common/gcode/gcode_compatibility.cpp:173
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5712,7 +5720,7 @@ msgstr "Před zavedením/vyjmutím filamentu nejprve zkalibrujte čistič trysky
 msgid "Please calibrate the docks first."
 msgstr "Nejprve zkalibrujte doky."
 
-#: src/common/gcode/gcode_compatibility.cpp:110
+#: src/common/gcode/gcode_compatibility.cpp:120
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "Nejprve zkalibrujte čistič trysky."
 
@@ -6883,9 +6891,13 @@ msgstr "Přeskočit"
 msgid "Skip network setup"
 msgstr "Přeskočit nastavení sítě"
 
-#: src/common/gcode/gcode_compatibility.cpp:83
+#: src/common/gcode/gcode_compatibility.cpp:93
 msgid "Sliced for MMU"
 msgstr "Připraveno pro MMU"
+
+#: src/common/gcode/gcode_compatibility.cpp:83
+msgid "Sliced with old INDX profiles"
+msgstr "Připraveno se starými profily INDX"
 
 #. info text without a dialog is for >1 tool ToolChanger
 #: src/gui/wizard/selftest_frame_temp.cpp:69
@@ -6932,7 +6944,7 @@ msgstr "Rychlost"
 msgid "Speed sweep movement failed."
 msgstr "Pohyb speed sweep selhal."
 
-#: src/common/gcode/gcode_compatibility.cpp:179
+#: src/common/gcode/gcode_compatibility.cpp:189
 msgid "Spool join sensor not ready"
 msgstr "Senzor spojení cívek není připraven"
 
@@ -7701,7 +7713,7 @@ msgstr ""
 "Je třeba zapsat data o použití filamentu do OpenPrintTag. Ujistěte se, že je "
 "cívka blízko NFC čtečky."
 
-#: src/common/gcode/gcode_compatibility.cpp:212
+#: src/common/gcode/gcode_compatibility.cpp:222
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr "Na cívkách nezbývá dostatek filamentu pro tisk modelu."
@@ -7992,7 +8004,7 @@ msgstr "Kalibrace offsetu nástrojů"
 msgid "Tool changes"
 msgstr "Výměny nástrojů"
 
-#: src/common/gcode/gcode_compatibility.cpp:123
+#: src/common/gcode/gcode_compatibility.cpp:133
 msgid "Tool is disabled or of a different type."
 msgstr "Nástroj je vypnutý nebo jiného typu."
 
@@ -8334,7 +8346,7 @@ msgstr "Vysunutí k FINDA"
 msgid "Unloading to pulley"
 msgstr "Vysunutí ke kladce"
 
-#: src/common/gcode/gcode_compatibility.cpp:202
+#: src/common/gcode/gcode_compatibility.cpp:212
 msgid "Unmapped tool"
 msgstr "Nenamapovaný nástroj"
 
@@ -8354,7 +8366,7 @@ msgstr "Nebezpečný offset XY nástroje"
 msgid "Unsafe Z Tool Offset"
 msgstr "Nebezpečný offset Z nástroje"
 
-#: src/common/gcode/gcode_compatibility.cpp:92
+#: src/common/gcode/gcode_compatibility.cpp:102
 msgid "Unsupported features"
 msgstr "Nepodporované funkce"
 
@@ -8671,15 +8683,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "Špatný"
 
-#: src/common/gcode/gcode_compatibility.cpp:170
+#: src/common/gcode/gcode_compatibility.cpp:180
 msgid "Wrong filament type"
 msgstr "Špatný typ filamentu"
 
-#: src/common/gcode/gcode_compatibility.cpp:130
+#: src/common/gcode/gcode_compatibility.cpp:140
 msgid "Wrong nozzle diameter"
 msgstr "Špatný průměr trysky"
 
-#: src/common/gcode/gcode_compatibility.cpp:122
+#: src/common/gcode/gcode_compatibility.cpp:132
 msgid "Wrong tool"
 msgstr "Špatný nástroj"
 

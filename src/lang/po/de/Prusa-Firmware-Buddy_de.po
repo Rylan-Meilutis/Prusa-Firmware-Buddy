@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-08 18:54+0200\n"
+"POT-Creation-Date: 2026-07-09 13:42+0200\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -949,7 +949,7 @@ msgstr "Objekt abbrechen"
 msgid "Canceled"
 msgstr "Abgebrochen"
 
-#: src/common/gcode/gcode_compatibility.cpp:510
+#: src/common/gcode/gcode_compatibility.cpp:526
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -2603,7 +2603,7 @@ msgstr ""
 msgid "Filament inserted, press continue."
 msgstr "Filament eingelegt, drücken Sie Weiter."
 
-#: src/common/gcode/gcode_compatibility.cpp:190
+#: src/common/gcode/gcode_compatibility.cpp:200
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2623,7 +2623,7 @@ msgstr "Filamentladen Zeitüberschreitung."
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "Filament muss erhitzt und in die Düse zurückgeschoben werden."
 
-#: src/common/gcode/gcode_compatibility.cpp:189
+#: src/common/gcode/gcode_compatibility.cpp:199
 msgid "Filament not calibrated"
 msgstr "Filament nicht kalibriert"
 
@@ -2638,7 +2638,7 @@ msgstr ""
 "Wählen Sie FS DEAKTIVIEREN, um den Filament-Sensor zu deaktivieren und "
 "weiter zu drucken."
 
-#: src/common/gcode/gcode_compatibility.cpp:162
+#: src/common/gcode/gcode_compatibility.cpp:172
 msgid "Filament not loaded"
 msgstr "Filament nicht geladen"
 
@@ -2675,7 +2675,7 @@ msgstr "Filament-Sensor nicht angeschlossen, überprüfen Sie die Verdrahtung."
 msgid "Filament sensor not ready: perform calibration first."
 msgstr "Filament-Sensor nicht bereit: Zunächst Kalibrierung durchführen."
 
-#: src/common/gcode/gcode_compatibility.cpp:180
+#: src/common/gcode/gcode_compatibility.cpp:190
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2742,7 +2742,7 @@ msgstr "Datei-Fehler"
 msgid "File read error"
 msgstr "Datei-Lesefehler"
 
-#: src/common/gcode/gcode_info.cpp:59
+#: src/common/gcode/gcode_info.cpp:60
 msgid "File removed or transfer aborted"
 msgstr "Datei entfernt oder Übertragung abgebrochen"
 
@@ -3076,13 +3076,21 @@ msgstr ""
 
 #: src/common/gcode/gcode_compatibility.cpp:84
 msgid ""
+"G-Code is not sliced with newest INDX profiles. There will be some issues "
+"with the print."
+msgstr ""
+"G-Code ist nicht mit den neuesten INDX-Profilen gesliced. Es wird einige "
+"Probleme beim Druck geben."
+
+#: src/common/gcode/gcode_compatibility.cpp:94
+msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
 msgstr ""
 "G-Code ist für MMU gesliced, aber MMU ist auf dem Drucker nicht aktiviert. "
 "Druck nicht möglich."
 
-#: src/common/gcode/gcode_compatibility.cpp:171
+#: src/common/gcode/gcode_compatibility.cpp:181
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3094,7 +3102,7 @@ msgstr ""
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr "G-Code ist für einen anderen Drucker gesliced und nicht kompatibel."
 
-#: src/common/gcode/gcode_compatibility.cpp:131
+#: src/common/gcode/gcode_compatibility.cpp:141
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "G-Code ist für einen anderen Werkzeugdurchmesser gesliced."
 
@@ -3102,7 +3110,7 @@ msgstr "G-Code ist für einen anderen Werkzeugdurchmesser gesliced."
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr "G-Code ist für ein anderes, aber kompatibles Druckermodell gesliced."
 
-#: src/common/gcode/gcode_compatibility.cpp:139
+#: src/common/gcode/gcode_compatibility.cpp:149
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3110,7 +3118,7 @@ msgstr ""
 "G-Code ist für gehärtete Düse gesliced. Nicht gehärtete Düsen können durch "
 "abrasives Material beschädigt werden."
 
-#: src/common/gcode/gcode_compatibility.cpp:147
+#: src/common/gcode/gcode_compatibility.cpp:157
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3118,7 +3126,7 @@ msgstr ""
 "G-Code ist für High-Flow-Düse gesliced. Drucken mit Standarddüse kann zu "
 "Unterextrusion und Extruder-Überspringen führen."
 
-#: src/common/gcode/gcode_compatibility.cpp:155
+#: src/common/gcode/gcode_compatibility.cpp:165
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3135,11 +3143,11 @@ msgstr ""
 "G-Code benötigt Funktionen einer neueren Firmware-Version, um korrekt zu "
 "funktionieren."
 
-#: src/common/gcode/gcode_compatibility.cpp:101
+#: src/common/gcode/gcode_compatibility.cpp:111
 msgid "G-Code requires more tools than are currently enabled."
 msgstr "G-Code benötigt mehr Werkzeuge als aktuell aktiviert."
 
-#: src/common/gcode/gcode_compatibility.cpp:93
+#: src/common/gcode/gcode_compatibility.cpp:103
 msgid "G-Code requires some features the printer does not have."
 msgstr "G-Code benötigt Funktionen, die der Drucker nicht hat."
 
@@ -3158,7 +3166,7 @@ msgstr ""
 "Identitätsname: %s\n"
 "Schlüssel-Hash: %s"
 
-#: src/common/gcode/gcode_compatibility.cpp:203
+#: src/common/gcode/gcode_compatibility.cpp:213
 msgid "G-Code tool is not mapped."
 msgstr "G-Code-Werkzeug ist nicht zugeordnet."
 
@@ -5193,11 +5201,11 @@ msgstr ""
 "Problem mit der Elektronik. Überprüfen Sie die Verkabelung und die Stecker."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/common/gcode/gcode_compatibility.cpp:211
+#: src/common/gcode/gcode_compatibility.cpp:221
 msgid "Not enough filament"
 msgstr "Nicht genug Filament"
 
-#: src/common/gcode/gcode_compatibility.cpp:100
+#: src/common/gcode/gcode_compatibility.cpp:110
 msgid "Not enough tools"
 msgstr "Nicht genug Werkzeuge"
 
@@ -5335,7 +5343,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "Düsenreiniger kann überlaufen"
 
-#: src/common/gcode/gcode_compatibility.cpp:109
+#: src/common/gcode/gcode_compatibility.cpp:119
 msgid "Nozzle cleaner not calibrated"
 msgstr "Düsenreiniger nicht kalibriert"
 
@@ -5384,15 +5392,15 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Düsenheizung prüfen"
 
-#: src/common/gcode/gcode_compatibility.cpp:154
+#: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
 msgstr "High-Flow-Düse Inkompatibilität"
 
-#: src/common/gcode/gcode_compatibility.cpp:138
+#: src/common/gcode/gcode_compatibility.cpp:148
 msgid "Nozzle not hardened"
 msgstr "Düse nicht gehärtet"
 
-#: src/common/gcode/gcode_compatibility.cpp:146
+#: src/common/gcode/gcode_compatibility.cpp:156
 msgid "Nozzle not high-flow"
 msgstr "Düse nicht high-flow"
 
@@ -5492,7 +5500,7 @@ msgstr ""
 "Sobald der Drucker beginnt, Kunststoff zu extrudieren, die Höhe der Düse "
 "durch Knopfdrehen einstellen, bis Filament am Druckblech haftet."
 
-#: src/common/gcode/gcode_compatibility.cpp:163
+#: src/common/gcode/gcode_compatibility.cpp:173
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5839,7 +5847,7 @@ msgstr ""
 msgid "Please calibrate the docks first."
 msgstr "Bitte zuerst die Docks kalibrieren."
 
-#: src/common/gcode/gcode_compatibility.cpp:110
+#: src/common/gcode/gcode_compatibility.cpp:120
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "Bitte zuerst den Düsenreiniger kalibrieren."
 
@@ -7033,9 +7041,13 @@ msgstr "Überspringen"
 msgid "Skip network setup"
 msgstr "Netzwerk-Einrichtung überspringen"
 
-#: src/common/gcode/gcode_compatibility.cpp:83
+#: src/common/gcode/gcode_compatibility.cpp:93
 msgid "Sliced for MMU"
 msgstr "Für MMU gesliced"
+
+#: src/common/gcode/gcode_compatibility.cpp:83
+msgid "Sliced with old INDX profiles"
+msgstr "Mit alten INDX-Profilen gesliced"
 
 #. info text without a dialog is for >1 tool ToolChanger
 #: src/gui/wizard/selftest_frame_temp.cpp:69
@@ -7082,7 +7094,7 @@ msgstr "Geschwindigkeit"
 msgid "Speed sweep movement failed."
 msgstr "Speed-Sweep-Bewegung fehlgeschlagen."
 
-#: src/common/gcode/gcode_compatibility.cpp:179
+#: src/common/gcode/gcode_compatibility.cpp:189
 msgid "Spool join sensor not ready"
 msgstr "Spool-Join-Sensor nicht bereit"
 
@@ -7870,7 +7882,7 @@ msgstr ""
 "Filament-Nutzungsdaten müssen auf OpenPrintTag geschrieben werden. Spule "
 "nahe am NFC-Leser halten."
 
-#: src/common/gcode/gcode_compatibility.cpp:212
+#: src/common/gcode/gcode_compatibility.cpp:222
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr "Nicht genug Filament auf den Spulen, um das Modell zu drucken."
@@ -8171,7 +8183,7 @@ msgstr "Werkzeug-Offsets Kalibrierung"
 msgid "Tool changes"
 msgstr "Werkzeugwechsel"
 
-#: src/common/gcode/gcode_compatibility.cpp:123
+#: src/common/gcode/gcode_compatibility.cpp:133
 msgid "Tool is disabled or of a different type."
 msgstr "Werkzeug ist deaktiviert oder anderer Typ."
 
@@ -8517,7 +8529,7 @@ msgstr "Entlade zur FINDA"
 msgid "Unloading to pulley"
 msgstr "Entlade zur Riemens."
 
-#: src/common/gcode/gcode_compatibility.cpp:202
+#: src/common/gcode/gcode_compatibility.cpp:212
 msgid "Unmapped tool"
 msgstr "Nicht zugeordnetes Werkzeug"
 
@@ -8537,7 +8549,7 @@ msgstr "Unsicherer XY-Werkzeug-Offset"
 msgid "Unsafe Z Tool Offset"
 msgstr "Unsicherer Z-Werkzeug-Offset"
 
-#: src/common/gcode/gcode_compatibility.cpp:92
+#: src/common/gcode/gcode_compatibility.cpp:102
 msgid "Unsupported features"
 msgstr "Nicht unterstützte Funktionen"
 
@@ -8859,15 +8871,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "Falsch"
 
-#: src/common/gcode/gcode_compatibility.cpp:170
+#: src/common/gcode/gcode_compatibility.cpp:180
 msgid "Wrong filament type"
 msgstr "Falscher Filamenttyp"
 
-#: src/common/gcode/gcode_compatibility.cpp:130
+#: src/common/gcode/gcode_compatibility.cpp:140
 msgid "Wrong nozzle diameter"
 msgstr "Falscher Düsendurchmesser"
 
-#: src/common/gcode/gcode_compatibility.cpp:122
+#: src/common/gcode/gcode_compatibility.cpp:132
 msgid "Wrong tool"
 msgstr "Falsches Werkzeug"
 
