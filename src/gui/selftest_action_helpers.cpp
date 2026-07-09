@@ -6,6 +6,7 @@
 #include <option/has_gearbox_alignment.h>
 #include <option/has_phase_stepping_selftest.h>
 #include <option/has_indx.h>
+#include <option/has_manual_belt_tuning.h>
 #include <option/has_toolchanger.h>
 #include <bsod.h>
 
@@ -90,7 +91,7 @@ const char *get_action_label(Action action) {
     case Action::PhaseSteppingCalibration:
         return N_("Phase Stepping Calibration");
 #endif
-#if HAS_INDX()
+#if HAS_MANUAL_BELT_TUNING()
     case Action::BeltTuning:
         return N_("Belt Tuning");
 #endif

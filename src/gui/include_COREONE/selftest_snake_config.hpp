@@ -21,6 +21,7 @@ enum class Action {
     Heaters,
     Gears,
     FilamentSensorCalibration,
+    BeltTuning,
     _count,
     _last = _count - 1,
     _first = Fans,
