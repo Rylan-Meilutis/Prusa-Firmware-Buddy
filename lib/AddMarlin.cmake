@@ -284,3 +284,7 @@ endif()
 if(HAS_XBUDDY_EXTENSION)
   target_link_libraries(Marlin PUBLIC xbuddy_extension)
 endif()
+
+if(RTT_METRICS_ENABLED)
+  target_link_libraries(Marlin PUBLIC rtt_metrics_segger)
+endif()

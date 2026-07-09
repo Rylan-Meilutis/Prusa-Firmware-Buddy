@@ -13,6 +13,11 @@
 #include <lis2dh12_reg.h>
 #include <accelerometer/common_structs.hpp>
 
+#include <option/rtt_metrics_enabled.h>
+#if RTT_METRICS_ENABLED()
+    #include <rtt_metrics_segger/peripheries_metrics.hpp>
+#endif
+
 /**
  * LIS2DH12Poller uses a timer and SPI DMA transfer to periodically check for a
  * new samples from the LIS2DH12 accelerometer. The samples are stored in an
@@ -306,6 +311,9 @@ public:
             const int16_t x = (int16_t(dma_buffer[2]) << 8) | dma_buffer[1];
             const int16_t y = (int16_t(dma_buffer[4]) << 8) | dma_buffer[3];
             const int16_t z = (int16_t(dma_buffer[6]) << 8) | dma_buffer[5];
+#if RTT_METRICS_ENABLED()
+            rtt_metrics::log_accelerometer({ x, y, z });
+#endif
             if (!sample_queue.enqueue({ x, y, z })) {
                 overflow_counter++;
             }
