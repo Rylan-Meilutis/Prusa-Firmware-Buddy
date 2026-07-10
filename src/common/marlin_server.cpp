@@ -3975,9 +3975,7 @@ void onIdle() {
     constexpr bool selftest_running = false;
     #endif
     if (!selftest_running && PrinterModelInfo::current().model == PrinterModel::xls) {
-        cpu_fan_controller::update(
-            sensor_data().MCUTemp.load(),
-            sensor_data().sandwichTemp.load());
+        cpu_fan_controller::update(std::max(std::max(sensor_data().MCUTemp.load(), sensor_data().sandwichTemp.load()), sensor_data().boardTemp.load()));
     }
 #endif
 }

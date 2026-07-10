@@ -16,42 +16,37 @@ namespace cpu_fan_controller {
 inline constexpr float temp_off = 55.0f;
 inline constexpr float temp_on = 65.0f;
 inline constexpr float temp_full = 80.0f;
+inline constexpr uint16_t pct_step = 10; // PWM change step (and hysteresis) in percent
 
 static_assert(temp_off < temp_on && temp_on < temp_full, "temperature thresholds are invalid");
 
-/// Pure hysteretic fan policy. Given the two temperature sensors and the
-/// currently applied PWM, returns the PWM to set. Inside the hysteresis band
-/// (temp_off..temp_on) the fan keeps its previous on/off state, so
-/// `current_pwm` is returned unchanged there. Kept header-inline so it can be
-/// unit-tested without the Fans hardware singleton; update() feeds it the
-/// live PWM.
-constexpr uint16_t compute_pwm(float mcu_temp_c, float sandwich_temp_c, uint16_t current_pwm) {
-    const float temp = std::max(mcu_temp_c, sandwich_temp_c);
-
+constexpr uint16_t compute_pwm(float temp_c, uint16_t current_pwm) {
     // Fail-safe: default ON when sensor data is unreliable.
-    if (!std::isfinite(temp)) {
+    if (!std::isfinite(temp_c)) {
         return static_cast<uint16_t>(255.f * FANCTLCPU_PWM_MAX / 100.f);
     }
 
-    // Preserve current state inside the hysteresis band.
-    if (temp >= temp_full) {
+    if (temp_c >= temp_full) {
+        // Full speed above this threshold
         return static_cast<uint16_t>(FANCTLCPU_PWM_MAX * 255.f / 100.f);
-    } else if (temp >= temp_on) {
-        return static_cast<uint16_t>(FANCTLCPU_PWM_THR * 255.f / 100.f) + static_cast<uint16_t>((temp - temp_on) * (FANCTLCPU_PWM_MAX - FANCTLCPU_PWM_THR) * 255.f / (temp_full - temp_on) / 100.f);
-    } else if (temp <= temp_off) {
+    } else if (temp_c >= temp_on) {
+        // Above this temperature calculate the duty cycle percentage based on the temperature
+        // Duty cycle is changed in steps pct_step, which is also creating a hysteresis effect
+        uint16_t pct_increment = static_cast<uint16_t>((temp_c - temp_on) * (FANCTLCPU_PWM_MAX - FANCTLCPU_PWM_THR) * 255.f / (temp_full - temp_on) / 100.f);
+
+        if (std::abs(current_pwm - pct_increment) >= pct_step) {
+            return static_cast<uint16_t>(FANCTLCPU_PWM_THR * 255.f / 100.f) + pct_increment;
+        }
+    } else if (temp_c <= temp_off) {
+        // Below this temperature, turn the fan off
         return 0;
     }
+
     return current_pwm;
 }
 
-/// Update CPU fan speed based on MCU and sandwich-board temperatures.
-/// Runs a hysteretic on/off policy. The LDO-D3007D04Y05A00FX is rated
-/// down to a 3.5 V starting voltage so it could in principle run at
-/// reduced duty, but the on/off policy is intentionally simple --
-/// thermals on XLS don't need fine-grained speed control. Called from
-/// the main idle loop on the XLS variant; plain XL never calls this
-/// and the fan stays at 0.
-void update(float mcu_temp_c, float sandwich_temp_c);
+/// Update CPU fan speed based on temperature
+void update(float temp_c);
 
 } // namespace cpu_fan_controller
 
