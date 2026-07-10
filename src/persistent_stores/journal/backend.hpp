@@ -9,10 +9,10 @@
 #include <span>
 #include <atomic>
 #include <storage_drivers/storage.hpp>
-#include <assert.h>
 #include <type_traits>
 #include <journal/concepts.hpp>
 #include <utils/byte_utils.hpp>
+#include <bsod/bsod.h>
 
 namespace journal {
 
@@ -219,7 +219,7 @@ public:
     template <typename T>
     void save_migration_item(Id hashed_id, const std::type_identity_t<T> &item_to_be_saved) {
         static_assert(sizeof(T) <= MAX_ITEM_SIZE, "Trying to save an item too big");
-        assert(transaction.has_value() && transaction->type == Transaction::Type::version_migration); // migrating transaction must be in progress
+        debug_assert(transaction.has_value() && transaction->type == Transaction::Type::version_migration); // migrating transaction must be in progress
         save(hashed_id, trivial_as_bytes(item_to_be_saved));
     }
 

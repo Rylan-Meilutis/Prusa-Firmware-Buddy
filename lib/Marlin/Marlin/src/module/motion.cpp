@@ -715,7 +715,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
   #endif // SENSORLESS_HOMING
 
 uint8_t do_homing_move_axis_rel(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s) {
-  assert(fr_mm_s != 0.f);
+  debug_assert(fr_mm_s != 0.f);
 
   // If you're seeing either of these BSODs,
   // you're probably calling do_homing_move_axis_rel instead of do_homing_move
@@ -982,7 +982,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
  */
 void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unused]] bool homing_z_with_probe) {
   // ensure we're not within an aborted move: caller needs to check!
-  assert(!planner.draining());
+  debug_assert(!planner.draining());
 
   axes_home_level[axis] = level; 
 

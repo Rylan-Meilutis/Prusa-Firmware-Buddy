@@ -1,6 +1,5 @@
 #include <st25r39xxb/ST25R39XXB.hpp>
 #include <st25r39xxb/ST25R39XXB_defs.hpp>
-#include <cassert>
 
 #include <raii/scope_guard.hpp>
 #include <iso13239/crc.hpp>

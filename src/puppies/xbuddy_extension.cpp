@@ -4,7 +4,6 @@
 #include "buddy/digest.hpp"
 #include "timing.h"
 #include <algorithm>
-#include <cassert>
 #include <cinttypes>
 #include <logging/log.hpp>
 #include <modbus/modbus.hpp>
@@ -100,14 +99,14 @@ namespace {
 namespace buddy::puppies {
 
 void XBuddyExtension::set_fan_pwm(size_t fan_idx, uint8_t pwm) {
-    assert(fan_idx < FAN_CNT);
+    debug_assert(fan_idx < FAN_CNT);
     if (fan_pwm_desired[fan_idx].exchange(pwm) != pwm) {
         config_dirty.store(true);
     }
 }
 
 uint8_t XBuddyExtension::get_requested_fan_pwm(size_t fan_idx) {
-    assert(fan_idx < FAN_CNT);
+    debug_assert(fan_idx < FAN_CNT);
     return fan_pwm_desired[fan_idx].load();
 }
 
@@ -133,7 +132,7 @@ void XBuddyExtension::set_white_led(uint8_t intensity) {
 }
 
 void XBuddyExtension::set_white_strobe_frequency(std::optional<uint16_t> freq) {
-    assert(freq != 0); // Explicit 0 makes no sense as frequency
+    debug_assert(freq != 0); // Explicit 0 makes no sense as frequency
     const uint16_t value = freq.value_or(0);
     if (w_led_frequency_desired.exchange(value) != value) {
         config_dirty.store(true);
@@ -169,7 +168,7 @@ void XBuddyExtension::set_mmu_nreset(bool enabled) {
 }
 
 std::optional<uint16_t> XBuddyExtension::get_fan_rpm(size_t fan_idx) const {
-    assert(fan_idx < FAN_CNT);
+    debug_assert(fan_idx < FAN_CNT);
     if (!valid.load()) {
         return std::nullopt;
     }
@@ -206,7 +205,7 @@ std::optional<XBuddyExtension::FilamentSensorState> XBuddyExtension::get_ext_fil
         return std::nullopt;
     }
     using Register = decltype(Status::ext_filament_sensors);
-    assert(index < xbuddy_extension::ext_filament_sensor_count);
+    debug_assert(index < xbuddy_extension::ext_filament_sensor_count);
     const uint8_t shift = index * xbuddy_extension::bits_per_fs_state;
     constexpr Register mask = (Register(1) << xbuddy_extension::bits_per_fs_state) - 1;
     return static_cast<FilamentSensorState>((ext_filament_sensors.load() >> shift) & mask);

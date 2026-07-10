@@ -22,6 +22,7 @@
 #include <gcode/gcode_compatibility.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <tool_index.hpp>
+#include <bsod/bsod.h>
 
 // these strings are meant NOT to be translated
 namespace gcode_info {
@@ -146,7 +147,7 @@ public:
     inline const char *error_str() const { return error_str_; } ///< If there is any reportable error, returns it. Otherwise returns nullptr.
 
     inline void set_error(const char *error) {
-        assert(error);
+        debug_assert(error);
         error_str_ = error;
     }
 
@@ -193,7 +194,7 @@ public:
 
     [[deprecated("Use ToolIndex overload")]]
     const ExtruderInfo &get_extruder_info(uint8_t extruder) const {
-        assert(extruder < std::size(per_extruder_info));
+        debug_assert(extruder < std::size(per_extruder_info));
         return per_extruder_info[extruder];
     }
 

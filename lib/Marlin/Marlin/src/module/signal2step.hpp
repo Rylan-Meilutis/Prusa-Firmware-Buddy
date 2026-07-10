@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <bsod/bsod.h>
 
 namespace signal2step {
 
@@ -24,7 +25,7 @@ namespace detail {
 inline AxisEnum idx_to_axis(std::size_t idx) {
     static_assert(X_AXIS == 0 && Y_AXIS == 1 && Z_AXIS == 2 && E_AXIS == 3,
         "AxisEnum values must match array indices");
-    assert(idx <= E_AXIS);
+    debug_assert(idx <= E_AXIS);
     return static_cast<AxisEnum>(idx);
 }
 
@@ -47,9 +48,9 @@ struct AxisSteps {
         uint32_t current_time_us,
         float dt_us) {
 
-        assert(dt_us > 0.f);
-        assert(mm_step > 0.f);
-        assert(inv_mm_step > 0.f);
+        debug_assert(dt_us > 0.f);
+        debug_assert(mm_step > 0.f);
+        debug_assert(inv_mm_step > 0.f);
 
         const int start_step = static_cast<int>(std::round(start_pos * inv_mm_step));
         const int end_step = static_cast<int>(std::round(end_pos * inv_mm_step));
@@ -109,13 +110,13 @@ abce_pos_t convert(
     abce_pos_t mm_per_step,
     F yield_step, Wait wait_for_samples = {}) {
 
-    assert(signal.sampling_freq() > 0.f);
+    debug_assert(signal.sampling_freq() > 0.f);
 
     constexpr int STEPPER_AXES = 4;
     std::array<float, STEPPER_AXES> mm_per_step_arr;
     std::array<float, STEPPER_AXES> inv_mm_step_arr;
     for (int i = 0; i < STEPPER_AXES; i++) {
-        assert(mm_per_step.pos[i] > 0.f);
+        debug_assert(mm_per_step.pos[i] > 0.f);
         mm_per_step_arr[i] = mm_per_step.pos[i];
         inv_mm_step_arr[i] = 1.0f / mm_per_step.pos[i];
     }
@@ -193,7 +194,7 @@ abce_pos_t convert(
 
         // Update state for next iteration
         prev_sample = sample;
-        assert(current_time_us <= std::numeric_limits<uint32_t>::max() - time_per_sample_us);
+        debug_assert(current_time_us <= std::numeric_limits<uint32_t>::max() - time_per_sample_us);
         current_time_us = next_sample_timestamp_us;
     }
 
@@ -254,7 +255,7 @@ namespace detail {
 // last value is held. Output length equals the longest input.
 template <typename OutType, typename Gen0, typename Gen1, typename Gen2, typename Gen3>
 inline auto fuse(Gen0&& g0, Gen1&& g1, Gen2&& g2, Gen3&& g3) {
-    assert(
+    debug_assert(
         (g0.sampling_freq() == g1.sampling_freq()) &&
         (g0.sampling_freq() == g2.sampling_freq()) &&
         (g0.sampling_freq() == g3.sampling_freq())

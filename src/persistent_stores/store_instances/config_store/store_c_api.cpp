@@ -2,6 +2,7 @@
 #include <bitset>
 #include <config_store/store_instance.hpp>
 #include <logging/log.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_DEF(EEPROM, logging::Severity::info);
 

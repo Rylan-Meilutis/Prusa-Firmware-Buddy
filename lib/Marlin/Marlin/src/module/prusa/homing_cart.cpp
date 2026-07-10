@@ -10,6 +10,7 @@
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 
 #include <marlin_server.hpp>
+#include <bsod/bsod.h>
 
 inline constexpr float HOMING_BUMP_DIVISOR_STEP = 1.03f;
 inline constexpr float homing_bump_divisor_dflt[] = HOMING_BUMP_DIVISOR;
@@ -193,7 +194,7 @@ static void store_homing_sensitivity(AxisEnum axis, int16_t value) {
         config_store().homing_sens_y.set(value);
         break;
     default:
-        assert(false && "invalid axis index");
+        debug_assert(false && "invalid axis index");
     }
 }
 

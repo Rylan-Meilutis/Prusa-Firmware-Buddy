@@ -5,7 +5,6 @@
 #include "buffered_serial.hpp"
 #include "puppies/PuppyBus.hpp"
 #include "puppies/PuppyBootstrap.hpp"
-#include <assert.h>
 #include <bsod.h>
 
 namespace buddy::puppies {
@@ -37,7 +36,7 @@ static PuppyBus::Pause pause_for_address(uint8_t address) {
 }
 
 BootloaderProtocol::status_t BootloaderProtocol::write_command(commands_t cmd, uint8_t len) {
-    assert(len <= MAX_REQUEST_DATA_LEN);
+    debug_assert(len <= MAX_REQUEST_DATA_LEN);
 
     PuppyBus::ErrorRecovery();
     PuppyBus::Flush();
@@ -120,7 +119,7 @@ BootloaderProtocol::status_t BootloaderProtocol::run_transaction(commands_t cmd,
 }
 
 BootloaderProtocol::status_t BootloaderProtocol::write_flash_cmd(uint32_t offset, uint8_t len) {
-    assert(len <= MAX_FLASH_BLOCK_LENGTH);
+    debug_assert(len <= MAX_FLASH_BLOCK_LENGTH);
     uint8_t *cmd = get_run_transaction_buffer();
 
     cmd[0] = offset >> 24;
@@ -133,7 +132,7 @@ BootloaderProtocol::status_t BootloaderProtocol::write_flash_cmd(uint32_t offset
 }
 
 BootloaderProtocol::status_t BootloaderProtocol::read_flash_cmd(uint32_t offset, uint8_t *dataout, uint8_t len) {
-    assert(len <= MAX_RESPONSE_DATA_LEN);
+    debug_assert(len <= MAX_RESPONSE_DATA_LEN);
     uint8_t *cmd = get_run_transaction_buffer();
 
     cmd[0] = offset >> 24;
@@ -145,7 +144,7 @@ BootloaderProtocol::status_t BootloaderProtocol::read_flash_cmd(uint32_t offset,
 }
 
 BootloaderProtocol::status_t BootloaderProtocol::read_otp_cmd(uint32_t offset, uint8_t *dataout, uint8_t len) {
-    assert(len <= MAX_RESPONSE_DATA_LEN);
+    debug_assert(len <= MAX_RESPONSE_DATA_LEN);
     uint8_t *cmd = get_run_transaction_buffer();
 
     cmd[0] = offset >> 24;
@@ -227,7 +226,7 @@ BootloaderProtocol::status_t BootloaderProtocol::get_fingerprint(fingerprint_t &
 
 BootloaderProtocol::status_t BootloaderProtocol::write_flash(uint32_t len,
     stdext::inplace_function<bool(uint32_t offset, size_t size, uint8_t *out_data)> get_data) {
-    assert(len <= MAX_FLASH_TOTAL_LENGTH);
+    debug_assert(len <= MAX_FLASH_TOTAL_LENGTH);
     uint32_t offset = 0;
 
     while (offset < len) {

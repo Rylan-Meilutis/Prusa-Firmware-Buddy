@@ -6,6 +6,7 @@
 #include <option/has_fsensor_invertible.h>
 #include <option/has_side_fsensor_invertible.h>
 #include <feature/filament_sensor/calibrator/filament_sensor_calibrator_invertible.hpp>
+#include <bsod/bsod.h>
 
 FilamentSensorState FSensorInvertible::inverted_state(FilamentSensorState state, bool inverted) {
     if (!inverted) {

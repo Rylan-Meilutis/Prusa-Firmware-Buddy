@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -8,6 +7,7 @@
 
 #include <common/circular_buffer.hpp>
 #include <fifo_coder/fifo_coder.hpp>
+#include <bsod/bsod.h>
 
 namespace dwarf::loadcell {
 
@@ -41,7 +41,7 @@ public:
         LoadcellRecord out;
         if (flushing) {
             [[maybe_unused]] const bool get_ok = held.try_get(out);
-            assert(get_ok);
+            debug_assert(get_ok);
             if (held.size() == 0) {
                 flushing = false;
             }
@@ -66,13 +66,13 @@ public:
 
             // Suspect: stash it.
             [[maybe_unused]] const bool put_ok = held.try_put(out);
-            assert(put_ok);
+            debug_assert(put_ok);
 
             if (held.size() > MAX_SKIPPED) {
                 // Deviation persisted — it is a real signal; flush all held samples.
                 flushing = true;
                 [[maybe_unused]] const bool get_ok = held.try_get(out);
-                assert(get_ok);
+                debug_assert(get_ok);
                 return out;
             }
         }

@@ -23,6 +23,7 @@
 #include <option/bootloader.h>
 #include <option/has_touch.h>
 #include <logging/log.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_TOUCH()
     #include <hw/touchscreen/touchscreen.hpp>
@@ -111,14 +112,14 @@ uint8_t ili9488_buff[ILI9488_COLS * 3 * ILI9488_BUFF_ROWS]; // 3 bytes for pixel
 bool ili9488_buff_borrowed = false; ///< True if buffer is borrowed by someone else
 
 uint8_t *ili9488_borrow_buffer() {
-    assert(!ili9488_buff_borrowed && "Already lent");
-    assert(ili9488_task_handle == osThreadGetId() && "Must be called only from one task");
+    debug_assert(!ili9488_buff_borrowed && "Already lent");
+    debug_assert(ili9488_task_handle == osThreadGetId() && "Must be called only from one task");
     ili9488_buff_borrowed = true;
     return ili9488_buff;
 }
 
 void ili9488_return_buffer() {
-    assert(ili9488_buff_borrowed);
+    debug_assert(ili9488_buff_borrowed);
     ili9488_buff_borrowed = false;
 }
 
@@ -193,7 +194,7 @@ void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
     if ((ili9488_flg & ILI9488_FLG_DMA) && !(ili9488_flg & ILI9488_FLG_SAFE) && (size > 4)) {
         osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_TX);
         osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
-        assert(can_be_used_by_dma(pb));
+        debug_assert(can_be_used_by_dma(pb));
         HAL_SPI_Transmit_DMA(spi_handle_lcd, const_cast<uint8_t *>(pb), size);
         osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
     } else {
@@ -491,7 +492,7 @@ void ili9488_set_pixel(uint16_t point_x, uint16_t point_y, uint32_t clr666) {
 }
 
 uint8_t *ili9488_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y) {
-    assert(!ili9488_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     if (start_x >= ILI9488_COLS || start_y >= ILI9488_ROWS || end_x >= ILI9488_COLS || end_y >= ILI9488_ROWS) {
         return NULL;
@@ -540,7 +541,7 @@ void ili9488_fill_rect_colorFormat666(uint16_t rect_x, uint16_t rect_y, uint16_t
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
     SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
-    assert(!ili9488_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // fast path for black and white pixels; no need to support more colors at the moment
     static const auto fast_draw_enabled = config_store().fast_draw_enabled.get();
@@ -584,7 +585,7 @@ void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
 }
 
 void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
-    assert(!ili9488_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
     SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);

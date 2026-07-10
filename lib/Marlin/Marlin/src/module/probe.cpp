@@ -25,6 +25,7 @@
  */
 
 #include "../inc/MarlinConfig.h"
+#include <bsod/bsod.h>
 
 #if HAS_BED_PROBE
 
@@ -650,7 +651,7 @@ float run_z_probe(const RunZProbeParams& params) {
     *params.endstop_triggered = true;
 
   // We expect PA delays to be already avoided here
-  assert(pressure_advance::PressureAdvanceDisabler::is_active());
+  debug_assert(pressure_advance::PressureAdvanceDisabler::is_active());
 
   #if ENABLED(NOZZLE_LOAD_CELL)
     if (!loadcell_wait_streaming()) {
@@ -787,7 +788,7 @@ float run_z_probe(const RunZProbeParams& params) {
         uint32_t elapsed_us = ticks_diff(ticks_us(), move_fwd_end);
         uint32_t start_delay_us = PreciseStepping::get_first_move_delay_us();
         uint32_t precomp_ms = (elapsed_us + start_delay_us) / 1000;
-        assert(precomp_ms <= Loadcell::TOUCHDOWN_DELAY_MS); // we handle underflow, but catch it on debug
+        debug_assert(precomp_ms <= Loadcell::TOUCHDOWN_DELAY_MS); // we handle underflow, but catch it on debug
         millis_t delay_ms = std::min<uint32_t>(Loadcell::TOUCHDOWN_DELAY_MS - precomp_ms, Loadcell::TOUCHDOWN_DELAY_MS);
         safe_delay(delay_ms);
 

@@ -11,6 +11,7 @@
 #include <gui/screen/screen_menu_virtual.hpp>
 
 #include <feature/openprinttag/tool_tag.hpp>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 

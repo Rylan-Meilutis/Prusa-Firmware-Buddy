@@ -4,6 +4,7 @@
 #include "utils/variant_utils.hpp"
 #include <option/has_toolchanger.h>
 #include <tool_index.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_TOOLCHANGER()
     #include "Marlin/src/module/stepper.h"
@@ -125,7 +126,7 @@ void PrusaToolChangerUtils::autodetect_active_tool(PuppyModbus &bus) {
 }
 
 void PrusaToolChangerUtils::request_active_switch(Dwarf *new_dwarf) {
-    assert(request_toolchange == false && "Repeated dwarf switch request");
+    debug_assert(request_toolchange == false && "Repeated dwarf switch request");
     request_toolchange_dwarf = new_dwarf;
     request_toolchange = true;
     if (wait([this]() { return !this->request_toolchange.load(); }, WAIT_TIME_TOOL_SELECT) == false) {

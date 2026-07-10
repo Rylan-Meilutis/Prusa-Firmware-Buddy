@@ -12,6 +12,7 @@
 #include <algorithm_extensions.hpp>
 #include <filament_list.hpp>
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 
 using namespace multi_filament_change;
 

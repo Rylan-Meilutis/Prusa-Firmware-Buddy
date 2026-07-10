@@ -28,6 +28,7 @@
  */
 
 #include "../inc/MarlinConfig.h"
+#include <bsod/bsod.h>
 
 #if ENABLED(BEZIER_CURVE_SUPPORT)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -173,10 +174,10 @@ void cubic_b_spline(
     // Marlin build, but if you test the same code on a computer you
     // may want to check they are respect.
     /*
-      assert(new_t <= 1.0);
+      debug_assert(new_t <= 1.0);
       if (new_t < 1.0) {
-        assert(new_t - t >= (MIN_STEP) / 2.0);
-        assert(new_t - t <= (MAX_STEP) * 2.0);
+        debug_assert(new_t - t >= (MIN_STEP) / 2.0);
+        debug_assert(new_t - t <= (MAX_STEP) * 2.0);
       }
     */
 

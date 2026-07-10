@@ -28,7 +28,7 @@ const char *hotend_type_name(HotendType t) {
 
     // This shouldn't happen, but if it does, let the firmware continue.
     // Might be due to mis-migration in config-store.
-    assert(0);
+    debug_assert(0);
     return nullptr;
 }
 
@@ -61,6 +61,6 @@ int8_t hotend_type_heater_selftest_offset(HotendType t) {
 
     // This shouldn't happen, but if it does, let the firmware continue.
     // Might be due to mis-migration in config-store.
-    assert(0);
+    debug_assert(0);
     return 0;
 }

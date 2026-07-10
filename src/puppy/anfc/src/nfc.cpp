@@ -117,7 +117,7 @@ static constexpr st25r39xxb::Amplitude floor_to_valid_amplitude(uint8_t raw_valu
     };
 
     const auto it = std::ranges::lower_bound(conversion_table, raw_value, std::less {}, [](const auto &a) { return a.first; });
-    assert(it != std::end(conversion_table));
+    debug_assert(it != std::end(conversion_table));
     return it->second;
 }
 

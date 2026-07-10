@@ -9,6 +9,7 @@
 static_assert(HAS_LOCAL_ACCELEROMETER());
 
 #include <lis2dh12_poller.hpp>
+#include <bsod/bsod.h>
 
 static std::optional<LIS2DH12Poller> g_local_accelerometer_poller;
 

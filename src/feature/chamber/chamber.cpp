@@ -58,7 +58,7 @@ Chamber &chamber() {
 }
 
 void Chamber::step() {
-    assert(osThreadGetId() == marlin_server::server_task);
+    debug_assert(osThreadGetId() == marlin_server::server_task);
 
     std::lock_guard _lg(mutex_);
 

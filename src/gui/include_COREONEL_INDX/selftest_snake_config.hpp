@@ -4,6 +4,7 @@
 #include <option/has_precise_homing_corexy.h>
 #include <selftest_types.hpp>
 #include <utils/storage/enum_bitset.hpp>
+#include <bsod/bsod.h>
 
 namespace SelftestSnake {
 
@@ -90,7 +91,7 @@ constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
         deps.set(Action::ZCheck);
         break;
     case Action::_count:
-        assert(false);
+        debug_assert(false);
         break;
     }
 

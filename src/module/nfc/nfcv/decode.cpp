@@ -4,8 +4,8 @@
 
 #include <utility>
 #include <cstdint>
-#include <cassert>
 #include <algorithm>
+#include <bsod/bsod.h>
 
 nfcv::Result<std::span<std::byte>> nfcv::decode(const std::span<const std::byte> &input, const std::span<std::byte> &output) {
     static constexpr std::byte NFCV_RESPONSE_SOF_MASK { 0x1f };
@@ -37,7 +37,7 @@ nfcv::Result<std::span<std::byte>> nfcv::decode(const std::span<const std::byte>
 
         const auto out_byte_pos = bit_pos / BITS_IN_BYTE;
         if (resp_byte == NFCV_RESPONSE_EOF) {
-            assert(bit_pos % BITS_IN_BYTE == 0);
+            debug_assert(bit_pos % BITS_IN_BYTE == 0);
             return std::span { output.data(), out_byte_pos };
         }
 

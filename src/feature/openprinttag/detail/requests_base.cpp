@@ -2,6 +2,7 @@
 
 #include <logging/log.hpp>
 #include <feature/openprinttag/request_manager.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_DEF(OpenPrintTag, logging::Severity::info);
 
@@ -26,7 +27,7 @@ void Request::fail() {
 }
 
 void Request::set_finished(std::expected<std::monostate, Error> result) {
-    assert(!finished_);
+    debug_assert(!finished_);
     finished_ = true;
     error_ = result.error_or(Error::_cnt);
 }

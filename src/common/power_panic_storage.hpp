@@ -1,4 +1,3 @@
-#include <assert.h>
 
 #include <option/has_modular_bed.h>
 #include <option/has_puppies.h>

@@ -18,6 +18,7 @@
 #include <printers.h>
 #include <option/enable_translation_ja.h>
 #include <option/enable_translation_uk.h>
+#include <bsod/bsod.h>
 
 #if PRINTER_IS_PRUSA_MINI()
     #if ENABLE_TRANSLATION_JA()
@@ -152,13 +153,13 @@ size_ui16_t calculate_text_size(const string_view_utf8 &str, const Font font, is
     const auto *pf = resource_font(font);
     StringReaderUtf8 reader(str);
     const auto layout = RectTextLayout(reader, 255, 255, multiline);
-    assert(!layout.has_text_overflown());
+    debug_assert(!layout.has_text_overflown());
     return size_ui16_t(layout.get_width_in_chars() * pf->w, layout.get_height_in_chars() * pf->h);
 }
 
 void render_line(StringReaderUtf8 &reader, uint8_t chars_to_print, Rect16 rc, const font_t *pf, Color clr_bg, Color clr_fg) {
     const uint16_t buff_char_capacity = display::buffer_pixel_size() / (pf->w * pf->h);
-    assert(buff_char_capacity > 0 && "Buffer needs to take at least one character");
+    debug_assert(buff_char_capacity > 0 && "Buffer needs to take at least one character");
     point_ui16_t pt = point_ui16(rc.Left(), rc.Top());
 
     uint8_t chars_left = chars_to_print;
@@ -193,7 +194,7 @@ void render_text_align(Rect16 rc, StringReaderUtf8 &reader, const Font f, Color 
     auto reader_copy = reader.copy();
     const RectTextLayout layout = RectTextLayout(reader_copy, rc_pad.Width() / font->w, rc_pad.Height() / font->h, flags.multiline);
 
-    assert(flags.overflow == check_overflow::no || !layout.has_text_overflown());
+    debug_assert(flags.overflow == check_overflow::no || !layout.has_text_overflown());
 
     if (layout.get_width_in_chars() == 0 || layout.get_height_in_chars() == 0) {
         if (fill_rect) {

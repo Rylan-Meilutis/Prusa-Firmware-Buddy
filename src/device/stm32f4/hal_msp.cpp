@@ -6,6 +6,7 @@
 #include <device/peripherals.hpp>
 #include <buddy/priorities_config.h>
 #include <option/has_burst_stepping.h>
+#include <bsod/bsod.h>
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 

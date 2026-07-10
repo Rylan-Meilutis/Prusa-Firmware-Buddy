@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <bsod/bsod.h>
 
 /// Q48.16 fixed-point time type for the motion pipeline.
 ///
@@ -51,7 +51,7 @@ public:
     static constexpr TimeTicks from_us(int64_t us) {
         // Integer part is 64 - FRACTIONAL_BITS - 1 (sign) bits wide.
         [[maybe_unused]] static constexpr int US_BITS = 64 - FRACTIONAL_BITS - 1;
-        assert(us > -(int64_t(1) << US_BITS) && us < (int64_t(1) << US_BITS));
+        debug_assert(us > -(int64_t(1) << US_BITS) && us < (int64_t(1) << US_BITS));
         return from_raw(us << FRACTIONAL_BITS);
     }
 
@@ -61,7 +61,7 @@ public:
     /// beyond it llround is implementation-defined.
     static TimeTicks from_seconds(double sec) {
         // Overflow guard: sec * PER_SEC must fit in int64_t.
-        assert(std::abs(sec) < double(std::numeric_limits<int64_t>::max()) / PER_SEC);
+        debug_assert(std::abs(sec) < double(std::numeric_limits<int64_t>::max()) / PER_SEC);
         return from_raw(static_cast<int64_t>(llround(sec * PER_SEC)));
     }
 
@@ -69,9 +69,9 @@ public:
     /// Debug-asserts std::isfinite(sec) — int64_t(inf/NaN) is UB; callers must
     /// guard non-finite inputs before calling from_seconds(float).
     static TimeTicks from_seconds(float sec) {
-        assert(std::isfinite(sec));
+        debug_assert(std::isfinite(sec));
         // Overflow guard: sec * PER_SEC must fit in int64_t.
-        assert(std::abs(sec) < static_cast<float>(double(std::numeric_limits<int64_t>::max()) / PER_SEC));
+        debug_assert(std::abs(sec) < static_cast<float>(double(std::numeric_limits<int64_t>::max()) / PER_SEC));
         return from_raw(static_cast<int64_t>(sec * static_cast<float>(PER_SEC)));
     }
 
@@ -103,7 +103,7 @@ public:
     constexpr TimeTicks operator+(TimeTicks other) const {
         int64_t result;
 #ifndef NDEBUG
-        assert(!__builtin_add_overflow(raw_, other.raw_, &result));
+        debug_assert(!__builtin_add_overflow(raw_, other.raw_, &result));
 #else
         result = raw_ + other.raw_;
 #endif
@@ -113,7 +113,7 @@ public:
     constexpr TimeTicks operator-(TimeTicks other) const {
         int64_t result;
 #ifndef NDEBUG
-        assert(!__builtin_sub_overflow(raw_, other.raw_, &result));
+        debug_assert(!__builtin_sub_overflow(raw_, other.raw_, &result));
 #else
         result = raw_ - other.raw_;
 #endif
@@ -122,7 +122,7 @@ public:
 
     constexpr TimeTicks operator-() const {
         // Negation overflows only for INT64_MIN (which is min() sentinel — never negate it).
-        assert(raw_ != std::numeric_limits<int64_t>::min());
+        debug_assert(raw_ != std::numeric_limits<int64_t>::min());
         return from_raw(-raw_);
     }
 
@@ -130,7 +130,7 @@ public:
     constexpr TimeTicks operator*(int64_t factor) const {
         int64_t result;
 #ifndef NDEBUG
-        assert(!__builtin_mul_overflow(raw_, factor, &result));
+        debug_assert(!__builtin_mul_overflow(raw_, factor, &result));
 #else
         result = raw_ * factor;
 #endif
@@ -151,10 +151,10 @@ public:
     /// so that float(raw) is exact enough (debug-asserted).  Intended for fractional
     /// interpolation within a short interval (e.g. one pressure advance sampling period).
     TimeTicks scaled_by(float ratio) const {
-        assert(raw_ > -(int64_t(1) << 32) && raw_ < (int64_t(1) << 32));
+        debug_assert(raw_ > -(int64_t(1) << 32) && raw_ < (int64_t(1) << 32));
         const float result_f = static_cast<float>(raw_) * ratio;
         // Overflow guard: result must fit in int64_t.
-        assert(std::abs(result_f) < static_cast<float>(double(std::numeric_limits<int64_t>::max())));
+        debug_assert(std::abs(result_f) < static_cast<float>(double(std::numeric_limits<int64_t>::max())));
         return from_raw(static_cast<int64_t>(result_f));
     }
 

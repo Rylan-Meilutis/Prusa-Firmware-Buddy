@@ -17,6 +17,7 @@
 #include <module/raii/include/raii/scope_guard.hpp>
 
 #include <option/has_mmu2.h>
+#include <bsod/bsod.h>
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
@@ -168,7 +169,7 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
         sequence.execute();
     }
 
-    assert(!supports_cold_unload || sequence.retracted_distance() >= full_retract_distance);
+    debug_assert(!supports_cold_unload || sequence.retracted_distance() >= full_retract_distance);
     set_retracted_distance(physical_tool, sequence.retracted_distance());
 }
 
@@ -226,7 +227,7 @@ void AutoRetract::ensure_retracted_no_ramming(float purge_length) {
     const auto virtual_tool = *virtual_tool_opt;
     const auto physical_tool = virtual_tool.to_physical();
 
-    assert(purge_length >= 0.0f); // no sense having negative purge length
+    debug_assert(purge_length >= 0.0f); // no sense having negative purge length
     if (this->retracted_distance(physical_tool) >= full_retract_distance) {
         return; // should not do anything when already retracted more than standard distance
     }

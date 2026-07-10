@@ -9,6 +9,7 @@
 #include <cobs/cobs.hpp>
 #include <span>
 #include <optional>
+#include <bsod/bsod.h>
 namespace can {
 
 /*
@@ -81,7 +82,7 @@ class UartDriver : public Driver {
         }
 
         void set_message(std::span<const uint8_t> msg) {
-            assert(msg.data() >= buffer.data() && msg.data() + msg.size() <= buffer.data() + buffer.size());
+            debug_assert(msg.data() >= buffer.data() && msg.data() + msg.size() <= buffer.data() + buffer.size());
             message_size = msg.size();
         }
 

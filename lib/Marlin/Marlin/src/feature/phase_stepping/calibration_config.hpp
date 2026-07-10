@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <array>
+#include <bsod/bsod.h>
 
 namespace phase_stepping {
 

@@ -5,6 +5,7 @@
 #include <span>
 
 #include <string_view_utf8.hpp>
+#include <bsod/bsod.h>
 
 #pragma once
 
@@ -75,7 +76,7 @@ public:
     }
 
     inline const uint8_t *str_bytes() const {
-        assert(is_ok());
+        debug_assert(is_ok());
         return reinterpret_cast<const uint8_t *>(buffer_start_);
     }
 

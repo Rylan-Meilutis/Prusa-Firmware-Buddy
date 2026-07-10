@@ -3,6 +3,7 @@
 #include <selftest_result_evaluation.hpp>
 #include <option/has_toolchanger.h>
 #include <config_store/store_instance.hpp>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     // #error dead code found by automatic analyses (see BFW-5461)
     #include <module/prusa/toolchanger.h>

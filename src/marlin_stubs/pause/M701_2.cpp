@@ -30,6 +30,7 @@
 #include <raii/scope_guard.hpp>
 
 #include <option/has_indx.h>
+#include <bsod/bsod.h>
 #if HAS_INDX()
     #include <Marlin/src/module/tool_change.h>
 #endif

@@ -2,7 +2,6 @@
 #include "puppies/BootloaderProtocol.hpp"
 #include <bsod.h>
 #include <sys/stat.h>
-#include "assert.h"
 #include <logging/log.hpp>
 #include <buddy/bootstrap_state.hpp>
 #include <buddy/digest.hpp>
@@ -510,7 +509,7 @@ void PuppyBootstrap::flash_firmware(Dock dock, fingerprints_t &fw_fingerprints, 
         bootstrap_state_set(percent, params.flashing_stage);
 
         // get data
-        assert(offset + size <= static_cast<size_t>(params.fw_size));
+        debug_assert(offset + size <= static_cast<size_t>(params.fw_size));
         const int sret = fseek(params.fw_file.get(), offset, SEEK_SET);
         if (sret != 0) {
             return false;

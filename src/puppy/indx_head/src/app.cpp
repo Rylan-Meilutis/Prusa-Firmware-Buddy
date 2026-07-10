@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <bsod/bsod.h>
 
 namespace {
 
@@ -415,7 +416,7 @@ void run() {
             }
             if (leds::coro.has_value()) {
                 [[maybe_unused]] const auto res = (*leds::coro)();
-                assert(res == false);
+                debug_assert(res == false);
             }
         }
 

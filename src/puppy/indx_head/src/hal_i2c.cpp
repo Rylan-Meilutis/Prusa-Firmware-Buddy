@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <optional>
@@ -385,7 +384,7 @@ void trigger_delayed_request() {
 // TODO: alias these SOBs
 extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
+    debug_assert(hi2c == &hi2c1);
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();
     }
@@ -393,7 +392,7 @@ extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef 
 
 extern "C" void HAL_I2C_MemTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
+    debug_assert(hi2c == &hi2c1);
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();
     }
@@ -401,7 +400,7 @@ extern "C" void HAL_I2C_MemTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi
 
 extern "C" void HAL_I2C_MemRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
+    debug_assert(hi2c == &hi2c1);
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();
     }
@@ -409,7 +408,7 @@ extern "C" void HAL_I2C_MemRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi
 
 extern "C" void HAL_I2C_ErrorCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
-    assert(hi2c == &hi2c1);
+    debug_assert(hi2c == &hi2c1);
     hal::i2c::i2c_error_flag.store(true);
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();

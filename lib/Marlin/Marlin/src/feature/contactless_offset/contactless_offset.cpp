@@ -58,7 +58,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cmath>
 #include <sfl/segmented_vector.hpp>
 #include <puppies/INDX.hpp>

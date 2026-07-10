@@ -4,7 +4,6 @@
 #include "defines.hpp"
 #include <anfc/modbus.hpp>
 #include <anfc/types.hpp>
-#include <cassert>
 #include <compact_pointer.hpp>
 #include <feature/openprinttag/tool_tag.hpp>
 #include <openprinttag/opt_reader.hpp>
@@ -13,6 +12,7 @@
 #include <utils/uncopyable.hpp>
 #include <utils/compact_optional.hpp>
 #include <utils/badge.hpp>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 
@@ -78,13 +78,13 @@ public:
     /// @returns whether the request has @p finished with an error
     /// The error can be obtained by @p error()
     bool has_error() const {
-        assert(finished());
+        debug_assert(finished());
         return error_ != Error::_cnt;
     }
 
     /// @returns error if @p has_error (otherwise UB)
     Error error() const {
-        assert(finished() && has_error());
+        debug_assert(finished() && has_error());
         return error_;
     }
 

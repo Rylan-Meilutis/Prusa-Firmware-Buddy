@@ -3,6 +3,7 @@
 
 #include <feature/openprinttag/tool_tag.hpp>
 #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 

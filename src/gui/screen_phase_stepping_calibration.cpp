@@ -12,6 +12,7 @@
 #include <window_text.hpp>
 #include <common/utils/string_builder.hpp>
 #include <Marlin/src/feature/phase_stepping/calibration.hpp>
+#include <bsod/bsod.h>
 
 namespace {
 
@@ -25,14 +26,14 @@ Buffer addr(bool qr) {
     Buffer buffer;
     StringBuilder builder(buffer);
     builder.append_string("prusa.io/");
-    assert(PrinterModelInfo::firmware_base().help_url);
+    debug_assert(PrinterModelInfo::firmware_base().help_url);
     builder.append_string(PrinterModelInfo::firmware_base().help_url);
     builder.append_string("-phstep");
     if (qr) {
         builder.append_string("-qr");
     }
     // Check that we fit within the 36 character buffer.
-    assert(!builder.is_problem());
+    debug_assert(!builder.is_problem());
     return buffer;
 }
 

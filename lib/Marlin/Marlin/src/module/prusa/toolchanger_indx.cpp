@@ -28,6 +28,7 @@
 #include <raii/auto_restore.hpp>
 #include <mapi/parking.hpp>
 #include <feature/indx_tool_lock_hack/indx_tool_lock_hack.hpp>
+#include <bsod/bsod.h>
 
 #if ENABLED(CRASH_RECOVERY)
     #include "../../feature/prusa/crash_recovery.hpp"

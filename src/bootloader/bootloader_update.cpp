@@ -113,7 +113,7 @@ static bool flash_program_sector(int sector, FILE *fp, std::span<uint8_t> buffer
 
     if (sector == 0) {
         // make sure we will update the prebootloader in one go
-        assert(buffer.size() >= bootloader_sector_get_size(0));
+        debug_assert(buffer.size() >= bootloader_sector_get_size(0));
     }
 
     while (address < next_sector_address && !feof(fp)) {

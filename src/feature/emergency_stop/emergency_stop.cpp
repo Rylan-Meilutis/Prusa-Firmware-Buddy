@@ -13,6 +13,7 @@
 #include <logging/log.hpp>
 #include <raii/auto_restore.hpp>
 #include <raii/scope_guard.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_DEF(EmergencyStop, logging::Severity::debug);
 

@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <raii/scope_guard.hpp>
+#include <bsod/bsod.h>
 
 using namespace openprinttag;
 
@@ -58,7 +59,7 @@ OPTBackend_NFCV::FieldGuard::~FieldGuard() {
 OPTBackend_NFCV::OPTBackend_NFCV(nfcv::ReaderWriterInterface &reader, const Config &initial_config)
     : reader(reader)
     , discoveries_limiter(initial_config.discovery_interval_ms) {
-    assert(reader.antenna_count() <= MAX_ANTENNA_COUNT);
+    debug_assert(reader.antenna_count() <= MAX_ANTENNA_COUNT);
     set_config(initial_config);
     reset_state();
 }
@@ -203,7 +204,7 @@ bool OPTBackend_NFCV::get_event(Event &e, uint32_t current_time_ms) {
         }
     }
 
-    assert(!events.isEmpty());
+    debug_assert(!events.isEmpty());
 
     e = events.dequeue();
     return true;
@@ -504,7 +505,7 @@ void OPTBackend_NFCV::run_next_discovery() {
     // let's do the procedure until all the tags answer to Inventory command
     while (const auto inv_res = reader.inventory()) {
         const auto uid = inv_res.value();
-        assert(uid[nfcv::UID_MSB_INDEX] == nfcv::UID_MSB);
+        debug_assert(uid[nfcv::UID_MSB_INDEX] == nfcv::UID_MSB);
 
         // Prevent the tag to repeatedly answering to inventory (it will still answer to addressed commands (the rest of them))
         if (!reader.stay_quiet(uid).has_value()) {

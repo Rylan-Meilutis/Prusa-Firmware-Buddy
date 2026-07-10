@@ -97,7 +97,7 @@ xyze_pos_t PositionLookbackBase::get_position_at(uint32_t time_us) const {
 #ifndef UNITTESTS
 void PositionLookback::update() {
     // Check that we are in an ISR
-    assert(__get_IPSR());
+    debug_assert(__get_IPSR());
 
     const Sample sample = generate_sample();
 

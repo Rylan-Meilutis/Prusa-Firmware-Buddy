@@ -1,6 +1,6 @@
 #include <nfcv/encode.hpp>
 
-#include <cassert>
+#include <bsod/bsod.h>
 
 nfcv::Encoder1Of4::Encoder1Of4(MsgBuilder &msg_builder)
     : builder(msg_builder)
@@ -240,7 +240,7 @@ nfcv::Result<void> nfcv::construct_command(MsgBuilder &builder, const Command &c
         const auto res = impl::construct_rest(encoder, cmd);
         encoder.append_crc_and_finalize();
 
-        assert(builder.size() == expected_size);
+        debug_assert(builder.size() == expected_size);
         return res;
     },
         command);

@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <stdio.h>
 #include <string.h> //strncmp
-#include <assert.h>
 #include <charconv>
 
 #include "adc.hpp"
@@ -2457,7 +2456,7 @@ static void _server_print_loop(void) {
             print_state.recover_media_error_at.reset();
             try_recover_from_media_error();
             // Ensure we do try to unpause here.
-            assert(server.print_state != State::Paused);
+            debug_assert(server.print_state != State::Paused);
         }
 
         break;
@@ -2574,7 +2573,7 @@ static void _server_print_loop(void) {
             // be active and we don't need to change any other setting
 
             // Crash Detection is disabled during serial printing, because it does not work
-            assert(server.print_is_serial || crash_s.get_state() == Crash_s::PRINTING);
+            debug_assert(server.print_is_serial || crash_s.get_state() == Crash_s::PRINTING);
         }
 #endif
         if (abort_resuming) {
@@ -3400,7 +3399,7 @@ resume_state_t *get_resume_data() {
 
 void set_resume_data(const resume_state_t *data) {
     // ensure this is called only from the marlin thread
-    assert(osThreadGetId() == server_task);
+    debug_assert(osThreadGetId() == server_task);
     server.resume = *data;
 }
 
@@ -3452,7 +3451,7 @@ static uint64_t _send_notify_events_to_client(int client_id, ClientQueue &queue,
                 break;
             // unused events
             case Event::_count:
-                assert(false);
+                debug_assert(false);
                 break;
             }
             if ((sent & msk) == 0) {
@@ -3857,7 +3856,7 @@ static void _server_set_var(const Request &request) {
 FSMResponseVariant get_response_variant_from_phase(FSMAndPhase fsm_and_phase, bool consume_response) {
     // The FSM should be active the whole time we're waiting for the response.
     // If it isn't, something's probably wrong
-    assert(fsm_states[fsm_and_phase.fsm].has_value());
+    debug_assert(fsm_states[fsm_and_phase.fsm].has_value());
 
     FSMResponseVariant result;
 
@@ -3897,7 +3896,7 @@ void clear_fsm_response(ClientFSM fsm) {
 
 FSMResponseVariant wait_for_response_variant(FSMAndPhase fsm_and_phase, uint32_t timeout_ms) {
     // Warning phase response is consumed in marlin_server::handle_warnings
-    assert(fsm_and_phase != PhasesWarning::Warning);
+    debug_assert(fsm_and_phase != PhasesWarning::Warning);
 
     const auto wait_start = ticks_ms();
 

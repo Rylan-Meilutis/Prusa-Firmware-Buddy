@@ -18,6 +18,7 @@
 #include <printers.h>
 #include "config_store/store_instance.hpp"
 #include <feature/safety_timer/safety_timer.hpp>
+#include <bsod/bsod.h>
 
 using namespace selftest;
 LOG_COMPONENT_REF(Selftest);
@@ -336,7 +337,7 @@ LoopResult CSelftestPart_Heater::stateMeasure() {
 
     // we are measuring how long it takes to heat up to temp in (heat_min_temp, heat_max_temp) interval
     // target_temp must be big enough to keep PID at full power
-    assert(m_config.target_temp > m_config.heat_max_temp + 10);
+    debug_assert(m_config.target_temp > m_config.heat_max_temp + 10);
 
     const auto temp_opt = m_config.getTemp();
     if (!temp_opt.has_value()) {
@@ -375,7 +376,7 @@ void CSelftestPart_Heater::actualizeProgress(float current, float progres_start,
 // Currently supported only by XL, others needs to implement sensor reading, MK4 uses PowerCheckBoth to check its linked heaters
 #if HAS_SELFTEST_POWER_CHECK_SINGLE()
 void CSelftestPart_Heater::single_check_callback() {
-    assert(m_config.type == heater_type_t::Nozzle || m_config.type == heater_type_t::Bed);
+    debug_assert(m_config.type == heater_type_t::Nozzle || m_config.type == heater_type_t::Bed);
 
     float voltage;
     float current;

@@ -109,7 +109,7 @@ void window_file_list_t::Load(WF_Sort_t sort, const char *sfnAtCursor, const cha
 
 const char *window_file_list_t::CurrentLFN(bool *isFile) const {
     const auto focused_slot = this->focused_slot();
-    assert(focused_slot);
+    debug_assert(focused_slot);
 
     auto i = ldv.LongFileNameAt(*focused_slot);
     if (isFile) {
@@ -143,7 +143,7 @@ const char *window_file_list_t::TopItemSFN() {
 window_file_list_t::window_file_list_t(window_t *parent, Rect16 rc)
     : WindowMenuVirtualSized(parent, rc, CloseScreenReturnBehavior::no) {
 
-    assert(max_items_on_screen_count() <= item_buffer_size);
+    debug_assert(max_items_on_screen_count() <= item_buffer_size);
 
     DisableLongHoldScreenAction();
     Enable();
@@ -151,7 +151,7 @@ window_file_list_t::window_file_list_t(window_t *parent, Rect16 rc)
 }
 
 void window_file_list_t::setup_item(ItemVariant &variant, int index) {
-    assert(index_to_slot(index));
+    debug_assert(index_to_slot(index));
 
     const auto &entry = ldv.LongFileNameAt(*index_to_slot(index));
 

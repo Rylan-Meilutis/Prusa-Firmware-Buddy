@@ -147,7 +147,7 @@ static constexpr int16_t phase_per_ustep(const AxisEnum axis) {
     // Originally, we read the microstep configuration from the driver; this no
     // longer make sense with 256 microsteps.
     // Thus, we use the printer defaults instead of stepper_axis(axis).microsteps();
-    assert(axis <= AxisEnum::Z_AXIS);
+    debug_assert(axis <= AxisEnum::Z_AXIS);
     static const int MICROSTEPS[] = { X_MICROSTEPS, Y_MICROSTEPS, Z_MICROSTEPS };
     return 256 / MICROSTEPS[axis];
 };
@@ -218,7 +218,7 @@ public:
         : other_stepper(stepper_axis(other_axis)) {
         // check for, but disallow nesting
         ++nesting;
-        assert(nesting == 1);
+        debug_assert(nesting == 1);
 
         planner.synchronize();
         other_orig_cur = other_stepper.rms_current();
@@ -303,7 +303,7 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     }
 
     // prepare stepper for the move
-    assert(MeasurementGuard::is_active());
+    debug_assert(MeasurementGuard::is_active());
     const sensorless_t stealth_states = start_sensorless_homing_per_axis(axis);
     auto &axis_stepper = stepper_axis(axis);
     const int32_t axis_orig_cur = axis_stepper.rms_current();
@@ -1026,7 +1026,7 @@ static bool measure_calibrate_walk(float &score, AxisEnum measured_axis,
     const size_t walk_cycles = static_cast<size_t>(std::floor(walk_dist / (phase_cycle_steps(walk_axis) * planner.mm_per_step[walk_axis] * std::numbers::sqrt2_v<float>)));
     const size_t walk_period = walk_cycles * 2;
     const size_t measure_probes = std::max<size_t>(walk_period, XY_HOMING_ORIGIN_BUMP_RETRIES * 2);
-    assert(measure_probes >= 3 && measure_probes < 128);
+    debug_assert(measure_probes >= 3 && measure_probes < 128);
 
     // absolute measure limit distances
     static_assert(XY_HOMING_ORIGIN_OFFSET > axis_home_max_diff(walk_axis) * 2);

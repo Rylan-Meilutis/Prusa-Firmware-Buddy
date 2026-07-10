@@ -16,6 +16,7 @@
 #include <cmsis_os.h>
 #include <cstring>
 #include <sys/stat.h>
+#include <bsod/bsod.h>
 
 using http::ConnectionHandling;
 using http::ContentType;
@@ -330,7 +331,7 @@ void FileInfo::step(std::string_view, bool, uint8_t *output, size_t output_size,
 
         switch (file_metadata.type) {
         case FileType::Directory:
-            assert(static_cast<bool>(dir_attempt));
+            debug_assert(static_cast<bool>(dir_attempt));
             renderer = DirRenderer { this, std::move(dir_attempt), api };
             break;
         case FileType::File:
@@ -420,7 +421,7 @@ void FileInfo::step(std::string_view, bool, uint8_t *output, size_t output_size,
     }
 
     // This place should be unreachable!
-    assert(0);
+    debug_assert(0);
     out = Step { 0, 0, Terminating { 0, Done::CloseFast } };
 }
 

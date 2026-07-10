@@ -2,9 +2,9 @@
 #include <modbus/modbus.hpp>
 
 #include <cstdlib>
-#include <cassert>
 #include <crc/crc.hpp>
 #include <modbus/modbus_constants.hpp>
+#include <bsod/bsod.h>
 
 using Status = modbus::Callbacks::Status;
 
@@ -56,8 +56,8 @@ std::span<std::byte> handle_transaction(
         return {};
     }
 
-    assert(reinterpret_cast<intptr_t>(response_buffer.data()) % alignof(uint16_t) == 0);
-    assert(reinterpret_cast<intptr_t>(request.data()) % alignof(uint16_t) == 0);
+    debug_assert(reinterpret_cast<intptr_t>(response_buffer.data()) % alignof(uint16_t) == 0);
+    debug_assert(reinterpret_cast<intptr_t>(request.data()) % alignof(uint16_t) == 0);
     std::byte *orig_request = request.data();
 
     auto response = response_buffer.begin();

@@ -21,6 +21,7 @@
 #include <option/has_indx.h>
 
 #include <serial_printing.hpp>
+#include <bsod/bsod.h>
 
 #if BOARD_IS_DWARF()
     #error "You're trying to add marlin_server to Dwarf. Don't!"
@@ -285,7 +286,7 @@ public:
     }
 
     void change(FSMAndPhase fsm_and_phase, fsm::PhaseData data = fsm::PhaseData()) {
-        assert(fsm_and_phase.fsm == fsm);
+        debug_assert(fsm_and_phase.fsm == fsm);
         fsm_change(fsm_and_phase, data);
     }
 

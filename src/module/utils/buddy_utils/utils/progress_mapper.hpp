@@ -2,12 +2,12 @@
 
 #include <span>
 #include <array>
-#include <cassert>
 #include <limits>
 #include <cmath>
 
 #include <utils/uncopyable.hpp>
 #include <utils/progress.hpp>
+#include <bsod/bsod.h>
 
 template <class State>
 struct ProgressMapperWorkflowStep {
@@ -61,8 +61,8 @@ protected:
     }
 
     constexpr void setup(Runtime, const std::span<StepData> &steps, const std::span<const Step> &params) {
-        assert(is_workflow_valid(params.size()));
-        assert(params.size() == steps.size());
+        debug_assert(is_workflow_valid(params.size()));
+        debug_assert(params.size() == steps.size());
 
         steps_ = steps;
         StepScale scale_accum = 0;
@@ -78,7 +78,7 @@ protected:
             step++;
         }
 
-        assert(scale_accum > 0);
+        debug_assert(scale_accum > 0);
     }
 
 private:

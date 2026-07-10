@@ -11,6 +11,7 @@
 #include <option/has_wastebin_fill_tracking.h>
 
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
 #endif
@@ -219,7 +220,7 @@ namespace {
             : args_(args)
             , destination_z_(destination_z) {
             remaining_distance_to_retract_mm_ = args.retract_distance_mm;
-            assert(remaining_distance_to_retract_mm_ >= 0);
+            debug_assert(remaining_distance_to_retract_mm_ >= 0);
         }
 
     public:

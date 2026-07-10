@@ -6,6 +6,7 @@
 #include "client_response_texts.hpp"
 #include <guiconfig/GuiDefaults.hpp>
 #include "img_resources.hpp"
+#include <bsod/bsod.h>
 
 /*****************************************************************************/
 // Icon + Text layout adjusting tool
@@ -45,7 +46,7 @@ void MsgBoxBase::BindToFSM(FSMAndPhase phase) {
     static_assert(sizeof(T) <= mem_space_size, "RadioMemSpace is too small");
 
     if (!pButtons) { // pButtons can never be null
-        assert("unassigned msgbox");
+        debug_assert("unassigned msgbox");
         return;
     }
 
@@ -263,7 +264,7 @@ MsgBoxIconnedError::MsgBoxIconnedError(Rect16 rect, const PhaseResponses &resp, 
     icon.SetBackColor(COLOR_BRAND);
 
     if (!pButtons) { // pButtons can never be null
-        assert("unassigned msgbox");
+        debug_assert("unassigned msgbox");
         return;
     }
 

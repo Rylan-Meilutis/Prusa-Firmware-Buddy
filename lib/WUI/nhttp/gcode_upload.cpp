@@ -10,9 +10,9 @@
 #include <transfers/changed_path.hpp>
 
 #include <sys/stat.h>
-#include <cassert>
 #include <cstring>
 #include <unistd.h>
+#include <bsod/bsod.h>
 
 extern "C" {
 
@@ -109,7 +109,7 @@ GcodeUpload::~GcodeUpload() {
         remove(fname.begin());
     } else {
         // Leftover open file in moved object :-O
-        assert(tmp_upload_file.get() == nullptr);
+        debug_assert(tmp_upload_file.get() == nullptr);
     }
 }
 
@@ -151,7 +151,7 @@ GcodeUpload::UploadResult GcodeUpload::start(const RequestParser &parser, Upload
 }
 
 UploadHooks::Result GcodeUpload::data(string_view data) {
-    assert(tmp_upload_file);
+    debug_assert(tmp_upload_file);
     if (tmp_upload_file->write(reinterpret_cast<const uint8_t *>(data.begin()), data.size())) {
         return make_tuple(Status::Ok, nullptr);
     } else {
@@ -265,8 +265,8 @@ namespace {
         }
         // TODO: alias for the type, probably unify with the UploadHooks::Result
         virtual optional<tuple<http::Status, const char *>> done() override {
-            assert(f != nullptr);
-            assert(monitor_slot.has_value());
+            debug_assert(f != nullptr);
+            debug_assert(monitor_slot.has_value());
             bool cleanup_temp_file = true;
             const auto fname = transfer_name(file_idx);
             tuple<http::Status, const char *> error { Status::InternalServerError, "Unknown error" };
@@ -331,7 +331,7 @@ namespace {
         }
 
         virtual bool progress(size_t len) override {
-            assert(monitor_slot.has_value());
+            debug_assert(monitor_slot.has_value());
             monitor_slot->progress(len);
             return !monitor_slot->is_stopped();
         }
@@ -453,7 +453,7 @@ void GcodeUpload::step(string_view input, bool terminated_by_client, uint8_t *, 
         return;
     }
 
-    assert(put_transfer.f == nullptr); // No other transfer is happening at the moment.
+    debug_assert(put_transfer.f == nullptr); // No other transfer is happening at the moment.
     put_transfer.f = move(tmp_upload_file);
     tmp_upload_file.reset(); // Does move really set it to nullptr, or is it just a copy?
     put_transfer.set_monitor_slot(move(monitor_slot));

@@ -8,6 +8,7 @@
 #include <ScreenHandler.hpp>
 #include <utils/string_builder.hpp>
 #include <screen/screen_preheat.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
@@ -70,7 +71,7 @@ MI_FILAMENT_BASE_PRESET::MI_FILAMENT_BASE_PRESET()
 
 MI_FILAMENT_BASE_PRESET::T MI_FILAMENT_BASE_PRESET::value() const {
     const auto i = current_item();
-    assert(i >= 0);
+    debug_assert(i >= 0);
     return i == 0 ? T(std::nullopt) : static_cast<PresetFilamentType>(i - 1);
 }
 

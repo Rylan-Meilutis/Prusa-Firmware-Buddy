@@ -1,7 +1,7 @@
 #include <st25r39xxb/hw_interface.hpp>
 
 #include <algorithm>
-#include <cassert>
+#include <bsod/bsod.h>
 
 namespace st25r39xxb {
 
@@ -41,7 +41,7 @@ void SpiInterface::read_registers_continuous(st25r39xxb::RegisterB reg, const st
 
 void SpiInterface::write_registers_continuous(st25r39xxb::RegisterA reg, const std::span<const std::byte> &data) {
     using namespace st25r39xxb;
-    assert(data.size() <= buffer.size() - 1);
+    debug_assert(data.size() <= buffer.size() - 1);
     buffer[0] = static_cast<std::byte>(reg);
     std::copy_n(data.begin(), data.size(), std::next(buffer.begin()));
     transmit(std::span { buffer.data(), data.size() + 1 });
@@ -49,7 +49,7 @@ void SpiInterface::write_registers_continuous(st25r39xxb::RegisterA reg, const s
 
 void SpiInterface::write_registers_continuous(st25r39xxb::RegisterB reg, const std::span<const std::byte> &data) {
     using namespace st25r39xxb;
-    assert(data.size() <= buffer.size() - 2);
+    debug_assert(data.size() <= buffer.size() - 2);
     buffer[0] = REG_B_MARK;
     buffer[1] = static_cast<std::byte>(reg);
     std::copy_n(data.begin(), data.size(), std::next(buffer.begin(), 2));
@@ -57,7 +57,7 @@ void SpiInterface::write_registers_continuous(st25r39xxb::RegisterB reg, const s
 }
 
 void SpiInterface::read_fifo(const std::span<std::byte> &data) {
-    assert(data.size() <= constant::FIFO_SIZE);
+    debug_assert(data.size() <= constant::FIFO_SIZE);
     static constexpr std::array<std::byte, 1> read_fifo { std::byte { 0x9F } };
     chip_select();
     unsafe_transmit(std::span { read_fifo });
@@ -66,7 +66,7 @@ void SpiInterface::read_fifo(const std::span<std::byte> &data) {
 }
 
 void SpiInterface::write_fifo(const std::span<const std::byte> &data) {
-    assert(data.size() <= constant::FIFO_SIZE);
+    debug_assert(data.size() <= constant::FIFO_SIZE);
     static constexpr std::array<std::byte, 1> write_fifo { std::byte { 0x80 } };
     chip_select();
     unsafe_transmit(std::span { write_fifo });

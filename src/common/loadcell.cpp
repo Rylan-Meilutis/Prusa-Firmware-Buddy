@@ -100,7 +100,7 @@ Loadcell::Loadcell()
     Clear();
 
     metrics_timer = xTimerCreateStatic("loadcell_metrics", 1, false, nullptr, &report_loadcell_metrics, &metrics_timer_storage);
-    assert(metrics_timer);
+    debug_assert(metrics_timer);
 }
 
 void Loadcell::WaitBarrier(uint32_t ticks_us) {
@@ -161,8 +161,8 @@ float Loadcell::Tare(TareMode mode) {
     if (!probe_should_abort() && !generation_mismatch()) {
         if (tareMode == TareMode::Continuous) {
             // double-check filters are ready after the tare
-            assert(z_filter.initialized());
-            assert(xy_filter.initialized());
+            debug_assert(z_filter.initialized());
+            debug_assert(xy_filter.initialized());
         }
 
         offset = tareSum / requestedTareCount;
@@ -286,7 +286,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
                 loadForEndstops = tared_z_load;
                 threshold = thresholdStatic;
             } else {
-                assert(!Endstops::is_z_probe_enabled() || z_filter.initialized());
+                debug_assert(!Endstops::is_z_probe_enabled() || z_filter.initialized());
                 loadForEndstops = filtered_z_load;
                 threshold = thresholdContinuous;
             }
@@ -302,7 +302,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
 
             // Trigger XY endstop/probe
             if (xy_endstop_enabled) {
-                assert(xy_filter.initialized());
+                debug_assert(xy_filter.initialized());
 
                 // Everything as absolute values, watch for changes.
                 // Load perpendicular to the sensor sense vector is not guaranteed to have defined sign.

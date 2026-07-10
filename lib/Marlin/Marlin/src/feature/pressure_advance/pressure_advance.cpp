@@ -53,7 +53,7 @@ FORCE_INLINE void pressure_advance_precalculate_parameters(pressure_advance_step
 }
 
 FORCE_INLINE float calc_distance_for_time_with_pressure_advance_move(const pressure_advance_state_t &state, const float time) {
-    assert(time >= 0.);
+    debug_assert(time >= 0.);
     return calc_distance<float>(state.start_v, state.half_accel, time);
 }
 
@@ -114,7 +114,7 @@ pressure_advance_params_t create_pressure_advance_params(const pressure_advance:
     const int64_t sr_us = (filter_length > 1)
         ? llround(double(config.smooth_time) / (filter_length - 1) * 1e6)
         : 1000; // 1 ms fallback when filter_length == 1
-    assert(sr_us > 0); // zero smooth_time would divide by zero in the sample-index math
+    debug_assert(sr_us > 0); // zero smooth_time would divide by zero in the sample-index math
     params.sampling_rate = TimeTicks::from_us(sr_us);
     params.sampling_rate_us = uint32_t(sr_us);
     params.sampling_rate_float = float(sr_us) * 1e-6f;
@@ -151,7 +151,7 @@ void pressure_advance_step_generator_init(const move_t &move, pressure_advance_s
 }
 
 void pressure_advance_state_init(pressure_advance_step_generator_t &step_generator, const pressure_advance_params_t &params, const move_t &move, const uint8_t axis) {
-    assert(is_beginning_empty_move(move));
+    debug_assert(is_beginning_empty_move(move));
     pressure_advance_state_t &state = *step_generator.pa_state;
 
     state.buffer.length = params.filter.length;
@@ -179,7 +179,7 @@ void pressure_advance_state_init(pressure_advance_step_generator_t &step_generat
 }
 
 FORCE_INLINE float pressure_advance_apply_filter(pressure_advance_state_t &state, const pressure_advance_params_t &params) {
-    assert(params.filter.length == state.buffer.length);
+    debug_assert(params.filter.length == state.buffer.length);
     if (state.buffer.same_samples_cnt >= params.filter.length) {
         return state.start_pos;
     }
@@ -212,12 +212,12 @@ FORCE_INLINE void pressure_advance_update_same_samples_count(pressure_advance_st
 FORCE_INLINE bool pressure_advance_sample_next(pressure_advance_state_t &state, const pressure_advance_params_t &params) {
     if (state.total_sample_idx < state.buffer.length) {
         // Buffer is empty or just partly filled. We need to fill it to the filter's length.
-        assert(state.local_sample_idx == 0);
+        debug_assert(state.local_sample_idx == 0);
         for (; state.total_sample_idx < state.buffer.length && state.total_sample_idx <= state.current_move_last_total_sample_idx; ++state.total_sample_idx, ++state.local_sample_idx) {
             const float next_local_sample_time = state.local_sample_time_left + state.local_sample_idx * params.sampling_rate_float;
 
             // Reachable only during the beginning empty move where print_time==0; simpler form.
-            assert(next_local_sample_time + EPSILON_FLOAT >= 0.f);
+            debug_assert(next_local_sample_time + EPSILON_FLOAT >= 0.f);
             const float extruder_position = state.start_pos + calc_distance_for_time_with_pressure_advance_move(state, next_local_sample_time);
             state.buffer.data[state.total_sample_idx] = extruder_position;
             pressure_advance_update_same_samples_count(state);
@@ -267,7 +267,7 @@ FORCE_INLINE TimeTicks pressure_advance_step_time_of_next_sample(const pressure_
 }
 
 FORCE_INLINE TimeTicks pressure_advance_interpolate_step_time(const float prev_position, const float position_diff, const float next_step_position, const pressure_advance_state_t &state, const pressure_advance_params_t &params) {
-    assert(state.total_sample_idx >= 2);
+    debug_assert(state.total_sample_idx >= 2);
     if (std::abs(position_diff) >= PRESSURE_ADVANCE_MIN_POSITION_DIFF) {
         const float position_ratio = std::clamp((next_step_position - prev_position) / position_diff, 0.f, 1.f);
         return pressure_advance_step_time_of_prev_sample(state, params) + params.sampling_rate.scaled_by(position_ratio);
@@ -287,7 +287,7 @@ TimeTicks calc_time_for_distance_pressure_advance(const float distance, pressure
     pressure_advance_state_t &state = *step_generator.pa_state;
     // We need to ensure that when the filter is applied for the first time, then the value will be 0.
     // Because of that, we need the beginning empty move segment with duration at least equal to sampling_rate * filter.length.
-    assert(!is_beginning_empty_move(*state.current_move) || state.current_move->move_time >= params.sampling_rate * int64_t(params.filter.length));
+    debug_assert(!is_beginning_empty_move(*state.current_move) || state.current_move->move_time >= params.sampling_rate * int64_t(params.filter.length));
 
 #ifndef NDEBUG
     {
@@ -296,7 +296,7 @@ TimeTicks calc_time_for_distance_pressure_advance(const float distance, pressure
         // When state.position_has_to_be_in_range is true, then have to be next_step_positive or next_step_negative
         // inside the interval (state.prev_position, state.next_position).
         if (state.position_has_to_be_in_range) {
-            assert((!state.step_dir || (state.prev_position <= next_step_negative && next_step_negative <= state.next_position)) && (state.step_dir || (state.prev_position >= next_step_positive && next_step_positive >= state.next_position)));
+            debug_assert((!state.step_dir || (state.prev_position <= next_step_negative && next_step_negative <= state.next_position)) && (state.step_dir || (state.prev_position >= next_step_positive && next_step_positive >= state.next_position)));
         }
     }
 #endif
@@ -355,7 +355,7 @@ TimeTicks calc_time_for_distance_pressure_advance(const float distance, pressure
 
 // Apply reset of position on the pressure advance data structure and adjust position in steps (current_distance).
 void pressure_advance_reset_position(pressure_advance_step_generator_t &step_generator, step_generator_state_t &step_generator_state, const move_t &next_move) {
-    assert(step_generator.pa_state->total_sample_idx >= step_generator.pa_state->buffer.length);
+    debug_assert(step_generator.pa_state->total_sample_idx >= step_generator.pa_state->buffer.length);
     const uint8_t axis = step_generator.axis;
     const move_t &current_move = *step_generator.pa_state->current_move;
     const double c_end_pos = get_move_end_pos(current_move, axis);
@@ -388,7 +388,7 @@ void pressure_advance_reset_position(pressure_advance_step_generator_t &step_gen
 }
 
 step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advance_step_generator_t &step_generator, step_generator_state_t &step_generator_state) {
-    assert(step_generator.pa_state != nullptr);
+    debug_assert(step_generator.pa_state != nullptr);
     step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
 
     const bool prev_step_dir = step_generator.pa_state->step_dir;
@@ -406,7 +406,7 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
     // This happens when next_target exceeds end_position, or we reached the end of pressure advance.
     if (step_time >= MAX_PRINT_TIME_TICKS) {
         if (is_pressure_advance_reached_end(*step_generator.pa_state)) {
-            assert(step_generator.pa_state->current_move->move_time == MAX_PRINT_TIME_TICKS);
+            debug_assert(step_generator.pa_state->current_move->move_time == MAX_PRINT_TIME_TICKS);
             next_step_event.time = step_generator.pa_state->current_move->print_time + step_generator.pa_state->current_move->move_time;
         } else {
             next_step_event.time = pressure_advance_step_time_of_next_sample(*step_generator.pa_state, PressureAdvance::pressure_advance_params);
@@ -415,7 +415,7 @@ step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advan
         if (const move_t *next_move = PreciseStepping::move_segment_queue_next_move(*step_generator.pa_state->current_move); next_move != nullptr) {
             // We are ensuring that the ending empty move segment is always the last move segment in the queue.
             // So we never step into this branch when current_move is pointing to the ending empty move segment.
-            assert(!is_ending_empty_move(*step_generator.pa_state->current_move));
+            debug_assert(!is_ending_empty_move(*step_generator.pa_state->current_move));
 
             next_step_event.flags |= STEP_EVENT_FLAG_KEEP_ALIVE;
             next_step_event.status = STEP_EVENT_INFO_STATUS_GENERATED_KEEP_ALIVE;

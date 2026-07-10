@@ -1,11 +1,11 @@
 #include <freertos/mutex.hpp>
 
-#include <cassert>
 #include <cstdlib>
 
 // FreeRTOS.h must be included before semphr.h
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <bsod/bsod.h>
 
 namespace freertos {
 
@@ -23,7 +23,7 @@ Mutex::Mutex() {
 
 Mutex::~Mutex() {
 #if INCLUDE_xSemaphoreGetMutexHolder == 1
-    assert(xSemaphoreGetMutexHolder(SemaphoreHandle_t(handle)) == nullptr);
+    debug_assert(xSemaphoreGetMutexHolder(SemaphoreHandle_t(handle)) == nullptr);
 #endif
     vSemaphoreDelete(SemaphoreHandle_t(handle));
 }

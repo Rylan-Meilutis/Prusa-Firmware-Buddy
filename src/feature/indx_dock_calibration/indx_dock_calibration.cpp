@@ -22,6 +22,7 @@
 #include <config_store/store_instance.hpp>
 #include <common/selftest_result.hpp>
 #include <selftest/selftest_invocation.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_DEF(DockCalibration, logging::Severity::info);
 

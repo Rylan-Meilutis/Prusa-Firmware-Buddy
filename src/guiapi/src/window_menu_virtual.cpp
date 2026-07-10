@@ -2,6 +2,7 @@
 
 #include <ScreenHandler.hpp>
 #include <sound.hpp>
+#include <bsod/bsod.h>
 
 void WindowMenuVirtualBase::setup_items() {
     const auto scroll_offset = this->scroll_offset();
@@ -29,7 +30,7 @@ void WindowMenuVirtualBase::setup_items() {
 
 IWindowMenuItem *WindowMenuVirtualBase::item_at(int index) {
     // If you're getting this assert, you probably forgot to call setup_items() in the subclass constructor
-    assert(items_set_up_);
+    debug_assert(items_set_up_);
 
     const auto scroll_offset = this->scroll_offset();
     if (index < scroll_offset || index >= scroll_offset + item_buffer_size) {
@@ -84,7 +85,7 @@ void WindowMenuVirtualBase::set_scroll_offset(int set) {
 std::optional<int> WindowMenuVirtualBase::buffer_slot_index(int buffer_slot, int scroll_offset) const {
     // This is a reverse function to (buffer_slot = index % item_buffer_size) from item_at
     const auto result = scroll_offset + (buffer_slot + item_buffer_size - (scroll_offset % item_buffer_size)) % item_buffer_size;
-    assert(result % item_buffer_size == buffer_slot);
+    debug_assert(result % item_buffer_size == buffer_slot);
 
     if (result >= scroll_offset + max_items_on_screen_count()) {
         return std::nullopt;
@@ -104,7 +105,7 @@ void WindowMenuVirtualBase::windowEvent(window_t *sender, GUI_event_t event, voi
                 // WindowMenuVirtual does not support item hiding.
                 // The main principle of WindowMenuVirtual is to be able to create an item on a specified index
                 // If a preceding item could affect the indexing, this would not work.
-                assert(!item->IsHidden());
+                debug_assert(!item->IsHidden());
             }
         }
         break;

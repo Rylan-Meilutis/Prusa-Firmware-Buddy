@@ -12,6 +12,7 @@
 #include <marlin_server.hpp>
 #include <mapi/parking.hpp>
 #include <Marlin/src/module/motion.h>
+#include <bsod/bsod.h>
 
 namespace multi_filament_change {
 
@@ -37,7 +38,7 @@ Config config_from_current_print_setup() {
 
         auto &item = result[virtual_tool];
 
-        assert(tool_info.used()); // otherwise bug in mapping
+        debug_assert(tool_info.used()); // otherwise bug in mapping
         item.color = tool_info.extruder_colour;
 
         const auto &opt_name = tool_info.filament_name;
@@ -133,7 +134,7 @@ void config_to_gcode(const Config &config, StringBuilder &sb) {
     // We're technically going OOB here when passing base64_data_length + 1 (to account for the \0), but StringBuilder always keeps a space for a terminating \0, so this should be completely fine
     mbedtls_base64_encode(reinterpret_cast<uint8_t *>(encode_buf), base64_data_length + 1, &olen, reinterpret_cast<const uint8_t *>(&config), sizeof(Config));
     static_assert(std::is_trivially_copyable_v<Config>);
-    assert(olen == base64_data_length);
+    debug_assert(olen == base64_data_length);
 }
 
 void execute(const Config &tool_config) {

@@ -1,14 +1,14 @@
 /// @file
 #include <onewire_master/onewire_master.hpp>
 
-#include <cassert>
 #include <algorithm>
+#include <bsod/bsod.h>
 
 OneWireMaster::OneWireMaster(const Timing &timing)
     : timing_(timing) {}
 
 void OneWireMaster::start_transfer(std::span<const std::byte> tx_buffer, std::span<std::byte> rx_buffer) {
-    assert(!is_active());
+    debug_assert(!is_active());
 
     // Pre-clear the rx buffer
     std::ranges::fill(rx_buffer, std::byte { 0 });
@@ -24,7 +24,7 @@ void OneWireMaster::start_transfer(std::span<const std::byte> tx_buffer, std::sp
 }
 
 void OneWireMaster::start_search(const std::optional<SearchData> &data) {
-    assert(!is_active());
+    debug_assert(!is_active());
 
     static constexpr std::array rom_search_cmd {
         std::byte { 0xF0 },
@@ -46,7 +46,7 @@ void OneWireMaster::start_search(const std::optional<SearchData> &data) {
 }
 
 std::optional<OneWireMaster::SearchData> OneWireMaster::search_result() const {
-    assert(!is_active() && state_.transaction_type == TransactionType::rom_search);
+    debug_assert(!is_active() && state_.transaction_type == TransactionType::rom_search);
     if (!state_.search_found) {
         return std::nullopt;
     }
@@ -58,7 +58,7 @@ std::optional<OneWireMaster::SearchData> OneWireMaster::search_result() const {
 }
 
 bool OneWireMaster::presence_detected() const {
-    assert(!is_active());
+    debug_assert(!is_active());
     return state_.presence_detected;
 }
 
@@ -237,7 +237,7 @@ OneWireMaster::StepResult OneWireMaster::step(const StepArgs &args) {
                     direction_bit = false;
 
                 } else if (state_.pos == state_.search_prev_last_discrepancy) {
-                    assert(accumulator_bit == false);
+                    debug_assert(accumulator_bit == false);
 
                     // We went 0 in the previous search, now go 1
                     direction_bit = true;

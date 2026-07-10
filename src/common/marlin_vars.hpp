@@ -11,7 +11,6 @@
 #include <cstring>
 #include <charconv>
 #include "inc/MarlinConfig.h"
-#include <assert.h>
 #include <tuple>
 #include <marlin_events.h>
 #include <marlin_server_types/marlin_server_state.h>

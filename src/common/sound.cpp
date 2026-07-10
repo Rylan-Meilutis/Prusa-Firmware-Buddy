@@ -1,6 +1,7 @@
 #include "sound.hpp"
 #include "hwio.h"
 #include <config_store/store_instance.hpp>
+#include <bsod/bsod.h>
 
 struct SoundPattern {
     int8_t repeat; /// signals repeats - how many times will sound signals repeat (-1 is infinite)

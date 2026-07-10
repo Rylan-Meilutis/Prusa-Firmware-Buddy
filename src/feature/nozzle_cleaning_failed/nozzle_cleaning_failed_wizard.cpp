@@ -10,6 +10,7 @@
 #include <raii/auto_restore.hpp>
 #include <tool/hotend/hotend.hpp>
 #include <utils/variant_utils.hpp>
+#include <bsod/bsod.h>
 
 using namespace marlin_server;
 using namespace nozzle_cleaning_failed_wizard;

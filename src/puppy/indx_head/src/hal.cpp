@@ -990,12 +990,12 @@ extern "C" void EXTI4_15_IRQHandler(void) {
 }
 
 extern "C" void HAL_GPIO_EXTI_Rising_Callback([[maybe_unused]] uint16_t gpio_pin) {
-    assert(gpio_pin == GPIO_PIN_0);
+    debug_assert(gpio_pin == GPIO_PIN_0);
     spi_task::notify_accel_data_ready();
 }
 
 extern "C" void HAL_GPIO_EXTI_Falling_Callback([[maybe_unused]] uint16_t gpio_pin) {
-    assert(gpio_pin == GPIO_PIN_4);
+    debug_assert(gpio_pin == GPIO_PIN_4);
     spi_task::notify_loadcell_data_ready();
 }
 

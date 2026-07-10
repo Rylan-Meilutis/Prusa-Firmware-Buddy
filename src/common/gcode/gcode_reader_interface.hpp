@@ -11,6 +11,7 @@
 #include "abstract_byte_reader.hpp"
 #include "gcode_reader_restore_info.hpp"
 #include "gcode_reader_result.hpp"
+#include <bsod/bsod.h>
 
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/e2ee.hpp>
@@ -260,14 +261,14 @@ public:
     }
 
     e2ee::IdentityInfo get_identity_info() const override {
-        assert(identity_info.has_value());
+        debug_assert(identity_info.has_value());
         return identity_info.value();
     }
 #endif
 
 protected:
     inline void set_error(const char *msg) {
-        assert(msg);
+        debug_assert(msg);
         error_str_ = msg;
     }
 

@@ -4,6 +4,7 @@
 #include <module/planner.h>
 #include "Marlin.h"
 #include "timing.h"
+#include <bsod/bsod.h>
 
 #if ENABLED(POWER_PANIC)
     #include <power_panic.hpp>

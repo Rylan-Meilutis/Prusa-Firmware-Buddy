@@ -5,7 +5,6 @@
 #include "marlin_events.h"
 #include "marlin_server.hpp"
 #include "marlin_server_shared.h"
-#include <cassert>
 #include <freertos/mutex.hpp>
 #include <stdio.h>
 #include <string.h>
@@ -71,7 +70,7 @@ void init_maybe() {
 
 void init() {
     // If the marlin has already been initialized, don't call init again
-    assert(!_client_ptr());
+    debug_assert(!_client_ptr());
 
     int client_id;
     marlin_client_t *client = 0;
@@ -82,7 +81,7 @@ void init() {
             break;
         }
     }
-    assert(client_id < MARLIN_MAX_CLIENTS);
+    debug_assert(client_id < MARLIN_MAX_CLIENTS);
     if (client_id < MARLIN_MAX_CLIENTS) {
         client = clients + client_id;
         memset(client, 0, sizeof(marlin_client_t));
@@ -452,7 +451,7 @@ static bool receive_and_process_client_message(marlin_client_t *client, size_t m
     case Event::RequestCalibrationsScreen:
         break;
     case Event::_count:
-        assert(false);
+        debug_assert(false);
     }
     return true;
 }

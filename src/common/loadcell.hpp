@@ -105,12 +105,12 @@ public:
 
     /// @brief Request highest precision available from loadcell
     inline void EnableHighPrecision() {
-        assert(!highPrecision); // ensure HP is not recursively enabled
+        debug_assert(!highPrecision); // ensure HP is not recursively enabled
         reset_filters(); // reset filters before we turn on HP
         highPrecision = true;
     }
     inline void DisableHighPrecision() {
-        assert(highPrecision); // ensure HP is not recursively disabled
+        debug_assert(highPrecision); // ensure HP is not recursively disabled
         highPrecision = false;
         probe_safety_armed.store(false); // safety net: disarm on HP exit
         reset_endstops();

@@ -1,4 +1,3 @@
-#include <cassert>
 #include <limits>
 
 #include <puppies/Dwarf.hpp>
@@ -10,7 +9,6 @@
 #include "loadcell.hpp"
 #include "timing.h"
 #include <logging/log_dest_bufflog.hpp>
-#include <assert.h>
 #include "metric.h"
 #include <puppies/PuppyBootstrap.hpp>
 #include <i18n.h>
@@ -577,14 +575,14 @@ void Dwarf::set_heatbreak_target_temp(int16_t target) {
 }
 
 void Dwarf::set_fan(uint8_t fan, uint16_t target) {
-    assert(fan < NUM_FANS);
+    debug_assert(fan < NUM_FANS);
     if (fan_pwm_desired[fan].exchange(target) != target) {
         general_write_dirty.store(true);
     }
 }
 
 void Dwarf::set_fan_auto(uint8_t fan) {
-    assert(fan < NUM_FANS);
+    debug_assert(fan < NUM_FANS);
     if (fan_pwm_desired[fan].exchange(FAN_MODE_AUTO_PWM) != FAN_MODE_AUTO_PWM) {
         general_write_dirty.store(true);
     }
@@ -622,7 +620,7 @@ void Dwarf::set_pid(float p, float i, float d) {
 }
 
 void Dwarf::handle_dwarf_fault(PuppyModbus &bus, dwarf_shared::errors::FaultStatusMask fault_status) {
-    assert(fault_status != dwarf_shared::errors::FaultStatusMask::NO_FAULT);
+    debug_assert(fault_status != dwarf_shared::errors::FaultStatusMask::NO_FAULT);
 
     const auto fault_int { std::to_underlying(fault_status) };
     DWARF_LOG(logging::Severity::error, "Fault status: %d", fault_int);

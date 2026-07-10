@@ -17,6 +17,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_nozzle_cleaner.h>
 #include <option/has_extruder_fsensor.h>
+#include <bsod/bsod.h>
 
 namespace {
 

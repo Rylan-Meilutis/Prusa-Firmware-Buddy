@@ -4,6 +4,7 @@
 #include "utils/overloaded_visitor.hpp"
 
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     #include "Marlin/src/module/stepper.h"
     #include "Marlin/src/module/motion.h"

@@ -10,6 +10,7 @@
 #include <logging/log.hpp>
 #include <marlin_server.hpp>
 #include <raii/scope_guard.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_REF(OpenPrintTag);
 
@@ -69,7 +70,7 @@ bool FilamentUsageTracker::is_tracking(VirtualToolIndex tool) const {
 
 void FilamentUsageTracker::step() {
 #ifndef UNITTESTS
-    assert(marlin_server::is_marlin_server_thread());
+    debug_assert(marlin_server::is_marlin_server_thread());
 #endif
 
     std::lock_guard _lg(mutex_);
@@ -145,7 +146,7 @@ void FilamentUsageTracker::step() {
         });
 
     } else if (tool_data.write_pending) {
-        assert(!std::isnan(tool_data.g_per_mm));
+        debug_assert(!std::isnan(tool_data.g_per_mm));
         const auto &args = write_consumption_args_.emplace(WriteConsumptionArgs {
             .tag = tool_tag,
             .extruded_distance_delta_mm = uncommited_consumption_mm_nolock(current_tool_),

@@ -1,4 +1,5 @@
 #include <cobs/cobs.hpp>
+#include <bsod/bsod.h>
 namespace cobs {
 
 std::expected<size_t, CobsError> encode(std::span<const uint8_t> input, std::span<uint8_t> output) {
@@ -74,7 +75,7 @@ CobsStreamEncoder::EncodeResult CobsStreamEncoder::finalize() {
 }
 
 void CobsStreamEncoder::reset(OptionalBuffer new_input_buffer /* = std::nullopt */, OptionalBuffer new_encoded_buffer /* = std::nullopt */) {
-    assert(new_input_buffer.has_value() == new_encoded_buffer.has_value());
+    debug_assert(new_input_buffer.has_value() == new_encoded_buffer.has_value());
 
     state = {};
 

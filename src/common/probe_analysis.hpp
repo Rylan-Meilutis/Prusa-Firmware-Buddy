@@ -6,7 +6,6 @@
 #include <optional>
 #include <numeric>
 #include <limits>
-#include <cassert>
 #include <cmath>
 #include <atomic>
 #include <expected>

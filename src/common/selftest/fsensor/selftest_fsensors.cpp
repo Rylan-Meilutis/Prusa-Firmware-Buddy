@@ -24,6 +24,7 @@
 #endif
 
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
 #endif
@@ -533,7 +534,7 @@ bool SelftestFSensors::ask_remove_filament() {
             return false;
 
         } else {
-            assert(ask_result == AskFilamentCommonResult::not_ready);
+            debug_assert(ask_result == AskFilamentCommonResult::not_ready);
         }
 
 #if SELFTEST_FSENSOR_EXTRUDER_ASSIST()

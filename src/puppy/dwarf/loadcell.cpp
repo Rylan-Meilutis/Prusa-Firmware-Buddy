@@ -56,7 +56,7 @@ void loadcell_irq() {
     // we should never get an undefined value unless the read itself took too long, meaning the
     // interrupt took longer than ~1ms. If this happens, the issue is *not* here but in
     // higher-priority ISRs blocking too long!
-    assert(!(was_initialized && raw_value == HX717::undefined_value));
+    debug_assert(!(was_initialized && raw_value == HX717::undefined_value));
 
     // always provide an increasing timestamp for all (potentially invalid) reads
     uint32_t sample_timestamp = timestamp - hx717.GetSamplingInterval();

@@ -19,7 +19,6 @@
 
     #include <algorithm>
     #include <atomic>
-    #include <cassert>
     #include <optional>
 
 namespace phase_stepping {
@@ -121,7 +120,7 @@ struct AxisState {
             // We don't really _need_ the old value, but unfortunately, acquire
             // memory order needs to be on an operation that reads.
             [[maybe_unused]] State old = state.exchange(State::updating, std::memory_order_acquire);
-            assert(old != State::updating);
+            debug_assert(old != State::updating);
             value = v;
             state.store(State::full, std::memory_order_release);
         }
@@ -536,7 +535,7 @@ constexpr const char *get_correction_file_path(AxisEnum axis, CorrectionType lut
     default:
         break;
     }
-    assert(false);
+    debug_assert(false);
     return "";
 }
 

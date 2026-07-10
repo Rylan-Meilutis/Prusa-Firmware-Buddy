@@ -3,7 +3,6 @@
 #include "timing_precise.hpp"
 
 #include <type_traits>
-#include <assert.h>
 
 #include <option/has_modular_bed.h>
 #include <option/has_puppies.h>
@@ -259,8 +258,8 @@ static void atomic_finish() {
 }
 
 void resume_print() {
-    assert(state_stored()); // caller is responsible for checking
-    assert(marlin_server::printer_idle()); // caller is responsible for checking
+    debug_assert(state_stored()); // caller is responsible for checking
+    debug_assert(marlin_server::printer_idle()); // caller is responsible for checking
 
     // load the data
     fixed_t::load();
@@ -388,7 +387,7 @@ void resume_loop() {
         }
 #endif
         // initial planner state (order is relevant!)
-        assert(!planner.leveling_active);
+        debug_assert(!planner.leveling_active);
         current_position[Z_AXIS] = state_buf.planner.z_position;
         planner.set_position_mm(current_position);
         axes_home_level[Z_AXIS] = state_buf.crash.axes_home_level[Z_AXIS];

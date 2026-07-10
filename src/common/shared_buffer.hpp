@@ -5,10 +5,10 @@
 
 #include <array>
 #include <optional>
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <bsod/bsod.h>
 
 template <size_t S>
 class Buffer {
@@ -33,7 +33,7 @@ public:
         }
         Borrow &operator=(Borrow &&other) {
             if (buff != nullptr) {
-                assert(buff->borrowed);
+                debug_assert(buff->borrowed);
                 buff->borrowed = false;
             }
             buff = other.buff;
@@ -42,16 +42,16 @@ public:
         }
         ~Borrow() {
             if (buff != nullptr) {
-                assert(buff->borrowed);
+                debug_assert(buff->borrowed);
                 buff->borrowed = false;
             }
         }
         uint8_t *data() {
-            assert(buff != nullptr); // Using moved object
+            debug_assert(buff != nullptr); // Using moved object
             return buff->data.data();
         }
         const uint8_t *data() const {
-            assert(buff != nullptr); // Using moved object
+            debug_assert(buff != nullptr); // Using moved object
             return buff->data.data();
         }
         constexpr static size_t SIZE = S;
@@ -103,14 +103,14 @@ public:
         char *path = this->path();
         size_t plen = strlen(path);
         // Enough space for the name too.
-        assert(plen < FILE_PATH_BUFFER_LEN);
+        debug_assert(plen < FILE_PATH_BUFFER_LEN);
         return path + plen + 1;
     }
     const char *name() const {
         const char *path = this->path();
         size_t plen = strlen(path);
         // Enough space for the name too.
-        assert(plen < FILE_PATH_BUFFER_LEN);
+        debug_assert(plen < FILE_PATH_BUFFER_LEN);
         return path + plen + 1;
     }
 };
@@ -141,14 +141,14 @@ public:
         char *path = this->path();
         size_t plen = strlen(path);
         // Enough space for the name too.
-        assert(plen < FILE_PATH_BUFFER_LEN);
+        debug_assert(plen < FILE_PATH_BUFFER_LEN);
         return path + plen + 1;
     }
     const char *name() const {
         const char *path = this->path();
         size_t plen = strlen(path);
         // Enough space for the name too.
-        assert(plen < FILE_PATH_BUFFER_LEN);
+        debug_assert(plen < FILE_PATH_BUFFER_LEN);
         return path + plen + 1;
     }
 };

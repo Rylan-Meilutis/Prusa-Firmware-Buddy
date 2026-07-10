@@ -1,7 +1,7 @@
 #include "backend.hpp"
-#include <cassert>
 #include <crc32.hpp>
 #include <algorithm>
+#include <bsod/bsod.h>
 
 #ifndef UNITTESTS
     #include <metric.h>
@@ -492,7 +492,7 @@ void Backend::transaction_end() {
     if (!transaction.has_value() || transaction->type != Transaction::Type::transaction) {
         bsod("This transaction is not in progress");
     }
-    assert(transaction->ref_count > 0);
+    debug_assert(transaction->ref_count > 0);
     transaction->ref_count--;
     if (transaction->ref_count == 0) {
         transaction.reset();
@@ -584,7 +584,7 @@ Backend::Backend(uint16_t offset, uint16_t size, configuration_store::Storage &s
     : start_address(offset)
     , bank_size(size / 2)
     , storage(storage) {
-    assert(bank_size > BANK_HEADER_SIZE_WITH_CRC + END_ITEM_SIZE_WITH_CRC);
+    debug_assert(bank_size > BANK_HEADER_SIZE_WITH_CRC + END_ITEM_SIZE_WITH_CRC);
 }
 Backend::BankSelector Backend::get_next_bank() {
     if (current_address > start_address && current_address < start_address + bank_size) {

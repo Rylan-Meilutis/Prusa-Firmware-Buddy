@@ -13,8 +13,8 @@
 #include <fifo_coder/fifo_encoder.hpp>
 
 #include <array>
-#include <cassert>
 #include <cstring>
+#include <bsod/bsod.h>
 
 using namespace indx_head::modbus;
 
@@ -156,7 +156,7 @@ namespace {
         using namespace fifo_coder;
         // Reserve 4 bytes for header (byte_count + fifo_count)
         constexpr size_t header_size = 4;
-        assert(out.size() >= header_size + fifo_coder::MODBUS_FIFO_LEN * sizeof(uint16_t));
+        debug_assert(out.size() >= header_size + fifo_coder::MODBUS_FIFO_LEN * sizeof(uint16_t));
 
         std::array<uint16_t, fifo_coder::MODBUS_FIFO_LEN> fifo_buffer {};
         Encoder encoder(fifo_buffer);

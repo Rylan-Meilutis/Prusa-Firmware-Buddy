@@ -2,6 +2,7 @@
 #include "touchscreen.hpp"
 #include <option/has_side_leds.h>
 #include <logging/log.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -100,7 +101,7 @@ void Touchscreen_Base::recognize_gesture() {
         return;
     }
 
-    assert(last_touch_state_.multitouch_point_count > 0);
+    debug_assert(last_touch_state_.multitouch_point_count > 0);
     const point_ui16_t last_touch_pos = last_touch_state_.multitouch_points[0].position;
 
     const point_i16_t touch_pos_diff = point_i16_t::from_point(last_touch_pos) - point_i16_t::from_point(gesture_start_pos_);

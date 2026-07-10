@@ -7,6 +7,7 @@
 #include <feature/openprinttag/tool_tag.hpp>
 #include <feature/openprinttag/detail/requests_base.hpp>
 #include <openprinttag/opt_fields.hpp>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 
@@ -36,7 +37,7 @@ public:
     /// Once @p finished, can be used to obtain the result
     /// Cannot be called before finished()
     Result result() const {
-        assert(this->finished());
+        debug_assert(this->finished());
 
         if (this->has_error()) {
             return std::unexpected(this->error());

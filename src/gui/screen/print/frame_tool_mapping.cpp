@@ -18,6 +18,7 @@
 #include <multi_filament_change.hpp>
 #include <screen_menu_filament_changeall.hpp>
 #include <option/has_mmu2.h>
+#include <bsod/bsod.h>
 
 namespace screen_tool_mapping {
 

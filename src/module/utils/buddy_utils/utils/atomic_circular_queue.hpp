@@ -2,14 +2,14 @@
 
 #include <limits>
 #include <atomic>
-#include <cassert>
 #include <utility>
 #include <type_traits>
 #include <span>
 #include <utils/uncopyable.hpp>
+#include <bsod/bsod.h>
 
 #ifndef ACQ_ASSERT
-    #define ACQ_ASSERT(cond) assert(cond)
+    #define ACQ_ASSERT(cond) debug_assert(cond)
 #endif
 
 /**
@@ -90,10 +90,10 @@ public:
      */
     inline BaseAtomicCircularQueueSizeless(T *buffer, index_t size)
         : queue(buffer, size) {
-        assert(size < std::numeric_limits<index_t>::max()); // Buffer size bigger than the index can support
-        assert((size & (size - 1)) == 0); // The size of the queue has to be a power of 2
+        debug_assert(size < std::numeric_limits<index_t>::max()); // Buffer size bigger than the index can support
+        debug_assert((size & (size - 1)) == 0); // The size of the queue has to be a power of 2
 #ifndef DO_NOT_CHECK_ATOMIC_LOCK_FREE
-        assert(size == 0 || std::atomic<index_t>::is_always_lock_free); // index_t is not lock-free
+        debug_assert(size == 0 || std::atomic<index_t>::is_always_lock_free); // index_t is not lock-free
 #endif
     }
 
@@ -217,7 +217,7 @@ public:
      * @return  first item in the queue
      */
     T &peek() {
-        assert(!isEmpty());
+        debug_assert(!isEmpty());
         return queue[mask(head)];
     }
 
@@ -228,7 +228,7 @@ public:
      * @return  first item in the queue
      */
     const T &peek() const {
-        assert(!isEmpty());
+        debug_assert(!isEmpty());
         return queue[mask(head)];
     }
 
@@ -263,7 +263,7 @@ public:
      * This should be called after get_write_pointer() was called and the item was written to the queue.
      */
     void increment_write_pointer() {
-        assert(!isFull());
+        debug_assert(!isFull());
         tail.fetch_add(1);
     }
 };

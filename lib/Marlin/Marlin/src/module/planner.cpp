@@ -853,10 +853,10 @@ void Planner::recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_spe
  * Caller must ensure that there is something to discard.
  */
 void Planner::discard_current_unprocessed_block() {
-  assert(has_unprocessed_blocks_queued());
+  debug_assert(has_unprocessed_blocks_queued());
 
   block_t * block = &block_buffer[block_buffer_nonbusy];
-  assert(!block->busy);
+  debug_assert(!block->busy);
   block->busy = true;
 
   if (block_buffer_nonbusy != block_buffer_planned)
@@ -1170,7 +1170,7 @@ void Planner::synchronize() {
 bool Planner::_buffer_msteps(const xyze_msteps_t &target, const MachinePosXYZE &target_float
   , feedRate_t fr_mm_s, const PlannerMoveTools &tools, const PlannerHints &hints
 ) {
-  assert(fr_mm_s > 0);
+  debug_assert(fr_mm_s > 0);
 
   // Wait for the next available block
   uint8_t next_buffer_head;
@@ -1249,7 +1249,7 @@ bool Planner::_populate_block(block_t * const block,
   const xyze_msteps_t &target, const MachinePosXYZE &target_float
   , feedRate_t fr_mm_s, const PlannerMoveTools &tools, const PlannerHints &hints
 ) {
-  assert(fr_mm_s > 0);
+  debug_assert(fr_mm_s > 0);
   
   const int32_t da = target.a - position.a,
                 db = target.b - position.b,
@@ -1467,7 +1467,7 @@ bool Planner::_populate_block(block_t * const block,
       // #error dead code found by automatic analyses (see BFW-5461)
       block->nominal_rate = CEIL(block->mstep_event_count * inverse_secs); // (mini-step/sec) Always > 0
     #endif
-    assert(block->nominal_speed > 0); // This assert just saved you 4 hours of digging through input shaper internals. You're welcome.
+    debug_assert(block->nominal_speed > 0); // This assert just saved you 4 hours of digging through input shaper internals. You're welcome.
 
     // Calculate and limit speed in mm/sec for each axis
     xyze_float_t current_speed;
@@ -2128,7 +2128,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
   #error Z_CEILING_CLEARANCE must be defined only if HAS_CEILING_CLEARANCE()
 #endif
 
-  assert(fr_mm_s > 0);
+  debug_assert(fr_mm_s > 0);
 
   PlannerMoveTools tools(tool);
 
@@ -2459,7 +2459,7 @@ void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_ind
       const auto current_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
       if (!current_tool.has_value()) {
         // You should not be trying to set e_position without an active tool
-        assert(false);
+        debug_assert(false);
         return;
       }
       e_axis_index = E_AXIS_N(*current_tool);
@@ -2531,7 +2531,7 @@ void Planner::refresh_acceleration_rates() {
 
 // Recalculate position, mm_per_step, mm_per_half_step and mm_per_mstep if settings.axis_steps_per_mm or settings.axis_msteps_per_mm changes!
 void Planner::refresh_positioning() {
-  assert(!planner.processing());
+  debug_assert(!planner.processing());
   LOOP_XYZE_N(i) {
     mm_per_step[i] = 1.f / settings.axis_steps_per_mm[i];
     mm_per_half_step[i] = mm_per_step[i] / 2.f;

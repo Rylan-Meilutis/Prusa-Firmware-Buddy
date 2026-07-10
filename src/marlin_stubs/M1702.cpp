@@ -31,6 +31,7 @@
 #endif
 
 #include <optional>
+#include <bsod/bsod.h>
 
 namespace PrusaGcodeSuite {
 

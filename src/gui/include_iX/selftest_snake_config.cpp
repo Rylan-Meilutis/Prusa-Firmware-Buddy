@@ -3,6 +3,7 @@
 #include <selftest_result_evaluation.hpp>
 #include <config_store/store_instance.hpp>
 #include <option/has_precise_homing_corexy.h>
+#include <bsod/bsod.h>
 
 #if HAS_PRECISE_HOMING_COREXY()
     #include <module/prusa/homing_corexy.hpp>
@@ -80,7 +81,7 @@ uint64_t get_test_mask(Action action) {
         // Implemented as a gcode/invalid
         bsod_unreachable();
     }
-    assert(false);
+    debug_assert(false);
     return stmNone;
 }
 

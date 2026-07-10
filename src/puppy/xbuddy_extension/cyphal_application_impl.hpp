@@ -9,13 +9,13 @@
 #include "master_activity.hpp"
 #include "yet_another_circular_buffer.hpp"
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <optional>
 #include <string_view>
 #include <string.h>
 #include <utils/overloaded_visitor.hpp>
 #include <variant>
+#include <bsod/bsod.h>
 
 namespace {
 
@@ -660,8 +660,8 @@ private:
     bool filesystem_step(Presentation &presentation, const TimePoint now) {
         // No transfer currently running, but there's a request waiting on some node (possibly).
         if (!filesystem.current_node && filesystem.request_in_node) {
-            assert(filesystem.file == FirmwareFile::none);
-            assert(filesystem.buffer.size() == 0);
+            debug_assert(filesystem.file == FirmwareFile::none);
+            debug_assert(filesystem.buffer.size() == 0);
             bool found = false;
             for (size_t i = 0; i < nodes.size(); i++) {
                 Node &node = nodes[i];

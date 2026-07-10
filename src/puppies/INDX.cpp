@@ -1,6 +1,5 @@
 #include <puppies/INDX.hpp>
 
-#include <cassert>
 #include <utility>
 
 #include <bsod/bsod.h>
@@ -13,7 +12,6 @@
 #include "loadcell.hpp"
 #include "timing.h"
 #include <logging/log_dest_bufflog.hpp>
-#include <assert.h>
 #include <puppies/PuppyBootstrap.hpp>
 #include <i18n.h>
 #include <config_store/store_instance.hpp>
@@ -406,7 +404,7 @@ std::optional<uint32_t> Indx::get_register_general_status_last_read_ms() const {
 }
 
 void Indx::set_fan(uint8_t fan, uint16_t target) {
-    assert(fan < NUM_FANS);
+    debug_assert(fan < NUM_FANS);
     // FIXME:
     // Because this sometimes gets called from an interrupt, we need to just
     // store the value and handle it properly under a lock somewhere else.
@@ -417,7 +415,7 @@ void Indx::set_fan(uint8_t fan, uint16_t target) {
 }
 
 void Indx::set_fan_auto(uint8_t fan) {
-    assert(fan < NUM_FANS);
+    debug_assert(fan < NUM_FANS);
     if (fan_pwm_desired[fan].exchange(FAN_MODE_AUTO_PWM) != FAN_MODE_AUTO_PWM) {
         general_write_dirty.store(true);
     }

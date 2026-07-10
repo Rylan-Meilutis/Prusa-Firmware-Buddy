@@ -1,5 +1,6 @@
 #include "filament_list.hpp"
 #include "encoded_filament.hpp"
+#include <bsod/bsod.h>
 
 #ifndef UNITTESTS
     // Used by generate_filament_list() below, which is itself UNITTESTS-excluded.
@@ -119,6 +120,6 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
     });
 
     // Unless we're filtering, we should always end up returning all the filaments
-    assert(list.size() == all_filament_types.size() || config.visible_only || !std::holds_alternative<NoTool>(config.compatible_with_tool));
+    debug_assert(list.size() == all_filament_types.size() || config.visible_only || !std::holds_alternative<NoTool>(config.compatible_with_tool));
 }
 #endif

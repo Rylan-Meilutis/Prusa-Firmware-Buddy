@@ -58,6 +58,7 @@
 
 #include <device/board.h>
 #include <option/has_e2ee_support.h>
+#include <bsod/bsod.h>
 
 /// Maximum number of responses available during a FSM phase
 #if HAS_MMU2()
@@ -84,7 +85,7 @@ constexpr uint8_t GetPhaseIndex(T phase) {
 
 template <class T>
 constexpr T GetEnumFromPhaseIndex(size_t index) {
-    assert(index < CountPhases<T>());
+    debug_assert(index < CountPhases<T>());
     return static_cast<T>(index);
 }
 

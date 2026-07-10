@@ -3,6 +3,7 @@
 #include "requests_util.hpp"
 
 #include <prusa3d/nfc/command/Request_1_0.h>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 

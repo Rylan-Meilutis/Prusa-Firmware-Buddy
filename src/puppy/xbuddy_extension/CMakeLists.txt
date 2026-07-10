@@ -40,6 +40,7 @@ target_sources(
 target_link_libraries(
   firmware
   PRIVATE printf::printf
+          bsod
           dsdl_prusa3d
           dsdl_uavcan
           STM32H5::HAL

@@ -44,7 +44,7 @@ PhysicalToolIndex get_last_enabled_tool() {
 }
 
 PhysicalToolIndex get_next_tool(PhysicalToolIndex tool) {
-    assert(tool != get_last_enabled_tool() && "Unhandled edge case");
+    debug_assert(tool != get_last_enabled_tool() && "Unhandled edge case");
     do {
         tool = PhysicalToolIndex::from_raw(tool.to_raw() + 1);
     } while (!tool.is_enabled());
@@ -63,7 +63,7 @@ const img::Resource *get_icon(Action action, ToolMask mask) {
         return &img::nok_color_16x16;
     }
 
-    assert(false);
+    debug_assert(false);
     return &img::error_16x16;
 }
 

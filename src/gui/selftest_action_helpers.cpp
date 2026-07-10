@@ -13,7 +13,7 @@
 namespace SelftestSnake {
 
 static Action _get_valid_action(Action start_action, int step) {
-    assert(step == 1 || step == -1); // other values would cause weird behaviour (endless loop / go beyond array)
+    debug_assert(step == 1 || step == -1); // other values would cause weird behaviour (endless loop / go beyond array)
     if (is_multitool()) {
         while (is_singletool_only_action(start_action)) {
             start_action = static_cast<Action>(std::to_underlying(start_action) + step);
@@ -35,7 +35,7 @@ Action get_last_action() {
 }
 
 Action get_next_action(Action action) {
-    assert(get_last_action() != action && "Unhandled edge case");
+    debug_assert(get_last_action() != action && "Unhandled edge case");
     return _get_valid_action(static_cast<Action>(std::to_underlying(action) + 1), 1);
 }
 
@@ -122,7 +122,7 @@ const char *get_action_label(Action action) {
         return N_("Nozzle Heaters Test");
 #endif
     case Action::_count:
-        assert(false);
+        debug_assert(false);
         return "";
     }
     bsod_unreachable();

@@ -12,6 +12,7 @@
 #include <marlin_server.hpp>
 #include <module/stepper.h>
 #include <metric.h>
+#include <bsod/bsod.h>
 
 // We have this constant on two places because of modules isolation, make sure they have the same value
 static_assert(indx::HotendThermalModel::hotend_induction_efficiency == buddy::puppies::Indx::hotend_induction_efficiency);
@@ -22,14 +23,14 @@ METRIC_DEF(metric_indx_thermal_model, "indx_tm", METRIC_VALUE_CUSTOM, 500, METRI
 namespace buddy {
 
 INDXHotendTempModel &hotend_temp_model() {
-    assert(osThreadGetId() == marlin_server::server_task);
+    debug_assert(osThreadGetId() == marlin_server::server_task);
     static INDXHotendTempModel instance;
     return instance;
 }
 
 bool INDXHotendTempModel::step() {
     // step should never be called with invalid tool
-    assert(!std::holds_alternative<NoTool>(managed_tool_));
+    debug_assert(!std::holds_alternative<NoTool>(managed_tool_));
     auto &indx_head = buddy::puppies::indx;
     const auto now_ms = freertos::millis();
 
@@ -201,7 +202,7 @@ bool INDXHotendTempModel::step() {
 }
 
 void INDXHotendTempModel::set_tool(std::variant<VirtualToolIndex, NoTool> tool) {
-    assert(managed_tool_ != tool);
+    debug_assert(managed_tool_ != tool);
     managed_tool_ = tool;
     // Model re-initializes lazily on the next step()
     is_initialized_ = false;

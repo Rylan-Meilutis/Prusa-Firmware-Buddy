@@ -39,7 +39,6 @@ static_assert(HAS_PAUSE());
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
-#include <cassert>
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "filament.hpp"
@@ -73,6 +72,7 @@ static void M600_manual(const GCodeParser2 &);
 
 #include <common/mapi/parking.hpp>
 #include <config_store/store_instance.hpp>
+#include <bsod/bsod.h>
 
 /** \addtogroup G-Codes
  * @{
@@ -238,7 +238,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = *z };
     } else {
         // Other alternatives express the intended park behavior on their own; flag a caller not asking for any Z handling
-        assert(!std::holds_alternative<mapi::ParkingPosition::Unchanged>(park_position.z));
+        debug_assert(!std::holds_alternative<mapi::ParkingPosition::Unchanged>(park_position.z));
     }
     pause::Settings settings;
     settings.SetParkPoint(park_position);

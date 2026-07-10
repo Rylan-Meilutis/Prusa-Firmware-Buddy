@@ -12,7 +12,6 @@
 #include "hal_usb.hpp"
 #include <array>
 #include <bitset>
-#include <cassert>
 #include <freertos/timing.hpp>
 #include <stm32h5xx_hal.h>
 #include <stm32h5xx_ll_gpio.h>

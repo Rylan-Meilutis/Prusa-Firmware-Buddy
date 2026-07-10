@@ -17,6 +17,7 @@
 
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
 #endif

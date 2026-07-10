@@ -212,7 +212,7 @@ bool Transfer::restart_download() {
             //
             // Note: end_range is _inclusive_ in the http (eg. range 0-4 will
             // return 5 bytes).
-            assert(tail->start % PartialFile::SECTOR_SIZE == 0);
+            debug_assert(tail->start % PartialFile::SECTOR_SIZE == 0);
             end_range = tail->start - 1;
         }
     }
@@ -328,7 +328,7 @@ Transfer::Transfer(Monitor::Slot &&slot, PartialFile::Ptr partial_file)
     , state(State::Retrying)
     , partial_file(partial_file)
     , is_printable(filename_is_printable(slot.destination())) {
-    assert(partial_file.get() != nullptr);
+    debug_assert(partial_file.get() != nullptr);
 }
 
 Transfer::State Transfer::step(bool is_printing) {
@@ -394,7 +394,7 @@ Transfer::State Transfer::step(bool is_printing) {
                 break;
             case DownloadStep::Aborted:
                 // Unreachable - this is only after we've called the deleter
-                assert(0);
+                debug_assert(0);
                 break;
             }
         } else if (last_connection_error_ms.has_value() == false || ticks_ms() - *last_connection_error_ms > 1000) {

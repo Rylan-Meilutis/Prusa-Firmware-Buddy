@@ -10,6 +10,7 @@
 #include <utils/string_builder.hpp>
 
 #include <option/has_toolchanger.h>
+#include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
     #include <Marlin/src/module/prusa/toolchanger.h>
     #include <gui/dialogs/dialog_tool_select.hpp>
@@ -62,7 +63,7 @@ void MI_M600::click([[maybe_unused]] IWindowMenu &window_menu) {
     match(
         marlin_vars().active_extruder.get(),
         [](VirtualToolIndex virtual_tool) { inject(virtual_tool); },
-        [](NoTool) { assert(false); /* theoretically reachable edge case - do nothing */ });
+        [](NoTool) { debug_assert(false); /* theoretically reachable edge case - do nothing */ });
 }
 
 void MI_M600::Loop() {

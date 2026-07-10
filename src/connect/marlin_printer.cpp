@@ -50,7 +50,6 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
 #endif
 #include <client_response.hpp>
 
-#include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -62,6 +61,7 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
 #include <config_store/store_instance.hpp>
 
 #include <option/has_mmu2.h>
+#include <bsod/bsod.h>
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
     #include <mmu2/mmu2_fsm.hpp>
@@ -412,7 +412,7 @@ std::optional<Printer::NetInfo> MarlinPrinter::net_info(Printer::Iface iface) co
         break;
 #endif
     default:
-        assert(0);
+        debug_assert(0);
         return nullopt;
     }
     if (netdev_get_status(id) != NETDEV_NETIF_UP) {
@@ -466,7 +466,7 @@ bool MarlinPrinter::job_control(JobControl control) {
             return false;
         }
     }
-    assert(0);
+    debug_assert(0);
     return false;
 }
 

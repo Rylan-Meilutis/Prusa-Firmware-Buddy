@@ -1,5 +1,6 @@
 #pragma once
 #include "inc/MarlinConfigPre.h"
+#include <bsod/bsod.h>
 
 #if ENABLED(CRASH_RECOVERY)
 
@@ -292,7 +293,7 @@ public:
         orig_state = crash_s.is_active();
         if (orig_state) {
             // Crash state shouldn't be changed while moving.
-            assert(!planner.processing() || planner.draining());
+            debug_assert(!planner.processing() || planner.draining());
             crash_s.deactivate();
         }
     }
@@ -300,7 +301,7 @@ public:
         if (orig_state) {
             // Restore previous state, as long as we ensure the motion has been stopped/is stopping
             // NOTE: that the assertion order is important if the block is aborted while checking!
-            assert(!planner.processing() || planner.draining());
+            debug_assert(!planner.processing() || planner.draining());
             crash_s.activate();
         }
     }

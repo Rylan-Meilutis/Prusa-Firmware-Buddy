@@ -83,7 +83,7 @@ static void init_input_shaper_pulses(const float a[], const float t[], const int
     for (int i = 0; i < num_pulses; ++i) {
         // not sure if pulse centering algorithm works for negative amplitude
         // check if needed
-        assert((is_pulses->pulses[i].a) >= 0.f);
+        debug_assert((is_pulses->pulses[i].a) >= 0.f);
         static_assert(0.f == -0.f);
         // no other operation needed as sum of amplitudes is already 1 at this point
         pulses_weighted_average_time += double(is_pulses->pulses[i].a) * intermediate_t[i];
@@ -256,7 +256,7 @@ void create_null_input_shaper_pulses(input_shaper_pulses_t &is_pulses) {
 
 void input_shaper_step_generator_init(const move_t &move, input_shaper_step_generator_t &step_generator, step_generator_state_t &step_generator_state) {
     const uint8_t axis = step_generator.axis;
-    assert(axis == X_AXIS || axis == Y_AXIS || axis == Z_AXIS);
+    debug_assert(axis == X_AXIS || axis == Y_AXIS || axis == Z_AXIS);
     input_shaper_state_t *const is_state = step_generator.is_state;
     step_generator_state.step_generator[axis] = &step_generator;
     step_generator_state.next_step_func[axis] = (generator_next_step_f)input_shaper_step_generator_next_step_event;
@@ -273,7 +273,7 @@ void input_shaper_step_generator_init(const move_t &move, input_shaper_step_gene
 
 #ifdef COREXY
     if (axis == X_AXIS || axis == Y_AXIS) {
-        assert(is_state->m_logical_axis_pulses[0]->num_pulses == is_state->m_logical_axis_pulses[1]->num_pulses);
+        debug_assert(is_state->m_logical_axis_pulses[0]->num_pulses == is_state->m_logical_axis_pulses[1]->num_pulses);
         is_state->m_logical_axis_pulses_cnt = 2;
         is_state->m_logical_axis_pulses[0] = &InputShaper::logical_axis_pulses[X_AXIS];
         is_state->m_logical_axis_pulses[1] = &InputShaper::logical_axis_pulses[Y_AXIS];
@@ -299,16 +299,16 @@ void input_shaper_step_generator_init(const move_t &move, input_shaper_step_gene
 }
 
 void input_shaper_state_init(input_shaper_state_t &is_state, const move_t &move, const uint8_t physical_axis) {
-    assert(is_beginning_empty_move(move));
-    assert(move.print_time == TimeTicks::zero());
-    assert(is_state.m_logical_axis_pulses_cnt == 1 || is_state.m_logical_axis_pulses_cnt == 2);
-    assert(is_state.m_logical_axis_pulses[0]->num_pulses > 0);
-    assert(is_state.m_logical_axis_pulses_cnt != 2 || is_state.m_logical_axis_pulses[0]->num_pulses == is_state.m_logical_axis_pulses[1]->num_pulses);
+    debug_assert(is_beginning_empty_move(move));
+    debug_assert(move.print_time == TimeTicks::zero());
+    debug_assert(is_state.m_logical_axis_pulses_cnt == 1 || is_state.m_logical_axis_pulses_cnt == 2);
+    debug_assert(is_state.m_logical_axis_pulses[0]->num_pulses > 0);
+    debug_assert(is_state.m_logical_axis_pulses_cnt != 2 || is_state.m_logical_axis_pulses[0]->num_pulses == is_state.m_logical_axis_pulses[1]->num_pulses);
 
     // We assume that for CoreXY, both m_logical_axis_pulses have the same time coefficient, so we can always choose the first one.
     const input_shaper_pulses_t &logical_axis_pulses = *is_state.m_logical_axis_pulses[0];
     for (uint8_t pulse_idx = 0; pulse_idx < logical_axis_pulses.num_pulses; ++pulse_idx) {
-        assert(is_state.m_logical_axis_pulses_cnt != 2 || logical_axis_pulses.pulses[pulse_idx].t == is_state.m_logical_axis_pulses[1]->pulses[pulse_idx].t);
+        debug_assert(is_state.m_logical_axis_pulses_cnt != 2 || logical_axis_pulses.pulses[pulse_idx].t == is_state.m_logical_axis_pulses[1]->pulses[pulse_idx].t);
         is_state.m_next_change[pulse_idx] = move.print_time + move.move_time - logical_axis_pulses.pulses[pulse_idx].t;
         is_state.m_move[pulse_idx] = &move;
     }
@@ -355,7 +355,7 @@ static bool input_shaper_state_step_dir(input_shaper_state_t &is_state) {
     } else if (start_v > 0.f || (start_v == 0.f && half_accel > 0.f)) {
         return true;
     } else {
-        assert(start_v == 0.f && half_accel == 0.f);
+        debug_assert(start_v == 0.f && half_accel == 0.f);
         return is_state.step_dir;
     }
 }
@@ -389,7 +389,7 @@ micro_move_segment_t input_shaper_pulses_t::calc_micro_move_segment(const std::a
 // could lead to incorrect step timing.
 // Returns true if input_shaper_state was updated and false otherwise.
 bool input_shaper_state_update(input_shaper_state_t &is_state, const uint8_t physical_axis) {
-    assert(is_state.m_logical_axis_pulses_cnt == 1 || is_state.m_logical_axis_pulses_cnt == 2);
+    debug_assert(is_state.m_logical_axis_pulses_cnt == 1 || is_state.m_logical_axis_pulses_cnt == 2);
 
     const uint8_t current_move_idx = is_state.m_nearest_next_change_idx;
     if (!is_state.m_is_crossing_zero_velocity) {
@@ -407,7 +407,7 @@ bool input_shaper_state_update(input_shaper_state_t &is_state, const uint8_t phy
     if (is_state.m_logical_axis_pulses_cnt == 2) {
 #ifdef COREXY
         const input_shaper_pulses_t &second_pulses = *is_state.m_logical_axis_pulses[1];
-        assert(first_pulses.pulses[current_move_idx].t == second_pulses.pulses[current_move_idx].t);
+        debug_assert(first_pulses.pulses[current_move_idx].t == second_pulses.pulses[current_move_idx].t);
         const micro_move_segment_t &first_segment = first_pulses.calc_micro_move_segment(is_state.m_move, nearest_next_change, X_AXIS);
         const micro_move_segment_t &second_segment = second_pulses.calc_micro_move_segment(is_state.m_move, nearest_next_change, Y_AXIS);
 
@@ -427,7 +427,7 @@ bool input_shaper_state_update(input_shaper_state_t &is_state, const uint8_t phy
 #endif
 
     } else {
-        assert(is_state.m_logical_axis_pulses_cnt == 1);
+        debug_assert(is_state.m_logical_axis_pulses_cnt == 1);
 
         const micro_move_segment_t &segment = is_state.m_logical_axis_pulses[0]->calc_micro_move_segment(is_state.m_move, nearest_next_change, physical_axis);
         is_state.start_v = segment.start_v;
@@ -500,7 +500,7 @@ FORCE_INLINE void input_shaper_step_generator_update(input_shaper_step_generator
 }
 
 step_event_info_t input_shaper_step_generator_next_step_event(input_shaper_step_generator_t &step_generator, step_generator_state_t &step_generator_state) {
-    assert(step_generator.is_state != nullptr);
+    debug_assert(step_generator.is_state != nullptr);
     step_event_info_t next_step_event = { TimeTicks::max(), 0, STEP_EVENT_INFO_STATUS_GENERATED_INVALID };
 
     const float half_step_dist = Planner::mm_per_half_step[step_generator.axis];

@@ -13,6 +13,7 @@ add_library(
   )
 
 target_link_libraries(freertos PRIVATE FreeRTOS::FreeRTOS)
+target_link_libraries(freertos PUBLIC bsod)
 
 target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

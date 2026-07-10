@@ -12,6 +12,7 @@
 #include <module/motion.h>
 #include <selftest/selftest_invocation.hpp>
 #include <test_result.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_DEF(ToolOffsetsCalibration, logging::Severity::info);
 

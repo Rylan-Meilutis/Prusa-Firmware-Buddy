@@ -621,7 +621,7 @@ void screen_printing_data_t::updateTimes() {
         PrintTime::print_formatted_duration(time_to_change, w_etime_value_buffer);
         break;
     case CurrentlyShowing::_count:
-        assert(false); // invalid value, should never happen
+        debug_assert(false); // invalid value, should never happen
         break;
     }
 

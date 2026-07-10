@@ -33,6 +33,7 @@ LOG_COMPONENT_REF(Buddy);
 #endif
 
 #include <config_store/store_instance.hpp>
+#include <bsod/bsod.h>
 
 GCodeInfo &GCodeInfo::getInstance() {
     static GCodeInfo instance;
@@ -115,7 +116,7 @@ void GCodeInfo::load(IGcodeReader &reader) {
             auto res = reader.stream_get_line(buffer, IGcodeReader::Continuations::Discard);
 
             // valid_for_print should is supposed to make sure that file is downloaded-enough to not run out of bounds here.
-            assert(res != IGcodeReader::Result_t::RESULT_OUT_OF_RANGE);
+            debug_assert(res != IGcodeReader::Result_t::RESULT_OUT_OF_RANGE);
             if (res != IGcodeReader::Result_t::RESULT_OK) {
                 break;
             }
@@ -134,7 +135,7 @@ void GCodeInfo::load(IGcodeReader &reader) {
         while (true) {
             // valid_for_print should is supposed to make sure that file is downloaded-enough to not run out of bounds here.
             auto res = reader.stream_get_line(buffer, IGcodeReader::Continuations::Discard);
-            assert(res != IGcodeReader::Result_t::RESULT_OUT_OF_RANGE);
+            debug_assert(res != IGcodeReader::Result_t::RESULT_OUT_OF_RANGE);
             if (res != IGcodeReader::Result_t::RESULT_OK || gcode_counter >= search_first_x_gcodes) {
                 break;
             }

@@ -15,6 +15,7 @@
 #endif
 
 #include <option/has_anfc.h>
+#include <bsod/bsod.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
 #endif
@@ -308,7 +309,7 @@ float CurrentStore::get_odometer_axis(uint8_t index) {
     case 2:
         return odometer_z.get();
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return {};
     }
 }
@@ -325,7 +326,7 @@ void CurrentStore::set_odometer_axis(uint8_t index, float value) {
         odometer_z.set(value);
         break;
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return;
     }
 }
@@ -348,7 +349,7 @@ void CurrentStore::set_odometer_toolpicks(PhysicalToolIndex tool, uint32_t value
 
 #if HAS_SHEET_PROFILES()
 Sheet CurrentStore::get_sheet(uint8_t index) {
-    assert(index < config_store_ns::sheets_num);
+    debug_assert(index < config_store_ns::sheets_num);
     switch (index) {
     case 0:
         return sheet_0.get();
@@ -367,13 +368,13 @@ Sheet CurrentStore::get_sheet(uint8_t index) {
     case 7:
         return sheet_7.get();
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return {};
     }
 }
 
 void CurrentStore::set_sheet(uint8_t index, Sheet value) {
-    assert(index < config_store_ns::sheets_num);
+    debug_assert(index < config_store_ns::sheets_num);
     switch (index) {
     case 0:
         sheet_0.set(value);
@@ -400,7 +401,7 @@ void CurrentStore::set_sheet(uint8_t index, Sheet value) {
         sheet_7.set(value);
         break;
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return;
     }
 }
@@ -491,7 +492,7 @@ bool CurrentStore::get_phase_stepping_enabled(AxisEnum axis) {
         return phase_stepping_enabled_y.get();
         break;
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return {};
     }
 }
@@ -505,7 +506,7 @@ void CurrentStore::set_phase_stepping_enabled(AxisEnum axis, bool new_state) {
         phase_stepping_enabled_y.set(new_state);
         break;
     default:
-        assert(false && "invalid index");
+        debug_assert(false && "invalid index");
         return;
     }
 }
@@ -521,7 +522,7 @@ void CurrentStore::set_filament_retracted_distance(PhysicalToolIndex tool, std::
 
     const float rounded_dist = std::round(dist.value());
     const float clamped_dist = std::clamp<float>(rounded_dist, 0, invalid_retracted_distance - 1);
-    assert(clamped_dist == rounded_dist);
+    debug_assert(clamped_dist == rounded_dist);
     filament_retracted_distances.set(tool.to_raw(), static_cast<uint8_t>(clamped_dist));
 }
 

@@ -3,6 +3,7 @@
 #include <selftest_result_evaluation.hpp>
 #include <config_store/store_instance.hpp>
 #include <common/SteelSheets.hpp>
+#include <bsod/bsod.h>
 
 namespace SelftestSnake {
 TestResult get_test_result(Action action, [[maybe_unused]] ToolMask tool) {

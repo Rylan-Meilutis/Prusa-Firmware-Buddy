@@ -10,6 +10,7 @@
 #include <puppies/INDX.hpp>
 #include <common/aggregate_arity.hpp>
 #include <feature/indx_hotend_temp_model/hotend_temp_model.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_REF(Marlin);
 
@@ -135,7 +136,7 @@ void IndxHotend::process_pending_thermal_runaway() {
 }
 
 void IndxHotend::manage() {
-    assert(is_thermally_managed());
+    debug_assert(is_thermally_managed());
 
     // self-paced internally, so calling it each manage() tick is fine.
     if (buddy::hotend_temp_model().step()) {

@@ -517,6 +517,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
   target_link_libraries(
     firmware
     PRIVATE BuddyHeaders
+            bsod
             CrashCatcher
             Marlin
             Arduino::Core
@@ -553,6 +554,7 @@ elseif(BOARD STREQUAL "DWARF")
     PRIVATE Arduino::Core
             Arduino::TMCStepper
             BuddyHeaders
+            bsod
             CrashCatcher
             error_codes
             freertos
@@ -565,6 +567,7 @@ elseif(BOARD STREQUAL "MODULARBED")
   target_link_libraries(
     firmware
     PRIVATE BuddyHeaders
+            bsod
             CrashCatcher
             error_codes
             freertos
@@ -578,6 +581,7 @@ elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_link_libraries(
     firmware
     PRIVATE BuddyHeaders
+            bsod
             Marlin
             Arduino::Core
             Arduino::TMCStepper

@@ -11,6 +11,7 @@
 #include "usbh_async_diskio.hpp"
 #include "marlin_client.hpp"
 #include <logging/log.hpp>
+#include <bsod/bsod.h>
 
 LOG_COMPONENT_REF(USBHost);
 USBH_HandleTypeDef hUsbHostHS;

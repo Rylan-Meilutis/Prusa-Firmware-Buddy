@@ -5,6 +5,7 @@
 #include <CFanCtlCommonConsts.hpp>
 #include <option/has_love_board.h>
 #include <hw_configuration.hpp>
+#include <bsod/bsod.h>
 
 static auto write_print_pwm = [](bool value) {
     buddy::hw::fanPrintPwm.writeb(value);

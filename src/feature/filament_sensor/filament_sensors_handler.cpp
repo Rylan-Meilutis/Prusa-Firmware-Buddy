@@ -22,6 +22,7 @@
 #include "str_utils.hpp"
 
 #include <option/has_gui.h>
+#include <bsod/bsod.h>
 #if HAS_GUI()
     #include <window_msgbox.hpp>
 #endif

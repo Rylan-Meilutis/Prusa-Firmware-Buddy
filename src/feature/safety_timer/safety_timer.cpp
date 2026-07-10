@@ -86,7 +86,7 @@ void SafetyTimer::reset_restore_nonblocking() {
 
     for (auto tool : PhysicalToolIndex::all()) {
         auto &hotend = Hotend::for_tool(tool);
-        assert(hotend.nozzle_target_temp() <= 0);
+        debug_assert(hotend.nozzle_target_temp() <= 0);
 
         const auto temp = nozzle_temperatures_to_restore_[tool];
         hotend.set_nozzle_target_temp(temp);
@@ -94,7 +94,7 @@ void SafetyTimer::reset_restore_nonblocking() {
 }
 
 void SafetyTimer::reset_restore_blocking() {
-    assert(!prevent_recursion_);
+    debug_assert(!prevent_recursion_);
 
     reset_restore_nonblocking();
 
@@ -141,7 +141,7 @@ void SafetyTimer::reset_restore_blocking() {
 }
 
 void SafetyTimer::trigger() {
-    assert(!prevent_recursion_);
+    debug_assert(!prevent_recursion_);
     AutoRestore recursion_guard { prevent_recursion_, true };
 
     if (blocker_count_ > 0) {
@@ -224,7 +224,7 @@ void SafetyTimer::trigger() {
 }
 
 void SafetyTimer::step() {
-    assert(!prevent_recursion_);
+    debug_assert(!prevent_recursion_);
 
     const auto now = ticks_ms();
 
@@ -251,7 +251,7 @@ SafetyTimerBlocker::SafetyTimerBlocker() {
     st.reset_restore_nonblocking();
 
     // Check for overflows
-    assert(st.blocker_count_ > 0);
+    debug_assert(st.blocker_count_ > 0);
 }
 
 SafetyTimerBlocker::~SafetyTimerBlocker() {
@@ -262,19 +262,19 @@ SafetyTimerBlocker::~SafetyTimerBlocker() {
     // otherwise it would get stuck in a finished state
     st.reset_restore_nonblocking();
 
-    assert(st.blocker_count_ > 0);
+    debug_assert(st.blocker_count_ > 0);
     st.blocker_count_--;
 }
 
 SafetyTimerNonBlockingGuard::SafetyTimerNonBlockingGuard() {
     auto &st = safety_timer();
     st.non_blocking_guard_count_++;
-    assert(st.non_blocking_guard_count_ > 0);
+    debug_assert(st.non_blocking_guard_count_ > 0);
 }
 
 SafetyTimerNonBlockingGuard::~SafetyTimerNonBlockingGuard() {
     auto &st = safety_timer();
-    assert(st.non_blocking_guard_count_ > 0);
+    debug_assert(st.non_blocking_guard_count_ > 0);
     st.non_blocking_guard_count_--;
 }
 

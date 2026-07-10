@@ -18,7 +18,6 @@
 #include <lfn.h>
 #include <state/printer_state.hpp>
 
-#include <cassert>
 #include <ctime>
 #include <cstring>
 #include <cstdio>
@@ -26,6 +25,7 @@
 
 #include <lwip/netif.h>
 #include <config_store/store_instance.hpp>
+#include <bsod/bsod.h>
 
 #define USB_MOUNT_POINT        "/usb/"
 #define USB_MOUNT_POINT_LENGTH 5
@@ -142,9 +142,9 @@ uint32_t load_ini_file_wifi(netif_config_t *config, ap_entry_t *ap) {
 
 void save_net_params(netif_config_t *ethconfig, [[maybe_unused]] ap_entry_t *ap, uint32_t netdev_id) {
 #if HAS_ESP()
-    assert(netdev_id == NETDEV_ETH_ID || netdev_id == NETDEV_ESP_ID);
+    debug_assert(netdev_id == NETDEV_ETH_ID || netdev_id == NETDEV_ESP_ID);
 #else
-    assert(netdev_id == NETDEV_ETH_ID);
+    debug_assert(netdev_id == NETDEV_ETH_ID);
 #endif
 
     auto &store = config_store();
@@ -180,7 +180,7 @@ void save_net_params(netif_config_t *ethconfig, [[maybe_unused]] ap_entry_t *ap,
 
 #if HAS_ESP()
     if (ap != NULL) {
-        assert(netdev_id == NETDEV_ESP_ID);
+        debug_assert(netdev_id == NETDEV_ESP_ID);
         static_assert(SSID_MAX_LEN == config_store_ns::wifi_max_ssid_len);
         static_assert(WIFI_PSK_MAX == config_store_ns::wifi_max_passwd_len);
 
@@ -196,9 +196,9 @@ void save_net_params(netif_config_t *ethconfig, [[maybe_unused]] ap_entry_t *ap,
 
 void load_net_params(netif_config_t *ethconfig, [[maybe_unused]] ap_entry_t *ap, uint32_t netdev_id) {
 #if HAS_ESP()
-    assert(netdev_id == NETDEV_ETH_ID || netdev_id == NETDEV_ESP_ID);
+    debug_assert(netdev_id == NETDEV_ETH_ID || netdev_id == NETDEV_ESP_ID);
 #else
-    assert(netdev_id == NETDEV_ETH_ID);
+    debug_assert(netdev_id == NETDEV_ETH_ID);
 #endif
 
     auto &store = config_store();
@@ -224,7 +224,7 @@ void load_net_params(netif_config_t *ethconfig, [[maybe_unused]] ap_entry_t *ap,
 
 #if HAS_ESP()
     if (ap != NULL) {
-        assert(netdev_id == NETDEV_ESP_ID);
+        debug_assert(netdev_id == NETDEV_ESP_ID);
 
         strlcpy(ap->ssid, store.wifi_ap_ssid.get_c_str(), SSID_MAX_LEN + 1);
         strlcpy(ap->pass, store.wifi_ap_password.get_c_str(), WIFI_PSK_MAX + 1);

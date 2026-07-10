@@ -71,6 +71,7 @@
 #endif
 
 #include <option/has_esp.h>
+#include <bsod/bsod.h>
 #if HAS_ESP()
     #include <screen_network_setup.hpp>
 #endif
@@ -115,7 +116,7 @@ struct FSMScreenDef : public FSMScreenDefBase {
     }
 
     static void close() {
-        assert(Screens::Access()->IsScreenOnStack<Screen>());
+        debug_assert(Screens::Access()->IsScreenOnStack<Screen>());
         Screens::Access()->Close<Screen>();
     }
 
@@ -148,7 +149,7 @@ struct FSMDialogDefBase {
     [[nodiscard]] static bool change(fsm::BaseData data) {
         // We CANNOT check for gui nesting for dialogs - dialogs can be shown blockingly over screens
         // One just has to hope that noone would call DialogHandler::Loop() inside a FSM dialog function - there's no nice way to check it
-        // assert(!gui_get_nesting())
+        // debug_assert(!gui_get_nesting())
 
         if (auto &ptr = DialogHandler::Access().ptr) {
             ptr->Change(data);
@@ -156,7 +157,7 @@ struct FSMDialogDefBase {
 
         } else {
             // The dialog is not on the stact - should not happen
-            assert(false);
+            debug_assert(false);
             return false;
         }
     }

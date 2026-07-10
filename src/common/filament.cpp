@@ -2,7 +2,6 @@
 #include "filament_list.hpp"
 #include "filament_eeprom.hpp"
 
-#include <cassert>
 #include <cstring>
 #include <algorithm>
 
@@ -16,6 +15,7 @@
 #include <utils/mutex_atomic.hpp>
 #include <freertos/mutex.hpp>
 #include <inc/MarlinConfig.h>
+#include <bsod/bsod.h>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -223,7 +223,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 }
 
 void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
-    assert(can_be_renamed_to(set.name));
+    debug_assert(can_be_renamed_to(set.name));
     static_assert(
         aggregate_arity<FilamentTypeParameters>()
             == 6
@@ -277,7 +277,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 
     std::visit([&]<typename T>(const T &v) {
         if constexpr (std::is_same_v<T, PresetFilamentType>) {
-            assert(false);
+            debug_assert(false);
 
         } else if constexpr (std::is_same_v<T, UserFilamentType>) {
             config_store().user_filament_parameters.set(v.index, e1);
@@ -292,7 +292,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #endif
 #if HAS_ANFC()
             // It should only be possible to link OPT with AdHoc filaments
-            assert(set.openprinttag_uid_hash == buddy::openprinttag::ToolTag::no_tag_hash);
+            debug_assert(set.openprinttag_uid_hash == buddy::openprinttag::ToolTag::no_tag_hash);
 #endif
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
@@ -314,7 +314,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
             pending_adhoc_filament_parameters_.store(set);
 
         } else if constexpr (std::is_same_v<T, NoFilamentType>) {
-            assert(false);
+            debug_assert(false);
 
         } else {
             static_assert(false);
@@ -358,11 +358,11 @@ void FilamentType::set_visible(bool set) const {
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
             // Should never happen
-            assert(0);
+            debug_assert(0);
 
         } else if constexpr (std::is_same_v<T, PendingAdHocFilamentType>) {
             // Should never happen
-            assert(0);
+            debug_assert(0);
 
         } else if constexpr (std::is_same_v<T, NoFilamentType>) {
             // Do nothing

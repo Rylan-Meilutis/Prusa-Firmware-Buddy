@@ -8,7 +8,6 @@
 #include <window_roll_text.hpp>
 #include <img_resources.hpp>
 #include <gcode/gcode_info.hpp>
-#include <cassert>
 #include <fsm/print_preview_mapper.hpp>
 #include <gui/screen/print/frame_gcode_incompatible.hpp>
 #include <sound.hpp>
@@ -31,6 +30,7 @@
 #endif
 
 #include <static_alocation_ptr.hpp>
+#include <bsod/bsod.h>
 #if HAS_TOOL_MAPPING()
     #include <gui/screen/print/frame_tool_mapping.hpp>
 #endif
@@ -79,7 +79,7 @@ public:
         , radio(parent, buttons_rect)
         , gcode_description(parent) {
 
-        assert(GCodeInfo::getInstance().is_loaded() && "GCodeInfo must be initialized before ScreenPrintPreview is created");
+        debug_assert(GCodeInfo::getInstance().is_loaded() && "GCodeInfo must be initialized before ScreenPrintPreview is created");
         radio.SetBtnCount(2);
         line.SetBackColor(COLOR_DARK_GRAY);
         parent->CaptureNormalWindow(radio);

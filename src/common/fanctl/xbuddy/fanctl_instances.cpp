@@ -8,6 +8,7 @@
 #include <hw_configuration.hpp>
 #include <option/has_indx.h>
 #include <option/has_indx_head.h>
+#include <bsod/bsod.h>
 
 #if HAS_INDX()
     #include <fanctl/xlbuddy/CFanCtlPuppy.hpp>

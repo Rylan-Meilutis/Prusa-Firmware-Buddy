@@ -36,6 +36,7 @@
 #endif
 
 #include <option/has_filament_tracker.h>
+#include <bsod/bsod.h>
 #if HAS_FILAMENT_TRACKER()
     #include <feature/filament_tracker/filament_tracker.hpp>
 #endif
@@ -102,7 +103,7 @@ bool SpoolJoin::add_join(uint8_t spool_1, uint8_t spool_2) {
 }
 
 void SpoolJoin::remove_join_at(size_t idx) {
-    assert(num_joins > 0 && idx < num_joins);
+    debug_assert(num_joins > 0 && idx < num_joins);
     joins[idx].spool_1 = joins[idx].spool_2 = reset_value;
     // so that we can insert new join at num_joins, we need to store the last join instead of the one we're deleting (note: we can swap even if `idx == num_joins - 1`)
     std::swap(joins[idx], joins[num_joins - 1]);

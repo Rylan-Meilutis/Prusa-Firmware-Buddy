@@ -23,7 +23,6 @@
     #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
-#include <cassert>
 #include <cstring>
 #include <cinttypes>
 
@@ -31,6 +30,7 @@
 #include <mbedtls/base64.h>
 
 #include <option/has_mmu2.h>
+#include <bsod/bsod.h>
 
 using json::JsonOutput;
 using json::JsonResult;
@@ -446,7 +446,7 @@ namespace {
                             JSON_FIELD_STR("state", "PAUSED") JSON_COMMA;
                         }
                         // The JobInfo doesn't claim the buffer, so we get it to store the path.
-                        assert(params.job_path() != nullptr);
+                        debug_assert(params.job_path() != nullptr);
                         if (state.has_stat) {
                             JSON_FIELD_INT("size", state.st.st_size) JSON_COMMA;
                             JSON_FIELD_INT("m_timestamp", state.st.st_mtime) JSON_COMMA;
@@ -683,13 +683,13 @@ namespace {
 
     JsonResult render_msg(size_t, JsonOutput &, const RenderState &, const Sleep &) {
         // Sleep is handled on upper layers, not through renderer.
-        assert(0);
+        debug_assert(0);
         return JsonResult::Abort;
     }
 
     JsonResult render_msg(size_t, JsonOutput &, const RenderState &, const ReadCommand &) {
         // Not a message to send to server
-        assert(0);
+        debug_assert(0);
         return JsonResult::Abort;
     }
 
@@ -814,7 +814,7 @@ tuple<JsonResult, size_t> PreviewRenderer::render(uint8_t *buffer, size_t buffer
         [[maybe_unused]] size_t encoded_len;
         // note that mbedtls_base64_encode also writes ending zero, but we want to skip that
         [[maybe_unused]] auto res = mbedtls_base64_encode(buffer, encoded_chunk_size + 1, &encoded_len, dec_chunk, decoded_len);
-        assert(res == 0 && encoded_len == encoded_chunk_size); // should not fail, buffer should always be big enough
+        debug_assert(res == 0 && encoded_len == encoded_chunk_size); // should not fail, buffer should always be big enough
         written += encoded_chunk_size;
         buffer += encoded_chunk_size;
     }
@@ -986,7 +986,7 @@ tuple<JsonResult, size_t> GcodeMetaRenderer::render(uint8_t *buffer, size_t buff
         case JsonResult::Abort:
             // We use only the primitive output functions and they are not
             // capable of returning Abort.
-            assert(0);
+            debug_assert(0);
             break;
         case JsonResult::Incomplete:
         case JsonResult::BufferTooSmall:
@@ -1098,7 +1098,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             }
             break;
         case EventType::FileInfo: {
-            assert(event->path.has_value());
+            debug_assert(event->path.has_value());
             SharedPath spath = event->path.value();
             path = spath.path();
 
@@ -1136,7 +1136,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             break;
         }
         case EventType::FileChanged: {
-            assert(event->path.has_value());
+            debug_assert(event->path.has_value());
             SharedPath spath = event->path.value();
             path = spath.path();
 

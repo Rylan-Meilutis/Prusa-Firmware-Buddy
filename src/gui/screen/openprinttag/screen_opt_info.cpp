@@ -12,6 +12,7 @@
 #include <screen/openprinttag/screen_opt_filament_detail.hpp>
 #include <img_resources.hpp>
 #include <feature/openprinttag/utils.hpp>
+#include <bsod/bsod.h>
 
 namespace buddy::openprinttag {
 

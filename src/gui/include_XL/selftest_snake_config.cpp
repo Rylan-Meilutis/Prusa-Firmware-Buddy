@@ -21,6 +21,7 @@
 #endif
 
 #include <option/has_precise_homing_corexy.h>
+#include <bsod/bsod.h>
 
 #if HAS_PRECISE_HOMING_COREXY()
     #include <module/prusa/homing_corexy.hpp>

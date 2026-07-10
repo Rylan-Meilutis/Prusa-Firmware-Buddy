@@ -11,6 +11,7 @@
 #include <wui.h>
 #include <window_msgbox.hpp>
 #include <marlin_client.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_ESP()
     #include <espif.h>
@@ -107,7 +108,7 @@ MI_WIFI_SIGNAL_t::MI_WIFI_SIGNAL_t()
             if (val.has_value()) {
                 // For some reason, int8_t doesn't want to be printed in negative? :-O
                 int v = *val;
-                assert(v < 0);
+                debug_assert(v < 0);
                 snprintf(buffer.data(), buffer.size(), "%i dB", v);
             } else {
                 snprintf(buffer.data(), buffer.size(), "---");

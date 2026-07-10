@@ -11,6 +11,7 @@
 #include <ScreenHandler.hpp>
 #include <gui/standard_frame/frame_prompt.hpp>
 #include <tool/physical_tool.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>

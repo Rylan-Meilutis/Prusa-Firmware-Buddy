@@ -27,6 +27,7 @@
 #endif
 
 #include <option/has_anfc.h>
+#include <bsod/bsod.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
     #include <feature/openprinttag/data_utils.hpp>

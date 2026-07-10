@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <bsod/bsod.h>
 
 #define FLG_CS           0x01 // current CS pin state
 #define FLG_RS           0x02 // current RS pin state
@@ -109,14 +110,14 @@ uint8_t st7789v_buff[ST7789V_BUFFER_SIZE]; // display buffer
 bool st7789v_buff_borrowed = false; ///< True if buffer is borrowed by someone else
 
 uint8_t *st7789v_borrow_buffer() {
-    assert(!st7789v_buff_borrowed && "Already lent");
-    assert(st7789v_task_handle == osThreadGetId() && "Must be called only from one task");
+    debug_assert(!st7789v_buff_borrowed && "Already lent");
+    debug_assert(st7789v_task_handle == osThreadGetId() && "Must be called only from one task");
     st7789v_buff_borrowed = true;
     return st7789v_buff;
 }
 
 void st7789v_return_buffer() {
-    assert(st7789v_buff_borrowed);
+    debug_assert(st7789v_buff_borrowed);
     st7789v_buff_borrowed = false;
 }
 
@@ -209,7 +210,7 @@ void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
     if ((st7789v_flg & (uint8_t)ST7789V_FLG_DMA) && !(st7789v_flg & (uint8_t)ST7789V_FLG_SAFE) && (size > 4)) {
         osSignalSet(st7789v_task_handle, ST7789V_SIG_SPI_TX);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
-        assert(can_be_used_by_dma(pb));
+        debug_assert(can_be_used_by_dma(pb));
         HAL_SPI_Transmit_DMA(spi_handle_lcd, pb, size);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
     } else {
@@ -389,7 +390,7 @@ void st7789v_done(void) {
 
 /// Fills screen by this color
 void st7789v_clear(uint16_t clr565) {
-    assert(!st7789v_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     // FIXME similar to display_ex_fill_rect; join?
     int i;
@@ -456,7 +457,7 @@ uint16_t st7789v_get_pixel_colorFormat565(uint16_t point_x, uint16_t point_y) {
 }
 
 uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y) {
-    assert(!st7789v_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     if (start_x > ST7789V_COLS || start_y > ST7789V_ROWS || end_x > ST7789V_COLS || end_y > ST7789V_ROWS) {
         return NULL;
@@ -472,7 +473,7 @@ uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, u
 
     // Again, 3 bytes per pixel + 2 extra bytes because of some read offset
     const auto read_bytes = (end_x - start_x + 1) * (end_y - start_y + 1) * 3 + 2;
-    assert(static_cast<size_t>(read_bytes) <= sizeof(st7789v_buff));
+    debug_assert(static_cast<size_t>(read_bytes) <= sizeof(st7789v_buff));
     st7789v_cmd_ramrd(st7789v_buff, read_bytes);
 
     // Revert back
@@ -482,7 +483,7 @@ uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, u
 
 /// Draws a solid rectangle of defined color
 void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint16_t clr565) {
-    assert(!st7789v_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     uint32_t size = (uint32_t)rect_w * rect_h * 2; // area of rectangle
 
@@ -601,7 +602,7 @@ void st7789v_ctrl_set(uint8_t ctrl) {
 }
 
 void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
-    assert(!st7789v_buff_borrowed && "Buffer lent to someone");
+    debug_assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     // Current pixel position starts top-left where the image is placed
     point_i16_t pos = { static_cast<int16_t>(pt.x), static_cast<int16_t>(pt.y) };

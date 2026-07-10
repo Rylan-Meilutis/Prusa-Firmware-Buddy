@@ -43,6 +43,7 @@
 #include "../feature/precise_stepping/precise_stepping.hpp"
 #include "../feature/phase_stepping/phase_stepping.hpp"
 #include "../feature/motordriver_util.h"
+#include <bsod/bsod.h>
 
 // Value by which steps are multiplied to increase the precision of the Planner.
 constexpr const int PLANNER_STEPS_MULTIPLIER = 4;
@@ -780,7 +781,7 @@ class Planner {
       // If there are any moves queued ...
       if (has_unprocessed_blocks_queued()) {
         block_t *const block = &block_buffer[block_buffer_nonbusy];
-        assert(!block->busy);
+        debug_assert(!block->busy);
 
         // Recalculation pending? Don't execute yet.
         if (block->flag.recalculate)
@@ -815,8 +816,8 @@ class Planner {
      * Caller must ensure that there is something to discard.
      */
     FORCE_INLINE static void discard_current_block() {
-      assert(has_blocks_queued());
-      assert(block_buffer[block_buffer_tail].busy);
+      debug_assert(has_blocks_queued());
+      debug_assert(block_buffer[block_buffer_tail].busy);
       block_buffer_tail = next_block_index(block_buffer_tail);
     }
 

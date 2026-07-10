@@ -7,8 +7,6 @@
 #include <fanctl.hpp>
 #include <freertos/task.hpp>
 
-#include <cassert>
-
 #include <option/has_planner.h>
 #if HAS_PLANNER()
     #include <module/planner.h>
@@ -16,6 +14,7 @@
 #endif
 
 #include <option/has_power_panic.h>
+#include <bsod/bsod.h>
 #if HAS_POWER_PANIC()
     #include <power_panic.hpp>
 #endif
@@ -42,7 +41,7 @@ LocalHotend::LocalHotend(PhysicalToolIndex tool, const Config *config)
 {
     // Must be eager-constructed in task context, never lazily from an ISR (BFW-8126):
     // the temperature ISR touches this singleton and would trip the C++ init-guard assert.
-    assert(!freertos::is_inside_interrupt());
+    debug_assert(!freertos::is_inside_interrupt());
 
     // Do not call pinMode - it does nothing
     // pinMode(local_config_.nozzle_heater_marlin_pin, OUTPUT);

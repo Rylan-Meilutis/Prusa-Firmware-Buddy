@@ -4,6 +4,7 @@
 #include <config_store/store_instance.hpp>
 
 #include "../../module/planner.h"
+#include <bsod/bsod.h>
 
 namespace input_shaper {
 
@@ -98,10 +99,10 @@ static void adjust_input_shaper_pulses_to_match_time_pulses(input_shaper_pulses_
         // Merge if within threshold. Skip on first pulse (no prev to compare against).
         if (have_prev_pulse && nearest_pulse.t - prev_pulse_t <= INPUT_SHAPER_PULSES_MIN_TIME_DIFF) {
             if (is_nearest_pulse_from_first) {
-                assert(first_pulses_adjust.pulses[first_pulses_adjust.num_pulses - 1].a == 0.f);
+                debug_assert(first_pulses_adjust.pulses[first_pulses_adjust.num_pulses - 1].a == 0.f);
                 first_pulses_adjust.pulses[first_pulses_adjust.num_pulses - 1].a += nearest_pulse.a;
             } else {
-                assert(second_pulses_adjust.pulses[second_pulses_adjust.num_pulses - 1].a == 0.f);
+                debug_assert(second_pulses_adjust.pulses[second_pulses_adjust.num_pulses - 1].a == 0.f);
                 second_pulses_adjust.pulses[second_pulses_adjust.num_pulses - 1].a += nearest_pulse.a;
             }
         } else {
@@ -136,7 +137,7 @@ void get_input_shaper(input_shaper_pulses_t &first_axis_pulses, const AxisConfig
 
 static void set_logical_axis_config_internal(const AxisEnum axis, std::optional<AxisConfig> axis_config) {
     // ensure moves are not being processed as we change parameters
-    assert(PreciseStepping::move_segment_queue_size() == 0);
+    debug_assert(PreciseStepping::move_segment_queue_size() == 0);
 
 #ifdef COREXY
     const AxisEnum second_axis = (axis == X_AXIS) ? Y_AXIS : X_AXIS;

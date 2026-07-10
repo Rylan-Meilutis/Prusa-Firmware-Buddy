@@ -50,6 +50,7 @@
 #endif
 
 #include <option/has_psu_fan.h>
+#include <bsod/bsod.h>
 #if HAS_PSU_FAN()
     #include <puppies/ac_controller.hpp>
 #endif
@@ -355,7 +356,7 @@ private:
 #endif
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
             case FanType::xbe_chamber: {
-                assert(fan->get_desc_num() < buddy::puppies::XBuddyExtension::FAN_CNT);
+                debug_assert(fan->get_desc_num() < buddy::puppies::XBuddyExtension::FAN_CNT);
                 auto res = config_store().xbe_fan_test_results.get();
                 res.fans[fan->get_desc_num()] = fan->test_result();
                 config_store().xbe_fan_test_results.set(res);
@@ -365,7 +366,7 @@ private:
 #if HAS_BED_FAN()
             case FanType::bed: {
                 static_assert(bed_fan::SelftestResult::fan_count == 2, "Adjust the fan result structure");
-                assert(fan->get_desc_num() < bed_fan::SelftestResult::fan_count);
+                debug_assert(fan->get_desc_num() < bed_fan::SelftestResult::fan_count);
                 auto res = config_store().bed_fan_selftest_result.get();
                 res.fans[fan->get_desc_num()] = fan->test_result();
                 config_store().bed_fan_selftest_result.set(res);
@@ -378,7 +379,7 @@ private:
                 break;
 #endif
             case FanType::_count:
-                assert(false);
+                debug_assert(false);
             }
 
             if (fan->is_failed()) {
@@ -519,7 +520,7 @@ void M1978() {
     fan_container[container_index++] = &psu_fan;
 #endif
 
-    assert(container_index && container_index <= fan_container.size());
+    debug_assert(container_index && container_index <= fan_container.size());
 
     auto wizard = FanSelfTestWizard(
         PhasesFansSelftest::test_100_percent,

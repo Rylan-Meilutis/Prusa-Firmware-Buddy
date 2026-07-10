@@ -19,6 +19,7 @@
 #include "../../src/gui/file_list_defs.h"
 #include "mutable_path.hpp"
 #include "common/utils/utility_extensions.hpp"
+#include <bsod/bsod.h>
 
 #ifdef LAZYFILELIST_UNITTEST
 extern "C" size_t strlcpy(char *dst, const char *src, size_t dsize);
@@ -100,7 +101,7 @@ public:
     // These function must not be named the same, otherwise one would have to explicitely
     // specify the correct one in the upper_bound algoritm which looks horrible :)
     inline static bool less_by_name(const EntryRef &a, const EntryRef &b) {
-        assert(a.is_valid() && b.is_valid());
+        debug_assert(a.is_valid() && b.is_valid());
 
         // Using std::tie to avoid errors in comparison of a heterogenous sequence of components
         return std::tie(a.type, a.lfn) < std::tie(b.type, b.lfn);
@@ -113,7 +114,7 @@ public:
     // beware - multiple files may have identical time stamps!
     // In such case, the file name is the only unique identifier and thus must be included in the comparison
     inline static bool less_by_time(const EntryRef &a, const EntryRef &b) {
-        assert(a.is_valid() && b.is_valid());
+        debug_assert(a.is_valid() && b.is_valid());
 
         // Using std::tie to avoid errors in comparison of a heterogenous sequence of components
         return std::tie(a.type, b.time, b.lfn) < std::tie(b.type, a.time, a.lfn);

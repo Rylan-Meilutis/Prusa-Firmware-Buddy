@@ -5,6 +5,7 @@
 #include <filename_type.hpp>
 #include <sys/stat.h>
 #include <cinttypes>
+#include <bsod/bsod.h>
 
 PlainGcodeReader::PlainGcodeReader(unique_file_ptr &&f, const struct stat &stat_info)
     : GcodeReaderCommon(std::move(f)) {
@@ -13,7 +14,7 @@ PlainGcodeReader::PlainGcodeReader(unique_file_ptr &&f, const struct stat &stat_
 }
 
 bool PlainGcodeReader::stream_metadata_start([[maybe_unused]] const Index *index) {
-    assert(index == nullptr || !index->indexed());
+    debug_assert(index == nullptr || !index->indexed());
     bool success = fseek(file.get(), 0, SEEK_SET) == 0;
     stream_mode_ = success ? StreamMode::metadata : StreamMode::none;
     gcodes_in_metadata = 0;
@@ -21,7 +22,7 @@ bool PlainGcodeReader::stream_metadata_start([[maybe_unused]] const Index *index
 }
 
 IGcodeReader::Result_t PlainGcodeReader::stream_gcode_start(uint32_t offset, bool ignore_crc, [[maybe_unused]] const Index *index) {
-    assert(index == nullptr || !index->indexed());
+    debug_assert(index == nullptr || !index->indexed());
     // There is no CRC in plaintext G-Code.
     (void)ignore_crc;
 

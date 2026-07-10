@@ -36,6 +36,7 @@
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_manual_belt_tuning.h>
 #include <fsm/print_preview_mapper.hpp>
+#include <bsod/bsod.h>
 
 #if HAS_LOADCELL()
     #include <fsm/nozzle_cleaning_failed_phases.hpp>
@@ -780,7 +781,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         break;
     }
 
-    assert(false);
+    debug_assert(false);
     return ErrCode::ERR_UNDEF;
 }
 

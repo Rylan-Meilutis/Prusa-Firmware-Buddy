@@ -16,6 +16,7 @@
     #include <feature/phase_stepping/phase_stepping.hpp>
 #endif
 #include <option/has_e2ee_support.h>
+#include <bsod/bsod.h>
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/key.hpp>
 #endif
@@ -69,7 +70,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
 
     const bool hard_reset = decode_hard_reset(encoded_params);
     const ItemBitset items_to_keep = decode_items_to_keep(encoded_params);
-    assert(osThreadGetId() == displayTaskHandle);
+    debug_assert(osThreadGetId() == displayTaskHandle);
 
     // Render the screen
     Rect16 progress_rect;
@@ -228,7 +229,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
         // Instead we provide a stub loader and migrators, so we only end up initializing the EEPROM structure properly.
         config_store().get_backend().load_all([](const auto &, const auto &) {}, {});
 
-        assert(config_store().get_backend().get_journal_state() == journal::Backend::JournalState::ColdStart);
+        debug_assert(config_store().get_backend().get_journal_state() == journal::Backend::JournalState::ColdStart);
 
         journal::ItemFlags exclude_flags = 0;
         for (size_t i = 0; i < std::to_underlying(Item::_cnt); i++) {

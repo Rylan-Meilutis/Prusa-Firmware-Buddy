@@ -215,7 +215,7 @@ inline void normalize_hotend_offsets() {
         hotend_offset[tool] -= first_hotend_offset;
     }
     [[maybe_unused]] const auto zero_offset = hotend_offset[PhysicalToolIndex::from_raw(0)];
-    assert(zero_offset.x == 0 && zero_offset.y == 0 && zero_offset.z == 0);
+    debug_assert(zero_offset.x == 0 && zero_offset.y == 0 && zero_offset.z == 0);
     hotend_offset[PrusaToolChanger::MARLIN_NO_TOOL_PICKED] = {}; // Avoid offset on no tool
 }
 #endif
@@ -602,7 +602,7 @@ inline void update_measurements(measurements_t &m, const AxisEnum axis) {
 inline bool calibrate_toolhead(measurements_t &m, const uint8_t extruder) {
     if (extruder >= PhysicalToolIndex::count) {
         SERIAL_ECHOLNPAIR("G425: Tool ", extruder, " not valid.");
-        assert(false);
+        debug_assert(false);
         return false;
     }
     const auto tool = PhysicalToolIndex::from_raw(extruder);

@@ -33,6 +33,7 @@
 
 #include <option/has_local_accelerometer.h>
 #include <option/has_remote_accelerometer.h>
+#include <bsod/bsod.h>
 
 static_assert(HAS_LOCAL_ACCELEROMETER() || HAS_REMOTE_ACCELEROMETER());
 
@@ -452,7 +453,7 @@ Result<ResponseSample> measure(const MeasureParams &args, float requested_freque
     phase_stepping::assert_disabled();
 
     // Check that exactly one of excitation_acceleration, excitation_amplitude is specified
-    assert(isnan(args.excitation_acceleration) != isnan(args.excitation_amplitude));
+    debug_assert(isnan(args.excitation_acceleration) != isnan(args.excitation_amplitude));
 
     const float excitation_amplitude = //
         !isnan(args.excitation_amplitude)

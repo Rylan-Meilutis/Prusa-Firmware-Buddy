@@ -11,7 +11,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <assert.h>
 #include <expected>
 #include <array>
 #include <span>
