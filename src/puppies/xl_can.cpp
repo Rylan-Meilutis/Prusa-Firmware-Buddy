@@ -74,7 +74,23 @@ OTP_v5 XlCan::get_otp() const {
     return otp;
 }
 
-void XlCan::set_fan_pwm(uint8_t pwm) {
+void XlCan::set_fan_pwm(uint8_t pwm, FanSelftestMode selftest_mode) {
+    switch (selftest_mode) {
+
+    case FanSelftestMode::nop_if_selftest:
+        if (fan_selftest_active.load()) {
+            return;
+        }
+        break;
+
+    case FanSelftestMode::set_selftest:
+        fan_selftest_active.store(true);
+        break;
+
+    case FanSelftestMode::exit_selftest:
+        fan_selftest_active.store(false);
+        break;
+    }
     fan_pwm_desired.store(pwm);
 }
 

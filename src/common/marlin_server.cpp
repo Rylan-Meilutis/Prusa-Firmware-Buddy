@@ -997,7 +997,9 @@ static void cycle() {
 
 #if HAS_XL_CAN() && HAS_REMOTE_BED()
     // is_enabled() latches at bootstrap and never clears, so the controller's
-    // running state stays coherent across calls.
+    // running state stays coherent across calls. During the M1978 fan selftest
+    // these set_fan_pwm() calls are ignored (XlCan fan selftest mode), so the
+    // policy can't race the test's PWM commands.
     if (buddy::puppies::xl_can.is_enabled()) {
         static buddy::ModularBedFanControl modular_bed_fan;
         buddy::puppies::xl_can.set_fan_pwm(modular_bed_fan.update(remote_bed::get_mcu_temperature()));

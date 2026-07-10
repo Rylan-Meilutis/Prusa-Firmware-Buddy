@@ -44,6 +44,7 @@
 #include <option/has_side_leds.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_cpu_fan.h>
+#include <option/has_xl_can.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
 #include <option/has_chamber_filtration_api.h>
@@ -831,6 +832,10 @@ struct CurrentStore
 
 #if HAS_CPU_FAN()
     StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("CPU Fan Selftest Result")> cpu_fan_selftest_result;
+#endif
+
+#if HAS_XL_CAN()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Bed MCU Fan Selftest Result")> bed_mcu_fan_selftest_result;
 #endif
 
 #if PRINTER_IS_PRUSA_MK3_5() || PRINTER_IS_PRUSA_MINI()

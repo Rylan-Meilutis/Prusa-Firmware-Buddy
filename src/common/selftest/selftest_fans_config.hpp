@@ -3,6 +3,7 @@
 #include <printers.h>
 #include <option/has_switched_fan_test.h>
 #include <option/has_cpu_fan.h>
+#include <option/has_xl_can.h>
 #if HAS_CPU_FAN()
     #include <fanctl/CFanCtlCommonConsts.hpp>
 #endif
@@ -73,6 +74,13 @@ static_assert(print_fan_range.rpm_max < heatbreak_fan_range.rpm_min, "These cann
 /// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (LDO-D3007D04Y05X75FX
 /// nominal 7500 RPM ±15 %, with margin for part variance).
 constexpr FanRPMRange cpu_fan_range = { .rpm_min = FANCTLCPU_RPM_MIN, .rpm_max = FANCTLCPU_RPM_MAX };
+#endif
+
+#if HAS_XL_CAN()
+/// XLS Modular Bed cooling fan on the XL-CAN bridge. No nominal RPM has been
+/// captured for this fan yet, so the test only verifies the fan spins and the
+/// tacho reports
+constexpr FanRPMRange bed_mcu_fan_range = benevolent_fan_range;
 #endif
 
 } // namespace fan_selftest

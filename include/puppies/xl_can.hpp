@@ -52,10 +52,14 @@ public:
     /// which is the only legitimate H/L driver of this line.
     CommunicationStatus set_modular_bed_reset(PuppyModbus &, bool nreset);
 
-    /// Set the Modular Bed cooling fan duty (0-255), written to the bridge on
-    /// the next refresh(). The bridge gates the fan's 5 V rail off entirely
-    /// at pwm == 0 ("fully disable" semantics), so 0 really stops the fan.
-    void set_fan_pwm(uint8_t pwm);
+    enum class FanSelftestMode : uint8_t {
+        nop_if_selftest,
+        exit_selftest,
+        set_selftest
+    };
+
+    /// Set the Modular Bed cooling fan duty (0-255)
+    void set_fan_pwm(uint8_t pwm, FanSelftestMode selftest_mode = FanSelftestMode::nop_if_selftest);
 
     /// Desired MB cooling fan duty (0-255) last set via set_fan_pwm; not a
     /// measured value.
@@ -95,6 +99,9 @@ private:
     /// Desired MB fan duty, packed into Config.fan_pwm on the next
     /// refresh_holding (deferred write — fan control isn't latency-critical).
     std::atomic<uint8_t> fan_pwm_desired { 0 };
+
+    /// While true, only selftest_set_fan_pwm() may change fan_pwm_desired.
+    std::atomic<bool> fan_selftest_active { false };
 
     /// Fault-transition logging memory (refresh). Puppy-task-only,
     /// mutex-protected.

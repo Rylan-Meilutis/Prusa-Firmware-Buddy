@@ -64,6 +64,11 @@
     #include <common/printer_model.hpp>
 #endif
 
+#include <option/has_xl_can.h>
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
+#endif
+
 LOG_COMPONENT_REF(Selftest);
 
 using namespace fan_selftest;
@@ -343,6 +348,9 @@ private:
 #if HAS_CPU_FAN()
         config_store().cpu_fan_selftest_result.set(TestResult::unknown);
 #endif
+#if HAS_XL_CAN()
+        config_store().bed_mcu_fan_selftest_result.set(TestResult::unknown);
+#endif
     }
 
     void set_low_speed_fan_range() {
@@ -403,6 +411,11 @@ private:
 #if HAS_CPU_FAN()
             case FanType::cpu:
                 config_store().cpu_fan_selftest_result.set(fan->test_result());
+                break;
+#endif
+#if HAS_XL_CAN()
+            case FanType::bed_mcu:
+                config_store().bed_mcu_fan_selftest_result.set(fan->test_result());
                 break;
 #endif
             case FanType::_count:
@@ -503,6 +516,15 @@ void M1978() {
     CommonFanHandler cpu_fan(FanType::cpu, 0, cpu_fan_range, &Fans::cpu());
     if (PrinterModelInfo::current().model == PrinterModel::xls) {
         fan_container[container_index++] = &cpu_fan;
+    }
+#endif
+#if HAS_XL_CAN()
+    // Modular Bed cooling fan lives on the XL-CAN bridge, present only on XLS.
+    // Construct unconditionally (HAS_XL_CAN is master-board-level) but include
+    // in the test only when the bridge is actually up.
+    BedMcuFanHandler bed_mcu_fan(bed_mcu_fan_range, benevolent_fan_range);
+    if (buddy::puppies::xl_can.is_enabled()) {
+        fan_container[container_index++] = &bed_mcu_fan;
     }
 #endif
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
