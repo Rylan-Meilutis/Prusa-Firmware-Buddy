@@ -111,6 +111,19 @@ ToolTemperatures get_tool_temperatures(PhysicalToolIndex physical_tool) {
     }
 }
 
+/// Set the hotend target and wait for it. When heating, return as soon as the temperature
+/// crosses the target, skipping the residency settle (M109 C-style) to save time.
+/// wait_temp triggers on current >= temp, so it must not be passed on a cool-down wait.
+void set_temp_and_wait_reached(PhysicalToolIndex tool, int16_t temp, bool fan_cooling = false) {
+    thermalManager.setTargetHotend(temp, tool);
+    const bool heating = thermalManager.degHotend(tool) < temp;
+    thermalManager.wait_for_hotend(tool, {
+                                             .no_wait_for_cooling = false,
+                                             .fan_cooling = fan_cooling,
+                                             .wait_temp = heating ? std::optional<float>(temp) : std::nullopt,
+                                         });
+}
+
 /// Return a random float in [-r_param, +r_param]
 float random_jitter(uint8_t r_param) {
     const float normalized = rand_f_from_u(rand_u()); // [0.0, 1.0]
@@ -158,10 +171,8 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
             return false;
         }
 
-        thermalManager.setTargetHotend(temps.cleaning, tool);
-
         // Purge and clean at cleaning temperature
-        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
+        set_temp_and_wait_reached(tool, temps.cleaning);
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
             return false;
         }
@@ -186,8 +197,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
         // Calibration context: nozzle was cleaned by the user and Z is not probed here. Heat
         // straight to the XY-probing temperature (lower than the Z-probing temperature, so no
         // cool-down needed afterwards).
-        thermalManager.setTargetHotend(temps.xy_probing, tool);
-        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
+        set_temp_and_wait_reached(tool, temps.xy_probing);
     }
     return true;
 }
@@ -319,8 +329,7 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
         // wait for calibration temperature (if probing is higher than upper limit)
         // Restore temp is one level above in run()
         const ToolTemperatures temps = get_tool_temperatures(tool);
-        thermalManager.setTargetHotend(temps.xy_probing, tool);
-        thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false, .fan_cooling = true });
+        set_temp_and_wait_reached(tool, temps.xy_probing, /*fan_cooling=*/true);
 
         log_info(ToolOffsetCalib, "XY offset measurement");
         auto result = tool_offset::measure_current_tool_offset(config, *sensor, offset_for_measurement);
