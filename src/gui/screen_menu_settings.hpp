@@ -83,7 +83,6 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #endif // ENABLED(CRASH_RECOVERY)
     MI_LANG_AND_TIME,
     MI_HARDWARE,
-    MI_HELP_FW_UPDATE,
 #if DEVELOPMENT_ITEMS()
     MI_DEVELOPMENT,
 #endif
