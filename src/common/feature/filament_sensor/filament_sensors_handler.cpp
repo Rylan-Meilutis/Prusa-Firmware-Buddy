@@ -16,6 +16,7 @@
 
 #include "str_utils.hpp"
 #include "marlin_client.hpp"
+#include "marlin_server.hpp"
 
 #include <option/has_gui.h>
 #if HAS_GUI()
@@ -270,7 +271,7 @@ void FilamentSensors::process_events() {
         return true;
     };
 
-    if (marlin_client::is_printing()) {
+    if (marlin_client::is_printing() && !marlin_server::printer_paused_extended()) {
         if (check_runout(LogicalFilamentSensor::primary_runout)) {
             return;
         }
