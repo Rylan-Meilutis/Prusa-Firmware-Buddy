@@ -276,7 +276,7 @@ void FilamentSensors::process_events() {
         return true;
     };
 
-    if (marlin_server::is_printing()) {
+    if (marlin_server::is_printing() && !marlin_server::printer_paused_extended()) {
         if (check_runout(LogicalFilamentSensor::primary_runout)) {
             return;
         }
