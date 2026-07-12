@@ -2,25 +2,25 @@
 
 ## Summary
 
-  * New features and improvements
-    * Added **Filament -> Loaded Filament(s)** for viewing and reassigning the printer's stored loaded material without unloading or reloading filament
-    * Added `M865 Q` so serial hosts can query the current loaded-filament material for each enabled tool or filament slot
-  * Fixes
-    * Suppressed filament-runout `M600` injection while a print is paused, parking, or resuming so toolhead work during a pause does not immediately trigger a new runout event
+- **New features**
+  - Loaded filament overview and material reassignment in the **Filament** menu
+  - Serial G-code query for the currently loaded filament materials
+- **Fixes**
+  - Filament runout is no longer triggered while a print is paused, parking, or resuming
 
-This RME branch was created from the current `rme-v6.6.1` branch because no local or remote `v6.6.2` upstream ref was available in this environment. Rebase this branch onto upstream `v6.6.2` before publishing if Prusa releases a distinct 6.6.2 base.
+This is the stable RME release of firmware **6.6.2-RME** for the **Prusa CORE One, XL, MK4, MK3.9, MK3.5 and MINI**, bringing targeted filament-management improvements for printers used with serial hosts and multi-tool workflows.
 
-## Loaded Filament Reassignment
+## Loaded Filament Overview And Reassignment
 
-The Filament menu now exposes **Loaded Filament(s)** directly. On single-tool printers it shows the current loaded material. On multi-tool and MMU configurations it opens a per-tool or per-slot list.
+The **Filament** menu now includes **Loaded Filament(s)**. On single-tool printers, the item shows the currently stored loaded material. On multi-tool and MMU configurations, it opens a list of tools or filament slots.
 
-Selecting a loaded filament opens a material picker. Choosing a material changes the firmware's stored loaded-filament assignment only; it does not heat, purge, load, unload, or move filament.
+Selecting a loaded filament opens a material picker. Choosing a material updates the firmware's stored loaded-filament assignment only. It does not heat the nozzle, purge, load, unload, or move filament, so it can be used when the user needs to correct the material assignment without physically reloading the tool.
 
-_NOTE: The firmware currently stores loaded material per tool, but it does not persist a separate loaded color per tool. Color shown during print setup still comes from G-code metadata or load prompts._
+_NOTE: The firmware stores the loaded material per tool or slot. It does not currently store a separate loaded color per tool; color shown during print setup still comes from G-code metadata or load prompts._
 
-## Serial Loadout Query
+## Serial Loaded-Filament Query
 
-Serial hosts can request the printer-side loaded-filament material with:
+Serial hosts can query the printer-side loaded-filament assignments with:
 
 ```gcode
 M865 Q
@@ -33,4 +33,10 @@ loaded_filament T0 S"PLA"
 loaded_filament T1 S"PETG"
 ```
 
-Hosts can use this for future OctoPrint integration and pre-print validation.
+This gives OctoPrint and other serial hosts a stable way to read the printer's current filament loadout for future pre-print validation and host-side workflow support.
+
+## Filament Runout Suppressed During Pause
+
+Filament runout detection no longer injects a new filament-change event while a print is paused, parking for pause, or resuming. This prevents a printer from immediately reporting runout when the user intentionally handles filament or the toolhead during a paused print.
+
+Runout detection remains active during normal printing.
