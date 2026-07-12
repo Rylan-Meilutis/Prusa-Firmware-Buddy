@@ -6,6 +6,23 @@
 #include <temperature.hpp>
 #include <tool_index.hpp>
 
+namespace {
+
+void report_loaded_filaments() {
+    for (const VirtualToolIndex tool : VirtualToolIndex::all().skip_all_disabled()) {
+        const FilamentType filament_type = config_store().get_filament_type(tool);
+        const FilamentTypeParameters params = filament_type.parameters();
+
+        SERIAL_ECHO("loaded_filament T");
+        SERIAL_ECHO(tool.to_raw());
+        SERIAL_ECHO(" S\"");
+        SERIAL_ECHO(params.name.data());
+        SERIAL_ECHOLN("\"");
+    }
+}
+
+} // namespace
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -22,6 +39,7 @@
  * - `I<ix>` - Select filament currently loaded to the specified tool (indexed from 0)
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
+ * - `Q` - Query the currently loaded filament material for all enabled tools
  *
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
  *
@@ -47,6 +65,11 @@
 void PrusaGcodeSuite::M865() {
     GCodeParser2 p;
     if (!p.parse_marlin_command()) {
+        return;
+    }
+
+    if (p.option<bool>('Q').value_or(false)) {
+        report_loaded_filaments();
         return;
     }
 
