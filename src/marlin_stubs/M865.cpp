@@ -3,8 +3,30 @@
 #include <option/has_filament_heatbreak_param.h>
 
 #include <filament.hpp>
+#include <print_utils.hpp>
 #include <temperature.hpp>
 #include <utils/string_builder.hpp>
+
+namespace {
+
+void report_loaded_filaments() {
+    for (uint8_t tool = 0; tool < EXTRUDERS; ++tool) {
+        if (!is_tool_enabled(tool)) {
+            continue;
+        }
+
+        const FilamentType filament_type = config_store().get_filament_type(tool);
+        const FilamentTypeParameters params = filament_type.parameters();
+
+        SERIAL_ECHO("loaded_filament T");
+        SERIAL_ECHO(tool);
+        SERIAL_ECHO(" S\"");
+        SERIAL_ECHO(params.name.data());
+        SERIAL_ECHOLN("\"");
+    }
+}
+
+} // namespace
 
 /** \addtogroup G-Codes
  * @{
@@ -22,6 +44,7 @@
  * - `I<ix>` - Select filament currently loaded to the specified tool (indexed from 0)
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
+ * - `Q` - Query the currently loaded filament material for all enabled tools
  *
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
  *
@@ -45,6 +68,11 @@
 void PrusaGcodeSuite::M865() {
     GCodeParser2 p;
     if (!p.parse_marlin_command()) {
+        return;
+    }
+
+    if (p.option<bool>('Q').value_or(false)) {
+        report_loaded_filaments();
         return;
     }
 

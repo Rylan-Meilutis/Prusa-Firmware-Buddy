@@ -28,6 +28,8 @@
     * Size-optimized release LTO linking to reduce flash usage, especially on XL
     * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
     * UI theme updates and theme import support
+    * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
+    * `M865 Q` serial query for host-readable loaded-filament material reporting
   * Fixes
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
@@ -92,12 +94,38 @@
     * Fixed cached multi-version release rebuilds so stale nested CMake caches are rebuilt cleanly instead of leaving broken ExternalProject stamp state
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
+    * Suppressed filament runout while a print is paused, parking, or resuming so toolhead work during a pause does not immediately trigger a new runout event
 
 This is a custom firmware release based on upstream Prusa Firmware Buddy 6.5.7. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.
 
 The release is based on upstream tag `v6.5.7` (`7119a302d6`) with the RME changes replayed on branch `rme-v6.5.7`.
 
 The running firmware UI uses the short `6.5.7-RME` version. Prusa Connect intentionally receives the stock upstream `6.5.7` version string for compatibility and feature gating, while local UI/API surfaces and release artifacts keep the RME identity. The stock Prusa bootloader firmware-selection menu still appends the BBF header build number; removing that numeric suffix requires a bootloader change because the build number is mandatory update-order metadata.
+
+## Loaded Filament Reassignment
+
+The Filament menu now exposes **Loaded Filament(s)** directly. On single-tool printers it shows the current loaded material. On multi-tool and MMU configurations it opens a per-tool or per-slot list.
+
+Selecting a loaded filament opens a material picker. Choosing a material changes the firmware's stored loaded-filament assignment only; it does not heat, purge, load, unload, or move filament.
+
+_NOTE: The firmware currently stores loaded material per tool, but it does not persist a separate loaded color per tool. Color shown during print setup still comes from G-code metadata or load prompts._
+
+## Serial Loadout Query
+
+Serial hosts can request the printer-side loaded-filament material with:
+
+```gcode
+M865 Q
+```
+
+The firmware replies with one line per enabled tool or filament slot:
+
+```text
+loaded_filament T0 S"PLA"
+loaded_filament T1 S"PETG"
+```
+
+Hosts can use this for future OctoPrint integration and pre-print validation.
 
 ## Upstream 6.5.7 base
 

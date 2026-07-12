@@ -4,7 +4,9 @@
 
 #include <i_window_menu_item.hpp>
 #include <WindowMenuItems.hpp>
+#include <filament_list.hpp>
 #include <screen_menu.hpp>
+#include <window_menu_virtual.hpp>
 
 class MI_LOADED_FILAMENT : public IWindowMenuItem {
 
@@ -44,4 +46,42 @@ struct ScreenLoadedFilaments_<std::index_sequence<i...>> {
 class ScreenLoadedFilaments : public ScreenLoadedFilaments_<std::make_index_sequence<EXTRUDERS>>::T {
 public:
     ScreenLoadedFilaments();
+};
+
+namespace screen_loaded_filament_assignment {
+
+class MI_ASSIGN_LOADED_FILAMENT final : public IWindowMenuItem {
+public:
+    MI_ASSIGN_LOADED_FILAMENT(uint8_t tool, FilamentType filament_type);
+
+protected:
+    void click(IWindowMenu &) override;
+
+private:
+    uint8_t tool_;
+    FilamentType filament_type_;
+    FilamentTypeParameters::Name filament_name_;
+};
+
+class WindowMenuAssignLoadedFilament final : public WindowMenuVirtual<MI_RETURN, MI_ASSIGN_LOADED_FILAMENT> {
+public:
+    WindowMenuAssignLoadedFilament(window_t *parent, Rect16 rect);
+
+    void set_tool(uint8_t tool);
+
+    int item_count() const final;
+
+protected:
+    void setup_item(ItemVariant &variant, int index) final;
+
+private:
+    uint8_t tool_;
+    FilamentList filament_list_;
+};
+
+} // namespace screen_loaded_filament_assignment
+
+class ScreenAssignLoadedFilament final : public ScreenMenuBase<screen_loaded_filament_assignment::WindowMenuAssignLoadedFilament> {
+public:
+    ScreenAssignLoadedFilament(uint8_t tool);
 };

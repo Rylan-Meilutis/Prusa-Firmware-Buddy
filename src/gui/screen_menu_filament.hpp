@@ -7,10 +7,12 @@
 #include "WindowMenuItems.hpp"
 #include "MItem_filament.hpp"
 #include "MItem_menus.hpp"
+#include <gui/screen/filament/screen_filaments_loaded.hpp>
 #include <option/has_toolchanger.h>
 
 using ScreenMenuFilament__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_RETURN,
+    MI_LOADED_FILAMENT,
     MI_LOAD, MI_UNLOAD, MI_CHANGE,
     MI_PURGE,
 #if HAS_TOOLCHANGER()
