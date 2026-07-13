@@ -54,6 +54,21 @@ void show_unmet_dependencies_warning(Action action) {
     MsgBoxWarning(string_view_utf8::MakeRAM(msg), Responses_Ok);
 }
 
+consteval bool check_selftest_ordering() {
+    for (auto i = 0; i < static_cast<int>(Action::_count); i++) {
+        const auto deps = get_dependencies(static_cast<Action>(i));
+        for (auto j = i; j < static_cast<int>(Action::_count); j++) {
+            // selftest j goes after i -> if j has dependency on i the ordering is wrong
+            if (deps.test(static_cast<Action>(j))) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static_assert(check_selftest_ordering(), "selftests ordering does not satisfy dependencies");
+
 #else
 
 bool are_previous_completed(Action action) {

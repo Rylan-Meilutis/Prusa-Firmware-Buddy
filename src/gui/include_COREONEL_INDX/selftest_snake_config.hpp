@@ -98,23 +98,6 @@ constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
     return deps;
 }
 
-namespace {
-    consteval bool check_selftest_ordering() {
-        for (auto i = 0; i < static_cast<int>(Action::_count); i++) {
-            const auto deps = get_dependencies(static_cast<Action>(i));
-            for (auto j = i; j < static_cast<int>(Action::_count); j++) {
-                // selftest j goes after i -> if j has dependency on i the ordering is wrong
-                if (deps.test(static_cast<Action>(j))) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    static_assert(check_selftest_ordering(), "selftests ordering does not satisfy dependencies");
-} // namespace
-
 TestResult get_test_result(Action action, ToolMask tool);
 uint64_t get_test_mask(Action action);
 } // namespace SelftestSnake
