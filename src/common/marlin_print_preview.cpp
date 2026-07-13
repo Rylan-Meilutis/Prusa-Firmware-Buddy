@@ -4,7 +4,7 @@
 
 #include "marlin_print_preview.hpp"
 #include <M73_PE.h>
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include "client_response.hpp"
 #include "general_response.hpp"
 #include "marlin_server.hpp"

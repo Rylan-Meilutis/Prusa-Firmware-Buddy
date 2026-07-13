@@ -3,6 +3,7 @@
 #include "client_response.hpp"
 #include <guiconfig/guiconfig.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_dwarf.h>
 #include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_remote_bed.h>
@@ -20,6 +21,11 @@
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_ht_hotend.h>
+#include <option/has_ceiling_clearance.h>
+#include <option/has_chamber_api.h>
+#include <option/has_emergency_stop.h>
+#include <option/has_uneven_bed_prompt.h>
+#include <option/xl_enclosure_support.h>
 
 enum class WarningType : uint32_t {
 #if HAS_EMERGENCY_STOP()

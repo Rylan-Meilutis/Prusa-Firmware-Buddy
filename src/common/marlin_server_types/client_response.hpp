@@ -3,7 +3,7 @@
  * @brief every phase in dialog can have some buttons
  * buttons are generalized on this level as responses
  * because non GUI/WUI client can also use them
- * bound to ClientFSM in src/common/client_fsm_types.h
+ * bound to ClientFSM in src/common/client_fsm_types.hpp
  */
 
 #pragma once
@@ -14,7 +14,7 @@
 #include <span>
 #include <utility>
 
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include "general_response.hpp"
 #include "printers.h"
 #include <utils/enum_array.hpp>
@@ -60,6 +60,8 @@
 
 #include <device/board.h>
 #include <option/has_e2ee_support.h>
+#include <option/has_indx.h>
+#include <option/has_serial_print.h>
 #include <bsod/bsod.h>
 
 /// Maximum number of responses available during a FSM phase

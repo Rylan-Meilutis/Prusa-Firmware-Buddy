@@ -7,7 +7,7 @@
 #include <module/temperature.h>
 
 #include <common/cold_pull.hpp>
-#include <client_fsm_types.h>
+#include <client_fsm_types.hpp>
 #include <client_response.hpp>
 #include <common/marlin_server.hpp>
 #include <raii/auto_restore.hpp>

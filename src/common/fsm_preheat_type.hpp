@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include <common/fsm_base_types.hpp>
 #include <tool_index.hpp>
 

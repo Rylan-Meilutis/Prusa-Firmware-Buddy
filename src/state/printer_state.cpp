@@ -1,5 +1,5 @@
 #include "printer_state.hpp"
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include <option/has_crash_detection.h>
 #include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
@@ -39,6 +39,15 @@
 #include <option/has_extruder_fsensor.h>
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_manual_belt_tuning.h>
+#include <option/has_anfc.h>
+#include <option/has_ceiling_clearance.h>
+#include <option/has_chamber_api.h>
+#include <option/has_coldpull.h>
+#include <option/has_emergency_stop.h>
+#include <option/has_ht_hotend.h>
+#include <option/has_loadcell.h>
+#include <option/has_precise_homing_corexy.h>
+#include <option/has_selftest.h>
 #include <fsm/print_preview_mapper.hpp>
 #include <bsod/bsod.h>
 

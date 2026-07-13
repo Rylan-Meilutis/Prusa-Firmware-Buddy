@@ -9,7 +9,7 @@
 #include <warning_type.hpp>
 #include "../../lib/Marlin/Marlin/src/inc/MarlinConfig.h"
 #include "marlin_events.h"
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include "marlin_server_extended_fsm_data.hpp"
 #include <stddef.h>
 #include <gcode/inject_queue_actions.hpp>

@@ -11,7 +11,7 @@
 #include <pwm_utils.hpp>
 #include <temperature.hpp>
 #include "marlin_server_shared.h"
-#include "client_fsm_types.h"
+#include "client_fsm_types.hpp"
 #include <general_response.hpp>
 #include <warning_type.hpp>
 
