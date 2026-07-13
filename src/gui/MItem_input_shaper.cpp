@@ -48,8 +48,14 @@ static constexpr NumericInputConfig is_frequency_spin_config {
 };
 
 MI_IS_X_FREQUENCY::MI_IS_X_FREQUENCY()
-    : WiSpin(0 /* set in ScreenMenuInputShaper::update_gui*/, is_frequency_spin_config, _(label), nullptr, is_enabled_t::no, is_hidden_t::no) {
-}
+    : WiSpin {
+        0 /* set in ScreenMenuInputShaper::update_gui*/,
+        is_frequency_spin_config,
+        _("X-axis Freq."),
+        nullptr,
+        is_enabled_t::no,
+        is_hidden_t::no,
+    } {}
 
 void MI_IS_X_FREQUENCY::OnClick() {
     auto axis_x = config_store().input_shaper_axis_x_config.get();
@@ -61,8 +67,14 @@ void MI_IS_X_FREQUENCY::OnClick() {
 }
 
 MI_IS_Y_FREQUENCY::MI_IS_Y_FREQUENCY()
-    : WiSpin(0 /* set in ScreenMenuInputShaper::update_gui*/, is_frequency_spin_config, _(label), nullptr, is_enabled_t::no, is_hidden_t::no) {
-}
+    : WiSpin {
+        0 /* set in ScreenMenuInputShaper::update_gui*/,
+        is_frequency_spin_config,
+        _("Y-axis Freq."),
+        nullptr,
+        is_enabled_t::no,
+        is_hidden_t::no,
+    } {}
 
 void MI_IS_Y_FREQUENCY::OnClick() {
     auto axis_y = config_store().input_shaper_axis_y_config.get();
@@ -75,8 +87,12 @@ void MI_IS_Y_FREQUENCY::OnClick() {
 
 #if HAS_INPUT_SHAPER_CALIBRATION()
 MI_IS_CALIB::MI_IS_CALIB()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, marlin_client::is_printing() ? is_hidden_t::yes : is_hidden_t::no) {
-}
+    : IWindowMenuItem {
+        _("Calibration"),
+        nullptr,
+        is_enabled_t::yes,
+        marlin_client::is_printing() ? is_hidden_t::yes : is_hidden_t::no,
+    } {}
 
 void MI_IS_CALIB::click([[maybe_unused]] IWindowMenu &window_menu) {
     marlin_client::gcode("M1959");
@@ -84,8 +100,9 @@ void MI_IS_CALIB::click([[maybe_unused]] IWindowMenu &window_menu) {
 #endif
 
 MI_IS_RESTORE_DEFAULTS::MI_IS_RESTORE_DEFAULTS()
-    : IWindowMenuItem(_(label), nullptr) {
-}
+    : IWindowMenuItem {
+        _("Restore Defaults"),
+    } {}
 
 void MI_IS_RESTORE_DEFAULTS::click([[maybe_unused]] IWindowMenu &window_menu) {
     if (MsgBoxQuestion(_("Do you really want to restore default input shaper configuration?"), Responses_YesNo) != Response::Yes) {
