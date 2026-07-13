@@ -15,6 +15,7 @@ using namespace menu_network_status;
 ScreenMenuNetworkStatus::ScreenMenuNetworkStatus()
     : MenuBase(_(label))
     , ping_manager_(std::to_underlying(StatSlot::_cnt)) {
+    header.SetIcon(&img::info_16x16);
 
 #if HAS_ESP()
     Item<MI_WIFI_STATUS_t>().set_is_hidden(netdev_get_active_id() != NETDEV_ESP_ID);
