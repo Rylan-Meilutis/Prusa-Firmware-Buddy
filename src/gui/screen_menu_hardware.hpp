@@ -21,6 +21,11 @@
     #include "screen_menu_modular_bed.hpp"
 #endif
 
+#include <option/xbuddy_extension_variant.h>
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    #include "menu_item/specific/menu_items_xbuddy_extension.hpp"
+#endif
+
 using ScreenMenuHardwareBase = BasicScreenMenu<
 #if HAS_EXTENDED_PRINTER_TYPE()
     MI_EXTENDED_PRINTER_TYPE,
@@ -67,6 +72,9 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 
 #if HAS_CHAMBER_VENTS()
     MI_SWITCH_VENT_MECHANISM,
+#endif
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
 #endif
 #if HAS_AUTO_RETRACT()
     MI_PRE_NOZZLE_CLEANING_RETRACT,
