@@ -83,6 +83,7 @@
 #endif
 
 #include <option/has_dwarf.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
   #include <module/prusa/toolchanger.h>
@@ -240,7 +241,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
     return true;
   }
 
-  #if ENABLED(DETECT_PRINT_SHEET)
+  #if HAS_PRINT_SHEET_DETECTION()
     /**
      * @brief Detect print sheet
      *
@@ -294,7 +295,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
 
       return true;
     }
-  #endif // DETECT_PRINT_SHEET
+  #endif
 
 #endif // Z_SAFE_HOMING
 
@@ -360,7 +361,7 @@ void GcodeSuite::G28() {
     // #error dead code found by automatic analyses (see BFW-5461)
     flags.simulate = parser.seen('S');
   #endif
-  #if ENABLED(DETECT_PRINT_SHEET)
+  #if HAS_PRINT_SHEET_DETECTION()
     flags.check_sheet = !parser.boolval('P');
   #endif
   flags.precise = !parser.seen('I'); // do not perform precise refinement
@@ -788,7 +789,7 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
       #if ENABLED(Z_SAFE_HOMING)
         failed = !home_z_safely();
 
-        #if ENABLED(DETECT_PRINT_SHEET)
+        #if HAS_PRINT_SHEET_DETECTION()
         if (!failed && flags.check_sheet) {
           PrintStatusMessageGuard status_guard;
           status_guard.update<PrintStatusMessage::detecting_steel_sheet>({});

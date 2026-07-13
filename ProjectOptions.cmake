@@ -340,6 +340,16 @@ set_feature_for_printers_master_board(
   "COREONEL_INDX"
   )
 define_enum_option(NAME POWER_PANIC_STORAGE VALUE FLASH ALL_VALUES "FLASH;BKPSRAM")
+# Probing for the print sheet during Z_SAFE_HOMING
+set_feature_for_printers_master_board(
+  HAS_PRINT_SHEET_DETECTION
+  "MK4"
+  "iX"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
+  )
 set_feature_for_printers(HAS_PRECISE_HOMING "MK4" "MK3.5")
 set_feature_for_printers(
   HAS_SELFTEST_DEPENDENCIES "COREONE" "COREONEL" "COREONE_INDX" "COREONEL_INDX"

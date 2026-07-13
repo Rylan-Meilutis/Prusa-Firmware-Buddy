@@ -1,8 +1,10 @@
 #pragma once
 
 #include "client_response.hpp"
+#include <inc/MarlinConfigPre.h>
 #include <guiconfig/guiconfig.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/xbuddy_extension_variant.h>
@@ -75,7 +77,7 @@ enum class WarningType : uint32_t {
 #if XL_ENCLOSURE_SUPPORT()
     EnclosureFanError,
 #endif
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
     SteelSheetNotDetected,
 #endif
     NotDownloaded,

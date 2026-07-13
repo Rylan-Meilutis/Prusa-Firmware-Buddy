@@ -1,4 +1,5 @@
 #include "warning_type.hpp"
+#include <option/has_print_sheet_detection.h>
 #include <option/has_wastebin_fill_tracking.h>
 
 #include <bitset>
@@ -58,7 +59,7 @@ constexpr PhasesWarning warning_type_phase_constexpr(WarningType warning) {
         return PhasesWarning::FailedToReachChamberTemperature;
 #endif
 
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
     case WarningType::SteelSheetNotDetected:
         return PhasesWarning::SteelSheetNotDetected;
 #endif

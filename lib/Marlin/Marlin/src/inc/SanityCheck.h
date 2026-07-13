@@ -22,6 +22,7 @@
 #pragma once
 
 #include <option/has_crash_detection.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_toolchanger.h>
 #include <option/has_gcode_compatibility.h>

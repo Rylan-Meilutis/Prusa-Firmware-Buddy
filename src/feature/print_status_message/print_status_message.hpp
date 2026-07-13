@@ -3,6 +3,7 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_chamber_api.h>
 #include <option/has_auto_retract.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_spool_join.h>
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_indx.h>
@@ -36,7 +37,7 @@ struct PrintStatusMessage {
 #if ENABLED(PROBE_CLEANUP_SUPPORT)
         nozzle_cleaning,
 #endif
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
         detecting_steel_sheet,
 #endif
 #if HAS_SPOOL_JOIN()
@@ -111,7 +112,7 @@ struct PrintStatusMessage {
 #if ENABLED(PROBE_CLEANUP_SUPPORT)
         TypeRecord<Type::nozzle_cleaning, std::monostate>,
 #endif
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
         TypeRecord<Type::detecting_steel_sheet, std::monostate>,
 #endif
 #if HAS_SPOOL_JOIN()

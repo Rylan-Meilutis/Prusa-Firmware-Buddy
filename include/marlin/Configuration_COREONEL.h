@@ -28,6 +28,7 @@
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
 #include <option/has_indx.h>
+#include <option/has_print_sheet_detection.h>
 
 // clang-format off
 
@@ -1060,8 +1061,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Z_SAFE_HOMING_X_POINT (270) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
 #endif
-    #define DETECT_PRINT_SHEET
-    #if ENABLED(DETECT_PRINT_SHEET)
+    #if HAS_PRINT_SHEET_DETECTION()
         #if HAS_INDX()
             // INDX_TODO: Refine, measure proper place. Lower Y would crash into dock.
             #define DETECT_PRINT_SHEET_X_POINT (0)

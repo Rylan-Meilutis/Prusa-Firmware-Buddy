@@ -233,6 +233,7 @@
 #include <option/has_i2c_expander.h>
 #include <option/has_local_accelerometer.h>
 #include <option/has_modular_bed.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
@@ -264,7 +265,7 @@ struct G28Flags {
   /// Relates to HAS_PRECISE_HOMING_COREXY
   bool precise = true;
 
-  #if ENABLED(DETECT_PRINT_SHEET)
+  #if HAS_PRINT_SHEET_DETECTION()
     bool check_sheet = false;
   #endif
 

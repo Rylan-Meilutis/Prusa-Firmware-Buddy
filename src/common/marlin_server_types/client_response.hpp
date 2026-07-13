@@ -17,7 +17,6 @@
 #include "client_fsm_types.h"
 #include "general_response.hpp"
 #include "printers.h"
-#include <inc/MarlinConfigPre.h>
 #include <utils/enum_array.hpp>
 #include <guiconfig/guiconfig.h>
 #include <option/filament_sensor.h>
@@ -33,6 +32,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_nfc.h>
 #include <option/has_phase_stepping_calibration.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_selftest.h>
 #include <option/has_toolchanger.h>
 #include <option/has_tool_mapping.h>
@@ -322,7 +322,7 @@ enum class PhasesWarning : PhaseUnderlyingType {
     FilamentSensorStuckHelpMMU,
 #endif
 
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
     /// Shown on failed print sheet detection. Custom handling.
     SteelSheetNotDetected,
 #endif
@@ -703,7 +703,7 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
 #if HAS_MMU2()
         { PhasesWarning::FilamentSensorStuckHelpMMU, { Response::Ok } },
 #endif
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
         { PhasesWarning::SteelSheetNotDetected, { Response::Retry, Response::Ignore, Response::Abort } },
 #endif
 #if HAS_CHAMBER_API()

@@ -27,6 +27,7 @@
 #include <option/has_mmu2.h>
 #include <option/has_precise_homing_corexy.h>
 #include <option/has_precise_homing.h>
+#include <option/has_print_sheet_detection.h>
 
 // clang-format off
 
@@ -970,8 +971,7 @@
     #define Z_SAFE_HOMING_X_POINT (130) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (245) // Y point for Z homing when homing all axes (G28).
 
-    #define DETECT_PRINT_SHEET
-    #if ENABLED(DETECT_PRINT_SHEET)
+    #if HAS_PRINT_SHEET_DETECTION()
         #define DETECT_PRINT_SHEET_X_POINT (110)
         #define DETECT_PRINT_SHEET_Y_POINT (280)
         #define DETECT_PRINT_SHEET_Z_POINT (-2)

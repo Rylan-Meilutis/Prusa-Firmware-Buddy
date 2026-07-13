@@ -1,6 +1,7 @@
 #include "printer_state.hpp"
 #include "client_fsm_types.h"
 #include <option/has_crash_detection.h>
+#include <option/has_print_sheet_detection.h>
 #include <option/has_serial_print.h>
 #include "custom_uint31_t.hpp"
 
@@ -672,7 +673,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::CONNECT_NOZZLE_CLEANER_EMPTY;
 #endif
 
-#if ENABLED(DETECT_PRINT_SHEET)
+#if HAS_PRINT_SHEET_DETECTION()
     case WarningType::SteelSheetNotDetected:
         return ErrCode::ERR_MECHANICAL_STEEL_SHEET_NOT_DETECTED;
 #endif
