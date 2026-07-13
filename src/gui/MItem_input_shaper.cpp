@@ -5,6 +5,7 @@
 #include <window_msgbox.hpp>
 #include <common/utils/algorithm_extensions.hpp>
 #include <guiconfig/guiconfig.h>
+#include <img_resources.hpp>
 
 static constexpr std::array<const char *, 2> is_type_names {
     N_("X-axis Filter"),
@@ -106,7 +107,7 @@ void MI_IS_Y_FREQUENCY::OnClick() {
 MI_IS_CALIB::MI_IS_CALIB()
     : IWindowMenuItem {
         _("Calibration"),
-        nullptr,
+        &img::calibrate_white_16x16,
         is_enabled_t::yes,
         marlin_client::is_printing() ? is_hidden_t::yes : is_hidden_t::no,
     } {}
