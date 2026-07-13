@@ -3,6 +3,7 @@
 #include <common/fsm_base_types.hpp>
 #include <state/printer_state.hpp>
 #include <img_resources.hpp>
+#include <option/has_tool_offset_pin_calibration.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_indx.h>
 #if HAS_WASTEBIN_FILL_TRACKING()
@@ -36,7 +37,7 @@ const img::Resource *warning_dialog_icon(WarningType warning_type) {
     case WarningType::USBDriveUnsupportedFileSystem:
         return &img::usb_error_48x48;
 
-#if ENABLED(CALIBRATION_GCODE)
+#if HAS_TOOL_OFFSET_PIN_CALIBRATION()
     case WarningType::NozzleDoesNotHaveRoundSection:
         return &img::nozzle_34x32;
 #endif

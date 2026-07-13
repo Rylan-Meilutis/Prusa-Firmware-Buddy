@@ -22,6 +22,7 @@
 #pragma once
 
 #include <cmath>
+#include <option/has_tool_offset_pin_calibration.h>
 
 // clang-format off
 
@@ -357,8 +358,7 @@
  * Note: HOTEND_OFFSET and CALIBRATION_OBJECT_CENTER must be set to within
  *       ±5mm of true values for G425 to succeed.
  */
-//#define CALIBRATION_GCODE
-#if ENABLED(CALIBRATION_GCODE)
+#if HAS_TOOL_OFFSET_PIN_CALIBRATION()
 
     #define CALIBRATION_MEASUREMENT_RESOLUTION 0.01 // mm
 

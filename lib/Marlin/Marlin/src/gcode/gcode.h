@@ -23,6 +23,7 @@
 
 #include <option/has_mmu2.h>
 #include <option/has_pause.h>
+#include <option/has_tool_offset_pin_calibration.h>
 
 /**
  * gcode.h - Temporary container for all gcode handlers
@@ -206,7 +207,7 @@
  * M7219 - Control Max7219 Matrix LEDs. (Requires MAX7219_GCODE)
  *
  * ************ Custom codes - This can change to suit future G-code regulations
- * G425 - Calibrate using a conductive object. (Requires CALIBRATION_GCODE)
+ * G425 - Calibrate using a conductive object. (Requires HAS_TOOL_OFFSET_PIN_CALIBRATION)
  * G426 - Measure tool offset contactlessly. (Requires HAS_TOOL_OFFSET_SENSOR)
  * M958 - Excite harmonic vibration and measure amplitude
  * M959 - Tune input shaper
@@ -467,7 +468,7 @@ private:
 
   static void G92();
 
-  #if ENABLED(CALIBRATION_GCODE)
+  #if HAS_TOOL_OFFSET_PIN_CALIBRATION()
     static void G425();
   #endif
 

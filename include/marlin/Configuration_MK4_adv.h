@@ -28,6 +28,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 #include <option/has_power_panic.h>
+#include <option/has_tool_offset_pin_calibration.h>
 
 /**
  * Configuration_adv.h
@@ -322,8 +323,7 @@
  * Note: HOTEND_OFFSET and CALIBRATION_OBJECT_CENTER must be set to within
  *       ±5mm of true values for G425 to succeed.
  */
-//#define CALIBRATION_GCODE
-#if ENABLED(CALIBRATION_GCODE)
+#if HAS_TOOL_OFFSET_PIN_CALIBRATION()
 
     #define CALIBRATION_MEASUREMENT_RESOLUTION 0.01 // mm
 

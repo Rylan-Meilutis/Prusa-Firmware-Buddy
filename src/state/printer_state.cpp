@@ -4,6 +4,7 @@
 #include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_serial_print.h>
+#include <option/has_tool_offset_pin_calibration.h>
 #include "custom_uint31_t.hpp"
 
 #include <fsm_states.hpp>
@@ -617,7 +618,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
     case WarningType::HeatbedColdAfterPP:
         return ErrCode::CONNECT_POWER_PANIC_COLD_BED;
 #endif
-#if ENABLED(CALIBRATION_GCODE)
+#if HAS_TOOL_OFFSET_PIN_CALIBRATION()
     case WarningType::NozzleDoesNotHaveRoundSection:
         return ErrCode::CONNECT_NOZZLE_DOES_NOT_HAVE_ROUND_SECTION;
 #endif

@@ -40,6 +40,7 @@ GcodeSuite gcode;
 
 #include <option/has_cancel_object.h>
 #include <option/has_crash_detection.h>
+#include <option/has_tool_offset_pin_calibration.h>
 #if HAS_CANCEL_OBJECT()
   #include <feature/cancel_object/cancel_object.hpp>
 #endif
@@ -365,7 +366,7 @@ void GcodeSuite::process_parsed_command_standard() {
         case 42: G42(); break;                                    // G42: Coordinated move to a mesh point
       #endif
 
-      #if ENABLED(CALIBRATION_GCODE)
+      #if HAS_TOOL_OFFSET_PIN_CALIBRATION()
         case 425: G425(); break;                                  // G425: Perform calibration with calibration cube
       #endif
 
