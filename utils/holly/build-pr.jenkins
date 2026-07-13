@@ -313,6 +313,8 @@ pipeline {
                     }
                 }
 
+                /*
+                Temporarily disabled, see BFW-9038
                 stage('Marlin_server_types python module') {
                     agent {
                         dockerfile {
@@ -334,6 +336,7 @@ pipeline {
                         """
                     }
                 }
+                */
 
                 /*stage('Integration Tests') {
                     when {
