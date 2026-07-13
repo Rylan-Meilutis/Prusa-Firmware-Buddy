@@ -4,11 +4,28 @@
 #include <MItem_tools.hpp>
 #include <window_msgbox.hpp>
 #include <common/utils/algorithm_extensions.hpp>
+#include <guiconfig/guiconfig.h>
 
 static constexpr std::array<const char *, 2> is_type_names {
     N_("X-axis Filter"),
     N_("Y-axis Filter"),
 };
+
+static constexpr const char *x_axis_frequency =
+#if HAS_LARGE_DISPLAY()
+    N_("X-axis Frequency")
+#elif HAS_MINI_DISPLAY()
+    N_("X-axis Freq.")
+#endif
+    ;
+
+static constexpr const char *y_axis_frequency =
+#if HAS_LARGE_DISPLAY()
+    N_("Y-axis Frequency")
+#elif HAS_MINI_DISPLAY()
+    N_("Y-axis Freq.")
+#endif
+    ;
 
 MI_IS_TYPE::MI_IS_TYPE(AxisEnum axis)
     : MenuItemSelectMenu(_(is_type_names[axis]))
@@ -51,7 +68,7 @@ MI_IS_X_FREQUENCY::MI_IS_X_FREQUENCY()
     : WiSpin {
         0 /* set in ScreenMenuInputShaper::update_gui*/,
         is_frequency_spin_config,
-        _("X-axis Freq."),
+        _(x_axis_frequency),
         nullptr,
         is_enabled_t::no,
         is_hidden_t::no,
@@ -70,7 +87,7 @@ MI_IS_Y_FREQUENCY::MI_IS_Y_FREQUENCY()
     : WiSpin {
         0 /* set in ScreenMenuInputShaper::update_gui*/,
         is_frequency_spin_config,
-        _("Y-axis Freq."),
+        _(y_axis_frequency),
         nullptr,
         is_enabled_t::no,
         is_hidden_t::no,
