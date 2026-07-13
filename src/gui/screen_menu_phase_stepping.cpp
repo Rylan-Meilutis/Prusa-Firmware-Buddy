@@ -8,6 +8,7 @@ MI_PHASE_STEPPING_CALIBRATION::MI_PHASE_STEPPING_CALIBRATION()
     : MenuItemGcodeAction {
         _("Calibration"),
         "M1977",
+        &img::calibrate_white_16x16,
     } {}
 
 MI_PHASE_STEPPING_RESTORE_DEFAULTS::MI_PHASE_STEPPING_RESTORE_DEFAULTS()
