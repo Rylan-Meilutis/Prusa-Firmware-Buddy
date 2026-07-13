@@ -9,6 +9,7 @@
 #include "window_dlg_quickpause.hpp"
 #include "window_dlg_wait.hpp"
 #include "window_dlg_warning.hpp"
+#include <option/has_crash_detection.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_input_shaper_calibration.h>
@@ -45,7 +46,7 @@
     #include <gui/screen/selftest/screen_selftest_fsensors.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include "screen_crash_recovery.hpp"
 #endif
 
@@ -277,7 +278,7 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
     FSMScreenDef<ClientFSM::NetworkSetup, ScreenNetworkSetup>,
 #endif
     FSMPrintDef<ClientFSM::Printing>,
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     FSMScreenDef<ClientFSM::CrashRecovery, ScreenCrashRecovery>,
 #endif
     FSMDialogDef<ClientFSM::QuickPause, DialogQuickPause>,

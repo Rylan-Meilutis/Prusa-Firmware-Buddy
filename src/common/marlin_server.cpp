@@ -1,5 +1,6 @@
 #include "marlin_server.hpp"
 
+#include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 #include <common/directory.hpp>
 #include <freertos/critical_section.hpp>
@@ -150,8 +151,10 @@
     #include "SteelSheets.hpp"
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
-    #include "../Marlin/src/feature/prusa/crash_recovery.hpp"
+// Provides crash_s stubs when crash detection is not supported
+#include "../Marlin/src/feature/prusa/crash_recovery.hpp"
+
+#if HAS_CRASH_DETECTION()
     #include "crash_recovery_type.hpp"
 #endif
 
@@ -288,9 +291,9 @@ namespace {
         EventMask client_events[MARLIN_MAX_CLIENTS]; // client event mask - unsent messages
         State print_state; // printing state (printing, paused, ...)
         bool print_is_serial = false; //< When true, current print is not from USB, but sent via gcode commands.
-#if ENABLED(CRASH_RECOVERY) //
+#if HAS_CRASH_DETECTION() //
         bool aborting_did_crash_trigger = false; // To remember crash_s state when aborting
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
         resume_state_t resume; // resume data (state before pausing)
         uint32_t last_update; // last update tick count
         uint16_t flags; // server flags (MARLIN_SFLG)
@@ -326,7 +329,7 @@ namespace {
         /// Position the media should be resumed to
         GCodeReaderStreamRestoreInfo media_restore_info;
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         /// Command to be executed in interrupt mode - see marlin_client::gcode_interrupt
         GCodeLiteral gcode_interrupt_command;
 #endif
@@ -1151,7 +1154,7 @@ void static finalize_print(bool finished) {
     SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
 }
 
-#if ANY(CRASH_RECOVERY, POWER_PANIC)
+#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
 static void check_crash() {
     // reset the nested loop check once per main server iteration
     crash_s.needs_stack_unwind = false;
@@ -1178,7 +1181,7 @@ static void check_crash() {
         return;
     }
 }
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
 void loop() {
     ::idle(false); // Do an idle first so boot is slightly faster
@@ -1200,7 +1203,7 @@ void loop() {
     }
 #endif
 
-#if ANY(CRASH_RECOVERY, POWER_PANIC)
+#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
     check_crash();
 #endif
 
@@ -1256,7 +1259,7 @@ bool inject(InjectQueueRecord record) {
 }
 
 void gcode_interrupt(GCodeLiteral gcode) {
-#if !ENABLED(CRASH_RECOVERY)
+#if !HAS_CRASH_DETECTION()
     inject(gcode);
 
 #else
@@ -1625,7 +1628,7 @@ void print_pause(void) {
     }
 }
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 /**
  * @brief Go to homing or measure axis and follow with homing.
  */
@@ -1675,7 +1678,7 @@ static bool crash_recovery_begin_toolchange() {
     return false;
 }
     #endif
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
 
 void media_prefetch_lazy_start() {
     print_state.file_open_reported = false;
@@ -2110,7 +2113,7 @@ static void resuming_reheating() {
         return;
     }
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     // GCodeInterrupt uses crash recovery mechanism
     // Crash recovery goes through recovering -> pause -> resuming phase
     // So this is the right moment to enqueue and execute the interrupt gcode.
@@ -2252,7 +2255,7 @@ static void _server_print_loop(void) {
         }
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         crash_s.reset();
         crash_s.counters.reset();
         endstops.enable_globally(true);
@@ -2261,7 +2264,7 @@ static void _server_print_loop(void) {
         if (!server.print_is_serial) {
             crash_s.set_state(Crash_s::PRINTING);
         }
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
 #if HAS_CEILING_CLEARANCE()
         buddy::reenable_ceiling_clearance_warning();
@@ -2500,7 +2503,7 @@ static void _server_print_loop(void) {
         break;
     }
     case State::Resuming_Begin:
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #if ENABLED(AXIS_MEASURE)
         if (crash_s.is_repeated_crash() && xy_axes_length_ok() != Axis_length_t::ok) {
             /// resuming after a crash but axes are not ok => check again
@@ -2536,12 +2539,12 @@ static void _server_print_loop(void) {
         // If there would be a nested crash during the execution, the interrupting gcode will be repeated
         print_state.gcode_interrupt_command = {};
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
             server.print_state = State::Resuming_UnparkHead_ZE; // Skip unpark when recovering from toolcrash or homing fail
             return;
         }
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
 
         unpark_head_XY();
         server.print_state = State::Resuming_UnparkHead_XY;
@@ -2561,7 +2564,7 @@ static void _server_print_loop(void) {
             break;
         }
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         if (crash_s.get_state() == Crash_s::RECOVERY) {
             endstops.enable_globally(true);
             crash_s.set_state(Crash_s::REPLAY);
@@ -2596,11 +2599,11 @@ static void _server_print_loop(void) {
         break;
 
     case State::Aborting_Begin:
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         if (crash_s.is_toolchange_in_progress()) {
             break; // Wait for toolchange to end
         }
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
         if (marlin_vars().gcode_command.get() == Cmd::G28) {
             break; // Wait for homing to end
         }
@@ -2615,14 +2618,14 @@ static void _server_print_loop(void) {
         planner.quick_stop();
         wait_for_heatup = false; // This is necessary because M109/wait_for_hotend can be in progress, we need to abort it
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         // TODO: the following should be moved to State::Aborting_ParkHead once the "stopping"
         // state is handled properly
         endstops.enable_globally(false);
         crash_s.counters.save_to_eeprom();
         server.aborting_did_crash_trigger = crash_s.did_trigger(); // Remember as it is cleared by crash_s.reset()
         crash_s.reset();
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
         server.print_state = State::Aborting_WaitIdle;
         break;
@@ -2714,13 +2717,13 @@ static void _server_print_loop(void) {
 
     case State::Finishing_WaitIdle:
         if (!is_processing()) {
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
             // TODO: the following should be moved to State::Finishing_ParkHead once the "stopping"
             // state is handled properly
             endstops.enable_globally(false);
             crash_s.counters.save_to_eeprom();
             crash_s.reset();
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
             // ! Must be before the park_head(), otherwise the head parking is still considered a print state
             server.print_state = State::Finishing_UnloadFilament;
@@ -2770,7 +2773,7 @@ static void _server_print_loop(void) {
         server.print_state = State::Idle;
         break;
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     case State::CrashRecovery_Begin: {
         // pause and set correct resume position: this will stop media reading and clear the queue
         // TODO: this is completely broken for crashes coming from serial printing
@@ -3071,7 +3074,7 @@ static void _server_print_loop(void) {
         }
         break;
     }
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 #if ENABLED(POWER_PANIC)
     case State::PowerPanic_acFault:
         power_panic::panic_loop();
@@ -3330,7 +3333,7 @@ static void park_head([[maybe_unused]] bool is_pause) {
 void unpark_head_XY(void) {
     // TODO: double check this condition: when recovering from a crash, Z is not known, but we *can*
     // unpark, so we bypass this check as we need to move back
-    if (TERN1(CRASH_RECOVERY, !crash_s.did_trigger()) && !all_axes_homed()) {
+    if ((!HAS_CRASH_DETECTION() || !crash_s.did_trigger()) && !all_axes_homed()) {
         return;
     }
 

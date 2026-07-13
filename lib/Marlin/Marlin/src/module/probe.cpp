@@ -26,6 +26,7 @@
 
 #include "../inc/MarlinConfig.h"
 #include <bsod/bsod.h>
+#include <option/has_crash_detection.h>
 
 #if HAS_BED_PROBE
 
@@ -505,7 +506,7 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
   #if ENABLED(SENSORLESS_PROBING)
     // #error dead code found by automatic analyses (see BFW-5461)
     endstops.not_homing();
-    #if NEITHER(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
+    #if DISABLED(ENDSTOPS_ALWAYS_ON_DEFAULT) && !HAS_CRASH_DETECTION()
       // #error dead code found by automatic analyses (see BFW-5461)
       disable_crash_detection(Z_AXIS, stealth_states.z);
     #endif

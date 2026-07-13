@@ -19,6 +19,7 @@
 
 #include "constants.hpp"
 
+#include <option/has_crash_detection.h>
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
     #include <hotend_type.hpp>
@@ -106,31 +107,31 @@ namespace defaults {
     };
 
     inline constexpr int16_t crash_sens[2] =
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         CRASH_STALL_GUARD;
 #else
         { 0, 0 };
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
     inline constexpr int16_t crash_sens_x { crash_sens[0] };
     inline constexpr int16_t crash_sens_y { crash_sens[1] };
 
     static constexpr uint16_t crash_max_period[2] =
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         CRASH_MAX_PERIOD;
 #else
         { 0, 0 };
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
     inline constexpr uint16_t crash_max_period_x { crash_max_period[0] };
     inline constexpr uint16_t crash_max_period_y { crash_max_period[1] };
 
     inline constexpr bool crash_filter {
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         CRASH_FILTER
 #else
         false
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
     };
 
     inline constexpr time_tools::TimeFormat time_format { time_tools::TimeFormat::_24h };

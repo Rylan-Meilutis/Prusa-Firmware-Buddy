@@ -1,8 +1,9 @@
 #include "config_features.h"
 #include <gui/menu_vars.h>
+#include <option/has_crash_detection.h>
 
 // TODO do it in cmake
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 
     #include "MItem_crash.hpp"
     #include "WindowMenuSpin.hpp"
@@ -93,9 +94,9 @@ void MI_CRASH_MAX_PERIOD_Y::OnClick() {
     crash_s.set_max_period(mp);
 }
 
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 
-#if ANY(CRASH_RECOVERY, POWER_PANIC)
+#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
 
 MI_POWER_PANICS::MI_POWER_PANICS()
     : WI_INFO_t(config_store().power_panics_count.get(), _(label)) {}
@@ -149,4 +150,4 @@ void MI_CRASH_FILTERING::OnChange([[maybe_unused]] size_t old_index) {
     crash_s.set_filter(value());
 }
     #endif
-#endif // ANY(CRASH_RECOVERY, POWER_PANIC)
+#endif

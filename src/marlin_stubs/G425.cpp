@@ -54,6 +54,7 @@
 #include "Marlin/src/gcode/gcode.h"
 #include "../../module/stepper.h"
 
+#include <option/has_crash_detection.h>
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include "loadcell.hpp"
@@ -61,7 +62,7 @@
     #include "../../module/probe.h"
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include "src/feature/prusa/crash_recovery.hpp"
 #endif
 
@@ -320,7 +321,7 @@ MachinePosXY probe_xy(const MachinePosXYZ &center, const float angle, const uint
 
         // Expect pin hit
         endstops.enable_xy_probe(true);
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         crash_s.deactivate();
 #endif
 
@@ -333,7 +334,7 @@ MachinePosXY probe_xy(const MachinePosXYZ &center, const float angle, const uint
 
     // No longer expecting pin hit
     const bool reached = endstops.trigger_state();
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     crash_s.activate();
 #endif
     loadcell.set_xy_endstop(false);
@@ -716,7 +717,7 @@ inline bool calibrate_all_simple() {
     // Disable E steppers to reduce noise on loadcell
     disable_e_steppers();
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     // Disable crash recovery. It would recover, but the measurement will be inaccurate anyway.
     Crash_Temporary_Deactivate ctd;
 #endif

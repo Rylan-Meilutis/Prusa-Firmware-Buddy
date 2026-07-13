@@ -18,6 +18,7 @@
 #include "Marlin/src/module/temperature.h"
 #include <utils/variant_utils.hpp>
 
+#include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 static_assert(HAS_PAUSE());
 
@@ -85,7 +86,7 @@ static_assert(HAS_PAUSE());
     #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
 #endif
 
@@ -1574,7 +1575,7 @@ void Pause::park_nozzle_and_notify() {
 }
 
 void Pause::unpark_nozzle_and_notify() {
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     if (crash_s.get_state() == Crash_s::RECOVERY) {
         // With the gcode_interrupt mechanism, gcodes can get executed during the crash recovery process (typically M600 during runout).
         // At this stage, the crash recovery itself handles retraction, Z lift and unparking,

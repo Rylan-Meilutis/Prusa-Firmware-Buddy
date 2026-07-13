@@ -39,11 +39,12 @@ GcodeSuite gcode;
 #endif
 
 #include <option/has_cancel_object.h>
+#include <option/has_crash_detection.h>
 #if HAS_CANCEL_OBJECT()
   #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
   #include "../feature/prusa/crash_recovery.hpp"
 #endif
 
@@ -761,7 +762,7 @@ void GcodeSuite::process_parsed_command_standard() {
 void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   KEEPALIVE_STATE(IN_HANDLER);
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     // this is done one step down from process_next_command in order to handle subcommands
     // and injected commands correctly: the state needs to reset at each logical move
     crash_s.start_new_gcode(queue.get_current_sdpos());

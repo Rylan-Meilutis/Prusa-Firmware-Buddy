@@ -21,6 +21,7 @@
  */
 
 #include "../../inc/MarlinConfig.h"
+#include <option/has_crash_detection.h>
 
 #if ENABLED(ARC_SUPPORT)
 
@@ -35,7 +36,7 @@
   #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
   #include <feature/prusa/crash_recovery.hpp>
 #endif
 
@@ -427,7 +428,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
 void GcodeSuite::G2_G3(const bool clockwise) {
   TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_RUNNING));
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     // allow full instruction recovery
     crash_s.set_gcode_replay_flags(Crash_s::RECOVER_FULL);
   #endif

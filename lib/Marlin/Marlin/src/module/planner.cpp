@@ -90,11 +90,12 @@
 #endif
 
 #include <option/has_cancel_object.h>
+#include <option/has_crash_detection.h>
 #if HAS_CANCEL_OBJECT()
   #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
   #include "../feature/prusa/crash_recovery.hpp"
 #endif
 
@@ -1004,7 +1005,7 @@ void Planner::resume_queuing() {
 
 // Called from ISR
 void Planner::endstop_triggered(const AxisEnum axis) {
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     if (crash_s.is_active() && crash_s.is_enabled() && (axis == X_AXIS || axis == Y_AXIS)) {
       // endstop triggered: save the current planner state
       crash_s.axis_hit_isr(axis);
@@ -1845,7 +1846,7 @@ bool Planner::_populate_block(block_t * const block,
     previous_nominal_speed = block->nominal_speed;
   }
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
   {
     const uint8_t crash_index = block - block_buffer;
     Crash_s::crash_block_t &crash_block = crash_s.crash_block[crash_index];
@@ -2025,7 +2026,7 @@ bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &targ
     previous_speed = current_speed;
     previous_nominal_speed = block->nominal_speed;
 
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     {
         const uint8_t crash_index = block - block_buffer;
         Crash_s::crash_block_t &crash_block = crash_s.crash_block[crash_index];
@@ -2213,7 +2214,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
   }
 #endif
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
   // Hints for the current segments might be reset during recovery
   const PlannerHints* segment_hints = &hints;
 
@@ -2319,7 +2320,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
   // Queue the movement. Return 'false' if the move was not queued.
   if (!_buffer_msteps(target, xyze
       , fr_mm_s, tools
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
       , *segment_hints
 #else
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -2338,7 +2339,7 @@ bool Planner::buffer_raw_segment(const MachinePosXYZE &xyze, const float acceler
         return false;
     }
 
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     {
         auto &move_start = crash_s.move_start;
         auto &gcode_state = crash_s.gcode_state;

@@ -1,8 +1,9 @@
 #pragma once
 #include "inc/MarlinConfigPre.h"
 #include <bsod/bsod.h>
+#include <option/has_crash_detection.h>
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 
     #include <array>
     #include <optional>
@@ -313,10 +314,10 @@ public:
     [[nodiscard]] bool get_orig_state() const { return orig_state; }
 };
 
-#else // ENABLED(CRASH_RECOVERY)
+#else
 // #error dead code found by automatic analyses (see BFW-5461)
 
-/// Stubs for printers without CRASH_RECOVERY support
+/// Stubs for printers without crash detection support
 static constexpr struct {
     static constexpr bool did_trigger() { return false; }
 } crash_s;

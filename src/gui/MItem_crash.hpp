@@ -10,6 +10,7 @@
 #include "feature/tmc_util.h"
 #include "i18n.h"
 #include "config_features.h"
+#include <option/has_crash_detection.h>
 
 class MI_CRASH_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
     constexpr static const char *const label = N_("Crash Detection");
@@ -47,7 +48,7 @@ public:
     virtual void OnClick() override;
 };
 
-#if ANY(CRASH_RECOVERY, POWER_PANIC)
+#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
 
 class MI_CRASH_MAX_PERIOD_X : public WiSpin {
 private:
@@ -110,4 +111,4 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
     #endif
-#endif // ANY(CRASH_RECOVERY, POWER_PANIC)
+#endif

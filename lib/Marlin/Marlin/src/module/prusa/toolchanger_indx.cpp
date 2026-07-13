@@ -4,6 +4,7 @@
 #include <tool_index.hpp>
 #include <module/endstops.h>
 
+#include <option/has_crash_detection.h>
 #include <option/has_toolchanger.h>
 #include <config_store/store_instance.hpp>
 #include <raii/scope_guard.hpp>
@@ -30,9 +31,9 @@
 #include <feature/indx_tool_lock_hack/indx_tool_lock_hack.hpp>
 #include <bsod/bsod.h>
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include "../../feature/prusa/crash_recovery.hpp"
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
 
 #if ENABLED(POWER_PANIC)
     #include <power_panic.hpp>
@@ -105,7 +106,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     ScopeGuard restore_block_tool_check([&]() {
         block_tool_check.store(false);
         phase_.store(ToolchangePhase::none, std::memory_order_release);
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         crash_s.set_toolchange_in_progress(false, false);
 #endif
     });
@@ -123,7 +124,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     // Publish toolchange-return data and the before_lock phase. Order matters (atomics synchronize).
     set_return_data({ new_tool, return_type, return_position.asLogical() });
     phase_.store(ToolchangePhase::before_lock, std::memory_order_release);
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     crash_s.set_toolchange_in_progress(true, planner.leveling_active);
 #endif
 

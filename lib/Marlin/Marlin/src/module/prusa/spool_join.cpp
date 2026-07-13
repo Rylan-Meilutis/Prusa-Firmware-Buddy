@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <option/has_crash_detection.h>
 #include <option/has_mmu2.h>
 #include <option/has_dwarf.h>
 #include "module/temperature.h"
@@ -41,7 +42,7 @@
     #include <feature/filament_tracker/filament_tracker.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
 #endif
 
@@ -273,7 +274,7 @@ bool SpoolJoin::do_join(VirtualToolIndex current_virtual_tool) {
     const auto orig_e_pos = current_position.e;
 
     bool should_park = true;
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     // Do not park/unpark during crash recovery (= gcode intterupt)
     // Crash recovery handles that
     should_park &= (crash_s.get_state() != Crash_s::RECOVERY);

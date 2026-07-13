@@ -15,6 +15,7 @@
 #include "screen_menu_tune.hpp"
 #include <guiconfig/guiconfig.h>
 #include <img_resources.hpp>
+#include <option/has_crash_detection.h>
 #include <option/has_human_interactions.h>
 #include <option/has_loadcell.h>
 #include <option/has_mmu2.h>
@@ -36,7 +37,7 @@
 
 #include "Marlin/src/module/motion.h"
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include "../Marlin/src/feature/prusa/crash_recovery.hpp"
 #endif
 

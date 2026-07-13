@@ -1,5 +1,6 @@
 #include "printer_state.hpp"
 #include "client_fsm_types.h"
+#include <option/has_crash_detection.h>
 #include <option/has_serial_print.h>
 #include "custom_uint31_t.hpp"
 
@@ -56,7 +57,7 @@ using std::tuple;
 
 namespace {
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 // FIXME: these are also caught by the switch statement above, is there any
 // harm in having it in both places? Maybe couple more bytes of flash will
 // be used, so should we just remove it and let the get_print_state handle
@@ -215,7 +216,7 @@ DeviceState get_state(bool ready) {
         } else {
             return DeviceState::Busy;
         }
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     case ClientFSM::CrashRecovery:
         if (crash_recovery_attention(GetEnumFromPhaseIndex<PhasesCrashRecovery>(data.GetPhase()))) {
             return DeviceState::Attention;
@@ -427,7 +428,7 @@ StateWithDialog get_state_with_dialog(bool ready) {
         return { state, ErrCode::CONNECT_QUICK_PAUSE, fsm_gen, available_responses };
         break;
     }
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     case ClientFSM::CrashRecovery:
         if (auto attention_code = crash_recovery_attention(GetEnumFromPhaseIndex<PhasesCrashRecovery>(data.GetPhase())); attention_code.has_value()) {
             const Response *available_responses = ClientResponses::get_available_responses(GetEnumFromPhaseIndex<PhasesCrashRecovery>(data.GetPhase())).data();

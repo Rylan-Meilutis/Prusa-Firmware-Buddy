@@ -1,5 +1,6 @@
 #include <common/fsm_states.hpp>
 
+#include <option/has_crash_detection.h>
 #include <option/has_esp.h>
 #include <option/has_serial_print.h>
 #include <option/has_phase_stepping_calibration.h>
@@ -45,7 +46,7 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
 
     case ClientFSM::Load_unload:
     case ClientFSM::Preheat:
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     case ClientFSM::CrashRecovery:
 #endif
     case ClientFSM::QuickPause:

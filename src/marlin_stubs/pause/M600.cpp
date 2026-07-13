@@ -30,6 +30,7 @@
 
 LOG_COMPONENT_REF(PRUSA_GCODE);
 
+#include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 static_assert(HAS_PAUSE());
 
@@ -54,9 +55,9 @@ static_assert(HAS_PAUSE());
     #include <module/prusa/spool_join.hpp>
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()

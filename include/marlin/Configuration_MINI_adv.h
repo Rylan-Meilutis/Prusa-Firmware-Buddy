@@ -971,8 +971,7 @@
      * Provides crash detection during printing and proper crash recovery.
      * Sensorless homing must be turned on and sensitivities set accordingly.
      */
-    #define CRASH_RECOVERY HAS_CRASH_DETECTION()
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
         #define CRASH_STALL_GUARD { 50, 40 }  // internal value representing sensitivity
         #define CRASH_MAX_PERIOD { 381, 381 } // (steps per tick) - reciprocal value of minimal speed
         #define CRASH_FILTER (false)          // Stallguard filtering for crash detection

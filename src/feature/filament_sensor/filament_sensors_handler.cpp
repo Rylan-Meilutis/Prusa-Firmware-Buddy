@@ -9,6 +9,7 @@
 #include <tasks.hpp>
 #include <logging/log.hpp>
 #include <marlin_server.hpp>
+#include <option/has_crash_detection.h>
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 
@@ -31,7 +32,7 @@
     #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
 #endif
 
@@ -219,7 +220,7 @@ void FilamentSensors::process_events() {
             return false;
         }
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         if (crash_s.get_state() != Crash_s::PRINTING) {
             // Only allow runouts in print and outside of crash recovery
             return false;

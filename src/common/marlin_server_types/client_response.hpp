@@ -17,11 +17,13 @@
 #include "client_fsm_types.h"
 #include "general_response.hpp"
 #include "printers.h"
+#include <inc/MarlinConfigPre.h>
 #include <utils/enum_array.hpp>
 #include <guiconfig/guiconfig.h>
 #include <option/filament_sensor.h>
 #include <option/has_attachable_accelerometer.h>
 #include <option/has_coldpull.h>
+#include <option/has_crash_detection.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_esp.h>
 #include <option/has_ht_hotend.h>
@@ -265,7 +267,7 @@ enum class PhaseNetworkSetup : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhaseNetworkSetup) { return ClientFSM::NetworkSetup; }
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 enum class PhasesCrashRecovery : PhaseUnderlyingType {
     check_X,
     check_Y,
@@ -659,7 +661,7 @@ inline constexpr EnumArray<PhaseNetworkSetup, PhaseResponses, CountPhases<PhaseN
 };
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 inline constexpr PhaseResponses CrashRecoveryResponses[] = {
     {}, // check X
     {}, // check Y

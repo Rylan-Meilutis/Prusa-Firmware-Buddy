@@ -14,6 +14,7 @@
 #include "MItem_mmu.hpp"
 #include <device/board.h>
 #include "config_features.h"
+#include <option/has_crash_detection.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_api.h>
 #include <option/has_loadcell.h>
@@ -117,10 +118,10 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_MMU_CUTTER,
     MI_MMU_INVOKE_MAINTENANCE,
 #endif // HAS_MMU2()
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     MI_CRASH_DETECTION,
     MI_CRASH_SENSITIVITY_XY,
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
     MI_USER_INTERFACE, MI_NETWORK,
 #if DEVELOPMENT_ITEMS()
     MI_HARDWARE_TUNE,

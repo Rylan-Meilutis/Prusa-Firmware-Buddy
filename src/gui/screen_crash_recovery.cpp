@@ -10,6 +10,7 @@
 #include "config_features.h"
 #include "img_resources.hpp"
 #include <guiconfig/guiconfig.h>
+#include <option/has_crash_detection.h>
 #include <option/has_side_leds.h>
 #include <find_error.hpp>
 
@@ -17,7 +18,7 @@
     #include <leds/side_strip_handler.hpp>
 #endif
 // TODO do it in cmake
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 
     #include "screen_crash_recovery.hpp"
     #include "i18n.h"
@@ -414,4 +415,4 @@ void ScreenCrashRecovery::change_phase(PhasesCrashRecovery new_phase) {
     }
 }
 
-#endif // ENABLED(CRASH_RECOVERY)
+#endif

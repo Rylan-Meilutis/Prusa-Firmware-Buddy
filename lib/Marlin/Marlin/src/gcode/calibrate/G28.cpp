@@ -30,6 +30,7 @@
 #include "../../module/endstops.h"
 #include "../../module/planner.h"
 #include "../../module/stepper.h" // for various
+#include <option/has_crash_detection.h>
 
 #if HAS_MULTI_HOTEND
   #include "../../module/tool_change.h"
@@ -48,7 +49,7 @@
   #include "../../feature/motordriver_util.h"
 #endif
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
   #include "../../feature/prusa/crash_recovery.hpp"
 #endif
 
@@ -142,9 +143,9 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
     const float fr_mm_s = SQRT(sq(homing_feedrate(X_AXIS)) + sq(homing_feedrate(Y_AXIS)));
 
     #if ENABLED(SENSORLESS_HOMING)
-      #if ENABLED(CRASH_RECOVERY)
+      #if HAS_CRASH_DETECTION()
         Crash_Temporary_Deactivate ctd;
-      #endif // ENABLED(CRASH_RECOVERY)
+      #endif
 
       sensorless_t stealth_states {
         NUM_AXIS_LIST(
@@ -156,7 +157,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
         , 0
       };
 
-      #if ENABLED(CRASH_RECOVERY)
+      #if HAS_CRASH_DETECTION()
         // Technically we should call end_sensorless_homing_per_axis() after
         // the move, but what follows is homing anyway, so it's not needed.
         crash_s.start_sensorless_homing_per_axis(X_AXIS);
@@ -177,7 +178,7 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
     }
 
     #if ENABLED(SENSORLESS_HOMING)
-      #if ANY(ENDSTOPS_ALWAYS_ON_DEFAULT, CRASH_RECOVERY)
+      #if ENABLED(ENDSTOPS_ALWAYS_ON_DEFAULT) || HAS_CRASH_DETECTION()
         UNUSED(stealth_states);
       #else
         // #error dead code found by automatic analyses (see BFW-5461)
@@ -369,7 +370,7 @@ void GcodeSuite::G28() {
     X = Y = Z = true;
   }
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     const bool all_axes = (X && Y && Z);
     if (all_axes) {
       // Skip all recovery when homing all axes

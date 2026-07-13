@@ -49,6 +49,7 @@
 #endif
 
 #include "../feature/print_area.h"
+#include <option/has_crash_detection.h>
 
 #if ENABLED(BLTOUCH)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -66,9 +67,9 @@
 #if ENABLED(SENSORLESS_HOMING)
   #include "../feature/motordriver_util.h"
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     #include "../feature/prusa/crash_recovery.hpp"
-  #endif // ENABLED(CRASH_RECOVERY)
+  #endif
 #endif
 
 #if HAS_PRECISE_HOMING()
@@ -558,7 +559,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
         default: break;
         #if X_SENSORLESS
           case X_AXIS:
-            #if ENABLED(CRASH_RECOVERY)
+            #if HAS_CRASH_DETECTION()
               crash_s.start_sensorless_homing_per_axis(axis);
             #endif
 
@@ -573,7 +574,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
         #endif
         #if Y_SENSORLESS
           case Y_AXIS:
-            #if ENABLED(CRASH_RECOVERY)
+            #if HAS_CRASH_DETECTION()
               crash_s.start_sensorless_homing_per_axis(axis);
             #endif
 
@@ -639,7 +640,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
         default: break;
         #if X_SENSORLESS
           case X_AXIS:
-            #if ENABLED(CRASH_RECOVERY)
+            #if HAS_CRASH_DETECTION()
               crash_s.end_sensorless_homing_per_axis(axis, enable_stealth.x);
             #else
               // #error dead code found by automatic analyses (see BFW-5461)
@@ -651,12 +652,12 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
                 // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(Z_AXIS, enable_stealth.z);
               #endif
-            #endif // ENABLED(CRASH_RECOVERY)
+            #endif
           break;
         #endif
         #if Y_SENSORLESS
           case Y_AXIS:
-            #if ENABLED(CRASH_RECOVERY)
+            #if HAS_CRASH_DETECTION()
               crash_s.end_sensorless_homing_per_axis(axis, enable_stealth.y);
             #else
               // #error dead code found by automatic analyses (see BFW-5461)
@@ -668,7 +669,7 @@ feedRate_t get_homing_bump_feedrate(const AxisEnum axis) {
                 // #error dead code found by automatic analyses (see BFW-5461)
                 disable_crash_detection(Z_AXIS, enable_stealth.z);
               #endif
-            #endif // ENABLED(CRASH_RECOVERY)
+            #endif
           break;
         #endif
         #if Z_SENSORLESS
@@ -1032,7 +1033,7 @@ METRIC_DEF(metric_home_diff, "home_diff", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED
  * @param recover_z true if failed during Z homing and should rehome Z
  */
 void homing_failed(stdext::inplace_function<void()> fallback_error, [[maybe_unused]] bool crash_was_active, bool recover_z) {
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     const bool is_active = crash_s.is_active();
     if ((is_active || crash_was_active) // Allow if crash recovery was temporarily disabled
       && (crash_s.get_state() == Crash_s::PRINTING)) {
@@ -1058,7 +1059,7 @@ void homing_failed(stdext::inplace_function<void()> fallback_error, [[maybe_unus
       || (crash_s.get_state() == Crash_s::REPEAT_WAIT)) {
       return; // Ignore
     }
-  #endif /*ENABLED(CRASH_RECOVERY)*/
+  #endif
 
   fallback_error();
 }
@@ -1090,14 +1091,14 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
   // clear the axis state while running
   axes_home_level[axis] = AxisHomeLevel::not_homed;
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     crash_s.not_for_replay();
     Crash_Temporary_Deactivate ctd;
     const bool orig_crash [[maybe_unused]] = ctd.get_orig_state();
-  #else /*ENABLED(CRASH_RECOVERY)*/
+  #else
     // #error dead code found by automatic analyses (see BFW-5461)
     constexpr bool orig_crash [[maybe_unused]] = false;
-  #endif /*ENABLED(CRASH_RECOVERY)*/
+  #endif
 
   #define _CAN_HOME(A) \
     (axis == _AXIS(A) && ((A##_MIN_PIN > -1 && A##_HOME_DIR < 0) || (A##_MAX_PIN > -1 && A##_HOME_DIR > 0)))

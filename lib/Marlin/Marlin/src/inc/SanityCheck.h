@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <option/has_crash_detection.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_toolchanger.h>
 #include <option/has_gcode_compatibility.h>
@@ -1179,12 +1180,12 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
   #endif
 #endif
 
-#if ENABLED(POWER_PANIC) && DISABLED(CRASH_RECOVERY)
-  #error "POWER_PANIC requires CRASH_RECOVERY."
+#if ENABLED(POWER_PANIC) && !HAS_CRASH_DETECTION()
+  #error "POWER_PANIC requires HAS_CRASH_DETECTION."
 #endif
 
-#if ENABLED(AXIS_MEASURE) && DISABLED(CRASH_RECOVERY)
-  #error "AXIS_MEASURE requires CRASH_RECOVERY."
+#if ENABLED(AXIS_MEASURE) && !HAS_CRASH_DETECTION()
+  #error "AXIS_MEASURE requires HAS_CRASH_DETECTION."
 #endif
 
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)

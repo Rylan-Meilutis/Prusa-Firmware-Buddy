@@ -1,4 +1,5 @@
 #include "client_response.hpp"
+#include <option/has_crash_detection.h>
 #include <option/has_serial_print.h>
 #include <option/has_manual_belt_tuning.h>
 #include <fsm/safety_timer_phases.hpp>
@@ -40,7 +41,7 @@ constinit const EnumArray<ClientFSM, std::span<const PhaseResponses>, ClientFSM:
         { ClientFSM::NetworkSetup, network_setup_responses },
 #endif
         { ClientFSM::Printing, {} },
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
         { ClientFSM::CrashRecovery, CrashRecoveryResponses },
 #endif
         { ClientFSM::QuickPause, QuickPauseResponses },

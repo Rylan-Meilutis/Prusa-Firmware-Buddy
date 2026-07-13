@@ -22,6 +22,7 @@
 
 #include "../../../inc/MarlinConfig.h"
 #include "config_store/store_instance.hpp"
+#include <option/has_crash_detection.h>
 
 #if ENABLED(AUTO_BED_LEVELING_UBL)
 
@@ -58,7 +59,7 @@
     #include "../../../lcd/extensible_ui/ui_api.h"
   #endif
 
-  #if ENABLED(CRASH_RECOVERY)
+  #if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
   #endif
   #if ENABLED(POWER_PANIC)
@@ -471,7 +472,7 @@
               SERIAL_ECHOLNPGM("Mesh invalidated. Probing mesh.");
             }
 
-            #if ENABLED(CRASH_RECOVERY)
+            #if HAS_CRASH_DETECTION()
               // we're going to move to an absolute position: inhibit XYZ repositioning
               crash_s.set_gcode_replay_flags(Crash_s::RECOVER_AXIS_STATE);
             #endif
@@ -571,7 +572,7 @@
         #if ENABLED(NOZZLE_LOAD_CELL) && ENABLED(PROBE_CLEANUP_SUPPORT)
           case 9: {
             if (g29_size_seen && (xy_seen.x || xy_seen.y)) {
-              #if ENABLED(CRASH_RECOVERY)
+              #if HAS_CRASH_DETECTION()
                 // we're going to move to an absolute position: inhibit XYZ repositioning
                 crash_s.set_gcode_replay_flags(Crash_s::RECOVER_AXIS_STATE);
               #endif

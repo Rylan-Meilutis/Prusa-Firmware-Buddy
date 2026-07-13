@@ -1,6 +1,7 @@
 #include "inc/MarlinConfigPre.h"
+#include <option/has_crash_detection.h>
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
 
     #include "../../module/stepper.h"
     #include "../../feature/motordriver_util.h"
@@ -462,4 +463,4 @@ void Crash_s::set_filter(bool on) {
     update_machine();
 }
     #endif /*HAS_DRIVER(TMC2130)*/
-#endif // ENABLED(CRASH_RECOVERY)
+#endif

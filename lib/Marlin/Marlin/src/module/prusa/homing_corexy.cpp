@@ -8,6 +8,7 @@
 #include "corexy_transform.hpp"
 
 // sanity checks
+#include <option/has_crash_detection.h>
 #include <option/has_precise_homing.h>
 #if HAS_PRECISE_HOMING()
     #error "HAS_PRECISE_HOMING_COREXY() is mutually exclusive with HAS_PRECISE_HOMING()"
@@ -27,7 +28,7 @@
 #include <lcd/ultralcd.h>
 #include <configuration.hpp> // for axis_home_*_diff
 
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     #include "feature/prusa/crash_recovery.hpp"
 #endif
 
@@ -1160,10 +1161,10 @@ bool corexy_sens_calibrate(const float fr_mm_s) {
 
     // finish previous moves and disable main endstop/crash recovery handling
     planner.synchronize();
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     crash_s.not_for_replay();
     Crash_Temporary_Deactivate ctd;
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
 
     // disable endstops locally
     const bool endstops_enabled = endstops.is_enabled();
@@ -1196,10 +1197,10 @@ bool corexy_home_refine(float fr_mm_s, CoreXYCalibrationMode mode) {
 
     // finish previous moves and disable main endstop/crash recovery handling
     planner.synchronize();
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     crash_s.not_for_replay();
     Crash_Temporary_Deactivate ctd;
-#endif /*ENABLED(CRASH_RECOVERY)*/
+#endif
 
     // disable endstops locally
     const bool endstops_enabled = endstops.is_enabled();

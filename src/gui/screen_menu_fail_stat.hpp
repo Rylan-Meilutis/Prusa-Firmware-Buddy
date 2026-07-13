@@ -8,6 +8,7 @@
 #include "MItem_crash.hpp"
 #include "MItem_mmu.hpp"
 #include "MItem_menus.hpp"
+#include <option/has_crash_detection.h>
 #include <option/has_mmu2.h>
 #include <option/has_indx.h>
 
@@ -20,10 +21,10 @@ using ScreenMenuFailStat__ = ScreenMenu<EFooter::On, MI_RETURN
     ,
     MI_POWER_PANICS /*filament runout,*/
 #endif // ENABLED(POWER_PANIC)
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     ,
     MI_CRASHES_X_LAST, MI_CRASHES_Y_LAST, MI_CRASHES_X, MI_CRASHES_Y
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 #if HAS_MMU2()
     ,
     MI_MMU_LOAD_FAILS, MI_MMU_TOTAL_LOAD_FAILS, MI_MMU_GENERAL_FAILS, MI_MMU_TOTAL_GENERAL_FAILS

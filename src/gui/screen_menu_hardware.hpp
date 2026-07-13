@@ -8,6 +8,7 @@
 #include <basic_screen_menu.hpp>
 #include <common/extended_printer_type.hpp>
 #include <option/has_auto_retract.h>
+#include <option/has_crash_detection.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_vents.h>
 #include <option/has_mmu2.h>
@@ -42,12 +43,12 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 // ================================
 // Motion related
 // ================================
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     MI_CRASH_SENSITIVITY_XY, MI_CRASH_MAX_PERIOD_X, MI_CRASH_MAX_PERIOD_Y,
     #if HAS_DRIVER(TMC2130)
     MI_CRASH_FILTERING,
     #endif
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
 #if HAS_EMERGENCY_STOP()
     MI_EMERGENCY_STOP_ENABLE,
 #endif

@@ -12,6 +12,7 @@
 
 #include "measure_axis.h"
 #include "../motordriver_util.h"
+#include <option/has_crash_detection.h>
 
 #if ENABLED(AXIS_MEASURE)
 
@@ -162,7 +163,7 @@ void Measure_axis::save_length(AxisEnum axis) {
 }
 
 void Measure_axis::finish() {
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     crash_s.activate();
     #endif
     sync_plan_position();
@@ -237,7 +238,7 @@ void Measure_axis::state_finish() {
         mp = reset_acceleration_if(default_acceleration);
         endstops.enable(true); //< Enable endstops for homing moves
         current = reset_current_if(default_current);
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
         crash_s.deactivate();
     #endif
         break;

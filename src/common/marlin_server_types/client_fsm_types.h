@@ -1,5 +1,6 @@
 #pragma once
 
+#include <option/has_crash_detection.h>
 #include <option/has_dwarf.h>
 #include <option/has_esp.h>
 #include <option/has_gearbox_alignment.h>
@@ -17,8 +18,6 @@
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_serial_print.h>
 #include <option/has_indx.h>
-
-#include <inc/MarlinConfigPre.h>
 
 #include <stdint.h>
 #include <utils/utility_extensions.hpp>
@@ -43,7 +42,7 @@ enum class ClientFSM : uint8_t {
     NetworkSetup,
     #endif
     Printing, // not a dialog
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     CrashRecovery,
     #endif
     QuickPause,

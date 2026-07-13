@@ -3,6 +3,7 @@
 #include "module/tool_change.h"
 #include "utils/overloaded_visitor.hpp"
 
+#include <option/has_crash_detection.h>
 #include <option/has_toolchanger.h>
 #include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
@@ -21,9 +22,9 @@
     #include <mapi/motion.hpp>
     #include <raii/scope_guard.hpp>
 
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
         #include "../../feature/prusa/crash_recovery.hpp"
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
 
     #if DISABLED(ARC_SUPPORT)
         #error "toolchanger requires ARC_SUPPORT"
@@ -184,14 +185,14 @@ bool PrusaToolChanger::pick_any_tool(tool_return_t return_type, xyz_pos_t return
 }
 
 bool PrusaToolChanger::check_emergency_stop() {
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     if (crash_s.get_state() == Crash_s::TRIGGERED_AC_FAULT) {
         return true; // Powerpanic happened, do not move and quit as soon as possible
     }
     if (quick_stopped) {
         return true; // Movements quick stoped, avoid errors that result from interrupted tool-change moves
     }
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
     return false;
 }
 
@@ -260,17 +261,17 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     //  and reset on return from this function
     const bool levelling_active = planner.leveling_active;
     block_tool_check = true;
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     // Mark toolchange in progress first, to be consistent if ISR comes
     crash_s.set_toolchange_in_progress(true, levelling_active);
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
     conf_restorer.sample();
     set_bed_leveling_enabled(false);
     ScopeGuard resetter = [&] {
         block_tool_check = false;
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
         crash_s.set_toolchange_in_progress(false, levelling_active);
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
         conf_restorer.restore_clear();
         set_bed_leveling_enabled(levelling_active);
         picked_update = false; // Wait for update before checking toolfall
@@ -390,7 +391,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
 }
 
 bool PrusaToolChanger::check_skipped_step() {
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     if (crash_s.get_state() == Crash_s::TRIGGERED_TOOLCRASH) {
         // Force rehome
         axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;
@@ -402,7 +403,7 @@ bool PrusaToolChanger::check_skipped_step() {
             return false;
         }
     }
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
 
     return true;
 }
@@ -434,7 +435,7 @@ void PrusaToolChanger::toolcheck_enable() {
 }
 
 void PrusaToolChanger::toolcrash() {
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     if (crash_s.is_active() && (crash_s.get_state() == Crash_s::PRINTING)) {
         crash_s.set_state(Crash_s::TRIGGERED_TOOLCRASH); // Trigger recovery process
         return;
@@ -450,14 +451,14 @@ void PrusaToolChanger::toolcrash() {
         || quick_stopped) {
         return; // Ignore
     }
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
 
     // Can happen if toolchange is a part of replay, would need a bigger change in crash_recovery.cpp
     toolchanger_error("Tool crashed");
 }
 
 void PrusaToolChanger::toolfall() {
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     if (crash_s.is_active() && (crash_s.get_state() == Crash_s::PRINTING)) {
         crash_s.set_state(Crash_s::TRIGGERED_TOOLFALL);
         return;
@@ -467,7 +468,7 @@ void PrusaToolChanger::toolfall() {
         || (crash_s.get_state() == Crash_s::IDLE)) { // Print ended
         return;
     }
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
 
     // Can be called when starting the print, not a big problem
     // Can happen if tool falls of during recovery, homing or reheating, would need a bigger change in crash_recovery.cpp
@@ -566,9 +567,9 @@ void PrusaToolChanger::loop(bool printing, bool paused) {
 
         // Check that all tools are where they should be
         if (printing // Only while printing
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
             && (crash_s.get_state() == Crash_s::PRINTING) // Do not check during crash recovery
-    #endif /*ENABLED(CRASH_RECOVERY)*/
+    #endif
             && !Pause::Instance().get_mode().has_value()) { // Do not check during filament change
             bool all_good = true;
             if (picked != active) {
@@ -722,7 +723,7 @@ bool PrusaToolChanger::align_locks() {
         return true; // It would catapult picked dwarf
     }
 
-    #if ENABLED(CRASH_RECOVERY)
+    #if HAS_CRASH_DETECTION()
     // Disable crash detection, would result in bsod, this is followed by homing anyway
     Crash_Temporary_Deactivate ctd;
     #endif

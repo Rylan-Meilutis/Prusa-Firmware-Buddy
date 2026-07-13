@@ -7,6 +7,7 @@
 #include "knob_event.hpp"
 #include "MItem_crash.hpp"
 #include "Configuration_adv.h"
+#include <option/has_crash_detection.h>
 #include <option/has_mmu2.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_indx.h>
@@ -75,9 +76,9 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #if HAS_CHAMBER_FILTRATION_API()
     MI_CHAMBER_FILTRATION,
 #endif
-#if ENABLED(CRASH_RECOVERY)
+#if HAS_CRASH_DETECTION()
     MI_CRASH_DETECTION,
-#endif // ENABLED(CRASH_RECOVERY)
+#endif
     MI_LANG_AND_TIME,
     MI_HARDWARE,
 #if DEVELOPMENT_ITEMS()
