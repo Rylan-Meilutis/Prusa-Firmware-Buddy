@@ -7,6 +7,7 @@
 #include "MItem_crash.hpp"
 #include <basic_screen_menu.hpp>
 #include <common/extended_printer_type.hpp>
+#include <common/printer_variant/printer_variant.hpp>
 #include <option/has_auto_retract.h>
 #include <option/has_crash_detection.h>
 #include <option/has_emergency_stop.h>
@@ -33,6 +34,9 @@
 using ScreenMenuHardwareBase = BasicScreenMenu<
 #if HAS_EXTENDED_PRINTER_TYPE()
     MI_EXTENDED_PRINTER_TYPE,
+#endif
+#if HAS_PRINTER_VARIANT()
+    MI_PRINTER_VARIANT,
 #endif
 
 // ================================
