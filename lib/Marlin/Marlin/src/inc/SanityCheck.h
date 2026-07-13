@@ -22,6 +22,7 @@
 #pragma once
 
 #include <option/has_crash_detection.h>
+#include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_remote_accelerometer.h>
 #include <option/has_toolchanger.h>
@@ -1181,8 +1182,8 @@ static_assert(   _ARR_TEST(3,0) && _ARR_TEST(3,1) && _ARR_TEST(3,2)
   #endif
 #endif
 
-#if ENABLED(POWER_PANIC) && !HAS_CRASH_DETECTION()
-  #error "POWER_PANIC requires HAS_CRASH_DETECTION."
+#if HAS_POWER_PANIC() && !HAS_CRASH_DETECTION()
+  #error "HAS_POWER_PANIC requires HAS_CRASH_DETECTION."
 #endif
 
 #if ENABLED(AXIS_MEASURE) && !HAS_CRASH_DETECTION()

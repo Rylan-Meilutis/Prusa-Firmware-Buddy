@@ -41,6 +41,7 @@
 #include "Marlin/src/module/planner.h"
 #include <option/filament_sensor.h>
 
+#include <option/has_power_panic.h>
 #include <option/has_usb_device.h>
 #if HAS_USB_DEVICE()
     #include <tusb.h>
@@ -81,7 +82,7 @@
 LOG_COMPONENT_REF(MMU2);
 LOG_COMPONENT_REF(Marlin);
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #include "power_panic.hpp"
 #endif
 

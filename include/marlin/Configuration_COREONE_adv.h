@@ -968,8 +968,7 @@
  * Recovery from power failure. This is a distinct implementation from
  * POWER_LOSS_RECOVERY specific to Prusa printers.
  */
-#define POWER_PANIC HAS_POWER_PANIC()
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #define POWER_PANIC_Z_LIFT_CYCLES 4 // 4xFullStep cycles = ~0.64mm
     #define POWER_PANIC_MAX_BED_DIFF 10 // Maximum bed temperature (C) difference for auto-recovery
 

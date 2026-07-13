@@ -78,6 +78,7 @@
     #include <feature/cancel_object/cancel_object.hpp>
 #endif
 
+#include <option/has_power_panic.h>
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
     #include "module/prusa/spool_join.hpp"
@@ -158,7 +159,7 @@
     #include "crash_recovery_type.hpp"
 #endif
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #include "power_panic.hpp"
     #include "power_panic_storage.hpp"
 #endif
@@ -1055,7 +1056,7 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
 }
 
 void static finalize_print(bool finished) {
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     power_panic::reset();
 #endif
 
@@ -1154,12 +1155,12 @@ void static finalize_print(bool finished) {
     SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
 }
 
-#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
+#if HAS_CRASH_DETECTION() || HAS_POWER_PANIC()
 static void check_crash() {
     // reset the nested loop check once per main server iteration
     crash_s.needs_stack_unwind = false;
 
-    #if ENABLED(POWER_PANIC)
+    #if HAS_POWER_PANIC()
     // handle server state-change overrides happening in the ISRs here (and nowhere else)
     if (power_panic::panic_is_active()) {
         server.print_state = State::PowerPanic_acFault;
@@ -1203,7 +1204,7 @@ void loop() {
     }
 #endif
 
-#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
+#if HAS_CRASH_DETECTION() || HAS_POWER_PANIC()
     check_crash();
 #endif
 
@@ -1561,7 +1562,7 @@ void print_abort(void) {
 
     switch (server.print_state) {
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     case State::PowerPanic_Resume:
     case State::PowerPanic_AwaitingResume:
 #endif
@@ -1597,7 +1598,7 @@ void print_abort(void) {
 void print_exit(void) {
     switch (server.print_state) {
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     case State::PowerPanic_Resume:
     case State::PowerPanic_AwaitingResume:
 #endif
@@ -1883,7 +1884,7 @@ void update_sfn() {
     marlin_vars().media_SFN_path.set(d.filepath_sfn.get());
     GCodeInfo::getInstance().set_gcode_file(d.filepath_sfn.get(), d.lfn);
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     power_panic::refresh_sfn();
 #endif
 }
@@ -1908,7 +1909,7 @@ void print_resume(void) {
     } else if (is_pausing_state(server.print_state)) {
         print_state.resume_pending = true;
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     } else if (server.print_state == State::PowerPanic_AwaitingResume) {
         power_panic::resume_continue();
         server.print_state = State::PowerPanic_Resume;
@@ -1935,7 +1936,7 @@ void try_recover_from_media_error() {
     }
 }
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
 void powerpanic_resume(const char *media_SFN_path, const GCodeReaderPosition &resume_pos, bool auto_recover) {
     print_start(media_SFN_path, resume_pos, marlin_server::PreviewSkipIfAble::all);
     crash_s.set_state(Crash_s::PRINTING);
@@ -3075,7 +3076,7 @@ static void _server_print_loop(void) {
         break;
     }
 #endif
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     case State::PowerPanic_acFault:
         power_panic::panic_loop();
         break;
@@ -3083,7 +3084,7 @@ static void _server_print_loop(void) {
     case State::PowerPanic_Resume:
         power_panic::resume_loop();
         break;
-#endif // ENABLED(POWER_PANIC)
+#endif
     default:
         break;
     }

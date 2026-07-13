@@ -1,6 +1,7 @@
 #include "config_features.h"
 #include <gui/menu_vars.h>
 #include <option/has_crash_detection.h>
+#include <option/has_power_panic.h>
 
 // TODO do it in cmake
 #if HAS_CRASH_DETECTION()
@@ -96,7 +97,7 @@ void MI_CRASH_MAX_PERIOD_Y::OnClick() {
 
 #endif
 
-#if HAS_CRASH_DETECTION() || ENABLED(POWER_PANIC)
+#if HAS_CRASH_DETECTION() || HAS_POWER_PANIC()
 
 MI_POWER_PANICS::MI_POWER_PANICS()
     : WI_INFO_t(config_store().power_panics_count.get(), _(label)) {}

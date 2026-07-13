@@ -41,6 +41,7 @@
 #include <buddy/logging.h>
 #include <i2c.hpp>
 #include <option/buddy_enable_connect.h>
+#include <option/has_power_panic.h>
 #include <option/has_puppies.h>
 #include <option/has_puppies_bootloader.h>
 #include <option/filament_sensor.h>

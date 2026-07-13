@@ -1,6 +1,7 @@
 #include "printer_state.hpp"
 #include "client_fsm_types.h"
 #include <option/has_crash_detection.h>
+#include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_serial_print.h>
 #include "custom_uint31_t.hpp"
@@ -612,7 +613,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
     case WarningType::ActionSelftestRequired:
         return ErrCode::ERR_SYSTEM_ACTION_SELFTEST_REQUIRED;
 #endif
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     case WarningType::HeatbedColdAfterPP:
         return ErrCode::CONNECT_POWER_PANIC_COLD_BED;
 #endif

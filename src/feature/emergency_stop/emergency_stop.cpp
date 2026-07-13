@@ -14,6 +14,7 @@
 #include <raii/auto_restore.hpp>
 #include <raii/scope_guard.hpp>
 #include <bsod/bsod.h>
+#include <option/has_power_panic.h>
 
 LOG_COMPONENT_DEF(EmergencyStop, logging::Severity::debug);
 
@@ -74,7 +75,7 @@ void EmergencyStop::invoke_emergency() {
         // Except we don't trigger the endstop, so the probing will be reported as failed
         PreciseStepping::quick_stop();
     }
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     else if (!power_panic::ac_fault_triggered) {
         log_info(EmergencyStop, "PP");
         // Do a "synthetic" power panic. Should stop _right now_ and reboot, then we'll deal with the consequences.
@@ -208,7 +209,7 @@ void EmergencyStop::check_z_limits() {
     }
     const int32_t difference = std::abs(emergency_start_z - current_z());
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     // Loop-driven stop didn't act in time (stalled loop). Escalate from the ISR
     // - unlike the BSOD this can still recover the print.
     if (difference > escalate_steps && !power_panic::ac_fault_triggered) {

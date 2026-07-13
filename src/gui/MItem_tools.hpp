@@ -17,6 +17,7 @@
 #include <option/has_filament_sensors_menu.h>
 #include <option/has_coldpull.h>
 #include <option/has_leds.h>
+#include <option/has_power_panic.h>
 #include <option/has_side_leds.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_auto_retract.h>
@@ -541,7 +542,7 @@ public:
 };
 #endif
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
 class MI_TRIGGER_POWER_PANIC : public IWindowMenuItem {
     static constexpr const char *const label = N_("Trigger Power Panic");
 

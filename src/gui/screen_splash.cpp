@@ -21,6 +21,7 @@
 
 #include <option/bootloader.h>
 #include <option/developer_mode.h>
+#include <option/has_power_panic.h>
 #include <option/has_translations.h>
 #include <gui/screen_printer_setup.hpp>
 #include <option/has_emergency_stop.h>
@@ -44,7 +45,7 @@
     #include <hw/touchscreen/touchscreen.hpp>
 #endif // HAS_TOUCH
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #include "power_panic.hpp"
 #endif
 
@@ -87,7 +88,7 @@ ScreenSplash::ScreenSplash()
     text_progress.SetText(string_view_utf8::MakeRAM(text_progress_buffer));
     progress.set_progress_percent(50);
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     // don't present any screen or wizard if there is a powerpanic pending
     if (power_panic::state_stored()) {
         return;

@@ -15,9 +15,10 @@
 #include "position_lookback.hpp"
 #include "bsod.h"
 #include "config_features.h"
-#if ENABLED(POWER_PANIC)
+#include <option/has_power_panic.h>
+#if HAS_POWER_PANIC()
     #include "power_panic.hpp"
-#endif // POWER_PANIC
+#endif
 #include "../Marlin/src/module/planner.h"
 #include "../Marlin/src/module/endstops.h"
 #include "../Marlin/src/feature/precise_stepping/precise_stepping.hpp"

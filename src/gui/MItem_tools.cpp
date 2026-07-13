@@ -32,6 +32,7 @@
 #include <option/bootloader.h>
 #include <option/filament_sensor.h>
 #include <option/has_indx.h>
+#include <option/has_power_panic.h>
 #include <option/has_side_leds.h>
 #include <option/has_coldpull.h>
 #include <option/has_auto_retract.h>
@@ -887,7 +888,7 @@ void MI_TOOL_LEDS_ENABLE::OnChange(size_t old_index) {
 #endif
 
 /*****************************************************************************/
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
 MI_TRIGGER_POWER_PANIC::MI_TRIGGER_POWER_PANIC()
     : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::dev, expands_t::no) {
 }

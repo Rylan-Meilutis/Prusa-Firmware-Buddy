@@ -18,6 +18,7 @@
 #include <option/has_emergency_stop.h>
 #include <option/has_chamber_api.h>
 #include <option/has_loadcell.h>
+#include <option/has_power_panic.h>
 #include <option/has_toolchanger.h>
 #include <option/has_mmu2.h>
 #include <option/xbuddy_extension_variant.h>
@@ -127,7 +128,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_HARDWARE_TUNE,
 #endif
     MI_TIMEZONE, MI_TIMEZONE_MIN, MI_TIMEZONE_SUMMER, MI_INFO,
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     MI_TRIGGER_POWER_PANIC,
 #endif
     MI_MESSAGES>;

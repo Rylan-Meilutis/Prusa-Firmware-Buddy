@@ -23,6 +23,7 @@
 #include "../../../inc/MarlinConfig.h"
 #include "config_store/store_instance.hpp"
 #include <option/has_crash_detection.h>
+#include <option/has_power_panic.h>
 
 #if ENABLED(AUTO_BED_LEVELING_UBL)
 
@@ -62,7 +63,7 @@
   #if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
   #endif
-  #if ENABLED(POWER_PANIC)
+  #if HAS_POWER_PANIC()
     #include "power_panic.hpp"
   #endif
 
@@ -898,7 +899,7 @@
       set_bed_leveling_enabled(true);
       report_state();
 
-      #if ENABLED(POWER_PANIC)
+      #if HAS_POWER_PANIC()
       // prepare for PP only when successful
       if (!planner.draining())
         power_panic::prepare();

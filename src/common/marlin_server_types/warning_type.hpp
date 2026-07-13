@@ -4,6 +4,7 @@
 #include <inc/MarlinConfigPre.h>
 #include <guiconfig/guiconfig.h>
 #include <option/has_chamber_vents.h>
+#include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_filtration_api.h>
@@ -55,7 +56,7 @@ enum class WarningType : uint32_t {
     SelftestNotSuccessfullyCompleted,
     ActionSelftestRequired,
 #endif
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     HeatbedColdAfterPP,
 #endif
     HeatBreakThermistorFail,

@@ -4,6 +4,7 @@
 #include "file_sort.hpp"
 
 #include "config.h"
+#include <option/has_power_panic.h>
 #include <option/signature_oak.h>
 
 #include "marlin_client.hpp"
@@ -16,7 +17,7 @@
 #include <wui_api.h>
 #include <version/version.hpp>
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #include "power_panic.hpp"
 #endif
 
@@ -486,9 +487,9 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
     if (event == GUI_event_t::LOOP) {
         filamentBtnSetState();
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
         if (TaskDeps::check(TaskDeps::Dependency::autostart_done) && !power_panic::is_power_panic_resuming())
-#endif // ENABLED(POWER_PANIC)
+#endif
         { // every time usb is inserted we check wifi credentials
             if (usbInserted) {
                 if (need_check_wifi_credentials) {
@@ -503,9 +504,9 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
 #if HAS_SELFTEST()
         if (!DialogHandler::Access().IsOpen()) {
             if (HAS_HUMAN_INTERACTIONS() &&
-    #if ENABLED(POWER_PANIC)
+    #if HAS_POWER_PANIC()
                 TaskDeps::check(TaskDeps::Dependency::autostart_done) && !power_panic::is_power_panic_resuming() &&
-    #endif // ENABLED(POWER_PANIC)
+    #endif
                 GuiMediaEventsHandler::ConsumeOneClickPrinting() && !usbh_power_cycle::block_one_click_print()) {
                 // TODO this should be done in main thread before Event::MediaInserted is generated
                 // if it is not the latest gcode might not be selected

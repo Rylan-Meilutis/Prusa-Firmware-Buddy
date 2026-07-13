@@ -11,16 +11,17 @@
 #include <option/has_crash_detection.h>
 #include <option/has_mmu2.h>
 #include <option/has_indx.h>
+#include <option/has_power_panic.h>
 
 #if HAS_INDX()
     #include "MItem_tools.hpp"
 #endif
 
 using ScreenMenuFailStat__ = ScreenMenu<EFooter::On, MI_RETURN
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     ,
     MI_POWER_PANICS /*filament runout,*/
-#endif // ENABLED(POWER_PANIC)
+#endif
 #if HAS_CRASH_DETECTION()
     ,
     MI_CRASHES_X_LAST, MI_CRASHES_Y_LAST, MI_CRASHES_X, MI_CRASHES_Y

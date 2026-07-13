@@ -5,6 +5,7 @@
 #include <module/endstops.h>
 
 #include <option/has_crash_detection.h>
+#include <option/has_power_panic.h>
 #include <option/has_toolchanger.h>
 #include <config_store/store_instance.hpp>
 #include <raii/scope_guard.hpp>
@@ -35,10 +36,10 @@
     #include "../../feature/prusa/crash_recovery.hpp"
 #endif
 
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     #include <power_panic.hpp>
     #include <tasks.hpp>
-#endif /*ENABLED(POWER_PANIC)*/
+#endif
 
 #if DISABLED(ARC_SUPPORT)
     #error "toolchanger requires ARC_SUPPORT"
@@ -211,7 +212,7 @@ static void lower_bed_for_pickup() {
 }
 
 void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
-#if ENABLED(POWER_PANIC)
+#if HAS_POWER_PANIC()
     // Stored panic data + autostart not yet done = resume decision pending.
     // EEPROM is intentionally stale during prints, so this check would false-fire here.
     if (!TaskDeps::check(TaskDeps::Dependency::autostart_done)
