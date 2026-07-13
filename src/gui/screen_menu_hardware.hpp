@@ -30,7 +30,6 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 #if HAS_EXTENDED_PRINTER_TYPE()
     MI_EXTENDED_PRINTER_TYPE,
 #endif
-    MI_TOOLHEAD_SETTINGS,
 
 // ================================
 // Filament sensor related

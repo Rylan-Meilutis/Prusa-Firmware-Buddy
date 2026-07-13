@@ -9,7 +9,6 @@
 #include "Configuration_adv.h"
 #include <option/has_mmu2.h>
 #include <option/xbuddy_extension_variant.h>
-#include <option/has_toolchanger.h>
 #include <option/has_indx.h>
 #include <option/has_lights_menu.h>
 #include <option/has_wastebin_fill_tracking.h>
@@ -40,9 +39,7 @@
 
 using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_USER_INTERFACE,
-#if HAS_TOOLCHANGER()
     MI_TOOLHEAD_SETTINGS,
-#endif
 #if HAS_FILAMENT_SENSORS_MENU()
     MI_FILAMENT_SENSORS,
 #else
