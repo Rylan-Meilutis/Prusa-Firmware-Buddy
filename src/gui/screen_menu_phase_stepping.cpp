@@ -4,6 +4,18 @@
 #include <img_resources.hpp>
 #include <lang/i18n.h>
 
+MI_PHASE_STEPPING_CALIBRATION::MI_PHASE_STEPPING_CALIBRATION()
+    : MenuItemGcodeAction {
+        _("Calibration"),
+        "M1977",
+    } {}
+
+MI_PHASE_STEPPING_RESTORE_DEFAULTS::MI_PHASE_STEPPING_RESTORE_DEFAULTS()
+    : MenuItemGcodeAction {
+        _("Restore Defaults"),
+        "M1977 D",
+    } {}
+
 ScreenMenuPhaseStepping::ScreenMenuPhaseStepping()
     : ScreenMenuPhaseSteppingBase {
         _("PHASE STEPPING"),
