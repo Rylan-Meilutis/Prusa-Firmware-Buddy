@@ -8,11 +8,10 @@
 #include <option/has_touch.h>
 #include <option/has_chamber_filtration_api.h>
 #include <common/sys.hpp>
+#include <common/printer_variant/printer_variant.hpp>
 
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_auto_retract.h>
-#include <option/has_expansion_joints_gen_2.h>
-#include <option/has_15gt_belts.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
@@ -72,13 +71,9 @@ void CurrentStore::perform_config_check() {
 
 #endif
 
-#if HAS_EXPANSION_JOINTS_GEN_2()
-        // New printers ship with the Expansion Joints Gen 2; upgraded printers keep the false default.
-        ejg2_installed.set(true);
-#endif
-#if HAS_15GT_BELTS()
-        // New printers ship with the 1.5GT belts; upgraded printers keep the false default.
-        belts_15gt_installed.set(true);
+#if HAS_PRINTER_VARIANT()
+        // The restart-required result can be ignored: this runs at boot, before the planner reads steps/mm.
+        (void)apply_printer_variant_defaults(printer_variant_after_factory_reset);
 #endif
     }
 
@@ -89,10 +84,6 @@ void CurrentStore::perform_config_check() {
         chamber_mid_print_filtration_pwm.set_to_default();
         chamber_print_filtration_enable.set(false);
     }
-#endif
-
-#if HAS_NOZZLE_CLEANER_LITE()
-    nozzle_cleaner_lite_installed.set(true);
 #endif
 
     // BFW-5486
