@@ -183,6 +183,10 @@ if(HAS_COLDPULL)
   target_sources(firmware PRIVATE screen_cold_pull.cpp)
 endif()
 
+if(HAS_PHASE_STEPPING)
+  target_sources(firmware PRIVATE screen_menu_phase_stepping.cpp)
+endif()
+
 if(HAS_PHASE_STEPPING_CALIBRATION)
   target_sources(firmware PRIVATE screen_phase_stepping_calibration.cpp)
 endif()

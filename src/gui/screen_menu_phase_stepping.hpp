@@ -1,8 +1,11 @@
 /// @file
 #pragma once
 
-#include "menu_item/menu_item_gcode_action.hpp"
-#include <basic_screen_menu.hpp>
+#include <common/meta_utils.hpp>
+#include <common/str_utils.hpp>
+#include <gui/basic_screen_menu.hpp>
+#include <gui/menu_item/menu_item_gcode_action.hpp>
+#include <lang/i18n.h>
 #include <option/has_phase_stepping.h>
 
 static_assert(HAS_PHASE_STEPPING(), "Do not #include me if you are not using me");
@@ -21,7 +24,5 @@ using ScreenMenuPhaseSteppingBase = BasicScreenMenu<
 
 class ScreenMenuPhaseStepping final : public ScreenMenuPhaseSteppingBase {
 public:
-    ScreenMenuPhaseStepping()
-        : ScreenMenuPhaseSteppingBase(_("PHASE STEPPING")) {
-    }
+    ScreenMenuPhaseStepping();
 };
