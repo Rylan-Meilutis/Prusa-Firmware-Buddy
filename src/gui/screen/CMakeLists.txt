@@ -9,6 +9,7 @@ target_sources(
           screen_factory_reset.cpp
           screen_filament_change.cpp
           screen_m600.cpp
+          screen_menu_printer_setup_hardware.cpp
           screen_menu_virtual.cpp
           screen_preheat.cpp
           screen_print_preview.cpp
