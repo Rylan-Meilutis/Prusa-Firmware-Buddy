@@ -1,4 +1,7 @@
 #pragma once
+#include <array>
+#include <utility>
+
 #include "WindowMenuItems.hpp"
 #include "i18n.h"
 #include <config_store/store_instance.hpp>
@@ -11,6 +14,8 @@
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_15gt_belts.h>
 #include <common/extended_printer_type.hpp>
+#include <common/printer_variant/printer_variant.hpp>
+#include <dynamic_index_mapping.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
 #include <option/has_side_fsensor_remap.h>
 
@@ -56,6 +61,35 @@ public:
         : IWiInfo(string_view_utf8::MakeCPUFLASH(PrinterModelInfo::current().id_str), _("Printer Type")) {}
 };
 
+#endif
+
+#if HAS_PRINTER_VARIANT()
+/// Printer feature edition. Not persisted - selecting an edition prepicks the feature-flag defaults.
+/// The displayed "current" is derived from the flags; when they match no edition, a "Custom" row is shown.
+class MI_PRINTER_VARIANT : public MenuItemSelectMenu {
+public:
+    MI_PRINTER_VARIANT();
+
+    int item_count() const final;
+    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
+
+protected:
+    bool on_item_selected(const OnItemSelectedArgs &args) override;
+
+private:
+    enum class Item {
+        variant,
+        /// Display-only row, present only when the current flags match no edition.
+        custom,
+    };
+
+    static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Item>>({
+        { Item::variant, DynamicIndexMappingType::static_section, std::to_underlying(PrinterVariant::_cnt) },
+        { Item::custom, DynamicIndexMappingType::optional_item },
+    });
+
+    DynamicIndexMapping<items> index_mapping;
+};
 #endif
 
 #if HAS_EMERGENCY_STOP()

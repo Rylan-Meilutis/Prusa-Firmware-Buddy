@@ -139,6 +139,58 @@ bool MI_EXTENDED_PRINTER_TYPE::on_item_selected(const OnItemSelectedArgs &args) 
 }
 #endif
 
+#if HAS_PRINTER_VARIANT()
+MI_PRINTER_VARIANT::MI_PRINTER_VARIANT()
+    : MenuItemSelectMenu(_("Edition")) {
+    // The current edition is derived from the feature flags (config store is the source of truth).
+    const auto current = printer_variant_from_config();
+    // Flags match no edition (user override) -> show a trailing, display-only "Custom" row.
+    index_mapping.set_item_enabled<Item::custom>(!current.has_value());
+    if (current) {
+        set_current_item(index_mapping.to_index<Item::variant>(std::to_underlying(*current)));
+    } else {
+        set_current_item(index_mapping.to_index<Item::custom>());
+    }
+}
+
+int MI_PRINTER_VARIANT::item_count() const {
+    return index_mapping.total_item_count();
+}
+
+string_view_utf8 MI_PRINTER_VARIANT::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
+    const auto mapping = index_mapping.from_index(index);
+    switch (mapping.item) {
+
+    case Item::variant:
+        return string_view_utf8::MakeCPUFLASH(printer_variant_names[mapping.pos_in_section]);
+
+    case Item::custom:
+        return _("Custom");
+    }
+
+    bsod_unreachable();
+}
+
+bool MI_PRINTER_VARIANT::on_item_selected(const OnItemSelectedArgs &args) {
+    const auto mapping = index_mapping.from_index(args.new_index);
+    if (mapping.item != Item::variant) {
+        return false; // "Custom" is display-only, there is no preset to apply
+    }
+    const auto variant = static_cast<PrinterVariant>(mapping.pos_in_section);
+
+    if (MsgBoxWarning(_("Selecting an edition applies that edition's default hardware options, overriding any manual changes. Continue?"),
+            { Response::Yes, Response::No }, 1)
+        != Response::Yes) {
+        return false; // cancelled -> MenuItemSelectMenu keeps the previous edition selected
+    }
+
+    if (apply_printer_variant_defaults(variant)) {
+        sys_reset();
+    }
+    return true;
+}
+#endif
+
 #if HAS_EMERGENCY_STOP()
 static bool user_made_informed_decision_to_disable_door_sensor() {
     const Response response = MsgBoxWarning(

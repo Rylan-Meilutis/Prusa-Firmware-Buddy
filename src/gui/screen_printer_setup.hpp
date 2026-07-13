@@ -8,6 +8,7 @@
 #include <WinMenuContainer.hpp>
 #include <screen_menu.hpp>
 #include <common/extended_printer_type.hpp>
+#include <common/printer_variant/printer_variant.hpp>
 #include <option/has_chamber_vents.h>
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
@@ -43,6 +44,9 @@ protected:
 using ScreenBase
     = ScreenMenu<EFooter::Off,
         MI_EXTENDED_PRINTER_TYPE, //< Show always, for non-extended models, there is a non-changeable WiInfo
+#if HAS_PRINTER_VARIANT()
+        MI_PRINTER_VARIANT,
+#endif
         MI_TOOLHEAD_SETTINGS,
 #if HAS_CHAMBER_FILTRATION_API()
         // At least for C1, the filter addon is considered a hardware option, because it also affects the function of the cooling fans
