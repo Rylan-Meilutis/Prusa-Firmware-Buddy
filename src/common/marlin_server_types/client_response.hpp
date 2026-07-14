@@ -34,6 +34,9 @@
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_selftest.h>
+#include <option/has_heaters_selftest_gcode.h>
+#include <option/has_heaters_selftest_bed_sheet_retry.h>
+#include <option/has_heaters_selftest_revise.h>
 #include <option/has_toolchanger.h>
 #include <option/has_tool_mapping.h>
 #include <option/xl_enclosure_support.h>
@@ -237,6 +240,32 @@ enum class PhasesFansSelftest : PhaseUnderlyingType {
 };
 
 constexpr inline ClientFSM client_fsm_from_phase(PhasesFansSelftest) { return ClientFSM::FansSelftest; }
+#endif
+
+#if HAS_HEATERS_SELFTEST_GCODE()
+enum class PhasesHeatersSelftest : PhaseUnderlyingType {
+    #if HAS_INDX()
+    picking_tool, ///< INDX: pick a tool before testing its nozzle heater
+    #endif
+    heating, ///< cooldown -> preheat -> timed heat measurement (live data via HeatersSelftestData)
+    hotend_fan_failed_dialog, ///< skip the nozzle heater test because the hotend (heatbreak) fan failed
+    #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
+    ask_bed_sheet_after_fail, ///< bed heater failed: ask to refit the steel sheet and retry
+    #endif
+    #if HAS_HEATERS_SELFTEST_REVISE()
+    revise_ask_revise, ///< nozzle heater failed: ask whether to revise the printer setup
+    revise_revise, ///< printer setup screen shown while the user revises the setup
+    revise_ask_retry, ///< after the revision, ask whether to retry the test
+    #endif
+    #if HAS_HEATERS_SELFTEST_REVISE()
+    _last = revise_ask_retry,
+    #elif HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
+    _last = ask_bed_sheet_after_fail,
+    #else
+    _last = hotend_fan_failed_dialog,
+    #endif
+};
+constexpr inline ClientFSM client_fsm_from_phase(PhasesHeatersSelftest) { return ClientFSM::HeatersSelftest; }
 #endif
 
 #if HAS_ESP()
@@ -633,6 +662,24 @@ inline constexpr PhaseResponses FanSelftestResponses[] = {
     {}, // PhasesFanSelftest::results
 };
 static_assert(std::size(ClientResponses::FanSelftestResponses) == CountPhases<PhasesFansSelftest>());
+#endif
+
+#if HAS_HEATERS_SELFTEST_GCODE()
+inline constexpr EnumArray<PhasesHeatersSelftest, PhaseResponses, CountPhases<PhasesHeatersSelftest>()> heaters_selftest_responses {
+    #if HAS_INDX()
+    { PhasesHeatersSelftest::picking_tool, {} },
+    #endif
+        { PhasesHeatersSelftest::heating, {} },
+        { PhasesHeatersSelftest::hotend_fan_failed_dialog, { Response::Ok } },
+    #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
+        { PhasesHeatersSelftest::ask_bed_sheet_after_fail, { Response::Ok, Response::Retry } },
+    #endif
+    #if HAS_HEATERS_SELFTEST_REVISE()
+        { PhasesHeatersSelftest::revise_ask_revise, { Response::Adjust, Response::Skip } },
+        { PhasesHeatersSelftest::revise_revise, { Response::Done } },
+        { PhasesHeatersSelftest::revise_ask_retry, { Response::Yes, Response::No } },
+    #endif
+};
 #endif
 
 #if HAS_ESP()

@@ -37,6 +37,9 @@ constinit const EnumArray<ClientFSM, std::span<const PhaseResponses>, ClientFSM:
         { ClientFSM::FansSelftest, FanSelftestResponses },
         { ClientFSM::SelftestFSensors, selftest_fsensors_responses },
 #endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+        { ClientFSM::HeatersSelftest, heaters_selftest_responses },
+#endif
 #if HAS_ESP()
         { ClientFSM::NetworkSetup, network_setup_responses },
 #endif

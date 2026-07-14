@@ -8,6 +8,7 @@
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_indx.h>
+#include <option/has_heaters_selftest_gcode.h>
 #include <logging/log.hpp>
 
 LOG_COMPONENT_DEF(Fsm, logging::Severity::debug);
@@ -30,6 +31,9 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
     case ClientFSM::SelftestFSensors:
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+    case ClientFSM::HeatersSelftest:
 #endif
 #if HAS_GEARBOX_ALIGNMENT()
     case ClientFSM::GearboxAlignment:

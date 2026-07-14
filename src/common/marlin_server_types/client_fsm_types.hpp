@@ -16,6 +16,7 @@
 #include <option/has_phase_stepping_calibration.h>
 #include <option/has_selftest.h>
 #include <option/has_serial_print.h>
+#include <option/has_heaters_selftest_gcode.h>
 
 /// Client finite state machines bound to client_response.hpp
 enum class ClientFSM : uint8_t {
@@ -28,6 +29,9 @@ enum class ClientFSM : uint8_t {
     Selftest,
     FansSelftest,
     SelftestFSensors,
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+    HeatersSelftest,
 #endif
 #if HAS_ESP()
     NetworkSetup,
