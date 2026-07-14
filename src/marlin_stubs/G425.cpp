@@ -70,6 +70,7 @@
 #include <bsod_gui.hpp>
 #include <marlin_server.hpp>
 #include <center_approx.hpp>
+#include <printers.h>
 #include <tool_index.hpp>
 #include <utils/storage/strong_index_array.hpp>
 
@@ -93,6 +94,30 @@
 #endif
 
 #define NUM_Z_MEASUREMENTS 20
+
+#if PRINTER_IS_PRUSA_XL()
+
+    #define CALIBRATION_FEEDRATE_TRAVEL 3000 // mm/m
+
+    // The following parameter refers to the conical section of the nozzle tip.
+    #define CALIBRATION_NOZZLE_OUTER_DIAMETER 2.0f // mm
+
+    // The true location and dimension of the calibration pin on the bed.
+    #define CALIBRATION_OBJECT_CENTER \
+        { 180.0f, 180.0f, 4.5f } // mm
+    #define CALIBRATION_OBJECT_DIMENSIONS \
+        { 6.0f, 6.0f, 9.0f } // mm
+
+    // Comment out any sides which are unreachable by the probe. For best
+    // auto-calibration results, all sides must be reachable.
+    #define CALIBRATION_MEASURE_RIGHT
+    #define CALIBRATION_MEASURE_FRONT
+    #define CALIBRATION_MEASURE_LEFT
+    #define CALIBRATION_MEASURE_BACK
+
+#else
+    #error
+#endif
 
 #define HAS_X_CENTER BOTH(CALIBRATION_MEASURE_LEFT, CALIBRATION_MEASURE_RIGHT)
 #define HAS_Y_CENTER BOTH(CALIBRATION_MEASURE_FRONT, CALIBRATION_MEASURE_BACK)

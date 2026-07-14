@@ -210,20 +210,6 @@ void Endstops::init() {
     #endif
   #endif
 
-  #if HAS_CALIBRATION_PIN
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #if ENABLED(CALIBRATION_PIN_PULLUP)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      SET_INPUT_PULLUP(CALIBRATION_PIN);
-    #elif ENABLED(CALIBRATION_PIN_PULLDOWN)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      SET_INPUT_PULLDOWN(CALIBRATION_PIN);
-    #else
-      // #error dead code found by automatic analyses (see BFW-5461)
-      SET_INPUT(CALIBRATION_PIN);
-    #endif
-  #endif
-
   #if HAS_CUSTOM_PROBE_PIN
     // #error dead code found by automatic analyses (see BFW-5461)
     #if ENABLED(ENDSTOPPULLUP_ZMIN_PROBE)
