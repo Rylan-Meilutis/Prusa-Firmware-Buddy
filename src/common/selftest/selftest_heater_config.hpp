@@ -9,6 +9,7 @@
 #include <cstdint>
 #include "fanctl.hpp"
 #include "client_response.hpp"
+#include <option/has_heaters_selftest_gcode.h>
 #include "selftest_heaters_type.hpp"
 #include <tool/hotend/hotend.hpp>
 
@@ -57,5 +58,12 @@ struct HeaterConfig_t {
     float heater_full_load_max_W { 0 };
     uint32_t min_pwm_to_measure { 0 };
 };
+
+#if HAS_HEATERS_SELFTEST_GCODE()
+// Per-variant heater configs for the gcode-based heater selftest (M1987). Each non-XL
+// selftest_<VARIANT>.cpp defines these, reusing its existing Config_Heater* values.
+HeaterConfig_t nozzle_heater_config();
+HeaterConfig_t bed_heater_config();
+#endif
 
 }; // namespace selftest

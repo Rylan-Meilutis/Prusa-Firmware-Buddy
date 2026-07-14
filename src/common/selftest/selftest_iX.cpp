@@ -147,6 +147,17 @@ static constexpr HeaterConfig_t Config_HeaterBed = {
     .min_pwm_to_measure = 26
 };
 
+#if HAS_HEATERS_SELFTEST_GCODE()
+namespace selftest {
+HeaterConfig_t nozzle_heater_config() {
+    return Config_HeaterNozzle[0];
+}
+HeaterConfig_t bed_heater_config() {
+    return Config_HeaterBed;
+}
+} // namespace selftest
+#endif
+
 static constexpr LoadcellConfig_t Config_Loadcell[] = { {
     .partname = "Loadcell",
     .tool_nr = PhysicalToolIndex::from_raw(0),

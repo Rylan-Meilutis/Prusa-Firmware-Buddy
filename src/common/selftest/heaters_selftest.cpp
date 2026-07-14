@@ -1,0 +1,408 @@
+#include "heaters_selftest.hpp"
+
+#include "selftest_heater_config.hpp"
+#include "selftest_heaters_type.hpp"
+#include "algorithm_scale.hpp"
+#include <common/marlin_server.hpp>
+#include "../../Marlin/src/Marlin.h" // idle()
+#include "../../Marlin/src/module/temperature.h" // thermalManager, degHeatbreak
+#include <config_store/store_instance.hpp>
+#include <feature/safety_timer/safety_timer.hpp>
+#include <selftest/selftest_invocation.hpp>
+#include <timing.h>
+#include <logging/log.hpp>
+
+#include <algorithm>
+#include <cmath>
+#include <optional>
+
+#include <option/has_indx.h>
+#include <option/has_heaters_selftest_bed_sheet_retry.h>
+#include <option/has_heaters_selftest_revise.h>
+#include <option/has_hotend_type_support.h>
+#if HAS_HOTEND_TYPE_SUPPORT()
+    #include <hotend_type.hpp>
+#endif
+#if HAS_INDX()
+    #include <common/mapi/calibration_preamble.hpp>
+#endif
+
+LOG_COMPONENT_REF(Selftest);
+
+using namespace selftest;
+
+namespace {
+
+// Full-power on/off "P regulator" — same trick the legacy CSelftestPart_Heater used to run the
+// heater flat-out during the measurement window.
+constexpr PID_t p_only_pid { .Kp = 1000000, .Ki = 0, .Kd = 0 };
+
+// How long to keep the final pass/fail on screen before the FSM closes (parity with M1978).
+constexpr uint32_t show_results_delay_ms = 3000;
+
+using marlin_server::fsm_change;
+using marlin_server::wait_for_response;
+
+// Tool whose fans we drive. On INDX this is the picked tool (the config temp/pid lambdas also
+// operate on the currently-selected tool); elsewhere it is the config's fixed tool.
+PhysicalToolIndex fan_tool(const HeaterConfig_t &config) {
+#if HAS_INDX()
+    return PhysicalToolIndex::currently_selected_opt().value_or(config.tool_nr);
+#else
+    return config.tool_nr;
+#endif
+}
+
+// progress can only rise (mirrors CSelftestPart_Heater::actualizeProgress)
+void bump_progress(SelftestHeater_t &result, float current, float start, float end) {
+    if (start >= end) {
+        return;
+    }
+    const auto p = static_cast<uint8_t>(scale_percent_avoid_overflow(current, start, end));
+    result.progress = std::max(result.progress, p);
+}
+
+/// Drives one heater (nozzle or bed) through cooldown -> preheat -> timed measurement one tick at a
+/// time (step()), so the nozzle and bed can be tested in parallel from a single loop, as the legacy
+/// mask-based selftest did.
+class HeaterRunner {
+public:
+    HeaterRunner(const HeaterConfig_t &cfg, SelftestHeater_t &result, bool is_nozzle)
+        : config(cfg)
+        , result(result)
+        , is_nozzle(is_nozzle) {
+        original_pid = config.get_pid();
+        config.set_pid(p_only_pid); // switch the regulator to on/off (full power)
+        config.setTargetTemp(0);
+    }
+
+    ~HeaterRunner() { teardown(); }
+
+    bool running() const { return stage != Stage::done; }
+    TestResult result_value() const { return res; }
+
+    void step() {
+#if HAS_TEMP_HEATBREAK_CONTROL
+        // Heatbreak temperature correlation: if it leaves its window while the nozzle heats, fail
+        // and stop heating right away — the legacy hook did the same via CSelftestPart::Fail().
+        if (is_nozzle && stage != Stage::done && heatbreak_out_of_range()) {
+            result.heatbreak_error = true;
+            finish(TestResult::failed);
+            return;
+        }
+#endif
+        switch (stage) {
+        case Stage::setup:
+            step_setup();
+            break;
+        case Stage::cooldown:
+            step_cooldown();
+            break;
+        case Stage::preheat:
+            step_preheat();
+            break;
+        case Stage::heat:
+            step_heat();
+            break;
+        case Stage::done:
+            break;
+        }
+    }
+
+private:
+    enum class Stage : uint8_t { setup,
+        cooldown,
+        preheat,
+        heat,
+        done };
+
+    void enter_fans() {
+        config.print_fan_fnc(fan_tool(config).to_raw()).enter_selftest_mode();
+        config.heatbreak_fan_fnc(fan_tool(config).to_raw()).enter_selftest_mode();
+        fans_taken = true;
+    }
+
+    void exit_fans() {
+        if (!fans_taken) {
+            return;
+        }
+        fans_taken = false;
+        config.print_fan_fnc(fan_tool(config).to_raw()).exit_selftest_mode();
+        config.heatbreak_fan_fnc(fan_tool(config).to_raw()).exit_selftest_mode();
+    }
+
+    void step_setup() {
+        const auto t = config.getTemp();
+        if (!t.has_value()) {
+            return; // wait for a valid reading
+        }
+        begin_temp = t.value();
+        const bool cooldown = begin_temp >= config.start_temp;
+        if (is_nozzle && cooldown) {
+            // Take control of the fans and blow them at full to cool the hotend down first.
+            enter_fans();
+            config.print_fan_fnc(fan_tool(config).to_raw()).selftest_set_pwm(255);
+            config.heatbreak_fan_fnc(fan_tool(config).to_raw()).selftest_set_pwm(255);
+        }
+        if (cooldown) {
+            result.prep_state = SelftestSubtestState_t::running;
+            stage = Stage::cooldown;
+        } else {
+            enter_preheat();
+        }
+    }
+
+    void step_cooldown() {
+        const auto t = config.getTemp();
+        if (!t.has_value()) {
+            return;
+        }
+        if (t.value() <= config.undercool_temp) {
+            exit_fans(); // hand the fans back to normal control for the heat-up
+            enter_preheat();
+            return;
+        }
+        bump_progress(result, t.value(), begin_temp, config.undercool_temp);
+    }
+
+    void enter_preheat() {
+        result.prep_state = SelftestSubtestState_t::running;
+        config.setTargetTemp(config.target_temp);
+        stage = Stage::preheat;
+    }
+
+    void step_preheat() {
+        const auto t = config.getTemp();
+        if (!t.has_value()) {
+            return;
+        }
+        if (t.value() >= config.start_temp) {
+            result.prep_state = SelftestSubtestState_t::ok;
+            result.heat_state = SelftestSubtestState_t::running;
+            result.progress = 0;
+            heat_start = ticks_ms();
+            stage = Stage::heat;
+            return;
+        }
+        bump_progress(result, t.value(), config.undercool_temp, config.start_temp);
+    }
+
+    void step_heat() {
+        const uint32_t elapsed = ticks_ms() - heat_start;
+        if (elapsed < config.heat_time_ms) {
+            bump_progress(result, static_cast<float>(elapsed), 0.f, static_cast<float>(config.heat_time_ms));
+            return;
+        }
+        // NOTE: config.tool_nr (== 0) is used for the hotend-type offset and the heatbreak reading.
+        // Correct for every current non-XL variant (single physical hotend; on INDX both
+        // HAS_HOTEND_TYPE_SUPPORT() and HAS_TEMP_HEATBREAK_CONTROL are 0, so this is compiled out).
+        // A future non-XL multitool with a heatbreak / hotend-type would need the picked tool here.
+        int16_t hw_diff = 0;
+#if HAS_HOTEND_TYPE_SUPPORT()
+        if (is_nozzle) {
+            hw_diff = hotend_type_heater_selftest_offset(config_store().hotend_type.get(config.tool_nr.to_raw()));
+        }
+#endif
+        const auto t = config.getTemp();
+        const float temp = t.value_or(NAN);
+        const bool in_range = t.has_value()
+            && temp >= config.heat_min_temp + hw_diff
+            && temp <= config.heat_max_temp + hw_diff;
+        if (!in_range) {
+            log_error(Selftest, "%s %d out of range (%d - %d)", config.partname, static_cast<int>(temp),
+                static_cast<int>(config.heat_min_temp + hw_diff), static_cast<int>(config.heat_max_temp + hw_diff));
+        }
+        finish(in_range ? TestResult::passed : TestResult::failed);
+    }
+
+    // Conclude the test: record the result and immediately stop heating / restore the regulator.
+    void finish(TestResult r) {
+        res = r;
+        if (r == TestResult::passed) {
+            result.Pass();
+        } else {
+            result.Fail();
+        }
+        teardown();
+        stage = Stage::done;
+    }
+
+    // Stop heating this element, restore its PID regulator and release its fans. Idempotent.
+    void teardown() {
+        if (torn_down) {
+            return;
+        }
+        torn_down = true;
+        config.setTargetTemp(0);
+        config.set_pid(original_pid);
+        exit_fans(); // safety net: release the fans if we were torn down mid-cooldown
+    }
+
+    bool heatbreak_out_of_range() const {
+#if HAS_TEMP_HEATBREAK_CONTROL
+        // config.tool_nr — see the note in step_heat().
+        const float t = thermalManager.degHeatbreak(config.tool_nr);
+        return (t > config.heatbreak_max_temp) || (t < config.heatbreak_min_temp);
+#else
+        return false;
+#endif
+    }
+
+    HeaterConfig_t config;
+    SelftestHeater_t &result;
+    bool is_nozzle;
+    Stage stage = Stage::setup;
+    PID_t original_pid;
+    float begin_temp = 0;
+    uint32_t heat_start = 0;
+    TestResult res = TestResult::failed;
+    bool torn_down = false;
+    bool fans_taken = false;
+};
+
+class Wizard {
+public:
+    void run();
+
+private:
+#if HAS_INDX()
+    marlin_server::FSM_Holder holder { PhasesHeatersSelftest::picking_tool };
+#else
+    marlin_server::FSM_Holder holder { PhasesHeatersSelftest::heating };
+#endif
+
+    HeatersSelftestData data;
+
+    void send() { marlin_server::fsm_change_extended(PhasesHeatersSelftest::heating, data); }
+
+    // Keep the heating screen (final data) up for the given time so the user can read the result.
+    void dwell(uint32_t ms) {
+        const uint32_t start = ticks_ms();
+        while (ticks_ms() - start < ms) {
+            send();
+            idle(true);
+        }
+    }
+
+    bool preamble();
+};
+
+bool Wizard::preamble() {
+#if HAS_INDX()
+    // Lower the bed, pick a tool if none is picked (the heater configs address the picked tool)
+    // and home XY — same safe start the sibling INDX calibrations use.
+    return mapi::calibration_preamble(mapi::CalibrationPreambleToolPolicy::ensure_picked,
+        [this](mapi::CalibrationPreambleStep) {
+            fsm_change(PhasesHeatersSelftest::picking_tool);
+        });
+#else
+    return true;
+#endif
+}
+
+void Wizard::run() {
+    if (!preamble()) {
+        selftest_invocation::mark_aborted();
+        return;
+    }
+
+    const HeaterConfig_t noz_config = nozzle_heater_config();
+    const HeaterConfig_t bed_config = bed_heater_config();
+
+    bool rerun;
+    do {
+        rerun = false;
+
+        // Pre-mark both heaters as failed so a mid-test reset / disconnected cable stays failed.
+        {
+            auto sr = config_store().selftest_result.get();
+            sr.set_nozzle_heater(0, TestResult::failed);
+            sr.set_bed_heater(TestResult::failed);
+            config_store().selftest_result.set(sr);
+        }
+        data = HeatersSelftestData {};
+
+        // The nozzle heater test is skipped if the hotend/heatbreak fan check did not pass — heating
+        // the nozzle without a working hotend fan is unsafe. A skipped nozzle is recorded as skipped
+        // (not failed), matching the legacy behaviour (an aborted part reports TestResult::skipped).
+        const bool skip_nozzle = config_store().selftest_result.get().get_heatbreak_fan(noz_config.tool_nr) == TestResult::failed;
+        TestResult noz_result = skip_nozzle ? TestResult::skipped : TestResult::failed;
+        TestResult bed_result = TestResult::failed;
+        if (skip_nozzle) {
+            fsm_change(PhasesHeatersSelftest::hotend_fan_failed_dialog);
+            wait_for_response(PhasesHeatersSelftest::hotend_fan_failed_dialog); // Ok
+            data.noz.Fail();
+        }
+
+        {
+            // Nozzle and bed run in parallel — both powered at once — matching the legacy behaviour.
+            // The bed heater does not depend on the hotend fan, so it is tested even when the nozzle
+            // test was skipped (the legacy code suppressed the bed test there only to avoid a messy
+            // parallel screen, which the dedicated screen no longer has).
+            // The safety timer would zero the heater targets mid-measurement (BFW-7813).
+            buddy::SafetyTimerBlocker safety_timer_blocker;
+            HeaterRunner bed(bed_config, data.bed, /*is_nozzle=*/false);
+            std::optional<HeaterRunner> noz;
+            if (!skip_nozzle) {
+                noz.emplace(noz_config, data.noz, /*is_nozzle=*/true);
+            }
+            send(); // switch to the heating screen (leaves the picking / fan-failed dialog phase)
+            while ((noz && noz->running()) || bed.running()) {
+                if (noz) {
+                    noz->step();
+                }
+                bed.step();
+                send();
+                idle(true);
+            }
+            if (noz) {
+                noz_result = noz->result_value();
+            }
+            bed_result = bed.result_value();
+        } // runners torn down here (heaters off, PID/fans restored) before any revise prompts
+
+        {
+            auto sr = config_store().selftest_result.get();
+            sr.set_nozzle_heater(0, noz_result);
+            sr.set_bed_heater(bed_result);
+            config_store().selftest_result.set(sr);
+        }
+
+        // Let the user actually see the final pass/fail before the screen closes / a prompt appears.
+        dwell(show_results_delay_ms);
+
+#if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
+        // Bed failed: offer to refit the steel sheet and retry.
+        if (bed_result == TestResult::failed) {
+            fsm_change(PhasesHeatersSelftest::ask_bed_sheet_after_fail);
+            if (wait_for_response(PhasesHeatersSelftest::ask_bed_sheet_after_fail) == Response::Retry) {
+                rerun = true;
+                continue;
+            }
+        }
+#endif
+#if HAS_HEATERS_SELFTEST_REVISE()
+        // Nozzle failed: offer to revise the printer setup (wrong nozzle/hotend config) and retry.
+        if (noz_result == TestResult::failed) {
+            fsm_change(PhasesHeatersSelftest::revise_ask_revise);
+            if (wait_for_response(PhasesHeatersSelftest::revise_ask_revise) == Response::Adjust) {
+                // The revise_revise frame opens ScreenPrinterSetup, which sends Response::Done.
+                fsm_change(PhasesHeatersSelftest::revise_revise);
+                wait_for_response(PhasesHeatersSelftest::revise_revise); // Done
+                fsm_change(PhasesHeatersSelftest::revise_ask_retry);
+                if (wait_for_response(PhasesHeatersSelftest::revise_ask_retry) == Response::Yes) {
+                    rerun = true;
+                    continue;
+                }
+            }
+        }
+#endif
+    } while (rerun);
+}
+
+} // namespace
+
+void heaters_selftest::run() {
+    Wizard wizard;
+    wizard.run();
+}
