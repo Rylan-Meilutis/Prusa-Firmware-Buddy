@@ -54,6 +54,10 @@ if(HAS_SELFTEST)
   target_sources(firmware PRIVATE G162.cpp G163.cpp M1978.cpp M1981.cpp)
 endif()
 
+if(HAS_HEATERS_SELFTEST_GCODE)
+  target_sources(firmware PRIVATE M1987.cpp)
+endif()
+
 if(HAS_LEDS)
   target_sources(firmware PRIVATE M150.cpp)
 endif()

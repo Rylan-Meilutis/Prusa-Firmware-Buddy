@@ -10,6 +10,7 @@
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_selftest_dependencies.h>
 #include <printers.h>
+#include <option/has_heaters_selftest_gcode.h>
 #include <bsod/bsod.h>
 #include <window_msgbox_happy_printing.hpp>
 #include "selftest/i_selftest.hpp"
@@ -123,6 +124,11 @@ void do_snake(Action action, PhysicalToolIndex tool) {
         case Action::Fans:
             marlin_client::gcode("M1978");
             break;
+#if HAS_HEATERS_SELFTEST_GCODE()
+        case Action::Heaters:
+            marlin_client::gcode("M1987");
+            break;
+#endif
 
         case Action::FilamentSensorCalibration:
 #if HAS_SIDE_FSENSOR_REMAP()

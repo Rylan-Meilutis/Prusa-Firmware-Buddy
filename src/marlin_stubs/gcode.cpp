@@ -20,6 +20,7 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_spool_join.h>
 #include <option/has_indx.h>
+#include <option/has_heaters_selftest_gcode.h>
 #include <option/has_wastebin_fill_tracking.h>
 
 #if HAS_LOADCELL()
@@ -344,6 +345,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
 #if HAS_WASTEBIN_FILL_TRACKING()
         case 1986:
             PrusaGcodeSuite::M1986();
+            break;
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+        case 1987:
+            PrusaGcodeSuite::M1987();
             break;
 #endif
         case 9140:
