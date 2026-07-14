@@ -46,6 +46,13 @@
                         "noprompt": true,
                         "type": "console",
                         "logfile": "heap_instrumentation.txt"
+                    },
+                    {
+                        "label": "RTT metrics",
+                        "port": 2,
+                        "noprompt": true,
+                        "type": "console",
+                        "logfile": "rtt_metrics.txt"
                     }
                 ]
             }
