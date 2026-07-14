@@ -66,3 +66,13 @@ public:
 constexpr std::underlying_type_t<SelftestHeaters_t::TestedParts> to_one_hot(SelftestHeaters_t::TestedParts p) {
     return 1 << std::to_underlying(p);
 }
+
+// Live data for the gcode-based heater selftest (M1987). There is a single physical hotend,
+// so unlike the multi-tool SelftestHeaters_t it carries just one nozzle + one bed sub-result.
+struct HeatersSelftestData : public FSMExtendedData {
+    SelftestHeater_t noz;
+    SelftestHeater_t bed;
+
+    constexpr HeatersSelftestData() = default;
+    bool operator==(const HeatersSelftestData &) const = default;
+};
