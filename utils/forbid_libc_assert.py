@@ -7,6 +7,8 @@ changes can be reviewed and staged. Scope: src/ and the first-party
 libraries (Marlin, WUI, Prusa-Firmware-MMU). A line can opt out with a
 `// libc-assert-allowed` marker.
 """
+from __future__ import annotations
+
 import re
 import subprocess
 import sys
