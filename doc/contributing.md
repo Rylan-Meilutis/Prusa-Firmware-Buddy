@@ -68,6 +68,8 @@ This does not apply to 3rd party code in our repository.
 
 ## Documentation
 
+### Documentation: API
+
 API documentation goes to the declaration (header file), using doxygen syntax.
 Prefer `///` over `/** */` variant. This includes whatever the user of the API
 might need to know - invariants, corner cases, error conditions, intended uses.
@@ -75,10 +77,29 @@ No need to overdo on the formal part of doxygen - eg. there's no need to fill in
 `@return` for a `bool is_enabled() const` method, since the meaning of it is
 obvious.
 
+### Documentation: Comments
+
 Implementation details can be documented as inline comments inside the relevant
 code.
 
-### G-Code command documentation
+Do not restate what the code already says. If a comment is needed to make code
+readable, first try rewriting the code so the comment is not needed.
+
+Reserve comments for intent the code cannot carry: rationale, trade-offs,
+constraints, workarounds.
+
+Comments tend to rot as the codebase evolves. A comment that contradicts the
+code is worse than no comment. Avoid referring to aspects of the source code
+that are likely to change: identifiers, file names, line numbers, etc.
+When you change code, update or delete the comments around it.
+
+Write for a reader who has never seen any other version of the code.
+It is always now and history is in the version control system.
+A comment says what is, not what changed.
+
+Be terse if possible.
+
+### Documentation: G-Code command
  - Use following format and syntax
 ```
 /**
