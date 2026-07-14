@@ -46,7 +46,7 @@ class LIS2DH12Poller {
 
     uint32_t start_time = 0;
     std::atomic<bool> hw_good_flag = false;
-    std::atomic<int> overflow_counter = 0;
+    std::atomic<bool> overflow_flag = false;
     std::atomic<uint32_t> total_sample_count = 0;
 
     AtomicCircularQueue<accelerometer::RawAcceleration, unsigned, 32> sample_queue;
@@ -143,15 +143,36 @@ public:
 
         lis2dh12_operating_mode_set(&stlib_context, LIS2DH12_NM_10bit);
 
+        lis2dh12_data_rate_set(&stlib_context, LIS2DH12_ODR_5kHz376_LP_1kHz344_NM_HP);
+
         hw_good_flag = true;
         return true;
     }
 
-    void start() {
-        total_sample_count = 0;
-        overflow_counter = 0;
+    // One-time timer start (for printers with dedicated CS)
+    void hw_start() {
+        pending_request = Request::none;
+        is_running = true;
+        if (HAL_TIM_Base_Start_IT(polling_timer) != HAL_OK) {
+            bsod("Failed to start accelerometer polling timer");
+        }
+    }
 
-        lis2dh12_data_rate_set(&stlib_context, LIS2DH12_ODR_5kHz376_LP_1kHz344_NM_HP);
+    void begin_session() {
+        static constexpr int32_t TIMEOUT_US = 5000;
+        const uint32_t timeout_base = ticks_us();
+        auto timed_out = [&]() { return ticks_diff(ticks_us(), timeout_base) > TIMEOUT_US; };
+
+        // Ensure synchronous comm
+        is_running = false;
+        while (pending_request != Request::none) {
+            if (timed_out()) {
+                hw_good_flag = false;
+                return;
+            }
+        }
+
+        total_sample_count = 0;
 
         // Busy wait for the **second** sample to be ready in order to capture
         // the precise start time
@@ -160,17 +181,18 @@ public:
             do {
                 start_time = ticks_us();
                 lis2dh12_status_get(&stlib_context, &status);
+                if (timed_out()) {
+                    hw_good_flag = false;
+                    return;
+                }
             } while (!status.zyxda);
 
             int16_t buf[3];
             lis2dh12_acceleration_raw_get(&stlib_context, buf);
         }
 
-        pending_request = Request::none;
+        clear();
         is_running = true;
-        if (HAL_TIM_Base_Start_IT(polling_timer) != HAL_OK) {
-            bsod("Failed to start accelerometer polling timer");
-        }
     }
 
     void stop() {
@@ -202,7 +224,6 @@ public:
         auto handle_timeout = [&]() {
             static constexpr int32_t TIMEOUT_US = 5000;
             if (ticks_diff(ticks_us(), timeout_base) > TIMEOUT_US) {
-                is_running = true;
                 hw_good_flag = false;
                 return false;
             }
@@ -236,7 +257,7 @@ public:
             lis2dh12_acceleration_raw_get(&stlib_context, buf);
             total_sample_count++;
             if (!sample_queue.enqueue({ buf[0], buf[1], buf[2] })) {
-                overflow_counter++;
+                overflow_flag = true;
             }
         }
 
@@ -249,12 +270,18 @@ public:
         return hw_good_flag;
     }
 
-    int overflow_count() const {
-        return overflow_counter;
+    bool overflow() const {
+        return overflow_flag;
     }
 
     void clear_overflow() {
-        overflow_counter = 0;
+        overflow_flag = false;
+    }
+
+    // Typically called at the start of a measurement to ensure fresh samples.
+    void clear() {
+        sample_queue.clear();
+        clear_overflow();
     }
 
     // This routine should be called periodically from the polling timer ISR
@@ -301,7 +328,7 @@ public:
             }
 
             if (status.zyxor) {
-                overflow_counter++;
+                overflow_flag = true;
             }
 
             return;
@@ -315,7 +342,7 @@ public:
             rtt_metrics::log_accelerometer({ x, y, z });
 #endif
             if (!sample_queue.enqueue({ x, y, z })) {
-                overflow_counter++;
+                overflow_flag = true;
             }
             total_sample_count++;
             finalize_async_request_chain();

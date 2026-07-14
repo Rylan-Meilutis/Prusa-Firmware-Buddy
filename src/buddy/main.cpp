@@ -453,6 +453,10 @@ extern "C" void main_cpp(void) {
     spi_init_accelerometer();
 #endif
 
+#if HAS_LOCAL_ACCELEROMETER()
+    prusa_accelerometer_local_init();
+#endif
+
 #if defined(spi_init_tmc)
     spi_init_tmc();
 #elif HAS_TMC_UART()

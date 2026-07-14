@@ -27,6 +27,10 @@ static_assert(HAS_LOCAL_ACCELEROMETER() || HAS_REMOTE_ACCELEROMETER());
 /**
  * This class must not be instantiated globally, because (for MK3.5) it temporarily takes
  * ownership of the tachometer pin and turns it into accelerometer chip select pin.
+ *
+ * On boards with a dedicated CS pin the underlying poller is long-lived (set up once at
+ * boot and sampling continuously); each PrusaAccelerometer instance merely borrows it for
+ * one measurement session. Only one instance may exist at a time (enforced at construction).
  */
 class PrusaAccelerometer {
 public:
