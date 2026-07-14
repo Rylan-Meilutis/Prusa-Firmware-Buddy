@@ -6,6 +6,9 @@
 #include <logging/log.hpp>
 #include <window_msgbox.hpp>
 #include <Marlin/src/core/serial.h>
+#if HAS_ATTACHABLE_ACCELEROMETER()
+    #include <Marlin/src/module/prusa/accelerometer.h>
+#endif
 #ifdef HAS_TMC_WAVETABLE
     #include <feature/tmc_util.h>
 #endif
@@ -74,5 +77,25 @@ MI_WAVETABLE_XYZ::MI_WAVETABLE_XYZ()
 void MI_WAVETABLE_XYZ::OnChange(size_t old_index) {
     old_index ? tmc_disable_wavetable(true, true, true) : tmc_enable_wavetable(true, true, true);
     config_store().tmc_wavetable_enabled.set(!old_index);
+}
+#endif
+
+#if HAS_ATTACHABLE_ACCELEROMETER()
+MI_CHECK_ACCELEROMETER::MI_CHECK_ACCELEROMETER()
+    : IWindowMenuItem {
+        string_view_utf8::MakeCPUFLASH("Check Accelerometer"),
+        nullptr,
+        is_enabled_t::yes,
+        is_hidden_t::dev,
+    } {}
+
+void MI_CHECK_ACCELEROMETER::click([[maybe_unused]] IWindowMenu &window_menu) {
+    // This process is probably poorly synchronised and may cause some unexpected behaviour.
+    PrusaAccelerometer accelerometer;
+    if (accelerometer.get_error() == accelerometer::Error::none) {
+        MsgBoxInfo(string_view_utf8::MakeCPUFLASH("Accelerometer connected."), Responses_Ok);
+    } else {
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Accelerometer not detected."), Responses_Ok);
+    }
 }
 #endif

@@ -3,6 +3,7 @@
 
 #include "WindowMenuItems.hpp"
 #include <option/development_items.h>
+#include <option/has_attachable_accelerometer.h>
 
 static_assert(DEVELOPMENT_ITEMS());
 
@@ -29,3 +30,15 @@ public:
 protected:
     virtual void OnChange(size_t) override;
 };
+
+#if HAS_ATTACHABLE_ACCELEROMETER()
+/// Developer-only manual probe: detect an accelerometer connected during uptime
+/// Use carefully as (re/dis)connecting should NOT be done during uptime.
+class MI_CHECK_ACCELEROMETER final : public IWindowMenuItem {
+public:
+    MI_CHECK_ACCELEROMETER();
+
+protected:
+    void click(IWindowMenu &window_menu) override;
+};
+#endif
