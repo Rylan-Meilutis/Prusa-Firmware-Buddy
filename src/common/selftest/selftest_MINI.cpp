@@ -160,6 +160,17 @@ protected:
     SelftestResult m_result;
 };
 
+#if HAS_HEATERS_SELFTEST_GCODE()
+namespace selftest {
+HeaterConfig_t nozzle_heater_config() {
+    return Config_HeaterNozzle[0];
+}
+HeaterConfig_t bed_heater_config() {
+    return Config_HeaterBed;
+}
+} // namespace selftest
+#endif
+
 CSelftest::CSelftest()
     : m_State(stsIdle)
     , m_Mask(stmNone)
