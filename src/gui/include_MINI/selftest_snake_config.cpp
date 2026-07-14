@@ -42,7 +42,7 @@ uint64_t get_test_mask(Action action) {
     case Action::ZCheck:
         return stmZAxis;
     case Action::Heaters:
-        return stmHeaters;
+        bsod("This should be gcode");
     case Action::FirstLayer:
         return stmFirstLayer;
 
