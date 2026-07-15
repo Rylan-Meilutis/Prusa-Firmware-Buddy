@@ -1,6 +1,8 @@
 /// @file
 #pragma once
 
+#include <optional>
+
 #include "base_hotend.hpp"
 #include <tool/tool/standard_fff_physical_tool.hpp>
 
@@ -26,6 +28,16 @@ public:
 
     /// Resolves an in-flight recheck; call every cycle() (also while no tool is managed).
     static void process_pending_thermal_runaway();
+
+    /// Heater selftest trip interception (mirrors the fan controllers' selftest mode): while
+    /// engaged, thermal-protection trips (thermal model, heater watch, thermal runaway) are
+    /// recorded instead of raising a fatal error. The heater is still switched off immediately
+    /// on a trip. !!! Marlin thread only.
+    static void enter_heater_selftest_mode();
+    static void exit_heater_selftest_mode();
+
+    /// @returns the error code of the first trip since enter_heater_selftest_mode(), if any
+    static std::optional<ErrCode> heater_selftest_trip();
 
 protected:
     virtual void manage() override;
