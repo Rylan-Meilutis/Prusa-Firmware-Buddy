@@ -29,6 +29,10 @@ constexpr uint32_t presence_data_timeout_ms = 1000;
 /// Fail-safe timeout once the nozzle reads absent, before raising instead of waiting for the
 /// toolchanger. Clears ~2 in-print check periods (PRINT_NOZZLE_CHECK_PERIOD_MS = 5 s); heater is off.
 constexpr uint32_t recovery_takeover_timeout_ms = 12000;
+
+/// Heater selftest trip interception; marlin task only, so no synchronization is needed.
+bool selftest_trip_interception_active = false;
+std::optional<ErrCode> selftest_intercepted_trip;
 } // namespace
 
 void IndxHotend::handle_nozzle_target_change() {
@@ -81,7 +85,31 @@ void IndxHotend::assert_thermally_managed_invariant(std::variant<PhysicalToolInd
     }
 }
 
+void IndxHotend::enter_heater_selftest_mode() {
+    selftest_intercepted_trip.reset();
+    selftest_trip_interception_active = true;
+}
+
+void IndxHotend::exit_heater_selftest_mode() {
+    selftest_trip_interception_active = false;
+    selftest_intercepted_trip.reset();
+}
+
+std::optional<ErrCode> IndxHotend::heater_selftest_trip() {
+    return selftest_intercepted_trip;
+}
+
 void IndxHotend::invoke_thermal_runaway(ErrCode error_code) {
+    if (selftest_trip_interception_active) {
+        // Heater selftest in progress: the trip is the test's verdict, not a fatal error.
+        // The heater goes off immediately either way; the selftest handles the rest.
+        buddy::puppies::indx.set_hotend_target_temp(0);
+        if (!selftest_intercepted_trip) {
+            selftest_intercepted_trip = error_code;
+        }
+        return;
+    }
+
     if (pending_thermal_runaway) {
         // A recheck is already in flight; the first error code wins.
         return;
