@@ -109,6 +109,8 @@ static constexpr HeaterConfig_t Config_HeaterNozzle[] = {
         .heatbreak_fan_fnc = Fans::heat_break,
         .print_fan_fnc = Fans::print,
 #if HAS_INDX()
+        // Unused by the gcode selftest — the INDX nozzle passes/fails by the thermal-protection
+        // verdict (see heat_timeout_ms); kept for the legacy CSelftest code path.
         .heat_time_ms = 5700,
 #else
         .heat_time_ms = 42000,
@@ -117,6 +119,7 @@ static constexpr HeaterConfig_t Config_HeaterNozzle[] = {
         .undercool_temp = 75,
         .target_temp = 290,
 #if HAS_INDX()
+        // Unused by the gcode selftest — see heat_time_ms above.
         .heat_min_temp = 185,
         .heat_max_temp = 255,
 #else
@@ -129,6 +132,9 @@ static constexpr HeaterConfig_t Config_HeaterNozzle[] = {
         .heater_full_load_min_W = 20,
         .heater_full_load_max_W = 50,
         .min_pwm_to_measure = 26,
+#if HAS_INDX()
+        .heat_timeout_ms = 60000,
+#endif
     }
 };
 

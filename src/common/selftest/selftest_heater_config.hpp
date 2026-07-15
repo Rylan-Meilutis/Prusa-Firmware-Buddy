@@ -57,6 +57,11 @@ struct HeaterConfig_t {
     float heater_full_load_min_W { 0 };
     float heater_full_load_max_W { 0 };
     uint32_t min_pwm_to_measure { 0 };
+
+    /// INDX nozzle only: deadline for reaching target-temp residency. The thermal protections
+    /// (thermal model, heater watch) trip long before this on a broken heater; the deadline is
+    /// just a backstop, so it can be generous.
+    uint32_t heat_timeout_ms { 0 };
 };
 
 #if HAS_HEATERS_SELFTEST_GCODE()
