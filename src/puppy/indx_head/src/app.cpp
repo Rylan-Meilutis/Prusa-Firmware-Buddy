@@ -43,6 +43,7 @@ constexpr uint16_t max_target_temp = 300;
 
 std::atomic<indx_head::NozzlePresence> nozzle_present = indx_head::NozzlePresence::unknown;
 std::atomic<uint16_t> nozzle_invalidation_ack = 0;
+std::atomic<int16_t> ringdown_decay = 0;
 
 Debouncer<bool> nozzle_debouncer { false, 3 }; // 3 consecutive identical readings to settle
 
@@ -484,6 +485,14 @@ void invalidate_nozzle_presence(uint16_t ack_value) {
 
 uint16_t get_nozzle_invalidation_ack() {
     return nozzle_invalidation_ack.load();
+}
+
+void set_ringdown_decay(int16_t value) {
+    ringdown_decay.store(value);
+}
+
+int16_t get_ringdown_decay() {
+    return ringdown_decay.load();
 }
 
 void set_nozzle_target_temp(uint16_t new_target) {

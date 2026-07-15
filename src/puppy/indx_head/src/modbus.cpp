@@ -85,6 +85,8 @@ namespace {
 
         state.status_regs.nozzle_present = std::to_underlying(app::get_nozzle_present());
         state.status_regs.nozzle_invalidation_ack = app::get_nozzle_invalidation_ack();
+
+        state.status_regs.ringdown_decay = app::get_ringdown_decay();
     }
 
     template <typename T>

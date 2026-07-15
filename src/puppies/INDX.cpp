@@ -142,6 +142,8 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
         }
         fan_rpm_ok.store(rpm_ok_mask);
 
+        ringdown_decay.store(block.value.ringdown_decay);
+
         // !!! MUST be stored after reading the temperatures to avoid race conditions
         temps_valid.store(block.value.temps_valid);
 
@@ -366,6 +368,10 @@ int16_t Indx::get_board_temperature() {
 float Indx::get_tpis_ambient_temperature() {
     // Sent in centiDeg (deg * 100) for precision on 2 decimal places
     return static_cast<float>(tpis_ambient_temperature_c100.load()) / 100.f;
+}
+
+int16_t Indx::get_ringdown_decay() const {
+    return ringdown_decay.load();
 }
 
 float Indx::get_24V() {
