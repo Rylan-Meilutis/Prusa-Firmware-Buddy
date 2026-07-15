@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <optional>
 #include <span>
+#include <utils/abstract_byte_reader.hpp>
 
 #include <gcode_buffer.hpp>
 #include <transfers/partial_file.hpp>
 #include <transfers/transfer.hpp>
 
-#include "abstract_byte_reader.hpp"
 #include "gcode_reader_restore_info.hpp"
 #include "gcode_reader_result.hpp"
 #include <bsod/bsod.h>

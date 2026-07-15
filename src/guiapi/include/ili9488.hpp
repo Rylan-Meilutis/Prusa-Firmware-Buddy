@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common/abstract_byte_reader.hpp>
+#include <utils/abstract_byte_reader.hpp>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>

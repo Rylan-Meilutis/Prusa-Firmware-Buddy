@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common/abstract_byte_reader.hpp>
+#include <utils/abstract_byte_reader.hpp>
 #include <inttypes.h>
 #include "guitypes.hpp"
 #include "Rect16.h"
