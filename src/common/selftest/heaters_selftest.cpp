@@ -25,6 +25,8 @@
 #endif
 #if HAS_INDX()
     #include <common/mapi/calibration_preamble.hpp>
+    #include <puppies/INDX.hpp>
+    #include <tool/hotend/hotend/indx_hotend.hpp>
 #endif
 
 LOG_COMPONENT_REF(Selftest);
@@ -53,6 +55,18 @@ PhysicalToolIndex fan_tool(const HeaterConfig_t &config) {
 #endif
 }
 
+// INDX nozzle: heat like a regular print (head-regulated, no full-power PID hack) and let the
+// standard protection stack (thermal model, heater watch, thermal runaway) judge the heating —
+// the selftest passes on reaching target-temp residency and fails on a protection trip (BFW-9039).
+// Everything else keeps the full-power timed-window measurement.
+constexpr bool use_protection_verdict([[maybe_unused]] bool is_nozzle) {
+#if HAS_INDX()
+    return is_nozzle;
+#else
+    return false;
+#endif
+}
+
 // progress can only rise (mirrors CSelftestPart_Heater::actualizeProgress)
 void bump_progress(SelftestHeater_t &result, float current, float start, float end) {
     if (start >= end) {
@@ -71,8 +85,11 @@ public:
         : config(cfg)
         , result(result)
         , is_nozzle(is_nozzle) {
-        original_pid = config.get_pid();
-        config.set_pid(p_only_pid); // switch the regulator to on/off (full power)
+        if (!use_protection_verdict(is_nozzle)) {
+            original_pid = config.get_pid();
+            config.set_pid(p_only_pid); // switch the regulator to on/off (full power)
+            pid_overridden = true;
+        }
         config.setTargetTemp(0);
     }
 
@@ -91,6 +108,10 @@ public:
             return;
         }
 #endif
+        if (use_protection_verdict(is_nozzle) && stage != Stage::done && verdict_tripped()) {
+            finish_on_trip();
+            return;
+        }
         switch (stage) {
         case Stage::setup:
             step_setup();
@@ -167,6 +188,9 @@ private:
 
     void enter_preheat() {
         result.prep_state = SelftestSubtestState_t::running;
+        if (use_protection_verdict(is_nozzle)) {
+            verdict_engage();
+        }
         config.setTargetTemp(config.target_temp);
         stage = Stage::preheat;
     }
@@ -188,6 +212,10 @@ private:
     }
 
     void step_heat() {
+        if (use_protection_verdict(is_nozzle)) {
+            step_heat_verdict();
+            return;
+        }
         const uint32_t elapsed = ticks_ms() - heat_start;
         if (elapsed < config.heat_time_ms) {
             bump_progress(result, static_cast<float>(elapsed), 0.f, static_cast<float>(config.heat_time_ms));
@@ -215,6 +243,81 @@ private:
         finish(in_range ? TestResult::passed : TestResult::failed);
     }
 
+    // Protection-verdict test helpers (see use_protection_verdict()); no-op stubs elsewhere so
+    // the call sites don't need guards — the compile-time-false condition strips them out.
+#if HAS_INDX()
+    // From here on, protection trips are our verdict instead of a fatal error.
+    void verdict_engage() {
+        IndxHotend::enter_heater_selftest_mode();
+        last_head_reset_count = buddy::puppies::indx.get_reset_counter();
+    }
+
+    // Called only after the target is zeroed, so no trip can slip through to fatal_error.
+    void verdict_disengage() {
+        IndxHotend::exit_heater_selftest_mode();
+    }
+
+    bool verdict_tripped() const {
+        return IndxHotend::heater_selftest_trip().has_value();
+    }
+
+    // Regular regulated heat-up: pass on reaching target-temp residency; fail on the deadline.
+    // Protection trips are handled in step().
+    void step_heat_verdict() {
+        const auto tool = PhysicalToolIndex::currently_selected_opt();
+        if (!tool) {
+            // Tool got parked under us (toolchanger recovery); nothing to measure anymore.
+            selftest_invocation::mark_aborted();
+            finish(TestResult::skipped);
+            return;
+        }
+        const auto &hotend = Hotend::for_tool(*tool);
+        if (hotend.is_thermally_managed() && hotend.is_nozzle_temp_reached()) {
+            finish(TestResult::passed);
+            return;
+        }
+        // A head reset re-arms the protections and re-pushes the target; give the heat-up a fresh
+        // deadline instead of a spurious timeout.
+        const uint32_t reset_count = buddy::puppies::indx.get_reset_counter();
+        if (reset_count != last_head_reset_count) {
+            last_head_reset_count = reset_count;
+            heat_start = ticks_ms();
+        }
+        if (ticks_ms() - heat_start >= config.heat_timeout_ms) {
+            log_error(Selftest, "%s timed out heating to target", config.partname);
+            finish(TestResult::failed);
+            return;
+        }
+        const auto t = config.getTemp();
+        if (t.has_value()) {
+            bump_progress(result, t.value(), config.start_temp, config.target_temp);
+        }
+    }
+
+    void finish_on_trip() {
+        log_error(Selftest, "%s thermal protection tripped (%d)", config.partname,
+            static_cast<int>(*IndxHotend::heater_selftest_trip()));
+        // A fallen-out nozzle looks like a runaway; that is not a broken heater — abort instead
+        // of failing (mirrors the presence recheck the regular path does before raising).
+        const auto nozzle_present = buddy::puppies::indx.get_nozzle_present();
+        if (nozzle_present.has_value() && !*nozzle_present) {
+            selftest_invocation::mark_aborted();
+            finish(TestResult::skipped);
+            return;
+        }
+        finish(TestResult::failed);
+    }
+
+    /// Last seen indx head reset counter, for restarting the heat deadline across head resets
+    uint32_t last_head_reset_count = 0;
+#else
+    void verdict_engage() {}
+    void verdict_disengage() {}
+    bool verdict_tripped() const { return false; }
+    void step_heat_verdict() {}
+    void finish_on_trip() {}
+#endif
+
     // Conclude the test: record the result and immediately stop heating / restore the regulator.
     void finish(TestResult r) {
         res = r;
@@ -234,7 +337,12 @@ private:
         }
         torn_down = true;
         config.setTargetTemp(0);
-        config.set_pid(original_pid);
+        if (pid_overridden) {
+            config.set_pid(original_pid);
+        }
+        if (use_protection_verdict(is_nozzle)) {
+            verdict_disengage();
+        }
         exit_fans(); // safety net: release the fans if we were torn down mid-cooldown
     }
 
@@ -252,12 +360,13 @@ private:
     SelftestHeater_t &result;
     bool is_nozzle;
     Stage stage = Stage::setup;
-    PID_t original_pid;
+    PID_t original_pid {}; // only valid when pid_overridden
     float begin_temp = 0;
     uint32_t heat_start = 0;
     TestResult res = TestResult::failed;
     bool torn_down = false;
     bool fans_taken = false;
+    bool pid_overridden = false;
 };
 
 class Wizard {
