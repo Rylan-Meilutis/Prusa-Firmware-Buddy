@@ -55,6 +55,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #endif
 #if HAS_INDX()
     MI_NOZZLE_CLEANER_X_OFFSET,
+    MI_NOZZLE_CLEANER_Y_OFFSET,
 #endif
 #if HAS_CANCEL_OBJECT()
     MI_CO_CANCEL_OBJECT,
