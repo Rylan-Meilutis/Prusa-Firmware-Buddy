@@ -72,6 +72,9 @@ struct Status {
     /// Ringdown analysis decay value × 1000 (unitless, typical range 0..200).
     /// Updated after each ringdown analysis; 0 when the latest analysis didn't have enough peaks.
     int16_t ringdown_decay = 0;
+
+    /// Last-sampled induction heater coil current [mA]. Reads ~0 when not driving.
+    uint16_t heater_current_mA = 0;
 };
 static_assert(sizeof(Status) % 2 == 0);
 static_assert(std::alignment_of_v<Status> == 2);
