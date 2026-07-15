@@ -42,6 +42,14 @@ constexpr PID_t p_only_pid { .Kp = 1000000, .Ki = 0, .Kd = 0 };
 // How long to keep the final pass/fail on screen before the FSM closes (parity with M1978).
 constexpr uint32_t show_results_delay_ms = 3000;
 
+#if HAS_INDX()
+// Induction-heater coil current window under load [mA] for the nozzle test: the peak sampled
+// during the heat-up must land inside, otherwise the test fails like a thermal-protection trip.
+// TODO: tune on real hardware; the max is at/below the head's overcurrent limit.
+constexpr uint16_t heater_current_min_mA = 1700;
+constexpr uint16_t heater_current_max_mA = 2500;
+#endif
+
 using marlin_server::fsm_change;
 using marlin_server::wait_for_response;
 
@@ -108,9 +116,14 @@ public:
             return;
         }
 #endif
-        if (use_protection_verdict(is_nozzle) && stage != Stage::done && verdict_tripped()) {
-            finish_on_trip();
-            return;
+        if (use_protection_verdict(is_nozzle) && stage != Stage::done) {
+            if (verdict_tripped()) {
+                finish_on_trip();
+                return;
+            }
+            if (!step_heater_current()) {
+                return; // overcurrent just failed the test
+            }
         }
         switch (stage) {
         case Stage::setup:
@@ -273,6 +286,15 @@ private:
         }
         const auto &hotend = Hotend::for_tool(*tool);
         if (hotend.is_thermally_managed() && hotend.is_nozzle_temp_reached()) {
+            // Target reached, but the coil never drew nominal current on the way — bad coil /
+            // nozzle coupling. Judged only now: during regulation the duty (and current) drops
+            // legitimately, so the peak is only meaningful once the whole heat-up has happened.
+            if (peak_heater_current_mA < heater_current_min_mA) {
+                log_error(Selftest, "%s coil current peak %u mA under limit (%u)", config.partname,
+                    unsigned(peak_heater_current_mA), unsigned(heater_current_min_mA));
+                finish(TestResult::failed);
+                return;
+            }
             finish(TestResult::passed);
             return;
         }
@@ -308,14 +330,35 @@ private:
         finish(TestResult::failed);
     }
 
+    // Track the coil-current peak while the heater drives (the heat-up ramp runs at full duty).
+    // Overcurrent fails right away; undercurrent is judged at the pass point in step_heat_verdict().
+    // @returns false when the check just concluded the test
+    bool step_heater_current() {
+        if (stage != Stage::preheat && stage != Stage::heat) {
+            return true;
+        }
+        peak_heater_current_mA = std::max(peak_heater_current_mA, buddy::puppies::indx.get_heater_current_mA());
+        if (peak_heater_current_mA > heater_current_max_mA) {
+            log_error(Selftest, "%s coil current %u mA over limit (%u)", config.partname,
+                unsigned(peak_heater_current_mA), unsigned(heater_current_max_mA));
+            finish(TestResult::failed);
+            return false;
+        }
+        return true;
+    }
+
     /// Last seen indx head reset counter, for restarting the heat deadline across head resets
     uint32_t last_head_reset_count = 0;
+
+    /// Highest coil current sampled during the heat-up [mA]
+    uint16_t peak_heater_current_mA = 0;
 #else
     void verdict_engage() {}
     void verdict_disengage() {}
     bool verdict_tripped() const { return false; }
     void step_heat_verdict() {}
     void finish_on_trip() {}
+    bool step_heater_current() { return true; }
 #endif
 
     // Conclude the test: record the result and immediately stop heating / restore the regulator.
