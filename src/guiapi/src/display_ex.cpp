@@ -8,6 +8,7 @@
 #include <sys/fcntl.h>
 #include <sys/unistd.h>
 #include <logging/log.hpp>
+#include <utils/byte_utils.hpp>
 
 #if HAS_ST7789_DISPLAY()
     #include "st7789v.hpp"
@@ -499,7 +500,7 @@ void enable_resource_file() {
 
 class ResourceFileReader final : public AbstractByteReader {
 public:
-    std::span<std::byte> read(std::span<std::byte> buffer) final {
+    WritableBytes read(WritableBytes buffer) final {
         size_t nread = ::read(resource_fd, buffer.data(), buffer.size());
         return { buffer.data(), nread };
     }

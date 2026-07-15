@@ -16,6 +16,7 @@
 #include <utils/overloaded_visitor.hpp>
 #include <variant>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 namespace {
 
@@ -39,7 +40,7 @@ uint32_t get_random_salt() {
 //       Each node will request just a single file while in bootloader.
 //       We just invent some short string here and call it a day.
 static const std::string_view dummy_parameter_sv = "/path/to/fw";
-static const std::span<std::byte> dummy_parameter { (std::byte *)dummy_parameter_sv.data(), dummy_parameter_sv.size() };
+static const WritableBytes dummy_parameter { (std::byte *)dummy_parameter_sv.data(), dummy_parameter_sv.size() };
 
 } // namespace
 
@@ -217,7 +218,7 @@ private:
             /// Received a hash
             ///
             /// Assumes the caller adjusts the received_form_* beforehand.
-            void received(const std::span<const std::byte> &new_digest) {
+            void received(const Bytes &new_digest) {
                 if (digest.size() != new_digest.size()) {
                     // TODO BFW-7918
                     // Or assert?
@@ -338,7 +339,7 @@ private:
             return verify;
         }
 
-        bool execute_command(Presentation &presentation, TimePoint now, NodeId node_id, Command command, std::span<std::byte> parameter) {
+        bool execute_command(Presentation &presentation, TimePoint now, NodeId node_id, Command command, WritableBytes parameter) {
             if (last_command_valid && now < last_command.timepoint + execute_command_timeout) {
                 // Waiting for response. Let other nodes make progress.
                 return false;
@@ -1008,7 +1009,7 @@ public:
         };
     }
 
-    void receive_nfc_event(cyphal::NodeId node_id, std::span<const std::byte> data) final {
+    void receive_nfc_event(cyphal::NodeId node_id, Bytes data) final {
         if (Node *node = get_node(node_id)) {
             if (auto *alive = std::get_if<Node::NfcAlive>(&node->state)) {
                 get_nfc(alive->device).receive_event(data);

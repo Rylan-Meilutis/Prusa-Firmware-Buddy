@@ -11,6 +11,7 @@
 #include <option/has_anfc.h>
 #include <option/has_tool_offset_sensor.h>
 #include <span>
+#include <utils/byte_utils.hpp>
 #include <string.h>
 #include <uavcan/diagnostic/Record_1_1.h>
 #include <uavcan/file/Read_1_1.h>
@@ -350,7 +351,7 @@ private:
     void receive(const cyphal::TimePoint, const CanardRxTransfer &transfer, const uavcan_diagnostic_Record_1_1 &message) {
         application.receive_diagnostic_record(
             cyphal::NodeId { transfer.metadata.remote_node_id },
-            cyphal::Bytes { (std::byte *)message.text.elements, message.text.count });
+            Bytes { (std::byte *)message.text.elements, message.text.count });
     }
 
 #if HAS_AC_CONTROLLER()
@@ -391,7 +392,7 @@ private:
     void receive(const cyphal::TimePoint, const CanardRxTransfer &transfer, const prusa3d_nfc_event_Event_1_0 &) {
         application.receive_nfc_event(
             cyphal::NodeId { transfer.metadata.remote_node_id },
-            std::span<const std::byte> {
+            Bytes {
                 (const std::byte *)transfer.payload,
                 transfer.payload_size });
     }
@@ -416,7 +417,7 @@ private:
         (void)serialize_and_transmit(request, remote_node_id, transfer_id.node_get_info++);
     }
 
-    void transmit_node_execute_command_request(cyphal::NodeId remote_node_id, cyphal::Command command, std::span<std::byte> parameter) override {
+    void transmit_node_execute_command_request(cyphal::NodeId remote_node_id, cyphal::Command command, WritableBytes parameter) override {
         uavcan_node_ExecuteCommand_Request_1_3 request;
         request.command = static_cast<uint16_t>(command);
         request.parameter.count = std::min(parameter.size(), sizeof(request.parameter.elements));
@@ -445,7 +446,7 @@ private:
             // Node will retry later and we will hopefully be able to respond then.
         }
     }
-    void transmit_file_read_response(cyphal::NodeId remote_node_id, uint8_t transfer_id, std::span<std::byte> data) override {
+    void transmit_file_read_response(cyphal::NodeId remote_node_id, uint8_t transfer_id, WritableBytes data) override {
         uavcan_file_Read_Response_1_1 response;
         response._error.value = uavcan_file_Error_1_0_OK;
         response.data.value.count = data.size();
@@ -539,7 +540,7 @@ private:
 #endif
     }
 
-    bool transmit_nfc_command_request(cyphal::NodeId remote_node_id, std::span<const std::byte> data) override {
+    bool transmit_nfc_command_request(cyphal::NodeId remote_node_id, Bytes data) override {
 #if HAS_ANFC()
         return transmit<prusa3d_nfc_command_Request_Request_1_0>(data, remote_node_id, transfer_id.nfc_command_request++);
 #else
@@ -549,7 +550,7 @@ private:
 #endif
     }
 
-    bool transmit_nfc_command_accept_event(cyphal::NodeId remote_node_id, std::span<const std::byte> data) override {
+    bool transmit_nfc_command_accept_event(cyphal::NodeId remote_node_id, Bytes data) override {
 #if HAS_ANFC()
         return transmit<prusa3d_nfc_command_AcceptEvent_Request_1_0>(data, remote_node_id, transfer_id.nfc_command_accept_event++);
 #else
@@ -571,7 +572,7 @@ private:
     }
 
     template <class T>
-    [[nodiscard]] bool transmit(const std::span<const std::byte> &data, cyphal::NodeId remote_node_id, uint8_t transfer_id) {
+    [[nodiscard]] bool transmit(const Bytes &data, cyphal::NodeId remote_node_id, uint8_t transfer_id) {
         const CanardTransferMetadata metadata = {
             .priority = CanardPriorityNominal,
             .transfer_kind = NunavutTraits<T>::transfer_kind,

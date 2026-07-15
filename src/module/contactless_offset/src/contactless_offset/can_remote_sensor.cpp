@@ -2,6 +2,7 @@
 
 #include <prusa3d/tool_offset_sensor/Data_1_0.h>
 #include <prusa3d/common/PortIds_0_1.h>
+#include <utils/byte_utils.hpp>
 
 namespace tool_offset {
 
@@ -71,7 +72,7 @@ bool CanRemoteSensor::accepts_port(uint16_t port_id) {
     return port_id == prusa3d_common_PortIds_0_1_MSG_TOOL_OFFSET_SENSOR_DATA_CH1;
 }
 
-void CanRemoteSensor::handle_data_frame(std::span<const std::byte> payload) {
+void CanRemoteSensor::handle_data_frame(Bytes payload) {
     if (!running) {
         return;
     }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <feature/openprinttag/detail/requests_base.hpp>
+#include <utils/byte_utils.hpp>
 
 namespace buddy::openprinttag {
 
@@ -14,7 +15,7 @@ public:
         , enable_ { enable } {}
 
     SerializeResult serialize(ManagerNoLockBadge, RequestID, anfc::modbus::Request &) final;
-    void complete(std::span<const std::byte>) final;
+    void complete(Bytes) final;
 
 protected:
     const anfc::Device device_;

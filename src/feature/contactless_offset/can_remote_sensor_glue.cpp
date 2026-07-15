@@ -4,10 +4,11 @@
 #include <contactless_offset/tool_sensor.hpp>
 #include <puppies/xbuddy_extension.hpp>
 #include <puppies/tool_offset_sensor.hpp>
+#include <utils/byte_utils.hpp>
 
 namespace tool_offset {
 
-static void on_stream(uint16_t port_id, std::span<const std::byte> payload, void *ctx) {
+static void on_stream(uint16_t port_id, Bytes payload, void *ctx) {
     if (CanRemoteSensor::accepts_port(port_id)) {
         static_cast<CanRemoteSensor *>(ctx)->handle_data_frame(payload);
     }

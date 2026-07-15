@@ -13,6 +13,7 @@
 #include <mapi/parking.hpp>
 #include <Marlin/src/module/motion.h>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 namespace multi_filament_change {
 
@@ -66,7 +67,7 @@ std::optional<Config> config_from_gcode(GCodeBasicParser &parser) {
     // These don't interfere with the G-Code special characters, which is handy for us
 
     Config config;
-    const std::span<std::byte> config_span { reinterpret_cast<std::byte *>(&config), sizeof(config) };
+    const WritableBytes config_span { reinterpret_cast<std::byte *>(&config), sizeof(config) };
     static_assert(std::is_trivially_copyable_v<Config>);
 
     size_t pos = 0;

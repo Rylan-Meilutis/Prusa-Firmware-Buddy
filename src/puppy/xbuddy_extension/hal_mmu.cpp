@@ -5,10 +5,11 @@
 #include <freertos/binary_semaphore.hpp>
 #include <freertos/stream_buffer.hpp>
 #include <stm32h5xx_hal.h>
+#include <utils/byte_utils.hpp>
 
 static UART_HandleTypeDef huart;
 static std::byte rx_byte;
-static std::span<const std::byte> rx_byte_span { &rx_byte, 1 };
+static Bytes rx_byte_span { &rx_byte, 1 };
 static freertos::StreamBuffer<32> rx_buffer;
 static freertos::BinarySemaphore tx_semaphore;
 
@@ -106,12 +107,12 @@ void hal::mmu::tx_callback(void *handle) {
     }
 }
 
-void hal::mmu::transmit(std::span<const std::byte> payload) {
+void hal::mmu::transmit(Bytes payload) {
     HAL_UART_Transmit_IT(&huart, (const uint8_t *)payload.data(), payload.size());
     tx_semaphore.acquire();
 }
 
-std::span<std::byte> hal::mmu::receive(std::span<std::byte> buffer) {
+WritableBytes hal::mmu::receive(WritableBytes buffer) {
     return rx_buffer.receive(buffer);
 }
 

@@ -7,7 +7,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <span>
+#include <utils/byte_utils.hpp>
 
 namespace tool_offset {
 
@@ -43,7 +43,7 @@ public:
     static bool accepts_port(uint16_t port_id);
 
     // Called from the puppy task context via XBuddyExtension stream callback.
-    void handle_data_frame(std::span<const std::byte> payload);
+    void handle_data_frame(Bytes payload);
 
 private:
     AtomicCircularQueue<uint32_t, uint32_t, QUEUE_SIZE> sample_queue;

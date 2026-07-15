@@ -12,6 +12,7 @@
 #include <prusa3d/nfc/event/Event_1_0.h>
 #include <logging/log.hpp>
 #include <timing.h>
+#include <utils/byte_utils.hpp>
 
 LOG_COMPONENT_REF(OpenPrintTag);
 
@@ -83,7 +84,7 @@ bool Manager::step(anfc::modbus::Client &client) {
     });
 }
 
-void Manager::on_request_done(RequestID request_id, std::span<const std::byte> raw_event_data) {
+void Manager::on_request_done(RequestID request_id, Bytes raw_event_data) {
     for (auto &entry : active_requests) {
         if (entry.request && entry.request_id == request_id) {
             entry.request->complete(raw_event_data);
@@ -95,7 +96,7 @@ void Manager::on_request_done(RequestID request_id, std::span<const std::byte> r
     log_error(OpenPrintTag, "stray request %d", request_id.to_underlying());
 }
 
-void Manager::DeviceState::on_request_done(RequestID request_id, std::span<const std::byte> raw_event_data) {
+void Manager::DeviceState::on_request_done(RequestID request_id, Bytes raw_event_data) {
     // handle forget_tag completion
     if (auto *f = std::get_if<TagForgetting>(&tag); f && f->request_id == request_id) {
         tag = TagUnused {};

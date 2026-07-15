@@ -7,7 +7,7 @@
 #include <compact_pointer.hpp>
 #include <feature/openprinttag/tool_tag.hpp>
 #include <openprinttag/opt_reader.hpp>
-#include <span>
+#include <utils/byte_utils.hpp>
 #include <tool_index.hpp>
 #include <utils/uncopyable.hpp>
 #include <utils/compact_optional.hpp>
@@ -68,7 +68,7 @@ public:
     virtual SerializeResult serialize(ManagerNoLockBadge, RequestID, anfc::modbus::Request &) = 0;
 
     /// Called when the request completes with event data
-    virtual void complete(std::span<const std::byte> event_data) = 0;
+    virtual void complete(Bytes event_data) = 0;
 
     /// @returns whether the request is still running or not
     bool finished() const {

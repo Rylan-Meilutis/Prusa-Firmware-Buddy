@@ -3,11 +3,12 @@
 
 #include <algorithm>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 OneWireMaster::OneWireMaster(const Timing &timing)
     : timing_(timing) {}
 
-void OneWireMaster::start_transfer(std::span<const std::byte> tx_buffer, std::span<std::byte> rx_buffer) {
+void OneWireMaster::start_transfer(Bytes tx_buffer, WritableBytes rx_buffer) {
     debug_assert(!is_active());
 
     // Pre-clear the rx buffer

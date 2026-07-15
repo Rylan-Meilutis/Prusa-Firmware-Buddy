@@ -20,7 +20,7 @@
 #include <cstring>
 #include <optional>
 #include <ranges>
-#include <span>
+#include <utils/byte_utils.hpp>
 
 namespace hal::peripherals {
 extern I2C_HandleTypeDef hi2c1;
@@ -197,7 +197,7 @@ namespace {
 
         class Impl {
         public:
-            [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, std::span<const std::byte> tx_buff) {
+            [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, Bytes tx_buff) {
                 i2c_error_flag.store(false);
                 waiting_for_i2c.store(true);
                 const auto ret = HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, address << 1, offset, I2C_MEMADD_SIZE_8BIT, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buff.data())), tx_buff.size());
@@ -219,7 +219,7 @@ namespace {
                 return true;
             }
 
-            [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, std::span<std::byte> rx_buff) {
+            [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, WritableBytes rx_buff) {
                 i2c_error_flag.store(false);
                 waiting_for_i2c.store(true);
                 const auto ret = HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, (address << 1), offset, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(rx_buff.data()), rx_buff.size());
@@ -241,10 +241,10 @@ namespace {
                 return true;
             }
 
-            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] std::span<const std::byte> tx_buf) {
+            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] Bytes tx_buf) {
                 bsod_unreachable();
             }
-            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] std::span<std::byte> rx_buf) {
+            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] size_t offset, [[maybe_unused]] WritableBytes rx_buf) {
                 bsod_unreachable();
             }
 

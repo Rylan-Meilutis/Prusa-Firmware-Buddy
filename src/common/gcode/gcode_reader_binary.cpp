@@ -12,6 +12,7 @@
 #include <bsod.h>
 #include <type_traits>
 #include <config_store/store_instance.hpp>
+#include <utils/byte_utils.hpp>
 
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/sha256_multiuse.hpp>
@@ -680,7 +681,7 @@ constexpr PrusaPackGcodeReader::ImgType thumbnail_format_to_type(bgcode::core::E
     }
 }
 
-std::span<std::byte> PrusaPackGcodeReader::ThumbnailReader::read(std::span<std::byte> buffer) {
+WritableBytes PrusaPackGcodeReader::ThumbnailReader::read(WritableBytes buffer) {
     // thumbnail is read as-is, no decompression
     size_t nread = 0;
     if (size > 0) {

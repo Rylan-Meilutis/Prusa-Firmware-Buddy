@@ -1,7 +1,7 @@
 /// @file
 #pragma once
 
-#include <span>
+#include <utils/byte_utils.hpp>
 #include <string_view>
 
 #include <feature/openprinttag/tool_tag.hpp>
@@ -43,7 +43,7 @@ public:
     using WriteFieldRequestT<float>::WriteFieldRequestT;
 
     void serialize(RequestID, TagID, anfc::modbus::Request &) final;
-    void complete(std::span<const std::byte> event_data) final;
+    void complete(Bytes event_data) final;
 };
 
 } // namespace buddy::openprinttag

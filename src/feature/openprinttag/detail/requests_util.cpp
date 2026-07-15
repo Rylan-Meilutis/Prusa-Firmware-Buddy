@@ -4,6 +4,7 @@
 
 #include <prusa3d/nfc/command/Request_1_0.h>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 namespace buddy::openprinttag {
 
@@ -28,7 +29,7 @@ Request::SerializeResult EnableRadioRequest::serialize(ManagerNoLockBadge, Reque
     return device_;
 }
 
-void EnableRadioRequest::complete(std::span<const std::byte>) {
+void EnableRadioRequest::complete(Bytes) {
     // Radio enable/disable has no return data
     set_finished(std::monostate {});
 }

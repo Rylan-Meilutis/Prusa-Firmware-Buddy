@@ -15,6 +15,7 @@
 #include <array>
 #include <cstring>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 using namespace indx_head::modbus;
 
@@ -152,7 +153,7 @@ namespace {
         }
     }
 
-    void build_fifo_response(std::span<std::byte> &out) {
+    void build_fifo_response(WritableBytes &out) {
         using namespace fifo_coder;
         // Reserve 4 bytes for header (byte_count + fifo_count)
         constexpr size_t header_size = 4;
@@ -272,7 +273,7 @@ namespace {
         }
 
         static constexpr uint8_t FIFO_CODE = 0x18; // Modbus function code 24 (Read FIFO Queue)
-        Status custom_function(uint8_t func_code, [[maybe_unused]] std::span<const std::byte> in, std::span<std::byte> &out) final {
+        Status custom_function(uint8_t func_code, [[maybe_unused]] Bytes in, WritableBytes &out) final {
             switch (func_code) {
             case FIFO_CODE: {
                 build_fifo_response(out);
@@ -293,7 +294,7 @@ void run() {
     modbus::Dispatch dispatch(std::span { handlers });
     static std::array<std::byte, 256> response_buffer;
 
-    std::span<std::byte> response;
+    WritableBytes response;
     FOREVER_WITH_WATCHDOG(900) {
         const auto request = hal::rs485::maybe_transmit_and_then_receive(response);
         response = modbus::handle_transaction(dispatch, request, response_buffer, hal::crc::compute_crc16_modbus);

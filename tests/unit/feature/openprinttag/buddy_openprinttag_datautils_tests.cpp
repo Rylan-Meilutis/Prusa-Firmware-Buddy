@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <feature/openprinttag/data_utils.hpp>
+#include <utils/byte_utils.hpp>
 
 using namespace buddy::openprinttag;
 
@@ -24,11 +25,11 @@ void Request::set_finished(std::expected<std::monostate, Error> result) {
     error_ = result.error_or(Error::_cnt);
 }
 
-void ReadEnumArrayRequestBase::complete(std::span<const std::byte> event_data) {}
-void ReadEnumFieldRequestBase::complete(std::span<const std::byte> event_data) {}
-void ReadFloatFieldRequest::complete(std::span<const std::byte> event_data) {}
-void ReadInt32FieldRequest::complete(std::span<const std::byte> event_data) {}
-void ReadStringRequestBase::complete(std::span<const std::byte> event_data) {}
+void ReadEnumArrayRequestBase::complete(Bytes event_data) {}
+void ReadEnumFieldRequestBase::complete(Bytes event_data) {}
+void ReadFloatFieldRequest::complete(Bytes event_data) {}
+void ReadInt32FieldRequest::complete(Bytes event_data) {}
+void ReadStringRequestBase::complete(Bytes event_data) {}
 
 Request::SerializeResult TagRequest::serialize(ManagerNoLockBadge badge, RequestID request_id, anfc::modbus::Request &request) {
     return std::nullopt;

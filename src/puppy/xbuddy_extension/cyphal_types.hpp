@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <span>
+#include <utils/byte_utils.hpp>
 
 namespace cyphal {
 
@@ -75,9 +75,6 @@ enum class Severity : uint8_t {
     /// Messages of this severity should be always enabled.
     alert = 7,
 };
-
-/// Represents raw node name, as presented by standard cyphal protocols.
-using Bytes = std::span<const std::byte>;
 
 /// Strong type representing node ID on cyphal network.
 class NodeId {

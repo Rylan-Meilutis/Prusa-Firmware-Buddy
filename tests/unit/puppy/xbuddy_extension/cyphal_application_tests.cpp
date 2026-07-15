@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <modbus/traits.hpp>
 #include <vector>
+#include <utils/byte_utils.hpp>
 
 // This is needed for linking but we don't need the actual implementation in tests
 void cyphal::Application::log_from_app([[maybe_unused]] std::string_view s) {
@@ -127,10 +128,10 @@ public:
     void transmit_node_get_info_request(NodeId remote_node_id) {
         node_get_info_request.emplace_back(remote_node_id);
     }
-    void transmit_node_execute_command_request(NodeId remote_node_id, Command command, std::span<std::byte> parameter) {
+    void transmit_node_execute_command_request(NodeId remote_node_id, Command command, WritableBytes parameter) {
         node_execute_command_request.emplace_back(remote_node_id, command, std::vector<std::byte> { parameter.begin(), parameter.end() });
     }
-    void transmit_file_read_response(NodeId remote_node_id, uint8_t transfer_id, std::span<std::byte> data) {
+    void transmit_file_read_response(NodeId remote_node_id, uint8_t transfer_id, WritableBytes data) {
         file_responses.push_back(FileResponse { remote_node_id, transfer_id, std::vector(data.begin(), data.end()) });
     }
 
@@ -161,12 +162,12 @@ public:
     std::vector<NfcCommand> nfc_requests;
     std::vector<NfcCommand> nfc_accept_events;
 
-    bool transmit_nfc_command_request(NodeId remote_node_id, std::span<const std::byte> data) final {
+    bool transmit_nfc_command_request(NodeId remote_node_id, Bytes data) final {
         nfc_requests.push_back({ remote_node_id, std::vector<std::byte>(data.begin(), data.end()) });
         return true;
     }
 
-    bool transmit_nfc_command_accept_event(NodeId remote_node_id, std::span<const std::byte> data) final {
+    bool transmit_nfc_command_accept_event(NodeId remote_node_id, Bytes data) final {
         nfc_accept_events.push_back({ remote_node_id, std::vector<std::byte>(data.begin(), data.end()) });
         return true;
     }

@@ -17,6 +17,7 @@
 #include <utils/storage/strong_index_array.hpp>
 #include <utils/uncopyable.hpp>
 #include <variant>
+#include <utils/byte_utils.hpp>
 
 namespace buddy::openprinttag {
 
@@ -106,7 +107,7 @@ private:
 
         [[nodiscard]] bool handle_event(anfc::modbus::Client &, const anfc::modbus::Event &);
 
-        void on_request_done(RequestID, std::span<const std::byte>);
+        void on_request_done(RequestID, Bytes);
         void on_tag_detected(TagID, TagUID);
         void on_tag_lost(TagID);
 
@@ -147,7 +148,7 @@ private:
     /// The table holding active requests.
     std::array<ActiveRequestEntry, max_active_requests> active_requests;
 
-    void on_request_done(RequestID, std::span<const std::byte>);
+    void on_request_done(RequestID, Bytes);
     void handle_pending_request(anfc::modbus::Client &);
     void check_timeouts();
     RequestID make_request_id();

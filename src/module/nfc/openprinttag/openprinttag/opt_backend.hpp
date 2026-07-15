@@ -1,6 +1,6 @@
 #pragma once
 
-#include <span>
+#include <utils/byte_utils.hpp>
 #include <variant>
 #include <expected>
 #include <limits>
@@ -96,11 +96,11 @@ public:
 public:
     /// Reads \p buffer.size() bytes from \p tag into \p buffer, starting at position \p start
     /// \returns whether the operation was successful
-    [[nodiscard]] virtual IOResult<void> read(TagID tag, PayloadPos start, const std::span<std::byte> &buffer) = 0;
+    [[nodiscard]] virtual IOResult<void> read(TagID tag, PayloadPos start, const WritableBytes &buffer) = 0;
 
     /// Writes \p buffer.size() bytes to \p tag, starting at position \p start
     /// \returns whether the operation was successful
-    [[nodiscard]] virtual IOResult<void> write(TagID tag, PayloadPos start, const std::span<const std::byte> &data) = 0;
+    [[nodiscard]] virtual IOResult<void> write(TagID tag, PayloadPos start, const Bytes &data) = 0;
 
     /// Reads a single event and stores it in \p e
     /// \param timestamp of current time, from function like freertos::millis
@@ -110,7 +110,7 @@ public:
     /// Reads tag UID (identifier number hardcoded by the tag manufacturer)
     /// \param result buffer the UID will be written into
     /// \returns size of the read UID in bytes or error
-    [[nodiscard]] virtual IOResult<size_t> get_tag_uid(TagID tag, const std::span<std::byte> &buffer) = 0;
+    [[nodiscard]] virtual IOResult<size_t> get_tag_uid(TagID tag, const WritableBytes &buffer) = 0;
 
     /// Parses the Capability Container of the tag and returns relevant data
     [[nodiscard]] virtual IOResult<void> read_tag_info(TagID tag, TagInfo &target) = 0;

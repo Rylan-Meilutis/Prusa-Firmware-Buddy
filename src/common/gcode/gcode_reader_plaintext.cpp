@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <cinttypes>
 #include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
 
 PlainGcodeReader::PlainGcodeReader(unique_file_ptr &&f, const struct stat &stat_info)
     : GcodeReaderCommon(std::move(f)) {
@@ -126,7 +127,7 @@ IGcodeReader::Result_t PlainGcodeReader::stream_get_line(GcodeBuffer &buffer, Co
     return Result_t::RESULT_EOF;
 }
 
-std::span<std::byte> PlainGcodeReader::ThumbnailReader::read(std::span<std::byte> buffer) {
+WritableBytes PlainGcodeReader::ThumbnailReader::read(WritableBytes buffer) {
     // TODO implement reading multiple bytes at a time
     size_t n = buffer.size();
     size_t pos = 0;
