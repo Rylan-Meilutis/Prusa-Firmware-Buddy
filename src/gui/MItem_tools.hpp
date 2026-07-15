@@ -152,6 +152,17 @@ public:
 protected:
     virtual void OnClick() override;
 };
+
+/// Tune menu: fine-tune of the calibrated nozzle cleaner Y position
+class MI_NOZZLE_CLEANER_Y_OFFSET : public WiSpin {
+    static constexpr const char *const label = N_("Nozzle Cleaner Y Offset");
+
+public:
+    MI_NOZZLE_CLEANER_Y_OFFSET();
+
+protected:
+    virtual void OnClick() override;
+};
 #endif
 
 class MI_MESH_BED : public IWindowMenuItem {
