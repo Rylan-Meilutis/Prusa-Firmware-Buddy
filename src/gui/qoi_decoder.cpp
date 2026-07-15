@@ -9,7 +9,9 @@
 
 namespace qoi {
 
-void Decoder::push_byte(uint8_t byte) {
+void Decoder::push(std::byte input) {
+    const uint8_t byte = std::to_integer<uint8_t>(input);
+
     constexpr const uint8_t QOI_OP_RGB = 0xfe; // 11111110
     constexpr const uint8_t QOI_OP_RGBA = 0xff; // 11111111
 

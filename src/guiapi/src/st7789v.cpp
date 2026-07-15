@@ -11,6 +11,7 @@
 #include <buddy/ccm_thread.hpp>
 #include <device/hal.h>
 #include <span>
+#include <utils/byte_utils.hpp>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -608,8 +609,8 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     point_i16_t pos = { static_cast<int16_t>(pt.x), static_cast<int16_t>(pt.y) };
 
     // Prepare input buffer
-    std::span<uint8_t> i_buf(st7789v_buff, 512); ///< Input file buffer
-    std::span<uint8_t> i_data; ///< Span of input data read from file
+    WritableBytes i_buf { reinterpret_cast<std::byte *>(st7789v_buff), 512 }; ///< Input file buffer
+    WritableBytes i_data; ///< Span of input data read from file
 
     // Prepare output buffer
     std::span<uint8_t> p_buf(st7789v_buff + i_buf.size(), std::size(st7789v_buff) - i_buf.size()); ///< Output pixel buffer
@@ -631,7 +632,7 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     if (header.size() != qoi::Decoder::HEADER_SIZE) {
         return; // Header couldn't be read
     }
-    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<uint8_t, qoi::Decoder::HEADER_SIZE>(header)));
+    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<const std::byte, qoi::Decoder::HEADER_SIZE>(header)));
     subrect.Intersection(Rect16(0, 0, ST7789V_COLS, ST7789V_ROWS)); // Clip drawn subrect to display size
 
     // Prepare output
@@ -653,7 +654,7 @@ void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
         for (auto i_byte : i_data) {
 
             // Push byte to decoder
-            qoi_decoder.push_byte((uint8_t)i_byte);
+            qoi_decoder.push(i_byte);
 
             // Pull pixels from decoder
             while (qoi_decoder.has_pixel()) {
