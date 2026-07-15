@@ -51,13 +51,11 @@ _bsod(const char *fmt, const char *file_name, int line_number, ...);
 #if defined(__cpp_contracts) && __cpp_contracts >= 202502L
 // contract_assert is a language keyword
 #else
-    #define contract_assert(expr)                                     \
-        do {                                                          \
-            if (!(expr)) {                                            \
-                _bsod("CONTRACT %s", __FILE_NAME__, __LINE__, #expr); \
-            }                                                         \
-        } while (0)                                                   \
-            __attribute__((assume(expr)))
+    #define contract_assert(expr)                                 \
+        if (!(expr)) {                                            \
+            _bsod("CONTRACT %s", __FILE_NAME__, __LINE__, #expr); \
+        }                                                         \
+        __attribute__((assume(expr)))
 #endif
 
 #ifdef __cplusplus
