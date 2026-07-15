@@ -68,6 +68,10 @@ struct Status {
     /// It takes a while to get these values after the head bootup, so we're initially sending garbage.
     /// Once the temps get valid, they can only become invalid if the puppy is reset.
     uint16_t temps_valid = 0;
+
+    /// Ringdown analysis decay value × 1000 (unitless, typical range 0..200).
+    /// Updated after each ringdown analysis; 0 when the latest analysis didn't have enough peaks.
+    int16_t ringdown_decay = 0;
 };
 static_assert(sizeof(Status) % 2 == 0);
 static_assert(std::alignment_of_v<Status> == 2);

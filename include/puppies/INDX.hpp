@@ -126,6 +126,7 @@ public:
     [[nodiscard]] int16_t get_mcu_temperature(); ///< Get MCU temperature [°C]
     [[nodiscard]] int16_t get_board_temperature(); ///< Get board temperature [°C]
     [[nodiscard]] float get_tpis_ambient_temperature(); ///< Get TPiS sensor ambient temperature [°C]
+    [[nodiscard]] int16_t get_ringdown_decay() const; ///< Latest ringdown analysis decay × 1000 (unitless); 0 when the analysis failed
     [[nodiscard]] float get_24V(); ///< Get 24V power supply voltage [V]
     /** Get nozzle presence (debounced on the INDX_HEAD side).
      *  @returns nullopt until the head reports a definitive value, true if nozzle is present, false otherwise
@@ -207,6 +208,8 @@ private:
     std::array<std::atomic<uint16_t>, NUM_FANS> fan_rpm {};
     std::array<std::atomic<uint16_t>, NUM_FANS> fan_state {};
     std::atomic<uint8_t> fan_rpm_ok { 0 }; // bitmask: bit 0 = print fan, bit 1 = heatbreak fan
+
+    std::atomic<int16_t> ringdown_decay { 0 };
 
     static_assert(std::atomic<int16_t>::is_always_lock_free);
     static_assert(std::atomic<uint16_t>::is_always_lock_free);

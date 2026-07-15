@@ -379,6 +379,7 @@ void InductionHeater::ringdown_analysis(void) {
         analysis.status = RingdownAnalysisStatus::NOT_ENOUGH_PEAKS;
         last_analysis = analysis;
         app::set_nozzle_present(indx_head::NozzlePresence::unknown);
+        app::set_ringdown_decay(0);
         return; // invalid data, can't continue
     }
 
@@ -440,6 +441,7 @@ void InductionHeater::ringdown_analysis(void) {
     }
 
     last_analysis = analysis;
+    app::set_ringdown_decay(static_cast<int16_t>(analysis.decay * 1000.0f));
 }
 
 bool InductionHeater::ringdown_analysis_sanity_check(RingdownAnalysis &result) {
