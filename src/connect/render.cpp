@@ -804,7 +804,7 @@ tuple<JsonResult, size_t> PreviewRenderer::render(uint8_t *buffer, size_t buffer
     while ((buffer_size - written) >= (encoded_chunk_size + 1)) { // if there is space for another chunk (and ending \0)
         // read chunk of decoded data
         uint8_t dec_chunk[decoded_chunk_size] = { 0 };
-        size_t decoded_len = thumbnail_reader->read({ dec_chunk, decoded_chunk_size }).size();
+        size_t decoded_len = thumbnail_reader->read({ reinterpret_cast<std::byte *>(dec_chunk), decoded_chunk_size }).size();
         if (decoded_len != decoded_chunk_size) {
             // probably end of data, or error. Either way stop reading and send whatever was read till now.
             // if error happens while sending thumbnail, there is not much that can be done to signal that anyway.
