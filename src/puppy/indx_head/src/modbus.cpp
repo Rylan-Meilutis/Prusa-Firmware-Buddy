@@ -86,6 +86,7 @@ namespace {
         state.status_regs.nozzle_invalidation_ack = app::get_nozzle_invalidation_ack();
 
         state.status_regs.ringdown_decay = app::get_ringdown_decay();
+        state.status_regs.heater_current_mA = app::get_heater_current_mA();
     }
 
     template <typename T>

@@ -43,6 +43,9 @@ std::atomic<indx_head::NozzlePresence> nozzle_present = indx_head::NozzlePresenc
 std::atomic<uint16_t> nozzle_invalidation_ack = 0;
 std::atomic<int16_t> ringdown_decay = 0;
 
+/// Last-sampled induction heater coil current [mA]. Reads ~0 when the heater is not driving.
+std::atomic<uint16_t> last_heater_current_mA = 0;
+
 Debouncer<bool> nozzle_debouncer { false, 3 }; // 3 consecutive identical readings to settle
 
 constexpr uint32_t control_frequency = 300 /*Hz*/;
@@ -92,6 +95,9 @@ void step_hotend_energy(uint32_t dt_us) {
     // All integer arithmetic, no 64-bit division (expensive on Cortex-M0)
     const uint32_t voltage_mV = hal::adc::get_input_voltage_mV();
     const uint32_t current_mA = hal::adc::get_heater_current_mA();
+
+    // Expose the latest coil current for the heater selftest current check on xBuddy
+    last_heater_current_mA.store(static_cast<uint16_t>(current_mA));
 
     // max ~75000, fits uint32_t
     const uint32_t power_mW = voltage_mV * current_mA / 1000;
@@ -491,6 +497,10 @@ void set_ringdown_decay(int16_t value) {
 
 int16_t get_ringdown_decay() {
     return ringdown_decay.load();
+}
+
+uint16_t get_heater_current_mA() {
+    return last_heater_current_mA.load();
 }
 
 void set_nozzle_target_temp(uint16_t new_target) {

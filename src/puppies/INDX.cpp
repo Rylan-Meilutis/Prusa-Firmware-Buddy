@@ -145,6 +145,7 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
         fan_rpm_ok.store(rpm_ok_mask);
 
         ringdown_decay.store(block.value.ringdown_decay);
+        heater_current_mA.store(block.value.heater_current_mA);
 
         // !!! MUST be stored after reading the temperatures to avoid race conditions
         temps_valid.store(block.value.temps_valid);
@@ -374,6 +375,10 @@ float Indx::get_tpis_ambient_temperature() {
 
 int16_t Indx::get_ringdown_decay() const {
     return ringdown_decay.load();
+}
+
+uint16_t Indx::get_heater_current_mA() const {
+    return heater_current_mA.load();
 }
 
 float Indx::get_24V() {
