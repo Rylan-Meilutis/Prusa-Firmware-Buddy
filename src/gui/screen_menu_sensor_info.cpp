@@ -46,6 +46,13 @@ MI_INFO_NOZZLE_POWER::MI_INFO_NOZZLE_POWER()
         [](auto) { return sensor_data().nozzle_power_W(); },
     } {}
 
+MI_INFO_RINGDOWN_DECAY::MI_INFO_RINGDOWN_DECAY()
+    : MenuItemAutoUpdatingLabel {
+        _("Ringdown Decay"),
+        "%d",
+        [](auto) { return SensorData::ringdown_decay(); },
+    } {}
+
 #endif
 
 ScreenMenuSensorInfo::ScreenMenuSensorInfo()

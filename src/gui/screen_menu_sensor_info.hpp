@@ -71,6 +71,11 @@ public:
     MI_INFO_NOZZLE_POWER();
 };
 
+class MI_INFO_RINGDOWN_DECAY : public MenuItemAutoUpdatingLabel<int16_t> {
+public:
+    MI_INFO_RINGDOWN_DECAY();
+};
+
 #endif
 
 using ScreenMenuSensorInfo_ = BasicScreenMenu<
@@ -109,6 +114,7 @@ using ScreenMenuSensorInfo_ = BasicScreenMenu<
     MI_INFO_HEAD_AMBIENT_TEMPERATURE,
     MI_INFO_NOZZLE_TEMP_UNCOMPENSATED,
     MI_INFO_NOZZLE_POWER,
+    MI_INFO_RINGDOWN_DECAY,
     #endif
     #if HAS_REMOTE_BED()
     MI_INFO_REMOTE_BED_MCU_TEMPERATURE,
