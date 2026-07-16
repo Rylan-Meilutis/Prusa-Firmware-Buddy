@@ -249,6 +249,9 @@ enum class PhasesHeatersSelftest : PhaseUnderlyingType {
     #endif
     heating, ///< cooldown -> preheat -> timed heat measurement (live data via HeatersSelftestData)
     hotend_fan_failed_dialog, ///< skip the nozzle heater test because the hotend (heatbreak) fan failed
+    #if HAS_INDX()
+    nozzle_failed_dialog, ///< nozzle heater failed: show why (HeatersSelftestFailReason in phase data)
+    #endif
     #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
     ask_bed_sheet_after_fail, ///< bed heater failed: ask to refit the steel sheet and retry
     #endif
@@ -261,6 +264,8 @@ enum class PhasesHeatersSelftest : PhaseUnderlyingType {
     _last = revise_ask_retry,
     #elif HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
     _last = ask_bed_sheet_after_fail,
+    #elif HAS_INDX()
+    _last = nozzle_failed_dialog,
     #else
     _last = hotend_fan_failed_dialog,
     #endif
@@ -671,6 +676,9 @@ inline constexpr EnumArray<PhasesHeatersSelftest, PhaseResponses, CountPhases<Ph
     #endif
         { PhasesHeatersSelftest::heating, {} },
         { PhasesHeatersSelftest::hotend_fan_failed_dialog, { Response::Ok } },
+    #if HAS_INDX()
+        { PhasesHeatersSelftest::nozzle_failed_dialog, { Response::Ok } },
+    #endif
     #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
         { PhasesHeatersSelftest::ask_bed_sheet_after_fail, { Response::Ok, Response::Retry } },
     #endif

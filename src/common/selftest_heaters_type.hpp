@@ -67,6 +67,16 @@ constexpr std::underlying_type_t<SelftestHeaters_t::TestedParts> to_one_hot(Self
     return 1 << std::to_underlying(p);
 }
 
+/// Why the nozzle heater selftest failed; travels in the nozzle_failed_dialog phase data
+/// so the dialog can tell the user what went wrong (INDX protection-verdict test).
+enum class HeatersSelftestFailReason : uint8_t {
+    none,
+    thermal_protection, ///< thermal model / thermal runaway / heater watch trip
+    coil_overcurrent,
+    coil_undercurrent,
+    heat_timeout, ///< target temperature not reached within the deadline
+};
+
 // Live data for the gcode-based heater selftest (M1987). There is a single physical hotend,
 // so unlike the multi-tool SelftestHeaters_t it carries just one nozzle + one bed sub-result.
 struct HeatersSelftestData : public FSMExtendedData {
