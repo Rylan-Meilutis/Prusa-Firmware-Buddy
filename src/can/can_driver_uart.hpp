@@ -77,21 +77,21 @@ class UartDriver : public Driver {
     };
 
     struct ReceiveBuffer {
-        std::span<const uint8_t> message() const {
-            return std::span<const uint8_t>(buffer.data(), message_size);
+        Bytes message() const {
+            return Bytes(buffer.data(), message_size);
         }
 
-        void set_message(std::span<const uint8_t> msg) {
+        void set_message(Bytes msg) {
             debug_assert(msg.data() >= buffer.data() && msg.data() + msg.size() <= buffer.data() + buffer.size());
             message_size = msg.size();
         }
 
-        std::span<uint8_t> get_buffer() {
-            return std::span(buffer.begin(), buffer.end());
+        WritableBytes get_buffer() {
+            return WritableBytes(buffer.begin(), buffer.end());
         }
 
     private:
-        std::array<uint8_t, uart::MAX_FRAME_SIZE> buffer;
+        std::array<std::byte, uart::MAX_FRAME_SIZE> buffer;
         size_t message_size = 0;
     };
 
