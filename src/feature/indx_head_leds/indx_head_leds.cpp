@@ -24,15 +24,20 @@ namespace {
         uint16_t period_ms;
     };
 
+    static constexpr LedSetting off = { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting red = { .color = Color::from_rgb(255, 0, 0), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting green = { .color = Color::from_rgb(0, 255, 0), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting blue = { .color = Color::from_rgb(0, 0, 255), .mode = Mode::solid, .period_ms = 500 };
+
     constexpr EnumArray<StateAnimation, LedSetting, static_cast<int>(StateAnimation::_last) + 1> palette {
-        { StateAnimation::Idle, { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 } },
-        { StateAnimation::Printing, { .color = Color::from_rgb(0, 150, 255), .mode = Mode::solid, .period_ms = 500 } },
-        { StateAnimation::Finished, { .color = Color::from_rgb(0, 255, 0), .mode = Mode::solid, .period_ms = 500 } },
-        { StateAnimation::Aborted, { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 } },
-        { StateAnimation::Warning, { .color = Color::from_rgb(255, 255, 0), .mode = Mode::pulsing, .period_ms = 1000 } },
-        { StateAnimation::PowerPanic, { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 } },
-        { StateAnimation::PowerUp, { .color = Color::from_rgb(0, 255, 0), .mode = Mode::pulsing, .period_ms = 1500 } },
-        { StateAnimation::Error, { .color = Color::from_rgb(255, 0, 0), .mode = Mode::pulsing, .period_ms = 500 } },
+        { StateAnimation::Idle, off },
+        { StateAnimation::Printing, blue },
+        { StateAnimation::Finished, green },
+        { StateAnimation::Aborted, off },
+        { StateAnimation::Warning, red },
+        { StateAnimation::PowerPanic, red },
+        { StateAnimation::PowerUp, green },
+        { StateAnimation::Error, red },
     };
 
     constexpr Color color_off = Color::from_rgb(0, 0, 0);
