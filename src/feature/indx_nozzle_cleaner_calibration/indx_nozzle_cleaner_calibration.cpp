@@ -5,7 +5,6 @@
 #include <client_response.hpp>
 #include <common/fsm_base_types.hpp>
 #include <gcode/gcode.h>
-#include <gcode/temperature/M104_M109.hpp>
 #include <marlin_server.hpp>
 #include <module/endstops.h>
 #include <module/motion.h>
@@ -24,6 +23,7 @@
 #include <utils/variant_utils.hpp>
 #include <selftest/selftest_invocation.hpp>
 #include <option/has_wastebin_fill_tracking.h>
+#include <raii/scope_guard.hpp>
 
 #include <array>
 #include <optional>
@@ -204,25 +204,31 @@ private:
         if (!tool.has_value()) {
             bsod_unreachable();
         }
+        auto &hotend = Hotend::for_tool(*tool);
+        const auto is_cooled_down = [&hotend]() {
+            auto temp = hotend.nozzle_temp();
+            return temp.has_value() && temp.value() <= cooldown_safe_temperature_c;
+        };
 
-        if (auto t = Hotend::for_tool(*tool).nozzle_temp(); t.has_value() && t.value() <= cooldown_safe_temperature_c) {
+        const bool not_heating_above_safe = hotend.nozzle_target_temp() <= cooldown_safe_temperature_c;
+        if (is_cooled_down() && not_heating_above_safe) {
             return Result::success;
         }
 
         fsm_change(PhaseNozzleCleanerCalibration::wait_for_nozzle_cooldown);
 
-        // Interrupt the blocking M109 the instant Abort is pressed. The handler resumes queuing on
+        // Interrupt the blocking wait the instant Abort is pressed. The handler resumes queuing on
         // scope exit. Cooldown does no moves, so there are no skipped steps to recover.
         GCodeExceptionHandler abort_handler { GCEHandlerExtent::extruder_only, [] {} };
 
-        // Push current temp to the GUI and handle abort while M109 is blocking
-        Subscriber subscriber(marlin_server::idle_publisher, [tool, &abort_handler] {
+        // Push current temp to the GUI and handle abort while waiting to cool down
+        Subscriber subscriber(marlin_server::idle_publisher, [&hotend, &abort_handler] {
             if (marlin_server::get_response_from_phase(PhaseNozzleCleanerCalibration::wait_for_nozzle_cooldown) == Response::Abort) {
                 gcode_exceptions().throw_at(&abort_handler);
                 return;
             }
             // Read the live temperature each tick so the GUI reflects the actual cooldown progress
-            auto curr_temp = Hotend::for_tool(*tool).nozzle_temp();
+            auto curr_temp = hotend.nozzle_temp();
             if (!curr_temp.has_value()) {
                 return;
             }
@@ -236,13 +242,14 @@ private:
             marlin_server::fsm_change(PhaseNozzleCleanerCalibration::wait_for_nozzle_cooldown, data);
         });
 
-        const M109Flags flags {
-            .target_temp = cooldown_safe_temperature_c,
-            .wait_heat_or_cool = true,
-            .autotemp = true,
-        };
-        M109_no_parser(*tool, flags); // This is the temp we want to reach
-        Hotend::for_tool(*tool).set_nozzle_target_temp(0); // This is so that we dont accidentally re-heat to 50
+        hotend.set_nozzle_target_temp(0);
+        thermalManager.set_fan_speed(0, 255);
+        ScopeGuard fan_guard([]() {
+            thermalManager.set_fan_speed(0, 0);
+        });
+        while (!is_cooled_down() && !gcode_exceptions().is_unwinding()) {
+            idle(true);
+        }
 
         return gcode_exceptions().is_unwinding() ? Result::aborted : Result::success;
     }
