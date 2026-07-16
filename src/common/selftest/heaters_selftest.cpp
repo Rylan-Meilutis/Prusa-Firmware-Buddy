@@ -105,6 +105,9 @@ public:
 
     bool running() const { return stage != Stage::done; }
     TestResult result_value() const { return res; }
+#if HAS_INDX()
+    HeatersSelftestFailReason fail_reason_value() const { return fail_reason; }
+#endif
 
     void step() {
 #if HAS_TEMP_HEATBREAK_CONTROL
@@ -292,6 +295,7 @@ private:
             if (peak_heater_current_mA < heater_current_min_mA) {
                 log_error(Selftest, "%s coil current peak %u mA under limit (%u)", config.partname,
                     unsigned(peak_heater_current_mA), unsigned(heater_current_min_mA));
+                fail_reason = HeatersSelftestFailReason::coil_undercurrent;
                 finish(TestResult::failed);
                 return;
             }
@@ -307,6 +311,7 @@ private:
         }
         if (ticks_ms() - heat_start >= config.heat_timeout_ms) {
             log_error(Selftest, "%s timed out heating to target", config.partname);
+            fail_reason = HeatersSelftestFailReason::heat_timeout;
             finish(TestResult::failed);
             return;
         }
@@ -327,6 +332,7 @@ private:
             finish(TestResult::skipped);
             return;
         }
+        fail_reason = HeatersSelftestFailReason::thermal_protection;
         finish(TestResult::failed);
     }
 
@@ -341,6 +347,7 @@ private:
         if (peak_heater_current_mA > heater_current_max_mA) {
             log_error(Selftest, "%s coil current %u mA over limit (%u)", config.partname,
                 unsigned(peak_heater_current_mA), unsigned(heater_current_max_mA));
+            fail_reason = HeatersSelftestFailReason::coil_overcurrent;
             finish(TestResult::failed);
             return false;
         }
@@ -352,6 +359,9 @@ private:
 
     /// Highest coil current sampled during the heat-up [mA]
     uint16_t peak_heater_current_mA = 0;
+
+    /// Why the nozzle test failed, for the nozzle_failed_dialog phase
+    HeatersSelftestFailReason fail_reason = HeatersSelftestFailReason::none;
 #else
     void verdict_engage() {}
     void verdict_disengage() {}
@@ -480,6 +490,9 @@ void Wizard::run() {
         const bool skip_nozzle = config_store().selftest_result.get().get_heatbreak_fan(noz_config.tool_nr) == TestResult::failed;
         TestResult noz_result = skip_nozzle ? TestResult::skipped : TestResult::failed;
         TestResult bed_result = TestResult::failed;
+#if HAS_INDX()
+        auto noz_fail_reason = HeatersSelftestFailReason::none;
+#endif
         if (skip_nozzle) {
             fsm_change(PhasesHeatersSelftest::hotend_fan_failed_dialog);
             wait_for_response(PhasesHeatersSelftest::hotend_fan_failed_dialog); // Ok
@@ -509,6 +522,9 @@ void Wizard::run() {
             }
             if (noz) {
                 noz_result = noz->result_value();
+#if HAS_INDX()
+                noz_fail_reason = noz->fail_reason_value();
+#endif
             }
             bed_result = bed.result_value();
         } // runners torn down here (heaters off, PID/fans restored) before any revise prompts
@@ -522,6 +538,15 @@ void Wizard::run() {
 
         // Let the user actually see the final pass/fail before the screen closes / a prompt appears.
         dwell(show_results_delay_ms);
+
+#if HAS_INDX()
+        // Nozzle failed: tell the user why — the fail icon alone gives no clue what to do next.
+        if (noz_result == TestResult::failed) {
+            fsm_change(PhasesHeatersSelftest::nozzle_failed_dialog,
+                fsm::PhaseData { static_cast<uint8_t>(noz_fail_reason) });
+            wait_for_response(PhasesHeatersSelftest::nozzle_failed_dialog); // Ok
+        }
+#endif
 
 #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
         // Bed failed: offer to refit the steel sheet and retry.

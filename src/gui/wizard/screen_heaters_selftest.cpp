@@ -138,6 +138,35 @@ public:
     }
 };
 
+#if HAS_INDX()
+constexpr const char *nozzle_fail_text(HeatersSelftestFailReason reason) {
+    switch (reason) {
+    case HeatersSelftestFailReason::thermal_protection:
+        return N_("Nozzle heater test failed.\n\nThe nozzle did not heat up as expected. Check that the nozzle is seated correctly in the head and try again.");
+    case HeatersSelftestFailReason::heat_timeout:
+        return N_("Nozzle heater test failed.\n\nThe nozzle did not reach the target temperature in time. Check that the nozzle is seated correctly in the head and try again.");
+    case HeatersSelftestFailReason::coil_undercurrent:
+        return N_("Nozzle heater test failed.\n\nThe heater coil current was lower than expected. Check that the nozzle is seated correctly in the head. If the issue persists, inspect the coil for damage.");
+    case HeatersSelftestFailReason::coil_overcurrent:
+        return N_("Nozzle heater test failed.\n\nThe heater coil current was higher than expected. If the issue persists, inspect the coil for damage.");
+    case HeatersSelftestFailReason::none:
+        break;
+    }
+    return N_("Nozzle heater test failed.");
+}
+
+/// nozzle_failed_dialog phase: the failure reason arrives as HeatersSelftestFailReason in the phase data.
+class FrameNozzleFailed : public FrameTextPrompt {
+public:
+    explicit FrameNozzleFailed(window_frame_t *parent)
+        : FrameTextPrompt(parent, PhasesHeatersSelftest::nozzle_failed_dialog, {}) {}
+
+    void update(fsm::PhaseData data) {
+        info.SetText(_(nozzle_fail_text(static_cast<HeatersSelftestFailReason>(data[0]))));
+    }
+};
+#endif
+
 #if HAS_HEATERS_SELFTEST_REVISE()
 /// revise_revise phase: opens the printer setup screen on top; it sends Response::Done on "Done".
 /// Opened unconditionally: a ScreenPrinterSetup buried lower in the stack must not suppress the
@@ -155,6 +184,7 @@ public:
 using Frames = FrameDefinitionList<ScreenHeatersSelftest::FrameStorage,
 #if HAS_INDX()
     FrameDefinition<PhasesHeatersSelftest::picking_tool, FrameWait, txt_picking_tool>,
+    FrameDefinition<PhasesHeatersSelftest::nozzle_failed_dialog, FrameNozzleFailed>,
 #endif
 #if HAS_HEATERS_SELFTEST_BED_SHEET_RETRY()
     FrameDefinition<PhasesHeatersSelftest::ask_bed_sheet_after_fail, FrameTextPrompt, PhasesHeatersSelftest::ask_bed_sheet_after_fail, txt_ask_bed_sheet>,
