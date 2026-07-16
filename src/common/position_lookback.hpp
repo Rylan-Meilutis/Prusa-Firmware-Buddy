@@ -20,7 +20,10 @@ public:
         float e = NAN;
     };
 
-    static constexpr uint8_t NUM_SAMPLES = 16;
+    /// Depth of the position history: with SAMPLES_REQUESTED_DIFF this covers ~60 ms. Puppy
+    /// loadcell samples arrive in FIFO batches whose pull can occasionally lag over 30 ms, so a
+    /// shallower history made such batches unmappable and failed the probe analysis with z-nan.
+    static constexpr uint8_t NUM_SAMPLES = 32;
 
 public:
     /// Can be called from an ISR of higher priority than add_sample (on MK4), or lower priority, or from a standard thread (on XL).
