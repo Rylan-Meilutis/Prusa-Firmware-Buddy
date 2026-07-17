@@ -113,141 +113,19 @@ namespace {
     };
 
     namespace thermometer {
-        tpis::CalibrationParameters calibration {};
-        static constexpr uint8_t address = 0b000'1100;
+        tpis::Tpis<I2cBus1> tpis_sensor;
 
-        bool do_general_call() {
-            LockGuard lg { i2c_mutex };
-            // F*CK you HAL I want to make this const(expr)
-            static std::array<uint8_t, 2> data = { 0x04, 0x00 }; // General Call Reload
-            i2c_error_flag.store(false);
-            waiting_for_i2c.store(true);
-            if (HAL_I2C_Master_Transmit_DMA(&peripherals::hi2c1, 0x00 /* General Call Address */, data.data(), data.size()) != HAL_OK) {
-                waiting_for_i2c.store(false);
-                i2c_recover();
-                return false;
+        void init() {
+            constexpr int retries = 5;
+            for (int i = 0; i < retries; i++) {
+                const auto result = tpis_sensor.init();
+                if (result.has_value()) {
+                    return;
+                }
+                rtt::print("i2c: thermo init failed\n");
+                constexpr int wait_ms = 100;
+                freertos::delay(wait_ms);
             }
-            if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                waiting_for_i2c.store(false);
-                HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, 0x00);
-                i2c_recover();
-                return false;
-            }
-            return !i2c_error_flag.load();
-        }
-
-        enum class EepromSetting : uint8_t {
-            disable = 0x00,
-            enable = 0x80,
-        };
-
-        bool set_eeprom_reading(EepromSetting setting) {
-            LockGuard lg { i2c_mutex };
-            uint8_t data = static_cast<uint8_t>(setting);
-            i2c_error_flag.store(false);
-            waiting_for_i2c.store(true);
-            if (HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), 0x1f /* eeprom settings */, I2C_MEMADD_SIZE_8BIT, &data, sizeof(data)) != HAL_OK) {
-                waiting_for_i2c.store(false);
-                i2c_recover();
-                return false;
-            }
-            if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                waiting_for_i2c.store(false);
-                HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, static_cast<uint16_t>(address << 1));
-                i2c_recover();
-                return false;
-            }
-            if (i2c_error_flag.load()) {
-                i2c_recover();
-                return false;
-            }
-            return true;
-        }
-
-        std::optional<tpis::SensorData> read_sensor_data() {
-            LockGuard lg { i2c_mutex };
-            std::array<std::byte, 4> raw_sensor_data {};
-
-            i2c_error_flag.store(false);
-            waiting_for_i2c.store(true);
-
-            HAL_StatusTypeDef status = HAL_I2C_Mem_Read_DMA(
-                &peripherals::hi2c1,
-                static_cast<uint16_t>(address << 1),
-                0x1,
-                I2C_MEMADD_SIZE_8BIT,
-                reinterpret_cast<uint8_t *>(raw_sensor_data.data()),
-                raw_sensor_data.size());
-
-            if (status != HAL_OK) {
-                // Failed to start I2C operation
-                waiting_for_i2c.store(false);
-                i2c_recover();
-                return std::nullopt;
-            }
-
-            if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                // Timeout waiting for I2C - recover and return invalid data
-                waiting_for_i2c.store(false);
-                HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, static_cast<uint16_t>(address << 1));
-                i2c_recover();
-                return std::nullopt;
-            }
-
-            if (i2c_error_flag.load()) {
-                // I2C error occurred during transfer
-                i2c_recover();
-                return std::nullopt;
-            }
-
-            return tpis::decode_sensor_data(raw_sensor_data);
-        }
-
-        bool read_eeprom_calibration() {
-            LockGuard lg { i2c_mutex };
-            std::array<std::byte, 32> raw {};
-            static constexpr uint8_t start_addr = 32;
-            i2c_error_flag.store(false);
-            waiting_for_i2c.store(true);
-
-            if (HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, static_cast<uint16_t>(address << 1), start_addr, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(raw.data()), raw.size()) != HAL_OK) {
-                waiting_for_i2c.store(false);
-                i2c_recover();
-                return false;
-            }
-            if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                waiting_for_i2c.store(false);
-                HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, static_cast<uint16_t>(address << 1));
-                i2c_recover();
-                return false;
-            }
-            if (i2c_error_flag.load()) {
-                i2c_recover();
-                return false;
-            }
-
-            auto cal = tpis::decode_calibration_parameters(raw);
-            if (!cal.has_value()) {
-                return false;
-            }
-            calibration = *cal;
-            return true;
-        }
-
-        bool initialized = false;
-
-        bool init() {
-            if (!do_general_call()) {
-                return false;
-            }
-            freertos::delay(2);
-
-            set_eeprom_reading(EepromSetting::enable);
-            bool ok = read_eeprom_calibration();
-            set_eeprom_reading(EepromSetting::disable);
-
-            initialized = ok;
-            return ok;
         }
     } // namespace thermometer
 
@@ -302,40 +180,24 @@ CheckedTemperatureReading read_tpis_temperature() {
     // Accept after 3 consecutive implausible readings
     static Debouncer<bool> temp_debouncer { false, 3 };
 
-    if (!thermometer::initialized) {
-        // Periodically retry thermometer init (every ~2s, called at 300Hz)
-        static constexpr uint32_t REINIT_INTERVAL_MS = 2000;
-        static uint32_t last_attempt_ms = 0;
-        const uint32_t now = HAL_GetTick();
-        if (now - last_attempt_ms >= REINIT_INTERVAL_MS) {
-            last_attempt_ms = now;
-            if (!thermometer::init()) {
-                rtt::print("i2c: thermo init failed\n");
-            }
-        }
-        return { .temps = last_reading, .valid = false };
-    }
-    // FIXME: Use scaled integers
-    const auto measurement = thermometer::read_sensor_data();
-    if (!measurement.has_value()) {
+    const auto temps = thermometer::tpis_sensor.get_temps();
+    if (!temps.has_value()) {
         rtt::print("i2c: thermo read failed\n");
         // Return last valid temperature on error
         return { .temps = last_reading, .valid = false };
     }
-
-    const auto temps = tpis::calculate_temps(*measurement, thermometer::calibration);
-    const int32_t diff = static_cast<int32_t>(temps.object_temperature_celsius) - static_cast<int32_t>(last_reading.object_temperature_celsius);
+    const int32_t diff = static_cast<int32_t>(temps->object_temperature_celsius) - static_cast<int32_t>(last_reading.object_temperature_celsius);
     const bool plausible = (diff > -max_plausible_jump) && (diff < max_plausible_jump);
     temp_debouncer.push(plausible);
 
     if (plausible) {
-        last_reading = temps;
-        return { .temps = temps, .valid = true };
+        last_reading = temps.value();
+        return { .temps = temps.value(), .valid = true };
     }
 
     if (temp_debouncer.is_stable() && !temp_debouncer.value()) {
-        last_reading = temps;
-        return { .temps = temps, .valid = true };
+        last_reading = temps.value();
+        return { .temps = temps.value(), .valid = true };
     }
 
     // Transient glitch — return last known good value

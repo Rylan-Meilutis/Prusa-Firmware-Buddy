@@ -187,7 +187,7 @@ private:
         const uint8_t t_obj1 = static_cast<uint8_t>(raw_data[18]);
 
         const auto u_div = static_cast<int32_t>(uout1) - static_cast<int32_t>(u0);
-        // NOTE: Expensive float op, but OK since it is ideally only done once at init (on failed comm it tries reinit every 2s)
+        // NOTE: Expensive float op, but OK since it is ideally only done once at init
         const auto f = [](float x) { return std::pow(x, f_exp_f); };
         const float k_f = static_cast<float>(u_div) / (f(t_obj1 + degC0asKf) - f(degC25asKf));
         const float log2_k_f = std::log2(k_f * tpis::emissivity);
