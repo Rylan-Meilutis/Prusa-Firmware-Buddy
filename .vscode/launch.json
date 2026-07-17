@@ -52,13 +52,7 @@
                         "type": "console",
                         "logfile": "heap_instrumentation.txt"
                     },
-                    {
-                        "label": "RTT metrics",
-                        "port": 2,
-                        "noprompt": true,
-                        "type": "console",
-                        "logfile": "rtt_metrics.txt"
-                    }
+
                 ]
             }
         },
@@ -103,6 +97,58 @@
                         "noprompt": true,
                         "type": "console",
                         "logfile": "${command:cmake.buildDirectory}/rtt_log.txt"
+                    }
+                ]
+            }
+        },
+        {
+            // Same as "Launch Buddy" but also shows the RTT metrics channel.
+            // Requires a firmware built with RTT_METRICS_ENABLED (on by default in debug builds).
+            "name": "Launch Buddy (RTT metrics)",
+            "cwd": "${workspaceRoot}",
+            "executable": "${command:cmake.buildDirectory}/firmware",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "armToolchainPath": "${workspaceRoot}/.dependencies/gcc-arm-none-eabi-13.3.1/bin",
+            "gdbPath": "gdb-multiarch",
+            "openOCDPreConfigLaunchCommands": [
+                "set bbf_over_debugger_path ${command:cmake.buildDirectory}/firmware.bbf"
+            ],
+            "configFiles": [
+                "${workspaceRoot}/utils/debug/buddy.cfg",
+            ],
+            "toolchainPrefix": "arm-none-eabi",
+            "device": "STM32F427ZI",
+            // swd file is disabled, it is known to cause issues in some cases. Enable it if you need to see register view.
+            //"svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-40327a4d2dff0992682be2872aaa6e096f35d2f4/STM32F427.svd",
+            "rtos": "FreeRTOS",
+            "breakAfterReset": false,
+            "preLaunchTask": "Backup current ELF",
+            "liveWatch": {
+                "enabled": true,
+            },
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "searchSize": 16,
+                "searchId": "SEGGER RTT",
+                "clearSearch": true,
+                "polling_interval": 10,
+                "decoders": [
+                    {
+                        "label": "Logging",
+                        "port": 0,
+                        "noprompt": true,
+                        "type": "console",
+                        "logfile": "${command:cmake.buildDirectory}/rtt_log.txt"
+                    },
+                    {
+                        "label": "RTT metrics",
+                        "port": 2,
+                        "noprompt": true,
+                        "type": "console",
+                        "logfile": "rtt_metrics.txt"
                     }
                 ]
             }
