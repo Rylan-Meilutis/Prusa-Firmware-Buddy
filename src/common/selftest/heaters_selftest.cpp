@@ -106,7 +106,7 @@ public:
     bool running() const { return stage != Stage::done; }
     TestResult result_value() const { return res; }
 #if HAS_INDX()
-    HeatersSelftestFailReason fail_reason_value() const { return fail_reason; }
+    heaters_selftest::NozzleResult fail_result_value() const { return fail_result; }
 #endif
 
     void step() {
@@ -295,7 +295,7 @@ private:
             if (peak_heater_current_mA < heater_current_min_mA) {
                 log_error(Selftest, "%s coil current peak %u mA under limit (%u)", config.partname,
                     unsigned(peak_heater_current_mA), unsigned(heater_current_min_mA));
-                fail_reason = HeatersSelftestFailReason::coil_undercurrent;
+                fail_result = std::unexpected(heaters_selftest::CoilUndercurrent { peak_heater_current_mA });
                 finish(TestResult::failed);
                 return;
             }
@@ -311,7 +311,8 @@ private:
         }
         if (ticks_ms() - heat_start >= config.heat_timeout_ms) {
             log_error(Selftest, "%s timed out heating to target", config.partname);
-            fail_reason = HeatersSelftestFailReason::heat_timeout;
+            fail_result = std::unexpected(heaters_selftest::HeatTimeout {
+                static_cast<uint16_t>(std::max(0.f, config.getTemp().value_or(0))) });
             finish(TestResult::failed);
             return;
         }
@@ -332,7 +333,8 @@ private:
             finish(TestResult::skipped);
             return;
         }
-        fail_reason = HeatersSelftestFailReason::thermal_protection;
+        fail_result = std::unexpected(heaters_selftest::ThermalProtectionTripped {
+            static_cast<uint16_t>(*IndxHotend::heater_selftest_trip()) });
         finish(TestResult::failed);
     }
 
@@ -347,7 +349,7 @@ private:
         if (peak_heater_current_mA > heater_current_max_mA) {
             log_error(Selftest, "%s coil current %u mA over limit (%u)", config.partname,
                 unsigned(peak_heater_current_mA), unsigned(heater_current_max_mA));
-            fail_reason = HeatersSelftestFailReason::coil_overcurrent;
+            fail_result = std::unexpected(heaters_selftest::CoilOvercurrent { peak_heater_current_mA });
             finish(TestResult::failed);
             return false;
         }
@@ -360,8 +362,8 @@ private:
     /// Highest coil current sampled during the heat-up [mA]
     uint16_t peak_heater_current_mA = 0;
 
-    /// Why the nozzle test failed, for the nozzle_failed_dialog phase
-    HeatersSelftestFailReason fail_reason = HeatersSelftestFailReason::none;
+    /// Why the nozzle test failed (+ the measured value), for the nozzle_failed_dialog phase
+    heaters_selftest::NozzleResult fail_result;
 #else
     void verdict_engage() {}
     void verdict_disengage() {}
@@ -491,7 +493,7 @@ void Wizard::run() {
         TestResult noz_result = skip_nozzle ? TestResult::skipped : TestResult::failed;
         TestResult bed_result = TestResult::failed;
 #if HAS_INDX()
-        auto noz_fail_reason = HeatersSelftestFailReason::none;
+        heaters_selftest::NozzleResult noz_fail_result;
 #endif
         if (skip_nozzle) {
             fsm_change(PhasesHeatersSelftest::hotend_fan_failed_dialog);
@@ -523,7 +525,7 @@ void Wizard::run() {
             if (noz) {
                 noz_result = noz->result_value();
 #if HAS_INDX()
-                noz_fail_reason = noz->fail_reason_value();
+                noz_fail_result = noz->fail_result_value();
 #endif
             }
             bed_result = bed.result_value();
@@ -543,7 +545,7 @@ void Wizard::run() {
         // Nozzle failed: tell the user why — the fail icon alone gives no clue what to do next.
         if (noz_result == TestResult::failed) {
             fsm_change(PhasesHeatersSelftest::nozzle_failed_dialog,
-                fsm::PhaseData { static_cast<uint8_t>(noz_fail_reason) });
+                fsm::serialize_data(noz_fail_result.error_or(std::monostate {})));
             wait_for_response(PhasesHeatersSelftest::nozzle_failed_dialog); // Ok
         }
 #endif

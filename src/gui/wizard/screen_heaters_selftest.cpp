@@ -139,31 +139,41 @@ public:
 };
 
 #if HAS_INDX()
-constexpr const char *nozzle_fail_text(HeatersSelftestFailReason reason) {
-    switch (reason) {
-    case HeatersSelftestFailReason::thermal_protection:
-        return N_("Nozzle heater test failed.\n\nThe nozzle did not heat up as expected. Check that the nozzle is seated correctly in the head and try again.");
-    case HeatersSelftestFailReason::heat_timeout:
-        return N_("Nozzle heater test failed.\n\nThe nozzle did not reach the target temperature in time. Check that the nozzle is seated correctly in the head and try again.");
-    case HeatersSelftestFailReason::coil_undercurrent:
-        return N_("Nozzle heater test failed.\n\nThe heater coil current was lower than expected. Check that the nozzle is seated correctly in the head. If the issue persists, inspect the coil for damage.");
-    case HeatersSelftestFailReason::coil_overcurrent:
-        return N_("Nozzle heater test failed.\n\nThe heater coil current was higher than expected. If the issue persists, inspect the coil for damage.");
-    case HeatersSelftestFailReason::none:
-        break;
-    }
-    return N_("Nozzle heater test failed.");
+// Reason texts incl. the measured value, so support can diagnose from a screenshot. Each
+// overload owns its whole text, making the dispatch over NozzleError total — no fallback needed.
+string_view_utf8 nozzle_fail_text(std::monostate, StringViewUtf8ParamBase &) {
+    return _("Nozzle heater test failed.");
+}
+string_view_utf8 nozzle_fail_text(const heaters_selftest::ThermalProtectionTripped &e, StringViewUtf8ParamBase &params) {
+    return _("Nozzle heater test failed.\n\nThe nozzle did not heat up as expected. Check that the nozzle is seated correctly in the head and try again.\n\nError code: %u").formatted(params, e.error_code);
+}
+string_view_utf8 nozzle_fail_text(const heaters_selftest::HeatTimeout &e, StringViewUtf8ParamBase &params) {
+    return _("Nozzle heater test failed.\n\nThe nozzle did not reach the target temperature in time. Check that the nozzle is seated correctly in the head and try again.\n\nReached temperature: %u\xC2\xB0\x43").formatted(params, e.temperature_c);
+}
+// Which side of the window was violated is evident from the measured value, so both share one text.
+string_view_utf8 nozzle_fail_coil_text(uint16_t current_ma, StringViewUtf8ParamBase &params) {
+    return _("Nozzle heater test failed.\n\nThe heater coil current was out of the expected range. Check that the nozzle is seated correctly in the head. If the issue persists, inspect the coil for damage.\n\nMeasured current: %u mA").formatted(params, current_ma);
+}
+string_view_utf8 nozzle_fail_text(const heaters_selftest::CoilUndercurrent &e, StringViewUtf8ParamBase &params) {
+    return nozzle_fail_coil_text(e.current_ma, params);
+}
+string_view_utf8 nozzle_fail_text(const heaters_selftest::CoilOvercurrent &e, StringViewUtf8ParamBase &params) {
+    return nozzle_fail_coil_text(e.current_ma, params);
 }
 
-/// nozzle_failed_dialog phase: the failure reason arrives as HeatersSelftestFailReason in the phase data.
+/// nozzle_failed_dialog phase: why the nozzle failed arrives as heaters_selftest::NozzleError.
 class FrameNozzleFailed : public FrameTextPrompt {
 public:
     explicit FrameNozzleFailed(window_frame_t *parent)
         : FrameTextPrompt(parent, PhasesHeatersSelftest::nozzle_failed_dialog, {}) {}
 
     void update(fsm::PhaseData data) {
-        info.SetText(_(nozzle_fail_text(static_cast<HeatersSelftestFailReason>(data[0]))));
+        const auto error = fsm::deserialize_data<heaters_selftest::NozzleError>(data);
+        info.SetText(std::visit([&](const auto &e) { return nozzle_fail_text(e, params); }, error));
     }
+
+private:
+    StringViewUtf8Parameters<8> params;
 };
 #endif
 
