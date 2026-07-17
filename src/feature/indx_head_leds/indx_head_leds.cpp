@@ -25,9 +25,9 @@ namespace {
     };
 
     static constexpr LedSetting off = { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting red = { .color = Color::from_rgb(255, 0, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting green = { .color = Color::from_rgb(0, 255, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting blue = { .color = Color::from_rgb(0, 0, 255), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting red = { .color = Color::from_rgb(127, 0, 0), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting green = { .color = Color::from_rgb(0, 127, 0), .mode = Mode::solid, .period_ms = 500 };
+    static constexpr LedSetting blue = { .color = Color::from_rgb(0, 0, 127), .mode = Mode::solid, .period_ms = 500 };
 
     constexpr EnumArray<StateAnimation, LedSetting, static_cast<int>(StateAnimation::_last) + 1> palette {
         { StateAnimation::Idle, off },
