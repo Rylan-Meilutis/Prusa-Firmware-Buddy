@@ -48,6 +48,70 @@ namespace {
         i2c_error_flag.store(false);
     }
 
+    class I2cBus1 {
+    public:
+        [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, Bytes tx_buf) {
+            return execute_i2c_operation(address, [&]() {
+                uint8_t *data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buf.data()));
+                return HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, (address << 1) | write_flag, offset, I2C_MEMADD_SIZE_8BIT, data, tx_buf.size());
+            });
+        }
+
+        [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, WritableBytes rx_buf) {
+            return execute_i2c_operation(address, [&]() {
+                uint8_t *data = reinterpret_cast<uint8_t *>(rx_buf.data());
+                return HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, (address << 1) | write_flag, offset, I2C_MEMADD_SIZE_8BIT, data, rx_buf.size());
+            });
+        }
+
+        [[nodiscard]] bool raw_transmit(::i2c::Address address, Bytes tx_buf) {
+            return execute_i2c_operation(address, [&]() {
+                uint8_t *data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buf.data()));
+                return HAL_I2C_Master_Transmit_DMA(&peripherals::hi2c1, (address << 1) | write_flag, data, tx_buf.size());
+            });
+        }
+
+        [[nodiscard]] bool raw_receive(::i2c::Address address, WritableBytes rx_buf) {
+            return execute_i2c_operation(address, [&]() {
+                uint8_t *data = reinterpret_cast<uint8_t *>(rx_buf.data());
+                return HAL_I2C_Master_Receive_DMA(&peripherals::hi2c1, (address << 1) | write_flag, data, rx_buf.size());
+            });
+        }
+
+        void delay_us(uint32_t us) {
+            uint32_t ms = us / 1'000;
+            ms += (us - ms * 1'000) > 0;
+            freertos::delay(ms + 1); // ensures at least 'ms' miliseconds wait
+        }
+
+    private:
+        static constexpr uint8_t write_flag = 0;
+
+        template <typename Op>
+        [[nodiscard]] bool execute_i2c_operation(::i2c::Address address, Op op) {
+            LockGuard lg { i2c_mutex };
+            i2c_error_flag.store(false);
+            waiting_for_i2c.store(true);
+            const auto ret = op();
+            if (ret != HAL_OK) {
+                waiting_for_i2c.store(false);
+                i2c_recover();
+                return false;
+            }
+            if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
+                waiting_for_i2c.store(false);
+                HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1) | write_flag);
+                i2c_recover();
+                return false;
+            }
+            if (i2c_error_flag.load()) {
+                i2c_recover();
+                return false;
+            }
+            return true;
+        }
+    };
+
     namespace thermometer {
         tpis::CalibrationParameters calibration {};
         static constexpr uint8_t address = 0b000'1100;
@@ -192,75 +256,13 @@ namespace {
         struct SetLEDDelayed {
             uint8_t r, g, b;
         };
-        std::optional<SetLEDDelayed> set_pwm_delayed { std::nullopt };
-        std::optional<uint16_t> set_fade_delayed { std::nullopt };
+        std::atomic<std::optional<SetLEDDelayed>> set_pwm_delayed { std::nullopt };
+        std::atomic<std::optional<uint16_t>> set_fade_delayed { std::nullopt };
 
-        class Impl {
-        public:
-            [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, Bytes tx_buff) {
-                i2c_error_flag.store(false);
-                waiting_for_i2c.store(true);
-                const auto ret = HAL_I2C_Mem_Write_DMA(&peripherals::hi2c1, address << 1, offset, I2C_MEMADD_SIZE_8BIT, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tx_buff.data())), tx_buff.size());
-                if (ret != HAL_OK) {
-                    waiting_for_i2c.store(false);
-                    i2c_recover();
-                    return false;
-                }
-                if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                    waiting_for_i2c.store(false);
-                    HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1));
-                    i2c_recover();
-                    return false;
-                }
-                if (i2c_error_flag.load()) {
-                    i2c_recover();
-                    return false;
-                }
-                return true;
-            }
-
-            [[nodiscard]] bool read_memory(::i2c::Address address, uint8_t offset, WritableBytes rx_buff) {
-                i2c_error_flag.store(false);
-                waiting_for_i2c.store(true);
-                const auto ret = HAL_I2C_Mem_Read_DMA(&peripherals::hi2c1, (address << 1), offset, I2C_MEMADD_SIZE_8BIT, reinterpret_cast<uint8_t *>(rx_buff.data()), rx_buff.size());
-                if (ret != HAL_OK) {
-                    waiting_for_i2c.store(false);
-                    i2c_recover();
-                    return false;
-                }
-                if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
-                    waiting_for_i2c.store(false);
-                    HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1));
-                    i2c_recover();
-                    return false;
-                }
-                if (i2c_error_flag.load()) {
-                    i2c_recover();
-                    return false;
-                }
-                return true;
-            }
-
-            bool raw_transmit([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] Bytes tx_buf) {
-                bsod_unreachable();
-            }
-            bool raw_receive([[maybe_unused]] ::i2c::Address address, [[maybe_unused]] WritableBytes rx_buf) {
-                bsod_unreachable();
-            }
-
-            void delay_us(uint32_t us) {
-                uint32_t ms = us / 1'000;
-                ms += (us - ms * 1'000) > 0;
-                freertos::delay(ms + 1); // ensures at least 'ms' miliseconds wait
-            }
-        };
-
-        using Controller = lp5817::LP5817<Impl>;
+        using Controller = lp5817::LP5817<I2cBus1>;
         Controller controller;
 
         void init() {
-            LockGuard lg { i2c_mutex };
-
             if (const auto res = controller.init(); !res.has_value()) {
                 rtt::print("i2c: leds init failed");
             }
@@ -341,78 +343,64 @@ CheckedTemperatureReading read_tpis_temperature() {
 }
 
 void set_led_pwm(uint8_t r, uint8_t g, uint8_t b) {
-    LockGuard lg { i2c_mutex };
-
-    leds::set_pwm_delayed = { .r = leds::gamma_int_lut.at(r), .g = leds::gamma_int_lut.at(g), .b = leds::gamma_int_lut.at(b) };
+    const auto pwm = leds::SetLEDDelayed { .r = leds::gamma_int_lut.at(r), .g = leds::gamma_int_lut.at(g), .b = leds::gamma_int_lut.at(b) };
+    leds::set_pwm_delayed.store(pwm);
 }
 
 void set_led_fade(uint16_t interval_ms) {
-    LockGuard lg { i2c_mutex };
-
-    leds::set_fade_delayed = interval_ms;
+    leds::set_fade_delayed.store(interval_ms);
 }
 
 void trigger_delayed_request() {
-    if (!i2c_mutex.try_lock()) {
-        return;
-    }
-    ScopeGuard unlock_mtx([]() { i2c_mutex.unlock(); });
-    if (leds::set_fade_delayed.has_value()) {
-        using leds::set_fade_delayed;
-        const auto fade_time = leds::Controller::nearest_fade_time(*set_fade_delayed);
-        const auto enable_fade = (*set_fade_delayed != 0);
+    const auto fade = leds::set_fade_delayed.exchange(std::nullopt);
+    if (fade.has_value()) {
+        const auto fade_time = leds::Controller::nearest_fade_time(*fade);
+        const auto enable_fade = (*fade != 0);
 
         if (const auto res = leds::controller.set_fade_time(fade_time, enable_fade, enable_fade, enable_fade); !res.has_value()) {
             rtt::print("i2c: delayed leds fade failed");
         }
 
-        set_fade_delayed = std::nullopt;
         return; // One request at a time
     }
 
-    if (leds::set_pwm_delayed.has_value()) {
-        using leds::set_pwm_delayed;
-        if (const auto res = leds::controller.set_color(set_pwm_delayed->r, set_pwm_delayed->g, set_pwm_delayed->b); !res.has_value()) {
+    const auto pwm = leds::set_pwm_delayed.exchange(std::nullopt);
+    if (pwm.has_value()) {
+        if (const auto res = leds::controller.set_color(pwm->r, pwm->g, pwm->b); !res.has_value()) {
             rtt::print("i2c: delayed leds failed");
         }
 
-        set_pwm_delayed = std::nullopt;
         return; // One request at a time
     }
 }
 
 } // namespace hal::i2c
 
-// TODO: alias these SOBs
-extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
+static void finish_i2c_transfer([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
     using namespace hal::peripherals;
     debug_assert(hi2c == &hi2c1);
     if (hal::i2c::waiting_for_i2c.exchange(false)) {
         hal::i2c::i2c_it_semaphore.release_from_isr();
     }
+}
+
+extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
+    finish_i2c_transfer(hi2c);
+}
+
+extern "C" void HAL_I2C_MasterRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
+    finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_MemTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    debug_assert(hi2c == &hi2c1);
-    if (hal::i2c::waiting_for_i2c.exchange(false)) {
-        hal::i2c::i2c_it_semaphore.release_from_isr();
-    }
+    finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_MemRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    debug_assert(hi2c == &hi2c1);
-    if (hal::i2c::waiting_for_i2c.exchange(false)) {
-        hal::i2c::i2c_it_semaphore.release_from_isr();
-    }
+    finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_ErrorCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    debug_assert(hi2c == &hi2c1);
     hal::i2c::i2c_error_flag.store(true);
-    if (hal::i2c::waiting_for_i2c.exchange(false)) {
-        hal::i2c::i2c_it_semaphore.release_from_isr();
-    }
+    finish_i2c_transfer(hi2c);
 }

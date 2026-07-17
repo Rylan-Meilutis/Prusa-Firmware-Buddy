@@ -114,6 +114,6 @@ public:
     }
 };
 
-static_assert(Device<HWImplMock>);
+static_assert(I2cBus<HWImplMock>);
 
 } // namespace i2c::mock

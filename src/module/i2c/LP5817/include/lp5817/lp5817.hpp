@@ -10,7 +10,7 @@
 #include <utility>
 
 namespace lp5817 {
-template <i2c::Device HWImpl>
+template <i2c::I2cBus HWImpl>
 class LP5817 : public HWImpl {
 public:
     static constexpr i2c::Address ADDRESS = 0x2D;
