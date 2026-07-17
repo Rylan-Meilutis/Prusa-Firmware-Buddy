@@ -1,16 +1,8 @@
+/// @file
 #include <tpis/tpis.hpp>
 #include <fpm/math.hpp>
 
 namespace tpis {
-
-constexpr float degC0asKf = 273.15f;
-constexpr fixed degC0asK = fixed(degC0asKf);
-constexpr float degC25asKf = 25.f + degC0asKf;
-constexpr fixed degC25asK = fixed(degC25asKf);
-constexpr float f_exp_f = 4.2f;
-constexpr fixed f_exp = fixed(f_exp_f);
-constexpr float F_exp_f = 1 / f_exp_f;
-constexpr fixed F_exp = fixed(F_exp_f);
 
 SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data) {
     uint32_t tp_object = (static_cast<uint32_t>(raw_data[0]) << 8 | static_cast<uint32_t>(raw_data[1])) << 1 | static_cast<uint32_t>(raw_data[2] >> 7);
