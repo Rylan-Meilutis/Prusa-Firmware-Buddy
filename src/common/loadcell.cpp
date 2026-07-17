@@ -313,13 +313,16 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
             if (xy_endstop_enabled) {
                 debug_assert(xy_filter.initialized());
 
+                const float xy_threshold = xy_probe_threshold.load(std::memory_order_relaxed);
+                const float xy_hyst = xy_probe_hysteresis.load(std::memory_order_relaxed);
+
                 // Everything as absolute values, watch for changes.
                 // Load perpendicular to the sensor sense vector is not guaranteed to have defined sign.
-                if (abs(filtered_xy_load) > abs(XY_PROBE_THRESHOLD)) {
+                if (abs(filtered_xy_load) > abs(xy_threshold)) {
                     xy_endstop = true;
                     buddy::hw::zMin.isr();
                 }
-                if (abs(filtered_xy_load) < abs(XY_PROBE_THRESHOLD) - abs(XY_PROBE_HYSTERESIS)) {
+                if (abs(filtered_xy_load) < abs(xy_threshold) - abs(xy_hyst)) {
                     xy_endstop = false;
                     buddy::hw::zMin.isr();
                 }
@@ -481,6 +484,23 @@ Loadcell::HighPrecisionEnabler::~HighPrecisionEnabler() {
     if (m_owns_high_precision) {
         m_lcell.DisableHighPrecision();
     }
+}
+
+void Loadcell::SetXyProbeThreshold(float threshold_g, float hysteresis_g) {
+    xy_probe_threshold = threshold_g;
+    xy_probe_hysteresis = hysteresis_g;
+}
+
+Loadcell::XyProbeThresholdOverride::XyProbeThresholdOverride(Loadcell &lcell, float threshold_g)
+    : m_lcell(lcell)
+    , m_old_threshold(lcell.GetXyProbeThreshold())
+    , m_old_hysteresis(lcell.GetXyProbeHysteresis()) {
+    // Keep the default threshold:hysteresis ratio so the release band scales with the threshold.
+    lcell.SetXyProbeThreshold(threshold_g, threshold_g * (XY_PROBE_HYSTERESIS / XY_PROBE_THRESHOLD));
+}
+
+Loadcell::XyProbeThresholdOverride::~XyProbeThresholdOverride() {
+    m_lcell.SetXyProbeThreshold(m_old_threshold, m_old_hysteresis);
 }
 
 Loadcell::ProbeSafetyArmer::ProbeSafetyArmer(Loadcell &lcell, bool arm)

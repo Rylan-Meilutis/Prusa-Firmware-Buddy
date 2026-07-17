@@ -28,6 +28,8 @@ public:
     static constexpr unsigned int TOUCHDOWN_DELAY_MS = 150; // Milliseconds of pause required after trigger for the analysis model
     static constexpr int32_t MAX_LOADCELL_DATA_AGE_US = 100'000; // Older sample means the stream stalled
 
+    /// Default XY probe trigger threshold/hysteresis [g]; the active values can be overridden per probing
+    /// sequence via XyProbeThresholdOverride.
     static constexpr float XY_PROBE_THRESHOLD { 40 };
     static constexpr float XY_PROBE_HYSTERESIS { 20 };
 
@@ -120,6 +122,12 @@ public:
     void SetFailsOnLoadAbove(float failsOnLoadAbove);
     float GetFailsOnLoadAbove() const;
 
+    /// Active XY probe trigger threshold/hysteresis [g]. Prefer the XyProbeThresholdOverride RAII guard
+    /// over calling these directly so the values are always restored.
+    void SetXyProbeThreshold(float threshold_g, float hysteresis_g);
+    float GetXyProbeThreshold() const { return xy_probe_threshold; }
+    float GetXyProbeHysteresis() const { return xy_probe_hysteresis; }
+
     void SetFailsOnLoadBelow(float failsOnLoadBelow);
     float GetFailsOnLoadBelow() const;
 
@@ -194,6 +202,21 @@ public:
     private:
         Loadcell &m_lcell;
         bool m_armed;
+    };
+
+    /// RAII guard: overrides the XY probe trigger threshold for one probing sequence and restores it on
+    /// destruction (hysteresis scaled to keep the default ratio).
+    class XyProbeThresholdOverride {
+    public:
+        XyProbeThresholdOverride(Loadcell &lcell, float threshold_g);
+        // Non-movable: a defaulted move would leave the moved-from restore twice.
+        XyProbeThresholdOverride(XyProbeThresholdOverride &&) = delete;
+        ~XyProbeThresholdOverride();
+
+    private:
+        Loadcell &m_lcell;
+        float m_old_threshold;
+        float m_old_hysteresis;
     };
 
     FailureOnLoadAboveEnforcer CreateLoadAboveErrEnforcer(bool enable = true, float grams = 3000);
@@ -341,6 +364,13 @@ private:
     bool endstop = false;
     std::atomic<bool> xy_endstop = false;
     static_assert(std::atomic<decltype(xy_endstop)::value_type>::is_always_lock_free, "Lock free type must be used from ISR.");
+
+    /// Active XY probe trigger threshold/hysteresis [g], read from the ISR each sample. Default to the
+    /// XY_PROBE_* constants; temporarily lowered via XyProbeThresholdOverride.
+    std::atomic<float> xy_probe_threshold { XY_PROBE_THRESHOLD };
+    static_assert(std::atomic<float>::is_always_lock_free, "Lock free type must be used from ISR.");
+    std::atomic<float> xy_probe_hysteresis { XY_PROBE_HYSTERESIS };
+
     bool highPrecision;
 
     // When tare is requested, this will store number of samples and countdown to zero
