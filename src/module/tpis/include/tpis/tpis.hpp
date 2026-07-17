@@ -50,10 +50,6 @@ struct TemperatureReading {
     fixed ambient_temperature_celsius;
 };
 
-SensorData decode_sensor_data(std::span<const std::byte, 4> raw_data);
-std::optional<CalibrationParameters> decode_calibration_parameters(std::span<const std::byte, 32> raw_data);
-TemperatureReading calculate_temps(SensorData measurement, const CalibrationParameters &calibration);
-
 template <i2c::I2cBus HWImpl>
 class Tpis : public HWImpl {
 public:

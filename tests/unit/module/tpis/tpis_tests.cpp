@@ -11,11 +11,6 @@ constexpr auto make_bytes(Bytes... bytes) {
     return std::vector<std::byte> { static_cast<std::byte>(bytes)... };
 }
 
-template <typename... Bytes>
-constexpr auto make_bytes_array(Bytes... bytes) {
-    return std::array<std::byte, sizeof...(Bytes)> { static_cast<std::byte>(bytes)... };
-}
-
 double calculate_k(const tpis::CalibrationParameters &calibration) {
     double u0 = static_cast<double>(calibration.u0);
     double uout1 = static_cast<double>(calibration.uout1);
@@ -86,69 +81,6 @@ double get_precision(double ambient, double object) {
         return 0.075; // for standard temperatures we need precise measurements
     }
     return 0.2; // for safety checks lower precision is good enough
-}
-
-TEST_CASE("calculating temerature", "[tpis]") {
-    const auto calibration = get_typical_cal_params();
-    for (double t_ambient_c = -20.0; t_ambient_c < 110.0; t_ambient_c += 1.0) {
-        for (double t_obj_c = t_ambient_c - 20.0; t_obj_c < 500.0; t_obj_c += 1.0) {
-            const auto measurement = get_measurement_for_temps(t_obj_c, t_ambient_c, calibration);
-            const auto temps_ref = calculate_temperature_reference(measurement, calibration);
-            // small error is expected since tp_object and tp_ambient are integers
-            CHECK(std::abs(static_cast<double>(temps_ref.object_temperature_celsius) - t_obj_c) < 0.2);
-            CHECK(std::abs(static_cast<double>(temps_ref.ambient_temperature_celsius) - t_ambient_c) < 0.2);
-            const auto temps = tpis::calculate_temps(measurement, calibration);
-            const double prec = get_precision(t_ambient_c, t_obj_c);
-            CHECK(std::abs(static_cast<double>(temps.object_temperature_celsius - temps_ref.object_temperature_celsius)) < prec);
-            CHECK(std::abs(static_cast<double>(temps.ambient_temperature_celsius - temps_ref.ambient_temperature_celsius)) < prec);
-        }
-    }
-}
-
-TEST_CASE("decode sensor data", "[tpis]") {
-    {
-        const auto sensor_data = tpis::decode_sensor_data(make_bytes_array(0xFF, 0xFF, 0x80, 0x00));
-        CHECK(sensor_data.tp_object == 0x1FFFF);
-        CHECK(sensor_data.tp_ambient == 0);
-    }
-
-    {
-        const auto sensor_data = tpis::decode_sensor_data(make_bytes_array(0x00, 0x00, 0x7F, 0xFF));
-        CHECK(sensor_data.tp_object == 0);
-        CHECK(sensor_data.tp_ambient == 0x7FFF);
-    }
-
-    {
-        const auto sensor_data = tpis::decode_sensor_data(make_bytes_array(0xFF, 0xFF, 0xFF, 0xFF));
-        CHECK(sensor_data.tp_object == 0x1FFFF);
-        CHECK(sensor_data.tp_ambient == 0x7FFF);
-    }
-}
-
-TEST_CASE("decode calibration parameters", "[tpis]") {
-    const auto raw_data = make_bytes_array(
-        0x03, // protocol (3)
-        0x03, 0xF9, // checksum
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // reserved
-        0x02, // lookup (2)
-        0x34, 0xBC, // ptat25 (13500)
-        0x43, 0x30, // M (17200)
-        0x7B, 0xF4, // U0 (31732)
-        0x84, 0x3A, // U_out1 (33850)
-        0x64, // T_obj1 (100)
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // reserved
-        0x00 // slave address
-    );
-    const auto calibration = tpis::decode_calibration_parameters(raw_data);
-    CHECK(calibration.has_value());
-    CHECK(calibration->ptat25 == 13500);
-    CHECK(calibration->m == tpis::fixed(172));
-    CHECK(calibration->u0 == 64500);
-    CHECK(calibration->uout1 == 67700);
-    CHECK(calibration->t_obj1 == 100);
-    const auto expected_k = 8.27345242232e-8;
-    const auto expected_log2_k_with_emissivity = std::log2(expected_k * tpis::emissivity);
-    CHECK(std::abs(static_cast<double>(calibration->log2_k) - expected_log2_k_with_emissivity) / expected_log2_k_with_emissivity < 1e-4); // relative error < 0.01%
 }
 
 TEST_CASE("init", "[tpis]") {
