@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3285,7 +3285,7 @@ msgstr "ПОМИЛКА МАКСИМАЛЬНОЇ ТЕМПЕРАТУРИ ТЕРМ�
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ПОМИЛКА МІНІМАЛЬНОЇ ТЕМПЕРАТУРИ ТЕРМОБАР'ЄРУ"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "ТЕСТ НАГРІВАЧА"
 
@@ -5339,59 +5339,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Перевірка нагрівача сопла"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Тест нагрівача сопла не пройдено."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Тест нагрівача сопла не пройдено.\n"
 "\n"
-"Струм котушки нагрівача був вищим за очікуваний. Якщо проблема не зникає, "
-"огляньте котушку на пошкодження."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
-"\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Тест нагрівача сопла не пройдено.\n"
-"\n"
-"Струм котушки нагрівача був нижчим за очікуваний. Перевірте, чи сопло "
+"Струм котушки нагрівача був поза очікуваним діапазоном. Перевірте, чи сопло "
 "правильно встановлено в головці. Якщо проблема не зникає, огляньте котушку "
-"на пошкодження."
+"на пошкодження.\n"
+"\n"
+"Виміряний струм: %u мА"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Тест нагрівача сопла не пройдено.\n"
 "\n"
 "Сопло не нагрілося, як очікувалося. Перевірте, чи сопло правильно "
-"встановлено в головці, і спробуйте знову."
+"встановлено в головці, і спробуйте знову.\n"
+"\n"
+"Код помилки: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Тест нагрівача сопла не пройдено.\n"
 "\n"
 "Сопло не досягло цільової температури вчасно. Перевірте, чи сопло правильно "
-"встановлено в головці, і спробуйте знову."
+"встановлено в головці, і спробуйте знову.\n"
+"\n"
+"Досягнута температура: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

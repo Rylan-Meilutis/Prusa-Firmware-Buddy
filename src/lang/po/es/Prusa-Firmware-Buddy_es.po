@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3294,7 +3294,7 @@ msgstr "ERROR MAXTEMP HEATBREAK"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ERROR MINTEMP HEATBREAK"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "TEST CALENTADOR"
 
@@ -5357,59 +5357,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Comp. calor boquilla"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Test del calentador de la boquilla fallido."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Test del calentador de la boquilla fallido.\n"
 "\n"
-"La corriente de la bobina del calentador fue más alta de lo esperado. Si el "
-"problema persiste, revisa la bobina en busca de daños."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
-"\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Test del calentador de la boquilla fallido.\n"
-"\n"
-"La corriente de la bobina del calentador fue más baja de lo esperado. "
+"La corriente de la bobina del calentador estaba fuera del rango esperado. "
 "Comprueba que la boquilla esté bien colocada en el cabezal. Si el problema "
-"persiste, revisa la bobina en busca de daños."
+"persiste, revisa la bobina en busca de daños.\n"
+"\n"
+"Corriente medida: %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Test del calentador de la boquilla fallido.\n"
 "\n"
 "La boquilla no se calentó como se esperaba. Comprueba que la boquilla esté "
-"bien colocada en el cabezal e inténtalo de nuevo."
+"bien colocada en el cabezal e inténtalo de nuevo.\n"
+"\n"
+"Código de error: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Test del calentador de la boquilla fallido.\n"
 "\n"
 "La boquilla no alcanzó la temperatura objetivo a tiempo. Comprueba que la "
-"boquilla esté bien colocada en el cabezal e inténtalo de nuevo."
+"boquilla esté bien colocada en el cabezal e inténtalo de nuevo.\n"
+"\n"
+"Temperatura alcanzada: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

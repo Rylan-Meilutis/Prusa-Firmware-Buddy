@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3293,7 +3293,7 @@ msgstr "HEATBREAK MAXTEMP ERROR"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "HEATBREAK MINTEMP ERROR"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "TEST RISCALDATORE"
 
@@ -5351,59 +5351,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Contr. risc. Ugello"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Test riscaldatore ugello non riuscito."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Test riscaldatore ugello non riuscito.\n"
 "\n"
-"La corrente della bobina riscaldante era più alta del previsto. Se il "
-"problema persiste, ispeziona la bobina per eventuali danni."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
+"La corrente della bobina riscaldante era fuori dall'intervallo previsto. "
+"Controlla che l'ugello sia alloggiato correttamente nella testa. Se il "
+"problema persiste, ispeziona la bobina per eventuali danni.\n"
 "\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Test riscaldatore ugello non riuscito.\n"
-"\n"
-"La corrente della bobina riscaldante era più bassa del previsto. Controlla "
-"che l'ugello sia alloggiato correttamente nella testa. Se il problema "
-"persiste, ispeziona la bobina per eventuali danni."
+"Corrente misurata: %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Test riscaldatore ugello non riuscito.\n"
 "\n"
 "L'ugello non si è riscaldato come previsto. Controlla che l'ugello sia "
-"alloggiato correttamente nella testa e riprova."
+"alloggiato correttamente nella testa e riprova.\n"
+"\n"
+"Codice di errore: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Test riscaldatore ugello non riuscito.\n"
 "\n"
 "L'ugello non ha raggiunto la temperatura target in tempo. Controlla che "
-"l'ugello sia alloggiato correttamente nella testa e riprova."
+"l'ugello sia alloggiato correttamente nella testa e riprova.\n"
+"\n"
+"Temperatura raggiunta: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

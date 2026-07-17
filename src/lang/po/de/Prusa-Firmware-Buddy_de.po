@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3332,7 +3332,7 @@ msgstr "Heatbreak MAXTEMP Fehler"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "Heatbreak MINTEMP Fehler"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "HEIZUNGSTEST"
 
@@ -5407,59 +5407,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Düsenheizung prüfen"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Düsenheizungstest fehlgeschlagen."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Düsenheizungstest fehlgeschlagen.\n"
 "\n"
-"Der Heizspulenstrom war höher als erwartet. Wenn das Problem weiterhin "
-"besteht, überprüfen Sie die Spule auf Beschädigungen."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
+"Der Heizspulenstrom lag außerhalb des erwarteten Bereichs. Prüfen Sie, ob "
+"die Düse korrekt im Druckkopf sitzt. Wenn das Problem weiterhin besteht, "
+"überprüfen Sie die Spule auf Beschädigungen.\n"
 "\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Düsenheizungstest fehlgeschlagen.\n"
-"\n"
-"Der Heizspulenstrom war niedriger als erwartet. Prüfen Sie, ob die Düse "
-"korrekt im Druckkopf sitzt. Wenn das Problem weiterhin besteht, überprüfen "
-"Sie die Spule auf Beschädigungen."
+"Gemessener Strom: %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Düsenheizungstest fehlgeschlagen.\n"
 "\n"
 "Die Düse hat sich nicht wie erwartet erhitzt. Prüfen Sie, ob die Düse "
-"korrekt im Druckkopf sitzt, und versuchen Sie es erneut."
+"korrekt im Druckkopf sitzt, und versuchen Sie es erneut.\n"
+"\n"
+"Fehlercode: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Düsenheizungstest fehlgeschlagen.\n"
 "\n"
 "Die Düse hat die Zieltemperatur nicht rechtzeitig erreicht. Prüfen Sie, ob "
-"die Düse korrekt im Druckkopf sitzt, und versuchen Sie es erneut."
+"die Düse korrekt im Druckkopf sitzt, und versuchen Sie es erneut.\n"
+"\n"
+"Erreichte Temperatur: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

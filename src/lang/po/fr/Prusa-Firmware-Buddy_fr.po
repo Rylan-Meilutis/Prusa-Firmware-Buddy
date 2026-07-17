@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3293,7 +3293,7 @@ msgstr "ERREUR MAXTEMP DE LA BARRIÈRE THERMIQUE"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ERREUR MINTEMP DE LA BARRIÈRE THERMIQUE"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "TEST DE L'ÉLÉMENT CHAUFFANT"
 
@@ -5335,59 +5335,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Test chauf. buse"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Le test de l'élément chauffant de la buse a échoué."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Le test de l'élément chauffant de la buse a échoué.\n"
 "\n"
-"Le courant de la bobine de chauffe était plus élevé que prévu. Si le "
-"problème persiste, inspectez l'état de la bobine."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
+"Le courant de la bobine de chauffe était hors de la plage attendue. Vérifiez "
+"que la buse est bien en place dans la tête. Si le problème persiste, "
+"inspectez l'état de la bobine.\n"
 "\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Le test de l'élément chauffant de la buse a échoué.\n"
-"\n"
-"Le courant de la bobine de chauffe était plus faible que prévu. Vérifiez que "
-"la buse est bien en place dans la tête. Si le problème persiste, inspectez "
-"l'état de la bobine."
+"Courant mesuré : %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Le test de l'élément chauffant de la buse a échoué.\n"
 "\n"
 "La buse n'a pas chauffé comme prévu. Vérifiez que la buse est bien en place "
-"dans la tête et réessayez."
+"dans la tête et réessayez.\n"
+"\n"
+"Code d'erreur : %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Le test de l'élément chauffant de la buse a échoué.\n"
 "\n"
 "La buse n'a pas atteint la température cible à temps. Vérifiez que la buse "
-"est bien en place dans la tête et réessayez."
+"est bien en place dans la tête et réessayez.\n"
+"\n"
+"Température atteinte : %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

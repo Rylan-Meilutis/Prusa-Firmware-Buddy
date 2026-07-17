@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3365,7 +3365,7 @@ msgstr "ヒートブレイクサイダイオンドエラー"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ヒートブレイクサイショウオンドエラー"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "ヒーターテスト"
 
@@ -5466,59 +5466,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "ノズルヒーター カクニン"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "ノズルヒーターノ テストニ シッパイシマシタ。"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "ノズルヒーターノ テストニ シッパイシマシタ。\n"
 "\n"
-"ヒーターコイルノ デンリュウガ ヨソウヨリ タカイデス。モンダイガ カイケツシナ"
-"イバアイハ、コイルニ ソンショウガナイカ テンケンシテクダサイ。"
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
-"\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"ノズルヒーターノ テストニ シッパイシマシタ。\n"
-"\n"
-"ヒーターコイルノ デンリュウガ ヨソウヨリ ヒクイデス。ノズルガ ヘッドニ タダシ"
+"ヒーターコイルノ デンリュウガ ヨソウハンイガイデス。ノズルガ ヘッドニ タダシ"
 "ク オサマッテイルコトヲ カクニンシテクダサイ。モンダイガ カイケツシナイバアイ"
-"ハ、コイルニ ソンショウガナイカ テンケンシテクダサイ。"
+"ハ、コイルニ ソンショウガナイカ テンケンシテクダサイ。\n"
+"\n"
+"ソクテイ デンリュウ: %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "ノズルヒーターノ テストニ シッパイシマシタ。\n"
 "\n"
 "ノズルガ ヨソウドオリニ カネツシマセンデシタ。ノズルガ ヘッドニ タダシク オサ"
-"マッテイルコトヲ カクニンシ、リトライシテクダサイ。"
+"マッテイルコトヲ カクニンシ、リトライシテクダサイ。\n"
+"\n"
+"エラーコード: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "ノズルヒーターノ テストニ シッパイシマシタ。\n"
 "\n"
 "ノズルガ ジカンナイニ モクヒョウオンドニ タッシマセンデシタ。ノズルガ ヘッド"
-"ニ タダシク オサマッテイルコトヲ カクニンシ、リトライシテクダサイ。"
+"ニ タダシク オサマッテイルコトヲ カクニンシ、リトライシテクダサイ。\n"
+"\n"
+"トウタツ オンド: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"

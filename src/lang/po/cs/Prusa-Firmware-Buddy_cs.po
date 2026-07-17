@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-17 07:49+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3236,7 +3236,7 @@ msgstr "CHYBA HEATBREAKU MAXTEMP"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "CHYBA HEATBREAKU MINTEMP"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:203
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
 msgid "HEATER TEST"
 msgstr "TEST VYHŘÍVÁNÍ"
 
@@ -5286,59 +5286,62 @@ msgstr ""
 msgid "Nozzle heater check"
 msgstr "Výhřev trysky"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
 msgid "Nozzle heater test failed."
 msgstr "Test vyhřívání trysky selhal."
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
-"The heater coil current was higher than expected. If the issue persists, "
-"inspect the coil for damage."
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
 msgstr ""
 "Test vyhřívání trysky selhal.\n"
 "\n"
-"Proud topné cívky byl vyšší, než se očekávalo. Pokud problém přetrvává, "
-"prohlédněte cívku, zda není poškozená."
-
-#: src/gui/wizard/screen_heaters_selftest.cpp:149
-msgid ""
-"Nozzle heater test failed.\n"
-"\n"
-"The heater coil current was lower than expected. Check that the nozzle is "
-"seated correctly in the head. If the issue persists, inspect the coil for "
-"damage."
-msgstr ""
-"Test vyhřívání trysky selhal.\n"
-"\n"
-"Proud topné cívky byl nižší, než se očekávalo. Zkontrolujte, zda je tryska "
+"Proud topné cívky byl mimo očekávaný rozsah. Zkontrolujte, zda je tryska "
 "správně usazena v hlavě. Pokud problém přetrvává, prohlédněte cívku, zda "
-"není poškozená."
+"není poškozená.\n"
+"\n"
+"Naměřený proud: %u mA"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:145
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not heat up as expected. Check that the nozzle is seated "
-"correctly in the head and try again."
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
 msgstr ""
 "Test vyhřívání trysky selhal.\n"
 "\n"
 "Tryska se nezahřívala podle očekávání. Zkontrolujte, zda je tryska správně "
-"usazena v hlavě, a zkuste to znovu."
+"usazena v hlavě, a zkuste to znovu.\n"
+"\n"
+"Chybový kód: %u"
 
-#: src/gui/wizard/screen_heaters_selftest.cpp:147
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
 msgid ""
 "Nozzle heater test failed.\n"
 "\n"
 "The nozzle did not reach the target temperature in time. Check that the "
-"nozzle is seated correctly in the head and try again."
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
 msgstr ""
 "Test vyhřívání trysky selhal.\n"
 "\n"
 "Tryska nedosáhla včas cílové teploty. Zkontrolujte, zda je tryska správně "
-"usazena v hlavě, a zkuste to znovu."
+"usazena v hlavě, a zkuste to znovu.\n"
+"\n"
+"Dosažená teplota: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
