@@ -195,13 +195,13 @@ void WindowMenuAssignLoadedColor::setup_item(ItemVariant &variant, int index) {
     size_t requested = static_cast<size_t>(index - 3);
     if (requested < filament_color::palette().size()) {
         const auto &p = filament_color::palette()[requested];
-        variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, p.color, p.name);
+        variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, p.color, p.name_view());
         return;
     }
     requested -= filament_color::palette().size();
     for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
         if (const auto p = filament_color::custom(slot); p && requested-- == 0) {
-            variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, p->color, p->name);
+            variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, p->color, p->name_view());
             return;
         }
     }

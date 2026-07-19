@@ -23,8 +23,8 @@ const std::array<Profile, 15> &palette() { return profiles; }
 
 std::optional<Profile> custom(const size_t slot) {
     if (slot >= custom_slot_count || !(config_store().custom_filament_color_valid.get() & (1u << slot))) return std::nullopt;
-    const auto &stored_name = config_store().custom_filament_color_names.get()[slot];
-    return Profile { std::string_view(stored_name.data()), Color::from_raw(config_store().custom_filament_color_rgb.get(slot)) };
+    const auto stored_names = config_store().custom_filament_color_names.get();
+    return Profile { stored_names[slot], Color::from_raw(config_store().custom_filament_color_rgb.get(slot)) };
 }
 
 bool set_custom(const size_t slot, const std::string_view name, const Color color) {
@@ -57,8 +57,8 @@ void set_loaded(const uint8_t tool, const std::optional<Color> color) {
 }
 
 std::string_view name_for(const Color color) {
-    for (const auto &profile : profiles) if (profile.color == color) return profile.name;
-    for (size_t slot = 0; slot < custom_slot_count; ++slot) if (const auto profile = custom(slot); profile && profile->color == color) return profile->name;
+    for (const auto &profile : profiles) if (profile.color == color) return profile.name_view();
+    for (size_t slot = 0; slot < custom_slot_count; ++slot) if (const auto profile = custom(slot); profile && profile->color == color) return profile->name_view();
     return "Custom";
 }
 } // namespace filament_color
