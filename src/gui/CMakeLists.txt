@@ -66,6 +66,7 @@ target_sources(
           screen_menu_network_status.cpp
           screen_menu_odometer.cpp
           screen_menu_pid.cpp
+          screen_menu_pa_calibration.cpp
           screen_menu_sensor_info.cpp
           screen_menu_led_colors.cpp
           screen_menu_lock_settings.cpp

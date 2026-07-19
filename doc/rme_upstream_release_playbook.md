@@ -6,6 +6,12 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 
+The PA calibration port includes both slicer-driven M976 and the manual
+Calibrations & Tests screen. When rebasing, verify physical-tool and MMU-slot
+selection, sequential batch submission, the manual-only clean-area prompt,
+anchor acknowledgement, and restoration of every prior hotend target after all
+M976 exit paths.
+
 ## Current Baseline
 
 RME 6.5.7 is based on upstream tag `v6.5.7` at `7119a302d6`.

@@ -31,6 +31,7 @@
 #include "screen_menu_error_test.hpp"
 #include "screen_menu_pid.hpp"
 #include "screen_menu_input_shaper.hpp"
+#include "screen_menu_pa_calibration.hpp"
 #include <screen_menu_languages.hpp>
 #include <screen_menu_info.hpp>
 #include <screen_menu_control.hpp>
@@ -146,6 +147,9 @@ template struct MI_SCREEN_CTOR<ScreenMenuStatistics>;
 template struct MI_SCREEN_CTOR<ScreenMenuInfo>;
 template struct MI_SCREEN_CTOR<ScreenFactoryReset>;
 template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
+#if HAS_PA_CALIBRATION_UI()
+template struct MI_SCREEN_CTOR<ScreenMenuPACalibration>;
+#endif
 template struct MI_SCREEN_CTOR<ScreenPrinterSetup>;
 
 #if DEVELOPER_MODE()

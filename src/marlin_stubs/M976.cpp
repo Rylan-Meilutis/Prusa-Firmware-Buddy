@@ -38,6 +38,23 @@ struct BatchEntry {
     std::array<char, 17> material {};
 };
 
+class HotendTargetRestorer {
+public:
+    HotendTargetRestorer() {
+        for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
+            targets_[hotend] = Temperature::degTargetHotend(hotend);
+        }
+    }
+    ~HotendTargetRestorer() {
+        for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
+            Temperature::setTargetHotend(targets_[hotend], hotend);
+        }
+    }
+
+private:
+    std::array<int16_t, HOTENDS> targets_ {};
+};
+
 bool parse_uint(const char *&cursor, unsigned &value, const char terminator) {
     if (*cursor < '0' || *cursor > '9') return false;
     value = 0;
@@ -221,6 +238,10 @@ void PrusaGcodeSuite::M976() {
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;
 #else
+    // S is a calibration-only target. Restore every hotend target on every exit path, including
+    // batch/MMU failures and cached results. Nested M976 calls restore to the batch's temporary
+    // target; the outer batch guard then restores the targets that existed before the command.
+    HotendTargetRestorer restore_hotend_targets;
     if (parser.seen('A')) {
         std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
         const size_t count = parse_batch_manifest(parser.command_ptr, entries);
@@ -237,13 +258,17 @@ void PrusaGcodeSuite::M976() {
     }
     const uint8_t tool = parser.byteval('T', active_extruder);
     const uint8_t slot = parser.byteval('L', tool);
-    if (tool != active_extruder || slot >= buddy::extrusion_calibration::max_logical_filaments) {
-        SERIAL_ERROR_MSG("M976 select requested tool/slot first");
-        return;
-    }
     if (parser.boolval('C', false)) {
+        if (slot >= buddy::extrusion_calibration::max_logical_filaments) {
+            SERIAL_ERROR_MSG("M976 invalid anchor slot");
+            return;
+        }
         buddy::extrusion_calibration::clear_anchor(slot);
         SERIAL_ECHOLNPAIR("PA_CALIBRATION anchor slot cleared=", slot);
+        return;
+    }
+    if (tool != active_extruder || slot >= buddy::extrusion_calibration::max_logical_filaments) {
+        SERIAL_ERROR_MSG("M976 select requested tool/slot first");
         return;
     }
     if (parser.seenval('S')) {

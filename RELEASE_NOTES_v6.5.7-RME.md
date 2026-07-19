@@ -31,6 +31,8 @@
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
     * `M865 Q` serial query for host-readable loaded-filament material reporting
     * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring, including per-hotend temperature set/wait for slicer-driven tool and MMU sequences [C1, XL, MK4, iX]
+      * Added a guided Calibrations & Tests screen for selecting one tool/MMU slot or calibrating all configured filaments sequentially, with material/default temperature selection and a manual-only clean build/service-area prompt
+      * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU jobs and reuse cached results within the current job
       * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or full MMU unload/load sequences for every used filament
