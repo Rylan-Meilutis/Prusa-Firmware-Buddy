@@ -18,6 +18,8 @@ struct Score {
     float transient = std::numeric_limits<float>::infinity();
     float mean_load = 0;
     float noise = std::numeric_limits<float>::infinity();
+    float low_load = 0;
+    float high_load = 0;
     bool valid = false;
 };
 
@@ -45,6 +47,7 @@ struct Result {
     float max_flow_mm3_s = 0;
     float confidence = 0;
     bool valid = false;
+    Score pressure_reference {};
 };
 
 static constexpr size_t max_logical_filaments = 6;
@@ -56,5 +59,19 @@ void occupy_anchor(size_t logical_filament);
 void clear_anchor(size_t logical_filament);
 void note_profile_pressure_advance(float value);
 float profile_pressure_advance_or(float fallback);
+
+enum class ExtrusionFault : uint8_t {
+    none,
+    no_pressure_rise,
+    pressure_collapse,
+    flow_breakout,
+};
+
+/// Arms runtime extrusion-health monitoring from a known-good PA response.
+/// All force values are tared loadcell grams; velocities are filament mm/s.
+void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s, float high_velocity_mm_s);
+void reset_pressure_monitor();
+void suspend_pressure_monitor(bool suspend);
+ExtrusionFault consume_extrusion_fault();
 
 } // namespace buddy::extrusion_calibration
