@@ -42,3 +42,26 @@ TEST_CASE("job results are RAM-only and reset independently of anchors") {
     clear_anchor(2);
     REQUIRE_FALSE(occupied_anchor_mask() & (1u << 2));
 }
+
+TEST_CASE("runtime monitor detects missing pressure during executed E motion") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    configure_pressure_monitor(reference, 0.8f, 8.0f);
+    record_loadcell_sample(1'000, 0, 0);
+    for (uint32_t i = 1; i <= 220; ++i)
+        record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.005f);
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
+}
+
+TEST_CASE("runtime monitor detects a sustained pressure collapse") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    configure_pressure_monitor(reference, 0.8f, 8.0f);
+    record_loadcell_sample(1'000, 0, 0);
+    uint32_t i = 1;
+    for (; i <= 150; ++i)
+        record_loadcell_sample(1'000 + i * 5'000, 25, i * 0.005f);
+    for (; i <= 240; ++i)
+        record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.005f);
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::pressure_collapse);
+}

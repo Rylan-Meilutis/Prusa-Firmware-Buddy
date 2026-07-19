@@ -30,12 +30,14 @@
     * UI theme updates and theme import support
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
     * `M865 Q` serial query for host-readable loaded-filament material reporting
-    * Added `M976` stationary loadcell calibration for per-print pressure advance and hotend maximum-flow limits [C1, XL, MK4, iX]
+    * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring [C1, XL, MK4, iX]
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU jobs and reuse cached results within the current job
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
       * Purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
-      * The planner caps volumetric extrusion at 90% of the measured stable hotend flow
+      * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
+      * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
+      * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
   * Fixes
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits

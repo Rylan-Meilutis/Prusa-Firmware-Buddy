@@ -2473,6 +2473,25 @@ static void _server_print_loop(void) {
     case State::Printing:
         print_state.resume_pending = false;
 
+#if HAS_LOADCELL()
+        if (const auto fault = buddy::extrusion_calibration::consume_extrusion_fault(); fault != buddy::extrusion_calibration::ExtrusionFault::none) {
+            switch (fault) {
+            case buddy::extrusion_calibration::ExtrusionFault::no_pressure_rise:
+                SERIAL_ECHOLNPGM("Extrusion fault: E moving without nozzle-pressure rise");
+                break;
+            case buddy::extrusion_calibration::ExtrusionFault::pressure_collapse:
+                SERIAL_ECHOLNPGM("Extrusion fault: nozzle pressure collapsed during forward E motion");
+                break;
+            case buddy::extrusion_calibration::ExtrusionFault::flow_breakout:
+                SERIAL_ECHOLNPGM("Extrusion fault: hotend flow-pressure breakout detected");
+                break;
+            default:
+                break;
+            }
+            queue.inject_P(PSTR("M1601"));
+        }
+#endif
+
         if (server.print_is_serial) {
             SerialPrinting::print_loop();
         } else {
