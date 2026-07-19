@@ -54,6 +54,12 @@ public:
 
     /// [Thread-safe] Pellet capacity of the installed cleaner (standard / extended), per the persisted setting.
     uint32_t capacity() const;
+    /// Configured automatic-pause level, clamped to the installed cleaner capacity.
+    uint32_t pause_threshold() const;
+    /// Set the automatic-pause level. Zero selects the installed cleaner capacity.
+    void set_pause_threshold(uint32_t pellets);
+    /// Replace the current pellet count (used by M1986 S).
+    void set_fill_level(uint32_t pellets);
     /// [Thread-safe] Pellets in the bin since it was last emptied (current fill, not an action).
     uint32_t fill_level() const;
     /// [Thread-safe] Pellets still expected to be ejected in the rest of this print (one per

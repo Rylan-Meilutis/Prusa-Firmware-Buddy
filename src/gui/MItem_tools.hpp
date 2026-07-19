@@ -143,6 +143,17 @@ protected:
     void OnChange(size_t old_index) final;
 };
 
+/// Wastebin submenu: pellet count which triggers the automatic empty-bin pause.
+class MI_NOZZLE_CLEANER_PAUSE_THRESHOLD : public WiSpin {
+    static constexpr const char *const label = N_("Pause At Pellets");
+
+public:
+    MI_NOZZLE_CLEANER_PAUSE_THRESHOLD();
+
+protected:
+    void OnClick() override;
+};
+
 /// Wastebin submenu: read-only fill level (pellets ejected since last emptied / capacity).
 class MI_NOZZLE_CLEANER_FILL : public MenuItemAutoUpdatingLabel<uint32_t> {
     static constexpr const char *const label = N_("Pellets");

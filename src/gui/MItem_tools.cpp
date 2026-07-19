@@ -286,6 +286,21 @@ void MI_NOZZLE_CLEANER_CAPACITY::OnChange(size_t /*old_index*/) {
     config_store().nozzle_cleaner_extended_capacity.set(get_index() == 1);
 }
 
+static constexpr NumericInputConfig nozzle_cleaner_pause_threshold_config = {
+    .min_value = 100,
+    .max_value = NOZZLE_CLEANER_WASTEBIN_CAPACITY_EXTENDED,
+    .step = 100,
+    .special_value = 0,
+    .special_value_str = N_("Capacity"),
+};
+
+MI_NOZZLE_CLEANER_PAUSE_THRESHOLD::MI_NOZZLE_CLEANER_PAUSE_THRESHOLD()
+    : WiSpin(config_store().nozzle_cleaner_pause_threshold.get(), nozzle_cleaner_pause_threshold_config, _(label)) {}
+
+void MI_NOZZLE_CLEANER_PAUSE_THRESHOLD::OnClick() {
+    config_store().nozzle_cleaner_pause_threshold.set(static_cast<uint32_t>(value()));
+}
+
 MI_NOZZLE_CLEANER_FILL::MI_NOZZLE_CLEANER_FILL()
     : MenuItemAutoUpdatingLabel(
         _(label),

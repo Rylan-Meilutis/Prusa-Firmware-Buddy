@@ -712,6 +712,8 @@ struct CurrentStore
     /// Number of pellets ejected into the INDX nozzle-cleaner wastebin since it was last emptied.
     /// Printer state, not a stat: it resets on user input (emptying) and drives the overfill checks.
     StoreItem<uint32_t, 0, ItemFlag::printer_state, journal::hash("Nozzle cleaner pellets")> nozzle_cleaner_pellets;
+    /// User-selected automatic pause threshold. Zero means use the installed cleaner capacity.
+    StoreItem<uint32_t, 0, ItemFlag::features, journal::hash("Nozzle cleaner pause threshold")> nozzle_cleaner_pause_threshold;
     /// Whether reaching the wastebin capacity mid-print auto-pauses the print (true) or just warns (false).
     StoreItem<bool, true, ItemFlag::features, journal::hash("Nozzle cleaner autopause on full")> nozzle_cleaner_autopause_on_full;
     /// Installed nozzle-cleaner type: false = standard capacity, true = extended (high-capacity).

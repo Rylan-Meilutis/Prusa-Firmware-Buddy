@@ -142,6 +142,11 @@ uint32_t Odometer_s::get_nozzle_cleaner_pellets() {
     return config_store().nozzle_cleaner_pellets.get() + nozzle_cleaner_pellets;
 }
 
+void Odometer_s::set_nozzle_cleaner_pellets(uint32_t value) {
+    nozzle_cleaner_pellets = 0;
+    config_store().nozzle_cleaner_pellets.set(value);
+}
+
 void Odometer_s::reset_nozzle_cleaner_pellets() {
     // get_nozzle_cleaner_pellets() returns persisted + RAM accumulator, so zero both.
     nozzle_cleaner_pellets = 0;
