@@ -202,7 +202,8 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
     }
 #endif /*ENABLED(CRASH_RECOVERY)*/
 
-    const bool notify_serial_host_resume = marlin_server::serial_print_active();
+    const bool print_was_already_paused = marlin_server::printer_paused_extended();
+    const bool notify_serial_host_resume = marlin_server::serial_print_active() && !print_was_already_paused;
 
 #if HAS_TOOLCHANGER()
     struct ToolChangeData {
