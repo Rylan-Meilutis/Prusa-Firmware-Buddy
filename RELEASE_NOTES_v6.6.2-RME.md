@@ -646,4 +646,13 @@ d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 25eb605d3  2026-07-07  Add cached multi-version RME release builds
 790311418  2026-07-10  Suppress filament runout while paused
 08e862da0  2026-07-11  Add loaded filament reassignment and query
+763efb32d  2026-07-11  Update 6.6.2 RME release notes
+5d3804260  2026-07-11  Rewrite 6.6.2 RME release notes
+c493d7be2  2026-07-18  Add per-print extrusion calibration
+7b8b49471  2026-07-18  Improve PA tuning and monitor extrusion pressure
+539fb8c14  2026-07-18  Add batch PA calibration orchestration
+f7619812b  2026-07-19  Update PA calibration commit reference
+681e639f3  2026-07-19  Document slicer setup for auto PA
+6199d79c0  2026-07-19  Preserve paused runout state and manage INDX wastebin
+4a56a1276  2026-07-19  Allow serial reset during INDX bucket pause
 ```
