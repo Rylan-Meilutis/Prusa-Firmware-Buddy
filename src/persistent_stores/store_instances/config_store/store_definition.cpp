@@ -150,6 +150,19 @@ void CurrentStore::perform_config_migrations() {
     }
 #endif
 
+#if HAS_INDX()
+    if (should_migrate<6>()) {
+        // BFW-9018
+        // The X calibration measures the nozzle cleaner V-groove, but the nominal reference
+        // (X_NOZZLE_CLEANER_ORIGIN) used to point 0.65 mm away from it, so every stored offset
+        // has +0.65 baked in. This FW moves the reference onto the V-groove, so remove it.
+        // Uncalibrated printers keep the default offset untouched.
+        if (selftest_result_nozzle_cleaner_calibration.get() == TestResult::passed) {
+            nozzle_cleaner_x_origin_offset.set(nozzle_cleaner_x_origin_offset.get() - 0.65f);
+        }
+    }
+#endif
+
     // To add a migration:
     // - increment newest_config_version
     // - add if(should_migrate<X>) { your migration code } at the END of this function

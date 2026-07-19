@@ -754,7 +754,7 @@ inline bool calibrate_all_simple() {
     }
 
     if (failed) {
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT_M600 } }));
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::filament_change));
         marlin_server::set_warning(WarningType::NozzleDoesNotHaveRoundSection);
         return false;
     }

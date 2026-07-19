@@ -10,6 +10,7 @@
 #include <tools_mapping.hpp>
 #include "mutable_path.hpp"
 #include <logging/log.hpp>
+#include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <version/version.hpp>
 #include "common/printer_model.hpp"
@@ -357,6 +358,12 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                     info_.sliced_with_input_shaper_ = true;
                     break;
                 }
+#if HAS_INDX()
+                if (compare(feature, "INDX lock")) {
+                    info_.sliced_with_indx_lock_ = true;
+                    break;
+                }
+#endif
 
                 log_error(Buddy, "Unsupported feature: %s", feature.c_str());
                 info_.failed_gcode_checks.set(Check::unsupported_features);
@@ -577,7 +584,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
 
 std::optional<std::string_view> GCodeInfo::iterate_items(std::span<char> &buffer, char separator) {
     // skip leading spaces
-    while (buffer[0] && isspace(*buffer.data())) {
+    while (buffer.size() > 0 && buffer[0] && isspace(*buffer.data())) {
         buffer = buffer.subspan(1);
     }
 
@@ -588,7 +595,7 @@ std::optional<std::string_view> GCodeInfo::iterate_items(std::span<char> &buffer
             break;
         }
     }
-    std::span<char> next_buffer = buffer.subspan(buffer[item_length] == separator ? item_length + 1 : item_length);
+    std::span<char> next_buffer = buffer.subspan((item_length < buffer.size() && buffer[item_length] == separator) ? item_length + 1 : item_length);
 
     // strip trailing whitespaces
     while (item_length && isspace(buffer[item_length - 1])) {

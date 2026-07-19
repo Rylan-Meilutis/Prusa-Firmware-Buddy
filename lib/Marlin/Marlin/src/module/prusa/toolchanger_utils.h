@@ -63,7 +63,7 @@ public:
     static constexpr float E_WIGGLE_DISTANCE = 0.27f; ///< Tooth alignment wiggle distance [mm]
     static constexpr float E_PARTIAL_UNLOCK_DISTANCE = 1.3f; ///< Partial unlock, head still holds nozzle [mm]
     static constexpr float E_FULL_OPEN_DISTANCE = 11.2f; ///< Full open distance [mm]
-    static constexpr float E_FULL_CLOSE_DISTANCE = 10.5f; ///< Full lock distance [mm]
+    static constexpr float E_FULL_CLOSE_DISTANCE = 12.3f; ///< Full lock distance [mm]
 
     // E-axis motor currents for lock/unlock
     static constexpr uint16_t E_WIGGLE_CURRENT_MA = 200; ///< Low current for safe tooth engagement [mA]

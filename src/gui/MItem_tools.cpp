@@ -313,6 +313,24 @@ MI_NOZZLE_CLEANER_FILL::MI_NOZZLE_CLEANER_FILL()
 
 #endif
 
+#if HAS_INDX()
+// Range matches the calibration tolerance (offset_tolerance_mm)
+static constexpr NumericInputConfig nozzle_cleaner_x_offset_spin_config = {
+    .min_value = -3,
+    .max_value = 3,
+    .step = 0.05f,
+    .max_decimal_places = 2,
+    .unit = Unit::millimeter,
+};
+
+MI_NOZZLE_CLEANER_X_OFFSET::MI_NOZZLE_CLEANER_X_OFFSET()
+    : WiSpin(config_store().nozzle_cleaner_x_origin_offset.get(), nozzle_cleaner_x_offset_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_NOZZLE_CLEANER_X_OFFSET::OnClick() {
+    config_store().nozzle_cleaner_x_origin_offset.set(value());
+}
+#endif
+
 /*****************************************************************************/
 // MI_MESH_BED
 MI_MESH_BED::MI_MESH_BED()
@@ -727,6 +745,7 @@ MI_INFO_FILAMENT_SENSOR::Value MI_INFO_FILAMENT_SENSOR::get_value(IFSensor *fsen
     };
 }
 
+#if HAS_EXTRUDER_FSENSOR()
 /*****************************************************************************/
 // MI_INFO_EXTRUDER_FILAMENT_SENSOR
 MI_INFO_EXTRUDER_FILAMENT_SENSOR::MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool)
@@ -738,11 +757,11 @@ MI_INFO_EXTRUDER_FILAMENT_SENSOR::MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<
         tool_,
         [&](PhysicalToolIndex t) { return t.display_name(label_params_); },
         [](CurrentlySelectedTool) {
-#if PRINTER_IS_PRUSA_XL()
+    #if PRINTER_IS_PRUSA_XL()
             return _("Tool Filament sensor");
-#else
+    #else
             return _("Filament Sensor");
-#endif
+    #endif
         }));
 }
 
@@ -753,6 +772,7 @@ std::optional<FilamentSensorStateAndValue> MI_INFO_EXTRUDER_FILAMENT_SENSOR::val
     }
     return get_value(GetExtruderFSensor(*tool));
 }
+#endif // HAS_EXTRUDER_FSENSOR()
 
 /*****************************************************************************/
 // MI_INFO_SIDE_FILAMENT_SENSOR

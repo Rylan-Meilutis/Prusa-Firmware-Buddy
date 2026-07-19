@@ -30,11 +30,21 @@ bool calibration_preamble(CalibrationPreambleToolPolicy tool_policy,
         // pick_any_tool homes XY precisely
     } else if (tool_policy == CalibrationPreambleToolPolicy::ensure_parked && std::holds_alternative<PhysicalToolIndex>(current_tool)) {
         on_step(CalibrationPreambleStep::parking_tool);
-        // Z is already safe at the bottom: skip the Z lift and don't return Z anywhere
-        if (!prusa_toolchanger.tool_change(NoTool {}, tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false)) {
-            return false;
+        const auto tool = std::get<PhysicalToolIndex>(current_tool);
+        if (tool.is_enabled()) {
+            // Z is already safe at the bottom: skip the Z lift and don't return Z anywhere
+            if (!prusa_toolchanger.tool_change(NoTool {}, tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false)) {
+                return false;
+            }
+            // tool_change homes XY precisely before parking
+        } else {
+            // Dock not calibrated yet: park to the default dock position,
+            // with a bump check first to make sure the dock is empty
+            if (!prusa_toolchanger.manual_tool_park(tool)) {
+                return false;
+            }
+            // manual_tool_park homes XY precisely before bumping into the dock
         }
-        // tool_change homes XY precisely before parking
     } else {
         on_step(CalibrationPreambleStep::homing);
         // z_raise=0: Z is already safely at the bottom from the homing move above

@@ -40,6 +40,7 @@ static_assert(HAS_PAUSE());
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
 #include <serial_printing.hpp>
+#include <cassert>
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "filament.hpp"
@@ -71,6 +72,7 @@ static_assert(HAS_PAUSE());
 
 static void M600_manual(const GCodeParser2 &);
 
+#include <common/mapi/parking.hpp>
 #include <config_store/store_instance.hpp>
 
 /** \addtogroup G-Codes
@@ -145,7 +147,7 @@ void GcodeSuite::M600() {
 
 /** @}*/
 
-void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool,
+void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool,
     xyze_float_t resume_point, std::optional<float> unloadLength, std::optional<float> fastLoadLength,
     std::optional<float> retractLength, std::optional<Color> filament_colour,
     std::optional<FilamentType> filament_type, bool);
@@ -166,23 +168,22 @@ void M600_manual(const GCodeParser2 &p) {
     p.store_option_if_present('X', logical_park_point.x);
     p.store_option_if_present('Y', logical_park_point.y);
 
-    auto park_point = logical_park_point.asNative();
+    const auto park_point = logical_park_point.asNative();
 
-    LOOP_XYZ(i) {
-        if (std::isnan(park_point[i])) {
-            static constexpr xyz_pos_t default_park_point = XYZ_NOZZLE_PARK_POINT_M600;
-            park_point[i] = default_park_point[i];
-        }
+    auto park_position = mapi::get_parking_position(mapi::ParkPosition::filament_change);
+    if (!std::isnan(park_point.x)) {
+        park_position.x = park_point.x;
     }
-
-#if HAS_HOTEND_OFFSET && !HAS_TOOLCHANGER()
-    // #error dead code found by automatic analyses (see BFW-5461)
-    park_point += hotend_offset[active_extruder];
-#endif
+    if (!std::isnan(park_point.y)) {
+        park_position.y = park_point.y;
+    }
+    if (!std::isnan(park_point.z)) {
+        park_position.z = park_point.z;
+    }
 
     const xyze_float_t no_return = { { { NAN, NAN, NAN, current_position.e } } };
 
-    M600_execute(park_point,
+    M600_execute(park_position,
         target_tool,
         p.option<bool>('N') ? no_return : current_position,
         p.option<float>('U'),
@@ -193,7 +194,7 @@ void M600_manual(const GCodeParser2 &p) {
         false);
 }
 
-void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float_t resume_point,
+void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool, xyze_float_t resume_point,
     std::optional<float> unloadLength, std::optional<float> fastLoadLength, std::optional<float> retractLength,
     std::optional<Color> filament_colour, std::optional<FilamentType> filament_type,
     bool is_filament_stuck) {
@@ -236,9 +237,13 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
         Temperature::setTargetHotend(filament_data.nozzle_temperature, physical_target_tool);
     }
 #endif
-    // X/Y are taken as-is from park_point; only Z becomes an AtLeast (never-go-down).
-    mapi::ParkingPosition park_position = mapi::ParkingPosition::from_xyz_pos(park_point);
-    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = park_point.z };
+    // X/Y are taken as-is; an absolute Z becomes an AtLeast (never-go-down).
+    if (auto *z = std::get_if<float>(&park_position.z)) {
+        park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = *z };
+    } else {
+        // Other alternatives express the intended park behavior on their own; flag a caller not asking for any Z handling
+        assert(!std::holds_alternative<mapi::ParkingPosition::Unchanged>(park_position.z));
+    }
     pause::Settings settings;
     settings.SetParkPoint(park_position);
     settings.SetResumePoint(resume_point);
@@ -322,7 +327,7 @@ void PrusaGcodeSuite::M1601() {
         bsod_unreachable();
     }
     M600_execute(
-        XYZ_NOZZLE_PARK_POINT_M600,
+        mapi::get_parking_position(mapi::ParkPosition::filament_change),
         *active_tool,
         current_position,
         std::nullopt, std::nullopt, std::nullopt,

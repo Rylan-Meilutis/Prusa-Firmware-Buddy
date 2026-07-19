@@ -29,6 +29,8 @@
 
 #include "../inc/MarlinConfig.h"
 
+#include <optional>
+
 #if ENABLED(AUTO_POWER_CONTROL)
   #include "../feature/power.h"
 #endif
@@ -112,7 +114,7 @@ struct TemperatureADCAccumulator {
 struct WaitForHotendParams {
   bool no_wait_for_cooling = true;  // Return instead of waiting when the hotend needs to cool down
   bool fan_cooling = false;         // Assist heating/cooling with the print fan while waiting
-  bool skip_residency = false;      // Stop as soon as the target is reached, skipping the residency settle (M109 `C`)
+  std::optional<float> wait_temp = std::nullopt; // Stop once this temperature is reached without changing the target; capped by the regular target wait (M109 `C`)
 };
 
 class Temperature {

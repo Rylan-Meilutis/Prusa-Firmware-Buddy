@@ -274,7 +274,7 @@ ScreenInputShaperCalibration *ScreenInputShaperCalibration::GetInstance() {
 }
 
 void ScreenInputShaperCalibration::create_frame() {
-    Frames::create_frame(frame_storage, get_phase(fsm_base_data), this);
+    Frames::create_frame(frame_storage, get_phase(fsm_base_data), &inner_frame);
     radio.Change(get_phase(fsm_base_data));
 }
 

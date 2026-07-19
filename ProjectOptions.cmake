@@ -519,7 +519,6 @@ set_feature_for_printers(
   "COREONE_INDX"
   "COREONEL_INDX"
   )
-set_feature_for_printers_master_board(HAS_EXTRUDER_FSENSOR "MK4" "XL" "COREONE" "COREONEL" "iX")
 set_feature_for_printers(HAS_ADC_SIDE_FSENSOR "XL")
 set_feature_for_printers(HAS_SIDE_FSENSOR_INVERTIBLE "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers(HAS_FSENSOR_INVERTIBLE)
@@ -868,6 +867,13 @@ else()
   set(FILAMENT_SENSOR NO)
 endif()
 define_enum_option(NAME FILAMENT_SENSOR VALUE "${FILAMENT_SENSOR}" ALL_VALUES "BINARY;ADC;NO")
+
+if(FILAMENT_SENSOR STREQUAL "NO")
+  set(HAS_EXTRUDER_FSENSOR NO)
+else()
+  set(HAS_EXTRUDER_FSENSOR YES)
+endif()
+define_boolean_option(HAS_EXTRUDER_FSENSOR ${HAS_EXTRUDER_FSENSOR})
 
 if(${RESOURCES} STREQUAL "<auto>")
   if(${PRINTER} IN_LIST PRINTERS_WITH_RESOURCES AND BOARD_IS_MASTER_BOARD)

@@ -24,6 +24,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_extruder_fsensor.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
 #include <leds/light_state.hpp>
@@ -162,6 +163,19 @@ public:
     MI_NOZZLE_CLEANER_FILL();
 };
 
+#endif
+
+#if HAS_INDX()
+/// Tune menu: fine-tune of the calibrated nozzle cleaner X position
+class MI_NOZZLE_CLEANER_X_OFFSET : public WiSpin {
+    static constexpr const char *const label = N_("Nozzle Cleaner X Offset");
+
+public:
+    MI_NOZZLE_CLEANER_X_OFFSET();
+
+protected:
+    virtual void OnClick() override;
+};
 #endif
 
 class MI_MESH_BED : public IWindowMenuItem {
@@ -361,6 +375,7 @@ public:
     static std::optional<FilamentSensorStateAndValue> get_value(IFSensor *fsensor);
 };
 
+#if HAS_EXTRUDER_FSENSOR()
 class MI_INFO_EXTRUDER_FILAMENT_SENSOR : public MI_INFO_FILAMENT_SENSOR {
 public:
     MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool = CurrentlySelectedTool {});
@@ -371,6 +386,7 @@ private:
     const std::variant<PhysicalToolIndex, CurrentlySelectedTool> tool_;
     StringViewUtf8Parameters<4> label_params_;
 };
+#endif // HAS_EXTRUDER_FSENSOR()
 
 class MI_INFO_SIDE_FILAMENT_SENSOR : public MI_INFO_FILAMENT_SENSOR {
 public:

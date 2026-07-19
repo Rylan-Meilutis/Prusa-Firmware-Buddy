@@ -1,5 +1,6 @@
 #include "emergency_stop.hpp"
 #include <buddy/door_sensor.hpp>
+#include <common/mapi/parking.hpp>
 #include <config_store/store_c_api.h>
 #include <common/power_panic.hpp>
 #include <module/motion.h>
@@ -166,21 +167,16 @@ void EmergencyStop::maybe_block() {
     const auto old_pos_motion = current_position;
     const auto old_destination = destination;
     if (do_move) {
-        // Make sure to not park too low. As the do_blocking_move_to doesn't
-        // consider MBL (and we may not have that part mapped anyway), we could
-        // scratch the bed.
-        const auto park_z = std::max(old_pos_motion.z, min_park_z);
         AutoRestore _ar(allow_planning_movements, true);
-        // All the do-move things expect the current position to be up to date.
-        // It is _not_ (because we might have interrupted another move in the
-        // middle). This is the best estimation we have for it (might be wrong
-        // by MBL :-( ). Should we un-apply it somehow?
-        current_position = old_pos_motion;
-        do_blocking_move_to(X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, park_z, feedRate_t(NOZZLE_PARK_XY_FEEDRATE));
+        auto park_position = mapi::get_parking_position(mapi::ParkPosition::park);
+        // Stay at the current Z instead of the standard lift above the print,
+        // just don't park too low so we don't scratch the bed.
+        park_position.z = mapi::ParkingPosition::AtLeast { .absolute = min_park_z };
+        mapi::park(park_position);
     }
     auto unpark = [this, old_pos_motion, old_destination] {
         AutoRestore _ar(allow_planning_movements, true);
-        do_blocking_move_to(old_pos_motion, feedRate_t(NOZZLE_PARK_XY_FEEDRATE));
+        mapi::park(mapi::ParkingPosition { old_pos_motion.x, old_pos_motion.y, old_pos_motion.z });
         current_position = old_pos_motion;
         destination = old_destination;
     };

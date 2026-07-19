@@ -75,6 +75,16 @@ constinit const ChecksTraits<GeneralCheck>::Metadata ChecksTraits<GeneralCheck>:
                 .description = N_("G-Code is not sliced with Input Shaping support. Slicing with IS significantly shortens printing time."),
             },
         },
+#if HAS_INDX()
+        {
+            GeneralCheck::indx_lock,
+            CheckMetadata {
+                .severity = HWCheckSeverity::Warning,
+                .title = N_("Sliced with old INDX profiles"),
+                .description = N_("G-Code is not sliced with newest INDX profiles. There will be some issues with the print."),
+            },
+        },
+#endif
 #if HAS_MMU2()
         {
             GeneralCheck::mmu,
@@ -329,6 +339,12 @@ void CompatibilityReport::generate_without_toolmapping(const GCodeInfo &gcode_in
     if (!gcode_info.info().sliced_with_input_shaper_ && !PRINTER_IS_PRUSA_iX()) {
         failed_general_checks.set(GeneralCheck::input_shaper);
     }
+
+#if HAS_INDX()
+    if (!gcode_info.info().sliced_with_indx_lock_) {
+        failed_general_checks.set(GeneralCheck::indx_lock);
+    }
+#endif
 
     if (gcode_info.UsedExtrudersCount() > get_num_of_enabled_tools()) {
         failed_general_checks.set(GeneralCheck::not_enough_tools);

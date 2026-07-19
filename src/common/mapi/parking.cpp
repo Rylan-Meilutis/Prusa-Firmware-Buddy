@@ -22,10 +22,19 @@ static_assert(sizeof(ParkingPosition::AtLeast) == 8);
 
 const ParkArgs ParkArgs::default_args {};
 
+#if HAS_INDX()
+/// Positions that get apply_nozzle_cleaner_offset() applied are relative to the nozzle cleaner,
+/// so they must lie in the wastebin area, otherwise applying the offset makes no sense
+constexpr bool is_in_wastebin_area(float x, float y) {
+    return x > X_WASTEBIN_SAFE_POINT && y > Y_WASTEBIN_SAFE_POINT;
+}
+#endif
+
 ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std::variant<VirtualToolIndex, NoTool> tool) {
     switch (position) {
     case ParkPosition::park:
 #if HAS_INDX()
+        static_assert(is_in_wastebin_area(X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT));
         return apply_nozzle_cleaner_offset({ X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_POINT } });
 #else
         return ParkingPosition(XYZ_NOZZLE_PARK_POINT);
@@ -35,6 +44,7 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
     #if HAS_INDX()
         // Wastebin is fixed to the CoreXY gantry, Z does not matter
         static constexpr ParkingPosition base_pos { X_WASTEBIN_POINT, Y_WASTEBIN_POINT, mapi::ParkingPosition::AtLeast { .above_print = 2 } };
+        static_assert(is_in_wastebin_area(X_WASTEBIN_POINT, Y_WASTEBIN_POINT));
         return apply_nozzle_cleaner_offset(base_pos);
 
     #elif PRINTER_IS_PRUSA_iX()
@@ -57,6 +67,39 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
+
+    case ParkPosition::filament_change: {
+        static constexpr xyz_pos_t filament_change_point { { XYZ_NOZZLE_PARK_POINT_M600 } };
+        static constexpr ParkingPosition base_pos { filament_change_point.x, filament_change_point.y, filament_change_point.z };
+#if HAS_INDX()
+        static_assert(is_in_wastebin_area(filament_change_point.x, filament_change_point.y));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
+
+    case ParkPosition::nozzle_cleaning_failed: {
+        static constexpr xyz_pos_t cleaning_failed_point { { XYZ_NOZZLE_CLEANINIG_FAILED_POINT } };
+        static constexpr ParkingPosition base_pos { cleaning_failed_point.x, cleaning_failed_point.y, cleaning_failed_point.z };
+#if HAS_INDX()
+        static_assert(is_in_wastebin_area(cleaning_failed_point.x, cleaning_failed_point.y));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
+    case ParkPosition::print_end: {
+        static constexpr xyz_pos_t print_end_point { { XYZ_NOZZLE_PARK_POINT_ON_PRINT_END } };
+        static constexpr ParkingPosition base_pos { print_end_point.x, print_end_point.y, print_end_point.z };
+#if HAS_INDX()
+        // The print end park position is over the wastebin, which needs the calibrated nozzle cleaner offsets applied
+        static_assert(is_in_wastebin_area(print_end_point.x, print_end_point.y));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
 
 #if HAS_WASTEBIN_FILL_TRACKING()
     case ParkPosition::empty_wastebin:

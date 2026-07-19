@@ -750,17 +750,18 @@ void Pause::purge_process([[maybe_unused]] Response response) {
 
     planner.synchronize(); // Finish any pending moves before starting the purge
 
-#if HAS_NOZZLE_CLEANER()
-    if (!nozzle_cleaner_purge_sequence()) {
-        return;
-    }
-#else
-    if (!standard_purge_sequence()) {
-        return;
-    }
-#endif
-
+    const auto old_filament = config_store().get_filament_type(settings.virtual_tool());
     config_store().set_filament_type(settings.virtual_tool(), filament::get_type_to_load());
+
+#if HAS_NOZZLE_CLEANER()
+    const bool purge_ok = nozzle_cleaner_purge_sequence();
+#else
+    const bool purge_ok = standard_purge_sequence();
+#endif
+    if (!purge_ok) {
+        config_store().set_filament_type(settings.virtual_tool(), old_filament);
+        return;
+    }
 
     if constexpr (option::has_human_interactions) {
         set(LoadState::color_correct_ask);
@@ -1049,7 +1050,7 @@ void Pause::load_finalize_process(Response) {
 
         if (!marlin_server::is_printing()) {
             // If not printing, park on the nozzle cleaner planchette
-            mapi::park(mapi::ParkingPosition::from_xyz_pos({ { XYZ_NOZZLE_PARK_POINT } }).without_z_move());
+            mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
         }
     }
 #endif
@@ -1558,12 +1559,12 @@ void Pause::park_nozzle_and_notify() {
                 });
 
             // We have moved both axes, go to park position if not requested otherwise
-            static constexpr xyz_pos_t park = XYZ_NOZZLE_PARK_POINT_M600;
+            const mapi::ParkingPosition default_park = mapi::get_parking_position(mapi::ParkPosition::filament_change);
             if (std::holds_alternative<mapi::ParkingPosition::Unchanged>(xy_target.x)) {
-                xy_target.x = park.x;
+                xy_target.x = default_park.x;
             }
             if (std::holds_alternative<mapi::ParkingPosition::Unchanged>(xy_target.y)) {
-                xy_target.y = park.y;
+                xy_target.y = default_park.y;
             }
         }
 #else /*CORE_IS_XY*/

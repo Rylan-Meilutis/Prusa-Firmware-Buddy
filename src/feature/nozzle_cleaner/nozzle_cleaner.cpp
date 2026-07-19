@@ -19,22 +19,22 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
     { Sequence::clean, {
                            .filename = "clean",
                            .directory = directory,
-                           .default_gcode = "G750 X0.65 Y118.5 F18000\n"
-                                            "G750 X0.0 Y98.5 F18000\n"
+                           .default_gcode = "G750 X0.0 Y118.5 F18000\n"
+                                            "G750 Y98.5 F18000\n"
                                             "G750 X-0.5 Y118.5 F18000\n"
                                             "G750 X-0.1 Y98.5 F18000\n"
                                             "G750 X-1.5 Y118.5 F18000\n"
                                             "G750 X-2 Y98.5 F18000\n"
                                             "G750 X-2 Y118.5 F18000\n"
-                                            "G750 X0.65 Y96.5 F18000",
+                                            "G750 X0 Y96.5 F18000",
                        } },
         { Sequence::quick_clean, {
                                      .filename = "quick_clean",
                                      .directory = directory,
                                      .default_gcode = "G1 F21000\n"
-                                                      "G750 Y98.5 X0.65\n"
-                                                      "G750 Y118.5 X-0.35\n"
-                                                      "G750 Y98.5 X-1.35",
+                                                      "G750 Y98.5 X0\n"
+                                                      "G750 Y118.5 X-1.0\n"
+                                                      "G750 Y98.5 X-2.0",
                                  } },
         { Sequence::deep_clean, {
                                     .filename = "deep_clean",
@@ -100,26 +100,31 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                             "G750 E25 F4 L\n" // L: G750 adjusts this E feedrate for the loaded filament
                                                             "M400\n" // planner.synchronize()
                                                             "M906 P0\n" // Restore E current
-                                                            "G750 X0.65 Y118.5 F18000\n"
-                                                            "G750 X0.0 Y98.5 F18000\n"
+                                                            "G750 X0.0 Y118.5 F18000\n"
+                                                            "G750 Y98.5 F18000\n"
                                                             "G750 X-0.5 Y118.5 F18000\n"
                                                             "G750 X-0.1 Y98.5 F18000\n"
                                                             "G750 X-1.5 Y118.5 F18000\n"
                                                             "G750 X-2 Y98.5 F18000\n"
                                                             "G750 X-2 Y118.5 F18000\n"
-                                                            "G750 X0.65 Y96.5 F18000",
+                                                            "G750 X0 Y96.5 F18000",
                                        } },
         { Sequence::eject_blob, {
                                     .filename = "eject_blob",
                                     .directory = directory,
                                     .default_gcode = "M204 T5000\n"
-                                                     "G750 X0.65 F21000 A\n"
+                                                     "G750 X0 F21000 A\n"
                                                      "G750 Y86 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
                                                      "G750 Y83 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
                                                      "G750 Y76 F21000 A\n"
                                                      "G750 Y93 F21000 A\n"
+                                                     "G750 Y86.5 F21000 A\n"
+                                                     "G750 Y101.5 F21000 A\n"
+                                                     "G750 Y79.5 F21000 A\n"
+                                                     "G750 Y93.5 F21000 A\n"
+                                                     "G750 Y83.5 F21000 A\n"
                                                      "G750 Y86.5 F21000",
                                 } },
         { Sequence::enter_cleaner, {
@@ -127,7 +132,7 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                        .directory = directory,
                                        .default_gcode = "G750 X-12 F21000 A\n"
                                                         "G750 Y99.5 F21000 A\n"
-                                                        "G750 X0.65 F21000 A",
+                                                        "G750 X0 F21000 A",
                                    } },
         { Sequence::exit_cleaner, {
                                       .filename = "exit_cleaner",
@@ -139,7 +144,7 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                    .filename = "enter_cleaner_from_inside",
                                                    .directory = directory,
                                                    .default_gcode = "G750 Y98.5 F21000 A\n"
-                                                                    "G750 X0.65 F21000 A",
+                                                                    "G750 X0 F21000 A",
                                                } },
 #else
     { Sequence::clean, {
