@@ -85,6 +85,10 @@ using MI_FAIL_STAT
 using MI_TEMPERATURE
     = MI_SCREEN<N_("Temperature"), class ScreenMenuTemperature, &img::temperature_16x16>;
 
+#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
+using MI_PA_CALIBRATION = MI_SCREEN<N_("Pressure Advance Calibration"), class ScreenMenuPACalibration>;
+#endif
+
 using MI_MOVE_AXIS
     = MI_SCREEN<N_("Move Axis"), class ScreenMenuMove, &img::move_16x16>;
 
