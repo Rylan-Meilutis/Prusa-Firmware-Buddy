@@ -13,8 +13,9 @@ constexpr size_t custom_slot_count = 8;
 constexpr size_t name_capacity = 16;
 
 struct Profile {
-    std::string_view name;
+    std::array<char, name_capacity> name {};
     Color color;
+    std::string_view name_view() const { return name.data(); }
 };
 
 const std::array<Profile, 15> &palette();

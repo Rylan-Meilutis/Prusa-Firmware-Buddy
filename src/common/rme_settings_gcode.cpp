@@ -97,7 +97,7 @@ bool write(FILE *file) {
     for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
         if (const auto profile = filament_color::custom(slot)) {
             ok &= fprintf(file, "M865 V%u O\"#%06lx\" N\"%.*s\"\n", static_cast<unsigned>(slot),
-                static_cast<unsigned long>(profile->color.raw & 0xffffff), static_cast<int>(profile->name.size()), profile->name.data()) >= 0;
+                static_cast<unsigned long>(profile->color.raw & 0xffffff), static_cast<int>(profile->name_view().size()), profile->name.data()) >= 0;
         }
     }
 
