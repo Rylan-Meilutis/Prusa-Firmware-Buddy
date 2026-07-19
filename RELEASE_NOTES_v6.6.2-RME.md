@@ -116,6 +116,12 @@ This is a custom firmware release based on upstream Prusa Firmware Buddy 6.6.2. 
 
 The release is based on upstream tag `v6.6.2` with the RME changes replayed on branch `rme-v6.6.2`.
 
+> **Release tag correction:** `v6.6.2-RME-b1` and `v6.6.2-RME-b2` were
+> inadvertently built from the upstream 6.6.1 base and reported 6.6.1 in the
+> firmware metadata. Do not install those builds. `v6.6.2-RME-b3` is the first
+> corrected build whose ancestry contains upstream `v6.6.2` and whose BBF and
+> application metadata report 6.6.2.
+
 The running firmware UI uses the short `6.6.2-RME` version. Prusa Connect intentionally receives the stock upstream `6.6.2` version string for compatibility and feature gating, while local UI/API surfaces and release artifacts keep the RME identity. The stock Prusa bootloader firmware-selection menu still appends the BBF header build number; removing that numeric suffix requires a bootloader change because the build number is mandatory update-order metadata.
 
 ## Upstream 6.6.2 base
