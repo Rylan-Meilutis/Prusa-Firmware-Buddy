@@ -103,6 +103,9 @@
 #include <option/has_remote_bed.h>
 #include <option/has_modular_bed.h>
 #include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
+#endif
 #include <option/has_nfc.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_i2c_expander.h>
@@ -2371,6 +2374,10 @@ static void _server_print_loop(void) {
         server.mmu_maintenance_checked = false;
 #endif
         planner.max_printed_z = 0;
+        planner.reset_max_volumetric_flow_limits();
+#if HAS_LOADCELL()
+        buddy::extrusion_calibration::reset_job_results();
+#endif
 
         if (!server.print_is_serial) {
             feedrate_percentage = 100;

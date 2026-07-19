@@ -98,6 +98,13 @@ public:
     PressureAdvance() = default;
 };
 
+namespace pressure_advance {
+/// E-only moves normally bypass PA. The on-printer calibration owns the move
+/// stream and may explicitly enable PA for its stationary extrusion bursts.
+void set_calibration_mode(bool enabled);
+bool calibration_mode_enabled();
+}
+
 step_event_info_t pressure_advance_step_generator_next_step_event(pressure_advance_step_generator_t &step_generator, step_generator_state_t &step_generator_state);
 
 void pressure_advance_step_generator_init(const move_t &move, pressure_advance_step_generator_t &step_generator, step_generator_state_t &step_generator_state);

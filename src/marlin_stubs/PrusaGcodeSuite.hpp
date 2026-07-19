@@ -140,6 +140,7 @@ void M961(); //< Manual Belt tuning
 #endif
 
 void M997(); //< Update firmware. Prusa STM32 platform specific
+void M976(); //< RAM-only pressure advance and maximum-flow calibration
 void M999();
 
 #if BUDDY_ENABLE_CONNECT()

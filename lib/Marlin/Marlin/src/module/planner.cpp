@@ -232,6 +232,17 @@ float Planner::mm_per_mstep[XYZE_N];          // (mm) Millimeters per mini-step
 #if EXTRUDERS
   int16_t Planner::flow_percentage[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(100); // Extrusion factor for each extruder
   float Planner::e_factor[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(1.0f); // The flow percentage and volumetric multiplier combine to scale E movement
+  float Planner::max_volumetric_flow_mm3_s[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(INFINITY);
+
+  void Planner::set_max_volumetric_flow(const uint8_t e, const float mm3_s) {
+    if (e < EXTRUDERS)
+      max_volumetric_flow_mm3_s[e] = mm3_s > 0 ? mm3_s : INFINITY;
+  }
+
+  void Planner::reset_max_volumetric_flow_limits() {
+    for (uint8_t e = 0; e < EXTRUDERS; ++e)
+      max_volumetric_flow_mm3_s[e] = INFINITY;
+  }
 #endif
 
 #if DISABLED(NO_VOLUMETRICS)
@@ -1607,6 +1618,16 @@ bool Planner::_populate_block(block_t * const block,
     xyze_float_t current_speed;
     float speed_factor = 1.0f; // factor <1 decreases speed
 
+    // Calibration-derived, RAM-only hotend protection. delta_mm.e is actual
+    // filament travel after the active flow/volumetric factor has been applied.
+    // Retractions are intentionally excluded.
+    if (delta_mm.e > 0 && std::isfinite(max_volumetric_flow_mm3_s[extruder])) {
+      constexpr float nominal_filament_area_mm2 = float(M_PI) * 1.75f * 1.75f * 0.25f;
+      const float requested_flow_mm3_s = delta_mm.e * nominal_filament_area_mm2 * inverse_secs;
+      if (requested_flow_mm3_s > max_volumetric_flow_mm3_s[extruder])
+        NOMORE(speed_factor, max_volumetric_flow_mm3_s[extruder] / requested_flow_mm3_s);
+    }
+
     #ifdef COREXY
       const float speed_mm_x = std::abs(current_speed[X_AXIS] = delta_mm[X_AXIS] * inverse_secs);
       const float speed_mm_y = std::abs(current_speed[Y_AXIS] = delta_mm[Y_AXIS] * inverse_secs);
@@ -2881,4 +2902,3 @@ void Motion_Parameters::load() const {
 void Motion_Parameters::reset(const bool no_limits) {
   MarlinSettings::reset_motion(no_limits);
 }
-

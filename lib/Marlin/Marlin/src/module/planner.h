@@ -283,6 +283,10 @@ class Planner {
     #if EXTRUDERS
       static int16_t flow_percentage[EXTRUDERS];    // Extrusion factor for each extruder
       static float e_factor[EXTRUDERS];             // The flow percentage and volumetric multiplier combine to scale E movement
+      /// Per-job hotend capability limit in mm^3/s. Infinity disables it.
+      static float max_volumetric_flow_mm3_s[EXTRUDERS];
+      static void set_max_volumetric_flow(const uint8_t e, const float mm3_s);
+      static void reset_max_volumetric_flow_limits();
     #endif
 
     #if DISABLED(NO_VOLUMETRICS)
