@@ -694,5 +694,16 @@ c0f0a2ef4  2026-07-06  Keep toolhead runout active with upstream sensors
 59ccb4a5b  2026-07-06  Split filament movement detection control
 e292cd72a  2026-07-07  Fix XL final build on RME 6.5.7
 8e78b41f7  2026-07-07  Add cached multi-version RME release builds
+1c942c8fb  2026-07-07  Add cached multi-version RME release builds
+cb0c06af9  2026-07-07  Merge remote-tracking branch 'origin/rme-v6.5.7' into rme-v6.5.7
+0c0461c3d  2026-07-07  Fix 6.5.7 RME changelog commit list
+f2732cafd  2026-07-10  Suppress filament runout while paused
+28dea373b  2026-07-11  Add loaded filament reassignment and query
+48359d191  2026-07-18  Add per-print extrusion calibration
+f5aaabcf8  2026-07-18  Improve PA tuning and monitor extrusion pressure
+56e2e0b3e  2026-07-18  Add batch PA calibration orchestration
+c2f702c5d  2026-07-19  Update PA calibration commit reference
+fc79dd95d  2026-07-19  Document slicer setup for auto PA
+5df96343a  2026-07-19  Preserve existing pause through filament runout
 
 ```
