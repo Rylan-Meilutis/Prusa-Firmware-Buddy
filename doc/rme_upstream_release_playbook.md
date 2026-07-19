@@ -739,7 +739,7 @@ Final/non-development builds intentionally keep the full `M503` settings report 
 
 PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`. Keep the PID Settings entry next to Input Shaper and Phase Stepping in Settings. The PID parent screen must stay split into Hotend and Heatbed submenus so reset/autotune actions are heater-specific.
 
-Loaded filament assignments must remain visible and editable from the Filament menu without forcing a load/unload cycle. Keep **Filament -> Loaded Filament(s)** available on single-tool, toolchanger, and MMU filament menus. Reassigning a slot changes the stored loaded material only. The firmware does not persist a separate per-tool loaded color field, so color can only come from G-code metadata or load prompts until a dedicated storage field is added.
+Loaded filament assignments must remain visible and editable from the Filament menu without forcing a load/unload cycle. Keep **Filament -> Loaded Filament(s)** available on single-tool, toolchanger, and MMU filament menus. Material and color are persisted per virtual tool/MMU slot. The color picker includes the built-in palette and eight persistent custom slots; custom definitions must remain part of RME settings export/import. Successful load/change flows copy their requested color into the loaded-slot record, while unloading clears it.
 
 Host-side filament discovery must remain available with:
 
@@ -747,7 +747,7 @@ Host-side filament discovery must remain available with:
 M865 Q
 ```
 
-The response is one `loaded_filament T<n> S"<material>"` line per enabled tool or filament slot so OctoPrint and other serial hosts can read the printer-side filament loadout.
+The response is one `loaded_filament T<n> S"<material>" O"<color name>" H"<#RRGGBB>"` line per enabled tool or filament slot. Preserve `M865 S"<material>" L<n> O"<#RRGGBB>"` assignment and `M865 V<0..7> N"<name>" O"<#RRGGBB>"` custom palette management.
 
 RME fleet configuration must remain available by G-code and by export:
 

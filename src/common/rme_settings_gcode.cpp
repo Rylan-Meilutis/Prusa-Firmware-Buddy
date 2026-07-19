@@ -8,6 +8,7 @@
 #include <option/has_side_leds.h>
 #include <printers.h>
 #include <serial_printing_ui_mode.hpp>
+#include <filament_color.hpp>
 
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     #include <leds/external_light_bar.hpp>
@@ -92,6 +93,13 @@ bool write(FILE *file) {
 #if HAS_EXTENDED_PRINTER_TYPE()
     ok &= fprintf(file, "M154.6 E%u\n", config_store().extended_printer_type.get()) >= 0;
 #endif
+
+    for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
+        if (const auto profile = filament_color::custom(slot)) {
+            ok &= fprintf(file, "M865 V%u O\"#%06lx\" N\"%.*s\"\n", static_cast<unsigned>(slot),
+                static_cast<unsigned long>(profile->color.raw & 0xffffff), static_cast<int>(profile->name.size()), profile->name.data()) >= 0;
+        }
+    }
 
     return ok;
 }

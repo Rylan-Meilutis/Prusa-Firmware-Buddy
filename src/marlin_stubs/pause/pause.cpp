@@ -48,6 +48,7 @@ static_assert(HAS_PAUSE());
 #include <config_store/store_instance.hpp>
 #include <raii/scope_guard.hpp>
 #include <filament_to_load.hpp>
+#include <filament_color.hpp>
 #include <common/marlin_client.hpp>
 #include <common/mapi/parking.hpp>
 #include <feature/ramming/ramming_sequence.hpp>
@@ -761,6 +762,7 @@ void Pause::purge_process([[maybe_unused]] Response response) {
 #endif
 
     config_store().set_filament_type(settings.virtual_tool(), filament::get_type_to_load());
+    filament_color::set_loaded(settings.virtual_tool().to_raw(), filament::get_color_to_load());
 
     if constexpr (option::has_human_interactions) {
         set(LoadState::color_correct_ask);
@@ -896,6 +898,7 @@ void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
             return;
         }
         config_store().set_filament_type(VirtualToolIndex::from_raw(settings.mmu_filament_to_load), filament::get_type_to_load());
+        filament_color::set_loaded(settings.mmu_filament_to_load, filament::get_color_to_load());
 
         set(LoadState::color_correct_ask);
     } else if (load_type == LoadType::filament_change) {
