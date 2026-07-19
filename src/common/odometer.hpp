@@ -118,6 +118,9 @@ public:
     /// Get the number of pellets in the wastebin since it was last emptied.
     uint32_t get_nozzle_cleaner_pellets();
 
+    /// Replace the current wastebin pellet count (RAM accumulator + persisted value).
+    void set_nozzle_cleaner_pellets(uint32_t value);
+
     /// Empty the wastebin: reset the pellet counter (RAM accumulator + persisted value) to zero.
     void reset_nozzle_cleaner_pellets();
 #endif

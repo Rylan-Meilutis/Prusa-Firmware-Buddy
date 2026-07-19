@@ -1689,6 +1689,7 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
     // Indicate that the printer is paused
     ++did_pause_print;
 
+    const bool timer_was_already_paused = print_job_timer.isPaused();
     print_job_timer.pause();
 
     // Save print speed - M600 bypasses the pause state machine (pause_print/resume),
@@ -1711,7 +1712,7 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
     --did_pause_print;
 
     // Resume the print job timer if it was running
-    if (print_job_timer.isPaused()) {
+    if (!timer_was_already_paused && print_job_timer.isPaused()) {
         print_job_timer.start();
     }
 

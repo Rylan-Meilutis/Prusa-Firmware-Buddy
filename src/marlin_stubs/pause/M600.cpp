@@ -203,7 +203,8 @@ void M600_execute(xyz_pos_t park_point, VirtualToolIndex target_tool, xyze_float
 
     auto physical_target_tool = target_tool.to_physical();
 
-    const bool notify_serial_host_resume = marlin_server::serial_print_active();
+    const bool print_was_already_paused = marlin_server::printer_paused_extended();
+    const bool notify_serial_host_resume = marlin_server::serial_print_active() && !print_was_already_paused;
 
 #if HAS_TOOLCHANGER()
     struct ToolChangeData {

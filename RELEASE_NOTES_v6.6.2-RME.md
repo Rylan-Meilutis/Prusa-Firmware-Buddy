@@ -40,7 +40,9 @@
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
     * Added the `coreone_indx` firmware image to the default `build.py` release matrix
+    * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
   * Fixes
+    * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
     * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
