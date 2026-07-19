@@ -13,6 +13,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <option/has_wastebin_fill_tracking.h>
+#if HAS_WASTEBIN_FILL_TRACKING()
+    #include <feature/wastebin_watcher/wastebin_watcher.hpp>
+#endif
 
 uint32_t SerialPrinting::last_serial_indicator_ms = 0;
 uint8_t SerialPrinting::last_host_progress_percent = 0;
@@ -187,6 +191,17 @@ bool find_param_int(const char *command, char param, int &value) {
         return true;
     }
 
+    return false;
+}
+
+bool has_flag_param(const char *command, char param) {
+    // Parameters are whitespace-delimited for the commands handled here. Stop at G-code comments
+    // and checksums so an explanatory comment cannot accidentally trigger an out-of-band action.
+    for (const char *p = command; *p != '\0' && *p != ';' && *p != '*'; ++p) {
+        if (*p == param && (p == command || p[-1] == ' ' || p[-1] == '\t')) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -542,6 +557,26 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     }
 
     remove_N_prefix(command);
+
+#if HAS_WASTEBIN_FILL_TRACKING()
+    // The full-bin handler blocks normal G-code execution to preserve the print queue. Consume the
+    // reset and subsequent host resume directly from the serial receive path so they cannot sit
+    // behind that queue. All other M1986/M602 commands retain their normal behavior.
+    if (command_starts_with(command, 'M', 1986)) {
+        if (has_flag_param(command, 'R') && WastebinWatcher::instance().serial_reset_and_hold_for_resume()) {
+            auto &watcher = WastebinWatcher::instance();
+            SERIAL_ECHOLNPAIR("PURGE_BUCKET pellets=", watcher.fill_level(),
+                " threshold=", watcher.pause_threshold(), " capacity=", watcher.capacity());
+            SERIAL_ECHOLNPGM("ok");
+            return false;
+        }
+    }
+    if (command_starts_with(command, 'M', 602)
+        && WastebinWatcher::instance().serial_resume_after_reset()) {
+        SERIAL_ECHOLNPGM("ok");
+        return false;
+    }
+#endif
 
 #if HAS_SIDE_LEDS()
     // Host polling/progress updates can arrive continuously while the printer is idle.

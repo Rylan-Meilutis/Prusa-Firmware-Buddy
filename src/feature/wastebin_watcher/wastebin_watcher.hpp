@@ -60,6 +60,11 @@ public:
     void set_pause_threshold(uint32_t pellets);
     /// Replace the current pellet count (used by M1986 S).
     void set_fill_level(uint32_t pellets);
+    /// [Serial RX thread] Handle M1986 R while a serial purge-bucket-full wait is active.
+    /// Returns true when consumed out of band (the normal G-code queue must not receive it).
+    bool serial_reset_and_hold_for_resume();
+    /// [Serial RX thread] Handle M602 after an out-of-band bucket reset.
+    bool serial_resume_after_reset();
     /// [Thread-safe] Pellets in the bin since it was last emptied (current fill, not an action).
     uint32_t fill_level() const;
     /// [Thread-safe] Pellets still expected to be ejected in the rest of this print (one per
@@ -73,4 +78,8 @@ private:
     std::atomic<bool> ignored_for_print_ = false;
     /// Pellets ejected during the current print (== toolchange progress). Reset at print start.
     std::atomic<uint32_t> pellets_this_print_ = 0;
+    /// The serial host cleared a full-bin warning and must explicitly resume before queued print
+    /// commands are allowed to continue.
+    std::atomic<bool> serial_resume_required_ = false;
+    std::atomic<bool> serial_resume_requested_ = false;
 };

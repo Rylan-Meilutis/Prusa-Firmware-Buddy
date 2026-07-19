@@ -41,6 +41,7 @@
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
     * Added the `coreone_indx` firmware image to the default `build.py` release matrix
     * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
+      * During a serial full-bucket pause, `M1986 R` resets a stale counter out of band while preserving the queued print commands; the print remains held until the host sends its normal `M602` resume
   * Fixes
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
     * Fixed serial print starts being missed while the printer is blocked by heater waits
