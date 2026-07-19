@@ -203,6 +203,11 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_noise = std::max(0.25f, reference.noise);
     monitor_low_velocity = low_velocity_mm_s;
     monitor_last_time = 0;
+    monitor_forward_time = 0;
+    monitor_forward_e = 0;
+    monitor_bad_time = 0;
+    monitor_breakout_time = 0;
+    monitor_peak_pressure = 0;
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_enabled.store(reference.valid, std::memory_order_release);
 }

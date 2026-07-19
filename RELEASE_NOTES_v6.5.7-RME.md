@@ -30,9 +30,10 @@
     * UI theme updates and theme import support
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
     * `M865 Q` serial query for host-readable loaded-filament material reporting
-    * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring [C1, XL, MK4, iX]
+    * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring, including per-hotend temperature set/wait for slicer-driven tool and MMU sequences [C1, XL, MK4, iX]
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU jobs and reuse cached results within the current job
+      * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or full MMU unload/load sequences for every used filament
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
       * Purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
       * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
@@ -556,7 +557,7 @@ Current branch: `rme-v6.5.7`
 
 Latest release-maintenance commit: `8e78b41f7`
 
-Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, and `Add cached multi-version RME release builds`
+Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, and `Add batch PA calibration orchestration`
 
 The port-completion commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, the 6.5.7 XL final-build fix, and cached multi-version RME release builds.
 
