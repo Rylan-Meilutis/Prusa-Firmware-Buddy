@@ -42,6 +42,7 @@ MINI_LANGUAGE_PRESETS = [
 
 RELEASE_PRESETS = [
     "coreone",
+    "coreone_indx",
     "coreonel",
     "mini",
     *MINI_LANGUAGE_PRESETS,

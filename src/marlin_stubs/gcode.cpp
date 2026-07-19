@@ -269,6 +269,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 997:
             PrusaGcodeSuite::M997();
             break;
+#if HAS_LOADCELL()
+        case 976:
+            PrusaGcodeSuite::M976();
+            break;
+#endif
         case 999:
             if (parser.seen('R')) {
                 PrusaGcodeSuite::M999();

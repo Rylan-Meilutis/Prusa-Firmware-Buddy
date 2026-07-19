@@ -2,7 +2,7 @@
 
 ## RME Firmware Features
 
-This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.6.1. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
+This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.6.2. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
 
 The main additions over the base firmware are:
 
@@ -17,13 +17,14 @@ The main additions over the base firmware are:
 - **Chamber and filtration improvements:** Expanded chamber fan controls, configurable filtration behavior, `M154.8` G-code control for starting or stopping a configured filtration cycle, Core One / Core One Plus selection with distinct `COREONE+` reporting, Core One Plus automatic vent handling that defers to explicit `M870` commands, and prompt-free serial-print vent handling.
 - **PID management:** View, edit, reset, and autotune supported hotend and heatbed PID values from `Settings -> PID Settings`, next to Input Shaper and Phase Stepping. PID Settings opens separate Hotend and Heatbed submenus so each heater is managed independently. Autotune displays progress and lets the user save or discard the resulting values.
 - **Fleet configuration export:** RME settings can be exported to `/usb/rme_settings.gcode` and replayed as G-code when configuring multiple printers.
+- **Per-print extrusion calibration:** Loadcell-equipped printers expose `M976` for stationary, RAM-only pressure-advance and hotend maximum-flow calibration. The slicer can calibrate every physical tool and logical MMU filament used by either a file or serial print; profile `M572` values remain the fallback. Purge-bin machines test over the bin, while other supported machines test beyond the printable boundary and finish with a locally probed, front-edge anchor that keeps debris out of the print and normal mesh-probe areas.
 - **Safety, UI, and maintenance refinements:** Configurable hotend and bed-heater safety timeouts under Heater Safety, both capped at 60 minutes, improved paused-print and manual-intervention behavior that keeps the bed hot while coordinating nozzle recovery and host resume, theme updates and theme import, lock settings, screen wake protection, and active lighting during setup, calibration, self-test, and MMU workflows.
 
 Feature availability depends on printer hardware. The branch targets Original Prusa MINI/MINI+, MK3.5, MK3.9, MK4, XL, CORE One, and CORE One L / CORE One Plus configurations. See the detailed notes attached to each RME release for model-specific behavior, G-code commands, flashing notes, and build validation.
 
 ## Building RME Firmware with `build.py`
 
-Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
+Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, including the Core One INDX image on 6.6.2 and later, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`.
 
 After the build finishes, the wrapper prints each machine's result, build time, flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and the absolute path of every staged `.bbf` artifact.
 

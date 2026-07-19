@@ -30,6 +30,13 @@
     * UI theme updates and theme import support
     * Loaded-filament overview and reassignment from the Filament menu without unloading or reloading
     * `M865 Q` serial query for loaded filament material reporting
+    * Added `M976` stationary loadcell calibration for per-print pressure advance and hotend maximum-flow limits [C1, C1 INDX, XL, MK4, iX]
+      * Results are RAM-only and are recalibrated for each file or serial print
+      * Slicer-provided physical-tool and logical-filament arguments support XL/MMU/INDX jobs and reuse cached results within the current job
+      * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
+      * INDX/purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
+      * The planner caps volumetric extrusion at 90% of the measured stable hotend flow
+    * Added the `coreone_indx` firmware image to the default `build.py` release matrix
   * Fixes
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits

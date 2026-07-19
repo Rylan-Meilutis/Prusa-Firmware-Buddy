@@ -247,6 +247,17 @@ float Planner::mm_per_mstep[XYZE_N];          // (mm) Millimeters per mini-step
 
 StrongIndexArray<int16_t, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> Planner::flow_percentage (stdext::make_filled_array<int16_t, VirtualToolIndex::count>( 100 )); // Extrusion factor for each extruder
 StrongIndexArray<float, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> Planner::e_factor (stdext::make_filled_array<float, VirtualToolIndex::count>( 1.0f )); // The flow percentage and volumetric multiplier combine to scale E movement
+StrongIndexArray<float, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> Planner::max_volumetric_flow_mm3_s (stdext::make_filled_array<float, VirtualToolIndex::count>( INFINITY ));
+
+void Planner::set_max_volumetric_flow(const uint8_t e, const float mm3_s) {
+  if (e < VirtualToolIndex::count)
+    max_volumetric_flow_mm3_s[VirtualToolIndex::from_raw(e)] = mm3_s > 0 ? mm3_s : INFINITY;
+}
+
+void Planner::reset_max_volumetric_flow_limits() {
+  for (auto tool : VirtualToolIndex::all())
+    max_volumetric_flow_mm3_s[tool] = INFINITY;
+}
 
 #if DISABLED(NO_VOLUMETRICS)
   StrongIndexArray<float, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> Planner::filament_size(stdext::make_filled_array<float, VirtualToolIndex::count>( DEFAULT_NOMINAL_FILAMENT_DIA ));
@@ -1472,6 +1483,19 @@ bool Planner::_populate_block(block_t * const block,
     // Calculate and limit speed in mm/sec for each axis
     xyze_float_t current_speed;
     float speed_factor = 1.0f; // factor <1 decreases speed
+
+    // Calibration-derived, RAM-only hotend protection. delta_mm.e is actual
+    // filament travel after the active flow/volumetric factor has been applied.
+    // Retractions are intentionally excluded.
+    if (delta_mm.e > 0 && tools.virtual_tool.has_value()) {
+      const float flow_limit = max_volumetric_flow_mm3_s[*tools.virtual_tool];
+      if (std::isfinite(flow_limit)) {
+        constexpr float nominal_filament_area_mm2 = float(M_PI) * 1.75f * 1.75f * 0.25f;
+        const float requested_flow_mm3_s = delta_mm.e * nominal_filament_area_mm2 * inverse_secs;
+        if (requested_flow_mm3_s > flow_limit)
+          NOMORE(speed_factor, flow_limit / requested_flow_mm3_s);
+      }
+    }
 
     #ifdef COREXY
       const float speed_mm_x = std::abs(current_speed[X_AXIS] = delta_mm[X_AXIS] * inverse_secs);

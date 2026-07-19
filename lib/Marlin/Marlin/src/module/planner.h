@@ -261,6 +261,10 @@ class Planner {
 
     static StrongIndexArray<int16_t, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> flow_percentage; // Extrusion factor for each extruder
     static StrongIndexArray<float, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> e_factor;  // The flow percentage and volumetric multiplier combine to scale E movement
+    /// Per-job hotend capability limit in mm^3/s. Infinity disables it.
+    static StrongIndexArray<float, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> max_volumetric_flow_mm3_s;
+    static void set_max_volumetric_flow(uint8_t e, float mm3_s);
+    static void reset_max_volumetric_flow_limits();
 
     #if DISABLED(NO_VOLUMETRICS)
       // diameter of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder

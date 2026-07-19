@@ -180,7 +180,7 @@ if(HAS_POWER_PANIC)
 endif()
 
 if(HAS_LOADCELL)
-  target_sources(firmware PRIVATE loadcell.cpp position_lookback.cpp)
+  target_sources(firmware PRIVATE loadcell.cpp position_lookback.cpp ../feature/extrusion_calibration.cpp)
 endif()
 if(HAS_LOADCELL_HX717)
   target_sources(firmware PRIVATE hx717.cpp)
