@@ -655,4 +655,6 @@ f7619812b  2026-07-19  Update PA calibration commit reference
 681e639f3  2026-07-19  Document slicer setup for auto PA
 6199d79c0  2026-07-19  Preserve paused runout state and manage INDX wastebin
 4a56a1276  2026-07-19  Allow serial reset during INDX bucket pause
+02b5dd8c2  2026-07-19  Update 6.6.2 release commit ledger
+b9bfcaf12  2026-07-19  Merge upstream Prusa firmware 6.6.2
 ```

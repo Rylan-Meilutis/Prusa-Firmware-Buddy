@@ -8,18 +8,18 @@ Bring the RME feature set onto the new upstream release with the smallest practi
 
 ## Current Baseline
 
-RME 6.6.1 is based on upstream tag `v6.6.1` at `8d187d189e`.
+RME 6.6.2 is based on upstream tag `v6.6.2` at `993cf83087`.
 
 The active release branch is:
 
 ```sh
-rme-v6.6.1
+rme-v6.6.2
 ```
 
 The release notes for the active release are:
 
 ```sh
-RELEASE_NOTES_v6.6.1-RME.md
+RELEASE_NOTES_v6.6.2-RME.md
 ```
 
 The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
@@ -37,12 +37,13 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git diff --stat v6.6.1..rme-v6.6.1
-git diff --name-status v6.6.1..rme-v6.6.1
-git diff --dirstat=files,0 v6.6.1..rme-v6.6.1
+git merge-base --is-ancestor v6.6.2 rme-v6.6.2
+git diff --stat v6.6.2..rme-v6.6.2
+git diff --name-status v6.6.2..rme-v6.6.2
+git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
 ```
 
-At the time this playbook was last audited, the RME 6.6.1 release port covered 544 files with 14,038 insertions and 1,277 deletions relative to upstream `v6.6.1`. The stack contains 123 replayed and port-refresh RME commits through `4e44c70d`, including the 6.5.7 port-finalization commit, Prusa Connect serial-print state parity, the serial MMU print-completion unload fix, the Buddy 6.6.0 API/resource port, the serial M601/M602 host-action fix, and the ignored short serial macro finished-screen restore fix. Upstream 6.6.1 adds the translation refresh over the 6.6.0 base. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.6.2 release port covered 580 files with 17,291 insertions and 1,315 deletions relative to upstream `v6.6.2`. The branch contains upstream `v6.6.2` in its ancestry and carries the RME feature stack through the INDX purge-bucket serial recovery work. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, per-print extrusion calibration, and GUI framework polish.
 
 The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
