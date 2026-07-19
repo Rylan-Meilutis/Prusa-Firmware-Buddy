@@ -462,6 +462,13 @@ struct CurrentStore
     /// loaded_filament_is_previous flag is true, holds the type of the
     /// filament that was loaded previously.
     StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, EXTRUDERS> loaded_filament_type;
+    StoreItemArray<uint32_t, 0, ItemFlag::printer_state, journal::hash("Loaded Filament Color"), 16, EXTRUDERS> loaded_filament_color_rgb;
+    StoreItem<uint16_t, 0, ItemFlag::printer_state, journal::hash("Loaded Filament Color Valid")> loaded_filament_color_valid;
+
+    // Eight user-defined colors are deliberately compact enough for every supported EEPROM.
+    StoreItem<std::array<std::array<char, 16>, 8>, defaults::custom_filament_color_names, ItemFlag::user_presets, journal::hash("Custom Filament Color Names")> custom_filament_color_names;
+    StoreItemArray<uint32_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Color RGB"), 16, 8> custom_filament_color_rgb;
+    StoreItem<uint8_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Color Valid")> custom_filament_color_valid;
 
     /// Flags indicating whether the value of loaded_filament_type (for the
     /// given tool) holds the currently loaded filament (false) or the filament

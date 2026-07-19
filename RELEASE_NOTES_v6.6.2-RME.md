@@ -182,6 +182,8 @@ Canceled prints preserve the elapsed print duration captured before abort cleanu
 
 The Filament menu now includes a `Loaded Filament(s)` entry. On single-tool printers it opens the current loaded filament assignment directly; on MMU and multi-tool printers it lists each tool so the loaded material can be reviewed per slot.
 
+Loaded filament records now also persist color. The management screen offers the standard palette and eight user-defined slots. Load/change operations retain their requested color, `M865 Q` reports the color name and `#RRGGBB` alongside material, and custom definitions are included in RME settings export/import.
+
 Selecting a loaded filament opens the material picker and updates the stored material assignment without running a load, unload, purge, or tool-change workflow. This is intended for correcting the printer's material metadata after a manual swap, toolhead service, or host-driven workflow where the filament is already physically loaded.
 
 Serial hosts can query the loaded filament assignments with:
