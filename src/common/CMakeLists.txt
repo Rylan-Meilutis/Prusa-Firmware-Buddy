@@ -23,6 +23,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             filament.cpp
             filament_list.cpp
             filament_to_load.cpp
+            filament_color.cpp
             filename_type.cpp
             filepath_operation.cpp
             footer_def.cpp

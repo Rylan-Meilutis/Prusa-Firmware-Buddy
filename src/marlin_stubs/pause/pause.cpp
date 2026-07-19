@@ -42,6 +42,7 @@
 #include <config_store/store_instance.hpp>
 #include <raii/scope_guard.hpp>
 #include <filament_to_load.hpp>
+#include <filament_color.hpp>
 #include <common/marlin_client.hpp>
 #include <common/mapi/parking.hpp>
 #include <feature/ramming/ramming_sequence.hpp>
@@ -703,6 +704,7 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     }
 
     config_store().set_filament_type(settings.GetExtruder(), filament::get_type_to_load());
+    filament_color::set_loaded(settings.GetExtruder(), filament::get_color_to_load());
 
     setPhase(load_type == LoadType::load_purge ? PhasesLoadUnload::IsColorPurge : PhasesLoadUnload::IsColor);
     set(LoadState::color_correct_ask);
@@ -798,6 +800,7 @@ void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
             return;
         }
         config_store().set_filament_type(settings.mmu_filament_to_load, filament::get_type_to_load());
+        filament_color::set_loaded(settings.mmu_filament_to_load, filament::get_color_to_load());
 
         setPhase(PhasesLoadUnload::IsColor);
         set(LoadState::color_correct_ask);

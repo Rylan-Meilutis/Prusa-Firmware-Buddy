@@ -187,6 +187,22 @@ Elapsed duration includes startup heating time. File and serial print timers sta
 
 Canceled prints preserve the elapsed print duration captured before abort cleanup begins. Serial-print header captions are now updated only when the print state changes, preventing redraw flicker during normal GUI loops.
 
+## Loaded filament management
+
+The Filament menu now includes a `Loaded Filament(s)` entry. On single-tool printers it opens the current loaded filament assignment directly; on MMU and multi-tool printers it lists each tool so the loaded material can be reviewed per slot.
+
+Loaded filament records now also persist color. The management screen offers the standard palette and eight user-defined slots. Load/change operations retain their requested color, `M865 Q` reports the color name and `#RRGGBB` alongside material, and custom definitions are included in RME settings export/import.
+
+Selecting a loaded filament opens the material picker and updates the stored material assignment without running a load, unload, purge, or tool-change workflow. This is intended for correcting the printer's material metadata after a manual swap, toolhead service, or host-driven workflow where the filament is already physically loaded.
+
+Serial hosts can query the loaded filament assignments with:
+
+```gcode
+M865 Q
+```
+
+The response reports one line per loaded tool in the form `loaded_filament T0 S"PLA" O"Orange" H"#ff8000"`.
+
 ## OctoPrint SD/USB storage support
 
 OctoPrint can now use the printer storage path for print-from-SD style workflows against the printer's USB media.

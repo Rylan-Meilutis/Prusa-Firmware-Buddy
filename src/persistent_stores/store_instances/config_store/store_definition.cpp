@@ -1,4 +1,5 @@
 #include "store_definition.hpp"
+#include <filament_color.hpp>
 #include <Marlin/src/inc/MarlinConfigPre.h>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
@@ -475,6 +476,7 @@ void CurrentStore::set_filament_type(uint8_t index, FilamentType value) {
     }
 
     if (value == FilamentType::none) {
+        filament_color::set_loaded(index, std::nullopt);
 #if HAS_AUTO_RETRACT()
         // On filament removal, it invalidates retracted distance
         buddy::auto_retract().set_retracted_distance(HAS_TOOLCHANGER() ? index : 0, std::nullopt);

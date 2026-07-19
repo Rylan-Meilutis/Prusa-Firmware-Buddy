@@ -4,6 +4,7 @@
 
 #include <filament.hpp>
 #include <print_utils.hpp>
+#include <filament_color.hpp>
 #include <temperature.hpp>
 #include <utils/string_builder.hpp>
 
@@ -22,6 +23,16 @@ void report_loaded_filaments() {
         SERIAL_ECHO(tool);
         SERIAL_ECHO(" S\"");
         SERIAL_ECHO(params.name.data());
+        SERIAL_ECHO("\" O\"");
+        if (const auto color = filament_color::loaded(tool)) {
+            SERIAL_ECHO(filament_color::name_for(*color).data());
+            char hex[8];
+            snprintf(hex, sizeof(hex), "#%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
+            SERIAL_ECHO("\" H\"");
+            SERIAL_ECHO(hex);
+        } else {
+            SERIAL_ECHO("None\" H\"none");
+        }
         SERIAL_ECHOLN("\"");
     }
 }
@@ -45,8 +56,10 @@ void report_loaded_filaments() {
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
  * - `Q` - Query the currently loaded filament material for all enabled tools
+ * - `V<ix> O<color> N"<name>"` - define one of eight persistent custom colors
  *
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
+ * - `O<color>` - Set the loaded color together with `L` (`#RRGGBB`, palette name, or RGB integer)
  *
  * - `R` - Reset parameters not specified in this gcode to defaults
  *
@@ -73,6 +86,16 @@ void PrusaGcodeSuite::M865() {
 
     if (p.option<bool>('Q').value_or(false)) {
         report_loaded_filaments();
+        return;
+    }
+
+    const auto requested_color = p.option<Color>('O');
+    if (const auto custom_slot = p.option<uint8_t>('V', static_cast<uint8_t>(0), static_cast<uint8_t>(filament_color::custom_slot_count - 1))) {
+        std::array<char, filament_color::name_capacity> color_name {};
+        const auto name = p.option<std::string_view>('N', color_name);
+        if (!requested_color || !name || !filament_color::set_custom(*custom_slot, *name, *requested_color)) {
+            SERIAL_ERROR_MSG("Custom color requires V0..7, O<color>, and N\"name\" (15 characters maximum).");
+        }
         return;
     }
 
@@ -137,6 +160,7 @@ void PrusaGcodeSuite::M865() {
 
     if (auto load = p.option<uint8_t>('L', static_cast<uint8_t>(0), static_cast<uint8_t>(EXTRUDERS - 1))) {
         config_store().set_filament_type(*load, filament_type);
+        if (requested_color) filament_color::set_loaded(*load, requested_color);
     }
 
     if (filament_type != FilamentType::none) {
