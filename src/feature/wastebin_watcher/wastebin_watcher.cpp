@@ -82,7 +82,8 @@ void WastebinWatcher::pause_to_empty(bool full) {
     }
 
     // Show the warning, block until the user answers, then close it.
-    switch (marlin_server::prompt_warning(warning)) {
+    const Response response = marlin_server::prompt_warning(warning);
+    switch (response) {
     case Response::Done:
         mark_emptied(); // bin emptied -> reset the counter
         break;
@@ -92,6 +93,19 @@ void WastebinWatcher::pause_to_empty(bool full) {
     default:
         break;
     }
+
+#if HAS_SERIAL_PRINT()
+    // M1986 R received from a paused serial host closes the warning but deliberately does not
+    // release the preserved print queue. OctoPrint's later resume script (M602) releases this
+    // hold out of band as well, so neither control command can be trapped behind queued moves.
+    const bool wait_for_host_resume = full && serial_resume_required_.load();
+    while (wait_for_host_resume && !serial_resume_requested_.exchange(false)) {
+        idle(true);
+    }
+    if (wait_for_host_resume) {
+        serial_resume_required_ = false;
+    }
+#endif
 
     if (!printing) {
         return; // idle: nothing to return to
@@ -107,7 +121,7 @@ void WastebinWatcher::pause_to_empty(bool full) {
     mapi::extruder_move(resume_e - current_position.e, PAUSE_PARK_RETRACT_FEEDRATE);
 #if HAS_SERIAL_PRINT()
     if (notify_serial_host) {
-        SerialPrinting::resume();
+        SerialPrinting::resume(!wait_for_host_resume);
         SerialPrinting::resumed();
     }
 #endif
@@ -151,6 +165,38 @@ void WastebinWatcher::set_pause_threshold(uint32_t pellets) {
 
 void WastebinWatcher::set_fill_level(uint32_t pellets) {
     Odometer_s::instance().set_nozzle_cleaner_pellets(pellets);
+}
+
+bool WastebinWatcher::serial_reset_and_hold_for_resume() {
+#if HAS_SERIAL_PRINT()
+    if (!marlin_server::is_warning_active(WarningType::NozzleCleanerFull)
+        || !marlin_server::serial_print_active()) {
+        return false;
+    }
+
+    mark_emptied();
+    serial_resume_requested_ = false;
+    serial_resume_required_ = true;
+    marlin_server::set_response(EncodedFSMResponse {
+        .response = FSMResponseVariant::make(Response::Done),
+        .fsm_and_phase = PhasesWarning::NozzleCleanerFull,
+    });
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool WastebinWatcher::serial_resume_after_reset() {
+#if HAS_SERIAL_PRINT()
+    if (!serial_resume_required_.load()) {
+        return false;
+    }
+    serial_resume_requested_ = true;
+    return true;
+#else
+    return false;
+#endif
 }
 
 uint32_t WastebinWatcher::fill_level() const {
