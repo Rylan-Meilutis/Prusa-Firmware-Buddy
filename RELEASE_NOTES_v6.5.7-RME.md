@@ -558,9 +558,9 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest release-maintenance commit: `56e2e0b3e`
+Latest release-maintenance commit: `a8956b22d`
 
-Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, and `Add batch PA calibration orchestration`
+Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, and `Add guided manual PA calibration`
 
 The port-completion commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, the 6.5.7 XL final-build fix, and cached multi-version RME release builds.
 
@@ -707,5 +707,6 @@ f5aaabcf8  2026-07-18  Improve PA tuning and monitor extrusion pressure
 c2f702c5d  2026-07-19  Update PA calibration commit reference
 fc79dd95d  2026-07-19  Document slicer setup for auto PA
 5df96343a  2026-07-19  Preserve existing pause through filament runout
+a8956b22d  2026-07-19  Add guided manual PA calibration
 
 ```
