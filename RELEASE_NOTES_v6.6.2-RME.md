@@ -514,9 +514,9 @@ Comparison base: upstream `v6.6.2`
 
 Current branch: `rme-v6.6.2`
 
-Latest release-maintenance commit: `59a627a41`
+Latest release-maintenance commit: `ad3077371`
 
-Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, and `Add guided manual PA calibration`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, and `Add persistent loaded filament colors`
 
 The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.2 translation refresh, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, cached multi-version RME release builds, paused-runout suppression, and loaded filament reassignment/query support.
 
@@ -668,4 +668,6 @@ f7619812b  2026-07-19  Update PA calibration commit reference
 02b5dd8c2  2026-07-19  Update 6.6.2 release commit ledger
 b9bfcaf12  2026-07-19  Merge upstream Prusa firmware 6.6.2
 59a627a41  2026-07-19  Add guided manual PA calibration
+e5546b120  2026-07-19  Add persistent loaded filament colors
+ad3077371  2026-07-19  Fix persistent custom color name lifetime
 ```
