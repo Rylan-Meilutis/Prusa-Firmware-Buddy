@@ -9,6 +9,10 @@
 #include <Marlin/src/module/planner.h>
 #include <Marlin/src/module/probe.h>
 #include <Marlin/src/module/temperature.h>
+#include <Marlin/src/module/tool_change.h>
+#if ENABLED(PRUSA_MMU2)
+#include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
+#endif
 #include <feature/extrusion_calibration.hpp>
 #include <common/mapi/motion.hpp>
 #include <common/mapi/parking.hpp>
@@ -21,10 +25,96 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <cstdio>
+#include <cstring>
 
 namespace {
 constexpr float filament_area = 2.40528f;
 constexpr float absolute_pa_max = 0.15f;
+struct BatchEntry {
+    uint8_t physical_tool;
+    uint8_t logical_filament;
+    int16_t temperature;
+    std::array<char, 17> material {};
+};
+
+bool parse_uint(const char *&cursor, unsigned &value, const char terminator) {
+    if (*cursor < '0' || *cursor > '9') return false;
+    value = 0;
+    while (*cursor >= '0' && *cursor <= '9') {
+        value = value * 10 + unsigned(*cursor++ - '0');
+        if (value > 999) return false;
+    }
+    return *cursor++ == terminator;
+}
+
+size_t parse_batch_manifest(const char *command, std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries) {
+    const char *cursor = strstr(command, " A");
+    if (!cursor) return 0;
+    cursor += 2;
+    while (*cursor == ' ') ++cursor;
+    size_t count = 0;
+    while (*cursor && count < entries.size()) {
+        unsigned physical, logical, temperature;
+        if (!parse_uint(cursor, physical, ':') || !parse_uint(cursor, logical, ':')) return 0;
+        auto &entry = entries[count];
+        size_t material_length = 0;
+        while (*cursor && *cursor != ':' && material_length + 1 < entry.material.size())
+            entry.material[material_length++] = *cursor++;
+        if (*cursor++ != ':' || material_length == 0 || *cursor < '0' || *cursor > '9') return 0;
+        temperature = 0;
+        while (*cursor >= '0' && *cursor <= '9') {
+            temperature = temperature * 10 + unsigned(*cursor++ - '0');
+            if (temperature > 999) return 0;
+        }
+        if (*cursor != ',' && *cursor != '\0') return 0;
+        if (*cursor == ',') ++cursor;
+        entry.material[material_length] = '\0';
+        if (physical > 255 || logical > 255 || temperature > 32767) return 0;
+        entry.physical_tool = physical;
+        entry.logical_filament = logical;
+        entry.temperature = temperature;
+        ++count;
+    }
+    return *cursor == '\0' ? count : 0;
+}
+
+bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
+    uint8_t logical_mask = 0;
+    for (size_t i = 0; i < count; ++i) {
+        const auto &entry = entries[i];
+        if (entry.physical_tool >= EXTRUDERS || entry.logical_filament >= buddy::extrusion_calibration::max_logical_filaments
+            || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN
+            || (logical_mask & (1u << entry.logical_filament))) return false;
+#if ENABLED(PRUSA_MMU2)
+        if (entry.physical_tool != 0) return false;
+#endif
+        logical_mask |= 1u << entry.logical_filament;
+        const auto &configured = config_store().get_filament_type(entry.logical_filament).parameters().name;
+        if (strncmp(configured.data(), entry.material.data(), entry.material.size()) != 0) return false;
+    }
+    return count > 0;
+}
+
+bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        const auto &entry = entries[i];
+#if ENABLED(PRUSA_MMU2)
+        M109_no_parser(PhysicalToolIndex::from_raw(0), { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
+        if (!MMU2::mmu2.tool_change_full(entry.logical_filament)) return false;
+#else
+        char tool_command[8];
+        snprintf(tool_command, sizeof(tool_command), "T%u", entry.physical_tool);
+        GcodeSuite::process_subcommands_now(tool_command);
+        if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))) return false;
+#endif
+        char calibration_command[40];
+        snprintf(calibration_command, sizeof(calibration_command), "M976 T%u L%u S%d", entry.physical_tool, entry.logical_filament, entry.temperature);
+        GcodeSuite::process_subcommands_now(calibration_command);
+        if (!buddy::extrusion_calibration::job_result(entry.logical_filament)) return false;
+    }
+    return true;
+}
 #if !HAS_WASTEBIN()
 constexpr float mesh_y_spacing = float(MESH_MAX_Y - MESH_MIN_Y) / float(GRID_MAX_POINTS_Y - 1);
 static_assert(MESH_MIN_Y + mesh_y_spacing * GRID_BORDER > 7.0f,
@@ -132,6 +222,20 @@ void PrusaGcodeSuite::M976() {
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;
 #else
+    if (parser.seen('A')) {
+        std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
+        const size_t count = parse_batch_manifest(parser.command_ptr, entries);
+        if (!validate_batch(entries, count)) {
+            SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
+            return;
+        }
+        if (!run_batch(entries, count)) {
+            SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
+            return;
+        }
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
+        return;
+    }
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     const uint8_t tool = parser.byteval('T', selected_tool.has_value() ? selected_tool->to_raw() : 0);
     const uint8_t slot = parser.byteval('L', tool);
