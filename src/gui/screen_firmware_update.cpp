@@ -18,12 +18,14 @@ void MI_FIRMWARE_SELECT_USB::click(IWindowMenu &) {
     Screens::Access()->Open<ScreenFirmwareFileBrowser>();
 }
 
+#if !HAS_MINI_DISPLAY()
 MI_FIRMWARE_UPDATE_HELP::MI_FIRMWARE_UPDATE_HELP()
     : IWindowMenuItem(_("Update Instructions"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
 void MI_FIRMWARE_UPDATE_HELP::click(IWindowMenu &) {
     Screens::Access()->Open<ScreenHelpFWUpdate>();
 }
+#endif
 
 ScreenMenuFirmwareUpdate::ScreenMenuFirmwareUpdate()
     : ScreenMenuFirmwareUpdate_(_("FIRMWARE UPDATE")) {}
