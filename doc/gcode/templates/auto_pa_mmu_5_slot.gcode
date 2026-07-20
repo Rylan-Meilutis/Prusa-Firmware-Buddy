@@ -1,4 +1,6 @@
 ; RME AUTO PA: paste into Machine/Printer Start G-code immediately after the
 ; existing blocking bed-temperature wait (M190), before full mesh/prime G-code.
 ; Do not place this in filament G-code. Physical hotend stays 0; L is MMU slot.
+; M976 unloads before probing and leaves the nozzle empty for the following MBL.
+M109 R{if filament_type[initial_tool] == "FLEX"}210{elsif filament_type[initial_tool] == "PC" or filament_type[initial_tool] == "PA"}{temperature[initial_tool] - 25}{else}170{endif} ; establish the pre-calibration probing target restored before MBL
 M976 A {if is_extruder_used[0]}0:0:{filament_type[0]}:{temperature[0]}{endif}{if is_extruder_used[1]}{if is_extruder_used[0]},{endif}0:1:{filament_type[1]}:{temperature[1]}{endif}{if is_extruder_used[2]}{if is_extruder_used[0] or is_extruder_used[1]},{endif}0:2:{filament_type[2]}:{temperature[2]}{endif}{if is_extruder_used[3]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2]},{endif}0:3:{filament_type[3]}:{temperature[3]}{endif}{if is_extruder_used[4]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2] or is_extruder_used[3]},{endif}0:4:{filament_type[4]}:{temperature[4]}{endif}

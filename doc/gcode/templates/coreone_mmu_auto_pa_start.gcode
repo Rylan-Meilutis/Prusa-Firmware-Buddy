@@ -72,6 +72,7 @@ M107
 ; --- RME Automatic Pressure-Advance Calibration ---
 ; Run after the bed wait and before the final print-area mesh. M976 homes and
 ; probes its own local anchor area before loading each requested MMU filament.
+; It unloads before every probe and leaves the nozzle unloaded for the G29 MBL.
 ; CORE One has physical hotend 0; the second field is the logical MMU slot.
 M976 A {if is_extruder_used[0]}0:0:{filament_type[0]}:{temperature[0]}{endif}{if is_extruder_used[1]}{if is_extruder_used[0]},{endif}0:1:{filament_type[1]}:{temperature[1]}{endif}{if is_extruder_used[2]}{if is_extruder_used[0] or is_extruder_used[1]},{endif}0:2:{filament_type[2]}:{temperature[2]}{endif}{if is_extruder_used[3]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2]},{endif}0:3:{filament_type[3]}:{temperature[3]}{endif}{if is_extruder_used[4]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2] or is_extruder_used[3]},{endif}0:4:{filament_type[4]}:{temperature[4]}{endif}
 

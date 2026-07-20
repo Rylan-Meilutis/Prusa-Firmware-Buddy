@@ -4,6 +4,7 @@
 #include "radio_button_fsm.hpp"
 #include "window_text.hpp"
 #include "window_wizard_progress.hpp"
+#include <footer_line.hpp>
 
 class ScreenPACalibrationProgress final : public ScreenFSM {
 public:
@@ -19,5 +20,6 @@ private:
     window_text_t tool_text;
     window_wizard_progress_t progress;
     RadioButtonFSM radio;
+    FooterLine footer;
     std::array<char, 128> tool_buffer {};
 };

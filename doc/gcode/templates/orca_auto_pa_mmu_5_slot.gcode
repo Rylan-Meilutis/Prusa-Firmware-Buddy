@@ -1,4 +1,6 @@
 ; RME AUTO PA FOR ORCASLICER: paste into Machine Start G-code immediately
 ; after the blocking bed-temperature wait, before full mesh/prime G-code.
 ; Physical hotend stays 0; L is the MMU slot. Uses normal-layer temperatures.
+; M976 unloads before probing and leaves the nozzle empty for the following MBL.
+M109 R{if filament_type[initial_tool] == "FLEX"}210{elsif filament_type[initial_tool] == "PC" or filament_type[initial_tool] == "PA"}{nozzle_temperature[initial_tool] - 25}{else}170{endif} ; establish the pre-calibration probing target restored before MBL
 M976 A {if is_extruder_used[0]}0:0:{filament_type[0]}:{nozzle_temperature[0]}{endif}{if is_extruder_used[1]}{if is_extruder_used[0]},{endif}0:1:{filament_type[1]}:{nozzle_temperature[1]}{endif}{if is_extruder_used[2]}{if is_extruder_used[0] or is_extruder_used[1]},{endif}0:2:{filament_type[2]}:{nozzle_temperature[2]}{endif}{if is_extruder_used[3]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2]},{endif}0:3:{filament_type[3]}:{nozzle_temperature[3]}{endif}{if is_extruder_used[4]}{if is_extruder_used[0] or is_extruder_used[1] or is_extruder_used[2] or is_extruder_used[3]},{endif}0:4:{filament_type[4]}:{nozzle_temperature[4]}{endif}
