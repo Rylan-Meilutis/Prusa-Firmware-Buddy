@@ -82,6 +82,7 @@ private:
 
 } // namespace screen_loaded_filament_assignment
 
+#if !HAS_MINI_DISPLAY()
 namespace screen_loaded_color_assignment {
 class MI_ASSIGN_LOADED_COLOR final : public IWindowMenuItem {
 public:
@@ -139,7 +140,6 @@ public:
     ScreenEditLoadedFilament();
 };
 
-#if !HAS_MINI_DISPLAY()
 class MI_ADD_CUSTOM_COLOR final : public IWindowMenuItem {
 public:
     MI_ADD_CUSTOM_COLOR();
@@ -168,13 +168,13 @@ class ScreenCustomFilamentColors final : public ScreenMenuBase<WindowMenuCustomF
 public:
     ScreenCustomFilamentColors();
 };
-#endif
 }
 
 class ScreenAssignLoadedColor final : public ScreenMenuBase<screen_loaded_color_assignment::WindowMenuAssignLoadedColor> {
 public:
     ScreenAssignLoadedColor(uint8_t tool);
 };
+#endif
 
 class ScreenAssignLoadedFilament final : public ScreenMenuBase<screen_loaded_filament_assignment::WindowMenuAssignLoadedFilament> {
 public:

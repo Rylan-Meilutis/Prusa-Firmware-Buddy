@@ -7,6 +7,7 @@
 #include <dialog_text_input.hpp>
 
 namespace {
+#if !HAS_MINI_DISPLAY()
 struct PendingLoadedFilament {
     uint8_t tool = 0;
     FilamentType material = FilamentType::none;
@@ -16,6 +17,7 @@ struct PendingLoadedFilament {
 void begin_edit(const uint8_t tool) {
     pending = { tool, config_store().get_filament_type(tool), filament_color::loaded(tool) };
 }
+#endif
 }
 
 MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t tool)
@@ -61,8 +63,12 @@ void MI_LOADED_FILAMENT::click(IWindowMenu &) {
     if (should_open_submenu_) {
         Screens::Access()->Open<ScreenLoadedFilaments>();
     } else {
+#if HAS_MINI_DISPLAY()
+        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedFilament>(tool_.to_raw()));
+#else
         begin_edit(tool_);
         Screens::Access()->Open<screen_loaded_color_assignment::ScreenEditLoadedFilament>();
+#endif
     }
 }
 
@@ -118,6 +124,7 @@ ScreenAssignLoadedFilament::ScreenAssignLoadedFilament(uint8_t tool)
     menu.menu.set_tool(tool);
 }
 
+#if !HAS_MINI_DISPLAY()
 using namespace screen_loaded_color_assignment;
 
 MI_ASSIGN_LOADED_COLOR::MI_ASSIGN_LOADED_COLOR(uint8_t tool, std::optional<Color> color, std::string_view name)
@@ -203,7 +210,6 @@ void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
 ScreenEditLoadedFilament::ScreenEditLoadedFilament()
     : ScreenEditLoadedFilament_(_("LOADED FILAMENT")) {}
 
-#if !HAS_MINI_DISPLAY()
 MI_ADD_CUSTOM_COLOR::MI_ADD_CUSTOM_COLOR()
     : IWindowMenuItem(_("Add New Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
