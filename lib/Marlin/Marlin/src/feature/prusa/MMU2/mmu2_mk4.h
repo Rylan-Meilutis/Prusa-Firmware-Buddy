@@ -131,6 +131,11 @@ public:
     /// @returns false if the operation cannot be performed (Stopped)
     bool tool_change_full(uint8_t slot);
 
+    /// Full tool change for a stationary PA measurement. Loads through the
+    /// nozzle with only a short priming tail so calibration does not leave a
+    /// large filament loop over the bed.
+    bool tool_change_for_pa_calibration(uint8_t slot);
+
     /// Handling of special Tx, Tc, T? commands
     bool tool_change(char code, uint8_t slot);
 
@@ -306,6 +311,7 @@ private:
     void execute_extruder_sequence(const E_Step *sequence, uint8_t stepCount, ExtendedProgressCode progressCode = ExtendedProgressCode::_cnt);
 
     void execute_load_to_nozzle_sequence();
+    void execute_load_to_nozzle_sequence(float final_purge_length);
 
     /// Reports an error into attached ExtUIs
     /// @param ec error code, see ErrorCode

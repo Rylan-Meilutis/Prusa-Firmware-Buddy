@@ -1,16 +1,23 @@
 # Auto PA slicer setup
 
 This guide configures PrusaSlicer or OrcaSlicer to run RME's RAM-only pressure
-advance calibration before every file or serial print. The examples use the
-same macro names in both slicers: `is_extruder_used[]`, `filament_type[]`,
-`first_layer_temperature[]`, and `first_layer_bed_temperature[]`.
+advance calibration before every file or serial print. Both slicers provide
+`is_extruder_used[]` and `filament_type[]`, but their normal-layer nozzle
+temperature placeholders differ: PrusaSlicer uses `temperature[]`, while
+OrcaSlicer uses `nozzle_temperature[]`.
 
 Only the printer/machine start G-code is changed. Do not add anything to a
 filament preset's start or end G-code. Ready-to-paste files are provided for:
 
 - [single-tool printers](gcode/templates/auto_pa_single_tool.gcode);
 - [five-tool XL or INDX profiles](gcode/templates/auto_pa_xl_indx_5_tool.gcode);
+- [eight-tool INDX profiles](gcode/templates/auto_pa_indx_8_tool.gcode);
 - [five-slot MMU profiles](gcode/templates/auto_pa_mmu_5_slot.gcode).
+
+Matching OrcaSlicer templates are provided for [single-tool](gcode/templates/orca_auto_pa_single_tool.gcode),
+[five-tool XL/INDX](gcode/templates/orca_auto_pa_xl_indx_5_tool.gcode),
+[eight-tool INDX](gcode/templates/orca_auto_pa_indx_8_tool.gcode), and
+[five-slot MMU](gcode/templates/orca_auto_pa_mmu_5_slot.gcode) profiles.
 
 Copy the complete matching template into the existing machine start G-code at
 the insertion point below. Its placeholders automatically read the materials,
@@ -51,8 +58,12 @@ its own temperature and `M976` sets and waits for the correct physical hotend.
 Use the batch form even for one tool so firmware checks the expected material:
 
 ```gcode
-M976 A 0:0:{filament_type[0]}:{first_layer_temperature[0]}
+M976 A 0:0:{filament_type[0]}:{temperature[0]}
 ```
+
+The OrcaSlicer equivalent uses `{nozzle_temperature[0]}`. Calibration uses the
+normal-layer temperature because it represents most of the print; the
+first-layer temperature may differ temporarily.
 
 The four fields are physical tool, logical filament, expected material, and
 temperature. For a normal CORE One, CORE One L, MK4/S, or iX, both indices are
@@ -64,7 +75,8 @@ The following one-line manifest includes only tools that the sliced job uses.
 It supports indices 0 through 7. Keep the
 `M976 A ...` expression on one physical G-code line.
 
-Use the ready-to-paste [five-tool template](gcode/templates/auto_pa_xl_indx_5_tool.gcode).
+Use the ready-to-paste [five-tool XL/INDX template](gcode/templates/auto_pa_xl_indx_5_tool.gcode)
+or [eight-tool INDX template](gcode/templates/auto_pa_indx_8_tool.gcode).
 
 Batch mode validates the whole expanded manifest before doing anything. It
 then uses the normal firmware toolchanger path to pick each requested physical
@@ -73,7 +85,9 @@ and material flow ceiling. The last listed tool remains selected.
 
 If the slicer profile exposes fewer tools, referencing a missing array element
 may fail during slicing. Remove the unused trailing clauses from the printer
-preset; for example, a five-tool XL normally ends at index 4.
+preset. For a four-tool INDX, use the eight-tool template but remove the clauses
+for indices 4 through 7 so the command ends after tool index 3. A five-tool XL
+normally ends at index 4.
 
 For an eight-tool INDX profile, an expanded all-tool example is:
 
@@ -91,10 +105,12 @@ the same conditional template, but keep the first field at zero:
 
 Use the ready-to-paste [five-slot MMU template](gcode/templates/auto_pa_mmu_5_slot.gcode).
 
-Firmware heats the physical hotend and uses the full MMU change path between
-entries, including unloading the previous filament and loading the next one to
-the nozzle. The final requested MMU filament remains loaded for the rest of
-the start sequence.
+Firmware heats the physical hotend and uses the MMU unload/load path between
+entries. The calibration-specific load primes only 2 mm beyond the modeled
+nozzle path instead of running the normal tool-change purge, preventing a long
+loose filament loop over the bed. The PA excitation supplies the remaining
+controlled extrusion. The final requested MMU filament remains loaded for the
+rest of the start sequence.
 
 ## Verify before printing
 

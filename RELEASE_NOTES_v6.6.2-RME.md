@@ -39,7 +39,7 @@
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU/INDX jobs and reuse cached results within the current job
-      * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or full MMU unload/load sequences for every used filament
+      * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or reduced-prime MMU unload/load sequences for every used filament; the MMU calibration path primes only 2 mm beyond the modeled nozzle path to avoid a loose purge loop over the bed
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
       * INDX/purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
       * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
