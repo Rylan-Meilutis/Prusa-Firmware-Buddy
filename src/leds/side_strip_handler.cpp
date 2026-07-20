@@ -570,6 +570,11 @@ leds::ColorRGBW SideStripHandler::color() const {
     return controller_instance().color();
 }
 
+uint8_t SideStripHandler::current_brightness() const {
+    const auto current = color();
+    return std::max({ current.r, current.g, current.b, current.w });
+}
+
 void SideStripHandler::change_state(SideStripState state) {
     if (this->state != state) {
         this->state = state;

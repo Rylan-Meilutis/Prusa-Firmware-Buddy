@@ -9,6 +9,7 @@
 #include <print_utils.hpp>
 
 #include <array>
+#include <algorithm>
 #include <cstdio>
 
 namespace {
@@ -49,7 +50,18 @@ void submit(const uint8_t logical) {
     const auto filament_type = config_store().get_filament_type(logical);
     if (filament_type == FilamentType::none) return;
     const auto &params = filament_type.parameters();
-    const int temperature = temperature_override ? temperature_override : params.nozzle_temperature;
+    // A manual override is intentionally constrained around the loaded
+    // material profile. This prevents a stale value selected for one tool
+    // from becoming unsafe when another material/tool is calibrated.
+    constexpr int material_temperature_margin = 15;
+    constexpr int machine_minimum = 170;
+    constexpr int machine_maximum = 300;
+    const int profile_temperature = std::clamp<int>(params.nozzle_temperature, machine_minimum, machine_maximum);
+    const int temperature = temperature_override
+        ? std::clamp<int>(temperature_override,
+            std::max(machine_minimum, profile_temperature - material_temperature_margin),
+            std::min(machine_maximum, profile_temperature + material_temperature_margin))
+        : profile_temperature;
 #if HAS_MMU2()
     constexpr unsigned physical = 0;
 #else
@@ -70,6 +82,18 @@ MI_PA_TOOL::MI_PA_TOOL()
 
 void MI_PA_TOOL::OnChange(size_t) {
     selected_tool = get_index();
+    // Selecting another loaded tool also selects that material's temperature
+    // profile instead of carrying an override across materials.
+    temperature_override = 0;
+}
+
+bool MI_PA_TOOL::on_item_selected(const OnItemSelectedArgs &args) {
+    const auto requested = VirtualToolIndex::from_raw(static_cast<uint8_t>(args.new_index));
+    if (!configured(requested)) {
+        MsgBoxWarning(_("Only slots with an assigned loaded filament can be calibrated."), Responses_Ok);
+        return false;
+    }
+    return MenuItemSwitch::on_item_selected(args);
 }
 
 MI_PA_SEQUENTIAL::MI_PA_SEQUENTIAL()
@@ -78,6 +102,7 @@ MI_PA_SEQUENTIAL::MI_PA_SEQUENTIAL()
 
 void MI_PA_SEQUENTIAL::OnChange(size_t old_index) {
     sequential = !old_index;
+    if (sequential) temperature_override = 0;
 }
 
 MI_PA_TEMPERATURE::MI_PA_TEMPERATURE()

@@ -31,7 +31,7 @@
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
     * `M865 Q` serial query for host-readable loaded-filament material reporting
     * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring, including per-hotend temperature set/wait for slicer-driven tool and MMU sequences [C1, XL, MK4, iX]
-      * Added a guided Calibrations & Tests screen for selecting one tool/MMU slot or calibrating all configured filaments sequentially, with material/default temperature selection and a manual-only clean build/service-area prompt
+      * Added a guided Calibrations & Tests screen for selecting one loaded tool/MMU slot or calibrating all loaded filaments sequentially, with automatic material-profile temperatures, ±15 °C manual safety bounds, and a manual-only clean build/service-area prompt
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU jobs and reuse cached results within the current job
@@ -106,6 +106,7 @@
     * Fixed cached multi-version release rebuilds so stale nested CMake caches are rebuilt cleanly instead of leaving broken ExternalProject stamp state
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
+    * Fixed Prusa Connect chamber-light telemetry to report actual driven brightness; remote brightness values now act only as wake activity and do not overwrite RME lighting settings
     * Suppressed filament runout while a print is paused, parking, or resuming so toolhead work during a pause does not immediately trigger a new runout event
 
 This is a custom firmware release based on upstream Prusa Firmware Buddy 6.5.7. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.

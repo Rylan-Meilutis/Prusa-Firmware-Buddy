@@ -1051,7 +1051,9 @@ void Planner::command(const Command &command, const SetValue &params) {
 #endif
 #if HAS_SIDE_LEDS() || defined(UNITTESTS)
     case connect_client::PropertyName::ChamberLedIntensity:
-        leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(get<int8_t>(params.value)) * 255 / 100);
+        // Connect currently models this as a brightness setting, while RME
+        // owns brightness per printer state. Treat any remote value as user
+        // activity: wake the light temporarily without overwriting settings.
         leds::SideStripHandler::instance().activity_ping();
         break;
 #endif
