@@ -769,6 +769,7 @@ c0509f2a0  2026-07-20  Show filament color swatches and support eight-tool PA
 244cae371  2026-07-20  Clean up UI firmware staging after update
 3b964a5c6  2026-07-20  Keep MMU unloaded for PA probing and mesh
 050cabfc2  2026-07-20  Eject and count INDX PA pellets per cycle
+a070dd8fe  2026-07-20  Prevent serial resend storms during M976
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
