@@ -847,6 +847,8 @@ f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 50a26a598  2026-07-20  Prevent serial resend storms during M976
 be5c3bee9  2026-07-20  Fix pressure advance calibration footer
 1116d31e8  2026-07-20  Fix serial print completion and PA handoff
+4f46565a7  2026-07-20  Skip unload only for confirmed empty paths
+990f96f90  2026-07-20  Adapt unload bypass to 6.5 sensor API
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
