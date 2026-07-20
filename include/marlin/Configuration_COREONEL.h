@@ -838,8 +838,13 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 
 // Direction of endstops when homing; 1=MAX, -1=MIN
 // :[-1,1]
+#if HAS_INDX()
+#define X_HOME_DIR -1 // Homing direction is inverted because on the right, INDX_HEAD's print fan is bumping to the motor
+#define Y_HOME_DIR 1 // Homing direction is inverted because there are docks in the front
+#else
 #define X_HOME_DIR 1
 #define Y_HOME_DIR -1
+#endif
 #define Z_HOME_DIR -1
 
 // @section machine
@@ -855,22 +860,27 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #endif
 
 // The size of the print bed
+#if HAS_INDX()
+#define X_BED_SIZE 301
+#define Y_BED_SIZE 270
+#else
 #define X_BED_SIZE 300
 #define Y_BED_SIZE 300
+#endif
 #define Z_SIZE 330
 
 #if HAS_INDX()
 // Travel limits (mm) after homing, corresponding to endstop positions. default x -2.5 y -7.3
-#define X_MIN_POS (-7 - X_MAX_OFFSET) // INDX_TODO: Measure
-#define Y_MIN_POS (-8 - Y_MAX_OFFSET) // INDX_TODO: Measure
-#define Z_MIN_POS (0 - Z_MAX_OFFSET) // INDX_TODO: Measure
-#define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET)
+#define X_MIN_POS (0 - X_MAX_OFFSET)
+#define Y_MIN_POS (-40 - Y_MAX_OFFSET)
+#define Z_MIN_POS (0 - Z_MAX_OFFSET)
+#define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET + 10)
 #define X_MIN_PRINT_POS X_MIN_POS
 #define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area)
 #define Y_MAX_PRINT_POS (Y_BED_SIZE - Y_MIN_OFFSET) // maximal print area Y position (excluding toolchanger area)
 #define Y_MAX_POS (Y_MAX_PRINT_POS) // extra distance in Y to reach toolchanger
 #define PROBE_MAX_Y Y_BED_SIZE // limit maximal Y probe position (so that tool doesn't hit toolchanger with high tool offsets)
-#define Y_DOCK_SAFE_OFFSET 28.6f // distance from the side, which could be occupied by INDX (linked to DOCK_SAFE_Y_OFFSET in toolchangers_utils.h) TODO: fix with measure
+#define Y_DOCK_SAFE_OFFSET 28.6f // distance from the side, which could be occupied by INDX (linked to DOCK_SAFE_Y_OFFSET in toolchangers_utils.h)
 #define Y_DOCK_PARKING_MIN_SAFE_POS (Y_MIN_POS + Y_DOCK_SAFE_OFFSET + 5.f) // position for save index head (bellow this position the motion on X could damage the nozzles or hit ventilation lever)
 #define Y_MIN_PRINT_POS Y_DOCK_PARKING_MIN_SAFE_POS
 #else
@@ -1199,7 +1209,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define XYZ_NOZZLE_PARK_POINT_M600 \
         {X_NOZZLE_PARK_POINT_M600, Y_NOZZLE_PARK_POINT_M600, Z_NOZZLE_PARK_POINT_M600}
 
-#if HAS_INDX() //INDX_TODO: Refine and add proper values (this is from c1)
+#if HAS_INDX()
     #ifdef _DEBUG
 // Debug is not managing the full speed
     #define NOZZLE_PARK_XY_FEEDRATE 100 // (mm/s) X and Y axes feedrate (also used for delta Z axis)

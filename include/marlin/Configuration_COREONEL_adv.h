@@ -1019,7 +1019,9 @@
         #define XY_HOMING_JERK 8
         #define X_CURRENT_HOME 550
         #define Y_CURRENT_HOME 550
-        #define HOMING_PREEMPTIVE_MOVE_Y 10.f       // mm: move Y before homing X to avoid ventilation grille mechanism
+        #if !HAS_INDX()
+            #define HOMING_PREEMPTIVE_MOVE_Y 10.f       // mm: move Y before homing X to avoid ventilation grille mechanism
+        #endif
         #if HAS_PRECISE_HOMING_COREXY()
             #define PRECISE_HOMING_COREXY_RETRIES 6     // count: maximum number of refinement attempts
             #define XY_HOMING_HOLDING_CURRENT 900       // mA: holding current for fixed motor
