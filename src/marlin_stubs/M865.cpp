@@ -20,7 +20,7 @@ void report_loaded_filaments() {
         SERIAL_ECHO(params.name.data());
         SERIAL_ECHO("\" O\"");
         if (const auto color = filament_color::loaded(tool.to_raw())) {
-            SERIAL_ECHO(filament_color::name_for(*color).data());
+            SERIAL_ECHO(filament_color::profile_for(*color).name.data());
             char hex[8];
             snprintf(hex, sizeof(hex), "#%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
             SERIAL_ECHO("\" H\"");
