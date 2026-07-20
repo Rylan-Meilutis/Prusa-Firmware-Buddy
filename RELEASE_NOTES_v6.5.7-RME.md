@@ -34,6 +34,7 @@
       * Added a guided Control-menu screen above Calibrations & Tests with dock-calibration-style loaded-tool rows and an all-loaded action, automatic material-profile temperatures, ±15 °C safety bounds, and a manual-only clean-area prompt
       * Manual and slicer-driven calibration now use a blocking heating/homing/probing/measuring/computing/cleanup progress screen visible over normal and serial prints; Abort applies the configured fallback, while manual completion shows the PA value with Save to USB or Done
       * Manual MMU calibration probes before loading filament and unloads before presenting each result; slicer/G-code runs retain their requested loaded state
+      * Loaded-filament machines home and probe at the material profile's lower nozzle-preheat temperature before heating to the requested test temperature, reducing ooze; MMU batches probe unloaded
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU jobs and reuse cached results within the current job
@@ -41,9 +42,11 @@
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
       * Purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
       * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
+      * PA results are reported to three decimal places and retain valid high-PA profiles up to the 0.500 safety ceiling
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
   * Fixes
+    * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits

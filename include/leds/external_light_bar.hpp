@@ -22,6 +22,8 @@ void set_state_enabled(leds::LightState state, bool enabled);
 bool set_pin_mode(uint8_t pin, OutputMode mode);
 bool target_on([[maybe_unused]] bool chamber_light_on);
 void apply(bool on);
+/// Last state successfully applied to the configured GPIO light outputs.
+bool is_on();
 void reset_persistent_state();
 void set_diagnostic_override(bool enabled, bool on);
 bool diagnostic_override_active();
