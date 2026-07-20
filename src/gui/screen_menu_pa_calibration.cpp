@@ -69,7 +69,7 @@ void MI_PA_TOOL_RUN::OnChange(size_t) {
 
 MI_PA_TEMPERATURE::MI_PA_TEMPERATURE(const uint8_t tool)
     : WiSpin(temperature_overrides[tool], temperature_config, _(temperature_names[tool]), nullptr,
-        is_enabled_t::yes, configured(VirtualToolIndex::from_raw(tool)) ? is_hidden_t::no : is_hidden_t::yes)
+        is_enabled_t::yes, configured(tool) ? is_hidden_t::no : is_hidden_t::yes)
     , tool_(tool) {}
 
 void MI_PA_TEMPERATURE::OnClick() {
