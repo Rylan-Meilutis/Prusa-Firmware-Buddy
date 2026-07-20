@@ -29,25 +29,6 @@ extern I2C_HandleTypeDef hi2c1;
 namespace hal::i2c {
 namespace {
 
-    freertos::Mutex i2c_mutex {};
-    freertos::BinarySemaphore i2c_it_semaphore {};
-    std::atomic<bool> i2c_error_flag { false };
-    std::atomic<bool> waiting_for_i2c { false }; // Track if we're waiting for I2C completion
-
-    // Timeout for I2C operations in milliseconds
-    static constexpr uint32_t I2C_TIMEOUT_MS = 50;
-
-    /// Attempts to recover I2C bus after an error
-    void i2c_recover() {
-        rtt::print("i2c: recover\n");
-        // Reset I2C peripheral
-        __HAL_I2C_DISABLE(&peripherals::hi2c1);
-        // Small delay to allow bus to settle
-        freertos::delay(1);
-        __HAL_I2C_ENABLE(&peripherals::hi2c1);
-        i2c_error_flag.store(false);
-    }
-
     class I2cBus1 {
     public:
         [[nodiscard]] bool write_memory(::i2c::Address address, uint8_t offset, Bytes tx_buf) {
@@ -84,8 +65,25 @@ namespace {
             freertos::delay(ms + 1); // ensures at least 'ms' miliseconds wait
         }
 
+        static void finish_i2c_transfer([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
+            debug_assert(hi2c == &peripherals::hi2c1);
+            if (waiting_for_i2c.exchange(false)) {
+                i2c_it_semaphore.release_from_isr();
+            }
+        }
+
+        static void handle_i2c_error([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
+            i2c_error_flag.store(true);
+            finish_i2c_transfer(hi2c);
+        }
+
     private:
         static constexpr uint8_t write_flag = 0;
+
+        inline static freertos::Mutex i2c_mutex {};
+        inline static freertos::BinarySemaphore i2c_it_semaphore {};
+        inline static std::atomic<bool> i2c_error_flag { false };
+        inline static std::atomic<bool> waiting_for_i2c { false }; // Track if we're waiting for I2C completion
 
         template <typename Op>
         [[nodiscard]] bool execute_i2c_operation(::i2c::Address address, Op op) {
@@ -98,6 +96,7 @@ namespace {
                 i2c_recover();
                 return false;
             }
+            static constexpr uint32_t I2C_TIMEOUT_MS = 50;
             if (!i2c_it_semaphore.try_acquire_for(I2C_TIMEOUT_MS)) {
                 waiting_for_i2c.store(false);
                 HAL_I2C_Master_Abort_IT(&peripherals::hi2c1, (address << 1) | write_flag);
@@ -109,6 +108,17 @@ namespace {
                 return false;
             }
             return true;
+        }
+
+        /// Attempts to recover I2C bus after an error
+        void i2c_recover() {
+            rtt::print("i2c: recover\n");
+            // Reset I2C peripheral
+            __HAL_I2C_DISABLE(&peripherals::hi2c1);
+            // Small delay to allow bus to settle
+            freertos::delay(1);
+            __HAL_I2C_ENABLE(&peripherals::hi2c1);
+            i2c_error_flag.store(false);
         }
     };
 
@@ -238,31 +248,22 @@ void trigger_delayed_request() {
 
 } // namespace hal::i2c
 
-static void finish_i2c_transfer([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    using namespace hal::peripherals;
-    debug_assert(hi2c == &hi2c1);
-    if (hal::i2c::waiting_for_i2c.exchange(false)) {
-        hal::i2c::i2c_it_semaphore.release_from_isr();
-    }
-}
-
 extern "C" void HAL_I2C_MasterTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    finish_i2c_transfer(hi2c);
+    hal::i2c::I2cBus1::finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_MasterRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    finish_i2c_transfer(hi2c);
+    hal::i2c::I2cBus1::finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_MemTxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    finish_i2c_transfer(hi2c);
+    hal::i2c::I2cBus1::finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_MemRxCpltCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    finish_i2c_transfer(hi2c);
+    hal::i2c::I2cBus1::finish_i2c_transfer(hi2c);
 }
 
 extern "C" void HAL_I2C_ErrorCallback([[maybe_unused]] I2C_HandleTypeDef *hi2c) {
-    hal::i2c::i2c_error_flag.store(true);
-    finish_i2c_transfer(hi2c);
+    hal::i2c::I2cBus1::handle_i2c_error(hi2c);
 }

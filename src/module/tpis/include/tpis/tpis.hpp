@@ -17,19 +17,11 @@
 
 namespace tpis {
 
-constexpr size_t fraction_bits = 15;
+inline constexpr size_t fraction_bits = 15;
 using fixed = fpm::fixed<int32_t, int64_t, fraction_bits>;
-constexpr size_t integral_bits = sizeof(fixed) * 8 - fraction_bits;
+inline constexpr size_t integral_bits = sizeof(fixed) * 8 - fraction_bits;
 
-constexpr float emissivity = 0.48f;
-constexpr float degC0asKf = 273.15f;
-constexpr fixed degC0asK = fixed(degC0asKf);
-constexpr float degC25asKf = 25.f + degC0asKf;
-constexpr fixed degC25asK = fixed(degC25asKf);
-constexpr float f_exp_f = 4.2f;
-constexpr fixed f_exp = fixed(f_exp_f);
-constexpr float F_exp_f = 1 / f_exp_f;
-constexpr fixed F_exp = fixed(F_exp_f);
+inline constexpr float emissivity = 0.48f;
 
 struct SensorData {
     uint32_t tp_object = 0;
@@ -100,6 +92,15 @@ public:
 #endif
 
 private:
+    static constexpr float degC0asKf = 273.15f;
+    static constexpr fixed degC0asK = fixed(degC0asKf);
+    static constexpr float degC25asKf = 25.f + degC0asKf;
+    static constexpr fixed degC25asK = fixed(degC25asKf);
+    static constexpr float f_exp_f = 4.2f;
+    static constexpr fixed f_exp = fixed(f_exp_f);
+    static constexpr float F_exp_f = 1 / f_exp_f;
+    static constexpr fixed F_exp = fixed(F_exp_f);
+
     static constexpr i2c::Address address = 0x0C;
     std::optional<CalibrationParameters> calibration {};
 
