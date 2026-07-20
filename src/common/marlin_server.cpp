@@ -1310,8 +1310,15 @@ void static finalize_print(bool finished) {
         set_warning(WarningType::FilamentSensorsDisabled);
     }
 
-    // Do not remove, needed for 3rd party tools such as octoprint to get status that the gcode file printing has finished
-    SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
+    // "Done printing file" is an SD/file-print protocol marker. Serial hosts
+    // such as OctoPrint reset their numbered-command sequence when they see
+    // it. Emitting it while a streamed connection still has queued commands
+    // races that reset against the old sequence and causes a Resend loop.
+    // Streamed jobs are finalized by M77/the inactivity path and host action
+    // messages; retain the legacy marker only for actual media prints.
+    if (!keep_serial_finished_screen) {
+        SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
+    }
 }
 
 #if ANY(CRASH_RECOVERY, POWER_PANIC)

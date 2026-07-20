@@ -138,6 +138,23 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, VirtualToolIndex virtual_tool, bool ask_unloaded) {
     InProgress progress;
 
+    const uint8_t physical_tool = virtual_tool.to_physical().to_raw();
+    const IFSensor *const extruder_sensor = GetExtruderFSensor(physical_tool);
+    const IFSensor *const side_sensor = GetSideFSensor(physical_tool);
+    const bool extruder_sensor_enabled = extruder_sensor && extruder_sensor->is_enabled();
+    const bool side_sensor_enabled = side_sensor && side_sensor->is_enabled();
+    if (!extruder_sensor_enabled && !side_sensor_enabled) {
+        // With both filament-presence inputs disabled, an unload request from
+        // the UI represents the already-empty path. Avoid heating and running
+        // an unnecessary unload sequence, and keep loaded metadata coherent.
+        config_store().set_filament_type(virtual_tool, FilamentType::none);
+        filament::set_type_to_load(FilamentType::none);
+        filament::set_color_to_load(std::nullopt);
+        PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);
+        SERIAL_ECHOLNPAIR("Filament unload skipped; sensors disabled T", unsigned(physical_tool));
+        return;
+    }
+
     bool do_preheat = op_preheat.has_value();
 #if HAS_AUTO_RETRACT()
     do_preheat = do_preheat && !buddy::auto_retract().can_cold_unload(virtual_tool.to_physical());

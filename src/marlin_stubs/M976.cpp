@@ -114,6 +114,19 @@ void present_manual_batch_results(const std::array<BatchEntry, buddy::extrusion_
     }
 }
 
+void emit_pressure_advance_gcode(const uint8_t tool, const uint8_t slot, const float pa) {
+    char command[80];
+    snprintf(command, sizeof(command), "M572 D%u S%.3f ; auto PA logical slot %u",
+        unsigned(tool), static_cast<double>(pa), unsigned(slot));
+    SERIAL_ECHOLN(command);
+}
+
+void park_after_manual_calibration() {
+    if (all_axes_homed()) {
+        mapi::park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::park]);
+    }
+}
+
 class HotendTargetRestorer {
 public:
     HotendTargetRestorer() {
@@ -460,6 +473,7 @@ void PrusaGcodeSuite::M976() {
         // by start G-code before its following MBL.
         if (!manual) restore_hotend_targets.restore(true);
         if (manual) present_manual_batch_results(entries, count);
+        if (manual) park_after_manual_calibration();
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
         return;
     }
@@ -494,6 +508,8 @@ void PrusaGcodeSuite::M976() {
         planner.set_max_volumetric_flow(slot, cached->max_flow_mm3_s);
         buddy::extrusion_calibration::configure_pressure_monitor(cached->pressure_reference, 0.8f, 8.0f);
         if (manual) present_manual_result(tool, slot, cached->pressure_advance);
+        emit_pressure_advance_gcode(tool, slot, cached->pressure_advance);
+        if (manual) park_after_manual_calibration();
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
@@ -632,6 +648,8 @@ void PrusaGcodeSuite::M976() {
     buddy::extrusion_calibration::suspend_pressure_monitor(false);
     if (manual) present_manual_result(tool, slot, best_pa);
     else pa_fsm_change(PhasesPressureAdvanceCalibration::complete, 100, slot);
+    emit_pressure_advance_gcode(tool, slot, best_pa);
+    if (manual) park_after_manual_calibration();
     char report[128];
     snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u result=%.3f max_flow=%.2f confidence=%.2f",
         unsigned(tool), unsigned(slot), static_cast<double>(best_pa), static_cast<double>(max_flow), static_cast<double>(result.confidence));
