@@ -603,6 +603,6 @@ c6e0714e7  2026-06-25  Document serial finish and intervention fixes
 ed7c3984f  2026-06-25  Fix Prusa Connect serial print state reporting
 b75fe7a8e  2026-06-25  Fix serial MMU print completion unload
 2ed2b31fe  2026-06-25  Port RME firmware to Buddy 6.6.0
-a21b371d7  2026-07-19  Report firmware print states to serial hosts
+b6429c0de  2026-07-19  Report firmware print states to serial hosts
 
 ```
