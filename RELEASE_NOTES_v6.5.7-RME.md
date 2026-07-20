@@ -837,6 +837,7 @@ f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 15d490575  2026-07-20  Use print temperatures and reduce PA MMU purge
 553b73301  2026-07-20  Flash Prusa Connect firmware downloads from UI
 6e754c617  2026-07-20  Clean up UI firmware staging after update
+3e2f547ab  2026-07-20  Keep MMU unloaded for PA probing and mesh
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
