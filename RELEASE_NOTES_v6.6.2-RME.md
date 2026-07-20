@@ -748,6 +748,7 @@ c0509f2a0  2026-07-20  Show filament color swatches and support eight-tool PA
 849c6218f  2026-07-20  Use print temperatures and reduce PA MMU purge
 c2934d3f6  2026-07-20  Flash Prusa Connect firmware downloads from UI
 04a7ce059  2026-07-20  Clean up UI firmware staging after update
+2a93f7db2  2026-07-20  Keep MMU unloaded for PA probing and mesh
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
