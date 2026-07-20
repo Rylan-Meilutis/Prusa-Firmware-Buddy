@@ -34,9 +34,6 @@ void report_print_status_to_serial_host(const PrintStatusMessage &message) {
 #if HAS_AUTO_RETRACT()
     case PrintStatusMessage::auto_retracting: label = "Retracting filament"; break;
 #endif
-#if HAS_TOOL_OFFSET_SENSOR()
-    case PrintStatusMessage::tool_offset_calibrating: label = "Calibrating tool offset"; break;
-#endif
     default: break;
     }
     if (!label) return;
