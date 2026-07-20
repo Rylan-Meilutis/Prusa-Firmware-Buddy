@@ -272,7 +272,9 @@ DeviceState get_state(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
     case ClientFSM::PressureAdvanceCalibration:
+#endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
     case ClientFSM::ToolOffsetsCalibration:
@@ -523,7 +525,9 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
     case ClientFSM::PressureAdvanceCalibration:
+#endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
     case ClientFSM::ToolOffsetsCalibration:
