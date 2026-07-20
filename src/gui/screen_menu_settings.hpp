@@ -66,12 +66,14 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+#if !HAS_MINI_DISPLAY()
 class MI_CUSTOM_FILAMENT_COLORS final : public IWindowMenuItem {
 public:
     MI_CUSTOM_FILAMENT_COLORS();
 protected:
     void click(IWindowMenu &) override;
 };
+#endif
 
 using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_TOOLCHANGER()
@@ -125,7 +127,9 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #endif
     MI_USER_INTERFACE, MI_SERIAL_PRINTING_SETTINGS, MI_LOCK_SETTINGS,
     MI_HEATER_SAFETY_SETTINGS,
+#if !HAS_MINI_DISPLAY()
     MI_CUSTOM_FILAMENT_COLORS,
+#endif
     MI_EXPORT_RME_SETTINGS,
     MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()
