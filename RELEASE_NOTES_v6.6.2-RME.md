@@ -53,6 +53,9 @@
     * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
       * During a serial full-bucket pause, `M1986 R` resets a stale counter out of band while preserving the queued print commands; the print remains held until the host sends its normal `M602` resume
   * Fixes
+    * Fixed streamed-print completion resetting OctoPrint's numbered-command sequence by reserving `Done printing file` for actual media prints
+    * Filament unload now skips heating and motion when both presence sensors are disabled, while clearing the stored material and color assignment
+    * PA calibration now emits the applied `M572` command and manual UI runs park the toolhead after results are handled
     * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
     * Fixed serial print starts being missed while the printer is blocked by heater waits
