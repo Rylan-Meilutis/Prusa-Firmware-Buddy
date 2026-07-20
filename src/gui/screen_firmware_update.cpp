@@ -9,9 +9,7 @@
 #include <img_resources.hpp>
 #include <window_msgbox.hpp>
 #include <array>
-#include <cstdio>
 #include <cstring>
-#include <string_view>
 
 MI_FIRMWARE_SELECT_USB::MI_FIRMWARE_SELECT_USB()
     : IWindowMenuItem(_("Select BBF from USB"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
@@ -77,10 +75,10 @@ void ScreenFirmwareFileBrowser::select_file() {
         return;
     }
 
-    static constexpr std::string_view usb_prefix = "/usb/";
-    const char *filename = path.data() + usb_prefix.size();
+    static constexpr char usb_prefix[] = "/usb/";
+    const char *filename = path.data() + 5;
     const char *extension = strrchr(filename, '.');
-    if (strncmp(path.data(), usb_prefix.data(), usb_prefix.size()) != 0
+    if (strncmp(path.data(), usb_prefix, 5) != 0
         || strchr(filename, '/') != nullptr
         || strlen(filename) > 12
         || !extension
@@ -89,9 +87,7 @@ void ScreenFirmwareFileBrowser::select_file() {
         return;
     }
 
-    std::array<char, 96> prompt {};
-    snprintf(prompt.data(), prompt.size(), "Install %s and restart?", filename);
-    if (MsgBoxQuestion(string_view_utf8::MakeRAM(prompt.data()), Responses_YesNo) != Response::Yes) {
+    if (MsgBoxQuestion(_("Install selected firmware and restart?"), Responses_YesNo) != Response::Yes) {
         return;
     }
 
