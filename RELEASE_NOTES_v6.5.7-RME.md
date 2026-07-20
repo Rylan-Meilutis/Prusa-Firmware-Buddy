@@ -822,6 +822,7 @@ cd11a871b  2026-06-11  bootstrap: Add tarballs to BBF
 931ec5a96  2026-06-16  bootstrap: Remove dead code
 718cadcbc  2026-06-16  bootstrap: Do not pack unused TLVs to BBF
 52032a6c5  2026-07-20  Complete MINI resource and serial upload backport
+f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
