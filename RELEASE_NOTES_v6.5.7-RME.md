@@ -154,7 +154,7 @@ This RME release includes the upstream Buddy changes from `v6.5.3` through `v6.5
 
 A dedicated serial printing screen has been added for OctoPrint and other serial hosts. The screen shows print progress, printer status, filtered host messages, and a print-finished state with a `Continue` acknowledgement button.
 
-Each serial-print session now starts on a neutral `Waiting for print data from host` page. Status records from the previous job are excluded, so an idle host connection cannot incorrectly show an old heating, probing, or other operation screen.
+Each serial-print session now starts on a neutral waiting page. Status records from the previous job are excluded, so an idle host connection cannot incorrectly show an old heating, probing, or other operation screen.
 
 During an active serial print, firmware emits rate-limited `//action:notification` messages for heating and heat-soak progress, bed probing and homing, MMU load/unload/change progress, tool changes, filament runout, and MMU/tool-change failures. Progress updates are sent on meaningful changes without flooding the serial command stream, allowing compatible hosts to expose the printer's current firmware-side operation.
 

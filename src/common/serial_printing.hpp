@@ -69,7 +69,6 @@ private:
     static uint32_t last_host_time_to_end_s;
     static uint32_t last_host_time_to_end_ms;
     static uint32_t status_message_baseline_id;
-    static uint32_t last_status_hash;
+    static const char *last_status_message;
     static int8_t last_status_progress;
-    static uint32_t last_status_notification_ms;
 };

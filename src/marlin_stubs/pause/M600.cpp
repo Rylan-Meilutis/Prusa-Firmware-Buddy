@@ -113,9 +113,11 @@ void GcodeSuite::M600() {
 
     const bool is_auto_m600 = p.option<bool>('A').value_or(false);
 
+#if !PRINTER_IS_PRUSA_MINI()
     if (is_auto_m600) {
         SerialPrinting::notify_status("Filament runout detected", -1, true);
     }
+#endif
 
     bool do_manual_m600 = true;
 

@@ -436,7 +436,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
 
     w_status_label.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
     w_status_label.SetTextColor(COLOR_WHITE);
-    w_status_label.SetText(_("Preparing print"));
+    w_status_label.SetText(_("Preparing"));
 
     w_status_value.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
     w_status_value.SetTextColor(COLOR_WHITE);
@@ -458,14 +458,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     page_dots.set_one_circle_mode(true);
     page_dots.Hide();
 
-    status_message_baseline_id = SerialPrinting::status_message_baseline();
-    last_message_id = status_message_baseline_id;
-    strlcpy(status_text.data(), N_("Serial print started"), status_text.size());
-    strlcpy(status_value_text.data(), N_("Waiting for print data from host"), status_value_text.size());
-    w_status_label.SetText(_(N_("Serial print started")));
-    w_status_value.SetText(_(N_("Waiting for print data from host")));
-    status_progress_available = false;
-
+    last_message_id = status_message_baseline_id = SerialPrinting::status_message_baseline();
     set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::initializing);
     update_progress();
 }
