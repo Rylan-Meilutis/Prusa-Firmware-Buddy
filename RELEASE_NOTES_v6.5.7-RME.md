@@ -824,6 +824,7 @@ cd11a871b  2026-06-11  bootstrap: Add tarballs to BBF
 52032a6c5  2026-07-20  Complete MINI resource and serial upload backport
 f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 889de67b6  2026-07-20  Show filament color swatches and support eight-tool PA
+15d490575  2026-07-20  Use print temperatures and reduce PA MMU purge
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
