@@ -28,11 +28,13 @@ public:
 protected:
     virtual void click(IWindowMenu &) override;
     virtual void Loop() override;
+    void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;
 
 private:
     std::array<char, 64> label_buffer_;
     VirtualToolIndex tool_;
     FilamentType filament_type_;
+    std::optional<Color> color_;
     DisplayFormat display_format_ : 2;
     bool should_open_submenu_ : 1;
 };
@@ -90,6 +92,7 @@ public:
     MI_ASSIGN_LOADED_COLOR(VirtualToolIndex tool, std::optional<Color> color, std::string_view name);
 protected:
     void click(IWindowMenu &) override;
+    void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;
 private:
     VirtualToolIndex tool_;
     std::optional<Color> color_;
@@ -151,8 +154,11 @@ protected:
 class MI_SAVED_CUSTOM_COLOR final : public IWindowMenuItem {
 public:
     explicit MI_SAVED_CUSTOM_COLOR(size_t slot);
+protected:
+    void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;
 private:
-    std::array<char, 40> label_ {};
+    std::optional<Color> color_;
+    std::array<char, 32> label_ {};
 };
 
 class WindowMenuCustomFilamentColors final : public WindowMenuVirtual {
