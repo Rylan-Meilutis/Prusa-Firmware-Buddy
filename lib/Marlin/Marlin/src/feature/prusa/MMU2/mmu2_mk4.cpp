@@ -728,6 +728,39 @@ bool MMU2::tool_change_full(uint8_t slot) {
     return true;
 }
 
+bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
+    if (!WaitForMMUReady()) {
+        return false;
+    }
+
+    if (slot != extruder) {
+        planner_synchronize();
+
+        const pos3d resume_pos = planner_current_position();
+        if (all_axes_homed()) nozzle_park();
+
+        unload();
+
+        CommandInProgressGuard cipg(CommandInProgress::ToolChange, commandInProgressManager);
+        FSensorBlockRunout blockRunout;
+        BlockEStallDetection blockEStallDetection;
+        planner_synchronize();
+        ToolChangeCommon(slot);
+
+        // Two millimetres establishes molten flow at the nozzle without the
+        // normal tool-change purge forming a long loose loop. M976's own
+        // excitation immediately follows and supplies the remaining priming.
+        execute_load_to_nozzle_sequence(2.0f);
+
+        if (all_axes_homed()) {
+            motion_do_blocking_move_to_xy(resume_pos.xyz[0], resume_pos.xyz[1], feedRate_t(NOZZLE_PARK_XY_FEEDRATE));
+            motion_do_blocking_move_to_z(resume_pos.xyz[2], feedRate_t(NOZZLE_PARK_Z_FEEDRATE));
+        }
+    }
+
+    return true;
+}
+
 /// Handle special T?/Tx/Tc commands
 ///
 ///- T? Gcode to extrude shouldn't have to follow, load to extruder wheels is done automatically
@@ -1382,6 +1415,22 @@ void MMU2::execute_load_to_nozzle_sequence() {
     // Compensate for configurable Extra Loading Distance
     // @@TODO 8bit needs this: planner_set_current_position_E(planner_get_current_position_E() - (logic.ExtraLoadDistance() - MMU2_FILAMENT_SENSOR_POSITION));
     execute_extruder_sequence(load_to_nozzle_sequence, sizeof(load_to_nozzle_sequence) / sizeof(load_to_nozzle_sequence[0]), ExtendedProgressCode::LoadingToNozzle);
+}
+
+void MMU2::execute_load_to_nozzle_sequence(const float final_purge_length) {
+    planner_synchronize();
+#ifdef USE_TRY_LOAD
+    const E_Step calibration_load_sequence[] = {
+        { MMU2_EXTRUDER_HEATBREAK_LENGTH, MMU2_LOAD_TO_NOZZLE_FEED_RATE },
+        { MMU2_EXTRUDER_NOZZLE_LENGTH + final_purge_length, 5.F },
+    };
+#else
+    const E_Step calibration_load_sequence[] = {
+        { MMU2_EXTRUDER_HEATBREAK_LENGTH - MMU2_FEED_DISTANCE, MMU2_FEED_RATE },
+        { MMU2_EXTRUDER_NOZZLE_LENGTH + final_purge_length, 5.F },
+    };
+#endif
+    execute_extruder_sequence(calibration_load_sequence, std::size(calibration_load_sequence), ExtendedProgressCode::LoadingToNozzle);
 }
 
 void MMU2::ReportError(ErrorCode ec, ErrorSource res) {

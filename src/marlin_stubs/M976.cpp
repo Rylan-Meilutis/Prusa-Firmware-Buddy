@@ -213,7 +213,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
             create_hotend_clearance();
             M109_no_parser(0, { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
-            if (!MMU2::mmu2.tool_change_full(entry.logical_filament)) return false;
+            if (!MMU2::mmu2.tool_change_for_pa_calibration(entry.logical_filament)) return false;
             prepared_anchor = true;
         } else if (entry.physical_tool != active_extruder || entry.logical_filament != active_extruder) {
             return false;
