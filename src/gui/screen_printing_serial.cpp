@@ -250,15 +250,15 @@ float percent_from_raw_value(float value) {
     return std::clamp(value, 0.0f, 100.0f);
 }
 
-PrintStatusMessageManager::Record current_non_custom_status_message() {
+PrintStatusMessageManager::Record current_non_custom_status_message(uint32_t minimum_id) {
     auto current = print_status_message().current_message();
-    if (current && current.message.type != PrintStatusMessage::custom) {
+    if (current && current.id > minimum_id && current.message.type != PrintStatusMessage::custom) {
         return current;
     }
 
     PrintStatusMessageManager::Record latest;
-    print_status_message().walk_history([&latest](const PrintStatusMessageManager::Record &msg) {
-        if (msg.message.type != PrintStatusMessage::custom) {
+    print_status_message().walk_history([&latest, minimum_id](const PrintStatusMessageManager::Record &msg) {
+        if (msg.id > minimum_id && msg.message.type != PrintStatusMessage::custom) {
             latest = msg;
         }
         return true;
@@ -458,7 +458,15 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     page_dots.set_one_circle_mode(true);
     page_dots.Hide();
 
-    set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::progress);
+    status_message_baseline_id = SerialPrinting::status_message_baseline();
+    last_message_id = status_message_baseline_id;
+    strlcpy(status_text.data(), N_("Serial print started"), status_text.size());
+    strlcpy(status_value_text.data(), N_("Waiting for print data from host"), status_value_text.size());
+    w_status_label.SetText(_(N_("Serial print started")));
+    w_status_value.SetText(_(N_("Waiting for print data from host")));
+    status_progress_available = false;
+
+    set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::initializing);
     update_progress();
 }
 
@@ -509,6 +517,8 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
         } else {
             if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
                 set_page(Page::legacy);
+            } else if (!serial_data_seen) {
+                set_page(Page::initializing);
             } else if (status_page_available()) {
                 user_selected_page = false;
                 set_page(Page::status);
@@ -688,6 +698,12 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
 void screen_printing_serial_data_t::update_progress() {
     const uint32_t time_to_end = marlin_vars().time_to_end.get();
     const uint32_t time_to_change = marlin_vars().time_to_pause.get();
+    uint8_t host_percent = 0;
+    uint32_t host_eta = 0;
+    if (SerialPrinting::host_progress_percent(host_percent, ticks_ms())
+        || SerialPrinting::host_time_to_end(host_eta, ticks_ms())) {
+        serial_data_seen = true;
+    }
 
     if (!time_item_available(current_time_item)) {
         current_time_item = first_time_item();
@@ -874,12 +890,16 @@ void screen_printing_serial_data_t::update_status() {
     }
 #endif
 
-    const auto current = current_non_custom_status_message();
+    const auto current = current_non_custom_status_message(status_message_baseline_id);
     if (!current) {
+        if (!serial_data_seen) {
+            return;
+        }
         status_text[0] = '\0';
         status_progress_available = false;
         return;
     }
+    serial_data_seen = true;
 
     ArrayStringBuilder<256> label;
     PrintStatusMessageFormatterBuddy::format(label, current.message);
@@ -960,6 +980,8 @@ void screen_printing_serial_data_t::update_messages() {
             return true;
         }
 
+        serial_data_seen = true;
+
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
         if (should_show_host_message(buf.str())) {
@@ -1004,7 +1026,7 @@ void screen_printing_serial_data_t::set_page(Page page) {
     w_time_value.set_visible(false);
     time_dots.Hide();
 
-    const bool show_status = current_page == Page::status;
+    const bool show_status = current_page == Page::status || current_page == Page::initializing;
     w_status_label.set_visible(show_status);
     w_status_value.set_visible(show_status);
     w_status_progress.set_visible(show_status && status_progress_available);

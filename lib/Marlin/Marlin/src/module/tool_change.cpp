@@ -23,6 +23,7 @@
 #include "../inc/MarlinConfigPre.h"
 
 #include "tool_change.h"
+#include <serial_printing.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -65,7 +66,11 @@ void tool_change(const uint8_t new_tool,
     MMU2::mmu2.tool_change(new_tool);
 
   #elif HAS_TOOLCHANGER()
-    bool ret [[maybe_unused]] = prusa_toolchanger.tool_change(new_tool, return_type, current_position, z_lift, z_return);
+    SerialPrinting::notify_status("Tool change in progress", -1, true);
+    const bool success = prusa_toolchanger.tool_change(new_tool, return_type, current_position, z_lift, z_return);
+    if (!success) {
+      SerialPrinting::notify_status("Tool change failed", -1, true);
+    }
 
   #else
     #error Not implemented

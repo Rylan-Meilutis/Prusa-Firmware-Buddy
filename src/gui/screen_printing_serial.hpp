@@ -36,6 +36,7 @@ protected:
 private:
     enum class Page {
         legacy,
+        initializing,
         progress,
         status,
         message,
@@ -111,6 +112,8 @@ private:
     bool user_selected_page = false;
     bool status_progress_available = false;
     uint32_t last_message_id = 0;
+    uint32_t status_message_baseline_id = 0;
+    bool serial_data_seen = false;
     uint8_t last_message_progress_percent = 255;
     marlin_server::State last_state;
     bool lock_buttons_applied = false;

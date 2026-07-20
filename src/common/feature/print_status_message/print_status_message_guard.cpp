@@ -29,8 +29,10 @@ PrintStatusMessageGuard::~PrintStatusMessageGuard() {
 
 void PrintStatusMessageGuard::update(const Message &msg) {
     auto &psm = print_status_message();
-    std::scoped_lock guard(psm.mutex_);
-
-    record_.message = msg;
-    psm.add_history_item_nolock(record_);
+    {
+        std::scoped_lock guard(psm.mutex_);
+        record_.message = msg;
+        psm.add_history_item_nolock(record_);
+    }
+    report_print_status_to_serial_host(msg);
 }
