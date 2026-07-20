@@ -119,7 +119,11 @@ MI_ASSIGN_LOADED_FILAMENT::MI_ASSIGN_LOADED_FILAMENT(VirtualToolIndex tool, Fila
 }
 
 void MI_ASSIGN_LOADED_FILAMENT::click(IWindowMenu &) {
+#if HAS_MINI_DISPLAY()
+    config_store().set_filament_type(tool_, filament_type_);
+#else
     pending.material = filament_type_;
+#endif
     Screens::Access()->Close();
 }
 
