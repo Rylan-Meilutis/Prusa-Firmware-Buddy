@@ -10,7 +10,7 @@ The PA calibration port includes both slicer-driven M976 and the manual
 Control-menu screen immediately above Calibrations & Tests. Verify its loaded-tool toggles, single Run action, whole-batch blocking progress FSM, aggregated results, Abort fallback, USB result export, persistent chamber lighting, and manual-MMU probe-before-load/unload-once-before-result ordering. When rebasing, verify physical-tool and MMU-slot
 selection of loaded filaments only, automatic material-profile temperatures,
 the ±15 °C manual-temperature safety bound, sequential batch submission, the manual-only clean-area prompt,
-anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, and restoration of every prior hotend target after all
+anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, scoped filament-sensor event locking, and restoration of every prior hotend target after all
 M976 exit paths.
 
 ## Current Baseline
