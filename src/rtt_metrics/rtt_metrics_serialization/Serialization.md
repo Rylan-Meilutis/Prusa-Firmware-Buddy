@@ -26,6 +26,12 @@ metric type to know how many bytes to consume and how to interpret them.
 | val[1] | 2 bytes | `int16_t` Y axis |
 | val[2] | 2 bytes | `int16_t` Z axis |
 
+### `LoadcellTaredZ`
+
+| Field  | Size    | Description   |
+|--------|---------|---------------|
+| z_load | 4 bytes | `float` value |
+
 ## Units
 
 ### Timestamp
@@ -41,6 +47,12 @@ Raw, unscaled sample values as read from the accelerometer chip
 depends on the chip and its current configuration (full-scale range and
 resolution mode); this format does not carry that scaling. To convert to
 acceleration, the consumer must apply the chip-specific factor.
+
+### `LoadcellTaredZ`
+
+The tared Z load (`Loadcell::get_tared_z_load()`) in **grams**, computed on the
+firmware as `scale * (raw - offset)`. Mind that the value is *tared* and
+therefore represents change instead of precise measurement of the chip itself.
 
 ## Transport
 

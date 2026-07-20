@@ -18,7 +18,11 @@
 #include <option/has_power_panic.h>
 #if HAS_POWER_PANIC()
     #include "power_panic.hpp"
-#endif
+#endif // POWER_PANIC
+#include <option/rtt_metrics_enabled.h>
+#if RTT_METRICS_ENABLED()
+    #include <rtt_metrics_segger/peripheries_metrics.hpp>
+#endif // RTT_METRICS
 #include "../Marlin/src/module/planner.h"
 #include "../Marlin/src/module/endstops.h"
 #include "../Marlin/src/feature/precise_stepping/precise_stepping.hpp"
@@ -262,6 +266,10 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
     }
 
     const float tared_z_load = get_tared_z_load(loadcellRaw, scale, offset);
+
+#if RTT_METRICS_ENABLED()
+    rtt_metrics::log_loadcell_tared_z({ tared_z_load });
+#endif
 
     float filtered_z_load = NAN;
     float filtered_xy_load = NAN;

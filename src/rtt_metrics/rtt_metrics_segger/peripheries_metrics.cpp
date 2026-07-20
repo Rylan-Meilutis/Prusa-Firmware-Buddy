@@ -27,3 +27,7 @@ void rtt_metrics::log_accelerometer(const accelerometer::RawAcceleration &raw_ac
     log_metric_with_data(MetricType::RawAcceleration, ticks_us(),
         raw_acceleration);
 }
+
+void rtt_metrics::log_loadcell_tared_z(const LoadcellTaredZ &tared_z) {
+    log_metric_with_data(MetricType::LoadcellTaredZ, ticks_us(), tared_z);
+}

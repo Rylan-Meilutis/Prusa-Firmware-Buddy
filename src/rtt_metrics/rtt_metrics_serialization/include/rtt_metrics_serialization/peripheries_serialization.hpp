@@ -33,6 +33,11 @@ void serialize(S &s, MetricWrapper<DataStruct> &w) {
     s.object(w.data);
 }
 
+template <typename S>
+void serialize(S &s, LoadcellTaredZ &data) {
+    s.value4b(data.z_load);
+}
+
 } // namespace rtt_metrics
 
 namespace accelerometer {
