@@ -305,6 +305,10 @@ void apply(bool on) {
     }
 }
 
+bool is_on() {
+    return applied_state.valid && applied_state.on;
+}
+
 void set_diagnostic_override(bool enabled, bool on) {
     diagnostic_forced = enabled;
     diagnostic_on = on;

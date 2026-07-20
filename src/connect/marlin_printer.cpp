@@ -27,6 +27,9 @@
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
 #endif
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #include <leds/external_light_bar.hpp>
+#endif
 
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
@@ -307,7 +310,12 @@ Printer::Params MarlinPrinter::params() const {
             .fan_1_rpm = xbe.fan1rpm,
             .fan_2_rpm = xbe.fan2rpm,
             .fan_pwm_target = xbe.fan1_fan2_target_pwm.transform(buddy::XBuddyExtension::FanPWM::to_percent_static).value_or(connect_client::Printer::ChamberInfo::fan_pwm_target_unset),
-            .led_intensity = static_cast<int8_t>(static_cast<uint16_t>(leds::SideStripHandler::instance().current_brightness()) * 100 / 255),
+            // Connect exposes one chamber-light value. A GPIO hackerboard
+            // light is binary, so report the chamber as fully lit whenever
+            // that output is actually on, even if the side strip is at 0%.
+            .led_intensity = static_cast<int8_t>(leds::external_light_bar::is_on()
+                    ? 100
+                    : static_cast<uint16_t>(leds::SideStripHandler::instance().current_brightness()) * 100 / 255),
         };
         params.addon_power = buddy::xbuddy_extension().usb_power();
     }
