@@ -109,8 +109,9 @@ Firmware heats the physical hotend and uses the MMU unload/load path between
 entries. The calibration-specific load primes only 2 mm beyond the modeled
 nozzle path instead of running the normal tool-change purge, preventing a long
 loose filament loop over the bed. The PA excitation supplies the remaining
-controlled extrusion. The final requested MMU filament remains loaded for the
-rest of the start sequence.
+controlled extrusion. Firmware unloads before each local probe and unloads the
+final requested MMU filament so the following full MBL runs with an empty
+nozzle. The normal post-MBL initial-tool command loads the print filament.
 
 ## Verify before printing
 
