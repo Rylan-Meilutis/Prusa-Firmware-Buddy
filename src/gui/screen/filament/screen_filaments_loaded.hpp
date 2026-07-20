@@ -51,15 +51,6 @@ public:
 
 namespace screen_loaded_filament_assignment {
 
-class MI_LOADED_COLOR_ACTION final : public IWindowMenuItem {
-public:
-    explicit MI_LOADED_COLOR_ACTION(uint8_t tool);
-protected:
-    void click(IWindowMenu &) override;
-private:
-    uint8_t tool_;
-};
-
 class MI_ASSIGN_LOADED_FILAMENT final : public IWindowMenuItem {
 public:
     MI_ASSIGN_LOADED_FILAMENT(uint8_t tool, FilamentType filament_type);
@@ -73,7 +64,7 @@ private:
     FilamentTypeParameters::Name filament_name_;
 };
 
-class WindowMenuAssignLoadedFilament final : public WindowMenuVirtual<MI_RETURN, MI_LOADED_COLOR_ACTION, MI_ASSIGN_LOADED_FILAMENT> {
+class WindowMenuAssignLoadedFilament final : public WindowMenuVirtual<MI_RETURN, MI_ASSIGN_LOADED_FILAMENT> {
 public:
     WindowMenuAssignLoadedFilament(window_t *parent, Rect16 rect);
 
@@ -92,12 +83,6 @@ private:
 } // namespace screen_loaded_filament_assignment
 
 namespace screen_loaded_color_assignment {
-class MI_ADD_CUSTOM_COLOR final : public IWindowMenuItem {
-public:
-    MI_ADD_CUSTOM_COLOR();
-protected:
-    void click(IWindowMenu &) override;
-};
 class MI_ASSIGN_LOADED_COLOR final : public IWindowMenuItem {
 public:
     MI_ASSIGN_LOADED_COLOR(uint8_t tool, std::optional<Color> color, std::string_view name);
@@ -109,7 +94,7 @@ private:
     std::array<char, 32> label_ {};
 };
 
-class WindowMenuAssignLoadedColor final : public WindowMenuVirtual<MI_RETURN, MI_ADD_CUSTOM_COLOR, MI_ASSIGN_LOADED_COLOR> {
+class WindowMenuAssignLoadedColor final : public WindowMenuVirtual<MI_RETURN, MI_ASSIGN_LOADED_COLOR> {
 public:
     WindowMenuAssignLoadedColor(window_t *parent, Rect16 rect);
     void set_tool(uint8_t tool);
@@ -119,6 +104,72 @@ protected:
 private:
     uint8_t tool_;
     size_t custom_count_ = 0;
+};
+
+class MI_EDIT_LOADED_MATERIAL final : public IWindowMenuItem {
+public:
+    MI_EDIT_LOADED_MATERIAL();
+    void refresh();
+protected:
+    void click(IWindowMenu &) override;
+private:
+    std::array<char, 40> label_ {};
+};
+
+class MI_EDIT_LOADED_COLOR final : public IWindowMenuItem {
+public:
+    MI_EDIT_LOADED_COLOR();
+    void refresh();
+protected:
+    void click(IWindowMenu &) override;
+private:
+    std::array<char, 40> label_ {};
+};
+
+class MI_SAVE_LOADED_FILAMENT final : public IWindowMenuItem {
+public:
+    MI_SAVE_LOADED_FILAMENT();
+protected:
+    void click(IWindowMenu &) override;
+};
+
+using ScreenEditLoadedFilament_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+    MI_EDIT_LOADED_MATERIAL, MI_EDIT_LOADED_COLOR, MI_SAVE_LOADED_FILAMENT>;
+
+class ScreenEditLoadedFilament final : public ScreenEditLoadedFilament_ {
+public:
+    ScreenEditLoadedFilament();
+protected:
+    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
+};
+
+class MI_ADD_CUSTOM_COLOR final : public IWindowMenuItem {
+public:
+    MI_ADD_CUSTOM_COLOR();
+protected:
+    void click(IWindowMenu &) override;
+};
+
+class MI_SAVED_CUSTOM_COLOR final : public IWindowMenuItem {
+public:
+    explicit MI_SAVED_CUSTOM_COLOR(size_t slot);
+private:
+    std::array<char, 40> label_ {};
+};
+
+class WindowMenuCustomFilamentColors final : public WindowMenuVirtual<MI_RETURN, MI_ADD_CUSTOM_COLOR, MI_SAVED_CUSTOM_COLOR> {
+public:
+    WindowMenuCustomFilamentColors(window_t *parent, Rect16 rect);
+    int item_count() const final;
+protected:
+    void setup_item(ItemVariant &variant, int index) final;
+private:
+    size_t saved_count_ = 0;
+};
+
+class ScreenCustomFilamentColors final : public ScreenMenuBase<WindowMenuCustomFilamentColors> {
+public:
+    ScreenCustomFilamentColors();
 };
 }
 

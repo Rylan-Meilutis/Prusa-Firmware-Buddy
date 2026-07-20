@@ -30,6 +30,6 @@ std::optional<Profile> custom(size_t slot);
 bool set_custom(size_t slot, std::string_view name, Color color);
 std::optional<Color> loaded(uint8_t tool);
 void set_loaded(uint8_t tool, std::optional<Color> color);
-std::string_view name_for(Color color);
+Profile profile_for(Color color);
 
 } // namespace filament_color

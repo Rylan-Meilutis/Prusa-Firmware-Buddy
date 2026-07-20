@@ -14,6 +14,7 @@
 #include <option/developer_mode.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_phase_stepping.h>
+#include <gui/screen/filament/screen_filaments_loaded.hpp>
 
 #if HAS_MMU2()
     #include "MItem_mmu.hpp"
@@ -55,6 +56,13 @@ public:
 
 protected:
     virtual void click(IWindowMenu &window_menu) override;
+};
+
+class MI_CUSTOM_FILAMENT_COLORS final : public IWindowMenuItem {
+public:
+    MI_CUSTOM_FILAMENT_COLORS();
+protected:
+    void click(IWindowMenu &) override;
 };
 
 using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
@@ -101,6 +109,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #endif
     MI_USER_INTERFACE, MI_SERIAL_PRINTING_SETTINGS, MI_LOCK_SETTINGS,
     MI_HEATER_SAFETY_SETTINGS,
+    MI_CUSTOM_FILAMENT_COLORS,
     MI_EXPORT_RME_SETTINGS,
     MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,
 #if HAS_MANUAL_BELT_TUNING()

@@ -20,6 +20,14 @@ the ±15 °C manual-temperature safety bound, sequential batch submission, the m
 anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, scoped filament-sensor event locking, and restoration of every prior hotend target after all
 M976 exit paths.
 
+Verify the root Filament menu is the only loaded-filament entry point. Each
+loaded tool row must show material and color names, its editor must stage
+Material and Color independently and commit only on Save, and the color chooser
+must omit unused user slots. Verify Settings > Filament Colors creates a named
+color through the color-value picker and that `M865` retains the exact hex value
+for serial hosts while the loaded-filament list does not display hex or preset
+metadata.
+
 ## Current Baseline
 
 RME 6.5.7 is based on upstream tag `v6.5.7` at `7119a302d6`.
