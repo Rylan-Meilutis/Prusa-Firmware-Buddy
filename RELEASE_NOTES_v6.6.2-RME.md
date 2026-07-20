@@ -752,6 +752,7 @@ c2934d3f6  2026-07-20  Flash Prusa Connect firmware downloads from UI
 04a7ce059  2026-07-20  Clean up UI firmware staging after update
 2a93f7db2  2026-07-20  Keep MMU unloaded for PA probing and mesh
 52623da69  2026-07-20  Eject and count INDX PA pellets per cycle
+c4f3424ef  2026-07-20  Prevent serial resend storms during M976
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
