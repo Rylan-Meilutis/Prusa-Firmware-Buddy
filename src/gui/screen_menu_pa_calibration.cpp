@@ -80,20 +80,17 @@ MI_PA_TOOL::MI_PA_TOOL()
     set_is_hidden(configured_count() <= 1 ? is_hidden_t::yes : is_hidden_t::no);
 }
 
-void MI_PA_TOOL::OnChange(size_t) {
-    selected_tool = get_index();
+void MI_PA_TOOL::OnChange(size_t old_index) {
+    const auto requested = static_cast<uint8_t>(get_index());
+    if (!configured(requested)) {
+        set_index(old_index);
+        MsgBoxWarning(_("Only slots with an assigned loaded filament can be calibrated."), Responses_Ok);
+        return;
+    }
+    selected_tool = requested;
     // Selecting another loaded tool also selects that material's temperature
     // profile instead of carrying an override across materials.
     temperature_override = 0;
-}
-
-bool MI_PA_TOOL::on_item_selected(const OnItemSelectedArgs &args) {
-    const auto requested = VirtualToolIndex::from_raw(static_cast<uint8_t>(args.new_index));
-    if (!configured(requested)) {
-        MsgBoxWarning(_("Only slots with an assigned loaded filament can be calibrated."), Responses_Ok);
-        return false;
-    }
-    return MenuItemSwitch::on_item_selected(args);
 }
 
 MI_PA_SEQUENTIAL::MI_PA_SEQUENTIAL()
