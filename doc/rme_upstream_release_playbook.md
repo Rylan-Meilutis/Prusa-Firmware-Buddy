@@ -265,7 +265,7 @@ Connect download commands remain accepted through `START_INLINE_DOWNLOAD`, `STAR
 Connect downloads stay constrained to `/usb` and transferable file types.
 Serial-printing UI FSM state must not mask the underlying Marlin print lifecycle from Connect. During serial prints, Connect should see normal `PRINTING`, `PAUSED`, `ATTENTION`, `FINISHED`, and `STOPPED` states rather than generic `BUSY`.
 Do not remove the RME suffix globally as a workaround for Connect; keep the compatibility version scoped to Connect-facing reporting.
-Connect chamber-light telemetry must report the currently driven RGBW brightness, not the configured active-state maximum. A `ChamberLedIntensity` value received from Connect is a wake/activity command only and must not modify any persistent or per-state brightness setting.
+Connect chamber-light telemetry must report the currently driven RGBW brightness, not the configured active-state maximum. If the external GPIO chamber-light output is actually energized, report the combined chamber light as 100% even when RGBW brightness is 0%. A `ChamberLedIntensity` value received from Connect is a wake/activity command only and must not modify any persistent or per-state brightness setting.
 ```
 
 ### LEDs, Chamber Lights, Side Strips, And GPIO Light Bar
