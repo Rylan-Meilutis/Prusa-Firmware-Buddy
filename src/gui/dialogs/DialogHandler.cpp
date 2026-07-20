@@ -21,6 +21,7 @@
 
 #if HAS_LOADCELL()
     #include <gui/screen/screen_nozzle_cleaning_failed.hpp>
+    #include <screen_pa_calibration_progress.hpp>
 #endif
 
 #if HAS_MANUAL_BELT_TUNING()
@@ -294,6 +295,7 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
 #endif
 #if HAS_LOADCELL()
     FSMScreenDef<ClientFSM::NozzleCleaningFailed, ScreenNozzleCleaningFailed>,
+    FSMScreenDef<ClientFSM::PressureAdvanceCalibration, ScreenPACalibrationProgress>,
 #endif
     // This is here so that we can worry-free write commas at the end of each argument
     FSMEndDef>;

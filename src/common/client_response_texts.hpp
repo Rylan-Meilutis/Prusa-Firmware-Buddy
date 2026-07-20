@@ -88,6 +88,8 @@ inline constexpr const char *get_response_text(Response response) {
         return N_("RETRY");
     case Response::Right:
         return N_("RIGHT");
+    case Response::Save:
+        return N_("SAVE TO USB");
     case Response::Skip:
         return N_("SKIP");
     case Response::Slowly:

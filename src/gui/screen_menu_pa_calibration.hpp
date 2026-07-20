@@ -3,23 +3,17 @@
 #include <screen_menu.hpp>
 #include <WindowMenuItems.hpp>
 #include <WindowMenuSpin.hpp>
-#include <WindowMenuSwitch.hpp>
 #include <printers.h>
 
 #define HAS_PA_CALIBRATION_UI() (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX())
 
-class MI_PA_TOOL final : public MenuItemSwitch {
+class MI_PA_TOOL_RUN : public IWindowMenuItem {
 public:
-    MI_PA_TOOL();
+    explicit MI_PA_TOOL_RUN(uint8_t tool);
 protected:
-    void OnChange(size_t old_index) override;
-};
-
-class MI_PA_SEQUENTIAL final : public WI_ICON_SWITCH_OFF_ON_t {
-public:
-    MI_PA_SEQUENTIAL();
-protected:
-    void OnChange(size_t old_index) override;
+    void click(IWindowMenu &) override;
+private:
+    uint8_t tool_;
 };
 
 class MI_PA_TEMPERATURE final : public WiSpin {
@@ -37,7 +31,10 @@ protected:
 };
 
 using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    MI_PA_TOOL, MI_PA_SEQUENTIAL, MI_PA_TEMPERATURE, MI_PA_RUN>;
+    WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TOOL_RUN, 1>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TOOL_RUN, 3>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 4>, WithConstructorArgs<MI_PA_TOOL_RUN, 5>,
+    MI_PA_TEMPERATURE, MI_PA_RUN>;
 
 class ScreenMenuPACalibration final : public ScreenMenuPACalibration_ {
 public:

@@ -68,14 +68,8 @@ namespace detail {
     // Partial specialization for when building Calibrations menu
     template <EFooter FOOTER, std::size_t... I>
     struct menu_builder<FOOTER, MenuType::Calibrations, std::index_sequence<I...>> {
-#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
-        using type = ScreenMenu<FOOTER, MI_RETURN,
-            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
-            MI_PA_CALIBRATION>;
-#else
         using type = ScreenMenu<FOOTER, MI_RETURN,
             MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...>;
-#endif
     };
 
     // Partial specialization for when building Wizard menu

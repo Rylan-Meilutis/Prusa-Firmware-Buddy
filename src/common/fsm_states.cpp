@@ -58,6 +58,7 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
 #endif
 #if HAS_LOADCELL()
     case ClientFSM::NozzleCleaningFailed:
+    case ClientFSM::PressureAdvanceCalibration:
 #endif
         return 2;
 
