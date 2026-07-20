@@ -58,6 +58,7 @@ MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t too
             const auto color_profile = filament_color::profile_for(*color);
             sb.append_string(" / ");
             sb.append_string(color_profile.name.data());
+            sb.append_printf(" #%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
         }
 
         SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));

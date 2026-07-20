@@ -259,6 +259,17 @@ void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, icon
     render_icon_align_impl(rc, res, clr_back, flags, true);
 }
 
+void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, Color clr_tint, icon_flags flags) {
+    if (!res) {
+        display::fill_rect(rc, clr_back);
+        return;
+    }
+    Rect16 icon_rect(0, 0, res->w, res->h);
+    icon_rect.Align(rc, flags.align);
+    icon_rect = icon_rect.Intersection(rc);
+    display::draw_img_tinted(point_ui16(icon_rect.Left(), icon_rect.Top()), *res, clr_back, flags.raster_flags, clr_tint);
+}
+
 void render_icon_align_original(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags) {
     render_icon_align_impl(rc, res, clr_back, flags, false);
 }

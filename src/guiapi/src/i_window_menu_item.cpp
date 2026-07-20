@@ -324,8 +324,8 @@ void IWindowMenuItem::printIcon(Rect16 icon_rect, ropfn raster_op, Color color_b
     }
 }
 
-void IWindowMenuItem::printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const {
-    render_icon_align(extension_rect, &img::arrow_right_10x16, color_back, icon_flags(Align_t::Center(), raster_op));
+void IWindowMenuItem::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
+    render_icon_align(extension_rect, &img::arrow_right_10x16, color_back, color_text, icon_flags(Align_t::Center(), raster_op));
 }
 
 void IWindowMenuItem::Click(IWindowMenu &window_menu) {
