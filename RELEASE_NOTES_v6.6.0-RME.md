@@ -29,6 +29,7 @@
     * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
     * UI theme updates and theme import support
   * Fixes
+    * Fixed the pressure-advance progress footer covering the Abort button and made it use the configured main-screen footer items
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
     * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
