@@ -20,7 +20,7 @@ struct PendingLoadedFilament {
 } pending;
 
 void begin_edit(const VirtualToolIndex tool) {
-    pending = { tool, config_store().get_filament_type(tool), filament_color::loaded(tool) };
+    pending = { tool, config_store().get_filament_type(tool), filament_color::loaded(tool.to_raw()) };
 }
 }
 
