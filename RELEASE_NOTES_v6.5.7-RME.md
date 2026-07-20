@@ -845,6 +845,8 @@ f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 3e2f547ab  2026-07-20  Keep MMU unloaded for PA probing and mesh
 66326ee83  2026-07-20  Adapt PA cooldown to 6.5 MMU APIs
 50a26a598  2026-07-20  Prevent serial resend storms during M976
+be5c3bee9  2026-07-20  Fix pressure advance calibration footer
+1116d31e8  2026-07-20  Fix serial print completion and PA handoff
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
