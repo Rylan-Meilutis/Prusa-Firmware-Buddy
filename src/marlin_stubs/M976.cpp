@@ -32,7 +32,9 @@
 
 namespace {
 constexpr float filament_area = 2.40528f;
-constexpr float absolute_pa_max = 0.15f;
+// Keep the search local to the slicer/profile fallback, while permitting
+// legitimate high-PA Bowden and flexible-material profiles.
+constexpr float absolute_pa_max = 0.50f;
 struct BatchEntry {
     uint8_t physical_tool;
     uint8_t logical_filament;
@@ -323,21 +325,11 @@ void PrusaGcodeSuite::M976() {
     }
     const float fallback = constrain(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
     marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(slot + 1) } };
+    int16_t target_temperature = 0;
     if (parser.seenval('S')) {
-        const int16_t target_temperature = static_cast<int16_t>(parser.value_celsius());
+        target_temperature = static_cast<int16_t>(parser.value_celsius());
         if (target_temperature < thermalManager.extrude_min_temp) {
             SERIAL_ERROR_MSG("M976 temperature below extrusion minimum");
-            return;
-        }
-        M109_no_parser(tool, {
-            .target_temp = target_temperature,
-            .wait_heat = true,
-            .wait_heat_or_cool = false,
-        });
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::heating)) {
-            pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-            planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
-            pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
     }
@@ -349,10 +341,6 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
-    if (thermalManager.tooColdToExtrude(active_extruder)) {
-        SERIAL_ERROR_MSG("M976 hotend too cold");
-        return;
-    }
 #if !HAS_WASTEBIN()
     if (buddy::extrusion_calibration::occupied_anchor_mask() & (1u << slot)) {
         SERIAL_ERROR_MSG("M976 anchor slot occupied; remove debris and run M976 C L<slot>");
@@ -362,6 +350,14 @@ void PrusaGcodeSuite::M976() {
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
+        if (target_temperature) {
+            const int16_t probe_temperature = config_store().get_filament_type(slot).parameters().nozzle_preheat_temperature;
+            M109_no_parser(tool, {
+                .target_temp = probe_temperature,
+                .wait_heat = true,
+                .wait_heat_or_cool = true,
+            });
+        }
         pa_fsm_change(PhasesPressureAdvanceCalibration::homing, 8, slot);
         if (!GcodeSuite::G28_no_parser(true, true, true)) {
             SERIAL_ERROR_MSG("M976 homing failed");
@@ -384,6 +380,24 @@ void PrusaGcodeSuite::M976() {
     }
     if (!HAS_WASTEBIN() && !std::isfinite(anchor_z)) {
         SERIAL_ERROR_MSG("M976 anchor micro-mesh failed");
+        return;
+    }
+    if (target_temperature) {
+        pa_fsm_change(PhasesPressureAdvanceCalibration::heating, 18, slot);
+        M109_no_parser(tool, {
+            .target_temp = target_temperature,
+            .wait_heat = true,
+            .wait_heat_or_cool = false,
+        });
+        if (pa_abort_requested(PhasesPressureAdvanceCalibration::heating)) {
+            pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
+            planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+            pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
+            return;
+        }
+    }
+    if (thermalManager.tooColdToExtrude(active_extruder)) {
+        SERIAL_ERROR_MSG("M976 hotend too cold");
         return;
     }
     park_for_free_air_calibration(slot);
