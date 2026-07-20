@@ -265,7 +265,13 @@ void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, 
 
     DispBuffer buff(pms, clr_bg, clr_fg);
 
-    uint8_t *pch = (uint8_t *)(pf->pcs) + (chr * bpc); // font data pointer
+#if PRINTER_IS_PRUSA_MINI()
+    uint8_t external_glyph[(11 * 18 + 1) >> 1];
+    if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) return;
+    const uint8_t *pch = external_glyph;
+#else
+    const uint8_t *pch = static_cast<const uint8_t *>(pf->pcs) + (chr * bpc); // font data pointer
+#endif
     bool load = true; // load next byte from font data?
     uint8_t crd = 0; // current byte of font data
 

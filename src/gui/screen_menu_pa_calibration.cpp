@@ -17,7 +17,8 @@
 
 namespace {
 constexpr std::array<const char *, 6> tool_names { N_("Tool 1 Calibration"), N_("Tool 2 Calibration"), N_("Tool 3 Calibration"), N_("Tool 4 Calibration"), N_("Tool 5 Calibration"), N_("Tool 6 Calibration") };
-uint16_t temperature_override = 0;
+constexpr std::array<const char *, 6> temperature_names { N_("Tool 1 Temperature"), N_("Tool 2 Temperature"), N_("Tool 3 Temperature"), N_("Tool 4 Temperature"), N_("Tool 5 Temperature"), N_("Tool 6 Temperature") };
+std::array<uint16_t, 6> temperature_overrides {};
 std::array<bool, 6> selected_tools {};
 
 constexpr NumericInputConfig temperature_config {
@@ -44,7 +45,10 @@ void submit_selected() {
         if (configured(tool) && selected_tools[tool.to_raw()]) mask |= 1u << tool.to_raw();
     }
     char command[MARLIN_MAX_REQUEST + 1];
-    snprintf(command, sizeof(command), "M976 M K%u S%u", unsigned(mask), unsigned(temperature_override));
+    snprintf(command, sizeof(command), "M976 M K%u U%u,%u,%u,%u,%u,%u", unsigned(mask),
+        unsigned(temperature_overrides[0]), unsigned(temperature_overrides[1]),
+        unsigned(temperature_overrides[2]), unsigned(temperature_overrides[3]),
+        unsigned(temperature_overrides[4]), unsigned(temperature_overrides[5]));
     marlin_client::gcode(command);
 }
 
@@ -64,11 +68,13 @@ void MI_PA_TOOL_RUN::OnChange(size_t) {
     selected_tools[tool_] = value();
 }
 
-MI_PA_TEMPERATURE::MI_PA_TEMPERATURE()
-    : WiSpin(temperature_override, temperature_config, _("Test Temperature")) {}
+MI_PA_TEMPERATURE::MI_PA_TEMPERATURE(const uint8_t tool)
+    : WiSpin(temperature_overrides[tool], temperature_config, _(temperature_names[tool]), nullptr,
+        is_enabled_t::yes, configured(VirtualToolIndex::from_raw(tool)) ? is_hidden_t::no : is_hidden_t::yes)
+    , tool_(tool) {}
 
 void MI_PA_TEMPERATURE::OnClick() {
-    temperature_override = static_cast<uint16_t>(value());
+    temperature_overrides[tool_] = static_cast<uint16_t>(value());
 }
 
 MI_PA_RUN::MI_PA_RUN()

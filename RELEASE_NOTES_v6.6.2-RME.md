@@ -31,7 +31,7 @@
     * Loaded-filament overview and reassignment from the Filament menu without unloading or reloading
     * `M865 Q` serial query for loaded filament material reporting
     * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring, including per-hotend temperature set/wait for slicer-driven tool and MMU sequences [C1, C1 INDX, XL, MK4, iX]
-      * Added a guided Control-menu screen above Calibrations & Tests with dock-calibration-style loaded-tool toggles, one Run action, automatic material-profile temperatures, ±15 °C safety bounds, and a manual-only clean-area prompt
+      * Added a guided Control-menu screen above Calibrations & Tests with dock-calibration-style loaded-tool toggles, an independent temperature for every loaded tool, one Run action, automatic material-profile temperatures, per-tool ±15 °C safety bounds, and a manual-only clean-area prompt
       * Manual and slicer-driven calibration use a whole-batch blocking heating/homing/probing/measuring/computing/cleanup progress screen visible over normal and serial prints; it takes over immediately, keeps chamber lights active, and permits only Abort until aggregated manual results are ready for Save to USB or Done
       * Manual MMU calibration probes before loading filament and unloads once before presenting the aggregated results; slicer/G-code runs retain their requested loaded state
       * Loaded-filament machines home and probe at the material profile's lower nozzle-preheat temperature, create 10 mm of bed/nozzle clearance, then heat to the requested test temperature; MMU batches probe unloaded with the same preheat clearance
@@ -316,8 +316,21 @@ checks before writing firmware.
 Serial hosts can request the same bootloader handoff with
 `M997 /usb/FIRMWARE.BBF`, provided the BBF already exists in the USB root and
 uses an 8.3 short filename. `M997 O` retains the existing automatic/forced
-restart update behavior. The normal serial G-code channel does not implement a
-binary BBF upload transport.
+restart update behavior. Stock firmware has no binary BBF upload transport on
+the normal serial G-code channel.
+
+RME now adds that binary-safe transport as `M998`. A host begins with the
+declared byte count and SHA-256 digest, sends strictly sequential Base64 chunks
+of at most 48 decoded bytes, and finalizes only when both size and hash match.
+The firmware writes `/usb/FWUPD.TMP` and renames it to `/usb/FWUPD.BBF` only
+after verification. Upload and flashing remain separate operations; the host
+must explicitly send `M997 /usb/FWUPD.BBF` afterward. See `doc/gcode/M998.md`.
+
+MINI exposes the same guided firmware picker and complete `M998` staging
+protocol as the MK and CORE families. To retain feature parity with adequate
+internal-flash headroom, all three complete MINI bitmap fonts are packaged in
+the signed external resource image and glyph-cached on demand. No characters,
+languages, update controls, or upload validation paths are removed.
 
 Release builds now use `-Oz` for release compile and final LTO link optimization, plus `-fmerge-all-constants` to merge duplicate constants and strings. This reduces final firmware flash usage across platforms and gives XL enough room to keep the same RME features enabled as the other supported printers.
 
