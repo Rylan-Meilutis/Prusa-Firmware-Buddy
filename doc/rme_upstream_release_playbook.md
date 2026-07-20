@@ -23,7 +23,7 @@ M976 exit paths.
 Verify the root Filament menu is the only loaded-filament entry point. Each
 loaded tool row must show material and color names, its editor must stage
 Material and Color independently and commit only on Save, and the color chooser
-must omit unused user slots. Verify Settings > Filament Colors creates a named
+must omit unused user slots. On non-MINI printers, verify Settings > Filament Colors creates a named
 color through the color-value picker and that `M865` retains the exact hex value
 for serial hosts while the loaded-filament list does not display hex or preset
 metadata.
