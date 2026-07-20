@@ -509,9 +509,9 @@ Comparison base: upstream `v6.6.2`
 
 Current branch: `rme-v6.6.2`
 
-Latest release-maintenance commit: `48aaf62db`
+Latest release-maintenance commit: `492aa0b3e`
 
-Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, and `Update master to current upstream RME stack`
+Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Update master to current upstream RME stack`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
 The port-refresh commits cover the upstream status LED state merge, the 256-field generated config-store visitor needed by XL, Prusa Connect serial-print state parity, serial MMU print-completion unload behavior, Buddy 6.6.0 API/resource compatibility fixes, serial M601/M602 host-action synchronization, ignored short serial macro finished-screen restoration, the upstream 6.6.2 translation refresh, release build environment fixes, the secondary toolhead runout path for MMU/side/external filament sensor setups, split filament movement detection control, cached multi-version RME release builds, paused-runout suppression, and loaded filament reassignment/query support.
 
@@ -651,4 +651,8 @@ d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 25eb605d3  2026-07-07  Add cached multi-version RME release builds
 790311418  2026-07-10  Suppress filament runout while paused
 08e862da0  2026-07-11  Add loaded filament reassignment and query
+2e6cb2696  2026-07-19  Add guided manual PA calibration
+0bd1ea8bc  2026-07-19  Add persistent loaded filament colors
+0f7768389  2026-07-19  Fix persistent custom color name lifetime
+492aa0b3e  2026-07-19  Refine PA material safety and Connect light handling
 ```
