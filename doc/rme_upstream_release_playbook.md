@@ -6,6 +6,13 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 
+The top-level wrapper holds `.dependencies/.rme-build.lock` for its complete
+lifetime. Multi-version children inherit that ownership. If another invocation
+reports the lock as busy, let the owning build finish or terminate it cleanly;
+Ctrl-C, process exit, a crash, or reboot releases the kernel lock automatically.
+The lock file may remain and does not itself block builds; do not remove it to
+force overlapping Ninja/output operations.
+
 The PA calibration port includes both slicer-driven M976 and the manual
 Control-menu screen immediately above Calibrations & Tests. Verify its loaded-tool toggles, single Run action, whole-batch blocking progress FSM, aggregated results, Abort fallback, USB result export, persistent chamber lighting, and manual-MMU probe-before-load/unload-once-before-result ordering. When rebasing, verify physical-tool and MMU-slot
 selection of loaded filaments only, automatic material-profile temperatures,
