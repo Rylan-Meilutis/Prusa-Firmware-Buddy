@@ -41,6 +41,14 @@ public:
 
     static SerialPrintingUiMode ui_mode();
 
+    static void set_status_message_baseline(uint32_t id);
+    static uint32_t status_message_baseline();
+
+    /// Emit a rate-limited host-action notification for the active serial job.
+    /// Progress is omitted when negative.
+    static void notify_status(const char *message, int progress_percent = -1, bool force = false);
+    static void reset_status_notifications();
+
 private:
     static void host_action(const char *action, const char *reason = nullptr);
 
@@ -60,4 +68,8 @@ private:
     static uint32_t last_host_progress_ms;
     static uint32_t last_host_time_to_end_s;
     static uint32_t last_host_time_to_end_ms;
+    static uint32_t status_message_baseline_id;
+    static uint32_t last_status_hash;
+    static int8_t last_status_progress;
+    static uint32_t last_status_notification_ms;
 };

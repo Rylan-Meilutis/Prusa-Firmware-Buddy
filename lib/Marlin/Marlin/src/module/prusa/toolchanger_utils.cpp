@@ -1,4 +1,5 @@
 #include "toolchanger_utils.h"
+#include <serial_printing.hpp>
 #include "tool_offset.hpp"
 #include "dock_position.hpp"
 #include "utils/variant_utils.hpp"
@@ -309,6 +310,7 @@ void PrusaToolChangerUtils::set_tool_info(const buddy::puppies::Dwarf &dwarf, co
 }
 
 void PrusaToolChangerUtils::toolchanger_error(const char *message) const {
+    SerialPrinting::notify_status(message, -1, true);
     fatal_error(message, "PrusaToolChanger");
 }
 

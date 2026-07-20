@@ -1,4 +1,5 @@
 #include "toolchanger_utils.h"
+#include <serial_printing.hpp>
 #include "tool_offset.hpp"
 #include "dock_position.hpp"
 #include <tool_index.hpp>
@@ -152,6 +153,7 @@ void PrusaToolChangerUtils::set_tool_info(PhysicalToolIndex tool, const PrusaToo
 }
 
 void PrusaToolChangerUtils::toolchanger_error(const char *message) const {
+    SerialPrinting::notify_status(message, -1, true);
     fatal_error(message, "PrusaToolChanger");
 }
 
