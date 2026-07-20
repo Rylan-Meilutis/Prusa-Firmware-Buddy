@@ -9,7 +9,41 @@
 #include <img_resources.hpp>
 #include <window_msgbox.hpp>
 #include <array>
+#include <cstdio>
 #include <cstring>
+#include <unistd.h>
+
+namespace {
+constexpr const char *staged_firmware_path = "/usb/FWUPD.BBF";
+
+bool stage_firmware_for_bootloader(const char *source_path) {
+    if (strcasecmp(source_path, staged_firmware_path) == 0) return true;
+
+    FILE *source = fopen(source_path, "rb");
+    if (!source) return false;
+
+    FILE *destination = fopen(staged_firmware_path, "wb");
+    if (!destination) {
+        fclose(source);
+        return false;
+    }
+
+    std::array<uint8_t, 1024> buffer {};
+    bool success = true;
+    while (const size_t read = fread(buffer.data(), 1, buffer.size(), source)) {
+        if (fwrite(buffer.data(), 1, read, destination) != read) {
+            success = false;
+            break;
+        }
+    }
+    success = success && !ferror(source) && fflush(destination) == 0 && fsync(fileno(destination)) == 0;
+    success = fclose(destination) == 0 && success;
+    fclose(source);
+
+    if (!success) remove(staged_firmware_path);
+    return success;
+}
+} // namespace
 
 MI_FIRMWARE_SELECT_USB::MI_FIRMWARE_SELECT_USB()
     : IWindowMenuItem(_("Select BBF from USB"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
@@ -76,14 +110,14 @@ void ScreenFirmwareFileBrowser::select_file() {
     }
 
     static constexpr char usb_prefix[] = "/usb/";
-    const char *filename = path.data() + 5;
+    const char *filename = strrchr(path.data(), '/');
+    filename = filename ? filename + 1 : path.data();
     const char *extension = strrchr(filename, '.');
     if (strncmp(path.data(), usb_prefix, 5) != 0
-        || strchr(filename, '/') != nullptr
-        || strlen(filename) > 12
+        || strstr(path.data(), "/../") != nullptr
         || !extension
         || strcasecmp(extension, ".bbf") != 0) {
-        MsgBoxWarning(_("Select a .bbf file in the USB root directory. The filename must use the 8.3 format."), Responses_Ok);
+        MsgBoxWarning(_("Select a completed .bbf file from the USB drive."), Responses_Ok);
         return;
     }
 
@@ -91,7 +125,12 @@ void ScreenFirmwareFileBrowser::select_file() {
         return;
     }
 
-    data_exchange::set_reflash_bbf_sfn(filename);
+    if (!stage_firmware_for_bootloader(path.data())) {
+        MsgBoxError(_("Could not stage the selected firmware as /usb/FWUPD.BBF."), Responses_Ok);
+        return;
+    }
+
+    data_exchange::set_reflash_bbf_sfn("FWUPD.BBF");
     HAL_Delay(10);
     sys_reset();
 }

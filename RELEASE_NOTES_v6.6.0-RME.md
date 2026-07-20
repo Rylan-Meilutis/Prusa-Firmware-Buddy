@@ -388,6 +388,12 @@ Periodic odometer writes were also removed from the nested server `cycle()` path
 
 ## Firmware signing
 
+The firmware-update picker now accepts completed `.bbf` images anywhere on the
+USB drive, including long or nested paths chosen by Prusa Connect. It preserves
+the downloaded source while copying the selected image to the bootloader-safe
+`/usb/FWUPD.BBF` path, flushes the staged file, and only then restarts for the
+normal signature and printer-model validation.
+
 Release builds can optionally sign generated `.bbf` files by setting `FIRMWARE_SIGNING_KEY` when running the top-level release wrapper:
 
 ```sh
