@@ -24,9 +24,8 @@ uint32_t SerialPrinting::last_host_progress_ms = 0;
 uint32_t SerialPrinting::last_host_time_to_end_s = 0;
 uint32_t SerialPrinting::last_host_time_to_end_ms = 0;
 uint32_t SerialPrinting::status_message_baseline_id = 0;
-uint32_t SerialPrinting::last_status_hash = 0;
+const char *SerialPrinting::last_status_message = nullptr;
 int8_t SerialPrinting::last_status_progress = -1;
-uint32_t SerialPrinting::last_status_notification_ms = 0;
 
 void SerialPrinting::set_status_message_baseline(uint32_t id) {
     status_message_baseline_id = id;
@@ -37,9 +36,8 @@ uint32_t SerialPrinting::status_message_baseline() {
 }
 
 void SerialPrinting::reset_status_notifications() {
-    last_status_hash = 0;
+    last_status_message = nullptr;
     last_status_progress = -1;
-    last_status_notification_ms = 0;
 }
 
 void SerialPrinting::notify_status(const char *message, int progress_percent, bool force) {
@@ -47,17 +45,12 @@ void SerialPrinting::notify_status(const char *message, int progress_percent, bo
         return;
     }
 
-    uint32_t hash = 2166136261u;
-    for (const char *c = message; *c; ++c) {
-        hash = (hash ^ static_cast<uint8_t>(*c)) * 16777619u;
-    }
-    progress_percent = std::clamp(progress_percent, -1, 100);
-    const uint32_t now = ticks_ms();
-    const bool changed = hash != last_status_hash;
+    progress_percent = progress_percent < -1 ? -1 : (progress_percent > 100 ? 100 : progress_percent);
+    const bool changed = message != last_status_message;
+    const int progress_delta = progress_percent - last_status_progress;
     const bool useful_progress = progress_percent >= 0
-        && (last_status_progress < 0 || std::abs(progress_percent - last_status_progress) >= 5);
-    if (!force && !changed && !useful_progress
-        && ticks_diff(now, last_status_notification_ms) < 5000) {
+        && (last_status_progress < 0 || progress_delta >= 5 || progress_delta <= -5);
+    if (!force && !changed && !useful_progress) {
         return;
     }
 
@@ -68,9 +61,8 @@ void SerialPrinting::notify_status(const char *message, int progress_percent, bo
         SERIAL_CHAR('%');
     }
     SERIAL_EOL();
-    last_status_hash = hash;
+    last_status_message = message;
     last_status_progress = static_cast<int8_t>(progress_percent);
-    last_status_notification_ms = now;
 }
 
 void SerialPrinting::host_action(const char *action, const char *reason) {

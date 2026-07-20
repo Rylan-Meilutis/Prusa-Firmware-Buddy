@@ -1582,7 +1582,9 @@ void serial_print_start() {
     // streamed startup command executes so the serial UI cannot present an
     // old heater/probing message as the state of this new print.
     SerialPrinting::set_status_message_baseline(print_status_message().latest_id());
+#if !PRINTER_IS_PRUSA_MINI()
     SerialPrinting::reset_status_notifications();
+#endif
 
     switch (server.print_state) {
     case State::Finished:

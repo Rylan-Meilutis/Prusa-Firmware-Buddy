@@ -2,8 +2,6 @@
 
 #include <timing.h>
 #include <serial_printing.hpp>
-#include <algorithm>
-#include <cmath>
 
 PrintStatusMessageManager print_status_message_instance;
 
@@ -11,7 +9,27 @@ PrintStatusMessageManager &print_status_message() {
     return print_status_message_instance;
 }
 
+static int serial_progress_percent(float current, float target) {
+    if (target <= 0.0f) {
+        return -1;
+    }
+    const float percent = current * 100.0f / target;
+    if (percent <= 0.0f) {
+        return 0;
+    }
+    if (percent >= 100.0f) {
+        return 100;
+    }
+    return static_cast<int>(percent + 0.5f);
+}
+
 void report_print_status_to_serial_host(const PrintStatusMessage &message) {
+#if PRINTER_IS_PRUSA_MINI()
+    // MINI release builds are at the physical flash limit. Its serial UI still
+    // observes these records, but richer outbound operation notifications are
+    // reserved for the loadcell/MMU/toolchanger platforms.
+    (void)message;
+#else
     const char *label = nullptr;
     switch (message.type) {
     case PrintStatusMessage::homing: label = "Homing"; break;
@@ -42,17 +60,15 @@ void report_print_status_to_serial_host(const PrintStatusMessage &message) {
     if (!label) return;
 
     int progress = -1;
-    const auto percent = [](const auto &p) {
-        return p.target > 0 ? static_cast<int>(std::round(std::clamp(p.current * 100.0f / p.target, 0.0f, 100.0f))) : -1;
-    };
     if (const auto data = std::get_if<PrintStatusMessageDataProgress>(&message.data)) {
-        progress = message.type == PrintStatusMessage::absorbing_heat ? static_cast<int>(std::round(std::clamp(data->current, 0.0f, 100.0f))) : percent(*data);
+        progress = serial_progress_percent(data->current, message.type == PrintStatusMessage::absorbing_heat ? 100.0f : data->target);
     } else if (const auto data = std::get_if<PrintStatusMessageDataToolProgress>(&message.data)) {
-        progress = percent(data->progress);
+        progress = serial_progress_percent(data->progress.current, data->progress.target);
     } else if (const auto data = std::get_if<PrintStatusMessageDataAxisProgress>(&message.data)) {
-        progress = percent(data->progress);
+        progress = serial_progress_percent(data->progress.current, data->progress.target);
     }
     SerialPrinting::notify_status(label, progress);
+#endif
 }
 
 PrintStatusMessageManager::Record PrintStatusMessageManager::current_message() const {
