@@ -28,9 +28,11 @@ color through the color-value picker and that `M865` retains the exact hex value
 for serial hosts while the loaded-filament list does not display preset metadata.
 
 Verify Settings > FW update opens a page containing Select BBF from USB and
-Update Instructions. The picker must reject non-BBF files, nested paths, and
-filenames longer than the bootloader's 8.3 SFN handoff, ask for confirmation,
-then store the selected SFN and restart. Test invalid-signature and wrong-model
+Update Instructions. The picker must reject non-BBF files and paths outside
+`/usb`, but accept completed Connect downloads in USB subdirectories and long
+filenames. After confirmation it must copy the selection to `/usb/FWUPD.BBF`,
+flush it, hand that short filename to the bootloader, and restart without
+removing the source download. Test copy failures, invalid-signature, and wrong-model
 files to ensure the bootloader rejects them without flashing. Serial regression
 coverage must retain `M997 O` and `M997 /usb/FIRMWARE.BBF`; the latter selects a
 file already present on USB rather than carrying the file data itself.
