@@ -745,5 +745,6 @@ c44d61bdd  2026-07-19  Add guided PA calibration progress workflow
 26e46a7e0  2026-07-19  Polish PA probing and chamber light telemetry
 23a015761  2026-07-19  Probe PA anchors at material preheat temperature
 3c3269a1e  2026-07-19  Guard PA Connect state on loadcell builds
+bf61e96e2  2026-07-19  Report firmware print states to serial hosts
 
 ```
