@@ -64,7 +64,7 @@ void MI_LOADED_FILAMENT::click(IWindowMenu &) {
         Screens::Access()->Open<ScreenLoadedFilaments>();
     } else {
 #if HAS_MINI_DISPLAY()
-        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedFilament>(tool_.to_raw()));
+        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedFilament>(tool_));
 #else
         begin_edit(tool_);
         Screens::Access()->Open<screen_loaded_color_assignment::ScreenEditLoadedFilament>();
