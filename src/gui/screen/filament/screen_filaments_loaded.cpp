@@ -178,30 +178,14 @@ ScreenAssignLoadedColor::ScreenAssignLoadedColor(uint8_t tool)
 }
 
 MI_EDIT_LOADED_MATERIAL::MI_EDIT_LOADED_MATERIAL()
-    : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
-    refresh();
-}
-
-void MI_EDIT_LOADED_MATERIAL::refresh() {
-    snprintf(label_.data(), label_.size(), "Material: %s", pending.material.parameters().name.data());
-    SetLabel(string_view_utf8::MakeRAM(label_.data()));
-}
+    : IWindowMenuItem(_("Material"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
 void MI_EDIT_LOADED_MATERIAL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedFilament>(pending.tool));
 }
 
 MI_EDIT_LOADED_COLOR::MI_EDIT_LOADED_COLOR()
-    : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
-    refresh();
-}
-
-void MI_EDIT_LOADED_COLOR::refresh() {
-    const auto profile = pending.color ? filament_color::profile_for(*pending.color) : filament_color::Profile {};
-    const auto name = pending.color ? profile.name_view() : std::string_view("None");
-    snprintf(label_.data(), label_.size(), "Color: %.*s", static_cast<int>(name.size()), name.data());
-    SetLabel(string_view_utf8::MakeRAM(label_.data()));
-}
+    : IWindowMenuItem(_("Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
 void MI_EDIT_LOADED_COLOR::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedColor>(pending.tool));
@@ -218,12 +202,6 @@ void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
 
 ScreenEditLoadedFilament::ScreenEditLoadedFilament()
     : ScreenEditLoadedFilament_(_("LOADED FILAMENT")) {}
-
-void ScreenEditLoadedFilament::windowEvent(window_t *sender, GUI_event_t event, void *param) {
-    Item<MI_EDIT_LOADED_MATERIAL>().refresh();
-    Item<MI_EDIT_LOADED_COLOR>().refresh();
-    ScreenEditLoadedFilament_::windowEvent(sender, event, param);
-}
 
 #if !HAS_MINI_DISPLAY()
 MI_ADD_CUSTOM_COLOR::MI_ADD_CUSTOM_COLOR()

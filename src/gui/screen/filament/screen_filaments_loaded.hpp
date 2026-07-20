@@ -109,21 +109,15 @@ private:
 class MI_EDIT_LOADED_MATERIAL final : public IWindowMenuItem {
 public:
     MI_EDIT_LOADED_MATERIAL();
-    void refresh();
 protected:
     void click(IWindowMenu &) override;
-private:
-    std::array<char, 40> label_ {};
 };
 
 class MI_EDIT_LOADED_COLOR final : public IWindowMenuItem {
 public:
     MI_EDIT_LOADED_COLOR();
-    void refresh();
 protected:
     void click(IWindowMenu &) override;
-private:
-    std::array<char, 40> label_ {};
 };
 
 class MI_SAVE_LOADED_FILAMENT final : public IWindowMenuItem {
@@ -139,8 +133,6 @@ using ScreenEditLoadedFilament_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 class ScreenEditLoadedFilament final : public ScreenEditLoadedFilament_ {
 public:
     ScreenEditLoadedFilament();
-protected:
-    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };
 
 #if !HAS_MINI_DISPLAY()
