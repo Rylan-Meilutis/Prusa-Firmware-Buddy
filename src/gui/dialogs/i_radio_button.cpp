@@ -18,14 +18,6 @@ static constexpr uint8_t icon_button_font_height = 16;
 static constexpr uint8_t icon_label_delim = 5;
 
 /*****************************************************************************/
-// static variables and methods
-static const IRadioButton::Responses_t no_responses = { Response::_none, Response::_none, Response::_none, Response::_none }; // used in constructor
-
-size_t IRadioButton::cnt_responses(Responses_t resp) {
-    return cnt_filled_responses(resp);
-}
-
-/*****************************************************************************/
 // nonstatic variables and methods
 
 IRadioButton::IRadioButton(window_t *parent, Rect16 rect)
@@ -407,7 +399,7 @@ void IRadioButton::Change(Responses_t resp) {
         return;
     }
     responses = resp;
-    SetBtnCount(fixed_width_buttons_count > 0 ? fixed_width_buttons_count : cnt_responses(responses));
+    SetBtnCount(fixed_width_buttons_count > 0 ? fixed_width_buttons_count : cnt_filled_responses(responses));
 
     // in iconned layout index will stay
     if (fixed_width_buttons_count == 0) {
@@ -431,7 +423,7 @@ void IRadioButton::set_fsm_and_phase(FSMAndPhase target) {
 }
 
 void IRadioButton::set_fsm_and_phase(FSMAndPhase target, PhaseResponses responses) {
-    RadioButton::Change(responses);
+    IRadioButton::Change(responses);
     click_callback_ = [target](Response r) {
         marlin_client::FSM_response(target, r);
     };

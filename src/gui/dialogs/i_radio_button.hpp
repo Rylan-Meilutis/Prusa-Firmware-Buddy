@@ -128,8 +128,6 @@ protected:
     // TODO: REMOVEME BFW-6028
     static Responses_t generateResponses(const PhaseResponses &resp);
 
-    static size_t cnt_responses(Responses_t resp);
-
     // radio buttons currently do not support layout change
     // it is done by having multiple radio buttons and show/hide them
     virtual void set_layout(ColorLayout) override {}
