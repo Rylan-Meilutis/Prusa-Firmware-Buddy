@@ -515,7 +515,7 @@ Comparison base: upstream `v6.6.2`
 
 Current branch: `rme-v6.6.2`
 
-Latest release-maintenance commit: `889a4e637`
+Latest release-maintenance commit: `f57238452`
 
 Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Update master to current upstream RME stack`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -662,4 +662,7 @@ d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 0f7768389  2026-07-19  Fix persistent custom color name lifetime
 492aa0b3e  2026-07-19  Refine PA material safety and Connect light handling
 889a4e637  2026-07-19  Keep MINI color UI within flash budget
+74da392e0  2026-07-19  Add guided PA calibration progress workflow
+1287e6ca8  2026-07-19  Polish PA probing and chamber light telemetry
+f57238452  2026-07-19  Allow cold-start PA probing sequence
 ```
