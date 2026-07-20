@@ -752,6 +752,7 @@ c4aeb83bf  2026-07-20  Fix virtual tool color lookup
 406db1faf  2026-07-20  Compress external MINI fonts per glyph
 593b04aef  2026-07-20  Finalize compressed MINI resources and upload decoder
 c0509f2a0  2026-07-20  Show filament color swatches and support eight-tool PA
+70e3f2cf8  2026-07-20  Use print temperatures and reduce PA MMU purge
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
