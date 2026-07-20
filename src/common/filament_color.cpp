@@ -62,9 +62,17 @@ void set_loaded(const uint8_t tool, const std::optional<Color> color) {
     config_store().loaded_filament_color_valid.set(valid);
 }
 
-std::string_view name_for(const Color color) {
-    for (const auto &profile : profiles) if (profile.color == color) return profile.name_view();
-    for (size_t slot = 0; slot < custom_slot_count; ++slot) if (const auto profile = custom(slot); profile && profile->color == color) return profile->name_view();
-    return "Custom";
+Profile profile_for(const Color color) {
+    for (const auto &profile : profiles) {
+        if (profile.color == color) {
+            Profile result { .color = color };
+            std::copy_n(profile.name, std::min(strlen(profile.name), name_capacity - 1), result.name.begin());
+            return result;
+        }
+    }
+    for (size_t slot = 0; slot < custom_slot_count; ++slot) if (const auto profile = custom(slot); profile && profile->color == color) return *profile;
+    Profile result { .color = color };
+    std::copy_n("Custom", 6, result.name.begin());
+    return result;
 }
 } // namespace filament_color
