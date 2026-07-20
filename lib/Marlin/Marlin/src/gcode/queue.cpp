@@ -40,6 +40,7 @@ GCodeQueue queue;
 #include "marlin_server.hpp"
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
+#include <optional>
 
 extern "C" bool buddy_sdcard_upload_active();
 extern "C" void buddy_sdcard_upload_handle_line(const char *command);
@@ -369,6 +370,14 @@ static bool command_code_is(const char *cmd, const char letter, const long code)
   return end != cmd + 1 && parsed == code && (*end == '\0' || *end == ' ' || *end == '*');
 }
 
+static std::optional<long> numbered_command_line(const char *cmd) {
+  while (*cmd == ' ') cmd++;
+  if (*cmd++ != 'N') return std::nullopt;
+  char *end = nullptr;
+  const long line = strtol(cmd, &end, 10);
+  return end != cmd ? std::optional<long> { line } : std::nullopt;
+}
+
 static bool is_print_abort_command(const char *cmd) {
   return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
 }
@@ -443,8 +452,19 @@ void GCodeQueue::get_serial_commands() {
 
           gcode_N = strtol(npos + 1, nullptr, 10);
 
-          if (gcode_N != last_N + 1 && !M110)
+          if (gcode_N != last_N + 1 && !M110) {
+            // A host may retransmit a long-running numbered command before its
+            // final ok. It is already executing, so do not flush RX or start a
+            // Resend loop; acknowledge that processing is still alive instead.
+            const auto executing_line = current_command_serial && length
+              ? numbered_command_line(command_buffer[index_r])
+              : std::nullopt;
+            if (executing_line == gcode_N) {
+              SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
+              continue;
+            }
             return gcode_line_error(PSTR(MSG_ERR_LINE_NO), i);
+          }
 
           char *apos = strrchr(command, '*');
           if (apos) {

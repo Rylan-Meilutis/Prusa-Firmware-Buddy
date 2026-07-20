@@ -4,6 +4,7 @@
 #include <Marlin/src/feature/pressure_advance/pressure_advance_config.hpp>
 #include <Marlin/src/feature/prusa/e-stall_detector.h>
 #include <Marlin/src/gcode/gcode.h>
+#include <Marlin/src/gcode/queue.h>
 #include <Marlin/src/gcode/temperature/M104_M109.hpp>
 #include <Marlin/src/module/motion.h>
 #include <Marlin/src/module/planner.h>
@@ -70,6 +71,7 @@ void create_hotend_clearance() {
 
 void pa_fsm_change(const PhasesPressureAdvanceCalibration phase, const uint8_t progress, const uint8_t slot) {
     marlin_server::fsm_change(phase, { progress, static_cast<uint8_t>(slot + 1) });
+    if (GCodeQueue::current_command_from_serial()) SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
 }
 
 bool pa_abort_requested(const PhasesPressureAdvanceCalibration phase) {
@@ -436,6 +438,8 @@ void PrusaGcodeSuite::M976() {
             SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
             return;
         }
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION batch accepted entries=", count);
+        if (GCodeQueue::current_command_from_serial()) SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
         // Own the foreground dialog for the whole batch. Nested single-tool
         // M976 calls reuse this FSM, so tool changes, MMU loading, homing and
         // probing cannot briefly return control to the menu between tools.
