@@ -12,6 +12,7 @@ protected:
     void click(IWindowMenu &) override;
 };
 
+#if !HAS_MINI_DISPLAY()
 class MI_FIRMWARE_UPDATE_HELP final : public IWindowMenuItem {
 public:
     MI_FIRMWARE_UPDATE_HELP();
@@ -19,9 +20,14 @@ public:
 protected:
     void click(IWindowMenu &) override;
 };
+#endif
 
 using ScreenMenuFirmwareUpdate_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    MI_FIRMWARE_SELECT_USB, MI_FIRMWARE_UPDATE_HELP>;
+    MI_FIRMWARE_SELECT_USB
+#if !HAS_MINI_DISPLAY()
+    , MI_FIRMWARE_UPDATE_HELP
+#endif
+    >;
 
 class ScreenMenuFirmwareUpdate final : public ScreenMenuFirmwareUpdate_ {
 public:
