@@ -39,6 +39,8 @@ using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     WithConstructorArgs<MI_PA_TOOL_RUN, 3>, WithConstructorArgs<MI_PA_TEMPERATURE, 3>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 4>, WithConstructorArgs<MI_PA_TEMPERATURE, 4>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 5>, WithConstructorArgs<MI_PA_TEMPERATURE, 5>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 6>, WithConstructorArgs<MI_PA_TEMPERATURE, 6>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 7>, WithConstructorArgs<MI_PA_TEMPERATURE, 7>,
     MI_PA_RUN>;
 
 class ScreenMenuPACalibration final : public ScreenMenuPACalibration_ {

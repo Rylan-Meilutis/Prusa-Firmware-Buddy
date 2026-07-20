@@ -21,7 +21,7 @@ anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clea
 M976 exit paths.
 
 Verify the root Filament menu is the only loaded-filament entry point. Each
-loaded tool row must show material, color name, and its `#RRGGBB` value, its editor must stage
+loaded tool row must show material and color name with an outlined visual swatch, its editor must stage
 Material and Color independently and commit only on Save, and the color chooser
 must omit unused user slots. On non-MINI printers, verify Settings > Filament Colors creates a named
 color through the color-value picker and that `M865` retains the exact hex value

@@ -304,10 +304,10 @@ The main Lights Settings page includes `Door Finish Ack` on Core One and Core On
 ## Build size and flash headroom
 
 Loaded-filament management is consolidated in the root Filament menu. Tool
-rows show material, color names, and exact `#RRGGBB` values; Material and Color changes are staged and
+rows show material and color names with theme-safe bordered color swatches; Material and Color changes are staged and
 committed together with Save. Empty user-color slots stay hidden, new named
 colors are created under Settings > Filament Colors, and exact hex values are
-reserved for the custom-color editor and `M865` serial reports.
+reserved for the custom-color editor and `M865` serial reports. PA calibration manifests and the manual selector now cover all eight INDX tools, with an eight-tool batch example in the M976 guide.
 
 Submenu arrows now use the resolved menu text color instead of the theme image
 accent, preserving contrast for Indigo and custom themes in both focused and

@@ -61,7 +61,7 @@ zero.
 ## XL, INDX, and other multi-tool profiles
 
 The following one-line manifest includes only tools that the sliced job uses.
-It supports indices 0 through 5 and automatically inserts commas. Keep the
+It supports indices 0 through 7. Keep the
 `M976 A ...` expression on one physical G-code line.
 
 Use the ready-to-paste [five-tool template](gcode/templates/auto_pa_xl_indx_5_tool.gcode).
@@ -74,6 +74,15 @@ and material flow ceiling. The last listed tool remains selected.
 If the slicer profile exposes fewer tools, referencing a missing array element
 may fail during slicing. Remove the unused trailing clauses from the printer
 preset; for example, a five-tool XL normally ends at index 4.
+
+For an eight-tool INDX profile, an expanded all-tool example is:
+
+```gcode
+M976 A 0:0:PLA:215,1:1:PLA:215,2:2:PETG:240,3:3:PETG:240,4:4:ASA:260,5:5:ASA:260,6:6:PC:275,7:7:PC:275
+```
+
+Use only the tools referenced by the sliced job and keep every material and
+temperature synchronized with that tool's slicer and loaded-filament metadata.
 
 ## MMU profile
 
