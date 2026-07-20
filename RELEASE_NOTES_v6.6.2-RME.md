@@ -773,6 +773,9 @@ c0509f2a0  2026-07-20  Show filament color swatches and support eight-tool PA
 3b964a5c6  2026-07-20  Keep MMU unloaded for PA probing and mesh
 050cabfc2  2026-07-20  Eject and count INDX PA pellets per cycle
 a070dd8fe  2026-07-20  Prevent serial resend storms during M976
+9d923e440  2026-07-20  Fix pressure advance calibration footer
+aa3c5ccdf  2026-07-20  Fix serial print completion and PA handoff
+5dd32b013  2026-07-20  Adapt PA final park to current motion API
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
