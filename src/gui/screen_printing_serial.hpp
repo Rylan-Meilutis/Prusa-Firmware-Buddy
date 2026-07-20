@@ -36,7 +36,6 @@ protected:
 private:
     enum class Page {
         legacy,
-        initializing,
         progress,
         status,
         message,
