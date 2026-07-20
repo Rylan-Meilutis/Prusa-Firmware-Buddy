@@ -1147,9 +1147,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
  */
     // Specify a park position as { X, Y, Z }
 #if HAS_INDX()
-    // INDX_TODO: add proper values (this is from c1)
-    #define X_NOZZLE_CLEANER_ORIGIN 260.35f
-    #define Y_NOZZLE_CLEANER_ORIGIN 63.5f
+    #define X_NOZZLE_CLEANER_ORIGIN 312.16f
+    #define Y_NOZZLE_CLEANER_ORIGIN 81.4f
 
     // Y calibration indent positions [mm] for the two wastebin variants. Both bins share the same cleaner
     // origin / coordinate system - these are only where the Y calibration feature sits on each bin, not a
@@ -1159,9 +1158,10 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Y_NOZZLE_CLEANER_CALIB_POINT_STANDARD Y_NOZZLE_CLEANER_ORIGIN
     #define Y_NOZZLE_CLEANER_CALIB_POINT_EXTENDED (Y_NOZZLE_CLEANER_ORIGIN + 40.f)
 
-    #define X_WASTEBIN_SAFE_POINT 250.f //INDX_TODO: Refine and add proper values (this is from c1)
-    #define Y_WASTEBIN_SAFE_POINT 55.5f //INDX_TODO: Refine and add proper values (this is from c1)
-    #define Y_BRUSH_AVOID_POINT 164.5f //INDX_TODO: Refine and add proper values (this is from c1)
+    // Same offsets from the cleaner origin as on C1 (same cleaner assembly)
+    #define X_WASTEBIN_SAFE_POINT (X_NOZZLE_CLEANER_ORIGIN - 10.35f)
+    #define Y_WASTEBIN_SAFE_POINT (Y_NOZZLE_CLEANER_ORIGIN - 8.f)
+    #define Y_BRUSH_AVOID_POINT (Y_NOZZLE_CLEANER_ORIGIN + 101.f)
 
     #define X_WASTEBIN_POINT X_NOZZLE_CLEANER_ORIGIN
     #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_ORIGIN + 86.f)
@@ -1179,7 +1179,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define XYZ_NOZZLE_PARK_POINT \
         {X_NOZZLE_PARK_POINT, Y_NOZZLE_PARK_POINT, Z_NOZZLE_PARK_POINT}
 
-#if HAS_INDX()     // INDX_TODO: add proper values (this is from c1)
+#if HAS_INDX()
     #define XYZ_WASTEBIN_POINT \
         {X_WASTEBIN_POINT, Y_WASTEBIN_POINT, Z_NOZZLE_PARK_POINT}
 
