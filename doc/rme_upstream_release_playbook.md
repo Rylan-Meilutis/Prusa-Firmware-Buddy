@@ -14,7 +14,7 @@ The lock file may remain and does not itself block builds; do not remove it to
 force overlapping Ninja/output operations.
 
 The PA calibration port includes both slicer-driven M976 and the manual
-Control-menu screen immediately above Calibrations & Tests. Verify its loaded-tool toggles, single Run action, whole-batch blocking progress FSM, aggregated results, Abort fallback, USB result export, persistent chamber lighting, and manual-MMU probe-before-load/unload-once-before-result ordering. When rebasing, verify physical-tool and MMU-slot
+Control-menu screen immediately above Calibrations & Tests. Verify its loaded-tool toggles, per-tool temperature controls, single Run action, whole-batch blocking progress FSM, aggregated results, Abort fallback, USB result export, persistent chamber lighting, and manual-MMU probe-before-load/unload-once-before-result ordering. When rebasing, verify physical-tool and MMU-slot
 selection of loaded filaments only, automatic material-profile temperatures,
 the ±15 °C manual-temperature safety bound, sequential batch submission, the manual-only clean-area prompt,
 anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, scoped filament-sensor event locking, and restoration of every prior hotend target after all
@@ -33,7 +33,24 @@ filenames longer than the bootloader's 8.3 SFN handoff, ask for confirmation,
 then store the selected SFN and restart. Test invalid-signature and wrong-model
 files to ensure the bootloader rejects them without flashing. Serial regression
 coverage must retain `M997 O` and `M997 /usb/FIRMWARE.BBF`; the latter selects a
-file already present on USB and is not a serial binary-upload protocol.
+file already present on USB rather than carrying the file data itself.
+
+RME's binary upload layer is `M998`: verify begin rejects zero/oversized files
+and malformed SHA-256, chunks reject invalid Base64 and any offset other than
+the last acknowledged byte, finalization rejects size/hash mismatch, and abort
+removes `/usb/FWUPD.TMP`. A successful finalization must atomically expose
+`/usb/FWUPD.BBF` without rebooting; only a later `M997 /usb/FWUPD.BBF` may
+request flashing. Exercise media-removal and write-failure paths as well as a
+successful signed-BBF upload.
+
+MINI must retain the same firmware-update menu and M998 validation/state
+machine as MK/CORE builds. Its 7x13, 9x16, and 11x18 bitmap fonts belong in
+`/internal/res/fonts` and are generated from the selected complete font headers
+into the resources tarball. Verify Japanese, Ukrainian, and Latin MINI presets,
+including resource replacement after an update, missing/corrupt-resource
+behavior, repeated-glyph caching, and that no embedded font arrays return to
+the application link map. Keep meaningful internal-flash headroom; do not
+remove update UI or language coverage to make a MINI image link.
 
 ## Current Baseline
 

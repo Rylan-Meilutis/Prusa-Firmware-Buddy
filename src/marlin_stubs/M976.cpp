@@ -161,6 +161,27 @@ size_t parse_batch_manifest(const char *command, std::array<BatchEntry, buddy::e
     return *cursor == '\0' ? count : 0;
 }
 
+bool parse_manual_temperatures(const char *command, std::array<int, buddy::extrusion_calibration::max_logical_filaments> &temperatures) {
+    const char *cursor = strstr(command, " U");
+    if (!cursor) return true;
+    cursor += 2;
+    for (size_t index = 0; index < temperatures.size(); ++index) {
+        unsigned value = 0;
+        if (*cursor < '0' || *cursor > '9') return false;
+        while (*cursor >= '0' && *cursor <= '9') {
+            value = value * 10 + unsigned(*cursor++ - '0');
+            if (value > 999) return false;
+        }
+        temperatures[index] = value;
+        if (index + 1 < temperatures.size()) {
+            if (*cursor++ != ',') return false;
+        } else if (*cursor != '\0' && *cursor != ' ') {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
     uint8_t logical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
@@ -337,6 +358,11 @@ void PrusaGcodeSuite::M976() {
         } else {
             const uint8_t mask = parser.byteval('K', 0);
             const int requested_temperature = parser.intval('S', 0);
+            std::array<int, buddy::extrusion_calibration::max_logical_filaments> requested_temperatures {};
+            if (!parse_manual_temperatures(parser.string_arg, requested_temperatures)) {
+                SERIAL_ERROR_MSG("M976 invalid per-tool temperature list");
+                return;
+            }
             for (uint8_t logical = 0; logical < buddy::extrusion_calibration::max_logical_filaments; ++logical) {
                 if (!(mask & (1u << logical))) continue;
                 const auto filament = config_store().get_filament_type(logical);
@@ -350,8 +376,9 @@ void PrusaGcodeSuite::M976() {
                 entry.logical_filament = logical;
                 const auto &params = filament.parameters();
                 const int profile_temperature = std::clamp<int>(params.nozzle_temperature, 170, 300);
-                entry.temperature = requested_temperature
-                    ? std::clamp(requested_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
+                const int tool_temperature = requested_temperatures[logical] ?: requested_temperature;
+                entry.temperature = tool_temperature
+                    ? std::clamp(tool_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
                     : profile_temperature;
                 strncpy(entry.material.data(), params.name.data(), entry.material.size() - 1);
             }

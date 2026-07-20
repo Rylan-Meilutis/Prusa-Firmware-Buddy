@@ -249,9 +249,14 @@ void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, 
 
     uint32_t buffer_offset = 0; // buffer byte offset
 
-    pch = (uint8_t *)(pf->pcs) + ((chr /*- pf->asc_min*/) * bpc);
-
     uint8_t pixel_size = STORE_FN_PIXEL_SIZE;
+#if PRINTER_IS_PRUSA_MINI()
+    uint8_t external_glyph[6 * 18];
+    if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) return;
+    pch = external_glyph;
+#else
+    pch = static_cast<uint8_t *>(const_cast<void *>(pf->pcs)) + (chr * bpc);
+#endif
 
     for (uint16_t j = 0; j < char_h; j++) {
         pc = pch + j * bpr;
