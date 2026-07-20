@@ -123,7 +123,7 @@ void emit_pressure_advance_gcode(const uint8_t tool, const uint8_t slot, const f
 
 void park_after_manual_calibration() {
     if (all_axes_homed()) {
-        mapi::park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::park]);
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::park));
     }
 }
 
