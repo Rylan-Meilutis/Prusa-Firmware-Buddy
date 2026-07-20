@@ -41,7 +41,11 @@ MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t too
         sb.append_string(": ");
         filament_type_.build_name_with_info(sb);
         if (const auto color = filament_color::loaded(tool)) {
+#if !HAS_MINI_DISPLAY()
             sb.append_printf(" #%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
+#else
+            static_cast<void>(color);
+#endif
         }
 
         SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));
@@ -143,6 +147,7 @@ ScreenAssignLoadedFilament::ScreenAssignLoadedFilament(uint8_t tool)
 
 using namespace screen_loaded_color_assignment;
 
+#if !HAS_MINI_DISPLAY()
 MI_ADD_CUSTOM_COLOR::MI_ADD_CUSTOM_COLOR()
     : IWindowMenuItem(_("Add Custom Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
@@ -150,7 +155,7 @@ void MI_ADD_CUSTOM_COLOR::click(IWindowMenu &) {
     size_t slot = 0;
     while (slot < filament_color::custom_slot_count && filament_color::custom(slot)) ++slot;
     if (slot == filament_color::custom_slot_count) {
-        MsgBoxWarning(_("All custom color slots are in use."), Responses_Ok);
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("All custom color slots are in use."), Responses_Ok);
         return;
     }
     std::array<char, filament_color::name_capacity> name {};
@@ -158,17 +163,22 @@ void MI_ADD_CUSTOM_COLOR::click(IWindowMenu &) {
     if (!DialogTextInput::exec(_("Color name"), name) || !DialogTextInput::exec(_("Hex #RRGGBB"), hex, false, true)) return;
     const auto color = Color::from_string(hex.data());
     if (!color || !filament_color::set_custom(slot, name.data(), *color)) {
-        MsgBoxWarning(_("Enter a name and a valid #RRGGBB color."), Responses_Ok);
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Enter a name and valid #RRGGBB color."), Responses_Ok);
         return;
     }
     Screens::Access()->Close();
 }
+#endif
 
 MI_ASSIGN_LOADED_COLOR::MI_ASSIGN_LOADED_COLOR(VirtualToolIndex tool, std::optional<Color> color, std::string_view name)
     : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no), tool_(tool), color_(color) {
+#if HAS_MINI_DISPLAY()
+    SetLabel(color ? string_view_utf8::MakeCPUFLASH(name.data()) : string_view_utf8::MakeCPUFLASH("None"));
+#else
     if (color) snprintf(label_.data(), label_.size(), "%.*s  #%06lx", static_cast<int>(name.size()), name.data(), static_cast<unsigned long>(color->raw & 0xffffff));
     else snprintf(label_.data(), label_.size(), "%s", "None");
     SetLabel(string_view_utf8::MakeRAM(label_.data()));
+#endif
 }
 
 void MI_ASSIGN_LOADED_COLOR::click(IWindowMenu &) {
@@ -182,22 +192,32 @@ WindowMenuAssignLoadedColor::WindowMenuAssignLoadedColor(window_t *parent, Rect1
 void WindowMenuAssignLoadedColor::set_tool(VirtualToolIndex tool) {
     tool_ = tool;
     custom_count_ = 0;
+#if !HAS_MINI_DISPLAY()
     for (size_t i = 0; i < filament_color::custom_slot_count; ++i) custom_count_ += filament_color::custom(i).has_value();
+#endif
     setup_items();
 }
 
-int WindowMenuAssignLoadedColor::item_count() const { return 3 + filament_color::palette().size() + custom_count_; }
+int WindowMenuAssignLoadedColor::item_count() const {
+    return 2 + filament_color::palette().size() + custom_count_ + !HAS_MINI_DISPLAY();
+}
 
 void WindowMenuAssignLoadedColor::setup_item(ItemVariant &variant, int index) {
     if (index == 0) { variant.emplace<MI_RETURN>(); return; }
+#if !HAS_MINI_DISPLAY()
     if (index == 1) { variant.emplace<MI_ADD_CUSTOM_COLOR>(); return; }
     if (index == 2) { variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, std::nullopt, std::string_view("None")); return; }
     size_t requested = static_cast<size_t>(index - 3);
+#else
+    if (index == 1) { variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, std::nullopt, std::string_view("None")); return; }
+    size_t requested = static_cast<size_t>(index - 2);
+#endif
     if (requested < filament_color::palette().size()) {
         const auto &p = filament_color::palette()[requested];
         variant.emplace<MI_ASSIGN_LOADED_COLOR>(tool_, p.color, p.name_view());
         return;
     }
+#if !HAS_MINI_DISPLAY()
     requested -= filament_color::palette().size();
     for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
         if (const auto p = filament_color::custom(slot); p && requested-- == 0) {
@@ -205,6 +225,7 @@ void WindowMenuAssignLoadedColor::setup_item(ItemVariant &variant, int index) {
             return;
         }
     }
+#endif
 }
 
 ScreenAssignLoadedColor::ScreenAssignLoadedColor(uint8_t tool)
