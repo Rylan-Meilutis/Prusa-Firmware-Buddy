@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <cstdio>
 
+#if HAS_PA_CALIBRATION_UI()
+
 namespace {
 constexpr std::array<const char *, 6> tool_names { N_("Tool 1"), N_("Tool 2"), N_("Tool 3"), N_("Tool 4"), N_("Tool 5"), N_("Tool 6") };
 uint8_t selected_tool = 0;
@@ -84,7 +86,7 @@ void MI_PA_TOOL::OnChange(size_t old_index) {
     const auto requested = static_cast<uint8_t>(get_index());
     if (!configured(requested)) {
         set_index(old_index);
-        MsgBoxWarning(_("Only slots with an assigned loaded filament can be calibrated."), Responses_Ok);
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Only loaded filament slots can be calibrated."), Responses_Ok);
         return;
     }
     selected_tool = requested;
@@ -114,10 +116,10 @@ MI_PA_RUN::MI_PA_RUN()
 
 void MI_PA_RUN::click(IWindowMenu &) {
     if (configured_count() == 0) {
-        MsgBoxWarning(_("Assign the loaded filament material before calibration."), Responses_Ok);
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Assign the loaded filament before calibration."), Responses_Ok);
         return;
     }
-    if (MsgBoxQuestion(_("Remove all objects and filament debris from the build and front service areas before continuing."), Responses_ContinueAbort) != Response::Continue) {
+    if (MsgBoxQuestion(string_view_utf8::MakeCPUFLASH("Clear the build and front service areas before continuing."), Responses_ContinueAbort) != Response::Continue) {
         return;
     }
     if (sequential && configured_count() > 1) {
@@ -125,7 +127,7 @@ void MI_PA_RUN::click(IWindowMenu &) {
     } else {
         const auto tool = selected_tool;
         if (!configured(tool)) {
-            MsgBoxWarning(_("The selected tool or MMU slot has no assigned filament."), Responses_Ok);
+            MsgBoxWarning(string_view_utf8::MakeCPUFLASH("The selected slot has no loaded filament."), Responses_Ok);
             return;
         }
         submit(tool);
@@ -134,3 +136,5 @@ void MI_PA_RUN::click(IWindowMenu &) {
 
 ScreenMenuPACalibration::ScreenMenuPACalibration()
     : ScreenMenuPACalibration_(_("PRESSURE ADVANCE")) {}
+
+#endif // HAS_PA_CALIBRATION_UI()

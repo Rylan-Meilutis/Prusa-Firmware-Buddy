@@ -92,12 +92,14 @@ private:
 } // namespace screen_loaded_filament_assignment
 
 namespace screen_loaded_color_assignment {
+#if !HAS_MINI_DISPLAY()
 class MI_ADD_CUSTOM_COLOR final : public IWindowMenuItem {
 public:
     MI_ADD_CUSTOM_COLOR();
 protected:
     void click(IWindowMenu &) override;
 };
+#endif
 class MI_ASSIGN_LOADED_COLOR final : public IWindowMenuItem {
 public:
     MI_ASSIGN_LOADED_COLOR(uint8_t tool, std::optional<Color> color, std::string_view name);

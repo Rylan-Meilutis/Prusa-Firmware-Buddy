@@ -7,7 +7,12 @@
 
 namespace filament_color {
 namespace {
-constexpr std::array<Profile, 15> profiles {{
+#if HAS_MINI_DISPLAY()
+constexpr std::array<PaletteProfile, 2> profiles {{
+    { "Black", Color::from_raw(0x000000) }, { "White", Color::from_raw(0xffffff) },
+}};
+#else
+constexpr std::array<PaletteProfile, 15> profiles {{
     { "Black", Color::from_raw(0x000000) }, { "Blue", Color::from_raw(0x0000ff) },
     { "Green", Color::from_raw(0x00ff00) }, { "Brown", Color::from_raw(0x800000) },
     { "Purple", Color::from_raw(0x800080) }, { "Gray", Color::from_raw(0x999999) },
@@ -17,9 +22,10 @@ constexpr std::array<Profile, 15> profiles {{
     { "Transparent", Color::from_raw(0xf0f0f0) }, { "Yellow", Color::from_raw(0xffff00) },
     { "White", Color::from_raw(0xffffff) },
 }};
+#endif
 }
 
-const std::array<Profile, 15> &palette() { return profiles; }
+std::span<const PaletteProfile> palette() { return profiles; }
 
 std::optional<Profile> custom(const size_t slot) {
     if (slot >= custom_slot_count || !(config_store().custom_filament_color_valid.get() & (1u << slot))) return std::nullopt;

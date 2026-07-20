@@ -107,6 +107,7 @@
     * Protected GPIO pins reserved for the external light bar from generic GPIO reconfiguration commands
     * Fixed Prusa Connect feature gating caused by the custom `-RME` firmware suffix; Connect registration, telemetry/events, and websocket requests now report the upstream-compatible firmware version
     * Fixed Prusa Connect chamber-light telemetry to report actual driven brightness; remote brightness values now act only as wake activity and do not overwrite RME lighting settings
+    * Kept Japanese MINI release builds within flash by using a compact Black/White LCD palette; MINI custom color slots and arbitrary RGB values remain available through `M865` and settings import
     * Suppressed filament runout while a print is paused, parking, or resuming so toolhead work during a pause does not immediately trigger a new runout event
 
 This is a custom firmware release based on upstream Prusa Firmware Buddy 6.5.7. It focuses on serial printing, OctoPrint usability, print-finished handling, LED behavior, chamber filtration, and external light bar control.

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 #include <utils/color.hpp>
@@ -18,7 +19,13 @@ struct Profile {
     std::string_view name_view() const { return name.data(); }
 };
 
-const std::array<Profile, 15> &palette();
+struct PaletteProfile {
+    const char *name;
+    Color color;
+    std::string_view name_view() const { return name; }
+};
+
+std::span<const PaletteProfile> palette();
 std::optional<Profile> custom(size_t slot);
 bool set_custom(size_t slot, std::string_view name, Color color);
 std::optional<Color> loaded(uint8_t tool);
