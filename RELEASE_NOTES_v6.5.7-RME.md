@@ -575,7 +575,7 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest release-maintenance commit: `d0e0fd4de`
+Latest release-maintenance commit: `0d19ae8fd`
 
 Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -727,5 +727,6 @@ fc79dd95d  2026-07-19  Document slicer setup for auto PA
 a8956b22d  2026-07-19  Add guided manual PA calibration
 9e732b4b2  2026-07-19  Add persistent loaded filament colors
 d0e0fd4de  2026-07-19  Refine PA material safety and Connect light handling
+0d19ae8fd  2026-07-19  Adapt PA tool selector to 6.5 GUI API
 
 ```
