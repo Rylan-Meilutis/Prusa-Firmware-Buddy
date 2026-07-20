@@ -19,5 +19,5 @@ private:
     window_text_t tool_text;
     window_wizard_progress_t progress;
     RadioButtonFSM radio;
-    std::array<char, 24> tool_buffer {};
+    std::array<char, 128> tool_buffer {};
 };
