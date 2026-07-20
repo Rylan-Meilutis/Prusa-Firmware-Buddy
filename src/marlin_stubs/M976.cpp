@@ -344,10 +344,6 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
-    if (thermalManager.tooColdToExtrude(active_extruder)) {
-        SERIAL_ERROR_MSG("M976 hotend too cold");
-        return;
-    }
 #if !HAS_WASTEBIN()
     if (buddy::extrusion_calibration::occupied_anchor_mask() & (1u << slot)) {
         SERIAL_ERROR_MSG("M976 anchor slot occupied; remove debris and run M976 C L<slot>");
@@ -405,6 +401,10 @@ void PrusaGcodeSuite::M976() {
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
+    }
+    if (thermalManager.tooColdToExtrude(active_extruder)) {
+        SERIAL_ERROR_MSG("M976 hotend too cold");
+        return;
     }
     park_for_free_air_calibration(slot);
     BlockEStallDetection block_legacy_e_stall;
