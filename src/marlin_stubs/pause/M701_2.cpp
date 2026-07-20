@@ -140,6 +140,22 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, bool ask_unloaded) {
     InProgress progress;
 
+    const IFSensor *const extruder_sensor = GetExtruderFSensor(target_extruder);
+    const IFSensor *const side_sensor = GetSideFSensor(target_extruder);
+    const bool extruder_sensor_enabled = extruder_sensor && extruder_sensor->is_enabled();
+    const bool side_sensor_enabled = side_sensor && side_sensor->is_enabled();
+    if (!extruder_sensor_enabled && !side_sensor_enabled) {
+        // With both filament-presence inputs disabled, an unload request from
+        // the UI represents the already-empty path. Avoid heating and running
+        // an unnecessary unload sequence, and keep loaded metadata coherent.
+        config_store().set_filament_type(target_extruder, FilamentType::none);
+        filament::set_type_to_load(FilamentType::none);
+        filament::set_color_to_load(std::nullopt);
+        PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);
+        SERIAL_ECHOLNPAIR("Filament unload skipped; sensors disabled T", unsigned(target_extruder));
+        return;
+    }
+
 #if HAS_AUTO_RETRACT()
     if (op_preheat && !buddy::auto_retract().is_safely_retracted_for_unload(hotend_from_extruder(target_extruder))) {
 #else

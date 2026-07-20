@@ -50,6 +50,9 @@
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
   * Fixes
+    * Fixed streamed-print completion resetting OctoPrint's numbered-command sequence by reserving `Done printing file` for actual media prints
+    * Filament unload now skips heating and motion when both presence sensors are disabled, while clearing the stored material and color assignment
+    * PA calibration now emits the applied `M572` command and manual UI runs park the toolhead after results are handled
     * Fixed the pressure-advance progress footer covering the Abort button and made it use the configured main-screen footer items
     * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
