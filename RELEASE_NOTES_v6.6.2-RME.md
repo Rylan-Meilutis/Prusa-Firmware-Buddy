@@ -745,6 +745,8 @@ c4aeb83bf  2026-07-20  Fix virtual tool color lookup
 593b04aef  2026-07-20  Finalize compressed MINI resources and upload decoder
 c0509f2a0  2026-07-20  Show filament color swatches and support eight-tool PA
 849c6218f  2026-07-20  Use print temperatures and reduce PA MMU purge
+c2934d3f6  2026-07-20  Flash Prusa Connect firmware downloads from UI
+04a7ce059  2026-07-20  Clean up UI firmware staging after update
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
