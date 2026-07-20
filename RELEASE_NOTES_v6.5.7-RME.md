@@ -26,6 +26,7 @@
     * Optional BBF firmware signing for release builds with a local default signing key
     * Clarified stock Prusa bootloader limitations for custom firmware signing and release builds
     * Size-optimized release LTO linking to reduce flash usage, especially on XL
+    * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI fonts use independently compressed, random-access external glyph records with a one-glyph cache, preserving the full UI and language coverage while restoring internal-flash headroom
     * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
     * UI theme updates and theme import support
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament

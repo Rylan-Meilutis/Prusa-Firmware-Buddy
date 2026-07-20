@@ -46,7 +46,9 @@ successful signed-BBF upload.
 MINI must retain the same firmware-update menu and M998 validation/state
 machine as MK/CORE builds. Its 7x13, 9x16, and 11x18 bitmap fonts belong in
 `/internal/res/fonts` and are generated from the selected complete font headers
-into the resources tarball. Verify Japanese, Ukrainian, and Latin MINI presets,
+as independently compressed random-access glyph records in the resources
+tarball. The 6.5.7 branch must retain the backported tarball extractor rather
+than its fixed-size legacy LittleFS BBF image. Verify Japanese, Ukrainian, and Latin MINI presets,
 including resource replacement after an update, missing/corrupt-resource
 behavior, repeated-glyph caching, and that no embedded font arrays return to
 the application link map. Keep meaningful internal-flash headroom; do not

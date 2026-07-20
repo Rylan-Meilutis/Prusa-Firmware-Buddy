@@ -1,7 +1,7 @@
 #include "gcode/gcode.h"
 #include "PrusaGcodeSuite.hpp"
 
-#include <base64/base64.hpp>
+#include <mbedtls/base64.h>
 #include <mbedtls/sha256.h>
 #include <array>
 #include <cstdlib>
@@ -125,26 +125,12 @@ void write_chunk(const char *body) {
     }
 
     std::array<uint8_t, maximum_chunk_size> decoded {};
+    const size_t encoded_size = strcspn(encoded, " ");
     size_t decoded_size = 0;
-    base64::Base64Decoder decoder;
-    for (const char *cursor = encoded; *cursor && *cursor != ' '; ++cursor) {
-        std::byte output;
-        switch (decoder.decode(*cursor, output)) {
-        case base64::Base64Decoder::DecodeResult::new_output:
-            if (decoded_size == decoded.size()) {
-                report_error("CHUNK");
-                return;
-            }
-            decoded[decoded_size++] = static_cast<uint8_t>(output);
-            break;
-        case base64::Base64Decoder::DecodeResult::error:
-            report_error("BASE64");
-            return;
-        case base64::Base64Decoder::DecodeResult::no_output:
-            break;
-        }
-    }
-    if (!decoder.finalize() || decoded_size == 0 || decoded_size > upload.expected_size - upload.received) {
+    if (encoded_size == 0 || encoded_size > 64
+        || mbedtls_base64_decode(decoded.data(), decoded.size(), &decoded_size,
+            reinterpret_cast<const unsigned char *>(encoded), encoded_size) != 0
+        || decoded_size == 0 || decoded_size > upload.expected_size - upload.received) {
         report_error("CHUNK");
         return;
     }
