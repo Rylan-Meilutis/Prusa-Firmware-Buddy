@@ -121,7 +121,7 @@ public:
         if (!wait_for_reachable_targets) return;
         for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
             if (targets_[hotend] < thermalManager.extrude_min_temp) continue;
-            M109_no_parser(PhysicalToolIndex::from_raw(hotend), {
+            M109_no_parser(hotend, {
                 .target_temp = targets_[hotend],
                 .wait_heat = true,
                 .wait_heat_or_cool = true,
@@ -221,7 +221,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            if (MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN && !MMU2::mmu2.unload()) return false;
+            if (MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN && !MMU2::mmu2.unload()) return false;
             if (!GcodeSuite::G28_no_parser(true, true, true)) return false;
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
@@ -254,7 +254,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
 #if ENABLED(PRUSA_MMU2)
     // Leave the nozzle empty for the slicer's full MBL. Its normal initial
     // tool command reloads the print filament after probing is complete.
-    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN)
+    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN)
         return MMU2::mmu2.unload();
 #endif
     return true;
