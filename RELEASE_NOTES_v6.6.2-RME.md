@@ -307,6 +307,18 @@ Submenu arrows now use the resolved menu text color instead of the theme image
 accent, preserving contrast for Indigo and custom themes in both focused and
 unfocused list rows.
 
+Settings > FW update now opens a firmware-update page with USB BBF selection
+and the existing update instructions. Selecting a root-level 8.3 `.bbf` asks
+for confirmation, records the selected file for the bootloader, and restarts.
+The bootloader performs its normal signature, printer-model, and compatibility
+checks before writing firmware.
+
+Serial hosts can request the same bootloader handoff with
+`M997 /usb/FIRMWARE.BBF`, provided the BBF already exists in the USB root and
+uses an 8.3 short filename. `M997 O` retains the existing automatic/forced
+restart update behavior. The normal serial G-code channel does not implement a
+binary BBF upload transport.
+
 Release builds now use `-Oz` for release compile and final LTO link optimization, plus `-fmerge-all-constants` to merge duplicate constants and strings. This reduces final firmware flash usage across platforms and gives XL enough room to keep the same RME features enabled as the other supported printers.
 
 With XL per-print side-strip percent brightness, per-print screen brightness, per-state screen/status brightness, and OctoPrint SD/USB storage support enabled, the local XL release boot image now builds successfully with substantial boot flash headroom by moving XL translations to the resource image.
