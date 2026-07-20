@@ -8,7 +8,8 @@ Bring the RME feature set onto the new upstream release with the smallest practi
 
 The PA calibration port includes both slicer-driven M976 and the manual
 Calibrations & Tests screen. When rebasing, verify physical-tool and MMU-slot
-selection, sequential batch submission, the manual-only clean-area prompt,
+selection of loaded filaments only, automatic material-profile temperatures,
+the ±15 °C manual-temperature safety bound, sequential batch submission, the manual-only clean-area prompt,
 anchor acknowledgement, and restoration of every prior hotend target after all
 M976 exit paths.
 
@@ -264,6 +265,7 @@ Connect download commands remain accepted through `START_INLINE_DOWNLOAD`, `STAR
 Connect downloads stay constrained to `/usb` and transferable file types.
 Serial-printing UI FSM state must not mask the underlying Marlin print lifecycle from Connect. During serial prints, Connect should see normal `PRINTING`, `PAUSED`, `ATTENTION`, `FINISHED`, and `STOPPED` states rather than generic `BUSY`.
 Do not remove the RME suffix globally as a workaround for Connect; keep the compatibility version scoped to Connect-facing reporting.
+Connect chamber-light telemetry must report the currently driven RGBW brightness, not the configured active-state maximum. A `ChamberLedIntensity` value received from Connect is a wake/activity command only and must not modify any persistent or per-state brightness setting.
 ```
 
 ### LEDs, Chamber Lights, Side Strips, And GPIO Light Bar

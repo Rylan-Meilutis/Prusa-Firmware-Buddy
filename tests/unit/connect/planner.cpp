@@ -517,20 +517,27 @@ extern uint8_t ledpwm;
 
 namespace leds {
 extern uint8_t side_max_brightness;
+extern bool side_activity_pinged;
 }
 
 TEST_CASE("Command Set value - xbuddy_extension LED intensity logic") {
     SECTION("0%") {
         Test test;
+        leds::side_max_brightness = 123;
+        leds::side_activity_pinged = false;
         auto command = Command { CommandId(0), SetValue { PropertyName::ChamberLedIntensity, 0, int8_t(0) } };
         test.planner.command(command);
-        REQUIRE(leds::side_max_brightness == 0);
+        REQUIRE(leds::side_max_brightness == 123);
+        REQUIRE(leds::side_activity_pinged);
     }
     SECTION("100%") {
         Test test;
+        leds::side_max_brightness = 123;
+        leds::side_activity_pinged = false;
         auto command = Command { CommandId(0), SetValue { PropertyName::ChamberLedIntensity, 0, int8_t(100) } };
         test.planner.command(command);
-        REQUIRE(leds::side_max_brightness == 255);
+        REQUIRE(leds::side_max_brightness == 123);
+        REQUIRE(leds::side_activity_pinged);
     }
 }
 
