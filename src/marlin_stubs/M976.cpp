@@ -14,6 +14,7 @@
 #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
 #include <feature/extrusion_calibration.hpp>
+#include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <common/mapi/motion.hpp>
 #include <common/mapi/parking.hpp>
 #include <common/marlin_server.hpp>
@@ -41,6 +42,12 @@ struct BatchEntry {
     uint8_t logical_filament;
     int16_t temperature;
     std::array<char, 17> material {};
+};
+
+class FilamentSensorEventGuard {
+public:
+    FilamentSensorEventGuard() { FSensors_instance().IncEvLock(); }
+    ~FilamentSensorEventGuard() { FSensors_instance().DecEvLock(); }
 };
 
 float probe_anchor_slot(uint8_t slot);
@@ -415,6 +422,10 @@ void PrusaGcodeSuite::M976() {
         return;
     }
 #endif
+    // The deliberately pulsed extrusion profile is not a print-time runout or
+    // autoload event. Keep sensor sampling active, but suppress event handling
+    // until calibration cleanup is complete.
+    FilamentSensorEventGuard filament_sensor_events;
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {

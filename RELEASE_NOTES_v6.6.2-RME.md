@@ -35,6 +35,7 @@
       * Manual and slicer-driven calibration use a whole-batch blocking heating/homing/probing/measuring/computing/cleanup progress screen visible over normal and serial prints; it takes over immediately, keeps chamber lights active, and permits only Abort until aggregated manual results are ready for Save to USB or Done
       * Manual MMU calibration probes before loading filament and unloads once before presenting the aggregated results; slicer/G-code runs retain their requested loaded state
       * Loaded-filament machines home and probe at the material profile's lower nozzle-preheat temperature, create 10 mm of bed/nozzle clearance, then heat to the requested test temperature; MMU batches probe unloaded with the same preheat clearance
+      * Filament-sensor sampling remains active during PA excitation, while runout/autoload event generation is scoped off until calibration cleanup completes to prevent false toolhead-sensor errors
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU/INDX jobs and reuse cached results within the current job
