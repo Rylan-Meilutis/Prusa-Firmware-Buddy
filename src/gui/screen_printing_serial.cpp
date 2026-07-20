@@ -460,7 +460,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     page_dots.Hide();
 
     last_message_id = status_message_baseline_id = SerialPrinting::status_message_baseline();
-    set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::initializing);
+    set_page(SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy ? Page::legacy : Page::status);
     update_progress();
 }
 
@@ -512,7 +512,7 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
                 set_page(Page::legacy);
             } else if (!serial_data_seen) {
-                set_page(Page::initializing);
+                set_page(Page::status);
             } else if (status_page_available()) {
                 user_selected_page = false;
                 set_page(Page::status);
@@ -1020,7 +1020,7 @@ void screen_printing_serial_data_t::set_page(Page page) {
     w_time_value.set_visible(false);
     time_dots.Hide();
 
-    const bool show_status = current_page == Page::status || current_page == Page::initializing;
+    const bool show_status = current_page == Page::status;
     w_status_label.set_visible(show_status);
     w_status_value.set_visible(show_status);
     w_status_progress.set_visible(show_status && status_progress_available);
