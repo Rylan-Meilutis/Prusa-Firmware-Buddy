@@ -22,6 +22,7 @@
 
 #if HAS_LOADCELL()
     #include <gui/screen/screen_nozzle_cleaning_failed.hpp>
+    #include <screen_pa_calibration_progress.hpp>
 #endif
 
 #if HAS_INDX()
@@ -306,6 +307,7 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
 #endif
 #if HAS_LOADCELL()
     FSMScreenDef<ClientFSM::NozzleCleaningFailed, ScreenNozzleCleaningFailed>,
+    FSMScreenDef<ClientFSM::PressureAdvanceCalibration, ScreenPACalibrationProgress>,
 #endif
 #if HAS_INDX()
     FSMScreenDef<ClientFSM::NozzleMismatch, ScreenNozzleMismatch>,

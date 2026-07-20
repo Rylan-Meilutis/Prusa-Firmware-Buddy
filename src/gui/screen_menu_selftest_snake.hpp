@@ -2,13 +2,16 @@
 
 #include "screen_menu.hpp"
 #include "MItem_tools.hpp"
+#include "MItem_basic_selftest.hpp"
 #include "MItem_menus.hpp"
 #include <WindowMenuItems.hpp>
 #include <utility_extensions.hpp>
 #include <selftest_snake_config.hpp>
+#include <printers.h>
 #include <meta_utils.hpp>
 
 namespace SelftestSnake {
+static_assert(Action::_first != Action::_last, "Edge case not handled");
 
 class I_MI_STS : public IWindowMenuItem {
 public:
@@ -29,24 +32,21 @@ using MI_STS = WithConstructorArgs<I_MI_STS, action_>;
 
 class I_MI_STS_SUBMENU : public IWindowMenuItem {
 public:
-    I_MI_STS_SUBMENU(const char *label_template, Action action, PhysicalToolIndex tool);
+    I_MI_STS_SUBMENU(const char *label, Action action, Tool tool);
     void click(IWindowMenu &window_menu) override;
     void Loop() override;
 
 private:
     const Action action;
-    const PhysicalToolIndex tool;
-    StringViewUtf8Parameters<3> label_params_;
+    const Tool tool;
 };
 
-class MI_BYPASS_DEPENDENCIES : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *label = N_("Bypass Dependency Checks");
-
+template <Tool tool_, Action action_>
+    requires SubmenuActionC<action_>
+class MI_STS_SUBMENU : public I_MI_STS_SUBMENU {
 public:
-    MI_BYPASS_DEPENDENCIES();
-
-protected:
-    void OnChange(size_t old_index) override;
+    MI_STS_SUBMENU()
+        : I_MI_STS_SUBMENU(get_submenu_label(tool_, action_), action_, tool_) {}
 };
 
 bool is_menu_draw_enabled(window_t *window);
@@ -68,16 +68,9 @@ namespace detail {
     // Partial specialization for when building Calibrations menu
     template <EFooter FOOTER, std::size_t... I>
     struct menu_builder<FOOTER, MenuType::Calibrations, std::index_sequence<I...>> {
-#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
-        using type = ScreenMenu<FOOTER, MI_RETURN,
-            MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
-            MI_PA_CALIBRATION,
-            MI_BYPASS_DEPENDENCIES>;
-#else
         using type = ScreenMenu<FOOTER, MI_RETURN,
             MI_STS<static_cast<Action>(I + std::to_underlying(Action::_first))>...,
             MI_BYPASS_DEPENDENCIES>;
-#endif
     };
 
     // Partial specialization for when building Wizard menu
