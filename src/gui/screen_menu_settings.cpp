@@ -19,12 +19,14 @@
 
 using namespace buddy;
 
+#if !HAS_MINI_DISPLAY()
 MI_CUSTOM_FILAMENT_COLORS::MI_CUSTOM_FILAMENT_COLORS()
     : IWindowMenuItem(_("Filament Colors"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
 void MI_CUSTOM_FILAMENT_COLORS::click(IWindowMenu &) {
     Screens::Access()->Open<screen_loaded_color_assignment::ScreenCustomFilamentColors>();
 }
+#endif
 
 /*****************************************************************************/
 // MI_HELP_FW_UPDATE

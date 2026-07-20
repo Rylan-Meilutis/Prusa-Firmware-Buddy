@@ -143,6 +143,7 @@ protected:
     void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };
 
+#if !HAS_MINI_DISPLAY()
 class MI_ADD_CUSTOM_COLOR final : public IWindowMenuItem {
 public:
     MI_ADD_CUSTOM_COLOR();
@@ -171,6 +172,7 @@ class ScreenCustomFilamentColors final : public ScreenMenuBase<WindowMenuCustomF
 public:
     ScreenCustomFilamentColors();
 };
+#endif
 }
 
 class ScreenAssignLoadedColor final : public ScreenMenuBase<screen_loaded_color_assignment::WindowMenuAssignLoadedColor> {
