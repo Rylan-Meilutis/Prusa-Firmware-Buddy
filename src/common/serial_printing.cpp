@@ -23,6 +23,55 @@ uint8_t SerialPrinting::last_host_progress_percent = 0;
 uint32_t SerialPrinting::last_host_progress_ms = 0;
 uint32_t SerialPrinting::last_host_time_to_end_s = 0;
 uint32_t SerialPrinting::last_host_time_to_end_ms = 0;
+uint32_t SerialPrinting::status_message_baseline_id = 0;
+uint32_t SerialPrinting::last_status_hash = 0;
+int8_t SerialPrinting::last_status_progress = -1;
+uint32_t SerialPrinting::last_status_notification_ms = 0;
+
+void SerialPrinting::set_status_message_baseline(uint32_t id) {
+    status_message_baseline_id = id;
+}
+
+uint32_t SerialPrinting::status_message_baseline() {
+    return status_message_baseline_id;
+}
+
+void SerialPrinting::reset_status_notifications() {
+    last_status_hash = 0;
+    last_status_progress = -1;
+    last_status_notification_ms = 0;
+}
+
+void SerialPrinting::notify_status(const char *message, int progress_percent, bool force) {
+    if (!marlin_server::serial_print_active() || message == nullptr || message[0] == '\0') {
+        return;
+    }
+
+    uint32_t hash = 2166136261u;
+    for (const char *c = message; *c; ++c) {
+        hash = (hash ^ static_cast<uint8_t>(*c)) * 16777619u;
+    }
+    progress_percent = std::clamp(progress_percent, -1, 100);
+    const uint32_t now = ticks_ms();
+    const bool changed = hash != last_status_hash;
+    const bool useful_progress = progress_percent >= 0
+        && (last_status_progress < 0 || std::abs(progress_percent - last_status_progress) >= 5);
+    if (!force && !changed && !useful_progress
+        && ticks_diff(now, last_status_notification_ms) < 5000) {
+        return;
+    }
+
+    SERIAL_ECHOPGM("//action:notification ");
+    SERIAL_ECHO(message);
+    if (progress_percent >= 0) {
+        SERIAL_ECHOPAIR(" ", progress_percent);
+        SERIAL_CHAR('%');
+    }
+    SERIAL_EOL();
+    last_status_hash = hash;
+    last_status_progress = static_cast<int8_t>(progress_percent);
+    last_status_notification_ms = now;
+}
 
 void SerialPrinting::host_action(const char *action, const char *reason) {
     SERIAL_ECHOPGM("//action:");

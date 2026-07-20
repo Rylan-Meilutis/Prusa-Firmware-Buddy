@@ -1,4 +1,5 @@
 #include "toolchanger.h"
+#include <serial_printing.hpp>
 #include "module/planner.h"
 #include "module/tool_change.h"
 #include <tool_index.hpp>
@@ -730,6 +731,10 @@ PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_toolchange_fa
         return ToolchangeFailureAction::abort;
     }
 
+    SerialPrinting::notify_status(main_phase == PhaseNozzleMismatch::park_failed
+            ? "Tool parking failed"
+            : "Tool pickup failed",
+        -1, true);
     marlin_server::FSM_Holder fsm(main_phase);
 
     for (;;) {

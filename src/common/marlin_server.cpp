@@ -1578,6 +1578,11 @@ bool printer_paused_extended() {
 #if HAS_SERIAL_PRINT()
 void serial_print_start() {
     capture_serial_print_snapshot();
+    // Status history survives between jobs. Mark the boundary before the
+    // streamed startup command executes so the serial UI cannot present an
+    // old heater/probing message as the state of this new print.
+    SerialPrinting::set_status_message_baseline(print_status_message().latest_id());
+    SerialPrinting::reset_status_notifications();
 
     switch (server.print_state) {
     case State::Finished:

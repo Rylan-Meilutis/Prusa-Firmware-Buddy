@@ -2,6 +2,7 @@
 #include "pause_stubbed.hpp"
 #include "mmu2_error_converter.h"
 #include "fsm_loadunload_type.hpp"
+#include <serial_printing.hpp>
 
 LOG_COMPONENT_REF(MMU2);
 
@@ -147,6 +148,18 @@ void Fsm::Loop() {
 
             const FSMLoadUnloadData data { .mode = progressManager.GetLoadUnloadMode(), .progress = progressManager.GetProgressPercentage() };
             marlin_server::fsm_change(ProgressCodeToPhasesLoadUnload(progressManager.GetProgressCode()), fsm::serialize_data(data));
+            const char *status = "MMU filament operation";
+            switch (data.mode) {
+            case LoadUnloadMode::Load: status = "MMU loading filament"; break;
+            case LoadUnloadMode::Unload: status = "MMU unloading filament"; break;
+            case LoadUnloadMode::Change: status = "MMU changing filament"; break;
+            case LoadUnloadMode::Cut: status = "MMU cutting filament"; break;
+            case LoadUnloadMode::Eject: status = "MMU ejecting filament"; break;
+            case LoadUnloadMode::Test: status = "MMU testing filament path"; break;
+            case LoadUnloadMode::Purge: status = "MMU purging filament"; break;
+            case LoadUnloadMode::FilamentStuck: status = "MMU filament stuck"; break;
+            }
+            SerialPrinting::notify_status(status, data.progress);
 
         } else if constexpr (std::is_same_v<T, ErrorData>) {
             if (r.errorCode == ErrorCode::MMU_NOT_RESPONDING) {
@@ -154,6 +167,7 @@ void Fsm::Loop() {
             }
 
             log_debug(MMU2, "Report error =%u", static_cast<unsigned>(r.errorCode));
+            SerialPrinting::notify_status(ConvertMMUErrorCode(r.errorCode).err_title, -1, true);
             marlin_server::fsm_change(
                 PhasesLoadUnload::MMU_ERRWaitingForUser,
                 fsm::serialize_data(&ConvertMMUErrorCode(r.errorCode)));
