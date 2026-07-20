@@ -840,6 +840,7 @@ f07fc8aef  2026-07-20  Fix 6.5 PA temperature selector API
 6e754c617  2026-07-20  Clean up UI firmware staging after update
 3e2f547ab  2026-07-20  Keep MMU unloaded for PA probing and mesh
 66326ee83  2026-07-20  Adapt PA cooldown to 6.5 MMU APIs
+50a26a598  2026-07-20  Prevent serial resend storms during M976
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
