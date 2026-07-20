@@ -51,6 +51,7 @@ enum class Response : uint8_t {
     Resume,
     Retry,
     Right,
+    Save,
     Skip,
     Slowly,
     SpoolJoin,

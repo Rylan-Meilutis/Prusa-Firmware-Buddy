@@ -442,6 +442,23 @@ enum class PhasesInputShaperCalibration : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhasesInputShaperCalibration) { return ClientFSM::InputShaperCalibration; }
 #endif
 
+#if HAS_LOADCELL()
+enum class PhasesPressureAdvanceCalibration : PhaseUnderlyingType {
+    heating,
+    homing,
+    probing,
+    measuring,
+    computing,
+    cleanup,
+    result,
+    complete,
+    failed,
+    _last = failed,
+};
+constexpr inline ClientFSM client_fsm_from_phase(PhasesPressureAdvanceCalibration) { return ClientFSM::PressureAdvanceCalibration; }
+
+#endif
+
 enum class PhasesPrinting : PhaseUnderlyingType {
     active,
 };
@@ -545,6 +562,19 @@ constexpr inline ClientFSM client_fsm_from_phase(PhaseToolOffsetsCalibration) { 
 
 namespace ClientResponses {
 
+#if HAS_LOADCELL()
+inline constexpr EnumArray<PhasesPressureAdvanceCalibration, PhaseResponses, CountPhases<PhasesPressureAdvanceCalibration>()> pressure_advance_calibration_responses {
+    { PhasesPressureAdvanceCalibration::heating, { Response::Abort } },
+    { PhasesPressureAdvanceCalibration::homing, { Response::Abort } },
+    { PhasesPressureAdvanceCalibration::probing, { Response::Abort } },
+    { PhasesPressureAdvanceCalibration::measuring, { Response::Abort } },
+    { PhasesPressureAdvanceCalibration::computing, { Response::Abort } },
+    { PhasesPressureAdvanceCalibration::cleanup, {} },
+    { PhasesPressureAdvanceCalibration::result, { Response::Save, Response::Done } },
+    { PhasesPressureAdvanceCalibration::complete, {} },
+    { PhasesPressureAdvanceCalibration::failed, {} },
+};
+#endif
 #if HAS_SELFTEST()
 inline constexpr EnumArray<PhasesSelftest, PhaseResponses, CountPhases<PhasesSelftest>()> SelftestResponses {
     { PhasesSelftest::_none, {} },

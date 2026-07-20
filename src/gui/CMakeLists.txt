@@ -148,6 +148,7 @@ if(HAS_SELFTEST)
 endif()
 
 if(HAS_LOADCELL)
+  target_sources(firmware PRIVATE screen_pa_calibration_progress.cpp)
   target_sources(firmware PRIVATE MItem_loadcell.cpp)
 endif()
 

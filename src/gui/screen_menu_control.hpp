@@ -72,6 +72,10 @@ using ScreenMenuControlSpec = ScreenMenu<EFooter::On, MI_RETURN
 #endif
 
 #if HAS_SELFTEST()
+#if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
+    ,
+    MI_PA_CALIBRATION
+#endif
     ,
     MI_SELFTEST_SNAKE
 #endif

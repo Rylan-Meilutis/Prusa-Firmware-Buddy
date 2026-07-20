@@ -69,6 +69,7 @@ enum class ClientFSM : uint8_t {
     #endif
     #if HAS_LOADCELL()
     NozzleCleaningFailed,
+    PressureAdvanceCalibration,
     #endif
     #if HAS_INDX()
     NozzleMismatch,

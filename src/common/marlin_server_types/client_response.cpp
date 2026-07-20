@@ -66,6 +66,7 @@ constinit const EnumArray<ClientFSM, std::span<const PhaseResponses>, ClientFSM:
 #endif
 #if HAS_LOADCELL()
         { ClientFSM::NozzleCleaningFailed, nozzle_cleaning_responses },
+        { ClientFSM::PressureAdvanceCalibration, pressure_advance_calibration_responses },
 #endif
 #if HAS_INDX()
         { ClientFSM::NozzleMismatch, nozzle_mismatch_responses },
