@@ -5,8 +5,29 @@
 #include <print_utils.hpp>
 #include <ScreenHandler.hpp>
 #include <dialog_text_input.hpp>
+#include <display.hpp>
 
 namespace {
+constexpr Rect16::Width_t color_swatch_extension_width { 32 };
+constexpr Rect16::Width_t color_swatch_and_arrow_extension_width { 48 };
+constexpr Rect16::Width_t color_swatch_size { 20 };
+
+void draw_color_swatch(Rect16 rect, const Color color, const Color background) {
+    rect = Rect16::Left_t { static_cast<int16_t>(rect.Left() + (rect.Width() - color_swatch_size) / 2) };
+    rect = Rect16::Top_t { static_cast<int16_t>(rect.Top() + (rect.Height() - color_swatch_size) / 2) };
+    rect = color_swatch_size;
+    rect = Rect16::Height_t { color_swatch_size };
+
+    const bool light_color = color.to_grayscale() > 127;
+    const bool light_background = background.to_grayscale() > 127;
+    display::draw_rect(rect, light_color == light_background ? (light_color ? COLOR_BLACK : COLOR_WHITE) : background);
+    rect += Rect16::Left_t { 1 };
+    rect += Rect16::Top_t { 1 };
+    rect -= Rect16::Width_t { 2 };
+    rect -= Rect16::Height_t { 2 };
+    display::fill_rect(rect, color);
+}
+
 #if !HAS_MINI_DISPLAY()
 struct PendingLoadedFilament {
     uint8_t tool = 0;
@@ -48,16 +69,32 @@ MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t too
 
         sb.append_string(": ");
         sb.append_string(filament_type_.parameters().name.data());
-        if (const auto color = filament_color::loaded(tool)) {
-            const auto color_profile = filament_color::profile_for(*color);
+        color_ = filament_color::loaded(tool);
+        if (color_) {
+            const auto color_profile = filament_color::profile_for(*color_);
             sb.append_string(" / ");
             sb.append_string(color_profile.name.data());
-            sb.append_printf(" #%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
+            extension_width = color_swatch_and_arrow_extension_width;
         }
 
         SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));
         set_is_hidden(!is_tool_enabled(tool));
     }
+}
+
+void MI_LOADED_FILAMENT::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
+    if (!color_) {
+        IWindowMenuItem::printExtension(extension_rect, color_text, color_back, raster_op);
+        return;
+    }
+
+    Rect16 swatch_rect = extension_rect;
+    swatch_rect -= Rect16::Width_t { expand_icon_width };
+    draw_color_swatch(swatch_rect, *color_, color_back);
+
+    extension_rect += Rect16::Left_t { static_cast<int16_t>(extension_rect.Width() - expand_icon_width) };
+    extension_rect = Rect16::Width_t { expand_icon_width };
+    IWindowMenuItem::printExtension(extension_rect, color_text, color_back, raster_op);
 }
 
 void MI_LOADED_FILAMENT::click(IWindowMenu &) {
@@ -133,14 +170,18 @@ ScreenAssignLoadedFilament::ScreenAssignLoadedFilament(uint8_t tool)
 using namespace screen_loaded_color_assignment;
 
 MI_ASSIGN_LOADED_COLOR::MI_ASSIGN_LOADED_COLOR(uint8_t tool, std::optional<Color> color, std::string_view name)
-    : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no), tool_(tool), color_(color) {
+    : IWindowMenuItem({}, color ? color_swatch_extension_width : Rect16::Width_t { 0 }, nullptr, is_enabled_t::yes, is_hidden_t::no), tool_(tool), color_(color) {
 #if HAS_MINI_DISPLAY()
     SetLabel(color ? string_view_utf8::MakeCPUFLASH(name.data()) : string_view_utf8::MakeCPUFLASH("None"));
 #else
-    if (color) snprintf(label_.data(), label_.size(), "%.*s  #%06lx", static_cast<int>(name.size()), name.data(), static_cast<unsigned long>(color->raw & 0xffffff));
+    if (color) snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());
     else snprintf(label_.data(), label_.size(), "%s", "None");
     SetLabel(string_view_utf8::MakeRAM(label_.data()));
 #endif
+}
+
+void MI_ASSIGN_LOADED_COLOR::printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const {
+    if (color_) draw_color_swatch(extension_rect, *color_, color_back);
 }
 
 void MI_ASSIGN_LOADED_COLOR::click(IWindowMenu &) {
@@ -237,11 +278,16 @@ void MI_ADD_CUSTOM_COLOR::click(IWindowMenu &) {
 }
 
 MI_SAVED_CUSTOM_COLOR::MI_SAVED_CUSTOM_COLOR(const size_t slot)
-    : IWindowMenuItem({}, nullptr, is_enabled_t::no, is_hidden_t::no) {
+    : IWindowMenuItem({}, color_swatch_extension_width, nullptr, is_enabled_t::no, is_hidden_t::no) {
     if (const auto profile = filament_color::custom(slot)) {
-        snprintf(label_.data(), label_.size(), "%.*s  #%06lx", static_cast<int>(profile->name_view().size()), profile->name.data(), static_cast<unsigned long>(profile->color.raw & 0xffffff));
+        color_ = profile->color;
+        snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(profile->name_view().size()), profile->name.data());
         SetLabel(string_view_utf8::MakeRAM(label_.data()));
     }
+}
+
+void MI_SAVED_CUSTOM_COLOR::printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const {
+    if (color_) draw_color_swatch(extension_rect, *color_, color_back);
 }
 
 WindowMenuCustomFilamentColors::WindowMenuCustomFilamentColors(window_t *parent, Rect16 rect)

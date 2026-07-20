@@ -50,7 +50,9 @@ struct Result {
     Score pressure_reference {};
 };
 
-static constexpr size_t max_logical_filaments = 6;
+// Eight entries cover the full INDX tool complement while still fitting the
+// uint8_t job/tool masks used by the calibration UI and progress FSM.
+static constexpr size_t max_logical_filaments = 8;
 void reset_job_results();
 const Result *job_result(size_t logical_filament);
 void set_job_result(size_t logical_filament, const Result &result);

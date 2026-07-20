@@ -15,10 +15,10 @@
 #if HAS_PA_CALIBRATION_UI()
 
 namespace {
-constexpr std::array<const char *, 6> tool_names { N_("Tool 1 Calibration"), N_("Tool 2 Calibration"), N_("Tool 3 Calibration"), N_("Tool 4 Calibration"), N_("Tool 5 Calibration"), N_("Tool 6 Calibration") };
-constexpr std::array<const char *, 6> temperature_names { N_("Tool 1 Temperature"), N_("Tool 2 Temperature"), N_("Tool 3 Temperature"), N_("Tool 4 Temperature"), N_("Tool 5 Temperature"), N_("Tool 6 Temperature") };
-std::array<uint16_t, 6> temperature_overrides {};
-std::array<bool, 6> selected_tools {};
+constexpr std::array<const char *, 8> tool_names { N_("Tool 1 Calibration"), N_("Tool 2 Calibration"), N_("Tool 3 Calibration"), N_("Tool 4 Calibration"), N_("Tool 5 Calibration"), N_("Tool 6 Calibration"), N_("Tool 7 Calibration"), N_("Tool 8 Calibration") };
+constexpr std::array<const char *, 8> temperature_names { N_("Tool 1 Temperature"), N_("Tool 2 Temperature"), N_("Tool 3 Temperature"), N_("Tool 4 Temperature"), N_("Tool 5 Temperature"), N_("Tool 6 Temperature"), N_("Tool 7 Temperature"), N_("Tool 8 Temperature") };
+std::array<uint16_t, buddy::extrusion_calibration::max_logical_filaments> temperature_overrides {};
+std::array<bool, buddy::extrusion_calibration::max_logical_filaments> selected_tools {};
 
 constexpr NumericInputConfig temperature_config {
     .min_value = 170,
@@ -44,10 +44,11 @@ void submit_selected() {
         if (configured(tool) && selected_tools[tool]) mask |= 1u << tool;
     }
     char command[MARLIN_MAX_REQUEST + 1];
-    snprintf(command, sizeof(command), "M976 M K%u U%u,%u,%u,%u,%u,%u", unsigned(mask),
+    snprintf(command, sizeof(command), "M976 M K%u U%u,%u,%u,%u,%u,%u,%u,%u", unsigned(mask),
         unsigned(temperature_overrides[0]), unsigned(temperature_overrides[1]),
         unsigned(temperature_overrides[2]), unsigned(temperature_overrides[3]),
-        unsigned(temperature_overrides[4]), unsigned(temperature_overrides[5]));
+        unsigned(temperature_overrides[4]), unsigned(temperature_overrides[5]),
+        unsigned(temperature_overrides[6]), unsigned(temperature_overrides[7]));
     marlin_client::gcode(command);
 }
 
