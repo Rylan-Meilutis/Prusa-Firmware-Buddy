@@ -44,6 +44,7 @@
       * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or reduced-prime MMU unload/load sequences for every used filament; the MMU calibration path primes only 2 mm beyond the modeled nozzle path to avoid a loose purge loop over the bed
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
       * Purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
+      * Blocking M976 batches immediately report acceptance and emit phase keepalives; retransmission of the numbered command that is still executing is discarded with a busy response instead of triggering an RX flush and repeated forward-line requests
       * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
       * PA results are reported to three decimal places and retain valid high-PA profiles up to the 0.500 safety ceiling
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
