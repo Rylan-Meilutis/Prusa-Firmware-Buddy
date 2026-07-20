@@ -15,32 +15,50 @@
 
 namespace {
 constexpr const char *staged_firmware_path = "/usb/FWUPD.BBF";
+constexpr const char *staged_firmware_marker_path = "/usb/FWUPD.UI";
 
 bool stage_firmware_for_bootloader(const char *source_path) {
-    if (strcasecmp(source_path, staged_firmware_path) == 0) return true;
+    const bool source_is_staging_path = strcasecmp(source_path, staged_firmware_path) == 0;
 
-    FILE *source = fopen(source_path, "rb");
-    if (!source) return false;
+    if (!source_is_staging_path) {
+        FILE *source = fopen(source_path, "rb");
+        if (!source) return false;
 
-    FILE *destination = fopen(staged_firmware_path, "wb");
-    if (!destination) {
+        FILE *destination = fopen(staged_firmware_path, "wb");
+        if (!destination) {
+            fclose(source);
+            return false;
+        }
+
+        std::array<uint8_t, 1024> buffer {};
+        bool success = true;
+        while (const size_t read = fread(buffer.data(), 1, buffer.size(), source)) {
+            if (fwrite(buffer.data(), 1, read, destination) != read) {
+                success = false;
+                break;
+            }
+        }
+        success = success && !ferror(source) && fflush(destination) == 0 && fsync(fileno(destination)) == 0;
+        success = fclose(destination) == 0 && success;
         fclose(source);
-        return false;
-    }
 
-    std::array<uint8_t, 1024> buffer {};
-    bool success = true;
-    while (const size_t read = fread(buffer.data(), 1, buffer.size(), source)) {
-        if (fwrite(buffer.data(), 1, read, destination) != read) {
-            success = false;
-            break;
+        if (!success) {
+            remove(staged_firmware_path);
+            return false;
         }
     }
-    success = success && !ferror(source) && fflush(destination) == 0 && fsync(fileno(destination)) == 0;
-    success = fclose(destination) == 0 && success;
-    fclose(source);
 
-    if (!success) remove(staged_firmware_path);
+    FILE *marker = fopen(staged_firmware_marker_path, "wb");
+    if (!marker) {
+        if (!source_is_staging_path) remove(staged_firmware_path);
+        return false;
+    }
+    bool success = fflush(marker) == 0 && fsync(fileno(marker)) == 0;
+    success = fclose(marker) == 0 && success;
+    if (!success) {
+        remove(staged_firmware_marker_path);
+        if (!source_is_staging_path) remove(staged_firmware_path);
+    }
     return success;
 }
 } // namespace
