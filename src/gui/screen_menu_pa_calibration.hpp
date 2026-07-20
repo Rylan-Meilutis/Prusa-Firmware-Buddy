@@ -16,11 +16,13 @@ private:
     uint8_t tool_;
 };
 
-class MI_PA_TEMPERATURE final : public WiSpin {
+class MI_PA_TEMPERATURE : public WiSpin {
 public:
-    MI_PA_TEMPERATURE();
+    explicit MI_PA_TEMPERATURE(uint8_t tool);
 protected:
     void OnClick() override;
+private:
+    uint8_t tool_;
 };
 
 class MI_PA_RUN final : public IWindowMenuItem {
@@ -31,10 +33,13 @@ protected:
 };
 
 using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TOOL_RUN, 1>,
-    WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TOOL_RUN, 3>,
-    WithConstructorArgs<MI_PA_TOOL_RUN, 4>, WithConstructorArgs<MI_PA_TOOL_RUN, 5>,
-    MI_PA_TEMPERATURE, MI_PA_RUN>;
+    WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TEMPERATURE, 0>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 1>, WithConstructorArgs<MI_PA_TEMPERATURE, 1>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TEMPERATURE, 2>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 3>, WithConstructorArgs<MI_PA_TEMPERATURE, 3>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 4>, WithConstructorArgs<MI_PA_TEMPERATURE, 4>,
+    WithConstructorArgs<MI_PA_TOOL_RUN, 5>, WithConstructorArgs<MI_PA_TEMPERATURE, 5>,
+    MI_PA_RUN>;
 
 class ScreenMenuPACalibration final : public ScreenMenuPACalibration_ {
 public:

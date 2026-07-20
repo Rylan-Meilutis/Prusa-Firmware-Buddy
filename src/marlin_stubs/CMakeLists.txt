@@ -21,6 +21,7 @@ target_sources(
           M9201.cpp
           M9933.cpp
           M997.cpp
+          M998.cpp
           M999.cpp
           skippable_gcode.cpp
   )

@@ -140,6 +140,32 @@ if(${TRANSLATIONS_ENABLED})
   endforeach()
 endif()
 
+# MINI has limited internal executable flash. Its immutable bitmap fonts live in
+# the managed external resource image, just like translations and QOI assets.
+if(PRINTER STREQUAL "MINI")
+  if(ENABLE_TRANSLATION_JA)
+    set(mini_font_charset "latin_and_katakana")
+  elseif(ENABLE_TRANSLATION_UK)
+    set(mini_font_charset "latin_and_cyrillic")
+  else()
+    set(mini_font_charset "latin")
+  endif()
+  foreach(mini_font_size "7x13" "9x16" "11x18")
+    set(mini_font_header
+        "${CMAKE_SOURCE_DIR}/src/gui/res/cc/font_regular_${mini_font_size}_${mini_font_charset}.hpp"
+        )
+    set(mini_font_binary "${CMAKE_CURRENT_BINARY_DIR}/font-${mini_font_size}.bin")
+    add_custom_command(
+      OUTPUT "${mini_font_binary}"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/resources/font_header_to_bin.py"
+              "${mini_font_header}" "${mini_font_binary}"
+      DEPENDS "${mini_font_header}" "${CMAKE_SOURCE_DIR}/utils/resources/font_header_to_bin.py"
+      VERBATIM
+      )
+    add_resource("${mini_font_binary}" "/fonts/${mini_font_size}.bin")
+  endforeach()
+endif()
+
 # Quite OK images
 add_resource("${qoi_data_file}" "/qoi.data")
 
