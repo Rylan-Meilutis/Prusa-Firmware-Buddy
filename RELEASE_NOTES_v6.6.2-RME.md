@@ -328,8 +328,9 @@ must explicitly send `M997 /usb/FWUPD.BBF` afterward. See `doc/gcode/M998.md`.
 
 MINI exposes the same guided firmware picker and complete `M998` staging
 protocol as the MK and CORE families. To retain feature parity with adequate
-internal-flash headroom, all three complete MINI bitmap fonts are packaged in
-the signed external resource image and glyph-cached on demand. No characters,
+internal-flash headroom, all three complete MINI bitmap fonts are packaged as
+independently compressed random-access records in the signed external resource
+image and glyph-cached on demand. No characters,
 languages, update controls, or upload validation paths are removed.
 
 Release builds now use `-Oz` for release compile and final LTO link optimization, plus `-fmerge-all-constants` to merge duplicate constants and strings. This reduces final firmware flash usage across platforms and gives XL enough room to keep the same RME features enabled as the other supported printers.
