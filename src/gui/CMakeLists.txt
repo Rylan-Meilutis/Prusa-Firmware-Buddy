@@ -41,6 +41,7 @@ target_sources(
           qr.cpp
           screen_error.cpp
           screen_filebrowser.cpp
+          screen_firmware_update.cpp
           screen_help_fw_update.cpp
           screen_home.cpp
           screen_menu.cpp
