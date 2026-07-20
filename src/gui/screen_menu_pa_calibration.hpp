@@ -13,6 +13,7 @@ public:
     MI_PA_TOOL();
 protected:
     void OnChange(size_t old_index) override;
+    bool on_item_selected(const OnItemSelectedArgs &args) override;
 };
 
 class MI_PA_SEQUENTIAL final : public WI_ICON_SWITCH_OFF_ON_t {

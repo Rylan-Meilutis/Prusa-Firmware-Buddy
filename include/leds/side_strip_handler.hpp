@@ -105,6 +105,8 @@ public:
     SideStripState current_state() const;
 
     leds::ColorRGBW color() const;
+    /// Brightest currently driven RGBW channel, including off/dim/transition state.
+    uint8_t current_brightness() const;
 
 private:
     void change_state(SideStripState state);
