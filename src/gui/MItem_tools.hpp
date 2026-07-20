@@ -517,7 +517,7 @@ public:
 class MI_SIDE_LEDS_DIMMED_BRIGTHNESS : public WiSpin {
 
     static constexpr const char *const label =
-    #if PRINTER_IS_PRUSA_COREONE()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         N_("Chamber Lights Dimmed");
     #else
         N_("RGB Side Strip Dimmed");
