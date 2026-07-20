@@ -785,3 +785,44 @@ c44d61bdd  2026-07-19  Add guided PA calibration progress workflow
 bf61e96e2  2026-07-19  Report firmware print states to serial hosts
 
 ```
+
+### Final release ledger continuation
+
+```text
+2dcd1c078  2026-07-19  Update serial status commit ledger
+6ba67214f  2026-07-19  Adapt serial status reporting to 6.5 API
+4a8890042  2026-07-19  Fit serial status reporting on MINI
+9fefe3bc9  2026-07-19  Reuse status page for serial initialization
+6e5d792a4  2026-07-19  Deduplicate MINI tune settings for flash
+d47a04fa6  2026-07-20  Fix manual PA calibration workflow
+f4ac26646  2026-07-20  Document PA filament sensor isolation
+a04ed8fbf  2026-07-20  Serialize release builds
+75c8ff583  2026-07-20  Clarify build lock release behavior
+c8c8ca0e9  2026-07-20  Redesign loaded filament editor
+ea1407aa4  2026-07-20  Fit filament editor within MINI flash
+07cd3e9bf  2026-07-20  Reduce loaded filament menu footprint
+7799f56fd  2026-07-20  Respect MINI firmware size budget
+b6dcfc49d  2026-07-20  Keep MINI loaded filament UI compact
+8d2bf9c28  2026-07-20  Apply MINI filament selection directly
+4ac988750  2026-07-20  Fix MINI tool argument on 6.5
+da059fc05  2026-07-20  Document loaded filament menu layout
+d47531fc1  2026-07-20  Improve filament color and menu visibility
+1fc35116b  2026-07-20  Add USB firmware update picker
+adc36860d  2026-07-20  Reduce firmware picker footprint
+c9d2a4987  2026-07-20  Fit firmware picker on MINI
+1b92d76a1  2026-07-20  Add complete serial firmware upload and PA controls
+e205619ae  2026-07-20  Compress external MINI fonts per glyph
+20c2506b9  2026-06-16  cmake: Add SHA-256 support
+09eb3d8fc  2026-06-16  cmake: Add USTAR support
+56df5675b  2026-06-17  bootstrap: Install QOI to root directory
+96dac54d2  2026-06-16  bootstrap: Fix file descriptor leak
+11c43a05f  2026-06-16  bootstrap: Fix fopen result check
+cd11a871b  2026-06-11  bootstrap: Add tarballs to BBF
+3ff94848a  2026-06-11  bootstrap: Use tarball in firmware
+931ec5a96  2026-06-16  bootstrap: Remove dead code
+718cadcbc  2026-06-16  bootstrap: Do not pack unused TLVs to BBF
+52032a6c5  2026-07-20  Complete MINI resource and serial upload backport
+```
+
+This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
+tag points at the documentation commit immediately following this list.
