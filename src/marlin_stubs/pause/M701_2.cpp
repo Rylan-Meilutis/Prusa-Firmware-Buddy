@@ -144,7 +144,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
     const bool sensors_report_empty = filament_sensors.HasMMU()
         ? filament_sensors.no_filament_surely(LogicalFilamentSensor::extruder)
             && filament_sensors.no_filament_surely(LogicalFilamentSensor::side)
-        : filament_sensors.no_filament_surely(LogicalFilamentSensor::closest_to_nozzle);
+        : filament_sensors.no_filament_surely(LogicalFilamentSensor::extruder);
     if (sensors_report_empty && !filament_sensors.IsM600Sent()) {
         // Skip only on a trustworthy, enabled sensor reading. Disabled,
         // uninitialized, or failed sensors must fall through and attempt the

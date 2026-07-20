@@ -60,7 +60,7 @@ public:
 
     // calling clear of m600 and autoload flags is safe from any thread, but setting them would not be !!!
     void ClrM600Sent() { m600_sent = false; }
-    bool IsM600Sent() const { return m600_sent; }
+    bool IsM600Sent() const { return m600_sent.load(); }
     void ClrAutoloadSent() { autoload_sent = false; }
     bool IsAutoloadInProgress() { return autoload_sent; }
     MMU2::FilamentState WhereIsFilament();
