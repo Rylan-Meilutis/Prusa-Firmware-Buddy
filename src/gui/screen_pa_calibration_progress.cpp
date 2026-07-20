@@ -32,7 +32,8 @@ ScreenPACalibrationProgress::ScreenPACalibrationProgress()
     , stage_text(this, rect_frame_top, is_multiline::yes, is_closed_on_click_t::no)
     , tool_text(this, rect_frame_bottom, is_multiline::yes, is_closed_on_click_t::no)
     , progress(this, Rect16::Top_t { 100 })
-    , radio(this, rect_radio, PhasesPressureAdvanceCalibration::measuring) {
+    , radio(this, rect_radio, PhasesPressureAdvanceCalibration::measuring)
+    , footer(this, 0, footer::Item::nozzle, footer::Item::bed, footer::Item::heatbreak_temp) {
     stage_text.SetAlignment(Align_t::Center());
     tool_text.SetAlignment(Align_t::Center());
     CaptureNormalWindow(radio);
