@@ -704,3 +704,37 @@ d1df63b01a  2026-06-25  Port 6.5.7 parity fixes to 6.6.0
 f57238452  2026-07-19  Allow cold-start PA probing sequence
 e38f0ac43  2026-07-19  Guard PA Connect state on loadcell builds
 ```
+
+### Final release ledger continuation
+
+The branch-specific commits added after the original ledger was generated are:
+
+```text
+b6429c0de  2026-07-19  Report firmware print states to serial hosts
+883d109ed  2026-07-19  Update serial status commit ledger
+26f8abbe7  2026-07-19  Update 6.6.2 serial status ledger
+9403d03e3  2026-07-19  Fit serial status reporting on MINI
+51763a896  2026-07-19  Reuse status page for serial initialization
+be89cfc6f  2026-07-19  Deduplicate MINI tune settings for flash
+e2d3b26d5  2026-07-20  Fix manual PA calibration workflow
+4e93def0c  2026-07-20  Suppress filament sensor events during PA test
+be01f32b0  2026-07-20  Serialize release builds
+04da073d7  2026-07-20  Redesign loaded filament editor
+c4aeb83bf  2026-07-20  Fix virtual tool color lookup
+638f18d79  2026-07-20  Fit filament editor within MINI flash
+07efc05b3  2026-07-20  Reduce loaded filament menu footprint
+60180c9a3  2026-07-20  Respect MINI firmware size budget
+4d271432e  2026-07-20  Keep MINI loaded filament UI compact
+4345354aa  2026-07-20  Apply MINI filament selection directly
+5399b625b  2026-07-20  Document loaded filament menu layout
+6c90b75c9  2026-07-20  Improve filament color and menu visibility
+790be450e  2026-07-20  Add USB firmware update picker
+75514d8a9  2026-07-20  Reduce firmware picker footprint
+1fc3a27fb  2026-07-20  Fit firmware picker on MINI
+13202f2d0  2026-07-20  Add complete serial firmware upload and PA controls
+406db1faf  2026-07-20  Compress external MINI fonts per glyph
+593b04aef  2026-07-20  Finalize compressed MINI resources and upload decoder
+```
+
+This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
+points at the documentation commit immediately following this list.
