@@ -138,20 +138,21 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, VirtualToolIndex virtual_tool, bool ask_unloaded) {
     InProgress progress;
 
-    const uint8_t physical_tool = virtual_tool.to_physical().to_raw();
-    const IFSensor *const extruder_sensor = GetExtruderFSensor(physical_tool);
-    const IFSensor *const side_sensor = GetSideFSensor(physical_tool);
-    const bool extruder_sensor_enabled = extruder_sensor && extruder_sensor->is_enabled();
-    const bool side_sensor_enabled = side_sensor && side_sensor->is_enabled();
-    if (!extruder_sensor_enabled && !side_sensor_enabled) {
-        // With both filament-presence inputs disabled, an unload request from
-        // the UI represents the already-empty path. Avoid heating and running
-        // an unnecessary unload sequence, and keep loaded metadata coherent.
+    auto &filament_sensors = FSensors_instance();
+    const bool sensors_report_empty = filament_sensors.HasMMU()
+        ? filament_sensors.no_filament_surely(LogicalFilamentSensor::extruder)
+            && filament_sensors.no_filament_surely(LogicalFilamentSensor::side)
+        : filament_sensors.no_filament_surely(LogicalFilamentSensor::closest_to_nozzle);
+    if (sensors_report_empty && !filament_sensors.IsM600Sent()) {
+        // Skip only on a trustworthy, enabled sensor reading. Disabled,
+        // uninitialized, or failed sensors must fall through and attempt the
+        // unload. During automatic runout, the M600 latch stays set until the
+        // change finishes, so the remaining filament tail is still unloaded.
         config_store().set_filament_type(virtual_tool, FilamentType::none);
         filament::set_type_to_load(FilamentType::none);
         filament::set_color_to_load(std::nullopt);
         PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);
-        SERIAL_ECHOLNPAIR("Filament unload skipped; sensors disabled T", unsigned(physical_tool));
+        SERIAL_ECHOLNPAIR("Filament unload skipped; sensors report empty T", unsigned(virtual_tool.to_physical().to_raw()));
         return;
     }
 
