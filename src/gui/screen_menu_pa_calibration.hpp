@@ -7,11 +7,11 @@
 
 #define HAS_PA_CALIBRATION_UI() (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX())
 
-class MI_PA_TOOL_RUN : public IWindowMenuItem {
+class MI_PA_TOOL_RUN : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     explicit MI_PA_TOOL_RUN(uint8_t tool);
 protected:
-    void click(IWindowMenu &) override;
+    void OnChange(size_t old_index) override;
 private:
     uint8_t tool_;
 };

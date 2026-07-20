@@ -14,6 +14,7 @@
 #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
 #include <common/feature/extrusion_calibration.hpp>
+#include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <common/mapi/motion.hpp>
 #include <common/mapi/parking.hpp>
 #include <common/marlin_server.hpp>
@@ -42,7 +43,21 @@ struct BatchEntry {
     std::array<char, 17> material {};
 };
 
+class FilamentSensorEventGuard {
+public:
+    FilamentSensorEventGuard() { FSensors_instance().IncEvLock(); }
+    ~FilamentSensorEventGuard() { FSensors_instance().DecEvLock(); }
+};
+
 float probe_anchor_slot(uint8_t slot);
+
+void create_hotend_clearance() {
+    // Keep the hot nozzle away from the sheet while it rises from the probing
+    // temperature to the extrusion temperature. On moving-bed machines this
+    // lowers the bed; on bedslingers it raises the tool by the same clearance.
+    constexpr float heating_clearance = 10.0f;
+    do_blocking_move_to_z(std::min(current_position.z + heating_clearance, float(Z_MAX_POS)), 5.0f);
+}
 
 void pa_fsm_change(const PhasesPressureAdvanceCalibration phase, const uint8_t progress, const uint8_t slot) {
     marlin_server::fsm_change(phase, { progress, static_cast<uint8_t>(slot + 1) });
@@ -66,6 +81,25 @@ void present_manual_result(const uint8_t tool, const uint8_t slot, const float p
         } else {
             SERIAL_ERROR_MSG("M976 could not save /usb/pa-calibration.gcode");
         }
+    }
+}
+
+void present_manual_batch_results(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
+#if ENABLED(PRUSA_MMU2)
+    if (MMU2::mmu2.Enabled()) MMU2::mmu2.unload();
+#endif
+    uint8_t slot_mask = 0;
+    for (size_t i = 0; i < count; ++i) slot_mask |= 1u << entries[i].logical_filament;
+    marlin_server::fsm_change(PhasesPressureAdvanceCalibration::result, { 100, slot_mask, 0xff, 0xff });
+    if (marlin_server::wait_for_response(PhasesPressureAdvanceCalibration::result) != Response::Save) return;
+    if (FILE *file = fopen("/usb/pa-calibration.gcode", "a")) {
+        for (size_t i = 0; i < count; ++i) {
+            if (const auto *result = buddy::extrusion_calibration::job_result(entries[i].logical_filament))
+                fprintf(file, "M572 D%u S%.3f ; logical slot %u\n", unsigned(entries[i].physical_tool), static_cast<double>(result->pressure_advance), unsigned(entries[i].logical_filament));
+        }
+        fclose(file);
+    } else {
+        SERIAL_ERROR_MSG("M976 could not save /usb/pa-calibration.gcode");
     }
 }
 
@@ -156,6 +190,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             if (!GcodeSuite::G28_no_parser(true, true, true)) return false;
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
+            create_hotend_clearance();
             M109_no_parser(0, { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
             if (!MMU2::mmu2.tool_change_full(entry.logical_filament)) return false;
             prepared_anchor = true;
@@ -294,17 +329,53 @@ void PrusaGcodeSuite::M976() {
     // target; the outer batch guard then restores the targets that existed before the command.
     HotendTargetRestorer restore_hotend_targets;
     const bool manual = parser.boolval('M', false);
-    if (parser.seen('A')) {
+    if (parser.seen('A') || parser.seenval('K')) {
         std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
-        const size_t count = parse_batch_manifest(parser.command_ptr, entries);
+        size_t count = 0;
+        if (strstr(parser.command_ptr, " A")) {
+            count = parse_batch_manifest(parser.command_ptr, entries);
+        } else {
+            const uint8_t mask = parser.byteval('K', 0);
+            const int requested_temperature = parser.intval('S', 0);
+            for (uint8_t logical = 0; logical < buddy::extrusion_calibration::max_logical_filaments; ++logical) {
+                if (!(mask & (1u << logical)) || !is_tool_enabled(logical)) continue;
+                const auto filament = config_store().get_filament_type(logical);
+                if (filament == FilamentType::none || count >= entries.size()) continue;
+                auto &entry = entries[count++];
+#if ENABLED(PRUSA_MMU2)
+                entry.physical_tool = 0;
+#else
+                entry.physical_tool = logical;
+#endif
+                entry.logical_filament = logical;
+                const auto &params = filament.parameters();
+                const int profile_temperature = std::clamp<int>(params.nozzle_temperature, 170, 300);
+                entry.temperature = requested_temperature
+                    ? std::clamp(requested_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
+                    : profile_temperature;
+                strncpy(entry.material.data(), params.name.data(), entry.material.size() - 1);
+            }
+        }
         if (!validate_batch(entries, count)) {
             SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
             return;
         }
-        if (!run_batch(entries, count, manual)) {
+        // Own the foreground dialog for the whole batch. Nested single-tool
+        // M976 calls reuse this FSM, so tool changes, MMU loading, homing and
+        // probing cannot briefly return control to the menu between tools.
+        marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(entries[0].logical_filament + 1) } };
+        if (manual) {
+            for (size_t i = 0; i < count; ++i) {
+                buddy::extrusion_calibration::clear_anchor(entries[i].logical_filament);
+            }
+        }
+        // The batch owns presentation of its aggregated result; nested tool
+        // calibrations only measure and accumulate their job-scoped results.
+        if (!run_batch(entries, count, false)) {
             SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
             return;
         }
+        if (manual) present_manual_batch_results(entries, count);
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
         return;
     }
@@ -347,6 +418,10 @@ void PrusaGcodeSuite::M976() {
         return;
     }
 #endif
+    // The deliberately pulsed extrusion profile is not a print-time runout or
+    // autoload event. Keep sensor sampling active, but suppress event handling
+    // until calibration cleanup is complete.
+    FilamentSensorEventGuard filament_sensor_events;
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
@@ -377,6 +452,7 @@ void PrusaGcodeSuite::M976() {
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
+        create_hotend_clearance();
     }
     if (!HAS_WASTEBIN() && !std::isfinite(anchor_z)) {
         SERIAL_ERROR_MSG("M976 anchor micro-mesh failed");
