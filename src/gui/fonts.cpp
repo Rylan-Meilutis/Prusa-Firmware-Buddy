@@ -79,9 +79,30 @@ bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t 
         }
         if (external.descriptor < 0) external.descriptor = open(external.path, O_RDONLY);
         if (external.descriptor < 0) return false;
-        const off_t offset = static_cast<off_t>(glyph * size);
-        if (lseek(external.descriptor, offset, SEEK_SET) != offset
-            || read(external.descriptor, external.cache.data(), size) != static_cast<ssize_t>(size)) return false;
+        uint16_t metadata[2];
+        uint32_t offsets[2];
+        if (lseek(external.descriptor, 0, SEEK_SET) != 0
+            || read(external.descriptor, metadata, sizeof(metadata)) != sizeof(metadata)
+            || glyph >= metadata[0] || size != metadata[1]
+            || lseek(external.descriptor, 4 + glyph * sizeof(uint32_t), SEEK_SET) < 0
+            || read(external.descriptor, offsets, sizeof(offsets)) != sizeof(offsets)
+            || lseek(external.descriptor, 4 + (metadata[0] + 1) * sizeof(uint32_t) + offsets[0], SEEK_SET) < 0) return false;
+        size_t output = 0;
+        uint32_t remaining = offsets[1] - offsets[0];
+        while (remaining--) {
+            uint8_t token;
+            if (read(external.descriptor, &token, 1) != 1) return false;
+            const size_t length = (token & 0x7f) + 1;
+            if (output + length > size) return false;
+            if (token & 0x80) {
+                memset(external.cache.data() + output, 0, length);
+            } else {
+                if (remaining < length || read(external.descriptor, external.cache.data() + output, length) != static_cast<ssize_t>(length)) return false;
+                remaining -= length;
+            }
+            output += length;
+        }
+        if (output != size) return false;
         external.cached_glyph = glyph;
         memcpy(destination, external.cache.data(), size);
         return true;
