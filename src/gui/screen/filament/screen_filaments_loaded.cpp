@@ -118,7 +118,6 @@ ScreenAssignLoadedFilament::ScreenAssignLoadedFilament(uint8_t tool)
 
 using namespace screen_loaded_color_assignment;
 
-#if !HAS_MINI_DISPLAY()
 MI_ADD_CUSTOM_COLOR::MI_ADD_CUSTOM_COLOR()
     : IWindowMenuItem(_("Add Custom Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
@@ -139,7 +138,6 @@ void MI_ADD_CUSTOM_COLOR::click(IWindowMenu &) {
     }
     Screens::Access()->Close();
 }
-#endif
 
 MI_ASSIGN_LOADED_COLOR::MI_ASSIGN_LOADED_COLOR(uint8_t tool, std::optional<Color> color, std::string_view name)
     : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no), tool_(tool), color_(color) {
