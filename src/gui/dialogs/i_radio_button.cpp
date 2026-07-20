@@ -7,6 +7,7 @@
 #include <gui/event/knob_event.hpp>
 #include <client_response_texts.hpp>
 #include <marlin_client.hpp>
+#include <gui/gui_utils.hpp>
 
 #include <algorithm> //find
 
@@ -283,7 +284,18 @@ static void button_draw(Rect16 rc_btn, Color back_color, Color parent_color, con
         rc_btn += Rect16::Left_t(GuiDefaults::RadioButtonCornerRadius);
         rc_btn -= Rect16::Width_t(2 * GuiDefaults::RadioButtonCornerRadius);
     }
-    render_text_align(rc_btn, text, ButtonFont, button_cl, text_cl, { 0, 0, 0, 0 }, Align_t::Center());
+
+    const Font font = auto_select_font(
+        {
+            .text = text,
+            .rect = rc_btn,
+            .largest = ButtonFont,
+            .smallest = Font::small,
+            .multiline = false,
+        })
+                          .value_or(Font::small);
+
+    render_text_align(rc_btn, text, font, button_cl, text_cl, { 0, 0, 0, 0 }, Align_t::Center());
 }
 
 bool IRadioButton::IsEnabled(size_t index) const {
