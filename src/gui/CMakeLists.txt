@@ -13,6 +13,7 @@ target_sources(
           gcode_description.cpp
           gui_media_events.cpp
           gui_time.cpp
+          gui_utils.cpp
           guimain.cpp
           img_resources.cpp
           IScreenPrinting.cpp
