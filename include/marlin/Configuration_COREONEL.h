@@ -1073,8 +1073,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #endif
     #if HAS_PRINT_SHEET_DETECTION()
         #if HAS_INDX()
-            // INDX_TODO: Refine, measure proper place. Lower Y would crash into dock.
-            #define DETECT_PRINT_SHEET_X_POINT (0)
+            // Lower Y would crash into dock.
+            #define DETECT_PRINT_SHEET_X_POINT (0) // INDX_TODO: Has to be half-way to dock, we have to handle the edgecases first
             #define DETECT_PRINT_SHEET_Y_POINT (0)
         #else
             #define DETECT_PRINT_SHEET_X_POINT (220)
