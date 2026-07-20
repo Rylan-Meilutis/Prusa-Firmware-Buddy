@@ -338,7 +338,7 @@ void PrusaGcodeSuite::M976() {
             const uint8_t mask = parser.byteval('K', 0);
             const int requested_temperature = parser.intval('S', 0);
             for (uint8_t logical = 0; logical < buddy::extrusion_calibration::max_logical_filaments; ++logical) {
-                if (!(mask & (1u << logical)) || !is_tool_enabled(logical)) continue;
+                if (!(mask & (1u << logical))) continue;
                 const auto filament = config_store().get_filament_type(logical);
                 if (filament == FilamentType::none || count >= entries.size()) continue;
                 auto &entry = entries[count++];

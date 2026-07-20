@@ -8,6 +8,7 @@ in ./bbf for easy copying.
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import queue
@@ -26,6 +27,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
 DEFAULT_SIGNING_KEY = PROJECT_ROOT / ".local" / "firmware-signing-key.pem"
 DEFAULT_VERSION_WORKTREE_ROOT = PROJECT_ROOT.parent / f".{PROJECT_ROOT.name}-rme-version-builds"
+# Version worktrees share .dependencies with the primary checkout, making this
+# one lock cover direct, release-matrix, and worktree-local wrapper invocations.
+BUILD_LOCK_PATH = PROJECT_ROOT / ".dependencies" / ".rme-build.lock"
+BUILD_LOCK_ENV = "RME_BUILD_LOCK_OWNER"
+_build_lock_file = None
 MIN_REPO_PYTHON = (3, 8)
 MAX_REPO_PYTHON_EXCLUSIVE = (3, 13)
 
@@ -93,6 +99,45 @@ class MemoryRegion:
     used_bytes: int
     total_bytes: int
     percent: float
+
+
+def acquire_build_lock() -> None:
+    """Prevent concurrent wrappers from sharing build/output directories."""
+    global _build_lock_file
+    inherited_owner = os.environ.get(BUILD_LOCK_ENV)
+    if inherited_owner:
+        return
+
+    BUILD_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    lock_file = BUILD_LOCK_PATH.open("a+b")
+    try:
+        if os.name == "posix":
+            import fcntl
+
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            import msvcrt
+
+            lock_file.seek(0)
+            if lock_file.read(1) == b"":
+                lock_file.write(b"\0")
+                lock_file.flush()
+            lock_file.seek(0)
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+    except (BlockingIOError, OSError):
+        lock_file.close()
+        raise SystemExit(f"Another build.py process is already running (lock: {BUILD_LOCK_PATH}).")
+
+    _build_lock_file = lock_file
+    os.environ[BUILD_LOCK_ENV] = str(os.getpid())
+
+    def release() -> None:
+        global _build_lock_file
+        if _build_lock_file is not None:
+            _build_lock_file.close()
+            _build_lock_file = None
+
+    atexit.register(release)
 
 
 def terminate_build_process(process: subprocess.Popen[str], *, force: bool = False) -> None:
@@ -1038,6 +1083,8 @@ def main() -> int:
         for preset in RELEASE_PRESETS:
             print(preset)
         return 0
+
+    acquire_build_lock()
 
     if args.versions:
         return build_versions(args)
