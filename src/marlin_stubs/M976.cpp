@@ -22,6 +22,14 @@
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
+#include <option/has_indx.h>
+#include <option/has_wastebin_fill_tracking.h>
+#if HAS_INDX()
+#include <nozzle_cleaner.hpp>
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+#include <feature/wastebin_watcher/wastebin_watcher.hpp>
+#endif
 #include <printers.h>
 #include <tool_index.hpp>
 
@@ -288,8 +296,26 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     capture.start();
     pressure_advance::set_calibration_mode(true);
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
+#if HAS_INDX()
+        // Form one compact pellet per excitation cycle. Ending at the slow
+        // flow lets pressure decay before the cleaner knocks the pellet free,
+        // instead of joining every cycle into one large hanging mass.
+        extrude_flow(fast_flow, 0.25f);
+        extrude_flow(slow_flow, 1.0f);
+        planner.synchronize();
+        pressure_advance::set_calibration_mode(false);
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+            capture.stop();
+            return {};
+        }
+    #if HAS_WASTEBIN_FILL_TRACKING()
+        WastebinWatcher::instance().account_ejected_pellet();
+    #endif
+        pressure_advance::set_calibration_mode(true);
+#else
         extrude_flow(slow_flow, 1.0f);
         extrude_flow(fast_flow, 0.25f);
+#endif
     }
     planner.synchronize();
     pressure_advance::set_calibration_mode(false);
