@@ -1,17 +1,9 @@
 #include "clo_config.hpp"
 
 namespace {
-#if PRINTER_IS_PRUSA_COREONE()
+constexpr float y_shift_z_probe_offset_from_sensor = -3.2f; // See BFW-8747 geometric shift to move the probe point out of the coil area
 constexpr float sensing_distance_x = 6.f;
 constexpr float sensing_distance_y = 12.f;
-static constexpr float y_shift_z_probe_offset_from_sensor = -3.2f; // See BFW-8747 geometric shift to move the probe point out of the coil area
-#elif PRINTER_IS_PRUSA_COREONEL()
-// So far only copy from COREONE INDX
-// TODO update values for Core ONEL INDX once the values are known
-constexpr float sensing_distance_x = 6.f;
-constexpr float sensing_distance_y = 12.f;
-static constexpr float y_shift_z_probe_offset_from_sensor = -3.2f; // See BFW-8747 geometric shift to move the probe point out of the coil area
-#endif
 } // namespace
 
 tool_offset::ProbingConfig tool_offset::get_default_probing_config() {

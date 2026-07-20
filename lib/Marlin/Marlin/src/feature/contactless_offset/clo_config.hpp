@@ -6,23 +6,14 @@
 
 namespace tool_offset {
 
-inline constexpr xy_pos_t default_sensor_position {
+inline constexpr xy_pos_t default_sensor_position =
 #if PRINTER_IS_PRUSA_COREONE()
-    // Y CAD position is 197.5mm from the homing position, Y homing position is Y_MAX_PRINT_POS
-    // X CAD position can be used directly, X homing position is 0
-    {
-        { 257.f, Y_MAX_PRINT_POS - 197.5f }
-    }
+    { 257.f, Y_MAX_PRINT_POS - 197.5f };
 #elif PRINTER_IS_PRUSA_COREONEL()
-    // So far only copy from COREONE INDX
-    // TODO update values for Core ONEL INDX once the values are known
-    {
-        { 257.f, Y_MAX_PRINT_POS - 197.5f }
-    }
+    { 307.f, 5.f };
 #else
     #error "No default probing config for this printer"
 #endif
-};
 
 struct ProbingConfig {
     xyz_pos_t sensor_position;
