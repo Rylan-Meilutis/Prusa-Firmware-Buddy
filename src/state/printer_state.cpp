@@ -281,7 +281,9 @@ DeviceState get_state(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
     case ClientFSM::PressureAdvanceCalibration:
+#endif
     case ClientFSM::Serial_printing:
         // The serial-printing FSM is a UI surface, not the print lifecycle.
         // Preserve the underlying Marlin print state so Connect sees PRINTING,
@@ -507,7 +509,9 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
     case ClientFSM::PressureAdvanceCalibration:
+#endif
     case ClientFSM::Preheat:
     case ClientFSM::SafetyTimer:
         // TODO: On some future sunny day, we want to cover all of these
