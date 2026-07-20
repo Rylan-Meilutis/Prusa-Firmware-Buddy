@@ -129,7 +129,11 @@ protected:
 };
 
 using ScreenEditLoadedFilament_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+#if HAS_MINI_DISPLAY()
+    MI_EDIT_LOADED_MATERIAL, MI_SAVE_LOADED_FILAMENT>;
+#else
     MI_EDIT_LOADED_MATERIAL, MI_EDIT_LOADED_COLOR, MI_SAVE_LOADED_FILAMENT>;
+#endif
 
 class ScreenEditLoadedFilament final : public ScreenEditLoadedFilament_ {
 public:
