@@ -32,7 +32,9 @@ Update Instructions. The picker must reject non-BBF files and paths outside
 `/usb`, but accept completed Connect downloads in USB subdirectories and long
 filenames. After confirmation it must copy the selection to `/usb/FWUPD.BBF`,
 flush it, hand that short filename to the bootloader, and restart without
-removing the source download. Test copy failures, invalid-signature, and wrong-model
+removing the source download. A `/usb/FWUPD.UI` marker must cause the application
+to remove the temporary BBF and marker on the next USB mount after the bootloader
+attempt; an unmarked serial-uploaded BBF must not be removed. Test copy failures, invalid-signature, and wrong-model
 files to ensure the bootloader rejects them without flashing. Serial regression
 coverage must retain `M997 O` and `M997 /usb/FIRMWARE.BBF`; the latter selects a
 file already present on USB rather than carrying the file data itself.

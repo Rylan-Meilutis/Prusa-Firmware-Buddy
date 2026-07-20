@@ -3853,6 +3853,16 @@ static void _server_update_vars() {
 
     if (const bool media = usb_host::is_media_inserted(); marlin_vars().media_inserted != media) {
         marlin_vars().media_inserted = media;
+        if (media) {
+            // A UI-selected BBF is copied to a short bootloader-safe filename.
+            // Remove that transient copy after the bootloader returns to the
+            // application, while leaving serial-staged BBFs without this marker.
+            if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
+                fclose(marker);
+                remove("/usb/FWUPD.BBF");
+                remove("/usb/FWUPD.UI");
+            }
+        }
         _send_notify_event(marlin_vars().media_inserted ? Event::MediaInserted : Event::MediaRemoved, 0, 0);
     }
 
