@@ -304,10 +304,14 @@ The main Lights Settings page includes `Door Finish Ack` on Core One and Core On
 ## Build size and flash headroom
 
 Loaded-filament management is consolidated in the root Filament menu. Tool
-rows show material and color names; Material and Color changes are staged and
+rows show material, color names, and exact `#RRGGBB` values; Material and Color changes are staged and
 committed together with Save. Empty user-color slots stay hidden, new named
 colors are created under Settings > Filament Colors, and exact hex values are
 reserved for the custom-color editor and `M865` serial reports.
+
+Submenu arrows now use the resolved menu text color instead of the theme image
+accent, preserving contrast for Indigo and custom themes in both focused and
+unfocused list rows.
 
 Release builds now use `-Oz` for release compile and final LTO link optimization, plus `-fmerge-all-constants` to merge duplicate constants and strings. This reduces final firmware flash usage across platforms and gives XL enough room to keep the same RME features enabled as the other supported printers.
 
