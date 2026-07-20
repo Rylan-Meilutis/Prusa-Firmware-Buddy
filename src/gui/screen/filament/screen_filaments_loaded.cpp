@@ -254,6 +254,7 @@ void ScreenEditLoadedFilament::windowEvent(window_t *sender, GUI_event_t event, 
     ScreenEditLoadedFilament_::windowEvent(sender, event, param);
 }
 
+#if !HAS_MINI_DISPLAY()
 MI_ADD_CUSTOM_COLOR::MI_ADD_CUSTOM_COLOR()
     : IWindowMenuItem(_("Add New Color"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
 
@@ -305,3 +306,4 @@ void WindowMenuCustomFilamentColors::setup_item(ItemVariant &variant, int index)
 
 ScreenCustomFilamentColors::ScreenCustomFilamentColors()
     : ScreenMenuBase(nullptr, _("CUSTOM FILAMENT COLORS"), EFooter::Off) {}
+#endif
