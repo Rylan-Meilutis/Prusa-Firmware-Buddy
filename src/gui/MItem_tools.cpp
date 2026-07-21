@@ -54,6 +54,7 @@
 #include <logging/log_dest_file.hpp>
 #include <numeric_input_config_common.hpp>
 #include <option/has_mmu2.h>
+#include <gui/menu_item/menu_item_utils.hpp>
 
 #include <type_traits>
 
@@ -233,9 +234,15 @@ void MI_NOZZLE_CLEANER_EMPTY_WASTEBIN::click(IWindowMenu & /*window_menu*/) {
 }
 
 void MI_NOZZLE_CLEANER_EMPTY_WASTEBIN::Loop() {
-    // Disabled only during the start gcodes (homing / MBL / tool-offset), where parking would
-    // interfere - i.e. while printing before the first layer. Allowed when idle and once printing.
-    set_enabled(!marlin_client::is_printing() || marlin_vars().max_printed_z > 0);
+    loop_gcode_inject_menu_item(*this,
+        {
+            .update_enabled = true,
+            .update_icon = true,
+
+            // Disabled only during the start gcodes (homing / MBL / tool-offset), where parking would
+            // interfere - i.e. while printing before the first layer. Allowed when idle and once printing.
+            .enabled = !marlin_client::is_printing() || marlin_vars().max_printed_z > 0,
+        });
 }
 
 MI_NOZZLE_CLEANER_AUTOPAUSE::MI_NOZZLE_CLEANER_AUTOPAUSE()
