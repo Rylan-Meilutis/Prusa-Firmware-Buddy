@@ -869,6 +869,7 @@ f7d38a7fe  2026-07-20  Harden PA calibration and unload monitoring
 813060744  2026-07-20  Optimize PA confidence calibration
 ae422f088  2026-07-20  Adapt optimized PA search for 6.5.7
 b867aed5c  2026-07-20  Use generated loadcell option in MMU guard
+0cebecd93  2026-07-20  Keep PA fallback nonfatal and clean MMU purge
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
