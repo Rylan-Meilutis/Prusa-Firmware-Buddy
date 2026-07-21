@@ -55,8 +55,11 @@ void Capture::record(const uint32_t time_us, const float load_g, const float e_p
 
 Score Capture::score() const {
     const size_t n = std::min(size(), samples_.size());
+    Score result;
+    result.sample_count = static_cast<uint16_t>(std::min(n, size_t(std::numeric_limits<uint16_t>::max())));
+    result.capture_overflow = size() >= samples_.size();
     if (n < 32) {
-        return {};
+        return result;
     }
 
     // Firmware-side form of PrusaPATuner's bd_pressure step decomposition.
@@ -70,6 +73,7 @@ Score Capture::score() const {
         const float dt0 = static_cast<float>(samples_[i].time_us - samples_[i - 1].time_us) * 1e-6f;
         const float dt1 = static_cast<float>(samples_[i - 1].time_us - samples_[i - 2].time_us) * 1e-6f;
         if (dt0 <= 0 || dt1 <= 0) {
+            ++result.rejected_timing;
             continue;
         }
         const float v0 = (samples_[i].e_position_mm - samples_[i - 1].e_position_mm) / dt0;
@@ -78,6 +82,7 @@ Score Capture::score() const {
             noise_sum += std::abs(samples_[i].load_g - samples_[i - 1].load_g);
             continue;
         }
+        ++result.transitions_detected;
         last_transition = i;
         constexpr size_t plateau_n = 10;
         float before = 0, after = 0, local_noise = 0;
@@ -90,7 +95,12 @@ Score Capture::score() const {
         after /= plateau_n;
         const float amplitude = std::abs(after - before);
         const float noise = local_noise / (plateau_n - 1);
-        if (amplitude < std::max(1.0f, noise * 4.0f)) continue;
+        result.strongest_transition = std::max(result.strongest_transition, amplitude);
+        result.highest_transition_noise = std::max(result.highest_transition_noise, noise);
+        if (amplitude < std::max(1.0f, noise * 4.0f)) {
+            ++result.rejected_low_signal;
+            continue;
+        }
 
         const float direction = after >= before ? 1.0f : -1.0f;
         float area = 0, excursion = 0;
@@ -114,9 +124,9 @@ Score Capture::score() const {
         ++used;
     }
 
-    Score result;
+    result.transitions_used = static_cast<uint16_t>(std::min(used, size_t(std::numeric_limits<uint16_t>::max())));
     result.valid = used >= 4 && size() < samples_.size();
-    if (result.valid) {
+    if (used > 0) {
         result.transient = cost / used;
         result.mean_load = load_sum / used;
         result.noise = noise_sum / used;
