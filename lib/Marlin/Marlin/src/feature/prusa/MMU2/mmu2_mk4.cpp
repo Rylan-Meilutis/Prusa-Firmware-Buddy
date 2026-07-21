@@ -763,7 +763,7 @@ bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
 }
 
 bool MMU2::filament_path_empty_for_pa() const {
-    return !FindaDetectsFilament() && MMU2::WhereIsFilament() == FilamentState::NOT_PRESENT;
+    return !FindaDetectsFilament() && ::MMU2::WhereIsFilament() == FilamentState::NOT_PRESENT;
 }
 
 bool MMU2::unload_for_pa_calibration() {
