@@ -2,6 +2,10 @@
 #include <state/printer_state.hpp>
 #include <option/developer_mode.h>
 #include <config_store/store_instance.hpp>
+#include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
+#endif
 #include <printer_lock.hpp>
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
@@ -584,6 +588,20 @@ bool SerialPrinting::serial_command_hook(const char *command) {
 
     remove_N_prefix(command);
 
+#if HAS_LOADCELL()
+    // Host display/progress plugins may bypass the normal ok window and inject
+    // numbered M117/M73 updates while the long-running M976 still owns the
+    // foreground command. Do not let cosmetic traffic fill the small Marlin
+    // queue and overflow USB RX. Preserve its UI information, advance the
+    // numbered protocol normally, and acknowledge it immediately.
+    if (buddy::extrusion_calibration::calibration_command_active()
+        && (command_starts_with(command, 'M', 117) || command_starts_with(command, 'M', 73))) {
+        last_serial_indicator_ms = ticks_ms();
+        parse_serial_host_progress(command);
+        SERIAL_ECHOLNPGM("ok");
+        return false;
+    }
+#endif
 #if HAS_SIDE_LEDS()
     // Host polling/progress updates can arrive continuously while the printer is idle.
     // Treat real serial commands as activity, but don't let passive status traffic keep

@@ -8,6 +8,7 @@ namespace buddy::extrusion_calibration {
 namespace {
 Capture instance;
 std::array<Result, max_logical_filaments> results {};
+std::atomic<uint8_t> calibration_command_depth { 0 };
 std::atomic_uint8_t anchors { 0 };
 float profile_pressure_advance = NAN;
 std::atomic_bool monitor_enabled { false };
@@ -253,6 +254,19 @@ const Result *job_result(const size_t logical_filament) {
 
 void set_job_result(const size_t logical_filament, const Result &result) {
     if (logical_filament < results.size()) results[logical_filament] = result;
+}
+
+void set_calibration_command_active(const bool active) {
+    if (active) {
+        calibration_command_depth.fetch_add(1, std::memory_order_acq_rel);
+        return;
+    }
+    uint8_t depth = calibration_command_depth.load(std::memory_order_acquire);
+    while (depth && !calibration_command_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {}
+}
+
+bool calibration_command_active() {
+    return calibration_command_depth.load(std::memory_order_acquire) != 0;
 }
 
 uint8_t occupied_anchor_mask() { return anchors.load(std::memory_order_acquire); }

@@ -57,6 +57,8 @@ static constexpr size_t max_logical_filaments = 8;
 void reset_job_results();
 const Result *job_result(size_t logical_filament);
 void set_job_result(size_t logical_filament, const Result &result);
+void set_calibration_command_active(bool active);
+bool calibration_command_active();
 uint8_t occupied_anchor_mask();
 void occupy_anchor(size_t logical_filament);
 void clear_anchor(size_t logical_filament);
