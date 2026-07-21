@@ -1940,14 +1940,26 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
 }
 
 void Pause::FSM_HolderLoadUnload::restore_temperature_and_unpark() {
-    const float min_layer_h = 0.05f;
-    // do not unpark and wait for temp if not homed or z park len is 0
-    if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
-        // Restore the print temperature before the heatup wait, so we resume fully heated
-        // instead of at the filament default that loading dropped the target to.
-        if (pause.settings.resume_nozzle_temperature.has_value()) {
-            thermalManager.setTargetHotend(*pause.settings.resume_nozzle_temperature, pause.settings.physical_tool());
+    if (!marlin_client::is_printing() && !marlin_client::is_paused()) {
+        return;
+    }
+
+    // Restore the print temperature and wait for the heatup, so we resume fully heated
+    // instead of at the filament default that loading dropped the target to. After a
+    // runout the head already sits at the park height, so the unpark below is skipped -
+    // which used to skip this along with it.
+    if (const auto temp = pause.settings.resume_nozzle_temperature) {
+        thermalManager.setTargetHotend(*temp, pause.settings.physical_tool());
+        if (!pause.ensureSafeTemperatureNotifyProgress()) {
+            return;
         }
+    }
+
+    const float min_layer_h = 0.05f;
+    // do not unpark if not homed or z park len is 0
+    if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h) {
+        // Not made redundant by the heatup above: M701/M702 resuming a paused print set a
+        // resume point but never a resume temperature, so this is their only heatup wait.
         if (!pause.ensureSafeTemperatureNotifyProgress()) {
             return;
         }
