@@ -11,6 +11,7 @@
 #include <logging/log.hpp>
 #include <option/has_toolchanger.h>
 #include <tasks.hpp>
+#include <option/has_indx.h>
 
 #include <option/has_dwarf.h>
 #if HAS_DWARF()
@@ -136,6 +137,18 @@ static void xbuddy_extension_verify_running(PuppyModbus &bus) {
             puppy_run_timeout();
         }
     }
+}
+#endif
+
+#if HAS_TOOL_OFFSET_SENSOR()
+[[nodiscard]] bool is_tool_offset_sensor_required() {
+    #if PRINTER_IS_PRUSA_XL()
+    return xl_can.is_enabled() && prusa_toolchanger.get_num_enabled_tools() > 1;
+    #elif HAS_INDX()
+    return true;
+    #else
+        #error
+    #endif
 }
 #endif
 
@@ -443,7 +456,7 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-    if (tool_offset_sensor.is_enabled() && tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
+    if (is_tool_offset_sensor_required() && tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
         return false;
     }
 #endif
@@ -493,8 +506,11 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 // function pumps the bridge host's refresh + sensor refresh and reports flash
 // progress until the sensor reaches ready.
 [[nodiscard]] static bool wait_for_tool_offset_sensor(PuppyModbus &bus) {
-    // Tool offset sensor is vital part of the printer, there is no upper limit
-    // on how long we are willing to wait for the bootstrap.
+    constexpr int32_t absent_timeout_ms = 2000;
+    uint32_t timeout_start_ms = ticks_ms();
+
+    // On a multitool the sensor is a vital part of the printer, there is no
+    // upper limit on how long we are willing to wait for the bootstrap.
     for (;;) {
         // At this point, puppy_task_loop() is not yet running, so we must
         // manually call refresh() on puppies. Without this, the bridge can't make
@@ -512,16 +528,23 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         using xbuddy_extension::NodeState;
         switch (tool_offset_sensor.get_node_state()) {
         case NodeState::unknown:
+            if (ticks_diff(ticks_ms(), timeout_start_ms) > absent_timeout_ms) {
+                log_info(Puppies, "Tool offset sensor not detected, single tool -> continuing without it");
+                return false;
+            }
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_unknown);
             break;
         case NodeState::verify:
+            timeout_start_ms = ticks_ms();
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_verify);
             break;
         case NodeState::flash:
+            timeout_start_ms = ticks_ms();
             bootstrap_state_set(cyphal_bridge_host().get_flash_progress_percent(), BootstrapStage::tool_offset_sensor_flash);
             break;
         case NodeState::ready:
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_ready);
+            tool_offset_sensor.set_enabled(true);
             return true;
         }
     }
@@ -701,7 +724,7 @@ void run() {
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-            if (tool_offset_sensor.is_enabled() && !wait_for_tool_offset_sensor(bus)) {
+            if (is_tool_offset_sensor_required() && !wait_for_tool_offset_sensor(bus)) {
                 break; // go to puppy recovery
             }
 #endif
