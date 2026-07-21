@@ -367,9 +367,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
         if (!path_was_empty) park_before_mmu_unload();
         if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
-        if (!path_was_empty) {
-        clean_after_mmu_unload();
-        }
+        clean_before_pa_probe();
     }
 #endif
     // This is deliberately inside all calibration guards: after an MMU
@@ -403,13 +401,16 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     auto &capture = buddy::extrusion_calibration::capture();
     capture.start();
     pressure_advance::set_calibration_mode(true);
+    // Four cycles preserve enough independent transitions for the scorer's
+    // rejection margin. A 0.5 s slow plateau still greatly exceeds the
+    // analysis window while avoiding 0.4 mm of unneeded filament per cycle.
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
 #if HAS_INDX()
         // Form one compact pellet per excitation cycle. Ending at the slow
         // flow lets pressure decay before the cleaner knocks the pellet free,
         // instead of joining every cycle into one large hanging mass.
         extrude_flow(fast_flow, 0.25f);
-        extrude_flow(slow_flow, 1.0f);
+        extrude_flow(slow_flow, 0.5f);
         planner.synchronize();
         pressure_advance::set_calibration_mode(false);
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
@@ -421,7 +422,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     #endif
         pressure_advance::set_calibration_mode(true);
 #else
-        extrude_flow(slow_flow, 1.0f);
+        extrude_flow(slow_flow, 0.5f);
         extrude_flow(fast_flow, 0.25f);
 #endif
     }
@@ -813,7 +814,9 @@ void PrusaGcodeSuite::M976() {
     float right = lower + golden_ratio * (upper - lower);
     auto left_score = measure(left, 32);
     auto right_score = measure(right, 36);
-    for (uint8_t iteration = 0; iteration < 7 && !aborted && upper - lower > 0.0015f; ++iteration) {
+    // Five golden-section refinements locate the basin; the three mandatory
+    // +/-0.002 verification measurements below provide the final resolution.
+    for (uint8_t iteration = 0; iteration < 5 && !aborted && upper - lower > 0.0015f; ++iteration) {
         const float left_cost = left_score.valid ? left_score.transient : std::numeric_limits<float>::infinity();
         const float right_cost = right_score.valid ? right_score.transient : std::numeric_limits<float>::infinity();
         if (left_cost <= right_cost) {
