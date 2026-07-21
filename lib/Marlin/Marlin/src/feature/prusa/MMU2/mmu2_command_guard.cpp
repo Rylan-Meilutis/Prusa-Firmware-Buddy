@@ -1,5 +1,5 @@
 #include "mmu2_command_guard.h"
-#include "config_features.h"
+#include <option/has_loadcell.h>
 #if HAS_LOADCELL()
 #include <feature/extrusion_calibration.hpp>
 #endif
