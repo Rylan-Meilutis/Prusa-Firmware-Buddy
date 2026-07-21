@@ -65,6 +65,12 @@ public:
     ~PressureMonitorGuard() { buddy::extrusion_calibration::suspend_pressure_monitor(false); }
 };
 
+class CalibrationCommandGuard {
+public:
+    CalibrationCommandGuard() { buddy::extrusion_calibration::set_calibration_command_active(true); }
+    ~CalibrationCommandGuard() { buddy::extrusion_calibration::set_calibration_command_active(false); }
+};
+
 float probe_anchor_slot(uint8_t slot);
 
 void clean_after_mmu_unload() {
@@ -92,7 +98,6 @@ void create_hotend_clearance() {
 
 void pa_fsm_change(const PhasesPressureAdvanceCalibration phase, const uint8_t progress, const uint8_t slot) {
     marlin_server::fsm_change(phase, { progress, static_cast<uint8_t>(slot + 1) });
-    if (GCodeQueue::current_command_from_serial()) SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
 }
 
 bool pa_abort_requested(const PhasesPressureAdvanceCalibration phase) {
@@ -288,6 +293,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             return false;
         }
 #else
+    CalibrationCommandGuard calibration_command_guard;
         char tool_command[8];
         snprintf(tool_command, sizeof(tool_command), "T%u", entry.physical_tool);
         GcodeSuite::process_subcommands_now(tool_command);
@@ -542,7 +548,6 @@ void PrusaGcodeSuite::M976() {
             return;
         }
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch accepted entries=", count);
-        if (GCodeQueue::current_command_from_serial()) SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
         // Own the foreground dialog for the whole batch. Nested single-tool
         // M976 calls reuse this FSM, so tool changes, MMU loading, homing and
         // probing cannot briefly return control to the menu between tools.
@@ -791,7 +796,7 @@ void PrusaGcodeSuite::M976() {
         // A weak measurement is not a print failure. Publish the safe fallback
         // as this job's result so a batch continues and serial hosts do not
         // interpret the expected fallback path as a print-cancelling Error.
-        buddy::extrusion_calibration::set_job_result(slot, { fallback, max_flow, confidence, false, best_score });
+        buddy::extrusion_calibration::set_job_result(slot, { fallback, max_flow, confidence, true, best_score });
         if (manual) present_manual_result(tool, slot, fallback);
         else pa_fsm_change(PhasesPressureAdvanceCalibration::complete, 100, slot);
         emit_pressure_advance_gcode(tool, slot, fallback);

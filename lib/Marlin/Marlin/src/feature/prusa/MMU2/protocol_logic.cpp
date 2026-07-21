@@ -1062,7 +1062,6 @@ void ProtocolLogic::ResetRetryAttempts() {
 }
 
 void ProtocolLogic::ResetCommunicationTimeoutAttempts() {
-    SERIAL_ECHOLNPGM("RSTCommTimeout");
     dataTO.Reset();
 }
 

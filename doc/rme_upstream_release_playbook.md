@@ -22,6 +22,8 @@ M976 exit paths.
 
 Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. Regression-test that final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition.
 
+For serial reliability, keep M976 on the standard Marlin keepalive cadence and preserve the PA-active receive-path bypass for cosmetic numbered `M117`/`M73` updates. OctoPrint status plugins can inject these before the long-running M976 receives its final `ok`; queueing them exhausts Marlin's small command ring, stops USB RX draining, and causes real checksum/line-number resends. The bypass must parse host progress, acknowledge the numbered line, and discard only these cosmetic commands. Do not bypass motion, temperature, pause, cancel, or safety commands.
+
 Preserve the PA noise-floor and search contract: capture 300 ms while stationary,
 use derivative-free golden-section refinement within the fallback safety bracket,
 then measure the selected point and both 0.002 neighbours regardless of whether
