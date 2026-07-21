@@ -792,6 +792,9 @@ a1b5194aa  2026-07-20  Skip unload only for confirmed empty paths
 c06f69073  2026-07-20  Fix MMU serial flow and filament workflows
 8aabadbc5  2026-07-20  Update RME release playbook for MMU workflows
 113b4e7ae  2026-07-20  Fix filament color selection previews
+e0b2a7578  2026-07-20  Harden PA calibration and unload monitoring
+54e714245  2026-07-20  Optimize PA confidence calibration
+6b04989a5  2026-07-20  Use generated loadcell option in MMU guard
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
