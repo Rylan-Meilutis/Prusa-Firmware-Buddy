@@ -33,6 +33,7 @@ public:
 
     int item_count() const final;
     string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
+    void set_selected_color(std::optional<Color> selected_color) { color = selected_color; }
 
 private:
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Action>>({

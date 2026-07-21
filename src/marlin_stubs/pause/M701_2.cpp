@@ -15,6 +15,7 @@
 #include <utils/variant_utils.hpp>
 #include <config_store/store_instance.hpp>
 #include <filament_to_load.hpp>
+#include <filament_color.hpp>
 #include <Marlin/src/gcode/gcode.h>
 #include <mapi/parking.hpp>
 #include <raii/auto_restore.hpp>
@@ -71,6 +72,10 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 
     if (op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
+            // Interactive loads choose both fields in the preheat UI. Clear a
+            // stale selection before opening it, then retain the chosen color
+            // when the G-code did not provide O explicitly.
+            filament::set_color_to_load(std::nullopt);
             PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::purge : PreheatMode::standard_load, virtual_tool, *op_preheat);
             auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
             if (preheat_ret.first) {
@@ -80,6 +85,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
             }
 
             filament_to_be_loaded = preheat_ret.second;
+            if (!color_to_be_loaded) color_to_be_loaded = filament::get_color_to_load();
         } else {
             preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_load(false));
         }
@@ -149,6 +155,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
         // unload. During automatic runout, the M600 latch stays set until the
         // change finishes, so the remaining filament tail is still unloaded.
         config_store().set_filament_type(virtual_tool, FilamentType::none);
+        filament_color::set_loaded(virtual_tool.to_raw(), std::nullopt);
         filament::set_type_to_load(FilamentType::none);
         filament::set_color_to_load(std::nullopt);
         PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);

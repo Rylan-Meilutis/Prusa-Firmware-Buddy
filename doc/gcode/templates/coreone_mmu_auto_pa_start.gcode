@@ -1,4 +1,6 @@
 ; CORE One + MMU RME start G-code with automatic pressure-advance calibration
+; Keep every command and slicer control directive on its own physical line.
+; Copy this file as plain text; wrapped display lines are not line breaks.
 
 ; --- Printer Initialization and Checks ---
 M75 ; start print timer / serial print mode
@@ -63,7 +65,9 @@ M140 S[first_layer_bed_temperature] ; set bed temp
 M141 S{if chamber_temperature[initial_tool] == 0}20{else}{chamber_temperature[initial_tool]}{endif} ; set nominal chamber temp
 {endif}
 
-{if first_layer_bed_temperature[initial_tool]<=60}M106 S70{endif}
+{if first_layer_bed_temperature[initial_tool]<=60}
+M106 S70
+{endif}
 G0 Z40 F10000
 ;M104 T{initial_tool} S{if idle_temperature[initial_tool] == 0}100{else}{idle_temperature[initial_tool]}{endif}
 M190 R[first_layer_bed_temperature] ; wait for bed temp

@@ -7,6 +7,8 @@
 #include <string_builder.hpp>
 #include <mbedtls/base64.h>
 #include <M70X.hpp>
+#include <filament_color.hpp>
+#include <filament_to_load.hpp>
 
 #include <gcode/gcode.h>
 #include <marlin_server.hpp>
@@ -185,6 +187,7 @@ void execute(const Config &tool_config) {
         case Action::unload: {
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
+            filament_color::set_loaded(tool.to_raw(), std::nullopt);
 #else
             filament_gcodes::M702_unload(
                 std::nullopt,
@@ -199,9 +202,12 @@ void execute(const Config &tool_config) {
         case Action::change: {
 #if HAS_MMU2()
             // preload the MMU slot
+            filament::set_type_to_load(FilamentType { config.new_filament });
+            filament::set_color_to_load(config.color);
             filament_gcodes::mmu_load(tool.to_raw());
 
             config_store().set_filament_type(tool, config.new_filament);
+            filament_color::set_loaded(tool.to_raw(), config.color);
 #else
             const FilamentType new_filament { config.new_filament };
             if (old_filaments[tool] != FilamentType::none) {
