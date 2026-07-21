@@ -895,6 +895,7 @@ b7e242980  2026-07-20  Fix firmware picker and PA probe preparation
 322c2a744  2026-07-21  Keep PA preparation and extrusion off bed
 a441fad84  2026-07-21  Fix pressure advance signal confidence
 82591590a  2026-07-21  Add pressure advance debug setting
+d5ab07383  2026-07-21  Fix firmware picker reboot handoff
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
