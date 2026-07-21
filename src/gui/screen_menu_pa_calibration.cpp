@@ -28,6 +28,24 @@ constexpr NumericInputConfig temperature_config {
     .special_value_str = N_("Material"),
 };
 
+constexpr NumericInputConfig confidence_config {
+    .min_value = 50,
+    .max_value = 95,
+    .step = 5,
+    .unit = Unit::percent,
+};
+constexpr NumericInputConfig snr_config {
+    .min_value = 3.0f,
+    .max_value = 20.0f,
+    .step = 0.5f,
+    .max_decimal_places = 1,
+};
+constexpr NumericInputConfig retry_config {
+    .min_value = 0,
+    .max_value = 10,
+    .step = 1,
+};
+
 bool configured(const uint8_t tool) {
     return is_tool_enabled(tool) && config_store().get_filament_type(tool) != FilamentType::none;
 }
@@ -80,6 +98,27 @@ void MI_PA_TEMPERATURE::OnClick() {
 MI_PA_RUN::MI_PA_RUN()
     : IWindowMenuItem(_("Run Selected Calibrations"), nullptr, is_enabled_t::yes,
         configured_count() > 0 ? is_hidden_t::no : is_hidden_t::yes) {}
+
+MI_PA_CONFIDENCE_FLOOR::MI_PA_CONFIDENCE_FLOOR()
+    : WiSpin(config_store().pa_confidence_floor_percent.get(), confidence_config, _("Minimum Confidence")) {}
+
+void MI_PA_CONFIDENCE_FLOOR::OnClick() {
+    config_store().pa_confidence_floor_percent.set(static_cast<uint8_t>(value()));
+}
+
+MI_PA_MINIMUM_SNR::MI_PA_MINIMUM_SNR()
+    : WiSpin(config_store().pa_minimum_snr.get(), snr_config, _("Minimum Signal/Noise")) {}
+
+void MI_PA_MINIMUM_SNR::OnClick() {
+    config_store().pa_minimum_snr.set(value());
+}
+
+MI_PA_CONFIDENCE_RETRIES::MI_PA_CONFIDENCE_RETRIES()
+    : WiSpin(config_store().pa_confidence_retries.get(), retry_config, _("Confirmation Retries")) {}
+
+void MI_PA_CONFIDENCE_RETRIES::OnClick() {
+    config_store().pa_confidence_retries.set(static_cast<uint8_t>(value()));
+}
 
 void MI_PA_RUN::click(IWindowMenu &) {
     if (configured_count() == 0) {

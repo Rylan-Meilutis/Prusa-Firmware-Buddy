@@ -22,6 +22,16 @@ M976 exit paths.
 
 Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. Regression-test that final MMU unload cannot raise `M1601`, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before falling back after the bounded safety limit.
 
+Preserve the PA noise-floor and search contract: capture 300 ms while stationary,
+use derivative-free golden-section refinement within the fallback safety bracket,
+then measure the selected point and both 0.002 neighbours regardless of whether
+the acceptance floors have already been reached. Start at the firmware material
+preset, probe both directions with a 0.020 step, then shrink the selected
+bracket to the 0.002 verification scale. Preserve all three persistent controls
+in the UI, G-code, and RME settings export/import:
+`pa_confidence_floor_percent` (75, 50–95, `Q`), `pa_minimum_snr` (6.0, 3–20,
+`N`), and `pa_confidence_retries` (6, 0–10, `R`).
+
 Verify the root Filament menu is the only loaded-filament entry point. Each
 loaded tool row must show material and color name with an outlined visual swatch, its editor must stage
 Material and Color independently and commit only on Save, and the color chooser

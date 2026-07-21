@@ -14,7 +14,7 @@
 #if ENABLED(PRUSA_MMU2)
 #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
-#include <common/feature/extrusion_calibration.hpp>
+#include <feature/extrusion_calibration.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <common/mapi/motion.hpp>
 #include <common/mapi/parking.hpp>
@@ -23,7 +23,16 @@
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
+#include <option/has_indx.h>
+#include <option/has_wastebin_fill_tracking.h>
+#if HAS_INDX()
+#include <nozzle_cleaner.hpp>
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+#include <feature/wastebin_watcher/wastebin_watcher.hpp>
+#endif
 #include <printers.h>
+#include <tool_index.hpp>
 
 #include <algorithm>
 #include <array>
@@ -34,11 +43,9 @@
 
 namespace {
 constexpr float filament_area = 2.40528f;
-// Keep the search local to the slicer/profile fallback, while permitting
-// legitimate high-PA Bowden and flexible-material profiles.
+// Keep the search local to the slicer/profile fallback, but permit legitimate
+// high-PA Bowden/material profiles and preserve 0.002 s calibration precision.
 constexpr float absolute_pa_max = 0.50f;
-constexpr float minimum_result_confidence = 0.75f;
-constexpr uint8_t maximum_confidence_retries = 6;
 struct BatchEntry {
     uint8_t physical_tool;
     uint8_t logical_filament;
@@ -122,7 +129,7 @@ void emit_pressure_advance_gcode(const uint8_t tool, const uint8_t slot, const f
 
 void park_after_calibration() {
     if (all_axes_homed()) {
-        mapi::park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::park]);
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::park));
     }
 }
 
@@ -130,7 +137,7 @@ class HotendTargetRestorer {
 public:
     HotendTargetRestorer() {
         for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
-            targets_[hotend] = Temperature::degTargetHotend(hotend);
+            targets_[hotend] = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(hotend));
         }
     }
     ~HotendTargetRestorer() {
@@ -139,12 +146,12 @@ public:
 
     void restore(const bool wait_for_reachable_targets = false) {
         for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
-            Temperature::setTargetHotend(targets_[hotend], hotend);
+            Temperature::setTargetHotend(targets_[hotend], PhysicalToolIndex::from_raw(hotend));
         }
         if (!wait_for_reachable_targets) return;
         for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
             if (targets_[hotend] < thermalManager.extrude_min_temp) continue;
-            M109_no_parser(hotend, {
+            M109_no_parser(PhysicalToolIndex::from_raw(hotend), {
                 .target_temp = targets_[hotend],
                 .wait_heat = true,
                 .wait_heat_or_cool = true,
@@ -250,22 +257,23 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            if (MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN && !MMU2::mmu2.unload()) return false;
+            if (MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN && !MMU2::mmu2.unload()) return false;
             if (!GcodeSuite::G28_no_parser(true, true, true)) return false;
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
             create_hotend_clearance();
-            M109_no_parser(0, { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
+            M109_no_parser(PhysicalToolIndex::from_raw(0), { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
             if (!MMU2::mmu2.tool_change_for_pa_calibration(entry.logical_filament)) return false;
             prepared_anchor = true;
-        } else if (entry.physical_tool != active_extruder || entry.logical_filament != active_extruder) {
+        } else if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))
+            || entry.logical_filament != entry.physical_tool) {
             return false;
         }
 #else
         char tool_command[8];
         snprintf(tool_command, sizeof(tool_command), "T%u", entry.physical_tool);
         GcodeSuite::process_subcommands_now(tool_command);
-        if (active_extruder != entry.physical_tool) return false;
+        if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))) return false;
 #endif
         char calibration_command[64];
 #if ENABLED(PRUSA_MMU2)
@@ -283,7 +291,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
 #if ENABLED(PRUSA_MMU2)
     // Leave the nozzle empty for the slicer's full MBL. Its normal initial
     // tool command reloads the print filament after probing is complete.
-    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN) {
+    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN) {
         if (!MMU2::mmu2.unload()) return false;
     }
 #endif
@@ -312,9 +320,6 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
 }
 
 buddy::extrusion_calibration::Score run_bursts(const float pa) {
-    // Match PrusaPATuner's asymmetric 0.8/8.0 mm/s filament square wave.
-    // Queue the complete burst before synchronizing: PA must see continuous
-    // slow/fast transitions, not a stop between every leg.
     constexpr float slow_flow = 0.8f * filament_area;
     constexpr float fast_flow = 8.0f * filament_area;
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
@@ -322,13 +327,54 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     capture.start();
     pressure_advance::set_calibration_mode(true);
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
+#if HAS_INDX()
+        // Form one compact pellet per excitation cycle. Ending at the slow
+        // flow lets pressure decay before the cleaner knocks the pellet free,
+        // instead of joining every cycle into one large hanging mass.
+        extrude_flow(fast_flow, 0.25f);
+        extrude_flow(slow_flow, 1.0f);
+        planner.synchronize();
+        pressure_advance::set_calibration_mode(false);
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+            capture.stop();
+            return {};
+        }
+    #if HAS_WASTEBIN_FILL_TRACKING()
+        WastebinWatcher::instance().account_ejected_pellet();
+    #endif
+        pressure_advance::set_calibration_mode(true);
+#else
         extrude_flow(slow_flow, 1.0f);
         extrude_flow(fast_flow, 0.25f);
+#endif
     }
     planner.synchronize();
     pressure_advance::set_calibration_mode(false);
     capture.stop();
     return capture.score();
+}
+
+float measure_idle_noise_floor() {
+    auto &capture = buddy::extrusion_calibration::capture();
+    planner.synchronize();
+    capture.start();
+    GcodeSuite::dwell(300);
+    capture.stop();
+    return capture.noise_floor();
+}
+
+float result_confidence(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    if (!score.valid || !std::isfinite(idle_noise)) return 0;
+    const float effective_noise = std::max({ 0.25f, idle_noise, score.noise });
+    const float snr = score.mean_load / effective_noise;
+    const float signal_confidence = std::clamp((snr - 3.0f) / 5.0f, 0.0f, 1.0f);
+    const float transient_confidence = 1.0f / (1.0f + 0.35f * score.transient);
+    return transient_confidence * signal_confidence;
+}
+
+float result_snr(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    if (!score.valid || !std::isfinite(idle_noise)) return 0;
+    return score.mean_load / std::max({ 0.25f, idle_noise, score.noise });
 }
 
 float material_flow_limit(const uint8_t logical_filament) {
@@ -359,7 +405,7 @@ float probe_anchor_slot(const uint8_t slot) {
 
 void cleanup(const uint8_t slot, const float anchor_z) {
 #if HAS_WASTEBIN()
-    mapi::park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::purge]);
+    mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
     mapi::extruder_move(-1.0f, 20.0f, true);
     planner.synchronize();
 #else
@@ -370,7 +416,7 @@ void cleanup(const uint8_t slot, const float anchor_z) {
     auto pos = current_position;
     pos.x = x + 3.0f;
     pos.e += 1.2f;
-    planner.buffer_line(pos, 8.0f, active_extruder);
+    planner.buffer_line(pos, 8.0f, PhysicalToolIndex::currently_selected());
     planner.synchronize();
     current_position = pos;
     mapi::extruder_move(-0.8f, 20.0f, true);
@@ -382,13 +428,17 @@ void cleanup(const uint8_t slot, const float anchor_z) {
 
 void park_for_free_air_calibration(const uint8_t slot) {
 #if HAS_WASTEBIN()
-    mapi::home_if_needed_and_park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::purge]);
+    mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::purge));
 #else
     // The front service travel is outside the printable Y range on MK4,
     // CORE One and XL. Keep X aligned with the later cleanup slot so hanging
     // strands from different logical filaments remain separated.
-    const mapi::ParkingPosition position { 8.0f + slot * 11.0f, Y_MIN_POS + 1.0f, 10.0f };
-    mapi::home_if_needed_and_park(mapi::ZAction::move_to_at_least, position);
+    const mapi::ParkingPosition position {
+        .x = 8.0f + slot * 11.0f,
+        .y = Y_MIN_POS + 1.0f,
+        .z = mapi::ParkingPosition::AtLeast { .absolute = 10.0f },
+    };
+    mapi::home_if_needed_and_park(position);
 #endif
 }
 } // namespace
@@ -398,6 +448,38 @@ void PrusaGcodeSuite::M976() {
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;
 #else
+    const bool configure_confidence = parser.seen('Q');
+    const bool configure_snr = parser.seen('N');
+    const bool configure_retries = parser.seen('R');
+    if (configure_confidence || configure_snr || configure_retries) {
+        if (configure_confidence && parser.seenval('Q')) {
+            const float requested = parser.value_float();
+            if (requested < 0.50f || requested > 0.95f) {
+                SERIAL_ERROR_MSG("M976 Q confidence must be 0.50..0.95");
+                return;
+            }
+            config_store().pa_confidence_floor_percent.set(static_cast<uint8_t>(lroundf(requested * 100.0f)));
+        }
+        if (configure_snr && parser.seenval('N')) {
+            const float requested = parser.value_float();
+            if (requested < 3.0f || requested > 20.0f) {
+                SERIAL_ERROR_MSG("M976 N minimum SNR must be 3.0..20.0");
+                return;
+            }
+            config_store().pa_minimum_snr.set(requested);
+        }
+        if (configure_retries && parser.seenval('R')) {
+            const int requested = parser.value_int();
+            if (requested < 0 || requested > 10) {
+                SERIAL_ERROR_MSG("M976 R retries must be 0..10");
+                return;
+            }
+            config_store().pa_confidence_retries.set(static_cast<uint8_t>(requested));
+        }
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION minimum_confidence=", config_store().pa_confidence_floor_percent.get() / 100.0f,
+            " minimum_snr=", config_store().pa_minimum_snr.get(), " retries=", config_store().pa_confidence_retries.get());
+        if (!parser.seen('A') && !parser.seen('K') && !parser.seen('T') && !parser.seen('L')) return;
+    }
     // S is a calibration-only target. Restore every hotend target on every exit path, including
     // batch/MMU failures and cached results. Nested M976 calls restore to the batch's temporary
     // target; the outer batch guard then restores the targets that existed before the command.
@@ -416,20 +498,20 @@ void PrusaGcodeSuite::M976() {
                 SERIAL_ERROR_MSG("M976 invalid per-tool temperature list");
                 return;
             }
-            for (uint8_t logical = 0; logical < buddy::extrusion_calibration::max_logical_filaments; ++logical) {
-                if (!(mask & (1u << logical))) continue;
+            for (auto logical : VirtualToolIndex::all()) {
+                if (!(mask & (1u << logical.to_raw())) || !logical.is_enabled()) continue;
                 const auto filament = config_store().get_filament_type(logical);
                 if (filament == FilamentType::none || count >= entries.size()) continue;
                 auto &entry = entries[count++];
 #if ENABLED(PRUSA_MMU2)
                 entry.physical_tool = 0;
 #else
-                entry.physical_tool = logical;
+                entry.physical_tool = logical.to_physical().to_raw();
 #endif
-                entry.logical_filament = logical;
+                entry.logical_filament = logical.to_raw();
                 const auto &params = filament.parameters();
                 const int profile_temperature = std::clamp<int>(params.nozzle_temperature, 170, 300);
-                const int tool_temperature = requested_temperatures[logical] ?: requested_temperature;
+                const int tool_temperature = requested_temperatures[logical.to_raw()] ?: requested_temperature;
                 entry.temperature = tool_temperature
                     ? std::clamp(tool_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
                     : profile_temperature;
@@ -469,7 +551,8 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
         return;
     }
-    const uint8_t tool = parser.byteval('T', active_extruder);
+    const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+    const uint8_t tool = parser.byteval('T', selected_tool.has_value() ? selected_tool->to_raw() : 0);
     const uint8_t slot = parser.byteval('L', tool);
     if (parser.boolval('C', false)) {
         if (slot >= buddy::extrusion_calibration::max_logical_filaments) {
@@ -480,11 +563,12 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION anchor slot cleared=", slot);
         return;
     }
-    if (tool != active_extruder || slot >= buddy::extrusion_calibration::max_logical_filaments) {
+    if (!selected_tool.has_value() || tool != selected_tool->to_raw() || slot >= buddy::extrusion_calibration::max_logical_filaments) {
         SERIAL_ERROR_MSG("M976 select requested tool/slot first");
         return;
     }
     const float fallback = constrain(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
+    const float search_default = constrain(material_fallback(slot), 0.0f, absolute_pa_max);
     marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(slot + 1) } };
     int16_t target_temperature = 0;
     if (parser.seenval('S')) {
@@ -496,7 +580,7 @@ void PrusaGcodeSuite::M976() {
     }
     if (const auto *cached = buddy::extrusion_calibration::job_result(slot)) {
         pressure_advance::set_axis_e_config({ cached->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
-        planner.set_max_volumetric_flow(active_extruder, cached->max_flow_mm3_s);
+        planner.set_max_volumetric_flow(slot, cached->max_flow_mm3_s);
         buddy::extrusion_calibration::configure_pressure_monitor(cached->pressure_reference, 0.8f, 8.0f);
         if (manual) present_manual_result(tool, slot, cached->pressure_advance);
         emit_pressure_advance_gcode(tool, slot, cached->pressure_advance);
@@ -517,9 +601,12 @@ void PrusaGcodeSuite::M976() {
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
+        // With filament already loaded, lower the nozzle to the material's
+        // dedicated probing/preheat temperature before homing and probing.
+        // MMU batches arrive here with P/Z after probing while unloaded.
         if (target_temperature) {
             const int16_t probe_temperature = config_store().get_filament_type(slot).parameters().nozzle_preheat_temperature;
-            M109_no_parser(tool, {
+            M109_no_parser(*selected_tool, {
                 .target_temp = probe_temperature,
                 .wait_heat = true,
                 .wait_heat_or_cool = true,
@@ -532,7 +619,7 @@ void PrusaGcodeSuite::M976() {
         }
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::homing)) {
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-            planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+            planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
@@ -540,7 +627,7 @@ void PrusaGcodeSuite::M976() {
         anchor_z = probe_anchor_slot(slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::probing)) {
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-            planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+            planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
@@ -552,14 +639,14 @@ void PrusaGcodeSuite::M976() {
     }
     if (target_temperature) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::heating, 18, slot);
-        M109_no_parser(tool, {
+        M109_no_parser(*selected_tool, {
             .target_temp = target_temperature,
             .wait_heat = true,
             .wait_heat_or_cool = false,
         });
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::heating)) {
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-            planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+            planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
@@ -575,40 +662,83 @@ void PrusaGcodeSuite::M976() {
     loadcell.WaitBarrier();
     loadcell.Tare();
 
-    float best_pa = fallback, best_cost = std::numeric_limits<float>::infinity();
+    const float idle_noise = measure_idle_noise_floor();
+    const float minimum_result_confidence = std::clamp(config_store().pa_confidence_floor_percent.get() / 100.0f, 0.50f, 0.95f);
+    const float minimum_snr = std::clamp(config_store().pa_minimum_snr.get(), 3.0f, 20.0f);
+    const uint8_t maximum_confidence_retries = std::min<uint8_t>(config_store().pa_confidence_retries.get(), 10);
+    float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     bool aborted = false;
-    // Coarse search around the profile/material fallback, followed by the
-    // PrusaPATuner 0.002-resolution refinement around the best response.
-    for (int8_t offset = -3; offset <= 3; ++offset) {
-        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, static_cast<uint8_t>(20 + (offset + 3) * 5), slot);
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const float candidate = constrain(fallback + offset * 0.01f, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(candidate);
+    const auto measure = [&](const float candidate, const uint8_t progress) {
+        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, progress, slot);
+        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) {
+            aborted = true;
+            return buddy::extrusion_calibration::Score {};
+        }
+        const auto score = run_bursts(constrain(candidate, 0.0f, absolute_pa_max));
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
-            best_pa = candidate;
+            best_pa = constrain(candidate, 0.0f, absolute_pa_max);
             best_score = score;
         }
+        return score;
+    };
+
+    // The objective is one-dimensional but noisy. Golden-section refinement
+    // needs no numerical derivative and reuses one measurement per iteration.
+    constexpr float initial_step = 0.02f;
+    const auto center_seed = measure(search_default, 20);
+    const auto lower_seed = measure(search_default - initial_step, 24);
+    const auto upper_seed = measure(search_default + initial_step, 28);
+    const float center_cost = center_seed.valid ? center_seed.transient : std::numeric_limits<float>::infinity();
+    const float lower_cost = lower_seed.valid ? lower_seed.transient : std::numeric_limits<float>::infinity();
+    const float upper_cost = upper_seed.valid ? upper_seed.transient : std::numeric_limits<float>::infinity();
+    float lower, upper;
+    if (lower_cost < center_cost && lower_cost <= upper_cost) {
+        lower = std::max(0.0f, search_default - 0.03f);
+        upper = search_default;
+    } else if (upper_cost < center_cost) {
+        lower = search_default;
+        upper = std::min(absolute_pa_max, search_default + 0.03f);
+    } else {
+        lower = std::max(0.0f, search_default - initial_step);
+        upper = std::min(absolute_pa_max, search_default + initial_step);
     }
-    const float refinement_center = best_pa;
-    for (int8_t offset = -2; offset <= 2 && !aborted; ++offset) {
-        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, static_cast<uint8_t>(60 + (offset + 2) * 6), slot);
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const float candidate = constrain(refinement_center + offset * 0.002f, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(candidate);
-        if (score.valid && score.transient < best_cost) {
-            best_cost = score.transient;
-            best_pa = candidate;
-            best_score = score;
+    constexpr float golden_ratio = 0.61803398875f;
+    float left = upper - golden_ratio * (upper - lower);
+    float right = lower + golden_ratio * (upper - lower);
+    auto left_score = measure(left, 32);
+    auto right_score = measure(right, 36);
+    for (uint8_t iteration = 0; iteration < 7 && !aborted && upper - lower > 0.0015f; ++iteration) {
+        const float left_cost = left_score.valid ? left_score.transient : std::numeric_limits<float>::infinity();
+        const float right_cost = right_score.valid ? right_score.transient : std::numeric_limits<float>::infinity();
+        if (left_cost <= right_cost) {
+            upper = right;
+            right = left;
+            right_score = left_score;
+            left = upper - golden_ratio * (upper - lower);
+            left_score = measure(left, static_cast<uint8_t>(40 + iteration * 4));
+        } else {
+            lower = left;
+            left = right;
+            left_score = right_score;
+            right = lower + golden_ratio * (upper - lower);
+            right_score = measure(right, static_cast<uint8_t>(40 + iteration * 4));
         }
     }
-    // A single noisy sweep can choose a plausible-looking but unreliable PA
-    // value. Re-measure the best candidate until it clears the acceptance
-    // threshold, with a finite safety bound so a damaged/loadcell-less setup
-    // cannot extrude forever. A persistently weak signal falls back below.
+
+    // Confirm the apparent optimum and both immediate 0.002 neighbours. This
+    // always runs even if the minimum confidence has already been reached.
+    const float verification_center = best_pa;
+    measure(verification_center - 0.002f, 74);
+    measure(verification_center, 78);
+    measure(verification_center + 0.002f, 82);
+
+    // The configured threshold is an acceptance floor, not a search target.
+    // Refinement and neighbour verification above always finish first; only a
+    // weak final signal receives bounded extra confirmations.
     for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted
-         && (!std::isfinite(best_cost) || 1.0f / (1.0f + best_cost) < minimum_result_confidence);
+         && (result_confidence(best_score, idle_noise) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
          ++retry) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
             static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries), slot);
@@ -623,7 +753,7 @@ void PrusaGcodeSuite::M976() {
     if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) aborted = true;
     if (aborted) {
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-        planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+        planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
         cleanup(slot, anchor_z);
         buddy::extrusion_calibration::suspend_pressure_monitor(false);
@@ -631,10 +761,10 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION aborted fallback=", fallback);
         return;
     }
-    const float confidence = std::isfinite(best_cost) ? 1.0f / (1.0f + best_cost) : 0.0f;
-    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence) {
+    const float confidence = result_confidence(best_score, idle_noise);
+    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-        planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
+        planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
         cleanup(slot, anchor_z);
         buddy::extrusion_calibration::suspend_pressure_monitor(false);
@@ -646,7 +776,7 @@ void PrusaGcodeSuite::M976() {
     const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score };
     buddy::extrusion_calibration::set_job_result(slot, result);
     pressure_advance::set_axis_e_config({ best_pa, pressure_advance::get_axis_e_config().smooth_time });
-    planner.set_max_volumetric_flow(active_extruder, max_flow);
+    planner.set_max_volumetric_flow(slot, max_flow);
     pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
     cleanup(slot, anchor_z);
     buddy::extrusion_calibration::configure_pressure_monitor(best_score, 0.8f, 8.0f);
