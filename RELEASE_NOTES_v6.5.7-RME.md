@@ -39,6 +39,7 @@
       * The blocking progress screen retains the normal temperature/status footer, and unattended batches wait for reachable pre-command nozzle targets so supplied MMU templates return to their explicit probing temperature before full MBL
       * MMU calibration explicitly unloads before every home/local probe and unloads the final slot before returning or presenting results, leaving the nozzle empty for the slicer's following full MBL
       * PA starts its 170 C probing preheat before homing, overlaps warm-up with MMU unload, always cleans the nozzle before the local probe even when unload is skipped, waits for 170 C, then creates 10 mm of bed/nozzle clearance and heats to the requested test temperature
+      * Shortened only the redundant slow-flow plateau and two coarse optimizer refinements, retaining four transitions cycles and three-point ±0.002 verification while reducing typical calibration filament use by about 25%
       * Filament-sensor sampling remains active during PA excitation, while runout/autoload event generation is scoped off until calibration cleanup completes to prevent false toolhead-sensor errors
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
