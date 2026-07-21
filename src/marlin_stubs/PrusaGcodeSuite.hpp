@@ -14,6 +14,7 @@
 #include <option/has_i2c_expander.h>
 #include <option/has_chamber_api.h>
 #include <option/has_nozzle_cleaner.h>
+#include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_emergency_stop.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_door_sensor_calibration.h>
@@ -40,7 +41,7 @@ GcodeSuite::PhysicalToolFromCommand get_target_physical_from_command_p(const GCo
  * @{
  */
 
-#if HAS_NOZZLE_CLEANER()
+#if HAS_NOZZLE_CLEANER() || HAS_NOZZLE_CLEANER_LITE()
 void G12(); ///< Nozzle Cleaning
 #endif
 void G26(); //< first layer calibration

@@ -1,6 +1,5 @@
 #include "PrusaGcodeSuite.hpp"
 
-#include <nozzle_cleaner.hpp>
 #include <logging/log.hpp>
 
 #include <algorithm>
@@ -16,6 +15,18 @@
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
 #endif
+#include <option/has_nozzle_cleaner.h>
+#include <option/has_nozzle_cleaner_lite.h>
+#if HAS_NOZZLE_CLEANER()
+    #include <nozzle_cleaner.hpp>
+#elif HAS_NOZZLE_CLEANER_LITE()
+    #include <nozzle_cleaner_lite.hpp>
+#else
+    #error "G12 requires a nozzle cleaner"
+#endif
+
+#include <printers.h>
+#include <marlin_server.hpp>
 
 LOG_COMPONENT_REF(PRUSA_GCODE);
 
@@ -53,23 +64,31 @@ void PrusaGcodeSuite::G12() {
         buddy::auto_retract().maybe_retract_from_nozzle();
     }
 #endif
+
+#if HAS_NOZZLE_CLEANER_LITE()
+    if (nozzle_cleaner_lite::is_available()) {
+        // Unlike G29, G12 doesn't already have a print_status_message FSM open,
+        // so open one here to show the heating wait screen during cleaning.
+        marlin_server::FSM_Holder fsm_holder(PhaseWait::print_status_message);
+        nozzle_cleaner_lite::clean();
+    }
+#else
     {
         static constexpr std::pair<uint16_t, nozzle_cleaner::Sequence> s_param_map[] = {
             { 0, nozzle_cleaner::Sequence::clean },
-#if HAS_INDX()
+    #if HAS_INDX()
             { 1, nozzle_cleaner::Sequence::quick_clean },
             { 2, nozzle_cleaner::Sequence::deep_clean },
-#endif
-            // Reserved for more cleaning sequences
+    #endif
             { 20, nozzle_cleaner::Sequence::purge_clean },
-#if HAS_INDX()
+    #if HAS_INDX()
             { 21, nozzle_cleaner::Sequence::power_panic_purge },
             // Reserved for more purge sequences
             { 30, nozzle_cleaner::Sequence::eject_blob },
             // Reserved for other sequences
             { 90, nozzle_cleaner::Sequence::enter_cleaner },
             { 91, nozzle_cleaner::Sequence::exit_cleaner },
-#endif
+    #endif
         };
         static_assert(std::size(s_param_map) == nozzle_cleaner::externally_invocable_count);
 
@@ -83,7 +102,7 @@ void PrusaGcodeSuite::G12() {
         }
 
         [[maybe_unused]] const bool executed = nozzle_cleaner::load_and_execute(it->second);
-#if HAS_WASTEBIN_FILL_TRACKING()
+    #if HAS_WASTEBIN_FILL_TRACKING()
         if (executed && it->second == nozzle_cleaner::Sequence::eject_blob) {
             // One ejected blob == one pellet; WastebinWatcher handles the mid-print full detection.
             //
@@ -98,8 +117,9 @@ void PrusaGcodeSuite::G12() {
             // larger deposit; tracked separately.
             WastebinWatcher::instance().account_ejected_pellet();
         }
-#endif
+    #endif
     }
+#endif
 }
 
 /** @}*/
