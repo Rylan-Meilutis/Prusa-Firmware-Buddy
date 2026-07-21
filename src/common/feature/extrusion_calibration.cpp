@@ -217,7 +217,10 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // as a soft melt-limit marker, and pause only if pressure subsequently
     // collapses or fails to rise. This preserves real max-flow protection
     // without turning a healthy purge into an immediate M1601 fault.
-    if (monitor_bad_time > 1.0f) {
+    // Do not react to a single transition or one slow/thick extrusion move.
+    // Require a full three seconds of continuously bad pressure evidence after
+    // the initial motion qualification; any healthy sample resets bad_time.
+    if (monitor_bad_time > 3.0f) {
         wanted = pressure_collapsed && monitor_breakout_seen
             ? ExtrusionFault::flow_breakout
             : pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
