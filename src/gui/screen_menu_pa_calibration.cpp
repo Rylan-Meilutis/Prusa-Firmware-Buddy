@@ -121,6 +121,13 @@ void MI_PA_CONFIDENCE_RETRIES::OnClick() {
     config_store().pa_confidence_retries.set(static_cast<uint8_t>(value()));
 }
 
+MI_PA_DEBUG_OUTPUT::MI_PA_DEBUG_OUTPUT()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().pa_calibration_debug_output.get(), _("Debug Output"), nullptr) {}
+
+void MI_PA_DEBUG_OUTPUT::OnChange(size_t) {
+    config_store().pa_calibration_debug_output.set(value());
+}
+
 void MI_PA_RUN::click(IWindowMenu &) {
     if (configured_count() == 0) {
         MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Assign the loaded filament before calibration."), Responses_Ok);
