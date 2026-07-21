@@ -46,27 +46,66 @@ void MI_RESET_Z_AXIS_LEN::click([[maybe_unused]] IWindowMenu &window_menu) {
     Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, (void *)ClickCommand::Reset_Z);
 }
 
-static constexpr NumericInputConfig steps_per_unit_spin_config = {
+namespace {
+
+constexpr NumericInputConfig steps_per_unit_xy_spin_config {
+    .min_value = 1,
+    .max_value = 1000,
+    .special_value = config_store_ns::steps_per_unit_unset,
+    .special_value_str = N_("Default"),
+};
+
+constexpr NumericInputConfig steps_per_unit_spin_config {
     .min_value = 1,
     .max_value = 1000,
 };
 
+float steps_per_mm_to_val(auto &store_item) {
+    // std::abs would not work if the unset val is anything else
+    static_assert(config_store_ns::steps_per_unit_unset == 0);
+    return std::abs(std::roundf(store_item.get()));
+}
+
+float value_to_store(float val, const WiSwitchDirection &wrong_direction_item, float default_val) {
+    const bool wrong_direction = wrong_direction_item.current_item() == 1;
+
+    if (val == config_store_ns::steps_per_unit_unset && wrong_direction) {
+        // Enforce value if wrong_dir is set, otherwise -0 == 0 and wrong_dir would not get stored
+        val = default_val;
+    } else {
+        val = std::copysignf(val, default_val);
+    }
+
+    return val * (wrong_direction ? -1 : 1);
+}
+
+} // namespace
+
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_X
 MI_STEPS_PER_UNIT_X::MI_STEPS_PER_UNIT_X()
-    : WiSpin(get_steps_per_unit_x_rounded(), steps_per_unit_spin_config, _("X-axis steps per unit")) {}
+    : WiSpin(steps_per_mm_to_val(config_store().axis_steps_per_unit_x), steps_per_unit_xy_spin_config, _("X-axis steps per unit")) {
+}
 
-void MI_STEPS_PER_UNIT_X::Store() {
-    set_steps_per_unit_x(GetVal());
+float MI_STEPS_PER_UNIT_X::value_to_store(const MI_DIRECTION_X &wrong_direction) const {
+    return ::value_to_store(value(), wrong_direction, get_default_steps_per_unit_x_signed());
+}
+
+void MI_STEPS_PER_UNIT_X::Store(const MI_DIRECTION_X &wrong_direction) {
+    config_store().axis_steps_per_unit_x.set(value_to_store(wrong_direction));
 }
 
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_Y
 MI_STEPS_PER_UNIT_Y::MI_STEPS_PER_UNIT_Y()
-    : WiSpin(get_steps_per_unit_y_rounded(), steps_per_unit_spin_config, _("Y-axis steps per unit")) {}
+    : WiSpin(steps_per_mm_to_val(config_store().axis_steps_per_unit_y), steps_per_unit_xy_spin_config, _("Y-axis steps per unit")) {}
 
-void MI_STEPS_PER_UNIT_Y::Store() {
-    set_steps_per_unit_y(GetVal());
+float MI_STEPS_PER_UNIT_Y::value_to_store(const MI_DIRECTION_Y &wrong_direction) const {
+    return ::value_to_store(value(), wrong_direction, get_default_steps_per_unit_y_signed());
+}
+
+void MI_STEPS_PER_UNIT_Y::Store(const MI_DIRECTION_Y &wrong_direction) {
+    config_store().axis_steps_per_unit_y.set(value_to_store(wrong_direction));
 }
 
 /*****************************************************************************/
@@ -111,18 +150,10 @@ WiSwitchDirection::WiSwitchDirection(bool current_direction_wrong, const string_
 MI_DIRECTION_X::MI_DIRECTION_X()
     : WiSwitchDirection(has_wrong_x(), _("X-axis direction")) {}
 
-void MI_DIRECTION_X::Store() {
-    get_index() == 1 ? set_wrong_direction_x() : set_PRUSA_direction_x();
-}
-
 /*****************************************************************************/
 // MI_DIRECTION_Y
 MI_DIRECTION_Y::MI_DIRECTION_Y()
     : WiSwitchDirection(has_wrong_y(), _("Y-axis direction")) {}
-
-void MI_DIRECTION_Y::Store() {
-    get_index() == 1 ? set_wrong_direction_y() : set_PRUSA_direction_y();
-}
 
 /*****************************************************************************/
 // MI_DIRECTION_Z

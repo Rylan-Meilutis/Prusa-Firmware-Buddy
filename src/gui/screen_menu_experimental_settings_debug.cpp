@@ -10,6 +10,7 @@
 #include "MItem_experimental_tools.hpp"
 #include <common/sys.hpp>
 #include <config_store/store_instance.hpp>
+#include <config_store/store_c_api.h>
 
 void ScreenMenuExperimentalSettings::clicked_return() {
     ExperimentalSettingsValues current(*this); // ctor will handle load of values
@@ -23,13 +24,11 @@ void ScreenMenuExperimentalSettings::clicked_return() {
     case Response::Yes:
         Item<MI_Z_AXIS_LEN>().Store();
 
-        Item<MI_STEPS_PER_UNIT_X>().Store();
-        Item<MI_STEPS_PER_UNIT_Y>().Store();
+        Item<MI_STEPS_PER_UNIT_X>().Store(Item<MI_DIRECTION_X>());
+        Item<MI_STEPS_PER_UNIT_Y>().Store(Item<MI_DIRECTION_Y>());
         Item<MI_STEPS_PER_UNIT_Z>().Store();
         Item<MI_STEPS_PER_UNIT_E>().Store();
 
-        Item<MI_DIRECTION_X>().Store();
-        Item<MI_DIRECTION_Y>().Store();
         Item<MI_DIRECTION_Z>().Store();
         Item<MI_DIRECTION_E>().Store();
 
@@ -70,9 +69,8 @@ void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t e
         Invalidate();
         break;
     case ClickCommand::Reset_steps:
-        // Show absolute value
-        Item<MI_STEPS_PER_UNIT_X>().SetVal(std::abs(config_store().axis_steps_per_unit_x.default_val));
-        Item<MI_STEPS_PER_UNIT_Y>().SetVal(std::abs(config_store().axis_steps_per_unit_y.default_val));
+        Item<MI_STEPS_PER_UNIT_X>().set_value(std::nullopt);
+        Item<MI_STEPS_PER_UNIT_Y>().set_value(std::nullopt);
         Item<MI_STEPS_PER_UNIT_Z>().SetVal(std::abs(config_store().axis_steps_per_unit_z.default_val));
         Item<MI_STEPS_PER_UNIT_E>().SetVal(std::abs(config_store().axis_steps_per_unit_e0.default_val));
         // Set default axis direction
@@ -110,8 +108,8 @@ bool ExperimentalSettingsValues::operator!=(const ExperimentalSettingsValues &ot
 
 ExperimentalSettingsValues::ExperimentalSettingsValues(ScreenMenuExperimentalSettings__ &parent)
     : z_len(static_cast<int32_t>(parent.Item<MI_Z_AXIS_LEN>().GetVal()))
-    , steps_per_unit_x(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_X>().GetVal()) * ((parent.Item<MI_DIRECTION_X>().get_index() == 1) ? -1 : 1))
-    , steps_per_unit_y(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_Y>().GetVal()) * ((parent.Item<MI_DIRECTION_Y>().get_index() == 1) ? -1 : 1))
+    , steps_per_unit_x(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_X>().value_to_store(parent.Item<MI_DIRECTION_X>())))
+    , steps_per_unit_y(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_Y>().value_to_store(parent.Item<MI_DIRECTION_Y>())))
     , steps_per_unit_z(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_Z>().GetVal()) * ((parent.Item<MI_DIRECTION_Z>().get_index() == 1) ? -1 : 1))
     , steps_per_unit_e(static_cast<int32_t>(parent.Item<MI_STEPS_PER_UNIT_E>().GetVal()) * ((parent.Item<MI_DIRECTION_E>().get_index() == 1) ? -1 : 1))
     , rms_current_ma_x(static_cast<int32_t>(parent.Item<MI_CURRENT_X>().GetVal()))

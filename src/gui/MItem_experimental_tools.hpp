@@ -43,16 +43,21 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+class MI_DIRECTION_X;
+class MI_DIRECTION_Y;
+
 class MI_STEPS_PER_UNIT_X : public WiSpin {
 public:
     MI_STEPS_PER_UNIT_X();
-    void Store();
+    float value_to_store(const MI_DIRECTION_X &wrong_direction) const;
+    void Store(const MI_DIRECTION_X &wrong_direction);
 };
 
 class MI_STEPS_PER_UNIT_Y : public WiSpin {
 public:
     MI_STEPS_PER_UNIT_Y();
-    void Store();
+    float value_to_store(const MI_DIRECTION_Y &wrong_direction) const;
+    void Store(const MI_DIRECTION_Y &wrong_direction);
 };
 
 class MI_STEPS_PER_UNIT_Z : public WiSpin {
@@ -83,13 +88,11 @@ public:
 class MI_DIRECTION_X : public WiSwitchDirection {
 public:
     MI_DIRECTION_X();
-    void Store();
 };
 
 class MI_DIRECTION_Y : public WiSwitchDirection {
 public:
     MI_DIRECTION_Y();
-    void Store();
 };
 
 class MI_DIRECTION_Z : public WiSwitchDirection {

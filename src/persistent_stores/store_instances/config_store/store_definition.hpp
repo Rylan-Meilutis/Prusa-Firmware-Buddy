@@ -746,8 +746,8 @@ struct CurrentStore
 #endif
 
     // axis microsteps and rms current have a capital axis + '_' at the end in name because of trinamic.cpp. Can be removed once the macro there is removed
-    StoreItem<float, defaults::axis_steps_per_unit_x, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit X")> axis_steps_per_unit_x;
-    StoreItem<float, defaults::axis_steps_per_unit_y, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit Y")> axis_steps_per_unit_y;
+    StoreItem<float, steps_per_unit_unset, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit X")> axis_steps_per_unit_x; // steps_per_unit_unset - default value, !=0 - user value (sign = direction)
+    StoreItem<float, steps_per_unit_unset, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit Y")> axis_steps_per_unit_y; // steps_per_unit_unset - default value, !=0 - user value (sign = direction)
     StoreItem<float, defaults::axis_steps_per_unit_z, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit Z")> axis_steps_per_unit_z;
     StoreItem<float, defaults::axis_steps_per_unit_e0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit E0")> axis_steps_per_unit_e0;
     StoreItem<uint16_t, 0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Microsteps X")> axis_microsteps_X_; // 0 - default value, !=0 - user value

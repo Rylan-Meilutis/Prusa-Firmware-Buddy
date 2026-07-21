@@ -1124,11 +1124,21 @@ constexpr bool sanity_all_positive(const float (&arr)[N]) {
 constexpr float sanity_max_feedrate[]     = DEFAULT_MAX_FEEDRATE,
                 sanity_max_acceleration[] = DEFAULT_MAX_ACCELERATION;
 
-// Axis steps/mm are individual per-axis macros (no bundled array); every printer defines all four.
+// Axis steps/mm are individual per-axis macros (no bundled array). Z/E0 are always defined.
+// X/Y naming differs by printer: most define _X/_Y, but belt printers (CoreOne/CoreOneL) omit those
+// and define the per-belt 2GT/15GT variants instead (X/Y is resolved at runtime). Check whichever
+// pair the printer actually uses, and error out if a printer defines neither.
 static_assert(DEFAULT_AXIS_STEPS_PER_UNIT_Z > 0 && DEFAULT_AXIS_STEPS_PER_UNIT_E0 > 0,
               "DEFAULT_AXIS_STEPS_PER_UNIT_Z/_E0 must be positive.");
+#if defined(DEFAULT_AXIS_STEPS_PER_UNIT_X)
 static_assert(DEFAULT_AXIS_STEPS_PER_UNIT_X > 0 && DEFAULT_AXIS_STEPS_PER_UNIT_Y > 0,
               "DEFAULT_AXIS_STEPS_PER_UNIT_X/_Y must be positive.");
+#elif defined(AXIS_STEPS_PER_UNIT_2GT_XY)
+static_assert(AXIS_STEPS_PER_UNIT_2GT_XY > 0 && AXIS_STEPS_PER_UNIT_15GT_XY > 0,
+              "AXIS_STEPS_PER_UNIT_2GT_XY/_15GT_XY must be positive.");
+#else
+  #error "No X/Y steps/mm default defined for this printer."
+#endif
 
 static_assert(COUNT(sanity_max_feedrate) >= XYZE,   "DEFAULT_MAX_FEEDRATE requires X, Y, Z and E elements.");
 static_assert(COUNT(sanity_max_feedrate) <= XYZE_N, "DEFAULT_MAX_FEEDRATE has too many elements. (Did you forget to enable DISTINCT_E_FACTORS?)");
