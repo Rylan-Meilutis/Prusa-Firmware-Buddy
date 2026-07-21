@@ -277,8 +277,10 @@ add_library(Marlin_Config INTERFACE)
 target_include_directories(
   Marlin_Config INTERFACE include/marlin src/common src/gui src/marlin_stubs/include
   )
-target_include_directories(Marlin_Config INTERFACE src/common/selftest)
-target_link_libraries(Marlin_Config INTERFACE BuddyHeaders FreeRTOS::FreeRTOS FreeRTOS::CMSIS)
+target_include_directories(Marlin_Config INTERFACE src/common/selftest src/common/gcode)
+target_link_libraries(
+  Marlin_Config INTERFACE BuddyHeaders FreeRTOS::FreeRTOS FreeRTOS::CMSIS mbedTLS
+  )
 
 #
 # Configure tinyusb
