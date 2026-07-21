@@ -226,6 +226,17 @@ static void clean_before_probing_toolchanger() {
         }
     }
 
+    // The start gcode deliberately selects the tool that homes and probes MBL
+    // before the G29 that triggers cleaning; put it back once the cleaning
+    // tool changes are done so probing runs with the tool the gcode chose.
+    const auto original_tool = PhysicalToolIndex::currently_selected();
+    ScopeGuard restore_original_tool([&] {
+        if (PhysicalToolIndex::currently_selected() != original_tool
+            && !tool_change(stdext::to_variant(original_tool), tool_return_t::no_return)) {
+            log_error(NozzleCleanerLite, "Failed to restore originally selected tool");
+        }
+    });
+
     // Start heating all used tools to the cleaning temperature in parallel to
     // save time; restore the targets once all of them are cleaned
     std::array<int16_t, PhysicalToolIndex::count> saved_nozzle_targets {};
