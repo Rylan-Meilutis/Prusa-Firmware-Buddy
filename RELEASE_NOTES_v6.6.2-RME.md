@@ -814,6 +814,8 @@ a97b977e4  2026-07-20  Add pressure advance measurement diagnostics
 f31bdc5bc  2026-07-20  Fix MMU PA sensor namespace
 44e512ee9  2026-07-20  Fix firmware picker and PA probe preparation
 42ec3692d  2026-07-21  Reduce PA calibration filament use
+ecfb81ca4  2026-07-21  Keep PA off bed and fix signal confidence
+ea79004d5  2026-07-21  Add pressure advance debug setting
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
