@@ -402,6 +402,21 @@ float result_snr(const buddy::extrusion_calibration::Score &score, const float i
     return score.mean_load / std::max({ 0.25f, idle_noise, score.noise });
 }
 
+void report_measurement_debug(const float candidate, const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    char report[320];
+    const float peak_snr = score.strongest_transition
+        / std::max({ 0.25f, idle_noise, score.highest_transition_noise });
+    snprintf(report, sizeof(report),
+        "PA_CAL_DEBUG candidate=%.3f samples=%u transitions=%u used=%u low_signal=%u bad_timing=%u overflow=%u amplitude=%.2f transition_noise=%.2f idle_noise=%.2f peak_snr=%.2f snr=%.2f transient=%.3f confidence=%.2f valid=%u",
+        static_cast<double>(candidate), unsigned(score.sample_count), unsigned(score.transitions_detected),
+        unsigned(score.transitions_used), unsigned(score.rejected_low_signal), unsigned(score.rejected_timing),
+        unsigned(score.capture_overflow), static_cast<double>(score.strongest_transition),
+        static_cast<double>(score.highest_transition_noise), static_cast<double>(idle_noise), static_cast<double>(peak_snr),
+        static_cast<double>(result_snr(score, idle_noise)), static_cast<double>(score.transient),
+        static_cast<double>(result_confidence(score, idle_noise)), unsigned(score.valid));
+    SERIAL_ECHOLN(report);
+}
+
 float material_flow_limit(const uint8_t logical_filament) {
     const auto &name = config_store().get_filament_type(logical_filament).parameters().name;
     if (!strncmp(name.data(), "FLEX", 4)) return 4.0f;
@@ -700,6 +715,7 @@ void PrusaGcodeSuite::M976() {
             return buddy::extrusion_calibration::Score {};
         }
         const auto score = run_bursts(std::clamp(candidate, 0.0f, absolute_pa_max));
+        report_measurement_debug(std::clamp(candidate, 0.0f, absolute_pa_max), score, idle_noise);
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
             best_pa = std::clamp(candidate, 0.0f, absolute_pa_max);
@@ -768,6 +784,7 @@ void PrusaGcodeSuite::M976() {
             static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries), slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
         const auto score = run_bursts(best_pa);
+        report_measurement_debug(best_pa, score, idle_noise);
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
             best_score = score;
