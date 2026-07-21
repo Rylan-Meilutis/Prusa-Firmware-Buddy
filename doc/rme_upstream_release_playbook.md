@@ -26,6 +26,15 @@ Material and Color independently and commit only on Save, and the color chooser
 must omit unused user slots. On non-MINI printers, verify Settings > Filament Colors creates a named
 color through the color-value picker and that `M865` retains the exact hex value
 for serial hosts while the loaded-filament list does not display preset metadata.
+Every interactive load, change, MMU preload, and preload-all path must request
+both material and color. Verify the selected pair is committed to the physical
+tool or MMU slot only after a successful operation. Every successful unload,
+including the confirmed-empty fast path, must clear both fields.
+
+Verify **Filament > Loading test** lists each enabled MMU slot and one **Test
+All** action. Exercise `M1704 P<n> M0` for one physical slot, `M1704 K<mask> M0`
+for an arbitrary set, and `M1704 A M0` for all enabled slots. Multi-slot tests
+must execute sequentially and retain the normal MMU error and user-abort paths.
 
 Verify Settings > FW update opens a page containing Select BBF from USB and
 Update Instructions. The picker must reject non-BBF files and paths outside
@@ -59,7 +68,7 @@ remove update UI or language coverage to make a MINI image link.
 
 ## Current Baseline
 
-RME 6.6.2 is based on upstream tag `v6.6.2` at `993cf83087`.
+RME 6.6.2 is based on upstream tag `v6.6.2` at `993cf8308`.
 
 The active release branch is:
 
@@ -88,13 +97,18 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git merge-base --is-ancestor v6.6.2 rme-v6.6.2
 git diff --stat v6.6.2..rme-v6.6.2
 git diff --name-status v6.6.2..rme-v6.6.2
 git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
 ```
 
-At the time this playbook was last audited, the RME 6.6.2 release port covered 580 files with 17,291 insertions and 1,315 deletions relative to upstream `v6.6.2`. The branch contains upstream `v6.6.2` in its ancestry and carries the RME feature stack through the INDX purge-bucket serial recovery work. The largest categories are GUI resources/theme assets, serial printing, LED/light-bar behavior, build tooling, safety/chamber logic, config-store additions, PID management, Prusa Connect compatibility, per-print extrusion calibration, and GUI framework polish.
+At the time this playbook was last audited, the RME 6.6.2 release port covered
+635 files with approximately 20,175 insertions and 1,368 deletions relative to
+upstream `v6.6.2`. The stack contains the complete serial-printing, PA
+calibration, filament metadata, USB/serial firmware update, INDX, lighting,
+build-tooling, safety/chamber, PID, Prusa Connect, and GUI feature set. Recompute
+these figures whenever the release branch advances; they are an audit aid, not
+a release invariant.
 
 The original 6.5.3 source patch range remains useful for archaeology and conflict comparisons:
 
@@ -109,6 +123,7 @@ Build these presets for a full release:
 
 ```sh
 coreone
+coreone_indx (6.6.2 and newer)
 coreonel
 mini
 mini-en-cs
@@ -150,7 +165,7 @@ git remote -v
 Prefer a linear cherry-pick of the existing RME commits from the last release branch. Keep upstream changes intact unless they directly replace an RME patch.
 
 ```sh
-git log --oneline v6.6.1..rme-v6.6.1
+git log --oneline v6.6.2..rme-v6.6.2
 git cherry-pick <first-rme-commit>^..<last-rme-commit>
 ```
 
@@ -159,8 +174,8 @@ If the old branch has extra experimental commits, cherry-pick the feature groups
 3. Before resolving conflicts, regenerate the changed-file inventory from the old release branch and compare it to this playbook.
 
 ```sh
-git diff --name-status v6.6.1..rme-v6.6.1 > /tmp/rme-files.txt
-git diff --dirstat=files,0 v6.6.1..rme-v6.6.1
+git diff --name-status v6.6.2..rme-v6.6.2 > /tmp/rme-files.txt
+git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
 ```
 
 Every non-resource source directory in that inventory should map to one of the feature groups below. If a file does not fit, add a new playbook item before finishing the rebase.
@@ -181,7 +196,7 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 6. Run the full release build after focused targets pass.
 
 ```sh
-./build.py
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
 The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF paths.
@@ -203,6 +218,11 @@ The default matrix includes additional Buddy-enabled targets and sub-board firmw
 7. Update the release notes with the new upstream version, upstream tag/commit, RME feature list, known limitations, and build results.
 
 8. Stage BBFs from `bbf/` and verify every expected preset produced a matching `.bbf`.
+
+9. Confirm `bbf/` contains only version directories and the artifacts produced
+by the final command. Update README, the G-code guides, this playbook, and the
+release-note commit ledger before tagging. Tag the documentation commit, push
+the release branches and tags, then verify local and remote branch hashes match.
 
 ## Bootloader And Signing Boundary
 
@@ -264,6 +284,12 @@ Serial-origin M601 must stop serial intake, drain queued moves, park the head, k
 Serial-origin M602 must resume through the firmware unpark/reheat path and report `//action:resumed` after the printer is actually continuing. Do not echo a fresh `//action:resume` back to the same serial host that sent M602.
 Screen- or firmware-origin pause/resume during a serial print must still send the request action and the completed action (`pause` then `paused`, or `resume` then `resumed`) so OctoPrint runs its after-pause and after-resume scripts.
 MMU/runout and other firmware-initiated manual-intervention recovery sends the host resume action and then reports resumed after the printer is actually continuing.
+An ordinary successful MMU load or tool selection must not emit
+`//action:resume`. The Marlin-server bridge may forward an MMU resume only when
+it previously exposed the matching MMU-error pause to that serial host.
+If a host retransmits a valid numbered line whose sequence number is already
+accepted, acknowledge it without executing it again. Continue rejecting bad
+checksums and genuinely missing forward sequence numbers.
 When an MMU, side, or xBuddy-extension filament sensor is the primary print-time runout source, keep the toolhead/extruder sensor active as a secondary runout source so broken or stuck filament between the upstream sensor and extruder still triggers the normal M600 pause. Avoid duplicate runout injection by skipping the secondary check when both logical sensors resolve to the same physical sensor.
 Loadcell stuck-filament detection is controlled by `M591 S` and the `Stuck Filament Detection` GUI toggle on loadcell printers. Filament movement/tangle protection is controlled separately by `M591 U` and the `Filament Movement Detection` GUI toggle. Both settings share the loadcell E-stall detector and M1601 pause path, so either enabled setting keeps the detector armed. Preserve `M591 S/U/P/R/I/F` behavior where supported so users can enable, persist, restore defaults, and tune the skip debounce without requiring a rebuild.
 Serial MMU print finalization must not rely on GCodeInfo single-tool metadata, because streamed jobs often do not have scanned file comments. If the MMU still reports filament present, firmware finalization must attempt the MMU unload so OctoPrint-style jobs do not leave filament in the extruder.
@@ -790,7 +816,15 @@ Final/non-development builds intentionally keep the full `M503` settings report 
 
 PID edit/autotune/save/load support must remain available through `M301`, `M303`, `M500`, and `M501`. Keep the PID Settings entry next to Input Shaper and Phase Stepping in Settings. The PID parent screen must stay split into Hotend and Heatbed submenus so reset/autotune actions are heater-specific.
 
-Loaded filament assignments must remain visible and editable from the Filament menu without forcing a load/unload cycle. Keep **Filament -> Loaded Filament(s)** available on single-tool, toolchanger, and MMU filament menus. Material and color are persisted per virtual tool/MMU slot. The color picker includes the built-in palette and eight persistent custom slots; custom definitions must remain part of RME settings export/import. Successful load/change flows copy their requested color into the loaded-slot record, while unloading clears it.
+Loaded filament assignments must remain visible and editable from the Filament menu without forcing a load/unload cycle. Keep **Filament -> Loaded Filament(s)** available on single-tool, toolchanger, and MMU filament menus. Material and color are persisted per virtual tool/MMU slot. The color picker includes the built-in palette and eight persistent custom slots; custom definitions must remain part of RME settings export/import. Every interactive load and MMU preload prompts for material followed by color. Successful load/change flows copy both requested values into the loaded-slot record, while every successful unload clears both.
+
+MMU load-test control must remain available from both the UI and G-code:
+
+```text
+M1704 P2 M0  test physical slot 2
+M1704 K21 M0 test physical slots 0, 2, and 4
+M1704 A M0   test all enabled slots
+```
 
 Host-side filament discovery must remain available with:
 
@@ -896,6 +930,9 @@ Supported printer list.
 New upstream highlights if relevant.
 RME feature summary.
 Serial printing changes.
+MMU host pause/resume and duplicate numbered-line recovery changes.
+Filament material/color load and unload behavior.
+M1704 individual, mask, and all-slot load-test behavior.
 LED/chamber/GPIO changes.
 Theme, asset, and UI lock changes.
 Safety timer and chamber fan/filtering changes.
