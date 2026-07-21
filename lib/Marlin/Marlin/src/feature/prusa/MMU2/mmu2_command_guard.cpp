@@ -1,4 +1,5 @@
 #include "mmu2_command_guard.h"
+#include <feature/extrusion_calibration.hpp>
 
 namespace MMU2 {
 MMU2::CommandInProgressGuard::CommandInProgressGuard(CommandInProgress action, CommandInProgressManager &mgr)
@@ -7,10 +8,12 @@ MMU2::CommandInProgressGuard::CommandInProgressGuard(ExtendedCommandInProgress a
     : CommandInProgressGuard(static_cast<RawCommandInProgress>(action), mgr) {}
 
 CommandInProgressGuard::~CommandInProgressGuard() {
+    buddy::extrusion_calibration::suspend_pressure_monitor(false);
     decGuard(mgr);
 }
 CommandInProgressGuard::CommandInProgressGuard(uint8_t action, CommandInProgressManager &mgr)
     : mgr(mgr) {
+    buddy::extrusion_calibration::suspend_pressure_monitor(true);
     incGuard(action, mgr);
 }
 

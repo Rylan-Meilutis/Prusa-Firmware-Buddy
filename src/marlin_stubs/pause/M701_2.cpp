@@ -11,6 +11,7 @@
 #include <functional> // std::invoke
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+#include <feature/extrusion_calibration.hpp>
 #include "M70X.hpp"
 #include <utils/variant_utils.hpp>
 #include <config_store/store_instance.hpp>
@@ -36,6 +37,16 @@
 #endif
 
 uint filament_gcodes::InProgress::lock = 0;
+
+filament_gcodes::InProgress::InProgress() {
+    ++lock;
+    buddy::extrusion_calibration::suspend_pressure_monitor(true);
+}
+
+filament_gcodes::InProgress::~InProgress() {
+    buddy::extrusion_calibration::suspend_pressure_monitor(false);
+    --lock;
+}
 
 using namespace filament_gcodes;
 
@@ -145,10 +156,31 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
     InProgress progress;
 
     auto &filament_sensors = FSensors_instance();
-    const bool sensors_report_empty = filament_sensors.HasMMU()
-        ? filament_sensors.no_filament_surely(LogicalFilamentSensor::extruder)
-            && filament_sensors.no_filament_surely(LogicalFilamentSensor::side)
-        : filament_sensors.no_filament_surely(LogicalFilamentSensor::closest_to_nozzle);
+    bool sensors_report_empty = false;
+    if (filament_sensors.HasMMU()) {
+        // The MMU-side logical sensor is not part of the nozzle unload path;
+        // only the working extruder sensor can prove that path is empty.
+        sensors_report_empty = filament_sensors.no_filament_surely(LogicalFilamentSensor::extruder);
+#if HAS_INDX()
+    } else {
+        // INDX has one sensor in the selected tool's filament path.
+        sensors_report_empty = filament_sensors.no_filament_surely(LogicalFilamentSensor::closest_to_nozzle);
+#else
+    } else {
+        // On XL/MK-family paths, every present in-path sensor must provide a
+        // trustworthy empty reading. Missing/disabled/faulted sensors cannot
+        // cause an early exit, and duplicate logical mappings are harmless.
+        const auto path_empty = [&](const LogicalFilamentSensor logical) {
+            const auto *sensor = filament_sensors.sensor(logical);
+            return !sensor || filament_sensors.no_filament_surely(logical);
+        };
+        const bool has_path_sensor = filament_sensors.sensor(LogicalFilamentSensor::extruder)
+            || filament_sensors.sensor(LogicalFilamentSensor::side);
+        sensors_report_empty = has_path_sensor
+            && path_empty(LogicalFilamentSensor::extruder)
+            && path_empty(LogicalFilamentSensor::side);
+#endif
+    }
     if (sensors_report_empty && !filament_sensors.IsM600Sent()) {
         // Skip only on a trustworthy, enabled sensor reading. Disabled,
         // uninitialized, or failed sensors must fall through and attempt the
