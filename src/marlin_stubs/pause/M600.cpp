@@ -43,6 +43,9 @@ static_assert(HAS_PAUSE());
 #include <cassert>
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+#if HAS_LOADCELL()
+#include <feature/extrusion_calibration.hpp>
+#endif
 #include "filament.hpp"
 #include <gcode/gcode_parser.hpp>
 
