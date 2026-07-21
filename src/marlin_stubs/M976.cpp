@@ -73,6 +73,7 @@ public:
 };
 
 float probe_anchor_slot(uint8_t slot);
+void park_for_free_air_calibration(uint8_t slot, float anchor_z);
 
 constexpr float mmu_cleaning_width = 32.0f;
 constexpr float mmu_cleaning_right_margin = 10.0f;
