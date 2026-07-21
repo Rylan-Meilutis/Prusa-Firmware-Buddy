@@ -797,6 +797,8 @@ cb7a5bca0  2026-07-20  Fix MMU PA preparation and stack crash
 decfe8c03  2026-07-20  Fix MMU PA sensor namespace
 81263b4ee  2026-07-20  Fix firmware picker and PA probe preparation
 58a410f5f  2026-07-21  Reduce PA calibration filament use
+84f323df5  2026-07-21  Keep PA off bed and fix signal confidence
+42cc8884c  2026-07-21  Add pressure advance debug setting
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
