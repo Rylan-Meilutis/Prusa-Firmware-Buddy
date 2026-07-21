@@ -363,13 +363,24 @@ float measure_idle_noise_floor() {
     return capture.noise_floor();
 }
 
-float result_confidence(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
-    if (!score.valid || !std::isfinite(idle_noise)) return 0;
+float result_confidence(const buddy::extrusion_calibration::Score &score, const float idle_noise, const float separation = 1.0f) {
+    if (!score.transitions_used || !std::isfinite(idle_noise)) return 0;
     const float effective_noise = std::max({ 0.25f, idle_noise, score.noise });
     const float snr = score.mean_load / effective_noise;
-    const float signal_confidence = std::clamp((snr - 3.0f) / 5.0f, 0.0f, 1.0f);
-    const float transient_confidence = 1.0f / (1.0f + 0.35f * score.transient);
-    return transient_confidence * signal_confidence;
+    const float signal_quality = std::clamp(snr / (snr + 2.0f), 0.0f, 1.0f);
+    const float transition_quality = std::clamp(float(score.transitions_used) / std::max<float>(4.0f, score.transitions_detected), 0.0f, 1.0f);
+    const float repeatability = std::isfinite(score.transient_stddev) ? 1.0f / (1.0f + score.transient_stddev) : 0.0f;
+    const float sample_quality = std::clamp(score.sample_count / 128.0f, 0.0f, 1.0f);
+    const auto evidence = [](const float value, const float weight) {
+        return weight * std::log(std::max(value, 0.0001f));
+    };
+    float confidence = std::exp(evidence(signal_quality, 0.35f)
+        + evidence(transition_quality, 0.20f)
+        + evidence(repeatability, 0.15f)
+        + evidence(sample_quality, 0.15f)
+        + evidence(std::clamp(separation, 0.0f, 1.0f), 0.15f));
+    if (score.capture_overflow) confidence *= 0.25f;
+    return std::clamp(confidence, 0.0f, 1.0f);
 }
 
 float result_snr(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
@@ -382,12 +393,12 @@ void report_measurement_debug(const float candidate, const buddy::extrusion_cali
     const float peak_snr = score.strongest_transition
         / std::max({ 0.25f, idle_noise, score.highest_transition_noise });
     snprintf(report, sizeof(report),
-        "PA_CAL_DEBUG candidate=%.3f samples=%u transitions=%u used=%u low_signal=%u bad_timing=%u overflow=%u amplitude=%.2f transition_noise=%.2f idle_noise=%.2f peak_snr=%.2f snr=%.2f transient=%.3f confidence=%.2f valid=%u",
+        "PA_CAL_DEBUG candidate=%.3f samples=%u transitions=%u used=%u low_signal=%u bad_timing=%u overflow=%u amplitude=%.2f transition_noise=%.2f idle_noise=%.2f peak_snr=%.2f snr=%.2f transient=%.3f repeat_sd=%.3f evidence=%.2f valid=%u",
         static_cast<double>(candidate), unsigned(score.sample_count), unsigned(score.transitions_detected),
         unsigned(score.transitions_used), unsigned(score.rejected_low_signal), unsigned(score.rejected_timing),
         unsigned(score.capture_overflow), static_cast<double>(score.strongest_transition),
         static_cast<double>(score.highest_transition_noise), static_cast<double>(idle_noise), static_cast<double>(peak_snr),
-        static_cast<double>(result_snr(score, idle_noise)), static_cast<double>(score.transient),
+        static_cast<double>(result_snr(score, idle_noise)), static_cast<double>(score.transient), static_cast<double>(score.transient_stddev),
         static_cast<double>(result_confidence(score, idle_noise)), unsigned(score.valid));
     SERIAL_ECHOLN(report);
 }
@@ -674,6 +685,17 @@ void PrusaGcodeSuite::M976() {
     const uint8_t maximum_confidence_retries = std::min<uint8_t>(config_store().pa_confidence_retries.get(), 10);
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
+    struct CandidateObservation {
+        float pa;
+        float cost;
+    };
+    std::array<CandidateObservation, 32> observations {};
+    size_t observation_count = 0;
+    const auto record_observation = [&](const float candidate, const buddy::extrusion_calibration::Score &score) {
+        if (score.valid && observation_count < observations.size()) {
+            observations[observation_count++] = { candidate, score.transient };
+        }
+    };
     bool aborted = false;
     const auto measure = [&](const float candidate, const uint8_t progress) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, progress, slot);
@@ -684,6 +706,7 @@ void PrusaGcodeSuite::M976() {
         const float bounded_candidate = constrain(candidate, 0.0f, absolute_pa_max);
         const auto score = run_bursts(bounded_candidate);
         report_measurement_debug(bounded_candidate, score, idle_noise);
+        record_observation(bounded_candidate, score);
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
             best_pa = bounded_candidate;
@@ -738,14 +761,31 @@ void PrusaGcodeSuite::M976() {
     measure(verification_center, 78);
     measure(verification_center + 0.002f, 82);
 
+    const auto selection_separation = [&]() {
+        float competing_cost = std::numeric_limits<float>::infinity();
+        for (size_t i = 0; i < observation_count; ++i) {
+            if (std::abs(observations[i].pa - best_pa) > 0.001f) {
+                competing_cost = std::min(competing_cost, observations[i].cost);
+            }
+        }
+        if (!std::isfinite(best_cost) || !std::isfinite(competing_cost)) return 0.5f;
+        const float relative_margin = std::max(0.0f, competing_cost - best_cost)
+            / std::max(0.1f, std::abs(competing_cost));
+        return 0.5f + 0.5f * std::tanh(relative_margin * 5.0f);
+    };
+
+    // The configured threshold is an acceptance floor, not a search target.
+    // Refinement and neighbour verification above always finish first; only a
+    // weak final signal receives bounded extra confirmations.
     for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted
-         && (result_confidence(best_score, idle_noise) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
+         && (result_confidence(best_score, idle_noise, selection_separation()) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
          ++retry) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
             static_cast<uint8_t>(82 + (retry * 5) / std::max<uint8_t>(maximum_confidence_retries, 1)), slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
         const auto score = run_bursts(best_pa);
         report_measurement_debug(best_pa, score, idle_noise);
+        record_observation(best_pa, score);
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
             best_score = score;
@@ -763,7 +803,10 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION aborted fallback=", fallback);
         return;
     }
-    const float confidence = result_confidence(best_score, idle_noise);
+    const float separation_quality = selection_separation();
+    const float confidence = result_confidence(best_score, idle_noise, separation_quality);
+    SERIAL_ECHOLNPAIR("PA_CAL_SELECTION best=", best_pa, " cost=", best_cost,
+        " separation=", separation_quality, " confidence=", confidence);
     if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
         const float max_flow = material_flow_limit(slot);
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
