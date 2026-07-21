@@ -66,6 +66,7 @@
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
       * Sustained high pressure is now a soft max-flow marker rather than an immediate stuck-filament fault; a pause requires a subsequent pressure collapse or missing pressure rise, preventing thick healthy purge lines from triggering `M1601`
+      * Runtime stuck-filament detection requires three continuous seconds of bad pressure evidence after motion qualification; normal pressure, a pause, or retraction resets the timer
       * Front-edge PA travel starts to the right of the CORE One vent lever and uses an ordered safe approach; INDX retains dock-aware `mapi::park` waste-bin travel
       * Runtime pressure monitoring rearms from a fresh post-load baseline, derives expected pressure from the calibrated load step, and requires three seconds of continuous extrusion before a missing-pressure fault can qualify
       * Successful auto PA remains authoritative for the print even if later filament G-code supplies `M572`; that value is retained only as the fallback
