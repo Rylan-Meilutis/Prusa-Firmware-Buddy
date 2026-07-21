@@ -30,6 +30,7 @@ float monitor_forward_e = 0;
 float monitor_peak_pressure = 0;
 float monitor_bad_time = 0;
 float monitor_breakout_time = 0;
+bool monitor_breakout_seen = false;
 }
 
 void Capture::start() {
@@ -184,6 +185,7 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     if (velocity <= 0.05f) {
         monitor_idle_baseline += 0.004f * (monitor_filtered_load - monitor_idle_baseline);
         monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+        monitor_breakout_seen = false;
         monitor_peak_pressure = 0;
         return;
     }
@@ -207,10 +209,19 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     const bool breakout = qualified && velocity > monitor_low_velocity * 2.0f
         && pressure > expected + std::max(monitor_noise * 8.0f, monitor_low_pressure * 1.5f);
     monitor_breakout_time = breakout ? monitor_breakout_time + dt : 0;
+    monitor_breakout_seen = monitor_breakout_seen || monitor_breakout_time > 1.0f;
 
     ExtrusionFault wanted = ExtrusionFault::none;
-    if (monitor_breakout_time > 1.0f) wanted = ExtrusionFault::flow_breakout;
-    else if (monitor_bad_time > 1.0f) wanted = pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+    // High pressure by itself is not proof of a stuck filament: a deliberately
+    // thick, slow purge line can sustain it while extruding normally. Treat it
+    // as a soft melt-limit marker, and pause only if pressure subsequently
+    // collapses or fails to rise. This preserves real max-flow protection
+    // without turning a healthy purge into an immediate M1601 fault.
+    if (monitor_bad_time > 1.0f) {
+        wanted = pressure_collapsed && monitor_breakout_seen
+            ? ExtrusionFault::flow_breakout
+            : pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+    }
     if (wanted != ExtrusionFault::none) {
         ExtrusionFault expected_none = ExtrusionFault::none;
         monitor_fault.compare_exchange_strong(expected_none, wanted, std::memory_order_acq_rel);
@@ -249,6 +260,7 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_forward_e = 0;
     monitor_bad_time = 0;
     monitor_breakout_time = 0;
+    monitor_breakout_seen = false;
     monitor_peak_pressure = 0;
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_enabled.store(reference.valid, std::memory_order_release);
@@ -276,6 +288,7 @@ void suspend_pressure_monitor(const bool suspend) {
             // continuous-extrusion qualification window after the operation.
             monitor_last_time = 0;
             monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+            monitor_breakout_seen = false;
             monitor_peak_pressure = 0;
         }
         break;
@@ -295,6 +308,7 @@ void acknowledge_extrusion_fault() {
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_last_time = 0;
     monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+    monitor_breakout_seen = false;
     monitor_peak_pressure = 0;
 }
 

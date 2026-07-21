@@ -750,8 +750,9 @@ bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
     if (slot != extruder) {
         planner_synchronize();
 
-        if (all_axes_homed()) nozzle_park();
-
+        // M976 has already placed the nozzle at the per-slot off-bed
+        // free-extrusion position. Preserve it for both the unload and load;
+        // the normal MMU park would carry a purge tail back across the sheet.
         if (!unload_for_pa_calibration()) return false;
 
         CommandInProgressGuard cipg(CommandInProgress::ToolChange, commandInProgressManager);
@@ -760,10 +761,10 @@ bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
         planner_synchronize();
         ToolChangeCommon(slot);
 
-        // Only seat the melt at the nozzle. The PA excitation supplies the
-        // remaining prime. Stay at the safe MMU park instead of carrying this
-        // short tail back across the bed; M976 chooses its test location next.
-        execute_load_to_nozzle_sequence(0.5f);
+        // Extend exactly 2 mm beyond the modeled nozzle path. This is enough
+        // to establish melt pressure without producing the large MMU loop
+        // created by the normal purge sequence.
+        execute_load_to_nozzle_sequence(2.0f);
     }
 
     return true;
