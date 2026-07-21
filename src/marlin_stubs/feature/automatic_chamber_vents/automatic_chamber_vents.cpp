@@ -27,8 +27,15 @@ namespace {
     static constexpr auto VENT_DOCK = PhysicalToolIndex::from_raw(3); // T4
     static constexpr auto vent_feedrate = feedRate_t(60.0f); ///< 60 mm/s (G0 F3600)
     static constexpr float vent_travel_accel_mm_s2 = 1000.0f; ///< M204 T1000
+    #if PRINTER_IS_PRUSA_COREONE()
     static constexpr auto DOCK_FRONT_X = 108.0f; ///< X of dock 4 — sequences assume they start aligned here
     static constexpr auto DOCK_FRONT_Y = 0.f; ///< Safe Y line in front of docks
+    #elif PRINTER_IS_PRUSA_COREONEL()
+    static constexpr auto DOCK_FRONT_X = 130.0f; ///< X of dock 4 — sequences assume they start aligned here
+    static constexpr auto DOCK_FRONT_Y = 0.f; ///< Safe Y line in front of docks
+    #else
+        #error
+    #endif
 #elif PRINTER_IS_PRUSA_COREONE()
     static constexpr auto Y_SAFE = -3.f; ///< Safe Y line with no risk of coming in contact with lever
     static constexpr auto Y_LEVER = -18.f; ///< In line with the lever
@@ -101,6 +108,7 @@ namespace {
     }
 
     void open_vents_move_sequence() {
+    #if PRINTER_IS_PRUSA_COREONE()
         plan_to_y(0.0f, vent_feedrate);
         plan_to_x(123.0f, vent_feedrate);
         plan_to_y(-7.0f, vent_feedrate);
@@ -108,13 +116,30 @@ namespace {
         plan_to_x(115.0f, vent_feedrate);
         plan_to_x(117.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
+    #elif PRINTER_IS_PRUSA_COREONEL()
+        plan_to_y(0.0f, vent_feedrate);
+        plan_to_x(149.0f, vent_feedrate);
+        plan_to_y(-16.5f, vent_feedrate);
+        plan_to_xy(146.0f, -17.0f, vent_feedrate);
+        plan_to_x(142.0f, vent_feedrate);
+        plan_to_x(144.0f, vent_feedrate);
+        plan_to_y(0.0f, vent_feedrate);
+    #endif
     }
 
     void close_vents_move_sequence() {
+    #if PRINTER_IS_PRUSA_COREONE()
         plan_to_y(-11.5f, vent_feedrate);
         plan_to_x(117.0f, vent_feedrate);
         plan_to_x(115.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
+    #elif PRINTER_IS_PRUSA_COREONEL()
+        plan_to_x(134.0f, vent_feedrate);
+        plan_to_y(-17.0f, vent_feedrate);
+        plan_to_x(144.0f, vent_feedrate);
+        plan_to_x(142.0f, vent_feedrate);
+        plan_to_y(0.0f, vent_feedrate);
+    #endif
     }
 
     /// @brief Run the full INDX vent-lever actuation: tool prep, reduced accel, move sequence.
