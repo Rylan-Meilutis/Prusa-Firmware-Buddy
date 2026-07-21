@@ -30,6 +30,10 @@ Every interactive load, change, MMU preload, and preload-all path must request
 both material and color. Verify the selected pair is committed to the physical
 tool or MMU slot only after a successful operation. Every successful unload,
 including the confirmed-empty fast path, must clear both fields.
+Every color choice must render the same theme-safe bordered swatch used by the
+Loaded Filaments page. Verify built-in and populated user colors appear in both
+normal-load and MMU-preload selectors, the selected preload row no longer reads
+`Don't change`, and a newly created user color remains visible with its preview.
 
 Verify **Filament > Loading test** lists each enabled MMU slot and one **Test
 All** action. Exercise `M1704 P<n> M0` for one physical slot, `M1704 K<mask> M0`

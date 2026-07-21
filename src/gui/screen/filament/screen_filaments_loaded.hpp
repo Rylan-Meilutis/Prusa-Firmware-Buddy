@@ -164,6 +164,7 @@ private:
 class WindowMenuCustomFilamentColors final : public WindowMenuVirtual {
 public:
     WindowMenuCustomFilamentColors(window_t *parent, Rect16 rect);
+    void reload_colors();
     int item_count() const final;
 protected:
     void setup_item(ItemVariant &variant, int index) final;
