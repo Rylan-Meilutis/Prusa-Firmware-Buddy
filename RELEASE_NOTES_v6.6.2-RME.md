@@ -65,6 +65,9 @@
       * PA results are reported to three decimal places and retain valid high-PA profiles up to the 0.500 safety ceiling
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
+      * Front-edge PA travel starts to the right of the CORE One vent lever and uses an ordered safe approach; INDX retains dock-aware `mapi::park` waste-bin travel
+      * Runtime pressure monitoring rearms from a fresh post-load baseline, derives expected pressure from the calibrated load step, and requires three seconds of continuous extrusion before a missing-pressure fault can qualify
+      * Successful auto PA remains authoritative for the print even if later filament G-code supplies `M572`; that value is retained only as the fallback
     * Added the `coreone_indx` firmware image to the default `build.py` release matrix
     * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
       * During a serial full-bucket pause, `M1986 R` resets a stale counter out of band while preserving the queued print commands; the print remains held until the host sends its normal `M602` resume
@@ -79,6 +82,8 @@
     * PA calibration now emits the applied `M572` command and manual UI runs park the toolhead after results are handled
     * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
+    * Stuck-filament recovery now offers Abort, clears its monitor latch, restores every displaced X/Y/Z print axis before resume, and does not emit host resume after abort
+    * Known loaded material profiles are selected automatically for cancel-time unload temperature instead of prompting during print cancellation
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
     * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
@@ -805,6 +810,10 @@ decfe8c03  2026-07-20  Fix MMU PA sensor namespace
 84f323df5  2026-07-21  Keep PA off bed and fix signal confidence
 42cc8884c  2026-07-21  Add pressure advance debug setting
 4aa6e19e8  2026-07-21  Fix firmware picker reboot handoff
+cad09185b  2026-07-21  Fix PA vent travel and extrusion fault recovery
+8a15550ec  2026-07-21  Rearm pressure monitor after filament handling
+5b5034cf0  2026-07-21  Include pressure monitor API in stuck recovery
+4c3969d0b  2026-07-21  Document PA travel and fault recovery safeguards
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
