@@ -16,8 +16,81 @@
 #include <utils/string_builder.hpp>
 #include <algorithm_extensions.hpp>
 #include <filament_list.hpp>
+#include <filament_color.hpp>
+#include <filament_to_load.hpp>
+#include <window_menu_virtual.hpp>
 
 using namespace multi_filament_change;
+
+namespace {
+
+class MI_PRELOAD_COLOR final : public IWindowMenuItem {
+public:
+    MI_PRELOAD_COLOR(MI_ActionSelect *owner, std::optional<Color> color, std::string_view name)
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()))
+        , owner_(owner)
+        , color_(color) {}
+
+protected:
+    void click(IWindowMenu &) override {
+        owner_->set_selected_color(color_);
+        Screens::Access()->Close();
+    }
+
+private:
+    MI_ActionSelect *owner_;
+    std::optional<Color> color_;
+};
+
+class WindowMenuPreloadColor final : public WindowMenuVirtual<MI_PRELOAD_COLOR> {
+public:
+    WindowMenuPreloadColor(window_t *parent, Rect16 rect)
+        : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {}
+
+    void set_owner(MI_ActionSelect *owner) {
+        owner_ = owner;
+        custom_count_ = 0;
+        for (size_t i = 0; i < filament_color::custom_slot_count; ++i) custom_count_ += filament_color::custom(i).has_value();
+        setup_items();
+    }
+
+    int item_count() const override { return 1 + filament_color::palette().size() + custom_count_; }
+
+protected:
+    void setup_item(ItemVariant &variant, int index) override {
+        if (index == 0) {
+            variant.emplace<MI_PRELOAD_COLOR>(owner_, std::nullopt, std::string_view("None"));
+            return;
+        }
+        size_t requested = static_cast<size_t>(index - 1);
+        if (requested < filament_color::palette().size()) {
+            const auto &profile = filament_color::palette()[requested];
+            variant.emplace<MI_PRELOAD_COLOR>(owner_, profile.color, profile.name_view());
+            return;
+        }
+        requested -= filament_color::palette().size();
+        for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
+            if (const auto profile = filament_color::custom(slot); profile && requested-- == 0) {
+                variant.emplace<MI_PRELOAD_COLOR>(owner_, profile->color, profile->name_view());
+                return;
+            }
+        }
+    }
+
+private:
+    MI_ActionSelect *owner_ = nullptr;
+    size_t custom_count_ = 0;
+};
+
+class ScreenPreloadColor final : public ScreenMenuBase<WindowMenuPreloadColor> {
+public:
+    explicit ScreenPreloadColor(MI_ActionSelect *owner)
+        : ScreenMenuBase(nullptr, _("SELECT COLOR"), EFooter::On) {
+        menu.menu.set_owner(owner);
+    }
+};
+
+} // namespace
 
 MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
     : MenuItemSelectMenu({})
@@ -83,6 +156,16 @@ void MI_ActionSelect::build_item_text(int index, const std::span<char> &buffer) 
         break;
     }
     }
+}
+
+bool MI_ActionSelect::on_item_selected([[maybe_unused]] int old_index, int new_index) {
+    const auto selected_action = index_mapping.from_index(new_index).item;
+    if (selected_action == Action::change) {
+        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadColor>(this));
+    } else if (selected_action == Action::unload) {
+        color = std::nullopt;
+    }
+    return true;
 }
 
 MI_ApplyChanges::MI_ApplyChanges()
@@ -182,6 +265,7 @@ void MenuMultiFilamentChange::carry_out_changes() {
         case Action::unload:
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
+            filament_color::set_loaded(tool, std::nullopt);
 #else
             marlin_client::gcode_printf("M702 T%d W2", tool);
 #endif
@@ -189,8 +273,11 @@ void MenuMultiFilamentChange::carry_out_changes() {
 
         case Action::change: {
 #if HAS_MMU2()
+            filament::set_type_to_load(config.new_filament);
+            filament::set_color_to_load(config.color);
             marlin_client::gcode_printf("M704 P%d", tool);
             config_store().set_filament_type(tool, config.new_filament);
+            filament_color::set_loaded(tool, config.color);
 #else
             ArrayStringBuilder<MAX_CMD_SIZE> command_builder;
 

@@ -24,7 +24,9 @@
  *
  *#### Parameters
  *
- * - `P` - MMU index of slot (zero based)
+ * - `P` - MMU index of one slot (zero based)
+ * - `K` - Decimal bit mask of slots to test
+ * - `A` - Test all MMU slots
  *
  *#### Examples
  *
@@ -52,6 +54,17 @@ void PrusaGcodeSuite::M704() {
  * - `M` - Use tool mapping or not (default is yes)
  */
 void PrusaGcodeSuite::M1704() {
+    if (parser.seen('A') || parser.seenval('K')) {
+        const uint32_t requested_mask = parser.seen('A')
+            ? (uint32_t { 1 } << EXTRUDERS) - 1
+            : parser.ulongval('K', 0);
+        for (uint8_t slot = 0; slot < EXTRUDERS; ++slot) {
+            if (requested_mask & (uint32_t { 1 } << slot)) {
+                filament_gcodes::mmu_load_test(slot);
+            }
+        }
+        return;
+    }
     uint8_t val = parser.byteval('P', 0);
 
 #if ENABLED(PRUSA_TOOL_MAPPING)

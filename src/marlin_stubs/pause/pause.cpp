@@ -1065,6 +1065,7 @@ void Pause::unload_process([[maybe_unused]] Response response) {
     unload_filament();
 
     config_store().set_filament_type(settings.GetExtruder(), FilamentType::none);
+    filament_color::set_loaded(settings.GetExtruder(), std::nullopt);
 
     switch (load_type) {
     case LoadType::unload:
@@ -1584,6 +1585,7 @@ void Pause::handle_filament_removal(LoadState state_to_set) {
     if (FSensors_instance().no_filament_surely(LogicalFilamentSensor::extruder)) {
         set(state_to_set);
         config_store().set_filament_type(settings.GetExtruder(), FilamentType::none);
+        filament_color::set_loaded(settings.GetExtruder(), std::nullopt);
         return;
     }
     return;

@@ -436,6 +436,20 @@ void GCodeQueue::get_serial_commands() {
 
           gcode_N = strtol(npos + 1, nullptr, 10);
 
+          // Validate the retransmitted bytes before treating an older line as
+          // an already accepted command. This preserves checksum diagnostics
+          // while allowing hosts to recover when the command's final `ok` was
+          // lost among asynchronous status/action messages.
+          char *apos = strrchr(command, '*');
+          if (apos) {
+            uint8_t checksum = 0, count = uint8_t(apos - command);
+            while (count) checksum ^= command[--count];
+            if (strtol(apos + 1, nullptr, 10) != checksum)
+              return gcode_line_error(PSTR(MSG_ERR_CHECKSUM_MISMATCH), i);
+          }
+          else
+            return gcode_line_error(PSTR(MSG_ERR_NO_CHECKSUM), i);
+
           if (gcode_N != last_N + 1 && !M110) {
             // A host may retransmit a long-running numbered command before its
             // final ok. It is already executing, so do not flush RX or start a
@@ -447,18 +461,16 @@ void GCodeQueue::get_serial_commands() {
               SERIAL_ECHO_MSG(MSG_BUSY_PROCESSING);
               continue;
             }
+            // Marlin records a numbered line when it accepts it into the
+            // command queue, before execution produces the corresponding ok.
+            // If that ok is lost, OctoPrint legitimately resends the accepted
+            // line. Acknowledge it without executing it twice or flushing RX.
+            if (gcode_N <= last_N) {
+              SERIAL_ECHOLNPGM(MSG_OK);
+              continue;
+            }
             return gcode_line_error(PSTR(MSG_ERR_LINE_NO), i);
           }
-
-          char *apos = strrchr(command, '*');
-          if (apos) {
-            uint8_t checksum = 0, count = uint8_t(apos - command);
-            while (count) checksum ^= command[--count];
-            if (strtol(apos + 1, nullptr, 10) != checksum)
-              return gcode_line_error(PSTR(MSG_ERR_CHECKSUM_MISMATCH), i);
-          }
-          else
-            return gcode_line_error(PSTR(MSG_ERR_NO_CHECKSUM), i);
 
           last_N = gcode_N;
         }

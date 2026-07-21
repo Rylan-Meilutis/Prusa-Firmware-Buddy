@@ -907,14 +907,20 @@ static void restore_serial_print_snapshot() {
 static void handle_serial_host_mmu_events() {
     static bool resume_pending = false;
     static bool restore_requested = false;
+    static bool host_pause_active = false;
 
     const auto events = static_cast<uint8_t>(MMU2::consume_serial_host_mmu_events());
 
     if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::paused)) != 0 && serial_print_active()) {
         SerialPrinting::paused("mmu_error");
+        host_pause_active = true;
     }
 
-    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::resume)) != 0) {
+    // MMU emits a resume event when a normal load/tool change completes too.
+    // Only forward it to the serial host when this bridge previously exposed
+    // an actual MMU-error pause. Otherwise OctoPrint may leave and re-enter its
+    // streaming state in the middle of a numbered command sequence.
+    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::resume)) != 0 && host_pause_active) {
         resume_pending = true;
         restore_requested = false;
     }
@@ -926,6 +932,7 @@ static void handle_serial_host_mmu_events() {
     if (!serial_print_active()) {
         resume_pending = false;
         restore_requested = false;
+        host_pause_active = false;
         return;
     }
 
@@ -946,6 +953,7 @@ static void handle_serial_host_mmu_events() {
     SerialPrinting::resumed();
     resume_pending = false;
     restore_requested = false;
+    host_pause_active = false;
 }
 #endif
 

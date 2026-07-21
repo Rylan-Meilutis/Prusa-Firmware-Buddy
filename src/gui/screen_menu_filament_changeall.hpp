@@ -20,10 +20,14 @@ public:
     MI_ActionSelect(uint8_t tool_ix);
 
     void set_config(const ConfigItem &set);
+    void set_selected_color(std::optional<Color> set) { color = set; }
     ConfigItem config() const;
 
     int item_count() const final;
     void build_item_text(int index, const std::span<char> &buffer) const final;
+
+protected:
+    bool on_item_selected(int old_index, int new_index) override;
 
 private:
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Action>>({
