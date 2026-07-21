@@ -13,6 +13,7 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_mmu2.h>
 #include <option/has_phase_stepping.h>
+#include <option/has_15gt_belts.h>
 #include <option/has_sheet_profiles.h>
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_toolchanger.h>
@@ -53,6 +54,9 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 #endif
 #if HAS_EMERGENCY_STOP()
     MI_EMERGENCY_STOP_ENABLE,
+#endif
+#if HAS_15GT_BELTS()
+    MI_BELTS_15GT,
 #endif
 
 // ================================

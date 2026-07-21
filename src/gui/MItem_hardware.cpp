@@ -3,6 +3,8 @@
 #include "WindowMenuSpin.hpp"
 #include "window_msgbox.hpp"
 #include "marlin_client.hpp"
+#include <common/sys.hpp>
+#include <option/has_15gt_belts.h>
 #include <option/has_toolchanger.h>
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_nozzle_cleaner_lite.h>
@@ -219,5 +221,46 @@ void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
     {
         config_store().nozzle_cleaner_lite_installed.set(nozzle_cleaner_lite_present);
     }
+}
+#endif
+
+#if HAS_15GT_BELTS()
+MI_BELTS_15GT::MI_BELTS_15GT()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().belts_15gt_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_BELTS_15GT::OnChange([[maybe_unused]] size_t old_index) {
+    const bool belts_15gt_installed = value();
+    if (MsgBoxWarning(_("Changing the belt type updates the X/Y steps/mm, resets the XY calibration and restarts the printer. Wrongly selected belt type may cause imprecise prints and XY homing issues. Continue?"),
+            { Response::Yes, Response::No }, 1)
+        != Response::Yes) {
+        set_value(!belts_15gt_installed); // revert the GUI, keep config store intact
+        return;
+    }
+
+    {
+        auto &store = config_store();
+        auto transaction = store.get_backend().transaction_guard();
+        store.belts_15gt_installed.set(belts_15gt_installed);
+        // clear any manual override so steps follow the used HW setup (belts)
+        store.axis_steps_per_unit_x.set_to_default();
+        store.axis_steps_per_unit_y.set_to_default();
+        // steps/mm changed -> XY geometry calibration is invalid
+        store.homing_sens_x.set_to_default();
+        store.homing_sens_y.set_to_default();
+        store.homing_bump_divisor_x.set_to_default();
+        store.homing_bump_divisor_y.set_to_default();
+    #if HAS_PRECISE_HOMING()
+        store.precise_homing_sample_history.set_all_to_default();
+        store.precise_homing_sample_history_index.set_all_to_default();
+    #endif
+
+        // Also let the user re-do the axis tests
+        store.selftest_result.apply([](SelftestResult &r) {
+            r.set_xaxis(TestResult::unknown);
+            r.set_yaxis(TestResult::unknown);
+        });
+    }
+
+    sys_reset();
 }
 #endif

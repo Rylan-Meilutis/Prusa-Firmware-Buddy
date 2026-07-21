@@ -9,6 +9,7 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
+#include <option/has_15gt_belts.h>
 #include <common/extended_printer_type.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
 #include <option/has_side_fsensor_remap.h>
@@ -112,5 +113,18 @@ public:
 
 protected:
     virtual void OnChange(size_t) override;
+};
+#endif
+
+#if HAS_15GT_BELTS()
+/// Whether the printer has the 1.5GT belts. Changing it re-applies X/Y steps, resets XY calibration, and restarts.
+class MI_BELTS_15GT : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("1.5GT Belts");
+
+public:
+    MI_BELTS_15GT();
+
+protected:
+    virtual void OnChange(size_t old_index) override;
 };
 #endif
