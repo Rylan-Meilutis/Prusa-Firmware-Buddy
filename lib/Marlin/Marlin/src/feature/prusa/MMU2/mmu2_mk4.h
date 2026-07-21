@@ -135,6 +135,12 @@ public:
     /// large filament loop over the bed.
     bool tool_change_for_pa_calibration(uint8_t slot);
 
+    /// PA batches may start with stale logical tool state after an external
+    /// removal. Trust only working FINDA/extruder empty readings; disabled or
+    /// failed sensors deliberately fall through to a normal unload attempt.
+    bool filament_path_empty_for_pa() const;
+    bool unload_for_pa_calibration();
+
     /// Handling of special Tx, Tc, T? commands
     bool tool_change(char code, uint8_t slot);
 
