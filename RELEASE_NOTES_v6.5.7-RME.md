@@ -65,6 +65,9 @@
       * PA results are reported to three decimal places and retain valid high-PA profiles up to the 0.500 safety ceiling
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
+      * Front-edge PA travel starts to the right of the CORE One vent lever and uses an ordered safe approach; INDX retains dock-aware `mapi::park` waste-bin travel
+      * Runtime pressure monitoring rearms from a fresh post-load baseline, derives expected pressure from the calibrated load step, and requires three seconds of continuous extrusion before a missing-pressure fault can qualify
+      * Successful auto PA remains authoritative for the print even if later filament G-code supplies `M572`; that value is retained only as the fallback
   * Fixes
     * Fixed MMU preload material selections remaining displayed as `Don't change` after entering the color picker
     * Added bordered color previews to normal-load and MMU-preload color selectors, including saved user colors; newly created colors now remain visible with their preview
@@ -77,6 +80,8 @@
     * Fixed the pressure-advance progress footer covering the Abort button and made it use the configured main-screen footer items
     * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%
     * Fixed filament runout during an existing print pause resuming the job after the filament-change sequence; the prior pause and print-timer state are now preserved
+    * Stuck-filament recovery now offers Abort, clears its monitor latch, restores every displaced X/Y/Z print axis before resume, and does not emit host resume after abort
+    * Known loaded material profiles are selected automatically for cancel-time unload temperature instead of prompting during print cancellation
     * Fixed serial print starts being missed while the printer is blocked by heater waits
     * Stopped homing and mesh-leveling commands from falsely entering serial-print mode; automatic fallback start detection now uses blocking heater waits
     * Fixed second serial prints started immediately after a finished print missing the serial print screen during startup heating
@@ -896,6 +901,10 @@ b7e242980  2026-07-20  Fix firmware picker and PA probe preparation
 a441fad84  2026-07-21  Fix pressure advance signal confidence
 82591590a  2026-07-21  Add pressure advance debug setting
 d5ab07383  2026-07-21  Fix firmware picker reboot handoff
+4425adba0  2026-07-21  Fix PA vent travel and extrusion fault recovery
+851fdc409  2026-07-21  Rearm pressure monitor after filament handling
+10c879845  2026-07-21  Adapt extrusion recovery fixes for 6.5.7
+7399e1e77  2026-07-21  Document PA travel and fault recovery safeguards
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
