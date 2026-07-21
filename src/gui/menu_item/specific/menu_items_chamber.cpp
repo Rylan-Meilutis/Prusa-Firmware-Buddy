@@ -19,7 +19,7 @@ MI_CHAMBER_TARGET_TEMP::MI_CHAMBER_TARGET_TEMP(const char *label)
 }
 
 void MI_CHAMBER_TARGET_TEMP::OnClick() {
-    marlin_client::gcode_printf("M141 S%" PRIu32, static_cast<uint32_t>(value_opt().value_or(0)));
+    marlin_client::inject(GCodeLiteral("M141 S%f", value_opt().value_or(0)));
 }
 
 void MI_CHAMBER_TARGET_TEMP::Loop() {

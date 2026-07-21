@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variant>
+#include <limits>
 #include <str_utils.hpp>
 
 struct GCodeFile {

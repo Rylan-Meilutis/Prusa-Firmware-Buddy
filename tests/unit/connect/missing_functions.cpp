@@ -1,5 +1,6 @@
 #include "marlin_client_mock.h"
 
+#include <gcode/inject_queue_actions.hpp>
 #include <common/filepath_operation.h>
 #include <marlin_events.h>
 #include <tool_index.hpp>
@@ -21,6 +22,19 @@ void gcode_printf(const char *format, ...) {
     va_start(args, format);
     vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
+    last_gcode = buf;
+}
+
+void inject(InjectQueueRecord record) {
+    char buf[128];
+    std::visit([&]<typename T>(const T &val) {
+        if constexpr (std::is_same_v<T, GCodeLiteral>) {
+            snprintf(buf, sizeof(buf), val.gcode, (double)val.parameter);
+        } else {
+            throw;
+        }
+    },
+        record);
     last_gcode = buf;
 }
 

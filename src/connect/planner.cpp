@@ -1037,7 +1037,7 @@ void Planner::command(const Command &command, const SetValue &params) {
     case connect_client::PropertyName::ChamberTargetTemp: {
         const auto target_temp = get<uint32_t>(params.value);
         const auto gcode_temp = (target_temp == connect_client::Printer::ChamberInfo::target_temp_unset) ? uint32_t { 0 } : target_temp;
-        marlin_client::gcode_printf("M141 S%" PRIu32, gcode_temp);
+        marlin_client::inject(GCodeLiteral("M141 S%g", gcode_temp));
     } break;
     case connect_client::PropertyName::ChamberFanPwmTarget: {
         // Note: cooling fans share PWM control
