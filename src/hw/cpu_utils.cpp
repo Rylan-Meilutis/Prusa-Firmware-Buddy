@@ -72,7 +72,7 @@ void osSetIdleTaskWatchdog(void (*function)()) {
 extern "C" __attribute__((weak)) void idle_callback() {
 }
 
-extern "C" void vApplicationIdleHook() {
+extern "C" void cpu_utils::mark_cpu_idle() {
     delay_us_precise<probe_workunit_us>();
     cpu_idle_time_us_divided += probe_workunit_us_divided;
 
@@ -83,7 +83,7 @@ extern "C" void vApplicationIdleHook() {
     }
 }
 
-extern "C" void vApplicationTickHook(void) {
+extern "C" void cpu_utils::compute_cpu_load() {
     static unsigned tick = 0;
 
     if (tick++ > calculation_period_ticks) {
