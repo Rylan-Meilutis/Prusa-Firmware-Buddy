@@ -11,6 +11,7 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
+#include <option/has_15gt_belts.h>
 
 #include <MItem_menus.hpp>
 #include <option/has_mmu2.h>
@@ -59,6 +60,9 @@ using ScreenBase
 #endif
 #if HAS_NOZZLE_CLEANER_LITE()
         MI_NOZZLE_CLEANER_LITE,
+#endif
+#if HAS_15GT_BELTS()
+        MI_BELTS_15GT,
 #endif
         MI_DONE>;
 
