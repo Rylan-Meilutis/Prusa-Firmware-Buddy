@@ -32,7 +32,28 @@ protected:
     void click(IWindowMenu &) override;
 };
 
-using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
+class MI_PA_CONFIDENCE_FLOOR : public WiSpin {
+public:
+    MI_PA_CONFIDENCE_FLOOR();
+protected:
+    void OnClick() override;
+};
+
+class MI_PA_MINIMUM_SNR : public WiSpin {
+public:
+    MI_PA_MINIMUM_SNR();
+protected:
+    void OnClick() override;
+};
+
+class MI_PA_CONFIDENCE_RETRIES : public WiSpin {
+public:
+    MI_PA_CONFIDENCE_RETRIES();
+protected:
+    void OnClick() override;
+};
+
+using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_PA_CONFIDENCE_FLOOR, MI_PA_MINIMUM_SNR, MI_PA_CONFIDENCE_RETRIES,
     WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TEMPERATURE, 0>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 1>, WithConstructorArgs<MI_PA_TEMPERATURE, 1>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TEMPERATURE, 2>,

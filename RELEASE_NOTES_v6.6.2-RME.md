@@ -44,7 +44,9 @@
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU/INDX jobs and reuse cached results within the current job
       * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or reduced-prime MMU unload/load sequences for every used filament; the MMU calibration path primes only 2 mm beyond the modeled nozzle path to avoid a loose purge loop over the bed
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
-      * Measurements below 0.75 confidence are retried up to a bounded safety limit and fall back instead of applying an unreliable result
+      * Measurements below the configured confidence floor (75% by default) are retried up to a bounded safety limit and fall back instead of applying an unreliable result
+      * A 300 ms stationary noise floor and derivative-free bracketed refinement replace the fixed sweep: measure the firmware material default, probe both directions at 0.020, shrink toward the best response, then always verify the winner and adjacent 0.002 values
+      * Persistent minimum confidence (50–95%), minimum signal/noise (3–20), and confirmation retries (0–10) are configurable in the manual PA screen or with `M976 Q`, `N`, and `R`; `M976 Q` reports all acceptance settings and RME settings export/import preserves them
       * PA, filament load/unload, and every MMU command suspend pressure-based stuck/flow monitoring; nested operations cannot re-enable it early
       * After its final MMU unload, a batch moves the nozzle clear of the anchor before restoring or cooling to the previous target
       * INDX/purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row

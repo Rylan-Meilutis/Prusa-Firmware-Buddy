@@ -818,6 +818,9 @@ struct CurrentStore
 
     StoreItem<bool, !HAS_INDX(), ItemFlag::features, journal::hash("Stuck filament detection V2")> stuck_filament_detection;
     StoreItem<bool, !HAS_INDX(), ItemFlag::features, journal::hash("Filament movement detection V2")> filament_movement_detection;
+    StoreItem<uint8_t, 75, ItemFlag::features, journal::hash("PA confidence floor percent")> pa_confidence_floor_percent;
+    StoreItem<float, 6.0f, ItemFlag::features, journal::hash("PA minimum signal noise ratio")> pa_minimum_snr;
+    StoreItem<uint8_t, 6, ItemFlag::features, journal::hash("PA confidence retries")> pa_confidence_retries;
 
     StoreItem<bool, false, ItemFlag::features, journal::hash("Stealth mode")> stealth_mode;
 

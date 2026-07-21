@@ -31,6 +31,7 @@ public:
     size_t stop();
     void record(uint32_t time_us, float load_g, float e_position_mm);
     Score score() const;
+    float noise_floor() const;
     size_t size() const { return count_.load(std::memory_order_acquire); }
 
 private:
