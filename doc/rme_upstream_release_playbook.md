@@ -55,7 +55,9 @@ for an arbitrary set, and `M1704 A M0` for all enabled slots. Multi-slot tests
 must execute sequentially and retain the normal MMU error and user-abort paths.
 
 Verify Settings > FW update opens a page containing Select BBF from USB and
-Update Instructions. The picker must reject non-BBF files and paths outside
+Update Instructions. Its browser must list `.bbf` files in the USB root and
+subdirectories while excluding ordinary print files; the normal print browser's
+G-code-only filter must not hide firmware. The picker must reject non-BBF files and paths outside
 `/usb`, but accept completed Connect downloads in USB subdirectories and long
 filenames. After confirmation it must copy the selection to `/usb/FWUPD.BBF`,
 flush it, hand that short filename to the bootloader, and restart without

@@ -76,6 +76,19 @@ float probe_anchor_slot(uint8_t slot);
 
 constexpr float mmu_cleaning_width = 32.0f;
 constexpr float mmu_cleaning_right_margin = 10.0f;
+constexpr int16_t pa_probe_temperature = 170;
+
+void begin_pa_probe_preheat(const uint8_t tool) {
+    Temperature::setTargetHotend(pa_probe_temperature, tool);
+}
+
+void wait_for_pa_probe_temperature(const uint8_t tool) {
+    M109_no_parser(tool, {
+        .target_temp = pa_probe_temperature,
+        .wait_heat = true,
+        .wait_heat_or_cool = true,
+    });
+}
 
 void park_before_mmu_unload() {
 #if HAS_WASTEBIN()
@@ -87,7 +100,7 @@ void park_before_mmu_unload() {
 #endif
 }
 
-void clean_after_mmu_unload() {
+void clean_before_pa_probe() {
 #if ENABLED(PROBE_CLEANUP_SUPPORT)
     // MMU ramming can leave a short purge tail on the nozzle. Remove it on
     // the sacrificial front-right cleaning strip before any move crosses the
@@ -121,7 +134,7 @@ void present_manual_result(const uint8_t tool, const uint8_t slot, const float p
     if (MMU2::mmu2.Enabled()) {
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
         if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
-        if (MMU2::mmu2.unload_for_pa_calibration() && !path_was_empty) clean_after_mmu_unload();
+        if (MMU2::mmu2.unload_for_pa_calibration()) clean_before_pa_probe();
     }
 #endif
     const uint16_t milli = static_cast<uint16_t>(std::clamp(lroundf(pa * 1000.0f), 0l, 65535l));
@@ -142,7 +155,7 @@ void present_manual_batch_results(const std::array<BatchEntry, buddy::extrusion_
     if (MMU2::mmu2.Enabled()) {
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
         if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
-        if (MMU2::mmu2.unload_for_pa_calibration() && !path_was_empty) clean_after_mmu_unload();
+        if (MMU2::mmu2.unload_for_pa_calibration()) clean_before_pa_probe();
     }
 #endif
     uint8_t slot_mask = 0;
@@ -297,13 +310,17 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
+            begin_pa_probe_preheat(0);
             if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) return false;
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
             if (!path_was_empty) park_before_mmu_unload();
             if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
-            if (!path_was_empty) {
-                clean_after_mmu_unload();
-            }
+            // Clean even when the sensor-aware unload was skipped: an empty
+            // filament path does not prove that the nozzle exterior is clean.
+            clean_before_pa_probe();
+            // Homing and MMU cleanup overlap the warm-up. Block only here so
+            // every loadcell touch occurs at the known low-ooze temperature.
+            wait_for_pa_probe_temperature(0);
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
             create_hotend_clearance();
@@ -654,14 +671,10 @@ void PrusaGcodeSuite::M976() {
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
-        if (target_temperature) {
-            const int16_t probe_temperature = config_store().get_filament_type(slot).parameters().nozzle_preheat_temperature;
-            M109_no_parser(tool, {
-                .target_temp = probe_temperature,
-                .wait_heat = true,
-                .wait_heat_or_cool = true,
-            });
-        }
+        // With filament already loaded, lower the nozzle to the material's
+        // dedicated probing/preheat temperature before homing and probing.
+        // MMU batches arrive here with P/Z after probing while unloaded.
+        begin_pa_probe_preheat(tool);
         pa_fsm_change(PhasesPressureAdvanceCalibration::homing, 8, slot);
         if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
             SERIAL_ERROR_MSG("M976 homing failed");
@@ -673,6 +686,8 @@ void PrusaGcodeSuite::M976() {
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
+        clean_before_pa_probe();
+        wait_for_pa_probe_temperature(tool);
         pa_fsm_change(PhasesPressureAdvanceCalibration::probing, 16, slot);
         anchor_z = probe_anchor_slot(slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::probing)) {
