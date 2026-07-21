@@ -269,6 +269,16 @@ void clean_before_probing(Badge<unified_bed_leveling>) {
 #else
     clean_before_probing_toolchanger();
 #endif
+
+    // MBL probing follows right after this returns, with no M109 in between
+    // to re-stabilize the nozzle. Cleaning may have left it above its
+    // restored target (e.g. ASA, cleaning temp > MBL temp) or below it (e.g.
+    // PLA); wait for it to settle back so probing runs at the temperature
+    // the start gcode set, not mid-cleaning.
+    const auto active_tool = PhysicalToolIndex::currently_selected_opt();
+    if (active_tool && Hotend::for_tool(*active_tool).nozzle_target_temp() > 0) {
+        thermalManager.wait_for_hotend(*active_tool, { .no_wait_for_cooling = false });
+    }
 }
 
 } // namespace nozzle_cleaner_lite
