@@ -36,6 +36,7 @@
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_selftest.h>
 #include <option/has_phase_stepping.h>
+#include <option/has_15gt_belts.h>
 #include <option/has_i2c_expander.h>
 #include <option/has_xbuddy_extension.h>
 #include <option/has_emergency_stop.h>
@@ -736,6 +737,12 @@ struct CurrentStore
 
 #if HAS_NOZZLE_CLEANER_LITE()
     StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Nozzle Cleaner Lite installed")> nozzle_cleaner_lite_installed;
+#endif
+
+#if HAS_15GT_BELTS()
+    /// influence the X/Y steps/mm.
+    // default is false (2GT), new installs set true in perform_config_check().
+    StoreItem<bool, false, ItemFlag::hw_config, journal::hash("Belts 1.5GT installed")> belts_15gt_installed;
 #endif
 
     // axis microsteps and rms current have a capital axis + '_' at the end in name because of trinamic.cpp. Can be removed once the macro there is removed

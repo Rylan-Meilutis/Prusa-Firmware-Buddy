@@ -12,6 +12,7 @@
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_auto_retract.h>
 #include <option/has_expansion_joints_gen_2.h>
+#include <option/has_15gt_belts.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
 #endif
@@ -74,6 +75,10 @@ void CurrentStore::perform_config_check() {
 #if HAS_EXPANSION_JOINTS_GEN_2()
         // New printers ship with the Expansion Joints Gen 2; upgraded printers keep the false default.
         ejg2_installed.set(true);
+#endif
+#if HAS_15GT_BELTS()
+        // New printers ship with the 1.5GT belts; upgraded printers keep the false default.
+        belts_15gt_installed.set(true);
 #endif
     }
 
