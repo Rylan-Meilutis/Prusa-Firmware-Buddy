@@ -873,6 +873,7 @@ ae422f088  2026-07-20  Adapt optimized PA search for 6.5.7
 b867aed5c  2026-07-20  Use generated loadcell option in MMU guard
 0cebecd93  2026-07-20  Keep PA fallback nonfatal and clean MMU purge
 615518d0f  2026-07-20  Prevent serial queue overflow during PA calibration
+2c9c60027  2026-07-20  Add pressure advance measurement diagnostics
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
