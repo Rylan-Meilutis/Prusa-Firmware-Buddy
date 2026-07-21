@@ -66,7 +66,7 @@ Score Capture::score() const {
     // Executed E-step positions locate the real slow/fast transitions. For
     // each transition compare the first 150 ms against settled plateaus and
     // penalize normalized error area, over/undershoot and settling time.
-    float cost = 0, load_sum = 0, noise_sum = 0, low_sum = 0, high_sum = 0;
+    float cost = 0, cost_squared = 0, load_sum = 0, noise_sum = 0, low_sum = 0, high_sum = 0;
     size_t used = 0;
     size_t last_transition = 0;
     for (size_t i = 3; i + 40 < n; ++i) {
@@ -111,7 +111,9 @@ Score Capture::score() const {
             excursion = std::max(excursion, direction * (samples_[i + j].load_g - after) / amplitude);
             if (settled_at == 27 && std::abs(normalized_error) < 0.1f) settled_at = j;
         }
-        cost += area / 27.0f + 2.0f * std::max(0.0f, excursion) + float(settled_at) / 27.0f;
+        const float transition_cost = area / 27.0f + 2.0f * std::max(0.0f, excursion) + float(settled_at) / 27.0f;
+        cost += transition_cost;
+        cost_squared += transition_cost * transition_cost;
         load_sum += amplitude;
         noise_sum += noise;
         if (v0 > v1) {
@@ -128,6 +130,7 @@ Score Capture::score() const {
     result.valid = used >= 4 && size() < samples_.size();
     if (used > 0) {
         result.transient = cost / used;
+        result.transient_stddev = std::sqrt(std::max(0.0f, cost_squared / used - result.transient * result.transient));
         result.mean_load = load_sum / used;
         result.noise = noise_sum / used;
         result.low_load = low_sum / used;

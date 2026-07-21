@@ -29,6 +29,7 @@ struct Score {
     bool capture_overflow = false;
     float strongest_transition = 0;
     float highest_transition_noise = 0;
+    float transient_stddev = std::numeric_limits<float>::infinity();
 };
 
 class Capture {
