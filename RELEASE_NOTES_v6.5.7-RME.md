@@ -45,6 +45,9 @@
       * Slicer-provided physical-tool and logical-filament arguments support XL/MMU/INDX jobs and reuse cached results within the current job
       * One-command batch manifests preflight all material assignments and temperatures, then perform normal XL tool changes or reduced-prime MMU unload/load sequences for every used filament; the MMU calibration path primes only 2 mm beyond the modeled nozzle path to avoid a loose purge loop over the bed
       * Existing filament-profile `M572` pressure advance is the fallback, followed by a conservative material preset
+      * Measurements below 0.75 confidence are retried up to a bounded safety limit and fall back instead of applying an unreliable result
+      * PA, filament load/unload, and every MMU command suspend pressure-based stuck/flow monitoring; nested operations cannot re-enable it early
+      * After its final MMU unload, a batch moves the nozzle clear of the anchor before restoring or cooling to the previous target
       * Purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
       * Blocking M976 batches immediately report acceptance and emit phase keepalives; retransmission of the numbered command that is still executing is discarded with a busy response instead of triggering an RX flush and repeated forward-line requests
       * Continuous PrusaPATuner-derived 0.8/8.0 mm/s excitation is aligned from executed E-step positions and scored from transition error, overshoot and settling, with 0.002-second final PA resolution
@@ -58,7 +61,7 @@
     * Valid duplicate numbered serial commands are acknowledged without re-execution, allowing recovery when an `ok` is lost among asynchronous MMU or progress messages
     * RME builds now report the RME source repository in the local `M115` response
     * Fixed streamed-print completion resetting OctoPrint's numbered-command sequence by reserving `Done printing file` for actual media prints
-    * Filament unload skips heating and motion only when enabled sensors explicitly report an empty path; disabled sensors still attempt unload, and automatic runout still removes the remaining filament tail
+    * Filament unload skips heating and motion only when all applicable healthy in-path sensors explicitly report empty: MMU ignores unrelated side state, INDX uses its one path sensor, and XL/MK use the selected tool path; disabled/failed sensors assume filament presence, and automatic runout still removes the remaining tail
     * PA calibration now emits the applied `M572` command and manual UI runs park the toolhead after results are handled
     * Fixed the pressure-advance progress footer covering the Abort button and made it use the configured main-screen footer items
     * Fixed Prusa Connect chamber-light telemetry reporting 0% while an external GPIO chamber light is actually energized; the combined chamber-light state now reports 100%

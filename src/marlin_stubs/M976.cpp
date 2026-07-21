@@ -37,6 +37,8 @@ constexpr float filament_area = 2.40528f;
 // Keep the search local to the slicer/profile fallback, while permitting
 // legitimate high-PA Bowden and flexible-material profiles.
 constexpr float absolute_pa_max = 0.50f;
+constexpr float minimum_result_confidence = 0.75f;
+constexpr uint8_t maximum_confidence_retries = 6;
 struct BatchEntry {
     uint8_t physical_tool;
     uint8_t logical_filament;
@@ -48,6 +50,12 @@ class FilamentSensorEventGuard {
 public:
     FilamentSensorEventGuard() { FSensors_instance().IncEvLock(); }
     ~FilamentSensorEventGuard() { FSensors_instance().DecEvLock(); }
+};
+
+class PressureMonitorGuard {
+public:
+    PressureMonitorGuard() { buddy::extrusion_calibration::suspend_pressure_monitor(true); }
+    ~PressureMonitorGuard() { buddy::extrusion_calibration::suspend_pressure_monitor(false); }
 };
 
 float probe_anchor_slot(uint8_t slot);
@@ -112,7 +120,7 @@ void emit_pressure_advance_gcode(const uint8_t tool, const uint8_t slot, const f
     SERIAL_ECHOLN(command);
 }
 
-void park_after_manual_calibration() {
+void park_after_calibration() {
     if (all_axes_homed()) {
         mapi::park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::park]);
     }
@@ -228,6 +236,12 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
 }
 
 bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count, const bool manual) {
+    // PA excitation and the deliberately short MMU load/unload moves are not
+    // print-time filament failures. Suppress both sensor-event and loadcell
+    // E-stall handling for the complete batch, including its tool changes.
+    FilamentSensorEventGuard filament_sensor_events;
+    BlockEStallDetection block_e_stall;
+    PressureMonitorGuard pressure_monitor_guard;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
 #if ENABLED(PRUSA_MMU2)
@@ -269,9 +283,13 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
 #if ENABLED(PRUSA_MMU2)
     // Leave the nozzle empty for the slicer's full MBL. Its normal initial
     // tool command reloads the print filament after probing is complete.
-    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN)
-        return MMU2::mmu2.unload();
+    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != MMU2::FILAMENT_UNKNOWN) {
+        if (!MMU2::mmu2.unload()) return false;
+    }
 #endif
+    // This is deliberately inside all calibration guards: after an MMU
+    // unload, move away before the pressure monitor can observe normal motion.
+    park_after_calibration();
     return true;
 }
 #if !HAS_WASTEBIN()
@@ -439,12 +457,15 @@ void PrusaGcodeSuite::M976() {
             SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
             return;
         }
+        // MMU batches finish by unloading. Leave the nozzle clear of the
+        // anchor before restoring (and potentially cooling to) the previous
+        // target so a strand cannot settle back onto the calibration point.
         // Slicer-driven calibration returns at the exact pre-command targets,
         // including waiting for cooldown to the probing temperature selected
         // by start G-code before its following MBL.
         if (!manual) restore_hotend_targets.restore(true);
         if (manual) present_manual_batch_results(entries, count);
-        if (manual) park_after_manual_calibration();
+        if (manual) park_after_calibration();
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
         return;
     }
@@ -479,7 +500,7 @@ void PrusaGcodeSuite::M976() {
         buddy::extrusion_calibration::configure_pressure_monitor(cached->pressure_reference, 0.8f, 8.0f);
         if (manual) present_manual_result(tool, slot, cached->pressure_advance);
         emit_pressure_advance_gcode(tool, slot, cached->pressure_advance);
-        if (manual) park_after_manual_calibration();
+        if (manual) park_after_calibration();
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
@@ -582,6 +603,22 @@ void PrusaGcodeSuite::M976() {
             best_score = score;
         }
     }
+    // A single noisy sweep can choose a plausible-looking but unreliable PA
+    // value. Re-measure the best candidate until it clears the acceptance
+    // threshold, with a finite safety bound so a damaged/loadcell-less setup
+    // cannot extrude forever. A persistently weak signal falls back below.
+    for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted
+         && (!std::isfinite(best_cost) || 1.0f / (1.0f + best_cost) < minimum_result_confidence);
+         ++retry) {
+        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
+            static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries), slot);
+        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
+        const auto score = run_bursts(best_pa);
+        if (score.valid && score.transient < best_cost) {
+            best_cost = score.transient;
+            best_score = score;
+        }
+    }
     pa_fsm_change(PhasesPressureAdvanceCalibration::computing, 88, slot);
     if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) aborted = true;
     if (aborted) {
@@ -594,18 +631,19 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION aborted fallback=", fallback);
         return;
     }
-    if (!std::isfinite(best_cost)) {
+    const float confidence = std::isfinite(best_cost) ? 1.0f / (1.0f + best_cost) : 0.0f;
+    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence) {
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
         cleanup(slot, anchor_z);
         buddy::extrusion_calibration::suspend_pressure_monitor(false);
-        SERIAL_ERROR_MSG("M976 invalid loadcell signal; fallback applied");
+        SERIAL_ERROR_MSG("M976 loadcell confidence too low; fallback applied");
         return;
     }
 
     const float max_flow = material_flow_limit(slot);
-    const buddy::extrusion_calibration::Result result { best_pa, max_flow, 1.0f / (1.0f + best_cost), true, best_score };
+    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score };
     buddy::extrusion_calibration::set_job_result(slot, result);
     pressure_advance::set_axis_e_config({ best_pa, pressure_advance::get_axis_e_config().smooth_time });
     planner.set_max_volumetric_flow(active_extruder, max_flow);
@@ -616,7 +654,7 @@ void PrusaGcodeSuite::M976() {
     if (manual) present_manual_result(tool, slot, best_pa);
     else pa_fsm_change(PhasesPressureAdvanceCalibration::complete, 100, slot);
     emit_pressure_advance_gcode(tool, slot, best_pa);
-    if (manual) park_after_manual_calibration();
+    if (manual) park_after_calibration();
     char report[128];
     snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u result=%.3f max_flow=%.2f confidence=%.2f",
         unsigned(tool), unsigned(slot), static_cast<double>(best_pa), static_cast<double>(max_flow), static_cast<double>(result.confidence));
