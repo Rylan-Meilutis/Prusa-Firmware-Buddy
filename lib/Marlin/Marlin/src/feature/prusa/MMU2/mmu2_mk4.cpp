@@ -740,13 +740,19 @@ bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
         return false;
     }
 
+    // Reconcile stale logical state before comparing the requested slot. This
+    // is common when filament was removed while the printer was off.
+    if (filament_path_empty_for_pa()) {
+        extruder = MMU2_NO_TOOL;
+        tool_change_extruder = MMU2_NO_TOOL;
+    }
+
     if (slot != extruder) {
         planner_synchronize();
 
-        const pos3d resume_pos = planner_current_position();
         if (all_axes_homed()) nozzle_park();
 
-        unload();
+        if (!unload_for_pa_calibration()) return false;
 
         CommandInProgressGuard cipg(CommandInProgress::ToolChange, commandInProgressManager);
         FSensorBlockRunout blockRunout;
@@ -754,18 +760,26 @@ bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
         planner_synchronize();
         ToolChangeCommon(slot);
 
-        // Two millimetres establishes molten flow at the nozzle without the
-        // normal tool-change purge forming a long loose loop. M976's own
-        // excitation immediately follows and supplies the remaining priming.
-        execute_load_to_nozzle_sequence(2.0f);
-
-        if (all_axes_homed()) {
-            motion_do_blocking_move_to_xy(resume_pos.xyz[0], resume_pos.xyz[1], feedRate_t(NOZZLE_PARK_XY_FEEDRATE));
-            motion_do_blocking_move_to_z(resume_pos.xyz[2], feedRate_t(NOZZLE_PARK_Z_FEEDRATE));
-        }
+        // Only seat the melt at the nozzle. The PA excitation supplies the
+        // remaining prime. Stay at the safe MMU park instead of carrying this
+        // short tail back across the bed; M976 chooses its test location next.
+        execute_load_to_nozzle_sequence(0.5f);
     }
 
     return true;
+}
+
+bool MMU2::filament_path_empty_for_pa() const {
+    return !FindaDetectsFilament() && MMU2::WhereIsFilament() == FilamentState::NOT_PRESENT;
+}
+
+bool MMU2::unload_for_pa_calibration() {
+    if (filament_path_empty_for_pa()) {
+        extruder = MMU2_NO_TOOL;
+        tool_change_extruder = MMU2_NO_TOOL;
+        return true;
+    }
+    return unload();
 }
 
 /// Handle special T?/Tx/Tc commands

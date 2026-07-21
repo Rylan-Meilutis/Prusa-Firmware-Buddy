@@ -53,6 +53,16 @@ struct BatchEntry {
     std::array<char, 17> material {};
 };
 
+struct CandidateObservation {
+    float pa;
+    float cost;
+};
+// The Marlin task has a deliberately small stack and batch M976 invokes a
+// nested single-tool M976. Keep optimizer history in static foreground state
+// instead of adding hundreds of bytes to both stack frames.
+std::array<CandidateObservation, 26> candidate_observations {};
+size_t candidate_observation_count = 0;
+
 class FilamentSensorEventGuard {
 public:
     FilamentSensorEventGuard() { FSensors_instance().IncEvLock(); }
@@ -73,16 +83,27 @@ public:
 
 float probe_anchor_slot(uint8_t slot);
 
+constexpr float mmu_cleaning_width = 32.0f;
+constexpr float mmu_cleaning_right_margin = 10.0f;
+
+void park_before_mmu_unload() {
+#if HAS_WASTEBIN()
+    mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
+#else
+    const float x = X_MAX_POS - mmu_cleaning_right_margin - mmu_cleaning_width * 0.5f;
+    do_blocking_move_to_z(std::max(current_position.z, 10.0f), 5.0f);
+    do_blocking_move_to_xy(xy_pos_t { x, Y_MIN_POS + 12.5f }, 50.0f);
+#endif
+}
+
 void clean_after_mmu_unload() {
 #if ENABLED(PROBE_CLEANUP_SUPPORT)
     // MMU ramming can leave a short purge tail on the nozzle. Remove it on
     // the sacrificial front-right cleaning strip before any move crosses the
     // printable bed. The nozzle is already homed during PA batches, so the
     // cleanup helper's conditional home does not add an unsafe traverse.
-    constexpr float cleaning_width = 32.0f;
-    constexpr float right_margin = 10.0f;
-    const xy_pos_t rect_max { X_MAX_POS - right_margin, Y_MIN_POS + 14.5f };
-    const xy_pos_t rect_min { rect_max.x - cleaning_width, Y_MIN_POS + 10.5f };
+    const xy_pos_t rect_max { X_MAX_POS - mmu_cleaning_right_margin, Y_MIN_POS + 14.5f };
+    const xy_pos_t rect_min { rect_max.x - mmu_cleaning_width, Y_MIN_POS + 10.5f };
     if (!cleanup_probe(rect_min, rect_max))
         SERIAL_ECHO_MSG("PA_CALIBRATION MMU post-unload nozzle cleaning incomplete");
 #endif
@@ -106,7 +127,11 @@ bool pa_abort_requested(const PhasesPressureAdvanceCalibration phase) {
 
 void present_manual_result(const uint8_t tool, const uint8_t slot, const float pa) {
 #if ENABLED(PRUSA_MMU2)
-    if (MMU2::mmu2.Enabled()) MMU2::mmu2.unload();
+    if (MMU2::mmu2.Enabled()) {
+        const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
+        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
+        if (MMU2::mmu2.unload_for_pa_calibration() && !path_was_empty) clean_after_mmu_unload();
+    }
 #endif
     const uint16_t milli = static_cast<uint16_t>(std::clamp(lroundf(pa * 1000.0f), 0l, 65535l));
     marlin_server::fsm_change(PhasesPressureAdvanceCalibration::result,
@@ -123,7 +148,11 @@ void present_manual_result(const uint8_t tool, const uint8_t slot, const float p
 
 void present_manual_batch_results(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
 #if ENABLED(PRUSA_MMU2)
-    if (MMU2::mmu2.Enabled()) MMU2::mmu2.unload();
+    if (MMU2::mmu2.Enabled()) {
+        const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
+        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
+        if (MMU2::mmu2.unload_for_pa_calibration() && !path_was_empty) clean_after_mmu_unload();
+    }
 #endif
     uint8_t slot_mask = 0;
     for (size_t i = 0; i < count; ++i) slot_mask |= 1u << entries[i].logical_filament;
@@ -277,11 +306,13 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            if (MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN) {
-                if (!MMU2::mmu2.unload()) return false;
+            if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) return false;
+            const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
+            if (!path_was_empty) park_before_mmu_unload();
+            if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
+            if (!path_was_empty) {
                 clean_after_mmu_unload();
             }
-            if (!GcodeSuite::G28_no_parser(true, true, true)) return false;
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
             create_hotend_clearance();
@@ -315,9 +346,13 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
 #if ENABLED(PRUSA_MMU2)
     // Leave the nozzle empty for the slicer's full MBL. Its normal initial
     // tool command reloads the print filament after probing is complete.
-    if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN) {
-        if (!MMU2::mmu2.unload()) return false;
+    if (MMU2::mmu2.Enabled()) {
+        const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
+        if (!path_was_empty) park_before_mmu_unload();
+        if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
+        if (!path_was_empty) {
         clean_after_mmu_unload();
+        }
     }
 #endif
     // This is deliberately inside all calibration guards: after an MMU
@@ -414,18 +449,16 @@ float result_snr(const buddy::extrusion_calibration::Score &score, const float i
 }
 
 void report_measurement_debug(const float candidate, const buddy::extrusion_calibration::Score &score, const float idle_noise) {
-    char report[320];
     const float peak_snr = score.strongest_transition
         / std::max({ 0.25f, idle_noise, score.highest_transition_noise });
-    snprintf(report, sizeof(report),
-        "PA_CAL_DEBUG candidate=%.3f samples=%u transitions=%u used=%u low_signal=%u bad_timing=%u overflow=%u amplitude=%.2f transition_noise=%.2f idle_noise=%.2f peak_snr=%.2f snr=%.2f transient=%.3f repeat_sd=%.3f evidence=%.2f valid=%u",
-        static_cast<double>(candidate), unsigned(score.sample_count), unsigned(score.transitions_detected),
-        unsigned(score.transitions_used), unsigned(score.rejected_low_signal), unsigned(score.rejected_timing),
-        unsigned(score.capture_overflow), static_cast<double>(score.strongest_transition),
-        static_cast<double>(score.highest_transition_noise), static_cast<double>(idle_noise), static_cast<double>(peak_snr),
-        static_cast<double>(result_snr(score, idle_noise)), static_cast<double>(score.transient), static_cast<double>(score.transient_stddev),
-        static_cast<double>(result_confidence(score, idle_noise)), unsigned(score.valid));
-    SERIAL_ECHOLN(report);
+    SERIAL_ECHOPAIR("PA_CAL_DEBUG candidate=", candidate, " samples=", score.sample_count,
+        " transitions=", score.transitions_detected, " used=", score.transitions_used);
+    SERIAL_ECHOPAIR(" low_signal=", score.rejected_low_signal, " bad_timing=", score.rejected_timing,
+        " overflow=", score.capture_overflow, " amplitude=", score.strongest_transition);
+    SERIAL_ECHOPAIR(" transition_noise=", score.highest_transition_noise, " idle_noise=", idle_noise,
+        " peak_snr=", peak_snr, " snr=", result_snr(score, idle_noise));
+    SERIAL_ECHOLNPAIR(" transient=", score.transient, " repeat_sd=", score.transient_stddev,
+        " evidence=", result_confidence(score, idle_noise), " valid=", score.valid);
 }
 
 float material_flow_limit(const uint8_t logical_filament) {
@@ -663,7 +696,7 @@ void PrusaGcodeSuite::M976() {
             });
         }
         pa_fsm_change(PhasesPressureAdvanceCalibration::homing, 8, slot);
-        if (!GcodeSuite::G28_no_parser(true, true, true)) {
+        if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
             SERIAL_ERROR_MSG("M976 homing failed");
             return;
         }
@@ -718,15 +751,10 @@ void PrusaGcodeSuite::M976() {
     const uint8_t maximum_confidence_retries = std::min<uint8_t>(config_store().pa_confidence_retries.get(), 10);
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
-    struct CandidateObservation {
-        float pa;
-        float cost;
-    };
-    std::array<CandidateObservation, 32> observations {};
-    size_t observation_count = 0;
+    candidate_observation_count = 0;
     const auto record_observation = [&](const float candidate, const buddy::extrusion_calibration::Score &score) {
-        if (score.valid && observation_count < observations.size()) {
-            observations[observation_count++] = { candidate, score.transient };
+        if (score.valid && candidate_observation_count < candidate_observations.size()) {
+            candidate_observations[candidate_observation_count++] = { candidate, score.transient };
         }
     };
     bool aborted = false;
@@ -800,9 +828,9 @@ void PrusaGcodeSuite::M976() {
 
     const auto selection_separation = [&]() {
         float competing_cost = std::numeric_limits<float>::infinity();
-        for (size_t i = 0; i < observation_count; ++i) {
-            if (std::abs(observations[i].pa - best_pa) > 0.001f) {
-                competing_cost = std::min(competing_cost, observations[i].cost);
+        for (size_t i = 0; i < candidate_observation_count; ++i) {
+            if (std::abs(candidate_observations[i].pa - best_pa) > 0.001f) {
+                competing_cost = std::min(competing_cost, candidate_observations[i].cost);
             }
         }
         if (!std::isfinite(best_cost) || !std::isfinite(competing_cost)) return 0.5f;
