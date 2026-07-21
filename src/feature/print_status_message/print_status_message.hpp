@@ -8,6 +8,7 @@
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_indx.h>
 #include <option/has_nozzle_cleaner.h>
+#include <option/has_nozzle_cleaner_lite.h>
 
 #include "print_status_message_data.hpp"
 #include <inc/MarlinConfigPre.h>
@@ -60,7 +61,9 @@ struct PrintStatusMessage {
 #if HAS_NOZZLE_CLEANER()
         nozzle_cleaner,
 #endif
-
+#if HAS_NOZZLE_CLEANER_LITE()
+        nozzle_cleaner_lite,
+#endif
         _cnt
     };
     using Data = PrintStatusMessageData;
@@ -134,6 +137,9 @@ struct PrintStatusMessage {
 #endif
 #if HAS_NOZZLE_CLEANER()
         TypeRecord<Type::nozzle_cleaner, std::monostate>,
+#endif
+#if HAS_NOZZLE_CLEANER_LITE()
+        TypeRecord<Type::nozzle_cleaner_lite, std::monostate>,
 #endif
 
         TypeRecord<Type::none, std::monostate>>;

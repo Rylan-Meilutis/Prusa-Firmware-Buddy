@@ -57,6 +57,9 @@ static constexpr EnumArray<Message::Type, const char *, Message::Type::_cnt> mes
 #if HAS_NOZZLE_CLEANER()
         { Message::Type::nozzle_cleaner, N_("Nozzle cleaning") },
 #endif
+#if HAS_NOZZLE_CLEANER_LITE()
+        { Message::Type::nozzle_cleaner_lite, N_("Nozzle cleaning") },
+#endif
 };
 
 void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Message &msg) {
@@ -89,6 +92,10 @@ void PrintStatusMessageFormatterBuddy::format(StringBuilder &target, const Messa
 #if HAS_NOZZLE_CLEANER()
     case Message::Type::nozzle_cleaner:
 #endif
+#if HAS_NOZZLE_CLEANER_LITE()
+    case Message::Type::nozzle_cleaner_lite:
+#endif
+
         // No extra data to show
         break;
 
