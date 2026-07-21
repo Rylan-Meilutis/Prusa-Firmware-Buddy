@@ -790,6 +790,10 @@ e54524759  2026-07-20  Use generated loadcell option in MMU guard
 1edb80aae  2026-07-20  Prevent serial queue overflow during PA calibration
 bc0c62376  2026-07-20  Add pressure advance measurement diagnostics
 463c99312  2026-07-20  Use continuous PA calibration confidence
+cb7a5bca0  2026-07-20  Fix MMU PA preparation and stack crash
+decfe8c03  2026-07-20  Fix MMU PA sensor namespace
+81263b4ee  2026-07-20  Fix firmware picker and PA probe preparation
+58a410f5f  2026-07-21  Reduce PA calibration filament use
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
