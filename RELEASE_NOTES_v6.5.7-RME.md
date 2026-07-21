@@ -864,6 +864,10 @@ be5c3bee9  2026-07-20  Fix pressure advance calibration footer
 599df3a75  2026-07-20  Fix MMU serial flow and filament workflows
 49a625414  2026-07-20  Update RME release playbook for MMU workflows
 614c9065f  2026-07-20  Fix filament color selection previews
+f7d38a7fe  2026-07-20  Harden PA calibration and unload monitoring
+813060744  2026-07-20  Optimize PA confidence calibration
+ae422f088  2026-07-20  Adapt optimized PA search for 6.5.7
+b867aed5c  2026-07-20  Use generated loadcell option in MMU guard
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
