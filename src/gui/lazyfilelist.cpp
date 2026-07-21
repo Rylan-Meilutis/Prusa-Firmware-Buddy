@@ -49,10 +49,11 @@ void LazyDirViewBase::Clear() {
     }
 }
 
-void LazyDirViewBase::ChangeDirectory(const char *p, SortPolicy sp, const char *firstDirEntry) {
+void LazyDirViewBase::ChangeDirectory(const char *p, SortPolicy sp, const char *firstDirEntry, FileFilter filter) {
     Clear();
 
     sortPolicy = sp;
+    fileFilter = filter;
     strlcpy(sfnPath, p, sizeof(sfnPath));
 
     // Try to find the first dir entry
@@ -105,7 +106,7 @@ void LazyDirViewBase::ChangeDirectory(const char *p, SortPolicy sp, const char *
     auto filled_region_end = indices_begin + 1;
 
     Directory dir { sfnPath };
-    while (dirent *entry = FileSort::find_next(dir)) {
+    while (dirent *entry = FileSort::find_next(dir, fileFilter)) {
         const EntryRef curr(*entry, sfnPath);
 
         // Check if the entry isn't a link or something we don't support
@@ -202,7 +203,7 @@ bool LazyDirViewBase::MoveUp(int amount) {
         const EntryRef anchor_item = files_data[*full_insert_range_end];
 
         Directory dir { sfnPath };
-        while (dirent *entry = FileSort::find_next(dir)) {
+        while (dirent *entry = FileSort::find_next(dir, fileFilter)) {
             const EntryRef curr(*entry, sfnPath);
 
             // Check if the entry isn't a link or something we don't support
@@ -285,7 +286,7 @@ bool LazyDirViewBase::MoveDown(int amount) {
         const EntryRef anchor_item = files_data[*(insert_range_begin - 1)];
 
         Directory dir { sfnPath };
-        while (dirent *entry = FileSort::find_next(dir)) {
+        while (dirent *entry = FileSort::find_next(dir, fileFilter)) {
             const EntryRef curr(*entry, sfnPath);
 
             // Check if the entry isn't a link or something we don't support

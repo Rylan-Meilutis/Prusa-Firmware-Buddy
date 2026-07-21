@@ -6,7 +6,8 @@
 
 class WindowFileBrowser : public window_file_list_t {
 public:
-    WindowFileBrowser(window_t *parent, Rect16 rect, const char *media_SFN_path);
+    WindowFileBrowser(window_t *parent, Rect16 rect, const char *media_SFN_path,
+        FileSort::FileFilter filter = FileSort::FileFilter::PRINTABLE);
 
     void SaveTopSFN();
     void clear_first_visible_sfn();
@@ -25,6 +26,7 @@ protected:
     virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 
 private:
+    FileSort::FileFilter file_filter;
     /// Handles clicking on a focused item
     void handle_click();
 

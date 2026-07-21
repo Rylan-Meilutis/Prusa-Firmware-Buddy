@@ -83,7 +83,7 @@ ScreenMenuFirmwareUpdate::ScreenMenuFirmwareUpdate()
 ScreenFirmwareFileBrowser::ScreenFirmwareFileBrowser()
     : screen_t()
     , header(this)
-    , file_browser(this, GuiDefaults::RectScreenNoHeader, "/usb/firmware.bbf") {
+    , file_browser(this, GuiDefaults::RectScreenNoHeader, "/usb/firmware.bbf", FileSort::FileFilter::FIRMWARE) {
     header.SetIcon(&img::folder_full_16x16);
     header.SetText(_("SELECT FIRMWARE"));
     CaptureNormalWindow(file_browser);

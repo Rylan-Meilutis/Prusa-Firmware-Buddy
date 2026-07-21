@@ -57,11 +57,12 @@ bool window_file_list_t::IsPathRoot(const char *path) {
     return (path[0] == 0 || (strcmp(path, root) == 0));
 }
 
-void window_file_list_t::Load(WF_Sort_t sort, const char *sfnAtCursor, const char *topSFN) {
+void window_file_list_t::Load(WF_Sort_t sort, const char *sfnAtCursor, const char *topSFN, FileSort::FileFilter filter) {
     ldv.ChangeDirectory(
         sfn_path,
         (sort == WF_SORT_BY_NAME) ? LDV::SortPolicy::BY_NAME : LDV::SortPolicy::BY_CRMOD_DATETIME,
-        topSFN ?: sfnAtCursor);
+        topSFN ?: sfnAtCursor,
+        filter);
 
     // Now, ldv has adjusted its window offset and we need to synchronize scroll_offset with it properly.
     {

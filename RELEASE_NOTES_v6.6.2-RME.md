@@ -37,7 +37,7 @@
       * Manual and slicer-driven calibration use a whole-batch blocking heating/homing/probing/measuring/computing/cleanup progress screen visible over normal and serial prints; it takes over immediately, keeps chamber lights active, and permits only Abort until aggregated manual results are ready for Save to USB or Done
       * The blocking progress screen retains the normal temperature/status footer, and unattended batches wait for reachable pre-command nozzle targets so supplied MMU templates return to their explicit probing temperature before full MBL
       * MMU calibration explicitly unloads before every home/local probe and unloads the final slot before returning or presenting results, leaving the nozzle empty for the slicer's following full MBL
-      * Loaded-filament machines home and probe at the material profile's lower nozzle-preheat temperature, create 10 mm of bed/nozzle clearance, then heat to the requested test temperature; MMU batches probe unloaded with the same preheat clearance
+      * PA starts its 170 C probing preheat before homing, overlaps warm-up with MMU unload, always cleans the nozzle before the local probe even when unload is skipped, waits for 170 C, then creates 10 mm of bed/nozzle clearance and heats to the requested test temperature
       * Filament-sensor sampling remains active during PA excitation, while runout/autoload event generation is scoped off until calibration cleanup completes to prevent false toolhead-sensor errors
       * Calibration temperatures are temporary; all previous hotend targets are restored after single, batch, cached, successful, or failed M976 invocations
       * Results are RAM-only and are recalibrated for each file or serial print
@@ -337,7 +337,9 @@ accent, preserving contrast for Indigo and custom themes in both focused and
 unfocused list rows.
 
 Settings > FW update now opens a firmware-update page with USB BBF selection
-and the existing update instructions. Selecting a root-level 8.3 `.bbf` asks
+and the existing update instructions. The picker uses a dedicated firmware
+filter so `.bbf` files are visible instead of being removed by the printable
+G-code filter. Selecting a root-level 8.3 `.bbf` asks
 for confirmation, records the selected file for the bootloader, and restarts.
 The bootloader performs its normal signature, printer-model, and compatibility
 checks before writing firmware.

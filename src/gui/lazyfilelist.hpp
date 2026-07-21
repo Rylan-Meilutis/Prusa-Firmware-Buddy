@@ -46,7 +46,8 @@ public:
     /// @param p directory path (will be remembered inside this class)
     /// @param firstDirEntry filename to be placed at the 0th index of the window - the rest is computed accordingly - useful for restoring the view's content.
     ///                      A value of nullptr means put ".." first
-    void ChangeDirectory(const char *p, SortPolicy sp = SortPolicy::BY_NAME, const char *firstDirEntry = nullptr);
+    void ChangeDirectory(const char *p, SortPolicy sp = SortPolicy::BY_NAME, const char *firstDirEntry = nullptr,
+        FileFilter filter = FileFilter::PRINTABLE);
 
     /// Sets window offset to the specified position.
     /// \returns actual offset set
@@ -83,6 +84,7 @@ protected:
     char sfnPath[FILE_PATH_BUFFER_LEN]; ///< current directory path - @@TODO this may not be enough - needs checking
 
     SortPolicy sortPolicy; ///< sort policy set in ChangeDirectory
+    FileFilter fileFilter = FileFilter::PRINTABLE;
 
 private:
     // Largest amount accepted by MoveUp() from the current position
