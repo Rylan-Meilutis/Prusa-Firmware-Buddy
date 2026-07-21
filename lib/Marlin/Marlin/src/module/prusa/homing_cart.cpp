@@ -88,15 +88,14 @@ float calibrated_home_offset(const AxisEnum axis) {
         return 0;
     }
 
-    const constexpr float steps_per_unit[] = DEFAULT_AXIS_STEPS_PER_UNIT;
     switch (axis) {
     case X_AXIS: {
         return ((X_HOME_DIR < 0 ? X_HOME_GAP : -X_HOME_GAP)
-            - ((((INVERT_X_DIR) ? -1.f : 1.f) * to_calibrated(cal, stepperX.MSCNT())) / (steps_per_unit[X_AXIS] * (256 / get_microsteps_x()))));
+            - ((((INVERT_X_DIR) ? -1.f : 1.f) * to_calibrated(cal, stepperX.MSCNT())) / (get_steps_per_unit_x() * (256 / get_microsteps_x()))));
     }
     case Y_AXIS: {
         return ((Y_HOME_DIR < 0 ? Y_HOME_GAP : -Y_HOME_GAP)
-            - ((((INVERT_Y_DIR) ? -1.f : 1.f) * to_calibrated(cal, stepperY.MSCNT())) / (steps_per_unit[Y_AXIS] * (256 / get_microsteps_y()))));
+            - ((((INVERT_Y_DIR) ? -1.f : 1.f) * to_calibrated(cal, stepperY.MSCNT())) / (get_steps_per_unit_y() * (256 / get_microsteps_y()))));
     }
     default:;
     }
