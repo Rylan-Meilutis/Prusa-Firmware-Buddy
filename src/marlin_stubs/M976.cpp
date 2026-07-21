@@ -96,7 +96,11 @@ void park_before_mmu_unload() {
 #else
     const float x = X_MAX_POS - mmu_cleaning_right_margin - mmu_cleaning_width * 0.5f;
     do_blocking_move_to_z(std::max(current_position.z, 10.0f), 5.0f);
-    do_blocking_move_to_xy(xy_pos_t { x, Y_MIN_POS + 12.5f }, 50.0f);
+    // Keep the actual MMU ramming/unload purge deep in the front service
+    // travel, not merely a fraction of a millimetre beyond printable Y=0.
+    // The following cleanup wipe may use the sacrificial sheet edge, but the
+    // purge tail itself must fall beyond the bed.
+    do_blocking_move_to_xy(xy_pos_t { x, Y_MIN_POS + 1.0f }, 50.0f);
 #endif
 }
 
@@ -312,12 +316,17 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // load or hanging strand from contaminating the local micro-mesh.
             begin_pa_probe_preheat(0);
             if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) return false;
+            // Move the sheet away immediately after homing. MMU preparation
+            // and the remaining probe-temperature wait must not leave the
+            // nozzle resting at the homed sheet height.
+            create_hotend_clearance();
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
             if (!path_was_empty) park_before_mmu_unload();
             if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
             // Clean even when the sensor-aware unload was skipped: an empty
             // filament path does not prove that the nozzle exterior is clean.
             clean_before_pa_probe();
+            create_hotend_clearance();
             // Homing and MMU cleanup overlap the warm-up. Block only here so
             // every loadcell touch occurs at the known low-ooze temperature.
             wait_for_pa_probe_temperature(0);
@@ -503,15 +512,19 @@ void cleanup(const uint8_t slot, const float anchor_z) {
 #endif
 }
 
-void park_for_free_air_calibration(const uint8_t slot) {
+void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
 #if HAS_WASTEBIN()
     mapi::home_if_needed_and_park(mapi::ZAction::move_to_at_least, mapi::park_positions[mapi::ParkPosition::purge]);
 #else
     // The front service travel is outside the printable Y range on MK4,
     // CORE One and XL. Keep X aligned with the later cleanup slot so hanging
     // strands from different logical filaments remain separated.
-    const mapi::ParkingPosition position { 8.0f + slot * 11.0f, Y_MIN_POS + 1.0f, 10.0f };
-    mapi::home_if_needed_and_park(mapi::ZAction::move_to_at_least, position);
+    // Bring the sheet back up only for the extrusion itself. Keeping a small,
+    // known gap below the off-bed service position prevents the hanging strand
+    // from growing into a large loop that can curl onto the printable surface.
+    const float calibration_z = std::isfinite(anchor_z) ? anchor_z + 3.0f : 3.0f;
+    const mapi::ParkingPosition position { 8.0f + slot * 11.0f, Y_MIN_POS + 1.0f, calibration_z };
+    mapi::home_if_needed_and_park(mapi::ZAction::absolute_move, position);
 #endif
 }
 } // namespace
@@ -681,6 +694,7 @@ void PrusaGcodeSuite::M976() {
             SERIAL_ERROR_MSG("M976 homing failed");
             return;
         }
+        create_hotend_clearance();
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::homing)) {
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
             planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
@@ -688,6 +702,7 @@ void PrusaGcodeSuite::M976() {
             return;
         }
         clean_before_pa_probe();
+        create_hotend_clearance();
         wait_for_pa_probe_temperature(tool);
         pa_fsm_change(PhasesPressureAdvanceCalibration::probing, 16, slot);
         anchor_z = probe_anchor_slot(slot);
@@ -721,7 +736,7 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ERROR_MSG("M976 hotend too cold");
         return;
     }
-    park_for_free_air_calibration(slot);
+    park_for_free_air_calibration(slot, anchor_z);
     BlockEStallDetection block_legacy_e_stall;
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
     auto high_precision = Loadcell::HighPrecisionEnabler(loadcell, !loadcell.IsHighPrecisionEnabled());
