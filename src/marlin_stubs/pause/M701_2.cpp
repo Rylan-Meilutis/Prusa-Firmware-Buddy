@@ -201,7 +201,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
 #else
     if (op_preheat) {
 #endif
-        const FilamentType loaded_filament = config_store().get_filament_type(virtual_tool);
+        const FilamentType loaded_filament = config_store().get_filament_type(target_extruder);
         if (loaded_filament != FilamentType::none) {
             // During print cancellation the selected tool and its loaded
             // material are already authoritative. Use that material's unload
@@ -212,7 +212,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
             PreheatData data = PreheatData::make(PreheatMode::Unload, target_extruder, *op_preheat);
             auto preheat_ret = preheat(data, target_extruder, PreheatBehavior::force_preheat_only_extruder());
             if (preheat_ret.first) {
-                M70X_process_user_response(*preheat_ret.first, virtual_tool);
+                M70X_process_user_response(*preheat_ret.first, target_extruder);
                 return;
             }
         }

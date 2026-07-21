@@ -40,6 +40,9 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
 #include "Marlin/src/module/motion.h"
 #include "Marlin/src/module/temperature.h"
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
+#if HAS_LOADCELL()
+#include <feature/extrusion_calibration.hpp>
+#endif
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
 #include <serial_printing.hpp>
