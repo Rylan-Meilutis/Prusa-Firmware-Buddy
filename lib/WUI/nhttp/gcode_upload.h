@@ -7,7 +7,6 @@
 
 #include "req_parser.h"
 #include "status_page.h"
-#include "upload_state.h"
 
 #include <http/types.h>
 #include <transfers/monitor.hpp>
@@ -16,8 +15,7 @@
 
 #include <memory>
 #include <optional>
-
-struct Uploader;
+#include <tuple>
 
 namespace nhttp {
 
@@ -30,8 +28,9 @@ namespace printer {
     /**
      * \brief A handler to accept incoming gcode files.
      */
-    class GcodeUpload final : private UploadHooks {
+    class GcodeUpload final {
     public:
+        using Result = std::tuple<http::Status, const char *>;
         typedef bool UploadedNotify(char *name, bool start_print);
 
         struct PutParams {
@@ -56,9 +55,7 @@ namespace printer {
         size_t file_idx;
         bool filename_checked;
 
-        virtual Result data(std::string_view data) override;
-        virtual Result finish(const char *final_filename, bool start_print) override;
-        virtual Result check_filename(const char *filename) const override;
+        Result check_filename(const char *filename) const;
 
         GcodeUpload(PutParams &&uploader, transfers::Monitor::Slot &&slot, bool json_errors, size_t length, size_t upload_idx, transfers::PartialFile::Ptr &&file, UploadedNotify *uploaded);
 

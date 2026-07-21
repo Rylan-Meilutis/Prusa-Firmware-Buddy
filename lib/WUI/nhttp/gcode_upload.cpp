@@ -150,19 +150,9 @@ GcodeUpload::UploadResult GcodeUpload::start(const RequestParser &parser, Upload
     }
 }
 
-UploadHooks::Result GcodeUpload::data(string_view data) {
-    debug_assert(tmp_upload_file);
-    if (tmp_upload_file->write(reinterpret_cast<const uint8_t *>(data.begin()), data.size())) {
-        return make_tuple(Status::Ok, nullptr);
-    } else {
-        // Data won't fit into the flash drive -> Insufficient stogare.
-        return make_tuple(Status::InsufficientStorage, "USB write error or USB full");
-    }
-}
-
 namespace {
 
-    UploadHooks::Result prepend_usb_path(string_view filename, char *filepath_out, size_t filepath_size) {
+    GcodeUpload::Result prepend_usb_path(string_view filename, char *filepath_out, size_t filepath_size) {
         if ((filename.length() + USB_MOUNT_POINT_LENGTH) >= filepath_size) {
             // The Request header fields too large is a bit of a stretch...
             return make_tuple(Status::RequestHeaderFieldsTooLarge, "File name too long");
@@ -174,7 +164,7 @@ namespace {
         return make_tuple(Status::Ok, nullptr);
     }
 
-    std::variant<bool, UploadHooks::Result> file_dir_exists(string_view path) {
+    std::variant<bool, GcodeUpload::Result> file_dir_exists(string_view path) {
         size_t pos = path.find_last_of('/');
         if (pos == path.npos) {
             return true;
@@ -200,7 +190,7 @@ namespace {
     }
 
     template <class F>
-    UploadHooks::Result try_rename(const char *src, const char *dest_fname, bool overwrite, F f) {
+    GcodeUpload::Result try_rename(const char *src, const char *dest_fname, bool overwrite, F f) {
         char fn[filename_defs::filename_buffer_size];
 
         auto error = prepend_usb_path(dest_fname, fn, sizeof(fn));
@@ -263,7 +253,7 @@ namespace {
         virtual PartialFile *file() const override {
             return f.get();
         }
-        // TODO: alias for the type, probably unify with the UploadHooks::Result
+        // TODO: alias for the type, probably unify with the GcodeUpload::Result
         virtual optional<tuple<http::Status, const char *>> done() override {
             debug_assert(f != nullptr);
             debug_assert(monitor_slot.has_value());
@@ -287,7 +277,7 @@ namespace {
                 // Remove the "/usb/" prefix
                 // FIXME: Why? Relict of old / Post / multipart upload?
                 const char *final_filename = filepath.data() + USB_MOUNT_POINT_LENGTH;
-                error = try_rename(fname.begin(), final_filename, overwrite, [&](char *filename) -> UploadHooks::Result {
+                error = try_rename(fname.begin(), final_filename, overwrite, [&](char *filename) -> GcodeUpload::Result {
                     monitor_slot->done(Monitor::Outcome::Finished);
                     ChangedPath::instance.changed_path(filename, Type::File, Incident::Created);
                     cleanup_temp_file = false;
@@ -341,7 +331,7 @@ namespace {
     PutTransfer put_transfer;
 } // namespace
 
-UploadHooks::Result GcodeUpload::check_filename(const char *filename) const {
+GcodeUpload::Result GcodeUpload::check_filename(const char *filename) const {
     if (!filename_is_printable(filename)) {
         return make_tuple(Status::UnsupportedMediaType, "Not a GCODE");
     }
@@ -356,7 +346,7 @@ UploadHooks::Result GcodeUpload::check_filename(const char *filename) const {
             return make_tuple(Status::Ok, nullptr);
         }
     } else {
-        return get<UploadHooks::Result>(result);
+        return get<GcodeUpload::Result>(result);
     }
 
     if (upload.overwrite) {
@@ -380,53 +370,9 @@ UploadHooks::Result GcodeUpload::check_filename(const char *filename) const {
         return make_tuple(Status::InternalServerError, "Failed to create a check temp file");
     }
     fclose(tmp);
-    return try_rename(CHECK_FILENAME, filename, false, [](const char *fname) -> UploadHooks::Result {
+    return try_rename(CHECK_FILENAME, filename, false, [](const char *fname) -> GcodeUpload::Result {
         remove(fname);
         return make_tuple(Status::Ok, nullptr);
-    });
-}
-
-UploadHooks::Result GcodeUpload::finish(const char *final_filename, bool start_print) {
-    const auto fname = transfer_name(file_idx);
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvla" // TODO: person who knows a reasonable buffer size should refactor this code to not use variable length array
-    char path[USB_MOUNT_POINT_LENGTH + strlen(final_filename) + 1];
-#pragma GCC diagnostic pop
-
-    auto error = prepend_usb_path(final_filename, path, sizeof(path));
-    if (std::get<0>(error) != Status::Ok) {
-        return error;
-    }
-    // create directories if uploading points to non existing one
-    if (!make_dirs(path)) {
-        return make_tuple(Status::InternalServerError, "Failed to create a folder");
-    }
-
-    // In the "POST" mode (old / legacy), we don't know the exact size in
-    // advance, we have only an upper limit. Therefore, the pre-allocated size
-    // is a bit bigger and we need to truncate it.
-    size_t written = tmp_upload_file->tell();
-    if (!tmp_upload_file->sync()) {
-        return std::make_tuple(Status::InsufficientStorage, "Couldn't sync to file");
-    }
-    // Close the file first, otherwise it can't be moved
-    tmp_upload_file.reset();
-    if (truncate(fname.begin(), written) != 0) {
-        return std::make_tuple(Status::InsufficientStorage, "Couldn't set length of file");
-    }
-    return try_rename(fname.begin(), final_filename, upload.overwrite, [&](char *filename) -> UploadHooks::Result {
-        monitor_slot.done(Monitor::Outcome::Finished);
-        ChangedPath::instance.changed_path(filename, Type::File, Incident::Created);
-        if (uploaded_notify != nullptr) {
-            if (uploaded_notify(filename, start_print)) {
-                return make_tuple(Status::Ok, nullptr);
-            } else {
-                return make_tuple(Status::Conflict, "Can't print right now");
-            }
-        } else {
-            return make_tuple(Status::Ok, nullptr);
-        }
     });
 }
 
