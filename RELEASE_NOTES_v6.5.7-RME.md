@@ -52,6 +52,8 @@
       * A conservative material volumetric-flow ceiling is applied instead of claiming a maximum from a short calibration ramp
       * The calibrated pressure response arms runtime detection for forward motion without pressure rise, drastic pressure collapse, and sustained high-flow pressure breakout; faults enter `M1601` stuck-filament pause/recovery
   * Fixes
+    * Fixed MMU preload material selections remaining displayed as `Don't change` after entering the color picker
+    * Added bordered color previews to normal-load and MMU-preload color selectors, including saved user colors; newly created colors now remain visible with their preview
     * Fixed normal MMU load completion emitting an unsolicited serial-host resume action, which could make OctoPrint change state mid-stream and enter a repeated numbered-line resend loop
     * Valid duplicate numbered serial commands are acknowledged without re-execution, allowing recovery when an `ok` is lost among asynchronous MMU or progress messages
     * RME builds now report the RME source repository in the local `M115` response

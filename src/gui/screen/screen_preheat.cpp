@@ -11,6 +11,7 @@
 #include <ScreenHandler.hpp>
 #include <filament_color.hpp>
 #include <filament_to_load.hpp>
+#include <filament_color_gui.hpp>
 
 using namespace preheat_menu;
 
@@ -22,10 +23,14 @@ FilamentType pending_load_filament = FilamentType::none;
 class MI_LOAD_COLOR final : public IWindowMenuItem {
 public:
     MI_LOAD_COLOR(std::optional<Color> color, std::string_view name)
-        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()))
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()), color ? filament_color_gui::swatch_extension_width : Rect16::Width_t { 0 })
         , color_(color) {}
 
 protected:
+    void printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const override {
+        if (color_) filament_color_gui::draw_swatch(extension_rect, *color_, color_back);
+    }
+
     void click(IWindowMenu &) override {
         filament::set_color_to_load(color_);
         marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(pending_load_filament));

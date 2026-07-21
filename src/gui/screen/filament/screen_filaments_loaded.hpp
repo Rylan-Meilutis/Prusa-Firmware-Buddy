@@ -163,6 +163,7 @@ private:
 class WindowMenuCustomFilamentColors final : public WindowMenuVirtual<MI_RETURN, MI_ADD_CUSTOM_COLOR, MI_SAVED_CUSTOM_COLOR> {
 public:
     WindowMenuCustomFilamentColors(window_t *parent, Rect16 rect);
+    void reload_colors();
     int item_count() const final;
 protected:
     void setup_item(ItemVariant &variant, int index) final;

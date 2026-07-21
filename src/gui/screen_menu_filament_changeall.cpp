@@ -19,6 +19,7 @@
 #include <filament_color.hpp>
 #include <filament_to_load.hpp>
 #include <window_menu_virtual.hpp>
+#include <filament_color_gui.hpp>
 
 using namespace multi_filament_change;
 
@@ -27,11 +28,15 @@ namespace {
 class MI_PRELOAD_COLOR final : public IWindowMenuItem {
 public:
     MI_PRELOAD_COLOR(MI_ActionSelect *owner, std::optional<Color> color, std::string_view name)
-        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()))
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()), color ? filament_color_gui::swatch_extension_width : Rect16::Width_t { 0 })
         , owner_(owner)
         , color_(color) {}
 
 protected:
+    void printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const override {
+        if (color_) filament_color_gui::draw_swatch(extension_rect, *color_, color_back);
+    }
+
     void click(IWindowMenu &) override {
         owner_->set_selected_color(color_);
         Screens::Access()->Close();
@@ -161,7 +166,11 @@ void MI_ActionSelect::build_item_text(int index, const std::span<char> &buffer) 
 bool MI_ActionSelect::on_item_selected([[maybe_unused]] int old_index, int new_index) {
     const auto selected_action = index_mapping.from_index(new_index).item;
     if (selected_action == Action::change) {
+        // Commit before transitioning to the color screen. Older menu-select
+        // code otherwise applies this index only after the active screen changes.
+        set_current_item(new_index);
         Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadColor>(this));
+        return false;
     } else if (selected_action == Action::unload) {
         color = std::nullopt;
     }
