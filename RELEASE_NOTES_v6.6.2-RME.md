@@ -782,6 +782,7 @@ a070dd8fe  2026-07-20  Prevent serial resend storms during M976
 aa3c5ccdf  2026-07-20  Fix serial print completion and PA handoff
 5dd32b013  2026-07-20  Adapt PA final park to current motion API
 a1b5194aa  2026-07-20  Skip unload only for confirmed empty paths
+c06f69073  2026-07-20  Fix MMU serial flow and filament workflows
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
