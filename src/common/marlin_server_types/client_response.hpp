@@ -673,7 +673,7 @@ inline constexpr EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesL
         { PhasesLoadUnload::LoadNozzleCleaning, {} },
 #endif
 #if HAS_LOADCELL()
-        { PhasesLoadUnload::FilamentStuck, { Response::Unload } },
+        { PhasesLoadUnload::FilamentStuck, { Response::Unload, Response::Abort } },
 #endif
 #if HAS_AUTO_RETRACT()
         { PhasesLoadUnload::AutoRetracting, {} },

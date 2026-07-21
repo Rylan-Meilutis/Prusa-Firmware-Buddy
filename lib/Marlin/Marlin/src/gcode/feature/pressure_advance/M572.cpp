@@ -62,9 +62,11 @@ void GcodeSuite::M572() {
     if (seen_s) {
         const float s = parser.value_float();
         if (WITHIN(s, 0.f, 10.f)) {
-            pressure_advance = s;
 #if HAS_LOADCELL()
+            pressure_advance = buddy::extrusion_calibration::calibrated_pressure_advance_or(s);
             buddy::extrusion_calibration::note_profile_pressure_advance(s);
+#else
+            pressure_advance = s;
 #endif
         } else {
             SERIAL_ECHO_MSG("?Pressure advance (S) value out of range (0-10)");
