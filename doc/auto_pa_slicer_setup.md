@@ -113,8 +113,10 @@ Use the ready-to-paste [five-slot MMU template](gcode/templates/auto_pa_mmu_5_sl
 Firmware heats the physical hotend and uses the MMU unload/load path between
 entries. The calibration-specific load primes only 2 mm beyond the modeled
 nozzle path instead of running the normal tool-change purge, preventing a long
-loose filament loop over the bed. The PA excitation supplies the remaining
-controlled extrusion. Firmware unloads before each local probe and unloads the
+loose filament loop over the bed. Load, unload, and free-air excitation all use
+the same per-slot off-bed position, so a purge tail is never transported across
+the sheet. The PA excitation supplies the remaining controlled extrusion.
+Firmware unloads before each local probe and unloads the
 final requested MMU filament so the following full MBL runs with an empty
 nozzle. The normal post-MBL initial-tool command loads the print filament.
 
