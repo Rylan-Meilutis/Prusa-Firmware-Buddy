@@ -11,7 +11,9 @@
 #include <functional> // std::invoke
 #include <cmath>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+#if HAS_LOADCELL()
 #include <feature/extrusion_calibration.hpp>
+#endif
 #include "M70X.hpp"
 #include <utils/variant_utils.hpp>
 #include <config_store/store_instance.hpp>
@@ -40,11 +42,15 @@ uint filament_gcodes::InProgress::lock = 0;
 
 filament_gcodes::InProgress::InProgress() {
     ++lock;
+#if HAS_LOADCELL()
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
+#endif
 }
 
 filament_gcodes::InProgress::~InProgress() {
+#if HAS_LOADCELL()
     buddy::extrusion_calibration::suspend_pressure_monitor(false);
+#endif
     --lock;
 }
 

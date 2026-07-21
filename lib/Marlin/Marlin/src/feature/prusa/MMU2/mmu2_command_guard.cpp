@@ -1,5 +1,8 @@
 #include "mmu2_command_guard.h"
+#include "config_features.h"
+#if HAS_LOADCELL()
 #include <feature/extrusion_calibration.hpp>
+#endif
 
 namespace MMU2 {
 MMU2::CommandInProgressGuard::CommandInProgressGuard(CommandInProgress action, CommandInProgressManager &mgr)
@@ -8,12 +11,16 @@ MMU2::CommandInProgressGuard::CommandInProgressGuard(ExtendedCommandInProgress a
     : CommandInProgressGuard(static_cast<RawCommandInProgress>(action), mgr) {}
 
 CommandInProgressGuard::~CommandInProgressGuard() {
+#if HAS_LOADCELL()
     buddy::extrusion_calibration::suspend_pressure_monitor(false);
+#endif
     decGuard(mgr);
 }
 CommandInProgressGuard::CommandInProgressGuard(uint8_t action, CommandInProgressManager &mgr)
     : mgr(mgr) {
+#if HAS_LOADCELL()
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
+#endif
     incGuard(action, mgr);
 }
 

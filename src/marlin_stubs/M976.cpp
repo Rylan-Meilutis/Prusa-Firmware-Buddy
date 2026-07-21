@@ -46,8 +46,6 @@ constexpr float filament_area = 2.40528f;
 // Keep the search local to the slicer/profile fallback, but permit legitimate
 // high-PA Bowden/material profiles and preserve 0.002 s calibration precision.
 constexpr float absolute_pa_max = 0.50f;
-constexpr float minimum_result_confidence = 0.75f;
-constexpr uint8_t maximum_confidence_retries = 6;
 struct BatchEntry {
     uint8_t physical_tool;
     uint8_t logical_filament;
@@ -356,6 +354,29 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     return capture.score();
 }
 
+float measure_idle_noise_floor() {
+    auto &capture = buddy::extrusion_calibration::capture();
+    planner.synchronize();
+    capture.start();
+    GcodeSuite::dwell(300);
+    capture.stop();
+    return capture.noise_floor();
+}
+
+float result_confidence(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    if (!score.valid || !std::isfinite(idle_noise)) return 0;
+    const float effective_noise = std::max({ 0.25f, idle_noise, score.noise });
+    const float snr = score.mean_load / effective_noise;
+    const float signal_confidence = std::clamp((snr - 3.0f) / 5.0f, 0.0f, 1.0f);
+    const float transient_confidence = 1.0f / (1.0f + 0.35f * score.transient);
+    return transient_confidence * signal_confidence;
+}
+
+float result_snr(const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    if (!score.valid || !std::isfinite(idle_noise)) return 0;
+    return score.mean_load / std::max({ 0.25f, idle_noise, score.noise });
+}
+
 float material_flow_limit(const uint8_t logical_filament) {
     const auto &name = config_store().get_filament_type(logical_filament).parameters().name;
     if (!strncmp(name.data(), "FLEX", 4)) return 4.0f;
@@ -427,6 +448,38 @@ void PrusaGcodeSuite::M976() {
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;
 #else
+    const bool configure_confidence = parser.seen('Q');
+    const bool configure_snr = parser.seen('N');
+    const bool configure_retries = parser.seen('R');
+    if (configure_confidence || configure_snr || configure_retries) {
+        if (configure_confidence && parser.seenval('Q')) {
+            const float requested = parser.value_float();
+            if (requested < 0.50f || requested > 0.95f) {
+                SERIAL_ERROR_MSG("M976 Q confidence must be 0.50..0.95");
+                return;
+            }
+            config_store().pa_confidence_floor_percent.set(static_cast<uint8_t>(lroundf(requested * 100.0f)));
+        }
+        if (configure_snr && parser.seenval('N')) {
+            const float requested = parser.value_float();
+            if (requested < 3.0f || requested > 20.0f) {
+                SERIAL_ERROR_MSG("M976 N minimum SNR must be 3.0..20.0");
+                return;
+            }
+            config_store().pa_minimum_snr.set(requested);
+        }
+        if (configure_retries && parser.seenval('R')) {
+            const int requested = parser.value_int();
+            if (requested < 0 || requested > 10) {
+                SERIAL_ERROR_MSG("M976 R retries must be 0..10");
+                return;
+            }
+            config_store().pa_confidence_retries.set(static_cast<uint8_t>(requested));
+        }
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION minimum_confidence=", config_store().pa_confidence_floor_percent.get() / 100.0f,
+            " minimum_snr=", config_store().pa_minimum_snr.get(), " retries=", config_store().pa_confidence_retries.get());
+        if (!parser.seen('A') && !parser.seen('K') && !parser.seen('T') && !parser.seen('L')) return;
+    }
     // S is a calibration-only target. Restore every hotend target on every exit path, including
     // batch/MMU failures and cached results. Nested M976 calls restore to the batch's temporary
     // target; the outer batch guard then restores the targets that existed before the command.
@@ -515,6 +568,7 @@ void PrusaGcodeSuite::M976() {
         return;
     }
     const float fallback = std::clamp(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
+    const float search_default = std::clamp(material_fallback(slot), 0.0f, absolute_pa_max);
     marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(slot + 1) } };
     int16_t target_temperature = 0;
     if (parser.seenval('S')) {
@@ -608,40 +662,83 @@ void PrusaGcodeSuite::M976() {
     loadcell.WaitBarrier();
     loadcell.Tare();
 
-    float best_pa = fallback, best_cost = std::numeric_limits<float>::infinity();
+    const float idle_noise = measure_idle_noise_floor();
+    const float minimum_result_confidence = std::clamp(config_store().pa_confidence_floor_percent.get() / 100.0f, 0.50f, 0.95f);
+    const float minimum_snr = std::clamp(config_store().pa_minimum_snr.get(), 3.0f, 20.0f);
+    const uint8_t maximum_confidence_retries = std::min<uint8_t>(config_store().pa_confidence_retries.get(), 10);
+    float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     bool aborted = false;
-    // Coarse search around the profile/material fallback, followed by the
-    // PrusaPATuner 0.002-resolution refinement around the best response.
-    for (int8_t offset = -3; offset <= 3; ++offset) {
-        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, static_cast<uint8_t>(20 + (offset + 3) * 5), slot);
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const float candidate = std::clamp(fallback + offset * 0.01f, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(candidate);
+    const auto measure = [&](const float candidate, const uint8_t progress) {
+        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, progress, slot);
+        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) {
+            aborted = true;
+            return buddy::extrusion_calibration::Score {};
+        }
+        const auto score = run_bursts(std::clamp(candidate, 0.0f, absolute_pa_max));
         if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
-            best_pa = candidate;
+            best_pa = std::clamp(candidate, 0.0f, absolute_pa_max);
             best_score = score;
         }
+        return score;
+    };
+
+    // The objective is one-dimensional but noisy. Golden-section refinement
+    // needs no numerical derivative and reuses one measurement per iteration.
+    constexpr float initial_step = 0.02f;
+    const auto center_seed = measure(search_default, 20);
+    const auto lower_seed = measure(search_default - initial_step, 24);
+    const auto upper_seed = measure(search_default + initial_step, 28);
+    const float center_cost = center_seed.valid ? center_seed.transient : std::numeric_limits<float>::infinity();
+    const float lower_cost = lower_seed.valid ? lower_seed.transient : std::numeric_limits<float>::infinity();
+    const float upper_cost = upper_seed.valid ? upper_seed.transient : std::numeric_limits<float>::infinity();
+    float lower, upper;
+    if (lower_cost < center_cost && lower_cost <= upper_cost) {
+        lower = std::max(0.0f, search_default - 0.03f);
+        upper = search_default;
+    } else if (upper_cost < center_cost) {
+        lower = search_default;
+        upper = std::min(absolute_pa_max, search_default + 0.03f);
+    } else {
+        lower = std::max(0.0f, search_default - initial_step);
+        upper = std::min(absolute_pa_max, search_default + initial_step);
     }
-    const float refinement_center = best_pa;
-    for (int8_t offset = -2; offset <= 2 && !aborted; ++offset) {
-        pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, static_cast<uint8_t>(60 + (offset + 2) * 6), slot);
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const float candidate = std::clamp(refinement_center + offset * 0.002f, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(candidate);
-        if (score.valid && score.transient < best_cost) {
-            best_cost = score.transient;
-            best_pa = candidate;
-            best_score = score;
+    constexpr float golden_ratio = 0.61803398875f;
+    float left = upper - golden_ratio * (upper - lower);
+    float right = lower + golden_ratio * (upper - lower);
+    auto left_score = measure(left, 32);
+    auto right_score = measure(right, 36);
+    for (uint8_t iteration = 0; iteration < 7 && !aborted && upper - lower > 0.0015f; ++iteration) {
+        const float left_cost = left_score.valid ? left_score.transient : std::numeric_limits<float>::infinity();
+        const float right_cost = right_score.valid ? right_score.transient : std::numeric_limits<float>::infinity();
+        if (left_cost <= right_cost) {
+            upper = right;
+            right = left;
+            right_score = left_score;
+            left = upper - golden_ratio * (upper - lower);
+            left_score = measure(left, static_cast<uint8_t>(40 + iteration * 4));
+        } else {
+            lower = left;
+            left = right;
+            left_score = right_score;
+            right = lower + golden_ratio * (upper - lower);
+            right_score = measure(right, static_cast<uint8_t>(40 + iteration * 4));
         }
     }
-    // A single noisy sweep can choose a plausible-looking but unreliable PA
-    // value. Re-measure the best candidate until it clears the acceptance
-    // threshold, with a finite safety bound so a damaged/loadcell-less setup
-    // cannot extrude forever. A persistently weak signal falls back below.
+
+    // Confirm the apparent optimum and both immediate 0.002 neighbours. This
+    // always runs even if the minimum confidence has already been reached.
+    const float verification_center = best_pa;
+    measure(verification_center - 0.002f, 74);
+    measure(verification_center, 78);
+    measure(verification_center + 0.002f, 82);
+
+    // The configured threshold is an acceptance floor, not a search target.
+    // Refinement and neighbour verification above always finish first; only a
+    // weak final signal receives bounded extra confirmations.
     for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted
-         && (!std::isfinite(best_cost) || 1.0f / (1.0f + best_cost) < minimum_result_confidence);
+         && (result_confidence(best_score, idle_noise) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
          ++retry) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
             static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries), slot);
@@ -664,8 +761,8 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION aborted fallback=", fallback);
         return;
     }
-    const float confidence = std::isfinite(best_cost) ? 1.0f / (1.0f + best_cost) : 0.0f;
-    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence) {
+    const float confidence = result_confidence(best_score, idle_noise);
+    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);

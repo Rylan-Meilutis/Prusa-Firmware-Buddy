@@ -125,6 +125,20 @@ Score Capture::score() const {
     return result;
 }
 
+float Capture::noise_floor() const {
+    const size_t n = std::min(size(), samples_.size());
+    if (n < 16) return std::numeric_limits<float>::infinity();
+    float mean = 0;
+    for (size_t i = 0; i < n; ++i) mean += samples_[i].load_g;
+    mean /= n;
+    float variance = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const float error = samples_[i].load_g - mean;
+        variance += error * error;
+    }
+    return std::sqrt(variance / (n - 1));
+}
+
 Capture &capture() { return instance; }
 
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
