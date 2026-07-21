@@ -41,6 +41,11 @@ public:
         _COUNT
     };
 
+    enum class FileFilter : uint8_t {
+        PRINTABLE,
+        FIRMWARE,
+    };
+
     struct StringViewLight {
         const char *s = nullptr;
         inline StringViewLight() = default;
@@ -124,7 +129,7 @@ public:
         &less_by_time,
     };
 
-    static dirent *find_next(Directory &dir) {
+    static dirent *find_next(Directory &dir, FileFilter filter = FileFilter::PRINTABLE) {
         while (dirent *entry = dir.read()) {
             // ignore hidden files/directories
             if (entry->lfn[0] == '.') {
@@ -137,7 +142,8 @@ public:
             }
 
             // files are being filtered by their extension
-            if (filename_is_printable(entry->lfn)) {
+            if ((filter == FileFilter::PRINTABLE && filename_is_printable(entry->lfn))
+                || (filter == FileFilter::FIRMWARE && filename_is_firmware(entry->lfn))) {
                 return entry;
             }
         }

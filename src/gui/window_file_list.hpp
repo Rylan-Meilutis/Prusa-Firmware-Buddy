@@ -63,7 +63,8 @@ public:
 
 public:
     window_file_list_t(window_t *parent, Rect16 rc); // height is calculated from LazyDirViewSize
-    void Load(WF_Sort_t sort, const char *sfnAtCursor, const char *topSFN);
+    void Load(WF_Sort_t sort, const char *sfnAtCursor, const char *topSFN,
+        FileSort::FileFilter filter = FileSort::FileFilter::PRINTABLE);
 
     const char *TopItemSFN();
     const char *CurrentLFN(bool *isFile = nullptr) const;

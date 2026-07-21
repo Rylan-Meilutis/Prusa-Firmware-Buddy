@@ -23,8 +23,9 @@ static char firstVisibleSFN[FileSort::MAX_SFN];
 static constexpr char dirUp[] = "..";
 static constexpr char slash = '/';
 
-WindowFileBrowser::WindowFileBrowser(window_t *parent, Rect16 rect, const char *media_SFN_path)
-    : window_file_list_t(parent, rect) {
+WindowFileBrowser::WindowFileBrowser(window_t *parent, Rect16 rect, const char *media_SFN_path, FileSort::FileFilter filter)
+    : window_file_list_t(parent, rect)
+    , file_filter(filter) {
 
     // initialize the directory
     // here the strncpy is meant to be - need the rest of the buffer zeroed
@@ -39,7 +40,7 @@ WindowFileBrowser::WindowFileBrowser(window_t *parent, Rect16 rect, const char *
         strlcpy(sfn_path, root, FILE_PATH_BUFFER_LEN);
     }
     // Moreover - the next characters after c contain the filename, which I want to start my cursor at!
-    Load(GuiFileSort::Get(), c + 1, firstVisibleSFN);
+    Load(GuiFileSort::Get(), c + 1, firstVisibleSFN, file_filter);
 
     // scroll offset/current item is automatically set by IWindowMenu
 }
@@ -112,7 +113,7 @@ void WindowFileBrowser::handle_click() {
 
             strlcpy(sfn_path + sfn_path_len, currentSFN, FILE_PATH_BUFFER_LEN - sfn_path_len);
 
-            Load(GuiFileSort::Get(), nullptr, nullptr);
+            Load(GuiFileSort::Get(), nullptr, nullptr, file_filter);
         }
 
         // We've selected ".." and are not in the top level dir (sfn_path contains '/') -> remove the directory
@@ -156,7 +157,7 @@ void WindowFileBrowser::go_up() {
         *last_slash_char = '\0';
     }
 
-    Load(GuiFileSort::Get(), previous_dir_sfn, nullptr);
+    Load(GuiFileSort::Get(), previous_dir_sfn, nullptr, file_filter);
 
     // @@TODO we want to print the LFN of the dir name, which is very hard to do right now
     // However, the text is not visible on the screen yet...
