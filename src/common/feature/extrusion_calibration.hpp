@@ -21,6 +21,14 @@ struct Score {
     float low_load = 0;
     float high_load = 0;
     bool valid = false;
+    uint16_t sample_count = 0;
+    uint16_t transitions_detected = 0;
+    uint16_t transitions_used = 0;
+    uint16_t rejected_low_signal = 0;
+    uint16_t rejected_timing = 0;
+    bool capture_overflow = false;
+    float strongest_transition = 0;
+    float highest_transition_noise = 0;
 };
 
 class Capture {
