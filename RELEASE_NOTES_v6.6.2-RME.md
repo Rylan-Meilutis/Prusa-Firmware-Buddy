@@ -800,6 +800,7 @@ e0b2a7578  2026-07-20  Harden PA calibration and unload monitoring
 6b04989a5  2026-07-20  Use generated loadcell option in MMU guard
 326b018ee  2026-07-20  Keep PA fallback nonfatal and clean MMU purge
 bdd1de5c1  2026-07-20  Prevent serial queue overflow during PA calibration
+a97b977e4  2026-07-20  Add pressure advance measurement diagnostics
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
