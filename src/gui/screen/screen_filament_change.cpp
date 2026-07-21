@@ -404,7 +404,7 @@ private:
         auto err = find_error(ErrCode::ERR_MECHANICAL_STUCK_FILAMENT_DETECTED);
 
         radio_button.set_fixed_width_buttons_count(0);
-        radio_button.set_fsm_and_phase(Phase::FilamentStuck, { Response::Unload });
+        radio_button.set_fsm_and_phase(Phase::FilamentStuck, { Response::Unload, Response::Abort });
         notice_update(std::to_underlying(err.err_code), err.err_title, err.err_text, err.type);
     }
 };

@@ -49,7 +49,7 @@ constinit const EnumArray<PhasesLoadUnload, PhaseResponses, CountPhases<PhasesLo
         { PhasesLoadUnload::LoadNozzleCleaning, {} },
 #endif
 #if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
-        { PhasesLoadUnload::FilamentStuck, { Response::Unload } },
+        { PhasesLoadUnload::FilamentStuck, { Response::Unload, Response::Abort } },
 #endif
 #if HAS_AUTO_RETRACT()
         { PhasesLoadUnload::AutoRetracting, {} },

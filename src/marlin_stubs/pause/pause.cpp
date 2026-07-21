@@ -219,8 +219,10 @@ bool Pause::is_unstoppable() const {
         return FSensors_instance().HasMMU();
 
     case LoadType::filament_change:
-    case LoadType::filament_stuck:
         return true;
+
+    case LoadType::filament_stuck:
+        return false;
 
     case LoadType::autoload:
     case LoadType::load_purge:
@@ -1159,6 +1161,9 @@ void Pause::filament_stuck_ask_process(Response response) {
 
     if (response == Response::Unload) {
         set(LoadState::unload_wait_temp);
+    } else if (response == Response::Abort) {
+        marlin_server::print_abort();
+        set(LoadState::stop);
     }
 }
 #endif
@@ -1939,9 +1944,17 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
     thermalManager.set_fan_speed(0, original_print_fan_speed);
     active = false;
 
-    const float min_layer_h = 0.05f;
-    // do not unpark and wait for temp if not homed or z park len is 0
-    if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
+    constexpr float min_restore_move = 0.05f;
+    const bool position_needs_restore = !isnan(pause.settings.resume_pos.x)
+        && !isnan(pause.settings.resume_pos.y)
+        && !isnan(pause.settings.resume_pos.z)
+        && (std::abs(current_position.x - pause.settings.resume_pos.x) >= min_restore_move
+            || std::abs(current_position.y - pause.settings.resume_pos.y) >= min_restore_move
+            || std::abs(current_position.z - pause.settings.resume_pos.z) >= min_restore_move);
+    // Restore every displaced print axis. Previously this was gated only by
+    // Z displacement, so a recovery parked in X with unchanged Z could resume
+    // from the service position and ruin the print.
+    if (!axes_need_homing() && position_needs_restore && (marlin_client::is_printing() || marlin_client::is_paused())) {
         // Restore the print temperature before the heatup wait, so we resume fully heated
         // instead of at the filament default that loading dropped the target to.
         if (pause.settings.resume_nozzle_temperature.has_value()) {

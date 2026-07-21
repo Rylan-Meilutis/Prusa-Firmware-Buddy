@@ -207,12 +207,20 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
 #endif
 
     if (do_preheat) {
-        PreheatData data = PreheatData::make(PreheatMode::unload, virtual_tool, *op_preheat);
-        auto preheat_ret = preheat(data, PreheatBehavior::for_filament_unload());
-        if (preheat_ret.first) {
-            // canceled
-            M70X_process_user_response(*preheat_ret.first, virtual_tool);
-            return;
+        const FilamentType loaded_filament = config_store().get_filament_type(virtual_tool);
+        if (loaded_filament != FilamentType::none) {
+            // During print cancellation the selected tool and its loaded
+            // material are already authoritative. Use that material's unload
+            // temperature instead of interrupting cancellation with a profile
+            // selection dialog.
+            preheat_to(loaded_filament, virtual_tool.to_physical(), PreheatBehavior::for_filament_unload(false));
+        } else {
+            PreheatData data = PreheatData::make(PreheatMode::unload, virtual_tool, *op_preheat);
+            auto preheat_ret = preheat(data, PreheatBehavior::for_filament_unload());
+            if (preheat_ret.first) {
+                M70X_process_user_response(*preheat_ret.first, virtual_tool);
+                return;
+            }
         }
     }
 
