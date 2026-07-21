@@ -67,6 +67,7 @@ Score Capture::score() const {
     // each transition compare the first 150 ms against settled plateaus and
     // penalize normalized error area, over/undershoot and settling time.
     float cost = 0, cost_squared = 0, load_sum = 0, noise_sum = 0, low_sum = 0, high_sum = 0;
+    size_t noise_observations = 0;
     size_t used = 0;
     size_t last_transition = 0;
     for (size_t i = 3; i + 40 < n; ++i) {
@@ -80,6 +81,7 @@ Score Capture::score() const {
         const float v1 = (samples_[i - 1].e_position_mm - samples_[i - 2].e_position_mm) / dt1;
         if (std::abs(v0 - v1) < 1.0f || i - last_transition < 12) {
             noise_sum += std::abs(samples_[i].load_g - samples_[i - 1].load_g);
+            ++noise_observations;
             continue;
         }
         ++result.transitions_detected;
@@ -116,6 +118,7 @@ Score Capture::score() const {
         cost_squared += transition_cost * transition_cost;
         load_sum += amplitude;
         noise_sum += noise;
+        ++noise_observations;
         if (v0 > v1) {
             high_sum += after;
             low_sum += before;
@@ -132,7 +135,10 @@ Score Capture::score() const {
         result.transient = cost / used;
         result.transient_stddev = std::sqrt(std::max(0.0f, cost_squared / used - result.transient * result.transient));
         result.mean_load = load_sum / used;
-        result.noise = noise_sum / used;
+        // Background deltas and transition-local noise are individual noise
+        // observations. Dividing their sum only by the transition count made
+        // longer captures look artificially noisy and forced false retries.
+        result.noise = noise_observations ? noise_sum / noise_observations : std::numeric_limits<float>::infinity();
         result.low_load = low_sum / used;
         result.high_load = high_sum / used;
     }
