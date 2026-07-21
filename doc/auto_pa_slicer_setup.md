@@ -6,6 +6,11 @@ advance calibration before every file or serial print. Both slicers provide
 temperature placeholders differ: PrusaSlicer uses `temperature[]`, while
 OrcaSlicer uses `nozzle_temperature[]`.
 
+Copy templates as plain text and preserve every physical newline. Never join a
+command to a preceding comment or slicer control directive; visual wrapping in
+an editor does not create a G-code line. After slicing, verify that `M976 A ...`
+appears on a standalone line in the exported G-code.
+
 Only the printer/machine start G-code is changed. Do not add anything to a
 filament preset's start or end G-code. Ready-to-paste files are provided for:
 

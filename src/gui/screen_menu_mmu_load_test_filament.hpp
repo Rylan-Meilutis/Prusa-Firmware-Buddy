@@ -13,7 +13,7 @@ struct ScreenMenuMMULoadTestFilament_;
 
 template <size_t... i>
 struct ScreenMenuMMULoadTestFilament_<std::index_sequence<i...>> {
-    using T = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_MMU_LOAD_TEST_FILAMENT_I<i>...>;
+    using T = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_MMU_LOAD_TEST_FILAMENT_I<i>..., MI_MMU_LOAD_TEST_ALL>;
 };
 
 class ScreenMenuMMULoadTestFilament : public ScreenMenuMMULoadTestFilament_<std::make_index_sequence<VirtualToolIndex::count>>::T {

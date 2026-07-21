@@ -30,6 +30,8 @@
     * UI theme updates and theme import support
     * Loaded-filament overview and reassignment from the Filament menu without unloading or reloading
     * `M865 Q` serial query for loaded filament material reporting
+    * Interactive filament loads and MMU preloads now request both material and color; successful unloads clear both assignments
+    * MMU Loading Test now offers individual slots and Test All, with matching `M1704 P`, `K`, and `A` G-code selection
     * Added `M976` stationary loadcell calibration for per-print pressure advance and extrusion-health monitoring, including per-hotend temperature set/wait for slicer-driven tool and MMU sequences [C1, C1 INDX, XL, MK4, iX]
       * Added a guided Control-menu screen above Calibrations & Tests with dock-calibration-style loaded-tool toggles, an independent temperature for every loaded tool, one Run action, automatic material-profile temperatures, per-tool ±15 °C safety bounds, and a manual-only clean-area prompt
       * Manual and slicer-driven calibration use a whole-batch blocking heating/homing/probing/measuring/computing/cleanup progress screen visible over normal and serial prints; it takes over immediately, keeps chamber lights active, and permits only Abort until aggregated manual results are ready for Save to USB or Done
@@ -53,6 +55,9 @@
     * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
       * During a serial full-bucket pause, `M1986 R` resets a stale counter out of band while preserving the queued print commands; the print remains held until the host sends its normal `M602` resume
   * Fixes
+    * Fixed normal MMU load completion emitting an unsolicited serial-host resume action, which could make OctoPrint change state mid-stream and enter a repeated numbered-line resend loop
+    * Valid duplicate numbered serial commands are acknowledged without re-execution, allowing recovery when an `ok` is lost among asynchronous MMU or progress messages
+    * RME builds now report the RME source repository in the local `M115` response
     * Fixed streamed-print completion resetting OctoPrint's numbered-command sequence by reserving `Done printing file` for actual media prints
     * Filament unload skips heating and motion only when enabled sensors explicitly report an empty path; disabled sensors still attempt unload, and automatic runout still removes the remaining filament tail
     * PA calibration now emits the applied `M572` command and manual UI runs park the toolhead after results are handled

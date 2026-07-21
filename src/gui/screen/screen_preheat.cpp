@@ -10,6 +10,8 @@
 #include <gui/screen/filament/screen_filament_detail.hpp>
 #include <ScreenHandler.hpp>
 #include <gui/standard_frame/frame_prompt.hpp>
+#include <filament_color.hpp>
+#include <filament_to_load.hpp>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -20,6 +22,67 @@
 namespace {
 
 using PreheatToolIndex = PreheatData::ToolIndex;
+
+bool prompt_for_load_color = false;
+FilamentType pending_load_filament = FilamentType::none;
+
+class MI_LOAD_COLOR final : public IWindowMenuItem {
+public:
+    MI_LOAD_COLOR(std::optional<Color> color, std::string_view name)
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()))
+        , color_(color) {}
+
+protected:
+    void click(IWindowMenu &) override {
+        filament::set_color_to_load(color_);
+        marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
+        Screens::Access()->Close();
+    }
+
+private:
+    std::optional<Color> color_;
+};
+
+class WindowMenuLoadColor final : public WindowMenuVirtual {
+public:
+    WindowMenuLoadColor(window_t *parent, Rect16 rect)
+        : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {
+        for (size_t i = 0; i < filament_color::custom_slot_count; ++i) custom_count_ += filament_color::custom(i).has_value();
+        setup_items();
+    }
+
+    int item_count() const override { return 1 + filament_color::palette().size() + custom_count_; }
+
+protected:
+    void setup_item(ItemVariant &variant, int index) override {
+        if (index == 0) {
+            variant.emplace<MI_LOAD_COLOR>(std::nullopt, std::string_view("None"));
+            return;
+        }
+        size_t requested = static_cast<size_t>(index - 1);
+        if (requested < filament_color::palette().size()) {
+            const auto &profile = filament_color::palette()[requested];
+            variant.emplace<MI_LOAD_COLOR>(profile.color, profile.name_view());
+            return;
+        }
+        requested -= filament_color::palette().size();
+        for (size_t slot = 0; slot < filament_color::custom_slot_count; ++slot) {
+            if (const auto profile = filament_color::custom(slot); profile && requested-- == 0) {
+                variant.emplace<MI_LOAD_COLOR>(profile->color, profile->name_view());
+                return;
+            }
+        }
+    }
+
+private:
+    size_t custom_count_ = 0;
+};
+
+class ScreenLoadColor final : public ScreenMenuBase<WindowMenuLoadColor> {
+public:
+    ScreenLoadColor()
+        : ScreenMenuBase(nullptr, _("SELECT COLOR"), EFooter::On) {}
+};
 
 class WindowMenuPreheat;
 
@@ -392,7 +455,12 @@ bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, Prehea
         }
     }
 
-    marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(filament_type));
+    if (prompt_for_load_color) {
+        pending_load_filament = filament_type;
+        Screens::Access()->Open<ScreenLoadColor>();
+    } else {
+        marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(filament_type));
+    }
     return true;
 }
 
@@ -416,6 +484,10 @@ void ScreenPreheat::destroy_frame() {
 
 void ScreenPreheat::update_frame() {
     const PreheatData data = PreheatData::deserialize(fsm_base_data.GetData());
+
+    prompt_for_load_color = data.mode == PreheatMode::standard_load
+        || data.mode == PreheatMode::change_load
+        || data.mode == PreheatMode::autoload;
 
     Frames::update_frame(frame_storage, get_phase(), fsm_base_data.GetData());
 

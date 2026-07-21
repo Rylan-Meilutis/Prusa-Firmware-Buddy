@@ -1210,6 +1210,7 @@ void Pause::unload_process([[maybe_unused]] Response response) {
     unload_filament();
 
     config_store().set_filament_type(settings.virtual_tool(), FilamentType::none);
+    filament_color::set_loaded(settings.virtual_tool().to_raw(), std::nullopt);
 
     switch (load_type) {
     case LoadType::unload:
@@ -1797,6 +1798,7 @@ void Pause::handle_filament_removal(LoadState state_to_set) {
     if (filament_surely_removed) {
         set(state_to_set);
         config_store().set_filament_type(settings.virtual_tool(), FilamentType::none);
+        filament_color::set_loaded(settings.virtual_tool().to_raw(), std::nullopt);
         return;
     }
     return;
