@@ -67,6 +67,10 @@ attempt; an unmarked serial-uploaded BBF must not be removed. Test copy failures
 files to ensure the bootloader rejects them without flashing. Serial regression
 coverage must retain `M997 O` and `M997 /usb/FIRMWARE.BBF`; the latter selects a
 file already present on USB rather than carrying the file data itself.
+The copy buffer must remain outside the GUI task stack, and the picker must
+queue `M997 /usb/FWUPD.BBF` rather than resetting directly inside its click
+callback. Confirm that the UI remains responsive during staging and that the
+Marlin-side command restarts the printer immediately afterward.
 
 RME's binary upload layer is `M998`: verify begin rejects zero/oversized files
 and malformed SHA-256, chunks reject invalid Base64 and any offset other than

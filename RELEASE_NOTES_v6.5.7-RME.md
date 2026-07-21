@@ -530,6 +530,11 @@ temporary short-name copy when the application next mounts the USB after the
 bootloader attempt, preventing stale firmware from remaining selectable while
 leaving the original Connect download intact.
 
+The picker now keeps its 1 KiB copy workspace out of the constrained GUI task
+stack and delegates restart to the established `M997 /usb/FWUPD.BBF` command
+path. This prevents a stack-induced frozen update screen and performs the
+retained bootloader request and reset from the same context as serial updates.
+
 Release builds can optionally sign generated `.bbf` files by setting `FIRMWARE_SIGNING_KEY` when running the top-level release wrapper:
 
 ```sh

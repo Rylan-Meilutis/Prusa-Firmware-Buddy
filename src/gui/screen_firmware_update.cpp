@@ -3,10 +3,9 @@
 #include "ScreenHandler.hpp"
 #include "gui_media_events.hpp"
 #include "screen_help_fw_update.hpp"
-#include <common/sys.hpp>
-#include <data_exchange.hpp>
 #include <guiconfig/GuiDefaults.hpp>
 #include <img_resources.hpp>
+#include <marlin_client.hpp>
 #include <window_msgbox.hpp>
 #include <array>
 #include <cstdio>
@@ -18,6 +17,10 @@ constexpr const char *staged_firmware_path = "/usb/FWUPD.BBF";
 constexpr const char *staged_firmware_marker_path = "/usb/FWUPD.UI";
 
 bool stage_firmware_for_bootloader(const char *source_path) {
+    // This runs on the GUI task. Keep the copy buffer out of its constrained
+    // stack; overflowing that stack made the picker appear to freeze before
+    // it could request the reboot.
+    static std::array<uint8_t, 1024> buffer;
     const bool source_is_staging_path = strcasecmp(source_path, staged_firmware_path) == 0;
 
     if (!source_is_staging_path) {
@@ -30,7 +33,6 @@ bool stage_firmware_for_bootloader(const char *source_path) {
             return false;
         }
 
-        std::array<uint8_t, 1024> buffer {};
         bool success = true;
         while (const size_t read = fread(buffer.data(), 1, buffer.size(), source)) {
             if (fwrite(buffer.data(), 1, read, destination) != read) {
@@ -148,9 +150,10 @@ void ScreenFirmwareFileBrowser::select_file() {
         return;
     }
 
-    data_exchange::set_reflash_bbf_sfn("FWUPD.BBF");
-    HAL_Delay(10);
-    sys_reset();
+    // Use the same Marlin-side handoff as serial firmware updates. It sends
+    // the command acknowledgement, writes the retained bootloader request,
+    // and resets outside the GUI callback.
+    marlin_client::gcode("M997 /usb/FWUPD.BBF");
 }
 
 void ScreenFirmwareFileBrowser::go_home() {
