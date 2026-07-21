@@ -236,7 +236,11 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_enabled.store(false, std::memory_order_release);
     const float delta = reference.high_load - reference.low_load;
     monitor_sign = delta >= 0 ? 1.0f : -1.0f;
-    monitor_low_pressure = std::max(reference.noise * 5.0f, monitor_sign * reference.low_load);
+    // Runtime pressure is measured relative to a freshly learned idle
+    // baseline. Do not compare that delta with the calibration's absolute
+    // (tared) low-speed load; doing so classified every extrusion as missing
+    // pressure. Derive the expected response from the measured step instead.
+    monitor_low_pressure = std::max(reference.noise * 5.0f, std::abs(delta) * 0.15f);
     monitor_pressure_per_velocity = std::max(0.0f, (std::abs(delta)) / std::max(0.1f, high_velocity_mm_s - low_velocity_mm_s));
     monitor_noise = std::max(0.25f, reference.noise);
     monitor_low_velocity = low_velocity_mm_s;
@@ -264,7 +268,18 @@ void suspend_pressure_monitor(const bool suspend) {
         return;
     }
     uint8_t count = monitor_suspend_count.load(std::memory_order_acquire);
-    while (count && !monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) {}
+    while (count) {
+        if (!monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) continue;
+        if (count == 1) {
+            // Loading/unloading can move E a long distance without nozzle
+            // pressure. Re-arm from the next real sample and grant the full
+            // continuous-extrusion qualification window after the operation.
+            monitor_last_time = 0;
+            monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+            monitor_peak_pressure = 0;
+        }
+        break;
+    }
 }
 
 ExtrusionFault consume_extrusion_fault() {
