@@ -55,6 +55,8 @@
     * Added configurable INDX purge-bucket pause thresholds and `M1986 Q/S/P/R` pellet counter control, including purge-bucket-full pause signaling to serial hosts
       * During a serial full-bucket pause, `M1986 R` resets a stale counter out of band while preserving the queued print commands; the print remains held until the host sends its normal `M602` resume
   * Fixes
+    * Fixed MMU preload material selections remaining displayed as `Don't change` after entering the color picker
+    * Added bordered color previews to normal-load and MMU-preload color selectors, including saved user colors; newly created colors now remain visible with their preview
     * Fixed normal MMU load completion emitting an unsolicited serial-host resume action, which could make OctoPrint change state mid-stream and enter a repeated numbered-line resend loop
     * Valid duplicate numbered serial commands are acknowledged without re-execution, allowing recovery when an `ok` is lost among asynchronous MMU or progress messages
     * RME builds now report the RME source repository in the local `M115` response

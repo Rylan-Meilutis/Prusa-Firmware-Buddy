@@ -14,6 +14,7 @@
 #include <option/has_toolchanger.h>
 #include <filament_color.hpp>
 #include <window_menu_virtual.hpp>
+#include <filament_color_gui.hpp>
 
 using namespace multi_filament_change;
 
@@ -22,11 +23,15 @@ namespace {
 class MI_PRELOAD_COLOR final : public IWindowMenuItem {
 public:
     MI_PRELOAD_COLOR(MI_ActionSelect *owner, std::optional<Color> color, std::string_view name)
-        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()))
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()), color ? filament_color_gui::swatch_extension_width : Rect16::Width_t { 0 })
         , owner_(owner)
         , color_(color) {}
 
 protected:
+    void printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const override {
+        if (color_) filament_color_gui::draw_swatch(extension_rect, *color_, color_back);
+    }
+
     void click(IWindowMenu &) override {
         owner_->set_selected_color(color_);
         Screens::Access()->Close();
@@ -178,9 +183,12 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
     } else {
         const auto selected = config(args.new_index);
         if (selected.action == Action::change) {
-            // Material and color are one preload decision. Keep this item alive
-            // under the modal picker and store the chosen color in its config.
+            // Commit the material row before opening another screen. The menu
+            // selector normally commits only after this callback returns, but
+            // opening the color screen changes the active screen immediately.
+            set_current_item(args.new_index);
             Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadColor>(this));
+            return false;
         } else if (selected.action == Action::unload) {
             color = std::nullopt;
         }
