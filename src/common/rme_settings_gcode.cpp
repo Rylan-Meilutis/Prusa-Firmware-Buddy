@@ -44,6 +44,11 @@ bool write(FILE *file) {
     ok &= fprintf(file, "M86 S%u B%u\n",
         config_store().hotend_heater_safety_timeout_s.get(),
         config_store().bed_heater_safety_timeout_s.get()) >= 0;
+    ok &= fprintf(file, "M976 Q%.2f N%.1f R%u D%u\n",
+        config_store().pa_confidence_floor_percent.get() / 100.0,
+        static_cast<double>(config_store().pa_minimum_snr.get()),
+        config_store().pa_confidence_retries.get(),
+        config_store().pa_calibration_debug_output.get() ? 1 : 0) >= 0;
 
     const uint32_t screen = config_store().screen_brightness_by_state.get();
     ok &= fprintf(file, "M154.0 D%u I%u A%u P%u\n",

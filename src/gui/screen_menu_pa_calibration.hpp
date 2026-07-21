@@ -53,7 +53,14 @@ protected:
     void OnClick() override;
 };
 
-using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_PA_CONFIDENCE_FLOOR, MI_PA_MINIMUM_SNR, MI_PA_CONFIDENCE_RETRIES,
+class MI_PA_DEBUG_OUTPUT : public WI_ICON_SWITCH_OFF_ON_t {
+public:
+    MI_PA_DEBUG_OUTPUT();
+protected:
+    void OnChange(size_t old_index) override;
+};
+
+using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_PA_CONFIDENCE_FLOOR, MI_PA_MINIMUM_SNR, MI_PA_CONFIDENCE_RETRIES, MI_PA_DEBUG_OUTPUT,
     WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TEMPERATURE, 0>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 1>, WithConstructorArgs<MI_PA_TEMPERATURE, 1>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TEMPERATURE, 2>,

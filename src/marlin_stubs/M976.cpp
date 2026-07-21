@@ -451,6 +451,7 @@ float result_snr(const buddy::extrusion_calibration::Score &score, const float i
 }
 
 void report_measurement_debug(const float candidate, const buddy::extrusion_calibration::Score &score, const float idle_noise) {
+    if (!config_store().pa_calibration_debug_output.get()) return;
     const float peak_snr = score.strongest_transition
         / std::max({ 0.25f, idle_noise, score.highest_transition_noise });
     SERIAL_ECHOPAIR("PA_CAL_DEBUG candidate=", candidate, " samples=", score.sample_count,
@@ -537,7 +538,8 @@ void PrusaGcodeSuite::M976() {
     const bool configure_confidence = parser.seen('Q');
     const bool configure_snr = parser.seen('N');
     const bool configure_retries = parser.seen('R');
-    if (configure_confidence || configure_snr || configure_retries) {
+    const bool configure_debug = parser.seen('D');
+    if (configure_confidence || configure_snr || configure_retries || configure_debug) {
         if (configure_confidence && parser.seenval('Q')) {
             const float requested = parser.value_float();
             if (requested < 0.50f || requested > 0.95f) {
@@ -562,8 +564,12 @@ void PrusaGcodeSuite::M976() {
             }
             config_store().pa_confidence_retries.set(static_cast<uint8_t>(requested));
         }
+        if (configure_debug && parser.seenval('D')) {
+            config_store().pa_calibration_debug_output.set(parser.boolval('D'));
+        }
         SERIAL_ECHOLNPAIR("PA_CALIBRATION minimum_confidence=", config_store().pa_confidence_floor_percent.get() / 100.0f,
-            " minimum_snr=", config_store().pa_minimum_snr.get(), " retries=", config_store().pa_confidence_retries.get());
+            " minimum_snr=", config_store().pa_minimum_snr.get(), " retries=", config_store().pa_confidence_retries.get(),
+            " debug=", config_store().pa_calibration_debug_output.get());
         if (!parser.seen('A') && !parser.seen('K') && !parser.seen('T') && !parser.seen('L')) return;
     }
     // S is a calibration-only target. Restore every hotend target on every exit path, including
@@ -866,8 +872,10 @@ void PrusaGcodeSuite::M976() {
     }
     const float separation_quality = selection_separation();
     const float confidence = result_confidence(best_score, idle_noise, separation_quality);
-    SERIAL_ECHOLNPAIR("PA_CAL_SELECTION best=", best_pa, " cost=", best_cost,
-        " separation=", separation_quality, " confidence=", confidence);
+    if (config_store().pa_calibration_debug_output.get()) {
+        SERIAL_ECHOLNPAIR("PA_CAL_SELECTION best=", best_pa, " cost=", best_cost,
+            " separation=", separation_quality, " confidence=", confidence);
+    }
     if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
         const float max_flow = material_flow_limit(slot);
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
