@@ -816,7 +816,9 @@ cad09185b  2026-07-21  Fix PA vent travel and extrusion fault recovery
 8a15550ec  2026-07-21  Rearm pressure monitor after filament handling
 5b5034cf0  2026-07-21  Include pressure monitor API in stuck recovery
 4c3969d0b  2026-07-21  Document PA travel and fault recovery safeguards
+c31749d9b  2026-07-21  Fix PA MMU purge placement and pressure faults
+bc492d13f  2026-07-21  Debounce runtime extrusion pressure faults
 ```
 
-This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
-points at the documentation commit immediately following this list.
+On `master`, this continuation is audited against `upstream/master..master`;
+version release branches use their matching upstream tag as the comparison base.
