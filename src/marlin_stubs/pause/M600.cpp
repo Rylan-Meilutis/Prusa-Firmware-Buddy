@@ -238,7 +238,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
 #endif
     // X/Y are taken as-is; an absolute Z becomes an AtLeast (never-go-down).
     if (auto *z = std::get_if<float>(&park_position.z)) {
-        park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = *z };
+        park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE_M600, .absolute = *z };
     } else {
         // Other alternatives express the intended park behavior on their own; flag a caller not asking for any Z handling
         debug_assert(!std::holds_alternative<mapi::ParkingPosition::Unchanged>(park_position.z));

@@ -71,7 +71,7 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 
     case ParkPosition::filament_change: {
         static constexpr xyz_pos_t filament_change_point { { XYZ_NOZZLE_PARK_POINT_M600 } };
-        static constexpr ParkingPosition base_pos { filament_change_point.x, filament_change_point.y, filament_change_point.z };
+        static constexpr ParkingPosition base_pos { filament_change_point.x, filament_change_point.y, mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE_M600, .absolute = filament_change_point.z } };
 #if HAS_INDX()
         static_assert(is_in_wastebin_area(filament_change_point.x, filament_change_point.y));
         return apply_nozzle_cleaner_offset(base_pos);

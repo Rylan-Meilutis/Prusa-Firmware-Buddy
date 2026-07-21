@@ -3324,7 +3324,19 @@ static void retract() {
 }
 
 static void lift_head() {
-    float target_z = std::max(current_position.z, planner.max_printed_z) + Z_NOZZLE_PARK_RISE;
+
+    // In case of pause/toolfall/etc, we want to move the bed by considerable distance,
+    // to create enough space for user to reach in (to fix the tool fall for example)
+    float height = Z_NOZZLE_PARK_RISE;
+
+    // Big Z moves might not be needed in other cases -> namely filament runout
+    // on a printer with nozzle cleaner - the user does not need to reach in to
+    // clean extruded filament
+    if (crash_s.did_trigger() && !crash_s.is_toolchange_event()) {
+        height = Z_NOZZLE_PARK_RISE_M600;
+    }
+
+    float target_z = std::max(current_position.z, planner.max_printed_z) + height;
 
 #ifdef Z_NOZZLE_PARK_POINT_MIN
     if (crash_s.get_state() != Crash_s::RECOVERY) {

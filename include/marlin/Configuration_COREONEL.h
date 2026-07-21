@@ -1222,12 +1222,16 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #if HAS_INDX()
     #define X_NOZZLE_PARK_POINT_M600 X_WASTEBIN_POINT
     #define Y_NOZZLE_PARK_POINT_M600 Y_WASTEBIN_POINT
-    #define Z_NOZZLE_PARK_POINT_M600 Z_NOZZLE_PARK_POINT
+    // Should be far enough that bed clears the chamber LEDs, so that user can see the nozzle cleaner well.
+    #define Z_NOZZLE_PARK_POINT_M600 10.0f
+    #define Z_NOZZLE_PARK_RISE_M600 5.0f
 #else
     #define X_NOZZLE_PARK_POINT_M600 X_AXIS_LOAD_POS
     #define Y_NOZZLE_PARK_POINT_M600 Y_AXIS_LOAD_POS
     #define Z_NOZZLE_PARK_POINT_M600    60.0f
+    #define Z_NOZZLE_PARK_RISE_M600 Z_NOZZLE_PARK_RISE
 #endif
+
     #define XYZ_NOZZLE_PARK_POINT_M600 \
         {X_NOZZLE_PARK_POINT_M600, Y_NOZZLE_PARK_POINT_M600, Z_NOZZLE_PARK_POINT_M600}
 
