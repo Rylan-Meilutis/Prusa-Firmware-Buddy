@@ -11,9 +11,11 @@ std::array<Result, max_logical_filaments> results {};
 std::atomic<uint8_t> calibration_command_depth { 0 };
 std::atomic_uint8_t anchors { 0 };
 float profile_pressure_advance = NAN;
+float calibrated_pressure_advance = NAN;
 std::atomic_bool monitor_enabled { false };
 std::atomic_uint8_t monitor_suspend_count { 0 };
 std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
+std::atomic_bool monitor_fault_suspended { false };
 float monitor_sign = 1;
 float monitor_low_pressure = 0;
 float monitor_pressure_per_velocity = 0;
@@ -193,7 +195,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         monitor_low_pressure + monitor_pressure_per_velocity * std::max(0.0f, velocity - monitor_low_velocity));
     monitor_peak_pressure = std::max(monitor_peak_pressure * 0.995f, pressure);
 
-    const bool qualified = monitor_forward_time > 0.45f && monitor_forward_e > 0.45f;
+    // Ignore priming, seam starts, tiny infill segments and the initial
+    // pressure transient. A real loss of filament motion is sustained.
+    const bool qualified = monitor_forward_time > 2.0f && monitor_forward_e > 2.0f;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.25f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.30f;
     monitor_bad_time = (qualified && (pressure_missing || pressure_collapsed)) ? monitor_bad_time + dt : 0;
@@ -205,8 +209,8 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     monitor_breakout_time = breakout ? monitor_breakout_time + dt : 0;
 
     ExtrusionFault wanted = ExtrusionFault::none;
-    if (monitor_breakout_time > 0.35f) wanted = ExtrusionFault::flow_breakout;
-    else if (monitor_bad_time > 0.25f) wanted = pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+    if (monitor_breakout_time > 1.0f) wanted = ExtrusionFault::flow_breakout;
+    else if (monitor_bad_time > 1.0f) wanted = pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
     if (wanted != ExtrusionFault::none) {
         ExtrusionFault expected_none = ExtrusionFault::none;
         monitor_fault.compare_exchange_strong(expected_none, wanted, std::memory_order_acq_rel);
@@ -216,6 +220,7 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
 void reset_job_results() {
     results = {};
     profile_pressure_advance = NAN;
+    calibrated_pressure_advance = NAN;
     reset_pressure_monitor();
     // Anchor occupancy intentionally survives job boundaries. Physical debris
     // does not disappear when a print ends.
@@ -249,6 +254,7 @@ void reset_pressure_monitor() {
     monitor_enabled.store(false, std::memory_order_release);
     monitor_suspend_count.store(0, std::memory_order_relaxed);
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
+    monitor_fault_suspended.store(false, std::memory_order_release);
     monitor_last_time = 0;
 }
 
@@ -263,8 +269,18 @@ void suspend_pressure_monitor(const bool suspend) {
 
 ExtrusionFault consume_extrusion_fault() {
     const auto fault = monitor_fault.exchange(ExtrusionFault::none, std::memory_order_acq_rel);
-    if (fault != ExtrusionFault::none) monitor_suspend_count.fetch_add(1, std::memory_order_acq_rel);
+    if (fault != ExtrusionFault::none && !monitor_fault_suspended.exchange(true, std::memory_order_acq_rel))
+        monitor_suspend_count.fetch_add(1, std::memory_order_acq_rel);
     return fault;
+}
+
+void acknowledge_extrusion_fault() {
+    if (monitor_fault_suspended.exchange(false, std::memory_order_acq_rel))
+        suspend_pressure_monitor(false);
+    monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
+    monitor_last_time = 0;
+    monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+    monitor_peak_pressure = 0;
 }
 
 const Result *job_result(const size_t logical_filament) {
@@ -272,7 +288,14 @@ const Result *job_result(const size_t logical_filament) {
 }
 
 void set_job_result(const size_t logical_filament, const Result &result) {
-    if (logical_filament < results.size()) results[logical_filament] = result;
+    if (logical_filament < results.size()) {
+        results[logical_filament] = result;
+        if (result.valid) calibrated_pressure_advance = result.pressure_advance;
+    }
+}
+
+float calibrated_pressure_advance_or(const float fallback) {
+    return std::isfinite(calibrated_pressure_advance) ? calibrated_pressure_advance : fallback;
 }
 
 void set_calibration_command_active(const bool active) {

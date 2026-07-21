@@ -306,7 +306,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
     }
 #endif
 
-    if (notify_serial_host_resume) {
+    if (notify_serial_host_resume && !marlin_server::aborting_or_aborted()) {
         SerialPrinting::resume();
         SerialPrinting::resumed();
     }
@@ -341,6 +341,7 @@ void PrusaGcodeSuite::M1601() {
         true);
 
     EMotorStallDetector::Instance().ClearReported();
+    buddy::extrusion_calibration::acknowledge_extrusion_fault();
 }
 #else
 

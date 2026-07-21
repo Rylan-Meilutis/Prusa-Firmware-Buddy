@@ -86,6 +86,20 @@ float probe_anchor_slot(uint8_t slot);
 constexpr float mmu_cleaning_width = 32.0f;
 constexpr float mmu_cleaning_right_margin = 10.0f;
 constexpr int16_t pa_probe_temperature = 170;
+// CORE One's vent lever occupies the deep-front strip around X=11..37.
+constexpr float pa_anchor_x_base = 50.0f;
+constexpr float pa_anchor_spacing = 11.0f;
+constexpr float pa_front_approach_y = 12.0f;
+
+float pa_anchor_x(const uint8_t slot) { return pa_anchor_x_base + slot * pa_anchor_spacing; }
+
+void move_to_front_service_position(const float x, const float z) {
+    do_blocking_move_to_z(std::max(current_position.z, 10.0f), 5.0f);
+    do_blocking_move_to_y(pa_front_approach_y, 50.0f);
+    do_blocking_move_to_x(x, 50.0f);
+    do_blocking_move_to_y(Y_MIN_POS + 1.0f, 50.0f);
+    do_blocking_move_to_z(z, 5.0f);
+}
 
 void begin_pa_probe_preheat(const PhysicalToolIndex tool) {
     Temperature::setTargetHotend(pa_probe_temperature, tool);
@@ -104,12 +118,11 @@ void park_before_mmu_unload() {
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
 #else
     const float x = X_MAX_POS - mmu_cleaning_right_margin - mmu_cleaning_width * 0.5f;
-    do_blocking_move_to_z(std::max(current_position.z, 10.0f), 5.0f);
     // Keep the actual MMU ramming/unload purge deep in the front service
     // travel, not merely a fraction of a millimetre beyond printable Y=0.
     // The following cleanup wipe may use the sacrificial sheet edge, but the
     // purge tail itself must fall beyond the bed.
-    do_blocking_move_to_xy(xy_pos_t { x, Y_MIN_POS + 1.0f }, 50.0f);
+    move_to_front_service_position(x, std::max(current_position.z, 10.0f));
 #endif
 }
 
@@ -502,7 +515,7 @@ float probe_anchor_slot(const uint8_t slot) {
     (void)slot;
     return NAN;
 #else
-    const float x = 8.0f + slot * 11.0f;
+    const float x = pa_anchor_x(slot);
     constexpr float y0 = 2.0f, y1 = 5.0f;
     const std::array<xy_pos_t, 4> points { xy_pos_t { x - 3, y0 }, { x + 3, y0 }, { x - 3, y1 }, { x + 3, y1 } };
     float z = 0;
@@ -521,7 +534,7 @@ void cleanup(const uint8_t slot, const float anchor_z) {
     mapi::extruder_move(-1.0f, 20.0f, true);
     planner.synchronize();
 #else
-    const float x = 8.0f + slot * 11.0f;
+    const float x = pa_anchor_x(slot);
     do_blocking_move_to_z(std::max(current_position.z, 5.0f), 5.0f);
     do_blocking_move_to_xy(xy_pos_t { x - 3.0f, 3.5f }, 50.0f);
     do_blocking_move_to_z(anchor_z + 0.20f, 3.0f);
@@ -549,12 +562,13 @@ void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
     // known gap below the off-bed service position prevents the hanging strand
     // from growing into a large loop that can curl onto the printable surface.
     const float calibration_z = std::isfinite(anchor_z) ? anchor_z + 3.0f : 3.0f;
-    const mapi::ParkingPosition position {
-        .x = 8.0f + slot * 11.0f,
-        .y = Y_MIN_POS + 1.0f,
-        .z = calibration_z,
-    };
-    mapi::home_if_needed_and_park(position);
+    mapi::home_if_needed_and_park({
+        .x = pa_anchor_x(slot),
+        .y = pa_front_approach_y,
+        .z = std::max(calibration_z, 10.0f),
+    });
+    // Axis-ordered entry prevents a diagonal traverse through the vent lever.
+    move_to_front_service_position(pa_anchor_x(slot), calibration_z);
 #endif
 }
 } // namespace
