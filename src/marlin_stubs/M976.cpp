@@ -104,16 +104,15 @@ void wait_for_pa_probe_temperature(const uint8_t tool) {
     });
 }
 
-void park_before_mmu_unload() {
+void park_before_mmu_unload(const uint8_t slot) {
 #if HAS_WASTEBIN()
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
 #else
-    const float x = X_MAX_POS - mmu_cleaning_right_margin - mmu_cleaning_width * 0.5f;
-    // Keep the actual MMU ramming/unload purge deep in the front service
-    // travel, not merely a fraction of a millimetre beyond printable Y=0.
-    // The following cleanup wipe may use the sacrificial sheet edge, but the
-    // purge tail itself must fall beyond the bed.
-    move_to_front_service_position(x, std::max(current_position.z, 10.0f));
+    // Use the same per-slot off-bed position as the free-air PA excitation.
+    // Loading, unloading and calibration therefore leave one controlled tail
+    // outside the printable area instead of dragging separate tails over the
+    // sheet while moving between service positions.
+    move_to_front_service_position(pa_anchor_x(slot), std::max(current_position.z, 10.0f));
 #endif
 }
 
@@ -150,7 +149,7 @@ void present_manual_result(const uint8_t tool, const uint8_t slot, const float p
 #if ENABLED(PRUSA_MMU2)
     if (MMU2::mmu2.Enabled()) {
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
-        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
+        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload(slot);
         if (MMU2::mmu2.unload_for_pa_calibration()) clean_before_pa_probe();
     }
 #endif
@@ -171,7 +170,7 @@ void present_manual_batch_results(const std::array<BatchEntry, buddy::extrusion_
 #if ENABLED(PRUSA_MMU2)
     if (MMU2::mmu2.Enabled()) {
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
-        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload();
+        if (!path_was_empty && all_axes_homed()) park_before_mmu_unload(entries[count - 1].logical_filament);
         if (MMU2::mmu2.unload_for_pa_calibration()) clean_before_pa_probe();
     }
 #endif
@@ -334,7 +333,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // nozzle resting at the homed sheet height.
             create_hotend_clearance();
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
-            if (!path_was_empty) park_before_mmu_unload();
+            if (!path_was_empty) park_before_mmu_unload(entry.logical_filament);
             if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
             // Clean even when the sensor-aware unload was skipped: an empty
             // filament path does not prove that the nozzle exterior is clean.
@@ -347,6 +346,10 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
             create_hotend_clearance();
             M109_no_parser(0, { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
+            // Keep the PA-specific MMU load at the same off-bed location used
+            // by its free-air excitation. The loader deliberately preserves
+            // this position rather than entering the normal MMU park path.
+            park_for_free_air_calibration(entry.logical_filament, prepared_anchor_z);
             if (!MMU2::mmu2.tool_change_for_pa_calibration(entry.logical_filament)) return false;
             prepared_anchor = true;
         } else if (entry.physical_tool != active_extruder || entry.logical_filament != active_extruder) {
@@ -377,7 +380,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     // tool command reloads the print filament after probing is complete.
     if (MMU2::mmu2.Enabled()) {
         const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
-        if (!path_was_empty) park_before_mmu_unload();
+        if (!path_was_empty) park_before_mmu_unload(entries[count - 1].logical_filament);
         if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
         clean_before_pa_probe();
     }
