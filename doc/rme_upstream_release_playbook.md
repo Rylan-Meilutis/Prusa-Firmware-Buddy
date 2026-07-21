@@ -20,7 +20,7 @@ the ±15 °C manual-temperature safety bound, sequential batch submission, the m
 anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, scoped filament-sensor event locking, and restoration of every prior hotend target after all
 M976 exit paths.
 
-Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. On final release, discard the pre-maintenance E/time baseline and require three seconds of continuous forward extrusion before missing pressure can qualify. Runtime expected pressure must use the calibrated load difference, not the absolute tared low-speed load. Regression-test that final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition. Stuck-filament recovery must expose Abort, acknowledge/rearm the fault latch, restore any displaced X/Y/Z axis before successful resume, and never emit a host resume after abort.
+Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. On final release, discard the pre-maintenance E/time baseline, require two seconds and 2 mm of continuous forward extrusion before pressure evidence qualifies, then require three continuous seconds of missing/collapsed pressure before raising a fault. A healthy-pressure sample, pause, retraction, load, or unload resets that bad-evidence timer. Sustained high pressure alone is a soft max-flow marker; it becomes a `flow_breakout` fault only after pressure subsequently collapses. Runtime expected pressure must use the calibrated load difference, not the absolute tared low-speed load. Regression-test that thick purge lines and final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition. Stuck-filament recovery must expose Abort, acknowledge/rearm the fault latch, restore any displaced X/Y/Z axis before successful resume, and never emit a host resume after abort.
 
 Keep PA service travel collision-safe. CORE One/Core One L front-edge anchors begin to the right of the vent lever and enter deep-front Y through an ordered safe-Y/X/Y path. INDX must continue using `mapi::park(ParkPosition::purge)` rather than direct XY motion so it exits the dock area perpendicularly and applies the calibrated nozzle-cleaner/waste-bin avoidance pattern.
 
@@ -128,9 +128,13 @@ git diff --name-status v6.6.2..rme-v6.6.2
 git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
 ```
 
-At the time this playbook was last audited, the RME 6.6.2 release port covered
-635 files with approximately 20,175 insertions and 1,368 deletions relative to
-upstream `v6.6.2`. The stack contains the complete serial-printing, PA
+At the 2026-07-21 release audit, the RME 6.6.2 release port covered 648 files
+with 21,102 insertions and 1,399 deletions relative to upstream `v6.6.2`; the
+6.5.7 port covered 656 files with 19,933 insertions and 2,721 deletions relative
+to `v6.5.7`; and `master` covered 685 files with 21,450 insertions and 1,581
+deletions relative to `upstream/master`. The audited heads before the release
+documentation commits were `37d8ebd89`, `a1b9e64de`, and `bc492d13f`
+respectively. The stack contains the complete serial-printing, PA
 calibration, filament metadata, USB/serial firmware update, INDX, lighting,
 build-tooling, safety/chamber, PID, Prusa Connect, and GUI feature set. Recompute
 these figures whenever the release branch advances; they are an audit aid, not
@@ -265,6 +269,48 @@ Expect the official non-genuine firmware warning on stock bootloaders.
 ```
 
 ## Feature Groups To Preserve
+
+The 2026-07-21 audit compared `v6.5.7..rme-v6.5.7`,
+`v6.6.2..rme-v6.6.2`, and `upstream/master..master` by name-status and file
+dirstat. Every changed non-resource directory maps to the feature groups below;
+PNG/font/resource-only directories map to UI Theme and MINI external resources,
+and tests map to the feature whose production code they exercise.
+
+### Pressure Advance, Extrusion Health, And MMU Calibration
+
+Preserve `M976`, its batch manifest parser, material/temperature preflight,
+RAM-only calibrated-value authority, fallback handling, confidence controls,
+debug toggle, manual Control-menu UI, blocking FSM, and slicer templates. MMU
+systems must probe unloaded, skip unload only when working FINDA and extruder
+sensors both prove the path empty, and treat disabled/faulted sensors as
+filament present. The PA-specific load, unload, and free-air excitation share
+the same per-slot position at `Y_MIN+1`; the load extends exactly 2 mm beyond
+the modeled nozzle path. Clean after a real unload before any cross-bed move,
+restore previous temperatures, and leave the nozzle unloaded for the slicer's
+following MBL. INDX continues to use dock-aware purge-bin travel and counted
+fast/slow pellets.
+
+Important areas include `src/marlin_stubs/M976.cpp`,
+`src/common/feature/extrusion_calibration.*` (or `src/feature/` on newer
+upstream), `src/gui/screen_menu_pa_calibration.*`, the PA FSM types,
+`lib/Marlin/.../MMU2/mmu2_mk4.*`, pressure-advance planner code, config-store
+items, G-code documentation, and slicer templates.
+
+### Filament Material, Color, And Loading Tests
+
+Preserve per-virtual-tool material/color persistence, built-in colors, eight
+populated-only custom color slots, theme-safe swatches, `M865`, import/export,
+and the single root Loaded Filaments page. Every successful interactive load,
+change, or MMU preload commits both selected fields; every successful unload or
+confirmed-empty fast exit clears both. Preserve `M1704` single-slot, mask, and
+all-slot loading tests and their matching UI.
+
+### USB And Serial Firmware Updates
+
+Preserve the USB BBF picker, `/usb/FWUPD.BBF` staging, marker-based cleanup,
+queued `M997` reboot handoff, Connect subdirectory/long-name support, and the
+validated `M998` begin/chunk/finalize/abort upload protocol. MINI retains the
+same feature-complete update path by keeping large fonts in external resources.
 
 ### Serial Printing
 
