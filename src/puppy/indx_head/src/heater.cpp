@@ -330,7 +330,7 @@ void InductionHeater::ramp_isr() {
 
 void InductionHeater::ringdown_analysis(void) {
     const uint8_t nulls_cnt = 10;
-    uint16_t nulls[nulls_cnt];
+    uint16_t nulls[nulls_cnt]; // zero-crossing positions in CPU cycles
     uint8_t nulls_index = 0;
 
     const uint8_t peaks_cnt = nulls_cnt;
@@ -350,9 +350,10 @@ void InductionHeater::ringdown_analysis(void) {
         }
         // find zero crossings to determine frequency
         if (nulls_index < nulls_cnt && sample_buffer[i] <= dcOffset && sample_buffer[i + 1] > dcOffset) {
-            // Linear interpolate to find zero crossing with subsample precision
-            uint16_t k = (dcOffset - sample_buffer[i]) / (sample_buffer[i + 1] - sample_buffer[i]);
-            nulls[nulls_index] = i + k;
+            // Linear-interpolate the zero crossing with sub-sample precision, but stay
+            // in integer math. Resolution is one MCU cycle.
+            nulls[nulls_index] = i * ADC_SAMPLE_CYCLES
+                + (dcOffset - sample_buffer[i]) * ADC_SAMPLE_CYCLES / (sample_buffer[i + 1] - sample_buffer[i]);
             nulls_index++;
         }
 
@@ -420,7 +421,7 @@ void InductionHeater::ringdown_analysis(void) {
         interval += nulls[i + 1] - nulls[i];
     }
 
-    interval = (interval / avg_peaks) * ADC_SAMPLE_CYCLES; // interval in CPU cycles
+    interval = interval / avg_peaks; // interval in CPU cycles
     analysis.interval = interval;
 
     if (ringdown_analysis_sanity_check(analysis)) {
