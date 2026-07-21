@@ -796,6 +796,7 @@ c06f69073  2026-07-20  Fix MMU serial flow and filament workflows
 e0b2a7578  2026-07-20  Harden PA calibration and unload monitoring
 54e714245  2026-07-20  Optimize PA confidence calibration
 6b04989a5  2026-07-20  Use generated loadcell option in MMU guard
+326b018ee  2026-07-20  Keep PA fallback nonfatal and clean MMU purge
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
