@@ -1138,6 +1138,19 @@ static_assert(COUNT(sanity_max_acceleration) >= XYZE,   "DEFAULT_MAX_ACCELERATIO
 static_assert(COUNT(sanity_max_acceleration) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too many elements. (Did you forget to enable DISTINCT_E_FACTORS?)");
 static_assert(sanity_all_positive(sanity_max_acceleration), "DEFAULT_MAX_ACCELERATION values must be positive.");
 
+// CoreXY drives X and Y with the same two motors, so their motion limits must match.
+// These arrays are {X, Y, Z, E}: index 0 = X, 1 = Y (the axis enum is not defined yet here).
+#if CORE_IS_XY
+static_assert(sanity_max_feedrate[0] == sanity_max_feedrate[1],
+              "CoreXY requires equal X/Y max feedrate (DEFAULT_MAX_FEEDRATE).");
+static_assert(sanity_max_acceleration[0] == sanity_max_acceleration[1],
+              "CoreXY requires equal X/Y max acceleration (DEFAULT_MAX_ACCELERATION).");
+  #ifdef DEFAULT_XJERK // classic jerk only; CoreOne/CoreOneL use junction deviation, so inactive there
+static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
+              "CoreXY requires equal X/Y jerk (DEFAULT_XJERK/DEFAULT_YJERK).");
+  #endif
+#endif
+
 #if ENABLED(LIMITED_MAX_ACCEL_EDITING)
   #ifdef MAX_ACCEL_EDIT_VALUES
     constexpr float sanity_max_accel_edit[] = MAX_ACCEL_EDIT_VALUES;
