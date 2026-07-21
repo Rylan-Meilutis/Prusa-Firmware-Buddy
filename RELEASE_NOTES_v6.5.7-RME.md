@@ -907,6 +907,9 @@ d5ab07383  2026-07-21  Fix firmware picker reboot handoff
 851fdc409  2026-07-21  Rearm pressure monitor after filament handling
 10c879845  2026-07-21  Adapt extrusion recovery fixes for 6.5.7
 7399e1e77  2026-07-21  Document PA travel and fault recovery safeguards
+6afb70873  2026-07-21  Fix PA MMU purge placement and pressure faults
+10c301bd1  2026-07-21  Debounce runtime extrusion pressure faults
+a1b9e64de  2026-07-21  Fix 6.5 PA park declaration
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
