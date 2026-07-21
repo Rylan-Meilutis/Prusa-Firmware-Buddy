@@ -466,17 +466,19 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4[, E5]]]]]
  */
+#define DEFAULT_AXIS_STEPS_PER_UNIT_X 100
+#define DEFAULT_AXIS_STEPS_PER_UNIT_Y 100
+#define DEFAULT_AXIS_STEPS_PER_UNIT_Z 800
+
 #if HAS_INDX()
 // INDX_HEAD extruder is calibrated for 567 steps/mm, but we have changed it to 550 steps/mm.
 // This compensates for shorter length of the extruder service moves.
 static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
-
-#define DEFAULT_AXIS_STEPS_PER_UNIT \
-    { 100, 100, 800, 550 } // Adjust EXTRUDER_SERVICE_MOVE_E_FACTOR if changed
+#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 550 // Adjust EXTRUDER_SERVICE_MOVE_E_FACTOR if changed
 #else
-#define DEFAULT_AXIS_STEPS_PER_UNIT \
-    { 100, 100, 800, 380 }
+#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 380
 #endif
+
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203

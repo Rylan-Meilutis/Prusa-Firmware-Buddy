@@ -222,11 +222,10 @@ namespace defaults {
     inline constexpr Sheet sheet_6 { "Custom3", z_offset_uncalibrated };
     inline constexpr Sheet sheet_7 { "Custom4", z_offset_uncalibrated };
 
-    inline constexpr float default_axis_steps_flt[4] = DEFAULT_AXIS_STEPS_PER_UNIT;
-    inline constexpr float axis_steps_per_unit_x { default_axis_steps_flt[0] * ((DEFAULT_INVERT_X_DIR == true) ? -1.f : 1.f) };
-    inline constexpr float axis_steps_per_unit_y { default_axis_steps_flt[1] * ((DEFAULT_INVERT_Y_DIR == true) ? -1.f : 1.f) };
-    inline constexpr float axis_steps_per_unit_z { default_axis_steps_flt[2] * ((DEFAULT_INVERT_Z_DIR == true) ? -1.f : 1.f) };
-    inline constexpr float axis_steps_per_unit_e0 { default_axis_steps_flt[3] * ((DEFAULT_INVERT_E0_DIR == true) ? -1.f : 1.f) };
+    inline constexpr float axis_steps_per_unit_x { DEFAULT_AXIS_STEPS_PER_UNIT_X * ((DEFAULT_INVERT_X_DIR == true) ? -1.f : 1.f) };
+    inline constexpr float axis_steps_per_unit_y { DEFAULT_AXIS_STEPS_PER_UNIT_Y * ((DEFAULT_INVERT_Y_DIR == true) ? -1.f : 1.f) };
+    inline constexpr float axis_steps_per_unit_z { DEFAULT_AXIS_STEPS_PER_UNIT_Z * ((DEFAULT_INVERT_Z_DIR == true) ? -1.f : 1.f) };
+    inline constexpr float axis_steps_per_unit_e0 { DEFAULT_AXIS_STEPS_PER_UNIT_E0 * ((DEFAULT_INVERT_E0_DIR == true) ? -1.f : 1.f) };
     inline constexpr uint16_t axis_microsteps_Z_ { Z_MICROSTEPS };
     inline constexpr uint16_t axis_microsteps_E0_ { E0_MICROSTEPS };
     inline constexpr uint16_t axis_rms_current_ma_Z_ { Z_CURRENT };

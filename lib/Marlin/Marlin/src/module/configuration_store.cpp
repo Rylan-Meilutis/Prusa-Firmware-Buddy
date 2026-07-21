@@ -109,6 +109,8 @@
 // Defaults for reset / fill in on load
 static const uint32_t   _DMA[] PROGMEM = DEFAULT_MAX_ACCELERATION;
 #if ENABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
+// Only called by reset_motion() (compiled only when HAS_PLANNER, i.e. master boards - all have the config store)
+// Storeless boards (puppies) are planner-less, so the caller is compiled out there.
 static float get_steps_per_unit(size_t index) {
     switch (index) {
     case 0:
@@ -120,11 +122,6 @@ static float get_steps_per_unit(size_t index) {
     }
     //if index is bigger than max index, use max index - default marlin behavior
     return get_steps_per_unit_e();
-}
-#else
-static constexpr float get_steps_per_unit(size_t index) {
-  constexpr float _DASU[] = DEFAULT_AXIS_STEPS_PER_UNIT;
-  return pgm_read_float(&_DASU[ALIM(index, _DASU)]);
 }
 #endif // USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
 static const feedRate_t _DMF[] PROGMEM = DEFAULT_MAX_FEEDRATE;
