@@ -6,6 +6,10 @@ if(HAS_NOZZLE_CLEANER)
   add_subdirectory(nozzle_cleaner)
 endif()
 
+if(HAS_NOZZLE_CLEANER_LITE)
+  add_subdirectory(nozzle_cleaner_lite)
+endif()
+
 if(HAS_WASTEBIN_FILL_TRACKING)
   add_subdirectory(wastebin_watcher)
 endif()
