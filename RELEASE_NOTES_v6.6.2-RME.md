@@ -766,6 +766,7 @@ de0a992f0  2026-07-20  Fix serial print completion and PA handoff
 f90824ccb  2026-07-20  Adapt PA final park to current motion API
 3e3c23386  2026-07-20  Skip unload only for confirmed empty paths
 7139c3b7c  2026-07-20  Fix MMU serial flow and filament workflows
+cc4b89955  2026-07-20  Update RME release playbook for MMU workflows
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
