@@ -1211,7 +1211,12 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
         {X_NOZZLE_PARK_POINT_M600, Y_NOZZLE_PARK_POINT_M600, Z_NOZZLE_PARK_POINT_M600}
 
 #if HAS_INDX()
+#ifdef _DEBUG
+// Debug is not managing the full speed
+    #define NOZZLE_PARK_XY_FEEDRATE 100 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+    #else
     #define NOZZLE_PARK_XY_FEEDRATE 300 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+    #endif
 #else
     #define NOZZLE_PARK_XY_FEEDRATE 100 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
 #endif
