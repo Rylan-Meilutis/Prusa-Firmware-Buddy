@@ -887,6 +887,9 @@ d697d7a98  2026-07-20  Use continuous PA calibration confidence
 a4657454e  2026-07-20  Fix MMU PA sensor namespace
 b7e242980  2026-07-20  Fix firmware picker and PA probe preparation
 10f4a160d  2026-07-21  Reduce PA calibration filament use
+322c2a744  2026-07-21  Keep PA preparation and extrusion off bed
+a441fad84  2026-07-21  Fix pressure advance signal confidence
+82591590a  2026-07-21  Add pressure advance debug setting
 ```
 
 This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
