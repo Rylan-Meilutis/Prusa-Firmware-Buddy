@@ -75,6 +75,7 @@ public: // Temperature control
 
     /// Sets the \param target temperature. Can be nullopt if we are not interested in controlling the temperature at all.
     /// \returns the target temperature the chamber was actually set to - might differe because of capabilities().max_temp
+    /// !!! MARLIN THREAD ONLY - we don't want to change it under g-code and thermal model hands
     std::optional<Temperature> set_target_temperature(std::optional<Temperature> target);
 
 #if HAS_CHAMBER_VENTS()

@@ -164,6 +164,8 @@ std::optional<Temperature> Chamber::target_temperature() const {
 }
 
 std::optional<Temperature> Chamber::set_target_temperature(std::optional<Temperature> target) {
+    debug_assert(marlin_server::is_marlin_server_thread());
+
     // Wake up heaters if they are timed out
     buddy::safety_timer().reset_restore_nonblocking();
 
