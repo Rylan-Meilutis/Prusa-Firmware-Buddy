@@ -807,6 +807,10 @@ e0b2a7578  2026-07-20  Harden PA calibration and unload monitoring
 bdd1de5c1  2026-07-20  Prevent serial queue overflow during PA calibration
 a97b977e4  2026-07-20  Add pressure advance measurement diagnostics
 711c0e4fa  2026-07-20  Use continuous PA calibration confidence
+84d2a66fb  2026-07-20  Fix MMU PA preparation and stack crash
+f31bdc5bc  2026-07-20  Fix MMU PA sensor namespace
+44e512ee9  2026-07-20  Fix firmware picker and PA probe preparation
+42ec3692d  2026-07-21  Reduce PA calibration filament use
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
