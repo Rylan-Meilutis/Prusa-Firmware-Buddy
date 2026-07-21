@@ -1049,6 +1049,9 @@ float probe_here(float expected_trigger_z)
     res = run_z_probe({ .expected_trigger_z = expected_trigger_z, .single_only = true }) + probe_offset.z + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
     if (!std::isnan(res))
       break;
+
+    // When run_z_probe fails in single_only mode, it does not lift the head, we gotta do it ourselves
+    do_blocking_move_to_z( current_position.z + Z_CLEARANCE_MULTI_PROBE);
   }
   STOW_PROBE();
 
