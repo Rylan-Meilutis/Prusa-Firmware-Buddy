@@ -67,6 +67,21 @@ public:
 
 float probe_anchor_slot(uint8_t slot);
 
+void clean_after_mmu_unload() {
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+    // MMU ramming can leave a short purge tail on the nozzle. Remove it on
+    // the sacrificial front-right cleaning strip before any move crosses the
+    // printable bed. The nozzle is already homed during PA batches, so the
+    // cleanup helper's conditional home does not add an unsafe traverse.
+    constexpr float cleaning_width = 32.0f;
+    constexpr float right_margin = 10.0f;
+    const xy_pos_t rect_max { X_MAX_POS - right_margin, Y_MIN_POS + 14.5f };
+    const xy_pos_t rect_min { rect_max.x - cleaning_width, Y_MIN_POS + 10.5f };
+    if (!cleanup_probe(rect_min, rect_max))
+        SERIAL_ECHO_MSG("PA_CALIBRATION MMU post-unload nozzle cleaning incomplete");
+#endif
+}
+
 void create_hotend_clearance() {
     // Keep the hot nozzle away from the sheet while it rises from the probing
     // temperature to the extrusion temperature. On moving-bed machines this
@@ -257,7 +272,10 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            if (MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN && !MMU2::mmu2.unload()) return false;
+            if (MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN) {
+                if (!MMU2::mmu2.unload()) return false;
+                clean_after_mmu_unload();
+            }
             if (!GcodeSuite::G28_no_parser(true, true, true)) return false;
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
@@ -293,6 +311,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     // tool command reloads the print filament after probing is complete.
     if (MMU2::mmu2.Enabled() && MMU2::mmu2.get_current_tool() != FILAMENT_UNKNOWN) {
         if (!MMU2::mmu2.unload()) return false;
+        clean_after_mmu_unload();
     }
 #endif
     // This is deliberately inside all calibration guards: after an MMU
@@ -763,12 +782,23 @@ void PrusaGcodeSuite::M976() {
     }
     const float confidence = result_confidence(best_score, idle_noise);
     if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
+        const float max_flow = material_flow_limit(slot);
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
-        planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
+        planner.set_max_volumetric_flow(slot, max_flow);
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
         cleanup(slot, anchor_z);
         buddy::extrusion_calibration::suspend_pressure_monitor(false);
-        SERIAL_ERROR_MSG("M976 loadcell confidence too low; fallback applied");
+        // A weak measurement is not a print failure. Publish the safe fallback
+        // as this job's result so a batch continues and serial hosts do not
+        // interpret the expected fallback path as a print-cancelling Error.
+        buddy::extrusion_calibration::set_job_result(slot, { fallback, max_flow, confidence, false, best_score });
+        if (manual) present_manual_result(tool, slot, fallback);
+        else pa_fsm_change(PhasesPressureAdvanceCalibration::complete, 100, slot);
+        emit_pressure_advance_gcode(tool, slot, fallback);
+        char report[144];
+        snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u fallback=%.3f confidence=%.2f reason=low_confidence",
+            unsigned(tool), unsigned(slot), static_cast<double>(fallback), static_cast<double>(confidence));
+        SERIAL_ECHOLN(report);
         return;
     }
 

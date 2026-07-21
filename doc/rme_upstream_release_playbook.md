@@ -20,7 +20,7 @@ the ±15 °C manual-temperature safety bound, sequential batch submission, the m
 anchor acknowledgement, probe-before-full-heat ordering, 10 mm hotend/sheet clearance, scoped filament-sensor event locking, and restoration of every prior hotend target after all
 M976 exit paths.
 
-Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. Regression-test that final MMU unload cannot raise `M1601`, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before falling back after the bounded safety limit.
+Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. Regression-test that final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition.
 
 Preserve the PA noise-floor and search contract: capture 300 ms while stationary,
 use derivative-free golden-section refinement within the fallback safety bracket,

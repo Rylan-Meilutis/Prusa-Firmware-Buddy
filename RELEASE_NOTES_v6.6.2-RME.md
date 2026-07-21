@@ -49,6 +49,7 @@
       * Persistent minimum confidence (50–95%), minimum signal/noise (3–20), and confirmation retries (0–10) are configurable in the manual PA screen or with `M976 Q`, `N`, and `R`; `M976 Q` reports all acceptance settings and RME settings export/import preserves them
       * PA, filament load/unload, and every MMU command suspend pressure-based stuck/flow monitoring; nested operations cannot re-enable it early
       * After its final MMU unload, a batch moves the nozzle clear of the anchor before restoring or cooling to the previous target
+      * Low-confidence PA measurements now complete with the safe profile/material fallback instead of emitting a serial `Error:` that cancels host prints; PA-related MMU unloads clean the nozzle on the front sacrificial strip before any cross-bed move
       * INDX/purge-bin machines calibrate and clean over the bin; other supported machines extrude outside the printable boundary and finish in separate locally probed front-edge anchor slots below the first normal mesh-probe row
       * INDX PA excitation cycles run fast then slow and execute the blob-ejection wipe after each cycle, producing separate pellets; every successful drop increments the normal persistent waste-bin pellet count and participates in its configured pause threshold
       * Blocking M976 batches immediately report acceptance and emit phase keepalives; retransmission of the numbered command that is still executing is discarded with a busy response instead of triggering an RX flush and repeated forward-line requests
