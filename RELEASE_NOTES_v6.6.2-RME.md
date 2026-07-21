@@ -775,6 +775,9 @@ f90824ccb  2026-07-20  Adapt PA final park to current motion API
 7139c3b7c  2026-07-20  Fix MMU serial flow and filament workflows
 cc4b89955  2026-07-20  Update RME release playbook for MMU workflows
 2a2c2e458  2026-07-20  Fix filament color selection previews
+f195affe1  2026-07-20  Harden PA calibration and unload monitoring
+dc002bf08  2026-07-20  Optimize PA confidence calibration
+e54524759  2026-07-20  Use generated loadcell option in MMU guard
 ```
 
 This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
