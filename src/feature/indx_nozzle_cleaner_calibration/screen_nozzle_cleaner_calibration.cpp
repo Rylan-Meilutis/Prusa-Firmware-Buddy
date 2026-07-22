@@ -19,12 +19,12 @@
 namespace {
 
 constexpr auto txt_title_intro = N_("Nozzle Cleaner Calibration");
-constexpr auto txt_intro = N_("The printer will guide you through calibrating the nozzle cleaner. You will need to manually position the head and adjust the height screw.");
+constexpr auto txt_intro = N_("The printer will guide you through calibrating the nozzle cleaner. You will need to adjust the height screw.");
 constexpr auto txt_wait_for_nozzle_cooldown = N_("Wait!\n\nThe nozzle is still cooling down.");
 constexpr auto txt_picking_tool = N_("Picking up tool");
 constexpr auto txt_homing = N_("Homing XY axes");
 constexpr auto txt_moving_away = N_("Lowering bed for clearance");
-// %c is the axis letter ('Y' or 'Z')
+// %c is the axis letter ('X', 'Y' or 'Z')
 constexpr auto txt_title_axis_alignment = N_("Nozzle %c-Axis Alignment");
 // Identical wording to dock_calibration's txt_lock_position; kept verbatim so both share one POT entry.
 constexpr auto txt_lock_position = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nVerify the head is in the correct position, then press Continue to start measuring.");
@@ -33,9 +33,9 @@ constexpr auto txt_ask_position_x = N_("Now we will measure the X offset of the 
 constexpr auto txt_ask_position_y = N_("Move the nozzle precisely to the Y-axis calibration indent on the side of the nozzle cleaner bin.\n\nThen press Continue.");
 // %c is the axis letter ('X' or 'Y')
 constexpr auto txt_measuring = N_("Measuring %c position\n\nDo not touch the printer.");
-constexpr auto txt_success = N_("Nozzle cleaner position has been successfully calibrated and saved.");
+constexpr auto txt_success = N_("Nozzle cleaner calibrated.");
 
-constexpr auto txt_evaluating_failed = N_("Calibration failed.\n\nNominal: %.1f mm (+/- %hu mm)\n\nMeasured offset: %.2f mm");
+constexpr auto txt_evaluating_failed = N_("Calibration failed.\n\nNominal: %.1f mm (+/- %hu mm)\n\nMeasured offset: %.2f mm\n\nCalibrate manually?");
 constexpr uint8_t max_offset_mm = 3;
 
 /// FrameWait variant where a single %c in the text is replaced by an axis letter.

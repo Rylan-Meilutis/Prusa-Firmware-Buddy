@@ -926,11 +926,11 @@ inline constexpr EnumArray<PhaseNozzleCleanerCalibration, PhaseResponses, CountP
     { PhaseNozzleCleanerCalibration::ask_position_x, { Response::Continue, Response::Abort } },
     { PhaseNozzleCleanerCalibration::lock_position_x, { Response::Continue, Response::Back, Response::Abort } },
     { PhaseNozzleCleanerCalibration::measuring_x, {} },
-    { PhaseNozzleCleanerCalibration::evaluating_x, { Response::Retry, Response::Abort } },
+    { PhaseNozzleCleanerCalibration::evaluating_x, { Response::Yes, Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::ask_position_y, { Response::Continue, Response::Abort } },
     { PhaseNozzleCleanerCalibration::lock_position_y, { Response::Continue, Response::Back, Response::Abort } },
     { PhaseNozzleCleanerCalibration::measuring_y, {} },
-    { PhaseNozzleCleanerCalibration::evaluating_y, { Response::Retry, Response::Abort } },
+    { PhaseNozzleCleanerCalibration::evaluating_y, { Response::Yes, Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::calibration_success, { Response::Continue } },
 };
 
