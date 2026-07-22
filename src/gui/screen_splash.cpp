@@ -9,7 +9,6 @@
 
 #include "i18n.h"
 #include "../lang/translator.hpp"
-#include "language_eeprom.hpp"
 #include "screen_menu_languages.hpp"
 #include <pseudo_screen_callback.hpp>
 #include <bsod.h>
@@ -160,8 +159,8 @@ ScreenSplash::ScreenSplash()
 #endif
 
 #if HAS_TRANSLATIONS()
-    if (!LangEEPROM::getInstance().IsValid()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuLanguages, ScreenMenuLanguages::Context::initial_language_selection>);
+    if (ScreenInitialLanguageSelection::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialLanguageSelection>);
     }
 #endif
 
