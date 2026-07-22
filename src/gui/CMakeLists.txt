@@ -34,6 +34,7 @@ target_sources(
           pseudo_screen_callback.cpp
           qoi_decoder.cpp
           qr.cpp
+          screen_crash_dump.cpp
           screen_error.cpp
           screen_filebrowser.cpp
           screen_help_fw_update.cpp

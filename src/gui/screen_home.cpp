@@ -55,7 +55,6 @@
     #include "screen_menu_filament_mmu.hpp"
 #endif
 
-#include <crash_dump/crash_dump_handlers.hpp>
 #include <find_error.hpp>
 #include <transfers/transfer_file_check.hpp>
 #include <guiconfig/guiconfig.h>
@@ -328,42 +327,6 @@ void screen_home_data_t::filamentBtnSetState() {
 #endif
 }
 
-void screen_home_data_t::handle_crash_dump() {
-    ::crash_dump::BufferT dump_buffer;
-    const auto &present_dumps { ::crash_dump::get_present_dumps(dump_buffer) };
-    if (present_dumps.size() == 0) {
-        return;
-    }
-    if (MsgBoxWarning(_("Crash detected. Save it to USB?"
-                        "\n\nDo not share the file publicly,"
-                        " the crash dump may include unencrypted sensitive information."
-                        " Send it to: reports@prusa3d.com"),
-            Responses_YesNo)
-        == Response::Yes) {
-        MsgBoxIconned box { GuiDefaults::DialogFrameRect, Responses_NONE, 0, _("Saving to USB"), is_multiline::yes, &img::info_58x58 };
-        box.Show();
-        draw();
-        for (const auto &dump_handler : present_dumps) {
-            dump_handler->usb_save();
-        }
-        box.Hide();
-    }
-
-    for (const auto &dump_handler : present_dumps) {
-        dump_handler->remove();
-    }
-}
-
-void screen_home_data_t::on_enter() {
-    if (!first_event) {
-        return;
-    }
-    first_event = false;
-
-#if !DEVELOPER_MODE()
-    handle_crash_dump();
-#endif
-}
 namespace {
 struct Config {
     enum class Status { missing,
@@ -444,8 +407,6 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
     }
 
     AutoRestore avoid_recursion(event_in_progress, true);
-
-    on_enter();
 
     if (media_event != MediaState_t::unknown) {
         switch (MediaState_t(media_event)) {

@@ -32,6 +32,7 @@
 
 #include <pseudo_screen_callback.hpp>
 #include <window_msgbox_happy_printing.hpp>
+#include <gui/screen_crash_dump.hpp>
 #include <gui/screen_initial_network_setup.hpp>
 #include <gui/screen_printer_setup.hpp>
 #include <gui/screen_welcome.hpp>
@@ -140,6 +141,10 @@ void init_screens() {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenSelftestWarning>);
     }
 #endif
+
+    if (ScreenCrashDump::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenCrashDump>);
+    }
 
     Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
 
