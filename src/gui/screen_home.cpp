@@ -56,9 +56,6 @@
 #endif
 
 #include <crash_dump/crash_dump_handlers.hpp>
-#if HAS_SELFTEST()
-    #include <selftest_result_evaluation.hpp>
-#endif
 #include <find_error.hpp>
 #include <transfers/transfer_file_check.hpp>
 #include <guiconfig/guiconfig.h>
@@ -362,16 +359,6 @@ void screen_home_data_t::on_enter() {
         return;
     }
     first_event = false;
-
-#if HAS_SELFTEST()
-    static bool first_time_check_st { true };
-    if (first_time_check_st) {
-        first_time_check_st = false;
-        if (!is_selftest_successfully_completed()) {
-            marlin_client::set_warning(WarningType::SelftestNotSuccessfullyCompleted);
-        }
-    }
-#endif
 
 #if !DEVELOPER_MODE()
     handle_crash_dump();

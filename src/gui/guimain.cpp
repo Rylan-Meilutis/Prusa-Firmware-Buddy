@@ -57,6 +57,7 @@
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()
     #include <screen_menu_selftest_snake.hpp>
+    #include <gui/screen_selftest_warning.hpp>
 #endif
 
 #include <option/has_heatbed_screws_during_transport.h>
@@ -132,6 +133,12 @@ void init_screens() {
     // #error dead code found by automatic analyses (see BFW-5461)
     // don't present any screen or wizard
     return;
+#endif
+
+#if HAS_SELFTEST()
+    if (ScreenSelftestWarning::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenSelftestWarning>);
+    }
 #endif
 
     Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
