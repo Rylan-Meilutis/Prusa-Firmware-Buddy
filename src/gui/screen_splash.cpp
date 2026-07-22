@@ -6,8 +6,6 @@
 #include "config_features.h"
 #include <version/version.hpp>
 #include "img_resources.hpp"
-#include "marlin_client.hpp"
-#include <config_store/store_instance.hpp>
 
 #include "i18n.h"
 #include "../lang/translator.hpp"
@@ -27,6 +25,9 @@
 #include <gui/screen_printer_setup.hpp>
 #include <gui/screen_welcome.hpp>
 #include <option/has_emergency_stop.h>
+#if HAS_EMERGENCY_STOP()
+    #include <gui/screen_emergency_stop_consent.hpp>
+#endif
 #include <option/has_heatbed_screws_during_transport.h>
 #if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
     #include <gui/screen_remove_heatbed_screws.hpp>
@@ -108,21 +109,8 @@ ScreenSplash::ScreenSplash()
     Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
 
 #if HAS_EMERGENCY_STOP()
-    static constexpr auto needs_emergency_stop_consent = [] {
-        return !config_store().emergency_stop_enable.get()
-            && !config_store().emergency_stop_disable_consent_given.get();
-    };
-    // Check first time - avoid black screen blinking if we're sure we won't need it
-    if (needs_emergency_stop_consent()) {
-        constexpr auto callback = +[] {
-            // Check again - the user might have given the consent as part of the selftest snake
-            if (needs_emergency_stop_consent()) {
-                // Run the door sensor calibration, only ask for the consent (and run the calibration)
-                marlin_client::gcode("M1980 O");
-                static_assert(HAS_DOOR_SENSOR_CALIBRATION());
-            }
-        };
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
+    if (ScreenEmergencyStopConsent::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenEmergencyStopConsent>);
     }
 #endif
 
