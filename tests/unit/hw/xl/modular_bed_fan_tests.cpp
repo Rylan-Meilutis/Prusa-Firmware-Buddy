@@ -50,4 +50,28 @@ TEST_CASE("ModularBedFanControl") {
         CHECK(fan.update(49) == 0); // back in the band, but was off: stays off
         CHECK(fan.update(50) == ModularBedFanControl::min_pwm); // only restarts at temp_on_c
     }
+
+    SECTION("Override replaces the automatic output at any temperature") {
+        fan.set_pwm_override(PWM255 { 200 });
+        CHECK(fan.update(20) == 200); // below temp_on_c: automatic would be 0
+        CHECK(fan.update(80) == 200); // above temp_full_c: automatic would be max_pwm
+    }
+
+    SECTION("Releasing the override returns to the automatic output") {
+        fan.set_pwm_override(PWM255 { 200 });
+        CHECK(fan.update(80) == 200);
+        fan.set_pwm_override(pwm_auto);
+        CHECK(fan.update(80) == ModularBedFanControl::max_pwm);
+    }
+
+    SECTION("Hysteresis keeps advancing while overridden") {
+        // The fan was running before the override; temperatures seen while
+        // overridden must still drive running_, so releasing the override
+        // yields the state the temperatures imply, not a stale one.
+        REQUIRE(fan.update(55) > ModularBedFanControl::min_pwm);
+        fan.set_pwm_override(PWM255 { 200 });
+        CHECK(fan.update(20) == 200); // cooled below temp_off_c while overridden
+        fan.set_pwm_override(pwm_auto);
+        CHECK(fan.update(49) == 0); // must be off: the 20 °C sample turned it off
+    }
 }

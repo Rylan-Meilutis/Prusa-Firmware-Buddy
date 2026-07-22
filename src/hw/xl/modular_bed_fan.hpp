@@ -1,12 +1,8 @@
-/**
- * @file
- * @brief MB MCU temperature driven control policy for the XLS Modular Bed cooling fan
- */
-
+/// @file
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
+#include <pwm_utils.hpp>
 
 namespace buddy {
 
@@ -21,26 +17,26 @@ public:
     static constexpr uint8_t min_pwm = 76; ///< ~30 % of 255; the fan may not spin below this
     static constexpr uint8_t max_pwm = 153; ///< 60 % of 255
 
-    /// Fan duty (0-255) for the current MB MCU temperature [°C].
-    [[nodiscard]] uint8_t update(int mcu_temperature_c) {
-        if (running_) {
-            running_ = mcu_temperature_c >= temp_off_c;
-        } else {
-            running_ = mcu_temperature_c >= temp_on_c;
-        }
-        if (!running_) {
-            return 0;
-        }
-        if (mcu_temperature_c >= temp_full_c) {
-            return max_pwm;
-        }
-        // Clamp the ramp's lower end so it yields min_pwm in the still-running
-        // hysteresis band (temp_off_c..temp_on_c) instead of dropping below it.
-        const int t = std::max(mcu_temperature_c, temp_on_c);
-        return static_cast<uint8_t>(min_pwm + (t - temp_on_c) * (max_pwm - min_pwm) / (temp_full_c - temp_on_c));
-    }
+    static ModularBedFanControl &instance();
+
+    [[nodiscard]] PWM255OrAuto pwm_override() const { return pwm_override_; }
+
+    /// Manual PWM override (M106)
+    void set_pwm_override(PWM255OrAuto target);
+
+    /// Fan duty (0-255) for the current MB MCU temperature [°C]. Advances the
+    /// hysteresis state even while overridden, so the automatic output is
+    /// current the moment the override is released.
+    [[nodiscard]] uint8_t update(int mcu_temperature_c);
 
 private:
+    // Singleton in firmware; the unit test constructs its own instances to keep
+    // cases independent, so the constructor stays public there.
+#ifndef UNITTESTS
+    ModularBedFanControl() = default;
+#endif
+
+    PWM255OrAuto pwm_override_ = pwm_auto;
     bool running_ = false;
 };
 
