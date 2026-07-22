@@ -1,4 +1,5 @@
 #include "screen_menu_selftest_snake.hpp"
+#include <config_store/store_instance.hpp>
 #include <img_resources.hpp>
 #include <marlin_client.hpp>
 #include <ScreenHandler.hpp>
@@ -441,6 +442,16 @@ void ScreenMenuSTSCalibrations::draw() {
 
 void ScreenMenuSTSCalibrations::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     do_menu_event(this, sender, event, param, get_first_action(), false);
+}
+
+bool ScreenMenuSTSWizard::should_show() {
+#if PRINTER_IS_PRUSA_iX()
+    return false;
+#else
+    // A crude heuristic to make the wizard show only "on the first run".
+    // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose.
+    return config_store().selftest_result.get() == config_store_ns::defaults::selftest_result;
+#endif
 }
 
 ScreenMenuSTSWizard::ScreenMenuSTSWizard()

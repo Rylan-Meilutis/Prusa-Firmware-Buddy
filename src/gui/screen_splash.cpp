@@ -161,10 +161,8 @@ ScreenSplash::ScreenSplash()
 
     bool should_show_welcome_screen = false;
 
-#if HAS_SELFTEST() && !PRINTER_IS_PRUSA_iX()
-    // A crude heuristic to make the wizard show only "on the first run"
-    // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose
-    if (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result) {
+#if HAS_SELFTEST()
+    if (ScreenMenuSTSWizard::should_show()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
         should_show_welcome_screen = true;
     }
