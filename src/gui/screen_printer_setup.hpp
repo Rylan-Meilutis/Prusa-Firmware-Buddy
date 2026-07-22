@@ -65,6 +65,8 @@ using ScreenBase
 class ScreenPrinterSetup : public ScreenBase {
 public:
     ScreenPrinterSetup();
+
+    [[nodiscard]] static bool should_show();
 };
 
 } // namespace screen_printer_setup_private

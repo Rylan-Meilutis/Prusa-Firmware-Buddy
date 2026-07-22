@@ -41,6 +41,10 @@ void MI_DONE::click(IWindowMenu &) {
 // ------------------------------------------------
 // ScreenPrinterSetup
 // ------------------------------------------------
+bool ScreenPrinterSetup::should_show() {
+    return !config_store().printer_hw_config_done.get();
+}
+
 ScreenPrinterSetup::ScreenPrinterSetup()
     : ScreenMenu(_("PRINTER SETUP")) //
 {

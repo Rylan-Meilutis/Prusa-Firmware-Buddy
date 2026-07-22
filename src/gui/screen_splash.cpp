@@ -199,7 +199,7 @@ ScreenSplash::ScreenSplash()
         should_show_welcome_screen = true;
     }
 
-    if (!config_store().printer_hw_config_done.get()) {
+    if (ScreenPrinterSetup::should_show()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
         should_show_welcome_screen = true;
     }
