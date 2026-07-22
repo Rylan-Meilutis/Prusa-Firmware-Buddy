@@ -1,4 +1,5 @@
 add_subdirectory(filament)
+add_subdirectory(initial)
 add_subdirectory(toolhead)
 add_subdirectory(print)
 

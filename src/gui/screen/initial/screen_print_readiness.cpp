@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_print_readiness.hpp>
+#include <gui/screen/initial/screen_print_readiness.hpp>
 
 #include <config_store/store_instance.hpp>
 #include <lang/i18n.h>

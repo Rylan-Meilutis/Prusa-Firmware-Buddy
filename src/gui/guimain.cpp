@@ -30,11 +30,11 @@
     #include <leds/led_manager.hpp>
 #endif
 
-#include <gui/screen_crash_dump.hpp>
-#include <gui/screen_print_readiness.hpp>
-#include <gui/screen_initial_network_setup.hpp>
+#include <gui/screen/initial/screen_crash_dump.hpp>
+#include <gui/screen/initial/screen_print_readiness.hpp>
+#include <gui/screen/initial/screen_initial_network_setup.hpp>
 #include <gui/screen_printer_setup.hpp>
-#include <gui/screen_welcome.hpp>
+#include <gui/screen/initial/screen_welcome.hpp>
 #include <gui/screen/screen_printer_type_changed.hpp>
 
 #include <option/developer_mode.h>
@@ -46,12 +46,12 @@
 
 #include <option/has_emergency_stop.h>
 #if HAS_EMERGENCY_STOP()
-    #include <gui/screen_emergency_stop_consent.hpp>
+    #include <gui/screen/initial/screen_emergency_stop_consent.hpp>
 #endif
 
 #include <option/has_ht_hotend.h>
 #if HAS_HT_HOTEND()
-    #include <gui/screen_hotend_type_changed.hpp>
+    #include <gui/screen/initial/screen_hotend_type_changed.hpp>
 #endif
 
 #include <option/has_selftest.h>
@@ -61,12 +61,12 @@
 
 #include <option/has_heatbed_screws_during_transport.h>
 #if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
-    #include <gui/screen_remove_heatbed_screws.hpp>
+    #include <gui/screen/initial/screen_remove_heatbed_screws.hpp>
 #endif
 
 #include <option/has_touch.h>
 #if HAS_TOUCH()
-    #include <gui/screen_touch_driver_failed.hpp>
+    #include <gui/screen/initial/screen_touch_driver_failed.hpp>
 #endif
 
 #include <option/has_translations.h>

@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_initial_network_setup.hpp>
+#include <gui/screen/initial/screen_initial_network_setup.hpp>
 
 #include <common/marlin_client.hpp>
 #include <config_store/store_instance.hpp>

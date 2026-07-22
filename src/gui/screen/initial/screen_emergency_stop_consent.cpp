@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_emergency_stop_consent.hpp>
+#include <gui/screen/initial/screen_emergency_stop_consent.hpp>
 
 #include <option/has_emergency_stop.h>
 static_assert(HAS_EMERGENCY_STOP());

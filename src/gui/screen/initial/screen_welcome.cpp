@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_welcome.hpp>
+#include <gui/screen/initial/screen_welcome.hpp>
 
 #include <lang/i18n.h>
 #include <option/has_indx.h>

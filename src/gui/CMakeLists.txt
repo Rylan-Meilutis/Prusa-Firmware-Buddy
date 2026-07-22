@@ -34,12 +34,10 @@ target_sources(
           pseudo_screen_callback.cpp
           qoi_decoder.cpp
           qr.cpp
-          screen_crash_dump.cpp
           screen_error.cpp
           screen_filebrowser.cpp
           screen_help_fw_update.cpp
           screen_home.cpp
-          screen_initial_network_setup.cpp
           screen_menu.cpp
           screen_menu_control.cpp
           screen_menu_enclosure.cpp
@@ -67,13 +65,11 @@ target_sources(
           screen_menu_user_interface.cpp
           screen_messages.cpp
           screen_move_z.cpp
-          screen_print_readiness.cpp
           screen_printer_setup.cpp
           screen_printing.cpp
           screen_printing_end_result.cpp
           screen_prusa_link.cpp
           screen_splash.cpp
-          screen_welcome.cpp
           ScreenFactory.cpp
           ScreenHandler.cpp
           ScreenPrintingModel.cpp
@@ -91,18 +87,6 @@ if(HAS_CRASH_DETECTION)
   target_sources(firmware PRIVATE screen_crash_recovery.cpp)
 endif()
 
-if(HAS_HEATBED_SCREWS_DURING_TRANSPORT)
-  target_sources(firmware PRIVATE screen_remove_heatbed_screws.cpp)
-endif()
-
-if(HAS_EMERGENCY_STOP)
-  target_sources(firmware PRIVATE screen_emergency_stop_consent.cpp)
-endif()
-
-if(HAS_HT_HOTEND)
-  target_sources(firmware PRIVATE screen_hotend_type_changed.cpp)
-endif()
-
 if(HAS_SERIAL_PRINT)
   target_sources(firmware PRIVATE screen_printing_serial.cpp)
 endif()
@@ -112,7 +96,7 @@ if(TRANSLATIONS_ENABLED)
 endif()
 
 if(HAS_XLCD_TOUCH_DRIVER)
-  target_sources(firmware PRIVATE MItem_touch.cpp screen_touch_driver_failed.cpp)
+  target_sources(firmware PRIVATE MItem_touch.cpp)
   if(DEVELOPMENT_ITEMS_ENABLED)
     target_sources(firmware PRIVATE screen_touch_playground.cpp)
   endif()

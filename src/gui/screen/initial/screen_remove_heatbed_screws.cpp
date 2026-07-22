@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_remove_heatbed_screws.hpp>
+#include <gui/screen/initial/screen_remove_heatbed_screws.hpp>
 
 #include <option/has_heatbed_screws_during_transport.h>
 static_assert(HAS_HEATBED_SCREWS_DURING_TRANSPORT());

@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_touch_driver_failed.hpp>
+#include <gui/screen/initial/screen_touch_driver_failed.hpp>
 
 #include <option/has_touch.h>
 static_assert(HAS_TOUCH());

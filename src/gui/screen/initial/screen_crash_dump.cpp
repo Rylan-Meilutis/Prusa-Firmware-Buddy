@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_crash_dump.hpp>
+#include <gui/screen/initial/screen_crash_dump.hpp>
 
 #include <ScreenHandler.hpp>
 #include <crash_dump/crash_dump_handlers.hpp>

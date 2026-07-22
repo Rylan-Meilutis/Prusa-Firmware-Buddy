@@ -1,5 +1,5 @@
 /// @file
-#include <gui/screen_hotend_type_changed.hpp>
+#include <gui/screen/initial/screen_hotend_type_changed.hpp>
 
 #include <option/has_ht_hotend.h>
 static_assert(HAS_HT_HOTEND());
