@@ -155,17 +155,14 @@ ScreenSplash::ScreenSplash()
     }
 #endif
 
+    bool should_show_welcome_screen = false;
+
 #if HAS_SELFTEST() && !PRINTER_IS_PRUSA_iX()
     // A crude heuristic to make the wizard show only "on the first run"
     // Yes, we are ignoring other selftest results outside of this struct, but this is good enough for the purpose
-    const bool run_wizard = (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result);
-#elif HAS_SELFTEST()
-    const bool run_wizard = false;
-#endif
-
-#if HAS_SELFTEST()
-    if (run_wizard) {
+    if (config_store().selftest_result.get() == config_store_ns::defaults::selftest_result) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
+        should_show_welcome_screen = true;
     }
 #endif
 
@@ -193,25 +190,21 @@ ScreenSplash::ScreenSplash()
     };
 #endif
 
-    const bool network_setup_needed = !config_store().printer_network_setup_done.get();
-    if (network_setup_needed) {
+    if (!config_store().printer_network_setup_done.get()) {
         constexpr auto network_callback = +[] {
             // Calls network_initial_setup_wizard
             marlin_client::gcode("M1703 A");
         };
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, network_callback>);
+        should_show_welcome_screen = true;
     }
 
-    const bool hw_config_needed = !config_store().printer_hw_config_done.get();
-    if (hw_config_needed) {
+    if (!config_store().printer_hw_config_done.get()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
+        should_show_welcome_screen = true;
     }
 
-    if (network_setup_needed || hw_config_needed
-#if HAS_SELFTEST()
-        || run_wizard
-#endif
-    ) {
+    if (should_show_welcome_screen) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenWelcome>);
     }
 
