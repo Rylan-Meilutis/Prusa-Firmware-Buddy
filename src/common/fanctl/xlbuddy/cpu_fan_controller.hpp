@@ -7,6 +7,7 @@
     #include <algorithm>
     #include <cmath>
     #include <cstdint>
+    #include <pwm_utils.hpp>
     #include <CFanCtlCommonConsts.hpp>
 
 namespace cpu_fan_controller {
@@ -47,6 +48,12 @@ constexpr uint16_t compute_pwm(float temp_c, uint16_t current_pwm) {
 
 /// Update CPU fan speed based on temperature
 void update(float temp_c);
+
+/// Manual PWM override (M106 P7), or pwm_auto for temperature-driven
+/// control. A manual value is applied immediately and reasserted by
+/// update(); it persists until pwm_auto is set again, or reboot.
+/// Marlin task only, like update().
+void set_target_pwm(PWM255OrAuto target);
 
 } // namespace cpu_fan_controller
 
