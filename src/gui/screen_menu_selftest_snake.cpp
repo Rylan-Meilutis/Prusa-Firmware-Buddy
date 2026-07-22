@@ -13,7 +13,6 @@
 #include <printers.h>
 #include <option/has_heaters_selftest_gcode.h>
 #include <bsod/bsod.h>
-#include <window_msgbox_happy_printing.hpp>
 #include "selftest/i_selftest.hpp"
 #include <selftest/selftest_invocation.hpp>
 #include <gui/wizard/screen_selftest_submenu.hpp>
@@ -503,7 +502,6 @@ void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void 
 #else
     if (is_completed(get_test_result(get_last_action(), AllTools {})) && are_previous_completed(get_last_action())) {
 #endif
-        MsgBoxHappyPrinting();
         Screens::Access()->Close();
     }
 }

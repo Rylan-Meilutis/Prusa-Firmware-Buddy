@@ -30,9 +30,8 @@
     #include <leds/led_manager.hpp>
 #endif
 
-#include <pseudo_screen_callback.hpp>
-#include <window_msgbox_happy_printing.hpp>
 #include <gui/screen_crash_dump.hpp>
+#include <gui/screen_print_readiness.hpp>
 #include <gui/screen_initial_network_setup.hpp>
 #include <gui/screen_printer_setup.hpp>
 #include <gui/screen_welcome.hpp>
@@ -58,7 +57,6 @@
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()
     #include <screen_menu_selftest_snake.hpp>
-    #include <gui/screen_selftest_warning.hpp>
 #endif
 
 #include <option/has_heatbed_screws_during_transport.h>
@@ -136,17 +134,13 @@ void init_screens() {
     return;
 #endif
 
-#if HAS_SELFTEST()
-    if (ScreenSelftestWarning::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenSelftestWarning>);
+    if (ScreenPrintReadiness::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrintReadiness>);
     }
-#endif
 
     if (ScreenCrashDump::should_show()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenCrashDump>);
     }
-
-    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
 
 #if HAS_EMERGENCY_STOP()
     if (ScreenEmergencyStopConsent::should_show()) {

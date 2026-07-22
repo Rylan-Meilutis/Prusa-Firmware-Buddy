@@ -3,9 +3,9 @@
 
 #include <gui/pseudo_screen_callback.hpp>
 
-class ScreenSelftestWarning final : public PseudoScreenCallback {
+class ScreenPrintReadiness final : public PseudoScreenCallback {
 public:
-    ScreenSelftestWarning();
+    ScreenPrintReadiness();
 
     [[nodiscard]] static bool should_show();
 };

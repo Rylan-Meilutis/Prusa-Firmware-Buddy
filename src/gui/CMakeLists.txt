@@ -67,6 +67,7 @@ target_sources(
           screen_menu_user_interface.cpp
           screen_messages.cpp
           screen_move_z.cpp
+          screen_print_readiness.cpp
           screen_printer_setup.cpp
           screen_printing.cpp
           screen_printing_end_result.cpp
@@ -145,8 +146,8 @@ endif()
 if(HAS_SELFTEST)
   add_subdirectory(wizard)
   target_sources(
-    firmware PRIVATE screen_menu_selftest_snake.cpp screen_selftest_warning.cpp ScreenSelftest.cpp
-                     selftest_action_helpers.cpp selftest_dependencies.cpp selftest_frame.cpp
+    firmware PRIVATE screen_menu_selftest_snake.cpp ScreenSelftest.cpp selftest_action_helpers.cpp
+                     selftest_dependencies.cpp selftest_frame.cpp
     )
 endif()
 
