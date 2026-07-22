@@ -30,6 +30,11 @@
     #include <feature/bed_fan/controller.hpp>
 #endif
 
+#include <option/has_cpu_fan.h>
+#if HAS_CPU_FAN()
+    #include <cpu_fan_controller.hpp>
+#endif
+
 #include <option/has_dwarf.h>
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -128,6 +133,14 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
         return true;
 #endif
 
+#if HAS_CPU_FAN()
+    case 7:
+        // CPU fan on the XLS sandwich board; on plain XL the pin is
+        // unconnected, so the override is harmless there.
+        cpu_fan_controller::set_target_pwm(pwm_or_auto);
+        return true;
+#endif
+
     default:
         break;
     }
@@ -158,6 +171,7 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
  *     - `4` - Filtration fan (if supported)
  *     - `5` - Bed Fan (if supported)
  *     - `6` - Dock fan (INDX only)
+ *     - `7` - CPU fan (XLS only)
  * - `R` - Set the to auto control (if supported by the fan)
  * - `T` - Select which tool if the same fan is on multiple tools, active_extruder if not specified
  * - `N` - Ramp function breakpoint PWM for chamber fan regulator (0-255, P3/P4 only). See description below.
@@ -197,6 +211,11 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
  * - Else if bed threshold (B) set and bed target > 0: use bed control
  * - Temperature difference > threshold: maximum PWM (A parameter)
  * - Temperature difference 0-threshold: linear scaling
+ *
+ *#### CPU fan (P7, XLS only)
+ * - The fan normally runs under automatic temperature control
+ * - `S` sets a manual PWM that replaces the automatic control until `M106 P7 R` or reboot
+ * - `M107 P7` sets manual PWM 0 (fan truly off); use `R` to return to automatic control
  *
  *Enclosure fan (index 3) don't support T parameter
  */
@@ -261,6 +280,7 @@ void GcodeSuite::M106() {
  *     - `4` - Filtration fan (if supported)
  *     - `5` - Bed Fan (if supported)
  *     - `6` - Dock fan (INDX only)
+ *     - `7` - CPU fan (XLS only); off until `M106 P7 R` reverts to automatic control
  * - `T` - Select which tool if there are multiple fans, one on each tool
  */
 void GcodeSuite::M107() {
