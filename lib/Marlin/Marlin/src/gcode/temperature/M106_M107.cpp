@@ -35,6 +35,11 @@
     #include <cpu_fan_controller.hpp>
 #endif
 
+#include <option/has_xl_can.h>
+#if HAS_XL_CAN()
+    #include <hw/xl/modular_bed_fan.hpp>
+#endif
+
 #include <option/has_dwarf.h>
 #if HAS_DWARF()
     #include <puppies/Dwarf.hpp>
@@ -141,6 +146,14 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
         return true;
 #endif
 
+#if HAS_XL_CAN()
+    case 8:
+        // Modular Bed cooling fan on the XL-CAN bridge (XLS only); applied by
+        // the marlin_server loop, which no-ops when the bridge is absent.
+        buddy::ModularBedFanControl::instance().set_pwm_override(pwm_or_auto);
+        return true;
+#endif
+
     default:
         break;
     }
@@ -172,6 +185,7 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
  *     - `5` - Bed Fan (if supported)
  *     - `6` - Dock fan (INDX only)
  *     - `7` - CPU fan (XLS only)
+ *     - `8` - Modular Bed cooling fan (XLS only)
  * - `R` - Set the to auto control (if supported by the fan)
  * - `T` - Select which tool if the same fan is on multiple tools, active_extruder if not specified
  * - `N` - Ramp function breakpoint PWM for chamber fan regulator (0-255, P3/P4 only). See description below.
@@ -212,10 +226,10 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
  * - Temperature difference > threshold: maximum PWM (A parameter)
  * - Temperature difference 0-threshold: linear scaling
  *
- *#### CPU fan (P7, XLS only)
- * - The fan normally runs under automatic temperature control
- * - `S` sets a manual PWM that replaces the automatic control until `M106 P7 R` or reboot
- * - `M107 P7` sets manual PWM 0 (fan truly off); use `R` to return to automatic control
+ *#### CPU and Modular Bed fans (P7/P8, XLS only)
+ * - Both fans normally run under automatic temperature control
+ * - `S` sets a manual PWM that replaces the automatic control until `M106 P<n> R` or reboot
+ * - `M107 P<n>` sets manual PWM 0 (fan truly off); use `R` to return to automatic control
  *
  *Enclosure fan (index 3) don't support T parameter
  */
@@ -281,6 +295,7 @@ void GcodeSuite::M106() {
  *     - `5` - Bed Fan (if supported)
  *     - `6` - Dock fan (INDX only)
  *     - `7` - CPU fan (XLS only); off until `M106 P7 R` reverts to automatic control
+ *     - `8` - Modular Bed cooling fan (XLS only); off until `M106 P8 R` reverts to automatic control
  * - `T` - Select which tool if there are multiple fans, one on each tool
  */
 void GcodeSuite::M107() {
