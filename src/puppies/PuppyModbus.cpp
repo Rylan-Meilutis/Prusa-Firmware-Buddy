@@ -175,6 +175,15 @@ PuppyModbus::SingleRequestResult PuppyModbus::make_single_request(RequestTiming 
         // request is likely to succeed when retried
         // bus recovery is likely to fix the problem
         return SingleRequestResult::recover_and_retry;
+    case MODBUS_ERROR_FUNCTION:
+    case MODBUS_ERROR_ADDRESS:
+    case MODBUS_ERROR_RANGE:
+    case MODBUS_ERROR_VALUE:
+    case MODBUS_ERROR_BAD_TRANSACTION:
+        // CRC-valid frame that does not match the pending request: almost
+        // certainly a stale response to a previous query.
+        // Retry should recover
+        return SingleRequestResult::retry;
     default:
         // continue error handling
         break;
