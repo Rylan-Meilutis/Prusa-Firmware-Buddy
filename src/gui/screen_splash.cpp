@@ -24,6 +24,7 @@
 #include <option/has_power_panic.h>
 #include <option/has_translations.h>
 #include <gui/screen_printer_setup.hpp>
+#include <gui/screen_welcome.hpp>
 #include <option/has_emergency_stop.h>
 #include <option/has_heatbed_screws_during_transport.h>
 #include <option/has_ht_hotend.h>
@@ -211,46 +212,7 @@ ScreenSplash::ScreenSplash()
         || run_wizard
 #endif
     ) {
-        constexpr auto pepa_callback = +[] {
-            const char *txt =
-#if PRINTER_IS_PRUSA_XL()
-                N_("Hi, this is your\nOriginal Prusa XL printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MK4()
-                // The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
-                N_("Hi, this is your\nOriginal Prusa printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MK3_5()
-                N_("Hi, this is your\nOriginal Prusa MK3.5 printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_MINI()
-                N_("Hi, this is your\nOriginal Prusa MINI printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_iX()
-                N_("Hi, this is your\nOriginal Prusa iX printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-#elif PRINTER_IS_PRUSA_COREONE()
-    #if HAS_INDX()
-                N_("Hi, this is your\nPrusa CORE One INDX printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-    #else
-                N_("Hi, this is your\nPrusa CORE One printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-    #endif
-#elif PRINTER_IS_PRUSA_COREONEL()
-    #if HAS_INDX()
-                N_("Hi, this is your\nPrusa CORE One L INDX printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-    #else
-                N_("Hi, this is your\nPrusa CORE One printer.\n"
-                   "I would like to guide you\nthrough the setup process.");
-    #endif
-#else
-    #error unknown config
-#endif
-            MsgBoxPepaCentered(_(txt), Responses_Ok);
-        };
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, pepa_callback>);
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenWelcome>);
     }
 
     if (ScreenPrinterTypeChanged::should_show()) {
