@@ -30,6 +30,50 @@
     #include <leds/led_manager.hpp>
 #endif
 
+#include <pseudo_screen_callback.hpp>
+#include <window_msgbox_happy_printing.hpp>
+#include <gui/screen_initial_network_setup.hpp>
+#include <gui/screen_printer_setup.hpp>
+#include <gui/screen_welcome.hpp>
+#include <gui/screen/screen_printer_type_changed.hpp>
+
+#include <option/developer_mode.h>
+
+#include <option/has_power_panic.h>
+#if HAS_POWER_PANIC()
+    #include "power_panic.hpp"
+#endif
+
+#include <option/has_emergency_stop.h>
+#if HAS_EMERGENCY_STOP()
+    #include <gui/screen_emergency_stop_consent.hpp>
+#endif
+
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+    #include <gui/screen_hotend_type_changed.hpp>
+#endif
+
+#include <option/has_selftest.h>
+#if HAS_SELFTEST()
+    #include <screen_menu_selftest_snake.hpp>
+#endif
+
+#include <option/has_heatbed_screws_during_transport.h>
+#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
+    #include <gui/screen_remove_heatbed_screws.hpp>
+#endif
+
+#include <option/has_touch.h>
+#if HAS_TOUCH()
+    #include <gui/screen_touch_driver_failed.hpp>
+#endif
+
+#include <option/has_translations.h>
+#if HAS_TRANSLATIONS()
+    #include <gui/screen_menu_languages.hpp>
+#endif
+
 Jogwheel jogwheel;
 
 void gui_error_run(void) {
@@ -70,14 +114,95 @@ void gui_error_run(void) {
     }
 }
 
+namespace {
+
+void init_screens() {
+    Screens::Init(ScreenFactory::Screen<ScreenSplash>);
+
+    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<screen_home_data_t>);
+
+#if HAS_POWER_PANIC()
+    // don't present any screen or wizard if there is a powerpanic pending
+    if (power_panic::state_stored()) {
+        return;
+    }
+#endif
+
+#if DEVELOPER_MODE()
+    // #error dead code found by automatic analyses (see BFW-5461)
+    // don't present any screen or wizard
+    return;
+#endif
+
+    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
+
+#if HAS_EMERGENCY_STOP()
+    if (ScreenEmergencyStopConsent::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenEmergencyStopConsent>);
+    }
+#endif
+
+#if HAS_HT_HOTEND()
+    if (ScreenHotendTypeChanged::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenHotendTypeChanged>);
+    }
+#endif
+
+    bool should_show_welcome_screen = false;
+
+#if HAS_SELFTEST()
+    if (ScreenMenuSTSWizard::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
+        should_show_welcome_screen = true;
+    }
+#endif
+
+#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
+    if (ScreenRemoveHeatbedScrews::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenRemoveHeatbedScrews>);
+    }
+#endif
+
+    if (ScreenInitialNetworkSetup::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialNetworkSetup>);
+        should_show_welcome_screen = true;
+    }
+
+    if (ScreenPrinterSetup::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
+        should_show_welcome_screen = true;
+    }
+
+    if (should_show_welcome_screen) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenWelcome>);
+    }
+
+    if (ScreenPrinterTypeChanged::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterTypeChanged>);
+    }
+
+#if HAS_TOUCH()
+    if (ScreenTouchDriverFailed::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenTouchDriverFailed>);
+    }
+#endif
+
+#if HAS_TRANSLATIONS()
+    if (ScreenInitialLanguageSelection::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialLanguageSelection>);
+    }
+#endif
+}
+
+} // namespace
+
 void gui_run(void) {
     gui_init();
 
     gui::knob::RegisterHeldLeftAction(TakeAScreenshot);
     gui::knob::RegisterLongPressScreenAction([]() { Screens::Access()->Open(ScreenFactory::Screen<ScreenMoveZ>); });
 
-    Screens::Init(ScreenFactory::Screen<ScreenSplash>);
-    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<screen_home_data_t>);
+    init_screens();
 
     // TIMEOUT variable getting value from EEPROM when EEPROM interface is initialized
     if (config_store().menu_timeout.get()) {

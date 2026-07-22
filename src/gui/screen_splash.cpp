@@ -1,65 +1,20 @@
 #include "screen_splash.hpp"
-#include "ScreenHandler.hpp"
-
-#include <buddy/bootstrap_state.hpp>
-#include "config.h"
-#include "config_features.h"
-#include <version/version.hpp>
-#include "img_resources.hpp"
-
-#include "i18n.h"
-#include "../lang/translator.hpp"
-#include "screen_menu_languages.hpp"
-#include <pseudo_screen_callback.hpp>
-#include <bsod.h>
-#include <guiconfig/guiconfig.h>
-#include <gui/screen/screen_printer_type_changed.hpp>
-#include <window_msgbox_happy_printing.hpp>
-
-#include <option/bootloader.h>
-#include <option/developer_mode.h>
-#include <option/has_power_panic.h>
-#include <option/has_translations.h>
-#include <gui/screen_initial_network_setup.hpp>
-#include <gui/screen_printer_setup.hpp>
-#include <gui/screen_welcome.hpp>
-#include <option/has_emergency_stop.h>
-#if HAS_EMERGENCY_STOP()
-    #include <gui/screen_emergency_stop_consent.hpp>
-#endif
-#include <option/has_heatbed_screws_during_transport.h>
-#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
-    #include <gui/screen_remove_heatbed_screws.hpp>
-#endif
-#include <option/has_ht_hotend.h>
-#if HAS_HT_HOTEND()
-    #include <gui/screen_hotend_type_changed.hpp>
-#endif
-#include <option/has_indx_head.h>
-#include <option/has_indx.h>
-
-#include <option/has_selftest.h>
-#if HAS_SELFTEST()
-    #include "printer_selftest.hpp"
-    #include "screen_menu_selftest_snake.hpp"
-#endif // HAS_SELFTEST
-
-#include <option/has_touch.h>
-#if HAS_TOUCH()
-    #include <gui/screen_touch_driver_failed.hpp>
-#endif
-
-#if HAS_POWER_PANIC()
-    #include "power_panic.hpp"
-#endif
-
-#include <option/has_toolchanger.h>
-#if HAS_TOOLCHANGER()
-    #include <module/prusa/toolchanger.h>
-#endif
 
 #include "display.hpp"
-#include <option/has_switched_fan_test.h>
+#include <bsod.h>
+#include <buddy/bootstrap_state.hpp>
+#include <guiconfig/guiconfig.h>
+#include <option/bootloader_update.h>
+#include <option/has_ac_controller.h>
+#include <option/has_dwarf.h>
+#include <option/has_esp.h>
+#include <option/has_indx_head.h>
+#include <option/has_puppies.h>
+#include <option/has_puppy_modularbed.h>
+#include <option/has_tool_offset_sensor.h>
+#include <option/has_xbuddy_extension.h>
+#include <option/resources.h>
+#include <version/version.hpp>
 
 #if HAS_MINI_DISPLAY()
     #define SPLASHSCREEN_PROGRESSBAR_X 16
@@ -91,78 +46,6 @@ ScreenSplash::ScreenSplash()
     snprintf(text_progress_buffer, sizeof(text_progress_buffer), "Firmware %s", version::project_version_full);
     text_progress.SetText(string_view_utf8::MakeRAM(text_progress_buffer));
     progress.set_progress_percent(50);
-
-#if HAS_POWER_PANIC()
-    // don't present any screen or wizard if there is a powerpanic pending
-    if (power_panic::state_stored()) {
-        return;
-    }
-#endif
-
-#if DEVELOPER_MODE()
-    // #error dead code found by automatic analyses (see BFW-5461)
-    // don't present any screen or wizard
-    return;
-#endif
-
-    Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, MsgBoxHappyPrinting>);
-
-#if HAS_EMERGENCY_STOP()
-    if (ScreenEmergencyStopConsent::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenEmergencyStopConsent>);
-    }
-#endif
-
-#if HAS_HT_HOTEND()
-    if (ScreenHotendTypeChanged::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenHotendTypeChanged>);
-    }
-#endif
-
-    bool should_show_welcome_screen = false;
-
-#if HAS_SELFTEST()
-    if (ScreenMenuSTSWizard::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuSTSWizard>);
-        should_show_welcome_screen = true;
-    }
-#endif
-
-#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
-    if (ScreenRemoveHeatbedScrews::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenRemoveHeatbedScrews>);
-    }
-#endif
-
-    if (ScreenInitialNetworkSetup::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialNetworkSetup>);
-        should_show_welcome_screen = true;
-    }
-
-    if (ScreenPrinterSetup::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
-        should_show_welcome_screen = true;
-    }
-
-    if (should_show_welcome_screen) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenWelcome>);
-    }
-
-    if (ScreenPrinterTypeChanged::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterTypeChanged>);
-    }
-
-#if HAS_TOUCH()
-    if (ScreenTouchDriverFailed::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenTouchDriverFailed>);
-    }
-#endif
-
-#if HAS_TRANSLATIONS()
-    if (ScreenInitialLanguageSelection::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialLanguageSelection>);
-    }
-#endif
 
     // Set up progress mapper
     // Processes with low occurrence or short duration should have small scale number
