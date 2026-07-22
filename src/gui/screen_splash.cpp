@@ -28,6 +28,9 @@
 #include <gui/screen_welcome.hpp>
 #include <option/has_emergency_stop.h>
 #include <option/has_heatbed_screws_during_transport.h>
+#if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
+    #include <gui/screen_remove_heatbed_screws.hpp>
+#endif
 #include <option/has_ht_hotend.h>
 #if HAS_HT_HOTEND()
     #include <hotend_detect.hpp>
@@ -168,27 +171,9 @@ ScreenSplash::ScreenSplash()
 #endif
 
 #if HAS_HEATBED_SCREWS_DURING_TRANSPORT()
-    //  C1L is shipped with the bed screwed into the bottom of the chassis. And hence the screws have to be removed.
-    const bool bed_screws_removal_approved = config_store().heatbed_screws_removal_approved.get();
-
-    if (!bed_screws_removal_approved) {
-        // Ask the user to approve the removal of the bed screws
-        static constexpr point_ui16_t icon_point = point_ui16_t(40, 20);
-        constexpr auto callback = [] {
-            MsgBoxIconned msgbox(
-                Rect16(0, 0, GuiDefaults::ScreenWidth, GuiDefaults::ScreenHeight),
-                icon_point,
-                Responses_Ok,
-                0,
-                _("Before using the 3D printer, it is necessary to remove all 3 screws, that secure the heated bed during transport.\n\nThe screws are marked with a sticker."),
-                is_multiline::yes,
-                &img::ac_heatbed_screw_80x246,
-                is_closed_on_click_t::yes);
-            Screens::Access()->gui_loop_until_dialog_closed();
-            config_store().heatbed_screws_removal_approved.set(true);
-        };
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, callback>);
-    };
+    if (ScreenRemoveHeatbedScrews::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenRemoveHeatbedScrews>);
+    }
 #endif
 
     if (ScreenInitialNetworkSetup::should_show()) {

@@ -89,6 +89,10 @@ if(HAS_CRASH_DETECTION)
   target_sources(firmware PRIVATE screen_crash_recovery.cpp)
 endif()
 
+if(HAS_HEATBED_SCREWS_DURING_TRANSPORT)
+  target_sources(firmware PRIVATE screen_remove_heatbed_screws.cpp)
+endif()
+
 if(HAS_SERIAL_PRINT)
   target_sources(firmware PRIVATE screen_printing_serial.cpp)
 endif()
