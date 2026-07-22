@@ -42,8 +42,8 @@
 
 #include <option/has_touch.h>
 #if HAS_TOUCH()
-    #include <hw/touchscreen/touchscreen.hpp>
-#endif // HAS_TOUCH
+    #include <gui/screen_touch_driver_failed.hpp>
+#endif
 
 #if HAS_POWER_PANIC()
     #include "power_panic.hpp"
@@ -258,14 +258,11 @@ ScreenSplash::ScreenSplash()
     }
 
 #if HAS_TOUCH()
-    if (touchscreen.is_enabled() && !touchscreen.is_hw_ok()) {
-        constexpr auto touch_error_callback = +[] {
-            touchscreen.set_enabled(false);
-            MsgBoxWarning(_("Touch driver failed to initialize, touch functionality disabled"), Responses_Ok);
-        };
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, touch_error_callback>);
+    if (ScreenTouchDriverFailed::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenTouchDriverFailed>);
     }
-#endif // HAS_TOUCH
+#endif
+
 #if HAS_TRANSLATIONS()
     if (!LangEEPROM::getInstance().IsValid()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenMenuLanguages, ScreenMenuLanguages::Context::initial_language_selection>);
