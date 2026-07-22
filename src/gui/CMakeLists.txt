@@ -93,6 +93,10 @@ if(HAS_HEATBED_SCREWS_DURING_TRANSPORT)
   target_sources(firmware PRIVATE screen_remove_heatbed_screws.cpp)
 endif()
 
+if(HAS_HT_HOTEND)
+  target_sources(firmware PRIVATE screen_hotend_type_changed.cpp)
+endif()
+
 if(HAS_SERIAL_PRINT)
   target_sources(firmware PRIVATE screen_printing_serial.cpp)
 endif()
