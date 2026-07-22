@@ -23,6 +23,7 @@
 #include <option/developer_mode.h>
 #include <option/has_power_panic.h>
 #include <option/has_translations.h>
+#include <gui/screen_initial_network_setup.hpp>
 #include <gui/screen_printer_setup.hpp>
 #include <gui/screen_welcome.hpp>
 #include <option/has_emergency_stop.h>
@@ -190,12 +191,8 @@ ScreenSplash::ScreenSplash()
     };
 #endif
 
-    if (!config_store().printer_network_setup_done.get()) {
-        constexpr auto network_callback = +[] {
-            // Calls network_initial_setup_wizard
-            marlin_client::gcode("M1703 A");
-        };
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<PseudoScreenCallback, network_callback>);
+    if (ScreenInitialNetworkSetup::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialNetworkSetup>);
         should_show_welcome_screen = true;
     }
 

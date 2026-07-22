@@ -38,6 +38,7 @@ target_sources(
           screen_filebrowser.cpp
           screen_help_fw_update.cpp
           screen_home.cpp
+          screen_initial_network_setup.cpp
           screen_menu.cpp
           screen_menu_control.cpp
           screen_menu_enclosure.cpp
