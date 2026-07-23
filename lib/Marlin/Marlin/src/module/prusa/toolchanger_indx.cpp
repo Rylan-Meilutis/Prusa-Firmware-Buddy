@@ -300,62 +300,32 @@ void PrusaToolChanger::check_nozzle_presence_during_print() {
     }
 
     // Tool selected but nozzle missing — likely tool fell off mid-print.
-    // FIXME: Setting this means that if PP/reset happens during this code, it will possibly return to NoTool
-    set_active_extruder(NoTool {});
     const auto tool_index = std::get<PhysicalToolIndex>(selected);
-    log_error(PrusaToolChanger, "In-print nozzle missing for tool #%u — pausing print", tool_index.to_raw());
+    log_error(PrusaToolChanger, "In-print nozzle missing for tool #%u", tool_index.to_raw());
 
-    // wait_for_response()/synchronize() run idle loops which call back into loop() → us; block re-entry.
-    block_tool_check = true;
-    ScopeGuard guard = [this] { block_tool_check = false; };
-
-    // TODO: This should be reworked to crash recovery, this is a hacky and problematic solution
-
-    const auto resume_position = current_position;
-
-    // Stop motion immediately so we don't keep printing without a nozzle while the dialog is up.
-    // Use the _and_resume variant so the planner doesn't stay in the is_unwinding state — otherwise
-    // every subsequent move (pause's park-head, pickup's homing) would be silently discarded.
-    planner.quick_stop_and_resume();
-
-    // Quick stop could have caused skipped XY
-    invalidate_xy_homing();
-
-    // The current_position has been trashed by the quick_stop, read the actual position from the steppers
-    // This is not relevant for XY bcs we will be rehoming it,
-    // but it's important for Z
-    set_current_from_steppers();
-
-    // Lift clear of the printed model (incl. sequential prints) before re-homing/pickup.
-    mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 10 } });
-
-    disable_xy_steppers();
-    marlin_server::FSM_Holder fsm(PhaseNozzleMismatch::tool_lost);
-    marlin_server::wait_for_response(PhaseNozzleMismatch::tool_lost);
-
-    // Homing is explicitly called to give feedback to the user
-    marlin_server::fsm_change(PhaseNozzleMismatch::homing);
-    (void)ensure_safe_move();
-
-    // Try to re-pick the expected tool. pickup() does its own homing, dock approach,
-    // nozzle verification, and on failure opens its own pickup_failed retry/abort dialog.
-    if (!pickup(tool_index)) {
-        marlin_server::quick_stop();
-        marlin_server::print_abort();
+#if HAS_TOOL_CRASH_RECOVERY()
+    if (crash_s.is_active()) {
+        if (crash_s.get_state() == Crash_s::PRINTING) {
+            log_info(PrusaToolChanger, "triggering crash recovery");
+            crash_s.set_state(Crash_s::TRIGGERED_TOOLFALL);
+        } else {
+            // crash_s is probably in some crashed or recovering state
+            // just wait until the printer finishes whatever it is doing
+            // it will be eventually triggered again in PRINTING state and handled
+        }
         return;
     }
+#endif
 
-    // Pretend we've extruded what was planned
-    sync_e_position_to(resume_position.e);
-
-    // Tool cooled while detached; bring it back to temperature before resuming the print.
-    thermalManager.wait_for_hotend(tool_index);
-
-    // Return to the original position
-    // Yes, we've possibly skipped over some moves that we trashed with the quick stop
-    // Doing proper crash recovery would address this
-    do_blocking_move_to(resume_position.xyz());
+    log_error(PrusaToolChanger, "crash recovery is off"); // not active (serial printing?) or disabled completely
+    toolchanger_error("Tool lost");
 }
+
+#if HAS_TOOL_CRASH_RECOVERY()
+void PrusaToolChanger::crash_deselect_tool() {
+    set_active_extruder(NoTool {});
+}
+#endif
 
 void PrusaToolChanger::invalidate_xy_homing() {
     axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;

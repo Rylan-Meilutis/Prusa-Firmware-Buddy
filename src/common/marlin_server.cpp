@@ -257,6 +257,10 @@
     #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
 #endif
 
+#if HAS_INDX()
+    #include <fsm/nozzle_mismatch_phases.hpp>
+#endif
+
 void record_fanctl_metrics();
 
 using namespace ExtUI;
@@ -1676,6 +1680,10 @@ static bool crash_recovery_begin_toolchange() {
         #if HAS_DWARF()
     const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
     fsm_create(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize()); // Ask user to park all dwarves
+        #elif HAS_INDX()
+    fsm_create(PhaseNozzleMismatch::tool_lost); // Ask user to recover the dropped nozzle
+        #else
+            #error "HAS_TOOL_CRASH_RECOVERY requires HAS_DWARF or HAS_INDX"
         #endif
 
     if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
@@ -1727,6 +1735,17 @@ static void crash_recovery_tool_pickup() {
         const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask(), .parked = prusa_toolchanger.get_parked_mask() };
         fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
     }
+        #elif HAS_INDX()
+    // wait for the user to return dropped nozzle to its dock
+    if (marlin_server::get_response_from_phase(PhaseNozzleMismatch::tool_lost) == Response::Continue) {
+        // tool is re-picked by crash recovery fsm
+        Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
+        fsm_destroy_and_create(ClientFSM::NozzleMismatch, ClientFSM::CrashRecovery,
+            fsm::BaseData(std::to_underlying(PhasesCrashRecovery::home), cr_fsm.Serialize()));
+        server.print_state = State::CrashRecovery_XY_HOME;
+    }
+        #else
+            #error "HAS_TOOL_CRASH_RECOVERY requires HAS_DWARF or HAS_INDX"
         #endif
 }
     #endif

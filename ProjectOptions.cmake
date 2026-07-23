@@ -325,8 +325,8 @@ set_feature_for_printers_master_board(
   "COREONEL"
   "COREONEL_INDX"
   )
-# Detection of fallen tools (possibly even inactive ones)
-set_feature_for_printers_master_board(HAS_TOOL_CRASH_RECOVERY "XL")
+# Detection of fallen tools
+set_feature_for_printers_master_board(HAS_TOOL_CRASH_RECOVERY "XL" "COREONE_INDX" "COREONEL_INDX")
 # POWER_PANIC requires SELFTEST and CRASH_DETECTION to work
 set_feature_for_printers_master_board(
   HAS_POWER_PANIC
