@@ -1673,8 +1673,10 @@ static void prepare_tool_pickup() {
  * @return true on toolcrash when there is no parking and replay and when should break current switch case
  */
 static bool crash_recovery_begin_toolchange() {
+        #if HAS_DWARF()
     const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
     fsm_create(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize()); // Ask user to park all dwarves
+        #endif
 
     if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
         prepare_tool_pickup(); // If crash happens during toolchange, skip crash recovery and go directly to tool pickup
@@ -1685,6 +1687,7 @@ static bool crash_recovery_begin_toolchange() {
 
 /// @brief Part of crash recovery tool pickup: waits for the user and re-picks the tool
 static void crash_recovery_tool_pickup() {
+        #if HAS_DWARF()
     if ((marlin_server::get_response_from_phase(PhasesCrashRecovery::tool_recovery) == Response::Continue)
         && (prusa_toolchanger.get_enabled_mask() == prusa_toolchanger.get_parked_mask())) {
 
@@ -1724,6 +1727,7 @@ static void crash_recovery_tool_pickup() {
         const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask(), .parked = prusa_toolchanger.get_parked_mask() };
         fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
     }
+        #endif
 }
     #endif
 #endif

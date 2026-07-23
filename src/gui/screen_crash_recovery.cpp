@@ -106,7 +106,7 @@ static constexpr const char *en_text_long_short = find_error(ErrCode::CONNECT_CR
 static constexpr const char *en_text_long_long = find_error(ErrCode::CONNECT_CRASH_RECOVERY_AXIS_LONG).err_text;
 static constexpr const char *en_text_long_repeat = find_error(ErrCode::CONNECT_CRASH_RECOVERY_REPEATED_CRASH).err_text;
 static constexpr const char *en_text_repeat_info = N_("Try checking belt tension or decreasing\nsensitivity in the tune menu.");
-    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
 static constexpr const char *en_text_repeat_info_tool = N_("Try checking belt tension, decreasing sensitivity\nin the tune menu or recalibrating dock position.");
 static constexpr const char *en_text_long_tool = find_error(ErrCode::CONNECT_CRASH_RECOVERY_TOOL_PICKUP).err_text;
     #endif
@@ -186,7 +186,7 @@ WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen)
     , icon_nozzle_crash(&screen, icon_nozzle_crash_rc, &img::nozzle_crash_101x64)
     , icon_nozzle(&screen, icon_nozzle_rc, &img::nozzle_shape_48x48)
     , text_info(&screen, text_repeat_info_rc, is_multiline::yes, is_closed_on_click_t::no,
-    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
           prusa_toolchanger.is_toolchanger_enabled() ? _(en_text_repeat_info_tool) : _(en_text_repeat_info)
     #else
           _(en_text_repeat_info)
@@ -217,7 +217,7 @@ WinsHomeFail::WinsHomeFail(ScreenCrashRecovery &screen)
     #endif
 }
 
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
 WinsToolRecovery::WinsToolRecovery(ScreenCrashRecovery &screen)
     : text_long(&screen, text_long_rc, is_multiline::yes, is_closed_on_click_t::no, _(en_text_long_tool))
     , text_careful(&screen, { 0, tool_row_careful, GuiDefaults::ScreenWidth, char_h }, is_multiline::yes, is_closed_on_click_t::no, _(en_text_tool_careful))
@@ -291,7 +291,7 @@ bool ScreenCrashRecovery::Change(fsm::BaseData data) {
             mem.icon_home_axes.SetState(state.x);
         }
 
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
         else if constexpr (std::is_same_v<T, WinsToolRecovery>) {
             const auto state = Crash_recovery_tool_fsm::deserialize(data.GetData());
             for (int i = 0; i < buddy::puppies::DWARF_MAX_COUNT; i++) {
@@ -407,7 +407,7 @@ void ScreenCrashRecovery::change_phase(PhasesCrashRecovery new_phase) {
         window.emplace<WinsHomeFail>(*this);
         break;
 
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     case PhasesCrashRecovery::tool_recovery:
         window.emplace<WinsToolRecovery>(*this);
         break;

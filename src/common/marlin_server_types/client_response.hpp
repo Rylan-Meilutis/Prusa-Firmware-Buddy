@@ -55,6 +55,7 @@
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_human_interactions.h>
 #include <option/has_tool_crash_recovery.h>
+#include <option/has_dwarf.h>
 
 #include <option/has_hotend_type_support.h>
 #if HAS_HOTEND_TYPE_SUPPORT()
@@ -314,7 +315,7 @@ enum class PhasesCrashRecovery : PhaseUnderlyingType {
     axis_long,
     repeated_crash,
     home_fail, //< Homing failed, ask to retry
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     tool_recovery, //< Toolchanger recovery, tool fell off
     _last = tool_recovery
     #else
@@ -729,7 +730,7 @@ inline constexpr PhaseResponses CrashRecoveryResponses[] = {
     {}, // axis long
     { Response::Resume, Response::Pause }, // repeated crash
     { Response::Retry }, // home_fail
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     { Response::Continue }, // toolchanger recovery
     #endif
 };

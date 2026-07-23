@@ -1,6 +1,7 @@
 #include "printer_state.hpp"
 #include "client_fsm_types.hpp"
 #include <option/has_crash_detection.h>
+#include <option/has_dwarf.h>
 #include <option/has_power_panic.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_serial_print.h>
@@ -85,7 +86,7 @@ optional<ErrCode> crash_recovery_attention(const PhasesCrashRecovery &phase) {
         return ErrCode::CONNECT_CRASH_RECOVERY_REPEATED_CRASH;
     case PhasesCrashRecovery::home_fail:
         return ErrCode::CONNECT_CRASH_RECOVERY_HOME_FAIL;
-    #if HAS_TOOL_CRASH_RECOVERY()
+    #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     case PhasesCrashRecovery::tool_recovery:
         return ErrCode::CONNECT_CRASH_RECOVERY_TOOL_PICKUP;
     #endif

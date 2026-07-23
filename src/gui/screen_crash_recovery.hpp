@@ -8,6 +8,7 @@
 #include "radio_button.hpp"
 #include <option/has_toolchanger.h>
 #include <option/has_tool_crash_recovery.h>
+#include <option/has_dwarf.h>
 #include <gui/standard_frame/frame_wait.hpp>
 
 class ScreenCrashRecovery;
@@ -97,7 +98,7 @@ private:
     FrameWait frame_;
 };
 
-#if HAS_TOOL_CRASH_RECOVERY()
+#if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
 struct WinsToolRecovery {
     window_text_t text_long;
     window_text_t text_careful;
@@ -111,7 +112,7 @@ struct WinsToolRecovery {
 #endif
 
 using WinVariant = std::variant<
-#if HAS_TOOL_CRASH_RECOVERY()
+#if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     WinsToolRecovery,
 #endif
     WinsCheckAxis, WinsHome, WinsAxisNok, WinsRepeatedCrash, WinsHomeFail, WinsGCodeInterrupt>;
