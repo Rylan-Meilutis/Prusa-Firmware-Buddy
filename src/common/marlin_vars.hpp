@@ -373,7 +373,7 @@ public:
     MarlinVariable<uint8_t> print_fan_speed; // print fan speed [0..255]
 
     // PER-Hotend variables (access via hotend(num) or active_hotend())
-    struct Hotend {
+    struct HotendVars {
         // nozzle
         MarlinVariable<float> temp_nozzle; // nozzle temperature [C]
         MarlinVariable<int16_t> target_nozzle; // nozzle target temperature [C]
@@ -392,24 +392,24 @@ public:
         // others
         MarlinVariable<uint16_t> print_fan_rpm; // Fans::print(active_extruder).getActualRPM() [1/min]
 
-        Hotend() {}
+        HotendVars() {}
         // disable copy constructor
-        Hotend(const Hotend &) = delete;
-        Hotend &operator=(Hotend const &) = delete;
+        HotendVars(const HotendVars &) = delete;
+        HotendVars &operator=(HotendVars const &) = delete;
     };
 
     /// @brief  Reference to active extruder structure
-    Hotend &active_hotend() {
+    HotendVars &active_hotend() {
         return hotends[PhysicalToolIndex::currently_selected_opt().transform(PhysicalToolIndex::to_raw_static).value_or(PhysicalToolIndex::count)];
     }
 
-    inline Hotend &hotend(PhysicalToolIndex physical_tool) {
+    inline HotendVars &hotend(PhysicalToolIndex physical_tool) {
         return hotends[physical_tool];
     }
 
     // INDX_TODO: Workaround for INDX having a single head with devices attached to it,
     // which we need to work with even if NoTool is active
-    inline Hotend &hotend(NoTool) {
+    inline HotendVars &hotend(NoTool) {
         return hotends[PhysicalToolIndex::count];
     }
 
@@ -478,7 +478,7 @@ public:
 
 private:
     freertos::Mutex mutex;
-    StrongIndexArray<Hotend, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotends; // array of hotends (use hotend()/active_hotend() getter)
+    StrongIndexArray<HotendVars, HOTENDS, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> hotends; // array of hotends (use hotend()/active_hotend() getter)
     std::array<std::optional<JobInfo>, 2> job_history;
     fsm::States fsm_states;
 #if HAS_CANCEL_OBJECT()
