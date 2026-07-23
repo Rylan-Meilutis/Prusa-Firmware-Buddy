@@ -227,7 +227,7 @@ void filament_gcodes::M70X_process_user_response(PreheatStatus::Result res, Virt
         // set temperatures to zero
         thermalManager.setTargetHotend(0, target_extruder.to_physical());
         thermalManager.setTargetBed(0);
-        thermalManager.set_fan_speed(0, 0);
+        thermalManager.set_print_fan_speed(0, 0);
         break;
     case PreheatStatus::Result::DoneNoFilament:
     case PreheatStatus::Result::Aborted:

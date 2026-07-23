@@ -882,7 +882,7 @@ void Planner::check_axes_activity() {
   // In the current implementation of PreciseStepping, a sync position block can spend some time at the top of the block queue in contrast with the original Marlin.
   // So we have to ignore sync position blocks because they always have zero fan speeds.
   if (const block_t *block = get_first_move_block(); block != nullptr) {
-      thermalManager.apply_fan_speeds(block->fan_speed);
+      thermalManager.apply_print_fan_speed(block->fan_speed);
 
     #if ANY(DISABLE_X, DISABLE_Y, DISABLE_Z, DISABLE_E)
       // #error dead code found by automatic analyses (see BFW-5461)
@@ -893,7 +893,7 @@ void Planner::check_axes_activity() {
     #endif
   }
   else {
-      thermalManager.apply_fan_speeds();
+      thermalManager.apply_print_fan_speed();
   }
 
   //
@@ -1329,7 +1329,7 @@ bool Planner::_populate_block(block_t * const block,
     return false;
   }
 
-  block->fan_speed[0] = thermalManager.fan_speed[0];
+  block->fan_speed[0] = thermalManager.print_fan_speed[0];
   
   #if ENABLED(AUTO_POWER_CONTROL)
     if (block->msteps.x || block->msteps.y || block->msteps.z)
@@ -1919,7 +1919,7 @@ bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &targ
         block->millimeters = SQRT(sq(delta_mm.x) + sq(delta_mm.y) + sq(delta_mm.z));
     }
 
-    block->fan_speed[0] = Temperature::fan_speed[0];
+    block->fan_speed[0] = Temperature::print_fan_speed[0];
 
     #if ENABLED(AUTO_POWER_CONTROL)
         if (block->msteps.x || block->msteps.y || block->msteps.z) {

@@ -310,9 +310,9 @@ bool execute() {
         reset();
     };
 
-    const auto print_fan_speed = Temperature::fan_speed[0]; // Save print fan before executing the cleaner gcode, we allow the cleaner gcode to play with the print fan
+    const auto print_fan_speed = Temperature::print_fan_speed[0]; // Save print fan before executing the cleaner gcode, we allow the cleaner gcode to play with the print fan
     ScopeGuard restoreFan = [&] {
-        thermalManager.set_fan_speed(0, print_fan_speed); // Restore print fan speed after
+        thermalManager.set_print_fan_speed(0, print_fan_speed); // Restore print fan speed after
     };
 
     // this means the gcode was loaded successfully -> ready to execute it

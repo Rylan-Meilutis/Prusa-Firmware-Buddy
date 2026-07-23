@@ -479,7 +479,7 @@ void Temperature::manage_fans() {
   #if HAS_POWER_PANIC()
     if(power_panic::ac_fault_triggered) {
       // Override anything any gcode might have ever set
-      applied_fan_speed.fill(0);
+      applied_print_fan_speed.fill(0);
     }
   #endif
 
@@ -493,7 +493,7 @@ void Temperature::manage_fans() {
     // takes effect once, end-to-end. Default is identity; NoTool -> DummyHotend -> identity, so this
     // is a no-op until a hotend installs a mapping.
     const Hotend &print_hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
-    analogWrite(FAN0_PIN, print_hotend.config().print_fan_pwm_mapping(print_hotend, PWM255 { applied_fan_speed[0] }).value);
+    analogWrite(FAN0_PIN, print_hotend.config().print_fan_pwm_mapping(print_hotend, PWM255 { applied_print_fan_speed[0] }).value);
   #endif
   #if HAS_FAN1
     analogWrite(FAN1_PIN, applied_fan_speed[1]);
@@ -1150,9 +1150,9 @@ void Temperature::isr() {
       millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
 
       /// !!! PRINT FAN IS ALWAYS FAN 0
-      const uint8_t fan_speed_at_start = get_fan_speed(0);
+      const uint8_t fan_speed_at_start = get_print_fan_speed(0);
       ScopeGuard fan_restore_guard = [&] {
-        thermalManager.set_fan_speed(0, fan_speed_at_start);
+        thermalManager.set_print_fan_speed(0, fan_speed_at_start);
       };
 
       PrintStatusMessageGuard statusGuard;
@@ -1175,7 +1175,7 @@ void Temperature::isr() {
             // If fan_cooling is enabled, assist the cooling/heating with the print fan
             // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
             if (params.fan_cooling && active_extruder == target_extruder)
-              thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
+              thermalManager.set_print_fan_speed(0, wants_to_cool ? 255 : 0);
           }
           // If current reading is missing, leave target_temp stale so the
           // next iteration re-enters this branch and retries with fresh data.

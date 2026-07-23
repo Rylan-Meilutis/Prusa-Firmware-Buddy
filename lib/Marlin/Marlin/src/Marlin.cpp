@@ -320,7 +320,7 @@ void manage_inactivity() {
     }
   #else /* HAS_PLANNER() */
     // Apply fan speeds manually, because it is done in the planner.check_axes_activity()
-    thermalManager.apply_fan_speeds();
+    thermalManager.apply_print_fan_speed();
   #endif /* HAS_PLANNER() */
 
   #if PIN_EXISTS(FET_SAFETY)

@@ -1906,12 +1906,12 @@ Pause::FSM_HolderLoadUnload::FSM_HolderLoadUnload(Pause &p)
     }
     active = true;
     // Turn off print fan during purging to prevent messy purging
-    original_print_fan_speed = thermalManager.get_fan_speed(0);
-    thermalManager.set_fan_speed(0, 0);
+    original_print_fan_speed = thermalManager.get_print_fan_speed(0);
+    thermalManager.set_print_fan_speed(0, 0);
 }
 
 Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
-    thermalManager.set_fan_speed(0, original_print_fan_speed);
+    thermalManager.set_print_fan_speed(0, original_print_fan_speed);
     active = false;
 
     const float min_layer_h = 0.05f;

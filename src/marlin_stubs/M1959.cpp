@@ -163,7 +163,7 @@ static PhasesInputShaperCalibration parking(Context &context) {
     // Start cooling the hotend even before parking to save some time
     Temperature::disable_hotend();
     if (Temperature::degHotend(hotend) > safe_temperature) {
-        Temperature::set_fan_speed(0, 255);
+        Temperature::set_print_fan_speed(0, 255);
     }
 #endif
 

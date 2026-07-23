@@ -219,41 +219,33 @@ class Temperature {
       static float analog_to_celsius_board(const int raw);
     #endif
 
-    inline static std::array<uint8_t, FAN_COUNT> fan_speed {}; ///< Configured fan speed (@note apply_fan_speeds() is used to apply the speed from fan_speed to applied_fan_speed)
-    inline static std::array<uint8_t, FAN_COUNT> applied_fan_speed {}; ///< Actually applied (and scaled) fan speed
+    inline static std::array<uint8_t, FAN_COUNT> print_fan_speed {}; ///< Configured print fan speed (@note apply_print_fan_speed() is used to apply the speed from print_fan_speed to applied_print_fan_speed)
+    inline static std::array<uint8_t, FAN_COUNT> applied_print_fan_speed {}; ///< Actually applied (and scaled) print fan speed
 
-    inline static uint16_t get_fan_speed(uint8_t target) {
-      return target < FAN_COUNT ? fan_speed[target] : 0;
+    inline static uint16_t get_print_fan_speed(uint8_t target) {
+      return target < FAN_COUNT ? print_fan_speed[target] : 0;
     }
 
     /// set the print fan speed for a target extruder
-    /// @note you need to call apply_fan_speeds() either from planner or elsewhere to actually use the configured fan speed
-    inline static void set_fan_speed(uint8_t target, uint16_t speed) {
+    /// @note you need to call apply_print_fan_speed() either from planner or elsewhere to actually use the configured fan speed
+    inline static void set_print_fan_speed(uint8_t target, uint16_t speed) {
       NOMORE(speed, 255U);
       if (target >= FAN_COUNT) return;
-      fan_speed[target] = speed;
+      print_fan_speed[target] = speed;
     }
 
-    /**
-     * @brief Apply fan speeds to the fans.
-     */
-    static inline void apply_fan_speeds() {
-      applied_fan_speed[0] = fan_speed[0];
+    static inline void apply_print_fan_speed() {
+      applied_print_fan_speed[0] = print_fan_speed[0];
     }
 
-    /**
-     * @brief Apply fan speeds to the fans.
-     * This is used with fan speeds sampled from fan_speed by planner and delayed to match planner block processing.
-     * @param delayed_fan_speed fan speeds to apply
-     */
-    static inline void apply_fan_speeds(const uint8_t delayed_fan_speed[FAN_COUNT]) {
-      applied_fan_speed[0] = delayed_fan_speed[0];
+    static inline void apply_print_fan_speed(const uint8_t delayed_print_fan_speed[FAN_COUNT]) {
+      applied_print_fan_speed[0] = delayed_print_fan_speed[0];
     }
 
     static constexpr inline uint8_t fanPercent(const uint8_t speed) { return ui8_to_percent(speed); }
 
     static inline void zero_fan_speeds() {
-      set_fan_speed(0, 0);
+      set_print_fan_speed(0, 0);
     }
 
     /**

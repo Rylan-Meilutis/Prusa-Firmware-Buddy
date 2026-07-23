@@ -215,7 +215,7 @@ void GcodeSuite::M106() {
             // Done in the function
 
         } else if (p < _CNT_P) {
-            uint16_t d = parser.seen('A') ? thermalManager.fan_speed[0] : 255;
+            uint16_t d = parser.seen('A') ? thermalManager.print_fan_speed[0] : 255;
             uint16_t s = parser.ushortval('S', d);
             NOMORE(s, 255U);
 #if HAS_GCODE_COMPATIBILITY()
@@ -227,7 +227,7 @@ void GcodeSuite::M106() {
             }
 #endif
 
-            thermalManager.set_fan_speed(p, s);
+            thermalManager.set_print_fan_speed(p, s);
         }
     }
 
@@ -274,7 +274,7 @@ void GcodeSuite::M107() {
         return;
     }
 
-    thermalManager.set_fan_speed(p, 0);
+    thermalManager.set_print_fan_speed(p, 0);
 }
 
 /** @}*/

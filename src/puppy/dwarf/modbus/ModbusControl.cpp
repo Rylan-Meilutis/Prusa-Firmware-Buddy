@@ -204,7 +204,7 @@ void ProcessModbusMessages() {
         }
         case std::to_underlying(ModbusRegisters::SystemHoldingRegister::fan0_pwm): {
             log_info(ModbusControl, "Set print fan PWM:: %" PRIu32, msg->m_Value);
-            thermalManager.set_fan_speed(0, msg->m_Value);
+            thermalManager.set_print_fan_speed(0, msg->m_Value);
             break;
         }
         case std::to_underlying(ModbusRegisters::SystemHoldingRegister::fan1_pwm): {

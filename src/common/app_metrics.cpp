@@ -253,7 +253,7 @@ void RecordMarlinVariables() {
 #endif
 
     METRIC_DEF(fan_speed, "fan_speed", METRIC_VALUE_INTEGER, 501, METRIC_DISABLED);
-    metric_record_integer(&fan_speed, thermalManager.fan_speed[0]);
+    metric_record_integer(&fan_speed, thermalManager.print_fan_speed[0]);
 
 #if HAS_TEMP_HEATBREAK_CONTROL
     {
