@@ -17,10 +17,13 @@
     #include <module/prusa/spool_join.hpp>
 #endif
 #include <tool/hotend/hotend.hpp>
-#if PRINTER_IS_PRUSA_XL()
-    // TODO(CoreOne): tool_offset / contactless_offset is the XL tool-offset-sensor
-    // module. CoreOne has no TOS, so this header and wait_for_loadcell_alive() below
-    // are XL-only. Decide the CoreOne loadcell-freshness path before probing.
+#if 0
+    // Commented out (not deleted): tool_offset::wait_for_loadcell_alive() no
+    // longer exists upstream - HAS_TOOL_OFFSET_SENSOR dropped plain XL, keeping
+    // it for COREONE_INDX/COREONEL_INDX only, so this header isn't even linked
+    // for XL anymore. run_z_probe() (probe.cpp, BFW-8854) now waits for fresh
+    // loadcell samples before every probe on every printer, making this XL-only
+    // guard redundant. Reverse only if XL regains its own tool-offset sensor.
     #include <Marlin/src/feature/contactless_offset/contactless_offset.hpp>
 #endif
 #include <Marlin/src/feature/pressure_advance/pressure_advance_config.hpp>
@@ -95,18 +98,13 @@ namespace {
     constexpr uint8_t rub_cycles_slow = 2;
 
     float probe_touchpoint_z() {
-#if PRINTER_IS_PRUSA_XL()
-        // BFW-8817: right after a tool change the loadcell stream can serve stale
-        // samples, making the probe report a phantom trigger above the real surface.
+        // XL-only staleness guard removed; see the commented-out
+        // contactless_offset.hpp include above for why and when to reverse.
+#if 0
         if (!tool_offset::wait_for_loadcell_alive()) {
             log_error(NozzleCleanerLite, "Loadcell did not produce fresh samples before touchpoint probe");
             return std::numeric_limits<float>::quiet_NaN();
         }
-#else
-        // TODO(CoreOne): tool_offset::wait_for_loadcell_alive() is XL-only
-        // (contactless_offset / tool-offset-sensor). Single-tool CoreOne has no
-        // post-toolchange stale-sample window; decide whether a loadcell-freshness
-        // guard is still needed here before probing.
 #endif
 
         pressure_advance::PressureAdvanceDisabler pa_disabler;
