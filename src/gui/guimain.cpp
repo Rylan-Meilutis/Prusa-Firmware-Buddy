@@ -148,12 +148,6 @@ void init_screens() {
     }
 #endif
 
-#if HAS_HT_HOTEND()
-    if (ScreenHotendTypeChanged::should_show()) {
-        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenHotendTypeChanged>);
-    }
-#endif
-
     bool should_show_welcome_screen = false;
 
 #if HAS_SELFTEST()
@@ -173,6 +167,12 @@ void init_screens() {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenInitialNetworkSetup>);
         should_show_welcome_screen = true;
     }
+
+#if HAS_HT_HOTEND()
+    if (ScreenHotendTypeChanged::should_show()) {
+        Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenHotendTypeChanged>);
+    }
+#endif
 
     if (ScreenPrinterSetup::should_show()) {
         Screens::Access()->PushBeforeCurrent(ScreenFactory::Screen<ScreenPrinterSetup>);
