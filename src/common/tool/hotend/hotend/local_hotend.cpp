@@ -119,7 +119,7 @@ void LocalHotend::manage() {
             regulation_result = nozzle_regulator_.get_pid_output_hotend(HotendRegulatorArgs {
                 .pid = nozzle_pid_config(),
                 .hotend_index = tool_.to_raw(),
-                .fan_speed = t.print_fan_speed[0], // FIXME: Bit of a cockup if we have multiple hotends.
+                .fan_speed = t.print_fan_speed, // FIXME: Bit of a cockup if we have multiple hotends.
                     .current_temp = curr_nozzle_temp,
                 .target_temp = nozzle_target_temp(),
 #if ENABLED(PID_EXTRUSION_SCALING)

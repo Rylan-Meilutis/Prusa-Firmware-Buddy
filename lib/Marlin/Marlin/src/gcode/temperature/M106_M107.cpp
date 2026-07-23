@@ -215,7 +215,7 @@ void GcodeSuite::M106() {
             // Done in the function
 
         } else if (p < _CNT_P) {
-            uint16_t d = parser.seen('A') ? thermalManager.print_fan_speed[0] : 255;
+            uint16_t d = parser.seen('A') ? thermalManager.print_fan_speed : 255;
             uint16_t s = parser.ushortval('S', d);
             NOMORE(s, 255U);
 #if HAS_GCODE_COMPATIBILITY()

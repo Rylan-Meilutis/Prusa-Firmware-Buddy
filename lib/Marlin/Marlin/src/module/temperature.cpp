@@ -479,7 +479,7 @@ void Temperature::manage_fans() {
   #if HAS_POWER_PANIC()
     if(power_panic::ac_fault_triggered) {
       // Override anything any gcode might have ever set
-      applied_print_fan_speed.fill(0);
+      applied_print_fan_speed = 0;
     }
   #endif
 
@@ -493,7 +493,7 @@ void Temperature::manage_fans() {
     // takes effect once, end-to-end. Default is identity; NoTool -> DummyHotend -> identity, so this
     // is a no-op until a hotend installs a mapping.
     const Hotend &print_hotend = Hotend::for_tool(PhysicalToolIndex::currently_selected());
-    analogWrite(FAN0_PIN, print_hotend.config().print_fan_pwm_mapping(print_hotend, PWM255 { applied_print_fan_speed[0] }).value);
+    analogWrite(FAN0_PIN, print_hotend.config().print_fan_pwm_mapping(print_hotend, PWM255 { applied_print_fan_speed }).value);
   #endif
   #if HAS_FAN1
     analogWrite(FAN1_PIN, applied_fan_speed[1]);

@@ -1030,7 +1030,7 @@ void ac_fault_isr() {
             state_buf.planner.active_tool = resume.active_tool;
 #endif
         } else {
-            state_buf.planner.fan_speed = thermalManager.print_fan_speed[0];
+            state_buf.planner.fan_speed = thermalManager.print_fan_speed;
             state_buf.planner.print_speed = marlin_vars().print_speed;
 #if HAS_INDX()
             state_buf.planner.active_tool = match(

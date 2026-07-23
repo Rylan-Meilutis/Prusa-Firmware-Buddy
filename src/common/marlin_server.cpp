@@ -3549,7 +3549,7 @@ static void _server_update_vars() {
 #endif
 
     marlin_vars().z_offset = probe_offset.z;
-    marlin_vars().print_fan_speed = thermalManager.print_fan_speed[0];
+    marlin_vars().print_fan_speed = thermalManager.print_fan_speed;
     marlin_vars().print_speed = static_cast<uint16_t>(feedrate_percentage);
 
     auto progress_data = oProgressData.mode_specific(config_store().stealth_mode.get());
