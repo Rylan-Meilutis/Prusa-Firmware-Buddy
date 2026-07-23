@@ -1329,7 +1329,7 @@ bool Planner::_populate_block(block_t * const block,
     return false;
   }
 
-  FANS_LOOP(i) block->fan_speed[i] = thermalManager.fan_speed[i];
+  block->fan_speed[0] = thermalManager.fan_speed[0];
   
   #if ENABLED(AUTO_POWER_CONTROL)
     if (block->msteps.x || block->msteps.y || block->msteps.z)
@@ -1919,7 +1919,7 @@ bool Planner::populate_raw_block(block_t *const block, const xyze_msteps_t &targ
         block->millimeters = SQRT(sq(delta_mm.x) + sq(delta_mm.y) + sq(delta_mm.z));
     }
 
-    FANS_LOOP(i) block->fan_speed[i] = Temperature::fan_speed[i];
+    block->fan_speed[0] = Temperature::fan_speed[0];
 
     #if ENABLED(AUTO_POWER_CONTROL)
         if (block->msteps.x || block->msteps.y || block->msteps.z) {
