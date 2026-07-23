@@ -237,30 +237,7 @@ void MI_BELTS_15GT::OnChange([[maybe_unused]] size_t old_index) {
         return;
     }
 
-    {
-        auto &store = config_store();
-        auto transaction = store.get_backend().transaction_guard();
-        store.belts_15gt_installed.set(belts_15gt_installed);
-        // clear any manual override so steps follow the used HW setup (belts)
-        store.axis_steps_per_unit_x.set_to_default();
-        store.axis_steps_per_unit_y.set_to_default();
-        // steps/mm changed -> XY geometry calibration is invalid
-        store.homing_sens_x.set_to_default();
-        store.homing_sens_y.set_to_default();
-        store.homing_bump_divisor_x.set_to_default();
-        store.homing_bump_divisor_y.set_to_default();
-    #if HAS_PRECISE_HOMING()
-        store.precise_homing_sample_history.set_all_to_default();
-        store.precise_homing_sample_history_index.set_all_to_default();
-    #endif
-
-        // Also let the user re-do the axis tests
-        store.selftest_result.apply([](SelftestResult &r) {
-            r.set_xaxis(TestResult::unknown);
-            r.set_yaxis(TestResult::unknown);
-        });
-    }
-
+    config_store().set_belts_15gt(belts_15gt_installed);
     sys_reset();
 }
 #endif

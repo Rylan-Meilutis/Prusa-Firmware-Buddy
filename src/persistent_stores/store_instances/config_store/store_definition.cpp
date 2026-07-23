@@ -426,6 +426,33 @@ void CurrentStore::set_sheet(uint8_t index, Sheet value) {
 }
 #endif
 
+#if HAS_15GT_BELTS()
+bool CurrentStore::set_belts_15gt(bool installed) {
+    if (belts_15gt_installed.get() == installed) {
+        return false;
+    }
+    auto transaction = get_backend().transaction_guard();
+    belts_15gt_installed.set(installed);
+    // Clear any manual override so the resolved default follows the belt HW.
+    axis_steps_per_unit_x.set_to_default();
+    axis_steps_per_unit_y.set_to_default();
+    // Belt type changes X/Y steps/mm -> XY geometry calibration and axis selftest are invalid.
+    homing_sens_x.set_to_default();
+    homing_sens_y.set_to_default();
+    homing_bump_divisor_x.set_to_default();
+    homing_bump_divisor_y.set_to_default();
+    #if HAS_PRECISE_HOMING()
+    precise_homing_sample_history.set_all_to_default();
+    precise_homing_sample_history_index.set_all_to_default();
+    #endif
+    selftest_result.apply([](SelftestResult &r) {
+        r.set_xaxis(TestResult::unknown);
+        r.set_yaxis(TestResult::unknown);
+    });
+    return true;
+}
+#endif
+
 input_shaper::Config CurrentStore::get_input_shaper_config() {
     input_shaper::Config config;
     if (input_shaper_axis_x_enabled.get()) {
