@@ -18,6 +18,7 @@
 #include "bsod.h"
 #include "utility_extensions.hpp"
 #include "tasks.hpp"
+#include <utils/string_builder.hpp>
 
 #if HAS_SELFTEST()
     #include <selftest_types.hpp>
@@ -184,7 +185,6 @@ namespace {
         if (strlcpy(request.gcode, gcode, sizeof(request.gcode)) >= sizeof(request.gcode)) {
             // TODO It would be much better to ensure gcode always points
             //      to some static buffer and only serialize the pointer.
-            log_error(MarlinClient, "ignoring truncated gcode");
             return nullopt;
         } else {
             return request;
@@ -194,7 +194,10 @@ namespace {
 } // namespace
 
 void gcode(const char *gcode) {
-    if (auto request = gcode_request(gcode); request.has_value()) {
+    auto request = gcode_request(gcode);
+    if (!request.has_value()) {
+        set_warning(WarningType::GcodeCropped);
+    } else {
         _send_request_to_server_and_wait(*request);
     }
 }
@@ -207,21 +210,23 @@ GcodeTryResult gcode_try(const char *gcode) {
             return GcodeTryResult::QueueFull;
         }
     } else {
+        log_error(MarlinClient, "ignoring truncated gcode");
         return GcodeTryResult::GcodeTooLong;
     }
 }
-
 void gcode_printf(const char *format, ...) {
     Request request;
     request.type = Request::Type::Gcode;
     va_list ap;
     va_start(ap, format);
-    const int ret = vsnprintf(request.gcode, sizeof(request.gcode), format, ap);
+    auto sb = StringBuilder::from_ptr(request.gcode, sizeof(request.gcode));
+    sb.append_vprintf(format, ap);
     va_end(ap);
-    if (ret == -1 || ret >= (int)sizeof(request.gcode)) {
+
+    if (!sb.is_ok()) {
         // TODO It would be much better to remove gcode_printf() altogether
         //      and instead craft individual request types.
-        log_error(MarlinClient, "ignoring truncated gcode");
+        set_warning(WarningType::GcodeCropped);
     } else {
         _send_request_to_server_and_wait(request);
     }

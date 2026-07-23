@@ -38,6 +38,8 @@ int get_id();
 void set_event_notify(uint64_t notify_events);
 
 // enqueue gcode - thread-safe version
+//
+// A gcode that doesn't fit into the request buffer is a programmer error and sends a warning to marlin server.
 void gcode(const char *gcode);
 
 enum class GcodeTryResult {
