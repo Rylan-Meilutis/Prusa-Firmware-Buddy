@@ -464,11 +464,9 @@ void GcodeSuite::process_parsed_command_standard() {
       case 109: M109(); break;                                    // M109: Wait for hotend temperature to reach target
 
       case 105: M105(); return;                                   // M105: Report Temperatures (and say "ok")
-
-      #if FAN_COUNT > 0
-        case 106: M106(); break;                                  // M106: Fan On
-        case 107: M107(); break;                                  // M107: Fan Off
-      #endif
+      
+      case 106: M106(); break;                                    // M106: Fan On
+      case 107: M107(); break;                                    // M107: Fan Off
 
       case 110: M110(); break;                                    // M110: Set Current Line Number
       case 111: M111(); break;                                    // M111: Set debug level

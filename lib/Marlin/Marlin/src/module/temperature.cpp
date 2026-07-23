@@ -165,8 +165,6 @@ Temperature thermalManager;
 
 // public:
 
-#if FAN_COUNT > 0
-
   std::array<uint8_t, FAN_COUNT> Temperature::fan_speed {};
   std::array<uint8_t, FAN_COUNT> Temperature::applied_fan_speed {};
 
@@ -200,8 +198,6 @@ Temperature thermalManager;
 
     fan_speed[target] = speed;
   }
-
-#endif // FAN_COUNT > 0
 
 #if HAS_TEMP_BOARD
   board_info_t Temperature::temp_board; // = { 0 }

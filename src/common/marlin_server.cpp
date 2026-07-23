@@ -414,9 +414,7 @@ namespace {
                 if (server.print_state == State::Printing) {
                     m_postponeFullPrintFan = true;
                 } else {
-#if FAN_COUNT > 0
                     thermalManager.set_fan_speed(0, 255);
-#endif
                 }
             }
 
@@ -542,13 +540,11 @@ namespace {
             [](PhysicalToolIndex tool) { return tool.to_raw(); },
             [](NoTool) { return PrusaToolChanger::MARLIN_NO_TOOL_PICKED; });
 #endif
-#if FAN_COUNT > 0
         if (hotendErrorChecker.runFullFan()) {
             thermalManager.set_fan_speed(0, 255);
         } else {
             thermalManager.set_fan_speed(0, 0); // disable print fan
         }
-#endif
     }
 } // end anonymous namespace
 
@@ -2097,9 +2093,7 @@ static void resuming_reheating() {
     if (hotendErrorChecker.isFailed()) {
         set_warning(WarningType::HotendTempDiscrepancy);
         thermalManager.setTargetHotend(0, 0);
-#if FAN_COUNT > 0
         thermalManager.set_fan_speed(0, 255);
-#endif
         server.print_state = State::Paused;
         return;
     }
@@ -2597,9 +2591,7 @@ static void _server_print_loop(void) {
         if (print_job_timer.isPaused()) {
             print_job_timer.start();
         }
-#if FAN_COUNT > 0
         thermalManager.set_fan_speed(0, server.resume.fan_speed); // restore fan speed
-#endif
         feedrate_percentage = server.resume.print_speed;
 #if HAS_SERIAL_PRINT()
         SerialPrinting::resume();
@@ -2678,11 +2670,7 @@ static void _server_print_loop(void) {
         }
 
         thermalManager.disable_all_heaters();
-
-#if FAN_COUNT > 0
         thermalManager.set_fan_speed(0, 0);
-#endif
-
         server.print_state = State::Aborting_UnloadFilament;
         break;
 
@@ -3238,9 +3226,7 @@ void resuming_begin(void) {
         thermalManager.setTargetHotend(server.resume.nozzle_temp[tool], tool);
     }
 
-#if FAN_COUNT > 0
     thermalManager.set_fan_speed(0, 0); // disable print fan
-#endif
     server.print_state = State::Resuming_Reheating;
 }
 
@@ -3563,9 +3549,7 @@ static void _server_update_vars() {
 #endif
 
     marlin_vars().z_offset = probe_offset.z;
-#if FAN_COUNT > 0
     marlin_vars().print_fan_speed = thermalManager.fan_speed[0];
-#endif
     marlin_vars().print_speed = static_cast<uint16_t>(feedrate_percentage);
 
     auto progress_data = oProgressData.mode_specific(config_store().stealth_mode.get());
@@ -3826,9 +3810,7 @@ static void _server_set_var(const Request &request) {
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_fan_speed)) {
         marlin_vars().print_fan_speed = request.set_variable.uint32_value;
-#if FAN_COUNT > 0
         thermalManager.set_fan_speed(0, marlin_vars().print_fan_speed);
-#endif
         return;
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_speed)) {

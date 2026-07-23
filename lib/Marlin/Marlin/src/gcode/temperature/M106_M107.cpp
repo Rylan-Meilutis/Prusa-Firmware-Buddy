@@ -35,31 +35,29 @@
     #include <puppies/Dwarf.hpp>
 #endif
 
-#if FAN_COUNT > 0
+#include "../gcode.h"
+#include "../../module/motion.h"
+#include "../../module/temperature.h"
+#include "fanctl.hpp"
+#include <device/board.h>
+#include <utils/variant_utils.hpp>
+#include <option/xbuddy_extension_variant.h>
+#include <pwm_utils.hpp>
 
-    #include "../gcode.h"
-    #include "../../module/motion.h"
-    #include "../../module/temperature.h"
-    #include "fanctl.hpp"
-    #include <device/board.h>
-    #include <utils/variant_utils.hpp>
-    #include <option/xbuddy_extension_variant.h>
-    #include <pwm_utils.hpp>
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    #include <feature/xbuddy_extension/xbuddy_extension.hpp>
+#endif
 
-    #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
-        #include <feature/xbuddy_extension/xbuddy_extension.hpp>
-    #endif
-
-    #if ENABLED(SINGLENOZZLE)
-        #define _ALT_P active_extruder
-        #define _CNT_P EXTRUDERS
-    #elif HAS_TOOLCHANGER()
-        #define _ALT_P 0
-        #define _CNT_P FAN_COUNT
-    #else
-        #define _ALT_P _MIN(active_extruder.load(), FAN_COUNT - 1)
-        #define _CNT_P FAN_COUNT
-    #endif
+#if ENABLED(SINGLENOZZLE)
+    #define _ALT_P active_extruder
+    #define _CNT_P EXTRUDERS
+#elif HAS_TOOLCHANGER()
+    #define _ALT_P 0
+    #define _CNT_P FAN_COUNT
+#else
+    #define _ALT_P _MIN(active_extruder.load(), FAN_COUNT - 1)
+    #define _CNT_P FAN_COUNT
+#endif
 
 /**
  * @brief Set fans that are not controlled by Marlin
@@ -73,9 +71,9 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
     [[maybe_unused]] const auto pwm_or_auto = set_auto ? PWM255OrAuto(pwm_auto) : PWM255OrAuto(speed);
 
     switch (fan) {
-    #if HAS_TOOLCHANGER()
+#if HAS_TOOLCHANGER()
     case 1:
-        #if HAS_DWARF()
+    #if HAS_DWARF()
         // Heatbreak fan
         if (tool.has_value()) {
             if (buddy::puppies::dwarfs[*tool].is_enabled()) {
@@ -86,20 +84,18 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
                 }
             }
         }
-        #endif
-        return true; // Eat this G-code, heatbreak fan is not controlled by Marlin
     #endif
+        return true; // Eat this G-code, heatbreak fan is not controlled by Marlin
+#endif
 
-    #if XL_ENCLOSURE_SUPPORT()
+#if XL_ENCLOSURE_SUPPORT()
     case 3:
-        static_assert(FAN_COUNT < 3, "Fan index 3 is reserved for Enclosure fan and should not be set by thermalManager");
         Fans::enclosure().set_pwm(speed);
         return true;
-    #endif
+#endif
 
-    #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
         using XBE = buddy::XBuddyExtension;
-        static_assert(FAN_COUNT < 3, "Fan 3 is dedicated to extboard");
 
     case 3:
         buddy::xbuddy_extension().set_fan_target_pwm(XBE::Fan::cooling_fan_1, pwm_or_auto);
@@ -108,9 +104,9 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
     case 4:
         buddy::xbuddy_extension().set_fan_target_pwm(XBE::Fan::filtration_fan, pwm_or_auto);
         return true;
-    #endif // XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+#endif // XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
 
-    #if HAS_BED_FAN()
+#if HAS_BED_FAN()
     case 5:
         if (set_auto) {
             constexpr float default_temp_threshold = -1.0f; // disabled
@@ -125,15 +121,15 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
             });
         }
         return true;
-    #endif
+#endif
 
-    #if HAS_INDX()
+#if HAS_INDX()
     case 6:
         // Dock fan on the xBuddy NEXTRUDER print-fan pin (same controller as
         // the C1 print fan).
         Fans::dock_fan().set_pwm(speed);
         return true;
-    #endif
+#endif
 
     default:
         break;
@@ -222,14 +218,14 @@ void GcodeSuite::M106() {
             uint16_t d = parser.seen('A') ? thermalManager.fan_speed[0] : 255;
             uint16_t s = parser.ushortval('S', d);
             NOMORE(s, 255U);
-    #if HAS_GCODE_COMPATIBILITY()
+#if HAS_GCODE_COMPATIBILITY()
             if (gcode.compatibility.mk4_compatibility_mode) {
                 s = (s * 7) / 10; // Converts speed to 70% of its values
             }
             if (gcode.compatibility.xl_compatibility_mode) {
                 s = (s * 7) / 10; // XL gcode on XLS: LDO fan needs ~70% PWM for equivalent airflow
             }
-    #endif
+#endif
 
             thermalManager.set_fan_speed(p, s);
         }
@@ -237,7 +233,7 @@ void GcodeSuite::M106() {
 
     switch (p) {
 
-    #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     case 3:
     case 4:
         if (parser.seen('N')) {
@@ -247,7 +243,7 @@ void GcodeSuite::M106() {
             buddy::xbuddy_extension().set_chamber_regulator_ramp_slope(parser.floatval('G'));
         }
         break;
-    #endif
+#endif
     }
 }
 
@@ -282,5 +278,3 @@ void GcodeSuite::M107() {
 }
 
 /** @}*/
-
-#endif // FAN_COUNT > 0

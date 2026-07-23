@@ -389,10 +389,8 @@ public:
 #endif
         MarlinVariable<uint16_t> heatbreak_fan_rpm; // Fans::heat_break(active_extruder).getActualRPM() [1/min]
 
-// others
-#if FAN_COUNT > 0
+        // others
         MarlinVariable<uint16_t> print_fan_rpm; // Fans::print(active_extruder).getActualRPM() [1/min]
-#endif
 
         Hotend() {}
         // disable copy constructor

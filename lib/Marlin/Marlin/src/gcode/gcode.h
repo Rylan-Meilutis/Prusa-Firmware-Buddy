@@ -564,11 +564,8 @@ private:
   static void M92();
   static void M109();
   static void M105();
-
-  #if FAN_COUNT > 0
-    static void M106();
-    static void M107();
-  #endif
+  static void M106();
+  static void M107();
 
   #if DISABLED(EMERGENCY_PARSER)
     static void M108();

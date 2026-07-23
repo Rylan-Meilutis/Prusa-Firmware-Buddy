@@ -749,20 +749,16 @@
 #endif
 
 #if HAS_FAN2
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #define FAN_COUNT 3
+  #error "FAN2 is not supported"
 #elif HAS_FAN1
-  #define FAN_COUNT 2
+  #error "FAN1 is not supported"
 #elif HAS_FAN0
   #define FAN_COUNT 1
 #else
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #define FAN_COUNT 0
+  #error "where is print fan?"
 #endif
 
-#if FAN_COUNT > 0
-  #define WRITE_FAN(n, v) WRITE(FAN##n##_PIN, (v) ^ FAN_INVERTING)
-#endif
+#define WRITE_FAN(n, v) WRITE(FAN##n##_PIN, (v) ^ FAN_INVERTING)
 
 /**
  * MIN/MAX case light PWM scaling
