@@ -165,40 +165,6 @@ Temperature thermalManager;
 
 // public:
 
-  std::array<uint8_t, FAN_COUNT> Temperature::fan_speed {};
-  std::array<uint8_t, FAN_COUNT> Temperature::applied_fan_speed {};
-
-  uint16_t Temperature::get_fan_speed(const uint8_t target) {
-    return target < FAN_COUNT ? fan_speed[target] : 0;
-  }
-  /**
-   * Set the print fan speed for a target extruder
-   * @note You need to call apply_fan_speeds() either from planner or elsewhere to actually use the configured fan speed.
-   * Set the print fan speed for a target FAN
-   * !!! NOT EXTRUDER !!! THERMAL MANAGER DOES NOT WORK WITH NON-ACTIVE EXTRUDER FANS
-   * See BFW-6365
-   */
-  void Temperature::set_fan_speed(uint8_t target, uint16_t speed) {
-
-    NOMORE(speed, 255U);
-
-    // @@TODO hotfix for driving of the front fan (index 1) even with the MMU code
-    // It is yet unknown if there are any side effects of commenting out this piece of code.
-    // The singlenozzle_fan_speed is only used in tool_change and only in a part, which is not compiled
-    // in our configuration.
-//    #if ENABLED(SINGLENOZZLE)
-//      if (target != active_extruder) {
-//        if (target < EXTRUDERS) singlenozzle_fan_speed[target] = speed;
-//        return;
-//      }
-//      target = 0; // Always use fan index 0 with SINGLENOZZLE
-//    #endif
-
-    if (target >= FAN_COUNT) return;
-
-    fan_speed[target] = speed;
-  }
-
 #if HAS_TEMP_BOARD
   board_info_t Temperature::temp_board; // = { 0 }
 
