@@ -408,7 +408,8 @@ bool PrusaToolChanger::check_skipped_step() {
     return true;
 }
 
-void PrusaToolChanger::crash_deselect_dwarf() {
+    #if HAS_TOOL_CRASH_RECOVERY()
+void PrusaToolChanger::crash_deselect_tool() {
     if (active_extruder != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         prusa_toolchanger.request_active_switch(nullptr); // Deselect dwarf
         const uint8_t old_tool_index = active_extruder;
@@ -418,6 +419,7 @@ void PrusaToolChanger::crash_deselect_dwarf() {
         update_software_endstops(Z_AXIS, old_tool_index, PrusaToolChanger::MARLIN_NO_TOOL_PICKED);
     }
 }
+    #endif
 
 void PrusaToolChanger::toolcheck_enable() {
     const auto selected_tool = PhysicalToolIndex::currently_selected();

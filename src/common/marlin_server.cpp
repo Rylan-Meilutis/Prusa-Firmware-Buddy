@@ -1658,7 +1658,7 @@ static void measure_axes_and_home() {
  * @brief Deselect tool, disable XY steppers and switch to Tool_Pickup server print_state.
  */
 static void prepare_tool_pickup() {
-    prusa_toolchanger.crash_deselect_dwarf(); // Deselect dwarf as if all were parked
+    prusa_toolchanger.crash_deselect_tool();
     disable_XY(); // Let user move the carriage
 
     // Disable heaters
@@ -1681,6 +1681,49 @@ static bool crash_recovery_begin_toolchange() {
         return true;
     }
     return false;
+}
+
+/// @brief Part of crash recovery tool pickup: waits for the user and re-picks the tool
+static void crash_recovery_tool_pickup() {
+    if ((marlin_server::get_response_from_phase(PhasesCrashRecovery::tool_recovery) == Response::Continue)
+        && (prusa_toolchanger.get_enabled_mask() == prusa_toolchanger.get_parked_mask())) {
+
+        // Show homing screen, TODO: perhaps a new screen would be better
+        Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
+        fsm_change(PhasesCrashRecovery::home, cr_fsm.Serialize());
+
+        // Pickup lost tool
+        tool_return_t return_type = tool_return_t::no_return; // If it continues with replay, no need to return
+        xyz_pos_t return_pos = current_position.xyz(); // return Z to current Z
+        if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
+            // After toolcrash, return to what was requested before the crash
+            // return_pos is stored in logical coordinates
+            return_pos = prusa_toolchanger.return_data().return_pos.asNative();
+            return_type = prusa_toolchanger.return_data().return_type;
+        }
+        if (!prusa_toolchanger.tool_change(prusa_toolchanger.return_data().tool,
+                return_type,
+                return_pos,
+                tool_change_lift_t::no_lift,
+                /*z_return =*/true)) {
+            if (crash_s.get_state() == Crash_s::TRIGGERED_AC_FAULT) {
+                return; // Powerpanic, do not retry just end
+            }
+
+            // Toolchange failed again, ask user again to park all dwarves
+            crash_s.count_crash(); // Count as another crash
+            const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
+            fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
+
+            prepare_tool_pickup();
+            return;
+        }
+
+        server.print_state = State::CrashRecovery_XY_HOME; // Reheat and resume, unpark is skipped in later stages
+    } else {
+        const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask(), .parked = prusa_toolchanger.get_parked_mask() };
+        fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
+    }
 }
     #endif
 #endif
@@ -2929,45 +2972,7 @@ static void _server_print_loop(void) {
             break;
         }
 
-        if ((marlin_server::get_response_from_phase(PhasesCrashRecovery::tool_recovery) == Response::Continue)
-            && (prusa_toolchanger.get_enabled_mask() == prusa_toolchanger.get_parked_mask())) {
-
-            // Show homing screen, TODO: perhaps a new screen would be better
-            Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
-            fsm_change(PhasesCrashRecovery::home, cr_fsm.Serialize());
-
-            // Pickup lost tool
-            tool_return_t return_type = tool_return_t::no_return; // If it continues with replay, no need to return
-            xyz_pos_t return_pos = current_position.xyz(); //                    return Z to current Z
-            if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
-                // After toolcrash, return to what was requested before the crash
-                // return_pos is stored in logical coordinates
-                return_pos = prusa_toolchanger.return_data().return_pos.asNative();
-                return_type = prusa_toolchanger.return_data().return_type;
-            }
-            if (!prusa_toolchanger.tool_change(prusa_toolchanger.return_data().tool,
-                    return_type,
-                    return_pos,
-                    tool_change_lift_t::no_lift,
-                    /*z_return =*/true)) {
-                if (crash_s.get_state() == Crash_s::TRIGGERED_AC_FAULT) {
-                    break; // Powerpanic, do not retry just end
-                }
-
-                // Toolchange failed again, ask user again to park all dwarves
-                crash_s.count_crash(); // Count as another crash
-                const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask() };
-                fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
-
-                prepare_tool_pickup();
-                break;
-            }
-
-            server.print_state = State::CrashRecovery_XY_HOME; // Reheat and resume, unpark is skipped in later stages
-        } else {
-            const Crash_recovery_tool_fsm cr_fsm { .enabled = prusa_toolchanger.get_enabled_mask(), .parked = prusa_toolchanger.get_parked_mask() };
-            fsm_change(PhasesCrashRecovery::tool_recovery, cr_fsm.serialize());
-        }
+        crash_recovery_tool_pickup();
         break;
     }
     #endif

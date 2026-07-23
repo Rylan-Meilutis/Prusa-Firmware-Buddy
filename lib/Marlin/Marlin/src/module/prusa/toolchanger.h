@@ -70,10 +70,10 @@ public:
     #if HAS_TOOL_CRASH_RECOVERY()
 
     /**
-     * @brief During toolcrash or toolfall recovery deselect dwarf as if all were parked.
+     * @brief During toolfall recovery (or toolcrash recovery on XL) deselect active tool.
      * @warning Only run this from Marlin thread.
      */
-    void crash_deselect_dwarf();
+    void crash_deselect_tool();
 
     /**
      * @brief Disable loop() with automatic toolchange and toolfall detection.
