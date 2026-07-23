@@ -179,7 +179,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
 
         // Cool down to probing temperature with print fan on to speed it up
         thermalManager.setTargetHotend(temps.z_probing, tool);
-        const uint16_t saved_fan_speed = thermalManager.get_print_fan_speed();
+        const uint8_t saved_fan_speed = thermalManager.get_print_fan_speed();
         thermalManager.set_print_fan_speed(255);
         ScopeGuard restore_fan([&] {
             thermalManager.set_print_fan_speed(saved_fan_speed);

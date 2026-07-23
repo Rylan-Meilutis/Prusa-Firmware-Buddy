@@ -396,7 +396,7 @@ private:
         Pause &pause;
 
         static bool active; // we currently support only 1 instance
-        uint16_t original_print_fan_speed;
+        uint8_t original_print_fan_speed;
 
     public:
         FSM_HolderLoadUnload(Pause &p);

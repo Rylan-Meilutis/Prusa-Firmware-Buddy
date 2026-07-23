@@ -1,6 +1,7 @@
 #include "ModbusControl.hpp"
 #include "ModbusRegisters.hpp"
 #include <cstring>
+#include <algorithm>
 #include <logging/log.hpp>
 #include "Marlin.h"
 #include "Marlin/src/module/temperature.h"
@@ -204,7 +205,7 @@ void ProcessModbusMessages() {
         }
         case std::to_underlying(ModbusRegisters::SystemHoldingRegister::fan0_pwm): {
             log_info(ModbusControl, "Set print fan PWM:: %" PRIu32, msg->m_Value);
-            thermalManager.set_print_fan_speed(msg->m_Value);
+            thermalManager.set_print_fan_speed(std::clamp<uint32_t>(msg->m_Value, 0, 255));
             break;
         }
         case std::to_underlying(ModbusRegisters::SystemHoldingRegister::fan1_pwm): {
