@@ -592,7 +592,7 @@ MI_INFO_EXTRUDER_FILAMENT_SENSOR::MI_INFO_EXTRUDER_FILAMENT_SENSOR(std::variant<
         [&](PhysicalToolIndex t) { return t.display_name(label_params_); },
         [](CurrentlySelectedTool) {
     #if PRINTER_IS_PRUSA_XL()
-            return _("Tool Filament sensor");
+            return _("Tool Filament Sensor");
     #else
             return _("Filament Sensor");
     #endif
@@ -618,7 +618,7 @@ MI_INFO_SIDE_FILAMENT_SENSOR::MI_INFO_SIDE_FILAMENT_SENSOR(std::variant<Physical
     SetLabel(match(
         tool_,
         [&](PhysicalToolIndex t) { return t.display_name(label_params_); },
-        [](CurrentlySelectedTool) { return _("Side Filament sensor"); }));
+        [](CurrentlySelectedTool) { return _("Side Filament Sensor"); }));
 }
 
 std::optional<FilamentSensorStateAndValue> MI_INFO_SIDE_FILAMENT_SENSOR::value() const {

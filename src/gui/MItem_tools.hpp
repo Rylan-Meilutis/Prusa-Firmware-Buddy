@@ -110,7 +110,7 @@ protected:
 /// Wastebin submenu: auto-pause the print when the nozzle-cleaner wastebin reaches capacity
 /// (otherwise only a non-blocking warning is shown).
 class MI_NOZZLE_CLEANER_AUTOPAUSE : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("Pause on Full Nozzle Cleaner");
+    static constexpr const char *const label = N_("Pause On Full Nozzle Cleaner");
 
 public:
     MI_NOZZLE_CLEANER_AUTOPAUSE();
@@ -473,7 +473,7 @@ public:
 };
 
 class MI_DEVHASH_IN_QR : public WI_ICON_SWITCH_OFF_ON_t {
-    constexpr static const char *const label = N_("Device Hash in QR");
+    constexpr static const char *const label = N_("Device Hash In QR");
 
 public:
     MI_DEVHASH_IN_QR();
@@ -481,7 +481,7 @@ public:
 };
 
 class MI_LOAD_SETTINGS : public IWindowMenuItem {
-    constexpr static const char *const label = N_("Load Settings from File");
+    constexpr static const char *const label = N_("Load Settings From File");
 
 public:
     MI_LOAD_SETTINGS();

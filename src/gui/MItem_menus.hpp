@@ -210,7 +210,7 @@ using MI_STEEL_SHEETS
 #if HAS_FILAMENT_SENSORS_MENU()
 
 using MI_FILAMENT_SENSORS
-    = MI_SCREEN<N_("Filament sensors"), class ScreenMenuFilamentSensors>;
+    = MI_SCREEN<N_("Filament Sensors"), class ScreenMenuFilamentSensors>;
 #endif
 
 #if HAS_SELFTEST()
