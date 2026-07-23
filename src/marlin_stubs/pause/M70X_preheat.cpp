@@ -399,7 +399,7 @@ void filament_gcodes::M1700_preheat(const M1700Args &args) {
 
     // cooldown pressed
     if (filament == FilamentType::none) {
-        thermalManager.set_print_fan_speed(0, 0);
+        thermalManager.set_print_fan_speed(0);
 
     } else if (!axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)) {
         unhomed_z_lift(10);

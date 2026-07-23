@@ -312,7 +312,7 @@ namespace {
         };
 
         const auto fan_speed_stored = Temperature::print_fan_speed;
-        thermalManager.set_print_fan_speed(0, 240);
+        thermalManager.set_print_fan_speed(240);
 
         switch (wait_while_with_progress(PhasesColdPull::cool_down, COOLING_TIMEOUT_MILLIS, too_hot, progress)) {
         case Response::Abort:
@@ -322,7 +322,7 @@ namespace {
         default:
             bsod_unreachable();
         }
-        thermalManager.set_print_fan_speed(0, fan_speed_stored);
+        thermalManager.set_print_fan_speed(fan_speed_stored);
         return PhasesColdPull::heat_up;
     }
 

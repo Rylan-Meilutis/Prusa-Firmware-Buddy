@@ -50,13 +50,10 @@
 
 #if ENABLED(SINGLENOZZLE)
     #define _ALT_P active_extruder
-    #define _CNT_P EXTRUDERS
 #elif HAS_TOOLCHANGER()
     #define _ALT_P 0
-    #define _CNT_P FAN_COUNT
 #else
     #define _ALT_P _MIN(active_extruder.load(), FAN_COUNT - 1)
-    #define _CNT_P FAN_COUNT
 #endif
 
 /**
@@ -214,7 +211,7 @@ void GcodeSuite::M106() {
         if (set_special_fan_speed(p, tool, speed, auto_control)) {
             // Done in the function
 
-        } else if (p < _CNT_P) {
+        } else if (p == 0 /* print fan */) {
             uint16_t d = parser.seen('A') ? thermalManager.print_fan_speed : 255;
             uint16_t s = parser.ushortval('S', d);
             NOMORE(s, 255U);
@@ -227,7 +224,7 @@ void GcodeSuite::M106() {
             }
 #endif
 
-            thermalManager.set_print_fan_speed(p, s);
+            thermalManager.set_print_fan_speed(s);
         }
     }
 
@@ -274,7 +271,9 @@ void GcodeSuite::M107() {
         return;
     }
 
-    thermalManager.set_print_fan_speed(p, 0);
+    if (p == 0 /* print fan */) {
+        thermalManager.set_print_fan_speed(0);
+    }
 }
 
 /** @}*/

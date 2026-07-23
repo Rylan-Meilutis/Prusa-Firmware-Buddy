@@ -1152,7 +1152,7 @@ void Temperature::isr() {
       /// !!! PRINT FAN IS ALWAYS FAN 0
       const uint8_t fan_speed_at_start = get_print_fan_speed();
       ScopeGuard fan_restore_guard = [&] {
-        thermalManager.set_print_fan_speed(0, fan_speed_at_start);
+        thermalManager.set_print_fan_speed(fan_speed_at_start);
       };
 
       PrintStatusMessageGuard statusGuard;
@@ -1175,7 +1175,7 @@ void Temperature::isr() {
             // If fan_cooling is enabled, assist the cooling/heating with the print fan
             // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
             if (params.fan_cooling && active_extruder == target_extruder)
-              thermalManager.set_print_fan_speed(0, wants_to_cool ? 255 : 0);
+              thermalManager.set_print_fan_speed(wants_to_cool ? 255 : 0);
           }
           // If current reading is missing, leave target_temp stale so the
           // next iteration re-enters this branch and retries with fresh data.

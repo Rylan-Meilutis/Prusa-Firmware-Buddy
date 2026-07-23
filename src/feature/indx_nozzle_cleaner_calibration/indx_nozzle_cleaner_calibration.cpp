@@ -243,9 +243,9 @@ private:
         });
 
         hotend.set_nozzle_target_temp(0);
-        thermalManager.set_print_fan_speed(0, 255);
+        thermalManager.set_print_fan_speed(255);
         ScopeGuard fan_guard([]() {
-            thermalManager.set_print_fan_speed(0, 0);
+            thermalManager.set_print_fan_speed(0);
         });
         while (!is_cooled_down() && !gcode_exceptions().is_unwinding()) {
             idle(true);

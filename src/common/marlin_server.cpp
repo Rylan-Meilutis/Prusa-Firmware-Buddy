@@ -414,7 +414,7 @@ namespace {
                 if (server.print_state == State::Printing) {
                     m_postponeFullPrintFan = true;
                 } else {
-                    thermalManager.set_print_fan_speed(0, 255);
+                    thermalManager.set_print_fan_speed(255);
                 }
             }
 
@@ -541,9 +541,9 @@ namespace {
             [](NoTool) { return PrusaToolChanger::MARLIN_NO_TOOL_PICKED; });
 #endif
         if (hotendErrorChecker.runFullFan()) {
-            thermalManager.set_print_fan_speed(0, 255);
+            thermalManager.set_print_fan_speed(255);
         } else {
-            thermalManager.set_print_fan_speed(0, 0); // disable print fan
+            thermalManager.set_print_fan_speed(0); // disable print fan
         }
     }
 } // end anonymous namespace
@@ -2093,7 +2093,7 @@ static void resuming_reheating() {
     if (hotendErrorChecker.isFailed()) {
         set_warning(WarningType::HotendTempDiscrepancy);
         thermalManager.setTargetHotend(0, 0);
-        thermalManager.set_print_fan_speed(0, 255);
+        thermalManager.set_print_fan_speed(255);
         server.print_state = State::Paused;
         return;
     }
@@ -2591,7 +2591,7 @@ static void _server_print_loop(void) {
         if (print_job_timer.isPaused()) {
             print_job_timer.start();
         }
-        thermalManager.set_print_fan_speed(0, server.resume.fan_speed); // restore fan speed
+        thermalManager.set_print_fan_speed(server.resume.fan_speed); // restore fan speed
         feedrate_percentage = server.resume.print_speed;
 #if HAS_SERIAL_PRINT()
         SerialPrinting::resume();
@@ -2670,7 +2670,7 @@ static void _server_print_loop(void) {
         }
 
         thermalManager.disable_all_heaters();
-        thermalManager.set_print_fan_speed(0, 0);
+        thermalManager.set_print_fan_speed(0);
         server.print_state = State::Aborting_UnloadFilament;
         break;
 
@@ -3226,7 +3226,7 @@ void resuming_begin(void) {
         thermalManager.setTargetHotend(server.resume.nozzle_temp[tool], tool);
     }
 
-    thermalManager.set_print_fan_speed(0, 0); // disable print fan
+    thermalManager.set_print_fan_speed(0); // disable print fan
     server.print_state = State::Resuming_Reheating;
 }
 
@@ -3810,7 +3810,7 @@ static void _server_set_var(const Request &request) {
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_fan_speed)) {
         marlin_vars().print_fan_speed = request.set_variable.uint32_value;
-        thermalManager.set_print_fan_speed(0, marlin_vars().print_fan_speed);
+        thermalManager.set_print_fan_speed(marlin_vars().print_fan_speed);
         return;
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_speed)) {

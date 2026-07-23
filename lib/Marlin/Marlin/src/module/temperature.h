@@ -228,9 +228,8 @@ class Temperature {
 
     /// set the print fan speed for a target extruder
     /// @note you need to call apply_print_fan_speed() either from planner or elsewhere to actually use the configured fan speed
-    inline static void set_print_fan_speed(uint8_t target, uint16_t speed) {
+    inline static void set_print_fan_speed(uint16_t speed) {
       NOMORE(speed, 255U);
-      if (target >= FAN_COUNT) return;
       print_fan_speed = speed;
     }
 
@@ -245,7 +244,7 @@ class Temperature {
     static constexpr inline uint8_t fanPercent(const uint8_t speed) { return ui8_to_percent(speed); }
 
     static inline void zero_fan_speeds() {
-      set_print_fan_speed(0, 0);
+      set_print_fan_speed(0);
     }
 
     /**
