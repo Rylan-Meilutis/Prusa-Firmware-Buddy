@@ -1906,7 +1906,7 @@ Pause::FSM_HolderLoadUnload::FSM_HolderLoadUnload(Pause &p)
     }
     active = true;
     // Turn off print fan during purging to prevent messy purging
-    original_print_fan_speed = thermalManager.get_print_fan_speed(0);
+    original_print_fan_speed = thermalManager.get_print_fan_speed();
     thermalManager.set_print_fan_speed(0, 0);
 }
 

@@ -222,8 +222,8 @@ class Temperature {
     inline static uint8_t print_fan_speed {}; ///< Configured print fan speed (@note apply_print_fan_speed() is used to apply the speed from print_fan_speed to applied_print_fan_speed)
     inline static uint8_t applied_print_fan_speed {}; ///< Actually applied (and scaled) print fan speed
 
-    inline static uint16_t get_print_fan_speed(uint8_t target) {
-      return target < FAN_COUNT ? print_fan_speed : 0;
+    inline static uint16_t get_print_fan_speed() {
+      return print_fan_speed;
     }
 
     /// set the print fan speed for a target extruder

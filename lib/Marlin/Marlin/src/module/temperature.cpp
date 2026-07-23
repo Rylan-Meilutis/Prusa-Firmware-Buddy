@@ -1150,7 +1150,7 @@ void Temperature::isr() {
       millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
 
       /// !!! PRINT FAN IS ALWAYS FAN 0
-      const uint8_t fan_speed_at_start = get_print_fan_speed(0);
+      const uint8_t fan_speed_at_start = get_print_fan_speed();
       ScopeGuard fan_restore_guard = [&] {
         thermalManager.set_print_fan_speed(0, fan_speed_at_start);
       };
