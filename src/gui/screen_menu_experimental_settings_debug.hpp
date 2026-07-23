@@ -49,10 +49,10 @@ struct ExperimentalSettingsValues {
     ExperimentalSettingsValues(ScreenMenuExperimentalSettings__ &parent);
 
     int32_t z_len;
-    int32_t steps_per_unit_x;
-    int32_t steps_per_unit_y;
-    int32_t steps_per_unit_z;
-    int32_t steps_per_unit_e;
+    float steps_per_unit_x;
+    float steps_per_unit_y;
+    float steps_per_unit_z;
+    float steps_per_unit_e;
     int32_t microsteps_x;
     int32_t microsteps_y;
     int32_t microsteps_z;

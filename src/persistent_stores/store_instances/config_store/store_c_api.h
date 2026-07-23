@@ -55,8 +55,6 @@ bool get_print_area_based_heating_enabled();
  * @brief function set to read float value from eeprom and round it
  */
 uint16_t get_z_max_pos_mm_rounded();
-uint16_t get_steps_per_unit_z_rounded();
-uint16_t get_steps_per_unit_e_rounded();
 
 /**
  * @brief function set to store value to eeprom

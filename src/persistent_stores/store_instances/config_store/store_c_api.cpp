@@ -138,13 +138,6 @@ extern "C" bool has_wrong_e() {
 }
 #endif
 
-extern "C" uint16_t get_steps_per_unit_z_rounded() {
-    return static_cast<uint16_t>(std::lround(get_steps_per_unit_z()));
-}
-extern "C" uint16_t get_steps_per_unit_e_rounded() {
-    return static_cast<uint16_t>(std::lround(get_steps_per_unit_e()));
-}
-
 // by write functions, cannot read startup variables, must read current value from eeprom
 extern "C" void set_steps_per_unit_z(float steps) {
     if (steps > 0) {

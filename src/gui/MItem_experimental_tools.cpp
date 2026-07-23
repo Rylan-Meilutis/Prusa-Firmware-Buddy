@@ -53,17 +53,19 @@ constexpr NumericInputConfig steps_per_unit_xy_spin_config {
     .max_value = 1000,
     .special_value = config_store_ns::steps_per_unit_unset,
     .special_value_str = N_("Default"),
+    .max_decimal_places = 2,
 };
 
 constexpr NumericInputConfig steps_per_unit_spin_config {
     .min_value = 1,
     .max_value = 1000,
+    .max_decimal_places = 2,
 };
 
 float steps_per_mm_to_val(auto &store_item) {
     // std::abs would not work if the unset val is anything else
     static_assert(config_store_ns::steps_per_unit_unset == 0);
-    return std::abs(std::roundf(store_item.get()));
+    return std::abs(store_item.get());
 }
 
 float value_to_store(float val, const WiSwitchDirection &wrong_direction_item, float default_val) {
@@ -111,7 +113,7 @@ void MI_STEPS_PER_UNIT_Y::Store(const MI_DIRECTION_Y &wrong_direction) {
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_Z
 MI_STEPS_PER_UNIT_Z::MI_STEPS_PER_UNIT_Z()
-    : WiSpin(get_steps_per_unit_z_rounded(), steps_per_unit_spin_config, _("Z-axis steps per unit")) {}
+    : WiSpin(get_steps_per_unit_z(), steps_per_unit_spin_config, _("Z-axis steps per unit")) {}
 
 void MI_STEPS_PER_UNIT_Z::Store() {
     set_steps_per_unit_z(GetVal());
@@ -120,7 +122,7 @@ void MI_STEPS_PER_UNIT_Z::Store() {
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_E
 MI_STEPS_PER_UNIT_E::MI_STEPS_PER_UNIT_E()
-    : WiSpin(get_steps_per_unit_e_rounded(), steps_per_unit_spin_config, _("Extruder steps per unit")) {}
+    : WiSpin(get_steps_per_unit_e(), steps_per_unit_spin_config, _("Extruder steps per unit")) {}
 
 void MI_STEPS_PER_UNIT_E::Store() {
     set_steps_per_unit_e(GetVal());
