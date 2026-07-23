@@ -55,11 +55,14 @@ GcodeTryResult gcode_try(const char *gcode);
 void __attribute__((format(__printf__, 1, 2)))
 gcode_printf(const char *format, ...);
 
-// inject gcode - thread-safe version
-void inject(InjectQueueRecord record);
+/// inject gcode - thread-safe version
+///
+/// @returns false if the record was dropped because the inject queue
+// stayed full even after several retries.
+bool inject(InjectQueueRecord record);
 
 // inject gcode directly - thread-safe version
-inline void inject(ConstexprString gcode) { inject(GCodeLiteral(gcode)); };
+inline bool inject(ConstexprString gcode) { return inject(GCodeLiteral(gcode)); };
 
 /// See marlin_server::gcode_interrupt for the documentation.
 /// !!! ONLY USE IF YOU 100% KNOW WHAT YOU'RE DOING

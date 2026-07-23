@@ -3675,8 +3675,7 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         //@TODO return value depending on success of enqueueing gcode
         return enqueue_gcode_try(request.gcode);
     case Request::Type::Inject:
-        inject(request.inject);
-        return true;
+        return inject(request.inject);
     case Request::Type::GcodeInterrupt:
         gcode_interrupt(request.gcode_interrupt);
         return true;

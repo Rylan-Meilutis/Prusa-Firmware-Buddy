@@ -130,22 +130,28 @@ static bool try_send(Request &request) {
     }
 }
 
-static void _send_request_to_server_and_wait(Request &request) {
-    marlin_client_t *client = _client_ptr();
-    if (client == nullptr) {
-        return;
-    }
+static bool try_send_with_retries(Request &request) {
     uint8_t retries_left = max_retries;
     do {
         if (try_send(request)) {
-            return;
+            return true;
         } else {
             // give marlin server time to process other requests
             osDelay(10);
             retries_left--;
         }
     } while (retries_left > 0);
-    fatal_error(ErrCode::ERR_SYSTEM_MARLIN_CLIENT_SERVER_REQUEST_TIMEOUT);
+    return false;
+}
+
+static void _send_request_to_server_and_wait(Request &request) {
+    marlin_client_t *client = _client_ptr();
+    if (client == nullptr) {
+        bsod("Marlin client used before init");
+    }
+    if (!try_send_with_retries(request)) {
+        fatal_error(ErrCode::ERR_SYSTEM_MARLIN_CLIENT_SERVER_REQUEST_TIMEOUT);
+    }
 }
 
 /// send the request to the marlin server and don't ask for acknowledgement
@@ -221,11 +227,11 @@ void gcode_printf(const char *format, ...) {
     }
 }
 
-void inject(InjectQueueRecord record) {
+bool inject(InjectQueueRecord record) {
     Request request;
     request.type = Request::Type::Inject;
     request.inject = record;
-    _send_request_to_server_and_wait(request);
+    return try_send_with_retries(request);
 }
 
 void gcode_interrupt(GCodeLiteral gcode) {
