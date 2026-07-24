@@ -15,6 +15,8 @@
 #include <img_resources.hpp>
 #include <string_view_utf8.hpp>
 #include <gui/auto_layout.hpp>
+#include <array>
+#include <cstdio>
 
 namespace {
 
@@ -35,7 +37,8 @@ constexpr auto txt_ask_position_y = N_("Move the nozzle precisely to the Y-axis 
 constexpr auto txt_measuring = N_("Measuring %c position\n\nDo not touch the printer.");
 constexpr auto txt_success = N_("Nozzle cleaner calibrated.");
 
-constexpr auto txt_evaluating_failed = N_("Calibration failed.\n\nNominal: %.1f mm (+/- %hu mm)\n\nMeasured offset: %.2f mm\n\nCalibrate manually?");
+// %s is the measured offset, formatted as "<value> mm" or "N/A" when the nozzle never made contact.
+constexpr auto txt_evaluating_failed = N_("Calibration failed.\n\nNominal: %.1f mm (+/- %hu mm)\n\nMeasured offset: %s\n\nCalibrate manually?");
 constexpr uint8_t max_offset_mm = 3;
 
 /// FrameWait variant where a single %c in the text is replaced by an axis letter.
@@ -83,7 +86,17 @@ public:
 
     void update(fsm::PhaseData data) {
         const auto eval_data = fsm::deserialize_data<indx_nozzle_cleaner_calibration::EvaluatingData>(data);
-        info.SetText(_(txt_evaluating_failed).formatted(params, static_cast<double>(eval_data.nominal()), max_offset_mm, static_cast<double>(eval_data.offset())));
+
+        // The offset is absent when the nozzle never touched (probe did not trigger); show "N/A" instead
+        // of a misleading 0.00 mm. formatted() copies the parameter, so the local buffer may be temporary.
+        const auto offset = eval_data.offset();
+        std::array<char, 16> offset_str;
+        if (offset.has_value()) {
+            snprintf(offset_str.data(), offset_str.size(), "%.2f mm", static_cast<double>(*offset));
+        }
+        const char *offset_text = offset.has_value() ? offset_str.data() : "N/A";
+
+        info.SetText(_(txt_evaluating_failed).formatted(params, static_cast<double>(eval_data.nominal()), max_offset_mm, offset_text));
     }
 
 private:

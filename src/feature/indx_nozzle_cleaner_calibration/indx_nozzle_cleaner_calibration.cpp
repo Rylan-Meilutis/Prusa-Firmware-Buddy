@@ -429,7 +429,9 @@ private:
     Result run_axis_calibration(const AxisCalibConfig &config, Automatic &&run_automatic) {
         bool use_manual = false;
         for (;;) {
-            float offset = 0.f;
+            // nullopt until an attempt records a value; stays nullopt when the probe never touches,
+            // which the results screen renders as "N/A" instead of a misleading 0.00 mm.
+            std::optional<float> offset;
             float nominal = 0.f;
             const std::optional<Result> result = use_manual
                 ? run_manual_attempt(config, offset, nominal)
@@ -461,7 +463,7 @@ private:
     /// screen offers a manual calibration (Yes), an automatic retry (Retry), or aborting.
     /// @return success if calibrated (automatically or by hand), aborted if the user cancels
     Result calibrate_x_loadcell() {
-        return run_axis_calibration(x_axis_config, [this](float &offset, float &nominal) -> std::optional<Result> {
+        return run_axis_calibration(x_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
             nominal = X_NOZZLE_CLEANER_WALL_NOMINAL;
             fsm_change(PhaseNozzleCleanerCalibration::measuring_x);
 
@@ -470,28 +472,29 @@ private:
             const auto wall = measure_axis(AxisEnum::X_AXIS, "X", X_NOZZLE_CLEANER_WALL_PROBE_MAX,
                 [this] { move_to_wall_touch_entry(); });
 
-            offset = wall.reached ? (wall.median - X_NOZZLE_CLEANER_WALL_NOMINAL) : 0.f;
             if (!wall.reached) {
+                // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
                 log_error(NozzleCleanerCalibration, "Nozzle cleaner X touch did not reach the cleaner wall");
                 return std::nullopt;
             }
+            offset = wall.median - X_NOZZLE_CLEANER_WALL_NOMINAL;
             if (wall.spread > probe_max_spread_mm) {
                 log_error(NozzleCleanerCalibration,
                     "Nozzle cleaner X touches inconsistent: spread %.2f mm (max %.2f mm)",
                     static_cast<double>(wall.spread), static_cast<double>(probe_max_spread_mm));
                 return std::nullopt;
             }
-            if (std::abs(offset) > offset_tolerance_mm) {
+            if (std::abs(*offset) > offset_tolerance_mm) {
                 log_error(NozzleCleanerCalibration,
                     "Nozzle cleaner X offset %.2f out of bounds (max %.1f mm)",
-                    static_cast<double>(offset), static_cast<double>(offset_tolerance_mm));
+                    static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
                 return std::nullopt;
             }
 
-            config_store().nozzle_cleaner_x_origin_offset.set(offset);
+            config_store().nozzle_cleaner_x_origin_offset.set(*offset);
             log_info(NozzleCleanerCalibration,
                 "Nozzle cleaner X calibrated: offset=%.2f (median of %hhu, spread %.2f mm)",
-                static_cast<double>(offset), probe_sample_count, static_cast<double>(wall.spread));
+                static_cast<double>(*offset), probe_sample_count, static_cast<double>(wall.spread));
 
             // Hand off to the Y touch without a diagonal across the wall: retreat in -X, then up in +Y to
             // the purge entry lane while still outside the wall (the purge entry move is then pure +X).
@@ -514,7 +517,7 @@ private:
     /// the results screen offers a manual calibration (Yes), an automatic retry (Retry), or aborting.
     /// @return success if calibrated (automatically or by hand), aborted if the user cancels
     Result calibrate_y_loadcell() {
-        return run_axis_calibration(y_axis_config, [this](float &offset, float &nominal) -> std::optional<Result> {
+        return run_axis_calibration(y_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
             nominal = Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
             fsm_change(PhaseNozzleCleanerCalibration::measuring_y);
 
@@ -523,28 +526,29 @@ private:
             const auto back = measure_axis(AxisEnum::Y_AXIS, "Y", Y_NOZZLE_CLEANER_PURGE_PROBE_MIN,
                 [this] { move_to_purge_touch_entry(); });
 
-            offset = back.reached ? (back.median - Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL) : 0.f;
             if (!back.reached) {
+                // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
                 log_error(NozzleCleanerCalibration, "Nozzle cleaner Y touch did not reach the tray back edge");
                 return std::nullopt;
             }
+            offset = back.median - Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
             if (back.spread > probe_max_spread_mm) {
                 log_error(NozzleCleanerCalibration,
                     "Nozzle cleaner Y back touches inconsistent: spread %.2f mm (max %.2f mm)",
                     static_cast<double>(back.spread), static_cast<double>(probe_max_spread_mm));
                 return std::nullopt;
             }
-            if (std::abs(offset) > offset_tolerance_mm) {
+            if (std::abs(*offset) > offset_tolerance_mm) {
                 log_error(NozzleCleanerCalibration,
                     "Nozzle cleaner Y offset %.2f out of bounds (max %.1f mm)",
-                    static_cast<double>(offset), static_cast<double>(offset_tolerance_mm));
+                    static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
                 return std::nullopt;
             }
 
-            config_store().nozzle_cleaner_y_origin_offset.set(offset);
+            config_store().nozzle_cleaner_y_origin_offset.set(*offset);
             log_info(NozzleCleanerCalibration,
                 "Nozzle cleaner Y calibrated: offset=%.2f (median %.2f spread %.2f)",
-                static_cast<double>(offset), static_cast<double>(back.median), static_cast<double>(back.spread));
+                static_cast<double>(*offset), static_cast<double>(back.median), static_cast<double>(back.spread));
 
             // Exit clear of the cleaner before the head is driven down in Y (manual Y park / wizard exit).
             move_out_after_purge_touch();
@@ -556,7 +560,7 @@ private:
     /// Stores the offset on success. On an out-of-bounds result it writes @p offset / @p nominal for the
     /// results screen and returns nullopt so the caller re-shows it.
     /// @return success (calibrated by hand), aborted (user abort), or nullopt (out of bounds)
-    std::optional<Result> run_manual_attempt(const AxisCalibConfig &config, float &offset, float &nominal) {
+    std::optional<Result> run_manual_attempt(const AxisCalibConfig &config, std::optional<float> &offset, float &nominal) {
         const auto measured = manual_measure_axis(config);
         if (!measured.has_value()) {
             return Result::aborted;
@@ -577,20 +581,23 @@ private:
 
         // No target in range -> out of bounds. Report against the nearest and let the caller re-offer.
         if (matched == nullptr) {
-            offset = *measured - nearest->nominal_mm;
+            const float manual_offset = *measured - nearest->nominal_mm;
+            offset = manual_offset;
             nominal = nearest->nominal_mm;
             log_error(NozzleCleanerCalibration,
                 "Nozzle cleaner %c manual offset %.2f out of bounds (max %.1f mm)",
                 (config.axis == AxisEnum::X_AXIS) ? 'X' : 'Y',
-                static_cast<double>(offset), static_cast<double>(offset_tolerance_mm));
+                static_cast<double>(manual_offset), static_cast<double>(offset_tolerance_mm));
             return std::nullopt;
         }
 
-        offset = *measured - matched->nominal_mm;
+        // Manual measurement always yields a value (homing displacement, no probe), so the offset here is
+        // never "not measured"; the results screen is not shown on success, so the out-param stays untouched.
+        const float matched_offset = *measured - matched->nominal_mm;
         if (config.axis == AxisEnum::X_AXIS) {
-            config_store().nozzle_cleaner_x_origin_offset.set(offset);
+            config_store().nozzle_cleaner_x_origin_offset.set(matched_offset);
         } else {
-            config_store().nozzle_cleaner_y_origin_offset.set(offset);
+            config_store().nozzle_cleaner_y_origin_offset.set(matched_offset);
         }
 
 #if HAS_WASTEBIN_FILL_TRACKING()
@@ -602,7 +609,7 @@ private:
 #endif
 
         log_info(NozzleCleanerCalibration, "Nozzle cleaner %c calibrated manually: offset=%.2f",
-            (config.axis == AxisEnum::X_AXIS) ? 'X' : 'Y', static_cast<double>(offset));
+            (config.axis == AxisEnum::X_AXIS) ? 'X' : 'Y', static_cast<double>(matched_offset));
         return Result::success;
     }
 
