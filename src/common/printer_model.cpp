@@ -7,6 +7,7 @@
 #include <common/printer_model.hpp>
 #include <common/printer_model_data.hpp>
 #include <common/extended_printer_type.hpp>
+#include <common/printer_variant/printer_variant.hpp>
 
 // Oak shares build-level printer version 7.1.0 with Core One to avoid bootloader changes.
 // Return coreone to prevent firmware reset.
@@ -205,3 +206,8 @@ static_assert(HAS_GCODE_COMPATIBILITY());
 // Only in case of legacy printers, for new printers the HAS_EXTENDED_PRINTER_TYPE should be used, no need to keep MK3 gcode compatibility for new printers.
 static_assert(HAS_GCODE_COMPATIBILITY() == gcode_compatibility_report_constexpr(firmware_base_constexpr, PrinterModelInfo::get_constexpr(PrinterModel::mk3)).is_compatible);
 #endif
+
+// ExtendedPrinterType changes the printer's external identity (Connect printer type, USB PID, M862
+// answers, error-code prefixes); PrinterVariant is a firmware-internal equipment preset that must
+// never reach those surfaces. See printer_variant.hpp for the decision rule between the two.
+static_assert(HAS_EXTENDED_PRINTER_TYPE() + HAS_PRINTER_VARIANT() <= 1, "At most one printer-type selection mechanism per printer");

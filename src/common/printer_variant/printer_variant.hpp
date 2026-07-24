@@ -3,8 +3,17 @@
 #include <printers.h>
 
 // Some printers ship in feature "editions" that share one firmware and one PrinterModel identity.
-// PrinterVariant selects which edition's default features are enabled. Unlike ExtendedPrinterType it
-// stays firmware-internal, meaning it does not map to a PrinterModel and never reaches Connect / g-code / USB.
+// PrinterVariant selects which edition's default features are enabled.
+//
+// Choosing a mechanism when a printer comes in multiple hardware flavors:
+// - Must the difference be visible outside the printer (Connect printer type, M862 answer, USB PID,
+//   error-code prefix)? Then it is a separate PrinterModel selected via ExtendedPrinterType, with
+//   the ecosystem coordination cost that entails.
+// - Is it bolt-on, field-upgradable equipment that users may mix freely? Then each piece is a
+//   config-store feature flag and the edition is only a non-persisted preset over those flags;
+//   it never reaches Connect / g-code / USB.
+// A printer gets at most one of the two mechanisms (enforced in printer_model.cpp). Do not add
+// a third one.
 
 #if PRINTER_IS_PRUSA_COREONE()
     #define HAS_PRINTER_VARIANT() 1

@@ -7,6 +7,13 @@
 
 // Some printer models share the same firmware, but have a slightly different hardware.
 // ExtendedPrinterType (+ accompanying store item) serves to distinguish them.
+//
+// The stored index selects the effective PrinterModel, which is visible outside the printer
+// (Connect printer type, USB PID, g-code checks, error-code prefixes). Consider it frozen to
+// MK4/MK3.5/XL: new printer families should model removable equipment as config-store feature
+// flags, optionally bundled into a PrinterVariant edition preset (see printer_variant.hpp for
+// the decision rule); a printer gets at most one of the two mechanisms (enforced in
+// printer_model.cpp).
 
 #if PRINTER_IS_PRUSA_MK4()
     #define HAS_EXTENDED_PRINTER_TYPE()                    1
