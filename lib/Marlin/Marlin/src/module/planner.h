@@ -120,7 +120,7 @@ typedef struct PlannerBlock {
 
   uint8_t direction_bits;                   // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
 
-  uint8_t fan_speed[FAN_COUNT];
+  uint8_t print_fan_speed;
 
   // Fields used by the motion planner to manage acceleration
   float nominal_speed,                      // The nominal speed for this block in (mm/sec)
