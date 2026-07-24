@@ -25,7 +25,9 @@ if(HAS_PUPPY_MODULARBED)
 endif()
 
 if(HAS_XBUDDY_EXTENSION)
-  target_sources(firmware PUBLIC xbuddy_extension.cpp xbuddy_extension_bootstrap.cpp)
+  target_sources(
+    firmware PUBLIC cyphal_bridge.cpp xbuddy_extension.cpp xbuddy_extension_bootstrap.cpp
+    )
 endif()
 
 if(HAS_XL_CAN)

@@ -2,7 +2,7 @@
 
 #include <contactless_offset/can_remote_sensor.hpp>
 #include <contactless_offset/tool_sensor.hpp>
-#include <puppies/xbuddy_extension.hpp>
+#include <puppies/cyphal_bridge.hpp>
 #include <puppies/tool_offset_sensor.hpp>
 #include <utils/byte_utils.hpp>
 
@@ -16,13 +16,13 @@ static void on_stream(uint16_t port_id, Bytes payload, void *ctx) {
 
 static void on_start(void *ctx) {
     auto *sensor = static_cast<CanRemoteSensor *>(ctx);
-    buddy::puppies::xbuddy_extension.set_stream_callback(on_stream, sensor);
+    buddy::puppies::cyphal_bridge.set_stream_callback(on_stream, sensor);
     buddy::puppies::tool_offset_sensor.set_config(false, true);
 }
 
 static void on_stop(void * /*ctx*/) {
     buddy::puppies::tool_offset_sensor.set_config(false, false);
-    buddy::puppies::xbuddy_extension.set_stream_callback(nullptr, nullptr);
+    buddy::puppies::cyphal_bridge.set_stream_callback(nullptr, nullptr);
 }
 
 static bool check_hw_error(void *) {

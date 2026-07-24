@@ -61,11 +61,6 @@ public:
 
     bool get_usb_power() const;
 
-    // Cyphal bridge stream callback -- called from puppy task for each
-    // message drained from the XBE CyphalBridgeQueue.
-    using StreamCallback = void (*)(uint16_t port_id, std::span<const std::byte> payload, void *ctx);
-    void set_stream_callback(StreamCallback cb, void *ctx);
-
     // These are called from the puppy task.
     CommunicationStatus refresh(PuppyModbus &);
     CommunicationStatus initial_scan(PuppyModbus &);
@@ -175,15 +170,6 @@ private:
     CommunicationStatus write_chunk(PuppyModbus &);
     CommunicationStatus write_digest(PuppyModbus &, DigestComputeFn compute);
     CommunicationStatus refresh_log_message(PuppyModbus &);
-
-    // Cyphal bridge
-    using CyphalBridge = xbuddy_extension::modbus::CyphalBridge;
-    ModbusInputRegisterBlock<CyphalBridge::address, CyphalBridge> cyphal_bridge;
-    StreamCallback stream_callback_ = nullptr;
-    void *stream_callback_ctx_ = nullptr;
-    bool bridge_has_stale_data_ = false;
-    CommunicationStatus pull_cyphal_bridge(PuppyModbus &);
-    void dispatch_bridge_messages();
 };
 
 extern XBuddyExtension xbuddy_extension;
