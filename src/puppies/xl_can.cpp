@@ -3,6 +3,7 @@
 #include <modbus/server_address.hpp>
 #include <mutex>
 #include <utility>
+#include <puppies/cyphal_bridge.hpp>
 
 namespace buddy::puppies {
 
@@ -22,7 +23,13 @@ CommunicationStatus XlCan::initial_scan(PuppyModbus &bus) {
 }
 
 CommunicationStatus XlCan::refresh(PuppyModbus &bus) {
-    return ping(bus);
+    Lock lock(mutex);
+
+    const auto status_result = bus.read(unit, status, 0);
+
+    cyphal_bridge.refresh(bus, modbus::ServerAddress::xl_can);
+
+    return status_result;
 }
 
 void XlCan::set_otp(const OTP_v5 &v) {

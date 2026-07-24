@@ -31,7 +31,7 @@ if(HAS_XBUDDY_EXTENSION)
 endif()
 
 if(HAS_XL_CAN)
-  target_sources(firmware PUBLIC xl_can.cpp)
+  target_sources(firmware PUBLIC cyphal_bridge.cpp xl_can.cpp)
   # Bridge fw is the xl_can variant of xBuddy Extension, so its Modbus map (and shared headers) come
   # from the xbuddy_extension lib; a bridge-specific reduced layout is a possible future
   # optimization.
