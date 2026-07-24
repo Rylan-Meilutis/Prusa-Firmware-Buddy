@@ -108,16 +108,19 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run(
 #if HAS_PUPPIES_BOOTLOADER()
     while (true) {
         reset_all_puppies();
-        result = run_address_assignment();
-        if (is_puppy_config_ok(result, minimal_config)) {
+        const auto assignment = run_address_assignment();
+        result = assignment.config;
+        if (!assignment.contested && is_puppy_config_ok(result, minimal_config)) {
             // done, continue with bootstrap
             break;
         } else {
-            // inadequate puppy config, will try again
             if (--max_attempts) {
-                log_error(Puppies, "Not enough puppies discovered, will try again");
+                log_error(Puppies, assignment.contested ? "Contested dock discovery, will reset all puppies and try again" : "Not enough puppies discovered, will try again");
                 continue;
             } else {
+                if (assignment.contested) {
+                    fatal_error(ErrCode::ERR_SYSTEM_PUPPY_DISCOVER_ERR);
+                }
     #if HAS_DWARF()
                 if (result.discovered_num() == 0) {
                     fatal_error(ErrCode::ERR_SYSTEM_PUPPY_DISCOVER_ERR);
@@ -243,8 +246,19 @@ bool PuppyBootstrap::is_puppy_config_ok(PuppyBootstrap::BootstrapResult result, 
     return (result.docks_preset & minimal_config.docks_preset) == minimal_config.docks_preset;
 }
 
-PuppyBootstrap::BootstrapResult PuppyBootstrap::run_address_assignment() {
+PuppyBootstrap::AddressAssignmentResult PuppyBootstrap::run_address_assignment() {
     BootstrapResult result = {};
+
+    // The assign_address broadcast is adopted by every puppy listening at
+    // DEFAULT_ADDRESS; the follow-up reset_puppies_range is what evicts the
+    // other docks' puppies back to DEFAULT_ADDRESS. That eviction is a
+    // one-shot pulse with no acknowledgement (controlled via I2C GPIO expander)
+    // so a single missed reset leaves a stray puppy.
+    // Answering at this dock's address — discover() then sees a wrong-type
+    // or colliding reply. Re-running the whole assign+reset+discover
+    // sequence evicts the stray.
+    // The caller must reset all puppies and redo the whole assignment.
+    constexpr unsigned dock_discover_attempts = 3;
 
     for (auto dock = DOCKS.begin(); dock != DOCKS.end(); ++dock) {
         auto puppy_type = to_puppy_type(*dock);
@@ -254,35 +268,55 @@ PuppyBootstrap::BootstrapResult PuppyBootstrap::run_address_assignment() {
         log_info(Puppies, "Discovering whats in dock %s %d",
             get_puppy_info(puppy_type).name, std::to_underlying(*dock));
 
-        // Wait for puppy to boot up
-        osDelay(5);
+        auto outcome = DiscoverResult::silent;
+        for (unsigned attempt = 1; attempt <= dock_discover_attempts; ++attempt) {
+            if (attempt > 1) {
+                log_warning(Puppies, "Dock %d: discovery attempt %u (re-running assign+reset to evict a stray)",
+                    std::to_underlying(*dock), attempt);
+            }
 
-        if (is_dynamicly_addressable(puppy_type)) {
-            // assign address to all of them
-            // this request is no-reply, so there is no issue in sending to multiple puppies
-            assign_address(BootloaderProtocol::Address::DEFAULT_ADDRESS, address);
-
-            // delay to make sure that command was sent fully before reset
-            osDelay(10);
-
-            // reset, all the not-bootstrapped-yet puppies which we don't care about now
-            reset_puppies_range(std::next(dock), DOCKS.end());
+            // Wait for puppy to boot up
             osDelay(5);
-        }
 
-        bool status = discover(puppy_type, address);
-        if (status) {
+            if (is_dynamicly_addressable(puppy_type)) {
+                // assign address to all of them
+                // this request is no-reply, so there is no issue in sending to multiple puppies
+                assign_address(BootloaderProtocol::Address::DEFAULT_ADDRESS, address);
+
+                // delay to make sure that command was sent fully before reset
+                osDelay(10);
+
+                // reset, all the not-bootstrapped-yet puppies which we don't care about now
+                reset_puppies_range(std::next(dock), DOCKS.end());
+                osDelay(5);
+            }
+
+            outcome = discover(puppy_type, address);
+            if (outcome != DiscoverResult::contested) {
+                // found, or genuinely silent (empty dock) — re-running
+                // assign+reset can only help against a stray, don't burn
+                // boot time on an empty dock.
+                break;
+            }
+        }
+        if (outcome == DiscoverResult::found) {
             log_info(Puppies, "Dock %d: discovered puppy %s, assigned address: %d",
                 std::to_underlying(*dock), get_puppy_info(puppy_type).name, address);
             result.set_dock_occupied(*dock);
+        } else if (outcome == DiscoverResult::contested) {
+            log_warning(Puppies, "Dock %d: still contested after %u attempts, need to redo the whole assignment",
+                std::to_underlying(*dock), dock_discover_attempts);
+            return { .config = result, .contested = true };
         } else {
             log_info(Puppies, "Dock %d: no puppy discovered", std::to_underlying(*dock));
         }
     }
 
-    verify_address_assignment(result);
+    if (!verify_address_assignment(result)) {
+        return { .config = result, .contested = true };
+    }
 
-    return result;
+    return { .config = result, .contested = false };
 }
 
 void PuppyBootstrap::assign_address(BootloaderProtocol::Address current_address, BootloaderProtocol::Address new_address) {
@@ -294,7 +328,7 @@ void PuppyBootstrap::assign_address(BootloaderProtocol::Address current_address,
     }
 }
 
-void PuppyBootstrap::verify_address_assignment(BootstrapResult result) {
+bool PuppyBootstrap::verify_address_assignment(BootstrapResult result) {
     // reset every puppy that is supposed to be empty
     for (auto dock = DOCKS.begin(); dock != DOCKS.end(); ++dock) {
         if (!result.is_dock_occupied(*dock)) {
@@ -307,8 +341,9 @@ void PuppyBootstrap::verify_address_assignment(BootstrapResult result) {
     uint16_t protocol_version;
     BootloaderProtocol::status_t status = flasher.get_protocolversion(protocol_version);
     if (status != BootloaderProtocol::status_t::NO_RESPONSE) {
-        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_NO_ADDR);
+        return false;
     }
+    return true;
 }
 
 void PuppyBootstrap::reset_all_puppies() {
@@ -366,23 +401,27 @@ void PuppyBootstrap::reset_puppies_range(DockIterator begin, DockIterator end) {
     write_puppies_reset_pin(begin, end, Pin::State::low);
 }
 
-bool PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address address) {
+PuppyBootstrap::DiscoverResult PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address address) {
     flasher.set_address(address);
 
     auto check_status = [](BootloaderProtocol::status_t status) {
-        if (status == BootloaderProtocol::status_t::NO_RESPONSE) {
-            return false;
-        } else if (status != BootloaderProtocol::status_t::COMMAND_OK) {
-            log_error(Puppies, "Puppy discover error: %d", status);
-            fatal_error(ErrCode::ERR_SYSTEM_PUPPY_DISCOVER_ERR);
-        } else {
-            return true;
-        }
+        switch (status) {
+        case BootloaderProtocol::status_t::COMMAND_OK:
+            return DiscoverResult::found;
+        case BootloaderProtocol::status_t::NO_RESPONSE:
+            return DiscoverResult::silent;
+        default:
+            // Anything else (INVALID_CRC, INCOMPLETE_RESPONSE, ...) is a garbled
+            // reply — typically two puppies answering at once after both adopted
+            // the assign_address broadcast.
+            log_warning(Puppies, "Puppy discover: garbled reply (status %d)", status);
+            return DiscoverResult::contested;
+        };
     };
 
     uint16_t protocol_version;
-    if (check_status(flasher.get_protocolversion(protocol_version)) == false) {
-        return false;
+    if (auto rc = check_status(flasher.get_protocolversion(protocol_version)); rc != DiscoverResult::found) {
+        return rc;
     }
     if ((protocol_version & 0xff00) != (BootloaderProtocol::BOOTLOADER_PROTOCOL_VERSION & 0xff00)) // Check major version of bootloader protocol version before anything else
     {
@@ -391,16 +430,18 @@ bool PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address a
     }
 
     BootloaderProtocol::HwInfo hwinfo;
-    if (check_status(flasher.get_hwinfo(hwinfo)) == false) {
-        return false;
+    if (check_status(flasher.get_hwinfo(hwinfo)) != DiscoverResult::found) {
+        log_info(Puppies, "discover_once: get_hwinfo -> no/garbled answer after protocol_version");
+        return DiscoverResult::contested;
     }
 
     // Here it is possible to read raw puppy's OTP before flashing, perhaps to flash a different firmware
     if (protocol_version >= 0x0302) { // OTP read was added in protocol 0x0302
 
         uint8_t otp[32]; // OTP v5 will fit to 32 Bytes
-        if (check_status(flasher.read_otp_cmd(0, otp, 32)) == false) {
-            return false;
+        if (check_status(flasher.read_otp_cmd(0, otp, 32)) != DiscoverResult::found) {
+            log_info(Puppies, "discover_once: read_otp -> no/garbled answer after protocol_version");
+            return DiscoverResult::contested;
         }
         auto puppy_datamatrix = otp_parse_datamatrix(otp, sizeof(otp));
         if (puppy_datamatrix) {
@@ -417,7 +458,9 @@ bool PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address a
     } // else - older bootloader has revision 0
 
     if (hwinfo.hw_type != get_puppy_info(type).hw_info_hwtype) {
-        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_UNKNOWN_TYPE);
+        log_warning(Puppies, "Puppy at addr 0x%02x has hw_type %u, expected %u (%s) — stray puppy from another dock?",
+            std::to_underlying(address), hwinfo.hw_type, get_puppy_info(type).hw_info_hwtype, get_puppy_info(type).name);
+        return DiscoverResult::contested;
     }
     if (hwinfo.bl_version < MINIMAL_BOOTLOADER_VERSION) {
         log_error(Puppies, "Puppy's bootloader is too old %04" PRIx32 " buddy wants %04" PRIx32, hwinfo.bl_version, MINIMAL_BOOTLOADER_VERSION);
@@ -425,18 +468,21 @@ bool PuppyBootstrap::discover_once(PuppyType type, BootloaderProtocol::Address a
     }
 
     // puppy responded, all is as expected
-    return true;
+    return DiscoverResult::found;
 }
 
-bool PuppyBootstrap::discover(PuppyType type, BootloaderProtocol::Address address) {
+PuppyBootstrap::DiscoverResult PuppyBootstrap::discover(PuppyType type, BootloaderProtocol::Address address) {
     const auto timeout_ms = 1000;
     const auto start_ms = ticks_ms();
+    bool contested = false;
     for (;;) {
-        if (discover_once(type, address)) {
-            return true;
+        const auto rc = discover_once(type, address);
+        if (rc == DiscoverResult::found) {
+            return rc;
         }
+        contested |= (rc == DiscoverResult::contested);
         if (ticks_diff(ticks_ms(), start_ms) > timeout_ms) {
-            return false;
+            return contested ? DiscoverResult::contested : DiscoverResult::silent;
         }
     }
 }
