@@ -43,7 +43,8 @@ public:
     /// Executes the modbus transcation blockingly - needed for the bootstrap
     ///
     /// CONSTRAINT: never call with nreset=true outside the bootstrap arming
-    /// step — Q2 disturbs MB NRST on BOTH edges, so a rising edge at runtime
+    /// step — Q2 (the transistor controlling the edge network NRST on the XLCAN)
+    /// disturbs MB NRST on BOTH edges, so a rising edge at runtime
     /// resets (or hangs) the running MB app. The HIGH phase must also be held
     /// long enough to arm the edge network before the falling edge; both
     /// invariants are enforced in write_dock_reset_pin (PuppyBootstrap.cpp),

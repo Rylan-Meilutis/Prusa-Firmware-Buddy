@@ -29,7 +29,9 @@ static PuppyBus::Pause pause_for_address(uint8_t address) {
 
     case PuppyBootstrap::get_boot_address_for_dock(Dock::XBUDDY_EXTENSION):
     case PuppyBootstrap::get_boot_address_for_dock(Dock::INDX_HEAD):
-        // BFW-8690-retuned bootloaders.
+    case PuppyBootstrap::get_boot_address_for_dock(Dock::XL_CAN):
+        // BFW-8690-retuned bootloaders (the XL-CAN bridge's v303 bootloader
+        // shares the retuned frame-complete threshold).
         return PuppyBus::Pause::Short;
     }
     bsod_unreachable();

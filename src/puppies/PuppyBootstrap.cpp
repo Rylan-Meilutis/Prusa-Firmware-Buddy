@@ -498,6 +498,8 @@ PuppyBootstrap::DiscoverResult PuppyBootstrap::discover_once(PuppyType type, Boo
             indx.set_otp(*reinterpret_cast<const OTP_v5 *>(otp));
         }
 #endif
+        // The XL-CAN bridge is brought up out-of-band by xl_can_bootstrap(),
+        // which reads its own OTP; Dock::XL_CAN never reaches discover_once.
     } // else - older bootloader has revision 0
 
     if (hwinfo.hw_type != get_puppy_info(type).hw_info_hwtype) {

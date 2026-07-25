@@ -51,6 +51,7 @@
 #include <option/has_xl_can.h>
 #if HAS_XL_CAN()
     #include <puppies/xl_can.hpp>
+    #include <puppies/xl_can_bootstrap.hpp>
 #endif
 
 #include <option/has_mmu2.h>
@@ -131,6 +132,22 @@ static void xbuddy_extension_verify_running(PuppyModbus &bus) {
     const auto start_ms = ticks_ms();
     for (;;) {
         if (xbuddy_extension.ping(bus) != CommunicationStatus::ERROR) {
+            return;
+        }
+        if (ticks_diff(ticks_ms(), start_ms) > timeout_ms) {
+            puppy_run_timeout();
+        }
+    }
+}
+#endif
+
+#if HAS_XL_CAN()
+static bool xl_can_requires_reset = false;
+static void xl_can_verify_running(PuppyModbus &bus) {
+    constexpr auto timeout_ms = 200;
+    const auto start_ms = ticks_ms();
+    for (;;) {
+        if (xl_can.ping(bus) != CommunicationStatus::ERROR) {
             return;
         }
         if (ticks_diff(ticks_ms(), start_ms) > timeout_ms) {
@@ -317,6 +334,10 @@ static void puppy_task_loop(PuppyModbus &bus) {
                 if (status == CommunicationStatus::ERROR) {
                     log_error(Puppies, "Loop exit: xl_can.refresh() ERROR");
     #if !PUPPY_TASK_DEBUG()
+                    // Force re-bootstrap of the bridge on recovery; otherwise MB
+                    // stays held in reset (PC13) and never re-enumerates. Mirrors
+                    // xbe_requires_reset above.
+                    xl_can_requires_reset = true;
                     return;
     #endif
                 }
@@ -406,6 +427,7 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 
 #if HAS_XL_CAN()
     if (xl_can.is_enabled() && xl_can.initial_scan(bus) == CommunicationStatus::ERROR) {
+        xl_can_requires_reset = true;
         return false;
     }
 #endif
@@ -558,6 +580,30 @@ void run() {
         xbe_requires_reset = false;
 #endif
 
+#if HAS_XL_CAN()
+        // Probe for the XL-CAN bridge on first boot; the result determines
+        // whether this is an XLS (bridge present) or plain XL (absent). On XLS
+        // the bridge is brought to app mode here before the standard
+        // PuppyBootstrap loop, mirroring the xBE → INDX_HEAD bring-up above.
+        // On plain XL the bridge and tool-offset-sensor stay disabled.
+        if (first_run) {
+            BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
+            xl_can.set_enabled(xl_can_probe(bootloader_protocol));
+        }
+        if (xl_can.is_enabled() && (first_run || xl_can_requires_reset)) {
+            {
+                BootloaderProtocol bootloader_protocol { PuppyModbus::share_buffer().data() };
+                xl_can_bootstrap(bootloader_protocol);
+            }
+            xl_can_verify_running(bus);
+            // Bridge enters app with PC13 LOW (hal::mmu::init) = MB reset
+            // edge network disarmed. Arming happens inside bootstrap_puppies:
+            // write_dock_reset_pin() holds the MODULAR_BED H write for
+            // mb_reset_arm_hold_ms before the reset edge, on every round.
+            xl_can_requires_reset = false;
+        }
+#endif
+
 #if HAS_PUPPY_BOOTSTRAP()
         // reset and flash the puppies
         auto bootstrap_result = bootstrap_puppies(minimal_puppy_config, bus);
@@ -578,6 +624,9 @@ void run() {
             }
         }
     #endif
+        // No set_enabled() for the bridge here: it is deliberately absent
+        // from DOCKS, so is_dock_occupied(Dock::XL_CAN) is always false and
+        // would clobber the flag the probe set before bootstrap_puppies.
 
         // wait for puppies to boot up, ensure they are running
         verify_puppies_running(bus);

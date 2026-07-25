@@ -13,6 +13,7 @@
 #include <option/has_puppy_modularbed.h>
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_xbuddy_extension.h>
+#include <option/has_xl_can.h>
 #include <option/resources.h>
 #include <version/version.hpp>
 
@@ -99,6 +100,11 @@ ScreenSplash::ScreenSplash()
                 { BootstrapStage::flashing_indx_head, 10 },
                 { BootstrapStage::verifying_indx_head, 1 },
     #endif
+    #if HAS_XL_CAN()
+                { BootstrapStage::looking_for_xl_can, 1 },
+                { BootstrapStage::flashing_xl_can, 10 },
+                { BootstrapStage::verifying_xl_can, 1 },
+    #endif
 #endif
         }) };
 
@@ -182,6 +188,14 @@ static const char *message(BootstrapStage stage) {
         return "Flashing INDX head"; // INDX_TODO: Verify text with product
     case BootstrapStage::verifying_indx_head:
         return "Verifying INDX head"; // INDX_TODO: Verify text with product
+    #endif
+    #if HAS_XL_CAN()
+    case BootstrapStage::looking_for_xl_can:
+        return "Looking for XL-CAN";
+    case BootstrapStage::flashing_xl_can:
+        return "Flashing XL-CAN";
+    case BootstrapStage::verifying_xl_can:
+        return "Verifying XL-CAN";
     #endif
 #endif
     }
