@@ -142,8 +142,12 @@ void create_hotend_clearance() {
     // Keep the hot nozzle away from the sheet while it rises from the probing
     // temperature to the extrusion temperature. On moving-bed machines this
     // lowers the bed; on bedslingers it raises the tool by the same clearance.
-    constexpr float heating_clearance = 10.0f;
-    do_blocking_move_to_z(std::min(current_position.z + heating_clearance, float(Z_MAX_POS)), 5.0f);
+    // This is an absolute minimum, not a relative move: several calibration
+    // phases request clearance and must not lower the bed another 10 mm each
+    // time.
+    constexpr float heating_clearance_z = 10.0f;
+    if (current_position.z < heating_clearance_z)
+        do_blocking_move_to_z(heating_clearance_z, 5.0f);
 }
 
 void pa_fsm_change(const PhasesPressureAdvanceCalibration phase, const uint8_t progress, const uint8_t slot) {
@@ -335,12 +339,12 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            begin_pa_probe_preheat(PhysicalToolIndex::from_raw(0));
             if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) return false;
             // Move the sheet away immediately after homing. MMU preparation
-            // and the remaining probe-temperature wait must not leave the
-            // nozzle resting at the homed sheet height.
+            // and all heating must not leave the nozzle at the homed sheet
+            // height.
             create_hotend_clearance();
+            begin_pa_probe_preheat(PhysicalToolIndex::from_raw(0));
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
             if (!path_was_empty) park_before_mmu_unload(entry.logical_filament);
             if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
@@ -565,13 +569,15 @@ void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
     // known gap below the off-bed service position prevents the hanging strand
     // from growing into a large loop that can curl onto the printable surface.
     const float calibration_z = std::isfinite(anchor_z) ? anchor_z + 3.0f : 3.0f;
-    mapi::home_if_needed_and_park({
-        .x = pa_anchor_x(slot),
-        .y = pa_front_approach_y,
-        .z = std::max(calibration_z, 10.0f),
-    });
-    // Axis-ordered entry prevents a diagonal traverse through the vent lever.
-    move_to_front_service_position(pa_anchor_x(slot), calibration_z);
+    const float x = pa_anchor_x(slot);
+    create_hotend_clearance();
+    // The local anchor probe finishes at X=x+3, Y=5, already to the right of
+    // the CORE One vent lever. Travel directly down that safe X corridor.
+    // Routing through the generic park first caused a conspicuous Y=5 -> 12
+    // -> front reversal and an unnecessary bed down/up cycle.
+    do_blocking_move_to_x(x, 50.0f);
+    do_blocking_move_to_y(Y_MIN_POS + 1.0f, 50.0f);
+    do_blocking_move_to_z(calibration_z, 5.0f);
 #endif
 }
 } // namespace
@@ -738,16 +744,15 @@ void PrusaGcodeSuite::M976() {
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
-        // With filament already loaded, lower the nozzle to the material's
-        // dedicated probing/preheat temperature before homing and probing.
         // MMU batches arrive here with P/Z after probing while unloaded.
-        begin_pa_probe_preheat(*selected_tool);
         pa_fsm_change(PhasesPressureAdvanceCalibration::homing, 8, slot);
         if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
             SERIAL_ERROR_MSG("M976 homing failed");
             return;
         }
         create_hotend_clearance();
+        // Begin heating only after the bed/nozzle separation is established.
+        begin_pa_probe_preheat(*selected_tool);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::homing)) {
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
             planner.set_max_volumetric_flow(slot, material_flow_limit(slot));
