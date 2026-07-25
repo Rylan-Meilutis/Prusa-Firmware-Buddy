@@ -15,12 +15,14 @@
 #include <odometer.hpp>
 #include <filament_to_load.hpp>
 #include <M70X.hpp>
+#include <optional>
 
 LOG_COMPONENT_REF(MMU2);
 
 namespace MMU2 {
 
 static bool serial_host_mmu_error_reported = false;
+static std::optional<ErrorData> active_mmu_error;
 
 void CheckErrorScreenUserInput() {
     // A "temporary" workaround:
@@ -49,6 +51,15 @@ void ReportErrorHook(ErrorData d) {
     if (d.errorCode == ErrorCode::OK || d.errorCode == ErrorCode::RUNNING) {
         return;
     }
+
+    // The MMU repeats an unresolved error roughly once per second. One report
+    // is sufficient to create and retain the recovery FSM; continually
+    // replacing it makes the serial host emit the same notification forever.
+    // A genuinely different error is still delivered immediately.
+    if (active_mmu_error == d) {
+        return;
+    }
+    active_mmu_error = d;
 
     if (!serial_host_mmu_error_reported) {
         defer_serial_host_mmu_paused();
@@ -81,6 +92,9 @@ void BeginReport([[maybe_unused]] ProgressData d) {
 }
 
 void EndReport([[maybe_unused]] ProgressData d) {
+    // The operation completed or recovery succeeded. Re-arm reporting so a
+    // recurrence during a later operation is announced once again.
+    active_mmu_error.reset();
     if (serial_host_mmu_error_reported) {
         defer_serial_host_mmu_resume();
         serial_host_mmu_error_reported = false;
