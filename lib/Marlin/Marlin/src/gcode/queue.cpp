@@ -38,6 +38,7 @@ GCodeQueue queue;
     #include "serial_printing.hpp"
 #endif
 #include "marlin_server.hpp"
+#include <common/marlin_server_types/fsm/filament_change_phases.hpp>
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
 #include <optional>
