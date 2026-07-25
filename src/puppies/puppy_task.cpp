@@ -169,7 +169,7 @@ static void verify_puppies_running(PuppyModbus &bus) {
     do {
         bool modular_bed_ok = true;
     #if HAS_PUPPY_MODULARBED()
-        modular_bed_ok = !modular_bed.is_enabled() || (modular_bed.ping(bus) != CommunicationStatus::ERROR);
+        modular_bed_ok = modular_bed.ping(bus) != CommunicationStatus::ERROR;
     #endif
 
         uint8_t num_dwarfs_ok = 0, num_dwarfs_dead = 0;
@@ -610,10 +610,6 @@ void run() {
         // once some puppies are detected, consider this minimal puppy config (do no allow disconnection of puppy while running)
         minimal_puppy_config = bootstrap_result;
 
-    #if HAS_PUPPY_MODULARBED()
-        // set what puppies are connected
-        modular_bed.set_enabled(bootstrap_result.is_dock_occupied(Dock::MODULAR_BED));
-    #endif
     #if HAS_DWARF()
         for (const auto dwarf_dock : DWARFS) {
             auto dwarf_index = to_dwarf_index(dwarf_dock);

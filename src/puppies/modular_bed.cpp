@@ -35,7 +35,7 @@ METRIC_DEF(metric_bedlet_currents, "bedlet_curr", METRIC_VALUE_CUSTOM, 0, METRIC
 METRIC_DEF(metric_mcu_temperature, "bed_mcu_temp", METRIC_VALUE_FLOAT, 0, METRIC_DISABLED);
 
 ModularBed::ModularBed(uint8_t modbus_address)
-    : ModbusDevice(modbus_address) {}
+    : unit(modbus_address) {}
 
 CommunicationStatus ModularBed::ping(PuppyModbus &bus) {
     Lock guard(mutex);
