@@ -68,12 +68,12 @@ uint8_t GCodeQueue::length = 0,  // Count of commands in the queue
         GCodeQueue::index_r = 0, // Ring buffer read position
         GCodeQueue::index_w = 0; // Ring buffer write position
 
-char GCodeQueue::command_buffer[BUFSIZE][MAX_CMD_SIZE];
+char GCodeQueue::command_buffer[GCodeQueue::recovery_capacity][MAX_CMD_SIZE];
 
 uint32_t GCodeQueue::sdpos = GCodeQueue::SDPOS_INVALID;
 uint32_t GCodeQueue::last_executed_sdpos = GCodeQueue::SDPOS_INVALID;
 uint32_t GCodeQueue::executed_commmand_count = 0;
-uint32_t GCodeQueue::sdpos_buffer[BUFSIZE];
+uint32_t GCodeQueue::sdpos_buffer[GCodeQueue::recovery_capacity];
 bool GCodeQueue::current_command_serial = false;
 bool GCodeQueue::pause_serial_commands = false;
 
@@ -82,7 +82,7 @@ bool GCodeQueue::pause_serial_commands = false;
  */
 #if NUM_SERIAL > 1
   // #error dead code found by automatic analyses (see BFW-5461)
-  int16_t GCodeQueue::port[BUFSIZE];
+  int16_t GCodeQueue::port[GCodeQueue::recovery_capacity];
 #endif
 
 /**
@@ -92,7 +92,7 @@ bool GCodeQueue::pause_serial_commands = false;
 // Number of characters read in the current line of serial input
 static int serial_count[NUM_SERIAL] = { 0 };
 
-bool send_ok[BUFSIZE];
+bool send_ok[GCodeQueue::recovery_capacity];
 
 /**
  * Next Injected Command pointer. nullptr if no commands are being injected.
@@ -142,7 +142,7 @@ void GCodeQueue::_commit_command(bool say_ok
   #endif
   sdpos_buffer[index_w] = sdpos;
 
-  if (++index_w >= BUFSIZE) index_w = 0;
+  if (++index_w >= recovery_capacity) index_w = 0;
   length++;
 }
 
@@ -157,7 +157,7 @@ bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
     , int16_t pn/*=-1*/
   #endif
 ) {
-  if (*cmd == ';' || length >= BUFSIZE) return false;
+  if (*cmd == ';' || length >= recovery_capacity) return false;
   strcpy(command_buffer[index_w], cmd);
   _commit_command(say_ok
     #if NUM_SERIAL > 1
@@ -298,7 +298,9 @@ void GCodeQueue::ok_to_send() {
         SERIAL_ECHO(*p++);
     }
     SERIAL_ECHOPGM(" P"); SERIAL_ECHO(int(BLOCK_BUFFER_SIZE - planner.movesplanned() - 1));
-    SERIAL_ECHOPGM(" B"); SERIAL_ECHO(BUFSIZE - length);
+    // Recovery reserve slots are intentionally hidden from normal host flow
+    // control. Never advertise them as additional streaming capacity.
+    SERIAL_ECHOPGM(" B"); SERIAL_ECHO(length < BUFSIZE ? BUFSIZE - length : 0);
   #endif
   SERIAL_EOL();
 }
@@ -383,6 +385,70 @@ static bool is_print_abort_command(const char *cmd) {
   return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
 }
 
+static bool serial_service_window_active() {
+  if (marlin_server::printer_paused_extended() || marlin_server::aborting_or_aborted()) {
+    return true;
+  }
+
+  return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+    const auto top = states.get_top();
+    if (!top) {
+      return false;
+    }
+    const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
+    for (const Response response : responses) {
+      if (response != Response::_none) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+static bool handle_dialog_service_response(const char *command) {
+  if (!command_code_is(command, 'M', 876)) {
+    return false;
+  }
+
+  const char *spos = strchr(command, 'S');
+  if (!spos) {
+    return false;
+  }
+  char *end = nullptr;
+  const long response_index = strtol(spos + 1, &end, 10);
+  if (end == spos + 1 || response_index < 0) {
+    SERIAL_ECHOLNPGM("echo:M876 requires a non-negative S button index");
+    return true;
+  }
+
+  std::optional<EncodedFSMResponse> encoded_response;
+  marlin_vars().peek_fsm_states([&](const fsm::States &states) {
+    const auto top = states.get_top();
+    if (!top) {
+      return;
+    }
+    const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
+    if (static_cast<size_t>(response_index) >= responses.size()) {
+      return;
+    }
+    const Response response = responses[response_index];
+    if (response == Response::_none) {
+      return;
+    }
+    encoded_response = EncodedFSMResponse {
+      .response = FSMResponseVariant::make(response),
+      .fsm_and_phase = FSMAndPhase(top->fsm_type, top->data.GetPhase()),
+    };
+  });
+
+  if (!encoded_response) {
+    SERIAL_ECHOLNPGM("echo:M876 response ignored: no matching active dialog button");
+    return true;
+  }
+  marlin_server::set_response(*encoded_response);
+  return true;
+}
+
 #if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
 static bool handle_stuck_filament_response(const char *command) {
   if (!command_code_is(command, 'M', 1601)) return false;
@@ -447,7 +513,8 @@ void GCodeQueue::get_serial_commands() {
   /**
    * Loop while serial characters are incoming and the queue is not full
    */
-  while (length < BUFSIZE && serial_data_available()) {
+  while ((length < BUFSIZE || (serial_service_window_active() && length < recovery_capacity))
+      && serial_data_available()) {
     for (uint8_t i = 0; i < NUM_SERIAL; ++i) {
       int c;
       if ((c = read_serial(i)) < 0) continue;
@@ -551,6 +618,15 @@ void GCodeQueue::get_serial_commands() {
             continue;
           }
         #endif
+
+        // M876 S<n> selects the zero-based button from the currently visible
+        // FSM dialog. Consume it directly so MMU Retry and other recovery
+        // actions cannot be blocked behind the command that owns the normal
+        // foreground queue.
+        if (handle_dialog_service_response(command)) {
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
 
         #if defined(NO_TIMEOUTS) && NO_TIMEOUTS > 0
           // #error dead code found by automatic analyses (see BFW-5461)
@@ -660,7 +736,7 @@ void GCodeQueue::advance() {
   // The queue may be reset by a command handler or by code invoked by idle() within a handler
   if (length) {
     --length;
-    if (++index_r >= BUFSIZE) index_r = 0;
+    if (++index_r >= recovery_capacity) index_r = 0;
   }
 
 }
