@@ -287,8 +287,10 @@ filament present. The PA-specific load, unload, and free-air excitation share
 the same per-slot position at `Y_MIN+1`; the load extends exactly 2 mm beyond
 the modeled nozzle path. Clean after a real unload before any cross-bed move,
 restore previous temperatures, and leave the nozzle unloaded for the slicer's
-following MBL. INDX continues to use dock-aware purge-bin travel and counted
-fast/slow pellets.
+following MBL. Anchor occupancy is RAM-only and scoped to one print job:
+`reset_job_results()` must clear it so a cleared sheet is not rejected by the
+next print, while `M976 C L<slot>` permits an explicit same-job retry. INDX
+continues to use dock-aware purge-bin travel and counted fast/slow pellets.
 
 Important areas include `src/marlin_stubs/M976.cpp`,
 `src/common/feature/extrusion_calibration.*` (or `src/feature/` on newer
