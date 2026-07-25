@@ -31,6 +31,7 @@ float monitor_peak_pressure = 0;
 float monitor_bad_time = 0;
 float monitor_breakout_time = 0;
 bool monitor_breakout_seen = false;
+bool monitor_collapse_seen = false;
 }
 
 void Capture::start() {
@@ -186,6 +187,7 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         monitor_idle_baseline += 0.004f * (monitor_filtered_load - monitor_idle_baseline);
         monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
         monitor_breakout_seen = false;
+        monitor_collapse_seen = false;
         monitor_peak_pressure = 0;
         return;
     }
@@ -202,7 +204,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     const bool qualified = monitor_forward_time > 2.0f && monitor_forward_e > 2.0f;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.25f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.30f;
-    monitor_bad_time = (qualified && (pressure_missing || pressure_collapsed)) ? monitor_bad_time + dt : 0;
+    const bool bad_pressure = qualified && (pressure_missing || pressure_collapsed);
+    monitor_bad_time = bad_pressure ? monitor_bad_time + dt : 0;
+    monitor_collapse_seen = bad_pressure ? (monitor_collapse_seen || pressure_collapsed) : false;
 
     // PATuner max-flow markers: sustained force departure above the healthy
     // pressure curve is the soft melt-limit signal; a later collapse is skip.
@@ -221,9 +225,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Require a full three seconds of continuously bad pressure evidence after
     // the initial motion qualification; any healthy sample resets bad_time.
     if (monitor_bad_time > 3.0f) {
-        wanted = pressure_collapsed && monitor_breakout_seen
+        wanted = monitor_collapse_seen && monitor_breakout_seen
             ? ExtrusionFault::flow_breakout
-            : pressure_collapsed ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+            : monitor_collapse_seen ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
     }
     if (wanted != ExtrusionFault::none) {
         ExtrusionFault expected_none = ExtrusionFault::none;
@@ -235,9 +239,12 @@ void reset_job_results() {
     results = {};
     profile_pressure_advance = NAN;
     calibrated_pressure_advance = NAN;
+    // Anchor occupancy protects only the active print job. A new print starts
+    // after the user has had an opportunity to clear the sheet; carrying this
+    // RAM latch across jobs made a physically clean slot cancel the next
+    // serial print before calibration could run.
+    anchors.store(0, std::memory_order_release);
     reset_pressure_monitor();
-    // Anchor occupancy intentionally survives job boundaries. Physical debris
-    // does not disappear when a print ends.
 }
 
 void note_profile_pressure_advance(const float value) { profile_pressure_advance = value; }
@@ -264,6 +271,7 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_bad_time = 0;
     monitor_breakout_time = 0;
     monitor_breakout_seen = false;
+    monitor_collapse_seen = false;
     monitor_peak_pressure = 0;
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_enabled.store(reference.valid, std::memory_order_release);
@@ -292,6 +300,7 @@ void suspend_pressure_monitor(const bool suspend) {
             monitor_last_time = 0;
             monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
             monitor_breakout_seen = false;
+            monitor_collapse_seen = false;
             monitor_peak_pressure = 0;
         }
         break;
@@ -312,6 +321,7 @@ void acknowledge_extrusion_fault() {
     monitor_last_time = 0;
     monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
     monitor_breakout_seen = false;
+    monitor_collapse_seen = false;
     monitor_peak_pressure = 0;
 }
 
