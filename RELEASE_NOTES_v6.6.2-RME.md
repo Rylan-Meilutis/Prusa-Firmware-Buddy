@@ -69,6 +69,7 @@
       * Sustained high pressure is now a soft max-flow marker rather than an immediate stuck-filament fault; a pause requires a subsequent pressure collapse or missing pressure rise, preventing thick healthy purge lines from triggering `M1601`
       * Runtime stuck-filament detection refreshes its idle baseline after settled layer travel, qualifies after 3 seconds/3 mm of continuous extrusion, and requires another 5 seconds/5 mm of bad pressure evidence; normal pressure, a pause, travel, or retraction resets the evidence
       * Stuck-filament recovery offers Continue, Unload, and Abort on-screen; paused serial hosts have the same direct `M1601 C`, `M1601 U`, and `M1601 A` actions
+      * Connect reports Finished/Stopped only while the corresponding result screen is active and reports Idle from the home screen; aborts from nested recovery prompts retain normal cleanup and the stopped-result screen
       * Pressure-collapse evidence remains latched throughout that continuous bad-pressure window, preserving accurate grinding/tangle classification while the reference peak decays
       * Anchor occupancy is scoped to the active print job and resets with PA job state, preventing a cleared plate from cancelling the next serial print while preserving same-job collision protection
       * Front-edge PA travel starts to the right of the CORE One vent lever and uses an ordered safe approach; INDX retains dock-aware `mapi::park` waste-bin travel

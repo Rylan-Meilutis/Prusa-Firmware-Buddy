@@ -2873,6 +2873,19 @@ static void _server_print_loop(void) {
             break; // Wait for homing to end
         }
 
+        // Preserve the normal cleanup/result UI even when abort originates in
+        // a nested recovery dialog such as the stuck-filament prompt.
+#if HAS_SERIAL_PRINT()
+        if (server.print_is_serial) {
+            if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
+                fsm_create(PhasesSerialPrinting::active);
+            }
+        } else
+#endif
+            if (!fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_create(PhasesPrinting::active);
+        }
+
         // Unstuck any operation that is skippable
         skippable_gcode().request_skip();
 
