@@ -26,7 +26,8 @@ endif()
 
 if(HAS_XBUDDY_EXTENSION)
   target_sources(
-    firmware PUBLIC cyphal_bridge.cpp xbuddy_extension.cpp xbuddy_extension_bootstrap.cpp
+    firmware PUBLIC cyphal_bridge.cpp out_of_band_bootstrap.cpp xbuddy_extension.cpp
+                    xbuddy_extension_bootstrap.cpp
     )
 endif()
 
