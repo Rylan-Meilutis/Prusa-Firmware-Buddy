@@ -22,15 +22,16 @@ M976 exit paths.
 
 Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. On final release, discard the pre-maintenance E/time baseline, refresh the idle baseline after settled layer travel, require three seconds and 3 mm of continuous forward extrusion before pressure evidence qualifies, then require both five continuous seconds and 5 mm of missing/collapsed pressure before raising a fault. A healthy-pressure sample, pause, retraction, load, or unload resets that bad-evidence timer and distance. Sustained high pressure alone is a soft max-flow marker; it becomes a `flow_breakout` fault only after pressure subsequently collapses. Runtime expected pressure must use the calibrated load difference, not the absolute tared low-speed load. Regression-test that thick purge lines, layer transitions, and final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition. Stuck-filament recovery must expose Continue, Unload, and Abort, acknowledge/rearm the fault latch, restore any displaced X/Y/Z axis before successful resume, and never emit a host resume after abort. Preserve direct paused-host actions `M1601 C`, `M1601 U`, and `M1601 A`; these must be consumed from serial RX while the foreground M1601 is blocked and ignored safely when no matching prompt is active. Aborting from the stuck-filament dialog must retain the printing FSM through normal cleanup and show the stopped-result screen. Connect may report Finished/Stopped only while the matching normal or serial result UI is active; once the home screen is active it must report Idle.
 
-Keep two serial recovery slots outside the normal `BUFSIZE` streaming limit.
-Open them only while a pause, abort, or top-most FSM with actionable buttons is
-active: the first absorbs a line already in flight when the error was raised
-and the second receives the service action. Keep advanced-OK `B` reporting
+Keep two serial recovery slots outside the normal `BUFSIZE` streaming limit and
+leave them active at all times, including blocking heater waits before a
+pause/error FSM exists. The first absorbs a line already in flight and the
+second receives the service action. Keep advanced-OK `B` reporting
 clamped to the normal queue size so hosts never treat the reserve as ordinary
-streaming capacity. Consume `M876 S<n>` directly from serial RX, validate the
-zero-based index against the active top-most dialog, and preserve the direct
-paths for `M1601 C/U/A`, print abort, heat-wait cancel, emergency stop, and
-quick-stop.
+streaming capacity. Consume serial `M601` directly, cancel an active heater
+wait before requesting the pause, consume `M876 S<n>` directly from serial RX,
+validate the zero-based index against the active top-most dialog, and preserve
+the direct paths for `M1601 C/U/A`, print abort, heat-wait cancel, emergency
+stop, and quick-stop.
 
 Keep PA service travel collision-safe. CORE One/Core One L front-edge anchors begin to the right of the vent lever and enter deep-front Y through an ordered safe-Y/X/Y path. After the local probe finishes inside that safe corridor, move directly to the off-bed extrusion point; do not route through generic park and then reverse direction. The 10 mm heating clearance is an idempotent absolute minimum, and the 170 C preheat must not start until homing is complete and that clearance exists. INDX must continue using `mapi::park(ParkPosition::purge)` rather than direct XY motion so it exits the dock area perpendicularly and applies the calibrated nozzle-cleaner/waste-bin avoidance pattern.
 
