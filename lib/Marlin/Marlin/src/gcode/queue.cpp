@@ -382,6 +382,41 @@ static bool is_print_abort_command(const char *cmd) {
   return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
 }
 
+#if HAS_LOADCELL()
+static bool handle_stuck_filament_response(const char *command) {
+  if (!command_code_is(command, 'M', 1601)) return false;
+
+  const bool choose_continue = strchr(command, 'C');
+  const bool choose_unload = strchr(command, 'U');
+  const bool choose_abort = strchr(command, 'A');
+  const uint8_t choices = uint8_t(choose_continue) + uint8_t(choose_unload) + uint8_t(choose_abort);
+  if (!choices) return false; // Bare M1601 starts the internal recovery flow.
+
+  if (choices != 1) {
+    SERIAL_ECHOLNPGM("echo:M1601 response requires exactly one of C, U, or A");
+    return true;
+  }
+
+  const bool recovery_active = marlin_vars().peek_fsm_states([](const fsm::States &states) {
+    return states.is_active(ClientFSM::Load_unload)
+      && states[ClientFSM::Load_unload]->GetPhase() == std::to_underlying(PhasesLoadUnload::FilamentStuck);
+  });
+  if (!recovery_active) {
+    SERIAL_ECHOLNPGM("echo:M1601 response ignored: no stuck-filament prompt is active");
+    return true;
+  }
+
+  const Response response = choose_continue ? Response::Continue
+    : choose_unload                  ? Response::Unload
+                                     : Response::Abort;
+  marlin_server::set_response(EncodedFSMResponse {
+    .response = FSMResponseVariant::make(response),
+    .fsm_and_phase = PhasesLoadUnload::FilamentStuck,
+  });
+  return true;
+}
+#endif
+
 /**
  * Get all commands waiting on the serial port and queue them.
  * Exit when the buffer is full or when no more characters are
@@ -501,6 +536,16 @@ void GCodeQueue::get_serial_commands() {
           if (is_print_abort_command(command)) {
             wait_for_heatup = false;
             marlin_server::print_abort();
+            SERIAL_ECHOLNPGM(MSG_OK);
+            continue;
+          }
+        #endif
+
+        #if HAS_LOADCELL()
+          // M1601 owns the foreground G-code slot while its recovery FSM is
+          // visible. Consume its C/U/A response directly from serial RX so a
+          // paused host can act without waiting behind that blocking command.
+          if (handle_stuck_filament_response(command)) {
             SERIAL_ECHOLNPGM(MSG_OK);
             continue;
           }
