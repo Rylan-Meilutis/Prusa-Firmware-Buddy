@@ -32,9 +32,9 @@
 
 class GCodeQueue {
 public:
-  // Two slots are normally kept outside the streaming fill limit. When an
-  // actionable pause/error is active they absorb one already-in-flight host
-  // line and leave room to receive a recovery/service command.
+  // Two slots are always kept outside the advertised streaming fill limit.
+  // They absorb an already-in-flight host line and leave room for a directly
+  // classified recovery/service command.
   static constexpr uint8_t recovery_capacity = BUFSIZE + 2;
 
   /**

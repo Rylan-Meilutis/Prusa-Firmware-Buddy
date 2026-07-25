@@ -182,6 +182,12 @@ void GcodeSuite::M115() {
 #endif
     );
 
+    // RME priority serial service protocol
+    cap_line(PSTR("PRIORITY_COMMAND_QUEUE"), true);
+    cap_line(PSTR("DIALOG_RESPONSE"), true);
+    cap_line(PSTR("NAMED_DIALOG_RESPONSE"), true);
+    cap_line(PSTR("SERVICE_QUEUE_STATUS"), true);
+
     // AUTOREPORT_SD_STATUS (M27 extension)
     cap_line(PSTR("AUTOREPORT_SD_STATUS"));
 
