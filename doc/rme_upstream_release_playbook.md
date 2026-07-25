@@ -28,10 +28,16 @@ pause/error FSM exists. The first absorbs a line already in flight and the
 second receives the service action. Keep advanced-OK `B` reporting
 clamped to the normal queue size so hosts never treat the reserve as ordinary
 streaming capacity. Consume serial `M601` directly, cancel an active heater
-wait before requesting the pause, consume `M876 S<n>` directly from serial RX,
-validate the zero-based index against the active top-most dialog, and preserve
-the direct paths for `M1601 C/U/A`, print abort, heat-wait cancel, emergency
-stop, and quick-stop.
+wait before requesting the pause, and consume `M602` directly only from a
+stable pause with no actionable non-printing FSM on top. Consume `M876 S<n>`,
+`M876 A"<name>"`, and `M876 Q` directly from serial RX. Validate indexes and
+case-insensitive canonical `Response` names against the active top-most dialog;
+report normal/reserve occupancy, print state, stable-pause and safe-resume
+flags, blocking command, and available canonical action names. Preserve the
+direct paths for `M1601 C/U/A`, print abort, heat-wait cancel, emergency stop,
+and quick-stop. Ordinary motion, extrusion, heater, and print commands retain
+normal FIFO ordering. Advertise `PRIORITY_COMMAND_QUEUE`, `DIALOG_RESPONSE`,
+`NAMED_DIALOG_RESPONSE`, and `SERVICE_QUEUE_STATUS` through `M115`.
 
 Keep PA service travel collision-safe. CORE One/Core One L front-edge anchors begin to the right of the vent lever and enter deep-front Y through an ordered safe-Y/X/Y path. After the local probe finishes inside that safe corridor, move directly to the off-bed extrusion point; do not route through generic park and then reverse direction. The 10 mm heating clearance is an idempotent absolute minimum, and the 170 C preheat must not start until homing is complete and that clearance exists. INDX must continue using `mapi::park(ParkPosition::purge)` rather than direct XY motion so it exits the dock area perpendicularly and applies the calibrated nozzle-cleaner/waste-bin avoidance pattern.
 

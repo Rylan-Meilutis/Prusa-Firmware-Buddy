@@ -41,7 +41,10 @@ GCodeQueue queue;
 #include <common/marlin_server_types/fsm/filament_change_phases.hpp>
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
+#include <algorithm>
+#include <cctype>
 #include <optional>
+#include <string_view>
 
 extern "C" bool buddy_sdcard_upload_active();
 extern "C" void buddy_sdcard_upload_handle_line(const char *command);
@@ -385,20 +388,145 @@ static bool is_print_abort_command(const char *cmd) {
   return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
 }
 
+static bool is_priority_service_command(const char *command) {
+  if (command_code_is(command, 'M', 108)
+      || command_code_is(command, 'M', 112)
+      || command_code_is(command, 'M', 410)
+      || command_code_is(command, 'M', 601)
+      || command_code_is(command, 'M', 602)
+      || is_print_abort_command(command)) {
+    return true;
+  }
+  if (command_code_is(command, 'M', 876)) {
+    return strchr(command, 'Q') || strchr(command, 'S') || strchr(command, 'A');
+  }
+  if (command_code_is(command, 'M', 1601)) {
+    return strchr(command, 'C') || strchr(command, 'U') || strchr(command, 'A');
+  }
+  return false;
+}
+
+static bool response_name_equal(const std::string_view requested, const char *canonical) {
+  const std::string_view expected { canonical };
+  return requested.size() == expected.size()
+    && std::equal(requested.begin(), requested.end(), expected.begin(), [](const char lhs, const char rhs) {
+         return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs));
+       });
+}
+
+static std::optional<std::string_view> command_string_parameter(const char *command, const char parameter) {
+  const char *value = strchr(command, parameter);
+  if (!value) {
+    return std::nullopt;
+  }
+  value++;
+  while (*value == ' ') value++;
+  const bool quoted = *value == '"';
+  if (quoted) value++;
+  const char *end = value;
+  while (*end && *end != '*' && (quoted ? *end != '"' : *end != ' ')) end++;
+  if (end == value || (quoted && *end != '"')) {
+    return std::nullopt;
+  }
+  return std::string_view { value, static_cast<size_t>(end - value) };
+}
+
+static bool dialog_blocks_generic_resume() {
+  return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+    const auto top = states.get_top();
+    if (!top) {
+      return false;
+    }
+    if (top->fsm_type == ClientFSM::Printing
+        #if HAS_SERIAL_PRINT()
+          || top->fsm_type == ClientFSM::Serial_printing
+        #endif
+    ) {
+      return false;
+    }
+    const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
+    return std::any_of(responses.begin(), responses.end(), [](const Response response) {
+      return response != Response::_none;
+    });
+  });
+}
+
+static void report_service_queue_status() {
+  const uint8_t normal_used = std::min<uint8_t>(GCodeQueue::length, BUFSIZE);
+  const uint8_t reserve_used = GCodeQueue::length > BUFSIZE ? GCodeQueue::length - BUFSIZE : 0;
+  const bool paused = marlin_server::printer_paused();
+  const bool resume_allowed = paused && !dialog_blocks_generic_resume();
+
+  SERIAL_ECHOPGM("SERVICE_QUEUE normal=");
+  SERIAL_ECHO(normal_used);
+  SERIAL_CHAR('/');
+  SERIAL_ECHO(BUFSIZE);
+  SERIAL_ECHOPGM(" reserve=");
+  SERIAL_ECHO(reserve_used);
+  SERIAL_CHAR('/');
+  SERIAL_ECHO(GCodeQueue::recovery_capacity - BUFSIZE);
+  SERIAL_ECHOPGM(" state=");
+  SERIAL_ECHO(static_cast<int>(marlin_vars().print_state.get()));
+  SERIAL_ECHOPGM(" paused=");
+  SERIAL_CHAR(paused ? '1' : '0');
+  SERIAL_ECHOPGM(" resume=");
+  SERIAL_CHAR(resume_allowed ? '1' : '0');
+  SERIAL_ECHOPGM(" blocking=");
+  if (GCodeQueue::length && GCodeQueue::current_command_serial) {
+    const char *blocking = GCodeQueue::command_buffer[GCodeQueue::index_r];
+    while (*blocking == ' ') blocking++;
+    if (*blocking == 'N') {
+      blocking++;
+      while (*blocking == '-' || NUMERIC(*blocking)) blocking++;
+      while (*blocking == ' ') blocking++;
+    }
+    while (*blocking && *blocking != ' ' && *blocking != '*') SERIAL_CHAR(*blocking++);
+  } else {
+    SERIAL_ECHOPGM("none");
+  }
+  SERIAL_ECHOPGM(" actions=");
+  bool first = true;
+  marlin_vars().peek_fsm_states([&](const fsm::States &states) {
+    const auto top = states.get_top();
+    if (!top) {
+      return;
+    }
+    const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
+    for (const Response response : responses) {
+      if (response == Response::_none) continue;
+      if (!first) SERIAL_CHAR(',');
+      SERIAL_ECHOPGM(to_str(response));
+      first = false;
+    }
+  });
+  if (first) SERIAL_ECHOPGM("none");
+  SERIAL_EOL();
+}
+
 static bool handle_dialog_service_response(const char *command) {
   if (!command_code_is(command, 'M', 876)) {
     return false;
   }
 
+  if (strchr(command, 'Q')) {
+    report_service_queue_status();
+    return true;
+  }
+
   const char *spos = strchr(command, 'S');
-  if (!spos) {
+  const auto requested_name = command_string_parameter(command, 'A');
+  if (!spos && !requested_name) {
     return false;
   }
-  char *end = nullptr;
-  const long response_index = strtol(spos + 1, &end, 10);
-  if (end == spos + 1 || response_index < 0) {
-    SERIAL_ECHOLNPGM("echo:M876 requires a non-negative S button index");
-    return true;
+
+  long response_index = -1;
+  if (spos) {
+    char *end = nullptr;
+    response_index = strtol(spos + 1, &end, 10);
+    if (end == spos + 1 || response_index < 0) {
+      SERIAL_ECHOLNPGM("echo:M876 requires a non-negative S button index");
+      return true;
+    }
   }
 
   std::optional<EncodedFSMResponse> encoded_response;
@@ -408,10 +536,18 @@ static bool handle_dialog_service_response(const char *command) {
       return;
     }
     const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
-    if (static_cast<size_t>(response_index) >= responses.size()) {
-      return;
+    Response response = Response::_none;
+    if (requested_name) {
+      const auto match = std::find_if(responses.begin(), responses.end(), [&](const Response candidate) {
+        return candidate != Response::_none && response_name_equal(*requested_name, to_str(candidate));
+      });
+      if (match != responses.end()) response = *match;
+    } else {
+      if (static_cast<size_t>(response_index) >= responses.size()) {
+        return;
+      }
+      response = responses[response_index];
     }
-    const Response response = responses[response_index];
     if (response == Response::_none) {
       return;
     }
@@ -422,7 +558,7 @@ static bool handle_dialog_service_response(const char *command) {
   });
 
   if (!encoded_response) {
-    SERIAL_ECHOLNPGM("echo:M876 response ignored: no matching active dialog button");
+    SERIAL_ECHOLNPGM("echo:M876 response ignored: no matching active dialog action");
     return true;
   }
   marlin_server::set_response(*encoded_response);
@@ -576,14 +712,19 @@ void GCodeQueue::get_serial_commands() {
           last_N = gcode_N;
         }
 
+        // Only this explicit safety/recovery whitelist may bypass normal FIFO
+        // execution. Ordinary commands already in flight may occupy a hidden
+        // receive slot, but never gain priority semantics.
+        const bool priority_service = is_priority_service_command(command);
+
         #if DISABLED(EMERGENCY_PARSER)
           // Process critical commands early
-          if (command_code_is(command, 'M', 108)) {
+          if (priority_service && command_code_is(command, 'M', 108)) {
             wait_for_heatup = false;
           }
-          if (command_code_is(command, 'M', 112)) kill(PSTR("Emergency stop (M112)"), nullptr, true);
-          if (command_code_is(command, 'M', 410)) quickstop_stepper();
-          if (is_print_abort_command(command)) {
+          if (priority_service && command_code_is(command, 'M', 112)) kill(PSTR("Emergency stop (M112)"), nullptr, true);
+          if (priority_service && command_code_is(command, 'M', 410)) quickstop_stepper();
+          if (priority_service && is_print_abort_command(command)) {
             wait_for_heatup = false;
             marlin_server::print_abort();
             SERIAL_ECHOLNPGM(MSG_OK);
@@ -593,9 +734,22 @@ void GCodeQueue::get_serial_commands() {
 
         // A queued M601 would remain behind a blocking M109/M190/M191. Consume
         // serial pause immediately and release an active heater wait first.
-        if (command_code_is(command, 'M', 601)) {
+        if (priority_service && command_code_is(command, 'M', 601)) {
           wait_for_heatup = false;
           marlin_server::print_pause(false);
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
+
+        // Resume is a priority service action only from a stable ordinary
+        // pause. Recovery/error dialogs must be answered explicitly with M876
+        // or their dedicated command instead of being bypassed by M602.
+        if (priority_service && command_code_is(command, 'M', 602)) {
+          if (marlin_server::printer_paused() && !dialog_blocks_generic_resume()) {
+            marlin_server::print_resume(false);
+          } else {
+            SERIAL_ECHOLNPGM("echo:M602 ignored: printer is not safely resumable");
+          }
           SERIAL_ECHOLNPGM(MSG_OK);
           continue;
         }
@@ -604,7 +758,7 @@ void GCodeQueue::get_serial_commands() {
           // M1601 owns the foreground G-code slot while its recovery FSM is
           // visible. Consume its C/U/A response directly from serial RX so a
           // paused host can act without waiting behind that blocking command.
-          if (handle_stuck_filament_response(command)) {
+          if (priority_service && handle_stuck_filament_response(command)) {
             SERIAL_ECHOLNPGM(MSG_OK);
             continue;
           }
@@ -614,7 +768,7 @@ void GCodeQueue::get_serial_commands() {
         // FSM dialog. Consume it directly so MMU Retry and other recovery
         // actions cannot be blocked behind the command that owns the normal
         // foreground queue.
-        if (handle_dialog_service_response(command)) {
+        if (priority_service && handle_dialog_service_response(command)) {
           SERIAL_ECHOLNPGM(MSG_OK);
           continue;
         }
