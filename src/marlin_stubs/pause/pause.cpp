@@ -1021,6 +1021,11 @@ void Pause::filament_stuck_ask_process(Response response) {
 
     if (response == Response::Unload) {
         set(LoadState::unload_wait_temp);
+    } else if (response == Response::Continue) {
+        // The user has inspected the print and chosen to treat this detection
+        // as a false positive. Finish the pause without unloading; M600 then
+        // restores the saved XYZ position and resumes normally.
+        set(LoadState::stop);
     } else if (response == Response::Abort) {
         marlin_server::print_abort();
         set(LoadState::stop);

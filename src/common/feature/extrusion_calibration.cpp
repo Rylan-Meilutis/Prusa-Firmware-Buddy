@@ -27,8 +27,10 @@ float monitor_filtered_load = 0;
 float monitor_idle_baseline = 0;
 float monitor_forward_time = 0;
 float monitor_forward_e = 0;
+float monitor_idle_time = 0;
 float monitor_peak_pressure = 0;
 float monitor_bad_time = 0;
+float monitor_bad_e = 0;
 float monitor_breakout_time = 0;
 bool monitor_breakout_seen = false;
 bool monitor_collapse_seen = false;
@@ -184,14 +186,22 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     monitor_filtered_load += 0.12f * (load_g - monitor_filtered_load);
     const float velocity = de / dt;
     if (velocity <= 0.05f) {
-        monitor_idle_baseline += 0.004f * (monitor_filtered_load - monitor_idle_baseline);
-        monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+        monitor_idle_time += dt;
+        // Layer changes and travel can shift the loadcell's mechanical zero.
+        // Follow the settled non-extruding baseline quickly enough that the
+        // next long perimeter is not compared with the preceding layer.
+        const float baseline_alpha = monitor_idle_time > 0.15f ? 0.04f : 0.004f;
+        monitor_idle_baseline += baseline_alpha * (monitor_filtered_load - monitor_idle_baseline);
+        monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
         monitor_breakout_seen = false;
         monitor_collapse_seen = false;
         monitor_peak_pressure = 0;
         return;
     }
 
+    if (monitor_forward_time == 0 && monitor_idle_time > 0.15f)
+        monitor_idle_baseline = monitor_filtered_load;
+    monitor_idle_time = 0;
     monitor_forward_time += dt;
     monitor_forward_e += std::max(0.0f, de);
     const float pressure = monitor_sign * (monitor_filtered_load - monitor_idle_baseline);
@@ -201,11 +211,12 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
 
     // Ignore priming, seam starts, tiny infill segments and the initial
     // pressure transient. A real loss of filament motion is sustained.
-    const bool qualified = monitor_forward_time > 2.0f && monitor_forward_e > 2.0f;
-    const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.25f);
-    const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.30f;
+    const bool qualified = monitor_forward_time > 3.0f && monitor_forward_e > 3.0f;
+    const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.15f);
+    const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
     const bool bad_pressure = qualified && (pressure_missing || pressure_collapsed);
     monitor_bad_time = bad_pressure ? monitor_bad_time + dt : 0;
+    monitor_bad_e = bad_pressure ? monitor_bad_e + std::max(0.0f, de) : 0;
     monitor_collapse_seen = bad_pressure ? (monitor_collapse_seen || pressure_collapsed) : false;
 
     // PATuner max-flow markers: sustained force departure above the healthy
@@ -222,9 +233,10 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // collapses or fails to rise. This preserves real max-flow protection
     // without turning a healthy purge into an immediate M1601 fault.
     // Do not react to a single transition or one slow/thick extrusion move.
-    // Require a full three seconds of continuously bad pressure evidence after
-    // the initial motion qualification; any healthy sample resets bad_time.
-    if (monitor_bad_time > 3.0f) {
+    // Require corroboration in both time and executed filament distance. This
+    // rejects layer-transition baseline shifts and isolated long-segment load
+    // dips while retaining a bounded response to a real, sustained jam.
+    if (monitor_bad_time > 5.0f && monitor_bad_e > 5.0f) {
         wanted = monitor_collapse_seen && monitor_breakout_seen
             ? ExtrusionFault::flow_breakout
             : monitor_collapse_seen ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
@@ -268,7 +280,9 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_last_time = 0;
     monitor_forward_time = 0;
     monitor_forward_e = 0;
+    monitor_idle_time = 0;
     monitor_bad_time = 0;
+    monitor_bad_e = 0;
     monitor_breakout_time = 0;
     monitor_breakout_seen = false;
     monitor_collapse_seen = false;
@@ -298,7 +312,7 @@ void suspend_pressure_monitor(const bool suspend) {
             // pressure. Re-arm from the next real sample and grant the full
             // continuous-extrusion qualification window after the operation.
             monitor_last_time = 0;
-            monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+            monitor_forward_time = monitor_forward_e = monitor_idle_time = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
             monitor_breakout_seen = false;
             monitor_collapse_seen = false;
             monitor_peak_pressure = 0;
@@ -319,7 +333,7 @@ void acknowledge_extrusion_fault() {
         suspend_pressure_monitor(false);
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_last_time = 0;
-    monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_breakout_time = 0;
+    monitor_forward_time = monitor_forward_e = monitor_idle_time = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
     monitor_breakout_seen = false;
     monitor_collapse_seen = false;
     monitor_peak_pressure = 0;

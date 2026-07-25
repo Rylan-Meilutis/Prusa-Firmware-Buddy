@@ -47,7 +47,7 @@ TEST_CASE("runtime monitor detects missing pressure during executed E motion") {
     reset_pressure_monitor();
     configure_pressure_monitor(reference, 0.8f, 8.0f);
     record_loadcell_sample(1'000, 0, 0);
-    for (uint32_t i = 1; i <= 1'100; ++i)
+    for (uint32_t i = 1; i <= 1'800; ++i)
         record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.005f);
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
 }
@@ -61,7 +61,28 @@ TEST_CASE("runtime monitor detects a sustained pressure collapse") {
     uint32_t i = 1;
     for (; i <= 500; ++i)
         record_loadcell_sample(1'000 + i * 5'000, 25, i * 0.005f);
-    for (; i <= 1'200; ++i)
+    for (; i <= 1'700; ++i)
         record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.005f);
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::pressure_collapse);
+}
+
+TEST_CASE("runtime monitor ignores pressure shifts separated by layer travel") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    reset_pressure_monitor();
+    configure_pressure_monitor(reference, 0.8f, 8.0f);
+    uint32_t sample = 1;
+    float e = 0;
+    record_loadcell_sample(sample++ * 5'000, 0, e);
+    for (uint8_t layer = 0; layer < 4; ++layer) {
+        // A long low-pressure perimeter that would have crossed the previous
+        // 2 s qualification + 3 s fault threshold.
+        for (uint16_t i = 0; i < 1'400; ++i) {
+            e += 0.005f;
+            record_loadcell_sample(sample++ * 5'000, 0, e);
+        }
+        for (uint16_t i = 0; i < 80; ++i)
+            record_loadcell_sample(sample++ * 5'000, 8.0f + layer, e);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
 }
