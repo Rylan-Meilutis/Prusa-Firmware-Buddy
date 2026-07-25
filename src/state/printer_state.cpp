@@ -200,7 +200,7 @@ namespace printer_state {
 DeviceState get_state(bool ready) {
     std::optional<fsm::States::Top> top;
     bool is_changing_filament, is_printing, is_preheating;
-#if HAS_SERIAL_PRINT()
+#if HAS_SERIAL_PRINT
     bool is_serial_printing;
 #endif
     marlin_vars().peek_fsm_states([&](const auto &states) {
@@ -208,7 +208,7 @@ DeviceState get_state(bool ready) {
         is_changing_filament = states.is_active(ClientFSM::Load_unload);
         is_printing = states.is_active(ClientFSM::Printing);
         is_preheating = states.is_active(ClientFSM::Preheat);
-#if HAS_SERIAL_PRINT()
+#if HAS_SERIAL_PRINT
         is_serial_printing = states.is_active(ClientFSM::Serial_printing);
 #endif
     });
@@ -220,7 +220,7 @@ DeviceState get_state(bool ready) {
     // reaches a terminal state before the GUI opens the result screen.
     const bool terminal_state = state == State::Finished || state == State::Aborted;
     const bool terminal_surface_active = is_printing
-#if HAS_SERIAL_PRINT()
+#if HAS_SERIAL_PRINT
         || is_serial_printing
 #endif
         ;

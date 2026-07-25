@@ -2701,7 +2701,7 @@ static void _server_print_loop(void) {
 
         // Preserve the normal cleanup/result UI even when abort originates in
         // a nested recovery dialog such as the stuck-filament prompt.
-#if HAS_SERIAL_PRINT()
+#if HAS_SERIAL_PRINT
         if (server.print_is_serial) {
             if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
                 fsm_create(PhasesSerialPrinting::active);
