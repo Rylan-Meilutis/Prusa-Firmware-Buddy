@@ -41,6 +41,13 @@ public:
 
     /// Updates the reset pin on the MMU port on the XL-CAN (where modular bed is connected to)
     /// Executes the modbus transcation blockingly - needed for the bootstrap
+    ///
+    /// CONSTRAINT: never call with nreset=true outside the bootstrap arming
+    /// step — Q2 disturbs MB NRST on BOTH edges, so a rising edge at runtime
+    /// resets (or hangs) the running MB app. The HIGH phase must also be held
+    /// long enough to arm the edge network before the falling edge; both
+    /// invariants are enforced in write_dock_reset_pin (PuppyBootstrap.cpp),
+    /// which is the only legitimate H/L driver of this line.
     CommunicationStatus set_modular_bed_reset(PuppyModbus &, bool nreset);
 
 private:

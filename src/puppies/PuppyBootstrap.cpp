@@ -17,12 +17,17 @@
 #include <option/has_xbuddy_extension.h>
 #include <puppies/puppy_crash_dump.hpp>
 #include <option/has_indx_head.h>
+#include <option/has_xl_can.h>
 #include <cstring>
 #include <random/random.h>
 
 #if HAS_INDX_HEAD()
     #include <hw/xbuddy/hw_configuration.hpp>
     #include <puppies/INDX.hpp>
+#endif
+
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
 #endif
 
 LOG_COMPONENT_REF(Puppies);
@@ -350,6 +355,14 @@ void PuppyBootstrap::reset_all_puppies() {
     reset_puppies_range(DOCKS.begin(), DOCKS.end());
 }
 
+#if HAS_XL_CAN()
+/// How long PC13 must sit HIGH for the bridge's Q2 edge network to charge
+/// before the MB reset edge can fire reliably. The implicit ~20 ms arming of
+/// a plain H->delay->L pulse proved insufficient once the line had floated
+/// (bridge parked in its bootloader); 300 ms is the bench-verified margin.
+constexpr uint32_t mb_reset_arm_hold_ms = 300;
+#endif
+
 inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
     using namespace buddy::hw;
     switch (dock) {
@@ -375,6 +388,36 @@ inline void write_dock_reset_pin(Dock dock, buddy::hw::Pin::State state) {
 #endif
 #if HAS_PUPPY_MODULARBED()
     case Dock::MODULAR_BED:
+    #if HAS_XL_CAN()
+        if (xl_can.is_enabled()) {
+            // XLS: master GPIO modular_bed_reset reaches the bridge NRST,
+            // not MB. MB NRST is fired by the bridge's PC13 -> Q2 edge
+            // network: it resets on the HIGH->LOW transition of PC13 and
+            // arms while PC13 sits HIGH (same procedure as the bridge's own
+            // NRST). The 1:1 state mapping keeps reset_puppies_range's
+            // H->delay->L producing the arming level and then the reset edge.
+            xl_can.set_modular_bed_reset(puppyModbus, state == Pin::State::high);
+            if (state == Pin::State::high) {
+                // Q2 arming hold, enforced here at the sink so *every*
+                // caller arms the network before the falling edge that
+                // follows: the first bootstrap pass, the outer retry rounds
+                // of PuppyBootstrap::run() (whose generic ~10 ms H phase is
+                // below the arming minimum), and verify_address_assignment's
+                // unoccupied-dock reset. hal::mmu::init() in the bridge fw
+                // drives PC13 LOW at app entry, so no caller may assume a
+                // pre-armed line.
+                log_info(Puppies, "    MB reset via bridge: arming hold %u ms", static_cast<unsigned>(mb_reset_arm_hold_ms));
+                osDelay(mb_reset_arm_hold_ms);
+            }
+            // Do NOT raise PC13 back HIGH here or anywhere at runtime: Q2
+            // disturbs MB NRST on BOTH edges. A rising edge shortly after the
+            // falling edge hangs the MB mid-reset; a rising edge after the MB
+            // app has started resets it back out of its app. The line parks
+            // LOW until the next bootstrap round's arming HIGH write above —
+            // pre-discovery, where a spurious MB reset is harmless.
+            break;
+        }
+    #endif
         modular_bed_reset.write(state);
         break;
 #endif
