@@ -372,26 +372,6 @@ static bool is_print_abort_command(const char *cmd) {
   return command_code_is(cmd, 'M', 604) || command_code_is(cmd, 'M', 524);
 }
 
-static bool serial_service_window_active() {
-  if (marlin_server::printer_paused_extended() || marlin_server::aborting_or_aborted()) {
-    return true;
-  }
-
-  return marlin_vars().peek_fsm_states([](const fsm::States &states) {
-    const auto top = states.get_top();
-    if (!top) {
-      return false;
-    }
-    const auto &responses = ClientResponses::get_fsm_responses(top->fsm_type, top->data.GetPhase());
-    for (const Response response : responses) {
-      if (response != Response::_none) {
-        return true;
-      }
-    }
-    return false;
-  });
-}
-
 static bool handle_dialog_service_response(const char *command) {
   if (!command_code_is(command, 'M', 876)) {
     return false;
@@ -498,8 +478,10 @@ void GCodeQueue::get_serial_commands() {
   /**
    * Loop while serial characters are incoming and the queue is not full
    */
-  while ((length < BUFSIZE || (serial_service_window_active() && length < recovery_capacity))
-      && serial_data_available()) {
+  // Always drain up to the hidden recovery capacity. A blocking foreground
+  // command may not have raised a pause/error FSM yet, but the host must still
+  // be able to submit heat-wait cancellation, pause, abort, and service G-codes.
+  while (length < recovery_capacity && serial_data_available()) {
     for (uint8_t i = 0; i < NUM_SERIAL; ++i) {
       int c;
       if ((c = read_serial(i)) < 0) continue;
@@ -613,6 +595,15 @@ void GCodeQueue::get_serial_commands() {
             continue;
           }
         #endif
+
+        // A queued M601 would remain behind a blocking M109/M190/M191. Consume
+        // serial pause immediately and release an active heater wait first.
+        if (command_code_is(command, 'M', 601)) {
+          wait_for_heatup = false;
+          marlin_server::print_pause(false);
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
 
         #if HAS_LOADCELL()
           // M1601 owns the foreground G-code slot while its recovery FSM is
