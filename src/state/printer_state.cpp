@@ -200,14 +200,34 @@ namespace printer_state {
 DeviceState get_state(bool ready) {
     std::optional<fsm::States::Top> top;
     bool is_changing_filament, is_printing, is_preheating;
+#if HAS_SERIAL_PRINT()
+    bool is_serial_printing;
+#endif
     marlin_vars().peek_fsm_states([&](const auto &states) {
         top = states.get_top();
         is_changing_filament = states.is_active(ClientFSM::Load_unload);
         is_printing = states.is_active(ClientFSM::Printing);
         is_preheating = states.is_active(ClientFSM::Preheat);
+#if HAS_SERIAL_PRINT()
+        is_serial_printing = states.is_active(ClientFSM::Serial_printing);
+#endif
     });
 
     State state = marlin_vars().print_state;
+    // Finished and stopped describe a visible result screen, not a persistent
+    // machine condition. Once that UI surface is gone, external clients must
+    // see an idle printer. This also closes the short-job race where Marlin
+    // reaches a terminal state before the GUI opens the result screen.
+    const bool terminal_state = state == State::Finished || state == State::Aborted;
+    const bool terminal_surface_active = is_printing
+#if HAS_SERIAL_PRINT()
+        || is_serial_printing
+#endif
+        ;
+    if (terminal_state && !terminal_surface_active) {
+        state = State::Idle;
+    }
+
     const DeviceState print_state = get_print_state(state, ready);
     const bool print_job_active = is_printing || state_has_print_job(print_state);
     const DeviceState busy_state = print_job_active ? print_state : DeviceState::Busy;
