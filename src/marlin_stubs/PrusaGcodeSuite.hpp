@@ -22,6 +22,7 @@
 #include <option/has_spool_join.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_tool_offset_sensor.h>
 
 #include <gcode/gcode_parser.hpp>
 
@@ -96,9 +97,11 @@ void M708(); //< Write variable to MMU
 void M709(); //< MMU turn on/off/reset
 /// @}
 
-/// @name INDX specific G-CODES
-#if HAS_INDX()
+#if HAS_TOOL_OFFSET_SENSOR()
 void G427(); ///< Tool offset calibration (Z-probe + XY tool offset board calib)
+#endif
+
+#if HAS_INDX()
 void G750(); ///< Move to absolute X,Y position with nozzle cleaner origin offset
 #endif
 

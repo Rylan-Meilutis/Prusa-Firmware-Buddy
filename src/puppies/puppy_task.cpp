@@ -483,7 +483,10 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 }
 #endif
 
-#if HAS_TOOL_OFFSET_SENSOR()
+#if HAS_TOOL_OFFSET_SENSOR() && HAS_XBUDDY_EXTENSION()
+// INDX path: sensor sits behind xBE, which also drives bridge-led firmware
+// flashing. The function pumps xBE refresh + sensor refresh and reports
+// flash progress until the sensor reaches ready.
 [[nodiscard]] static bool wait_for_tool_offset_sensor(PuppyModbus &bus) {
     // Tool offset sensor is vital part of the printer, there is no upper limit
     // on how long we are willing to wait for the bootstrap.
@@ -692,7 +695,7 @@ void run() {
             }
 #endif
 
-#if HAS_TOOL_OFFSET_SENSOR()
+#if HAS_TOOL_OFFSET_SENSOR() && HAS_XBUDDY_EXTENSION()
             if (!wait_for_tool_offset_sensor(bus)) {
                 break; // go to puppy recovery
             }

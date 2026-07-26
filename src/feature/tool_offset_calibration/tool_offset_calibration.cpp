@@ -25,7 +25,6 @@
 #include <random/random.h>
 #include <mapi/parking.hpp>
 #include <raii/scope_guard.hpp>
-#include <nozzle_cleaner.hpp>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 #include <feature/contactless_offset/contactless_offset.hpp>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
@@ -33,6 +32,15 @@
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #include <feature/gcode_exception/gcode_exception.hpp>
+#include <option/has_xl_can.h>
+
+#if HAS_NOZZLE_CLEANER()
+    #include <nozzle_cleaner.hpp>
+#endif
+
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
+#endif
 
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
@@ -67,6 +75,21 @@ constexpr float MAX_XY_OFFSET_DIFFERENCE = 0.4f;
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_Z_PROBING_TEMP = 170;
 constexpr int16_t DEFAULT_XY_PROBING_TEMP = 170;
+
+/// True iff the contactless tool-offset hardware is reachable in this
+/// build/runtime configuration. The xlBuddy master image is shared between
+/// plain XL (no bridge, no sensor) and XLS (bridge + sensor on dock 9), so
+/// the compile-time HAS_TOOL_OFFSET_SENSOR() flag isn't sufficient on its
+/// own — discriminate at runtime via the bridge presence flag set by the
+/// puppy bootstrap. INDX builds always have the sensor wired through xBE
+/// and need no runtime gate.
+[[nodiscard]] bool is_hardware_available() {
+#if HAS_XL_CAN()
+    return buddy::puppies::xl_can.is_enabled();
+#else
+    return true;
+#endif
+}
 
 struct ToolTemperatures {
     int16_t cleaning; // nozzle temp for purge/clean
@@ -147,7 +170,7 @@ float probe_z_at(const xy_pos_t &pos, uint8_t probe_count) {
 /// In `Calibration` context the nozzle cleaner is not yet calibrated (chicken-and-egg) so the
 /// auto-clean sequence is skipped; the caller has already prompted the user to clean manually.
 /// @return true if cleaning succeeded, false on failure or abort
-bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context context) {
+bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibration::Context context) {
     // Guard against a silently failed toolchange — do not drive to a parked tool's brush
     const std::optional<PhysicalToolIndex> selected = PhysicalToolIndex::currently_selected_opt();
     if (!selected.has_value() || selected.value() != tool) {
@@ -164,6 +187,7 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
 
     const ToolTemperatures temps = get_tool_temperatures(tool);
 
+#if HAS_NOZZLE_CLEANER()
     if (context == tool_offset_calibration::Context::Print) {
         mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT, SAFE_Z_HEIGHT } }));
 
@@ -199,6 +223,12 @@ bool prepare_tool(PhysicalToolIndex tool, tool_offset_calibration::Context conte
         // cool-down needed afterwards).
         set_temp_and_wait_reached(tool, temps.xy_probing);
     }
+#elif PRINTER_IS_PRUSA_XL()
+    // Nozzle cleaner not available, just heat to the XY-probing temperature
+    set_temp_and_wait_reached(tool, temps.xy_probing);
+#else
+    #error "Not defined behavior for this printer configuration"
+#endif
     return true;
 }
 
@@ -293,6 +323,9 @@ void reset_z_tool_offsets() {
 namespace tool_offset_calibration {
 
 bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config, Context context) {
+    if (!is_hardware_available()) {
+        bsod("Tool offset sensor requested, but not available on this printer");
+    }
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     if (!selected_tool.has_value()) {
         log_error(ToolOffsetCalib, "failed: no tool selected");
@@ -380,6 +413,10 @@ void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
 }
 
 bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
+    if (!is_hardware_available()) {
+        bsod("Tool offset sensor requested, but not available on this printer");
+    }
+
     // PrintStatusMessageGuard is only meaningful while a print is running; in Calibration context
     // a wizard FSM drives the UI, so leave the status bar alone.
     std::optional<PrintStatusMessageGuard> status_guard;

@@ -666,18 +666,22 @@ FsmState next_state(FsmState state, FsmEvent event, FsmContext &ctx) {
 const char *dispatch_fsm(FsmContext &ctx) {
     constexpr unsigned max_iterations = 14;
 
+#if HAS_INDX_HEAD()
     // if the INDX puppy resets mid-FSM, every subsequent scan reads garbage
     // (rough align fails, chunk_size collapses, peaks never line up),
     // Snapshot the reset counter and bail out the moment we notice it advanced,
     // the caller will surface a clean error and the user-facing retry can start from a known-good puppy state
     const uint32_t initial_reset_counter = buddy::puppies::indx.get_reset_counter();
+#endif
 
     FsmState state = FsmState::offset_measurement_x;
     for (unsigned i = 0; i < max_iterations; ++i) {
+#if HAS_INDX_HEAD()
         if (buddy::puppies::indx.get_reset_counter() != initial_reset_counter) {
             log_error(ContactlessOffset, "INDX puppy reset during XY scan; aborting FSM");
             return "INDX puppy reset during XY scan";
         }
+#endif
 
         if (state == FsmState::finished && ctx.om_x.confidence > high_confidence_threshold && ctx.om_y.confidence > high_confidence_threshold) {
             return nullptr;
@@ -750,9 +754,11 @@ public:
 #endif
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
         thermalManager.setTargetBed(prev_bed_target_);
+#if HAS_INDX_HEAD()
         if (prev_loadcell_active_) {
             (void)loadcell_wait_streaming();
         }
+#endif
         do_blocking_move_to_z(config_.sensor_position.z + config_.safe_z_height);
     }
 };
