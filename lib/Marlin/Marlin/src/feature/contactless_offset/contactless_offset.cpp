@@ -64,6 +64,7 @@
 #include <puppies/PuppyModbus.hpp>
 #include <printers.h>
 #include <cstdint>
+#include <utils/uncopyable.hpp>
 
 LOG_COMPONENT_DEF(ContactlessOffset, logging::Severity::debug);
 
@@ -708,7 +709,7 @@ const char *dispatch_fsm(FsmContext &ctx) {
 // tool-offset sensor stream; zeroing the heaters reduces electromagnetic noise on
 // the induction tool-offset sensor. Must only be constructed AFTER the Z probe,
 // since the loadcell is needed for that probe.
-class IndxScanState {
+class ScanState : public Uncopyable {
     Hotend &hotend_;
     const tool_offset::ProbingConfig &config_;
     bool prev_loadcell_active_;
@@ -717,7 +718,7 @@ class IndxScanState {
     int16_t prev_bed_target_;
 
 public:
-    explicit IndxScanState(Hotend &hotend, const tool_offset::ProbingConfig &config)
+    explicit ScanState(Hotend &hotend, const tool_offset::ProbingConfig &config)
         : hotend_(hotend)
         , config_(config)
         , prev_loadcell_active_(buddy::puppies::indx.get_loadcell_active())
@@ -730,7 +731,7 @@ public:
         thermalManager.setTargetBed(0);
     }
 
-    ~IndxScanState() {
+    ~ScanState() {
         buddy::puppies::indx.set_loadcell(prev_loadcell_active_);
         buddy::puppies::indx.set_accelerometer(buddy::puppies::puppyModbus, prev_accelerometer_active_);
         hotend_.set_nozzle_target_temp(prev_hotend_target_);
@@ -740,9 +741,6 @@ public:
         }
         do_blocking_move_to_z(config_.sensor_position.z + config_.safe_z_height);
     }
-
-    IndxScanState(const IndxScanState &) = delete;
-    IndxScanState &operator=(const IndxScanState &) = delete;
 };
 
 // Move above the sensor and probe down to find its true Z. Leaves the
@@ -858,7 +856,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     do_blocking_move_to_z(*sensor_z + config.sensing_z);
     debug_report_probed_z(*sensor_z, *sensor_z - config.sensor_position.z);
 
-    IndxScanState scan_state(hotend, config);
+    ScanState scan_state(hotend, config);
 
     const auto xy = measure_xy_via_fsm(config, sensor, initial_measurement_offset);
     if (!xy) {
