@@ -400,6 +400,15 @@
             }
         },
         {
+            "name": "xl-tool_offset_sensor",
+            "description": "Firmware for Tool Offset Sensor for XLS (hosted by the XL-CAN)",
+            "cacheVariables": {
+                "PRINTER": "XL",
+                "BOARD": "TOOL_OFFSET_SENSOR",
+                "CAN_BUS_TYPE": "PUB6"
+            }
+        },
+        {
             "name": "coreone_indx-indx_head",
             "description": "Firmware for INDX head",
             "cacheVariables": {
