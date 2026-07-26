@@ -591,15 +591,19 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-The RME patch stack has been replayed on upstream `v6.6.2`, conflict-resolved on branch `rme-v6.6.2`, and checked with a focused release-wrapper build. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
+The RME patch stack has been replayed on upstream `v6.6.2`, conflict-resolved on branch `rme-v6.6.2`, and checked with the final multi-version release build. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
 
-Focused validation for the latest loaded-filament and paused-runout changes passed with:
+Final validation for the release firmware at `87b077038` passed with:
 
 ```sh
-./build.py --final --jobs 1 --preset mini-en-ja
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
-The validation build completed successfully on branch `rme-v6.6.2`. This release-note refresh is documentation-only and does not change the firmware build output.
+The complete command produced all `29` expected BBFs with no stray files in
+`bbf/`. The `6.6.2` half passed all `15` release presets, covering CORE One,
+CORE One INDX, CORE One L, MINI language variants, MK3.5, MK4, and XL. This
+release-note refresh is documentation-only and does not change the validated
+firmware output.
 
 Earlier validation for this patch stack on the prior upstream base covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
 
@@ -615,7 +619,7 @@ Comparison base: upstream `v6.6.2`
 
 Current branch: `rme-v6.6.2`
 
-Latest release-maintenance commit: `b8cff9a9e`
+Latest release-maintenance commit: `87b077038`
 
 Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -842,7 +846,19 @@ cad09185b  2026-07-21  Fix PA vent travel and extrusion fault recovery
 4c3969d0b  2026-07-21  Document PA travel and fault recovery safeguards
 df6788adc  2026-07-21  Fix PA MMU purge placement and pressure faults
 37d8ebd89  2026-07-21  Debounce runtime extrusion pressure faults
+9b71400a0  2026-07-21  Audit RME release documentation for 6.6.2
+0da1735be  2026-07-25  Scope PA anchors to the active print job
+e31243f9d  2026-07-25  Smooth pressure advance service motion
+2d73c9e8a  2026-07-25  Deduplicate unresolved MMU errors
+c125d4ad1  2026-07-25  Harden stuck filament recovery
+d6c53de51  2026-07-25  Fix 6.6 stuck response phase include
+b7184c726  2026-07-25  Guard stuck response on filament sensor
+2ceab3e72  2026-07-25  Align Connect state with print result UI
+e38085f33  2026-07-25  Reserve serial recovery command capacity
+be6fccbc3  2026-07-25  Keep serial recovery reserve always active
+87b077038  2026-07-25  Expand serial recovery service protocol
 ```
 
-This continuation is generated from `v6.6.2..rme-v6.6.2`; the final release tag
-points at the documentation commit immediately following this list.
+This continuation includes firmware changes through `87b077038`;
+`v6.6.2-RME-b25` points at the release-documentation commit immediately
+following this list.
