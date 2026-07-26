@@ -145,7 +145,7 @@ git diff --name-status v6.6.2..rme-v6.6.2
 git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
 ```
 
-At the 2026-07-21 release audit, the RME 6.6.2 release port covered 648 files
+At the 2026-07-25 release audit, the RME 6.6.2 release port covered 648 files
 with 21,102 insertions and 1,399 deletions relative to upstream `v6.6.2`; the
 6.5.7 port covered 656 files with 19,933 insertions and 2,721 deletions relative
 to `v6.5.7`; and `master` covered 685 files with 21,450 insertions and 1,581
@@ -287,7 +287,7 @@ Expect the official non-genuine firmware warning on stock bootloaders.
 
 ## Feature Groups To Preserve
 
-The 2026-07-21 audit compared `v6.5.7..rme-v6.5.7`,
+The 2026-07-25 audit compared `v6.5.7..rme-v6.5.7`,
 `v6.6.2..rme-v6.6.2`, and `upstream/master..master` by name-status and file
 dirstat. Every changed non-resource directory maps to the feature groups below;
 PNG/font/resource-only directories map to UI Theme and MINI external resources,

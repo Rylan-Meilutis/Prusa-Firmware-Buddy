@@ -564,7 +564,7 @@ The top-level `./build.py` wrapper defaults to at most four concurrent printer b
 The wrapper can also build multiple maintained RME release branches in one command:
 
 ```sh
-./build.py --final --jobs 14 --versions 6.5.7 6.6.1
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
 This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under a sibling `.Prusa-Firmware-Buddy-rme-version-builds/` directory, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. Keeping the version worktrees outside the source checkout avoids accidental relative include leakage while still allowing each cached worktree to retain its `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold. If a nested ExternalProject cache was configured with the wrong Python, or if an old nested cache was partially removed while CMake stamp files remained, the wrapper removes the affected preset build directory so the next rebuild starts from a coherent CMake state.
@@ -572,7 +572,7 @@ This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree
 The wrapper can also build multiple maintained RME release branches in one command:
 
 ```sh
-./build.py --final --jobs 14 --versions 6.5.7 6.6.1
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
 This checks out each requested `rme-vX.Y.Z` branch through a cached Git worktree under `.rme-version-builds/`, runs that version's normal release wrapper, and stages artifacts under `bbf/X.Y.Z/`. The cached worktrees retain their `build/`, `.venv/`, and `.dependencies/` directories so future rebuilds of the same versions can reuse CMake, compiler, Python, and downloaded dependency state instead of starting cold.
@@ -602,23 +602,14 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-Recent local validation used the firmware build wrapper. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
+Final validation for the release firmware at `f3b4c7744` used the firmware build
+wrapper. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`,
+`Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake
+projects can find Nunavut `nnvg` and the same Python environment as the parent
+build.
 
 ```sh
-python3 build.py --final --jobs 4 --no-store-output
-```
-
-The XL release path was revalidated after the nested puppy-firmware Python propagation fix and the expanded config-store visitor generation:
-
-```sh
-./build.py --preset xl --jobs 14 --final --store-output
-```
-
-Result:
-
-```text
-1 succeeded, 0 failed
-xl_6.5.7-RME.bbf -> bbf/xl_6.5.7-RME.bbf
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
 Final validation result:
@@ -626,6 +617,10 @@ Final validation result:
 ```text
 14 succeeded, 0 failed
 ```
+
+The complete multi-version command produced all `29` expected BBFs with no
+stray files in `bbf/`. This release-note refresh is documentation-only and
+does not change the validated firmware output.
 
 Validated release target set and package sizes:
 
@@ -679,7 +674,7 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest release-maintenance commit: `3c3269a1e`
+Latest release-maintenance commit: `f3b4c7744`
 
 Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -917,7 +912,18 @@ d5ab07383  2026-07-21  Fix firmware picker reboot handoff
 6afb70873  2026-07-21  Fix PA MMU purge placement and pressure faults
 10c301bd1  2026-07-21  Debounce runtime extrusion pressure faults
 a1b9e64de  2026-07-21  Fix 6.5 PA park declaration
+2bf4e584f  2026-07-21  Audit RME release documentation for 6.5.7
+9f9610208  2026-07-25  Scope PA anchors to the active print job
+beacdcb2c  2026-07-25  Smooth pressure advance service motion
+8d8ede940  2026-07-25  Deduplicate unresolved MMU errors
+a2edc222c  2026-07-25  Harden stuck filament recovery
+f2275c445  2026-07-25  Align Connect state with print result UI
+c3e5e3eb7  2026-07-25  Fix 6.5 serial print feature guards
+49c31f1c4  2026-07-25  Reserve serial recovery command capacity
+50677a29c  2026-07-25  Keep serial recovery reserve always active
+f3b4c7744  2026-07-25  Expand serial recovery service protocol
 ```
 
-This continuation is generated from `bf61e96e2..rme-v6.5.7`; the final release
-tag points at the documentation commit immediately following this list.
+This continuation includes firmware changes through `f3b4c7744`;
+`v6.5.7-RME-b28` points at the release-documentation commit immediately
+following this list.
