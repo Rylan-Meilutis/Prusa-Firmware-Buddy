@@ -585,15 +585,19 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 
 ## Build validation
 
-The RME patch stack has been replayed on upstream `v6.6.2`, conflict-resolved on branch `rme-v6.6.2`, and checked with a focused release-wrapper build. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
+The RME patch stack has been replayed on upstream `v6.6.2`, conflict-resolved on branch `rme-v6.6.2`, and checked with the final multi-version release build. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake projects can find Nunavut `nnvg` and the same Python environment as the parent build.
 
-Focused validation for the latest loaded-filament and paused-runout changes passed with:
+Final validation for the release firmware at `87b077038` passed with:
 
 ```sh
-./build.py --final --jobs 1 --preset mini-en-ja
+./build.py --final --versions 6.5.7 6.6.2 --jobs 15
 ```
 
-The validation build completed successfully on branch `rme-v6.6.2`. This release-note refresh is documentation-only and does not change the firmware build output.
+The complete command produced all `29` expected BBFs with no stray files in
+`bbf/`. The `6.6.2` half passed all `15` release presets, covering CORE One,
+CORE One INDX, CORE One L, MINI language variants, MK3.5, MK4, and XL. This
+release-note refresh is documentation-only and does not change the validated
+firmware output.
 
 Earlier validation for this patch stack on the prior upstream base covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
 
@@ -609,7 +613,7 @@ Comparison base: upstream `v6.6.2`
 
 Current branch: `rme-v6.6.2`
 
-Latest release-maintenance commit: `e38f0ac43`
+Latest release-maintenance commit: `bb4cc5615`
 
 Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Update master to current upstream RME stack`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -825,7 +829,19 @@ cad09185b  2026-07-21  Fix PA vent travel and extrusion fault recovery
 4c3969d0b  2026-07-21  Document PA travel and fault recovery safeguards
 c31749d9b  2026-07-21  Fix PA MMU purge placement and pressure faults
 bc492d13f  2026-07-21  Debounce runtime extrusion pressure faults
+db27eb73b  2026-07-21  Audit RME release documentation on main
+39ff2d390  2026-07-25  Scope PA anchors to the active print job
+bc23a5c5d  2026-07-25  Smooth pressure advance service motion
+145ab6cc4  2026-07-25  Deduplicate unresolved MMU errors
+50a276fe8  2026-07-25  Harden stuck filament recovery
+26595a730  2026-07-25  Fix 6.6 stuck response phase include
+7f3a439b4  2026-07-25  Guard stuck response on filament sensor
+02446ab1d  2026-07-25  Align Connect state with print result UI
+093f4911e  2026-07-25  Reserve serial recovery command capacity
+1afe1eb33  2026-07-25  Keep serial recovery reserve always active
+bb4cc5615  2026-07-25  Expand serial recovery service protocol
 ```
 
-On `master`, this continuation is audited against `upstream/master..master`;
-version release branches use their matching upstream tag as the comparison base.
+On `master`, this continuation is audited through `bb4cc5615` against
+`upstream/master..master`. The matching release branch is tagged
+`v6.6.2-RME-b25`.
