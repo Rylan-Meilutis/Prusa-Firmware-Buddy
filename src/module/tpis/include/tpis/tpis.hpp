@@ -226,7 +226,7 @@ private:
         const fixed lse_exp = checked_exp2(-fpm::abs(lse_x - lse_y));
         const fixed lse_sum = tp_relative >= fixed(0) ? 1 + lse_exp : 1 - lse_exp;
         if (lse_sum <= fixed(0)) [[unlikely]] {
-            std::abort();
+            abort();
         }
         const fixed lse = fixed_max(lse_x, lse_y) + fpm::log2(lse_sum);
         const fixed t_obj_k = fpm::exp2(F_exp * lse);
