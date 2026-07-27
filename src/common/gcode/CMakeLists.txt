@@ -3,7 +3,6 @@ target_sources(
   firmware
   PUBLIC gcode_basic_parser.cpp
          gcode_buffer.cpp
-         gcode_compatibility.cpp
          gcode_info.cpp
          gcode_info_check.cpp
          gcode_info_scan.cpp

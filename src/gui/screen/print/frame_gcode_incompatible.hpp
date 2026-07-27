@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gcode_compatibility.hpp>
+#include <feature/compatibility_checks/gcode_compatibility.hpp>
 #include <inplace_vector.hpp>
 #include <window_frame.hpp>
 #include <fsm/print_preview_phases.hpp>

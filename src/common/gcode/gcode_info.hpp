@@ -19,7 +19,7 @@
 #include <feature/print_area.h>
 #include <utils/compact_optional.hpp>
 #include <utils/tristate.hpp>
-#include <gcode/gcode_compatibility.hpp>
+#include <feature/compatibility_checks/gcode_compatibility.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <tool_index.hpp>
 #include <bsod/bsod.h>

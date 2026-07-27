@@ -100,6 +100,7 @@ if(HAS_FILAMENT_TRACKER)
   add_subdirectory(filament_tracker)
 endif()
 
+add_subdirectory(compatibility_checks)
 add_subdirectory(factory_reset)
 add_subdirectory(motor_current_profile)
 add_subdirectory(ramming)
