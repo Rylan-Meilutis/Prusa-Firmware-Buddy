@@ -186,14 +186,6 @@ constinit const ChecksTraits<VirtualToolCheck>::Metadata ChecksTraits<VirtualToo
                 .description = N_("G-Code is sliced for a different filament type than what is currently loaded in the assigned tool."),
             },
         },
-        {
-            VirtualToolCheck::filament_hotend_compatible,
-            CheckMetadata {
-                .severity = HWCheckSeverity::Warning,
-                .title = N_("Filament incompatible with hotend"),
-                .description = N_("G-Code is sliced for a filament that is not compatible with the installed hotend. Printing may damage the hotend or produce poor results."),
-            },
-        },
 #if HAS_SPOOL_JOIN()
         {
             VirtualToolCheck::can_spool_join,
@@ -258,10 +250,21 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
     if (aggregate_tools == AggregateTools::yes) {
         {
             ChecksTraits<VirtualToolCheck>::Bitset failed_bits {};
+            filament_compatibility::CompatibilityReport filament_report;
+
+            const auto filament_visitor = [&](const filament_compatibility::CompatibilityReport::FailedCheck &check) {
+                return visitor(FailedCheck { .meta = check.meta, .tool = NoTool {} });
+            };
+
             for (VirtualToolIndex tool : VirtualToolIndex::all()) {
                 failed_bits |= failed_virtual_tool_checks[tool];
+                filament_report |= filament_check_reports[tool];
             }
+
             if (!visit_bitset.operator()<VirtualToolCheck>(failed_bits, NoTool {})) {
+                return false;
+            }
+            if (!filament_report.visit_failed_checks(filament_visitor)) {
                 return false;
             }
         }
@@ -278,6 +281,13 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
     } else {
         for (VirtualToolIndex tool : VirtualToolIndex::all()) {
             if (!visit_bitset.operator()<VirtualToolCheck>(failed_virtual_tool_checks[tool], tool)) {
+                return false;
+            }
+
+            const auto filament_visitor = [&](const filament_compatibility::CompatibilityReport::FailedCheck &check) {
+                return visitor(FailedCheck { .meta = check.meta, .tool = tool });
+            };
+            if (!filament_check_reports[tool].visit_failed_checks(filament_visitor)) {
                 return false;
             }
         }
@@ -424,13 +434,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
 
                 const auto gcode_filament = FilamentType::from_name(std::string_view(fn.data()));
                 if (gcode_filament != FilamentType::none) {
-                    buddy::filament_compatibility::CompatibilityReport fil_compat;
-                    fil_compat.generate(gcode_filament.parameters(), virtual_tool);
-
-                    // Note: this will be redone in the next commit, the check will be nicely embedded
-                    if (fil_compat.failure_severity() > HWCheckSeverity::Ignore) {
-                        virtual_tool_fails.set(VirtualToolCheck::filament_hotend_compatible);
-                    }
+                    filament_check_reports[virtual_tool].generate(gcode_filament.parameters(), virtual_tool);
                 }
             }
 
