@@ -6,6 +6,9 @@
 #include <str_utils.hpp>
 
 #include <option/has_indx.h>
+#include <option/has_nozzle_cleaner.h>
+
+static_assert(HAS_NOZZLE_CLEANER(), "nozzle_cleaner.hpp included on a build without HAS_NOZZLE_CLEANER()");
 
 namespace nozzle_cleaner {
 
