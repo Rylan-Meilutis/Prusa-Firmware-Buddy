@@ -3,8 +3,6 @@
 
 #include <optional>
 
-#include <common/hw_check.hpp>
-#include <utils/storage/enum_bitset.hpp>
 #include <utils/enum_array.hpp>
 #include <tool_index.hpp>
 #include <inplace_function.hpp>
@@ -15,6 +13,8 @@
 #include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <option/has_anfc.h>
+
+#include "compatibility_checks_common.hpp"
 
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
@@ -33,19 +33,7 @@ class GCodeInfo;
 
 namespace buddy::gcode_compatibility {
 
-struct CheckMetadata {
-    /// Severity if the check fails
-    /// Can either be a hardcoded severity or a HWCheckType with user-configurable severity
-    std::variant<HWCheckSeverity, HWCheckType> severity;
-
-    HWCheckSeverity evaluate_severity() const;
-
-    /// Translatable error message, WITHOUT a trailing '.'
-    const char *title;
-
-    /// Translatable long message. Can provide further information. Written in full sentences.
-    const char *description = nullptr;
-};
+using namespace buddy::compatibility_checks;
 
 enum class GeneralCheck : uint8_t {
     /// Fails if the gcode is not compatible at all, not even in compatibility mode
@@ -152,74 +140,7 @@ enum class GCodeToolCheck : uint8_t {
     _cnt
 };
 
-template <typename Check_>
-struct ChecksTraits {
-    using Check = Check_;
-
-    using Metadata = const EnumArray<Check, CheckMetadata, Check::_cnt>;
-    static Metadata metadata;
-
-    using Bitset = EnumBitset<Check, Check::_cnt>;
-
-    /// @returns false if the iteration should stop
-    using Visitor = stdext::inplace_function<bool(const CheckMetadata &)>;
-
-    /// @returns false if the iteration stopped by visitor returning false
-    static bool visit_set_bits(const Bitset &bitset, const Visitor &visitor) {
-        for (uint8_t i = 0; i < std::to_underlying(Check::_cnt); i++) {
-            if (bitset.test(i)) {
-                if (!visitor(metadata[i])) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    static HWCheckSeverity failure_severity(const Bitset &failed_checks) {
-        HWCheckSeverity result = HWCheckSeverity::Ignore;
-
-        visit_set_bits(failed_checks, [&](const CheckMetadata &meta) {
-            result = std::max(result, meta.evaluate_severity());
-        });
-
-        return result;
-    };
-};
-
-struct CompatibilityReport {
-
-    template <typename Check_>
-    struct FailedChecks {
-        using Check = Check_;
-
-        using ChecksMetadata = const EnumArray<Check, CheckMetadata, Check::_cnt>;
-        static ChecksMetadata checks_metadata;
-
-        using Bitset = EnumBitset<Check, Check::_cnt>;
-        Bitset bitset;
-
-        using Visitor = stdext::inplace_function<void(const CheckMetadata &)>;
-        void visit(const Visitor &visitor) const {
-            for (uint8_t i = 0; i < std::to_underlying(Check::_cnt); i++) {
-                if (bitset.test(i)) {
-                    visitor(checks_metadata[i]);
-                }
-            }
-        }
-
-        HWCheckSeverity failure_severity() const {
-            HWCheckSeverity result = HWCheckSeverity::Ignore;
-
-            visit([&](const CheckMetadata &meta) {
-                result = std::max(result, meta.evaluate_severity());
-            });
-
-            return result;
-        };
-    };
-
+struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport> {
     ChecksTraits<GeneralCheck>::Bitset failed_general_checks;
     StrongIndexArray<ChecksTraits<VirtualToolCheck>::Bitset, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> failed_virtual_tool_checks;
     StrongIndexArray<ChecksTraits<GCodeToolCheck>::Bitset, GcodeToolIndex::count, GcodeToolIndex, GcodeToolIndex::to_raw_static> failed_gcode_tool_checks;
@@ -251,12 +172,11 @@ struct CompatibilityReport {
     /// @returns false if the iteration stopped by visitor returning false
     bool visit_failed_checks(const FailedCheckVisitor &visitor, AggregateTools aggregate_tools = AggregateTools::no) const;
 
-    /// @returns (first) failed check of the highest severity
-    /// @param check_filter if provided, only considers check for the specified tool
-    std::optional<FailedCheck> highest_severity_failed_check(std::optional<FailedCheck::Tool> check_filter = std::nullopt) const;
+    using CompatibilityReportBase::highest_severity_failed_check;
 
-    /// Severity of the failures
-    HWCheckSeverity failure_severity() const;
+    auto highest_severity_failed_check(FailedCheck::Tool tool) const {
+        return CompatibilityReportBase::highest_severity_failed_check_filtered([tool](const FailedCheck &check) { return check.tool == tool; });
+    }
 
     bool failed(GeneralCheck check) const {
         return failed_general_checks.test(check);

@@ -1,1 +1,1 @@
-target_sources(firmware PUBLIC gcode_compatibility.cpp)
+target_sources(firmware PUBLIC compatibility_checks_common.cpp gcode_compatibility.cpp)

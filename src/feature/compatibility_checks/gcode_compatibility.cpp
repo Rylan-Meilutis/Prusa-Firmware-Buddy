@@ -31,7 +31,9 @@
     #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
 #endif
 
-namespace buddy::gcode_compatibility {
+// Needed for ChecksTraits<GeneralCheck>::metadata
+using namespace buddy::compatibility_checks;
+using namespace buddy::gcode_compatibility;
 
 template <>
 constinit const ChecksTraits<GeneralCheck>::Metadata ChecksTraits<GeneralCheck>::metadata {
@@ -235,13 +237,7 @@ constinit const ChecksTraits<GCodeToolCheck>::Metadata ChecksTraits<GCodeToolChe
 #endif
 };
 
-HWCheckSeverity CheckMetadata::evaluate_severity() const {
-    return match(
-        severity, //
-        [](HWCheckSeverity v) -> HWCheckSeverity { return v; }, //
-        [](HWCheckType type) -> HWCheckSeverity { return config_store().visit_hw_check(type, [](auto &t) { return t.get(); }); } //
-    );
-}
+namespace buddy::gcode_compatibility {
 
 bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor, AggregateTools aggregate_tools) const {
     const auto visit_bitset = [&]<typename Check>(const ChecksTraits<Check>::Bitset &bitset, FailedCheck::Tool tool) {
@@ -292,37 +288,6 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
     }
 
     return true;
-}
-
-std::optional<CompatibilityReport::FailedCheck> CompatibilityReport::highest_severity_failed_check(std::optional<FailedCheck::Tool> check_filter) const {
-    struct {
-        std::optional<CompatibilityReport::FailedCheck> check;
-        HWCheckSeverity severity = HWCheckSeverity::Ignore;
-    } result;
-
-    visit_failed_checks([&](const FailedCheck &check) {
-        if (check_filter.has_value() && check.tool != check_filter) {
-            return true;
-        }
-
-        const auto severity = check.meta->evaluate_severity();
-        if (!result.check.has_value() || result.severity < severity) {
-            result = { check, severity };
-        }
-
-        return true;
-    });
-
-    return result.check;
-}
-
-HWCheckSeverity CompatibilityReport::failure_severity() const {
-    const auto check = highest_severity_failed_check();
-    if (!check) {
-        return HWCheckSeverity::Ignore;
-    }
-
-    return check->meta->evaluate_severity();
 }
 
 const GCodeInfo &CompatibilityReport::default_gcode_info() {
