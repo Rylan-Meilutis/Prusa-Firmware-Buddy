@@ -86,7 +86,7 @@ namespace {
     // run_z_probe approaches from above and searches down to
     // expected + Z_PROBE_LOW_POINT, so the true surface is found each run.
     constexpr float expected_touchpoint_surface_z = 0.0f;
-    constexpr float dive_below_surface_mm = -0.7f;
+    constexpr float dive_below_surface_mm = -0.3f;
     constexpr float travel_clearance_mm = 10.0f;
 
     constexpr feedRate_t approach_feedrate = MMM_TO_MMS(1200);
