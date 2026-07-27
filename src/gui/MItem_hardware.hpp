@@ -76,6 +76,9 @@ public:
 protected:
     bool on_item_selected(const OnItemSelectedArgs &args) override;
 
+    /// A sibling hardware toggle can change the flags this edition is derived from; keep it in sync.
+    void Loop() override;
+
 private:
     enum class Item {
         variant,
@@ -111,6 +114,9 @@ public:
 
 protected:
     virtual void OnChange(size_t old_index) override;
+
+    /// Keep in sync when an edition selection changes the vent control.
+    void Loop() override;
 };
 #endif
 
@@ -135,6 +141,9 @@ public:
 
 protected:
     virtual void OnChange(size_t old_index) override;
+
+    /// Keep in sync when an edition selection changes the flag.
+    void Loop() override;
 };
 #endif
 
@@ -147,6 +156,9 @@ public:
 
 protected:
     virtual void OnChange(size_t) override;
+
+    /// Keep in sync when an edition selection changes the flag.
+    void Loop() override;
 };
 #endif
 

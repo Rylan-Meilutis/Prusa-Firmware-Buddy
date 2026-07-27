@@ -142,6 +142,10 @@ bool MI_EXTENDED_PRINTER_TYPE::on_item_selected(const OnItemSelectedArgs &args) 
 #if HAS_PRINTER_VARIANT()
 MI_PRINTER_VARIANT::MI_PRINTER_VARIANT()
     : MenuItemSelectMenu(_("Edition")) {
+    // The selection is derived from the feature flags in Loop(), which the menu fires right after creation.
+}
+
+void MI_PRINTER_VARIANT::Loop() {
     // The current edition is derived from the feature flags (config store is the source of truth).
     const auto current = printer_variant_from_config();
     // Flags match no edition (user override) -> show a trailing, display-only "Custom" row.
@@ -228,10 +232,14 @@ static constexpr const char *chamber_vent_control_items[] = {
 static_assert(VentControl(0) == VentControl::off && VentControl(1) == VentControl::automatic && VentControl(2) == VentControl::manual, "menu item misalignment");
 
 MI_SWITCH_VENT_MECHANISM::MI_SWITCH_VENT_MECHANISM()
-    : MenuItemSwitch(_("Chamber Vent Control"), chamber_vent_control_items, std::to_underlying(config_store().get_vent_control())) {}
+    : MenuItemSwitch(_("Chamber Vent Control"), chamber_vent_control_items, 0) {}
 
 void MI_SWITCH_VENT_MECHANISM::OnChange([[maybe_unused]] size_t old_index) {
     config_store().set_vent_control(VentControl(get_index()));
+}
+
+void MI_SWITCH_VENT_MECHANISM::Loop() {
+    set_current_item(std::to_underlying(config_store().get_vent_control()));
 }
 #endif
 
@@ -252,16 +260,22 @@ void MI_AUTO_PRECISE_HOMING_CALIBRATION::OnChange(size_t) {
 #endif
 #if HAS_EXPANSION_JOINTS_GEN_2()
 MI_EXPANSION_JOINTS_GEN_2::MI_EXPANSION_JOINTS_GEN_2()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().ejg2_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : WI_ICON_SWITCH_OFF_ON_t(false, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 
 void MI_EXPANSION_JOINTS_GEN_2::OnChange([[maybe_unused]] size_t old_index) {
     config_store().ejg2_installed.set(value());
+}
+
+void MI_EXPANSION_JOINTS_GEN_2::Loop() {
+    if (const bool installed = config_store().ejg2_installed.get(); value() != installed) {
+        set_value(installed);
+    }
 }
 #endif
 
 #if HAS_NOZZLE_CLEANER_LITE()
 MI_NOZZLE_CLEANER_LITE::MI_NOZZLE_CLEANER_LITE()
-    : WI_ICON_SWITCH_OFF_ON_t(config_store().nozzle_cleaner_lite_installed.get(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};
+    : WI_ICON_SWITCH_OFF_ON_t(false, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};
 
 void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
     bool nozzle_cleaner_lite_present = value();
@@ -272,6 +286,12 @@ void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
 
     {
         config_store().nozzle_cleaner_lite_installed.set(nozzle_cleaner_lite_present);
+    }
+}
+
+void MI_NOZZLE_CLEANER_LITE::Loop() {
+    if (const bool present = config_store().nozzle_cleaner_lite_installed.get(); value() != present) {
+        set_value(present);
     }
 }
 #endif
