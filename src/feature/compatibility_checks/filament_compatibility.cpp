@@ -24,6 +24,14 @@ constinit const ChecksTraits<ToolCheck>::Metadata ChecksTraits<ToolCheck>::metad
             .description = N_("Filament requires higher temperatures than what the tool can provide."),
         },
     },
+    {
+        ToolCheck::abrasive,
+        CheckMetadata {
+            .severity = HWCheckType::nozzle,
+            .title = N_("Filament abrasive"),
+            .description = N_("Filament is abrasive, but tool does not have hardened nozzle installed."),
+        },
+    },
 };
 
 namespace buddy::filament_compatibility {

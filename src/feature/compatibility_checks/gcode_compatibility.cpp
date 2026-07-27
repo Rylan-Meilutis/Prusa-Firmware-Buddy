@@ -412,16 +412,6 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                 return;
             }
 
-            if (auto dia = extruder_info.nozzle_diameter; dia.has_value() && std::abs(*dia - config_store().get_nozzle_diameter(physical_tool.to_raw())) > 0.001f) {
-                virtual_tool_fails.set(VirtualToolCheck::nozzle_diameter);
-            }
-            if (extruder_info.requires_hardened_nozzle == Tristate::yes && !config_store().get_nozzle_is_hardened(physical_tool)) {
-                virtual_tool_fails.set(VirtualToolCheck::nozzle_hardened);
-            }
-            if (extruder_info.requires_high_flow_nozzle == Tristate::yes && !config_store().get_nozzle_is_high_flow(physical_tool)) {
-                virtual_tool_fails.set(VirtualToolCheck::nozzle_high_flow);
-            }
-
             const FilamentType loaded_filament_type = config_store().get_filament_type(virtual_tool);
             const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
 
@@ -436,6 +426,18 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                 if (gcode_filament != FilamentType::none) {
                     filament_check_reports[virtual_tool].generate(gcode_filament.parameters(), virtual_tool);
                 }
+            }
+
+            if (auto dia = extruder_info.nozzle_diameter; dia.has_value() && std::abs(*dia - config_store().get_nozzle_diameter(physical_tool.to_raw())) > 0.001f) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_diameter);
+            }
+            if (extruder_info.requires_hardened_nozzle == Tristate::yes && !config_store().get_nozzle_is_hardened(physical_tool)
+                // These errors are +- duplicit, prevent showing the both
+                && !filament_check_reports[virtual_tool].failed_tool_checks.test(buddy::filament_compatibility::ToolCheck::abrasive)) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_hardened);
+            }
+            if (extruder_info.requires_high_flow_nozzle == Tristate::yes && !config_store().get_nozzle_is_high_flow(physical_tool)) {
+                virtual_tool_fails.set(VirtualToolCheck::nozzle_high_flow);
             }
 
             // With MMU, the filaments are intentionally unloaded at the start of the print

@@ -11,7 +11,10 @@ public:
 #endif
 
 protected:
-    explicit StandardFFFPhysicalToolBase(Hotend &hotend);
+    explicit StandardFFFPhysicalToolBase(PhysicalToolIndex tool_index, Hotend &hotend);
+
+protected:
+    const PhysicalToolIndex tool_index_;
 };
 
 template <typename Hotend>
@@ -19,7 +22,7 @@ class StandardFFFPhysicalTool final : public StandardFFFPhysicalToolBase {
 
 public:
     explicit StandardFFFPhysicalTool(PhysicalToolIndex tool_index, const Hotend::Config *hotend_config)
-        : StandardFFFPhysicalToolBase(hotend_)
+        : StandardFFFPhysicalToolBase(tool_index, hotend_)
         , hotend_(tool_index, hotend_config) {}
 
     Hotend &hotend() { return hotend_; }

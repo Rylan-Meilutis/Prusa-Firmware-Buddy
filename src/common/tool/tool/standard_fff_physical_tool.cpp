@@ -8,11 +8,16 @@
     #include <config_store/store_instance.hpp>
 #endif
 
-StandardFFFPhysicalToolBase::StandardFFFPhysicalToolBase(Hotend &hotend)
-    : PhysicalTool(ToolType::standard_fff, hotend) {}
+StandardFFFPhysicalToolBase::StandardFFFPhysicalToolBase(PhysicalToolIndex tool_index, Hotend &hotend)
+    : PhysicalTool(ToolType::standard_fff, hotend)
+    , tool_index_(tool_index) {}
 
 #if BOARD_IS_MASTER_BOARD()
 void StandardFFFPhysicalToolBase::filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const {
     hotend().filament_compatibility_report(filament, report);
+
+    if (filament.is_abrasive && !config_store().get_nozzle_is_hardened(tool_index_)) {
+        report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::abrasive);
+    }
 }
 #endif

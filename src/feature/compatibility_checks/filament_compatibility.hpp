@@ -25,6 +25,9 @@ enum class ToolCheck : uint8_t {
     /// Fails if the filament printing temperatures exceed temperatures supported by the tool
     tool_max_temp,
 
+    /// Fails if the filament is abrasive and the nozzle is not hardened
+    abrasive,
+
     _cnt,
 
 };
