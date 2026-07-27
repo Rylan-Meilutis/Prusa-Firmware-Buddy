@@ -110,6 +110,24 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
         return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = 160 } };
 #endif
 
+#if HAS_NOZZLE_CLEANER() || HAS_NOZZLE_CLEANER_LITE()
+    case ParkPosition::nozzle_cleaner_approach:
+    #if HAS_INDX()
+        return ParkingPosition { .x = X_WASTEBIN_SAFE_POINT, .y = Y_BRUSH_AVOID_POINT, .z = ParkingPosition::AtLeast { .above_print = 3.0f } };
+    #else
+        // No caller reaches these positions on other variants yet.
+        // Fill in the coordinates when one appears.
+        return {};
+    #endif
+
+    case ParkPosition::nozzle_cleaner_exit:
+    #if HAS_INDX()
+        return ParkingPosition { .x = X_WASTEBIN_SAFE_POINT, .y = Y_WASTEBIN_SAFE_POINT, .z = ParkingPosition::AtLeast { .above_print = 3.0f } };
+    #else
+        return {};
+    #endif
+#endif
+
 #if HAS_TOOLCHANGER()
     case ParkPosition::tool_park:
         if (auto *t = std::get_if<VirtualToolIndex>(&tool)) {

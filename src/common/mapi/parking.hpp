@@ -4,6 +4,7 @@
 #include <variant>
 
 #include <option/has_nozzle_cleaner.h>
+#include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_wastebin.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_indx.h>
@@ -37,6 +38,16 @@ enum class ParkPosition : uint8_t {
 #if HAS_WASTEBIN_FILL_TRACKING()
     /// Head clear of the nozzle cleaner so the wastebin can be pulled out, lifted above the print.
     empty_wastebin,
+#endif
+
+#if HAS_NOZZLE_CLEANER() || HAS_NOZZLE_CLEANER_LITE()
+    /// Just outside the cleaner area, staging the tool for a cleaning sequence.
+    /// Does not define Z; set it explicitly if a Z move is needed.
+    nozzle_cleaner_approach,
+
+    /// Clear of the cleaner area, for parking after a cleaning sequence.
+    /// Does not define Z; set it explicitly if a Z move is needed.
+    nozzle_cleaner_exit,
 #endif
 
 #if HAS_TOOLCHANGER()

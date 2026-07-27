@@ -169,7 +169,7 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
 
 #if HAS_NOZZLE_CLEANER()
     if (context == tool_offset_calibration::Context::Print) {
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_BRUSH_AVOID_POINT, SAFE_Z_HEIGHT } }));
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_approach));
 
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
             return false;
@@ -196,7 +196,7 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         }
 
         // park out of cleaner area
-        mapi::park(mapi::ParkingPosition::from_xyz_pos({ { X_WASTEBIN_SAFE_POINT, Y_WASTEBIN_SAFE_POINT, SAFE_Z_HEIGHT } }));
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_exit));
     } else {
         // Calibration context: nozzle was cleaned by the user and Z is not probed here. Heat
         // straight to the XY-probing temperature (lower than the Z-probing temperature, so no
