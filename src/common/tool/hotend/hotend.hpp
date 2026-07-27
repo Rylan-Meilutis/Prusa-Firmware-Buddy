@@ -65,6 +65,8 @@ public:
 
 public:
     using FilamentCompatibilityReport = buddy::filament_compatibility::CompatibilityReport;
+
+    /// !!! MUST BE THREAD-SAFE, CAN BE CALLED FROM ANY THREAD
     virtual void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const = 0;
 
     /// Maximum nozzle temperature (from the hotend config).
