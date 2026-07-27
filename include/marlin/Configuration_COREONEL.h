@@ -913,7 +913,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 /// If defined, the printer will check max_printed_z and if a move would result in the model getting above this clearance,
 /// it will prompt the user
 /// Requires HAS_CEILING_CLEARANCE()
-// Note: There is actually a more space to the ceiling on C1, but there is also the toolhead cable swinging around, so let's be a bit conservative
+/// Note: There is actually a more space to the ceiling on C1, but there is also the toolhead cable swinging around, so let's be a bit conservative
+/// !!! IMPORTANT: Consult with the slicer team when changing this number, needs to be synced with the slicer profiles
 #define Z_CEILING_CLEARANCE 100
 
 /// Distance between start of the axis to the position where ordinary movement is allowed

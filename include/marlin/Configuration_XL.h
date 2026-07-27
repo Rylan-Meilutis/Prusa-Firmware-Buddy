@@ -835,6 +835,7 @@
 /// If defined, the printer will check max_printed_z and if a move would result in the model getting above this clearance,
 /// it will prompt the user
 /// Requires HAS_CEILING_CLEARANCE()
+/// !!! IMPORTANT: Consult with the slicer team when changing this number, needs to be synced with the slicer profiles
 // #define Z_CEILING_CLEARANCE 100
 
 /// Distance between start of the axis to the position where ordinary movement is allowed
