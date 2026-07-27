@@ -369,11 +369,6 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
     // #error dead code found by automatic analyses (see BFW-5461)
 
     deploy ? run_deploy_moves_script() : run_stow_moves_script();
-
-  #elif ENABLED(RACK_AND_PINION_PROBE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-
-    do_blocking_move_to_x(deploy ? Z_PROBE_DEPLOY_X : Z_PROBE_RETRACT_X);
   #endif
 }
 
