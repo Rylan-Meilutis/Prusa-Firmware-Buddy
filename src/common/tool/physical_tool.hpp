@@ -5,9 +5,15 @@
 
 #include <tool_index.hpp>
 
+#include <option/board_is_master_board.h>
+
 class Hotend;
 
 struct FilamentTypeParameters;
+
+namespace buddy::filament_compatibility {
+struct CompatibilityReport;
+}
 
 /// Base class for all tools
 /// !!! ALL PUBLIC FUNCTIONS MUST BE THREAD-SAFE UNLESS STATED OTHERWISE
@@ -36,7 +42,10 @@ public:
         return hotend_ref_;
     }
 
-    virtual bool supports_filament(const FilamentTypeParameters &filament) const = 0;
+#if BOARD_IS_MASTER_BOARD() // Dwarfs gonna dwarf
+    using FilamentCompatibilityReport = buddy::filament_compatibility::CompatibilityReport;
+    virtual void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const = 0;
+#endif
 
 protected:
     PhysicalTool(ToolType type, Hotend &hotend);

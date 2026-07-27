@@ -6,7 +6,9 @@
 class StandardFFFPhysicalToolBase : public PhysicalTool {
 
 public:
-    bool supports_filament(const FilamentTypeParameters &filament) const override;
+#if BOARD_IS_MASTER_BOARD()
+    void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const override;
+#endif
 
 protected:
     explicit StandardFFFPhysicalToolBase(Hotend &hotend);

@@ -13,6 +13,10 @@
 
 struct FilamentTypeParameters;
 
+namespace buddy::filament_compatibility {
+struct CompatibilityReport;
+}
+
 /// Class representing a hotend
 /// This is an abstract class, hotend implementations differ
 class Hotend : public Uncopyable {
@@ -60,7 +64,8 @@ public:
     static Hotend &for_tool(uint8_t tool);
 
 public:
-    virtual bool supports_filament(const FilamentTypeParameters &filament) const = 0;
+    using FilamentCompatibilityReport = buddy::filament_compatibility::CompatibilityReport;
+    virtual void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const = 0;
 
     /// Maximum nozzle temperature (from the hotend config).
     /// DummyHotend (NoTool) is constructed with a zero config, so this returns 0.

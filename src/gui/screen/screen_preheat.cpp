@@ -13,6 +13,7 @@
 #include <tool/physical_tool.hpp>
 #include <bsod/bsod.h>
 #include <client_response_texts.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -24,19 +25,6 @@
 namespace {
 
 using PreheatToolIndex = PreheatData::ToolIndex;
-
-/// Check if a filament is compatible with the tool(s) represented by PreheatToolIndex.
-/// For AllTools, the filament must be compatible with every enabled physical tool.
-/// (Pre-print check + visual incompat marking; the list-generator path uses
-/// GenerateFilamentListConfig::compatible_with_tool, which carries the same logic.)
-bool is_filament_compatible(PreheatToolIndex tool, const FilamentTypeParameters &params) {
-    for (VirtualToolIndex vti : tool_index_iterator(tool).skip_all_disabled()) {
-        if (!PhysicalTool::for_index(vti.to_physical()).supports_filament(params)) {
-            return false;
-        }
-    }
-    return true;
-}
 
 class WindowMenuPreheat;
 
@@ -124,7 +112,9 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
     const auto filament_params = filament_type.parameters();
     filament_name = filament_params.name;
 
-    const bool compatible = is_filament_compatible(tool, filament_params);
+    buddy::filament_compatibility::CompatibilityReport compat_report;
+    compat_report.generate(filament_params, stdext::to_variant(tool));
+    const bool compatible = compat_report.failure_severity() <= HWCheckSeverity::Ignore;
 
     FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this, compatible);
 
@@ -380,12 +370,10 @@ ScreenPreheat::~ScreenPreheat() {
 bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool) {
     const auto filament = filament_type.parameters();
 
-    // Check hotend compatibility (HT-only filaments on a standard hotend exceed its max temp).
-    if (!is_filament_compatible(tool, filament)) {
-        StringViewUtf8Parameters<filament_name_buffer_size> params;
-        if (MsgBoxWarning(_("Filament '%s' is not compatible with the installed hotend. Do you really want to continue?").formatted(params, filament.name.data()), Responses_YesNo) != Response::Yes) {
-            return false;
-        }
+    buddy::filament_compatibility::CompatibilityReport compat;
+    compat.generate(filament, stdext::to_variant(tool));
+    if (!compat.gui_confirm_all_incompatibilities(Response::Cancel)) {
+        return false;
     }
 
     if (filament.is_abrasive && std::holds_alternative<VirtualToolIndex>(tool) && !config_store().get_nozzle_is_hardened(std::get<VirtualToolIndex>(tool).to_physical())) {

@@ -4,6 +4,7 @@
 #include <bsod.h>
 #include <module/temperature.h>
 #include <filament.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 #include <option/board_is_master_board.h>
 #if BOARD_IS_MASTER_BOARD()
@@ -28,8 +29,10 @@ BaseHotend::BaseHotend(PhysicalToolIndex tool, const Config *config)
 {
 }
 
-bool BaseHotend::supports_filament(const FilamentTypeParameters &filament) const {
-    return base_config_.max_nozzle_temp >= filament.nozzle_temperature;
+void BaseHotend::filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const {
+    if (base_config_.max_nozzle_temp < filament.nozzle_temperature) {
+        report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::tool_max_temp);
+    }
 }
 
 void BaseHotend::set_nozzle_target_temp(TargetTemperature set) {

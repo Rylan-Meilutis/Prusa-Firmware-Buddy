@@ -5,6 +5,7 @@
 #ifndef UNITTESTS
     // Used by generate_filament_list() below, which is itself UNITTESTS-excluded.
     #include <tool/physical_tool.hpp>
+    #include <feature/compatibility_checks/filament_compatibility.hpp>
 #endif
 
 constinit const FilamentList all_filament_types = [] {
@@ -70,10 +71,11 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         if (is_filament_in_list_bitset.test(ix)) {
             return;
         }
-        for (VirtualToolIndex vti : tool_index_iterator(config.compatible_with_tool).skip_all_disabled()) {
-            if (!PhysicalTool::for_index(vti.to_physical()).supports_filament(ft.parameters())) {
-                return;
-            }
+
+        buddy::filament_compatibility::CompatibilityReport report;
+        report.generate(ft.parameters(), config.compatible_with_tool);
+        if (report.failure_severity() >= HWCheckSeverity::Abort) {
+            return;
         }
 
         list.push_back(ft);

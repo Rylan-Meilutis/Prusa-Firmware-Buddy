@@ -8,6 +8,7 @@
 #include <test_result.hpp>
 #include <tool/physical_tool.hpp>
 #include <window_msgbox.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 #include <option/has_mmu2.h>
 #if HAS_MMU2()
@@ -423,7 +424,11 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
 
                 const auto gcode_filament = FilamentType::from_name(std::string_view(fn.data()));
                 if (gcode_filament != FilamentType::none) {
-                    if (!PhysicalTool::for_index(physical_tool).supports_filament(gcode_filament.parameters())) {
+                    buddy::filament_compatibility::CompatibilityReport fil_compat;
+                    fil_compat.generate(gcode_filament.parameters(), virtual_tool);
+
+                    // Note: this will be redone in the next commit, the check will be nicely embedded
+                    if (fil_compat.failure_severity() > HWCheckSeverity::Ignore) {
                         virtual_tool_fails.set(VirtualToolCheck::filament_hotend_compatible);
                     }
                 }
