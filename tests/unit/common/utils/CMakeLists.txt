@@ -22,6 +22,7 @@ add_executable(
   )
 target_include_directories(
   printer_model_tests PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include
+                             ${CMAKE_SOURCE_DIR}/src
   )
 add_catch_test(printer_model_tests)
 
