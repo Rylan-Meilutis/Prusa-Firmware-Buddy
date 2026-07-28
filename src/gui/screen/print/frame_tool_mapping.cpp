@@ -819,7 +819,7 @@ void FrameToolMapping::windowEvent(window_t *sender, GUI_event_t event, void *co
         switch (response) {
 
         case Response::Print:
-            if (!compat_report_.gui_confirm_all_incompatibilities(Response::Cancel)) {
+            if (!compat_report_.gui_confirm_all_incompatibilities(Response::Cancel, buddy::gcode_compatibility::CompatibilityReport::AggregateTools::yes)) {
                 return;
             }
 

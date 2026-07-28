@@ -62,23 +62,8 @@ void CompatibilityReport::operator|=(const CompatibilityReport &other) {
     failed_tool_checks |= other.failed_tool_checks;
 }
 
-[[nodiscard]] bool CompatibilityReport::gui_confirm_all_incompatibilities(Response abort_response) const {
-    const auto highest_severity_failed_check = this->highest_severity_failed_check();
-    if (auto &ch = highest_severity_failed_check; ch.has_value() && ch->meta->evaluate_severity() == HWCheckSeverity::Abort) {
-        MsgBoxError(_(ch->meta->description), { abort_response });
-        return false;
-    }
-
-    return visit_failed_checks([&](const FailedCheck &check) -> bool {
-        // Don't even bother showing ignore level severities
-        if (check.meta->evaluate_severity() == HWCheckSeverity::Ignore) {
-            return true;
-        }
-
-        else {
-            return MsgBoxWarning(_(check.meta->description), { abort_response, Response::Ignore }) == Response::Ignore;
-        }
-    });
+[[nodiscard]] bool CompatibilityReport::gui_confirm_incompatibility(const FailedCheck &check, Response abort_response) {
+    return gui_confirm_incompatibility_default(*check.meta, abort_response);
 }
 
 } // namespace buddy::filament_compatibility

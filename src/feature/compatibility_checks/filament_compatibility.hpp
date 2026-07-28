@@ -50,12 +50,8 @@ struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport>
     /// @returns false if the iteration stopped by visitor returning false
     bool visit_failed_checks(const FailedCheckVisitor &visitor) const;
 
-    /// If there is a failed check with abort severity, shows that one.
-    /// Otherwise shows a warning for each failed check with the warning severity.
-    /// The user needs to confirm ignoring all of the warnings.
-    /// @returns true if the user confirmed to skip all warnings
-    /// !!! TO BE EXECUTED FROM THE GUI THREAD ONLY
-    [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort) const;
+    /// Similar to gui_confirm_all_incompatibilities, but for a single specific failed check
+    [[nodiscard]] static bool gui_confirm_incompatibility(const FailedCheck &check, Response abort_response);
 
     /// Accumulates fails from the @p other reports to this one
     void operator|=(const CompatibilityReport &other);

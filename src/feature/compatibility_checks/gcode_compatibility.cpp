@@ -238,6 +238,7 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
             return visitor(FailedCheck {
                 .meta = &meta,
                 .tool = tool,
+                .is_from_filament = false,
             });
         };
         return ChecksTraits<Check>::visit_set_bits(bitset, v);
@@ -253,7 +254,11 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
             filament_compatibility::CompatibilityReport filament_report;
 
             const auto filament_visitor = [&](const filament_compatibility::CompatibilityReport::FailedCheck &check) {
-                return visitor(FailedCheck { .meta = check.meta, .tool = NoTool {} });
+                return visitor(FailedCheck {
+                    .meta = check.meta,
+                    .tool = NoTool {},
+                    .is_from_filament = true,
+                });
             };
 
             for (VirtualToolIndex tool : VirtualToolIndex::all()) {
@@ -285,7 +290,11 @@ bool CompatibilityReport::visit_failed_checks(const FailedCheckVisitor &visitor,
             }
 
             const auto filament_visitor = [&](const filament_compatibility::CompatibilityReport::FailedCheck &check) {
-                return visitor(FailedCheck { .meta = check.meta, .tool = tool });
+                return visitor(FailedCheck {
+                    .meta = check.meta,
+                    .tool = tool,
+                    .is_from_filament = true,
+                });
             };
             if (!filament_check_reports[tool].visit_failed_checks(filament_visitor)) {
                 return false;
@@ -500,40 +509,33 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
     }
 }
 
-bool CompatibilityReport::gui_confirm_all_incompatibilities(Response abort_response) const {
-    const auto highest_severity_failed_check = this->highest_severity_failed_check();
-    if (auto &ch = highest_severity_failed_check; ch.has_value() && ch->meta->evaluate_severity() == HWCheckSeverity::Abort) {
-        MsgBoxError(_(ch->meta->description), { abort_response });
-        return false;
+[[nodiscard]] bool CompatibilityReport::gui_confirm_incompatibility(const FailedCheck &check, Response abort_response) const {
+    if (check.is_from_filament) {
+        const filament_compatibility::CompatibilityReport::FailedCheck filament_check {
+            .meta = check.meta,
+        };
+        return filament_compatibility::CompatibilityReport::gui_confirm_incompatibility(filament_check, abort_response);
     }
 
-    return visit_failed_checks([&](const FailedCheck &check) -> bool {
-        // Don't even bother showing ignore level severities
-        if (check.meta->evaluate_severity() == HWCheckSeverity::Ignore) {
-            return true;
-        }
-
-        // Special case for the filament loaded check - continuing that one requires disabling the filament sensors
-        else if (check.meta == &ChecksTraits<VirtualToolCheck>::metadata[VirtualToolCheck::filament_loaded]) {
-            if (MsgBoxWarning(_(check.meta->description), { abort_response, Response::FS_disable }) == Response::FS_disable) {
+    // Special case for the filament loaded check - continuing that one requires disabling the filament sensors
+    else if (check.meta == &ChecksTraits<VirtualToolCheck>::metadata[VirtualToolCheck::filament_loaded]) {
+        if (MsgBoxWarning(_(check.meta->description), { abort_response, Response::FS_disable }) == Response::FS_disable) {
 #if HAS_SPOOL_JOIN()
-                if (does_spool_join) {
-                    MsgBoxError(_("Cannot disable filament sensors, because they are required for spool join."), { abort_response });
-                    return false;
-                }
-#endif
-                FSensors_instance().set_enabled_global(false);
-                return true;
-            } else {
+            if (does_spool_join) {
+                MsgBoxError(_("Cannot disable filament sensors, because they are required for spool join."), { abort_response });
                 return false;
             }
+#endif
+            FSensors_instance().set_enabled_global(false);
+            return true;
+        } else {
+            return false;
         }
+    }
 
-        else {
-            return MsgBoxWarning(_(check.meta->description), { abort_response, Response::Ignore }) == Response::Ignore;
-        }
-    },
-        AggregateTools::yes);
+    else {
+        return gui_confirm_incompatibility_default(*check.meta, abort_response);
+    }
 }
 
 } // namespace buddy::gcode_compatibility

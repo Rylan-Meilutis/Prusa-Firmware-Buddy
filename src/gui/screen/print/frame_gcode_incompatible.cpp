@@ -46,7 +46,8 @@ WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect1
     report.visit_failed_checks([this](const auto &fail) {
         failed_checks_.push_back(fail.meta);
         return failed_checks_.size() != failed_checks_.max_size();
-    });
+    },
+        gcode_compatibility::CompatibilityReport::AggregateTools::yes);
 
     setup_items();
 }

@@ -151,6 +151,9 @@ struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport>
 
         const CheckMetadata *meta;
         Tool tool;
+
+        /// Whether the check is from the embedded filament compatibility checks
+        bool is_from_filament;
     };
 
     /// @returns false if the iteration should stop
@@ -224,13 +227,9 @@ struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport>
     /// generate_without_toolmapping + generate_toolmapping_only
     void generate_full(const ToolMappingArgs &args);
 
-    /// If there is a failed check with abort severity, shows that one.
-    /// Otherwise shows a warning for each failed check with the warning severity.
-    /// The user needs to confirm ignoring all of the warnings.
-    /// Some warning ignores can change printer state (for example filament not loaded disables FS)
-    /// @returns true if the user confirmed to skip all warnings
-    /// !!! TO BE EXECUTED FROM THE GUI THREAD ONLY
-    [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort) const;
+    /// Similar to gui_confirm_all_incompatibilities, but for a single specific failed check
+    /// Some warning ignores MAY change printer state (for example filament not present -> disable fs)
+    [[nodiscard]] bool gui_confirm_incompatibility(const FailedCheck &check, Response abort_response) const;
 
 private:
     void generate_toolmapping_only_noclear(const ToolMappingArgs &args);
