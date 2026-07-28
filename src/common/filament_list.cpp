@@ -75,6 +75,7 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         const buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
             .filament = ft.parameters(),
             .tools = config.compatible_with_tool,
+            .assume_filament_already_inserted = false,
         };
         buddy::filament_compatibility::CompatibilityReport report;
         report.generate_noclear(args);

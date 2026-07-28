@@ -436,6 +436,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                     const filament_compatibility::CompatibilityReportGenerateArgs args {
                         .filament = gcode_filament.parameters(),
                         .tools = virtual_tool,
+                        .assume_filament_already_inserted = true,
                     };
                     filament_check_reports[virtual_tool].generate_noclear(args);
                 }

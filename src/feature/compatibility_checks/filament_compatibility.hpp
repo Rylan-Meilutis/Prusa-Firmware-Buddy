@@ -38,6 +38,9 @@ struct CompatibilityReportGenerateArgs {
     const FilamentTypeParameters &filament;
 
     std::variant<VirtualToolIndex, AllTools, NoTool> tools;
+
+    /// If set, this may filter out some checks compatibility checks
+    bool assume_filament_already_inserted : 1;
 };
 
 struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport> {
@@ -49,7 +52,7 @@ struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport>
     };
 
     /// Generates a compatibility record
-    /// Consecutive generate() calls accumulate reported errors
+    /// Consecutive calls accumulate reported errors
     void generate_noclear(const CompatibilityReportGenerateArgs &args);
 
     /// @returns false if the iteration should stop

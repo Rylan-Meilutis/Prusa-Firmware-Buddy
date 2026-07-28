@@ -120,6 +120,7 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool, Preh
     const buddy::filament_compatibility::CompatibilityReportGenerateArgs compat_args {
         .filament = filament_params,
         .tools = stdext::to_variant(tool),
+        .assume_filament_already_inserted = preheat_mode_assume_filament_already_inserted(mode),
     };
     compat_report.generate_noclear(compat_args);
     const bool compatible = compat_report.failure_severity() <= HWCheckSeverity::Ignore;
@@ -382,6 +383,7 @@ bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, Prehea
     const buddy::filament_compatibility::CompatibilityReportGenerateArgs compat_args {
         .filament = filament_type.parameters(),
         .tools = stdext::to_variant(tool),
+        .assume_filament_already_inserted = preheat_mode_assume_filament_already_inserted(mode)
     };
     buddy::filament_compatibility::CompatibilityReport compat;
     compat.generate_noclear(compat_args);
