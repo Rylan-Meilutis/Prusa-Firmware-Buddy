@@ -1,6 +1,7 @@
 #include "filament_list.hpp"
 #include "encoded_filament.hpp"
 #include <bsod/bsod.h>
+#include <utils/bitset_utils.hpp>
 
 #ifndef UNITTESTS
     // Used by generate_filament_list() below, which is itself UNITTESTS-excluded.
@@ -55,6 +56,30 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         for (UserFilamentType ft; ft.index < user_filament_type_count; ft.index++) {
             is_filament_visible_bitset.set(EncodedFilamentType(ft).data, is_user_filament_visible.test(ft.index));
         }
+
+        // Hide incompatible filaments
+        for (FilamentType ft : all_filament_types) {
+            const auto ix = EncodedFilamentType(ft).data;
+
+            if (!is_user_filament_visible.test(ix)) {
+                // Skip slow compatibility check
+                continue;
+            }
+
+            const buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
+                .filament = ft.parameters(),
+                .tools = config.compatible_with_tool,
+                // This one is not worth plumbing through
+                // It only extends the cases where filament is hidden by default
+                // "Show all" will still make it selectable (and you will get an explanatory error when trying to select)
+                .assume_filament_already_inserted = false,
+            };
+            buddy::filament_compatibility::CompatibilityReport report;
+            report.generate_noclear(args);
+            if (report.failure_severity() >= HWCheckSeverity::Abort) {
+                is_filament_visible_bitset.reset(ix);
+            }
+        }
     }
 
     const auto is_filament_visible = [&](FilamentType ft) {
@@ -69,17 +94,6 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
     const auto append_filament = [&](FilamentType ft) {
         const uint8_t ix = EncodedFilamentType(ft).data;
         if (is_filament_in_list_bitset.test(ix)) {
-            return;
-        }
-
-        const buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
-            .filament = ft.parameters(),
-            .tools = config.compatible_with_tool,
-            .assume_filament_already_inserted = false,
-        };
-        buddy::filament_compatibility::CompatibilityReport report;
-        report.generate_noclear(args);
-        if (report.failure_severity() >= HWCheckSeverity::Abort) {
             return;
         }
 
