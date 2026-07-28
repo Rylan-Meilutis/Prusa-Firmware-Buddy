@@ -15,6 +15,7 @@
 #include <raii/scope_guard.hpp>
 #include <state/printer_state.hpp>
 #include <option/has_human_interactions.h>
+#include <marlin_client.hpp>
 
 #include <logging/log.hpp>
 #include <type_traits>
@@ -422,11 +423,11 @@ void Transfer::notify_created() {
     ChangedPath::instance.changed_path(slot.destination(), ChangedPath::Type::File, ChangedPath::Incident::Created);
 
     if (HAS_HUMAN_INTERACTIONS() && filename_is_printable(slot.destination()) && printer_state::remote_print_ready(/*preview_only=*/true)) {
-        // While it looks a counter-intuitive, this print_begin only shows the
+        // While it looks a counter-intuitive, this print_start only shows the
         // print preview / one click print, doesn't really start the print.
         char sfn_path[filename_defs::path_buffer_size];
         get_SFN_path_copy(slot.destination(), sfn_path, sizeof(sfn_path));
-        print_begin(sfn_path);
+        marlin_client::print_start(sfn_path);
     }
 
     already_notified = true;

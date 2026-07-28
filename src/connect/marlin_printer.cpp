@@ -538,7 +538,7 @@ Printer::StartPrintResult MarlinPrinter::start_print(const char *path, [[maybe_u
 #endif
     }
 
-    print_begin(path, marlin_server::PreviewSkipIfAble::all);
+    marlin_client::print_start(path, marlin_server::PreviewSkipIfAble::all);
     if (!marlin_client::is_print_started()) {
         return std::unexpected("Can't print now");
     }

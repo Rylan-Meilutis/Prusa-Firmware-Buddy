@@ -462,7 +462,7 @@ void screen_home_data_t::windowEvent(window_t *sender, GUI_event_t event, void *
 
                 std::array<char, filename_defs::path_buffer_size> filepath;
                 if (find_latest_gcode(filepath.data(), filepath.size())) {
-                    print_begin(filepath.data());
+                    marlin_client::print_start(filepath.data());
                 }
             }
         }

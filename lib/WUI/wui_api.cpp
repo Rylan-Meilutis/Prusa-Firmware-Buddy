@@ -288,7 +288,7 @@ StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
 
     if (autostart_if_able) {
         if (printer_can_print) {
-            print_begin(filename, marlin_server::PreviewSkipIfAble::all);
+            marlin_client::print_start(filename, marlin_server::PreviewSkipIfAble::all);
             return marlin_client::is_print_started() ? StartPrintResult::PrintStarted : StartPrintResult::Failed;
         } else {
             return StartPrintResult::Failed;
@@ -298,7 +298,7 @@ StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
         // marlin. If it couldn't print/initialte the preview, it would just do
         // nothing anyway.
         if (printer_can_print) {
-            print_begin(filename);
+            marlin_client::print_start(filename);
         }
         // We were not asked to print. Showing the preview is "best effort",
         // but not reported to the user.
