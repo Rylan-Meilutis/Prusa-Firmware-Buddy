@@ -24,14 +24,24 @@ constinit const ChecksTraits<ToolCheck>::Metadata ChecksTraits<ToolCheck>::metad
             .description = N_("Filament requires higher temperatures than what the tool can provide."),
         },
     },
-    {
-        ToolCheck::abrasive,
-        CheckMetadata {
-            .severity = HWCheckType::nozzle,
-            .title = N_("Filament abrasive"),
-            .description = N_("Filament is abrasive, but tool does not have hardened nozzle installed."),
+        {
+            ToolCheck::abrasive,
+            CheckMetadata {
+                .severity = HWCheckType::nozzle,
+                .title = N_("Filament abrasive"),
+                .description = N_("Filament is abrasive, but tool does not have hardened nozzle installed."),
+            },
         },
-    },
+#if HAS_HT_HOTEND()
+        {
+            ToolCheck::requires_ht_idler_door,
+            CheckMetadata {
+                .severity = CompatibilityLevel::compatible_with_reminder,
+                .title = N_("Check idler door"),
+                .description = N_("Filament requires the high-temperature idler door installed on the Nextruder.\n\nMake sure the correct idler door is in place before loading."),
+            },
+        },
+#endif
 };
 
 namespace buddy::filament_compatibility {

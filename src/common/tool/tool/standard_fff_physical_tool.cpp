@@ -21,5 +21,13 @@ void StandardFFFPhysicalToolBase::filament_compatibility_report(FilamentCompatib
     if (args.filament.is_abrasive && !config_store().get_nozzle_is_hardened(tool_index_)) {
         report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::abrasive);
     }
+
+    #if HAS_HT_HOTEND()
+    // Bother the user about the HT idler door on filament insertion, as the product requested
+    // BFW-8600
+    if (args.filament.requires_ht_idler_door && !args.assume_filament_already_inserted) {
+        report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::requires_ht_idler_door);
+    }
+    #endif
 }
 #endif

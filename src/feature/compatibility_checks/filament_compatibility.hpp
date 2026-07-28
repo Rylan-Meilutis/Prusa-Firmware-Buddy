@@ -6,6 +6,8 @@
 #include <tool_index.hpp>
 #include <marlin_server_types/general_response.hpp>
 
+#include <option/has_ht_hotend.h>
+
 struct FilamentTypeParameters;
 
 namespace buddy::filament_compatibility {
@@ -27,6 +29,12 @@ enum class ToolCheck : uint8_t {
 
     /// Fails if the filament is abrasive and the nozzle is not hardened
     abrasive,
+
+#if HAS_HT_HOTEND()
+    /// Some filaments require HT idler door for safe extrusion —
+    // they are brittle enough that the standard idler can snap the filament.
+    requires_ht_idler_door,
+#endif
 
     _cnt,
 
