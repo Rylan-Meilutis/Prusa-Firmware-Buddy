@@ -1171,7 +1171,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     // 4.745 = 5 - 0.255 (empirical loadcell-vs-V-groove median, 7 COREONE units). INDX_TODO: revisit.
     #define Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL + 4.745f)
     #define Y_NOZZLE_CLEANER_PURGE_PROBE_MIN (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL - 3.f) // probe ceiling past the edge
-    #define X_NOZZLE_CLEANER_PURGE_TOUCH (X_WASTEBIN_POINT - 3.5f)
+    #define X_NOZZLE_CLEANER_PURGE_TOUCH (X_WASTEBIN_POINT - 7.66f)
     // Entry sits clear of the edge by more than the offset tolerance so the +X align move never bumps the
     // tray even on a max-tolerance +Y misaligned bin.
     #define Y_NOZZLE_CLEANER_PURGE_ENTRY (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL + 4.f)
