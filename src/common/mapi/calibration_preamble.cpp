@@ -4,6 +4,7 @@
 
 #include <Marlin/src/gcode/gcode.h>
 #include <Marlin/src/module/motion.h>
+#include <mapi/parking.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -14,10 +15,13 @@ namespace mapi {
 
 bool CalibrationPreamble::run() const {
     {
-        // Lower Z all the way down (stops at endstop) — always first, before any homing or
-        // tool picking, so XY moves can't drag the nozzle across the bed
+        // Make sure we have enough clearance above the bed
         on_step(Step::moving_away);
-        do_homing_move(AxisEnum::Z_AXIS, Z_MAX_POS, HOMING_FEEDRATE_INVERTED_Z);
+
+        // Note: the number was chosen arbitrarily, in practice anything above 1 cm would possibly do
+        if (!park(ParkingPosition { .z = ParkingPosition::AtLeast { .absolute = 50 } })) {
+            return false;
+        }
     }
 
 #if HAS_TOOLCHANGER()

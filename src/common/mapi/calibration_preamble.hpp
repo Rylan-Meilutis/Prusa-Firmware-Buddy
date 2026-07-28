@@ -29,8 +29,8 @@ struct CalibrationPreamble {
     const stdext::inplace_function<void(Step)> on_step;
 
     /// Makes subsequent XY moves safe regardless of a possibly unhomed/stale Z:
-    /// lowers the bed to the physical bottom (endstop-protected homing move),
-    /// then homes XY (picking/parking a tool homes XY too, so no separate homing is needed).
+    /// - lowers the bed
+    /// - homes XY (picking/parking a tool homes XY too, so no separate homing is needed).
     /// The on_step callback fires before each motion step so wizards can report their FSM phase.
     /// @return false when something fails (caller treats as abort)
     bool run() const;
