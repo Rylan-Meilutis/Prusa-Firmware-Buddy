@@ -80,23 +80,28 @@ namespace {
                 return Result::aborted_before_calib;
             }
 
-            // Make the bed provably safe (it may be at an unknown height with Z unhomed) and
-            // get a tool picked / XY homed before any moves over the bed.
-            if (!mapi::calibration_preamble(mapi::CalibrationPreambleToolPolicy::ensure_picked, [this](mapi::CalibrationPreambleStep step) {
+            const mapi::CalibrationPreamble preamble {
+                .tool_policy = mapi::CalibrationPreamble::ToolPolicy::ensure_picked,
+                .on_step = [this](mapi::CalibrationPreamble::Step step) {
                     switch (step) {
-                    case mapi::CalibrationPreambleStep::moving_away:
+                    case mapi::CalibrationPreamble::Step::moving_away:
                         fsm_change(PhaseToolOffsetsCalibration::moving_away);
                         break;
-                    case mapi::CalibrationPreambleStep::picking_tool:
+                    case mapi::CalibrationPreamble::Step::picking_tool:
                         fsm_change(PhaseToolOffsetsCalibration::picking_tool);
                         break;
-                    case mapi::CalibrationPreambleStep::homing:
+                    case mapi::CalibrationPreamble::Step::homing:
                         fsm_change(PhaseToolOffsetsCalibration::homing);
                         break;
-                    case mapi::CalibrationPreambleStep::parking_tool:
+                    case mapi::CalibrationPreamble::Step::parking_tool:
                         bsod_unreachable();
                     }
-                })) {
+                },
+            };
+
+            // Make the bed provably safe (it may be at an unknown height with Z unhomed) and
+            // get a tool picked / XY homed before any moves over the bed.
+            if (!preamble.run()) {
                 return Result::aborted_before_calib;
             }
 

@@ -187,22 +187,28 @@ private:
             }
         }
 
+        const mapi::CalibrationPreamble preamble {
+            .tool_policy = mapi::CalibrationPreamble::ToolPolicy::ensure_parked,
+            .on_step = [&](mapi::CalibrationPreamble::Step step) {
+                switch (step) {
+                case mapi::CalibrationPreamble::Step::moving_away:
+                    fsm_change(PhaseDockCalibration::moving_away);
+                    break;
+                case mapi::CalibrationPreamble::Step::parking_tool:
+                    fsm_change(PhaseDockCalibration::parking_tool);
+                    break;
+                case mapi::CalibrationPreamble::Step::homing:
+                    fsm_change(PhaseDockCalibration::homing);
+                    break;
+                case mapi::CalibrationPreamble::Step::picking_tool:
+                    bsod_unreachable();
+                }
+            },
+        };
+
         // Park the picked tool (if any) so the head is empty for calibration
-        const bool preamble_ok = mapi::calibration_preamble(mapi::CalibrationPreambleToolPolicy::ensure_parked, [&](mapi::CalibrationPreambleStep step) {
-            switch (step) {
-            case mapi::CalibrationPreambleStep::moving_away:
-                fsm_change(PhaseDockCalibration::moving_away);
-                break;
-            case mapi::CalibrationPreambleStep::parking_tool:
-                fsm_change(PhaseDockCalibration::parking_tool);
-                break;
-            case mapi::CalibrationPreambleStep::homing:
-                fsm_change(PhaseDockCalibration::homing);
-                break;
-            case mapi::CalibrationPreambleStep::picking_tool:
-                bsod_unreachable();
-            }
-        });
+        const bool preamble_ok = preamble.run();
+
         // A failed park reconciles the picked-tool state with the sensor on bail-out, so no tool
         // picked anymore means the park succeeded and only its verification hiccuped — carry on
         if (!preamble_ok && PhysicalToolIndex::currently_selected_opt()) {

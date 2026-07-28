@@ -193,21 +193,26 @@ private:
             return Result::aborted;
         }
 
-        if (!mapi::calibration_preamble(mapi::CalibrationPreambleToolPolicy::ensure_picked, [&](mapi::CalibrationPreambleStep step) {
+        const mapi::CalibrationPreamble preamble {
+            .tool_policy = mapi::CalibrationPreamble::ToolPolicy::ensure_picked,
+            .on_step = [&](mapi::CalibrationPreamble::Step step) {
                 switch (step) {
-                case mapi::CalibrationPreambleStep::moving_away:
+                case mapi::CalibrationPreamble::Step::moving_away:
                     fsm_change(PhaseNozzleCleanerCalibration::moving_away);
                     break;
-                case mapi::CalibrationPreambleStep::picking_tool:
+                case mapi::CalibrationPreamble::Step::picking_tool:
                     fsm_change(PhaseNozzleCleanerCalibration::picking_tool);
                     break;
-                case mapi::CalibrationPreambleStep::homing:
+                case mapi::CalibrationPreamble::Step::homing:
                     fsm_change(PhaseNozzleCleanerCalibration::homing);
                     break;
-                case mapi::CalibrationPreambleStep::parking_tool:
+                case mapi::CalibrationPreamble::Step::parking_tool:
                     bsod_unreachable();
                 }
-            })) {
+            },
+        };
+
+        if (!preamble.run()) {
             return Result::aborted;
         }
 

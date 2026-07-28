@@ -11,6 +11,7 @@
 #include <selftest/selftest_invocation.hpp>
 #include <timing.h>
 #include <logging/log.hpp>
+#include <common/mapi/calibration_preamble.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -24,7 +25,6 @@
     #include <hotend_type.hpp>
 #endif
 #if HAS_INDX()
-    #include <common/mapi/calibration_preamble.hpp>
     #include <puppies/INDX.hpp>
     #include <tool/hotend/hotend/indx_hotend.hpp>
 #endif
@@ -452,16 +452,21 @@ private:
 };
 
 bool Wizard::preamble() {
+    const mapi::CalibrationPreamble preamble {
 #if HAS_INDX()
-    // Lower the bed, pick a tool if none is picked (the heater configs address the picked tool)
-    // and home XY — same safe start the sibling INDX calibrations use.
-    return mapi::calibration_preamble(mapi::CalibrationPreambleToolPolicy::ensure_picked,
-        [this](mapi::CalibrationPreambleStep) {
-            fsm_change(PhasesHeatersSelftest::picking_tool);
-        });
-#else
-    return true;
+        .tool_policy = mapi::CalibrationPreamble::ToolPolicy::ensure_picked,
+#elif PRINTER_IS_PRUSA_XL()
+    #error TODO ensure_parked + reporting
 #endif
+        .on_step = [](mapi::CalibrationPreamble::Step) {
+#if HAS_INDX()
+            fsm_change(PhasesHeatersSelftest::picking_tool);
+#elif PRINTER_IS_PRUSA_XL()
+    #error TODO ensure_parked + reporting
+#endif
+        },
+    };
+    return preamble.run();
 }
 
 void Wizard::run() {
