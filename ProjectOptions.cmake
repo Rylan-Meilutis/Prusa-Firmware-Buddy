@@ -356,6 +356,7 @@ set_feature_for_printers(
   "COREONE"
   "COREONE_INDX"
   "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers_master_board(
   HAS_PHASE_STEPPING
