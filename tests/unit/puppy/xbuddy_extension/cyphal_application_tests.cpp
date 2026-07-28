@@ -43,7 +43,8 @@ std::array<std::byte, 32> generate_random_digest() {
 }
 
 uint32_t hal::rng::get() {
-    return 0;
+    static uint32_t counter = 0;
+    return ++counter;
 }
 
 // Pretend that this is a firmware for the node.
@@ -207,6 +208,11 @@ TimePoint make_timepoint(uint32_t ms) {
     return TimePoint { std::chrono::milliseconds { ms } };
 }
 
+ExecuteCommandRequest make_salted_hash_request(NodeId node_id, uint32_t salt) {
+    const auto bytes = trivial_as_bytes(salt);
+    return ExecuteCommandRequest { node_id, Command::get_app_salted_hash, { bytes.begin(), bytes.end() } };
+}
+
 std::vector<std::byte> as_bytes(const anfc::modbus::Event &event) {
     auto span = modbus::payload(event);
     return { span.begin(), span.end() };
@@ -281,7 +287,7 @@ void setup_nfc_node(Application &app, MockPresentation &mock, NodeId node_id, ui
     // node and motherboard respond with a matching hash, no more work is done
     {
         const auto digest = generate_random_digest();
-        const auto received = app.receive_digest(cyphal::FirmwareFile::firmware_anfc, 0, xbuddy_extension::DigestStatus::ok, digest);
+        const auto received = app.receive_digest(cyphal::FirmwareFile::firmware_anfc, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest);
         REQUIRE(received);
         app.receive_node_execute_command_response(node_id, 0, digest);
         const auto mock_before = run(app, mock, make_timepoint(time++));
@@ -506,8 +512,6 @@ SCENARIO("heartbeat response") {
 }
 
 SCENARIO("happy case") {
-    const std::vector<std::byte> salt = { (std::byte)0, (std::byte)0, (std::byte)0, (std::byte)0 };
-
     const auto lingering_bootloader = Heartbeat { Health::advisory, Mode::software_update, 0 };
     // Means no app, only the bootloader
     const auto empty_bootloader = Heartbeat { Health::warning, Mode::software_update, 0 };
@@ -517,7 +521,6 @@ SCENARIO("happy case") {
 
     const auto start_app = ExecuteCommandRequest { node_id, Command::start_app };
     const auto restart = ExecuteCommandRequest { node_id, Command::restart };
-    const auto get_app_salted_hash = ExecuteCommandRequest { node_id, Command::get_app_salted_hash, salt };
     static const std::string_view dummy_parameter_sv = "/path/to/fw";
     static const std::vector<std::byte> dummy_parameter { (std::byte *)dummy_parameter_sv.begin(), (std::byte *)dummy_parameter_sv.end() };
     const auto software_update = ExecuteCommandRequest { node_id, Command::software_update, dummy_parameter };
@@ -675,14 +678,14 @@ SCENARIO("happy case") {
 
                             AND_WHEN("parent system sends file hash to application") {
                                 std::byte digest[32] = {};
-                                (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, 0, xbuddy_extension::DigestStatus::ok, digest);
+                                (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest);
                                 app.receive_node_heartbeat(node_id, make_timepoint(1000), healthy_firmware);
                                 app.receive_node_heartbeat(node_id, make_timepoint(2000), healthy_firmware);
                                 const auto mock_before = run(app, mock, make_timepoint(2500));
 
                                 THEN("application requests hash from node") {
                                     REQUIRE(mock.node_execute_command_request.size() == mock_before.node_execute_command_request.size() + 1);
-                                    CHECK(mock.node_execute_command_request.back() == get_app_salted_hash);
+                                    CHECK(mock.node_execute_command_request.back() == make_salted_hash_request(node_id, app.request().hash_salt));
 
                                     AND_WHEN("node responds with the matching hash") {
                                         app.receive_node_execute_command_response(node_id, 0, digest);
@@ -755,13 +758,13 @@ SCENARIO("happy case") {
 
                     THEN("application requests hash from node and parent system") {
                         REQUIRE(mock.node_execute_command_request.size() == mock_before.node_execute_command_request.size() + 1);
-                        CHECK(mock.node_execute_command_request.back() == get_app_salted_hash);
+                        CHECK(mock.node_execute_command_request.back() == make_salted_hash_request(node_id, app.request().hash_salt));
                         const auto modbus_request = app.request();
                         CHECK(modbus_request.hash_request == cyphal::FirmwareFile::firmware_ac_controller);
 
                         AND_WHEN("they respond with matching hash") {
                             const auto digest = generate_random_digest();
-                            (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, 0, xbuddy_extension::DigestStatus::ok, digest);
+                            (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest);
                             app.receive_node_execute_command_response(node_id, 0, digest);
                             const auto mock_before = run(app, mock, make_timepoint(3));
 
@@ -773,7 +776,7 @@ SCENARIO("happy case") {
                         AND_WHEN("they respond with mismatching hash") {
                             const auto digest1 = generate_random_digest();
                             const auto digest2 = generate_random_digest();
-                            (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, 0, xbuddy_extension::DigestStatus::ok, digest1);
+                            (void)app.receive_digest(cyphal::FirmwareFile::firmware_ac_controller, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest1);
                             app.receive_node_execute_command_response(node_id, 0, digest2);
                             const auto mock_before = run(app, mock, make_timepoint(3));
 
