@@ -1191,7 +1191,11 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Y_NOZZLE_PARK_POINT (Y_MIN_POS + 3.0f)
 #endif
     #define Z_NOZZLE_PARK_POINT (20.0f)
-    #define Z_NOZZLE_PARK_POINT_MIN 67.0f // Always raise the nozzle by this amount when parking on print end
+#if HAS_INDX()
+    #define Z_NOZZLE_PARK_POINT_MIN 200.0f // Bed low enough to reach the print through the door (fixed front plate with docks above it)
+#else
+    #define Z_NOZZLE_PARK_POINT_MIN 67.0f // Always raise the nozzle by this amount when parking on print end (BFW-8108)
+#endif
     #define Z_NOZZLE_PARK_RISE 50.0f // Relative Z rise
 
     #define XYZ_NOZZLE_PARK_POINT \
