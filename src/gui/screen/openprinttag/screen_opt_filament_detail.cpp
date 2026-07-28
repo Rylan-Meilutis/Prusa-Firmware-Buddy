@@ -14,9 +14,11 @@ ScreenFactory::Creator screen_openprinttag_filament_detail_creator(ToolTag tag) 
     return ScreenFactory::ScreenWithArg<ScreenOPTFilamentDetail>(open_args);
 }
 
-ScreenFactory::Creator screen_openprinttag_preheat_mode_creator(ToolTag tag) {
+ScreenFactory::Creator screen_openprinttag_preheat_mode_creator(ToolTag tag, PreheatMode mode) {
     const ScreenOPTFilamentDetail::PreheatModeParams open_args {
-        .tag = tag,
+        .uid_hash = tag.uid_hash(),
+        .tool = tag.tool(),
+        .mode = mode,
     };
     return ScreenFactory::ScreenWithArg<ScreenOPTFilamentDetail>(open_args);
 }
@@ -34,9 +36,12 @@ ScreenOPTFilamentDetail::ScreenOPTFilamentDetail(InfoParams params)
 
 ScreenOPTFilamentDetail::ScreenOPTFilamentDetail(PreheatModeParams params)
     : ScreenFilamentDetail(N_("SCAN OPENPRINTTAG"))
-    , tag_(params.tag) {
+    , tag_(ToolTag(params.tool, params.uid_hash)) {
 
-    setup_preheat_mode_confirm(params.tag.tool());
+    setup_preheat_mode_confirm({
+        .tool = tag_.tool(),
+        .mode = params.mode,
+    });
 
     // First scan needs to be delayed (cannot be in the constructor)
     scan_pending_ = true;

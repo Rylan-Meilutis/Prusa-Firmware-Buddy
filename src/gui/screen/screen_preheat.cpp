@@ -31,23 +31,25 @@ class WindowMenuPreheat;
 // extra space at the end is intended
 class MI_FILAMENT : public WiInfo<sizeof("999/999 ")> {
 public:
-    MI_FILAMENT(FilamentType filament_type, PreheatToolIndex target_extruder);
+    MI_FILAMENT(FilamentType filament_type, PreheatToolIndex target_extruder, PreheatMode mode);
     void click(IWindowMenu &) final;
 
     const FilamentType filament_type;
     const PreheatToolIndex tool;
+    const PreheatMode mode;
     FilamentTypeParameters::Name filament_name;
 };
 
 #if HAS_ANFC()
 class MI_FROM_OPENPRINTTAG : public IWindowMenuItem {
 public:
-    MI_FROM_OPENPRINTTAG(VirtualToolIndex tool);
+    MI_FROM_OPENPRINTTAG(VirtualToolIndex tool, PreheatMode mode);
 
     void click(IWindowMenu &) final;
     void Loop() final;
 
     const VirtualToolIndex tool_;
+    const PreheatMode mode_;
 };
 
 #endif
@@ -101,13 +103,15 @@ private:
 
     /// Extruder we're doing the load/preheat for
     PreheatToolIndex tool = AllTools {};
+    PreheatMode mode = PreheatMode::preheat;
 };
 
 // * MI_FILAMENT
-MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
+MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool, PreheatMode mode)
     : WiInfo({}, nullptr, is_enabled_t::yes, is_hidden_t::no)
     , filament_type(filament_type)
-    , tool(tool) //
+    , tool(tool)
+    , mode(mode) //
 {
     const auto filament_params = filament_type.parameters();
     filament_name = filament_params.name;
@@ -128,14 +132,15 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
 }
 
 void MI_FILAMENT::click(IWindowMenu &) {
-    ScreenPreheat::handle_filament_selection(filament_type, tool);
+    ScreenPreheat::handle_filament_selection(filament_type, tool, mode);
 }
 
 #if HAS_ANFC()
 // * MI_FROM_OPENPRINTTAG
-MI_FROM_OPENPRINTTAG::MI_FROM_OPENPRINTTAG(VirtualToolIndex tool)
+MI_FROM_OPENPRINTTAG::MI_FROM_OPENPRINTTAG(VirtualToolIndex tool, PreheatMode mode)
     : IWindowMenuItem(_("Data From OpenPrintTag"), &img::openprinttag_white_16x16)
-    , tool_(tool) {
+    , tool_(tool)
+    , mode_(mode) {
 }
 
 void MI_FROM_OPENPRINTTAG::click(IWindowMenu &) {
@@ -145,7 +150,7 @@ void MI_FROM_OPENPRINTTAG::click(IWindowMenu &) {
         return;
     }
 
-    Screens::Access()->Open(buddy::openprinttag::screen_openprinttag_preheat_mode_creator(*tag));
+    Screens::Access()->Open(buddy::openprinttag::screen_openprinttag_preheat_mode_creator(*tag, mode_));
 }
 
 void MI_FROM_OPENPRINTTAG::Loop() {
@@ -161,6 +166,7 @@ WindowMenuPreheat::WindowMenuPreheat(window_t *parent, const Rect16 &rect)
 
 void WindowMenuPreheat::set_data(const PreheatData &data) {
     tool = data.tool;
+    mode = data.mode;
 
     index_mapping.set_item_enabled<Item::return_>(data.has_return_option);
     index_mapping.set_item_enabled<Item::cooldown>(data.has_cooldown_option);
@@ -226,7 +232,7 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
 
 #if HAS_ANFC()
     case Item::from_openprinttag:
-        variant.emplace<MI_FROM_OPENPRINTTAG>(std::get<VirtualToolIndex>(tool));
+        variant.emplace<MI_FROM_OPENPRINTTAG>(std::get<VirtualToolIndex>(tool), mode);
         break;
 #endif
 
@@ -247,7 +253,7 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
     }
 
     case Item::filament_section:
-        variant.emplace<MI_FILAMENT>(filament_list[mapping.pos_in_section], tool);
+        variant.emplace<MI_FILAMENT>(filament_list[mapping.pos_in_section], tool, mode);
         break;
 
     case Item::adhoc_filament: {
@@ -261,6 +267,7 @@ void WindowMenuPreheat::setup_item(ItemVariant &variant, int index) {
 
             const ScreenFilamentDetail::PreheatModeParams params {
                 .tool = tool,
+                .mode = mode,
             };
             Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(params));
         };
@@ -339,7 +346,7 @@ struct FrameOPTParameters {
         const auto d = PreheatData::deserialize(data);
 
         if (const auto tag = buddy::openprinttag::ToolTag::for_tool_ephemeral(std::get<VirtualToolIndex>(d.tool))) {
-            Screens::Access()->Open(screen_openprinttag_preheat_mode_creator(*tag));
+            Screens::Access()->Open(screen_openprinttag_preheat_mode_creator(*tag, d.mode));
         }
 
         // Switch to a different phase to prevent the screen reopening again after it closes
@@ -371,7 +378,7 @@ ScreenPreheat::~ScreenPreheat() {
     destroy_frame();
 }
 
-bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool) {
+bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool, PreheatMode mode) {
     const buddy::filament_compatibility::CompatibilityReportGenerateArgs compat_args {
         .filament = filament_type.parameters(),
         .tools = stdext::to_variant(tool),

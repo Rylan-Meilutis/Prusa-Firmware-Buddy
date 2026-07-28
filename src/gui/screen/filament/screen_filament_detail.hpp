@@ -230,6 +230,7 @@ public:
         using ToolIndex = std::variant<VirtualToolIndex, AllTools>;
 
         ToolIndex tool = AllTools {};
+        PreheatMode mode;
     };
 
 public:
@@ -251,7 +252,7 @@ public:
 protected:
     ScreenFilamentDetail(const char *title);
 
-    void setup_preheat_mode_confirm(PreheatModeParams::ToolIndex tool);
+    void setup_preheat_mode_confirm(PreheatModeParams params);
 
 protected:
     FilamentType filament_type_;

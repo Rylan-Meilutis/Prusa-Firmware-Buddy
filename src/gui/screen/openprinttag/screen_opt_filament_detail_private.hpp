@@ -16,7 +16,9 @@ public:
     };
 
     struct PreheatModeParams {
-        ToolTag tag;
+        ToolTag::UIDHash uid_hash;
+        VirtualToolIndex tool;
+        PreheatMode mode;
     };
 
     /// See @p OpenPrintTagInfoParams
