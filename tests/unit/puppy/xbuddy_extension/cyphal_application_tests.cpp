@@ -128,7 +128,7 @@ public:
     void transmit_node_get_info_request(NodeId remote_node_id) {
         node_get_info_request.emplace_back(remote_node_id);
     }
-    void transmit_node_execute_command_request(NodeId remote_node_id, Command command, WritableBytes parameter) {
+    void transmit_node_execute_command_request(NodeId remote_node_id, Command command, Bytes parameter) {
         node_execute_command_request.emplace_back(remote_node_id, command, std::vector<std::byte> { parameter.begin(), parameter.end() });
     }
     void transmit_file_read_response(NodeId remote_node_id, uint8_t transfer_id, WritableBytes data) {

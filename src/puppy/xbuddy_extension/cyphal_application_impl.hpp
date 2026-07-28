@@ -40,7 +40,7 @@ uint32_t get_random_salt() {
 //       Each node will request just a single file while in bootloader.
 //       We just invent some short string here and call it a day.
 static const std::string_view dummy_parameter_sv = "/path/to/fw";
-static const WritableBytes dummy_parameter { (std::byte *)dummy_parameter_sv.data(), dummy_parameter_sv.size() };
+static const Bytes dummy_parameter = std::as_bytes(std::span { dummy_parameter_sv });
 
 } // namespace
 
@@ -339,7 +339,7 @@ private:
             return verify;
         }
 
-        bool execute_command(Presentation &presentation, TimePoint now, NodeId node_id, Command command, WritableBytes parameter) {
+        bool execute_command(Presentation &presentation, TimePoint now, NodeId node_id, Command command, Bytes parameter) {
             if (last_command_valid && now < last_command.timepoint + execute_command_timeout) {
                 // Waiting for response. Let other nodes make progress.
                 return false;
@@ -470,7 +470,7 @@ private:
                         filesystem.hash_salt = salt;
                         presentation.transmit_diagnostic_record(Severity::notice, "hash requested");
                         // And also request it from the device at the same time.
-                        const bool sent = execute_command(presentation, now, node_id, Command::get_app_salted_hash, { (std::byte *)&salt, 4 });
+                        const bool sent = execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(salt));
                         if (sent) {
                             verify.request_sent = true;
                         }

@@ -417,7 +417,7 @@ private:
         (void)serialize_and_transmit(request, remote_node_id, transfer_id.node_get_info++);
     }
 
-    void transmit_node_execute_command_request(cyphal::NodeId remote_node_id, cyphal::Command command, WritableBytes parameter) override {
+    void transmit_node_execute_command_request(cyphal::NodeId remote_node_id, cyphal::Command command, Bytes parameter) override {
         uavcan_node_ExecuteCommand_Request_1_3 request;
         request.command = static_cast<uint16_t>(command);
         request.parameter.count = std::min(parameter.size(), sizeof(request.parameter.elements));
