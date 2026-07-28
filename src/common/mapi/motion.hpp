@@ -36,6 +36,12 @@ void fully_deretract(float fr_mm_s);
 /// Blocks
 void retract_to(float target_retraction_distance, float fr_mm_s);
 
+/// Moves the extruder so the filament ends up retracted exactly
+/// Unlike retract_to, may move in either direction.
+/// Considers auto_retract and filament_tracker
+/// Blocks
+void restore_retracted_distance(float target_retraction_distance, float fr_mm_s);
+
 /**
  * Make sure a tool with accelerometer is picked up. If not, pick up such a
  * tool. Does nothing on machines without a toolchanger or accelerometer.

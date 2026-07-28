@@ -91,6 +91,11 @@ static_assert(HAS_PAUSE());
     #include <feature/prusa/crash_recovery.hpp>
 #endif
 
+#include <option/has_filament_tracker.h>
+#if HAS_FILAMENT_TRACKER()
+    #include <feature/filament_tracker/filament_tracker.hpp>
+#endif
+
 LOG_COMPONENT_REF(MarlinServer);
 
 #ifndef NOZZLE_UNPARK_XY_FEEDRATE
@@ -1594,13 +1599,11 @@ void Pause::unpark_nozzle_and_notify() {
 #if HAS_CRASH_DETECTION()
     if (crash_s.get_state() == Crash_s::RECOVERY) {
         // With the gcode_interrupt mechanism, gcodes can get executed during the crash recovery process (typically M600 during runout).
-        // At this stage, the crash recovery itself handles retraction, Z lift and unparking,
-        // so let the crash recovery do its' job and don't unpark.
-        // Just let the system know that we've left the filament retracted a bit.
-        retracted_distance_after_unpark = -settings.retract;
+        // In that case, we don't unpark. We just return the extruder to the same position we found it in (happens at the end of filament change)
+        // and crash recovery handles unparking
         return;
     }
-#endif
+#endif // HAS_CRASH_DETECTION()
 
     if (isnan(settings.resume_pos.x) || isnan(settings.resume_pos.y) || isnan(settings.resume_pos.z)) {
         return;
@@ -1695,12 +1698,23 @@ void Pause::filament_change(const pause::Settings &settings_, bool is_filament_s
     // Wait for buffered blocks to complete
     planner.synchronize();
 
+    float initial_retracted_distance = 0;
+
+#if HAS_FILAMENT_TRACKER()
+    // Snapshot the current retraction, so the filament can be put back to it at the end
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (tool.has_value()) {
+        initial_retracted_distance = buddy::filament_tracker().get_retracted_distance(*tool).value_or(0);
+    }
+#endif
+
     invoke_loop();
 
     // Now all extrusion positions are resumed and ready to be confirmed
-    // Set extruder to saved position, minus whatever we've left retracted
-    // retracted_distance_after_unpark should be zero unless we're in gcode interrupt
-    sync_e_position_to(settings.resume_pos.e - retracted_distance_after_unpark);
+    // Put the filament back to the retraction it had when the filament change started;
+    mapi::restore_retracted_distance(initial_retracted_distance, standard_feedrates::current_extruder(standard_feedrates::Extruder::retract));
+
+    sync_e_position_to(settings.resume_pos.e);
     destination.e = settings.resume_pos.e;
 
     feedrate_percentage = saved_feedrate_percentage;
@@ -1957,9 +1971,7 @@ void Pause::FSM_HolderLoadUnload::restore_temperature_and_unpark() {
         }
     }
 
-    const float min_layer_h = 0.05f;
-    // do not unpark if not homed or z park len is 0
-    if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h) {
+    {
         // Not made redundant by the heatup above: M701/M702 resuming a paused print set a
         // resume point but never a resume temperature, so this is their only heatup wait.
         if (!pause.ensureSafeTemperatureNotifyProgress()) {

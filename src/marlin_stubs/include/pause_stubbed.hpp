@@ -132,7 +132,7 @@ public:
     std::optional<LoadUnloadMode> get_mode() const { return load_unload_mode; }
 };
 
-// used by load / unlaod /change filament
+// used by load / unload / change filament
 class Pause : public PausePrivatePhase {
     pause::Settings settings;
     bool user_stop_pending = false;
@@ -142,9 +142,6 @@ class Pause : public PausePrivatePhase {
 
     /// How much filament was retracted thanks to ramming
     float ram_retracted_distance = 0;
-
-    /// How much retraction was left after the unpark
-    float retracted_distance_after_unpark = 0;
 
 #if HAS_NOZZLE_CLEANER()
     uint8_t failed_purge_attempts = 0;
