@@ -8,6 +8,7 @@
 #include <utils/compact_optional.hpp>
 #include <utils/storage/strong_index_array.hpp>
 #include <gcode_basic_parser.hpp>
+#include <general_response.hpp>
 
 namespace multi_filament_change {
 
@@ -45,6 +46,16 @@ std::optional<Config> config_from_gcode(GCodeBasicParser &parser);
 
 /// Generates a MultiFilamentChange gcode from the provided configuration
 void config_to_gcode(const Config &config, StringBuilder &sb);
+
+/// Pops up warnings for potential filament incompatibilities
+/// @returns false if the user pressed abort_response at any point
+/// !!! To be executed only from the GUI thread
+[[nodiscard]] bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response);
+
+/// Pops up warnings for potential filament incompatibilities
+/// @returns false if the user pressed abort_response at any point
+/// !!! To be executed only from the GUI thread
+[[nodiscard]] bool gui_config_confirm_incompatibilities(const Config &config, Response abort_response);
 
 /// Executes a multi filament change
 /// !!! To be called only from the marlin thread

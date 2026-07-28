@@ -14,6 +14,7 @@
 #include <Marlin/src/module/motion.h>
 #include <bsod/bsod.h>
 #include <utils/byte_utils.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 namespace multi_filament_change {
 
@@ -228,4 +229,41 @@ void execute(const Config &tool_config) {
         }
     }
 }
+
+bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response) {
+    switch (config.action) {
+
+    case Action::keep:
+        // Don't complain about the unchanged state
+        return true;
+
+    case Action::unload:
+        // Let the user unload the filament without complaining
+        return true;
+
+    case Action::change: {
+        buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
+            .filament = config.new_filament.decode().parameters(),
+            .tools = stdext::to_variant(tools),
+            .assume_filament_already_inserted = false,
+        };
+        buddy::filament_compatibility::CompatibilityReport report;
+        report.generate_noclear(args);
+        return report.gui_confirm_all_incompatibilities(abort_response);
+    }
+    }
+
+    bsod_unreachable();
+}
+
+bool gui_config_confirm_incompatibilities(const Config &config, Response abort_response) {
+    for (auto tool : VirtualToolIndex::all()) {
+        if (!gui_config_confirm_incompatibilities(config[tool], tool, abort_response)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace multi_filament_change

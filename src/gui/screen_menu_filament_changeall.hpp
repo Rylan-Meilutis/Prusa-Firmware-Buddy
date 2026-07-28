@@ -52,10 +52,9 @@ private:
 
     /// Tool(s) the filament list is filtered for (hotend compatibility):
     /// AllTools for the "Set All To" item, a specific tool otherwise.
-    GenerateFilamentListConfig::ToolFilter tool_filter_ { AllTools {} };
+    const std::variant<VirtualToolIndex, AllTools> tool_filter_;
 
     bool has_filament_loaded : 1 = false;
-    bool set_all_to_mode : 1 = false;
 };
 
 class MI_ApplyChanges : public IWindowMenuItem {
@@ -93,7 +92,7 @@ protected:
     void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 
 private:
-    void carry_out_changes();
+    [[nodiscard]] bool carry_out_changes();
 
 private:
     MenuMultiFilamentChange_::Container container;

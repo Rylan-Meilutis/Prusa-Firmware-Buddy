@@ -17,9 +17,9 @@
 using namespace multi_filament_change;
 
 MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
-    : MenuItemSelectMenu({}) {
+    : MenuItemSelectMenu({})
+    , tool_filter_ { VirtualToolIndex::from_raw(tool_ix) } {
     const auto tool = VirtualToolIndex::from_raw(tool_ix);
-    tool_filter_ = tool;
     has_filament_loaded = (config_store().get_filament_type(tool) != FilamentType::none);
     set_is_hidden(!tool.is_enabled());
     SetLabel(tool.display_name(label_params));
@@ -27,7 +27,7 @@ MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
 
 MI_ActionSelect::MI_ActionSelect(SetAllToMode)
     : MenuItemSelectMenu(_("Set All To"))
-    , set_all_to_mode { true } {
+    , tool_filter_ { AllTools {} } {
     set_behavior(Behavior::select_only);
 
     // Necessary to generate filament list
@@ -35,14 +35,15 @@ MI_ActionSelect::MI_ActionSelect(SetAllToMode)
 }
 
 void MI_ActionSelect::set_config(const ConfigItem &set) {
-    // enforce_first_item: target filament is always present at position 0, even if hidden
-    //                     or incompatible — removing the previously-selected value would
-    //                     silently change the menu's current selection.
-    // compatible_with_tool: hide filaments the tool's hotend cannot reach (e.g. PPS on standard hotend).
-    generate_filament_list(filament_list, {
-                                              .enforce_first_item = set.new_filament,
-                                              .compatible_with_tool = tool_filter_,
-                                          });
+    const GenerateFilamentListConfig gen_cfg {
+        // target filament is always present at position 0,
+        // even if hidden or incompatible
+        // removing the previously-selected value would silently change the menu's current selection.
+        .enforce_first_item = set.new_filament,
+        // compatible_with_tool: hide filaments the tool's hotend cannot reach (e.g. PPS on standard hotend).
+        .compatible_with_tool = stdext::to_variant(tool_filter_),
+    };
+    generate_filament_list(filament_list, gen_cfg);
 
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
@@ -96,10 +97,15 @@ string_view_utf8 MI_ActionSelect::build_item_text(int index, MenuItemSelectMenu:
 }
 
 bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
-    if (set_all_to_mode) {
+    const auto new_config_item = this->config(args.new_index);
+
+    if (std::holds_alternative<AllTools>(tool_filter_)) {
         auto &menu = static_cast<MenuMultiFilamentChange &>(args.menu);
         auto new_config = menu.configuration();
-        const auto new_config_item = this->config(args.new_index);
+
+        if (!gui_config_confirm_incompatibilities(new_config_item, AllTools {}, Response::Cancel)) {
+            return false;
+        }
 
         for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
             auto &config_item = new_config[tool];
@@ -113,6 +119,10 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
         menu.set_configuration(new_config);
 
     } else {
+        if (!gui_config_confirm_incompatibilities(new_config_item, std::get<VirtualToolIndex>(tool_filter_), Response::Cancel)) {
+            return false;
+        }
+
         // Just let current_item to be updated by the parent, will be picked up by the owning menu
     }
 
@@ -150,8 +160,9 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
     switch (event) {
 
     case GUI_event_t::CHILD_CLICK: {
-        carry_out_changes();
-        Screens::Access()->Close();
+        if (carry_out_changes()) {
+            Screens::Access()->Close();
+        }
         return;
     }
 
@@ -174,10 +185,18 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
     WindowMenu::windowEvent(sender, event, param);
 }
 
-void MenuMultiFilamentChange::carry_out_changes() {
+bool MenuMultiFilamentChange::carry_out_changes() {
+    // Note: This potentially duplicates warnings raised by manually changing the items
+    // But the config could have been pre-filled, so better to sometimes warn twice than sometimes not at all
+    const auto config = configuration();
+    if (!gui_config_confirm_incompatibilities(config, Response::Cancel)) {
+        return false;
+    }
+
     ArrayStringBuilder<MAX_CMD_SIZE> sb;
-    multi_filament_change::config_to_gcode(configuration(), sb);
+    multi_filament_change::config_to_gcode(config, sb);
     marlin_client::gcode(sb.str());
+    return true;
 }
 
 static constexpr const char *header_text = HAS_MMU2() ? N_("FILAMENT CHANGE") : N_("MULTITOOL FILAMENT CHANGE");
