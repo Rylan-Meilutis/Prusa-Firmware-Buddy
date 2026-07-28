@@ -758,11 +758,6 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::CONNECT_CLOSE_CHAMBER_VENTS;
 #endif
 
-#if HAS_HT_HOTEND()
-    case WarningType::IdlerDoorRequired:
-        return ErrCode::CONNECT_IDLER_DOOR_REQUIRED;
-#endif
-
 #if HAS_CEILING_CLEARANCE()
     case WarningType::CeilingClearanceViolation:
         return ErrCode::ERR_MECHANICAL_CEILING_CLEARANCE_VIOLATION;

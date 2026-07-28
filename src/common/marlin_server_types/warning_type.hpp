@@ -98,13 +98,6 @@ enum class WarningType : uint32_t {
     OpenChamberVents,
     CloseChamberVents,
 #endif
-#if HAS_HT_HOTEND()
-    /// PPA and PPS require the HT idler door for safe extrusion — they are brittle enough that
-    /// the standard idler can snap the filament.
-    /// No persistent ack is stored; this warning re-fires on every preheat and print start so the
-    /// user is reminded after a power cycle.
-    IdlerDoorRequired,
-#endif
 #if HAS_UNEVEN_BED_PROMPT()
     BedUnevenAlignmentPrompt,
 #endif

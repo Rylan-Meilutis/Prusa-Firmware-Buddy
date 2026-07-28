@@ -391,12 +391,6 @@ void filament_gcodes::M1700_preheat(const M1700Args &args) {
     }
 #endif
 
-#if HAS_HT_HOTEND()
-    if (filament != FilamentType::none && fil_cnf.requires_ht_idler_door) {
-        marlin_server::set_warning(WarningType::IdlerDoorRequired);
-    }
-#endif
-
     // cooldown pressed
     if (filament == FilamentType::none) {
         thermalManager.set_print_fan_speed(0);

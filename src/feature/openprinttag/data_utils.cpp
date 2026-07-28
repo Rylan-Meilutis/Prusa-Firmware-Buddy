@@ -107,14 +107,13 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     /// If you want to set a parameter, use the @p set function that also clears missing_parameters
     [[maybe_unused]] const auto &parameters = parameters_unsafe;
 
-    // The +HAS_HT_HOTEND() term accounts for requires_ht_idler_door, which is a preset-only flag
-    // and is not carried by OpenPrintTag — it is intentionally left at its default here.
     static_assert(
         filament_type_parameter_count
             == 7
                 + HAS_CHAMBER_API() * 4
                 + HAS_FILAMENT_HEATBREAK_PARAM() * 1
                 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+                // requires_ht_idler_door is a preset-only hack
                 + HAS_HT_HOTEND() * 1
         //
         ,
