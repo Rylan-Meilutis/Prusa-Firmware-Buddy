@@ -248,7 +248,7 @@ if(BOARD_IS_MASTER_BOARD)
               Marlin/Marlin/src/feature/contactless_offset/contactless_offset.cpp
               Marlin/Marlin/src/gcode/feature/tool_offset/G426.cpp
       )
-    target_link_libraries(Marlin PRIVATE contactless_offset signal_processing)
+    target_link_libraries(Marlin PRIVATE contactless_offset signal_processing sfl-library)
     target_link_libraries(Marlin PRIVATE tool_offset_sensor)
   endif()
 endif()
