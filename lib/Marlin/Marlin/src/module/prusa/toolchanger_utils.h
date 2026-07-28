@@ -56,7 +56,11 @@ public:
     static constexpr float DOCK_SAFE_Y_OFFSET = 28.6f; ///< Collision-free distance in front of dock [mm]
     // Absolute safe Y positions (computed from default dock Y, used by external code for boundary checks)
     static constexpr auto SAFE_Y_WITH_TOOL = DOCK_DEFAULT_Y_MM + DOCK_SAFE_Y_OFFSET;
+        #if PRINTER_IS_PRUSA_COREONEL()
+    static constexpr float DOCK_UNLOCK_Y_OFFSET = 6.6f; ///< Y offset for the unlock position [mm]
+        #else
     static constexpr float DOCK_UNLOCK_Y_OFFSET = 10.6f; ///< Y offset for the unlock position [mm]
+        #endif
     static constexpr float DOCK_BACKOFF_Y_OFFSET = 50.0f; ///< Y back-off in front of the dock after parking, to clear it for manual access (tool_return_t::dock_backoff) [mm]
 
     // E-axis lock/unlock mechanism
