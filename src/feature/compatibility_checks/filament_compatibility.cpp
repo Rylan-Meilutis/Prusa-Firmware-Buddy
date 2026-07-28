@@ -36,9 +36,9 @@ constinit const ChecksTraits<ToolCheck>::Metadata ChecksTraits<ToolCheck>::metad
 
 namespace buddy::filament_compatibility {
 
-void CompatibilityReport::generate(const FilamentTypeParameters &filament, std::variant<VirtualToolIndex, AllTools, NoTool> tools) {
-    for (VirtualToolIndex vti : tool_index_iterator(tools).skip_all_disabled()) {
-        PhysicalTool::for_index(vti.to_physical()).filament_compatibility_report(filament, *this);
+void CompatibilityReport::generate_noclear(const CompatibilityReportGenerateArgs &args) {
+    for (VirtualToolIndex vti : tool_index_iterator(args.tools).skip_all_disabled()) {
+        PhysicalTool::for_index(vti.to_physical()).filament_compatibility_report(*this, args);
     }
 }
 

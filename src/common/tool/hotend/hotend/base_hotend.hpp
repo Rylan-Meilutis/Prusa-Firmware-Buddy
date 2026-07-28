@@ -10,7 +10,7 @@
 class BaseHotend : public Hotend {
 
 public:
-    void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const override;
+    void filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const override;
 
     void set_nozzle_target_temp(TargetTemperature set) final override;
 

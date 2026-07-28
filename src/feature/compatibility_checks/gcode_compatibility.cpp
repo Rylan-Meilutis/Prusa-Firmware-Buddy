@@ -433,7 +433,11 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
 
                 const auto gcode_filament = FilamentType::from_name(std::string_view(fn.data()));
                 if (gcode_filament != FilamentType::none) {
-                    filament_check_reports[virtual_tool].generate(gcode_filament.parameters(), virtual_tool);
+                    const filament_compatibility::CompatibilityReportGenerateArgs args {
+                        .filament = gcode_filament.parameters(),
+                        .tools = virtual_tool,
+                    };
+                    filament_check_reports[virtual_tool].generate_noclear(args);
                 }
             }
 

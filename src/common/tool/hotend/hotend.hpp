@@ -11,11 +11,10 @@
 #include <atomic>
 #include <option/has_indx.h>
 
-struct FilamentTypeParameters;
-
 namespace buddy::filament_compatibility {
 struct CompatibilityReport;
-}
+struct CompatibilityReportGenerateArgs;
+} // namespace buddy::filament_compatibility
 
 /// Class representing a hotend
 /// This is an abstract class, hotend implementations differ
@@ -65,9 +64,10 @@ public:
 
 public:
     using FilamentCompatibilityReport = buddy::filament_compatibility::CompatibilityReport;
+    using FilamentCompatibilityReportGenerateArgs = buddy::filament_compatibility::CompatibilityReportGenerateArgs;
 
     /// !!! MUST BE THREAD-SAFE, CAN BE CALLED FROM ANY THREAD
-    virtual void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const = 0;
+    virtual void filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const = 0;
 
     /// Maximum nozzle temperature (from the hotend config).
     /// DummyHotend (NoTool) is constructed with a zero config, so this returns 0.

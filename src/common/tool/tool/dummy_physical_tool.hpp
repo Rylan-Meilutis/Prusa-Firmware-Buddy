@@ -10,7 +10,7 @@ public:
     explicit DummyPhysicalTool();
 
 public:
-    void filament_compatibility_report(const FilamentTypeParameters &, FilamentCompatibilityReport &) const override {}
+    void filament_compatibility_report(FilamentCompatibilityReport &, const FilamentCompatibilityReportGenerateArgs &) const override {}
 
 private:
     DummyHotend hotend_;

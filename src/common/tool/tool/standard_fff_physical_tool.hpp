@@ -7,7 +7,7 @@ class StandardFFFPhysicalToolBase : public PhysicalTool {
 
 public:
 #if BOARD_IS_MASTER_BOARD()
-    void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const override;
+    void filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const override;
 #endif
 
 protected:

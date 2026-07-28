@@ -29,8 +29,8 @@ BaseHotend::BaseHotend(PhysicalToolIndex tool, const Config *config)
 {
 }
 
-void BaseHotend::filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const {
-    if (base_config_.max_nozzle_temp < filament.nozzle_temperature) {
+void BaseHotend::filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const {
+    if (base_config_.max_nozzle_temp < args.filament.nozzle_temperature) {
         report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::tool_max_temp);
     }
 }

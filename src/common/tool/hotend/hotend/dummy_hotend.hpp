@@ -10,7 +10,7 @@ class DummyHotend final : public Hotend {
 public:
     explicit DummyHotend();
 
-    void filament_compatibility_report(const FilamentTypeParameters &, FilamentCompatibilityReport &) const override {}
+    void filament_compatibility_report(FilamentCompatibilityReport &, const FilamentCompatibilityReportGenerateArgs &) const override {}
 
     void set_nozzle_target_temp([[maybe_unused]] TargetTemperature set) override {}
 

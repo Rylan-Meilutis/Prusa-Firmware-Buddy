@@ -113,7 +113,11 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool)
     filament_name = filament_params.name;
 
     buddy::filament_compatibility::CompatibilityReport compat_report;
-    compat_report.generate(filament_params, stdext::to_variant(tool));
+    const buddy::filament_compatibility::CompatibilityReportGenerateArgs compat_args {
+        .filament = filament_params,
+        .tools = stdext::to_variant(tool),
+    };
+    compat_report.generate_noclear(compat_args);
     const bool compatible = compat_report.failure_severity() <= HWCheckSeverity::Ignore;
 
     FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this, compatible);
@@ -368,10 +372,12 @@ ScreenPreheat::~ScreenPreheat() {
 }
 
 bool ScreenPreheat::handle_filament_selection(FilamentType filament_type, PreheatData::ToolIndex tool) {
-    const auto filament = filament_type.parameters();
-
+    const buddy::filament_compatibility::CompatibilityReportGenerateArgs compat_args {
+        .filament = filament_type.parameters(),
+        .tools = stdext::to_variant(tool),
+    };
     buddy::filament_compatibility::CompatibilityReport compat;
-    compat.generate(filament, stdext::to_variant(tool));
+    compat.generate_noclear(compat_args);
     if (!compat.gui_confirm_all_incompatibilities(Response::Cancel)) {
         return false;
     }

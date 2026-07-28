@@ -9,11 +9,10 @@
 
 class Hotend;
 
-struct FilamentTypeParameters;
-
 namespace buddy::filament_compatibility {
 struct CompatibilityReport;
-}
+struct CompatibilityReportGenerateArgs;
+} // namespace buddy::filament_compatibility
 
 /// Base class for all tools
 /// !!! ALL PUBLIC FUNCTIONS MUST BE THREAD-SAFE UNLESS STATED OTHERWISE
@@ -44,7 +43,8 @@ public:
 
 #if BOARD_IS_MASTER_BOARD() // Dwarfs gonna dwarf
     using FilamentCompatibilityReport = buddy::filament_compatibility::CompatibilityReport;
-    virtual void filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const = 0;
+    using FilamentCompatibilityReportGenerateArgs = buddy::filament_compatibility::CompatibilityReportGenerateArgs;
+    virtual void filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const = 0;
 #endif
 
 protected:

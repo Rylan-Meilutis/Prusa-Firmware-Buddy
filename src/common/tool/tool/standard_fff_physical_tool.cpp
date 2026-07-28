@@ -13,12 +13,12 @@ StandardFFFPhysicalToolBase::StandardFFFPhysicalToolBase(PhysicalToolIndex tool_
     , tool_index_(tool_index) {}
 
 #if BOARD_IS_MASTER_BOARD()
-void StandardFFFPhysicalToolBase::filament_compatibility_report(const FilamentTypeParameters &filament, FilamentCompatibilityReport &report) const {
+void StandardFFFPhysicalToolBase::filament_compatibility_report(FilamentCompatibilityReport &report, const FilamentCompatibilityReportGenerateArgs &args) const {
     // Note: accessing the hotend is generally not thread safe, but the filament_compatibility_report is an exception
     // Not using hotend() here to avoid tripping checks if any get implemented
-    hotend_ref_.filament_compatibility_report(filament, report);
+    hotend_ref_.filament_compatibility_report(report, args);
 
-    if (filament.is_abrasive && !config_store().get_nozzle_is_hardened(tool_index_)) {
+    if (args.filament.is_abrasive && !config_store().get_nozzle_is_hardened(tool_index_)) {
         report.failed_tool_checks.set(buddy::filament_compatibility::ToolCheck::abrasive);
     }
 }

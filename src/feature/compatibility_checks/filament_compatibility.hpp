@@ -32,6 +32,14 @@ enum class ToolCheck : uint8_t {
 
 };
 
+// Note: Needs to be outside bcs forward declarations
+struct CompatibilityReportGenerateArgs {
+    // CAREFUL: Reference (because params are big)
+    const FilamentTypeParameters &filament;
+
+    std::variant<VirtualToolIndex, AllTools, NoTool> tools;
+};
+
 struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport> {
     ChecksTraits<ToolCheck>::Bitset failed_tool_checks;
     ChecksTraits<GeneralCheck>::Bitset failed_general_checks;
@@ -40,9 +48,9 @@ struct CompatibilityReport : public CompatibilityReportBase<CompatibilityReport>
         const CheckMetadata *meta;
     };
 
-    /// Generates a compatibility record for using @p filament with @p tool
+    /// Generates a compatibility record
     /// Consecutive generate() calls accumulate reported errors
-    void generate(const FilamentTypeParameters &filament, std::variant<VirtualToolIndex, AllTools, NoTool> tools);
+    void generate_noclear(const CompatibilityReportGenerateArgs &args);
 
     /// @returns false if the iteration should stop
     using FailedCheckVisitor = stdext::inplace_function<bool(const FailedCheck &)>;

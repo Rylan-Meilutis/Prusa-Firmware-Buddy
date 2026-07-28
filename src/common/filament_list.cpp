@@ -72,8 +72,12 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
             return;
         }
 
+        const buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
+            .filament = ft.parameters(),
+            .tools = config.compatible_with_tool,
+        };
         buddy::filament_compatibility::CompatibilityReport report;
-        report.generate(ft.parameters(), config.compatible_with_tool);
+        report.generate_noclear(args);
         if (report.failure_severity() >= HWCheckSeverity::Abort) {
             return;
         }
