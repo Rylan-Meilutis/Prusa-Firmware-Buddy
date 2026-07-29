@@ -108,3 +108,7 @@ add_subdirectory(cork)
 add_subdirectory(safety_timer)
 add_subdirectory(stepper_timeout)
 add_subdirectory(gcode_exception)
+
+if(RTT_METRICS_ENABLED)
+  add_subdirectory(rtt_metrics_task)
+endif()

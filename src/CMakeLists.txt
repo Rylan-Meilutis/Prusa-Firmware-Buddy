@@ -78,10 +78,6 @@ if(BOARD IN_LIST BUDDY_BOARDS)
     target_link_libraries(firmware PRIVATE indx_head)
     target_link_libraries(Marlin PRIVATE indx_head)
   endif()
-
-  if(RTT_METRICS_ENABLED)
-    add_subdirectory(rtt_metrics)
-  endif()
 elseif(BOARD STREQUAL "DWARF")
   target_include_directories(firmware PRIVATE .)
 
