@@ -91,15 +91,10 @@ CommunicationStatus ToolOffsetSensor::refresh(PuppyModbus &bus) {
         return CommunicationStatus::ERROR;
     }
 
-    const auto holding = refresh_holding(bus);
-    if (holding == CommunicationStatus::ERROR) {
-        return CommunicationStatus::ERROR;
-    }
-
-    if (input == CommunicationStatus::SKIPPED && holding == CommunicationStatus::SKIPPED) {
-        return CommunicationStatus::SKIPPED;
-    }
-    return CommunicationStatus::OK;
+    return aggregate_communication_status({
+        input,
+        refresh_holding(bus),
+    });
 }
 
 ToolOffsetSensor tool_offset_sensor;

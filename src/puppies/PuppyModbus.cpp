@@ -32,6 +32,19 @@ LIGHTMODBUS_WARN_UNUSED ModbusError modbusStaticAllocator([[maybe_unused]] Modbu
     return MODBUS_OK;
 }
 
+CommunicationStatus aggregate_communication_status(std::initializer_list<CommunicationStatus> statuses) {
+    bool any_error = false;
+    bool all_skipped = true;
+    for (auto status : statuses) {
+        any_error |= (status == CommunicationStatus::ERROR);
+        all_skipped &= (status == CommunicationStatus::SKIPPED);
+    }
+
+    return any_error  ? CommunicationStatus::ERROR //
+        : all_skipped ? CommunicationStatus::SKIPPED
+                      : CommunicationStatus::OK;
+}
+
 PuppyModbus::ErrorLogSupressor::ErrorLogSupressor() {
     LOG_COMPONENT(Modbus).lowest_severity = logging::Severity::critical;
 }

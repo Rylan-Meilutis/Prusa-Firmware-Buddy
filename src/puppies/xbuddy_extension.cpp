@@ -413,7 +413,7 @@ void XBuddyExtension::close_flash_file() {
 CommunicationStatus XBuddyExtension::refresh(PuppyModbus &bus) {
     Lock lock(mutex);
 
-    const auto status = {
+    const auto status = aggregate_communication_status({
         // Refresh on every exchange in case we are flashing - we want to update
         // the request ASAP, it's changing after each sent chunk.
         refresh_input(bus, flash_fd != -1 ? 0 : 250),
@@ -426,22 +426,13 @@ CommunicationStatus XBuddyExtension::refresh(PuppyModbus &bus) {
             xbuddy_extension::modbus::compute_digest_response(request, file_id, out);
             lock.lock();
         }),
-    };
+    });
 
-    constexpr auto equal_to = [](CommunicationStatus what) {
-        return [what](CommunicationStatus status) { return status == what; };
-    };
-
-    if (std::ranges::any_of(status, equal_to(CommunicationStatus::ERROR))) {
-        return CommunicationStatus::ERROR;
-    }
-    if (std::ranges::all_of(status, equal_to(CommunicationStatus::SKIPPED))) {
-        return CommunicationStatus::SKIPPED;
+    if (status == CommunicationStatus::OK) {
+        cyphal_bridge.refresh(bus, modbus::ServerAddress::xbuddy_extension);
     }
 
-    cyphal_bridge.refresh(bus, modbus::ServerAddress::xbuddy_extension);
-
-    return CommunicationStatus::OK;
+    return status;
 }
 
 CommunicationStatus XBuddyExtension::initial_scan(PuppyModbus &bus) {
