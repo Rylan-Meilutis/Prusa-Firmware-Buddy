@@ -9,6 +9,7 @@
 #include <rtt_metrics_structs/rtt_metrics_structs.hpp>
 #include <timing.h>
 #include <utils/atomic_circular_queue.hpp>
+#include <utils/single_isr_producer_guard.hpp>
 
 using namespace rtt_metrics;
 
@@ -37,14 +38,20 @@ void drain(Queue &queue) {
 
 // Best-effort: drop the sample if the consumer can't keep up.
 void rtt_metrics::sample_accelerometer(const accelerometer::RawAcceleration &raw_acceleration) {
+    static SingleISRProducerGuard guard;
+    guard.check();
     static_cast<void>(accel_queue.enqueue({ MetricType::raw_acceleration, ticks_us(), raw_acceleration }));
 }
 
 void rtt_metrics::sample_loadcell_tared_z(const LoadcellTaredZ &tared_z) {
+    static SingleISRProducerGuard guard;
+    guard.check();
     static_cast<void>(loadcell_queue.enqueue({ MetricType::loadcell_tared_z, ticks_us(), tared_z }));
 }
 
 void rtt_metrics::sample_stepper_positions(const StepperPositions &positions) {
+    static SingleISRProducerGuard guard;
+    guard.check();
     static_cast<void>(stepper_queue.enqueue({ MetricType::stepper_positions, ticks_us(), positions }));
 }
 
