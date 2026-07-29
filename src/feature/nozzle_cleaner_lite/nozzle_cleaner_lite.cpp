@@ -86,6 +86,7 @@ namespace {
     // run_z_probe approaches from above and searches down to
     // expected + Z_PROBE_LOW_POINT, so the true surface is found each run.
     constexpr float expected_touchpoint_surface_z = 0.0f;
+    constexpr float touch_point_z_pressure = -0.1f; // Z target for the nozzle to press on the touchpoint after cleaning
     constexpr float dive_below_surface_mm = -0.3f;
     constexpr float travel_clearance_mm = 10.0f;
 
@@ -198,6 +199,16 @@ void clean() {
     // Retreat back over the touchpoint
     move_to_machine_pos_z(probed_z + travel_clearance_mm, rub_feedrate_fast);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, rub_feedrate_fast);
+    move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
+
+    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - 20);
+    if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
+        log_error(NozzleCleanerLite, "heating failed");
+        return;
+    }
+
+    // Retreat to safe travel Z position
+    move_to_machine_pos_z(probed_z + travel_clearance_mm, rub_feedrate_fast);
 }
 
 #if HAS_TOOLCHANGER()
