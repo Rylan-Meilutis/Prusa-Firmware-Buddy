@@ -12,6 +12,7 @@ namespace rtt_metrics {
 /// dropped on queue overflow.
 void sample_accelerometer(const accelerometer::RawAcceleration &raw_acceleration);
 void sample_loadcell_tared_z(const LoadcellTaredZ &tared_z);
+void sample_stepper_positions(const StepperPositions &positions);
 
 /// Must be called from a single consumer context
 /// only (the rtt_metrics task), after init_rtt_metrics().

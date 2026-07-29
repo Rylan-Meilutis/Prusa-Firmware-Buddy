@@ -18,6 +18,7 @@ namespace {
 /// Each queue has headroom for >=30 ms of data.
 AtomicCircularQueue<MetricWrapper<accelerometer::RawAcceleration>, uint8_t, 64> accel_queue;
 AtomicCircularQueue<MetricWrapper<LoadcellTaredZ>, uint8_t, 32> loadcell_queue;
+AtomicCircularQueue<MetricWrapper<StepperPositions>, uint8_t, 32> stepper_queue;
 
 template <typename DataStruct>
 void write_metric(const MetricWrapper<DataStruct> &wrapper) {
@@ -43,7 +44,12 @@ void rtt_metrics::sample_loadcell_tared_z(const LoadcellTaredZ &tared_z) {
     static_cast<void>(loadcell_queue.enqueue({ MetricType::loadcell_tared_z, ticks_us(), tared_z }));
 }
 
+void rtt_metrics::sample_stepper_positions(const StepperPositions &positions) {
+    static_cast<void>(stepper_queue.enqueue({ MetricType::stepper_positions, ticks_us(), positions }));
+}
+
 void rtt_metrics::process_rtt_metrics_queue() {
     drain(accel_queue);
     drain(loadcell_queue);
+    drain(stepper_queue);
 }

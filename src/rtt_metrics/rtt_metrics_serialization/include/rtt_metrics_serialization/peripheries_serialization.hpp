@@ -38,6 +38,13 @@ void serialize(S &s, LoadcellTaredZ &data) {
     s.value4b(data.z_load);
 }
 
+template <typename S>
+void serialize(S &s, StepperPositions &data) {
+    for (auto &step : data.steps) {
+        s.value4b(step);
+    }
+}
+
 } // namespace rtt_metrics
 
 namespace accelerometer {

@@ -32,6 +32,20 @@ metric type to know how many bytes to consume and how to interpret them.
 |--------|---------|---------------|
 | z_load | 4 bytes | `float` value |
 
+### `StepperPositions`
+
+| Field    | Size    | Description      |
+|----------|---------|------------------|
+| steps[0] | 4 bytes | `int32_t` X axis |
+| steps[1] | 4 bytes | `int32_t` Y axis |
+| steps[2] | 4 bytes | `int32_t` Z axis |
+| steps[3] | 4 bytes | `int32_t` E axis |
+
+The array length is fixed at `stepper_count` (4), so the payload is always 16
+bytes. `stepper_count` mirrors the firmware's `XYZE_N` (asserted at compile
+time); if it ever changes, this layout — and every decoder — must change with
+it.
+
 ## Units
 
 ### Timestamp
@@ -53,6 +67,15 @@ acceleration, the consumer must apply the chip-specific factor.
 The tared Z load (`Loadcell::get_tared_z_load()`) in **grams**, computed on the
 firmware as `scale * (raw - offset)`. Mind that the value is *tared* and
 therefore represents change instead of precise measurement of the chip itself.
+
+### `StepperPositions`
+
+Per-stepper position in **steps** (`Stepper::position_from_startup()` per axis)
+— a signed count relative to the position at power-on, not an absolute machine
+coordinate. Elements are indexed by `AxisEnum` (X, Y, Z, E). Converting to
+millimetres needs the per-axis steps-per-mm, which this format does not carry.
+On CoreXY kinematics the X/A and Y/B entries are motor-space counters (a single
+Cartesian move changes both), not Cartesian axes.
 
 ## Transport
 
