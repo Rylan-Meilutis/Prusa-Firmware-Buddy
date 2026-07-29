@@ -23,6 +23,7 @@ using cyphal::NodeId;
 using cyphal::Presentation;
 using cyphal::Severity;
 using cyphal::TimePoint;
+using cyphal::TransferId;
 using cyphal::UniqueId;
 
 std::vector<uint8_t> mock_firmware_gen() {
@@ -106,7 +107,7 @@ public:
 
     struct FileResponse {
         NodeId remote_node_id;
-        uint8_t transfer_id;
+        TransferId transfer_id;
         std::vector<std::byte> data;
 
         constexpr auto operator<=>(const FileResponse &) const = default;
@@ -132,7 +133,7 @@ public:
     void transmit_node_execute_command_request(NodeId remote_node_id, Command command, Bytes parameter) {
         node_execute_command_request.emplace_back(remote_node_id, command, std::vector<std::byte> { parameter.begin(), parameter.end() });
     }
-    void transmit_file_read_response(NodeId remote_node_id, uint8_t transfer_id, WritableBytes data) {
+    void transmit_file_read_response(NodeId remote_node_id, TransferId transfer_id, WritableBytes data) {
         file_responses.push_back(FileResponse { remote_node_id, transfer_id, std::vector(data.begin(), data.end()) });
     }
 
@@ -537,8 +538,8 @@ SCENARIO("happy case") {
                 CHECK(mock.node_execute_command_request.back() == software_update);
 
                 // The bootloader wants a bit of a file.
-                uint8_t id = 42;
-                app.receive_file_read_request(node_id, now, id, 0);
+                uint8_t id = 12;
+                app.receive_file_read_request(node_id, now, TransferId { id }, 0);
                 run(app, mock, make_timepoint(4001));
                 auto modbus_request = app.request();
                 CHECK(modbus_request.flash_request == cyphal::FirmwareFile::firmware_ac_controller);
@@ -571,7 +572,7 @@ SCENARIO("happy case") {
                     if (!mock.file_responses.empty()) {
                         const auto &response = mock.file_responses[0];
                         CHECK(response.remote_node_id == node_id);
-                        CHECK(response.transfer_id == id);
+                        CHECK(response.transfer_id == TransferId { id });
 
                         for (auto byte : response.data) {
                             data.push_back(static_cast<uint8_t>(byte));
@@ -581,7 +582,7 @@ SCENARIO("happy case") {
 
                         if (data.size() < mock_firmware.size()) {
                             id++;
-                            app.receive_file_read_request(node_id, now, id, data.size());
+                            app.receive_file_read_request(node_id, now, TransferId { id }, data.size());
                         }
 
                         progress = true;

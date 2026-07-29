@@ -12,6 +12,7 @@ using cyphal::NfcNode;
 using cyphal::NodeId;
 using cyphal::Presentation;
 using cyphal::Severity;
+using cyphal::TransferId;
 
 class MockPresentation final : public Presentation {
 public:
@@ -25,7 +26,7 @@ public:
     void transmit_diagnostic_record(Severity, const char *) override {}
     void transmit_node_get_info_request(NodeId) override {}
     void transmit_node_execute_command_request(NodeId, cyphal::Command, Bytes) override {}
-    void transmit_file_read_response(NodeId, uint8_t, WritableBytes) override {}
+    void transmit_file_read_response(NodeId, TransferId, WritableBytes) override {}
     void transmit_ac_controller_config_request(NodeId, const ac_controller::Config &) override {}
     void transmit_ac_controller_leds_config_request([[maybe_unused]] NodeId, [[maybe_unused]] const ac_controller::LedConfig &) override {}
     void transmit_tool_offset_sensor_config_request(NodeId, const tool_offset_sensor::Config &) override {}

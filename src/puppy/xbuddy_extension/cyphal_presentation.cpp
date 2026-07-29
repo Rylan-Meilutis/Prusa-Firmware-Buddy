@@ -188,7 +188,7 @@ private:
         uint8_t nfc_command_accept_event = 0;
         uint8_t nfc_command_request = 0;
 #endif
-    } transfer_id;
+    } transfer_ids;
     cyphal::Application &application = cyphal::application();
 
 public:
@@ -344,7 +344,7 @@ private:
         application.receive_file_read_request(
             cyphal::NodeId { transfer.metadata.remote_node_id },
             now,
-            transfer.metadata.transfer_id,
+            cyphal::TransferId { transfer.metadata.transfer_id },
             request.offset);
     }
 
@@ -400,6 +400,7 @@ private:
 
     static constexpr cyphal::NodeId anonymous {};
     static_assert(anonymous == cyphal::NodeId { CANARD_NODE_ID_UNSET });
+    static_assert(cyphal::TransferId::mask == CANARD_TRANSFER_ID_MAX);
 
     // Following functions translate from application layer to presentation layer.
 
@@ -409,12 +410,14 @@ private:
         message.health.value = healthy ? uavcan_node_Health_1_0_NOMINAL : uavcan_node_Health_1_0_WARNING;
         message.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
         message.vendor_specific_status_code = 0;
-        (void)serialize_and_transmit(message, anonymous, transfer_id.node_heartbeat++);
+        const cyphal::TransferId transfer_id { transfer_ids.node_heartbeat++ };
+        (void)serialize_and_transmit(message, anonymous, transfer_id);
     }
 
     void transmit_node_get_info_request(cyphal::NodeId remote_node_id) override {
         uavcan_node_GetInfo_Request_1_0 request;
-        (void)serialize_and_transmit(request, remote_node_id, transfer_id.node_get_info++);
+        const cyphal::TransferId transfer_id { transfer_ids.node_get_info++ };
+        (void)serialize_and_transmit(request, remote_node_id, transfer_id);
     }
 
     void transmit_node_execute_command_request(cyphal::NodeId remote_node_id, cyphal::Command command, Bytes parameter) override {
@@ -422,7 +425,8 @@ private:
         request.command = static_cast<uint16_t>(command);
         request.parameter.count = std::min(parameter.size(), sizeof(request.parameter.elements));
         memcpy(request.parameter.elements, parameter.data(), request.parameter.count);
-        (void)serialize_and_transmit(request, remote_node_id, transfer_id.node_execute_command++);
+        const cyphal::TransferId transfer_id { transfer_ids.node_execute_command++ };
+        (void)serialize_and_transmit(request, remote_node_id, transfer_id);
     }
 
     void transmit_diagnostic_record(cyphal::Severity severity, const char *text) override {
@@ -430,7 +434,8 @@ private:
         record.severity.value = static_cast<uint8_t>(severity);
         record.text.count = std::min(strlen(text), sizeof(record.text.elements));
         memcpy(record.text.elements, text, record.text.count);
-        if (!serialize_and_transmit(record, anonymous, transfer_id.diagnostic_record++)) {
+        const cyphal::TransferId transfer_id { transfer_ids.diagnostic_record++ };
+        if (!serialize_and_transmit(record, anonymous, transfer_id)) {
             // Failure to send diagnostic record is not an error.
             // It hurts debugging experience but we can continue as if nothing happened.
         }
@@ -441,12 +446,13 @@ private:
         static_assert(unique_id.size() == sizeof(message.unique_id));
         memcpy(message.unique_id, unique_id.data(), sizeof(message.unique_id));
         message.node_id.value = (uint8_t)node_id;
-        if (!serialize_and_transmit(message, anonymous, transfer_id.pnp++)) {
+        const cyphal::TransferId transfer_id { transfer_ids.pnp++ };
+        if (!serialize_and_transmit(message, anonymous, transfer_id)) {
             // Failure to send allocation response is not an error.
             // Node will retry later and we will hopefully be able to respond then.
         }
     }
-    void transmit_file_read_response(cyphal::NodeId remote_node_id, uint8_t transfer_id, WritableBytes data) override {
+    void transmit_file_read_response(cyphal::NodeId remote_node_id, cyphal::TransferId transfer_id, WritableBytes data) override {
         uavcan_file_Read_Response_1_1 response;
         response._error.value = uavcan_file_Error_1_0_OK;
         response.data.value.count = data.size();
@@ -479,7 +485,8 @@ private:
             request.psu_fan_config._tag_ = 0;
         }
 
-        (void)serialize_and_transmit(request, remote_node_id, transfer_id.ac_controller_config++);
+        const cyphal::TransferId transfer_id { transfer_ids.ac_controller_config++ };
+        (void)serialize_and_transmit(request, remote_node_id, transfer_id);
 #else
         (void)remote_node_id;
         (void)r;
@@ -520,7 +527,8 @@ private:
 
         // LED config is a broadcast message (CanardTransferKindMessage), not a request
         // Therefore we must use CANARD_NODE_ID_UNSET instead of a specific node ID
-        (void)serialize_and_transmit(request, anonymous, transfer_id.leds_config++);
+        const cyphal::TransferId transfer_id { transfer_ids.leds_config++ };
+        (void)serialize_and_transmit(request, anonymous, transfer_id);
 #else
         (void)remote_node_id;
         (void)r;
@@ -533,7 +541,8 @@ private:
         std::memset(&request, 0, sizeof(request));
         request.ch0_enabled = r.ch0_enabled.value_or(false);
         request.ch1_enabled = r.ch1_enabled.value_or(false);
-        (void)serialize_and_transmit(request, remote_node_id, transfer_id.tool_offset_sensor_config++);
+        const cyphal::TransferId transfer_id { transfer_ids.tool_offset_sensor_config++ };
+        (void)serialize_and_transmit(request, remote_node_id, transfer_id);
 #else
         (void)remote_node_id;
         (void)r;
@@ -542,7 +551,8 @@ private:
 
     bool transmit_nfc_command_request(cyphal::NodeId remote_node_id, Bytes data) override {
 #if HAS_ANFC()
-        return transmit<prusa3d_nfc_command_Request_Request_1_0>(data, remote_node_id, transfer_id.nfc_command_request++);
+        const cyphal::TransferId transfer_id { transfer_ids.nfc_command_request++ };
+        return transmit<prusa3d_nfc_command_Request_Request_1_0>(data, remote_node_id, transfer_id);
 #else
         (void)remote_node_id;
         (void)data;
@@ -552,7 +562,8 @@ private:
 
     bool transmit_nfc_command_accept_event(cyphal::NodeId remote_node_id, Bytes data) override {
 #if HAS_ANFC()
-        return transmit<prusa3d_nfc_command_AcceptEvent_Request_1_0>(data, remote_node_id, transfer_id.nfc_command_accept_event++);
+        const cyphal::TransferId transfer_id { transfer_ids.nfc_command_accept_event++ };
+        return transmit<prusa3d_nfc_command_AcceptEvent_Request_1_0>(data, remote_node_id, transfer_id);
 #else
         (void)remote_node_id;
         (void)data;
@@ -561,7 +572,7 @@ private:
     }
 
     template <class T>
-    [[nodiscard]] bool serialize_and_transmit(const T &object, cyphal::NodeId remote_node_id, uint8_t transfer_id) {
+    [[nodiscard]] bool serialize_and_transmit(const T &object, cyphal::NodeId remote_node_id, cyphal::TransferId transfer_id) {
         std::byte buffer[NunavutTraits<T>::serialization_buffer_size_bytes];
         size_t size = sizeof(buffer);
         if (NunavutTraits<T>::serialize(&object, (uint8_t *)buffer, &size) == 0) {
@@ -572,13 +583,13 @@ private:
     }
 
     template <class T>
-    [[nodiscard]] bool transmit(const Bytes &data, cyphal::NodeId remote_node_id, uint8_t transfer_id) {
+    [[nodiscard]] bool transmit(const Bytes &data, cyphal::NodeId remote_node_id, cyphal::TransferId transfer_id) {
         const CanardTransferMetadata metadata = {
             .priority = CanardPriorityNominal,
             .transfer_kind = NunavutTraits<T>::transfer_kind,
             .port_id = NunavutTraits<T>::port_id,
             .remote_node_id = (uint8_t)remote_node_id,
-            .transfer_id = transfer_id,
+            .transfer_id = (uint8_t)transfer_id,
         };
         const CanardMicrosecond deadline = 0; // unlimited
         return cyphal::transport().transmit(deadline, metadata, data);

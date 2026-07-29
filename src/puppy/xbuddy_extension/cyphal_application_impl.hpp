@@ -240,7 +240,7 @@ private:
             // Node wants some data, this is the ID specified by the node.
             //
             // nullopt in case we are waiting for the node's request to arrive.
-            std::optional<uint8_t> transfer_id;
+            std::optional<TransferId> transfer_id;
             // Offset into the "file" the node wants.
             //
             // Used to:
@@ -862,7 +862,7 @@ public:
         }
     }
 
-    void receive_file_read_request(NodeId remote_node_id, TimePoint now, uint8_t transfer_id, uint32_t offset) final {
+    void receive_file_read_request(NodeId remote_node_id, TimePoint now, TransferId transfer_id, uint32_t offset) final {
         if (Node *node = get_node(remote_node_id)) {
             // Should we _check_ we are in the right state first?
             node->state = Node::Flash {
