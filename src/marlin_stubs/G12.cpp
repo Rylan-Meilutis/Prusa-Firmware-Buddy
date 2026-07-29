@@ -70,7 +70,7 @@ void PrusaGcodeSuite::G12() {
         // Unlike G29, G12 doesn't already have a print_status_message FSM open,
         // so open one here to show the heating wait screen during cleaning.
         marlin_server::FSM_Holder fsm_holder(PhaseWait::print_status_message);
-        nozzle_cleaner_lite::clean();
+        nozzle_cleaner_lite::clean(nozzle_cleaner_lite::CleanType::standalone);
     }
 #else
     {

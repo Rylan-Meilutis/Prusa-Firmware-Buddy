@@ -99,6 +99,12 @@ namespace {
     constexpr uint8_t rub_cycles_fast = 5;
     constexpr uint8_t rub_cycles_slow = 2;
 
+    // Touchpoint cool-down temperature sits this much below the cleaning
+    // temperature: no active ooze, yet as hot as possible so the nozzle
+    // thermal expansion stays close to printing conditions. The probing tool
+    // keeps it for the MBL that follows.
+    constexpr int16_t cooldown_temp_diff = 20;
+
     float probe_touchpoint_z() {
         // XL-only staleness guard removed; see the commented-out
         // contactless_offset.hpp include above for why and when to reverse.
@@ -136,7 +142,7 @@ bool is_available() {
     return config_store().nozzle_cleaner_lite_installed.get();
 }
 
-void clean() {
+bool clean(CleanType clean_type) {
     release_assert(is_available());
 
     PrintStatusMessageGuard status_message;
@@ -145,7 +151,7 @@ void clean() {
     const std::optional<PhysicalToolIndex> tool = PhysicalToolIndex::currently_selected_opt();
     if (!tool) {
         log_error(NozzleCleanerLite, "no tool selected");
-        return;
+        return false;
     }
 
     const FilamentType filament = FilamentType::for_tool_heuristic(tool->currently_selected_virtual_tool());
@@ -161,7 +167,7 @@ void clean() {
     // Home XY (and Z) only if needed, with clearance so we don't drag over the bed.
     if (!GcodeSuite::G28_no_parser(true, true, true, G28Flags { .only_if_needed = true, .z_raise = travel_clearance_mm })) {
         log_error(NozzleCleanerLite, "homing failed");
-        return;
+        return false;
     }
 
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, dive_feedrate);
@@ -172,7 +178,7 @@ void clean() {
     const float probed_z = probe_touchpoint_z();
     if (std::isnan(probed_z)) {
         log_error(NozzleCleanerLite, "Touchpoint probe failed");
-        return;
+        return false;
     }
     log_info(NozzleCleanerLite, "Touchpoint surface at Z=%.3f", static_cast<double>(probed_z));
 
@@ -180,7 +186,7 @@ void clean() {
 
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = true })) {
         log_error(NozzleCleanerLite, "heating failed");
-        return;
+        return false;
     }
 
     // Safely move from the touchpoint to the cleaner
@@ -200,6 +206,13 @@ void clean() {
     // Retreat back over the touchpoint
     move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, leave_feedrate);
+
+    if (clean_type == CleanType::parked_tool) {
+        Hotend::for_tool(*tool).set_nozzle_target_temp(0);
+        restore_nozzle_target.disarm();
+        return true;
+    }
+
     move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
     // Declared after the temperature guard so it runs before it: the nozzle must
     // come off the touchpoint before anything re-heats it.
@@ -207,11 +220,16 @@ void clean() {
         move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     });
 
-    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - 20);
+    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - cooldown_temp_diff);
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
         log_error(NozzleCleanerLite, "cooling failed");
-        return;
+        return false;
     }
+
+    if (clean_type == CleanType::probing_tool) {
+        restore_nozzle_target.disarm();
+    }
+    return true;
 }
 
 #if HAS_TOOLCHANGER()
@@ -249,8 +267,12 @@ static void clean_before_probing_toolchanger() {
         }
     });
 
+    // Only the tool that probes MBL afterwards needs the controlled
+    // cool-down; the others cool naturally in the dock, without waiting.
+    const auto probing_tool = stdext::get_optional<PhysicalToolIndex>(original_tool);
+
     // Start heating all used tools to the cleaning temperature in parallel to
-    // save time; restore the targets once all of them are cleaned
+    // save time
     std::array<int16_t, PhysicalToolIndex::count> saved_nozzle_targets {};
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         if (!used_physical_tools.test(tool.to_raw())) {
@@ -270,6 +292,7 @@ static void clean_before_probing_toolchanger() {
         }
     });
 
+    bool all_cleaned = true;
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
         if (!used_physical_tools.test(tool.to_raw())) {
             continue;
@@ -277,9 +300,16 @@ static void clean_before_probing_toolchanger() {
 
         if (!tool_change(stdext::to_variant(tool), tool_return_t::no_return)) {
             log_error(NozzleCleanerLite, "Tool change to tool %u failed", tool.to_raw());
+            all_cleaned = false;
             break;
         }
-        clean();
+        all_cleaned &= clean(tool == probing_tool ? CleanType::probing_tool : CleanType::parked_tool);
+    }
+
+    // On success the probing tool keeps its cool-down target for the MBL
+    // that follows and the other tools are off; restoring would re-heat them.
+    if (all_cleaned) {
+        restore_nozzle_targets.disarm();
     }
 }
 #endif
@@ -288,16 +318,16 @@ void clean_before_probing(Badge<unified_bed_leveling>) {
     release_assert(is_available());
 
 #if !HAS_TOOLCHANGER()
-    clean();
+    clean(CleanType::probing_tool);
 #else
     clean_before_probing_toolchanger();
 #endif
 
     // MBL probing follows right after this returns, with no M109 in between
-    // to re-stabilize the nozzle. Cleaning may have left it above its
-    // restored target (e.g. ASA, cleaning temp > MBL temp) or below it (e.g.
-    // PLA); wait for it to settle back so probing runs at the temperature
-    // the start gcode set, not mid-cleaning.
+    // to re-stabilize the nozzle. On success the target was deliberately left
+    // at the cool-down temperature and probing runs there; on failure the
+    // guards restored the previous target. Either way, wait for the nozzle
+    // to settle.
     const auto active_tool = PhysicalToolIndex::currently_selected_opt();
     if (active_tool && Hotend::for_tool(*active_tool).nozzle_target_temp() > 0) {
         thermalManager.wait_for_hotend(*active_tool, { .no_wait_for_cooling = false });
