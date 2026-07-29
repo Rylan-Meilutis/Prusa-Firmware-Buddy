@@ -21,10 +21,10 @@ CommunicationStatus XlCan::read_status(PuppyModbus &bus) {
     const auto result = bus.read(unit, status, 0);
     switch (result) {
     case CommunicationStatus::OK:
-        valid.store(true);
+        status_valid.store(true);
         break;
     case CommunicationStatus::ERROR:
-        valid.store(false);
+        status_valid.store(false);
         break;
     case CommunicationStatus::SKIPPED:
         break;
@@ -96,7 +96,7 @@ void XlCan::set_fan_pwm(uint8_t pwm, FanSelftestMode selftest_mode) {
 
 std::optional<uint16_t> XlCan::get_fan_rpm() const {
     Lock lock(mutex);
-    if (!valid.load()) {
+    if (!status_valid.load()) {
         return std::nullopt;
     }
     return status.value.fan_rpm[xbuddy_extension::modbus::XL_CAN_FAN_IDX];

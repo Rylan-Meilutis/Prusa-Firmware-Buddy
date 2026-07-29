@@ -19,8 +19,7 @@ namespace buddy::puppies {
 class XlCan final {
 public:
     /// Read a small register block to verify the bridge responds at its
-    /// assigned Modbus address. Used by PuppyBootstrap right after the app
-    /// is started, in the same role as XBuddyExtension::ping().
+    /// assigned Modbus address.
     CommunicationStatus ping(PuppyModbus &);
 
     /// Initial post-bootstrap scan; currently just ping().
@@ -33,10 +32,8 @@ public:
     void set_otp(const OTP_v5 &);
     OTP_v5 get_otp() const;
 
-    /// Whether the bridge was discovered during bootstrap. The xlBuddy master
-    /// image is shared across plain XL and XLS; only XLS physically has the
-    /// bridge, so this flag distinguishes the two at runtime. Set by the
-    /// puppy task right after bootstrap completes.
+    /// Whether the bridge was discovered during bootstrap.
+    /// The XL FW is shared between XL and XLS, so this flag distinguishes the two at runtime.
     bool is_enabled() const { return enabled.load(); }
     void set_enabled(bool e) { enabled.store(e); }
 
@@ -61,14 +58,14 @@ public:
     /// Set the Modular Bed cooling fan duty (0-255)
     void set_fan_pwm(uint8_t pwm, FanSelftestMode selftest_mode = FanSelftestMode::nop_if_selftest);
 
-    /// Desired MB cooling fan duty (0-255) last set via set_fan_pwm; not a
-    /// measured value.
+    /// Desired MB cooling fan duty (0-255) last set via set_fan_pwm; not a measured value.
     [[nodiscard]] uint8_t get_fan_pwm() const { return fan_pwm_desired.load(); }
 
     /// Last fan RPM reported by the bridge; nullopt until the bridge has
-    /// answered a Status read, and again after one fails. Note is_enabled()
-    /// is *not* sufficient for this: it is latched from the bootloader-level
-    /// probe, before any Modbus exchange has taken place.
+    /// answered a Status read, and again after one fails. is_enabled() is not
+    /// a substitute: it is latched from the bootloader-level probe, which
+    /// completes before any Modbus exchange, so the zero-default Status block
+    /// would read as a genuine "0 RPM".
     [[nodiscard]] std::optional<uint16_t> get_fan_rpm() const;
 
 private:
@@ -79,17 +76,11 @@ private:
     using Status = xbuddy_extension::modbus::Status;
     ModbusInputRegisterBlock<Status::address, Status> status;
 
-    /// Whether `status` holds a value the bridge actually sent. Until the
-    /// first successful read it is zero-default, which would otherwise be
-    /// indistinguishable from a genuine "fan stopped, no fault" report.
-    std::atomic<bool> valid { false };
+    /// Whether `status` holds a value the bridge actually sent.
+    std::atomic<bool> status_valid { false };
 
     // Holding-register block shared with the xBE Modbus map (the bridge fw is
-    // an xBE variant). Only `mmu_nreset` and the MB fan slot of `fan_pwm` are
-    // exercised today; the rest of the Config struct is written as zeros each
-    // time, which the bridge ignores for fields whose underlying peripheral
-    // isn't populated on the bridge PCB. A bridge-specific reduced layout is
-    // a possible future optimization.
+    // an xBE variant).
     using Config = xbuddy_extension::modbus::Config;
     ModbusHoldingRegisterBlock<Config::address, Config> config;
 
@@ -100,15 +91,14 @@ private:
     /// refresh_holding (deferred write — fan control isn't latency-critical).
     std::atomic<uint8_t> fan_pwm_desired { 0 };
 
-    /// While true, only selftest_set_fan_pwm() may change fan_pwm_desired.
+    /// While true, only set_fan_pwm() calls that pass a FanSelftestMode other
+    /// than nop_if_selftest may change fan_pwm_desired.
     std::atomic<bool> fan_selftest_active { false };
 
-    /// Fault-transition logging memory (refresh). Puppy-task-only,
-    /// mutex-protected.
+    /// Fault-transition logging memory (refresh). Puppy-task-only, mutex-protected.
     bool last_fan_power_fault = false;
 
-    /// Read the Status block and latch `valid` on the outcome. Caller must
-    /// hold `mutex`.
+    /// Read the Status block and latch `valid` on the outcome. Caller must hold `mutex`.
     CommunicationStatus read_status(PuppyModbus &);
 
     /// Pack the desired-state atomics into the Config block and flush to the
