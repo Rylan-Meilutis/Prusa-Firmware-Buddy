@@ -268,7 +268,7 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
     const float tared_z_load = get_tared_z_load(loadcellRaw, scale, offset);
 
 #if RTT_METRICS_ENABLED()
-    rtt_metrics::log_loadcell_tared_z({ tared_z_load });
+    rtt_metrics::sample_loadcell_tared_z({ tared_z_load });
 #endif
 
     float filtered_z_load = NAN;

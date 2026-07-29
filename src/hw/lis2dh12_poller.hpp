@@ -339,7 +339,7 @@ public:
             const int16_t y = (int16_t(dma_buffer[4]) << 8) | dma_buffer[3];
             const int16_t z = (int16_t(dma_buffer[6]) << 8) | dma_buffer[5];
 #if RTT_METRICS_ENABLED()
-            rtt_metrics::log_accelerometer({ x, y, z });
+            rtt_metrics::sample_accelerometer({ x, y, z });
 #endif
             if (!sample_queue.enqueue({ x, y, z })) {
                 overflow_flag = true;
