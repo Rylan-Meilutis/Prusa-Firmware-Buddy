@@ -72,8 +72,8 @@ static_assert(print_fan_range.rpm_max < heatbreak_fan_range.rpm_min, "These cann
 
 #if HAS_CPU_FAN()
 /// CPU cooling fan on the XLS sandwich board. Range derives from
-/// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (LDO-D3007D04Y05X75FX
-/// nominal 7500 RPM ±15 %, with margin for part variance).
+/// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (JDL3006S, nominal
+/// 9000 RPM; see there for why the window is not the datasheet tolerance).
 constexpr FanRPMRange cpu_fan_range = { .rpm_min = FANCTLCPU_RPM_MIN, .rpm_max = FANCTLCPU_RPM_MAX };
 #endif
 
