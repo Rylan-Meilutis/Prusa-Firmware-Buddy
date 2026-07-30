@@ -41,7 +41,7 @@ def png2font(src_img, char_w, char_h, columns, rows):
             char_x = x % char_w  # character pixel x-coord (0..char_w-1)
             char_y = y % char_h  # character pixel y-coord (0..char_h-1)
             char_pix_offs = char_y * char_w + char_x  # character pixel offset [pixels]
-            offs = char_offs + char_pix_offs >> 1  # total offset in charset [bytes]
+            offs = char_offs + (char_pix_offs >> 1)  # total offset [bytes]
 
             # Calculate bit shift (4 bits per pixel, 2 pixels per byte)
             i = char_pix_offs % 2
