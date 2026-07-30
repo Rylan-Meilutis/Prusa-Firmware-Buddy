@@ -48,7 +48,8 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     do_homing_move(Z_AXIS, Z_CALIB_EXTRA_HIGHT, HOMING_FEEDRATE_INVERTED_Z, false, false);
     current_position.z = 0;
     sync_plan_position();
-    current_position.x = X_MIN_POS + 2;
+    // Needs to avoid nozzle cleaner, tool offset sensor, and whatever else can be mounted on the XL
+    current_position.x = X_BED_SIZE / 2;
     current_position.y = Y_MIN_POS + 2;
     line_to_current_position();
     planner.synchronize();
