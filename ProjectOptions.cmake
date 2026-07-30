@@ -1196,14 +1196,14 @@ if(BOARD IN_LIST BUDDY_BOARDS)
       ${DEBUG}
       CACHE BOOL "Enable metrics over rtt"
       )
-  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 else()
+  # Puppies have no rtt_metrics implementation
   set(RTT_METRICS_ENABLED
-      "OFF"
-      CACHE BOOL "Enable metrics over rtt"
+      OFF
+      CACHE BOOL "Enable metrics over rtt" FORCE
       )
-  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 endif()
+define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 
 set(DEVELOPER_MODE
     "OFF"
