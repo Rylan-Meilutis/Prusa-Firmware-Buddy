@@ -40,7 +40,9 @@ static_assert(HAS_PAUSE());
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
+#include <algorithm>
 #include <cmath>
+#include <feature/safety_timer/safety_timer.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "filament.hpp"
 #include <gcode/gcode_parser.hpp>
@@ -255,6 +257,12 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
     } // Initial retract before move to filament change position
     settings.SetExtruder(target_tool);
 
+    // A pause that outlives the safety timer leaves the heaters disabled, which zeroes
+    // both the target and the displayed temperature. Restore them before snapshotting,
+    // otherwise the resume temperature captured below is 0 and turns the nozzle off.
+    // Pause::filament_change() restores anyway; this only moves it ahead of the read.
+    buddy::safety_timer().reset_restore_nonblocking();
+
     const float disp_temp = marlin_vars().hotend(physical_target_tool).display_nozzle;
     const float targ_temp = Temperature::degTargetHotend(physical_target_tool);
 
@@ -262,8 +270,9 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         Temperature::setTargetHotend(static_cast<int16_t>(disp_temp), physical_target_tool);
     }
 
-    // Loading drops the target to the new filament's default; restore the print temperature on resume.
-    settings.SetResumeNozzleTemperature(static_cast<int16_t>(targ_temp));
+    // Loading drops the target to the new filament's default; restore the print temperature
+    // on resume. Snapshot what the branch above left in effect, not the pre-raise target.
+    settings.SetResumeNozzleTemperature(static_cast<int16_t>(std::max(disp_temp, targ_temp)));
 
     if (filament_type.has_value()) {
         config_store().set_filament_type(target_tool, filament_type.value());
