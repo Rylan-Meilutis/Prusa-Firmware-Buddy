@@ -1931,6 +1931,15 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
     thermalManager.set_print_fan_speed(original_print_fan_speed);
     active = false;
 
+    restore_temperature_and_unpark();
+
+    // Must run on every path out of the above: this is the only place the load/unload
+    // mode is ever cleared, and a mode left set makes prusa_toolchanger.loop() skip
+    // its "tool fell off" check for the rest of the boot.
+    pause.clr_mode();
+}
+
+void Pause::FSM_HolderLoadUnload::restore_temperature_and_unpark() {
     const float min_layer_h = 0.05f;
     // do not unpark and wait for temp if not homed or z park len is 0
     if (!axes_need_homing() && !isnan(pause.settings.resume_pos.z) && std::abs(current_position.z - pause.settings.resume_pos.z) >= min_layer_h && (marlin_client::is_printing() || marlin_client::is_paused())) {
@@ -1944,7 +1953,6 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
         }
         pause.unpark_nozzle_and_notify();
     }
-    pause.clr_mode();
 }
 
 bool Pause::FSM_HolderLoadUnload::active = false;

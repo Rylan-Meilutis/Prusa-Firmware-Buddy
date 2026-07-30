@@ -398,6 +398,12 @@ private:
         static bool active; // we currently support only 1 instance
         uint8_t original_print_fan_speed;
 
+        /// Bring the nozzle back to the print temperature and return the head to the
+        /// print position. Gives up quietly if the heatup is interrupted, which is why
+        /// it is a function and not inlined into the destructor: the destructor must
+        /// clear the load/unload mode even then.
+        void restore_temperature_and_unpark();
+
     public:
         FSM_HolderLoadUnload(Pause &p);
         ~FSM_HolderLoadUnload();
