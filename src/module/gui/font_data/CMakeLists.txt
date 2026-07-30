@@ -9,8 +9,7 @@ target_include_directories(font_data PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_command(
   OUTPUT "${FONTS_GEN}"
   COMMAND "${Python3_EXECUTABLE}" "${FONT_PY}" --po-dir "${PROJECT_ROOT_DIR}/src/lang/po" --png-dir
-          "${PROJECT_ROOT_DIR}/src/gui/res/fnt_src" --output "${FONTS_GEN}" --depfile
-          "${FONTS_GEN}.d"
+          "${CMAKE_CURRENT_SOURCE_DIR}/png" --output "${FONTS_GEN}" --depfile "${FONTS_GEN}.d"
   DEPENDS "${FONT_PY}"
   DEPFILE "${FONTS_GEN}.d"
   VERBATIM
