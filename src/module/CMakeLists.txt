@@ -24,6 +24,7 @@ add_subdirectory(otp)
 add_subdirectory(tpis)
 add_subdirectory(peripheries)
 add_subdirectory(coroutines)
+add_subdirectory(gui)
 
 if(RTT_METRICS_ENABLED)
   add_subdirectory(rtt_metrics)

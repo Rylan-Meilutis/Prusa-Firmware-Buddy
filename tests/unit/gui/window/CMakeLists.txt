@@ -77,9 +77,19 @@ target_include_directories(
          ${CMAKE_SOURCE_DIR}/src/lang
   )
 
-target_link_libraries(window_tests SG14 freertos-mock logging-mock random random_sw)
+target_link_libraries(
+  window_tests
+  SG14
+  freertos-mock
+  logging-mock
+  random
+  random_sw
+  font_data
+  )
 
+# No font_data: the tests lay their fonts out themselves, see tests_layout.cpp
 target_link_libraries(layout_tests SG14 freertos-mock logging-mock random random_sw)
+target_include_directories(layout_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/module/gui/font_data/include)
 
 # tell build system about the test case
 add_catch_test(window_tests)

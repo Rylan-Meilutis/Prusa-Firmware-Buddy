@@ -1,6 +1,7 @@
 #include "display_helper.h"
 #include "display.hpp"
 #include <cmath>
+#include <font_data/font_data.hpp>
 #include <guiconfig/guiconfig.h>
 #include <img_resources.hpp>
 #include "display_math_helper.h"
@@ -249,16 +250,13 @@ void draw_char(point_ui16_t pt, unichar c, const font_t *pf, Color clr_bg, Color
 void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, const font_t *pf, Color clr_bg, Color clr_fg) {
     [[maybe_unused]] StoreCharInBufferMeasure measure { pf };
 
-    uint32_t chr = get_char_position_in_font(c, pf);
-
     const uint16_t char_w = pf->w; // char width
     const uint16_t char_h = pf->h; // char height
-    const uint16_t bpc = (char_w * char_h + 1) >> 1; // bytes per char
     const uint8_t pms = 15; // pixel mask, cannot be bigger than array to store alpha channel combinations
 
     DispBuffer buff(pms, clr_bg, clr_fg);
 
-    uint8_t *pch = (uint8_t *)(pf->pcs) + (chr * bpc); // font data pointer
+    const uint8_t *pch = pf->character_bitmap(c); // font data pointer
     bool load = true; // load next byte from font data?
     uint8_t crd = 0; // current byte of font data
 

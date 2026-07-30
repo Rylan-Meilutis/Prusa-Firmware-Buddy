@@ -3,7 +3,7 @@
 #
 
 # Common dependencies
-link_libraries(SG14 buddy_utils)
+link_libraries(SG14 buddy_utils font_data)
 
 # Extract texts from error yaml
 file(GLOB ERROR_TEXT_EXTRACTOR ${PROJECT_ROOT_DIR}/utils/extract_error_texts.py)
@@ -71,7 +71,6 @@ target_include_directories(
           ${CMAKE_SOURCE_DIR}/src/common
           ${CMAKE_SOURCE_DIR}/src/common/utils
           ${CMAKE_SOURCE_DIR}/src/lang
-          ${CMAKE_BINARY_DIR}/src/lang
           ${CMAKE_SOURCE_DIR}/src/gui
           ${CMAKE_SOURCE_DIR}/src/gui/dialogs
           ${CMAKE_SOURCE_DIR}/src/guiapi/include
@@ -113,7 +112,6 @@ target_include_directories(
           ${CMAKE_SOURCE_DIR}/src/common
           ${CMAKE_SOURCE_DIR}/src/common/utils
           ${CMAKE_SOURCE_DIR}/src/lang
-          ${CMAKE_BINARY_DIR}/src/lang
           ${CMAKE_SOURCE_DIR}/src/gui
           ${CMAKE_SOURCE_DIR}/src/gui/dialogs
           ${CMAKE_SOURCE_DIR}/src/guiapi/include

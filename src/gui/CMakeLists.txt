@@ -1,4 +1,6 @@
 target_include_directories(firmware PRIVATE .)
+target_link_libraries(firmware PRIVATE font_data)
+
 if(HAS_SELFTEST)
   add_subdirectory(include_${PRINTER})
 endif()
