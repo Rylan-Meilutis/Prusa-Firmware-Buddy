@@ -14,7 +14,18 @@ namespace screen_print_preview {
 
 class WindowMenuCompatibilityChecks final : public WindowMenuVirtual {
 public:
-    WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect, PhasesPrintPreview phase);
+    WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect);
+
+    struct GCodeMode {};
+    struct FilamentMode {
+        FilamentType filament;
+        VirtualToolIndex tool;
+        bool assume_filament_already_inserted : 1;
+    };
+
+    using Mode = std::variant<GCodeMode, FilamentMode>;
+
+    void setup(Mode mode);
 
 public:
     int item_count() const final;
@@ -23,8 +34,6 @@ protected:
     void setup_item(ItemVariant &variant, int index) final;
 
 private:
-    const PhasesPrintPreview phase_;
-
     using CheckMetadata = buddy::gcode_compatibility::CheckMetadata;
 
     // Note: this frame only shows tool-specific incompabilities for single-tool printers
@@ -36,13 +45,26 @@ private:
 class FrameCompatibilityChecks {
 
 public:
-    FrameCompatibilityChecks(window_frame_t *parent, PhasesPrintPreview phase);
+    using GCodeMode = WindowMenuCompatibilityChecks::GCodeMode;
+    using FilamentMode = WindowMenuCompatibilityChecks::FilamentMode;
+    using Mode = WindowMenuCompatibilityChecks::Mode;
+
+    FrameCompatibilityChecks(window_frame_t *parent, FSMAndPhase phase);
+
+    FrameCompatibilityChecks(window_frame_t *parent, FSMAndPhase phase, Mode mode)
+        : FrameCompatibilityChecks(parent, phase) {
+        setup(mode);
+    }
+
+    void setup(Mode mode);
 
 private:
     window_text_t title_;
     BasicWindow title_line_;
     WindowExtendedMenu<WindowMenuCompatibilityChecks> menu_;
     RadioButtonFSM radio_;
+
+    const FSMAndPhase phase_;
 };
 
 } // namespace screen_print_preview

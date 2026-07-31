@@ -2,6 +2,7 @@
 
 #include <window_menu_callback_item.hpp>
 #include <feature/compatibility_checks/gcode_compatibility.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 #include <tools_mapping.hpp>
 #include <client_response_texts.hpp>
 #include <marlin_client.hpp>
@@ -13,27 +14,48 @@ using namespace buddy;
 
 namespace screen_print_preview {
 
-WindowMenuCompatibilityChecks::WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect, PhasesPrintPreview phase)
-    : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no)
-    , phase_(phase) {
+WindowMenuCompatibilityChecks::WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect)
+    : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {
+}
 
-    gcode_compatibility::CompatibilityReport report;
-    if (tools_mapping::is_tool_mapping_possible()) {
-        // Only report non-tool related problems
-        // Tool checks will be handled on the tool mapping screen
-        report.generate_without_toolmapping();
+void WindowMenuCompatibilityChecks::setup(Mode mode) {
+    failed_checks_.clear();
 
-    } else {
-        // There will be no separate tooomapping screen,
-        // so show all problems, with the naive 1:1 toolmapping
-        report.generate_full({});
-    }
+    const auto add_items_from_report = [&](const auto &report, auto... visitor_args) {
+        report.visit_failed_checks([this](const auto &fail) {
+            failed_checks_.push_back(fail.meta);
+            return failed_checks_.size() != failed_checks_.max_size();
+        },
+            visitor_args...);
+    };
 
-    report.visit_failed_checks([this](const auto &fail) {
-        failed_checks_.push_back(fail.meta);
-        return failed_checks_.size() != failed_checks_.max_size();
-    },
-        gcode_compatibility::CompatibilityReport::AggregateTools::yes);
+    match(
+        mode, //
+        [&](GCodeMode) {
+            gcode_compatibility::CompatibilityReport report;
+            if (tools_mapping::is_tool_mapping_possible()) {
+                // Only report non-tool related problems
+                // Tool checks will be handled on the tool mapping screen
+                report.generate_without_toolmapping();
+
+            } else {
+                // There will be no separate tooomapping screen,
+                // so show all problems, with the naive 1:1 toolmapping
+                report.generate_full({});
+            }
+
+            add_items_from_report(report, gcode_compatibility::CompatibilityReport::AggregateTools::yes); //
+        },
+        [&](FilamentMode m) {
+            filament_compatibility::CompatibilityReport report;
+            report.generate_noclear({
+                .filament = m.filament.parameters(),
+                .tools = m.tool,
+                .assume_filament_already_inserted = m.assume_filament_already_inserted,
+            });
+
+            add_items_from_report(report); //
+        });
 
     setup_items();
 }
@@ -66,14 +88,14 @@ void screen_print_preview::WindowMenuCompatibilityChecks::setup_item(ItemVariant
     }
 }
 
-FrameCompatibilityChecks::FrameCompatibilityChecks(window_frame_t *parent, PhasesPrintPreview phase)
+FrameCompatibilityChecks::FrameCompatibilityChecks(window_frame_t *parent, FSMAndPhase phase)
     : title_(parent, Rect16 {}, is_multiline::yes)
     , title_line_(parent, {})
-    , menu_(parent, Rect16 {}, phase)
-    , radio_(parent, Rect16 {}, phase) {
+    , menu_(parent, Rect16 {})
+    , radio_(parent, Rect16 {}, phase)
+    , phase_(phase) {
 
     title_.SetAlignment(Align_t::LeftBottom());
-    title_.SetText(_("G-Code incompatibilities detected"));
 #if HAS_MINI_DISPLAY()
     title_.set_font(Font::small);
 #endif
@@ -121,6 +143,16 @@ FrameCompatibilityChecks::FrameCompatibilityChecks(window_frame_t *parent, Phase
     // parent->CaptureNormalWindow(nullptr);
     // But we gotta set focus to the radio
     radio_.SetFocus();
+}
+
+void FrameCompatibilityChecks::setup(Mode mode) {
+    match(
+        mode, //
+        [this](GCodeMode) { title_.SetText(_("G-Code incompatibilities detected")); }, //
+        [this](FilamentMode) { title_.SetText(_("Filament incompatibility detected")); } //
+    );
+
+    menu_.menu.setup(mode);
 }
 
 } // namespace screen_print_preview
