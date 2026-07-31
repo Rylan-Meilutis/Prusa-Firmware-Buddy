@@ -2035,3 +2035,14 @@ Errors:
     type: "CONNECT"
     gui_layout: "warning_dialog"
     approved: true
+
+  # - code: "XX853" REMOVED
+
+  - code: "XX854"
+    printers: [iX, MK4, COREONE, COREONE_INDX, COREONEL, COREONEL_INDX, MK3.5, MINI, XL]
+    title: "Incompatible filament"
+    text: "The filament is not compatible with the current printer hardware setup."
+    id: "FILAMENT_INCOMPATIBLE"
+    type: "CONNECT"
+    gui_layout: "warning_dialog"
+    approved: true

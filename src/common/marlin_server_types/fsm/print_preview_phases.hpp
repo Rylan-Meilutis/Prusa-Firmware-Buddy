@@ -15,6 +15,8 @@ enum class PhasesPrintPreview : PhaseUnderlyingType {
     new_firmware_available,
     gcode_incompatible_warning,
     gcode_incompatible_fatal,
+    filament_incompatible_warning,
+    filament_incompatible_fatal,
     filament_not_inserted,
 #if HAS_MMU2()
     mmu_filament_inserted,
@@ -57,13 +59,10 @@ inline constexpr EnumArray<PhasesPrintPreview, PhaseResponses, CountPhases<Phase
         { PhasesPrintPreview::new_firmware_available, {
                                                           Response::Continue,
                                                       } },
-        { PhasesPrintPreview::gcode_incompatible_warning, {
-                                                              Response::Abort,
-                                                              Response::Print,
-                                                          } },
-        { PhasesPrintPreview::gcode_incompatible_fatal, {
-                                                            Response::Abort,
-                                                        } },
+        { PhasesPrintPreview::gcode_incompatible_warning, { Response::Abort, Response::Print } }, //
+        { PhasesPrintPreview::gcode_incompatible_fatal, { Response::Abort } }, //
+        { PhasesPrintPreview::filament_incompatible_warning, { Response::Abort, Response::Ignore } }, //
+        { PhasesPrintPreview::filament_incompatible_fatal, { Response::Abort } }, //
         { PhasesPrintPreview::filament_not_inserted, {
                                                          Response::Yes,
                                                          Response::No,
@@ -104,3 +103,13 @@ inline constexpr EnumArray<PhasesPrintPreview, PhaseResponses, CountPhases<Phase
 };
 
 } // namespace ClientResponses
+
+namespace fsm_print_preview {
+
+struct FilamentIncompatibleData {
+    uint8_t encoded_filament;
+    uint8_t target_virtual_tool;
+    bool assume_filament_already_inserted : 1;
+};
+
+} // namespace fsm_print_preview

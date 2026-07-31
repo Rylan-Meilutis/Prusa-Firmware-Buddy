@@ -51,12 +51,9 @@ public:
 
     FrameCompatibilityChecks(window_frame_t *parent, FSMAndPhase phase);
 
-    FrameCompatibilityChecks(window_frame_t *parent, FSMAndPhase phase, Mode mode)
-        : FrameCompatibilityChecks(parent, phase) {
-        setup(mode);
-    }
-
     void setup(Mode mode);
+
+    void update(const fsm::PhaseData &data);
 
 private:
     window_text_t title_;

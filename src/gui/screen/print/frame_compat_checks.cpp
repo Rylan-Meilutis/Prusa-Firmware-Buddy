@@ -155,4 +155,29 @@ void FrameCompatibilityChecks::setup(Mode mode) {
     menu_.menu.setup(mode);
 }
 
+void FrameCompatibilityChecks::update(const fsm::PhaseData &data) {
+    debug_assert(phase_.fsm == ClientFSM::PrintPreview);
+    switch (static_cast<PhasesPrintPreview>(phase_.phase)) {
+
+    case PhasesPrintPreview::filament_incompatible_fatal:
+    case PhasesPrintPreview::filament_incompatible_warning: {
+        const auto d = fsm::deserialize_data<fsm_print_preview::FilamentIncompatibleData>(data);
+        setup(FilamentMode {
+            .filament = EncodedFilamentType::from_data(d.encoded_filament).decode(),
+            .tool = VirtualToolIndex::from_raw(d.target_virtual_tool),
+            .assume_filament_already_inserted = d.assume_filament_already_inserted,
+        });
+        break;
+    }
+
+    case PhasesPrintPreview::gcode_incompatible_fatal:
+    case PhasesPrintPreview::gcode_incompatible_warning:
+        setup(GCodeMode {});
+        break;
+
+    default:
+        bsod_unreachable();
+    }
+}
+
 } // namespace screen_print_preview
