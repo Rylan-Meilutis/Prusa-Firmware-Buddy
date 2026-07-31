@@ -5,6 +5,7 @@
 #include <printers.h>
 #include <i18n.h>
 #include <option/has_print_fan_type.h>
+#include <tool_index.hpp>
 
 static_assert(HAS_PRINT_FAN_TYPE());
 
@@ -37,6 +38,6 @@ static constexpr std::array print_fan_type_list {
     #error
 #endif
 
-PrintFanType get_print_fan_type(size_t extruder_nr);
-void set_print_fan_type(size_t extruder_nr, PrintFanType pft);
+PrintFanType get_print_fan_type(PhysicalToolIndex tool);
+void set_print_fan_type(PhysicalToolIndex tool, PrintFanType pft);
 uint16_t print_fan_remap_pwm(PrintFanType pft, uint16_t original_pwm);

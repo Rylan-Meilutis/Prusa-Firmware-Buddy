@@ -36,7 +36,7 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
         const auto fan_type = (new_model == PrinterModel::xls) ? PrintFanType::LDO_D5015G08B05X71 : PrintFanType::DELTA_BFB0505HHA_CWCD;
         auto transaction = store.get_backend().transaction_guard();
         for (auto tool : PhysicalToolIndex::all()) {
-            set_print_fan_type(tool.to_raw(), fan_type);
+            set_print_fan_type(tool, fan_type);
         }
     }
     #endif

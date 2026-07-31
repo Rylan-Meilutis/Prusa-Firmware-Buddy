@@ -130,11 +130,11 @@ MI_PRINT_FAN_TYPE::MI_PRINT_FAN_TYPE(Toolhead toolhead)
 }
 
 PrintFanType MI_PRINT_FAN_TYPE::read_value_impl(PhysicalToolIndex ix) {
-    return get_print_fan_type(ix.to_raw());
+    return get_print_fan_type(ix);
 }
 
 void MI_PRINT_FAN_TYPE::store_value_impl(PhysicalToolIndex ix, PrintFanType set) {
-    set_print_fan_type(ix.to_raw(), set);
+    set_print_fan_type(ix, set);
 }
 
 string_view_utf8 MI_PRINT_FAN_TYPE::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {

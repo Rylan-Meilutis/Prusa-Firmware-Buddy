@@ -4,12 +4,12 @@
 #include <algorithm_scale.hpp>
 #include <bsod/bsod.h>
 
-PrintFanType get_print_fan_type(size_t extruder_nr) {
-    return config_store().print_fan_type.get(extruder_nr);
+PrintFanType get_print_fan_type(PhysicalToolIndex tool) {
+    return config_store().print_fan_type.get(tool.to_raw());
 }
 
-void set_print_fan_type(size_t extruder_nr, PrintFanType pft) {
-    return config_store().print_fan_type.set(extruder_nr, pft);
+void set_print_fan_type(PhysicalToolIndex tool, PrintFanType pft) {
+    return config_store().print_fan_type.set(tool.to_raw(), pft);
 }
 
 #if PRINTER_IS_PRUSA_XL()
