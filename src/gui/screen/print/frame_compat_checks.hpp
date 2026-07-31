@@ -12,9 +12,9 @@
 
 namespace screen_print_preview {
 
-class WindowMenuGCodeIncompatible final : public WindowMenuVirtual {
+class WindowMenuCompatibilityChecks final : public WindowMenuVirtual {
 public:
-    WindowMenuGCodeIncompatible(window_t *parent, Rect16 rect, PhasesPrintPreview phase);
+    WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect, PhasesPrintPreview phase);
 
 public:
     int item_count() const final;
@@ -33,15 +33,15 @@ private:
     stdext::inplace_vector<const CheckMetadata *, 16> failed_checks_;
 };
 
-class FrameGCodeIncompatible {
+class FrameCompatibilityChecks {
 
 public:
-    FrameGCodeIncompatible(window_frame_t *parent, PhasesPrintPreview phase);
+    FrameCompatibilityChecks(window_frame_t *parent, PhasesPrintPreview phase);
 
 private:
     window_text_t title_;
     BasicWindow title_line_;
-    WindowExtendedMenu<WindowMenuGCodeIncompatible> menu_;
+    WindowExtendedMenu<WindowMenuCompatibilityChecks> menu_;
     RadioButtonFSM radio_;
 };
 

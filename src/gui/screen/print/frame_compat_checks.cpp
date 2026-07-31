@@ -1,4 +1,4 @@
-#include "frame_gcode_incompatible.hpp"
+#include "frame_compat_checks.hpp"
 
 #include <window_menu_callback_item.hpp>
 #include <feature/compatibility_checks/gcode_compatibility.hpp>
@@ -13,7 +13,7 @@ using namespace buddy;
 
 namespace screen_print_preview {
 
-WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect16 rect, PhasesPrintPreview phase)
+WindowMenuCompatibilityChecks::WindowMenuCompatibilityChecks(window_t *parent, Rect16 rect, PhasesPrintPreview phase)
     : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no)
     , phase_(phase) {
 
@@ -38,11 +38,11 @@ WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect1
     setup_items();
 }
 
-int screen_print_preview::WindowMenuGCodeIncompatible::item_count() const {
+int screen_print_preview::WindowMenuCompatibilityChecks::item_count() const {
     return failed_checks_.size();
 }
 
-void screen_print_preview::WindowMenuGCodeIncompatible::setup_item(ItemVariant &variant, int index) {
+void screen_print_preview::WindowMenuCompatibilityChecks::setup_item(ItemVariant &variant, int index) {
     const auto &meta = *failed_checks_[index];
     const auto compatibility_level = meta.evaluate_compatibility();
 
@@ -66,7 +66,7 @@ void screen_print_preview::WindowMenuGCodeIncompatible::setup_item(ItemVariant &
     }
 }
 
-FrameGCodeIncompatible::FrameGCodeIncompatible(window_frame_t *parent, PhasesPrintPreview phase)
+FrameCompatibilityChecks::FrameCompatibilityChecks(window_frame_t *parent, PhasesPrintPreview phase)
     : title_(parent, Rect16 {}, is_multiline::yes)
     , title_line_(parent, {})
     , menu_(parent, Rect16 {}, phase)
