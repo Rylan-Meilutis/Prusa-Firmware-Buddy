@@ -32,7 +32,7 @@ namespace {
             .unfocused = COLOR_ORANGE,
         },
     };
-    constexpr IWindowMenuItem::ColorScheme menu_item_scheme_needs_fatal_incompatibility {
+    constexpr IWindowMenuItemColorScheme menu_item_scheme_fatal_incompatibility {
         .text {
             .focused = COLOR_RED,
             .unfocused = COLOR_RED,
@@ -43,15 +43,16 @@ namespace {
 
 constinit const EnumArray<CompatibilityLevel, const img::Resource *, std::to_underlying(CompatibilityLevel::_last) + 1> compatibility_level_icons {
     { CompatibilityLevel::fully_compatible, nullptr },
+    { CompatibilityLevel::compatible_with_reminder, &img::info_16x16 },
     { CompatibilityLevel::needs_user_approval, &img::warning_16x16 },
     { CompatibilityLevel::fatal_incompatibility, &img::nok_color_16x16 },
 };
 
-// !!! ITEMS MUST NEVER BE NULL
 constinit const EnumArray<CompatibilityLevel, const IWindowMenuItem::ColorScheme *, std::to_underlying(CompatibilityLevel::_last) + 1> compatibility_level_menu_item_color_schemes {
     { CompatibilityLevel::fully_compatible, &IWindowMenuItem::color_scheme_default },
+    { CompatibilityLevel::compatible_with_reminder, &IWindowMenuItem::color_scheme_default },
     { CompatibilityLevel::needs_user_approval, &menu_item_scheme_needs_user_approval },
-    { CompatibilityLevel::fatal_incompatibility, &menu_item_scheme_needs_fatal_incompatibility },
+    { CompatibilityLevel::fatal_incompatibility, &menu_item_scheme_fatal_incompatibility },
 };
 
 CompatibilityLevel CheckMetadata::evaluate_compatibility() const {
@@ -79,6 +80,9 @@ void gui_incompatibility_error(const CheckMetadata &check, Response abort_respon
 
     case CompatibilityLevel::needs_user_approval:
         return MsgBoxWarning(_(check.description), { abort_response, Response::Ignore }) == Response::Ignore;
+
+    case CompatibilityLevel::compatible_with_reminder:
+        return MsgBoxInfo(_(check.description), { abort_response, Response::Ok }) == Response::Ok;
     }
     bsod_unreachable();
 }

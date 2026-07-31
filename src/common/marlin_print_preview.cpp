@@ -861,6 +861,7 @@ IPrintPreview::State PrintPreview::stateFromPrinterCheck() {
         return stateFromFilamentPresence();
 #endif
 
+    case Compatibility::compatible_with_reminder:
     case Compatibility::needs_user_approval:
         return State::gcode_invalid_wait_user;
 

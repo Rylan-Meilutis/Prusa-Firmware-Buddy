@@ -22,6 +22,9 @@ enum class CompatibilityLevel : uint8_t {
     /// Everything is compatible
     fully_compatible = 0,
 
+    /// Compatible, just pop up a reminder about something
+    compatible_with_reminder,
+
     /// Not fully compatible, continue only with user approval
     needs_user_approval,
 
@@ -132,33 +135,14 @@ struct CompatibilityReportBase {
         // If there is any error, show it first and don't bother with warnings
         const auto highest_severity_failed_check = this->highest_severity_failed_check();
         if (auto &check = highest_severity_failed_check; check.has_value() && check->meta->evaluate_compatibility() >= CompatibilityLevel::fatal_incompatibility) {
-            (void)gui_confirm_incompatibility_ext(*check, abort_response);
+            gui_incompatibility_error(*check->meta, abort_response);
             return false;
         }
 
-        return static_cast<const Report *>(this)->visit_failed_checks([&](const typename Report::FailedCheck &check) -> bool {
-            return gui_confirm_incompatibility_ext(check, abort_response);
+        return static_cast<const Report *>(this)->visit_failed_checks([this, abort_response](const typename Report::FailedCheck &check) -> bool {
+            return static_cast<const Report *>(this)->gui_confirm_incompatibility(check, abort_response);
         },
             visitor_args...);
-    }
-
-private:
-    [[nodiscard]] bool gui_confirm_incompatibility_ext(const auto &check, Response abort_response) const {
-        switch (check.meta->evaluate_compatibility()) {
-
-        case CompatibilityLevel::fully_compatible:
-            // Don't even bother showing ignore level severities
-            return true;
-
-        case CompatibilityLevel::fatal_incompatibility:
-            gui_incompatibility_error(*check.meta, abort_response);
-            return false;
-
-        case CompatibilityLevel::needs_user_approval:
-            return static_cast<const Report *>(this)->gui_confirm_incompatibility(check, abort_response);
-        }
-
-        bsod_unreachable();
     }
 };
 
