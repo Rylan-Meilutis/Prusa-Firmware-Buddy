@@ -69,8 +69,12 @@
 #include <pwm_utils.hpp>
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
 #include <feature/bed_fan/selftest_result.hpp>
-#include <print_fan_type.hpp>
 #include <tool_index.hpp>
+
+#include <option/has_print_fan_type.h>
+#if HAS_PRINT_FAN_TYPE()
+    #include <print_fan_type.hpp>
+#endif
 
 #if HAS_SHEET_PROFILES()
     #include <common/sheet.hpp>
@@ -940,7 +944,7 @@ struct CurrentStore
 #endif
 
 #if HAS_PRINT_FAN_TYPE()
-    StoreItemArray<PrintFanType, PrintFanType::default_value, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 16, HOTENDS> print_fan_type;
+    StoreItemArray<PrintFanType, default_print_fan_type, ItemFlag::hw_config, journal::hash("Print Fan Type Per Tool"), 16, HOTENDS> print_fan_type;
 #endif
 
 #if HAS_AUTO_RETRACT()
