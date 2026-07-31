@@ -131,15 +131,6 @@ public:
         skip_if_able = set;
     }
 
-    /**
-     * @brief Checks whether given physical extruder needs to have a filament loaded -> if it's used in a print and not loaded, then it needs to load. nt. Parametrized with getter to be callable without global tool_mapper/spool_join being in a valid state
-     *
-     * @param physical_extruder extruder to be checked
-     * @param no_gcode_value Return value of gcode_extruder_getter if physical_extruder doesn't print anything
-     * @param gcode_extruder_getter Call to get assigned gcode extruder to physical_extruder
-     */
-    static bool check_extruder_need_filament_load(uint8_t physical_extruder, uint8_t no_gcode_value, stdext::inplace_function<uint8_t(uint8_t)> gcode_extruder_getter);
-
 private:
     uint32_t last_run = 0;
     uint32_t last_still_valid_check_ms = 0;
