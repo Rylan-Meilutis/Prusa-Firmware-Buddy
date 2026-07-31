@@ -1928,10 +1928,12 @@ Pause::FSM_HolderLoadUnload::FSM_HolderLoadUnload(Pause &p)
 }
 
 Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
-    thermalManager.set_print_fan_speed(original_print_fan_speed);
     active = false;
 
     restore_temperature_and_unpark();
+
+    // Only now, so the heatup above does not have to fight the part cooling
+    thermalManager.set_print_fan_speed(original_print_fan_speed);
 
     // Must run on every path out of the above: this is the only place the load/unload
     // mode is ever cleared, and a mode left set makes prusa_toolchanger.loop() skip
