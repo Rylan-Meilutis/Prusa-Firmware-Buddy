@@ -36,7 +36,7 @@ constexpr FanRPMRange print_fan_range_xl = { .rpm_min = 5300, .rpm_max = 7000 };
 /// but when loaded it is higher, empirically measured value: 8000 RPM +/- 15%
 constexpr FanRPMRange print_fan_range_xls = { .rpm_min = 6800, .rpm_max = 9200 };
 constexpr FanRPMRange print_low_fan_range = benevolent_fan_range;
-constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6500, .rpm_max = 8700 };
+constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6500, .rpm_max = 9800 };
 #elif PRINTER_IS_PRUSA_MK4()
 // Datasheet values for MK4S (5700+-10%) & MK4 (5900+-10%)
 // range needs to be relaxed due to difference in atmospheric pressure and altitude during selftest
