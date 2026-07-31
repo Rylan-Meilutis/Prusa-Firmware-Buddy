@@ -103,7 +103,8 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
         auto &menu = static_cast<MenuMultiFilamentChange &>(args.menu);
         auto new_config = menu.configuration();
 
-        if (!gui_config_confirm_incompatibilities(new_config_item, AllTools {}, Response::Cancel)) {
+        // Skip reminders here, show them only on the final screen confirmation
+        if (!gui_config_confirm_incompatibilities(new_config_item, AllTools {}, Response::Cancel, buddy::compatibility_checks::CompatibilityLevel::compatible_with_reminder)) {
             return false;
         }
 
@@ -119,7 +120,8 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
         menu.set_configuration(new_config);
 
     } else {
-        if (!gui_config_confirm_incompatibilities(new_config_item, std::get<VirtualToolIndex>(tool_filter_), Response::Cancel)) {
+        // Skip reminders here, show them only on the final screen confirmation
+        if (!gui_config_confirm_incompatibilities(new_config_item, std::get<VirtualToolIndex>(tool_filter_), Response::Cancel, buddy::compatibility_checks::CompatibilityLevel::compatible_with_reminder)) {
             return false;
         }
 

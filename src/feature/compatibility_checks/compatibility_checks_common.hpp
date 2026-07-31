@@ -130,8 +130,9 @@ struct CompatibilityReportBase {
     /// The user needs to confirm ignoring all of the warnings.
     /// Some warning ignores MAY change printer state (for example filament not present -> disable fs)
     /// @returns true if the user confirmed to skip all warnings
+    /// @param skip_level Skips incompatibilities with the provided compatibility level and better
     /// !!! TO BE EXECUTED FROM THE GUI THREAD ONLY
-    [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort, auto... visitor_args) const {
+    [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort, CompatibilityLevel skip_level = CompatibilityLevel::fully_compatible, auto... visitor_args) const {
         // If there is any error, show it first and don't bother with warnings
         const auto highest_severity_failed_check = this->highest_severity_failed_check();
         if (auto &check = highest_severity_failed_check; check.has_value() && check->meta->evaluate_compatibility() >= CompatibilityLevel::fatal_incompatibility) {
@@ -139,7 +140,12 @@ struct CompatibilityReportBase {
             return false;
         }
 
-        return static_cast<const Report *>(this)->visit_failed_checks([this, abort_response](const typename Report::FailedCheck &check) -> bool {
+        return static_cast<const Report *>(this)->visit_failed_checks([this, abort_response, skip_level](const typename Report::FailedCheck &check) -> bool {
+            const auto compatibility = check.meta->evaluate_compatibility();
+            if (compatibility <= skip_level) {
+                return true;
+            }
+
             return static_cast<const Report *>(this)->gui_confirm_incompatibility(check, abort_response);
         },
             visitor_args...);

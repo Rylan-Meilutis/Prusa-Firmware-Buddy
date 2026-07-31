@@ -230,7 +230,7 @@ void execute(const Config &tool_config) {
     }
 }
 
-bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response) {
+bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) {
     switch (config.action) {
 
     case Action::keep:
@@ -249,16 +249,16 @@ bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant
         };
         buddy::filament_compatibility::CompatibilityReport report;
         report.generate_noclear(args);
-        return report.gui_confirm_all_incompatibilities(abort_response);
+        return report.gui_confirm_all_incompatibilities(abort_response, skip_level);
     }
     }
 
     bsod_unreachable();
 }
 
-bool gui_config_confirm_incompatibilities(const Config &config, Response abort_response) {
+bool gui_config_confirm_incompatibilities(const Config &config, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) {
     for (auto tool : VirtualToolIndex::all()) {
-        if (!gui_config_confirm_incompatibilities(config[tool], tool, abort_response)) {
+        if (!gui_config_confirm_incompatibilities(config[tool], tool, abort_response, skip_level)) {
             return false;
         }
     }
