@@ -13,20 +13,6 @@ using namespace buddy;
 
 namespace screen_print_preview {
 
-static constexpr IWindowMenuItem::ColorScheme fatal_check_color_scheme {
-    .text {
-        .focused = COLOR_RED,
-        .unfocused = COLOR_RED,
-    },
-};
-
-static constexpr IWindowMenuItem::ColorScheme failed_check_color_scheme {
-    .text {
-        .focused = COLOR_BRAND,
-        .unfocused = COLOR_BRAND,
-    },
-};
-
 WindowMenuGCodeIncompatible::WindowMenuGCodeIncompatible(window_t *parent, Rect16 rect, PhasesPrintPreview phase)
     : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no)
     , phase_(phase) {
@@ -58,7 +44,7 @@ int screen_print_preview::WindowMenuGCodeIncompatible::item_count() const {
 
 void screen_print_preview::WindowMenuGCodeIncompatible::setup_item(ItemVariant &variant, int index) {
     const auto &meta = *failed_checks_[index];
-    const HWCheckSeverity severity = meta.evaluate_severity();
+    const auto compatibility_level = meta.evaluate_compatibility();
 
     const auto cb = [&meta] {
         if (meta.description) {
@@ -67,12 +53,12 @@ void screen_print_preview::WindowMenuGCodeIncompatible::setup_item(ItemVariant &
     };
 
     auto &item = variant.emplace<WindowMenuCallbackItem>(_(meta.title), cb);
-    item.set_color_scheme(severity == HWCheckSeverity::Abort ? &fatal_check_color_scheme : &failed_check_color_scheme);
+    item.set_color_scheme(buddy::compatibility_checks::compatibility_level_menu_item_color_schemes[compatibility_level]);
 
 #if HAS_MINI_DISPLAY()
     item.setLabelFont(Font::small);
 #else
-    item.SetIconId(hw_check_severity_icons[severity]);
+    item.SetIconId(buddy::compatibility_checks::compatibility_level_icons[compatibility_level]);
 #endif
 
     if (meta.description) {

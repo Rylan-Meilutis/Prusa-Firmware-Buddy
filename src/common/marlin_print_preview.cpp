@@ -710,7 +710,7 @@ PrintPreview::Result PrintPreview::Loop() {
             compatibility.generate_toolmapping_only({});
 
             // we can skip tools mapping if there is not warning/error in global tools mapping
-            if ((skip_if_able >= marlin_server::PreviewSkipIfAble::tool_mapping) && compatibility.failure_severity() == HWCheckSeverity::Ignore) {
+            if ((skip_if_able >= marlin_server::PreviewSkipIfAble::tool_mapping) && compatibility.compatibility_level() == buddy::compatibility_checks::CompatibilityLevel::fully_compatible) {
                 ChangeState(State::done);
             } else {
                 ChangeState(State::tools_mapping_wait_user);
@@ -851,19 +851,20 @@ IPrintPreview::State PrintPreview::stateFromPrinterCheck() {
         vtd.reset(buddy::gcode_compatibility::VirtualToolCheck::filament_type);
     }
 
-    switch (report.failure_severity()) {
+    using Compatibility = buddy::compatibility_checks::CompatibilityLevel;
+    switch (report.compatibility_level()) {
 
-    case HWCheckSeverity::Ignore:
+    case Compatibility::fully_compatible:
 #if HAS_WASTEBIN_FILL_TRACKING()
         return stateFromWastebinCheck();
 #else
         return stateFromFilamentPresence();
 #endif
 
-    case HWCheckSeverity::Warning:
+    case Compatibility::needs_user_approval:
         return State::gcode_invalid_wait_user;
 
-    case HWCheckSeverity::Abort:
+    case Compatibility::fatal_incompatibility:
         return State::gcode_invalid_wait_user_abort;
     }
 

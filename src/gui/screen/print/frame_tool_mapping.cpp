@@ -337,7 +337,7 @@ void WindowRoutingBoard::unconditionalDraw() {
             return;
         }
 
-        const auto icon = hw_check_severity_icons[failed_check->meta->evaluate_severity()];
+        const auto icon = buddy::compatibility_checks::compatibility_level_icons[failed_check->meta->evaluate_compatibility()];
         if (!icon) {
             return;
         }
@@ -768,8 +768,8 @@ void FrameToolMapping::update_status_text(ShowGuide show_guide) {
     }
 
     if (auto failed_check = compat_report_.highest_severity_failed_check(); failed_check) {
-        const auto severity = failed_check->meta->evaluate_severity();
-        if (severity > HWCheckSeverity::Ignore) {
+        const auto compatibility = failed_check->meta->evaluate_compatibility();
+        if (compatibility != buddy::compatibility_checks::CompatibilityLevel::fully_compatible) {
             StringBuilder sb(status_text_);
             match(
                 failed_check->tool, //
@@ -785,7 +785,7 @@ void FrameToolMapping::update_status_text(ShowGuide show_guide) {
             // Force update even though the reader has the same ref
             bottom_status_.SetText({});
             bottom_status_.SetText(string_view_utf8::MakeRAM(sb.str()));
-            bottom_status_.SetTextColor(severity == HWCheckSeverity::Abort ? COLOR_RED : COLOR_ORANGE);
+            bottom_status_.SetTextColor(buddy::compatibility_checks::compatibility_level_menu_item_color_schemes[compatibility]->text.unfocused);
             return;
         }
     }

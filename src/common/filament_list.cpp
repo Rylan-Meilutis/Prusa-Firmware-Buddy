@@ -76,7 +76,7 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
             };
             buddy::filament_compatibility::CompatibilityReport report;
             report.generate_noclear(args);
-            if (report.failure_severity() >= HWCheckSeverity::Abort) {
+            if (report.compatibility_level() >= buddy::compatibility_checks::CompatibilityLevel::fatal_incompatibility) {
                 is_filament_visible_bitset.reset(ix);
             }
         }

@@ -123,9 +123,7 @@ MI_FILAMENT::MI_FILAMENT(FilamentType filament_type, PreheatToolIndex tool, Preh
         .assume_filament_already_inserted = preheat_mode_assume_filament_already_inserted(mode),
     };
     compat_report.generate_noclear(compat_args);
-    const bool compatible = compat_report.failure_severity() <= HWCheckSeverity::Ignore;
-
-    FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this, compatible);
+    FilamentTypeGUI::setup_menu_item(filament_type, filament_name, *this, compat_report.compatibility_level());
 
     ArrayStringBuilder<GetInfoLen()> sb;
     sb.append_printf("%3u/%-3u", filament_params.nozzle_temperature, filament_params.heatbed_temperature);

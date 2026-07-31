@@ -9,14 +9,38 @@
 #include <common/marlin_server_types/general_response.hpp>
 #include <bsod/bsod.h>
 
+struct IWindowMenuItemColorScheme;
+namespace img {
+struct Resource;
+}
+
 namespace buddy::compatibility_checks {
+
+/// !!! MUST NOT BE STORED IN EEPROM, ITEMS CAN CHANGE OR BE REORDERED
+/// Sorted from the least severe to the most severe
+enum class CompatibilityLevel : uint8_t {
+    /// Everything is compatible
+    fully_compatible = 0,
+
+    /// Not fully compatible, continue only with user approval
+    needs_user_approval,
+
+    /// Not compatible, cannot continue
+    fatal_incompatibility,
+
+    _last = fatal_incompatibility,
+};
+
+extern const EnumArray<CompatibilityLevel, const img::Resource *, std::to_underlying(CompatibilityLevel::_last) + 1> compatibility_level_icons;
+
+extern const EnumArray<CompatibilityLevel, const IWindowMenuItemColorScheme *, std::to_underlying(CompatibilityLevel::_last) + 1> compatibility_level_menu_item_color_schemes;
 
 struct CheckMetadata {
     /// Severity if the check fails
     /// Can either be a hardcoded severity or a HWCheckType with user-configurable severity
-    std::variant<HWCheckSeverity, HWCheckType> severity;
+    std::variant<HWCheckSeverity, HWCheckType, CompatibilityLevel> severity;
 
-    HWCheckSeverity evaluate_severity() const;
+    CompatibilityLevel evaluate_compatibility() const;
 
     /// Translatable error message, WITHOUT a trailing '.'
     const char *title;
@@ -65,7 +89,7 @@ struct CompatibilityReportBase {
     auto highest_severity_failed_check_filtered(auto check_filter_f) const {
         struct {
             std::optional<typename Report::FailedCheck> check;
-            HWCheckSeverity severity = HWCheckSeverity::Ignore;
+            CompatibilityLevel severity = CompatibilityLevel::fully_compatible;
         } result;
 
         static_cast<const Report *>(this)->visit_failed_checks([&](const Report::FailedCheck &check) {
@@ -73,7 +97,7 @@ struct CompatibilityReportBase {
                 return true;
             }
 
-            const auto severity = check.meta->evaluate_severity();
+            const auto severity = check.meta->evaluate_compatibility();
             if (!result.check.has_value() || result.severity < severity) {
                 result = { check, severity };
             }
@@ -89,13 +113,13 @@ struct CompatibilityReportBase {
     }
 
     /// Severity of the failures
-    HWCheckSeverity failure_severity() const {
+    CompatibilityLevel compatibility_level() const {
         const auto check = highest_severity_failed_check();
         if (!check) {
-            return HWCheckSeverity::Ignore;
+            return CompatibilityLevel::fully_compatible;
         }
 
-        return check->meta->evaluate_severity();
+        return check->meta->evaluate_compatibility();
     }
 
     /// If there is a failed check with abort severity, shows that one.
@@ -107,7 +131,7 @@ struct CompatibilityReportBase {
     [[nodiscard]] bool gui_confirm_all_incompatibilities(Response abort_response = Response::Abort, auto... visitor_args) const {
         // If there is any error, show it first and don't bother with warnings
         const auto highest_severity_failed_check = this->highest_severity_failed_check();
-        if (auto &check = highest_severity_failed_check; check.has_value() && check->meta->evaluate_severity() == HWCheckSeverity::Abort) {
+        if (auto &check = highest_severity_failed_check; check.has_value() && check->meta->evaluate_compatibility() >= CompatibilityLevel::fatal_incompatibility) {
             (void)gui_confirm_incompatibility_ext(*check, abort_response);
             return false;
         }
@@ -120,17 +144,17 @@ struct CompatibilityReportBase {
 
 private:
     [[nodiscard]] bool gui_confirm_incompatibility_ext(const auto &check, Response abort_response) const {
-        switch (check.meta->evaluate_severity()) {
+        switch (check.meta->evaluate_compatibility()) {
 
-        case HWCheckSeverity::Ignore:
+        case CompatibilityLevel::fully_compatible:
             // Don't even bother showing ignore level severities
             return true;
 
-        case HWCheckSeverity::Abort:
+        case CompatibilityLevel::fatal_incompatibility:
             gui_incompatibility_error(*check.meta, abort_response);
             return false;
 
-        case HWCheckSeverity::Warning:
+        case CompatibilityLevel::needs_user_approval:
             return static_cast<const Report *>(this)->gui_confirm_incompatibility(check, abort_response);
         }
 
