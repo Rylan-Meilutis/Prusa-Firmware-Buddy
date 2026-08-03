@@ -154,8 +154,8 @@ private:
         done };
 
     void enter_fans() {
-        config.print_fan_fnc(fan_tool(config).to_raw()).enter_selftest_mode();
-        config.heatbreak_fan_fnc(fan_tool(config).to_raw()).enter_selftest_mode();
+        config.print_fan_fnc(fan_tool(config)).enter_selftest_mode();
+        config.heatbreak_fan_fnc(fan_tool(config)).enter_selftest_mode();
         fans_taken = true;
     }
 
@@ -164,8 +164,8 @@ private:
             return;
         }
         fans_taken = false;
-        config.print_fan_fnc(fan_tool(config).to_raw()).exit_selftest_mode();
-        config.heatbreak_fan_fnc(fan_tool(config).to_raw()).exit_selftest_mode();
+        config.print_fan_fnc(fan_tool(config)).exit_selftest_mode();
+        config.heatbreak_fan_fnc(fan_tool(config)).exit_selftest_mode();
     }
 
     void step_setup() {
@@ -178,8 +178,8 @@ private:
         if (is_nozzle && cooldown) {
             // Take control of the fans and blow them at full to cool the hotend down first.
             enter_fans();
-            config.print_fan_fnc(fan_tool(config).to_raw()).selftest_set_pwm(255);
-            config.heatbreak_fan_fnc(fan_tool(config).to_raw()).selftest_set_pwm(255);
+            config.print_fan_fnc(fan_tool(config)).selftest_set_pwm(255);
+            config.heatbreak_fan_fnc(fan_tool(config)).selftest_set_pwm(255);
         }
         if (cooldown) {
             result.prep_state = SelftestSubtestState_t::running;

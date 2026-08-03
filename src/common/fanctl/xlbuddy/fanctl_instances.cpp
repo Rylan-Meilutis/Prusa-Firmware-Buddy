@@ -11,35 +11,25 @@
     #include <fanctl/CFanCtl3Wire.hpp>
 #endif
 
-CFanCtlCommon &Fans::print(size_t index) {
-    static std::array<CFanCtlPuppy, HOTENDS> instances = {
+CFanCtlCommon &Fans::print(PhysicalToolIndex tool) {
+    static std::array<CFanCtlPuppy, PhysicalToolIndex::count> instances = {
         CFanCtlPuppy(0, 0, false, FANCTLPRINT_RPM_MAX),
         CFanCtlPuppy(1, 0, false, FANCTLPRINT_RPM_MAX),
         CFanCtlPuppy(2, 0, false, FANCTLPRINT_RPM_MAX),
         CFanCtlPuppy(3, 0, false, FANCTLPRINT_RPM_MAX),
         CFanCtlPuppy(4, 0, false, FANCTLPRINT_RPM_MAX),
-        CFanCtlPuppy(5, 0, false, FANCTLPRINT_RPM_MAX),
     };
-
-    if (index > 5) {
-        bsod("Print fan %u does not exist", index);
-    }
-    return instances[index];
+    return instances[tool.to_raw()];
 }
-CFanCtlCommon &Fans::heat_break(size_t index) {
-    static std::array<CFanCtlPuppy, HOTENDS> instances = {
+CFanCtlCommon &Fans::heat_break(PhysicalToolIndex tool) {
+    static std::array<CFanCtlPuppy, PhysicalToolIndex::count> instances = {
         CFanCtlPuppy(0, 1, true, FANCTLHEATBREAK_RPM_MAX),
         CFanCtlPuppy(1, 1, true, FANCTLHEATBREAK_RPM_MAX),
         CFanCtlPuppy(2, 1, true, FANCTLHEATBREAK_RPM_MAX),
         CFanCtlPuppy(3, 1, true, FANCTLHEATBREAK_RPM_MAX),
         CFanCtlPuppy(4, 1, true, FANCTLHEATBREAK_RPM_MAX),
-        CFanCtlPuppy(5, 1, true, FANCTLHEATBREAK_RPM_MAX),
     };
-
-    if (index > 5) {
-        bsod("Heat break fan %u does not exist", index);
-    }
-    return instances[index];
+    return instances[tool.to_raw()];
 }
 
 CFanCtlCommon &Fans::enclosure() {

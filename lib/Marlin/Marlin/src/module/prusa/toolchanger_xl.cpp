@@ -330,7 +330,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     // Disable print fan on old dwarf, fan on new dwarf will be enabled by marlin
     // todo: remove this when multiple fans are implemented properly
     if (old_dwarf != nullptr) {
-        Fans::print(old_dwarf->dwarf_index()).set_pwm(0);
+        Fans::print(old_dwarf->tool_index()).set_pwm(0);
     }
 
     if (new_dwarf != old_dwarf) {

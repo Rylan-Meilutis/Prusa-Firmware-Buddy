@@ -13,19 +13,9 @@ class Fans {
     Fans(const Fans &) = default;
 
 public:
-    [[deprecated("Use the ToolIndex overload")]]
-    static CFanCtlCommon &print(size_t index);
+    static CFanCtlCommon &print(PhysicalToolIndex tool);
 
-    inline static CFanCtlCommon &print(PhysicalToolIndex tool) {
-        return print(tool.to_raw());
-    }
-
-    [[deprecated("Use the ToolIndex overload")]]
-    static CFanCtlCommon &heat_break(size_t index);
-
-    inline static CFanCtlCommon &heat_break(PhysicalToolIndex tool) {
-        return heat_break(tool.to_raw());
-    }
+    static CFanCtlCommon &heat_break(PhysicalToolIndex tool);
 
 #if XL_ENCLOSURE_SUPPORT() // XLBOARD has CFanCtlPuppy and additional enclosure fan, but DWARF has only normal CFanCtls
     static CFanCtlCommon &enclosure();

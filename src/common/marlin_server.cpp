@@ -3163,7 +3163,9 @@ static void _server_print_loop(void) {
             hotendFanErrorChecker[tool].checkTrue(Fans::heat_break(tool).is_fan_ok(), WarningType::HotendFanError, true, true);
         }
 #endif
-        printFanErrorChecker.checkTrue(Fans::print(active_extruder).is_fan_ok(), WarningType::PrintFanError, false, true);
+        if (auto tool = PhysicalToolIndex::currently_selected_opt()) {
+            printFanErrorChecker.checkTrue(Fans::print(*tool).is_fan_ok(), WarningType::PrintFanError, false, true);
+        }
 #if HAS_INDX()
         // The dock fan is auxiliary (cools the tool dock) and not present on
         // all dev units yet, so a fault must only warn — never pause the print.
@@ -3200,8 +3202,10 @@ static void _server_print_loop(void) {
             hotendFanErrorChecker[tool].reset();
         }
     }
-    if (Fans::print(active_extruder).get_rpm_is_ok()) {
-        printFanErrorChecker.reset();
+    if (auto tool = PhysicalToolIndex::currently_selected_opt()) {
+        if (Fans::print(*tool).get_rpm_is_ok()) {
+            printFanErrorChecker.reset();
+        }
     }
 #if HAS_INDX()
     if (Fans::dock_fan().get_rpm_is_ok()) {
@@ -3611,8 +3615,8 @@ static void _server_update_vars() {
     // update the RPMs of the print and heatbreak fan; A more conceptual
     // solution is needed.
     auto &no_tool_hotend = marlin_vars().hotend(NoTool());
-    no_tool_hotend.print_fan_rpm = Fans::print(PhysicalToolIndex::count).get_actual_rpm();
-    no_tool_hotend.heatbreak_fan_rpm = Fans::heat_break(PhysicalToolIndex::count).get_actual_rpm();
+    no_tool_hotend.print_fan_rpm = Fans::print(PhysicalToolIndex::from_raw(0)).get_actual_rpm();
+    no_tool_hotend.heatbreak_fan_rpm = Fans::heat_break(PhysicalToolIndex::from_raw(0)).get_actual_rpm();
 #endif
 
     for (auto tool : VirtualToolIndex::all()) {

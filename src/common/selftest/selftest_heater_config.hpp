@@ -30,7 +30,7 @@ enum class heater_type_t {
 // using 32bit variables, because it is stored in flash and access to 32bit variables is more efficient
 struct HeaterConfig_t {
     using type_evaluation = SelftestHeater_t;
-    using FanCtlFnc = CFanCtlCommon &(*)(size_t);
+    using FanCtlFnc = CFanCtlCommon &(*)(PhysicalToolIndex);
     static constexpr SelftestParts part_type = SelftestParts::Heaters;
     using temp_getter = Hotend::OptionalTemperature (*)();
     using temp_setter = void (*)(int);

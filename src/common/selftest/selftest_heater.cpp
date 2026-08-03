@@ -177,8 +177,8 @@ LoopResult CSelftestPart_Heater::stateSetup() {
 LoopResult CSelftestPart_Heater::stateTakeControlOverFans() {
     log_info(Selftest, "%s took control of fans", m_config.partname);
     const auto tool = get_picked_tool();
-    m_config.print_fan_fnc(tool.to_raw()).enter_selftest_mode();
-    m_config.heatbreak_fan_fnc(tool.to_raw()).enter_selftest_mode();
+    m_config.print_fan_fnc(tool).enter_selftest_mode();
+    m_config.heatbreak_fan_fnc(tool).enter_selftest_mode();
     return LoopResult::RunNext;
 }
 
@@ -186,8 +186,8 @@ LoopResult CSelftestPart_Heater::stateFansActivate() {
     const auto tool = get_picked_tool();
     if (enable_cooldown) {
         log_info(Selftest, "%s set fans to maximum", m_config.partname);
-        m_config.print_fan_fnc(tool.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
-        m_config.heatbreak_fan_fnc(tool.to_raw()).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.print_fan_fnc(tool).selftest_set_pwm(255); // it will be restored by exitSelftestMode
+        m_config.heatbreak_fan_fnc(tool).selftest_set_pwm(255); // it will be restored by exitSelftestMode
     }
     return LoopResult::RunNext;
 }
@@ -227,8 +227,8 @@ LoopResult CSelftestPart_Heater::stateCooldown() {
 
 LoopResult CSelftestPart_Heater::stateFansDeactivate() {
     const auto tool = get_picked_tool();
-    m_config.print_fan_fnc(tool.to_raw()).exit_selftest_mode();
-    m_config.heatbreak_fan_fnc(tool.to_raw()).exit_selftest_mode();
+    m_config.print_fan_fnc(tool).exit_selftest_mode();
+    m_config.heatbreak_fan_fnc(tool).exit_selftest_mode();
     log_info(Selftest, "%s returned control of fans", m_config.partname);
     return LoopResult::RunNext;
 }
