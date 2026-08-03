@@ -18,18 +18,23 @@ namespace nozzle_cleaner_lite {
 /// True when the running unit actually has a nozzle cleaner lite version enabled.
 bool is_available();
 
-/// What the clean is part of, which decides what happens to the nozzle
-/// temperature target afterwards
+/// What the clean is part of, which decides where the cleaning temperature
+/// comes from and what happens to the nozzle temperature target afterwards
 enum class CleanType : uint8_t {
-    /// A clean of its own (G12): the target from before cleaning is restored.
+    /// A clean of its own (G12): cleans at the loaded filament's preheat
+    /// temperature, which is warm enough to soften ooze without making it
+    /// flow, and the target from before cleaning is restored.
     standalone,
-    /// A clean before MBL, on the tool that probes afterwards: the touchpoint
-    /// cool-down target is kept, so probing runs as hot as possible without
-    /// oozing (nozzle thermal expansion).
+    /// A clean before MBL, on the tool that probes afterwards: cleans at the
+    /// temperature the preceding gcode set for probing (falling back to the
+    /// preheat temperature if it set none), and the touchpoint cool-down
+    /// target is kept, so probing runs as hot as possible without oozing
+    /// (nozzle thermal expansion).
     probing_tool,
-    /// A clean before MBL, on a used tool that parks instead of probing: the
-    /// touchpoint rest is skipped and the heater turned off, so the nozzle
-    /// cools naturally in the dock without anyone waiting for it.
+    /// A clean before MBL, on a used tool that parks instead of probing:
+    /// cleans at the same temperature as the probing tool, but the touchpoint
+    /// rest is skipped and the heater turned off, so the nozzle cools
+    /// naturally in the dock without anyone waiting for it.
     parked_tool,
 };
 
@@ -47,8 +52,5 @@ bool clean(CleanType clean_type);
 /// temperature targets are restored. Caller must check is_available() first.
 /// Only intended to run once, right before UBL's print-start probing.
 void clean_before_probing(Badge<unified_bed_leveling>);
-
-constexpr int16_t cleaning_temp_diff = 55; // The nozzle is heated to filament_temp - cleaning_temp_diff for cleaning
-constexpr int16_t fallback_cleaning_temperature = 180;
 
 } // namespace nozzle_cleaner_lite

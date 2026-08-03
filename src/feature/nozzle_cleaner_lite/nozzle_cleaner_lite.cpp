@@ -33,6 +33,7 @@
 #include <raii/scope_guard.hpp>
 #include <config_store/store_definition.hpp>
 #include <bsod/bsod.h>
+#include <filament.hpp>
 
 #include <array>
 #include <bitset>
@@ -105,6 +106,23 @@ namespace {
     // keeps it for the MBL that follows.
     constexpr int16_t cooldown_temp_diff = 20;
 
+    constexpr int16_t no_filament_cleaning_temperature = 170;
+
+    int16_t cleaning_temperature_for(PhysicalToolIndex tool, CleanType clean_type) {
+        // Both MBL clean types inherit the temperature the preceding gcode set
+        // for probing; a standalone clean must not inherit a printing one.
+        if (clean_type != CleanType::standalone) {
+            const int16_t gcode_target = Hotend::for_tool(tool).nozzle_target_temp();
+            // Too low a target means the gcode never set a probing temperature
+            if (gcode_target >= EXTRUDE_MINTEMP) {
+                return gcode_target;
+            }
+        }
+
+        const FilamentType filament = FilamentType::for_tool_heuristic(tool.currently_selected_virtual_tool());
+        return filament ? filament.parameters().nozzle_preheat_temperature : no_filament_cleaning_temperature;
+    }
+
     float probe_touchpoint_z() {
         // XL-only staleness guard removed; see the commented-out
         // contactless_offset.hpp include above for why and when to reverse.
@@ -154,8 +172,7 @@ bool clean(CleanType clean_type) {
         return false;
     }
 
-    const FilamentType filament = FilamentType::for_tool_heuristic(tool->currently_selected_virtual_tool());
-    const int16_t cleaning_temperature = filament ? filament.parameters().nozzle_temperature - cleaning_temp_diff : fallback_cleaning_temperature;
+    const int16_t cleaning_temperature = cleaning_temperature_for(*tool, clean_type);
 
     // Start heating used tool and restore target temp on exit
     const int16_t saved_nozzle_target = Hotend::for_tool(*tool).nozzle_target_temp();
@@ -278,8 +295,7 @@ static void clean_before_probing_toolchanger() {
         if (!used_physical_tools.test(tool.to_raw())) {
             continue;
         }
-        const FilamentType filament = FilamentType::for_tool_heuristic(tool.currently_selected_virtual_tool());
-        const int16_t cleaning_temperature = filament ? filament.parameters().nozzle_temperature - cleaning_temp_diff : fallback_cleaning_temperature;
+        const int16_t cleaning_temperature = cleaning_temperature_for(tool, tool == probing_tool ? CleanType::probing_tool : CleanType::parked_tool);
 
         saved_nozzle_targets[tool.to_raw()] = Hotend::for_tool(tool).nozzle_target_temp();
         Hotend::for_tool(tool).set_nozzle_target_temp(cleaning_temperature);
