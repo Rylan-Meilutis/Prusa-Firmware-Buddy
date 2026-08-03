@@ -91,6 +91,7 @@ namespace {
     constexpr float travel_clearance_mm = 10.0f;
 
     constexpr feedRate_t approach_feedrate = MMM_TO_MMS(1200);
+    constexpr feedRate_t leave_feedrate = MMM_TO_MMS(1200);
     constexpr feedRate_t dive_feedrate = MMM_TO_MMS(6000);
     constexpr feedRate_t rub_feedrate_fast = MMM_TO_MMS(8000);
     constexpr feedRate_t rub_feedrate_slow = MMM_TO_MMS(1500);
@@ -197,8 +198,8 @@ void clean() {
     }
 
     // Retreat back over the touchpoint
-    move_to_machine_pos_z(probed_z + travel_clearance_mm, rub_feedrate_fast);
-    move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, rub_feedrate_fast);
+    move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
+    move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, leave_feedrate);
     move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
 
     Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - 20);
@@ -208,7 +209,7 @@ void clean() {
     }
 
     // Retreat to safe travel Z position
-    move_to_machine_pos_z(probed_z + travel_clearance_mm, rub_feedrate_fast);
+    move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
 }
 
 #if HAS_TOOLCHANGER()
