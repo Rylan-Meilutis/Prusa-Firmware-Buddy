@@ -212,6 +212,16 @@ bool clean(CleanType clean_type) {
 
     move_to_machine_pos_z(probed_z + safe_above_surface_mm, approach_feedrate);
 
+    // Start the cool-down already: the nozzle then cools while it brushes,
+    // shortening the touchpoint wait. The part fan makes the drop fast enough
+    // to matter.
+    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - cooldown_temp_diff);
+    const uint8_t saved_fan_speed = thermalManager.get_print_fan_speed();
+    thermalManager.set_print_fan_speed(255);
+    ScopeGuard restore_fan_speed([&] {
+        thermalManager.set_print_fan_speed(saved_fan_speed);
+    });
+
     // Safely move from the touchpoint to the cleaner
     move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, approach_feedrate);
     move_to_machine_pos_z(probed_z + dive_below_surface_mm, dive_feedrate);
@@ -243,7 +253,6 @@ bool clean(CleanType clean_type) {
         move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     });
 
-    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - cooldown_temp_diff);
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
         log_error(NozzleCleanerLite, "cooling failed");
         return false;
