@@ -18,12 +18,14 @@ void check_hotend_burn_risk() {
     // (When emergency stop is on and both fire, DoorOpen keeps display priority.)
     static_assert(PhysicalToolIndex::count == 1, "Burn risk check assumes a single physical tool");
     const bool is_door_open = door_sensor().state() == DoorSensor::State::door_open;
-    const auto &hotend = Hotend::for_tool(PhysicalToolIndex::from_raw(0));
-    const bool burn_risk = is_door_open && hotend.nozzle_temp().value_or(0) >= Hotend::burn_warning_temp;
+    const auto nozzle_temp = Hotend::for_tool(PhysicalToolIndex::from_raw(0)).nozzle_temp().value_or(0);
+    static constexpr auto hysteresis = 5;
+
     // Toggle only on transition: set_warning() logs on every call and this runs each Marlin cycle.
-    if (burn_risk && !marlin_server::is_warning_active(WarningType::HotendBurnRisk)) {
+    if (is_door_open && nozzle_temp >= Hotend::burn_warning_temp && !marlin_server::is_warning_active(WarningType::HotendBurnRisk)) {
         marlin_server::set_warning(WarningType::HotendBurnRisk);
-    } else if (!burn_risk && marlin_server::is_warning_active(WarningType::HotendBurnRisk)) {
+
+    } else if ((!is_door_open || nozzle_temp < Hotend::burn_warning_temp - hysteresis) && marlin_server::is_warning_active(WarningType::HotendBurnRisk)) {
         marlin_server::clear_warning(WarningType::HotendBurnRisk);
     }
 }
