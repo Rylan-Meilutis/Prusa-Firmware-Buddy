@@ -102,6 +102,7 @@ namespace {
 
     constexpr uint8_t rub_cycles_fast = 5;
     constexpr uint8_t rub_cycles_slow = 2;
+    constexpr float rub_acceleration = 5000.0f;
 
     // Touchpoint cool-down temperature sits this much below the cleaning
     // temperature: no active ooze, yet as hot as possible so the nozzle
@@ -226,6 +227,13 @@ bool clean(CleanType clean_type) {
     move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, approach_feedrate);
     move_to_machine_pos_z(probed_z + dive_below_surface_mm, dive_feedrate);
 
+    const float saved_travel_acceleration = planner.user_settings.travel_acceleration;
+    {
+        auto s = planner.user_settings;
+        s.travel_acceleration = rub_acceleration;
+        planner.apply_settings(s);
+    }
+
     // Rub: a few fast cycles, then a couple of slower ones to finish cleanly
     for (uint8_t i = 0; i < rub_cycles_fast; ++i) {
         move_to_machine_pos_xy(cleaner_x_far, cleaner_y_far, rub_feedrate_fast);
@@ -234,6 +242,12 @@ bool clean(CleanType clean_type) {
     for (uint8_t i = 0; i < rub_cycles_slow; ++i) {
         move_to_machine_pos_xy(cleaner_x_far, cleaner_y_far, rub_feedrate_slow);
         move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, rub_feedrate_slow);
+    }
+
+    {
+        auto s = planner.user_settings;
+        s.travel_acceleration = saved_travel_acceleration;
+        planner.apply_settings(s);
     }
 
     // Retreat back over the touchpoint
