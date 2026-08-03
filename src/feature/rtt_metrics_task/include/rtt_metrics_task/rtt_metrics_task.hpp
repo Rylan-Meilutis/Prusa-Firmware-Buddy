@@ -10,4 +10,4 @@ void capture_stepper_positions();
 
 } // namespace rtt_metrics
 
-void start_rtt_metrics_task();
+void rtt_metrics_task();

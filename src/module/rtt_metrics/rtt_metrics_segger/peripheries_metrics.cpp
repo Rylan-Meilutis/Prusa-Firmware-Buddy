@@ -17,20 +17,15 @@ namespace {
 
 /// One SPSC queue per metric type. 1 type = 1 context
 /// Each queue has headroom for >=30 ms of data.
-AtomicCircularQueue<MetricWrapper<accelerometer::RawAcceleration>, uint8_t, 64> accel_queue;
-AtomicCircularQueue<MetricWrapper<LoadcellTaredZ>, uint8_t, 32> loadcell_queue;
-AtomicCircularQueue<MetricWrapper<StepperPositions>, uint8_t, 32> stepper_queue;
-
-template <typename DataStruct>
-void write_metric(const MetricWrapper<DataStruct> &wrapper) {
-    const auto serialized = serialize_metric<DataStruct>(wrapper);
-    log_metric(std::as_bytes(std::span { serialized.buffer.data(), serialized.written_size }));
-}
+AtomicCircularQueue<MetricWrapper<accelerometer::RawAcceleration, MetricType::raw_acceleration>, uint8_t, 64> accel_queue;
+AtomicCircularQueue<MetricWrapper<LoadcellTaredZ, MetricType::loadcell_tared_z>, uint8_t, 32> loadcell_queue;
+AtomicCircularQueue<MetricWrapper<StepperPositions, MetricType::stepper_positions>, uint8_t, 32> stepper_queue;
 
 template <typename Queue>
 void drain(Queue &queue) {
     while (!queue.isEmpty()) {
-        write_metric(queue.dequeue());
+        const auto serialized = serialize_metric(queue.dequeue());
+        log_metric(std::as_bytes(std::span { serialized.buffer.data(), serialized.written_size }));
     }
 }
 
@@ -40,19 +35,19 @@ void drain(Queue &queue) {
 void rtt_metrics::sample_accelerometer(const accelerometer::RawAcceleration &raw_acceleration) {
     static SingleISRProducerGuard guard;
     guard.check();
-    static_cast<void>(accel_queue.enqueue({ MetricType::raw_acceleration, ticks_us(), raw_acceleration }));
+    static_cast<void>(accel_queue.enqueue({ ticks_us(), raw_acceleration }));
 }
 
 void rtt_metrics::sample_loadcell_tared_z(const LoadcellTaredZ &tared_z) {
     static SingleISRProducerGuard guard;
     guard.check();
-    static_cast<void>(loadcell_queue.enqueue({ MetricType::loadcell_tared_z, ticks_us(), tared_z }));
+    static_cast<void>(loadcell_queue.enqueue({ ticks_us(), tared_z }));
 }
 
 void rtt_metrics::sample_stepper_positions(const StepperPositions &positions) {
     static SingleISRProducerGuard guard;
     guard.check();
-    static_cast<void>(stepper_queue.enqueue({ MetricType::stepper_positions, ticks_us(), positions }));
+    static_cast<void>(stepper_queue.enqueue({ ticks_us(), positions }));
 }
 
 void rtt_metrics::process_rtt_metrics_queue() {

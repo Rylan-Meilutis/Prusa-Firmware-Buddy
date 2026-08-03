@@ -11,9 +11,9 @@ enum class MetricType : uint8_t {
     stepper_positions,
 };
 
-template <typename DataStruct>
+template <typename DataStruct, MetricType TYPE>
 struct MetricWrapper {
-    MetricType type;
+    static constexpr MetricType type = TYPE;
     uint32_t timestamp;
     DataStruct data;
 };

@@ -599,7 +599,7 @@ extern "C" void main_cpp(void) {
     metrics_reconfigure();
 
 #if RTT_METRICS_ENABLED()
-    create_task("rtt_metrics", start_rtt_metrics_task, TASK_PRIORITY_RTT_METRICS_TASK, task_stack.rtt_metrics, task_control_block.rtt_metrics);
+    create_task("rtt_metrics", rtt_metrics_task, TASK_PRIORITY_RTT_METRICS_TASK, task_stack.rtt_metrics, task_control_block.rtt_metrics);
 #endif
 }
 

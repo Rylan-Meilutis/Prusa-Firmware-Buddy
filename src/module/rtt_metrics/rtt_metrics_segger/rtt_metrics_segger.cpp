@@ -13,7 +13,7 @@ namespace {
 
 constexpr unsigned rtt_buffer_index = 2;
 
-char rtt_buffer_data[8192];
+std::array<std::byte, 8192> rtt_buffer_data;
 
 /// Check whether an RTT consumer (debugger) is actively draining the buffer.
 ///

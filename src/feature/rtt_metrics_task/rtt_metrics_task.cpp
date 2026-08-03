@@ -21,7 +21,7 @@ void rtt_metrics::capture_stepper_positions() {
     sample_stepper_positions(positions);
 }
 
-void start_rtt_metrics_task() {
+void rtt_metrics_task() {
     // Poll cadence for draining the metric queues. Kept short so the queues
     // (see peripheries_metrics.cpp) stay well within their depth at the
     // producers' sampling rates.
