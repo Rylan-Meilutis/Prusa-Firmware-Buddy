@@ -201,15 +201,17 @@ void clean() {
     move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, leave_feedrate);
     move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
+    // Declared after the temperature guard so it runs before it: the nozzle must
+    // come off the touchpoint before anything re-heats it.
+    ScopeGuard leave_touchpoint([&] {
+        move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
+    });
 
     Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - 20);
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
-        log_error(NozzleCleanerLite, "heating failed");
+        log_error(NozzleCleanerLite, "cooling failed");
         return;
     }
-
-    // Retreat to safe travel Z position
-    move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
 }
 
 #if HAS_TOOLCHANGER()
