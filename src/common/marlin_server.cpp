@@ -652,15 +652,19 @@ static void update_warning_fsm() {
 }
 
 void set_warning(WarningType type) {
-    log_info(MarlinServer, "set_warning(%" PRIu32 ")", std::to_underlying(type));
+    if (!warning_flags.test(std::to_underlying(type))) {
+        log_info(MarlinServer, "set_warning(%" PRIu32 ")", std::to_underlying(type));
 
-    warning_flags.set(std::to_underlying(type));
-    update_warning_fsm();
+        warning_flags.set(std::to_underlying(type));
+        update_warning_fsm();
+    }
 }
 
 void clear_warning(WarningType type) {
-    warning_flags.reset(std::to_underlying(type));
-    update_warning_fsm();
+    if (warning_flags.test(std::to_underlying(type))) {
+        warning_flags.reset(std::to_underlying(type));
+        update_warning_fsm();
+    }
 }
 
 bool is_warning_active(WarningType type) {
