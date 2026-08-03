@@ -1,4 +1,5 @@
 #include "include/nozzle_cleaner_lite.hpp"
+#include "cleaner_zigzag.hpp"
 #include <printers.h>
 #include "Marlin/src/gcode/gcode.h"
 #include <Marlin/src/Marlin.h>
@@ -34,7 +35,9 @@
 #include <config_store/store_definition.hpp>
 #include <bsod/bsod.h>
 #include <filament.hpp>
+#include <timing.h>
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cmath>
@@ -58,26 +61,74 @@ namespace {
     constexpr CleanerAxis cleaner_axis = CleanerAxis::y;
     constexpr float cleaner_distance = 10.0f;
     constexpr float cleaner_length = 30.0f;
+
+    // Where the used band starts within the pad's width, relative to the
+    // touchpoint. Shifted off centre: a centred band would reach within 0.05mm
+    // of the X endstop.
+    constexpr float across_offset = -1.0f;
 #elif PRINTER_IS_PRUSA_COREONE()
     constexpr xy_pos_t touchpoint_xy = { { { 206.5f, -15.0f } } };
 
     constexpr CleanerAxis cleaner_axis = CleanerAxis::x;
     constexpr float cleaner_distance = -10.0f;
     constexpr float cleaner_length = -30.0f;
+
+    constexpr float across_offset = -1.5f;
 #elif PRINTER_IS_PRUSA_COREONEL()
     constexpr xy_pos_t touchpoint_xy = { { { 299.5f, -7.5f } } };
 
     constexpr CleanerAxis cleaner_axis = CleanerAxis::x;
     constexpr float cleaner_distance = -10.0f;
     constexpr float cleaner_length = -30.0f;
+
+    // Only 0.5mm of Y travel is left below the touchpoint, so use the band above
+    // it only.
+    constexpr float across_offset = 0.0f;
 #else
     #error "nozzle_cleaner_lite sequence not defined for this printer variant"
 #endif
 
-    constexpr float cleaner_x_near = touchpoint_xy.x + (cleaner_axis == CleanerAxis::x ? cleaner_distance : 0.0f);
-    constexpr float cleaner_y_near = touchpoint_xy.y + (cleaner_axis == CleanerAxis::y ? cleaner_distance : 0.0f);
-    constexpr float cleaner_x_far = cleaner_x_near + (cleaner_axis == CleanerAxis::x ? cleaner_length : 0.0f);
-    constexpr float cleaner_y_far = cleaner_y_near + (cleaner_axis == CleanerAxis::y ? cleaner_length : 0.0f);
+    // The pad's length runs along cleaner_axis and its width across the other
+    // axis. Everything below is expressed in those two, so nothing has to ask
+    // again which machine axis is which.
+    constexpr bool pad_length_runs_along_x = (cleaner_axis == CleanerAxis::x);
+
+    constexpr float touchpoint_along = pad_length_runs_along_x ? touchpoint_xy.x : touchpoint_xy.y;
+    constexpr float touchpoint_across = pad_length_runs_along_x ? touchpoint_xy.y : touchpoint_xy.x;
+
+    constexpr float along_travel_min = pad_length_runs_along_x ? X_MIN_POS : Y_MIN_POS;
+    constexpr float along_travel_max = pad_length_runs_along_x ? X_MAX_POS : Y_MAX_POS;
+    constexpr float across_travel_min = pad_length_runs_along_x ? Y_MIN_POS : X_MIN_POS;
+    constexpr float across_travel_max = pad_length_runs_along_x ? Y_MAX_POS : X_MAX_POS;
+
+    // 3mm sits comfortably inside the 7mm pad on every printer; only where that
+    // band sits differs, because the travel left around the centre line does.
+    constexpr float used_pad_width = 3.0f;
+    constexpr float pad_along_near = touchpoint_along + cleaner_distance;
+    constexpr float pad_across_min = touchpoint_across + across_offset;
+    constexpr Pad cleaner_pad {
+        .along_near = pad_along_near,
+        .along_far = pad_along_near + cleaner_length,
+        .across_min = pad_across_min,
+        .across_max = pad_across_min + used_pad_width,
+    };
+
+    // Fractional on purpose: consecutive strokes take different diagonals instead
+    // of every stroke retracing one. At 1.5 a stroke holds two or three diagonal
+    // segments and the pattern comes back around every fourth stroke.
+    constexpr float crossings_per_stroke = 1.5f;
+    // A non-positive value would make the drift walk away from the stroke end
+    // instead of towards it, without ever terminating.
+    static_assert(crossings_per_stroke > 0.0f);
+
+    // line_to_machine_pos does not clamp, so an out-of-range target is driven into
+    // the hard stop. Prove the whole pad stays inside the travel. XL and COREONEL
+    // only clear it by 0.15mm and 0.10mm respectively.
+    constexpr float travel_limit_margin = 0.4f;
+    static_assert(std::min(cleaner_pad.along_near, cleaner_pad.along_far) - travel_limit_margin >= along_travel_min);
+    static_assert(std::max(cleaner_pad.along_near, cleaner_pad.along_far) + travel_limit_margin <= along_travel_max);
+    static_assert(cleaner_pad.across_min - travel_limit_margin >= across_travel_min);
+    static_assert(cleaner_pad.across_max + travel_limit_margin <= across_travel_max);
 
     // Z targets expressed relative to the freshly probed touchpoint surface, so
     // they stay correct even if the Z home offset or touchpoint height drifts.
@@ -158,6 +209,34 @@ namespace {
         planner.synchronize();
     }
 
+    // Queue a move given in pad coordinates.
+    void line_to_pad(float along, float across, feedRate_t fr_mm_s) {
+        auto target = current_machine_position();
+        if constexpr (pad_length_runs_along_x) {
+            target.x = along;
+            target.y = across;
+        } else {
+            target.x = across;
+            target.y = along;
+        }
+        line_to_machine_pos(target, fr_mm_s);
+    }
+
+    void move_to_pad(float along, float across, feedRate_t fr_mm_s) {
+        line_to_pad(along, across, fr_mm_s);
+        planner.synchronize();
+    }
+
+    // The waypoints are only queued, so the nozzle blends through the zigzag's
+    // turns instead of stopping on the pad at each one.
+    void rub_stroke(ZigZag &zigzag, float along_to, feedRate_t fr_mm_s) {
+        zigzag.begin_stroke(along_to);
+        while (const auto waypoint = zigzag.next()) {
+            line_to_pad(waypoint->along, waypoint->across, fr_mm_s);
+        }
+        planner.synchronize();
+    }
+
 } // namespace
 
 bool is_available() {
@@ -223,8 +302,17 @@ bool clean(CleanType clean_type) {
         thermalManager.set_print_fan_speed(saved_fan_speed);
     });
 
-    // Safely move from the touchpoint to the cleaner
-    move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, approach_feedrate);
+    // Start the zigzag somewhere new each run so consecutive cleans do not retrace
+    // the same track. Kept within the first half of the pattern, so the first
+    // crossing always heads towards across_max.
+    ZigZag zigzag { cleaner_pad, crossings_per_stroke,
+        static_cast<float>(ticks_ms() % 1000) / 2000.0f };
+
+    // Safely move from the touchpoint onto the pad, at the zigzag's own starting
+    // point rather than the pad centre, so no stroke has to drag the nozzle
+    // sideways onto the pattern.
+    const auto zigzag_start = zigzag.start();
+    move_to_pad(zigzag_start.along, zigzag_start.across, approach_feedrate);
     move_to_machine_pos_z(probed_z + dive_below_surface_mm, dive_feedrate);
 
     const float saved_travel_acceleration = planner.user_settings.travel_acceleration;
@@ -234,14 +322,15 @@ bool clean(CleanType clean_type) {
         planner.apply_settings(s);
     }
 
-    // Rub: a few fast cycles, then a couple of slower ones to finish cleanly
+    // Rub: a few fast cycles, then a couple of slower ones to finish cleanly.
+    // The zigzag carries on across all of them.
     for (uint8_t i = 0; i < rub_cycles_fast; ++i) {
-        move_to_machine_pos_xy(cleaner_x_far, cleaner_y_far, rub_feedrate_fast);
-        move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, rub_feedrate_fast);
+        rub_stroke(zigzag, cleaner_pad.along_far, rub_feedrate_fast);
+        rub_stroke(zigzag, cleaner_pad.along_near, rub_feedrate_fast);
     }
     for (uint8_t i = 0; i < rub_cycles_slow; ++i) {
-        move_to_machine_pos_xy(cleaner_x_far, cleaner_y_far, rub_feedrate_slow);
-        move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, rub_feedrate_slow);
+        rub_stroke(zigzag, cleaner_pad.along_far, rub_feedrate_slow);
+        rub_stroke(zigzag, cleaner_pad.along_near, rub_feedrate_slow);
     }
 
     {
