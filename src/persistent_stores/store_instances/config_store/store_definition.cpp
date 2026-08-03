@@ -433,6 +433,13 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     precise_homing_sample_history.set_all_to_default();
     precise_homing_sample_history_index.set_all_to_default();
     #endif
+    #if HAS_PRECISE_HOMING_COREXY()
+    // The grid origin is a motor-phase-to-position mapping, so a different belt pitch invalidates it.
+    corexy_grid_origin.set_to_default();
+        #if HAS_TRINAMIC && defined(XY_HOMING_MEASURE_SENS_MIN)
+    corexy_home_tmc_sens.set_to_default();
+        #endif
+    #endif
     selftest_result.apply([](SelftestResult &r) {
         r.set_xaxis(TestResult::unknown);
         r.set_yaxis(TestResult::unknown);
