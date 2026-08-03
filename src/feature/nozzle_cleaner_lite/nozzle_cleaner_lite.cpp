@@ -82,6 +82,9 @@ namespace {
     // Z targets expressed relative to the freshly probed touchpoint surface, so
     // they stay correct even if the Z home offset or touchpoint height drifts.
     constexpr float safe_above_surface_mm = 1.0f;
+    // Where the nozzle waits for the cleaning temperature, relative to the
+    // expected surface (the true surface is only probed after the wait).
+    constexpr float wait_above_surface_mm = 2.0f;
     // Rough expected touchpoint surface height in machine Z; the surface sits
     // slightly below the homed bed level. Only needs to be near-right:
     // run_z_probe approaches from above and searches down to
@@ -188,10 +191,18 @@ bool clean(CleanType clean_type) {
     }
 
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, dive_feedrate);
+    move_to_machine_pos_z(expected_touchpoint_surface_z + wait_above_surface_mm, dive_feedrate);
 
-    // No blind descent here: the touchpoint surface height is not known yet, so let
-    // run_z_probe approach from above and find it (it stops on contact even
-    // during the fast approach).
+    // Reach the cleaning temperature before probing: solidified ooze on a
+    // cold tip triggers the probe high and shifts the whole brush Z reference
+    // up; at temperature the ooze is soft and squishes aside.
+    if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
+        log_error(NozzleCleanerLite, "temperature wait failed");
+        return false;
+    }
+
+    // The exact surface height is not known yet: run_z_probe approaches from
+    // above and finds it (it stops on contact even during the fast approach).
     const float probed_z = probe_touchpoint_z();
     if (std::isnan(probed_z)) {
         log_error(NozzleCleanerLite, "Touchpoint probe failed");
@@ -200,11 +211,6 @@ bool clean(CleanType clean_type) {
     log_info(NozzleCleanerLite, "Touchpoint surface at Z=%.3f", static_cast<double>(probed_z));
 
     move_to_machine_pos_z(probed_z + safe_above_surface_mm, approach_feedrate);
-
-    if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = true })) {
-        log_error(NozzleCleanerLite, "heating failed");
-        return false;
-    }
 
     // Safely move from the touchpoint to the cleaner
     move_to_machine_pos_xy(cleaner_x_near, cleaner_y_near, approach_feedrate);
