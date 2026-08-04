@@ -28,7 +28,8 @@
 #endif
 #include <logging/log.hpp>
 #include <guiconfig/wizard_config.hpp>
-#include <option/has_indx.h>
+#include <option/has_indx_head.h>
+#include <option/has_nextruder.h>
 
 #include <cstdarg>
 #include <fcntl.h>
@@ -43,14 +44,24 @@ static constexpr auto maxFeedrates = std::to_array<feedRate_t>(DEFAULT_MAX_FEEDR
 static constexpr auto XYfr_table = std::to_array<float>({ HOMING_FEEDRATE_XY / 60 });
 static constexpr auto Zfr_table = std::to_array<float>({ HOMING_FEEDRATE_Z / 60 });
 
+#if HAS_INDX_HEAD()
+static constexpr float x_len_min = X_MAX_LENGTH;
+static constexpr float y_len_min = Y_MAX_LENGTH;
+#elif HAS_NEXTRUDER()
+static constexpr float x_len_min = 302;
+static constexpr float y_len_min = 310;
+#else
+    #error "Fine-tune for the new nozzle option"
+#endif
+
 // reads data from eeprom, cannot be constexpr
 const AxisConfig_t selftest::Config_XAxis = {
     .partname = "X-Axis",
     .length = X_MAX_LENGTH,
     .fr_table_fw = XYfr_table.data(),
     .fr_table_bw = XYfr_table.data(),
-    .length_min = X_MAX_LENGTH,
-    .length_max = X_MAX_LENGTH + X_END_GAP,
+    .length_min = x_len_min,
+    .length_max = x_len_min + X_END_GAP,
     .axis = X_AXIS,
     .steps = XYfr_table.size(),
     .movement_dir = option::has_indx ? 1 : -1,
@@ -63,8 +74,8 @@ const AxisConfig_t selftest::Config_YAxis = {
     .length = Y_MAX_LENGTH,
     .fr_table_fw = XYfr_table.data(),
     .fr_table_bw = XYfr_table.data(),
-    .length_min = Y_MAX_LENGTH,
-    .length_max = Y_MAX_LENGTH + Y_END_GAP,
+    .length_min = y_len_min,
+    .length_max = y_len_min + Y_END_GAP,
     .axis = Y_AXIS,
     .steps = XYfr_table.size(),
     .movement_dir = 1,
