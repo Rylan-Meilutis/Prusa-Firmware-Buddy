@@ -30,7 +30,7 @@ static constexpr PrinterVariant printer_variant_after_factory_reset = PrinterVar
 
 /// Display names (product names -> not translated).
 static constexpr EnumArray<PrinterVariant, const char *, PrinterVariant::_cnt> printer_variant_names {
-    { PrinterVariant::base, "CoreOne" },
-    { PrinterVariant::plus, "CoreOne+" },
-    { PrinterVariant::plus_gen2, "CoreOne+ Gen2" },
+    { PrinterVariant::base, "CORE One" },
+    { PrinterVariant::plus, "CORE One+" },
+    { PrinterVariant::plus_gen2, "CORE One+ Gen2" },
 };

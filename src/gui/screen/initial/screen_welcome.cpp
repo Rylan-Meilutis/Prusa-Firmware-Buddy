@@ -39,7 +39,7 @@ ScreenWelcome::ScreenWelcome()
                 N_("Hi, this is your\nPrusa CORE One L INDX printer.\n"
                    "I would like to guide you\nthrough the setup process.");
     #else
-                N_("Hi, this is your\nPrusa CORE One printer.\n"
+                N_("Hi, this is your\nPrusa CORE One L printer.\n"
                    "I would like to guide you\nthrough the setup process.");
     #endif
 #else
