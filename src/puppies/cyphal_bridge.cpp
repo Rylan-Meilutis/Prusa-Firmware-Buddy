@@ -11,21 +11,26 @@ namespace buddy::puppies {
 
 CyphalBridge cyphal_bridge;
 
-void CyphalBridge::refresh(PuppyModbus &bus, modbus::ServerAddress server) {
+CommunicationStatus CyphalBridge::refresh(PuppyModbus &bus, modbus::ServerAddress server) {
     Lock lock(mutex);
 
     // Drain the Cyphal bridge queue (up to 5 reads per cycle)
+    CommunicationStatus status = CommunicationStatus::SKIPPED;
     if (stream_callback_ || bridge_has_stale_data_) {
         for (int i = 0; i < 5; ++i) {
-            if (pull_cyphal_bridge(bus, server) != CommunicationStatus::OK) {
-                break;
-            }
-            if (register_file.value.bytes_available == 0) {
-                bridge_has_stale_data_ = false;
-                break;
+            if (bus.read_input_registers(server, register_file.value)) {
+                dispatch_bridge_messages();
+                status = CommunicationStatus::OK;
+                if (register_file.value.bytes_available == 0) {
+                    bridge_has_stale_data_ = false;
+                    break;
+                }
+            } else {
+                return CommunicationStatus::ERROR;
             }
         }
     }
+    return status;
 }
 
 void CyphalBridge::set_stream_callback(StreamCallback cb, void *ctx) {
@@ -33,15 +38,6 @@ void CyphalBridge::set_stream_callback(StreamCallback cb, void *ctx) {
     stream_callback_ = cb;
     stream_callback_ctx_ = ctx;
     bridge_has_stale_data_ = true; // There may be old data we dont want to send to callback
-}
-
-CommunicationStatus CyphalBridge::pull_cyphal_bridge(PuppyModbus &bus, modbus::ServerAddress server) {
-    // Always read fresh (no caching)
-    if (!bus.read_input_registers(server, register_file.value)) {
-        return CommunicationStatus::ERROR;
-    }
-    dispatch_bridge_messages();
-    return CommunicationStatus::OK;
 }
 
 void CyphalBridge::dispatch_bridge_messages() {

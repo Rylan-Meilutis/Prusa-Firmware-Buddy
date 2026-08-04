@@ -21,7 +21,7 @@ public:
 
 public:
     // These are called from the OWNING PUPPY refresh
-    void refresh(PuppyModbus &, modbus::ServerAddress server);
+    CommunicationStatus refresh(PuppyModbus &, modbus::ServerAddress server);
 
 private:
     // The registers cached here are accessed from different tasks.
@@ -35,7 +35,6 @@ private:
     void *stream_callback_ctx_ = nullptr;
     bool bridge_has_stale_data_ = false;
 
-    CommunicationStatus pull_cyphal_bridge(PuppyModbus &, modbus::ServerAddress server);
     void dispatch_bridge_messages();
 };
 
