@@ -37,7 +37,7 @@ void Mutex::unlock() {
         // and we might have gotten here sooner due to task switching and lock failing
         if (xQueueGetMutexHolder(handle) == xTaskGetCurrentTaskHandle() && xSemaphoreGive(handle) != pdTRUE) {
             // Since the semaphore was obtained correctly, this should never happen.
-            std::abort();
+            bsod_unreachable();
         }
 
     } else
@@ -45,7 +45,7 @@ void Mutex::unlock() {
     {
         if (xSemaphoreGive(handle) != pdTRUE) {
             // Since the semaphore was obtained correctly, this should never happen.
-            std::abort();
+            bsod_unreachable();
         }
     }
 }
@@ -67,7 +67,7 @@ void Mutex::lock() {
         {
             static_assert(INCLUDE_vTaskSuspend);
             // Since we are waiting forever and have task suspension, this should never happen.
-            std::abort();
+            bsod_unreachable();
         }
     }
 }
