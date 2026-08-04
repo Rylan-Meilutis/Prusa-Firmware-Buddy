@@ -12,7 +12,7 @@
     // #error dead code found by automatic analyses (see BFW-5461)
     #include <no_backend/store.hpp>
 #else
-    #include <journal/store.hpp>
+    #include <journal/store_config.hpp>
     #include "backend_instance.hpp"
 #endif
 #include <Marlin/src/feature/input_shaper/input_shaper_config.hpp>

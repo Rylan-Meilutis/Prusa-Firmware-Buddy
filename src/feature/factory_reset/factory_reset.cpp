@@ -5,7 +5,9 @@
 #include <common/sys.hpp>
 #include <crash_dump/dump.hpp>
 #include <bootloader/bootloader.hpp>
+#include <common/visit_all_struct_fields.hpp>
 #include <config_store/store_definition.hpp>
+#include <config_store/store_journal.hpp>
 #include <option/bootloader.h>
 #include <gui.hpp>
 #include <display_helper.h>
@@ -223,7 +225,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
     } else if (items_to_keep.any()) {
         // Initialize a blank config store and save there our selection of items.
         // Values of these items are being kept in the RAM.
-        config_store().init();
+        config_store_journal().init();
 
         // Do not do default config_sotre().load_all(), it would overwrite our items in the RAM.
         // Instead we provide a stub loader and migrators, so we only end up initializing the EEPROM structure properly.
@@ -237,7 +239,7 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
                 exclude_flags |= items_config[i].item_flags;
             }
         }
-        config_store().dump_items(exclude_flags);
+        config_store_journal().dump_items(exclude_flags);
 
         // If we're resetting hw config, make sure that we perform first run config setup
         if (exclude_flags & config_store_ns::ItemFlag::hw_config) {

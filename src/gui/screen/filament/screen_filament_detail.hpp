@@ -2,6 +2,7 @@
 
 #include <filament.hpp>
 
+#include <common/aggregate_arity.hpp>
 #include <WindowMenuInfo.hpp>
 #include <WindowMenuSpin.hpp>
 #include <MItem_tools.hpp>

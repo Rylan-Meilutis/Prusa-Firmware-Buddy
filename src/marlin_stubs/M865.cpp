@@ -2,6 +2,7 @@
 
 #include <option/has_filament_heatbreak_param.h>
 
+#include <common/aggregate_arity.hpp>
 #include <filament.hpp>
 #include <temperature.hpp>
 #include <tool_index.hpp>

@@ -1,4 +1,5 @@
 #include "store_definition.hpp"
+#include <common/visit_all_struct_fields.hpp>
 #include <Marlin/src/inc/MarlinConfigPre.h>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
