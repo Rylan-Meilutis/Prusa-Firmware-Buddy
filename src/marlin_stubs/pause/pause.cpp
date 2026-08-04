@@ -1127,6 +1127,8 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
         if (gcode_exceptions().is_unwinding()) {
             return;
         }
+
+        idle(true);
     }
 #endif
 
