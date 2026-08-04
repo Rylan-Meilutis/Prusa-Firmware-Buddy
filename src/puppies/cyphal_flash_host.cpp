@@ -134,7 +134,9 @@ CommunicationStatus CyphalBridgeFlashHost::write_digest(PuppyModbus &bus, modbus
 
     const FileId file_id = xbuddy_extension::modbus::parse_file_id(current_request.file_id);
     if (file_id == FileId::none) {
-        return CommunicationStatus::OK;
+        // Nothing was requested
+        last_digest_request = current_request;
+        return CommunicationStatus::SKIPPED;
     }
 
     // Callback runs the slow work with the mutex released and reacquires
