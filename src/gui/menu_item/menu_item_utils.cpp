@@ -8,7 +8,7 @@ void loop_gcode_inject_menu_item(IWindowMenuItem &item, LoopGCodeInjectMenuItemA
     const bool inject_queue_empty = marlin_vars().inject_queue_empty;
 
     if (args.update_enabled) {
-        item.set_enabled(inject_queue_empty);
+        item.set_enabled(inject_queue_empty && args.enabled);
     }
 
     if (args.update_icon) {
