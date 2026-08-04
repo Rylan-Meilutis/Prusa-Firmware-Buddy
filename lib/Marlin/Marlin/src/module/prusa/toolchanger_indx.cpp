@@ -63,6 +63,10 @@ constexpr float arc_backtravel_max = 2.f; // 1/ratio
 
 } // namespace arc_move
 
+bool PrusaToolChangerUtils::is_pos_in_toolchange_area(const xy_pos_t &pos) {
+    return pos.y < SAFE_Y_WITH_TOOL;
+}
+
 bool PrusaToolChanger::can_move_safely(AxisHomeLevel required_level) {
     // Toolchange requires precise homing, otherwise we might not hit the docks right
     return !axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS), required_level);

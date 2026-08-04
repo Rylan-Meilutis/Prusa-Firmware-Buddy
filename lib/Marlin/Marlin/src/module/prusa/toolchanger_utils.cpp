@@ -28,6 +28,10 @@ using namespace buddy::puppies;
 
 static_assert(EXTRUDERS == dwarfs.size());
 
+bool PrusaToolChangerUtils::is_pos_in_toolchange_area(const xy_pos_t &pos) {
+    return pos.y > SAFE_Y_WITH_TOOL;
+}
+
 float PrusaToolChangerUtils::limit_stealth_feedrate(float feedrate) {
     // If the HWLIMIT_STEALTH_MAX_FEEDRATE changes, this function needs to be revisited
     static_assert(std::to_array(HWLIMIT_STEALTH_MAX_FEEDRATE) == std::to_array({ 140, 140, 12, 100 }));

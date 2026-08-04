@@ -122,6 +122,8 @@ public:
     /// Feedrate for moves around dock
     static float limit_stealth_feedrate(float feedrate);
 
+    static bool is_pos_in_toolchange_area(const xy_pos_t &pos);
+
 public:
     PrusaToolChangerUtils();
 

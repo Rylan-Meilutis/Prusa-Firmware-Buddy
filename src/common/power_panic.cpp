@@ -239,8 +239,7 @@ static void atomic_finish() {
     } else
 #endif
 #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
-        if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL // Was in toolchange area
-            && prusa_toolchanger.is_toolchanger_enabled()) { // Toolchanger is installed
+        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy()) && prusa_toolchanger.is_toolchanger_enabled()) {
 
         // Continue with toolcrash recovery
         marlin_server::powerpanic_finish_toolcrash();
@@ -419,10 +418,12 @@ void resume_loop() {
 #endif
 
 #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
-        if (state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL) { // Was in toolchange area
-            prusa_toolchanger.set_return_data({ PhysicalToolIndex::from_raw_notool(state_buf.toolchanger.tool_nr),
+        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy())) {
+            prusa_toolchanger.set_return_data({
+                PhysicalToolIndex::from_raw_notool(state_buf.toolchanger.tool_nr),
                 state_buf.toolchanger.return_type,
-                state_buf.toolchanger.return_pos });
+                state_buf.toolchanger.return_pos,
+            });
             resume_state = ResumeState::Finish; // Do not reheat, do not unpark
             break; // Skip lift and rehome
             // Will continue with toolcrash recovery
@@ -840,12 +841,10 @@ void panic_loop() {
             destination = current_position;
             const PrintArea::rect_t print_rect = print_area.get_bounding_rect(); // We need to get out of print area
 #if HAS_TOOLCHANGER()
-            bool stay_put = false;
+            bool stay_put = prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy());
     #if HAS_INDX()
-            stay_put = state_buf.crash.crash_position.y < PrusaToolChanger::SAFE_Y_WITH_TOOL // Dock area
-                || state_buf.crash.crash_position.x > X_WASTEBIN_SAFE_POINT; // Cleaner / wastebin strip
+            stay_put |= state_buf.crash.crash_position.x > X_WASTEBIN_SAFE_POINT; // Cleaner / wastebin strip
     #elif PRINTER_IS_PRUSA_XL()
-            stay_put = state_buf.crash.crash_position.y > PrusaToolChanger::SAFE_Y_WITH_TOOL;
     #else
         #error "Need to know where the toolchanger is"
     #endif
