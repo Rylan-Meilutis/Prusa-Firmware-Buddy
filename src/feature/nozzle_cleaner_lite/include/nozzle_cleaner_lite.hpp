@@ -51,6 +51,7 @@ bool clean(CleanType clean_type);
 /// tools are turned off to cool naturally; on failure the previous
 /// temperature targets are restored. Caller must check is_available() first.
 /// Only intended to run once, right before UBL's print-start probing.
-void clean_before_probing(Badge<unified_bed_leveling>);
+/// \returns true if every used tool was cleaned successfully
+bool clean_before_probing(Badge<unified_bed_leveling>);
 
 } // namespace nozzle_cleaner_lite

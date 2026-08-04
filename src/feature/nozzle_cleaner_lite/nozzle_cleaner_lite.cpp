@@ -368,7 +368,7 @@ bool clean(CleanType clean_type) {
 }
 
 #if HAS_TOOLCHANGER()
-static void clean_before_probing_toolchanger() {
+static bool clean_before_probing_toolchanger() {
     std::bitset<PhysicalToolIndex::count> used_physical_tools;
 
     // Walk each gcode tool that is used in the print
@@ -445,16 +445,17 @@ static void clean_before_probing_toolchanger() {
     if (all_cleaned) {
         restore_nozzle_targets.disarm();
     }
+    return all_cleaned;
 }
 #endif
 
-void clean_before_probing(Badge<unified_bed_leveling>) {
+bool clean_before_probing(Badge<unified_bed_leveling>) {
     release_assert(is_available());
 
 #if !HAS_TOOLCHANGER()
-    clean(CleanType::probing_tool);
+    const bool all_cleaned = clean(CleanType::probing_tool);
 #else
-    clean_before_probing_toolchanger();
+    const bool all_cleaned = clean_before_probing_toolchanger();
 #endif
 
     // MBL probing follows right after this returns, with no M109 in between
@@ -466,6 +467,8 @@ void clean_before_probing(Badge<unified_bed_leveling>) {
     if (active_tool && Hotend::for_tool(*active_tool).nozzle_target_temp() > 0) {
         thermalManager.wait_for_hotend(*active_tool, { .no_wait_for_cooling = false });
     }
+
+    return all_cleaned;
 }
 
 } // namespace nozzle_cleaner_lite
