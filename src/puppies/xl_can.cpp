@@ -73,7 +73,7 @@ CommunicationStatus XlCan::refresh(PuppyModbus &bus) {
         }
     }
 
-    const auto result = aggregate_communication_status({
+    return aggregate_communication_status({
         status_result,
         refresh_holding(bus),
         flash.write_chunk(bus, modbus::ServerAddress::xl_can),
@@ -83,14 +83,8 @@ CommunicationStatus XlCan::refresh(PuppyModbus &bus) {
             compute_digest_response(request, file_id, out);
             lock.lock();
         }),
+        cyphal_bridge.refresh(bus, modbus::ServerAddress::xl_can),
     });
-
-    // Pump the bridge on every cycle, whatever the exchanges above did: the
-    // tool offset sensor's Cyphal stream rides on it, so a single failed or
-    // cached Modbus exchange must not stall it.
-    cyphal_bridge.refresh(bus, modbus::ServerAddress::xl_can);
-
-    return result;
 }
 
 void XlCan::set_otp(const OTP_v5 &v) {
