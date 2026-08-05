@@ -141,6 +141,7 @@ namespace {
     // run_z_probe approaches from above and searches down to
     // expected + Z_PROBE_LOW_POINT, so the true surface is found each run.
     constexpr float expected_touchpoint_surface_z = 0.0f;
+    constexpr uint8_t touchpoint_probe_attempts = 3;
     constexpr float touch_point_z_pressure = -0.1f; // Z target for the nozzle to press on the touchpoint after cleaning
     constexpr float dive_below_surface_mm = -0.3f;
     constexpr float travel_clearance_mm = 10.0f;
@@ -190,7 +191,7 @@ namespace {
 
         pressure_advance::PressureAdvanceDisabler pa_disabler;
         Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
-        return probe_here(expected_touchpoint_surface_z);
+        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts);
     }
 
     // Move in raw machine coordinates (line_to_machine_pos), bypassing MBL.

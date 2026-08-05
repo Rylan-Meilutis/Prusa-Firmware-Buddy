@@ -242,13 +242,14 @@ static std::expected<TwoSpeedAnalysisResult, const char *> execute_and_analyze_s
     const char *label);
 
 static constexpr float position_tolerance = 0.01f;
+static constexpr uint8_t sensor_probe_attempts = 3;
 
 static float measure_sensor_true_z(const tool_offset::ProbingConfig &config) {
     // Both are needed to run `probe_here`
     pressure_advance::PressureAdvanceDisabler pa_disabler;
     Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
 
-    const float probed_z = probe_here(config.sensor_position.z);
+    const float probed_z = probe_here(config.sensor_position.z, sensor_probe_attempts);
     return probed_z;
 }
 

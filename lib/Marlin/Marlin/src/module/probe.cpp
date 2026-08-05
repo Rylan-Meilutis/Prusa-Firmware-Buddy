@@ -1031,16 +1031,11 @@ bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max) {
 #endif
 
 
-/**
- * @brief Probe down from current position, repeat probing untill we have one successfull
- *
- * May return NAN if after TOTAL_PROBING no probe was successfull
- */
-float probe_here(float expected_trigger_z)
+float probe_here(float expected_trigger_z, uint8_t max_attempts)
 {
   float res = NAN;
   DEPLOY_PROBE();
-  for(int i=0; i <= TOTAL_PROBING; i++){
+  for(uint8_t i = 0; i < max_attempts; i++){
     res = run_z_probe({ .expected_trigger_z = expected_trigger_z, .single_only = true }) + probe_offset.z + TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
     if (!std::isnan(res))
       break;

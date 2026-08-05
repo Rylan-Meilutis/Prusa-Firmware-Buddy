@@ -497,7 +497,7 @@ float probe_z(const MachinePosXYZ &position, float uncertainty, const int num_me
             planner.synchronize();
         }
 
-        float measurement = probe_here(top_expected_position);
+        float measurement = probe_here(top_expected_position, TOTAL_PROBING);
         if (std::isnan(measurement)) {
             fatal_error(ErrCode::ERR_MECHANICAL_PIN_NOT_REACHED);
         }
