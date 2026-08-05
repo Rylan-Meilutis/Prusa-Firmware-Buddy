@@ -61,7 +61,7 @@ void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig
         for (FilamentType ft : all_filament_types) {
             const auto ix = EncodedFilamentType(ft).data;
 
-            if (!is_user_filament_visible.test(ix)) {
+            if (!is_filament_visible_bitset.test(ix)) {
                 // Skip slow compatibility check
                 continue;
             }
