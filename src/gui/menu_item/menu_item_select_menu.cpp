@@ -136,10 +136,20 @@ void MenuItemSelectMenu::force_set_current_item(int set) {
         return;
     }
 
+    auto old_extension_width = extension_width;
+
     current_item_ = set;
     value_ = build_item_text(set, value_params_);
     extension_width = resource_font(value_font)->w * (value_.computeNumUtf8Chars() + (GuiDefaults::MenuSwitchHasBrackets ? 2 : 0));
-    InValidateExtension();
+
+    // When we do only InValidateExtension(), we only 'delete' text with new extension_width
+    // when new width is shorter, we leave part of the old text on screen, so that is why Invalidate()
+    // is needed to redraw the whole element
+    if (old_extension_width > extension_width) {
+        Invalidate();
+    } else {
+        InValidateExtension();
+    }
 }
 
 Color MenuItemSelectMenu::resolved_value_text_color(Color base_color) const {
