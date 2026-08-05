@@ -65,13 +65,15 @@ void window_file_list_t::Load(WF_Sort_t sort, const char *sfnAtCursor, const cha
 
     // Now, ldv has adjusted its window offset and we need to synchronize scroll_offset with it properly.
     {
-        // +1 because ldv counts ".." as index -1 :/
-        int target_scroll_offset = std::min(ldv.window_offset() + 1, max_scroll_offset());
+        // +1 because ldv counts ".." as index -1
+        const int anchor_index = ldv.window_offset() + 1;
+
+        int target_scroll_offset = std::min(anchor_index, max_scroll_offset());
 
         // If !topSFN -> we're trying to just focus sfnAtCursor.
         // In this case, it doesn't necessarily have to be on the top and we can be a bit smarter.
         // If the item is within the first visible window, we won't scroll on it, keep the scroll offset on 0
-        if (!topSFN && target_scroll_offset < max_items_on_screen_count()) {
+        if (!topSFN && anchor_index < max_items_on_screen_count()) {
             target_scroll_offset = 0;
         }
 
