@@ -64,11 +64,6 @@ xyz_pos_t probe_offset; // Initialized by settings.load()
 
 LOG_COMPONENT_DEF(Probe, logging::Severity::info);
 
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "../feature/bltouch.h"
-#endif
-
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
 #endif
@@ -429,11 +424,6 @@ bool set_probe_deployed(const bool deploy) {
  */
 
 static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
-  #if ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    if (bltouch.deploy()) return true; // DEPLOY in LOW SPEED MODE on every probe action
-  #endif
-
   // Disable stealthChop if used. Enable diag1 pin on driver.
   #if ENABLED(SENSORLESS_PROBING)
     // #error dead code found by automatic analyses (see BFW-5461)
@@ -487,11 +477,6 @@ static bool do_probe_move(const float z, const feedRate_t fr_mm_s) {
       // #error dead code found by automatic analyses (see BFW-5461)
       disable_crash_detection(Z_AXIS, stealth_states.z);
     #endif
-  #endif
-
-  #if ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    if (probe_triggered && bltouch.stow()) return true; // STOW in LOW SPEED MODE on trigger on every probe action
   #endif
 
   // Clear endstop flags

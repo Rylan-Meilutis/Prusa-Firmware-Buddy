@@ -158,7 +158,6 @@
 #define MSG_FILAMENT_CHANGE_INSERT_M108     "Insert filament and send M108"
 #define MSG_FILAMENT_CHANGE_WAIT_M108       "Send M108 to resume"
 
-#define MSG_STOP_BLTOUCH                    "STOP called because of BLTouch error - restart with M999"
 #define MSG_STOP_UNHOMED                    "STOP called because of unhomed error - restart with M999"
 #define MSG_KILL_INACTIVE_TIME              "KILL caused by too much inactive time - current command: "
 #define MSG_KILL_BUTTON                     "KILL caused by KILL button/pin"

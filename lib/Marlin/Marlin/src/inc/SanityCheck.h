@@ -192,10 +192,6 @@
   #error "MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
 #elif defined(UBL_MESH_NUM_X_POINTS) || defined(UBL_MESH_NUM_Y_POINTS)
   #error "UBL_MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
-#elif defined(BLTOUCH_V3)
-  #error "BLTOUCH_V3 is obsolete. Please update your configuration."
-#elif defined(BLTOUCH_FORCE_OPEN_DRAIN_MODE)
-  #error "BLTOUCH_FORCE_OPEN_DRAIN_MODE is obsolete. Please update your configuration."
 #elif defined(min_software_endstops) || defined(max_software_endstops)
   #error "(min|max)_software_endstops are now (MIN|MAX)_SOFTWARE_ENDSTOPS. Please update your configuration."
 #elif ENABLED(Z_PROBE_SLED) && defined(SLED_PIN)
@@ -491,13 +487,12 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
  */
 #if 1 < 0 \
   + ENABLED(FIX_MOUNTED_PROBE) \
-  + ENABLED(BLTOUCH) \
   + ENABLED(TOUCH_MI_PROBE) \
   + ENABLED(SOLENOID_PROBE) \
   + ENABLED(Z_PROBE_ALLEN_KEY) \
   + ENABLED(Z_PROBE_SLED) \
   + ENABLED(SENSORLESS_PROBING)
-  #error "Please enable only one probe option: SENSORLESS_PROBING, BLTOUCH, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
 #endif
 
 #if HAS_BED_PROBE
@@ -509,14 +504,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
       #error "SOLENOID_PROBE is incompatible with EXT_SOLENOID."
     #elif !HAS_SOLENOID_1
       #error "SOLENOID_PROBE requires SOL1_PIN. It can be added to your Configuration.h."
-    #endif
-  #endif
-
-  #if ENABLED(BLTOUCH)
-    #if BLTOUCH_DELAY < 200
-      #error "BLTOUCH_DELAY less than 200 is unsafe and is not supported."
-    #elif DISABLED(BLTOUCH_SET_5V_MODE) && NONE(ENDSTOPPULLUPS, ENDSTOPPULLUP_ZMIN, ENDSTOPPULLUP_ZMIN_PROBE)
-      #error "BLTOUCH without BLTOUCH_SET_5V_MODE requires ENDSTOPPULLUPS, ENDSTOPPULLUP_ZMIN or ENDSTOPPULLUP_ZMIN_PROBE."
     #endif
   #endif
 
@@ -588,7 +575,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #else
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, BLTOUCH, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
   #endif
 
 #endif
@@ -1290,4 +1277,8 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if (NUM_SERVOS > 0) || ENABLED(EDITABLE_SERVO_ANGLES) || ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) || defined(SERVO_DELAY) || HAS_Z_SERVO_PROBE || defined(HAS_Z_SERVO_PROBE) || defined(Z_PROBE_SERVO_NR)
     #error "servos are not supported"
+#endif
+
+#if ENABLED(BLTOUCH) || ENABLED(BLTOUCH_DELAY) || ENABLED(BLTOUCH_FORCE_5V_MODE) || ENABLED(BLTOUCH_FORCE_OPEN_DRAIN_MODE) || defined(BLTOUCH_V3)
+    #error "BLTOUCH is not supported"
 #endif

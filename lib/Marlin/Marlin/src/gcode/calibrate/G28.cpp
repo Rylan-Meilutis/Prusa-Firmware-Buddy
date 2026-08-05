@@ -59,12 +59,6 @@
 #endif
 
 #include "../../module/probe.h"
-
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "../../feature/bltouch.h"
-#endif
-
 #include "../../lcd/ultralcd.h"
 
 #if ENABLED(EXTENSIBLE_UI)
@@ -676,7 +670,6 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
     if((trigger_states & (1 << EndstopEnum::Z_MAX)) && !should_home_at_all(Z_AXIS) && axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)) {
       raise_redscreen(ErrCode::ERR_UNDEF, "Unexpected Z MAX endstop trigger", "G28");
     }
-    TERN_(BLTOUCH, bltouch.init());
   }
 
   // Diagonal move first if both are homing

@@ -51,11 +51,6 @@
 #include "../feature/print_area.h"
 #include <option/has_crash_detection.h>
 
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "../feature/bltouch.h"
-#endif
-
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
 #endif
@@ -1239,13 +1234,6 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
 
   // Fast move towards endstop until triggered
 
-  #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    if (axis == Z_AXIS && homing_z_with_probe && bltouch.deploy()) {
-      return NAN; // The initial DEPLOY
-    }
-  #endif
-
   const feedRate_t real_fr_mm_s = args.fr_mm_s ?: homing_feedrate(axis);
 
   #if ENABLED(MOVE_BACK_BEFORE_HOMING)
@@ -1258,16 +1246,7 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
     }
   #endif // ENABLED(MOVE_BACK_BEFORE_HOMING)
 
-  do_homing_move(axis, 1.5f * max_length(
-      axis
-      ) * axis_home_dir, real_fr_mm_s, false, homing_z_with_probe);
-
-  #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    if (axis == Z_AXIS && homing_z_with_probe) {
-      bltouch.stow(); // Intermediate STOW (in LOW SPEED MODE)
-    }
-  #endif
+  do_homing_move(axis, 1.5f * max_length(axis) * axis_home_dir, real_fr_mm_s, false, homing_z_with_probe);
 
   // When homing Z with probe respect probe clearance
   float bump = axis_home_dir * (
@@ -1297,13 +1276,6 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
     if (planner.draining() || gcode_exceptions().throw_count() != initial_throw_count)
       return NAN;
 
-    #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH) && DISABLED(BLTOUCH_HS_MODE)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      if (axis == Z_AXIS && homing_z_with_probe && bltouch.deploy()) {
-        return NAN; // Intermediate DEPLOY (in LOW SPEED MODE)
-      }
-    #endif
-
     feedRate_t bump_feedrate;
 
     #if HOMING_Z_WITH_PROBE
@@ -1332,13 +1304,6 @@ float homeaxis_single_run(const HomeAxisSingleRunArgs &args) {
     do_homing_move(axis, 2 * bump, bump_feedrate, false, homing_z_with_probe);
 
     steps_after_bump[i] = stepper.position_from_startup(axis);
-
-    #if HOMING_Z_WITH_PROBE && ENABLED(BLTOUCH)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      if (axis == Z_AXIS && homing_z_with_probe) {
-        bltouch.stow(); // The final STOW
-      }
-    #endif
   }
 
   #if ENABLED(Z_TRIPLE_ENDSTOPS)

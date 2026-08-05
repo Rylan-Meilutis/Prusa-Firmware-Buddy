@@ -904,10 +904,6 @@
     // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_CLEARANCE_MULTI_PROBE Z_CLEARANCE_BETWEEN_PROBES
   #endif
-  #if ENABLED(BLTOUCH) && !defined(BLTOUCH_DELAY)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #define BLTOUCH_DELAY 500
-  #endif
 #endif
 
 // Updated G92 behavior shifts the workspace

@@ -83,11 +83,6 @@
   void M217_report();
 #endif
 
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "../feature/bltouch.h"
-#endif
-
 #if HAS_TRINAMIC
   #include "stepper/indirection.h"
 #endif
@@ -281,13 +276,6 @@ void MarlinSettings::reset() {
     static_assert(COUNT(dpo) == 3, "NOZZLE_TO_PROBE_OFFSET must contain offsets for X, Y, and Z.");
     LOOP_XYZ(a) probe_offset[a] = dpo[a];
   #endif
-
-  //
-  // BLTOUCH
-  //
-  //#if ENABLED(BLTOUCH)
-  //  bltouch.last_written_mode;
-  //#endif
 
   //
   // Endstop Adjustments

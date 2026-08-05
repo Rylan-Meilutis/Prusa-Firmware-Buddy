@@ -448,31 +448,6 @@
   #define HAS_HOTEND_OFFSET 1
 #endif
 
-/**
- * The BLTouch Probe emulates a servo probe
- * and uses "special" angles for its state.
- */
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #ifndef Z_PROBE_SERVO_NR
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #define Z_PROBE_SERVO_NR 0
-  #endif
-  #ifndef NUM_SERVOS
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #define NUM_SERVOS (Z_PROBE_SERVO_NR + 1)
-  #endif
-
-  // Always disable probe pin inverting for BLTouch
-  #undef Z_MIN_PROBE_ENDSTOP_INVERTING
-  #define Z_MIN_PROBE_ENDSTOP_INVERTING false
-  #if ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #undef Z_MIN_ENDSTOP_INVERTING
-    #define Z_MIN_ENDSTOP_INVERTING false
-  #endif
-#endif
-
 #ifndef PREHEAT_1_LABEL
   // #error dead code found by automatic analyses (see BFW-5461)
   #define PREHEAT_1_LABEL "PLA"

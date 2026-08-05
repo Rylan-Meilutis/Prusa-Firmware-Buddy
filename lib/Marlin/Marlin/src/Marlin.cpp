@@ -87,11 +87,6 @@
   #include "feature/digipot/digipot.h"
 #endif
 
-#if ENABLED(BLTOUCH)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "feature/bltouch.h"
-#endif
-
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
   #include "feature/prusa/e-stall_detector.h"
@@ -562,11 +557,6 @@ void setup() {
     // #error dead code found by automatic analyses (see BFW-5461)
       if (PWM_PIN(CASE_LIGHT_PIN)) SET_PWM(CASE_LIGHT_PIN); else SET_OUTPUT(CASE_LIGHT_PIN);
     update_case_light();
-  #endif
-
-  #if ENABLED(BLTOUCH)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    bltouch.init(/*set_voltage=*/true);
   #endif
 
   #if ENABLED(USE_WATCHDOG)
