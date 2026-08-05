@@ -682,24 +682,6 @@
 #define HAS_FAN1 (PIN_EXISTS(FAN1))
 #define HAS_FAN2 (PIN_EXISTS(FAN2))
 
-// Servos
-#define HAS_SERVO_0 (PIN_EXISTS(SERVO0) && NUM_SERVOS > 0)
-#define HAS_SERVO_1 (PIN_EXISTS(SERVO1) && NUM_SERVOS > 1)
-#define HAS_SERVO_2 (PIN_EXISTS(SERVO2) && NUM_SERVOS > 2)
-#define HAS_SERVO_3 (PIN_EXISTS(SERVO3) && NUM_SERVOS > 3)
-#define HAS_SERVOS  (NUM_SERVOS > 0)
-
-#if HAS_SERVOS && !defined(Z_PROBE_SERVO_NR)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #define Z_PROBE_SERVO_NR -1
-#endif
-
-#define HAS_SERVO_ANGLES (HAS_Z_SERVO_PROBE && defined(Z_PROBE_SERVO_NR))
-
-#if !HAS_SERVO_ANGLES || ENABLED(BLTOUCH)
-  #undef EDITABLE_SERVO_ANGLES
-#endif
-
 // User Interface
 #define HAS_HOME        (PIN_EXISTS(HOME))
 #define HAS_KILL        (PIN_EXISTS(KILL))

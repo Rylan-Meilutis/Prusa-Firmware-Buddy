@@ -96,7 +96,7 @@
 #elif defined(EXTRUDER_WATTS) || defined(BED_WATTS)
   #error "EXTRUDER_WATTS and BED_WATTS are deprecated. Remove them from your configuration."
 #elif defined(SERVO_ENDSTOP_ANGLES)
-  #error "SERVO_ENDSTOP_ANGLES is deprecated. Use Z_SERVO_ANGLES instead."
+  #error "SERVO_ENDSTOP_ANGLES is deprecated."
 #elif defined(X_ENDSTOP_SERVO_NR) || defined(Y_ENDSTOP_SERVO_NR)
   #error "X_ENDSTOP_SERVO_NR and Y_ENDSTOP_SERVO_NR are deprecated and should be removed."
 #elif defined(Z_ENDSTOP_SERVO_NR)
@@ -106,9 +106,9 @@
 #elif defined(XY_TRAVEL_SPEED)
   #error "XY_TRAVEL_SPEED is deprecated. Use XY_PROBE_SPEED instead."
 #elif defined(PROBE_SERVO_DEACTIVATION_DELAY)
-  #error "PROBE_SERVO_DEACTIVATION_DELAY is deprecated. Use DEACTIVATE_SERVOS_AFTER_MOVE instead."
+  #error "PROBE_SERVO_DEACTIVATION_DELAY is deprecated."
 #elif defined(SERVO_DEACTIVATION_DELAY)
-  #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
+  #error "SERVO_DEACTIVATION_DELAY is deprecated."
 #elif defined(FILAMENT_CHANGE_X_POS) || defined(FILAMENT_CHANGE_Y_POS)
   #error "FILAMENT_CHANGE_[XY]_POS is now set with NOZZLE_PARK_POINT. Please update your configuration."
 #elif defined(FILAMENT_CHANGE_Z_ADD)
@@ -466,20 +466,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #endif
 
 /**
- * Limited number of servos
- */
-#if NUM_SERVOS > NUM_SERVO_PLUGS
-  #error "The selected board doesn't support enough servos for your configuration. Reduce NUM_SERVOS."
-#endif
-
-/**
- * Servo deactivation depends on servo endstops, switching nozzle, or switching extruder
- */
-#if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) && !HAS_Z_SERVO_PROBE
-  #error "Z_PROBE_SERVO_NR, switching nozzle, switching toolhead or switching extruder is required for DEACTIVATE_SERVOS_AFTER_MOVE."
-#endif
-
-/**
  * Kinematics
  */
 
@@ -505,7 +491,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
  */
 #if 1 < 0 \
   + ENABLED(FIX_MOUNTED_PROBE) \
-  + (HAS_Z_SERVO_PROBE && DISABLED(BLTOUCH)) \
   + ENABLED(BLTOUCH) \
   + ENABLED(TOUCH_MI_PROBE) \
   + ENABLED(SOLENOID_PROBE) \
@@ -524,25 +509,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
       #error "SOLENOID_PROBE is incompatible with EXT_SOLENOID."
     #elif !HAS_SOLENOID_1
       #error "SOLENOID_PROBE requires SOL1_PIN. It can be added to your Configuration.h."
-    #endif
-  #endif
-
-  /**
-   * NUM_SERVOS is required for a Z servo probe
-   */
-  #if HAS_Z_SERVO_PROBE
-    #ifndef NUM_SERVOS
-      #error "You must set NUM_SERVOS for a Z servo probe (Z_PROBE_SERVO_NR)."
-    #elif Z_PROBE_SERVO_NR == 0 && !PIN_EXISTS(SERVO0)
-      #error "SERVO0_PIN must be defined for your servo or BLTOUCH probe."
-    #elif Z_PROBE_SERVO_NR == 1 && !PIN_EXISTS(SERVO1)
-      #error "SERVO1_PIN must be defined for your servo or BLTOUCH probe."
-    #elif Z_PROBE_SERVO_NR == 2 && !PIN_EXISTS(SERVO2)
-      #error "SERVO2_PIN must be defined for your servo or BLTOUCH probe."
-    #elif Z_PROBE_SERVO_NR == 3 && !PIN_EXISTS(SERVO3)
-      #error "SERVO3_PIN must be defined for your servo or BLTOUCH probe."
-    #elif Z_PROBE_SERVO_NR >= NUM_SERVOS
-      #error "Z_PROBE_SERVO_NR must be smaller than NUM_SERVOS."
     #endif
   #endif
 
@@ -1320,4 +1286,8 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if HAS_GCODE_COMPATIBILITY() && ENABLED(GCODE_MOTION_MODES)
     #error "HAS_GCODE_COMPATIBILITY() and GCODE_MOTION_MODES can't be enabled at the same time"
+#endif
+
+#if (NUM_SERVOS > 0) || ENABLED(EDITABLE_SERVO_ANGLES) || ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) || defined(SERVO_DELAY) || HAS_Z_SERVO_PROBE || defined(HAS_Z_SERVO_PROBE) || defined(Z_PROBE_SERVO_NR)
+    #error "servos are not supported"
 #endif

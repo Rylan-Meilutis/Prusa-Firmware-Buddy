@@ -97,11 +97,6 @@
   #include "feature/prusa/e-stall_detector.h"
 #endif
 
-#if HAS_SERVOS
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "module/servo.h"
-#endif
-
 #if HAS_CUTTER
   // #error dead code found by automatic analyses (see BFW-5461)
   #include "feature/spindle_laser.h"
@@ -520,16 +515,6 @@ void setup() {
       pressure_advance::init();
     #endif
   #endif /* HAS_PLANNER() */
-
-  #if HAS_SERVOS
-    // #error dead code found by automatic analyses (see BFW-5461)
-    servo_init();
-  #endif
-
-  #if HAS_Z_SERVO_PROBE
-    // #error dead code found by automatic analyses (see BFW-5461)
-    servo_probe_init();
-  #endif
 
   #if HAS_CUTTER
     // #error dead code found by automatic analyses (see BFW-5461)

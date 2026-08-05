@@ -462,12 +462,6 @@
     // #error dead code found by automatic analyses (see BFW-5461)
     #define NUM_SERVOS (Z_PROBE_SERVO_NR + 1)
   #endif
-  #undef DEACTIVATE_SERVOS_AFTER_MOVE
-  #if NUM_SERVOS == 1
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #undef SERVO_DELAY
-    #define SERVO_DELAY { 50 }
-  #endif
 
   // Always disable probe pin inverting for BLTouch
   #undef Z_MIN_PROBE_ENDSTOP_INVERTING
@@ -490,14 +484,9 @@
 #endif
 
 /**
- * Set a flag for a servo probe
- */
-#define HAS_Z_SERVO_PROBE (defined(Z_PROBE_SERVO_NR) && Z_PROBE_SERVO_NR >= 0)
-
-/**
  * Set flags for enabled probes
  */
-#define HAS_BED_PROBE (HAS_Z_SERVO_PROBE || ANY(FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, SOLENOID_PROBE, SENSORLESS_PROBING))
+#define HAS_BED_PROBE ANY(FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, SOLENOID_PROBE, SENSORLESS_PROBING)
 #define PROBE_SELECTED (HAS_BED_PROBE)
 
 #if HAS_BED_PROBE

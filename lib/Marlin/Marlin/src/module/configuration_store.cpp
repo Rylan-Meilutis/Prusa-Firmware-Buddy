@@ -71,11 +71,6 @@
   #include "../lcd/extensible_ui/ui_api.h"
 #endif
 
-#if HAS_SERVOS
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "servo.h"
-#endif
-
 #include "../feature/pause.h"
 
 #if ENABLED(BACKLASH_COMPENSATION)
@@ -285,15 +280,6 @@ void MarlinSettings::reset() {
     constexpr float dpo[XYZ] = NOZZLE_TO_PROBE_OFFSET;
     static_assert(COUNT(dpo) == 3, "NOZZLE_TO_PROBE_OFFSET must contain offsets for X, Y, and Z.");
     LOOP_XYZ(a) probe_offset[a] = dpo[a];
-  #endif
-
-  //
-  // Servo Angles
-  //
-
-  #if ENABLED(EDITABLE_SERVO_ANGLES)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    COPY(servo_angles, base_servo_angles);
   #endif
 
   //
@@ -620,24 +606,6 @@ void MarlinSettings::reset() {
       #endif
 
     #endif // HAS_LEVELING
-
-    #if ENABLED(EDITABLE_SERVO_ANGLES)
-      // #error dead code found by automatic analyses (see BFW-5461)
-
-      CONFIG_ECHO_HEADING("Servo Angles:");
-      for (uint8_t i = 0; i < NUM_SERVOS; i++) {
-        switch (i) {
-          #if (ENABLED(BLTOUCH) && defined(BLTOUCH_ANGLES)) || (defined(Z_SERVO_ANGLES) && defined(Z_PROBE_SERVO_NR))
-            // #error dead code found by automatic analyses (see BFW-5461)
-            case Z_PROBE_SERVO_NR:
-          #endif
-            CONFIG_ECHO_START();
-            SERIAL_ECHOLNPAIR("  M281 P", int(i), " L", servo_angles[i][0], " U", servo_angles[i][1]);
-          default: break;
-        }
-      }
-
-    #endif // EDITABLE_SERVO_ANGLES
 
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
       // #error dead code found by automatic analyses (see BFW-5461)

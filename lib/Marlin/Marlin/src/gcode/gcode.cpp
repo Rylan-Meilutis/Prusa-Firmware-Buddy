@@ -558,15 +558,6 @@ void GcodeSuite::process_parsed_command_standard() {
 
       case 221: M221(); break;                                    // M221: Set Flow Percentage
 
-      #if HAS_SERVOS
-        // #error dead code found by automatic analyses (see BFW-5461)
-        case 280: M280(); break;                                  // M280: Set servo position absolute
-        #if ENABLED(EDITABLE_SERVO_ANGLES)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          case 281: M281(); break;                                // M281: Set servo angles
-        #endif
-      #endif
-
       #if ENABLED(BABYSTEPPING)
         case 290: M290(); break;                                  // M290: Babystepping
       #endif

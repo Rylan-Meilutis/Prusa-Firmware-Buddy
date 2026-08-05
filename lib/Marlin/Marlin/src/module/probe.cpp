@@ -80,11 +80,6 @@ LOG_COMPONENT_DEF(Probe, logging::Severity::info);
   #include "../feature/host_actions.h" // for PROMPT_USER_CONTINUE
 #endif
 
-#if HAS_Z_SERVO_PROBE
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "servo.h"
-#endif
-
 #if ENABLED(SENSORLESS_PROBING)
   // #error dead code found by automatic analyses (see BFW-5461)
   #include "../feature/motordriver_util.h"
@@ -351,19 +346,6 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
     // #error dead code found by automatic analyses (see BFW-5461)
 
     dock_sled(!deploy);
-
-  #elif HAS_Z_SERVO_PROBE
-    // #error dead code found by automatic analyses (see BFW-5461)
-
-    #if DISABLED(BLTOUCH)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][deploy ? 0 : 1]);
-    #elif ENABLED(BLTOUCH_HS_MODE)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      // In HIGH SPEED MODE, use the normal retractable probe logic in this code
-      // i.e. no intermediate STOWs and DEPLOYs in between individual probe actions
-      if (deploy) bltouch.deploy(); else bltouch.stow();
-    #endif
 
   #elif EITHER(TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY)
     // #error dead code found by automatic analyses (see BFW-5461)
@@ -1150,24 +1132,6 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 
   return measured_z;
 }
-
-#if HAS_Z_SERVO_PROBE
-  // #error dead code found by automatic analyses (see BFW-5461)
-
-  void servo_probe_init() {
-    /**
-     * Set position of Z Servo Endstop
-     *
-     * The servo might be deployed and positioned too low to stow
-     * when starting up the machine or rebooting the board.
-     * There's no way to know where the nozzle is positioned until
-     * homing has been done - no homing with z-probe without init!
-     *
-     */
-    STOW_Z_SERVO();
-  }
-
-#endif // HAS_Z_SERVO_PROBE
 
 #endif // HAS_BED_PROBE
 

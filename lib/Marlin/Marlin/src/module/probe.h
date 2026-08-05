@@ -94,11 +94,6 @@
   inline float probe_max_y() { return 0; };
 #endif
 
-#if HAS_Z_SERVO_PROBE
-  // #error dead code found by automatic analyses (see BFW-5461)
-  void servo_probe_init();
-#endif
-
 #if QUIET_PROBING
   // #error dead code found by automatic analyses (see BFW-5461)
   void probing_pause(const bool p);
