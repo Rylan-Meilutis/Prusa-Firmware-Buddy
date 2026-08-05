@@ -374,6 +374,17 @@ bool Pause::ensureSafeTemperatureNotifyProgress() {
 }
 
 [[nodiscard]] Pause::StopConditions Pause::do_e_move_notify_progress(const float &length, const feedRate_t &fr_mm_s, StopConditions check_for) {
+#if HAS_AUTO_RETRACT()
+    if (length > 0) {
+        // Deretract before spinning up the progress notifier
+        // It would be tracking the deretract moves, causing erratic progress jumps as the auto_retract resets the E position to the original one at the end
+        auto_retract().maybe_deretract_to_nozzle();
+
+        // Make sure marlin_vars().native_pos is up to date
+        idle(false);
+    }
+#endif
+
     PauseFsmNotifier N(*this, current_position.e, current_position.e + length, marlin_vars().native_pos[MARLIN_VAR_INDEX_E]);
 
     mapi::extruder_move(length, fr_mm_s);
