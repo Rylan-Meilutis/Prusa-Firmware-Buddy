@@ -2,7 +2,7 @@
 
 #include <utils/string_builder.hpp>
 #include <netdev.h>
-#include <dns.h>
+#include <lwip/dns.h>
 #include <img_resources.hpp>
 
 #include <option/buddy_enable_connect.h>

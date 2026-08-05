@@ -2,7 +2,7 @@
 
 #include "MItem_network.hpp"
 #include "MItem_tools.hpp"
-#include <dns.h>
+#include <lwip/dns.h>
 #include "wui_api.h"
 #include <netdev.h>
 #include "ScreenHandler.hpp"
