@@ -50,13 +50,6 @@ ScreenPrinterSetup::ScreenPrinterSetup()
 {
     ClrMenuTimeoutClose(); // don't close on menu timeout
 
-    // The hardware submenu always carries MI_RETURN + the hidden sentinel, if nothing else is present, then hide it.
-    static_assert(ScreenMenuPrinterSetupHardware::has_item<MI_RETURN> && ScreenMenuPrinterSetupHardware::has_item<MI_ALWAYS_HIDDEN>,
-        "the hide-when-empty check below assumes both sentinel items are always present");
-    if constexpr (ScreenMenuPrinterSetupHardware::item_count <= 2) {
-        Item<MI_PRINTER_SETUP_HARDWARE>().hide();
-    }
-
 #if HAS_INDX()
     // If INDX Nozzles were not calibrated yet, it doesn't make sense to display them.
     // They can not be enabled in this menu, so if the the item is disabled, hide it.
