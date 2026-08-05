@@ -201,7 +201,11 @@ void AutoRetract::maybe_deretract_to_nozzle() {
         return;
     }
 
+    // Necessary before we sample the positions
+    planner.synchronize();
+
     const auto orig_e_position = current_position.e;
+    const auto orig_e_planner_position = planner.get_axis_position_mm(E_AXIS_N(active_extruder));
 
     {
         // No estall detection during the ramming; we may do so too fast sometimes
@@ -214,7 +218,11 @@ void AutoRetract::maybe_deretract_to_nozzle() {
 
     // "Fake" original extruder position - we are interrupting various movements by this function,
     // firmware gets very confused if the current position changes while it is planning a move
-    sync_e_position_to(orig_e_position);
+    current_position.e = orig_e_position;
+
+    // We need to fake the planner position separately, because some rogue functions update the current_position BEFORE issuing the raw move
+    // So precondition that current_position == planner.position_float does not hold
+    planner.set_e_position_mm(orig_e_planner_position);
 
     set_retracted_distance(physical_tool, 0.0f);
 }
