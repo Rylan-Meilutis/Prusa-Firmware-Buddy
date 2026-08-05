@@ -222,7 +222,7 @@ MI_NOZZLE_CLEANER_LITE::MI_NOZZLE_CLEANER_LITE()
 
 void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
     bool nozzle_cleaner_lite_present = value();
-    if (MsgBoxWarning(_("Enabling/disabling nozzle cleaner lite will result in different moves in some sequences. Continue?"), { Response::Yes, Response::No }, 1) != Response::Yes) {
+    if (MsgBoxWarning(_("Enabling/disabling the nozzle wiper will result in different moves in some sequences. Continue?"), { Response::Yes, Response::No }, 1) != Response::Yes) {
         set_value(!nozzle_cleaner_lite_present);
         return;
     }

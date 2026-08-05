@@ -149,7 +149,8 @@ protected:
 
 #if HAS_NOZZLE_CLEANER_LITE()
 class MI_NOZZLE_CLEANER_LITE : public WI_ICON_SWITCH_OFF_ON_t {
-    static constexpr const char *const label = N_("Nozzle Cleaner Lite");
+    // Nozzle wiper is the product name - we call it nozzle cleaner lite
+    static constexpr const char *const label = N_("Nozzle Wiper");
 
 public:
     MI_NOZZLE_CLEANER_LITE();
