@@ -39,12 +39,14 @@ bool extruder_move(float distance, float feed_rate, bool ignore_flow_factor) {
     auto pos = planner.position_float;
     pos.e += distance;
 
+    // ! Imporant - do not use buffer_line, it would reapply modifiers on top of the position_float
+    const auto result = planner.buffer_segment(pos, feed_rate, PhysicalToolIndex::currently_selected(), PlannerHints { .move { .ignore_e_factor = ignore_flow_factor } });
+
     // But we gotta update current_position.e, too. .e should be always the same with planner.position_float (hopefully).
     // Only .z should ever differ because of MBL application.
     current_position.e = pos.e;
 
-    // ! Imporant - do not use buffer_line, it would reapply modifiers on top of the position_float
-    return planner.buffer_segment(pos, feed_rate, PhysicalToolIndex::currently_selected(), PlannerHints { .move { .ignore_e_factor = ignore_flow_factor } });
+    return result;
 }
 
 float extruder_schedule_turning(float feed_rate, float step) {
