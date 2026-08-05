@@ -48,7 +48,13 @@ void window_file_list_t::set_scroll_offset(int set) {
         return;
     }
 
+    // -1/+1 because ldv counts ".." as index -1
+    // The ldv window is sized to match the screen, so it can reach any scroll_offset
+    // within the menu's max_scroll_offset. Adopt the offset it actually set to stay
+    // in sync even if the request was out of bounds (e.g. a stale restored position
+    // after the directory content changed).
     const int actual = ldv.set_window_offset(set - 1) + 1;
+
     // This must be called AFTER ldv.set_window_offset, as it updates the texts based on the newly shifted window
     WindowMenuVirtualBase::set_scroll_offset(actual);
 }
@@ -143,7 +149,8 @@ const char *window_file_list_t::TopItemSFN() {
 }
 
 window_file_list_t::window_file_list_t(window_t *parent, Rect16 rc)
-    : WindowMenuVirtualSized(parent, rc, CloseScreenReturnBehavior::no) {
+    : WindowMenuVirtualSized(parent, rc, CloseScreenReturnBehavior::no)
+    , ldv(max_items_on_screen_count()) {
 
     debug_assert(max_items_on_screen_count() <= item_buffer_size);
 
