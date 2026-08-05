@@ -362,11 +362,6 @@ void idle(bool waiting) {
 
   thermalManager.manage_heater();
 
-  #ifdef HAL_IDLETASK
-    // #error dead code found by automatic analyses (see BFW-5461)
-    HAL_idletask();
-  #endif
-
   #if HAS_AUTO_REPORTING
     if (!suspend_auto_report) {
       #if ENABLED(AUTO_REPORT_TEMPERATURES)
