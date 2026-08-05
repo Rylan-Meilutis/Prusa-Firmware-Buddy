@@ -462,6 +462,8 @@ set_feature_for_printers_master_board(
   "COREONE"
   "COREONEL"
   )
+# Compensation of the nozzle thermal expansion between bed leveling and printing
+set_feature_for_printers_master_board(HAS_NOZZLE_THERMAL_COMPENSATION "XL")
 set_feature_for_printers_master_board(HAS_SHEET_PROFILES "MK3.5" "MINI")
 set_feature_for_printers_master_board(
   HAS_HEATBREAK_TEMP
