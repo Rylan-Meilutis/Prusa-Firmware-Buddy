@@ -258,16 +258,6 @@
   #error "G0_FEEDRATE is now used to set the G0 feedrate. Please update your configuration."
 #elif defined(MBL_Z_STEP)
   #error "MBL_Z_STEP is now MESH_EDIT_Z_STEP. Please update your configuration."
-#elif defined(SPINDLE_LASER_ENABLE)
-  #error "SPINDLE_LASER_ENABLE is now SPINDLE_FEATURE or LASER_FEATURE. Please update your Configuration_adv.h."
-#elif defined(SPINDLE_LASER_ENABLE_PIN)
-  #error "SPINDLE_LASER_ENABLE_PIN is now SPINDLE_LASER_ENA_PIN. Please update your Configuration_adv.h and/or pins."
-#elif defined(SPINDLE_DIR_CHANGE)
-  #error "SPINDLE_DIR_CHANGE is now SPINDLE_CHANGE_DIR. Please update your Configuration_adv.h."
-#elif defined(SPINDLE_STOP_ON_DIR_CHANGE)
-  #error "SPINDLE_STOP_ON_DIR_CHANGE is now SPINDLE_CHANGE_DIR_STOP. Please update your Configuration_adv.h."
-#elif defined(SPINDLE_LASER_ENABLE_INVERT)
-  #error "SPINDLE_LASER_ENABLE_INVERT is now SPINDLE_LASER_ACTIVE_HIGH. Please update your Configuration_adv.h."
 #elif defined(TMC_Z_CALIBRATION)
   #error "TMC_Z_CALIBRATION has been deprecated in favor of Z_STEPPER_AUTO_ALIGN. Please update your configuration."
 #elif defined(Z_MIN_PROBE_ENDSTOP)
@@ -1225,46 +1215,6 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
   #error "PSU_CONTROL requires PSU_ACTIVE_HIGH to be defined as 'true' or 'false'."
 #endif
 
-#if HAS_CUTTER
-  #define _PIN_CONFLICT(P) (PIN_EXISTS(P) && P##_PIN == SPINDLE_LASER_PWM_PIN)
-  #if BOTH(SPINDLE_FEATURE, LASER_FEATURE)
-    #error "Enable only one of SPINDLE_FEATURE or LASER_FEATURE."
-  #elif !PIN_EXISTS(SPINDLE_LASER_ENA)
-    #error "(SPINDLE|LASER)_FEATURE requires SPINDLE_LASER_ENA_PIN."
-  #elif ENABLED(SPINDLE_CHANGE_DIR) && !PIN_EXISTS(SPINDLE_DIR)
-    #error "SPINDLE_DIR_PIN is required for SPINDLE_CHANGE_DIR."
-  #elif ENABLED(SPINDLE_LASER_PWM)
-    #if !defined(SPINDLE_LASER_PWM_PIN) || SPINDLE_LASER_PWM_PIN < 0
-      #error "SPINDLE_LASER_PWM_PIN is required for SPINDLE_LASER_PWM."
-    #elif !PWM_PIN(SPINDLE_LASER_PWM_PIN)
-      #error "SPINDLE_LASER_PWM_PIN not assigned to a PWM pin."
-    #elif SPINDLE_LASER_POWERUP_DELAY < 1
-      #error "SPINDLE_LASER_POWERUP_DELAY must be greater than 0."
-    #elif SPINDLE_LASER_POWERDOWN_DELAY < 1
-      #error "SPINDLE_LASER_POWERDOWN_DELAY must be greater than 0."
-    #elif !defined(SPINDLE_LASER_PWM_INVERT)
-      #error "SPINDLE_LASER_PWM_INVERT is required for (SPINDLE|LASER)_FEATURE."
-    #elif !defined(SPEED_POWER_SLOPE) || !defined(SPEED_POWER_INTERCEPT) || !defined(SPEED_POWER_MIN) || !defined(SPEED_POWER_MAX)
-      #error "SPINDLE_LASER_PWM equation constant(s) missing."
-    #elif _PIN_CONFLICT(X_MIN)
-      #error "SPINDLE_LASER_PWM pin conflicts with X_MIN_PIN."
-    #elif _PIN_CONFLICT(X_MAX)
-      #error "SPINDLE_LASER_PWM pin conflicts with X_MAX_PIN."
-    #elif _PIN_CONFLICT(Z_STEP)
-      #error "SPINDLE_LASER_PWM pin conflicts with Z_STEP_PIN."
-    #elif _PIN_CONFLICT(CASE_LIGHT)
-      #error "SPINDLE_LASER_PWM_PIN conflicts with CASE_LIGHT_PIN."
-    #elif _PIN_CONFLICT(FAN)
-      #error "SPINDLE_LASER_PWM_PIN conflicts with FAN_PIN."
-    #elif _PIN_CONFLICT(FAN1)
-      #error "SPINDLE_LASER_PWM_PIN conflicts with FAN1_PIN."
-    #elif _PIN_CONFLICT(FAN2)
-      #error "SPINDLE_LASER_PWM_PIN conflicts with FAN2_PIN."
-    #endif
-  #endif
-  #undef _PIN_CONFLICT
-#endif
-
 #if ENABLED(PRINT_PROGRESS_SHOW_DECIMALS)
   #error "PRINT_PROGRESS_SHOW_DECIMALS currently requires a Graphical LCD."
 #elif ENABLED(SHOW_REMAINING_TIME)
@@ -1281,4 +1231,8 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if ENABLED(BLTOUCH) || ENABLED(BLTOUCH_DELAY) || ENABLED(BLTOUCH_FORCE_5V_MODE) || ENABLED(BLTOUCH_FORCE_OPEN_DRAIN_MODE) || defined(BLTOUCH_V3)
     #error "BLTOUCH is not supported"
+#endif
+
+#if ENABLED(SPINDLE_FEATURE) || ENABLED(LASER_FEATURE)
+    #error "laser is not supported"
 #endif

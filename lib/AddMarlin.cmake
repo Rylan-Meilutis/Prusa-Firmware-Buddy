@@ -60,7 +60,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/feature/print_area.cpp
             Marlin/Marlin/src/feature/prusa/e-stall_detector.cpp
             Marlin/Marlin/src/feature/prusa/measure_axis.cpp
-            Marlin/Marlin/src/feature/spindle_laser.cpp
             Marlin/Marlin/src/feature/twibus.cpp
             Marlin/Marlin/src/gcode/bedlevel/G42.cpp
             Marlin/Marlin/src/gcode/bedlevel/M420.cpp

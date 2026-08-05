@@ -389,13 +389,6 @@ void GcodeSuite::process_parsed_command_standard() {
         case 1: M0_M1(); break;                                   // M1: Conditional stop - Wait for user button press on LCD
       #endif
 
-      #if HAS_CUTTER
-        // #error dead code found by automatic analyses (see BFW-5461)
-        case 3: M3_M4(false); break;                              // M3: Turn ON Laser | Spindle (clockwise), set Power | Speed
-        case 4: M3_M4(true ); break;                              // M4: Turn ON Laser | Spindle (counter-clockwise), set Power | Speed
-        case 5: M5(); break;                                      // M5: Turn OFF Laser | Spindle
-      #endif
-
       #if ENABLED(COOLANT_CONTROL)
         // #error dead code found by automatic analyses (see BFW-5461)
         #if ENABLED(COOLANT_MIST)

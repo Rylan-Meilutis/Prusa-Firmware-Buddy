@@ -73,9 +73,6 @@
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD.
  * M1   -> M0
- * M3   - Turn ON Laser | Spindle (clockwise), set Power | Speed. (Requires SPINDLE_FEATURE or LASER_FEATURE)
- * M4   - Turn ON Laser | Spindle (counter-clockwise), set Power | Speed. (Requires SPINDLE_FEATURE or LASER_FEATURE)
- * M5   - Turn OFF Laser | Spindle. (Requires SPINDLE_FEATURE or LASER_FEATURE)
  * M7   - Turn mist coolant ON. (Requires COOLANT_CONTROL)
  * M8   - Turn flood coolant ON. (Requires COOLANT_CONTROL)
  * M9   - Turn coolant OFF. (Requires COOLANT_CONTROL)
@@ -476,12 +473,6 @@ private:
 
   #if HAS_RESUME_CONTINUE
     static void M0_M1();
-  #endif
-
-  #if HAS_CUTTER
-    // #error dead code found by automatic analyses (see BFW-5461)
-    static void M3_M4(const bool is_M4);
-    static void M5();
   #endif
 
   #if ENABLED(COOLANT_CONTROL)

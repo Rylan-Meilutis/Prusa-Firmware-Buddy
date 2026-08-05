@@ -92,11 +92,6 @@
   #include "feature/prusa/e-stall_detector.h"
 #endif
 
-#if HAS_CUTTER
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "feature/spindle_laser.h"
-#endif
-
 #if ENABLED(G38_PROBE_TARGET)
   // #error dead code found by automatic analyses (see BFW-5461)
   uint8_t G38_move; // = 0
@@ -510,11 +505,6 @@ void setup() {
       pressure_advance::init();
     #endif
   #endif /* HAS_PLANNER() */
-
-  #if HAS_CUTTER
-    // #error dead code found by automatic analyses (see BFW-5461)
-    cutter.init();
-  #endif
 
   #if ENABLED(COOLANT_MIST)
     // #error dead code found by automatic analyses (see BFW-5461)

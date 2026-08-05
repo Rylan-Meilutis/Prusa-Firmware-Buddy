@@ -71,11 +71,6 @@
   #include "../../lcd/e3v2/proui/dwin.h"
 #endif
 
-#if ENABLED(LASER_FEATURE)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "../../feature/spindle_laser.h"
-#endif
-
 #include <option/has_dwarf.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_toolchanger.h>
@@ -492,14 +487,6 @@ bool GcodeSuite::G28_no_parser(bool X, bool Y, bool Z, const G28Flags& flags) {
   #endif
 
   TERN_(BD_SENSOR, bdl.config_state = 0);
-
-  /**
-   * Set the laser power to false to stop the planner from processing the current power setting.
-   */
-  #if ENABLED(LASER_FEATURE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    planner.laser_inline.status.isPowered = false;
-  #endif
 
   #if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
     // #error dead code found by automatic analyses (see BFW-5461)
