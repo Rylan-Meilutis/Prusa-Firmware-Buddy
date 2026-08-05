@@ -11,6 +11,11 @@
 #include <common/sys.hpp>
 #include <common/printer_variant/printer_variant.hpp>
 
+#include <option/has_selftest.h>
+#if HAS_SELFTEST()
+    #include <selftest_result.hpp>
+#endif
+
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -447,10 +452,12 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     corexy_home_tmc_sens.set_to_default();
         #endif
     #endif
+    #if HAS_SELFTEST()
     selftest_result.apply([](SelftestResult &r) {
         r.set_xaxis(TestResult::unknown);
         r.set_yaxis(TestResult::unknown);
     });
+    #endif
     return true;
 }
 #endif
