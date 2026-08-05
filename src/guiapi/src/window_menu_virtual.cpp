@@ -22,7 +22,8 @@ void WindowMenuVirtualBase::setup_items() {
     items_set_up_ = true;
 
     if (!prev_items_set_up && should_focus_item_on_init()) {
-        move_focus_to_index(0);
+        // Focus the first item on the screen, keeping any scroll offset set up beforehand
+        move_focus_to_index(scroll_offset);
     }
 
     Invalidate();
