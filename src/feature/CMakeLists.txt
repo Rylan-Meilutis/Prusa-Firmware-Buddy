@@ -65,6 +65,10 @@ if(HAS_CEILING_CLEARANCE)
   add_subdirectory(ceiling_clearance)
 endif()
 
+if(HAS_NOZZLE_THERMAL_COMPENSATION)
+  add_subdirectory(nozzle_thermal_compensation)
+endif()
+
 add_subdirectory(print_status_message)
 
 if(HAS_AUTO_RETRACT)
