@@ -15,6 +15,7 @@
 #include "display_helper.h"
 #include "lazyfilelist.hpp"
 #include "text_roll.hpp"
+#include <i_window_menu_item.hpp>
 #include <window_menu_virtual.hpp>
 #include <guiconfig/GuiDefaults.hpp>
 #include <array>
@@ -43,8 +44,9 @@ public:
         : IWindowMenuItem(label, icon, is_enabled_t::yes, is_hidden_t::no) {}
 };
 
-// Needs smaller item size, otherwise wouldn't fit into MINI's RAM
-class window_file_list_t : public WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, 32> {
+// Items sized for WindowMenuItem. The other item being used is MI_RETURN,
+// which adds no members over IWindowMenuItem.
+class window_file_list_t : public WindowMenuVirtualSized<WindowMenuVirtualBase::default_item_buffer_size, sizeof(WindowMenuItem)> {
 
 public:
     static constexpr const char *root = "/usb";
