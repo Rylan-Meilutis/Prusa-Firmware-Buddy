@@ -36,6 +36,11 @@
         #include <feature/auto_retract/auto_retract.hpp>
     #endif
 
+    #include <option/has_nozzle_thermal_compensation.h>
+    #if HAS_NOZZLE_THERMAL_COMPENSATION()
+        #include <feature/nozzle_thermal_compensation/nozzle_thermal_compensation.hpp>
+    #endif
+
 LOG_COMPONENT_REF(PrusaToolChanger);
 
 PrusaToolChanger prusa_toolchanger;
@@ -286,6 +291,10 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
         new_hotend_offset = {};
     }
     const xyz_pos_t tool_offset_diff = hotend_currently_applied_offset - new_hotend_offset; ///< Difference between offset of new and old tools
+    #if HAS_NOZZLE_THERMAL_COMPENSATION()
+    ///< Thermal Z term of the outgoing tool, read before active_extruder switches below
+    const float thermal_z_offset_before = buddy::nozzle_thermal_compensation::current_elongation_vs_reference_mm();
+    #endif
 
     if (new_dwarf != old_dwarf) {
         // Ensure minimal feedrate for movements
@@ -359,6 +368,13 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
 
         // update return_position to the new working offset
         return_position += tool_offset_diff;
+    #if HAS_NOZZLE_THERMAL_COMPENSATION()
+        // The two tools run at their own temperatures, so their nozzles are not the same length.
+        // return_position is native, captured under the outgoing tool's term; re-express it under
+        // the incoming one so the head returns to the same commanded Z rather than the same
+        // carriage Z. The delta rides the return move below.
+        return_position.z += buddy::nozzle_thermal_compensation::current_elongation_vs_reference_mm() - thermal_z_offset_before;
+    #endif
         // Prevent a move outside physical bounds
         apply_motion_limits(return_position);
 

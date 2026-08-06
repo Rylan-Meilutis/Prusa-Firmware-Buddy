@@ -45,6 +45,12 @@
     #error "toolchanger requires ARC_SUPPORT"
 #endif
 
+#include <option/has_nozzle_thermal_compensation.h>
+// The nozzle thermal compensation re-expresses the toolchange return position under the incoming
+// tool's nozzle length. That hook exists in the XL toolchanger only, so enabling the option here
+// would compile but return the head to the previous tool's compensated height.
+static_assert(!HAS_NOZZLE_THERMAL_COMPENSATION(), "no nozzle thermal compensation hook in the INDX toolchanger");
+
 LOG_COMPONENT_REF(PrusaToolChanger);
 
 PrusaToolChanger prusa_toolchanger;
