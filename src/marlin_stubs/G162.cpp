@@ -28,6 +28,9 @@ static constexpr float Z_CALIB_EXTRA_HIGHT = 5.f; // mm
 
 #if PRINTER_IS_PRUSA_XL()
 
+/// Feedrate of the final push into the top hard stop, on which the motors skip to align themselves
+static constexpr feedRate_t Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE = 4.f; // mm/s
+
 void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     marlin_server::fsm_change(PhasesSelftest::CalibZ);
 
@@ -54,28 +57,18 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     line_to_current_position();
     planner.synchronize();
 
-    // Use loadcell probe as well as stall if there is a tool picked
-    const bool z_probe = std::holds_alternative<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-
-    // Home the axis
-    endstops.enable(true); // Stall endstops need to be enabled manually as in G28
-    if (!homeaxis(Z_AXIS, HOMING_FEEDRATE_INVERTED_Z, false, nullptr, true, z_probe)) {
+    // The nozzle is parked off the bed, so the loadcell would never trigger here even with
+    // a tool picked. Approach the top position over the whole travel on the stall endstop.
+    if (!do_homing_move(Z_AXIS, -(Z_MAX_POS - Z_MIN_POS) - Z_CALIB_EXTRA_HIGHT, HOMING_FEEDRATE_INVERTED_Z, false, false)
+        && !planner.draining()) {
         fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);
     }
-    endstops.not_homing();
+    current_position.z = Z_MIN_POS;
+    sync_plan_position();
 
-    // Check loadcell before ramming
-    if (z_probe) {
-        endstops.enable_z_probe(); // Enable z probe to get GetMinZEndstop()
-        if (loadcell.GetMinZEndstop()) { // Sitting on the nozzle, cannot ram the Z axis
-            fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z); // There was something wrong with the Z homing
-        }
-        endstops.enable_z_probe(false);
-    }
-
-    // Now ram the Z motors into the top position
-    static constexpr float target_Z = Z_MIN_POS - Z_CALIB_EXTRA_HIGHT;
-    do_blocking_move_to_z(target_Z, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    // Lower the bed and repeat the push slowly to align the motors
+    do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    do_blocking_move_to_z(Z_MIN_POS - Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE);
 
     // Clear some height for the nozzle again
     do_blocking_move_to_z(Z_MIN_POS, Z_CALIB_ALIGN_AXIS_FEEDRATE);
