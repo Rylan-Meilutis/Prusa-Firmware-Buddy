@@ -135,15 +135,10 @@ float random_jitter(uint8_t r_param) {
 
 /// Probe Z at a given XY position, averaging multiple measurements.
 /// Returns NaN on failure.
-/// Strips the currently applied hotend offset to avoid accumulating old offsets.
+/// Asks for no tool corrections: the hotend offset and the nozzle length are what this
+/// calibration is measuring, so folding them in would make it chase its own tail.
 float probe_z_at(const xy_pos_t &pos, uint8_t probe_count) {
-
-    const float measured = probe_at_point(pos, PROBE_PT_NONE, 1, true, probe_count);
-    if (std::isnan(measured)) {
-        return measured;
-    } else {
-        return measured - hotend_currently_applied_offset.z;
-    }
+    return probe_at_point(pos, PROBE_PT_NONE, 1, true, probe_count, ApplyToolCorrections::no);
 }
 
 /// Park at nozzle cleaner and run the cleaning sequence.

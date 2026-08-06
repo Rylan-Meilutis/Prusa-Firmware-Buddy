@@ -44,6 +44,11 @@
     PROBE_PT_BIG_RAISE  // Raise to big clearance after run_z_probe
   };
 
+  /// Whether probe_at_point() folds the tool-specific terms - the active tool's hotend offset and
+  /// its nozzle length - into its result. Say no when those terms are what you are measuring.
+  enum class ApplyToolCorrections : bool { no = false,
+      yes = true };
+
   struct RunZProbeParams {
     float expected_trigger_z;
     bool single_only = false;
@@ -60,7 +65,7 @@
   /// @param max_attempts        Max probe attempts before giving up.
   /// @returns probed Z (with offsets applied), or NAN if all attempts failed.
   float probe_here(float expected_trigger_z, uint8_t max_attempts);
-  float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after=PROBE_PT_NONE, const uint8_t verbose_level=0, const bool probe_relative=true, const uint8_t required_successes=1);
+  float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after=PROBE_PT_NONE, const uint8_t verbose_level=0, const bool probe_relative=true, const uint8_t required_successes=1, const ApplyToolCorrections apply_tool_corrections=ApplyToolCorrections::yes);
   #if ENABLED(NOZZLE_LOAD_CELL) && ENABLED(PROBE_CLEANUP_SUPPORT)
     bool cleanup_probe(const xy_pos_t &rect_min, const xy_pos_t &rect_max);
   #endif

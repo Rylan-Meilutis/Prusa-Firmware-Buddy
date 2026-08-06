@@ -94,6 +94,11 @@ LOG_COMPONENT_DEF(Probe, logging::Severity::info);
 #include <feature/print_status_message/print_status_message_guard.hpp>
 
 #include <option/has_auto_retract.h>
+
+#include <option/has_nozzle_thermal_compensation.h>
+#if HAS_NOZZLE_THERMAL_COMPENSATION()
+  #include <feature/nozzle_thermal_compensation/nozzle_thermal_compensation.hpp>
+#endif
 #include <option/has_indx.h>
 #include <option/has_dwarf.h>
 #include <mapi/motion.hpp>
@@ -1024,7 +1029,7 @@ float probe_here(float expected_trigger_z, uint8_t max_attempts)
  *   - Raise to the BETWEEN height
  * - Return the probed Z position
  */
-float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE_PT_NONE*/, const uint8_t verbose_level/*=0*/, const bool probe_relative/*=true*/, const uint8_t required_successes/*=1*/) {
+float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE_PT_NONE*/, const uint8_t verbose_level/*=0*/, const bool probe_relative/*=true*/, const uint8_t required_successes/*=1*/, const ApplyToolCorrections apply_tool_corrections/*=ApplyToolCorrections::yes*/) {
   xyz_pos_t npos = xyz_pos_t(pos);
   if (probe_relative) {
     if (!position_is_reachable_by_probe(npos.xy())) {
@@ -1076,13 +1081,21 @@ float probe_at_point(const xy_pos_t &pos, const ProbePtRaise raise_after/*=PROBE
 
     measured_z += probe_offset.z;
 
-    #if HAS_HOTEND_OFFSET
-    #if !HAS_TOOLCHANGER() && !HAS_INDX()
-      #error not implemented
-    #endif
-    // measured Z is in probe's logical coordinate space, shift it to printers native coordinate space
-    measured_z += hotend_currently_applied_offset.z;
-    #endif
+    if (apply_tool_corrections == ApplyToolCorrections::yes) {
+      #if HAS_HOTEND_OFFSET
+      #if !HAS_TOOLCHANGER() && !HAS_INDX()
+        #error not implemented
+      #endif
+      // measured Z is in probe's logical coordinate space, shift it to printers native coordinate space
+      measured_z += hotend_currently_applied_offset.z;
+      #endif
+
+      #if HAS_NOZZLE_THERMAL_COMPENSATION()
+      // Express the result in the nozzle's length at the reference temperature; see
+      // nozzle_thermal_compensation.hpp
+      measured_z -= buddy::nozzle_thermal_compensation::current_elongation_vs_reference_mm();
+      #endif
+    }
 
     const bool big_raise = raise_after == PROBE_PT_BIG_RAISE;
     if (big_raise || raise_after == PROBE_PT_RAISE) {
