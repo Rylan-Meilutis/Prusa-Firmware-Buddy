@@ -19,6 +19,7 @@
 #include <loadcell.hpp>
 #include <config_store/store_instance.hpp>
 #include <common/selftest_result.hpp>
+#include <common/mapi/acceleration_limiter.hpp>
 #include <common/mapi/calibration_preamble.hpp>
 #include <common/mapi/parking.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
@@ -68,6 +69,28 @@ static constexpr float probe_max_spread_mm = 0.4f;
 /// XY probe trigger threshold for a touch [g], raised above the loadcell default (40 g) so the firm tray
 /// edge is not triggered prematurely on approach vibration/noise. INDX_TODO: tune.
 static constexpr float probe_xy_trigger_g = 80;
+
+/// Nominal nozzle tip radius [mm]; (observed range 1.2-1.9)
+static constexpr float nozzle_radius_estimate_mm = 3.2f / 2.f;
+/// Max XY acceleration during the touches [mm/s^2] (matches G425 XY probing). At the default travel
+/// acceleration, the jolt at the approach start can push the freshly tared loadcell over the trigger
+/// threshold, producing a false contact right at the entry point.
+static constexpr float probe_xy_acceleration_mm_s2 = 500;
+
+/// Accepted range for the effective nozzle radius measured by the two-sided wall touch [mm]. Out of
+/// range means the wall was hit far up the nozzle cone (Z screw badly adjusted) or a touch was bogus.
+/// INDX_TODO: tune.
+static constexpr float nozzle_radius_min_mm = 1.0f;
+static constexpr float nozzle_radius_max_mm = 2.2f;
+
+/// Currently applied hotend offset (nozzle = carriage + offset); zero without hotend offset support.
+static xy_float_t current_nozzle_offset() {
+    xy_float_t offset = { 0.0f, 0.0f };
+#if HAS_HOTEND_OFFSET
+    offset = hotend_currently_applied_offset.xy();
+#endif
+    return offset;
+}
 
 /// Busy-wait while keeping the machine idle (needed so the loadcell keeps sampling before taring).
 static void wait_ms(uint32_t duration_ms) {
@@ -234,7 +257,7 @@ private:
         fsm_change(PhaseNozzleCleanerCalibration::homing);
         GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .precise = false });
 
-        // X (cleaner wall) first: the Y touch needs the calibrated X.
+        // X (cleaner wall) first: the Y touch needs the measured wall middle and nozzle radius.
         {
             const auto result = calibrate_x_loadcell();
             if (result != Result::success) {
@@ -308,12 +331,27 @@ private:
         return gcode_exceptions().is_unwinding() ? Result::aborted : Result::success;
     }
 
-    /// Move the head to the Y touch entry point: calibrated X, entry Y, current Z (the fixed cleaner
-    /// spans the Z range, so the nozzle Z relative to the block does not matter). Also used to retreat
-    /// clear of the block after a touch (X is already there, only Y changes).
+    /// Wall middle X and effective nozzle radius from the two-sided X wall measurement of this cycle.
+    /// nullopt after the manual X fallback (no loadcell touches) - the single-sided Y touch needs both,
+    /// so Y then goes manual as well.
+    std::optional<float> wall_middle_x;
+    std::optional<float> nozzle_radius;
+
+    /// Single-axis machine move at the slow toolchanger feedrate.
+    void machine_move_axis(AxisEnum axis, float pos_mm) {
+        auto target = current_machine_position();
+        target[axis] = pos_mm;
+        line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
+        planner.synchronize();
+    }
+
+    /// Move the head to the Y touch entry point: measured wall middle in X, entry Y, current Z (the fixed
+    /// cleaner spans the Z range, so the nozzle Z relative to the block does not matter). Called with the
+    /// head either on the purge-entry lane (only X changes) or retreating from a touch (only Y changes),
+    /// so the move never cuts across the tray.
     void move_to_purge_touch_entry() {
         auto target = current_machine_position();
-        target.x = X_NOZZLE_CLEANER_PURGE_TOUCH + config_store().nozzle_cleaner_x_origin_offset.get();
+        target.x = *wall_middle_x - current_nozzle_offset().x;
         target.y = Y_NOZZLE_CLEANER_PURGE_ENTRY;
         line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
         planner.synchronize();
@@ -378,9 +416,9 @@ private:
         MachinePosXYZE hit_mm;
         corexy_ab_to_xyze(hit_steps, hit_mm);
 
-        const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-        const xyz_pos_t tool_offset = selected_tool ? hotend_offset[*selected_tool] : xyz_pos_t {};
-        return hit_mm[axis] + tool_offset[axis];
+        // Fold the picked tool's hotend offset in (nozzle = carriage + offset), making the value
+        // tool-independent. Every carriage move target derived from it must unfold the offset again.
+        return hit_mm[axis] + current_nozzle_offset()[axis];
     }
 
     /// Result of several loadcell touches along one axis.
@@ -397,6 +435,7 @@ private:
     AxisMeasurement measure_axis(AxisEnum axis, const char *label, float probe_target_mm, Retreat &&retreat) {
         std::array<float, probe_sample_count> samples;
         Loadcell::HighPrecisionEnabler high_precision(loadcell);
+        mapi::AccelerationLimiter accel_limiter(probe_xy_acceleration_mm_s2);
         for (uint8_t i = 0; i < probe_sample_count; ++i) {
             const auto contact = touch_axis(axis, probe_target_mm);
             retreat();
@@ -414,25 +453,23 @@ private:
         return { .reached = true, .median = stats.median, .spread = stats.spread };
     }
 
-    /// Move the head to the X wall touch entry point: entry X, touch Y, current Z (the fixed cleaner
-    /// spans the Z range, so the nozzle Z relative to the wall does not matter). Also used to retreat
-    /// clear of the wall after a touch (Y is already there, only X changes). X is not calibrated yet at
-    /// this point, so no offset is applied.
+    /// Move the head to the outer wall touch entry point: X first, then Y, so the approach runs down the
+    /// entry lane (clear of the wall over its whole Y range) instead of cutting a diagonal across the
+    /// cleaner - a retry may start from the purge-entry lane after a failed inner touch. Current Z (the
+    /// fixed cleaner spans the Z range, so the nozzle Z relative to the wall does not matter). X is not
+    /// calibrated yet at this point, so no offset is applied.
     void move_to_wall_touch_entry() {
-        auto target = current_machine_position();
-        target.x = X_NOZZLE_CLEANER_WALL_ENTRY;
-        target.y = X_NOZZLE_CLEANER_WALL_TOUCH_Y;
-        line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
-        planner.synchronize();
+        machine_move_axis(AxisEnum::X_AXIS, X_NOZZLE_CLEANER_WALL_ENTRY);
+        machine_move_axis(AxisEnum::Y_AXIS, X_NOZZLE_CLEANER_WALL_TOUCH_Y);
     }
 
     /// Shared per-axis calibration loop: run @p run_automatic once, and on failure show the results
     /// screen offering manual calibration (Yes), an automatic retry (Retry), or aborting (Abort). Both
     /// @p run_automatic and the manual fallback write @p offset / @p nominal for the results screen and
-    /// return nullopt on failure, or a terminal Result otherwise.
+    /// return nullopt on failure, or a terminal Result otherwise. @p use_manual starts with the manual
+    /// flow directly, skipping the automatic attempt.
     template <typename Automatic>
-    Result run_axis_calibration(const AxisCalibConfig &config, Automatic &&run_automatic) {
-        bool use_manual = false;
+    Result run_axis_calibration(const AxisCalibConfig &config, Automatic &&run_automatic, bool use_manual = false) {
         for (;;) {
             // nullopt until an attempt records a value; stays nullopt when the probe never touches,
             // which the results screen renders as "N/A" instead of a misleading 0.00 mm.
@@ -460,33 +497,92 @@ private:
         }
     }
 
-    /// Automatic X calibration: touch the outer wall of the cleaner with the loadcell.
+    /// Automatic X calibration: touch the cleaner wall with the loadcell from both sides.
     ///
-    /// Runs first (before Y, which needs the calibrated X) and after a G28 (machine homed). The head
-    /// drives to the entry X at the touch Y and touches the wall in +X several times, retreating between
-    /// touches; the median contact X minus the nominal gives the stored X offset. On failure the results
-    /// screen offers a manual calibration (Yes), an automatic retry (Retry), or aborting.
+    /// Runs first (the Y touch needs its results) and after a G28 (machine homed). The outer face is
+    /// touched in +X from the entry lane; the head then travels around the wall's +Y end (up to the
+    /// purge-entry lane, over to the V-groove lane and down past the wastebin) and touches the inner
+    /// face in -X. The mean of the two contact medians is the wall middle - the nozzle radius cancels
+    /// out, so the result does not depend on how high up the nozzle cone the wall is hit (i.e. on the
+    /// mechanical Z adjustment). The contact distance also yields this cycle's effective nozzle radius,
+    /// which the Y touch needs to compensate its single-sided measurement.
+    ///
+    /// On failure the results screen offers a manual calibration (Yes), an automatic retry (Retry), or
+    /// aborting; failures always leave the head clear of the cleaner (on the outer entry lane or the
+    /// purge-entry lane).
     /// @return success if calibrated (automatically or by hand), aborted if the user cancels
     Result calibrate_x_loadcell() {
         return run_axis_calibration(x_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
-            nominal = X_NOZZLE_CLEANER_WALL_NOMINAL;
+            nominal = X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
             fsm_change(PhaseNozzleCleanerCalibration::measuring_x);
 
-            // Cleaner wall: touch in +X from the entry, retreating to the entry between touches.
+            // Outer face: touch in +X from the entry, retreating to the entry between touches.
             move_to_wall_touch_entry();
-            const auto wall = measure_axis(AxisEnum::X_AXIS, "X", X_NOZZLE_CLEANER_WALL_PROBE_MAX,
+            const auto outer = measure_axis(AxisEnum::X_AXIS, "X outer", X_NOZZLE_CLEANER_WALL_PROBE_MAX,
                 [this] { move_to_wall_touch_entry(); });
 
-            if (!wall.reached) {
+            if (!outer.reached) {
                 // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
-                log_error(NozzleCleanerCalibration, "Nozzle cleaner X touch did not reach the cleaner wall");
+                log_error(NozzleCleanerCalibration, "Nozzle cleaner X outer touch did not reach the wall");
                 return std::nullopt;
             }
-            offset = wall.median - X_NOZZLE_CLEANER_WALL_NOMINAL;
-            if (wall.spread > probe_max_spread_mm) {
+            if (outer.spread > probe_max_spread_mm) {
                 log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner X touches inconsistent: spread %.2f mm (max %.2f mm)",
-                    static_cast<double>(wall.spread), static_cast<double>(probe_max_spread_mm));
+                    "Nozzle cleaner X outer touches inconsistent: spread %.2f mm (max %.2f mm)",
+                    static_cast<double>(outer.spread), static_cast<double>(probe_max_spread_mm));
+                return std::nullopt;
+            }
+
+            // Cleaner offset estimated from the outer contact alone (assuming the nominal tip radius);
+            // aligns the V-groove lane and the inner probe with the real part position before driving
+            // in. The radius uncertainty is far below the lane clearances.
+            const float estimated_offset = outer.median - (X_NOZZLE_CLEANER_WALL_OUTER_FACE_NOMINAL - nozzle_radius_estimate_mm);
+            if (std::abs(estimated_offset) > offset_tolerance_mm) {
+                offset = estimated_offset;
+                log_error(NozzleCleanerCalibration,
+                    "Nozzle cleaner X offset estimate %.2f out of bounds (max %.1f mm)",
+                    static_cast<double>(estimated_offset), static_cast<double>(offset_tolerance_mm));
+                return std::nullopt;
+            }
+
+            // Around the wall's +Y end to its inner side: up the entry lane to the purge-entry lane,
+            // over to the V-groove lane and down past the wastebin to the touch Y. The estimate is a
+            // nozzle-frame value, so the carriage targets derived from it unfold the tool offset.
+            const float lane_x = X_NOZZLE_CLEANER_ORIGIN + estimated_offset - current_nozzle_offset().x;
+            machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
+            machine_move_axis(AxisEnum::X_AXIS, lane_x);
+            machine_move_axis(AxisEnum::Y_AXIS, X_NOZZLE_CLEANER_WALL_TOUCH_Y);
+
+            // Inner face: touch in -X from the V-groove lane; the probe limit keeps the nozzle center
+            // from ever crossing the (estimated) wall middle.
+            const auto inner = measure_axis(AxisEnum::X_AXIS, "X inner",
+                X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL + estimated_offset - current_nozzle_offset().x,
+                [this, lane_x] { machine_move_axis(AxisEnum::X_AXIS, lane_x); });
+
+            // Back out to the purge-entry lane right away so every following state - results screen,
+            // retry, manual park, the Y touch - starts clear of the wastebin interior.
+            machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
+
+            if (!inner.reached) {
+                log_error(NozzleCleanerCalibration, "Nozzle cleaner X inner touch did not reach the wall");
+                return std::nullopt;
+            }
+
+            const float middle = (outer.median + inner.median) / 2.f;
+            const float radius = (inner.median - outer.median - X_NOZZLE_CLEANER_WALL_THICKNESS) / 2.f;
+            offset = middle - X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
+
+            if (inner.spread > probe_max_spread_mm) {
+                log_error(NozzleCleanerCalibration,
+                    "Nozzle cleaner X inner touches inconsistent: spread %.2f mm (max %.2f mm)",
+                    static_cast<double>(inner.spread), static_cast<double>(probe_max_spread_mm));
+                return std::nullopt;
+            }
+            if (radius < nozzle_radius_min_mm || radius > nozzle_radius_max_mm) {
+                log_error(NozzleCleanerCalibration,
+                    "Nozzle cleaner effective nozzle radius %.2f out of range (%.1f-%.1f mm); check the Z screw adjustment",
+                    static_cast<double>(radius), static_cast<double>(nozzle_radius_min_mm),
+                    static_cast<double>(nozzle_radius_max_mm));
                 return std::nullopt;
             }
             if (std::abs(*offset) > offset_tolerance_mm) {
@@ -497,68 +593,75 @@ private:
             }
 
             config_store().nozzle_cleaner_x_origin_offset.set(*offset);
+            wall_middle_x = middle;
+            nozzle_radius = radius;
             log_info(NozzleCleanerCalibration,
-                "Nozzle cleaner X calibrated: offset=%.2f (median of %hhu, spread %.2f mm)",
-                static_cast<double>(*offset), probe_sample_count, static_cast<double>(wall.spread));
-
-            // Hand off to the Y touch without a diagonal across the wall: retreat in -X, then up in +Y to
-            // the purge entry lane while still outside the wall (the purge entry move is then pure +X).
-            move_to_wall_touch_entry();
-            auto target = current_machine_position();
-            target.y = Y_NOZZLE_CLEANER_PURGE_ENTRY;
-            line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
-            planner.synchronize();
+                "Nozzle cleaner X calibrated: offset=%.2f middle=%.2f radius=%.2f (spread outer %.2f inner %.2f)",
+                static_cast<double>(*offset), static_cast<double>(middle), static_cast<double>(radius),
+                static_cast<double>(outer.spread), static_cast<double>(inner.spread));
             return Result::success;
         });
     }
 
     /// Automatic Y calibration: touch the back edge of the plastic cleaner tray with the loadcell.
     ///
-    /// The head drives to the calibrated X at the entry Y and touches the tray's back edge in -Y several
-    /// times, retreating between touches; the median contact Y minus the nominal gives the stored,
-    /// origin-relative Y offset for G750.
+    /// The head drives to the measured wall middle at the entry Y and touches the tray's back edge in -Y
+    /// several times, retreating between touches; the median contact minus this cycle's effective nozzle
+    /// radius is the physical edge position, and minus the nominal gives the stored, origin-relative Y
+    /// offset for G750.
     ///
-    /// Runs after X is calibrated (so the touch X is correct) and after a G28 (machine homed). On failure
-    /// the results screen offers a manual calibration (Yes), an automatic retry (Retry), or aborting.
+    /// Runs after X is calibrated and after a G28 (machine homed). The single-sided touch needs the wall
+    /// middle and nozzle radius from the two-sided X measurement, so after a manual X calibration the
+    /// manual Y flow starts directly. On failure the results screen offers a manual calibration (Yes),
+    /// an automatic retry (Retry), or aborting.
     /// @return success if calibrated (automatically or by hand), aborted if the user cancels
     Result calibrate_y_loadcell() {
-        return run_axis_calibration(y_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
-            nominal = Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
-            fsm_change(PhaseNozzleCleanerCalibration::measuring_y);
+        const bool have_wall_measurement = wall_middle_x.has_value() && nozzle_radius.has_value();
+        return run_axis_calibration(
+            y_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
+                nominal = Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
+                if (!wall_middle_x.has_value() || !nozzle_radius.has_value()) {
+                    log_error(NozzleCleanerCalibration, "Nozzle cleaner Y touch needs the X wall measurement, calibrate manually");
+                    return std::nullopt;
+                }
+                fsm_change(PhaseNozzleCleanerCalibration::measuring_y);
 
-            // Tray back edge: touch in -Y from the entry (failures leave the head at the entry, clear).
-            move_to_purge_touch_entry();
-            const auto back = measure_axis(AxisEnum::Y_AXIS, "Y", Y_NOZZLE_CLEANER_PURGE_PROBE_MIN,
-                [this] { move_to_purge_touch_entry(); });
+                // Tray back edge: touch in -Y from the entry (failures leave the head at the entry, clear).
+                move_to_purge_touch_entry();
+                const auto back = measure_axis(AxisEnum::Y_AXIS, "Y", Y_NOZZLE_CLEANER_PURGE_PROBE_MIN,
+                    [this] { move_to_purge_touch_entry(); });
 
-            if (!back.reached) {
-                // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
-                log_error(NozzleCleanerCalibration, "Nozzle cleaner Y touch did not reach the tray back edge");
-                return std::nullopt;
-            }
-            offset = back.median - Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
-            if (back.spread > probe_max_spread_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner Y back touches inconsistent: spread %.2f mm (max %.2f mm)",
-                    static_cast<double>(back.spread), static_cast<double>(probe_max_spread_mm));
-                return std::nullopt;
-            }
-            if (std::abs(*offset) > offset_tolerance_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner Y offset %.2f out of bounds (max %.1f mm)",
-                    static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
-                return std::nullopt;
-            }
+                if (!back.reached) {
+                    // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
+                    log_error(NozzleCleanerCalibration, "Nozzle cleaner Y touch did not reach the tray back edge");
+                    return std::nullopt;
+                }
+                // The nozzle center stops one effective radius short of the edge face.
+                offset = back.median - *nozzle_radius - Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL;
+                if (back.spread > probe_max_spread_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner Y back touches inconsistent: spread %.2f mm (max %.2f mm)",
+                        static_cast<double>(back.spread), static_cast<double>(probe_max_spread_mm));
+                    return std::nullopt;
+                }
+                if (std::abs(*offset) > offset_tolerance_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner Y offset %.2f out of bounds (max %.1f mm)",
+                        static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
+                    return std::nullopt;
+                }
 
-            config_store().nozzle_cleaner_y_origin_offset.set(*offset);
-            log_info(NozzleCleanerCalibration,
-                "Nozzle cleaner Y calibrated: offset=%.2f (median %.2f spread %.2f)",
-                static_cast<double>(*offset), static_cast<double>(back.median), static_cast<double>(back.spread));
+                config_store().nozzle_cleaner_y_origin_offset.set(*offset);
+                log_info(NozzleCleanerCalibration,
+                    "Nozzle cleaner Y calibrated: offset=%.2f (median %.2f radius %.2f spread %.2f)",
+                    static_cast<double>(*offset), static_cast<double>(back.median),
+                    static_cast<double>(*nozzle_radius), static_cast<double>(back.spread));
 
-            // Exit clear of the cleaner before the head is driven down in Y (manual Y park / wizard exit).
-            move_out_after_purge_touch();
-            return Result::success;
-        });
+                // Exit clear of the cleaner before the head is driven down in Y (manual Y park / wizard exit).
+                move_out_after_purge_touch();
+                return Result::success;
+            },
+            !have_wall_measurement);
     }
 
     /// One manual measurement attempt for @p config (offered as the "Yes" branch of the results screen).
@@ -694,12 +797,9 @@ private:
         corexy_ab_to_xy(position_before - position_after, diff);
 
         // Fold the picked tool's hotend offset in so the stored position is tool-independent.
-        const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-        const xyz_pos_t tool_offset = selected_tool ? hotend_offset[*selected_tool] : xyz_pos_t {};
-
         return (config.axis == AxisEnum::X_AXIS)
-            ? (diff.x + current_position.x + tool_offset.x)
-            : (diff.y + current_position.y + tool_offset.y);
+            ? (diff.x + current_position.x + current_nozzle_offset().x)
+            : (diff.y + current_position.y + current_nozzle_offset().y);
     }
 };
 

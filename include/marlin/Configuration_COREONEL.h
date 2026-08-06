@@ -1145,23 +1145,31 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define X_WASTEBIN_POINT X_NOZZLE_CLEANER_ORIGIN
     #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL - 6.f) // derived from the tray anchor
 
-    // Loadcell Y calibration touches the tray back edge (drive to PURGE_TOUCH at PURGE_ENTRY, move -Y);
-    // stored offset = measured edge - BACK_NOMINAL.
-    // 4.745 = 5 - 0.255 (empirical loadcell-vs-V-groove median, 7 COREONE units). INDX_TODO: revisit.
-    #define Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL + 4.745f)
+    // Loadcell Y calibration touches the tray back edge (drive to the measured wall middle at
+    // PURGE_ENTRY, move -Y); stored offset = contact - effective nozzle radius - BACK_NOMINAL.
+    // BACK_NOMINAL is the physical edge face, radius-free.
+    // 2.77 = radius-compensated edge anchored to a manual (indent homing) measurement, 1 unit.
+    // INDX_TODO: refine on more units.
+    #define Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL + 2.77f)
     #define Y_NOZZLE_CLEANER_PURGE_PROBE_MIN (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL - 3.f) // probe ceiling past the edge
-    #define X_NOZZLE_CLEANER_PURGE_TOUCH 304.5f
-    // Entry sits clear of the edge by more than the offset tolerance so the +X align move never bumps the
+    // Entry sits clear of the edge by more than the offset tolerance so the X align move never bumps the
     // tray even on a max-tolerance +Y misaligned bin.
     #define Y_NOZZLE_CLEANER_PURGE_ENTRY (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL + 4.f)
 
-    // Loadcell X calibration touches the outer cleaner wall (drive to WALL_ENTRY at WALL_TOUCH_Y, move
-    // +X); stored offset = measured - WALL_NOMINAL. NOMINAL sits 8.25 mm inward (6.65 + 3.2/2).
+    // Loadcell X calibration touches the outer wall face (from WALL_ENTRY, move +X) and the inner face
+    // (move -X from the V-groove lane at X_NOZZLE_CLEANER_ORIGIN, reached around the wall's +Y end via
+    // the purge-entry lane). Wall middle = mean of the two contacts (the nozzle radius cancels out);
+    // effective nozzle radius = (contact distance - THICKNESS) / 2. Stored offset = middle -
+    // MIDDLE_NOMINAL; the face nominal is radius-free part geometry.
     #define X_NOZZLE_CLEANER_WALL_TOUCH_Y (Y_NOZZLE_CLEANER_ORIGIN + 77.f)
     #define X_NOZZLE_CLEANER_WALL_ENTRY (X_NOZZLE_CLEANER_ORIGIN - 12.f)
     #define X_NOZZLE_CLEANER_WALL_PROBE_MAX (X_NOZZLE_CLEANER_ORIGIN - 2.f)
-    // 8.535 = 8.25 (6.65 + 3.2/2) + 0.285 (empirical loadcell-vs-V-groove median, 7 COREONE units). INDX_TODO: revisit.
-    #define X_NOZZLE_CLEANER_WALL_NOMINAL (X_NOZZLE_CLEANER_ORIGIN - 8.535f)
+    #define X_NOZZLE_CLEANER_WALL_THICKNESS 1.69f
+    // V-groove center to wall middle; the stored offset's zero point. 6.03 = two-sided middle anchored
+    // to a manual (V-groove homing) measurement, 1 unit. INDX_TODO: refine on more units.
+    #define X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL (X_NOZZLE_CLEANER_ORIGIN - 6.03f)
+    // Derived; only estimates the outer contact before the two-sided measurement completes.
+    #define X_NOZZLE_CLEANER_WALL_OUTER_FACE_NOMINAL (X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL - X_NOZZLE_CLEANER_WALL_THICKNESS / 2.f)
 
     #define X_NOZZLE_PARK_POINT X_WASTEBIN_POINT
     #define Y_NOZZLE_PARK_POINT Y_WASTEBIN_POINT + 5.f
