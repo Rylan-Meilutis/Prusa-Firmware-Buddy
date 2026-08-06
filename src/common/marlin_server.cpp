@@ -803,7 +803,14 @@ void init(void) {
     case XLTypeDetectionResult::detected_as_xl: {
         // Note: marlin_client not needed for the XLS change, so it's safe
         change_extended_printer_type(PrinterModel::xl, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
-        set_warning(WarningType::PrinterDetectedAsXL);
+
+        if (config_store().printer_hw_config_done.get()) {
+            set_warning(WarningType::PrinterDetectedAsXL);
+
+        } else {
+            // User will see the printer type on the printer setup page, no need to display the warning
+            // Without this, non-XLS users would get the warning after factory reset
+        }
         break;
     }
 
