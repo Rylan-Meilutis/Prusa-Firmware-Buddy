@@ -221,15 +221,7 @@ MI_NOZZLE_CLEANER_LITE::MI_NOZZLE_CLEANER_LITE()
     : WI_ICON_SWITCH_OFF_ON_t(false, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {};
 
 void MI_NOZZLE_CLEANER_LITE::OnChange([[maybe_unused]] size_t old_index) {
-    bool nozzle_cleaner_lite_present = value();
-    if (MsgBoxWarning(_("Enabling/disabling the nozzle wiper will result in different moves in some sequences. Continue?"), { Response::Yes, Response::No }, 1) != Response::Yes) {
-        set_value(!nozzle_cleaner_lite_present);
-        return;
-    }
-
-    {
-        config_store().nozzle_cleaner_lite_installed.set(nozzle_cleaner_lite_present);
-    }
+    config_store().nozzle_cleaner_lite_installed.set(value());
 }
 
 void MI_NOZZLE_CLEANER_LITE::Loop() {
