@@ -237,7 +237,7 @@ MI_BELTS_15GT::MI_BELTS_15GT()
 
 void MI_BELTS_15GT::OnChange([[maybe_unused]] size_t old_index) {
     const bool belts_15gt_installed = value();
-    if (MsgBoxWarning(_("Changing the belt type updates the X/Y steps/mm, resets the XY calibration and restarts the printer. Wrongly selected belt type may cause imprecise prints and XY homing issues. Continue?"),
+    if (MsgBoxWarning(_("Changing belt type updates X/Y steps/mm, resets some calibrations, and restarts the printer. An incorrect setting causes dimensional errors and homing issues. Continue?"),
             { Response::Yes, Response::No }, 1)
         != Response::Yes) {
         set_value(!belts_15gt_installed); // revert the GUI, keep config store intact

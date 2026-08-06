@@ -164,7 +164,6 @@ protected:
 #endif
 
 #if HAS_15GT_BELTS()
-/// Whether the printer has the 1.5GT belts. Changing it re-applies X/Y steps, resets XY calibration, and restarts.
 class MI_BELTS_15GT : public WI_ICON_SWITCH_OFF_ON_t {
     static constexpr const char *const label = N_("1.5GT Belts");
 
