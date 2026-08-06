@@ -768,7 +768,11 @@ set_feature_for_printers(HAS_TOOL_OFFSET_SENSOR "COREONE_INDX" "COREONEL_INDX" "
 # bridge, so missing-bridge on XLS is a hardware fault rather than a normal config.
 set_feature_for_printers_master_board(HAS_XL_CAN "XL")
 
-set_feature_for_printers(HAS_ANFC)
+if(DEVELOPMENT_ITEMS_ENABLED)
+  set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL")
+else()
+  set_feature_for_printers(HAS_ANFC)
+endif()
 set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL" "COREONEL_INDX")
 
 # Use websocket to talk to Connect instead of many http requests.
