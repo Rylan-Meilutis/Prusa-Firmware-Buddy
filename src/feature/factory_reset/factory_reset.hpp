@@ -43,7 +43,11 @@ public:
             { Item::network, { N_("Network Settings"), ItemFlag::network } },
             { Item::user_interface, { N_("UI Settings"), ItemFlag::user_interface } },
             { Item::stats, { N_("Statistics"), ItemFlag::stats } },
-            { Item::hw_config, { N_("HW Configuration"), ItemFlag::hw_config } },
+
+            // The calibrations are done for some hw_config (for example belts -> XY test/calibrations)
+            // Therefore when resetting HW configuration, we need to reset the calibrations as well
+            { Item::hw_config, { N_("HW Configuration"), ItemFlag::hw_config | ItemFlag::calibrations } },
+
             { Item::features, { N_("Printer Functions"), ItemFlag::features } },
             { Item::printer_state, { N_("Printer State"), ItemFlag::printer_state } },
             { Item::user_profiles, { N_("User Presets"), ItemFlag::user_presets } },
