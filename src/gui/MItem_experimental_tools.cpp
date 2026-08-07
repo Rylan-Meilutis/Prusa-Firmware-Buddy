@@ -6,7 +6,6 @@
 #include "MItem_experimental_tools.hpp"
 #include "WindowMenuSpin.hpp"
 #include "ScreenHandler.hpp"
-#include "string.h" // memcmp
 #include "img_resources.hpp"
 #include <gui/menu_vars.h>
 
@@ -83,6 +82,7 @@ float value_to_store(float val, const WiSwitchDirection &wrong_direction_item, f
 
 } // namespace
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_X
 MI_STEPS_PER_UNIT_X::MI_STEPS_PER_UNIT_X()
@@ -118,6 +118,7 @@ MI_STEPS_PER_UNIT_Z::MI_STEPS_PER_UNIT_Z()
 void MI_STEPS_PER_UNIT_Z::Store() {
     set_steps_per_unit_z(GetVal());
 }
+#endif
 
 /*****************************************************************************/
 // MI_STEPS_PER_UNIT_E
@@ -147,6 +148,7 @@ static constexpr const char *switch_direction_items[] = {
 WiSwitchDirection::WiSwitchDirection(bool current_direction_wrong, const string_view_utf8 &label_view)
     : MenuItemSwitch(label_view, switch_direction_items, current_direction_wrong) {}
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 /*****************************************************************************/
 // MI_DIRECTION_X
 MI_DIRECTION_X::MI_DIRECTION_X()
@@ -165,6 +167,7 @@ MI_DIRECTION_Z::MI_DIRECTION_Z()
 void MI_DIRECTION_Z::Store() {
     get_index() == 1 ? set_wrong_direction_z() : set_PRUSA_direction_z();
 }
+#endif
 
 /*****************************************************************************/
 // MI_DIRECTION_E
@@ -189,6 +192,7 @@ static constexpr NumericInputConfig rms_current_spin_config = {
     .unit = Unit::milliamper,
 };
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 /*****************************************************************************/
 // MI_CURRENT_X
 MI_CURRENT_X::MI_CURRENT_X()
@@ -224,7 +228,9 @@ MI_CURRENT_E::MI_CURRENT_E()
 void MI_CURRENT_E::Store() {
     set_rms_current_ma_e(static_cast<uint16_t>(GetVal()));
 }
+#endif
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 /*****************************************************************************/
 // MI_RESET_CURRENTS
 MI_RESET_CURRENTS::MI_RESET_CURRENTS()
@@ -233,6 +239,7 @@ MI_RESET_CURRENTS::MI_RESET_CURRENTS()
 void MI_RESET_CURRENTS::click([[maybe_unused]] IWindowMenu &window_menu) {
     Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, (void *)ClickCommand::Reset_currents);
 }
+#endif
 
 /*****************************************************************************/
 // MI_SAVE_AND_RETURN

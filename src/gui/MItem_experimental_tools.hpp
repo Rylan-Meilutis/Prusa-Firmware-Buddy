@@ -1,14 +1,20 @@
 /// @file
 #pragma once
 
-#include "WindowMenuItems.hpp"
+#include <WindowMenuItems.hpp>
 #include <guiconfig/guiconfig.h>
 
-enum class ClickCommand : intptr_t { Return,
+#include <option/has_extra_experimental_settings.h>
+
+enum class ClickCommand : intptr_t {
+    Return,
     Reset_Z,
     Reset_steps,
     Reset_directions,
-    Reset_currents };
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    Reset_currents,
+#endif
+};
 
 #if PRINTER_IS_PRUSA_MK3_5()
 // Option to switch off PWM correction to make Alte fans quiet. As of now, only MK3.5 has to deal with this issue
@@ -38,6 +44,7 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 class MI_DIRECTION_X;
 class MI_DIRECTION_Y;
 
@@ -60,6 +67,7 @@ public:
     MI_STEPS_PER_UNIT_Z();
     void Store();
 };
+#endif
 
 class MI_STEPS_PER_UNIT_E : public WiSpin {
 public:
@@ -80,6 +88,7 @@ public:
     WiSwitchDirection(bool current_direction_negative, const string_view_utf8 &label_view);
 };
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 class MI_DIRECTION_X : public WiSwitchDirection {
 public:
     MI_DIRECTION_X();
@@ -95,6 +104,7 @@ public:
     MI_DIRECTION_Z();
     void Store();
 };
+#endif
 
 class MI_DIRECTION_E : public WiSwitchDirection {
 public:
@@ -110,6 +120,7 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 class MI_CURRENT_X : public WiSpin {
 public:
     MI_CURRENT_X();
@@ -141,6 +152,7 @@ public:
 protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
+#endif
 
 class MI_SAVE_AND_RETURN : public IWindowMenuItem {
 public:

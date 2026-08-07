@@ -1,14 +1,11 @@
 /// @file
 #include "screen_menu_experimental_settings.hpp"
 
-#include "WindowMenuSpin.hpp"
 #include "ScreenHandler.hpp"
 #include "window_msgbox.hpp"
-#include "string.h" // memcmp
 #include "MItem_experimental_tools.hpp"
 #include <common/sys.hpp>
 #include <config_store/store_instance.hpp>
-#include <config_store/store_c_api.h>
 
 void ScreenMenuExperimentalSettings::clicked_return() {
     ExperimentalSettingsValues current(*this); // ctor will handle load of values
@@ -101,16 +98,16 @@ void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t e
         Invalidate();
         break;
 
-    case ClickCommand::Reset_currents:
 #if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    case ClickCommand::Reset_currents:
         // 0 is valid for X and Y axis, means to use default values
         Item<MI_CURRENT_X>().SetVal(config_store().axis_rms_current_ma_X_.default_val);
         Item<MI_CURRENT_Y>().SetVal(config_store().axis_rms_current_ma_Y_.default_val);
         Item<MI_CURRENT_Z>().SetVal(config_store().axis_rms_current_ma_Z_.default_val);
         Item<MI_CURRENT_E>().SetVal(config_store().axis_rms_current_ma_E0_.default_val);
-#endif
         Invalidate();
         break;
+#endif
     }
 }
 
