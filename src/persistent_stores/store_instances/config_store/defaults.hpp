@@ -224,8 +224,6 @@ namespace defaults {
 
     inline constexpr float axis_steps_per_unit_z { DEFAULT_AXIS_STEPS_PER_UNIT_Z * ((DEFAULT_INVERT_Z_DIR == true) ? -1.f : 1.f) };
     inline constexpr float axis_steps_per_unit_e0 { DEFAULT_AXIS_STEPS_PER_UNIT_E0 * ((DEFAULT_INVERT_E0_DIR == true) ? -1.f : 1.f) };
-    inline constexpr uint16_t axis_microsteps_Z_ { Z_MICROSTEPS };
-    inline constexpr uint16_t axis_microsteps_E0_ { E0_MICROSTEPS };
     inline constexpr uint16_t axis_rms_current_ma_Z_ { Z_CURRENT };
     inline constexpr uint16_t axis_rms_current_ma_E0_ { E0_CURRENT };
     inline constexpr float axis_z_max_pos_mm {
@@ -238,8 +236,8 @@ namespace defaults {
 
     inline constexpr int16_t homing_sens_x { stallguard_sensitivity_unset };
     inline constexpr int16_t homing_sens_y { stallguard_sensitivity_unset };
-
 #if HAS_HOTEND_TYPE_SUPPORT()
+
     inline constexpr HotendType hotend_type {
     #if PRINTER_IS_PRUSA_iX() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         HotendType::stock_with_sock

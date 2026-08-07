@@ -194,11 +194,6 @@ extern "C" void set_PRUSA_direction_e() { log_error(EEPROM, "called %s while USE
 
 /*****************************************************************************/
 // AXIS_MICROSTEPS
-bool is_microstep_value_valid(uint16_t microsteps) {
-    std::bitset<16> bs(microsteps);
-    return bs.count() == 1; // 1,2,4,8...
-}
-
 bool get_has_400step_xy_motors() {
 #if PRINTER_IS_PRUSA_MK4()
     return extended_printer_type_has_400step_motors[config_store().extended_printer_type.get()];
@@ -222,31 +217,33 @@ bool get_has_400step_xy_motors() {
 #endif
 }
 
-///@return default microstep value depending on motor type config
-extern "C" uint16_t get_default_microsteps_x() {
+extern "C" uint16_t get_microsteps_x() {
 #ifdef X_MICROSTEPS
+    #if defined(X_400_STEP_MICROSTEPS) || defined(X_200_STEP_MICROSTEPS)
+        #error
+    #endif
     return X_MICROSTEPS;
 #else
     return get_has_400step_xy_motors() ? X_400_STEP_MICROSTEPS : X_200_STEP_MICROSTEPS;
 #endif
 }
 
-///@return default microstep value depending on motor type config
-extern "C" uint16_t get_default_microsteps_y() {
+extern "C" uint16_t get_microsteps_y() {
 #ifdef Y_MICROSTEPS
+    #if defined(Y_400_STEP_MICROSTEPS) || defined(Y_200_STEP_MICROSTEPS)
+        #error
+    #endif
     return Y_MICROSTEPS;
 #else
     return get_has_400step_xy_motors() ? Y_400_STEP_MICROSTEPS : Y_200_STEP_MICROSTEPS;
 #endif
 }
 
-///@return default microstep value
-extern "C" uint16_t get_default_microsteps_z() {
+extern "C" uint16_t get_microsteps_z() {
     return Z_MICROSTEPS;
 }
 
-///@return default microstep value
-extern "C" uint16_t get_default_microsteps_e() {
+extern "C" uint16_t get_microsteps_e() {
     return E0_MICROSTEPS;
 }
 
@@ -268,44 +265,6 @@ extern "C" float get_default_steps_per_unit_y_signed() {
 #else
     return dir * DEFAULT_AXIS_STEPS_PER_UNIT_Y;
 #endif
-}
-
-// return default value if eeprom value is invalid
-extern "C" uint16_t get_microsteps_x() {
-    uint16_t ret = config_store().axis_microsteps_X_.get();
-    if (!is_microstep_value_valid(ret)) {
-        if (ret != 0) { // 0 means use default
-            log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        }
-        ret = get_default_microsteps_x();
-    }
-    return ret;
-}
-extern "C" uint16_t get_microsteps_y() {
-    uint16_t ret = config_store().axis_microsteps_Y_.get();
-    if (!is_microstep_value_valid(ret)) {
-        if (ret != 0) { // 0 means use default
-            log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        }
-        ret = get_default_microsteps_y();
-    }
-    return ret;
-}
-extern "C" uint16_t get_microsteps_z() {
-    uint16_t ret = config_store().axis_microsteps_Z_.get();
-    if (!is_microstep_value_valid(ret)) {
-        log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        ret = get_default_microsteps_z();
-    }
-    return ret;
-}
-extern "C" uint16_t get_microsteps_e() {
-    uint16_t ret = config_store().axis_microsteps_E0_.get();
-    if (!is_microstep_value_valid(ret)) {
-        log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        ret = get_default_microsteps_e();
-    }
-    return ret;
 }
 
 extern "C" uint16_t get_default_rms_current_ma_x() {
