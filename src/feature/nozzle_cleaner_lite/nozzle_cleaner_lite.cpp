@@ -191,7 +191,7 @@ namespace {
 
         pressure_advance::PressureAdvanceDisabler pa_disabler;
         Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
-        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts);
+        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts, TolerateNozzleDirt::yes);
     }
 
     // Move in raw machine coordinates (line_to_machine_pos), bypassing MBL.

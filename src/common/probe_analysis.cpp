@@ -164,19 +164,19 @@ ProbeAnalysisBase::Result ProbeAnalysisBase::Analyse(bool check_angle_after) {
         const char *feature = "feature-out-of-range";
         float value;
         if (HasOutOfRangeFeature(features, &feature, &value, check_angle_after)) {
-            return std::unexpected(AnalysisError { .description = feature, .arg = value });
+            return std::unexpected(AnalysisError { .description = feature, .arg = value, .z_coordinate = InterpolateFinalZCoordinate(features) });
         }
     }
 
     // Last, use the features in our classification model and guess the probe's precision
     bool isGood = Classify(features);
+    float zCoordinate = InterpolateFinalZCoordinate(features);
     if (isGood) {
-        float zCoordinate = InterpolateFinalZCoordinate(features);
         log_features_metrics(features, zCoordinate);
         return AnalysisResult { .z_coordinate = zCoordinate };
     } else {
         log_features_metrics(features, std::nullopt);
-        return std::unexpected(AnalysisError { "low-precision" });
+        return std::unexpected(AnalysisError { .description = "low-precision", .z_coordinate = zCoordinate });
     }
 }
 
