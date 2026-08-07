@@ -448,6 +448,7 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     #if HAS_PRECISE_HOMING_COREXY()
     // The grid origin is a motor-phase-to-position mapping, so a different belt pitch invalidates it.
     corexy_grid_origin.set_to_default();
+    precise_homing_instability_history.set_to_default();
         #if HAS_TRINAMIC && defined(XY_HOMING_MEASURE_SENS_MIN)
     corexy_home_tmc_sens.set_to_default();
         #endif
