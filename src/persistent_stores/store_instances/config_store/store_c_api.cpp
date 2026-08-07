@@ -42,15 +42,54 @@ extern "C" void set_z_max_pos_mm(float max_pos) {
 // AXIS_STEPS_PER_UNIT
 
 namespace {
+
 // X/Y steps/mm are stored as an override, the "unset" val (0) means "derive the value from the hardware"
 float effective_axis_steps_x() {
-    const float v = config_store().axis_steps_per_unit_x.get();
-    return v == config_store_ns::steps_per_unit_unset ? get_default_steps_per_unit_x_signed() : v;
+    auto r = get_default_steps_per_unit_x_signed();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_steps_per_unit_x.get(); cs != config_store_ns::steps_per_unit_unset) {
+        r = cs;
+    }
+#endif
+
+    return r;
 }
+
 float effective_axis_steps_y() {
-    const float v = config_store().axis_steps_per_unit_y.get();
-    return v == config_store_ns::steps_per_unit_unset ? get_default_steps_per_unit_y_signed() : v;
+    auto r = get_default_steps_per_unit_y_signed();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_steps_per_unit_y.get(); cs != config_store_ns::steps_per_unit_unset) {
+        r = cs;
+    }
+#endif
+
+    return r;
 }
+
+float effective_axis_steps_z() {
+    auto r = config_store_ns::defaults::axis_steps_per_unit_z;
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_steps_per_unit_z.get(); cs != config_store_ns::defaults::axis_steps_per_unit_z) {
+        r = cs;
+    }
+#endif
+
+    return r;
+}
+
+float effective_axis_steps_e() {
+    auto r = config_store_ns::defaults::axis_steps_per_unit_e0;
+
+    if (auto cs = config_store().axis_steps_per_unit_e0.get(); cs != config_store_ns::defaults::axis_steps_per_unit_e0) {
+        r = cs;
+    }
+
+    return r;
+}
+
 } // namespace
 
 extern "C" float get_steps_per_unit_x() {
@@ -60,10 +99,10 @@ extern "C" float get_steps_per_unit_y() {
     return std::abs(effective_axis_steps_y());
 }
 extern "C" float get_steps_per_unit_z() {
-    return std::abs(config_store().axis_steps_per_unit_z.get());
+    return std::abs(effective_axis_steps_z());
 }
 extern "C" float get_steps_per_unit_e() {
-    return std::abs(config_store().axis_steps_per_unit_e0.get());
+    return std::abs(effective_axis_steps_e());
 }
 
 extern "C" bool has_inverted_x() {
@@ -75,11 +114,11 @@ extern "C" bool has_inverted_y() {
 }
 
 extern "C" bool has_inverted_z() {
-    return std::signbit(config_store().axis_steps_per_unit_z.get());
+    return std::signbit(effective_axis_steps_z());
 }
 
 extern "C" bool has_inverted_e() {
-    return std::signbit(config_store().axis_steps_per_unit_e0.get());
+    return std::signbit(effective_axis_steps_e());
 }
 
 extern "C" bool has_inverted_axis(const uint8_t axis) {
@@ -139,12 +178,16 @@ extern "C" bool has_wrong_e() {
 #endif
 
 // by write functions, cannot read startup variables, must read current value from eeprom
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 extern "C" void set_steps_per_unit_z(float steps) {
     if (steps > 0) {
         bool negative_direction = signbit(config_store().axis_steps_per_unit_z.get());
         config_store().axis_steps_per_unit_z.set(negative_direction ? -steps : steps);
     }
 }
+#endif
+
 extern "C" void set_steps_per_unit_e(float steps) {
     if (steps > 0) {
         bool negative_direction = signbit(config_store().axis_steps_per_unit_e0.get());
@@ -153,34 +196,41 @@ extern "C" void set_steps_per_unit_e(float steps) {
 }
 
 // by write functions, cannot read startup variables, must read current value from eeprom
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 static void set_positive_direction_z() {
     float steps = std::abs(config_store().axis_steps_per_unit_z.get());
     config_store().axis_steps_per_unit_z.set(steps);
 }
+static void set_negative_direction_z() {
+    float steps = std::abs(config_store().axis_steps_per_unit_z.get());
+    config_store().axis_steps_per_unit_z.set(-steps);
+}
+    #ifdef USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
+extern "C" void set_wrong_direction_z() {
+    (!DEFAULT_INVERT_Z_DIR) ? set_negative_direction_z() : set_positive_direction_z();
+}
+extern "C" void set_PRUSA_direction_z() {
+    DEFAULT_INVERT_Z_DIR ? set_negative_direction_z() : set_positive_direction_z();
+}
+    #endif
+#endif
+
 static void set_positive_direction_e() {
     float steps = std::abs(config_store().axis_steps_per_unit_e0.get());
     config_store().axis_steps_per_unit_e0.set(steps);
 }
 
-static void set_negative_direction_z() {
-    float steps = std::abs(config_store().axis_steps_per_unit_z.get());
-    config_store().axis_steps_per_unit_z.set(-steps);
-}
 static void set_negative_direction_e() {
     float steps = std::abs(config_store().axis_steps_per_unit_e0.get());
     config_store().axis_steps_per_unit_e0.set(-steps);
 }
 
 #ifdef USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES
-extern "C" void set_wrong_direction_z() {
-    (!DEFAULT_INVERT_Z_DIR) ? set_negative_direction_z() : set_positive_direction_z();
-}
 extern "C" void set_wrong_direction_e() {
     (!DEFAULT_INVERT_E0_DIR) ? set_negative_direction_e() : set_positive_direction_e();
 }
-extern "C" void set_PRUSA_direction_z() {
-    DEFAULT_INVERT_Z_DIR ? set_negative_direction_z() : set_positive_direction_z();
-}
+
 extern "C" void set_PRUSA_direction_e() {
     DEFAULT_INVERT_E0_DIR ? set_negative_direction_e() : set_positive_direction_e();
 }
@@ -289,61 +339,71 @@ extern "C" uint16_t get_default_rms_current_ma_e() {
 }
 
 extern "C" uint16_t get_rms_current_ma_x() {
-    uint16_t ret = config_store().axis_rms_current_ma_X_.get();
-    if (ret == 0) {
-        ret = get_default_rms_current_ma_x();
+    uint16_t r = get_default_rms_current_ma_x();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_rms_current_ma_X_.get(); cs != 0) {
+        r = cs;
     }
-    log_debug(EEPROM, "%s: returned %d ", __PRETTY_FUNCTION__, ret);
-    return ret;
-}
-extern "C" uint16_t get_rms_current_ma_y() {
-    uint16_t ret = config_store().axis_rms_current_ma_Y_.get();
-    if (ret == 0) {
-        ret = get_default_rms_current_ma_y();
-    }
-    log_debug(EEPROM, "%s: returned %d ", __PRETTY_FUNCTION__, ret);
-    return ret;
-}
-extern "C" uint16_t get_rms_current_ma_z() {
-    uint16_t ret = config_store().axis_rms_current_ma_Z_.get();
-    if (ret == 0) {
-        log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        ret = get_default_rms_current_ma_z();
-    }
-    log_debug(EEPROM, "%s: returned %d ", __PRETTY_FUNCTION__, ret);
-    return ret;
-}
-extern "C" uint16_t get_rms_current_ma_e() {
-    uint16_t ret = config_store().axis_rms_current_ma_E0_.get();
-    if (ret == 0) {
-        log_error(EEPROM, "%s: invalid value %d", __PRETTY_FUNCTION__, ret);
-        ret = get_default_rms_current_ma_e();
-    }
-    log_debug(EEPROM, "%s: returned %d ", __PRETTY_FUNCTION__, ret);
-    return ret;
+#endif
+
+    return r;
 }
 
+extern "C" uint16_t get_rms_current_ma_y() {
+    uint16_t r = get_default_rms_current_ma_y();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_rms_current_ma_Y_.get(); cs != 0) {
+        r = cs;
+    }
+#endif
+
+    return r;
+}
+
+extern "C" uint16_t get_rms_current_ma_z() {
+    uint16_t r = get_default_rms_current_ma_z();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_rms_current_ma_Z_.get(); cs != 0) {
+        r = cs;
+    }
+#endif
+
+    return r;
+}
+
+extern "C" uint16_t get_rms_current_ma_e() {
+    uint16_t r = get_default_rms_current_ma_e();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+    if (auto cs = config_store().axis_rms_current_ma_E0_.get(); cs != 0) {
+        r = cs;
+    }
+#endif
+
+    return r;
+}
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 extern "C" void set_rms_current_ma_x(uint16_t current) {
     config_store().axis_rms_current_ma_X_.set(current);
     log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
 }
+
 extern "C" void set_rms_current_ma_y(uint16_t current) {
     config_store().axis_rms_current_ma_Y_.set(current);
     log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
 }
+
 extern "C" void set_rms_current_ma_z(uint16_t current) {
-    if (current > 0) {
-        config_store().axis_rms_current_ma_Z_.set(current);
-        log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
-    } else {
-        log_error(EEPROM, "%s: current must be greater than 0", __PRETTY_FUNCTION__);
-    }
+    config_store().axis_rms_current_ma_Z_.set(current);
+    log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
 }
+
 extern "C" void set_rms_current_ma_e(uint16_t current) {
-    if (current > 0) {
-        config_store().axis_rms_current_ma_E0_.set(current);
-        log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
-    } else {
-        log_error(EEPROM, "%s: current must be greater than 0", __PRETTY_FUNCTION__);
-    }
+    config_store().axis_rms_current_ma_E0_.set(current);
+    log_debug(EEPROM, "%s: current %d ", __PRETTY_FUNCTION__, current);
 }
+#endif

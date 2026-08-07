@@ -67,7 +67,7 @@ float steps_per_mm_to_val(auto &store_item) {
     return std::abs(store_item.get());
 }
 
-float value_to_store(float val, const WiSwitchDirection &wrong_direction_item, float default_val) {
+[[maybe_unused]] float value_to_store(float val, const WiSwitchDirection &wrong_direction_item, float default_val) {
     const bool wrong_direction = wrong_direction_item.current_item() == 1;
 
     if (val == config_store_ns::steps_per_unit_unset && wrong_direction) {
@@ -189,6 +189,8 @@ void MI_RESET_DIRECTION::click([[maybe_unused]] IWindowMenu &window_menu) {
 
 static constexpr NumericInputConfig rms_current_spin_config = {
     .max_value = 800,
+    .special_value = 0,
+    .special_value_str = N_("Default"),
     .unit = Unit::milliamper,
 };
 
@@ -196,7 +198,7 @@ static constexpr NumericInputConfig rms_current_spin_config = {
 /*****************************************************************************/
 // MI_CURRENT_X
 MI_CURRENT_X::MI_CURRENT_X()
-    : WiSpin(config_store().axis_rms_current_ma_X_.get(), rms_current_spin_config, _("X current (0 default)")) {}
+    : WiSpin(config_store().axis_rms_current_ma_X_.get(), rms_current_spin_config, _("X current")) {}
 
 void MI_CURRENT_X::Store() {
     set_rms_current_ma_x(static_cast<uint16_t>(GetVal()));
@@ -205,7 +207,7 @@ void MI_CURRENT_X::Store() {
 /*****************************************************************************/
 // MI_CURRENT_Y
 MI_CURRENT_Y::MI_CURRENT_Y()
-    : WiSpin(config_store().axis_rms_current_ma_Y_.get(), rms_current_spin_config, _("Y current (0 default)")) {}
+    : WiSpin(config_store().axis_rms_current_ma_Y_.get(), rms_current_spin_config, _("Y current")) {}
 
 void MI_CURRENT_Y::Store() {
     set_rms_current_ma_y(static_cast<uint16_t>(GetVal()));
@@ -214,7 +216,7 @@ void MI_CURRENT_Y::Store() {
 /*****************************************************************************/
 // MI_CURRENT_Z
 MI_CURRENT_Z::MI_CURRENT_Z()
-    : WiSpin(get_rms_current_ma_z(), rms_current_spin_config, _("Z current")) {}
+    : WiSpin(config_store().axis_rms_current_ma_Z_.get(), rms_current_spin_config, _("Z current")) {}
 
 void MI_CURRENT_Z::Store() {
     set_rms_current_ma_z(static_cast<uint16_t>(GetVal()));
@@ -223,7 +225,7 @@ void MI_CURRENT_Z::Store() {
 /*****************************************************************************/
 // MI_CURRENT_E
 MI_CURRENT_E::MI_CURRENT_E()
-    : WiSpin(get_rms_current_ma_e(), rms_current_spin_config, _("Extruder current")) {}
+    : WiSpin(config_store().axis_rms_current_ma_E0_.get(), rms_current_spin_config, _("Extruder current")) {}
 
 void MI_CURRENT_E::Store() {
     set_rms_current_ma_e(static_cast<uint16_t>(GetVal()));

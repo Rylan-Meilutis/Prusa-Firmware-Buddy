@@ -433,9 +433,11 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     }
     auto transaction = get_backend().transaction_guard();
     belts_15gt_installed.set(installed);
+    #if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
     // Clear any manual override so the resolved default follows the belt HW.
     axis_steps_per_unit_x.set_to_default();
     axis_steps_per_unit_y.set_to_default();
+    #endif
     // Belt type changes X/Y steps/mm -> XY geometry calibration and axis selftest are invalid.
     homing_sens_x.set_to_default();
     homing_sens_y.set_to_default();

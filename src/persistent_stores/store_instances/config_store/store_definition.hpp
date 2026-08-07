@@ -64,6 +64,7 @@
 #include <option/has_side_fsensor.h>
 #include <option/has_side_fsensor_invertible.h>
 #include <option/has_nozzle_cleaner_lite.h>
+#include <option/has_extra_experimental_settings.h>
 #include <common/extended_printer_type.hpp>
 #include <guiconfig/guiconfig.h>
 #include <common/hw_check.hpp>
@@ -755,15 +756,20 @@ struct CurrentStore
     bool set_belts_15gt(bool installed);
 #endif
 
-    // axis microsteps and rms current have a capital axis + '_' at the end in name because of trinamic.cpp. Can be removed once the macro there is removed
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
     StoreItem<float, steps_per_unit_unset, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit X")> axis_steps_per_unit_x; // steps_per_unit_unset - default value, !=0 - user value (sign = direction)
     StoreItem<float, steps_per_unit_unset, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit Y")> axis_steps_per_unit_y; // steps_per_unit_unset - default value, !=0 - user value (sign = direction)
     StoreItem<float, defaults::axis_steps_per_unit_z, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit Z")> axis_steps_per_unit_z;
+#endif
     StoreItem<float, defaults::axis_steps_per_unit_e0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Steps Per Unit E0")> axis_steps_per_unit_e0;
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
     StoreItem<uint16_t, 0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA X")> axis_rms_current_ma_X_; // 0 - default value, !=0 - user value
     StoreItem<uint16_t, 0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA Y")> axis_rms_current_ma_Y_; // 0 - default value, !=0 - user value
-    StoreItem<uint16_t, defaults::axis_rms_current_ma_Z_, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA Z")> axis_rms_current_ma_Z_;
-    StoreItem<uint16_t, defaults::axis_rms_current_ma_E0_, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA E0")> axis_rms_current_ma_E0_;
+    StoreItem<uint16_t, 0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA Z")> axis_rms_current_ma_Z_;
+    StoreItem<uint16_t, 0, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis RMS Current MA E0")> axis_rms_current_ma_E0_;
+#endif
+
     StoreItem<float, defaults::axis_z_max_pos_mm, ItemFlag::hw_config | ItemFlag::common_misconfigurations, journal::hash("Axis Z Max Pos MM")> axis_z_max_pos_mm;
 
 #if HAS_HOTEND_TYPE_SUPPORT()
