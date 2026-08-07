@@ -159,5 +159,5 @@ class MI_FAST_DRAW_ENABLE final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_FAST_DRAW_ENABLE();
 
-    void OnChange(size_t) final;
+    void Store();
 };

@@ -257,6 +257,6 @@ MI_FAST_DRAW_ENABLE::MI_FAST_DRAW_ENABLE()
         _("Fast Draw"),
     } {
 }
-void MI_FAST_DRAW_ENABLE::OnChange(size_t) {
+void MI_FAST_DRAW_ENABLE::Store() {
     config_store().fast_draw_enabled.set(value());
 }

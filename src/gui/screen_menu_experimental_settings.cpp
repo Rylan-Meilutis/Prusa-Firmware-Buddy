@@ -39,6 +39,8 @@ void ScreenMenuExperimentalSettings::clicked_return() {
         Item<MI_CURRENT_E>().Store();
 #endif
 
+        Item<MI_FAST_DRAW_ENABLE>().Store();
+
 #if HAS_LOADCELL()
         Item<MI_LOADCELL_SCALE>().Store();
 #endif // HAS_LOADCELL()
@@ -124,6 +126,7 @@ ExperimentalSettingsValues::ExperimentalSettingsValues(ScreenMenuExperimentalSet
     , rms_current_ma_z(static_cast<int32_t>(parent.Item<MI_CURRENT_Z>().GetVal()))
     , rms_current_ma_e(static_cast<int32_t>(parent.Item<MI_CURRENT_E>().GetVal()))
 #endif
+    , fast_draw_enabled(parent.Item<MI_FAST_DRAW_ENABLE>().value())
 #if HAS_LOADCELL()
     , loadcell_scale(parent.Item<MI_LOADCELL_SCALE>().value())
 #endif
