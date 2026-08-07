@@ -55,7 +55,7 @@ bool is_selftest_successfully_completed() {
             }
 
     #if !HAS_INDX() // tool offset is not a selftest on INDX
-            if (sr.get_tool_offset(tool) != TestResult::passed) {
+            if (SelftestSnake::get_test_result(SelftestSnake::Action::ToolOffsetsCalibration, tool) != TestResult::passed) {
                 return false;
             }
     #endif
