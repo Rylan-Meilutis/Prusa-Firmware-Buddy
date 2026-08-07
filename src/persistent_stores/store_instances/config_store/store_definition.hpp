@@ -65,6 +65,7 @@
 #include <option/has_side_fsensor_invertible.h>
 #include <option/has_nozzle_cleaner_lite.h>
 #include <common/extended_printer_type.hpp>
+#include <guiconfig/guiconfig.h>
 #include <common/hw_check.hpp>
 #include <pwm_utils.hpp>
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
@@ -978,7 +979,9 @@ struct CurrentStore
     StoreItem<bool, false, ItemFlag::calibrations, journal::hash("Manual Belt Tuning Completed")> manual_belt_tuning_completed;
 #endif
 
+#if HAS_ILI9488_DISPLAY()
     StoreItem<bool, DEVELOPMENT_ITEMS(), ItemFlag::user_interface | ItemFlag::common_misconfigurations, journal::hash("Fast Draw Enabled")> fast_draw_enabled;
+#endif
 
 #if HAS_BED_FAN()
     StoreItem<bed_fan::SelftestResult, bed_fan::SelftestResult {}, ItemFlag::calibrations, journal::hash("Bed fan selftest results")> bed_fan_selftest_result;

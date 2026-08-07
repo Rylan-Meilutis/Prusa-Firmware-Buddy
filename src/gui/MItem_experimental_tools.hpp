@@ -1,13 +1,8 @@
-/**
- * @file MItem_experimental_tools.hpp
- * @author Radek Vana
- * @brief tools used in experimental menus
- * @date 2021-08-03
- */
-
+/// @file
 #pragma once
+
 #include "WindowMenuItems.hpp"
-#include "i18n.h"
+#include <guiconfig/guiconfig.h>
 
 enum class ClickCommand : intptr_t { Return,
     Reset_Z,
@@ -155,9 +150,11 @@ protected:
     virtual void click(IWindowMenu &window_menu) override;
 };
 
+#if HAS_ILI9488_DISPLAY()
 class MI_FAST_DRAW_ENABLE final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_FAST_DRAW_ENABLE();
 
     void Store();
 };
+#endif

@@ -40,8 +40,11 @@ using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_CURRENT_E,
     MI_RESET_CURRENTS,
 #endif
-    MI_SERIAL_PRINTING_SCREEN_ENABLE,
+    MI_SERIAL_PRINTING_SCREEN_ENABLE
+#if HAS_ILI9488_DISPLAY()
+    ,
     MI_FAST_DRAW_ENABLE
+#endif
 #if HAS_LOADCELL()
     ,
     MI_LOADCELL_SCALE
@@ -64,7 +67,9 @@ struct ExperimentalSettingsValues {
     int32_t rms_current_ma_z;
     int32_t rms_current_ma_e;
 #endif
+#if HAS_ILI9488_DISPLAY()
     bool fast_draw_enabled;
+#endif
 #if HAS_LOADCELL()
     float loadcell_scale;
 #endif

@@ -245,6 +245,7 @@ void MI_SAVE_AND_RETURN::click([[maybe_unused]] IWindowMenu &window_menu) {
     Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, (void *)ClickCommand::Return);
 }
 
+#if HAS_ILI9488_DISPLAY()
 /*****************************************************************************/
 // MI_FAST_DRAW_ENABLE
 // If this is put outside of ScreenMenuExperimental (that resets the printer
@@ -260,3 +261,4 @@ MI_FAST_DRAW_ENABLE::MI_FAST_DRAW_ENABLE()
 void MI_FAST_DRAW_ENABLE::Store() {
     config_store().fast_draw_enabled.set(value());
 }
+#endif
