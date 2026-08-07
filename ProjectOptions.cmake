@@ -1251,3 +1251,10 @@ set(MDNS
     CACHE BOOL "Enable MDNS responder"
     )
 define_boolean_option(MDNS ${MDNS})
+
+if(DEBUG)
+  set(HAS_EXTRA_EXPERIMENTAL_SETTINGS YES)
+else()
+  set(HAS_EXTRA_EXPERIMENTAL_SETTINGS NO)
+endif()
+define_boolean_option(HAS_EXTRA_EXPERIMENTAL_SETTINGS ${HAS_EXTRA_EXPERIMENTAL_SETTINGS})
