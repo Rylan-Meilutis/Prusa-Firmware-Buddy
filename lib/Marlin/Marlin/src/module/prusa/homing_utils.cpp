@@ -111,9 +111,9 @@ el_current_xyz_t reset_current_if(bool condition) {
         return curr;
     }
 
-    stepperX.rms_current(get_default_rms_current_ma_x());
-    stepperY.rms_current(get_default_rms_current_ma_y());
-    stepperZ.rms_current(get_default_rms_current_ma_z());
+    stepperX.rms_current(get_rms_current_ma_x());
+    stepperY.rms_current(get_rms_current_ma_y());
+    stepperZ.rms_current(get_rms_current_ma_z());
     return curr;
 }
 
