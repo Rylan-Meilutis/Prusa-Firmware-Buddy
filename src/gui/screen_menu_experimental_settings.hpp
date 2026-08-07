@@ -64,6 +64,9 @@ struct ExperimentalSettingsValues {
     int32_t rms_current_ma_z;
     int32_t rms_current_ma_e;
 #endif
+#if HAS_LOADCELL()
+    float loadcell_scale;
+#endif
 
     bool operator==(const ExperimentalSettingsValues &other) const = default;
 };

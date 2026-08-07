@@ -124,5 +124,8 @@ ExperimentalSettingsValues::ExperimentalSettingsValues(ScreenMenuExperimentalSet
     , rms_current_ma_z(static_cast<int32_t>(parent.Item<MI_CURRENT_Z>().GetVal()))
     , rms_current_ma_e(static_cast<int32_t>(parent.Item<MI_CURRENT_E>().GetVal()))
 #endif
+#if HAS_LOADCELL()
+    , loadcell_scale(parent.Item<MI_LOADCELL_SCALE>().value())
+#endif
 {
 }
