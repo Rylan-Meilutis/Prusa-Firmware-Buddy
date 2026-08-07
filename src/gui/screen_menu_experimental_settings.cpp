@@ -8,13 +8,6 @@
 #include <config_store/store_instance.hpp>
 
 void ScreenMenuExperimentalSettings::clicked_return() {
-    ExperimentalSettingsValues current(*this); // ctor will handle load of values
-    // unchanged
-    if (current == initial) {
-        Screens::Access()->Close();
-        return;
-    }
-
     switch (MsgBoxQuestion(_(save_and_reboot), Responses_YesNoCancel)) {
     case Response::Yes:
         Item<MI_Z_AXIS_LEN>().Store();
@@ -54,8 +47,8 @@ void ScreenMenuExperimentalSettings::clicked_return() {
 }
 
 ScreenMenuExperimentalSettings::ScreenMenuExperimentalSettings()
-    : ScreenMenuExperimentalSettings__(_(label))
-    , initial(*this) {}
+    : ScreenMenuExperimentalSettings__(_(label)) {
+}
 
 void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t ev, void *param) {
     if (ev != GUI_event_t::CHILD_CLICK) {
@@ -109,27 +102,4 @@ void ScreenMenuExperimentalSettings::windowEvent(window_t *sender, GUI_event_t e
         break;
 #endif
     }
-}
-
-ExperimentalSettingsValues::ExperimentalSettingsValues(ScreenMenuExperimentalSettings__ &parent)
-    : z_len(static_cast<int32_t>(parent.Item<MI_Z_AXIS_LEN>().GetVal()))
-#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
-    , steps_per_unit_x(parent.Item<MI_STEPS_PER_UNIT_X>().value_to_store(parent.Item<MI_DIRECTION_X>()))
-    , steps_per_unit_y(parent.Item<MI_STEPS_PER_UNIT_Y>().value_to_store(parent.Item<MI_DIRECTION_Y>()))
-    , steps_per_unit_z(parent.Item<MI_STEPS_PER_UNIT_Z>().GetVal() * ((parent.Item<MI_DIRECTION_Z>().get_index() == 1) ? -1 : 1))
-#endif
-    , steps_per_unit_e(parent.Item<MI_STEPS_PER_UNIT_E>().GetVal() * ((parent.Item<MI_DIRECTION_E>().get_index() == 1) ? -1 : 1))
-#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
-    , rms_current_ma_x(static_cast<int32_t>(parent.Item<MI_CURRENT_X>().GetVal()))
-    , rms_current_ma_y(static_cast<int32_t>(parent.Item<MI_CURRENT_Y>().GetVal()))
-    , rms_current_ma_z(static_cast<int32_t>(parent.Item<MI_CURRENT_Z>().GetVal()))
-    , rms_current_ma_e(static_cast<int32_t>(parent.Item<MI_CURRENT_E>().GetVal()))
-#endif
-#if HAS_ILI9488_DISPLAY()
-    , fast_draw_enabled(parent.Item<MI_FAST_DRAW_ENABLE>().value())
-#endif
-#if HAS_LOADCELL()
-    , loadcell_scale(parent.Item<MI_LOADCELL_SCALE>().value())
-#endif
-{
 }

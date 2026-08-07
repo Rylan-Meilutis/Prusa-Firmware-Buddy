@@ -51,37 +51,9 @@ using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
 #endif
     >;
 
-struct ExperimentalSettingsValues {
-    ExperimentalSettingsValues(ScreenMenuExperimentalSettings__ &parent);
-
-    int32_t z_len;
-#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
-    float steps_per_unit_x;
-    float steps_per_unit_y;
-    float steps_per_unit_z;
-#endif
-    float steps_per_unit_e;
-#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
-    int32_t rms_current_ma_x;
-    int32_t rms_current_ma_y;
-    int32_t rms_current_ma_z;
-    int32_t rms_current_ma_e;
-#endif
-#if HAS_ILI9488_DISPLAY()
-    bool fast_draw_enabled;
-#endif
-#if HAS_LOADCELL()
-    float loadcell_scale;
-#endif
-
-    bool operator==(const ExperimentalSettingsValues &other) const = default;
-};
-
 class ScreenMenuExperimentalSettings : public ScreenMenuExperimentalSettings__ {
     static constexpr const char *const save_and_reboot = N_("Do you want to save changes and reboot the printer?");
     constexpr static const char *label = "EXPERIMENTAL SETTINGS";
-
-    ExperimentalSettingsValues initial;
 
     void clicked_return();
 
