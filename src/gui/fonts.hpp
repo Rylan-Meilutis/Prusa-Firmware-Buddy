@@ -35,7 +35,7 @@ struct font_t {
 
 font_t *resource_font(Font id);
 
-#if PRINTER_IS_PRUSA_MINI()
+#if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
 bool load_external_font_glyph(const font_t *font, uint32_t glyph, uint8_t *destination, size_t size);
 #endif
 

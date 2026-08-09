@@ -24,6 +24,11 @@ constexpr FontCharacterSet mini_charset = FontCharacterSet::latin;
 constexpr font_t font_regular_7x13 { 7, 13, 4, nullptr, 32, mini_charset };
 constexpr font_t font_regular_11x18 { 11, 18, 6, nullptr, 32, mini_charset };
 constexpr font_t font_regular_9x16 { 9, 16, 5, nullptr, 32, mini_charset };
+#elif BOARD_IS_XBUDDY()
+constexpr font_t font_regular_9x16 { 9, 16, 5, nullptr, 32, FontCharacterSet::full };
+constexpr font_t font_bold_11x19 { 11, 19, 6, nullptr, 32, FontCharacterSet::full };
+constexpr font_t font_bold_13x22 { 13, 22, 7, nullptr, 32, FontCharacterSet::full };
+constexpr font_t font_bold_30x53 { 30, 53, 15, nullptr, 32, FontCharacterSet::digits };
 #else
     #include "res/cc/font_regular_9x16_full.hpp" //Font::small
     #include "res/cc/font_bold_11x19_full.hpp" //Font::normal
@@ -56,25 +61,35 @@ const resource_entry_t resource_table[] = {
 
 }; // resource_table
 
-#if PRINTER_IS_PRUSA_MINI()
+#if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
 bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t *destination, const size_t size) {
     struct ExternalFont {
         uint8_t width;
         uint8_t height;
         const char *path;
         int descriptor;
-        uint32_t cached_glyph;
-        std::array<uint8_t, 6 * 18> cache;
     };
+#if PRINTER_IS_PRUSA_MINI()
     static ExternalFont fonts[] {
-        { 7, 13, "/internal/res/fonts/7x13.bin", -1, UINT32_MAX, {} },
-        { 9, 16, "/internal/res/fonts/9x16.bin", -1, UINT32_MAX, {} },
-        { 11, 18, "/internal/res/fonts/11x18.bin", -1, UINT32_MAX, {} },
+        { 7, 13, "/internal/res/fonts/7x13.bin", -1 },
+        { 9, 16, "/internal/res/fonts/9x16.bin", -1 },
+        { 11, 18, "/internal/res/fonts/11x18.bin", -1 },
     };
+#else
+    static ExternalFont fonts[] {
+        { 9, 16, "/internal/res/fonts/9x16.bin", -1 },
+        { 11, 19, "/internal/res/fonts/11x19.bin", -1 },
+        { 13, 22, "/internal/res/fonts/13x22.bin", -1 },
+        { 30, 53, "/internal/res/fonts/30x53.bin", -1 },
+    };
+#endif
+    static const ExternalFont *cached_font = nullptr;
+    static uint32_t cached_glyph = UINT32_MAX;
+    static std::array<uint8_t, 15 * 53> cache;
     for (auto &external : fonts) {
         if (font->w != external.width || font->h != external.height) continue;
-        if (external.cached_glyph == glyph) {
-            memcpy(destination, external.cache.data(), size);
+        if (cached_font == &external && cached_glyph == glyph) {
+            memcpy(destination, cache.data(), size);
             return true;
         }
         if (external.descriptor < 0) external.descriptor = open(external.path, O_RDONLY);
@@ -95,16 +110,17 @@ bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t 
             const size_t length = (token & 0x7f) + 1;
             if (output + length > size) return false;
             if (token & 0x80) {
-                memset(external.cache.data() + output, 0, length);
+                memset(cache.data() + output, 0, length);
             } else {
-                if (remaining < length || read(external.descriptor, external.cache.data() + output, length) != static_cast<ssize_t>(length)) return false;
+                if (remaining < length || read(external.descriptor, cache.data() + output, length) != static_cast<ssize_t>(length)) return false;
                 remaining -= length;
             }
             output += length;
         }
         if (output != size) return false;
-        external.cached_glyph = glyph;
-        memcpy(destination, external.cache.data(), size);
+        cached_font = &external;
+        cached_glyph = glyph;
+        memcpy(destination, cache.data(), size);
         return true;
     }
     return false;
