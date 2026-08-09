@@ -694,7 +694,11 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest release-maintenance commit: `c2f383edd`
+Latest firmware commit: `c2f383edd`
+
+Release-documentation commit: `e9bfee06d`
+
+Published release tag: `v6.5.7-RME-b29`
 
 Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -957,6 +961,8 @@ e1e16de1b  2026-08-08  Expand out-of-band recovery workflows
 94656f7c6  2026-08-09  Move xBuddy fonts to managed resources
 1771438ab  2026-08-09  Add structured RME host workflows
 c2f383edd  2026-08-09  Expire inactive RME host sessions
+e9bfee06d  2026-08-09  Record 6.5.7 RME release validation
 ```
 
-This continuation includes firmware changes through `c2f383edd`.
+This continuation includes firmware changes through `c2f383edd` and release
+documentation through `e9bfee06d`. `v6.5.7-RME-b29` points at `e9bfee06d`.
