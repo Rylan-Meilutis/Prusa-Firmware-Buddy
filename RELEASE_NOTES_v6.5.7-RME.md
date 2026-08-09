@@ -5,6 +5,7 @@
   * New features and improvements
     * Serial printing screen for OctoPrint and other serial hosts
     * Negotiated `@RME SESSION` event subscriptions with sequenced structured MMU, tool-change, filament-runout, stuck-filament, calibration, probing, heating, firmware-update, and waste-bin workflows; standard Marlin temperature, flow-control, safety, and print-state traffic remains unchanged
+    * 30-second RME host-session leases renewed by 10-second keepalives, automatically restoring legacy notifications and disabling remote UI input after a host disconnect
     * Persistent print-finished summaries with duration, completion time, and remaining filtration time
     * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete
     * G-code command to trigger or stop a configured filtration cycle
@@ -27,7 +28,7 @@
     * Optional BBF firmware signing for release builds with a local default signing key
     * Clarified stock Prusa bootloader limitations for custom firmware signing and release builds
     * Size-optimized release LTO linking to reduce flash usage, especially on XL
-    * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI and every xBuddy machine use independently compressed, random-access external font glyph records with one shared glyph cache, preserving full UI/language coverage while reducing MK4 application-flash use from the partition limit to 93.45%
+    * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI and every xBuddy machine use independently compressed, random-access external font glyph records with one shared glyph cache, preserving full UI/language coverage while reducing MK4 application-flash use from the partition limit to 93.54%
     * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
     * UI theme updates and theme import support
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
@@ -644,20 +645,20 @@ does not change the validated firmware output.
 Validated release target set and package sizes:
 
 ```text
-coreone     1.15 MiB / 1.87 MiB flash (61.56%), 205.8 KiB / 260.0 KiB RAM (79.15%)
-coreonel    1.15 MiB / 1.87 MiB flash (61.54%), 207.0 KiB / 260.0 KiB RAM (79.62%)
-mini        848.9 KiB / 895.0 KiB flash (94.85%), 150.4 KiB / 192.0 KiB RAM (78.31%)
-mini-en-cs  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-de  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-es  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-fr  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-it  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-pl  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-ja  849.6 KiB / 895.0 KiB flash (94.93%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-uk  849.6 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mk4         1.75 MiB / 1.87 MiB flash (93.45%), 199.4 KiB / 260.0 KiB RAM (76.69%)
-mk3.5       1.67 MiB / 1.87 MiB flash (88.87%), 164.1 KiB / 260.0 KiB RAM (63.10%)
-xl          1.28 MiB / 1.87 MiB flash (68.05%), 214.4 KiB / 260.0 KiB RAM (82.47%)
+coreone     1.16 MiB / 1.87 MiB flash (61.64%), 205.8 KiB / 260.0 KiB RAM (79.15%)
+coreonel    1.15 MiB / 1.87 MiB flash (61.62%), 207.0 KiB / 260.0 KiB RAM (79.62%)
+mini        849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-cs  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-de  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-es  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-fr  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-it  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-pl  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-ja  850.2 KiB / 895.0 KiB flash (94.99%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mini-en-uk  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
+mk4         1.75 MiB / 1.87 MiB flash (93.54%), 199.4 KiB / 260.0 KiB RAM (76.70%)
+mk3.5       1.67 MiB / 1.87 MiB flash (88.96%), 164.1 KiB / 260.0 KiB RAM (63.11%)
+xl          1.28 MiB / 1.87 MiB flash (68.14%), 214.4 KiB / 260.0 KiB RAM (82.47%)
 ```
 
 The final staged BBF set is:
@@ -693,7 +694,7 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest release-maintenance commit: `f3b4c7744`
+Latest release-maintenance commit: `c2f383edd`
 
 Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -954,6 +955,8 @@ e1e16de1b  2026-08-08  Expand out-of-band recovery workflows
 343f19615  2026-08-08  Report unknown RME subcommands safely
 4813494e9  2026-08-08  Keep recovery protocol within MK4 flash
 94656f7c6  2026-08-09  Move xBuddy fonts to managed resources
+1771438ab  2026-08-09  Add structured RME host workflows
+c2f383edd  2026-08-09  Expire inactive RME host sessions
 ```
 
-This continuation includes firmware changes through `94656f7c6`.
+This continuation includes firmware changes through `c2f383edd`.
