@@ -692,9 +692,9 @@ Comparison base: upstream `v6.5.7` (`7119a302d6`)
 
 Current branch: `rme-v6.5.7`
 
-Latest firmware commit: `c2f383edd`
+Latest firmware commit: `8500a93fb`
 
-Release-documentation commit: `e9bfee06d`
+Release-documentation commit: `c0ac2f746`
 
 Published release tag: `v6.5.7-RME-b29`
 
@@ -967,9 +967,13 @@ c3eb3a0ad  2026-08-09  Expose RME printer statistics
 3711368c1  2026-08-09  Persist release build failure logs
 4c780a873  2026-08-09  Fix 6.5.7 filtration event state tracking
 2a42ae718  2026-08-09  Document expanded RME protocol workflows
+26ed695a8  2026-08-09  Fix RME session activity state
+536fa39ce  2026-08-09  Expand RME filament profile synchronization
+8500a93fb  2026-08-09  Add RME USB filesystem service
+c0ac2f746  2026-08-09  Document RME filesystem release validation
 ```
 
-This continuation includes firmware and documentation through `2a42ae718`.
+This continuation includes firmware and documentation through `c0ac2f746`.
 The exact 14-image 6.5.7 half of the final multi-version matrix passed at that
-head; MK4 used 93.69% flash and MINI used at most 95.17%.
+firmware head `8500a93fb`; MK4 used 93.89% flash and MINI used at most 95.61%.
 `v6.5.7-RME-b29` remains the earlier release tag at `e9bfee06d`.
