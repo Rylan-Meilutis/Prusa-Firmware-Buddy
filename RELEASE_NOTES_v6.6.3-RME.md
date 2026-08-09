@@ -934,8 +934,14 @@ daaf8c17e  2026-08-09  Record xBuddy resource build results
 9e76ac329  2026-08-09  Expire inactive RME host sessions
 87806d4d4  2026-08-09  Record 6.6.3 RME release validation
 3c75548b7  2026-08-09  Expand 6.6.3 RME release notes
+4569d3cec  2026-08-09  Refresh 6.6.3 RME release commit ledger
+9a99ddbba  2026-08-09  Expand RME device workflow events
+5e3742e25  2026-08-09  Expose RME printer statistics
+740910ac2  2026-08-09  Make RME stats portable across releases
+b774b3c1d  2026-08-09  Persist release build failure logs
+4feb82edf  2026-08-09  Document expanded RME protocol workflows
 ```
 
 `v6.6.3-RME-b1` points at `87806d4d4`. Release documentation is expanded
-through `3c75548b7`; the final ledger refresh is documentation-only and does
-not alter the validated BBFs.
+through `4feb82edf`. The exact 15-image 6.6.3 half of the final multi-version
+matrix passed at that head; MK4 used 59.78% flash and MINI used at most 97.12%.
