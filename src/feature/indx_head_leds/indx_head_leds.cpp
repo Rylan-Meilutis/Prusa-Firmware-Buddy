@@ -32,8 +32,9 @@ namespace {
     constexpr EnumArray<StateAnimation, LedSetting, static_cast<int>(StateAnimation::_last) + 1> palette {
         { StateAnimation::Idle, off },
         { StateAnimation::Printing, blue },
-        { StateAnimation::Finished, green },
-        { StateAnimation::Aborted, off },
+        { StateAnimation::Finishing, green },
+        { StateAnimation::Filtering, green },
+        { StateAnimation::Aborting, off },
         { StateAnimation::Warning, red },
         { StateAnimation::PowerPanic, red },
         { StateAnimation::PowerUp, green },
