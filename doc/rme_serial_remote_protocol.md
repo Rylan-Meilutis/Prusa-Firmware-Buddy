@@ -129,6 +129,27 @@ An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.
 
+## Lifetime and job statistics
+
+```text
+@RME STATS QUERY
+```
+
+The read-only response is split into `RME_STATS`, `RME_STATS_OPERATIONS`, and
+`RME_STATS_FAILURES` records. Distances and extruded filament are reported in
+meters; lifetime, current-job, and filter-use times are seconds. Operations
+include successful MMU changes and tool picks. Machines with waste-bin tracking
+also report the current pellet count.
+
+Failure fields are intentionally separate rather than combined into a
+misleading total. Crash, power-panic, and `*_total` MMU counters are persistent.
+MMU `*_since_reset` counters follow the printer's existing statistics-reset
+semantics. Tool pickup and park failures are explicitly suffixed `_boot`
+because those toolchanger counters cover only the current boot. Unsupported
+optional hardware fields are omitted, except `filtering_time_s`, which is zero
+on machines without filtration. `jobs_started` is the persistent job sequence
+counter and is not a successful-print count.
+
 ## Prompts and recovery workflows
 
 The plugin can render and answer the printer's current prompt without guessing

@@ -45,6 +45,7 @@ GCodeQueue queue;
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
 #include <printer_lock.hpp>
+#include <odometer.hpp>
 #if ENABLED(PRUSA_TOOL_MAPPING)
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
@@ -57,6 +58,11 @@ GCodeQueue queue;
 #endif
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#include <option/has_chamber_filtration_api.h>
+#include <option/has_wastebin_fill_tracking.h>
+#if HAS_TOOLCHANGER()
+  #include "../module/prusa/toolchanger.h"
+#endif
 #include <algorithm>
 #include <cctype>
 #include <optional>
@@ -726,6 +732,54 @@ static bool handle_remote_machine_service(const std::string_view command) {
   return true;
 }
 
+static bool handle_remote_stats_service(const std::string_view command) {
+  constexpr std::string_view query = "@RME STATS QUERY";
+  if (!command.starts_with("@RME STATS ")) return false;
+  if (!command.starts_with(query)) return false;
+
+  auto &odometer = Odometer_s::instance();
+  const float distance_x_m = odometer.get_axis(Odometer_s::axis_t::X);
+  const float distance_y_m = odometer.get_axis(Odometer_s::axis_t::Y);
+  const float distance_z_m = odometer.get_axis(Odometer_s::axis_t::Z);
+
+  SERIAL_ECHOPGM("RME_STATS distance_x_m="); SERIAL_ECHO(distance_x_m);
+  SERIAL_ECHOPGM(" distance_y_m="); SERIAL_ECHO(distance_y_m);
+  SERIAL_ECHOPGM(" distance_z_m="); SERIAL_ECHO(distance_z_m);
+  SERIAL_ECHOPGM(" distance_total_m="); SERIAL_ECHO(distance_x_m + distance_y_m + distance_z_m);
+  SERIAL_ECHOPGM(" extruded_m="); SERIAL_ECHO(odometer.get_extruded_all());
+  SERIAL_ECHOPGM(" print_time_s="); SERIAL_ECHO(odometer.get_time());
+  SERIAL_ECHOPGM(" current_print_time_s="); SERIAL_ECHO(marlin_vars().print_duration.get());
+  SERIAL_ECHOPGM(" jobs_started="); SERIAL_ECHOLN(config_store().job_id.get());
+
+  SERIAL_ECHOPGM("RME_STATS_OPERATIONS tool_picks="); SERIAL_ECHO(odometer.get_toolpick_all());
+  SERIAL_ECHOPGM(" mmu_changes="); SERIAL_ECHO(odometer.get_mmu_changes());
+#if HAS_CHAMBER_FILTRATION_API()
+  SERIAL_ECHOPGM(" filtering_time_s="); SERIAL_ECHO(config_store().chamber_filter_time_used_s.get());
+#else
+  SERIAL_ECHOPGM(" filtering_time_s=0");
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+  SERIAL_ECHOPGM(" wastebin_pellets="); SERIAL_ECHO(odometer.get_nozzle_cleaner_pellets());
+#endif
+  SERIAL_EOL();
+
+  SERIAL_ECHOPGM("RME_STATS_FAILURES crash_x="); SERIAL_ECHO(config_store().crash_count_x.get());
+  SERIAL_ECHOPGM(" crash_y="); SERIAL_ECHO(config_store().crash_count_y.get());
+  SERIAL_ECHOPGM(" power_panics="); SERIAL_ECHO(config_store().power_panics_count.get());
+#if HAS_MMU2()
+  SERIAL_ECHOPGM(" mmu_load_since_reset="); SERIAL_ECHO(config_store().mmu2_load_fails.get());
+  SERIAL_ECHOPGM(" mmu_load_total="); SERIAL_ECHO(config_store().mmu2_total_load_fails.get());
+  SERIAL_ECHOPGM(" mmu_general_since_reset="); SERIAL_ECHO(config_store().mmu2_fails.get());
+  SERIAL_ECHOPGM(" mmu_general_total="); SERIAL_ECHO(config_store().mmu2_total_fails.get());
+#endif
+#if HAS_TOOLCHANGER()
+  SERIAL_ECHOPGM(" tool_pickup_boot="); SERIAL_ECHO(prusa_toolchanger.get_pickup_fail_count());
+  SERIAL_ECHOPGM(" tool_park_boot="); SERIAL_ECHO(prusa_toolchanger.get_park_fail_count());
+#endif
+  SERIAL_EOL();
+  return true;
+}
+
 static bool handle_dialog_service_response(const char *command);
 
 static void report_remote_session() {
@@ -795,6 +849,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_light_service(command)
       || handle_remote_filament_service(command)
       || handle_remote_machine_service(command)
+      || handle_remote_stats_service(command)
       || handle_remote_toolmap_service(command)
       || handle_dialog_service_response(payload)) return true;
   SERIAL_ECHOLNPGM("echo:RME_ERROR unknown");
