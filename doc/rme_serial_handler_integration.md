@@ -12,6 +12,8 @@ other blocking commands.
    process or serial descriptor.
 2. Send `@RME MACHINE QUERY`. If no `RME_MACHINE` response is received, retain
    the host's standard Marlin behavior.
+   After discovery, send `@RME STATS QUERY` to populate lifetime and current-job
+   statistics without model-specific tables.
 3. Send `@RME SESSION OPEN events=15 legacy=0`. Wait for `RME_SESSION active=1`.
 4. Track the `seq` field of every `RME_EVENT`. On a gap, query both
    `@RME SESSION QUERY` and `@RME DIALOG QUERY` and refresh the plugin UI.
@@ -35,6 +37,12 @@ Continue passing these records through the host's existing Marlin parser:
 Route `RME_EVENT` and other `RME_*` records to the plugin. With `legacy=0`,
 firmware suppresses only the corresponding `//action:notification` text, so
 OctoPrint's print-state control remains intact.
+
+Treat `RME_STATS`, `RME_STATS_OPERATIONS`, and `RME_STATS_FAILURES` as
+unordered key/value snapshots. Preserve the suffixes and units in the field
+names: `_m` is meters, `_s` is seconds, `_total` is persistent, and `_boot` is
+boot-scoped. A host must tolerate optional fields being absent on machines
+without the corresponding MMU, toolchanger, filtration, or waste-bin hardware.
 
 ## Workflow handlers
 
@@ -84,3 +92,6 @@ and failure, mid/post-print filtration start/PWM/stop, UI lock transitions,
 unknown commands, and emergency stop. Repeat with `legacy=1` to
 confirm both representations coexist, then with `legacy=0` to confirm only
 legacy notifications are replaced.
+Also query statistics both idle and during a blocking heater wait, validate
+units and optional-field handling, and confirm the query never changes a
+counter or print state.
