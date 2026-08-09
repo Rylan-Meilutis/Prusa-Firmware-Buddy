@@ -683,7 +683,7 @@ Release-documentation commit: `05f0ce7eb`
 
 Expanded release-notes commit: `3c75548b7`
 
-Published release tag: `v6.6.3-RME-b1`
+Published release tag: `v6.6.3-RME-b3`
 
 Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -956,7 +956,7 @@ adde7a9bf  2026-08-09  Expand RME filament profile synchronization
 05f0ce7eb  2026-08-09  Document RME filesystem release validation
 ```
 
-`v6.6.3-RME-b1` points at `87806d4d4`. Release documentation is expanded
-through `05f0ce7eb`. The exact 15-image 6.6.3 half of the final multi-version
+`v6.6.3-RME-b3` identifies this release ledger. Release documentation is
+expanded through `05f0ce7eb`. The exact 15-image 6.6.3 half of the final multi-version
 matrix passed at firmware head `8a9b632ef`; MK4 used 59.99% flash and MINI used
 at most 97.57%.
