@@ -677,9 +677,9 @@ Comparison base: upstream `v6.6.3` (`ff6658da4`)
 
 Current branch: `rme-v6.6.3`
 
-Latest firmware commit: `9e76ac329`
+Latest firmware commit: `8a9b632ef`
 
-Release-documentation commit: `87806d4d4`
+Release-documentation commit: `05f0ce7eb`
 
 Expanded release-notes commit: `3c75548b7`
 
@@ -950,8 +950,13 @@ daaf8c17e  2026-08-09  Record xBuddy resource build results
 740910ac2  2026-08-09  Make RME stats portable across releases
 b774b3c1d  2026-08-09  Persist release build failure logs
 4feb82edf  2026-08-09  Document expanded RME protocol workflows
+6544c2c1b  2026-08-09  Fix RME session activity state
+adde7a9bf  2026-08-09  Expand RME filament profile synchronization
+8a9b632ef  2026-08-09  Add RME USB filesystem service
+05f0ce7eb  2026-08-09  Document RME filesystem release validation
 ```
 
 `v6.6.3-RME-b1` points at `87806d4d4`. Release documentation is expanded
-through `4feb82edf`. The exact 15-image 6.6.3 half of the final multi-version
-matrix passed at that head; MK4 used 59.78% flash and MINI used at most 97.12%.
+through `05f0ce7eb`. The exact 15-image 6.6.3 half of the final multi-version
+matrix passed at firmware head `8a9b632ef`; MK4 used 59.99% flash and MINI used
+at most 97.57%.
