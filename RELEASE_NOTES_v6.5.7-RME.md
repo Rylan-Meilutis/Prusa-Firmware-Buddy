@@ -650,20 +650,13 @@ does not change the validated firmware output.
 Validated release target set and package sizes:
 
 ```text
-coreone     1.16 MiB / 1.87 MiB flash (61.64%), 205.8 KiB / 260.0 KiB RAM (79.15%)
-coreonel    1.15 MiB / 1.87 MiB flash (61.62%), 207.0 KiB / 260.0 KiB RAM (79.62%)
-mini        849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
-mini-en-cs  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-de  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-es  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-fr  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-it  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-pl  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-ja  850.2 KiB / 895.0 KiB flash (94.99%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mini-en-uk  850.1 KiB / 895.0 KiB flash (94.98%), 150.4 KiB / 192.0 KiB RAM (78.33%)
-mk4         1.75 MiB / 1.87 MiB flash (93.54%), 199.4 KiB / 260.0 KiB RAM (76.70%)
-mk3.5       1.67 MiB / 1.87 MiB flash (88.96%), 164.1 KiB / 260.0 KiB RAM (63.11%)
-xl          1.28 MiB / 1.87 MiB flash (68.14%), 214.4 KiB / 260.0 KiB RAM (82.47%)
+coreone     1.16 MiB / 1.87 MiB flash (62.05%), 207.3 KiB / 269.1 KiB RAM (77.02%)
+coreonel    1.16 MiB / 1.87 MiB flash (62.03%), 208.5 KiB / 269.1 KiB RAM (77.46%)
+mini        855.0 KiB / 895.0 KiB flash (95.53%), 150.7 KiB / 192.0 KiB RAM (78.49%)
+mini language variants: at most 855.7 KiB / 895.0 KiB flash (95.61%), 150.7 KiB / 192.0 KiB RAM (78.51%)
+mk4         1.76 MiB / 1.87 MiB flash (93.89%), 199.8 KiB / 260.0 KiB RAM (76.84%)
+mk3.5       1.67 MiB / 1.87 MiB flash (89.31%), 164.4 KiB / 260.0 KiB RAM (63.24%)
+xl          1.28 MiB / 1.87 MiB flash (68.47%), 214.8 KiB / 260.0 KiB RAM (82.61%)
 ```
 
 The final staged BBF set is:
