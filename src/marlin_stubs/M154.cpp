@@ -18,7 +18,6 @@
 
 #if HAS_LEDS()
     #include <leds/status_leds_handler.hpp>
-    #include <leds/led_manager.hpp>
 #endif
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -165,59 +164,6 @@ void set_serial_group() {
     }
 }
 
-void report_settings() {
-    const uint32_t screen = config_store().screen_brightness_by_state.get();
-    SERIAL_ECHOPGM("RME_LIGHT screen=");
-    for (size_t i = 0; i < state_count; ++i) {
-        if (i) SERIAL_CHAR(',');
-        SERIAL_ECHO((screen >> leds::light_state_shift(states[i])) & 0xff);
-    }
-#if HAS_SIDE_LEDS()
-    auto &side = leds::SideStripHandler::instance();
-    SERIAL_ECHOPGM(" chamber=");
-    for (size_t i = 0; i < state_count; ++i) {
-        if (i) SERIAL_CHAR(',');
-        SERIAL_ECHO(static_cast<unsigned>(static_cast<uint16_t>(side.get_brightness(states[i])) * 100 / 255));
-    }
-    SERIAL_ECHOPGM(" print_chamber=");
-    SERIAL_ECHO(static_cast<unsigned>(static_cast<uint16_t>(side.get_print_light_brightness()) * 100 / 255));
-    SERIAL_ECHOPGM(" print_screen=");
-    SERIAL_ECHO(side.get_print_screen_brightness());
-#endif
-#if HAS_LEDS()
-    auto &status = leds::StatusLedsHandler::instance();
-    SERIAL_ECHOPGM(" status=");
-    for (size_t i = 0; i < state_count; ++i) {
-        if (i) SERIAL_CHAR(',');
-        SERIAL_ECHO(status.get_brightness(states[i]));
-    }
-    SERIAL_ECHOPGM(" print_status=");
-    SERIAL_ECHO(status.get_print_status_brightness());
-#endif
-    SERIAL_EOL();
-}
-
-void set_print_overrides() {
-    if (parser.seenval('S')) {
-        const uint8_t value = percent_value('S');
-#if HAS_SIDE_LEDS()
-        leds::SideStripHandler::instance().set_print_screen_brightness(value);
-#elif HAS_LEDS()
-        leds::LEDManager::instance().set_print_screen_brightness(value);
-#endif
-    }
-#if HAS_SIDE_LEDS()
-    if (parser.seenval('C')) {
-        leds::SideStripHandler::instance().set_print_light_brightness(brightness_percent_to_pwm(percent_value('C')));
-    }
-#endif
-#if HAS_LEDS()
-    if (parser.seenval('L')) {
-        leds::StatusLedsHandler::instance().set_print_status_brightness(percent_value('L'));
-    }
-#endif
-}
-
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
 void set_external_state_group() {
     for (size_t i = 0; i < state_count; ++i) {
@@ -254,14 +200,8 @@ void set_extended_printer_type_group() {
  * - `M154.6 E` extended printer type index
  * - `M154.7 H` status LED finished hold seconds
  * - `M154.8 [S]` trigger/stop configured post-print filtration; `S0` stops
- * - `M154.9 S C L` temporary per-print screen, chamber/side, and status brightness
- * - `M154 Q` query persistent brightness and active per-print overrides
  */
 void PrusaGcodeSuite::M154() {
-    if (parser.seen('Q')) {
-        report_settings();
-        return;
-    }
     switch (parser.subcode) {
     case 0:
         set_screen_brightness_group();
@@ -304,9 +244,6 @@ void PrusaGcodeSuite::M154() {
         set_filtration_cycle_group();
         break;
 #endif
-    case 9:
-        set_print_overrides();
-        break;
     default:
         break;
     }

@@ -50,12 +50,11 @@ Locking suppresses input only: printing, calibration, error, and filament FSM
 screen updates must continue normally. Re-test query/set coverage for themes,
 persistent and temporary screen/chamber/status brightness, lock configuration,
 and all eight synchronized host filament presets. Confirm `M115` advertises
-`RME_OOB_CONTROL`, `RME_REMOTE_UI`, `RME_REMOTE_CONFIG`, and
-`RME_FILAMENT_SYNC`, and keep `doc/rme_serial_remote_protocol.md` synchronized
+`RME_OOB_CONTROL`, and keep `doc/rme_serial_remote_protocol.md` synchronized
 with every wire-format change. Verify `MACHINE QUERY` on single-nozzle, MMU,
 XL toolchanger, and INDX builds: physical/logical tool counts and topology flags
 must match the machine, XYZ/bed bounds must be reachable, and feedrate and
-acceleration values must reflect the active planner settings.
+XYZ feedrate values must reflect the active planner settings.
 
 Keep PA service travel collision-safe. CORE One/Core One L front-edge anchors begin to the right of the vent lever and enter deep-front Y through an ordered safe-Y/X/Y path. After the local probe finishes inside that safe corridor, move directly to the off-bed extrusion point; do not route through generic park and then reverse direction. The 10 mm heating clearance is an idempotent absolute minimum, and the 170 C preheat must not start until homing is complete and that clearance exists. INDX must continue using `mapi::park(ParkPosition::purge)` rather than direct XY motion so it exits the dock area perpendicularly and applies the calibrated nozzle-cleaner/waste-bin avoidance pattern.
 

@@ -187,10 +187,6 @@ void GcodeSuite::M115() {
     cap_line(PSTR("DIALOG_RESPONSE"), true);
     cap_line(PSTR("NAMED_DIALOG_RESPONSE"), true);
     cap_line(PSTR("SERVICE_QUEUE_STATUS"), true);
-    cap_line(PSTR("RME_OOB_CONTROL"), true);
-    cap_line(PSTR("RME_REMOTE_UI"), true);
-    cap_line(PSTR("RME_REMOTE_CONFIG"), true);
-    cap_line(PSTR("RME_FILAMENT_SYNC"), true);
 
     // AUTOREPORT_SD_STATUS (M27 extension)
     cap_line(PSTR("AUTOREPORT_SD_STATUS"));

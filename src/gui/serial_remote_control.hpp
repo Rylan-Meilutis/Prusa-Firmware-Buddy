@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
 
 namespace serial_remote_control {
 
@@ -10,13 +9,6 @@ enum class Action : uint8_t {
     click,
     back,
     home,
-};
-
-struct Status {
-    bool enabled;
-    uint8_t pending;
-    uint32_t accepted_sequence;
-    uint32_t applied_sequence;
 };
 
 struct LightStatus {
@@ -31,9 +23,7 @@ void request_refresh();
 void reload_theme();
 LightStatus light_status();
 void set_temporary_lights(int16_t screen, int16_t chamber, int16_t status);
-void set_persistent_lights(const std::array<int16_t, 4> &screen,
-    const std::array<int16_t, 4> &chamber, const std::array<int16_t, 4> &status);
-Status status();
+void set_persistent_lights(uint32_t screen, uint32_t chamber, uint32_t status);
 
 /// Called only by the GUI task.
 void process_gui();

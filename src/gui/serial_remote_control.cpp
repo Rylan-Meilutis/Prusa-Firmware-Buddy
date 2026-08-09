@@ -24,7 +24,6 @@ namespace {
 struct Command {
     Action action;
     int16_t value;
-    uint32_t sequence;
 };
 
 constexpr uint8_t queue_size = 8;
@@ -32,8 +31,6 @@ std::array<Command, queue_size> commands {};
 std::atomic<uint8_t> read_index { 0 };
 std::atomic<uint8_t> write_index { 0 };
 std::atomic<bool> control_enabled { false };
-std::atomic<uint32_t> accepted_sequence { 0 };
-std::atomic<uint32_t> applied_sequence { 0 };
 std::atomic<bool> refresh_requested { false };
 
 uint8_t advance(uint8_t index) {
@@ -65,8 +62,7 @@ bool enqueue(const Action action, const int16_t value) {
         return false;
     }
 
-    const auto sequence = accepted_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
-    commands[write] = Command { action, value, sequence };
+    commands[write] = Command { action, value };
     write_index.store(next, std::memory_order_release);
     return true;
 }
@@ -115,40 +111,25 @@ void set_temporary_lights(const int16_t screen, const int16_t chamber, const int
 #endif
 }
 
-void set_persistent_lights(const std::array<int16_t, 4> &screen,
-    const std::array<int16_t, 4> &chamber, const std::array<int16_t, 4> &status) {
+void set_persistent_lights(const uint32_t screen, const uint32_t chamber, const uint32_t status) {
     constexpr std::array<leds::LightState, 4> states {
         leds::LightState::deep_idle, leds::LightState::idle,
         leds::LightState::active, leds::LightState::printing,
     };
-    uint32_t packed_screen = config_store().screen_brightness_by_state.get();
     for (size_t i = 0; i < states.size(); ++i) {
-        if (screen[i] >= 0 && screen[i] <= 100) {
-            const uint8_t shift = leds::light_state_shift(states[i]);
-            packed_screen = (packed_screen & ~(0xffu << shift)) | (static_cast<uint32_t>(screen[i]) << shift);
-        }
+        const uint8_t shift = leds::light_state_shift(states[i]);
+        const uint8_t chamber_value = chamber >> shift;
+        const uint8_t status_value = status >> shift;
 #if HAS_SIDE_LEDS()
-        if (chamber[i] >= 0 && chamber[i] <= 100)
-            leds::SideStripHandler::instance().set_brightness(states[i], chamber[i] == 100 ? 255 : chamber[i] * 255 / 100);
+        if (chamber_value <= 100)
+            leds::SideStripHandler::instance().set_brightness(states[i], chamber_value == 100 ? 255 : chamber_value * 255 / 100);
 #endif
 #if HAS_LEDS()
-        if (status[i] >= 0 && status[i] <= 100)
-            leds::StatusLedsHandler::instance().set_brightness(states[i], status[i]);
+        if (status_value <= 100)
+            leds::StatusLedsHandler::instance().set_brightness(states[i], status_value);
 #endif
     }
-    config_store().screen_brightness_by_state.set(packed_screen);
-}
-
-Status status() {
-    const auto read = read_index.load(std::memory_order_acquire);
-    const auto write = write_index.load(std::memory_order_acquire);
-    const auto pending = static_cast<uint8_t>((write + queue_size - read) % queue_size);
-    return Status {
-        .enabled = control_enabled.load(std::memory_order_acquire),
-        .pending = pending,
-        .accepted_sequence = accepted_sequence.load(std::memory_order_acquire),
-        .applied_sequence = applied_sequence.load(std::memory_order_acquire),
-    };
+    config_store().screen_brightness_by_state.set(screen);
 }
 
 void process_gui() {
@@ -185,7 +166,6 @@ void process_gui() {
             Screens::Access()->ResetTimeout();
             break;
         }
-        applied_sequence.store(command.sequence, std::memory_order_release);
         read = advance(read);
         read_index.store(read, std::memory_order_release);
     }
