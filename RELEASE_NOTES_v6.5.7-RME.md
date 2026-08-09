@@ -600,6 +600,23 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
   * Core One and Core One L use the chamber-door post-print acknowledgement flow for chamber lighting.
   * Status LEDs blink throughout filtering unless the completed print is acknowledged by a Core One chamber-door open/close cycle. Unacknowledged prints use the configurable timed solid-green finished hold before normal idle behavior resumes.
 
+## Out-of-band OctoPrint plugin control
+
+- Added the same dedicated `@RME` control protocol as 6.6.3-RME. Frames are
+  consumed before the G-code FIFO and remain responsive during blocking heater
+  waits, probing, MMU work, and calibration.
+- Added explicitly enabled, GUI-task-safe remote navigation; UI lock management;
+  theme control; persistent and per-print screen/chamber/status brightness; and
+  synchronization of eight host filament presets used by normal load menus.
+- Added read-only discovery of printer model, physical hotends, logical tools,
+  single-nozzle/MMU/toolchanger/INDX topology, build envelope, and active planner
+  feedrate/acceleration limits for OctoPrint printer-profile setup.
+- Remote input is disabled on boot and whenever the UI locks. Firmware-owned
+  printing, calibration, error, and filament screens continue updating while
+  locked.
+- `M115` advertises the protocol capabilities. See
+  [RME Out-of-Band Serial Control Protocol](doc/rme_serial_remote_protocol.md).
+
 ## Build validation
 
 Final validation for the release firmware at `f3b4c7744` used the firmware build
