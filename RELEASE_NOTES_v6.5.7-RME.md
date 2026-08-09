@@ -608,31 +608,32 @@ Because of that, these RME builds cannot be signed in a way that passes the offi
 - Added explicitly enabled, GUI-task-safe remote navigation; UI lock management;
   theme control; persistent and per-print screen/chamber/status brightness; and
   synchronization of eight host filament presets used by normal load menus.
-- Added read-only discovery of printer model, physical hotends, logical tools,
-  single-nozzle/MMU/toolchanger/INDX topology, build envelope, and active planner
-  feedrate/acceleration limits for OctoPrint printer-profile setup.
+- Added read-only discovery of physical hotends, logical tools, single-nozzle
+  topology, build envelope, and active XYZ feedrate limits for OctoPrint
+  printer-profile setup.
 - Remote input is disabled on boot and whenever the UI locks. Firmware-owned
   printing, calibration, error, and filament screens continue updating while
   locked.
-- `M115` advertises the protocol capabilities. See
+- `@RME MACHINE QUERY` is the read-only protocol handshake. See
   [RME Out-of-Band Serial Control Protocol](doc/rme_serial_remote_protocol.md).
 
 ## Build validation
 
-Final validation for the release firmware at `f3b4c7744` used the firmware build
+Final validation for the current RME firmware used the firmware build
 wrapper. The wrapper supplies the managed `.venv` path, `BUDDY_PYTHON`,
 `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so nested CMake
 projects can find Nunavut `nnvg` and the same Python environment as the parent
 build.
 
 ```sh
-./build.py --final --versions 6.5.7 6.6.2 --jobs 15
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
 Final validation result:
 
 ```text
-14 succeeded, 0 failed
+6.5.7: 14 succeeded, 0 failed
+6.6.3: 15 succeeded, 0 failed
 ```
 
 The complete multi-version command produced all `29` expected BBFs with no
