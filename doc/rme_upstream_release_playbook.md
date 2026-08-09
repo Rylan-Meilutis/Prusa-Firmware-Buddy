@@ -911,7 +911,7 @@ The latest checked focused final builds used:
 
 The xBuddy external-font change was release-validated with
 `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`: all 29 presets passed.
-The resulting MK4 flash usage was 93.45% on 6.5.7 and 59.54% on 6.6.3.
+The resulting MK4 flash usage was 93.54% on 6.5.7 and 59.63% on 6.6.3.
 Keep these as regression baselines; a later port that returns either MK4 to the
 partition boundary has probably relinked the font arrays into application flash.
 
@@ -920,7 +920,9 @@ events and Marlin transport/state traffic. `legacy=0` may suppress only
 `//action:notification`; never suppress temperatures, `ok`, `busy`, resend,
 emergency, or pause/resume/cancel actions. Validate session open/query/
 keepalive/close, event masks, sequence reset on open, reconnect negotiation,
-generic dialog action discovery, MMU recovery, filament runout, stuck-filament
+the 30-second session lease (with 10-second keepalives), automatic restoration
+of legacy notifications after expiry, generic dialog action discovery, MMU
+recovery, filament runout, stuck-filament
 choices, and tool-change recovery. Keep workflow actions sourced from the live
 FSM so a plugin cannot apply stale recovery policy.
 

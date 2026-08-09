@@ -37,6 +37,8 @@ USB/serial firmware update, INDX, and release-build features documented for
   for MMU, tool change, filament runout, stuck filament, calibration, probing,
   heating, firmware update, and waste-bin handling without changing standard
   Marlin temperature, flow-control, safety, or print-state messages.
+- Added a 30-second host-session lease renewed by `KEEPALIVE`; expiry restores
+  legacy notifications and disables remote UI input after a host disconnect.
 
 See [RME Out-of-Band Serial Control Protocol](doc/rme_serial_remote_protocol.md)
 for the complete command and integration reference.
@@ -52,5 +54,5 @@ for the complete command and integration reference.
 - 6.5.7-RME: 14/14 presets passed.
 - 6.6.3-RME: 15/15 presets passed, including CORE One INDX.
 - 29 versioned BBF artifacts staged under `bbf/6.5.7` and `bbf/6.6.3`.
-- MK4 flash: 1.12 MiB / 1.87 MiB (59.54%); MK3.5: 54.92%; CORE One:
-  63.46%; CORE One INDX: 64.26%; CORE One L: 63.49%.
+- MK4 flash: 1.12 MiB / 1.87 MiB (59.63%); MK3.5: 55.01%; CORE One:
+  63.54%; CORE One INDX: 64.36%; CORE One L: 63.58%; MINI maximum: 96.94%.
