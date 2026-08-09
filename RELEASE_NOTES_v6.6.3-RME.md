@@ -661,6 +661,8 @@ Latest firmware commit: `9e76ac329`
 
 Release-documentation commit: `87806d4d4`
 
+Expanded release-notes commit: `3c75548b7`
+
 Published release tag: `v6.6.3-RME-b1`
 
 Port-refresh commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Port RME firmware to Buddy 6.6.0`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Release RME firmware 6.6.1`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.6.1 RME release notes`, `Split filament movement detection control`, `Add cached multi-version RME release builds`, `Suppress filament runout while paused`, `Add loaded filament reassignment and query`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
@@ -921,7 +923,9 @@ daaf8c17e  2026-08-09  Record xBuddy resource build results
 58177879a  2026-08-09  Add structured RME host workflows
 9e76ac329  2026-08-09  Expire inactive RME host sessions
 87806d4d4  2026-08-09  Record 6.6.3 RME release validation
+3c75548b7  2026-08-09  Expand 6.6.3 RME release notes
 ```
 
-`v6.6.3-RME-b1` points at `87806d4d4`. This release-note correction is the
-next documentation-only commit and does not alter the validated BBFs.
+`v6.6.3-RME-b1` points at `87806d4d4`. Release documentation is expanded
+through `3c75548b7`; the final ledger refresh is documentation-only and does
+not alter the validated BBFs.
