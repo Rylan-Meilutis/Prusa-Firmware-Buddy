@@ -731,7 +731,10 @@ static bool handle_remote_filament_service(const std::string_view command) {
     }
     const FilamentType type = UserFilamentType { static_cast<uint8_t>(*slot) };
     auto params = type.parameters();
-    if (const auto name = remote_value(command, "name"); name && name->size() < filament_name_buffer_size && type.can_be_renamed_to(*name)) params.name = *name;
+    if (const auto name = remote_value(command, "name"); name && name->size() < filament_name_buffer_size && type.can_be_renamed_to(*name)) {
+      params.name.fill('\0');
+      std::copy(name->begin(), name->end(), params.name.begin());
+    }
     if (const auto value = remote_number(command, "nozzle")) params.nozzle_temperature = *value;
     if (const auto value = remote_number(command, "preheat")) params.nozzle_preheat_temperature = *value;
     if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
