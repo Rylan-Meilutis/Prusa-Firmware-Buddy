@@ -37,6 +37,41 @@ void report_loaded_filaments() {
     }
 }
 
+void report_filament_presets() {
+    for (size_t index = 0; index < preset_filament_type_count; ++index) {
+        const FilamentType type = static_cast<PresetFilamentType>(index);
+        const auto params = type.parameters();
+        SERIAL_ECHO("filament_preset Kpreset I");
+        SERIAL_ECHO(index);
+        SERIAL_ECHO(" N\"");
+        SERIAL_ECHO(params.name.data());
+        SERIAL_ECHO("\" V");
+        SERIAL_ECHO(type.is_visible() ? 1 : 0);
+        SERIAL_ECHO(" T");
+        SERIAL_ECHO(params.nozzle_temperature);
+        SERIAL_ECHO(" P");
+        SERIAL_ECHO(params.nozzle_preheat_temperature);
+        SERIAL_ECHO(" B");
+        SERIAL_ECHOLN(params.heatbed_temperature);
+    }
+    for (uint8_t index = 0; index < user_filament_type_count; ++index) {
+        const FilamentType type = UserFilamentType { index };
+        const auto params = type.parameters();
+        SERIAL_ECHO("filament_preset Kuser I");
+        SERIAL_ECHO(index);
+        SERIAL_ECHO(" N\"");
+        SERIAL_ECHO(params.name.data());
+        SERIAL_ECHO("\" V");
+        SERIAL_ECHO(type.is_visible() ? 1 : 0);
+        SERIAL_ECHO(" T");
+        SERIAL_ECHO(params.nozzle_temperature);
+        SERIAL_ECHO(" P");
+        SERIAL_ECHO(params.nozzle_preheat_temperature);
+        SERIAL_ECHO(" B");
+        SERIAL_ECHOLN(params.heatbed_temperature);
+    }
+}
+
 } // namespace
 
 /** \addtogroup G-Codes
@@ -56,6 +91,7 @@ void report_loaded_filaments() {
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
  * - `Q` - Query the currently loaded filament material for all enabled tools
+ * - `Q A` - Query all built-in and host-synchronized user filament presets
  * - `V<ix> O<color> N"<name>"` - define one of eight persistent custom colors
  *
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
@@ -76,6 +112,7 @@ void report_loaded_filaments() {
  * - `F<val>` - Set requires filtration
  *
  * - `N"<name>"` - Set name
+ * - `W<0|1>` - Set whether the selected preset is visible in filament menus
  *
  */
 void PrusaGcodeSuite::M865() {
@@ -85,7 +122,11 @@ void PrusaGcodeSuite::M865() {
     }
 
     if (p.option<bool>('Q').value_or(false)) {
-        report_loaded_filaments();
+        if (p.option<bool>('A').value_or(false)) {
+            report_filament_presets();
+        } else {
+            report_loaded_filaments();
+        }
         return;
     }
 
@@ -156,6 +197,10 @@ void PrusaGcodeSuite::M865() {
 
     if (filament_type.is_customizable()) {
         filament_type.set_parameters(params);
+    }
+
+    if (const auto visible = p.option<bool>('W'); visible && filament_type.is_visibility_customizable()) {
+        filament_type.set_visible(*visible);
     }
 
     if (auto load = p.option<uint8_t>('L', static_cast<uint8_t>(0), static_cast<uint8_t>(EXTRUDERS - 1))) {

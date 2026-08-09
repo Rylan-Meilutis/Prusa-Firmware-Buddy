@@ -1,0 +1,194 @@
+#include "serial_remote_control.hpp"
+
+#include "ScreenHandler.hpp"
+#include <knob_event.hpp>
+#include <printer_lock.hpp>
+#include <config_store/store_instance.hpp>
+#include <leds/light_state.hpp>
+#include <option/has_leds.h>
+#include <option/has_side_leds.h>
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
+    #include <leds/status_leds_handler.hpp>
+#endif
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
+
+#include <array>
+#include <atomic>
+
+namespace serial_remote_control {
+namespace {
+
+struct Command {
+    Action action;
+    int16_t value;
+    uint32_t sequence;
+};
+
+constexpr uint8_t queue_size = 8;
+std::array<Command, queue_size> commands {};
+std::atomic<uint8_t> read_index { 0 };
+std::atomic<uint8_t> write_index { 0 };
+std::atomic<bool> control_enabled { false };
+std::atomic<uint32_t> accepted_sequence { 0 };
+std::atomic<uint32_t> applied_sequence { 0 };
+std::atomic<bool> refresh_requested { false };
+
+uint8_t advance(uint8_t index) {
+    return static_cast<uint8_t>((index + 1) % queue_size);
+}
+
+void clear_queue() {
+    const auto write = write_index.load(std::memory_order_acquire);
+    read_index.store(write, std::memory_order_release);
+}
+
+} // namespace
+
+void set_enabled(const bool enabled) {
+    control_enabled.store(enabled, std::memory_order_release);
+    if (!enabled) {
+        clear_queue();
+    }
+}
+
+bool enqueue(const Action action, const int16_t value) {
+    if (!control_enabled.load(std::memory_order_acquire) || printer_lock::locked()) {
+        return false;
+    }
+
+    const auto write = write_index.load(std::memory_order_relaxed);
+    const auto next = advance(write);
+    if (next == read_index.load(std::memory_order_acquire)) {
+        return false;
+    }
+
+    const auto sequence = accepted_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    commands[write] = Command { action, value, sequence };
+    write_index.store(next, std::memory_order_release);
+    return true;
+}
+
+void request_refresh() {
+    refresh_requested.store(true, std::memory_order_release);
+}
+
+void reload_theme() {
+#if HAS_LEDS()
+    leds::StatusLedsHandler::instance().reload_colors();
+#endif
+    request_refresh();
+}
+
+LightStatus light_status() {
+    LightStatus result { -1, -1, -1 };
+#if HAS_SIDE_LEDS()
+    auto &side = leds::SideStripHandler::instance();
+    result.print_screen = side.get_print_screen_brightness();
+    result.print_chamber = static_cast<uint16_t>(side.get_print_light_brightness()) * 100 / 255;
+#elif HAS_LEDS()
+    result.print_screen = leds::LEDManager::instance().get_print_screen_brightness();
+#endif
+#if HAS_LEDS()
+    result.print_status = leds::StatusLedsHandler::instance().get_print_status_brightness();
+#endif
+    return result;
+}
+
+void set_temporary_lights(const int16_t screen, const int16_t chamber, const int16_t status) {
+    if (screen >= 0 && screen <= 100) {
+#if HAS_SIDE_LEDS()
+        leds::SideStripHandler::instance().set_print_screen_brightness(screen);
+#elif HAS_LEDS()
+        leds::LEDManager::instance().set_print_screen_brightness(screen);
+#endif
+    }
+#if HAS_SIDE_LEDS()
+    if (chamber >= 0 && chamber <= 100)
+        leds::SideStripHandler::instance().set_print_light_brightness(chamber == 100 ? 255 : chamber * 255 / 100);
+#endif
+#if HAS_LEDS()
+    if (status >= 0 && status <= 100)
+        leds::StatusLedsHandler::instance().set_print_status_brightness(status);
+#endif
+}
+
+void set_persistent_lights(const std::array<int16_t, 4> &screen,
+    const std::array<int16_t, 4> &chamber, const std::array<int16_t, 4> &status) {
+    constexpr std::array<leds::LightState, 4> states {
+        leds::LightState::deep_idle, leds::LightState::idle,
+        leds::LightState::active, leds::LightState::printing,
+    };
+    uint32_t packed_screen = config_store().screen_brightness_by_state.get();
+    for (size_t i = 0; i < states.size(); ++i) {
+        if (screen[i] >= 0 && screen[i] <= 100) {
+            const uint8_t shift = leds::light_state_shift(states[i]);
+            packed_screen = (packed_screen & ~(0xffu << shift)) | (static_cast<uint32_t>(screen[i]) << shift);
+        }
+#if HAS_SIDE_LEDS()
+        if (chamber[i] >= 0 && chamber[i] <= 100)
+            leds::SideStripHandler::instance().set_brightness(states[i], chamber[i] == 100 ? 255 : chamber[i] * 255 / 100);
+#endif
+#if HAS_LEDS()
+        if (status[i] >= 0 && status[i] <= 100)
+            leds::StatusLedsHandler::instance().set_brightness(states[i], status[i]);
+#endif
+    }
+    config_store().screen_brightness_by_state.set(packed_screen);
+}
+
+Status status() {
+    const auto read = read_index.load(std::memory_order_acquire);
+    const auto write = write_index.load(std::memory_order_acquire);
+    const auto pending = static_cast<uint8_t>((write + queue_size - read) % queue_size);
+    return Status {
+        .enabled = control_enabled.load(std::memory_order_acquire),
+        .pending = pending,
+        .accepted_sequence = accepted_sequence.load(std::memory_order_acquire),
+        .applied_sequence = applied_sequence.load(std::memory_order_acquire),
+    };
+}
+
+void process_gui() {
+    if (refresh_requested.exchange(false, std::memory_order_acq_rel)) {
+        if (auto *screen = Screens::Access()->Get()) {
+            screen->Invalidate();
+        }
+    }
+    if (printer_lock::locked()) {
+        set_enabled(false);
+        return;
+    }
+    if (!control_enabled.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    auto read = read_index.load(std::memory_order_relaxed);
+    const auto write = write_index.load(std::memory_order_acquire);
+    while (read != write) {
+        const Command command = commands[read];
+        switch (command.action) {
+        case Action::encoder:
+            gui::knob::EventEncoder(command.value);
+            break;
+        case Action::click:
+            gui::knob::EventClick(BtnState_t::Pressed);
+            gui::knob::EventClick(BtnState_t::Released);
+            break;
+        case Action::back:
+            gui::knob::EventClick(BtnState_t::HeldAndReleased);
+            break;
+        case Action::home:
+            Screens::Access()->CloseAll();
+            Screens::Access()->ResetTimeout();
+            break;
+        }
+        applied_sequence.store(command.sequence, std::memory_order_release);
+        read = advance(read);
+        read_index.store(read, std::memory_order_release);
+    }
+}
+
+} // namespace serial_remote_control

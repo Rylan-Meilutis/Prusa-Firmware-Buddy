@@ -87,6 +87,7 @@ target_sources(
           screen_printing_end_result.cpp
           screen_prusa_link.cpp
           screen_splash.cpp
+          serial_remote_control.cpp
           ScreenFactory.cpp
           ScreenHandler.cpp
           ScreenPrintingModel.cpp
