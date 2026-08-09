@@ -91,6 +91,46 @@ An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.
 
+## Prompts and recovery workflows
+
+The plugin can render and answer the printer's current prompt without guessing
+which screen is visible:
+
+```text
+@RME DIALOG QUERY
+@RME DIALOG RESPOND A"Retry"
+@RME DIALOG RESPOND S0
+```
+
+`QUERY` reports the actions offered by the active firmware prompt. A response
+is accepted only when it belongs to that prompt. MMU failures use this same
+guarded dialog workflow:
+
+```text
+@RME DIALOG QUERY
+@RME DIALOG RESPOND A"Retry"
+@RME DIALOG RESPOND A"Unload"
+@RME DIALOG RESPOND A"MMU_disable"
+```
+
+Stuck-filament recovery and tool mapping provide dedicated operations:
+
+```text
+@RME STUCK QUERY
+@RME STUCK CONTINUE
+@RME STUCK UNLOAD
+@RME STUCK ABORT
+@RME TOOLMAP QUERY
+@RME TOOLMAP SET logical=1 physical=3
+@RME TOOLMAP ENABLE value=1
+@RME TOOLMAP RESET
+```
+
+Unsupported features and unknown frames return a nonfatal
+`echo:RME_ERROR code=...` record followed by `ok`. They never use Marlin's
+`Error:` prefix, so OctoPrint can report the plugin error without cancelling an
+active print.
+
 ## Host integration rules
 
 - Treat `@RME` as a control protocol, never as slicer start/end G-code.

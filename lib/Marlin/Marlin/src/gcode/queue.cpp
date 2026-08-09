@@ -45,6 +45,10 @@ GCodeQueue queue;
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
 #include <printer_lock.hpp>
+#if ENABLED(PRUSA_TOOL_MAPPING)
+  #include "../module/prusa/tool_mapper.hpp"
+  extern void rme_report_tool_mapping();
+#endif
 #if __has_include(<option/has_indx.h>)
   #include <option/has_indx.h>
   #define RME_HAS_INDX() HAS_INDX()
@@ -722,6 +726,34 @@ static bool handle_remote_machine_service(const std::string_view command) {
   return true;
 }
 
+static bool handle_dialog_service_response(const char *command);
+
+static bool handle_remote_toolmap_service(const std::string_view command) {
+  if (!command.starts_with("@RME TOOLMAP ")) return false;
+#if ENABLED(PRUSA_TOOL_MAPPING)
+  const auto action = command.substr(13);
+  if (action.empty()) return false;
+  if (action[0] == 'Q') {
+    rme_report_tool_mapping();
+  } else if (action[0] == 'S') {
+    const auto logical = remote_number(command, "logical");
+    const auto physical = remote_number(command, "physical");
+    if (logical && physical && *logical >= 0 && *logical < EXTRUDERS && *physical >= 0 && *physical < EXTRUDERS)
+      tool_mapper.set_mapping(*logical, *physical);
+  } else if (action[0] == 'E') {
+    if (const auto value = remote_number(command, "value"); value && (*value == 0 || *value == 1)) tool_mapper.set_enable(*value);
+  } else if (action[0] == 'R') {
+    tool_mapper.reset();
+  } else {
+    return false;
+  }
+  return true;
+#else
+  SERIAL_ECHOLNPGM("echo:RME_ERROR code=unsupported feature=tool_mapping");
+  return true;
+#endif
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (strncmp(payload, "@RME ", 5) != 0) return false;
@@ -731,44 +763,15 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
       || handle_remote_filament_service(command)
-      || handle_remote_machine_service(command)) return true;
+      || handle_remote_machine_service(command)
+      || handle_remote_toolmap_service(command)
+      || handle_dialog_service_response(payload)) return true;
+  SERIAL_ECHOLNPGM("echo:RME_ERROR unknown_command");
   return true;
 }
 
 static void report_service_queue_status() {
-  const uint8_t normal_used = std::min<uint8_t>(GCodeQueue::length, BUFSIZE);
-  const uint8_t reserve_used = GCodeQueue::length > BUFSIZE ? GCodeQueue::length - BUFSIZE : 0;
-  const bool paused = marlin_server::printer_paused();
-  const bool resume_allowed = paused && !dialog_blocks_generic_resume();
-
-  SERIAL_ECHOPGM("SERVICE_QUEUE normal=");
-  SERIAL_ECHO(normal_used);
-  SERIAL_CHAR('/');
-  SERIAL_ECHO(BUFSIZE);
-  SERIAL_ECHOPGM(" reserve=");
-  SERIAL_ECHO(reserve_used);
-  SERIAL_CHAR('/');
-  SERIAL_ECHO(GCodeQueue::recovery_capacity - BUFSIZE);
-  SERIAL_ECHOPGM(" state=");
-  SERIAL_ECHO(static_cast<int>(marlin_vars().print_state.get()));
-  SERIAL_ECHOPGM(" paused=");
-  SERIAL_CHAR(paused ? '1' : '0');
-  SERIAL_ECHOPGM(" resume=");
-  SERIAL_CHAR(resume_allowed ? '1' : '0');
-  SERIAL_ECHOPGM(" blocking=");
-  if (GCodeQueue::length && GCodeQueue::current_command_serial) {
-    const char *blocking = GCodeQueue::command_buffer[GCodeQueue::index_r];
-    while (*blocking == ' ') blocking++;
-    if (*blocking == 'N') {
-      blocking++;
-      while (*blocking == '-' || NUMERIC(*blocking)) blocking++;
-      while (*blocking == ' ') blocking++;
-    }
-    while (*blocking && *blocking != ' ' && *blocking != '*') SERIAL_CHAR(*blocking++);
-  } else {
-    SERIAL_ECHOPGM("none");
-  }
-  SERIAL_ECHOPGM(" actions=");
+  SERIAL_ECHOPGM("RME_PROMPT A=");
   bool first = true;
   marlin_vars().peek_fsm_states([&](const fsm::States &states) {
     const auto top = states.get_top();
@@ -788,17 +791,30 @@ static void report_service_queue_status() {
 }
 
 static bool handle_dialog_service_response(const char *command) {
-  if (!command_code_is(command, 'M', 876)) {
-    return false;
+  const bool gcode = command_code_is(command, 'M', 876);
+  const char *options = command;
+  if (!gcode) {
+    const char *payload = command_payload(command);
+    constexpr char dialog_prefix[] = "@RME DIALOG ";
+    constexpr char stuck_prefix[] = "@RME STUCK ";
+    if (strncmp(payload, dialog_prefix, sizeof(dialog_prefix) - 1) == 0) options = payload + sizeof(dialog_prefix) - 1;
+    else if (strncmp(payload, stuck_prefix, sizeof(stuck_prefix) - 1) == 0) options = payload + sizeof(stuck_prefix) - 1;
+    else return false;
   }
 
-  if (strchr(command, 'Q')) {
+  if (strncmp(options, "QUERY", 5) == 0 || (gcode && strchr(options, 'Q'))) {
     report_service_queue_status();
     return true;
   }
+  if (!gcode && strncmp(options, "RESPOND ", 8) == 0) options += 8;
 
-  const char *spos = strchr(command, 'S');
-  const auto requested_name = command_string_parameter(command, 'A');
+  if (!gcode && *options == '\0') {
+    return false;
+  }
+
+  const char *spos = strchr(options, 'S');
+  auto requested_name = command_string_parameter(options, 'A');
+  if (!gcode && !requested_name && !spos && *options) requested_name = std::string_view { options, strcspn(options, " *") };
   if (!spos && !requested_name) {
     return false;
   }
