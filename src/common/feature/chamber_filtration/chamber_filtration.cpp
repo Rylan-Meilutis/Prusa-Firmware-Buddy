@@ -99,7 +99,6 @@ size_t ChamberFiltration::get_available_backends(BackendArray &target) {
 
 PWM255 ChamberFiltration::output_pwm() const {
     std::lock_guard _lg(mutex_);
-    const auto previous_output_pwm = output_pwm_;
     return output_pwm_;
 }
 
@@ -107,6 +106,7 @@ void ChamberFiltration::step() {
     assert(osThreadGetId() == marlin_server::server_task);
 
     std::lock_guard _lg(mutex_);
+    const auto previous_output_pwm = output_pwm_;
 
     if (!is_enabled()) {
         commit_unaccounted_filter_usage(ticks_s());
