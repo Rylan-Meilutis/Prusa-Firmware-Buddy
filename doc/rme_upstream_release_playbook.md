@@ -265,6 +265,10 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
+On failure, inspect `.rme-build-errors/<version>/<preset>.log`; the wrapper
+stores the complete preset output there before printing its shortened summary.
+Do not place these diagnostics in `bbf/`, which remains artifact-only.
+
 The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF paths.
 
 The wrapper prepends the managed virtualenv bin directory to child build `PATH` and passes `Python3_ROOT_DIR` by default so nested CMake projects can find Nunavut `nnvg`. If a custom Python root is required, override it explicitly:

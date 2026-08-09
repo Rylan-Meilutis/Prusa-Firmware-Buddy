@@ -7,6 +7,16 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Expanded structured workflows to cover native filament load/unload,
+    chamber-vent actuation, filtration, and every stable MMU phase, with
+    rate-limited progress updates and deduplicated not-responding errors.
+  * Added read-only out-of-band `@RME STATS QUERY` records for lifetime XYZ
+    travel, extrusion and print time, current-job time, jobs started, MMU
+    changes, tool picks, filtration use, supported waste-bin counts, crashes,
+    power panics, and separate MMU failure counters.
+  * Failed release presets now retain complete compiler output under
+    `.rme-build-errors/<version>/<preset>.log` for multi-version builds.
+
   * Added an out-of-band `@RME` serial protocol that is handled before the
     motion G-code FIFO and therefore remains responsive during blocking heater
     waits, probing, MMU work, calibration, and queued serial printing.
