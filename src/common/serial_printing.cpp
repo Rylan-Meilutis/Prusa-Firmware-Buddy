@@ -35,6 +35,10 @@ int8_t SerialPrinting::last_status_progress = -1;
 namespace {
 const char *classify_workflow(const char *message) {
     if (strstr(message, "MMU")) return "mmu";
+    if (strstr(message, "loading filament") || strstr(message, "Loading filament")) return "filament_load";
+    if (strstr(message, "unloading filament") || strstr(message, "Unloading filament")) return "filament_unload";
+    if (strstr(message, "vent") || strstr(message, "Vent")) return "chamber_vent";
+    if (strstr(message, "filter") || strstr(message, "Filter")) return "filtration";
     if (strstr(message, "Tool change") || strstr(message, "tool change")) return "tool_change";
     if (strstr(message, "Filament runout") || strstr(message, "filament runout")) return "filament_runout";
     if (strstr(message, "stuck") || strstr(message, "Stuck")) return "stuck_filament";
@@ -111,6 +115,11 @@ void SerialPrinting::notify_error(const char *workflow, const char *code, const 
     if (marlin_server::serial_print_active() && serial_remote_control::legacy_notifications_enabled()) {
         SERIAL_ECHOPGM("//action:notification "); SERIAL_ECHOLN(message);
     }
+}
+
+void SerialPrinting::notify_progress(const char *workflow, const char *state, const char *code, const char *message, const int progress_percent) {
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::progress))
+        emit_rme_event("progress", workflow, state, code, message, std::clamp(progress_percent, 0, 100));
 }
 
 void SerialPrinting::notify_workflow(const char *workflow, const char *state, const char *message, const int progress_percent) {

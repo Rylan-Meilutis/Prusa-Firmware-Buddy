@@ -16,6 +16,9 @@ static constexpr auto operator+(T e) noexcept
 
 namespace MMU2 {
 
+static uint8_t last_rme_progress_code = 0xff;
+static uint8_t last_rme_progress_percent = 0xff;
+
 static constexpr PhasesLoadUnload ProgressCodeToPhasesLoadUnload(RawProgressCode pc) {
     // Using +op prefix operator defined on the beginning of this file, works same as to_underlying
 
@@ -109,6 +112,50 @@ static constexpr PhasesLoadUnload ProgressCodeToPhasesLoadUnload(RawProgressCode
     }
 }
 
+static constexpr const char *ProgressCodeToRmeState(RawProgressCode pc) {
+    switch (pc) {
+    case +ProgressCode::EngagingIdler: return "engaging_idler";
+    case +ProgressCode::DisengagingIdler: return "disengaging_idler";
+    case +ProgressCode::UnloadingToFinda: return "unloading_to_finda";
+    case +ProgressCode::UnloadingToPulley: return "unloading_to_pulley";
+    case +ProgressCode::FeedingToFinda: return "feeding_to_finda";
+    case +ProgressCode::FeedingToBondtech: return "feeding_to_extruder";
+    case +ProgressCode::FeedingToNozzle: return "feeding_to_nozzle";
+    case +ProgressCode::AvoidingGrind: return "avoiding_grind";
+    case +ProgressCode::OK: return "complete";
+    case +ProgressCode::FinishingMoves: return "finishing_moves";
+    case +ProgressCode::ERRDisengagingIdler: return "error_disengaging_idler";
+    case +ProgressCode::ERREngagingIdler: return "error_engaging_idler";
+    case +ProgressCode::ERRHelpingFilament: return "helping_filament";
+    case +ProgressCode::UnloadingFilament: return "unloading_filament";
+    case +ProgressCode::LoadingFilament: return "loading_filament";
+    case +ProgressCode::SelectingFilamentSlot: return "selecting_slot";
+    case +ProgressCode::PreparingBlade: return "preparing_blade";
+    case +ProgressCode::PushingFilament: return "pushing_filament";
+    case +ProgressCode::PerformingCut: return "cutting_filament";
+    case +ProgressCode::ReturningSelector: return "returning_selector";
+    case +ProgressCode::ParkingSelector: return "parking_selector";
+    case +ProgressCode::EjectingFilament: return "ejecting_filament";
+    case +ProgressCode::RetractingFromFinda: return "retracting_from_finda";
+    case +ProgressCode::Homing: return "homing";
+    case +ProgressCode::MovingSelector: return "moving_selector";
+    case +ProgressCode::FeedingToFSensor: return "feeding_to_filament_sensor";
+    case +ProgressCode::HWTestBegin: return "hardware_test_begin";
+    case +ProgressCode::HWTestIdler: return "hardware_test_idler";
+    case +ProgressCode::HWTestSelector: return "hardware_test_selector";
+    case +ProgressCode::HWTestPulley: return "hardware_test_pulley";
+    case +ProgressCode::HWTestCleanup: return "hardware_test_cleanup";
+    case +ProgressCode::HWTestExec: return "hardware_test_execute";
+    case +ProgressCode::HWTestDisplay: return "hardware_test_results";
+    case +ProgressCode::ErrHwTestFailed: return "hardware_test_failed";
+    case +ExtendedProgressCode::WaitingForTemperature: return "waiting_for_temperature";
+    case +ExtendedProgressCode::UnloadingFromExtruder: return "unloading_from_extruder";
+    case +ExtendedProgressCode::LoadingToNozzle: return "loading_to_nozzle";
+    case +ExtendedProgressCode::Ramming: return "ramming";
+    default: return "unknown";
+    }
+}
+
 bool Fsm::IsActive() const {
     return created_this || Pause::IsFsmActive();
 };
@@ -159,6 +206,16 @@ void Fsm::Loop() {
             case LoadUnloadMode::Purge: status = "MMU purging filament"; break;
             case LoadUnloadMode::FilamentStuck: status = "MMU filament stuck"; break;
             }
+            const auto raw_progress_code = static_cast<uint8_t>(r.rawProgressCode);
+            const bool useful_rme_progress = last_rme_progress_percent == 0xff
+                || data.progress >= last_rme_progress_percent + 5
+                || data.progress + 5 <= last_rme_progress_percent;
+            if (raw_progress_code != last_rme_progress_code || useful_rme_progress) {
+                const char *rme_state = ProgressCodeToRmeState(r.rawProgressCode);
+                SerialPrinting::notify_progress("mmu", rme_state, rme_state, status, data.progress);
+                last_rme_progress_code = raw_progress_code;
+                last_rme_progress_percent = data.progress;
+            }
             SerialPrinting::notify_status(status, data.progress);
 
         } else if constexpr (std::is_same_v<T, ErrorData>) {
@@ -187,6 +244,9 @@ bool Fsm::Activate() {
     }
 
     created_this = true;
+    last_rme_progress_code = 0xff;
+    last_rme_progress_percent = 0xff;
+    SerialPrinting::notify_workflow("mmu", "open", "MMU operation started", 0);
     marlin_server::fsm_create(PhasesLoadUnload::MMUDummyStartNoAttention);
     return true;
 }
@@ -202,6 +262,7 @@ bool Fsm::Deactivate() {
 
     created_this = false;
     marlin_server::fsm_destroy(ClientFSM::Load_unload);
+    SerialPrinting::notify_workflow("mmu", "closed", "MMU operation complete", 100);
     return true;
 }
 

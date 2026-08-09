@@ -10,6 +10,7 @@
 #include <option/has_indx.h>
 #include <raii/scope_guard.hpp>
 #include <marlin_server.hpp>
+#include <serial_printing.hpp>
 
 #include <feature/chamber/chamber.hpp>
 
@@ -173,6 +174,18 @@ namespace {
 
 bool execute_control(VentState target_state) {
     const bool open = (target_state == VentState::open);
+    bool succeeded = false;
+    SerialPrinting::notify_workflow("chamber_vent", open ? "opening" : "closing",
+        open ? "Opening chamber vent" : "Closing chamber vent", 0);
+    ScopeGuard report_result = [&] {
+        if (succeeded) {
+            SerialPrinting::notify_workflow("chamber_vent", open ? "open" : "closed",
+                open ? "Chamber vent open" : "Chamber vent closed", 100);
+        } else {
+            SerialPrinting::notify_error("chamber_vent", "vent_control_failed",
+                open ? "Failed to open chamber vent" : "Failed to close chamber vent");
+        }
+    };
 
     PrintStatusMessageGuard psm_guard;
     if (open) {
@@ -216,6 +229,7 @@ bool execute_control(VentState target_state) {
     }
 #endif
 
+    succeeded = true;
     return true;
 }
 

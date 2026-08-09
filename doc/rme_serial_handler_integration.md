@@ -44,6 +44,7 @@ actions:
 | Workflow | Suggested host UI | Action source |
 | --- | --- | --- |
 | `mmu` | MMU progress, slot/path help, error details | `DIALOG QUERY` |
+| `filament_load` / `filament_unload` | Native load/unload lifecycle, cancellation, skip and failure state | `DIALOG QUERY` only when waiting/error |
 | `tool_change` | Tool/dock status and retry/abort help | `DIALOG QUERY`, `TOOLMAP` |
 | `filament_runout` | Material replacement workflow | `DIALOG QUERY` |
 | `stuck_filament` | Continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
@@ -51,6 +52,8 @@ actions:
 | `probing` / `heating` | Noninteractive progress | no assumed action; query if waiting |
 | `firmware_update` | Upload/verification/restart phase | firmware-update protocol |
 | `waste_bin` | Purge-bin state and empty-bin guidance | active dialog and waste-bin G-code |
+| `chamber_vent` | Opening, closing, final position, or actuation failure | no action unless an error is emitted |
+| `filtration` | Mid-print/post-print filtering and commanded PWM percentage | no assumed action |
 | `printer` | Generic notification fallback | query if `state=waiting` |
 
 An error event is a notification that firmware entered or is about to enter a
@@ -73,9 +76,11 @@ responses without cancelling the print.
 
 ## Minimum conformance test
 
-Test reconnect and sequence-gap recovery, heater waits, MMU load/unload and an
-MMU error, filament runout, stuck-filament Continue/Unload/Abort, a failed and
-successful tool change where supported, PA calibration progress/abort, UI lock
-transitions, unknown commands, and emergency stop. Repeat with `legacy=1` to
+Test reconnect and sequence-gap recovery, heater waits, native and MMU
+load/unload, every MMU progress code and an MMU-not-responding error, filament
+runout, stuck-filament Continue/Unload/Abort, a failed and successful tool
+change where supported, PA calibration progress/abort, chamber-vent open/close
+and failure, mid/post-print filtration start/PWM/stop, UI lock transitions,
+unknown commands, and emergency stop. Repeat with `legacy=1` to
 confirm both representations coexist, then with `legacy=0` to confirm only
 legacy notifications are replaced.

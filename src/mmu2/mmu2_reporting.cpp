@@ -8,6 +8,7 @@
 #include "mmu2_fsm.hpp"
 #include "mmu2_reporter.hpp"
 #include "mmu2_reporting.hpp"
+#include <serial_printing.hpp>
 #include "fail_bucket.hpp"
 #include "pause_stubbed.hpp"
 #include <logging/log.hpp>
@@ -75,6 +76,8 @@ void ReportErrorHook(ErrorData d) {
         Fsm::Instance().reporter.SetReport(d);
     } else {
         log_error(MMU2, "Error report: CIP=%" PRIu8 " ec=%u es=%u - cannot be done, fsm closed", static_cast<unsigned>(d.rawCommandInProgress), static_cast<unsigned>(d.errorCode), static_cast<unsigned>(d.errorSource));
+        SerialPrinting::notify_error("mmu", "not_responding", "MMU is not responding");
+        SerialPrinting::notify_workflow("mmu", "waiting", "MMU communication recovery required");
     }
 }
 

@@ -41,6 +41,9 @@ Events have a monotonically increasing per-session sequence number:
 RME_EVENT seq=1 type=workflow workflow=tool_change state=open message="Tool change in progress"
 RME_EVENT seq=2 type=progress workflow=mmu state=active progress=50 message="MMU loading filament"
 RME_EVENT seq=3 type=error workflow=mmu state=waiting code=mmu_error message="FINDA FILAM. STUCK"
+RME_EVENT seq=4 type=progress workflow=mmu state=feeding_to_nozzle code=feeding_to_nozzle progress=75 message="MMU loading filament"
+RME_EVENT seq=5 type=workflow workflow=chamber_vent state=open progress=100 message="Chamber vent open"
+RME_EVENT seq=6 type=progress workflow=filtration state=active code=post_print progress=60 message="Post-print filtration"
 ```
 
 The sequence lets a handler detect missed records. Query the active dialog
@@ -162,9 +165,14 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 ```
 
 Workflow identifiers are stable handler-routing keys. Current firmware emits
-`mmu`, `tool_change`, `filament_runout`, `stuck_filament`,
-`pressure_advance`, `probing`, `heating`, `firmware_update`, `waste_bin`, and
-the generic `printer` fallback. The event announces the workflow; the active
+`mmu`, `filament_load`, `filament_unload`, `tool_change`, `filament_runout`,
+`stuck_filament`, `pressure_advance`, `probing`, `heating`, `firmware_update`,
+`waste_bin`, `chamber_vent`, `filtration`, and the generic `printer` fallback.
+MMU progress events expose stable snake-case states for idler, selector,
+FINDA, extruder, nozzle, cut, eject, homing, ramming, and hardware-test phases;
+repeated reports are limited to state changes or five-percent progress changes.
+Filtration uses `code=mid_print` or `code=post_print` and reports commanded fan
+PWM as a percentage. The event announces the workflow; the active
 firmware FSM remains authoritative for its actions. After an error or a
 `state=waiting` event, issue `@RME DIALOG QUERY`, render the returned actions,
 and answer with `@RME DIALOG RESPOND A"<action>"`. This provides specialized
