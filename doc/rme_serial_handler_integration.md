@@ -34,6 +34,23 @@ connection opened one.
 
 ## Message routing
 
+## Filesystem integration
+
+Use `@RME FILE CAPS` during discovery and treat `/usb` as the only exported
+filesystem. Serialize requests with normal RME traffic. For downloads, request
+no more than 48 bytes and decode each `RME_FILE_DATA data=` value from Base64.
+For uploads, calculate size and SHA-256 before `WRITE_BEGIN`, send contiguous
+48-byte chunks, advance only after `RME_FILE_WRITE_OFFSET`, and finish with
+`WRITE_END`. Send `ABORT` after a disconnect or cancelled transfer.
+
+Do not present a file as complete until `RME_FILE_WRITE_COMPLETE` arrives.
+`PRINT` and `FLASH` return a queued acknowledgement before the foreground
+firmware workflow starts; continue consuming standard and structured state
+events. Percent-encode spaces and reserved path characters. Never attempt to
+address paths outside `/usb`.
+
+## Message routing
+
 Continue passing these records through the host's existing Marlin parser:
 
 - `ok`, `busy`, `Resend`, line-number errors, and emergency responses;

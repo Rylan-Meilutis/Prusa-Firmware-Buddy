@@ -3,6 +3,7 @@
 ## Summary
 
   * New features and improvements
+    * USB-confined `@RME FILE` service for directory listing, metadata, Base64 chunk downloads, SHA-256-verified atomic uploads, abort cleanup, directory creation, rename/delete, print queueing, and validated BBF flash queueing
     * RME filament synchronization can create complete persistent user profiles, including upstream base material, temperatures, chamber bounds, filtration, abrasive, and flexible properties; the profiles remain available in local load menus without a host
     * RME protocol keepalives and read-only polling no longer hold the printer in an active state; structured status events report the real device state independently of the live communications lease
     * Serial printing screen for OctoPrint and other serial hosts
