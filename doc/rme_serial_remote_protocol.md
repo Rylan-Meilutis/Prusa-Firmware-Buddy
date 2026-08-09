@@ -144,9 +144,8 @@ also report the current pellet count.
 Failure fields are intentionally separate rather than combined into a
 misleading total. Crash, power-panic, and `*_total` MMU counters are persistent.
 MMU `*_since_reset` counters follow the printer's existing statistics-reset
-semantics. Tool pickup and park failures are explicitly suffixed `_boot`
-because those toolchanger counters cover only the current boot. Unsupported
-optional hardware fields are omitted, except `filtering_time_s`, which is zero
+semantics. Unsupported optional hardware fields are omitted, except
+`filtering_time_s`, which is zero
 on machines without filtration. `jobs_started` is the persistent job sequence
 counter and is not a successful-print count.
 

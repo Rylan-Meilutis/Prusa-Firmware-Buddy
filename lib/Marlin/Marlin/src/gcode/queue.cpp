@@ -55,9 +55,11 @@ GCodeQueue queue;
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_chamber_filtration_api.h>
-#include <option/has_wastebin_fill_tracking.h>
-#if HAS_TOOLCHANGER()
-  #include "../module/prusa/toolchanger.h"
+#if __has_include(<option/has_wastebin_fill_tracking.h>)
+  #include <option/has_wastebin_fill_tracking.h>
+  #define RME_HAS_WASTEBIN_FILL_TRACKING() HAS_WASTEBIN_FILL_TRACKING()
+#else
+  #define RME_HAS_WASTEBIN_FILL_TRACKING() 0
 #endif
 #include <algorithm>
 #include <cctype>
@@ -741,7 +743,7 @@ static bool handle_remote_stats_service(const std::string_view command) {
 #else
   SERIAL_ECHOPGM(" filtering_time_s=0");
 #endif
-#if HAS_WASTEBIN_FILL_TRACKING()
+#if RME_HAS_WASTEBIN_FILL_TRACKING()
   SERIAL_ECHOPGM(" wastebin_pellets="); SERIAL_ECHO(odometer.get_nozzle_cleaner_pellets());
 #endif
   SERIAL_EOL();
@@ -754,10 +756,6 @@ static bool handle_remote_stats_service(const std::string_view command) {
   SERIAL_ECHOPGM(" mmu_load_total="); SERIAL_ECHO(config_store().mmu2_total_load_fails.get());
   SERIAL_ECHOPGM(" mmu_general_since_reset="); SERIAL_ECHO(config_store().mmu2_fails.get());
   SERIAL_ECHOPGM(" mmu_general_total="); SERIAL_ECHO(config_store().mmu2_total_fails.get());
-#endif
-#if HAS_TOOLCHANGER()
-  SERIAL_ECHOPGM(" tool_pickup_boot="); SERIAL_ECHO(prusa_toolchanger.get_pickup_fail_count());
-  SERIAL_ECHOPGM(" tool_park_boot="); SERIAL_ECHO(prusa_toolchanger.get_park_fail_count());
 #endif
   SERIAL_EOL();
   return true;
