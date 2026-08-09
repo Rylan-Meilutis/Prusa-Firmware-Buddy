@@ -26,7 +26,7 @@
     * Optional BBF firmware signing for release builds with a local default signing key
     * Clarified stock Prusa bootloader limitations for custom firmware signing and release builds
     * Size-optimized release LTO linking to reduce flash usage, especially on XL
-    * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI and every xBuddy machine use independently compressed, random-access external font glyph records with one shared glyph cache, preserving full UI/language coverage while reducing MK4 application-flash use from the partition limit to about 60%
+    * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI and every xBuddy machine use independently compressed, random-access external font glyph records with one shared glyph cache, preserving full UI/language coverage while reducing MK4 application-flash use from the partition limit to 93.45%
     * Additional machine-specific compile-time pruning for unused LED/status-light UI and driver paths
     * UI theme updates and theme import support
     * Filament menu loadout view for reassigning the stored loaded material without unloading or reloading filament
@@ -643,20 +643,20 @@ does not change the validated firmware output.
 Validated release target set and package sizes:
 
 ```text
-coreone     1.24 MiB / 1.87 MiB flash (66.01%), 179.8 KiB / 269.1 KiB RAM (66.82%)
-coreonel    1.24 MiB / 1.87 MiB flash (66.00%), 181.1 KiB / 269.1 KiB RAM (67.28%)
-mini        876.7 KiB / 895.0 KiB flash (97.96%), 148.2 KiB / 192.0 KiB RAM (77.18%)
-mini-en-cs  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-de  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-es  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-fr  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-it  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-pl  877.4 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-ja  885.0 KiB / 895.0 KiB flash (98.88%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mini-en-uk  877.5 KiB / 895.0 KiB flash (98.04%), 148.2 KiB / 192.0 KiB RAM (77.20%)
-mk4         1.83 MiB / 1.87 MiB flash (97.89%), 172.3 KiB / 260.0 KiB RAM (66.29%)
-mk3.5       1.77 MiB / 1.87 MiB flash (94.42%), 161.8 KiB / 260.0 KiB RAM (62.24%)
-xl          1.24 MiB / 1.87 MiB flash (66.00%), 188.3 KiB / 268.1 KiB RAM (70.23%)
+coreone     1.15 MiB / 1.87 MiB flash (61.56%), 205.8 KiB / 260.0 KiB RAM (79.15%)
+coreonel    1.15 MiB / 1.87 MiB flash (61.54%), 207.0 KiB / 260.0 KiB RAM (79.62%)
+mini        848.9 KiB / 895.0 KiB flash (94.85%), 150.4 KiB / 192.0 KiB RAM (78.31%)
+mini-en-cs  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-de  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-es  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-fr  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-it  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-pl  849.5 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-ja  849.6 KiB / 895.0 KiB flash (94.93%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mini-en-uk  849.6 KiB / 895.0 KiB flash (94.92%), 150.4 KiB / 192.0 KiB RAM (78.32%)
+mk4         1.75 MiB / 1.87 MiB flash (93.45%), 199.4 KiB / 260.0 KiB RAM (76.69%)
+mk3.5       1.67 MiB / 1.87 MiB flash (88.87%), 164.1 KiB / 260.0 KiB RAM (63.10%)
+xl          1.28 MiB / 1.87 MiB flash (68.05%), 214.4 KiB / 260.0 KiB RAM (82.47%)
 ```
 
 The final staged BBF set is:
@@ -940,8 +940,19 @@ c3e5e3eb7  2026-07-25  Fix 6.5 serial print feature guards
 49c31f1c4  2026-07-25  Reserve serial recovery command capacity
 50677a29c  2026-07-25  Keep serial recovery reserve always active
 f3b4c7744  2026-07-25  Expand serial recovery service protocol
+e17fd8332  2026-07-25  Prepare RME 6.5.7 build 28 release
+28a8e17c8  2026-08-08  Add out-of-band serial remote control
+5b2ca8d63  2026-08-08  Fix remote filament names on 6.5 firmware
+7c987c239  2026-08-08  Document and extend RME remote control
+5f3709cd6  2026-08-08  Update 6.5.7 remote control release notes
+5c18b37a5  2026-08-08  Support machine discovery on 6.5.7
+523a90270  2026-08-08  Reduce remote protocol flash overhead
+0ca6789b1  2026-08-08  Fit remote control protocol on MK4 targets
+b15e85fa4  2026-08-08  Record 6.5.7 and 6.6.3 release validation
+e1e16de1b  2026-08-08  Expand out-of-band recovery workflows
+343f19615  2026-08-08  Report unknown RME subcommands safely
+4813494e9  2026-08-08  Keep recovery protocol within MK4 flash
+94656f7c6  2026-08-09  Move xBuddy fonts to managed resources
 ```
 
-This continuation includes firmware changes through `f3b4c7744`;
-`v6.5.7-RME-b28` points at the release-documentation commit immediately
-following this list.
+This continuation includes firmware changes through `94656f7c6`.
