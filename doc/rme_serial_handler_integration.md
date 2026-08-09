@@ -40,8 +40,8 @@ OctoPrint's print-state control remains intact.
 
 Treat `RME_STATS`, `RME_STATS_OPERATIONS`, and `RME_STATS_FAILURES` as
 unordered key/value snapshots. Preserve the suffixes and units in the field
-names: `_m` is meters, `_s` is seconds, `_total` is persistent, and `_boot` is
-boot-scoped. A host must tolerate optional fields being absent on machines
+names: `_m` is meters, `_s` is seconds, and `_total` is persistent. A host must
+tolerate optional fields being absent on machines
 without the corresponding MMU, toolchanger, filtration, or waste-bin hardware.
 
 ## Workflow handlers
