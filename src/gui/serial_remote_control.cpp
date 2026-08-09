@@ -7,6 +7,7 @@
 #include <leds/light_state.hpp>
 #include <option/has_leds.h>
 #include <option/has_side_leds.h>
+#include <timing.h>
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
     #include <leds/status_leds_handler.hpp>
@@ -36,6 +37,8 @@ std::atomic<bool> protocol_session_active { false };
 std::atomic<uint8_t> protocol_subscriptions { 0 };
 std::atomic<bool> protocol_legacy_notifications { true };
 std::atomic<uint32_t> protocol_event_sequence { 0 };
+std::atomic<uint32_t> protocol_session_activity_ms { 0 };
+constexpr uint32_t protocol_session_timeout_ms = 30'000;
 
 uint8_t advance(uint8_t index) {
     return static_cast<uint8_t>((index + 1) % queue_size);
@@ -140,7 +143,14 @@ void open_session(const uint8_t subscriptions, const bool legacy_notifications) 
     protocol_subscriptions.store(subscriptions, std::memory_order_release);
     protocol_legacy_notifications.store(legacy_notifications, std::memory_order_release);
     protocol_event_sequence.store(0, std::memory_order_release);
+    protocol_session_activity_ms.store(ticks_ms(), std::memory_order_release);
     protocol_session_active.store(true, std::memory_order_release);
+}
+
+void keepalive_session() {
+    if (session_active()) {
+        protocol_session_activity_ms.store(ticks_ms(), std::memory_order_release);
+    }
 }
 
 void close_session() {
@@ -151,7 +161,15 @@ void close_session() {
 }
 
 bool session_active() {
-    return protocol_session_active.load(std::memory_order_acquire);
+    if (!protocol_session_active.load(std::memory_order_acquire)) {
+        return false;
+    }
+    const auto last_activity = protocol_session_activity_ms.load(std::memory_order_acquire);
+    if (ticks_diff(ticks_ms(), last_activity) <= static_cast<int32_t>(protocol_session_timeout_ms)) {
+        return true;
+    }
+    close_session();
+    return false;
 }
 
 bool subscribed(const EventSubscription subscription) {

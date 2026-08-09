@@ -729,7 +729,10 @@ static bool handle_remote_session_service(const std::string_view command) {
     }
     serial_remote_control::open_session(static_cast<uint8_t>(events), legacy == 1);
     report_remote_session();
-  } else if (action.starts_with("QUERY") || action.starts_with("KEEPALIVE")) {
+  } else if (action.starts_with("KEEPALIVE")) {
+    serial_remote_control::keepalive_session();
+    report_remote_session();
+  } else if (action.starts_with("QUERY")) {
     report_remote_session();
   } else if (action.starts_with("CLOSE")) {
     serial_remote_control::close_session();

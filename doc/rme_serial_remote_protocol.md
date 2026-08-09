@@ -26,7 +26,10 @@ Open a protocol session before relying on structured asynchronous events:
 `events` is a bit mask: progress `1`, error `2`, workflow lifecycle `4`, and
 informational notification `8`. `15` subscribes to all event classes.
 `legacy=0` replaces only legacy `//action:notification` output while the
-session is active. Standard `ok`, `busy`, resend requests, temperature/status
+session is active. Send `KEEPALIVE` at least every 10 seconds. The 30-second
+session lease closes automatically after a host disconnect, restores legacy
+notifications, and disables remote UI input. `QUERY` reports the lease state
+but does not renew it. Standard `ok`, `busy`, resend requests, temperature/status
 reports, and `//action:pause`, `paused`, `resume`, `resumed`, and `cancel`
 remain on their established Marlin/OctoPrint paths. Use `legacy=1` while
 developing a handler that wants both representations. A reboot always closes
