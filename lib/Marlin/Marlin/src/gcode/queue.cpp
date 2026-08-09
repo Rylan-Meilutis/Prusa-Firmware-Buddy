@@ -496,7 +496,7 @@ static bool handle_remote_ui_service(const char *command) {
   } else if (strncmp(command, "HOME", 4) == 0) {
     action = serial_remote_control::Action::home;
   } else {
-    return true;
+    return false;
   }
 
   serial_remote_control::enqueue(action, value);
@@ -571,7 +571,7 @@ static bool handle_remote_lock_service(const std::string_view command) {
       if (!*enabled || config_store().printer_lock_pin_length.get() >= 4)
         config_store().printer_lock_enabled.set(*enabled);
     }
-  }
+  } else return false;
   return true;
 }
 
@@ -605,7 +605,7 @@ static bool handle_remote_theme_service(const std::string_view command) {
     set_remote_color(command, "error", config_store().ui_theme_error_color);
     set_remote_color(command, "image", config_store().ui_theme_image_color);
     serial_remote_control::reload_theme();
-  }
+  } else return false;
   return true;
 }
 
@@ -639,7 +639,7 @@ static bool handle_remote_light_service(const std::string_view command) {
     const auto status = remote_number(command, "status", 16);
     if (screen && chamber && status)
       serial_remote_control::set_persistent_lights(*screen, *chamber, *status);
-  }
+  } else return false;
   return true;
 }
 
@@ -683,14 +683,14 @@ static bool handle_remote_filament_service(const std::string_view command) {
     if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
     type.set_parameters(params);
     if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
-  }
+  } else return false;
   return true;
 }
 
 static bool handle_remote_machine_service(const std::string_view command) {
   constexpr std::string_view query = "@RME MACHINE QUERY";
   if (!command.starts_with("@RME MACHINE ")) return false;
-  if (!command.starts_with(query)) return true;
+  if (!command.starts_with(query)) return false;
 
   SERIAL_ECHOPGM("RME_MACHINE physical_hotends="); SERIAL_ECHO(HOTENDS);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
