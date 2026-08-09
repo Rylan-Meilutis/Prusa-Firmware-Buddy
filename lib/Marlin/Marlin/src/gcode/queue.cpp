@@ -711,6 +711,33 @@ static bool handle_remote_machine_service(const std::string_view command) {
 
 static bool handle_dialog_service_response(const char *command);
 
+static void report_remote_session() {
+  SERIAL_ECHOPGM("RME_SESSION active="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+  SERIAL_ECHOPGM(" legacy="); SERIAL_ECHOLN(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
+}
+
+static bool handle_remote_session_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME SESSION ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("OPEN")) {
+    const auto events = remote_number(command, "events").value_or(0x0f);
+    const auto legacy = remote_number(command, "legacy").value_or(0);
+    if (events < 0 || events > 0x0f || (legacy != 0 && legacy != 1)) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_session_options");
+      return true;
+    }
+    serial_remote_control::open_session(static_cast<uint8_t>(events), legacy == 1);
+    report_remote_session();
+  } else if (action.starts_with("QUERY") || action.starts_with("KEEPALIVE")) {
+    report_remote_session();
+  } else if (action.starts_with("CLOSE")) {
+    serial_remote_control::close_session();
+    report_remote_session();
+  } else return false;
+  return true;
+}
+
 static bool handle_remote_toolmap_service(const std::string_view command) {
   if (!command.starts_with("@RME TOOLMAP ")) return false;
 #if ENABLED(PRUSA_TOOL_MAPPING)
@@ -742,6 +769,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
   if (strncmp(payload, "@RME ", 5) != 0) return false;
   const std::string_view command { payload, strcspn(payload, "*") };
   if (handle_remote_ui_service(raw_command)
+      || handle_remote_session_service(command)
       || handle_remote_lock_service(command)
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)

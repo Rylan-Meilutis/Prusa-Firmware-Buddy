@@ -12,6 +12,38 @@ RME validates and advances that sequence before dispatching the `@RME` payload.
 Every accepted frame receives `ok`. Plugins detect support with the read-only
 `@RME MACHINE QUERY` handshake.
 
+## Session and event subscription
+
+Open a protocol session before relying on structured asynchronous events:
+
+```text
+@RME SESSION OPEN events=15 legacy=0
+@RME SESSION QUERY
+@RME SESSION KEEPALIVE
+@RME SESSION CLOSE
+```
+
+`events` is a bit mask: progress `1`, error `2`, workflow lifecycle `4`, and
+informational notification `8`. `15` subscribes to all event classes.
+`legacy=0` replaces only legacy `//action:notification` output while the
+session is active. Standard `ok`, `busy`, resend requests, temperature/status
+reports, and `//action:pause`, `paused`, `resume`, `resumed`, and `cancel`
+remain on their established Marlin/OctoPrint paths. Use `legacy=1` while
+developing a handler that wants both representations. A reboot always closes
+the volatile session.
+
+Events have a monotonically increasing per-session sequence number:
+
+```text
+RME_EVENT seq=1 type=workflow workflow=tool_change state=open message="Tool change in progress"
+RME_EVENT seq=2 type=progress workflow=mmu state=active progress=50 message="MMU loading filament"
+RME_EVENT seq=3 type=error workflow=mmu state=waiting code=mmu_error message="FINDA FILAM. STUCK"
+```
+
+The sequence lets a handler detect missed records. Query the active dialog
+after reconnecting or after a sequence gap; events are intentionally not
+replayed from firmware RAM.
+
 ## UI control
 
 Remote input is disabled after every boot and whenever the UI locks. Enable it
@@ -126,6 +158,15 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 @RME TOOLMAP RESET
 ```
 
+Workflow identifiers are stable handler-routing keys. Current firmware emits
+`mmu`, `tool_change`, `filament_runout`, `stuck_filament`,
+`pressure_advance`, `probing`, `heating`, `firmware_update`, `waste_bin`, and
+the generic `printer` fallback. The event announces the workflow; the active
+firmware FSM remains authoritative for its actions. After an error or a
+`state=waiting` event, issue `@RME DIALOG QUERY`, render the returned actions,
+and answer with `@RME DIALOG RESPOND A"<action>"`. This provides specialized
+host presentation without duplicating firmware recovery policy.
+
 Unsupported features and unknown frames return a nonfatal
 `echo:RME_ERROR code=...` record followed by `ok`. They never use Marlin's
 `Error:` prefix, so OctoPrint can report the plugin error without cancelling an
@@ -137,6 +178,9 @@ active print.
 - Serialize it through the existing host connection so line numbers and
   checksums stay coherent.
 - Enable remote UI only while an authenticated plugin session needs it.
+- Open one event session per serial connection and close it before disconnect.
+- On a structured error/waiting event, query the dialog instead of assuming
+  that every error with the same workflow offers identical actions.
 - Prefer named recovery actions (`M876 A"..."`) for firmware dialogs; general
   navigation is useful for screens without a dedicated service action.
 - Poll queries at a modest rate. The receiver remains available during blocking

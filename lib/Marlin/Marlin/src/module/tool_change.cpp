@@ -66,10 +66,13 @@ void tool_change(const uint8_t new_tool,
     MMU2::mmu2.tool_change(new_tool);
 
   #elif HAS_TOOLCHANGER()
+    SerialPrinting::notify_workflow("tool_change", "open", "Tool change in progress");
     SerialPrinting::notify_status("Tool change in progress", -1, true);
     const bool success = prusa_toolchanger.tool_change(new_tool, return_type, current_position, z_lift, z_return);
     if (!success) {
-      SerialPrinting::notify_status("Tool change failed", -1, true);
+      SerialPrinting::notify_error("tool_change", "tool_change_failed", "Tool change failed");
+    } else {
+      SerialPrinting::notify_workflow("tool_change", "closed", "Tool change complete", 100);
     }
 
   #else

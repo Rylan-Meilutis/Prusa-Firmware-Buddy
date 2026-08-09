@@ -118,7 +118,8 @@ void GcodeSuite::M600() {
 
 #if !PRINTER_IS_PRUSA_MINI()
     if (is_auto_m600) {
-        SerialPrinting::notify_status("Filament runout detected", -1, true);
+        SerialPrinting::notify_error("filament_runout", "filament_runout", "Filament runout detected");
+        SerialPrinting::notify_workflow("filament_runout", "open", "Filament change required");
     }
 #endif
 

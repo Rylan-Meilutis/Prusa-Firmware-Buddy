@@ -7,6 +7,7 @@
     #include <feature/extrusion_calibration.hpp>
 #endif
 #include <printer_lock.hpp>
+#include <serial_remote_control.hpp>
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <option/has_side_leds.h>
@@ -27,6 +28,32 @@ uint32_t SerialPrinting::status_message_baseline_id = 0;
 const char *SerialPrinting::last_status_message = nullptr;
 int8_t SerialPrinting::last_status_progress = -1;
 
+namespace {
+const char *classify_workflow(const char *message) {
+    if (strstr(message, "MMU")) return "mmu";
+    if (strstr(message, "Tool change") || strstr(message, "tool change")) return "tool_change";
+    if (strstr(message, "Filament runout") || strstr(message, "filament runout")) return "filament_runout";
+    if (strstr(message, "stuck") || strstr(message, "Stuck")) return "stuck_filament";
+    if (strstr(message, "Pressure") || strstr(message, "PA calibration")) return "pressure_advance";
+    if (strstr(message, "Probing") || strstr(message, "probe")) return "probing";
+    if (strstr(message, "Heating") || strstr(message, "heat soaking")) return "heating";
+    if (strstr(message, "firmware") || strstr(message, "Firmware")) return "firmware_update";
+    if (strstr(message, "bucket") || strstr(message, "waste")) return "waste_bin";
+    return "printer";
+}
+
+void emit_rme_event(const char *type, const char *workflow, const char *state, const char *code, const char *message, int progress) {
+    SERIAL_ECHOPGM("RME_EVENT seq="); SERIAL_ECHO(serial_remote_control::next_event_sequence());
+    SERIAL_ECHOPGM(" type="); SERIAL_ECHO(type);
+    SERIAL_ECHOPGM(" workflow="); SERIAL_ECHO(workflow ? workflow : "printer");
+    if (state) { SERIAL_ECHOPGM(" state="); SERIAL_ECHO(state); }
+    if (code) { SERIAL_ECHOPGM(" code="); SERIAL_ECHO(code); }
+    if (progress >= 0) { SERIAL_ECHOPGM(" progress="); SERIAL_ECHO(progress); }
+    if (message) { SERIAL_ECHOPGM(" message=\""); SERIAL_ECHO(message); SERIAL_CHAR('"'); }
+    SERIAL_EOL();
+}
+} // namespace
+
 void SerialPrinting::set_status_message_baseline(uint32_t id) {
     status_message_baseline_id = id;
 }
@@ -41,7 +68,8 @@ void SerialPrinting::reset_status_notifications() {
 }
 
 void SerialPrinting::notify_status(const char *message, int progress_percent, bool force) {
-    if (!marlin_server::serial_print_active() || message == nullptr || message[0] == '\0') {
+    if (message == nullptr || message[0] == '\0'
+        || (!marlin_server::serial_print_active() && !serial_remote_control::session_active())) {
         return;
     }
 
@@ -54,15 +82,36 @@ void SerialPrinting::notify_status(const char *message, int progress_percent, bo
         return;
     }
 
-    SERIAL_ECHOPGM("//action:notification ");
-    SERIAL_ECHO(message);
-    if (progress_percent >= 0) {
-        SERIAL_ECHOPAIR(" ", progress_percent);
-        SERIAL_CHAR('%');
+    const auto subscription = progress_percent >= 0
+        ? serial_remote_control::EventSubscription::progress
+        : serial_remote_control::EventSubscription::notification;
+    if (serial_remote_control::subscribed(subscription)) {
+        emit_rme_event(progress_percent >= 0 ? "progress" : "notification", classify_workflow(message), "active", nullptr, message, progress_percent);
     }
-    SERIAL_EOL();
+    if (marlin_server::serial_print_active() && serial_remote_control::legacy_notifications_enabled()) {
+        SERIAL_ECHOPGM("//action:notification ");
+        SERIAL_ECHO(message);
+        if (progress_percent >= 0) {
+            SERIAL_ECHOPAIR(" ", progress_percent);
+            SERIAL_CHAR('%');
+        }
+        SERIAL_EOL();
+    }
     last_status_message = message;
     last_status_progress = static_cast<int8_t>(progress_percent);
+}
+
+void SerialPrinting::notify_error(const char *workflow, const char *code, const char *message) {
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::error))
+        emit_rme_event("error", workflow, "waiting", code, message, -1);
+    if (marlin_server::serial_print_active() && serial_remote_control::legacy_notifications_enabled()) {
+        SERIAL_ECHOPGM("//action:notification "); SERIAL_ECHOLN(message);
+    }
+}
+
+void SerialPrinting::notify_workflow(const char *workflow, const char *state, const char *message, const int progress_percent) {
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::workflow))
+        emit_rme_event("workflow", workflow, state, nullptr, message, progress_percent);
 }
 
 void SerialPrinting::host_action(const char *action, const char *reason) {

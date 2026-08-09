@@ -4,6 +4,7 @@
 
   * New features and improvements
     * Serial printing screen for OctoPrint and other serial hosts
+    * Negotiated `@RME SESSION` event subscriptions with sequenced structured MMU, tool-change, filament-runout, stuck-filament, calibration, probing, heating, firmware-update, and waste-bin workflows; standard Marlin temperature, flow-control, safety, and print-state traffic remains unchanged
     * Persistent print-finished summaries with duration, completion time, and remaining filtration time
     * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete
     * G-code command to trigger or stop a configured filtration cycle
