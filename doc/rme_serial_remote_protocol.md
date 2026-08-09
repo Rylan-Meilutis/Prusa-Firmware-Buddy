@@ -163,6 +163,51 @@ semantics. Unsupported optional hardware fields are omitted, except
 on machines without filtration. `jobs_started` is the persistent job sequence
 counter and is not a successful-print count.
 
+## USB filesystem and firmware operations
+
+The filesystem service is confined to the user-visible `/usb` volume. Paths
+are relative to that root and percent-encode spaces and reserved characters.
+Absolute paths, `..`, duplicate separators, internal flash, configuration, and
+system partitions are rejected. Discover support with:
+
+```text
+@RME FILE CAPS
+@RME FILE LIST path=/
+@RME FILE STAT path=jobs/part.bgcode
+@RME FILE READ path=jobs/part.bgcode offset=0 length=48
+```
+
+`LIST` emits `RME_FILE_ENTRY` records followed by `RME_FILE_LIST_END`. `READ`
+returns at most 48 bytes per request as Base64 in `RME_FILE_DATA`; continue from
+`offset + length` until `eof=1`.
+
+Binary-safe, restartable uploads require the final byte count and SHA-256:
+
+```text
+@RME FILE WRITE_BEGIN path=jobs/part.bgcode size=12345 sha256=<64 hex digits>
+@RME FILE WRITE_CHUNK path=jobs/part.bgcode offset=0 data=<Base64, up to 48 decoded bytes>
+@RME FILE WRITE_END path=jobs/part.bgcode
+@RME FILE ABORT
+```
+
+Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
+size and SHA-256, flushes it to media, and atomically renames it only after a
+successful `WRITE_END`. `ABORT` removes the partial file. Mutating operations
+are refused while printing:
+
+```text
+@RME FILE MKDIR path=jobs
+@RME FILE RENAME path=jobs/old.bgcode dest=jobs/new.bgcode
+@RME FILE DELETE path=jobs/new.bgcode
+@RME FILE PRINT path=jobs/part.bgcode
+@RME FILE FLASH path=firmware/6.6.3-RME.bbf
+```
+
+`PRINT` and `FLASH` are validated, copied into the normal firmware command
+queue, and acknowledged as queued; they therefore use the same print-state and
+bootloader-validation paths as local UI operations. `FLASH` accepts only BBF
+files. The filesystem protocol never exposes raw internal storage.
+
 ## Prompts and recovery workflows
 
 The plugin can render and answer the printer's current prompt without guessing

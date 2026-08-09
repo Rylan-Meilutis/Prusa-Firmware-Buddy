@@ -432,6 +432,13 @@ Host paths normalize onto `/usb/`, reject parent-directory traversal, and create
 
 Keep the Connect-facing version compatible with the upstream release while preserving RME branding everywhere else.
 
+For the out-of-band host protocol, verify `@RME FILE CAPS`, root listing,
+stat/read, a SHA-256-verified binary upload, abort cleanup, rename/delete,
+print queueing, and BBF flash queueing on both maintained branches. Confirm
+path traversal and attempts to address non-USB storage are rejected, partial
+uploads never appear under the final name, and passive RME traffic still lets
+the printer enter idle.
+
 Important areas:
 
 ```text

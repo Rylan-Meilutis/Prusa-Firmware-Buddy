@@ -22,6 +22,7 @@ target_sources(
           M9933.cpp
           M997.cpp
           M998.cpp
+          rme_file_service.cpp
           M999.cpp
           skippable_gcode.cpp
   )
