@@ -7,6 +7,16 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Added a USB-confined `@RME FILE` service for directory listing, metadata,
+    Base64 chunk downloads, SHA-256-verified atomic uploads, abort cleanup,
+    directory creation, rename/delete, print queueing, and normal validated BBF
+    flash handoff. Internal storage is not exposed.
+  * Expanded RME filament synchronization to create complete persistent local
+    profiles with upstream base material, temperatures, chamber bounds,
+    filtration, abrasive, flexible, and visibility properties.
+  * Made session keepalives and read-only polling passive: they maintain the
+    communications lease without holding the printer in an active device state,
+    and structured state events now report the real firmware device state.
   * Expanded structured workflows to cover native filament load/unload,
     chamber-vent actuation, filtration, and every stable MMU phase, with
     rate-limited progress updates and deduplicated not-responding errors.
@@ -638,7 +648,7 @@ multi-version release build. The wrapper supplies the managed `.venv` path,
 `BUDDY_PYTHON`, `Python3_ROOT_DIR`, and `Python3_EXECUTABLE` automatically so
 nested CMake projects use the same managed Python environment as the parent.
 
-Final firmware validation at `9e76ac329` passed with:
+Final firmware validation at `8a9b632ef` passed with:
 
 ```sh
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
@@ -649,9 +659,9 @@ The complete command produced all `29` expected BBFs with no stray files in
 CORE One INDX, CORE One L, MINI language variants, MK3.5, MK4, and XL. This
 documentation refresh does not change the validated firmware output.
 
-Key final flash measurements were: MK4 59.63%, MK3.5 55.01%, CORE One
-63.54%, CORE One INDX 64.36%, CORE One L 63.58%, and the largest MINI language
-image 96.94%.
+Key final flash measurements were: MK4 59.99%, MK3.5 55.36%, CORE One
+63.96%, CORE One INDX 64.73%, CORE One L 64.00%, XL 68.15%, and the largest
+MINI language image 97.57%.
 
 Earlier validation for this patch stack on the prior upstream base covered the host `mmu_tests` unit-test target with `110041` assertions in `4` test cases. The signing path was validated with a temporary ECDSA key:
 
