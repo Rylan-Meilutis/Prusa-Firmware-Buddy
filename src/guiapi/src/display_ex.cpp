@@ -265,8 +265,8 @@ void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, 
 
     DispBuffer buff(pms, clr_bg, clr_fg);
 
-#if PRINTER_IS_PRUSA_MINI()
-    uint8_t external_glyph[(11 * 18 + 1) >> 1];
+#if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
+    uint8_t external_glyph[(30 * 53 + 1) >> 1];
     if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) return;
     const uint8_t *pch = external_glyph;
 #else

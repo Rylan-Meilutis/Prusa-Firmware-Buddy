@@ -140,29 +140,45 @@ if(${TRANSLATIONS_ENABLED})
   endforeach()
 endif()
 
-# MINI has limited internal executable flash. Its immutable bitmap fonts live in
-# the managed external resource image, just like translations and QOI assets.
-if(PRINTER STREQUAL "MINI")
-  if(ENABLE_TRANSLATION_JA)
-    set(mini_font_charset "latin_and_katakana")
-  elseif(ENABLE_TRANSLATION_UK)
-    set(mini_font_charset "latin_and_cyrillic")
+# MINI and xBuddy machines have limited internal executable flash. Their
+# immutable bitmap fonts live in the managed external resource image.
+if((PRINTER STREQUAL "MINI") OR (BOARD STREQUAL "XBUDDY"))
+  if(PRINTER STREQUAL "MINI")
+    if(ENABLE_TRANSLATION_JA)
+      set(external_font_charset "latin_and_katakana")
+    elseif(ENABLE_TRANSLATION_UK)
+      set(external_font_charset "latin_and_cyrillic")
+    else()
+      set(external_font_charset "latin")
+    endif()
+    set(external_fonts "regular:7x13" "regular:9x16" "regular:11x18")
   else()
-    set(mini_font_charset "latin")
+    set(external_font_charset "full")
+    set(external_fonts "regular:9x16" "bold:11x19" "bold:13x22" "bold:30x53:digits")
   endif()
-  foreach(mini_font_size "7x13" "9x16" "11x18")
-    set(mini_font_header
-        "${CMAKE_SOURCE_DIR}/src/gui/res/cc/font_regular_${mini_font_size}_${mini_font_charset}.hpp"
+
+  foreach(external_font ${external_fonts})
+    string(REPLACE ":" ";" external_font_parts "${external_font}")
+    list(GET external_font_parts 0 external_font_style)
+    list(GET external_font_parts 1 external_font_size)
+    list(LENGTH external_font_parts external_font_part_count)
+    if(external_font_part_count GREATER 2)
+      list(GET external_font_parts 2 external_font_charset_for_file)
+    else()
+      set(external_font_charset_for_file "${external_font_charset}")
+    endif()
+    set(external_font_header
+        "${CMAKE_SOURCE_DIR}/src/gui/res/cc/font_${external_font_style}_${external_font_size}_${external_font_charset_for_file}.hpp"
         )
-    set(mini_font_binary "${CMAKE_CURRENT_BINARY_DIR}/font-${mini_font_size}.bin")
+    set(external_font_binary "${CMAKE_CURRENT_BINARY_DIR}/font-${external_font_size}.bin")
     add_custom_command(
-      OUTPUT "${mini_font_binary}"
+      OUTPUT "${external_font_binary}"
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/resources/font_header_to_bin.py"
-              "${mini_font_header}" "${mini_font_binary}"
-      DEPENDS "${mini_font_header}" "${CMAKE_SOURCE_DIR}/utils/resources/font_header_to_bin.py"
+              "${external_font_header}" "${external_font_binary}"
+      DEPENDS "${external_font_header}" "${CMAKE_SOURCE_DIR}/utils/resources/font_header_to_bin.py"
       VERBATIM
       )
-    add_resource("${mini_font_binary}" "/fonts/${mini_font_size}.bin")
+    add_resource("${external_font_binary}" "/fonts/${external_font_size}.bin")
   endforeach()
 endif()
 

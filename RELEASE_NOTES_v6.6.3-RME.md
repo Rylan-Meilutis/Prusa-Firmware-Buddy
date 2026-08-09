@@ -28,6 +28,10 @@ USB/serial firmware update, INDX, and release-build features documented for
   discovery without overloading ordinary G-code capability reporting.
 - Kept the protocol distinct from ordinary G-code so sliced files cannot invoke
   remote UI operations accidentally.
+- Moved the complete bitmap font assets for every xBuddy machine into the
+  signed managed resource image, using compressed random-access glyph records
+  and one shared cache. This retains full UI/language coverage while reducing
+  MK4 internal flash from the partition limit to about 60%.
 
 See [RME Out-of-Band Serial Control Protocol](doc/rme_serial_remote_protocol.md)
 for the complete command and integration reference.

@@ -117,14 +117,16 @@ request flashing. Exercise media-removal and write-failure paths as well as a
 successful signed-BBF upload.
 
 MINI must retain the same firmware-update menu and M998 validation/state
-machine as MK/CORE builds. Its 7x13, 9x16, and 11x18 bitmap fonts belong in
-`/internal/res/fonts` and are generated from the selected complete font headers
-as independently compressed random-access glyph records in the resources
-tarball. Verify Japanese, Ukrainian, and Latin MINI presets,
+machine as MK/CORE builds. MINI and all xBuddy targets keep immutable bitmap
+fonts in `/internal/res/fonts`, generated from the selected complete font
+headers as independently compressed random-access glyph records in the
+resources tarball. MINI packages 7x13, 9x16, and 11x18; xBuddy packages 9x16,
+11x19, 13x22, and the digits-only 30x53 font. Verify Japanese, Ukrainian, and Latin MINI presets,
 including resource replacement after an update, missing/corrupt-resource
 behavior, repeated-glyph caching, and that no embedded font arrays return to
-the application link map. Keep meaningful internal-flash headroom; do not
-remove update UI or language coverage to make a MINI image link.
+the MINI or xBuddy application link map. Build MK4, MK3.5, CORE One, CORE One
+INDX, and CORE One L after changing this path. Keep meaningful internal-flash
+headroom; do not remove update UI or language coverage to make an image link.
 
 ## Current Baseline
 
@@ -898,6 +900,12 @@ For per-state LED/screen settings, prefer the shared runtime-backed state menu c
 Release builds should disable `DEVELOPMENT_ITEMS` by default. The local `utils/build.py --final` path keeps both version suffixes set to `-RME` and injects `-DDEVELOPMENT_ITEMS_ENABLED:BOOL=NO` unless the caller explicitly overrides it. Verify the installed firmware home-screen badge reports `<version>-RME`. Verify Prusa Connect reports the base upstream version, without the `-RME` suffix, for cloud compatibility. The stock bootloader firmware-selection screen is expected to append the mandatory BBF header build number after the `RME` tag.
 
 Core One, Core One L, XL, and MINI store translations in the resource image to preserve boot flash headroom. Keep `COREONE`, `COREONEL`, `XL`, and `MINI` in `PRINTERS_WITH_EXTFLASH_TRANSLATIONS`. Keep the Core One/Core One L/XL `resources-image` block count large enough for ESP assets, puppy firmware, web assets, QOI data, and translation `.mo` files. If resource generation fails with `LFS_ERR_NOSPC`, increase the resource image size rather than moving translations back into CPU flash.
+
+All xBuddy targets also store their immutable bitmap fonts in that managed
+resource image even when translations remain linked normally. Preserve the
+shared single-glyph cache in `fonts.cpp`; a cache per font wastes scarce RAM.
+The font payload is part of the BBF resource digest and must be installed by
+the normal bootstrap/update flow before the GUI enables resource-backed drawing.
 
 The latest checked focused final builds used:
 
