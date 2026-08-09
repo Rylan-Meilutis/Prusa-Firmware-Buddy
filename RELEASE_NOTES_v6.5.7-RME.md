@@ -696,7 +696,7 @@ Latest firmware commit: `8500a93fb`
 
 Release-documentation commit: `c0ac2f746`
 
-Published release tag: `v6.5.7-RME-b29`
+Published release tag: `v6.5.7-RME-b31`
 
 Port-completion commits: `Finalize 6.5.7 RME release port`, `Fix Prusa Connect serial print state reporting`, `Fix serial MMU print completion unload`, `Fix serial M601 M602 host actions`, `Restore previous screen after ignored serial macro`, `Fix RME release build environment`, `Keep toolhead runout active with upstream sensors`, `Update 6.5.7 RME release notes`, `Split filament movement detection control`, `Fix XL final build on RME 6.5.7`, `Add cached multi-version RME release builds`, `Add per-print extrusion calibration`, `Improve PA tuning and monitor extrusion pressure`, `Add batch PA calibration orchestration`, `Add guided manual PA calibration`, `Add persistent loaded filament colors`, and `Refine PA material safety and Connect light handling`
 
@@ -976,4 +976,4 @@ c0ac2f746  2026-08-09  Document RME filesystem release validation
 This continuation includes firmware and documentation through `c0ac2f746`.
 The exact 14-image 6.5.7 half of the final multi-version matrix passed at that
 firmware head `8500a93fb`; MK4 used 93.89% flash and MINI used at most 95.61%.
-`v6.5.7-RME-b29` remains the earlier release tag at `e9bfee06d`.
+`v6.5.7-RME-b31` identifies this release ledger.
