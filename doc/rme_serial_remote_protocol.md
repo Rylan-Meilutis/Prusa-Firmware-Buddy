@@ -35,6 +35,11 @@ remain on their established Marlin/OctoPrint paths. Use `legacy=1` while
 developing a handler that wants both representations. A reboot always closes
 the volatile session.
 
+The session lease is deliberately independent of printer activity. `OPEN`,
+`KEEPALIVE`, `QUERY`, and other read-only RME frames do not wake the display or
+lights, refresh the serial-print idle timer, or keep the printer active. Only
+an actual remote UI input or requested machine action counts as activity.
+
 Events have a monotonically increasing per-session sequence number:
 
 ```text
@@ -48,7 +53,10 @@ RME_EVENT seq=6 type=progress workflow=filtration state=active code=post_print p
 
 The sequence lets a handler detect missed records. Query the active dialog
 after reconnecting or after a sequence gap; events are intentionally not
-replayed from firmware RAM.
+replayed from firmware RAM. Generic notification/progress events report the
+real device state (`idle`, `printing`, `paused`, `busy`, `attention`, and so
+on); a host must not treat `RME_SESSION active=1` as printer activity—the field
+only reports that the communications lease is open.
 
 ## UI control
 

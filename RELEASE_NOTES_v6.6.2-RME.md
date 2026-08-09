@@ -3,6 +3,7 @@
 ## Summary
 
   * New features and improvements
+    * RME protocol keepalives and read-only polling no longer hold the printer in an active state; structured status events report the real device state independently of the live communications lease
     * Serial printing screen for OctoPrint and other serial hosts
     * Persistent print-finished summaries with duration, completion time, and remaining filtration time
     * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete

@@ -22,6 +22,12 @@ other blocking commands.
    disables remote UI input. `QUERY` deliberately does not renew the lease.
    Close the session when deliberately disconnecting.
 
+`RME_SESSION active=1` means only that the protocol lease is live. It is not a
+printer-state update. Keepalives and read-only queries are passive and may
+continue while the printer transitions to idle and applies its idle display
+and lighting policy. Use the `state` on structured events for device state;
+do not synthesize an active printer state from protocol traffic.
+
 The session is volatile and is reset by firmware reboot. Re-negotiate after
 every reconnect. A handler must never infer a session merely because an older
 connection opened one.
