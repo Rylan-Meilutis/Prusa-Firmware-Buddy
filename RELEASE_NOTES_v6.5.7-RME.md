@@ -964,7 +964,16 @@ e1e16de1b  2026-08-08  Expand out-of-band recovery workflows
 1771438ab  2026-08-09  Add structured RME host workflows
 c2f383edd  2026-08-09  Expire inactive RME host sessions
 e9bfee06d  2026-08-09  Record 6.5.7 RME release validation
+5531e5a64  2026-08-09  Refresh 6.5.7 RME release commit ledger
+d9e24f2f9  2026-08-09  Expand RME device workflow events
+c3eb3a0ad  2026-08-09  Expose RME printer statistics
+3c1f01a6a  2026-08-09  Make RME stats portable across releases
+3711368c1  2026-08-09  Persist release build failure logs
+4c780a873  2026-08-09  Fix 6.5.7 filtration event state tracking
+2a42ae718  2026-08-09  Document expanded RME protocol workflows
 ```
 
-This continuation includes firmware changes through `c2f383edd` and release
-documentation through `e9bfee06d`. `v6.5.7-RME-b29` points at `e9bfee06d`.
+This continuation includes firmware and documentation through `2a42ae718`.
+The exact 14-image 6.5.7 half of the final multi-version matrix passed at that
+head; MK4 used 93.69% flash and MINI used at most 95.17%.
+`v6.5.7-RME-b29` remains the earlier release tag at `e9bfee06d`.

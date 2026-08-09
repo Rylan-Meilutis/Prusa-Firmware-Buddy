@@ -915,7 +915,8 @@ The latest checked focused final builds used:
 
 The xBuddy external-font change was release-validated with
 `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`: all 29 presets passed.
-The resulting MK4 flash usage was 93.54% on 6.5.7 and 59.63% on 6.6.3.
+The latest workflow/statistics build produced MK4 flash usage of 93.69% on
+6.5.7 and 59.78% on 6.6.3; all 29 presets passed.
 Keep these as regression baselines; a later port that returns either MK4 to the
 partition boundary has probably relinked the font arrays into application flash.
 
