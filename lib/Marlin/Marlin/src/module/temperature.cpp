@@ -210,7 +210,6 @@ Temperature thermalManager;
     .temp_increase = WATCH_BED_TEMP_INCREASE,
     .period_s = WATCH_BED_TEMP_PERIOD,
     .min_temp_diff = WATCH_BED_TEMP_INCREASE + TEMP_BED_HYSTERESIS + 1,
-    .error_code = ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR,
   };
 
   HeaterWatch watch_bed { watch_bed_config };
@@ -769,8 +768,13 @@ void Temperature::manage_heater() {
 
   millis_t ms = millis();
 
+  // non-managed hotends are skipped here, so BaseHotend::manage() and the protections it runs don't each re-check it. 
+  // On non-INDX printers is_thermally_managed() is always true, so this is the full loop.
   for (auto tool : PhysicalToolIndex::all()) {
-    Hotend::for_tool(tool).manage();
+    auto &hotend = Hotend::for_tool(tool);
+    if (hotend.is_thermally_managed()) {
+      hotend.manage();
+    }
   }
 
   #if HAS_HEATED_BED
@@ -781,7 +785,9 @@ void Temperature::manage_heater() {
     #endif
 
     #if WATCH_BED
-      watch_bed.update(degBed());
+      if (watch_bed.update(degBed())) {
+        fatal_error(ErrCode::ERR_TEMPERATURE_BED_PREHEAT_ERROR);
+      }
     #endif // WATCH_BED
 
     do {
@@ -793,7 +799,9 @@ void Temperature::manage_heater() {
       #endif
 
       #if HAS_THERMALLY_PROTECTED_BED
-        thermal_runaway_bed.step(temp_bed.celsius, temp_bed.target, H_BED, THERMAL_PROTECTION_BED_PERIOD, THERMAL_PROTECTION_BED_HYSTERESIS);
+        if (thermal_runaway_bed.step(temp_bed.celsius, temp_bed.target, THERMAL_PROTECTION_BED_PERIOD, THERMAL_PROTECTION_BED_HYSTERESIS)) {
+          _temp_error(H_BED, PSTR(MSG_T_THERMAL_RUNAWAY), GET_TEXT(MSG_THERMAL_RUNAWAY_BED));
+        }
       #endif
 
       {
@@ -1463,7 +1471,7 @@ void Temperature::isr() {
       // wait_temp can't block forever.
       const auto target_reached = [&]() {
         const auto current = hotend.nozzle_temp();
-        if (params.wait_temp.has_value() && current >= *params.wait_temp) {
+        if (params.wait_temp.has_value() && current.has_value() && current.value() >= *params.wait_temp) {
           return true;
         }
         return hotend.is_nozzle_temp_reached();
@@ -1502,16 +1510,20 @@ void Temperature::isr() {
 
         // Target temperature might be changed during the loop
         if (target_temp != degTargetHotend(target_extruder)) {
-          wants_to_cool = hotend.nozzle_target_temp() < hotend.nozzle_temp();
-          target_temp = degTargetHotend(target_extruder);
+          if (const auto current = hotend.nozzle_temp(); current.has_value()) {
+            wants_to_cool = hotend.nozzle_target_temp() < current.value();
+            target_temp = degTargetHotend(target_extruder);
+            
+            // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
+            if (params.no_wait_for_cooling && wants_to_cool) break;
 
-          // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
-          if (params.no_wait_for_cooling && wants_to_cool) break;
-
-          // If fan_cooling is enabled, assist the cooling/heating with the print fan
-          // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
-          if (params.fan_cooling && active_extruder == target_extruder)
-            thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
+            // If fan_cooling is enabled, assist the cooling/heating with the print fan
+            // !!! ONLY WORKS FOR ACTIVE EXTRUDER - PRINT FAN IS ALWAYS FAN 0
+            if (params.fan_cooling && active_extruder == target_extruder)
+              thermalManager.set_fan_speed(0, wants_to_cool ? 255 : 0);
+          }
+          // If current reading is missing, leave target_temp stale so the
+          // next iteration re-enters this branch and retries with fresh data.
         }
 
         now = millis();

@@ -67,6 +67,8 @@ public:
     ColorRGBW get_color() const;
     void reload_colors();
 
+    StateAnimation current_animation();
+
     bool get_active();
     void set_active(bool val);
     bool get_print_status_enabled();

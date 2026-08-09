@@ -36,11 +36,7 @@ Indx::Indx(uint8_t modbus_address)
     , time_sync(1) // Just magic number for metric (unnecessary with single head)
     , loadcell_samplerate {} {
 
-    if (config_store().tool_leds_enabled.get()) {
-        set_leds_color(COLOR_ORANGE, indx_head::leds::Mode::solid);
-    } else {
-        set_leds_color(COLOR_BLACK, indx_head::leds::Mode::off);
-    }
+    set_leds_config(config_store().tool_leds_enabled.get() ? desired_led_mode : indx_head::leds::Mode::off, COLOR_ORANGE);
     loadcell_enabled = true;
 }
 
@@ -148,6 +144,9 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
         }
         fan_rpm_ok.store(rpm_ok_mask);
 
+        ringdown_decay.store(block.value.ringdown_decay);
+        heater_current_mA.store(block.value.heater_current_mA);
+
         // !!! MUST be stored after reading the temperatures to avoid race conditions
         temps_valid.store(block.value.temps_valid);
 
@@ -186,25 +185,50 @@ CommunicationStatus Indx::initial_scan(PuppyModbus &bus) {
     return write_general(bus);
 }
 
-void Indx::set_leds_color(Color color, indx_head::leds::Mode mode) {
-    // FIXME: Calculate this on the head so we set correct colors from inside of the head, but needs to be rewritten into fixed point arythmetic
-    static constexpr float gamma = 2.2f; // Use 2.6 or 2.8 for richer colors
-    static constexpr float rgb_max = 255.f;
-    static constexpr float pwm_max = 255.f;
-    color.r = static_cast<uint8_t>(pwm_max * std::pow(float(color.r) / rgb_max, gamma));
-    color.g = static_cast<uint8_t>(pwm_max * std::pow(float(color.g) / rgb_max, gamma));
-    color.b = static_cast<uint8_t>(pwm_max * std::pow(float(color.b) / rgb_max, gamma));
+void Indx::set_leds_config(indx_head::leds::Mode mode, Color primary, Color secondary, uint16_t delay_ms) {
     Lock guard(*mutex);
-    leds.r = color.r;
-    leds.g = color.g;
-    leds.b = color.b;
-    leds.mode = mode;
+    // WARNING: This switch is itentional to keep as much data if user decides to disable the leds (off mode) and then enable them again.
+    switch (mode) {
+    case indx_head::leds::Mode::blinking:
+    case indx_head::leds::Mode::pulsing:
+        leds.secondary.r = secondary.r;
+        leds.secondary.g = secondary.g;
+        leds.secondary.b = secondary.b;
+        [[fallthrough]];
+    case indx_head::leds::Mode::solid:
+        leds.primary.r = primary.r;
+        leds.primary.g = primary.g;
+        leds.primary.b = primary.b;
+        leds.delay_ms = delay_ms;
+        [[fallthrough]];
+    case indx_head::leds::Mode::match_nozzle_temp:
+        desired_led_mode = mode;
+        [[fallthrough]];
+    case indx_head::leds::Mode::off:
+        leds.mode = mode;
+    }
     general_write_dirty.store(true);
+}
+
+void Indx::set_leds_solid_color(Color color, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::solid, color, Color::from_rgb(0, 0, 0), delay_ms);
+}
+
+void Indx::set_leds_blinking(Color primary, Color secondary, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::blinking, primary, secondary, delay_ms);
+}
+
+void Indx::set_leds_pulsing(Color primary, Color secondary, uint16_t delay_ms) {
+    set_leds_config(indx_head::leds::Mode::pulsing, primary, secondary, delay_ms);
+}
+
+void Indx::set_leds_to_follow_nozle_temp() {
+    set_leds_config(indx_head::leds::Mode::match_nozzle_temp);
 }
 
 void Indx::set_leds_enabled(bool set) {
     Lock guard(*mutex);
-    leds.mode = set ? indx_head::leds::Mode::solid : indx_head::leds::Mode::off;
+    leds.mode = set ? desired_led_mode : indx_head::leds::Mode::off;
     general_write_dirty.store(true);
 }
 
@@ -255,10 +279,7 @@ CommunicationStatus Indx::write_general(PuppyModbus &bus) {
     block.value.hotend_temperature_compensation_c100 = hotend_temperature_compensation_c100_desired.load();
     block.value.invalidate_nozzle_presence = nozzle_invalidation_token.load();
     block.value.print_fan_pwm.value = static_cast<uint8_t>(fan_pwm_desired[fans::PRINTFAN_INDEX].load());
-    block.value.leds.r = leds.r;
-    block.value.leds.g = leds.g;
-    block.value.leds.b = leds.b;
-    block.value.leds.mode = leds.mode;
+    block.value.leds = leds;
     block.value.loadcell_enabled = loadcell_enabled ? 1u : 0u;
     block.value.accelerometer_enabled = accelerometer_enabled ? 1u : 0u;
     block.value.clear_fault_status = clear_fault_status_pending;
@@ -350,6 +371,14 @@ int16_t Indx::get_board_temperature() {
 float Indx::get_tpis_ambient_temperature() {
     // Sent in centiDeg (deg * 100) for precision on 2 decimal places
     return static_cast<float>(tpis_ambient_temperature_c100.load()) / 100.f;
+}
+
+int16_t Indx::get_ringdown_decay() const {
+    return ringdown_decay.load();
+}
+
+uint16_t Indx::get_heater_current_mA() const {
+    return heater_current_mA.load();
 }
 
 float Indx::get_24V() {

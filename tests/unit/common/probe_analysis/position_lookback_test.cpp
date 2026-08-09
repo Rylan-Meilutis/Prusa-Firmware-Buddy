@@ -110,8 +110,8 @@ TEST_CASE("position_lookback_buffer_wraparound") {
             .e = 0,
         };
 
-        // check that we can always get last 16 samples back correctly
-        for (uint32_t j = 0; j < 16; j++) {
+        // check that we can always get last 32 samples back correctly
+        for (uint32_t j = 0; j < 32; j++) {
             if (j > i) {
                 break;
             }
@@ -121,8 +121,8 @@ TEST_CASE("position_lookback_buffer_wraparound") {
         // and check that current sample is also correct
         REQUIRE(l.get_position_at(l.current_sample.time).x == 999.0f);
 
-        // and check that 17th sample is not there anymore
-        REQUIRE(isnan(l.get_position_at(i - 17).x));
+        // and check that 33rd sample is not there anymore
+        REQUIRE(isnan(l.get_position_at(i - 33).x));
     }
 }
 

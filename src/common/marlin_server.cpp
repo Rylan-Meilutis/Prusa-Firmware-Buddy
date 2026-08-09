@@ -136,7 +136,7 @@
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
 #endif
 #if HAS_INDX()
-    #include <feature/indx_hotend_temp_model/hotend_temp_model.hpp>
+    #include <tool/hotend/hotend/indx_hotend.hpp>
 #endif
 
 #if HAS_DWARF()
@@ -1071,7 +1071,7 @@ static void cycle() {
 #endif
 
 #if HAS_INDX()
-    buddy::hotend_temp_model().step();
+    IndxHotend::process_pending_thermal_runaway();
 #endif
 
     FSensors_instance().step();
@@ -3813,7 +3813,9 @@ static void _server_update_vars() {
         auto &extruder = marlin_vars().hotend(tool);
         const auto &hotend = Hotend::for_tool(tool);
 
-        extruder.temp_nozzle = hotend.nozzle_temp();
+        // Downstream consumers (GUI, Connect, chamber_filtration)
+        // get's exposed the marlin approach to uninitialized temp
+        extruder.temp_nozzle = hotend.nozzle_temp().value_or(TempInfo::celsius_uninitialized);
         extruder.target_nozzle = hotend.nozzle_target_temp();
         extruder.pwm_nozzle = hotend.nozzle_heater_pwm().value;
 

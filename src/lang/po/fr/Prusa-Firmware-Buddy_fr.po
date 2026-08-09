@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-09 13:42+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,7 +30,7 @@ msgstr ""
 "%d\n"
 "%s"
 
-#: src/gui/MItem_tools.cpp:876
+#: src/gui/MItem_tools.cpp:883
 msgid ""
 "\n"
 "Loading settings finished.\n"
@@ -191,7 +191,7 @@ msgstr ""
 msgid "4 DOCKS"
 msgstr "4 DOCKS"
 
-#: src/gui/MItem_tools.cpp:711
+#: src/gui/MItem_tools.cpp:718
 msgid "5V Voltage"
 msgstr "Tension 5V"
 
@@ -200,11 +200,11 @@ msgid "8 DOCKS"
 msgstr "8 DOCKS"
 
 #. window_menu
-#: src/gui/MItem_tools.cpp:351
+#: src/gui/MItem_tools.cpp:358
 msgid "A crash dump is being saved."
 msgstr "Une copie de la mémoire vive est en cours d'enregistrement."
 
-#: src/gui/MItem_tools.cpp:355
+#: src/gui/MItem_tools.cpp:362
 msgid "A crash dump report (file dump.bin) has been saved to the USB drive."
 msgstr ""
 "Un rapport de vidage de mémoire suite à une panne (file dump.bin) a été "
@@ -379,7 +379,7 @@ msgstr "Outil d'alignement"
 msgid "Alignment issue detected"
 msgstr "Problème d'alignement détecté"
 
-#: src/gui/MItem_tools.cpp:804
+#: src/gui/MItem_tools.cpp:811
 msgid "All"
 msgstr "Tout"
 
@@ -403,7 +403,7 @@ msgstr "Tous les tests sont réussis."
 msgid "Alt fan correction"
 msgstr "Correction ventilateur alt"
 
-#: src/gui/MItem_tools.cpp:946
+#: src/gui/MItem_tools.cpp:953
 msgid "Always"
 msgstr "Toujours"
 
@@ -466,7 +466,7 @@ msgstr ""
 msgid "Ask"
 msgstr "Demander"
 
-#: src/gui/MItem_tools.cpp:410
+#: src/gui/MItem_tools.cpp:417
 msgid "Assist"
 msgstr "Aider"
 
@@ -476,6 +476,7 @@ msgid "Attempt %d/%d"
 msgstr "Tentative %d/%d"
 
 #: src/gui/wizard/selftest_frame_revise_printer_setup.cpp:22
+#: src/gui/wizard/screen_heaters_selftest.cpp:80
 msgid ""
 "Attention, the test has failed.\n"
 "This could have been caused by a wrong configuration.\n"
@@ -619,11 +620,11 @@ msgid "Bed Temp"
 msgstr "Temp lit"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:105
-#: src/gui/MItem_tools.cpp:588
+#: src/gui/MItem_tools.cpp:595
 msgid "Bed Temperature"
 msgstr "Température du Plateau"
 
-#: src/gui/MItem_tools.cpp:682
+#: src/gui/MItem_tools.cpp:689
 msgid "Bed Voltage"
 msgstr "Tension lit"
 
@@ -632,6 +633,7 @@ msgid "Bed fans"
 msgstr "Ventilateurs lit"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:248
+#: src/gui/wizard/screen_heaters_selftest.cpp:77
 msgid ""
 "Bed heater selftest failed.\n"
 "\n"
@@ -684,7 +686,7 @@ msgstr ""
 "dans l'extrudeur."
 
 #. Now show always, bed heater selftest can fail if there is no sheet on the bed
-#: src/gui/screen_menu_selftest_snake.cpp:466
+#: src/gui/screen_menu_selftest_snake.cpp:472
 msgid ""
 "Before you continue, make sure the print sheet is installed on the heatbed."
 msgstr ""
@@ -721,7 +723,7 @@ msgstr "Noir"
 msgid "Board Info"
 msgstr "Info carte"
 
-#: src/gui/MItem_tools.cpp:727
+#: src/gui/MItem_tools.cpp:734
 msgid "Board Temperature"
 msgstr "Température de la Carte"
 
@@ -733,7 +735,7 @@ msgstr "Température de la carte trop haute"
 msgid "Board Temperature Too Low"
 msgstr "Température de la carte trop basse"
 
-#: src/gui/MItem_tools.hpp:301
+#: src/gui/MItem_tools.hpp:312
 msgid "Bootloader Version"
 msgstr "Version du Bootloader"
 
@@ -999,7 +1001,7 @@ msgstr "Chambre"
 msgid "Chamber Cooling Fan Error"
 msgstr "Erreur ventilateur refroidissement chambre"
 
-#: src/gui/MItem_tools.hpp:588
+#: src/gui/MItem_tools.hpp:599
 msgid "Chamber Dimming"
 msgstr "Atténuation chambre"
 
@@ -1026,11 +1028,11 @@ msgstr "Filtration chambre"
 msgid "Chamber Filtration Fan Error"
 msgstr "Erreur ventilateur filtration chambre"
 
-#: src/gui/MItem_tools.hpp:560
+#: src/gui/MItem_tools.hpp:571
 msgid "Chamber Lights"
 msgstr "Lumières chambre"
 
-#: src/gui/MItem_tools.hpp:574
+#: src/gui/MItem_tools.hpp:585
 msgid "Chamber Lights Dimmed"
 msgstr "Lumières chambre atténuées"
 
@@ -1097,7 +1099,7 @@ msgstr "Changer le filament de Tous les Outils"
 msgid "Change Filter"
 msgstr "Changer le Filtre"
 
-#: src/gui/MItem_tools.hpp:529
+#: src/gui/MItem_tools.hpp:540
 msgid "Change Wave Table XYZ"
 msgstr "Modifier la Table d'Onde XYZ"
 
@@ -1257,7 +1259,7 @@ msgstr "Fermeture ventilation chambre"
 msgid "Code: %s"
 msgstr "Code : %s"
 
-#: src/gui/MItem_tools.hpp:501 tmp_error_headers/error_list.hpp:1198
+#: src/gui/MItem_tools.hpp:512 tmp_error_headers/error_list.hpp:1198
 msgid "Cold Pull"
 msgstr "Traction à froid"
 
@@ -1312,7 +1314,7 @@ msgstr "Calcul du meilleur shaper..."
 msgid "Confirm"
 msgstr "Confirmer"
 
-#: src/gui/MItem_tools.cpp:885
+#: src/gui/MItem_tools.cpp:892
 msgid "Connect"
 msgstr "Connecter"
 
@@ -1339,7 +1341,7 @@ msgstr "Matériau consommé"
 msgid "Continue"
 msgstr "Continuer"
 
-#: src/gui/screen_menu_selftest_snake.cpp:230
+#: src/gui/screen_menu_selftest_snake.cpp:236
 msgid "Continue running Calibrations & Tests?"
 msgstr "Continuer à exécuter les Calibrations & Tests ?"
 
@@ -1537,11 +1539,11 @@ msgstr ""
 msgid "Detecting steel sheet"
 msgstr "Détection de la plaque acier"
 
-#: src/gui/MItem_tools.hpp:521
+#: src/gui/MItem_tools.hpp:532
 msgid "Device Hash in QR"
 msgstr "Hachage de l'appareil dans le QR"
 
-#: src/gui/MItem_tools.hpp:167
+#: src/gui/MItem_tools.hpp:178
 msgid "Disable Motors"
 msgstr "Désactiver les Moteurs"
 
@@ -1570,7 +1572,7 @@ msgstr "Déconnecter"
 msgid "Disengaging idler"
 msgstr "Désengagement de l'idler"
 
-#: src/gui/MItem_tools.cpp:1025
+#: src/gui/MItem_tools.cpp:1027
 msgid "Display Refresh Speed"
 msgstr "Vitesse rafraîchissement écran"
 
@@ -1686,6 +1688,7 @@ msgstr ""
 "Cliquez sur NON pour utiliser la valeur par défaut (recommandé)"
 
 #: src/gui/wizard/selftest_frame_revise_printer_setup.cpp:35
+#: src/gui/wizard/screen_heaters_selftest.cpp:81
 msgid "Do you wish to retry the failed selftest?"
 msgstr "Souhaitez-vous réessayer le selftest ayant échoué ?"
 
@@ -1787,11 +1790,11 @@ msgstr "Ne pas changer"
 msgid "Don't touch the extruder."
 msgstr "Ne touchez pas l'extrudeur."
 
-#: src/gui/screen_printer_setup.cpp:21
+#: src/gui/screen_printer_setup.cpp:22
 msgid "Done"
 msgstr "Fini"
 
-#: src/gui/selftest_action_helpers.cpp:79 src/gui/MItem_tools.cpp:735
+#: src/gui/selftest_action_helpers.cpp:79 src/gui/MItem_tools.cpp:742
 #: src/gui/MItem_hardware.hpp:69
 msgid "Door Sensor"
 msgstr "Capteur de porte"
@@ -1813,7 +1816,7 @@ msgstr "Téléchargez le fichier du firmware (.bbf) sur la clé USB."
 msgid "Downloading..."
 msgstr "Téléchargement..."
 
-#: src/gui/MItem_tools.hpp:197
+#: src/gui/MItem_tools.hpp:208
 msgid "Dry run (no extrusion)"
 msgstr "Exécution à vide (pas d'extrusion)"
 
@@ -2052,7 +2055,7 @@ msgstr ""
 msgid "Error invalid selftest state"
 msgstr "Erreur état de selftest non valide"
 
-#: src/gui/MItem_tools.cpp:357
+#: src/gui/MItem_tools.cpp:364
 msgid ""
 "Error saving crash dump report to the USB drive. Please reinsert the USB "
 "drive and try again."
@@ -2100,7 +2103,7 @@ msgstr "Filament extrudé"
 msgid "Extruder"
 msgstr "Extrudeur"
 
-#: src/gui/screen_menu_sensor_info.hpp:128
+#: src/gui/screen_menu_sensor_info.hpp:134
 msgid "Extruder Filament Sensors"
 msgstr "Capteurs filament de l'extrudeur"
 
@@ -2227,7 +2230,7 @@ msgstr ""
 msgid "FINISH"
 msgstr "TERMINER"
 
-#: src/gui/screen_menu_selftest_snake.cpp:210
+#: src/gui/screen_menu_selftest_snake.cpp:216
 msgid ""
 "FINISH remaining calibrations without proceeding to other tests, or perform "
 "ALL Calibrations and Tests?\n"
@@ -2331,7 +2334,7 @@ msgstr "Réinitalisation d'Usine"
 msgid "Fail Stats"
 msgstr "Statistiques Échec"
 
-#: src/gui/MItem_tools.cpp:871
+#: src/gui/MItem_tools.cpp:878
 msgid "Failed"
 msgstr "Échoué"
 
@@ -2430,7 +2433,7 @@ msgstr ""
 msgid "Failed to open file"
 msgstr "Échec de l'ouverture du fichier"
 
-#: src/gui/MItem_tools.cpp:1054
+#: src/gui/MItem_tools.cpp:1056
 #, c-format
 msgid "Failed to open file '%s' for writing."
 msgstr "Impossible d'ouvrir le fichier '%s' en écriture."
@@ -2459,7 +2462,7 @@ msgstr "Le ventilateur 0 du lit chauffant fonctionne hors spécification."
 msgid "Fan 1 of the heated bed is operating outside of specification."
 msgstr "Le ventilateur 1 du lit chauffant fonctionne hors spécification."
 
-#: src/gui/MItem_tools.hpp:284
+#: src/gui/MItem_tools.hpp:295
 msgid "Fan Check"
 msgstr "Vérification des Ventilateurs"
 
@@ -2529,7 +2532,7 @@ msgstr ""
 "Le filament '%s' est abrasif mais vous n'avez pas de buse trempée. "
 "Continuer ?"
 
-#: src/gui/MItem_tools.hpp:315
+#: src/gui/MItem_tools.hpp:326
 msgid "Filament Autoloading"
 msgstr "Chargement Automatique du Filament"
 
@@ -2546,7 +2549,7 @@ msgstr "Changement de filament"
 msgid "Filament Sensing"
 msgstr "Détection de filament"
 
-#: src/gui/MItem_tools.hpp:41 src/gui/MItem_tools.cpp:645
+#: src/gui/MItem_tools.hpp:41 src/gui/MItem_tools.cpp:652
 msgid "Filament Sensor"
 msgstr "Capteur de Filament"
 
@@ -2810,7 +2813,7 @@ msgstr ""
 msgid "Firmware Update Required"
 msgstr "Mise à jour du firmware requise"
 
-#: src/common/hw_check.cpp:8 src/gui/MItem_tools.hpp:294
+#: src/common/hw_check.cpp:8 src/gui/MItem_tools.hpp:305
 msgid "Firmware Version"
 msgstr "Version du Firmware"
 
@@ -2956,7 +2959,7 @@ msgstr "Err de flashage"
 msgid "Flow Factor"
 msgstr "Facteur de Débit"
 
-#: src/gui/screen_menu_tune.hpp:90
+#: src/gui/screen_menu_tune.hpp:91
 msgid "Flow Factors"
 msgstr "Facteurs de flux"
 
@@ -2964,7 +2967,7 @@ msgstr "Facteurs de flux"
 msgid "Footer"
 msgstr "Pied de page"
 
-#: src/gui/MItem_tools.cpp:808
+#: src/gui/MItem_tools.cpp:815
 msgid "For Filament Change, Preheat"
 msgstr "Pour le changement de filament, Préchauffez"
 
@@ -3290,6 +3293,10 @@ msgstr "ERREUR MAXTEMP DE LA BARRIÈRE THERMIQUE"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ERREUR MINTEMP DE LA BARRIÈRE THERMIQUE"
 
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
+msgid "HEATER TEST"
+msgstr "TEST DE L'ÉLÉMENT CHAUFFANT"
+
 #: src/common/client_response_texts.hpp:108
 msgid "HEATUP"
 msgstr "CHAUFFAGE"
@@ -3409,6 +3416,7 @@ msgstr ""
 "Connecteur du plateau chauffant n° %d : Rien ne doit être connecté ici."
 
 #: src/gui/wizard/selftest_frame_temp.cpp:62
+#: src/gui/wizard/screen_heaters_selftest.cpp:66
 msgid "Heatbed heater check"
 msgstr "Test chauf. plateau"
 
@@ -3486,11 +3494,12 @@ msgstr "Température de la Barrière Thermique"
 msgid "Heatbreak Temperature"
 msgstr "Température heatbreak"
 
-#: src/gui/screen_menu_sensor_info.hpp:103
+#: src/gui/screen_menu_sensor_info.hpp:108
 msgid "Heatbreak Temperatures"
 msgstr "Températures heatbreak"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:65
+#: src/gui/wizard/screen_heaters_selftest.cpp:70
 msgid "Heatbreak status"
 msgstr "Statut de la barrière thermique"
 
@@ -3504,7 +3513,7 @@ msgstr ""
 msgid "Heated bed is operating outside of specification."
 msgstr "Le lit chauffant fonctionne hors spécification."
 
-#: src/gui/MItem_tools.cpp:693
+#: src/gui/MItem_tools.cpp:700
 msgid "Heater Current"
 msgstr "Courant de l'élément de chauffe"
 
@@ -3512,11 +3521,12 @@ msgstr "Courant de l'élément de chauffe"
 msgid "Heater Test"
 msgstr "Test de l'élément chauffant"
 
-#: src/gui/MItem_tools.cpp:688
+#: src/gui/MItem_tools.cpp:695
 msgid "Heater Voltage"
 msgstr "Tension de l'élément de chauffe"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:64
+#: src/gui/wizard/screen_heaters_selftest.cpp:68
 msgid "Heater testing"
 msgstr "Test chauf."
 
@@ -3635,7 +3645,7 @@ msgstr ""
 "Je vais vous guider\n"
 "dans la configuration."
 
-#: src/gui/MItem_tools.cpp:1021
+#: src/gui/MItem_tools.cpp:1023
 msgid "High"
 msgstr "Élevé"
 
@@ -3777,11 +3787,11 @@ msgstr "DIAGNOSTICS INDX"
 msgid "INDX Diagnostics"
 msgstr "Diagnostics INDX"
 
-#: src/gui/MItem_tools.cpp:770
+#: src/gui/MItem_tools.cpp:777
 msgid "INDX FIFO Err"
 msgstr "Erreur FIFO INDX"
 
-#: src/gui/MItem_tools.cpp:774
+#: src/gui/MItem_tools.cpp:781
 msgid "INDX Refresh Err"
 msgstr "Erreur rafraîch. INDX"
 
@@ -3886,7 +3896,7 @@ msgstr "Information"
 msgid "Initialized"
 msgstr "Initialisé"
 
-#: src/gui/MItem_tools.cpp:699
+#: src/gui/MItem_tools.cpp:706
 msgid "Input Current"
 msgstr "Courant d'entrée"
 
@@ -4199,7 +4209,7 @@ msgstr "Charger le Filament"
 msgid "Load Settings"
 msgstr "Charger les Réglages"
 
-#: src/gui/MItem_tools.hpp:537
+#: src/gui/MItem_tools.hpp:548
 msgid "Load Settings from File"
 msgstr "Charger les Paramètres à partir du fichier"
 
@@ -4326,7 +4336,7 @@ msgstr "Chargement..."
 msgid "Lock the tool"
 msgstr "Verrouillez l'outil"
 
-#: src/gui/MItem_tools.cpp:1040
+#: src/gui/MItem_tools.cpp:1042
 msgid "Logging has been turned off. You can now safely remove the USB drive."
 msgstr "Journalisation désactivée. Vous pouvez retirer la clé USB."
 
@@ -4360,11 +4370,11 @@ msgstr ""
 "Desserrez les deux vis sur le côté droit du pilier du dock (marquées en "
 "orange) à l'aide de la clé universelle."
 
-#: src/gui/MItem_tools.cpp:408
+#: src/gui/MItem_tools.cpp:415
 msgid "Loud"
 msgstr "Fort"
 
-#: src/gui/MItem_tools.cpp:1021
+#: src/gui/MItem_tools.cpp:1023
 msgid "Low"
 msgstr "Faible"
 
@@ -4412,7 +4422,7 @@ msgstr "ERREUR MAXTEMP DU MCU"
 msgid "MCU OVERHEAT"
 msgstr "SURCHAUFFE MCU"
 
-#: src/gui/MItem_tools.cpp:755
+#: src/gui/MItem_tools.cpp:762
 msgid "MCU Temperature"
 msgstr "Température du MCU"
 
@@ -4463,7 +4473,7 @@ msgstr "ERREUR MINTEMP"
 msgid "MMU BL Status"
 msgstr "Statut BL MMU"
 
-#: src/gui/MItem_tools.cpp:704
+#: src/gui/MItem_tools.cpp:711
 msgid "MMU Current"
 msgstr "Courant du MMU"
 
@@ -4517,7 +4527,7 @@ msgstr "ÉCHEC DU SELFTEST DU MMU"
 msgid "MMU Unit"
 msgstr "Unité MMU"
 
-#: src/gui/MItem_tools.hpp:308
+#: src/gui/MItem_tools.hpp:319
 msgid "MMU Version"
 msgstr "Version du MMU"
 
@@ -4657,7 +4667,7 @@ msgstr "Gérer filaments"
 msgid "Manual"
 msgstr "Manuel"
 
-#: src/gui/MItem_tools.hpp:634
+#: src/gui/MItem_tools.hpp:645
 msgid "Manual Belt Tuning"
 msgstr "Réglage manuel courroies"
 
@@ -4748,11 +4758,11 @@ msgstr ""
 msgid "Memory allocation failed for scheduled LED animation"
 msgstr "Échec de l'allocation de mémoire pour l'animation LED planifiée"
 
-#: src/gui/MItem_tools.hpp:207
+#: src/gui/MItem_tools.hpp:218
 msgid "Menu Timeout"
 msgstr "Timeout Menu"
 
-#: src/gui/MItem_tools.hpp:157
+#: src/gui/MItem_tools.hpp:168
 msgid "Mesh Bed Leveling"
 msgstr "Nivelage du Plateau"
 
@@ -4958,7 +4968,7 @@ msgid "NOZZLE_OFFSET"
 msgstr "OFFSET BUSE"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:21
-#: src/gui/MItem_tools.cpp:444
+#: src/gui/MItem_tools.cpp:451
 msgid "Name"
 msgstr "Nom"
 
@@ -4978,7 +4988,7 @@ msgstr "Le nom ne peut être vide"
 msgid "Net fail"
 msgstr "Échec réseau"
 
-#: src/gui/MItem_menus.hpp:120 src/gui/MItem_tools.cpp:882
+#: src/gui/MItem_menus.hpp:120 src/gui/MItem_tools.cpp:889
 msgid "Network"
 msgstr "Réseau"
 
@@ -4990,7 +5000,7 @@ msgstr "Réglages réseau"
 msgid "Network Status"
 msgstr "État du Réseau"
 
-#: src/gui/MItem_hardware.cpp:166 src/gui/MItem_tools.cpp:945
+#: src/gui/MItem_hardware.cpp:166 src/gui/MItem_tools.cpp:952
 msgid "Never"
 msgstr "Jamais"
 
@@ -5043,7 +5053,7 @@ msgstr "Aucun OpenPrintTag détecté pour outil/slot."
 msgid "No USB"
 msgstr "Pas d'USB"
 
-#: src/gui/MItem_tools.cpp:353
+#: src/gui/MItem_tools.cpp:360
 msgid "No crash dump to save."
 msgstr "Aucun dump de crash à sauvegarder."
 
@@ -5165,7 +5175,7 @@ msgstr ""
 "d'impression."
 
 #: src/common/footer_def.cpp:12 src/common/hw_check.cpp:6
-#: src/gui/MItem_print.cpp:39 src/gui/MItem_tools.cpp:803
+#: src/gui/MItem_print.cpp:39 src/gui/MItem_tools.cpp:810
 #: src/gui/wizard/selftest_result_heaters.cpp:13
 msgid "Nozzle"
 msgstr "Buse"
@@ -5201,7 +5211,11 @@ msgstr "Le nettoyeur buse peut déborder"
 msgid "Nozzle Cleaner X Offset"
 msgstr "Décalage X nettoyeur buse"
 
-#: src/gui/MItem_tools.cpp:1068
+#: src/gui/MItem_tools.hpp:157
+msgid "Nozzle Cleaner Y Offset"
+msgstr "Décalage Y nettoyeur buse"
+
+#: src/gui/MItem_tools.cpp:1070
 msgid "Nozzle Cleaning Retraction"
 msgstr "Rétraction nettoyage buse"
 
@@ -5252,8 +5266,8 @@ msgid "Nozzle Temperature"
 msgstr "Température de la Buse"
 
 #. Multi-tool: additional submenu to set target temp for all tools, not just the active one.
-#: src/gui/screen_menu_sensor_info.hpp:98
-#: src/gui/screen_menu_temperature.hpp:40 src/gui/screen_menu_tune.hpp:66
+#: src/gui/screen_menu_sensor_info.hpp:103
+#: src/gui/screen_menu_temperature.hpp:40 src/gui/screen_menu_tune.hpp:67
 msgid "Nozzle Temperatures"
 msgstr "Températures des buses"
 
@@ -5317,8 +5331,66 @@ msgstr ""
 "- Appuyez sur continuer lorsque vous avez terminé"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:61
+#: src/gui/wizard/screen_heaters_selftest.cpp:65
 msgid "Nozzle heater check"
 msgstr "Test chauf. buse"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
+msgid "Nozzle heater test failed."
+msgstr "Le test de l'élément chauffant de la buse a échoué."
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
+msgstr ""
+"Le test de l'élément chauffant de la buse a échoué.\n"
+"\n"
+"Le courant de la bobine de chauffe était hors de la plage attendue. Vérifiez "
+"que la buse est bien en place dans la tête. Si le problème persiste, "
+"inspectez l'état de la bobine.\n"
+"\n"
+"Courant mesuré : %u mA"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The nozzle did not heat up as expected. Check that the nozzle is seated "
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
+msgstr ""
+"Le test de l'élément chauffant de la buse a échoué.\n"
+"\n"
+"La buse n'a pas chauffé comme prévu. Vérifiez que la buse est bien en place "
+"dans la tête et réessayez.\n"
+"\n"
+"Code d'erreur : %u"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The nozzle did not reach the target temperature in time. Check that the "
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
+msgstr ""
+"Le test de l'élément chauffant de la buse a échoué.\n"
+"\n"
+"La buse n'a pas atteint la température cible à temps. Vérifiez que la buse "
+"est bien en place dans la tête et réessayez.\n"
+"\n"
+"Température atteinte : %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
@@ -5404,7 +5476,7 @@ msgstr "Décalage"
 msgid "Offset %c"
 msgstr "Offset %c"
 
-#: src/gui/MItem_tools.cpp:871
+#: src/gui/MItem_tools.cpp:878
 msgid "Ok"
 msgstr "Ok"
 
@@ -5412,11 +5484,11 @@ msgstr "Ok"
 msgid "On Filament Load"
 msgstr "Au chargement filament"
 
-#: src/gui/MItem_tools.cpp:947
+#: src/gui/MItem_tools.cpp:954
 msgid "On Idle"
 msgstr "À l'inactivité"
 
-#: src/gui/MItem_tools.cpp:407
+#: src/gui/MItem_tools.cpp:414
 msgid "Once"
 msgstr "Une fois"
 
@@ -5542,7 +5614,7 @@ msgstr "PHASE STEPPING"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:39
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "CALIBRATION DU PAS À PAS EN PHASE"
+msgstr "CALIBRATION PHASE STEPPING"
 
 #: tmp_error_headers/error_list.hpp:64
 msgid "PIN NOT REACHED"
@@ -5573,7 +5645,7 @@ msgstr "PRÉCHARGER TOUT"
 msgid "PRINT"
 msgstr "IMPRIMER"
 
-#: src/gui/screen_printer_setup.cpp:40
+#: src/gui/screen_printer_setup.cpp:45
 msgid "PRINTER SETUP"
 msgstr "CONFIGURATION DE L'IMPRIMANTE"
 
@@ -5627,7 +5699,7 @@ msgstr "Échec mouvement param sweep."
 msgid "Park Current Tool"
 msgstr "Stationner l'Outil Actuel"
 
-#: src/gui/MItem_tools.cpp:766
+#: src/gui/MItem_tools.cpp:773
 msgid "Park Fails"
 msgstr "Échecs parking"
 
@@ -5727,11 +5799,11 @@ msgstr "Phase Stepping"
 
 #: src/gui/selftest_action_helpers.cpp:91
 msgid "Phase Stepping Calibration"
-msgstr "Calibration du pas à pas en phase"
+msgstr "Calibration Phase Stepping"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:210
 msgid "Phase stepping calibration completed"
-msgstr "Calibration du pas à pas en phase terminé"
+msgstr "Calibration Phase Stepping terminée"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:286
 msgid "Phase stepping defaults have been successfully restored."
@@ -5746,17 +5818,18 @@ msgstr "Prendre l'outil"
 msgid "Pick Tool %i"
 msgstr "Prendre l'outil %i"
 
-#: src/gui/MItem_tools.hpp:623
+#: src/gui/MItem_tools.hpp:634
 msgid "Pick/Park Tool"
 msgstr "Saisir/Stationner l'Outil"
 
 #: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:24
 #: src/gui/wizard/selftest_frame_temp.cpp:71
+#: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
 msgstr "Prise d'outil"
 
-#: src/gui/MItem_tools.cpp:762
+#: src/gui/MItem_tools.cpp:769
 msgid "Pickup Fails"
 msgstr "Échecs prise"
 
@@ -5769,7 +5842,7 @@ msgid ""
 "Please calibrate nozzle cleaner first before loading/unloading filaments."
 msgstr "Calibrez le nettoyeur buse avant de charger/décharger le filament."
 
-#: src/gui/MItem_tools.cpp:1003
+#: src/gui/MItem_tools.cpp:1005
 msgid "Please calibrate the docks first."
 msgstr "Calibrez d'abord les docks."
 
@@ -5934,6 +6007,7 @@ msgid "Preload to MMU"
 msgstr "Précharger dans le MMU"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:63
+#: src/gui/wizard/screen_heaters_selftest.cpp:67
 msgid "Preparing"
 msgstr "En préparation"
 
@@ -5960,7 +6034,7 @@ msgstr "Préréglage"
 msgid "Press CONTINUE and push filament into MMU."
 msgstr "Appuyez sur CONTINUER et poussez le filament dans le MMU."
 
-#: src/gui/screen_menu_selftest_snake.cpp:338
+#: src/gui/screen_menu_selftest_snake.cpp:344
 msgid "Previous Calibrations & Tests are not all done. Continue anyway?"
 msgstr ""
 "Les Calibrations & Tests précédents ne sont pas tous terminés. Continuer "
@@ -5996,7 +6070,7 @@ msgstr "Type ventilateur impression"
 msgid "Print Filtration"
 msgstr "Filtration de l'impression"
 
-#: src/gui/MItem_tools.hpp:362
+#: src/gui/MItem_tools.hpp:373
 msgid "Print Progress Screen"
 msgstr "Écran de Progression de l'Impression"
 
@@ -6333,19 +6407,19 @@ msgstr "REPRENDRE"
 msgid "RETRY"
 msgstr "RÉESSAYER"
 
-#: src/gui/MItem_tools.hpp:562
+#: src/gui/MItem_tools.hpp:573
 msgid "RGB Side Strip"
 msgstr "Bande latérale RGB"
 
-#: src/gui/MItem_tools.hpp:576
+#: src/gui/MItem_tools.hpp:587
 msgid "RGB Side Strip Dimmed"
 msgstr "Bande RGB latérale atténuée"
 
-#: src/gui/MItem_tools.hpp:590
+#: src/gui/MItem_tools.hpp:601
 msgid "RGB Side Strip Dimming"
 msgstr "Gradation de la bande latérale RGB"
 
-#: src/gui/MItem_tools.hpp:547
+#: src/gui/MItem_tools.hpp:558
 msgid "RGB Status Bar"
 msgstr "Barre d'état RGB"
 
@@ -6419,7 +6493,7 @@ msgstr "Inscription réussi, continuer à connect.prusa3d.com"
 msgid "Registration to Prusa Connect failed due to:"
 msgstr "Échec de l'enregistrement à Prusa Connect :"
 
-#: src/gui/MItem_tools.hpp:638
+#: src/gui/MItem_tools.hpp:649
 msgid "Release Stuck Nozzle"
 msgstr "Libérer la buse bloquée"
 
@@ -6504,7 +6578,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Nécessite filtration"
 
-#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:469
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:480
 #: src/gui/screen/screen_factory_reset.cpp:61
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6598,6 +6672,10 @@ msgstr "Côté droit"
 msgid "Right Side [um]"
 msgstr "Côté droit [um]"
 
+#: src/gui/screen_menu_sensor_info.cpp:51
+msgid "Ringdown Decay"
+msgstr "Ringdown Decay"
+
 #: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:49
 msgid ""
 "Rotate each screw counter-clockwise by 1.5 turns. The screw heads should be "
@@ -6607,7 +6685,7 @@ msgstr ""
 "tour. Les têtes de vis doivent affleurer le couvercle. Déverrouillez et "
 "ouvrez l'idler."
 
-#: src/gui/screen_menu_selftest_snake.cpp:460
+#: src/gui/screen_menu_selftest_snake.cpp:466
 msgid "Run selftests and calibrations now?"
 msgstr "Exécuter les selftests et les calibrations maintenant ?"
 
@@ -6615,8 +6693,8 @@ msgstr "Exécuter les selftests et les calibrations maintenant ?"
 msgid ""
 "Running the phase stepping calibration to reduce vibrations. Please wait..."
 msgstr ""
-"Exécution de la calibration du pas à pas en phase pour réduire les "
-"vibrations. Veuillez patienter..."
+"Exécution de la calibration Phase Stepping pour réduire les vibrations. "
+"Veuillez patienter..."
 
 #: src/gui/screen/openprinttag/screen_opt_filament_detail.cpp:33
 msgid "SCAN OPENPRINTTAG"
@@ -6646,7 +6724,7 @@ msgstr "SELFTEST"
 msgid "SELFTEST NOT PASSED"
 msgstr "AUTOTEST ÉCHOUÉ"
 
-#: src/gui/screen_menu_sensor_info.cpp:52
+#: src/gui/screen_menu_sensor_info.cpp:59
 msgid "SENSOR INFO"
 msgstr "INFO CAPTEUR"
 
@@ -6729,7 +6807,7 @@ msgstr "Réinitialisation SW"
 msgid "SYSTEM"
 msgstr "SYSTÈME"
 
-#: src/gui/MItem_tools.cpp:716
+#: src/gui/MItem_tools.cpp:723
 msgid "Sandwich 5V Current"
 msgstr "Courant du 5V de la Sandwich"
 
@@ -6738,11 +6816,11 @@ msgstr "Courant du 5V de la Sandwich"
 msgid "Sat"
 msgstr "sam"
 
-#: src/gui/MItem_tools.hpp:177
+#: src/gui/MItem_tools.hpp:188
 msgid "Save Crash Dump"
 msgstr "Sauv. Suppression Mémoire"
 
-#: src/gui/MItem_tools.cpp:1035
+#: src/gui/MItem_tools.cpp:1037
 msgid "Save Logs To File"
 msgstr "Enregistrer logs"
 
@@ -6848,7 +6926,7 @@ msgstr "Écran impression série"
 msgid "Set All To"
 msgstr "Tout régler sur"
 
-#: src/gui/MItem_tools.hpp:488 src/gui/ScreenPrintingModel.cpp:58
+#: src/gui/MItem_tools.hpp:499 src/gui/ScreenPrintingModel.cpp:58
 msgid "Set Ready"
 msgstr "Définir comme Prête"
 
@@ -6923,11 +7001,11 @@ msgid "Side Filament Sensor"
 msgstr "Capteur de Filament Latéral"
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
-#: src/gui/screen_menu_sensor_info.hpp:134
+#: src/gui/screen_menu_sensor_info.hpp:140
 msgid "Side Filament Sensors"
 msgstr "Capteurs filament latéraux"
 
-#: src/gui/MItem_tools.cpp:669
+#: src/gui/MItem_tools.cpp:676
 msgid "Side Filament sensor"
 msgstr "Capteur filament latéral"
 
@@ -6940,7 +7018,7 @@ msgstr "Capteur de filament latéral non connecté, vérifiez le câblage."
 msgid "Signal"
 msgstr "Signal"
 
-#: src/gui/MItem_tools.cpp:409
+#: src/gui/MItem_tools.cpp:416
 msgid "Silent"
 msgstr "Silencieux"
 
@@ -6981,15 +7059,15 @@ msgstr ""
 "Certains paramètres du OpenPrintTag manquent ou sont invalides. Vérifiez les "
 "champs surlignés."
 
-#: src/gui/MItem_tools.cpp:448
+#: src/gui/MItem_tools.cpp:455
 msgid "Sort Files"
 msgstr "Trier les Fichiers"
 
-#: src/gui/MItem_tools.hpp:220 src/gui/MItem_tools.cpp:418
+#: src/gui/MItem_tools.hpp:231 src/gui/MItem_tools.cpp:425
 msgid "Sound Mode"
 msgstr "Mode Sonore"
 
-#: src/gui/MItem_tools.hpp:236
+#: src/gui/MItem_tools.hpp:247
 msgid "Sound Volume"
 msgstr "Volume Sonore"
 
@@ -7321,7 +7399,7 @@ msgstr "TÊTE D'OUTIL"
 msgid "TOOLS SETTINGS"
 msgstr "RÉGLAGES OUTILS"
 
-#: src/gui/screen_menu_tune.hpp:143
+#: src/gui/screen_menu_tune.hpp:144
 msgid "TUNE"
 msgstr "RÉGLER"
 
@@ -7633,6 +7711,7 @@ msgstr ""
 
 #. dialog is for non-toolchanger printers
 #: src/gui/wizard/selftest_frame_temp.cpp:67
+#: src/gui/wizard/screen_heaters_selftest.cpp:75
 msgid ""
 "The heater test will be skipped due to the failed hotend fan check. You may "
 "continue, but we strongly recommend resolving this issue before you start "
@@ -7707,7 +7786,7 @@ msgstr ""
 "L'imprimante vous guidera pour calibrer le nettoyeur buse. Vous devrez "
 "positionner la tête manuellement et régler la vis de hauteur."
 
-#: src/gui/MItem_tools.cpp:1062
+#: src/gui/MItem_tools.cpp:1064
 #, c-format
 msgid ""
 "The printer will now save all logs to file until restart.\n"
@@ -7953,23 +8032,23 @@ msgstr ""
 "\n"
 "Faites attention à l'étape suivante, l'imprimante bougera"
 
-#: src/gui/MItem_tools.cpp:443 src/gui/MItem_tools.cpp:520
+#: src/gui/MItem_tools.cpp:450 src/gui/MItem_tools.cpp:527
 msgid "Time"
 msgstr "Temps"
 
-#: src/gui/MItem_tools.cpp:508
+#: src/gui/MItem_tools.cpp:515
 msgid "Time Format"
 msgstr "Format Heure"
 
-#: src/gui/MItem_tools.hpp:245
+#: src/gui/MItem_tools.hpp:256
 msgid "Time Zone Hour Offset"
 msgstr "Décalage horaire du fuseau horaire"
 
-#: src/gui/MItem_tools.cpp:482
+#: src/gui/MItem_tools.cpp:489
 msgid "Time Zone Minute Offset"
 msgstr "Décalage des minutes du fuseau horaire"
 
-#: src/gui/MItem_tools.hpp:259
+#: src/gui/MItem_tools.hpp:270
 msgid "Time Zone Summertime"
 msgstr "Fuseau horaire Heure d'été"
 
@@ -8002,8 +8081,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"Pour en savoir plus sur le processus de calibration du pas à pas en phase, "
-"lisez l'article :"
+"Pour en savoir plus sur le processus de calibration Phase Stepping, lisez "
+"l'article :"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"
@@ -8051,11 +8130,11 @@ msgstr "Outil %i"
 msgid "Tool %u of %u"
 msgstr "Outil %u sur %u"
 
-#: src/gui/MItem_tools.cpp:643
+#: src/gui/MItem_tools.cpp:650
 msgid "Tool Filament sensor"
 msgstr "Capteur de filament de l'Outil"
 
-#: src/gui/MItem_tools.hpp:601
+#: src/gui/MItem_tools.hpp:612
 msgid "Tool Light"
 msgstr "Lumière Outil"
 
@@ -8158,7 +8237,7 @@ msgstr ""
 "Échec de l'initialisation du pilote tactile, fonctionnalité tactile "
 "désactivée"
 
-#: src/gui/MItem_tools.hpp:611
+#: src/gui/MItem_tools.hpp:622
 msgid "Trigger Power Panic"
 msgstr "Déclencher une Power panic"
 
@@ -8228,7 +8307,7 @@ msgstr "Tournez le bouton pour déplacer le plateau chauffant"
 msgid "Turn the knob to move Z-axis"
 msgstr "Tournez le bouton pour déplacer l'axe Z"
 
-#: src/gui/MItem_tools.cpp:1063
+#: src/gui/MItem_tools.cpp:1065
 msgid ""
 "Turn the logging off before disconnecting the USB drive, or you risk "
 "damaging the filesystem!"
@@ -8504,7 +8583,7 @@ msgstr "Contrôle de validité"
 msgid "Vent Area Obstruction"
 msgstr "Obstacle zone d'aération"
 
-#: src/gui/MItem_tools.hpp:513
+#: src/gui/MItem_tools.hpp:524
 msgid "Verify GCode"
 msgstr "Vérifier le GCode"
 
@@ -8804,11 +8883,11 @@ msgstr "Direction axe X"
 msgid "X-axis steps per unit"
 msgstr "Pas par unité axe X"
 
-#: src/gui/MItem_tools.cpp:778
+#: src/gui/MItem_tools.cpp:785
 msgid "XBE Refresh Err"
 msgstr "Erreur rafraîch. XBE"
 
-#: src/gui/MItem_tools.cpp:721
+#: src/gui/MItem_tools.cpp:728
 msgid "XL Buddy 5V Current"
 msgstr "Courant du 5V de la XL Buddy"
 
@@ -8984,11 +9063,11 @@ msgstr ""
 "la fréquence de l'axe est trop basse.\n"
 "Veuillez Tendre la courroie."
 
-#: src/gui/MItem_tools.cpp:745
+#: src/gui/MItem_tools.cpp:752
 msgid "closed"
 msgstr "fermé"
 
-#: src/gui/MItem_tools.cpp:743
+#: src/gui/MItem_tools.cpp:750
 msgid "detached"
 msgstr "détaché"
 
@@ -8996,7 +9075,7 @@ msgstr "détaché"
 msgid "loosen"
 msgstr "desserrer"
 
-#: src/gui/MItem_tools.cpp:744
+#: src/gui/MItem_tools.cpp:751
 msgid "open"
 msgstr "ouvert"
 

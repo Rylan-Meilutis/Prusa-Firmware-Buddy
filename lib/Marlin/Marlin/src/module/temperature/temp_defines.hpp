@@ -33,6 +33,18 @@ struct PID_t {
     float Kp = 0, Ki = 0, Kd = 0;
 };
 
+// A temperature sensor
+typedef struct TempInfo {
+    static constexpr float celsius_uninitialized = -1.0f;
+
+    uint16_t acc;
+    int16_t raw;
+    float celsius = celsius_uninitialized;
+    inline void reset() { acc = 0; }
+    inline void sample(const uint16_t s) { acc += s; }
+    inline void update() { raw = acc; }
+} temp_info_t;
+
 // Minimum number of Temperature::ISR loops between sensor readings.
 // Multiplied by 16 (OVERSAMPLENR) to obtain the total time to
 // get all oversampled sensor readings

@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-07-09 13:42+0200\n"
+"POT-Creation-Date: 2026-07-17 12:44+0200\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,7 +30,7 @@ msgstr ""
 "%d\n"
 "%s"
 
-#: src/gui/MItem_tools.cpp:876
+#: src/gui/MItem_tools.cpp:883
 msgid ""
 "\n"
 "Loading settings finished.\n"
@@ -189,7 +189,7 @@ msgstr ""
 msgid "4 DOCKS"
 msgstr "4 ドック"
 
-#: src/gui/MItem_tools.cpp:711
+#: src/gui/MItem_tools.cpp:718
 msgid "5V Voltage"
 msgstr "5V デンアツ"
 
@@ -198,11 +198,11 @@ msgid "8 DOCKS"
 msgstr "8 ドック"
 
 #. window_menu
-#: src/gui/MItem_tools.cpp:351
+#: src/gui/MItem_tools.cpp:358
 msgid "A crash dump is being saved."
 msgstr "クラッシュダンプガ ホゾンサレマシタ"
 
-#: src/gui/MItem_tools.cpp:355
+#: src/gui/MItem_tools.cpp:362
 msgid "A crash dump report (file dump.bin) has been saved to the USB drive."
 msgstr "クラッシュレポート(file dump.bin)ガ USBドライブニ ホゾンサレマシタ"
 
@@ -377,7 +377,7 @@ msgstr "ツールノ イチチョウセイ"
 msgid "Alignment issue detected"
 msgstr "チョウセイ モンダイ ヲ ケンシュツ"
 
-#: src/gui/MItem_tools.cpp:804
+#: src/gui/MItem_tools.cpp:811
 msgid "All"
 msgstr "スベテ"
 
@@ -401,7 +401,7 @@ msgstr "スベテノ テスト ガ セイコウ シマシタ。"
 msgid "Alt fan correction"
 msgstr "ダイタイ ファン ホセイ"
 
-#: src/gui/MItem_tools.cpp:946
+#: src/gui/MItem_tools.cpp:953
 msgid "Always"
 msgstr "イツモ"
 
@@ -465,7 +465,7 @@ msgstr "ドア センサー ノ キャリブレーション ヲ スキップ シ
 msgid "Ask"
 msgstr "シツモン"
 
-#: src/gui/MItem_tools.cpp:410
+#: src/gui/MItem_tools.cpp:417
 msgid "Assist"
 msgstr "アシスト"
 
@@ -475,6 +475,7 @@ msgid "Attempt %d/%d"
 msgstr "シコウ %d/%d"
 
 #: src/gui/wizard/selftest_frame_revise_printer_setup.cpp:22
+#: src/gui/wizard/screen_heaters_selftest.cpp:80
 msgid ""
 "Attention, the test has failed.\n"
 "This could have been caused by a wrong configuration.\n"
@@ -618,11 +619,11 @@ msgid "Bed Temp"
 msgstr "ベッド オンド"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:105
-#: src/gui/MItem_tools.cpp:588
+#: src/gui/MItem_tools.cpp:595
 msgid "Bed Temperature"
 msgstr "ベッドオンド"
 
-#: src/gui/MItem_tools.cpp:682
+#: src/gui/MItem_tools.cpp:689
 msgid "Bed Voltage"
 msgstr "ベッド デンアツ"
 
@@ -631,6 +632,7 @@ msgid "Bed fans"
 msgstr "ベッド ファン"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:248
+#: src/gui/wizard/screen_heaters_selftest.cpp:77
 msgid ""
 "Bed heater selftest failed.\n"
 "\n"
@@ -684,7 +686,7 @@ msgstr ""
 "ンシテクダサイ。"
 
 #. Now show always, bed heater selftest can fail if there is no sheet on the bed
-#: src/gui/screen_menu_selftest_snake.cpp:466
+#: src/gui/screen_menu_selftest_snake.cpp:472
 msgid ""
 "Before you continue, make sure the print sheet is installed on the heatbed."
 msgstr ""
@@ -722,7 +724,7 @@ msgstr "クロ"
 msgid "Board Info"
 msgstr "ボード ジョウホウ"
 
-#: src/gui/MItem_tools.cpp:727
+#: src/gui/MItem_tools.cpp:734
 msgid "Board Temperature"
 msgstr "ボードオンド"
 
@@ -734,7 +736,7 @@ msgstr "ボード オンド ガ タカスギマス"
 msgid "Board Temperature Too Low"
 msgstr "ボード オンド ガ ヒクスギマス"
 
-#: src/gui/MItem_tools.hpp:301
+#: src/gui/MItem_tools.hpp:312
 msgid "Bootloader Version"
 msgstr "ブートローダーバージョン"
 
@@ -1001,7 +1003,7 @@ msgstr "チャンバー"
 msgid "Chamber Cooling Fan Error"
 msgstr "チャンバー レイキャク ファン エラー"
 
-#: src/gui/MItem_tools.hpp:588
+#: src/gui/MItem_tools.hpp:599
 msgid "Chamber Dimming"
 msgstr "チャンバー チョウコウ"
 
@@ -1028,11 +1030,11 @@ msgstr "チャンバー フィルター"
 msgid "Chamber Filtration Fan Error"
 msgstr "チャンバー フィルター ファン エラー"
 
-#: src/gui/MItem_tools.hpp:560
+#: src/gui/MItem_tools.hpp:571
 msgid "Chamber Lights"
 msgstr "チャンバー ライト"
 
-#: src/gui/MItem_tools.hpp:574
+#: src/gui/MItem_tools.hpp:585
 msgid "Chamber Lights Dimmed"
 msgstr "チャンバー ライト ノ チョウコウ"
 
@@ -1099,7 +1101,7 @@ msgstr "スベテノツールノ フィラメントヲ コウカンシマス"
 msgid "Change Filter"
 msgstr "フィルターコウカン"
 
-#: src/gui/MItem_tools.hpp:529
+#: src/gui/MItem_tools.hpp:540
 msgid "Change Wave Table XYZ"
 msgstr "ウェーブテーブルXYZヘンコウ"
 
@@ -1268,7 +1270,7 @@ msgstr "チャンバー カンキ ヲ トジテ イマス"
 msgid "Code: %s"
 msgstr "コード: %s"
 
-#: src/gui/MItem_tools.hpp:501 tmp_error_headers/error_list.hpp:1198
+#: src/gui/MItem_tools.hpp:512 tmp_error_headers/error_list.hpp:1198
 msgid "Cold Pull"
 msgstr "コールドプル"
 
@@ -1323,7 +1325,7 @@ msgstr "ベスト ヲ ケイサン シテイマス..."
 msgid "Confirm"
 msgstr "カクニン"
 
-#: src/gui/MItem_tools.cpp:885
+#: src/gui/MItem_tools.cpp:892
 msgid "Connect"
 msgstr "ツナゲル"
 
@@ -1350,7 +1352,7 @@ msgstr "ショウヒシタ ザイリョウ"
 msgid "Continue"
 msgstr "ツヅケル"
 
-#: src/gui/screen_menu_selftest_snake.cpp:230
+#: src/gui/screen_menu_selftest_snake.cpp:236
 msgid "Continue running Calibrations & Tests?"
 msgstr "キャリブレーショント テストヲ ツヅケマスカ?"
 
@@ -1548,11 +1550,11 @@ msgstr "ニンショウジョウホウファイル ヲ サクジョ シマスカ
 msgid "Detecting steel sheet"
 msgstr "テッパン ノ ケンシュツ"
 
-#: src/gui/MItem_tools.hpp:521
+#: src/gui/MItem_tools.hpp:532
 msgid "Device Hash in QR"
 msgstr "QR デバイスハッシュ"
 
-#: src/gui/MItem_tools.hpp:167
+#: src/gui/MItem_tools.hpp:178
 msgid "Disable Motors"
 msgstr "モーター オフ"
 
@@ -1582,7 +1584,7 @@ msgstr "セツダン"
 msgid "Disengaging idler"
 msgstr "アイドラーヲ ハズス"
 
-#: src/gui/MItem_tools.cpp:1025
+#: src/gui/MItem_tools.cpp:1027
 msgid "Display Refresh Speed"
 msgstr "ディスプレイ ノ コウシン ソクド"
 
@@ -1694,6 +1696,7 @@ msgstr ""
 "デフォルトヲツカウバアイ、イイエ(スイショウ)"
 
 #: src/gui/wizard/selftest_frame_revise_printer_setup.cpp:35
+#: src/gui/wizard/screen_heaters_selftest.cpp:81
 msgid "Do you wish to retry the failed selftest?"
 msgstr "シッパイシタ セルフテスト ヲ リトライシマスカ?"
 
@@ -1795,11 +1798,11 @@ msgstr "ヘンコウ シナイ"
 msgid "Don't touch the extruder."
 msgstr "エクストルーダーニ サワラナイデ クダサイ"
 
-#: src/gui/screen_printer_setup.cpp:21
+#: src/gui/screen_printer_setup.cpp:22
 msgid "Done"
 msgstr "カンリョウ"
 
-#: src/gui/selftest_action_helpers.cpp:79 src/gui/MItem_tools.cpp:735
+#: src/gui/selftest_action_helpers.cpp:79 src/gui/MItem_tools.cpp:742
 #: src/gui/MItem_hardware.hpp:69
 msgid "Door Sensor"
 msgstr "ドア センサー"
@@ -1822,7 +1825,7 @@ msgstr "ファームウェアファイル(<i>.bbf) ヲ USBドライブニ ホゾ
 msgid "Downloading..."
 msgstr "ダウンロードチュウ"
 
-#: src/gui/MItem_tools.hpp:197
+#: src/gui/MItem_tools.hpp:208
 msgid "Dry run (no extrusion)"
 msgstr "ドライラン (オシダシ ナシ)"
 
@@ -2065,7 +2068,7 @@ msgstr ""
 msgid "Error invalid selftest state"
 msgstr "セルフテスト ムコウノ エラー"
 
-#: src/gui/MItem_tools.cpp:357
+#: src/gui/MItem_tools.cpp:364
 msgid ""
 "Error saving crash dump report to the USB drive. Please reinsert the USB "
 "drive and try again."
@@ -2113,7 +2116,7 @@ msgstr "オシダシ フィラメント"
 msgid "Extruder"
 msgstr "エクストルーダー"
 
-#: src/gui/screen_menu_sensor_info.hpp:128
+#: src/gui/screen_menu_sensor_info.hpp:134
 msgid "Extruder Filament Sensors"
 msgstr "エクストルーダー フィラメント センサー"
 
@@ -2240,7 +2243,7 @@ msgstr ""
 msgid "FINISH"
 msgstr "カンリョウ"
 
-#: src/gui/screen_menu_selftest_snake.cpp:210
+#: src/gui/screen_menu_selftest_snake.cpp:216
 msgid ""
 "FINISH remaining calibrations without proceeding to other tests, or perform "
 "ALL Calibrations and Tests?\n"
@@ -2344,7 +2347,7 @@ msgstr "ファクトリーリセット"
 msgid "Fail Stats"
 msgstr "シッパイノ トウケイジョウホウ"
 
-#: src/gui/MItem_tools.cpp:871
+#: src/gui/MItem_tools.cpp:878
 msgid "Failed"
 msgstr "シッパイ"
 
@@ -2447,7 +2450,7 @@ msgstr ""
 msgid "Failed to open file"
 msgstr "ファイルオープンニ シッパイシマシタ"
 
-#: src/gui/MItem_tools.cpp:1054
+#: src/gui/MItem_tools.cpp:1056
 #, c-format
 msgid "Failed to open file '%s' for writing."
 msgstr "ファイル '%s' ヲ カキコミヨウ ニ ヒラケマセン デシタ。"
@@ -2476,7 +2479,7 @@ msgstr "ヒーテッド ベッド ノ ファン 0 ガ スペック ガイ デ �
 msgid "Fan 1 of the heated bed is operating outside of specification."
 msgstr "ヒーテッド ベッド ノ ファン 1 ガ スペック ガイ デ ドウサ シテ イマス。"
 
-#: src/gui/MItem_tools.hpp:284
+#: src/gui/MItem_tools.hpp:295
 msgid "Fan Check"
 msgstr "ファンノ カクニン"
 
@@ -2546,7 +2549,7 @@ msgstr ""
 "フィラメント '%s' ハ ケンマ セイ ガ アリマス ガ コウカ ノズル ガ トリツケ ラ"
 "レテ イマセン。スゾク シマスカ?"
 
-#: src/gui/MItem_tools.hpp:315
+#: src/gui/MItem_tools.hpp:326
 msgid "Filament Autoloading"
 msgstr "フィラメントオートロード"
 
@@ -2563,7 +2566,7 @@ msgstr "フィラメント コウカン"
 msgid "Filament Sensing"
 msgstr "フィラメントセンシング"
 
-#: src/gui/MItem_tools.hpp:41 src/gui/MItem_tools.cpp:645
+#: src/gui/MItem_tools.hpp:41 src/gui/MItem_tools.cpp:652
 msgid "Filament Sensor"
 msgstr "フィラメントセンサー"
 
@@ -2838,7 +2841,7 @@ msgstr ""
 msgid "Firmware Update Required"
 msgstr "ファームウェア ヲ アップデート シテクダサイ"
 
-#: src/common/hw_check.cpp:8 src/gui/MItem_tools.hpp:294
+#: src/common/hw_check.cpp:8 src/gui/MItem_tools.hpp:305
 msgid "Firmware Version"
 msgstr "ファームウェアバージョン"
 
@@ -3012,7 +3015,7 @@ msgstr "フアームウェア フラシング エラー"
 msgid "Flow Factor"
 msgstr "フローファクター"
 
-#: src/gui/screen_menu_tune.hpp:90
+#: src/gui/screen_menu_tune.hpp:91
 msgid "Flow Factors"
 msgstr "フロー ファクター"
 
@@ -3020,7 +3023,7 @@ msgstr "フロー ファクター"
 msgid "Footer"
 msgstr "フッター"
 
-#: src/gui/MItem_tools.cpp:808
+#: src/gui/MItem_tools.cpp:815
 msgid "For Filament Change, Preheat"
 msgstr "フィラメントチェンジノタメ プリヒート"
 
@@ -3362,6 +3365,10 @@ msgstr "ヒートブレイクサイダイオンドエラー"
 msgid "HEATBREAK MINTEMP ERROR"
 msgstr "ヒートブレイクサイショウオンドエラー"
 
+#: src/gui/wizard/screen_heaters_selftest.cpp:213
+msgid "HEATER TEST"
+msgstr "ヒーターテスト"
+
 #: src/common/client_response_texts.hpp:108
 msgid "HEATUP"
 msgstr "ヒートアップ"
@@ -3482,6 +3489,7 @@ msgstr ""
 "ココニハ ナニモ セツゾク シナイデクダサイ"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:62
+#: src/gui/wizard/screen_heaters_selftest.cpp:66
 msgid "Heatbed heater check"
 msgstr "ヒートベッドヒーターカクニン"
 
@@ -3567,11 +3575,12 @@ msgstr "ヒートブレイクオンド"
 msgid "Heatbreak Temperature"
 msgstr "ヒート ブレイク オンド"
 
-#: src/gui/screen_menu_sensor_info.hpp:103
+#: src/gui/screen_menu_sensor_info.hpp:108
 msgid "Heatbreak Temperatures"
 msgstr "ヒート ブレイク オンド"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:65
+#: src/gui/wizard/screen_heaters_selftest.cpp:70
 msgid "Heatbreak status"
 msgstr "ヒートブレイクノ ジョウキョウ"
 
@@ -3585,7 +3594,7 @@ msgstr ""
 msgid "Heated bed is operating outside of specification."
 msgstr "ヒーテッド ベッド ガ スペック ガイ デ ドウサ シテ イマス。"
 
-#: src/gui/MItem_tools.cpp:693
+#: src/gui/MItem_tools.cpp:700
 msgid "Heater Current"
 msgstr "ゲンザイヒーター"
 
@@ -3593,11 +3602,12 @@ msgstr "ゲンザイヒーター"
 msgid "Heater Test"
 msgstr "ヒーターテスト"
 
-#: src/gui/MItem_tools.cpp:688
+#: src/gui/MItem_tools.cpp:695
 msgid "Heater Voltage"
 msgstr "ヒーターデンアツ"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:64
+#: src/gui/wizard/screen_heaters_selftest.cpp:68
 msgid "Heater testing"
 msgstr "ヒーターテスト"
 
@@ -3726,7 +3736,7 @@ msgstr ""
 "セットアップ プロセス ヲ\n"
 "アンナイ シマス。"
 
-#: src/gui/MItem_tools.cpp:1021
+#: src/gui/MItem_tools.cpp:1023
 msgid "High"
 msgstr "ハイ"
 
@@ -3869,11 +3879,11 @@ msgstr "INDX シンダン"
 msgid "INDX Diagnostics"
 msgstr "INDX シンダン"
 
-#: src/gui/MItem_tools.cpp:770
+#: src/gui/MItem_tools.cpp:777
 msgid "INDX FIFO Err"
 msgstr "INDX FIFO エラー"
 
-#: src/gui/MItem_tools.cpp:774
+#: src/gui/MItem_tools.cpp:781
 msgid "INDX Refresh Err"
 msgstr "INDX コウシン エラー"
 
@@ -3981,7 +3991,7 @@ msgstr "ジョウホウ"
 msgid "Initialized"
 msgstr "ショキカ サレマシタ"
 
-#: src/gui/MItem_tools.cpp:699
+#: src/gui/MItem_tools.cpp:706
 msgid "Input Current"
 msgstr "ニュウリョクデンリュウ"
 
@@ -4298,7 +4308,7 @@ msgstr "フィラメント ロード"
 msgid "Load Settings"
 msgstr "セッティングヲ ロード"
 
-#: src/gui/MItem_tools.hpp:537
+#: src/gui/MItem_tools.hpp:548
 msgid "Load Settings from File"
 msgstr "セッティングヲ ロードスル"
 
@@ -4426,7 +4436,7 @@ msgstr "ロードチュウ"
 msgid "Lock the tool"
 msgstr "ツールヲ ロックスル"
 
-#: src/gui/MItem_tools.cpp:1040
+#: src/gui/MItem_tools.cpp:1042
 msgid "Logging has been turned off. You can now safely remove the USB drive."
 msgstr ""
 "ログ ハ オフ ニ ナリマシタ。USB ドライブ ヲ アンゼン ニ トリハズセマス。"
@@ -4461,11 +4471,11 @@ msgstr ""
 "ドックピラーノ ミギニアル 2ツノネジ(オレンジノマーク)ヲ ユニレンチデ ユルメマ"
 "ス。"
 
-#: src/gui/MItem_tools.cpp:408
+#: src/gui/MItem_tools.cpp:415
 msgid "Loud"
 msgstr "サイダイ"
 
-#: src/gui/MItem_tools.cpp:1021
+#: src/gui/MItem_tools.cpp:1023
 msgid "Low"
 msgstr "ロー"
 
@@ -4513,7 +4523,7 @@ msgstr "MCUサイダイオンドエラー"
 msgid "MCU OVERHEAT"
 msgstr "MCU カネツ"
 
-#: src/gui/MItem_tools.cpp:755
+#: src/gui/MItem_tools.cpp:762
 msgid "MCU Temperature"
 msgstr "MCUオンド"
 
@@ -4567,7 +4577,7 @@ msgstr "MINTEMP ERROR(サイショウオンドエラー)"
 msgid "MMU BL Status"
 msgstr "MMU BL ステータス"
 
-#: src/gui/MItem_tools.cpp:704
+#: src/gui/MItem_tools.cpp:711
 msgid "MMU Current"
 msgstr "MMUデンリュウ"
 
@@ -4621,7 +4631,7 @@ msgstr "MMU セルフテストシッパイ"
 msgid "MMU Unit"
 msgstr "MMUユニット"
 
-#: src/gui/MItem_tools.hpp:308
+#: src/gui/MItem_tools.hpp:319
 msgid "MMU Version"
 msgstr "MMUバージョン"
 
@@ -4774,7 +4784,7 @@ msgstr "フィラメント カンリ"
 msgid "Manual"
 msgstr "シュドウ"
 
-#: src/gui/MItem_tools.hpp:634
+#: src/gui/MItem_tools.hpp:645
 msgid "Manual Belt Tuning"
 msgstr "シュドウ ベルト チョウセイ"
 
@@ -4868,11 +4878,11 @@ msgid "Memory allocation failed for scheduled LED animation"
 msgstr ""
 "スケジュールサレタLEDアニメーションデ メモリノ ワリアテニ シッパイシマシタ。"
 
-#: src/gui/MItem_tools.hpp:207
+#: src/gui/MItem_tools.hpp:218
 msgid "Menu Timeout"
 msgstr "メニュータイムアウト"
 
-#: src/gui/MItem_tools.hpp:157
+#: src/gui/MItem_tools.hpp:168
 msgid "Mesh Bed Leveling"
 msgstr "メッシュベッドレベリング"
 
@@ -5081,7 +5091,7 @@ msgid "NOZZLE_OFFSET"
 msgstr "ノズル オフセット"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:21
-#: src/gui/MItem_tools.cpp:444
+#: src/gui/MItem_tools.cpp:451
 msgid "Name"
 msgstr "ネーム"
 
@@ -5101,7 +5111,7 @@ msgstr "ナマエ ヲ ニュウリョク シテ クダサイ"
 msgid "Net fail"
 msgstr "ネットショウガイ"
 
-#: src/gui/MItem_menus.hpp:120 src/gui/MItem_tools.cpp:882
+#: src/gui/MItem_menus.hpp:120 src/gui/MItem_tools.cpp:889
 msgid "Network"
 msgstr "ネットワーク"
 
@@ -5113,7 +5123,7 @@ msgstr "ネットワーク セッテイ"
 msgid "Network Status"
 msgstr "ネットワーク ノ ジョウタイ"
 
-#: src/gui/MItem_hardware.cpp:166 src/gui/MItem_tools.cpp:945
+#: src/gui/MItem_hardware.cpp:166 src/gui/MItem_tools.cpp:952
 msgid "Never"
 msgstr "シナイ"
 
@@ -5166,7 +5176,7 @@ msgstr "ツール/スロット ノ OpenPrintTag ガ ケンシュツ サレマセ
 msgid "No USB"
 msgstr "USBガ アリマセン"
 
-#: src/gui/MItem_tools.cpp:353
+#: src/gui/MItem_tools.cpp:360
 msgid "No crash dump to save."
 msgstr "クラッシュダンプガ ホゾンサレテイマセン。"
 
@@ -5294,7 +5304,7 @@ msgstr ""
 "ノズルセンタント プリントシートノ キョリヲ キャリブレーションシテイキマス。"
 
 #: src/common/footer_def.cpp:12 src/common/hw_check.cpp:6
-#: src/gui/MItem_print.cpp:39 src/gui/MItem_tools.cpp:803
+#: src/gui/MItem_print.cpp:39 src/gui/MItem_tools.cpp:810
 #: src/gui/wizard/selftest_result_heaters.cpp:13
 msgid "Nozzle"
 msgstr "ノズル"
@@ -5330,7 +5340,11 @@ msgstr "ノズル クリーナー ガ アフレル オソレ"
 msgid "Nozzle Cleaner X Offset"
 msgstr "ノズル クリーナー X オフセット"
 
-#: src/gui/MItem_tools.cpp:1068
+#: src/gui/MItem_tools.hpp:157
+msgid "Nozzle Cleaner Y Offset"
+msgstr "ノズル クリーナー Y オフセット"
+
+#: src/gui/MItem_tools.cpp:1070
 msgid "Nozzle Cleaning Retraction"
 msgstr "ノズル クリーニング リトラクト"
 
@@ -5381,8 +5395,8 @@ msgid "Nozzle Temperature"
 msgstr "ノズルオンド"
 
 #. Multi-tool: additional submenu to set target temp for all tools, not just the active one.
-#: src/gui/screen_menu_sensor_info.hpp:98
-#: src/gui/screen_menu_temperature.hpp:40 src/gui/screen_menu_tune.hpp:66
+#: src/gui/screen_menu_sensor_info.hpp:103
+#: src/gui/screen_menu_temperature.hpp:40 src/gui/screen_menu_tune.hpp:67
 msgid "Nozzle Temperatures"
 msgstr "ノズル オンド"
 
@@ -5448,8 +5462,66 @@ msgstr ""
 "- カンリョウシタラ ツヅケルヲオス"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:61
+#: src/gui/wizard/screen_heaters_selftest.cpp:65
 msgid "Nozzle heater check"
 msgstr "ノズルヒーター カクニン"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:145
+msgid "Nozzle heater test failed."
+msgstr "ノズルヒーターノ テストニ シッパイシマシタ。"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:155
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The heater coil current was out of the expected range. Check that the nozzle "
+"is seated correctly in the head. If the issue persists, inspect the coil for "
+"damage.\n"
+"\n"
+"Measured current: %u mA"
+msgstr ""
+"ノズルヒーターノ テストニ シッパイシマシタ。\n"
+"\n"
+"ヒーターコイルノ デンリュウガ ヨソウハンイガイデス。ノズルガ ヘッドニ タダシ"
+"ク オサマッテイルコトヲ カクニンシテクダサイ。モンダイガ カイケツシナイバアイ"
+"ハ、コイルニ ソンショウガナイカ テンケンシテクダサイ。\n"
+"\n"
+"ソクテイ デンリュウ: %u mA"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:148
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The nozzle did not heat up as expected. Check that the nozzle is seated "
+"correctly in the head and try again.\n"
+"\n"
+"Error code: %u"
+msgstr ""
+"ノズルヒーターノ テストニ シッパイシマシタ。\n"
+"\n"
+"ノズルガ ヨソウドオリニ カネツシマセンデシタ。ノズルガ ヘッドニ タダシク オサ"
+"マッテイルコトヲ カクニンシ、リトライシテクダサイ。\n"
+"\n"
+"エラーコード: %u"
+
+#: src/gui/wizard/screen_heaters_selftest.cpp:151
+#, c-format
+msgid ""
+"Nozzle heater test failed.\n"
+"\n"
+"The nozzle did not reach the target temperature in time. Check that the "
+"nozzle is seated correctly in the head and try again.\n"
+"\n"
+"Reached temperature: %u°C"
+msgstr ""
+"ノズルヒーターノ テストニ シッパイシマシタ。\n"
+"\n"
+"ノズルガ ジカンナイニ モクヒョウオンドニ タッシマセンデシタ。ノズルガ ヘッド"
+"ニ タダシク オサマッテイルコトヲ カクニンシ、リトライシテクダサイ。\n"
+"\n"
+"トウタツ オンド: %u°C"
 
 #: src/common/gcode/gcode_compatibility.cpp:164
 msgid "Nozzle high-flow mismatch"
@@ -5535,7 +5607,7 @@ msgstr "オフセット"
 msgid "Offset %c"
 msgstr "オフセット %c"
 
-#: src/gui/MItem_tools.cpp:871
+#: src/gui/MItem_tools.cpp:878
 msgid "Ok"
 msgstr "OK"
 
@@ -5543,11 +5615,11 @@ msgstr "OK"
 msgid "On Filament Load"
 msgstr "フィラメント ロード ジ"
 
-#: src/gui/MItem_tools.cpp:947
+#: src/gui/MItem_tools.cpp:954
 msgid "On Idle"
 msgstr "アイドル ジ"
 
-#: src/gui/MItem_tools.cpp:407
+#: src/gui/MItem_tools.cpp:414
 msgid "Once"
 msgstr "イチド"
 
@@ -5708,7 +5780,7 @@ msgstr "スベテ プリロード"
 msgid "PRINT"
 msgstr "プリント"
 
-#: src/gui/screen_printer_setup.cpp:40
+#: src/gui/screen_printer_setup.cpp:45
 msgid "PRINTER SETUP"
 msgstr "プリンタ セットアップ"
 
@@ -5762,7 +5834,7 @@ msgstr "パラメーター スイープ ノ ウゴキ ガ シッパイ シマシ
 msgid "Park Current Tool"
 msgstr "ゲンザイノ ツールヲ パーク"
 
-#: src/gui/MItem_tools.cpp:766
+#: src/gui/MItem_tools.cpp:773
 msgid "Park Fails"
 msgstr "パーキング シッパイ カイスウ"
 
@@ -5883,17 +5955,18 @@ msgstr "ツール ピックアップ"
 msgid "Pick Tool %i"
 msgstr "ツール %i ピックアップ"
 
-#: src/gui/MItem_tools.hpp:623
+#: src/gui/MItem_tools.hpp:634
 msgid "Pick/Park Tool"
 msgstr "ツールノ ピック/パーク"
 
 #: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:24
 #: src/gui/wizard/selftest_frame_temp.cpp:71
+#: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
 msgstr "ツール ピックアップ チュウ"
 
-#: src/gui/MItem_tools.cpp:762
+#: src/gui/MItem_tools.cpp:769
 msgid "Pickup Fails"
 msgstr "ピックアップ シッパイ カイスウ"
 
@@ -5908,7 +5981,7 @@ msgstr ""
 "フィラメント ノ ロード/アンロード ノ マエ ニ ノズル クリーナー ヲ キャリブ"
 "レーション シテ クダサイ。"
 
-#: src/gui/MItem_tools.cpp:1003
+#: src/gui/MItem_tools.cpp:1005
 msgid "Please calibrate the docks first."
 msgstr "サキ ニ ドック ヲ キャリブレーション シテ クダサイ。"
 
@@ -6080,6 +6153,7 @@ msgid "Preload to MMU"
 msgstr "MMU プリロード"
 
 #: src/gui/wizard/selftest_frame_temp.cpp:63
+#: src/gui/wizard/screen_heaters_selftest.cpp:67
 msgid "Preparing"
 msgstr "ジュンビチュウ"
 
@@ -6106,7 +6180,7 @@ msgstr "プリセット"
 msgid "Press CONTINUE and push filament into MMU."
 msgstr "ツヅケルヲ オシ、フィラメントヲ MMUニ オシコミマス。"
 
-#: src/gui/screen_menu_selftest_snake.cpp:338
+#: src/gui/screen_menu_selftest_snake.cpp:344
 msgid "Previous Calibrations & Tests are not all done. Continue anyway?"
 msgstr ""
 "ゼンカイノ キャリブレーショント テストガ スベテオワッテイマセン。ツヅケマス"
@@ -6142,7 +6216,7 @@ msgstr "プリント ファン ノ シュルイ"
 msgid "Print Filtration"
 msgstr "プリントフィルトレーション"
 
-#: src/gui/MItem_tools.hpp:362
+#: src/gui/MItem_tools.hpp:373
 msgid "Print Progress Screen"
 msgstr "プリントシンチョクガメン"
 
@@ -6485,19 +6559,19 @@ msgstr "レジューム"
 msgid "RETRY"
 msgstr "リトライ"
 
-#: src/gui/MItem_tools.hpp:562
+#: src/gui/MItem_tools.hpp:573
 msgid "RGB Side Strip"
 msgstr "RGBサイドストリップ"
 
-#: src/gui/MItem_tools.hpp:576
+#: src/gui/MItem_tools.hpp:587
 msgid "RGB Side Strip Dimmed"
 msgstr "RGB サイド ストリップ チョウコウ"
 
-#: src/gui/MItem_tools.hpp:590
+#: src/gui/MItem_tools.hpp:601
 msgid "RGB Side Strip Dimming"
 msgstr "RGBサイドストリップ ディミング"
 
-#: src/gui/MItem_tools.hpp:547
+#: src/gui/MItem_tools.hpp:558
 msgid "RGB Status Bar"
 msgstr "RGBステータスバー"
 
@@ -6573,7 +6647,7 @@ msgstr ""
 msgid "Registration to Prusa Connect failed due to:"
 msgstr "プルサコネクト ノ トウロクニ シッパイ シマシタ:"
 
-#: src/gui/MItem_tools.hpp:638
+#: src/gui/MItem_tools.hpp:649
 msgid "Release Stuck Nozzle"
 msgstr "ツマッタ ノズル ヲ カイホウ"
 
@@ -6662,7 +6736,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "フィルター ヒツヨウ"
 
-#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:469
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:480
 #: src/gui/screen/screen_factory_reset.cpp:61
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6758,6 +6832,10 @@ msgstr "ミギガワ"
 msgid "Right Side [um]"
 msgstr "ミギガワ [um]"
 
+#: src/gui/screen_menu_sensor_info.cpp:51
+msgid "Ringdown Decay"
+msgstr "Ringdown Decay"
+
 #: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:49
 msgid ""
 "Rotate each screw counter-clockwise by 1.5 turns. The screw heads should be "
@@ -6767,7 +6845,7 @@ msgstr ""
 "バート オナジタカサニナルヨウニ シマス。ロックヲ カイジョシ、アイドラーヲ ヒ"
 "ラキマス。"
 
-#: src/gui/screen_menu_selftest_snake.cpp:460
+#: src/gui/screen_menu_selftest_snake.cpp:466
 msgid "Run selftests and calibrations now?"
 msgstr "スグニ セルフテスト ト キャリブレーション ヲ ジッコウ シマスカ?"
 
@@ -6806,7 +6884,7 @@ msgstr "セルフテスト"
 msgid "SELFTEST NOT PASSED"
 msgstr "セルフ テスト フゴウカク"
 
-#: src/gui/screen_menu_sensor_info.cpp:52
+#: src/gui/screen_menu_sensor_info.cpp:59
 msgid "SENSOR INFO"
 msgstr "センサージョウホウ"
 
@@ -6889,7 +6967,7 @@ msgstr "リセット"
 msgid "SYSTEM"
 msgstr "システム"
 
-#: src/gui/MItem_tools.cpp:716
+#: src/gui/MItem_tools.cpp:723
 msgid "Sandwich 5V Current"
 msgstr "サンドイッチ5Vゲンザイ"
 
@@ -6898,11 +6976,11 @@ msgstr "サンドイッチ5Vゲンザイ"
 msgid "Sat"
 msgstr "ドヨウ"
 
-#: src/gui/MItem_tools.hpp:177
+#: src/gui/MItem_tools.hpp:188
 msgid "Save Crash Dump"
 msgstr "クラッシュダンプノ ホゾン"
 
-#: src/gui/MItem_tools.cpp:1035
+#: src/gui/MItem_tools.cpp:1037
 msgid "Save Logs To File"
 msgstr "ログ ヲ ファイル ニ ホゾン"
 
@@ -7010,7 +7088,7 @@ msgstr "シリアル インサツ ガメン"
 msgid "Set All To"
 msgstr "スベテ ニ セット"
 
-#: src/gui/MItem_tools.hpp:488 src/gui/ScreenPrintingModel.cpp:58
+#: src/gui/MItem_tools.hpp:499 src/gui/ScreenPrintingModel.cpp:58
 msgid "Set Ready"
 msgstr "ジュンビ カンリョウ"
 
@@ -7088,11 +7166,11 @@ msgid "Side Filament Sensor"
 msgstr "サイドフィラメントセンサー"
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:52
-#: src/gui/screen_menu_sensor_info.hpp:134
+#: src/gui/screen_menu_sensor_info.hpp:140
 msgid "Side Filament Sensors"
 msgstr "サイド フィラメント センサー"
 
-#: src/gui/MItem_tools.cpp:669
+#: src/gui/MItem_tools.cpp:676
 msgid "Side Filament sensor"
 msgstr "サイド フィラメント センサー"
 
@@ -7107,7 +7185,7 @@ msgstr ""
 msgid "Signal"
 msgstr "シンゴウ"
 
-#: src/gui/MItem_tools.cpp:409
+#: src/gui/MItem_tools.cpp:416
 msgid "Silent"
 msgstr "サイレント"
 
@@ -7148,15 +7226,15 @@ msgstr ""
 "OpenPrintTag ノ パラメーター ノ イチブ ガ ケッソン マタハ ムコウ デス。キョウ"
 "チョウ サレタ フィールド ヲ カクニン シテ クダサイ。"
 
-#: src/gui/MItem_tools.cpp:448
+#: src/gui/MItem_tools.cpp:455
 msgid "Sort Files"
 msgstr "ファイルソート"
 
-#: src/gui/MItem_tools.hpp:220 src/gui/MItem_tools.cpp:418
+#: src/gui/MItem_tools.hpp:231 src/gui/MItem_tools.cpp:425
 msgid "Sound Mode"
 msgstr "サウンドモード"
 
-#: src/gui/MItem_tools.hpp:236
+#: src/gui/MItem_tools.hpp:247
 msgid "Sound Volume"
 msgstr "サウンドボリューム"
 
@@ -7494,7 +7572,7 @@ msgstr "ツール ヘッド"
 msgid "TOOLS SETTINGS"
 msgstr "ツール セッテイ"
 
-#: src/gui/screen_menu_tune.hpp:143
+#: src/gui/screen_menu_tune.hpp:144
 msgid "TUNE"
 msgstr "チューニング"
 
@@ -7817,6 +7895,7 @@ msgstr ""
 
 #. dialog is for non-toolchanger printers
 #: src/gui/wizard/selftest_frame_temp.cpp:67
+#: src/gui/wizard/screen_heaters_selftest.cpp:75
 msgid ""
 "The heater test will be skipped due to the failed hotend fan check. You may "
 "continue, but we strongly recommend resolving this issue before you start "
@@ -7894,7 +7973,7 @@ msgstr ""
 "ヘッド ヲ シュドウ デ イチ サセ、タカサ ノ ネジ ヲ チョウセイ スル ヒツヨウ "
 "ガ アリマス。"
 
-#: src/gui/MItem_tools.cpp:1062
+#: src/gui/MItem_tools.cpp:1064
 #, c-format
 msgid ""
 "The printer will now save all logs to file until restart.\n"
@@ -8150,23 +8229,23 @@ msgstr ""
 "\n"
 "ツギノ ステップデ、プリンタガ ウゴクノデ チュウイシテクダサイ。"
 
-#: src/gui/MItem_tools.cpp:443 src/gui/MItem_tools.cpp:520
+#: src/gui/MItem_tools.cpp:450 src/gui/MItem_tools.cpp:527
 msgid "Time"
 msgstr "ジカン"
 
-#: src/gui/MItem_tools.cpp:508
+#: src/gui/MItem_tools.cpp:515
 msgid "Time Format"
 msgstr "ジカンノ ケイシキ"
 
-#: src/gui/MItem_tools.hpp:245
+#: src/gui/MItem_tools.hpp:256
 msgid "Time Zone Hour Offset"
 msgstr "タイムゾーン ジカン オフセット"
 
-#: src/gui/MItem_tools.cpp:482
+#: src/gui/MItem_tools.cpp:489
 msgid "Time Zone Minute Offset"
 msgstr "タイムゾーン フン オフセット"
 
-#: src/gui/MItem_tools.hpp:259
+#: src/gui/MItem_tools.hpp:270
 msgid "Time Zone Summertime"
 msgstr "サマータイムセッテイ"
 
@@ -8250,11 +8329,11 @@ msgstr "ツール %i"
 msgid "Tool %u of %u"
 msgstr "ツール %u / %u"
 
-#: src/gui/MItem_tools.cpp:643
+#: src/gui/MItem_tools.cpp:650
 msgid "Tool Filament sensor"
 msgstr "ツールフィラメントセンサー"
 
-#: src/gui/MItem_tools.hpp:601
+#: src/gui/MItem_tools.hpp:612
 msgid "Tool Light"
 msgstr "ツールライト"
 
@@ -8358,7 +8437,7 @@ msgid "Touch driver failed to initialize, touch functionality disabled"
 msgstr ""
 "タッチドライバノ ショキカニ シッパイシ、タッチキノウガ ムコウニナリマシタ。"
 
-#: src/gui/MItem_tools.hpp:611
+#: src/gui/MItem_tools.hpp:622
 msgid "Trigger Power Panic"
 msgstr "パワーパニック ジッコウ"
 
@@ -8429,7 +8508,7 @@ msgstr "ノブヲマワシテ ヒートベッドヲ ウゴカシマス"
 msgid "Turn the knob to move Z-axis"
 msgstr "ノブヲマワシテ Zジクヲ ウゴカシマス"
 
-#: src/gui/MItem_tools.cpp:1063
+#: src/gui/MItem_tools.cpp:1065
 msgid ""
 "Turn the logging off before disconnecting the USB drive, or you risk "
 "damaging the filesystem!"
@@ -8712,7 +8791,7 @@ msgstr "ユウコウセイカクニン"
 msgid "Vent Area Obstruction"
 msgstr "ベント エリア ノ ショウガイブツ"
 
-#: src/gui/MItem_tools.hpp:513
+#: src/gui/MItem_tools.hpp:524
 msgid "Verify GCode"
 msgstr "Gコード ノ ケンショウンショウ"
 
@@ -9017,11 +9096,11 @@ msgstr "X ジク ホウコウ"
 msgid "X-axis steps per unit"
 msgstr "X ジク ステップ/ユニット"
 
-#: src/gui/MItem_tools.cpp:778
+#: src/gui/MItem_tools.cpp:785
 msgid "XBE Refresh Err"
 msgstr "XBE コウシン エラー"
 
-#: src/gui/MItem_tools.cpp:721
+#: src/gui/MItem_tools.cpp:728
 msgid "XL Buddy 5V Current"
 msgstr "XL Buddy 5V デンリュウ"
 
@@ -9197,11 +9276,11 @@ msgstr ""
 "ジクノ シュウハスウガ ヒクスギマス。\n"
 "ベルトヲ シメテクダサイ。"
 
-#: src/gui/MItem_tools.cpp:745
+#: src/gui/MItem_tools.cpp:752
 msgid "closed"
 msgstr "トジル"
 
-#: src/gui/MItem_tools.cpp:743
+#: src/gui/MItem_tools.cpp:750
 msgid "detached"
 msgstr "キリハナサレタ"
 
@@ -9209,7 +9288,7 @@ msgstr "キリハナサレタ"
 msgid "loosen"
 msgstr "ユルメル"
 
-#: src/gui/MItem_tools.cpp:744
+#: src/gui/MItem_tools.cpp:751
 msgid "open"
 msgstr "アケル"
 

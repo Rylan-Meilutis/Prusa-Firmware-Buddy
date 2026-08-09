@@ -17,6 +17,7 @@
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_loadcell.h>
 #include <option/has_indx.h>
+#include <option/has_heaters_selftest_gcode.h>
 #include <gui/screen/screen_preheat.hpp>
 #include <gui/screen/dialog_safety_timer.hpp>
 
@@ -42,6 +43,9 @@
 
 #if HAS_SELFTEST()
     #include <screen_fan_selftest.hpp>
+    #if HAS_HEATERS_SELFTEST_GCODE()
+        #include <screen_heaters_selftest.hpp>
+    #endif
     #include "ScreenSelftest.hpp"
     #include <gui/screen/selftest/screen_selftest_fsensors.hpp>
 #endif
@@ -276,6 +280,9 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
     FSMScreenDef<ClientFSM::Selftest, ScreenSelftest>,
     FSMScreenDef<ClientFSM::FansSelftest, ScreenFanSelftest>,
     FSMScreenDef<ClientFSM::SelftestFSensors, ScreenSelftestFSensors>,
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+    FSMScreenDef<ClientFSM::HeatersSelftest, ScreenHeatersSelftest>,
 #endif
 #if HAS_ESP()
     FSMScreenDef<ClientFSM::NetworkSetup, ScreenNetworkSetup>,

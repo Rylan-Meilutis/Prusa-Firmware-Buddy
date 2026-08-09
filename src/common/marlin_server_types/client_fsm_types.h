@@ -17,6 +17,7 @@
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_serial_print.h>
 #include <option/has_indx.h>
+#include <option/has_heaters_selftest_gcode.h>
 
 #include <inc/MarlinConfigPre.h>
 
@@ -38,6 +39,9 @@ enum class ClientFSM : uint8_t {
     Selftest,
     FansSelftest,
     SelftestFSensors,
+    #endif
+    #if HAS_HEATERS_SELFTEST_GCODE()
+    HeatersSelftest,
     #endif
     #if HAS_ESP()
     NetworkSetup,

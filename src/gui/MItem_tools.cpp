@@ -315,7 +315,7 @@ MI_NOZZLE_CLEANER_FILL::MI_NOZZLE_CLEANER_FILL()
 
 #if HAS_INDX()
 // Range matches the calibration tolerance (offset_tolerance_mm)
-static constexpr NumericInputConfig nozzle_cleaner_x_offset_spin_config = {
+static constexpr NumericInputConfig nozzle_cleaner_offset_spin_config = {
     .min_value = -3,
     .max_value = 3,
     .step = 0.05f,
@@ -324,10 +324,17 @@ static constexpr NumericInputConfig nozzle_cleaner_x_offset_spin_config = {
 };
 
 MI_NOZZLE_CLEANER_X_OFFSET::MI_NOZZLE_CLEANER_X_OFFSET()
-    : WiSpin(config_store().nozzle_cleaner_x_origin_offset.get(), nozzle_cleaner_x_offset_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+    : WiSpin(config_store().nozzle_cleaner_x_origin_offset.get(), nozzle_cleaner_offset_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 
 void MI_NOZZLE_CLEANER_X_OFFSET::OnClick() {
     config_store().nozzle_cleaner_x_origin_offset.set(value());
+}
+
+MI_NOZZLE_CLEANER_Y_OFFSET::MI_NOZZLE_CLEANER_Y_OFFSET()
+    : WiSpin(config_store().nozzle_cleaner_y_origin_offset.get(), nozzle_cleaner_offset_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+void MI_NOZZLE_CLEANER_Y_OFFSET::OnClick() {
+    config_store().nozzle_cleaner_y_origin_offset.set(value());
 }
 #endif
 
@@ -1509,13 +1516,8 @@ void MI_TOOL_LEDS_ENABLE::OnChange(size_t old_index) {
     for (auto tool : PhysicalToolIndex::all()) {
         prusa_toolchanger.getTool(tool).set_cheese_led(!old_index ? 0xff : 0x00, 0x00);
     }
-    #elif HAS_INDX()
-    if (!old_index) {
-        buddy::puppies::indx.set_leds_color(COLOR_ORANGE, indx_head::leds::Mode::solid);
-    } else {
-        buddy::puppies::indx.set_leds_color(COLOR_BLACK, indx_head::leds::Mode::off);
-    }
     #endif
+    // On INDX the head LEDs follow this via indx_head_leds::update() on its next tick.
     config_store().tool_leds_enabled.set(!old_index);
 }
 #endif

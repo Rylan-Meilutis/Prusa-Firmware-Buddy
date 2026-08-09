@@ -12,6 +12,9 @@
 #include "marlin_server_extended_fsm_types.hpp"
 #include <utility_extensions.hpp>
 
+#include <expected>
+#include <variant>
+
 struct __attribute__((packed)) SelftestHeater_t {
     uint8_t progress;
     bool heatbreak_error;
@@ -66,3 +69,43 @@ public:
 constexpr std::underlying_type_t<SelftestHeaters_t::TestedParts> to_one_hot(SelftestHeaters_t::TestedParts p) {
     return 1 << std::to_underlying(p);
 }
+
+namespace heaters_selftest {
+
+// Failure payloads of the INDX nozzle heater test (protection-verdict mode); the measured
+// value behind the verdict is carried along so support can diagnose from a screenshot.
+
+/// Thermal model / thermal runaway / heater watch trip
+struct ThermalProtectionTripped {
+    uint16_t error_code; ///< ErrCode of the intercepted trip
+};
+struct CoilOvercurrent {
+    uint16_t current_ma; ///< peak coil current
+};
+struct CoilUndercurrent {
+    uint16_t current_ma; ///< peak coil current
+};
+/// Target temperature not reached within the deadline
+struct HeatTimeout {
+    uint16_t temperature_c; ///< nozzle temperature when the deadline hit
+};
+
+/// Sent via PhaseData for the nozzle_failed_dialog phase (must fit in 4 bytes).
+/// monostate = failed without a recorded reason; the dialog shows a generic text.
+using NozzleError = std::variant<std::monostate, ThermalProtectionTripped, CoilOvercurrent, CoilUndercurrent, HeatTimeout>;
+static_assert(sizeof(NozzleError) <= 4);
+
+/// Nozzle test verdict: ok, or why it failed
+using NozzleResult = std::expected<void, NozzleError>;
+
+} // namespace heaters_selftest
+
+// Live data for the gcode-based heater selftest (M1987). There is a single physical hotend,
+// so unlike the multi-tool SelftestHeaters_t it carries just one nozzle + one bed sub-result.
+struct HeatersSelftestData : public FSMExtendedData {
+    SelftestHeater_t noz;
+    SelftestHeater_t bed;
+
+    constexpr HeatersSelftestData() = default;
+    bool operator==(const HeatersSelftestData &) const = default;
+};

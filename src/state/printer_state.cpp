@@ -25,6 +25,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_indx.h>
+#include <option/has_heaters_selftest_gcode.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_side_fsensor.h>
@@ -270,6 +271,9 @@ DeviceState get_state(bool ready) {
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
     case ClientFSM::SelftestFSensors:
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+    case ClientFSM::HeatersSelftest:
 #endif
 #if HAS_ESP()
     case ClientFSM::NetworkSetup:
@@ -523,6 +527,9 @@ StateWithDialog get_state_with_dialog(bool ready) {
     case ClientFSM::Selftest:
     case ClientFSM::FansSelftest:
     case ClientFSM::SelftestFSensors:
+#endif
+#if HAS_HEATERS_SELFTEST_GCODE()
+    case ClientFSM::HeatersSelftest:
 #endif
 #if HAS_ESP()
     case ClientFSM::NetworkSetup:

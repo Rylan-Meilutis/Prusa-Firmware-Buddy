@@ -415,6 +415,24 @@ set_feature_for_printers(
   "COREONEL"
   "COREONEL_INDX"
   )
+# Heater selftest done as a gcode-based FSM wizard (M1987) instead of the legacy mask-based
+# CSelftest state machine. All selftest printers except XL (which keeps the legacy path).
+set_feature_for_printers(
+  HAS_HEATERS_SELFTEST_GCODE
+  "MK4"
+  "MK3.5"
+  "iX"
+  "MINI"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
+  )
+# Bed heater fail -> "refit the steel sheet and retry" prompt (legacy: MK4 / MK3.5 / MINI).
+set_feature_for_printers(HAS_HEATERS_SELFTEST_BED_SHEET_RETRY "MK4" "MK3.5" "MINI")
+# Nozzle heater fail -> "revise printer setup" (ScreenPrinterSetup) prompt. Legacy had this only on
+# MK4 / MK3.5; MINI offered just the bed-sheet retry above.
+set_feature_for_printers(HAS_HEATERS_SELFTEST_REVISE "MK4" "MK3.5")
 set_feature_for_printers(
   HAS_HUMAN_INTERACTIONS
   "MINI"

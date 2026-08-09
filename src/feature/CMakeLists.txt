@@ -26,6 +26,7 @@ if(HAS_INDX)
   add_subdirectory(indx_tool_offsets_calibration)
   add_subdirectory(indx_hotend_temp_model)
   add_subdirectory(indx_tool_lock_hack)
+  add_subdirectory(indx_head_leds)
 endif()
 
 if(HAS_CANCEL_OBJECT)

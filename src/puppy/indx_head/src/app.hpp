@@ -38,6 +38,13 @@ void set_nozzle_present(indx_head::NozzlePresence state);
 indx_head::NozzlePresence get_nozzle_present();
 void invalidate_nozzle_presence(uint16_t ack_value); ///< Reset debouncer and set nozzle state to unknown, store ack for buddy to read
 uint16_t get_nozzle_invalidation_ack();
+
+/// Last ringdown analysis decay × 1000 (unitless). 0 when latest analysis failed.
+void set_ringdown_decay(int16_t value);
+int16_t get_ringdown_decay();
+
+/// Last-sampled induction heater coil current [mA]. Reads ~0 when the heater is not driving.
+uint16_t get_heater_current_mA();
 void set_nozzle_target_temp(uint16_t temp);
 void set_led_config(const indx_head::leds::LedConfig cfg);
 
