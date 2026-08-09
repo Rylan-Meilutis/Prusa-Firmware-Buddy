@@ -4,7 +4,8 @@
 
   * New features and improvements
     * Serial printing screen for OctoPrint and other serial hosts
-    * Negotiated `@RME SESSION` event subscriptions with sequenced structured MMU, tool-change, filament-runout, stuck-filament, calibration, probing, heating, firmware-update, and waste-bin workflows; standard Marlin temperature, flow-control, safety, and print-state traffic remains unchanged
+    * Negotiated `@RME SESSION` event subscriptions with sequenced structured MMU, native filament load/unload, chamber-vent, filtration, tool-change, filament-runout, stuck-filament, calibration, probing, heating, firmware-update, and waste-bin workflows; every MMU phase has a stable state and repeated progress is rate-limited
+    * Read-only out-of-band `@RME STATS QUERY` records for lifetime XYZ travel, extrusion and print time, current-job time, jobs started, MMU changes, tool picks, filtration use, supported waste-bin counts, crashes, power panics, and separate MMU failure counters
     * 30-second RME host-session leases renewed by 10-second keepalives, automatically restoring legacy notifications and disabling remote UI input after a host disconnect
     * Persistent print-finished summaries with duration, completion time, and remaining filtration time
     * OctoPrint-compatible printer SD/USB storage commands for host-side file upload, listing, selection, print-from-SD, status, and delete
@@ -26,6 +27,7 @@
     * Configurable hotend and bed-heater safety timeouts capped at 60 minutes
     * PID settings screen for viewing, editing, autotuning, and resetting hotend/heatbed PID values
     * Optional BBF firmware signing for release builds with a local default signing key
+    * Failed release presets now retain their complete compiler output under `.rme-build-errors/<version>/<preset>.log`, including multi-version builds
     * Clarified stock Prusa bootloader limitations for custom firmware signing and release builds
     * Size-optimized release LTO linking to reduce flash usage, especially on XL
     * Backported the newer authenticated resource-tarball installer, replacing the fixed-size legacy BBF LittleFS image; MINI and every xBuddy machine use independently compressed, random-access external font glyph records with one shared glyph cache, preserving full UI/language coverage while reducing MK4 application-flash use from the partition limit to 93.54%

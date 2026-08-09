@@ -43,6 +43,12 @@ Feature availability depends on printer hardware. The branch targets Original Pr
 
 Use the top-level `./build.py` wrapper to build release firmware for installation. It builds up to four intended physical-printer presets at a time by default, including the Core One INDX image on 6.6.2 and later, packages the firmware, normalizes the output names, and stages the resulting `.bbf` files in `./bbf`. A shared non-blocking lock prevents a second wrapper or version-worktree build from concurrently mutating build and BBF directories; a competing invocation exits with the lock path instead of corrupting either build. Ctrl-C, process exit, a crash, or a reboot releases the kernel-held lock automatically; the harmless lock file may remain.
 
+If a preset fails, the wrapper writes its complete captured output to
+`.rme-build-errors/<preset>.log`. Multi-version builds use
+`.rme-build-errors/<version>/<preset>.log`, so the decisive compiler error is
+preserved even when the terminal summary is shortened. Successful reruns clear
+stale logs unless `--no-clean-output` is used.
+
 After the build finishes, the wrapper prints each machine's result, build time, flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and the absolute path of every staged `.bbf` artifact.
 
 Build all RME release images:
