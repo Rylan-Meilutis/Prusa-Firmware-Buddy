@@ -167,7 +167,8 @@ void Fsm::Loop() {
             }
 
             log_debug(MMU2, "Report error =%u", static_cast<unsigned>(r.errorCode));
-            SerialPrinting::notify_status(ConvertMMUErrorCode(r.errorCode).err_title, -1, true);
+            SerialPrinting::notify_error("mmu", "mmu_error", ConvertMMUErrorCode(r.errorCode).err_title);
+            SerialPrinting::notify_workflow("mmu", "waiting", "MMU action required");
             marlin_server::fsm_change(
                 PhasesLoadUnload::MMU_ERRWaitingForUser,
                 fsm::serialize_data(&ConvertMMUErrorCode(r.errorCode)));

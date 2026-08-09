@@ -731,10 +731,10 @@ PrusaToolChanger::ToolchangeFailureAction PrusaToolChanger::handle_toolchange_fa
         return ToolchangeFailureAction::abort;
     }
 
-    SerialPrinting::notify_status(main_phase == PhaseNozzleMismatch::park_failed
-            ? "Tool parking failed"
-            : "Tool pickup failed",
-        -1, true);
+    SerialPrinting::notify_error("tool_change",
+        main_phase == PhaseNozzleMismatch::park_failed ? "tool_park_failed" : "tool_pickup_failed",
+        main_phase == PhaseNozzleMismatch::park_failed ? "Tool parking failed" : "Tool pickup failed");
+    SerialPrinting::notify_workflow("tool_change", "waiting", "Toolchanger action required");
     marlin_server::FSM_Holder fsm(main_phase);
 
     for (;;) {

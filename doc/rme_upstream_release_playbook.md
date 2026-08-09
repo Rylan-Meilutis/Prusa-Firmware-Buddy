@@ -915,6 +915,15 @@ The resulting MK4 flash usage was 93.45% on 6.5.7 and 59.54% on 6.6.3.
 Keep these as regression baselines; a later port that returns either MK4 to the
 partition boundary has probably relinked the font arrays into application flash.
 
+For the out-of-band protocol, preserve the separation between structured RME
+events and Marlin transport/state traffic. `legacy=0` may suppress only
+`//action:notification`; never suppress temperatures, `ok`, `busy`, resend,
+emergency, or pause/resume/cancel actions. Validate session open/query/
+keepalive/close, event masks, sequence reset on open, reconnect negotiation,
+generic dialog action discovery, MMU recovery, filament runout, stuck-filament
+choices, and tool-change recovery. Keep workflow actions sourced from the live
+FSM so a plugin cannot apply stale recovery policy.
+
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
 FLASH: 1291244 B / 1919 KB, 65.71%

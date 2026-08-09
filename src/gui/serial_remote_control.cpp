@@ -32,6 +32,10 @@ std::atomic<uint8_t> read_index { 0 };
 std::atomic<uint8_t> write_index { 0 };
 std::atomic<bool> control_enabled { false };
 std::atomic<bool> refresh_requested { false };
+std::atomic<bool> protocol_session_active { false };
+std::atomic<uint8_t> protocol_subscriptions { 0 };
+std::atomic<bool> protocol_legacy_notifications { true };
+std::atomic<uint32_t> protocol_event_sequence { 0 };
 
 uint8_t advance(uint8_t index) {
     return static_cast<uint8_t>((index + 1) % queue_size);
@@ -130,6 +134,36 @@ void set_persistent_lights(const uint32_t screen, const uint32_t chamber, const 
 #endif
     }
     config_store().screen_brightness_by_state.set(screen);
+}
+
+void open_session(const uint8_t subscriptions, const bool legacy_notifications) {
+    protocol_subscriptions.store(subscriptions, std::memory_order_release);
+    protocol_legacy_notifications.store(legacy_notifications, std::memory_order_release);
+    protocol_event_sequence.store(0, std::memory_order_release);
+    protocol_session_active.store(true, std::memory_order_release);
+}
+
+void close_session() {
+    protocol_session_active.store(false, std::memory_order_release);
+    protocol_subscriptions.store(0, std::memory_order_release);
+    protocol_legacy_notifications.store(true, std::memory_order_release);
+    set_enabled(false);
+}
+
+bool session_active() {
+    return protocol_session_active.load(std::memory_order_acquire);
+}
+
+bool subscribed(const EventSubscription subscription) {
+    return session_active() && (protocol_subscriptions.load(std::memory_order_acquire) & static_cast<uint8_t>(subscription));
+}
+
+bool legacy_notifications_enabled() {
+    return !session_active() || protocol_legacy_notifications.load(std::memory_order_acquire);
+}
+
+uint32_t next_event_sequence() {
+    return protocol_event_sequence.fetch_add(1, std::memory_order_acq_rel) + 1;
 }
 
 void process_gui() {

@@ -32,6 +32,11 @@ USB/serial firmware update, INDX, and release-build features documented for
   signed managed resource image, using compressed random-access glyph records
   and one shared cache. This retains full UI/language coverage while reducing
   MK4 internal flash from the partition limit to about 60%.
+- Added negotiated `@RME SESSION` event subscriptions and sequenced structured
+  workflow records. RME-aware hosts can replace legacy action notifications
+  for MMU, tool change, filament runout, stuck filament, calibration, probing,
+  heating, firmware update, and waste-bin handling without changing standard
+  Marlin temperature, flow-control, safety, or print-state messages.
 
 See [RME Out-of-Band Serial Control Protocol](doc/rme_serial_remote_protocol.md)
 for the complete command and integration reference.

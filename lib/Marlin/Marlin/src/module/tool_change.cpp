@@ -72,6 +72,7 @@ bool tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
     return true;
 
   #elif HAS_TOOLCHANGER()
+    SerialPrinting::notify_workflow("tool_change", "open", "Tool change in progress");
     SerialPrinting::notify_status("Tool change in progress", -1, true);
     using MaybePhysical = std::variant<PhysicalToolIndex, NoTool>;
     auto maybe_physical = match(new_tool,
@@ -80,7 +81,8 @@ bool tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
       [](NoTool) -> MaybePhysical { return NoTool{}; }
     );
     const bool success = prusa_toolchanger.tool_change(maybe_physical, return_type, current_position.xyz(), z_lift, z_return);
-    if (!success) SerialPrinting::notify_status("Tool change failed", -1, true);
+    if (!success) SerialPrinting::notify_error("tool_change", "tool_change_failed", "Tool change failed");
+    else SerialPrinting::notify_workflow("tool_change", "closed", "Tool change complete", 100);
     return success;
 
   #else
