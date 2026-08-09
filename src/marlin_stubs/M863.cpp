@@ -8,7 +8,7 @@
 #if HAS_TOOL_MAPPING()
 
 void rme_report_tool_mapping() {
-    SERIAL_ECHOPGM("RME_TOOLMAP E="); SERIAL_ECHO(tool_mapper.is_enabled() ? 1 : 0);
+    SERIAL_ECHOPGM("RME_TOOLMAP "); SERIAL_ECHO(tool_mapper.is_enabled() ? 1 : 0);
     for (uint8_t logical = 0; logical < EXTRUDERS; ++logical) {
         SERIAL_ECHOPGM(" L"); SERIAL_ECHO(logical); SERIAL_CHAR('=');
         const uint8_t physical = tool_mapper.to_virtual(logical, true);
