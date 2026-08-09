@@ -52,7 +52,6 @@ GCodeQueue queue;
 #include <algorithm>
 #include <cctype>
 #include <optional>
-#include <string>
 #include <string_view>
 
 extern "C" bool buddy_sdcard_upload_active();
@@ -531,12 +530,16 @@ static bool handle_remote_ui_service(const char *command) {
 }
 
 static std::optional<std::string_view> remote_value(const std::string_view command, const std::string_view key) {
-  const std::string needle = " " + std::string(key) + "=";
-  const auto pos = command.find(needle);
-  if (pos == std::string_view::npos) return std::nullopt;
-  const auto begin = pos + needle.size();
-  const auto end = command.find_first_of(" *", begin);
-  return command.substr(begin, end == std::string_view::npos ? command.size() - begin : end - begin);
+  size_t token = command.find(' ');
+  while (token != std::string_view::npos) {
+    ++token;
+    const size_t end = command.find_first_of(" *", token);
+    const size_t token_size = (end == std::string_view::npos ? command.size() : end) - token;
+    if (token_size > key.size() && command[token + key.size()] == '=' && command.substr(token, key.size()) == key)
+      return command.substr(token + key.size() + 1, token_size - key.size() - 1);
+    token = end;
+  }
+  return std::nullopt;
 }
 
 static std::optional<long> remote_number(const std::string_view command, const std::string_view key, const int base = 10) {
@@ -682,15 +685,24 @@ static bool handle_remote_light_service(const std::string_view command) {
       SERIAL_ECHOLNPGM("echo:@RME LIGHT persistent update rejected while locked");
       return true;
     }
-    constexpr std::array<std::string_view, 4> names { "deep", "idle", "active", "printing" };
-    std::array<int16_t, 4> screen { -1, -1, -1, -1 };
-    std::array<int16_t, 4> chamber { -1, -1, -1, -1 };
-    std::array<int16_t, 4> status { -1, -1, -1, -1 };
-    for (size_t i = 0; i < names.size(); ++i) {
-      screen[i] = remote_number(command, std::string("screen_") + std::string(names[i])).value_or(-1);
-      chamber[i] = remote_number(command, std::string("chamber_") + std::string(names[i])).value_or(-1);
-      status[i] = remote_number(command, std::string("status_") + std::string(names[i])).value_or(-1);
-    }
+    std::array<int16_t, 4> screen {
+      static_cast<int16_t>(remote_number(command, "screen_deep").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "screen_idle").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "screen_active").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "screen_printing").value_or(-1)),
+    };
+    std::array<int16_t, 4> chamber {
+      static_cast<int16_t>(remote_number(command, "chamber_deep").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "chamber_idle").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "chamber_active").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "chamber_printing").value_or(-1)),
+    };
+    std::array<int16_t, 4> status {
+      static_cast<int16_t>(remote_number(command, "status_deep").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "status_idle").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "status_active").value_or(-1)),
+      static_cast<int16_t>(remote_number(command, "status_printing").value_or(-1)),
+    };
     serial_remote_control::set_persistent_lights(screen, chamber, status);
   } else {
     SERIAL_ECHOLNPGM("echo:unknown @RME LIGHT action");
