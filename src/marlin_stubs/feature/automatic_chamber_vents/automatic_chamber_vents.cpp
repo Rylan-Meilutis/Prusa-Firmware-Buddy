@@ -7,6 +7,7 @@
 #include <Marlin/src/module/motion.h>
 #include <Marlin/src/module/planner.h>
 #include <printers.h>
+#include <serial_printing.hpp>
 
 #include <feature/chamber/chamber.hpp>
 
@@ -96,24 +97,29 @@ namespace {
 }; // namespace
 
 bool open() {
+    SerialPrinting::notify_workflow("chamber_vent", "opening", "Opening chamber vent", 0);
     PrintStatusMessageGuard psm_guard;
     psm_guard.update<PrintStatusMessage::Type::opening_chamber_vents>({});
 
     if (!before()) {
+        SerialPrinting::notify_error("chamber_vent", "vent_control_failed", "Failed to open chamber vent");
         return false;
     }
     switch_lever(VentState::open);
     buddy::chamber().set_vent_state(buddy::Chamber::VentState::open);
     after();
     planner.synchronize(); // Wait for all planned moves to complete
+    SerialPrinting::notify_workflow("chamber_vent", "open", "Chamber vent open", 100);
     return true;
 }
 
 bool close() {
+    SerialPrinting::notify_workflow("chamber_vent", "closing", "Closing chamber vent", 0);
     PrintStatusMessageGuard psm_guard;
     psm_guard.update<PrintStatusMessage::Type::closing_chamber_vents>({});
 
     if (!before()) {
+        SerialPrinting::notify_error("chamber_vent", "vent_control_failed", "Failed to close chamber vent");
         return false;
     }
 
@@ -121,6 +127,7 @@ bool close() {
     buddy::chamber().set_vent_state(buddy::Chamber::VentState::closed);
     after();
     planner.synchronize(); // Wait for all planned moves to complete
+    SerialPrinting::notify_workflow("chamber_vent", "closed", "Chamber vent closed", 100);
     return true;
 }
 } // namespace automatic_chamber_vents

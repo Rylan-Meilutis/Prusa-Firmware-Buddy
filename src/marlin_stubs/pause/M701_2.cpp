@@ -29,6 +29,7 @@
 #include <Marlin/src/gcode/gcode.h>
 #include <mapi/parking.hpp>
 #include <raii/auto_restore.hpp>
+#include <serial_printing.hpp>
 
 #include <option/has_bowden.h>
 #include <option/has_human_interactions.h>
@@ -96,6 +97,7 @@ static bool load_unload(Pause::LoadType load_type, pause::Settings &rSettings) {
 
 void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::optional<float> &fast_load_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, int8_t mmu_slot, std::optional<Color> color_to_be_loaded, ResumePrint_t resume_print_request) {
     InProgress progress;
+    SerialPrinting::notify_workflow("filament_load", "open", "Filament load started", 0);
 
     const bool do_purge_only = fast_load_length.has_value() && fast_load_length <= 0.0f;
 
@@ -109,6 +111,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
             if (preheat_ret.first) {
                 // canceled
                 M70X_process_user_response(*preheat_ret.first, target_extruder);
+                SerialPrinting::notify_workflow("filament_load", "canceled", "Filament load canceled");
                 return;
             }
 
@@ -135,6 +138,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 
     // Pick the right tool
     if (!Pause::Instance().tool_change(target_extruder, Pause::LoadType::load, settings)) {
+        SerialPrinting::notify_error("filament_load", "tool_change_failed", "Filament load tool change failed");
         return;
     }
 
@@ -145,7 +149,8 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
 
     const bool do_resume_print = static_cast<bool>(resume_print_request) && marlin_server::printer_paused();
     // Load
-    if (load_unload(do_purge_only ? Pause::LoadType::load_purge : Pause::LoadType::load, settings)) {
+    const bool load_succeeded = load_unload(do_purge_only ? Pause::LoadType::load_purge : Pause::LoadType::load, settings);
+    if (load_succeeded) {
         if (!do_resume_print) {
             M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, target_extruder);
         }
@@ -157,10 +162,16 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
     if (do_resume_print) {
         marlin_server::print_resume();
     }
+    if (load_succeeded) {
+        SerialPrinting::notify_workflow("filament_load", "closed", "Filament load complete", 100);
+    } else {
+        SerialPrinting::notify_error("filament_load", "load_failed", "Filament load failed");
+    }
 }
 
 void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_min_pos, std::optional<RetAndCool_t> op_preheat, uint8_t target_extruder, bool ask_unloaded) {
     InProgress progress;
+    SerialPrinting::notify_workflow("filament_unload", "open", "Filament unload started", 0);
 
     auto &filament_sensors = FSensors_instance();
     bool sensors_report_empty = false;
@@ -193,6 +204,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
         filament::set_color_to_load(std::nullopt);
         PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);
         SERIAL_ECHOLNPAIR("Filament unload skipped; sensors report empty T", unsigned(target_extruder));
+        SerialPrinting::notify_workflow("filament_unload", "skipped", "Filament path already empty", 100);
         return;
     }
 
@@ -213,6 +225,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
             auto preheat_ret = preheat(data, target_extruder, PreheatBehavior::force_preheat_only_extruder());
             if (preheat_ret.first) {
                 M70X_process_user_response(*preheat_ret.first, target_extruder);
+                SerialPrinting::notify_workflow("filament_unload", "canceled", "Filament unload canceled");
                 return;
             }
         }
@@ -232,6 +245,7 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
 
     // Pick the right tool
     if (!Pause::Instance().tool_change(target_extruder, Pause::LoadType::unload, settings)) {
+        SerialPrinting::notify_error("filament_unload", "tool_change_failed", "Filament unload tool change failed");
         return;
     }
 
@@ -241,9 +255,14 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
 #endif
 
     // Unload
-    load_unload(ask_unloaded ? Pause::LoadType::unload_confirm : Pause::LoadType::unload, settings);
+    const bool unload_succeeded = load_unload(ask_unloaded ? Pause::LoadType::unload_confirm : Pause::LoadType::unload, settings);
     M70X_process_user_response(PreheatStatus::Result::CooledDown, target_extruder);
     planner.set_e_position_mm((destination.e = current_position.e = current_position_tmp.e));
+    if (unload_succeeded) {
+        SerialPrinting::notify_workflow("filament_unload", "closed", "Filament unload complete", 100);
+    } else {
+        SerialPrinting::notify_error("filament_unload", "unload_failed", "Filament unload failed");
+    }
 }
 
 namespace PreheatStatus {

@@ -48,6 +48,7 @@ public:
     /// Progress is omitted when negative.
     static void notify_status(const char *message, int progress_percent = -1, bool force = false);
     static void notify_error(const char *workflow, const char *code, const char *message);
+    static void notify_progress(const char *workflow, const char *state, const char *code, const char *message, int progress_percent);
     static void notify_workflow(const char *workflow, const char *state, const char *message = nullptr, int progress_percent = -1);
     static void reset_status_notifications();
 
