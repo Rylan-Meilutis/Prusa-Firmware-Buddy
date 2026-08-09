@@ -7,6 +7,16 @@
 
 #if ENABLED(PRUSA_TOOL_MAPPING)
 
+void rme_report_tool_mapping() {
+    SERIAL_ECHOPGM("RME_TOOLMAP E="); SERIAL_ECHO(tool_mapper.is_enabled() ? 1 : 0);
+    for (uint8_t logical = 0; logical < EXTRUDERS; ++logical) {
+        SERIAL_ECHOPGM(" L"); SERIAL_ECHO(logical); SERIAL_CHAR('=');
+        const uint8_t physical = tool_mapper.to_physical(logical, true);
+        if (physical == ToolMapper::NO_TOOL_MAPPED) SERIAL_ECHO(-1); else SERIAL_ECHO(physical);
+    }
+    SERIAL_EOL();
+}
+
 /** \addtogroup G-Codes
  * @{
  */
@@ -45,10 +55,7 @@ void PrusaGcodeSuite::M863() {
         const uint8_t logical = parser.byteval('L');
         const uint8_t physical = parser.byteval('P');
 
-        bool res = tool_mapper.set_mapping(logical, physical);
-        if (!res) {
-            SERIAL_ERROR_MSG("Invalid mapping");
-        }
+        tool_mapper.set_mapping(logical, physical);
     } else if (parser.seen('E')) {
         // enable/disable tool mapping
         tool_mapper.set_enable(parser.boolval('E'));
@@ -56,21 +63,7 @@ void PrusaGcodeSuite::M863() {
         // reset tool mapping to default
         tool_mapper.reset();
     } else {
-        // print current tool mapping settings
-        SERIAL_ECHOLN("Tool mapping: ");
-        for (size_t i = 0; i < EXTRUDERS; i++) {
-            SERIAL_ECHOPAIR("  Tool ", i, " -> ");
-            const uint8_t to = tool_mapper.to_physical(i, true);
-            if (to == tool_mapper.NO_TOOL_MAPPED) {
-                SERIAL_ECHO("<none>");
-            } else {
-                SERIAL_ECHO(to);
-            }
-
-            SERIAL_EOL();
-        }
-
-        SERIAL_ECHOLNPAIR("Enabled: ", tool_mapper.is_enabled());
+        rme_report_tool_mapping();
     }
 }
 
