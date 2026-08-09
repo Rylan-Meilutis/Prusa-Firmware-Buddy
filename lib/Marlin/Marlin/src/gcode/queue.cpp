@@ -692,7 +692,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   if (!command.starts_with("@RME MACHINE ")) return false;
   if (!command.starts_with(query)) return false;
 
-  SERIAL_ECHOPGM("RME_MACHINE physical_hotends="); SERIAL_ECHO(HOTENDS);
+  SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(HOTENDS);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(HOTENDS == 1 ? 1 : 0);
 
@@ -749,12 +749,12 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_machine_service(command)
       || handle_remote_toolmap_service(command)
       || handle_dialog_service_response(payload)) return true;
-  SERIAL_ECHOLNPGM("echo:RME_ERROR unknown_command");
+  SERIAL_ECHOLNPGM("echo:RME_ERROR unknown");
   return true;
 }
 
 static void report_service_queue_status() {
-  SERIAL_ECHOPGM("RME_PROMPT A=");
+  SERIAL_ECHOPGM("RME_PROMPT ");
   bool first = true;
   marlin_vars().peek_fsm_states([&](const fsm::States &states) {
     const auto top = states.get_top();
