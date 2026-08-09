@@ -47,3 +47,5 @@ for the complete command and integration reference.
 - 6.5.7-RME: 14/14 presets passed.
 - 6.6.3-RME: 15/15 presets passed, including CORE One INDX.
 - 29 versioned BBF artifacts staged under `bbf/6.5.7` and `bbf/6.6.3`.
+- MK4 flash: 1.12 MiB / 1.87 MiB (59.54%); MK3.5: 54.92%; CORE One:
+  63.46%; CORE One INDX: 64.26%; CORE One L: 63.49%.

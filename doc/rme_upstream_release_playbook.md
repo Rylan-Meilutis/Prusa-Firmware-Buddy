@@ -909,6 +909,12 @@ the normal bootstrap/update flow before the GUI enables resource-backed drawing.
 
 The latest checked focused final builds used:
 
+The xBuddy external-font change was release-validated with
+`./build.py --final --versions 6.5.7 6.6.3 --jobs 15`: all 29 presets passed.
+The resulting MK4 flash usage was 93.45% on 6.5.7 and 59.54% on 6.6.3.
+Keep these as regression baselines; a later port that returns either MK4 to the
+partition boundary has probably relinked the font arrays into application flash.
+
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
 FLASH: 1291244 B / 1919 KB, 65.71%
