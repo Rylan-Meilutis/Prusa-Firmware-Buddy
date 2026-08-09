@@ -41,9 +41,14 @@ GCodeQueue queue;
 #include <common/marlin_server_types/fsm/filament_change_phases.hpp>
 #include <gcode/inject_queue.hpp>
 #include <feature/cork/tracker.hpp>
+#include <serial_remote_control.hpp>
+#include <config_store/store_instance.hpp>
+#include <filament.hpp>
+#include <printer_lock.hpp>
 #include <algorithm>
 #include <cctype>
 #include <optional>
+#include <string>
 #include <string_view>
 
 extern "C" bool buddy_sdcard_upload_active();
@@ -451,6 +456,324 @@ static bool dialog_blocks_generic_resume() {
   });
 }
 
+static void report_remote_ui_status() {
+  const auto status = serial_remote_control::status();
+  SERIAL_ECHOPGM("REMOTE_UI enabled=");
+  SERIAL_CHAR(status.enabled ? '1' : '0');
+  SERIAL_ECHOPGM(" pending=");
+  SERIAL_ECHO(status.pending);
+  SERIAL_ECHOPGM(" accepted=");
+  SERIAL_ECHO(status.accepted_sequence);
+  SERIAL_ECHOPGM(" applied=");
+  SERIAL_ECHO(status.applied_sequence);
+  SERIAL_ECHOLNPGM(" actions=encoder,click,back,home");
+}
+
+static const char *command_payload(const char *command) {
+  while (*command == ' ') command++;
+  if (*command == 'N') {
+    command++;
+    while (*command == '-' || NUMERIC(*command)) command++;
+    while (*command == ' ') command++;
+  }
+  return command;
+}
+
+static bool handle_remote_ui_service(const char *command) {
+  command = command_payload(command);
+  constexpr char prefix[] = "@RME UI ";
+  if (strncmp(command, prefix, sizeof(prefix) - 1) != 0) {
+    return false;
+  }
+  command += sizeof(prefix) - 1;
+
+  if (strncmp(command, "QUERY", 5) == 0) {
+    report_remote_ui_status();
+    return true;
+  }
+
+  if (strncmp(command, "ENABLE ", 7) == 0) {
+    const char *enable = command + 7;
+    char *end = nullptr;
+    const long value = strtol(enable, &end, 10);
+    if (end == enable || (value != 0 && value != 1)) {
+      SERIAL_ECHOLNPGM("echo:@RME UI ENABLE requires 0 or 1");
+    } else {
+      serial_remote_control::set_enabled(value == 1);
+      report_remote_ui_status();
+    }
+    return true;
+  }
+
+  serial_remote_control::Action action;
+  int16_t value = 0;
+  if (strncmp(command, "ENCODER ", 8) == 0) {
+    const char *jog = command + 8;
+    char *end = nullptr;
+    const long parsed = strtol(jog, &end, 10);
+    if (end == jog || parsed < -100 || parsed > 100 || parsed == 0) {
+      SERIAL_ECHOLNPGM("echo:@RME UI ENCODER requires a non-zero delta from -100 to 100");
+      return true;
+    }
+    action = serial_remote_control::Action::encoder;
+    value = static_cast<int16_t>(parsed);
+  } else if (strncmp(command, "CLICK", 5) == 0) {
+    action = serial_remote_control::Action::click;
+  } else if (strncmp(command, "BACK", 4) == 0) {
+    action = serial_remote_control::Action::back;
+  } else if (strncmp(command, "HOME", 4) == 0) {
+    action = serial_remote_control::Action::home;
+  } else {
+    SERIAL_ECHOLNPGM("echo:unknown @RME UI action");
+    return true;
+  }
+
+  if (!serial_remote_control::enqueue(action, value)) {
+    const auto status = serial_remote_control::status();
+    SERIAL_ECHOLNPGM(status.enabled
+        ? "echo:@RME UI queue full"
+        : "echo:@RME UI disabled or printer locked; send @RME UI ENABLE 1 first");
+  } else {
+    report_remote_ui_status();
+  }
+  return true;
+}
+
+static std::optional<std::string_view> remote_value(const std::string_view command, const std::string_view key) {
+  const std::string needle = " " + std::string(key) + "=";
+  const auto pos = command.find(needle);
+  if (pos == std::string_view::npos) return std::nullopt;
+  const auto begin = pos + needle.size();
+  const auto end = command.find_first_of(" *", begin);
+  return command.substr(begin, end == std::string_view::npos ? command.size() - begin : end - begin);
+}
+
+static std::optional<long> remote_number(const std::string_view command, const std::string_view key, const int base = 10) {
+  const auto value = remote_value(command, key);
+  if (!value || value->empty() || value->size() >= 16) return std::nullopt;
+  char buffer[16] {};
+  std::copy(value->begin(), value->end(), buffer);
+  char *end = nullptr;
+  const char *start = buffer;
+  if (base == 16 && *start == '#') start++;
+  const long result = strtol(start, &end, base);
+  return end != start && *end == '\0' ? std::optional<long> { result } : std::nullopt;
+}
+
+static void report_remote_lock() {
+  SERIAL_ECHOPGM("RME_LOCK enabled=");
+  SERIAL_ECHO(printer_lock::enabled() ? 1 : 0);
+  SERIAL_ECHOPGM(" locked=");
+  SERIAL_ECHO(printer_lock::locked() ? 1 : 0);
+  SERIAL_ECHOPGM(" timeout=");
+  SERIAL_ECHO(config_store().printer_lock_timeout_s.get());
+  SERIAL_ECHOPGM(" serial=");
+  SERIAL_ECHOLN(config_store().printer_lock_accept_serial.get() ? 1 : 0);
+}
+
+static bool handle_remote_lock_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME LOCK ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("QUERY")) {
+    report_remote_lock();
+  } else if (action.starts_with("NOW")) {
+    printer_lock::lock();
+    serial_remote_control::set_enabled(false);
+    report_remote_lock();
+  } else if (action.starts_with("UNLOCK")) {
+    const auto pin = remote_number(command, "pin");
+    const auto digits = remote_number(command, "digits");
+    if (!pin || !digits || *digits < 4 || *digits > 9 || !printer_lock::check_pin(*pin, *digits)) {
+      SERIAL_ECHOLNPGM("echo:@RME LOCK unlock rejected");
+    } else {
+      printer_lock::unlock();
+      report_remote_lock();
+    }
+  } else if (action.starts_with("SET")) {
+    if (printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:@RME LOCK configuration rejected while locked");
+      return true;
+    }
+    const auto pin = remote_number(command, "pin");
+    const auto digits = remote_number(command, "digits");
+    if (pin || digits) {
+      if (!pin || !digits || *digits < 4 || *digits > 9) {
+        SERIAL_ECHOLNPGM("echo:@RME LOCK pin requires pin=<value> digits=4..9");
+        return true;
+      }
+      config_store().printer_lock_pin.set(*pin);
+      config_store().printer_lock_pin_length.set(*digits);
+    }
+    if (const auto timeout = remote_number(command, "timeout"); timeout && *timeout >= 0 && *timeout <= 65535)
+      config_store().printer_lock_timeout_s.set(*timeout);
+    if (const auto serial = remote_number(command, "serial"); serial && (*serial == 0 || *serial == 1))
+      config_store().printer_lock_accept_serial.set(*serial);
+    if (const auto enabled = remote_number(command, "enabled"); enabled && (*enabled == 0 || *enabled == 1)) {
+      if (*enabled && config_store().printer_lock_pin_length.get() < 4)
+        SERIAL_ECHOLNPGM("echo:@RME LOCK cannot enable without a PIN");
+      else
+        config_store().printer_lock_enabled.set(*enabled);
+    }
+    report_remote_lock();
+  } else {
+    SERIAL_ECHOLNPGM("echo:unknown @RME LOCK action");
+  }
+  return true;
+}
+
+static void report_remote_theme() {
+  SERIAL_ECHOPGM("RME_THEME primary="); SERIAL_ECHO(config_store().ui_theme_primary_color.get());
+  SERIAL_ECHOPGM(" progress="); SERIAL_ECHO(config_store().ui_theme_progress_color.get());
+  SERIAL_ECHOPGM(" warning="); SERIAL_ECHO(config_store().ui_theme_warning_color.get());
+  SERIAL_ECHOPGM(" error="); SERIAL_ECHO(config_store().ui_theme_error_color.get());
+  SERIAL_ECHOPGM(" image="); SERIAL_ECHOLN(config_store().ui_theme_image_color.get());
+}
+
+template <typename StoreItem>
+static void set_remote_color(const std::string_view command, const std::string_view key, StoreItem &item) {
+  if (const auto value = remote_number(command, key, 16); value && *value >= 0 && *value <= 0xffffff)
+    item.set(*value);
+}
+
+static bool handle_remote_theme_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME THEME ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("QUERY")) {
+    report_remote_theme();
+  } else if (action.starts_with("SET")) {
+    if (printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:@RME THEME rejected while locked");
+      return true;
+    }
+    set_remote_color(command, "primary", config_store().ui_theme_primary_color);
+    set_remote_color(command, "progress", config_store().ui_theme_progress_color);
+    set_remote_color(command, "warning", config_store().ui_theme_warning_color);
+    set_remote_color(command, "error", config_store().ui_theme_error_color);
+    set_remote_color(command, "image", config_store().ui_theme_image_color);
+    set_remote_color(command, "led_idle", config_store().status_led_idle_color);
+    set_remote_color(command, "led_printing", config_store().status_led_printing_color);
+    set_remote_color(command, "led_finished", config_store().status_led_finished_color);
+    set_remote_color(command, "led_warning", config_store().status_led_warning_color);
+    set_remote_color(command, "led_error", config_store().status_led_error_color);
+    serial_remote_control::reload_theme();
+    report_remote_theme();
+  } else {
+    SERIAL_ECHOLNPGM("echo:unknown @RME THEME action");
+  }
+  return true;
+}
+
+static bool handle_remote_light_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME LIGHT ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("QUERY")) {
+    const uint32_t screen = config_store().screen_brightness_by_state.get();
+    SERIAL_ECHOPGM("RME_LIGHT screen_persistent=");
+    SERIAL_ECHO((screen >> 24) & 0xff);
+    const auto lights = serial_remote_control::light_status();
+    SERIAL_ECHOPGM(" chamber_print=");
+    SERIAL_ECHO(lights.print_chamber);
+    SERIAL_ECHOPGM(" screen_print=");
+    SERIAL_ECHO(lights.print_screen);
+    SERIAL_ECHOPGM(" status_print=");
+    SERIAL_ECHO(lights.print_status);
+    SERIAL_EOL();
+  } else if (action.starts_with("TEMP")) {
+    const auto screen = remote_number(command, "screen").value_or(-1);
+    const auto chamber = remote_number(command, "chamber").value_or(-1);
+    const auto status = remote_number(command, "status").value_or(-1);
+    serial_remote_control::set_temporary_lights(screen, chamber, status);
+  } else if (action.starts_with("SET")) {
+    if (printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:@RME LIGHT persistent update rejected while locked");
+      return true;
+    }
+    constexpr std::array<std::string_view, 4> names { "deep", "idle", "active", "printing" };
+    std::array<int16_t, 4> screen { -1, -1, -1, -1 };
+    std::array<int16_t, 4> chamber { -1, -1, -1, -1 };
+    std::array<int16_t, 4> status { -1, -1, -1, -1 };
+    for (size_t i = 0; i < names.size(); ++i) {
+      screen[i] = remote_number(command, std::string("screen_") + std::string(names[i])).value_or(-1);
+      chamber[i] = remote_number(command, std::string("chamber_") + std::string(names[i])).value_or(-1);
+      status[i] = remote_number(command, std::string("status_") + std::string(names[i])).value_or(-1);
+    }
+    serial_remote_control::set_persistent_lights(screen, chamber, status);
+  } else {
+    SERIAL_ECHOLNPGM("echo:unknown @RME LIGHT action");
+  }
+  return true;
+}
+
+static void report_remote_filaments() {
+  for (size_t i = 0; i < preset_filament_type_count; ++i) {
+    const FilamentType type = static_cast<PresetFilamentType>(i);
+    const auto params = type.parameters();
+    SERIAL_ECHO("RME_FILAMENT kind=preset slot="); SERIAL_ECHO(i);
+    SERIAL_ECHO(" name="); SERIAL_ECHO(params.name.data());
+    SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
+    SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
+    SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
+    SERIAL_ECHO(" visible="); SERIAL_ECHOLN(type.is_visible() ? 1 : 0);
+  }
+  for (uint8_t i = 0; i < user_filament_type_count; ++i) {
+    const FilamentType type = UserFilamentType { i };
+    const auto params = type.parameters();
+    SERIAL_ECHO("RME_FILAMENT kind=user slot="); SERIAL_ECHO(i);
+    SERIAL_ECHO(" name="); SERIAL_ECHO(params.name.data());
+    SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
+    SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
+    SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
+    SERIAL_ECHO(" visible="); SERIAL_ECHOLN(type.is_visible() ? 1 : 0);
+  }
+}
+
+static bool handle_remote_filament_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME FILAMENT ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("QUERY")) {
+    report_remote_filaments();
+  } else if (action.starts_with("SET")) {
+    if (printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:@RME FILAMENT update rejected while locked");
+      return true;
+    }
+    const auto slot = remote_number(command, "slot");
+    if (!slot || *slot < 0 || static_cast<size_t>(*slot) >= user_filament_type_count) {
+      SERIAL_ECHOLNPGM("echo:@RME FILAMENT SET requires slot=0..7");
+      return true;
+    }
+    const FilamentType type = UserFilamentType { static_cast<uint8_t>(*slot) };
+    auto params = type.parameters();
+    if (const auto name = remote_value(command, "name"); name && name->size() < filament_name_buffer_size && type.can_be_renamed_to(*name)) params.name = *name;
+    if (const auto value = remote_number(command, "nozzle")) params.nozzle_temperature = *value;
+    if (const auto value = remote_number(command, "preheat")) params.nozzle_preheat_temperature = *value;
+    if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
+    type.set_parameters(params);
+    if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
+    SERIAL_ECHOPGM("RME_FILAMENT updated slot="); SERIAL_ECHOLN(*slot);
+  } else {
+    SERIAL_ECHOLNPGM("echo:unknown @RME FILAMENT action");
+  }
+  return true;
+}
+
+static bool handle_remote_service_frame(const char *raw_command) {
+  const char *payload = command_payload(raw_command);
+  if (strncmp(payload, "@RME ", 5) != 0) return false;
+  const std::string_view command { payload, strcspn(payload, "*") };
+  if (handle_remote_ui_service(raw_command)
+      || handle_remote_lock_service(command)
+      || handle_remote_theme_service(command)
+      || handle_remote_light_service(command)
+      || handle_remote_filament_service(command)) return true;
+  SERIAL_ECHOLNPGM("echo:unknown @RME service frame");
+  return true;
+}
+
 static void report_service_queue_status() {
   const uint8_t normal_used = std::min<uint8_t>(GCodeQueue::length, BUFSIZE);
   const uint8_t reserve_used = GCodeQueue::length > BUFSIZE ? GCodeQueue::length - BUFSIZE : 0;
@@ -769,6 +1092,14 @@ void GCodeQueue::get_serial_commands() {
         // actions cannot be blocked behind the command that owns the normal
         // foreground queue.
         if (priority_service && handle_dialog_service_response(command)) {
+          SERIAL_ECHOLNPGM(MSG_OK);
+          continue;
+        }
+
+        // @RME frames are an out-of-band serial control protocol. They retain
+        // the host's line/checksum accounting but never enter the print G-code
+        // FIFO or manipulate screen objects from Marlin's serial task.
+        if (handle_remote_service_frame(command)) {
           SERIAL_ECHOLNPGM(MSG_OK);
           continue;
         }

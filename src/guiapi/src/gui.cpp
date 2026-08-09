@@ -4,6 +4,7 @@
 
 #include "display.hpp"
 #include "gui.hpp"
+#include "serial_remote_control.hpp"
 #include "gui_time.hpp" //gui::GetTick
 #include "ScreenHandler.hpp"
 #include "sound.hpp"
@@ -336,6 +337,7 @@ void gui_bare_loop() {
 
 void gui_loop(void) {
     ++guiloop_nesting;
+    serial_remote_control::process_gui();
     gui_handle_jogwheel();
 
     const bool screen_brightness_off = update_screen_brightness_and_is_off();

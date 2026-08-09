@@ -2,11 +2,12 @@
 
 #include <config_store/store_instance.hpp>
 #include <timing.h>
+#include <atomic>
 
 namespace printer_lock {
 namespace {
-bool is_locked = false;
-uint32_t last_activity_ms = 0;
+std::atomic<bool> is_locked { false };
+std::atomic<uint32_t> last_activity_ms { 0 };
 } // namespace
 
 bool enabled() {
@@ -14,34 +15,35 @@ bool enabled() {
 }
 
 bool locked() {
-    return enabled() && is_locked;
+    return enabled() && is_locked.load(std::memory_order_acquire);
 }
 
 void lock() {
     if (enabled()) {
-        is_locked = true;
+        is_locked.store(true, std::memory_order_release);
     }
 }
 
 void unlock() {
-    is_locked = false;
+    is_locked.store(false, std::memory_order_release);
     record_activity();
 }
 
 void record_activity() {
-    last_activity_ms = ticks_ms();
+    last_activity_ms.store(ticks_ms(), std::memory_order_release);
 }
 
 void loop() {
     if (!enabled()) {
-        is_locked = false;
+        is_locked.store(false, std::memory_order_release);
         record_activity();
         return;
     }
 
     const uint32_t timeout_ms = static_cast<uint32_t>(config_store().printer_lock_timeout_s.get()) * 1000;
-    if (!is_locked && timeout_ms > 0 && static_cast<uint32_t>(ticks_diff(ticks_ms(), last_activity_ms)) >= timeout_ms) {
-        is_locked = true;
+    if (!is_locked.load(std::memory_order_acquire) && timeout_ms > 0
+        && static_cast<uint32_t>(ticks_diff(ticks_ms(), last_activity_ms.load(std::memory_order_acquire))) >= timeout_ms) {
+        is_locked.store(true, std::memory_order_release);
     }
 }
 
