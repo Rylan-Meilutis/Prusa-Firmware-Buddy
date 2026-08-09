@@ -15,17 +15,17 @@ USB/serial firmware update, INDX, and release-build features documented for
   control remains responsive during blocking heater waits, probing, MMU work,
   and calibration.
 - Added bidirectional remote UI navigation with explicit volatile enable,
-  bounded GUI-task event delivery, application counters, and automatic disable
+  bounded GUI-task event delivery and automatic disable
   whenever the printer UI locks.
 - Added serial query/configuration for UI lock state, themes, persistent screen,
   chamber-light and status-light brightness, and temporary per-print brightness.
 - Added host synchronization and reporting of eight persistent filament preset
   slots used by normal loaded-filament selection workflows.
-- Added read-only machine discovery for model and tool topology, single-nozzle,
-  MMU/toolchanger/INDX capabilities, build envelope, and live motion limits so
+- Added read-only machine discovery for physical hotend and logical-tool counts,
+  single-nozzle topology, build envelope, and live XYZ feedrate limits so
   a host plugin can configure its OctoPrint printer profile accurately.
-- Added `M115` capability discovery for out-of-band control, remote UI,
-  configuration, and filament synchronization.
+- Added an explicit `@RME MACHINE QUERY` handshake for protocol and machine
+  discovery without overloading ordinary G-code capability reporting.
 - Kept the protocol distinct from ordinary G-code so sliced files cannot invoke
   remote UI operations accidentally.
 
@@ -39,5 +39,7 @@ for the complete command and integration reference.
 
 ## Validation
 
-- CORE One 6.6.3-RME feature build: passed.
-- Full 6.5.7/6.6.3 release matrix: recorded after the final multiversion build.
+- Exact command: `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`.
+- 6.5.7-RME: 14/14 presets passed.
+- 6.6.3-RME: 15/15 presets passed, including CORE One INDX.
+- 29 versioned BBF artifacts staged under `bbf/6.5.7` and `bbf/6.6.3`.
