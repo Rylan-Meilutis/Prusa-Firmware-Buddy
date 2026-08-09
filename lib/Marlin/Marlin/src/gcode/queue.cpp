@@ -463,19 +463,6 @@ static bool dialog_blocks_generic_resume() {
   });
 }
 
-static void report_remote_ui_status() {
-  const auto status = serial_remote_control::status();
-  SERIAL_ECHOPGM("REMOTE_UI enabled=");
-  SERIAL_CHAR(status.enabled ? '1' : '0');
-  SERIAL_ECHOPGM(" pending=");
-  SERIAL_ECHO(status.pending);
-  SERIAL_ECHOPGM(" accepted=");
-  SERIAL_ECHO(status.accepted_sequence);
-  SERIAL_ECHOPGM(" applied=");
-  SERIAL_ECHO(status.applied_sequence);
-  SERIAL_ECHOLNPGM(" actions=encoder,click,back,home");
-}
-
 static const char *command_payload(const char *command) {
   while (*command == ' ') command++;
   if (*command == 'N') {
@@ -494,20 +481,12 @@ static bool handle_remote_ui_service(const char *command) {
   }
   command += sizeof(prefix) - 1;
 
-  if (strncmp(command, "QUERY", 5) == 0) {
-    report_remote_ui_status();
-    return true;
-  }
-
   if (strncmp(command, "ENABLE ", 7) == 0) {
     const char *enable = command + 7;
     char *end = nullptr;
     const long value = strtol(enable, &end, 10);
-    if (end == enable || (value != 0 && value != 1)) {
-      SERIAL_ECHOLNPGM("echo:@RME UI ENABLE requires 0 or 1");
-    } else {
+    if (end != enable && (value == 0 || value == 1)) {
       serial_remote_control::set_enabled(value == 1);
-      report_remote_ui_status();
     }
     return true;
   }
@@ -519,7 +498,6 @@ static bool handle_remote_ui_service(const char *command) {
     char *end = nullptr;
     const long parsed = strtol(jog, &end, 10);
     if (end == jog || parsed < -100 || parsed > 100 || parsed == 0) {
-      SERIAL_ECHOLNPGM("echo:@RME UI ENCODER requires a non-zero delta from -100 to 100");
       return true;
     }
     action = serial_remote_control::Action::encoder;
@@ -531,18 +509,10 @@ static bool handle_remote_ui_service(const char *command) {
   } else if (strncmp(command, "HOME", 4) == 0) {
     action = serial_remote_control::Action::home;
   } else {
-    SERIAL_ECHOLNPGM("echo:unknown @RME UI action");
     return true;
   }
 
-  if (!serial_remote_control::enqueue(action, value)) {
-    const auto status = serial_remote_control::status();
-    SERIAL_ECHOLNPGM(status.enabled
-        ? "echo:@RME UI queue full"
-        : "echo:@RME UI disabled or printer locked; send @RME UI ENABLE 1 first");
-  } else {
-    report_remote_ui_status();
-  }
+  serial_remote_control::enqueue(action, value);
   return true;
 }
 
@@ -575,11 +545,7 @@ static void report_remote_lock() {
   SERIAL_ECHOPGM("RME_LOCK enabled=");
   SERIAL_ECHO(printer_lock::enabled() ? 1 : 0);
   SERIAL_ECHOPGM(" locked=");
-  SERIAL_ECHO(printer_lock::locked() ? 1 : 0);
-  SERIAL_ECHOPGM(" timeout=");
-  SERIAL_ECHO(config_store().printer_lock_timeout_s.get());
-  SERIAL_ECHOPGM(" serial=");
-  SERIAL_ECHOLN(config_store().printer_lock_accept_serial.get() ? 1 : 0);
+  SERIAL_ECHOLN(printer_lock::locked() ? 1 : 0);
 }
 
 static bool handle_remote_lock_service(const std::string_view command) {
@@ -591,26 +557,20 @@ static bool handle_remote_lock_service(const std::string_view command) {
   } else if (action.starts_with("NOW")) {
     printer_lock::lock();
     serial_remote_control::set_enabled(false);
-    report_remote_lock();
   } else if (action.starts_with("UNLOCK")) {
     const auto pin = remote_number(command, "pin");
     const auto digits = remote_number(command, "digits");
-    if (!pin || !digits || *digits < 4 || *digits > 9 || !printer_lock::check_pin(*pin, *digits)) {
-      SERIAL_ECHOLNPGM("echo:@RME LOCK unlock rejected");
-    } else {
+    if (pin && digits && *digits >= 4 && *digits <= 9 && printer_lock::check_pin(*pin, *digits)) {
       printer_lock::unlock();
-      report_remote_lock();
     }
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
-      SERIAL_ECHOLNPGM("echo:@RME LOCK configuration rejected while locked");
       return true;
     }
     const auto pin = remote_number(command, "pin");
     const auto digits = remote_number(command, "digits");
     if (pin || digits) {
       if (!pin || !digits || *digits < 4 || *digits > 9) {
-        SERIAL_ECHOLNPGM("echo:@RME LOCK pin requires pin=<value> digits=4..9");
         return true;
       }
       config_store().printer_lock_pin.set(*pin);
@@ -621,14 +581,9 @@ static bool handle_remote_lock_service(const std::string_view command) {
     if (const auto serial = remote_number(command, "serial"); serial && (*serial == 0 || *serial == 1))
       config_store().printer_lock_accept_serial.set(*serial);
     if (const auto enabled = remote_number(command, "enabled"); enabled && (*enabled == 0 || *enabled == 1)) {
-      if (*enabled && config_store().printer_lock_pin_length.get() < 4)
-        SERIAL_ECHOLNPGM("echo:@RME LOCK cannot enable without a PIN");
-      else
+      if (!*enabled || config_store().printer_lock_pin_length.get() >= 4)
         config_store().printer_lock_enabled.set(*enabled);
     }
-    report_remote_lock();
-  } else {
-    SERIAL_ECHOLNPGM("echo:unknown @RME LOCK action");
   }
   return true;
 }
@@ -655,7 +610,6 @@ static bool handle_remote_theme_service(const std::string_view command) {
     report_remote_theme();
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
-      SERIAL_ECHOLNPGM("echo:@RME THEME rejected while locked");
       return true;
     }
     set_remote_color(command, "primary", config_store().ui_theme_primary_color);
@@ -663,15 +617,7 @@ static bool handle_remote_theme_service(const std::string_view command) {
     set_remote_color(command, "warning", config_store().ui_theme_warning_color);
     set_remote_color(command, "error", config_store().ui_theme_error_color);
     set_remote_color(command, "image", config_store().ui_theme_image_color);
-    set_remote_color(command, "led_idle", config_store().status_led_idle_color);
-    set_remote_color(command, "led_printing", config_store().status_led_printing_color);
-    set_remote_color(command, "led_finished", config_store().status_led_finished_color);
-    set_remote_color(command, "led_warning", config_store().status_led_warning_color);
-    set_remote_color(command, "led_error", config_store().status_led_error_color);
     serial_remote_control::reload_theme();
-    report_remote_theme();
-  } else {
-    SERIAL_ECHOLNPGM("echo:unknown @RME THEME action");
   }
   return true;
 }
@@ -699,54 +645,29 @@ static bool handle_remote_light_service(const std::string_view command) {
     serial_remote_control::set_temporary_lights(screen, chamber, status);
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
-      SERIAL_ECHOLNPGM("echo:@RME LIGHT persistent update rejected while locked");
       return true;
     }
-    std::array<int16_t, 4> screen {
-      static_cast<int16_t>(remote_number(command, "screen_deep").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "screen_idle").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "screen_active").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "screen_printing").value_or(-1)),
-    };
-    std::array<int16_t, 4> chamber {
-      static_cast<int16_t>(remote_number(command, "chamber_deep").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "chamber_idle").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "chamber_active").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "chamber_printing").value_or(-1)),
-    };
-    std::array<int16_t, 4> status {
-      static_cast<int16_t>(remote_number(command, "status_deep").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "status_idle").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "status_active").value_or(-1)),
-      static_cast<int16_t>(remote_number(command, "status_printing").value_or(-1)),
-    };
-    serial_remote_control::set_persistent_lights(screen, chamber, status);
-  } else {
-    SERIAL_ECHOLNPGM("echo:unknown @RME LIGHT action");
+    const auto screen = remote_number(command, "screen", 16);
+    const auto chamber = remote_number(command, "chamber", 16);
+    const auto status = remote_number(command, "status", 16);
+    if (screen && chamber && status)
+      serial_remote_control::set_persistent_lights(*screen, *chamber, *status);
   }
   return true;
 }
 
 static void report_remote_filaments() {
-  for (size_t i = 0; i < preset_filament_type_count; ++i) {
-    const FilamentType type = static_cast<PresetFilamentType>(i);
+  constexpr size_t total = preset_filament_type_count + user_filament_type_count;
+  for (size_t i = 0; i < total; ++i) {
+    const bool user = i >= preset_filament_type_count;
+    const size_t slot = user ? i - preset_filament_type_count : i;
+    const FilamentType type = user
+      ? FilamentType { UserFilamentType { static_cast<uint8_t>(slot) } }
+      : FilamentType { static_cast<PresetFilamentType>(slot) };
     const auto params = type.parameters();
-    SERIAL_ECHO("RME_FILAMENT kind=preset slot="); SERIAL_ECHO(i);
-    SERIAL_ECHO(" name="); SERIAL_ECHO(params.name.data());
-    SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
-    SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
-    SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
-    SERIAL_ECHO(" visible="); SERIAL_ECHOLN(type.is_visible() ? 1 : 0);
-  }
-  for (uint8_t i = 0; i < user_filament_type_count; ++i) {
-    const FilamentType type = UserFilamentType { i };
-    const auto params = type.parameters();
-    SERIAL_ECHO("RME_FILAMENT kind=user slot="); SERIAL_ECHO(i);
-    SERIAL_ECHO(" name="); SERIAL_ECHO(params.name.data());
-    SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
-    SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
-    SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
-    SERIAL_ECHO(" visible="); SERIAL_ECHOLN(type.is_visible() ? 1 : 0);
+    SERIAL_ECHO("RME_FILAMENT user="); SERIAL_ECHO(user ? 1 : 0);
+    SERIAL_ECHO(" slot="); SERIAL_ECHO(slot);
+    SERIAL_ECHO(" name="); SERIAL_ECHOLN(params.name.data());
   }
 }
 
@@ -758,12 +679,10 @@ static bool handle_remote_filament_service(const std::string_view command) {
     report_remote_filaments();
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
-      SERIAL_ECHOLNPGM("echo:@RME FILAMENT update rejected while locked");
       return true;
     }
     const auto slot = remote_number(command, "slot");
     if (!slot || *slot < 0 || static_cast<size_t>(*slot) >= user_filament_type_count) {
-      SERIAL_ECHOLNPGM("echo:@RME FILAMENT SET requires slot=0..7");
       return true;
     }
     const FilamentType type = UserFilamentType { static_cast<uint8_t>(*slot) };
@@ -777,9 +696,6 @@ static bool handle_remote_filament_service(const std::string_view command) {
     if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
     type.set_parameters(params);
     if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
-    SERIAL_ECHOPGM("RME_FILAMENT updated slot="); SERIAL_ECHOLN(*slot);
-  } else {
-    SERIAL_ECHOLNPGM("echo:unknown @RME FILAMENT action");
   }
   return true;
 }
@@ -787,36 +703,22 @@ static bool handle_remote_filament_service(const std::string_view command) {
 static bool handle_remote_machine_service(const std::string_view command) {
   constexpr std::string_view query = "@RME MACHINE QUERY";
   if (!command.starts_with("@RME MACHINE ")) return false;
-  if (!command.starts_with(query)) {
-    SERIAL_ECHOLNPGM("echo:unknown @RME MACHINE action");
-    return true;
-  }
+  if (!command.starts_with(query)) return true;
 
-  SERIAL_ECHOPGM("RME_MACHINE model="); SERIAL_ECHO(PrinterModelInfo::current().id_str);
-  SERIAL_ECHOPGM(" physical_hotends="); SERIAL_ECHO(HOTENDS);
+  SERIAL_ECHOPGM("RME_MACHINE physical_hotends="); SERIAL_ECHO(HOTENDS);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
-  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHO(HOTENDS == 1 ? 1 : 0);
-  SERIAL_ECHOPGM(" mmu="); SERIAL_ECHO(HAS_MMU2() ? 1 : 0);
-  SERIAL_ECHOPGM(" toolchanger="); SERIAL_ECHO(HAS_TOOLCHANGER() ? 1 : 0);
-  SERIAL_ECHOPGM(" indx="); SERIAL_ECHOLN(RME_HAS_INDX() ? 1 : 0);
+  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(HOTENDS == 1 ? 1 : 0);
 
   SERIAL_ECHOPGM("RME_ENVELOPE x_min="); SERIAL_ECHO(X_MIN_POS);
   SERIAL_ECHOPGM(" x_max="); SERIAL_ECHO(X_MAX_POS);
   SERIAL_ECHOPGM(" y_min="); SERIAL_ECHO(Y_MIN_POS);
   SERIAL_ECHOPGM(" y_max="); SERIAL_ECHO(Y_MAX_POS);
   SERIAL_ECHOPGM(" z_min="); SERIAL_ECHO(Z_MIN_POS);
-  SERIAL_ECHOPGM(" z_max="); SERIAL_ECHO(Z_MAX_POS);
-  SERIAL_ECHOPGM(" bed_x="); SERIAL_ECHO(X_BED_SIZE);
-  SERIAL_ECHOPGM(" bed_y="); SERIAL_ECHOLN(Y_BED_SIZE);
+  SERIAL_ECHOPGM(" z_max="); SERIAL_ECHOLN(Z_MAX_POS);
 
   SERIAL_ECHOPGM("RME_LIMITS feed_x="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[X_AXIS]);
   SERIAL_ECHOPGM(" feed_y="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[Y_AXIS]);
-  SERIAL_ECHOPGM(" feed_z="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[Z_AXIS]);
-  SERIAL_ECHOPGM(" feed_e="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[E_AXIS]);
-  SERIAL_ECHOPGM(" accel_x="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[X_AXIS]);
-  SERIAL_ECHOPGM(" accel_y="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[Y_AXIS]);
-  SERIAL_ECHOPGM(" accel_z="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[Z_AXIS]);
-  SERIAL_ECHOPGM(" accel_e="); SERIAL_ECHOLN(planner.settings.max_acceleration_mm_per_s2[E_AXIS]);
+  SERIAL_ECHOPGM(" feed_z="); SERIAL_ECHOLN(planner.settings.max_feedrate_mm_s[Z_AXIS]);
   return true;
 }
 
@@ -830,7 +732,6 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_light_service(command)
       || handle_remote_filament_service(command)
       || handle_remote_machine_service(command)) return true;
-  SERIAL_ECHOLNPGM("echo:unknown @RME service frame");
   return true;
 }
 

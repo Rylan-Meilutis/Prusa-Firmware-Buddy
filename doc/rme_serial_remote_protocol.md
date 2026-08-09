@@ -9,8 +9,8 @@ MMU work, or another foreground G-code is blocking.
 Use the printer host's normal serialized transport. A plugin must not open a
 second writer on the same port. When OctoPrint adds `N...*checksum` framing,
 RME validates and advances that sequence before dispatching the `@RME` payload.
-Every accepted frame receives `ok`. `M115` advertises `RME_OOB_CONTROL`,
-`RME_REMOTE_UI`, `RME_REMOTE_CONFIG`, and `RME_FILAMENT_SYNC`.
+Every accepted frame receives `ok`. Plugins detect support with the read-only
+`@RME MACHINE QUERY` handshake.
 
 ## UI control
 
@@ -18,7 +18,6 @@ Remote input is disabled after every boot and whenever the UI locks. Enable it
 for the current connection before sending input:
 
 ```text
-@RME UI QUERY
 @RME UI ENABLE 1
 @RME UI ENCODER 1
 @RME UI ENCODER -1
@@ -29,10 +28,7 @@ for the current connection before sending input:
 
 Encoder values are clamped to -100 through 100 and zero is rejected. Commands
 are transferred through a bounded single-producer/single-consumer mailbox and
-applied only by the GUI task. `UI QUERY` reports whether the session is enabled,
-whether the UI is locked, and accepted/applied sequence counters. A plugin can
-use those counters to confirm that an event reached the GUI without assuming a
-specific active screen. Firmware-owned print, calibration, filament, and error
+applied only by the GUI task. Firmware-owned print, calibration, filament, and error
 FSMs continue updating while locked; locking suppresses user input, not screen
 state transitions.
 
@@ -54,14 +50,15 @@ remote UI input and configuration mutation are rejected.
 
 ```text
 @RME THEME QUERY
-@RME THEME SET primary=#3366CC progress=#00AA55 warning=#FFAA00 error=#DD2222 image=#101018 led_idle=#202040 led_printing=#0060FF led_finished=#00C040 led_warning=#FF9000 led_error=#FF0000
+@RME THEME SET primary=#3366CC progress=#00AA55 warning=#FFAA00 error=#DD2222 image=#101018
 @RME LIGHT QUERY
 @RME LIGHT TEMP screen=0 chamber=0 status=0
-@RME LIGHT SET screen_deep=0 screen_idle=20 screen_active=100 screen_printing=60 chamber_deep=0 chamber_idle=20 chamber_active=100 chamber_printing=100 status_deep=0 status_idle=20 status_active=100 status_printing=100
+@RME LIGHT SET screen=0x0014643C chamber=0x00146464 status=0x00146464
 ```
 
-Colors accept `#RRGGBB` or an integer value. Persistent `LIGHT SET` values are
-percentages from 0 through 100. `LIGHT TEMP` applies volatile per-print
+Colors accept `#RRGGBB` or an integer value. Persistent `LIGHT SET` values pack
+four percentage bytes in `0xDDIIAAPP` order: deep idle, idle, active, and
+printing. Each byte is 0 through 100. `LIGHT TEMP` applies volatile per-print
 overrides and does not change saved settings. Sending an ordinary chamber-light
 brightness command retains RME's wake-only behavior; plugin configuration uses
 the explicit frames above.
@@ -73,7 +70,9 @@ the explicit frames above.
 @RME FILAMENT SET slot=0 name=PLAplus nozzle=215 preheat=170 bed=60 visible=1
 ```
 
-`QUERY` reports built-in presets and all eight persistent host/user slots.
+`QUERY` reports each built-in and persistent host/user slot as `user`, `slot`,
+and `name`; temperatures and visibility are supplied when the host synchronizes
+a user slot.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
 Temperatures are degrees Celsius. Synchronized visible presets appear in the
 same material selectors used when loading filament and assigning loaded tools.
@@ -85,9 +84,9 @@ same material selectors used when loading filament and assigning loaded tools.
 ```
 
 The response is split into `RME_MACHINE`, `RME_ENVELOPE`, and `RME_LIMITS`
-records. It reports the printer model, physical hotend and logical-tool counts,
-single-nozzle/MMU/toolchanger/INDX topology flags, reachable XYZ bounds, bed
-size, and the currently configured maximum XYZ/E feedrates and accelerations.
+records. It reports physical hotend and logical-tool counts, whether the machine
+uses a single nozzle, reachable XYZ bounds, and the currently configured maximum XYZ feedrates used by OctoPrint's
+printer profile. Firmware-only acceleration tuning remains local.
 An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.
