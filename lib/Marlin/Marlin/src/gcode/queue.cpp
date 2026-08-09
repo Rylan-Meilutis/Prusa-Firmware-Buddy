@@ -45,7 +45,12 @@ GCodeQueue queue;
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
 #include <printer_lock.hpp>
-#include <option/has_indx.h>
+#if __has_include(<option/has_indx.h>)
+  #include <option/has_indx.h>
+  #define RME_HAS_INDX() HAS_INDX()
+#else
+  #define RME_HAS_INDX() 0
+#endif
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <algorithm>
@@ -781,7 +786,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHO(HOTENDS == 1 ? 1 : 0);
   SERIAL_ECHOPGM(" mmu="); SERIAL_ECHO(HAS_MMU2() ? 1 : 0);
   SERIAL_ECHOPGM(" toolchanger="); SERIAL_ECHO(HAS_TOOLCHANGER() ? 1 : 0);
-  SERIAL_ECHOPGM(" indx="); SERIAL_ECHOLN(HAS_INDX() ? 1 : 0);
+  SERIAL_ECHOPGM(" indx="); SERIAL_ECHOLN(RME_HAS_INDX() ? 1 : 0);
 
   SERIAL_ECHOPGM("RME_ENVELOPE x_min="); SERIAL_ECHO(X_MIN_POS);
   SERIAL_ECHOPGM(" x_max="); SERIAL_ECHO(X_MAX_POS);
