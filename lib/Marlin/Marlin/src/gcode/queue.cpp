@@ -662,7 +662,26 @@ static void report_remote_filaments() {
     const auto params = type.parameters();
     SERIAL_ECHO("RME_FILAMENT user="); SERIAL_ECHO(user ? 1 : 0);
     SERIAL_ECHO(" slot="); SERIAL_ECHO(slot);
-    SERIAL_ECHO(" name="); SERIAL_ECHOLN(params.name.data());
+    SERIAL_ECHO(" name="); SERIAL_ECHO(params.name.data());
+    SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
+    SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
+    SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
+#if HAS_FILAMENT_BASE_PRESET_PARAM
+    SERIAL_ECHO(" base=");
+    if (params.base_preset) SERIAL_ECHO(FilamentType { *params.base_preset }.parameters().name.data());
+    else SERIAL_ECHO("none");
+#endif
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+    SERIAL_ECHO(" heatbreak="); SERIAL_ECHO(params.heatbreak_temperature);
+#endif
+#if HAS_CHAMBER_API()
+    SERIAL_ECHO(" chamber_min="); SERIAL_ECHO(params.chamber_min_temperature.value_or(-1));
+    SERIAL_ECHO(" chamber_max="); SERIAL_ECHO(params.chamber_max_temperature.value_or(-1));
+    SERIAL_ECHO(" chamber_target="); SERIAL_ECHO(params.chamber_target_temperature.value_or(-1));
+    SERIAL_ECHO(" filtration="); SERIAL_ECHO(params.requires_filtration ? 1 : 0);
+#endif
+    SERIAL_ECHO(" abrasive="); SERIAL_ECHO(params.is_abrasive ? 1 : 0);
+    SERIAL_ECHO(" flexible="); SERIAL_ECHOLN(params.do_not_auto_retract ? 1 : 0);
   }
 }
 
@@ -672,7 +691,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
   const auto action = command.substr(prefix.size());
   if (action.starts_with("QUERY")) {
     report_remote_filaments();
-  } else if (action.starts_with("SET")) {
+  } else if (action.starts_with("SET") || action.starts_with("CREATE")) {
     if (printer_lock::locked()) {
       return true;
     }
@@ -689,6 +708,40 @@ static bool handle_remote_filament_service(const std::string_view command) {
     if (const auto value = remote_number(command, "nozzle")) params.nozzle_temperature = *value;
     if (const auto value = remote_number(command, "preheat")) params.nozzle_preheat_temperature = *value;
     if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
+#if HAS_FILAMENT_BASE_PRESET_PARAM
+    // Some upstream hosts call this material family a brand. Accept both wire
+    // names, but persist it in the upstream base_preset field used by the UI.
+    auto base = remote_value(command, "base");
+    if (!base) base = remote_value(command, "brand");
+    if (base) {
+      if (*base == "none") {
+        params.base_preset = std::nullopt;
+      } else {
+        const auto base_type = FilamentType::from_name(*base);
+        if (const auto preset = std::get_if<PresetFilamentType>(&base_type)) {
+          params.base_preset = *preset;
+        } else {
+          SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_filament_base");
+          return true;
+        }
+      }
+    }
+#endif
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+    if (const auto value = remote_number(command, "heatbreak")) params.heatbreak_temperature = *value;
+#endif
+#if HAS_CHAMBER_API()
+    const auto set_optional_temperature = [&](const std::string_view key, auto &field) {
+      if (const auto value = remote_number(command, key))
+        field = *value < 0 ? std::nullopt : std::optional<uint8_t> { static_cast<uint8_t>(*value) };
+    };
+    set_optional_temperature("chamber_min", params.chamber_min_temperature);
+    set_optional_temperature("chamber_max", params.chamber_max_temperature);
+    set_optional_temperature("chamber_target", params.chamber_target_temperature);
+    if (const auto value = remote_number(command, "filtration"); value && (*value == 0 || *value == 1)) params.requires_filtration = *value;
+#endif
+    if (const auto value = remote_number(command, "abrasive"); value && (*value == 0 || *value == 1)) params.is_abrasive = *value;
+    if (const auto value = remote_number(command, "flexible"); value && (*value == 0 || *value == 1)) params.do_not_auto_retract = *value;
     type.set_parameters(params);
     if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
   } else return false;

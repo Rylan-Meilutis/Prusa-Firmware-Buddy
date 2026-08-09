@@ -3,6 +3,7 @@
 ## Summary
 
   * New features and improvements
+    * RME filament synchronization can create complete persistent user profiles, including upstream base material, temperatures, chamber bounds, filtration, abrasive, and flexible properties; the profiles remain available in local load menus without a host
     * RME protocol keepalives and read-only polling no longer hold the printer in an active state; structured status events report the real device state independently of the live communications lease
     * Serial printing screen for OctoPrint and other serial hosts
     * Negotiated `@RME SESSION` event subscriptions with sequenced structured MMU, native filament load/unload, chamber-vent, filtration, tool-change, filament-runout, stuck-filament, calibration, probing, heating, firmware-update, and waste-bin workflows; every MMU phase has a stable state and repeated progress is rate-limited
