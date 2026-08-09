@@ -27,3 +27,4 @@ __pycache__
 /src/**/*.mo
 /utils/crckill/target/
 /RELEASE_NOTES_v6.5.3-RME.md
+.rme-build-errors/

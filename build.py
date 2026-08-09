@@ -27,6 +27,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
 DEFAULT_SIGNING_KEY = PROJECT_ROOT / ".local" / "firmware-signing-key.pem"
 DEFAULT_VERSION_WORKTREE_ROOT = PROJECT_ROOT.parent / f".{PROJECT_ROOT.name}-rme-version-builds"
+DEFAULT_ERROR_LOG_DIR = PROJECT_ROOT / ".rme-build-errors"
 # Version worktrees share .dependencies with the primary checkout, making this
 # one lock cover direct, release-matrix, and worktree-local wrapper invocations.
 BUILD_LOCK_PATH = PROJECT_ROOT / ".dependencies" / ".rme-build.lock"
@@ -569,6 +570,8 @@ def make_version_build_command(args: argparse.Namespace, version: str, worktree:
         str(args.jobs),
         "--build-dir",
         str(version_build_dir(args, version, worktree)),
+        "--error-log-dir",
+        str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() / version),
     ]
     for preset in args.preset or []:
         command.extend(["--preset", preset])
@@ -1036,6 +1039,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bootloader", default="yes", help="Bootloader mode passed to utils/build.py. Default: yes.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Where BBFs are staged. Default: ./bbf.")
     parser.add_argument("--build-dir", type=Path, help="Build directory passed to utils/build.py.")
+    parser.add_argument("--error-log-dir", type=Path, help="Directory for complete failed-preset logs. Default: ./.rme-build-errors.")
     parser.add_argument(
         "--versions",
         nargs="+",
@@ -1091,6 +1095,7 @@ def main() -> int:
 
     selected_presets = unique_presets(split_csv(args.preset or ["all"]), known_presets)
     output_dir = args.output_dir.resolve()
+    error_log_dir = (args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve()
     repo_python = find_repo_python()
     child_env = repo_python_env(repo_python)
     configure_managed_python_env(child_env)
@@ -1105,6 +1110,9 @@ def main() -> int:
         shutil.rmtree(output_dir)
     if not args.dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
+        if not args.no_clean_output and error_log_dir.exists():
+            shutil.rmtree(error_log_dir)
+        error_log_dir.mkdir(parents=True, exist_ok=True)
 
     signing_key = None if args.no_signing_key else (args.signing_key or default_signing_key())
     if signing_key:
@@ -1265,7 +1273,10 @@ def main() -> int:
         print()
         print("Failed builds:")
         for job in failed:
+            log_path = error_log_dir / f"{job.preset}.log"
+            log_path.write_text("\n".join(job.log) + "\n", encoding="utf-8")
             print(f" {job.preset}")
+            print(f"   Full log: {log_path}")
             for line in job.log[-20:]:
                 print(f"   {line}")
         return 1
