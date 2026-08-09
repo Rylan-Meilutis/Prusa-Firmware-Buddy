@@ -45,6 +45,9 @@ GCodeQueue queue;
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
 #include <printer_lock.hpp>
+#include <option/has_indx.h>
+#include <option/has_mmu2.h>
+#include <option/has_toolchanger.h>
 #include <algorithm>
 #include <cctype>
 #include <optional>
@@ -749,7 +752,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
     const FilamentType type = UserFilamentType { static_cast<uint8_t>(*slot) };
     auto params = type.parameters();
     if (const auto name = remote_value(command, "name"); name && name->size() < filament_name_buffer_size && type.can_be_renamed_to(*name)) {
-      params.name.fill('\0');
+      params.name = {};
       std::copy(name->begin(), name->end(), params.name.begin());
     }
     if (const auto value = remote_number(command, "nozzle")) params.nozzle_temperature = *value;
@@ -764,6 +767,42 @@ static bool handle_remote_filament_service(const std::string_view command) {
   return true;
 }
 
+static bool handle_remote_machine_service(const std::string_view command) {
+  constexpr std::string_view query = "@RME MACHINE QUERY";
+  if (!command.starts_with("@RME MACHINE ")) return false;
+  if (!command.starts_with(query)) {
+    SERIAL_ECHOLNPGM("echo:unknown @RME MACHINE action");
+    return true;
+  }
+
+  SERIAL_ECHOPGM("RME_MACHINE model="); SERIAL_ECHO(PrinterModelInfo::current().id_str);
+  SERIAL_ECHOPGM(" physical_hotends="); SERIAL_ECHO(HOTENDS);
+  SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
+  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHO(HOTENDS == 1 ? 1 : 0);
+  SERIAL_ECHOPGM(" mmu="); SERIAL_ECHO(HAS_MMU2() ? 1 : 0);
+  SERIAL_ECHOPGM(" toolchanger="); SERIAL_ECHO(HAS_TOOLCHANGER() ? 1 : 0);
+  SERIAL_ECHOPGM(" indx="); SERIAL_ECHOLN(HAS_INDX() ? 1 : 0);
+
+  SERIAL_ECHOPGM("RME_ENVELOPE x_min="); SERIAL_ECHO(X_MIN_POS);
+  SERIAL_ECHOPGM(" x_max="); SERIAL_ECHO(X_MAX_POS);
+  SERIAL_ECHOPGM(" y_min="); SERIAL_ECHO(Y_MIN_POS);
+  SERIAL_ECHOPGM(" y_max="); SERIAL_ECHO(Y_MAX_POS);
+  SERIAL_ECHOPGM(" z_min="); SERIAL_ECHO(Z_MIN_POS);
+  SERIAL_ECHOPGM(" z_max="); SERIAL_ECHO(Z_MAX_POS);
+  SERIAL_ECHOPGM(" bed_x="); SERIAL_ECHO(X_BED_SIZE);
+  SERIAL_ECHOPGM(" bed_y="); SERIAL_ECHOLN(Y_BED_SIZE);
+
+  SERIAL_ECHOPGM("RME_LIMITS feed_x="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[X_AXIS]);
+  SERIAL_ECHOPGM(" feed_y="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[Y_AXIS]);
+  SERIAL_ECHOPGM(" feed_z="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[Z_AXIS]);
+  SERIAL_ECHOPGM(" feed_e="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[E_AXIS]);
+  SERIAL_ECHOPGM(" accel_x="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[X_AXIS]);
+  SERIAL_ECHOPGM(" accel_y="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[Y_AXIS]);
+  SERIAL_ECHOPGM(" accel_z="); SERIAL_ECHO(planner.settings.max_acceleration_mm_per_s2[Z_AXIS]);
+  SERIAL_ECHOPGM(" accel_e="); SERIAL_ECHOLN(planner.settings.max_acceleration_mm_per_s2[E_AXIS]);
+  return true;
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (strncmp(payload, "@RME ", 5) != 0) return false;
@@ -772,7 +811,8 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_lock_service(command)
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
-      || handle_remote_filament_service(command)) return true;
+      || handle_remote_filament_service(command)
+      || handle_remote_machine_service(command)) return true;
   SERIAL_ECHOLNPGM("echo:unknown @RME service frame");
   return true;
 }

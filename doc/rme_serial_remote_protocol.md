@@ -1,0 +1,106 @@
+# RME Out-of-Band Serial Control Protocol
+
+RME 6.5.7 and 6.6.3 expose a serial-local control channel for host plugins. It
+is intentionally separate from G-code: every frame starts with `@RME`, is
+consumed in the serial receiver, and is never placed in the motion-command
+queue. This lets a host query or control the UI while `M109`, `M190`, probing,
+MMU work, or another foreground G-code is blocking.
+
+Use the printer host's normal serialized transport. A plugin must not open a
+second writer on the same port. When OctoPrint adds `N...*checksum` framing,
+RME validates and advances that sequence before dispatching the `@RME` payload.
+Every accepted frame receives `ok`. `M115` advertises `RME_OOB_CONTROL`,
+`RME_REMOTE_UI`, `RME_REMOTE_CONFIG`, and `RME_FILAMENT_SYNC`.
+
+## UI control
+
+Remote input is disabled after every boot and whenever the UI locks. Enable it
+for the current connection before sending input:
+
+```text
+@RME UI QUERY
+@RME UI ENABLE 1
+@RME UI ENCODER 1
+@RME UI ENCODER -1
+@RME UI CLICK
+@RME UI BACK
+@RME UI HOME
+```
+
+Encoder values are clamped to -100 through 100 and zero is rejected. Commands
+are transferred through a bounded single-producer/single-consumer mailbox and
+applied only by the GUI task. `UI QUERY` reports whether the session is enabled,
+whether the UI is locked, and accepted/applied sequence counters. A plugin can
+use those counters to confirm that an event reached the GUI without assuming a
+specific active screen. Firmware-owned print, calibration, filament, and error
+FSMs continue updating while locked; locking suppresses user input, not screen
+state transitions.
+
+## UI lock
+
+```text
+@RME LOCK QUERY
+@RME LOCK NOW
+@RME LOCK UNLOCK pin=1234 digits=4
+@RME LOCK SET pin=1234 digits=4 timeout=300 serial=1 enabled=1
+```
+
+The PIN is never returned. `digits` accepts 4 through 9. `timeout` is seconds;
+`serial` controls serial unlocking and `enabled` controls the persistent lock
+feature. While locked, queries and a valid PIN unlock remain available, while
+remote UI input and configuration mutation are rejected.
+
+## Theme and lighting
+
+```text
+@RME THEME QUERY
+@RME THEME SET primary=#3366CC progress=#00AA55 warning=#FFAA00 error=#DD2222 image=#101018 led_idle=#202040 led_printing=#0060FF led_finished=#00C040 led_warning=#FF9000 led_error=#FF0000
+@RME LIGHT QUERY
+@RME LIGHT TEMP screen=0 chamber=0 status=0
+@RME LIGHT SET screen_deep=0 screen_idle=20 screen_active=100 screen_printing=60 chamber_deep=0 chamber_idle=20 chamber_active=100 chamber_printing=100 status_deep=0 status_idle=20 status_active=100 status_printing=100
+```
+
+Colors accept `#RRGGBB` or an integer value. Persistent `LIGHT SET` values are
+percentages from 0 through 100. `LIGHT TEMP` applies volatile per-print
+overrides and does not change saved settings. Sending an ordinary chamber-light
+brightness command retains RME's wake-only behavior; plugin configuration uses
+the explicit frames above.
+
+## Filament preset synchronization
+
+```text
+@RME FILAMENT QUERY
+@RME FILAMENT SET slot=0 name=PLAplus nozzle=215 preheat=170 bed=60 visible=1
+```
+
+`QUERY` reports built-in presets and all eight persistent host/user slots.
+`slot` is 0 through 7. Names are at most seven characters and contain no spaces.
+Temperatures are degrees Celsius. Synchronized visible presets appear in the
+same material selectors used when loading filament and assigning loaded tools.
+
+## Machine discovery
+
+```text
+@RME MACHINE QUERY
+```
+
+The response is split into `RME_MACHINE`, `RME_ENVELOPE`, and `RME_LIMITS`
+records. It reports the printer model, physical hotend and logical-tool counts,
+single-nozzle/MMU/toolchanger/INDX topology flags, reachable XYZ bounds, bed
+size, and the currently configured maximum XYZ/E feedrates and accelerations.
+An OctoPrint plugin can use these read-only values to populate its printer
+profile without hard-coded model tables. Values are snapshots: query again
+after changing firmware motion limits.
+
+## Host integration rules
+
+- Treat `@RME` as a control protocol, never as slicer start/end G-code.
+- Serialize it through the existing host connection so line numbers and
+  checksums stay coherent.
+- Enable remote UI only while an authenticated plugin session needs it.
+- Prefer named recovery actions (`M876 A"..."`) for firmware dialogs; general
+  navigation is useful for screens without a dedicated service action.
+- Poll queries at a modest rate. The receiver remains available during blocking
+  G-code, but it is not a telemetry streaming channel.
+- Use normal emergency and recovery commands for safety actions. The remote UI
+  channel does not bypass firmware safety checks or screen ownership.

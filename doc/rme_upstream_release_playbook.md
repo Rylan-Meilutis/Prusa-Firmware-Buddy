@@ -39,6 +39,24 @@ and quick-stop. Ordinary motion, extrusion, heater, and print commands retain
 normal FIFO ordering. Advertise `PRIORITY_COMMAND_QUEUE`, `DIALOG_RESPONSE`,
 `NAMED_DIALOG_RESPONSE`, and `SERVICE_QUEUE_STATUS` through `M115`.
 
+Preserve the separate `@RME` plugin-control receiver. It must run after normal
+line-number/checksum validation but before insertion into the G-code FIFO, and
+must therefore remain responsive while a foreground heater, probe, MMU, or
+calibration G-code blocks. Never register these operations as M-codes. Remote
+GUI events must cross the bounded atomic mailbox and execute only in the GUI
+task. Require a volatile `UI ENABLE 1` session, clear pending events and disable
+the session whenever the UI locks, and re-check lock state in the GUI consumer.
+Locking suppresses input only: printing, calibration, error, and filament FSM
+screen updates must continue normally. Re-test query/set coverage for themes,
+persistent and temporary screen/chamber/status brightness, lock configuration,
+and all eight synchronized host filament presets. Confirm `M115` advertises
+`RME_OOB_CONTROL`, `RME_REMOTE_UI`, `RME_REMOTE_CONFIG`, and
+`RME_FILAMENT_SYNC`, and keep `doc/rme_serial_remote_protocol.md` synchronized
+with every wire-format change. Verify `MACHINE QUERY` on single-nozzle, MMU,
+XL toolchanger, and INDX builds: physical/logical tool counts and topology flags
+must match the machine, XYZ/bed bounds must be reachable, and feedrate and
+acceleration values must reflect the active planner settings.
+
 Keep PA service travel collision-safe. CORE One/Core One L front-edge anchors begin to the right of the vent lever and enter deep-front Y through an ordered safe-Y/X/Y path. After the local probe finishes inside that safe corridor, move directly to the off-bed extrusion point; do not route through generic park and then reverse direction. The 10 mm heating clearance is an idempotent absolute minimum, and the 170 C preheat must not start until homing is complete and that clearance exists. INDX must continue using `mapi::park(ParkPosition::purge)` rather than direct XY motion so it exits the dock area perpendicularly and applies the calibrated nozzle-cleaner/waste-bin avoidance pattern.
 
 For serial reliability, keep M976 on the standard Marlin keepalive cadence and preserve the PA-active receive-path bypass for cosmetic numbered `M117`/`M73` updates. OctoPrint status plugins can inject these before the long-running M976 receives its final `ok`; queueing them exhausts Marlin's small command ring, stops USB RX draining, and causes real checksum/line-number resends. The bypass must parse host progress, acknowledge the numbered line, and discard only these cosmetic commands. Do not bypass motion, temperature, pause, cancel, or safety commands.
@@ -111,18 +129,18 @@ remove update UI or language coverage to make a MINI image link.
 
 ## Current Baseline
 
-RME 6.6.2 is based on upstream tag `v6.6.2` at `993cf8308`.
+RME 6.6.3 is based on upstream tag `v6.6.3` at `ff6658da4`.
 
 The active release branch is:
 
 ```sh
-rme-v6.6.2
+rme-v6.6.3
 ```
 
 The release notes for the active release are:
 
 ```sh
-RELEASE_NOTES_v6.6.2-RME.md
+RELEASE_NOTES_v6.6.3-RME.md
 ```
 
 The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
@@ -140,9 +158,9 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git diff --stat v6.6.2..rme-v6.6.2
-git diff --name-status v6.6.2..rme-v6.6.2
-git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
+git diff --stat v6.6.3..rme-v6.6.3
+git diff --name-status v6.6.3..rme-v6.6.3
+git diff --dirstat=files,0 v6.6.3..rme-v6.6.3
 ```
 
 At the 2026-07-25 release audit, the RME 6.6.2 release port covered 648 files
@@ -212,7 +230,7 @@ git remote -v
 Prefer a linear cherry-pick of the existing RME commits from the last release branch. Keep upstream changes intact unless they directly replace an RME patch.
 
 ```sh
-git log --oneline v6.6.2..rme-v6.6.2
+git log --oneline v6.6.3..rme-v6.6.3
 git cherry-pick <first-rme-commit>^..<last-rme-commit>
 ```
 
@@ -221,8 +239,8 @@ If the old branch has extra experimental commits, cherry-pick the feature groups
 3. Before resolving conflicts, regenerate the changed-file inventory from the old release branch and compare it to this playbook.
 
 ```sh
-git diff --name-status v6.6.2..rme-v6.6.2 > /tmp/rme-files.txt
-git diff --dirstat=files,0 v6.6.2..rme-v6.6.2
+git diff --name-status v6.6.3..rme-v6.6.3 > /tmp/rme-files.txt
+git diff --dirstat=files,0 v6.6.3..rme-v6.6.3
 ```
 
 Every non-resource source directory in that inventory should map to one of the feature groups below. If a file does not fit, add a new playbook item before finishing the rebase.
@@ -243,7 +261,7 @@ XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-o
 6. Run the full release build after focused targets pass.
 
 ```sh
-./build.py --final --versions 6.5.7 6.6.2 --jobs 15
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
 The top-level wrapper defaults to at most four concurrent printer builds. Keep that default for normal release builds to avoid overwhelming the build machine. Use `--jobs N` only when the machine has been sized for a different level of parallelism. If the wrapper is interrupted, it terminates active child builds so Ninja/LTO processes do not remain orphaned. Preserve the final per-machine summary with flash usage, aggregate RAM usage, individual memory-region usage, total elapsed wall-clock time, and absolute staged BBF paths.
@@ -288,7 +306,7 @@ Expect the official non-genuine firmware warning on stock bootloaders.
 ## Feature Groups To Preserve
 
 The 2026-07-25 audit compared `v6.5.7..rme-v6.5.7`,
-`v6.6.2..rme-v6.6.2`, and `upstream/master..master` by name-status and file
+`v6.6.3..rme-v6.6.3`, and `upstream/master..master` by name-status and file
 dirstat. Every changed non-resource directory maps to the feature groups below;
 PNG/font/resource-only directories map to UI Theme and MINI external resources,
 and tests map to the feature whose production code they exercise.
