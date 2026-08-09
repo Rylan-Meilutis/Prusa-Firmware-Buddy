@@ -113,15 +113,21 @@ the explicit frames above.
 
 ```text
 @RME FILAMENT QUERY
-@RME FILAMENT SET slot=0 name=PLAplus nozzle=215 preheat=170 bed=60 visible=1
+@RME FILAMENT CREATE slot=0 name=PLAplus base=PLA nozzle=215 preheat=170 bed=60 heatbreak=45 chamber_min=15 chamber_max=38 chamber_target=20 filtration=0 abrasive=0 flexible=0 visible=1
 ```
 
-`QUERY` reports each built-in and persistent host/user slot as `user`, `slot`,
-and `name`; temperatures and visibility are supplied when the host synchronizes
-a user slot.
+`CREATE` and `SET` both update a persistent firmware user profile; `CREATE` is
+provided for clearer host workflows. `QUERY` reports each built-in and user
+slot with its complete supported parameter set. On firmware with upstream base
+preset support, `base` selects the preset material family whose hidden machine
+parameters are inherited. `brand` is accepted as a compatibility alias for
+`base` because some hosts use that label, but it must contain a built-in family
+such as `PLA`, `PETG`, or `ASA`, not arbitrary vendor metadata.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
-Temperatures are degrees Celsius. Synchronized visible presets appear in the
-same material selectors used when loading filament and assigning loaded tools.
+Temperatures are degrees Celsius; use `-1` for an unset optional chamber bound.
+Synchronized visible presets appear in the same local material selectors used
+when loading filament and assigning loaded tools, and remain usable without a
+serial host.
 
 ## Machine discovery
 
