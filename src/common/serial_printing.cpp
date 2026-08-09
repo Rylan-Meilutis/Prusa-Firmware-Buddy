@@ -46,6 +46,22 @@ const char *classify_workflow(const char *message) {
     return "printer";
 }
 
+const char *rme_device_state() {
+    switch (printer_state::get_state(false)) {
+    case printer_state::DeviceState::Idle: return "idle";
+    case printer_state::DeviceState::Printing: return "printing";
+    case printer_state::DeviceState::Paused: return "paused";
+    case printer_state::DeviceState::Finished: return "finished";
+    case printer_state::DeviceState::Stopped: return "stopped";
+    case printer_state::DeviceState::Ready: return "ready";
+    case printer_state::DeviceState::Busy: return "busy";
+    case printer_state::DeviceState::Attention: return "attention";
+    case printer_state::DeviceState::Error: return "error";
+    case printer_state::DeviceState::Unknown: return "unknown";
+    }
+    return "unknown";
+}
+
 void emit_rme_event(const char *type, const char *workflow, const char *state, const char *code, const char *message, int progress) {
     SERIAL_ECHOPGM("RME_EVENT seq="); SERIAL_ECHO(serial_remote_control::next_event_sequence());
     SERIAL_ECHOPGM(" type="); SERIAL_ECHO(type);
@@ -90,7 +106,10 @@ void SerialPrinting::notify_status(const char *message, int progress_percent, bo
         ? serial_remote_control::EventSubscription::progress
         : serial_remote_control::EventSubscription::notification;
     if (serial_remote_control::subscribed(subscription)) {
-        emit_rme_event(progress_percent >= 0 ? "progress" : "notification", classify_workflow(message), "active", nullptr, message, progress_percent);
+        // A live RME session is only a communications lease.  Do not describe
+        // every event as active: hosts otherwise keep the printer in their
+        // active state forever while sending SESSION KEEPALIVE or queries.
+        emit_rme_event(progress_percent >= 0 ? "progress" : "notification", classify_workflow(message), rme_device_state(), nullptr, message, progress_percent);
     }
     if (marlin_server::serial_print_active() && serial_remote_control::legacy_notifications_enabled()) {
         SERIAL_ECHOPGM("//action:notification ");
