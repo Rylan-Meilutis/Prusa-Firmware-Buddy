@@ -35,6 +35,7 @@ enum class EventSubscription : uint8_t {
 };
 
 void open_session(uint8_t subscriptions, bool legacy_notifications);
+void keepalive_session();
 void close_session();
 bool session_active();
 bool subscribed(EventSubscription subscription);

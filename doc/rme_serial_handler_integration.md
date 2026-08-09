@@ -15,8 +15,10 @@ other blocking commands.
 3. Send `@RME SESSION OPEN events=15 legacy=0`. Wait for `RME_SESSION active=1`.
 4. Track the `seq` field of every `RME_EVENT`. On a gap, query both
    `@RME SESSION QUERY` and `@RME DIALOG QUERY` and refresh the plugin UI.
-5. Send `@RME SESSION KEEPALIVE` with the host's normal connection health
-   cadence. Close the session when deliberately disconnecting.
+5. Send `@RME SESSION KEEPALIVE` every 10 seconds. The printer expires the
+   lease after 30 seconds without one, restores legacy notifications, and
+   disables remote UI input. `QUERY` deliberately does not renew the lease.
+   Close the session when deliberately disconnecting.
 
 The session is volatile and is reset by firmware reboot. Re-negotiate after
 every reconnect. A handler must never infer a session merely because an older
