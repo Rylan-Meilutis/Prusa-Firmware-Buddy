@@ -1109,3 +1109,45 @@ e9e1c6f52  2026-08-10  Fix one-shot updates and remote state synchronization
 Published release tag: `v6.6.3-RME-b5`.
 
 Release-documentation commit: `8e553d9ac`.
+
+## Build 6 release update
+
+Build 6 adds allocation-free RME protocol parsing and a dedicated regression
+suite for the service paths that previously exhausted memory during serial
+connection, synchronization, motion, and file transfer:
+
+* parameter, signed/unsigned number, transaction, percent-decoding, USB path,
+  SHA-256, and service-frame parsing now share fixed-capacity production code;
+* unsigned fields reject negative and overflowing values while retaining the
+  complete 32-bit transaction-ID range;
+* percent-decoded values fail instead of silently truncating, and filesystem
+  paths remain confined below `/usb`;
+* RME service frames remain isolated from ordinary and line-numbered G-code;
+  and
+* eight host test cases cover 400,081 assertions, including 100,000 repeated
+  synchronization parses to detect retained parser state.
+
+Connect command payloads and transfer state also retain the fixed-buffer,
+allocation-free implementations introduced during the memory-hardening work.
+The adjacent transfer suite passes 514,726 assertions and the Connect suite
+passes 268 assertions.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 15 6.6.3 presets passed. Maximum MINI flash use was 98.66%, MK4 used
+60.76%, MK3.5 used 56.13%, XL used 68.86%, and CORE One INDX used 65.43%.
+The staged release directory contains exactly 15 BBFs under `bbf/6.6.3`.
+
+Build 6 firmware continuation:
+
+```text
+dd83ff5c1  2026-08-10  Remove transfer subsystem heap dependencies
+4dc69250b  2026-08-10  Remove Connect command heap churn
+a1cd5aeea  2026-08-10  Add RME protocol regression tests
+```
+
+Published release tag: `v6.6.3-RME-b6`.

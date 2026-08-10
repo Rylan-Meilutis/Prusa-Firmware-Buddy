@@ -1211,3 +1211,21 @@ must remain available. Transaction IDs must round-trip over the complete
 unsigned 32-bit range, including values above `2147483647`.
 
 Release tags: `v6.5.7-RME-b33` and `v6.6.3-RME-b5`.
+
+## 2026-08-10 build 34 / build 6 validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29
+presets passed, producing exactly 14 BBFs under `bbf/6.5.7` and 15 under
+`bbf/6.6.3`, with no root-level or unrelated BBFs.
+
+Validated 6.6.3 maxima: MINI 98.66%, MK4 60.76%, MK3.5 56.13%, XL 68.86%,
+and CORE One INDX 65.43%.
+
+Run `rme_protocol_tests` as a release gate on both branches. It must pass all
+400,081 assertions across eight cases, including full-width transaction IDs,
+strict fixed-capacity decoding, `/usb` path confinement, SHA-256 parsing,
+service-frame isolation, and the 100,000-iteration retained-state stress case.
+Also run the transfer and Connect suites after changes to their shared command
+or buffer ownership paths.
+
+Release tags: `v6.5.7-RME-b34` and `v6.6.3-RME-b6`.
