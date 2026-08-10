@@ -1091,6 +1091,10 @@ behavior, and filesystem replacement without reducing the build 32 feature set:
   overflowing unsigned fields, reject truncated percent escapes and fixed
   buffer overflow, contain paths below `/usb`, isolate service frames from
   ordinary G-code, and stress 100,000 repeated synchronization commands.
+* Connect command parsing now retains its existing fixed shared buffer with an
+  intrusive borrow count instead of allocating `shared_ptr` control blocks for
+  G-code, paths, tokens, and hostnames, removing normal connection and command
+  synchronization heap churn.
 
 The final release command was:
 

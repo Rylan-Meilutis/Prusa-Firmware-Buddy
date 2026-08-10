@@ -8,13 +8,13 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
-#include <memory>
+#include <atomic>
 
 template <size_t S>
 class Buffer {
 private:
     std::array<uint8_t, S> data;
-    bool borrowed = false;
+    std::atomic<uint8_t> borrow_count { 0 };
 
 public:
     class Borrow {
@@ -24,28 +24,46 @@ public:
         Borrow(Buffer *buff)
             : buff(buff) {}
 
+        void retain() {
+            if (buff) {
+                buff->borrow_count.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
+        void release() {
+            if (buff) {
+                assert(buff->borrow_count.load(std::memory_order_relaxed) != 0);
+                buff->borrow_count.fetch_sub(1, std::memory_order_acq_rel);
+                buff = nullptr;
+            }
+        }
+
     public:
-        Borrow(const Borrow &) = delete;
-        Borrow &operator=(const Borrow &) = delete;
-        Borrow(Borrow &&other)
+        Borrow()
+            : buff(nullptr) {}
+        Borrow(const Borrow &other)
+            : buff(other.buff) { retain(); }
+        Borrow &operator=(const Borrow &other) {
+            if (this != &other) {
+                release();
+                buff = other.buff;
+                retain();
+            }
+            return *this;
+        }
+        Borrow(Borrow &&other) noexcept
             : buff(other.buff) {
             other.buff = nullptr;
         }
-        Borrow &operator=(Borrow &&other) {
-            if (buff != nullptr) {
-                assert(buff->borrowed);
-                buff->borrowed = false;
+        Borrow &operator=(Borrow &&other) noexcept {
+            if (this != &other) {
+                release();
+                buff = other.buff;
+                other.buff = nullptr;
             }
-            buff = other.buff;
-            other.buff = nullptr;
             return *this;
         }
-        ~Borrow() {
-            if (buff != nullptr) {
-                assert(buff->borrowed);
-                buff->borrowed = false;
-            }
-        }
+        ~Borrow() { release(); }
         uint8_t *data() {
             assert(buff != nullptr); // Using moved object
             return buff->data.data();
@@ -61,10 +79,10 @@ public:
     };
 
     std::optional<Borrow> borrow() {
-        if (borrowed) {
+        uint8_t expected = 0;
+        if (!borrow_count.compare_exchange_strong(expected, 1, std::memory_order_acq_rel)) {
             return std::nullopt;
         } else {
-            borrowed = true;
             return Borrow(this);
         }
     }
@@ -80,7 +98,7 @@ public:
 constexpr size_t BORROW_BUF_SIZE = std::max(512, FILE_PATH_BUFFER_LEN + FILE_NAME_BUFFER_LEN);
 
 using SharedBuffer = Buffer<BORROW_BUF_SIZE>;
-using SharedBorrow = std::shared_ptr<SharedBuffer::Borrow>;
+using SharedBorrow = SharedBuffer::Borrow;
 
 class SharedPath {
 private:
@@ -89,13 +107,13 @@ private:
 public:
     SharedPath() = default;
     SharedPath(SharedBuffer::Borrow borrow)
-        : borrow(std::make_shared<SharedBuffer::Borrow>(std::move(borrow))) {}
+        : borrow(std::move(borrow)) {}
     // Pointing into that borrow.
     const char *path() const {
-        return reinterpret_cast<const char *>(borrow->data());
+        return reinterpret_cast<const char *>(borrow.data());
     }
     char *path() {
-        return reinterpret_cast<char *>(borrow->data());
+        return reinterpret_cast<char *>(borrow.data());
     }
 
     // Stored just behind the path (maybe!)
