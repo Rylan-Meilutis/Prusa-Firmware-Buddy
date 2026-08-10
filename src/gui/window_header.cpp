@@ -181,7 +181,7 @@ void window_header_t::updateTransfer() {
     last_transfer_progress = transfer_progress;
     last_transfer_has_issue = transfer_has_issue;
     if (!transfer_progress && serial_remote_control::session_active()) {
-        icon_transfer.SetRes(&img::connect_16x16);
+        icon_transfer.SetRes(&img::rme_host_16x16);
         icon_transfer.Show();
         transfer_val.Hide();
         transfer_hide_timer = std::nullopt;
