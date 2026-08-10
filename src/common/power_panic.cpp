@@ -275,8 +275,8 @@ void resume_print() {
 
         const auto mode_specific = [](const state_progress_t::ModeSpecificData &mbuf, ClProgressData::ModeSpecificData &pdata) {
             pdata.percent_done.mSetValue(mbuf.percent_done, state_buf.progress.print_duration);
-            pdata.percent_done.mSetValue(mbuf.time_to_end, state_buf.progress.print_duration);
-            pdata.percent_done.mSetValue(mbuf.time_to_pause, state_buf.progress.print_duration);
+            pdata.time_to_end.mSetValue(mbuf.time_to_end, state_buf.progress.print_duration);
+            pdata.time_to_pause.mSetValue(mbuf.time_to_pause, state_buf.progress.print_duration);
         };
         mode_specific(state_buf.progress.standard_mode, oProgressData.standard_mode);
         mode_specific(state_buf.progress.stealth_mode, oProgressData.stealth_mode);
