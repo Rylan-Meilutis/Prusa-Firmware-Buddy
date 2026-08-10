@@ -937,7 +937,10 @@ void ac_fault_isr() {
             runtime_state.fault_stamp = ticks_ms();
             power_panic_state = PPState::WaitingToDie;
             // will continue in the main loop
-            xTaskResumeFromISR(ac_fault_task);
+
+            // Without the yield, the interrupted task would keep running until the next tick, delaying the ac_fault task.
+            const BaseType_t higher_priority_task_woken = xTaskResumeFromISR(ac_fault_task);
+            portYIELD_FROM_ISR(higher_priority_task_woken);
             return;
         }
     }
@@ -1106,7 +1109,10 @@ void ac_fault_isr() {
     state_buf.planner.marlin_debug_flags = marlin_debug_flags;
 
     // will continue in the main loop
-    xTaskResumeFromISR(ac_fault_task);
+
+    // Without the yield, the interrupted task would keep running until the next tick, delaying the ac_fault task.
+    const BaseType_t higher_priority_task_woken = xTaskResumeFromISR(ac_fault_task);
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
 bool is_ac_fault_active() {
