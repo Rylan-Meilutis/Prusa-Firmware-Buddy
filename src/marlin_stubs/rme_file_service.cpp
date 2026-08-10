@@ -148,6 +148,43 @@ bool root_allowed(const std::array<char, FILE_PATH_BUFFER_LEN> &path, const std:
     return path[5] != '\0' || action.starts_with("LIST") || action.starts_with("STAT");
 }
 
+// FatFS does not consistently provide POSIX rename-over-existing semantics.
+// Preserve the previous file until the verified partial upload has taken its
+// place so every upload mode can safely replace an existing destination.
+bool replace_uploaded_file(const char *partial_path, const char *final_path) {
+    std::array<char, FILE_PATH_BUFFER_LEN> backup_path {};
+    if (snprintf(backup_path.data(), backup_path.size(), "%s.rme-old", final_path) >= static_cast<int>(backup_path.size())) {
+        return false;
+    }
+
+    struct stat destination {};
+    if (stat(final_path, &destination) != 0) {
+        const bool installed = rename(partial_path, final_path) == 0;
+        if (installed) {
+            // Also completes cleanup after a reset interrupted a previous
+            // replacement between moving the old and installing the new file.
+            remove(backup_path.data());
+        }
+        return installed;
+    }
+    if (!S_ISREG(destination.st_mode)) {
+        return false;
+    }
+
+    remove(backup_path.data());
+    if (rename(final_path, backup_path.data()) != 0) {
+        return false;
+    }
+    if (rename(partial_path, final_path) == 0) {
+        remove(backup_path.data());
+        return true;
+    }
+
+    // Best-effort rollback leaves the original name and contents intact.
+    rename(backup_path.data(), final_path);
+    return false;
+}
+
 bool finish_current_upload(const char *complete_prefix) {
     if (!upload.file || upload.received != upload.expected_size) {
         report_error("size_mismatch");
@@ -158,7 +195,7 @@ bool finish_current_upload(const char *complete_prefix) {
         && mbedtls_sha256_finish_ret(&upload.sha, actual.data()) == 0 && actual == upload.expected_sha;
     fclose(upload.file); upload.file = nullptr;
     mbedtls_sha256_free(&upload.sha); upload.sha_initialized = false;
-    if (ok) ok = rename(upload.partial_path.data(), upload.final_path.data()) == 0;
+    if (ok) ok = replace_uploaded_file(upload.partial_path.data(), upload.final_path.data());
     if (!ok) {
         reset_upload(true);
         report_error("finalize_failed");
@@ -244,7 +281,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const auto action = command.substr(prefix.size());
 
     if (action.starts_with("CAPS")) {
-        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 max_size=1073741824 list=1 stat=1 read=1 write=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
+        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 max_size=1073741824 list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
         return true;
     }
     if (action.starts_with("ABORT")) {
@@ -369,7 +406,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 && mbedtls_sha256_finish_ret(&upload.sha, actual.data()) == 0 && actual == upload.expected_sha;
             fclose(upload.file); upload.file = nullptr;
             mbedtls_sha256_free(&upload.sha); upload.sha_initialized = false;
-            if (ok) ok = rename(upload.partial_path.data(), upload.final_path.data()) == 0;
+            if (ok) ok = replace_uploaded_file(upload.partial_path.data(), upload.final_path.data());
             if (!ok) { reset_upload(true); report_error("finalize_failed"); }
             else {
                 SERIAL_ECHOPGM("RME_FILE_WRITE_COMPLETE path="); SERIAL_ECHOLN(upload.final_path.data() + 5);

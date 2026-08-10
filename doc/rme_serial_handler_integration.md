@@ -28,6 +28,11 @@ continue while the printer transitions to idle and applies its idle display
 and lighting policy. Use the `state` on structured events for device state;
 do not synthesize an active printer state from protocol traffic.
 
+All `@RME` service frames are excluded from the local chamber-light activity
+timer. Explicit remote UI input still wakes the display. If a temporary print
+screen override is below 15%, that wake is bounded to 30 seconds and the
+requested dim/off value is then restored.
+
 The session is volatile and is reset by firmware reboot. Re-negotiate after
 every reconnect. A handler must never infer a session merely because an older
 connection opened one.
@@ -46,6 +51,11 @@ from that authoritative event and suppress only the matching pending-request
 indicator. Do not discard the event globally, because another plugin view may
 depend on it. Front-panel changes carry `origin=local`. Commands without `tx`
 remain compatible and still generate a revisioned event.
+
+A front-panel loaded-filament edit emits `RME_CHANGE domain=filament
+key=loaded` only after material, color, and manufacturer have all been
+committed. Refresh the loaded-filament snapshot on that event; no polling or
+delay is required.
 
 ## Filesystem integration
 
@@ -90,6 +100,12 @@ transport interruption and issue the mode's abort operation when abandoning a
 transfer. Never interleave upload modes or send a second transfer request while
 one is active.
 
+When `CAPS` advertises `overwrite=1`, uploading to an existing regular-file
+path replaces it. Firmware retains the previous destination under a private
+temporary sibling until the verified new file is installed, rolls it back if
+installation fails, and removes the backup on success. Directories cannot be
+overwritten.
+
 Do not present a file as complete until `RME_FILE_WRITE_COMPLETE` arrives.
 For bulk and binary modes, the corresponding completion records are
 `RME_FILE_BULK_COMPLETE` and `RME_FILE_BINARY_COMPLETE`.
@@ -102,6 +118,21 @@ Upload a signed BBF through the same selected transfer mode, then send
 `@RME FILE FLASH path=<encoded path>`. This delegates validation, retained
 bootloader request, and restart to the firmware's normal update path. Do not
 assume that upload completion itself flashes or reboots the printer.
+
+Before an M997 reset, an active RME session receives
+`RME_EVENT ... workflow=firmware_update state=restarting ...` followed by
+`RME_FIRMWARE_RESTART reconnect=1` and the command acknowledgement. Stop normal
+send-loop timeout handling when the reconnect marker arrives, close the old
+serial descriptor after it disappears, and wait for the same USB serial number
+to enumerate again before reopening it. Re-run machine discovery, session
+negotiation, and the startup snapshot after reconnect. Do not exhaust ordinary
+baud autodetection while the bootloader is still installing the image.
+
+`/usb/FWUPD.BBF` is a temporary shared staging name. An M997 request for that
+name arms durable one-shot cleanup; the application removes it and its marker
+when mounted media becomes available after the bootloader attempt. A host must
+not submit a second flash request merely because the staging filename was seen
+during reconnect.
 
 ## Message routing
 

@@ -9,6 +9,7 @@
 #include "marlin_server_request.hpp"
 #include <inttypes.h>
 #include <stdarg.h>
+#include <cerrno>
 #include <cstdint>
 #include <stdio.h>
 #include <string.h> //strncmp
@@ -3881,18 +3882,26 @@ static void _server_update_vars() {
         }
     }();
 
-    if (const bool media = usb_host::is_media_inserted(); marlin_vars().media_inserted != media) {
-        marlin_vars().media_inserted = media;
-        if (media) {
-            // A UI-selected BBF is copied to a short bootloader-safe filename.
-            // Remove that transient copy after the bootloader returns to the
-            // application, while leaving serial-staged BBFs without this marker.
-            if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
-                fclose(marker);
-                remove("/usb/FWUPD.BBF");
+    const bool media = usb_host::is_media_inserted();
+    if (media) {
+        // A UI-selected or serial-staged BBF is copied/uploaded to the shared
+        // short bootloader-safe filename. Consume it after the application
+        // returns from the requested bootloader attempt. This must not depend
+        // on an insertion edge: after an update the USB drive is commonly
+        // already present when Marlin starts observing media state.
+        if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
+            fclose(marker);
+            // Keep the marker until the staged image is definitely gone. This
+            // makes cleanup retryable and prevents a failed unlink from
+            // turning a one-shot UI/serial update into a boot-time reflash.
+            errno = 0;
+            if (remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT) {
                 remove("/usb/FWUPD.UI");
             }
         }
+    }
+    if (marlin_vars().media_inserted != media) {
+        marlin_vars().media_inserted = media;
         _send_notify_event(marlin_vars().media_inserted ? Event::MediaInserted : Event::MediaRemoved, 0, 0);
     }
 

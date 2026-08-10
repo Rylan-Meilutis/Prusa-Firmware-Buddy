@@ -270,7 +270,7 @@ commands above as a fallback:
 @RME FILE WRITE_BULK_END
 ```
 
-`CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4`. A host pipelines four
+`CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4 overwrite=1`. A host pipelines four
 sequential chunks and waits for the cumulative `RME_FILE_BULK_ACK` offset
 before sending the next window. Offset, declared-size, atomic temporary-file,
 SHA-256, abort, and final-rename guarantees are identical to legacy upload.
@@ -303,7 +303,10 @@ the returned committed offset.
 
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a
-successful `WRITE_END`. `ABORT` removes the partial file. Mutating operations
+successful `WRITE_END`. If the destination is an existing regular file,
+firmware keeps it as a rollback sibling until the verified replacement is in
+place; all legacy, bulk, and binary upload modes therefore support overwrite.
+Directories are never overwritten. `ABORT` removes the partial file. Mutating operations
 are refused while printing:
 
 ```text

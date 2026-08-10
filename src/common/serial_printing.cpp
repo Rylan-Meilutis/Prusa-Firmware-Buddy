@@ -732,6 +732,10 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     // the LEDs awake forever.
     if (command[0] != '\0'
         && command[0] != ';'
+        // RME service traffic is out-of-band machine synchronization. Session
+        // keepalives and queries must not look like physical user activity or
+        // a connected host will keep the chamber LEDs awake forever.
+        && command[0] != '@'
         && !command_starts_with(command, 'M', 27)
         && !command_starts_with(command, 'M', 73)
         && !command_starts_with(command, 'M', 105)
