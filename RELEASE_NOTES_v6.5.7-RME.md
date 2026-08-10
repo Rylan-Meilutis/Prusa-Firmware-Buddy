@@ -5,6 +5,7 @@
   * New features and improvements
     * Independent loaded-filament manufacturer tracking with 50 popular built-ins, eight persistent keyboard/RME-defined entries, load/preload and loaded-filament selection, case-insensitive RME matching, M865 reporting, and settings export/import
     * USB CDC now advertises 1,000,000 as the preferred normal-mode setting and uses larger transfer FIFOs; 115200, 250000, older RME commands, and numbered G-code remain compatible fallbacks
+    * Negotiated RME bulk upload pipelines four 384-byte frames per cumulative acknowledgement while retaining legacy 48-byte transfers and atomic SHA-256 validation
     * Negotiated RME hosts now show a header connection icon, with file and firmware activity using the existing transfer icon and progress display
     * Larger USB CDC command FIFOs for faster file/firmware bursts while preserving 115200 compatibility, numbered G-code, M20-M32, and legacy host behavior; 57600 remains diagnostic logging mode
     * USB-confined `@RME FILE` service for directory listing, metadata, Base64 chunk downloads, SHA-256-verified atomic uploads, abort cleanup, directory creation, rename/delete, print queueing, and validated BBF flash queueing

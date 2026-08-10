@@ -223,6 +223,22 @@ Binary-safe, restartable uploads require the final byte count and SHA-256:
 @RME FILE ABORT
 ```
 
+Negotiated bulk upload removes the per-48-byte round trip while retaining the
+commands above as a fallback:
+
+```text
+@RME FILE WRITE_BULK_BEGIN path=jobs/part.bgcode size=12345 sha256=<64 hex digits>
+@RME FILE WRITE_BULK_CHUNK offset=0 data=<Base64, up to 384 decoded bytes>
+@RME FILE WRITE_BULK_CHUNK offset=384 data=<Base64, up to 384 decoded bytes>
+@RME FILE WRITE_BULK_END
+```
+
+`CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4`. A host pipelines four
+sequential chunks and waits for the cumulative `RME_FILE_BULK_ACK` offset
+before sending the next window. Offset, declared-size, atomic temporary-file,
+SHA-256, abort, and final-rename guarantees are identical to legacy upload.
+Signed BBF files use the same bulk upload followed by `@RME FILE FLASH`.
+
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a
 successful `WRITE_END`. `ABORT` removes the partial file. Mutating operations
