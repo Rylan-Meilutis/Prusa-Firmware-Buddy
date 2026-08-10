@@ -63,6 +63,13 @@ struct BinaryReceiver {
 // one reusable buffer preserves the full negotiated transfer size safely.
 std::array<uint8_t, binary_chunk_size> binary_read_payload {};
 
+// newlib normally allocates a FILE buffer lazily on the first fwrite. Uploads
+// commonly start when the GUI/network stacks have already fragmented the
+// heap, so that hidden allocation can turn an otherwise streaming transfer
+// into an out-of-memory fatal error. Keep exactly one FAT sector in static
+// storage and reuse it for the lifetime of the upload instead.
+std::array<char, 512> upload_file_buffer {};
+
 uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
 uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 void write_le16(uint8_t *p, const uint16_t value) {
@@ -416,7 +423,8 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             upload.final_path = *path;
             if (snprintf(upload.partial_path.data(), upload.partial_path.size(), "%s.rme-part", path->data()) >= static_cast<int>(upload.partial_path.size())
                 || !parse_sha256(*sha, upload.expected_sha) || !make_dirs(upload.partial_path.data())
-                || !(upload.file = fopen(upload.partial_path.data(), "wb"))) {
+                || !(upload.file = fopen(upload.partial_path.data(), "wb"))
+                || setvbuf(upload.file, upload_file_buffer.data(), _IOFBF, upload_file_buffer.size()) != 0) {
                 reset_upload(true); report_error("open_failed");
             } else {
                 upload.expected_size = *size;
