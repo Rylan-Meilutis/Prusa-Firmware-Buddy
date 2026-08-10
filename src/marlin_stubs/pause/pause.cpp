@@ -49,6 +49,7 @@ static_assert(HAS_PAUSE());
 #include <raii/scope_guard.hpp>
 #include <filament_to_load.hpp>
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <common/marlin_client.hpp>
 #include <common/mapi/parking.hpp>
 #include <feature/ramming/ramming_sequence.hpp>
@@ -756,6 +757,7 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     const auto old_filament = config_store().get_filament_type(settings.virtual_tool());
     config_store().set_filament_type(settings.virtual_tool(), filament::get_type_to_load());
     filament_color::set_loaded(settings.virtual_tool().to_raw(), filament::get_color_to_load());
+    filament_manufacturer::set_loaded(settings.virtual_tool().to_raw(), filament::get_manufacturer_to_load());
 
 #if HAS_NOZZLE_CLEANER()
     const bool purge_ok = nozzle_cleaner_purge_sequence();
@@ -902,6 +904,7 @@ void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
         }
         config_store().set_filament_type(VirtualToolIndex::from_raw(settings.mmu_filament_to_load), filament::get_type_to_load());
         filament_color::set_loaded(settings.mmu_filament_to_load, filament::get_color_to_load());
+        filament_manufacturer::set_loaded(settings.mmu_filament_to_load, filament::get_manufacturer_to_load());
 
         set(LoadState::color_correct_ask);
     } else if (load_type == LoadType::filament_change) {

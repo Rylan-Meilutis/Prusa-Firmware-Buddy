@@ -8,6 +8,7 @@
 #include <mbedtls/base64.h>
 #include <M70X.hpp>
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <filament_to_load.hpp>
 
 #include <gcode/gcode.h>
@@ -188,6 +189,7 @@ void execute(const Config &tool_config) {
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
             filament_color::set_loaded(tool.to_raw(), std::nullopt);
+            filament_manufacturer::set_loaded(tool.to_raw(), std::nullopt);
 #else
             filament_gcodes::M702_unload(
                 std::nullopt,
@@ -204,10 +206,12 @@ void execute(const Config &tool_config) {
             // preload the MMU slot
             filament::set_type_to_load(FilamentType { config.new_filament });
             filament::set_color_to_load(config.color);
+            filament::set_manufacturer_to_load(config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
             filament_gcodes::mmu_load(tool.to_raw());
 
             config_store().set_filament_type(tool, config.new_filament);
             filament_color::set_loaded(tool.to_raw(), config.color);
+            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
 #else
             const FilamentType new_filament { config.new_filament };
             if (old_filaments[tool] != FilamentType::none) {
@@ -229,6 +233,7 @@ void execute(const Config &tool_config) {
                     filament_gcodes::ResumePrint_t::No);
             }
 #endif
+            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
             break;
         }
         }

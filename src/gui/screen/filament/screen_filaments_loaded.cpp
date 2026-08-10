@@ -19,10 +19,12 @@ struct PendingLoadedFilament {
     VirtualToolIndex tool = VirtualToolIndex::from_raw(0);
     FilamentType material = FilamentType::none;
     std::optional<Color> color;
+    std::optional<uint8_t> manufacturer;
 } pending;
 
 void begin_edit(const VirtualToolIndex tool) {
-    pending = { tool, config_store().get_filament_type(tool), filament_color::loaded(tool.to_raw()) };
+    pending = { tool, config_store().get_filament_type(tool), filament_color::loaded(tool.to_raw()),
+        filament_manufacturer::loaded(tool.to_raw()).transform([](const auto &item) { return item.id; }) };
 }
 #endif
 }
@@ -61,6 +63,9 @@ MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t too
             sb.append_string(" / ");
             sb.append_string(color_profile.name.data());
             extension_width = filament_color_gui::swatch_and_arrow_extension_width;
+        }
+        if (const auto manufacturer = filament_manufacturer::loaded(tool_.to_raw())) {
+            sb.append_string(" / "); sb.append_string(manufacturer->name.data());
         }
 
         SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));
@@ -252,6 +257,9 @@ MI_EDIT_LOADED_COLOR::MI_EDIT_LOADED_COLOR()
 void MI_EDIT_LOADED_COLOR::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenAssignLoadedColor>(pending.tool.to_raw()));
 }
+MI_EDIT_LOADED_MANUFACTURER::MI_EDIT_LOADED_MANUFACTURER()
+    : IWindowMenuItem(_("Manufacturer"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+void MI_EDIT_LOADED_MANUFACTURER::click(IWindowMenu &) { Screens::Access()->Open<ScreenAssignManufacturer>(); }
 
 MI_SAVE_LOADED_FILAMENT::MI_SAVE_LOADED_FILAMENT()
     : IWindowMenuItem(_("Save"), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
@@ -259,6 +267,7 @@ MI_SAVE_LOADED_FILAMENT::MI_SAVE_LOADED_FILAMENT()
 void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
     config_store().set_filament_type(pending.tool, pending.material);
     filament_color::set_loaded(pending.tool.to_raw(), pending.color);
+    filament_manufacturer::set_loaded(pending.tool.to_raw(), pending.manufacturer);
     Screens::Access()->Close();
 }
 
@@ -326,4 +335,53 @@ void WindowMenuCustomFilamentColors::setup_item(ItemVariant &variant, int index)
 
 ScreenCustomFilamentColors::ScreenCustomFilamentColors()
     : ScreenMenuBase(nullptr, _("CUSTOM FILAMENT COLORS"), EFooter::Off) {}
+
+MI_ASSIGN_MANUFACTURER::MI_ASSIGN_MANUFACTURER(std::optional<uint8_t> id, std::string_view name)
+    : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), id_(id) {}
+void MI_ASSIGN_MANUFACTURER::click(IWindowMenu &) { pending.manufacturer = id_; Screens::Access()->Close(); }
+WindowMenuAssignManufacturer::WindowMenuAssignManufacturer(window_t *parent, Rect16 rect)
+    : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::yes) {
+    for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
+    setup_items();
+}
+int WindowMenuAssignManufacturer::item_count() const { return 2 + filament_manufacturer::presets().size() + custom_count_; }
+void WindowMenuAssignManufacturer::setup_item(ItemVariant &variant, int index) {
+    if (index == 0) { variant.emplace<MI_RETURN>(); return; }
+    if (index == 1) { variant.emplace<MI_ASSIGN_MANUFACTURER>(std::nullopt, std::string_view("None")); return; }
+    size_t requested = index - 2;
+    if (requested < filament_manufacturer::presets().size()) {
+        const auto name = filament_manufacturer::presets()[requested];
+        variant.emplace<MI_ASSIGN_MANUFACTURER>(static_cast<uint8_t>(requested + 1), std::string_view(name)); return;
+    }
+    requested -= filament_manufacturer::presets().size();
+    for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (const auto item = filament_manufacturer::custom(slot); item && requested-- == 0) {
+        variant.emplace<MI_ASSIGN_MANUFACTURER>(item->id, item->name_view()); return;
+    }
+}
+ScreenAssignManufacturer::ScreenAssignManufacturer() : ScreenMenuBase(nullptr, _("ASSIGN MANUFACTURER"), EFooter::Off) {}
+MI_ADD_CUSTOM_MANUFACTURER::MI_ADD_CUSTOM_MANUFACTURER()
+    : IWindowMenuItem(_("Add Manufacturer"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+void MI_ADD_CUSTOM_MANUFACTURER::click(IWindowMenu &menu) {
+    size_t slot = 0; while (slot < filament_manufacturer::custom_slot_count && filament_manufacturer::custom(slot)) ++slot;
+    if (slot == filament_manufacturer::custom_slot_count) { MsgBoxWarning(_("All manufacturer slots are in use."), Responses_Ok); return; }
+    std::array<char, filament_manufacturer::name_capacity> name {};
+    if (!DialogTextInput::exec(_("Manufacturer"), name) || !filament_manufacturer::set_custom(slot, name.data())) {
+        MsgBoxWarning(_("Enter a unique manufacturer name."), Responses_Ok); return;
+    }
+    static_cast<WindowMenuCustomManufacturers &>(menu).reload();
+}
+MI_SAVED_CUSTOM_MANUFACTURER::MI_SAVED_CUSTOM_MANUFACTURER(size_t slot)
+    : IWindowMenuItem({}, nullptr, is_enabled_t::no, is_hidden_t::no) {
+    if (const auto item = filament_manufacturer::custom(slot)) { label_ = item->name; SetLabel(string_view_utf8::MakeRAM(label_.data())); }
+}
+WindowMenuCustomManufacturers::WindowMenuCustomManufacturers(window_t *parent, Rect16 rect)
+    : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::yes) { reload(); }
+void WindowMenuCustomManufacturers::reload() { saved_count_ = 0; for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) saved_count_ += filament_manufacturer::custom(i).has_value(); setup_items(); }
+int WindowMenuCustomManufacturers::item_count() const { return 2 + saved_count_; }
+void WindowMenuCustomManufacturers::setup_item(ItemVariant &variant, int index) {
+    if (index == 0) { variant.emplace<MI_RETURN>(); return; }
+    if (index == 1) { variant.emplace<MI_ADD_CUSTOM_MANUFACTURER>(); return; }
+    size_t requested = index - 2; for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (filament_manufacturer::custom(slot) && requested-- == 0) { variant.emplace<MI_SAVED_CUSTOM_MANUFACTURER>(slot); return; }
+}
+ScreenCustomManufacturers::ScreenCustomManufacturers() : ScreenMenuBase(nullptr, _("FILAMENT MANUFACTURERS"), EFooter::Off) {}
 #endif

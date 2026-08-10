@@ -44,6 +44,7 @@ GCodeQueue queue;
 #include <serial_remote_control.hpp>
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
+#include <filament_manufacturer.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
 #if ENABLED(PRUSA_TOOL_MAPPING)
@@ -766,6 +767,82 @@ static bool handle_remote_filament_service(const std::string_view command) {
   return true;
 }
 
+static std::optional<std::array<char, filament_manufacturer::name_capacity>> remote_manufacturer_name(const std::string_view command) {
+  const auto encoded = remote_value(command, "name");
+  if (!encoded || encoded->empty()) return std::nullopt;
+  std::array<char, filament_manufacturer::name_capacity> result {};
+  size_t out = 0;
+  const auto hex = [](const char c) -> int {
+    if (c >= '0' && c <= '9') return c - '0';
+    const char lower = std::tolower(static_cast<unsigned char>(c));
+    return lower >= 'a' && lower <= 'f' ? lower - 'a' + 10 : -1;
+  };
+  for (size_t i = 0; i < encoded->size() && out + 1 < result.size(); ++i) {
+    if ((*encoded)[i] == '%' && i + 2 < encoded->size()) {
+      const int hi = hex((*encoded)[i + 1]), lo = hex((*encoded)[i + 2]);
+      if (hi < 0 || lo < 0) return std::nullopt;
+      result[out++] = static_cast<char>((hi << 4) | lo);
+      i += 2;
+    } else result[out++] = (*encoded)[i];
+  }
+  return result;
+}
+
+static void report_remote_manufacturer_name(const std::string_view name) {
+  constexpr char hex[] = "0123456789ABCDEF";
+  for (const unsigned char c : name) {
+    if (std::isalnum(c) || c == '-' || c == '_' || c == '.') SERIAL_CHAR(c);
+    else { SERIAL_CHAR('%'); SERIAL_CHAR(hex[c >> 4]); SERIAL_CHAR(hex[c & 0xf]); }
+  }
+}
+
+static bool handle_remote_manufacturer_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME MANUFACTURER ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  if (action.starts_with("QUERY")) {
+    size_t slot = 0;
+    for (const auto name : filament_manufacturer::presets()) {
+      SERIAL_ECHOPGM("RME_MANUFACTURER builtin=1 slot="); SERIAL_ECHO(slot++); SERIAL_ECHOPGM(" name=");
+      report_remote_manufacturer_name(name); SERIAL_EOL();
+    }
+    for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) if (const auto item = filament_manufacturer::custom(i)) {
+      SERIAL_ECHOPGM("RME_MANUFACTURER builtin=0 slot="); SERIAL_ECHO(i); SERIAL_ECHOPGM(" name=");
+      report_remote_manufacturer_name(item->name_view()); SERIAL_EOL();
+    }
+    for (uint8_t tool = 0; tool < EXTRUDERS; ++tool) {
+      SERIAL_ECHOPGM("RME_MANUFACTURER_LOADED tool="); SERIAL_ECHO(tool); SERIAL_ECHOPGM(" name=");
+      if (const auto item = filament_manufacturer::loaded(tool)) report_remote_manufacturer_name(item->name_view());
+      else SERIAL_ECHOPGM("none");
+      SERIAL_EOL();
+    }
+  } else if (action.starts_with("CREATE")) {
+    if (printer_lock::locked()) return true;
+    const auto slot = remote_number(command, "slot");
+    const auto name = remote_manufacturer_name(command);
+    if (!slot || *slot < 0 || *slot >= static_cast<long>(filament_manufacturer::custom_slot_count) || !name
+        || !filament_manufacturer::set_custom(*slot, name->data()))
+      SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_manufacturer");
+  } else if (action.starts_with("DELETE")) {
+    if (printer_lock::locked()) return true;
+    const auto slot = remote_number(command, "slot");
+    if (!slot || *slot < 0 || !filament_manufacturer::clear_custom(*slot)) SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_manufacturer_slot");
+  } else if (action.starts_with("ASSIGN")) {
+    if (printer_lock::locked()) return true;
+    const auto tool = remote_number(command, "tool");
+    const auto name = remote_manufacturer_name(command);
+    if (!tool || *tool < 0 || *tool >= EXTRUDERS || !name) return true;
+    const auto decoded_name = std::string_view(name->data());
+    const bool is_none = decoded_name.size() == 4 && std::equal(decoded_name.begin(), decoded_name.end(), "none", [](const char lhs, const char rhs) {
+      return std::tolower(static_cast<unsigned char>(lhs)) == rhs;
+    });
+    if (is_none) filament_manufacturer::set_loaded(*tool, std::nullopt);
+    else if (const auto item = filament_manufacturer::find(name->data())) filament_manufacturer::set_loaded(*tool, item->id);
+    else SERIAL_ECHOLNPGM("echo:RME_ERROR code=unknown_manufacturer");
+  } else return false;
+  return true;
+}
+
 static bool handle_remote_machine_service(const std::string_view command) {
   constexpr std::string_view query = "@RME MACHINE QUERY";
   if (!command.starts_with("@RME MACHINE ")) return false;
@@ -900,6 +977,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
       || handle_remote_filament_service(command)
+      || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)
       || handle_remote_stats_service(command)
       || handle_remote_toolmap_service(command)

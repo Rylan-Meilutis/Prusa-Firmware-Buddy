@@ -1,5 +1,6 @@
 #include "store_definition.hpp"
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <Marlin/src/inc/MarlinConfigPre.h>
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
@@ -226,6 +227,7 @@ void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType
 
     if (value == FilamentType::none) {
         filament_color::set_loaded(virtual_tool.to_raw(), std::nullopt);
+        filament_manufacturer::set_loaded(virtual_tool.to_raw(), std::nullopt);
 #if HAS_ANFC()
         // Unassign OpenPrintTag on filament removal
         opt_tool_assigned_tag.set_to_default(virtual_tool.to_raw());

@@ -73,6 +73,13 @@ public:
 protected:
     void click(IWindowMenu &) override;
 };
+
+class MI_CUSTOM_FILAMENT_MANUFACTURERS final : public IWindowMenuItem {
+public:
+    MI_CUSTOM_FILAMENT_MANUFACTURERS();
+protected:
+    void click(IWindowMenu &) override;
+};
 #endif
 
 using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
@@ -129,6 +136,7 @@ using ScreenMenuSettings__ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_HEATER_SAFETY_SETTINGS,
 #if !HAS_MINI_DISPLAY()
     MI_CUSTOM_FILAMENT_COLORS,
+    MI_CUSTOM_FILAMENT_MANUFACTURERS,
 #endif
     MI_EXPORT_RME_SETTINGS,
     MI_LANG_AND_TIME, MI_NETWORK, MI_HARDWARE, MI_HELP_FW_UPDATE,

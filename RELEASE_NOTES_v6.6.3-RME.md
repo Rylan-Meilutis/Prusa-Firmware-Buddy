@@ -7,6 +7,11 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Added independent filament-manufacturer tracking with 50 common built-ins,
+    eight persistent keyboard/RME-created names, case-insensitive host matching,
+    and selection alongside material and color during load and preload.
+  * Enlarged USB CDC packet FIFOs for faster file and firmware bursts while
+    preserving ordinary G-code, the older RME protocol, and 115200 defaults.
   * Added a USB-confined `@RME FILE` service for directory listing, metadata,
     Base64 chunk downloads, SHA-256-verified atomic uploads, abort cleanup,
     directory creation, rename/delete, print queueing, and normal validated BBF

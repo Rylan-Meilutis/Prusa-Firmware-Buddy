@@ -26,6 +26,7 @@ struct ConfigItem {
     Action action = Action::keep;
     EncodedFilamentType new_filament = FilamentType::none;
     CompactOptional<Color, COLOR_NONE> color;
+    uint8_t manufacturer = 0;
 };
 
 using Config = StrongIndexArray<ConfigItem, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static>;

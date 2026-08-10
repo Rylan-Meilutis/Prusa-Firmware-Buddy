@@ -13,12 +13,47 @@
 #include <filament_list.hpp>
 #include <option/has_toolchanger.h>
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <window_menu_virtual.hpp>
 #include <filament_color_gui.hpp>
 
 using namespace multi_filament_change;
 
 namespace {
+
+class MI_PRELOAD_MANUFACTURER final : public IWindowMenuItem {
+public:
+    MI_PRELOAD_MANUFACTURER(MI_ActionSelect *owner, std::optional<uint8_t> id, std::string_view name)
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), owner_(owner), id_(id) {}
+protected:
+    void click(IWindowMenu &) override { owner_->set_selected_manufacturer(id_); Screens::Access()->Close(); Screens::Access()->Close(); }
+private:
+    MI_ActionSelect *owner_;
+    std::optional<uint8_t> id_;
+};
+
+class WindowMenuPreloadManufacturer final : public WindowMenuVirtual {
+public:
+    WindowMenuPreloadManufacturer(window_t *parent, Rect16 rect) : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {}
+    void set_owner(MI_ActionSelect *owner) { owner_ = owner; custom_count_ = 0; for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value(); setup_items(); }
+    int item_count() const override { return 1 + filament_manufacturer::presets().size() + custom_count_; }
+protected:
+    void setup_item(ItemVariant &variant, int index) override {
+        if (index == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, std::nullopt, std::string_view("None")); return; }
+        size_t requested = static_cast<size_t>(index - 1);
+        if (requested < filament_manufacturer::presets().size()) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), std::string_view(filament_manufacturer::presets()[requested])); return; }
+        requested -= filament_manufacturer::presets().size();
+        for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (const auto profile = filament_manufacturer::custom(slot); profile && requested-- == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, profile->id, profile->name_view()); return; }
+    }
+private:
+    MI_ActionSelect *owner_ = nullptr;
+    size_t custom_count_ = 0;
+};
+
+class ScreenPreloadManufacturer final : public ScreenMenuBase<WindowMenuPreloadManufacturer> {
+public:
+    explicit ScreenPreloadManufacturer(MI_ActionSelect *owner) : ScreenMenuBase(nullptr, _("SELECT MANUFACTURER"), EFooter::On) { menu.menu.set_owner(owner); }
+};
 
 class MI_PRELOAD_COLOR final : public IWindowMenuItem {
 public:
@@ -34,7 +69,7 @@ protected:
 
     void click(IWindowMenu &) override {
         owner_->set_selected_color(color_);
-        Screens::Access()->Close();
+        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadManufacturer>(owner_));
     }
 
 private:
@@ -115,6 +150,7 @@ void MI_ActionSelect::set_config(const ConfigItem &set) {
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
     color = set.color;
+    manufacturer = set.manufacturer;
     set_current_item([&] -> size_t {
         switch (set.action) {
         case Action::keep:
@@ -136,7 +172,8 @@ ConfigItem MI_ActionSelect::config(int item_index) const {
     return ConfigItem {
         .action = mapping.item,
         .new_filament = (mapping.item == Action::change) ? filament_list[mapping.pos_in_section] : FilamentType::none,
-        .color = color
+        .color = color,
+        .manufacturer = manufacturer,
     };
 }
 
@@ -174,8 +211,10 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
 
             // Keep the color
             const auto orig_color = config_item.color;
+            const auto orig_manufacturer = config_item.manufacturer;
             config_item = new_config_item;
             config_item.color = orig_color;
+            config_item.manufacturer = orig_manufacturer;
         }
 
         menu.set_configuration(new_config);
@@ -191,6 +230,7 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
             return false;
         } else if (selected.action == Action::unload) {
             color = std::nullopt;
+            manufacturer = 0;
         }
     }
 
