@@ -1229,3 +1229,19 @@ Also run the transfer and Connect suites after changes to their shared command
 or buffer ownership paths.
 
 Release tags: `v6.5.7-RME-b34` and `v6.6.3-RME-b6`.
+
+## 2026-08-10 build 35 / build 7 validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. Require all
+29 presets to pass, with exactly 14 BBFs under `bbf/6.5.7`, 15 under
+`bbf/6.6.3`, and no root-level artifacts.
+
+Connect retry and range-restart paths must reopen the live `PartialFile` in
+place. Never construct a replacement while the original object remains alive:
+the class deliberately owns one fixed singleton DMA sector pool and rejects a
+second instance with `Concurrent partial files`. Validate the backing file's
+size, contiguity, USB logical unit, and first-sector mapping before resuming.
+This recovery path must not allocate heap memory and must remain independent of
+simultaneous ordinary motion commands.
+
+Release tags: `v6.5.7-RME-b35` and `v6.6.3-RME-b7`.
