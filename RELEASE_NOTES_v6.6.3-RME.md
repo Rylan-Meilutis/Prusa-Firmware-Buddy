@@ -1049,7 +1049,15 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   display wake over a dim/off print override expires after 30 seconds so the
   screen and chamber lighting can turn off normally; and
 * legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
-  existing regular file through verified sibling staging with rollback.
+  existing regular file through verified sibling staging with rollback;
+* RME downloads now negotiate CRC32-protected raw 4096-byte reads, with a
+  bounded frame per request and the original 48-byte Base64 mode retained for
+  older hosts;
+* RME-owned uploads and downloads retain the indigo R in the header alongside
+  transfer progress instead of replacing it with the generic transfer icon;
+  and
+* host transaction IDs are parsed over their full unsigned 32-bit range, so
+  large IDs no longer saturate at `2147483647` during profile synchronization.
 
 The final release command was:
 
@@ -1065,8 +1073,9 @@ Build 5 firmware continuation:
 
 ```text
 e9e1c6f52  2026-08-10  Fix one-shot updates and remote state synchronization
+pending    2026-08-10  Add fast RME downloads and robust host transactions
 ```
 
 Published release tag: `v6.6.3-RME-b5`.
 
-Release-documentation commit: `e8bb036d9`.
+Release-documentation commit: pending.

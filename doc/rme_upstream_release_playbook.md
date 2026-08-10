@@ -1174,4 +1174,12 @@ bound low-brightness display wake to 30 seconds. RME uploads may replace only
 regular files and must retain the old destination until verified installation
 of the new sibling succeeds.
 
+Verify `binary_read=1 binary_read_chunk=4096`, one raw download frame per
+`READ_BINARY` request, little-endian offset/length/CRC validation, retry at the
+same offset after corruption, and return to line mode before the completion
+record and `ok`. The RME header icon must remain the indigo R with progress for
+both upload and multi-frame download ownership; legacy 48-byte Base64 reads
+must remain available. Transaction IDs must round-trip over the complete
+unsigned 32-bit range, including values above `2147483647`.
+
 Release tags: `v6.5.7-RME-b33` and `v6.6.3-RME-b5`.

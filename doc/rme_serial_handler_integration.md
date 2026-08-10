@@ -52,6 +52,13 @@ indicator. Do not discard the event globally, because another plugin view may
 depend on it. Front-panel changes carry `origin=local`. Commands without `tx`
 remain compatible and still generate a revisioned event.
 
+Use the complete unsigned range `1..4294967295`; do not encode transaction IDs
+as signed 32-bit values. Except for explicitly windowed file-transfer frames,
+wait for the command's `ok` before sending the next persistent configuration
+mutation. Configuration events may precede that `ok`, but they do not grant
+another transmit credit. This bounds journal work and input buffering during a
+large filament-profile replay.
+
 A front-panel loaded-filament edit emits `RME_CHANGE domain=filament
 key=loaded` only after material, color, and manufacturer have all been
 committed. Refresh the loaded-filament snapshot on that event; no polling or
@@ -61,8 +68,18 @@ delay is required.
 
 Use `@RME FILE CAPS` during discovery and treat `/usb` as the only exported
 filesystem. For downloads, request no more than 48 bytes and decode each
-`RME_FILE_DATA data=` value from Base64. For uploads, calculate the complete
-byte count and SHA-256 before selecting the fastest mutually supported mode:
+`RME_FILE_DATA data=` value from Base64 only as the compatibility fallback.
+When `binary_read=1`, prefer `READ_BINARY` with at most `binary_read_chunk`
+bytes. Wait for `RME_FILE_BINARY_READ_READY`, consume exactly the advertised
+ten-byte little-endian header and payload length, verify its offset and CRC32,
+then return to line parsing for `RME_FILE_BINARY_READ_COMPLETE` and `ok`.
+Continue at `next` until `eof=1`; retry only the failed offset. Do not send
+ordinary commands between READY and the end of that single raw frame. Unlike a
+raw upload, a download returns to line mode after every bounded frame, keeping
+pause, abort, and workflow controls responsive between requests.
+
+For uploads, calculate the complete byte count and SHA-256 before selecting
+the fastest mutually supported mode:
 
 1. Prefer `binary=1`. Send `WRITE_BINARY_BEGIN`, wait for
    `RME_FILE_BINARY_READY`, and temporarily switch the connection from line

@@ -1,5 +1,6 @@
 #include <Marlin/src/core/serial.h>
 #include <Marlin/src/gcode/queue.h>
+#include <USBSerial.h>
 
 #include <common/directory.hpp>
 #include <common/filename_type.hpp>
@@ -57,6 +58,16 @@ struct BinaryReceiver {
 
 uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
 uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
+void write_le16(uint8_t *p, const uint16_t value) {
+    p[0] = value;
+    p[1] = value >> 8;
+}
+void write_le32(uint8_t *p, const uint32_t value) {
+    p[0] = value;
+    p[1] = value >> 8;
+    p[2] = value >> 16;
+    p[3] = value >> 24;
+}
 
 void report_error(const char *code) {
     SERIAL_ECHOPGM("echo:RME_ERROR workflow=file code=");
@@ -281,7 +292,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const auto action = command.substr(prefix.size());
 
     if (action.starts_with("CAPS")) {
-        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 max_size=1073741824 list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
+        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 binary_read=1 binary_read_chunk=4096 max_size=1073741824 list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
         return true;
     }
     if (action.starts_with("ABORT")) {
@@ -324,6 +335,39 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             }
             SERIAL_ECHOLNPGM("RME_FILE_LIST_END");
         }
+    } else if (action.starts_with("READ_BINARY")) {
+        const uint32_t offset = number(command, "offset").value_or(0);
+        const uint32_t length = number(command, "length").value_or(binary_chunk_size);
+        struct stat st {};
+        if (!length || length > binary_chunk_size || offset > maximum_file_size) report_error("invalid_range");
+        else if (stat(path->data(), &st) || !S_ISREG(st.st_mode) || st.st_size < 0 || static_cast<uint64_t>(st.st_size) > maximum_file_size) report_error("read_failed");
+        else if (FILE *file = fopen(path->data(), "rb")) {
+            std::array<uint8_t, binary_chunk_size> payload {};
+            if (fseek(file, offset, SEEK_SET)) { fclose(file); report_error("read_failed"); return true; }
+            const size_t count = fread(payload.data(), 1, length, file);
+            const bool read_error = ferror(file);
+            fclose(file);
+            if (read_error) { report_error("read_failed"); return true; }
+
+            std::array<uint8_t, 10> header {};
+            write_le32(header.data(), offset);
+            write_le16(header.data() + 4, static_cast<uint16_t>(count));
+            write_le32(header.data() + 6, crc32_sw(payload.data(), count, 0));
+            const uint32_t file_size = static_cast<uint32_t>(st.st_size);
+            const uint32_t next = offset + count;
+            const bool eof = next >= file_size;
+            serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, std::min(next, file_size), file_size);
+            SERIAL_ECHOPGM("RME_FILE_BINARY_READ_READY path="); SERIAL_ECHO(path->data() + 5);
+            SERIAL_ECHOPGM(" offset="); SERIAL_ECHO(offset);
+            SERIAL_ECHOPGM(" length="); SERIAL_ECHO(count);
+            SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32");
+            SERIAL_FLUSHTX();
+            SerialUSB.cdc_write_sync(header.data(), header.size());
+            if (count) SerialUSB.cdc_write_sync(payload.data(), count);
+            SERIAL_ECHOPGM("RME_FILE_BINARY_READ_COMPLETE next="); SERIAL_ECHO(next);
+            SERIAL_ECHOPGM(" eof="); SERIAL_ECHOLN(eof ? 1 : 0);
+            if (eof) serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
+        } else report_error("read_failed");
     } else if (action.starts_with("READ")) {
         const uint32_t offset = number(command, "offset").value_or(0);
         const uint32_t length = number(command, "length").value_or(transfer_chunk_size);
