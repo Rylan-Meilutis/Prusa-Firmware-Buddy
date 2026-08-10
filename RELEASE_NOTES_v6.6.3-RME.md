@@ -1069,4 +1069,4 @@ e9e1c6f52  2026-08-10  Fix one-shot updates and remote state synchronization
 
 Published release tag: `v6.6.3-RME-b5`.
 
-Release-documentation commit: pending.
+Release-documentation commit: `e8bb036d9`.
