@@ -1155,3 +1155,32 @@ a6d7d4d20  2026-08-10  Remove Connect command heap churn
 ```
 
 Published release tag: `v6.5.7-RME-b34`.
+
+## Build 35 release update
+
+Build 35 fixes a deterministic crash when a Connect inline download is
+restarted while its partial file is still owned by the transfer subsystem.
+The retry path previously attempted to construct a second `PartialFile`, which
+violated the intentionally singleton fixed-DMA-buffer design and stopped with
+`Concurrent partial files`.
+
+Retries now reopen the existing partial file in place without allocating or
+constructing a second transfer object. Before resuming, the firmware verifies
+the file size, contiguity, backing USB logical unit, and first-sector mapping.
+This keeps transfer recovery allocation-free and prevents unrelated motion
+commands from appearing to trigger the transfer failure when they merely
+overlap a Connect retry.
+
+The final release command is:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+Build 35 firmware continuation:
+
+```text
+dd65ac662  2026-08-10  Fix partial-file retry singleton collision
+```
+
+Published release tag: `v6.5.7-RME-b35`.
