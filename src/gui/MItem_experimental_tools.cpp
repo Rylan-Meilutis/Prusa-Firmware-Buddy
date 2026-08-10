@@ -188,6 +188,7 @@ void MI_RESET_DIRECTION::click([[maybe_unused]] IWindowMenu &window_menu) {
 }
 
 static constexpr NumericInputConfig rms_current_spin_config = {
+    .min_value = 0,
     .max_value = 800,
     .special_value = 0,
     .special_value_str = N_("Default"),
