@@ -132,6 +132,14 @@ std::optional<std::array<char, FILE_PATH_BUFFER_LEN>> path_value(const std::stri
     const auto encoded = value(command, key);
     std::array<char, FILE_PATH_BUFFER_LEN> path {};
     if (!encoded || !decode_path(*encoded, path)) return std::nullopt;
+    // FWUPD.BBF is the legacy host-visible staging name. Never leave a
+    // completed, discoverable BBF under that name: the bootloader may select
+    // it on an unrelated reboot before the user or host explicitly requests
+    // a flash. Keep wire compatibility while storing it under a neutral
+    // extension that is only opened through the retained M997 request.
+    if (strcasecmp(path.data(), "/usb/FWUPD.BBF") == 0) {
+        strlcpy(path.data(), "/usb/FWUPD.RME", path.size());
+    }
     return path;
 }
 
@@ -471,7 +479,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         const bool flash = action.starts_with("FLASH");
         const char *extension = strrchr(path->data(), '.');
         if (!marlin_server::printer_idle()) report_error("printer_busy");
-        else if (flash && (!extension || strcasecmp(extension, ".bbf"))) report_error("invalid_firmware");
+        else if (flash && (!extension || (strcasecmp(extension, ".bbf") && strcasecmp(path->data(), "/usb/FWUPD.RME")))) report_error("invalid_firmware");
         else {
             std::array<char, MAX_CMD_SIZE> gcode {};
             const int count = snprintf(gcode.data(), gcode.size(), flash ? "M997 %s" : "M32 %s", path->data());

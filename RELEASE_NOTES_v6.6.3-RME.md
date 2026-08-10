@@ -1058,6 +1058,12 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   and
 * host transaction IDs are parsed over their full unsigned 32-bit range, so
   large IDs no longer saturate at `2147483647` during profile synchronization.
+* RME session and four-frame bulk bursts have complete 4096-byte USB CDC RX/TX
+  FIFOs, preventing handshake response corruption and transfer timeouts without
+  reducing the 384-byte chunk or four-frame window;
+* firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
+  marker is created only together with the explicit M997 reboot request, so a
+  partial or unselected upload cannot flash on an unrelated boot.
 
 The final release command was:
 

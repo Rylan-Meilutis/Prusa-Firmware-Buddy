@@ -13,8 +13,9 @@
 #include <unistd.h>
 
 namespace {
-constexpr const char *staged_firmware_path = "/usb/FWUPD.BBF";
-constexpr const char *staged_firmware_marker_path = "/usb/FWUPD.UI";
+// A neutral extension prevents bootloader auto-discovery. Installation is
+// authorized only by the retained M997 request created after confirmation.
+constexpr const char *staged_firmware_path = "/usb/FWUPD.RME";
 
 bool stage_firmware_for_bootloader(const char *source_path) {
     // This runs on the GUI task. Keep the copy buffer out of its constrained
@@ -50,18 +51,7 @@ bool stage_firmware_for_bootloader(const char *source_path) {
         }
     }
 
-    FILE *marker = fopen(staged_firmware_marker_path, "wb");
-    if (!marker) {
-        if (!source_is_staging_path) remove(staged_firmware_path);
-        return false;
-    }
-    bool success = fflush(marker) == 0 && fsync(fileno(marker)) == 0;
-    success = fclose(marker) == 0 && success;
-    if (!success) {
-        remove(staged_firmware_marker_path);
-        if (!source_is_staging_path) remove(staged_firmware_path);
-    }
-    return success;
+    return true;
 }
 } // namespace
 
@@ -146,14 +136,14 @@ void ScreenFirmwareFileBrowser::select_file() {
     }
 
     if (!stage_firmware_for_bootloader(path.data())) {
-        MsgBoxError(_("Could not stage the selected firmware as /usb/FWUPD.BBF."), Responses_Ok);
+        MsgBoxError(_("Could not stage the selected firmware for installation."), Responses_Ok);
         return;
     }
 
     // Use the same Marlin-side handoff as serial firmware updates. It sends
     // the command acknowledgement, writes the retained bootloader request,
     // and resets outside the GUI callback.
-    marlin_client::gcode("M997 /usb/FWUPD.BBF");
+    marlin_client::gcode("M997 /usb/FWUPD.RME");
 }
 
 void ScreenFirmwareFileBrowser::go_home() {

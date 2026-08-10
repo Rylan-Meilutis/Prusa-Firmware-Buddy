@@ -3895,7 +3895,10 @@ static void _server_update_vars() {
             // makes cleanup retryable and prevents a failed unlink from
             // turning a one-shot UI/serial update into a boot-time reflash.
             errno = 0;
-            if (remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT) {
+            const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
+            errno = 0;
+            const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
+            if (safe_stage_removed && legacy_stage_removed) {
                 remove("/usb/FWUPD.UI");
             }
         }
