@@ -1255,3 +1255,8 @@ This recovery path must not allocate heap memory and must remain independent of
 simultaneous ordinary motion commands.
 
 Release tags: `v6.5.7-RME-b35` and `v6.6.3-RME-b7`.
+
+Final result: all 29 presets passed. The 6.5.7 set contains 14 BBFs and the
+6.6.3 set contains 15 BBFs. Validated maxima were 6.5.7 MINI 96.65%, MK4
+94.63%, MK3.5 90.05%, XL 69.16%; 6.6.3 MINI 98.67%, MK4 60.76%, MK3.5
+56.14%, XL 68.86%, and CORE One INDX 65.44%.

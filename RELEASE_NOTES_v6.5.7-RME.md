@@ -1177,6 +1177,10 @@ The final release command is:
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
+All 14 6.5.7 presets passed. Maximum MINI flash use was 96.65%, MK4 used
+94.63%, MK3.5 used 90.05%, and XL used 69.16%. The staged release directory
+contains exactly 14 BBFs under `bbf/6.5.7`.
+
 Build 35 firmware continuation:
 
 ```text
