@@ -62,18 +62,17 @@ public:
         for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
         setup_items();
     }
-    int item_count() const override { return 2 + filament_manufacturer::presets().size() + custom_count_; }
+    int item_count() const override { return 2 + filament_manufacturer::preset_count + custom_count_; }
 protected:
     void setup_item(ItemVariant &variant, int index) override {
         if (index == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, std::nullopt, std::string_view("None")); return; }
         if (index == item_count() - 1) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, std::optional<uint8_t> { 0xfe }, std::string_view("Add Manufacturer")); return; }
         size_t requested = index - 1;
-        if (requested < filament_manufacturer::presets().size()) {
-            const auto name = filament_manufacturer::presets()[requested];
-            variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), std::string_view(name));
+        if (requested < filament_manufacturer::preset_count) {
+            variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), filament_manufacturer::preset(requested));
             return;
         }
-        requested -= filament_manufacturer::presets().size();
+        requested -= filament_manufacturer::preset_count;
         for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (const auto profile = filament_manufacturer::custom(slot); profile && requested-- == 0) {
             variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, profile->id, profile->name_view());
             return;
@@ -254,13 +253,13 @@ void MI_ApplyChanges::click(IWindowMenu &menu) {
 MenuMultiFilamentChange::MenuMultiFilamentChange(window_t *parent, const Rect16 &rect)
     : WindowMenu(parent, rect) {
     BindContainer(container);
+    stdext::visit_sequence<tool_count>([&]<size_t ix>() {
+        action_items_[ix] = &container.Item<WithConstructorArgs<MI_ActionSelect, ix>>();
+    });
 }
 
 void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig &set) {
-    // Set the correct indexes for the actions
-    stdext::visit_sequence<tool_count>([&]<size_t ix>() {
-        container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().set_config(set[ix]);
-    });
+    for (size_t tool = 0; tool < tool_count; ++tool) action_items_[tool]->set_config(set[tool]);
 }
 
 void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, void *param) {
@@ -277,11 +276,10 @@ void MenuMultiFilamentChange::carry_out_changes() {
     struct ToolConfig : public ConfigItem {
         FilamentType old_filament = FilamentType::none;
     };
-    std::array<ToolConfig, tool_count> tool_config = [&]<size_t... ix>(std::index_sequence<ix...>) {
-        return std::array<ToolConfig, tool_count> {
-            ToolConfig { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config(), config_store().get_filament_type(ix) }...
-        };
-    }(std::make_index_sequence<tool_count>());
+    std::array<ToolConfig, tool_count> tool_config {};
+    for (size_t tool = 0; tool < tool_count; ++tool) {
+        tool_config[tool] = ToolConfig { action_items_[tool]->config(), config_store().get_filament_type(tool) };
+    }
 
     // Validate the inputs
     for (size_t tool = 0; tool < tool_count; tool++) {

@@ -88,6 +88,7 @@ private:
 
 private:
     MenuMultiFilamentChange_::Container container;
+    std::array<MI_ActionSelect *, tool_count> action_items_ {};
     bool is_carrying_out_changes_ = false;
 };
 

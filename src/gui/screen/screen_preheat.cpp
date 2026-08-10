@@ -56,18 +56,17 @@ public:
         for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
         setup_items();
     }
-    int item_count() const override { return 2 + filament_manufacturer::presets().size() + custom_count_; }
+    int item_count() const override { return 2 + filament_manufacturer::preset_count + custom_count_; }
 protected:
     void setup_item(ItemVariant &variant, int index) override {
         if (index == 0) { variant.emplace<MI_LOAD_MANUFACTURER>(std::nullopt, std::string_view("None")); return; }
         if (index == item_count() - 1) { variant.emplace<MI_LOAD_MANUFACTURER>(std::optional<uint8_t> { 0xfe }, std::string_view("Add Manufacturer")); return; }
         size_t requested = index - 1;
-        if (requested < filament_manufacturer::presets().size()) {
-            const auto name = filament_manufacturer::presets()[requested];
-            variant.emplace<MI_LOAD_MANUFACTURER>(static_cast<uint8_t>(requested + 1), std::string_view(name));
+        if (requested < filament_manufacturer::preset_count) {
+            variant.emplace<MI_LOAD_MANUFACTURER>(static_cast<uint8_t>(requested + 1), filament_manufacturer::preset(requested));
             return;
         }
-        requested -= filament_manufacturer::presets().size();
+        requested -= filament_manufacturer::preset_count;
         for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) {
             if (const auto profile = filament_manufacturer::custom(slot); profile && requested-- == 0) {
                 variant.emplace<MI_LOAD_MANUFACTURER>(profile->id, profile->name_view());

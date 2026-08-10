@@ -10,18 +10,28 @@
 namespace filament_manufacturer {
 namespace {
 constexpr uint8_t custom_id_base = 0x80;
-constexpr std::array<const char *, 50> builtin {{
-    "Prusa / Prusament", "eSUN", "Polymaker", "SUNLU", "Bambu Lab",
-    "Overture", "Atomic Filament", "Hatchbox", "ELEGOO", "Anycubic",
-    "Creality", "3D Fuel", "3DJake", "3DXTECH", "Amolen", "AzureFilm",
-    "BASF Forward AM", "colorFabb", "Devil Design", "Duramic 3D", "ERYONE",
-    "Extrudr", "Fiberlogy", "Fillamentum", "FlashForge", "FormFutura",
-    "Inland", "JAYO", "Kexcelled", "MatterHackers", "Proto-pasta",
-    "Push Plastic", "QIDI Tech", "Recreus", "ROSA3D", "Spectrum Filaments",
-    "AddNorth", "Cookiecad", "COEX 3D", "IC3D", "Jessie", "NinjaTek",
-    "Printed Solid", "Kimya", "Nanovia", "ZIRO", "Sovol", "Snapmaker",
-    "Voxelab", "Zortrax",
-}};
+// Packed rather than an array of pointers: the names are immutable and are
+// walked only while opening a picker or resolving a host-provided name. This
+// removes fifty relocatable pointers and gives constant merging one canonical
+// copy of each name across all manufacturer workflows.
+constexpr char builtin[] =
+    "Prusa / Prusament\0eSUN\0Polymaker\0SUNLU\0Bambu Lab\0"
+    "Overture\0Atomic Filament\0Hatchbox\0ELEGOO\0Anycubic\0"
+    "Creality\0" "3D Fuel\0" "3DJake\0" "3DXTECH\0Amolen\0AzureFilm\0"
+    "BASF Forward AM\0colorFabb\0Devil Design\0Duramic 3D\0ERYONE\0"
+    "Extrudr\0Fiberlogy\0Fillamentum\0FlashForge\0FormFutura\0"
+    "Inland\0JAYO\0Kexcelled\0MatterHackers\0Proto-pasta\0"
+    "Push Plastic\0QIDI Tech\0Recreus\0ROSA3D\0Spectrum Filaments\0"
+    "AddNorth\0Cookiecad\0COEX 3D\0IC3D\0Jessie\0NinjaTek\0"
+    "Printed Solid\0Kimya\0Nanovia\0ZIRO\0Sovol\0Snapmaker\0"
+    "Voxelab\0Zortrax\0";
+
+std::string_view builtin_at(size_t index) {
+    if (index >= preset_count) return {};
+    const char *name = builtin;
+    while (index--) name += std::strlen(name) + 1;
+    return name;
+}
 
 bool equal_ci(const std::string_view a, const std::string_view b) {
     return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](const char lhs, const char rhs) {
@@ -36,7 +46,7 @@ Profile make_profile(const uint8_t id, const std::string_view name) {
 }
 }
 
-std::span<const char *const> presets() { return builtin; }
+std::string_view preset(const size_t index) { return builtin_at(index); }
 
 std::optional<Profile> custom(const size_t slot) {
     if (slot >= custom_slot_count || !(config_store().custom_filament_manufacturer_valid.get() & (1u << slot))) return std::nullopt;
@@ -63,13 +73,13 @@ bool clear_custom(const size_t slot, const bool from_host, const uint32_t transa
 }
 
 std::optional<Profile> find(const std::string_view name) {
-    for (size_t i = 0; i < builtin.size(); ++i) if (equal_ci(name, builtin[i])) return make_profile(static_cast<uint8_t>(i + 1), builtin[i]);
+    for (size_t i = 0; i < preset_count; ++i) if (const auto item = builtin_at(i); equal_ci(name, item)) return make_profile(static_cast<uint8_t>(i + 1), item);
     for (size_t i = 0; i < custom_slot_count; ++i) if (const auto item = custom(i); item && equal_ci(name, item->name_view())) return item;
     return std::nullopt;
 }
 
 std::optional<Profile> from_id(const uint8_t id) {
-    if (id >= 1 && id <= builtin.size()) return make_profile(id, builtin[id - 1]);
+    if (id >= 1 && id <= preset_count) return make_profile(id, builtin_at(id - 1));
     if (id >= custom_id_base && id < custom_id_base + custom_slot_count) return custom(id - custom_id_base);
     return std::nullopt;
 }
