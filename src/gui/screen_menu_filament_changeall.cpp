@@ -173,12 +173,12 @@ MI_ActionSelect::MI_ActionSelect(SetAllToMode)
     set_config({});
 }
 
-void MI_ActionSelect::set_config(const ConfigItem &set) {
+void MI_ActionSelect::set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color) {
     // By using enforce_first_item, we make sure the target filament is in the list (it might be hidden otherwise) and that it's on the first place (which is a welcome bonus)
     generate_filament_list(filament_list, { .enforce_first_item = set.new_filament });
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
-    color = set.color;
+    color = set_color;
     manufacturer = set.manufacturer;
     set_current_item([&] -> size_t {
         switch (set.action) {
@@ -201,7 +201,6 @@ ConfigItem MI_ActionSelect::config(int item_index) const {
     return ConfigItem {
         .action = mapping.item,
         .new_filament = (mapping.item == Action::change) ? filament_list[mapping.pos_in_section] : FilamentType::none,
-        .color = color,
         .manufacturer = manufacturer,
     };
 }
@@ -239,10 +238,10 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
             auto &config_item = new_config[tool];
 
             // Keep the color
-            const auto orig_color = config_item.color;
+            const auto orig_color = new_config.colors[tool];
             const auto orig_manufacturer = config_item.manufacturer;
             config_item = new_config_item;
-            config_item.color = orig_color;
+            new_config.colors[tool] = orig_color;
             config_item.manufacturer = orig_manufacturer;
         }
 
@@ -279,17 +278,21 @@ MenuMultiFilamentChange::MenuMultiFilamentChange(window_t *parent, const Rect16 
 }
 
 MultiFilamentChangeConfig MenuMultiFilamentChange::configuration() const {
-    return [&]<size_t... ix>(std::index_sequence<ix...>) {
-        return MultiFilamentChangeConfig {
-            ConfigItem { container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().config() }...
-        };
-    }(std::make_index_sequence<VirtualToolIndex::count>());
+    MultiFilamentChangeConfig result;
+    stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
+        const auto tool = VirtualToolIndex::from_raw(ix);
+        const auto &item = container.Item<WithConstructorArgs<MI_ActionSelect, ix>>();
+        result[tool] = item.config();
+        result.colors[tool] = item.selected_color();
+    });
+    return result;
 }
 
 void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig &set) {
     // Set the correct indexes for the actions
     stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
-        container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().set_config(set[VirtualToolIndex::from_raw(ix)]);
+        const auto tool = VirtualToolIndex::from_raw(ix);
+        container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().set_config(set[tool], set.colors[tool]);
     });
 }
 

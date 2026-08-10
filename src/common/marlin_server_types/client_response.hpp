@@ -918,7 +918,7 @@ inline constexpr EnumArray<PhaseDoorSensorCalibration, PhaseResponses, CountPhas
 inline constexpr EnumArray<PhaseDockCalibration, PhaseResponses, CountPhases<PhaseDockCalibration>()> dock_calibration_responses {
     { PhaseDockCalibration::intro, { Response::Continue, Response::Abort } },
     { PhaseDockCalibration::remove_tool, { Response::Abort } },
-    { PhaseDockCalibration::select_dock_count, { Response::Docks4, Response::Docks8, Response::Other } },
+    { PhaseDockCalibration::select_dock_count, { Response::Docks4, Response::Docks8 } },
     { PhaseDockCalibration::select_docks, {} }, // per-dock actions passed through FSMResponseVariant as a DockSelection
     { PhaseDockCalibration::homing, {} },
     { PhaseDockCalibration::moving_away, {} },

@@ -47,6 +47,8 @@ GCodeQueue queue;
 #include <filament_manufacturer.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
+#include <print_utils.hpp>
+#include <tool_index.hpp>
 #if ENABLED(PRUSA_TOOL_MAPPING)
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
@@ -858,9 +860,12 @@ static bool handle_remote_machine_service(const std::string_view command) {
   if (!command.starts_with("@RME MACHINE ")) return false;
   if (!command.starts_with(query)) return false;
 
-  SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(HOTENDS);
-  SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
-  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(HOTENDS == 1 ? 1 : 0);
+  // HOTENDS/EXTRUDERS include Marlin's internal NoTool sentinel on a
+  // toolchanger. Never expose that sentinel as a ninth INDX tool.
+  SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(PhysicalToolIndex::count);
+  SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
+  SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
+  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
   SERIAL_ECHOPGM("RME_ENVELOPE x_min="); SERIAL_ECHO(X_MIN_POS);
   SERIAL_ECHOPGM(" x_max="); SERIAL_ECHO(X_MAX_POS);

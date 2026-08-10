@@ -206,6 +206,9 @@ The response is split into `RME_MACHINE`, `RME_ENVELOPE`, and `RME_LIMITS`
 records. It reports physical hotend and logical-tool counts, whether the machine
 uses a single nozzle, reachable XYZ bounds, and the currently configured maximum XYZ feedrates used by OctoPrint's
 printer profile. Firmware-only acceleration tuning remains local.
+For INDX, `hotends` and `tool_capacity` are at most eight and `logical_tools`
+is the enabled count selected by the four- or eight-dock calibration workflow.
+Marlin's internal `NoTool` sentinel is never reported as a ninth tool.
 An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.

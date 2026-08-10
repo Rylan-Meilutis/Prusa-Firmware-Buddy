@@ -131,10 +131,9 @@ private:
 
         // Select how many docks the user has
         uint8_t dock_count = PhysicalToolIndex::count;
-        // When the user picks a known dock count (4 or 8), default to calibrating
-        // every dock; when they pick "Other", let them refine the default selection
-        // (only uncalibrated docks pre-selected).
-        bool preselect_all = false;
+        // INDX is sold in exactly four- and eight-tool variants. Selecting the
+        // hardware variant also bounds every following tool-selection screen.
+        bool preselect_all = true;
         fsm_change(PhaseDockCalibration::select_dock_count);
         {
             const auto response = wait_for_response(PhaseDockCalibration::select_dock_count);
@@ -147,13 +146,19 @@ private:
                 dock_count = 8;
                 preselect_all = true;
                 break;
-            case Response::Other:
-                dock_count = 8;
-                break;
             default:
                 bsod_unreachable();
             }
         }
+
+        // Persist the selected hardware variant through the calibrated-dock
+        // mask. In particular, switching an eight-tool setup to four tools
+        // must not leave stale tools 5-8 enabled or advertised to a host.
+        auto calibrated_mask = config_store().indx_dock_calibrated_mask.get();
+        for (uint8_t raw = dock_count; raw < PhysicalToolIndex::count; ++raw) {
+            calibrated_mask.reset(raw);
+        }
+        config_store().indx_dock_calibrated_mask.set(calibrated_mask);
 
         // Select which docks to calibrate — pass dock_count and preselect_all via PhaseData
         {

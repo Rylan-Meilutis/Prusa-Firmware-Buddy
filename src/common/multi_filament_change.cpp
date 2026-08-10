@@ -42,7 +42,7 @@ Config config_from_current_print_setup() {
         auto &item = result[virtual_tool];
 
         assert(tool_info.used()); // otherwise bug in mapping
-        item.color = tool_info.extruder_colour;
+        result.colors[virtual_tool] = tool_info.extruder_colour;
 
         const auto &opt_name = tool_info.filament_name;
         if (opt_name.empty()) {
@@ -207,13 +207,13 @@ void execute(const Config &tool_config) {
 #if HAS_MMU2()
             // preload the MMU slot
             filament::set_type_to_load(FilamentType { config.new_filament });
-            filament::set_color_to_load(config.color);
+            filament::set_color_to_load(tool_config.colors[tool]);
             filament::set_manufacturer_to_load(config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
             filament_gcodes::mmu_load(tool.to_raw());
 
             config_store().set_filament_type(tool, config.new_filament);
             SerialPrinting::notify_configuration("filament", "loaded");
-            filament_color::set_loaded(tool.to_raw(), config.color);
+            filament_color::set_loaded(tool.to_raw(), tool_config.colors[tool]);
             filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
 #else
             const FilamentType new_filament { config.new_filament };
@@ -223,7 +223,7 @@ void execute(const Config &tool_config) {
                     tool,
                     RetAndCool_t::Return,
                     filament_gcodes::AskFilament_t::Never,
-                    config.color);
+                    tool_config.colors[tool]);
             } else {
                 filament_gcodes::M701_load(
                     new_filament,
@@ -232,7 +232,7 @@ void execute(const Config &tool_config) {
                     RetAndCool_t::Return,
                     tool,
                     -1,
-                    config.color,
+                    tool_config.colors[tool],
                     filament_gcodes::ResumePrint_t::No);
             }
 #endif
