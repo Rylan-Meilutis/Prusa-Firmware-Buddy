@@ -60,6 +60,10 @@ void MI_EXPORT_RME_SETTINGS::click(IWindowMenu & /*window_menu*/) {
         return;
     }
 
+    // This is a small, infrequent settings export. Avoid allocating a hidden
+    // stdio buffer from the system heap merely to batch a few short lines.
+    setvbuf(file, nullptr, _IONBF, 0);
+
     const bool ok = rme_settings_gcode::write(file);
     const bool close_ok = fclose(file) == 0;
     if (ok && close_ok) {

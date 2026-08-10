@@ -34,7 +34,13 @@ struct Score {
 
 class Capture {
 public:
-    static constexpr size_t capacity = 2048;
+    // A calibration excitation captures just under 1,000 samples at the
+    // loadcell sampling rate (field diagnostics consistently report 974-978).
+    // Keep more than 30% scheduling margin, but do not permanently reserve the
+    // former 24 KiB buffer from the system heap for a one-second operation.
+    // score() already rejects capture_overflow, so an unexpectedly long run
+    // remains fail-safe rather than consuming unbounded memory.
+    static constexpr size_t capacity = 1280;
 
     void start();
     size_t stop();

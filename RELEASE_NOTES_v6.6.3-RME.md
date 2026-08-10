@@ -1064,6 +1064,12 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
 * binary upload and download share one 1024-byte payload buffer and stream each
   verified chunk directly to or from disk, recovering another 7 KiB of SRAM
   without materially reducing USB throughput;
+* PA load-cell capture retains more than 30% margin over measured runs while
+  returning 9 KiB of its always-resident sample storage to the system heap;
+* legacy `M998` firmware upload keeps one sequentially buffered staging file
+  open instead of allocating and releasing stdio/FatFS state for every 48-byte
+  chunk, and all RME read/export/marker streams disable redundant lazy stdio
+  buffers;
 * firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
   marker is created only together with the explicit M997 reboot request, so a
   partial or unselected upload cannot flash on an unrelated boot.

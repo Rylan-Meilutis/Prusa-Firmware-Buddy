@@ -223,8 +223,8 @@ after changing firmware motion limits.
 @RME STATS QUERY
 ```
 
-The read-only response is split into `RME_STATS`, `RME_STATS_OPERATIONS`, and
-`RME_STATS_FAILURES` records. Distances and extruded filament are reported in
+The read-only response is split into `RME_STATS`, `RME_STATS_OPERATIONS`,
+`RME_STATS_FAILURES`, and `RME_STATS_MEMORY` records. Distances and extruded filament are reported in
 meters; lifetime, current-job, and filter-use times are seconds. Operations
 include successful MMU changes and tool picks. Machines with waste-bin tracking
 also report the current pellet count.
@@ -236,6 +236,10 @@ semantics. Unsupported optional hardware fields are omitted, except
 `filtering_time_s`, which is zero
 on machines without filtration. `jobs_started` is the persistent job sequence
 counter and is not a successful-print count.
+`RME_STATS_MEMORY` reports the instantaneous `heap_free` and fixed
+`heap_total` byte counts. It is diagnostic telemetry: hosts may sample it at
+connection and around a failed operation, but must not poll it continuously or
+infer print state from it.
 
 ## USB filesystem and firmware operations
 

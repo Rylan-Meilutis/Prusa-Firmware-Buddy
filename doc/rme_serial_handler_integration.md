@@ -165,11 +165,14 @@ Route `RME_EVENT` and other `RME_*` records to the plugin. With `legacy=0`,
 firmware suppresses only the corresponding `//action:notification` text, so
 OctoPrint's print-state control remains intact.
 
-Treat `RME_STATS`, `RME_STATS_OPERATIONS`, and `RME_STATS_FAILURES` as
+Treat `RME_STATS`, `RME_STATS_OPERATIONS`, `RME_STATS_FAILURES`, and
+`RME_STATS_MEMORY` as
 unordered key/value snapshots. Preserve the suffixes and units in the field
 names: `_m` is meters, `_s` is seconds, and `_total` is persistent. A host must
 tolerate optional fields being absent on machines
 without the corresponding MMU, toolchanger, filtration, or waste-bin hardware.
+`heap_free` and `heap_total` are byte counts for diagnostics; collect them on
+startup/reconnect or explicit troubleshooting, not as a periodic heartbeat.
 
 ## Workflow handlers
 

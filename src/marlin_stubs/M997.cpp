@@ -38,6 +38,7 @@ static void update_main_board(bool update_older, const char *sfn) {
                 SERIAL_ERROR_MSG("M997 could not arm one-shot firmware cleanup");
                 return;
             }
+            setvbuf(marker, nullptr, _IONBF, 0);
             bool marker_ready = fflush(marker) == 0 && fsync(fileno(marker)) == 0;
             marker_ready = fclose(marker) == 0 && marker_ready;
             if (!marker_ready) {

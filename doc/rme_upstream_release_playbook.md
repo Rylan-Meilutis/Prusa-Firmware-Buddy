@@ -953,6 +953,11 @@ diagnostic logging mode; line coding does not change the USB wire clock.
 Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts. Retest
 numbered legacy G-code, resend handling, M20-M32, M998, the 48-byte RME upload,
 four-frame 384-byte bulk windows, and eight-frame 1024-byte raw binary windows.
+Do not enlarge both CDC FIFOs to a complete host window: they consume ordinary
+SRAM and directly reduce runtime heap headroom. Keep binary upload/download on
+one shared static payload buffer, keep the legacy M998 staging stream open for
+the whole transfer, and give every RME-owned stdio stream an explicit static or
+unbuffered policy so newlib cannot add a hidden per-operation heap buffer.
 For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
 wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
 through the G-code queue or permit ASCII commands to be interleaved before raw

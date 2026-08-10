@@ -49,6 +49,8 @@ GCodeQueue queue;
 #include <odometer.hpp>
 #include <print_utils.hpp>
 #include <tool_index.hpp>
+#include <heap.h>
+#include <FreeRTOS.h>
 #if ENABLED(PRUSA_TOOL_MAPPING)
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
@@ -940,6 +942,11 @@ static bool handle_remote_stats_service(const std::string_view command) {
   SERIAL_ECHOPGM(" mmu_general_total="); SERIAL_ECHO(config_store().mmu2_total_fails.get());
 #endif
   SERIAL_EOL();
+
+  // Make connection-time and transfer-time memory regressions observable to a
+  // host without enabling a debugger or allocating a diagnostic buffer.
+  SERIAL_ECHOPGM("RME_STATS_MEMORY heap_free="); SERIAL_ECHO(xPortGetFreeHeapSize());
+  SERIAL_ECHOPGM(" heap_total="); SERIAL_ECHOLN(heap_total_size());
   return true;
 }
 
