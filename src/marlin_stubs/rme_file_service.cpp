@@ -56,6 +56,13 @@ struct BinaryReceiver {
     uint16_t discard_remaining = 0;
 } binary_receiver;
 
+// Download payload storage must not live in buddy_rme_file_service's stack.
+// With LTO the largest local is reserved for every action, including CAPS,
+// which made the 4 KiB binary buffer overflow the Marlin task during the
+// connection handshake. File commands are serialized by the Marlin task, so
+// one reusable buffer preserves the full negotiated transfer size safely.
+std::array<uint8_t, binary_chunk_size> binary_read_payload {};
+
 uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
 uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 void write_le16(uint8_t *p, const uint16_t value) {
@@ -350,9 +357,8 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         if (!length || length > binary_chunk_size || offset > maximum_file_size) report_error("invalid_range");
         else if (stat(path->data(), &st) || !S_ISREG(st.st_mode) || st.st_size < 0 || static_cast<uint64_t>(st.st_size) > maximum_file_size) report_error("read_failed");
         else if (FILE *file = fopen(path->data(), "rb")) {
-            std::array<uint8_t, binary_chunk_size> payload {};
             if (fseek(file, offset, SEEK_SET)) { fclose(file); report_error("read_failed"); return true; }
-            const size_t count = fread(payload.data(), 1, length, file);
+            const size_t count = fread(binary_read_payload.data(), 1, length, file);
             const bool read_error = ferror(file);
             fclose(file);
             if (read_error) { report_error("read_failed"); return true; }
@@ -360,7 +366,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             std::array<uint8_t, 10> header {};
             write_le32(header.data(), offset);
             write_le16(header.data() + 4, static_cast<uint16_t>(count));
-            write_le32(header.data() + 6, crc32_sw(payload.data(), count, 0));
+            write_le32(header.data() + 6, crc32_sw(binary_read_payload.data(), count, 0));
             const uint32_t file_size = static_cast<uint32_t>(st.st_size);
             const uint32_t next = offset + count;
             const bool eof = next >= file_size;
@@ -371,7 +377,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32");
             SERIAL_FLUSHTX();
             SerialUSB.cdc_write_sync(header.data(), header.size());
-            if (count) SerialUSB.cdc_write_sync(payload.data(), count);
+            if (count) SerialUSB.cdc_write_sync(binary_read_payload.data(), count);
             SERIAL_ECHOPGM("RME_FILE_BINARY_READ_COMPLETE next="); SERIAL_ECHO(next);
             SERIAL_ECHOPGM(" eof="); SERIAL_ECHOLN(eof ? 1 : 0);
             if (eof) serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
