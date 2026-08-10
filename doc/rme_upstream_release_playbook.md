@@ -1129,3 +1129,32 @@ python3 utils/build.py --bootloader yes
 ```
 
 Confirm `bbf/` contains all expected BBFs and that the build summary reports zero failures.
+
+## 2026-08-09 build 32 / build 4 validation
+
+The final manufacturer/configuration-stream/flash-footprint release was built
+with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29 presets
+passed: 14 for 6.5.7 and 15 for 6.6.3. The output must contain only the two
+version folders, with exactly 14 and 15 BBFs respectively.
+
+For 6.5.7, maximum MINI flash use is 96.52%, MK4 is 94.53%, MK3.5 is 89.97%,
+and XL is 69.12%. For 6.6.3, maximum MINI flash use is 98.47%, MK4 is 60.65%,
+MK3.5 is 56.02%, XL is 68.79%, and CORE One INDX is 65.37%.
+
+The standard resource image already carries immutable QOI assets, translations,
+and supported external fonts. Preserve that split. The manufacturer preset
+table is deliberately one packed immutable blob, and multi-filament menu row
+pointers are resolved once so configuration operations use runtime loops rather
+than duplicating their bodies for every compile-time tool index.
+
+INDX uses eight real tool indices plus Marlin's internal `NoTool` sentinel.
+Never expose the sentinel as tool 9. Dock setup offers only the four- and
+eight-tool hardware variants; the four-tool choice clears stale calibration
+bits for tools 5-8, and RME discovery reports capacity eight plus the enabled
+four/eight count.
+
+Firmware flashing status belongs above the splash progress bar on both MINI and
+large displays. Do not move it below or into the bar's repaint rectangle.
+
+Release tags for this validation are `v6.5.7-RME-b32` and
+`v6.6.3-RME-b4`.

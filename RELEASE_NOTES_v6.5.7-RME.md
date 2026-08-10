@@ -983,3 +983,53 @@ This continuation includes firmware and documentation through `c0ac2f746`.
 The exact 14-image 6.5.7 half of the final multi-version matrix passed at that
 firmware head `8500a93fb`; MK4 used 93.89% flash and MINI used at most 95.61%.
 `v6.5.7-RME-b31` identifies this release ledger.
+
+## Build 32 release update
+
+Build 32 extends the manufacturer and high-speed host work without removing any
+printer, language, UI, filament, or recovery feature:
+
+* load, preload, and loaded-filament workflows share the same 50 built-in and
+  eight persistent user manufacturer entries;
+* negotiated raw and pipelined RME transfers remain compatible with legacy
+  commands and slower serial settings;
+* configuration changes are pushed as sequenced `RME_CHANGE` records so a host
+  takes one startup/reconnect snapshot and does not poll during steady state;
+* immutable fonts, translations, and QOI assets remain in the managed external
+  resource payload, while manufacturer names use one packed lookup blob and the
+  multi-filament menu resolves tool rows once to reduce internal flash without
+  reducing functionality; and
+* firmware-install status text is placed above the progress bar on both display
+  sizes so the flashing message remains unobstructed.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 14 6.5.7 presets passed. Maximum MINI flash use was 96.52% (Japanese
+language image), MK4 used 94.53%, MK3.5 used 89.97%, and XL used 69.12%.
+CORE One and XL retained 99.22% CCMRAM use with the existing full feature set.
+The staged release directory contains exactly 14 BBFs under `bbf/6.5.7`.
+
+Build 32 firmware continuation:
+
+```text
+fb8bd002d  2026-08-09  Update 6.5.7 RME release commit ledger
+d3e8df9f2  2026-08-09  Prepare 6.5.7 RME build 31 release
+8946fd7d6  2026-08-09  Add loaded filament manufacturer tracking
+26a1f07eb  2026-08-09  Advertise faster compatible USB serial mode
+a0f6660ff  2026-08-09  Advertise RME serial rate fallbacks
+f5e9a156f  2026-08-09  Show RME host and transfer status
+406b97bc3  2026-08-09  Add themed RME host badge
+5cf5894fc  2026-08-09  Add negotiated RME bulk file transfer
+6e32b43c0  2026-08-09  Add raw RME binary uploads
+a00769e59  2026-08-09  Keep binary uploads outside queue backpressure
+6ccc77806  2026-08-09  Document high-speed RME transfer protocol
+9fa1351fe  2026-08-09  Push RME configuration changes to hosts
+704fb6af7  2026-08-09  Support manufacturer metadata for every tool slot
+2142ee523  2026-08-09  Reduce filament UI flash usage
+```
+
+Published release tag: `v6.5.7-RME-b32`.
