@@ -1669,19 +1669,13 @@ void print_abort(void) {
 void print_exit(void) {
     switch (server.print_state) {
 
-#if HAS_POWER_PANIC()
-    case State::PowerPanic_Resume:
-    case State::PowerPanic_AwaitingResume:
-#endif
-    case State::Printing:
-    case State::Paused:
-    case State::Resuming_Reheating:
-    case State::Finishing_WaitIdle:
-        // do nothing
+    case State::Finished:
+    case State::Aborted:
+        server.print_state = State::Exit;
         break;
 
     default:
-        server.print_state = State::Exit;
+        // Can't do muchF
         break;
     }
 }
