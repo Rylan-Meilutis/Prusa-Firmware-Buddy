@@ -556,11 +556,13 @@ static bool handle_remote_lock_service(const std::string_view command) {
   } else if (action.starts_with("NOW")) {
     printer_lock::lock();
     serial_remote_control::set_enabled(false);
+    SerialPrinting::notify_configuration("lock", "state", true, remote_number(command, "tx").value_or(0));
   } else if (action.starts_with("UNLOCK")) {
     const auto pin = remote_number(command, "pin");
     const auto digits = remote_number(command, "digits");
     if (pin && digits && *digits >= 4 && *digits <= 9 && printer_lock::check_pin(*pin, *digits)) {
       printer_lock::unlock();
+      SerialPrinting::notify_configuration("lock", "state", true, remote_number(command, "tx").value_or(0));
     }
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
@@ -583,6 +585,7 @@ static bool handle_remote_lock_service(const std::string_view command) {
       if (!*enabled || config_store().printer_lock_pin_length.get() >= 4)
         config_store().printer_lock_enabled.set(*enabled);
     }
+    SerialPrinting::notify_configuration("lock", "settings", true, remote_number(command, "tx").value_or(0));
   } else return false;
   return true;
 }
@@ -617,6 +620,7 @@ static bool handle_remote_theme_service(const std::string_view command) {
     set_remote_color(command, "error", config_store().ui_theme_error_color);
     set_remote_color(command, "image", config_store().ui_theme_image_color);
     serial_remote_control::reload_theme();
+    SerialPrinting::notify_configuration("theme", "colors", true, remote_number(command, "tx").value_or(0));
   } else return false;
   return true;
 }
@@ -642,6 +646,7 @@ static bool handle_remote_light_service(const std::string_view command) {
     const auto chamber = remote_number(command, "chamber").value_or(-1);
     const auto status = remote_number(command, "status").value_or(-1);
     serial_remote_control::set_temporary_lights(screen, chamber, status);
+    SerialPrinting::notify_configuration("light", "temporary", true, remote_number(command, "tx").value_or(0));
   } else if (action.starts_with("SET")) {
     if (printer_lock::locked()) {
       return true;
@@ -651,6 +656,7 @@ static bool handle_remote_light_service(const std::string_view command) {
     const auto status = remote_number(command, "status", 16);
     if (screen && chamber && status)
       serial_remote_control::set_persistent_lights(*screen, *chamber, *status);
+    SerialPrinting::notify_configuration("light", "persistent", true, remote_number(command, "tx").value_or(0));
   } else return false;
   return true;
 }
@@ -748,6 +754,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
     if (const auto value = remote_number(command, "flexible"); value && (*value == 0 || *value == 1)) params.do_not_auto_retract = *value;
     type.set_parameters(params);
     if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
+    SerialPrinting::notify_configuration("filament", "preset", true, remote_number(command, "tx").value_or(0));
   } else return false;
   return true;
 }
@@ -806,12 +813,12 @@ static bool handle_remote_manufacturer_service(const std::string_view command) {
     const auto slot = remote_number(command, "slot");
     const auto name = remote_manufacturer_name(command);
     if (!slot || *slot < 0 || *slot >= static_cast<long>(filament_manufacturer::custom_slot_count) || !name
-        || !filament_manufacturer::set_custom(*slot, name->data()))
+        || !filament_manufacturer::set_custom(*slot, name->data(), true, remote_number(command, "tx").value_or(0)))
       SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_manufacturer");
   } else if (action.starts_with("DELETE")) {
     if (printer_lock::locked()) return true;
     const auto slot = remote_number(command, "slot");
-    if (!slot || *slot < 0 || !filament_manufacturer::clear_custom(*slot)) SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_manufacturer_slot");
+    if (!slot || *slot < 0 || !filament_manufacturer::clear_custom(*slot, true, remote_number(command, "tx").value_or(0))) SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_manufacturer_slot");
   } else if (action.starts_with("ASSIGN")) {
     if (printer_lock::locked()) return true;
     const auto tool = remote_number(command, "tool");
@@ -821,8 +828,9 @@ static bool handle_remote_manufacturer_service(const std::string_view command) {
     const bool is_none = decoded_name.size() == 4 && std::equal(decoded_name.begin(), decoded_name.end(), "none", [](const char lhs, const char rhs) {
       return std::tolower(static_cast<unsigned char>(lhs)) == rhs;
     });
-    if (is_none) filament_manufacturer::set_loaded(*tool, std::nullopt);
-    else if (const auto item = filament_manufacturer::find(name->data())) filament_manufacturer::set_loaded(*tool, item->id);
+    const uint32_t transaction = remote_number(command, "tx").value_or(0);
+    if (is_none) filament_manufacturer::set_loaded(*tool, std::nullopt, true, transaction);
+    else if (const auto item = filament_manufacturer::find(name->data())) filament_manufacturer::set_loaded(*tool, item->id, true, transaction);
     else SERIAL_ECHOLNPGM("echo:RME_ERROR code=unknown_manufacturer");
   } else return false;
   return true;
@@ -909,7 +917,7 @@ static bool handle_remote_session_service(const std::string_view command) {
   if (action.starts_with("OPEN")) {
     const auto events = remote_number(command, "events").value_or(0x0f);
     const auto legacy = remote_number(command, "legacy").value_or(0);
-    if (events < 0 || events > 0x0f || (legacy != 0 && legacy != 1)) {
+    if (events < 0 || events > 0x1f || (legacy != 0 && legacy != 1)) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR code=invalid_session_options");
       return true;
     }

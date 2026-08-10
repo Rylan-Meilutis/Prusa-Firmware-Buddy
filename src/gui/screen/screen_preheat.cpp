@@ -13,6 +13,7 @@
 #include <filament_manufacturer.hpp>
 #include <filament_to_load.hpp>
 #include <filament_color_gui.hpp>
+#include <dialog_text_input.hpp>
 
 using namespace preheat_menu;
 
@@ -27,7 +28,19 @@ public:
         : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), id_(id) {}
 protected:
     void click(IWindowMenu &) override {
+        if (id_ == std::optional<uint8_t> { 0xfe }) {
+            size_t slot = 0;
+            while (slot < filament_manufacturer::custom_slot_count && filament_manufacturer::custom(slot)) ++slot;
+            if (slot == filament_manufacturer::custom_slot_count) { MsgBoxWarning(_("All manufacturer slots are in use."), Responses_Ok); return; }
+            std::array<char, filament_manufacturer::name_capacity> name {};
+            if (!DialogTextInput::exec(_("Manufacturer"), name) || !filament_manufacturer::set_custom(slot, name.data())) {
+                MsgBoxWarning(_("Enter a unique manufacturer name."), Responses_Ok); return;
+            }
+            const auto created = filament_manufacturer::custom(slot);
+            filament::set_manufacturer_to_load(created ? std::optional<uint8_t> { created->id } : std::nullopt);
+        } else {
         filament::set_manufacturer_to_load(id_);
+        }
         marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
         Screens::Access()->Close();
         Screens::Access()->Close();
@@ -43,10 +56,11 @@ public:
         for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
         setup_items();
     }
-    int item_count() const override { return 1 + filament_manufacturer::presets().size() + custom_count_; }
+    int item_count() const override { return 2 + filament_manufacturer::presets().size() + custom_count_; }
 protected:
     void setup_item(ItemVariant &variant, int index) override {
         if (index == 0) { variant.emplace<MI_LOAD_MANUFACTURER>(std::nullopt, std::string_view("None")); return; }
+        if (index == item_count() - 1) { variant.emplace<MI_LOAD_MANUFACTURER>(std::optional<uint8_t> { 0xfe }, std::string_view("Add Manufacturer")); return; }
         size_t requested = index - 1;
         if (requested < filament_manufacturer::presets().size()) {
             const auto name = filament_manufacturer::presets()[requested];

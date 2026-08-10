@@ -1,6 +1,7 @@
 #include "filament_manufacturer.hpp"
 
 #include <config_store/store_instance.hpp>
+#include <serial_printing.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -43,19 +44,21 @@ std::optional<Profile> custom(const size_t slot) {
     return Profile { custom_id_base + static_cast<uint8_t>(slot), names[slot] };
 }
 
-bool set_custom(const size_t slot, const std::string_view name) {
+bool set_custom(const size_t slot, const std::string_view name, const bool from_host, const uint32_t transaction) {
     if (slot >= custom_slot_count || name.empty() || name.size() >= name_capacity || find(name)) return false;
     auto names = config_store().custom_filament_manufacturer_names.get();
     names[slot] = {};
     std::copy(name.begin(), name.end(), names[slot].begin());
     config_store().custom_filament_manufacturer_names.set(names);
     config_store().custom_filament_manufacturer_valid.set(config_store().custom_filament_manufacturer_valid.get() | (1u << slot));
+    SerialPrinting::notify_configuration("manufacturer", "custom", from_host, transaction);
     return true;
 }
 
-bool clear_custom(const size_t slot) {
+bool clear_custom(const size_t slot, const bool from_host, const uint32_t transaction) {
     if (slot >= custom_slot_count) return false;
     config_store().custom_filament_manufacturer_valid.set(config_store().custom_filament_manufacturer_valid.get() & ~(1u << slot));
+    SerialPrinting::notify_configuration("manufacturer", "custom", from_host, transaction);
     return true;
 }
 
@@ -76,8 +79,11 @@ std::optional<Profile> loaded(const uint8_t tool) {
     return from_id(config_store().loaded_filament_manufacturer.get(tool));
 }
 
-void set_loaded(const uint8_t tool, const std::optional<uint8_t> id) {
-    if (tool < EXTRUDERS) config_store().loaded_filament_manufacturer.set(tool, id.value_or(0));
+void set_loaded(const uint8_t tool, const std::optional<uint8_t> id, const bool from_host, const uint32_t transaction) {
+    if (tool < EXTRUDERS) {
+        config_store().loaded_filament_manufacturer.set(tool, id.value_or(0));
+        SerialPrinting::notify_configuration("manufacturer", "loaded", from_host, transaction);
+    }
 }
 
 } // namespace filament_manufacturer

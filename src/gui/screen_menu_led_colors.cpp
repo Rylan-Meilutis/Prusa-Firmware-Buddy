@@ -11,6 +11,7 @@
 #include <jsmn.h>
 #include <array>
 #include <charconv>
+#include <serial_printing.hpp>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -174,6 +175,7 @@ void apply_theme(const ThemeColors &theme) {
 #if HAS_LEDS()
     reload_status_led_colors();
 #endif
+    SerialPrinting::notify_configuration("theme", "colors");
 }
 
 void save_imported_theme(const ThemeColors &theme) {

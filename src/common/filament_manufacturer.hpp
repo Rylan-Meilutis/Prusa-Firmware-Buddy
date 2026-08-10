@@ -19,11 +19,11 @@ struct Profile {
 
 std::span<const char *const> presets();
 std::optional<Profile> custom(size_t slot);
-bool set_custom(size_t slot, std::string_view name);
-bool clear_custom(size_t slot);
+bool set_custom(size_t slot, std::string_view name, bool from_host = false, uint32_t transaction = 0);
+bool clear_custom(size_t slot, bool from_host = false, uint32_t transaction = 0);
 std::optional<Profile> find(std::string_view name);
 std::optional<Profile> from_id(uint8_t id);
 std::optional<Profile> loaded(uint8_t tool);
-void set_loaded(uint8_t tool, std::optional<uint8_t> id);
+void set_loaded(uint8_t tool, std::optional<uint8_t> id, bool from_host = false, uint32_t transaction = 0);
 
 } // namespace filament_manufacturer

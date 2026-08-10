@@ -50,6 +50,9 @@ public:
     static void notify_error(const char *workflow, const char *code, const char *message);
     static void notify_progress(const char *workflow, const char *state, const char *code, const char *message, int progress_percent);
     static void notify_workflow(const char *workflow, const char *state, const char *message = nullptr, int progress_percent = -1);
+    /// Announce a persistent/volatile configuration mutation. Hosts take one
+    /// startup snapshot, then refresh only the named domain on this revision.
+    static void notify_configuration(const char *domain, const char *key, bool from_host = false, uint32_t transaction = 0);
     static void reset_status_notifications();
 
 private:

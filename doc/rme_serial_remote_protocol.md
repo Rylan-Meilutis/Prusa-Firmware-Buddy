@@ -17,14 +17,16 @@ Every accepted frame receives `ok`. Plugins detect support with the read-only
 Open a protocol session before relying on structured asynchronous events:
 
 ```text
-@RME SESSION OPEN events=15 legacy=0
+@RME SESSION OPEN events=31 legacy=0
 @RME SESSION QUERY
 @RME SESSION KEEPALIVE
 @RME SESSION CLOSE
 ```
 
-`events` is a bit mask: progress `1`, error `2`, workflow lifecycle `4`, and
-informational notification `8`. `15` subscribes to all event classes.
+`events` is a bit mask: progress `1`, error `2`, workflow lifecycle `4`,
+informational notification `8`, and configuration changes `16`. `31`
+subscribes to all event classes; the former `15` value remains valid for older
+handlers that do not consume the change stream.
 `legacy=0` replaces only legacy `//action:notification` output while the
 session is active. Send `KEEPALIVE` at least every 10 seconds. The 30-second
 session lease closes automatically after a host disconnect, restores legacy
@@ -57,6 +59,32 @@ replayed from firmware RAM. Generic notification/progress events report the
 real device state (`idle`, `printing`, `paused`, `busy`, `attention`, and so
 on); a host must not treat `RME_SESSION active=1` as printer activity—the field
 only reports that the communications lease is open.
+
+## Configuration change stream
+
+After opening a session with event bit `16`, firmware announces accepted local
+and host-side mutations without requiring periodic polling:
+
+```text
+RME_CHANGE seq=7 revision=12 domain=manufacturer key=custom origin=local
+RME_CHANGE seq=8 revision=13 domain=theme key=colors origin=host tx=481
+```
+
+`revision` increases for every announced mutation during the boot. `seq`
+shares the normal per-session event sequence, so either a sequence gap or a
+nonconsecutive configuration revision means the host must refresh its snapshots.
+`domain` selects the existing authoritative query (`MANUFACTURER`, `FILAMENT`,
+`THEME`, `LIGHT`, or `LOCK`), and `key` narrows the changed portion. `origin`
+is `local` for front-panel/firmware changes and `host` for an accepted RME
+mutation. A host may append `tx=<nonzero u32>` to a mutating RME command; the
+same value is echoed on its change record so the initiating client can match
+the acknowledgement without suppressing updates for other clients.
+
+Take a complete snapshot at startup, reconnect, session expiry, or sequence/
+revision loss. During a healthy session, apply `RME_CHANGE` and refresh only
+its named domain; do not continuously poll settings. A change event is emitted
+after persistent storage accepts the mutation. Unknown/rejected commands do
+not advance the revision.
 
 ## UI control
 
@@ -136,6 +164,10 @@ and color. Firmware provides 50 common manufacturers, ordered with
 Prusa/Prusament, eSUN, Polymaker, SUNLU, Bambu Lab, Overture, and Atomic first,
 plus eight persistent user-defined slots. RME matching is case-insensitive;
 percent-encode spaces and other non-token characters.
+
+The local load and MMU preload manufacturer pickers list built-ins and saved
+custom entries and include **Add Manufacturer**. A newly entered unique name is
+stored in the first free custom slot and selected for that load immediately.
 
 ```text
 @RME MANUFACTURER QUERY

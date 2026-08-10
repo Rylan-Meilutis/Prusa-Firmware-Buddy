@@ -1,6 +1,7 @@
 #include "filament_color.hpp"
 
 #include <config_store/store_instance.hpp>
+#include <serial_printing.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -42,6 +43,7 @@ bool set_custom(const size_t slot, const std::string_view name, const Color colo
     config_store().custom_filament_color_names.set(names);
     config_store().custom_filament_color_rgb.set(slot, color.raw);
     config_store().custom_filament_color_valid.set(config_store().custom_filament_color_valid.get() | (1u << slot));
+    SerialPrinting::notify_configuration("color", "custom");
     return true;
 }
 
@@ -60,6 +62,7 @@ void set_loaded(const uint8_t tool, const std::optional<Color> color) {
         valid &= ~(1u << tool);
     }
     config_store().loaded_filament_color_valid.set(valid);
+    SerialPrinting::notify_configuration("color", "loaded");
 }
 
 Profile profile_for(const Color color) {

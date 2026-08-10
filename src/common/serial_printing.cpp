@@ -142,6 +142,17 @@ void SerialPrinting::notify_workflow(const char *workflow, const char *state, co
         emit_rme_event("workflow", workflow, state, nullptr, message, progress_percent);
 }
 
+void SerialPrinting::notify_configuration(const char *domain, const char *key, const bool from_host, const uint32_t transaction) {
+    if (!serial_remote_control::subscribed(serial_remote_control::EventSubscription::configuration)) return;
+    SERIAL_ECHOPGM("RME_CHANGE seq="); SERIAL_ECHO(serial_remote_control::next_event_sequence());
+    SERIAL_ECHOPGM(" revision="); SERIAL_ECHO(serial_remote_control::next_configuration_revision());
+    SERIAL_ECHOPGM(" domain="); SERIAL_ECHO(domain);
+    SERIAL_ECHOPGM(" key="); SERIAL_ECHO(key);
+    SERIAL_ECHOPGM(" origin="); SERIAL_ECHO(from_host ? "host" : "local");
+    if (transaction) { SERIAL_ECHOPGM(" tx="); SERIAL_ECHO(transaction); }
+    SERIAL_EOL();
+}
+
 void SerialPrinting::host_action(const char *action, const char *reason) {
     SERIAL_ECHOPGM("//action:");
     SERIAL_ECHO(action);
