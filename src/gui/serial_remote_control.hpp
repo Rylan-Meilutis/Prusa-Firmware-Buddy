@@ -36,7 +36,8 @@ enum class EventSubscription : uint8_t {
     error = 1 << 1,
     workflow = 1 << 2,
     notification = 1 << 3,
-    all = 0x0f,
+    configuration = 1 << 4,
+    all = 0x1f,
 };
 
 void open_session(uint8_t subscriptions, bool legacy_notifications);
@@ -46,6 +47,7 @@ bool session_active();
 bool subscribed(EventSubscription subscription);
 bool legacy_notifications_enabled();
 uint32_t next_event_sequence();
+uint32_t next_configuration_revision();
 
 /// Called only by the GUI task.
 void process_gui();

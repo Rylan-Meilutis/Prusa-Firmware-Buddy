@@ -10,6 +10,7 @@
 #include <filament_color.hpp>
 #include <filament_manufacturer.hpp>
 #include <filament_to_load.hpp>
+#include <serial_printing.hpp>
 
 #include <gcode/gcode.h>
 #include <marlin_server.hpp>
@@ -188,6 +189,7 @@ void execute(const Config &tool_config) {
         case Action::unload: {
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
+            SerialPrinting::notify_configuration("filament", "loaded");
             filament_color::set_loaded(tool.to_raw(), std::nullopt);
             filament_manufacturer::set_loaded(tool.to_raw(), std::nullopt);
 #else
@@ -210,6 +212,7 @@ void execute(const Config &tool_config) {
             filament_gcodes::mmu_load(tool.to_raw());
 
             config_store().set_filament_type(tool, config.new_filament);
+            SerialPrinting::notify_configuration("filament", "loaded");
             filament_color::set_loaded(tool.to_raw(), config.color);
             filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
 #else

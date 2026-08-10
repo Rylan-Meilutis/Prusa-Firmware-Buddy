@@ -7,6 +7,7 @@
 #include <img_resources.hpp>
 #include <dialog_text_input.hpp>
 #include <filament_color_gui.hpp>
+#include <serial_printing.hpp>
 
 #include <option/has_anfc.h>
 #if HAS_ANFC()
@@ -266,6 +267,7 @@ MI_SAVE_LOADED_FILAMENT::MI_SAVE_LOADED_FILAMENT()
 
 void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
     config_store().set_filament_type(pending.tool, pending.material);
+    SerialPrinting::notify_configuration("filament", "loaded");
     filament_color::set_loaded(pending.tool.to_raw(), pending.color);
     filament_manufacturer::set_loaded(pending.tool.to_raw(), pending.manufacturer);
     Screens::Access()->Close();

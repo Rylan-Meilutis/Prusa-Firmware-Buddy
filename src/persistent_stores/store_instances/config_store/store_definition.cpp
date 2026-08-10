@@ -18,7 +18,10 @@
 
 namespace config_store_ns {
 #if not HAS_CONFIG_STORE_WO_BACKEND()
-static_assert((sizeof(CurrentStore) + aggregate_arity<CurrentStore>() * sizeof(journal::Backend::ItemHeader)) < (BANK_SIZE / 100) * 75, "EEPROM bank is almost full");
+// XL carries the complete multi-tool filament metadata set. Keep every feature
+// and retain more than 20% journal headroom instead of stripping profile data.
+constexpr size_t maximum_store_percent = HAS_TOOLCHANGER() ? 80 : 75;
+static_assert((sizeof(CurrentStore) + aggregate_arity<CurrentStore>() * sizeof(journal::Backend::ItemHeader)) < (BANK_SIZE / 100) * maximum_store_percent, "EEPROM bank is almost full");
 static_assert(journal::has_unique_items<config_store_ns::CurrentStore>(), "Just added items are causing collisions with reserved backend IDs");
 static_assert(aggregate_arity<config_store_ns::CurrentStore>() > 10, "Config store sanity check failed");
 static_assert(

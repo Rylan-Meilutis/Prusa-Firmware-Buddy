@@ -16,6 +16,7 @@
 #include <filament_manufacturer.hpp>
 #include <window_menu_virtual.hpp>
 #include <filament_color_gui.hpp>
+#include <dialog_text_input.hpp>
 
 using namespace multi_filament_change;
 
@@ -32,14 +33,42 @@ private:
     std::optional<uint8_t> id_;
 };
 
+class MI_PRELOAD_NEW_MANUFACTURER final : public IWindowMenuItem {
+public:
+    explicit MI_PRELOAD_NEW_MANUFACTURER(MI_ActionSelect *owner)
+        : IWindowMenuItem(_("Add Manufacturer"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes), owner_(owner) {}
+protected:
+    void click(IWindowMenu &) override {
+        size_t slot = 0;
+        while (slot < filament_manufacturer::custom_slot_count && filament_manufacturer::custom(slot)) ++slot;
+        if (slot == filament_manufacturer::custom_slot_count) {
+            MsgBoxWarning(_("All manufacturer slots are in use."), Responses_Ok);
+            return;
+        }
+        std::array<char, filament_manufacturer::name_capacity> name {};
+        if (!DialogTextInput::exec(_("Manufacturer"), name)
+            || !filament_manufacturer::set_custom(slot, name.data())) {
+            MsgBoxWarning(_("Enter a unique manufacturer name."), Responses_Ok);
+            return;
+        }
+        const auto created = filament_manufacturer::custom(slot);
+        owner_->set_selected_manufacturer(created ? std::optional<uint8_t> { created->id } : std::nullopt);
+        Screens::Access()->Close();
+        Screens::Access()->Close();
+    }
+private:
+    MI_ActionSelect *owner_;
+};
+
 class WindowMenuPreloadManufacturer final : public WindowMenuVirtual {
 public:
     WindowMenuPreloadManufacturer(window_t *parent, Rect16 rect) : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {}
     void set_owner(MI_ActionSelect *owner) { owner_ = owner; custom_count_ = 0; for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value(); setup_items(); }
-    int item_count() const override { return 1 + filament_manufacturer::presets().size() + custom_count_; }
+    int item_count() const override { return 2 + filament_manufacturer::presets().size() + custom_count_; }
 protected:
     void setup_item(ItemVariant &variant, int index) override {
         if (index == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, std::nullopt, std::string_view("None")); return; }
+        if (index == item_count() - 1) { variant.emplace<MI_PRELOAD_NEW_MANUFACTURER>(owner_); return; }
         size_t requested = static_cast<size_t>(index - 1);
         if (requested < filament_manufacturer::presets().size()) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), std::string_view(filament_manufacturer::presets()[requested])); return; }
         requested -= filament_manufacturer::presets().size();

@@ -14,7 +14,7 @@ other blocking commands.
    the host's standard Marlin behavior.
    After discovery, send `@RME STATS QUERY` to populate lifetime and current-job
    statistics without model-specific tables.
-3. Send `@RME SESSION OPEN events=15 legacy=0`. Wait for `RME_SESSION active=1`.
+3. Send `@RME SESSION OPEN events=31 legacy=0`. Wait for `RME_SESSION active=1`.
 4. Track the `seq` field of every `RME_EVENT`. On a gap, query both
    `@RME SESSION QUERY` and `@RME DIALOG QUERY` and refresh the plugin UI.
 5. Send `@RME SESSION KEEPALIVE` every 10 seconds. The printer expires the
@@ -31,6 +31,21 @@ do not synthesize an active printer state from protocol traffic.
 The session is volatile and is reset by firmware reboot. Re-negotiate after
 every reconnect. A handler must never infer a session merely because an older
 connection opened one.
+
+## Snapshot and change synchronization
+
+Query each configuration domain once after connecting, then use `RME_CHANGE`
+as the synchronization clock. Do not poll settings in steady state. Store both
+the normal event `seq` and configuration `revision`; refresh all snapshots if
+either stream has a gap, and refresh only the named domain after an ordinary
+change. Rebuild snapshots after reconnect, lease expiry, or printer reboot.
+
+Attach a unique nonzero `tx=<u32>` to every host mutation. An accepted change
+is announced with `origin=host` and the same `tx`; update the initiating UI
+from that authoritative event and suppress only the matching pending-request
+indicator. Do not discard the event globally, because another plugin view may
+depend on it. Front-panel changes carry `origin=local`. Commands without `tx`
+remain compatible and still generate a revisioned event.
 
 ## Filesystem integration
 
@@ -161,6 +176,9 @@ legacy notifications are replaced.
 Also query statistics both idle and during a blocking heater wait, validate
 units and optional-field handling, and confirm the query never changes a
 counter or print state.
+Validate the initial-snapshot/change-stream path with local and host changes,
+matching and unknown transaction IDs, revision gaps, session expiry, and
+reconnect. Confirm an idle host sends no periodic configuration queries.
 Exercise all advertised file modes: legacy 48-byte transfer, four-frame bulk
 windows, eight-frame raw windows, CRC NACK/restart, offset NACK/restart, binary
 abort, disconnect cleanup, wrong SHA-256, full media, atomic completion, print

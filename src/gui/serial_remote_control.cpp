@@ -58,6 +58,7 @@ std::atomic<bool> protocol_session_active { false };
 std::atomic<uint8_t> protocol_subscriptions { 0 };
 std::atomic<bool> protocol_legacy_notifications { true };
 std::atomic<uint32_t> protocol_event_sequence { 0 };
+std::atomic<uint32_t> protocol_configuration_revision { 0 };
 std::atomic<uint32_t> protocol_session_activity_ms { 0 };
 constexpr uint32_t protocol_session_timeout_ms = 30'000;
 
@@ -203,6 +204,10 @@ bool legacy_notifications_enabled() {
 
 uint32_t next_event_sequence() {
     return protocol_event_sequence.fetch_add(1, std::memory_order_acq_rel) + 1;
+}
+
+uint32_t next_configuration_revision() {
+    return protocol_configuration_revision.fetch_add(1, std::memory_order_acq_rel) + 1;
 }
 
 void process_gui() {
