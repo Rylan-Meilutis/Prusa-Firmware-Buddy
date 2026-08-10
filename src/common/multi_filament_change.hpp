@@ -25,6 +25,7 @@ struct ConfigItem {
     Action action = Action::keep;
     FilamentType new_filament = FilamentType::none;
     std::optional<Color> color;
+    std::optional<uint8_t> manufacturer;
 };
 
 using Config = std::array<ConfigItem, tool_count>;

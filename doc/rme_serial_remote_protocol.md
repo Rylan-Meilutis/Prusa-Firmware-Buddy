@@ -129,6 +129,36 @@ Synchronized visible presets appear in the same local material selectors used
 when loading filament and assigning loaded tools, and remain usable without a
 serial host.
 
+## Filament manufacturers
+
+Manufacturer is independent spool metadata stored alongside loaded material
+and color. Firmware provides 50 common manufacturers, ordered with
+Prusa/Prusament, eSUN, Polymaker, SUNLU, Bambu Lab, Overture, and Atomic first,
+plus eight persistent user-defined slots. RME matching is case-insensitive;
+percent-encode spaces and other non-token characters.
+
+```text
+@RME MANUFACTURER QUERY
+@RME MANUFACTURER CREATE slot=0 name=Local%20Filament
+@RME MANUFACTURER ASSIGN tool=0 name=polymaker
+@RME MANUFACTURER ASSIGN tool=0 name=none
+@RME MANUFACTURER DELETE slot=0
+```
+
+`QUERY` emits `RME_MANUFACTURER builtin=<0|1> slot=<n> name=<encoded>` and
+`RME_MANUFACTURER_LOADED tool=<n> name=<encoded|none>` records. The legacy
+`M865 Q` report includes `M"manufacturer"`. `M865 W<n> N"name"` creates a
+custom entry for settings replay, and `M865 J<tool> N"name"` assigns one.
+
+## USB CDC speed and compatibility
+
+The printer connection is USB CDC rather than a baud-clocked UART. The host's
+115200 selection remains the compatible default but does not cap USB packet
+throughput. Any line-coding rate other than 57600 selects normal Marlin
+communications; 57600 remains reserved for diagnostic USB logging. RME,
+numbered G-code, M20-M32, `ok`/resend, and older hosts remain supported. Larger
+multi-packet CDC RX/TX FIFOs absorb file and firmware transfer bursts.
+
 ## Machine discovery
 
 ```text

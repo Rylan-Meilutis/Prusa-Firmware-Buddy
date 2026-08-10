@@ -27,6 +27,13 @@ MI_CUSTOM_FILAMENT_COLORS::MI_CUSTOM_FILAMENT_COLORS()
 void MI_CUSTOM_FILAMENT_COLORS::click(IWindowMenu &) {
     Screens::Access()->Open<screen_loaded_color_assignment::ScreenCustomFilamentColors>();
 }
+
+MI_CUSTOM_FILAMENT_MANUFACTURERS::MI_CUSTOM_FILAMENT_MANUFACTURERS()
+    : IWindowMenuItem(_("Filament Manufacturers"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+
+void MI_CUSTOM_FILAMENT_MANUFACTURERS::click(IWindowMenu &) {
+    Screens::Access()->Open<screen_loaded_color_assignment::ScreenCustomManufacturers>();
+}
 #endif
 
 /*****************************************************************************/

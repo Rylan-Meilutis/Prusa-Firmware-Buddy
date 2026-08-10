@@ -21,6 +21,7 @@ public:
 
     void set_config(const ConfigItem &set);
     void set_selected_color(std::optional<Color> set) { color = set; }
+    void set_selected_manufacturer(std::optional<uint8_t> set) { manufacturer = set; }
     ConfigItem config() const;
 
     int item_count() const final;
@@ -40,6 +41,7 @@ private:
     const uint8_t tool_ix;
     bool has_filament_loaded = false;
     std::optional<Color> color;
+    std::optional<uint8_t> manufacturer;
 
     StringViewUtf8Parameters<2> label_params;
     DynamicIndexMapping<items> index_mapping;

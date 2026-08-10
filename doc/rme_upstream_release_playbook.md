@@ -939,6 +939,17 @@ recovery, filament runout, stuck-filament
 choices, and tool-change recovery. Keep workflow actions sourced from the live
 FSM so a plugin cannot apply stale recovery policy.
 
+Keep manufacturer separate from the upstream filament `base_preset`: the
+former identifies the loaded spool vendor, while the latter selects inherited
+material behavior. Preserve the ordered 50-entry built-in list, eight custom
+slots, case-insensitive RME lookup, per-tool clearing on unload, keyboard load
+and preload selection, M865/settings replay, and percent-encoded RME names.
+
+The host link is USB CDC. Keep 115200 as the compatibility default and 57600
+as diagnostic logging mode; other line-coding rates do not change the USB wire
+clock. Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts and
+retest numbered legacy G-code, resend handling, M20-M32, RME FILE, and M998.
+
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
 FLASH: 1291244 B / 1919 KB, 65.71%

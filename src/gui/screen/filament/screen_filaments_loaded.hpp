@@ -8,6 +8,7 @@
 #include <screen_menu.hpp>
 #include <window_menu_virtual.hpp>
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 
 class MI_LOADED_FILAMENT : public IWindowMenuItem {
 
@@ -35,7 +36,7 @@ private:
     FilamentType filament_type_;
     std::optional<Color> color_;
 
-    std::array<char, 64> label_buffer_;
+    std::array<char, 96> label_buffer_;
 };
 
 template <typename>
@@ -124,6 +125,13 @@ protected:
     void click(IWindowMenu &) override;
 };
 
+class MI_EDIT_LOADED_MANUFACTURER final : public IWindowMenuItem {
+public:
+    MI_EDIT_LOADED_MANUFACTURER();
+protected:
+    void click(IWindowMenu &) override;
+};
+
 class MI_SAVE_LOADED_FILAMENT final : public IWindowMenuItem {
 public:
     MI_SAVE_LOADED_FILAMENT();
@@ -135,7 +143,7 @@ using ScreenEditLoadedFilament_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
 #if HAS_MINI_DISPLAY()
     MI_EDIT_LOADED_MATERIAL, MI_SAVE_LOADED_FILAMENT>;
 #else
-    MI_EDIT_LOADED_MATERIAL, MI_EDIT_LOADED_COLOR, MI_SAVE_LOADED_FILAMENT>;
+    MI_EDIT_LOADED_MATERIAL, MI_EDIT_LOADED_COLOR, MI_EDIT_LOADED_MANUFACTURER, MI_SAVE_LOADED_FILAMENT>;
 #endif
 
 class ScreenEditLoadedFilament final : public ScreenEditLoadedFilament_ {
@@ -174,6 +182,60 @@ private:
 class ScreenCustomFilamentColors final : public ScreenMenuBase<WindowMenuCustomFilamentColors> {
 public:
     ScreenCustomFilamentColors();
+};
+
+class MI_ASSIGN_MANUFACTURER final : public IWindowMenuItem {
+public:
+    MI_ASSIGN_MANUFACTURER(std::optional<uint8_t> id, std::string_view name);
+protected:
+    void click(IWindowMenu &) override;
+private:
+    std::optional<uint8_t> id_;
+};
+
+class WindowMenuAssignManufacturer final : public WindowMenuVirtual<MI_RETURN, MI_ASSIGN_MANUFACTURER> {
+public:
+    WindowMenuAssignManufacturer(window_t *parent, Rect16 rect);
+    int item_count() const final;
+protected:
+    void setup_item(ItemVariant &variant, int index) final;
+private:
+    size_t custom_count_ = 0;
+};
+
+class ScreenAssignManufacturer final : public ScreenMenuBase<WindowMenuAssignManufacturer> {
+public:
+    ScreenAssignManufacturer();
+};
+
+class MI_ADD_CUSTOM_MANUFACTURER final : public IWindowMenuItem {
+public:
+    MI_ADD_CUSTOM_MANUFACTURER();
+protected:
+    void click(IWindowMenu &) override;
+};
+
+class MI_SAVED_CUSTOM_MANUFACTURER final : public IWindowMenuItem {
+public:
+    explicit MI_SAVED_CUSTOM_MANUFACTURER(size_t slot);
+private:
+    std::array<char, filament_manufacturer::name_capacity> label_ {};
+};
+
+class WindowMenuCustomManufacturers final : public WindowMenuVirtual<MI_RETURN, MI_ADD_CUSTOM_MANUFACTURER, MI_SAVED_CUSTOM_MANUFACTURER> {
+public:
+    WindowMenuCustomManufacturers(window_t *parent, Rect16 rect);
+    void reload();
+    int item_count() const final;
+protected:
+    void setup_item(ItemVariant &variant, int index) final;
+private:
+    size_t saved_count_ = 0;
+};
+
+class ScreenCustomManufacturers final : public ScreenMenuBase<WindowMenuCustomManufacturers> {
+public:
+    ScreenCustomManufacturers();
 };
 }
 

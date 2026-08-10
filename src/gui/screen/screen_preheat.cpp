@@ -10,6 +10,7 @@
 #include <gui/screen/filament/screen_filament_detail.hpp>
 #include <ScreenHandler.hpp>
 #include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <filament_to_load.hpp>
 #include <filament_color_gui.hpp>
 
@@ -19,6 +20,55 @@ namespace {
 
 bool prompt_for_load_color = false;
 FilamentType pending_load_filament = FilamentType::none;
+
+class MI_LOAD_MANUFACTURER final : public IWindowMenuItem {
+public:
+    MI_LOAD_MANUFACTURER(std::optional<uint8_t> id, std::string_view name)
+        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), id_(id) {}
+protected:
+    void click(IWindowMenu &) override {
+        filament::set_manufacturer_to_load(id_);
+        marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
+        Screens::Access()->Close();
+        Screens::Access()->Close();
+    }
+private:
+    std::optional<uint8_t> id_;
+};
+
+class WindowMenuLoadManufacturer final : public WindowMenuVirtual<MI_LOAD_MANUFACTURER> {
+public:
+    WindowMenuLoadManufacturer(window_t *parent, Rect16 rect)
+        : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {
+        for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
+        setup_items();
+    }
+    int item_count() const override { return 1 + filament_manufacturer::presets().size() + custom_count_; }
+protected:
+    void setup_item(ItemVariant &variant, int index) override {
+        if (index == 0) { variant.emplace<MI_LOAD_MANUFACTURER>(std::nullopt, std::string_view("None")); return; }
+        size_t requested = index - 1;
+        if (requested < filament_manufacturer::presets().size()) {
+            const auto name = filament_manufacturer::presets()[requested];
+            variant.emplace<MI_LOAD_MANUFACTURER>(static_cast<uint8_t>(requested + 1), std::string_view(name));
+            return;
+        }
+        requested -= filament_manufacturer::presets().size();
+        for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) {
+            if (const auto profile = filament_manufacturer::custom(slot); profile && requested-- == 0) {
+                variant.emplace<MI_LOAD_MANUFACTURER>(profile->id, profile->name_view());
+                return;
+            }
+        }
+    }
+private:
+    size_t custom_count_ = 0;
+};
+
+class ScreenLoadManufacturer final : public ScreenMenuBase<WindowMenuLoadManufacturer> {
+public:
+    ScreenLoadManufacturer() : ScreenMenuBase(nullptr, _("SELECT MANUFACTURER"), EFooter::On) {}
+};
 
 class MI_LOAD_COLOR final : public IWindowMenuItem {
 public:
@@ -33,8 +83,7 @@ protected:
 
     void click(IWindowMenu &) override {
         filament::set_color_to_load(color_);
-        marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
-        Screens::Access()->Close();
+        Screens::Access()->Open<ScreenLoadManufacturer>();
     }
 
 private:
