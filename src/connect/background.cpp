@@ -39,7 +39,7 @@ namespace {
             // In C++, it's a lot of work to convert void * -> char * or uint8_t * ->
             // char *, although it's both legal conversion (at least in this case). In
             // C, that works out of the box without casts.
-            const char *start = reinterpret_cast<const char *>(content->data->data()) + content->position;
+            const char *start = reinterpret_cast<const char *>(content->data.data()) + content->position;
             const size_t tail_size = content->size - content->position;
 
             const char *newline = reinterpret_cast<const char *>(memchr(start, '\n', tail_size));

@@ -964,6 +964,10 @@ ownership, and both USB DMA sector buffers in their fixed pools. Do not replace
 these with `make_unique`, `make_shared`, default-buffered `FILE` streams, or
 per-transfer sector allocations: connection/recovery overlaps USB, lwIP, GUI,
 and host synchronization startup and must not depend on runtime heap headroom.
+Likewise, `SharedBuffer::Borrow` is intentionally intrusive and copyable. Keep
+Connect command/path/token/hostname lifetime management on that fixed buffer;
+wrapping borrows in `shared_ptr` recreates a control-block allocation for every
+host command and can fragment memory during reconnect synchronization.
 For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
 wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
 through the G-code queue or permit ASCII commands to be interleaved before raw

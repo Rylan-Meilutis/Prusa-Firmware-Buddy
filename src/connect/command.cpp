@@ -20,7 +20,6 @@ using json::Type;
 using std::array;
 using std::errc;
 using std::get_if;
-using std::make_shared;
 using std::min;
 using std::move;
 using std::nullopt;
@@ -101,7 +100,7 @@ Command Command::gcode_command(CommandId id, const string_view &body, SharedBuff
     return Command {
         id,
         Gcode {
-            make_shared<SharedBuffer::Borrow>(move(buff)),
+            move(buff),
             body.size(),
         },
     };
@@ -315,7 +314,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
                 const size_t len = min(event.value->size() + 1, buff.size());
                 if (len - 1 <= Printer::Config::CONNECT_TOKEN_LEN) {
                     strlcpy(reinterpret_cast<char *>(buff.data()), event.value->data(), len);
-                    cmd->token = std::make_shared<SharedBuffer::Borrow>(move(buff));
+                    cmd->token = move(buff);
                     seen_args |= ArgToken;
                     buffer_available = false;
                 } else {
@@ -338,7 +337,7 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
                     seen_args |= ArgSetValue;
                     cmd->name = PropertyName::HostName;
                     strlcpy(reinterpret_cast<char *>(buff.data()), event.value->data(), len);
-                    cmd->value = std::make_shared<SharedBuffer::Borrow>(move(buff));
+                    cmd->value = move(buff);
                     buffer_available = false;
                 } else {
                     data = BrokenCommand { "Hostname too long." };

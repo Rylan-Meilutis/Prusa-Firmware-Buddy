@@ -951,7 +951,7 @@ void Planner::command(const Command &command, [[maybe_unused]] const StopTransfe
 }
 
 void Planner::command(const Command &command, const SetToken &params) {
-    printer.init_connect(reinterpret_cast<const char *>(params.token->data()));
+    printer.init_connect(reinterpret_cast<const char *>(params.token.data()));
     planned_event = { EventType::Finished, command.id };
 }
 
@@ -990,7 +990,7 @@ void Planner::command(const Command &command, const SetValue &params) {
 
     switch (params.name) {
     case connect_client::PropertyName::HostName:
-        err = set_hostname(reinterpret_cast<const char *>(get<SharedBorrow>(params.value)->data()));
+        err = set_hostname(reinterpret_cast<const char *>(get<SharedBorrow>(params.value).data()));
         break;
 #if XL_ENCLOSURE_SUPPORT() && HAS_CHAMBER_FILTRATION_API()
     case connect_client::PropertyName::EnclosureEnabled:

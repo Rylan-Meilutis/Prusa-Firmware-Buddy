@@ -1078,6 +1078,10 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   fixed storage; transfer metadata and partial-file streams are explicitly
   unbuffered. RME connection, staged-file recovery, and upload/download startup
   therefore no longer depend on runtime heap headroom.
+* Connect command parsing now retains its existing fixed shared buffer with an
+  intrusive borrow count instead of allocating `shared_ptr` control blocks for
+  G-code, paths, tokens, and hostnames, removing the remaining normal
+  connection/command synchronization heap churn.
 
 The final release command was:
 
