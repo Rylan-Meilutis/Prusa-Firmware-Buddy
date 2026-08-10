@@ -1126,13 +1126,38 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     return true;
 }
 
+/// To be called when completely exiting/resetting the server state - when user exits print preview or printing screen
+static void cleanup_print(ResetToolMapping reset_tool_mapping = ResetToolMapping::yes) {
+    gcode.compatibility = {};
+
+    if (bool(reset_tool_mapping)) {
+#if HAS_TOOL_MAPPING()
+        tool_mapper.reset();
+#endif
+
+#if HAS_SPOOL_JOIN()
+        spool_join.reset();
+#endif
+    }
+
+    media_prefetch.stop();
+
+    PrintPreview::Instance().ChangeState(IPrintPreview::State::inactive);
+    fsm_destroy(ClientFSM::PrintPreview);
+    fsm_destroy(ClientFSM::Printing);
+#if HAS_SERIAL_PRINT()
+    fsm_destroy(ClientFSM::Serial_printing);
+#endif
+
+    server.print_is_serial = false;
+    server.print_state = State::Idle;
+}
+
+/// To be called when the printer goes from printing -> not printing end state (finished, aborted, ...)
+/// Executes all the print finishing touches
 void static finalize_print(bool finished) {
 #if HAS_POWER_PANIC()
     power_panic::reset();
-#endif
-
-#if HAS_SERIAL_PRINT()
-    fsm_destroy(ClientFSM::Serial_printing);
 #endif
 
     print_job_timer.stop();
@@ -1180,16 +1205,6 @@ void static finalize_print(bool finished) {
     print_area.reset_bounding_rect();
 #endif
 
-#if HAS_TOOL_MAPPING()
-    tool_mapper.reset();
-#endif
-
-#if HAS_SPOOL_JOIN()
-    spool_join.reset();
-#endif
-
-    gcode.compatibility = {};
-
 #if HAS_CHAMBER_API()
     buddy::chamber().reset();
 #endif
@@ -1197,8 +1212,6 @@ void static finalize_print(bool finished) {
     input_shaper::init();
 
     media_prefetch.stop();
-
-    server.print_is_serial = false; // reset flag about serial print
 
     marlin_vars().print_end_time = time(nullptr);
     marlin_vars().add_job_result(job_id, finished ? marlin_vars_t::JobInfo::JobResult::finished : marlin_vars_t::JobInfo::JobResult::aborted);
@@ -1220,6 +1233,11 @@ void static finalize_print(bool finished) {
     if (config_store().show_fsensors_disabled_warning_after_print.get()) {
         config_store().show_fsensors_disabled_warning_after_print.set(false);
         set_warning(WarningType::FilamentSensorsDisabled);
+    }
+
+    if (server.print_is_serial) {
+        // Clean up immediately - serial print is not supposed to wait for the user to confirm the exit
+        cleanup_print();
     }
 
     // Do not remove, needed for 3rd party tools such as octoprint to get status that the gcode file printing has finished
@@ -1488,6 +1506,11 @@ bool printer_paused_extended() {
 
 #if HAS_SERIAL_PRINT()
 void serial_print_start() {
+    if (server.print_state != State::Idle) {
+        finalize_print(false);
+        cleanup_print();
+    }
+
     server.print_state = State::SerialPrintInit;
     print_state = {};
 }
@@ -1513,10 +1536,7 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
     case State::Aborted:
         // correctly end previous print
         finalize_print(server.print_state == State::Finished);
-        if (fsm_states.is_active(ClientFSM::Printing)) {
-            // exit from print screen, if opened
-            fsm_destroy(ClientFSM::Printing);
-        }
+        cleanup_print();
         break;
 
     case State::Idle:
@@ -2278,9 +2298,6 @@ static void _server_print_loop(void) {
         // button evaluation
         // We don't particularly care about the
         // difference, but downstream users do.
-
-        auto old_state = server.print_state;
-        auto new_state = old_state;
         switch (PrintPreview::Instance().Loop()) {
 
         case PrintPreview::Result::Wait:
@@ -2301,41 +2318,40 @@ static void _server_print_loop(void) {
             // Reset "time to" and percents before asking questions to "unknown"
             oProgressData.mInit();
 
-            new_state = State::PrintPreviewConfirmed;
+            server.print_state = State::PrintPreviewConfirmed;
             break;
 
         case PrintPreview::Result::Image:
-            new_state = State::PrintPreviewImage;
+            server.print_state = State::PrintPreviewImage;
             break;
 
         case PrintPreview::Result::Questions:
-            new_state = State::PrintPreviewQuestions;
+            server.print_state = State::PrintPreviewQuestions;
             break;
 
         case PrintPreview::Result::Abort:
-            new_state = did_not_start_print ? State::Idle : State::Finishing_WaitIdle;
             if (did_not_start_print) {
                 // Saving the result for connect, we already send the job id to them at this point.
                 marlin_vars().add_job_result(job_id, marlin_vars_t::JobInfo::JobResult::aborted);
+                cleanup_print();
+
+            } else {
+                server.print_state = State::Finishing_WaitIdle;
             }
-            media_prefetch.stop();
-            fsm_destroy(ClientFSM::PrintPreview);
             break;
 
 #if HAS_TOOL_MAPPING()
         case PrintPreview::Result::ToolsMapping:
-            new_state = State::PrintPreviewToolsMapping;
+            server.print_state = State::PrintPreviewToolsMapping;
             break;
 #endif
 
         case PrintPreview::Result::Print:
         case PrintPreview::Result::Inactive:
             did_not_start_print = false;
-            new_state = State::PrintInit;
+            server.print_state = State::PrintInit;
             break;
         }
-
-        server.print_state = new_state;
 
         break;
     }
@@ -2799,6 +2815,7 @@ static void _server_print_loop(void) {
             disable_Z();
 #endif // Z_ALWAYS_ON
             server.print_state = State::Aborted;
+            // Don't clean up here - it will be done in State::Exit
             finalize_print(false);
         }
         break;
@@ -2814,11 +2831,7 @@ static void _server_print_loop(void) {
         }
 #endif
 
-        // Can go directly to Idle because we didn't really start printing.
-        server.print_state = State::Idle;
-        PrintPreview::Instance().ChangeState(IPrintPreview::State::inactive);
-        fsm_destroy(ClientFSM::PrintPreview);
-        media_prefetch.stop();
+        cleanup_print();
         break;
 
     case State::Finishing_WaitIdle:
@@ -2855,6 +2868,7 @@ static void _server_print_loop(void) {
     case State::Finishing_ParkHead:
         if (!is_processing()) {
             server.print_state = State::Finished;
+            // Don't clean up here - it will be done in State::Exit
             finalize_print(true);
         }
         break;
@@ -2864,19 +2878,10 @@ static void _server_print_loop(void) {
             break;
         }
 
-        // make the State::Exit state more resilient to repeated calls (e.g. USB drive pulled out prematurely at the end-of-print screen)
-        if (fsm_states.is_active(ClientFSM::Printing)) {
-            finalize_print(false);
-            fsm_destroy(ClientFSM::Printing);
-        }
-#if HAS_SERIAL_PRINT()
-        if (fsm_states.is_active(ClientFSM::Serial_printing)) {
-            finalize_print(false);
-        }
-#endif
+        // Print should already be finalized here - but just in case
+        finalize_print(false);
 
-        media_prefetch.stop();
-        server.print_state = State::Idle;
+        cleanup_print();
         break;
 
 #if HAS_CRASH_DETECTION()
