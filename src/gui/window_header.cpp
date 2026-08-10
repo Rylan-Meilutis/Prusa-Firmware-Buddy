@@ -13,6 +13,7 @@
 #include <guiconfig/guiconfig.h>
 #include <marlin_vars.hpp>
 #include "timing.h"
+#include <serial_remote_control.hpp>
 
 #include <option/has_esp.h>
 #if HAS_ESP()
@@ -145,9 +146,15 @@ void window_header_t::updateConnect(bool iface_up) {
 
 void window_header_t::updateTransfer() {
     auto status = transfers::Monitor::instance.status();
-    auto transfer_progress = status ? std::optional<uint8_t>(0.5 + status.value().progress_estimate() * 100) : std::nullopt;
+    const bool local_transfer_active = status.has_value();
+    auto transfer_progress = status ? std::optional<uint8_t>(0.5f + status.value().progress_estimate() * 100) : std::nullopt;
     auto transfer_has_issue = status ? status.value().download_has_issue : false;
     status = std::nullopt; // release internal lock
+    const auto remote = serial_remote_control::transfer_status();
+    if (remote.kind != serial_remote_control::TransferKind::none) {
+        transfer_progress = remote.progress;
+        transfer_has_issue = false;
+    }
 
     if (transfer_progress && !last_transfer_progress) {
         transfer_hide_timer = std::nullopt;
@@ -173,6 +180,17 @@ void window_header_t::updateTransfer() {
     }
     last_transfer_progress = transfer_progress;
     last_transfer_has_issue = transfer_has_issue;
+    if (!transfer_progress && serial_remote_control::session_active()) {
+        icon_transfer.SetRes(&img::connect_16x16);
+        icon_transfer.Show();
+        transfer_val.Hide();
+        transfer_hide_timer = std::nullopt;
+    } else {
+        icon_transfer.SetRes(&img::transfer_icon_16x16);
+        if (!transfer_progress && !local_transfer_active && !transfer_hide_timer) {
+            icon_transfer.Hide();
+        }
+    }
 }
 
 void window_header_t::SetIcon(const img::Resource *res) {

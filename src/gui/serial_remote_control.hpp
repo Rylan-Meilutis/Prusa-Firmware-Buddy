@@ -17,6 +17,11 @@ struct LightStatus {
     int16_t print_status;
 };
 
+enum class TransferKind : uint8_t { none, file, firmware };
+struct TransferStatus { TransferKind kind; uint8_t progress; };
+void set_transfer(TransferKind kind, uint32_t completed = 0, uint32_t total = 0);
+TransferStatus transfer_status();
+
 void set_enabled(bool enabled);
 bool enqueue(Action action, int16_t value = 0);
 void request_refresh();

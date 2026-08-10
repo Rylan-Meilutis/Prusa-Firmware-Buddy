@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <serial_remote_control.hpp>
 
 namespace {
 constexpr const char *temporary_path = "/usb/FWUPD.TMP";
@@ -28,6 +29,7 @@ void reset_state(bool remove_temporary) {
         mbedtls_sha256_free(&upload.sha);
     }
     upload = {};
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     if (remove_temporary) {
         remove(temporary_path);
     }
@@ -102,6 +104,7 @@ void begin_upload(const char *body) {
 
     upload.active = true;
     upload.expected_size = size;
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::firmware, 0, size);
     upload.expected_sha = sha;
     mbedtls_sha256_init(&upload.sha);
     upload.sha_initialized = true;
@@ -149,6 +152,7 @@ void write_chunk(const char *body) {
         return;
     }
     upload.received += decoded_size;
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::firmware, upload.received, upload.expected_size);
     SERIAL_ECHOLNPAIR("FW_UPLOAD OFFSET ", upload.received);
 }
 
@@ -165,6 +169,7 @@ void finish_upload() {
     upload.sha_initialized = false;
     mbedtls_sha256_free(&upload.sha);
     upload.active = false;
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     if (rename(temporary_path, firmware_path) != 0) {
         report_error("RENAME", true);
         return;

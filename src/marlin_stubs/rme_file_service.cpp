@@ -5,6 +5,7 @@
 #include <common/filename_type.hpp>
 #include <common/path_utils.h>
 #include <marlin_server.hpp>
+#include <serial_remote_control.hpp>
 
 #include <mbedtls/base64.h>
 #include <mbedtls/sha256.h>
@@ -116,6 +117,7 @@ void reset_upload(const bool remove_partial) {
     if (upload.sha_initialized) mbedtls_sha256_free(&upload.sha);
     if (remove_partial && upload.partial_path[0]) remove(upload.partial_path.data());
     upload = {};
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
 }
 
 bool root_allowed(const std::array<char, FILE_PATH_BUFFER_LEN> &path, const std::string_view action) {
@@ -185,6 +187,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             size_t encoded_size = 0;
             if (mbedtls_base64_encode(encoded.data(), encoded.size(), &encoded_size, raw.data(), count)) report_error("encode_failed");
             else {
+                serial_remote_control::set_transfer(serial_remote_control::TransferKind::file);
                 SERIAL_ECHOPGM("RME_FILE_DATA path="); SERIAL_ECHO(path->data() + 5);
                 SERIAL_ECHOPGM(" offset="); SERIAL_ECHO(offset);
                 SERIAL_ECHOPGM(" length="); SERIAL_ECHO(count);
@@ -206,6 +209,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 reset_upload(true); report_error("open_failed");
             } else {
                 upload.expected_size = *size;
+                serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, 0, *size);
                 mbedtls_sha256_init(&upload.sha);
                 upload.sha_initialized = true;
                 if (mbedtls_sha256_starts_ret(&upload.sha, false)) { reset_upload(true); report_error("hash_failed"); }
@@ -225,6 +229,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 reset_upload(true); report_error("write_failed");
             } else {
                 upload.received += count;
+                serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, upload.received, upload.expected_size);
                 SERIAL_ECHOPGM("RME_FILE_WRITE_OFFSET offset="); SERIAL_ECHOLN(upload.received);
             }
         }
