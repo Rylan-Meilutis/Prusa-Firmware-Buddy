@@ -1079,6 +1079,12 @@ behavior, and filesystem replacement without reducing the build 32 feature set:
 * firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
   marker is created only together with the explicit M997 reboot request, so a
   partial or unselected upload cannot flash on an unrelated boot.
+* transfer recovery, encryption metadata, HTTP engines, inline-transfer state,
+  partial-file ownership, and the two 4 KiB USB DMA write buffers now use
+  bounded fixed storage; transfer metadata and partial-file streams are
+  explicitly unbuffered. This removes the remaining transfer-start and
+  boot-recovery heap allocations that could exhaust or fragment memory when an
+  RME host connected, recovered a staged file, or began an upload/download.
 
 The final release command was:
 

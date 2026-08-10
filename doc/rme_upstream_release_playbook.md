@@ -958,6 +958,12 @@ SRAM and directly reduce runtime heap headroom. Keep binary upload/download on
 one shared static payload buffer, keep the legacy M998 staging stream open for
 the whole transfer, and give every RME-owned stdio stream an explicit static or
 unbuffered policy so newlib cannot add a hidden per-operation heap buffer.
+The transfer subsystem is globally single-instance, so keep its recovery
+scratch, async HTTP engine, decryptor, inline state, intrusive partial-file
+ownership, and both USB DMA sector buffers in their fixed pools. Do not replace
+these with `make_unique`, `make_shared`, default-buffered `FILE` streams, or
+per-transfer sector allocations: connection/recovery overlaps USB, lwIP, GUI,
+and host synchronization startup and must not depend on runtime heap headroom.
 For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
 wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
 through the G-code queue or permit ASCII commands to be interleaved before raw

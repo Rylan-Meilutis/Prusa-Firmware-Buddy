@@ -14,6 +14,34 @@
 
 namespace transfers {
 
+class PartialFile;
+
+// Intrusive ownership for the globally single active partial file. std::shared_ptr
+// would allocate a separate control block even though the object itself uses a
+// fixed pool, leaving transfer startup dependent on heap availability.
+class PartialFilePtr {
+public:
+    PartialFilePtr() = default;
+    PartialFilePtr(std::nullptr_t) {}
+    explicit PartialFilePtr(PartialFile *ptr);
+    PartialFilePtr(const PartialFilePtr &other);
+    PartialFilePtr(PartialFilePtr &&other) noexcept;
+    ~PartialFilePtr();
+    PartialFilePtr &operator=(const PartialFilePtr &other);
+    PartialFilePtr &operator=(PartialFilePtr &&other) noexcept;
+    PartialFilePtr &operator=(std::nullptr_t);
+    void reset();
+    PartialFile *get() const { return ptr_; }
+    PartialFile *operator->() const { return ptr_; }
+    PartialFile &operator*() const { return *ptr_; }
+    explicit operator bool() const { return ptr_ != nullptr; }
+
+private:
+    PartialFile *ptr_ = nullptr;
+    void retain();
+    void release();
+};
+
 /// Partial File manages a FatFS file that can be read & written at the same time.
 ///
 /// - The file is always contiguous on the drive.
@@ -104,6 +132,8 @@ public:
     };
 
 private:
+    friend class PartialFilePtr;
+    std::atomic<uint8_t> reference_count { 0 };
     static void usb_msc_write_finished_callback(USBH_StatusTypeDef result, void *param1, void *param2);
 
     /// Pre-allocated request pool for usbh_msc_submit_request operation with dynamically
@@ -142,6 +172,11 @@ private:
         // Mask of acquired/free slots one bit per slot from least significant (1-acquired/unused, 0-free)
         uint32_t slot_mask;
 
+        // A transfer is globally single-instance. Keeping its DMA write
+        // buffers here prevents two 4 KiB heap allocations on every upload or
+        // download and removes the largest source of transfer-time heap
+        // pressure and fragmentation.
+        alignas(4) std::array<std::array<uint8_t, BUFFER_SIZE>, size> buffers;
         UsbhMscRequest pool[size];
     };
 
@@ -215,9 +250,14 @@ private:
     size_t allowed_sectors() const;
 
 public:
+    struct Pool;
+    static Pool &pool();
+    static void *operator new(size_t size);
+    static void operator delete(void *ptr);
+
     PartialFile(UsbhMscRequest::LunNbr drive, UsbhMscRequest::SectorNbr first_sector, State state, int file_lock);
     ~PartialFile();
-    using Ptr = std::shared_ptr<PartialFile>;
+    using Ptr = PartialFilePtr;
     using Result = std::variant<const char *, PartialFile::Ptr>;
 
     /// Try to create a new partial file of preallocated size
@@ -315,5 +355,61 @@ public:
         written_callback_arg = arg;
     }
 };
+
+inline PartialFilePtr::PartialFilePtr(PartialFile *ptr)
+    : ptr_(ptr) {
+    retain();
+}
+
+inline PartialFilePtr::PartialFilePtr(const PartialFilePtr &other)
+    : ptr_(other.ptr_) {
+    retain();
+}
+
+inline PartialFilePtr::PartialFilePtr(PartialFilePtr &&other) noexcept
+    : ptr_(other.ptr_) {
+    other.ptr_ = nullptr;
+}
+
+inline PartialFilePtr::~PartialFilePtr() { release(); }
+
+inline PartialFilePtr &PartialFilePtr::operator=(const PartialFilePtr &other) {
+    if (this != &other) {
+        release();
+        ptr_ = other.ptr_;
+        retain();
+    }
+    return *this;
+}
+
+inline PartialFilePtr &PartialFilePtr::operator=(PartialFilePtr &&other) noexcept {
+    if (this != &other) {
+        release();
+        ptr_ = other.ptr_;
+        other.ptr_ = nullptr;
+    }
+    return *this;
+}
+
+inline PartialFilePtr &PartialFilePtr::operator=(std::nullptr_t) {
+    reset();
+    return *this;
+}
+
+inline void PartialFilePtr::reset() { release(); }
+
+inline void PartialFilePtr::retain() {
+    if (ptr_) {
+        ptr_->reference_count.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
+inline void PartialFilePtr::release() {
+    PartialFile *released = ptr_;
+    ptr_ = nullptr;
+    if (released && released->reference_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+        delete released;
+    }
+}
 
 } // namespace transfers
