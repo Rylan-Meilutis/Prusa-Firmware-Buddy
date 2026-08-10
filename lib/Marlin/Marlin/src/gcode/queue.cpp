@@ -1329,7 +1329,15 @@ void GCodeQueue::get_serial_commands() {
         // FIFO or manipulate screen objects from Marlin's serial task.
         if (handle_remote_service_frame(command)) {
           SERIAL_ECHOLNPGM(MSG_OK);
-          continue;
+          // A host may pipeline the whole connection handshake without
+          // waiting for each `ok`.  Several query replies can exceed a USB
+          // CDC transmit window, and producing all of them in this serial
+          // reader pass starves the USB task long enough to corrupt the
+          // pending response stream on xBuddy.  Return to the scheduler after
+          // every complete service frame so USB can drain it before the next
+          // command.  Raw binary payload bytes still use their dedicated fast
+          // path above and retain the negotiated chunk/window sizes.
+          return;
         }
 
         #if defined(NO_TIMEOUTS) && NO_TIMEOUTS > 0
