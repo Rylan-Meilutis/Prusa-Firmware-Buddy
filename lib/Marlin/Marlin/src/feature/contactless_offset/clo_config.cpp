@@ -18,16 +18,24 @@ constexpr tool_offset::CoilAxis coil_y {
     .sensing_distance = 12.f,
 };
 #elif PRINTER_IS_PRUSA_XL()
+// Expected sensor-surface height above the homed Z0, shared by both coils
+constexpr float expected_surface_z = 0.4f;
+// Fixed Z-probe spot: a clear area of the sensor PCB (no coil traces) that can
+// take repeated loadcell probing. Common to both coils.
+constexpr xyz_pos_t z_probe_position { { { -6.f, -5.f, expected_surface_z } } };
 constexpr tool_offset::CoilAxis coil_x {
-    .position = { { { 5.f, -5.f, 0.f } } },
+    .position = { { { 5.f, -7.f, expected_surface_z } } },
     .channel = tool_offset::SensorChannel::ch1,
     .sensing_distance = 12.f,
 };
 constexpr tool_offset::CoilAxis coil_y {
-    .position = { { { -6.f, 6.f, 0.f } } },
+    .position = { { { -6.f, 6.f, expected_surface_z } } },
     .channel = tool_offset::SensorChannel::ch0,
     .sensing_distance = 12.f,
 };
+static_assert(z_probe_position.x >= X_MIN_POS && z_probe_position.x <= X_MAX_POS
+        && z_probe_position.y >= Y_MIN_POS && z_probe_position.y <= Y_MAX_POS,
+    "Z-probe spot is out of allowed travel");
 #else
     #error "sensor parameters not defined for this printer"
 #endif
@@ -48,6 +56,8 @@ tool_offset::ProbingConfig tool_offset::get_default_probing_config() {
     };
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
     config.y_shift_z_probe_offset_from_sensor = y_shift_z_probe_offset_from_sensor;
+#else
+    config.z_probe_position = z_probe_position;
 #endif
     return config;
 }

@@ -910,14 +910,18 @@ uint16_t port_for(tool_offset::SensorChannel channel) {
 
 // --- dual-coil (XLS) measurement helpers ---
 
-struct CoilMeasurement {
-    float offset; ///< nozzle offset from the coil centre along the measured axis
-    float sensor_z; ///< probed Z of the coil's PCB plane
-};
+// If the Z probe triggers more than this below the expected surface
+// (z_probe_position.z), the detachable sensor is absent and the probe hit the
+// bed or frame instead. TODO tune from real probe scatter.
+constexpr float sensor_presence_z_margin = 1.5f;
 
-// Probe one coil's Z and sweep the nozzle over it along its measured axis. The
-// sensor is created here so only one channel is streaming at a time -- the
-// bridge dispatches to a single stream callback.
+// Sweep the nozzle over one coil along its measured axis. The sensor is
+// created here so only one channel is streaming at a time -- the bridge
+// dispatches to a single stream callback.
+//
+// The approach is raise to safe_z -> travel to the sweep start -> descend to
+// sweep_z, so travel from the Z-probe spot (or the other coil) never drags the
+// nozzle low across the board or a coil.
 //
 // Unlike the single-coil FSM there is no cross-axis hunt: the coil centre is
 // known to ~+/-1 mm (well inside the sweep), so every weak outcome is fatal.
@@ -925,19 +929,15 @@ struct CoilMeasurement {
 // -> absent/removed).
 // So far only XL has dual-coil and TOS calibration is requested from menu,
 // therefore user assisted, it can be retried easily by user.
-std::expected<CoilMeasurement, const char *> measure_coil(
+std::expected<float, const char *> measure_coil(
     const tool_offset::ProbingConfig &config,
     bool along_x,
-    const tool_offset::CoilAxis &coil) {
+    const tool_offset::CoilAxis &coil,
+    float sensor_z) {
 
     auto sensor = tool_offset::make_sensor(port_for(coil.channel));
-
-    const auto sensor_z = probe_sensor_z(config, coil.position);
-    if (!sensor_z) {
-        return std::unexpected(sensor_z.error());
-    }
-    do_blocking_move_to_z(*sensor_z + config.sensing_z);
-    debug_report_probed_z(*sensor_z, *sensor_z - coil.position.z);
+    const float sweep_z = sensor_z + config.sensing_z;
+    const float safe_z = sensor_z + config.safe_z_height;
 
     const AxisSweep sweep {
         .along_x = along_x,
@@ -945,6 +945,12 @@ std::expected<CoilMeasurement, const char *> measure_coil(
         .cross_pos = along_x ? coil.position.y : coil.position.x,
         .half_width = coil.sensing_distance / 2.0f,
     };
+
+    do_blocking_move_to_z(safe_z);
+    do_blocking_move_to_xy(along_x
+            ? xy_pos_t { .x = sweep.center - sweep.half_width, .y = sweep.cross_pos }
+            : xy_pos_t { .x = sweep.cross_pos, .y = sweep.center - sweep.half_width });
+    do_blocking_move_to_z(sweep_z);
 
     const auto r = sweep_axis(config, *sensor, sweep);
     if (!r.has_value()) {
@@ -955,7 +961,7 @@ std::expected<CoilMeasurement, const char *> measure_coil(
         return std::unexpected("Tool offset sensor did not respond (low confidence)");
     }
 
-    return CoilMeasurement { .offset = r->offset, .sensor_z = *sensor_z };
+    return r->offset;
 }
 
 #endif // TOOL_OFFSET_SENSOR_GEOMETRY_IS_DUAL_COIL()
@@ -1018,33 +1024,42 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
 #else
     // Dual coil (XLS): X is swept over coil_x, Y over coil_y, each probed
     // separately on its own channel. No cross-axis hunt. Heaters off for the
-    // whole measurement (EM noise + safety); Z is managed explicitly per coil,
-    // with the final safe-Z raise done by the guard.
-    // Constructing the guard before the Z probes is only safe because dual-coil
-    // never runs on a head whose loadcell stream the guard pauses -- the probes
-    // need that stream. Where it is paused, the guard must come after the probe,
+    // whole measurement (EM noise + safety).
+    // The final safe-Z raise is done by the guard.
+    // Constructing the guard before the Z probe is only safe because dual-coil
+    // never runs on a head whose loadcell stream the guard pauses -- the probe
+    // needs that stream. Where it is paused, the guard must come after the probe,
     // as in the single-coil flow. The config asserts the two never meet.
     (void)initial_measurement_offset; // the coil centres are known, so there is nothing to seed
     ScanState scan_state(hotend, config);
 
-    const auto x = measure_coil(config, /*along_x=*/true, config.coil_x);
+    const auto sensor_z = probe_sensor_z(config, config.z_probe_position);
+    if (!sensor_z) {
+        return std::unexpected(sensor_z.error());
+    }
+    // Detachable sensor: a trigger well below the expected surface means the
+    // probe fell past an absent sensor onto the bed/frame.
+    if (*sensor_z < config.z_probe_position.z - sensor_presence_z_margin) {
+        return std::unexpected("Tool offset sensor not detected (Z probe too deep)");
+    }
+    debug_report_probed_z(*sensor_z, *sensor_z - config.z_probe_position.z);
+
+    const auto x = measure_coil(config, /*along_x=*/true, config.coil_x, sensor_z.value());
     if (!x) {
         return std::unexpected(x.error());
     }
-    do_blocking_move_to_z(config.coil_x.position.z + config.safe_z_height); // raise before traversing to coil_y
 
-    const auto y = measure_coil(config, /*along_x=*/false, config.coil_y);
+    const auto y = measure_coil(config, /*along_x=*/false, config.coil_y, sensor_z.value());
     if (!y) {
         return std::unexpected(y.error());
     }
 
-    // Tool Z offset taken from the X-coil probe; both coils sit on the same
-    // sensor PCB top plane. calibrate_xy_offset keeps the loadcell-measured Z
-    // anyway, so this is informational.
+    // Tool Z offset relative to the probed sensor surface. Only informational,
+    // calibrate_xy_offset keeps the loadcell-measured Z.
     return tool_offset::ToolOffset {
-        .x = x->offset,
-        .y = y->offset,
-        .z = x->sensor_z - config.coil_x.position.z,
+        .x = x.value(),
+        .y = y.value(),
+        .z = sensor_z.value() - config.coil_x.position.z,
     };
 #endif
 }

@@ -33,7 +33,7 @@ enum class SensorChannel : uint8_t { ch0 = 0,
 /// single-coil describes the same physical coil twice, once per axis, because
 /// the two sweeps differ in length.
 struct CoilAxis {
-    xyz_pos_t position {}; ///< coil centre, machine frame
+    xyz_pos_t position {}; ///< coil centre, machine frame; .z is the expected sensor-surface height
     SensorChannel channel = SensorChannel::ch0; ///< LDC1612 channel feeding this coil
     float sensing_distance = 0.f; ///< sweep length along the measured axis
 };
@@ -44,6 +44,8 @@ struct ProbingConfig {
 
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
     float y_shift_z_probe_offset_from_sensor;
+#else
+    xyz_pos_t z_probe_position;
 #endif
 
     float safe_z_height; // Height above the sensor for the descent before probing and the post-scan lift
