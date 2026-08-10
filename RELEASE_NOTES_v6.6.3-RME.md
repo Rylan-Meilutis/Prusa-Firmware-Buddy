@@ -13,6 +13,8 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
   * Enlarged USB CDC packet FIFOs for faster file and firmware bursts and made
     1,000,000 the advertised normal-mode rate, while preserving ordinary
     G-code, the older RME protocol, and slower host settings as fallbacks.
+  * Added a header icon for negotiated RME host sessions and integrated RME
+    file and firmware upload activity with the existing transfer indicator.
   * Added a USB-confined `@RME FILE` service for directory listing, metadata,
     Base64 chunk downloads, SHA-256-verified atomic uploads, abort cleanup,
     directory creation, rename/delete, print queueing, and normal validated BBF
