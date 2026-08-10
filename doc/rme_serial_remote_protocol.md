@@ -287,10 +287,14 @@ commands above as a fallback:
 @RME FILE WRITE_BULK_END
 ```
 
-`CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4 overwrite=1`. A host pipelines four
-sequential chunks and waits for the cumulative `RME_FILE_BULK_ACK` offset
-before sending the next window. Offset, declared-size, atomic temporary-file,
-SHA-256, abort, and final-rename guarantees are identical to legacy upload.
+`CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4 overwrite=1`. A host
+may pipeline four sequential chunks and then waits for the cumulative
+`RME_FILE_BULK_ACK` offset before sending the next window. Firmware reserves
+enough CDC receive space for the complete advertised window, so storage
+latency does not truncate an in-flight command or disconnect the endpoint.
+Offset, declared-size, atomic temporary-file, SHA-256, abort, and final-rename
+guarantees are identical to legacy upload. Binary upload remains preferred for
+maximum throughput.
 Signed BBF files use the same bulk upload followed by `@RME FILE FLASH`.
 
 For maximum throughput, `CAPS` also advertises

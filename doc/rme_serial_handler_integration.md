@@ -86,7 +86,8 @@ the fastest mutually supported mode:
    parsing to raw framing.
 2. Otherwise use `bulk=1`: pipeline up to `bulk_window` contiguous
    `WRITE_BULK_CHUNK` frames of at most `bulk_chunk` decoded bytes, then wait
-   for the cumulative `RME_FILE_BULK_ACK` offset.
+   for the cumulative `RME_FILE_BULK_ACK` offset. Never exceed the negotiated
+   window, and discard the unacknowledged window if its ACK times out.
 3. Fall back to `WRITE_BEGIN` plus acknowledged 48-byte `WRITE_CHUNK` frames.
 
 The raw frame header is exactly ten little-endian bytes:
@@ -145,11 +146,12 @@ to enumerate again before reopening it. Re-run machine discovery, session
 negotiation, and the startup snapshot after reconnect. Do not exhaust ordinary
 baud autodetection while the bootloader is still installing the image.
 
-`/usb/FWUPD.BBF` is a temporary shared staging name. An M997 request for that
-name arms durable one-shot cleanup; the application removes it and its marker
-when mounted media becomes available after the bootloader attempt. A host must
-not submit a second flash request merely because the staging filename was seen
-during reconnect.
+`FWUPD.BBF` remains the legacy host-visible staging name, but RME firmware maps
+it to the non-discoverable `/usb/FWUPD.RME` file. Merely uploading or staging
+that file cannot trigger installation. An explicit FLASH/M997 request creates
+the cleanup marker and retained bootloader selection in the same reboot
+handoff. The application removes the neutral stage after that attempt. A host
+must not submit a second flash request during reconnect.
 
 ## Message routing
 

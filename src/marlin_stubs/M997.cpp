@@ -16,11 +16,23 @@
 
 static void update_main_board(bool update_older, const char *sfn) {
     if (*sfn) { // Flash selected BBF
-        // FWUPD.BBF is the shared temporary upload/staging filename. Mark it
-        // as consumed before reboot so the application removes it after the
-        // one requested bootloader attempt. Without this marker a serial
-        // update can be selected again on a later boot.
-        if (strcasecmp(sfn, "FWUPD.BBF") == 0) {
+        char selected_sfn[13] {};
+        strlcpy(selected_sfn, sfn, sizeof(selected_sfn));
+        // Preserve direct M998/legacy M997 compatibility while ensuring the
+        // bootloader cannot auto-discover the staged file on a later reboot.
+        if (strcasecmp(selected_sfn, "FWUPD.BBF") == 0) {
+            remove("/usb/FWUPD.RME");
+            if (rename("/usb/FWUPD.BBF", "/usb/FWUPD.RME") != 0) {
+                SERIAL_ERROR_MSG("M997 could not secure staged firmware");
+                return;
+            }
+            strlcpy(selected_sfn, "FWUPD.RME", sizeof(selected_sfn));
+        }
+        // FWUPD.RME is deliberately not a .BBF: the bootloader must only open
+        // it through this retained, explicitly selected one-shot request.
+        // Create the cleanup marker here, in the same operation that arms the
+        // reboot, rather than while a file is merely being staged.
+        if (strcasecmp(selected_sfn, "FWUPD.RME") == 0) {
             FILE *marker = fopen("/usb/FWUPD.UI", "wb");
             if (!marker) {
                 SERIAL_ERROR_MSG("M997 could not arm one-shot firmware cleanup");
@@ -34,7 +46,7 @@ static void update_main_board(bool update_older, const char *sfn) {
                 return;
             }
         }
-        data_exchange::set_reflash_bbf_sfn(sfn);
+        data_exchange::set_reflash_bbf_sfn(selected_sfn);
     } else {
         if (update_older) {
             data_exchange::fw_update_older_on_restart_enable();

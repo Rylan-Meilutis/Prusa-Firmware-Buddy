@@ -95,16 +95,18 @@ Update Instructions. Its browser must list `.bbf` files in the USB root and
 subdirectories while excluding ordinary print files; the normal print browser's
 G-code-only filter must not hide firmware. The picker must reject non-BBF files and paths outside
 `/usb`, but accept completed Connect downloads in USB subdirectories and long
-filenames. After confirmation it must copy the selection to `/usb/FWUPD.BBF`,
-flush it, hand that short filename to the bootloader, and restart without
-removing the source download. A `/usb/FWUPD.UI` marker must cause the application
-to remove the temporary BBF and marker on the next USB mount after the bootloader
-attempt; an unmarked serial-uploaded BBF must not be removed. Test copy failures, invalid-signature, and wrong-model
+filenames. After confirmation it must copy the selection to the neutral
+`/usb/FWUPD.RME` staging name, flush it, and create the marker plus retained
+bootloader selection only in the M997 reboot handoff. An incomplete or
+completed-but-unselected stage must never use a `.BBF` extension and must not
+flash after an unrelated reboot. A `/usb/FWUPD.UI` marker causes the
+application to remove the temporary stage after the requested attempt. Test
+copy failures, invalid-signature, and wrong-model
 files to ensure the bootloader rejects them without flashing. Serial regression
 coverage must retain `M997 O` and `M997 /usb/FIRMWARE.BBF`; the latter selects a
 file already present on USB rather than carrying the file data itself.
 The copy buffer must remain outside the GUI task stack, and the picker must
-queue `M997 /usb/FWUPD.BBF` rather than resetting directly inside its click
+queue `M997 /usb/FWUPD.RME` rather than resetting directly inside its click
 callback. Confirm that the UI remains responsive during staging and that the
 Marlin-side command restarts the printer immediately afterward.
 
