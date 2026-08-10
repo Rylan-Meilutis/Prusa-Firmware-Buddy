@@ -397,7 +397,7 @@ struct CurrentStore
     StoreItem<uint8_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Color Valid")> custom_filament_color_valid;
 
     // Manufacturer IDs are 1-based presets or 0x80-based custom slots; zero means unset.
-    StoreItemArray<uint8_t, uint8_t { 0 }, ItemFlag::printer_state, journal::hash("Loaded Filament Manufacturer"), 8, EXTRUDERS> loaded_filament_manufacturer;
+    StoreItemArray<uint8_t, uint8_t { 0 }, ItemFlag::printer_state, journal::hash("Loaded Filament Manufacturer"), 16, EXTRUDERS> loaded_filament_manufacturer;
     StoreItem<std::array<std::array<char, 24>, 8>, defaults::custom_filament_manufacturer_names, ItemFlag::user_presets, journal::hash("Custom Filament Manufacturer Names")> custom_filament_manufacturer_names;
     StoreItem<uint8_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Manufacturer Valid")> custom_filament_manufacturer_valid;
 
