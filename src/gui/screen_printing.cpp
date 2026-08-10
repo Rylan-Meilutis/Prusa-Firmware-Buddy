@@ -641,7 +641,7 @@ void screen_printing_data_t::updateTimes() {
 }
 
 void screen_printing_data_t::screen_printing_reprint() {
-    marlin_client::print_start(GCodeInfo::getInstance().GetGcodeFilepath(), marlin_server::PreviewSkipIfAble::preview);
+    marlin_client::print_start(GCodeInfo::getInstance().GetGcodeFilepath(), marlin_client::PreviewSkipIfAble::preview, marlin_client::ResetToolMapping::no);
     screen_printing_data_t::updateTimes(); // reinit, but should be already set correctly
     SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Stop, LabelRes::Stop);
     header.SetText(_(caption));

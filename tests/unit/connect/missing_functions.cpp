@@ -36,7 +36,7 @@ void inject(InjectQueueRecord record) {
     last_gcode = buf;
 }
 
-void print_start(const char *, marlin_server::PreviewSkipIfAble) {}
+void print_start(const char *, marlin_server::PreviewSkipIfAble, marlin_server::ResetToolMapping) {}
 
 } // namespace marlin_client
 

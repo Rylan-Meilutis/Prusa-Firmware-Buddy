@@ -1516,7 +1516,7 @@ void serial_print_start() {
 }
 #endif
 
-void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {
+void print_start(const char *filename, const GCodeReaderPosition &resume_pos, PreviewSkipIfAble skip_preview, ResetToolMapping reset_tool_mapping) {
 #if HAS_SELFTEST()
     if (SelftestInstance().IsInProgress()) {
         return;
@@ -1536,7 +1536,7 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
     case State::Aborted:
         // correctly end previous print
         finalize_print(server.print_state == State::Finished);
-        cleanup_print();
+        cleanup_print(reset_tool_mapping);
         break;
 
     case State::Idle:
@@ -2878,9 +2878,6 @@ static void _server_print_loop(void) {
             break;
         }
 
-        // Print should already be finalized here - but just in case
-        finalize_print(false);
-
         cleanup_print();
         break;
 
@@ -3755,7 +3752,7 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         return false;
 #endif
     case Request::Type::PrintStart:
-        print_start(request.print_start.filename, GCodeReaderPosition(), request.print_start.skip_preview);
+        print_start(request.print_start.filename, GCodeReaderPosition(), request.print_start.skip_preview, request.print_start.reset_tool_mapping);
         return true;
     case Request::Type::SetWarning:
         set_warning(request.warning_type);

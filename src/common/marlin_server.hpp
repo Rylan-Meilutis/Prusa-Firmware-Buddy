@@ -110,7 +110,7 @@ void serial_print_finalize();
  * @param resume_pos position in the file to start from
  * @param skip_preview can be used to skip preview thumbnail or toolmapping screen
  */
-void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview = marlin_server::PreviewSkipIfAble::no);
+void print_start(const char *filename, const GCodeReaderPosition &resume_pos, PreviewSkipIfAble skip_preview = PreviewSkipIfAble::no, ResetToolMapping reset_tool_mapping = ResetToolMapping::yes);
 
 //
 void set_command(uint32_t command);
