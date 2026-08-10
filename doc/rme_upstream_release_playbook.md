@@ -253,11 +253,22 @@ Every non-resource source directory in that inventory should map to one of the f
 5. Run the narrow compile checks early.
 
 ```sh
+./.venv/bin/python utils/build_tests.py rme_protocol_tests transfers_tests connect_tests --jobs 4
+./build/tests/tests/unit/rme/rme_protocol_tests
+./build/tests/tests/unit/transfers/transfers_tests
+./build/tests/tests/unit/connect/connect_tests
 ./build.py --preset xl --bootloader yes
 ./build.py --preset coreone --bootloader yes
 ./build.py --preset coreonel --bootloader yes
 ./build.py --preset mini --bootloader yes
 ```
+
+The RME parser suite is a release gate for service/G-code isolation, complete
+32-bit synchronization transaction IDs, strict fixed-capacity decoding,
+manufacturer escaping, `/usb` path confinement, SHA-256 fields, and repeated
+host synchronization without retained parser state. Keep the transfer and
+Connect suites beside it because those paths share the same host connection
+and file-transfer lifetime constraints.
 
 XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-only brightness gate. Core One and Core One L are the chamber/door/LED/resource-image gates. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
 
