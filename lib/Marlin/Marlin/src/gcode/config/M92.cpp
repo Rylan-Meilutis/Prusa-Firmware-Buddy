@@ -71,10 +71,10 @@ void report_M92(const bool echo=true, const int8_t e=-1) {
  *#### Parameters
  *
  *  - `X` - Set current position on X axis
- *  - `Y` - Set current position on Y axis
- *  - `Z` - Set current position on Z axis
- *  - `E` - Set current position on E axis
- *  - `T` - Set current position on E axis of tool
+ *  - `Y` - Set steps-per-unit on Y axis
+ *  - `Z` - Set steps-per-unit on Z axis
+ *  - `E` - Set steps-per-unit on E axis
+ *  - `T` - Set steps-per-unit on E axis of tool
  *  - `H` - Specifies micro-steps to use. We guess if it's not supplied.     (Not active by default)
  *  - `L` - Specifies a desired layer height. Nearest good heights are shown (Not active by default)
  *

@@ -12,7 +12,7 @@
 
 #if PRINTER_IS_PRUSA_MK3_5()
 /*****************************************************************************/
-// MI_ALT_FAN_CORRECTION
+// MI_ALT_FAN
 bool MI_ALT_FAN::init_index() {
     return config_store().has_alt_fans.get();
 }

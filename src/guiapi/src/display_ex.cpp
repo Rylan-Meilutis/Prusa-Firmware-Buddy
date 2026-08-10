@@ -364,7 +364,7 @@ static void draw_rounded_rect_rad1(Rect16 rect, Color back, Color front, uint8_t
     uint8_t *buffer = borrow_buffer.buffer;
 
     uint16_t h_left = rect.Height();
-    for (uint8_t i = 0; i < loop; i++) { // If rectangle is higher than buffROWS (8 on ILI9488), it has to be separated
+    for (uint8_t i = 0; i < loop; i++) { // If rectangle is higher than buffROWS (4 on ILI9488), it has to be separated
         uint8_t buff_rows_to_draw = (h_left < buffROWS ? h_left : buffROWS);
         // We paint whole rect with front color and then paint the round edge's complement in back color TO AVOID FLICKERING
         store_to_buffer(buffer, Rect16(0, 0, rect.Width(), buff_rows_to_draw), rect.Width(), front);
@@ -409,7 +409,7 @@ void draw_rounded_rect(Rect16 rect, Color back, Color front, uint8_t cor_rad, ui
     uint16_t div = rect.Height() / buff_rows;
     bool carry = true;
     if (div) {
-        carry = rect.Height() % buff_rows != 0; // ILI9488 display buffer has only 8 rows, we need to separate
+        carry = rect.Height() % buff_rows != 0; // ILI9488 display buffer has only 4 rows, we need to separate
     }
     uint16_t h_left = rect.Height();
 

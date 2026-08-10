@@ -87,7 +87,7 @@ static void M600_manual(const GCodeParser2 &);
  *
  *#### Usage
  *
- *    M [ E | X | Y | Z | U | L | B | T | A | C | S | N ]
+ *    M600 [ E | X | Y | Z | U | L | B | T | A | C | S | N | P ]
  *
  *#### Parameters
  *

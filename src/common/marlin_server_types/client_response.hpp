@@ -1,11 +1,4 @@
-/**
- * @file client_response.hpp
- * @brief every phase in dialog can have some buttons
- * buttons are generalized on this level as responses
- * because non GUI/WUI client can also use them
- * bound to ClientFSM in src/common/client_fsm_types.hpp
- */
-
+/// @file
 #pragma once
 
 #include <cstdint>

@@ -21,7 +21,7 @@ public:
         PreheatMode mode;
     };
 
-    /// See @p OpenPrintTagInfoParams
+    /// See @p InfoParams
     ScreenOPTFilamentDetail(InfoParams params);
 
     /// Scans a tag for a given tool. Adds the "confirm" button that saves the filament into PendingAdHocFilamentType

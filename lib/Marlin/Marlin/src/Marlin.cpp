@@ -326,9 +326,6 @@ void manage_inactivity() {
  * @param waiting
  *   @par @c true Caller is waiting for some event, release CPU to other tasks.
  *   @par @c false Caller has more data to process, do not release CPU.
- * @param no_stepper_sleep
- *   @par @c true Keep steppers from disabling on timeout
- *   @par @c false Allow steppers to release (and lose position) on timeout
  */
 void idle(bool waiting) {
   #if HAS_PLANNER()

@@ -2110,7 +2110,7 @@ void Planner::buffer_sync_block() {
  * @description Add a new linear movement to the buffer in axis units.
  *              Leveling and kinematics should be applied before calling this.
  *
- * @param x,y,z,e       Target positions in mm and/or degrees
+ * @param xyze          Target positions in mm and/or degrees
  * @param fr_mm_s       (target) speed of the move
  * @param tool          physical tool for the move
  * @param hints         optional parameters to aid planner calculations
@@ -2389,7 +2389,7 @@ bool Planner::buffer_raw_segment(const MachinePosXYZE &xyze, const float acceler
  * Add a new linear movement to the buffer.
  * The target is cartesian.
  *
- *  rx,ry,rz,e      - target position in mm or degrees
+ *  cart            - target position in mm or degrees
  *  fr_mm_s         - (target) speed of the move (mm/s)
  *  tool            - physical tool for the move
  *  hints           - optional parameters to aid planner calculations

@@ -380,8 +380,8 @@ void st7789v_init(void) {
     st7789v_delay_ms(120); // 120ms wait
     st7789v_cmd_slpout(); // wakeup
     st7789v_delay_ms(120); // 120ms wait
-    st7789v_cmd_madctl(ST7789V_DEF_MADCTL); // interface pixel format
-    st7789v_cmd_colmod(ST7789V_DEF_COLMOD); // memory data access control
+    st7789v_cmd_madctl(ST7789V_DEF_MADCTL); // memory data access control
+    st7789v_cmd_colmod(ST7789V_DEF_COLMOD); // interface pixel format
     st7789v_cmd_dispon(); // display on
     st7789v_delay_ms(10); // 10ms wait
 }

@@ -313,7 +313,7 @@ public:
 
     /// Calculates the analysisStart and analysisEnd features.
     ///
-    /// Returns true if we have enough data in the window. False otherwise.
+    /// Fails if there is not enough data in the window.
     std::expected<void, AnalysisError> CalculateAnalysisRange(Features &features);
 
     bool CalculateLoadLineApproximationFeatures(Features &features);

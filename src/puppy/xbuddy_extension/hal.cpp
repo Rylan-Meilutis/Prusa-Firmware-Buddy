@@ -83,7 +83,7 @@ extern "C" void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
 
 static void tim1_postinit() {
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**TIM2 GPIO Configuration
+    /**TIM1 GPIO Configuration
     PA8     ------> TIM1_CH1
     PA9     ------> TIM1_CH2
     PA10    ------> TIM1_CH3

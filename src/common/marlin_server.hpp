@@ -57,15 +57,11 @@ void loop();
 void do_babystep_Z(float offs);
 
 // direct call of 'enqueue_and_echo_command'
-// @retval true command enqueued
-// @retval false otherwise
 void enqueue_gcode(const char *gcode);
 
 [[nodiscard]] bool enqueue_gcode_try(const char *gcode);
 
 // direct call of 'enqueue_and_echo_command' with formatting
-// @retval true command enqueued
-// @retval false otherwise
 void __attribute__((format(__printf__, 1, 2)))
 enqueue_gcode_printf(const char *gcode, ...);
 

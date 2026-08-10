@@ -40,5 +40,4 @@ extern const GenerateFilamentListConfig management_generate_filament_list_config
 
 /// Generates a filament list based on the provided \p config.
 /// The result is stored in \p list. (But some slots might be unused).
-/// \returns generated list size
 void generate_filament_list(FilamentList &list, const GenerateFilamentListConfig &config);
