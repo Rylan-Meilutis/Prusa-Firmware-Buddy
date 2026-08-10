@@ -257,6 +257,15 @@ mode. A zero-length frame with offset `0xffffffff` aborts and removes the
 partial file. CRC or offset failures return `RME_FILE_BINARY_NACK` with the
 last committed offset. Legacy text protocols remain unchanged.
 
+The ten-byte header and payload are raw bytes: do not add CR/LF, Marlin line
+numbers/checksums, or Base64. Raw mode owns the receiver until a completion or
+abort frame returns it to line mode, so ASCII G-code and `@RME` service commands
+cannot be interleaved during that interval. The printer's independent motion,
+heater, and safety tasks continue to execute. Hosts cancel with the binary
+`0xffffffff` abort frame and must wait for the abort/completion response before
+resuming line traffic. On NACK, discard unacknowledged frames and restart at
+the returned committed offset.
+
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a
 successful `WRITE_END`. `ABORT` removes the partial file. Mutating operations

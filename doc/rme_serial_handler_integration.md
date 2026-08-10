@@ -32,22 +32,61 @@ The session is volatile and is reset by firmware reboot. Re-negotiate after
 every reconnect. A handler must never infer a session merely because an older
 connection opened one.
 
-## Message routing
-
 ## Filesystem integration
 
 Use `@RME FILE CAPS` during discovery and treat `/usb` as the only exported
-filesystem. Serialize requests with normal RME traffic. For downloads, request
-no more than 48 bytes and decode each `RME_FILE_DATA data=` value from Base64.
-For uploads, calculate size and SHA-256 before `WRITE_BEGIN`, send contiguous
-48-byte chunks, advance only after `RME_FILE_WRITE_OFFSET`, and finish with
-`WRITE_END`. Send `ABORT` after a disconnect or cancelled transfer.
+filesystem. For downloads, request no more than 48 bytes and decode each
+`RME_FILE_DATA data=` value from Base64. For uploads, calculate the complete
+byte count and SHA-256 before selecting the fastest mutually supported mode:
+
+1. Prefer `binary=1`. Send `WRITE_BINARY_BEGIN`, wait for
+   `RME_FILE_BINARY_READY`, and temporarily switch the connection from line
+   parsing to raw framing.
+2. Otherwise use `bulk=1`: pipeline up to `bulk_window` contiguous
+   `WRITE_BULK_CHUNK` frames of at most `bulk_chunk` decoded bytes, then wait
+   for the cumulative `RME_FILE_BULK_ACK` offset.
+3. Fall back to `WRITE_BEGIN` plus acknowledged 48-byte `WRITE_CHUNK` frames.
+
+The raw frame header is exactly ten little-endian bytes:
+
+```text
+offset:u32 | length:u16 | crc32:u32 | payload:length
+```
+
+Use the `binary_chunk`, `binary_window`, `header`, `endian`, and `crc` values
+returned by `CAPS`/`RME_FILE_BINARY_READY`; do not hard-code them as permanent
+protocol constants. In this release they are 4096 bytes, eight frames, ten
+bytes, little endian, and CRC32. Pipeline only contiguous frames. Treat every
+ACK as the cumulative committed offset, and after a NACK discard outstanding
+frames and restart from its reported offset. Complete the upload with a
+zero-length frame whose offset equals the declared size. Wait for
+`RME_FILE_BINARY_COMPLETE` before returning the shared connection to ordinary
+line mode. A zero-length frame with offset `0xffffffff` aborts the raw upload.
+
+Raw mode deliberately gives every received byte to the transfer decoder, so
+ASCII G-code and `@RME` commands cannot be multiplexed into the byte stream.
+Firmware motion, heater, and safety tasks continue running, but a host needing
+to cancel the transfer must send the binary abort frame, not an ASCII command.
+Keep the normal emergency-disconnect policy as a final transport fallback.
+Once line mode resumes, the out-of-band recovery service is available again.
+
+For all three modes, retry from the last acknowledged offset after a recoverable
+transport interruption and issue the mode's abort operation when abandoning a
+transfer. Never interleave upload modes or send a second transfer request while
+one is active.
 
 Do not present a file as complete until `RME_FILE_WRITE_COMPLETE` arrives.
+For bulk and binary modes, the corresponding completion records are
+`RME_FILE_BULK_COMPLETE` and `RME_FILE_BINARY_COMPLETE`.
 `PRINT` and `FLASH` return a queued acknowledgement before the foreground
 firmware workflow starts; continue consuming standard and structured state
 events. Percent-encode spaces and reserved path characters. Never attempt to
 address paths outside `/usb`.
+
+Upload a signed BBF through the same selected transfer mode, then send
+`@RME FILE FLASH path=<encoded path>`. This delegates validation, retained
+bootloader request, and restart to the firmware's normal update path. Do not
+assume that upload completion itself flashes or reboots the printer.
 
 ## Message routing
 
@@ -104,6 +143,10 @@ responses without cancelling the print.
 - Keep the plugin usable when structured events are unavailable by falling
   back to standard action notifications.
 - Do not suppress standard temperatures or safety traffic in the host parser.
+- Do not wrap raw binary frames in `N...*checksum`, append CR/LF, Base64-encode
+  them, or wait for a Marlin `ok`; only the binary ACK/NACK records pace them.
+- Bound retransmission attempts and surface media/hash failures to the user.
+  Never silently report a partial `.rme-part` file as the requested filename.
 
 ## Minimum conformance test
 
@@ -118,3 +161,8 @@ legacy notifications are replaced.
 Also query statistics both idle and during a blocking heater wait, validate
 units and optional-field handling, and confirm the query never changes a
 counter or print state.
+Exercise all advertised file modes: legacy 48-byte transfer, four-frame bulk
+windows, eight-frame raw windows, CRC NACK/restart, offset NACK/restart, binary
+abort, disconnect cleanup, wrong SHA-256, full media, atomic completion, print
+queueing, and signed-BBF flash handoff. Confirm that legacy hosts which ignore
+new `CAPS` fields continue to work unchanged.
