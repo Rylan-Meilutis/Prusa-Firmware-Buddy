@@ -1129,3 +1129,25 @@ python3 utils/build.py --bootloader yes
 ```
 
 Confirm `bbf/` contains all expected BBFs and that the build summary reports zero failures.
+
+## 2026-08-09 build 32 / build 4 validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29
+presets must pass, producing exactly 14 BBFs under `bbf/6.5.7` and 15 under
+`bbf/6.6.3`, with no root-level or unrelated BBFs.
+
+Validated maxima: 6.5.7 MINI 96.52%, MK4 94.53%, MK3.5 89.97%, XL 69.12%;
+6.6.3 MINI 98.47%, MK4 60.65%, MK3.5 56.02%, XL 68.79%, CORE One INDX
+65.37%.
+
+Keep immutable QOI data, translations, and supported fonts in the managed
+external resource payload. Keep manufacturer presets in one packed blob and
+resolve heterogeneous multi-filament rows once so runtime configuration loops
+do not instantiate duplicate per-tool bodies.
+
+INDX has eight real tools; Marlin's ninth EXTRUDERS value is `NoTool` and must
+never be advertised. Dock setup offers only four- and eight-tool variants and
+clears stale calibration bits above the selected count. Flashing status text
+must remain above the splash progress-bar repaint rectangle on both displays.
+
+Release tags: `v6.5.7-RME-b32` and `v6.6.3-RME-b4`.

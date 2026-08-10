@@ -972,3 +972,57 @@ adde7a9bf  2026-08-09  Expand RME filament profile synchronization
 expanded through `05f0ce7eb`. The exact 15-image 6.6.3 half of the final multi-version
 matrix passed at firmware head `8a9b632ef`; MK4 used 59.99% flash and MINI used
 at most 97.57%.
+
+## Build 4 release update
+
+Build 4 completes the high-speed host, manufacturer, configuration-stream, and
+INDX tool-model work while retaining the complete build 3 feature set:
+
+* load, preload, and loaded-filament workflows expose 50 built-in manufacturers
+  plus eight persistent keyboard/RME-defined user entries;
+* raw binary and pipelined RME transfers coexist with legacy commands and baud
+  fallbacks;
+* local and host-originated configuration changes emit sequenced `RME_CHANGE`
+  records, allowing one startup/reconnect snapshot with no steady-state polling;
+* INDX reports eight real tool positions, never Marlin's internal ninth
+  `NoTool` sentinel, and dock setup explicitly selects the four- or eight-tool
+  hardware variant while clearing stale tools outside the selected variant;
+* managed external resources continue to hold immutable QOI assets,
+  translations, and supported fonts; manufacturer strings are packed once and
+  multi-filament menu operations no longer duplicate their bodies per tool; and
+* firmware flashing text is rendered above the progress bar on MINI and large
+  displays so it cannot be obscured during installation.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 15 6.6.3 presets passed. Maximum MINI flash use was 98.47% (Japanese
+language image), MK4 used 60.65%, MK3.5 used 56.02%, XL used 68.79%, CORE One
+INDX used 65.37%, and all other CORE variants remained below 64.67%. The staged
+release directory contains exactly 15 BBFs under `bbf/6.6.3`.
+
+Build 4 firmware continuation:
+
+```text
+9c32cb071  2026-08-09  Update 6.6.3 RME release commit ledger
+12f9c7d66  2026-08-09  Prepare 6.6.3 RME build 3 release
+fe55ecccf  2026-08-09  Add loaded filament manufacturer tracking
+679e215e9  2026-08-09  Advertise faster compatible USB serial mode
+e9e0b7af0  2026-08-09  Advertise RME serial rate fallbacks
+f0d39414f  2026-08-09  Show RME host and transfer status
+4e746daa9  2026-08-09  Add themed RME host badge
+36a2311d5  2026-08-09  Add negotiated RME bulk file transfer
+347690a53  2026-08-09  Add raw RME binary uploads
+dcbee127d  2026-08-09  Keep binary uploads outside queue backpressure
+9fb5784ca  2026-08-09  Document high-speed RME transfer protocol
+65257803b  2026-08-09  Remove duplicate binary transfer summary
+df359c20d  2026-08-09  Push RME configuration changes to hosts
+ec886e1ea  2026-08-09  Support manufacturer metadata for every INDX tool
+115939edf  2026-08-09  Correct INDX tool variant reporting
+8759cf266  2026-08-09  Reduce filament UI flash usage
+```
+
+Published release tag: `v6.6.3-RME-b4`.
