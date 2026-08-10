@@ -161,6 +161,8 @@ packet throughput. Any line-coding rate other than 57600 selects normal Marlin
 communications; 57600 remains reserved for diagnostic USB logging. RME,
 numbered G-code, M20-M32, `ok`/resend, and older hosts remain supported. Larger
 multi-packet CDC RX/TX FIFOs absorb file and firmware transfer bursts.
+`RME_SESSION` replies advertise `preferred_baud=1000000` and a comma-separated
+fallback list. Older handlers may ignore these appended fields.
 
 ## Machine discovery
 
