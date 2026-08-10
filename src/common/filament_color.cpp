@@ -39,6 +39,11 @@ bool set_custom(const size_t slot, const std::string_view name, const Color colo
     std::array<char, name_capacity> stored {};
     std::copy(name.begin(), name.end(), stored.begin());
     auto names = config_store().custom_filament_color_names.get();
+    const auto valid = config_store().custom_filament_color_valid.get();
+    if ((valid & (1u << slot)) && names[slot] == stored
+        && config_store().custom_filament_color_rgb.get(slot) == color.raw) {
+        return true;
+    }
     names[slot] = stored;
     config_store().custom_filament_color_names.set(names);
     config_store().custom_filament_color_rgb.set(slot, color.raw);
@@ -55,6 +60,11 @@ std::optional<Color> loaded(const uint8_t tool) {
 void set_loaded(const uint8_t tool, const std::optional<Color> color) {
     if (tool >= EXTRUDERS) return;
     auto valid = config_store().loaded_filament_color_valid.get();
+    const bool was_valid = valid & (1u << tool);
+    if ((!color && !was_valid)
+        || (color && was_valid && config_store().loaded_filament_color_rgb.get(tool) == color->raw)) {
+        return;
+    }
     if (color) {
         config_store().loaded_filament_color_rgb.set(tool, color->raw);
         valid |= 1u << tool;
