@@ -503,7 +503,12 @@ extern "C" void main_cpp(void) {
 #if ENABLED(POWER_PANIC)
     power_panic::check_ac_fault_at_startup();
     /* definition and creation of acFaultTask */
-    osThreadCCMDef(acFaultTask, power_panic::ac_fault_task_main, TASK_PRIORITY_AC_FAULT, 0, 80);
+    // The AC-fault path now reaches the shared logging/notification plumbing.
+    // 80 words is insufficient on xBuddy: its downward-growing stack can
+    // overwrite its own TCB and then the adjacent measurement-task exception
+    // frame, producing an INVPC fault when that task is restored.  Keep this
+    // emergency task in CCM, but give it enough room for the complete path.
+    osThreadCCMDef(acFaultTask, power_panic::ac_fault_task_main, TASK_PRIORITY_AC_FAULT, 0, 160);
     power_panic::ac_fault_task = osThreadCreate(osThread(acFaultTask), NULL);
 #endif
 
