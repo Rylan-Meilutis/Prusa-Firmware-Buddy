@@ -17,7 +17,8 @@ struct Profile {
     std::string_view name_view() const { return name.data(); }
 };
 
-std::span<const char *const> presets();
+constexpr size_t preset_count = 50;
+std::string_view preset(size_t index);
 std::optional<Profile> custom(size_t slot);
 bool set_custom(size_t slot, std::string_view name, bool from_host = false, uint32_t transaction = 0);
 bool clear_custom(size_t slot, bool from_host = false, uint32_t transaction = 0);

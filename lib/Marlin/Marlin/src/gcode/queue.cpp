@@ -812,9 +812,9 @@ static bool handle_remote_manufacturer_service(const std::string_view command) {
   if (!command.starts_with(prefix)) return false;
   const auto action = command.substr(prefix.size());
   if (action.starts_with("QUERY")) {
-    size_t slot = 0;
-    for (const auto name : filament_manufacturer::presets()) {
-      SERIAL_ECHOPGM("RME_MANUFACTURER builtin=1 slot="); SERIAL_ECHO(slot++); SERIAL_ECHOPGM(" name=");
+    for (size_t slot = 0; slot < filament_manufacturer::preset_count; ++slot) {
+      const auto name = filament_manufacturer::preset(slot);
+      SERIAL_ECHOPGM("RME_MANUFACTURER builtin=1 slot="); SERIAL_ECHO(slot); SERIAL_ECHOPGM(" name=");
       report_remote_manufacturer_name(name); SERIAL_EOL();
     }
     for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) if (const auto item = filament_manufacturer::custom(i)) {

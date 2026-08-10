@@ -346,16 +346,16 @@ WindowMenuAssignManufacturer::WindowMenuAssignManufacturer(window_t *parent, Rec
     for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
     setup_items();
 }
-int WindowMenuAssignManufacturer::item_count() const { return 2 + filament_manufacturer::presets().size() + custom_count_; }
+int WindowMenuAssignManufacturer::item_count() const { return 2 + filament_manufacturer::preset_count + custom_count_; }
 void WindowMenuAssignManufacturer::setup_item(ItemVariant &variant, int index) {
     if (index == 0) { variant.emplace<MI_RETURN>(); return; }
     if (index == 1) { variant.emplace<MI_ASSIGN_MANUFACTURER>(std::nullopt, std::string_view("None")); return; }
     size_t requested = index - 2;
-    if (requested < filament_manufacturer::presets().size()) {
-        const auto name = filament_manufacturer::presets()[requested];
+    if (requested < filament_manufacturer::preset_count) {
+        const auto name = filament_manufacturer::preset(requested);
         variant.emplace<MI_ASSIGN_MANUFACTURER>(static_cast<uint8_t>(requested + 1), std::string_view(name)); return;
     }
-    requested -= filament_manufacturer::presets().size();
+    requested -= filament_manufacturer::preset_count;
     for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (const auto item = filament_manufacturer::custom(slot); item && requested-- == 0) {
         variant.emplace<MI_ASSIGN_MANUFACTURER>(item->id, item->name_view()); return;
     }

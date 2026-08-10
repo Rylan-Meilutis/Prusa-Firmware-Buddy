@@ -64,14 +64,14 @@ class WindowMenuPreloadManufacturer final : public WindowMenuVirtual {
 public:
     WindowMenuPreloadManufacturer(window_t *parent, Rect16 rect) : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {}
     void set_owner(MI_ActionSelect *owner) { owner_ = owner; custom_count_ = 0; for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value(); setup_items(); }
-    int item_count() const override { return 2 + filament_manufacturer::presets().size() + custom_count_; }
+    int item_count() const override { return 2 + filament_manufacturer::preset_count + custom_count_; }
 protected:
     void setup_item(ItemVariant &variant, int index) override {
         if (index == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, std::nullopt, std::string_view("None")); return; }
         if (index == item_count() - 1) { variant.emplace<MI_PRELOAD_NEW_MANUFACTURER>(owner_); return; }
         size_t requested = static_cast<size_t>(index - 1);
-        if (requested < filament_manufacturer::presets().size()) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), std::string_view(filament_manufacturer::presets()[requested])); return; }
-        requested -= filament_manufacturer::presets().size();
+        if (requested < filament_manufacturer::preset_count) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, static_cast<uint8_t>(requested + 1), filament_manufacturer::preset(requested)); return; }
+        requested -= filament_manufacturer::preset_count;
         for (size_t slot = 0; slot < filament_manufacturer::custom_slot_count; ++slot) if (const auto profile = filament_manufacturer::custom(slot); profile && requested-- == 0) { variant.emplace<MI_PRELOAD_MANUFACTURER>(owner_, profile->id, profile->name_view()); return; }
     }
 private:
@@ -275,25 +275,28 @@ void MI_ApplyChanges::click(IWindowMenu &menu) {
 MenuMultiFilamentChange::MenuMultiFilamentChange(window_t *parent, const Rect16 &rect)
     : WindowMenu(parent, rect) {
     BindContainer(container);
+    // Resolve the heterogeneous container once. Configuration reads/writes are
+    // then ordinary runtime loops instead of generating another copy of their
+    // logic for every possible tool index.
+    stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
+        action_items_[ix] = &container.Item<WithConstructorArgs<MI_ActionSelect, ix>>();
+    });
 }
 
 MultiFilamentChangeConfig MenuMultiFilamentChange::configuration() const {
     MultiFilamentChangeConfig result;
-    stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
-        const auto tool = VirtualToolIndex::from_raw(ix);
-        const auto &item = container.Item<WithConstructorArgs<MI_ActionSelect, ix>>();
+    for (auto tool : VirtualToolIndex::all()) {
+        const auto &item = *action_items_[tool.to_raw()];
         result[tool] = item.config();
         result.colors[tool] = item.selected_color();
-    });
+    }
     return result;
 }
 
 void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig &set) {
-    // Set the correct indexes for the actions
-    stdext::visit_sequence<VirtualToolIndex::count>([&]<size_t ix>() {
-        const auto tool = VirtualToolIndex::from_raw(ix);
-        container.Item<WithConstructorArgs<MI_ActionSelect, ix>>().set_config(set[tool], set.colors[tool]);
-    });
+    for (auto tool : VirtualToolIndex::all()) {
+        action_items_[tool.to_raw()]->set_config(set[tool], set.colors[tool]);
+    }
 }
 
 void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, void *param) {
