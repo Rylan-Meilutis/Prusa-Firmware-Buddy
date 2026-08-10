@@ -12,6 +12,7 @@ cancel_16x16.png
 cancel_44x33.png
 clear_44x33.png
 connect_16x16.png
+rme_host_16x16.png
 connect_orange_16x16.png
 dash_18x18.png
 disconnect_64x64_disabled.png
