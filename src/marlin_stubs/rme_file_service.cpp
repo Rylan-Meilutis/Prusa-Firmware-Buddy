@@ -26,7 +26,11 @@ namespace {
 constexpr size_t transfer_chunk_size = 48;
 constexpr size_t bulk_chunk_size = 384;
 constexpr uint8_t bulk_window_size = 4;
-constexpr size_t binary_chunk_size = 4096;
+// USB CDC is a byte stream using 64-byte full-speed endpoint packets. A 1 KiB
+// application frame keeps the endpoint busy without permanently consuming
+// several large SRAM blocks. Hosts pipeline frames using the advertised
+// window, so this changes framing overhead by less than one percent.
+constexpr size_t binary_chunk_size = 1024;
 constexpr uint8_t binary_window_size = 8;
 constexpr uint32_t maximum_file_size = 1024U * 1024U * 1024U;
 
@@ -46,7 +50,6 @@ struct UploadState {
 
 struct BinaryReceiver {
     std::array<uint8_t, 10> header {};
-    std::array<uint8_t, binary_chunk_size> payload {};
     uint16_t header_received = 0;
     uint16_t payload_received = 0;
     uint16_t payload_size = 0;
@@ -56,12 +59,11 @@ struct BinaryReceiver {
     uint16_t discard_remaining = 0;
 } binary_receiver;
 
-// Download payload storage must not live in buddy_rme_file_service's stack.
-// With LTO the largest local is reserved for every action, including CAPS,
-// which made the 4 KiB binary buffer overflow the Marlin task during the
-// connection handshake. File commands are serialized by the Marlin task, so
-// one reusable buffer preserves the full negotiated transfer size safely.
-std::array<uint8_t, binary_chunk_size> binary_read_payload {};
+// Upload and download operations are serialized by the Marlin task. Reuse one
+// static payload buffer for both directions instead of reserving two chunks.
+// It must not be local: with LTO the largest local is reserved for every file
+// service action, which previously overflowed the Marlin task during connect.
+std::array<uint8_t, binary_chunk_size> binary_payload {};
 
 // newlib normally allocates a FILE buffer lazily on the first fwrite. Uploads
 // commonly start when the GUI/network stacks have already fragmented the
@@ -282,15 +284,15 @@ extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
         return;
     }
 
-    binary_receiver.payload[binary_receiver.payload_received++] = byte;
+    binary_payload[binary_receiver.payload_received++] = byte;
     if (binary_receiver.payload_received != binary_receiver.payload_size) return;
 
     const bool valid = binary_receiver.offset == upload.received
         && binary_receiver.payload_size <= upload.expected_size - upload.received
-        && crc32_sw(binary_receiver.payload.data(), binary_receiver.payload_size, 0) == binary_receiver.expected_crc;
+        && crc32_sw(binary_payload.data(), binary_receiver.payload_size, 0) == binary_receiver.expected_crc;
     if (!valid
-        || fwrite(binary_receiver.payload.data(), 1, binary_receiver.payload_size, upload.file) != binary_receiver.payload_size
-        || mbedtls_sha256_update_ret(&upload.sha, binary_receiver.payload.data(), binary_receiver.payload_size)) {
+        || fwrite(binary_payload.data(), 1, binary_receiver.payload_size, upload.file) != binary_receiver.payload_size
+        || mbedtls_sha256_update_ret(&upload.sha, binary_payload.data(), binary_receiver.payload_size)) {
         SERIAL_ECHOPGM("RME_FILE_BINARY_NACK offset="); SERIAL_ECHOLN(upload.received);
         binary_receiver = {};
         return;
@@ -314,7 +316,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const auto action = command.substr(prefix.size());
 
     if (action.starts_with("CAPS")) {
-        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 binary_read=1 binary_read_chunk=4096 max_size=1073741824 list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
+        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=1024 binary_window=8 binary_read=1 binary_read_chunk=1024 max_size=1073741824 list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
         return true;
     }
     if (action.starts_with("ABORT")) {
@@ -365,7 +367,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         else if (stat(path->data(), &st) || !S_ISREG(st.st_mode) || st.st_size < 0 || static_cast<uint64_t>(st.st_size) > maximum_file_size) report_error("read_failed");
         else if (FILE *file = fopen(path->data(), "rb")) {
             if (fseek(file, offset, SEEK_SET)) { fclose(file); report_error("read_failed"); return true; }
-            const size_t count = fread(binary_read_payload.data(), 1, length, file);
+            const size_t count = fread(binary_payload.data(), 1, length, file);
             const bool read_error = ferror(file);
             fclose(file);
             if (read_error) { report_error("read_failed"); return true; }
@@ -373,7 +375,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             std::array<uint8_t, 10> header {};
             write_le32(header.data(), offset);
             write_le16(header.data() + 4, static_cast<uint16_t>(count));
-            write_le32(header.data() + 6, crc32_sw(binary_read_payload.data(), count, 0));
+            write_le32(header.data() + 6, crc32_sw(binary_payload.data(), count, 0));
             const uint32_t file_size = static_cast<uint32_t>(st.st_size);
             const uint32_t next = offset + count;
             const bool eof = next >= file_size;
@@ -384,7 +386,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32");
             SERIAL_FLUSHTX();
             SerialUSB.cdc_write_sync(header.data(), header.size());
-            if (count) SerialUSB.cdc_write_sync(binary_read_payload.data(), count);
+            if (count) SerialUSB.cdc_write_sync(binary_payload.data(), count);
             SERIAL_ECHOPGM("RME_FILE_BINARY_READ_COMPLETE next="); SERIAL_ECHO(next);
             SERIAL_ECHOPGM(" eof="); SERIAL_ECHOLN(eof ? 1 : 0);
             if (eof) serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
@@ -434,7 +436,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 mbedtls_sha256_init(&upload.sha);
                 upload.sha_initialized = true;
                 if (mbedtls_sha256_starts_ret(&upload.sha, false)) { reset_upload(true); report_error("hash_failed"); }
-                else if (binary) SERIAL_ECHOLNPGM("RME_FILE_BINARY_READY offset=0 chunk=4096 window=8 header=10 endian=little crc=crc32");
+                else if (binary) SERIAL_ECHOLNPGM("RME_FILE_BINARY_READY offset=0 chunk=1024 window=8 header=10 endian=little crc=crc32");
                 else if (bulk) SERIAL_ECHOLNPGM("RME_FILE_BULK_READY offset=0 chunk=384 window=4");
                 else SERIAL_ECHOLNPGM("RME_FILE_WRITE_READY offset=0 chunk=48");
             }

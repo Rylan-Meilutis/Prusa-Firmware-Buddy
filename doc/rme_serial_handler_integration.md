@@ -98,7 +98,7 @@ offset:u32 | length:u16 | crc32:u32 | payload:length
 
 Use the `binary_chunk`, `binary_window`, `header`, `endian`, and `crc` values
 returned by `CAPS`/`RME_FILE_BINARY_READY`; do not hard-code them as permanent
-protocol constants. In this release they are 4096 bytes, eight frames, ten
+protocol constants. In this release they are 1024 bytes, eight frames, ten
 bytes, little endian, and CRC32. Pipeline only contiguous frames. Treat every
 ACK as the cumulative committed offset, and after a NACK discard outstanding
 frames and restart from its reported offset. Complete the upload with a

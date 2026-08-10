@@ -104,16 +104,14 @@ extern "C" {
 
 // CDC FIFO size of TX and RX.
 //
-// USB CDC baud is only host-side line-coding metadata.  RME bulk upload can
-// legally pipeline four ~570-byte Base64 command lines, while session startup
-// can produce several state reports without a round trip.  A 512-byte FIFO
-// applies backpressure in the middle of either burst and can starve TinyUSB
-// while storage or configuration work is completing.  These FIFOs hold a
-// complete negotiated ASCII window (and its responses); the dedicated binary
-// receiver continues to stream larger transfers without copying them here in
-// their entirety.
-#define CFG_TUD_CDC_RX_BUFSIZE 4096
-#define CFG_TUD_CDC_TX_BUFSIZE 4096
+// Keep these FIFOs bounded.  They are static SRAM allocations, so sizing both
+// for a complete RME transfer window permanently removed 8 KiB from the heap
+// and made otherwise unrelated commands fail on memory-constrained xBuddy
+// machines.  RME binary transfers already have dedicated chunk buffers and
+// ASCII transfers are flow-controlled by their ok/window acknowledgements;
+// neither needs the whole transfer window duplicated in TinyUSB.
+#define CFG_TUD_CDC_RX_BUFSIZE 512
+#define CFG_TUD_CDC_TX_BUFSIZE 512
 
 // CDC Endpoint transfer buffer size, more is faster
 #define CFG_TUD_CDC_EP_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)

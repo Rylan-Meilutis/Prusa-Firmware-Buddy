@@ -1056,7 +1056,7 @@ behavior, and filesystem replacement without reducing the build 32 feature set:
   screen and chamber lighting can turn off normally;
 * legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
   existing regular file through verified sibling staging with rollback;
-* RME downloads now negotiate CRC32-protected raw 4096-byte reads, with a
+* RME downloads now negotiate CRC32-protected raw 1024-byte reads, with a
   bounded frame per request and the original 48-byte Base64 mode retained for
   older hosts;
 * RME-owned uploads and downloads retain the indigo R in the header alongside
@@ -1064,9 +1064,12 @@ behavior, and filesystem replacement without reducing the build 32 feature set:
   and
 * host transaction IDs are parsed over their full unsigned 32-bit range, so
   large IDs no longer saturate at `2147483647` during profile synchronization.
-* RME session and four-frame bulk bursts have complete 4096-byte USB CDC RX/TX
-  FIFOs, preventing handshake response corruption and transfer timeouts without
-  reducing the 384-byte chunk or four-frame window;
+* RME USB CDC uses bounded 512-byte RX/TX FIFOs with streaming backpressure,
+  recovering 7 KiB of SRAM that previously could exhaust the heap during
+  connection, ordinary G-code motion, or file operations;
+* binary upload and download share one 1024-byte payload buffer and stream each
+  verified chunk directly to or from disk, recovering another 7 KiB of SRAM
+  without materially reducing USB throughput;
 * firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
   marker is created only together with the explicit M997 reboot request, so a
   partial or unselected upload cannot flash on an unrelated boot.
