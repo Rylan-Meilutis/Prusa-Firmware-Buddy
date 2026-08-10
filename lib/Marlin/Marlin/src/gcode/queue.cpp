@@ -45,6 +45,7 @@ GCodeQueue queue;
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
 #include <filament_manufacturer.hpp>
+#include <rme_protocol_parser.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
 #include <print_utils.hpp>
@@ -539,40 +540,15 @@ static bool handle_remote_ui_service(const char *command) {
 }
 
 static std::optional<std::string_view> remote_value(const std::string_view command, const std::string_view key) {
-  size_t token = command.find(' ');
-  while (token != std::string_view::npos) {
-    ++token;
-    const size_t end = command.find_first_of(" *", token);
-    const size_t token_size = (end == std::string_view::npos ? command.size() : end) - token;
-    if (token_size > key.size() && command[token + key.size()] == '=' && command.substr(token, key.size()) == key)
-      return command.substr(token + key.size() + 1, token_size - key.size() - 1);
-    token = end;
-  }
-  return std::nullopt;
+  return rme_protocol::value(command, key);
 }
 
 static std::optional<long> remote_number(const std::string_view command, const std::string_view key, const int base = 10) {
-  const auto value = remote_value(command, key);
-  if (!value || value->empty() || value->size() >= 16) return std::nullopt;
-  char buffer[16] {};
-  std::copy(value->begin(), value->end(), buffer);
-  char *end = nullptr;
-  const char *start = buffer;
-  if (base == 16 && *start == '#') start++;
-  const long result = strtol(start, &end, base);
-  return end != start && *end == '\0' ? std::optional<long> { result } : std::nullopt;
+  return rme_protocol::signed_number(command, key, base);
 }
 
 static std::optional<uint32_t> remote_transaction(const std::string_view command) {
-  const auto value = remote_value(command, "tx");
-  if (!value || value->empty() || value->size() > 10) return std::nullopt;
-  char buffer[11] {};
-  std::copy(value->begin(), value->end(), buffer);
-  char *end = nullptr;
-  errno = 0;
-  const unsigned long result = strtoul(buffer, &end, 10);
-  if (end == buffer || *end != '\0' || errno == ERANGE || result > UINT32_MAX) return std::nullopt;
-  return static_cast<uint32_t>(result);
+  return rme_protocol::transaction(command);
 }
 
 static void report_remote_lock() {
@@ -801,23 +777,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
 
 static std::optional<std::array<char, filament_manufacturer::name_capacity>> remote_manufacturer_name(const std::string_view command) {
   const auto encoded = remote_value(command, "name");
-  if (!encoded || encoded->empty()) return std::nullopt;
-  std::array<char, filament_manufacturer::name_capacity> result {};
-  size_t out = 0;
-  const auto hex = [](const char c) -> int {
-    if (c >= '0' && c <= '9') return c - '0';
-    const char lower = std::tolower(static_cast<unsigned char>(c));
-    return lower >= 'a' && lower <= 'f' ? lower - 'a' + 10 : -1;
-  };
-  for (size_t i = 0; i < encoded->size() && out + 1 < result.size(); ++i) {
-    if ((*encoded)[i] == '%' && i + 2 < encoded->size()) {
-      const int hi = hex((*encoded)[i + 1]), lo = hex((*encoded)[i + 2]);
-      if (hi < 0 || lo < 0) return std::nullopt;
-      result[out++] = static_cast<char>((hi << 4) | lo);
-      i += 2;
-    } else result[out++] = (*encoded)[i];
-  }
-  return result;
+  return encoded ? rme_protocol::percent_decode<filament_manufacturer::name_capacity>(*encoded) : std::nullopt;
 }
 
 static void report_remote_manufacturer_name(const std::string_view name) {
@@ -1011,7 +971,7 @@ static bool handle_remote_toolmap_service(const std::string_view command) {
 
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
-  if (strncmp(payload, "@RME ", 5) != 0) return false;
+  if (!rme_protocol::is_service_frame(raw_command)) return false;
   const std::string_view command { payload, strcspn(payload, "*") };
   if (handle_remote_ui_service(raw_command)
       || handle_remote_session_service(command)

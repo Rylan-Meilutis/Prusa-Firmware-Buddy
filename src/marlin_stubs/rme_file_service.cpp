@@ -7,6 +7,7 @@
 #include <common/path_utils.h>
 #include <marlin_server.hpp>
 #include <serial_remote_control.hpp>
+#include <rme_protocol_parser.hpp>
 #include <crc32.h>
 
 #include <mbedtls/base64.h>
@@ -91,57 +92,18 @@ void report_error(const char *code) {
 }
 
 std::optional<std::string_view> value(const std::string_view command, const std::string_view key) {
-    size_t token = command.find(' ');
-    while (token != std::string_view::npos) {
-        ++token;
-        const size_t end = command.find_first_of(" *", token);
-        const size_t count = (end == std::string_view::npos ? command.size() : end) - token;
-        if (count > key.size() && command[token + key.size()] == '=' && command.substr(token, key.size()) == key)
-            return command.substr(token + key.size() + 1, count - key.size() - 1);
-        token = end;
-    }
-    return std::nullopt;
+    return rme_protocol::value(command, key);
 }
 
 std::optional<uint32_t> number(const std::string_view command, const std::string_view key) {
-    const auto text = value(command, key);
-    if (!text || text->empty() || text->size() >= 16) return std::nullopt;
-    std::array<char, 16> buffer {};
-    std::copy(text->begin(), text->end(), buffer.begin());
-    char *end = nullptr;
-    const unsigned long parsed = strtoul(buffer.data(), &end, 10);
-    if (end == buffer.data() || *end || parsed > UINT32_MAX) return std::nullopt;
-    return static_cast<uint32_t>(parsed);
-}
-
-int hex_nibble(const char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    return -1;
+    return rme_protocol::unsigned_number(command, key);
 }
 
 bool decode_path(const std::string_view encoded, std::array<char, FILE_PATH_BUFFER_LEN> &path) {
-    constexpr std::string_view root = "/usb/";
-    size_t write = 0;
-    for (const char c : root) path[write++] = c;
-    size_t read = 0;
-    while (read < encoded.size() && encoded[read] == '/') ++read;
-    while (read < encoded.size()) {
-        char c = encoded[read++];
-        if (c == '%' && read + 1 < encoded.size()) {
-            const int high = hex_nibble(encoded[read]);
-            const int low = hex_nibble(encoded[read + 1]);
-            if (high < 0 || low < 0) return false;
-            c = static_cast<char>((high << 4) | low);
-            read += 2;
-        }
-        if (!c || write + 1 >= path.size()) return false;
-        path[write++] = c;
-    }
-    path[write] = '\0';
-    const char *relative = path.data() + root.size();
-    return !strstr(relative, "..") && !strstr(relative, "//");
+    const auto decoded = rme_protocol::usb_path<FILE_PATH_BUFFER_LEN>(encoded);
+    if (!decoded) return false;
+    path = *decoded;
+    return true;
 }
 
 std::optional<std::array<char, FILE_PATH_BUFFER_LEN>> path_value(const std::string_view command, const std::string_view key = "path") {
@@ -160,14 +122,7 @@ std::optional<std::array<char, FILE_PATH_BUFFER_LEN>> path_value(const std::stri
 }
 
 bool parse_sha256(const std::string_view text, std::array<uint8_t, 32> &result) {
-    if (text.size() != 64) return false;
-    for (size_t i = 0; i < result.size(); ++i) {
-        const int high = hex_nibble(text[i * 2]);
-        const int low = hex_nibble(text[i * 2 + 1]);
-        if (high < 0 || low < 0) return false;
-        result[i] = static_cast<uint8_t>((high << 4) | low);
-    }
-    return true;
+    return rme_protocol::parse_sha256(text, result);
 }
 
 void reset_upload(const bool remove_partial) {

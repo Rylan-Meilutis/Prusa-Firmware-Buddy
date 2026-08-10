@@ -1082,6 +1082,12 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   intrusive borrow count instead of allocating `shared_ptr` control blocks for
   G-code, paths, tokens, and hostnames, removing the remaining normal
   connection/command synchronization heap churn.
+* RME parameter, transaction, manufacturer, filesystem-path, digest, and frame
+  parsing now share one allocation-free implementation covered by host unit
+  tests. The tests preserve full-width transaction IDs, reject negative or
+  overflowing unsigned fields, reject truncated percent escapes and fixed
+  buffer overflow, contain paths below `/usb`, isolate service frames from
+  ordinary G-code, and stress 100,000 repeated synchronization commands.
 
 The final release command was:
 
