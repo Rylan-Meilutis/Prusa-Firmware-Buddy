@@ -33,9 +33,14 @@ constexpr tool_offset::CoilAxis coil_y {
     .channel = tool_offset::SensorChannel::ch0,
     .sensing_distance = 12.f,
 };
+constexpr float cross_hunt_range = 5.f; // TODO tune on bench
+constexpr float cross_hunt_step = 1.f; // TODO tune on bench
 static_assert(z_probe_position.x >= X_MIN_POS && z_probe_position.x <= X_MAX_POS
         && z_probe_position.y >= Y_MIN_POS && z_probe_position.y <= Y_MAX_POS,
     "Z-probe spot is out of allowed travel");
+static_assert(cross_hunt_step > 0.f, "zero/negative step would divide by zero in hunt_step_y");
+static_assert(cross_hunt_range >= 0.f);
+static_assert(2.0f * cross_hunt_range / cross_hunt_step + 1.0f <= 11.f, "hunt steps must fit the FSM iteration budget");
 #else
     #error "sensor parameters not defined for this printer"
 #endif
@@ -58,6 +63,8 @@ tool_offset::ProbingConfig tool_offset::get_default_probing_config() {
     config.y_shift_z_probe_offset_from_sensor = y_shift_z_probe_offset_from_sensor;
 #else
     config.z_probe_position = z_probe_position;
+    config.cross_hunt_range = cross_hunt_range;
+    config.cross_hunt_step = cross_hunt_step;
 #endif
     return config;
 }

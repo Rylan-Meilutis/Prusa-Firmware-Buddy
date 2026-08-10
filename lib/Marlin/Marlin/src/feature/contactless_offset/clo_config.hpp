@@ -46,6 +46,11 @@ struct ProbingConfig {
     float y_shift_z_probe_offset_from_sensor;
 #else
     xyz_pos_t z_probe_position;
+    /// Cross-X hunt for a low-confidence Y sweep: the sweep line's X is stepped
+    /// across ±cross_hunt_range around coil_y.position.x in cross_hunt_step
+    /// decrements.
+    float cross_hunt_range;
+    float cross_hunt_step;
 #endif
 
     float safe_z_height; // Height above the sensor for the descent before probing and the post-scan lift
