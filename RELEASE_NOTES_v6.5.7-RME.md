@@ -1033,3 +1033,5 @@ a00769e59  2026-08-09  Keep binary uploads outside queue backpressure
 ```
 
 Published release tag: `v6.5.7-RME-b32`.
+
+Release-documentation commit: `cc01d655a`.
