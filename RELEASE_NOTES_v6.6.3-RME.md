@@ -1065,15 +1065,15 @@ The final release command was:
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
-All 15 6.6.3 presets passed. Maximum MINI flash use was 98.56%, MK4 used
-60.68%, MK3.5 used 56.05%, XL used 68.82%, and CORE One INDX used 65.39%.
+All 15 6.6.3 presets passed. Maximum MINI flash use was 98.62%, MK4 used
+60.70%, MK3.5 used 56.07%, XL used 68.85%, and CORE One INDX used 65.43%.
 The staged release directory contains exactly 15 BBFs under `bbf/6.6.3`.
 
 Build 5 firmware continuation:
 
 ```text
 e9e1c6f52  2026-08-10  Fix one-shot updates and remote state synchronization
-pending    2026-08-10  Add fast RME downloads and robust host transactions
+48eda9783  2026-08-10  Add fast RME downloads and robust host transactions
 ```
 
 Published release tag: `v6.6.3-RME-b5`.
