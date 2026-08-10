@@ -366,6 +366,9 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         if (!length || length > binary_chunk_size || offset > maximum_file_size) report_error("invalid_range");
         else if (stat(path->data(), &st) || !S_ISREG(st.st_mode) || st.st_size < 0 || static_cast<uint64_t>(st.st_size) > maximum_file_size) report_error("read_failed");
         else if (FILE *file = fopen(path->data(), "rb")) {
+            // The application buffer already bounds this read. Do not let
+            // newlib allocate a second hidden stream buffer from the heap.
+            setvbuf(file, nullptr, _IONBF, 0);
             if (fseek(file, offset, SEEK_SET)) { fclose(file); report_error("read_failed"); return true; }
             const size_t count = fread(binary_payload.data(), 1, length, file);
             const bool read_error = ferror(file);
@@ -396,6 +399,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         const uint32_t length = number(command, "length").value_or(transfer_chunk_size);
         if (!length || length > transfer_chunk_size) report_error("invalid_range");
         else if (FILE *file = fopen(path->data(), "rb")) {
+            setvbuf(file, nullptr, _IONBF, 0);
             std::array<uint8_t, transfer_chunk_size> raw {};
             if (fseek(file, offset, SEEK_SET)) { fclose(file); report_error("read_failed"); return true; }
             const size_t count = fread(raw.data(), 1, length, file);

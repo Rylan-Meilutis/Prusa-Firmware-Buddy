@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <serial_remote_control.hpp>
+#include <unistd.h>
 
 namespace {
 constexpr const char *temporary_path = "/usb/FWUPD.TMP";
@@ -16,6 +17,7 @@ constexpr uint32_t maximum_size = 32U * 1024U * 1024U;
 constexpr size_t maximum_chunk_size = 48;
 
 struct UploadState {
+    FILE *file = nullptr;
     bool active = false;
     bool sha_initialized = false;
     uint32_t expected_size = 0;
@@ -24,7 +26,15 @@ struct UploadState {
     mbedtls_sha256_context sha;
 } upload;
 
+// Avoid newlib's lazy per-stream heap buffer. The legacy uploader keeps this
+// one file open and writes sequentially for the complete image.
+std::array<char, 512> upload_file_buffer {};
+
 void reset_state(bool remove_temporary) {
+    if (upload.file) {
+        fclose(upload.file);
+        upload.file = nullptr;
+    }
     if (upload.sha_initialized) {
         mbedtls_sha256_free(&upload.sha);
     }
@@ -91,14 +101,10 @@ void begin_upload(const char *body) {
     }
 
     reset_state(true);
-    FILE *file = fopen(temporary_path, "wb");
-    if (!file) {
+    upload.file = fopen(temporary_path, "wb");
+    if (!upload.file || setvbuf(upload.file, upload_file_buffer.data(), _IOFBF, upload_file_buffer.size()) != 0) {
         report_error("OPEN");
-        return;
-    }
-    const bool close_ok = fclose(file) == 0;
-    if (!close_ok) {
-        report_error("WRITE", true);
+        reset_state(true);
         return;
     }
 
@@ -138,12 +144,7 @@ void write_chunk(const char *body) {
         return;
     }
 
-    FILE *file = fopen(temporary_path, "r+b");
-    bool write_ok = file && fseek(file, upload.received, SEEK_SET) == 0
-        && fwrite(decoded.data(), 1, decoded_size, file) == decoded_size
-        && fflush(file) == 0;
-    if (file && fclose(file) != 0) write_ok = false;
-    if (!write_ok) {
+    if (!upload.file || fwrite(decoded.data(), 1, decoded_size, upload.file) != decoded_size) {
         report_error("WRITE", true);
         return;
     }
@@ -170,6 +171,14 @@ void finish_upload() {
     mbedtls_sha256_free(&upload.sha);
     upload.active = false;
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
+    bool file_ok = upload.file && fflush(upload.file) == 0;
+    if (upload.file && file_ok) file_ok = fsync(fileno(upload.file)) == 0;
+    if (upload.file && fclose(upload.file) != 0) file_ok = false;
+    upload.file = nullptr;
+    if (!file_ok) {
+        report_error("WRITE", true);
+        return;
+    }
     if (rename(temporary_path, firmware_path) != 0) {
         report_error("RENAME", true);
         return;
