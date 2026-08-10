@@ -990,8 +990,8 @@ INDX tool-model work while retaining the complete build 3 feature set:
 * managed external resources continue to hold immutable QOI assets,
   translations, and supported fonts; manufacturer strings are packed once and
   multi-filament menu operations no longer duplicate their bodies per tool; and
-* firmware flashing text is rendered above the progress bar on MINI and large
-  displays so it cannot be obscured during installation.
+* firmware flashing text was moved into a dedicated splash status region; build
+  5 corrects that region to below the bar so it cannot overlap boot graphics.
 
 The final release command was:
 
@@ -1028,3 +1028,45 @@ ec886e1ea  2026-08-09  Support manufacturer metadata for every INDX tool
 Published release tag: `v6.6.3-RME-b4`.
 
 Release-documentation commit: `2ac3b5d6b`.
+
+## Build 5 release update
+
+Build 5 fixes firmware-update handoff, host synchronization, lighting idle
+behavior, and filesystem replacement without reducing the build 4 feature set:
+
+* firmware staged as `/usb/FWUPD.BBF` is armed as a durable one-shot update and
+  removed after the requested bootloader attempt even when USB is already
+  mounted, preventing a second flash and double boot;
+* `M997` drains its acknowledgement and structured reconnect marker, explicitly
+  detaches USB CDC, and then resets so OctoPrint can observe clean removal and
+  re-enumeration;
+* the installation status is below the progress bar in the application-owned
+  status area, preserving the complete Prusa logo and hiding stale bootloader
+  text;
+* loaded-filament changes notify RME hosts only after material, color, and
+  manufacturer are committed, eliminating stale loadout snapshots;
+* every `@RME` service frame is passive for the local activity timer, and a
+  display wake over a dim/off print override expires after 30 seconds so the
+  screen and chamber lighting can turn off normally; and
+* legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
+  existing regular file through verified sibling staging with rollback.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 15 6.6.3 presets passed. Maximum MINI flash use was 98.56%, MK4 used
+60.68%, MK3.5 used 56.05%, XL used 68.82%, and CORE One INDX used 65.39%.
+The staged release directory contains exactly 15 BBFs under `bbf/6.6.3`.
+
+Build 5 firmware continuation:
+
+```text
+e9e1c6f52  2026-08-10  Fix one-shot updates and remote state synchronization
+```
+
+Published release tag: `v6.6.3-RME-b5`.
+
+Release-documentation commit: pending.
