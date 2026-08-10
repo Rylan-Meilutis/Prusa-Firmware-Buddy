@@ -1116,3 +1116,42 @@ e8b2a1038  2026-08-10  Fix one-shot updates and remote state synchronization
 Published release tag: `v6.5.7-RME-b33`.
 
 Release-documentation commit: `361afa2e2`.
+
+## Build 34 release update
+
+Build 34 completes the allocation-free RME parser and test hardening carried
+forward with the 6.5.7 compatibility release:
+
+* parameter, signed/unsigned number, transaction, percent-decoding, USB path,
+  SHA-256, and service-frame parsing now share fixed-capacity production code;
+* unsigned fields reject negative and overflowing values while retaining the
+  complete 32-bit transaction-ID range;
+* percent-decoded values fail instead of silently truncating, and filesystem
+  paths remain confined below `/usb`;
+* RME service frames remain isolated from ordinary and line-numbered G-code;
+  and
+* eight host test cases cover 400,081 assertions, including 100,000 repeated
+  synchronization parses to detect retained parser state.
+
+Connect command payloads and transfer state retain their fixed-buffer,
+allocation-free ownership paths so ordinary connection, synchronization,
+motion, and file operations do not consume runtime heap headroom.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 14 6.5.7 presets passed and exactly 14 BBFs were staged under
+`bbf/6.5.7`.
+
+Build 34 firmware continuation:
+
+```text
+bd91de7d6  2026-08-10  Remove transfer subsystem heap dependencies
+8f06027dd  2026-08-10  Add RME protocol regression tests
+a6d7d4d20  2026-08-10  Remove Connect command heap churn
+```
+
+Published release tag: `v6.5.7-RME-b34`.
