@@ -14,6 +14,9 @@ enum class PhaseSelftestFSensors : PhaseUnderlyingType {
     ask_mini_has_fsensor,
 #endif
 
+    /// The filament sensor devices report as not connected, ask the user to check the wiring
+    not_connected,
+
     /// Inform the user that there should unload filament
     offer_unload,
 
@@ -58,6 +61,7 @@ inline constexpr EnumArray<PhaseSelftestFSensors, PhaseResponses, PhaseSelftestF
 #if PRINTER_IS_PRUSA_MINI()
         { PhaseSelftestFSensors::ask_mini_has_fsensor, { Response::Yes, Response::No } },
 #endif
+        { PhaseSelftestFSensors::not_connected, { Response::Retry, Response::Abort } },
         { PhaseSelftestFSensors::offer_unload, { Response::Continue, Response::Unload, Response::Abort } },
         { PhaseSelftestFSensors::ask_filament, { Response::Yes, Response::No, Response::Abort } },
         { PhaseSelftestFSensors::calibrating, {} },
