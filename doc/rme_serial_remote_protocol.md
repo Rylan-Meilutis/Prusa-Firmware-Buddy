@@ -152,9 +152,10 @@ custom entry for settings replay, and `M865 J<tool> N"name"` assigns one.
 
 ## USB CDC speed and compatibility
 
-The printer connection is USB CDC rather than a baud-clocked UART. The host's
-115200 selection remains the compatible default but does not cap USB packet
-throughput. Any line-coding rate other than 57600 selects normal Marlin
+The printer connection is USB CDC rather than a baud-clocked UART. Firmware
+advertises 1,000,000 as its preferred normal-mode rate; 115200, 250000, and
+other legacy host selections remain compatible fallbacks and do not cap USB
+packet throughput. Any line-coding rate other than 57600 selects normal Marlin
 communications; 57600 remains reserved for diagnostic USB logging. RME,
 numbered G-code, M20-M32, `ok`/resend, and older hosts remain supported. Larger
 multi-packet CDC RX/TX FIFOs absorb file and firmware transfer bursts.
