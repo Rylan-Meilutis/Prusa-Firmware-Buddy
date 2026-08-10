@@ -196,21 +196,11 @@ bool Transfer::restart_download() {
 
     init_download_order_if_needed();
 
-    // We try to reinicialize the PartialFile, in case the USB got re-plugged or something.
+    // Reinitialize the existing PartialFile in place. It owns a globally
+    // single fixed DMA pool, so constructing a replacement while this object
+    // is still referenced would trigger the concurrent-file guard.
     const size_t check_size = partial_file->final_size();
-    const PartialFile::State old_state = partial_file->get_state();
-    // We can't really deallocate it completely (if we do next
-    // restart_download, we need to keep the state and size), but we want to
-    // make sure we don't hold the file actually open so the next open can
-    // succeed.
-    partial_file->release_file();
-    if (auto open_result = PartialFile::open(path.as_partial(), old_state, true); holds_alternative<PartialFile::Ptr>(open_result)) {
-        auto new_file = move(get<PartialFile::Ptr>(open_result));
-        if (new_file->final_size() != check_size) {
-            return false;
-        }
-        partial_file = move(new_file);
-    } else {
+    if (!partial_file->reopen(path.as_partial()) || partial_file->final_size() != check_size) {
         return false;
     }
 

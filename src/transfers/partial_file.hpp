@@ -159,6 +159,8 @@ private:
         /// (to be used in destructor, so under no circumstances a reference-after-free may happen)
         bool sync(uint32_t avoid, bool force);
 
+        UsbhMscRequest::LunNbr lun() const { return pool[0].lun; }
+
     private:
         bool is_available_slot() const { return slot_mask != ~0u; }
 
@@ -270,6 +272,11 @@ public:
     /// * ignore_opened: If set to true, it'll open the file (for writing) even
     ///   if there's a reader somewhere else.
     static Result open(const char *path, State state, bool ignore_opened);
+
+    /// Reacquire the backing file after a retry without constructing a second
+    /// instance. PartialFile owns one global fixed DMA pool, so replacement
+    /// construction while this object is live is not valid.
+    bool reopen(const char *path);
 
     /// Convert an open FILE * into this.
     ///
