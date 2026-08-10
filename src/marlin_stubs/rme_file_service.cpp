@@ -6,6 +6,7 @@
 #include <common/path_utils.h>
 #include <marlin_server.hpp>
 #include <serial_remote_control.hpp>
+#include <crc32.h>
 
 #include <mbedtls/base64.h>
 #include <mbedtls/sha256.h>
@@ -24,6 +25,8 @@ namespace {
 constexpr size_t transfer_chunk_size = 48;
 constexpr size_t bulk_chunk_size = 384;
 constexpr uint8_t bulk_window_size = 4;
+constexpr size_t binary_chunk_size = 4096;
+constexpr uint8_t binary_window_size = 8;
 constexpr uint32_t maximum_file_size = 1024U * 1024U * 1024U;
 
 struct UploadState {
@@ -36,8 +39,24 @@ struct UploadState {
     std::array<char, FILE_PATH_BUFFER_LEN> final_path {};
     std::array<char, FILE_PATH_BUFFER_LEN> partial_path {};
     bool bulk = false;
+    bool binary = false;
     uint8_t unacknowledged = 0;
 } upload;
+
+struct BinaryReceiver {
+    std::array<uint8_t, 10> header {};
+    std::array<uint8_t, binary_chunk_size> payload {};
+    uint16_t header_received = 0;
+    uint16_t payload_received = 0;
+    uint16_t payload_size = 0;
+    uint32_t offset = 0;
+    uint32_t expected_crc = 0;
+    uint8_t unacknowledged = 0;
+    uint16_t discard_remaining = 0;
+} binary_receiver;
+
+uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
+uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 
 void report_error(const char *code) {
     SERIAL_ECHOPGM("echo:RME_ERROR workflow=file code=");
@@ -121,13 +140,102 @@ void reset_upload(const bool remove_partial) {
     if (upload.sha_initialized) mbedtls_sha256_free(&upload.sha);
     if (remove_partial && upload.partial_path[0]) remove(upload.partial_path.data());
     upload = {};
+    binary_receiver = {};
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
 }
 
 bool root_allowed(const std::array<char, FILE_PATH_BUFFER_LEN> &path, const std::string_view action) {
     return path[5] != '\0' || action.starts_with("LIST") || action.starts_with("STAT");
 }
+
+bool finish_current_upload(const char *complete_prefix) {
+    if (!upload.file || upload.received != upload.expected_size) {
+        report_error("size_mismatch");
+        return false;
+    }
+    std::array<uint8_t, 32> actual {};
+    bool ok = fflush(upload.file) == 0 && fsync(fileno(upload.file)) == 0
+        && mbedtls_sha256_finish_ret(&upload.sha, actual.data()) == 0 && actual == upload.expected_sha;
+    fclose(upload.file); upload.file = nullptr;
+    mbedtls_sha256_free(&upload.sha); upload.sha_initialized = false;
+    if (ok) ok = rename(upload.partial_path.data(), upload.final_path.data()) == 0;
+    if (!ok) {
+        reset_upload(true);
+        report_error("finalize_failed");
+        return false;
+    }
+    SERIAL_ECHOPGM(complete_prefix); SERIAL_ECHOLN(upload.final_path.data() + 5);
+    reset_upload(false);
+    return true;
+}
 } // namespace
+
+extern "C" bool buddy_rme_binary_upload_active() {
+    return upload.file && upload.binary;
+}
+
+extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
+    if (!buddy_rme_binary_upload_active()) return;
+
+    if (binary_receiver.discard_remaining) {
+        if (--binary_receiver.discard_remaining == 0) {
+            const uint8_t unacknowledged = binary_receiver.unacknowledged;
+            binary_receiver = {};
+            binary_receiver.unacknowledged = unacknowledged;
+        }
+        return;
+    }
+
+    if (binary_receiver.header_received < binary_receiver.header.size()) {
+        binary_receiver.header[binary_receiver.header_received++] = byte;
+        if (binary_receiver.header_received != binary_receiver.header.size()) return;
+        binary_receiver.offset = read_le32(binary_receiver.header.data());
+        binary_receiver.payload_size = read_le16(binary_receiver.header.data() + 4);
+        binary_receiver.expected_crc = read_le32(binary_receiver.header.data() + 6);
+
+        if (binary_receiver.payload_size == 0) {
+            if (binary_receiver.offset == UINT32_MAX) {
+                reset_upload(true);
+                SERIAL_ECHOLNPGM("RME_FILE_BINARY_ABORTED");
+            } else if (binary_receiver.offset == upload.received && upload.received == upload.expected_size) {
+                finish_current_upload("RME_FILE_BINARY_COMPLETE path=");
+            } else {
+                SERIAL_ECHOPGM("RME_FILE_BINARY_NACK offset="); SERIAL_ECHOLN(upload.received);
+                binary_receiver = {};
+            }
+            return;
+        }
+        if (binary_receiver.payload_size > binary_chunk_size) {
+            SERIAL_ECHOPGM("RME_FILE_BINARY_NACK offset="); SERIAL_ECHOLN(upload.received);
+            binary_receiver.discard_remaining = binary_receiver.payload_size;
+        }
+        return;
+    }
+
+    binary_receiver.payload[binary_receiver.payload_received++] = byte;
+    if (binary_receiver.payload_received != binary_receiver.payload_size) return;
+
+    const bool valid = binary_receiver.offset == upload.received
+        && binary_receiver.payload_size <= upload.expected_size - upload.received
+        && crc32_sw(binary_receiver.payload.data(), binary_receiver.payload_size, 0) == binary_receiver.expected_crc;
+    if (!valid
+        || fwrite(binary_receiver.payload.data(), 1, binary_receiver.payload_size, upload.file) != binary_receiver.payload_size
+        || mbedtls_sha256_update_ret(&upload.sha, binary_receiver.payload.data(), binary_receiver.payload_size)) {
+        SERIAL_ECHOPGM("RME_FILE_BINARY_NACK offset="); SERIAL_ECHOLN(upload.received);
+        binary_receiver = {};
+        return;
+    }
+
+    upload.received += binary_receiver.payload_size;
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, upload.received, upload.expected_size);
+    const bool acknowledge = ++binary_receiver.unacknowledged >= binary_window_size || upload.received == upload.expected_size;
+    const uint8_t unacknowledged = binary_receiver.unacknowledged;
+    binary_receiver = {};
+    binary_receiver.unacknowledged = acknowledge ? 0 : unacknowledged;
+    if (acknowledge) {
+        SERIAL_ECHOPGM("RME_FILE_BINARY_ACK offset="); SERIAL_ECHOLN(upload.received);
+    }
+}
 
 extern "C" bool buddy_rme_file_service(const char *raw_command) {
     constexpr std::string_view prefix = "@RME FILE ";
@@ -136,7 +244,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const auto action = command.substr(prefix.size());
 
     if (action.starts_with("CAPS")) {
-        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 max_size=1073741824 list=1 stat=1 read=1 write=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
+        SERIAL_ECHOLNPGM("RME_FILE_CAPS root=/usb chunk=48 bulk=1 bulk_chunk=384 bulk_window=4 binary=1 binary_chunk=4096 binary_window=8 max_size=1073741824 list=1 stat=1 read=1 write=1 delete=1 rename=1 mkdir=1 print=1 flash=1");
         return true;
     }
     if (action.starts_with("ABORT")) {
@@ -201,8 +309,9 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 SERIAL_ECHOPGM(" data="); SERIAL_ECHOLN(reinterpret_cast<char *>(encoded.data()));
             }
         } else report_error("read_failed");
-    } else if (action.starts_with("WRITE_BEGIN") || action.starts_with("WRITE_BULK_BEGIN")) {
+    } else if (action.starts_with("WRITE_BEGIN") || action.starts_with("WRITE_BULK_BEGIN") || action.starts_with("WRITE_BINARY_BEGIN")) {
         const bool bulk = action.starts_with("WRITE_BULK_BEGIN");
+        const bool binary = action.starts_with("WRITE_BINARY_BEGIN");
         const auto size = number(command, "size");
         const auto sha = value(command, "sha256");
         if (!marlin_server::printer_idle()) report_error("printer_busy");
@@ -217,10 +326,12 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             } else {
                 upload.expected_size = *size;
                 upload.bulk = bulk;
+                upload.binary = binary;
                 serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, 0, *size);
                 mbedtls_sha256_init(&upload.sha);
                 upload.sha_initialized = true;
                 if (mbedtls_sha256_starts_ret(&upload.sha, false)) { reset_upload(true); report_error("hash_failed"); }
+                else if (binary) SERIAL_ECHOLNPGM("RME_FILE_BINARY_READY offset=0 chunk=4096 window=8 header=10 endian=little crc=crc32");
                 else if (bulk) SERIAL_ECHOLNPGM("RME_FILE_BULK_READY offset=0 chunk=384 window=4");
                 else SERIAL_ECHOLNPGM("RME_FILE_WRITE_READY offset=0 chunk=48");
             }

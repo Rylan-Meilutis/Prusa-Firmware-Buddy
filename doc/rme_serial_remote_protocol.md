@@ -239,6 +239,22 @@ before sending the next window. Offset, declared-size, atomic temporary-file,
 SHA-256, abort, and final-rename guarantees are identical to legacy upload.
 Signed BBF files use the same bulk upload followed by `@RME FILE FLASH`.
 
+For maximum throughput, `CAPS` also advertises
+`binary=1 binary_chunk=4096 binary_window=8`. Start with:
+
+```text
+@RME FILE WRITE_BINARY_BEGIN path=firmware/update.bbf size=<bytes> sha256=<64 hex digits>
+```
+
+After `RME_FILE_BINARY_READY`, send raw little-endian frames containing
+`offset:u32`, `length:u16`, `crc32:u32`, then `length` payload bytes. Payloads
+are at most 4096 bytes and eight sequential frames may be in flight. Firmware
+emits cumulative `RME_FILE_BINARY_ACK` offsets. A zero-length frame at the
+final offset flushes, verifies SHA-256, atomically renames, and returns to line
+mode. A zero-length frame with offset `0xffffffff` aborts and removes the
+partial file. CRC or offset failures return `RME_FILE_BINARY_NACK` with the
+last committed offset. Legacy text protocols remain unchanged.
+
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a
 successful `WRITE_END`. `ABORT` removes the partial file. Mutating operations
