@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <limits>
 #include <utils/variant_utils.hpp>
+#include <common/mapi/acceleration_limiter.hpp>
 
 #include "core/types.h"
 #include "metric.h"
@@ -200,24 +201,6 @@ enum class Phase : uint8_t {
 #else
     #define TEMPORARY_BACKLASH_SMOOTHING(value)
 #endif
-
-/// Limit max acceleration to a value, restore old value when destroyed
-class AccelerationLimiter {
-public:
-    AccelerationLimiter(const float max_acceleration_mmss)
-        : previous_x(planner.user_settings.max_acceleration_mm_per_s2[X_AXIS])
-        , previous_y(planner.user_settings.max_acceleration_mm_per_s2[Y_AXIS]) {
-        planner.set_max_acceleration(X_AXIS, max_acceleration_mmss);
-        planner.set_max_acceleration(Y_AXIS, max_acceleration_mmss);
-    }
-    ~AccelerationLimiter() {
-        planner.set_max_acceleration(X_AXIS, previous_x);
-        planner.set_max_acceleration(Y_AXIS, previous_y);
-    }
-
-private:
-    const float previous_x, previous_y;
-};
 
 inline void wait_ms(const uint32_t duration_ms) {
     const uint32_t point = ticks_ms();
@@ -570,7 +553,7 @@ const std::optional<MachinePosXYZ> get_single_xyz_center(const MachinePosXYZ &in
     }
 
     // Get XY
-    AccelerationLimiter al(XY_ACCELERATION_MMSS);
+    mapi::AccelerationLimiter al(XY_ACCELERATION_MMSS);
     static constexpr uint8_t MAX_HITS = *std::max_element(std::begin(PHASE_XY_HITS), std::end(PHASE_XY_HITS));
     std::array<MachinePosXY, MAX_HITS> max_hits;
     std::span<MachinePosXY> hits(max_hits.begin(), PHASE_XY_HITS[std::to_underlying(phase)]);
