@@ -1155,7 +1155,7 @@ void GCodeQueue::get_serial_commands() {
   // Always drain up to the hidden recovery capacity. A blocking foreground
   // command may not have raised a pause/error FSM yet, but the host must still
   // be able to submit heat-wait cancellation, pause, abort, and service G-codes.
-  while (length < recovery_capacity && serial_data_available()) {
+  while ((buddy_rme_binary_upload_active() || length < recovery_capacity) && serial_data_available()) {
     for (uint8_t i = 0; i < NUM_SERIAL; ++i) {
       int c;
       if ((c = read_serial(i)) < 0) continue;
