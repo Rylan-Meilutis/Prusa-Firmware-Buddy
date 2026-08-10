@@ -13,6 +13,7 @@
 #include <nhttp/splice.h>
 #include <http_lifetime.h>
 #include <timing.h>
+#include <bsod.h>
 
 #include <atomic>
 #include <cinttypes>
@@ -32,11 +33,10 @@ using std::get;
 using std::get_if;
 using std::holds_alternative;
 using std::make_tuple;
-using std::make_unique;
 using std::monostate;
+using std::move;
 using std::nullopt;
 using std::optional;
-using std::shared_ptr;
 using std::string_view;
 using std::tuple;
 using std::unique_ptr;
@@ -113,7 +113,7 @@ public:
         }
 
         virtual tuple<size_t, size_t> write(const uint8_t *in, size_t in_size, uint8_t *out, size_t out_size) override {
-            return owner->decryptor->decrypt(in, in_size, out, out_size);
+            return owner->decryptor.decrypt(in, in_size, out, out_size);
         }
 
         virtual optional<tuple<Status, const char *>> done() override {
@@ -135,13 +135,12 @@ public:
     variant<monostate, Request, ResponseParser, Splice> phase_payload;
     altcp_pcb *conn = nullptr;
     PartialFile::Ptr destination;
-    // TODO: Make it in-place inside phase_payload instead of passing in?
-    std::unique_ptr<Decryptor> decryptor;
+    Decryptor decryptor;
 
-    Async(const char *hostname, uint16_t port, const char *path, PartialFile::Ptr destination, std::unique_ptr<Decryptor> decryptor, uint32_t start_range, optional<uint32_t> end_range)
+    Async(const char *hostname, uint16_t port, const char *path, PartialFile::Ptr destination, const EncryptionInfo &encryption, uint32_t start_range, optional<uint32_t> end_range)
         : phase_payload(Request { {}, port, {}, start_range, end_range, {} })
         , destination(move(destination))
-        , decryptor(move(decryptor)) {
+        , decryptor(encryption.key, encryption.nonce, start_range, encryption.orig_size - start_range) {
         auto &request = get<Request>(phase_payload);
         strlcpy(request.hostname, hostname, sizeof request.hostname);
         strlcpy(request.path, path, sizeof request.path);
@@ -151,6 +150,11 @@ public:
     Async &operator=(const Async &other) = delete;
     Async &operator=(Async &&other) = delete;
     ~Async() = default;
+
+    struct Pool;
+    static Pool &pool();
+    static void *operator new(size_t size);
+    static void operator delete(void *ptr);
 
     void done(DownloadStep how) {
         if (phase != Phase::Done) {
@@ -444,6 +448,34 @@ private:
     }
 };
 
+struct Download::Async::Pool {
+    alignas(Async) std::byte storage[sizeof(Async)];
+    atomic<bool> occupied = false;
+};
+
+Download::Async::Pool &Download::Async::pool() {
+    static Pool instance;
+    return instance;
+}
+
+void *Download::Async::operator new(size_t size) {
+    static_assert(sizeof(Async) >= 1);
+    auto &instance = pool();
+    bool expected = false;
+    if (size != sizeof(Async) || !instance.occupied.compare_exchange_strong(expected, true)) {
+        bsod("Concurrent transfer engines");
+    }
+    return instance.storage;
+}
+
+void Download::Async::operator delete(void *ptr) {
+    auto &instance = pool();
+    if (ptr != instance.storage) {
+        bsod("Invalid transfer engine");
+    }
+    instance.occupied.store(false);
+}
+
 void Download::AsyncDeleter::operator()(Async *a) {
     if (a != nullptr) {
         // Unfortunately, we need the Async to cooperate and finish all its
@@ -465,19 +497,17 @@ void Download::Request::set_transfer_id(TransferId id) {
 Download::Download(const Request &request, PartialFile::Ptr destination, uint32_t start_range, optional<uint32_t> end_range) {
     if (const auto *encrypted = get_if<Request::Encrypted>(&request.data); encrypted) {
         assert(encrypted->encryption);
-        size_t file_size = encrypted->encryption->orig_size;
-        auto decryptor = make_unique<Decryptor>(encrypted->encryption->key, encrypted->encryption->nonce, start_range, file_size - start_range);
         assert(destination);
 
         destination->seek(start_range);
-        AsyncPtr async(new Async(encrypted->host, encrypted->port, encrypted->url_path, move(destination), move(decryptor), start_range, end_range));
+        AsyncPtr async(new Async(encrypted->host, encrypted->port, encrypted->url_path, move(destination), *encrypted->encryption, start_range, end_range));
         Async *async_raw = async.get();
         engine = std::move(async);
         tcpip_callback_nofail(Async::start_wrapped, async_raw);
     } else {
         const auto &in = get<Request::Inline>(request.data);
         destination->seek(start_range);
-        InlinePtr in_ptr(new Inline {
+        Inline inline_engine {
             in.team_id,
             // This is just a safety feature - making sure we don't mix chunks
             // of different file in ourselves (which _shouldn't_ be possible in
@@ -489,9 +519,9 @@ Download::Download(const Request &request, PartialFile::Ptr destination, uint32_
             end_range.value_or(in.orig_size - 1 /* End is inclusive */),
             0,
             destination,
-        });
-        strlcpy(in_ptr->hash, in.hash, sizeof in_ptr->hash);
-        engine = std::move(in_ptr);
+        };
+        strlcpy(inline_engine.hash, in.hash, sizeof inline_engine.hash);
+        engine = std::move(inline_engine);
         // We do _nothing_ in here, in this case, the Download is kind of "passive"
     }
 }
@@ -500,10 +530,10 @@ DownloadStep Download::step() {
     if (auto *async = get_if<AsyncPtr>(&engine); async != nullptr) {
         return (*async)->status();
     } else {
-        const auto &in = get<InlinePtr>(engine);
-        if (in->status != DownloadStep::Continue) {
-            return in->status;
-        } else if (in->start > in->end /* End is inclusive */) {
+        const auto &in = get<Inline>(engine);
+        if (in.status != DownloadStep::Continue) {
+            return in.status;
+        } else if (in.start > in.end /* End is inclusive */) {
             return DownloadStep::Finished;
         } else {
             return DownloadStep::Continue;
@@ -519,7 +549,7 @@ PartialFile::Ptr Download::get_partial_file() const {
     if (auto *async = get_if<AsyncPtr>(&engine); async != nullptr) {
         return (*async)->destination;
     } else {
-        return get<InlinePtr>(engine)->destination;
+        return get<Inline>(engine).destination;
     }
 }
 
@@ -529,8 +559,7 @@ optional<Download::InlineRequest> Download::inline_request() {
     // - OR -
     //
     // We completed the previous segment and there is no other segment.
-    if (auto *in_p = get_if<InlinePtr>(&engine); in_p != nullptr && (*in_p)->status == DownloadStep::Continue && (((*in_p)->start > (*in_p)->segment_end && (*in_p)->segment_end != (*in_p)->end) || !(*in_p)->started)) {
-        auto &in = *in_p;
+    if (auto *in = get_if<Inline>(&engine); in != nullptr && in->status == DownloadStep::Continue && ((in->start > in->segment_end && in->segment_end != in->end) || !in->started)) {
         uint32_t end = std::min(in->start + INLINE_SEGMENT_SIZE - 1 /* end is inclusive */, in->end);
         in->segment_end = end;
         InlineRequest request = {
@@ -554,21 +583,21 @@ optional<Download::InlineRequest> Download::inline_request() {
 }
 
 bool Download::inline_chunk(const InlineChunk &chunk) {
-    if (auto *in = get_if<InlinePtr>(&engine); in != nullptr) {
-        if ((*in)->status != DownloadStep::Continue
-            || (*in)->file_id != chunk.file_id /* Different transfer */
+    if (auto *in = get_if<Inline>(&engine); in != nullptr) {
+        if (in->status != DownloadStep::Continue
+            || in->file_id != chunk.file_id /* Different transfer */
             || chunk.size == 0 /* Error indicated by server */
-            || (*in)->start + chunk.size > (*in)->end + 1 /* end is inclusive */) {
-            (*in)->status = DownloadStep::FailedRemote;
+            || in->start + chunk.size > in->end + 1 /* end is inclusive */) {
+            in->status = DownloadStep::FailedRemote;
             return false;
         }
-        if (!(*in)->destination->write(chunk.data, chunk.size)) {
-            (*in)->status = DownloadStep::FailedStorage;
+        if (!in->destination->write(chunk.data, chunk.size)) {
+            in->status = DownloadStep::FailedStorage;
             return false;
         }
-        (*in)->start += chunk.size;
-        if ((*in)->start > (*in)->end) {
-            (*in)->destination->sync();
+        in->start += chunk.size;
+        if (in->start > in->end) {
+            in->destination->sync();
         }
         return true;
     } else {

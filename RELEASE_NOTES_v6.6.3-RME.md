@@ -1073,6 +1073,11 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
 * firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
   marker is created only together with the explicit M997 reboot request, so a
   partial or unselected upload cannot flash on an unrelated boot.
+* transfer recovery, encryption metadata, HTTP and inline engines,
+  partial-file ownership, and both 4 KiB USB DMA sector buffers use bounded
+  fixed storage; transfer metadata and partial-file streams are explicitly
+  unbuffered. RME connection, staged-file recovery, and upload/download startup
+  therefore no longer depend on runtime heap headroom.
 
 The final release command was:
 

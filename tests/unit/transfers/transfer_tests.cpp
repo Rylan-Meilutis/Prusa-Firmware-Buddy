@@ -25,7 +25,7 @@ TEST_CASE("Serialization and Deserialization of a Transfer", "[transfers]") {
             "http://test_host.com",
             8081,
             "/test_path",
-            nullptr);
+            std::nullopt);
 
         // make partial file state
         auto partial_file_state = transfers::PartialFile::State();

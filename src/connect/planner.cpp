@@ -234,11 +234,9 @@ namespace {
         const auto [host, port] = host_and_port(config, download.port);
 
         char *path = nullptr;
-        unique_ptr<Download::EncryptionInfo> encryption;
-
         path = reinterpret_cast<char *>(alloca(enc_url_len));
         make_enc_url(path, download.iv);
-        encryption = make_unique<Download::EncryptionInfo>(download.key, download.iv, download.orig_size);
+        std::optional<Download::EncryptionInfo> encryption(std::in_place, download.key, download.iv, download.orig_size);
 
         auto request = Download::Request(host, port, path, std::move(encryption));
 

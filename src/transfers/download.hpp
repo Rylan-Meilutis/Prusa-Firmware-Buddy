@@ -91,7 +91,7 @@ public:
             const char *host;
             uint16_t port;
             const char *url_path;
-            std::shared_ptr<EncryptionInfo> encryption;
+            std::optional<EncryptionInfo> encryption;
         };
 
         struct Inline {
@@ -103,7 +103,7 @@ public:
 
         std::variant<Encrypted, Inline> data;
 
-        Request(const char *host, uint16_t port, const char *url_path, std::unique_ptr<EncryptionInfo> &&encryption)
+        Request(const char *host, uint16_t port, const char *url_path, std::optional<EncryptionInfo> encryption)
             : data(Encrypted {
                 host,
                 port,
@@ -153,8 +153,10 @@ private:
     // Using pointer here to make both versions same sized. Once we get rid of
     // the old download way, we should be able to just put it inside us
     // directly.
-    using InlinePtr = std::unique_ptr<Inline>;
-    using Engine = std::variant<AsyncPtr, InlinePtr>;
+    // Inline transfers are bounded by the single active transfer slot. Keep
+    // their state in the Download object instead of consuming heap merely to
+    // make the variant alternatives similarly sized.
+    using Engine = std::variant<AsyncPtr, Inline>;
     Engine engine;
 
 public:

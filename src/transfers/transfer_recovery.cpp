@@ -70,6 +70,20 @@ struct SerializedTransfer {
 
 using EndOfDataCRC = uint32_t;
 
+// Connect transfer recovery is serialized in connectTask. Keep its bounded
+// scratch space out of the runtime heap, where it used to collide with USB
+// enumeration, lwIP startup and RME/host synchronization immediately after
+// boot.
+std::array<char, Transfer::RestoredTransfer::max_size> recovery_data_buffer {};
+
+unique_file_ptr open_recovery_file(const char *path, const char *mode) {
+    unique_file_ptr file(fopen(path, mode));
+    if (file) {
+        setvbuf(file.get(), nullptr, _IONBF, 0);
+    }
+    return file;
+}
+
 } // namespace
 
 bool Transfer::make_backup(FILE *file, const Download::Request &request, const PartialFile::State &state, const Monitor::Slot &slot) {
@@ -90,7 +104,7 @@ bool Transfer::make_backup(FILE *file, const Download::Request &request, const P
         transfer.is_inline = false;
 
         // encryption
-        if (encrypted->encryption.get()) {
+        if (encrypted->encryption.has_value()) {
             transfer.encryption_info = *encrypted->encryption;
         }
     } else {
@@ -219,7 +233,7 @@ std::variant<Transfer::Error, Transfer::Complete, PartialFile::State> Transfer::
     MutablePath mp(path);
     mp.push(backup_filename);
 
-    auto f = unique_file_ptr(fopen(mp.get(), "r"));
+    auto f = open_recovery_file(mp.get(), "r");
     if (f.get() == nullptr) {
         // Failed to open. This is usually because the download file isn't
         // there (the file is completely downloaded, either as the base path or
@@ -275,7 +289,7 @@ const void *Transfer::RestoredTransfer::get_data_ptr(size_t offset, size_t size)
         return nullptr;
     }
 
-    return data_buffer.get() + offset - data_start;
+    return data_buffer + offset - data_start;
 }
 
 std::optional<Download::Request> Transfer::RestoredTransfer::get_download_request() {
@@ -301,10 +315,10 @@ std::optional<Download::Request> Transfer::RestoredTransfer::get_download_reques
             log_error(transfers, "Corrupted backup?");
             return std::nullopt;
         }
-        data_buffer = std::make_unique<char[]>(data_length);
+        data_buffer = recovery_data_buffer.data();
         data_buffer_size = data_length;
 
-        if (fseek(file, data_offset, SEEK_SET) != 0 || fread(data_buffer.get(), data_length, 1, file) != 1) {
+        if (fseek(file, data_offset, SEEK_SET) != 0 || (data_length && fread(data_buffer, data_length, 1, file) != 1)) {
             log_error(transfers, "Failed to read data buffer");
             return std::nullopt;
         }
@@ -316,7 +330,7 @@ std::optional<Download::Request> Transfer::RestoredTransfer::get_download_reques
         uint32_t crc_transfer_start = offsetof(SerializedTransfer, fw_version);
 
         crc = crc32_calc_ex(crc, ((uint8_t *)&transfer) + crc_transfer_start, sizeof(transfer) - crc_transfer_start);
-        crc = crc32_calc_ex(crc, (uint8_t *)data_buffer.get(), data_buffer_size);
+        crc = crc32_calc_ex(crc, reinterpret_cast<uint8_t *>(data_buffer), data_buffer_size);
         EndOfDataCRC read_crc;
         if (fread(&read_crc, sizeof(read_crc), 1, file) != 1) {
             log_error(transfers, "Failed to read data buffer crc");
@@ -347,7 +361,7 @@ std::optional<Download::Request> Transfer::RestoredTransfer::get_download_reques
             transfer.host.deserialize(get_data_ptr),
             transfer.port,
             transfer.url_path_or_hash.deserialize(get_data_ptr),
-            transfer.encryption_info.has_value() ? std::make_unique<Download::EncryptionInfo>(*transfer.encryption_info) : nullptr);
+            transfer.encryption_info);
     }
     req->set_transfer_id(transfer.transfer_id);
     return *req;
@@ -360,7 +374,7 @@ Transfer::RecoverySearchResult Transfer::search_transfer_for_recovery(Path &path
         return RecoverySearchResult::WaitingForUSB;
     }
 
-    auto index = unique_file_ptr(fopen(transfer_index, "r"));
+    auto index = open_recovery_file(transfer_index, "r");
     if (index.get() == nullptr) {
         return RecoverySearchResult::NothingToRecover;
     }

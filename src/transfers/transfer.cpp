@@ -29,7 +29,21 @@ LOG_COMPONENT_REF(transfers);
 
 using namespace transfers;
 using std::is_same_v;
+using std::move;
 using std::optional;
+
+namespace {
+unique_file_ptr open_transfer_file(const char *path, const char *mode) {
+    unique_file_ptr file(fopen(path, mode));
+    if (file) {
+        // Transfer metadata is small and infrequently accessed. A normal
+        // stdio stream lazily allocates a large buffer from the system heap,
+        // often during the USB/network startup peak or an error-recovery path.
+        setvbuf(file.get(), nullptr, _IONBF, 0);
+    }
+    return file;
+}
+} // namespace
 
 Transfer::PlainGcodeDownloadOrder::PlainGcodeDownloadOrder(const PartialFile &file) {
     if (file.has_valid_tail(TailSize)) {
@@ -134,7 +148,7 @@ Transfer::BeginResult Transfer::begin(const char *destination_path, Download::Re
     }
 
     // make the request
-    backup = unique_file_ptr(fopen(path.as_backup(), "w+"));
+    backup = open_transfer_file(path.as_backup(), "w+");
     if (backup.get() == nullptr) {
         return Storage { "Failed to create backup file" };
     }
@@ -159,7 +173,7 @@ Transfer::BeginResult Transfer::begin(const char *destination_path, Download::Re
 }
 
 bool Transfer::restart_download() {
-    auto backup_file = unique_file_ptr(fopen(path.as_backup(), "r"));
+    auto backup_file = open_transfer_file(path.as_backup(), "r");
     if (backup_file.get() == nullptr) {
         log_error(transfers, "Failed to open backup file");
         last_connection_error_ms = ticks_ms();
@@ -245,7 +259,7 @@ void Transfer::update_backup(bool force) {
         return;
     }
 
-    unique_file_ptr backup_file(fopen(path.as_backup(), "r+"));
+    unique_file_ptr backup_file = open_transfer_file(path.as_backup(), "r+");
     if (backup_file.get() == nullptr) {
         log_error(transfers, "Failed to open backup file for update");
         return;
@@ -280,7 +294,7 @@ Transfer::RecoverResult Transfer::recover(const char *destination_path) {
 
     PartialFile::State partial_file_state;
     {
-        auto backup_file = unique_file_ptr(fopen(path.as_backup(), "r"));
+        auto backup_file = open_transfer_file(path.as_backup(), "r");
         if (backup_file.get() == nullptr) {
             log_error(transfers, "Failed to open backup file");
             return Storage { "Failed to open backup file" };
@@ -292,7 +306,7 @@ Transfer::RecoverResult Transfer::recover(const char *destination_path) {
             // Mark it as failed and it'll get cleaned up soon
             // (so the user can try re-uploading it, for example)
             backup_file.reset();
-            unique_file_ptr invalidate_backup(fopen(path.as_backup(), "w"));
+            unique_file_ptr invalidate_backup = open_transfer_file(path.as_backup(), "w");
             return Storage { "Failed to restore backup file" };
         }
         partial_file_state = backup->get_partial_file_state();
@@ -437,7 +451,7 @@ void Transfer::notify_success() {
 }
 
 bool Transfer::cleanup_transfers() {
-    auto index = unique_file_ptr(fopen(transfer_index, "r"));
+    auto index = open_transfer_file(transfer_index, "r");
     if (!index) {
         // No index means nothing to clean up, which is successful.
         return true;
@@ -545,7 +559,7 @@ void Transfer::done(State state, Monitor::Outcome outcome) {
         // it as failed by having an empty backup file.
 
         // (Overwrite the file with empty one by opening and closing right away).
-        unique_file_ptr(fopen(path.as_backup(), "w"));
+        open_transfer_file(path.as_backup(), "w");
 
         // And try to clean it up if possible. Might fail if it is being
         // printed or for some similar reasons (again, that's fine, we'll try
@@ -621,7 +635,7 @@ bool Transfer::cleanup_remove(Path &path) {
 }
 
 bool Transfer::store_transfer_index(const char *path) {
-    auto index = unique_file_ptr(fopen(transfer_index, "a"));
+    auto index = open_transfer_file(transfer_index, "a");
     if (index.get() == nullptr) {
         return false;
     }
