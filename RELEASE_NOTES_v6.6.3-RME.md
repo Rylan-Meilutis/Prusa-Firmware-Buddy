@@ -1026,3 +1026,5 @@ ec886e1ea  2026-08-09  Support manufacturer metadata for every INDX tool
 ```
 
 Published release tag: `v6.6.3-RME-b4`.
+
+Release-documentation commit: `2ac3b5d6b`.
