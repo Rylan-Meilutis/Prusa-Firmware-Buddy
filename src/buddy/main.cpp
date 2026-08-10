@@ -176,7 +176,9 @@ static TaskControlBlock task_control_block;
 struct TaskStack {
     uint32_t marlin[1360];
 #if HAS_POWER_PANIC()
-    uint32_t acfault[80];
+    // The complete AC-fault logging/notification path needs more than the
+    // historical 80 words. An overflow here corrupts the adjacent task TCB.
+    uint32_t acfault[160];
 #endif
 #if HAS_GUI()
     uint32_t display[1536];
