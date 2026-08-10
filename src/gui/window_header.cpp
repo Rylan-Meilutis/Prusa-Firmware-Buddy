@@ -180,7 +180,15 @@ void window_header_t::updateTransfer() {
     }
     last_transfer_progress = transfer_progress;
     last_transfer_has_issue = transfer_has_issue;
-    if (!transfer_progress && serial_remote_control::session_active()) {
+    if (remote.kind != serial_remote_control::TransferKind::none) {
+        // RME owns this transfer, so retain its indigo R identity while the
+        // adjacent percentage reports upload/download progress.  This uses
+        // the same header slot as the normal transfer/Connect status and
+        // avoids a second competing service icon.
+        icon_transfer.SetRes(&img::rme_host_16x16);
+        icon_transfer.Show();
+        transfer_hide_timer = std::nullopt;
+    } else if (!transfer_progress && serial_remote_control::session_active()) {
         icon_transfer.SetRes(&img::rme_host_16x16);
         icon_transfer.Show();
         transfer_val.Hide();

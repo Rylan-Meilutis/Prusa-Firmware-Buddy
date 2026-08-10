@@ -999,8 +999,8 @@ printer, language, UI, filament, or recovery feature:
   resource payload, while manufacturer names use one packed lookup blob and the
   multi-filament menu resolves tool rows once to reduce internal flash without
   reducing functionality; and
-* firmware-install status text is placed above the progress bar on both display
-  sizes so the flashing message remains unobstructed.
+* firmware-install status uses a dedicated splash status region; build 33
+  corrects that region to below the bar so it cannot overlap boot graphics.
 
 The final release command was:
 
@@ -1035,3 +1035,52 @@ a00769e59  2026-08-09  Keep binary uploads outside queue backpressure
 Published release tag: `v6.5.7-RME-b32`.
 
 Release-documentation commit: `cc01d655a`.
+
+## Build 33 release update
+
+Build 33 fixes firmware-update handoff, host synchronization, lighting idle
+behavior, and filesystem replacement without reducing the build 32 feature set:
+
+* firmware staged as `/usb/FWUPD.BBF` is armed as a durable one-shot update and
+  removed after the requested bootloader attempt even when USB is already
+  mounted, preventing a second flash and double boot;
+* `M997` drains its acknowledgement and structured reconnect marker, explicitly
+  detaches USB CDC, and then resets so OctoPrint can observe clean removal and
+  re-enumeration;
+* installation status is below the progress bar in the application-owned status
+  area, preserving the complete Prusa logo and hiding stale bootloader text;
+* loaded-filament changes notify RME hosts only after material, color, and
+  manufacturer are committed, eliminating stale loadout snapshots;
+* every `@RME` service frame is passive for the local activity timer, and a
+  display wake over a dim/off print override expires after 30 seconds so the
+  screen and chamber lighting can turn off normally; and
+* legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
+  existing regular file through verified sibling staging with rollback;
+* RME downloads now negotiate CRC32-protected raw 4096-byte reads, with a
+  bounded frame per request and the original 48-byte Base64 mode retained for
+  older hosts; and
+* RME-owned uploads and downloads retain the indigo R in the header alongside
+  transfer progress instead of replacing it with the generic transfer icon;
+  and
+* host transaction IDs are parsed over their full unsigned 32-bit range, so
+  large IDs no longer saturate at `2147483647` during profile synchronization.
+
+The final release command was:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+All 14 6.5.7 presets passed. Maximum MINI flash use was 96.60%, MK4 used
+94.56%, MK3.5 used 90.00%, and XL used 69.14%. The staged release directory
+contains exactly 14 BBFs under `bbf/6.5.7`.
+
+Build 33 firmware continuation:
+
+```text
+e8b2a1038  2026-08-10  Fix one-shot updates and remote state synchronization
+```
+
+Published release tag: `v6.5.7-RME-b33`.
+
+Release-documentation commit: pending.

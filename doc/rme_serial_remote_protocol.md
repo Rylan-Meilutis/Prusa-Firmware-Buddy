@@ -79,6 +79,10 @@ is `local` for front-panel/firmware changes and `host` for an accepted RME
 mutation. A host may append `tx=<nonzero u32>` to a mutating RME command; the
 same value is echoed on its change record so the initiating client can match
 the acknowledgement without suppressing updates for other clients.
+The accepted range is `1..4294967295`. RME parses it as an unsigned value, so
+IDs above `2147483647` remain intact. Outside the file service's explicitly
+advertised windows, wait for `ok` before issuing another persistent mutation;
+an earlier `RME_CHANGE` is state notification, not transmit credit.
 
 Take a complete snapshot at startup, reconnect, session expiry, or sequence/
 revision loss. During a healthy session, apply `RME_CHANGE` and refresh only
@@ -240,11 +244,29 @@ system partitions are rejected. Discover support with:
 @RME FILE LIST path=/
 @RME FILE STAT path=jobs/part.bgcode
 @RME FILE READ path=jobs/part.bgcode offset=0 length=48
+@RME FILE READ_BINARY path=jobs/part.bgcode offset=0 length=4096
 ```
 
 `LIST` emits `RME_FILE_ENTRY` records followed by `RME_FILE_LIST_END`. `READ`
 returns at most 48 bytes per request as Base64 in `RME_FILE_DATA`; continue from
 `offset + length` until `eof=1`.
+
+For fast downloads, `CAPS` advertises
+`binary_read=1 binary_read_chunk=4096`. After `READ_BINARY`, consume the
+`RME_FILE_BINARY_READ_READY` line, then switch the receive parser for exactly
+one raw frame. Its ten-byte little-endian header contains `offset:u32`,
+`length:u16`, and `crc32:u32`, followed immediately by `length` payload bytes.
+Verify the offset and CRC, switch back to line parsing, and consume
+`RME_FILE_BINARY_READ_COMPLETE next=<offset> eof=<0|1>` plus the normal `ok`.
+Request the returned `next` offset until `eof=1`. Each request is deliberately
+bounded to 4096 bytes, so control traffic is never blocked by an entire large
+download and a failed chunk can be retried independently. Legacy Base64 reads
+remain supported unchanged.
+
+The header shows the indigo R and transfer percentage while RME owns an upload
+or multi-chunk download. It uses the transfer-status position rather than
+adding another competing service indicator; the ordinary session R returns
+when the transfer finishes.
 
 Binary-safe, restartable uploads require the final byte count and SHA-256:
 
