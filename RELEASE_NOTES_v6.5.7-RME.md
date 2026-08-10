@@ -1053,12 +1053,12 @@ behavior, and filesystem replacement without reducing the build 32 feature set:
   manufacturer are committed, eliminating stale loadout snapshots;
 * every `@RME` service frame is passive for the local activity timer, and a
   display wake over a dim/off print override expires after 30 seconds so the
-  screen and chamber lighting can turn off normally; and
+  screen and chamber lighting can turn off normally;
 * legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
   existing regular file through verified sibling staging with rollback;
 * RME downloads now negotiate CRC32-protected raw 4096-byte reads, with a
   bounded frame per request and the original 48-byte Base64 mode retained for
-  older hosts; and
+  older hosts;
 * RME-owned uploads and downloads retain the indigo R in the header alongside
   transfer progress instead of replacing it with the generic transfer icon;
   and
@@ -1071,14 +1071,15 @@ The final release command was:
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
-All 14 6.5.7 presets passed. Maximum MINI flash use was 96.60%, MK4 used
-94.56%, MK3.5 used 90.00%, and XL used 69.14%. The staged release directory
+All 14 6.5.7 presets passed. Maximum MINI flash use was 96.67%, MK4 used
+94.58%, MK3.5 used 90.02%, and XL used 69.17%. The staged release directory
 contains exactly 14 BBFs under `bbf/6.5.7`.
 
 Build 33 firmware continuation:
 
 ```text
 e8b2a1038  2026-08-10  Fix one-shot updates and remote state synchronization
+88f9dc9c4  2026-08-10  Add fast RME downloads and robust host transactions
 ```
 
 Published release tag: `v6.5.7-RME-b33`.

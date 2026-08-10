@@ -1173,9 +1173,9 @@ Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29
 presets passed, producing exactly 14 BBFs under `bbf/6.5.7` and 15 under
 `bbf/6.6.3`, with no root-level or unrelated BBFs.
 
-Validated maxima: 6.5.7 MINI 96.60%, MK4 94.56%, MK3.5 90.00%, XL 69.14%;
-6.6.3 MINI 98.56%, MK4 60.68%, MK3.5 56.05%, XL 68.82%, CORE One INDX
-65.39%.
+Validated maxima: 6.5.7 MINI 96.67%, MK4 94.58%, MK3.5 90.02%, XL 69.17%;
+6.6.3 MINI 98.62%, MK4 60.70%, MK3.5 56.07%, XL 68.85%, CORE One INDX
+65.43%.
 
 For staged firmware, create the durable one-shot marker before reset and
 consume `FWUPD.BBF` whenever mounted media becomes available after boot, not
@@ -1187,5 +1187,9 @@ writes. Exclude every `@RME` service frame from physical activity timers and
 bound low-brightness display wake to 30 seconds. RME uploads may replace only
 regular files and must retain the old destination until verified installation
 of the new sibling succeeds.
+
+Verify bounded 4096-byte CRC32 raw downloads, the legacy Base64 fallback, RME
+header ownership during both transfer directions, and full unsigned 32-bit
+transaction-ID round trips.
 
 Release tags: `v6.5.7-RME-b33` and `v6.6.3-RME-b5`.
