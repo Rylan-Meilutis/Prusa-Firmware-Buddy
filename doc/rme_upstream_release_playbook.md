@@ -952,7 +952,7 @@ retain 250000, 230400, and 115200 as compatible fallbacks, and keep 57600 as
 diagnostic logging mode; line coding does not change the USB wire clock.
 Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts. Retest
 numbered legacy G-code, resend handling, M20-M32, M998, the 48-byte RME upload,
-four-frame 384-byte bulk windows, and eight-frame 4096-byte raw binary windows.
+four-frame 384-byte bulk windows, and eight-frame 1024-byte raw binary windows.
 For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
 wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
 through the G-code queue or permit ASCII commands to be interleaved before raw
@@ -1176,7 +1176,7 @@ bound low-brightness display wake to 30 seconds. RME uploads may replace only
 regular files and must retain the old destination until verified installation
 of the new sibling succeeds.
 
-Verify `binary_read=1 binary_read_chunk=4096`, one raw download frame per
+Verify `binary_read=1 binary_read_chunk=1024`, one raw download frame per
 `READ_BINARY` request, little-endian offset/length/CRC validation, retry at the
 same offset after corruption, and return to line mode before the completion
 record and `ok`. The RME header icon must remain the indigo R with progress for

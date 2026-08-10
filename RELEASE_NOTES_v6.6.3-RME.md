@@ -10,12 +10,12 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
   * Added independent filament-manufacturer tracking with 50 common built-ins,
     eight persistent keyboard/RME-created names, case-insensitive host matching,
     and selection alongside material and color during load and preload.
-  * Enlarged USB CDC packet FIFOs for faster file and firmware bursts and made
-    1,000,000 the advertised normal-mode rate, while preserving ordinary
+  * Uses bounded streaming USB CDC FIFOs for fast file and firmware transfers
+    and advertises 1,000,000 as the normal-mode rate, while preserving ordinary
     G-code, the older RME protocol, and slower host settings as fallbacks.
   * Added negotiated four-frame RME bulk upload windows with 384 decoded bytes
     per frame, cumulative acknowledgements, and unchanged atomic/SHA safeguards.
-  * Added raw USB upload with eight in-flight 4 KiB CRC32 frames, eliminating
+  * Added raw USB upload with eight in-flight CRC32 frames, eliminating
     Base64 and line parsing while retaining final SHA-256 and atomic rename.
   * Added a white header badge with an Indigo/theme-tinted R for negotiated RME
     hosts and integrated file/firmware activity with the transfer indicator.
@@ -1050,7 +1050,7 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   screen and chamber lighting can turn off normally; and
 * legacy, bulk, and binary RME uploads advertise `overwrite=1` and replace an
   existing regular file through verified sibling staging with rollback;
-* RME downloads now negotiate CRC32-protected raw 4096-byte reads, with a
+* RME downloads now negotiate CRC32-protected raw 1024-byte reads, with a
   bounded frame per request and the original 48-byte Base64 mode retained for
   older hosts;
 * RME-owned uploads and downloads retain the indigo R in the header alongside
@@ -1058,9 +1058,12 @@ behavior, and filesystem replacement without reducing the build 4 feature set:
   and
 * host transaction IDs are parsed over their full unsigned 32-bit range, so
   large IDs no longer saturate at `2147483647` during profile synchronization.
-* RME session and four-frame bulk bursts have complete 4096-byte USB CDC RX/TX
-  FIFOs, preventing handshake response corruption and transfer timeouts without
-  reducing the 384-byte chunk or four-frame window;
+* RME USB CDC uses bounded 512-byte RX/TX FIFOs with streaming backpressure,
+  recovering 7 KiB of SRAM that previously could exhaust the heap during
+  connection, ordinary G-code motion, or file operations;
+* binary upload and download share one 1024-byte payload buffer and stream each
+  verified chunk directly to or from disk, recovering another 7 KiB of SRAM
+  without materially reducing USB throughput;
 * firmware staging uses the neutral `FWUPD.RME` filename, and its cleanup
   marker is created only together with the explicit M997 reboot request, so a
   partial or unselected upload cannot flash on an unrelated boot.

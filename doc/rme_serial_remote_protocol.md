@@ -249,7 +249,7 @@ system partitions are rejected. Discover support with:
 @RME FILE LIST path=/
 @RME FILE STAT path=jobs/part.bgcode
 @RME FILE READ path=jobs/part.bgcode offset=0 length=48
-@RME FILE READ_BINARY path=jobs/part.bgcode offset=0 length=4096
+@RME FILE READ_BINARY path=jobs/part.bgcode offset=0 length=1024
 ```
 
 `LIST` emits `RME_FILE_ENTRY` records followed by `RME_FILE_LIST_END`. `READ`
@@ -257,14 +257,14 @@ returns at most 48 bytes per request as Base64 in `RME_FILE_DATA`; continue from
 `offset + length` until `eof=1`.
 
 For fast downloads, `CAPS` advertises
-`binary_read=1 binary_read_chunk=4096`. After `READ_BINARY`, consume the
+`binary_read=1 binary_read_chunk=1024`. After `READ_BINARY`, consume the
 `RME_FILE_BINARY_READ_READY` line, then switch the receive parser for exactly
 one raw frame. Its ten-byte little-endian header contains `offset:u32`,
 `length:u16`, and `crc32:u32`, followed immediately by `length` payload bytes.
 Verify the offset and CRC, switch back to line parsing, and consume
 `RME_FILE_BINARY_READ_COMPLETE next=<offset> eof=<0|1>` plus the normal `ok`.
 Request the returned `next` offset until `eof=1`. Each request is deliberately
-bounded to 4096 bytes, so control traffic is never blocked by an entire large
+bounded to 1024 bytes, so control traffic is never blocked by an entire large
 download and a failed chunk can be retried independently. Legacy Base64 reads
 remain supported unchanged.
 
@@ -294,16 +294,16 @@ commands above as a fallback:
 
 `CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4 overwrite=1`. A host
 may pipeline four sequential chunks and then waits for the cumulative
-`RME_FILE_BULK_ACK` offset before sending the next window. Firmware reserves
-enough CDC receive space for the complete advertised window, so storage
-latency does not truncate an in-flight command or disconnect the endpoint.
+`RME_FILE_BULK_ACK` offset before sending the next window. Firmware drains the
+bounded CDC FIFO continuously; USB backpressure and the cumulative ACK prevent
+storage latency from truncating an in-flight command or disconnecting the endpoint.
 Offset, declared-size, atomic temporary-file, SHA-256, abort, and final-rename
 guarantees are identical to legacy upload. Binary upload remains preferred for
 maximum throughput.
 Signed BBF files use the same bulk upload followed by `@RME FILE FLASH`.
 
 For maximum throughput, `CAPS` also advertises
-`binary=1 binary_chunk=4096 binary_window=8`. Start with:
+`binary=1 binary_chunk=1024 binary_window=8`. Start with:
 
 ```text
 @RME FILE WRITE_BINARY_BEGIN path=firmware/update.bbf size=<bytes> sha256=<64 hex digits>
@@ -311,7 +311,7 @@ For maximum throughput, `CAPS` also advertises
 
 After `RME_FILE_BINARY_READY`, send raw little-endian frames containing
 `offset:u32`, `length:u16`, `crc32:u32`, then `length` payload bytes. Payloads
-are at most 4096 bytes and eight sequential frames may be in flight. Firmware
+are at most 1024 bytes and eight sequential frames may be in flight. Firmware
 emits cumulative `RME_FILE_BINARY_ACK` offsets. A zero-length frame at the
 final offset flushes, verifies SHA-256, atomically renames, and returns to line
 mode. A zero-length frame with offset `0xffffffff` aborts and removes the
