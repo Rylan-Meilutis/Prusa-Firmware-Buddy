@@ -118,6 +118,52 @@ variant<const char *, PartialFile::Ptr> PartialFile::open(const char *path, Stat
     return PartialFile::convert(path, std::move(file), state);
 }
 
+bool PartialFile::reopen(const char *path) {
+    const size_t expected_size = state.total_size;
+
+    // Complete pending writes and release the old descriptor while retaining
+    // this instance and its fixed DMA buffers.
+    release_file();
+
+    unique_file_ptr file = open_partial_file(path, "rb");
+    if (!file) {
+        return false;
+    }
+
+    FIL *fatfs_file = filesystem_fastfs_get_underlying_struct(file.get());
+    if (!fatfs_file) {
+        return false;
+    }
+
+    if (f_size(fatfs_file) != expected_size) {
+        return false;
+    }
+
+    int is_contiguous = 0;
+    if (fatfs_test_contiguous_file(fatfs_file, &is_contiguous) != FR_OK || !is_contiguous) {
+        return false;
+    }
+
+    const auto drive = fatfs_file->obj.fs->pdrv;
+    const auto lba = fatfs_file->obj.fs->database + fatfs_file->obj.fs->csize * (fatfs_file->obj.sclust - 2);
+    if (drive != sector_pool.lun()) {
+        return false;
+    }
+
+    file.reset();
+    const int fd = ::open(path, O_RDONLY);
+    if (fd == -1) {
+        return false;
+    }
+
+    file_lock = fd;
+    first_sector_nbr = lba;
+    current_sector = nullptr;
+    current_offset = 0;
+    write_error = false;
+    return true;
+}
+
 variant<const char *, PartialFile::Ptr> PartialFile::convert(const char *path, unique_file_ptr file, State state) {
     FIL *fatfs_file = filesystem_fastfs_get_underlying_struct(file.get());
     if (!fatfs_file) {
