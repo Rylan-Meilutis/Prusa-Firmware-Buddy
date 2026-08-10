@@ -14,6 +14,7 @@ calibrate_white_16x16.png
 cancel_60x60.png
 clear_60x60.png
 connect_16x16.png
+rme_host_16x16.png
 connect_orange_16x16.png
 dash_18x18.png
 disconnect_80x80_disabled.png

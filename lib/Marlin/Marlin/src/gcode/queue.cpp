@@ -1124,7 +1124,10 @@ static bool handle_stuck_filament_response(const char *command) {
  * left on the serial port.
  */
 void GCodeQueue::get_serial_commands() {
-  static char serial_line_buffer[NUM_SERIAL][MAX_CMD_SIZE];
+  // RME bulk frames are consumed out-of-band and never copied into the
+  // MAX_CMD_SIZE G-code queue.
+  static constexpr size_t rme_serial_line_size = 640;
+  static char serial_line_buffer[NUM_SERIAL][rme_serial_line_size];
   static bool serial_comment_mode[NUM_SERIAL] = { false }
               #if ENABLED(PAREN_COMMENTS)
                 // #error dead code found by automatic analyses (see BFW-5461)
@@ -1336,7 +1339,8 @@ void GCodeQueue::get_serial_commands() {
           #endif
         );
       }
-      else if (serial_count[i] >= MAX_CMD_SIZE - 1) {
+      else if (serial_count[i] >= static_cast<int>(rme_serial_line_size - 1)
+        || (serial_count[i] >= MAX_CMD_SIZE - 1 && strncmp(serial_line_buffer[i], "@RME ", 5) != 0)) {
         // Keep fetching, but ignore normal characters beyond the max length
         // The command will be injected when EOL is reached
       }
