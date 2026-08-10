@@ -945,10 +945,16 @@ material behavior. Preserve the ordered 50-entry built-in list, eight custom
 slots, case-insensitive RME lookup, per-tool clearing on unload, keyboard load
 and preload selection, M865/settings replay, and percent-encoded RME names.
 
-The host link is USB CDC. Keep 115200 as the compatibility default and 57600
-as diagnostic logging mode; other line-coding rates do not change the USB wire
-clock. Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts and
-retest numbered legacy G-code, resend handling, M20-M32, RME FILE, and M998.
+The host link is USB CDC. Advertise 1,000,000 as the preferred normal-mode rate,
+retain 250000, 230400, and 115200 as compatible fallbacks, and keep 57600 as
+diagnostic logging mode; line coding does not change the USB wire clock.
+Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts. Retest
+numbered legacy G-code, resend handling, M20-M32, M998, the 48-byte RME upload,
+four-frame 384-byte bulk windows, and eight-frame 4096-byte raw binary windows.
+For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
+wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
+through the G-code queue or permit ASCII commands to be interleaved before raw
+mode has completed or aborted.
 
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
