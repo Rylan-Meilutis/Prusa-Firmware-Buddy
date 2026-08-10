@@ -743,7 +743,9 @@ static bool handle_remote_filament_service(const std::string_view command) {
       return true;
     }
     const FilamentType type = UserFilamentType { static_cast<uint8_t>(*slot) };
-    auto params = type.parameters();
+    const auto previous_params = type.parameters();
+    const bool previous_visible = type.is_visible();
+    auto params = previous_params;
     if (const auto name = remote_value(command, "name"); name && name->size() < filament_name_buffer_size && type.can_be_renamed_to(*name)) {
       params.name = {};
       std::copy(name->begin(), name->end(), params.name.begin());
@@ -785,9 +787,12 @@ static bool handle_remote_filament_service(const std::string_view command) {
 #endif
     if (const auto value = remote_number(command, "abrasive"); value && (*value == 0 || *value == 1)) params.is_abrasive = *value;
     if (const auto value = remote_number(command, "flexible"); value && (*value == 0 || *value == 1)) params.is_flexible = *value;
-    type.set_parameters(params);
-    if (const auto visible = remote_number(command, "visible"); visible && (*visible == 0 || *visible == 1)) type.set_visible(*visible);
-    SerialPrinting::notify_configuration("filament", "preset", true, remote_transaction(command).value_or(0));
+    bool visible = previous_visible;
+    if (const auto requested = remote_number(command, "visible"); requested && (*requested == 0 || *requested == 1)) visible = *requested;
+    const bool changed = params != previous_params || visible != previous_visible;
+    if (params != previous_params) type.set_parameters(params);
+    if (visible != previous_visible) type.set_visible(visible);
+    if (changed) SerialPrinting::notify_configuration("filament", "preset", true, remote_transaction(command).value_or(0));
   } else return false;
   return true;
 }

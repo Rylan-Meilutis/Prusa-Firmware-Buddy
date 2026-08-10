@@ -67,7 +67,9 @@ bool set_custom(const size_t slot, const std::string_view name, const bool from_
 
 bool clear_custom(const size_t slot, const bool from_host, const uint32_t transaction) {
     if (slot >= custom_slot_count) return false;
-    config_store().custom_filament_manufacturer_valid.set(config_store().custom_filament_manufacturer_valid.get() & ~(1u << slot));
+    const auto valid = config_store().custom_filament_manufacturer_valid.get();
+    if (!(valid & (1u << slot))) return true;
+    config_store().custom_filament_manufacturer_valid.set(valid & ~(1u << slot));
     SerialPrinting::notify_configuration("manufacturer", "custom", from_host, transaction);
     return true;
 }
@@ -91,7 +93,9 @@ std::optional<Profile> loaded(const uint8_t tool) {
 
 void set_loaded(const uint8_t tool, const std::optional<uint8_t> id, const bool from_host, const uint32_t transaction) {
     if (tool < EXTRUDERS) {
-        config_store().loaded_filament_manufacturer.set(tool, id.value_or(0));
+        const uint8_t value = id.value_or(0);
+        if (config_store().loaded_filament_manufacturer.get(tool) == value) return;
+        config_store().loaded_filament_manufacturer.set(tool, value);
         SerialPrinting::notify_configuration("manufacturer", "loaded", from_host, transaction);
     }
 }
