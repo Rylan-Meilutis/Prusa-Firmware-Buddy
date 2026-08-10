@@ -3,10 +3,37 @@
 #include "PrusaGcodeSuite.hpp"
 #include <common/sys.hpp>
 #include <string.h>
+#include <cstdio>
+#include <unistd.h>
 #include "data_exchange.hpp"
+#include "serial_printing.hpp"
+#include "serial_remote_control.hpp"
+#include "core/serial.h"
+#include <option/has_usb_device.h>
+#if HAS_USB_DEVICE()
+    #include <tusb.h>
+#endif
 
 static void update_main_board(bool update_older, const char *sfn) {
     if (*sfn) { // Flash selected BBF
+        // FWUPD.BBF is the shared temporary upload/staging filename. Mark it
+        // as consumed before reboot so the application removes it after the
+        // one requested bootloader attempt. Without this marker a serial
+        // update can be selected again on a later boot.
+        if (strcasecmp(sfn, "FWUPD.BBF") == 0) {
+            FILE *marker = fopen("/usb/FWUPD.UI", "wb");
+            if (!marker) {
+                SERIAL_ERROR_MSG("M997 could not arm one-shot firmware cleanup");
+                return;
+            }
+            bool marker_ready = fflush(marker) == 0 && fsync(fileno(marker)) == 0;
+            marker_ready = fclose(marker) == 0 && marker_ready;
+            if (!marker_ready) {
+                remove("/usb/FWUPD.UI");
+                SERIAL_ERROR_MSG("M997 could not persist one-shot firmware cleanup");
+                return;
+            }
+        }
         data_exchange::set_reflash_bbf_sfn(sfn);
     } else {
         if (update_older) {
@@ -16,8 +43,23 @@ static void update_main_board(bool update_older, const char *sfn) {
         }
     }
 
+    if (serial_remote_control::session_active()) {
+        SerialPrinting::notify_workflow("firmware_update", "restarting", "Firmware staged; USB will reconnect after installation", 100);
+        SERIAL_ECHOLNPGM("RME_FIRMWARE_RESTART reconnect=1");
+    }
     queue.ok_to_send();
-    HAL_Delay(10);
+    // M997 intentionally removes the USB CDC device.  Drain the final
+    // acknowledgement and RME reconnect marker before resetting so a serial
+    // host can distinguish the expected firmware-update reboot from a broken
+    // connection and wait for USB re-enumeration.
+    SERIAL_FLUSHTX();
+#if HAS_USB_DEVICE()
+    // A warm MCU reset can be too short for the host to observe USB removal,
+    // leaving a stale ttyACM device that cannot be opened after installation.
+    // Force a clean detach before reset; normal startup reconnects TinyUSB.
+    tud_disconnect();
+#endif
+    HAL_Delay(250);
     sys_reset();
 }
 

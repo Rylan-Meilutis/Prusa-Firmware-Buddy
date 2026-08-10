@@ -336,11 +336,13 @@ void LEDManager::update_lcd_brightness() {
         print_override_session_active = false;
     }
     bool screen_wake_active = false;
-    if (lcd_brightness_wake_from_print_override && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15) {
+    const uint32_t now = ticks_ms();
+    if (lcd_brightness_wake_from_print_override && lcd_brightness_wake_until_ms
+        && now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms
+        && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15) {
         state = leds::LightState::active;
         screen_wake_active = true;
     } else if (lcd_brightness_wake_until_ms) {
-        const uint32_t now = ticks_ms();
         if (now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms) {
             state = leds::LightState::active;
             screen_wake_active = true;
@@ -374,7 +376,9 @@ bool LEDManager::wake_lcd_from_dim_idle() {
         || marlin_server::is_printing_state(printer_state)
         || marlin_server::is_extended_paused_state(printer_state)
         || marlin_server::serial_print_active();
-    if ((lcd_brightness_wake_from_print_override && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15)
+    if ((lcd_brightness_wake_from_print_override && lcd_brightness_wake_until_ms
+            && ticks_ms() - lcd_brightness_wake_until_ms < screen_brightness_wake_ms
+            && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15)
         || (lcd_brightness_wake_until_ms && ticks_ms() - lcd_brightness_wake_until_ms < screen_brightness_wake_ms)) {
         return false;
     }
@@ -394,7 +398,7 @@ bool LEDManager::wake_lcd_from_dim_idle() {
         return false;
     }
     lcd_brightness_wake_from_print_override = state == leds::LightState::printing;
-    lcd_brightness_wake_until_ms = lcd_brightness_wake_from_print_override ? 0 : ticks_ms();
+    lcd_brightness_wake_until_ms = ticks_ms();
     lcd_brightness_wake_percent = lcd_brightness_wake_from_print_override ? leds::minimum_screen_brightness(leds::LightState::active)
                                                                            : active_screen_brightness();
     set_lcd_brightness(lcd_brightness_wake_percent);

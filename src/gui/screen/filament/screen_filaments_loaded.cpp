@@ -117,6 +117,7 @@ MI_ASSIGN_LOADED_FILAMENT::MI_ASSIGN_LOADED_FILAMENT(uint8_t tool, FilamentType 
 void MI_ASSIGN_LOADED_FILAMENT::click(IWindowMenu &) {
 #if HAS_MINI_DISPLAY()
     config_store().set_filament_type(tool_, filament_type_);
+    SerialPrinting::notify_configuration("filament", "loaded");
 #else
     pending.material = filament_type_;
 #endif
@@ -243,9 +244,12 @@ MI_SAVE_LOADED_FILAMENT::MI_SAVE_LOADED_FILAMENT()
 
 void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
     config_store().set_filament_type(pending.tool, pending.material);
-    SerialPrinting::notify_configuration("filament", "loaded");
     filament_color::set_loaded(pending.tool, pending.color);
     filament_manufacturer::set_loaded(pending.tool, pending.manufacturer);
+    // Announce only after the complete material/color/manufacturer tuple is
+    // committed. Hosts refresh immediately on RME_CHANGE and previously raced
+    // the two metadata writes, leaving their loadout snapshot stale.
+    SerialPrinting::notify_configuration("filament", "loaded");
     Screens::Access()->Close();
 }
 
