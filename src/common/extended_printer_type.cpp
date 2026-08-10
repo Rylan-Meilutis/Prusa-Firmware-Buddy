@@ -30,23 +30,27 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
     store.extended_printer_type.set(new_index);
 
     #if PRINTER_IS_PRUSA_XL()
-    static_assert(HAS_PRINT_FAN_TYPE());
-    // Auto-set print fan type based on variant: XLS uses LDO, XL uses Delta (default)
+    static_assert(extended_printer_type_model == std::array { PrinterModel::xl, PrinterModel::xls });
+    const bool is_xls = (new_model == PrinterModel::xls);
+
     {
-        const auto fan_type = (new_model == PrinterModel::xls) ? PrintFanType::LDO_D5015G08B05X71 : PrintFanType::DELTA_BFB0505HHA_CWCD;
         auto transaction = store.get_backend().transaction_guard();
+
+        // Auto-set print fan type based on variant: XLS uses LDO, XL uses Delta (default)
+        const auto fan_type = is_xls ? PrintFanType::LDO_D5015G08B05X71 : PrintFanType::DELTA_BFB0505HHA_CWCD;
         for (auto tool : PhysicalToolIndex::all()) {
             set_print_fan_type(tool, fan_type);
         }
-    }
-    #endif
 
-    #if PRINTER_IS_PRUSA_XL()
+        // XLS ships with HF nozzles, XL did not
+        store.nozzle_is_high_flow.set(is_xls ? ((1 << PhysicalToolIndex::count) - 1) : 0);
+    }
+
     // Update Dwarf fan_mode register to match the new variant.
     // Dwarfs re-derive this from PrinterModelInfo::current() during their own init.
     if (mode == ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies) {
         using namespace buddy::puppies;
-        const Dwarf::FanMode fan_mode = (new_model == PrinterModel::xls) ? Dwarf::FanMode::XLS_NATIVE : Dwarf::FanMode::XL_LEGACY;
+        const Dwarf::FanMode fan_mode = is_xls ? Dwarf::FanMode::XLS_NATIVE : Dwarf::FanMode::XL_LEGACY;
         for (auto &dwarf : buddy::puppies::dwarfs) {
             dwarf.set_fan_mode(fan_mode);
         }
