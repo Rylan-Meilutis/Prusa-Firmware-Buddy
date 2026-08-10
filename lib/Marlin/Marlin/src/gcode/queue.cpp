@@ -76,6 +76,8 @@ extern "C" void buddy_sdcard_upload_handle_line(const char *command);
 extern "C" bool buddy_sdcard_upload_start_command(const char *command);
 extern "C" void buddy_sdcard_upload_finish_command();
 extern "C" bool buddy_rme_file_service(const char *command);
+extern "C" bool buddy_rme_binary_upload_active();
+extern "C" void buddy_rme_binary_upload_byte(uint8_t byte);
 
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
@@ -1157,6 +1159,11 @@ void GCodeQueue::get_serial_commands() {
     for (uint8_t i = 0; i < NUM_SERIAL; ++i) {
       int c;
       if ((c = read_serial(i)) < 0) continue;
+
+      if (buddy_rme_binary_upload_active()) {
+        buddy_rme_binary_upload_byte(static_cast<uint8_t>(c));
+        continue;
+      }
 
       char serial_char = c;
 

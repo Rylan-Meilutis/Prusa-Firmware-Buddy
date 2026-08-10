@@ -15,6 +15,8 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     G-code, the older RME protocol, and slower host settings as fallbacks.
   * Added negotiated four-frame RME bulk upload windows with 384 decoded bytes
     per frame, cumulative acknowledgements, and unchanged atomic/SHA safeguards.
+  * Added raw USB upload with eight in-flight 4 KiB CRC32 frames, eliminating
+    Base64 and line parsing while retaining final SHA-256 and atomic rename.
   * Added a white header badge with an Indigo/theme-tinted R for negotiated RME
     hosts and integrated file/firmware activity with the transfer indicator.
   * Added a USB-confined `@RME FILE` service for directory listing, metadata,
