@@ -896,7 +896,8 @@ static bool handle_dialog_service_response(const char *command);
 
 static void report_remote_session() {
   SERIAL_ECHOPGM("RME_SESSION active="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
-  SERIAL_ECHOPGM(" legacy="); SERIAL_ECHOLN(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
+  SERIAL_ECHOPGM(" legacy="); SERIAL_ECHO(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
+  SERIAL_ECHOLNPGM(" preferred_baud=1000000 fallback_baud=250000,230400,115200");
 }
 
 static bool handle_remote_session_service(const std::string_view command) {
