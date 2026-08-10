@@ -707,7 +707,11 @@ bool SerialPrinting::serial_command_hook(const char *command) {
         && !command_starts_with(command, 'M', 115)
         && !command_starts_with(command, 'M', 117)
         && !command_starts_with(command, 'M', 153)
-        && !command_starts_with(command, 'M', 155)) {
+        && !command_starts_with(command, 'M', 155)
+        // M865 is the legacy-compatible RME filament metadata service. Hosts
+        // may query it periodically while idle, so it must behave like the
+        // out-of-band @RME synchronization commands above.
+        && !command_starts_with(command, 'M', 865)) {
         leds::SideStripHandler::instance().activity_ping();
     }
 #endif
