@@ -2674,6 +2674,15 @@ static void _server_print_loop(void) {
         }
 #endif
 
+#if HAS_CRASH_DETECTION() && HAS_NOZZLE_CLEANER()
+        // In case of losing a tool, we cant be sure in what state the extruder is in.
+        // Prime in nozzle cleaning area if available.
+
+        if (crash_s.get_state() == Crash_s::RECOVERY && crash_s.is_toolchange_event()) {
+            unpark_prime();
+        }
+#endif // HAS_CRASH_DETECTION() && HAS_NOZZLE_CLEANER()
+
         unpark_head_XY();
         server.print_state = State::Resuming_UnparkHead_XY;
         break;
@@ -3407,6 +3416,21 @@ static void park_head([[maybe_unused]] bool is_pause) {
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::print_end).without_z_move());
     }
 }
+
+#if HAS_NOZZLE_CLEANER()
+void unpark_prime() {
+    if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+        return;
+    }
+
+    if (!all_axes_homed() || thermalManager.tooColdToExtrude(active_extruder)) {
+        return;
+    }
+
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean);
+    sync_e_position_to(server.resume.pos.e);
+}
+#endif // HAS_NOZZLE_CLEANER()
 
 void unpark_head_XY(void) {
     // TODO: double check this condition: when recovering from a crash, Z is not known, but we *can*
