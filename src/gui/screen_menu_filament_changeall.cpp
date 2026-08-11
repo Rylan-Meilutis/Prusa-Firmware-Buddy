@@ -1,6 +1,7 @@
 
 #include "screen_menu_filament_changeall.hpp"
 
+#include <algorithm>
 #include <algorithm_extensions.hpp>
 
 #include <ScreenHandler.hpp>
@@ -161,6 +162,26 @@ void MenuMultiFilamentChange::set_configuration(const MultiFilamentChangeConfig 
 void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     switch (event) {
 
+    case GUI_event_t::LOOP: {
+        if (set_all_to_picker_pending_) {
+            set_all_to_picker_pending_ = false;
+
+            // Blocks until the user picks an item or cancels the dialog
+            container.Item<WithConstructorArgs<MI_ActionSelect, MI_ActionSelect::SetAllToMode {}>>().Click(*this);
+
+            const auto config = configuration();
+            if (std::ranges::all_of(config, [](const ConfigItem &item) { return item.action == Action::keep; })) {
+                // Cancelled or "Don't change" picked - nothing to apply, return to the parent menu
+                Screens::Access()->Close();
+                return;
+            }
+
+            // Focus apply-changes so that the selection can be confirmed right away
+            move_focus_to_index(container.GetVisibleIndex(container.Item<MI_ApplyChanges>()));
+        }
+        break;
+    }
+
     case GUI_event_t::CHILD_CLICK: {
         if (carry_out_changes()) {
             Screens::Access()->Close();
@@ -228,4 +249,10 @@ ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupUnloadAll)
 
     // Preselect apply-changes, all should be clear
     menu.menu.move_focus_to_index(menu.menu.container.GetVisibleIndex(menu.menu.container.Item<MI_ApplyChanges>()));
+}
+
+ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupLoadAll)
+    : ScreenChangeAllFilaments {} {
+    // The picker dialog cannot be opened right away, the screen must become the captured window first
+    menu.menu.set_all_to_picker_pending_ = true;
 }

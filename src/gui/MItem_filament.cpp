@@ -8,7 +8,6 @@
 #include <window_msgbox.hpp>
 #include <option/has_toolchanger.h>
 #include <window_dlg_wait.hpp>
-#include <window_menu_callback_item.hpp>
 
 #if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
@@ -98,17 +97,9 @@ MI_UNLOAD::MI_UNLOAD()
 
 void MI_UNLOAD::click(IWindowMenu &) {
 #if HAS_TOOLCHANGER()
-    if (!show_tool_selector_dialog({ .allow_return = true,
-            .prefix_section_size = 1,
-            .prefix_section_ctor = [](WindowMenuVirtual::ItemVariant &variant, int) {
-                variant.emplace<WindowMenuCallbackItem>(_("Unload All"), [] {
-                    // Close the select dialog
-                    Screens::Access()->Close();
-
-                    // Open the ChangeAll dialog set up for unloading everything
-                    Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenChangeAllFilaments>(ScreenChangeAllFilaments::SetupUnloadAll {}));
-                });
-            } })) {
+    if (!show_tool_selector_dialog({
+            .allow_return = true,
+        })) {
         return;
     }
 #endif
@@ -141,6 +132,24 @@ MI_CHANGEALL::MI_CHANGEALL()
 
 void MI_CHANGEALL::click(IWindowMenu &) {
     Screens::Access()->Open(ScreenFactory::Screen<ScreenChangeAllFilaments>);
+}
+
+/*****************************************************************************/
+// MI_LOAD_ALL
+MI_LOAD_ALL::MI_LOAD_ALL()
+    : IWindowMenuItem(_(label), nullptr, any_tool_configured() ? is_enabled_t::yes : is_enabled_t::no, prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {}
+
+void MI_LOAD_ALL::click(IWindowMenu &) {
+    Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenChangeAllFilaments>(ScreenChangeAllFilaments::SetupLoadAll {}));
+}
+
+/*****************************************************************************/
+// MI_UNLOAD_ALL
+MI_UNLOAD_ALL::MI_UNLOAD_ALL()
+    : IWindowMenuItem(_(label), nullptr, static_cast<is_enabled_t>(any_tool_has_filament()), prusa_toolchanger.is_toolchanger_enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {}
+
+void MI_UNLOAD_ALL::click(IWindowMenu &) {
+    Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenChangeAllFilaments>(ScreenChangeAllFilaments::SetupUnloadAll {}));
 }
 #endif
 
