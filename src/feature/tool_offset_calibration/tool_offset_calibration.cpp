@@ -15,6 +15,7 @@
 #include <Marlin/src/module/probe.h>
 #include <Marlin/src/module/prusa/toolchanger.h>
 #include <marlin_server.hpp>
+#include <common/printer_model.hpp>
 #include <warning_type.hpp>
 #include <tool_index.hpp>
 #include <tools_mapping.hpp>
@@ -529,9 +530,17 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     }
 #endif
 
-    // Z probing is only done from a running print — selftest skips it to save time. Z offsets
-    // are then left at zero until the next G427 call from a print start.
+#if HAS_INDX()
+    // For INDX Z probing is only done from a running print — selftest skips it to save time.
+    // Z offsets are then left at zero until the next G427 call from a print start.
     const bool measure_z = (context == Context::Print);
+#elif PRINTER_IS_PRUSA_XL()
+    // XLS does not perform tool offset calibration during print, so for XLS measure Z
+    // during selftest/calibration on XLS - the only place where the Z offset are calculated
+    const bool measure_z = true;
+#else
+    #error "Not defined behavior for this printer configuration"
+#endif
 
     struct ProbeResult {
         float z;
