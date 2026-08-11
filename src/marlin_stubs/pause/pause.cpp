@@ -1167,8 +1167,26 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
 void Pause::filament_stuck_ask_process(Response response) {
     setPhase(PhasesLoadUnload::FilamentStuck);
 
-    if (response == Response::Unload) {
+    switch (response) {
+
+    case Response::_none:
+        break;
+
+    case Response::Unload:
         set(LoadState::unload_wait_temp);
+        break;
+
+    case Response::Ignore:
+        set(LoadState::_finished);
+        break;
+
+    case Response::Disable:
+        config_store().stuck_filament_detection.set(false);
+        set(LoadState::_finished);
+        break;
+
+    default:
+        bsod_unreachable();
     }
 }
 #endif
