@@ -1264,3 +1264,8 @@ an idle printer and its lights active. Keepalive and read-only synchronization
 traffic must remain excluded from user-activity and serial-print timers.
 
 Release tags: `v6.5.7-RME-b36` and `v6.6.3-RME-b8`.
+
+Final result: all 29 presets passed. Validated maxima were 6.5.7 MINI 96.65%,
+MK4 94.64%, MK3.5 90.06%, XL 69.17%; 6.6.3 MINI 98.68%, MK4 60.77%, MK3.5
+56.14%, XL 68.86%, and CORE One INDX 65.44%. Artifact counts were exactly 14
+and 15 respectively.
