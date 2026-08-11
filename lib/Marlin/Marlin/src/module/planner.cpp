@@ -2448,7 +2448,7 @@ void Planner::set_position_mm(const xyze_pos_t &xyze) {
  */
 void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_index) {
   if(!e_axis_index.has_value()) {
-      const auto current_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+      const auto current_tool = PhysicalToolIndex::currently_selected_opt();
       if (!current_tool.has_value()) {
         // You should not be trying to set e_position without an active tool
         debug_assert(false);
