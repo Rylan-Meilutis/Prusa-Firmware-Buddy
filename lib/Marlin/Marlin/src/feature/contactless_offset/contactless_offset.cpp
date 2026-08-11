@@ -1001,7 +1001,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     auto sensor = tool_offset::make_sensor(port_for(coil.channel));
 
     const auto sensor_z = probe_sensor_z(config, coil.position + xyz_pos_t { .y = config.y_shift_z_probe_offset_from_sensor });
-    if (!sensor_z) {
+    if (!sensor_z.has_value()) {
         do_blocking_move_to_z(config.coil_x.position.z + config.safe_z_height);
         return std::unexpected(sensor_z.error());
     }
@@ -1012,7 +1012,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     ScanState scan_state(hotend, config);
 
     const auto xy = measure_xy_via_fsm(config, *sensor, initial_measurement_offset);
-    if (!xy) {
+    if (!xy.has_value()) {
         return std::unexpected(xy.error());
     }
 
@@ -1034,7 +1034,7 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     ScanState scan_state(hotend, config);
 
     const auto sensor_z = probe_sensor_z(config, config.z_probe_position);
-    if (!sensor_z) {
+    if (!sensor_z.has_value()) {
         return std::unexpected(sensor_z.error());
     }
     // Detachable sensor: a trigger well below the expected surface means the
@@ -1045,12 +1045,12 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     debug_report_probed_z(*sensor_z, *sensor_z - config.z_probe_position.z);
 
     const auto x = measure_coil(config, /*along_x=*/true, config.coil_x, sensor_z.value());
-    if (!x) {
+    if (!x.has_value()) {
         return std::unexpected(x.error());
     }
 
     const auto y = measure_coil(config, /*along_x=*/false, config.coil_y, sensor_z.value());
-    if (!y) {
+    if (!y.has_value()) {
         return std::unexpected(y.error());
     }
 
