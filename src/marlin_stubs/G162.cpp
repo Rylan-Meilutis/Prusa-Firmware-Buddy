@@ -66,15 +66,16 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     current_position.z = Z_MIN_POS;
     sync_plan_position();
 
+    // The position above is fabricated and the push below deliberately targets past the
+    // software limit. Drop the homed flag first, otherwise apply_motion_limits crops it.
+    set_axis_is_not_at_home(Z_AXIS);
+
     // Lower the bed and repeat the push slowly to align the motors
     do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_FEEDRATE);
     do_blocking_move_to_z(Z_MIN_POS - Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE);
 
     // Clear some height for the nozzle again
     do_blocking_move_to_z(Z_MIN_POS, Z_CALIB_ALIGN_AXIS_FEEDRATE);
-
-    // Finally mark the axis as unknown
-    set_axis_is_not_at_home(Z_AXIS);
 
     // Store Z aligned
     result.set_zalign(TestResult::passed);
