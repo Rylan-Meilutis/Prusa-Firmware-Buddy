@@ -3303,6 +3303,11 @@ void resuming_begin(void) {
     // And waiting after they've heat up wouldn't work, for obivous reasons.
     if (server.resume.active_tool != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         tool_change(PhysicalToolIndex::from_raw(server.resume.active_tool), tool_return_t::no_return);
+        // Crash recovery must resume in place, without the park detour
+        if (!crash_s.did_trigger()) {
+            // Park for the reheat and the long Z return; on INDX the park position is over the wastebin
+            mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
+        }
     }
 #endif
 
@@ -3436,6 +3441,13 @@ void unpark_head_XY(void) {
     if ((!HAS_CRASH_DETECTION() || !crash_s.did_trigger()) && !all_axes_homed()) {
         return;
     }
+
+    // The pause park position is off the print, so do the long Z return there, before the
+    // XY traverse; the traverse keeps a small clearance above the print, unpark_head_ZE
+    // does the rest
+    static constexpr float traverse_clearance = 5;
+    const float traverse_z = std::max(server.resume.pos.z, planner.max_printed_z) + traverse_clearance;
+    do_blocking_move_to_z(std::min(current_position.z, traverse_z), NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
 
     mapi::park({ .x = server.resume.pos.x, .y = std::min<float>(server.resume.pos.y, Y_BED_SIZE) });
 }
