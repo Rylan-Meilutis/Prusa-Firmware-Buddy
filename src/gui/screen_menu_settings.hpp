@@ -28,8 +28,8 @@
     #include <gui/menu_item/specific/menu_items_chamber_filtration.hpp>
 #endif
 
-#include <option/has_auto_retract.h>
-#if HAS_AUTO_RETRACT()
+#include <option/has_switchable_auto_retract.h>
+#if HAS_SWITCHABLE_AUTO_RETRACT()
     #include <gui/menu_item/specific/menu_items_auto_retract.hpp>
 #endif
 
@@ -53,7 +53,7 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
 #if HAS_LOADCELL() && !HAS_INDX()
     MI_STUCK_FILAMENT_DETECTION,
 #endif
-#if HAS_AUTO_RETRACT()
+#if HAS_SWITCHABLE_AUTO_RETRACT()
     MI_AUTO_RETRACT_ENABLE,
 #endif
 #if HAS_ANFC()

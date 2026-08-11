@@ -18,6 +18,7 @@
 #include <module/raii/include/raii/scope_guard.hpp>
 
 #include <option/has_mmu2.h>
+#include <option/has_switchable_auto_retract.h>
 #include <bsod/bsod.h>
 #if HAS_MMU2()
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
@@ -99,10 +100,12 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
         return;
     }
 
+#if HAS_SWITCHABLE_AUTO_RETRACT()
     // Do not auto retract when disabled globally
     if (!config_store().auto_retract_enabled.get()) {
         return;
     }
+#endif
 
     const auto filament_parameters = FilamentType::for_tool_heuristic(virtual_tool).parameters();
 

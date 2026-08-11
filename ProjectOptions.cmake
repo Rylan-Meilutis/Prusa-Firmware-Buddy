@@ -628,6 +628,7 @@ set_feature_for_printers(
   "iX"
   "XL"
   )
+set_feature_for_printers(HAS_SWITCHABLE_AUTO_RETRACT "COREONE" "COREONEL" "MK4" "iX" "XL")
 set_feature_for_printers(
   HAS_FILAMENT_TRACKER
   "COREONE"

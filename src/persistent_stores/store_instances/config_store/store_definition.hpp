@@ -50,6 +50,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_esp.h>
 #include <option/has_auto_retract.h>
+#include <option/has_switchable_auto_retract.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_chamber_vents.h>
 #include <option/has_precise_homing_corexy.h>
@@ -961,10 +962,12 @@ struct CurrentStore
 #if HAS_AUTO_RETRACT()
     StoreItem<bool, true, ItemFlag::printer_state, journal::hash("Pre-nozzle cleaning retraction enabled")> pre_nozzle_cleaning_retraction_enable;
 
+    #if HAS_SWITCHABLE_AUTO_RETRACT()
     /// Global enable for auto-retract
     /// Setting FALSE does NOT disable the feature completely, just prevents MAYBE_DERETRACT() from happening
     /// Retracted filaments will auto-deretract in every case
     StoreItem<bool, true, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Enable auto-retract")> auto_retract_enabled;
+    #endif
 
     // Each hotend holds retracted distance. This value is compressed (casted to uint8) to range < 0 ; 255 > with 255 being special value reserved for unknown distance
     // DO NOT ACCESS THIS ARRAY DIRECTLY, user getter/setter instead
