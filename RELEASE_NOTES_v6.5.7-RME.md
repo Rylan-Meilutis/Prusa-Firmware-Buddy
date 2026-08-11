@@ -1188,3 +1188,29 @@ dd65ac662  2026-08-10  Fix partial-file retry singleton collision
 ```
 
 Published release tag: `v6.5.7-RME-b35`.
+
+## Build 36 release update
+
+Build 36 separates the RME communications lease from the printer's operating
+state. Session replies now report `lease=1 printer_state=IDLE` instead of the
+ambiguous `active=1`, which generic host parsers could incorrectly interpret
+as machine activity and use to keep an idle printer and its lighting active.
+
+Session commands, event subscriptions, keepalive timing, and out-of-band
+framing remain unchanged. Hosts should use `lease` only for connection health
+and `printer_state` for the actual machine state. The serial protocol and host
+integration documentation have been updated accordingly.
+
+The final release command is:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+Build 36 firmware continuation:
+
+```text
+9860fee08  2026-08-10  Disambiguate RME session and printer state
+```
+
+Published release tag: `v6.5.7-RME-b36`.
