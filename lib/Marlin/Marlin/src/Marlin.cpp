@@ -365,7 +365,7 @@ void idle(bool waiting) {
     if( EMotorStallDetector::Instance().Evaluate(stepper.axis_is_moving(E_AXIS), ! stepper.motor_direction(E_AXIS))){
         // E-motor stall has been detected, issue a modified M600
         SERIAL_ECHOLNPGM("E-motor stall detected");
-        queue.inject_P(PSTR("M1601"));
+        marlin_server::gcode_interrupt({"M1601"});
     }
   #endif
 
