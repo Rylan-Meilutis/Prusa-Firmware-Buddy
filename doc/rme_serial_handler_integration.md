@@ -14,7 +14,7 @@ other blocking commands.
    the host's standard Marlin behavior.
    After discovery, send `@RME STATS QUERY` to populate lifetime and current-job
    statistics without model-specific tables.
-3. Send `@RME SESSION OPEN events=31 legacy=0`. Wait for `RME_SESSION active=1`.
+3. Send `@RME SESSION OPEN events=31 legacy=0`. Wait for `RME_SESSION lease=1`.
 4. Track the `seq` field of every `RME_EVENT`. On a gap, query both
    `@RME SESSION QUERY` and `@RME DIALOG QUERY` and refresh the plugin UI.
 5. Send `@RME SESSION KEEPALIVE` every 10 seconds. The printer expires the
@@ -22,8 +22,8 @@ other blocking commands.
    disables remote UI input. `QUERY` deliberately does not renew the lease.
    Close the session when deliberately disconnecting.
 
-`RME_SESSION active=1` means only that the protocol lease is live. It is not a
-printer-state update. Keepalives and read-only queries are passive and may
+`RME_SESSION lease=1` means only that the protocol lease is live. Read the
+actual state from the adjacent `printer_state` field. Keepalives and read-only queries are passive and may
 continue while the printer transitions to idle and applies its idle display
 and lighting policy. Use the `state` on structured events for device state;
 do not synthesize an active printer state from protocol traffic.

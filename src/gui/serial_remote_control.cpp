@@ -8,6 +8,7 @@
 #include <option/has_leds.h>
 #include <option/has_side_leds.h>
 #include <timing.h>
+#include <state/printer_state.hpp>
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
     #include <leds/status_leds_handler.hpp>
@@ -200,6 +201,10 @@ bool subscribed(const EventSubscription subscription) {
 
 bool legacy_notifications_enabled() {
     return !session_active() || protocol_legacy_notifications.load(std::memory_order_acquire);
+}
+
+const char *printer_state_name() {
+    return printer_state::to_str(printer_state::get_state(false));
 }
 
 uint32_t next_event_sequence() {

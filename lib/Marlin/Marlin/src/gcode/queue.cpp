@@ -891,7 +891,10 @@ static bool handle_remote_stats_service(const std::string_view command) {
 static bool handle_dialog_service_response(const char *command);
 
 static void report_remote_session() {
-  SERIAL_ECHOPGM("RME_SESSION active="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+  // Avoid the generic word "active": host state parsers can otherwise mistake
+  // this communications lease for printer activity.
+  SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+  SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
   SERIAL_ECHOPGM(" legacy="); SERIAL_ECHO(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
   SERIAL_ECHOLNPGM(" preferred_baud=1000000 fallback_baud=250000,230400,115200");
 }

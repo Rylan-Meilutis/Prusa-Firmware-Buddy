@@ -57,8 +57,10 @@ The sequence lets a handler detect missed records. Query the active dialog
 after reconnecting or after a sequence gap; events are intentionally not
 replayed from firmware RAM. Generic notification/progress events report the
 real device state (`idle`, `printing`, `paused`, `busy`, `attention`, and so
-on); a host must not treat `RME_SESSION active=1` as printer activity—the field
-only reports that the communications lease is open.
+on). Session replies use `RME_SESSION lease=1 printer_state=IDLE`: `lease`
+reports only that the communications channel is open, while `printer_state`
+reports the actual machine state. The former ambiguous `active` key is no
+longer emitted.
 
 ## Configuration change stream
 
