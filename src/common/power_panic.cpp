@@ -107,7 +107,16 @@ namespace {
 
 constexpr uint16_t chamber_temp_off = 0xffff;
 
-}
+constexpr bool power_panic_retracts =
+    // Dwarf gets turned off during the shutdown loop, so no retraction can happen
+    !HAS_DWARF();
+
+constexpr bool power_panic_deretracts = power_panic_retracts
+    // Skipped where G12 S21 already pressurizes the nozzle (see WaitForHeaters).
+    && !(HAS_NOZZLE_CLEANER() && (PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()))
+    && true;
+
+} // namespace
 
 // External thread handles required for suspension
 extern osThreadId defaultTaskHandle;
@@ -472,6 +481,7 @@ void resume_loop() {
     // Keep the printer list below in sync with the unretract guard in
     // ResumeState::Unpark — G12 S21 pressurizes the nozzle on its own.
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        static_assert(!power_panic_deretracts);
         marlin_server::enqueue_gcode("G12 S90"); // enter cleaner
         marlin_server::enqueue_gcode("G12 S21"); // purge (no retract) and brush wipe
         marlin_server::enqueue_gcode("G12 S91"); // exit cleaner
@@ -504,10 +514,9 @@ void resume_loop() {
         }
 
         // Unretract paired with the retract in PPState::Prepared.
-        // Skipped where G12 S21 already pressurizes the nozzle (see WaitForHeaters).
-#if !(HAS_NOZZLE_CLEANER() && (PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()))
-        mapi::extruder_move(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
-#endif
+        if (power_panic_deretracts) {
+            mapi::extruder_move(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+        }
 
         resume_state = ResumeState::Finish;
         break;
@@ -714,15 +723,10 @@ void panic_loop() {
         crash_s.set_state(Crash_s::RECOVERY);
         planner.refresh_acceleration_rates();
 
-        if (!runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed && all_axes_homed()) {
-#if !HAS_DWARF()
+        if (power_panic_retracts && !runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed) {
             // retract if we were printing
             mapi::extruder_move(-STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::retract));
             planner.start_moving();
-#endif
-
-            // start powering off complex devices
-            shutdown_loop_checked();
         }
 
         // If we didn't prepare (why?), do so in parallel to retracting E, to save some time.
