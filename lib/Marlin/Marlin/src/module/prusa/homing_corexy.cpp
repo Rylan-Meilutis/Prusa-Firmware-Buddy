@@ -446,7 +446,7 @@ static float travel_accel_distance(const float fr_mm_s) {
 }
 
 /// Maximum allowed homing distance difference per axis (max - min)
-static constexpr float axis_home_max_abs_diff(const AxisEnum axis) {
+static float axis_home_max_abs_diff(const AxisEnum axis) {
     return axis_home_max_diff(axis) - axis_home_min_diff(axis);
 }
 
