@@ -1016,7 +1016,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 // Manually set the home position. Leave these undefined for automatic settings.
 //#define MANUAL_X_HOME_POS 0
 //#define MANUAL_Y_HOME_POS 0
-//#define MANUAL_Z_HOME_POS 0
+#define MANUAL_Z_HOME_POS 0
 
 // Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
 //
@@ -1031,7 +1031,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 
 #if ENABLED(Z_SAFE_HOMING)
 #if HAS_INDX()
-    #define Z_SAFE_HOMING_X_POINT (135) // X point for Z homing when homing all axes (G28).
+    // homing point is close to print sheet detection point to minimize Z differences
+    #define Z_SAFE_HOMING_X_POINT (25) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (15) // Y point for Z homing when homing all axes (G28).
 #else
     #define Z_SAFE_HOMING_X_POINT (270) // X point for Z homing when homing all axes (G28).
@@ -1040,8 +1041,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #if HAS_PRINT_SHEET_DETECTION()
         #if HAS_INDX()
             // Lower Y would crash into dock.
-            #define DETECT_PRINT_SHEET_X_POINT (0) // INDX_TODO: Has to be half-way to dock, we have to handle the edgecases first
-            #define DETECT_PRINT_SHEET_Y_POINT (0)
+            #define DETECT_PRINT_SHEET_X_POINT (25)
+            #define DETECT_PRINT_SHEET_Y_POINT (-27)
         #else
             #define DETECT_PRINT_SHEET_X_POINT (220)
             #define DETECT_PRINT_SHEET_Y_POINT (-7)

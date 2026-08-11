@@ -72,6 +72,8 @@
   #include "../../lcd/e3v2/proui/dwin.h"
 #endif
 
+#include <printers.h>
+#include <option/has_indx.h>
 #include <option/has_dwarf.h>
 #include <option/has_print_sheet_detection.h>
 #include <option/has_toolchanger.h>
@@ -232,6 +234,29 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
   }
 
   #if HAS_PRINT_SHEET_DETECTION()
+    #if PRINTER_IS_PRUSA_COREONEL() && HAS_INDX()
+    static bool prepare_tool_for_detect_sheet() {
+      // Prefer tool 0 if enabled — picking it definitionally empties dock 0.
+      const auto preferred_tool = PhysicalToolIndex::from_raw(0);
+      if (preferred_tool.is_enabled()) {
+          if (prusa_toolchanger.tool_change(preferred_tool, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+              return true;
+          }
+      }
+
+      // Otherwise pick any enabled tool and verify dock 0 is empty.
+      if (!prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+          return false;
+      }
+      auto bump_res = prusa_toolchanger.bump_to_dock(preferred_tool);
+      if (!bump_res.has_value() && bump_res.error() == PrusaToolChanger::BumpError::hit) {
+          fatal_error(ErrCode::ERR_MECHANICAL_UNEXPECTED_TOOL);
+          return false;
+      }
+      return true;
+    }
+    #endif
+
     /**
      * @brief Detect print sheet
      *
@@ -246,6 +271,13 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
       #if ENABLED(NOZZLE_LOAD_CELL) && HOMING_Z_WITH_PROBE
         // Enable loadcell high precision across the entire procedure to prime the noise filters
         auto loadcellPrecisionEnabler = Loadcell::HighPrecisionEnabler(loadcell);
+      #endif
+
+      #if PRINTER_IS_PRUSA_COREONEL() && HAS_INDX()
+        // on C1L INDX the detect point is partially in the first dock - we need to ensure that dock 0 is empty
+        if (!prepare_tool_for_detect_sheet()) {
+          fatal_error(ErrCode::ERR_MECHANICAL_TOOLCHANGER);
+        }
       #endif
 
       /**
