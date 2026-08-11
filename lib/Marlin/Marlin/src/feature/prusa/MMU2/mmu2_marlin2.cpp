@@ -106,10 +106,7 @@ void motion_do_blocking_move_to_z(float z, float feedRate_mm_s) {
 }
 
 void nozzle_park() {
-    // The Z component is reinterpreted as a relative lift - always rise above the possibly ongoing print
-    auto park_position = mapi::get_parking_position(mapi::ParkPosition::filament_change);
-    park_position.z = mapi::ParkingPosition::Relative { .delta = std::get<float>(park_position.z) };
-    mapi::park(park_position);
+    mapi::park(mapi::get_parking_position(mapi::ParkPosition::filament_change));
 }
 
 bool marlin_printingIsActive() {
