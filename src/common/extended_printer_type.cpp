@@ -8,6 +8,8 @@
 #include <marlin_client.hpp>
 #include <config_store/store_c_api.h>
 #include <utils/algorithm_extensions.hpp>
+#include <option/has_nozzle_cleaner_lite.h>
+#include <option/has_15gt_belts.h>
 
 #if HAS_PRINT_FAN_TYPE()
     #include <print_fan_type.hpp>
@@ -42,6 +44,7 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
     static_assert(extended_printer_type_model == std::array { PrinterModel::xl, PrinterModel::xls });
     const bool is_xls = (new_model == PrinterModel::xls);
 
+    bool needs_settings_reset = false;
     {
         auto transaction = store.get_backend().transaction_guard();
 
@@ -53,6 +56,26 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
 
         // XLS ships with HF nozzles, XL did not
         store.nozzle_is_high_flow.set(is_xls ? ((1 << PhysicalToolIndex::count) - 1) : 0);
+
+        // XLS ships with the nozzle cleaner as well
+        store.nozzle_cleaner_lite_installed.set(is_xls);
+
+        // ...and with the new belts
+        needs_settings_reset = store.set_belts_15gt(is_xls);
+    }
+
+    if (needs_settings_reset) {
+        switch (mode) {
+
+        case ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies:
+            // Reset steps per MM
+            gcode("M92 X%f Y%f", (double)get_steps_per_unit_x(), (double)get_steps_per_unit_y());
+            break;
+
+        case ChangeExtendedPrinterTypeMode::config_store_init:
+            // Marlin has not been initialized yet - no need to reset
+            break;
+        }
     }
 
     // Update Dwarf fan_mode register to match the new variant.

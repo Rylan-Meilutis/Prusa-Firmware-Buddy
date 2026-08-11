@@ -753,7 +753,7 @@ struct CurrentStore
 
     /// Set the belt-type flag and invalidate everything it affects (in one transaction): clears any manual X/Y steps override (so the resolved default follows the belt HW), resets XY homing calibration and belt tuning, and clears the X/Y axis selftest results.
     /// \returns true if the flag changed - the caller must then restart the printer (or reload the X/Y steps/mm) for the change to take effect
-    bool set_belts_15gt(bool installed);
+    [[nodiscard]] bool set_belts_15gt(bool installed);
 #endif
 
 #if HAS_EXTRA_EXPERIMENTAL_SETTINGS()

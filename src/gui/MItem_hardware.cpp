@@ -237,14 +237,15 @@ MI_BELTS_15GT::MI_BELTS_15GT()
 
 void MI_BELTS_15GT::OnChange([[maybe_unused]] size_t old_index) {
     const bool belts_15gt_installed = value();
-    if (MsgBoxWarning(_("Changing belt type updates X/Y steps/mm, resets some calibrations, and restarts the printer. An incorrect setting causes dimensional errors and homing issues. Continue?"),
+    if (MsgBoxWarning(_("Changing belt type updates X/Y steps/mm, and resets some calibrations. An incorrect setting causes dimensional errors and homing issues. Continue?"),
             { Response::Yes, Response::No }, 1)
         != Response::Yes) {
         set_value(!belts_15gt_installed); // revert the GUI, keep config store intact
         return;
     }
 
-    config_store().set_belts_15gt(belts_15gt_installed);
-    sys_reset();
+    if (config_store().set_belts_15gt(belts_15gt_installed)) {
+        marlin_client::gcode_printf("M92 X%f Y%f", (double)get_steps_per_unit_x(), (double)get_steps_per_unit_y());
+    }
 }
 #endif
