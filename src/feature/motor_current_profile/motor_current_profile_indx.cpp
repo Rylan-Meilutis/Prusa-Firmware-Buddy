@@ -38,6 +38,15 @@ const MotorCurrentProfile &buddy::standard_motor_current_profile(StandardMotorCu
         return p;
     }
 
+    case StandardMotorCurrentProfile::decreased_e_flex: {
+        static const MotorCurrentProfile p = [] {
+            auto p = get_fw_default_profile();
+            p.e = std::min<uint16_t>(p.e, 450);
+            return p;
+        }();
+        return p;
+    }
+
     case StandardMotorCurrentProfile::_count:
         break;
     }
