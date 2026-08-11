@@ -4,6 +4,7 @@
 #include <option/has_print_fan_type.h>
 #include <option/has_toolchanger.h>
 #include <tool_index.hpp>
+#include <marlin_server.hpp>
 #include <marlin_client.hpp>
 #include <config_store/store_c_api.h>
 #include <utils/algorithm_extensions.hpp>
@@ -26,6 +27,14 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
     if (new_index == extended_printer_type_model.size()) {
         bsod_unreachable();
     }
+
+    [[maybe_unused]] const auto gcode = [](const char *fmt, auto... args) {
+        if (marlin_server::is_marlin_server_thread()) {
+            marlin_server::enqueue_gcode_printf(fmt, args...);
+        } else {
+            marlin_client::gcode_printf(fmt, args...);
+        }
+    };
 
     store.extended_printer_type.set(new_index);
 
@@ -76,13 +85,13 @@ void change_extended_printer_type(PrinterModel new_model, [[maybe_unused]] Chang
 
         if (mode == ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies) {
             // Reset XY homing sensitivity
-            marlin_client::gcode("M914 X Y");
+            gcode("M914 X Y");
 
             // XY motor currents
-            marlin_client::gcode_printf("M906 X%u Y%u", get_rms_current_ma_x(), get_rms_current_ma_y());
+            gcode("M906 X%u Y%u", get_rms_current_ma_x(), get_rms_current_ma_y());
 
             // XY motor microsteps
-            marlin_client::gcode_printf("M350 X%u Y%u", get_microsteps_x(), get_microsteps_y());
+            gcode("M350 X%u Y%u", get_microsteps_x(), get_microsteps_y());
         }
     }
     #endif

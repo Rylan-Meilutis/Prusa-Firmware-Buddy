@@ -794,14 +794,12 @@ void init(void) {
         break;
 
     case XLTypeDetectionResult::detected_as_xls: {
-        // Note: marlin_client not needed for the XLS change, so it's safe
         change_extended_printer_type(PrinterModel::xls, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
         set_warning(WarningType::PrinterDetectedAsXLS);
         break;
     }
 
     case XLTypeDetectionResult::detected_as_xl: {
-        // Note: marlin_client not needed for the XLS change, so it's safe
         change_extended_printer_type(PrinterModel::xl, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
 
         if (config_store().printer_hw_config_done.get()) {
