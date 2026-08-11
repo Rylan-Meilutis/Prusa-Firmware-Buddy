@@ -46,6 +46,7 @@ void close_session();
 bool session_active();
 bool subscribed(EventSubscription subscription);
 bool legacy_notifications_enabled();
+const char *printer_state_name();
 uint32_t next_event_sequence();
 uint32_t next_configuration_revision();
 
