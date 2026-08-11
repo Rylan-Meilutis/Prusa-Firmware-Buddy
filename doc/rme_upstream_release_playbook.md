@@ -1250,3 +1250,17 @@ Final result: all 29 presets passed. The 6.5.7 set contains 14 BBFs and the
 6.6.3 set contains 15 BBFs. Validated maxima were 6.5.7 MINI 96.65%, MK4
 94.63%, MK3.5 90.05%, XL 69.16%; 6.6.3 MINI 98.67%, MK4 60.76%, MK3.5
 56.14%, XL 68.86%, and CORE One INDX 65.44%.
+
+## 2026-08-10 build 36 / build 8 validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. Require all
+29 presets to pass, with exactly 14 BBFs under `bbf/6.5.7`, 15 under
+`bbf/6.6.3`, and no root-level artifacts.
+
+RME session reports must use `lease=<0|1>` for communications health and
+`printer_state=<state>` for the real machine state. Do not reintroduce the
+ambiguous session field `active`, because generic host state parsers may keep
+an idle printer and its lights active. Keepalive and read-only synchronization
+traffic must remain excluded from user-activity and serial-print timers.
+
+Release tags: `v6.5.7-RME-b36` and `v6.6.3-RME-b8`.
