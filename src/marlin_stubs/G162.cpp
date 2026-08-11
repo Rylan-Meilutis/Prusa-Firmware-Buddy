@@ -31,6 +31,9 @@ static constexpr float Z_CALIB_EXTRA_HIGHT = 5.f; // mm
 /// Feedrate of the final push into the top hard stop, on which the motors skip to align themselves
 static constexpr feedRate_t Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE = 4.f; // mm/s
 
+/// Nozzle clearance left behind, dock calibration crosses the bed right after this
+static constexpr float Z_CALIB_SAFE_CLEARANCE = 10.f; // mm
+
 void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     marlin_server::fsm_change(PhasesSelftest::CalibZ);
 
@@ -74,8 +77,8 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_FEEDRATE);
     do_blocking_move_to_z(Z_MIN_POS - Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE);
 
-    // Clear some height for the nozzle again
-    do_blocking_move_to_z(Z_MIN_POS, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    // Back off the hard stop, the axis is left unhomed and Z_MIN_POS is past nozzle contact
+    do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_SAFE_CLEARANCE, Z_CALIB_ALIGN_AXIS_FEEDRATE);
 
     // Store Z aligned
     result.set_zalign(TestResult::passed);
