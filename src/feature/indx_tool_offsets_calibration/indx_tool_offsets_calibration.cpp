@@ -39,7 +39,9 @@ namespace {
                 config_store().selftest_result_tool_offsets_calibration.set(TestResult::unknown);
                 [[fallthrough]];
             case Result::aborted_before_calib:
+#if HAS_SELFTEST()
                 selftest_invocation::mark_aborted();
+#endif // HAS_SELFTEST()
                 break;
             }
 
