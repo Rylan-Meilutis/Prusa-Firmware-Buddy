@@ -19,13 +19,13 @@ enum class Action {
     PreciseHoming,
 #endif
     ZAlign, // also known as z_calib
-    BedHeaters,
     DockCalibration,
     Gears,
     Loadcell,
     FilamentSensorCalibration,
     ZCheck,
     ToolOffsetsCalibration,
+    BedHeaters,
     PhaseSteppingCalibration,
     _count,
     _last = _count - 1,
