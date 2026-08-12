@@ -1313,3 +1313,9 @@ the printer is busy.
 
 Run `rme_protocol_tests`; the release gate is 400,127 assertions across 11
 cases before the complete firmware matrix.
+
+Final result: all 29 presets passed. Validated maxima were 6.5.7 MINI 96.96%,
+MK4 94.78%, MK3.5 90.21%, XL 69.31%; 6.6.3 MINI 99.07%, MK4 60.92%, MK3.5
+56.30%, XL 69.01%, and CORE One INDX 65.59%. Artifact counts were exactly 14
+and 15 respectively, with no root-level artifacts and empty per-version error
+directories.
