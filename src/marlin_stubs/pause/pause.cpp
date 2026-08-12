@@ -1015,6 +1015,11 @@ void Pause::load_finalize_process(Response) {
         // Needed for progress mapper
         // The process() of the state should never get called though, because end of this function switches to _finished
         set(LoadState::auto_retract);
+
+        if (!ensureSafeTemperatureNotifyProgress()) {
+            return;
+        }
+
         setPhase(PhasesLoadUnload::AutoRetracting);
         const auto vt = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
         PauseFsmDurationNotifier progress_notifier(*this, vt ? standard_ramming_sequence(StandardRammingSequence::auto_retract, *vt).duration_estimate_ms() : 0);
@@ -1029,6 +1034,10 @@ void Pause::load_finalize_process(Response) {
 #endif
     // Otherwise prime the nozzle
     else if (load_type == LoadType::filament_change || load_type == LoadType::filament_stuck) {
+        if (!ensureSafeTemperatureNotifyProgress()) {
+            return;
+        }
+
         // Feed a little bit of filament to stabilize pressure in nozzle
 
         const auto filament = filament::get_type_to_load();
@@ -1047,6 +1056,10 @@ void Pause::load_finalize_process(Response) {
 
 #if HAS_NOZZLE_CLEANER()
     {
+        if (!ensureSafeTemperatureNotifyProgress()) {
+            return;
+        }
+
         // We cant use the regual load_and_execute cause we need to handle user_stop also
         nozzle_cleaner::load_sequence(nozzle_cleaner::Sequence::clean);
         setPhase(PhasesLoadUnload::LoadNozzleCleaning);
