@@ -1214,3 +1214,38 @@ Build 8 firmware continuation:
 ```
 
 Published release tag: `v6.6.3-RME-b8`.
+
+## Build 9 release update
+
+Build 9 makes failed RME uploads diagnosable and resumable. Binary NACKs now
+distinguish offset, CRC, size, chunk, and completion-offset errors. Fatal
+binary, bulk, and legacy text failures report the committed offset and a
+specific decode, storage-write, size, or hashing reason instead of the generic
+`write_failed` response.
+
+Fatal raw failures now close the file and restore line mode. The raw binary
+abort frame and the exact `@RME FILE ABORT` compatibility escape both suspend
+the partial upload, preventing the printer from remaining trapped in binary
+mode when a host's raw writer has already failed. A matching BEGIN reopens and
+re-hashes the partial, reports its nonzero resume offset, and may resume using
+binary, bulk, or legacy text transport. An explicit line-mode ABORT still
+discards the partial.
+
+Resume metadata is persisted beside the partial file at BEGIN, allowing an identical
+BEGIN to recover after USB disconnect or firmware restart. Binary uploads now
+also accept CRC-protected RME control frames at reserved offset `0xfffffffe`,
+so out-of-band UI, status, and recovery commands remain responsive without
+placing command bytes in the uploaded file. The FILE service can export a
+retained Buddy crash dump directly to `/usb` for subsequent binary download.
+
+The RME unit suite covers stable failure classification, reserved control
+offsets, and the malformed-raw ASCII abort escape. It passes 400,127 assertions
+across 11 cases.
+
+The final release command is:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+Published release tag: `v6.6.3-RME-b9`.
