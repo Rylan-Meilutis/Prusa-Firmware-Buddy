@@ -1,4 +1,5 @@
 #include <rme_protocol_parser.hpp>
+#include <rme_file_transfer.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -106,4 +107,43 @@ TEST_CASE("RME parser state does not accumulate across repeated synchronization"
         REQUIRE(rme_protocol::value(command, "name") == "PLA-00H");
         REQUIRE(rme_protocol::transaction(command) == UINT32_C(3933926903));
     }
+}
+
+TEST_CASE("RME binary transfer failures have stable diagnostics", "[rme][file]") {
+    using rme_file_transfer::BinaryFrameError;
+    using rme_file_transfer::classify_binary_frame;
+    using rme_file_transfer::diagnostic_code;
+
+    CHECK(classify_binary_frame(12288, 12288, 1024, 4096000, true) == BinaryFrameError::none);
+    CHECK(classify_binary_frame(13312, 12288, 1024, 4096000, true) == BinaryFrameError::offset_mismatch);
+    CHECK(classify_binary_frame(4096000, 4096000, 1, 4096000, true) == BinaryFrameError::size_exceeded);
+    CHECK(classify_binary_frame(12288, 12288, 1024, 4096000, false) == BinaryFrameError::crc_mismatch);
+    CHECK(classify_binary_frame(0, 1, 1, 0, true) == BinaryFrameError::offset_mismatch);
+
+    CHECK(std::string_view(diagnostic_code(BinaryFrameError::offset_mismatch)) == "offset_mismatch");
+    CHECK(std::string_view(diagnostic_code(BinaryFrameError::size_exceeded)) == "size_exceeded");
+    CHECK(std::string_view(diagnostic_code(BinaryFrameError::crc_mismatch)) == "crc_mismatch");
+    CHECK(diagnostic_code(BinaryFrameError::none) == nullptr);
+}
+
+TEST_CASE("RME text abort escapes malformed binary mode", "[rme][file][regression]") {
+    uint8_t matched = 0;
+    constexpr std::string_view abort = "@RME FILE ABORT\n";
+    for (size_t i = 0; i + 1 < abort.size(); ++i) {
+        CHECK_FALSE(rme_file_transfer::consume_text_abort(abort[i], matched, i >= 9));
+    }
+    CHECK(rme_file_transfer::consume_text_abort(abort.back(), matched, true));
+    CHECK(matched == 0);
+
+    // Valid binary payload bytes must never activate the compatibility escape.
+    for (const char byte : abort) {
+        CHECK_FALSE(rme_file_transfer::consume_text_abort(byte, matched, false));
+    }
+}
+
+TEST_CASE("RME binary control offsets do not overlap data", "[rme][file]") {
+    CHECK(rme_file_transfer::control_frame_offset == UINT32_C(0xfffffffe));
+    CHECK(rme_file_transfer::abort_frame_offset == UINT32_C(0xffffffff));
+    CHECK(rme_file_transfer::control_frame_offset != rme_file_transfer::abort_frame_offset);
+    CHECK(rme_file_transfer::control_frame_offset > UINT32_C(0x3fffffff));
 }

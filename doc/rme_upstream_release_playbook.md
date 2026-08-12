@@ -446,7 +446,8 @@ Host paths normalize onto `/usb/`, reject parent-directory traversal, and create
 Keep the Connect-facing version compatible with the upstream release while preserving RME branding everywhere else.
 
 For the out-of-band host protocol, verify `@RME FILE CAPS`, root listing,
-stat/read, a SHA-256-verified binary upload, abort cleanup, rename/delete,
+stat/read, a SHA-256-verified binary upload, durable suspend/resume, framed
+binary-mode controls, crash-dump export, explicit abort cleanup, rename/delete,
 print queueing, and BBF flash queueing on both maintained branches. Confirm
 path traversal and attempts to address non-USB storage are rejected, partial
 uploads never appear under the final name, and passive RME traffic still lets
@@ -979,10 +980,12 @@ Likewise, `SharedBuffer::Borrow` is intentionally intrusive and copyable. Keep
 Connect command/path/token/hostname lifetime management on that fixed buffer;
 wrapping borrows in `shared_ptr` recreates a control-block allocation for every
 host command and can fragment memory during reconnect synchronization.
-For raw mode, cover CRC and offset NACK recovery, the binary abort frame,
-wrong-hash cleanup, atomic rename, and BBF flash handoff. Never feed raw bytes
-through the G-code queue or permit ASCII commands to be interleaved before raw
-mode has completed or aborted.
+For raw mode, cover reasoned CRC and offset NACK recovery, binary and ASCII
+abort escapes, disconnect/reboot resume from persisted metadata, reserved
+CRC-protected RME control frames, wrong-hash cleanup, atomic rename, crash-dump
+export, and BBF flash handoff. Never feed raw bytes through the G-code queue or
+permit unframed ASCII commands to be interleaved before raw mode completes or
+aborts.
 
 Also verify `binary_read=1 binary_read_chunk=1024`, one raw download frame per
 `READ_BINARY` request, little-endian offset/length/CRC validation, retry at the
@@ -1279,3 +1282,34 @@ Final result: all 29 presets passed. Validated maxima were 6.5.7 MINI 96.65%,
 MK4 94.64%, MK3.5 90.06%, XL 69.17%; 6.6.3 MINI 98.68%, MK4 60.77%, MK3.5
 56.14%, XL 68.86%, and CORE One INDX 65.44%. Artifact counts were exactly 14
 and 15 respectively.
+
+## 2026-08-11 build 37 / build 9 validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. Require all
+29 presets to pass, with exactly 14 BBFs under `bbf/6.5.7`, 15 under
+`bbf/6.6.3`, and no root-level artifacts.
+
+RME file failures must identify offset/CRC/size/decode/storage/hash causes
+instead of collapsing them into `write_failed`. A fatal raw-transfer failure
+must close the stream and restore line mode. Binary abort, including the exact
+ASCII compatibility escape received while malformed raw framing owns RX, must
+retain the committed partial. A matching BEGIN must reopen and re-hash that
+prefix, advertise its nonzero resume offset, and permit switching from binary
+to bulk or legacy transport. Explicit line-mode ABORT continues to discard the
+partial. Run the RME host tests for diagnostic classification and the raw-mode
+ASCII abort regression before release.
+
+Release tags: `v6.5.7-RME-b37` and `v6.6.3-RME-b9`.
+
+Require `binary_control=1 binary_control_offset=4294967294
+resumable_abort=1 durable_resume=1 crash_dump=1` in FILE CAPS. Verify a framed
+control is CRC checked, never written or hashed, and completes before upload
+frames resume. Disconnect must close the stream and clear raw RX ownership
+without deleting `.rme-part` or `.rme-meta`; an identical BEGIN after reconnect
+or restart must derive the committed size from disk and re-hash that prefix.
+Private `.rme-part`, `.rme-meta`, and `.rme-old` siblings must not appear in
+FILE LIST. Crash-dump export must remain allocation-free and be refused while
+the printer is busy.
+
+Run `rme_protocol_tests`; the release gate is 400,127 assertions across 11
+cases before the complete firmware matrix.
