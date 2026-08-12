@@ -429,19 +429,29 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
     auto &capture = buddy::extrusion_calibration::capture();
     capture.start();
+#if HAS_INDX()
+    capture.pause();
+#else
     pressure_advance::set_calibration_mode(true);
+#endif
     // Four cycles preserve enough independent transitions for the scorer's
     // rejection margin. A 0.5 s slow plateau still greatly exceeds the
     // analysis window while avoiding 0.4 mm of unneeded filament per cycle.
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
 #if HAS_INDX()
-        // Form one compact pellet per excitation cycle. Ending at the slow
-        // flow lets pressure decay before the cleaner knocks the pellet free,
-        // instead of joining every cycle into one large hanging mass.
+        // Every measured cycle starts at the calibrated free-air pose over
+        // the purge bucket. Silicone cleaner contact is excluded from the
+        // retained loadcell capture.
+        pressure_advance::set_calibration_mode(false);
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
+        planner.synchronize();
+        capture.resume();
+        pressure_advance::set_calibration_mode(true);
         extrude_flow(fast_flow, 0.25f);
         extrude_flow(slow_flow, 0.5f);
         planner.synchronize();
         pressure_advance::set_calibration_mode(false);
+        capture.pause();
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
             capture.stop();
             return {};
@@ -449,7 +459,6 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     #if HAS_WASTEBIN_FILL_TRACKING()
         WastebinWatcher::instance().account_ejected_pellet();
     #endif
-        pressure_advance::set_calibration_mode(true);
 #else
         extrude_flow(slow_flow, 0.5f);
         extrude_flow(fast_flow, 0.25f);

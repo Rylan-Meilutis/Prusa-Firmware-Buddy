@@ -359,12 +359,28 @@ are rejected in this channel; use `offset=0xffffffff,length=0` or the framed
 legacy binary format are unchanged.
 
 `CAPS` advertises `binary_control=1 binary_control_offset=4294967294
-resumable_abort=1 durable_resume=1`. A compact `.rme-meta` sidecar stores the
+resumable_abort=1 durable_resume=1 shared_transfer_latch=1`. A compact
+`.rme-meta` sidecar stores the
 declared size, SHA-256, and final path beside `.rme-part`; the committed offset
 is recovered from the partial file and its prefix is re-hashed. USB disconnect
 automatically suspends raw mode, so reconnect or firmware restart can issue the
 same BEGIN and resume safely. Completion or explicit line-mode ABORT removes
 the private sidecar.
+
+RME, Connect, Link, and slicer uploads share one storage-transfer latch. Every
+RME BEGIN acquires it before opening or recovering a partial file and retains
+it through verification and atomic publication. If another transfer owns the
+latch, the command returns `echo:RME_ERROR workflow=file code=transfer_busy`
+without entering raw mode or changing upload state. Hosts should wait for the
+current transfer to finish; they must not retry chunks or arm binary parsing.
+The same response defers READ/READ_BINARY, DELETE, RENAME, MKDIR, PRINT,
+FLASH, and crash-dump export while storage is owned. `printer_busy` separately
+means a write or mutation was attempted while the printer was not idle.
+
+Connect downloads pause network traffic when printing begins while retaining
+their slot, partial file, progress, and retry budget. They resume after the
+print. Consequently a paused Connect transfer intentionally continues to
+return `transfer_busy` to RME and Link until it completes or is stopped.
 
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a

@@ -1292,7 +1292,8 @@ ASCII abort regression before release.
 Release tags: `v6.5.7-RME-b37` and `v6.6.3-RME-b9`.
 
 Require `binary_control=1 binary_control_offset=4294967294
-resumable_abort=1 durable_resume=1 crash_dump=1` in FILE CAPS. Verify a framed
+resumable_abort=1 durable_resume=1 crash_dump=1 shared_transfer_latch=1` in
+FILE CAPS. Verify a framed
 control is CRC checked, never written or hashed, and completes before upload
 frames resume. Disconnect must close the stream and clear raw RX ownership
 without deleting `.rme-part` or `.rme-meta`; an identical BEGIN after reconnect
@@ -1303,3 +1304,20 @@ the printer is busy.
 
 Run `rme_protocol_tests`; the release gate is 400,127 assertions across 11
 cases before the complete firmware matrix.
+
+Use `transfers::Monitor::instance` as the only RME/Connect/Link storage latch.
+An RME BEGIN must acquire its move-only slot before touching durable metadata,
+partial files, or raw RX state, report committed bytes through that slot, and
+release exactly once. Only verified SHA-256 plus atomic publication is
+`Finished`; abort/disconnect is `Stopped`, storage failure is `ErrorStorage`,
+and all remaining failures are `ErrorOther`. While any slot exists, reject RME
+reads, mutations, PRINT, FLASH, and Connect StartPrint. Reject Link/slicer HTTP
+upload with Conflict while printing. A Connect download interrupted by a
+print must force-save progress, close its network download, retain both slot
+and partial file without consuming retries, and resume after printing.
+
+For INDX M976, capture only fast/slow free-air excitation at the calibrated
+purge parking pose over the bucket. Pause capture and disable calibration mode
+before each `eject_blob` silicone-cleaner cycle, account its pellet, return to
+the purge pose, synchronize, then resume capture. Unit-test that cleaner
+samples are excluded while later excitation samples append to the same buffer.

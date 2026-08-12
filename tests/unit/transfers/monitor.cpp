@@ -20,6 +20,29 @@ TEST_CASE("Transfers slot collision") {
     REQUIRE(monitor.allocate(Monitor::Type::Connect, "/usb/another.gcode", 4026).has_value());
 }
 
+TEST_CASE("Shared transfer latch serializes RME Connect and Link owners") {
+    Monitor monitor;
+
+    // RME uploads use the Link monitor type and retain the same move-only
+    // slot for their complete lifetime.
+    auto rme = monitor.allocate(Monitor::Type::Link, "/usb/FWUPD.RME", 4096);
+    REQUIRE(rme.has_value());
+    const auto rme_id = rme->id();
+    rme->progress(1024);
+
+    REQUIRE_FALSE(monitor.allocate(Monitor::Type::Connect, "/usb/connect.gcode", 8192).has_value());
+    REQUIRE_FALSE(monitor.allocate(Monitor::Type::Link, "/usb/link.gcode", 8192).has_value());
+    REQUIRE(monitor.status()->download_progress.get_valid_size() == 1024);
+
+    rme->done(Monitor::Outcome::Finished);
+    rme.reset();
+    REQUIRE(monitor.outcome(rme_id) == Monitor::Outcome::Finished);
+
+    auto connect = monitor.allocate(Monitor::Type::Connect, "/usb/connect.gcode", 8192);
+    REQUIRE(connect.has_value());
+    REQUIRE_FALSE(monitor.allocate(Monitor::Type::Link, "/usb/FWUPD.RME", 4096).has_value());
+}
+
 TEST_CASE("Transfers status watch") {
     Monitor monitor;
 

@@ -43,6 +43,8 @@ public:
     static constexpr size_t capacity = 1280;
 
     void start();
+    void pause();
+    void resume();
     size_t stop();
     void record(uint32_t time_us, float load_g, float e_position_mm);
     Score score() const;

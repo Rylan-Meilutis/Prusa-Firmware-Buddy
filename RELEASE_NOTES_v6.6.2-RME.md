@@ -865,3 +865,24 @@ be6fccbc3  2026-07-25  Keep serial recovery reserve always active
 This continuation includes firmware changes through `87b077038`;
 `v6.6.2-RME-b25` points at the release-documentation commit immediately
 following this list.
+
+## 6.6.3 Build 9 transfer and INDX PA update
+
+RME, Connect, Link, and slicer transfers now share the firmware transfer
+monitor. An RME BEGIN owns the slot before touching durable resume state,
+storage, or raw RX; all committed payloads report progress through it. A
+conflict returns `transfer_busy` without changing parser or partial-file state.
+Print starts, reads, flashes, and storage mutations are serialized as well.
+Link uploads are rejected during a print, while a Connect download pauses its
+network stream but retains ownership, partial progress, and retry budget until
+printing ends.
+
+INDX automatic pressure-advance calibration now captures only free-air
+excitation at the calibrated purge pose over the bucket. Capture pauses for
+the silicone `eject_blob` cleaner sequence and resumes only after returning to
+the purge pose; the deposited pellet remains accounted through the existing
+waste-bin watcher.
+
+The RME suite passes 400,127 assertions across 11 cases, extrusion-calibration
+tests pass 13 assertions across seven cases, and transfer tests pass 514,733
+assertions across 11 cases.
