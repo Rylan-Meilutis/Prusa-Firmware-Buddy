@@ -16,6 +16,7 @@
 #include <mapi/feedrates/standard_feedrates.hpp>
 #include <gcode/temperature/M104_M109.hpp>
 #include <module/raii/include/raii/scope_guard.hpp>
+#include <feature/safety_timer/safety_timer.hpp>
 
 #include <option/has_mmu2.h>
 #include <option/has_switchable_auto_retract.h>
@@ -117,22 +118,19 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
     PrintStatusMessageGuard psm_guard;
     psm_guard.update<PrintStatusMessage::Type::auto_retracting>({});
 
+    Hotend &hotend = Hotend::for_tool(physical_tool);
+
+    safety_timer().reset_restore_nonblocking();
+
     // restore actual target temperature after autorectract
-    const auto original_temp = Hotend::for_tool(physical_tool).nozzle_target_temp();
+    const auto original_temp = hotend.nozzle_target_temp();
     ScopeGuard temp_restorer([&]() {
-        Hotend::for_tool(physical_tool).set_nozzle_target_temp(original_temp);
+        hotend.set_nozzle_target_temp(original_temp);
     });
 
     // heat up the nozzle (especially important for INDX where nozzle can cool down before autoretract is finished)
-    const auto filament_temp = filament_parameters.nozzle_temperature;
-    if (original_temp < filament_temp) {
-        const M109Flags flags = {
-            .target_temp = filament_temp,
-            .wait_heat = true,
-            .wait_heat_or_cool = false,
-        };
-        M109_no_parser(physical_tool, flags);
-    }
+    hotend.set_nozzle_target_temp(std::max(original_temp, filament_parameters.nozzle_temperature));
+    thermalManager.wait_for_hotend(physical_tool, { .no_wait_for_cooling = true, .wait_temp = filament_parameters.nozzle_temperature });
 
 #if HAS_WASTEBIN()
     if (params.park_over_wastebin) {
