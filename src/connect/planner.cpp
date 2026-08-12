@@ -722,6 +722,10 @@ void Planner::command(const Command &command, const StartPrint &params) {
         reason = "Forbidden path";
     } else if (!transfers::is_valid_file_or_transfer(path)) {
         reason = "File not found";
+    } else if (Monitor::instance.id().has_value()) {
+        planned_event = Event { EventType::Rejected, command.id, nullopt, nullopt, nullopt,
+            "Another transfer in progress", MachineReason::TransferInProgress };
+        return;
     } else if (const char *error = printer.start_print(path, params.tool_mapping); error != nullptr) {
         reason = error;
     }

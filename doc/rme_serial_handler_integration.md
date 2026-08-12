@@ -130,6 +130,15 @@ after USB loss or firmware restart. The `.rme-meta` sidecar persists path,
 declared size, and SHA-256, while firmware derives the committed offset from
 the partial file and re-hashes that prefix before returning `resumed=1`.
 
+If `CAPS` advertises `shared_transfer_latch=1`, treat `transfer_busy` as flow
+control, not a failed upload. The printer has not opened the requested partial
+or entered raw mode. Wait for the active RME, Connect, Link, or slicer transfer
+to release the shared storage slot, then repeat BEGIN. Do not send binary bytes
+until READY. `PRINT`, `FLASH`, reads, and mutations can return the same code;
+retry them only after transfer completion. `printer_busy` is distinct and
+requires the printer itself to become idle. A Connect download may retain the
+slot while a print is active even though it has paused all network traffic.
+
 When `binary_control=1` is advertised, issue RME controls without stopping a
 binary upload by wrapping one complete
 ASCII command (without CR/LF) in the ordinary ten-byte header using reserved

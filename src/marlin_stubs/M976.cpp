@@ -24,6 +24,9 @@
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
 #include <printers.h>
+#if HAS_WASTEBIN()
+#include <nozzle_cleaner.hpp>
+#endif
 
 #include <algorithm>
 #include <array>
@@ -423,6 +426,31 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
     auto &capture = buddy::extrusion_calibration::capture();
     capture.start();
+#if HAS_WASTEBIN()
+    capture.pause();
+    // INDX must measure only free-air extrusion. The silicone/v-blade contact
+    // between pellets produces a much larger loadcell response and would bias
+    // both the PA cost and confidence if it remained in the trace.
+    for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
+        pressure_advance::set_calibration_mode(false);
+        mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
+        planner.synchronize();
+
+        capture.resume();
+        pressure_advance::set_calibration_mode(true);
+        extrude_flow(slow_flow, 0.5f);
+        extrude_flow(fast_flow, 0.25f);
+        planner.synchronize();
+        pressure_advance::set_calibration_mode(false);
+        capture.pause();
+
+        nozzle_cleaner::reset();
+        nozzle_cleaner::load_vblade_cut_gcode();
+        while (nozzle_cleaner::is_loader_buffering()) idle(true);
+        if (!nozzle_cleaner::execute()) break;
+        planner.synchronize();
+    }
+#else
     pressure_advance::set_calibration_mode(true);
     // Four cycles preserve enough independent transitions for the scorer's
     // rejection margin. A 0.5 s slow plateau still greatly exceeds the
@@ -433,6 +461,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     }
     planner.synchronize();
     pressure_advance::set_calibration_mode(false);
+#endif
     capture.stop();
     return capture.score();
 }

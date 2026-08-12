@@ -1243,9 +1243,20 @@ responsive without placing command bytes in the uploaded file. The FILE
 service can export a retained Buddy crash dump directly to `/usb` for
 subsequent binary download.
 
+RME, Connect, Link, and slicer transfers now use the firmware's single shared
+transfer monitor. An RME BEGIN owns that slot before it touches resume metadata,
+storage, or raw RX state; committed binary, bulk, and text bytes update the
+same progress display. Conflicting operations return `transfer_busy` without
+changing parser state. Print starts, reads, flashes, and storage mutations are
+also serialized, Link uploads are refused during a print, and a Connect
+download pauses network traffic during printing while retaining its partial
+file, progress, retry budget, and ownership for a safe resume afterward.
+
 The RME unit suite covers stable failure classification, reserved control
 offsets, and the malformed-raw ASCII abort escape. It passes 400,127 assertions
-across 11 cases.
+across 11 cases. Extrusion-calibration tests pass 13 assertions across seven
+cases, including pause/resume isolation, and transfer tests pass 514,733
+assertions across 11 cases, including shared-slot exclusion and progress.
 
 The final release command is:
 

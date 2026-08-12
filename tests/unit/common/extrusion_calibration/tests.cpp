@@ -14,6 +14,20 @@ TEST_CASE("calibration rejects an empty or truncated capture") {
     REQUIRE_FALSE(capture.score().valid);
 }
 
+TEST_CASE("calibration capture excludes a paused cleaner wipe") {
+    Capture capture;
+    capture.start();
+    capture.record(1'000, 2, 0.01f);
+    capture.pause();
+    capture.record(2'000, 100, 0.02f);
+    capture.record(3'000, 100, 0.03f);
+    REQUIRE(capture.size() == 1);
+    capture.resume();
+    capture.record(4'000, 3, 0.04f);
+    capture.stop();
+    REQUIRE(capture.size() == 2);
+}
+
 TEST_CASE("calibration scores repeated extrusion transitions") {
     Capture capture;
     capture.start();

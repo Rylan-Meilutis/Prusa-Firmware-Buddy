@@ -341,6 +341,15 @@ Transfer::State Transfer::step(bool is_printing) {
     case State::Retrying: {
         if (slot.is_stopped()) {
             done(State::Failed, Monitor::Outcome::Stopped);
+        } else if (is_printing) {
+            // Retain ownership and the partial file, but stop all network
+            // traffic while a print is active. This is a pause, not a retry:
+            // it must neither consume retry budget nor let RME/Link overtake
+            // the suspended Connect transfer.
+            update_backup(/*force=*/true);
+            download.reset();
+            slot.progress(partial_file->get_state(), false);
+            return state;
         } else if (download.has_value()) {
             auto step_result = download->step();
             bool has_issues = step_result != DownloadStep::Continue && step_result != DownloadStep::Finished;

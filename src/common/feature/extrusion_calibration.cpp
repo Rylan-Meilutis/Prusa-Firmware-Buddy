@@ -41,6 +41,16 @@ void Capture::start() {
     active_.store(true, std::memory_order_release);
 }
 
+void Capture::pause() {
+    active_.store(false, std::memory_order_release);
+}
+
+void Capture::resume() {
+    if (count_.load(std::memory_order_acquire) < samples_.size()) {
+        active_.store(true, std::memory_order_release);
+    }
+}
+
 size_t Capture::stop() {
     active_.store(false, std::memory_order_release);
     return size();

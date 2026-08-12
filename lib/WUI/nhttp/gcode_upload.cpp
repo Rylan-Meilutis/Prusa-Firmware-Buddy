@@ -5,6 +5,7 @@
 #include "../wui_api.h"
 
 #include <common/stat_retry.hpp>
+#include <marlin_client.hpp>
 #include <path_utils.h>
 #include <transfers/files.hpp>
 #include <transfers/changed_path.hpp>
@@ -132,6 +133,9 @@ GcodeUpload::UploadResult GcodeUpload::start(const RequestParser &parser, Upload
     }
 
     const char *path = uploadParams.filepath.data();
+    if (marlin_client::is_printing()) {
+        return StatusPage(Status::Conflict, parser, "Upload unavailable while printing");
+    }
     auto slot = Monitor::instance.allocate(Monitor::Type::Link, path, *parser.content_length, parser.print_after_upload);
     if (!slot.has_value()) {
         // FIXME: Is this the right status to return? Change would need to be
