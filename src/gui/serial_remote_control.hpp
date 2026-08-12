@@ -15,6 +15,21 @@ struct LightStatus {
     int16_t print_screen;
     int16_t print_chamber;
     int16_t print_status;
+    uint32_t screen_by_state;
+    uint32_t chamber_by_state;
+    uint32_t status_by_state;
+    int16_t current_screen;
+    int16_t current_chamber;
+    int8_t current_state;
+    uint16_t activity_timeout_s;
+    uint16_t event_timeout_s;
+    uint16_t off_timeout_s;
+    uint16_t status_finished_hold_s;
+    bool screen_supported;
+    bool chamber_supported;
+    bool status_supported;
+    bool door_holds_active;
+    bool post_print_hold_enabled;
 };
 
 enum class TransferKind : uint8_t { none, file, firmware };
