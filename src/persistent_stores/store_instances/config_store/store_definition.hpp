@@ -51,6 +51,7 @@
 #include <option/has_esp.h>
 #include <option/has_auto_retract.h>
 #include <option/has_switchable_auto_retract.h>
+#include <option/has_switchable_homing_calibration.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_chamber_vents.h>
 #include <option/has_precise_homing_corexy.h>
@@ -916,9 +917,11 @@ struct CurrentStore
 #if HAS_PRECISE_HOMING_COREXY()
     StoreItem<CoreXYGridOrigin, COREXY_NO_GRID_ORIGIN, ItemFlag::calibrations, journal::hash("CoreXY calibrated grid origin")> corexy_grid_origin;
 
+    #if HAS_SWITCHABLE_HOMING_CALIBRATION()
     /// Whether to automatically calibrate precise homing when deemed necessary
     /// Tristate::other = ask the user
     StoreItem<Tristate, defaults::auto_recalibrate_precise_homing, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Auto-recalibrate precise homing")> auto_recalibrate_precise_homing;
+    #endif
 
     /// History whether a homing point was stable after precise homing. High number of unstable homings will result in calibration prompt.
     /// Implemented as a rotating bit buffer (pushed after each successful refinement); ones represent unstable refinements

@@ -186,7 +186,7 @@ void MI_SWITCH_VENT_MECHANISM::Loop() {
 }
 #endif
 
-#if HAS_PRECISE_HOMING_COREXY()
+#if HAS_SWITCHABLE_HOMING_CALIBRATION()
 constexpr const EnumArray<Tristate::Value, const char *, 3> ask_always_never_texts {
     { Tristate::no, N_("Never") },
     { Tristate::yes, N_("Auto") },

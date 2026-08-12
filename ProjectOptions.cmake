@@ -358,6 +358,9 @@ set_feature_for_printers(
   "COREONEL"
   "COREONEL_INDX"
   )
+set_feature_for_printers(
+  HAS_SWITCHABLE_HOMING_CALIBRATION "iX" "XL" "XL_DEV_KIT" "COREONE" "COREONEL"
+  )
 set_feature_for_printers_master_board(
   HAS_PHASE_STEPPING
   "XL"

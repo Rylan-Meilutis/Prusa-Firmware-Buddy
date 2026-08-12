@@ -31,6 +31,7 @@
 #include "../../module/planner.h"
 #include "../../module/stepper.h" // for various
 #include <option/has_crash_detection.h>
+#include <option/has_switchable_homing_calibration.h>
 
 #if HAS_MULTI_HOTEND
   #include "../../module/tool_change.h"
@@ -943,6 +944,7 @@ RefineResult corexy_calibrate_homing_during_G28(float xy_mm_s, const G28Flags &f
     return RefineResult::calibrate_from_menu;
   }
 
+#if HAS_SWITCHABLE_HOMING_CALIBRATION()
   Tristate calibration_approved = flags.force_calibrate ? Tristate::yes : config_store().auto_recalibrate_precise_homing.get();
 
   // Prompt the user that we would like to do the calibration (if the calibration was not triggered from gcode)
@@ -971,6 +973,10 @@ RefineResult corexy_calibrate_homing_during_G28(float xy_mm_s, const G28Flags &f
 
     }
   }
+#else
+  // The calibration is not user-configurable, run it whenever needed
+  const Tristate calibration_approved = Tristate::yes;
+#endif
 
   // Regardless of whether the calibration will run or not, reset homing instability history
   // In both cases, we want a clean slate so that the user is not bothered with "please recalibrate" right away
