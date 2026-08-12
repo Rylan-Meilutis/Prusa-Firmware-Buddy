@@ -130,7 +130,7 @@ void AutoRetract::maybe_retract_from_nozzle(const RetractFromNozzleParams &param
 
     // heat up the nozzle (especially important for INDX where nozzle can cool down before autoretract is finished)
     hotend.set_nozzle_target_temp(std::max(original_temp, filament_parameters.nozzle_temperature));
-    thermalManager.wait_for_hotend(physical_tool, { .no_wait_for_cooling = true, .wait_temp = filament_parameters.nozzle_temperature });
+    thermalManager.wait_for_hotend(physical_tool, { .no_wait_for_cooling = true, .early_return_temperature = filament_parameters.nozzle_temperature });
 
 #if HAS_WASTEBIN()
     if (params.park_over_wastebin) {

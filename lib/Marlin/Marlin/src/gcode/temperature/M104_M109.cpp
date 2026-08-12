@@ -111,7 +111,7 @@ void GcodeSuite::M109() {
     .wait_heat_or_cool = parser.seenval('R'),
     .autotemp = parser.boolval('F'),
     .display_temp = parser.seenval('D') ? std::optional<float>(parser.value_celsius()) : std::nullopt,
-    .wait_temp = parser.seenval('C') ? std::optional<float>(parser.value_celsius()) : std::nullopt,
+    .early_return_temperature = parser.seenval('C') ? std::optional<float>(parser.value_celsius()) : std::nullopt,
   };
   M109_no_parser(*tool, flags);
 }
@@ -136,8 +136,8 @@ void M109_no_parser(PhysicalToolIndex tool, const M109Flags& flags) {
     }
   }
 
-  if (set_temp || flags.wait_temp.has_value()) {
-    (void)thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = no_wait_for_cooling, .fan_cooling = flags.autotemp, .wait_temp = flags.wait_temp });
+  if (set_temp || flags.early_return_temperature.has_value()) {
+    (void)thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = no_wait_for_cooling, .fan_cooling = flags.autotemp, .early_return_temperature = flags.early_return_temperature });
   }
 
   return;

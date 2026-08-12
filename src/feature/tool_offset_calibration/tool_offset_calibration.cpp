@@ -161,7 +161,7 @@ void set_temp_and_wait_reached(PhysicalToolIndex tool, int16_t temp, bool fan_co
     thermalManager.wait_for_hotend(tool, {
                                              .no_wait_for_cooling = false,
                                              .fan_cooling = fan_cooling,
-                                             .wait_temp = heating ? std::optional<float>(temp) : std::nullopt,
+                                             .early_return_temperature = heating ? std::optional<float>(temp) : std::nullopt,
                                          });
 }
 

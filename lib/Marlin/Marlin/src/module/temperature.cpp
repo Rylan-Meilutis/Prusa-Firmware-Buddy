@@ -1126,7 +1126,7 @@ void Temperature::isr() {
       // wait_temp can't block forever.
       const auto target_reached = [&]() {
         const auto current = hotend.nozzle_temp();
-        if (params.wait_temp.has_value() && current.has_value() && current.value() >= *params.wait_temp) {
+        if (params.early_return_temperature.has_value() && current.has_value() && current.value() >= *params.early_return_temperature) {
           return true;
         }
         return hotend.is_nozzle_temp_reached();
@@ -1195,7 +1195,7 @@ void Temperature::isr() {
         idle(true);
 
         const float temp = degHotend(target_extruder);
-        statusGuard.update<PrintStatusMessage::waiting_for_hotend_temp>({.progress{ .current = temp, .target = params.wait_temp.value_or(target_temp) }, .tool=target_extruder});
+        statusGuard.update<PrintStatusMessage::waiting_for_hotend_temp>({.progress{ .current = temp, .target = params.early_return_temperature.value_or(target_temp) }, .tool=target_extruder});
 
         // Prevent a wait-forever situation if R is misused i.e. M109 R0
         if (wants_to_cool) {
