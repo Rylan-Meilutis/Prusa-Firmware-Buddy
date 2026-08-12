@@ -39,6 +39,10 @@ bool is_bootloader_valid();
 
 void set_reflash_bbf_sfn(const char *sfn);
 
+/// True only while the retained, one-shot bootloader request selects this
+/// exact short filename. Directory contents are intentionally not consulted.
+bool is_reflash_bbf_sfn(const char *sfn);
+
 bool has_apendix();
 
 bool has_fw_signature();

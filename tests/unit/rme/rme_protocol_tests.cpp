@@ -8,10 +8,12 @@
 #endif
 
 #include <array>
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <limits>
 #include <string_view>
+#include <vector>
 
 using namespace std::string_view_literals;
 
@@ -146,4 +148,50 @@ TEST_CASE("RME binary control offsets do not overlap data", "[rme][file]") {
     CHECK(rme_file_transfer::abort_frame_offset == UINT32_C(0xffffffff));
     CHECK(rme_file_transfer::control_frame_offset != rme_file_transfer::abort_frame_offset);
     CHECK(rme_file_transfer::control_frame_offset > UINT32_C(0x3fffffff));
+}
+
+TEST_CASE("RME binary header recovery rejects untrusted lengths without blind discard", "[rme][file][regression]") {
+    using rme_file_transfer::plausible_binary_header;
+    CHECK(plausible_binary_header(12288, 1024, 12288, 4096000, 1024));
+    CHECK_FALSE(plausible_binary_header(12288, 65535, 12288, 4096000, 1024));
+    CHECK_FALSE(plausible_binary_header(13312, 1024, 12288, 4096000, 1024));
+    CHECK(plausible_binary_header(rme_file_transfer::abort_frame_offset, 0, 12288, 4096000, 1024));
+    CHECK(plausible_binary_header(rme_file_transfer::control_frame_offset, 32, 12288, 4096000, 1024));
+    CHECK_FALSE(plausible_binary_header(rme_file_transfer::control_frame_offset, 1025, 12288, 4096000, 1024));
+}
+
+TEST_CASE("RME rolling binary header recovery finds abort after a corrupt length", "[rme][file][stream]") {
+    auto append_header = [](std::vector<uint8_t> &stream, const uint32_t offset, const uint16_t length, const uint32_t crc) {
+        stream.push_back(offset); stream.push_back(offset >> 8); stream.push_back(offset >> 16); stream.push_back(offset >> 24);
+        stream.push_back(length); stream.push_back(length >> 8);
+        stream.push_back(crc); stream.push_back(crc >> 8); stream.push_back(crc >> 16); stream.push_back(crc >> 24);
+    };
+    auto le16 = [](const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; };
+    auto le32 = [](const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; };
+
+    std::vector<uint8_t> stream;
+    append_header(stream, 12288, 65535, 0x12345678); // untrusted/corrupt
+    stream.insert(stream.end(), { 0xaa, 0xbb, 0xcc, 0xdd, 0xee });
+    append_header(stream, rme_file_transfer::abort_frame_offset, 0, 0);
+
+    std::array<uint8_t, 10> window {};
+    size_t filled = 0;
+    bool found_abort = false;
+    for (const uint8_t byte : stream) {
+        if (filled < window.size()) window[filled++] = byte;
+        else {
+            std::move(window.begin() + 1, window.end(), window.begin());
+            window.back() = byte;
+        }
+        if (filled == window.size()) {
+            const uint32_t offset = le32(window.data());
+            const uint16_t length = le16(window.data() + 4);
+            if (rme_file_transfer::plausible_binary_header(offset, length, 12288, 4096000, 1024)
+                && offset == rme_file_transfer::abort_frame_offset && length == 0) {
+                found_abort = true;
+                break;
+            }
+        }
+    }
+    CHECK(found_abort);
 }

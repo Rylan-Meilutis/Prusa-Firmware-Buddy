@@ -8,6 +8,13 @@ namespace rme_file_transfer {
 inline constexpr uint32_t control_frame_offset = UINT32_C(0xfffffffe);
 inline constexpr uint32_t abort_frame_offset = UINT32_C(0xffffffff);
 
+constexpr bool plausible_binary_header(const uint32_t offset, const uint16_t payload_size,
+    const uint32_t committed, const uint32_t expected_size, const uint16_t maximum_payload) {
+    if (payload_size > maximum_payload) return false;
+    if (offset == abort_frame_offset || offset == control_frame_offset) return true;
+    return committed <= expected_size && offset == committed && payload_size <= expected_size - committed;
+}
+
 enum class BinaryFrameError : uint8_t {
     none,
     offset_mismatch,

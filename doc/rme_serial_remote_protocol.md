@@ -368,6 +368,20 @@ a malformed binary header. Both abort forms return
 `RME_FILE_BINARY_ABORTED offset=<n> resumable=1` and restore line mode; the
 ordinary line-mode `ABORT` command still discards the partial upload.
 
+The receiver never trusts a malformed header's declared length. It slides a
+bounded ten-byte header window until it finds a plausible committed-offset,
+control, or abort frame. A corrupt window produces one diagnostic NACK while
+recovery is active; stale frames from the old host window do not produce a
+NACK storm. This guarantees that a corrupt length (including 65535) cannot
+consume a later abort/control frame indefinitely. If raw input is inactive for
+the advertised `binary_timeout_ms`, firmware closes the stream, releases the
+shared transfer slot, retains the durable partial and metadata, restores line
+mode, and reports:
+
+```text
+RME_FILE_BINARY_SUSPENDED offset=<committed> resumable=1 reason=inactivity_timeout
+```
+
 A storage-write or SHA-state failure closes the stream, restores line mode,
 retains the committed partial, and reports `echo:RME_ERROR workflow=file
 code=<reason> offset=<n> resumable=1`. Text transports distinguish
@@ -410,6 +424,55 @@ Connect downloads pause network traffic when printing begins while retaining
 their slot, partial file, progress, and retry budget. They resume after the
 print. Consequently a paused Connect transfer intentionally continues to
 return `transfer_busy` to RME and Link until it completes or is stopped.
+
+## Authoritative firmware staging
+
+Firmware stage state is separate from directory listing and ordinary BBF
+files. Query the application-owned state with:
+
+```text
+@RME FIRMWARE QUERY
+RME_FIRMWARE candidate=0 armed=0 state=idle
+ok
+```
+
+A verified upload to the legacy wire name `FWUPD.BBF` is stored under the
+protected, non-bootloader-discoverable `/usb/FWUPD.RME` name. Only that
+protected candidate is reported:
+
+```text
+RME_FIRMWARE candidate=1 armed=0 state=ready path=FWUPD.RME size=<bytes> sha256=<64-lowercase-hex>
+```
+
+`candidate=1` is never inferred from another `.BBF` file. Immediately before
+the explicit `FLASH`/`M997` handoff resets the machine, both the cleanup marker
+and exact retained bootloader filename have been set and firmware emits:
+
+```text
+RME_FIRMWARE candidate=1 armed=1 state=restarting path=FWUPD.RME
+RME_FIRMWARE_RESTART reconnect=1
+```
+
+`armed=1` requires both the retained one-shot selection for `FWUPD.RME` and its
+cleanup marker; directory contents alone cannot arm it. The bootloader clears
+the retained request before the next application startup. Candidate cleanup is
+retried on startup until the protected file is gone.
+
+An idle host can discard a candidate idempotently:
+
+```text
+@RME FIRMWARE UNSTAGE
+RME_FIRMWARE_UNSTAGED candidate=0 armed=0
+ok
+```
+
+UNSTAGE rejects an armed request, a print, or an active RME/Connect/Link
+transfer. It briefly owns the shared transfer latch and removes only
+`FWUPD.RME`, its private RME partial/metadata/rollback siblings, and its private
+cleanup marker. It never scans for or deletes ordinary BBFs. Generic DELETE or
+RENAME cannot mutate the protected candidate; use UNSTAGE instead. QUERY may
+return `workflow=firmware code=transfer_busy` while storage is owned so hashing
+the candidate cannot race an upload.
 
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a

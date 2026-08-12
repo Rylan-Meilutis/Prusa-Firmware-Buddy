@@ -188,6 +188,11 @@ void set_reflash_bbf_sfn(const char *sfn) {
     strlcpy((char *)ram_data_exchange.bbf_sfn, sfn, sizeof(DataExchange::bbf_sfn));
 }
 
+bool is_reflash_bbf_sfn(const char *sfn) {
+    return sfn && get_auto_update_flag() == FwAutoUpdate::specified
+        && strncmp(ram_data_exchange.bbf_sfn, sfn, sizeof(ram_data_exchange.bbf_sfn)) == 0;
+}
+
 bool has_apendix() {
     return ram_data_exchange.appendix_status & APPENDIX_FLAG_MASK;
 }
