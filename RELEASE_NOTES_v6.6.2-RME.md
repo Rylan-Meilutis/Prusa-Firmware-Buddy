@@ -886,3 +886,7 @@ waste-bin watcher.
 The RME suite passes 400,127 assertions across 11 cases, extrusion-calibration
 tests pass 13 assertions across seven cases, and transfer tests pass 514,733
 assertions across 11 cases.
+
+The final 29-preset matrix passed without errors. The 6.6.3 set contains 15
+BBFs; maximum flash use was MINI 99.14%, MK4 60.96%, MK3.5 56.33%, XL
+69.04%, and CORE One INDX 65.63%.
