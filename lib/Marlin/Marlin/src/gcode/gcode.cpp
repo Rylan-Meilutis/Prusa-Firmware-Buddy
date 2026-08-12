@@ -576,11 +576,8 @@ void GcodeSuite::process_parsed_command_standard() {
         case 303: M303(); break;                                  // M303: PID autotune
       #endif
 
-      #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
-        // #error dead code found by automatic analyses (see BFW-5461)
-        case 380: M380(); break;                                  // M380: Activate solenoid on active (or specified) extruder
-        case 381: M381(); break;                                  // M381: Disable all solenoids or, if MANUAL_SOLENOID_CONTROL, active (or specified) solenoid
-      #endif
+      // M380: Activate solenoid REMOVED
+      // M381: Disable all solenoids REMOVED
 
       case 400: M400(); break;                                    // M400: Finish all moves
 

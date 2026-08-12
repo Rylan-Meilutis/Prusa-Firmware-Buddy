@@ -195,7 +195,7 @@
 #elif defined(min_software_endstops) || defined(max_software_endstops)
   #error "(min|max)_software_endstops are now (MIN|MAX)_SOFTWARE_ENDSTOPS. Please update your configuration."
 #elif ENABLED(Z_PROBE_SLED) && defined(SLED_PIN)
-  #error "Replace SLED_PIN with SOL1_PIN (applies to both Z_PROBE_SLED and SOLENOID_PROBE)."
+  #error "Replace SLED_PIN with SOL1_PIN."
 #elif defined(MIN_RETRACT)
   #error "MIN_RETRACT is now MIN_AUTORETRACT and MAX_AUTORETRACT. Please update your Configuration_adv.h."
 #elif defined(UBL_MESH_INSET)
@@ -478,25 +478,13 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #if 1 < 0 \
   + ENABLED(FIX_MOUNTED_PROBE) \
   + ENABLED(TOUCH_MI_PROBE) \
-  + ENABLED(SOLENOID_PROBE) \
   + ENABLED(Z_PROBE_ALLEN_KEY) \
   + ENABLED(Z_PROBE_SLED) \
   + ENABLED(SENSORLESS_PROBING)
-  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
 #endif
 
 #if HAS_BED_PROBE
-  /**
-   * SOLENOID_PROBE requirements
-   */
-  #if ENABLED(SOLENOID_PROBE)
-    #if ENABLED(EXT_SOLENOID)
-      #error "SOLENOID_PROBE is incompatible with EXT_SOLENOID."
-    #elif !HAS_SOLENOID_1
-      #error "SOLENOID_PROBE requires SOL1_PIN. It can be added to your Configuration.h."
-    #endif
-  #endif
-
   /**
    * Touch-MI probe requirements
    */
@@ -565,7 +553,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #else
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
   #endif
 
 #endif
@@ -1235,4 +1223,8 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if ENABLED(SPINDLE_FEATURE) || ENABLED(LASER_FEATURE)
     #error "laser is not supported"
+#endif
+
+#if ENABLED(EXT_SOLENOID) || ENABLED(MANUAL_SOLENOID_CONTROL) || ENABLED(SOLENOID_PROBE) || HAS_SOLENOID_1
+    #error "solenoids are not supported"
 #endif

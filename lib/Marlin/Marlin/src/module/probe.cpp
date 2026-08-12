@@ -139,11 +139,6 @@ bool probe_should_check_angle_after() {
   static void dock_sled(bool stow) {
     // Dock sled a bit closer to ensure proper capturing
     do_blocking_move_to_x(X_MAX_POS + SLED_DOCKING_OFFSET - ((stow) ? 1 : 0));
-
-    #if HAS_SOLENOID_1 && DISABLED(EXT_SOLENOID)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      WRITE(SOL1_PIN, !stow); // switch solenoid
-    #endif
   }
 
 #elif ENABLED(TOUCH_MI_PROBE)
@@ -345,15 +340,7 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
     }
   #endif /*ENABLED(NOZZLE_LOAD_CELL)*/
 
-  #if ENABLED(SOLENOID_PROBE)
-    // #error dead code found by automatic analyses (see BFW-5461)
-
-    #if HAS_SOLENOID_1
-      // #error dead code found by automatic analyses (see BFW-5461)
-      WRITE(SOL1_PIN, deploy);
-    #endif
-
-  #elif ENABLED(Z_PROBE_SLED)
+  #if ENABLED(Z_PROBE_SLED)
     // #error dead code found by automatic analyses (see BFW-5461)
 
     dock_sled(!deploy);

@@ -161,8 +161,6 @@
  * M350 - Set microstepping mode. (Requires digital microstepping pins.)
  * M351 - Toggle MS1 MS2 pins directly. (Requires digital microstepping pins.)
  * M355 - Set Case Light on/off and set brightness. (Requires CASE_LIGHT_PIN)
- * M380 - Activate solenoid on active extruder. (Requires EXT_SOLENOID)
- * M381 - Disable all solenoids. (Requires EXT_SOLENOID)
  * M400 - Finish all moves.
  * M401 - Deploy and activate Z probe. (Requires a probe)
  * M402 - Deactivate and stow Z probe. (Requires a probe)
@@ -653,12 +651,6 @@ private:
   #if HAS_CASE_LIGHT
     // #error dead code found by automatic analyses (see BFW-5461)
     static void M355();
-  #endif
-
-  #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    static void M380();
-    static void M381();
   #endif
 
   static void M400();

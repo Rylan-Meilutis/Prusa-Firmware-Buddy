@@ -526,11 +526,6 @@ void setup() {
     digipot_i2c_init();
   #endif
 
-  #if EITHER(Z_PROBE_SLED, SOLENOID_PROBE) && HAS_SOLENOID_1
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(SOL1_PIN, LOW); // OFF
-  #endif
-
   #if HAS_HOME
     // #error dead code found by automatic analyses (see BFW-5461)
     SET_INPUT_PULLUP(HOME_PIN);
