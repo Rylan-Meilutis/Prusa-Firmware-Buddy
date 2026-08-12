@@ -77,6 +77,7 @@ extern "C" void buddy_sdcard_upload_handle_line(const char *command);
 extern "C" bool buddy_sdcard_upload_start_command(const char *command);
 extern "C" void buddy_sdcard_upload_finish_command();
 extern "C" bool buddy_rme_file_service(const char *command);
+extern "C" bool buddy_rme_firmware_service(const char *command);
 extern "C" bool buddy_rme_binary_upload_active();
 extern "C" void buddy_rme_binary_upload_byte(uint8_t byte);
 
@@ -994,6 +995,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_machine_service(command)
       || handle_remote_stats_service(command)
       || handle_remote_toolmap_service(command)
+      || buddy_rme_firmware_service(payload)
       || buddy_rme_file_service(payload)
       || handle_dialog_service_response(payload)) return true;
   SERIAL_ECHOLNPGM("echo:RME_ERROR unknown");

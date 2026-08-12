@@ -1342,3 +1342,25 @@ Final shared-latch rebuild: all 29 presets passed. Maxima were 6.5.7 MINI
 97.03%, MK4 94.81%, MK3.5 90.24%, XL 69.34%; 6.6.3 MINI 99.14%, MK4 60.96%,
 MK3.5 56.33%, XL 69.04%, and CORE One INDX 65.63%. Artifact counts were 14
 and 15 with no failed presets.
+
+## Authoritative update-stage and raw-recovery release gate
+
+Require `firmware_status=1 firmware_unstage=1 binary_timeout_ms=<n>` in FILE
+CAPS. `@RME FIRMWARE QUERY` must ignore every ordinary `.BBF`, report only the
+protected `FWUPD.RME` candidate with size and SHA-256, and derive `armed=1`
+from the exact retained `FWUPD.RME` bootloader selection plus `FWUPD.UI`
+marker. Verify that application startup clears the retained armed state and
+retries protected candidate cleanup.
+
+`@RME FIRMWARE UNSTAGE` must be idempotent, acquire the shared transfer latch,
+reject printing/armed/transfer-owned states, and remove only the protected
+candidate, its private `.rme-part`, `.rme-meta`, `.rme-old` siblings, and its
+private marker. Generic DELETE and RENAME must not mutate that candidate.
+
+Exercise the raw receiver with loss, duplication, CRC corruption, a declared
+length of 65535, disconnect in header and payload, and abort/control frames
+during recovery. The receiver must issue one recovery NACK, find the next
+plausible ten-byte header without blind length-based discard, and either resume
+at the committed offset or restore line mode. Verify inactivity suspension
+reports the committed offset and `resumable=1`, releases the monitor slot, and
+allows a matching BEGIN to re-hash and resume the durable partial.

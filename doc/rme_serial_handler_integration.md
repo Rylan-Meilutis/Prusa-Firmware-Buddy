@@ -168,6 +168,15 @@ Upload a signed BBF through the same selected transfer mode, then send
 bootloader request, and restart to the firmware's normal update path. Do not
 assume that upload completion itself flashes or reboots the printer.
 
+After connection or reconnection, use `@RME FIRMWARE QUERY` as the sole source
+of firmware-stage truth. `candidate=1` refers only to the protected
+`FWUPD.RME` candidate and includes its size and SHA-256; `armed=1` comes from
+the exact retained one-shot bootloader selection plus cleanup marker. Never
+promote an arbitrary `.BBF` returned by LIST into staged state. Use
+`@RME FIRMWARE UNSTAGE` to remove an unarmed candidate; treat
+`firmware_armed`, `printer_busy`, and `transfer_busy` as non-destructive
+rejections. Repeating UNSTAGE after success is valid.
+
 When `crash_dump=1`, export a retained machine dump while the printer is idle
 with `@RME FILE CRASH_DUMP
 path=dump_buddy.bin`. Treat `RME_FILE_CRASH_DUMP_SAVED` as completion and then

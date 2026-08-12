@@ -48,6 +48,9 @@ static void update_main_board(bool update_older, const char *sfn) {
             }
         }
         data_exchange::set_reflash_bbf_sfn(selected_sfn);
+        if (strcasecmp(selected_sfn, "FWUPD.RME") == 0 && serial_remote_control::session_active()) {
+            SERIAL_ECHOLNPGM("RME_FIRMWARE candidate=1 armed=1 state=restarting path=FWUPD.RME");
+        }
     } else {
         if (update_older) {
             data_exchange::fw_update_older_on_restart_enable();
