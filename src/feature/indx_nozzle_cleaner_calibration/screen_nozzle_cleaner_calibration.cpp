@@ -36,6 +36,7 @@ constexpr auto txt_ask_position_y = N_("Move the nozzle precisely to the Y-axis 
 // %c is the axis letter ('X' or 'Y')
 constexpr auto txt_measuring = N_("Measuring %c position\n\nDo not touch the printer.");
 constexpr auto txt_success = N_("Nozzle cleaner calibrated.");
+constexpr auto txt_clean_nozzle = N_("The nozzle diameter was measured wider than expected.\n\nClean the nozzle, then press Retry.");
 
 // %s is the measured offset, formatted as "<value> mm" or "N/A" when the nozzle never made contact.
 constexpr auto txt_evaluating_failed = N_("Calibration failed.\n\nNominal: %.1f mm (+/- %hu mm)\n\nMeasured offset: %s\n\nCalibrate manually?");
@@ -123,6 +124,7 @@ using Frames = FrameDefinitionList<ScreenNozzleCleanerCalibration::FrameStorage,
     FrameDefinition<PhaseNozzleCleanerCalibration::lock_position_x, FrameTextPrompt, PhaseNozzleCleanerCalibration::lock_position_x, txt_lock_position>,
     FrameDefinition<PhaseNozzleCleanerCalibration::measuring_x, FrameWaitWithAxis, txt_measuring, 'X'>,
     FrameDefinition<PhaseNozzleCleanerCalibration::evaluating_x, FrameEvaluating, PhaseNozzleCleanerCalibration::evaluating_x, txt_evaluating_failed>,
+    FrameDefinition<PhaseNozzleCleanerCalibration::clean_nozzle, FrameTextPrompt, PhaseNozzleCleanerCalibration::clean_nozzle, txt_clean_nozzle>,
     FrameDefinition<PhaseNozzleCleanerCalibration::ask_position_y, FrameTitleTextImagePromptWithAxis, PhaseNozzleCleanerCalibration::ask_position_y, txt_title_axis_alignment, txt_ask_position_y, img_ask_position_y, 'Y'>,
     FrameDefinition<PhaseNozzleCleanerCalibration::lock_position_y, FrameTextPrompt, PhaseNozzleCleanerCalibration::lock_position_y, txt_lock_position>,
     FrameDefinition<PhaseNozzleCleanerCalibration::measuring_y, FrameWaitWithAxis, txt_measuring, 'Y'>,

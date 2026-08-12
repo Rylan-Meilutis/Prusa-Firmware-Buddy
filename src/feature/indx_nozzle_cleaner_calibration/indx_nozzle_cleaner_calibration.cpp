@@ -77,11 +77,12 @@ static constexpr float nozzle_radius_estimate_mm = 3.2f / 2.f;
 /// threshold, producing a false contact right at the entry point.
 static constexpr float probe_xy_acceleration_mm_s2 = 500;
 
-/// Accepted range for the effective nozzle radius measured by the two-sided wall touch [mm]. Out of
-/// range means the wall was hit far up the nozzle cone (Z screw badly adjusted) or a touch was bogus.
-/// INDX_TODO: tune.
+/// Accepted range for the effective nozzle radius measured by the two-sided wall touch [mm]. The full
+/// nozzle radius above the cone is ~2 mm; a larger measured radius means the loadcell triggered before
+/// reaching the metal - most likely a plastic blob (nozzle not clean), or the wall was hit high up the
+/// cone from a misadjusted Z screw. Below the min the touches were too close together (bogus).
 static constexpr float nozzle_radius_min_mm = 1.0f;
-static constexpr float nozzle_radius_max_mm = 2.2f;
+static constexpr float nozzle_radius_max_mm = 2.1f;
 
 /// Currently applied hotend offset (nozzle = carriage + offset); zero without hotend offset support.
 static xy_float_t current_nozzle_offset() {
@@ -513,93 +514,112 @@ private:
     /// @return success if calibrated (automatically or by hand), aborted if the user cancels
     Result calibrate_x_loadcell() {
         return run_axis_calibration(x_axis_config, [this](std::optional<float> &offset, float &nominal) -> std::optional<Result> {
-            nominal = X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
-            fsm_change(PhaseNozzleCleanerCalibration::measuring_x);
+            // Loop so a too-large radius (dirty nozzle) can be re-measured after the user cleans it,
+            // without dropping to the manual results screen.
+            for (;;) {
+                offset.reset(); // each attempt starts unmeasured; the "no contact" paths below rely on this
+                nominal = X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
+                fsm_change(PhaseNozzleCleanerCalibration::measuring_x);
 
-            // Outer face: touch in +X from the entry, retreating to the entry between touches.
-            move_to_wall_touch_entry();
-            const auto outer = measure_axis(AxisEnum::X_AXIS, "X outer", X_NOZZLE_CLEANER_WALL_PROBE_MAX,
-                [this] { move_to_wall_touch_entry(); });
+                // Outer face: touch in +X from the entry, retreating to the entry between touches.
+                move_to_wall_touch_entry();
+                const auto outer = measure_axis(AxisEnum::X_AXIS, "X outer", X_NOZZLE_CLEANER_WALL_PROBE_MAX,
+                    [this] { move_to_wall_touch_entry(); });
 
-            if (!outer.reached) {
-                // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
-                log_error(NozzleCleanerCalibration, "Nozzle cleaner X outer touch did not reach the wall");
-                return std::nullopt;
+                if (!outer.reached) {
+                    // No contact -> leave offset unset so the results screen shows "N/A", not a bogus 0.00 mm.
+                    log_error(NozzleCleanerCalibration, "Nozzle cleaner X outer touch did not reach the wall");
+                    return std::nullopt;
+                }
+                if (outer.spread > probe_max_spread_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner X outer touches inconsistent: spread %.2f mm (max %.2f mm)",
+                        static_cast<double>(outer.spread), static_cast<double>(probe_max_spread_mm));
+                    return std::nullopt;
+                }
+
+                // Cleaner offset estimated from the outer contact alone (assuming the nominal tip radius);
+                // aligns the V-groove lane and the inner probe with the real part position before driving
+                // in. The radius uncertainty is far below the lane clearances.
+                const float estimated_offset = outer.median - (X_NOZZLE_CLEANER_WALL_OUTER_FACE_NOMINAL - nozzle_radius_estimate_mm);
+                if (std::abs(estimated_offset) > offset_tolerance_mm) {
+                    offset = estimated_offset;
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner X offset estimate %.2f out of bounds (max %.1f mm)",
+                        static_cast<double>(estimated_offset), static_cast<double>(offset_tolerance_mm));
+                    return std::nullopt;
+                }
+
+                // Around the wall's +Y end to its inner side: up the entry lane to the purge-entry lane,
+                // over to the V-groove lane and down past the wastebin to the touch Y. The estimate is a
+                // nozzle-frame value, so the carriage targets derived from it unfold the tool offset.
+                const float lane_x = X_NOZZLE_CLEANER_ORIGIN + estimated_offset - current_nozzle_offset().x;
+                machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
+                machine_move_axis(AxisEnum::X_AXIS, lane_x);
+                machine_move_axis(AxisEnum::Y_AXIS, X_NOZZLE_CLEANER_WALL_TOUCH_Y);
+
+                // Inner face: touch in -X from the V-groove lane; the probe limit keeps the nozzle center
+                // from ever crossing the (estimated) wall middle.
+                const auto inner = measure_axis(AxisEnum::X_AXIS, "X inner",
+                    X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL + estimated_offset - current_nozzle_offset().x,
+                    [this, lane_x] { machine_move_axis(AxisEnum::X_AXIS, lane_x); });
+
+                // Back out to the purge-entry lane right away so every following state - results screen,
+                // retry, manual park, the Y touch - starts clear of the wastebin interior.
+                machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
+
+                if (!inner.reached) {
+                    log_error(NozzleCleanerCalibration, "Nozzle cleaner X inner touch did not reach the wall");
+                    return std::nullopt;
+                }
+
+                const float middle = (outer.median + inner.median) / 2.f;
+                const float radius = (inner.median - outer.median - X_NOZZLE_CLEANER_WALL_THICKNESS) / 2.f;
+                offset = middle - X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
+
+                if (inner.spread > probe_max_spread_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner X inner touches inconsistent: spread %.2f mm (max %.2f mm)",
+                        static_cast<double>(inner.spread), static_cast<double>(probe_max_spread_mm));
+                    return std::nullopt;
+                }
+                if (radius > nozzle_radius_max_mm) {
+                    // Radius too large -> the loadcell most likely triggered on a plastic blob instead of
+                    // the metal cone: the nozzle is not clean (a wall hit high up the cone from a misadjusted
+                    // Z screw reads the same). Park somewhere reachable, ask the user to clean it, re-measure.
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner effective nozzle radius %.2f too large (max %.1f mm); nozzle probably not clean",
+                        static_cast<double>(radius), static_cast<double>(nozzle_radius_max_mm));
+                    // Center X, in front of the docks -> nozzle reachable through the front door for cleaning.
+                    mapi::park({ .x = X_BED_SIZE / 2.f, .y = Y_DOCK_PARKING_MIN_SAFE_POS });
+                    fsm_change(PhaseNozzleCleanerCalibration::clean_nozzle);
+                    if (wait_for_response(PhaseNozzleCleanerCalibration::clean_nozzle) == Response::Abort) {
+                        return Result::aborted;
+                    }
+                    continue; // Retry: re-measure (still automatic)
+                }
+                if (radius < nozzle_radius_min_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner effective nozzle radius %.2f too small (min %.1f mm); check the Z screw adjustment",
+                        static_cast<double>(radius), static_cast<double>(nozzle_radius_min_mm));
+                    return std::nullopt;
+                }
+                if (std::abs(*offset) > offset_tolerance_mm) {
+                    log_error(NozzleCleanerCalibration,
+                        "Nozzle cleaner X offset %.2f out of bounds (max %.1f mm)",
+                        static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
+                    return std::nullopt;
+                }
+
+                config_store().nozzle_cleaner_x_origin_offset.set(*offset);
+                wall_middle_x = middle;
+                nozzle_radius = radius;
+                log_info(NozzleCleanerCalibration,
+                    "Nozzle cleaner X calibrated: offset=%.2f middle=%.2f radius=%.2f (spread outer %.2f inner %.2f)",
+                    static_cast<double>(*offset), static_cast<double>(middle), static_cast<double>(radius),
+                    static_cast<double>(outer.spread), static_cast<double>(inner.spread));
+                return Result::success;
             }
-            if (outer.spread > probe_max_spread_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner X outer touches inconsistent: spread %.2f mm (max %.2f mm)",
-                    static_cast<double>(outer.spread), static_cast<double>(probe_max_spread_mm));
-                return std::nullopt;
-            }
-
-            // Cleaner offset estimated from the outer contact alone (assuming the nominal tip radius);
-            // aligns the V-groove lane and the inner probe with the real part position before driving
-            // in. The radius uncertainty is far below the lane clearances.
-            const float estimated_offset = outer.median - (X_NOZZLE_CLEANER_WALL_OUTER_FACE_NOMINAL - nozzle_radius_estimate_mm);
-            if (std::abs(estimated_offset) > offset_tolerance_mm) {
-                offset = estimated_offset;
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner X offset estimate %.2f out of bounds (max %.1f mm)",
-                    static_cast<double>(estimated_offset), static_cast<double>(offset_tolerance_mm));
-                return std::nullopt;
-            }
-
-            // Around the wall's +Y end to its inner side: up the entry lane to the purge-entry lane,
-            // over to the V-groove lane and down past the wastebin to the touch Y. The estimate is a
-            // nozzle-frame value, so the carriage targets derived from it unfold the tool offset.
-            const float lane_x = X_NOZZLE_CLEANER_ORIGIN + estimated_offset - current_nozzle_offset().x;
-            machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
-            machine_move_axis(AxisEnum::X_AXIS, lane_x);
-            machine_move_axis(AxisEnum::Y_AXIS, X_NOZZLE_CLEANER_WALL_TOUCH_Y);
-
-            // Inner face: touch in -X from the V-groove lane; the probe limit keeps the nozzle center
-            // from ever crossing the (estimated) wall middle.
-            const auto inner = measure_axis(AxisEnum::X_AXIS, "X inner",
-                X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL + estimated_offset - current_nozzle_offset().x,
-                [this, lane_x] { machine_move_axis(AxisEnum::X_AXIS, lane_x); });
-
-            // Back out to the purge-entry lane right away so every following state - results screen,
-            // retry, manual park, the Y touch - starts clear of the wastebin interior.
-            machine_move_axis(AxisEnum::Y_AXIS, Y_NOZZLE_CLEANER_PURGE_ENTRY);
-
-            if (!inner.reached) {
-                log_error(NozzleCleanerCalibration, "Nozzle cleaner X inner touch did not reach the wall");
-                return std::nullopt;
-            }
-
-            const float middle = (outer.median + inner.median) / 2.f;
-            const float radius = (inner.median - outer.median - X_NOZZLE_CLEANER_WALL_THICKNESS) / 2.f;
-            offset = middle - X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL;
-
-            if (inner.spread > probe_max_spread_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner X inner touches inconsistent: spread %.2f mm (max %.2f mm)",
-                    static_cast<double>(inner.spread), static_cast<double>(probe_max_spread_mm));
-                return std::nullopt;
-            }
-            if (radius < nozzle_radius_min_mm || radius > nozzle_radius_max_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner effective nozzle radius %.2f out of range (%.1f-%.1f mm); check the Z screw adjustment",
-                    static_cast<double>(radius), static_cast<double>(nozzle_radius_min_mm),
-                    static_cast<double>(nozzle_radius_max_mm));
-                return std::nullopt;
-            }
-            if (std::abs(*offset) > offset_tolerance_mm) {
-                log_error(NozzleCleanerCalibration,
-                    "Nozzle cleaner X offset %.2f out of bounds (max %.1f mm)",
-                    static_cast<double>(*offset), static_cast<double>(offset_tolerance_mm));
-                return std::nullopt;
-            }
-
-            config_store().nozzle_cleaner_x_origin_offset.set(*offset);
-            wall_middle_x = middle;
-            nozzle_radius = radius;
-            log_info(NozzleCleanerCalibration,
-                "Nozzle cleaner X calibrated: offset=%.2f middle=%.2f radius=%.2f (spread outer %.2f inner %.2f)",
-                static_cast<double>(*offset), static_cast<double>(middle), static_cast<double>(radius),
-                static_cast<double>(outer.spread), static_cast<double>(inner.spread));
-            return Result::success;
         });
     }
 
