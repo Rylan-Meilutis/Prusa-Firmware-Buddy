@@ -17,8 +17,8 @@ enum class Action {
     YCheck,
     ZAlign, // also known as z_calib
     BeltTuning,
-    FilamentSensorCalibration,
     Gears,
+    FilamentSensorCalibration,
 #if HAS_PRECISE_HOMING_COREXY()
     PreciseHoming,
 #endif

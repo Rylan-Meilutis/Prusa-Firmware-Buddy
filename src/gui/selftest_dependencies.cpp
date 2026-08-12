@@ -3,6 +3,8 @@
 #include <string_builder.hpp>
 #include <window_msgbox.hpp>
 #include <utils/bitset_utils.hpp>
+#include <printers.h>
+#include <option/has_nextruder.h>
 
 namespace SelftestSnake {
 
@@ -90,4 +92,9 @@ bool are_previous_completed(Action action) {
 }
 
 #endif
+
+#if HAS_NEXTRUDER() && !PRINTER_IS_PRUSA_iX()
+static_assert(Action::Gears < Action::FilamentSensorCalibration, "Filament could get locked up in the gearbox");
+#endif
+
 }; // namespace SelftestSnake
