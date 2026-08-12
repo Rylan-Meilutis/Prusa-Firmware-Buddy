@@ -1337,3 +1337,8 @@ purge parking pose over the bucket. Pause capture and disable calibration mode
 before each silicone/v-blade eject cycle; return to the purge pose, synchronize,
 then resume capture for the next cycle. Unit-test that cleaner-contact samples
 are excluded while later excitation samples append to the same fixed buffer.
+
+Final shared-latch rebuild: all 29 presets passed. Maxima were 6.5.7 MINI
+97.03%, MK4 94.81%, MK3.5 90.24%, XL 69.34%; 6.6.3 MINI 99.14%, MK4 60.96%,
+MK3.5 56.33%, XL 69.04%, and CORE One INDX 65.63%. Artifact counts were 14
+and 15 with no failed presets.
