@@ -992,6 +992,10 @@ static bool handle_remote_service_frame(const char *raw_command) {
   return true;
 }
 
+extern "C" bool buddy_rme_service_frame(const char *raw_command) {
+  return handle_remote_service_frame(raw_command);
+}
+
 static void report_service_queue_status() {
   SERIAL_ECHOPGM("RME_PROMPT ");
   bool first = true;

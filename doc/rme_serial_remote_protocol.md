@@ -320,18 +320,51 @@ After `RME_FILE_BINARY_READY`, send raw little-endian frames containing
 are at most 1024 bytes and eight sequential frames may be in flight. Firmware
 emits cumulative `RME_FILE_BINARY_ACK` offsets. A zero-length frame at the
 final offset flushes, verifies SHA-256, atomically renames, and returns to line
-mode. A zero-length frame with offset `0xffffffff` aborts and removes the
-partial file. CRC or offset failures return `RME_FILE_BINARY_NACK` with the
-last committed offset. Legacy text protocols remain unchanged.
+mode. A zero-length frame with offset `0xffffffff` suspends the partial file.
+Recoverable frame failures return `RME_FILE_BINARY_NACK` with the last
+committed offset and `reason=offset_mismatch`, `size_exceeded`, `crc_mismatch`,
+`chunk_too_large`, or `completion_offset_mismatch`. Legacy text protocols
+remain unchanged.
 
 The ten-byte header and payload are raw bytes: do not add CR/LF, Marlin line
 numbers/checksums, or Base64. Raw mode owns the receiver until a completion or
-abort frame returns it to line mode, so ASCII G-code and `@RME` service commands
-cannot be interleaved during that interval. The printer's independent motion,
+abort frame returns it to line mode, so unframed ASCII G-code and service
+commands cannot be interleaved during that interval. The printer's independent motion,
 heater, and safety tasks continue to execute. Hosts cancel with the binary
 `0xffffffff` abort frame and must wait for the abort/completion response before
 resuming line traffic. On NACK, discard unacknowledged frames and restart at
-the returned committed offset.
+the returned committed offset. For compatibility with a host whose raw writer
+has failed, the exact line `@RME FILE ABORT` is also recognized after it forms
+a malformed binary header. Both abort forms return
+`RME_FILE_BINARY_ABORTED offset=<n> resumable=1` and restore line mode; the
+ordinary line-mode `ABORT` command still discards the partial upload.
+
+A storage-write or SHA-state failure closes the stream, restores line mode,
+retains the committed partial, and reports `echo:RME_ERROR workflow=file
+code=<reason> offset=<n> resumable=1`. Text transports distinguish
+`decode_failed` and `chunk_too_large`; all modes distinguish `size_exceeded`,
+`disk_write_failed`, and `hash_failed`. Send a matching BEGIN with the same
+path, size, and SHA-256 to resume. Firmware reopens and re-hashes the partial,
+then replies with `*_READY offset=<n> resumed=1`. The resumed transport may
+differ from the failed one, so binary can fall back to bulk or legacy text
+without retransmitting the verified prefix.
+
+Binary mode also reserves `offset=0xfffffffe` for an out-of-band control frame.
+Its nonzero payload is one complete ASCII `@RME` command without CR/LF, and its
+length and CRC use the normal header fields. Firmware dispatches the command,
+does not write or hash those bytes, and terminates the response with
+`RME_FILE_BINARY_CONTROL_COMPLETE` and `ok`. Transfer-mutating FILE commands
+are rejected in this channel; use `offset=0xffffffff,length=0` or the framed
+`@RME FILE ABORT` control for suspension. Ordinary upload offsets and the
+legacy binary format are unchanged.
+
+`CAPS` advertises `binary_control=1 binary_control_offset=4294967294
+resumable_abort=1 durable_resume=1`. A compact `.rme-meta` sidecar stores the
+declared size, SHA-256, and final path beside `.rme-part`; the committed offset
+is recovered from the partial file and its prefix is re-hashed. USB disconnect
+automatically suspends raw mode, so reconnect or firmware restart can issue the
+same BEGIN and resume safely. Completion or explicit line-mode ABORT removes
+the private sidecar.
 
 Chunks must be contiguous. Firmware writes a `.rme-part` sibling, verifies the
 size and SHA-256, flushes it to media, and atomically renames it only after a
@@ -347,7 +380,14 @@ are refused while printing:
 @RME FILE DELETE path=jobs/new.bgcode
 @RME FILE PRINT path=jobs/part.bgcode
 @RME FILE FLASH path=firmware/6.6.3-RME.bbf
+@RME FILE CRASH_DUMP path=dump_buddy.bin
 ```
+
+When `crash_dump=1` is advertised, `CRASH_DUMP` exports the retained Buddy
+crash dump to the requested `/usb` path and reports
+`RME_FILE_CRASH_DUMP_SAVED`; `no_crash_dump` means there is no valid retained
+dump, `printer_busy` defers export until filesystem activity is safe, and
+`crash_dump_write_failed` identifies media/export failure.
 
 `PRINT` and `FLASH` are validated, copied into the normal firmware command
 queue, and acknowledged as queued; they therefore use the same print-state and

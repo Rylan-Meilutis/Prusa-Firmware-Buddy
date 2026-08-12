@@ -100,23 +100,45 @@ Use the `binary_chunk`, `binary_window`, `header`, `endian`, and `crc` values
 returned by `CAPS`/`RME_FILE_BINARY_READY`; do not hard-code them as permanent
 protocol constants. In this release they are 1024 bytes, eight frames, ten
 bytes, little endian, and CRC32. Pipeline only contiguous frames. Treat every
-ACK as the cumulative committed offset, and after a NACK discard outstanding
-frames and restart from its reported offset. Complete the upload with a
+ACK as the cumulative committed offset, and after a NACK use its `reason`,
+discard outstanding frames, and restart from its reported offset. Complete the upload with a
 zero-length frame whose offset equals the declared size. Wait for
 `RME_FILE_BINARY_COMPLETE` before returning the shared connection to ordinary
-line mode. A zero-length frame with offset `0xffffffff` aborts the raw upload.
+line mode. A zero-length frame with offset `0xffffffff` suspends the raw upload.
 
 Raw mode deliberately gives every received byte to the transfer decoder, so
-ASCII G-code and `@RME` commands cannot be multiplexed into the byte stream.
-Firmware motion, heater, and safety tasks continue running, but a host needing
-to cancel the transfer must send the binary abort frame, not an ASCII command.
+unframed ASCII G-code and `@RME` commands cannot be multiplexed into the byte stream.
+Firmware motion, heater, and safety tasks continue running. Prefer the binary
+abort frame when cancelling. Firmware also recognizes the exact
+`@RME FILE ABORT` line after it forms a malformed binary header, so a host
+whose raw writer failed can still escape binary mode; no other ASCII command
+is interpreted there.
 Keep the normal emergency-disconnect policy as a final transport fallback.
 Once line mode resumes, the out-of-band recovery service is available again.
 
 For all three modes, retry from the last acknowledged offset after a recoverable
-transport interruption and issue the mode's abort operation when abandoning a
-transfer. Never interleave upload modes or send a second transfer request while
-one is active.
+transport interruption. Binary abort suspends the partial and restores line
+mode; line-mode `@RME FILE ABORT` discards it. A fatal transfer response has
+`code`, `offset`, and `resumable` fields and already restores line mode. When
+`resumable=1`, send a new BEGIN with the identical path, size, and SHA-256;
+honor the returned nonzero `*_READY offset` and `resumed=1`. A host may select
+bulk or legacy mode for that restart. Never send a second BEGIN before an ACK,
+NACK, abort, or fatal response has returned parser ownership.
+
+If `CAPS` advertises `durable_resume=1`, reconnect and send the identical BEGIN
+after USB loss or firmware restart. The `.rme-meta` sidecar persists path,
+declared size, and SHA-256, while firmware derives the committed offset from
+the partial file and re-hashes that prefix before returning `resumed=1`.
+
+When `binary_control=1` is advertised, issue RME controls without stopping a
+binary upload by wrapping one complete
+ASCII command (without CR/LF) in the ordinary ten-byte header using reserved
+`offset=0xfffffffe`, a nonzero length, and its CRC32. Pause upload-window
+transmission, send one control frame, consume its normal response followed by
+`RME_FILE_BINARY_CONTROL_COMPLETE` and `ok`, then continue at the last upload
+ACK. Never send ordinary upload bytes concurrently. FILE operations that
+start/read/write/delete/rename/print/flash are rejected as nested controls;
+the framed `@RME FILE ABORT` control is allowed and suspends the partial.
 
 When `CAPS` advertises `overwrite=1`, uploading to an existing regular-file
 path replaces it. Firmware retains the previous destination under a private
@@ -125,8 +147,8 @@ installation fails, and removes the backup on success. Directories cannot be
 overwritten.
 
 Do not present a file as complete until `RME_FILE_WRITE_COMPLETE` arrives.
-For bulk and binary modes, the corresponding completion records are
-`RME_FILE_BULK_COMPLETE` and `RME_FILE_BINARY_COMPLETE`.
+Bulk Base64 also completes with `RME_FILE_WRITE_COMPLETE`; raw binary completes
+with `RME_FILE_BINARY_COMPLETE`.
 `PRINT` and `FLASH` return a queued acknowledgement before the foreground
 firmware workflow starts; continue consuming standard and structured state
 events. Percent-encode spaces and reserved path characters. Never attempt to
@@ -136,6 +158,11 @@ Upload a signed BBF through the same selected transfer mode, then send
 `@RME FILE FLASH path=<encoded path>`. This delegates validation, retained
 bootloader request, and restart to the firmware's normal update path. Do not
 assume that upload completion itself flashes or reboots the printer.
+
+When `crash_dump=1`, export a retained machine dump while the printer is idle
+with `@RME FILE CRASH_DUMP
+path=dump_buddy.bin`. Treat `RME_FILE_CRASH_DUMP_SAVED` as completion and then
+download it through `READ_BINARY`; do not clear or reinterpret the binary.
 
 Before an M997 reset, an active RME session receives
 `RME_EVENT ... workflow=firmware_update state=restarting ...` followed by
