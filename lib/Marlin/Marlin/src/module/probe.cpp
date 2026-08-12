@@ -122,26 +122,7 @@ bool probe_should_check_angle_after() {
   #include <feature/auto_retract/auto_retract.hpp>
 #endif
 
-#if ENABLED(Z_PROBE_SLED)
-  // #error dead code found by automatic analyses (see BFW-5461)
-
-  #ifndef SLED_DOCKING_OFFSET
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #define SLED_DOCKING_OFFSET 0
-  #endif
-
-  /**
-   * Method to dock/undock a sled designed by Charles Bell.
-   *
-   * stow[in]     If false, move to MAX_X and engage the solenoid
-   *              If true, move to MAX_X and release the solenoid
-   */
-  static void dock_sled(bool stow) {
-    // Dock sled a bit closer to ensure proper capturing
-    do_blocking_move_to_x(X_MAX_POS + SLED_DOCKING_OFFSET - ((stow) ? 1 : 0));
-  }
-
-#elif ENABLED(TOUCH_MI_PROBE)
+#if ENABLED(TOUCH_MI_PROBE)
   // #error dead code found by automatic analyses (see BFW-5461)
 
   // Move to the magnet to unlock the probe
@@ -340,12 +321,7 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
     }
   #endif /*ENABLED(NOZZLE_LOAD_CELL)*/
 
-  #if ENABLED(Z_PROBE_SLED)
-    // #error dead code found by automatic analyses (see BFW-5461)
-
-    dock_sled(!deploy);
-
-  #elif EITHER(TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY)
+  #if EITHER(TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY)
     // #error dead code found by automatic analyses (see BFW-5461)
 
     deploy ? run_deploy_moves_script() : run_stow_moves_script();
@@ -381,16 +357,11 @@ bool set_probe_deployed(const bool deploy) {
     UNUSED(unknown_condition);
   #endif
 
-  #if EITHER(Z_PROBE_SLED, Z_PROBE_ALLEN_KEY)
+  #if ENABLED(Z_PROBE_ALLEN_KEY)
     // #error dead code found by automatic analyses (see BFW-5461)
-    if (axis_unhomed_error(
-      #if ENABLED(Z_PROBE_SLED)
-        // #error dead code found by automatic analyses (see BFW-5461)
-        _BV(X_AXIS)
-      #endif
-    )) {
+    if (axis_unhomed_error()) {
       // Previously called stop() for soft-error recovery. That mechanism has been removed.
-      static_assert(false, "Z_PROBE_SLED/Z_PROBE_ALLEN_KEY needs rework: stop() was removed");
+      static_assert(false, "Z_PROBE_ALLEN_KEY needs rework: stop() was removed");
     }
   #endif
 

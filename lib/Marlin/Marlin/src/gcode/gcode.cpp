@@ -326,11 +326,8 @@ void GcodeSuite::process_parsed_command_standard() {
 
       #if HAS_BED_PROBE
         case 30: G30(); break;                                    // G30: Single Z probe
-        #if ENABLED(Z_PROBE_SLED)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          case 31: G31(); break;                                  // G31: dock the sled
-          case 32: G32(); break;                                  // G32: undock the sled
-        #endif
+        // G31: dock the sled REMOVED
+        // G32: undock the sled REMOVED
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)

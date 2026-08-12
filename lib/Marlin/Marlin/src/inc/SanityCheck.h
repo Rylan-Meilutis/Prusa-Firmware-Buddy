@@ -194,8 +194,6 @@
   #error "UBL_MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
 #elif defined(min_software_endstops) || defined(max_software_endstops)
   #error "(min|max)_software_endstops are now (MIN|MAX)_SOFTWARE_ENDSTOPS. Please update your configuration."
-#elif ENABLED(Z_PROBE_SLED) && defined(SLED_PIN)
-  #error "Replace SLED_PIN with SOL1_PIN."
 #elif defined(MIN_RETRACT)
   #error "MIN_RETRACT is now MIN_AUTORETRACT and MAX_AUTORETRACT. Please update your Configuration_adv.h."
 #elif defined(UBL_MESH_INSET)
@@ -479,9 +477,8 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   + ENABLED(FIX_MOUNTED_PROBE) \
   + ENABLED(TOUCH_MI_PROBE) \
   + ENABLED(Z_PROBE_ALLEN_KEY) \
-  + ENABLED(Z_PROBE_SLED) \
   + ENABLED(SENSORLESS_PROBING)
-  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, or Z_PROBE_ALLEN_KEY."
 #endif
 
 #if HAS_BED_PROBE
@@ -553,7 +550,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #else
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, or Z_PROBE_ALLEN_KEY."
   #endif
 
 #endif
@@ -1227,4 +1224,8 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if ENABLED(EXT_SOLENOID) || ENABLED(MANUAL_SOLENOID_CONTROL) || ENABLED(SOLENOID_PROBE) || HAS_SOLENOID_1
     #error "solenoids are not supported"
+#endif
+
+#if ENABLED(Z_PROBE_SLED)
+    #error "Z_PROBE_SLED is not supported"
 #endif

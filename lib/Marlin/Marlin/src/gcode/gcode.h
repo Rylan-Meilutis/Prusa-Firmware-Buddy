@@ -59,8 +59,6 @@
  * G28  - Home one or more axes
  * G29  - Start or continue the bed leveling probe procedure (Requires bed leveling)
  * G30  - Single Z probe, probes bed at X Y location (defaults to current XY location)
- * G31  - Dock sled (Z_PROBE_SLED only)
- * G32  - Undock sled (Z_PROBE_SLED only)
  * G34  - Z Stepper automatic alignment using probe: I<iterations> T<accuracy> A<amplification> (Requires Z_STEPPER_AUTO_ALIGN)
  * G38  - Probe in any direction using the Z_MIN_PROBE (Requires G38_PROBE_TARGET)
  * G42  - Coordinated move to a mesh point (Requires AUTO_BED_LEVELING_BLINEAR or AUTO_BED_LEVELING_UBL)
@@ -432,11 +430,6 @@ private:
 
   #if HAS_BED_PROBE
     static void G30();
-    #if ENABLED(Z_PROBE_SLED)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void G31();
-      static void G32();
-    #endif
   #endif
 
   #if ENABLED(Z_STEPPER_AUTO_ALIGN)
