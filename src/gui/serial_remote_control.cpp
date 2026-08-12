@@ -109,16 +109,59 @@ void reload_theme() {
 }
 
 LightStatus light_status() {
-    LightStatus result { -1, -1, -1 };
+    const uint32_t screen = config_store().screen_brightness_by_state.get();
+    LightStatus result {
+        .print_screen = -1,
+        .print_chamber = -1,
+        .print_status = -1,
+        .screen_by_state = screen,
+        .chamber_by_state = 0,
+        .status_by_state = 0,
+        .current_screen = -1,
+        .current_chamber = -1,
+        .current_state = -1,
+        .activity_timeout_s = 0,
+        .event_timeout_s = 0,
+        .off_timeout_s = 0,
+        .status_finished_hold_s = 0,
+        .screen_supported = true,
+        .chamber_supported = false,
+        .status_supported = false,
+        .door_holds_active = false,
+        .post_print_hold_enabled = false,
+    };
 #if HAS_SIDE_LEDS()
     auto &side = leds::SideStripHandler::instance();
     result.print_screen = side.get_print_screen_brightness();
-    result.print_chamber = static_cast<uint16_t>(side.get_print_light_brightness()) * 100 / 255;
+    const auto pwm_to_percent = [](const uint8_t value) {
+        return static_cast<uint8_t>((static_cast<uint16_t>(value) * 100 + 127) / 255);
+    };
+    result.print_chamber = pwm_to_percent(side.get_print_light_brightness());
+    result.current_screen = side.current_screen_brightness();
+    result.current_chamber = pwm_to_percent(side.current_brightness());
+    result.current_state = static_cast<int8_t>(side.current_light_state());
+    result.chamber_supported = true;
+    result.activity_timeout_s = side.get_activity_timeout_s();
+    result.event_timeout_s = side.get_event_timeout_s();
+    result.off_timeout_s = side.get_off_timeout_s();
+    result.door_holds_active = side.get_door_holds_active();
+    result.post_print_hold_enabled = side.get_post_print_hold_enabled();
+    constexpr std::array<leds::LightState, 4> states {
+        leds::LightState::deep_idle, leds::LightState::idle,
+        leds::LightState::active, leds::LightState::printing,
+    };
+    for (const auto state : states) {
+        result.chamber_by_state |= static_cast<uint32_t>(pwm_to_percent(side.get_brightness(state))) << leds::light_state_shift(state);
+    }
 #elif HAS_LEDS()
     result.print_screen = leds::LEDManager::instance().get_print_screen_brightness();
 #endif
 #if HAS_LEDS()
-    result.print_status = leds::StatusLedsHandler::instance().get_print_status_brightness();
+    auto &status = leds::StatusLedsHandler::instance();
+    result.print_status = status.get_print_status_brightness();
+    result.status_by_state = config_store().status_led_brightness_by_state.get();
+    result.status_finished_hold_s = status.get_finished_hold_s();
+    result.status_supported = true;
 #endif
     return result;
 }

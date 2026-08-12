@@ -622,16 +622,46 @@ static bool handle_remote_light_service(const std::string_view command) {
   if (!command.starts_with(prefix)) return false;
   const auto action = command.substr(prefix.size());
   if (action.starts_with("QUERY")) {
-    const uint32_t screen = config_store().screen_brightness_by_state.get();
+    constexpr const char *state_names[] = { "deep_idle", "idle", "active", "printing" };
     SERIAL_ECHOPGM("RME_LIGHT screen_persistent=");
-    SERIAL_ECHO((screen >> 24) & 0xff);
     const auto lights = serial_remote_control::light_status();
+    SERIAL_ECHO((lights.screen_by_state >> 24) & 0xff);
     SERIAL_ECHOPGM(" chamber_print=");
     SERIAL_ECHO(lights.print_chamber);
     SERIAL_ECHOPGM(" screen_print=");
     SERIAL_ECHO(lights.print_screen);
     SERIAL_ECHOPGM(" status_print=");
     SERIAL_ECHO(lights.print_status);
+    SERIAL_ECHOPGM(" schema=2 screen_supported=1 chamber_supported=");
+    SERIAL_ECHO(lights.chamber_supported ? 1 : 0);
+    SERIAL_ECHOPGM(" status_supported=");
+    SERIAL_ECHO(lights.status_supported ? 1 : 0);
+    SERIAL_ECHOPGM(" screen="); SERIAL_ECHO(lights.screen_by_state);
+    SERIAL_ECHOPGM(" chamber="); SERIAL_ECHO(lights.chamber_by_state);
+    SERIAL_ECHOPGM(" status="); SERIAL_ECHO(lights.status_by_state);
+    SERIAL_EOL();
+    for (uint8_t i = 0; i < 4; ++i) {
+      const uint8_t shift = i * 8;
+      SERIAL_ECHOPGM("RME_LIGHT_STATE state="); SERIAL_ECHO(state_names[i]);
+      SERIAL_ECHOPGM(" screen="); SERIAL_ECHO((lights.screen_by_state >> shift) & 0xff);
+      SERIAL_ECHOPGM(" chamber="); SERIAL_ECHO((lights.chamber_by_state >> shift) & 0xff);
+      SERIAL_ECHOPGM(" status="); SERIAL_ECHO((lights.status_by_state >> shift) & 0xff);
+      SERIAL_EOL();
+    }
+    SERIAL_ECHOPGM("RME_LIGHT_POLICY activity_timeout_s="); SERIAL_ECHO(lights.activity_timeout_s);
+    SERIAL_ECHOPGM(" event_timeout_s="); SERIAL_ECHO(lights.event_timeout_s);
+    SERIAL_ECHOPGM(" off_timeout_s="); SERIAL_ECHO(lights.off_timeout_s);
+    SERIAL_ECHOPGM(" door_holds_active="); SERIAL_ECHO(lights.door_holds_active ? 1 : 0);
+    SERIAL_ECHOPGM(" post_print_hold="); SERIAL_ECHO(lights.post_print_hold_enabled ? 1 : 0);
+    SERIAL_ECHOPGM(" status_finished_hold_s="); SERIAL_ECHO(lights.status_finished_hold_s);
+    SERIAL_EOL();
+    SERIAL_ECHOPGM("RME_LIGHT_LIVE state=");
+    SERIAL_ECHO(lights.current_state >= 0 && lights.current_state < 4 ? state_names[lights.current_state] : "unknown");
+    SERIAL_ECHOPGM(" screen="); SERIAL_ECHO(lights.current_screen);
+    SERIAL_ECHOPGM(" chamber="); SERIAL_ECHO(lights.current_chamber);
+    SERIAL_ECHOPGM(" print_screen="); SERIAL_ECHO(lights.print_screen);
+    SERIAL_ECHOPGM(" print_chamber="); SERIAL_ECHO(lights.print_chamber);
+    SERIAL_ECHOPGM(" print_status="); SERIAL_ECHO(lights.print_status);
     SERIAL_EOL();
   } else if (action.starts_with("TEMP")) {
     const auto screen = remote_number(command, "screen").value_or(-1);

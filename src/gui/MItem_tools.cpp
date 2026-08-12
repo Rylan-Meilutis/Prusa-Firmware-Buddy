@@ -26,6 +26,7 @@
 #include <version/version.hpp>
 #include <common/sys.hpp>
 #include <common/w25x.hpp>
+#include <common/serial_printing.hpp>
 #include <bootloader/bootloader.hpp>
 #include "config_features.h"
 #include <config_store/store_instance.hpp>
@@ -932,6 +933,7 @@ const NumericInputConfig &screen_brightness_config_for_state(leds::LightState st
     const uint8_t shift = leds::light_state_shift(state);
     const uint32_t stored = config_store().screen_brightness_by_state.get();
     config_store().screen_brightness_by_state.set((stored & ~(0xffu << shift)) | (static_cast<uint32_t>(value) << shift));
+    SerialPrinting::notify_configuration("light", "persistent");
 }
 
 #if HAS_SIDE_LEDS()
@@ -1032,6 +1034,7 @@ MI_LIGHT_STATE_MAIN_ENABLE::MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state)
 
 void MI_LIGHT_STATE_MAIN_ENABLE::OnChange(size_t old_index) {
     leds::SideStripHandler::instance().set_main_light_enabled(state, !old_index);
+    SerialPrinting::notify_configuration("light", "persistent");
 }
 
 /**********************************************************************************************/
@@ -1047,6 +1050,7 @@ MI_LIGHT_STATE_BRIGHTNESS::MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state)
 void MI_LIGHT_STATE_BRIGHTNESS::OnClick() {
     leds::SideStripHandler::instance().set_brightness(state, brightness_percent_to_pwm(value()));
     leds::SideStripHandler::instance().activity_ping();
+    SerialPrinting::notify_configuration("light", "persistent");
 }
 
 /**********************************************************************************************/
@@ -1058,6 +1062,7 @@ MI_LIGHT_STATE_DOOR_ACTIVE::MI_LIGHT_STATE_DOOR_ACTIVE()
 
 void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
     leds::SideStripHandler::instance().set_door_holds_active(!old_index);
+    SerialPrinting::notify_configuration("light", "policy");
 }
 #endif
 
@@ -1075,6 +1080,7 @@ MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
 
 void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnClick() {
     leds::SideStripHandler::instance().set_print_light_brightness(brightness_percent_to_pwm(value()));
+    SerialPrinting::notify_configuration("light", "temporary");
 }
 
 void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
@@ -1131,8 +1137,10 @@ void MI_PRINT_SCREEN_BRIGHTNESS::OnClick() {
 #if HAS_SIDE_LEDS()
     leds::SideStripHandler::instance().set_print_screen_brightness(brightness);
     leds::SideStripHandler::instance().activity_ping();
+    SerialPrinting::notify_configuration("light", "temporary");
 #elif HAS_LEDS()
     leds::LEDManager::instance().set_print_screen_brightness(brightness);
+    SerialPrinting::notify_configuration("light", "temporary");
 #else
     store_screen_brightness(leds::LightState::printing, brightness);
     #if HAS_ST7789_DISPLAY()
@@ -1154,6 +1162,7 @@ MI_LIGHT_STATE_STATUS_BRIGHTNESS::MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightSt
 
 void MI_LIGHT_STATE_STATUS_BRIGHTNESS::OnClick() {
     leds::StatusLedsHandler::instance().set_brightness(state, percent_to_uint8(value()));
+    SerialPrinting::notify_configuration("light", "persistent");
 }
 
 /**********************************************************************************************/
@@ -1170,6 +1179,7 @@ MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
 
 void MI_PRINT_STATUS_LEDS_ENABLE::OnClick() {
     leds::StatusLedsHandler::instance().set_print_status_brightness(percent_to_uint8(value()));
+    SerialPrinting::notify_configuration("light", "temporary");
 }
 
 void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
@@ -1191,6 +1201,7 @@ MI_SIDE_LEDS_ACTIVITY_TIMEOUT::MI_SIDE_LEDS_ACTIVITY_TIMEOUT()
 
 void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::OnClick() {
     leds::SideStripHandler::instance().set_activity_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
 }
 
 void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::Loop() {
@@ -1211,6 +1222,7 @@ MI_SIDE_LEDS_EVENT_TIMEOUT::MI_SIDE_LEDS_EVENT_TIMEOUT()
 
 void MI_SIDE_LEDS_EVENT_TIMEOUT::OnClick() {
     leds::SideStripHandler::instance().set_event_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
 }
 
 void MI_SIDE_LEDS_EVENT_TIMEOUT::Loop() {
@@ -1231,6 +1243,7 @@ MI_SIDE_LEDS_OFF_TIMEOUT::MI_SIDE_LEDS_OFF_TIMEOUT()
 
 void MI_SIDE_LEDS_OFF_TIMEOUT::OnClick() {
     leds::SideStripHandler::instance().set_off_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
 }
 
 void MI_SIDE_LEDS_OFF_TIMEOUT::Loop() {
@@ -1246,6 +1259,7 @@ MI_POST_PRINT_LED_HOLD::MI_POST_PRINT_LED_HOLD()
 
 void MI_POST_PRINT_LED_HOLD::OnChange(size_t old_index) {
     leds::SideStripHandler::instance().set_post_print_hold_enabled(!old_index);
+    SerialPrinting::notify_configuration("light", "policy");
 }
 #endif
 
@@ -1262,6 +1276,7 @@ MI_STATUS_LED_FINISHED_HOLD::MI_STATUS_LED_FINISHED_HOLD()
 
 void MI_STATUS_LED_FINISHED_HOLD::OnClick() {
     leds::StatusLedsHandler::instance().set_finished_hold_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
 }
 #endif
 

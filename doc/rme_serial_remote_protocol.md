@@ -143,6 +143,35 @@ overrides and does not change saved settings. Sending an ordinary chamber-light
 brightness command retains RME's wake-only behavior; plugin configuration uses
 the explicit frames above.
 
+`LIGHT QUERY` is a versioned, complete snapshot. Its first `RME_LIGHT` record
+retains the legacy `screen_persistent`, `chamber_print`, `screen_print`, and
+`status_print` fields, and adds `schema=2`, channel support flags, and the saved
+packed `screen`, `chamber`, and `status` matrices. Packed values are emitted as
+unsigned decimal integers but have the same `0xDDIIAAPP` layout accepted by
+`LIGHT SET`. Four `RME_LIGHT_STATE` records provide the decoded percentages:
+
+```text
+RME_LIGHT_STATE state=deep_idle screen=20 chamber=20 status=20
+RME_LIGHT_STATE state=idle screen=20 chamber=20 status=20
+RME_LIGHT_STATE state=active screen=100 chamber=100 status=100
+RME_LIGHT_STATE state=printing screen=60 chamber=100 status=100
+```
+
+The snapshot also emits:
+
+```text
+RME_LIGHT_POLICY activity_timeout_s=120 event_timeout_s=300 off_timeout_s=120 door_holds_active=1 post_print_hold=1 status_finished_hold_s=300
+RME_LIGHT_LIVE state=idle screen=20 chamber=20 print_screen=60 print_chamber=100 print_status=100
+```
+
+Unsupported channels are identified by the `*_supported=0` fields and use
+zero for their saved matrix and `-1` for unavailable live/override values.
+Plugins should query once after opening a session, cache this snapshot, and
+query it again only after an `RME_CHANGE domain=light` notification (or after
+reconnecting). A host-originated change includes its `tx` value, so the host
+can acknowledge its own mutation without polling or creating a synchronization
+loop.
+
 ## Filament preset synchronization
 
 ```text
