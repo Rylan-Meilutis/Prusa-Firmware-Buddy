@@ -14,12 +14,12 @@
 
 using ScreenMenuFilament__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_RETURN,
+#if HAS_WASTEBIN_FILL_TRACKING()
+    MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
+#endif
     MI_LOADED_FILAMENT,
 #if HAS_TOOLCHANGER()
     MI_LOAD_ALL,
-#endif
-#if HAS_WASTEBIN_FILL_TRACKING()
-    MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
 #endif
     MI_LOAD,
 #if HAS_TOOLCHANGER()
