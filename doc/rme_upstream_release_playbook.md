@@ -1379,3 +1379,8 @@ ordinary G-code queue or produce `echo:Unknown command`. Verify cumulative
 ACK offsets remain monotonic and the final SHA-256 matches.
 
 Release tags: `v6.5.7-RME-b38` and `v6.6.3-RME-b10`.
+
+Final result: all 29 presets passed with zero failures. Validated maxima were
+6.5.7 MINI 97.35%, MK4 94.96%, MK3.5 90.40%, XL 69.53%; 6.6.3 MINI 99.42%,
+MK4 61.10%, MK3.5 56.48%, XL 69.23%, and CORE One INDX 65.80%. Artifact
+counts were exactly 14 and 15, with no root-level BBFs.

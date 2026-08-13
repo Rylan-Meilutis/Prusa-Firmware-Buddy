@@ -1299,4 +1299,14 @@ The final release command is:
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
+All 14 6.5.7 presets passed. Maximum MINI flash use was 97.35%, MK4 used
+94.96%, MK3.5 used 90.40%, and XL used 69.53%. Exactly 14 BBFs were staged
+under `bbf/6.5.7`.
+
+Build 38 firmware continuation:
+
+```text
+ac816a07e  2026-08-12  Fix reentrant RME bulk parser corruption
+```
+
 Published release tag: `v6.5.7-RME-b38`.
