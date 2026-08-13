@@ -2436,9 +2436,7 @@ void Planner::set_machine_position_mm(const MachinePosXYZE &xyze) {
 }
 
 void Planner::set_position_mm(const xyze_pos_t &xyze) {
-  xyze_pos_t machine = xyze;
-  TERN_(HAS_LEVELING, apply_leveling(machine));
-  set_machine_position_mm(machine);
+  set_machine_position_mm(to_machine_pos(xyze));
 }
 
 /**
