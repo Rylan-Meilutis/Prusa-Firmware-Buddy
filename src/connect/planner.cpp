@@ -511,16 +511,21 @@ Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_read
         if (buff.has_value()) {
             changed_path.consume(reinterpret_cast<char *>(buff->data()), buff->size());
 
-            EventType type = (changed_path.is_file() && changed_path.what_happend() == Incident::Created) ? EventType::FileInfo : EventType::FileChanged;
-            planned_event = Event {
-                type,
-                changed_path.triggered_command_id(),
-                nullopt,
-                SharedPath(std::move(*buff)),
-            };
-            planned_event->is_file = changed_path.is_file();
-            planned_event->incident = changed_path.what_happend();
-            return *planned_event;
+            // RME transfer internals are intentionally invisible to Connect.
+            // Consume their change notification without publishing a path or
+            // scheduling a rescan that could discover the private artifact.
+            if (!filename_is_rme_private(reinterpret_cast<char *>(buff->data()))) {
+                EventType type = (changed_path.is_file() && changed_path.what_happend() == Incident::Created) ? EventType::FileInfo : EventType::FileChanged;
+                planned_event = Event {
+                    type,
+                    changed_path.triggered_command_id(),
+                    nullopt,
+                    SharedPath(std::move(*buff)),
+                };
+                planned_event->is_file = changed_path.is_file();
+                planned_event->incident = changed_path.what_happend();
+                return *planned_event;
+            }
         }
     }
 
@@ -758,7 +763,7 @@ void Planner::command(const Command &command, const SendJobInfo &params) {
 }
 
 void Planner::command(const Command &command, const SendFileInfo &params) {
-    if (path_allowed(params.path.path())) {
+    if (path_allowed(params.path.path()) && !filename_is_rme_private(params.path.path())) {
         planned_event = Event {
             EventType::FileInfo,
             command.id,

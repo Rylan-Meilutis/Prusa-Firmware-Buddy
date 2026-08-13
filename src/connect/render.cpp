@@ -1018,6 +1018,12 @@ JsonResult DirRenderer::renderState(size_t resume_point, json::JsonOutput &outpu
             // Skip dot-files (should be hidden).
             continue;
         }
+        if (filename_is_rme_private(state.ent->d_name)) {
+            // RME resume metadata, partial payloads, rollback files, and the
+            // protected firmware candidate are host-private implementation
+            // details. Connect must never index or offer them to a user.
+            continue;
+        }
 
         state.childsize = nullopt;
         if (state.ent->d_type == DT_DIR && filename_is_transferrable(state.ent->d_name)) {

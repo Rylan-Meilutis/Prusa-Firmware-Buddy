@@ -286,6 +286,14 @@ system partitions are rejected. Discover support with:
 returns at most 48 bytes per request as Base64 in `RME_FILE_DATA`; continue from
 `offset + length` until `eof=1`.
 
+RME upload internals are deliberately absent from both RME `LIST` and Prusa
+Connect directory reports. This includes the protected `FWUPD.RME` candidate,
+its `FWUPD.UI` handoff marker, and every `.rme-part`, `.rme-meta`, or `.rme-old`
+sidecar. Hiding them affects discovery only: an idle RME host may explicitly
+`STAT`, `READ`, or `DELETE` a known partial, metadata, or rollback path for
+diagnosis and cleanup. Use `FIRMWARE UNSTAGE`, not generic `DELETE`, to remove
+the verified protected candidate and its associated private files atomically.
+
 For fast downloads, `CAPS` advertises
 `binary_read=1 binary_read_chunk=1024`. After `READ_BINARY`, consume the
 `RME_FILE_BINARY_READ_READY` line, then switch the receive parser for exactly
@@ -409,6 +417,39 @@ is recovered from the partial file and its prefix is re-hashed. USB disconnect
 automatically suspends raw mode, so reconnect or firmware restart can issue the
 same BEGIN and resume safely. Completion or explicit line-mode ABORT removes
 the private sidecar.
+
+### Plugin recovery and orphan cleanup workflow
+
+Because private artifacts are intentionally omitted from directory listings,
+a host must keep a small durable upload manifest of its own. Record the final
+relative path, declared size, SHA-256, and selected transport before sending
+BEGIN, and remove that record only after `RME_FILE_WRITE_COMPLETE` or
+`RME_FILE_BINARY_COMPLETE`. On startup or reconnect, process each unfinished
+manifest entry as follows:
+
+1. Query `FILE CAPS` and wait through `transfer_busy` or `printer_busy` without
+   sending payload bytes.
+2. Send the same `WRITE_BEGIN`, `WRITE_BULK_BEGIN`, or `WRITE_BINARY_BEGIN`
+   using the manifest's exact final path, size, and SHA-256. Firmware validates
+   the matching `<path>.rme-meta`, re-hashes `<path>.rme-part`, and returns a
+   READY record with `offset=<committed>` and `resumed=1`.
+3. To resume, continue from exactly that offset. The transport may be changed
+   after reconnect; its BEGIN still uses the same path, size, and SHA-256.
+4. To discard instead, deliberately recover with `WRITE_BEGIN` or
+   `WRITE_BULK_BEGIN` (not binary BEGIN), then send line-mode `@RME FILE ABORT`
+   immediately after READY. This is the preferred cleanup because firmware
+   removes the matching partial and metadata together while holding the shared
+   transfer latch. A raw binary abort only suspends and remains resumable.
+
+Do not scan Connect or `FILE LIST` for orphan names, and do not parse
+`.rme-meta` as a public file format. If the plugin has lost its manifest and
+the user supplies the original destination, it may probe the mechanically
+derived `<path>.rme-part` and `<path>.rme-meta` names with `FILE STAT`, then
+delete those exact paths with `FILE DELETE` while idle. Treat `not_found` as
+already clean. Delete neither an active transfer nor an `.rme-old` rollback
+file speculatively; the latter is firmware-owned recovery state. For firmware
+uploads mapped to `FWUPD.RME`, use `FIRMWARE QUERY` and `FIRMWARE UNSTAGE`
+instead of reconstructing or deleting private paths individually.
 
 RME, Connect, Link, and slicer uploads share one storage-transfer latch. Every
 RME BEGIN acquires it before opening or recovering a partial file and retains

@@ -1,4 +1,5 @@
 #include <render.hpp>
+#include <common/filename_type.hpp>
 #include <transfers/monitor.hpp>
 
 #include "mock_printer.h"
@@ -46,6 +47,16 @@ Printer::Params params_printing() {
 };
 
 } // namespace
+
+TEST_CASE("RME private storage artifacts are classified for hiding") {
+    CHECK(filename_is_rme_private("FWUPD.RME"));
+    CHECK(filename_is_rme_private("/usb/fwupd.ui"));
+    CHECK(filename_is_rme_private("FWUPD.RME.rme-part"));
+    CHECK(filename_is_rme_private("upload.rme-meta"));
+    CHECK(filename_is_rme_private("upload.RME-OLD"));
+    CHECK_FALSE(filename_is_rme_private("firmware.bbf"));
+    CHECK_FALSE(filename_is_rme_private("part.rme"));
+}
 
 TEST_CASE("Render") {
     string expected;
