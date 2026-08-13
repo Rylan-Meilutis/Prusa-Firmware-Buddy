@@ -327,6 +327,11 @@ may pipeline four sequential chunks and then waits for the cumulative
 `RME_FILE_BULK_ACK` offset before sending the next window. Firmware drains the
 bounded CDC FIFO continuously; USB backpressure and the cumulative ACK prevent
 storage latency from truncating an in-flight command or disconnecting the endpoint.
+Completed RME lines are snapshotted before dispatch, and the stateful serial
+line reader cannot be entered recursively while filesystem code is committing
+a chunk. Consequently, a nested scheduler pass cannot overwrite an in-flight
+command or expose its Base64 payload as ordinary G-code. Hosts may use the
+advertised window without serializing every chunk on an individual `ok`.
 Offset, declared-size, atomic temporary-file, SHA-256, abort, and final-rename
 guarantees are identical to legacy upload. Binary upload remains preferred for
 maximum throughput.

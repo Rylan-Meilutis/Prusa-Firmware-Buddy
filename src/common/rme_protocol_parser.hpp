@@ -11,6 +11,29 @@
 
 namespace rme_protocol {
 
+// Serial command dispatch may indirectly service the main loop while a file
+// operation blocks.  Use this small non-owning guard around stateful byte
+// stream consumers to reject recursive dispatch without heap allocation.
+class ScopedDispatchGuard {
+public:
+    explicit ScopedDispatchGuard(bool &active)
+        : active_(active)
+        , entered_(!active) {
+        if (entered_) active_ = true;
+    }
+    ~ScopedDispatchGuard() {
+        if (entered_) active_ = false;
+    }
+    explicit operator bool() const { return entered_; }
+
+    ScopedDispatchGuard(const ScopedDispatchGuard &) = delete;
+    ScopedDispatchGuard &operator=(const ScopedDispatchGuard &) = delete;
+
+private:
+    bool &active_;
+    bool entered_;
+};
+
 inline std::optional<std::string_view> value(const std::string_view command, const std::string_view key) {
     size_t token = command.find(' ');
     while (token != std::string_view::npos) {

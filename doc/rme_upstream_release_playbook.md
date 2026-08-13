@@ -1364,3 +1364,18 @@ plausible ten-byte header without blind length-based discard, and either resume
 at the committed offset or restore line mode. Verify inactivity suspension
 reports the committed offset and `resumable=1`, releases the monitor slot, and
 allows a matching BEGIN to re-hash and resume the durable partial.
+
+## 2026-08-12 build 38 / build 10 parser isolation validation
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. Require all
+29 presets and `rme_protocol_tests` to pass, with exactly 14 6.5.7 and 15
+6.6.3 BBFs staged.
+
+Exercise at least one complete four-command text/bulk window delivered in a
+single CDC burst. Filesystem waits that service the scheduler must not
+recursively enter the stateful serial line reader. Every completed RME frame
+must remain immutable until dispatch returns; no Base64 suffix may reach the
+ordinary G-code queue or produce `echo:Unknown command`. Verify cumulative
+ACK offsets remain monotonic and the final SHA-256 matches.
+
+Release tags: `v6.5.7-RME-b38` and `v6.6.3-RME-b10`.

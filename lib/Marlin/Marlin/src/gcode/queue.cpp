@@ -1142,6 +1142,15 @@ static bool handle_stuck_filament_response(const char *command) {
  * left on the serial port.
  */
 void GCodeQueue::get_serial_commands() {
+  // FILE chunk dispatch can enter media code which services the main loop.
+  // Serial draining is stateful (serial_count, comment state and the live
+  // line buffer), so recursively entering this function would let the next
+  // pipelined frame overwrite or execute inside the frame currently being
+  // committed.  Keep USB servicing re-entrant, but serialize command parsing.
+  static bool serial_drain_active = false;
+  rme_protocol::ScopedDispatchGuard serial_drain_guard { serial_drain_active };
+  if (!serial_drain_guard) return;
+
   // RME bulk frames are consumed out-of-band and never copied into the
   // MAX_CMD_SIZE G-code queue.
   static constexpr size_t rme_serial_line_size = 640;
@@ -1196,9 +1205,29 @@ void GCodeQueue::get_serial_commands() {
         if (!serial_count[i]) { thermalManager.manage_heater(); continue; }
 
         serial_line_buffer[i][serial_count[i]] = 0;       // Terminate string
-        serial_count[i] = 0;                              // Reset buffer
 
-        char* command = serial_line_buffer[i];
+        // RME file commands can synchronously enter filesystem code.  Some of
+        // those paths service the main loop while waiting for media and may
+        // re-enter serial draining.  Do not dispatch an RME command through
+        // the live receive buffer after resetting its write index: a nested
+        // reader could overwrite the command (and the string_views held by
+        // the RME parser) with the next pipelined line.  That previously made
+        // a Base64 suffix escape as an ordinary G-code, for example:
+        //   echo:Unknown command: "KEUIfwj..."
+        //
+        // A private completed-line snapshot also leaves the receive buffer
+        // available for nested draining without corrupting the frame being
+        // committed.  Normal G-code keeps the existing zero-copy path.
+        std::array<char, rme_serial_line_size> completed_rme_line {};
+        char *command = serial_line_buffer[i];
+        while (*command == ' ') command++;
+        const bool is_rme_line = strncmp(command, "@RME ", 5) == 0;
+        if (is_rme_line) {
+          const size_t command_size = strlen(command) + 1;
+          memcpy(completed_rme_line.data(), command, command_size);
+          command = completed_rme_line.data();
+        }
+        serial_count[i] = 0;                              // Reset live buffer
 
         while (*command == ' ') command++;                // Skip leading spaces
         char *npos = (*command == 'N') ? command : nullptr;  // Require the N parameter to start the line

@@ -1278,3 +1278,25 @@ Build 37 firmware continuation:
 ```
 
 Published release tag: `v6.5.7-RME-b37`.
+
+## Build 38 release update
+
+Build 38 fixes corruption of pipelined RME text and bulk upload commands. The
+serial reader previously reset the live line-buffer index before dispatching a
+completed RME frame. If filesystem work serviced the scheduler recursively,
+the next pipelined command could overwrite the frame still being parsed and
+its Base64 suffix could escape into Marlin as `echo:Unknown command`.
+
+Serial command draining is now explicitly non-reentrant, and each completed
+RME frame is copied to an immutable fixed-capacity stack snapshot before
+dispatch. This preserves the advertised four-command bulk window without heap
+allocation or a throughput-reducing per-chunk round trip. The RME suite passes
+400,140 assertions across 14 cases, including the nested-dispatch regression.
+
+The final release command is:
+
+```text
+./build.py --final --versions 6.5.7 6.6.3 --jobs 15
+```
+
+Published release tag: `v6.5.7-RME-b38`.

@@ -111,6 +111,27 @@ TEST_CASE("RME parser state does not accumulate across repeated synchronization"
     }
 }
 
+TEST_CASE("RME serial dispatch rejects recursive draining", "[rme][file][stream][regression]") {
+    bool active = false;
+    {
+        rme_protocol::ScopedDispatchGuard outer { active };
+        REQUIRE(outer);
+        CHECK(active);
+
+        // A filesystem wait may service the main loop while the outer bulk
+        // frame still owns the receive buffer.  The nested reader must leave
+        // all byte-stream state untouched.
+        rme_protocol::ScopedDispatchGuard nested { active };
+        CHECK_FALSE(nested);
+        CHECK(active);
+    }
+    CHECK_FALSE(active);
+
+    // The next scheduler pass can drain the already-buffered CDC bytes.
+    rme_protocol::ScopedDispatchGuard next_pass { active };
+    CHECK(next_pass);
+}
+
 TEST_CASE("RME binary transfer failures have stable diagnostics", "[rme][file]") {
     using rme_file_transfer::BinaryFrameError;
     using rme_file_transfer::classify_binary_frame;
