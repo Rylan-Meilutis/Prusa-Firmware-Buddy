@@ -2672,14 +2672,19 @@ static void _server_print_loop(void) {
         }
 #endif
 
-#if HAS_CRASH_DETECTION() && HAS_NOZZLE_CLEANER()
-        // In case of losing a tool, we cant be sure in what state the extruder is in.
+#if HAS_NOZZLE_CLEANER()
         // Prime in nozzle cleaning area if available.
-
-        if (crash_s.get_state() == Crash_s::RECOVERY && crash_s.is_toolchange_event()) {
+    #if HAS_CRASH_DETECTION()
+        // trigger when clicking "Resume" after pause
+        if ((crash_s.get_state() == Crash_s::PRINTING) ||
+            // trigger when tool was lost
+            (crash_s.get_state() == Crash_s::RECOVERY && crash_s.is_toolchange_event())) {
             unpark_prime();
         }
-#endif // HAS_CRASH_DETECTION() && HAS_NOZZLE_CLEANER()
+    #else // HAS_CRASH_DETECTION()
+        unpark_prime();
+    #endif // #else // HAS_CRASH_DETECTION()
+#endif // HAS_NOZZLE_CLEANER()
 
         unpark_head_XY();
         server.print_state = State::Resuming_UnparkHead_XY;
