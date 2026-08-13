@@ -1222,3 +1222,7 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 #if ENABLED(Z_PROBE_ALLEN_KEY)
     #error "Z_PROBE_ALLEN_KEY is not supported"
 #endif
+
+#if ENABLED(DIGIPOT_I2C)
+    #error "DIGIPOT is not supported"
+#endif

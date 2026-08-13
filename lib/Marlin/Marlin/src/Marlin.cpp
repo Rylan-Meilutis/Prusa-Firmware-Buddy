@@ -82,11 +82,6 @@
   #include "feature/host_actions.h"
 #endif
 
-#if ENABLED(DIGIPOT_I2C)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "feature/digipot/digipot.h"
-#endif
-
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
   #include "feature/prusa/e-stall_detector.h"
@@ -386,7 +381,6 @@ void idle(bool waiting) {
  *    • photo pin
  *    • servos
  *    • LCD controller
- *    • Digipot I2C
  *    • Z probe sled
  *    • status LEDs
  */
@@ -519,11 +513,6 @@ void setup() {
   #if HAS_STEPPER_RESET
     // #error dead code found by automatic analyses (see BFW-5461)
     enableStepperDrivers();
-  #endif
-
-  #if ENABLED(DIGIPOT_I2C)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    digipot_i2c_init();
   #endif
 
   #if HAS_HOME
