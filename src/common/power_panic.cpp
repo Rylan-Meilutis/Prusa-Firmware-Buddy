@@ -671,7 +671,11 @@ bool shutdown_loop() {
     return true;
 }
 
-bool shutdown_loop_checked() {
+/// Periodic check whether the planned move has finished.
+/// If the planner is running, the procedure starts shutting down devices in parallel
+/// (because we're waiting for the moves to finish and have some spare time)
+/// @returns false when all moves have finished
+bool shutdown_devices_while_moving() {
     bool processing = planner.processing();
     if (!processing) {
         // no time to perform any shutdown
@@ -731,6 +735,9 @@ void panic_loop() {
 
         // If we didn't prepare (why?), do so in parallel to retracting E, to save some time.
         if (runtime_state.orig_state != PPState::Prepared) {
+            // Maybe do some shutdown first - it's fast and can save energy
+            shutdown_devices_while_moving();
+
             prepare();
         }
 
@@ -739,7 +746,8 @@ void panic_loop() {
         break;
 
     case PPState::Retracting:
-        if (shutdown_loop_checked()) {
+        if (shutdown_devices_while_moving()) {
+            // Do not continue until queued moves are finished
             break;
         }
 
@@ -760,9 +768,6 @@ void panic_loop() {
                 planner.buffer_line(planner.position_float + MachinePosXYZE { .z = z_shift }, POWER_PANIC_Z_FEEDRATE, PhysicalToolIndex::currently_selected());
                 set_current_position(to_native_pos(planner.get_machine_position_mm()));
                 planner.start_moving();
-
-                // continue powering off devices
-                shutdown_loop_checked();
             }
         }
 
@@ -770,7 +775,8 @@ void panic_loop() {
         break;
 
     case PPState::SaveState: {
-        if (shutdown_loop_checked()) {
+        if (shutdown_devices_while_moving()) {
+            // Do not continue until queued moves are finished
             break;
         }
 
