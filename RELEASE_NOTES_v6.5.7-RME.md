@@ -1310,3 +1310,33 @@ ac816a07e  2026-08-12  Fix reentrant RME bulk parser corruption
 ```
 
 Published release tag: `v6.5.7-RME-b38`.
+
+## Build 39 release update
+
+Build 39 keeps RME upload implementation files private. Prusa Connect and RME
+directory listings no longer expose `FWUPD.RME`, `FWUPD.UI`, `.rme-part`,
+`.rme-meta`, or `.rme-old` artifacts, and Connect file-change events and
+explicit file-info requests cannot publish them either. Known partial and
+metadata paths remain available to explicit idle RME cleanup, while the
+verified firmware candidate remains protected by the idempotent `FIRMWARE
+UNSTAGE` workflow.
+
+The host documentation now defines a complete durable recovery workflow:
+OctoPrint plugins persist path, size, and SHA-256 before BEGIN, resume with an
+identical BEGIN at the returned committed offset, or recover through text/bulk
+and issue line-mode ABORT to remove partial data and metadata together. Lost
+host provenance can be handled by explicit STAT/DELETE of mechanically derived
+sidecar paths without exposing those paths in ordinary listings or deleting a
+rollback file speculatively.
+
+All 14 6.5.7 presets passed. Maximum MINI flash use was 97.35%, MK4 used
+94.96%, MK3.5 used 90.40%, and XL used 69.53%. Exactly 14 BBFs were staged
+under `bbf/6.5.7`.
+
+Build 39 firmware continuation:
+
+```text
+2ece6bd42  2026-08-12  Hide private RME transfer artifacts
+```
+
+Published release tag: `v6.5.7-RME-b39`.
