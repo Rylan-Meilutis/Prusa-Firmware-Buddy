@@ -130,6 +130,25 @@ after USB loss or firmware restart. The `.rme-meta` sidecar persists path,
 declared size, and SHA-256, while firmware derives the committed offset from
 the partial file and re-hashes that prefix before returning `resumed=1`.
 
+Persist an OctoPrint-side manifest before BEGIN containing the exact final
+path, size, and SHA-256. Hidden RME artifacts cannot and must not be rediscovered
+through Connect or `FILE LIST`; the manifest is the plugin's provenance for an
+unfinished job. At connection, retry the identical BEGIN for each unfinished
+entry. A READY response with `resumed=1` and a committed offset offers one
+workflow decision: continue at that offset, or recover with text/bulk BEGIN and
+immediately send line-mode `@RME FILE ABORT` to discard the partial and
+metadata together. Do not use binary BEGIN for discard: a raw binary abort
+only suspends the upload. Clear the host manifest only after verified
+completion or confirmed line-mode ABORT.
+
+If host provenance was lost but the user identifies the intended final path,
+derive only `<path>.rme-part` and `<path>.rme-meta`, probe them with `FILE STAT`,
+and allow an explicit idle cleanup with `FILE DELETE`; `not_found` is success
+for cleanup purposes. Do not automatically delete `.rme-old`, because it can
+be the rollback copy protecting an overwrite. Firmware candidates are a
+separate workflow: use `FIRMWARE QUERY` followed by idempotent `FIRMWARE
+UNSTAGE`. Never infer a candidate or orphan from an ordinary `.BBF` listing.
+
 If `CAPS` advertises `shared_transfer_latch=1`, treat `transfer_busy` as flow
 control, not a failed upload. The printer has not opened the requested partial
 or entered raw mode. Wait for the active RME, Connect, Link, or slicer transfer
@@ -260,6 +279,10 @@ responses without cancelling the print.
   them, or wait for a Marlin `ok`; only the binary ACK/NACK records pace them.
 - Bound retransmission attempts and surface media/hash failures to the user.
   Never silently report a partial `.rme-part` file as the requested filename.
+- Do not expect RME private artifacts in either `FILE LIST` or Prusa Connect
+  listings. When cleanup of an interrupted upload is required, address its
+  known `.rme-part`, `.rme-meta`, or `.rme-old` path explicitly with `FILE
+  DELETE`; use `FIRMWARE UNSTAGE` for the protected firmware candidate.
 
 ## Minimum conformance test
 

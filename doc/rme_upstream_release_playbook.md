@@ -1298,11 +1298,21 @@ control is CRC checked, never written or hashed, and completes before upload
 frames resume. Disconnect must close the stream and clear raw RX ownership
 without deleting `.rme-part` or `.rme-meta`; an identical BEGIN after reconnect
 or restart must derive the committed size from disk and re-hash that prefix.
-Private `.rme-part`, `.rme-meta`, and `.rme-old` siblings must not appear in
-FILE LIST. Crash-dump export must remain allocation-free and be refused while
-the printer is busy.
+Private `.rme-part`, `.rme-meta`, and `.rme-old` siblings, `FWUPD.RME`, and
+`FWUPD.UI` must not appear in either FILE LIST or Connect directory reports.
+Known sidecar paths must remain explicitly deletable through RME while the
+protected candidate remains UNSTAGE-only. Crash-dump export must remain
+allocation-free and be refused while the printer is busy.
 
-Run `rme_protocol_tests`; the release gate is 400,127 assertions across 11
+Plugin conformance must persist path, size, and SHA-256 before BEGIN, prove an
+identical BEGIN resumes a hidden partial at the committed offset after
+reconnect, and prove BEGIN followed by line-mode ABORT removes its partial and
+metadata as one latch-owned cleanup operation. Also test recovery after losing
+host provenance: explicit STAT/DELETE of the two derived sidecar names is
+allowed while idle, `not_found` is treated idempotently by the plugin, and no
+directory scan or speculative `.rme-old` deletion is performed.
+
+Run `rme_protocol_tests`; the release gate is 400,140 assertions across 14
 cases before the complete firmware matrix.
 
 Use `transfers::Monitor::instance` as the only RME/Connect/Link storage latch.

@@ -609,8 +609,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         else {
             while (const dirent *entry = directory.read()) {
                 if (!entry->d_name[0] || entry->d_name[0] == '.') continue;
-                const std::string_view name { entry->d_name };
-                if (name.ends_with(".rme-part") || name.ends_with(".rme-meta") || name.ends_with(".rme-old")) continue;
+                if (filename_is_rme_private(entry->d_name)) continue;
                 std::array<char, FILE_PATH_BUFFER_LEN> child {};
                 const size_t path_length = strlen(path->data());
                 if (snprintf(child.data(), child.size(), "%s%s%s", path->data(), path_length && (*path)[path_length - 1] == '/' ? "" : "/", entry->d_name) >= static_cast<int>(child.size())) continue;

@@ -29,3 +29,7 @@ bool filename_is_bgcode(const char *fname);
 
 /// Returns whether the filename is supported by connect transfers
 bool filename_is_transferrable(const char *filename);
+
+/// Returns whether the file is an implementation detail of an RME upload or
+/// firmware staging operation and must not be exposed by directory listings.
+bool filename_is_rme_private(const char *filename);
