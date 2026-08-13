@@ -66,7 +66,10 @@ public:
     window_t *GetNext() const;
     window_t *GetNextEnabled() const;
     window_t *GetParent() const;
-    bool IsChildOf(window_t *win) const;
+
+    /// @returns if this window is a parent of @param win or win itself
+    bool is_self_or_parent_of(window_t *win) const;
+
     void Draw();
     void ScreenEvent(window_t *sender, GUI_event_t event, void *const param); // try to handle, frame resends children
     void WindowEvent(window_t *sender, GUI_event_t event, void *const param); // try to handle, can sent click to parent
