@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-13 09:24+0200\n"
+"POT-Creation-Date: 2026-08-13 09:59+0200\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -174,7 +174,7 @@ msgstr ""
 "\n"
 "2. Inicia sesión"
 
-#: src/gui/MItem_hardware.hpp:169
+#: src/gui/MItem_hardware.hpp:168
 msgid "1.5GT Belts"
 msgstr "Correas 1.5GT"
 
@@ -411,7 +411,7 @@ msgstr "Todas las boquillas"
 msgid "All tests passed successfully."
 msgstr "Todas las pruebas terminaron con éxito."
 
-#: src/gui/MItem_experimental_tools.hpp:26
+#: src/gui/MItem_experimental_tools.hpp:25
 msgid "Alt fan correction"
 msgstr "Corrección vent. alt"
 
@@ -711,7 +711,7 @@ msgstr ""
 "directamente en el extrusor."
 
 #. Now show always, bed heater selftest can fail if there is no sheet on the bed
-#: src/gui/screen_menu_selftest_snake.cpp:496
+#: src/gui/screen_menu_selftest_snake.cpp:485
 msgid ""
 "Before you continue, make sure the print sheet is installed on the heatbed."
 msgstr ""
@@ -911,7 +911,7 @@ msgstr "Calibrando acelerómetro..."
 msgid "Calibrating axis"
 msgstr "Calibrando ejes"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:188
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:181
 msgid "Calibrating filament sensors"
 msgstr "Calibrando sensores de filamento"
 
@@ -937,7 +937,7 @@ msgid "Calibration failed with error."
 msgstr "Calibración fallida con error."
 
 #. %s is the measured offset, formatted as "<value> mm" or "N/A" when the nozzle never made contact.
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:42
+#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:41
 #, c-format
 msgid ""
 "Calibration failed.\n"
@@ -1015,7 +1015,7 @@ msgid "Cannot perform the action, filament is already loaded. Unload it first."
 msgstr ""
 "No se puede realizar la acción, filamento ya cargado. Descárgalo primero."
 
-#: src/gui/screen_menu_filament_changeall.cpp:136
+#: src/gui/screen_menu_filament_changeall.cpp:135
 msgid "Carry Out the Changes"
 msgstr "Realizar los Cambios"
 
@@ -1149,7 +1149,7 @@ msgstr ""
 "Utiliza el mismo tipo de filamento que tienes cargado actualmente.\n"
 "Tipo de filamento actual: %s"
 
-#: src/gui/screen_menu_filament_changeall.cpp:92
+#: src/gui/screen_menu_filament_changeall.cpp:91
 #, c-format
 msgid "Change to %s"
 msgstr "Cambiar a %s"
@@ -1164,12 +1164,13 @@ msgstr ""
 
 #: src/gui/MItem_hardware.cpp:240
 msgid ""
-"Changing belt type updates X/Y steps/mm, and resets some calibrations. An "
-"incorrect setting causes dimensional errors and homing issues. Continue?"
+"Changing belt type updates X/Y steps/mm, resets some calibrations, and "
+"restarts the printer. An incorrect setting causes dimensional errors and "
+"homing issues. Continue?"
 msgstr ""
-"Cambiar el tipo de correa actualiza los pasos/mm de X/Y y restablece algunas "
-"calibraciones. Un ajuste incorrecto provoca errores dimensionales y "
-"problemas de homing. ¿Continuar?"
+"Cambiar el tipo de correa actualiza los pasos/mm de X/Y, restablece algunas "
+"calibraciones y reinicia la impresora. Un ajuste incorrecto provoca errores "
+"dimensionales y problemas de homing. ¿Continuar?"
 
 #: src/gui/screen/screen_filament_change.cpp:159
 msgid "Changing filament"
@@ -1191,12 +1192,6 @@ msgstr ""
 #: src/feature/compatibility_checks/filament_compatibility.cpp:40
 msgid "Check idler door"
 msgstr "Comprueba puerta tensora"
-
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
-msgid "Check if filament sensor cables are wired correctly."
-msgstr ""
-"Comprueba si los cables del sensor de filamento están conectados "
-"correctamente."
 
 #: tmp_error_headers/error_list.hpp:786
 msgid "Check that the accelerometer cable is plugged in and not damaged."
@@ -1395,7 +1390,7 @@ msgstr "Material consumido"
 msgid "Continue"
 msgstr "Continuar"
 
-#: src/gui/screen_menu_selftest_snake.cpp:250
+#: src/gui/screen_menu_selftest_snake.cpp:239
 msgid "Continue running Calibrations & Tests?"
 msgstr "Continuar con las Calibraciones y Test?"
 
@@ -1589,8 +1584,7 @@ msgstr "Datos De OpenPrintTag"
 msgid "Data on the OpenPrintTag are corrupt. Operation failed."
 msgstr "Los datos del OpenPrintTag están dañados. Operación fallida."
 
-#: src/gui/MItem_experimental_tools.cpp:54
-#: src/gui/MItem_experimental_tools.cpp:194
+#: src/gui/MItem_experimental_tools.cpp:55
 msgid "Default"
 msgstr "Por defecto"
 
@@ -1736,7 +1730,7 @@ msgstr ""
 msgid "Do you want to reset the extruder maintenance reminder?"
 msgstr "¿Deseas restablecer el recordatorio de mantenimiento de extrusor?"
 
-#: src/gui/screen_menu_experimental_settings.hpp:55
+#: src/gui/screen_menu_experimental_settings.hpp:15
 msgid "Do you want to save changes and reboot the printer?"
 msgstr "¿Deseas guardar los cambios y reiniciar la impresora?"
 
@@ -1848,7 +1842,7 @@ msgstr "Las posiciones del dock se han calibrado con éxito y se han guardado."
 msgid "Dock successfully calibrated."
 msgstr "Dock calibrado con éxito."
 
-#: src/gui/screen_menu_filament_changeall.cpp:86
+#: src/gui/screen_menu_filament_changeall.cpp:85
 msgid "Don't change"
 msgstr "No cambiar"
 
@@ -1861,7 +1855,7 @@ msgid "Done"
 msgstr "Listo"
 
 #: src/gui/selftest_action_helpers.cpp:80 src/gui/MItem_tools.cpp:687
-#: src/gui/MItem_hardware.hpp:101
+#: src/gui/MItem_hardware.hpp:100
 msgid "Door Sensor"
 msgstr "Sensor de la Puerta"
 
@@ -2159,7 +2153,7 @@ msgstr "Ejecutar Restablecimiento de Fábrica"
 msgid "Exit"
 msgstr "Salir"
 
-#: src/gui/MItem_hardware.hpp:138
+#: src/gui/MItem_hardware.hpp:137
 msgid "Expansion Joints Gen 2"
 msgstr "Junta de Expansión Gen 2"
 
@@ -2187,11 +2181,11 @@ msgstr "Sensores Filamento Extrusor"
 msgid "Extruder Maintenance"
 msgstr "Mantenimiento Extrusor"
 
-#: src/gui/MItem_experimental_tools.cpp:229
+#: src/gui/MItem_experimental_tools.cpp:222
 msgid "Extruder current"
 msgstr "Corriente extrusor"
 
-#: src/gui/MItem_experimental_tools.cpp:175
+#: src/gui/MItem_experimental_tools.cpp:172
 msgid "Extruder direction"
 msgstr "Dirección extrusor"
 
@@ -2200,7 +2194,7 @@ msgstr "Dirección extrusor"
 msgid "Extruder motor is not spinning on tool %d"
 msgstr "El motor del extrusor no gira en el cabezal %d"
 
-#: src/gui/MItem_experimental_tools.cpp:126
+#: src/gui/MItem_experimental_tools.cpp:125
 msgid "Extruder steps per unit"
 msgstr "Pasos por unidad extrusor"
 
@@ -2227,11 +2221,11 @@ msgstr "INFO VENTILADOR"
 msgid "FIL. ALREADY LOADED"
 msgstr "FIL. YA CARGADO"
 
-#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:38
+#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:31
 msgid "FILAMENT"
 msgstr "FILAMENTO"
 
-#: src/gui/screen_menu_filament_changeall.cpp:225
+#: src/gui/screen_menu_filament_changeall.cpp:204
 msgid "FILAMENT CHANGE"
 msgstr "CAMBIO FILAMENTO"
 
@@ -2305,7 +2299,7 @@ msgstr ""
 msgid "FINISH"
 msgstr "TERMINAR"
 
-#: src/gui/screen_menu_selftest_snake.cpp:230
+#: src/gui/screen_menu_selftest_snake.cpp:219
 msgid ""
 "FINISH remaining calibrations without proceeding to other tests, or perform "
 "ALL Calibrations and Tests?\n"
@@ -2512,7 +2506,7 @@ msgstr "Fallo al abrir el archivo"
 msgid "Failed to open file '%s' for writing."
 msgstr "Error al abrir el archivo '%s' para escritura."
 
-#: src/gui/MItem_filament.cpp:57
+#: src/gui/MItem_filament.cpp:58
 msgid "Failed to pick up the selected tool."
 msgstr "Fallo al recoger el cabezal seleccionado."
 
@@ -2557,7 +2551,7 @@ msgid "Fan Test"
 msgstr "Prueba del ventilador"
 
 #. translation: experimental menu item enabling faster display routines
-#: src/gui/MItem_experimental_tools.cpp:268
+#: src/gui/MItem_experimental_tools.cpp:257
 msgid "Fast Draw"
 msgstr "Respuesta Rápida"
 
@@ -2678,7 +2672,7 @@ msgstr ""
 msgid "Filament incompatibility detected"
 msgstr "Incompatibilidad de filamento detectada"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:217
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:210
 msgid "Filament inserted, press continue."
 msgstr "Filamento insertado, presiona continuar."
 
@@ -2726,7 +2720,7 @@ msgstr ""
 msgid "Filament not loaded"
 msgstr "Filamento no cargado"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:239
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:232
 msgid "Filament removed, press continue."
 msgstr "Filamento retirado, presiona continuar."
 
@@ -2769,10 +2763,6 @@ msgstr ""
 "El sensor de filamento no se activó al cargar el filamento. Asegúrate de que "
 "el sensor está calibrado y de que el filamento ha llegado hasta él."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
-msgid "Filament sensor not connected"
-msgstr "Sensor de filamento no conectado"
-
 #: src/feature/filament_sensor/filament_sensors_handler.cpp:89
 msgid "Filament sensor not connected, check wiring."
 msgstr "Sensor de filamento no conectado, comprueba el cableado."
@@ -2805,7 +2795,7 @@ msgstr ""
 "Los sensores de filamento están desactivados. Actívalos manualmente después "
 "de imprimir."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:251
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:244
 msgid "Filament sensors calibrated!"
 msgstr "¡Sensores de filamento calibrados!"
 
@@ -3481,9 +3471,7 @@ msgstr "RIESGO QUEMADURA HOTEND"
 msgid "HOTEND HEATER OVERCURRENT"
 msgstr "SOBRECORRIENTE CALENTADOR FUSOR"
 
-#. The calibrations are done for some hw_config (for example belts -> XY test/calibrations)
-#. Therefore when resetting HW configuration, we need to reset the calibrations as well
-#: src/feature/factory_reset/factory_reset.hpp:49
+#: src/feature/factory_reset/factory_reset.hpp:46
 msgid "HW Configuration"
 msgstr "Configuración HW"
 
@@ -4145,11 +4133,11 @@ msgstr ""
 "Inserta la unidad en la impresora y enciéndela o reiníciala. Confirma la "
 "instalación."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:206
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:199
 msgid "Insert the filament into the extruder filament sensor."
 msgstr "Introduce el filamento en el sensor de filamento del extrusor."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:204
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:197
 msgid "Insert the filament into the filament sensor."
 msgstr "Introduce el filamento en el sensor de filamento."
 
@@ -4217,7 +4205,7 @@ msgstr "¿Está bien el color?"
 msgid "Is filament in extruder gear?"
 msgstr "¿Está el filamento en los engranajes del extrusor?"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:180
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:173
 msgid "Is filament in the filament sensor?"
 msgstr "¿Hay filamento en el sensor de filamento?"
 
@@ -4231,7 +4219,7 @@ msgstr ""
 "\n"
 "Si no es así, por favor, ciérrala y confirma."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:178
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:171
 msgid "Is there any filament in the tool or side filament sensors?"
 msgstr "¿Hay filamento en el cabezal o sensores de filamento laterales?"
 
@@ -4388,14 +4376,10 @@ msgstr "Ajuste en Vivo de Z"
 msgid "Live Z"
 msgstr "Live Z"
 
-#: src/gui/screen_menu_filament_changeall.cpp:92
+#: src/gui/screen_menu_filament_changeall.cpp:91
 #, c-format
 msgid "Load %s"
 msgstr "Cargar %s"
-
-#: src/gui/MItem_filament.hpp:46
-msgid "Load All"
-msgstr "Cargar Todos"
 
 #: src/gui/screen_network_setup.cpp:71
 msgid "Load Config From File"
@@ -4505,7 +4489,7 @@ msgstr "Tiempo de Carga Agotado"
 msgid "Loading filament"
 msgstr "Cargando filamento"
 
-#: src/gui/screen_menu_mmu_load_test_filament.hpp:18
+#: src/gui/screen_menu_mmu_load_test_filament.hpp:21
 msgid "Loading test"
 msgstr "Test de Carga"
 
@@ -4805,7 +4789,7 @@ msgstr "MÁS"
 msgid "MOVE AXIS"
 msgstr "MOVER EJE"
 
-#: src/gui/screen_menu_filament_changeall.cpp:225
+#: src/gui/screen_menu_filament_changeall.cpp:204
 msgid "MULTITOOL FILAMENT CHANGE"
 msgstr "CAMBIO FILAMENTO MULTICABEZAL"
 
@@ -4845,7 +4829,7 @@ msgstr "Asegúrate que filamento está insertado a través del sensor."
 msgid "Make sure the filament is properly inserted."
 msgstr "Asegúrate de que el filamento está correctamente insertado."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:170
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
 msgid ""
 "Make sure there is no filament in the filament sensor.\n"
 "\n"
@@ -5155,7 +5139,7 @@ msgstr "AHORA"
 msgid "NOZZLE CLEANER"
 msgstr "LIMPIADOR BOQUILLA"
 
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:137
+#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:135
 msgid "NOZZLE CLEANER CALIBRATION"
 msgstr "CALIBRACIÓN LIMPIADOR BOQUILLA"
 
@@ -5479,7 +5463,7 @@ msgid "Nozzle Temperatures"
 msgstr "Temperaturas Boquillas"
 
 #. Nozzle wiper is the product name - we call it nozzle cleaner lite
-#: src/gui/MItem_hardware.hpp:154
+#: src/gui/MItem_hardware.hpp:153
 msgid "Nozzle Wiper"
 msgstr "Nozzle Wiper"
 
@@ -6087,7 +6071,7 @@ msgstr ""
 "\n"
 "El archivo de configuración se puede generar en PrusaSlicer."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:168
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:161
 msgid ""
 "Please make sure there is no filament in the tool and side filament "
 "sensors.\n"
@@ -6271,7 +6255,7 @@ msgstr "Perfil"
 msgid "Press CONTINUE and push filament into MMU."
 msgstr "Presiona CONTINUAR y empuja el filamento en el MMU."
 
-#: src/gui/screen_menu_selftest_snake.cpp:358
+#: src/gui/screen_menu_selftest_snake.cpp:347
 msgid "Previous Calibrations & Tests are not all done. Continue anyway?"
 msgstr ""
 "Las Calibraciones y Test previas no están completas. ¿Continuar de todos "
@@ -6361,7 +6345,7 @@ msgstr "La impresión finalizará"
 msgid "Printed circuit board of %s is overheating."
 msgstr "La placa impresa del %s se está sobrecalentando."
 
-#: src/feature/factory_reset/factory_reset.hpp:51
+#: src/feature/factory_reset/factory_reset.hpp:47
 msgid "Printer Functions"
 msgstr "Funciones Impresora"
 
@@ -6369,11 +6353,11 @@ msgstr "Funciones Impresora"
 msgid "Printer Model"
 msgstr "Modelo de Impresora"
 
-#: src/feature/factory_reset/factory_reset.hpp:52
+#: src/feature/factory_reset/factory_reset.hpp:48
 msgid "Printer State"
 msgstr "Estado Impresora"
 
-#: src/gui/MItem_hardware.cpp:66 src/gui/MItem_hardware.hpp:62
+#: src/gui/MItem_hardware.cpp:66 src/gui/MItem_hardware.hpp:61
 msgid "Printer Type"
 msgstr "Tipo de Impresora"
 
@@ -6467,7 +6451,7 @@ msgstr "Protocolo"
 msgid "Protocol err"
 msgstr "Error protocolo"
 
-#: src/gui/MItem_experimental_tools.cpp:144
+#: src/gui/MItem_experimental_tools.cpp:143
 msgid "Prusa"
 msgstr "Prusa"
 
@@ -6529,7 +6513,7 @@ msgstr ""
 "Puppy utiliza un protocolo de bootloader incompatible %04x, Buddy FW "
 "requiere %04x"
 
-#: src/gui/MItem_filament.hpp:66
+#: src/gui/MItem_filament.hpp:46
 msgid "Purge Filament"
 msgstr "Purgar filamento"
 
@@ -6559,7 +6543,7 @@ msgstr ""
 "Introduce el filamento en el extrusor y, sin dejar de empujarlo, pulsa "
 "CONTINUAR."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:196
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:189
 msgid ""
 "Push the filament through extruder filament sensor, until the extruder "
 "engages with the filament."
@@ -6567,7 +6551,7 @@ msgstr ""
 "Empuja el filamento a través del sensor de filamento del extrusor, hasta que "
 "este agarre el filamento."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:198
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:191
 msgid ""
 "Push the filament through filament sensor, until the extruder engages with "
 "the filament."
@@ -6575,7 +6559,7 @@ msgstr ""
 "Empuja el filamento a través del sensor de filamento, hasta que este agarre "
 "el filamento."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:194
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:187
 msgid ""
 "Push the filament through the side and extruder filament sensors, until the "
 "extruder engages with the filament."
@@ -6583,7 +6567,7 @@ msgstr ""
 "Empuja el filamento a través de los sensores laterales y del extrusor, hasta "
 "que este agarre el filamento."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:202
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:195
 msgid "Push the filament through the side and extruder filament sensors."
 msgstr "Empuja el filamento a través de los sensores laterales y del extrusor."
 
@@ -6770,11 +6754,11 @@ msgstr ""
 "Consejo: El filamento se expulsa automáticamente al llegar al final de la "
 "bobina."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:227
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:220
 msgid "Remove the filament from both filament sensors."
 msgstr "Retira el filamento de ambos sensores de filamento."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:229
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:222
 msgid "Remove the filament from the filament sensor."
 msgstr "Retira el filamento del sensor de filamento."
 
@@ -6835,15 +6819,15 @@ msgstr "Requiere Filtración"
 msgid "Reset"
 msgstr "Reset"
 
-#: src/gui/MItem_experimental_tools.cpp:42
+#: src/gui/MItem_experimental_tools.cpp:43
 msgid "Reset Z-length"
 msgstr "Reiniciar Longitud Z"
 
-#: src/gui/MItem_experimental_tools.cpp:240
+#: src/gui/MItem_experimental_tools.cpp:231
 msgid "Reset currents"
 msgstr "Reiniciar corrientes"
 
-#: src/gui/MItem_experimental_tools.cpp:184
+#: src/gui/MItem_experimental_tools.cpp:181
 msgid "Reset directions"
 msgstr "Reiniciar direcciones"
 
@@ -6851,7 +6835,7 @@ msgstr "Reiniciar direcciones"
 msgid "Reset filter usage?"
 msgstr "¿Restablecer el uso del filtro?"
 
-#: src/gui/MItem_experimental_tools.cpp:135
+#: src/gui/MItem_experimental_tools.cpp:134
 msgid "Reset steps per unit"
 msgstr "Reiniciar pasos por unidad"
 
@@ -6927,7 +6911,7 @@ msgstr ""
 "Gira cada tornillo 1.5 vueltas en sentido antihorario. Las cabezas de los "
 "tornillos deben quedar a ras de la tapa. Desbloquea y abre el tensor."
 
-#: src/gui/screen_menu_selftest_snake.cpp:490
+#: src/gui/screen_menu_selftest_snake.cpp:479
 msgid "Run selftests and calibrations now?"
 msgstr "¿Realizar selftest y calibraciones ahora?"
 
@@ -7066,7 +7050,7 @@ msgstr "Guardar arch. de errores"
 msgid "Save Logs To File"
 msgstr "Guardar Registros en Archivo"
 
-#: src/gui/MItem_experimental_tools.cpp:250
+#: src/gui/MItem_experimental_tools.cpp:240
 msgid "Save and return"
 msgstr "Guardar y volver"
 
@@ -7106,7 +7090,7 @@ msgstr "Escaneando redes..."
 msgid "Scanning..."
 msgstr "Escaneando..."
 
-#: src/feature/factory_reset/factory_reset.hpp:55
+#: src/feature/factory_reset/factory_reset.hpp:51
 msgid "Security"
 msgstr "Seguridad"
 
@@ -7160,7 +7144,7 @@ msgstr ""
 "Asegúrate de que no hay filamento en el Selector y que el FINDA funciona "
 "correctamente."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:253
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:246
 msgid "Selftest FAILED. Enable logging to TXT from the settings for details."
 msgstr ""
 "Selftest FALLIDO. Habilita el registro en TXT desde la configuración para "
@@ -7174,7 +7158,7 @@ msgstr "Info Sensor"
 msgid "Serial Printing Screen"
 msgstr "Pantalla de Impresión en Serie"
 
-#: src/gui/screen_menu_filament_changeall.cpp:30
+#: src/gui/screen_menu_filament_changeall.cpp:29
 msgid "Set All To"
 msgstr "Establecer Todo En"
 
@@ -7245,7 +7229,7 @@ msgstr ""
 msgid "Show All"
 msgstr "Mostrar todo"
 
-#: src/gui/MItem_hardware.hpp:34
+#: src/gui/MItem_hardware.hpp:33
 msgid "Side FSensor Remap"
 msgstr "Reasignar Sensor de Fil. Lateral"
 
@@ -8011,16 +7995,6 @@ msgid "The nozzle cleaner may overflow during this print."
 msgstr ""
 "Es posible que el limpiador de boquillas se desborde durante esta impresión."
 
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:39
-msgid ""
-"The nozzle diameter was measured wider than expected.\n"
-"\n"
-"Clean the nozzle, then press Retry."
-msgstr ""
-"El diámetro de la boquilla medido es mayor de lo esperado.\n"
-"\n"
-"Limpia la boquilla y luego pulsa Reintentar."
-
 #: tmp_error_headers/error_list.hpp:275
 msgid "The nozzle is very hot. Close the door to prevent burns."
 msgstr ""
@@ -8143,7 +8117,7 @@ msgstr ""
 "para ajustar la resonancia. La frecuencia correcta se manifiesta como un "
 "movimiento lento de la correa con picos pronunciados."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:248
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:241
 msgid ""
 "There is a problem with some of the sensors. You may calibrate the rest, but "
 "the selftest will fail."
@@ -8788,11 +8762,11 @@ msgstr ""
 "¿Desvincular OpenPrintTag del filamento? Se desactivará el seguimiento del "
 "uso del filamento."
 
-#: src/gui/screen_menu_filament_changeall.cpp:89
+#: src/gui/screen_menu_filament_changeall.cpp:88
 msgid "Unload"
 msgstr "Descargar"
 
-#: src/gui/MItem_filament.hpp:56
+#: src/gui/MItem_filament.cpp:104
 msgid "Unload All"
 msgstr "Descargar Todo"
 
@@ -8898,7 +8872,7 @@ msgstr "Usuario"
 msgid "User Interface"
 msgstr "Interfaz de usuario"
 
-#: src/feature/factory_reset/factory_reset.hpp:53
+#: src/feature/factory_reset/factory_reset.hpp:49
 msgid "User Presets"
 msgstr "Ajustes de Usuario"
 
@@ -9052,7 +9026,7 @@ msgstr ""
 "volcado de memoria, guardado tras el reinicio, a nuestro equipo de soporte "
 "técnico."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:172
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:165
 msgid ""
 "We need to start without the filament in the extruder. Please make sure "
 "there is no filament in the filament sensor."
@@ -9175,7 +9149,7 @@ msgstr ""
 "\n"
 "Se retraerá para evitar goteo. Cuidado, boquilla caliente!"
 
-#: src/gui/MItem_experimental_tools.cpp:145
+#: src/gui/MItem_experimental_tools.cpp:144
 msgid "Wrong"
 msgstr "Incorrecto"
 
@@ -9199,9 +9173,9 @@ msgstr "Test Eje X"
 msgid "X Axis Travel"
 msgstr "Desplazamiento Eje X"
 
-#: src/gui/MItem_experimental_tools.cpp:202
-msgid "X current"
-msgstr "Corriente X"
+#: src/gui/MItem_experimental_tools.cpp:195
+msgid "X current (0 default)"
+msgstr "Corriente X (0 por defecto)"
 
 #: src/gui/screen_crash_recovery.cpp:95
 msgid "X-axis"
@@ -9219,7 +9193,7 @@ msgstr "Frec. eje X"
 msgid "X-axis Frequency"
 msgstr "Frecuencia Eje X"
 
-#: src/gui/MItem_experimental_tools.cpp:155
+#: src/gui/MItem_experimental_tools.cpp:153
 msgid "X-axis direction"
 msgstr "Dirección eje X"
 
@@ -9275,9 +9249,9 @@ msgstr "Test Eje Y"
 msgid "Y Axis Travel"
 msgstr "Desplazamiento Eje Y"
 
-#: src/gui/MItem_experimental_tools.cpp:211
-msgid "Y current"
-msgstr "Corriente Y"
+#: src/gui/MItem_experimental_tools.cpp:204
+msgid "Y current (0 default)"
+msgstr "Corriente Y (0 por defecto)"
 
 #: src/gui/screen_crash_recovery.cpp:96
 msgid "Y-axis"
@@ -9295,7 +9269,7 @@ msgstr "Frec. eje Y"
 msgid "Y-axis Frequency"
 msgstr "Frecuencia Eje Y"
 
-#: src/gui/MItem_experimental_tools.cpp:160
+#: src/gui/MItem_experimental_tools.cpp:158
 msgid "Y-axis direction"
 msgstr "Dirección eje Y"
 
@@ -9361,7 +9335,7 @@ msgstr "Test Eje Z"
 msgid "Z Axis Travel"
 msgstr "Desplazamiento Eje Z"
 
-#: src/gui/MItem_experimental_tools.cpp:220
+#: src/gui/MItem_experimental_tools.cpp:213
 msgid "Z current"
 msgstr "Corriente Z"
 
@@ -9381,11 +9355,11 @@ msgstr "Eje Z"
 msgid "Z-axis calibration"
 msgstr "Calibración eje Z"
 
-#: src/gui/MItem_experimental_tools.cpp:165
+#: src/gui/MItem_experimental_tools.cpp:163
 msgid "Z-axis direction"
 msgstr "Dirección eje Z"
 
-#: src/gui/MItem_experimental_tools.cpp:33
+#: src/gui/MItem_experimental_tools.cpp:34
 msgid "Z-axis length"
 msgstr "Longitud eje Z"
 

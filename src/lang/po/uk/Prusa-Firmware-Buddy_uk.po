@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-13 09:24+0200\n"
+"POT-Creation-Date: 2026-08-13 09:59+0200\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -173,7 +173,7 @@ msgstr ""
 "\n"
 "2. Увійдіть"
 
-#: src/gui/MItem_hardware.hpp:169
+#: src/gui/MItem_hardware.hpp:168
 msgid "1.5GT Belts"
 msgstr "Ремені 1.5GT"
 
@@ -404,7 +404,7 @@ msgstr "Усі сопла"
 msgid "All tests passed successfully."
 msgstr "Усі тести успішно пройдено."
 
-#: src/gui/MItem_experimental_tools.hpp:26
+#: src/gui/MItem_experimental_tools.hpp:25
 msgid "Alt fan correction"
 msgstr "Альт. корекція вентилятора"
 
@@ -700,7 +700,7 @@ msgstr ""
 "в екструдер."
 
 #. Now show always, bed heater selftest can fail if there is no sheet on the bed
-#: src/gui/screen_menu_selftest_snake.cpp:496
+#: src/gui/screen_menu_selftest_snake.cpp:485
 msgid ""
 "Before you continue, make sure the print sheet is installed on the heatbed."
 msgstr ""
@@ -898,7 +898,7 @@ msgstr "Калібрування акселерометра..."
 msgid "Calibrating axis"
 msgstr "Калібрування осей"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:188
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:181
 msgid "Calibrating filament sensors"
 msgstr "Калібрування датчиків філаменту"
 
@@ -923,7 +923,7 @@ msgid "Calibration failed with error."
 msgstr "Помилка калібрування."
 
 #. %s is the measured offset, formatted as "<value> mm" or "N/A" when the nozzle never made contact.
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:42
+#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:41
 #, c-format
 msgid ""
 "Calibration failed.\n"
@@ -998,7 +998,7 @@ msgid "Cannot perform the action, filament is already loaded. Unload it first."
 msgstr ""
 "Неможливо виконати дію, філамент вже завантажено. Спочатку вийміть його."
 
-#: src/gui/screen_menu_filament_changeall.cpp:136
+#: src/gui/screen_menu_filament_changeall.cpp:135
 msgid "Carry Out the Changes"
 msgstr "Виконати зміни"
 
@@ -1130,7 +1130,7 @@ msgstr ""
 "Використовуйте той самий тип, що й завантажений.\n"
 "Поточний тип: %s"
 
-#: src/gui/screen_menu_filament_changeall.cpp:92
+#: src/gui/screen_menu_filament_changeall.cpp:91
 #, c-format
 msgid "Change to %s"
 msgstr "Змінити на %s"
@@ -1145,12 +1145,13 @@ msgstr ""
 
 #: src/gui/MItem_hardware.cpp:240
 msgid ""
-"Changing belt type updates X/Y steps/mm, and resets some calibrations. An "
-"incorrect setting causes dimensional errors and homing issues. Continue?"
+"Changing belt type updates X/Y steps/mm, resets some calibrations, and "
+"restarts the printer. An incorrect setting causes dimensional errors and "
+"homing issues. Continue?"
 msgstr ""
-"Зміна типу ременя оновлює X/Y кроки/мм та скидає деякі калібрування. "
-"Неправильне налаштування спричиняє помилки розмірів та проблеми з хомінгом. "
-"Продовжити?"
+"Зміна типу ременя оновлює X/Y кроки/мм, скидає деякі калібрування та "
+"перезапускає принтер. Неправильне налаштування спричиняє помилки розмірів та "
+"проблеми з хомінгом. Продовжити?"
 
 #: src/gui/screen/screen_filament_change.cpp:159
 msgid "Changing filament"
@@ -1172,10 +1173,6 @@ msgstr ""
 #: src/feature/compatibility_checks/filament_compatibility.cpp:40
 msgid "Check idler door"
 msgstr "Перевірте дверцята холостого ходу"
-
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
-msgid "Check if filament sensor cables are wired correctly."
-msgstr "Перевірте, чи правильно підключено кабелі датчика філаменту."
 
 #: tmp_error_headers/error_list.hpp:786
 msgid "Check that the accelerometer cable is plugged in and not damaged."
@@ -1372,7 +1369,7 @@ msgstr "Витрачено матеріалу"
 msgid "Continue"
 msgstr "Продовжити"
 
-#: src/gui/screen_menu_selftest_snake.cpp:250
+#: src/gui/screen_menu_selftest_snake.cpp:239
 msgid "Continue running Calibrations & Tests?"
 msgstr "Продовжити виконання калібрувань та тестів?"
 
@@ -1564,8 +1561,7 @@ msgstr "Дані з OpenPrintTag"
 msgid "Data on the OpenPrintTag are corrupt. Operation failed."
 msgstr "Дані на OpenPrintTag пошкоджено. Операція не вдалася."
 
-#: src/gui/MItem_experimental_tools.cpp:54
-#: src/gui/MItem_experimental_tools.cpp:194
+#: src/gui/MItem_experimental_tools.cpp:55
 msgid "Default"
 msgstr "За замовчуванням"
 
@@ -1709,7 +1705,7 @@ msgstr ""
 msgid "Do you want to reset the extruder maintenance reminder?"
 msgstr "Скинути нагадування про обслуговування екструдера?"
 
-#: src/gui/screen_menu_experimental_settings.hpp:55
+#: src/gui/screen_menu_experimental_settings.hpp:15
 msgid "Do you want to save changes and reboot the printer?"
 msgstr "Зберегти зміни та перезавантажити принтер?"
 
@@ -1820,7 +1816,7 @@ msgstr "Позиції доків успішно відкалібровано т
 msgid "Dock successfully calibrated."
 msgstr "Док-станцію успішно відкалібровано."
 
-#: src/gui/screen_menu_filament_changeall.cpp:86
+#: src/gui/screen_menu_filament_changeall.cpp:85
 msgid "Don't change"
 msgstr "Не змінювати"
 
@@ -1833,7 +1829,7 @@ msgid "Done"
 msgstr "Готово"
 
 #: src/gui/selftest_action_helpers.cpp:80 src/gui/MItem_tools.cpp:687
-#: src/gui/MItem_hardware.hpp:101
+#: src/gui/MItem_hardware.hpp:100
 msgid "Door Sensor"
 msgstr "Датчик дверей"
 
@@ -2131,7 +2127,7 @@ msgstr "Виконати скидання до заводських"
 msgid "Exit"
 msgstr "Вихід"
 
-#: src/gui/MItem_hardware.hpp:138
+#: src/gui/MItem_hardware.hpp:137
 msgid "Expansion Joints Gen 2"
 msgstr "Експанзійні шайби Gen 2"
 
@@ -2159,11 +2155,11 @@ msgstr "Датчики філаменту екструдера"
 msgid "Extruder Maintenance"
 msgstr "Обслуговування екструдера"
 
-#: src/gui/MItem_experimental_tools.cpp:229
+#: src/gui/MItem_experimental_tools.cpp:222
 msgid "Extruder current"
 msgstr "Струм екструдера"
 
-#: src/gui/MItem_experimental_tools.cpp:175
+#: src/gui/MItem_experimental_tools.cpp:172
 msgid "Extruder direction"
 msgstr "Напрямок екструдера"
 
@@ -2172,7 +2168,7 @@ msgstr "Напрямок екструдера"
 msgid "Extruder motor is not spinning on tool %d"
 msgstr "Двигун екструдера не обертається на інструменті %d"
 
-#: src/gui/MItem_experimental_tools.cpp:126
+#: src/gui/MItem_experimental_tools.cpp:125
 msgid "Extruder steps per unit"
 msgstr "Кроків на одиницю екструдера"
 
@@ -2199,11 +2195,11 @@ msgstr "ІНФО ПРО ВЕНТИЛЯТОРИ"
 msgid "FIL. ALREADY LOADED"
 msgstr "ФІЛАМЕНТ ВЖЕ ЗАВАНТАЖЕНО"
 
-#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:38
+#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:31
 msgid "FILAMENT"
 msgstr "ФІЛАМЕНТ"
 
-#: src/gui/screen_menu_filament_changeall.cpp:225
+#: src/gui/screen_menu_filament_changeall.cpp:204
 msgid "FILAMENT CHANGE"
 msgstr "ЗАМІНА ФІЛАМЕНТА"
 
@@ -2277,7 +2273,7 @@ msgstr ""
 msgid "FINISH"
 msgstr "ЗАВЕРШИТИ"
 
-#: src/gui/screen_menu_selftest_snake.cpp:230
+#: src/gui/screen_menu_selftest_snake.cpp:219
 msgid ""
 "FINISH remaining calibrations without proceeding to other tests, or perform "
 "ALL Calibrations and Tests?\n"
@@ -2483,7 +2479,7 @@ msgstr "Не вдалося відкрити файл"
 msgid "Failed to open file '%s' for writing."
 msgstr "Не вдалося відкрити файл '%s' для запису."
 
-#: src/gui/MItem_filament.cpp:57
+#: src/gui/MItem_filament.cpp:58
 msgid "Failed to pick up the selected tool."
 msgstr "Не вдалося взяти вибраний інструмент."
 
@@ -2524,7 +2520,7 @@ msgid "Fan Test"
 msgstr "Тест вентилятора"
 
 #. translation: experimental menu item enabling faster display routines
-#: src/gui/MItem_experimental_tools.cpp:268
+#: src/gui/MItem_experimental_tools.cpp:257
 msgid "Fast Draw"
 msgstr "Швидке малювання"
 
@@ -2647,7 +2643,7 @@ msgstr ""
 msgid "Filament incompatibility detected"
 msgstr "Виявлено несумісність філаменту"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:217
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:210
 msgid "Filament inserted, press continue."
 msgstr "Філамент вставлено, натисніть «Продовжити»."
 
@@ -2694,7 +2690,7 @@ msgstr ""
 msgid "Filament not loaded"
 msgstr "Філамент не завантажено"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:239
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:232
 msgid "Filament removed, press continue."
 msgstr "Філамент знято, натисніть продовжити."
 
@@ -2735,10 +2731,6 @@ msgstr ""
 "Датчик філаменту не спрацював під час завантаження філаменту. Переконайтеся, "
 "що датчик відкалібровано, а філамент досяг його."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
-msgid "Filament sensor not connected"
-msgstr "Датчик філаменту не підключено"
-
 #: src/feature/filament_sensor/filament_sensors_handler.cpp:89
 msgid "Filament sensor not connected, check wiring."
 msgstr "Датчик філаменту не підключено, перевірте проводку."
@@ -2768,7 +2760,7 @@ msgstr ""
 msgid "Filament sensors are disabled. Enable them manually after printing."
 msgstr "Датчики філаменту вимкнено. Увімкніть їх вручну після друку."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:251
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:244
 msgid "Filament sensors calibrated!"
 msgstr "Датчики філаменту відкалібровано!"
 
@@ -3436,9 +3428,7 @@ msgstr "ХОТЕНД - РИЗИК ОПІКУ"
 msgid "HOTEND HEATER OVERCURRENT"
 msgstr "ПЕРЕВАНТАЖЕННЯ СТРУМУ НАГРІВАЧА"
 
-#. The calibrations are done for some hw_config (for example belts -> XY test/calibrations)
-#. Therefore when resetting HW configuration, we need to reset the calibrations as well
-#: src/feature/factory_reset/factory_reset.hpp:49
+#: src/feature/factory_reset/factory_reset.hpp:46
 msgid "HW Configuration"
 msgstr "Конфігурація HW"
 
@@ -4096,11 +4086,11 @@ msgstr ""
 "Вставте накопичувач у принтер і ввімкніть або перезапустіть його. "
 "Підтвердьте встановлення."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:206
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:199
 msgid "Insert the filament into the extruder filament sensor."
 msgstr "Вставте філамент у датчик філаменту екструдера."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:204
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:197
 msgid "Insert the filament into the filament sensor."
 msgstr "Вставте філамент у датчик філаменту."
 
@@ -4167,7 +4157,7 @@ msgstr "Правильний колір?"
 msgid "Is filament in extruder gear?"
 msgstr "Філамент у шестерні екструдера?"
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:180
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:173
 msgid "Is filament in the filament sensor?"
 msgstr "Філамент у датчику філаменту?"
 
@@ -4181,7 +4171,7 @@ msgstr ""
 "\n"
 "Якщо ні, закрийте та підтвердіть."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:178
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:171
 msgid "Is there any filament in the tool or side filament sensors?"
 msgstr "Чи є філамент у датчиках філаменту інструмента або бічному датчику?"
 
@@ -4339,14 +4329,10 @@ msgstr "Налаштування Z в реальному часі"
 msgid "Live Z"
 msgstr "Налаштування Z в реальному часі"
 
-#: src/gui/screen_menu_filament_changeall.cpp:92
+#: src/gui/screen_menu_filament_changeall.cpp:91
 #, c-format
 msgid "Load %s"
 msgstr "Завантажити %s"
-
-#: src/gui/MItem_filament.hpp:46
-msgid "Load All"
-msgstr "Завантажити все"
 
 #: src/gui/screen_network_setup.cpp:71
 msgid "Load Config From File"
@@ -4458,7 +4444,7 @@ msgstr "Тайм-аут завантаження"
 msgid "Loading filament"
 msgstr "Завантаження філаменту"
 
-#: src/gui/screen_menu_mmu_load_test_filament.hpp:18
+#: src/gui/screen_menu_mmu_load_test_filament.hpp:21
 msgid "Loading test"
 msgstr "Тест завантаження"
 
@@ -4744,7 +4730,7 @@ msgstr "БІЛЬШЕ"
 msgid "MOVE AXIS"
 msgstr "РУХАТИ ВІСЬ"
 
-#: src/gui/screen_menu_filament_changeall.cpp:225
+#: src/gui/screen_menu_filament_changeall.cpp:204
 msgid "MULTITOOL FILAMENT CHANGE"
 msgstr "ЗАМІНА ФІЛАМЕНТА ДЛЯ БАГАТОІНСТРУМЕНТНОЇ СИСТЕМИ"
 
@@ -4782,7 +4768,7 @@ msgstr "Переконайтеся, що філамент вставлено ч�
 msgid "Make sure the filament is properly inserted."
 msgstr "Переконайтеся, що філамент вставлено правильно."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:170
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
 msgid ""
 "Make sure there is no filament in the filament sensor.\n"
 "\n"
@@ -5088,7 +5074,7 @@ msgstr "ЗАРАЗ"
 msgid "NOZZLE CLEANER"
 msgstr "ОЧИСНИК СОПЛА"
 
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:137
+#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:135
 msgid "NOZZLE CLEANER CALIBRATION"
 msgstr "КАЛІБРУВАННЯ ОЧИСНИКА СОПЛА"
 
@@ -5407,7 +5393,7 @@ msgid "Nozzle Temperatures"
 msgstr "Температури сопел"
 
 #. Nozzle wiper is the product name - we call it nozzle cleaner lite
-#: src/gui/MItem_hardware.hpp:154
+#: src/gui/MItem_hardware.hpp:153
 msgid "Nozzle Wiper"
 msgstr "Очисник сопла"
 
@@ -6009,7 +5995,7 @@ msgstr ""
 "\n"
 "Файл конфігурації можна створити в PrusaSlicer."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:168
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:161
 msgid ""
 "Please make sure there is no filament in the tool and side filament "
 "sensors.\n"
@@ -6187,7 +6173,7 @@ msgstr "Пресет"
 msgid "Press CONTINUE and push filament into MMU."
 msgstr "Натисніть ПРОДОВЖИТИ та проштовхніть філамент у MMU."
 
-#: src/gui/screen_menu_selftest_snake.cpp:358
+#: src/gui/screen_menu_selftest_snake.cpp:347
 msgid "Previous Calibrations & Tests are not all done. Continue anyway?"
 msgstr "Попередні калібрування та тести не завершено. Все одно продовжити?"
 
@@ -6275,7 +6261,7 @@ msgstr "Друк завершиться"
 msgid "Printed circuit board of %s is overheating."
 msgstr "Друкована плата %s перегрівається."
 
-#: src/feature/factory_reset/factory_reset.hpp:51
+#: src/feature/factory_reset/factory_reset.hpp:47
 msgid "Printer Functions"
 msgstr "Функції принтера"
 
@@ -6283,11 +6269,11 @@ msgstr "Функції принтера"
 msgid "Printer Model"
 msgstr "Модель принтера"
 
-#: src/feature/factory_reset/factory_reset.hpp:52
+#: src/feature/factory_reset/factory_reset.hpp:48
 msgid "Printer State"
 msgstr "Стан принтера"
 
-#: src/gui/MItem_hardware.cpp:66 src/gui/MItem_hardware.hpp:62
+#: src/gui/MItem_hardware.cpp:66 src/gui/MItem_hardware.hpp:61
 msgid "Printer Type"
 msgstr "Тип принтера"
 
@@ -6377,7 +6363,7 @@ msgstr "Протокол"
 msgid "Protocol err"
 msgstr "Помилка протоколу"
 
-#: src/gui/MItem_experimental_tools.cpp:144
+#: src/gui/MItem_experimental_tools.cpp:143
 msgid "Prusa"
 msgstr "Prusa"
 
@@ -6438,7 +6424,7 @@ msgstr ""
 "Puppy використовує несумісний протокол завантажувача %04x, для прошивки "
 "Buddy потрібен %04x"
 
-#: src/gui/MItem_filament.hpp:66
+#: src/gui/MItem_filament.hpp:46
 msgid "Purge Filament"
 msgstr "Продути філамент"
 
@@ -6468,7 +6454,7 @@ msgstr ""
 "Вштовхніть філамент в екструдер і, продовжуючи натискати, натисніть "
 "ПРОДОВЖИТИ."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:196
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:189
 msgid ""
 "Push the filament through extruder filament sensor, until the extruder "
 "engages with the filament."
@@ -6476,13 +6462,13 @@ msgstr ""
 "Проштовхніть філамент через датчик екструдера, поки екструдер не захопить "
 "його."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:198
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:191
 msgid ""
 "Push the filament through filament sensor, until the extruder engages with "
 "the filament."
 msgstr "Проштовхніть філамент через датчик, поки екструдер не захопить його."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:194
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:187
 msgid ""
 "Push the filament through the side and extruder filament sensors, until the "
 "extruder engages with the filament."
@@ -6490,7 +6476,7 @@ msgstr ""
 "Проштовхніть філамент через бічний і екструдерний датчики, поки екструдер не "
 "захопить його."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:202
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:195
 msgid "Push the filament through the side and extruder filament sensors."
 msgstr "Проштовхніть філамент через бічний і екструдерний датчики."
 
@@ -6676,11 +6662,11 @@ msgstr ""
 "\n"
 "Підказка: Філамент автоматично витягується, коли досягає кінця котушки."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:227
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:220
 msgid "Remove the filament from both filament sensors."
 msgstr "Зніміть філамент з обох датчиків."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:229
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:222
 msgid "Remove the filament from the filament sensor."
 msgstr "Зніміть філамент з датчика."
 
@@ -6741,15 +6727,15 @@ msgstr "Вимагає фільтрації"
 msgid "Reset"
 msgstr "Скинути"
 
-#: src/gui/MItem_experimental_tools.cpp:42
+#: src/gui/MItem_experimental_tools.cpp:43
 msgid "Reset Z-length"
 msgstr "Скинути довжину Z"
 
-#: src/gui/MItem_experimental_tools.cpp:240
+#: src/gui/MItem_experimental_tools.cpp:231
 msgid "Reset currents"
 msgstr "Скинути струми"
 
-#: src/gui/MItem_experimental_tools.cpp:184
+#: src/gui/MItem_experimental_tools.cpp:181
 msgid "Reset directions"
 msgstr "Скинути напрямки"
 
@@ -6757,7 +6743,7 @@ msgstr "Скинути напрямки"
 msgid "Reset filter usage?"
 msgstr "Скинути використання фільтра?"
 
-#: src/gui/MItem_experimental_tools.cpp:135
+#: src/gui/MItem_experimental_tools.cpp:134
 msgid "Reset steps per unit"
 msgstr "Скинути кроки на одиницю"
 
@@ -6834,7 +6820,7 @@ msgstr ""
 "гвинтів мають бути на одному рівні з кришкою. Розблокуйте та відкрийте "
 "холостий хід."
 
-#: src/gui/screen_menu_selftest_snake.cpp:490
+#: src/gui/screen_menu_selftest_snake.cpp:479
 msgid "Run selftests and calibrations now?"
 msgstr "Запустити самотести та калібрування зараз?"
 
@@ -6973,7 +6959,7 @@ msgstr "Зберегти дамп аварії"
 msgid "Save Logs To File"
 msgstr "Зберегти журнали у файл"
 
-#: src/gui/MItem_experimental_tools.cpp:250
+#: src/gui/MItem_experimental_tools.cpp:240
 msgid "Save and return"
 msgstr "Зберегти та повернутися"
 
@@ -7012,7 +6998,7 @@ msgstr "Пошук мереж..."
 msgid "Scanning..."
 msgstr "Сканування..."
 
-#: src/feature/factory_reset/factory_reset.hpp:55
+#: src/feature/factory_reset/factory_reset.hpp:51
 msgid "Security"
 msgstr "Безпека"
 
@@ -7061,7 +7047,7 @@ msgstr ""
 "Селектор не може рухатися, оскільки FINDA виявив філамент. Переконайтеся, що "
 "в селекторі немає філаменту, а FINDA працює належним чином."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:253
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:246
 msgid "Selftest FAILED. Enable logging to TXT from the settings for details."
 msgstr "Самотест НЕ ПРОЙДЕНО. Увімкніть журнал у TXT в налаштуваннях."
 
@@ -7073,7 +7059,7 @@ msgstr "Інформація про датчики"
 msgid "Serial Printing Screen"
 msgstr "Екран послідовного друку"
 
-#: src/gui/screen_menu_filament_changeall.cpp:30
+#: src/gui/screen_menu_filament_changeall.cpp:29
 msgid "Set All To"
 msgstr "Встановити все на"
 
@@ -7141,7 +7127,7 @@ msgstr ""
 msgid "Show All"
 msgstr "Показати все"
 
-#: src/gui/MItem_hardware.hpp:34
+#: src/gui/MItem_hardware.hpp:33
 msgid "Side FSensor Remap"
 msgstr "Перепризначення бічного датчика філаменту"
 
@@ -7886,16 +7872,6 @@ msgstr ""
 msgid "The nozzle cleaner may overflow during this print."
 msgstr "Очисник сопла може переповнитися під час цього друку."
 
-#: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:39
-msgid ""
-"The nozzle diameter was measured wider than expected.\n"
-"\n"
-"Clean the nozzle, then press Retry."
-msgstr ""
-"Виміряний діаметр сопла більший, ніж очікувалося.\n"
-"\n"
-"Очистіть сопло, потім натисніть «Повторити»."
-
 #: tmp_error_headers/error_list.hpp:275
 msgid "The nozzle is very hot. Close the door to prevent burns."
 msgstr "Сопло дуже гаряче. Закрийте дверцята, щоб уникнути опіків."
@@ -8008,7 +7984,7 @@ msgstr ""
 "Спочатку вимірюється верхній ремінь, потім нижній. Колесом регулюйте "
 "резонанс. Правильна частота - повільний рух ременя з різкими піками."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:248
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:241
 msgid ""
 "There is a problem with some of the sensors. You may calibrate the rest, but "
 "the selftest will fail."
@@ -8644,11 +8620,11 @@ msgstr ""
 "Від'єднати OpenPrintTag від філаменту? Відстеження використання філаменту "
 "буде вимкнено."
 
-#: src/gui/screen_menu_filament_changeall.cpp:89
+#: src/gui/screen_menu_filament_changeall.cpp:88
 msgid "Unload"
 msgstr "Вивантажити"
 
-#: src/gui/MItem_filament.hpp:56
+#: src/gui/MItem_filament.cpp:104
 msgid "Unload All"
 msgstr "Вивантажити все"
 
@@ -8752,7 +8728,7 @@ msgstr "Користувач"
 msgid "User Interface"
 msgstr "Інтерфейс користувача"
 
-#: src/feature/factory_reset/factory_reset.hpp:53
+#: src/feature/factory_reset/factory_reset.hpp:49
 msgid "User Presets"
 msgstr "Пресети користувача"
 
@@ -8903,7 +8879,7 @@ msgid ""
 "dump, saved upon reset, to our support team."
 msgstr "Ми працюємо над цим. Надішліть дамп аварії після скидання в підтримку."
 
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:172
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:165
 msgid ""
 "We need to start without the filament in the extruder. Please make sure "
 "there is no filament in the filament sensor."
@@ -9026,7 +9002,7 @@ msgstr ""
 "\n"
 "Після цього втягнеться. Обережно, сопло гаряче!"
 
-#: src/gui/MItem_experimental_tools.cpp:145
+#: src/gui/MItem_experimental_tools.cpp:144
 msgid "Wrong"
 msgstr "Неправильний"
 
@@ -9050,9 +9026,9 @@ msgstr "Тест осі X"
 msgid "X Axis Travel"
 msgstr "Пробіг осі X"
 
-#: src/gui/MItem_experimental_tools.cpp:202
-msgid "X current"
-msgstr "Струм X"
+#: src/gui/MItem_experimental_tools.cpp:195
+msgid "X current (0 default)"
+msgstr "Струм X (0 за замовчуванням)"
 
 #: src/gui/screen_crash_recovery.cpp:95
 msgid "X-axis"
@@ -9070,7 +9046,7 @@ msgstr "Частота осі X"
 msgid "X-axis Frequency"
 msgstr "Частота осі X"
 
-#: src/gui/MItem_experimental_tools.cpp:155
+#: src/gui/MItem_experimental_tools.cpp:153
 msgid "X-axis direction"
 msgstr "Напрямок осі X"
 
@@ -9127,9 +9103,9 @@ msgstr "Тест осі Y"
 msgid "Y Axis Travel"
 msgstr "Пробіг осі Y"
 
-#: src/gui/MItem_experimental_tools.cpp:211
-msgid "Y current"
-msgstr "Струм Y"
+#: src/gui/MItem_experimental_tools.cpp:204
+msgid "Y current (0 default)"
+msgstr "Струм Y (0 за замовчуванням)"
 
 #: src/gui/screen_crash_recovery.cpp:96
 msgid "Y-axis"
@@ -9147,7 +9123,7 @@ msgstr "Частота осі Y"
 msgid "Y-axis Frequency"
 msgstr "Частота осі Y"
 
-#: src/gui/MItem_experimental_tools.cpp:160
+#: src/gui/MItem_experimental_tools.cpp:158
 msgid "Y-axis direction"
 msgstr "Напрямок осі Y"
 
@@ -9210,7 +9186,7 @@ msgstr "Тест осі Z"
 msgid "Z Axis Travel"
 msgstr "Пробіг осі Z"
 
-#: src/gui/MItem_experimental_tools.cpp:220
+#: src/gui/MItem_experimental_tools.cpp:213
 msgid "Z current"
 msgstr "Струм Z"
 
@@ -9230,11 +9206,11 @@ msgstr "Вісь Z"
 msgid "Z-axis calibration"
 msgstr "Калібрування осі Z"
 
-#: src/gui/MItem_experimental_tools.cpp:165
+#: src/gui/MItem_experimental_tools.cpp:163
 msgid "Z-axis direction"
 msgstr "Напрямок осі Z"
 
-#: src/gui/MItem_experimental_tools.cpp:33
+#: src/gui/MItem_experimental_tools.cpp:34
 msgid "Z-axis length"
 msgstr "Довжина осі Z"
 
