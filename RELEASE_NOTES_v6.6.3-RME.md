@@ -1271,4 +1271,14 @@ The final release command is:
 ./build.py --final --versions 6.5.7 6.6.3 --jobs 15
 ```
 
+All 15 6.6.3 presets passed. Maximum MINI flash use was 99.42%, MK4 used
+61.10%, MK3.5 used 56.48%, XL used 69.23%, and CORE One INDX used 65.80%.
+Exactly 15 BBFs were staged under `bbf/6.6.3`.
+
+Build 10 firmware continuation:
+
+```text
+c50d75ee4  2026-08-12  Fix reentrant RME bulk parser corruption
+```
+
 Published release tag: `v6.6.3-RME-b10`.
