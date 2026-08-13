@@ -248,7 +248,7 @@ static void atomic_finish() {
     } else
 #endif
 #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
-        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy()) && prusa_toolchanger.is_toolchanger_enabled()) {
+        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_machine_position.xy()) && prusa_toolchanger.is_toolchanger_enabled()) {
 
         // Continue with toolcrash recovery
         marlin_server::powerpanic_finish_toolcrash();
@@ -339,7 +339,7 @@ void resume_loop() {
         // This applies for PowerPanic from paused AND from printing too
         // because printing after power up starts from pause
         marlin_server::resume_state_t resume;
-        resume.pos = state_buf.crash.crash_current_position;
+        resume.pos = state_buf.crash.crash_native_position;
         resume.fan_speed = state_buf.planner.fan_speed;
         resume.print_speed = state_buf.planner.print_speed;
         resume.nozzle_temp = state_buf.planner.target_nozzle;
@@ -427,7 +427,7 @@ void resume_loop() {
 #endif
 
 #if HAS_TOOLCHANGER() && HAS_TOOL_CRASH_RECOVERY()
-        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy())) {
+        if (prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_machine_position.xy())) {
             prusa_toolchanger.set_return_data({
                 PhysicalToolIndex::from_raw_notool(state_buf.toolchanger.tool_nr),
                 state_buf.toolchanger.return_type,
@@ -449,7 +449,7 @@ void resume_loop() {
         if (state_buf.crash.recover_flags & Crash_s::RECOVER_AXIS_STATE) {
             // lift and rehome
             if (state_buf.crash.axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise) || state_buf.crash.axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise)) {
-                float z_dist = current_position[Z_AXIS] - state_buf.crash.crash_current_position[Z_AXIS];
+                float z_dist = current_position[Z_AXIS] - state_buf.crash.crash_native_position[Z_AXIS];
                 float z_lift = z_dist < Z_HOMING_HEIGHT ? Z_HOMING_HEIGHT - z_dist : 0;
                 char cmd_buf[24];
                 snprintf(cmd_buf, sizeof(cmd_buf), "G28 X Y D R%f", (double)z_lift);
@@ -501,16 +501,16 @@ void resume_loop() {
         // forget the XYZ resume position if requested
         if (!(state_buf.crash.recover_flags & Crash_s::RECOVER_XY_POSITION)) {
             LOOP_XY(i) {
-                state_buf.crash.crash_current_position[i] = current_position[i];
+                state_buf.crash.crash_native_position[i] = current_position[i];
             }
         }
         if (!(state_buf.crash.recover_flags & Crash_s::RECOVER_Z_POSITION)) {
-            state_buf.crash.crash_current_position[Z_AXIS] = current_position[Z_AXIS];
+            state_buf.crash.crash_native_position[Z_AXIS] = current_position[Z_AXIS];
         }
 
         // unpark only if the position was known
         if (state_buf.crash.axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
-            plan_park_move_to_xyz(state_buf.crash.crash_current_position.xyz(), NOZZLE_PARK_XY_FEEDRATE, NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
+            plan_park_move_to_xyz(state_buf.crash.crash_native_position.xyz(), NOZZLE_PARK_XY_FEEDRATE, NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
         }
 
         // Unretract paired with the retract in PPState::Prepared.
@@ -569,8 +569,8 @@ void resume_loop() {
             const auto &d = state_buf.crash;
 
             crash_s.start_current_position = d.start_current_position;
-            crash_s.crash_current_position = d.crash_current_position;
-            crash_s.crash_position = d.crash_position;
+            crash_s.crash_native_position = d.crash_native_position;
+            crash_s.crash_machine_position = d.crash_machine_position;
             crash_s.segments_finished = d.segments_finished;
             crash_s.leveling_active = d.leveling_active;
             crash_s.recover_flags = d.recover_flags;
@@ -761,7 +761,7 @@ void panic_loop() {
                 log_debug(PowerPanic, "Z MSCNT start: %d", stepperZ.MSCNT());
 
                 // lift just 1 cycle if already far enough from the print
-                float z_dist = current_position[Z_AXIS] - state_buf.crash.crash_current_position[Z_AXIS];
+                float z_dist = current_position[Z_AXIS] - state_buf.crash.crash_native_position[Z_AXIS];
                 bool already_lifted = z_dist >= planner.mm_per_qsteps(Z_AXIS, POWER_PANIC_Z_LIFT_CYCLES);
                 uint8_t cycles = (already_lifted ? 1 : POWER_PANIC_Z_LIFT_CYCLES);
                 float z_shift = distance_to_reset_point(Z_AXIS, cycles);
@@ -851,9 +851,9 @@ void panic_loop() {
             destination = current_position;
             const PrintArea::rect_t print_rect = print_area.get_bounding_rect(); // We need to get out of print area
 #if HAS_TOOLCHANGER()
-            bool stay_put = prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_position.xy());
+            bool stay_put = prusa_toolchanger.is_pos_in_toolchange_area(state_buf.crash.crash_machine_position.xy());
     #if HAS_INDX()
-            stay_put |= state_buf.crash.crash_position.x > X_WASTEBIN_SAFE_POINT; // Cleaner / wastebin strip
+            stay_put |= state_buf.crash.crash_machine_position.x > X_WASTEBIN_SAFE_POINT; // Cleaner / wastebin strip
     #elif PRINTER_IS_PRUSA_XL()
     #else
         #error "Need to know where the toolchanger is"
@@ -992,13 +992,13 @@ void ac_fault_isr() {
         const marlin_server::resume_state_t &resume = *marlin_server::get_resume_data();
 
         if (state_buf.planner.was_paused) {
-            // crash_current_position *is* current_position while the print is paused,
+            // crash_native_position *is* current_position while the print is paused,
             // so abuse the slot for the restore position instead
             state_buf.crash.sdpos = marlin_server::media_position();
-            state_buf.crash.crash_current_position = resume.pos;
+            state_buf.crash.crash_native_position = resume.pos;
         } else {
             state_buf.crash.sdpos = crash_s.sdpos;
-            state_buf.crash.crash_current_position = crash_s.crash_current_position;
+            state_buf.crash.crash_native_position = crash_s.crash_native_position;
         }
 
         // save crash parameters
@@ -1018,7 +1018,7 @@ void ac_fault_isr() {
         {
             state_buf.crash.start_current_position = crash_s.start_current_position;
         }
-        state_buf.crash.crash_position = crash_s.crash_position;
+        state_buf.crash.crash_machine_position = crash_s.crash_machine_position;
         state_buf.crash.segments_finished = crash_s.segments_finished;
         state_buf.crash.axes_home_level = crash_s.crash_axes_home_level;
         state_buf.crash.leveling_active = crash_s.leveling_active;

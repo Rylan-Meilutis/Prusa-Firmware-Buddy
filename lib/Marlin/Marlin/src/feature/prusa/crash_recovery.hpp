@@ -97,9 +97,14 @@ public:
         return false;
     }
 
-    xyze_pos_t start_current_position; /// absolute logical starting XYZE position of the gcode instruction
-    xyze_pos_t crash_current_position; /// absolute logical XYZE position of the crash location
-    xyze_pos_t crash_position; /// absolute machine XYZE position of the crash location
+    /// Value of current_position at the start of the interrupted GCode
+    xyze_pos_t start_current_position;
+
+    /// Basically just crash_machine_position as native coordinates instead of machine
+    xyze_pos_t crash_native_position;
+
+    /// Exact stepper positions at the time of the crash
+    MachinePosXYZE crash_machine_position;
 
     Crash_s_Counters counters;
     using Counter = Crash_s_Counters::Counter;

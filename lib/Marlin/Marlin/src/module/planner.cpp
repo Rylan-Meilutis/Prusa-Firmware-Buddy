@@ -2233,7 +2233,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
 
       // first real segment after recovering, manipulate the current state in order
       // to resume the segment from the crashing position
-      set_machine_position_mm(crash_s.crash_position);
+      set_machine_position_mm(crash_s.crash_machine_position);
 
       // reset the hints
       static const PlannerHints default_hints; // INDX_TODO: Investigate crash
@@ -2355,7 +2355,7 @@ bool Planner::buffer_raw_segment(const MachinePosXYZE &xyze, const float acceler
 
             // first real segment after recovering, manipulate the current state in order
             // to resume the segment from the crashing position
-            set_machine_position_mm(crash_s.crash_position);
+            set_machine_position_mm(crash_s.crash_machine_position);
 
             // continue normally
             crash_s.set_state(Crash_s::PRINTING);
