@@ -2205,9 +2205,6 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
 #endif
 
   #if HAS_CRASH_DETECTION()
-  // Hints for the current segments might be reset during recovery
-  const PlannerHints* segment_hints = &hints;
-
   {
     auto &move_start = crash_s.move_start;
     auto &gcode_state = crash_s.gcode_state;
@@ -2233,10 +2230,6 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
       // first real segment after recovering, manipulate the current state in order
       // to resume the segment from the crashing position
       set_machine_position_mm(crash_s.crash_machine_position);
-
-      // reset the hints
-      static const PlannerHints default_hints; // INDX_TODO: Investigate crash
-      segment_hints = &default_hints;
 
       // continue normally
       crash_s.set_state(Crash_s::PRINTING);
@@ -2310,12 +2303,7 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
   // Queue the movement. Return 'false' if the move was not queued.
   if (!_buffer_msteps(target, xyze
       , fr_mm_s, tools
-#if HAS_CRASH_DETECTION()
-      , *segment_hints
-#else
-  // #error dead code found by automatic analyses (see BFW-5461)
       , hints
-#endif
   )) return false;
 
   return true;
