@@ -232,7 +232,7 @@ bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool>
     }
 
     if (!is_toolchanger_enabled()) {
-        if (raw_new_tool == active_extruder) {
+        if (new_tool == PhysicalToolIndex::currently_selected()) {
             return true; // Allow singletool printer to change to tool 0
         }
         toolchanger_error("Toolchanger not enabled");
@@ -427,7 +427,7 @@ bool PrusaToolChanger::check_skipped_step() {
 
     #if HAS_TOOL_CRASH_RECOVERY()
 void PrusaToolChanger::crash_deselect_tool() {
-    if (active_extruder != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
+    if (PhysicalToolIndex::currently_selected_opt().has_value()) {
         prusa_toolchanger.request_active_switch(nullptr); // Deselect dwarf
         const uint8_t old_tool_index = active_extruder;
         active_extruder = PrusaToolChanger::MARLIN_NO_TOOL_PICKED; // Mark no tool for Marlin
