@@ -1282,3 +1282,33 @@ c50d75ee4  2026-08-12  Fix reentrant RME bulk parser corruption
 ```
 
 Published release tag: `v6.6.3-RME-b10`.
+
+## Build 11 release update
+
+Build 11 keeps RME upload implementation files private. Prusa Connect and RME
+directory listings no longer expose `FWUPD.RME`, `FWUPD.UI`, `.rme-part`,
+`.rme-meta`, or `.rme-old` artifacts, and Connect file-change events and
+explicit file-info requests cannot publish them either. Known partial and
+metadata paths remain available to explicit idle RME cleanup, while the
+verified firmware candidate remains protected by the idempotent `FIRMWARE
+UNSTAGE` workflow.
+
+The host documentation now defines a complete durable recovery workflow:
+OctoPrint plugins persist path, size, and SHA-256 before BEGIN, resume with an
+identical BEGIN at the returned committed offset, or recover through text/bulk
+and issue line-mode ABORT to remove partial data and metadata together. Lost
+host provenance can be handled by explicit STAT/DELETE of mechanically derived
+sidecar paths without exposing those paths in ordinary listings or deleting a
+rollback file speculatively.
+
+All 15 6.6.3 presets passed. Maximum MINI flash use was 99.42%, MK4 used
+61.08%, MK3.5 used 56.46%, XL used 69.21%, and CORE One INDX used 65.80%.
+Exactly 15 BBFs were staged under `bbf/6.6.3`.
+
+Build 11 firmware continuation:
+
+```text
+561565bfb  2026-08-12  Hide private RME transfer artifacts
+```
+
+Published release tag: `v6.6.3-RME-b11`.
