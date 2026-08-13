@@ -173,106 +173,7 @@ bool probe_should_check_angle_after() {
     do_blocking_move_to(oldpos, MMM_TO_MMS(HOMING_FEEDRATE_Z));
   }
 
-#elif ENABLED(Z_PROBE_ALLEN_KEY)
-  // #error dead code found by automatic analyses (see BFW-5461)
-
-  void run_deploy_moves_script() {
-    #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_1
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t deploy_1 = Z_PROBE_ALLEN_KEY_DEPLOY_1;
-      do_blocking_move_to(deploy_1, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_2
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t deploy_2 = Z_PROBE_ALLEN_KEY_DEPLOY_2;
-      do_blocking_move_to(deploy_2, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_2_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_3
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t deploy_3 = Z_PROBE_ALLEN_KEY_DEPLOY_3;
-      do_blocking_move_to(deploy_3, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_3_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_4
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t deploy_4 = Z_PROBE_ALLEN_KEY_DEPLOY_4;
-      do_blocking_move_to(deploy_4, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_4_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_DEPLOY_5
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_DEPLOY_5_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_DEPLOY_5_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t deploy_5 = Z_PROBE_ALLEN_KEY_DEPLOY_5;
-      do_blocking_move_to(deploy_5, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_DEPLOY_5_FEEDRATE));
-    #endif
-  }
-
-  void run_stow_moves_script() {
-    #ifdef Z_PROBE_ALLEN_KEY_STOW_1
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t stow_1 = Z_PROBE_ALLEN_KEY_STOW_1;
-      do_blocking_move_to(stow_1, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_STOW_2
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t stow_2 = Z_PROBE_ALLEN_KEY_STOW_2;
-      do_blocking_move_to(stow_2, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_2_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_STOW_3
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t stow_3 = Z_PROBE_ALLEN_KEY_STOW_3;
-      do_blocking_move_to(stow_3, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_3_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_STOW_4
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t stow_4 = Z_PROBE_ALLEN_KEY_STOW_4;
-      do_blocking_move_to(stow_4, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_4_FEEDRATE));
-    #endif
-    #ifdef Z_PROBE_ALLEN_KEY_STOW_5
-      // #error dead code found by automatic analyses (see BFW-5461)
-      #ifndef Z_PROBE_ALLEN_KEY_STOW_5_FEEDRATE
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #define Z_PROBE_ALLEN_KEY_STOW_5_FEEDRATE 0.0
-      #endif
-      constexpr xyz_pos_t stow_5 = Z_PROBE_ALLEN_KEY_STOW_5;
-      do_blocking_move_to(stow_5, MMM_TO_MMS(Z_PROBE_ALLEN_KEY_STOW_5_FEEDRATE));
-    #endif
-  }
-
-#endif // Z_PROBE_ALLEN_KEY
+#endif // TOUCH_MI_PROBE
 
 #if QUIET_PROBING
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -321,7 +222,7 @@ FORCE_INLINE void probe_specific_action(const bool deploy) {
     }
   #endif /*ENABLED(NOZZLE_LOAD_CELL)*/
 
-  #if EITHER(TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY)
+  #if ENABLED(TOUCH_MI_PROBE)
     // #error dead code found by automatic analyses (see BFW-5461)
 
     deploy ? run_deploy_moves_script() : run_stow_moves_script();
@@ -355,14 +256,6 @@ bool set_probe_deployed(const bool deploy) {
   #else
     UNUSED(deploy_stow_condition);
     UNUSED(unknown_condition);
-  #endif
-
-  #if ENABLED(Z_PROBE_ALLEN_KEY)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    if (axis_unhomed_error()) {
-      // Previously called stop() for soft-error recovery. That mechanism has been removed.
-      static_assert(false, "Z_PROBE_ALLEN_KEY needs rework: stop() was removed");
-    }
   #endif
 
   const xy_pos_t old_xy = current_position.xy();

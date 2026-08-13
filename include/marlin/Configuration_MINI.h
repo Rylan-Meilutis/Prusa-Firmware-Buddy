@@ -543,10 +543,6 @@
  */
 #define FIX_MOUNTED_PROBE
 
-//
-// For Z_PROBE_ALLEN_KEY see the Delta example configurations.
-//
-
 /**
  *   Z Probe to nozzle (X,Y) offset, relative to (0, 0).
  *   X and Y offsets must be integers.

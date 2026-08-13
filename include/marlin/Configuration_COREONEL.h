@@ -624,10 +624,6 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
   #define NOZZLE_LOAD_CELL
 #endif
 
-//
-// For Z_PROBE_ALLEN_KEY see the Delta example configurations.
-//
-
 /**
  *   Z Probe to nozzle (X,Y) offset, relative to (0, 0).
  *   X and Y offsets must be integers.
