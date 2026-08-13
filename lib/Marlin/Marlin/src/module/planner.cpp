@@ -1083,19 +1083,21 @@ static void get_multi_axis_position_mm(float* pos, const uint8_t cnt) {
   int32_t axis_steps[LOGICAL_AXES];
   sample_stepper_positions(axis_steps, cnt);
 
+  for(uint8_t i = 0; i != cnt; ++i)
+    pos[i] = axis_steps[i] * Planner::mm_per_step[i];
+
   #if IS_CORE
     #if CORE_IS_XY
-      int32_t a = axis_steps[A_AXIS];
-      int32_t b = axis_steps[B_AXIS];
-      axis_steps[X_AXIS] = (a + b) / 2;
-      axis_steps[Y_AXIS] = CORESIGN(a - b) / 2;
+      debug_assert(cnt >= 2);
+      debug_assert(Planner::mm_per_step[X_AXIS] == Planner::mm_per_step[Y_AXIS]);
+      const float a = pos[A_AXIS];
+      const float b = pos[B_AXIS];
+      pos[X_AXIS] = (a + b) / 2.f;
+      pos[Y_AXIS] = CORESIGN(a - b) / 2.f;
     #else
       #error "unsupported core type"
     #endif
   #endif
-
-  for(uint8_t i = 0; i != cnt; ++i)
-    pos[i] = axis_steps[i] * Planner::mm_per_step[i];
 }
 
 void Planner::get_axis_position_mm(MachinePosXY& pos) {
