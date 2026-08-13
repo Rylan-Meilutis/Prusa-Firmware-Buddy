@@ -1226,3 +1226,7 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 #if ENABLED(DIGIPOT_I2C)
     #error "DIGIPOT is not supported"
 #endif
+
+#if ENABLED(COOLANT_MIST) || ENABLED(COOLANT_FLOOD) || ENABLED(COOLANT_CONTROL)
+    #error "COOLANT is not supported"
+#endif

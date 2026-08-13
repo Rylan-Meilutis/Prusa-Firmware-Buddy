@@ -386,18 +386,7 @@ void GcodeSuite::process_parsed_command_standard() {
         case 1: M0_M1(); break;                                   // M1: Conditional stop - Wait for user button press on LCD
       #endif
 
-      #if ENABLED(COOLANT_CONTROL)
-        // #error dead code found by automatic analyses (see BFW-5461)
-        #if ENABLED(COOLANT_MIST)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          case 7: M7(); break;                                    // M7: Mist coolant ON
-        #endif
-        #if ENABLED(COOLANT_FLOOD)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          case 8: M8(); break;                                    // M8: Flood coolant ON
-        #endif
-        case 9: M9(); break;                                      // M9: Coolant OFF
-      #endif
+      // M7, M8, M9: coolant related gcodes was REMOVED
 
       #if ENABLED(EXPECTED_PRINTER_CHECK)
         // #error dead code found by automatic analyses (see BFW-5461)

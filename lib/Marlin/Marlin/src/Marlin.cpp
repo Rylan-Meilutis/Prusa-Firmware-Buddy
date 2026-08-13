@@ -497,15 +497,6 @@ void setup() {
     #endif
   #endif /* HAS_PLANNER() */
 
-  #if ENABLED(COOLANT_MIST)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(COOLANT_MIST_PIN, COOLANT_MIST_INVERT);   // Init Mist Coolant OFF
-  #endif
-  #if ENABLED(COOLANT_FLOOD)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(COOLANT_FLOOD_PIN, COOLANT_FLOOD_INVERT); // Init Flood Coolant OFF
-  #endif
-
   #if HAS_BED_PROBE
     endstops.enable_z_probe(false);
   #endif

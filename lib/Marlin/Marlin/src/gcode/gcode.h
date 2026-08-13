@@ -71,9 +71,6 @@
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD.
  * M1   -> M0
- * M7   - Turn mist coolant ON. (Requires COOLANT_CONTROL)
- * M8   - Turn flood coolant ON. (Requires COOLANT_CONTROL)
- * M9   - Turn coolant OFF. (Requires COOLANT_CONTROL)
  * M16  - Expected printer check. (Requires EXPECTED_PRINTER_CHECK)
  * M17  - Enable/Power all stepper motors
  * M18  - Disable all stepper motors; same as M84
@@ -463,19 +460,6 @@ private:
 
   #if HAS_RESUME_CONTINUE
     static void M0_M1();
-  #endif
-
-  #if ENABLED(COOLANT_CONTROL)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #if ENABLED(COOLANT_MIST)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void M7();
-    #endif
-    #if ENABLED(COOLANT_FLOOD)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void M8();
-    #endif
-    static void M9();
   #endif
 
   #if ENABLED(EXPECTED_PRINTER_CHECK)

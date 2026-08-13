@@ -83,7 +83,6 @@ if(BOARD_IS_MASTER_BOARD)
             Marlin/Marlin/src/gcode/control/M17_M18_M84.cpp
             Marlin/Marlin/src/gcode/control/M211.cpp
             Marlin/Marlin/src/gcode/control/M350_M351.cpp
-            Marlin/Marlin/src/gcode/control/M7-M9.cpp
             Marlin/Marlin/src/gcode/control/M80_M81.cpp
             Marlin/Marlin/src/gcode/control/M86.cpp
             Marlin/Marlin/src/gcode/control/M999.cpp
