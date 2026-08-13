@@ -207,18 +207,7 @@ typedef struct {
   #endif
 } motion_parameters_t;
 
-#if ENABLED(ARC_SUPPORT)
-// @hejllukas: Disabled because it contains a significant issue causing that the entry speed is calculated incorrectly.
-// #define HINTS_SAFE_EXIT_SPEED
-#endif
-
 struct PlannerHints {
-  #if ENABLED(HINTS_SAFE_EXIT_SPEED)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    float safe_exit_speed_sqr = 0.0;  // Square of the speed considered "safe" at the end of the segment
-                                      // i.e., at or below the exit speed of the segment that the planner
-                                      // would calculate if it knew the as-yet-unbuffered path
-  #endif
   bool raw_block = false;             // Enqueue block without further modifications
   MoveHints move = {};
 };
@@ -883,15 +872,15 @@ class Planner {
 
     static void calculate_trapezoid_for_block(block_t * const block, const float entry_speed, const float exit_speed);
 
-    static void reverse_pass_kernel(block_t * const previous, block_t* const current, const block_t * const next OPTARG(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr));
+    static void reverse_pass_kernel(block_t * const previous, block_t* const current, const block_t * const next);
     static void forward_pass_kernel(block_t * const previous, block_t* const current, uint8_t prev_index);
 
-    static void reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr));
+    static void reverse_pass();
     static void forward_pass();
 
-    static void recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr));
+    static void recalculate_trapezoids();
 
-    static void recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr));
+    static void recalculate();
 
     #if DISABLED(CLASSIC_JERK)
 

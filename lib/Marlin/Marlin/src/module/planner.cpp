@@ -523,9 +523,7 @@ void Planner::calculate_trapezoid_for_block(block_t * const block, const float e
  */
 
 // The kernel called by recalculate() when scanning the plan from last to first entry.
-void Planner::reverse_pass_kernel(block_t * const previous, block_t * const current, const block_t * const next
-  OPTARG(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr)
-) {
+void Planner::reverse_pass_kernel(block_t * const previous, block_t * const current, const block_t * const next) {
   // If entry speed is already at the maximum entry speed, and there was no change of speed
   // in the next block, there is no need to recheck. Block is cruising and there is no need to
   // compute anything for this block,
@@ -544,7 +542,7 @@ void Planner::reverse_pass_kernel(block_t * const previous, block_t * const curr
     // the reverse and forward planners, the corresponding block junction speed will always be at the
     // the maximum junction speed and may always be ignored for any speed reduction checks.
 
-    const float next_entry_speed_sqr = next ? next->entry_speed_sqr : _MAX(TERN0(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr), sq(float(MINIMUM_PLANNER_SPEED))),
+    const float next_entry_speed_sqr = next ? next->entry_speed_sqr : sq(float(MINIMUM_PLANNER_SPEED)),
                 new_entry_speed_sqr = current->flag.nominal_length
                   ? max_entry_speed_sqr
                   : _MIN(max_entry_speed_sqr, max_allowable_speed_sqr(-current->acceleration, next_entry_speed_sqr, current->millimeters));
@@ -571,7 +569,7 @@ void Planner::reverse_pass_kernel(block_t * const previous, block_t * const curr
  * recalculate() needs to go over the current plan twice.
  * Once in reverse and once forward. This implements the reverse pass.
  */
-void Planner::reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr)) {
+void Planner::reverse_pass() {
   // Initialize block index to the last block in the planner buffer.
   uint8_t current_index = block_buffer_head,
           prev_index = prev_block_index(block_buffer_head);
@@ -598,7 +596,7 @@ void Planner::reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_sp
       // entry speed can't be altered (since that would also require
       // updating the exit speed of the previous block).
       if (previous && !is_block_busy(previous) && current)
-        reverse_pass_kernel(previous, current, next OPTARG(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));;
+        reverse_pass_kernel(previous, current, next);
       next = current;
       current = previous;
       current_index = prev_index;
@@ -728,7 +726,7 @@ void Planner::forward_pass() {
  * according to the entry_factor for each junction. Must be called by
  * recalculate() after updating the blocks.
  */
-void Planner::recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr)) {
+void Planner::recalculate_trapezoids() {
   // The tail may be changed by the ISR so get a local copy.
   uint8_t block_index = block_buffer_nonbusy,
           head_block_index = block_buffer_head,
@@ -808,7 +806,7 @@ void Planner::recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, const float sa
   // Last/newest block in buffer. Always recalculated.
   if (block && !block->flag.raw_block) {
     // Exit speed is set with MINIMUM_PLANNER_SPEED unless some code higher up knows better.
-    next_entry_speed = _MAX(TERN0(HINTS_SAFE_EXIT_SPEED, SQRT(safe_exit_speed_sqr)), float(MINIMUM_PLANNER_SPEED));
+    next_entry_speed = float(MINIMUM_PLANNER_SPEED);
 
     // Mark the next(last) block as RECALCULATE, to prevent the Stepper ISR running it.
     // As the last block is always recalculated here, there is a chance the block isn't
@@ -829,7 +827,7 @@ void Planner::recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, const float sa
   }
 }
 
-void Planner::recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_speed_sqr)) {
+void Planner::recalculate() {
   // We need an operation that contains read for acquire to work properly
   // (and the acquire-release pair works kind of like a lock, so other operations stay within)
   recalculating.exchange(true, std::memory_order_acquire);
@@ -837,10 +835,10 @@ void Planner::recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, const float safe_exit_spe
   const uint8_t block_index = prev_block_index(block_buffer_head);
   // If there is just one block, no planning can be done. Avoid it!
   if (block_index != block_buffer_planned) {
-    reverse_pass(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
+    reverse_pass();
     forward_pass();
   }
-  recalculate_trapezoids(TERN_(HINTS_SAFE_EXIT_SPEED, safe_exit_speed_sqr));
+  recalculate_trapezoids();
   recalculating.store(false, std::memory_order_release);
 
   // Inform the move ISR that there is a new block added to the queue. If it
@@ -1189,7 +1187,7 @@ bool Planner::_buffer_msteps(const xyze_msteps_t &target, const MachinePosXYZE &
   block_buffer_head = next_buffer_head;
 
   // Recalculate and optimize trapezoidal speed profiles
-  recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, hints.safe_exit_speed_sqr));
+  recalculate();
 
   // Movement successfully queued!
   return true;
@@ -2072,7 +2070,7 @@ bool Planner::buffer_raw_block(const xyze_msteps_t &target, const MachinePosXYZE
     block_buffer_head = next_buffer_head;
 
     // Recalculate and optimize trapezoidal speed profiles
-    recalculate(TERN_(HINTS_SAFE_EXIT_SPEED, hints.safe_exit_speed_sqr));
+    recalculate();
 
     // Movement successfully queued!
     return true;
