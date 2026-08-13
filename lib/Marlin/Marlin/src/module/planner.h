@@ -622,6 +622,9 @@ class Planner {
     /// Resets machine position to values from stepper
     static void reset_position();
 
+    /// Only sets the position to the planner, not steppers
+    static void set_machine_position_mm_planner_only(const MachinePosXYZE &xyze);
+
     /**
      * Set the planner.position and individual stepper positions.
      *

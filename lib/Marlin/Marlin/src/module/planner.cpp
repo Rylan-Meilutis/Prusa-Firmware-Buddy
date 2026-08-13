@@ -139,7 +139,7 @@
 #include "configuration_store.h"
 #include <raii/auto_restore.hpp>
 #include <utils/variant_utils.hpp>
-#include "bsod.h"
+#include <module/prusa/corexy_transform.hpp>
 
 constexpr const int32_t MIN_MSTEPS_PER_SEGMENT = MIN_STEPS_PER_SEGMENT * PLANNER_STEPS_MULTIPLIER;
 
@@ -1088,12 +1088,9 @@ static void get_multi_axis_position_mm(float* pos, const uint8_t cnt) {
 
   #if IS_CORE
     #if CORE_IS_XY
-      debug_assert(cnt >= 2);
-      debug_assert(Planner::mm_per_step[X_AXIS] == Planner::mm_per_step[Y_AXIS]);
-      const float a = pos[A_AXIS];
-      const float b = pos[B_AXIS];
-      pos[X_AXIS] = (a + b) / 2.f;
-      pos[Y_AXIS] = CORESIGN(a - b) / 2.f;
+      const auto xy = corexy_ab_to_xy(ab_steps_t{.a = axis_steps[0], .b = axis_steps[1]});
+      pos[X_AXIS] = xy.x;
+      pos[Y_AXIS] = xy.y;
     #else
       #error "unsupported core type"
     #endif
@@ -2409,7 +2406,7 @@ bool Planner::buffer_raw_line(const MachinePosXYZE &cart, const float accelerati
  * by converting mm into mini-steps.
  */
 
-void Planner::set_machine_position_mm(const MachinePosXYZE &xyze) {
+void Planner::set_machine_position_mm_planner_only(const MachinePosXYZE &xyze) {
   #if ENABLED(DISTINCT_E_FACTORS)
     // #error dead code found by automatic analyses (see BFW-5461)
     last_extruder = active_extruder;
@@ -2421,6 +2418,10 @@ void Planner::set_machine_position_mm(const MachinePosXYZE &xyze) {
     LROUND(xyze.z * settings.axis_msteps_per_mm[Z_AXIS]),
     LROUND(xyze.e * settings.axis_msteps_per_mm[E_AXIS_N(active_extruder)]),
   };
+}
+
+void Planner::set_machine_position_mm(const MachinePosXYZE &xyze) {
+  set_machine_position_mm_planner_only(xyze);
 
   if (processing()) {
     //previous_nominal_speed = 0.0f; // Reset planner junction speeds. Assume start from rest.
@@ -2471,34 +2472,13 @@ void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_ind
 }
 
 void Planner::reset_position() {
-#if ANY(IS_CORE, MARKFORGED_XY, MARKFORGED_YX)
-  #if ENABLED(CORE_IS_XY)
-    // XY position
-    int32_t a = stepper.position(A_AXIS);
-    int32_t b = stepper.position(B_AXIS);
-    float x = static_cast<float>(a + b) / 2.f;
-    float y = static_cast<float>(CORESIGN(a - b)) / 2.f;
-    position[0] = LROUND(x * PLANNER_STEPS_MULTIPLIER);
-    position[1] = LROUND(y * PLANNER_STEPS_MULTIPLIER);
-    position_float[0] = x / settings.axis_steps_per_mm[0];
-    position_float[1] = y / settings.axis_steps_per_mm[1];
+  MachinePosXYZE pos;
+  
+  // Sample position from steppers
+  get_axis_position_mm(pos);
 
-    // remaining axes
-    LOOP_S_L_N(i, C_AXIS, XYZE_N) {
-      const int32_t stepper_position_i = stepper.position((AxisEnum)i);
-      position[i] = stepper_position_i * PLANNER_STEPS_MULTIPLIER;
-      position_float[i] = stepper_position_i / settings.axis_steps_per_mm[i];
-    }
-  #else
-    #error "reset_position() not implemented for this kinematic"
-  #endif
-#else
-  // cartesian
-  LOOP_XYZE(i) {
-    position[i] = stepper.position((AxisEnum)i) * PLANNER_STEPS_MULTIPLIER;
-    position_float[i] = position[i] / settings.axis_msteps_per_mm[i];
-  }
-#endif
+  // Shove the sampled position to the planner
+  set_machine_position_mm_planner_only(pos);
 }
 
 // Recalculate the mini-steps/s^2 acceleration rates, based on the mm/s^2
