@@ -33,7 +33,7 @@ public:
 };
 
 class MI_CHANGEALL : public IWindowMenuItem {
-    constexpr static const char *const label = N_("Change Filament in All Tools");
+    constexpr static const char *const label = N_("Change All");
 
 public:
     MI_CHANGEALL();
