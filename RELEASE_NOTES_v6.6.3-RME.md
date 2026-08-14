@@ -1312,3 +1312,37 @@ Build 11 firmware continuation:
 ```
 
 Published release tag: `v6.6.3-RME-b11`.
+
+## Build 12 release update
+
+Build 12 closes the remaining text-bulk upload corruption path. The advertised
+four-command, 384-byte window could leave roughly 1.7 KiB of encoded commands
+waiting while one command was committed to storage, but the TinyUSB CDC RX
+FIFO held only 512 bytes. Under storage latency the FIFO could lose an `@RME`
+prefix and join Base64 fragments, exposing payload text as `Unknown command`
+and leaving the upload in `upload_state`.
+
+The RX FIFO is now 2048 bytes while TX remains 512 bytes, preserving the full
+bulk window and transfer speed without restoring the former 8 KiB allocation.
+Bulk size/window constants are shared with a compile-time receive-capacity
+assertion. A general ten-second upload watchdog now suspends abandoned
+text/bulk transfers, releases the shared transfer latch, and preserves the
+committed partial for a matching-BEGIN resume.
+
+Machine discovery now reports the zero-origin slicer-usable build volume on
+every model instead of raw homing, docking, wiping, purge, or service travel.
+For example, CORE One reports 250 mm in X, MINI reports 180 mm in Z, and XL
+reports 360 mm in Z.
+
+The RME suite passes 400,145 assertions across 15 cases. All 15 6.6.3 presets
+passed. Maximum MINI flash use was 99.43%, MK4 used 61.09%, MK3.5 used 56.46%,
+XL used 69.21%, and CORE One INDX used 65.80%. Exactly 15 BBFs were staged
+under `bbf/6.6.3`.
+
+Build 12 firmware continuation:
+
+```text
+40ff92fa6  2026-08-13  Fix RME bulk receive window corruption
+```
+
+Published release tag: `v6.6.3-RME-b12`.
