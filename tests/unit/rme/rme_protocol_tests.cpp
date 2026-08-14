@@ -149,6 +149,14 @@ TEST_CASE("RME binary transfer failures have stable diagnostics", "[rme][file]")
     CHECK(diagnostic_code(BinaryFrameError::none) == nullptr);
 }
 
+TEST_CASE("RME text bulk receive backlog matches the advertised window", "[rme][file][regression]") {
+    CHECK(rme_file_transfer::bulk_payload_size == 384);
+    CHECK(rme_file_transfer::bulk_window_size == 4);
+    CHECK(rme_file_transfer::bulk_base64_size == 512);
+    CHECK(rme_file_transfer::bulk_receive_backlog <= 2048);
+    CHECK(rme_file_transfer::bulk_receive_backlog > 512);
+}
+
 TEST_CASE("RME text abort escapes malformed binary mode", "[rme][file][regression]") {
     uint8_t matched = 0;
     constexpr std::string_view abort = "@RME FILE ABORT\n";

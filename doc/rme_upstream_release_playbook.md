@@ -1322,7 +1322,13 @@ host provenance: explicit STAT/DELETE of the two derived sidecar names is
 allowed while idle, `not_found` is treated idempotently by the plugin, and no
 directory scan or speculative `.rme-old` deletion is performed.
 
-Run `rme_protocol_tests`; the release gate is 400,140 assertions across 14
+`RME_ENVELOPE` must report the normalized slicer-usable build volume on every
+machine, never raw Marlin travel bounds. Release checks must verify representative
+models with overtravel or service areas: CORE One X is 250 mm, MINI Z is 180 mm,
+and XL Z is 360 mm; all minima are zero. Docking, wiping, purge, homing, and
+tool-offset reach remain firmware-private motion geometry.
+
+Run `rme_protocol_tests`; the release gate is 400,145 assertions across 15
 cases before the complete firmware matrix.
 
 Final result: all 29 presets passed. Validated maxima were 6.5.7 MINI 96.96%,
@@ -1401,3 +1407,15 @@ Final result: all 29 presets passed with zero failures. Validated maxima were
 6.5.7 MINI 97.35%, MK4 94.96%, MK3.5 90.40%, XL 69.53%; 6.6.3 MINI 99.42%,
 MK4 61.10%, MK3.5 56.48%, XL 69.23%, and CORE One INDX 65.80%. Artifact
 counts were exactly 14 and 15, with no root-level BBFs.
+
+## Text-bulk CDC backlog regression gate
+
+The TinyUSB CDC RX FIFO must hold every complete encoded text-bulk command
+behind the command currently being committed. For the advertised 384-byte,
+four-command window this requires more than 512 bytes; the configured 2048-byte
+RX FIFO is compile-time checked against the shared protocol constants. Do not
+reduce it or enlarge `bulk_chunk`/`bulk_window` independently. A full-speed USB
+stress upload must complete without duplicated/truncated lines, `Unknown
+command` payload fragments, `upload_state`, per-chunk delays, or a reduced
+window. Run `rme_protocol_tests` and require the current 400,145 assertions
+across 15 cases.

@@ -857,12 +857,25 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(HOTENDS == 1 ? 1 : 0);
 
-  SERIAL_ECHOPGM("RME_ENVELOPE x_min="); SERIAL_ECHO(X_MIN_POS);
-  SERIAL_ECHOPGM(" x_max="); SERIAL_ECHO(X_MAX_POS);
-  SERIAL_ECHOPGM(" y_min="); SERIAL_ECHO(Y_MIN_POS);
-  SERIAL_ECHOPGM(" y_max="); SERIAL_ECHO(Y_MAX_POS);
-  SERIAL_ECHOPGM(" z_min="); SERIAL_ECHO(Z_MIN_POS);
-  SERIAL_ECHOPGM(" z_max="); SERIAL_ECHOLN(Z_MAX_POS);
+  // Host printer profiles need the slicer-usable build volume, not homing,
+  // docking, wiping, or service travel.  Those travel limits may extend
+  // beyond the sheet (CORE One X is one example) and can also use negative
+  // coordinates.  Report a normalized, zero-origin printable envelope on
+  // every machine.
+  constexpr float printable_z =
+    #if PRINTER_IS_PRUSA_MINI()
+      180
+    #elif PRINTER_IS_PRUSA_XL()
+      360
+    #elif PRINTER_IS_PRUSA_COREONE()
+      270
+    #else
+      Z_SIZE
+    #endif
+  ;
+  SERIAL_ECHOPGM("RME_ENVELOPE x_min=0 x_max="); SERIAL_ECHO(X_BED_SIZE);
+  SERIAL_ECHOPGM(" y_min=0 y_max="); SERIAL_ECHO(Y_BED_SIZE);
+  SERIAL_ECHOPGM(" z_min=0 z_max="); SERIAL_ECHOLN(printable_z);
 
   SERIAL_ECHOPGM("RME_LIMITS feed_x="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[X_AXIS]);
   SERIAL_ECHOPGM(" feed_y="); SERIAL_ECHO(planner.settings.max_feedrate_mm_s[Y_AXIS]);

@@ -10,7 +10,9 @@ other blocking commands.
 
 1. Use the same serialized writer as normal G-code. Never open a competing
    process or serial descriptor.
-2. Send `@RME MACHINE QUERY`. If no `RME_MACHINE` response is received, retain
+2. Send `@RME MACHINE QUERY`. Treat `RME_ENVELOPE` as a zero-origin usable
+   print volume, not the machine's physical travel range, and use it directly
+   for the OctoPrint printer profile. If no `RME_MACHINE` response is received, retain
    the host's standard Marlin behavior.
    After discovery, send `@RME STATS QUERY` to populate lifetime and current-job
    statistics without model-specific tables.
@@ -87,7 +89,9 @@ the fastest mutually supported mode:
 2. Otherwise use `bulk=1`: pipeline up to `bulk_window` contiguous
    `WRITE_BULK_CHUNK` frames of at most `bulk_chunk` decoded bytes, then wait
    for the cumulative `RME_FILE_BULK_ACK` offset. Never exceed the negotiated
-   window, and discard the unacknowledged window if its ACK times out.
+   window, and discard the unacknowledged window if its ACK times out. The
+   firmware sizes its CDC receive backlog for the advertised window, so the
+   plugin does not need to add per-chunk delays or sacrifice throughput.
 3. Fall back to `WRITE_BEGIN` plus acknowledged 48-byte `WRITE_CHUNK` frames.
 
 The raw frame header is exactly ten little-endian bytes:

@@ -237,8 +237,12 @@ fallback list. Older handlers may ignore these appended fields.
 
 The response is split into `RME_MACHINE`, `RME_ENVELOPE`, and `RME_LIMITS`
 records. It reports physical hotend and logical-tool counts, whether the machine
-uses a single nozzle, reachable XYZ bounds, and the currently configured maximum XYZ feedrates used by OctoPrint's
-printer profile. Firmware-only acceleration tuning remains local.
+uses a single nozzle, the zero-origin slicer-usable XYZ build volume, and the
+currently configured maximum XYZ feedrates used by OctoPrint's printer profile.
+`RME_ENVELOPE` deliberately excludes homing overtravel, dock, purge, cleaner,
+and other service-only coordinates; for example, CORE One reports 250 mm in X
+even though its toolhead can travel farther. Firmware-only acceleration tuning
+remains local.
 An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.
@@ -333,13 +337,21 @@ commands above as a fallback:
 `CAPS` advertises `bulk=1 bulk_chunk=384 bulk_window=4 overwrite=1`. A host
 may pipeline four sequential chunks and then waits for the cumulative
 `RME_FILE_BULK_ACK` offset before sending the next window. Firmware drains the
-bounded CDC FIFO continuously; USB backpressure and the cumulative ACK prevent
-storage latency from truncating an in-flight command or disconnecting the endpoint.
+bounded CDC FIFO continuously. Its RX backlog is sized for the three complete
+encoded commands that may follow the command currently being committed, while
+the cumulative ACK prevents a fifth command from entering the window. Storage
+latency therefore cannot truncate an in-flight command or disconnect the endpoint.
 Completed RME lines are snapshotted before dispatch, and the stateful serial
 line reader cannot be entered recursively while filesystem code is committing
 a chunk. Consequently, a nested scheduler pass cannot overwrite an in-flight
 command or expose its Base64 payload as ordinary G-code. Hosts may use the
 advertised window without serializing every chunk on an individual `ok`.
+If a plugin ever sees Base64 payload reported as an unknown G-code, it must
+treat that as a firmware/transport integrity failure, stop the window, and use
+the documented ABORT or matching-BEGIN resume workflow; payload text is never
+a valid command. The general `upload_timeout_ms` watchdog also suspends an
+abandoned text/bulk upload, releases the shared latch, and retains its durable
+committed prefix for a matching BEGIN to resume.
 Offset, declared-size, atomic temporary-file, SHA-256, abort, and final-rename
 guarantees are identical to legacy upload. Binary upload remains preferred for
 maximum throughput.
