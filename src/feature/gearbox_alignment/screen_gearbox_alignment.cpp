@@ -2,51 +2,56 @@
 #include "screen_gearbox_alignment.hpp"
 
 #include <fsm/gearbox_alignment_phases.hpp>
-#include <frame_calibration_common.hpp>
 #include <i18n.h>
 #include <img_resources.hpp>
 #include <guiconfig/wizard_config.hpp>
+#include <gui/standard_frame/frame_calibration_text.hpp>
+#include <gui/standard_frame/frame_calibration_text_with_image.hpp>
 
 static ScreenGearboxAlignment *instance = nullptr;
 
 static const char *text_header = N_("GEARBOX ALIGNMENT");
 static constexpr size_t content_top_y = WizardDefaults::row_1 + WizardDefaults::progress_row_h;
 
-class FrameIntro final : public standard_frame_without_radio::FrameText {
+class FrameIntro final : public FrameCalibrationText {
 public:
-    FrameIntro(window_t *parent)
-        : FrameText {
+    FrameIntro(window_frame_t *parent)
+        : FrameCalibrationText {
             parent,
+            PhaseGearboxAlignment::intro,
             _("The gearbox alignment is only necessary for user-assembled or serviced gearboxes. In all other cases, you can skip this step."),
             content_top_y,
         } {}
 };
 
-class FrameFilamentLoadedAskUnload final : public standard_frame_without_radio::FrameText {
+class FrameFilamentLoadedAskUnload final : public FrameCalibrationText {
 public:
-    FrameFilamentLoadedAskUnload(window_t *parent)
-        : FrameText {
+    FrameFilamentLoadedAskUnload(window_frame_t *parent)
+        : FrameCalibrationText {
             parent,
+            PhaseGearboxAlignment::filament_loaded_ask_unload,
             _("We need to start without the filament in the extruder. Please unload it."),
             content_top_y,
         } {}
 };
 
-class FrameFilamentUnknownAskUnload final : public standard_frame_without_radio::FrameText {
+class FrameFilamentUnknownAskUnload final : public FrameCalibrationText {
 public:
-    FrameFilamentUnknownAskUnload(window_t *parent)
-        : FrameText {
+    FrameFilamentUnknownAskUnload(window_frame_t *parent)
+        : FrameCalibrationText {
             parent,
+            PhaseGearboxAlignment::filament_unknown_ask_unload,
             _("Before you proceed, make sure filament is unloaded from the Nextruder."),
             content_top_y,
         } {}
 };
 
-class FrameLoosenScrews final : public standard_frame_without_radio::FrameTextWithImage {
+class FrameLoosenScrews final : public FrameCalibrationTextWithImage {
 public:
-    FrameLoosenScrews(window_t *parent)
-        : FrameTextWithImage {
+    FrameLoosenScrews(window_frame_t *parent)
+        : FrameCalibrationTextWithImage {
             parent,
+            PhaseGearboxAlignment::loosen_screws,
             _("Rotate each screw counter-clockwise by 1.5 turns. The screw heads should be flush with the cover. Unlock and open the idler."),
             content_top_y,
             &img::transmission_loose_187x175,
@@ -54,11 +59,12 @@ public:
         } {}
 };
 
-class FrameAlignment final : public standard_frame_without_radio::FrameTextWithImage {
+class FrameAlignment final : public FrameCalibrationTextWithImage {
 public:
-    FrameAlignment(window_t *parent)
-        : FrameTextWithImage {
+    FrameAlignment(window_frame_t *parent)
+        : FrameCalibrationTextWithImage {
             parent,
+            PhaseGearboxAlignment::alignment,
             _("Gearbox alignment in progress, please wait (approx. 20 seconds)"),
             content_top_y,
             &img::transmission_gears_187x175,
@@ -66,11 +72,12 @@ public:
         } {}
 };
 
-class FrameTightenScrews final : public standard_frame_without_radio::FrameTextWithImage {
+class FrameTightenScrews final : public FrameCalibrationTextWithImage {
 public:
-    FrameTightenScrews(window_t *parent)
-        : FrameTextWithImage {
+    FrameTightenScrews(window_frame_t *parent)
+        : FrameCalibrationTextWithImage {
             parent,
+            PhaseGearboxAlignment::tighten_screws,
             _("Tighten the M3 screws firmly in the correct order, they should be slightly below the surface. Do not over-tighten."),
             content_top_y,
             &img::transmission_tight_187x175,
@@ -78,11 +85,12 @@ public:
         } {}
 };
 
-class FrameDone final : public standard_frame_without_radio::FrameTextWithImage {
+class FrameDone final : public FrameCalibrationTextWithImage {
 public:
-    FrameDone(window_t *parent)
-        : FrameTextWithImage {
+    FrameDone(window_frame_t *parent)
+        : FrameCalibrationTextWithImage {
             parent,
+            PhaseGearboxAlignment::done,
             _("Close the idler door and secure it with the swivel. The calibration is done!"),
             content_top_y,
             &img::transmission_close_187x175,
@@ -104,9 +112,8 @@ static PhaseGearboxAlignment get_phase(const fsm::BaseData &fsm_base_data) {
 }
 
 ScreenGearboxAlignment::ScreenGearboxAlignment()
-    : ScreenFSM { text_header, rect_screen }
-    , radio(this, rect_radio, PhaseGearboxAlignment::finish) {
-    CaptureNormalWindow(radio);
+    : ScreenFSM { text_header, rect_screen } {
+
     create_frame();
     instance = this;
 }
@@ -121,9 +128,7 @@ ScreenGearboxAlignment *ScreenGearboxAlignment::GetInstance() {
 }
 
 void ScreenGearboxAlignment::create_frame() {
-    Frames::create_frame(frame_storage, get_phase(fsm_base_data), this);
-    radio.set_fsm_and_phase(get_phase(fsm_base_data));
-    radio.Invalidate(); // TODO investigate why this sometimes doesn't get invalidated
+    Frames::create_frame(frame_storage, get_phase(fsm_base_data), &inner_frame);
 }
 
 void ScreenGearboxAlignment::destroy_frame() {
