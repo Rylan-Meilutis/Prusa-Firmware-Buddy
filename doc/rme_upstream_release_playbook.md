@@ -1419,3 +1419,9 @@ stress upload must complete without duplicated/truncated lines, `Unknown
 command` payload fragments, `upload_state`, per-chunk delays, or a reduced
 window. Run `rme_protocol_tests` and require the current 400,145 assertions
 across 15 cases.
+
+The CDC-backlog and usable-envelope release advances the tags to
+`v6.5.7-RME-b40` and `v6.6.3-RME-b12`. The final matrix must contain exactly
+14 and 15 BBFs. Validated maxima for this release are 6.5.7 MINI 97.37%, MK4
+94.97%, MK3.5 90.40%, and XL 69.53%; 6.6.3 MINI 99.43%, MK4 61.09%, MK3.5
+56.46%, XL 69.21%, and CORE One INDX 65.80%.

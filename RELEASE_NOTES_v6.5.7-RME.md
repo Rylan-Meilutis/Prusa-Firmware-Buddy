@@ -1340,3 +1340,36 @@ Build 39 firmware continuation:
 ```
 
 Published release tag: `v6.5.7-RME-b39`.
+
+## Build 40 release update
+
+Build 40 closes the remaining text-bulk upload corruption path. The advertised
+four-command, 384-byte window could leave roughly 1.7 KiB of encoded commands
+waiting while one command was committed to storage, but the TinyUSB CDC RX
+FIFO held only 512 bytes. Under storage latency the FIFO could lose an `@RME`
+prefix and join Base64 fragments, exposing payload text as `Unknown command`
+and leaving the upload in `upload_state`.
+
+The RX FIFO is now 2048 bytes while TX remains 512 bytes, preserving the full
+bulk window and transfer speed without restoring the former 8 KiB allocation.
+Bulk size/window constants are shared with a compile-time receive-capacity
+assertion. A general ten-second upload watchdog now suspends abandoned
+text/bulk transfers, releases the shared transfer latch, and preserves the
+committed partial for a matching-BEGIN resume.
+
+Machine discovery now reports the zero-origin slicer-usable build volume on
+every model instead of raw homing, docking, wiping, purge, or service travel.
+For example, CORE One reports 250 mm in X, MINI reports 180 mm in Z, and XL
+reports 360 mm in Z.
+
+The RME suite passes 400,145 assertions across 15 cases. All 14 6.5.7 presets
+passed. Maximum MINI flash use was 97.37%, MK4 used 94.97%, MK3.5 used 90.40%,
+and XL used 69.53%. Exactly 14 BBFs were staged under `bbf/6.5.7`.
+
+Build 40 firmware continuation:
+
+```text
+f1edb04d5  2026-08-13  Fix RME bulk receive window corruption
+```
+
+Published release tag: `v6.5.7-RME-b40`.
