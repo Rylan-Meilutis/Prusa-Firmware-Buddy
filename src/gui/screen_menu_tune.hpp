@@ -59,24 +59,9 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #endif
     MI_SPEED,
     MI_NOZZLE_TARGET_TEMP,
-#if HAS_TOOLCHANGER()
-    // Multi-tool: additional submenu to set target temp for all tools, not just the active one.
-    WithIcon<MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
-        &img::nozzle_16x16>,
-#endif
     MI_HEATBED,
-#if HAS_CHAMBER_API()
-    MI_CHAMBER_TARGET_TEMP,
-#endif
     MI_PRINTFAN,
-#if HAS_INDX()
-    MI_DOCKFAN,
-#endif
-#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
-    MI_XBUDDY_EXTENSION_COOLING_FANS,
-    MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
-    MI_XBE_FILTRATION_FAN,
-#endif
+    MI_TEMPERATURE_AND_FANS,
 #if HAS_CHAMBER_FILTRATION_API()
     MI_CHAMBER_FILTRATION,
 #endif

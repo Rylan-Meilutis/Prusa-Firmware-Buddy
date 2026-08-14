@@ -20,6 +20,7 @@ ScreenMenuTemperatureAndFans::ScreenMenuTemperatureAndFans()
     header.SetIcon(&img::temperature_white_16x16);
 #endif // PRINTER_IS_PRUSA_MINI()
 
+    Item<MI_TEMPERATURE_AND_FANS_COOLDOWN>().set_is_hidden(marlin_client::is_printing());
     Item<MI_TEMPERATURE_AND_FANS_COOLDOWN>().callback = [this] {
         for (auto tool : PhysicalToolIndex::all()) {
             marlin_client::set_target_nozzle(0, tool);
