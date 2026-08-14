@@ -1373,3 +1373,26 @@ f1edb04d5  2026-08-13  Fix RME bulk receive window corruption
 ```
 
 Published release tag: `v6.5.7-RME-b40`.
+
+## Build 41 release update
+
+Build 41 closes a FAT long-filename visibility bypass in Connect directory
+reports. The private-artifact filter previously classified only `dirent::d_name`,
+which can contain an unrelated 8.3 alias such as `FWUPD~1.RME`, while Connect
+published the long name `FWUPD.RME.rme-part` or `FWUPD.RME.rme-meta` as
+`display_name`. Connect now classifies both the published long filename and its
+short alias, so protected candidates, partial payloads, resume metadata, and
+rollback files remain invisible to Connect while explicit RME STAT, resume,
+ABORT, DELETE, and UNSTAGE workflows remain available.
+
+The Connect regression is shared with the 6.6.3 line. All 14 6.5.7 presets
+passed. Maximum MINI flash use was 97.37%, MK4 used 94.97%, MK3.5 used 90.41%,
+and XL used 69.53%. Exactly 14 BBFs were staged under `bbf/6.5.7`.
+
+Build 41 firmware continuation:
+
+```text
+95fc56248  2026-08-13  Hide RME artifacts by FAT long filename
+```
+
+Published release tag: `v6.5.7-RME-b41`.
