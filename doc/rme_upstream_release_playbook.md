@@ -1422,7 +1422,12 @@ translated text. On 6.6.3 INDX, verify the fast missing-pressure detector's
 meaningful-flow and two-stage debounce guards, independent long movement
 collapse policy, and always-on max-flow breakout regression.
 
-Release tags: `v6.5.7-RME-b42` and `v6.6.3-RME-b14`. The combined matrix passed
+Persistent release tags: `v6.5.7-RME` and `v6.6.3-RME`. Each firmware version
+has exactly one GitHub release. For subsequent builds, force-update the
+version's release tag to the validated branch tip, replace all existing BBF
+assets on that release, and replace its notes in place. Never create a
+per-build `-bN` release or retain superseded BBFs on the persistent release.
+The combined matrix passed
 29/29 presets with zero failures. Validated maxima were 6.5.7 MINI 97.38%, MK4
 95.01%, MK3.5 90.41%, XL 69.58%; 6.6.3 MINI 99.44%, MK4 61.14%, MK3.5 56.47%,
 XL 69.26%, and CORE One INDX 65.86%.

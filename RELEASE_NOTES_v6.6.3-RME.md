@@ -1401,4 +1401,4 @@ Build 14 firmware continuation:
 10f8a83ca  2026-08-14  Add INDX loadcell filament workflows
 ```
 
-Published release tag: `v6.6.3-RME-b14`.
+Published release tag: `v6.6.3-RME`.
