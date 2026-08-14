@@ -12,6 +12,7 @@
 #include <Marlin/src/gcode/gcode.h>
 #include <mapi/cold_extrude.hpp>
 #include <utils/variant_utils.hpp>
+#include <fsm/gearbox_alignment_phases.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()

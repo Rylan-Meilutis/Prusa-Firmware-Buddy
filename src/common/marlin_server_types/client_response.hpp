@@ -19,7 +19,6 @@
 #include <option/has_emergency_stop.h>
 #include <option/has_esp.h>
 #include <option/has_ht_hotend.h>
-#include <option/has_gearbox_alignment.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_loadcell.h>
 #include <option/has_mmu2.h>
@@ -492,21 +491,6 @@ enum class PhasesSerialPrinting : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhasesSerialPrinting) { return ClientFSM::Serial_printing; }
 #endif
 
-#if HAS_GEARBOX_ALIGNMENT()
-enum class PhaseGearboxAlignment : PhaseUnderlyingType {
-    intro,
-    filament_loaded_ask_unload,
-    filament_unknown_ask_unload,
-    loosen_screws,
-    alignment,
-    tighten_screws,
-    done,
-    finish,
-    _last = finish,
-};
-constexpr inline ClientFSM client_fsm_from_phase(PhaseGearboxAlignment) { return ClientFSM::GearboxAlignment; }
-#endif
-
 #if HAS_DOOR_SENSOR_CALIBRATION()
 enum class PhaseDoorSensorCalibration : PhaseUnderlyingType {
     confirm_abort,
@@ -859,19 +843,6 @@ inline constexpr EnumArray<PhasesInputShaperCalibration, PhaseResponses, CountPh
         { PhasesInputShaperCalibration::results, { Response::Yes, Response::No } },
         { PhasesInputShaperCalibration::abort, {} },
         { PhasesInputShaperCalibration::finish, {} },
-};
-#endif
-
-#if HAS_GEARBOX_ALIGNMENT()
-inline constexpr EnumArray<PhaseGearboxAlignment, PhaseResponses, CountPhases<PhaseGearboxAlignment>()> gearbox_alignment_responses {
-    { PhaseGearboxAlignment::intro, { Response::Continue, Response::Skip } },
-    { PhaseGearboxAlignment::filament_loaded_ask_unload, { Response::Unload, Response::Abort } },
-    { PhaseGearboxAlignment::filament_unknown_ask_unload, { Response::Continue, Response::Unload, Response::Abort } },
-    { PhaseGearboxAlignment::loosen_screws, { Response::Continue, Response::Skip } },
-    { PhaseGearboxAlignment::alignment, {} },
-    { PhaseGearboxAlignment::tighten_screws, { Response::Continue } },
-    { PhaseGearboxAlignment::done, { Response::Continue } },
-    { PhaseGearboxAlignment::finish, {} },
 };
 #endif
 

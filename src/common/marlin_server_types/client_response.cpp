@@ -22,6 +22,11 @@
     #include <fsm/selftest_fsensors_phases.hpp>
 #endif
 
+#include <option/has_gearbox_alignment.h>
+#if HAS_GEARBOX_ALIGNMENT()
+    #include <fsm/gearbox_alignment_phases.hpp>
+#endif
+
 #include <fsm/filament_change_phases.hpp>
 #include <fsm/preheat_phases.hpp>
 

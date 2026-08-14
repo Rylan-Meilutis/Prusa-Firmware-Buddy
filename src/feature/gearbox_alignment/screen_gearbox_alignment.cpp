@@ -1,6 +1,7 @@
 /// @file
 #include "screen_gearbox_alignment.hpp"
 
+#include <fsm/gearbox_alignment_phases.hpp>
 #include <frame_calibration_common.hpp>
 #include <i18n.h>
 #include <img_resources.hpp>
