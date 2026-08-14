@@ -478,16 +478,18 @@ void resume_loop() {
         }
 
 #if HAS_NOZZLE_CLEANER()
-    // Keep the printer list below in sync with the unretract guard in
-    // ResumeState::Unpark — G12 S21 pressurizes the nozzle on its own.
+        if (PhysicalToolIndex::currently_selected_opt().has_value()) {
+            // Keep the printer list below in sync with the unretract guard in
+            // ResumeState::Unpark — G12 S21 pressurizes the nozzle on its own.
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
-        static_assert(!power_panic_deretracts);
-        marlin_server::enqueue_gcode("G12 S90"); // enter cleaner
-        marlin_server::enqueue_gcode("G12 S21"); // purge (no retract) and brush wipe
-        marlin_server::enqueue_gcode("G12 S91"); // exit cleaner
+            static_assert(!power_panic_deretracts);
+            marlin_server::enqueue_gcode("G12 S90"); // enter cleaner
+            marlin_server::enqueue_gcode("G12 S21"); // purge (no retract) and brush wipe
+            marlin_server::enqueue_gcode("G12 S91"); // exit cleaner
     #else
-        marlin_server::enqueue_gcode("G12"); // clean nozzle on the brush
+            marlin_server::enqueue_gcode("G12"); // clean nozzle on the brush
     #endif
+        }
 #endif
         resume_state = ResumeState::Unpark;
         break;
@@ -514,7 +516,7 @@ void resume_loop() {
         }
 
         // Unretract paired with the retract in PPState::Prepared.
-        if (power_panic_deretracts) {
+        if (power_panic_deretracts && PhysicalToolIndex::currently_selected_opt().has_value()) {
             mapi::extruder_move(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
         }
 
@@ -727,7 +729,7 @@ void panic_loop() {
         crash_s.set_state(Crash_s::RECOVERY);
         planner.refresh_acceleration_rates();
 
-        if (power_panic_retracts && !runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed) {
+        if (power_panic_retracts && PhysicalToolIndex::currently_selected_opt().has_value() && !runtime_state.nested_fault && !state_buf.planner.was_paused && !state_buf.planner.was_crashed) {
             // retract if we were printing
             mapi::extruder_move(-STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::retract));
             planner.start_moving();
