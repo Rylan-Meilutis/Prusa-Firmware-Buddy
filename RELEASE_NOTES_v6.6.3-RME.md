@@ -1370,3 +1370,35 @@ Build 13 firmware continuation:
 ```
 
 Published release tag: `v6.6.3-RME-b13`.
+
+## Build 14 release update
+
+Build 14 adds fast, guarded INDX loadcell filament monitoring without changing
+the existing maximum-flow protection. During meaningful extrusion, the new
+runout detector qualifies pressure for 0.75 seconds and 0.75 mm, then requires
+more than one second and one millimetre of missing pressure before stopping.
+The independently selectable movement-collapse detector retains its longer,
+conservative debounce, while maximum-flow breakout remains always enabled.
+`M591 S` controls loadcell runout and `M591 U` controls movement monitoring.
+
+`M1601 R1`, `R2`, and `R3` preserve runout, filament-not-moving, and flow-limit
+causes through the common safe Continue/Unload/Abort recovery workflow. Each
+condition has distinct on-printer guidance and reports a distinct RME
+workflow/code pair: `filament_runout/runout`,
+`filament_movement/not_moving`, or `extrusion_flow_limit/flow_limit`.
+Protocol, G-code, and plugin-integration documentation describe the settings,
+timing, and routing contract.
+
+The focused classifier suite passes 19 assertions across 10 cases. The exact
+combined release command completed both maintained lines with no failures. All
+15 6.6.3 presets passed and exactly 15 BBFs were staged under `bbf/6.6.3`.
+Maximum flash use was MINI 99.44%, MK4 61.14%, MK3.5 56.47%, XL 69.26%, and
+CORE One INDX 65.86%.
+
+Build 14 firmware continuation:
+
+```text
+10f8a83ca  2026-08-14  Add INDX loadcell filament workflows
+```
+
+Published release tag: `v6.6.3-RME-b14`.

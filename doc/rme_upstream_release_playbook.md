@@ -1409,3 +1409,20 @@ The CDC-backlog and usable-envelope release advances the tags to
 14 and 15 BBFs. Validated maxima for this release are 6.5.7 MINI 97.37%, MK4
 94.97%, MK3.5 90.40%, and XL 69.53%; 6.6.3 MINI 99.43%, MK4 61.09%, MK3.5
 56.46%, XL 69.21%, and CORE One INDX 65.80%.
+
+## Cause-specific extrusion workflow release gate
+
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. Require all
+29 presets and exactly 14/15 versioned BBFs. `M1601 R1/R2/R3` must retain the
+runout, movement-collapse, and flow-limit cause through the shared recovery
+FSM. RME error subscribers must receive the stable workflow/code pairs
+`filament_runout/runout`, `filament_movement/not_moving`, and
+`extrusion_flow_limit/flow_limit`; plugins route on these fields rather than
+translated text. On 6.6.3 INDX, verify the fast missing-pressure detector's
+meaningful-flow and two-stage debounce guards, independent long movement
+collapse policy, and always-on max-flow breakout regression.
+
+Release tags: `v6.5.7-RME-b42` and `v6.6.3-RME-b14`. The combined matrix passed
+29/29 presets with zero failures. Validated maxima were 6.5.7 MINI 97.38%, MK4
+95.01%, MK3.5 90.41%, XL 69.58%; 6.6.3 MINI 99.44%, MK4 61.14%, MK3.5 56.47%,
+XL 69.26%, and CORE One INDX 65.86%.
