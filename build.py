@@ -561,6 +561,14 @@ def version_build_dir(args: argparse.Namespace, version: str, worktree: Path) ->
     return build_root / version
 
 
+def version_build_supports_option(worktree: Path, option: str) -> bool:
+    """Return whether the target branch's build wrapper declares an option."""
+    try:
+        return option in (worktree / "build.py").read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
 def make_version_build_command(args: argparse.Namespace, version: str, worktree: Path, output_dir: Path) -> list[str]:
     command = [
         *find_repo_python(),
@@ -571,9 +579,14 @@ def make_version_build_command(args: argparse.Namespace, version: str, worktree:
         str(args.jobs),
         "--build-dir",
         str(version_build_dir(args, version, worktree)),
-        "--error-log-dir",
-        str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() / version),
     ]
+    if version_build_supports_option(worktree, "--error-log-dir"):
+        command.extend(
+            [
+                "--error-log-dir",
+                str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() / version),
+            ]
+        )
     for preset in args.preset or []:
         command.extend(["--preset", preset])
     command.extend(["--build-type", args.build_type])
