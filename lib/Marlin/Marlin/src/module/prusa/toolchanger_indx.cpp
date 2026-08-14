@@ -937,6 +937,30 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
     return std::expected<void, BumpError>();
 }
 
+void PrusaToolChanger::pick_tool_out_of_dock(PhysicalToolIndex dock) {
+    // picking the tool from dock may be enough
+    if (dock.is_enabled()) {
+        if (tool_change(dock, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+            return; // dock was just emptied
+        }
+    }
+
+    // we still dont know for sure
+    if (!prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+        fatal_error(ErrCode::ERR_MECHANICAL_TOOLCHANGER);
+    }
+    auto bump_res = prusa_toolchanger.bump_to_dock(dock);
+    if (bump_res.has_value()) {
+        return; // dock is empty
+    }
+    switch (bump_res.error()) {
+    case PrusaToolChanger::BumpError::hit:
+        fatal_error(ErrCode::ERR_MECHANICAL_UNEXPECTED_TOOL);
+    case PrusaToolChanger::BumpError::unsafe_move:
+        fatal_error("Homing failed.", "PrusaToolChanger");
+    }
+}
+
 void PrusaToolChanger::persist_last_picked_tool(std::variant<PhysicalToolIndex, NoTool> tool, bool override_always) {
     // Single-tool print: the tool can't change, so leave EEPROM frozen at the value set at print start.
     if (!override_always && freeze_last_picked_tool_ && marlin_server::is_printing()) {

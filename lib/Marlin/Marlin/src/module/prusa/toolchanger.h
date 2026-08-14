@@ -215,6 +215,10 @@ public:
      */
     std::expected<void, BumpError> bump_to_dock(PhysicalToolIndex tool);
 
+    /// Ensures some tool is picked and selected @p dock is empty
+    /// @warning throws a fatal error on failure
+    void pick_tool_out_of_dock(PhysicalToolIndex dock);
+
     /**
      * @brief Updates/invalidates the last picked tool (only when not printing if not overriden)
      * @param tool Which tool to write
