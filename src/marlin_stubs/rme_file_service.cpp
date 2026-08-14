@@ -33,8 +33,8 @@ extern "C" bool buddy_rme_service_frame(const char *raw_command);
 
 namespace {
 constexpr size_t transfer_chunk_size = 48;
-constexpr size_t bulk_chunk_size = 384;
-constexpr uint8_t bulk_window_size = 4;
+constexpr size_t bulk_chunk_size = rme_file_transfer::bulk_payload_size;
+constexpr uint8_t bulk_window_size = rme_file_transfer::bulk_window_size;
 // USB CDC is a byte stream using 64-byte full-speed endpoint packets. A 1 KiB
 // application frame keeps the endpoint busy without permanently consuming
 // several large SRAM blocks. Hosts pipeline frames using the advertised
@@ -42,9 +42,16 @@ constexpr uint8_t bulk_window_size = 4;
 constexpr size_t binary_chunk_size = 1024;
 constexpr uint8_t binary_window_size = 8;
 constexpr uint32_t maximum_file_size = 1024U * 1024U * 1024U;
-constexpr uint32_t binary_inactivity_timeout_ms = 10'000;
+constexpr uint32_t upload_inactivity_timeout_ms = 10'000;
 constexpr const char *firmware_candidate_path = "/usb/FWUPD.RME";
 constexpr const char *firmware_marker_path = "/usb/FWUPD.UI";
+
+// A completed bulk command is removed from the CDC FIFO before its storage
+// write begins, so the FIFO must retain the other commands in the advertised
+// window. A smaller FIFO silently dropped prefixes and joined Base64 tails,
+// causing payload text to escape into the ordinary G-code parser.
+static_assert(CFG_TUD_CDC_RX_BUFSIZE >= rme_file_transfer::bulk_receive_backlog,
+    "CDC RX FIFO is too small for the advertised RME text-bulk window");
 
 struct UploadState {
     FILE *file = nullptr;
@@ -413,12 +420,19 @@ bool finish_current_upload(const char *complete_prefix) {
 } // namespace
 
 extern "C" bool buddy_rme_binary_upload_active() {
-    if (upload.file && upload.binary
-        && (!tud_mounted() || (upload.cdc_connected_at_begin && !tud_cdc_connected()))) suspend_upload();
-    else if (upload.file && upload.binary && upload.last_activity_ms
-        && ticks_diff(ticks_ms(), upload.last_activity_ms + binary_inactivity_timeout_ms) >= 0) {
+    if (upload.file
+        && (!tud_mounted() || (upload.cdc_connected_at_begin && !tud_cdc_connected()))) {
+        const bool binary = upload.binary;
         suspend_upload();
-        SERIAL_ECHOPGM("RME_FILE_BINARY_SUSPENDED offset="); SERIAL_ECHO(upload.received);
+        SERIAL_ECHOPGM(binary ? "RME_FILE_BINARY_SUSPENDED offset=" : "RME_FILE_SUSPENDED offset=");
+        SERIAL_ECHO(upload.received);
+        SERIAL_ECHOLNPGM(" resumable=1 reason=disconnect");
+    } else if (upload.file && upload.last_activity_ms
+        && ticks_diff(ticks_ms(), upload.last_activity_ms + upload_inactivity_timeout_ms) >= 0) {
+        const bool binary = upload.binary;
+        suspend_upload();
+        SERIAL_ECHOPGM(binary ? "RME_FILE_BINARY_SUSPENDED offset=" : "RME_FILE_SUSPENDED offset=");
+        SERIAL_ECHO(upload.received);
         SERIAL_ECHOLNPGM(" resumable=1 reason=inactivity_timeout");
     }
     return upload.file && upload.binary;
@@ -574,7 +588,8 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         SERIAL_ECHOPGM(" binary=1 binary_chunk="); SERIAL_ECHO(binary_chunk_size);
         SERIAL_ECHOPGM(" binary_window="); SERIAL_ECHO(binary_window_size);
         SERIAL_ECHOPGM(" binary_control=1 binary_control_offset="); SERIAL_ECHO(rme_file_transfer::control_frame_offset);
-        SERIAL_ECHOPGM(" binary_timeout_ms="); SERIAL_ECHO(binary_inactivity_timeout_ms);
+        SERIAL_ECHOPGM(" binary_timeout_ms="); SERIAL_ECHO(upload_inactivity_timeout_ms);
+        SERIAL_ECHOPGM(" upload_timeout_ms="); SERIAL_ECHO(upload_inactivity_timeout_ms);
         SERIAL_ECHOPGM(" resumable_abort=1 binary_read=1 binary_read_chunk="); SERIAL_ECHO(binary_chunk_size);
         SERIAL_ECHOPGM(" max_size="); SERIAL_ECHO(maximum_file_size);
         SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
@@ -761,6 +776,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 report_upload_error(failure, true);
             } else {
                 upload.received += count;
+                upload.last_activity_ms = ticks_ms();
                 if (upload_slot) upload_slot->progress(count);
                 serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, upload.received, upload.expected_size);
                 if (!bulk) {

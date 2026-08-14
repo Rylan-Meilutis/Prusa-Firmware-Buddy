@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
@@ -7,6 +8,15 @@ namespace rme_file_transfer {
 
 inline constexpr uint32_t control_frame_offset = UINT32_C(0xfffffffe);
 inline constexpr uint32_t abort_frame_offset = UINT32_C(0xffffffff);
+
+// Text-bulk commands are pipelined. While one command is being committed to
+// storage, TinyUSB must be able to retain every other command in that window.
+// Keep these wire constants shared with the receiver-capacity assertion.
+inline constexpr size_t bulk_payload_size = 384;
+inline constexpr uint8_t bulk_window_size = 4;
+inline constexpr size_t bulk_base64_size = ((bulk_payload_size + 2) / 3) * 4;
+inline constexpr size_t bulk_command_overhead = sizeof("@RME FILE WRITE_BULK_CHUNK offset=4294967295 data=");
+inline constexpr size_t bulk_receive_backlog = (bulk_window_size - 1) * (bulk_command_overhead + bulk_base64_size);
 
 constexpr bool plausible_binary_header(const uint32_t offset, const uint16_t payload_size,
     const uint32_t committed, const uint32_t expected_size, const uint16_t maximum_payload) {
