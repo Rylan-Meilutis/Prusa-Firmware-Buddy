@@ -20,7 +20,7 @@ bool e_stall_detection_enabled() {
     return config_store().stuck_filament_detection.get() || config_store().filament_movement_detection.get();
 }
 
-void apply_e_stall_detection() {
+void apply_filament_detection() {
     EMotorStallDetector::Instance().SetEnabled(e_stall_detection_enabled());
 }
 
@@ -29,8 +29,8 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
     planner.synchronize();
 
     if (restore == Restore::yes) {
-        apply_e_stall_detection();
-        log_info(MarlinServer, "E-stall detection %s (restore)", EMotorStallDetector::Instance().Enabled() ? "on" : "off");
+        apply_filament_detection();
+        log_info(MarlinServer, "Filament detection settings restored");
         return; // ignore remaining parameters
     }
 
@@ -49,11 +49,13 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
     }
 
     if (opt_enable_stuck || opt_enable_movement) {
-        apply_e_stall_detection();
+        const bool enable_stuck = opt_enable_stuck.value_or(config_store().stuck_filament_detection.get());
+        const bool enable_movement = opt_enable_movement.value_or(config_store().filament_movement_detection.get());
+        EMotorStallDetector::Instance().SetEnabled(enable_stuck || enable_movement);
     }
 
-    SERIAL_ECHOLNPAIR_F("Filament stuck detection ", config_store().stuck_filament_detection.get() ? "on" : "off");
-    SERIAL_ECHOLNPAIR_F("Filament movement detection ", config_store().filament_movement_detection.get() ? "on" : "off");
+    SERIAL_ECHOLNPAIR_F("Filament stuck detection ", opt_enable_stuck.value_or(config_store().stuck_filament_detection.get()) ? "on" : "off");
+    SERIAL_ECHOLNPAIR_F("Filament movement detection ", opt_enable_movement.value_or(config_store().filament_movement_detection.get()) ? "on" : "off");
     SERIAL_ECHOLNPAIR_F("E-stall detector ", EMotorStallDetector::Instance().Enabled() ? "on" : "off");
 }
 #endif // HAS_LOADCELL()
@@ -63,10 +65,11 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
  * @{
  */
 
-/**### M591: Enable/Disable Filament stuck monitoring <a href="https://reprap.org/wiki/G-code#M591:_Configure_filament_monitoring">M591: Configure filament monitoring</a>
+/**### M591: Configure filament monitoring <a href="https://reprap.org/wiki/G-code#M591:_Configure_filament_monitoring">M591: Configure filament monitoring</a>
  *
- * Used by loadcell-equipped printers to pause on nozzle clogs/jams or
- * upstream filament restraint that stalls forward extrusion.
+ * On INDX, S selects fast loadcell runout detection and U selects independent
+ * pressure-collapse movement detection. Max-flow breakout remains always on.
+ * Other loadcell printers retain their legacy E-stall behavior.
  *
  *#### Usage
  *
@@ -74,7 +77,7 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
  *
  *#### Parameters
  *
- * - `S` - Enable / Disable stuck-filament detection
+ * - `S` - Enable / Disable stuck-filament detection, or INDX loadcell runout
  * - `U` - Enable / Disable upstream filament movement detection
  * - `P` - change is permanent
  * - `R` - restore, this parameter has priority over `S` and `P` and discards them

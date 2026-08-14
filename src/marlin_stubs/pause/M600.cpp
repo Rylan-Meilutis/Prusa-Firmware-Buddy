@@ -158,7 +158,7 @@ void GcodeSuite::M600() {
 void M600_execute(xyz_pos_t park_point, uint8_t target_extruder,
     xyze_float_t resume_point, std::optional<float> unloadLength, std::optional<float> fastLoadLength,
     std::optional<float> retractLength, std::optional<Color> filament_colour,
-    std::optional<FilamentType> filament_type, bool);
+    std::optional<FilamentType> filament_type, std::optional<LoadUnloadMode> recovery_mode);
 
 void M600_manual(const GCodeParser2 &p) {
     const int8_t target_extruder = PrusaGcodeSuite::get_target_extruder_from_command_p(p);
@@ -195,13 +195,13 @@ void M600_manual(const GCodeParser2 &p) {
         p.option<float>('E').transform(fabsf),
         p.option<Color>('C'),
         p.option<FilamentType>('S'),
-        false);
+        std::nullopt);
 }
 
 void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t resume_point,
     std::optional<float> unloadLength, std::optional<float> fastLoadLength, std::optional<float> retractLength,
     std::optional<Color> filament_colour, std::optional<FilamentType> filament_type,
-    bool is_filament_stuck) {
+    std::optional<LoadUnloadMode> recovery_mode) {
 
     // Ignore estalls during filament change
     BlockEStallDetection estall_blocker;
@@ -273,7 +273,7 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
 
     filament::set_type_to_load(config_store().get_filament_type(target_extruder));
     filament::set_color_to_load(filament_colour);
-    Pause::Instance().filament_change(settings, is_filament_stuck);
+    Pause::Instance().filament_change(settings, recovery_mode);
 
     if (disp_temp > targ_temp) {
         Temperature::setTargetHotend(targ_temp, target_extruder);
@@ -304,7 +304,7 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
 }
 
 /**
- *### M1601: Filament stuck detected during print <a href=" "> </a>
+ *### M1601: Extrusion fault detected during print <a href=" "> </a>
  *
  * Internal GCode
  *
@@ -314,18 +314,28 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
  * upstream filament restraint that stalls forward extrusion.
  *#### Usage
  *
- *    M1601
+ *    M1601 [ R ]
+ *
+ * R0/omitted = stuck, R1 = runout, R2 = filament not moving,
+ * R3 = flow-pressure breakout/max-flow limit.
  *
  */
 #if HAS_LOADCELL()
 void PrusaGcodeSuite::M1601() {
+    LoadUnloadMode recovery_mode = LoadUnloadMode::FilamentStuck;
+    switch (parser.byteval('R', 0)) {
+    case 1: recovery_mode = LoadUnloadMode::FilamentRunout; break;
+    case 2: recovery_mode = LoadUnloadMode::FilamentNotMoving; break;
+    case 3: recovery_mode = LoadUnloadMode::FlowLimit; break;
+    default: break;
+    }
     M600_execute(
         XYZ_NOZZLE_PARK_POINT_M600,
         active_extruder,
         current_position,
         std::nullopt, std::nullopt, std::nullopt,
         std::nullopt, std::nullopt,
-        true);
+        recovery_mode);
 
     EMotorStallDetector::Instance().ClearReported();
     buddy::extrusion_calibration::acknowledge_extrusion_fault();

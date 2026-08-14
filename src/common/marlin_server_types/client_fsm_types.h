@@ -83,6 +83,9 @@ enum class LoadUnloadMode : uint8_t {
     Unload,
     Purge,
     FilamentStuck,
+    FilamentRunout,
+    FilamentNotMoving,
+    FlowLimit,
     Test,
     Cut, // MMU
     Eject, // MMU

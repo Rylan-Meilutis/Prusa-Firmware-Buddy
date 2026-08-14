@@ -205,6 +205,9 @@ void Fsm::Loop() {
             case LoadUnloadMode::Test: status = "MMU testing filament path"; break;
             case LoadUnloadMode::Purge: status = "MMU purging filament"; break;
             case LoadUnloadMode::FilamentStuck: status = "MMU filament stuck"; break;
+            case LoadUnloadMode::FilamentRunout: status = "Filament runout"; break;
+            case LoadUnloadMode::FilamentNotMoving: status = "Filament not moving"; break;
+            case LoadUnloadMode::FlowLimit: status = "Extrusion flow limit"; break;
             }
             const auto raw_progress_code = static_cast<uint8_t>(r.rawProgressCode);
             const bool useful_rme_progress = last_rme_progress_percent == 0xff
