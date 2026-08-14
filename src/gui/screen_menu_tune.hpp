@@ -25,6 +25,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_lights_menu.h>
 #include <device/board.h>
 #include <gui/screen/screen_m600.hpp>
 
@@ -99,7 +100,11 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_CRASH_DETECTION,
     MI_CRASH_SENSITIVITY_XY,
 #endif
-    MI_USER_INTERFACE, MI_NETWORK,
+    MI_USER_INTERFACE,
+#if HAS_LIGHTS_MENU()
+    MI_LIGHTS,
+#endif
+    MI_NETWORK,
 #if DEVELOPMENT_ITEMS()
     MI_HARDWARE_TUNE,
 #endif
