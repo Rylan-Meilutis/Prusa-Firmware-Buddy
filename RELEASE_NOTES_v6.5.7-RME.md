@@ -1420,4 +1420,4 @@ Build 42 firmware continuation:
 4e74cfd57  2026-08-13  Add INDX loadcell filament workflows
 ```
 
-Published release tag: `v6.5.7-RME-b42`.
+Published release tag: `v6.5.7-RME`.
