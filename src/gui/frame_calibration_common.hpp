@@ -31,26 +31,6 @@ inline constexpr auto rect_frame_bottom = Rect16 {
 
 namespace standard_frame_without_radio {
 
-class FrameText {
-protected:
-    FrameText(window_t *parent, string_view_utf8 txt, const Rect16::Top_t top)
-        : text(parent, Rect16(WizardDefaults::col_0, top, WizardDefaults::RectSelftestFrame.Width() - WizardDefaults::MarginRight - WizardDefaults::MarginLeft, WizardDefaults::row_h * 8), is_multiline::yes, is_closed_on_click_t::no, txt) {}
-
-private:
-    window_text_t text;
-};
-
-class FrameTextWithImage {
-protected:
-    FrameTextWithImage(window_t *parent, string_view_utf8 txt, Rect16::Top_t top, const img::Resource *icon_res, uint16_t icon_width)
-        : text(parent, Rect16(WizardDefaults::col_0, top, WizardDefaults::RectSelftestFrame.Width() - WizardDefaults::MarginLeft - WizardDefaults::MarginRight - icon_width, WizardDefaults::row_h * 8), is_multiline::yes, is_closed_on_click_t::no, txt)
-        , icon(parent, icon_res, point_i16_t(WizardDefaults::RectSelftestFrame.Width() - WizardDefaults::MarginRight - icon_width, top)) {}
-
-private:
-    window_text_t text;
-    window_icon_t icon;
-};
-
 class FrameInstructions {
 private:
     window_text_t text;
