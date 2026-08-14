@@ -86,14 +86,7 @@
 #endif // HAS_E2EE_SUPPORT()
 
 namespace {
-void MsgBoxNonBlockInfo(const string_view_utf8 &txt) {
-    constexpr static const char *title = N_("Information");
-    MsgBoxTitled mbt(GuiDefaults::DialogFrameRect, Responses_NONE, 0, txt, is_multiline::yes, _(title), &img::info_16x16);
-    gui::TickLoop();
-    gui_loop();
-}
 
-constexpr const char *homing_text_info = N_("Printer may vibrate and be noisier during homing.");
 constexpr const char *printer_busy_text = N_("Printer is busy. Please try repeating the action later.");
 
 } // namespace
@@ -342,10 +335,18 @@ MI_SAVE_DUMP::MI_SAVE_DUMP()
 }
 
 void MI_SAVE_DUMP::click(IWindowMenu & /*window_menu*/) {
-    MsgBoxNonBlockInfo(_("A crash dump is being saved."));
     if (!crash_dump::dump_is_valid()) {
         MsgBoxInfo(_("No crash dump to save."), Responses_Ok);
-    } else if (crash_dump::save_dump_to_usb("/usb/dump.bin")) {
+        return;
+    }
+
+    bool save_result = false;
+    window_dlg_wait_t::wait_until(_("A crash dump is being saved."), [&] {
+        save_result = crash_dump::save_dump_to_usb("/usb/dump.bin");
+        return true;
+    });
+
+    if (save_result) {
         MsgBoxInfo(_("A crash dump report (file dump.bin) has been saved to the USB drive."), Responses_Ok);
     } else {
         MsgBoxError(_("Error saving crash dump report to the USB drive. Please reinsert the USB drive and try again."), Responses_Ok);
