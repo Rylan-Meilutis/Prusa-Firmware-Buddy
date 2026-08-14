@@ -1396,3 +1396,28 @@ Build 41 firmware continuation:
 ```
 
 Published release tag: `v6.5.7-RME-b41`.
+
+## Build 42 release update
+
+Build 42 adds cause-specific extrusion recovery and RME routing shared with the
+6.6.3 line. `M1601 R1`, `R2`, and `R3` now preserve runout,
+filament-not-moving, and flow-limit causes through the common safe
+Continue/Unload/Abort workflow. The printer presents distinct titles and
+guidance instead of labeling every condition as stuck filament. Subscribed RME
+hosts receive stable, mutually distinct workflow/code pairs:
+`filament_runout/runout`, `filament_movement/not_moving`, and
+`extrusion_flow_limit/flow_limit`. Protocol and plugin-integration documents
+define how hosts retain the original cause while the shared recovery FSM runs.
+
+The combined release command completed both maintained lines with no failures.
+All 14 6.5.7 presets passed and exactly 14 BBFs were staged under
+`bbf/6.5.7`. Maximum flash use was MINI 97.38%, MK4 95.01%, MK3.5 90.41%,
+and XL 69.58%.
+
+Build 42 firmware continuation:
+
+```text
+4e74cfd57  2026-08-13  Add INDX loadcell filament workflows
+```
+
+Published release tag: `v6.5.7-RME-b42`.
