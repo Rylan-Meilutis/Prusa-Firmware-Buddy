@@ -29,3 +29,8 @@ inline constexpr EnumArray<PhaseGearboxAlignment, PhaseResponses, CountPhases<Ph
     { PhaseGearboxAlignment::finish, {} },
 };
 }
+
+/// Data struct passed between the FSM and GUI
+struct FSMGearboxAlignmentData {
+    uint8_t physical_tool_index;
+};

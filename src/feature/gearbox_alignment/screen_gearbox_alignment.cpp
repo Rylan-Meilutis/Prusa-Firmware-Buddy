@@ -7,21 +7,33 @@
 #include <guiconfig/wizard_config.hpp>
 #include <gui/standard_frame/frame_calibration_text.hpp>
 #include <gui/standard_frame/frame_calibration_text_with_image.hpp>
+#include <gui/standard_frame/frame_prompt.hpp>
 
 static ScreenGearboxAlignment *instance = nullptr;
 
 static const char *text_header = N_("GEARBOX ALIGNMENT");
 static constexpr size_t content_top_y = WizardDefaults::row_1 + WizardDefaults::progress_row_h;
 
-class FrameIntro final : public FrameCalibrationText {
+class FrameIntro final : public FramePrompt {
 public:
     FrameIntro(window_frame_t *parent)
-        : FrameCalibrationText {
+        : FramePrompt {
             parent,
             PhaseGearboxAlignment::intro,
+            _("Gearbox alignment"),
             _("The gearbox alignment is only necessary for user-assembled or serviced gearboxes. In all other cases, you can skip this step."),
-            content_top_y,
-        } {}
+        } {
+    }
+
+#if HAS_TOOLCHANGER()
+    void update(const fsm::PhaseData &raw) {
+        const auto data = fsm::deserialize_data<FSMGearboxAlignmentData>(raw);
+        title.SetText(_("Tool %i gearbox alignment").formatted(title_params_, PhysicalToolIndex::from_raw(data.physical_tool_index).display_index()));
+    }
+
+private:
+    StringViewUtf8Parameters<4> title_params_;
+#endif
 };
 
 class FrameFilamentLoadedAskUnload final : public FrameCalibrationText {

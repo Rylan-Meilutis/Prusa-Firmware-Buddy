@@ -26,7 +26,7 @@ public:
 
     GearboxAlignmentWizard(PhysicalToolIndex _tool)
         : tool(_tool)
-        , holder(first_phase) {
+        , holder(ClientFSM::GearboxAlignment) {
     }
 
     void execute() {
@@ -64,7 +64,10 @@ private:
 
     void fsm_change(PhaseGearboxAlignment phase) {
         curr_phase = phase;
-        marlin_server::fsm_change(phase);
+        const FSMGearboxAlignmentData data {
+            .physical_tool_index = tool.to_raw(),
+        };
+        marlin_server::fsm_change(phase, fsm::serialize_data(data));
     }
 
     void finish(TestResult test_result) {
@@ -120,6 +123,7 @@ private:
     }
 
     void intro() {
+        fsm_change(PhaseGearboxAlignment::intro);
         switch (marlin_server::wait_for_response(PhaseGearboxAlignment::intro)) {
         case Response::Skip:
             finish(TestResult::skipped);
