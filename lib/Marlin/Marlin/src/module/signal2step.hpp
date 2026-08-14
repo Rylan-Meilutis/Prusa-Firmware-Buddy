@@ -233,21 +233,6 @@ inline auto cartesian_to_printer_kinematics() {
     #endif
 }
 
-#ifndef UNITTESTS
-// Helper pipeline to apply Z mesh bed levelling to a cartesian XYZE signal
-inline auto apply_z_mesh_bed_levelling(float origin_x, float origin_y) {
-    return sp::pipe::transform([origin_x, origin_y](auto v) {
-        float z_offset = ubl.get_z_correction(xy_pos_t{v.x + origin_x, v.y + origin_y});
-        return decltype(v){
-            .x = v.x,
-            .y = v.y,
-            .z = v.z + z_offset,
-            .e = v.e
-        };
-    });
-}
-#endif
-
 namespace detail {
 
 // Fuse four scalar generators into a single XYZE-like vector generator. All
