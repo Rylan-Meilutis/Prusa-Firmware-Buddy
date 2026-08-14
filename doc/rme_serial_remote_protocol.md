@@ -433,7 +433,9 @@ the private sidecar.
 ### Plugin recovery and orphan cleanup workflow
 
 Because private artifacts are intentionally omitted from directory listings,
-a host must keep a small durable upload manifest of its own. Record the final
+Connect filters the FAT long filename it publishes, not only the unrelated
+8.3 alias returned in `dirent::d_name`. A host must keep a small durable upload
+manifest of its own. Record the final
 relative path, declared size, SHA-256, and selected transport before sending
 BEGIN, and remove that record only after `RME_FILE_WRITE_COMPLETE` or
 `RME_FILE_BINARY_COMPLETE`. On startup or reconnect, process each unfinished
