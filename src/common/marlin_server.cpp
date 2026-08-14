@@ -2643,17 +2643,22 @@ static void _server_print_loop(void) {
             switch (fault) {
             case buddy::extrusion_calibration::ExtrusionFault::no_pressure_rise:
                 SERIAL_ECHOLNPGM("Extrusion fault: E moving without nozzle-pressure rise");
+                SerialPrinting::notify_error("filament_runout", "runout", "Loadcell detected filament runout");
+                queue.inject_P(PSTR("M1601 R1"));
                 break;
             case buddy::extrusion_calibration::ExtrusionFault::pressure_collapse:
                 SERIAL_ECHOLNPGM("Extrusion fault: nozzle pressure collapsed during forward E motion");
+                SerialPrinting::notify_error("filament_movement", "not_moving", "Loadcell detected filament not moving");
+                queue.inject_P(PSTR("M1601 R2"));
                 break;
             case buddy::extrusion_calibration::ExtrusionFault::flow_breakout:
                 SERIAL_ECHOLNPGM("Extrusion fault: hotend flow-pressure breakout detected");
+                SerialPrinting::notify_error("extrusion_flow_limit", "flow_limit", "Extrusion flow-pressure limit detected");
+                queue.inject_P(PSTR("M1601 R3"));
                 break;
             default:
                 break;
             }
-            queue.inject_P(PSTR("M1601"));
         }
 #endif
 

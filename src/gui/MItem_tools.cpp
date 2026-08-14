@@ -169,7 +169,6 @@ void MI_FILAMENT_SENSOR::OnChange(size_t old_index) {
     Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, nullptr);
 }
 
-#if !HAS_INDX()
 /*****************************************************************************/
 // MI_STUCK_FILAMENT_DETECTION
 /*****************************************************************************/
@@ -182,7 +181,6 @@ void MI_STUCK_FILAMENT_DETECTION::OnChange(size_t old_index) {
         set_value(old_index > 0);
     }
 }
-#endif
 
 /*****************************************************************************/
 // MI_FILAMENT_MOVEMENT_DETECTION

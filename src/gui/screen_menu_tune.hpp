@@ -102,7 +102,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #else
     MI_FILAMENT_SENSOR,
 #endif
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL()
     MI_STUCK_FILAMENT_DETECTION,
     MI_FILAMENT_MOVEMENT_DETECTION,
 #endif

@@ -202,7 +202,7 @@ public:
      */
     bool tool_change(VirtualToolIndex target_tool, LoadType load_type, const pause::Settings &settings_);
 
-    void filament_change(const pause::Settings &settings_, bool is_filament_stuck);
+    void filament_change(const pause::Settings &settings_, std::optional<LoadUnloadMode> recovery_mode = std::nullopt);
 
     template <class ENUM>
     void set_timed(ENUM en) {

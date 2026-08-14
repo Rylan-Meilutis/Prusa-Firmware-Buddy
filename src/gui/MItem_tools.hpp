@@ -52,9 +52,12 @@ protected:
     virtual void OnChange(size_t old_index) override;
 };
 
-#if !HAS_INDX()
 class MI_STUCK_FILAMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
+#if HAS_INDX()
+    constexpr static const char *const label = N_("Loadcell Filament Runout");
+#else
     constexpr static const char *const label = N_("Stuck Filament Detection");
+#endif
     bool init_index() const;
 
 public:
@@ -64,10 +67,13 @@ public:
 protected:
     virtual void OnChange(size_t old_index) override;
 };
-#endif
 
 class MI_FILAMENT_MOVEMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
+#if HAS_INDX()
+    constexpr static const char *const label = N_("Loadcell Filament Movement");
+#else
     constexpr static const char *const label = N_("Filament Movement Detection");
+#endif
     bool init_index() const;
 
 public:

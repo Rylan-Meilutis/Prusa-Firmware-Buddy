@@ -160,7 +160,7 @@ void GcodeSuite::M600() {
 void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool,
     xyze_float_t resume_point, std::optional<float> unloadLength, std::optional<float> fastLoadLength,
     std::optional<float> retractLength, std::optional<Color> filament_colour,
-    std::optional<FilamentType> filament_type, bool);
+    std::optional<FilamentType> filament_type, std::optional<LoadUnloadMode> recovery_mode);
 
 void M600_manual(const GCodeParser2 &p) {
     const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command_p(p));
@@ -201,13 +201,13 @@ void M600_manual(const GCodeParser2 &p) {
         p.option<float>('E').transform(fabsf),
         p.option<Color>('C'),
         p.option<FilamentType>('S'),
-        false);
+        std::nullopt);
 }
 
 void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool, xyze_float_t resume_point,
     std::optional<float> unloadLength, std::optional<float> fastLoadLength, std::optional<float> retractLength,
     std::optional<Color> filament_colour, std::optional<FilamentType> filament_type,
-    bool is_filament_stuck) {
+    std::optional<LoadUnloadMode> recovery_mode) {
 
     // Ignore estalls during filament change
     BlockEStallDetection estall_blocker;
@@ -286,7 +286,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
 
     filament::set_type_to_load(*filament_type);
     filament::set_color_to_load(filament_colour);
-    Pause::Instance().filament_change(settings, is_filament_stuck);
+    Pause::Instance().filament_change(settings, recovery_mode);
 
 #if HAS_TOOLCHANGER()
     if (tool_change_data.has_value()) {
@@ -317,7 +317,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
 }
 
 /**
- *### M1601: Filament stuck detected during print <a href=" "> </a>
+ *### M1601: Extrusion fault detected during print <a href=" "> </a>
  *
  * Internal GCode
  *
@@ -327,7 +327,10 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
  * upstream filament restraint that stalls forward extrusion.
  *#### Usage
  *
- *    M1601
+ *    M1601 [ R ]
+ *
+ * R0/omitted = stuck, R1 = runout, R2 = filament not moving,
+ * R3 = flow-pressure breakout/max-flow limit.
  *
  */
 #if HAS_LOADCELL()
@@ -336,13 +339,20 @@ void PrusaGcodeSuite::M1601() {
     if (!active_tool.has_value()) {
         bsod_unreachable();
     }
+    LoadUnloadMode recovery_mode = LoadUnloadMode::FilamentStuck;
+    switch (parser.byteval('R', 0)) {
+    case 1: recovery_mode = LoadUnloadMode::FilamentRunout; break;
+    case 2: recovery_mode = LoadUnloadMode::FilamentNotMoving; break;
+    case 3: recovery_mode = LoadUnloadMode::FlowLimit; break;
+    default: break;
+    }
     M600_execute(
         mapi::get_parking_position(mapi::ParkPosition::filament_change),
         *active_tool,
         current_position,
         std::nullopt, std::nullopt, std::nullopt,
         std::nullopt, std::nullopt,
-        true);
+        recovery_mode);
 
     EMotorStallDetector::Instance().ClearReported();
     buddy::extrusion_calibration::acknowledge_extrusion_fault();

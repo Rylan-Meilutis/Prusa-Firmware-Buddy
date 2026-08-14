@@ -62,6 +62,25 @@ reports only that the communications channel is open, while `printer_state`
 reports the actual machine state. The former ambiguous `active` key is no
 longer emitted.
 
+### INDX loadcell filament and flow errors
+
+After a valid INDX pressure calibration, optional loadcell filament policies
+and the always-on calibrated flow limit publish distinct error workflows before
+opening the common Continue/Unload/Abort recovery FSM:
+
+```text
+RME_EVENT seq=20 type=error workflow=filament_runout state=waiting code=runout message="Loadcell detected filament runout"
+RME_EVENT seq=21 type=error workflow=filament_movement state=waiting code=not_moving message="Loadcell detected filament not moving"
+RME_EVENT seq=22 type=error workflow=extrusion_flow_limit state=waiting code=flow_limit message="Extrusion flow-pressure limit detected"
+```
+
+These workflow/code pairs are stable and mutually distinct. Plugins should
+route on them rather than parsing `message` or translated GUI text. The later
+load/unload progress belongs to the shared recovery implementation; it does not
+change or clear the original cause. Retain the cause until recovery closes or
+the print aborts. `M591 S` controls the runout detector, `M591 U` controls the
+movement-collapse detector, and neither setting disables flow-limit detection.
+
 ## Configuration change stream
 
 After opening a session with event bit `16`, firmware announces accepted local
@@ -599,7 +618,8 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 
 Workflow identifiers are stable handler-routing keys. Current firmware emits
 `mmu`, `filament_load`, `filament_unload`, `tool_change`, `filament_runout`,
-`stuck_filament`, `pressure_advance`, `probing`, `heating`, `firmware_update`,
+`filament_movement`, `extrusion_flow_limit`, `stuck_filament`,
+`pressure_advance`, `probing`, `heating`, `firmware_update`,
 `waste_bin`, `chamber_vent`, `filtration`, and the generic `printer` fallback.
 MMU progress events expose stable snake-case states for idler, selector,
 FINDA, extruder, nozzle, cut, eject, homing, ramming, and hardware-test phases;

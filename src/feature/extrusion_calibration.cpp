@@ -13,6 +13,8 @@ std::atomic_uint8_t anchors { 0 };
 float profile_pressure_advance = NAN;
 float calibrated_pressure_advance = NAN;
 std::atomic_bool monitor_enabled { false };
+std::atomic_bool monitor_presence_detection { false };
+std::atomic_bool monitor_movement_detection { false };
 std::atomic_uint8_t monitor_suspend_count { 0 };
 std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
 std::atomic_bool monitor_fault_suspended { false };
@@ -222,9 +224,15 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Ignore priming, seam starts, tiny infill segments and the initial
     // pressure transient. A real loss of filament motion is sustained.
     const bool qualified = monitor_forward_time > 3.0f && monitor_forward_e > 3.0f;
+    // Runout is safer to identify quickly than a collapse/jam: it starts with
+    // no pressure evidence at all. Require meaningful continuous flow so tiny
+    // seam/pressure-maintenance moves cannot trip the faster path.
+    const bool presence_qualified = monitor_forward_time > 0.75f && monitor_forward_e > 0.75f
+        && velocity >= monitor_low_velocity;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.15f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
-    const bool bad_pressure = qualified && (pressure_missing || pressure_collapsed);
+    const bool missing_from_start = presence_qualified && pressure_missing && monitor_peak_pressure <= expected * 0.65f;
+    const bool bad_pressure = (qualified && pressure_collapsed) || missing_from_start;
     monitor_bad_time = bad_pressure ? monitor_bad_time + dt : 0;
     monitor_bad_e = bad_pressure ? monitor_bad_e + std::max(0.0f, de) : 0;
     monitor_collapse_seen = bad_pressure ? (monitor_collapse_seen || pressure_collapsed) : false;
@@ -246,10 +254,18 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Require corroboration in both time and executed filament distance. This
     // rejects layer-transition baseline shifts and isolated long-segment load
     // dips while retaining a bounded response to a real, sustained jam.
-    if (monitor_bad_time > 5.0f && monitor_bad_e > 5.0f) {
-        wanted = monitor_collapse_seen && monitor_breakout_seen
-            ? ExtrusionFault::flow_breakout
-            : monitor_collapse_seen ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+    const bool confirmed_runout = !monitor_collapse_seen && monitor_bad_time > 1.0f && monitor_bad_e > 1.0f;
+    const bool confirmed_collapse = monitor_collapse_seen && monitor_bad_time > 5.0f && monitor_bad_e > 5.0f;
+    if (confirmed_runout || confirmed_collapse) {
+        // Keep the existing max-flow breakout safety independent of the new
+        // user-selectable presence and movement policies.
+        if (monitor_collapse_seen && monitor_breakout_seen) {
+            wanted = ExtrusionFault::flow_breakout;
+        } else if (monitor_collapse_seen && monitor_movement_detection.load(std::memory_order_relaxed)) {
+            wanted = ExtrusionFault::pressure_collapse;
+        } else if (!monitor_collapse_seen && monitor_presence_detection.load(std::memory_order_relaxed)) {
+            wanted = ExtrusionFault::no_pressure_rise;
+        }
     }
     if (wanted != ExtrusionFault::none) {
         ExtrusionFault expected_none = ExtrusionFault::none;
@@ -299,6 +315,14 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_peak_pressure = 0;
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_enabled.store(reference.valid, std::memory_order_release);
+}
+
+void set_pressure_monitor_detection(const bool presence, const bool movement) {
+    monitor_presence_detection.store(presence, std::memory_order_release);
+    monitor_movement_detection.store(movement, std::memory_order_release);
+    if (!presence && !movement) {
+        monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
+    }
 }
 
 void reset_pressure_monitor() {

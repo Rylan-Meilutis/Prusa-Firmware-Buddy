@@ -1684,10 +1684,13 @@ void Pause::unpark_nozzle_and_notify() {
  * - Send host action for resume, if configured
  * - Resume the current SD print job, if any
  */
-void Pause::filament_change(const pause::Settings &settings_, bool is_filament_stuck) {
+void Pause::filament_change(const pause::Settings &settings_, std::optional<LoadUnloadMode> recovery_mode) {
     settings = settings_;
 
-    load_type = is_filament_stuck ? LoadType::filament_stuck : LoadType::filament_change;
+    load_type = recovery_mode ? LoadType::filament_stuck : LoadType::filament_change;
+    if (recovery_mode) {
+        set_mode(*recovery_mode);
+    }
 
     if (did_pause_print) {
         return; // already paused
@@ -1939,7 +1942,9 @@ void Pause::setup_progress_mapper() {
 Pause::FSM_HolderLoadUnload::FSM_HolderLoadUnload(Pause &p)
     : FSM_Holder(PhasesLoadUnload::initial)
     , pause(p) {
-    pause.set_mode(pause.get_load_unload_mode());
+    if (!pause.get_mode()) {
+        pause.set_mode(pause.get_load_unload_mode());
+    }
     if (pause.should_park()) {
         pause.park_nozzle_and_notify();
     }

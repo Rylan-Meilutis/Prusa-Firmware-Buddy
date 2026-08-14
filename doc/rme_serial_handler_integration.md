@@ -253,6 +253,8 @@ actions:
 | `filament_load` / `filament_unload` | Native load/unload lifecycle, cancellation, skip and failure state | `DIALOG QUERY` only when waiting/error |
 | `tool_change` | Tool/dock status and retry/abort help | `DIALOG QUERY`, `TOOLMAP` |
 | `filament_runout` | Material replacement workflow | `DIALOG QUERY` |
+| `filament_movement` | Spool/path movement fault with continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
+| `extrusion_flow_limit` | Flow-pressure limit guidance with continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
 | `stuck_filament` | Continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
 | `pressure_advance` | Calibration phase and percentage | progress events; abort via active dialog |
 | `probing` / `heating` | Noninteractive progress | no assumed action; query if waiting |

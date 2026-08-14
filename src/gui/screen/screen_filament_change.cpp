@@ -162,6 +162,12 @@ const char *get_name(LoadUnloadMode mode) {
         return N_("Unloading filament");
     case LoadUnloadMode::FilamentStuck:
         return N_("Reloading filament");
+    case LoadUnloadMode::FilamentRunout:
+        return N_("Filament runout");
+    case LoadUnloadMode::FilamentNotMoving:
+        return N_("Filament not moving");
+    case LoadUnloadMode::FlowLimit:
+        return N_("Extrusion flow limit");
     case LoadUnloadMode::Purge:
         return N_("Purging filament");
     case LoadUnloadMode::Test:
@@ -201,7 +207,9 @@ public:
         triggered_ = true;
 
         const auto data = fsm::deserialize_data<FSMLoadUnloadData>(fsm_data);
-        if (data.mode == LoadUnloadMode::Change || data.mode == LoadUnloadMode::FilamentStuck) { /// this sound should be beeping only for M600 || runout
+        if (data.mode == LoadUnloadMode::Change || data.mode == LoadUnloadMode::FilamentStuck
+            || data.mode == LoadUnloadMode::FilamentRunout || data.mode == LoadUnloadMode::FilamentNotMoving
+            || data.mode == LoadUnloadMode::FlowLimit) {
             sound::play(SoundType::waiting_beep);
         }
     }
@@ -394,19 +402,43 @@ private:
 class FrameFStuckNotice : public FrameNotice {
 public:
     FrameFStuckNotice(window_t *parent, Phase phase)
-        : FrameNotice(parent, phase) {
-        // There is no need for fsm_data in first update so it can be called from constructor
-        first_update();
+        : FrameNotice(parent, phase) {}
+
+    void update(fsm::PhaseData fsm_data) {
+        if (first_update_done) return;
+        first_update_done = true;
+        first_update(fsm::deserialize_data<FSMLoadUnloadData>(fsm_data).mode);
     }
 
 private:
-    void first_update() {
+    void first_update(LoadUnloadMode mode) {
         auto err = find_error(ErrCode::ERR_MECHANICAL_STUCK_FILAMENT_DETECTED);
+
+        const char *title = err.err_title;
+        const char *text = err.err_text;
+        switch (mode) {
+        case LoadUnloadMode::FilamentRunout:
+            title = N_("Filament runout");
+            text = N_("The loadcell detected extrusion without filament pressure. Replace the filament, then unload or continue.");
+            break;
+        case LoadUnloadMode::FilamentNotMoving:
+            title = N_("Filament not moving");
+            text = N_("Filament pressure disappeared during extrusion. Check the spool and filament path, then unload or continue.");
+            break;
+        case LoadUnloadMode::FlowLimit:
+            title = N_("Extrusion flow limit");
+            text = N_("The requested flow exceeded the hotend's stable pressure range. Check the nozzle and print settings.");
+            break;
+        default:
+            break;
+        }
 
         radio_button.set_fixed_width_buttons_count(3);
         radio_button.set_fsm_and_phase(Phase::FilamentStuck, { Response::Continue, Response::Unload, Response::Abort });
-        notice_update(std::to_underlying(err.err_code), err.err_title, err.err_text, err.type);
+        notice_update(std::to_underlying(err.err_code), title, text, err.type);
     }
+
+    bool first_update_done = false;
 };
 #endif
 
