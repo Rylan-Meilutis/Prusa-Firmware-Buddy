@@ -33,10 +33,10 @@ constexpr auto txt_done = N_("The door sensor is successfully calibrated now.");
 
 constexpr auto qr_suffix = "core-door-sensor-cal"_tstr;
 
-class FrameFingerTest final : FrameTextWithImage {
+class FrameFingerTest final : standard_frame_without_radio::FrameTextWithImage {
 public:
     FrameFingerTest(window_frame_t *parent)
-        : FrameTextWithImage {
+        : standard_frame_without_radio::FrameTextWithImage {
             parent,
             _("Grab the door in the middle, place your fingers behind it, and close it as shown in the picture. Then confirm."),
             WizardDefaults::row_1,

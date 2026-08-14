@@ -29,6 +29,8 @@ inline constexpr auto rect_frame_bottom = Rect16 {
     WizardDefaults::row_h,
 };
 
+namespace standard_frame_without_radio {
+
 class FrameText {
 protected:
     FrameText(window_t *parent, string_view_utf8 txt, const Rect16::Top_t top)
@@ -89,3 +91,5 @@ public:
 };
 
 #endif
+
+} // namespace standard_frame_without_radio

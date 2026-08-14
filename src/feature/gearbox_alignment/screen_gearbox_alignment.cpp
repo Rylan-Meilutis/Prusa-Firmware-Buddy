@@ -12,7 +12,7 @@ static ScreenGearboxAlignment *instance = nullptr;
 static const char *text_header = N_("GEARBOX ALIGNMENT");
 static constexpr size_t content_top_y = WizardDefaults::row_1 + WizardDefaults::progress_row_h;
 
-class FrameIntro final : public FrameText {
+class FrameIntro final : public standard_frame_without_radio::FrameText {
 public:
     FrameIntro(window_t *parent)
         : FrameText {
@@ -22,7 +22,7 @@ public:
         } {}
 };
 
-class FrameFilamentLoadedAskUnload final : public FrameText {
+class FrameFilamentLoadedAskUnload final : public standard_frame_without_radio::FrameText {
 public:
     FrameFilamentLoadedAskUnload(window_t *parent)
         : FrameText {
@@ -32,7 +32,7 @@ public:
         } {}
 };
 
-class FrameFilamentUnknownAskUnload final : public FrameText {
+class FrameFilamentUnknownAskUnload final : public standard_frame_without_radio::FrameText {
 public:
     FrameFilamentUnknownAskUnload(window_t *parent)
         : FrameText {
@@ -42,7 +42,7 @@ public:
         } {}
 };
 
-class FrameLoosenScrews final : public FrameTextWithImage {
+class FrameLoosenScrews final : public standard_frame_without_radio::FrameTextWithImage {
 public:
     FrameLoosenScrews(window_t *parent)
         : FrameTextWithImage {
@@ -54,7 +54,7 @@ public:
         } {}
 };
 
-class FrameAlignment final : public FrameTextWithImage {
+class FrameAlignment final : public standard_frame_without_radio::FrameTextWithImage {
 public:
     FrameAlignment(window_t *parent)
         : FrameTextWithImage {
@@ -66,7 +66,7 @@ public:
         } {}
 };
 
-class FrameTightenScrews final : public FrameTextWithImage {
+class FrameTightenScrews final : public standard_frame_without_radio::FrameTextWithImage {
 public:
     FrameTightenScrews(window_t *parent)
         : FrameTextWithImage {
@@ -78,7 +78,7 @@ public:
         } {}
 };
 
-class FrameDone final : public FrameTextWithImage {
+class FrameDone final : public standard_frame_without_radio::FrameTextWithImage {
 public:
     FrameDone(window_t *parent)
         : FrameTextWithImage {
