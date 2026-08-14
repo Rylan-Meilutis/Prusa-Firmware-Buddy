@@ -813,8 +813,7 @@ private:
         } } };
 
         // Convert the AB stepper difference to XY mm (CoreXY transform).
-        MachinePosXY diff;
-        corexy_ab_to_xy(position_before - position_after, diff);
+        const MachinePosXY diff = corexy_ab_to_xy(position_before - position_after);
 
         // Fold the picked tool's hotend offset in so the stored position is tool-independent.
         return (config.axis == AxisEnum::X_AXIS)

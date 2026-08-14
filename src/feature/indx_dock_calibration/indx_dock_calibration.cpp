@@ -351,8 +351,7 @@ private:
 
             // Convert AB stepper difference to XY mm (CoreXY transform)
             // Dock position = home position + (position_before - position_after)
-            MachinePosXY diff;
-            corexy_ab_to_xy(position_before - position_after, diff);
+            const MachinePosXY diff = corexy_ab_to_xy(position_before - position_after);
 
             const PrusaToolInfo measured = {
                 .dock_x = diff.x + current_position.x,
