@@ -1346,3 +1346,27 @@ Build 12 firmware continuation:
 ```
 
 Published release tag: `v6.6.3-RME-b12`.
+
+## Build 13 release update
+
+Build 13 closes a FAT long-filename visibility bypass in Connect directory
+reports. The private-artifact filter previously classified only `dirent::d_name`,
+which can contain an unrelated 8.3 alias such as `FWUPD~1.RME`, while Connect
+published the long name `FWUPD.RME.rme-part` or `FWUPD.RME.rme-meta` as
+`display_name`. Connect now classifies both the published long filename and its
+short alias, so protected candidates, partial payloads, resume metadata, and
+rollback files remain invisible to Connect while explicit RME STAT, resume,
+ABORT, DELETE, and UNSTAGE workflows remain available.
+
+The Connect suite passes 277 assertions across 47 cases. All 15 6.6.3 presets
+passed. Maximum MINI flash use was 99.43%, MK4 used 61.09%, MK3.5 used 56.46%,
+XL used 69.21%, and CORE One INDX used 65.80%. Exactly 15 BBFs were staged
+under `bbf/6.6.3`.
+
+Build 13 firmware continuation:
+
+```text
+966a63ff6  2026-08-13  Hide RME artifacts by FAT long filename
+```
+
+Published release tag: `v6.6.3-RME-b13`.
