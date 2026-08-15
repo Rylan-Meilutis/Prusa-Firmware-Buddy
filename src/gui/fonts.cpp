@@ -1,8 +1,109 @@
-/// @file
-#include <gui/fonts.hpp>
-
+#include "fonts.hpp"
+#include "config.h"
 #include <bsod/bsod.h>
 #include <printers.h>
+#include <option/enable_translation_ja.h>
+#include <option/enable_translation_uk.h>
+#include <array>
+#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
+
+#if PRINTER_IS_PRUSA_MINI()
+    #if ENABLE_TRANSLATION_JA()
+constexpr FontCharacterSet mini_charset = FontCharacterSet::latin_and_katakana;
+    #elif ENABLE_TRANSLATION_UK()
+constexpr FontCharacterSet mini_charset = FontCharacterSet::latin_and_cyrillic;
+    #else
+constexpr FontCharacterSet mini_charset = FontCharacterSet::latin;
+    #endif
+constexpr font_t font_regular_7x13 { 7, 13, mini_charset, nullptr };
+constexpr font_t font_regular_11x18 { 11, 18, mini_charset, nullptr };
+constexpr font_t font_regular_9x16 { 9, 16, mini_charset, nullptr };
+#elif BOARD_IS_XBUDDY()
+constexpr font_t font_regular_9x16 { 9, 16, FontCharacterSet::full, nullptr };
+constexpr font_t font_bold_11x19 { 11, 19, FontCharacterSet::full, nullptr };
+constexpr font_t font_bold_13x22 { 13, 22, FontCharacterSet::full, nullptr };
+constexpr font_t font_bold_30x53 { 30, 53, FontCharacterSet::digits, nullptr };
+#else
+    #include "res/cc/font_regular_9x16_full.hpp"
+    #include "res/cc/font_bold_11x19_full.hpp"
+    #include "res/cc/font_bold_13x22_full.hpp"
+    #include "res/cc/font_bold_30x53_digits.hpp"
+#endif
+
+#if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
+bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t *destination, const size_t size) {
+    struct ExternalFont {
+        uint8_t width;
+        uint8_t height;
+        const char *path;
+        int descriptor;
+    };
+    #if PRINTER_IS_PRUSA_MINI()
+    static ExternalFont fonts[] { { 7, 13, "/internal/res/fonts/7x13.bin", -1 }, { 9, 16, "/internal/res/fonts/9x16.bin", -1 }, { 11, 18, "/internal/res/fonts/11x18.bin", -1 } };
+    #else
+    static ExternalFont fonts[] { { 9, 16, "/internal/res/fonts/9x16.bin", -1 }, { 11, 19, "/internal/res/fonts/11x19.bin", -1 }, { 13, 22, "/internal/res/fonts/13x22.bin", -1 }, { 30, 53, "/internal/res/fonts/30x53.bin", -1 } };
+    #endif
+    static const ExternalFont *cached_font = nullptr;
+    static uint32_t cached_glyph = UINT32_MAX;
+    static std::array<uint8_t, (30 * 53 + 1) / 2> cache;
+    for (auto &external : fonts) {
+        if (font->w != external.width || font->h != external.height) {
+            continue;
+        }
+        if (cached_font == &external && cached_glyph == glyph) {
+            memcpy(destination, cache.data(), size);
+            return true;
+        }
+        if (external.descriptor < 0) {
+            external.descriptor = open(external.path, O_RDONLY);
+        }
+        if (external.descriptor < 0) {
+            return false;
+        }
+        uint16_t metadata[2];
+        uint32_t offsets[2];
+        if (lseek(external.descriptor, 0, SEEK_SET) != 0
+            || read(external.descriptor, metadata, sizeof(metadata)) != sizeof(metadata)
+            || glyph >= metadata[0] || size != metadata[1]
+            || lseek(external.descriptor, 4 + glyph * sizeof(uint32_t), SEEK_SET) < 0
+            || read(external.descriptor, offsets, sizeof(offsets)) != sizeof(offsets)
+            || lseek(external.descriptor, 4 + (metadata[0] + 1) * sizeof(uint32_t) + offsets[0], SEEK_SET) < 0) {
+            return false;
+        }
+        size_t output = 0;
+        uint32_t remaining = offsets[1] - offsets[0];
+        while (remaining--) {
+            uint8_t token;
+            if (read(external.descriptor, &token, 1) != 1) {
+                return false;
+            }
+            const size_t length = (token & 0x7f) + 1;
+            if (output + length > size) {
+                return false;
+            }
+            if (token & 0x80) {
+                memset(cache.data() + output, 0, length);
+            } else {
+                if (remaining < length || read(external.descriptor, cache.data() + output, length) != static_cast<ssize_t>(length)) {
+                    return false;
+                }
+                remaining -= length;
+            }
+            output += length;
+        }
+        if (output != size) {
+            return false;
+        }
+        cached_font = &external;
+        cached_glyph = glyph;
+        memcpy(destination, cache.data(), size);
+        return true;
+    }
+    return false;
+}
+#endif
 
 const font_t *resource_font(Font font) {
     switch (font) {
@@ -10,7 +111,6 @@ const font_t *resource_font(Font font) {
     case Font::small:
         return &font_regular_7x13;
     case Font::normal:
-        return &font_regular_11x18;
     case Font::big:
         return &font_regular_11x18;
     case Font::special:

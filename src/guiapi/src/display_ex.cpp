@@ -1,7 +1,6 @@
 #include "display_helper.h"
 #include "display.hpp"
 #include <cmath>
-#include <font_data/font_data.hpp>
 #include <guiconfig/guiconfig.h>
 #include <img_resources.hpp>
 #include "display_math_helper.h"
@@ -264,7 +263,17 @@ void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, 
 
     DispBuffer buff(pms, clr_bg, clr_fg);
 
-    const uint8_t *pch = pf->character_bitmap(c); // font data pointer
+    const uint32_t chr = get_char_position_in_font(c, pf);
+    const uint16_t bpc = (char_w * char_h + 1) >> 1;
+#if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
+    uint8_t external_glyph[(30 * 53 + 1) >> 1];
+    if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) {
+        return;
+    }
+    const uint8_t *pch = external_glyph;
+#else
+    const uint8_t *pch = static_cast<const uint8_t *>(pf->pcs) + (chr * bpc);
+#endif
     bool load = true; // load next byte from font data?
     uint8_t crd = 0; // current byte of font data
 

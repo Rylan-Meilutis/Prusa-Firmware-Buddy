@@ -13,6 +13,11 @@
 #include <mapi/feedrates/standard_feedrates.hpp>
 #include <Marlin/src/module/motion.h>
 #include <module/planner.h>
+#include <algorithm>
+#include <option/has_serial_print.h>
+#if HAS_SERIAL_PRINT()
+    #include <serial_printing.hpp>
+#endif
 
 WastebinWatcher &WastebinWatcher::instance() {
     static WastebinWatcher watcher;
@@ -26,7 +31,7 @@ void WastebinWatcher::account_ejected_pellet() {
 
     // React once, the moment the count crosses capacity during a print (unless monitoring was
     // disabled for this print via Ignore).
-    const uint32_t cap = capacity();
+    const uint32_t cap = pause_threshold();
     if (!marlin_server::is_printing() || ignored_for_print_ || before >= cap || before + 1 < cap) {
         return;
     }
@@ -52,6 +57,9 @@ void WastebinWatcher::pause_to_empty(bool full) {
     // Cleaner is outside the MBL mesh; save/restore Z in the machine frame (like G750), not native.
     const float resume_machine_z = to_machine_pos(current_position).z;
 
+#if HAS_SERIAL_PRINT()
+    const bool notify_serial_host = full && marlin_server::serial_print_active();
+#endif
     const auto filament = FilamentType::for_current_tool_heuristic();
 
     if (printing) {
@@ -62,6 +70,12 @@ void WastebinWatcher::pause_to_empty(bool full) {
         // this gcode processor (BFW-8821).
         mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, filament));
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
+#if HAS_SERIAL_PRINT()
+        if (notify_serial_host) {
+            SerialPrinting::pause();
+            SerialPrinting::paused("purge_bucket_full");
+        }
+#endif
     } else {
         // Idle: axes may be unhomed, so home as needed before parking. No retract (cold nozzle) and
         // no return afterwards (homing invalidates resume_pos).
@@ -69,7 +83,8 @@ void WastebinWatcher::pause_to_empty(bool full) {
     }
 
     // Show the warning, block until the user answers, then close it.
-    switch (marlin_server::prompt_warning(warning)) {
+    const Response response = marlin_server::prompt_warning(warning);
+    switch (response) {
     case Response::Done:
         mark_emptied(); // bin emptied -> reset the counter
         break;
@@ -79,6 +94,16 @@ void WastebinWatcher::pause_to_empty(bool full) {
     default:
         break;
     }
+
+#if HAS_SERIAL_PRINT()
+    const bool wait_for_host_resume = full && serial_resume_required_.load();
+    while (wait_for_host_resume && !serial_resume_requested_.exchange(false)) {
+        idle(true);
+    }
+    if (wait_for_host_resume) {
+        serial_resume_required_ = false;
+    }
+#endif
 
     if (!printing) {
         return; // idle: nothing to return to
@@ -92,6 +117,12 @@ void WastebinWatcher::pause_to_empty(bool full) {
     line_to_machine_pos(resume_target, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
     planner.synchronize();
     mapi::extruder_move(resume_e - current_position.e, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, filament));
+#if HAS_SERIAL_PRINT()
+    if (notify_serial_host) {
+        SerialPrinting::resume(!wait_for_host_resume);
+        SerialPrinting::resumed();
+    }
+#endif
 }
 
 bool WastebinWatcher::print_will_overfill() const {
@@ -100,7 +131,7 @@ bool WastebinWatcher::print_will_overfill() const {
     if (!total.has_value()) {
         return false;
     }
-    return Odometer_s::instance().get_nozzle_cleaner_pellets() + *total > capacity();
+    return Odometer_s::instance().get_nozzle_cleaner_pellets() + *total > pause_threshold();
 }
 
 void WastebinWatcher::reset_print_progress() {
@@ -119,6 +150,50 @@ uint32_t WastebinWatcher::capacity() const {
     return config_store().nozzle_cleaner_extended_capacity.get()
         ? NOZZLE_CLEANER_WASTEBIN_CAPACITY_EXTENDED
         : NOZZLE_CLEANER_WASTEBIN_CAPACITY_BASIC;
+}
+
+uint32_t WastebinWatcher::pause_threshold() const {
+    const uint32_t configured = config_store().nozzle_cleaner_pause_threshold.get();
+    return configured == 0 ? capacity() : std::min(configured, capacity());
+}
+
+void WastebinWatcher::set_pause_threshold(uint32_t pellets) {
+    config_store().nozzle_cleaner_pause_threshold.set(pellets);
+}
+
+void WastebinWatcher::set_fill_level(uint32_t pellets) {
+    Odometer_s::instance().set_nozzle_cleaner_pellets(pellets);
+}
+
+bool WastebinWatcher::serial_reset_and_hold_for_resume() {
+#if HAS_SERIAL_PRINT()
+    if (!marlin_server::is_warning_active(WarningType::NozzleCleanerFull)
+        || !marlin_server::serial_print_active()) {
+        return false;
+    }
+    mark_emptied();
+    serial_resume_requested_ = false;
+    serial_resume_required_ = true;
+    marlin_server::set_response(EncodedFSMResponse {
+        .response = FSMResponseVariant::make(Response::Done),
+        .fsm_and_phase = PhasesWarning::NozzleCleanerFull,
+    });
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool WastebinWatcher::serial_resume_after_reset() {
+#if HAS_SERIAL_PRINT()
+    if (!serial_resume_required_.load()) {
+        return false;
+    }
+    serial_resume_requested_ = true;
+    return true;
+#else
+    return false;
+#endif
 }
 
 uint32_t WastebinWatcher::fill_level() const {
