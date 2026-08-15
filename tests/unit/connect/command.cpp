@@ -154,7 +154,7 @@ TEST_CASE("Start inline download - missing params") {
 
 TEST_CASE("Set token") {
     auto cmd = command_test<SetToken>("{\"command\": \"SET_TOKEN\",\"kwargs\": {\"token\":\"toktoktok\"}}");
-    REQUIRE(strcmp(reinterpret_cast<const char *>(cmd.token.data()), "toktoktok") == 0);
+    REQUIRE(strcmp(reinterpret_cast<const char *>(cmd.token->data()), "toktoktok") == 0);
 }
 
 TEST_CASE("Set token ‒ missing params") {
@@ -169,7 +169,7 @@ TEST_CASE("Set value - hostname") {
     auto cmd = command_test<SetValue>("{\"command\":\"SET_VALUE\",\"kwargs\": {\"hostname\":\"Nice_hostname\"}}");
     REQUIRE(cmd.name == PropertyName::HostName);
     REQUIRE(holds_alternative<SharedBorrow>(cmd.value));
-    REQUIRE(strcmp(reinterpret_cast<const char *>(get<SharedBorrow>(cmd.value).data()), "Nice_hostname") == 0);
+    REQUIRE(strcmp(reinterpret_cast<const char *>(get<SharedBorrow>(cmd.value)->data()), "Nice_hostname") == 0);
 }
 
 TEST_CASE("Set value - nozzle diameter") {

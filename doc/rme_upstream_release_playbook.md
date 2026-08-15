@@ -1431,3 +1431,20 @@ The combined matrix passed
 29/29 presets with zero failures. Validated maxima were 6.5.7 MINI 97.38%, MK4
 95.01%, MK3.5 90.41%, XL 69.58%; 6.6.3 MINI 99.44%, MK4 61.14%, MK3.5 56.47%,
 XL 69.26%, and CORE One INDX 65.86%.
+
+## 6.8.1 upstream port release gate
+
+Build the persistent 6.8.1 line with
+`./build.py --final --versions 6.8.1 --jobs 15`. The canonical matrix contains
+15 presets and exactly 15 versioned BBFs, including CORE One INDX and all MINI
+language variants. Keep MINI and xBuddy bitmap fonts in the managed resource
+image; linking `font_data` into the firmware executable overflows MINI.
+
+The initial 6.8.1 matrix passed 15/15 with zero failures. Translated MINI
+builds were the tightest flash target at 97.33%; CORE One INDX was the highest
+reported RAM target at 82.69%. Release gates passed with 400,145 RME protocol
+assertions, 514,733 transfer assertions, and 277 Connect assertions.
+
+Use the single persistent tag and GitHub release `v6.8.1-RME`. Replace its
+notes and complete BBF asset set in place for later builds; never create a
+per-build release.

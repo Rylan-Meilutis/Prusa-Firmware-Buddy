@@ -61,3 +61,16 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
 `v6.8.1-RME` is the persistent release tag for this upstream version. Updated
 builds replace this release's notes and BBF assets in place; no per-build
 release tags are created.
+
+## Validation
+
+- Built from the clean release worktree with
+  `./build.py --final --versions 6.8.1 --jobs 15`.
+- All 15 presets passed: CORE One, CORE One INDX, CORE One L, MINI and its
+  eight language variants, MK4, MK3.5, and XL.
+- `rme_protocol_tests`: 400,145 assertions across 15 cases.
+- `transfers_tests`: 514,733 assertions across 11 cases.
+- `connect_tests`: 277 assertions across 47 cases.
+- Exactly 15 versioned BBFs were staged. The tightest flash target is MINI at
+  97.33% for translated builds; the highest reported RAM target is CORE One
+  INDX at 82.69%.
