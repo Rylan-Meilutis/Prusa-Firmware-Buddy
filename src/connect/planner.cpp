@@ -234,11 +234,9 @@ namespace {
         const auto [host, port] = host_and_port(config, download.port);
 
         char *path = nullptr;
-        unique_ptr<Download::EncryptionInfo> encryption;
-
         path = reinterpret_cast<char *>(alloca(enc_url_len));
         make_enc_url(path, download.iv);
-        encryption = make_unique<Download::EncryptionInfo>(download.key, download.iv, download.orig_size);
+        std::optional<Download::EncryptionInfo> encryption(std::in_place, download.key, download.iv, download.orig_size);
 
         auto request = Download::Request(host, port, path, std::move(encryption));
 
@@ -500,16 +498,21 @@ Action Planner::next_action(SharedBuffer &buffer, http::Connection *wake_on_read
         if (buff.has_value()) {
             changed_path.consume(reinterpret_cast<char *>(buff->data()), buff->size());
 
-            EventType type = (changed_path.is_file() && changed_path.what_happend() == Incident::Created) ? EventType::FileInfo : EventType::FileChanged;
-            planned_event = Event {
-                type,
-                changed_path.triggered_command_id(),
-                nullopt,
-                SharedPath(std::move(*buff)),
-            };
-            planned_event->is_file = changed_path.is_file();
-            planned_event->incident = changed_path.what_happend();
-            return *planned_event;
+            // RME transfer internals are intentionally invisible to Connect.
+            // Consume their change notification without publishing a path or
+            // scheduling a rescan that could discover the private artifact.
+            if (!filename_is_rme_private(reinterpret_cast<char *>(buff->data()))) {
+                EventType type = (changed_path.is_file() && changed_path.what_happend() == Incident::Created) ? EventType::FileInfo : EventType::FileChanged;
+                planned_event = Event {
+                    type,
+                    changed_path.triggered_command_id(),
+                    nullopt,
+                    SharedPath(std::move(*buff)),
+                };
+                planned_event->is_file = changed_path.is_file();
+                planned_event->incident = changed_path.what_happend();
+                return *planned_event;
+            }
         }
     }
 
@@ -709,6 +712,10 @@ void Planner::command(const Command &command, const StartPrint &params) {
         reason = "Forbidden path";
     } else if (!printer.is_valid_file_or_transfer(path)) {
         reason = "File not found";
+    } else if (Monitor::instance.id().has_value()) {
+        planned_event = Event { EventType::Rejected, command.id, nullopt, nullopt, nullopt,
+            "Another transfer in progress", MachineReason::TransferInProgress };
+        return;
     }
 
     if (reason != nullptr) {
@@ -749,7 +756,7 @@ void Planner::command(const Command &command, const SendJobInfo &params) {
 }
 
 void Planner::command(const Command &command, const SendFileInfo &params) {
-    if (path_allowed(params.path.path())) {
+    if (path_allowed(params.path.path()) && !filename_is_rme_private(params.path.path())) {
         planned_event = Event {
             EventType::FileInfo,
             command.id,
@@ -1051,7 +1058,9 @@ void Planner::command(const Command &command, const SetValue &params) {
 #endif
 #if HAS_SIDE_LEDS() || defined(UNITTESTS)
     case connect_client::PropertyName::ChamberLedIntensity:
-        leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(get<int8_t>(params.value)) * 255 / 100);
+        // Connect currently models this as a brightness setting, while RME
+        // owns brightness per printer state. Treat any remote value as user
+        // activity: wake the light temporarily without overwriting settings.
         leds::SideStripHandler::instance().activity_ping();
         break;
 #endif

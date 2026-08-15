@@ -19,6 +19,7 @@
 #include <option/has_leds.h>
 #include <option/has_power_panic.h>
 #include <option/has_side_leds.h>
+#include <option/has_i2c_expander.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_auto_retract.h>
 #include <option/has_toolchanger.h>
@@ -27,6 +28,7 @@
 #include <option/has_extruder_fsensor.h>
 #include <meta_utils.hpp>
 #include <gui/menu_item/menu_item_gcode_action.hpp>
+#include <leds/light_state.hpp>
 
 /// Checks if there is space in the gcode queue for inserting further commands.
 /// If there's not, \returns false and shows a message box
@@ -51,9 +53,12 @@ protected:
     virtual void OnChange(size_t old_index) override;
 };
 
-#if !HAS_INDX()
 class MI_STUCK_FILAMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
+#if HAS_INDX()
+    constexpr static const char *const label = N_("Loadcell Filament Runout");
+#else
     constexpr static const char *const label = N_("Stuck Filament Detection");
+#endif
     bool init_index() const;
 
 public:
@@ -63,7 +68,22 @@ public:
 protected:
     virtual void OnChange(size_t old_index) override;
 };
+
+class MI_FILAMENT_MOVEMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
+#if HAS_INDX()
+    constexpr static const char *const label = N_("Loadcell Filament Movement");
+#else
+    constexpr static const char *const label = N_("Filament Movement Detection");
 #endif
+    bool init_index() const;
+
+public:
+    MI_FILAMENT_MOVEMENT_DETECTION()
+        : WI_ICON_SWITCH_OFF_ON_t(init_index(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
+
+protected:
+    virtual void OnChange(size_t old_index) override;
+};
 
 class MI_STEALTH_MODE : public WI_ICON_SWITCH_OFF_ON_t {
     constexpr static const char *const label = N_("Stealth Mode");
@@ -129,6 +149,17 @@ public:
 
 protected:
     void OnChange(size_t old_index) final;
+};
+
+/// Wastebin submenu: pellet count which triggers the automatic empty-bin pause.
+class MI_NOZZLE_CLEANER_PAUSE_THRESHOLD : public WiSpin {
+    static constexpr const char *const label = N_("Pause At Pellets");
+
+public:
+    MI_NOZZLE_CLEANER_PAUSE_THRESHOLD();
+
+protected:
+    void OnClick() override;
 };
 
 /// Wastebin submenu: read-only fill level (pellets ejected since last emptied / capacity).
@@ -199,6 +230,24 @@ class MI_TIMEOUT : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_TIMEOUT();
     virtual void OnChange(size_t old_index) override;
+};
+
+class MI_BED_HEATER_SAFETY_TIMEOUT : public WiSpin {
+    constexpr static const char *const label = N_("Bed Heater Timeout");
+
+public:
+    MI_BED_HEATER_SAFETY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_HOTEND_HEATER_SAFETY_TIMEOUT : public WiSpin {
+    constexpr static const char *const label = N_("Hotend Timeout");
+
+public:
+    MI_HOTEND_HEATER_SAFETY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
 };
 
 #ifdef _DEBUG
@@ -340,6 +389,63 @@ public:
 
 protected:
     virtual void OnClick() override;
+};
+
+class MI_ODOMETER_DIST : public WI_FORMATABLE_LABEL_t<float> {
+public:
+    MI_ODOMETER_DIST(const string_view_utf8 &label, const img::Resource *icon, is_enabled_t enabled, is_hidden_t hidden, float initVal);
+};
+
+class MI_ODOMETER_DIST_X : public MI_ODOMETER_DIST {
+    constexpr static const char *const label = N_("X Axis");
+
+public:
+    MI_ODOMETER_DIST_X();
+};
+
+class MI_ODOMETER_DIST_Y : public MI_ODOMETER_DIST {
+    constexpr static const char *const label = N_("Y Axis");
+
+public:
+    MI_ODOMETER_DIST_Y();
+};
+
+class MI_ODOMETER_DIST_Z : public MI_ODOMETER_DIST {
+    constexpr static const char *const label = N_("Z Axis");
+
+public:
+    MI_ODOMETER_DIST_Z();
+};
+
+class MI_ODOMETER_DIST_E : public MI_ODOMETER_DIST {
+    constexpr static const char *const generic_label = N_("Filament");
+
+public:
+    MI_ODOMETER_DIST_E(const char *const label, int index);
+    MI_ODOMETER_DIST_E();
+};
+
+class MI_ODOMETER_TOOL : public WI_FORMATABLE_LABEL_t<uint32_t> {
+    constexpr static const char *const generic_label = N_("Tools Changed");
+    constexpr static const char *const times_label = N_("times");
+
+public:
+    MI_ODOMETER_TOOL(const char *const label, int index);
+    MI_ODOMETER_TOOL();
+};
+
+class MI_ODOMETER_MMU_CHANGES : public WI_FORMATABLE_LABEL_t<uint32_t> {
+    constexpr static const char *const label = N_("MMU filament loads");
+
+public:
+    MI_ODOMETER_MMU_CHANGES();
+};
+
+class MI_ODOMETER_TIME : public WI_FORMATABLE_LABEL_t<uint32_t> {
+    constexpr static const char *const label = N_("Print Time");
+
+public:
+    MI_ODOMETER_TIME();
 };
 
 #if BOARD_IS_XBUDDY()
@@ -529,6 +635,67 @@ public:
     virtual void Loop() override;
 };
 
+class MI_SIDE_LEDS_PRINT_BRIGTHNESS : public WiSpin {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Print Lights");
+    #else
+        N_("RGB Side Strip Print");
+    #endif
+
+public:
+    MI_SIDE_LEDS_PRINT_BRIGTHNESS();
+    virtual void OnClick() override;
+};
+
+class MI_LIGHT_STATE_MAIN_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Lights");
+    #else
+        N_("Side Strip");
+    #endif
+
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state);
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_LIGHT_STATE_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Brightness");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
+    #if HAS_DOOR_SENSOR()
+class MI_LIGHT_STATE_DOOR_ACTIVE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("Door Holds Active");
+
+public:
+    MI_LIGHT_STATE_DOOR_ACTIVE();
+    virtual void OnChange(size_t old_index) override;
+};
+    #endif
+
+class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Print Chamber Lights");
+    #else
+        N_("Print Side Strip");
+    #endif
+
+public:
+    MI_PRINT_CHAMBER_LIGHTS_ENABLE();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
 class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
     static constexpr const char *const label =
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -539,6 +706,117 @@ class MI_SIDE_LEDS_DIMMING_ENABLE : public MenuItemSwitch {
 
 public:
     MI_SIDE_LEDS_DIMMING_ENABLE();
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_SIDE_LEDS_ACTIVITY_TIMEOUT : public WiSpin {
+    static constexpr const char *const label = N_("Active to Idle");
+
+public:
+    MI_SIDE_LEDS_ACTIVITY_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_SIDE_LEDS_EVENT_TIMEOUT : public WiSpin {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Chamber Event Time");
+    #else
+        N_("Side Strip Event Time");
+    #endif
+
+public:
+    MI_SIDE_LEDS_EVENT_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_SIDE_LEDS_OFF_TIMEOUT : public WiSpin {
+    static constexpr const char *const label = N_("Idle to Deep Idle");
+
+public:
+    MI_SIDE_LEDS_OFF_TIMEOUT();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+
+class MI_POST_PRINT_LED_HOLD : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label =
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        N_("Door Finish Ack");
+    #else
+        N_("After Print Lights");
+    #endif
+
+public:
+    MI_POST_PRINT_LED_HOLD();
+    virtual void OnChange(size_t old_index) override;
+};
+#endif
+
+#if HAS_LEDS()
+class MI_STATUS_LED_FINISHED_HOLD : public WiSpin {
+    static constexpr const char *const label = N_("Status Finish Hold");
+
+public:
+    MI_STATUS_LED_FINISHED_HOLD();
+    virtual void OnClick() override;
+};
+#endif
+
+class MI_LIGHT_STATE_SCREEN_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Screen");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_SCREEN_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
+class MI_PRINT_SCREEN_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Print Screen");
+
+public:
+    MI_PRINT_SCREEN_BRIGHTNESS();
+    virtual void OnClick() override;
+};
+
+#if HAS_LEDS()
+class MI_LIGHT_STATE_STATUS_BRIGHTNESS : public WiSpin {
+    static constexpr const char *const label = N_("Status LED");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightState state);
+    virtual void OnClick() override;
+};
+
+class MI_PRINT_STATUS_LEDS_ENABLE : public WiSpin {
+    static constexpr const char *const label = N_("Print Status LED");
+
+public:
+    MI_PRINT_STATUS_LEDS_ENABLE();
+    virtual void OnClick() override;
+    virtual void Loop() override;
+};
+#endif
+
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+class MI_LIGHT_STATE_EXTERNAL_ENABLE : public WI_ICON_SWITCH_OFF_ON_t {
+    static constexpr const char *const label = N_("External Light Bar");
+    leds::LightState state;
+
+public:
+    MI_LIGHT_STATE_EXTERNAL_ENABLE(leds::LightState state);
+    virtual void OnChange(size_t old_index) override;
+};
+
+class MI_EXTERNAL_LIGHT_BAR_PIN_MODE : public MenuItemSwitch {
+    const uint8_t pin;
+
+public:
+    MI_EXTERNAL_LIGHT_BAR_PIN_MODE(uint8_t pin);
     virtual void OnChange(size_t old_index) override;
 };
 #endif

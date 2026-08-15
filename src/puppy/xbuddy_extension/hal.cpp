@@ -221,8 +221,7 @@ static void tim2_init() {
     TIM2->PSC = default_prescaler - 1;
 
     // auto-reload value
-    // 6 MHz / 255 gives ~25 kHz for PWM which is super good enough.
-    // It also simplifies set_pwm() functions a lot.
+    // 6 MHz / 256 gives ~23.4 kHz for RGBW LED PWM.
     TIM2->ARR = 255;
 
     // enable counter

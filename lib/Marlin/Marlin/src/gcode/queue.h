@@ -32,6 +32,11 @@
 
 class GCodeQueue {
 public:
+  // Two slots are always kept outside the advertised streaming fill limit.
+  // They absorb an already-in-flight host line and leave room for a directly
+  // classified recovery/service command.
+  static constexpr uint8_t recovery_capacity = BUFSIZE + 2;
+
   /**
    * GCode line number handling. Hosts may include line numbers when sending
    * commands to Marlin, and lines will be checked for sequentiality.
@@ -53,14 +58,15 @@ public:
   static uint8_t length,  // Count of commands in the queue
                  index_r; // Ring buffer read position
 
-  static char command_buffer[BUFSIZE][MAX_CMD_SIZE];
+  static char command_buffer[recovery_capacity][MAX_CMD_SIZE];
 
   static constexpr uint32_t SDPOS_INVALID = std::numeric_limits<uint32_t>::max(); // When sdpos doesn't have valid value
 
   static uint32_t sdpos;                 // Position in file for the latest instruction (behind the end of the queue)
   static uint32_t last_executed_sdpos;      // (replay) Position of the last executed gcode
   static uint32_t executed_commmand_count; ///< Increased every time a command is executed
-  static uint32_t sdpos_buffer[BUFSIZE]; // Ring buffer of (replay) positions (synced with command_buffer)
+  static uint32_t sdpos_buffer[recovery_capacity]; // Ring buffer of (replay) positions (synced with command_buffer)
+  static bool current_command_serial;
 
   /// True pauses processing of serial commands.
   static bool pause_serial_commands;
@@ -76,7 +82,7 @@ public:
    */
   #if NUM_SERIAL > 1
     // #error dead code found by automatic analyses (see BFW-5461)
-    static int16_t port[BUFSIZE];
+    static int16_t port[recovery_capacity];
   #endif
 
   GCodeQueue();
@@ -114,6 +120,10 @@ public:
    * !!! Consider using marlin_server::is_processing() instead, it's usually the right choice
    */
   static bool has_commands_queued();
+
+  /// True when the command currently being dispatched came from a serial host,
+  /// rather than from a media-backed print stream.
+  static bool current_command_from_serial();
 
   /**
    * Get the next command in the queue, optionally log it to SD, then dispatch it

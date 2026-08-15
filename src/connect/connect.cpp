@@ -8,6 +8,7 @@
 
 #include <http/httpc.hpp>
 #include <http/websocket.hpp>
+#include <version/version.hpp>
 
 #include <logging/log.hpp>
 #include <str_utils.hpp>
@@ -146,6 +147,9 @@ namespace {
         virtual const HeaderOut *extra_headers() const override {
             return hdrs;
         }
+        virtual const char *user_agent_version() const override {
+            return version::project_version;
+        }
     };
 
     class UpgradeRequest final : public http::Request {
@@ -185,6 +189,9 @@ namespace {
 
         virtual const char *connection() const override {
             return "upgrade";
+        }
+        virtual const char *user_agent_version() const override {
+            return version::project_version;
         }
     };
 

@@ -194,6 +194,17 @@ bool state_is_active(DeviceState state) {
         return false;
     }
 }
+
+bool state_has_print_job(DeviceState state) {
+    switch (state) {
+    case DeviceState::Printing:
+    case DeviceState::Paused:
+    case DeviceState::Attention:
+        return true;
+    default:
+        return false;
+    }
+}
 } // namespace
 
 namespace printer_state {
@@ -201,19 +212,41 @@ namespace printer_state {
 DeviceState get_state(bool ready) {
     std::optional<fsm::States::Top> top;
     bool is_changing_filament, is_printing, is_preheating;
+#if HAS_SERIAL_PRINT()
+    bool is_serial_printing;
+#endif
     marlin_vars().peek_fsm_states([&](const auto &states) {
         top = states.get_top();
         is_changing_filament = states.is_active(ClientFSM::Load_unload);
         is_printing = states.is_active(ClientFSM::Printing);
         is_preheating = states.is_active(ClientFSM::Preheat);
+#if HAS_SERIAL_PRINT()
+        is_serial_printing = states.is_active(ClientFSM::Serial_printing);
+#endif
     });
 
-    const DeviceState busy_state = is_printing ? DeviceState::Printing : DeviceState::Busy;
-
     State state = marlin_vars().print_state;
+    // Finished and stopped describe a visible result screen, not a persistent
+    // machine condition. Once that UI surface is gone, external clients must
+    // see an idle printer. This also closes the short-job race where Marlin
+    // reaches a terminal state before the GUI opens the result screen.
+    const bool terminal_state = state == State::Finished || state == State::Aborted;
+    const bool terminal_surface_active = is_printing
+#if HAS_SERIAL_PRINT()
+        || is_serial_printing
+#endif
+        ;
+    if (terminal_state && !terminal_surface_active) {
+        state = State::Idle;
+    }
+
+    const DeviceState print_state = get_print_state(state, ready);
+    const bool print_job_active = is_printing || state_has_print_job(print_state);
+    const DeviceState busy_state = print_job_active ? print_state : DeviceState::Busy;
+
     if (!top) {
         // No FSM present...
-        return get_print_state(state, ready);
+        return print_state;
     }
 
     const fsm::BaseData &data = top->data;
@@ -229,11 +262,11 @@ DeviceState get_state(bool ready) {
         // NOTE: handled in get_print_state, it can be Printing, Paused or Stopped
         break;
     case ClientFSM::Load_unload:
-        if (is_printing) {
+        if (print_job_active) {
             if (load_unload_attention_while_printing(top->data)) {
                 return DeviceState::Attention;
             } else {
-                return DeviceState::Printing;
+                return print_state == DeviceState::Paused ? DeviceState::Paused : DeviceState::Printing;
             }
         } else {
             return DeviceState::Busy;
@@ -283,6 +316,9 @@ DeviceState get_state(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
+    case ClientFSM::PressureAdvanceCalibration:
+#endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
     case ClientFSM::ToolOffsetsCalibration:
@@ -290,14 +326,18 @@ DeviceState get_state(bool ready) {
 #endif
 #if HAS_SERIAL_PRINT()
     case ClientFSM::Serial_printing:
+        // The serial-printing FSM is a UI surface, not the print lifecycle.
+        // Preserve the underlying Marlin print state so Connect sees PRINTING,
+        // PAUSED, ATTENTION, FINISHED, or STOPPED instead of generic BUSY.
+        return print_state;
 #endif
+    case ClientFSM::Preheat:
         // FIXME: BFW-3893 Sadly there is no way (without saving state in this function)
         //  to distinguish between preheat from main screen,
         // which would be Idle, and preheat in the middle of filament load/unload,
         // so it is probably better to take it as busy, given we want to decide
         // to allow or not allow remote printing based on this, but this will cause
         // preheat menu to be the only menu screen to not be Idle... :-(
-    case ClientFSM::Preheat:
     case ClientFSM::Wait:
         return busy_state;
 #if HAS_INDX()
@@ -427,7 +467,7 @@ StateWithDialog get_state_with_dialog(bool ready) {
 
     std::optional<fsm::States::Top> top;
     fsm::StateId fsm_gen;
-    bool is_printing;
+    bool is_printing = false;
     marlin_vars().peek_fsm_states([&](const fsm::States &states) {
         top = states.get_top();
         fsm_gen = states.get_state_id();
@@ -438,10 +478,11 @@ StateWithDialog get_state_with_dialog(bool ready) {
         return state;
     }
 
+    const bool print_job_active = is_printing || state_has_print_job(state);
     const auto &data = top->data;
     switch (top->fsm_type) {
     case ClientFSM::Load_unload:
-        if (is_printing) {
+        if (print_job_active) {
             if (auto attention_code = load_unload_attention_while_printing(top->data); attention_code.has_value()) {
                 const Response *buttons = ClientResponses::get_available_responses(GetEnumFromPhaseIndex<PhasesLoadUnload>(data.GetPhase())).data();
                 return { state, attention_code, fsm_gen, buttons };
@@ -531,6 +572,9 @@ StateWithDialog get_state_with_dialog(bool ready) {
 #if HAS_DOOR_SENSOR_CALIBRATION()
     case ClientFSM::DoorSensorCalibration:
 #endif
+#if HAS_LOADCELL()
+    case ClientFSM::PressureAdvanceCalibration:
+#endif
 #if HAS_INDX()
     case ClientFSM::DockCalibration:
     case ClientFSM::ToolOffsetsCalibration:
@@ -580,7 +624,8 @@ bool has_job() {
         return true;
     case DeviceState::Attention: {
         // Attention while printing or one of these questions before print(eg. wrong filament)
-        return marlin_vars().peek_fsm_states([](const auto &states) { return states[ClientFSM::Printing] || states[ClientFSM::PrintPreview]; });
+        const bool active_print_state = state_has_print_job(get_print_state(marlin_vars().print_state, false));
+        return active_print_state || marlin_vars().peek_fsm_states([](const auto &states) { return states[ClientFSM::Printing] || states[ClientFSM::PrintPreview]; });
     }
     default:
         return false;

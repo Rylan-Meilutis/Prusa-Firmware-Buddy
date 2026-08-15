@@ -27,10 +27,27 @@ enum class Action : uint8_t {
 struct ConfigItem {
     Action action = Action::keep;
     EncodedFilamentType new_filament = FilamentType::none;
-    CompactOptional<Color, COLOR_NONE> color;
+    uint8_t manufacturer = 0;
 };
 
-using Config = StrongIndexArray<ConfigItem, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static>;
+using ConfigItems = StrongIndexArray<ConfigItem, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static>;
+using ConfigColors = StrongIndexArray<CompactOptional<Color, COLOR_NONE>, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static>;
+
+// This structure is Base64-encoded into one internal M9934 command. Keep the
+// four-byte colors separate so they do not force padding into every item. This
+// lets the eight real INDX tools plus the internal NoTool-capable index model
+// fit in Marlin's command queue without discarding filament metadata.
+struct Config {
+    ConfigItems items {};
+    ConfigColors colors {};
+
+    ConfigItem &operator[](VirtualToolIndex tool) { return items[tool]; }
+    const ConfigItem &operator[](VirtualToolIndex tool) const { return items[tool]; }
+    auto begin() { return items.begin(); }
+    auto end() { return items.end(); }
+    auto begin() const { return items.begin(); }
+    auto end() const { return items.end(); }
+};
 
 /// GCode command used to represent the gcode
 inline constexpr GCodeCommand gcode_command {

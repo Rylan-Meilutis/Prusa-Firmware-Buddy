@@ -10,6 +10,7 @@
 #include <option/has_indx.h>
 #include <raii/scope_guard.hpp>
 #include <marlin_server.hpp>
+#include <serial_printing.hpp>
 
 #include <feature/chamber/chamber.hpp>
 
@@ -57,6 +58,7 @@ namespace {
 #else
     #error
 #endif
+    static constexpr auto X_LEVER_OVERTRAVEL = 1.5f; ///< Small extra travel to overcome vent slide resistance.
 
     /// @brief Plans a move to a new X-axis coordinate.
     /// @param x The target X-axis position.
@@ -141,7 +143,27 @@ namespace {
         plan_to_y(0.0f, vent_feedrate);
     #endif
     }
+#else
+    void switch_lever(VentState wanted_state) {
+        // Move to a safe Y-axis position to avoid the lever.
+        plan_to_y(Y_SAFE);
+        // Move to a horizontal position (left or right) of the lever.
+        plan_to_x(wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS);
+        // Move into the lever's Y-axis line.
+        plan_to_y(Y_LEVER);
+        // Move horizontally to engage the lever and switch it.
+        const auto lever_end_pos = wanted_state == VentState::open ? X_OPEN_END_POS : X_CLOSE_END_POS;
+        const auto start_pos = wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS;
+        const auto overtravel = start_pos < lever_end_pos ? X_LEVER_OVERTRAVEL : -X_LEVER_OVERTRAVEL;
+        plan_to_x(lever_end_pos + overtravel, lever_move_feedrate);
+        // Move horizontally to release the lever tension
+        plan_to_x(wanted_state == VentState::open ? X_OPEN_END_POS + X_LEVER_MOVE_AWAY : X_CLOSE_END_POS - X_LEVER_MOVE_AWAY, lever_move_feedrate);
+        // Back out to the safe Y-axis position to avoid a collision on future moves.
+        plan_to_y(Y_SAFE);
+    }
+#endif
 
+#if HAS_INDX()
     /// @brief Run the full INDX vent-lever actuation: tool prep, reduced accel, move sequence.
     /// @return true on success.
     bool execute_indx_vent_lever(bool open) {
@@ -177,6 +199,18 @@ namespace {
 
 bool execute_control(VentState target_state) {
     const bool open = (target_state == VentState::open);
+    bool succeeded = false;
+    SerialPrinting::notify_workflow("chamber_vent", open ? "opening" : "closing",
+        open ? "Opening chamber vent" : "Closing chamber vent", 0);
+    ScopeGuard report_result = [&] {
+        if (succeeded) {
+            SerialPrinting::notify_workflow("chamber_vent", open ? "open" : "closed",
+                open ? "Chamber vent open" : "Chamber vent closed", 100);
+        } else {
+            SerialPrinting::notify_error("chamber_vent", "vent_control_failed",
+                open ? "Failed to open chamber vent" : "Failed to close chamber vent");
+        }
+    };
 
     PrintStatusMessageGuard psm_guard;
     if (open) {
@@ -203,19 +237,7 @@ bool execute_control(VentState target_state) {
         return false;
     }
 #else
-    // Move to a safe Y-axis position to avoid the lever.
-    plan_to_y(Y_SAFE);
-    // Move to a horizontal position (left or right) of the lever.
-    plan_to_x(open ? X_OPEN_START_POS : X_CLOSE_START_POS);
-    // Move into the lever's Y-axis line.
-    plan_to_y(Y_LEVER);
-    // Move horizontally to engage the lever and switch it.
-    plan_to_x(open ? X_OPEN_END_POS : X_CLOSE_END_POS, lever_move_feedrate);
-    // Move horizontally to release the lever tension
-    plan_to_x(open ? X_OPEN_END_POS + X_LEVER_MOVE_AWAY : X_CLOSE_END_POS - X_LEVER_MOVE_AWAY, lever_move_feedrate);
-    // Back out to the safe Y-axis position to avoid a collision on future moves.
-    plan_to_y(Y_SAFE);
-
+    switch_lever(target_state);
     // Return to the home position after the vent operation.
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
 #endif
@@ -232,6 +254,7 @@ bool execute_control(VentState target_state) {
     }
 #endif
 
+    succeeded = true;
     return true;
 }
 

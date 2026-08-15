@@ -16,6 +16,7 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "liveadjust_z.hpp"
 #include <feature/filament_sensor/filament_sensor.hpp>
+#include <feature/safety_timer/safety_timer.hpp>
 #include <buddy/main.h>
 #include "Pin.hpp"
 #include "hwio_pindef.h"
@@ -24,6 +25,8 @@
 #include "time_tools.hpp"
 #include "footer_eeprom.hpp"
 #include <version/version.hpp>
+#include <common/sys.hpp>
+#include <common/serial_printing.hpp>
 #include <bootloader/bootloader.hpp>
 #include "config_features.h"
 #include <config_store/store_instance.hpp>
@@ -55,6 +58,7 @@
 #include <numeric_input_config_common.hpp>
 #include <option/has_mmu2.h>
 #include <gui/menu_item/menu_item_utils.hpp>
+#include <guiconfig/guiconfig.h>
 
 #include <type_traits>
 
@@ -70,10 +74,14 @@
 
 #if HAS_LEDS()
     #include <leds/status_leds_handler.hpp>
+    #include <leds/led_manager.hpp>
 #endif
 
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
+#endif
+#if HAS_ST7789_DISPLAY()
+    #include <st7789v.hpp>
 #endif
 
 #if BUDDY_ENABLE_CONNECT()
@@ -155,7 +163,6 @@ void MI_FILAMENT_SENSOR::OnChange(size_t old_index) {
     Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, nullptr);
 }
 
-#if !HAS_INDX()
 /*****************************************************************************/
 // MI_STUCK_FILAMENT_DETECTION
 /*****************************************************************************/
@@ -168,7 +175,19 @@ void MI_STUCK_FILAMENT_DETECTION::OnChange(size_t old_index) {
         set_value(old_index > 0);
     }
 }
-#endif
+
+/*****************************************************************************/
+// MI_FILAMENT_MOVEMENT_DETECTION
+/*****************************************************************************/
+bool MI_FILAMENT_MOVEMENT_DETECTION::init_index() const {
+    return config_store().filament_movement_detection.get();
+}
+
+void MI_FILAMENT_MOVEMENT_DETECTION::OnChange(size_t old_index) {
+    if (!gui_try_gcode_with_msg(value() ? "M591 U1 P" : "M591 U0 P")) {
+        set_value(old_index > 0);
+    }
+}
 
 /*****************************************************************************/
 // MI_STEALTH_MODE
@@ -264,6 +283,21 @@ MI_NOZZLE_CLEANER_CAPACITY::MI_NOZZLE_CLEANER_CAPACITY()
 
 void MI_NOZZLE_CLEANER_CAPACITY::OnChange(size_t /*old_index*/) {
     config_store().nozzle_cleaner_extended_capacity.set(get_index() == 1);
+}
+
+static constexpr NumericInputConfig nozzle_cleaner_pause_threshold_config = {
+    .min_value = 100,
+    .max_value = NOZZLE_CLEANER_WASTEBIN_CAPACITY_EXTENDED,
+    .step = 100,
+    .special_value = 0,
+    .special_value_str = N_("Capacity"),
+};
+
+MI_NOZZLE_CLEANER_PAUSE_THRESHOLD::MI_NOZZLE_CLEANER_PAUSE_THRESHOLD()
+    : WiSpin(config_store().nozzle_cleaner_pause_threshold.get(), nozzle_cleaner_pause_threshold_config, _(label)) {}
+
+void MI_NOZZLE_CLEANER_PAUSE_THRESHOLD::OnClick() {
+    config_store().nozzle_cleaner_pause_threshold.set(static_cast<uint32_t>(value()));
 }
 
 MI_NOZZLE_CLEANER_FILL::MI_NOZZLE_CLEANER_FILL()
@@ -363,6 +397,40 @@ void MI_TIMEOUT::OnChange(size_t old_index) {
         Screens::Access()->DisableMenuTimeout();
     }
     config_store().menu_timeout.set(static_cast<uint8_t>(Screens::Access()->GetMenuTimeout()));
+}
+
+/*****************************************************************************/
+// MI_BED_HEATER_SAFETY_TIMEOUT
+MI_BED_HEATER_SAFETY_TIMEOUT::MI_BED_HEATER_SAFETY_TIMEOUT()
+    : WiSpin(
+        config_store().bed_heater_safety_timeout_s.get(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_BED_HEATER_SAFETY_TIMEOUT::OnClick() {
+    buddy::safety_timer().set_bed_interval(static_cast<buddy::SafetyTimer::Time>(value()) * 1000);
+}
+
+void MI_BED_HEATER_SAFETY_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+
+/*****************************************************************************/
+// MI_HOTEND_HEATER_SAFETY_TIMEOUT
+MI_HOTEND_HEATER_SAFETY_TIMEOUT::MI_HOTEND_HEATER_SAFETY_TIMEOUT()
+    : WiSpin(
+        config_store().hotend_heater_safety_timeout_s.get(),
+        numeric_input_config::timeout_seconds_60min,
+        _(label)) {
+}
+
+void MI_HOTEND_HEATER_SAFETY_TIMEOUT::OnClick() {
+    buddy::safety_timer().set_interval(static_cast<buddy::SafetyTimer::Time>(value()) * 1000);
+}
+
+void MI_HOTEND_HEATER_SAFETY_TIMEOUT::Loop() {
+    set_enabled(true);
 }
 
 /*****************************************************************************/
@@ -532,6 +600,56 @@ MI_PRINT_PROGRESS_TIME::MI_PRINT_PROGRESS_TIME()
 }
 void MI_PRINT_PROGRESS_TIME::OnClick() {
     config_store().print_progress_time.set(static_cast<uint16_t>(GetVal()));
+}
+
+MI_ODOMETER_DIST::MI_ODOMETER_DIST(const string_view_utf8 &label, const img::Resource *icon, is_enabled_t enabled, is_hidden_t hidden, float initVal)
+    : WI_FORMATABLE_LABEL_t<float>(label, icon, enabled, hidden, initVal, [&](const std::span<char> &buffer) {
+        float value_m = value() / 1000;
+        if (value_m > 999) {
+            snprintf(buffer.data(), buffer.size(), "%.1f km", static_cast<double>(value_m / 1000));
+        } else {
+            snprintf(buffer.data(), buffer.size(), "%.1f m", static_cast<double>(value_m));
+        }
+    }) {
+}
+
+MI_ODOMETER_DIST_X::MI_ODOMETER_DIST_X()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_Y::MI_ODOMETER_DIST_Y()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_Z::MI_ODOMETER_DIST_Z()
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_E::MI_ODOMETER_DIST_E(const char *const label, [[maybe_unused]] int index)
+    : MI_ODOMETER_DIST(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_DIST_E::MI_ODOMETER_DIST_E()
+    : MI_ODOMETER_DIST(_(generic_label), nullptr, is_enabled_t::yes, is_hidden_t::no, -1) {
+}
+
+MI_ODOMETER_TOOL::MI_ODOMETER_TOOL(const char *const label, [[maybe_unused]] int index)
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), "%lu", {}) {
+}
+
+MI_ODOMETER_TOOL::MI_ODOMETER_TOOL()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(generic_label), "%lu", {}) {
+}
+
+MI_ODOMETER_MMU_CHANGES::MI_ODOMETER_MMU_CHANGES()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), "%lu", {}) {
+}
+
+MI_ODOMETER_TIME::MI_ODOMETER_TIME()
+    : WI_FORMATABLE_LABEL_t<uint32_t>(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, 0, [&](const std::span<char> &buffer) {
+        StringBuilder sb(buffer);
+        format_duration(sb, value());
+    }) {
 }
 
 /*****************************************************************************/
@@ -833,19 +951,120 @@ void MI_LEDS_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
 }
 #endif
 
+namespace {
+
+uint8_t percent_to_uint8(float value) {
+    if (value <= 0.0f) {
+        return 0;
+    }
+    if (value >= 100.0f) {
+        return 100;
+    }
+    return static_cast<uint8_t>(value);
+}
+
+uint8_t screen_brightness_for_state(leds::LightState state, uint8_t value) {
+    return leds::clamp_screen_brightness(state, value);
+}
+
+#if HAS_ST7789_DISPLAY()
+void set_st7789_screen_brightness(uint8_t brightness_percent) {
+    static bool lcd_output_enabled = true;
+    const uint8_t brightness = (brightness_percent * 255) / 100;
+
+    if (brightness == 0) {
+        st7789v_suppress_display_writes(false);
+        st7789v_brightness_set(0);
+        st7789v_clear(0x0000);
+        st7789v_suppress_display_writes(true);
+        st7789v_brightness_disable();
+        if (lcd_output_enabled) {
+            st7789v_cmd_dispoff();
+            st7789v_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        st7789v_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            st7789v_brightness_enable();
+            st7789v_cmd_slpout();
+            st7789v_delay_ms(120);
+            st7789v_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        st7789v_brightness_enable();
+        st7789v_brightness_set(brightness);
+    }
+}
+#endif
+
+const NumericInputConfig &screen_brightness_config_for_state(leds::LightState state) {
+    static constexpr NumericInputConfig percent_min_15 = {
+        .min_value = 15,
+        .max_value = 100,
+        .unit = Unit::percent,
+    };
+
+    return leds::minimum_screen_brightness(state) > 0 ? percent_min_15 : numeric_input_config::percent_with_off;
+}
+
+[[maybe_unused]] uint8_t brightness_percent_to_pwm(float value) {
+    const auto percent = percent_to_uint8(value);
+    return percent == 100 ? 255 : static_cast<uint8_t>(static_cast<uint16_t>(percent) * 255 / 100);
+}
+
+[[maybe_unused]] float brightness_pwm_to_percent(uint8_t value) {
+    return static_cast<float>(value) * 100.0f / 255.0f;
+}
+
+[[maybe_unused]] uint8_t stored_screen_brightness(leds::LightState state) {
+    return screen_brightness_for_state(state, (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff);
+}
+
+[[maybe_unused]] void store_screen_brightness(leds::LightState state, uint8_t value) {
+    value = screen_brightness_for_state(state, value);
+    const uint8_t shift = leds::light_state_shift(state);
+    const uint32_t stored = config_store().screen_brightness_by_state.get();
+    config_store().screen_brightness_by_state.set((stored & ~(0xffu << shift)) | (static_cast<uint32_t>(value) << shift));
+    SerialPrinting::notify_configuration("light", "persistent");
+}
+
+#if HAS_SIDE_LEDS()
+void apply_side_led_max_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_max_brightness(brightness_percent_to_pwm(value));
+    side_strip.activity_ping();
+}
+
+void apply_side_led_dimmed_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_dimmed_brightness(brightness_percent_to_pwm(value));
+    side_strip.activity_ping();
+}
+
+void apply_side_led_print_brightness(float value) {
+    auto &side_strip = leds::SideStripHandler::instance();
+    side_strip.set_print_brightness(brightness_percent_to_pwm(value));
+    side_strip.activity_ping();
+}
+#endif
+
+} // namespace
+
 #if HAS_SIDE_LEDS()
 /**********************************************************************************************/
 // MI_SIDE_LEDS_MAX_BRIGTHNESS
 MI_SIDE_LEDS_MAX_BRIGTHNESS::MI_SIDE_LEDS_MAX_BRIGTHNESS()
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_max_brightness()) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_max_brightness()),
         numeric_input_config::percent_with_off,
         _(label)) {
 }
 
 void MI_SIDE_LEDS_MAX_BRIGTHNESS::OnClick() {
-    leds::SideStripHandler::instance().set_max_brightness(static_cast<uint8_t>(value()) * 255 / 100);
+    apply_side_led_max_brightness(value());
 }
+
 #endif
 
 #if HAS_SIDE_LEDS()
@@ -854,17 +1073,17 @@ void MI_SIDE_LEDS_MAX_BRIGTHNESS::OnClick() {
 
 MI_SIDE_LEDS_DIMMED_BRIGTHNESS::MI_SIDE_LEDS_DIMMED_BRIGTHNESS()
     : WiSpin(
-        static_cast<float>(leds::SideStripHandler::instance().get_dimmed_brightness()) * 100 / 255,
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_dimmed_brightness()),
         numeric_input_config::percent_with_off,
         _(label)) {
 }
 
 void MI_SIDE_LEDS_DIMMED_BRIGTHNESS::OnClick() {
-    leds::SideStripHandler::instance().set_dimmed_brightness(static_cast<uint8_t>(value()) * 255 / 100);
+    apply_side_led_dimmed_brightness(value());
 }
 
 void MI_SIDE_LEDS_DIMMED_BRIGTHNESS::Loop() {
-    set_enabled(leds::SideStripHandler::instance().get_dimming_enabled() != leds::DimmingEnabled::never);
+    set_enabled(true);
 }
 #endif
 
@@ -882,6 +1101,344 @@ MI_SIDE_LEDS_DIMMING_ENABLE::MI_SIDE_LEDS_DIMMING_ENABLE()
 }
 void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
     leds::SideStripHandler::instance().set_dimming_enabled(static_cast<leds::DimmingEnabled>(get_index()));
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_PRINT_BRIGTHNESS
+MI_SIDE_LEDS_PRINT_BRIGTHNESS::MI_SIDE_LEDS_PRINT_BRIGTHNESS()
+    : WiSpin(
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_brightness()),
+        numeric_input_config::percent_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_PRINT_BRIGTHNESS::OnClick() {
+    apply_side_led_print_brightness(value());
+}
+
+/**********************************************************************************************/
+// MI_LIGHT_STATE_MAIN_ENABLE
+MI_LIGHT_STATE_MAIN_ENABLE::MI_LIGHT_STATE_MAIN_ENABLE(leds::LightState state)
+    : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_main_light_enabled(state), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no)
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_MAIN_ENABLE::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_main_light_enabled(state, !old_index);
+    SerialPrinting::notify_configuration("light", "persistent");
+}
+
+/**********************************************************************************************/
+// MI_LIGHT_STATE_BRIGHTNESS
+MI_LIGHT_STATE_BRIGHTNESS::MI_LIGHT_STATE_BRIGHTNESS(leds::LightState state)
+    : WiSpin(
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_brightness(state)),
+        numeric_input_config::percent_with_off,
+        _(label))
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_BRIGHTNESS::OnClick() {
+    leds::SideStripHandler::instance().set_brightness(state, brightness_percent_to_pwm(value()));
+    leds::SideStripHandler::instance().activity_ping();
+    SerialPrinting::notify_configuration("light", "persistent");
+}
+
+    /**********************************************************************************************/
+    // MI_LIGHT_STATE_DOOR_ACTIVE
+    #if HAS_DOOR_SENSOR()
+MI_LIGHT_STATE_DOOR_ACTIVE::MI_LIGHT_STATE_DOOR_ACTIVE()
+    : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_door_holds_active(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+}
+
+void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_door_holds_active(!old_index);
+    SerialPrinting::notify_configuration("light", "policy");
+}
+    #endif
+
+/**********************************************************************************************/
+// MI_PRINT_CHAMBER_LIGHTS_ENABLE
+MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
+    : WiSpin(
+        brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()),
+        numeric_input_config::percent_with_off,
+        _(label),
+        nullptr,
+        is_enabled_t::yes,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnClick() {
+    leds::SideStripHandler::instance().set_print_light_brightness(brightness_percent_to_pwm(value()));
+    SerialPrinting::notify_configuration("light", "temporary");
+}
+
+void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
+    set_enabled(true);
+}
+
+#endif
+
+/**********************************************************************************************/
+// MI_LIGHT_STATE_SCREEN_BRIGHTNESS
+MI_LIGHT_STATE_SCREEN_BRIGHTNESS::MI_LIGHT_STATE_SCREEN_BRIGHTNESS(leds::LightState state)
+    : WiSpin(
+#if HAS_SIDE_LEDS()
+        screen_brightness_for_state(state, leds::SideStripHandler::instance().get_screen_brightness(state)),
+#else
+        stored_screen_brightness(state),
+#endif
+        screen_brightness_config_for_state(state),
+        _(label))
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_SCREEN_BRIGHTNESS::OnClick() {
+    const auto brightness = percent_to_uint8(value());
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().set_screen_brightness(state, brightness);
+    leds::SideStripHandler::instance().activity_ping();
+#else
+    const auto clamped_brightness = screen_brightness_for_state(state, brightness);
+    store_screen_brightness(state, clamped_brightness);
+    #if HAS_ST7789_DISPLAY()
+    set_st7789_screen_brightness(clamped_brightness);
+    #endif
+#endif
+}
+
+/**********************************************************************************************/
+// MI_PRINT_SCREEN_BRIGHTNESS
+MI_PRINT_SCREEN_BRIGHTNESS::MI_PRINT_SCREEN_BRIGHTNESS()
+    : WiSpin(
+#if HAS_SIDE_LEDS()
+        leds::SideStripHandler::instance().get_print_screen_brightness(),
+#elif HAS_LEDS()
+        leds::LEDManager::instance().get_print_screen_brightness(),
+#else
+        stored_screen_brightness(leds::LightState::printing),
+#endif
+        numeric_input_config::percent_with_off,
+        _(label)) {
+}
+
+void MI_PRINT_SCREEN_BRIGHTNESS::OnClick() {
+    const uint8_t brightness = percent_to_uint8(value());
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().set_print_screen_brightness(brightness);
+    leds::SideStripHandler::instance().activity_ping();
+    SerialPrinting::notify_configuration("light", "temporary");
+#elif HAS_LEDS()
+    leds::LEDManager::instance().set_print_screen_brightness(brightness);
+    SerialPrinting::notify_configuration("light", "temporary");
+#else
+    store_screen_brightness(leds::LightState::printing, brightness);
+    #if HAS_ST7789_DISPLAY()
+    set_st7789_screen_brightness(brightness);
+    #endif
+#endif
+}
+
+#if HAS_LEDS()
+/**********************************************************************************************/
+// MI_LIGHT_STATE_STATUS_BRIGHTNESS
+MI_LIGHT_STATE_STATUS_BRIGHTNESS::MI_LIGHT_STATE_STATUS_BRIGHTNESS(leds::LightState state)
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_brightness(state),
+        numeric_input_config::percent_with_off,
+        _(label))
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_STATUS_BRIGHTNESS::OnClick() {
+    leds::StatusLedsHandler::instance().set_brightness(state, percent_to_uint8(value()));
+    SerialPrinting::notify_configuration("light", "persistent");
+}
+
+/**********************************************************************************************/
+// MI_PRINT_STATUS_LEDS_ENABLE
+MI_PRINT_STATUS_LEDS_ENABLE::MI_PRINT_STATUS_LEDS_ENABLE()
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_print_status_brightness(),
+        numeric_input_config::percent_with_off,
+        _(label),
+        nullptr,
+        leds::StatusLedsHandler::instance().get_active() ? is_enabled_t::yes : is_enabled_t::no,
+        is_hidden_t::no) {
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::OnClick() {
+    leds::StatusLedsHandler::instance().set_print_status_brightness(percent_to_uint8(value()));
+    SerialPrinting::notify_configuration("light", "temporary");
+}
+
+void MI_PRINT_STATUS_LEDS_ENABLE::Loop() {
+    const bool enabled = leds::StatusLedsHandler::instance().get_active();
+    set_enabled(enabled);
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_ACTIVITY_TIMEOUT
+
+MI_SIDE_LEDS_ACTIVITY_TIMEOUT::MI_SIDE_LEDS_ACTIVITY_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_activity_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_activity_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
+}
+
+void MI_SIDE_LEDS_ACTIVITY_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_EVENT_TIMEOUT
+
+MI_SIDE_LEDS_EVENT_TIMEOUT::MI_SIDE_LEDS_EVENT_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_event_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_EVENT_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_event_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
+}
+
+void MI_SIDE_LEDS_EVENT_TIMEOUT::Loop() {
+    set_enabled(leds::SideStripHandler::instance().get_dimming_enabled() != leds::DimmingEnabled::never);
+}
+#endif
+
+#if HAS_SIDE_LEDS()
+/**********************************************************************************************/
+// MI_SIDE_LEDS_OFF_TIMEOUT
+
+MI_SIDE_LEDS_OFF_TIMEOUT::MI_SIDE_LEDS_OFF_TIMEOUT()
+    : WiSpin(
+        leds::SideStripHandler::instance().get_off_timeout_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_SIDE_LEDS_OFF_TIMEOUT::OnClick() {
+    leds::SideStripHandler::instance().set_off_timeout_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
+}
+
+void MI_SIDE_LEDS_OFF_TIMEOUT::Loop() {
+    set_enabled(true);
+}
+
+/**********************************************************************************************/
+// MI_POST_PRINT_LED_HOLD
+
+MI_POST_PRINT_LED_HOLD::MI_POST_PRINT_LED_HOLD()
+    : WI_ICON_SWITCH_OFF_ON_t(leds::SideStripHandler::instance().get_post_print_hold_enabled(), _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
+}
+
+void MI_POST_PRINT_LED_HOLD::OnChange(size_t old_index) {
+    leds::SideStripHandler::instance().set_post_print_hold_enabled(!old_index);
+    SerialPrinting::notify_configuration("light", "policy");
+}
+#endif
+
+#if HAS_LEDS()
+/**********************************************************************************************/
+// MI_STATUS_LED_FINISHED_HOLD
+
+MI_STATUS_LED_FINISHED_HOLD::MI_STATUS_LED_FINISHED_HOLD()
+    : WiSpin(
+        leds::StatusLedsHandler::instance().get_finished_hold_s(),
+        numeric_input_config::timeout_seconds_with_off,
+        _(label)) {
+}
+
+void MI_STATUS_LED_FINISHED_HOLD::OnClick() {
+    leds::StatusLedsHandler::instance().set_finished_hold_s(value());
+    SerialPrinting::notify_configuration("light", "policy");
+}
+#endif
+
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+namespace {
+static constexpr const char *external_light_bar_pin_labels[] = {
+    N_("GPIO 0"),
+    N_("GPIO 1"),
+    N_("GPIO 2"),
+    N_("GPIO 3"),
+    N_("GPIO 4"),
+    N_("GPIO 5"),
+    N_("GPIO 6"),
+    N_("GPIO 7"),
+};
+
+static constexpr const char *external_light_bar_low_side_items[] = {
+    N_("Off"),
+    N_("Active Sink"),
+};
+
+static constexpr const char *external_light_bar_logic_items[] = {
+    N_("Off"),
+    N_("Active Sink"),
+    N_("Active High"),
+};
+
+static size_t mode_to_index(uint8_t pin) {
+    const auto mode = leds::external_light_bar::pin_mode(pin);
+    if (mode == leds::external_light_bar::OutputMode::active_high && !leds::external_light_bar::pin_supports_active_high(pin)) {
+        return std::to_underlying(leds::external_light_bar::OutputMode::off);
+    }
+    return std::to_underlying(mode);
+}
+
+std::span<const char *const> mode_items(uint8_t pin) {
+    if (leds::external_light_bar::pin_supports_active_high(pin)) {
+        return external_light_bar_logic_items;
+    }
+    return external_light_bar_low_side_items;
+}
+} // namespace
+
+/**********************************************************************************************/
+// MI_LIGHT_STATE_EXTERNAL_ENABLE
+
+MI_LIGHT_STATE_EXTERNAL_ENABLE::MI_LIGHT_STATE_EXTERNAL_ENABLE(leds::LightState state)
+    : WI_ICON_SWITCH_OFF_ON_t(leds::external_light_bar::state_enabled(state), _(label), nullptr, is_enabled_t::yes, leds::external_light_bar::enabled_pin_mask() ? is_hidden_t::no : is_hidden_t::yes)
+    , state(state) {
+}
+
+void MI_LIGHT_STATE_EXTERNAL_ENABLE::OnChange(size_t old_index) {
+    leds::external_light_bar::set_state_enabled(state, !old_index);
+}
+
+/**********************************************************************************************/
+// MI_EXTERNAL_LIGHT_BAR_PIN_MODE
+
+MI_EXTERNAL_LIGHT_BAR_PIN_MODE::MI_EXTERNAL_LIGHT_BAR_PIN_MODE(uint8_t pin)
+    : MenuItemSwitch(_(external_light_bar_pin_labels[pin]), mode_items(pin), mode_to_index(pin))
+    , pin(pin) {
+}
+
+void MI_EXTERNAL_LIGHT_BAR_PIN_MODE::OnChange([[maybe_unused]] size_t old_index) {
+    if (!leds::external_light_bar::set_pin_mode(pin, static_cast<leds::external_light_bar::OutputMode>(get_index()))) {
+        set_current_item(mode_to_index(pin));
+        return;
+    }
 }
 #endif
 

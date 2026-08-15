@@ -19,6 +19,20 @@
 #include "core/macros.h"
 #include "module/planner.h"
 
+#include <atomic>
+
+namespace {
+std::atomic_bool pa_calibration_mode { false };
+}
+
+void pressure_advance::set_calibration_mode(const bool enabled) {
+    pa_calibration_mode.store(enabled, std::memory_order_release);
+}
+
+bool pressure_advance::calibration_mode_enabled() {
+    return pa_calibration_mode.load(std::memory_order_acquire);
+}
+
 pressure_advance_params_t PressureAdvance::pressure_advance_params;
 pressure_advance_state_t PressureAdvance::pressure_advance_state;
 
@@ -27,7 +41,8 @@ FORCE_INLINE bool is_pressure_advance_active(const move_t &move) {
     // When the material is retracted, the pressure advance is never active.
     // The same way for activating pressure advance is used in Klipper.
     // Klipper, even when the pressure advance is inactive (for retraction and deretraction), it still uses smoothing. So we also do it.
-    return is_active_e_axis(move) && !get_dir_e_axis(move) && (is_active_x_axis(move) || is_active_y_axis(move));
+    return is_active_e_axis(move) && !get_dir_e_axis(move)
+        && ((is_active_x_axis(move) || is_active_y_axis(move)) || pressure_advance::calibration_mode_enabled());
 }
 
 FORCE_INLINE void pressure_advance_precalculate_parameters(pressure_advance_step_generator_t &step_generator, const pressure_advance_params_t &params) {

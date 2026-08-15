@@ -1,14 +1,22 @@
 #include "safety_timer.hpp"
 
 #include <marlin_server.hpp>
+#include <config_store/store_instance.hpp>
 #include <option/has_human_interactions.h>
 #include <raii/auto_restore.hpp>
 #include <bsod/bsod.h>
 #include <feature/host_actions.h>
 #include <utils/progress.hpp>
 #include <fsm/safety_timer_phases.hpp>
+#include <module/printcounter.h>
 
 namespace {
+void clear_temp_to_display() {
+    for (auto tool : PhysicalToolIndex::all()) {
+        marlin_server::call_manually::set_temp_to_display(0, tool);
+    }
+}
+
 void handle_resuming_abort() {
     // Abort right away if not printing
     if (marlin_server::is_printing()) {
@@ -30,6 +38,18 @@ void handle_resuming_abort() {
     marlin_server::print_abort();
     marlin_server::quick_stop();
 }
+
+buddy::SafetyTimer::Time clamp_timeout_ms(buddy::SafetyTimer::Time set) {
+    return std::min(set, buddy::SafetyTimer::max_configurable_interval);
+}
+
+bool print_or_print_pause_active() {
+    return marlin_server::is_printing()
+        || marlin_server::printer_paused_extended()
+        || marlin_server::serial_print_active()
+        || print_job_timer.isRunning()
+        || print_job_timer.isPaused();
+}
 } // namespace
 
 namespace buddy {
@@ -39,8 +59,50 @@ SafetyTimer &safety_timer() {
     return instance;
 }
 
+SafetyTimer::SafetyTimer()
+    : activity_timer_(default_interval)
+    , bed_activity_timer_(default_interval) {
+}
+
+void SafetyTimer::load_config() {
+    if (config_loaded_) {
+        return;
+    }
+
+    config_loaded_ = true;
+    const Time hotend_interval = static_cast<Time>(config_store().hotend_heater_safety_timeout_s.get()) * 1000;
+    activity_timer_.set_interval(std::max<Time>(clamp_timeout_ms(hotend_interval), 3000));
+
+    const Time bed_interval = static_cast<Time>(config_store().bed_heater_safety_timeout_s.get()) * 1000;
+    if (bed_interval == 0) {
+        bed_timer_enabled_ = false;
+        bed_activity_timer_.stop();
+    } else {
+        bed_timer_enabled_ = true;
+        bed_activity_timer_.set_interval(std::max<Time>(clamp_timeout_ms(bed_interval), 3000));
+        bed_activity_timer_.restart(ticks_ms());
+    }
+}
+
 void SafetyTimer::set_interval(Time set) {
-    activity_timer_.set_interval(std::max<Time>(set, 3000));
+    config_loaded_ = true;
+    const Time interval = std::max<Time>(clamp_timeout_ms(set), 3000);
+    activity_timer_.set_interval(interval);
+    config_store().hotend_heater_safety_timeout_s.set(static_cast<uint16_t>(interval / 1000));
+}
+
+void SafetyTimer::set_bed_interval(Time set) {
+    config_loaded_ = true;
+    if (set == 0) {
+        bed_timer_enabled_ = false;
+        bed_activity_timer_.stop();
+    } else {
+        bed_timer_enabled_ = true;
+        set = std::max<Time>(clamp_timeout_ms(set), 3000);
+        bed_activity_timer_.set_interval(set);
+        bed_activity_timer_.restart(ticks_ms());
+    }
+    config_store().bed_heater_safety_timeout_s.set(static_cast<uint16_t>(set / 1000));
 }
 
 SafetyTimer::NozzleTargetTemperatures SafetyTimer::original_hotend_targets() const {
@@ -60,7 +122,12 @@ void SafetyTimer::reset_norestore() {
         return;
     }
 
+    load_config();
+
     activity_timer_.restart(ticks_ms());
+    if (bed_timer_enabled_) {
+        bed_activity_timer_.restart(ticks_ms());
+    }
 }
 
 void SafetyTimer::reset_restore_nonblocking() {
@@ -149,8 +216,7 @@ void SafetyTimer::trigger() {
         bsod_unreachable();
     }
 
-    // In case the trigger was called explicitly from somewhere
-    activity_timer_.stop();
+    load_config();
 
     bool has_anything_to_disable = false;
     for (auto tool : PhysicalToolIndex::all()) {
@@ -158,6 +224,7 @@ void SafetyTimer::trigger() {
     }
 
     const bool should_activate = marlin_server::is_processing() || marlin_server::is_printing();
+    const bool bed_timeout_expired = bed_timer_enabled_ && bed_activity_timer_.state() == utils::TimerState::finished;
 
     // We are not somewhere that would need the temperatures to be restored -> disable all heaters and call it a day
     if (!should_activate) {
@@ -173,7 +240,7 @@ void SafetyTimer::trigger() {
         constexpr bool disable_all = true;
 #endif
 
-        if (disable_all) {
+        if (disable_all && bed_timeout_expired) {
             has_anything_to_disable |= (Temperature::degTargetBed() > 0);
         }
 
@@ -182,17 +249,20 @@ void SafetyTimer::trigger() {
             host_action_safety_timer_expired();
 #endif
 
-            if (disable_all) {
+            if (disable_all && bed_timeout_expired) {
                 Temperature::disable_all_heaters();
 #if HAS_HUMAN_INTERACTIONS()
                 marlin_server::set_warning(WarningType::HeatersTimeout);
 #endif
+                bed_activity_timer_.stop();
             } else {
                 Temperature::disable_hotend();
 #if HAS_HUMAN_INTERACTIONS()
                 marlin_server::set_warning(WarningType::NozzleTimeout);
 #endif
             }
+            activity_timer_.stop();
+            clear_temp_to_display();
         }
         return;
     }
@@ -208,6 +278,7 @@ void SafetyTimer::trigger() {
     }
 
     state_ = State::active;
+    activity_timer_.stop();
 
     for (auto tool : PhysicalToolIndex::all()) {
         nozzle_temperatures_to_restore_[tool] = Hotend::for_tool(tool).nozzle_target_temp();
@@ -218,6 +289,7 @@ void SafetyTimer::trigger() {
 #endif
 
     Temperature::disable_hotend();
+    clear_temp_to_display();
 #if HAS_HUMAN_INTERACTIONS()
     marlin_server::set_warning(WarningType::NozzleTimeout);
 #endif
@@ -225,16 +297,27 @@ void SafetyTimer::trigger() {
 
 void SafetyTimer::step() {
     debug_assert(!prevent_recursion_);
+    load_config();
 
     const auto now = ticks_ms();
 
     // Doing any motor movement resets the activity timer
     if (planner.busy()) {
         activity_timer_.restart(now);
+        if (bed_timer_enabled_) {
+            bed_activity_timer_.restart(now);
+        }
+    }
+
+    // Never let an active print or manual-intervention print pause time out the bed heater.
+    if (bed_timer_enabled_ && print_or_print_pause_active()) {
+        bed_activity_timer_.restart(now);
     }
 
     // Note: If someone re-enables heaters, the SafetyTimer should get reset, so we don't need to disable the heaters continuously
-    if (activity_timer_.check(now) && blocker_count_ == 0) {
+    const bool hotend_timer_expired = activity_timer_.check(now);
+    const bool bed_timer_expired = bed_timer_enabled_ && bed_activity_timer_.check(now);
+    if ((hotend_timer_expired || bed_timer_expired) && blocker_count_ == 0) {
         trigger();
     }
 

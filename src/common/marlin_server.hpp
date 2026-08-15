@@ -106,6 +106,9 @@ void serial_print_start();
 /// Finalize serial print (exit print state and clean up)
 /// this is meant to be gracefull print finish, called when print finishes sucessfully.
 void serial_print_finalize();
+
+/// Return true when the current print session was started from serial G-code.
+bool serial_print_active();
 #endif
 
 /**
@@ -123,7 +126,7 @@ void set_command(uint32_t command);
 void print_abort();
 
 //
-void print_resume();
+void print_resume(bool notify_serial_host = true);
 
 // Quick stop to avoid harm to the user
 void quick_stop();
@@ -154,7 +157,7 @@ struct resume_state_t {
 };
 
 //
-void print_pause();
+void print_pause(bool notify_serial_host = true);
 
 // return true if the printer is currently aborting or already aborted the print
 bool aborting_or_aborted();

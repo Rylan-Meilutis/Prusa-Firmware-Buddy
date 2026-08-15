@@ -7,6 +7,7 @@
 
 #include <screen_change_filter.hpp>
 #include <ScreenHandler.hpp>
+#include <option/has_xbuddy_extension.h>
 #include <option/xl_enclosure_support.h>
 
 using namespace buddy;
@@ -119,6 +120,41 @@ MI_CHAMBER_ALWAYS_FILTER::MI_CHAMBER_ALWAYS_FILTER()
 void MI_CHAMBER_ALWAYS_FILTER::OnChange(size_t) {
     config_store().chamber_filtration_always_on.set(value());
 }
+
+#if HAS_XBUDDY_EXTENSION()
+// MI_CHAMBER_FANS_WITH_FILTER
+// ============================================
+MI_CHAMBER_FANS_WITH_FILTER::MI_CHAMBER_FANS_WITH_FILTER()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().xbe_cooling_fans_with_filter.get(), _("Chamber Fans With Filter")) {}
+
+void MI_CHAMBER_FANS_WITH_FILTER::OnChange(size_t) {
+    config_store().xbe_cooling_fans_with_filter.set(value());
+}
+
+void MI_CHAMBER_FANS_WITH_FILTER::Loop() {
+    set_enabled(config_store().chamber_filtration_backend.get() == ChamberFiltrationBackend::xbe_official_filter);
+}
+
+// MI_CHAMBER_FILTER_FAN_PRINT_OFFSET
+// ============================================
+static constexpr NumericInputConfig filter_fan_print_offset_numeric_config {
+    .min_value = 0,
+    .max_value = 100,
+    .step = 5,
+    .unit = Unit::percent,
+};
+
+MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::MI_CHAMBER_FILTER_FAN_PRINT_OFFSET()
+    : WiSpin(config_store().xbe_filtration_fan_print_offset_pct.get(), filter_fan_print_offset_numeric_config, _("Filter Fan Offset")) {}
+
+void MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::OnClick() {
+    config_store().xbe_filtration_fan_print_offset_pct.set(value());
+}
+
+void MI_CHAMBER_FILTER_FAN_PRINT_OFFSET::Loop() {
+    set_enabled(config_store().chamber_filtration_backend.get() == ChamberFiltrationBackend::xbe_official_filter && config_store().xbe_cooling_fans_with_filter.get());
+}
+#endif
 
 // MI_CHAMBER_FILTER_TIME_USED
 // ============================================

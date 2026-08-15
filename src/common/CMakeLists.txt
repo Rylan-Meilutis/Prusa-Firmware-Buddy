@@ -2,6 +2,8 @@ target_include_directories(firmware PRIVATE . include)
 
 target_link_libraries(firmware PRIVATE buddy_utils bsod random random_sw fanctl)
 
+target_sources(firmware PRIVATE pid_autotune_status.cpp)
+
 # Provides the FreeRTOS tick/idle hooks. Must be built wherever cpu_utils.cpp is (every board that
 # enters this directory), as the hooks dispatch into it.
 target_sources(firmware PRIVATE application_hooks.cpp)
@@ -22,8 +24,10 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             extended_printer_type.cpp
             ExtInterruptHandler.cpp
             filament.cpp
+            filament_color.cpp
             filament_common.cpp
             filament_list.cpp
+            filament_manufacturer.cpp
             filament_presets.cpp
             filament_to_load.cpp
             filament_tools.cpp
@@ -62,10 +66,12 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             Pin.cpp
             ping_manager.cpp
             print_utils.cpp
+            printer_lock.cpp
             printer_model.cpp
             probe_analysis.cpp
             random_hw.cpp
             ring_allocator.cpp
+            rme_settings_gcode.cpp
             rw_mutex.cpp
             safe_state.cpp
             segmented_json.cpp
@@ -84,6 +90,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             tasks.cpp
             tool_index.cpp
             tools_mapping.cpp
+            ui_theme.cpp
             w25x.cpp
             wdt.cpp
     )
@@ -180,7 +187,9 @@ if(HAS_POWER_PANIC)
 endif()
 
 if(HAS_LOADCELL)
-  target_sources(firmware PRIVATE loadcell.cpp position_lookback.cpp)
+  target_sources(
+    firmware PRIVATE ../feature/extrusion_calibration.cpp loadcell.cpp position_lookback.cpp
+    )
 endif()
 if(HAS_LOADCELL_HX717)
   target_sources(firmware PRIVATE hx717.cpp)

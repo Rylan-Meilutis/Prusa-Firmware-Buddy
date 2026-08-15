@@ -25,6 +25,7 @@
 #include "tool_change.h"
 #include <utils/overloaded_visitor.hpp>
 #include <mapi/motion.hpp>
+#include <serial_printing.hpp>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -68,13 +69,18 @@ bool tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
     return true;
 
   #elif HAS_TOOLCHANGER()
+    SerialPrinting::notify_workflow("tool_change", "open", "Tool change in progress");
+    SerialPrinting::notify_status("Tool change in progress", -1, true);
     using MaybePhysical = std::variant<PhysicalToolIndex, NoTool>;
     auto maybe_physical = match(new_tool,
       [](VirtualToolIndex virtual_tool) -> MaybePhysical { return virtual_tool.to_physical(); },
       [](PhysicalToolIndex physical_tool) -> MaybePhysical { return physical_tool; },
       [](NoTool) -> MaybePhysical { return NoTool{}; }
     );
-    return prusa_toolchanger.tool_change(maybe_physical, return_type, current_position.xyz(), z_lift, z_return);
+    const bool success = prusa_toolchanger.tool_change(maybe_physical, return_type, current_position.xyz(), z_lift, z_return);
+    if (!success) SerialPrinting::notify_error("tool_change", "tool_change_failed", "Tool change failed");
+    else SerialPrinting::notify_workflow("tool_change", "closed", "Tool change complete", 100);
+    return success;
 
   #else
     #error Not implemented

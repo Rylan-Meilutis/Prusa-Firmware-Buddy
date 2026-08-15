@@ -157,14 +157,20 @@ private:
     //
 public:
     class RestoredTransfer {
-    private:
+    public:
         static constexpr size_t max_size = 512; // read no more than this from backup file to avoid out of memory on corrupted filesystem
 
+    private:
         FILE *file;
 
         PartialFile::State partial_file_state;
 
-        std::unique_ptr<char[]> data_buffer;
+        // Transfer recovery runs during the boot-time USB/network memory peak.
+        // The serialized payload is deliberately bounded, so allocating it
+        // from the heap only adds fragmentation and can make recovery fatal.
+        // Storage is supplied by the recovery implementation's single static
+        // scratch buffer; only one recovery can run at a time.
+        char *data_buffer;
         size_t data_buffer_size;
 
         const void *get_data_ptr(size_t offset, size_t size);

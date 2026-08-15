@@ -366,7 +366,9 @@ void idle(bool waiting) {
 
   #if ENABLED(NOZZLE_LOAD_CELL)
     if( EMotorStallDetector::Instance().Evaluate(stepper.axis_is_moving(E_AXIS), ! stepper.motor_direction(E_AXIS))){
-        // E-motor stall has been detected, issue a modified M600
+        // E-motor stall has been detected, issue a modified M600. This covers
+        // nozzle clogs/jams and upstream filament restraint before the extruder
+        // can keep grinding the filament.
         SERIAL_ECHOLNPGM("E-motor stall detected");
         queue.inject_P(PSTR("M1601"));
     }

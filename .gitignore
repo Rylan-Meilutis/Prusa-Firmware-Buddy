@@ -1,5 +1,6 @@
 .vs
-/build*
+/build
+/bbf
 .cproject
 .project
 .settings
@@ -12,14 +13,18 @@ CMakeUserPresets.json
 .idea
 compile_commands.json
 /.vscode/*.peripherals.state.json
-/.vscode/*.registers.state.json
+/.vscode/*.registers.stat   e.json
 Makefile
 /doc/html/
 __pycache__
 .benchmarks
 /doc/inline_umlgraph_cache_all.pu
 .venv
+.local/
 *.egg-info/
 *.egg
 /heap_instrumentation.txt
 /src/**/*.mo
+/utils/crckill/target/
+/RELEASE_NOTES_v6.5.3-RME.md
+.rme-build-errors/

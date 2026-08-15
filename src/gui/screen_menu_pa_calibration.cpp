@@ -1,0 +1,157 @@
+#include "screen_menu_pa_calibration.hpp"
+
+#include <DialogHandler.hpp>
+#include <config_store/store_instance.hpp>
+#include <filament.hpp>
+#include <feature/extrusion_calibration.hpp>
+#include <marlin_client.hpp>
+#include <option/has_mmu2.h>
+#include <print_utils.hpp>
+#include <tool_index.hpp>
+
+#include <array>
+#include <algorithm>
+#include <cstdio>
+
+#if HAS_PA_CALIBRATION_UI()
+
+namespace {
+constexpr std::array<const char *, 8> tool_names { N_("Tool 1 Calibration"), N_("Tool 2 Calibration"), N_("Tool 3 Calibration"), N_("Tool 4 Calibration"), N_("Tool 5 Calibration"), N_("Tool 6 Calibration"), N_("Tool 7 Calibration"), N_("Tool 8 Calibration") };
+constexpr std::array<const char *, 8> temperature_names { N_("Tool 1 Temperature"), N_("Tool 2 Temperature"), N_("Tool 3 Temperature"), N_("Tool 4 Temperature"), N_("Tool 5 Temperature"), N_("Tool 6 Temperature"), N_("Tool 7 Temperature"), N_("Tool 8 Temperature") };
+std::array<uint16_t, buddy::extrusion_calibration::max_logical_filaments> temperature_overrides {};
+std::array<bool, buddy::extrusion_calibration::max_logical_filaments> selected_tools {};
+
+constexpr NumericInputConfig temperature_config {
+    .min_value = 170,
+    .max_value = 300,
+    .step = 5,
+    .special_value = 0,
+    .special_value_str = N_("Material"),
+};
+
+constexpr NumericInputConfig confidence_config {
+    .min_value = 50,
+    .max_value = 95,
+    .step = 5,
+    .unit = Unit::percent,
+};
+constexpr NumericInputConfig snr_config {
+    .min_value = 3.0f,
+    .max_value = 20.0f,
+    .step = 0.5f,
+    .max_decimal_places = 1,
+};
+constexpr NumericInputConfig retry_config {
+    .min_value = 0,
+    .max_value = 10,
+    .step = 1,
+};
+
+bool configured(const VirtualToolIndex tool) {
+    return tool.is_enabled() && config_store().get_filament_type(tool) != FilamentType::none;
+}
+
+size_t configured_count() {
+    size_t count = 0;
+    for (auto tool : VirtualToolIndex::all()) {
+        count += configured(tool);
+    }
+    return count;
+}
+
+void submit_selected() {
+    uint8_t mask = 0;
+    for (auto tool : VirtualToolIndex::all()) {
+        if (configured(tool) && selected_tools[tool.to_raw()]) {
+            mask |= 1u << tool.to_raw();
+        }
+    }
+    char command[MARLIN_MAX_REQUEST + 1];
+    snprintf(command, sizeof(command), "M976 M K%u U%u,%u,%u,%u,%u,%u,%u,%u", unsigned(mask),
+        unsigned(temperature_overrides[0]), unsigned(temperature_overrides[1]),
+        unsigned(temperature_overrides[2]), unsigned(temperature_overrides[3]),
+        unsigned(temperature_overrides[4]), unsigned(temperature_overrides[5]),
+        unsigned(temperature_overrides[6]), unsigned(temperature_overrides[7]));
+    marlin_client::gcode(command);
+}
+
+bool confirm_clean_area() {
+    return MsgBoxQuestion(string_view_utf8::MakeCPUFLASH("Clear the build and front service areas before continuing."), Responses_ContinueAbort) == Response::Continue;
+}
+} // namespace
+
+MI_PA_TOOL_RUN::MI_PA_TOOL_RUN(const uint8_t tool)
+    : WI_ICON_SWITCH_OFF_ON_t(configured(VirtualToolIndex::from_raw(tool)), _(tool_names[tool]), nullptr,
+        is_enabled_t::yes, configured(VirtualToolIndex::from_raw(tool)) ? is_hidden_t::no : is_hidden_t::yes)
+    , tool_(tool) {
+    selected_tools[tool] = configured(VirtualToolIndex::from_raw(tool));
+}
+
+void MI_PA_TOOL_RUN::OnChange(size_t) {
+    selected_tools[tool_] = value();
+}
+
+MI_PA_TEMPERATURE::MI_PA_TEMPERATURE(const uint8_t tool)
+    : WiSpin(temperature_overrides[tool], temperature_config, _(temperature_names[tool]), nullptr,
+        is_enabled_t::yes, configured(VirtualToolIndex::from_raw(tool)) ? is_hidden_t::no : is_hidden_t::yes)
+    , tool_(tool) {}
+
+void MI_PA_TEMPERATURE::OnClick() {
+    temperature_overrides[tool_] = static_cast<uint16_t>(value());
+}
+
+MI_PA_RUN::MI_PA_RUN()
+    : IWindowMenuItem(_("Run Selected Calibrations"), nullptr, is_enabled_t::yes,
+        configured_count() > 0 ? is_hidden_t::no : is_hidden_t::yes) {}
+
+MI_PA_CONFIDENCE_FLOOR::MI_PA_CONFIDENCE_FLOOR()
+    : WiSpin(config_store().pa_confidence_floor_percent.get(), confidence_config, _("Minimum Confidence")) {}
+
+void MI_PA_CONFIDENCE_FLOOR::OnClick() {
+    config_store().pa_confidence_floor_percent.set(static_cast<uint8_t>(value()));
+}
+
+MI_PA_MINIMUM_SNR::MI_PA_MINIMUM_SNR()
+    : WiSpin(config_store().pa_minimum_snr.get(), snr_config, _("Minimum Signal/Noise")) {}
+
+void MI_PA_MINIMUM_SNR::OnClick() {
+    config_store().pa_minimum_snr.set(value());
+}
+
+MI_PA_CONFIDENCE_RETRIES::MI_PA_CONFIDENCE_RETRIES()
+    : WiSpin(config_store().pa_confidence_retries.get(), retry_config, _("Confirmation Retries")) {}
+
+void MI_PA_CONFIDENCE_RETRIES::OnClick() {
+    config_store().pa_confidence_retries.set(static_cast<uint8_t>(value()));
+}
+
+MI_PA_DEBUG_OUTPUT::MI_PA_DEBUG_OUTPUT()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().pa_calibration_debug_output.get(), _("Debug Output"), nullptr) {}
+
+void MI_PA_DEBUG_OUTPUT::OnChange(size_t) {
+    config_store().pa_calibration_debug_output.set(value());
+}
+
+void MI_PA_RUN::click(IWindowMenu &) {
+    if (configured_count() == 0) {
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Assign the loaded filament before calibration."), Responses_Ok);
+        return;
+    }
+    bool any_selected = false;
+    for (auto tool : VirtualToolIndex::all()) {
+        any_selected |= configured(tool) && selected_tools[tool.to_raw()];
+    }
+    if (!any_selected) {
+        MsgBoxWarning(string_view_utf8::MakeCPUFLASH("Select at least one loaded filament."), Responses_Ok);
+        return;
+    }
+    if (!confirm_clean_area()) {
+        return;
+    }
+    submit_selected();
+}
+
+ScreenMenuPACalibration::ScreenMenuPACalibration()
+    : ScreenMenuPACalibration_(_("PRESSURE ADVANCE")) {}
+
+#endif // HAS_PA_CALIBRATION_UI()

@@ -32,7 +32,7 @@ struct window_header_t : public window_frame_t {
     window_icon_t icon_connect; /// Icon switches between connect_16x16 and set_ready_16x16
 #endif // BUDDY_ENABLE_CONNECT()
     window_text_t bed_text;
-    window_icon_t bed_icon;
+    window_icon_original_t bed_icon;
     uint32_t bed_last_change_ms { 0 }; // stores timestamp for bed blinking
 
     struct tm last_t;

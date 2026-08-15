@@ -62,6 +62,7 @@
 #if HAS_LOADCELL()
     #include "loadcell.hpp"
     #include "feature/prusa/e-stall_detector.h"
+    #include <feature/extrusion_calibration.hpp>
 #endif
 
 #include <option/has_loadcell_hx717.h>
@@ -190,9 +191,15 @@ static void app_setup(void) {
 #endif
 
 #if HAS_LOADCELL()
-    if (config_store().stuck_filament_detection.get()) {
+    #if HAS_INDX()
+    buddy::extrusion_calibration::set_pressure_monitor_detection(
+        config_store().stuck_filament_detection.get(),
+        config_store().filament_movement_detection.get());
+    #else
+    if (config_store().stuck_filament_detection.get() || config_store().filament_movement_detection.get()) {
         EMotorStallDetector::Instance().SetEnabled();
     } // else keep it disabled (which is the default)
+    #endif
 
     if (config_store().loadcell_scale.get() != config_store_ns::defaults::loadcell_scale) {
         loadcell.SetScale(config_store().loadcell_scale.get());

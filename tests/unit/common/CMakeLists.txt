@@ -1,4 +1,5 @@
 add_subdirectory(probe_analysis)
+add_subdirectory(extrusion_calibration)
 add_subdirectory(automata)
 add_subdirectory(Leds)
 add_subdirectory(gcode)

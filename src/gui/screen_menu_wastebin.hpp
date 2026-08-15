@@ -9,6 +9,7 @@ using ScreenMenuWastebin_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_NOZZLE_CLEANER_FILL,
     MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
     MI_NOZZLE_CLEANER_CAPACITY,
+    MI_NOZZLE_CLEANER_PAUSE_THRESHOLD,
     MI_NOZZLE_CLEANER_AUTOPAUSE>;
 
 class ScreenMenuWastebin : public ScreenMenuWastebin_ {

@@ -61,6 +61,9 @@
 #include <option/has_touch.h>
 #include <option/has_nfc.h>
 #include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
 #include <option/has_local_accelerometer.h>
 #include <option/has_cpu_fan.h>
 #include "tasks.hpp"
@@ -183,7 +186,9 @@ static TaskControlBlock task_control_block;
 struct TaskStack {
     uint32_t marlin[1360];
 #if HAS_POWER_PANIC()
-    uint32_t acfault[80];
+    // The complete AC-fault logging/notification path needs more than the
+    // historical 80 words. An overflow here corrupts the adjacent task TCB.
+    uint32_t acfault[160];
 #endif
 #if HAS_GUI()
     uint32_t display[1536];
@@ -570,6 +575,9 @@ extern "C" void main_cpp(void) {
 #endif
 
 #if HAS_I2C_EXPANDER()
+    #if BOARD_IS_XBUDDY()
+    leds::external_light_bar::reset_persistent_state();
+    #endif
     // I2C IO Expander have to be initialized after Configuration Store
     buddy::hw::io_expander2.initialize();
 #endif

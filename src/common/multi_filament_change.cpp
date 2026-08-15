@@ -7,14 +7,18 @@
 #include <string_builder.hpp>
 #include <mbedtls/base64.h>
 #include <M70X.hpp>
+#include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
+#include <filament_to_load.hpp>
+#include <serial_printing.hpp>
+#include <bsod/bsod.h>
+#include <utils/byte_utils.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 #include <gcode/gcode.h>
 #include <marlin_server.hpp>
 #include <mapi/parking.hpp>
 #include <Marlin/src/module/motion.h>
-#include <bsod/bsod.h>
-#include <utils/byte_utils.hpp>
-#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 namespace multi_filament_change {
 
@@ -41,7 +45,7 @@ Config config_from_current_print_setup() {
         auto &item = result[virtual_tool];
 
         debug_assert(tool_info.used()); // otherwise bug in mapping
-        item.color = tool_info.extruder_colour;
+        result.colors[virtual_tool] = tool_info.extruder_colour;
 
         const auto &opt_name = tool_info.filament_name;
         if (opt_name.empty()) {
@@ -68,7 +72,7 @@ std::optional<Config> config_from_gcode(GCodeBasicParser &parser) {
     // These don't interfere with the G-Code special characters, which is handy for us
 
     Config config;
-    const WritableBytes config_span { reinterpret_cast<std::byte *>(&config), sizeof(config) };
+    const std::span<std::byte> config_span { reinterpret_cast<std::byte *>(&config), sizeof(config) };
     static_assert(std::is_trivially_copyable_v<Config>);
 
     size_t pos = 0;
@@ -188,6 +192,9 @@ void execute(const Config &tool_config) {
         case Action::unload: {
 #if HAS_MMU2()
             config_store().set_filament_type(tool, FilamentType::none);
+            SerialPrinting::notify_configuration("filament", "loaded");
+            filament_color::set_loaded(tool.to_raw(), std::nullopt);
+            filament_manufacturer::set_loaded(tool.to_raw(), std::nullopt);
 #else
             filament_gcodes::M702_unload(
                 std::nullopt,
@@ -202,9 +209,15 @@ void execute(const Config &tool_config) {
         case Action::change: {
 #if HAS_MMU2()
             // preload the MMU slot
+            filament::set_type_to_load(FilamentType { config.new_filament });
+            filament::set_color_to_load(tool_config.colors[tool]);
+            filament::set_manufacturer_to_load(config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
             filament_gcodes::mmu_load(tool.to_raw());
 
             config_store().set_filament_type(tool, config.new_filament);
+            SerialPrinting::notify_configuration("filament", "loaded");
+            filament_color::set_loaded(tool.to_raw(), tool_config.colors[tool]);
+            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
 #else
             const FilamentType new_filament { config.new_filament };
             if (old_filaments[tool] != FilamentType::none) {
@@ -213,17 +226,20 @@ void execute(const Config &tool_config) {
                     tool,
                     RetAndCool_t::Return,
                     filament_gcodes::AskFilament_t::Never,
-                    config.color);
+                    tool_config.colors[tool]);
             } else {
-                filament_gcodes::M701_load(filament_gcodes::M701LoadArgs {
-                    .filament_to_be_loaded = new_filament,
-                    .z_min_pos = Z_AXIS_LOAD_POS,
-                    .op_preheat = RetAndCool_t::Return,
-                    .virtual_tool = tool,
-                    .color_to_be_loaded = config.color,
-                });
+                filament_gcodes::M701_load(
+                    new_filament,
+                    std::nullopt,
+                    Z_AXIS_LOAD_POS,
+                    RetAndCool_t::Return,
+                    tool,
+                    -1,
+                    tool_config.colors[tool],
+                    filament_gcodes::ResumePrint_t::No);
             }
 #endif
+            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
             break;
         }
         }
@@ -232,13 +248,8 @@ void execute(const Config &tool_config) {
 
 bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) {
     switch (config.action) {
-
     case Action::keep:
-        // Don't complain about the unchanged state
-        return true;
-
     case Action::unload:
-        // Let the user unload the filament without complaining
         return true;
 
     case Action::change: {
@@ -262,8 +273,6 @@ bool gui_config_confirm_incompatibilities(const Config &config, Response abort_r
             return false;
         }
     }
-
     return true;
 }
-
 } // namespace multi_filament_change

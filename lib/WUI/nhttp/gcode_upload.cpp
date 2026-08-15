@@ -5,6 +5,7 @@
 #include "../wui_api.h"
 
 #include <common/stat_retry.hpp>
+#include <marlin_client.hpp>
 #include <path_utils.h>
 #include <transfers/files.hpp>
 #include <transfers/changed_path.hpp>
@@ -132,6 +133,9 @@ GcodeUpload::UploadResult GcodeUpload::start(const RequestParser &parser, Upload
     }
 
     const char *path = uploadParams.filepath.data();
+    if (marlin_client::is_printing()) {
+        return StatusPage(Status::Conflict, parser, "Upload unavailable while printing");
+    }
     auto slot = Monitor::instance.allocate(Monitor::Type::Link, path, *parser.content_length, parser.print_after_upload);
     if (!slot.has_value()) {
         // FIXME: Is this the right status to return? Change would need to be
@@ -255,7 +259,7 @@ namespace {
         }
         // TODO: alias for the type, probably unify with the GcodeUpload::Result
         virtual optional<tuple<http::Status, const char *>> done() override {
-            debug_assert(f != nullptr);
+            debug_assert(static_cast<bool>(f));
             debug_assert(monitor_slot.has_value());
             bool cleanup_temp_file = true;
             const auto fname = transfer_name(file_idx);
@@ -399,7 +403,7 @@ void GcodeUpload::step(string_view input, bool terminated_by_client, uint8_t *, 
         return;
     }
 
-    debug_assert(put_transfer.f == nullptr); // No other transfer is happening at the moment.
+    debug_assert(!put_transfer.f); // No other transfer is happening at the moment.
     put_transfer.f = move(tmp_upload_file);
     tmp_upload_file.reset(); // Does move really set it to nullptr, or is it just a copy?
     put_transfer.set_monitor_slot(move(monitor_slot));

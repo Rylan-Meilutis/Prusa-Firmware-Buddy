@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <atomic>
 
 LOG_COMPONENT_REF(transfers);
 using namespace transfers;
@@ -20,6 +21,43 @@ using std::variant;
 
 static_assert(PartialFile::SECTOR_SIZE == FF_MAX_SS);
 static_assert(PartialFile::SECTOR_SIZE == FF_MIN_SS);
+
+namespace {
+unique_file_ptr open_partial_file(const char *path, const char *mode) {
+    unique_file_ptr file(fopen(path, mode));
+    if (file) {
+        setvbuf(file.get(), nullptr, _IONBF, 0);
+    }
+    return file;
+}
+} // namespace
+
+struct PartialFile::Pool {
+    alignas(PartialFile) std::byte storage[sizeof(PartialFile)];
+    std::atomic<bool> occupied = false;
+};
+
+PartialFile::Pool &PartialFile::pool() {
+    static Pool instance;
+    return instance;
+}
+
+void *PartialFile::operator new(size_t size) {
+    auto &instance = pool();
+    bool expected = false;
+    if (size != sizeof(PartialFile) || !instance.occupied.compare_exchange_strong(expected, true)) {
+        bsod("Concurrent partial files");
+    }
+    return instance.storage;
+}
+
+void PartialFile::operator delete(void *ptr) {
+    auto &instance = pool();
+    if (ptr != instance.storage) {
+        bsod("Invalid partial file");
+    }
+    instance.occupied.store(false);
+}
 
 PartialFile::PartialFile(UsbhMscRequest::LunNbr lun, UsbhMscRequest::SectorNbr first_sector, State state, int file_lock)
     : sector_pool(lun, usb_msc_write_finished_callback, this)
@@ -43,7 +81,7 @@ PartialFile::~PartialFile() {
 }
 
 variant<const char *, PartialFile::Ptr> PartialFile::create(const char *path, size_t size) {
-    unique_file_ptr file(fopen(path, "wb"));
+    unique_file_ptr file = open_partial_file(path, "wb");
 
     if (!file) {
         log_error(transfers, "Failed to open file %d", errno);
@@ -71,13 +109,59 @@ variant<const char *, PartialFile::Ptr> PartialFile::create(const char *path, si
 }
 
 variant<const char *, PartialFile::Ptr> PartialFile::open(const char *path, State state, bool ignore_opened) {
-    unique_file_ptr file(fopen(path, ignore_opened ? "rb" : "rb+"));
+    unique_file_ptr file = open_partial_file(path, ignore_opened ? "rb" : "rb+");
 
     if (!file) {
         return "Failed to open file";
     }
 
     return PartialFile::convert(path, std::move(file), state);
+}
+
+bool PartialFile::reopen(const char *path) {
+    const size_t expected_size = state.total_size;
+
+    // Complete pending writes and release the old descriptor while retaining
+    // this instance and its fixed DMA buffers.
+    release_file();
+
+    unique_file_ptr file = open_partial_file(path, "rb");
+    if (!file) {
+        return false;
+    }
+
+    FIL *fatfs_file = filesystem_fastfs_get_underlying_struct(file.get());
+    if (!fatfs_file) {
+        return false;
+    }
+
+    if (f_size(fatfs_file) != expected_size) {
+        return false;
+    }
+
+    int is_contiguous = 0;
+    if (fatfs_test_contiguous_file(fatfs_file, &is_contiguous) != FR_OK || !is_contiguous) {
+        return false;
+    }
+
+    const auto drive = fatfs_file->obj.fs->pdrv;
+    const auto lba = fatfs_file->obj.fs->database + fatfs_file->obj.fs->csize * (fatfs_file->obj.sclust - 2);
+    if (drive != sector_pool.lun()) {
+        return false;
+    }
+
+    file.reset();
+    const int fd = ::open(path, O_RDONLY);
+    if (fd == -1) {
+        return false;
+    }
+
+    file_lock = fd;
+    first_sector_nbr = lba;
+    current_sector = nullptr;
+    current_offset = 0;
+    write_error = false;
+    return true;
 }
 
 variant<const char *, PartialFile::Ptr> PartialFile::convert(const char *path, unique_file_ptr file, State state) {
@@ -117,7 +201,8 @@ variant<const char *, PartialFile::Ptr> PartialFile::convert(const char *path, u
         return "Can't lock file in place";
     }
 
-    return std::make_shared<PartialFile>(drive, lba, state, fd);
+    // Object, ownership state and sector buffers all use fixed storage.
+    return PartialFile::Ptr(new PartialFile(drive, lba, state, fd));
 }
 
 UsbhMscRequest::SectorNbr PartialFile::get_sector_nbr(size_t offset) {
@@ -407,7 +492,7 @@ PartialFile::SectorPool::SectorPool(UsbhMscRequest::LunNbr lun, UsbhMscRequestCa
             lun,
             1,
             0,
-            new uint8_t[BUFFER_SIZE],
+            buffers[i].data(),
             USBH_FAIL,
             callback,
             callback_param,
@@ -418,9 +503,6 @@ PartialFile::SectorPool::SectorPool(UsbhMscRequest::LunNbr lun, UsbhMscRequestCa
 
 PartialFile::SectorPool::~SectorPool() {
     sync(0, true);
-    for (unsigned i = 0; i < size; ++i) {
-        delete[] pool[i].data;
-    }
 }
 
 UsbhMscRequest *PartialFile::SectorPool::acquire(bool block_waiting) {

@@ -4,8 +4,43 @@
 
 #include <common/aggregate_arity.hpp>
 #include <filament.hpp>
+#include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <temperature.hpp>
 #include <tool_index.hpp>
+
+namespace {
+
+void report_loaded_filaments() {
+    for (const VirtualToolIndex tool : VirtualToolIndex::all().skip_all_disabled()) {
+        const FilamentType filament_type = config_store().get_filament_type(tool);
+        const FilamentTypeParameters params = filament_type.parameters();
+
+        SERIAL_ECHO("loaded_filament T");
+        SERIAL_ECHO(tool.to_raw());
+        SERIAL_ECHO(" S\"");
+        SERIAL_ECHO(params.name.data());
+        SERIAL_ECHO("\" O\"");
+        if (const auto color = filament_color::loaded(tool.to_raw())) {
+            SERIAL_ECHO(filament_color::profile_for(*color).name.data());
+            char hex[8];
+            snprintf(hex, sizeof(hex), "#%06lx", static_cast<unsigned long>(color->raw & 0xffffff));
+            SERIAL_ECHO("\" H\"");
+            SERIAL_ECHO(hex);
+        } else {
+            SERIAL_ECHO("None\" H\"none");
+        }
+        SERIAL_ECHO("\" M\"");
+        if (const auto manufacturer = filament_manufacturer::loaded(tool.to_raw())) {
+            SERIAL_ECHO(manufacturer->name.data());
+        } else {
+            SERIAL_ECHO("None");
+        }
+        SERIAL_ECHOLN("\"");
+    }
+}
+
+} // namespace
 
 /** \addtogroup G-Codes
  * @{
@@ -23,8 +58,11 @@
  * - `I<ix>` - Select filament currently loaded to the specified tool (indexed from 0)
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
+ * - `Q` - Query the currently loaded filament material for all enabled tools
+ * - `V<ix> O<color> N"<name>"` - define one of eight persistent custom colors
  *
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
+ * - `O<color>` - Set the loaded color together with `L` (`#RRGGBB`, palette name, or RGB integer)
  *
  * - `R` - Reset parameters not specified in this gcode to defaults
  *
@@ -48,6 +86,43 @@
 void PrusaGcodeSuite::M865() {
     GCodeParser2 p;
     if (!p.parse_marlin_command()) {
+        return;
+    }
+
+    if (p.option<bool>('Q').value_or(false)) {
+        report_loaded_filaments();
+        return;
+    }
+
+    const auto requested_color = p.option<Color>('O');
+    if (const auto custom_slot = p.option<uint8_t, uint8_t, uint8_t>('Y', 0, filament_manufacturer::custom_slot_count - 1)) {
+        std::array<char, filament_manufacturer::name_capacity> manufacturer_name {};
+        const auto name = p.option<std::string_view>('N', manufacturer_name);
+        if (!name || !filament_manufacturer::set_custom(*custom_slot, *name)) {
+            SERIAL_ERROR_MSG("Manufacturer requires Y0..7 and unique N\"name\".");
+        }
+        return;
+    }
+    if (const auto tool = p.option<uint8_t, uint8_t, uint8_t>('K', 0, VirtualToolIndex::count - 1)) {
+        std::array<char, filament_manufacturer::name_capacity> manufacturer_name {};
+        const auto name = p.option<std::string_view>('N', manufacturer_name);
+        if (!name || name->empty()) {
+            filament_manufacturer::set_loaded(*tool, std::nullopt);
+            return;
+        }
+        if (const auto manufacturer = filament_manufacturer::find(*name)) {
+            filament_manufacturer::set_loaded(*tool, manufacturer->id);
+        } else {
+            SERIAL_ERROR_MSG("Unknown manufacturer.");
+        }
+        return;
+    }
+    if (const auto custom_slot = p.option<uint8_t, uint8_t, uint8_t>('V', 0, filament_color::custom_slot_count - 1)) {
+        std::array<char, filament_color::name_capacity> color_name {};
+        const auto name = p.option<std::string_view>('N', color_name);
+        if (!requested_color || !name || !filament_color::set_custom(*custom_slot, *name, *requested_color)) {
+            SERIAL_ERROR_MSG("Custom color requires V0..7, O<color>, and N\"name\" (15 characters maximum).");
+        }
         return;
     }
 
@@ -140,8 +215,15 @@ void PrusaGcodeSuite::M865() {
         filament_type.set_parameters(params);
     }
 
+    if (const auto visible = p.option<bool>('W'); visible && filament_type.is_visibility_customizable()) {
+        filament_type.set_visible(*visible);
+    }
+
     if (auto load = p.option<uint8_t, uint8_t, uint8_t>('L', 0, VirtualToolIndex::count - 1)) {
         config_store().set_filament_type(VirtualToolIndex::from_raw(*load), filament_type);
+        if (requested_color) {
+            filament_color::set_loaded(*load, requested_color);
+        }
     }
 
     if (filament_type != FilamentType::none) {

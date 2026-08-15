@@ -26,6 +26,10 @@ public:
     /// \returns current message to be shown
     Record current_message() const;
 
+    /// ID boundary for consumers that only want messages created after a
+    /// specific event, such as the beginning of a serial print.
+    uint32_t latest_id() const;
+
     /// Shows a temporary message for the specified duration. Overrides previous temporary message.
     /// To be called only from the marlin thread.
     void show_temporary(const Message &msg, uint32_t duration_ms = default_duration_ms);
@@ -69,3 +73,6 @@ private:
 };
 
 PrintStatusMessageManager &print_status_message();
+
+/// Mirrors print-stage changes to an attached serial host during serial jobs.
+void report_print_status_to_serial_host(const PrintStatusMessage &message);

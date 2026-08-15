@@ -12,6 +12,7 @@
 #include "marlin_server_request.hpp"
 #include <inttypes.h>
 #include <stdarg.h>
+#include <cerrno>
 #include <cstdint>
 #include <stdio.h>
 #include <string.h> //strncmp
@@ -45,6 +46,11 @@
 #include <feature/stepper_timeout/stepper_timeout.hpp>
 #include <mapi/motion.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+
+#include <option/has_leds.h>
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
+#endif
 
 #include "../Marlin/src/lcd/extensible_ui/ui_api.h"
 #include "../Marlin/src/gcode/queue.h"
@@ -114,6 +120,9 @@
 #include <option/has_xl_can.h>
 #include <option/has_modular_bed.h>
 #include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
+#endif
 #include <option/has_nfc.h>
 #include <option/has_ht_hotend.h>
 #include <option/has_sheet_profiles.h>
@@ -183,6 +192,7 @@
 #if HAS_MMU2()
     #include <mmu2/mmu2_fsm.hpp>
     #include <mmu2/maintenance.hpp>
+    #include <mmu2/mmu2_reporting.hpp>
 #endif
 
 #include <config_store/store_instance.hpp>
@@ -306,6 +316,21 @@ static MutexAtomic<EncodedFSMResponse, freertos::Mutex> fsm_response = empty_enc
 
 namespace {
 
+    constexpr uint32_t ignored_serial_macro_print_max_s = 10;
+
+    struct SerialPrintSnapshot {
+        bool valid = false;
+        bool printing_fsm_active = false;
+        bool serial_printing_fsm_active = false;
+        State print_state = State::Idle;
+        uint32_t print_duration = 0;
+        time_t print_start_time = TIMESTAMP_INVALID;
+        time_t print_end_time = TIMESTAMP_INVALID;
+#if HAS_CHAMBER_FILTRATION_API()
+        buddy::ChamberFiltration::Snapshot chamber_filtration;
+#endif
+    };
+
     struct server_t {
         EventMask notify_events[MARLIN_MAX_CLIENTS]; // event notification mask - message filter
         EventMask notify_changes[MARLIN_MAX_CLIENTS]; // variable change notification mask - message filter
@@ -326,6 +351,11 @@ namespace {
 #endif // ENABLED(AXIS_MEASURE)
 
         bool was_print_time_saved = false;
+        uint32_t saved_print_duration = 0;
+        uint32_t frozen_print_duration = 0;
+        uint32_t print_start_ticks_s = 0;
+        bool print_elapsed_timer_active = false;
+        SerialPrintSnapshot serial_print_snapshot;
 #if HAS_MMU2()
         bool mmu_maintenance_checked = false;
 #endif
@@ -364,6 +394,18 @@ namespace {
         /// This does that
         bool skip_gcode : 1 = false;
 
+        /// False when a serial host already requested the pause and should not
+        /// receive a fresh action:pause request back from the firmware.
+        bool notify_serial_host_on_pause = true;
+
+        /// Pause command received while print setup is still transitioning to
+        /// State::Printing. Apply it immediately after print init completes.
+        bool pause_after_print_init = false;
+
+        /// False when a serial host already requested the resume and should not
+        /// receive a fresh action:resume request back from the firmware.
+        bool notify_serial_host_on_resume = true;
+
         /// Whether file open was reported on the serial line.
         /// We cannot do this directly when calling media_prefecth start, we need to wait till we have file size estimate
         bool file_open_reported : 1 = false;
@@ -382,7 +424,7 @@ namespace {
      * @param type pause type used for different media_print pause
      * @param resume_pos position to resume from, used only in Pause_Type::Crash
      */
-    void process_pausing_begin_state(Pause_Type type = Pause_Type::Pause);
+    void process_pausing_begin_state(Pause_Type type = Pause_Type::Pause, bool notify_serial_host = true);
 
     fsm::States fsm_states;
 
@@ -520,7 +562,7 @@ namespace {
     constinit MCUTempErrorChecker modbedMaxTempErrorChecker; ///< Check ModularBed MCU temperature
 #endif
 
-    void process_pausing_begin_state(Pause_Type type) {
+    void process_pausing_begin_state(Pause_Type type, bool notify_serial_host) {
         if (!server.print_is_serial) {
             switch (type) {
 
@@ -539,7 +581,7 @@ namespace {
         }
 
 #if HAS_SERIAL_PRINT()
-        SerialPrinting::pause();
+        SerialPrinting::pause(notify_serial_host);
 #endif
 
         print_job_timer.pause();
@@ -934,6 +976,126 @@ void io_expander_read_loop() {
 }
 #endif // HAS_I2C_EXPANDER()
 
+static void save_print_time_to_odometer(uint32_t print_duration) {
+    if (server.was_print_time_saved || print_duration <= server.saved_print_duration) {
+        return;
+    }
+
+    Odometer_s::instance().add_time(print_duration - server.saved_print_duration);
+    server.saved_print_duration = print_duration;
+}
+
+static void capture_print_duration() {
+    uint32_t duration = print_job_timer.duration();
+
+    if (server.print_elapsed_timer_active) {
+        duration = std::max(duration, ticks_s() - server.print_start_ticks_s);
+    }
+
+    server.frozen_print_duration = std::max(server.frozen_print_duration, duration);
+}
+
+static void capture_serial_print_snapshot() {
+    server.serial_print_snapshot = {
+        .valid = true,
+        .printing_fsm_active = fsm_states.is_active(ClientFSM::Printing),
+        .serial_printing_fsm_active = fsm_states.is_active(ClientFSM::Serial_printing),
+        .print_state = server.print_state,
+        .print_duration = marlin_vars().print_duration.get(),
+        .print_start_time = marlin_vars().print_start_time.get(),
+        .print_end_time = marlin_vars().print_end_time.get(),
+#if HAS_CHAMBER_FILTRATION_API()
+        .chamber_filtration = buddy::chamber_filtration().snapshot(),
+#endif
+    };
+}
+
+static bool is_ignored_serial_macro_print(bool finished) {
+    return finished
+        && server.print_is_serial
+        && server.serial_print_snapshot.valid
+        && server.frozen_print_duration <= ignored_serial_macro_print_max_s
+        && planner.max_printed_z <= 0;
+}
+
+static void restore_serial_print_snapshot() {
+    if (!server.serial_print_snapshot.valid) {
+        return;
+    }
+
+    const bool print_fsm_active = server.serial_print_snapshot.printing_fsm_active || server.serial_print_snapshot.serial_printing_fsm_active;
+    const bool terminal_print_state = server.serial_print_snapshot.print_state == State::Finished || server.serial_print_snapshot.print_state == State::Aborted;
+
+    server.print_state = terminal_print_state && !print_fsm_active ? State::Idle : server.serial_print_snapshot.print_state;
+    marlin_vars().print_duration = server.serial_print_snapshot.print_duration;
+    marlin_vars().print_start_time = server.serial_print_snapshot.print_start_time;
+    marlin_vars().print_end_time = server.serial_print_snapshot.print_end_time;
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().restore_snapshot(server.serial_print_snapshot.chamber_filtration);
+#endif
+    server.frozen_print_duration = server.serial_print_snapshot.print_duration;
+    if (server.serial_print_snapshot.serial_printing_fsm_active && !fsm_states.is_active(ClientFSM::Serial_printing)) {
+        fsm_create(PhasesSerialPrinting::active);
+    } else if (server.serial_print_snapshot.printing_fsm_active && !fsm_states.is_active(ClientFSM::Printing)) {
+        fsm_create(PhasesPrinting::active);
+    }
+    server.serial_print_snapshot.valid = false;
+}
+
+#if HAS_MMU2()
+static void handle_serial_host_mmu_events() {
+    static bool resume_pending = false;
+    static bool restore_requested = false;
+    static bool host_pause_active = false;
+
+    const auto events = static_cast<uint8_t>(MMU2::consume_serial_host_mmu_events());
+
+    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::paused)) != 0 && serial_print_active()) {
+        SerialPrinting::paused("mmu_error");
+        host_pause_active = true;
+    }
+
+    // MMU emits a resume event when a normal load/tool change completes too.
+    // Only forward it to the serial host when this bridge previously exposed
+    // an actual MMU-error pause. Otherwise OctoPrint may leave and re-enter its
+    // streaming state in the middle of a numbered command sequence.
+    if ((events & static_cast<uint8_t>(MMU2::SerialHostMmuEvent::resume)) != 0 && host_pause_active) {
+        resume_pending = true;
+        restore_requested = false;
+    }
+
+    if (!resume_pending) {
+        return;
+    }
+
+    if (!serial_print_active()) {
+        resume_pending = false;
+        restore_requested = false;
+        host_pause_active = false;
+        return;
+    }
+
+    if (did_pause_print != 0) {
+        return;
+    }
+
+    if (!restore_requested) {
+        buddy::safety_timer().reset_restore_nonblocking();
+        restore_requested = true;
+    }
+
+    if (buddy::safety_timer().state() == buddy::SafetyTimer::State::restoring) {
+        return;
+    }
+
+    SerialPrinting::resume();
+    SerialPrinting::resumed();
+    resume_pending = false;
+    restore_requested = false;
+    host_pause_active = false;
+}
+#endif
+
 static void cycle() {
     // Some things are somewhat time-sensitive and should be updated even in nested loops
 #if HAS_CHAMBER_API()
@@ -993,6 +1155,7 @@ static void cycle() {
 
 #if HAS_MMU2()
     MMU2::Fsm::Instance().Loop();
+    handle_serial_host_mmu_events();
 #endif
 
     handle_warnings();
@@ -1085,7 +1248,8 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     if (MMU2::mmu2.Enabled()) {
         // Unloading from nozzle is handled by Slicer, do not use auto_retract (frequent filament changes cause filament_tracker cannot properly hold valid value)
         // When we are running single-filament gcode with MMU, we should unload current filament.
-        if (!finished || GCodeInfo::getInstance().is_singletool_gcode()) {
+        // Serial prints do not have reliable file metadata for is_singletool_gcode(), so unload if the MMU still reports filament present.
+        if (!finished || server.print_is_serial || GCodeInfo::getInstance().is_singletool_gcode()) {
             safely_unload_filament_from_nozzle_to_mmu();
         }
     } else
@@ -1128,9 +1292,13 @@ void static finalize_print(bool finished) {
 #endif
 
 #if HAS_SERIAL_PRINT()
-    fsm_destroy(ClientFSM::Serial_printing);
+    const bool keep_serial_finished_screen = finished && server.print_is_serial;
+    if (!keep_serial_finished_screen) {
+        fsm_destroy(ClientFSM::Serial_printing);
+    }
 #endif
 
+    capture_print_duration();
     print_job_timer.stop();
 
 #if HAS_INDX()
@@ -1139,14 +1307,25 @@ void static finalize_print(bool finished) {
     Fans::dock_fan().set_pwm(0);
 #endif
 
+    server.print_elapsed_timer_active = false;
+    GCodeQueue::pause_serial_commands = false;
+    if (is_ignored_serial_macro_print(finished)) {
+        fsm_destroy(ClientFSM::Serial_printing);
+        server.print_is_serial = false;
+        restore_serial_print_snapshot();
+        _server_update_vars();
+        return;
+    }
     _server_update_vars();
+    marlin_vars().print_duration = server.frozen_print_duration;
     // Check if the stopwatch was NOT stopped to and add the current printime to the statistics.
     // finalize_print is being called multiple times and we don't want to add the time twice.
     if (!server.was_print_time_saved) {
-        Odometer_s::instance().add_time(marlin_vars().print_duration);
+        save_print_time_to_odometer(marlin_vars().print_duration);
         server.was_print_time_saved = true;
     }
-    // print_maintenance();
+    Odometer_s::instance().force_to_eeprom();
+
 #if HAS_MMU2()
     if (!server.mmu_maintenance_checked) {
         if (auto reason = MMU2::check_maintenance(); reason.has_value()) {
@@ -1195,6 +1374,7 @@ void static finalize_print(bool finished) {
     media_prefetch.stop();
 
     server.print_is_serial = false; // reset flag about serial print
+    server.serial_print_snapshot.valid = false;
 
     marlin_vars().print_end_time = time(nullptr);
     marlin_vars().add_job_result(job_id, finished ? marlin_vars_t::JobInfo::JobResult::finished : marlin_vars_t::JobInfo::JobResult::aborted);
@@ -1218,8 +1398,15 @@ void static finalize_print(bool finished) {
         set_warning(WarningType::FilamentSensorsDisabled);
     }
 
-    // Do not remove, needed for 3rd party tools such as octoprint to get status that the gcode file printing has finished
-    SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
+    // "Done printing file" is an SD/file-print protocol marker. Serial hosts
+    // such as OctoPrint reset their numbered-command sequence when they see
+    // it. Emitting it while a streamed connection still has queued commands
+    // races that reset against the old sequence and causes a Resend loop.
+    // Streamed jobs are finalized by M77/the inactivity path and host action
+    // messages; retain the legacy marker only for actual media prints.
+    if (!keep_serial_finished_screen) {
+        SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
+    }
 }
 
 #if HAS_CRASH_DETECTION() || HAS_POWER_PANIC()
@@ -1484,10 +1671,37 @@ bool printer_paused_extended() {
 
 #if HAS_SERIAL_PRINT()
 void serial_print_start() {
+    capture_serial_print_snapshot();
+    // Status history survives between jobs. Mark the boundary before the
+    // streamed startup command executes so the serial UI cannot present an
+    // old heater/probing message as the state of this new print.
+    SerialPrinting::set_status_message_baseline(print_status_message().latest_id());
+    #if !PRINTER_IS_PRUSA_MINI()
+    SerialPrinting::reset_status_notifications();
+    #endif
+
+    switch (server.print_state) {
+    case State::Finished:
+    case State::Aborted:
+        if (fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_destroy(ClientFSM::Printing);
+        }
+        if (fsm_states.is_active(ClientFSM::Serial_printing)) {
+            fsm_destroy(ClientFSM::Serial_printing);
+        }
+        break;
+    default:
+        break;
+    }
+
     server.print_state = State::SerialPrintInit;
     print_state = {};
 }
 #endif
+
+bool serial_print_active() {
+    return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state));
+}
 
 void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {
 #if HAS_SELFTEST()
@@ -1617,6 +1831,7 @@ void serial_print_finalize(void) {
     #if HAS_TOOL_CRASH_RECOVERY()
     case State::CrashRecovery_Tool_Pickup:
     #endif
+        capture_print_duration();
         server.print_state = State::Finishing_WaitIdle;
         break;
     default:
@@ -1676,19 +1891,40 @@ void print_exit(void) {
         // do nothing
         break;
 
+    case State::Finished:
+#if HAS_LEDS()
+        leds::LEDManager::instance().acknowledge_finished();
+#endif
+        server.print_state = State::Exit;
+        break;
+
     default:
         server.print_state = State::Exit;
         break;
     }
 }
 
-void print_pause(void) {
+void print_pause(bool notify_serial_host) {
     print_state.resume_pending = false;
 
     switch (server.print_state) {
     case State::Printing:
     case State::Finishing_WaitIdle:
+        if (server.print_is_serial) {
+            // Stop accepting more streamed moves so Pausing_WaitIdle can drain and park.
+            GCodeQueue::pause_serial_commands = true;
+        }
         server.print_state = State::Pausing_Begin;
+        print_state.notify_serial_host_on_pause = notify_serial_host;
+        break;
+
+    case State::PrintInit:
+    case State::SerialPrintInit:
+        print_state.pause_after_print_init = true;
+        print_state.notify_serial_host_on_pause = notify_serial_host;
+        if (server.print_state == State::SerialPrintInit) {
+            GCodeQueue::pause_serial_commands = true;
+        }
         break;
 
     default:
@@ -2018,9 +2254,10 @@ void update_sfn() {
 #endif
 }
 
-void print_resume(void) {
+void print_resume(bool notify_serial_host) {
     if (server.print_state == State::Paused) {
         update_sfn();
+        print_state.notify_serial_host_on_resume = notify_serial_host;
 
         if (server.print_is_serial) {
             server.print_state = State::Resuming_Begin;
@@ -2037,6 +2274,7 @@ void print_resume(void) {
 
     } else if (is_pausing_state(server.print_state)) {
         print_state.resume_pending = true;
+        print_state.notify_serial_host_on_resume = notify_serial_host;
 
 #if HAS_POWER_PANIC()
     } else if (server.print_state == State::PowerPanic_AwaitingResume) {
@@ -2350,7 +2588,14 @@ static void _server_print_loop(void) {
         }
 
         server.print_is_serial = (server.print_state == State::SerialPrintInit);
+        if (!server.print_is_serial) {
+            server.serial_print_snapshot.valid = false;
+        }
         server.was_print_time_saved = false;
+        server.saved_print_duration = 0;
+        server.frozen_print_duration = 0;
+        server.print_start_ticks_s = ticks_s();
+        server.print_elapsed_timer_active = true;
 #if HAS_WASTEBIN_FILL_TRACKING()
         // Fresh print: reset the per-print pellet/toolchange progress counter.
         WastebinWatcher::instance().reset_print_progress();
@@ -2359,6 +2604,10 @@ static void _server_print_loop(void) {
         server.mmu_maintenance_checked = false;
 #endif
         planner.max_printed_z = 0;
+        planner.reset_max_volumetric_flow_limits();
+#if HAS_LOADCELL()
+        buddy::extrusion_calibration::reset_job_results();
+#endif
 
         if (!server.print_is_serial) {
             feedrate_percentage = 100;
@@ -2466,7 +2715,10 @@ static void _server_print_loop(void) {
                     max_chamber_target_temp = target;
                 }
             });
-            buddy::chamber().manage_ventilation_state(max_chamber_target_temp);
+            buddy::chamber().manage_ventilation_state(
+                max_chamber_target_temp,
+                server.print_is_serial,
+                !server.print_is_serial && GCodeInfo::getInstance().has_chamber_vent_gcode());
         }
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
@@ -2524,6 +2776,30 @@ static void _server_print_loop(void) {
     case State::Printing:
         print_state.resume_pending = false;
 
+#if HAS_LOADCELL()
+        if (const auto fault = buddy::extrusion_calibration::consume_extrusion_fault(); fault != buddy::extrusion_calibration::ExtrusionFault::none) {
+            switch (fault) {
+            case buddy::extrusion_calibration::ExtrusionFault::no_pressure_rise:
+                SERIAL_ECHOLNPGM("Extrusion fault: E moving without nozzle-pressure rise");
+                SerialPrinting::notify_error("filament_runout", "runout", "Loadcell detected filament runout");
+                queue.inject_P(PSTR("M1601 R1"));
+                break;
+            case buddy::extrusion_calibration::ExtrusionFault::pressure_collapse:
+                SERIAL_ECHOLNPGM("Extrusion fault: nozzle pressure collapsed during forward E motion");
+                SerialPrinting::notify_error("filament_movement", "not_moving", "Loadcell detected filament not moving");
+                queue.inject_P(PSTR("M1601 R2"));
+                break;
+            case buddy::extrusion_calibration::ExtrusionFault::flow_breakout:
+                SERIAL_ECHOLNPGM("Extrusion fault: hotend flow-pressure breakout detected");
+                SerialPrinting::notify_error("extrusion_flow_limit", "flow_limit", "Extrusion flow-pressure limit detected");
+                queue.inject_P(PSTR("M1601 R3"));
+                break;
+            default:
+                break;
+            }
+        }
+#endif
+
 #if HAS_SERIAL_PRINT()
         if (server.print_is_serial) {
             SerialPrinting::print_loop();
@@ -2540,7 +2816,8 @@ static void _server_print_loop(void) {
             break;
         }
 
-        process_pausing_begin_state();
+        process_pausing_begin_state(Pause_Type::Pause, print_state.notify_serial_host_on_pause);
+        print_state.notify_serial_host_on_pause = true;
         server.print_state = State::Pausing_WaitIdle;
         break;
 
@@ -2559,15 +2836,27 @@ static void _server_print_loop(void) {
             tool_change(NoTool {}, tool_return_t::no_return);
 #endif
             server.print_state = State::Paused;
+            if (server.print_is_serial) {
+                SerialPrinting::paused("firmware_pause");
+            }
         }
         break;
     case State::Paused:
+        if (server.print_is_serial) {
+            if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
+                fsm_create(PhasesSerialPrinting::active);
+            }
+        } else if (!fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_create(PhasesPrinting::active);
+        }
+
         // resume queuing serial commands (to be able to resume)
         GCodeQueue::pause_serial_commands = false;
 
         if (print_state.resume_pending) {
             print_state.resume_pending = false;
-            print_resume();
+            print_resume(print_state.notify_serial_host_on_resume);
+            print_state.notify_serial_host_on_resume = true;
         } else if (print_state.recover_media_error_at.has_value() && ticks_diff(*print_state.recover_media_error_at, ticks_s()) <= 0) {
             log_info(MarlinServer, "Try recover from media error");
             print_state.recover_media_error_at.reset();
@@ -2705,9 +2994,15 @@ static void _server_print_loop(void) {
         thermalManager.set_print_fan_speed(server.resume.fan_speed); // restore fan speed
         feedrate_percentage = server.resume.print_speed;
 #if HAS_SERIAL_PRINT()
-        SerialPrinting::resume();
+        SerialPrinting::resume(print_state.notify_serial_host_on_resume);
+        print_state.notify_serial_host_on_resume = true;
 #endif
         server.print_state = State::Printing;
+#if HAS_SERIAL_PRINT()
+        if (server.print_is_serial) {
+            SerialPrinting::resumed();
+        }
+#endif
         break;
 
     case State::Aborting_Begin:
@@ -2720,12 +3015,26 @@ static void _server_print_loop(void) {
             break; // Wait for homing to end
         }
 
+        // Preserve the normal cleanup/result UI even when abort originates in
+        // a nested recovery dialog such as the stuck-filament prompt.
+#if HAS_SERIAL_PRINT()
+        if (server.print_is_serial) {
+            if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
+                fsm_create(PhasesSerialPrinting::active);
+            }
+        } else
+#endif
+            if (!fsm_states.is_active(ClientFSM::Printing)) {
+            fsm_create(PhasesPrinting::active);
+        }
+
         // Unstuck any operation that is skippable
         skippable_gcode().request_skip();
 
         media_prefetch.stop();
         queue.clear();
 
+        capture_print_duration();
         print_job_timer.stop();
         planner.quick_stop();
         wait_for_heatup = false; // This is necessary because M109/wait_for_hotend can be in progress, we need to abort it
@@ -2767,16 +3076,30 @@ static void _server_print_loop(void) {
 #else
         {
 #endif
-            retract_and_lift();
             // Skip homing and parking when no tool is picked - there's no nozzle to clean or park,
             // and pre_finalize_print's tool_change(NoTool) is a no-op in that case.
             if (std::holds_alternative<PhysicalToolIndex>(PhysicalToolIndex::currently_selected())) {
+                const bool needs_homing = axes_need_homing();
+                if (needs_homing
+#if ENABLED(CRASH_RECOVERY)
+                    || server.aborting_did_crash_trigger
+#endif /*ENABLED(CRASH_RECOVERY)*/
+                ) {
+                    // Before the initial home there is no printed object to clear. Avoid an
+                    // unhomed Z move while aborting startup; it can drive the steppers into
+                    // their limits before the machine has established a safe coordinate.
+                    if (axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise) || planner.max_printed_z > 0) {
+                        lift_head(); // It would be dangerous to move XY
+                    }
+                } else {
+                    retract_and_lift();
 #if HAS_NOZZLE_CLEANER()
-                // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning.
-                // On INDX, home precisely so that finalize_print's tool_change(NoTool) docking can skip its own homing.
-                GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = HAS_INDX() });
+                    // With nozzle cleaner, home so that the head position is known for parking and nozzle cleaning.
+                    // On INDX, home precisely so that finalize_print's tool_change(NoTool) docking can skip its own homing.
+                    GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .can_calibrate = false, .precise = HAS_INDX() });
 #endif
-                park_head(false);
+                    park_head(false);
+                }
             }
         }
 
@@ -3180,6 +3503,9 @@ static void _server_print_loop(void) {
 #endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+        // TODO: Fix error checking of chamber fans. Runtime checks caused false positives;
+        // selftest and the AC controller still check the fans.
+        /*
         const bool cool_fan_ok = buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_1) && buddy::xbuddy_extension().is_fan_ok(buddy::XBuddyExtension::Fan::cooling_fan_2);
         xbe_cool_fan_checker.checkTrue(cool_fan_ok, WarningType::ChamberCoolingFanError, false, false);
         if (cool_fan_ok) {
@@ -3191,6 +3517,7 @@ static void _server_print_loop(void) {
         if (filter_fan_ok) {
             xbe_filter_fan_checker.reset();
         }
+        */
 #endif /* XBUDDY_EXTENSION_VARIANT_IS_STANDARD() */
 #if XL_ENCLOSURE_SUPPORT()
         const bool enclosure_fan_ok = Fans::enclosure().is_fan_ok();
@@ -3643,8 +3970,14 @@ static void _server_update_vars() {
         progress_data = oProgressData.standard_mode;
     }
 
-    marlin_vars().print_duration = print_job_timer.duration();
+    capture_print_duration();
+    marlin_vars().print_duration = server.frozen_print_duration;
     marlin_vars().sd_percent_done = [&]() -> uint8_t {
+        uint8_t host_progress = 0;
+        if (server.print_is_serial && SerialPrinting::host_progress_percent(host_progress, ticks_ms())) {
+            return host_progress;
+        }
+
         if (progress_data.percent_done.mIsActual(marlin_vars().print_duration)) {
             return static_cast<uint8_t>(progress_data.percent_done.mGetValue());
         } else if (prefetch_metrics.stream_size_estimate > 0) {
@@ -3654,17 +3987,42 @@ static void _server_update_vars() {
         }
     }();
 
-    if (const bool media = usb_host::is_media_inserted(); marlin_vars().media_inserted != media) {
+    const bool media = usb_host::is_media_inserted();
+    if (media) {
+        // A UI-selected or serial-staged BBF is copied/uploaded to the shared
+        // short bootloader-safe filename. Consume it after the application
+        // returns from the requested bootloader attempt. This must not depend
+        // on an insertion edge: after an update the USB drive is commonly
+        // already present when Marlin starts observing media state.
+        if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
+            fclose(marker);
+            // Keep the marker until the staged image is definitely gone. This
+            // makes cleanup retryable and prevents a failed unlink from
+            // turning a one-shot UI/serial update into a boot-time reflash.
+            errno = 0;
+            const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
+            errno = 0;
+            const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
+            if (safe_stage_removed && legacy_stage_removed) {
+                remove("/usb/FWUPD.UI");
+            }
+        }
+    }
+    if (marlin_vars().media_inserted != media) {
         marlin_vars().media_inserted = media;
         _send_notify_event(marlin_vars().media_inserted ? Event::MediaInserted : Event::MediaRemoved, 0, 0);
     }
 
     const auto duration = marlin_vars().print_duration.get();
     const auto print_speed = marlin_vars().print_speed.get();
+    const uint32_t progress_update_ms = ticks_ms();
 
-    const auto update_time_to = [&](const ClValidityValueSec &progress_data_value, MarlinVariable<uint32_t> &marlin_var) {
+    const auto update_time_to = [&](const ClValidityValueSec &progress_data_value, MarlinVariable<uint32_t> &marlin_var, bool allow_serial_host_time) {
         uint32_t v = TIME_TO_END_INVALID;
-        if (progress_data.percent_done.mIsActual(duration) && progress_data_value.mIsActual(duration)) {
+        uint32_t host_time_to_end = 0;
+        if (allow_serial_host_time && server.print_is_serial && SerialPrinting::host_time_to_end(host_time_to_end, progress_update_ms)) {
+            v = host_time_to_end;
+        } else if (progress_data.percent_done.mIsActual(duration) && progress_data_value.mIsActual(duration)) {
             v = progress_data_value.mGetValue();
         }
 
@@ -3675,8 +4033,8 @@ static void _server_update_vars() {
             marlin_var = (v * 100) / print_speed;
         }
     };
-    update_time_to(progress_data.time_to_end, marlin_vars().time_to_end);
-    update_time_to(progress_data.time_to_pause, marlin_vars().time_to_pause);
+    update_time_to(progress_data.time_to_end, marlin_vars().time_to_end, true);
+    update_time_to(progress_data.time_to_pause, marlin_vars().time_to_pause, false);
 
     if (server.print_state == State::Printing) {
         marlin_vars().time_to_end.execute_with([&](const uint32_t &time_to_end) {

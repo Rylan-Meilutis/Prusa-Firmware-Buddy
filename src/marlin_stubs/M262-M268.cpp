@@ -1,5 +1,8 @@
 #include "PrusaGcodeSuite.hpp"
 #include "../../lib/Marlin/Marlin/src/gcode/parser.h"
+#if BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
 
 // THESE G-CODES ARE AVAILABLE ONLY ON XBUDDY AND XLBUDDY BOARDS
 
@@ -16,6 +19,22 @@ static std::optional<uint8_t> check_param(const char param, const char *gcode, u
         return std::nullopt;
     }
     return num;
+}
+
+static bool pin_is_protected(uint8_t pin_num) {
+#if BOARD_IS_XBUDDY()
+    return leds::external_light_bar::protects_pin(pin_num);
+#else
+    return false;
+#endif
+}
+
+static uint8_t protect_register_value(uint8_t requested_value, uint8_t current_value) {
+#if BOARD_IS_XBUDDY()
+    return leds::external_light_bar::protect_register_value(requested_value, current_value);
+#else
+    return requested_value;
+#endif
 }
 
 /** \addtogroup G-Codes
@@ -49,6 +68,10 @@ void PrusaGcodeSuite::M262() {
     const auto val = check_param('B', gcode, 256);
 
     if (!pin_num.has_value() || !val.has_value()) {
+        return;
+    }
+    if (pin_is_protected(pin_num.value())) {
+        SERIAL_ECHOLNPGM("M262 ignored: pin is reserved for external light bar");
         return;
     }
 
@@ -137,6 +160,10 @@ void PrusaGcodeSuite::M264() {
     if (!pin_num.has_value() || !val.has_value()) {
         return;
     }
+    if (pin_is_protected(pin_num.value())) {
+        SERIAL_ECHOLNPGM("M264 ignored: pin is reserved for external light bar");
+        return;
+    }
 
     if (buddy::hw::io_expander2.write(val.value() ? 0xFF : 0, 0x1 << pin_num.value())) {
         return;
@@ -169,6 +196,10 @@ void PrusaGcodeSuite::M265() {
     static constexpr const char *gcode = "M265";
     const auto pin_num = check_param('P', gcode, buddy::hw::TCA6408A::pin_count);
     if (!pin_num.has_value()) {
+        return;
+    }
+    if (pin_is_protected(pin_num.value())) {
+        SERIAL_ECHOLNPGM("M265 ignored: pin is reserved for external light bar");
         return;
     }
 
@@ -215,7 +246,13 @@ void PrusaGcodeSuite::M267() {
         return;
     }
 
-    if (buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register(reg.value()), val.value())) {
+    uint8_t current_value = 0;
+    if (!buddy::hw::io_expander2.read_reg(buddy::hw::TCA6408A::Register(reg.value()), current_value)) {
+        SERIAL_ECHOPAIR(gcode, txt_failed_comm);
+        return;
+    }
+
+    if (buddy::hw::io_expander2.update_register(buddy::hw::TCA6408A::Register(reg.value()), protect_register_value(val.value(), current_value))) {
         return;
     }
     SERIAL_ECHOPAIR(gcode, txt_failed_comm);

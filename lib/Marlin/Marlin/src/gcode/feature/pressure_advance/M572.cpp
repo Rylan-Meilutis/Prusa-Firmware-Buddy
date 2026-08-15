@@ -6,6 +6,10 @@
 #include "../../gcode.h"
 #include "../../../module/stepper.h"
 #include "../../../feature/pressure_advance/pressure_advance_config.hpp"
+#include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
+#endif
 
 static void dump_current_config() {
     if (const pressure_advance::Config &config = pressure_advance::get_axis_e_config(); config.pressure_advance <= 0.f) {
@@ -58,7 +62,12 @@ void GcodeSuite::M572() {
     if (seen_s) {
         const float s = parser.value_float();
         if (WITHIN(s, 0.f, 10.f)) {
+#if HAS_LOADCELL()
+            pressure_advance = buddy::extrusion_calibration::calibrated_pressure_advance_or(s);
+            buddy::extrusion_calibration::note_profile_pressure_advance(s);
+#else
             pressure_advance = s;
+#endif
         } else {
             SERIAL_ECHO_MSG("?Pressure advance (S) value out of range (0-10)");
         }

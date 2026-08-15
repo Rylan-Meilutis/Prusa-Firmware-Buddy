@@ -41,6 +41,10 @@ if(NOT DEFINED DISABLE_LTO
    AND CMAKE_CROSSCOMPILING # This will not force LTO for natively built unittests
    )
   set(COMPILE_WITH_LTO ON)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_COMPILE_OPTIONS_IPO "-flto=1" "-fno-fat-lto-objects")
+    set(CMAKE_CXX_COMPILE_OPTIONS_IPO "-flto=1" "-fno-fat-lto-objects")
+  endif()
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
   message(STATUS "LTO: Enabled")
 else()
@@ -300,7 +304,8 @@ add_compile_options(-g)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-Og -ggdb3)
 else()
-  add_compile_options(-Os)
+  add_compile_options(-Oz -fmerge-all-constants)
+  add_link_options(-Oz)
 endif()
 
 if(CMAKE_CROSSCOMPILING)
@@ -334,7 +339,11 @@ endif()
 
 # split and gc sections
 add_compile_options(-ffunction-sections -fdata-sections)
-add_link_options(-Wl,--gc-sections)
+if(APPLE AND NOT CMAKE_CROSSCOMPILING)
+  add_link_options(-Wl,-dead_strip)
+else()
+  add_link_options(-Wl,--gc-sections)
+endif()
 
 # support _DEBUG macro (some code uses to recognize debug builds)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -488,7 +497,9 @@ if(RESOURCES)
   message(STATUS "Signing Key: ${SIGNING_KEY}")
 
   if(PROJECT_VERSION_SUFFIX)
-    if(NOT "${PROJECT_VERSION_SUFFIX}" MATCHES "\\+${BUILD_NUMBER}")
+    if(NOT "${PROJECT_VERSION_SUFFIX}" MATCHES "\\+${BUILD_NUMBER}"
+       AND NOT "${PROJECT_VERSION_SUFFIX}" STREQUAL "-RME"
+       )
       message(WARNING "The generated .bbf is configured to use the build number ${BUILD_NUMBER},
       but the version suffix (${PROJECT_VERSION_SUFFIX}) does not contain +${BUILD_NUMBER}.
       Are you sure you know what you are doing?"

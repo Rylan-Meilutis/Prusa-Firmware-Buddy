@@ -18,6 +18,7 @@
 #include <lfn.h>
 #include <buddy/filename_defs.hpp>
 #include <state/printer_state.hpp>
+#include <transfers/monitor.hpp>
 
 #include <ctime>
 #include <cstring>
@@ -279,6 +280,13 @@ void add_time_to_timestamp(int32_t secs_to_add, struct tm *timestamp) {
 }
 
 StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
+
+    // Link, slicer, local web UI, Connect, and RME all share this latch. A
+    // preview may inspect a partial, but an actual print must never overtake
+    // an active storage transfer.
+    if (autostart_if_able && transfers::Monitor::instance.id().has_value()) {
+        return StartPrintResult::Failed;
+    }
 
     const bool printer_can_print = printer_state::remote_print_ready(!autostart_if_able);
 

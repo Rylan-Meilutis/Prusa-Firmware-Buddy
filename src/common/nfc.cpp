@@ -305,6 +305,7 @@ bool has_nfc_probably() {
     // So if this is a MK4S, it probably has an NFC, if not, then it probably doesn't.
     switch (PrinterModelInfo::current().model) {
     case PrinterModel::coreone:
+    case PrinterModel::coreoneplus:
     case PrinterModel::coreone_indx:
     case PrinterModel::coreonel:
     case PrinterModel::coreonel_indx:

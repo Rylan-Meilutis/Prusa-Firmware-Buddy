@@ -1,4 +1,6 @@
 #include "store_definition.hpp"
+#include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
 #include <common/visit_all_struct_fields.hpp>
 #include <Marlin/src/inc/MarlinConfigPre.h>
 #include <module/prusa/dock_position.hpp>
@@ -30,7 +32,10 @@
 
 namespace config_store_ns {
 #if not HAS_CONFIG_STORE_WO_BACKEND()
-static_assert((sizeof(CurrentStore) + aggregate_arity<CurrentStore>() * sizeof(journal::Backend::ItemHeader)) < (BANK_SIZE / 100) * 75, "EEPROM bank is almost full");
+// XL carries the complete multi-tool filament metadata set. Keep every feature
+// and retain more than 20% journal headroom instead of stripping profile data.
+constexpr size_t maximum_store_percent = HAS_TOOLCHANGER() ? 80 : 75;
+static_assert((sizeof(CurrentStore) + aggregate_arity<CurrentStore>() * sizeof(journal::Backend::ItemHeader)) < (BANK_SIZE / 100) * maximum_store_percent, "EEPROM bank is almost full");
 static_assert(journal::has_unique_items<config_store_ns::CurrentStore>(), "Just added items are causing collisions with reserved backend IDs");
 static_assert(aggregate_arity<config_store_ns::CurrentStore>() > 10, "Config store sanity check failed");
 static_assert(
@@ -257,6 +262,8 @@ void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType
     }
 
     if (value == FilamentType::none) {
+        filament_color::set_loaded(virtual_tool.to_raw(), std::nullopt);
+        filament_manufacturer::set_loaded(virtual_tool.to_raw(), std::nullopt);
 #if HAS_AUTO_RETRACT()
         // On filament removal, it invalidates retracted distance
         buddy::auto_retract().set_retracted_distance(virtual_tool.to_physical(), std::nullopt);

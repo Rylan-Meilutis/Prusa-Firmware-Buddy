@@ -23,8 +23,12 @@
 #include <option/has_human_interactions.h>
 #include <option/has_wastebin.h>
 #include <option/has_auto_retract.h>
+#include <option/has_loadcell.h>
 #if HAS_AUTO_RETRACT()
     #include <feature/auto_retract/auto_retract.hpp>
+#endif
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
 #endif
 
 #include <raii/scope_guard.hpp>
@@ -36,6 +40,20 @@
 #endif
 
 uint filament_gcodes::InProgress::lock = 0;
+
+filament_gcodes::InProgress::InProgress() {
+    ++lock;
+#if HAS_LOADCELL()
+    buddy::extrusion_calibration::suspend_pressure_monitor(true);
+#endif
+}
+
+filament_gcodes::InProgress::~InProgress() {
+#if HAS_LOADCELL()
+    buddy::extrusion_calibration::suspend_pressure_monitor(false);
+#endif
+    --lock;
+}
 
 using namespace filament_gcodes;
 

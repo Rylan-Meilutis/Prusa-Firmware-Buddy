@@ -1,8 +1,10 @@
 // gui.cpp
 #include <stdlib.h>
+#include <algorithm>
 
 #include "display.hpp"
 #include "gui.hpp"
+#include "serial_remote_control.hpp"
 #include "gui_time.hpp" //gui::GetTick
 #include "ScreenHandler.hpp"
 #include "sound.hpp"
@@ -18,8 +20,19 @@
 #include <logging/log.hpp>
 #include "display_hw_checks.hpp"
 #include <option/has_leds.h>
+#include <guiconfig/guiconfig.h>
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
+#elif HAS_ST7789_DISPLAY()
+    #include <st7789v.hpp>
+    #include <config_store/store_instance.hpp>
+    #include <leds/light_state.hpp>
+    #include <marlin_server.hpp>
+    #include <marlin_vars.hpp>
+#endif
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
 #endif
 
 #include <option/has_touch.h>
@@ -29,7 +42,7 @@
 #endif
 
 #include <config_store/store_instance.hpp>
-#include <guiconfig/guiconfig.h>
+#include <tasks.hpp>
 
 #if HAS_MINI_DISPLAY()
     #include "st7789v.hpp"
@@ -60,6 +73,124 @@ static const constexpr uint32_t GUI_DELAY_REDRAW = 40; // 40 ms => 25 fps
 static RateLimiter<uint32_t> gui_roll_timer(txtroll_t::GetBaseTick());
 static RateLimiter<uint32_t> gui_loop_timer(GUI_DELAY_LOOP);
 static RateLimiter<uint32_t> gui_redraw_timer(GUI_DELAY_REDRAW);
+static constexpr uint32_t screen_brightness_wake_ms = 30000;
+
+#if !HAS_LEDS() && HAS_ST7789_DISPLAY()
+static uint32_t screen_brightness_wake_since_ms = 0;
+static uint8_t screen_brightness_wake_percent = 15;
+
+static void set_st7789_brightness(uint8_t brightness) {
+    static bool lcd_output_enabled = true;
+
+    if (brightness == 0) {
+        st7789v_suppress_display_writes(false);
+        st7789v_brightness_set(0);
+        st7789v_clear(0x0000);
+        st7789v_suppress_display_writes(true);
+        st7789v_brightness_disable();
+        if (lcd_output_enabled) {
+            st7789v_cmd_dispoff();
+            st7789v_cmd_slpin();
+            lcd_output_enabled = false;
+        }
+    } else {
+        st7789v_suppress_display_writes(false);
+        if (!lcd_output_enabled) {
+            st7789v_brightness_enable();
+            st7789v_cmd_slpout();
+            st7789v_delay_ms(120);
+            st7789v_cmd_dispon();
+            lcd_output_enabled = true;
+        }
+        st7789v_brightness_enable();
+        st7789v_brightness_set(brightness);
+    }
+}
+
+static leds::LightState screen_brightness_state() {
+    if (screen_brightness_wake_since_ms && ticks_ms() - screen_brightness_wake_since_ms < screen_brightness_wake_ms) {
+        return leds::LightState::active;
+    }
+    screen_brightness_wake_since_ms = 0;
+
+    const marlin_server::State printer_state = marlin_vars().print_state;
+    const bool print_active = marlin_server::is_printing_state(printer_state) || marlin_server::serial_print_active();
+    const bool guided_activity = marlin_vars().peek_fsm_states([](const fsm::States &states) {
+        return states.get_top().has_value();
+    });
+    return print_active
+        ? leds::LightState::printing
+        : (guided_activity
+                ? leds::LightState::active
+                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                ? leds::LightState::idle
+                : leds::LightState::active);
+}
+
+static bool update_st7789_screen_brightness() {
+    if (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
+        set_st7789_brightness(255);
+        return false;
+    }
+
+    const leds::LightState state = screen_brightness_state();
+    const uint8_t brightness = screen_brightness_wake_since_ms
+        ? screen_brightness_wake_percent
+        : leds::clamp_screen_brightness(state, (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff);
+    set_st7789_brightness((brightness * 255) / 100);
+    return brightness == 0;
+}
+
+static bool wake_st7789_from_dim_idle() {
+    const auto state = screen_brightness_state();
+    const uint8_t brightness = (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
+    if ((state != leds::LightState::idle && state != leds::LightState::deep_idle && state != leds::LightState::printing) || brightness >= 15) {
+        return false;
+    }
+    screen_brightness_wake_since_ms = ticks_ms();
+    screen_brightness_wake_percent = state == leds::LightState::printing
+        ? leds::minimum_screen_brightness(leds::LightState::active)
+        : leds::clamp_screen_brightness(
+            leds::LightState::active,
+            (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(leds::LightState::active)) & 0xff);
+    set_st7789_brightness((screen_brightness_wake_percent * 255) / 100);
+    return true;
+}
+#endif
+
+static bool wake_screen_from_dim_idle() {
+#if HAS_SIDE_LEDS()
+    return leds::SideStripHandler::instance().wake_screen_from_dim_idle();
+#elif HAS_LEDS()
+    return leds::LEDManager::instance().wake_lcd_from_dim_idle();
+#elif HAS_ST7789_DISPLAY()
+    return wake_st7789_from_dim_idle();
+#else
+    return false;
+#endif
+}
+
+static bool update_screen_brightness_and_is_off() {
+#if HAS_LEDS()
+    leds::LEDManager::instance().update();
+    return leds::LEDManager::instance().lcd_brightness_is_off();
+#elif HAS_ST7789_DISPLAY()
+    return update_st7789_screen_brightness();
+#else
+    return false;
+#endif
+}
+
+static void invalidate_after_screen_wake(bool screen_brightness_off) {
+    static bool was_screen_brightness_off = false;
+    if (was_screen_brightness_off && !screen_brightness_off) {
+        if (auto *screen = Screens::Access()->Get()) {
+            screen->Invalidate();
+        }
+        gui_invalidate();
+    }
+    was_screen_brightness_off = screen_brightness_off;
+}
 
 void gui_init(void) {
     display::init();
@@ -81,6 +212,12 @@ void gui_handle_jogwheel() {
     int32_t encoder_diff = jogwheel.ConsumeEncoderDiff();
 
     if (encoder_diff != 0 || is_btn) {
+        if (wake_screen_from_dim_idle()) {
+            return;
+        }
+#if HAS_SIDE_LEDS() && PRINTER_IS_PRUSA_XL()
+        leds::SideStripHandler::instance().activity_ping();
+#endif
         gui::knob::EventEncoder(encoder_diff);
 
         if (is_btn) {
@@ -102,9 +239,16 @@ void gui_handle_touch() {
         return;
     }
 
+    if (wake_screen_from_dim_idle()) {
+        return;
+    }
+
     // we clicked on something, does not really matter on what we clicked
     // we must notify serve to so it knows user is doing something and resets menu timeout, heater timeout ...
     Screens::Access()->ResetTimeout();
+    #if HAS_SIDE_LEDS() && PRINTER_IS_PRUSA_XL()
+    leds::SideStripHandler::instance().activity_ping();
+    #endif
 
     if (touch_event.type == GUI_event_t::TOUCH_CLICK) {
         sound::play(SoundType::button_echo);
@@ -179,20 +323,29 @@ void gui_bare_loop() {
     ++guiloop_nesting;
 
     gui_handle_jogwheel();
+    const bool screen_brightness_off = update_screen_brightness_and_is_off();
+    invalidate_after_screen_wake(screen_brightness_off);
 
-    gui_redraw();
+    if (!screen_brightness_off) {
+        gui_redraw();
+    } else {
+        osDelay(GUI_DELAY_MIN);
+    }
 
     --guiloop_nesting;
 }
 
 void gui_loop(void) {
     ++guiloop_nesting;
-    lcd::communication_check();
+    serial_remote_control::process_gui();
     gui_handle_jogwheel();
 
-#if HAS_LEDS()
-    leds::LEDManager::instance().update();
-#endif
+    const bool screen_brightness_off = update_screen_brightness_and_is_off();
+    invalidate_after_screen_wake(screen_brightness_off);
+
+    if (!screen_brightness_off) {
+        lcd::communication_check();
+    }
 
 #if HAS_TOUCH()
     gui_handle_touch();
@@ -211,7 +364,11 @@ void gui_loop(void) {
         }
     }
 
-    gui_redraw();
+    if (!screen_brightness_off) {
+        gui_redraw();
+    } else {
+        osDelay(GUI_DELAY_MIN);
+    }
     marlin_client::loop();
     GuiMediaEventsHandler::Tick();
 #if HAS_SELFTEST()

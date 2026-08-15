@@ -25,6 +25,16 @@
 #include <bsod/bsod.h>
 #include <utils/string_builder.hpp>
 #include <gui/event/knob_event.hpp>
+#include <printer_lock.hpp>
+#include <option/has_leds.h>
+#include <option/has_chamber_filtration_api.h>
+
+#if HAS_LEDS()
+    #include <leds/led_manager.hpp>
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 #if HAS_MMU2()
     #include <feature/prusa/MMU2/mmu2_mk4.h>
@@ -62,7 +72,27 @@ static bool is_waiting_for_connect_set_ready() {
 #endif
 }
 
+static bool post_print_filtration_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return buddy::chamber_filtration().post_print_remaining_s() > 0;
+#else
+    return false;
+#endif
+}
+
+static void stop_post_print_filtration() {
+#if HAS_CHAMBER_FILTRATION_API()
+    buddy::chamber_filtration().stop_post_print_filtration();
+#endif
+}
+
 void screen_printing_data_t::tuneAction() {
+    if (printer_lock::locked()) {
+        if (unlock_machine()) {
+            change_print_state();
+        }
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Left)].IsShadowed()) {
         return;
     }
@@ -85,6 +115,9 @@ void screen_printing_data_t::tuneAction() {
 }
 
 void screen_printing_data_t::pauseAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Middle)].IsShadowed()) {
         return;
     }
@@ -101,8 +134,14 @@ void screen_printing_data_t::pauseAction() {
         marlin_client::print_resume();
         change_print_state();
         break;
-    case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+        if (post_print_filtration_active()) {
+            stop_post_print_filtration();
+            set_pause_icon_and_label();
+            break;
+        }
+        [[fallthrough]];
+    case printing_state_t::STOPPED:
         screen_printing_reprint();
         change_print_state();
         break;
@@ -112,19 +151,25 @@ void screen_printing_data_t::pauseAction() {
 }
 
 void screen_printing_data_t::stopAction() {
+    if (printer_lock::locked()) {
+        return;
+    }
     if (buttons[std::to_underlying(BtnSocket::Right)].IsShadowed()) {
         return;
     }
     switch (GetState()) {
     case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+#if HAS_LEDS()
+        leds::LEDManager::instance().acknowledge_finished();
+#endif
         marlin_client::print_exit();
         return;
     case printing_state_t::PAUSING:
     case printing_state_t::RESUMING:
         return;
     default: {
-        if (MsgBoxWarning(_("Are you sure to stop this printing?"), Responses_YesNo, 1)
+        if (MsgBoxWarning(_("Cancel this print?"), Responses_YesNo, 1)
             == Response::Yes) {
             stop_pressed = true;
             waiting_for_abort = true;
@@ -209,6 +254,8 @@ screen_printing_data_t::screen_printing_data_t()
 
     // Hide popup, only show it when we have a message to show
     message_popup.set_visible(false);
+    message_popup.set_font(HAS_MINI_DISPLAY() ? Font::normal : Font::big);
+    message_popup.SetTextColor(COLOR_WHITE);
     message_popup.SetAlignment(Align_t::LeftTop());
     message_popup.SetPadding({ 0, 2, 0, 2 });
 
@@ -291,6 +338,21 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
         }
 
         change_print_state();
+        if (GetState() == printing_state_t::PRINTED) {
+            set_pause_icon_and_label();
+        }
+
+        if (printer_lock::locked()) {
+            if (!lock_buttons_applied) {
+                show_locked_buttons();
+                lock_buttons_applied = true;
+            }
+        } else if (lock_buttons_applied) {
+            lock_buttons_applied = false;
+            set_pause_icon_and_label();
+            set_tune_icon_and_label();
+            set_stop_icon_and_label();
+        }
 
         /// -- Print time update loop
         updateTimes();
@@ -314,7 +376,7 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
                 last_e_axis_position = vars.logical_curr_pos[MARLIN_VAR_INDEX_E];
             }
 
-        } else if (p_state == printing_state_t::PRINTED && !shown_end_result) {
+        } else if (p_state == printing_state_t::PRINTED && !shown_end_result && !post_print_filtration_active()) {
             start_showing_end_result();
         }
 #endif
@@ -344,7 +406,14 @@ void screen_printing_data_t::windowEvent(window_t *sender, GUI_event_t event, vo
         set_remaining_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
 #if HAS_MINI_DISPLAY()
         // Hide time information when popup is visible [BFW-6677]
-        set_print_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
+        if (p_state == printing_state_t::PRINTED && !message_popup.IsVisible()) {
+            update_finished_summary();
+            set_print_time_visible(true);
+            w_etime_label.Show();
+            w_etime_value.Show();
+        } else {
+            set_print_time_visible(!message_popup.IsVisible() && !stoppedOrPrinted);
+        }
 #elif HAS_LARGE_DISPLAY()
         rotating_circles.set_visible(!stoppedOrPrinted);
         [&] {
@@ -640,6 +709,38 @@ void screen_printing_data_t::updateTimes() {
 #endif
 }
 
+#if HAS_MINI_DISPLAY()
+void screen_printing_data_t::update_finished_summary() {
+    PrintTime::print_formatted_duration(marlin_vars().print_duration.get(), finished_stat_buffer, true);
+    w_time_label.SetText(_(EndResultBody::txt_printing_time));
+    w_time_value.SetText(string_view_utf8::MakeRAM(finished_stat_buffer.data()));
+
+    #if HAS_CHAMBER_FILTRATION_API()
+    const uint32_t remaining_s = buddy::chamber_filtration().post_print_remaining_s();
+    const uint32_t now_s = ticks_s();
+    if (ticks_diff(now_s, last_finished_stat_switch_s) >= 4) {
+        last_finished_stat_switch_s = now_s;
+        showing_filter_remaining = remaining_s > 0 && !showing_filter_remaining;
+    } else if (remaining_s == 0) {
+        showing_filter_remaining = false;
+    }
+    if (showing_filter_remaining) {
+        w_etime_label.SetText(_("Filtering left"));
+        PrintTime::print_formatted_duration(remaining_s, finished_stat_buffer, true);
+    } else
+    #endif
+    {
+        w_etime_label.SetText(_("Print ended"));
+        EndResultBody::format_timestamp(marlin_vars().print_end_time, finished_stat_buffer);
+    }
+    w_etime_value.SetText(string_view_utf8::MakeRAM(finished_stat_buffer.data()));
+    w_time_label.Invalidate();
+    w_time_value.Invalidate();
+    w_etime_label.Invalidate();
+    w_etime_value.Invalidate();
+}
+#endif
+
 void screen_printing_data_t::screen_printing_reprint() {
     print_begin(GCodeInfo::getInstance().GetGcodeFilepath(), marlin_server::PreviewSkipIfAble::preview);
     screen_printing_data_t::updateTimes(); // reinit, but should be already set correctly
@@ -648,6 +749,11 @@ void screen_printing_data_t::screen_printing_reprint() {
 }
 
 void screen_printing_data_t::set_pause_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     switch (GetState()) {
     case printing_state_t::INITIAL:
     case printing_state_t::PRINTING:
@@ -677,8 +783,15 @@ void screen_printing_data_t::set_pause_icon_and_label() {
         DisableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Reheating);
         break;
-    case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:
+        EnableButton(BtnSocket::Middle);
+        if (post_print_filtration_active()) {
+            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Stop, LabelRes::StopFilter);
+        } else {
+            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
+        }
+        break;
+    case printing_state_t::STOPPED:
         EnableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
         break;
@@ -701,7 +814,7 @@ void screen_printing_data_t::set_pause_icon_and_label() {
         header.SetText(_("STOPPED"));
         break;
     case printing_state_t::PRINTED:
-        header.SetText(_("FINISHED"));
+        header.SetText(_("PRINT FINISHED"));
         break;
     default: // else printing
         header.SetText(_(caption));
@@ -710,6 +823,11 @@ void screen_printing_data_t::set_pause_icon_and_label() {
 }
 
 void screen_printing_data_t::set_tune_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
 
     switch (GetState()) {
@@ -736,6 +854,11 @@ void screen_printing_data_t::set_tune_icon_and_label() {
 }
 
 void screen_printing_data_t::set_stop_icon_and_label() {
+    if (printer_lock::locked()) {
+        show_locked_buttons();
+        return;
+    }
+
     switch (GetState()) {
     case printing_state_t::STOPPED:
     case printing_state_t::PRINTED:

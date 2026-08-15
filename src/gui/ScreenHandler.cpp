@@ -2,6 +2,8 @@
 #include "bsod.h"
 
 #include <gui.hpp>
+#include <marlin_client.hpp>
+#include <printer_lock.hpp>
 #include <raii/auto_restore.hpp>
 #include <gui_invalidate.hpp>
 
@@ -48,6 +50,9 @@ void Screens::ScreenEvent([[maybe_unused]] window_t *sender, GUI_event_t event, 
 void Screens::WindowEvent(GUI_event_t event, void *const param) {
     if (current == nullptr) {
         return;
+    }
+    if (GUI_event_is_input_event(event) && !printer_lock::locked()) {
+        printer_lock::record_activity();
     }
     current->WindowEvent(current.get(), event, param);
 }
@@ -158,6 +163,11 @@ void Screens::Loop() {
         // We CANNOT call Screens::Loop while we're in the gui_loop.
         // This function would be creating and destroying screens under our hands
         bsod("Screen loop inside gui loop");
+    }
+
+    printer_lock::loop();
+    if (printer_lock::locked() && !marlin_client::is_printing() && stack_iterator != stack.begin()) {
+        CloseAll();
     }
 
     /// menu timeout logic:

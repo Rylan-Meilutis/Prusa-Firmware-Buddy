@@ -94,12 +94,16 @@ class screen_printing_data_t : public ScreenPrintingModel {
     bool stop_pressed;
     bool waiting_for_abort; /// flag specific for stop pressed when MBL is performed
     printing_state_t state__readonly__use_change_print_state;
+    bool lock_buttons_applied { false };
 
     float last_e_axis_position;
 
 #if HAS_MINI_DISPLAY()
     PrintTime print_time;
     PT_t time_end_format;
+    EndResultBody::DateBufferT finished_stat_buffer;
+    uint32_t last_finished_stat_switch_s { 0 };
+    bool showing_filter_remaining { false };
 #else
     EndResultBody::DateBufferT w_etime_value_buffer;
     EndResultBody end_result_body;
@@ -142,7 +146,7 @@ private:
     void updateTimes();
 
 #if HAS_MINI_DISPLAY()
-    void update_print_duration(time_t rawtime);
+    void update_finished_summary();
 #endif
     void screen_printing_reprint();
     void set_pause_icon_and_label();

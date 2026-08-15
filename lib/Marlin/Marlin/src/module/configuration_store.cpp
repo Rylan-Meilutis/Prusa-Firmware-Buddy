@@ -51,11 +51,20 @@
 #endif
 
 #include "temperature.h"
+#include <option/development_items.h>
+#include <option/full_m503_report.h>
 #include "../lcd/ultralcd.h"
 #include "../core/language.h"
 #include "../gcode/gcode.h"
 #include "../Marlin.h"
 #include <feature/motordriver_util.h>
+
+#if BOARD_IS_BUDDY() || BOARD_IS_XBUDDY() || BOARD_IS_XLBUDDY()
+  #define BUDDY_HAS_CONFIG_STORE_PID_EEPROM 1
+  #include "config_store/store_c_api.h"
+#else
+  #define BUDDY_HAS_CONFIG_STORE_PID_EEPROM 0
+#endif
 
 #if ENABLED(USE_PRUSA_EEPROM_AS_SOURCE_OF_DEFAULT_VALUES)
     #include "config_store/store_c_api.h"
@@ -167,8 +176,55 @@ void MarlinSettings::postprocess() {
 }
 
 bool MarlinSettings::save() {
-  // EEPROM disabled
+#if BUDDY_HAS_CONFIG_STORE_PID_EEPROM
+  #if ENABLED(PIDTEMP)
+    const auto &pid = Hotend::for_tool(PhysicalToolIndex::from_raw(0)).nozzle_pid_config();
+    set_pid_nozzle(pid.Kp, pid.Ki, pid.Kd);
+  #endif
+
+  #if ENABLED(PIDTEMPBED)
+    set_pid_bed(thermalManager.temp_bed.pid.Kp, thermalManager.temp_bed.pid.Ki, thermalManager.temp_bed.pid.Kd);
+  #endif
+
+  return true;
+#else
+  SERIAL_ERROR_MSG("EEPROM disabled");
   return false;
+#endif
+}
+
+bool MarlinSettings::load() {
+#if BUDDY_HAS_CONFIG_STORE_PID_EEPROM
+  // Preserve the upstream startup initialization before overlaying the
+  // persisted PID values. Motion defaults and stepper drivers are initialized
+  // by reset(), not by planner.init().
+  reset();
+
+  #if ENABLED(PIDTEMP)
+    const HotendPIDConfig pid {
+      .Kp = get_pid_nozzle_p(),
+      .Ki = get_pid_nozzle_i(),
+      .Kd = get_pid_nozzle_d(),
+    };
+    for (int8_t e = 0; e < HOTENDS; e++) {
+      Hotend::for_tool(PhysicalToolIndex::from_raw(e)).set_nozzle_pid_config(pid);
+    }
+  #endif
+
+  #if ENABLED(PIDTEMPBED)
+    thermalManager.temp_bed.pid.Kp = get_pid_bed_p();
+    thermalManager.temp_bed.pid.Ki = get_pid_bed_i();
+    thermalManager.temp_bed.pid.Kd = get_pid_bed_d();
+  #endif
+
+  postprocess();
+  report();
+  return true;
+#else
+  reset();
+  report();
+  return true;
+#endif
 }
 
 /**
@@ -377,7 +433,11 @@ void MarlinSettings::reset() {
 
   #define CONFIG_ECHO_START()       do{ if (!forReplay) SERIAL_ECHO_START(); }while(0)
   #define CONFIG_ECHO_MSG(STR)      do{ CONFIG_ECHO_START(); SERIAL_ECHOLNPGM(STR); }while(0)
-  #define CONFIG_ECHO_HEADING(STR)  do{ if (!forReplay) { CONFIG_ECHO_START(); SERIAL_ECHOLNPGM(STR); } }while(0)
+  #if FULL_M503_REPORT()
+    #define CONFIG_ECHO_HEADING(STR)  do{ if (!forReplay) { CONFIG_ECHO_START(); SERIAL_ECHOLNPGM(STR); } }while(0)
+  #else
+    #define CONFIG_ECHO_HEADING(STR)  do{}while(0)
+  #endif
 
   #if HAS_TRINAMIC
     inline void say_M906(const bool forReplay) { CONFIG_ECHO_START(); SERIAL_ECHOPGM("  M906"); }
@@ -423,8 +483,12 @@ void MarlinSettings::reset() {
      * Announce current units, in case inches are being displayed
      */
     CONFIG_ECHO_START();
-      SERIAL_ECHOPGM("  G21    ; Units in mm");
-      say_units(false);
+      #if FULL_M503_REPORT()
+        SERIAL_ECHOPGM("  G21    ; Units in mm");
+        say_units(false);
+      #else
+        SERIAL_ECHOPGM("  G21");
+      #endif
     SERIAL_EOL();
 
     #if DISABLED(NO_VOLUMETRICS)
@@ -432,14 +496,16 @@ void MarlinSettings::reset() {
       /**
        * Volumetric extrusion M200
        */
-      if (!forReplay) {
-        CONFIG_ECHO_START();
-        SERIAL_ECHOPGM("Filament settings:");
-        if (parser.volumetric_enabled)
-          SERIAL_EOL();
-        else
-          SERIAL_ECHOLNPGM(" Disabled");
-      }
+      #if FULL_M503_REPORT()
+        if (!forReplay) {
+          CONFIG_ECHO_START();
+          SERIAL_ECHOPGM("Filament settings:");
+          if (parser.volumetric_enabled)
+            SERIAL_EOL();
+          else
+            SERIAL_ECHOLNPGM(" Disabled");
+        }
+      #endif
 
       for(auto tool : VirtualToolIndex::all()) {
         CONFIG_ECHO_START();
@@ -504,20 +570,22 @@ void MarlinSettings::reset() {
         , " T", LINEAR_UNIT(planner.settings.travel_acceleration)
       );
 
-      if (!forReplay) {
-        CONFIG_ECHO_START();
-        SERIAL_ECHOPGM("Advanced: B<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate>");
-        #if DISABLED(CLASSIC_JERK)
-          SERIAL_ECHOPGM(" J<junc_dev>");
-        #endif
-        #if HAS_CLASSIC_JERK
-          SERIAL_ECHOPGM(" X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk>");
-          #if HAS_CLASSIC_E_JERK
-            SERIAL_ECHOPGM(" E<max_e_jerk>");
+      #if FULL_M503_REPORT()
+        if (!forReplay) {
+          CONFIG_ECHO_START();
+          SERIAL_ECHOPGM("Advanced: B<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate>");
+          #if DISABLED(CLASSIC_JERK)
+            SERIAL_ECHOPGM(" J<junc_dev>");
           #endif
-        #endif
-        SERIAL_EOL();
-      }
+          #if HAS_CLASSIC_JERK
+            SERIAL_ECHOPGM(" X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk>");
+            #if HAS_CLASSIC_E_JERK
+              SERIAL_ECHOPGM(" E<max_e_jerk>");
+            #endif
+          #endif
+          SERIAL_EOL();
+        }
+      #endif
       CONFIG_ECHO_START();
       SERIAL_ECHOLNPAIR(
           "  M205 B", LINEAR_UNIT(planner.settings.min_segment_time_us)
@@ -566,11 +634,13 @@ void MarlinSettings::reset() {
 
       #if ENABLED(AUTO_BED_LEVELING_UBL)
 
-        if (!forReplay) {
-          CONFIG_ECHO_START();
-          ubl.echo_name();
-          SERIAL_ECHOLNPGM(":");
-        }
+        #if FULL_M503_REPORT()
+          if (!forReplay) {
+            CONFIG_ECHO_START();
+            ubl.echo_name();
+            SERIAL_ECHOLNPGM(":");
+          }
+        #endif
 
       #endif
 
@@ -584,10 +654,12 @@ void MarlinSettings::reset() {
 
       #if ENABLED(AUTO_BED_LEVELING_UBL)
 
-        if (!forReplay) {
-          SERIAL_EOL();
-          ubl.report_state();
-        }
+        #if FULL_M503_REPORT()
+          if (!forReplay) {
+            SERIAL_EOL();
+            ubl.report_state();
+          }
+        #endif
 
        //ubl.report_current_mesh();   // This is too verbose for large meshes. A better (more terse)
                                                   // solution needs to be found.
@@ -645,18 +717,35 @@ void MarlinSettings::reset() {
      * Probe Offset
      */
     #if HAS_BED_PROBE
-      if (!forReplay) {
-        CONFIG_ECHO_START();
-        SERIAL_ECHOPGM("Z-Probe Offset");
-        say_units(true);
-      }
+      #if FULL_M503_REPORT()
+        if (!forReplay) {
+          CONFIG_ECHO_START();
+          SERIAL_ECHOPGM("Z-Probe Offset");
+          say_units(true);
+        }
+      #endif
       CONFIG_ECHO_START();
       SERIAL_ECHOLNPAIR("  M851 X", LINEAR_UNIT(probe_offset.x),
                               " Y", LINEAR_UNIT(probe_offset.y),
                               " Z", LINEAR_UNIT(probe_offset.z));
     #endif
 
-    #if HAS_TRINAMIC
+    /**
+     * Bed Skew Correction
+     */
+    #if ENABLED(SKEW_CORRECTION_GCODE)
+      CONFIG_ECHO_HEADING("Skew Factor: ");
+      CONFIG_ECHO_START();
+      #if ENABLED(SKEW_CORRECTION_FOR_Z)
+        SERIAL_ECHOPAIR_F("  M852 I", LINEAR_UNIT(planner.skew_factor.xy), 6);
+        SERIAL_ECHOPAIR_F(" J", LINEAR_UNIT(planner.skew_factor.xz), 6);
+        SERIAL_ECHOLNPAIR_F(" K", LINEAR_UNIT(planner.skew_factor.yz), 6);
+      #else
+        SERIAL_ECHOLNPAIR_F("  M852 S", LINEAR_UNIT(planner.skew_factor.xy), 6);
+      #endif
+    #endif
+
+    #if HAS_TRINAMIC && FULL_M503_REPORT()
 
       /**
        * TMC stepper driver current

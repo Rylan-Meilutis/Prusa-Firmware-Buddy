@@ -5,6 +5,7 @@ target_sources(
           gcode.cpp
           M104_1.cpp
           M123.cpp
+          M154.cpp
           M1702.cpp
           M300.cpp
           M330.cpp
@@ -20,7 +21,9 @@ target_sources(
           M9201.cpp
           M9933.cpp
           M997.cpp
+          M998.cpp
           M999.cpp
+          rme_file_service.cpp
           skippable_gcode.cpp
   )
 
@@ -52,6 +55,10 @@ endif()
 
 if(HAS_SELFTEST)
   target_sources(firmware PRIVATE G162.cpp G163.cpp M1978.cpp M1981.cpp)
+endif()
+
+if(HAS_LOADCELL)
+  target_sources(firmware PRIVATE M976.cpp)
 endif()
 
 if(HAS_HEATERS_SELFTEST_GCODE)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include <pwm_utils.hpp>
 #include <freertos/mutex.hpp>
@@ -22,6 +23,14 @@ public:
 
     using Backend = ChamberFiltrationBackend;
     using BackendArray = std::array<Backend, max_backend_count>;
+
+    struct Snapshot {
+        PWM255 output_pwm;
+        bool is_printing_prev = false;
+        std::optional<bool> needs_filtration;
+        uint32_t last_print_s = 0;
+        uint32_t unaccounted_filter_time_used_start_s = 0;
+    };
 
     /// \returns translatable name of the provided filtration backend
     static const char *backend_name(Backend backend);
@@ -54,6 +63,18 @@ public:
     /// \returns rated lifetime of the HEPA filter in seconds. 0 if not unknown/not specified
     uint32_t filter_lifetime_s() const;
 
+    /// \returns remaining post-print filtration time in seconds, or 0 when inactive
+    uint32_t post_print_remaining_s() const;
+
+    /// Stops an active post-print filtration sequence without affecting the next print.
+    void stop_post_print_filtration();
+
+    /// Starts a post-print filtration sequence using the configured post-print duration and PWM.
+    void start_post_print_filtration();
+
+    Snapshot snapshot() const;
+    void restore_snapshot(const Snapshot &snapshot);
+
     /// Check HEPA filter expiration and possibly show warning
     void check_filter_expiration();
 
@@ -65,6 +86,7 @@ public:
 
 private:
     bool needs_filtration() const;
+    void commit_unaccounted_filter_usage(uint32_t now_s, uint32_t min_s = 1);
 
 private:
     mutable freertos::Mutex mutex_;
@@ -76,6 +98,15 @@ private:
 
     /// ticks_s() of the time where we last needed the filtration (were printing)
     std::optional<uint32_t> last_filtration_need_s_ = std::nullopt;
+
+    /// Previous print-state tracking for post-print filtration handoff.
+    bool is_printing_prev_ = false;
+
+    /// Current post-print filtration requirement, if explicitly captured.
+    std::optional<bool> needs_filtration_ = std::nullopt;
+
+    /// ticks_s() of the print completion that started the post-print filtration cycle.
+    uint32_t last_print_s_ = 0;
 
     /// ticks_s() of the start of filter usage (output_pwm > 0) that has not yet been emitted in the config_store
     uint32_t unaccounted_filter_time_used_start_s_ = 0;

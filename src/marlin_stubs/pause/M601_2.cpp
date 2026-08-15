@@ -1,4 +1,5 @@
 #include "../../lib/Marlin/Marlin/src/gcode/gcode.h"
+#include "../../lib/Marlin/Marlin/src/gcode/queue.h"
 #include "marlin_server.hpp"
 
 #include <option/has_leds.h>
@@ -19,7 +20,7 @@
  */
 
 void GcodeSuite::M601() {
-    marlin_server::print_pause();
+    marlin_server::print_pause(!GCodeQueue::current_command_from_serial());
 }
 
 /**
@@ -31,7 +32,7 @@ void GcodeSuite::M601() {
  */
 
 void GcodeSuite::M602() {
-    marlin_server::print_resume();
+    marlin_server::print_resume(!GCodeQueue::current_command_from_serial());
 }
 
 /** @}*/

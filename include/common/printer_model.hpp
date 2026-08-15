@@ -28,6 +28,7 @@ enum class PrinterModel : uint8_t {
     coreonel_indx = 15,
     coreone_oak = 16,
     xls = 17,
+    coreoneplus = 18,
 
     _cnt
 };

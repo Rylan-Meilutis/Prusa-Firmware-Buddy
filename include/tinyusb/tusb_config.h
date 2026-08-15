@@ -102,9 +102,16 @@ extern "C" {
 #define CFG_TUD_MIDI   0
 #define CFG_TUD_VENDOR 0
 
-// CDC FIFO size of TX and RX
-#define CFG_TUD_CDC_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_CDC_TX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 128)
+// CDC FIFO size of TX and RX.
+//
+// Keep these FIFOs bounded. They are static SRAM allocations, so the TX side
+// does not mirror a complete RME transfer window. The RX side does need enough
+// room for the three commands behind the text-bulk command currently being
+// committed: TinyUSB otherwise accepts endpoint packets after its FIFO fills
+// and silently loses part of a line. 2048 bytes covers the advertised
+// 4-command/384-byte window without restoring the former 8 KiB allocation.
+#define CFG_TUD_CDC_RX_BUFSIZE 2048
+#define CFG_TUD_CDC_TX_BUFSIZE 512
 
 // CDC Endpoint transfer buffer size, more is faster
 #define CFG_TUD_CDC_EP_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)

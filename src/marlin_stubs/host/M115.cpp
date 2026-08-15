@@ -58,7 +58,7 @@ static void cap_line(PGM_P const name, bool ena = false) {
 void GcodeSuite::M115() {
     SERIAL_ECHOPGM("FIRMWARE_NAME:Prusa-Firmware-Buddy ");
     SERIAL_ECHOPGM(version::project_version_full);
-    SERIAL_ECHOPGM(" (Github) SOURCE_CODE_URL:https://github.com/prusa3d/Prusa-Firmware-Buddy");
+    SERIAL_ECHOPGM(" (Github) SOURCE_CODE_URL:https://github.com/Rylan-Meilutis/Prusa-Firmware-Buddy");
     SERIAL_ECHOPGM(" PROTOCOL_VERSION:" PROTOCOL_VERSION " MACHINE_TYPE:Prusa-");
     SERIAL_ECHOPGM(PrinterModelInfo::current().id_str);
 
@@ -88,6 +88,11 @@ void GcodeSuite::M115() {
 
     // BINARY_FILE_TRANSFER (M28 B1)
     cap_line(PSTR("BINARY_FILE_TRANSFER"));
+
+    // Printer-host storage access (M20-M30, M32)
+    cap_line(PSTR("SDCARD"), true);
+    cap_line(PSTR("EXTENDED_M20"), true);
+    cap_line(PSTR("LFN_WRITE"), true);
 
     // EEPROM (M500, M501)
     cap_line(PSTR("EEPROM"));
@@ -181,6 +186,12 @@ void GcodeSuite::M115() {
         true
 #endif
     );
+
+    // RME priority serial service protocol
+    cap_line(PSTR("PRIORITY_COMMAND_QUEUE"), true);
+    cap_line(PSTR("DIALOG_RESPONSE"), true);
+    cap_line(PSTR("NAMED_DIALOG_RESPONSE"), true);
+    cap_line(PSTR("SERVICE_QUEUE_STATUS"), true);
 
     // AUTOREPORT_SD_STATUS (M27 extension)
     cap_line(PSTR("AUTOREPORT_SD_STATUS"));

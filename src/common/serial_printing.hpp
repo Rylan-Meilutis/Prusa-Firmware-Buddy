@@ -4,12 +4,16 @@
 #include "timing.h"
 #include "gcode/queue.h"
 #include "module/planner.h"
+#include <serial_printing_ui_mode.hpp>
 
 /// Helper class to better support serial printing
 class SerialPrinting {
 public:
     /// Notifies print host about print being paused
-    static void pause();
+    static void pause(bool notify_host = true);
+
+    /// Notifies print host about a firmware-side pause reason.
+    static void paused(const char *reason);
 
     /// periodically called when in state "printing"
     static void print_loop();
@@ -18,20 +22,59 @@ public:
     static void abort();
 
     /// Notify host about print resume
-    static void resume();
+    static void resume(bool notify_host = true);
+
+    /// Notify host that firmware-side pause/error condition has cleared.
+    static void resumed();
 
     /// Hook called when command is queued via serial line
     /// Used to detect activity of serial print
-    static void serial_command_hook(const char *command);
+    /// Returns false when the command should not be queued.
+    static bool serial_command_hook(const char *command);
+
+    /// Serial hosts can report progress outside of the printed G-code stream
+    /// (for example in M117 status text). Prefer that over queued M73 values.
+    static bool host_progress_percent(uint8_t &percent, uint32_t now_ms);
+    static void set_host_progress_percent(uint8_t percent);
+    static bool host_time_to_end(uint32_t &seconds, uint32_t now_ms);
+    static void set_host_time_to_end(uint32_t seconds);
+
+    static SerialPrintingUiMode ui_mode();
+
+    static void set_status_message_baseline(uint32_t id);
+    static uint32_t status_message_baseline();
+
+    /// Emit a rate-limited host-action notification for the active serial job.
+    /// Progress is omitted when negative.
+    static void notify_status(const char *message, int progress_percent = -1, bool force = false);
+    static void notify_error(const char *workflow, const char *code, const char *message);
+    static void notify_progress(const char *workflow, const char *state, const char *code, const char *message, int progress_percent);
+    static void notify_workflow(const char *workflow, const char *state, const char *message = nullptr, int progress_percent = -1);
+    /// Announce a persistent/volatile configuration mutation. Hosts take one
+    /// startup snapshot, then refresh only the named domain on this revision.
+    static void notify_configuration(const char *domain, const char *key, bool from_host = false, uint32_t transaction = 0);
+    static void reset_status_notifications();
 
 private:
+    static void host_action(const char *action, const char *reason = nullptr);
+
     /// Check if serial printing had timeouted
     /// ie no command was queued for a while
     static bool has_serial_timeouted();
 
     /// Timeout [ms], after which serial print will be considered as finished
-    static constexpr uint32_t serial_printing_screen_timeout = 5 * 1000;
+    static uint32_t serial_printing_screen_timeout_ms();
+
+    static void reset_host_progress();
 
     /// Last time of activity of serial print
     static uint32_t last_serial_indicator_ms;
+
+    static uint8_t last_host_progress_percent;
+    static uint32_t last_host_progress_ms;
+    static uint32_t last_host_time_to_end_s;
+    static uint32_t last_host_time_to_end_ms;
+    static uint32_t status_message_baseline_id;
+    static const char *last_status_message;
+    static int8_t last_status_progress;
 };

@@ -20,6 +20,14 @@
 #include <wdt.hpp>
 #include <feature/factory_reset/factory_reset.hpp>
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #include <buddy/door_sensor.hpp>
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+    #include <marlin_server.hpp>
+    #include <marlin_vars.hpp>
+    #include <screen_end_filtration.hpp>
+#endif
+
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -75,6 +83,32 @@
 #endif
 
 Jogwheel jogwheel;
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+namespace {
+void open_end_filtration_prompt_on_door_open() {
+    static bool door_open_prev = false;
+    const bool door_open = buddy::door_sensor().detailed_state().state == buddy::DoorSensor::State::door_open;
+    const bool door_just_opened = door_open && !door_open_prev;
+    door_open_prev = door_open;
+    const bool prompt_current = Screens::Access()->IsScreenOpened<ScreenEndFiltration>();
+    const bool prompt_open = prompt_current;
+    const bool filtering = buddy::chamber_filtration().post_print_remaining_s() > 0;
+
+    if (prompt_current && (!door_open || !filtering)) {
+        Screens::Access()->Close<ScreenEndFiltration>();
+        return;
+    }
+
+    if (door_just_opened
+        && marlin_vars().print_state == marlin_server::State::Finished
+        && filtering
+        && !prompt_open) {
+        Screens::Access()->Open(ScreenFactory::Screen<ScreenEndFiltration>);
+    }
+}
+} // namespace
+#endif
 
 void gui_error_run(void) {
     gui_init();
@@ -218,6 +252,7 @@ void gui_run(void) {
     }
 
     Screens::Access()->Loop();
+    Screens::Access()->Draw();
 #if HAS_LEDS()
     leds::LEDManager::instance().init();
 #endif
@@ -238,10 +273,6 @@ void gui_run(void) {
 
     sound::play(SoundType::start);
 
-#if HAS_SIDE_LEDS()
-    leds::SideStripHandler::instance().activity_ping();
-#endif
-
     TaskDeps::provide(TaskDeps::Dependency::gui_ready);
 
     // Do one initial screen loop to close the screen_splash_t and open the screen_home_t
@@ -249,6 +280,11 @@ void gui_run(void) {
     // and then be immediately closed.
     // BFW-6193
     Screens::Access()->Loop();
+    Screens::Access()->Draw();
+
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().activity_ping();
+#endif
 
     // TODO make some kind of registration
     while (1) {
@@ -256,6 +292,10 @@ void gui_run(void) {
 
         Screens::Access()->Loop();
         DialogHandler::Access().Loop();
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        open_end_filtration_prompt_on_door_open();
+#endif
 
         gui_loop();
         gui::EndLoop();

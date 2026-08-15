@@ -44,6 +44,17 @@ bool filename_is_transferrable(const char *fname) {
     return filename_is_printable(fname, len) || filename_is_firmware(fname, len);
 }
 
+bool filename_is_rme_private(const char *fname) {
+    const char *basename = strrchr(fname, '/');
+    basename = basename ? basename + 1 : fname;
+    const size_t len = strlen(basename);
+    return strcasecmp(basename, "FWUPD.RME") == 0
+        || strcasecmp(basename, "FWUPD.UI") == 0
+        || filename_has_ext(basename, len, ".rme-part")
+        || filename_has_ext(basename, len, ".rme-meta")
+        || filename_has_ext(basename, len, ".rme-old");
+}
+
 const char *file_type_by_ext(const char *fname) {
     if (filename_is_printable(fname)) {
         return "PRINT_FILE";

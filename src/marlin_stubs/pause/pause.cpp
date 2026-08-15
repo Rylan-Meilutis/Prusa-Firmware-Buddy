@@ -1679,10 +1679,13 @@ void Pause::unpark_nozzle_and_notify() {
  * - Send host action for resume, if configured
  * - Resume the current SD print job, if any
  */
-void Pause::filament_change(const pause::Settings &settings_, bool is_filament_stuck) {
+void Pause::filament_change(const pause::Settings &settings_, std::optional<LoadUnloadMode> recovery_mode) {
     settings = settings_;
 
-    load_type = is_filament_stuck ? LoadType::filament_stuck : LoadType::filament_change;
+    load_type = recovery_mode ? LoadType::filament_stuck : LoadType::filament_change;
+    if (recovery_mode) {
+        set_mode(*recovery_mode);
+    }
 
     if (did_pause_print) {
         return; // already paused

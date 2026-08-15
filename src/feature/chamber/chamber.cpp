@@ -5,6 +5,7 @@
 #include <config_store/store_instance.hpp>
 #include <marlin_server.hpp>
 #include <marlin_server_shared.h>
+#include <common/extended_printer_type.hpp>
 #include <option/has_chamber_vents.h>
 #include <option/has_xbuddy_extension.h>
 #include <feature/safety_timer/safety_timer.hpp>
@@ -48,6 +49,21 @@ constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
 // Not used for chamber on XL
 #else
     #error
+#endif
+
+#if HAS_CHAMBER_VENTS()
+namespace {
+bool selected_core_one_plus() {
+    #if PRINTER_IS_PRUSA_COREONEL()
+    return true;
+    #elif PRINTER_IS_PRUSA_COREONE() && HAS_EXTENDED_PRINTER_TYPE()
+    const auto index = config_store().extended_printer_type.get();
+    return index < extended_printer_type_model.size() && extended_printer_type_model[index] == PrinterModel::coreoneplus;
+    #else
+    return false;
+    #endif
+}
+} // namespace
 #endif
 
 namespace buddy {
@@ -194,9 +210,19 @@ void Chamber::reset() {
 }
 
 #if HAS_CHAMBER_VENTS()
-void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target) {
-    if (!fil_target.has_value()) {
-        // We don't know whether we should close or open, leave as is
+void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target, bool serial_print, bool has_explicit_vent_gcode) {
+    const auto control_state = config_store().get_vent_control();
+    if (control_state == VentControl::off || !fil_target.has_value()) {
+        return;
+    }
+
+    const bool core_one_plus = selected_core_one_plus();
+
+    // A serial host is responsible for issuing explicit vent commands because
+    // the streamed print does not provide a reliable filament selection here.
+    // For file prints, an explicit command in the scanned start G-code takes
+    // precedence over Core One Plus filament-derived automatic movement.
+    if (serial_print || (core_one_plus && control_state == VentControl::automatic && has_explicit_vent_gcode)) {
         return;
     }
 
@@ -208,7 +234,7 @@ void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target) {
         return;
     }
 
-    switch (config_store().get_vent_control()) {
+    switch (control_state) {
 
     case VentControl::off:
         return;
@@ -218,6 +244,10 @@ void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target) {
         break;
 
     case VentControl::manual:
+        if (target_state == VentState::open && core_one_plus) {
+            vent_state_ = target_state;
+            return;
+        }
         marlin_server::set_warning(target_state == VentState::open ? WarningType::OpenChamberVents : WarningType::CloseChamberVents);
         vent_state_ = target_state;
         break;

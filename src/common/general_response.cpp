@@ -48,6 +48,7 @@ static constexpr EnumArray<Response, const char *, Response::_count> response_st
     R(Resume),
     R(Retry),
     R(Right),
+    R(Save),
     R(Skip),
     R(Slowly),
     R(SpoolJoin),

@@ -138,6 +138,11 @@ set(DEVELOPMENT_ITEMS_ENABLED
     CACHE BOOL "Show development (green) items in menus and enable other devel features"
     )
 define_boolean_option(DEVELOPMENT_ITEMS ${DEVELOPMENT_ITEMS_ENABLED})
+set(FULL_M503_REPORT_ENABLED
+    "YES"
+    CACHE BOOL "Include verbose M503 headings and TMC settings in all builds"
+    )
+define_boolean_option(FULL_M503_REPORT ${FULL_M503_REPORT_ENABLED})
 
 set(ENABLE_BURST
     "NO"
@@ -561,6 +566,7 @@ set(PRINTERS_WITH_TRANSLATIONS
     "XL"
     "MINI"
     )
+set(PRINTERS_WITH_EXTFLASH_TRANSLATIONS "COREONE" "COREONEL" "MINI" "XL")
 set_feature_for_printers(HAS_LOVE_BOARD "MK4" "iX" "COREONE" "COREONEL")
 set_feature_for_printers(HAS_TMC_UART "MINI")
 set_feature_for_printers(

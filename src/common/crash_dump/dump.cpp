@@ -184,6 +184,10 @@ bool save_dump_to_usb(const char *fn) {
 
     fd = fopen(fn, "w");
     if (fd != NULL) {
+        // Crash-dump export is also available through the allocation-free RME
+        // file service. Do not let newlib reserve a hidden stream buffer from
+        // the fragmented runtime heap.
+        setvbuf(fd, nullptr, _IONBF, 0);
         // save dumped RAM and CCMRAM from xflash
         for (uint32_t offset = 0; offset < dump_info.dump_size;) {
             size_t read_size = std::min(sizeof(buff), (size_t)(dump_info.dump_size - offset));

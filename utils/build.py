@@ -192,6 +192,7 @@ class FirmwareBuildConfiguration(BuildConfiguration):
         entries.extend([
             ('BOOTLOADER', 'STRING', self.bootloader.value.upper()),
             ('SIGNING_KEY', 'FILEPATH', str(signing_key_flg)),
+            ('Python3_EXECUTABLE', 'FILEPATH', sys.executable),
             ('CMAKE_TOOLCHAIN_FILE', 'FILEPATH', str(self.toolchain)),
             ('CMAKE_BUILD_TYPE', 'STRING', self.build_type.value.title()),
             ('PROJECT_VERSION_SUFFIX', 'STRING', self.version_suffix or ''),
@@ -246,6 +247,7 @@ class HostToolBuildConfiguration(BuildConfiguration):
         if self.generator.lower() == 'ninja':
             entries.append(('CMAKE_MAKE_PROGRAM', 'FILEPATH',
                             str(get_dependency('ninja'))))
+        entries.append(('Python3_EXECUTABLE', 'FILEPATH', sys.executable))
         entries.extend((tool.value.upper() + '_ENABLE', 'BOOL',
                         'YES' if tool == self.tool else 'NO')
                        for tool in HostTool)
@@ -299,6 +301,8 @@ def build(configuration: BuildConfiguration,
           output_to_file=True) -> BuildResult:
     """Build a project with a single configuration."""
     flags = configuration.get_cmake_flags(build_dir=build_dir)
+
+    remove_build_dir_with_wrong_python(build_dir)
 
     # create the build directory
     build_dir.mkdir(parents=True, exist_ok=True)
@@ -566,6 +570,68 @@ def store_products(products: List[Path], build_config: BuildConfiguration,
         shutil.copy(product, destination)
 
 
+def cached_cmake_python(build_dir: Path) -> Optional[Path]:
+    cache_path = build_dir / 'CMakeCache.txt'
+    if not cache_path.exists():
+        return None
+    for line in cache_path.read_text(errors='ignore').splitlines():
+        if line.startswith('Python3_EXECUTABLE:'):
+            _, value = line.split('=', 1)
+            return Path(value)
+    return None
+
+
+def is_current_python(path: Path) -> bool:
+    try:
+        cached_resolved = path.resolve()
+        current_resolved = Path(sys.executable).resolve()
+    except OSError:
+        cached_resolved = path
+        current_resolved = Path(sys.executable)
+    return cached_resolved == current_resolved
+
+
+def external_project_has_stamp(build_dir: Path,
+                               nested_build_dir: Path) -> bool:
+    name = nested_build_dir.name
+    if not name.endswith('-build'):
+        return False
+    base = name[:-len('-build')]
+    prefixes = [
+        build_dir / f'{base}_firmware-prefix', build_dir / f'{base}-prefix'
+    ]
+    return any(prefix.exists() for prefix in prefixes)
+
+
+def remove_build_dir_with_wrong_python(build_dir: Path):
+    cached_python = cached_cmake_python(build_dir)
+    if cached_python is not None and not is_current_python(cached_python):
+        print(
+            f'Removing {build_dir}: cached CMake Python is {cached_python}, current Python is {sys.executable}.',
+            file=sys.stderr)
+        shutil.rmtree(build_dir)
+        return
+
+    for nested_cache in build_dir.glob('*/CMakeCache.txt'):
+        nested_build_dir = nested_cache.parent
+        cached_python = cached_cmake_python(nested_build_dir)
+        if cached_python is not None and not is_current_python(cached_python):
+            print(
+                f'Removing {build_dir}: nested CMake Python in {nested_build_dir} is {cached_python}, current Python is {sys.executable}.',
+                file=sys.stderr)
+            shutil.rmtree(build_dir)
+            return
+
+    for nested_build_dir in build_dir.glob('*-build'):
+        if (not (nested_build_dir / 'CMakeCache.txt').exists()
+                and external_project_has_stamp(build_dir, nested_build_dir)):
+            print(
+                f'Removing {build_dir}: nested CMake build directory {nested_build_dir} is missing CMakeCache.txt.',
+                file=sys.stderr)
+            shutil.rmtree(build_dir)
+            return
+
+
 def load_presets() -> List[Preset]:
     presets_file_path: Path = presets_dir / 'presets.json'
     with open(presets_file_path, 'r') as f:
@@ -639,7 +705,7 @@ def main():
     parser.add_argument(
         '--final',
         action='store_true',
-        help='Set\'s --version-suffix and --version-suffix-short to empty string.')
+        help='Set --version-suffix and --version-suffix-short to "-RME".')
     parser.add_argument(
         '--build-dir',
         type=Path,
@@ -712,8 +778,12 @@ def main():
     products_dir_root = args.products_dir or (build_dir_root / 'products')
 
     if args.final:
-        args.version_suffix = ''
-        args.version_suffix_short = ''
+        args.version_suffix = '-RME'
+        args.version_suffix_short = '-RME'
+        args.cmake_def = args.cmake_def or []
+        if not any(entry[0] == 'DEVELOPMENT_ITEMS_ENABLED'
+                   for entry in args.cmake_def):
+            args.cmake_def.append(('DEVELOPMENT_ITEMS_ENABLED', 'BOOL', 'NO'))
 
     if args.generate_cproject or args.generate_cmake_presets:
         args.build_type = list(BuildType)

@@ -84,6 +84,13 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #if HAS_CHAMBER_FILTRATION_API()
     MI_CHAMBER_FILTRATION,
 #endif
+#if HAS_SIDE_LEDS()
+    MI_PRINT_CHAMBER_LIGHTS_ENABLE,
+#endif
+    MI_PRINT_SCREEN_BRIGHTNESS,
+#if HAS_LEDS()
+    MI_PRINT_STATUS_LEDS_ENABLE,
+#endif
 #if HAS_LOADCELL()
     MI_LIVE_ADJUST_Z, // position with loadcell
 #endif
@@ -96,21 +103,26 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #else
     MI_FILAMENT_SENSOR,
 #endif
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL()
     MI_STUCK_FILAMENT_DETECTION,
+    MI_FILAMENT_MOVEMENT_DETECTION,
 #endif
 #if XL_ENCLOSURE_SUPPORT()
     MI_ENCLOSURE_ENABLE,
     MI_ENCLOSURE,
 #endif
+#if !PRINTER_IS_PRUSA_MINI()
     MI_STEALTH_MODE,
     MI_SOUND_MODE,
-#if HAS_ST7789_DISPLAY()
+#endif
+#if HAS_ST7789_DISPLAY() && !PRINTER_IS_PRUSA_MINI()
     // We could potentionally have MINI display without buzzer.
-    // So we only allow sound control for ST7789
+    // MINI keeps this setting in User Interface without duplicating it here.
     MI_SOUND_VOLUME,
 #endif
+#if !PRINTER_IS_PRUSA_MINI()
     MI_INPUT_SHAPER,
+#endif
     MI_FAN_CHECK,
     MI_GCODE_VERIFY,
 #if HAS_EMERGENCY_STOP()

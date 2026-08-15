@@ -38,27 +38,36 @@ target_sources(
           qr.cpp
           screen_error.cpp
           screen_filebrowser.cpp
+          screen_firmware_update.cpp
           screen_help_fw_update.cpp
           screen_home.cpp
           screen_menu.cpp
           screen_menu_control.cpp
           screen_menu_enclosure.cpp
+          screen_menu_external_light_bar.cpp
           screen_menu_fail_stat.cpp
           screen_menu_fan_info.cpp
           screen_menu_filament.cpp
           screen_menu_footer_settings.cpp
           screen_menu_hardware.cpp
           screen_menu_hardware_tune.cpp
+          screen_menu_heater_safety.cpp
           screen_menu_info.cpp
           screen_menu_input_shaper.cpp
           screen_menu_lang_and_time.cpp
+          screen_menu_led_colors.cpp
+          screen_menu_lock_settings.cpp
           screen_menu_metrics.cpp
           screen_menu_metrics_list.cpp
           screen_menu_move.cpp
           screen_menu_network.cpp
           screen_menu_network_settings.cpp
           screen_menu_network_status.cpp
+          screen_menu_odometer.cpp
+          screen_menu_pa_calibration.cpp
+          screen_menu_pid.cpp
           screen_menu_sensor_info.cpp
+          screen_menu_serial_printing.cpp
           screen_menu_settings.cpp
           screen_menu_statistics.cpp
           screen_menu_system.cpp
@@ -72,9 +81,11 @@ target_sources(
           screen_printing_end_result.cpp
           screen_prusa_link.cpp
           screen_splash.cpp
+          screen_theme_filebrowser.cpp
           ScreenFactory.cpp
           ScreenHandler.cpp
           ScreenPrintingModel.cpp
+          serial_remote_control.cpp
           text_error_url.cpp
           time_tools.cpp
           window_file_list.cpp
@@ -91,6 +102,14 @@ endif()
 
 if(HAS_SERIAL_PRINT)
   target_sources(firmware PRIVATE screen_printing_serial.cpp)
+endif()
+
+if(PRINTER STREQUAL "COREONE"
+   OR PRINTER STREQUAL "COREONE_INDX"
+   OR PRINTER STREQUAL "COREONEL"
+   OR PRINTER STREQUAL "COREONEL_INDX"
+   )
+  target_sources(firmware PRIVATE screen_end_filtration.cpp)
 endif()
 
 if(TRANSLATIONS_ENABLED)
@@ -138,7 +157,7 @@ if(HAS_SELFTEST)
 endif()
 
 if(HAS_LOADCELL)
-  target_sources(firmware PRIVATE MItem_loadcell.cpp)
+  target_sources(firmware PRIVATE MItem_loadcell.cpp screen_pa_calibration_progress.cpp)
 endif()
 
 if(HAS_SHEET_PROFILES)

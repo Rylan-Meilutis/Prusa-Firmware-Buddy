@@ -735,6 +735,56 @@ bool MMU2::tool_change_full(uint8_t slot) {
     return true;
 }
 
+bool MMU2::tool_change_for_pa_calibration(uint8_t slot) {
+    if (!WaitForMMUReady()) {
+        return false;
+    }
+
+    // Reconcile stale logical state before comparing the requested slot. This
+    // is common when filament was removed while the printer was off.
+    if (filament_path_empty_for_pa()) {
+        extruder = MMU2_NO_TOOL;
+        tool_change_extruder = MMU2_NO_TOOL;
+    }
+
+    if (slot != extruder) {
+        planner_synchronize();
+
+        // M976 has already placed the nozzle at the per-slot off-bed
+        // free-extrusion position. Preserve it for both the unload and load;
+        // the normal MMU park would carry a purge tail back across the sheet.
+        if (!unload_for_pa_calibration()) {
+            return false;
+        }
+
+        CommandInProgressGuard cipg(CommandInProgress::ToolChange, commandInProgressManager);
+        FSensorBlockRunout blockRunout;
+        BlockEStallDetection blockEStallDetection;
+        planner_synchronize();
+        ToolChangeCommon(slot);
+
+        // Extend exactly 2 mm beyond the modeled nozzle path. This is enough
+        // to establish melt pressure without producing the large MMU loop
+        // created by the normal purge sequence.
+        execute_load_to_nozzle_sequence(2.0f);
+    }
+
+    return true;
+}
+
+bool MMU2::filament_path_empty_for_pa() const {
+    return !FindaDetectsFilament() && ::MMU2::WhereIsFilament() == FilamentState::NOT_PRESENT;
+}
+
+bool MMU2::unload_for_pa_calibration() {
+    if (filament_path_empty_for_pa()) {
+        extruder = MMU2_NO_TOOL;
+        tool_change_extruder = MMU2_NO_TOOL;
+        return true;
+    }
+    return unload();
+}
+
 /// Handle special T?/Tx/Tc commands
 ///
 ///- T? Gcode to extrude shouldn't have to follow, load to extruder wheels is done automatically
@@ -1389,6 +1439,22 @@ void MMU2::execute_load_to_nozzle_sequence() {
     // Compensate for configurable Extra Loading Distance
     // @@TODO 8bit needs this: planner_set_current_position_E(planner_get_current_position_E() - (logic.ExtraLoadDistance() - MMU2_FILAMENT_SENSOR_POSITION));
     execute_extruder_sequence(load_to_nozzle_sequence, sizeof(load_to_nozzle_sequence) / sizeof(load_to_nozzle_sequence[0]), ExtendedProgressCode::LoadingToNozzle);
+}
+
+void MMU2::execute_load_to_nozzle_sequence(const float final_purge_length) {
+    planner_synchronize();
+#ifdef USE_TRY_LOAD
+    const E_Step calibration_load_sequence[] = {
+        { MMU2_EXTRUDER_HEATBREAK_LENGTH, MMU2_LOAD_TO_NOZZLE_FEED_RATE },
+        { MMU2_EXTRUDER_NOZZLE_LENGTH + final_purge_length, 5.F },
+    };
+#else
+    const E_Step calibration_load_sequence[] = {
+        { MMU2_EXTRUDER_HEATBREAK_LENGTH - MMU2_FEED_DISTANCE, MMU2_FEED_RATE },
+        { MMU2_EXTRUDER_NOZZLE_LENGTH + final_purge_length, 5.F },
+    };
+#endif
+    execute_extruder_sequence(calibration_load_sequence, std::size(calibration_load_sequence), ExtendedProgressCode::LoadingToNozzle);
 }
 
 void MMU2::ReportError(ErrorCode ec, ErrorSource res) {

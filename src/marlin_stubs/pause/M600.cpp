@@ -30,7 +30,6 @@
 
 LOG_COMPONENT_REF(PRUSA_GCODE);
 
-#include <option/has_crash_detection.h>
 #include <option/has_pause.h>
 static_assert(HAS_PAUSE());
 
@@ -40,10 +39,13 @@ static_assert(HAS_PAUSE());
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
 #include "marlin_server.hpp"
 #include "pause_stubbed.hpp"
-#include <algorithm>
+#include <serial_printing.hpp>
+#include <cassert>
 #include <cmath>
-#include <feature/safety_timer/safety_timer.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+#if HAS_LOADCELL()
+    #include <feature/extrusion_calibration.hpp>
+#endif
 #include "filament.hpp"
 #include <gcode/gcode_parser.hpp>
 
@@ -57,9 +59,9 @@ static_assert(HAS_PAUSE());
     #include <module/prusa/spool_join.hpp>
 #endif
 
-#if HAS_CRASH_DETECTION()
+#if ENABLED(CRASH_RECOVERY)
     #include <feature/prusa/crash_recovery.hpp>
-#endif
+#endif /*ENABLED(CRASH_RECOVERY)*/
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -122,6 +124,13 @@ void GcodeSuite::M600() {
 
     const bool is_auto_m600 = p.option<bool>('A').value_or(false);
 
+#if !PRINTER_IS_PRUSA_MINI()
+    if (is_auto_m600) {
+        SerialPrinting::notify_error("filament_runout", "filament_runout", "Filament runout detected");
+        SerialPrinting::notify_workflow("filament_runout", "open", "Filament change required");
+    }
+#endif
+
     bool do_manual_m600 = true;
 
 #if HAS_SPOOL_JOIN()
@@ -152,7 +161,7 @@ void GcodeSuite::M600() {
 void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool,
     xyze_float_t resume_point, std::optional<float> unloadLength, std::optional<float> fastLoadLength,
     std::optional<float> retractLength, std::optional<Color> filament_colour,
-    std::optional<FilamentType> filament_type, bool);
+    std::optional<FilamentType> filament_type, std::optional<LoadUnloadMode> recovery_mode);
 
 void M600_manual(const GCodeParser2 &p) {
     const std::optional<VirtualToolIndex> virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command_p(p));
@@ -193,18 +202,21 @@ void M600_manual(const GCodeParser2 &p) {
         p.option<float>('E').transform(fabsf),
         p.option<Color>('C'),
         p.option<FilamentType>('S'),
-        false);
+        std::nullopt);
 }
 
 void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_tool, xyze_float_t resume_point,
     std::optional<float> unloadLength, std::optional<float> fastLoadLength, std::optional<float> retractLength,
     std::optional<Color> filament_colour, std::optional<FilamentType> filament_type,
-    bool is_filament_stuck) {
+    std::optional<LoadUnloadMode> recovery_mode) {
 
     // Ignore estalls during filament change
     BlockEStallDetection estall_blocker;
 
     auto physical_target_tool = target_tool.to_physical();
+
+    const bool print_was_already_paused = marlin_server::printer_paused_extended();
+    const bool notify_serial_host_resume = marlin_server::serial_print_active() && !print_was_already_paused;
 
 #if HAS_TOOLCHANGER()
     struct ToolChangeData {
@@ -238,7 +250,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
 #endif
     // X/Y are taken as-is; an absolute Z becomes an AtLeast (never-go-down).
     if (auto *z = std::get_if<float>(&park_position.z)) {
-        park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE_M600, .absolute = *z };
+        park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = *z };
     } else {
         // Other alternatives express the intended park behavior on their own; flag a caller not asking for any Z handling
         debug_assert(!std::holds_alternative<mapi::ParkingPosition::Unchanged>(park_position.z));
@@ -257,12 +269,6 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
     } // Initial retract before move to filament change position
     settings.SetExtruder(target_tool);
 
-    // A pause that outlives the safety timer leaves the heaters disabled, which zeroes
-    // both the target and the displayed temperature. Restore them before snapshotting,
-    // otherwise the resume temperature captured below is 0 and turns the nozzle off.
-    // Pause::filament_change() restores anyway; this only moves it ahead of the read.
-    buddy::safety_timer().reset_restore_nonblocking();
-
     const float disp_temp = marlin_vars().hotend(physical_target_tool).display_nozzle;
     const float targ_temp = Temperature::degTargetHotend(physical_target_tool);
 
@@ -270,9 +276,8 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         Temperature::setTargetHotend(static_cast<int16_t>(disp_temp), physical_target_tool);
     }
 
-    // Loading drops the target to the new filament's default; restore the print temperature
-    // on resume. Snapshot what the branch above left in effect, not the pre-raise target.
-    settings.SetResumeNozzleTemperature(static_cast<int16_t>(std::max(disp_temp, targ_temp)));
+    // Loading drops the target to the new filament's default; restore the print temperature on resume.
+    settings.SetResumeNozzleTemperature(static_cast<int16_t>(targ_temp));
 
     if (filament_type.has_value()) {
         config_store().set_filament_type(target_tool, filament_type.value());
@@ -282,7 +287,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
 
     filament::set_type_to_load(*filament_type);
     filament::set_color_to_load(filament_colour);
-    Pause::Instance().filament_change(settings, is_filament_stuck);
+    Pause::Instance().filament_change(settings, recovery_mode);
 
 #if HAS_TOOLCHANGER()
     if (tool_change_data.has_value()) {
@@ -305,19 +310,28 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         report_current_position();
     }
 #endif
+
+    if (notify_serial_host_resume && !marlin_server::aborting_or_aborted()) {
+        SerialPrinting::resume();
+        SerialPrinting::resumed();
+    }
 }
 
 /**
- *### M1601: Filament stuck detected during print <a href=" "> </a>
+ *### M1601: Extrusion fault detected during print <a href=" "> </a>
  *
  * Internal GCode
  *
  * Enabled for LoadCell equipped printers
  *
- * Only MK3.9/S, MK4/S and XL
+ * Used by loadcell-equipped printers to pause on nozzle clogs/jams or
+ * upstream filament restraint that stalls forward extrusion.
  *#### Usage
  *
- *    M1601
+ *    M1601 [ R ]
+ *
+ * R0/omitted = stuck, R1 = runout, R2 = filament not moving,
+ * R3 = flow-pressure breakout/max-flow limit.
  *
  */
 #if HAS_LOADCELL()
@@ -326,15 +340,30 @@ void PrusaGcodeSuite::M1601() {
     if (!active_tool.has_value()) {
         bsod_unreachable();
     }
+    LoadUnloadMode recovery_mode = LoadUnloadMode::FilamentStuck;
+    switch (parser.byteval('R', 0)) {
+    case 1:
+        recovery_mode = LoadUnloadMode::FilamentRunout;
+        break;
+    case 2:
+        recovery_mode = LoadUnloadMode::FilamentNotMoving;
+        break;
+    case 3:
+        recovery_mode = LoadUnloadMode::FlowLimit;
+        break;
+    default:
+        break;
+    }
     M600_execute(
         mapi::get_parking_position(mapi::ParkPosition::filament_change),
         *active_tool,
         current_position,
         std::nullopt, std::nullopt, std::nullopt,
         std::nullopt, std::nullopt,
-        true);
+        recovery_mode);
 
     EMotorStallDetector::Instance().ClearReported();
+    buddy::extrusion_calibration::acknowledge_extrusion_fault();
 }
 #else
 

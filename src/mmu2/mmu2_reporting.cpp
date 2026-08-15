@@ -3,11 +3,12 @@
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_reporting.h"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.cpp"
 #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/buttons.h"
-#include "../common/marlin_server.hpp"
 #include "../common/sound.hpp"
 #include "mmu2_error_converter.h"
 #include "mmu2_fsm.hpp"
 #include "mmu2_reporter.hpp"
+#include "mmu2_reporting.hpp"
+#include <serial_printing.hpp>
 #include "fail_bucket.hpp"
 #include "pause_stubbed.hpp"
 #include <logging/log.hpp>
@@ -15,10 +16,14 @@
 #include <odometer.hpp>
 #include <filament_to_load.hpp>
 #include <M70X.hpp>
+#include <optional>
 
 LOG_COMPONENT_REF(MMU2);
 
 namespace MMU2 {
+
+static bool serial_host_mmu_error_reported = false;
+static std::optional<ErrorData> active_mmu_error;
 
 void CheckErrorScreenUserInput() {
     // A "temporary" workaround:
@@ -48,6 +53,20 @@ void ReportErrorHook(ErrorData d) {
         return;
     }
 
+    // The MMU repeats an unresolved error roughly once per second. One report
+    // is sufficient to create and retain the recovery FSM; continually
+    // replacing it makes the serial host emit the same notification forever.
+    // A genuinely different error is still delivered immediately.
+    if (active_mmu_error == d) {
+        return;
+    }
+    active_mmu_error = d;
+
+    if (!serial_host_mmu_error_reported) {
+        defer_serial_host_mmu_paused();
+        serial_host_mmu_error_reported = true;
+    }
+
     // An error always causes one specific screen to occur
     // Its content is given by the error code translated into Prusa-Error-Codes MMU
     // That needs to be coded into the context data passed to the screen
@@ -57,6 +76,8 @@ void ReportErrorHook(ErrorData d) {
         Fsm::Instance().reporter.SetReport(d);
     } else {
         log_error(MMU2, "Error report: CIP=%" PRIu8 " ec=%u es=%u - cannot be done, fsm closed", static_cast<unsigned>(d.rawCommandInProgress), static_cast<unsigned>(d.errorCode), static_cast<unsigned>(d.errorSource));
+        SerialPrinting::notify_error("mmu", "not_responding", "MMU is not responding");
+        SerialPrinting::notify_workflow("mmu", "waiting", "MMU communication recovery required");
     }
 }
 
@@ -74,6 +95,13 @@ void BeginReport([[maybe_unused]] ProgressData d) {
 }
 
 void EndReport([[maybe_unused]] ProgressData d) {
+    // The operation completed or recovery succeeded. Re-arm reporting so a
+    // recurrence during a later operation is announced once again.
+    active_mmu_error.reset();
+    if (serial_host_mmu_error_reported) {
+        defer_serial_host_mmu_resume();
+        serial_host_mmu_error_reported = false;
+    }
     Fsm::Instance().Deactivate();
 }
 

@@ -101,7 +101,8 @@ static constexpr uint8_t ILI9488_MAX_COMMAND_READ_LENGHT = 4;
 
 namespace {
 bool do_complete_lcd_reinit = false;
-}
+bool display_writes_suppressed = false;
+} // namespace
 
 static bool reduce_display_baudrate = false;
 
@@ -254,6 +255,9 @@ void ili9488_wr(uint8_t *pdata, uint16_t size) {
     if (!(pdata && size)) {
         return; // null or empty data - return
     }
+    if (display_writes_suppressed) {
+        return;
+    }
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
     SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
@@ -291,6 +295,10 @@ void ili9488_cmd_slpout(void) {
     ili9488_cmd(CMD_SLPOUT, 0, 0);
 }
 
+void ili9488_cmd_slpin(void) {
+    ili9488_cmd(CMD_SLPIN, 0, 0);
+}
+
 void ili9488_cmd_madctl(uint8_t madctl) {
     ili9488_cmd(CMD_MADCTL, &madctl, 1);
 }
@@ -318,6 +326,9 @@ void ili9488_cmd_raset(uint16_t y, uint16_t cy) {
 }
 
 void ili9488_cmd_ramwr(uint8_t *pdata, uint16_t size) {
+    if (display_writes_suppressed && pdata && size) {
+        return;
+    }
     ili9488_cmd(CMD_RAMWR, pdata, size);
 }
 
@@ -486,6 +497,38 @@ void ili9488_clear(uint32_t clr666) {
     ili9488_fill_rect_colorFormat666(0, 0, ILI9488_COLS, ILI9488_ROWS, clr666);
 }
 
+void ili9488_clear_full_black(void) {
+    // Screen-off must reliably write every pixel black before the backlight is
+    // disabled. Bypass the optional reduced-color fast path used by clear().
+    SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
+
+    debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
+
+    const bool previous_suppression = display_writes_suppressed;
+    display_writes_suppressed = false;
+
+    memset(ili9488_buff, 0, sizeof(ili9488_buff));
+
+    uint32_t remaining = static_cast<uint32_t>(ILI9488_COLS) * ILI9488_ROWS * 3;
+    ili9488_clr_cs();
+    ili9488_cmd_caset(0, ILI9488_COLS - 1);
+    ili9488_cmd_raset(0, ILI9488_ROWS - 1);
+    ili9488_cmd_colmod(DEFAULT_COLMOD);
+    ili9488_cmd_ramwr(0, 0);
+    while (remaining > 0) {
+        const uint16_t chunk = remaining > sizeof(ili9488_buff) ? sizeof(ili9488_buff) : remaining;
+        ili9488_wr(ili9488_buff, chunk);
+        remaining -= chunk;
+    }
+    ili9488_set_cs();
+
+    display_writes_suppressed = previous_suppression;
+}
+
+void ili9488_suppress_display_writes(bool suppress) {
+    display_writes_suppressed = suppress;
+}
+
 void ili9488_set_pixel(uint16_t point_x, uint16_t point_y, uint32_t clr666) {
     ili9488_cmd_caset(point_x, point_x + 1);
     ili9488_cmd_raset(point_y, point_y + 1);
@@ -585,7 +628,7 @@ void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     ili9488_set_cs();
 }
 
-void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color, bool tinted) {
     debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
@@ -667,6 +710,9 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
 
                 // Transform pixel data
                 pixel = qoi::transform::apply_rop(pixel, rop);
+                if (tinted) {
+                    pixel = qoi::transform::tint(pixel, tint_color);
+                }
 
                 const Color c = Color::mix(back_color, Color::from_rgb(pixel.r, pixel.g, pixel.b), pixel.a);
 
@@ -687,6 +733,14 @@ void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back
     // Write remaining pixels to display and close SPI transaction
     ili9488_wr(p_buf.data(), o_data - p_buf.begin());
     ili9488_set_cs();
+}
+
+void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
+    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, COLOR_WHITE, false);
+}
+
+void ili9488_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color) {
+    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, tint_color, true);
 }
 
 void ili9488_inversion_on(void) {

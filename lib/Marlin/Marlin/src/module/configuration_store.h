@@ -34,8 +34,7 @@ class MarlinSettings {
       return true;
     }
 
-    FORCE_INLINE
-    static bool load() { reset(); report(); return true; }
+    static bool load();
     FORCE_INLINE
     static void first_load() { (void)load(); }
 

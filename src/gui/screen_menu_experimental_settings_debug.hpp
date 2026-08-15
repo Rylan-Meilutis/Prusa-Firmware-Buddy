@@ -37,7 +37,6 @@ using ScreenMenuExperimentalSettings__ = ScreenMenu<GuiDefaults::MenuFooter,
     MI_CURRENT_Z,
     MI_CURRENT_E,
     MI_RESET_CURRENTS,
-    MI_SERIAL_PRINTING_SCREEN_ENABLE,
     MI_FAST_DRAW_ENABLE
 #if HAS_LOADCELL()
     ,

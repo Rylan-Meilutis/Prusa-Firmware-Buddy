@@ -40,7 +40,8 @@ static_assert(
         && std::to_underlying(PrinterModel::coreone_indx) == 14
         && std::to_underlying(PrinterModel::coreonel_indx) == 15
         && std::to_underlying(PrinterModel::coreone_oak) == 16
-        && std::to_underlying(PrinterModel::xls) == 17,
+        && std::to_underlying(PrinterModel::xls) == 17
+        && std::to_underlying(PrinterModel::coreoneplus) == 18,
     "Order should not change, it will create a discrepancy in stored EEPROM values");
 
 // Some checks about the printer data

@@ -154,11 +154,7 @@ MI_MMU_LOAD_TEST_ALL::MI_MMU_LOAD_TEST_ALL()
 }
 
 void MI_MMU_LOAD_TEST_ALL::click(IWindowMenu & /*window_menu*/) {
-    for (uint8_t i = 0; i < 5; ++i) {
-        char gcode[] = "M1704 Px M0";
-        gcode[sizeof(gcode) - 2] = i + '0';
-        marlin_client::gcode(gcode);
-    }
+    gui_try_gcode_with_msg("M1704 A M0");
 }
 
 /**

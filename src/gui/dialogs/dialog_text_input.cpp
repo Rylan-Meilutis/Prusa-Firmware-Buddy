@@ -4,6 +4,7 @@
 #include <ScreenHandler.hpp>
 #include <sound.hpp>
 #include <img_resources.hpp>
+#include <ui_theme.hpp>
 #include "timing.h"
 #include <bsod/bsod.h>
 
@@ -61,11 +62,18 @@ constexpr EnumArray<SpecialButton, std::variant<const char *, const img::Resourc
 
 } // namespace
 
-DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer)
-    : buffer_(buffer) {
+DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input, bool start_with_numbers)
+    : buffer_(buffer)
+    , hidden_input_(hidden_input)
+    , start_with_numbers_(start_with_numbers) {
     ui.txt_prompt.SetText(prompt);
     setup_ui();
-    set_keyboard_layout(layout_text_lowercase);
+#if HAS_NUMBERS_LAYOUT()
+    if (start_with_numbers_) {
+        set_keyboard_layout(layout_numbers);
+    } else
+#endif
+        set_keyboard_layout(layout_text_lowercase);
 
     update_result();
     update_ui_enabled();
@@ -73,15 +81,25 @@ DialogTextInput::DialogTextInput(const string_view_utf8 &prompt, std::span<char>
     CaptureNormalWindow(*this);
 
     // We need to set focus to something, otherwise touch wouldn't work
-    ui.btn_matrix[0].SetFocus();
+    int focus_button = 0;
+    if (start_with_numbers_) {
+        for (int i = 0; i < button_count; ++i) {
+            const ButtonRec &rec = (*current_layout_)[i / button_cols][i % button_cols];
+            if (!rec.is_special() && rec[0] >= '0' && rec[0] <= '9') {
+                focus_button = i;
+                break;
+            }
+        }
+    }
+    ui.btn_matrix[focus_button].SetFocus();
 }
 
 uint16_t DialogTextInput::get_max_prompt_length() {
     return max_prompt_length;
 };
 
-bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer) {
-    DialogTextInput dlg(prompt, buffer);
+bool DialogTextInput::exec(const string_view_utf8 &prompt, std::span<char> buffer, bool hidden_input, bool start_with_numbers) {
+    DialogTextInput dlg(prompt, buffer, hidden_input, start_with_numbers);
     Screens::Access()->gui_loop_until_dialog_closed();
     return !dlg.cancelled_;
 }
@@ -143,7 +161,7 @@ void DialogTextInput::setup_ui() {
             auto &wnd = ui.txt_result;
             wnd.SetRect(Rect16::fromLTRB(buttons_rect.Left() + button_padding, y, r, b));
             wnd.set_font(Font::big);
-            wnd.SetTextColor(COLOR_BRAND);
+            wnd.SetTextColor(ui_theme::image());
             wnd.SetAlignment(Align_t::RightCenter());
             wnd.set_enabled(false);
 
@@ -161,6 +179,9 @@ void DialogTextInput::setup_ui() {
             wnd.set_enabled(false);
 
             RegisterSubWin(wnd);
+            if (hidden_input_) {
+                wnd.Hide();
+            }
         }
     }
 
@@ -354,7 +375,14 @@ void dialog_text_input::DialogTextInput::update_result() {
     const auto max_visible_characters = ui.txt_result.Width() / resource_font(ui.txt_result.get_font())->w;
 
     const size_t text_len = strlen(buffer_.data());
-    ui.txt_result.SetText(string_view_utf8::MakeRAM(buffer_.data() + text_len - std::min<size_t>(text_len, max_visible_characters)));
+    if (hidden_input_) {
+        const size_t shown_len = std::min({ text_len, static_cast<size_t>(max_visible_characters), hidden_buffer_.size() - 1 });
+        std::fill(hidden_buffer_.begin(), hidden_buffer_.end(), '\0');
+        std::fill_n(hidden_buffer_.begin(), shown_len, '*');
+        ui.txt_result.SetText(string_view_utf8::MakeRAM(hidden_buffer_.data()));
+    } else {
+        ui.txt_result.SetText(string_view_utf8::MakeRAM(buffer_.data() + text_len - std::min<size_t>(text_len, max_visible_characters)));
+    }
     ui.txt_result.Invalidate();
 
     update_ui_enabled();

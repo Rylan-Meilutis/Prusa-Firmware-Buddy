@@ -111,8 +111,7 @@ public:
         , dock_count_(dock_count) {
 
         for (uint8_t i = 0; i < dock_count_; ++i) {
-            // Known dock count (4/8): default every dock to Calibrate.
-            // "Other": default only uncalibrated docks to Calibrate, keep the rest.
+            // The selected 4/8 hardware variant bounds the visible docks.
             actions_[i] = (preselect_all || !calibrated_docks.test(i)) ? DockAction::calibrate : DockAction::keep;
         }
 

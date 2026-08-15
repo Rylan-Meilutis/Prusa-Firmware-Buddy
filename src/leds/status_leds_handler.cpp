@@ -2,16 +2,60 @@
 
 #include <led_animation_controller/animation_controller.hpp>
 #include <led_animation_controller/frame_animation.hpp>
+#include "marlin_server.hpp"
 #include "marlin_vars.hpp"
+#include "client_response.hpp"
 #include <fsm/filament_change_phases.hpp>
+#include "timing.h"
+#include <option/has_chamber_filtration_api.h>
 #include <option/has_mmu2.h>
 #include <option/has_tool_mapping.h>
 #include <option/has_side_fsensor.h>
 #include <option/has_tool_crash_recovery.h>
+#include <algorithm>
+
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
 
 namespace leds {
 
 using namespace marlin_server;
+
+static bool post_filter_active() {
+#if HAS_CHAMBER_FILTRATION_API()
+    return marlin_vars().print_state.get() == marlin_server::State::Finished
+        && buddy::chamber_filtration().output_pwm().value > 0;
+#else
+    return false;
+#endif
+}
+
+static bool print_active_for_status_override() {
+    const auto state = marlin_vars().print_state.get();
+    return state == State::PrintInit
+        || state == State::SerialPrintInit
+        || marlin_server::is_printing_state(state)
+        || marlin_server::is_extended_paused_state(state)
+        || marlin_server::serial_print_active();
+}
+
+static uint8_t packed_brightness(uint32_t values, LightState state) {
+    return (values >> light_state_shift(state)) & 0xff;
+}
+
+static ColorRGBW raw_to_color(uint32_t raw) {
+    return ColorRGBW(static_cast<uint8_t>((raw >> 16) & 0xff), static_cast<uint8_t>((raw >> 8) & 0xff), static_cast<uint8_t>(raw & 0xff));
+}
+
+#if HAS_CHAMBER_FILTRATION_API()
+static ColorRGBW filtration_tint() {
+    const uint32_t duration_s = config_store().chamber_post_print_filtration_duration_min.get() * 60;
+    const uint32_t remaining_s = std::min(buddy::chamber_filtration().post_print_remaining_s(), duration_s);
+    const float progress = duration_s > 0 ? static_cast<float>(duration_s - remaining_s) / duration_s : 1.0f;
+    return raw_to_color(config_store().status_led_warning_color.get()).blend({ 255, 255, 255 }, progress);
+}
+#endif
 
 static StateAnimation marlin_to_anim_state() {
     fsm::States::State load_unload_state;
@@ -119,8 +163,6 @@ static StateAnimation marlin_to_anim_state() {
     case State::PrintInit:
     case State::SerialPrintInit:
     case State::Finishing_WaitIdle:
-    case State::Finishing_ParkHead:
-    case State::Finishing_UnloadFilament:
     case State::Pausing_Begin:
     case State::Pausing_WaitIdle:
     case State::Pausing_ParkHead:
@@ -146,10 +188,14 @@ static StateAnimation marlin_to_anim_state() {
     case State::Aborting_Preview:
     case State::Aborting_UnloadFilament:
     case State::Aborted:
-        return StateAnimation::Aborted;
+        return StateAnimation::Aborting;
+
+    case State::Finishing_ParkHead:
+    case State::Finishing_UnloadFilament:
+        return StateAnimation::Finishing;
 
     case State::Finished:
-        return StateAnimation::Finished;
+        return post_filter_active() ? StateAnimation::Filtering : StateAnimation::Finishing;
 
     case State::CrashRecovery_Begin:
     case State::CrashRecovery_Retracting:
@@ -199,16 +245,22 @@ namespace {
 #if PRINTER_IS_PRUSA_iX()
         { StateAnimation::Idle, { { 0, 0, 255 }, 1000, 0, 400, solid } },
             { StateAnimation::Printing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
-            { StateAnimation::Finished, { { 0, 0, 255 }, 500, 0, 250, pulsing } },
-            { StateAnimation::Aborted, { { 0, 0, 255 }, 1000, 0, 400, solid } },
-            { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
-            { StateAnimation::PowerPanic, { { 0, 255, 0 }, 1000, 0, 400, solid } },
+            { StateAnimation::Finishing, { { 0, 0, 255 }, 500, 0, 250, pulsing } },
 #else
         { StateAnimation::Idle, { { 0, 0, 0 }, 1000, 0, 400, solid } },
             { StateAnimation::Printing, { { 0, 150, 255 }, 1000, 0, 400, solid } },
-            { StateAnimation::Finished, { { 0, 255, 0 }, 1000, 0, 400, solid } },
-            { StateAnimation::Aborted, { { 0, 0, 0 }, 1000, 0, 400, solid } },
+            { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
+#endif
+            { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 2000, pulsing } },
+            { StateAnimation::Aborting, { { 0, 0, 0 }, 1000, 0, 400, solid } },
+#if PRINTER_IS_PRUSA_iX()
+            { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
+#else
             { StateAnimation::Warning, { { 255, 255, 0 }, 1000, 0, 1000, pulsing } },
+#endif
+#if PRINTER_IS_PRUSA_iX()
+            { StateAnimation::PowerPanic, { { 0, 255, 0 }, 1000, 0, 400, solid } },
+#else
             { StateAnimation::PowerPanic, { { 0, 0, 0 }, 1000, 0, 400, solid } },
 #endif
             { StateAnimation::PowerUp, { { 0, 255, 0 }, 1500, 0, 1500, pulsing } },
@@ -236,6 +288,26 @@ namespace {
             { AnimationType::Pulsing, pulsing },
     };
 
+    ColorRGBW configured_color(StateAnimation state, ColorRGBW fallback) {
+        switch (state) {
+        case StateAnimation::Idle:
+            return raw_to_color(config_store().status_led_idle_color.get());
+        case StateAnimation::Printing:
+            return raw_to_color(config_store().status_led_printing_color.get());
+        case StateAnimation::Finishing:
+            return raw_to_color(config_store().status_led_finished_color.get());
+        case StateAnimation::Filtering:
+            return { 255, 255, 255 };
+        case StateAnimation::Warning:
+        case StateAnimation::PowerPanic:
+            return raw_to_color(config_store().status_led_warning_color.get());
+        case StateAnimation::Error:
+            return raw_to_color(config_store().status_led_error_color.get());
+        default:
+            return fallback;
+        }
+    }
+
 } // namespace
 
 StateAnimationController &controller_instance() {
@@ -255,11 +327,18 @@ void StatusLedsHandler::set_error() {
 
 void StatusLedsHandler::set_animation(StateAnimation state) {
     std::lock_guard lock(mutex);
+    custom_animation_active = false;
     controller_instance().set(animations[state]);
 }
 
 ColorRGBW StatusLedsHandler::get_color() const {
     return color;
+}
+
+void StatusLedsHandler::reload_colors() {
+    std::lock_guard lock(mutex);
+    old_color = {};
+    old_state = StateAnimation::_last;
 }
 
 StateAnimation StatusLedsHandler::current_animation() {
@@ -289,7 +368,12 @@ void StatusLedsHandler::set_custom_animation(const ColorRGBW &color, AnimationTy
         custom_params.blend_time = 300;
     }
 
-    controller.set(custom_params);
+    if (type == AnimationType::Solid) {
+        controller.set_immediate(custom_params);
+    } else {
+        controller.set(custom_params);
+    }
+    custom_animation_active = true;
     custom_params_bank_index = custom_params_bank_index > 0 ? 0 : 1;
 }
 
@@ -299,22 +383,178 @@ void StatusLedsHandler::set_active(bool val) {
     config_store().run_leds.set(val);
 }
 
+bool StatusLedsHandler::get_print_status_enabled() {
+    std::lock_guard lock(mutex);
+    return active && !print_status_disabled && print_status_brightness > 0;
+}
+
+uint8_t StatusLedsHandler::get_brightness(LightState state) {
+    std::lock_guard lock(mutex);
+    return packed_brightness(brightness_by_state, state);
+}
+
+void StatusLedsHandler::set_brightness(LightState state, uint8_t val) {
+    if (val > 100) {
+        val = 100;
+    }
+    std::lock_guard lock(mutex);
+    const uint8_t shift = light_state_shift(state);
+    brightness_by_state = (brightness_by_state & ~(0xffu << shift)) | (static_cast<uint32_t>(val) << shift);
+    config_store().status_led_brightness_by_state.set(brightness_by_state);
+    if (state == LightState::printing) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+    }
+}
+
+uint16_t StatusLedsHandler::get_finished_hold_s() {
+    return config_store().status_led_finished_hold_s.get();
+}
+
+void StatusLedsHandler::set_finished_hold_s(uint16_t val) {
+    config_store().status_led_finished_hold_s.set(val);
+}
+
+void StatusLedsHandler::set_print_status_enabled(bool val) {
+    std::lock_guard lock(mutex);
+    print_status_overridden = false;
+    if (!active) {
+        print_status_disabled = false;
+        print_status_brightness = 100;
+        return;
+    }
+    print_status_disabled = !val;
+    print_status_brightness = val ? 100 : 0;
+    old_state = StateAnimation::_last;
+}
+
+uint8_t StatusLedsHandler::get_print_status_brightness() {
+    std::lock_guard lock(mutex);
+    return print_status_brightness;
+}
+
+void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
+    if (val > 100) {
+        val = 100;
+    }
+    std::lock_guard lock(mutex);
+    print_status_overridden = true;
+    print_status_brightness = val;
+    print_status_disabled = print_status_brightness == 0;
+    old_state = StateAnimation::_last;
+}
+
+void StatusLedsHandler::set_idle_light_state(LightState state) {
+    std::lock_guard lock(mutex);
+    idle_light_state = state;
+}
+
+void StatusLedsHandler::acknowledge_finished() {
+    std::lock_guard lock(mutex);
+    finished_acknowledged = true;
+    finished_hold_until_ms = 0;
+}
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+void StatusLedsHandler::acknowledge_aborted() {
+    std::lock_guard lock(mutex);
+    aborted_acknowledged = true;
+}
+#endif
+
 void StatusLedsHandler::update() {
     std::lock_guard lock(mutex);
+
+    const bool print_active = print_active_for_status_override();
+    const auto printer_state = marlin_vars().print_state.get();
+    const bool filtering = post_filter_active();
+    const bool finished = printer_state == State::Finished;
+    const uint32_t now_ms = ticks_ms();
+    const bool terminal_print_state = printer_state == State::Finished || printer_state == State::Aborted || printer_state == State::Idle || printer_state == State::Exit;
+    const auto start_finished_hold = [&] {
+        const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
+        finished_hold_until_ms = hold_s > 0 ? now_ms + hold_s * 1000 : 0;
+    };
+
+    if (print_active && !print_override_session_active) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+        print_status_brightness = 100;
+        print_override_session_active = true;
+    } else if (!print_active && terminal_print_state) {
+        print_status_overridden = false;
+        print_status_disabled = false;
+        print_status_brightness = 100;
+        print_override_session_active = false;
+    }
+
+    if (print_active) {
+        finished_hold_until_ms = 0;
+        finished_acknowledged = false;
+    } else if (!finished_acknowledged && ((filtering_prev && !filtering) || (finished && !finished_prev && !filtering))) {
+        start_finished_hold();
+    }
+    filtering_prev = filtering;
+    finished_prev = finished;
+    const bool timed_finished_hold_active = finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) < 0;
+
+    if (print_active) {
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+        aborted_acknowledged = false;
+#endif
+    }
 
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
+    } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
+        state = StateAnimation::Idle;
     } else if (is_error_state) {
         state = StateAnimation::Error;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    } else if (printer_state == State::Aborted && !aborted_acknowledged) {
+        state = StateAnimation::Aborting;
+#endif
+    } else if (finished_acknowledged && (filtering || finished)) {
+        state = StateAnimation::Idle;
+    } else if (filtering && !finished_acknowledged) {
+        state = StateAnimation::Filtering;
+    } else if (timed_finished_hold_active && !finished_acknowledged) {
+        state = StateAnimation::Finishing;
     } else {
         state = marlin_to_anim_state();
     }
 
-    const auto &animation = animations[state];
+    if (idle_light_state == LightState::deep_idle && state != StateAnimation::Filtering && state != StateAnimation::Finishing && state != StateAnimation::Aborting) {
+        state = StateAnimation::Idle;
+    }
+
+    if (state == StateAnimation::Printing) {
+        current_light_state = LightState::printing;
+    } else if (state == StateAnimation::Idle || (state == StateAnimation::Finishing && finished && !timed_finished_hold_active)) {
+        current_light_state = idle_light_state;
+    } else {
+        current_light_state = LightState::active;
+    }
+
+    if (state == StateAnimation::Printing) {
+        finished_acknowledged = false;
+    }
+
+    if (custom_animation_active) {
+        if (state == old_state) {
+            controller_instance().update();
+            return;
+        }
+        custom_animation_active = false;
+    }
+
+    auto animation = animations[state];
+    animation.color = configured_color(state, animation.color);
     color = animation.color;
-    if (state != old_state) {
+    if (state != old_state || color != old_color) {
         old_state = state;
+        old_color = color;
         controller_instance().set(animation);
     }
 
@@ -323,7 +563,34 @@ void StatusLedsHandler::update() {
 
 std::span<const ColorRGBW, 3> StatusLedsHandler::led_data() {
     std::lock_guard lock(mutex);
-    return controller_instance().data();
+    if (finished_acknowledged && post_filter_active()) {
+        adjusted_data.fill({});
+        return adjusted_data;
+    }
+
+    const auto data = controller_instance().data();
+    uint8_t brightness = packed_brightness(brightness_by_state, current_light_state);
+    if (print_active_for_status_override() && print_status_overridden) {
+        brightness = print_status_brightness;
+    }
+    const bool filtering = post_filter_active();
+    if (brightness >= 100 && !filtering) {
+        return data;
+    }
+
+#if HAS_CHAMBER_FILTRATION_API()
+    const ColorRGBW tint = filtering ? filtration_tint() : ColorRGBW { 255, 255, 255, 255 };
+#else
+    const ColorRGBW tint { 255, 255, 255, 255 };
+#endif
+    for (size_t i = 0; i < adjusted_data.size(); ++i) {
+        adjusted_data[i] = ColorRGBW(
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].r) * tint.r * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].g) * tint.g * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].b) * tint.b * brightness / 255 / 100),
+            static_cast<uint8_t>(static_cast<uint32_t>(data[i].w) * tint.w * brightness / 255 / 100));
+    }
+    return adjusted_data;
 }
 
 } // namespace leds

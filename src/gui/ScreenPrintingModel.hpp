@@ -46,6 +46,9 @@ protected:
         Skip,
         Disconnect,
         SetReady,
+        Unlock,
+        Continue,
+        StopFilter,
         _count,
         _last = _count - 1,
     };
@@ -60,6 +63,8 @@ protected:
     void SetButtonLabel(BtnSocket btn, LabelRes res);
     void DisableButton(BtnSocket btn);
     void EnableButton(BtnSocket btn);
+    bool unlock_machine();
+    void show_locked_buttons();
 
 public:
     ScreenPrintingModel(const string_view_utf8 &caption);

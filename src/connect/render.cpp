@@ -1014,6 +1014,13 @@ JsonResult DirRenderer::renderState(size_t resume_point, json::JsonOutput &outpu
             // Skip dot-files (should be hidden).
             continue;
         }
+        if (const char *lfn = dirent_lfn(state.ent); (lfn && filename_is_rme_private(lfn)) || filename_is_rme_private(state.ent->d_name)) {
+            // RME resume metadata, partial payloads, rollback files, and the
+            // protected firmware candidate are host-private implementation
+            // details. FAT may expose an unrelated 8.3 alias in d_name, so
+            // classify the long name that Connect publishes as display_name.
+            continue;
+        }
 
         state.childsize = nullopt;
         if (state.ent->d_type == DT_DIR && filename_is_transferrable(state.ent->d_name)) {

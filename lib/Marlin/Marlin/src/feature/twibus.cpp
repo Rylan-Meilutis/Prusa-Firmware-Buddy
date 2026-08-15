@@ -29,6 +29,9 @@
 #include "twibus.h"
 #include "hwio_pindef.h"
 #include "i2c.hpp"
+#if BOARD_IS_XBUDDY()
+  #include <leds/external_light_bar.hpp>
+#endif
 
 static constexpr uint16_t i2c_timeout_ms = 100;
 
@@ -123,7 +126,14 @@ void TWIBus::send() {
 
   if (addr == buddy::hw::io_expander2.fixed_addr) [[unlikely]] {
     // Only full byte can be written here
-    buddy::hw::io_expander2.write(buffer[0]);
+    uint8_t value = buffer[0];
+#if BOARD_IS_XBUDDY()
+    uint8_t current_value = 0;
+    if (buddy::hw::io_expander2.read_reg(buddy::hw::TCA6408A::Register::Output, current_value)) {
+      value = leds::external_light_bar::protect_register_value(value, current_value);
+    }
+#endif
+    buddy::hw::io_expander2.write(value);
   } else [[likely]]
   {
     i2c::Result ret = i2c::Transmit(*i2c_handle_gcode, addr << 1, buffer, buffer_s, i2c_timeout_ms);

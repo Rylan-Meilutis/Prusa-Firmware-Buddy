@@ -117,6 +117,19 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M151();
             break;
 #endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+        case 152:
+            PrusaGcodeSuite::M152();
+            break;
+#endif
+#if HAS_SIDE_LEDS()
+        case 153:
+            PrusaGcodeSuite::M153();
+            break;
+#endif
+        case 154:
+            PrusaGcodeSuite::M154();
+            break;
 
 #if HAS_CHAMBER_API()
         case 191:
@@ -257,6 +270,14 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
         case 997:
             PrusaGcodeSuite::M997();
             break;
+        case 998:
+            PrusaGcodeSuite::M998();
+            break;
+#if HAS_LOADCELL()
+        case 976:
+            PrusaGcodeSuite::M976();
+            break;
+#endif
         case 999:
             if (parser.seen('R')) {
                 PrusaGcodeSuite::M999();

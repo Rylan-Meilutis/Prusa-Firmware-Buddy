@@ -1,5 +1,6 @@
 #include "xbuddy_extension.hpp"
 
+#include <algorithm>
 #include <utility>
 
 #include <common/temperature.hpp>
@@ -11,6 +12,13 @@
 #include <bsod/bsod.h>
 #include <fanctl/CFanCtl3Wire.hpp> // for FANCTL_START_TIMEOUT
 #include <utils/timing/rate_limiter.hpp>
+#include <logging/log.hpp>
+#include <option/has_i2c_expander.h>
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include <leds/external_light_bar.hpp>
+#endif
+
+LOG_COMPONENT_REF(Buddy);
 
 namespace {
 
@@ -21,6 +29,11 @@ constexpr uint8_t strobe_pwm = 35;
 
 // How long a bad RPM reading must persist before is_fan_ok reports failure.
 constexpr uint32_t fan_bad_timeout_ms = 750;
+
+PWM255 add_pwm_offset(PWM255 pwm, uint8_t offset_pct) {
+    const auto offset = PWM255::from_percent(offset_pct);
+    return PWM255 { static_cast<PWM255::Value>(std::min<int>(PWM255::max, pwm.value + offset.value)) };
+}
 
 } // namespace
 
@@ -61,6 +74,22 @@ void XBuddyExtension::step() {
 
     puppies::xbuddy_extension.set_rgbw_led({ bed_leds_color_.r, bed_leds_color_.g, bed_leds_color_.b, bed_leds_color_.w });
     puppies::xbuddy_extension.set_white_led(chamber_leds_pwm);
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    const bool chamber_light_target_on = leds::SideStripHandler::instance().chamber_light_on();
+    const bool external_light_on = leds::external_light_bar::target_on(chamber_leds_pwm > 0 || chamber_light_target_on);
+    static bool last_external_light_on = false;
+    static uint8_t last_chamber_leds_pwm = 0;
+    static bool last_chamber_light_target_on = false;
+    static bool last_external_light_valid = false;
+    if (!last_external_light_valid || last_external_light_on != external_light_on || last_chamber_leds_pwm != chamber_leds_pwm || last_chamber_light_target_on != chamber_light_target_on) {
+        log_info(Buddy, "External light mirror %s pwm %u target %u", external_light_on ? "on" : "off", chamber_leds_pwm, chamber_light_target_on);
+        last_external_light_on = external_light_on;
+        last_chamber_leds_pwm = chamber_leds_pwm;
+        last_chamber_light_target_on = chamber_light_target_on;
+        last_external_light_valid = true;
+    }
+    leds::external_light_bar::apply(external_light_on);
+    #endif
     puppies::xbuddy_extension.set_white_strobe_frequency(strobe_freq_);
     puppies::xbuddy_extension.set_usb_power(config_store().xbe_usb_power.get());
 
@@ -111,14 +140,29 @@ void XBuddyExtension::step() {
         last_fan_update_ms = now_ms;
 
         const auto max_auto_pwm = max_cooling_pwm();
+        const auto max_cooling_fans_auto_pwm = FanPWM { config_store().xbe_cooling_fan_max_auto_pwm.get() };
+        const auto max_filtration_fan_auto_pwm = FanPWM { config_store().xbe_filtration_fan_max_auto_pwm.get() };
 
         switch (filtration_backend) {
 
         case ChamberFiltrationBackend::xbe_official_filter:
-            // The filtration fan does both filtration and cooling
-            cooling_fans_actual_pwm_ = cooling_fans_target_pwm_.value_or(FanPWM { 0 });
-            filtration_fan_actual_pwm_ = std::max(chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_auto_pwm), filtration_pwm);
-            can_auto_cool_ = (filtration_fan_target_pwm_ == pwm_auto);
+            // The filtration fan always does filtration and cooling; optionally use the cooling fans too.
+            if (config_store().xbe_cooling_fans_with_filter.get()) {
+                if (filtration_pwm.value > 0 && !marlin_server::is_printing()) {
+                    cooling_fans_actual_pwm_ = FanPWM { 0 };
+                } else {
+                    cooling_fans_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, cooling_fans_target_pwm_, max_cooling_fans_auto_pwm);
+                }
+                can_auto_cool_ = (cooling_fans_target_pwm_ == pwm_auto || filtration_fan_target_pwm_ == pwm_auto);
+            } else {
+                cooling_fans_actual_pwm_ = cooling_fans_target_pwm_.value_or(FanPWM { 0 });
+                can_auto_cool_ = (filtration_fan_target_pwm_ == pwm_auto);
+            }
+            filtration_fan_actual_pwm_ = chamber_cooling.compute_pwm_step(*temp, target_temp, filtration_fan_target_pwm_, max_filtration_fan_auto_pwm);
+            if (config_store().xbe_cooling_fans_with_filter.get() && filtration_pwm.value > 0 && marlin_server::is_printing()) {
+                filtration_fan_actual_pwm_ = std::max(filtration_fan_actual_pwm_, add_pwm_offset(cooling_fans_actual_pwm_, config_store().xbe_filtration_fan_print_offset_pct.get()));
+            }
+            filtration_fan_actual_pwm_ = std::max(filtration_fan_actual_pwm_, filtration_pwm);
             break;
 
         case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:
@@ -258,7 +302,7 @@ XBuddyExtension::FanState XBuddyExtension::get_fan12_state() const {
 bool XBuddyExtension::using_filtration_fan_instead_of_cooling_fans() const {
     switch (chamber_filtration().backend()) {
     case ChamberFiltrationBackend::xbe_official_filter:
-        return true;
+        return !config_store().xbe_cooling_fans_with_filter.get();
 
     case ChamberFiltrationBackend::none:
     case ChamberFiltrationBackend::xbe_filter_on_cooling_fans:
@@ -269,7 +313,7 @@ bool XBuddyExtension::using_filtration_fan_instead_of_cooling_fans() const {
 }
 
 PWM255 XBuddyExtension::max_cooling_pwm() const {
-    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter) {
+    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter && !config_store().xbe_cooling_fans_with_filter.get()) {
         return FanPWM { config_store().xbe_filtration_fan_max_auto_pwm.get() };
     } else {
         return FanPWM { config_store().xbe_cooling_fan_max_auto_pwm.get() };
@@ -277,7 +321,7 @@ PWM255 XBuddyExtension::max_cooling_pwm() const {
 }
 
 void XBuddyExtension::set_max_cooling_pwm(PWM255 set) {
-    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter) {
+    if (chamber_filtration().backend() == ChamberFiltrationBackend::xbe_official_filter && !config_store().xbe_cooling_fans_with_filter.get()) {
         config_store().xbe_filtration_fan_max_auto_pwm.set(set.value);
     } else {
         config_store().xbe_cooling_fan_max_auto_pwm.set(set.value);

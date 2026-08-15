@@ -144,7 +144,7 @@ ScreenError::ScreenError()
         } break;
         case MsgType::STACK_OVF: {
             StringBuilder sb(debug_info_buff);
-            sb.append_printf("STACK_OVF %s", err_title_buff.data());
+            sb.append_printf("STACK_OVF :) %s", err_title_buff.data());
         } break;
         case MsgType::FATAL_WARNING:
             txt_debug_info.Hide();

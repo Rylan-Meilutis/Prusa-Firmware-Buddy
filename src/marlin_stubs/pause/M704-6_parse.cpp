@@ -44,10 +44,23 @@ void PrusaGcodeSuite::M704() {
  *
  *#### Parameters
  *
- * - `P` - MMU index of slot (if M0) or G-Code tool index (if M1) (zero based)
+ * - `P` - MMU index of one slot (if M0) or G-Code tool index (if M1), zero based
+ * - `K` - Bit mask of MMU slots to test, for example K21 tests slots 0, 2, and 4
+ * - `A` - Test every enabled MMU slot
  * - `M` - Apply tool mapping on P (default is yes)
  */
 void PrusaGcodeSuite::M1704() {
+    if (parser.seen('A') || parser.seenval('K')) {
+        const uint32_t requested_mask = parser.seen('A')
+            ? (uint32_t { 1 } << VirtualToolIndex::count) - 1
+            : parser.ulongval('K', 0);
+        for (const auto slot : VirtualToolIndex::all().skip_all_disabled()) {
+            if (requested_mask & (uint32_t { 1 } << slot.to_raw())) {
+                filament_gcodes::mmu_load_test(slot);
+            }
+        }
+        return;
+    }
     const auto tool = GcodeSuite::get_virtual_tool_from_command(parser.byteval('P', 0), parser.boolval('M', true));
     match(
         tool,

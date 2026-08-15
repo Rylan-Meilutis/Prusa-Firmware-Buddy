@@ -3,6 +3,7 @@
 #include <utils/led_color.hpp>
 #include "printers.h"
 #include "dimming_enabled.hpp"
+#include "light_state.hpp"
 
 #include <freertos/mutex.hpp>
 #include <optional>
@@ -11,9 +12,12 @@
 namespace leds {
 
 enum class SideStripState {
+    unknown,
     off,
     dimmed,
     active,
+    printing,
+    idle,
     custom_color,
     _last = custom_color,
 };
@@ -41,6 +45,10 @@ public:
     SideStripHandler();
 
     void activity_ping();
+    void event_ping();
+    void idle_ping();
+    void print_finished_ping();
+    void set_door_open(bool open, uint16_t raw_data);
 
     void set_custom_color(ColorRGBW color, uint32_t duration_ms, uint32_t transition_ms);
 
@@ -59,15 +67,51 @@ public:
 
     DimmingEnabled get_dimming_enabled() const;
     void set_dimming_enabled(DimmingEnabled value);
+    bool get_main_light_enabled(LightState state) const;
+    void set_main_light_enabled(LightState state, bool value);
+    uint8_t get_brightness(LightState state) const;
+    void set_brightness(LightState state, uint8_t value);
+    uint8_t get_screen_brightness(LightState state) const;
+    void set_screen_brightness(LightState state, uint8_t value);
+    uint8_t current_screen_brightness() const;
+    bool wake_screen_from_dim_idle();
+    bool get_door_holds_active() const;
+    void set_door_holds_active(bool value);
+
+    uint16_t get_activity_timeout_s() const;
+    void set_activity_timeout_s(uint16_t value);
+    uint16_t get_event_timeout_s() const;
+    void set_event_timeout_s(uint16_t value);
+    uint16_t get_off_timeout_s() const;
+    void set_off_timeout_s(uint16_t value);
+
+    bool get_post_print_hold_enabled() const;
+    void set_post_print_hold_enabled(bool value);
+    bool post_print_hold_active() const;
+    bool post_print_status_dismissed() const;
+
+    uint8_t get_print_brightness() const;
+    void set_print_brightness(uint8_t value);
+    uint8_t get_print_light_brightness() const;
+    void set_print_light_brightness(uint8_t value);
+    bool print_light_override_active() const;
+    uint8_t print_light_override_brightness() const;
+    uint8_t get_print_screen_brightness() const;
+    void set_print_screen_brightness(uint8_t value);
+
+    bool deep_idle() const;
+    LightState current_light_state() const;
+    bool chamber_light_on() const;
+    SideStripState current_state() const;
 
     leds::ColorRGBW color() const;
+    /// Brightest currently driven RGBW channel, including off/dim/transition state.
+    uint8_t current_brightness() const;
 
 private:
-    static constexpr uint32_t active_timeout_ms = 120 * 1000;
-
     void change_state(SideStripState state);
 
-    ColorRGBW get_color_for_state(SideStripState state);
+    ColorRGBW get_color_for_state(SideStripState state) const;
 
     struct CustomColorState {
         ColorRGBW color;
@@ -82,9 +126,32 @@ private:
     DimmingEnabled dimming_enabled;
     uint8_t max_brightness;
     uint8_t dimmed_brightness;
+    uint8_t print_brightness;
+    uint8_t deep_idle_brightness;
+    uint8_t main_light_state_mask;
+    uint16_t activity_timeout_s;
+    uint16_t event_timeout_s;
+    uint16_t off_timeout_s;
+    bool door_holds_active;
+    bool post_print_hold_enabled;
 
-    SideStripState state = SideStripState::off;
+    SideStripState state = SideStripState::unknown;
     uint32_t active_timestamp_ms = 0; // Timestamp of the last activity for idle dimming
+    uint32_t screen_brightness_wake_until_ms = 0;
+    uint8_t screen_brightness_wake_percent = 15;
+    bool screen_brightness_wake_from_print_override = false;
+    bool door_open_for_leds = false;
+    uint16_t door_raw_data = 0;
+    bool print_or_filter_active_prev = false;
+    bool host_idle_override = false;
+    bool post_print_hold = false;
+    bool post_print_hold_dismissed = false;
+    bool post_print_hold_seen_door_open = false;
+    uint8_t print_brightness_override = 0;
+    bool print_brightness_overridden = false;
+    uint8_t print_screen_brightness_override = 100;
+    bool print_screen_brightness_overridden = false;
+    bool print_override_session_active = false;
     std::optional<CustomColorState> custom_color;
 };
 

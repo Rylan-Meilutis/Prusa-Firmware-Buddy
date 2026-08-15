@@ -43,8 +43,8 @@ class InProgress {
     static uint lock;
 
 public:
-    InProgress() { ++lock; }
-    ~InProgress() { --lock; }
+    InProgress();
+    ~InProgress();
     static bool Active() { return lock > 0; }
 
 private:

@@ -2,6 +2,7 @@
 
 #include <marlin_vars.hpp>
 #include <marlin_server.hpp>
+#include <serial_printing.hpp>
 #include <gcode_info.hpp>
 #include <tools_mapping.hpp>
 #include <config_store/store_definition.hpp>
@@ -29,7 +30,21 @@ ChamberFiltrationBackend ChamberFiltration::backend() const {
 }
 
 void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
-    config_store().chamber_filtration_backend.set(backend);
+    {
+        std::lock_guard _lg(mutex_);
+        const auto now_s = ticks_s();
+        commit_unaccounted_filter_usage(now_s);
+        config_store().chamber_filtration_backend.set(backend);
+
+        if (backend == Backend::none) {
+            output_pwm_ = {};
+            is_printing_prev_ = false;
+            needs_filtration_ = false;
+            unaccounted_filter_time_used_start_s_ = 0;
+        } else {
+            unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
+        }
+    }
 
 #if XL_ENCLOSURE_SUPPORT()
     xl_enclosure.setEnabled(backend == ChamberFiltrationBackend::xl_enclosure);
@@ -98,18 +113,29 @@ void ChamberFiltration::step() {
     }
 
     std::lock_guard _lg(mutex_);
+    const auto previous_output_pwm = output_pwm_;
 
     if (!is_enabled()) {
+        commit_unaccounted_filter_usage(ticks_s());
+        unaccounted_filter_time_used_start_s_ = 0;
         output_pwm_ = {};
         last_filtration_need_s_ = std::nullopt;
+        if (previous_output_pwm.value != 0) {
+            SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
+        }
         return;
     }
 
+    const auto print_state = marlin_vars().print_state.get();
+    const bool print_state_active = marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state) || marlin_server::is_abort_state(print_state);
     // Determine output PWM of the fans
     if (needs_filtration()) {
         // Filtration is currently needed
         output_pwm_ = config_store().chamber_print_filtration_enable.get() ? config_store().chamber_mid_print_filtration_pwm.get() : PWM255(0);
         last_filtration_need_s_ = now_s;
+
+    } else if (print_state_active) {
+        output_pwm_ = {};
 
     } else if (last_filtration_need_s_.has_value() && config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, *last_filtration_need_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
         // Filtration is not currently needed, running post print filtration
@@ -120,21 +146,11 @@ void ChamberFiltration::step() {
         last_filtration_need_s_ = std::nullopt;
     }
 
-    const auto commit_unaccounted_filter_usage = [&](int min_s = 1) {
-        const auto unnacounted_usage_s = ticks_diff(now_s, unaccounted_filter_time_used_start_s_);
-        if (unnacounted_usage_s < min_s) {
-            return;
-        }
-
-        config_store().chamber_filter_time_used_s.apply([&](auto &val) { val += unnacounted_usage_s; });
-        unaccounted_filter_time_used_start_s_ = now_s;
-    };
-
     // If output_pwm > 0, track filter usage
     if (output_pwm_.value == 0) {
         if (unaccounted_filter_time_used_start_s_) {
             // Commit any remaining unaccounted time
-            commit_unaccounted_filter_usage();
+            commit_unaccounted_filter_usage(now_s);
             unaccounted_filter_time_used_start_s_ = 0;
         }
 
@@ -143,8 +159,35 @@ void ChamberFiltration::step() {
 
     } else {
         // Reduce eeprom writes - update filter usage in certain intervals
-        commit_unaccounted_filter_usage(60);
+        commit_unaccounted_filter_usage(now_s, 60);
     }
+
+    if (previous_output_pwm.value == 0 && output_pwm_.value != 0) {
+        SerialPrinting::notify_workflow("filtration", "open", "Chamber filtration started", 0);
+    }
+    if (output_pwm_.value != 0 && previous_output_pwm.value != output_pwm_.value) {
+        const char *mode = print_state_active ? "mid_print" : "post_print";
+        SerialPrinting::notify_progress("filtration", "active", mode,
+            print_state_active ? "Filtering during print" : "Post-print filtration",
+            static_cast<int>(output_pwm_.value) * 100 / 255);
+    }
+    if (previous_output_pwm.value != 0 && output_pwm_.value == 0) {
+        SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
+    }
+}
+
+void ChamberFiltration::commit_unaccounted_filter_usage(uint32_t now_s, uint32_t min_s) {
+    if (!unaccounted_filter_time_used_start_s_) {
+        return;
+    }
+
+    const auto unaccounted_usage_s = ticks_diff(now_s, unaccounted_filter_time_used_start_s_);
+    if (unaccounted_usage_s < min_s) {
+        return;
+    }
+
+    config_store().chamber_filter_time_used_s.apply([&](auto &val) { val += unaccounted_usage_s; });
+    unaccounted_filter_time_used_start_s_ = now_s;
 }
 
 uint32_t ChamberFiltration::filter_lifetime_s() const {
@@ -167,6 +210,74 @@ uint32_t ChamberFiltration::filter_lifetime_s() const {
     }
 
     bsod_unreachable();
+}
+
+uint32_t ChamberFiltration::post_print_remaining_s() const {
+    std::lock_guard _lg(mutex_);
+    if (output_pwm_.value == 0 || !config_store().chamber_post_print_filtration_enable.get()) {
+        return 0;
+    }
+
+    const uint32_t duration_s = config_store().chamber_post_print_filtration_duration_min.get() * 60;
+    const uint32_t elapsed_s = ticks_diff(ticks_s(), last_print_s_);
+    return elapsed_s < duration_s ? duration_s - elapsed_s : 0;
+}
+
+void ChamberFiltration::stop_post_print_filtration() {
+    std::lock_guard _lg(mutex_);
+    const bool was_running = output_pwm_.value != 0;
+    commit_unaccounted_filter_usage(ticks_s());
+    unaccounted_filter_time_used_start_s_ = 0;
+    output_pwm_ = {};
+    needs_filtration_ = std::nullopt;
+    if (was_running) {
+        SerialPrinting::notify_workflow("filtration", "closed", "Post-print filtration stopped", 100);
+    }
+}
+
+void ChamberFiltration::start_post_print_filtration() {
+    std::lock_guard _lg(mutex_);
+    const bool was_running = output_pwm_.value != 0;
+
+    const auto now_s = ticks_s();
+    commit_unaccounted_filter_usage(now_s);
+
+    needs_filtration_ = true;
+    is_printing_prev_ = false;
+    last_print_s_ = now_s;
+
+    if (is_enabled() && config_store().chamber_post_print_filtration_enable.get()) {
+        output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
+        unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
+    } else {
+        output_pwm_ = {};
+        unaccounted_filter_time_used_start_s_ = 0;
+    }
+    if (!was_running && output_pwm_.value != 0) {
+        SerialPrinting::notify_workflow("filtration", "open", "Post-print filtration started", 0);
+        SerialPrinting::notify_progress("filtration", "active", "post_print", "Post-print filtration",
+            static_cast<int>(output_pwm_.value) * 100 / 255);
+    }
+}
+
+ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
+    std::lock_guard _lg(mutex_);
+    return {
+        .output_pwm = output_pwm_,
+        .is_printing_prev = is_printing_prev_,
+        .needs_filtration = needs_filtration_,
+        .last_print_s = last_print_s_,
+        .unaccounted_filter_time_used_start_s = unaccounted_filter_time_used_start_s_,
+    };
+}
+
+void ChamberFiltration::restore_snapshot(const Snapshot &snapshot) {
+    std::lock_guard _lg(mutex_);
+    output_pwm_ = snapshot.output_pwm;
+    is_printing_prev_ = snapshot.is_printing_prev;
+    needs_filtration_ = snapshot.needs_filtration;
+    last_print_s_ = snapshot.last_print_s;
+    unaccounted_filter_time_used_start_s_ = snapshot.unaccounted_filter_time_used_start_s;
 }
 
 void ChamberFiltration::check_filter_expiration() {

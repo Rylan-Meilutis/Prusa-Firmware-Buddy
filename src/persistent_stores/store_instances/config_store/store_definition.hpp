@@ -42,6 +42,7 @@
 #include <option/has_emergency_stop.h>
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_side_leds.h>
+#include <option/has_human_interactions.h>
 #include <option/xl_enclosure_support.h>
 #include <option/has_cpu_fan.h>
 #include <option/has_xl_can.h>
@@ -69,6 +70,7 @@
 #include <pwm_utils.hpp>
 #include <feature/xbuddy_extension/xbuddy_extension_fan_results.hpp>
 #include <feature/bed_fan/selftest_result.hpp>
+#include <serial_printing_ui_mode.hpp>
 #include <tool_index.hpp>
 
 #include <option/has_print_fan_type.h>
@@ -106,6 +108,10 @@
 
 #if HAS_SIDE_LEDS()
     #include "leds/dimming_enabled.hpp"
+    #include "leds/light_state.hpp"
+#endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #include "leds/light_state.hpp"
 #endif
 
 #include <option/has_side_fsensor_remap.h>
@@ -473,6 +479,18 @@ struct CurrentStore
     /// loaded_filament_is_previous flag is true, holds the type of the
     /// filament that was loaded previously.
     StoreItemArray<EncodedFilamentType, EncodedFilamentType {}, ItemFlag::printer_state, journal::hash("Loaded Filament"), 16, EXTRUDERS> loaded_filament_type;
+    StoreItemArray<uint32_t, 0, ItemFlag::printer_state, journal::hash("Loaded Filament Color"), 16, EXTRUDERS> loaded_filament_color_rgb;
+    StoreItem<uint16_t, 0, ItemFlag::printer_state, journal::hash("Loaded Filament Color Valid")> loaded_filament_color_valid;
+
+    // Eight user-defined colors are deliberately compact enough for every supported EEPROM.
+    StoreItem<std::array<std::array<char, 16>, 8>, defaults::custom_filament_color_names, ItemFlag::user_presets, journal::hash("Custom Filament Color Names")> custom_filament_color_names;
+    StoreItemArray<uint32_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Color RGB"), 16, 8> custom_filament_color_rgb;
+    StoreItem<uint8_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Color Valid")> custom_filament_color_valid;
+
+    // Manufacturer IDs are 1-based presets or 0x80-based custom slots; zero means unset.
+    StoreItemArray<uint8_t, uint8_t { 0 }, ItemFlag::printer_state, journal::hash("Loaded Filament Manufacturer"), 16, EXTRUDERS> loaded_filament_manufacturer;
+    StoreItem<std::array<std::array<char, 24>, 8>, defaults::custom_filament_manufacturer_names, ItemFlag::user_presets, journal::hash("Custom Filament Manufacturer Names")> custom_filament_manufacturer_names;
+    StoreItem<uint8_t, 0, ItemFlag::user_presets, journal::hash("Custom Filament Manufacturer Valid")> custom_filament_manufacturer_valid;
 
     /// Flags indicating whether the value of loaded_filament_type (for the
     /// given tool) holds the currently loaded filament (false) or the filament
@@ -606,14 +624,74 @@ struct CurrentStore
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor Y")> homing_bump_divisor_y;
 
 #if HAS_SIDE_LEDS()
+    StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("Side LEDs deep idle PWM")> side_leds_deep_idle_brightness;
     /// 0-255; 0 = disabled.
     StoreItem<uint8_t, 255, ItemFlag::user_interface, journal::hash("XBuddy Extension Chamber LEDs PWM")> side_leds_max_brightness;
     StoreItem<uint8_t, PWM255::from_percent(40).value, ItemFlag::user_interface, journal::hash("XBuddy Extension Chamber LEDs dimmed PWM")> side_leds_dimmed_brightness;
+    StoreItem<uint8_t, 255, ItemFlag::user_interface, journal::hash("XBuddy Extension Chamber LEDs print PWM")> side_leds_print_brightness;
+    StoreItem<uint8_t, leds::light_state_bit(leds::LightState::idle) | leds::light_state_bit(leds::LightState::active) | leds::light_state_bit(leds::LightState::printing), ItemFlag::user_interface, journal::hash("Side LEDs State Mask")> side_leds_state_mask;
     /// Whether the side leds should dim down a bit when user is not interacting with the printer or stay on full power the whole time
     StoreItem<leds::DimmingEnabled, leds::DimmingEnabled::not_printing, ItemFlag::user_interface, journal::hash("Enable Side LEDs dimming")> side_leds_dimming_enabled;
+    StoreItem<uint16_t, 120, ItemFlag::user_interface, journal::hash("Side LEDs activity timeout seconds")> side_leds_activity_timeout_s;
+    StoreItem<uint16_t, 300, ItemFlag::user_interface, journal::hash("Side LEDs event timeout seconds")> side_leds_event_timeout_s;
+    StoreItem<uint16_t, 120, ItemFlag::user_interface, journal::hash("Side LEDs off timeout seconds")> side_leds_off_timeout_s;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Side LEDs Door Holds Active")> side_leds_door_holds_active;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Post Print LED Hold")> post_print_led_hold_enabled;
 #endif
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("External Light Bar Enabled Pins")> external_light_bar_enabled_pins;
+    StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("External Light Bar Active High Pins")> external_light_bar_active_high_pins;
+    StoreItem<uint8_t, leds::light_state_bit(leds::LightState::idle) | leds::light_state_bit(leds::LightState::active) | leds::light_state_bit(leds::LightState::printing), ItemFlag::user_interface, journal::hash("External Light Bar State Mask")> external_light_bar_state_mask;
+#endif
+    /// Packed 0-100% screen brightness values: deep idle, idle, active, printing.
+    StoreItem<uint32_t, 0x64646464, ItemFlag::user_interface, journal::hash("Screen brightness by LED state")> screen_brightness_by_state;
+    /// Packed 0-100% status LED brightness values: deep idle, idle, active, printing.
+    StoreItem<uint32_t, 0x64646464, ItemFlag::user_interface, journal::hash("Status LED brightness by state")> status_led_brightness_by_state;
+    StoreItem<uint16_t, 300, ItemFlag::user_interface, journal::hash("Status LED finished hold seconds")> status_led_finished_hold_s;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Serial Printing Screen")> serial_print_screen_enabled;
+    StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Serial Printing Legacy UI")> serial_print_legacy_ui;
+    StoreItem<SerialPrintingUiMode, SerialPrintingUiMode::progress, ItemFlag::user_interface, journal::hash("Serial Printing UI Mode")> serial_print_ui_mode;
+    StoreItem<uint16_t, 5, ItemFlag::user_interface, journal::hash("Serial Printing Timeout Sec")> serial_print_timeout_s;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Serial Printing Auto Start")> serial_print_auto_start;
+
+    static constexpr uint16_t bed_heater_safety_timeout_default_s =
+#if !HAS_HUMAN_INTERACTIONS()
+        600;
+#else
+        1800;
+#endif
+    StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Bed Safety Timeout Config")> bed_heater_safety_timeout_s;
+    StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Hotend Safety Timeout Config")> hotend_heater_safety_timeout_s;
+
+    StoreItem<bool, false, ItemFlag::user_interface, journal::hash("Printer Lock Enabled")> printer_lock_enabled;
+    StoreItem<uint32_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN")> printer_lock_pin;
+    StoreItem<uint8_t, 0, ItemFlag::user_interface, journal::hash("Printer Lock PIN Length")> printer_lock_pin_length;
+    StoreItem<uint16_t, 60, ItemFlag::user_interface, journal::hash("Printer Lock Timeout Sec")> printer_lock_timeout_s;
+    StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Printer Lock Accept Serial")> printer_lock_accept_serial;
+
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Primary Color")> ui_theme_primary_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Progress Color")> ui_theme_progress_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("UI Theme Warning Color")> ui_theme_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("UI Theme Error Color")> ui_theme_error_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("UI Theme Image Color")> ui_theme_image_color;
+
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Primary Color")> usb_theme_primary_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Progress Color")> usb_theme_progress_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("USB Theme Warning Color")> usb_theme_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("USB Theme Error Color")> usb_theme_error_color;
+    StoreItem<uint32_t, 0x4b2e83, ItemFlag::user_interface, journal::hash("USB Theme Image Color")> usb_theme_image_color;
+
+    StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("Status LED Idle Color")> status_led_idle_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("Status LED Printing Color")> status_led_printing_color;
+    StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("Status LED Finished Color")> status_led_finished_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("Status LED Warning Color v2")> status_led_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("Status LED Error Color")> status_led_error_color;
+    StoreItem<uint32_t, 0x000000, ItemFlag::user_interface, journal::hash("USB Status LED Idle Color")> usb_status_led_idle_color;
+    StoreItem<uint32_t, 0x0096ff, ItemFlag::user_interface, journal::hash("USB Status LED Printing Color")> usb_status_led_printing_color;
+    StoreItem<uint32_t, 0x00ff00, ItemFlag::user_interface, journal::hash("USB Status LED Finished Color")> usb_status_led_finished_color;
+    StoreItem<uint32_t, 0xffff00, ItemFlag::user_interface, journal::hash("USB Status LED Warning Color")> usb_status_led_warning_color;
+    StoreItem<uint32_t, 0xff0000, ItemFlag::user_interface, journal::hash("USB Status LED Error Color")> usb_status_led_error_color;
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Enable Tool LEDs")> tool_leds_enabled;
 
@@ -668,6 +746,8 @@ struct CurrentStore
     /// Number of pellets ejected into the INDX nozzle-cleaner wastebin since it was last emptied.
     /// Printer state, not a stat: it resets on user input (emptying) and drives the overfill checks.
     StoreItem<uint32_t, 0, ItemFlag::printer_state, journal::hash("Nozzle cleaner pellets")> nozzle_cleaner_pellets;
+    /// User-selected automatic pause threshold. Zero means use the installed cleaner capacity.
+    StoreItem<uint32_t, 0, ItemFlag::features, journal::hash("Nozzle cleaner pause threshold")> nozzle_cleaner_pause_threshold;
     /// Whether reaching the wastebin capacity mid-print auto-pauses the print (true) or just warns (false).
     StoreItem<bool, true, ItemFlag::features, journal::hash("Nozzle cleaner autopause on full")> nozzle_cleaner_autopause_on_full;
     /// Installed nozzle-cleaner type: false = standard capacity, true = extended (high-capacity).
@@ -791,6 +871,11 @@ struct CurrentStore
     StoreItem<int16_t, defaults::homing_sens_y, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("Homing Sens Y")> homing_sens_y; // Y axis homing sensitivity
 
     StoreItem<bool, !HAS_INDX(), ItemFlag::features, journal::hash("Stuck filament detection V2")> stuck_filament_detection;
+    StoreItem<bool, !HAS_INDX(), ItemFlag::features, journal::hash("Filament movement detection V2")> filament_movement_detection;
+    StoreItem<uint8_t, 75, ItemFlag::features, journal::hash("PA confidence floor percent")> pa_confidence_floor_percent;
+    StoreItem<float, 6.0f, ItemFlag::features, journal::hash("PA minimum signal noise ratio")> pa_minimum_snr;
+    StoreItem<uint8_t, 6, ItemFlag::features, journal::hash("PA confidence retries")> pa_confidence_retries;
+    StoreItem<bool, false, ItemFlag::features, journal::hash("PA calibration debug output")> pa_calibration_debug_output;
 
     StoreItem<bool, false, ItemFlag::features, journal::hash("Stealth mode")> stealth_mode;
 
@@ -869,6 +954,8 @@ struct CurrentStore
     StoreItem<bool, true, ItemFlag::hw_config, journal::hash("XBE USB Host power")> xbe_usb_power;
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
     StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
+    StoreItem<bool, false, ItemFlag::features, journal::hash("XBE cooling fans with filter")> xbe_cooling_fans_with_filter;
+    StoreItem<uint8_t, 30, ItemFlag::features, journal::hash("XBE filtration fan print offset")> xbe_filtration_fan_print_offset_pct;
 #endif
 
 #if HAS_DOOR_SENSOR_CALIBRATION()
@@ -1014,6 +1101,15 @@ struct CurrentStore
 #if HAS_LOADCELL()
     StoreItem<float, defaults::loadcell_scale, ItemFlag::hw_config, journal::hash("Loadcell Scale V2")> loadcell_scale;
 #endif // HAS_LOADCELL()
+
+    // PID variables persisted outside Marlin's legacy EEPROM blob.
+    StoreItem<float, defaults::pid_nozzle_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle P")> pid_nozzle_p;
+    StoreItem<float, defaults::pid_nozzle_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle I")> pid_nozzle_i;
+    StoreItem<float, defaults::pid_nozzle_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle D")> pid_nozzle_d;
+
+    StoreItem<float, defaults::pid_bed_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed P")> pid_bed_p;
+    StoreItem<float, defaults::pid_bed_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed I")> pid_bed_i;
+    StoreItem<float, defaults::pid_bed_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed D")> pid_bed_d;
 
 private:
     void perform_config_migrations();
@@ -1173,15 +1269,6 @@ struct DeprecatedStore
         StoreItemArray<int32_t, defaults::side_fs_ref_nins_value, ItemFlag::calibrations, journal::hash("Side FS Ref Values v16"), 16, HOTENDS> side_fs_ref_nins_values;
         StoreItemArray<int32_t, defaults::side_fs_ref_ins_value, ItemFlag::calibrations, journal::hash("Side FS INS Values v16"), 16, HOTENDS> side_fs_ref_ins_values;
 
-        // nozzle PID variables
-        StoreItem<float, defaults::pid_nozzle_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle P")> pid_nozzle_p;
-        StoreItem<float, defaults::pid_nozzle_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle I")> pid_nozzle_i;
-        StoreItem<float, defaults::pid_nozzle_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Nozzle D")> pid_nozzle_d;
-
-        // bed PID variables
-        StoreItem<float, defaults::pid_bed_p, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed P")> pid_bed_p;
-        StoreItem<float, defaults::pid_bed_i, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed I")> pid_bed_i;
-        StoreItem<float, defaults::pid_bed_d, ItemFlag::calibrations | ItemFlag::common_misconfigurations, journal::hash("PID Bed D")> pid_bed_d;
         */
 };
 

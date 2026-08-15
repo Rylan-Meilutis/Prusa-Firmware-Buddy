@@ -13,4 +13,7 @@
 class FooterIcon : public window_icon_t {
 public:
     FooterIcon(window_t *parent, const img::Resource *icon);
+
+protected:
+    void unconditionalDraw() override;
 };

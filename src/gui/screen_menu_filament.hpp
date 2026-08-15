@@ -8,6 +8,7 @@
 #include "MItem_filament.hpp"
 #include "MItem_menus.hpp"
 #include "MItem_tools.hpp"
+#include <gui/screen/filament/screen_filaments_loaded.hpp>
 #include <option/has_toolchanger.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <gui/screen/filament/screen_filaments_loaded.hpp>
@@ -18,6 +19,7 @@ using ScreenMenuFilament__ = ScreenMenu<GuiDefaults::MenuFooter,
 #if HAS_WASTEBIN_FILL_TRACKING()
     MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
 #endif
+    MI_LOADED_FILAMENT,
     MI_LOAD, MI_UNLOAD, MI_CHANGE,
     MI_PURGE,
 #if HAS_TOOLCHANGER()
