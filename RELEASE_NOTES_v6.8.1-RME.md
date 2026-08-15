@@ -50,6 +50,9 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   chamber/filtration controls, loaded-filament editor, and signing support.
 - File payloads are streamed to storage rather than retained in heap memory;
   protocol buffers and queues are bounded to protect motion and GUI memory.
+- Connection-time RME frames remain zero-copy under the parser's recursion
+  guard. This removes a 640-byte automatic Marlin-stack snapshot that could
+  overflow immediately during the 6.8.1 session/query handshake.
 - Hosts should negotiate capabilities and follow
   [the protocol reference](doc/rme_serial_remote_protocol.md) and
   [the integration guide](doc/rme_serial_handler_integration.md). RME partial
