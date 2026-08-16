@@ -25,7 +25,12 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   idle lighting and deep-idle transitions continue normally.
 - Complete saved four-state lighting matrix, temporary print overrides, RME
   transfer badge, external light-bar support, configurable timeouts, and
-  corrected active/idle state reporting.
+  corrected active/idle state reporting. Every application boot, including
+  retained-crash export/error handling, starts with a bounded 30-second Active
+  window using the saved Active brightness (subject only to its existing 15%
+  readability floor), so an idle profile cannot leave the startup screen dark.
+  RME writes, settings restore, and startup normalization enforce the same
+  per-state screen limits as the printer UI.
 - Cause-specific recovery workflows for filament runout, filament movement not
   detected, extrusion flow limit, stuck filament, MMU, purge-bin, calibration,
   firmware update, and native load/unload operations.
@@ -90,8 +95,9 @@ release tags are created.
 - `transfers_tests`: 514,733 assertions across 11 cases.
 - `connect_tests`: 278 assertions across 47 cases.
 - Exactly 15 versioned BBFs were staged. The tightest flash target is MINI at
-  97.33% for translated builds; the highest reported RAM target is CORE One
-  INDX at 82.69%.
+  97.53% for the Japanese translation; the highest aggregate RAM target is XL
+  at 84.20%.
+
 ### Binary upload integrity follow-up
 
 - Corrected the binary upload advertisement to a 512-byte, three-frame window

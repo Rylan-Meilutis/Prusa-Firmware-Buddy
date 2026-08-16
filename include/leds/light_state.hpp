@@ -28,6 +28,22 @@ constexpr uint8_t clamp_screen_brightness(LightState state, uint8_t value) {
     return value < minimum ? minimum : (value > 100 ? 100 : value);
 }
 
+constexpr uint32_t sanitize_screen_brightness_by_state(uint32_t values) {
+    constexpr LightState states[] = {
+        LightState::deep_idle,
+        LightState::idle,
+        LightState::active,
+        LightState::printing,
+    };
+    uint32_t sanitized = 0;
+    for (const auto state : states) {
+        const uint8_t shift = light_state_shift(state);
+        const uint8_t value = (values >> shift) & 0xff;
+        sanitized |= static_cast<uint32_t>(clamp_screen_brightness(state, value)) << shift;
+    }
+    return sanitized;
+}
+
 /// True while a bounded startup-activity window is open. Unsigned subtraction
 /// keeps the comparison correct when the millisecond counter wraps.
 constexpr bool startup_activity_within_window(
